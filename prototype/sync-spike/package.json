@@ -1,0 +1,13 @@
+{
+  "name": "edunex-sync-spike",
+  "version": "0.0.0",
+  "private": true,
+  "description": "PROTOTYPE (throwaway) — sync-architecture spike for wayfinder ticket #9. Not production code; lives on the prototype/sync-spike branch only.",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "devDependencies": {
+    "electron": "^44.1.0"
+  }
+}

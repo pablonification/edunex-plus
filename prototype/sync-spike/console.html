@@ -1,0 +1,29 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Spike console</title>
+  <style>
+    body { background: #101418; color: #cde3d0; font: 12px/1.55 Menlo, Consolas, monospace; padding: 14px; margin: 0; }
+    h1 { font-size: 13px; color: #7fd88f; margin: 0 0 8px; }
+    .line { white-space: pre-wrap; word-break: break-all; }
+    .hint { color: #8aa; margin-bottom: 10px; }
+  </style>
+</head>
+<body>
+  <h1>EduNex sync spike — console (PROTOTYPE)</h1>
+  <div class="hint">This window will hide itself at T+15s and come back at T+35s. Watch the renderer heartbeat slow down while the main-process tick keeps its cadence.</div>
+  <div id="log"></div>
+  <script>
+    window.spikeLog(function (line) {
+      var el = document.getElementById('log');
+      var div = document.createElement('div');
+      div.className = 'line';
+      div.textContent = line;
+      el.appendChild(div);
+      window.scrollTo(0, document.body.scrollHeight);
+    });
+    window.spikeRenderHeartbeat();
+  </script>
+</body>
+</html>
