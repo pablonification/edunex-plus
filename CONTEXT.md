@@ -48,6 +48,14 @@ Class Response System — in-class polling/quizzing within EduNex.
 Attendance records for a class meeting.
 _Avoid_: attendance (use Presence when referring to the EduNex feature)
 
+**Presence window**:
+The span of time during which Presence can be recorded for a class meeting; it opens and closes independently of the meeting itself.
+_Avoid_: "presence time" (ambiguous with meeting time)
+
+**Answer**:
+A student's response to a Task, with a two-step lifecycle: saved as a draft ("Save Answer") and then finalized by a separate submit step. Saving never means submitted — conflating the two is the "saved ≠ submitted" trap.
+_Avoid_: "submission" for a draft; "save" for the final submit
+
 **Task**:
 An assignment in EduNex's API (course/tasks); distinct from an exam.
 _Avoid_: assignment in code identifiers (collides with programming terms); use Task
