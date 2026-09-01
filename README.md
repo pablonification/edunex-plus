@@ -6,20 +6,20 @@ An **unofficial, community-built desktop client** for the EduNex LMS (edunex.itb
 
 EduNex's web UI leaves students on their own at the worst moments. EduNex Desktop exists to fix four concrete pain points:
 
-1. **No notification when a new assignment appears** → missed submissions.
-2. **No notification when presence (attendance) opens** → missed attendance.
-3. **The "saved ≠ submitted" trap** on assignment submission → assignments never actually submitted.
+1. **No notification when a new Task appears** → Answers that are never submitted.
+2. **No notification when a Presence window opens** → missed Presence.
+3. **The "saved ≠ submitted" trap** on Task submission → Answers that are saved but never submitted.
 4. **A cluttered, overwhelming UI** → a minimal shell with hideable navigation.
 
 ## Status
 
-Pre-MVP, in design. There are no releases yet. The product spec is being built as a decision map in [issue #1](https://github.com/pablonification/edunex-desktop/issues/1); the planned v1 scope is the shell, courses/periods, the To Do feed, notifications for new assignments and presence windows, a submission flow that can never confuse saved with submitted, agenda, an exams list, presence recording, and course materials browsing/download.
+Pre-MVP, in design. There are no releases yet. The product spec is being built as a decision map in [issue #1](https://github.com/pablonification/edunex-desktop/issues/1); the planned v1 scope is the shell, courses/periods, the To Do feed, notifications for new Tasks and Presence windows, a submit flow that can never confuse saved with submitted, agenda, an exams list, Presence recording, and course materials browsing/download.
 
 ## How it works
 
 - Login happens in an in-app webview through ITB's official SSO (`sso-edunex.itb.ac.id`); the app captures the session tokens your browser already holds and talks to the EduNex API directly. Your password never touches the app.
 - Everything is stored on-device only. There is no backend, no telemetry, and no account other than your own ("bring your own session").
-- The app polls politely (jittered intervals of at least 60 seconds, backoff under load) and identifies itself with a distinctive `User-Agent` on every request.
+- The app polls politely (jittered intervals of at least 60 seconds, backoff under load) and identifies itself with a distinctive `EduNexDesktop/<version> (+https://github.com/pablonification/edunex-desktop)` `User-Agent` on every request.
 
 ## For contributors
 

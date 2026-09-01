@@ -6,7 +6,8 @@ Thanks for your interest in contributing. The project is pre-MVP and in active d
 
 - Read the [README disclaimer](README.md) first: this is an **unofficial** client for EduNex. Contributions must preserve that framing — no vendor or institute logos, no wording that implies official affiliation, and no features that talk to anyone's EduNex account but the logged-in user's own.
 - The API courtesy guardrails are not optional. Reads must respect the polling budget (jittered, ≥ 60 s interval, backoff on 429/5xx); anything that writes EduNex state must be an explicit user action, never automated or batched. Storage stays on-device; no telemetry, analytics, or tokens in logs or error reports.
-- The EduNex API is undocumented. Do not probe it beyond what the client needs; when you learn something about an endpoint, document it in `API.md` so the community shares one accurate picture.
+- The EduNex API is undocumented. Do not probe it beyond what the client needs; when you learn something about an endpoint, document it in `API.md` (created as the client is built) so the community shares one accurate picture.
+- No public release happens without the courtesy transparency email to Cognisia/ITB first (per the API-usage stance in issue #4): one short message introducing the project, the `User-Agent` string, and the polling profile — not asking permission, offering a point of contact.
 
 ## Domain language
 
