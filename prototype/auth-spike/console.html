@@ -1,0 +1,28 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Spike console</title>
+  <style>
+    body { background: #101418; color: #cde3d0; font: 12px/1.55 Menlo, Consolas, monospace; padding: 14px; margin: 0; }
+    h1 { font-size: 13px; color: #7fd88f; margin: 0 0 8px; }
+    .line { white-space: pre-wrap; word-break: break-all; }
+    .hint { color: #8aa; margin-bottom: 10px; }
+  </style>
+</head>
+<body>
+  <h1>EduNex auth spike — console (PROTOTYPE)</h1>
+  <div class="hint">Log in in the EduNex window. Token material is redacted; full detail goes to findings.json next to this app.</div>
+  <div id="log"></div>
+  <script>
+    window.spikeLog(function (line) {
+      var el = document.getElementById('log');
+      var div = document.createElement('div');
+      div.className = 'line';
+      div.textContent = line;
+      el.appendChild(div);
+      window.scrollTo(0, document.body.scrollHeight);
+    });
+  </script>
+</body>
+</html>

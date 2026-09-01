@@ -1,0 +1,13 @@
+{
+  "name": "edunex-auth-spike",
+  "version": "0.0.0",
+  "private": true,
+  "description": "PROTOTYPE (throwaway) — Electron auth-loop spike for wayfinder ticket #5. Not production code; lives on the prototype/auth-spike branch only.",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "devDependencies": {
+    "electron": "^44.1.0"
+  }
+}
