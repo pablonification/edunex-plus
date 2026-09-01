@@ -20,9 +20,10 @@ The product spec is a decision map in [issue #1](https://github.com/pablonificat
 ## Submitting changes
 
 1. Fork/branch, keep changes focused; one logical change per pull request.
-2. Match the existing code style and the glossary's language.
-3. Run the typechecker and test suite before submitting; include tests for behavior changes.
-4. Describe not just what the change does, but which pain point or ticket it serves.
+2. Follow [Conventional Commits](https://www.conventionalcommits.org/): `type(scope): description` (e.g. `feat(client):`, `fix(auth):`, `docs(context):`, `chore(spike):`). Throwaway spike work uses the `spike` scope and is marked "throwaway, never merge".
+3. Match the existing code style and the glossary's language.
+4. Run the typechecker and test suite before submitting; include tests for behavior changes.
+5. Describe not just what the change does, but which pain point or ticket it serves.
 
 ## Code of Conduct
 
