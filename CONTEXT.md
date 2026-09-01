@@ -1,14 +1,20 @@
-# EduNex Desktop
+# Edunex Plus
 
 A cross-platform desktop client for ITB's EduNex LMS, wrapping the platform's internal API with a purpose-built UI. This glossary defines the domain language shared by all project decisions and code.
 
 ## Language
 
+### Product
+
+**Edunex Plus**:
+This project — the unofficial, community-built desktop client for EduNex. The product mark is deliberately styled with a lowercase 'n' to keep it distinct from Cognisia's EduNex trademark; preserve the styling exactly in prose, code identifiers, and metadata.
+_Avoid_: "EduNex Plus" (capital N — that reads as the platform's brand); "EduNex Desktop" (retired working name)
+
 ### Platform
 
 **EduNex**:
 ITB's learning management system at edunex.itb.ac.id; a homegrown Vue.js SPA built by vendor Cognisia. Not Moodle/Open edX/Sakai.
-_Avoid_: "the LMS site", Edunex/edunex in prose (capital E, one word: EduNex)
+_Avoid_: "the LMS site"; Edunex/edunex for the platform — capital E, one word: EduNex (the lowercase-n "Edunex" styling belongs to our product name, Edunex Plus)
 
 **Cognisia**:
 The vendor that builds and operates EduNex; hosts the API under its own domain (api-edunex.cognisia.id).

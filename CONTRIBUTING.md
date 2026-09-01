@@ -1,4 +1,4 @@
-# Contributing to EduNex Desktop
+# Contributing to Edunex Plus
 
 Thanks for your interest in contributing. The project is pre-MVP and in active design; this file describes how to plug in today.
 
@@ -15,7 +15,7 @@ Thanks for your interest in contributing. The project is pre-MVP and in active d
 
 ## How decisions get made
 
-The product spec is a decision map in [issue #1](https://github.com/pablonification/edunex-desktop/issues/1): each open question is a ticket, resolved with evidence recorded in the issue thread. If you want to influence a decision, comment on the relevant ticket before writing code for it.
+The product spec is a decision map in [issue #1](https://github.com/pablonification/edunex-plus/issues/1): each open question is a ticket, resolved with evidence recorded in the issue thread. If you want to influence a decision, comment on the relevant ticket before writing code for it.
 
 ## Submitting changes
 
