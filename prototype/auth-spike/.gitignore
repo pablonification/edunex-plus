@@ -1,4 +1,7 @@
 node_modules/
 findings.json
+findings-401*.json
 package-lock.json
 spike-run.log
+spike-401-run.log
+spike-401-shots/
