@@ -6,7 +6,9 @@
   REV 3 — built to the user's reference (Trenning LMS shots): floating rounded app window, slim
   icon rail, collapsible white panel, underline tabs, hairline rows. Palette is the REAL EduNex
   brand, sampled from the live login page (prototype/auth-spike/spike-401-shots/final.png):
-  green #87D240 primary, blue #487BF0 secondary, #F4F4F4 backdrop. Type: Hanken Grotesk.
+  in-app palette corrected to the LIVE app (user screenshot): blue #027FFF primary,
+  green #26B608 accent (class codes/semester/success), amber #F7B500 (counts), #F4F4F4 content bg.
+  Type: Hanken Grotesk. Icons: Phosphor (regular/bold/fill via jsDelivr).
   Astryx was tried (rev 2) and rejected by the user — do not resurrect it.
 
   Question: what should the Edunex Plus app shell be?
@@ -34,18 +36,20 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css">
 <style>
   :root {
-    --backdrop: #e8e9e8;
+    --backdrop: #e3e4e4;
     --surface: #ffffff;
+    --content-bg: #f4f4f4;
     --ink: #191b1d;
     --ink-2: #64696f;
     --ink-3: #9ba0a6;
     --line: #ececee;
-    --green: #87d240;
-    --green-deep: #5faf1c;
-    --green-ink: #3d7a10;
-    --green-soft: #eff8e3;
-    --blue: #487bf0;
-    --blue-soft: #ebf0fe;
+    --blue: #027fff;          /* primary interactive — sampled from live app (My Courses active, tab underline) */
+    --blue-deep: #0265c9;
+    --blue-soft: #e8f2ff;
+    --green: #26b608;         /* accent — class codes, semester, success (live app) */
+    --green-deep: #1e9106;
+    --green-ink: #1e9106;
+    --green-soft: #e9f7e2;
     --amber: #e8971e;
     --amber-soft: #fdf3de;
     --red: #e5484d;
@@ -82,7 +86,7 @@
     display: flex; flex-direction: column; align-items: center; gap: 6px;
   }
   .rail-logo {
-    width: 40px; height: 40px; border-radius: 12px; background: var(--green);
+    width: 40px; height: 40px; border-radius: 12px; background: var(--blue);
     color: #fff; display: grid; place-items: center; font-weight: 800; font-size: 18px;
     margin-bottom: 18px;
   }
@@ -91,14 +95,14 @@
     color: #565b61; font-size: 20px; position: relative;
   }
   .rail-btn:hover { background: var(--pill); color: var(--ink); }
-  .rail-btn.active { background: var(--pill); color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--ink); }
+  .rail-btn.active { background: var(--blue-soft); color: var(--blue); box-shadow: inset 0 0 0 1.5px var(--blue); }
   .rail-btn .rb-badge {
     position: absolute; top: 4px; right: 4px; min-width: 15px; height: 15px; line-height: 15px;
     border-radius: 999px; background: var(--red); color: #fff; font-size: 9px; font-weight: 700; text-align: center; padding: 0 3px;
   }
   .rail-spacer { flex: 1; }
   .rail-add {
-    width: 44px; height: 44px; border-radius: 14px; background: var(--green); color: #fff;
+    width: 44px; height: 44px; border-radius: 14px; background: var(--blue); color: #fff;
     display: grid; place-items: center; font-size: 20px; margin-bottom: 6px;
   }
   .rail-ava {
@@ -126,9 +130,10 @@
   }
   .prow i { font-size: 18px; color: #7c828a; }
   .prow:hover { background: var(--pill); color: var(--ink); }
-  .prow.active { background: var(--pill); color: var(--ink); font-weight: 600; }
-  .prow.active i { color: var(--ink); }
-  .prow .count { margin-left: auto; font-size: 11.5px; font-weight: 700; color: var(--ink-2); background: var(--pill); border-radius: 999px; padding: 1px 8px; }
+  .phead-label { font-size: 11.5px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--ink-3); margin: 20px 12px 8px; }
+  .prow.active { background: var(--blue-soft); color: var(--blue); font-weight: 700; box-shadow: inset 3px 0 0 var(--blue); }
+  .prow.active i { color: var(--blue); }
+  .prow .count { margin-left: auto; font-size: 11.5px; font-weight: 700; color: var(--amber); background: var(--amber-soft); border-radius: 999px; padding: 1px 8px; }
   .prow .count.hot { background: var(--red-soft); color: var(--red); }
   .phead {
     display: flex; align-items: center; gap: 8px; margin: 20px 12px 8px;
@@ -139,7 +144,7 @@
   .phead .add { margin-left: auto; color: var(--ink-2); font-size: 16px; }
 
   /* ===== content ===== */
-  .content { flex: 1; min-width: 0; padding: 26px 30px 34px; overflow-y: auto; }
+  .content { flex: 1; min-width: 0; padding: 26px 30px 34px; overflow-y: auto; background: var(--content-bg); }
   .crumbs { display: flex; gap: 8px; align-items: center; font-size: 13.5px; font-weight: 600; color: var(--ink-2); margin-bottom: 16px; }
   .crumbs .sep { color: var(--ink-3); }
   .crumbs .here { color: var(--ink); }
@@ -157,14 +162,14 @@
 
   .tabs { display: flex; gap: 26px; border-bottom: 1px solid var(--line); margin: 22px 0 0; }
   .tabs button { padding: 10px 2px 12px; font-weight: 600; color: var(--ink-3); border-bottom: 2px solid transparent; margin-bottom: -1px; font-size: 14.5px; }
-  .tabs button.active { color: var(--ink); border-bottom-color: var(--ink); }
+  .tabs button.active { color: var(--blue); border-bottom-color: var(--blue); }
 
   .list { margin-top: 20px; }
   .row {
     display: flex; align-items: center; gap: 16px; padding: 14px 6px;
     border-bottom: 1px solid var(--line); cursor: pointer;
   }
-  .row:hover .rowtitle { color: var(--green-deep); }
+  .row:hover .rowtitle { color: var(--blue-deep); }
   .row:last-child { border-bottom: none; }
   .rowtitle { font-weight: 700; font-size: 15px; transition: color .1s; }
   .rowsub { font-size: 12.5px; color: var(--ink-3); font-weight: 500; margin-top: 2px; }
@@ -177,8 +182,8 @@
     font-weight: 700; font-size: 13.5px; border: 1px solid var(--line); background: var(--surface); color: var(--ink);
   }
   .btn:hover { border-color: #d8dadc; }
-  .btn.primary { background: var(--green); border-color: var(--green); color: #fff; }
-  .btn.primary:hover { background: var(--green-deep); border-color: var(--green-deep); }
+  .btn.primary { background: var(--blue); border-color: var(--blue); color: #fff; }
+  .btn.primary:hover { background: var(--blue-deep); border-color: var(--blue-deep); }
   .btn.blue { background: var(--blue); border-color: var(--blue); color: #fff; }
   .btn.blue:hover { filter: brightness(1.06); }
   .btn.sm { padding: 6px 13px; font-size: 12.5px; border-radius: 10px; }
@@ -190,15 +195,15 @@
   .side-card h3 { font-size: 15px; font-weight: 800; display: flex; align-items: center; gap: 8px; }
   .bignum { font-size: 30px; font-weight: 800; letter-spacing: -0.02em; }
   .cta {
-    display: block; width: 100%; text-align: center; background: var(--green); color: #fff;
+    display: block; width: 100%; text-align: center; background: var(--blue); color: #fff;
     font-weight: 700; padding: 12px; border-radius: 12px; margin-top: 14px; font-size: 14.5px;
   }
-  .cta:hover { background: var(--green-deep); }
+  .cta:hover { background: var(--blue-deep); }
 
   /* ===== variant B top nav (reference layout 2) ===== */
   .b-topbar { display: flex; align-items: center; gap: 16px; padding: 20px 28px 0; }
   .b-word { font-weight: 800; font-size: 20px; letter-spacing: -0.02em; display: flex; align-items: center; gap: 9px; }
-  .b-word .mark { width: 34px; height: 34px; border-radius: 10px; background: var(--green); color: #fff; display: grid; place-items: center; font-size: 16px; }
+  .b-word .mark { width: 34px; height: 34px; border-radius: 10px; background: var(--blue); color: #fff; display: grid; place-items: center; font-size: 16px; }
   .b-search {
     flex: 1; max-width: 460px; display: flex; align-items: center; gap: 10px;
     border: 1px solid var(--line); border-radius: 12px; padding: 9px 14px; color: var(--ink-3); font-weight: 500;
@@ -210,13 +215,13 @@
   }
   .b-nav { display: flex; gap: 24px; padding: 14px 28px 0; border-bottom: 1px solid var(--line); }
   .b-nav button { padding: 8px 2px 12px; font-weight: 600; color: var(--ink-3); border-bottom: 2px solid transparent; margin-bottom: -1px; }
-  .b-nav button.active { color: var(--ink); border-bottom-color: var(--ink); }
+  .b-nav button.active { color: var(--blue); border-bottom-color: var(--blue); }
   .b-nav .nb { font-size: 11px; background: var(--pill); border-radius: 999px; padding: 1px 7px; color: var(--ink-2); font-weight: 700; }
   .banner-green {
-    display: flex; align-items: center; gap: 12px; background: var(--green-soft);
+    display: flex; align-items: center; gap: 12px; background: var(--blue-soft);
     border-radius: 14px; padding: 14px 18px; margin-top: 20px; font-weight: 500;
   }
-  .banner-green .tag { background: var(--green); color: #fff; font-weight: 700; font-size: 12px; padding: 3px 10px; border-radius: 8px; }
+  .banner-green .tag { background: var(--blue); color: #fff; font-weight: 700; font-size: 12px; padding: 3px 10px; border-radius: 8px; }
   .banner-green .go { margin-left: auto; font-weight: 700; color: var(--ink); white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; }
   .greet { margin-top: 24px; }
   .greet h1 { font-size: 28px; }
@@ -299,18 +304,19 @@ const NOW = new Date("2026-09-02T08:56:00+07:00"); // pinned demo clock
 const HOUR = 3600e3, DAY = 24 * HOUR;
 
 const PERIODS = [
-  { id: "118", label: "2025/2026 Ganjil" },
-  { id: "111", label: "2024/2025 Genap" },
+  { id: "118", label: "Semester 2026-1" },
+  { id: "111", label: "Semester 2025-2" },
 ];
 
-// GET /course/presences/list → array[6] (live fields)
+// GET /course/presences/list → array[6] (live fields). VALUES below are the user's real
+// 2026-1 courses as shown in their live EduNex screenshot (2026-09-02): codes, class
+// numbers, lecturers and faculties are real; hue is our pastel cover tint.
 const PRESENCE_LIST = [
-  { course_id: 401, course_code: "II4091", courses_name: "Final Project Proposal", class_id: 88, class_name: "01", semester: 1, year: "2025/2026" },
-  { course_id: 402, course_code: "II3231", courses_name: "Sistem Aktuatorik", class_id: 71, class_name: "02", semester: 1, year: "2025/2026" },
-  { course_id: 403, course_code: "II3260", courses_name: "Pemrosesan Sinyal Digital", class_id: 64, class_name: "03", semester: 1, year: "2025/2026" },
-  { course_id: 404, course_code: "II3130", courses_name: "Sistem Cerdas", class_id: 59, class_name: "01", semester: 1, year: "2025/2026" },
-  { course_id: 405, course_code: "II3320", courses_name: "Jaringan Komputer", class_id: 73, class_name: "02", semester: 1, year: "2025/2026" },
-  { course_id: 406, course_code: "II3431", courses_name: "Sistem Mikroprosesor", class_id: 66, class_name: "01", semester: 1, year: "2025/2026" },
+  { course_id: 401, course_code: "II4091", courses_name: "Final Project Proposal", class_id: 88, class_name: "II4091-01", semester: 1, year: "2026-1", faculty: "STEI", lecturer: "Dr. Fetty Fitriyanti Lubis, S.T., M.T.", modules: 16, hue: "#DCE4F5" },
+  { course_id: 402, course_code: "ME4066", courses_name: "Climate Change", class_id: 71, class_name: "ME4066-03", semester: 1, year: "2026-1", faculty: "FITB", lecturer: "Dr. Drs. Joko Wiratmo, M.P.", modules: 0, hue: "#FBE3CD" },
+  { course_id: 403, course_code: "DK4073", courses_name: "Marketing Communication", class_id: 64, class_name: "DK4073-01", semester: 1, year: "2026-1", faculty: "FSRD", lecturer: "Dra. Ifa Safira Mustikadara, M.Si.", modules: 0, hue: "#DCEBDD" },
+  { course_id: 404, course_code: "PL3002", courses_name: "Economics and Innovation in Planning", class_id: 59, class_name: "PL3002-01", semester: 1, year: "2026-1", faculty: "SAPPK", lecturer: "Dr. Ir. Kartib Bayu, M.Si.", modules: 0, hue: "#D8EAF6" },
+  { course_id: 405, course_code: "PL3032", courses_name: "Infrastructure and Transportation Planning", class_id: 66, class_name: "PL3032-01", semester: 1, year: "2026-1", faculty: "SAPPK", lecturer: "Prof. Dr. Eng. Pradono, S.E., M.Ec.", modules: 0, hue: "#EAD9D9" },
 ];
 
 // GET /course/courses → JSON-API (include=lecturer,lecturer.user,contents,faculty, filter[is_open][is]=1)
@@ -321,9 +327,8 @@ const COURSES = {
     attributes: {
       code: p.course_code, name: p.courses_name, class_name: p.class_name,
       semester: p.semester, year: p.year, is_open: 1,
-      sks: [3, 3, 3, 3, 3, 2][i],
-      lecturer: ["Dr. Rina Widyastuti", "Dr. Bambang Pramudya", "Prof. Siti Aminah", "Dr. Ahmad Fauzi", "Dr. Dewi Kartika", "Dr. Yusuf Hidayat"][i],
-      hue: ["#EBF0FE", "#EFF8E3", "#FDF3DE", "#F0EDFD", "#FDEBEC", "#E4F5F3"][i],
+      sks: [3, 3, 2, 2, 2][i],
+      lecturer: p.lecturer, faculty: p.faculty, modules: p.modules, hue: p.hue,
     },
   })),
 };
@@ -332,37 +337,37 @@ const COURSES = {
 const TODO = {
   tasks: [
     { type: "task", code: "II4091", course: "Final Project Proposal", name: "Answer Tugas 01 Submit Usulan Dosen Pembimbing dan Topik", time: "2026-09-14T23:59:00.000Z", id: 113986, taskable_id: 450219 },
-    { type: "task", code: "II3231", course: "Sistem Aktuatorik", name: "Answer Tugas 02 Laporan Percobaan Motor DC", time: "2026-09-04T16:00:00.000Z", id: 114012, taskable_id: 450301 },
-    { type: "task", code: "II3260", course: "Pemrosesan Sinyal Digital", name: "Answer Tugas 03 Filter Desain FIR", time: "2026-09-07T23:59:00.000Z", id: 114055, taskable_id: 450344 },
-    { type: "task", code: "II3130", course: "Sistem Cerdas", name: "Answer Tugas 01 Prolog Basics", time: "2026-09-03T23:59:00.000Z", id: 114077, taskable_id: 450388 },
-    { type: "task", code: "II3320", course: "Jaringan Komputer", name: "Answer Tugas 04 Socket Programming", time: "2026-09-21T23:59:00.000Z", id: 114101, taskable_id: 450402 },
+    { type: "task", code: "PL3002", course: "Economics and Innovation in Planning", name: "Answer Quiz 01 — Central Tendency and Dispersion", time: "2026-09-04T16:00:00.000Z", id: 114012, taskable_id: 450301 },
+    { type: "task", code: "ME4066", course: "Climate Change", name: "Answer Tugas 01 Laporan Iklim dan Mitigasi", time: "2026-09-07T23:59:00.000Z", id: 114055, taskable_id: 450344 },
+    { type: "task", code: "DK4073", course: "Marketing Communication", name: "Answer Tugas 01 Case Study: Brand Audit", time: "2026-09-03T23:59:00.000Z", id: 114077, taskable_id: 450388 },
+    { type: "task", code: "PL3032", course: "Infrastructure and Transportation Planning", name: "Answer Tugas 01 Kajian Transportasi Daerah", time: "2026-09-21T23:59:00.000Z", id: 114101, taskable_id: 450402 },
   ],
   exams: [
-    { type: "exam", code: "II3431", course: "Sistem Mikroprosesor", name: "Quiz 02 — Interupsi dan Timer", time: "2026-09-10T02:00:00.000Z", id: 9001 },
+    { type: "exam", code: "ME4066", course: "Climate Change", name: "Quiz 01 — IPCC Scenarios", time: "2026-09-10T02:00:00.000Z", id: 9001 },
   ],
   questions: [], modules: [],
 };
 
 // GET /course/agenda → [{type, course_name, name, start_at, end_at}] (live fields)
 const AGENDA = [
-  { type: "class", course_name: "Sistem Aktuatorik", name: "Kuliah — Actuator Selection", start_at: "2026-09-02T09:30:00+07:00", end_at: "2026-09-02T11:00:00+07:00" },
-  { type: "class", course_name: "Pemrosesan Sinyal Digital", name: "Kuliah — FIR Design", start_at: "2026-09-03T07:00:00+07:00", end_at: "2026-09-03T08:30:00+07:00" },
-  { type: "class", course_name: "Jaringan Komputer", name: "Kuliah — TCP Congestion", start_at: "2026-09-04T13:00:00+07:00", end_at: "2026-09-04T14:30:00+07:00" },
-  { type: "vicon", course_name: "Sistem Cerdas", name: "Kuliah daring — Search & Optimization (Vicon)", start_at: "2026-09-05T07:00:00+07:00", end_at: "2026-09-05T08:30:00+07:00" },
+  { type: "class", course_name: "Climate Change", name: "Kuliah — Climate Modeling Basics", start_at: "2026-09-02T09:30:00+07:00", end_at: "2026-09-02T11:00:00+07:00" },
+  { type: "class", course_name: "Economics and Innovation in Planning", name: "Kuliah — Cost-Benefit Analysis", start_at: "2026-09-03T07:00:00+07:00", end_at: "2026-09-03T08:30:00+07:00" },
+  { type: "class", course_name: "Marketing Communication", name: "Kuliah — Brand Equity", start_at: "2026-09-04T13:00:00+07:00", end_at: "2026-09-04T14:30:00+07:00" },
+  { type: "vicon", course_name: "Final Project Proposal", name: "Kuliah daring — Seminar Usulan (Vicon)", start_at: "2026-09-05T07:00:00+07:00", end_at: "2026-09-05T08:30:00+07:00" },
   { type: "event", course_name: "—", name: "Kuliah Umum: AI di Industri", start_at: "2026-09-09T09:00:00+07:00", end_at: "2026-09-09T11:00:00+07:00" },
 ];
 
 // presence windows — spike field shape {id, course_code, presence_start, presence_end}
 const PRESENCE_WINDOWS = [
-  { id: "WIN-88021", course_code: "II3231", courses_name: "Sistem Aktuatorik", class_name: "02", presence_start: "2026-09-02T09:00:00+07:00", presence_end: "2026-09-02T09:15:00+07:00", recorded: false },
-  { id: "WIN-88034", course_code: "II3260", courses_name: "Pemrosesan Sinyal Digital", class_name: "03", presence_start: "2026-09-03T06:45:00+07:00", presence_end: "2026-09-03T07:00:00+07:00", recorded: false },
-  { id: "WIN-87990", course_code: "II4091", courses_name: "Final Project Proposal", class_name: "01", presence_start: "2026-08-28T09:00:00+07:00", presence_end: "2026-08-28T09:10:00+07:00", recorded: true },
+  { id: "WIN-88021", course_code: "ME4066", courses_name: "Climate Change", class_name: "ME4066-03", presence_start: "2026-09-02T09:00:00+07:00", presence_end: "2026-09-02T09:15:00+07:00", recorded: false },
+  { id: "WIN-88034", course_code: "PL3002", courses_name: "Economics and Innovation in Planning", class_name: "PL3002-01", presence_start: "2026-09-03T06:45:00+07:00", presence_end: "2026-09-03T07:00:00+07:00", recorded: false },
+  { id: "WIN-87990", course_code: "II4091", courses_name: "Final Project Proposal", class_name: "II4091-01", presence_start: "2026-08-28T09:00:00+07:00", presence_end: "2026-08-28T09:10:00+07:00", recorded: true },
 ];
 
 // GET /course/tasks → JSON-API envelope {meta, data:[{type,id,attributes,links}]} (live)
 const COURSE_TASKS = {
   meta: { count: 3 },
-  data: TODO.tasks.filter(t => t.code === "II4091" || t.code === "II3130").map(t => ({
+  data: TODO.tasks.filter(t => t.code === "II4091" || t.code === "PL3002").map(t => ({
     type: "task", id: String(t.id),
     attributes: {
       title: t.name.replace(/^Answer /, ""), course_code: t.code, due_at: t.time,
@@ -378,19 +383,18 @@ const MATERIALS = {
     { id: 7701, name: "Guidelines Tugas 01.pdf", size: "412 KB", uploaded_at: "2026-08-25T03:20:00.000Z" },
     { id: 7702, name: "Template Usulan TA.docx", size: "38 KB", uploaded_at: "2026-08-25T03:21:00.000Z" },
   ],
-  "402": [{ id: 7710, name: "Modul 1 — Motor DC.pdf", size: "1.2 MB", uploaded_at: "2026-09-01T04:00:00.000Z" }],
-  "403": [{ id: 7720, name: "Slide FIR.pdf", size: "900 KB", uploaded_at: "2026-08-30T02:10:00.000Z" }],
-  "404": [{ id: 7730, name: "Handout Search.pdf", size: "700 KB", uploaded_at: "2026-08-29T07:45:00.000Z" }],
-  "405": [{ id: 7740, name: "Slide TCP.pdf", size: "1.1 MB", uploaded_at: "2026-08-31T09:00:00.000Z" }],
-  "406": [],
+  "402": [{ id: 7710, name: "Modul 1 — Iklim dan Pemanasan Global.pdf", size: "1.2 MB", uploaded_at: "2026-09-01T04:00:00.000Z" }],
+  "403": [{ id: 7720, name: "Slide — Integrated Marketing Communication.pdf", size: "900 KB", uploaded_at: "2026-08-30T02:10:00.000Z" }],
+  "404": [{ id: 7730, name: "Handout — Ekonomi Perencanaan.pdf", size: "700 KB", uploaded_at: "2026-08-29T07:45:00.000Z" }],
+  "405": [{ id: 7740, name: "Slide — Transportasi dan Permukiman.pdf", size: "1.1 MB", uploaded_at: "2026-08-31T09:00:00.000Z" }],
 };
 
 // GET /notifications/190136 → {data:{…}} (userId captured-real ✔; inner shape inferred)
 const NOTIFICATIONS = {
   data: { user_id: 190136, unread_count: 3, items: [
-    { id: "n1", kind: "task_new", title: "New task in Sistem Cerdas", body: "Tugas 01 Prolog Basics — due 3 Sep", at: "2026-09-01T12:00:00+07:00" },
-    { id: "n2", kind: "material_new", title: "New material in Sistem Aktuatorik", body: "Modul 1 — Motor DC.pdf", at: "2026-09-01T04:00:00+07:00" },
-    { id: "n3", kind: "exam_new", title: "Quiz scheduled: Sistem Mikroprosesor", body: "Quiz 02 — 10 Sep", at: "2026-08-31T08:00:00+07:00" },
+    { id: "n1", kind: "task_new", title: "New task in DK4073 Marketing Communication", body: "Tugas 01 Case Study: Brand Audit — due 3 Sep", at: "2026-09-01T12:00:00+07:00" },
+    { id: "n2", kind: "material_new", title: "New material in ME4066 Climate Change", body: "Modul 1 — Iklim dan Pemanasan Global.pdf", at: "2026-09-01T04:00:00+07:00" },
+    { id: "n3", kind: "exam_new", title: "Quiz scheduled: ME4066 Climate Change", body: "Quiz 01 — IPCC Scenarios, 10 Sep", at: "2026-08-31T08:00:00+07:00" },
   ]},
 };
 
@@ -535,11 +539,13 @@ function variantA() {
     <div class="panel">
       <button class="panel-collapse" title="Hide panel"><i class="ph ph-caret-left"></i></button>
       <h2>Courses</h2>
-      <div class="prow ${state.cPage !== "all" ? "" : ""}"><i class="ph ph-clock-counter-clockwise"></i> This week</div>
-      <div class="prow"><i class="ph ph-check-square"></i> All tasks <span class="count hot">${soon}</span></div>
-      <div class="phead"><i class="ph ph-books"></i> Period <span class="n">${COURSES.data.length}</span> <button class="add"><i class="ph ph-plus-circle"></i></button></div>
+      <div class="phead-label">Menu</div>
+      <div class="prow"><i class="ph ph-house"></i> Homepage</div>
+      <div class="prow"><i class="ph ph-check-square"></i> To Do List <span class="count hot">${soon}</span></div>
+      <div class="phead-label">My Courses</div>
+      <div class="phead"><i class="ph ph-books"></i> Semester 2026-1 <span class="n">${COURSES.data.length}</span></div>
       ${COURSES.data.map(c => `
-        <div class="prow" onclick="openCourse('${c.id}')"><i class="ph ph-square" style="color:${c.attributes.hue}"></i> ${esc(c.attributes.name)} <span class="count">${c.attributes.class_name}</span></div>`).join("")}
+        <div class="prow" onclick="openCourse('${c.id}')"><i class="ph ph-square" style="color:${c.attributes.hue}"></i> ${esc(c.attributes.name)} <span class="count">${c.attributes.modules} mod</span></div>`).join("")}
     </div>
     <div class="content">
       <div class="crumbs"><span class="here">Courses</span> <span class="sep">/</span> <span>${PERIODS.find(p => p.id === state.period).label}</span></div>
@@ -558,7 +564,7 @@ function variantA() {
       <div class="list">
         ${openWins.map(w => `
           <div class="row" onclick="openCourse('${PRESENCE_LIST.find(p => p.course_code === w.course_code).course_id}')">
-            <div class="thumb" style="background:var(--green-soft);color:var(--green-ink)"><i class="ph ph-hand-heart"></i></div>
+            <div class="thumb" style="background:var(--blue-soft);color:var(--blue)"><i class="ph ph-hand-heart"></i></div>
             <div style="flex:1;min-width:0">
               <div class="rowtitle">Presence — ${esc(w.courses_name)}</div>
               <div class="rowsub">${w.course_code} · window ${fmtClock(w.presence_start)}–${fmtClock(w.presence_end)}</div>
@@ -589,16 +595,16 @@ function variantA() {
       </div>
       <p class="proto-note"><b>A — Course hub.</b> Navigation = the course. This week strip is the only global surface; tasks, agenda, materials, presence live inside each course (click one). Panel collapses; features opt out via the sliders icon in the rail.</p>
     </div>
-    <div class="content" style="flex:none;width:330px;border-left:1px solid var(--line);background:#fcfcfc">
+    <div class="content" style="flex:none;width:330px;border-left:1px solid var(--line);background:#f4f4f4">
       <div class="side-card" style="margin-top:0">
         <h3><i class="ph ph-chart-bar"></i> This week</h3>
         <div class="stat-cards" style="margin-top:12px">
           <div class="stat-card"><div class="ic" style="background:var(--red-soft);color:var(--red)"><i class="ph ph-check-square"></i></div><div><div class="n">${soon}</div><div class="l">due this week</div></div></div>
-          <div class="stat-card"><div class="ic" style="background:var(--green-soft);color:var(--green-ink)"><i class="ph ph-hand-heart"></i></div><div><div class="n">${openWins.length}</div><div class="l">presence open</div></div></div>
+          <div class="stat-card"><div class="ic" style="background:var(--blue-soft);color:var(--blue)"><i class="ph ph-hand-heart"></i></div><div><div class="n">${openWins.length}</div><div class="l">presence open</div></div></div>
         </div>
       </div>
       <div class="side-card">
-        <h3><i class="ph-fill ph-hand-heart" style="color:var(--green-deep)"></i> Presence next</h3>
+        <h3><i class="ph-fill ph-hand-heart" style="color:var(--blue)"></i> Presence next</h3>
         ${openWins.slice(0, 2).map(w => `
           <div style="display:flex;gap:10px;align-items:center;margin-top:12px">
             <div class="bignum" style="font-size:20px;color:var(--amber)">${countdown(w.presence_start)}</div>
@@ -672,7 +678,7 @@ function variantACourse() {
     </div>`).join("") || emptyRow("No materials.");
   if (tab === "presence") rows = myWins.length ? myWins.map(w => `
     <div class="row">
-      <div class="thumb" style="background:var(--green-soft);color:var(--green-ink)"><i class="ph ph-hand-heart"></i></div>
+      <div class="thumb" style="background:var(--blue-soft);color:var(--blue)"><i class="ph ph-hand-heart"></i></div>
       <div style="flex:1;min-width:0">
         <div class="rowtitle">${w.recorded ? "Recorded" : "Window opens in " + countdown(w.presence_start)}</div>
         <div class="rowsub">${fmtDay(w.presence_start)} · ${fmtClock(w.presence_start)}–${fmtClock(w.presence_end)}</div>
@@ -694,9 +700,10 @@ function variantACourse() {
     <div class="content">
       <div class="crumbs"><span style="cursor:pointer" onclick="goHome()">Courses</span> <span class="sep">/</span> <span class="here">${a.code} ${esc(a.name)}</span></div>
       <div class="pillrow" style="margin:0 0 6px">
-        <span class="pill">Class ${a.class_name}</span>
+        <span class="pill green">${a.class_name}</span>
         <span class="pill">${esc(a.lecturer)}</span>
-        <span class="pill">${a.sks} SKS</span>
+        <span class="pill">${esc(a.faculty)}</span>
+        <span class="pill green">Semester ${a.year}-${a.semester}</span>
       </div>
       <h1>${esc(a.name)}</h1>
       <div class="tabs">
@@ -704,14 +711,14 @@ function variantACourse() {
       </div>
       <div class="list">${rows}</div>
     </div>
-    <div class="content" style="flex:none;width:330px;border-left:1px solid var(--line);background:#fcfcfc">
+    <div class="content" style="flex:none;width:330px;border-left:1px solid var(--line);background:#f4f4f4">
       <div class="side-card" style="margin-top:0">
         <h3><i class="ph ph-info"></i> About</h3>
         <div class="rowsub" style="margin-top:10px">attributes from GET /course/courses (JSON-API):</div>
         <div style="font-family:ui-monospace,Menlo,monospace;font-size:11px;color:var(--ink-2);background:var(--pill);border-radius:10px;padding:10px;margin-top:8px">{code:"${a.code}", class_name:"${a.class_name}", sks:${a.sks}, is_open:${a.is_open}}</div>
       </div>
       <div class="side-card">
-        <h3><i class="ph-fill ph-hand-heart" style="color:var(--green-deep)"></i> Presence</h3>
+        <h3><i class="ph-fill ph-hand-heart" style="color:var(--blue)"></i> Presence</h3>
         ${myWins.filter(w => !w.recorded).slice(0, 1).map(w => `
           <div style="margin-top:12px">
             <div class="bignum" style="font-size:22px;color:var(--amber)">${countdown(w.presence_start)}</div>
@@ -807,7 +814,7 @@ function variantB() {
         <div class="list" style="margin-top:14px">
           ${openWins.map(w => `
             <div class="row">
-              <div class="thumb" style="background:var(--green-soft);color:var(--green-ink)"><i class="ph-fill ph-hand-heart"></i></div>
+              <div class="thumb" style="background:var(--blue-soft);color:var(--blue)"><i class="ph-fill ph-hand-heart"></i></div>
               <div style="flex:1;min-width:0">
                 <div class="rowtitle">Presence — ${esc(w.courses_name)}</div>
                 <div class="rowsub">${w.course_code} · ${fmtDay(w.presence_start)} · ${fmtClock(w.presence_start)}–${fmtClock(w.presence_end)}</div>
@@ -864,7 +871,7 @@ function variantB() {
       </div>
       <div>
         <div class="side-card" style="margin-top:0">
-          <h3><i class="ph-fill ph-hand-heart" style="color:var(--green-deep)"></i> Presence next</h3>
+          <h3><i class="ph-fill ph-hand-heart" style="color:var(--blue)"></i> Presence next</h3>
           <div style="display:flex;gap:12px;align-items:center;margin-top:12px">
             <div class="bignum" style="color:var(--amber)">${countdown(w0.presence_start)}</div>
             <div style="flex:1;min-width:0">
@@ -914,9 +921,10 @@ function variantBCourse() {
       <div class="crumbs"><span style="cursor:pointer" onclick="goHome()">Today</span> <span class="sep">/</span> <span class="here">${a.code} ${esc(a.name)}</span></div>
       <h1>${esc(a.name)}</h1>
       <div class="pillrow">
-        <span class="pill">Class ${a.class_name}</span>
+        <span class="pill green">${a.class_name}</span>
         <span class="pill">${esc(a.lecturer)}</span>
-        <span class="pill">${a.sks} SKS</span>
+        <span class="pill">${esc(a.faculty)}</span>
+        <span class="pill green">Semester ${a.year}-${a.semester}</span>
       </div>
       ${feat("tasks") ? `
       <div class="phead" style="margin-left:0"><i class="ph ph-check-square"></i> Tasks</div>
@@ -944,7 +952,7 @@ function variantBCourse() {
       <div class="list" style="margin-top:6px">
         ${PRESENCE_WINDOWS.filter(w => w.course_code === a.code).map(w => `
           <div class="row">
-            <div class="thumb" style="background:var(--green-soft);color:var(--green-ink)"><i class="ph ph-hand-heart"></i></div>
+            <div class="thumb" style="background:var(--blue-soft);color:var(--blue)"><i class="ph ph-hand-heart"></i></div>
             <div style="flex:1;min-width:0"><div class="rowtitle">${w.recorded ? "Recorded" : "Opens in " + countdown(w.presence_start)}</div><div class="rowsub">${fmtDay(w.presence_start)} · ${fmtClock(w.presence_start)}–${fmtClock(w.presence_end)}</div></div>
             ${w.recorded ? `<span class="pill green">recorded</span>` : `<span class="pill amber">pending</span>`}
           </div>`).join("") || emptyRow("No windows.")}
@@ -1020,7 +1028,8 @@ function variantC() {
             <div class="rowtitle">${esc(c.attributes.name)}</div>
             <div class="rowsub">${esc(c.attributes.lecturer)}</div>
           </div>
-          <span class="pill">Class ${c.attributes.class_name}</span>
+          <span class="pill green">${c.attributes.class_name}</span>
+          <span class="pill">${c.attributes.modules} mod</span>
           <i class="ph ph-caret-right" style="color:var(--ink-3)"></i>
         </div>`).join("")}
     </div>`;
@@ -1030,7 +1039,7 @@ function variantC() {
     <div class="list">
       ${PRESENCE_WINDOWS.map(w => `
         <div class="row">
-          <div class="thumb" style="background:var(--green-soft);color:var(--green-ink)"><i class="ph ph-hand-heart"></i></div>
+          <div class="thumb" style="background:var(--blue-soft);color:var(--blue)"><i class="ph ph-hand-heart"></i></div>
           <div style="flex:1;min-width:0">
             <div class="rowtitle">${esc(w.courses_name)}</div>
             <div class="rowsub">${w.course_code} · ${fmtDay(w.presence_start)} · ${fmtClock(w.presence_start)}–${fmtClock(w.presence_end)}</div>
@@ -1115,6 +1124,7 @@ function variantC() {
     <div class="panel">
       <button class="panel-collapse" title="Show panel" onclick="this.closest('.window').classList.toggle('panel-hidden')"><i class="ph ph-caret-left"></i></button>
       <h2>Edunex Plus</h2>
+      <div class="phead-label">Menu</div>
       ${pages.map(p => `
         <div class="prow ${page === p.key ? "active" : ""}" oncontextmenu="cCtx(event,'${p.key}');return false" onclick="state.cPage='${p.key}';state.view={name:'home'};render()">
           <i class="ph ${p.ic}"></i> ${p.label}
