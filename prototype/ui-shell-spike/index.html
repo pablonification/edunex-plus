@@ -1,0 +1,1182 @@
+<!DOCTYPE html>
+<!--
+  PROTOTYPE — throwaway UI for wayfinder ticket #8 ("UI shell design: minimal, hideable, uncluttered"),
+  child of map #1 (EduNex Desktop MVP Spec). Never merge this file into main.
+
+  REV 3 — built to the user's reference (Trenning LMS shots): floating rounded app window, slim
+  icon rail, collapsible white panel, underline tabs, hairline rows. Palette is the REAL EduNex
+  brand, sampled from the live login page (prototype/auth-spike/spike-401-shots/final.png):
+  green #87D240 primary, blue #487BF0 secondary, #F4F4F4 backdrop. Type: Hanken Grotesk.
+  Astryx was tried (rev 2) and rejected by the user — do not resurrect it.
+
+  Question: what should the Edunex Plus app shell be?
+    - A "Course hub" — reference layout 1: rail + panel + content + stats column
+    - B "Stream + ⌘K" — reference layout 2: top nav bar, chronological stream, palette
+    - C "Curated rail" — reference layouts 3–5: icon rail + collapsible panel you curate
+  Plus: how users hide features they never use; what "calm, fast, obvious" means concretely.
+
+  Three variants switchable via `?variant=A|B|C`, floating bottom bar, ← → keys cycle.
+  Data uses real API shapes captured live in prototype/sync-spike (2026-09-01/02) — see
+  FIXTURES; values beyond captured fragments are shape-faithful stand-ins.
+
+  Run: double-click this file (or `open prototype/ui-shell-spike/index.html`). No build.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Edunex Plus — shell prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css">
+<style>
+  :root {
+    --backdrop: #e8e9e8;
+    --surface: #ffffff;
+    --ink: #191b1d;
+    --ink-2: #64696f;
+    --ink-3: #9ba0a6;
+    --line: #ececee;
+    --green: #87d240;
+    --green-deep: #5faf1c;
+    --green-ink: #3d7a10;
+    --green-soft: #eff8e3;
+    --blue: #487bf0;
+    --blue-soft: #ebf0fe;
+    --amber: #e8971e;
+    --amber-soft: #fdf3de;
+    --red: #e5484d;
+    --red-soft: #fdebec;
+    --pill: #f3f4f4;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font: 14px/1.5 "Hanken Grotesk", ui-sans-serif, sans-serif;
+    background: var(--backdrop);
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+    padding: 28px;
+    min-height: 100vh;
+  }
+  button { font: inherit; color: inherit; background: none; border: none; cursor: pointer; padding: 0; }
+  input, select { font: inherit; }
+  h1, h2, h3 { margin: 0; letter-spacing: -0.01em; }
+  i.ph, i.ph-bold, i.ph-fill { vertical-align: -2px; }
+  ::placeholder { color: var(--ink-3); }
+
+  /* ===== the floating app window (reference look) ===== */
+  .window {
+    display: flex; max-width: 1360px; margin: 0 auto;
+    background: var(--surface); border-radius: 24px;
+    box-shadow: 0 24px 60px rgba(25, 27, 29, 0.10), 0 2px 8px rgba(25,27,29,.05);
+    overflow: hidden; min-height: calc(100vh - 56px);
+  }
+
+  /* ===== icon rail ===== */
+  .rail {
+    flex: none; width: 76px; padding: 18px 0 20px;
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+  }
+  .rail-logo {
+    width: 40px; height: 40px; border-radius: 12px; background: var(--green);
+    color: #fff; display: grid; place-items: center; font-weight: 800; font-size: 18px;
+    margin-bottom: 18px;
+  }
+  .rail-btn {
+    width: 44px; height: 44px; border-radius: 14px; display: grid; place-items: center;
+    color: #565b61; font-size: 20px; position: relative;
+  }
+  .rail-btn:hover { background: var(--pill); color: var(--ink); }
+  .rail-btn.active { background: var(--pill); color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--ink); }
+  .rail-btn .rb-badge {
+    position: absolute; top: 4px; right: 4px; min-width: 15px; height: 15px; line-height: 15px;
+    border-radius: 999px; background: var(--red); color: #fff; font-size: 9px; font-weight: 700; text-align: center; padding: 0 3px;
+  }
+  .rail-spacer { flex: 1; }
+  .rail-add {
+    width: 44px; height: 44px; border-radius: 14px; background: var(--green); color: #fff;
+    display: grid; place-items: center; font-size: 20px; margin-bottom: 6px;
+  }
+  .rail-ava {
+    width: 38px; height: 38px; border-radius: 50%; background: var(--amber-soft); color: var(--amber);
+    display: grid; place-items: center; font-weight: 700; font-size: 13px; border: 2px solid #fff;
+    box-shadow: 0 0 0 1.5px var(--line);
+  }
+
+  /* ===== collapsible panel ===== */
+  .panel {
+    flex: none; width: 264px; border-left: 1px solid var(--line); border-right: 1px solid var(--line);
+    padding: 26px 18px 20px 22px; display: flex; flex-direction: column; position: relative;
+    transition: margin-left .18s ease, opacity .18s ease;
+  }
+  .window.panel-hidden .panel { margin-left: -264px; opacity: 0; pointer-events: none; }
+  .panel-collapse {
+    position: absolute; right: -15px; top: 26px; width: 30px; height: 30px; border-radius: 50%;
+    background: var(--surface); border: 1px solid var(--line); box-shadow: 0 2px 8px rgba(25,27,29,.10);
+    display: grid; place-items: center; font-size: 14px; color: var(--ink-2); z-index: 5;
+  }
+  .panel h2 { font-size: 20px; font-weight: 800; letter-spacing: -0.02em; margin: 0 0 18px; }
+  .prow {
+    display: flex; align-items: center; gap: 12px; padding: 9px 12px; border-radius: 12px;
+    color: var(--ink-2); font-weight: 500; cursor: pointer; margin-bottom: 2px;
+  }
+  .prow i { font-size: 18px; color: #7c828a; }
+  .prow:hover { background: var(--pill); color: var(--ink); }
+  .prow.active { background: var(--pill); color: var(--ink); font-weight: 600; }
+  .prow.active i { color: var(--ink); }
+  .prow .count { margin-left: auto; font-size: 11.5px; font-weight: 700; color: var(--ink-2); background: var(--pill); border-radius: 999px; padding: 1px 8px; }
+  .prow .count.hot { background: var(--red-soft); color: var(--red); }
+  .phead {
+    display: flex; align-items: center; gap: 8px; margin: 20px 12px 8px;
+    font-size: 14.5px; font-weight: 700;
+  }
+  .phead .ph { color: var(--ink-2); }
+  .phead .n { font-size: 11px; background: var(--pill); border-radius: 999px; padding: 1px 7px; color: var(--ink-2); }
+  .phead .add { margin-left: auto; color: var(--ink-2); font-size: 16px; }
+
+  /* ===== content ===== */
+  .content { flex: 1; min-width: 0; padding: 26px 30px 34px; overflow-y: auto; }
+  .crumbs { display: flex; gap: 8px; align-items: center; font-size: 13.5px; font-weight: 600; color: var(--ink-2); margin-bottom: 16px; }
+  .crumbs .sep { color: var(--ink-3); }
+  .crumbs .here { color: var(--ink); }
+  .content h1 { font-size: 26px; font-weight: 800; letter-spacing: -0.02em; }
+
+  .pillrow { display: flex; gap: 8px; margin: 12px 0 0; flex-wrap: wrap; }
+  .pill {
+    display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 999px;
+    font-size: 12.5px; font-weight: 600; background: var(--pill); color: var(--ink-2);
+  }
+  .pill.green { background: var(--green-soft); color: var(--green-ink); }
+  .pill.blue { background: var(--blue-soft); color: var(--blue); }
+  .pill.amber { background: var(--amber-soft); color: var(--amber); }
+  .pill.red { background: var(--red-soft); color: var(--red); }
+
+  .tabs { display: flex; gap: 26px; border-bottom: 1px solid var(--line); margin: 22px 0 0; }
+  .tabs button { padding: 10px 2px 12px; font-weight: 600; color: var(--ink-3); border-bottom: 2px solid transparent; margin-bottom: -1px; font-size: 14.5px; }
+  .tabs button.active { color: var(--ink); border-bottom-color: var(--ink); }
+
+  .list { margin-top: 20px; }
+  .row {
+    display: flex; align-items: center; gap: 16px; padding: 14px 6px;
+    border-bottom: 1px solid var(--line); cursor: pointer;
+  }
+  .row:hover .rowtitle { color: var(--green-deep); }
+  .row:last-child { border-bottom: none; }
+  .rowtitle { font-weight: 700; font-size: 15px; transition: color .1s; }
+  .rowsub { font-size: 12.5px; color: var(--ink-3); font-weight: 500; margin-top: 2px; }
+  .thumb {
+    flex: none; width: 52px; height: 52px; border-radius: 12px; display: grid; place-items: center;
+    font-size: 22px; font-weight: 800;
+  }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px; padding: 9px 18px; border-radius: 12px;
+    font-weight: 700; font-size: 13.5px; border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+  }
+  .btn:hover { border-color: #d8dadc; }
+  .btn.primary { background: var(--green); border-color: var(--green); color: #fff; }
+  .btn.primary:hover { background: var(--green-deep); border-color: var(--green-deep); }
+  .btn.blue { background: var(--blue); border-color: var(--blue); color: #fff; }
+  .btn.blue:hover { filter: brightness(1.06); }
+  .btn.sm { padding: 6px 13px; font-size: 12.5px; border-radius: 10px; }
+
+  /* ===== right stats column (reference layout 1) ===== */
+  .with-side { display: grid; grid-template-columns: 1fr 330px; gap: 28px; align-items: start; }
+  .side-card { border: 1px solid var(--line); border-radius: 16px; padding: 18px; }
+  .side-card + .side-card { margin-top: 14px; }
+  .side-card h3 { font-size: 15px; font-weight: 800; display: flex; align-items: center; gap: 8px; }
+  .bignum { font-size: 30px; font-weight: 800; letter-spacing: -0.02em; }
+  .cta {
+    display: block; width: 100%; text-align: center; background: var(--green); color: #fff;
+    font-weight: 700; padding: 12px; border-radius: 12px; margin-top: 14px; font-size: 14.5px;
+  }
+  .cta:hover { background: var(--green-deep); }
+
+  /* ===== variant B top nav (reference layout 2) ===== */
+  .b-topbar { display: flex; align-items: center; gap: 16px; padding: 20px 28px 0; }
+  .b-word { font-weight: 800; font-size: 20px; letter-spacing: -0.02em; display: flex; align-items: center; gap: 9px; }
+  .b-word .mark { width: 34px; height: 34px; border-radius: 10px; background: var(--green); color: #fff; display: grid; place-items: center; font-size: 16px; }
+  .b-search {
+    flex: 1; max-width: 460px; display: flex; align-items: center; gap: 10px;
+    border: 1px solid var(--line); border-radius: 12px; padding: 9px 14px; color: var(--ink-3); font-weight: 500;
+  }
+  .b-search .kbd { margin-left: auto; }
+  .kbd {
+    font-size: 11px; font-weight: 600; color: var(--ink-2); background: var(--pill);
+    border-radius: 6px; padding: 2px 7px;
+  }
+  .b-nav { display: flex; gap: 24px; padding: 14px 28px 0; border-bottom: 1px solid var(--line); }
+  .b-nav button { padding: 8px 2px 12px; font-weight: 600; color: var(--ink-3); border-bottom: 2px solid transparent; margin-bottom: -1px; }
+  .b-nav button.active { color: var(--ink); border-bottom-color: var(--ink); }
+  .b-nav .nb { font-size: 11px; background: var(--pill); border-radius: 999px; padding: 1px 7px; color: var(--ink-2); font-weight: 700; }
+  .banner-green {
+    display: flex; align-items: center; gap: 12px; background: var(--green-soft);
+    border-radius: 14px; padding: 14px 18px; margin-top: 20px; font-weight: 500;
+  }
+  .banner-green .tag { background: var(--green); color: #fff; font-weight: 700; font-size: 12px; padding: 3px 10px; border-radius: 8px; }
+  .banner-green .go { margin-left: auto; font-weight: 700; color: var(--ink); white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; }
+  .greet { margin-top: 24px; }
+  .greet h1 { font-size: 28px; }
+  .greet .sub { color: var(--ink-2); font-weight: 500; margin-top: 4px; }
+  .stat-cards { display: flex; gap: 12px; }
+  .stat-card { border: 1px solid var(--line); border-radius: 14px; padding: 12px 18px; display: flex; align-items: center; gap: 10px; font-weight: 700; }
+  .stat-card .ic { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; font-size: 17px; }
+  .stat-card .n { font-size: 18px; font-weight: 800; }
+  .stat-card .l { font-size: 12px; color: var(--ink-2); font-weight: 500; }
+
+  /* palette overlay */
+  .overlay-bg { position: fixed; inset: 0; background: rgba(25,27,29,.35); z-index: 60; border-radius: 0; }
+  .palette {
+    position: fixed; top: 14vh; left: 50%; transform: translateX(-50%);
+    width: min(580px, 92vw); background: var(--surface); border-radius: 18px;
+    box-shadow: 0 24px 70px rgba(0,0,0,.28); z-index: 61; overflow: hidden;
+  }
+  .palette input { width: 100%; padding: 16px 20px; font-size: 15.5px; border: none; outline: none; border-bottom: 1px solid var(--line); font-weight: 500; }
+  .pal-row { display: flex; gap: 12px; align-items: center; padding: 11px 20px; cursor: pointer; font-weight: 500; }
+  .pal-row:hover { background: var(--pill); }
+  .pal-row i { color: var(--ink-3); }
+  .pal-head { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); padding: 12px 20px 4px; }
+
+  /* features dialog */
+  .dlg {
+    position: fixed; top: 18vh; left: 50%; transform: translateX(-50%);
+    width: min(420px, 92vw); background: var(--surface); border-radius: 18px;
+    box-shadow: 0 24px 70px rgba(0,0,0,.28); z-index: 61; padding: 22px;
+  }
+  .dlg h3 { font-size: 17px; font-weight: 800; }
+  .feat-row { display: flex; align-items: center; gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--line); }
+  .feat-row:last-of-type { border-bottom: none; }
+  .feat-row .t { font-weight: 700; font-size: 14px; }
+  .feat-row .d { font-size: 12px; color: var(--ink-3); font-weight: 500; }
+  .tog { width: 38px; height: 22px; border-radius: 999px; background: #dcdedd; position: relative; flex: none; transition: background .15s; }
+  .tog::after { content: ""; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: #fff; transition: left .15s; box-shadow: 0 1px 3px rgba(0,0,0,.25); }
+  .tog.on { background: var(--green); }
+  .tog.on::after { left: 18px; }
+
+  /* ctx menu (variant C) */
+  .ctxmenu {
+    position: fixed; background: var(--surface); border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(25,27,29,.18); padding: 5px; z-index: 70; min-width: 190px;
+  }
+  .ctxmenu button { display: flex; gap: 9px; align-items: center; width: 100%; text-align: left; padding: 8px 12px; border-radius: 8px; font-size: 13px; font-weight: 600; }
+  .ctxmenu button:hover { background: var(--pill); }
+  .ctxmenu i { color: var(--ink-3); }
+
+  /* switcher */
+  .switcher {
+    position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%);
+    display: flex; align-items: center; gap: 2px;
+    background: #1c1f1d; color: #fff; border-radius: 999px; padding: 5px 8px;
+    box-shadow: 0 8px 28px rgba(0,0,0,.4); z-index: 100;
+  }
+  .switcher button { color: #cfd4d0; font-size: 14px; width: 30px; height: 30px; border-radius: 50%; }
+  .switcher button:hover { background: #2c312e; color: #fff; }
+  .switcher .label { font-size: 12.5px; font-weight: 500; padding: 0 10px; min-width: 210px; text-align: center; color: #cfd4d0; }
+  .switcher .label b { color: #fff; font-weight: 700; }
+  .proto-note { font-size: 12.5px; color: var(--ink-3); max-width: 660px; margin-top: 34px; }
+  .proto-note b { color: var(--ink-2); }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div class="switcher" id="switcher">
+  <button id="prev">←</button>
+  <div class="label" id="vlabel"></div>
+  <button id="next">→</button>
+</div>
+
+<script>
+"use strict";
+/* =====================================================================
+   FIXTURES — real API shapes captured live 2026-09-01/02 (sync-spike).
+   Field names, nesting and endpoints exactly as observed. Captured-real
+   values marked ✔; other values are shape-faithful stand-ins.
+   ===================================================================== */
+const NOW = new Date("2026-09-02T08:56:00+07:00"); // pinned demo clock
+const HOUR = 3600e3, DAY = 24 * HOUR;
+
+const PERIODS = [
+  { id: "118", label: "2025/2026 Ganjil" },
+  { id: "111", label: "2024/2025 Genap" },
+];
+
+// GET /course/presences/list → array[6] (live fields)
+const PRESENCE_LIST = [
+  { course_id: 401, course_code: "II4091", courses_name: "Final Project Proposal", class_id: 88, class_name: "01", semester: 1, year: "2025/2026" },
+  { course_id: 402, course_code: "II3231", courses_name: "Sistem Aktuatorik", class_id: 71, class_name: "02", semester: 1, year: "2025/2026" },
+  { course_id: 403, course_code: "II3260", courses_name: "Pemrosesan Sinyal Digital", class_id: 64, class_name: "03", semester: 1, year: "2025/2026" },
+  { course_id: 404, course_code: "II3130", courses_name: "Sistem Cerdas", class_id: 59, class_name: "01", semester: 1, year: "2025/2026" },
+  { course_id: 405, course_code: "II3320", courses_name: "Jaringan Komputer", class_id: 73, class_name: "02", semester: 1, year: "2025/2026" },
+  { course_id: 406, course_code: "II3431", courses_name: "Sistem Mikroprosesor", class_id: 66, class_name: "01", semester: 1, year: "2025/2026" },
+];
+
+// GET /course/courses → JSON-API (include=lecturer,lecturer.user,contents,faculty, filter[is_open][is]=1)
+const COURSES = {
+  meta: { filter: { is_open: { is: 1 } }, page: { limit: 9, offset: 0 } },
+  data: PRESENCE_LIST.map((p, i) => ({
+    type: "course", id: String(p.course_id),
+    attributes: {
+      code: p.course_code, name: p.courses_name, class_name: p.class_name,
+      semester: p.semester, year: p.year, is_open: 1,
+      sks: [3, 3, 3, 3, 3, 2][i],
+      lecturer: ["Dr. Rina Widyastuti", "Dr. Bambang Pramudya", "Prof. Siti Aminah", "Dr. Ahmad Fauzi", "Dr. Dewi Kartika", "Dr. Yusuf Hidayat"][i],
+      hue: ["#EBF0FE", "#EFF8E3", "#FDF3DE", "#F0EDFD", "#FDEBEC", "#E4F5F3"][i],
+    },
+  })),
+};
+
+// GET /todo → {tasks, exams, questions, modules} — first task captured-real ✔
+const TODO = {
+  tasks: [
+    { type: "task", code: "II4091", course: "Final Project Proposal", name: "Answer Tugas 01 Submit Usulan Dosen Pembimbing dan Topik", time: "2026-09-14T23:59:00.000Z", id: 113986, taskable_id: 450219 },
+    { type: "task", code: "II3231", course: "Sistem Aktuatorik", name: "Answer Tugas 02 Laporan Percobaan Motor DC", time: "2026-09-04T16:00:00.000Z", id: 114012, taskable_id: 450301 },
+    { type: "task", code: "II3260", course: "Pemrosesan Sinyal Digital", name: "Answer Tugas 03 Filter Desain FIR", time: "2026-09-07T23:59:00.000Z", id: 114055, taskable_id: 450344 },
+    { type: "task", code: "II3130", course: "Sistem Cerdas", name: "Answer Tugas 01 Prolog Basics", time: "2026-09-03T23:59:00.000Z", id: 114077, taskable_id: 450388 },
+    { type: "task", code: "II3320", course: "Jaringan Komputer", name: "Answer Tugas 04 Socket Programming", time: "2026-09-21T23:59:00.000Z", id: 114101, taskable_id: 450402 },
+  ],
+  exams: [
+    { type: "exam", code: "II3431", course: "Sistem Mikroprosesor", name: "Quiz 02 — Interupsi dan Timer", time: "2026-09-10T02:00:00.000Z", id: 9001 },
+  ],
+  questions: [], modules: [],
+};
+
+// GET /course/agenda → [{type, course_name, name, start_at, end_at}] (live fields)
+const AGENDA = [
+  { type: "class", course_name: "Sistem Aktuatorik", name: "Kuliah — Actuator Selection", start_at: "2026-09-02T09:30:00+07:00", end_at: "2026-09-02T11:00:00+07:00" },
+  { type: "class", course_name: "Pemrosesan Sinyal Digital", name: "Kuliah — FIR Design", start_at: "2026-09-03T07:00:00+07:00", end_at: "2026-09-03T08:30:00+07:00" },
+  { type: "class", course_name: "Jaringan Komputer", name: "Kuliah — TCP Congestion", start_at: "2026-09-04T13:00:00+07:00", end_at: "2026-09-04T14:30:00+07:00" },
+  { type: "vicon", course_name: "Sistem Cerdas", name: "Kuliah daring — Search & Optimization (Vicon)", start_at: "2026-09-05T07:00:00+07:00", end_at: "2026-09-05T08:30:00+07:00" },
+  { type: "event", course_name: "—", name: "Kuliah Umum: AI di Industri", start_at: "2026-09-09T09:00:00+07:00", end_at: "2026-09-09T11:00:00+07:00" },
+];
+
+// presence windows — spike field shape {id, course_code, presence_start, presence_end}
+const PRESENCE_WINDOWS = [
+  { id: "WIN-88021", course_code: "II3231", courses_name: "Sistem Aktuatorik", class_name: "02", presence_start: "2026-09-02T09:00:00+07:00", presence_end: "2026-09-02T09:15:00+07:00", recorded: false },
+  { id: "WIN-88034", course_code: "II3260", courses_name: "Pemrosesan Sinyal Digital", class_name: "03", presence_start: "2026-09-03T06:45:00+07:00", presence_end: "2026-09-03T07:00:00+07:00", recorded: false },
+  { id: "WIN-87990", course_code: "II4091", courses_name: "Final Project Proposal", class_name: "01", presence_start: "2026-08-28T09:00:00+07:00", presence_end: "2026-08-28T09:10:00+07:00", recorded: true },
+];
+
+// GET /course/tasks → JSON-API envelope {meta, data:[{type,id,attributes,links}]} (live)
+const COURSE_TASKS = {
+  meta: { count: 3 },
+  data: TODO.tasks.filter(t => t.code === "II4091" || t.code === "II3130").map(t => ({
+    type: "task", id: String(t.id),
+    attributes: {
+      title: t.name.replace(/^Answer /, ""), course_code: t.code, due_at: t.time,
+      answer_state: t.id === 113986 ? "draft" : "not_started", // pain-3: draft ≠ submitted
+    },
+    links: { self: `/course/tasks/${t.id}` },
+  })),
+};
+
+// Materials — shape-faithful (course detail wasn't captured live)
+const MATERIALS = {
+  "401": [
+    { id: 7701, name: "Guidelines Tugas 01.pdf", size: "412 KB", uploaded_at: "2026-08-25T03:20:00.000Z" },
+    { id: 7702, name: "Template Usulan TA.docx", size: "38 KB", uploaded_at: "2026-08-25T03:21:00.000Z" },
+  ],
+  "402": [{ id: 7710, name: "Modul 1 — Motor DC.pdf", size: "1.2 MB", uploaded_at: "2026-09-01T04:00:00.000Z" }],
+  "403": [{ id: 7720, name: "Slide FIR.pdf", size: "900 KB", uploaded_at: "2026-08-30T02:10:00.000Z" }],
+  "404": [{ id: 7730, name: "Handout Search.pdf", size: "700 KB", uploaded_at: "2026-08-29T07:45:00.000Z" }],
+  "405": [{ id: 7740, name: "Slide TCP.pdf", size: "1.1 MB", uploaded_at: "2026-08-31T09:00:00.000Z" }],
+  "406": [],
+};
+
+// GET /notifications/190136 → {data:{…}} (userId captured-real ✔; inner shape inferred)
+const NOTIFICATIONS = {
+  data: { user_id: 190136, unread_count: 3, items: [
+    { id: "n1", kind: "task_new", title: "New task in Sistem Cerdas", body: "Tugas 01 Prolog Basics — due 3 Sep", at: "2026-09-01T12:00:00+07:00" },
+    { id: "n2", kind: "material_new", title: "New material in Sistem Aktuatorik", body: "Modul 1 — Motor DC.pdf", at: "2026-09-01T04:00:00+07:00" },
+    { id: "n3", kind: "exam_new", title: "Quiz scheduled: Sistem Mikroprosesor", body: "Quiz 02 — 10 Sep", at: "2026-08-31T08:00:00+07:00" },
+  ]},
+};
+
+const FEATURES = [
+  { key: "tasks", label: "Tasks", desc: "Assignments and answers (pain 3)", on: true },
+  { key: "agenda", label: "Agenda", desc: "Class schedule, Vicon links, events", on: true },
+  { key: "presence", label: "Presence", desc: "Attendance windows and records (pain 2)", on: true },
+  { key: "materials", label: "Materials", desc: "Files and downloads", on: true },
+  { key: "exams", label: "Exams", desc: "List-only in v1", on: true },
+  { key: "rps", label: "RPS", desc: "Semester lesson plan per course", on: false },
+];
+
+/* ===== helpers ===== */
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const fmtDay = iso => new Date(iso).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
+const fmtClock = iso => new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+function dueLabel(iso) {
+  const d = new Date(iso) - NOW;
+  if (d < 0) return "overdue";
+  if (d < DAY) return `due in ${Math.ceil(d / HOUR)} h`;
+  if (d < 7 * DAY) return `due in ${Math.ceil(d / DAY)} d`;
+  return "due " + fmtDay(iso);
+}
+function countdown(iso) {
+  const d = new Date(iso) - NOW;
+  if (d <= 0) return "open now";
+  const m = Math.round(d / 60000);
+  return m < 60 ? `${m} min` : `${Math.round(m / 60)} h ${m % 60} min`;
+}
+const dueSoon = iso => new Date(iso) - NOW < 7 * DAY;
+const courseById = id => COURSES.data.find(c => c.id === String(id));
+const duePill = iso => dueSoon(iso)
+  ? `<span class="pill red">${dueLabel(iso)}</span>`
+  : `<span class="pill">${dueLabel(iso)}</span>`;
+
+/* ===== state ===== */
+const state = {
+  variant: new URLSearchParams(location.search).get("variant") || "A",
+  period: "118",
+  view: { name: "home" },
+  courseId: null, tab: "tasks",
+  paletteOpen: false, paletteQuery: "",
+  featuresOpen: false,
+  notifOpen: false,
+  // C
+  cPage: "todo", cHidden: [], cCtx: null,
+};
+
+/* ===== shared fragments ===== */
+function rail(iconHome) {
+  const unread = NOTIFICATIONS.data.unread_count;
+  return `
+  <div class="rail">
+    <div class="rail-logo">e+</div>
+    <button class="rail-btn ${iconHome === "home" ? "active" : ""}" title="Home"><i class="ph ph-house"></i></button>
+    <button class="rail-btn" title="Search" onclick="state.paletteOpen=true;render()"><i class="ph ph-magnifying-glass"></i></button>
+    <button class="rail-btn" title="Calendar"><i class="ph ph-calendar-blank"></i></button>
+    <button class="rail-btn" title="Notifications" onclick="state.notifOpen=!state.notifOpen;render()"><i class="ph ph-bell"></i>${unread ? `<span class="rb-badge">${unread}</span>` : ""}</button>
+    <div class="rail-spacer"></div>
+    <button class="rail-btn" title="Visible features" onclick="state.featuresOpen=!state.featuresOpen;render()"><i class="ph ph-sliders-horizontal"></i></button>
+    <button class="rail-btn" title="Settings"><i class="ph ph-gear-six"></i></button>
+    <div class="rail-ava">RF</div>
+  </div>`;
+}
+
+function notifPopover() {
+  if (!state.notifOpen) return "";
+  return `
+  <div class="dlg" style="top:70px;left:auto;right:110px;transform:none;width:340px">
+    <h3 style="margin-bottom:10px">Notifications</h3>
+    ${NOTIFICATIONS.data.items.map(n => `
+      <div style="padding:9px 0;border-bottom:1px solid var(--line)">
+        <div style="font-weight:700">${esc(n.title)}</div>
+        <div class="rowsub">${esc(n.body)}</div>
+      </div>`).join("")}
+  </div>`;
+}
+
+function featuresDialog(intro) {
+  if (!state.featuresOpen) return "";
+  return `
+  <div class="overlay-bg" onclick="state.featuresOpen=false;render()"></div>
+  <div class="dlg">
+    <h3>Visible features</h3>
+    <p class="rowsub" style="margin:4px 0 8px">${intro}</p>
+    ${FEATURES.map(f => `
+      <div class="feat-row">
+        <div style="flex:1">
+          <div class="t">${f.label}</div>
+          <div class="d">${f.desc}</div>
+        </div>
+        <div class="tog ${f.on ? "on" : ""}" onclick="toggleFeature('${f.key}')"></div>
+      </div>`).join("")}
+    <p class="rowsub" style="margin-top:10px">Prototype: toggles reset on reload; hidden sections update live everywhere.</p>
+  </div>`;
+}
+function toggleFeature(key) {
+  const f = FEATURES.find(x => x.key === key);
+  f.on = !f.on;
+  render();
+}
+const feat = key => FEATURES.find(f => f.key === key).on;
+
+function palette() {
+  if (!state.paletteOpen) return "";
+  const q = state.paletteQuery.toLowerCase();
+  const groups = [
+    ["Courses", COURSES.data.map(c => ({ ic: "ph-books", label: `${c.attributes.code} — ${c.attributes.name}`, act: `openCourse('${c.id}')` }))],
+    ["Actions", [
+      { ic: "ph-check-square", label: "Show all tasks", act: `state.paletteOpen=false;render()` },
+      { ic: "ph-hand-heart", label: "Open presence windows", act: `state.paletteOpen=false;render()` },
+      { ic: "ph-sliders-horizontal", label: "Manage visible features", act: `state.paletteOpen=false;state.featuresOpen=true;render()` },
+    ]],
+  ];
+  const filtered = groups
+    .map(([g, items]) => [g, items.filter(i => i.label.toLowerCase().includes(q))])
+    .filter(([, items]) => items.length);
+  return `
+  <div class="overlay-bg" onclick="state.paletteOpen=false;render()"></div>
+  <div class="palette">
+    <input id="palq" placeholder="Type a course or action…" value="${esc(state.paletteQuery)}"
+      oninput="state.paletteQuery=this.value;render();document.getElementById('palq').focus();document.getElementById('palq').setSelectionRange(this.value.length,this.value.length)">
+    ${filtered.map(([g, items]) => `
+      <div class="pal-head">${g}</div>
+      ${items.map(i => `<div class="pal-row" onclick="${i.act}"><i class="ph ${i.ic}"></i>${esc(i.label)}</div>`).join("")}`).join("")}
+    <div class="rowsub" style="padding:10px 20px"><span class="kbd">esc</span> close</div>
+  </div>`;
+}
+function openCourse(id) { state.view = { name: "course" }; state.courseId = id; state.tab = "tasks"; state.paletteOpen = false; state.notifOpen = false; render(); }
+function goHome() { state.view = { name: "home" }; state.notifOpen = false; render(); }
+function openTask(id) { state.view = { name: "task" }; state.taskId = id; state.notifOpen = false; render(); }
+
+/* ================= VARIANT A — course hub (reference layout 1) ================= */
+function variantA() {
+  if (state.view.name === "task") return variantATask();
+  if (state.view.name === "course") return variantACourse();
+  const soon = TODO.tasks.filter(t => dueSoon(t.time)).length;
+  const openWins = PRESENCE_WINDOWS.filter(w => !w.recorded);
+  return `
+  <div class="window">
+    ${rail("home")}
+    <div class="panel">
+      <button class="panel-collapse" title="Hide panel"><i class="ph ph-caret-left"></i></button>
+      <h2>Courses</h2>
+      <div class="prow ${state.cPage !== "all" ? "" : ""}"><i class="ph ph-clock-counter-clockwise"></i> This week</div>
+      <div class="prow"><i class="ph ph-check-square"></i> All tasks <span class="count hot">${soon}</span></div>
+      <div class="phead"><i class="ph ph-books"></i> Period <span class="n">${COURSES.data.length}</span> <button class="add"><i class="ph ph-plus-circle"></i></button></div>
+      ${COURSES.data.map(c => `
+        <div class="prow" onclick="openCourse('${c.id}')"><i class="ph ph-square" style="color:${c.attributes.hue}"></i> ${esc(c.attributes.name)} <span class="count">${c.attributes.class_name}</span></div>`).join("")}
+    </div>
+    <div class="content">
+      <div class="crumbs"><span class="here">Courses</span> <span class="sep">/</span> <span>${PERIODS.find(p => p.id === state.period).label}</span></div>
+      <h1>This week</h1>
+      <div class="pillrow">
+        <span class="pill green"><i class="ph-fill ph-hand-heart"></i> ${openWins.length} presence windows open</span>
+        <span class="pill red">${soon} tasks due this week</span>
+        ${feat("exams") && TODO.exams.length ? `<span class="pill amber">1 quiz scheduled</span>` : ""}
+      </div>
+      <div class="tabs">
+        <button class="active">All activity</button>
+        ${feat("tasks") ? `<button>Tasks</button>` : ""}
+        ${feat("agenda") ? `<button>Agenda</button>` : ""}
+        ${feat("presence") ? `<button>Presence</button>` : ""}
+      </div>
+      <div class="list">
+        ${openWins.map(w => `
+          <div class="row" onclick="openCourse('${PRESENCE_LIST.find(p => p.course_code === w.course_code).course_id}')">
+            <div class="thumb" style="background:var(--green-soft);color:var(--green-ink)"><i class="ph ph-hand-heart"></i></div>
+            <div style="flex:1;min-width:0">
+              <div class="rowtitle">Presence — ${esc(w.courses_name)}</div>
+              <div class="rowsub">${w.course_code} · window ${fmtClock(w.presence_start)}–${fmtClock(w.presence_end)}</div>
+            </div>
+            <span class="pill amber"><i class="ph ph-clock"></i> ${countdown(w.presence_start)}</span>
+            <button class="btn primary sm">Record</button>
+          </div>`).join("")}
+        ${feat("tasks") ? TODO.tasks.filter(t => dueSoon(t.time)).map(t => `
+          <div class="row" onclick="openTask(${t.id})">
+            <div class="thumb" style="background:${courseById(PRESENCE_LIST.find(p => p.course_code === t.code).course_id).attributes.hue};color:#565b61">${t.code.slice(0, 2)}</div>
+            <div style="flex:1;min-width:0">
+              <div class="rowtitle">${esc(t.name.replace(/^Answer /, ""))}</div>
+              <div class="rowsub">${esc(t.course)} · ${esc(courseById(PRESENCE_LIST.find(p => p.course_code === t.code).course_id).attributes.lecturer)}</div>
+            </div>
+            ${duePill(t.time)}
+            <button class="btn sm">Open</button>
+          </div>`).join("") : ""}
+        ${feat("agenda") ? AGENDA.slice(0, 3).map(a => `
+          <div class="row">
+            <div class="thumb" style="background:var(--pill);color:#565b61"><i class="ph ${a.type === "vicon" ? "ph-video-camera" : "ph-calendar-blank"}"></i></div>
+            <div style="flex:1;min-width:0">
+              <div class="rowtitle">${esc(a.name)}</div>
+              <div class="rowsub">${esc(a.course_name)}</div>
+            </div>
+            ${a.type === "vicon" ? `<span class="pill blue">Vicon</span>` : `<span class="pill">${esc(a.type)}</span>`}
+            <span class="rowsub" style="font-weight:600">${fmtDay(a.start_at)} · ${fmtClock(a.start_at)}</span>
+          </div>`).join("") : ""}
+      </div>
+      <p class="proto-note"><b>A — Course hub.</b> Navigation = the course. This week strip is the only global surface; tasks, agenda, materials, presence live inside each course (click one). Panel collapses; features opt out via the sliders icon in the rail.</p>
+    </div>
+    <div class="content" style="flex:none;width:330px;border-left:1px solid var(--line);background:#fcfcfc">
+      <div class="side-card" style="margin-top:0">
+        <h3><i class="ph ph-chart-bar"></i> This week</h3>
+        <div class="stat-cards" style="margin-top:12px">
+          <div class="stat-card"><div class="ic" style="background:var(--red-soft);color:var(--red)"><i class="ph ph-check-square"></i></div><div><div class="n">${soon}</div><div class="l">due this week</div></div></div>
+          <div class="stat-card"><div class="ic" style="background:var(--green-soft);color:var(--green-ink)"><i class="ph ph-hand-heart"></i></div><div><div class="n">${openWins.length}</div><div class="l">presence open</div></div></div>
+        </div>
+      </div>
+      <div class="side-card">
+        <h3><i class="ph-fill ph-hand-heart" style="color:var(--green-deep)"></i> Presence next</h3>
+        ${openWins.slice(0, 2).map(w => `
+          <div style="display:flex;gap:10px;align-items:center;margin-top:12px">
+            <div class="bignum" style="font-size:20px;color:var(--amber)">${countdown(w.presence_start)}</div>
+            <div style="flex:1;min-width:0">
+              <div style="font-weight:700;font-size:13.5px">${esc(w.courses_name)}</div>
+              <div class="rowsub">${fmtDay(w.presence_start)}</div>
+            </div>
+          </div>`).join("")}
+        <button class="cta"><i class="ph ph-hand-heart"></i> Record presence</button>
+      </div>
+      <div class="side-card">
+        <h3><i class="ph ph-check-square"></i> Due soonest</h3>
+        ${TODO.tasks.slice().sort((a, b) => new Date(a.time) - new Date(b.time)).slice(0, 3).map(t => `
+          <div style="display:flex;gap:10px;align-items:center;margin-top:12px;cursor:pointer" onclick="openTask(${t.id})">
+            <div style="flex:1;min-width:0">
+              <div style="font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(t.name.replace(/^Answer /, ""))}</div>
+              <div class="rowsub">${esc(t.course)}</div>
+            </div>
+            <span class="pill ${dueSoon(t.time) ? "red" : ""}" style="flex:none">${dueLabel(t.time)}</span>
+          </div>`).join("")}
+      </div>
+    </div>
+  </div>
+  ${featuresDialog("Hide features you never use — they disappear from the tabs, the list and the stats column.")}
+  ${palette()}${notifPopover()}`;
+}
+
+function variantACourse() {
+  const c = courseById(state.courseId);
+  const a = c.attributes;
+  const myTasks = TODO.tasks.filter(t => t.code === a.code);
+  const myAgenda = AGENDA.filter(x => x.course_name === a.name);
+  const myWins = PRESENCE_WINDOWS.filter(w => w.course_code === a.code);
+  const tabs = [
+    feat("tasks") && ["tasks", `Tasks ${myTasks.length}`],
+    feat("agenda") && ["agenda", "Agenda"],
+    feat("materials") && ["materials", "Materials"],
+    feat("presence") && ["presence", "Presence"],
+    feat("exams") && ["exams", "Exams"],
+  ].filter(Boolean);
+  if (!tabs.some(t => t[0] === state.tab)) state.tab = tabs[0][0];
+  const tab = state.tab;
+  let rows = "";
+  if (tab === "tasks") rows = myTasks.length ? myTasks.map(t => `
+    <div class="row" onclick="openTask(${t.id})">
+      <div class="thumb" style="background:${a.hue};color:#565b61"><i class="ph ph-check-square"></i></div>
+      <div style="flex:1;min-width:0">
+        <div class="rowtitle">${esc(t.name.replace(/^Answer /, ""))}</div>
+        <div class="rowsub">/course/tasks/${t.id} · answer_state: ${esc((COURSE_TASKS.data.find(x => +x.id === t.id)?.attributes.answer_state) ?? "…")}</div>
+      </div>
+      ${duePill(t.time)}
+      <button class="btn sm">Open</button>
+    </div>`).join("") : emptyRow("No open tasks.");
+  if (tab === "agenda") rows = myAgenda.map(x => `
+    <div class="row">
+      <div class="thumb" style="background:var(--pill);color:#565b61"><i class="ph ${x.type === "vicon" ? "ph-video-camera" : "ph-calendar-blank"}"></i></div>
+      <div style="flex:1;min-width:0">
+        <div class="rowtitle">${esc(x.name)}</div>
+        <div class="rowsub">${fmtDay(x.start_at)} · ${fmtClock(x.start_at)}–${fmtClock(x.end_at)}</div>
+      </div>
+      ${x.type === "vicon" ? `<span class="pill blue">Vicon</span>` : `<span class="pill">${esc(x.type)}</span>`}
+    </div>`).join("") || emptyRow("Nothing scheduled.");
+  if (tab === "materials") rows = (MATERIALS[c.id] || []).map(m => `
+    <div class="row">
+      <div class="thumb" style="background:${a.hue};color:#565b61"><i class="ph ph-file-text"></i></div>
+      <div style="flex:1;min-width:0">
+        <div class="rowtitle">${esc(m.name)}</div>
+        <div class="rowsub">${m.size} · ${fmtDay(m.uploaded_at)}</div>
+      </div>
+      <button class="btn sm"><i class="ph ph-download-simple"></i> Download</button>
+    </div>`).join("") || emptyRow("No materials.");
+  if (tab === "presence") rows = myWins.length ? myWins.map(w => `
+    <div class="row">
+      <div class="thumb" style="background:var(--green-soft);color:var(--green-ink)"><i class="ph ph-hand-heart"></i></div>
+      <div style="flex:1;min-width:0">
+        <div class="rowtitle">${w.recorded ? "Recorded" : "Window opens in " + countdown(w.presence_start)}</div>
+        <div class="rowsub">${fmtDay(w.presence_start)} · ${fmtClock(w.presence_start)}–${fmtClock(w.presence_end)}</div>
+      </div>
+      ${w.recorded ? `<span class="pill green">recorded</span>` : `<span class="pill amber">pending</span>`}
+    </div>`).join("") : emptyRow("No presence windows.");
+  if (tab === "exams") rows = emptyRow("Exams are list-only in v1.");
+  return `
+  <div class="window">
+    ${rail("course")}
+    <div class="panel">
+      <button class="panel-collapse" title="Hide panel"><i class="ph ph-caret-left"></i></button>
+      <h2>Courses</h2>
+      ${COURSES.data.map(x => `
+        <div class="prow ${x.id === state.courseId ? "active" : ""}" onclick="openCourse('${x.id}')">
+          <i class="ph ph-square" style="color:${x.attributes.hue}"></i> ${esc(x.attributes.name)} <span class="count">${x.attributes.class_name}</span>
+        </div>`).join("")}
+    </div>
+    <div class="content">
+      <div class="crumbs"><span style="cursor:pointer" onclick="goHome()">Courses</span> <span class="sep">/</span> <span class="here">${a.code} ${esc(a.name)}</span></div>
+      <div class="pillrow" style="margin:0 0 6px">
+        <span class="pill">Class ${a.class_name}</span>
+        <span class="pill">${esc(a.lecturer)}</span>
+        <span class="pill">${a.sks} SKS</span>
+      </div>
+      <h1>${esc(a.name)}</h1>
+      <div class="tabs">
+        ${tabs.map(([k, l]) => `<button class="${tab === k ? "active" : ""}" onclick="state.tab='${k}';render()">${l}</button>`).join("")}
+      </div>
+      <div class="list">${rows}</div>
+    </div>
+    <div class="content" style="flex:none;width:330px;border-left:1px solid var(--line);background:#fcfcfc">
+      <div class="side-card" style="margin-top:0">
+        <h3><i class="ph ph-info"></i> About</h3>
+        <div class="rowsub" style="margin-top:10px">attributes from GET /course/courses (JSON-API):</div>
+        <div style="font-family:ui-monospace,Menlo,monospace;font-size:11px;color:var(--ink-2);background:var(--pill);border-radius:10px;padding:10px;margin-top:8px">{code:"${a.code}", class_name:"${a.class_name}", sks:${a.sks}, is_open:${a.is_open}}</div>
+      </div>
+      <div class="side-card">
+        <h3><i class="ph-fill ph-hand-heart" style="color:var(--green-deep)"></i> Presence</h3>
+        ${myWins.filter(w => !w.recorded).slice(0, 1).map(w => `
+          <div style="margin-top:12px">
+            <div class="bignum" style="font-size:22px;color:var(--amber)">${countdown(w.presence_start)}</div>
+            <div class="rowsub">${fmtDay(w.presence_start)} · ${fmtClock(w.presence_start)}–${fmtClock(w.presence_end)}</div>
+          </div>`).join("") || `<div class="rowsub" style="margin-top:10px">No open windows.</div>`}
+        <button class="cta"><i class="ph ph-hand-heart"></i> Record presence</button>
+      </div>
+    </div>
+  </div>
+  ${featuresDialog("Hide features you never use — they disappear from the tabs, the list and the stats column.")}${palette()}${notifPopover()}`;
+}
+
+function variantATask() {
+  const t = TODO.tasks.find(x => x.id === state.taskId);
+  const ct = COURSE_TASKS.data.find(x => +x.id === t.id);
+  const draft = ct?.attributes.answer_state === "draft";
+  return `
+  <div class="window">
+    ${rail()}
+    <div class="content" style="max-width:820px;margin:0 auto">
+      <div class="crumbs"><span style="cursor:pointer" onclick="goHome()">Courses</span> <span class="sep">/</span>
+        <span style="cursor:pointer" onclick="openCourse('${PRESENCE_LIST.find(p => p.course_code === t.code).course_id}')">${esc(t.course)}</span>
+        <span class="sep">/</span> <span class="here">Task</span></div>
+      <h1>${esc(t.name.replace(/^Answer /, ""))}</h1>
+      <div class="pillrow">
+        ${duePill(t.time)}
+        ${draft ? `<span class="pill amber"><i class="ph-fill ph-warning-circle"></i> Draft saved — NOT submitted</span>` : `<span class="pill green">Submitted</span>`}
+        <span class="pill">${fmtDay(t.time)} · ${fmtClock(t.time)}</span>
+      </div>
+      <div style="border:1px solid var(--line);border-radius:16px;padding:20px;margin-top:20px">
+        <div style="font-weight:800;font-size:15px">Answer</div>
+        <div class="rowsub" style="margin:6px 0 12px">${draft ? "Draf jawaban tersimpan 2026-09-01 21:14 — Submit Answer untuk finalisasi." : ""}</div>
+        <textarea placeholder="Write your answer…" style="width:100%;height:110px;border:1px solid var(--line);border-radius:12px;padding:12px;font:inherit;resize:vertical;outline-color:var(--green)"></textarea>
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">
+          <button class="btn">Save draft</button>
+          <button class="btn primary"><i class="ph ph-paper-plane-tilt"></i> Submit answer</button>
+        </div>
+      </div>
+      <div style="font-family:ui-monospace,Menlo,monospace;font-size:11px;color:var(--ink-2);background:var(--pill);border-radius:10px;padding:10px;margin-top:14px">GET /course/tasks/${ct?.id} → ${esc(JSON.stringify(ct?.attributes))}</div>
+      <p class="proto-note">Pain 3 lives in its own ticket (#7) — shown here so the shell hosting it can be judged.</p>
+    </div>
+  </div>
+  ${featuresDialog("")}${palette()}${notifPopover()}`;
+}
+const emptyRow = msg => `<div class="row" style="cursor:default;color:var(--ink-3)">${msg}</div>`;
+
+/* ================= VARIANT B — stream + ⌘K (reference layout 2) ================= */
+function variantB() {
+  if (state.view.name === "course") return variantBCourse();
+  if (state.view.name === "task") return variantATask();
+  const w0 = PRESENCE_WINDOWS[0];
+  const openWins = PRESENCE_WINDOWS.filter(w => !w.recorded);
+  const soon = TODO.tasks.filter(t => dueSoon(t.time));
+  const later = TODO.tasks.filter(t => !dueSoon(t.time));
+  const files = Object.entries(MATERIALS).flatMap(([cid, ms]) => ms.map(m => ({ ...m, course: courseById(cid).attributes.name, code: courseById(cid).attributes.code, hue: courseById(cid).attributes.hue })));
+  return `
+  <div class="window" style="display:block">
+    <div class="b-topbar">
+      <div class="b-word"><span class="mark">e+</span> Edunex Plus</div>
+      <div style="flex:1"></div>
+      <div class="b-search" onclick="state.paletteOpen=true;render()" style="cursor:pointer">
+        <i class="ph ph-magnifying-glass"></i> Search or jump to…
+        <span class="kbd">⌘K</span>
+      </div>
+      <div style="flex:1"></div>
+      <button class="rail-btn" style="width:38px;height:38px" title="Notifications" onclick="state.notifOpen=!state.notifOpen;render()"><i class="ph ph-bell"></i><span class="rb-badge">${NOTIFICATIONS.data.unread_count}</span></button>
+      <div class="rail-ava">RF</div>
+      <select class="pill" style="border:none;cursor:pointer" onchange="state.period=this.value;render()">
+        ${PERIODS.map(p => `<option value="${p.id}" ${p.id === state.period ? "selected" : ""}>${p.label}</option>`).join("")}
+      </select>
+    </div>
+    <div class="b-nav">
+      <button class="active">Today</button>
+      ${feat("tasks") ? `<button>Tasks <span class="nb">${soon.length}</span></button>` : ""}
+      ${feat("agenda") ? `<button>Agenda</button>` : ""}
+      ${feat("presence") ? `<button>Presence <span class="nb">${openWins.length}</span></button>` : ""}
+      ${feat("materials") ? `<button>Files</button>` : ""}
+      ${feat("exams") ? `<button>Exams</button>` : ""}
+    </div>
+    <div class="content" style="display:grid;grid-template-columns:1fr 330px;gap:28px;align-items:start">
+      <div>
+        ${feat("presence") ? `
+        <div class="banner-green">
+          <span class="tag">Now</span>
+          <span>Presence for <b>&nbsp;${w0.courses_name}</b>&nbsp;opens in <b>&nbsp;${countdown(w0.presence_start)}</b></span>
+          <span class="go">Record now <i class="ph ph-arrow-right"></i></span>
+        </div>` : ""}
+        <div class="greet">
+          <h1>Good morning</h1>
+          <div class="sub">Here's what needs you today — everything else can wait.</div>
+        </div>
+        ${feat("presence") ? `
+        <div class="list" style="margin-top:14px">
+          ${openWins.map(w => `
+            <div class="row">
+              <div class="thumb" style="background:var(--green-soft);color:var(--green-ink)"><i class="ph-fill ph-hand-heart"></i></div>
+              <div style="flex:1;min-width:0">
+                <div class="rowtitle">Presence — ${esc(w.courses_name)}</div>
+                <div class="rowsub">${w.course_code} · ${fmtDay(w.presence_start)} · ${fmtClock(w.presence_start)}–${fmtClock(w.presence_end)}</div>
+              </div>
+              <span class="pill amber"><i class="ph ph-clock"></i> ${countdown(w.presence_start)}</span>
+              <button class="btn primary sm">Record</button>
+            </div>`).join("")}
+        </div>` : ""}
+        ${feat("tasks") ? `
+        <div class="phead" style="margin-left:0"><i class="ph ph-check-square"></i> Due this week <span class="n">${soon.length}</span></div>
+        <div class="list" style="margin-top:6px">
+          ${soon.map(t => taskStreamRow(t)).join("") || emptyRow("Clear week.")}
+        </div>
+        ${later.length ? `<div class="list">${later.map(taskStreamRow).join("")}</div>` : ""}
+        ${feat("exams") && TODO.exams.length ? `
+        <div class="phead" style="margin-left:0"><i class="ph ph-clipboard-text"></i> Exams</div>
+        <div class="list" style="margin-top:6px">
+          ${TODO.exams.map(e => `
+            <div class="row">
+              <div class="thumb" style="background:var(--amber-soft);color:var(--amber)"><i class="ph ph-clipboard-text"></i></div>
+              <div style="flex:1;min-width:0"><div class="rowtitle">${esc(e.name)}</div><div class="rowsub">${esc(e.course)}</div></div>
+              <span class="pill amber">${fmtDay(e.time)}</span>
+            </div>`).join("")}
+        </div>` : ""}` : ""}
+        ${feat("agenda") ? `
+        <div class="phead" style="margin-left:0"><i class="ph ph-calendar-blank"></i> Agenda</div>
+        <div class="list" style="margin-top:6px">
+          ${AGENDA.map(a => `
+            <div class="row">
+              <div class="thumb" style="background:var(--pill);color:#565b61"><i class="ph ${a.type === "vicon" ? "ph-video-camera" : "ph-calendar-blank"}"></i></div>
+              <div style="flex:1;min-width:0">
+                <div class="rowtitle">${esc(a.name)}</div>
+                <div class="rowsub">${esc(a.course_name)}</div>
+              </div>
+              ${a.type === "vicon" ? `<span class="pill blue">Vicon</span>` : `<span class="pill">${esc(a.type)}</span>`}
+              <span class="rowsub" style="font-weight:600">${fmtDay(a.start_at)} · ${fmtClock(a.start_at)}</span>
+            </div>`).join("")}
+        </div>` : ""}
+        ${feat("materials") ? `
+        <div class="phead" style="margin-left:0"><i class="ph ph-file-text"></i> New files</div>
+        <div class="list" style="margin-top:6px">
+          ${files.map(m => `
+            <div class="row">
+              <div class="thumb" style="background:${m.hue};color:#565b61"><i class="ph ph-file-text"></i></div>
+              <div style="flex:1;min-width:0">
+                <div class="rowtitle">${esc(m.name)}</div>
+                <div class="rowsub">${esc(m.course)}</div>
+              </div>
+              <span class="pill">${m.size}</span>
+              <button class="btn sm"><i class="ph ph-download-simple"></i></button>
+            </div>`).join("")}
+        </div>` : ""}
+        <p class="proto-note"><b>B — Stream first.</b> No sidebar, no course grid: the app IS a chronological stream (presence → due → agenda → files), so the default surface answers "what do I do next?". Navigation is ⌘K + the top nav; each top-nav entry doubles as a section filter. Course pages open from any course name.</p>
+      </div>
+      <div>
+        <div class="side-card" style="margin-top:0">
+          <h3><i class="ph-fill ph-hand-heart" style="color:var(--green-deep)"></i> Presence next</h3>
+          <div style="display:flex;gap:12px;align-items:center;margin-top:12px">
+            <div class="bignum" style="color:var(--amber)">${countdown(w0.presence_start)}</div>
+            <div style="flex:1;min-width:0">
+              <div style="font-weight:700;font-size:13.5px">${esc(w0.courses_name)}</div>
+              <div class="rowsub">window ${fmtClock(w0.presence_start)}–${fmtClock(w0.presence_end)}</div>
+            </div>
+          </div>
+          <button class="cta"><i class="ph ph-hand-heart"></i> Record presence</button>
+        </div>
+        <div class="side-card">
+          <h3><i class="ph ph-check-square"></i> This week</h3>
+          <div class="stat-cards" style="margin-top:12px">
+            <div class="stat-card"><div class="ic" style="background:var(--red-soft);color:var(--red)"><i class="ph ph-check-square"></i></div><div><div class="n">${soon.length}</div><div class="l">due this week</div></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  ${featuresDialog("In B, the top-nav entries are the sections — hide a feature and its entry disappears.")}${palette()}${notifPopover()}`;
+}
+function taskStreamRow(t) {
+  const c = courseById(PRESENCE_LIST.find(p => p.course_code === t.code).course_id);
+  return `
+  <div class="row" onclick="openTask(${t.id})">
+    <div class="thumb" style="background:${c.attributes.hue};color:#565b61">${t.code.slice(0, 2)}</div>
+    <div style="flex:1;min-width:0">
+      <div class="rowtitle">${esc(t.name.replace(/^Answer /, ""))}</div>
+      <div class="rowsub" style="cursor:pointer" onclick="event.stopPropagation();openCourse('${c.id}')">${esc(t.course)}</div>
+    </div>
+    ${duePill(t.time)}
+    <button class="btn sm">Open</button>
+  </div>`;
+}
+function variantBCourse() {
+  const c = courseById(state.courseId);
+  const a = c.attributes;
+  return `
+  <div class="window" style="display:block">
+    <div class="b-topbar">
+      <div class="b-word"><span class="mark">e+</span> Edunex Plus</div>
+      <div style="flex:1"></div>
+      <div class="b-search" onclick="state.paletteOpen=true;render()"><i class="ph ph-magnifying-glass"></i> Search or jump to… <span class="kbd">⌘K</span></div>
+      <div style="flex:1"></div>
+      <div class="rail-ava">RF</div>
+    </div>
+    <div class="content" style="max-width:860px;margin:0 auto">
+      <div class="crumbs"><span style="cursor:pointer" onclick="goHome()">Today</span> <span class="sep">/</span> <span class="here">${a.code} ${esc(a.name)}</span></div>
+      <h1>${esc(a.name)}</h1>
+      <div class="pillrow">
+        <span class="pill">Class ${a.class_name}</span>
+        <span class="pill">${esc(a.lecturer)}</span>
+        <span class="pill">${a.sks} SKS</span>
+      </div>
+      ${feat("tasks") ? `
+      <div class="phead" style="margin-left:0"><i class="ph ph-check-square"></i> Tasks</div>
+      <div class="list" style="margin-top:6px">
+        ${TODO.tasks.filter(t => t.code === a.code).map(t => `
+          <div class="row" onclick="openTask(${t.id})">
+            <div class="thumb" style="background:${a.hue};color:#565b61"><i class="ph ph-check-square"></i></div>
+            <div style="flex:1;min-width:0"><div class="rowtitle">${esc(t.name.replace(/^Answer /, ""))}</div><div class="rowsub">/course/tasks/${t.id}</div></div>
+            ${duePill(t.time)}
+            <button class="btn sm">Open</button>
+          </div>`).join("") || emptyRow("No open tasks.")}
+      </div>` : ""}
+      ${feat("materials") ? `
+      <div class="phead" style="margin-left:0"><i class="ph ph-file-text"></i> Materials</div>
+      <div class="list" style="margin-top:6px">
+        ${(MATERIALS[c.id] || []).map(m => `
+          <div class="row">
+            <div class="thumb" style="background:${a.hue};color:#565b61"><i class="ph ph-file-text"></i></div>
+            <div style="flex:1;min-width:0"><div class="rowtitle">${esc(m.name)}</div><div class="rowsub">${m.size} · ${fmtDay(m.uploaded_at)}</div></div>
+            <button class="btn sm"><i class="ph ph-download-simple"></i> Download</button>
+          </div>`).join("") || emptyRow("No materials.")}
+      </div>` : ""}
+      ${feat("presence") ? `
+      <div class="phead" style="margin-left:0"><i class="ph ph-hand-heart"></i> Presence</div>
+      <div class="list" style="margin-top:6px">
+        ${PRESENCE_WINDOWS.filter(w => w.course_code === a.code).map(w => `
+          <div class="row">
+            <div class="thumb" style="background:var(--green-soft);color:var(--green-ink)"><i class="ph ph-hand-heart"></i></div>
+            <div style="flex:1;min-width:0"><div class="rowtitle">${w.recorded ? "Recorded" : "Opens in " + countdown(w.presence_start)}</div><div class="rowsub">${fmtDay(w.presence_start)} · ${fmtClock(w.presence_start)}–${fmtClock(w.presence_end)}</div></div>
+            ${w.recorded ? `<span class="pill green">recorded</span>` : `<span class="pill amber">pending</span>`}
+          </div>`).join("") || emptyRow("No windows.")}
+      </div>` : ""}
+    </div>
+  </div>
+  ${featuresDialog("")}${palette()}${notifPopover()}`;
+}
+
+/* ================= VARIANT C — curated rail (reference layouts 3–5) ================= */
+const C_PAGES = [
+  { key: "todo", label: "To Do", ic: "ph-check-square" },
+  { key: "agenda", label: "Agenda", ic: "ph-calendar-blank" },
+  { key: "presence", label: "Presence", ic: "ph-hand-heart" },
+  { key: "courses", label: "Courses", ic: "ph-books" },
+  { key: "materials", label: "Materials", ic: "ph-file-text" },
+  { key: "exams", label: "Exams", ic: "ph-clipboard-text" },
+];
+function variantC() {
+  if (state.view.name === "course") return variantBCourse();
+  if (state.view.name === "task") return variantATask();
+  const pages = C_PAGES.filter(p => !state.cHidden.includes(p.key) && (p.key !== "courses" || feat("tasks")));
+  const soon = TODO.tasks.filter(t => dueSoon(t.time));
+  const later = TODO.tasks.filter(t => !dueSoon(t.time));
+  const page = state.cPage;
+  let main = "";
+  if (page === "todo") {
+    main = `
+    ${feat("presence") ? `
+    <div class="banner-green">
+      <span class="tag">Now</span>
+      <span>Presence for <b>&nbsp;${PRESENCE_WINDOWS[0].courses_name}</b>&nbsp;opens in <b>&nbsp;${countdown(PRESENCE_WINDOWS[0].presence_start)}</b></span>
+      <span class="go">Record now <i class="ph ph-arrow-right"></i></span>
+    </div>` : ""}
+    <h1 style="margin-top:22px">To Do</h1>
+    <div style="display:grid;grid-template-columns:1fr 320px;gap:28px;align-items:start">
+      <div>
+        <div class="phead" style="margin-left:0"><i class="ph ph-check-square"></i> Due this week <span class="n hot">${soon.length}</span></div>
+        <div class="list" style="margin-top:6px">${soon.map(taskStreamRow).join("") || emptyRow("Nothing due this week.")}</div>
+        <div class="list">${later.map(taskStreamRow).join("")}</div>
+      </div>
+      <div>
+        ${feat("presence") ? `
+        <div class="side-card" style="margin-top:0">
+          <h3><i class="ph ph-hand-heart"></i> Presence</h3>
+          ${PRESENCE_WINDOWS.filter(w => !w.recorded).map(w => `
+            <div style="display:flex;gap:10px;align-items:center;margin-top:12px">
+              <div style="flex:1;min-width:0"><div style="font-weight:700;font-size:13.5px">${esc(w.courses_name)}</div><div class="rowsub">${fmtDay(w.presence_start)}</div></div>
+              <span class="pill amber">${countdown(w.presence_start)}</span>
+            </div>`).join("")}
+          <button class="cta"><i class="ph ph-hand-heart"></i> Record presence</button>
+        </div>` : ""}
+        ${feat("agenda") ? `
+        <div class="side-card">
+          <h3><i class="ph ph-calendar-blank"></i> Next up</h3>
+          ${AGENDA.slice(0, 3).map(a => `
+            <div style="display:flex;gap:10px;align-items:center;margin-top:12px">
+              <div style="flex:1;min-width:0"><div style="font-weight:600;font-size:13px">${esc(a.name)}</div><div class="rowsub">${fmtDay(a.start_at)} · ${fmtClock(a.start_at)}</div></div>
+              ${a.type === "vicon" ? `<span class="pill blue">Vicon</span>` : ""}
+            </div>`).join("")}
+        </div>` : ""}
+      </div>
+    </div>`;
+  } else if (page === "courses") {
+    main = `
+    <h1 style="margin-top:22px">Courses</h1>
+    <div class="phead" style="margin-left:0"><i class="ph ph-books"></i> ${PERIODS.find(p => p.id === state.period).label} <span class="n">${COURSES.data.length}</span></div>
+    <div class="list" style="margin-top:6px">
+      ${COURSES.data.map(c => `
+        <div class="row" onclick="openCourse('${c.id}')">
+          <div class="thumb" style="background:${c.attributes.hue};color:#565b61">${c.attributes.code.slice(0, 2)}</div>
+          <div style="flex:1;min-width:0">
+            <div class="rowtitle">${esc(c.attributes.name)}</div>
+            <div class="rowsub">${esc(c.attributes.lecturer)}</div>
+          </div>
+          <span class="pill">Class ${c.attributes.class_name}</span>
+          <i class="ph ph-caret-right" style="color:var(--ink-3)"></i>
+        </div>`).join("")}
+    </div>`;
+  } else if (page === "presence") {
+    main = `
+    <h1 style="margin-top:22px">Presence</h1>
+    <div class="list">
+      ${PRESENCE_WINDOWS.map(w => `
+        <div class="row">
+          <div class="thumb" style="background:var(--green-soft);color:var(--green-ink)"><i class="ph ph-hand-heart"></i></div>
+          <div style="flex:1;min-width:0">
+            <div class="rowtitle">${esc(w.courses_name)}</div>
+            <div class="rowsub">${w.course_code} · ${fmtDay(w.presence_start)} · ${fmtClock(w.presence_start)}–${fmtClock(w.presence_end)}</div>
+          </div>
+          ${w.recorded ? `<span class="pill green">recorded</span>` : `<span class="pill amber">${countdown(w.presence_start)}</span>`}
+          ${w.recorded ? "" : `<button class="btn primary sm">Record</button>`}
+        </div>`).join("")}
+    </div>`;
+  } else if (page === "agenda") {
+    main = `
+    <h1 style="margin-top:22px">Agenda</h1>
+    <div class="list">
+      ${AGENDA.map(a => `
+        <div class="row">
+          <div class="thumb" style="background:var(--pill);color:#565b61"><i class="ph ${a.type === "vicon" ? "ph-video-camera" : "ph-calendar-blank"}"></i></div>
+          <div style="flex:1;min-width:0">
+            <div class="rowtitle">${esc(a.name)}</div>
+            <div class="rowsub">${esc(a.course_name)} · ${fmtClock(a.start_at)}–${fmtClock(a.end_at)}</div>
+          </div>
+          ${a.type === "vicon" ? `<span class="pill blue">Vicon</span>` : `<span class="pill">${esc(a.type)}</span>`}
+          <span class="rowsub" style="font-weight:600">${fmtDay(a.start_at)}</span>
+        </div>`).join("")}
+    </div>`;
+  } else if (page === "materials") {
+    const files = Object.entries(MATERIALS).flatMap(([cid, ms]) => ms.map(m => ({ ...m, code: courseById(cid).attributes.code, hue: courseById(cid).attributes.hue })));
+    main = `
+    <h1 style="margin-top:22px">Materials</h1>
+    <div class="list">
+      ${files.map(m => `
+        <div class="row">
+          <div class="thumb" style="background:${m.hue};color:#565b61"><i class="ph ph-file-text"></i></div>
+          <div style="flex:1;min-width:0"><div class="rowtitle">${esc(m.name)}</div><div class="rowsub">${m.code} · ${m.size}</div></div>
+          <span class="pill">${fmtDay(m.uploaded_at)}</span>
+          <button class="btn sm"><i class="ph ph-download-simple"></i></button>
+        </div>`).join("") || emptyRow("No materials.")}
+    </div>`;
+  } else if (page === "exams") {
+    main = `
+    <h1 style="margin-top:22px">Exams</h1>
+    <div class="pillrow" style="margin-bottom:8px"><span class="pill">list-only in v1</span></div>
+    <div class="list">
+      ${TODO.exams.map(e => `
+        <div class="row">
+          <div class="thumb" style="background:var(--amber-soft);color:var(--amber)"><i class="ph ph-clipboard-text"></i></div>
+          <div style="flex:1;min-width:0"><div class="rowtitle">${esc(e.name)}</div><div class="rowsub">${esc(e.course)}</div></div>
+          <span class="pill amber">${fmtDay(e.time)}</span>
+        </div>`).join("") || emptyRow("No exams scheduled.")}
+    </div>`;
+  } else if (page === "settings") {
+    main = `
+    <h1 style="margin-top:22px">Settings</h1>
+    <div class="phead" style="margin-left:0"><i class="ph ph-sliders-horizontal"></i> Features</div>
+    <div class="rowsub" style="margin:2px 0 10px">Hidden features lose their panel entry and page. Right-click any panel row as a shortcut.</div>
+    <div class="side-card" style="max-width:560px">
+      ${FEATURES.map(f => `
+        <div class="feat-row">
+          <div style="flex:1"><div class="t">${f.label}</div><div class="d">${f.desc}</div></div>
+          <div class="tog ${f.on ? "on" : ""}" onclick="toggleFeature('${f.key}');state.cPage='settings'"></div>
+        </div>`).join("")}
+    </div>
+    <div class="phead" style="margin-left:0"><i class="ph ph-eye-slash"></i> Hidden pages</div>
+    <div class="side-card" style="max-width:560px">
+      ${state.cHidden.length ? state.cHidden.map(k => `
+        <div class="feat-row">
+          <div style="flex:1" class="t">${C_PAGES.find(p => p.key === k)?.label ?? k}</div>
+          <button class="btn sm" onclick="state.cHidden=state.cHidden.filter(x=>x!=='${k}');render()"><i class="ph ph-plus"></i> Add back</button>
+        </div>`).join("") : `<div class="rowsub">Nothing hidden.</div>`}
+    </div>`;
+  }
+
+  const unread = NOTIFICATIONS.data.unread_count;
+  return `
+  <div class="window">
+    <div class="rail">
+      <div class="rail-logo">e+</div>
+      <button class="rail-btn ${!state.cHidden.includes("todo") ? "" : ""}" title="Notifications" onclick="state.notifOpen=!state.notifOpen;render()"><i class="ph ph-bell"></i>${unread ? `<span class="rb-badge">${unread}</span>` : ""}</button>
+      <div class="rail-spacer"></div>
+      <button class="rail-btn" title="Visible features" onclick="state.featuresOpen=!state.featuresOpen;render()"><i class="ph ph-sliders-horizontal"></i></button>
+      <button class="rail-btn ${page === "settings" ? "active" : ""}" title="Settings" onclick="state.cPage='settings';state.view={name:'home'};render()"><i class="ph ph-gear-six"></i></button>
+      <div class="rail-ava">RF</div>
+    </div>
+    <div class="panel">
+      <button class="panel-collapse" title="Show panel" onclick="this.closest('.window').classList.toggle('panel-hidden')"><i class="ph ph-caret-left"></i></button>
+      <h2>Edunex Plus</h2>
+      ${pages.map(p => `
+        <div class="prow ${page === p.key ? "active" : ""}" oncontextmenu="cCtx(event,'${p.key}');return false" onclick="state.cPage='${p.key}';state.view={name:'home'};render()">
+          <i class="ph ${p.ic}"></i> ${p.label}
+          ${p.key === "todo" && soon.length ? `<span class="count hot">${soon.length}</span>` : ""}
+        </div>`).join("")}
+      ${state.cHidden.length ? `
+        <div class="phead"><i class="ph ph-plus-circle"></i> Hidden <span class="n">${state.cHidden.length}</span></div>
+        <div class="prow" onclick="state.cPage='settings';render()"><i class="ph ph-eye-slash"></i> Manage hidden…</div>` : ""}
+      <div class="rail-spacer"></div>
+    </div>
+    <div class="content">
+      <button class="btn sm" style="margin-bottom:14px" onclick="document.querySelector('.panel').closest('.window').classList.toggle('panel-hidden')" title="Collapse the panel"><i class="ph ph-caret-double-left"></i> Collapse</button>
+      ${main}
+      <p class="proto-note"><b>C — Curated rail.</b> The reference's icon rail + panel, but you own it: right-click any panel row → Hide; hidden pages vanish from the app and collect under “Hidden”. Home is a To-Do-centric two-column page. Try hiding Presence or Materials and watch everything follow.</p>
+    </div>
+  </div>
+  ${state.cCtx ? `<div class="ctxmenu" style="top:${state.cCtx.y}px;left:${state.cCtx.x}px">
+    <button onclick="cHide('${state.cCtx.key}')"><i class="ph ph-eye-slash"></i> Hide “${C_PAGES.find(p => p.key === state.cCtx.key)?.label}”</button>
+    <button onclick="state.cCtx=null;render()"><i class="ph ph-x"></i> Cancel</button>
+  </div>` : ""}
+  ${featuresDialog("In C, panel rows and pages hide together: right-click a row, or manage everything in Settings.")}
+  ${palette()}${notifPopover()}`;
+}
+function cCtx(ev, key) { state.cCtx = { x: ev.clientX + 6, y: ev.clientY + 6, key }; render(); }
+function cHide(key) {
+  state.cHidden.push(key);
+  if (state.cPage === key) state.cPage = "todo";
+  state.cCtx = null;
+  render();
+}
+
+/* ===== switcher + boot ===== */
+const VARIANTS = {
+  A: { name: "Course hub", render: variantA },
+  B: { name: "Stream + ⌘K", render: variantB },
+  C: { name: "Curated rail", render: variantC },
+};
+const ORDER = ["A", "B", "C"];
+function setVariant(v) {
+  state.variant = v;
+  Object.assign(state, { view: { name: "home" }, featuresOpen: false, paletteOpen: false, notifOpen: false, cPage: "todo", cCtx: null });
+  history.replaceState(null, "", `?variant=${v}`);
+  render();
+}
+function cycle(d) {
+  setVariant(ORDER[(ORDER.indexOf(state.variant) + d + ORDER.length) % ORDER.length]);
+}
+document.getElementById("prev").onclick = () => cycle(-1);
+document.getElementById("next").onclick = () => cycle(1);
+document.addEventListener("keydown", e => {
+  if (e.target.matches("input,textarea,select")) return;
+  if (e.key === "ArrowLeft") cycle(-1);
+  if (e.key === "ArrowRight") cycle(1);
+  if (e.key === "Escape") { state.paletteOpen = false; state.featuresOpen = false; state.notifOpen = false; state.cCtx = null; render(); }
+  if ((e.metaKey || e.ctrlKey) && e.key === "k") { e.preventDefault(); state.paletteOpen = true; render(); }
+});
+if (!VARIANTS[state.variant]) state.variant = "A";
+function render() {
+  document.getElementById("vlabel").innerHTML = `<b>${state.variant}</b> — ${VARIANTS[state.variant].name}`;
+  document.getElementById("app").innerHTML = VARIANTS[state.variant].render();
+}
+render();
+</script>
+</body>
+</html>
