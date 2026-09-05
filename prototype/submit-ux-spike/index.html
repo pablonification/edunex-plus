@@ -23,13 +23,15 @@
 
   Visual language: BoardUI (boardui.com) — adopted 2026-09-05 by user decision as the
   component foundation, revising ticket #8's locked palette/fonts. This file copies
-  BoardUI's MIT-licensed component recipes by hand (button.tsx, badge.tsx, chip.tsx,
-  status-dot.tsx, segmented-control.tsx — github.com/BoardUI/boardui): Inter, Remix
-  icons, neutral surfaces + blue accent #2473fe, radius 10/6/4, status chips
-  (yellow = saved, lime = submitted). Free tier only; BoardUI Pro components excluded.
+  BoardUI's MIT-licensed recipes 1:1 from github.com/BoardUI/boardui (button.tsx,
+  badge.tsx, chip.tsx, status-dot.tsx, dashboard-sidebar.tsx, styles/theme.css),
+  including the contour/depth system the user called out: vertical accent gradients
+  (500→600 / hover 400→500 / active 600→700), the 3-layer "Sidebar Elevation" shadow,
+  the "Sidebar selected" blue ring + inner top highlight, button-press-motion,
+  Inter, Remix icons. Free tier only; BoardUI Pro components excluded.
 
   Run: double-click this file (or `open prototype/submit-ux-spike/index.html`). No build.
-  Demo state is shared across variants and reset via the inspector (bottom left).
+  Demo state is shared across variants and reset via the inspector (bottom right).
 -->
 <html lang="en">
 <head>
@@ -60,9 +62,20 @@ tailwind.config = {
       },
       borderRadius: { "2lg": "10px" },
       boxShadow: {
+        // BoardUI light-mode tokens, 1:1 from styles/theme.css
         xs: "0 1px 2px 0 rgb(0 0 0 / 0.05)",
-        card: "0 1px 12px 0 rgb(0 0 0 / 0.06), 0 1px 0 0 rgb(0 0 0 / 0.02)",
-        pop: "0 8px 30px 0 rgb(0 0 0 / 0.16)",
+        sm: "0 1px 2px 0 rgb(0 0 0 / 0.06), 0 1px 3px 0 rgb(0 0 0 / 0.10)",
+        md: "0 2px 4px -1px rgb(0 0 0 / 0.06), 0 4px 6px -1px rgb(0 0 0 / 0.10)",
+        lg: "0 4px 6px -2px rgb(0 0 0 / 0.05), 0 10px 15px -3px rgb(0 0 0 / 0.10)",
+        xl: "0 10px 10px -5px rgb(0 0 0 / 0.04), 0 20px 25px -5px rgb(0 0 0 / 0.10)",
+        card: "0 1px 1px 0 rgb(0 0 0 / 0.05)",
+        dropdown: "0 1px 1px 0 rgb(0 0 0 / 0.04), 0 4px 4px 0 rgb(0 0 0 / 0.02)",
+        // "Background/Sidebar Elevation" — 3-layer contour
+        sidebar: "0 1px 0 0 rgb(0 0 0 / 0.0196), 0 1px 12px 0 rgb(0 0 0 / 0.0588), 0 0 1px 0 rgb(0 0 0 / 0.3216)",
+        // "Sidebar selected" — 1px blue ring + inner top highlight
+        navselected: "0 0 0 1px #2473fe, inset 0 1px 0 0 rgb(255 255 255 / 0.251)",
+        // modal = elevation ring + ambient xl layers
+        modal: "0 0 1px 0 rgb(0 0 0 / 0.32), 0 10px 10px -5px rgb(0 0 0 / 0.04), 0 20px 25px -5px rgb(0 0 0 / 0.10)",
       },
     },
   },
@@ -70,8 +83,9 @@ tailwind.config = {
 </script>
 <style>
   body { -webkit-font-smoothing: antialiased; }
-  .press { transition: transform .08s ease; }
-  .press:active { transform: scale(.97); }
+  /* BoardUI button-press-motion: fast 0.98 press, slow return */
+  .press { transition: transform 420ms cubic-bezier(0.4, 0, 0.2, 1); }
+  .press:active:not(:disabled) { transform: scale(0.98); transition-duration: 220ms; }
   textarea { outline: none; }
   textarea:focus { box-shadow: 0 0 0 1.5px #2473fe; }
 </style>
@@ -80,14 +94,14 @@ tailwind.config = {
 <div id="app"></div>
 
 <!-- floating prototype switcher -->
-<div class="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-0.5 rounded-full bg-neutral-925 px-2 py-1.5 text-white shadow-pop">
+<div class="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-0.5 rounded-full bg-neutral-925 px-2 py-1.5 text-white shadow-modal">
   <button onclick="cycleVariant(-1)" class="press size-7 rounded-full text-neutral-300 hover:bg-white/10 hover:text-white">&larr;</button>
   <div id="vlabel" class="min-w-[240px] px-2 text-center text-[12.5px] text-neutral-300"></div>
   <button onclick="cycleVariant(1)" class="press size-7 rounded-full text-neutral-300 hover:bg-white/10 hover:text-white">&rarr;</button>
 </div>
 
 <!-- demo state inspector -->
-<div class="fixed bottom-4 right-4 z-50 w-[250px] rounded-xl bg-neutral-925 p-3 text-white shadow-pop">
+<div class="fixed right-4 top-4 z-50 w-[250px] rounded-xl bg-neutral-925 p-3 text-white shadow-modal">
   <div class="mb-1.5 flex items-center justify-between">
     <span class="text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400">Demo state (live)</span>
     <button onclick="resetDemo()" class="press rounded-sm bg-white/10 px-1.5 py-px text-[10px] font-semibold text-neutral-200 hover:bg-white/20">reset</button>
@@ -176,19 +190,27 @@ const statusDot = (color) => {
   const halo = { green: "#dcfce7", yellow: "#fef9c3", gray: "#f5f5f5" }[color];
   return `<span class="inline-flex size-3 items-center justify-center rounded-full shrink-0" style="background:${halo}"><span class="size-1.5 rounded-full" style="background:${dot}"></span></span>`;
 };
-// Button — variant: primary | secondary | ghost | success; size: medium | small
+// Button — BoardUI button.tsx variants. Primary/danger carry the vertical
+// gradient ("3D contour"): 500→600 default, 400→500 hover, 600→700 active.
 const btn = (opts) => {
   const { variant = "primary", size = "medium", icon, label, onclick, disabled, extra } = opts;
   const v = {
-    primary:   "bg-accent-500 text-white shadow-xs hover:bg-accent-600",
-    secondary: "bg-white text-neutral-950 border border-neutral-200 shadow-xs hover:bg-neutral-100 hover:border-neutral-300",
-    ghost:     "bg-ghost-bg text-ghost-text hover:bg-accent-200",
-    success:   "bg-green-600 text-white shadow-xs hover:bg-green-700",
+    primary: `text-white shadow-xs
+      bg-[linear-gradient(180deg,#2473fe_0%,#0450e2_100%)]
+      hover:bg-[linear-gradient(180deg,#3392ff_0%,#2473fe_100%)]
+      active:bg-[linear-gradient(180deg,#0450e2_0%,#033fae_100%)]
+      disabled:bg-[linear-gradient(180deg,#ebebeb_0%,#d6d6d6_100%)] disabled:shadow-none`,
+    secondary: "bg-white text-neutral-950 border border-neutral-200 shadow-xs hover:bg-neutral-100 hover:border-neutral-300 active:bg-neutral-200",
+    ghost: "bg-ghost-bg text-ghost-text hover:bg-accent-200 active:bg-accent-300",
+    danger: `text-white shadow-xs
+      bg-[linear-gradient(180deg,#f04438_0%,#d92d20_100%)]
+      hover:bg-[linear-gradient(180deg,#fd6f5f_0%,#f04438_100%)]
+      active:bg-[linear-gradient(180deg,#d92d20_0%,#b42318_100%)]`,
   }[variant];
   const s = size === "medium" ? "h-9 rounded-2lg p-2 text-sm" : "h-8 rounded-lg px-2 py-1.5 text-sm";
   return `<button ${onclick ? `onclick="${onclick}"` : ""} ${disabled ? "disabled" : ""}
     class="press inline-flex items-center justify-center gap-0.5 whitespace-nowrap select-none cursor-pointer
-      disabled:cursor-not-allowed disabled:bg-neutral-100 disabled:text-neutral-400 disabled:shadow-none ${v} ${s} ${extra || ""}">
+      disabled:cursor-not-allowed disabled:text-neutral-500 ${v} ${s} ${extra || ""}">
     ${icon ? `<i class="ri-${icon} ${size === "medium" ? "text-[20px]" : "text-[18px]"} shrink-0"></i>` : ""}
     ${label != null ? `<span class="inline-flex items-center px-1">${label}</span>` : ""}</button>`;
 };
@@ -202,27 +224,37 @@ const daysLeft = Math.ceil((new Date(TASK.due) - NOW) / 864e5);
 
 const dueChip = () => `<span class="inline-flex items-center gap-1 rounded-md bg-neutral-200 px-1.5 py-0.5 text-sm font-medium text-neutral-500"><i class="ri-time-line text-[14px]"></i>due ${fmtD(TASK.due)}, 23:59 · ${daysLeft} days left</span>`;
 
-// BoardUI Sidebar block: search, nav with badges, account section
+// BoardUI Sidebar block: floating neutral panel, white hairline border,
+// "Background/Sidebar Elevation" 3-layer shadow; selected nav item is the
+// accent-500→600 gradient pill with the blue ring + inner top highlight.
 function sidebar() {
-  const item = (icon, label, extra, active, badgeN) => `
-    <a class="flex cursor-pointer items-center gap-2.5 rounded-lg px-2 py-1.5 text-sm ${active ? "bg-neutral-100 font-semibold text-neutral-950" : "font-medium text-neutral-500 hover:text-neutral-950"}">
-      <i class="ri-${icon} text-[18px] text-neutral-400"></i><span class="flex-1">${label}</span>${badgeN ? badge(badgeN) : ""}</a>`;
+  const item = (icon, label, active, badgeN) => `
+    <a class="flex cursor-pointer items-center justify-between overflow-hidden rounded-2lg p-2 text-sm transition-colors duration-300
+      ${active
+        ? "bg-[linear-gradient(180deg,#2473fe_0%,#0450e2_100%)] shadow-navselected"
+        : "font-medium text-neutral-500 hover:bg-neutral-200/70"}">
+      <span class="flex min-w-0 items-center gap-2">
+        <i class="ri-${icon} text-[20px] shrink-0 ${active ? "text-white" : "text-neutral-400"}"></i>
+        <span class="whitespace-nowrap ${active ? "font-semibold text-white" : ""}">${label}</span>
+      </span>
+      ${badgeN ? badge(badgeN) : ""}</a>`;
   return `
-  <aside class="flex w-[264px] shrink-0 flex-col gap-4 border-r border-neutral-200 bg-white p-4">
-    <div class="flex items-center gap-2 px-1 pt-1"><span class="grid size-8 place-items-center rounded-lg bg-accent-500 text-[15px] font-bold text-white">e+</span>
+  <aside class="flex w-[260px] shrink-0 flex-col gap-4 rounded-3xl border border-white bg-neutral-100 p-3 shadow-sidebar">
+    <div class="flex items-center gap-2 px-1 pt-1">
+      <span class="grid size-8 place-items-center rounded-2lg bg-[linear-gradient(180deg,#2473fe_0%,#0450e2_100%)] text-[15px] font-bold text-white shadow-navselected">e+</span>
       <span class="text-[15px] font-bold tracking-tight">Edunex Plus</span></div>
-    <div class="flex cursor-pointer items-center gap-2 rounded-lg border border-neutral-200 px-2.5 py-1.5 text-sm text-neutral-400 hover:border-neutral-300">
-      <i class="ri-search-line"></i><span class="flex-1">Search</span><span class="rounded bg-neutral-100 px-1.5 py-px text-[11px] font-semibold text-neutral-500">⌘L</span></div>
+    <div class="flex cursor-pointer items-center gap-2 rounded-full bg-neutral-200 px-3 py-2 text-sm text-neutral-400 hover:bg-neutral-300/70">
+      <i class="ri-search-line"></i><span class="flex-1">Search</span><span class="rounded bg-white px-1.5 py-px text-[11px] font-semibold text-neutral-500 shadow-card">⌘L</span></div>
     <nav class="flex flex-col gap-0.5">
-      ${item("home-5-line", "Home", "", false)}
-      ${item("checkbox-line", "Tasks", "", true, 4)}
-      ${item("calendar-line", "Agenda", "", false)}
-      ${item("hand-heart-line", "Presence", "", false, 2)}
-      ${item("folder-3-line", "Materials", "", false)}
+      ${item("home-5-line", "Home", false)}
+      ${item("checkbox-line", "Tasks", true, 4)}
+      ${item("calendar-line", "Agenda", false)}
+      ${item("hand-heart-line", "Presence", false, 2)}
+      ${item("folder-3-line", "Materials", false)}
     </nav>
     <div class="mt-auto border-t border-neutral-200 pt-3">
-      <div class="flex items-center gap-2.5 rounded-lg px-2 py-1.5 hover:bg-neutral-100 cursor-pointer">
-        <span class="grid size-8 place-items-center rounded-full bg-neutral-200 text-xs font-bold text-neutral-500">RF</span>
+      <div class="flex items-center gap-2.5 rounded-2lg p-2 hover:bg-neutral-200/70 cursor-pointer">
+        <span class="grid size-8 place-items-center rounded-full bg-neutral-300 text-xs font-bold text-neutral-600">RF</span>
         <div><div class="text-sm font-semibold leading-tight">Rafi F.</div><div class="text-xs text-neutral-400">Student · 2026-1</div></div>
         <i class="ri-expand-up-down-line ml-auto text-neutral-400"></i>
       </div>
@@ -254,7 +286,7 @@ function variantA() {
         <i class="ri-error-warning-fill mt-0.5 text-[18px] text-yellow-600"></i>
         <div class="flex-1 text-sm leading-snug text-yellow-900">
           <b>Draft saved ${fmt(state.savedAt)} — this is NOT submitted.</b>
-          Your lecturer cannot see anything yet. Only the green button turns it in.
+          Your lecturer cannot see anything yet. Only <b>Submit answer</b> turns it in.
         </div>
       </div>
       <div class="mt-3 rounded-xl border border-neutral-200 bg-white p-5 shadow-card">
@@ -268,13 +300,13 @@ function variantA() {
         </div>
         <div class="mt-4 flex justify-end gap-2">
           ${btn({ variant: "secondary", icon: "save-3-line", label: "Save draft", onclick: "saveDraft()" })}
-          ${btn({ variant: "success", icon: "send-plane-fill", label: "Submit answer…", onclick: "state.confirmOpen=true;render()" })}
+          ${btn({ variant: "primary", icon: "send-plane-fill", label: "Submit answer…", onclick: "state.confirmOpen=true;render()" })}
         </div>
       </div>
       ${state.confirmOpen ? confirmDialog() : ""}`;
   };
   return `
-  <main class="flex-1 overflow-y-auto bg-neutral-100 p-8">
+  <main class="flex-1 overflow-y-auto rounded-3xl border border-white bg-white p-8 shadow-sidebar">
     <div class="mx-auto max-w-[760px]">
       ${crumbs(TASK.code + " · " + TASK.name)}
       <div class="flex flex-wrap items-center gap-2">${dueChip()}${statusChip()}${state.answerState === "submitted" ? chip("lime", "Receipt available", "checkbox-circle-fill") : ""}</div>
@@ -292,9 +324,9 @@ function variantA() {
 function confirmDialog() {
   return `
   <div class="fixed inset-0 z-40 bg-neutral-950/40" onclick="state.confirmOpen=false;render()"></div>
-  <div class="fixed left-1/2 top-[16vh] z-50 w-[min(460px,92vw)] -translate-x-1/2 rounded-2xl bg-white p-5 shadow-pop">
+  <div class="fixed left-1/2 top-[16vh] z-50 w-[min(460px,92vw)] -translate-x-1/2 rounded-2xl bg-white p-5 shadow-modal">
     <div class="flex items-start gap-3">
-      <span class="grid size-10 shrink-0 place-items-center rounded-xl bg-green-100 text-xl text-green-700"><i class="ri-send-plane-fill"></i></span>
+      <span class="grid size-10 shrink-0 place-items-center rounded-2lg bg-[linear-gradient(180deg,#2473fe_0%,#0450e2_100%)] text-xl text-white shadow-navselected"><i class="ri-send-plane-fill"></i></span>
       <div>
         <div class="text-[16px] font-bold leading-snug">Submit your answer for Tugas 01?</div>
         <p class="mt-1 text-sm leading-snug text-neutral-500">This is the step your lecturer sees. Saving a draft does <b>not</b> do this.</p>
@@ -308,7 +340,7 @@ function confirmDialog() {
     <p class="mt-3 text-xs leading-snug text-neutral-400">Whether a submitted answer can be replaced is unverified (pending the live-capture ticket) — assume this is final.</p>
     <div class="mt-4 flex justify-end gap-2">
       ${btn({ variant: "secondary", label: "Keep editing", onclick: "state.confirmOpen=false;render()" })}
-      ${btn({ variant: "success", icon: "check-line", label: "Yes, submit it", onclick: "submitAnswer()" })}
+      ${btn({ variant: "primary", icon: "check-line", label: "Yes, submit it", onclick: "submitAnswer()" })}
     </div>
   </div>`;
 }
@@ -318,7 +350,7 @@ function variantB() {
   const step = state.answerState === "submitted" ? 3 : state.step;
   const seg = (n, label) => `
     <button onclick="${state.answerState === "submitted" || n > maxReachable() ? "" : `state.step=${n};render()`}"
-      class="press relative z-10 inline-flex items-center gap-1.5 whitespace-nowrap rounded-md px-2.5 py-1 text-sm ${step === n ? "font-semibold text-neutral-950" : "font-medium text-neutral-500 hover:text-neutral-950"}">
+      class="press relative z-10 inline-flex items-center gap-1.5 whitespace-nowrap rounded-md px-2.5 py-1 text-sm ${step === n ? "bg-white shadow-card font-semibold text-neutral-950" : "font-medium text-neutral-500 hover:text-neutral-950"}">
       ${n < step ? `<i class="ri-checkbox-circle-fill text-[16px] text-green-600"></i>` : `<span class="grid size-4.5 place-items-center rounded-full text-[10.5px] font-bold ${step === n ? "bg-accent-500 text-white" : "bg-neutral-200 text-neutral-500"}" style="width:18px;height:18px">${n}</span>`}
       ${label}</button>`;
   const maxReachable = () => state.answerState === "draft" ? 2 : 1;
@@ -356,12 +388,12 @@ function variantB() {
           Turns in before <b>${fmtD(TASK.due)}, 23:59</b> — ${daysLeft} days ahead of the deadline.</div>
         <div class="mt-4 flex justify-between">
           ${btn({ variant: "ghost", icon: "arrow-left-line", label: "Back to editing", onclick: "state.step=1;render()" })}
-          ${btn({ variant: "success", icon: "send-plane-fill", label: "Turn in my answer", onclick: "submitAnswer()" })}
+          ${btn({ variant: "primary", icon: "send-plane-fill", label: "Turn in my answer", onclick: "submitAnswer()" })}
         </div>
       </div>`;
   if (step === 3) body = receiptCard("B");
   return `
-  <main class="flex-1 overflow-y-auto bg-neutral-100 p-8">
+  <main class="flex-1 overflow-y-auto rounded-3xl border border-white bg-white p-8 shadow-sidebar">
     <div class="mx-auto max-w-[760px]">
       ${crumbs(TASK.code + " · " + TASK.name)}
       <div class="flex flex-wrap items-center gap-2">${dueChip()}${statusChip()}</div>
@@ -431,7 +463,7 @@ function variantC() {
           ${input('rows="5" oninput="state.text=this.value"', "")}
           <div class="mt-3 flex justify-end gap-2">
             ${btn({ variant: "secondary", icon: "save-3-line", label: "Save draft", onclick: "saveDraft()" })}
-            ${btn({ variant: "success", icon: "send-plane-fill", label: "Submit…", disabled: true })}
+            ${btn({ variant: "primary", icon: "send-plane-fill", label: "Submit…", disabled: true })}
           </div>
         </div>
       </div>`;
@@ -460,15 +492,15 @@ function variantC() {
         <span class="text-[13px] text-neutral-400">API truth: <code class="rounded bg-neutral-100 px-1 py-0.5 text-[11px]">is_sent = 0</code> — the app shows the same fact in words.</span>
         <div class="flex gap-2">
           ${btn({ variant: "secondary", icon: "save-3-line", label: "Save draft", onclick: "saveDraft()" })}
-          ${btn({ variant: "success", icon: "send-plane-fill", label: "Submit answer…", onclick: "submitAnswer()" })}
+          ${btn({ variant: "primary", icon: "send-plane-fill", label: "Submit answer…", onclick: "submitAnswer()" })}
         </div>
       </div>
     </div>`;
   };
   const receiptPopover = () => `
     <div class="fixed inset-0 z-40 bg-neutral-950/40" onclick="state.receiptOpen=false;render()"></div>
-    <div class="fixed left-1/2 top-[18vh] z-50 w-[min(420px,92vw)] -translate-x-1/2 rounded-2xl bg-white p-5 shadow-pop">
-      <div class="flex items-center gap-2.5"><span class="grid size-9 place-items-center rounded-xl bg-green-100 text-lg text-green-700"><i class="ri-checkbox-circle-fill"></i></span>
+    <div class="fixed left-1/2 top-[18vh] z-50 w-[min(420px,92vw)] -translate-x-1/2 rounded-2xl bg-white p-5 shadow-modal">
+      <div class="flex items-center gap-2.5"><span class="grid size-9 place-items-center rounded-2lg bg-[linear-gradient(180deg,#22c55e_0%,#15803d_100%)] text-lg text-white shadow-[0_0_0_1px_#16a34a,inset_0_1px_0_0_rgb(255_255_255/0.25)]"><i class="ri-checkbox-circle-fill"></i></span>
         <div class="text-[15px] font-bold">Submission receipt</div></div>
       <div class="mt-3 rounded-xl bg-neutral-100 p-3.5 text-sm">
         <div class="flex justify-between py-0.5"><span class="text-neutral-500">Task</span><span class="font-medium">${TASK.code} Tugas 01</span></div>
@@ -480,7 +512,7 @@ function variantC() {
       <div class="mt-4 flex justify-end">${btn({ variant: "primary", label: "Done", onclick: "state.receiptOpen=false;render()" })}</div>
     </div>`;
   return `
-  <main class="flex-1 overflow-y-auto bg-neutral-100 p-8">
+  <main class="flex-1 overflow-y-auto rounded-3xl border border-white bg-white p-8 shadow-sidebar">
     <div class="mx-auto max-w-[820px]">
       ${crumbs(TASK.code)}
       <div class="flex flex-wrap items-center gap-2">${dueChip()}${statusChip()}</div>
@@ -510,7 +542,7 @@ function receiptCard(v) {
   return `
   <div class="overflow-hidden rounded-xl border border-green-300 bg-white shadow-card">
     <div class="flex items-center gap-3.5 bg-green-50 px-5 py-5">
-      <span class="grid size-12 place-items-center rounded-2xl bg-green-600 text-2xl text-white"><i class="ri-checkbox-circle-fill"></i></span>
+      <span class="grid size-12 place-items-center rounded-2lg bg-[linear-gradient(180deg,#22c55e_0%,#15803d_100%)] text-2xl text-white shadow-[0_0_0_1px_#16a34a,inset_0_1px_0_0_rgb(255_255_255/0.25)]"><i class="ri-checkbox-circle-fill"></i></span>
       <div>
         <div class="text-lg font-bold tracking-tight text-green-950">Answer submitted</div>
         <div class="text-sm text-green-900/70">Turned in <b>${fmt(state.submittedAt)} WIB</b> — ${daysLeft} days before the ${fmtD(TASK.due)} deadline.</div>
@@ -533,7 +565,7 @@ function receiptCard(v) {
 const VARIANTS = { A: ["A", "Confirm + receipt"], B: ["B", "Turn-in steps"], C: ["C", "Status-first card"] };
 function render() {
   document.getElementById("app").innerHTML = `
-  <div class="flex min-h-screen">${sidebar()}${
+  <div class="flex min-h-screen gap-3 bg-[#e9eaec] p-3">${sidebar()}${
     state.variant === "A" ? variantA() : state.variant === "B" ? variantB() : variantC()
   }</div>`;
   const [k, name] = VARIANTS[state.variant];
