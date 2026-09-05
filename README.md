@@ -20,9 +20,11 @@ Edunex Plus answers with a calm, minimal desktop client that wraps the EduNex AP
 
 - **To Do first** — the aggregated list of pending Tasks and exams for your account, on one screen.
 - **OS notifications** — a polite background poll (never faster than once a minute, jittered,
-  with backoff) raises a notification the moment a new Task appears or a Presence window opens.
+  with backoff) notices a new Task or an opened Presence window and raises the OS notification
+  on its next poll — within a couple of minutes at worst, longer while errors back off.
 - **Status-first submissions** — draft, submitted, and overdue are unmistakable at a glance;
-  Save-draft is visually quiet, Submit is a deliberate act with a green receipt.
+  Save-draft is visually quiet. Submit — a deliberate act with a green receipt — lands only
+  once the final-submit wire contract is verified (issue #12).
 - **Calm shell** — a floating sidebar and content panel; hide the features you never use.
 - **Offline reading** — the last-synced feeds stay readable without a connection.
 - **Lives in the tray** — closing the window keeps notifications flowing.
@@ -33,9 +35,11 @@ v1 targets the **Student** experience only.
 
 You sign in with your real **INA account** through the genuine ITB SSO inside an embedded
 webview. Your password only ever reaches Microsoft's sign-in page — it never touches
-Edunex Plus. The app captures the resulting session and talks to the API directly; tokens are
-stored encrypted (Electron safeStorage) and **everything stays on your device** — nothing
-syncs to any server, and there is no telemetry.
+Edunex Plus. The app captures the resulting session and talks to the API directly. Local
+tokens (Electron safeStorage), the per-feed snapshot cache, and the seen-ledger stay
+on-device — the only data that leaves your device is what the API calls themselves carry:
+authenticated reads and the explicit Task Answer writes, sent to Cognisia's API. No
+third-party servers, no sync of app data, no telemetry.
 
 ## Vendor respect
 

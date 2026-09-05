@@ -24,9 +24,11 @@ or changes an API call must update this file and keep the guardrails true.
    renderers never poll.
 5. **Explicit-only writes.** A write fires only on a deliberate user action (Save draft,
    Submit). Nothing in the sync tick or any background path ever writes.
-6. **On-device-only storage.** Tokens (Electron safeStorage), the JSON snapshot cache per feed
-   per account, and the seen-ledger live on the user's device. Nothing syncs to any server,
-   ours or otherwise; no telemetry.
+6. **On-device-only storage.** Local tokens (Electron safeStorage), the JSON snapshot cache
+   per feed per account, and the seen-ledger stay on-device. The only data that leaves the
+   device is what the API calls themselves carry — authenticated reads and the explicit
+   Task Answer writes above, sent to Cognisia's API. No third-party servers, no sync of app
+   data, no telemetry.
 7. **Distinctive User-Agent.** Every request carries
    `EdunexPlus/<version> (+https://github.com/pablonification/edunex-plus)`. Never spoof a
    browser User-Agent. The point is recognizability: Cognisia can identify — and optionally
