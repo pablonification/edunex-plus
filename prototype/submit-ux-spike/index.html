@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<!--
+  PROTOTYPE — throwaway UI for wayfinder ticket #7 ("Submission clarity UX: killing the
+  'saved ≠ submitted' trap"), child of map #1 (Edunex Plus MVP Spec). Never merge into main.
+
+  Question: how should the task answer flow make saved vs submitted unambiguous?
+  Three variants, switchable via ?variant=A|B|C (floating bottom bar, ← → keys cycle):
+    A "Confirm + receipt" — editor page; amber not-submitted banner; submit opens a
+      confirmation dialog; submitting replaces the editor with a timestamped receipt.
+    B "Turn-in steps" — explicit Compose → Review → Done stepper (BoardUI segmented
+      control); the only submit button lives on the Review step; Done is the receipt.
+    C "Status-first card" — the answer is a status card first (big status word +
+      StatusDot, quiet "Save draft" vs distinct green "Submit"); includes the
+      course task list so the signal is judged at list level too.
+
+  Verified state machine (ticket #16, captured live on Tugas 01):
+    not_started → [POST /course/task/answers] → draft (is_sent=0; sent_at IS stamped on
+    drafts — a decoy) → [final submit — exact contract pending ticket #12, expected
+    is_sent:1] → submitted (is_sent=1). The SPA's form is structurally draft-only; its
+    Submit button appears only on the saved answer card. Re-submission rules are a
+    bounded unknown — the spec carries them as such; resubmit affordances here are
+    drawn but flagged "pending verification".
+
+  Visual language: BoardUI (boardui.com) — adopted 2026-09-05 by user decision as the
+  component foundation, revising ticket #8's locked palette/fonts. This file copies
+  BoardUI's MIT-licensed component recipes by hand (button.tsx, badge.tsx, chip.tsx,
+  status-dot.tsx, segmented-control.tsx — github.com/BoardUI/boardui): Inter, Remix
+  icons, neutral surfaces + blue accent #2473fe, radius 10/6/4, status chips
+  (yellow = saved, lime = submitted). Free tier only; BoardUI Pro components excluded.
+
+  Run: double-click this file (or `open prototype/submit-ux-spike/index.html`). No build.
+  Demo state is shared across variants and reset via the inspector (bottom left).
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Edunex Plus — submission clarity prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/remixicon@4.5.0/fonts/remixicon.css">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      fontFamily: { sans: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"] },
+      colors: {
+        "accent-50": "#eef6ff", "accent-100": "#dceaff", "accent-200": "#c2dbff",
+        "accent-300": "#85b8ff", "accent-400": "#3392ff", "accent-500": "#2473fe",
+        "accent-600": "#0450e2", "accent-700": "#0450e2", "accent-900": "#0a2a66",
+        "status-lime-bg": "#d9f99d", "status-lime-text": "#3f6212",
+        "status-yellow-bg": "#fef08a", "status-yellow-text": "#854d0e",
+        "status-rose-bg": "#fecdd3", "status-rose-text": "#9f1239",
+        "status-blue-bg": "#c2dbff", "status-blue-text": "#1e40af",
+        "status-gray-bg": "#f5f5f5", "status-gray-text": "#737373",
+        "status-neutral-bg": "#ebebeb", "status-neutral-text": "#737373",
+        "ghost-bg": "#dceaff", "ghost-text": "#1d4ed8",
+      },
+      borderRadius: { "2lg": "10px" },
+      boxShadow: {
+        xs: "0 1px 2px 0 rgb(0 0 0 / 0.05)",
+        card: "0 1px 12px 0 rgb(0 0 0 / 0.06), 0 1px 0 0 rgb(0 0 0 / 0.02)",
+        pop: "0 8px 30px 0 rgb(0 0 0 / 0.16)",
+      },
+    },
+  },
+};
+</script>
+<style>
+  body { -webkit-font-smoothing: antialiased; }
+  .press { transition: transform .08s ease; }
+  .press:active { transform: scale(.97); }
+  textarea { outline: none; }
+  textarea:focus { box-shadow: 0 0 0 1.5px #2473fe; }
+</style>
+</head>
+<body class="bg-neutral-100 font-sans text-neutral-950">
+<div id="app"></div>
+
+<!-- floating prototype switcher -->
+<div class="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-0.5 rounded-full bg-neutral-925 px-2 py-1.5 text-white shadow-pop">
+  <button onclick="cycleVariant(-1)" class="press size-7 rounded-full text-neutral-300 hover:bg-white/10 hover:text-white">&larr;</button>
+  <div id="vlabel" class="min-w-[240px] px-2 text-center text-[12.5px] text-neutral-300"></div>
+  <button onclick="cycleVariant(1)" class="press size-7 rounded-full text-neutral-300 hover:bg-white/10 hover:text-white">&rarr;</button>
+</div>
+
+<!-- demo state inspector -->
+<div class="fixed bottom-4 right-4 z-50 w-[250px] rounded-xl bg-neutral-925 p-3 text-white shadow-pop">
+  <div class="mb-1.5 flex items-center justify-between">
+    <span class="text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400">Demo state (live)</span>
+    <button onclick="resetDemo()" class="press rounded-sm bg-white/10 px-1.5 py-px text-[10px] font-semibold text-neutral-200 hover:bg-white/20">reset</button>
+  </div>
+  <div id="inspector" class="font-mono text-[10.5px] leading-relaxed text-neutral-300"></div>
+  <div class="mt-1.5 border-t border-white/10 pt-1.5 text-[10px] leading-snug text-neutral-500">
+    Shared across variants. Start: draft saved 1 Sep (live capture).
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ============ fixtures (real API shapes; see ticket #16 capture) ============ */
+const NOW = new Date("2026-09-05T14:00:00+07:00"); // pinned demo clock: Sat 5 Sep 2026, 14:00
+const TASK = {
+  id: 113986, answer_id: 4472101,
+  code: "II4091", course: "Final Project Proposal",
+  name: "Tugas 01 — Usulan Dosen Pembimbing dan Topik",
+  due: "2026-09-14T23:59:00+07:00",
+  draftSavedAt: "2026-09-01T21:14:00+07:00", // live capture, ticket #16
+  text: "Usulan pembimbing: Dr. Fetty Fitriyanti Lubis (mikrokontroler terapan). Topik: sistem monitoring.energy laboratorium berbasis ESP32 dengan dashboard web. Rencana metodologi dan jadwal terlampir.",
+  files: [
+    { name: "Usulan TA — proposal v1.pdf", size: "412 KB" },
+    { name: "Rencana jadwal.xlsx", size: "38 KB" },
+  ],
+};
+const COURSES = [
+  { id: 401, code: "II4091", name: "Final Project Proposal", hue: "#DCE4F5" },
+  { id: 402, code: "ME4066", name: "Climate Change", hue: "#FBE3CD" },
+  { id: 403, code: "DK4073", name: "Marketing Communication", hue: "#DCEBDD" },
+  { id: 404, code: "PL3002", name: "Economics and Innovation in Planning", hue: "#D8EAF6" },
+];
+const COURSE_TASKS = [
+  { id: 113986, code: "II4091", title: "Tugas 01 — Usulan Dosen Pembimbing dan Topik", due: TASK.due },
+  { id: 114055, code: "ME4066", title: "Tugas 01 — Laporan Iklim dan Mitigasi", due: "2026-09-07T23:59:00+07:00" },
+  { id: 114077, code: "DK4073", title: "Tugas 01 — Case Study: Brand Audit", due: "2026-09-03T23:59:00+07:00" },
+  { id: 114101, code: "PL3032", title: "Tugas 01 — Kajian Transportasi Daerah", due: "2026-09-21T23:59:00+07:00" },
+];
+const OVERDUE_ID = 114077; // DK4073 due 3 Sep — shows the overdue row treatment
+
+/* ============ demo state (shared across variants) ============ */
+const state = {
+  variant: new URLSearchParams(location.search).get("variant") || "A",
+  // the machine under test: "not_started" | "draft" | "submitted"
+  answerState: "draft",
+  text: TASK.text,
+  files: TASK.files.slice(),
+  savedAt: TASK.draftSavedAt,
+  submittedAt: null,
+  confirmOpen: false,   // variant A dialog
+  step: 1,              // variant B: 1 compose / 2 review / 3 done
+  explainerOpen: false, // variant C
+  receiptOpen: false,   // variant C popover
+};
+function resetDemo() {
+  state.answerState = "draft"; state.savedAt = TASK.draftSavedAt; state.submittedAt = null;
+  state.confirmOpen = false; state.step = 1; state.explainerOpen = false; state.receiptOpen = false;
+  render();
+}
+function resetToNotStarted() {
+  state.answerState = "not_started"; state.savedAt = null; state.submittedAt = null;
+  state.confirmOpen = false; state.step = 1; state.receiptOpen = false;
+  render();
+}
+function saveDraft() {
+  state.answerState = "draft";
+  state.savedAt = "2026-09-05T14:02:00+07:00"; // demo "just now"
+  state.submittedAt = null;
+  render();
+}
+function submitAnswer() {
+  state.answerState = "submitted";
+  state.submittedAt = "2026-09-05T14:03:00+07:00"; // demo "just now"
+  state.confirmOpen = false; state.step = 3; state.receiptOpen = false;
+  render();
+}
+
+/* ============ BoardUI component recipes (copied from the MIT repo) ============ */
+const chip = (color, label, icon) => `
+  <span class="inline-flex items-center gap-1 whitespace-nowrap rounded-md bg-status-${color}-bg px-1.5 py-0.5 text-sm font-medium text-status-${color}-text">
+    ${icon ? `<i class="ri-${icon} text-[14px]"></i>` : ""}${label}</span>`;
+const badge = (n) => `
+  <span class="inline-flex items-center justify-center whitespace-nowrap rounded-sm bg-accent-400 px-1 py-px text-xs font-semibold text-white">${n}</span>`;
+const statusDot = (color) => {
+  const dot = { green: "#22c55e", yellow: "#eab308", gray: "#d4d4d4" }[color];
+  const halo = { green: "#dcfce7", yellow: "#fef9c3", gray: "#f5f5f5" }[color];
+  return `<span class="inline-flex size-3 items-center justify-center rounded-full shrink-0" style="background:${halo}"><span class="size-1.5 rounded-full" style="background:${dot}"></span></span>`;
+};
+// Button — variant: primary | secondary | ghost | success; size: medium | small
+const btn = (opts) => {
+  const { variant = "primary", size = "medium", icon, label, onclick, disabled, extra } = opts;
+  const v = {
+    primary:   "bg-accent-500 text-white shadow-xs hover:bg-accent-600",
+    secondary: "bg-white text-neutral-950 border border-neutral-200 shadow-xs hover:bg-neutral-100 hover:border-neutral-300",
+    ghost:     "bg-ghost-bg text-ghost-text hover:bg-accent-200",
+    success:   "bg-green-600 text-white shadow-xs hover:bg-green-700",
+  }[variant];
+  const s = size === "medium" ? "h-9 rounded-2lg p-2 text-sm" : "h-8 rounded-lg px-2 py-1.5 text-sm";
+  return `<button ${onclick ? `onclick="${onclick}"` : ""} ${disabled ? "disabled" : ""}
+    class="press inline-flex items-center justify-center gap-0.5 whitespace-nowrap select-none cursor-pointer
+      disabled:cursor-not-allowed disabled:bg-neutral-100 disabled:text-neutral-400 disabled:shadow-none ${v} ${s} ${extra || ""}">
+    ${icon ? `<i class="ri-${icon} ${size === "medium" ? "text-[20px]" : "text-[18px]"} shrink-0"></i>` : ""}
+    ${label != null ? `<span class="inline-flex items-center px-1">${label}</span>` : ""}</button>`;
+};
+const input = (attrs, value) =>
+  `<textarea ${attrs} class="w-full resize-y rounded-lg border border-neutral-200 bg-white px-3.5 py-3 text-sm leading-relaxed text-neutral-950 placeholder:text-neutral-400">${value || ""}</textarea>`;
+
+/* ============ shared page furniture ============ */
+const fmt = (iso) => new Date(iso).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+const fmtD = (iso) => new Date(iso).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
+const daysLeft = Math.ceil((new Date(TASK.due) - NOW) / 864e5);
+
+const dueChip = () => `<span class="inline-flex items-center gap-1 rounded-md bg-neutral-200 px-1.5 py-0.5 text-sm font-medium text-neutral-500"><i class="ri-time-line text-[14px]"></i>due ${fmtD(TASK.due)}, 23:59 · ${daysLeft} days left</span>`;
+
+// BoardUI Sidebar block: search, nav with badges, account section
+function sidebar() {
+  const item = (icon, label, extra, active, badgeN) => `
+    <a class="flex cursor-pointer items-center gap-2.5 rounded-lg px-2 py-1.5 text-sm ${active ? "bg-neutral-100 font-semibold text-neutral-950" : "font-medium text-neutral-500 hover:text-neutral-950"}">
+      <i class="ri-${icon} text-[18px] text-neutral-400"></i><span class="flex-1">${label}</span>${badgeN ? badge(badgeN) : ""}</a>`;
+  return `
+  <aside class="flex w-[264px] shrink-0 flex-col gap-4 border-r border-neutral-200 bg-white p-4">
+    <div class="flex items-center gap-2 px-1 pt-1"><span class="grid size-8 place-items-center rounded-lg bg-accent-500 text-[15px] font-bold text-white">e+</span>
+      <span class="text-[15px] font-bold tracking-tight">Edunex Plus</span></div>
+    <div class="flex cursor-pointer items-center gap-2 rounded-lg border border-neutral-200 px-2.5 py-1.5 text-sm text-neutral-400 hover:border-neutral-300">
+      <i class="ri-search-line"></i><span class="flex-1">Search</span><span class="rounded bg-neutral-100 px-1.5 py-px text-[11px] font-semibold text-neutral-500">⌘L</span></div>
+    <nav class="flex flex-col gap-0.5">
+      ${item("home-5-line", "Home", "", false)}
+      ${item("checkbox-line", "Tasks", "", true, 4)}
+      ${item("calendar-line", "Agenda", "", false)}
+      ${item("hand-heart-line", "Presence", "", false, 2)}
+      ${item("folder-3-line", "Materials", "", false)}
+    </nav>
+    <div class="mt-auto border-t border-neutral-200 pt-3">
+      <div class="flex items-center gap-2.5 rounded-lg px-2 py-1.5 hover:bg-neutral-100 cursor-pointer">
+        <span class="grid size-8 place-items-center rounded-full bg-neutral-200 text-xs font-bold text-neutral-500">RF</span>
+        <div><div class="text-sm font-semibold leading-tight">Rafi F.</div><div class="text-xs text-neutral-400">Student · 2026-1</div></div>
+        <i class="ri-expand-up-down-line ml-auto text-neutral-400"></i>
+      </div>
+    </div>
+  </aside>`;
+}
+const crumbs = (here) => `
+  <div class="mb-1 flex items-center gap-1.5 text-sm font-medium text-neutral-400">
+    <span class="cursor-pointer hover:text-neutral-950" onclick="render('home')">Tasks</span>
+    <i class="ri-arrow-right-s-line"></i><span class="text-neutral-950">${here}</span></div>`;
+
+/* ============ A — confirm + receipt ============ */
+function variantA() {
+  const body = () => {
+    if (state.answerState === "submitted") return receiptCard("A");
+    if (state.answerState === "not_started") return `
+      <div class="rounded-xl border border-neutral-200 bg-white p-5 shadow-card">
+        <div class="text-[15px] font-semibold">Your answer</div>
+        <p class="mt-1 text-sm text-neutral-500">Nothing saved yet — nothing will be turned in until you save a draft and then submit it. Two separate steps, on purpose.</p>
+        <div class="mt-4">${input('rows="5" oninput="state.text=this.value"', "")}</div>
+        <div class="mt-3 flex justify-end gap-2">
+          ${btn({ variant: "secondary", icon: "save-3-line", label: "Save draft", onclick: "saveDraft()" })}
+          ${btn({ variant: "primary", icon: "save-3-line", label: "Save draft to continue", extra: "opacity-40 pointer-events-none" })}
+        </div>
+        <p class="mt-2 text-right text-xs text-neutral-400">Submitting unlocks only after a draft exists (matches the live form, ticket #16).</p>
+      </div>`;
+    return `
+      <div class="rounded-xl border border-yellow-300 bg-yellow-50 p-3.5 flex items-start gap-2.5">
+        <i class="ri-error-warning-fill mt-0.5 text-[18px] text-yellow-600"></i>
+        <div class="flex-1 text-sm leading-snug text-yellow-900">
+          <b>Draft saved ${fmt(state.savedAt)} — this is NOT submitted.</b>
+          Your lecturer cannot see anything yet. Only the green button turns it in.
+        </div>
+      </div>
+      <div class="mt-3 rounded-xl border border-neutral-200 bg-white p-5 shadow-card">
+        <div class="flex items-center justify-between">
+          <div class="text-[15px] font-semibold">Your answer</div>
+          ${chip("yellow", "Draft — not submitted", "draft-line")}
+        </div>
+        <div class="mt-4">${input('rows="6" oninput="state.text=this.value"', state.text.replace(/monitoring\.energy/, "monitoring energy"))}</div>
+        <div class="mt-2 flex items-center gap-2 text-sm text-neutral-500">
+          <i class="ri-paperclip text-[16px]"></i>${state.files.map(f => `<span class="rounded-md bg-neutral-100 px-2 py-1 text-[13px] font-medium">${f.name} <span class="text-neutral-400">${f.size}</span></span>`).join(" ")}
+        </div>
+        <div class="mt-4 flex justify-end gap-2">
+          ${btn({ variant: "secondary", icon: "save-3-line", label: "Save draft", onclick: "saveDraft()" })}
+          ${btn({ variant: "success", icon: "send-plane-fill", label: "Submit answer…", onclick: "state.confirmOpen=true;render()" })}
+        </div>
+      </div>
+      ${state.confirmOpen ? confirmDialog() : ""}`;
+  };
+  return `
+  <main class="flex-1 overflow-y-auto bg-neutral-100 p-8">
+    <div class="mx-auto max-w-[760px]">
+      ${crumbs(TASK.code + " · " + TASK.name)}
+      <div class="flex flex-wrap items-center gap-2">${dueChip()}${statusChip()}${state.answerState === "submitted" ? chip("lime", "Receipt available", "checkbox-circle-fill") : ""}</div>
+      <h1 class="mt-2 text-2xl font-bold tracking-tight">${TASK.name}</h1>
+      <p class="mt-1 text-sm text-neutral-500">${TASK.course} · II4091-01 · Dr. Fetty Fitriyanti Lubis</p>
+      <div class="mt-5">${body()}</div>
+      <p class="mt-6 max-w-[640px] text-[12.5px] leading-relaxed text-neutral-400">
+        <b class="text-neutral-500">A — Confirm + receipt.</b> The banner states the trap in words, the confirmation dialog
+        makes the turn-in deliberate, and the receipt replaces the editor so "submitted" is a different screen, not a different
+        label. Resubmission is deliberately absent — re-submission rules are unverified (ticket #12), so the design must not promise it.
+      </p>
+    </div>
+  </main>`;
+}
+function confirmDialog() {
+  return `
+  <div class="fixed inset-0 z-40 bg-neutral-950/40" onclick="state.confirmOpen=false;render()"></div>
+  <div class="fixed left-1/2 top-[16vh] z-50 w-[min(460px,92vw)] -translate-x-1/2 rounded-2xl bg-white p-5 shadow-pop">
+    <div class="flex items-start gap-3">
+      <span class="grid size-10 shrink-0 place-items-center rounded-xl bg-green-100 text-xl text-green-700"><i class="ri-send-plane-fill"></i></span>
+      <div>
+        <div class="text-[16px] font-bold leading-snug">Submit your answer for Tugas 01?</div>
+        <p class="mt-1 text-sm leading-snug text-neutral-500">This is the step your lecturer sees. Saving a draft does <b>not</b> do this.</p>
+      </div>
+    </div>
+    <div class="mt-4 rounded-xl bg-neutral-100 p-3.5 text-sm">
+      <div class="flex justify-between py-0.5"><span class="text-neutral-500">Answer</span><span class="font-medium">${state.text.length} characters</span></div>
+      <div class="flex justify-between py-0.5"><span class="text-neutral-500">Attachments</span><span class="font-medium">${state.files.length} files</span></div>
+      <div class="flex justify-between py-0.5"><span class="text-neutral-500">Deadline</span><span class="font-medium">${fmtD(TASK.due)}, 23:59 · ${daysLeft} days left</span></div>
+    </div>
+    <p class="mt-3 text-xs leading-snug text-neutral-400">Whether a submitted answer can be replaced is unverified (pending the live-capture ticket) — assume this is final.</p>
+    <div class="mt-4 flex justify-end gap-2">
+      ${btn({ variant: "secondary", label: "Keep editing", onclick: "state.confirmOpen=false;render()" })}
+      ${btn({ variant: "success", icon: "check-line", label: "Yes, submit it", onclick: "submitAnswer()" })}
+    </div>
+  </div>`;
+}
+
+/* ============ B — turn-in steps ============ */
+function variantB() {
+  const step = state.answerState === "submitted" ? 3 : state.step;
+  const seg = (n, label) => `
+    <button onclick="${state.answerState === "submitted" || n > maxReachable() ? "" : `state.step=${n};render()`}"
+      class="press relative z-10 inline-flex items-center gap-1.5 whitespace-nowrap rounded-md px-2.5 py-1 text-sm ${step === n ? "font-semibold text-neutral-950" : "font-medium text-neutral-500 hover:text-neutral-950"}">
+      ${n < step ? `<i class="ri-checkbox-circle-fill text-[16px] text-green-600"></i>` : `<span class="grid size-4.5 place-items-center rounded-full text-[10.5px] font-bold ${step === n ? "bg-accent-500 text-white" : "bg-neutral-200 text-neutral-500"}" style="width:18px;height:18px">${n}</span>`}
+      ${label}</button>`;
+  const maxReachable = () => state.answerState === "draft" ? 2 : 1;
+  let body = "";
+  if (step === 1) body = state.answerState === "not_started" ? `
+      <div class="rounded-xl border border-neutral-200 bg-white p-5 shadow-card">
+        <div class="text-[15px] font-semibold">Compose</div>
+        <p class="mt-1 text-sm text-neutral-500">Write your answer. Nothing is turned in here.</p>
+        <div class="mt-4">${input('rows="6" oninput="state.text=this.value"', "")}</div>
+        <div class="mt-3 flex justify-end">${btn({ variant: "primary", icon: "save-3-line", label: "Save & continue", onclick: "saveDraft();state.step=2;render()" })}</div>
+      </div>` : `
+      <div class="rounded-xl border border-neutral-200 bg-white p-5 shadow-card">
+        <div class="flex items-center justify-between">
+          <div class="text-[15px] font-semibold">Compose</div>
+          ${chip("yellow", "Step 1 of 3 — nothing submitted yet", "draft-line")}
+        </div>
+        <div class="mt-4">${input('rows="6" oninput="state.text=this.value"', state.text.replace(/monitoring\.energy/, "monitoring energy"))}</div>
+        <div class="mt-2 flex items-center gap-2 text-sm text-neutral-500"><i class="ri-paperclip text-[16px]"></i>
+          ${state.files.map(f => `<span class="rounded-md bg-neutral-100 px-2 py-1 text-[13px] font-medium">${f.name}</span>`).join(" ")}</div>
+        <div class="mt-4 flex justify-end gap-2">
+          ${btn({ variant: "secondary", icon: "save-3-line", label: "Save draft", onclick: "saveDraft()" })}
+          ${btn({ variant: "primary", icon: "arrow-right-line", label: "Review before turning in", onclick: "state.step=2;render()" })}
+        </div>
+      </div>`;
+  if (step === 2) body = `
+      <div class="rounded-xl border-2 border-accent-500 bg-white p-5 shadow-card">
+        <div class="flex items-center justify-between">
+          <div class="text-[15px] font-semibold">Review — this is exactly what ${"your lecturer"} will receive</div>
+          ${chip("blue", "Step 2 of 3", "eye-line")}
+        </div>
+        <div class="mt-3 whitespace-pre-wrap rounded-lg bg-neutral-100 p-3.5 text-sm leading-relaxed">${state.text.replace(/monitoring\.energy/, "monitoring energy")}</div>
+        <div class="mt-2 flex items-center gap-2 text-sm text-neutral-500"><i class="ri-paperclip text-[16px]"></i>
+          ${state.files.map(f => `<span class="rounded-md bg-white px-2 py-1 text-[13px] font-medium shadow-xs">${f.name} <span class="text-neutral-400">${f.size}</span></span>`).join(" ")}</div>
+        <div class="mt-3 flex items-center gap-2 rounded-lg bg-yellow-50 p-3 text-[13px] text-yellow-900"><i class="ri-time-line text-[16px]"></i>
+          Turns in before <b>${fmtD(TASK.due)}, 23:59</b> — ${daysLeft} days ahead of the deadline.</div>
+        <div class="mt-4 flex justify-between">
+          ${btn({ variant: "ghost", icon: "arrow-left-line", label: "Back to editing", onclick: "state.step=1;render()" })}
+          ${btn({ variant: "success", icon: "send-plane-fill", label: "Turn in my answer", onclick: "submitAnswer()" })}
+        </div>
+      </div>`;
+  if (step === 3) body = receiptCard("B");
+  return `
+  <main class="flex-1 overflow-y-auto bg-neutral-100 p-8">
+    <div class="mx-auto max-w-[760px]">
+      ${crumbs(TASK.code + " · " + TASK.name)}
+      <div class="flex flex-wrap items-center gap-2">${dueChip()}${statusChip()}</div>
+      <h1 class="mt-2 text-2xl font-bold tracking-tight">${TASK.name}</h1>
+      <p class="mt-1 text-sm text-neutral-500">${TASK.course} · II4091-01 · Dr. Fetty Fitriyanti Lubis</p>
+      <div class="mt-5 inline-flex items-center gap-0.5 rounded-lg bg-neutral-200/60 p-1">
+        ${seg(1, "Compose")}${seg(2, "Review & turn in")}${seg(3, "Done")}
+      </div>
+      <div class="mt-4">${body}</div>
+      <p class="mt-6 max-w-[640px] text-[12.5px] leading-relaxed text-neutral-400">
+        <b class="text-neutral-500">B — Turn-in steps.</b> The state machine becomes the navigation: you cannot reach a submit
+        button without passing a review screen, and "Done" is a distinct destination. The stepper doubles as a progress receipt.
+        Draft state reads as step 1, so a saved draft can never be mistaken for the end of the flow.
+      </p>
+    </div>
+  </main>`;
+}
+
+/* ============ C — status-first card ============ */
+function variantC() {
+  const listRow = (t) => {
+    const overdue = t.id === OVERDUE_ID;
+    const mine = t.id === TASK.id;
+    return `
+    <div class="flex items-center gap-3 border-b border-neutral-200 px-4 py-3 last:border-0 ${mine ? "bg-accent-50/60" : ""}">
+      <span class="grid size-9 shrink-0 place-items-center rounded-lg text-[11px] font-bold text-neutral-500" style="background:${COURSES.find(c => c.code === t.code)?.hue || "#eee"}">${t.code.slice(0, 2)}</span>
+      <div class="min-w-0 flex-1">
+        <div class="truncate text-sm font-semibold">${t.title}</div>
+        <div class="text-xs text-neutral-400">${t.code} · due ${fmtD(t.due)}${overdue ? " · overdue 2 days" : ""}</div>
+      </div>
+      ${overdue ? chip("rose", "Overdue", "alarm-warning-fill")
+        : mine ? (state.answerState === "submitted" ? chip("lime", "Submitted", "checkbox-circle-fill")
+                : state.answerState === "draft" ? chip("yellow", "Draft — not submitted", "draft-line")
+                : chip("gray", "Not started", "edit-line"))
+        : chip("neutral", "No answer yet", "")}
+    </div>`;
+  };
+  const main = () => {
+    if (state.answerState === "submitted") {
+      return `
+      <div class="overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-card">
+        <div class="flex items-center gap-3 border-l-4 border-green-500 bg-green-50 px-5 py-4">
+          ${statusDot("green")}
+          <div class="flex-1">
+            <div class="text-[15px] font-bold tracking-tight text-green-900">SUBMITTED</div>
+            <div class="text-[13px] text-green-800/80">Turned in ${fmt(state.submittedAt)} · the lecturer sees this answer as of that moment</div>
+          </div>
+          ${btn({ variant: "secondary", size: "small", icon: "file-list-2-line", label: "View receipt", onclick: "state.receiptOpen=true;render()" })}
+        </div>
+        <div class="whitespace-pre-wrap p-5 text-sm leading-relaxed">${state.text.replace(/monitoring\.energy/, "monitoring energy")}</div>
+        <div class="flex items-center gap-2 border-t border-neutral-200 px-5 py-3 text-sm text-neutral-500">
+          <i class="ri-paperclip text-[16px]"></i>${state.files.map(f => `<span class="rounded-md bg-neutral-100 px-2 py-1 text-[13px] font-medium">${f.name}</span>`).join(" ")}
+          <span class="ml-auto text-xs text-neutral-400">Re-submission rules pending verification (#12)</span>
+        </div>
+      </div>
+      ${state.receiptOpen ? receiptPopover() : ""}`;
+    }
+    if (state.answerState === "not_started") {
+      return `
+      <div class="overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-card">
+        <div class="flex items-center gap-3 border-l-4 border-neutral-300 px-5 py-4">
+          ${statusDot("gray")}
+          <div class="flex-1"><div class="text-[15px] font-bold tracking-tight">NOT STARTED</div>
+          <div class="text-[13px] text-neutral-500">No answer saved yet — there is nothing to submit.</div></div>
+        </div>
+        <div class="p-5">
+          ${input('rows="5" oninput="state.text=this.value"', "")}
+          <div class="mt-3 flex justify-end gap-2">
+            ${btn({ variant: "secondary", icon: "save-3-line", label: "Save draft", onclick: "saveDraft()" })}
+            ${btn({ variant: "success", icon: "send-plane-fill", label: "Submit…", disabled: true })}
+          </div>
+        </div>
+      </div>`;
+    }
+    return `
+    <div class="overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-card">
+      <div class="flex items-center gap-3 border-l-4 border-yellow-400 bg-yellow-50 px-5 py-4">
+        ${statusDot("yellow")}
+        <div class="flex-1">
+          <div class="text-[15px] font-bold tracking-tight text-yellow-900">SAVED — NOT SUBMITTED</div>
+          <div class="text-[13px] text-yellow-800/80">Draft saved ${fmt(state.savedAt)}. A saved draft is only visible to you.</div>
+        </div>
+        <button class="press inline-flex items-center gap-1 text-[13px] font-semibold text-neutral-500 hover:text-neutral-950"
+          onclick="state.explainerOpen=!state.explainerOpen;render()">
+          What's the difference? <i class="ri-${state.explainerOpen ? "arrow-up" : "arrow-down"}-s-line"></i></button>
+      </div>
+      ${state.explainerOpen ? `
+      <div class="grid grid-cols-2 gap-px border-b border-neutral-200 bg-neutral-200 text-sm">
+        <div class="bg-white p-4"><div class="flex items-center gap-2 font-semibold">${statusDot("yellow")} Saved (draft)</div>
+          <ul class="mt-2 space-y-1 text-[13px] text-neutral-500"><li>• Only you can see it</li><li>• Editable any time</li><li>• Does <b>not</b> count as turned in</li></ul></div>
+        <div class="bg-white p-4"><div class="flex items-center gap-2 font-semibold">${statusDot("green")} Submitted</div>
+          <ul class="mt-2 space-y-1 text-[13px] text-neutral-500"><li>• Visible to the lecturer</li><li>• Counts toward the Task</li><li>• Locks in your files & text</li></ul></div>
+      </div>` : ""}
+      <div class="p-5">${input('rows="5" oninput="state.text=this.value"', state.text.replace(/monitoring\.energy/, "monitoring energy"))}</div>
+      <div class="flex items-center justify-between border-t border-neutral-200 px-5 py-3.5">
+        <span class="text-[13px] text-neutral-400">API truth: <code class="rounded bg-neutral-100 px-1 py-0.5 text-[11px]">is_sent = 0</code> — the app shows the same fact in words.</span>
+        <div class="flex gap-2">
+          ${btn({ variant: "secondary", icon: "save-3-line", label: "Save draft", onclick: "saveDraft()" })}
+          ${btn({ variant: "success", icon: "send-plane-fill", label: "Submit answer…", onclick: "submitAnswer()" })}
+        </div>
+      </div>
+    </div>`;
+  };
+  const receiptPopover = () => `
+    <div class="fixed inset-0 z-40 bg-neutral-950/40" onclick="state.receiptOpen=false;render()"></div>
+    <div class="fixed left-1/2 top-[18vh] z-50 w-[min(420px,92vw)] -translate-x-1/2 rounded-2xl bg-white p-5 shadow-pop">
+      <div class="flex items-center gap-2.5"><span class="grid size-9 place-items-center rounded-xl bg-green-100 text-lg text-green-700"><i class="ri-checkbox-circle-fill"></i></span>
+        <div class="text-[15px] font-bold">Submission receipt</div></div>
+      <div class="mt-3 rounded-xl bg-neutral-100 p-3.5 text-sm">
+        <div class="flex justify-between py-0.5"><span class="text-neutral-500">Task</span><span class="font-medium">${TASK.code} Tugas 01</span></div>
+        <div class="flex justify-between py-0.5"><span class="text-neutral-500">Turned in</span><span class="font-medium">${fmt(state.submittedAt)} WIB</span></div>
+        <div class="flex justify-between py-0.5"><span class="text-neutral-500">Before deadline</span><span class="font-medium">yes — ${daysLeft} days early</span></div>
+        <div class="flex justify-between py-0.5"><span class="text-neutral-500">Answer ID</span><span class="font-mono text-xs">${TASK.answer_id}</span></div>
+      </div>
+      <p class="mt-3 text-xs text-neutral-400">A receipt gives the student something to point at when EduNex says otherwise. Shape follows the post-submit answers[] capture (ticket #12).</p>
+      <div class="mt-4 flex justify-end">${btn({ variant: "primary", label: "Done", onclick: "state.receiptOpen=false;render()" })}</div>
+    </div>`;
+  return `
+  <main class="flex-1 overflow-y-auto bg-neutral-100 p-8">
+    <div class="mx-auto max-w-[820px]">
+      ${crumbs(TASK.code)}
+      <div class="flex flex-wrap items-center gap-2">${dueChip()}${statusChip()}</div>
+      <h1 class="mt-2 text-2xl font-bold tracking-tight">${TASK.name}</h1>
+      <p class="mt-1 text-sm text-neutral-500">${TASK.course} · II4091-01 · Dr. Fetty Fitriyanti Lubis</p>
+      <div class="mt-4 overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-card">
+        <div class="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.07em] text-neutral-400">II4091 — Tasks</div>
+        ${COURSE_TASKS.map(listRow).join("")}
+      </div>
+      <div class="mt-4">${main()}</div>
+      <p class="mt-6 max-w-[640px] text-[12.5px] leading-relaxed text-neutral-400">
+        <b class="text-neutral-500">C — Status-first card.</b> The status is the loudest element, not a chip beside the title: a
+        coloured edge, a status word, and a <code>StatusDot</code>. The same chips appear in the task list above, so a draft is
+        already amber before you even open the task. "What's the difference?" teaches the trap once, inline.
+      </p>
+    </div>
+  </main>`;
+}
+
+/* ============ shared bits ============ */
+function statusChip() {
+  if (state.answerState === "submitted") return chip("lime", "Submitted " + fmt(state.submittedAt), "checkbox-circle-fill");
+  if (state.answerState === "draft") return chip("yellow", "Draft — not submitted", "draft-line");
+  return chip("gray", "Not started", "edit-line");
+}
+function receiptCard(v) {
+  return `
+  <div class="overflow-hidden rounded-xl border border-green-300 bg-white shadow-card">
+    <div class="flex items-center gap-3.5 bg-green-50 px-5 py-5">
+      <span class="grid size-12 place-items-center rounded-2xl bg-green-600 text-2xl text-white"><i class="ri-checkbox-circle-fill"></i></span>
+      <div>
+        <div class="text-lg font-bold tracking-tight text-green-950">Answer submitted</div>
+        <div class="text-sm text-green-900/70">Turned in <b>${fmt(state.submittedAt)} WIB</b> — ${daysLeft} days before the ${fmtD(TASK.due)} deadline.</div>
+      </div>
+    </div>
+    <div class="p-5">
+      <div class="text-[13px] font-semibold uppercase tracking-[0.06em] text-neutral-400">What your lecturer now sees</div>
+      <div class="mt-2 whitespace-pre-wrap rounded-lg bg-neutral-100 p-3.5 text-sm leading-relaxed">${state.text.replace(/monitoring\.energy/, "monitoring energy")}</div>
+      <div class="mt-2 flex flex-wrap items-center gap-2 text-sm text-neutral-500"><i class="ri-paperclip text-[16px]"></i>
+        ${state.files.map(f => `<span class="rounded-md bg-white px-2 py-1 text-[13px] font-medium shadow-xs">${f.name} <span class="text-neutral-400">${f.size}</span></span>`).join(" ")}</div>
+      <div class="mt-4 flex items-center justify-between">
+        <span class="text-xs text-neutral-400">Receipt: answer ${TASK.answer_id} · is_sent = 1 · re-submission unverified (#12)</span>
+        ${v === "A" ? btn({ variant: "secondary", size: "small", icon: "printer-line", label: "Save receipt" }) : ""}
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ============ render + switcher ============ */
+const VARIANTS = { A: ["A", "Confirm + receipt"], B: ["B", "Turn-in steps"], C: ["C", "Status-first card"] };
+function render() {
+  document.getElementById("app").innerHTML = `
+  <div class="flex min-h-screen">${sidebar()}${
+    state.variant === "A" ? variantA() : state.variant === "B" ? variantB() : variantC()
+  }</div>`;
+  const [k, name] = VARIANTS[state.variant];
+  document.getElementById("vlabel").innerHTML = `<b class="text-white">${k}</b> (${name}) — saved ≠ submitted`;
+  const st = state.answerState === "submitted"
+    ? `answerState: <span class="text-green-400">"submitted"</span><br>is_sent: 1 · submitted_at: "${state.submittedAt}"`
+    : state.answerState === "draft"
+    ? `answerState: <span class="text-yellow-400">"draft"</span><br>is_sent: 0 · sent_at: "${state.savedAt}" <span class="text-neutral-500">(decoy!)</span>`
+    : `answerState: <span class="text-neutral-500">"not_started"</span><br>no answer row exists`;
+  document.getElementById("inspector").innerHTML = st +
+    `<br><button onclick="resetToNotStarted()" class="press mt-1 rounded-sm bg-white/10 px-1.5 py-px text-[10px] font-semibold text-neutral-200 hover:bg-white/20">start from not_started</button>`;
+}
+function cycleVariant(dir) {
+  const keys = Object.keys(VARIANTS);
+  state.variant = keys[(keys.indexOf(state.variant) + dir + keys.length) % keys.length];
+  history.replaceState(null, "", `?variant=${state.variant}`);
+  render();
+}
+document.addEventListener("keydown", (e) => {
+  if (["INPUT", "TEXTAREA"].includes(document.activeElement?.tagName) || document.activeElement?.isContentEditable) return;
+  if (e.key === "ArrowLeft") cycleVariant(-1);
+  if (e.key === "ArrowRight") cycleVariant(1);
+});
+render();
+</script>
+</body>
+</html>
