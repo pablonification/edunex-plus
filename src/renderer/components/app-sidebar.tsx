@@ -2,13 +2,13 @@ import { cx } from "@/utils/cx";
 import { NAV_ITEMS, type NavKey } from "@/nav";
 
 /**
- * Flush curated rail per the #8 BoardUI revision, restyled native (#32):
- * runs to the window's top and bottom edges with no card chrome. On macOS it
- * sits over the window's sidebar vibrancy (translucent), holds the traffic
- * lights in its header (which doubles as the titlebar drag region); on
- * Windows/Linux it's a solid secondary background next to the standard frame.
- * Selected nav item keeps the accent-500→600 gradient pill. Feature content
- * and hideable-features controls land in later slices (#20–#22).
+ * Flush curated rail, t3code-style native pass: quiet tinted row selection
+ * (no gradient pill, no glow), compact 32px rows with muted 17px icons, 8px
+ * control radius. The accent gradient survives only in the brand mark. On
+ * macOS the rail sits over the window's sidebar vibrancy and its header
+ * carries the traffic lights; on Windows/Linux it's a solid secondary
+ * surface beside the standard frame. Feature content and hideable-features
+ * controls land in later slices (#20–#22).
  */
 
 export interface AppSidebarProps {
@@ -22,24 +22,24 @@ export function AppSidebar({ activeKey, onSelect }: AppSidebarProps) {
   return (
     <aside
       className={cx(
-        "flex w-[232px] shrink-0 flex-col pb-3",
+        "flex w-[232px] shrink-0 flex-col pb-2",
         isMac ? "bg-white/55 backdrop-blur-2xl" : "bg-background-secondary-default",
       )}
     >
       <header
         className={cx(
           "flex h-[52px] shrink-0 items-center",
-          isMac ? "app-drag pl-[80px]" : "px-4 pt-2",
+          isMac ? "app-drag pl-[76px]" : "px-4 pt-2",
         )}
       >
-        <span className="grid size-8 shrink-0 place-items-center rounded-2lg bg-linear-to-b from-accent-500 to-accent-600 text-[15px] font-bold text-white shadow-nav-selected">
+        <span className="grid size-7 shrink-0 place-items-center rounded-lg bg-linear-to-b from-accent-500 to-accent-600 text-[13px] font-bold text-white">
           e+
         </span>
-        <span className="ml-2 text-title-3-bold tracking-tight">Edunex Plus</span>
+        <span className="ml-2 text-[15px] font-semibold tracking-tight">Edunex Plus</span>
       </header>
 
       <nav
-        className={cx("flex flex-col gap-0.5 px-2", isMac && "app-no-drag")}
+        className={cx("flex flex-col gap-px px-2", isMac && "app-no-drag")}
         aria-label="Main"
       >
         {NAV_ITEMS.map((item) => {
@@ -50,35 +50,33 @@ export function AppSidebar({ activeKey, onSelect }: AppSidebarProps) {
               type="button"
               onClick={() => onSelect(item.key)}
               className={cx(
-                "flex cursor-pointer items-center gap-2 overflow-hidden rounded-2lg p-2 text-body-medium transition-colors duration-300",
+                "flex cursor-pointer items-center gap-2.5 rounded-lg px-2 py-1.5 text-[13px] leading-5 transition-colors duration-100",
                 selected
-                  ? "bg-linear-to-b from-accent-500 to-accent-600 shadow-nav-selected"
-                  : "font-medium text-text-secondary hover:bg-background-secondary-hover",
+                  ? "bg-black/[0.07] font-medium text-text-primary"
+                  : "text-text-secondary hover:bg-black/[0.04]",
               )}
             >
               <i
                 className={cx(
                   item.icon,
-                  "text-[20px] shrink-0",
-                  selected ? "text-white" : "text-foreground-icon-secondary",
+                  "text-[17px] shrink-0",
+                  selected ? "text-text-secondary" : "text-text-tertiary",
                 )}
                 aria-hidden
               />
-              <span className={cx("whitespace-nowrap", selected && "font-semibold text-white")}>
-                {item.label}
-              </span>
+              <span className="whitespace-nowrap">{item.label}</span>
             </button>
           );
         })}
       </nav>
 
-      <div className="mt-auto border-t border-separator-border px-2 pt-3">
-        <div className="flex items-center gap-2.5 rounded-2lg p-2">
-          <span className="grid size-8 place-items-center rounded-full bg-background-tertiary-default text-foreground-icon-secondary">
-            <i className="ri-user-3-line text-[16px]" aria-hidden />
+      <div className="mt-auto px-2 pt-2">
+        <div className="flex items-center gap-2.5 rounded-lg p-1.5">
+          <span className="grid size-7 place-items-center rounded-full bg-black/[0.06] text-text-tertiary">
+            <i className="ri-user-3-line text-[15px]" aria-hidden />
           </span>
-          <div>
-            <div className="text-body-medium font-semibold leading-tight">Not signed in</div>
+          <div className="min-w-0">
+            <div className="text-[13px] font-medium leading-4">Not signed in</div>
             <div className="text-caption-1-regular text-text-tertiary">
               INA sign-in lands in #18
             </div>

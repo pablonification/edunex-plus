@@ -6,12 +6,13 @@ import { cx } from "./utils/cx";
 import type { NavKey } from "@shared/shell";
 
 /**
- * App shell (#32): flush sidebar + content panel under a hidden titlebar
- * (macOS) — the sidebar runs to the window's top edge and holds the traffic
- * lights, the way native macOS apps do. On Windows/Linux the standard frame
- * stays: same layout, opaque sidebar, and no drag regions (the stock
- * titlebar does that job). Views are placeholders naming the slice each
- * surface lands in — no EduNex data or auth in the shell.
+ * App shell (#32), t3code-style native pass: flush sidebar + 52px topbar
+ * aligned across the hairline, no boxed borders anywhere — hierarchy comes
+ * from type weight, contrast and one hairline between rail and content.
+ * macOS runs the hidden titlebar (traffic lights live in the sidebar
+ * header); Windows/Linux keep the standard frame with the same layout minus
+ * drag regions. Views are placeholders naming the slice each surface lands
+ * in — no EduNex data or auth in the shell.
  */
 export function App() {
   const [activeKey, setActiveKey] = useState<NavKey>("home");
@@ -23,25 +24,25 @@ export function App() {
   return (
     <div className="flex h-screen overflow-hidden">
       <AppSidebar activeKey={activeKey} onSelect={setActiveKey} />
-      <main className="flex min-w-0 flex-1 flex-col border-l border-separator-border bg-background-primary-default">
+      <main className="flex min-w-0 flex-1 flex-col border-l border-black/[0.08] bg-background-primary-default">
         <header
           className={cx(
-            "flex h-12 shrink-0 items-center gap-2 border-b border-separator-border px-4",
+            "flex h-[52px] shrink-0 items-center gap-2 px-5",
             isMac && "app-drag",
           )}
         >
-          <h1 className="text-title-3-bold">{active.label}</h1>
+          <h1 className="text-[15px] font-semibold tracking-tight">{active.label}</h1>
           <span
             className={cx(
               "ml-auto text-caption-1-regular text-text-tertiary",
               isMac && "app-no-drag",
             )}
           >
-            Edunex Plus {window.edunex.version}
+            v{window.edunex.version}
           </span>
         </header>
-        <div className="flex-1 overflow-y-auto p-6">
-          <p className="max-w-prose text-body-regular text-text-secondary">
+        <div className="app-scrollbar flex-1 overflow-y-auto px-6 pb-6 pt-1">
+          <p className="max-w-prose text-[13px] leading-5 text-text-secondary">
             {active.placeholder}
           </p>
           {activeKey === "home" && <SystemPanel />}

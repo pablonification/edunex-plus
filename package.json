@@ -15,7 +15,6 @@
     "package:mac": "npm run build && electron-packager . --overwrite --icon=assets/icon.icns && node scripts/adhoc-sign-electron.mjs \"Edunex Plus-darwin-arm64/Edunex Plus.app\""
   },
   "dependencies": {
-    "@fontsource-variable/inter": "^5.2.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "remixicon": "^4.6.0",

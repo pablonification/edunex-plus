@@ -51,7 +51,7 @@ function createWindow(state?: WindowState | null) {
     // the traffic lights sit inside it — the stock bar over a web-style card
     // was the loudest "website in a window" tell.
     titleBarStyle: isMac() ? "hidden" : "default",
-    trafficLightPosition: { x: 16, y: 22 },
+    trafficLightPosition: { x: 16, y: 18 },
     // macOS: native translucent sidebar material behind the rail. Non-mac
     // windows keep an opaque background (no vibrancy there).
     vibrancy: isMac() ? "sidebar" : undefined,
