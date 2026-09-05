@@ -102,9 +102,13 @@ if (!gotSingleInstanceLock) {
 
   ipcMain.handle("notifications:test", showTestNotification);
 
-  // Deliberate no-op: closing the window must not end the process — the app
-  // lives in the tray so notifications keep flowing (spec: shell & navigation).
-  app.on("window-all-closed", () => {});
+  // Deliberate no-op while a tray exists: closing the window must not end the
+  // process — the app lives in the tray so notifications keep flowing (spec:
+  // shell & navigation). Without a tray (rare Linux setups) a closed window
+  // leaves nothing to reach the app through, so quit instead.
+  app.on("window-all-closed", () => {
+    if (!tray) app.quit();
+  });
 
   app.on("before-quit", () => {
     quitting = true;

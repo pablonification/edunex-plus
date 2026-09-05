@@ -29,6 +29,10 @@ platform.
   come from "Edunex Plus" instead of a generic identity — installed builds
   handle this via the installer; portable/dev builds may show the raw
   identity. Wire the shortcut in the packaging slice.
+- The tray icon (`assets/trayTemplate.png`) uses macOS's "Template" naming
+  convention, which Windows ignores — it renders as a raw dark glyph that can
+  disappear against a dark taskbar. The notification slice should ship a
+  light-outline Windows variant selected by platform.
 
 ## Linux
 
