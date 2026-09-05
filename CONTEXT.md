@@ -10,6 +10,10 @@ A cross-platform desktop client for ITB's EduNex LMS, wrapping the platform's in
 ITB's learning management system at edunex.itb.ac.id; a homegrown Vue.js SPA built by vendor Cognisia. Not Moodle/Open edX/Sakai.
 _Avoid_: "the LMS site", Edunex/edunex in prose (capital E, one word: EduNex)
 
+**Edunex Plus**:
+This project's product mark — the unofficial desktop client. Lowercase-n styling is deliberate, to stay distinct from Cognisia's EduNex trademark; never apply the "Edunex Plus" mark to EduNex itself.
+_Avoid_: "EduNEX Plus", "EdunexPlus"
+
 **Cognisia**:
 The vendor that builds and operates EduNex; hosts the API under its own domain (api-edunex.cognisia.id).
 _Avoid_: "ITB's servers" (the API is vendor-hosted)

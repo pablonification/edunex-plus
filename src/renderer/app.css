@@ -1,0 +1,49 @@
+/* App-level overrides on top of the BoardUI token styles (styles/globals.css). */
+
+/* BoardUI's theme resolves --font-sans through --font-inter (see
+ * styles/theme.css) and expects the app to expose it. Desktop-native call
+ * (t3code-style): use the OS system stack — SF Pro on macOS, Segoe on
+ * Windows — no downloaded webfont. Mono gets the system mono stack. */
+:root {
+  --font-inter: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui;
+  --font-mono-source: ui-monospace, "SF Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+}
+
+body {
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
+  /* macOS vibrancy: the window's sidebar material shows through wherever the
+   * page is transparent (the flush rail); the content panel paints itself
+   * opaque. Windows/Linux get an opaque window background instead. */
+  background: transparent;
+}
+
+/* Hidden-titlebar drag regions (macOS): the sidebar header and content
+ * header are chrome; interactive children opt back out via app-no-drag. */
+.app-drag {
+  -webkit-app-region: drag;
+}
+
+.app-no-drag {
+  -webkit-app-region: no-drag;
+}
+
+/* Slim, quiet scrollbars — 6px hairline thumb, no track, no arrows. */
+.app-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(0 0 0 / 18%) transparent;
+}
+.app-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.app-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.app-scrollbar::-webkit-scrollbar-thumb {
+  border-radius: 3px;
+  background: rgb(0 0 0 / 18%);
+}
+.app-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgb(0 0 0 / 28%);
+}
