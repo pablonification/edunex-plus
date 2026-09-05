@@ -12,7 +12,7 @@
     "build": "npm run build:node && tsc --noEmit && vite build",
     "start": "electron .",
     "test": "vitest run",
-    "package:mac": "npm run build && electron-packager . --overwrite && node scripts/adhoc-sign-electron.mjs \"Edunex Plus-darwin-arm64/Edunex Plus.app\""
+    "package:mac": "npm run build && electron-packager . --overwrite --icon=assets/icon.icns && node scripts/adhoc-sign-electron.mjs \"Edunex Plus-darwin-arm64/Edunex Plus.app\""
   },
   "dependencies": {
     "@fontsource-variable/inter": "^5.2.0",

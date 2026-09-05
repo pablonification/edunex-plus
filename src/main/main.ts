@@ -1,7 +1,19 @@
-import { app, BrowserWindow, ipcMain, Menu, Notification, Tray, nativeImage } from "electron";
+import {
+  app,
+  BrowserWindow,
+  ipcMain,
+  Menu,
+  Notification,
+  Tray,
+  nativeImage,
+  screen,
+} from "electron";
 import path from "node:path";
 import { buildTrayMenuTemplate } from "./tray-menu";
+import { buildAppMenuTemplate } from "./app-menu";
+import { loadWindowState, saveWindowState, type WindowState } from "./window-state";
 import { shouldFireStartupTestNotification } from "./notifications";
+import { NAV_VIEWS } from "./nav-views";
 
 // Windows routes notifications by AppUserModelID; without it they fall under
 // Electron's identity or fail entirely (docs/platform-notifications.md).
@@ -12,20 +24,40 @@ app.setAppUserModelId("id.edunexplus.desktop");
 // auth & session). The lock is the guard.
 const gotSingleInstanceLock = app.requestSingleInstanceLock();
 
+const windowStatePath = () => path.join(app.getPath("userData"), "window-state.json");
+const trayIcon = () =>
+  nativeImage.createFromPath(path.join(app.getAppPath(), "assets", "trayTemplate.png"));
+
 let win: BrowserWindow | null = null;
 let tray: Tray | null = null;
 // Close-to-tray: the window's close event is intercepted and only a real
 // quit path (tray Quit / app.quit) may pass through.
 let quitting = false;
+let saveWindowStateTimer: NodeJS.Timeout | null = null;
 
-function createWindow() {
+function isMac() {
+  return process.platform === "darwin";
+}
+
+function createWindow(state?: WindowState | null) {
   win = new BrowserWindow({
-    width: 1280,
-    height: 820,
+    width: state?.width ?? 1180,
+    height: state?.height ?? 780,
+    x: state?.x,
+    y: state?.y,
     minWidth: 960,
-    minHeight: 640,
+    minHeight: 600,
     title: "Edunex Plus",
-    backgroundColor: "#e9eaec",
+    // macOS: hidden titlebar so the sidebar runs to the window's top edge and
+    // the traffic lights sit inside it — the stock bar over a web-style card
+    // was the loudest "website in a window" tell.
+    titleBarStyle: isMac() ? "hidden" : "default",
+    trafficLightPosition: { x: 16, y: 22 },
+    // macOS: native translucent sidebar material behind the rail. Non-mac
+    // windows keep an opaque background (no vibrancy there).
+    vibrancy: isMac() ? "sidebar" : undefined,
+    visualEffectState: isMac() ? "followWindow" : undefined,
+    backgroundColor: isMac() ? "#00000000" : "#f6f6f7",
     webPreferences: {
       preload: path.join(__dirname, "../preload/preload.js"),
       contextIsolation: true,
@@ -37,19 +69,42 @@ function createWindow() {
   if (startUrl) win.loadURL(startUrl);
   else win.loadFile(path.join(__dirname, "../renderer/index.html"));
 
+  if (state?.isMaximized) win.maximize();
+
   win.on("close", (event) => {
+    rememberWindowState();
     if (quitting) return;
     if (tray) {
       event.preventDefault();
       win?.hide();
     }
-    // No tray support (rare Linux setups): let the close through — hiding
-    // would strand the app with no way back.
+    // No tray support (rare Linux setups): let the close through — the app
+    // quits on window-all-closed rather than stranding a windowless process.
   });
 
   win.on("closed", () => {
     win = null;
   });
+}
+
+function rememberWindowState() {
+  if (!win || win.isDestroyed() || win.isMinimized()) return;
+  // Debounced: resize/move fire in bursts while dragging.
+  if (saveWindowStateTimer) clearTimeout(saveWindowStateTimer);
+  saveWindowStateTimer = setTimeout(() => {
+    if (!win || win.isDestroyed()) return;
+    saveWindowState(
+      windowStatePath(),
+      {
+        width: win.getBounds().width,
+        height: win.getBounds().height,
+        x: win.getBounds().x,
+        y: win.getBounds().y,
+        isMaximized: win.isMaximized(),
+      },
+      screen.getPrimaryDisplay().workArea,
+    );
+  }, 400);
 }
 
 function showWindow() {
@@ -73,9 +128,7 @@ function createTray() {
     // createFromPath picks up the sibling @2x automatically. Throws on Linux
     // setups with no StatusNotifier support — then there is no tray to hide
     // into and window close really closes (see docs/platform-notifications.md).
-    tray = new Tray(
-      nativeImage.createFromPath(path.join(app.getAppPath(), "assets", "trayTemplate.png")),
-    );
+    tray = new Tray(trayIcon());
   } catch {
     return;
   }
@@ -86,14 +139,39 @@ function createTray() {
   tray.on("click", showWindow);
 }
 
+function sendToView(view: string) {
+  win?.webContents.send("nav:goto", view);
+}
+
+function setApplicationMenu() {
+  Menu.setApplicationMenu(
+    Menu.buildFromTemplate(
+      buildAppMenuTemplate(app.name, NAV_VIEWS, { gotoView: sendToView }),
+    ),
+  );
+}
+
 if (!gotSingleInstanceLock) {
   app.quit();
 } else {
   app.on("second-instance", showWindow);
 
   app.whenReady().then(() => {
+    setApplicationMenu();
+    if (isMac() && app.dock) {
+      // Cosmetic — a missing icon must never break boot.
+      try {
+        app.dock.setIcon(path.join(app.getAppPath(), "assets", "icon.png"));
+      } catch {}
+    }
+    createWindow(loadWindowState(windowStatePath(), screen.getPrimaryDisplay().workArea));
     createTray();
-    createWindow();
+
+    app.setAboutPanelOptions({
+      applicationName: "Edunex Plus",
+      applicationVersion: app.getVersion(),
+      credits: "Unofficial, community-built desktop client for ITB's EduNex.",
+    });
 
     if (shouldFireStartupTestNotification(app.isPackaged, process.env)) showTestNotification();
 
@@ -101,6 +179,12 @@ if (!gotSingleInstanceLock) {
   });
 
   ipcMain.handle("notifications:test", showTestNotification);
+  ipcMain.handle("app:info", () => ({
+    version: app.getVersion(),
+    platform: process.platform,
+    trayActive: tray != null,
+    notificationsSupported: Notification.isSupported(),
+  }));
 
   // Deliberate no-op while a tray exists: closing the window must not end the
   // process — the app lives in the tray so notifications keep flowing (spec:

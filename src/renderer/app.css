@@ -11,4 +11,18 @@
 body {
   margin: 0;
   -webkit-font-smoothing: antialiased;
+  /* macOS vibrancy: the window's sidebar material shows through wherever the
+   * page is transparent (the flush rail); the content panel paints itself
+   * opaque. Windows/Linux get an opaque window background instead. */
+  background: transparent;
+}
+
+/* Hidden-titlebar drag regions (macOS): the sidebar header and content
+ * header are chrome; interactive children opt back out via app-no-drag. */
+.app-drag {
+  -webkit-app-region: drag;
+}
+
+.app-no-drag {
+  -webkit-app-region: no-drag;
 }
