@@ -15,6 +15,7 @@ declare global {
       fireTestNotification(): Promise<void>;
       getAppInfo(): Promise<AppInfo>;
       onNavigate(callback: (view: NavKey) => void): () => void;
+      onFullscreenChange(callback: (isFullscreen: boolean) => void): () => void;
     };
   }
 }

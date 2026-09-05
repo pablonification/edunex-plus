@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { cx } from "@/utils/cx";
 import { NAV_ITEMS, type NavKey } from "@/nav";
 
@@ -6,9 +7,10 @@ import { NAV_ITEMS, type NavKey } from "@/nav";
  * (no gradient pill, no glow), compact 32px rows with muted 17px icons, 8px
  * control radius. The accent gradient survives only in the brand mark. On
  * macOS the rail sits over the window's sidebar vibrancy and its header
- * carries the traffic lights; on Windows/Linux it's a solid secondary
- * surface beside the standard frame. Feature content and hideable-features
- * controls land in later slices (#20–#22).
+ * carries the traffic lights (the brand row indents past them, and re-aligns
+ * with the nav when fullscreen hides the lights); on Windows/Linux it's a
+ * solid secondary surface beside the standard frame. Feature content and
+ * hideable-features controls land in later slices (#20–#22).
  */
 
 export interface AppSidebarProps {
@@ -18,6 +20,9 @@ export interface AppSidebarProps {
 
 export function AppSidebar({ activeKey, onSelect }: AppSidebarProps) {
   const isMac = window.edunex.platform === "darwin";
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  useEffect(() => window.edunex.onFullscreenChange(setIsFullscreen), []);
 
   return (
     <aside
@@ -28,8 +33,9 @@ export function AppSidebar({ activeKey, onSelect }: AppSidebarProps) {
     >
       <header
         className={cx(
-          "flex h-[52px] shrink-0 items-center",
-          isMac ? "app-drag pl-[76px]" : "px-4 pt-2",
+          "flex h-[52px] shrink-0 items-center transition-[padding] duration-150",
+          isMac && "app-drag",
+          isMac && !isFullscreen ? "pl-[76px]" : "px-4",
         )}
       >
         <span className="grid size-7 shrink-0 place-items-center rounded-lg bg-linear-to-b from-accent-500 to-accent-600 text-[13px] font-bold text-white">

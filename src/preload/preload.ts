@@ -16,4 +16,10 @@ contextBridge.exposeInMainWorld("edunex", {
     ipcRenderer.on("nav:goto", listener);
     return () => ipcRenderer.removeListener("nav:goto", listener);
   },
+  // macOS window-fullscreen state (traffic lights hidden vs. inline).
+  onFullscreenChange: (callback: (isFullscreen: boolean) => void) => {
+    const listener = (_event: unknown, isFullscreen: boolean) => callback(isFullscreen);
+    ipcRenderer.on("window:fullscreen", listener);
+    return () => ipcRenderer.removeListener("window:fullscreen", listener);
+  },
 });

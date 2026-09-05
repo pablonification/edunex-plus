@@ -70,6 +70,11 @@ function createWindow(state?: WindowState | null) {
 
   if (state?.isMaximized) win.maximize();
 
+  // macOS fullscreen hides the traffic lights (hover-only), so the renderer
+  // re-aligns the brand row when they're gone.
+  win.on("enter-full-screen", () => win?.webContents.send("window:fullscreen", true));
+  win.on("leave-full-screen", () => win?.webContents.send("window:fullscreen", false));
+
   win.on("resize", queueWindowStateSave);
   win.on("move", queueWindowStateSave);
   win.on("close", (event) => {
