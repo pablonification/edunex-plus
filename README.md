@@ -69,6 +69,9 @@ is unaffected.
   shortcut — installed builds are fine, bare-exe runs may not toast.
 - **Linux:** notifications go through libnotify; action-button support varies by desktop.
 
+Per-platform notification notes and verification records live in
+[docs/platform-notifications.md](docs/platform-notifications.md).
+
 ## Development
 
 Electron + TypeScript, performance-disciplined: all background work (polling, diffing,
