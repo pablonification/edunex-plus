@@ -13,7 +13,7 @@ import { buildTrayMenuTemplate } from "./tray-menu";
 import { buildAppMenuTemplate } from "./app-menu";
 import { loadWindowState, saveWindowState, type WindowState } from "./window-state";
 import { shouldFireStartupTestNotification } from "./notifications";
-import { NAV_VIEWS } from "./nav-views";
+import { NAV_VIEWS } from "../shared/shell";
 
 // Windows routes notifications by AppUserModelID; without it they fall under
 // Electron's identity or fail entirely (docs/platform-notifications.md).
@@ -33,7 +33,6 @@ let tray: Tray | null = null;
 // Close-to-tray: the window's close event is intercepted and only a real
 // quit path (tray Quit / app.quit) may pass through.
 let quitting = false;
-let saveWindowStateTimer: NodeJS.Timeout | null = null;
 
 function isMac() {
   return process.platform === "darwin";
@@ -71,8 +70,12 @@ function createWindow(state?: WindowState | null) {
 
   if (state?.isMaximized) win.maximize();
 
+  win.on("resize", queueWindowStateSave);
+  win.on("move", queueWindowStateSave);
   win.on("close", (event) => {
-    rememberWindowState();
+    // Synchronous flush: the debounced timer never gets to fire on a real
+    // quit, so anything since the last hide-to-tray would be lost.
+    flushWindowStateSave();
     if (quitting) return;
     if (tray) {
       event.preventDefault();
@@ -87,24 +90,36 @@ function createWindow(state?: WindowState | null) {
   });
 }
 
-function rememberWindowState() {
+function persistWindowStateNow() {
   if (!win || win.isDestroyed() || win.isMinimized()) return;
-  // Debounced: resize/move fire in bursts while dragging.
-  if (saveWindowStateTimer) clearTimeout(saveWindowStateTimer);
-  saveWindowStateTimer = setTimeout(() => {
-    if (!win || win.isDestroyed()) return;
-    saveWindowState(
-      windowStatePath(),
-      {
-        width: win.getBounds().width,
-        height: win.getBounds().height,
-        x: win.getBounds().x,
-        y: win.getBounds().y,
-        isMaximized: win.isMaximized(),
-      },
-      screen.getPrimaryDisplay().workArea,
-    );
-  }, 400);
+  const bounds = win.getBounds();
+  saveWindowState(
+    windowStatePath(),
+    {
+      width: bounds.width,
+      height: bounds.height,
+      x: bounds.x,
+      y: bounds.y,
+      isMaximized: win.isMaximized(),
+    },
+    screen.getPrimaryDisplay().workArea,
+  );
+}
+
+let windowStateSaveTimer: NodeJS.Timeout | null = null;
+
+// resize/move fire in bursts while the user drags — debounce the writes.
+function queueWindowStateSave() {
+  if (windowStateSaveTimer) clearTimeout(windowStateSaveTimer);
+  windowStateSaveTimer = setTimeout(flushWindowStateSave, 400);
+}
+
+function flushWindowStateSave() {
+  if (windowStateSaveTimer) {
+    clearTimeout(windowStateSaveTimer);
+    windowStateSaveTimer = null;
+  }
+  persistWindowStateNow();
 }
 
 function showWindow() {

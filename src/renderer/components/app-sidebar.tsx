@@ -28,8 +28,8 @@ export function AppSidebar({ activeKey, onSelect }: AppSidebarProps) {
     >
       <header
         className={cx(
-          "app-drag flex h-[52px] shrink-0 items-center",
-          isMac ? "pl-[80px]" : "px-4 pt-2",
+          "flex h-[52px] shrink-0 items-center",
+          isMac ? "app-drag pl-[80px]" : "px-4 pt-2",
         )}
       >
         <span className="grid size-8 shrink-0 place-items-center rounded-2lg bg-linear-to-b from-accent-500 to-accent-600 text-[15px] font-bold text-white shadow-nav-selected">
@@ -38,7 +38,10 @@ export function AppSidebar({ activeKey, onSelect }: AppSidebarProps) {
         <span className="ml-2 text-title-3-bold tracking-tight">Edunex Plus</span>
       </header>
 
-      <nav className={cx("flex flex-col gap-0.5 px-2", isMac && "app-no-drag")} aria-label="Main">
+      <nav
+        className={cx("flex flex-col gap-0.5 px-2", isMac && "app-no-drag")}
+        aria-label="Main"
+      >
         {NAV_ITEMS.map((item) => {
           const selected = item.key === activeKey;
           return (

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { buildAppMenuTemplate } from "./app-menu";
-import { NAV_VIEWS } from "./nav-views";
+import { NAV_VIEWS } from "../shared/shell";
 
 describe("buildAppMenuTemplate", () => {
   const handlers = { gotoView: vi.fn() };

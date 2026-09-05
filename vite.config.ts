@@ -9,6 +9,11 @@ export default defineConfig({
   // where absolute /assets paths escape the bundle.
   base: "./",
   plugins: [react(), tailwindcss()],
-  resolve: { alias: { "@": path.resolve(__dirname, "src/renderer") } },
+  resolve: {
+    alias: {
+      "@": path.resolve(__dirname, "src/renderer"),
+      "@shared": path.resolve(__dirname, "src/shared"),
+    },
+  },
   build: { outDir: path.resolve(__dirname, "dist/renderer"), emptyOutDir: true },
 });

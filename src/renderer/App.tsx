@@ -1,29 +1,42 @@
 import { useEffect, useState } from "react";
 import { AppSidebar } from "./components/app-sidebar";
 import { SystemPanel } from "./features/shell/system-panel";
-import { navItem, type NavKey } from "./nav";
+import { navItem } from "./nav";
+import { cx } from "./utils/cx";
+import type { NavKey } from "@shared/shell";
 
 /**
  * App shell (#32): flush sidebar + content panel under a hidden titlebar
  * (macOS) — the sidebar runs to the window's top edge and holds the traffic
  * lights, the way native macOS apps do. On Windows/Linux the standard frame
- * stays and the layout is identical minus the drag regions. Views are
- * placeholders naming the slice each surface lands in — no EduNex data or
- * auth in the shell.
+ * stays: same layout, opaque sidebar, and no drag regions (the stock
+ * titlebar does that job). Views are placeholders naming the slice each
+ * surface lands in — no EduNex data or auth in the shell.
  */
 export function App() {
   const [activeKey, setActiveKey] = useState<NavKey>("home");
   const active = navItem(activeKey);
+  const isMac = window.edunex.platform === "darwin";
 
-  useEffect(() => window.edunex.onNavigate((view) => setActiveKey(view as NavKey)), []);
+  useEffect(() => window.edunex.onNavigate(setActiveKey), []);
 
   return (
     <div className="flex h-screen overflow-hidden">
       <AppSidebar activeKey={activeKey} onSelect={setActiveKey} />
       <main className="flex min-w-0 flex-1 flex-col border-l border-separator-border bg-background-primary-default">
-        <header className="app-drag flex h-12 shrink-0 items-center gap-2 border-b border-separator-border px-4">
+        <header
+          className={cx(
+            "flex h-12 shrink-0 items-center gap-2 border-b border-separator-border px-4",
+            isMac && "app-drag",
+          )}
+        >
           <h1 className="text-title-3-bold">{active.label}</h1>
-          <span className="app-no-drag ml-auto text-caption-1-regular text-text-tertiary">
+          <span
+            className={cx(
+              "ml-auto text-caption-1-regular text-text-tertiary",
+              isMac && "app-no-drag",
+            )}
+          >
             Edunex Plus {window.edunex.version}
           </span>
         </header>

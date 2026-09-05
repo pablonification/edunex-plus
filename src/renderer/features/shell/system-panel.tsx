@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { StatusDot } from "@/components/ui/status-dot";
+import type { AppInfo } from "@shared/shell";
 
 /**
  * Home panel instrumentation for the shell slice (#32): what a desktop app's
@@ -8,13 +9,6 @@ import { StatusDot } from "@/components/ui/status-dot";
  * facts (version, platform, tray, notification support) straight from the
  * main process, plus a manual trigger for the notification carve-out check.
  */
-
-interface AppInfo {
-  version: string;
-  platform: string;
-  trayActive: boolean;
-  notificationsSupported: boolean;
-}
 
 function InfoRow({ label, ok, value }: { label: string; ok?: boolean; value: string }) {
   return (

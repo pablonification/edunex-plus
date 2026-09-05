@@ -1,50 +1,42 @@
+import { NAV_VIEWS, type NavKey } from "@shared/shell";
+
 /**
- * Curated rail metadata for the shell slice (#32). Keys and labels follow the
- * v1 scope (#6) and CONTEXT.md language (To Do, Presence, Task — never
- * "assignment"/"attendance"). The placeholder copy names the ticket each
- * surface lands in; no EduNex data reaches the shell until those slices.
+ * Curated rail metadata: the views come from the shared contract (the
+ * application menu's ⌘1–6 maps over the same list), and this file adds the
+ * renderer-only chrome — icons and placeholder copy naming the ticket each
+ * surface lands in. No EduNex data reaches the shell until those slices.
  */
-export const NAV_ITEMS = [
-  {
-    key: "home",
-    label: "Home",
+const META: Record<NavKey, { icon: string; placeholder: string }> = {
+  home: {
     icon: "ri-home-5-line",
     placeholder:
-      "The app shell is live — floating sidebar, content panel, tray and notifications. No EduNex account is connected yet; surfaces below arrive slice by slice.",
+      "The shell is live — native window chrome, menu shortcuts, tray and notifications. No EduNex account is connected yet; surfaces below arrive slice by slice.",
   },
-  {
-    key: "todo",
-    label: "To Do",
+  todo: {
     icon: "ri-checkbox-line",
     placeholder: "Your aggregated pending Tasks and Exams will live here (#21).",
   },
-  {
-    key: "agenda",
-    label: "Agenda",
+  agenda: {
     icon: "ri-calendar-line",
     placeholder: "The course agenda with Vicon tags for online meetings will live here (#28).",
   },
-  {
-    key: "presence",
-    label: "Presence",
+  presence: {
     icon: "ri-hand-heart-line",
     placeholder: "Your Presence records per course will live here (#29).",
   },
-  {
-    key: "materials",
-    label: "Materials",
+  materials: {
     icon: "ri-folder-3-line",
     placeholder: "Course materials with download will live here (#30).",
   },
-  {
-    key: "exams",
-    label: "Exams",
+  exams: {
     icon: "ri-file-list-3-line",
     placeholder: "The read-only exams list will live here (#27).",
   },
-] as const;
+};
 
-export type NavKey = (typeof NAV_ITEMS)[number]["key"];
+export const NAV_ITEMS = NAV_VIEWS.map((view) => ({ ...view, ...META[view.key] }));
+
+export type { NavKey };
 
 export function navItem(key: NavKey) {
   return NAV_ITEMS.find((item) => item.key === key)!;

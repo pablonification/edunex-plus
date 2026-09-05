@@ -1,9 +1,11 @@
+import type { AppInfo, NavKey } from "@shared/shell";
+
 export {};
 
 /**
  * The preload-exposed bridge (src/preload/preload.ts). This is the renderer
  * seam from the spec's testing decisions — renderer code only ever touches
- * window.edunex, never Electron APIs.
+ * window.edunex, never Electron APIs. Shared types come from src/shared.
  */
 declare global {
   interface Window {
@@ -11,13 +13,8 @@ declare global {
       version: string;
       platform: string;
       fireTestNotification(): Promise<void>;
-      getAppInfo(): Promise<{
-        version: string;
-        platform: string;
-        trayActive: boolean;
-        notificationsSupported: boolean;
-      }>;
-      onNavigate(callback: (view: string) => void): () => void;
+      getAppInfo(): Promise<AppInfo>;
+      onNavigate(callback: (view: NavKey) => void): () => void;
     };
   }
 }

@@ -9,7 +9,7 @@
     "noUnusedLocals": true,
     "skipLibCheck": true,
     "noEmit": true,
-    "paths": { "@/*": ["./src/renderer/*"] }
+    "paths": { "@/*": ["./src/renderer/*"], "@shared/*": ["./src/shared/*"] }
   },
-  "include": ["src/renderer"]
+  "include": ["src/renderer", "src/shared"]
 }
