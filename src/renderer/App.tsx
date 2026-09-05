@@ -27,7 +27,7 @@ export function App() {
       <main className="flex min-w-0 flex-1 flex-col border-l border-black/[0.08] bg-background-primary-default">
         <header
           className={cx(
-            "flex h-[52px] shrink-0 items-center gap-2 px-5",
+            "flex h-[52px] shrink-0 items-center gap-2 px-8",
             isMac && "app-drag",
           )}
         >
@@ -41,7 +41,7 @@ export function App() {
             v{window.edunex.version}
           </span>
         </header>
-        <div className="app-scrollbar flex-1 overflow-y-auto px-6 pb-6 pt-1">
+        <div className="app-scrollbar flex-1 overflow-y-auto px-8 pb-10 pt-2">
           <p className="max-w-prose text-[13px] leading-5 text-text-secondary">
             {active.placeholder}
           </p>

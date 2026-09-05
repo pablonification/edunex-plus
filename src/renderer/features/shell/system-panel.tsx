@@ -14,7 +14,7 @@ import type { AppInfo } from "@shared/shell";
 
 function InfoRow({ label, ok, value }: { label: string; ok?: boolean; value: string }) {
   return (
-    <div className="flex items-center gap-2 px-3 py-2">
+    <div className="flex items-center gap-2 px-3.5 py-2.5">
       {ok !== undefined && <StatusDot color={ok ? "green" : "yellow"} />}
       <span className="text-[13px] leading-5 text-text-secondary">{label}</span>
       <span className="ml-auto text-[13px] font-medium text-text-primary">{value}</span>
@@ -36,9 +36,9 @@ export function SystemPanel() {
   }, []);
 
   return (
-    <section className="mt-6 max-w-md">
+    <section className="mt-10 max-w-md">
       <h2 className="px-1 text-[13px] font-semibold text-text-tertiary">System</h2>
-      <div className="mt-2 rounded-xl bg-background-secondary-default/80 p-1">
+      <div className="mt-2 rounded-xl bg-background-secondary-default/80 p-1.5">
         <InfoRow label="App version" value={info ? info.version : "…"} />
         <InfoRow label="Platform" value={info ? info.platform : "…"} />
         <InfoRow
@@ -52,7 +52,7 @@ export function SystemPanel() {
           ok={info ? info.notificationsSupported : undefined}
         />
       </div>
-      <div className="mt-3 px-1">
+      <div className="mt-4 px-1">
         <Button variant="ghost" size="small" onClick={() => void window.edunex.fireTestNotification()}>
           Send test notification
         </Button>

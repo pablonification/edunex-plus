@@ -35,7 +35,7 @@ export function AppSidebar({ activeKey, onSelect }: AppSidebarProps) {
         className={cx(
           "flex h-[52px] shrink-0 items-center transition-[padding] duration-150",
           isMac && "app-drag",
-          isMac && !isFullscreen ? "pl-[76px]" : "px-4",
+          isMac && !isFullscreen ? "pl-[84px]" : "px-4",
         )}
       >
         <span className="grid size-7 shrink-0 place-items-center rounded-lg bg-linear-to-b from-accent-500 to-accent-600 text-[13px] font-bold text-white">
