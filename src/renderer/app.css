@@ -1,0 +1,14 @@
+/* App-level overrides on top of the BoardUI token styles (styles/globals.css). */
+
+/* BoardUI's theme resolves --font-sans through --font-inter (see
+ * styles/theme.css) and expects the app to expose it — the Next.js
+ * next/font integration point, filled here by @fontsource-variable/inter
+ * (imported in main.tsx). */
+:root {
+  --font-inter: "Inter Variable", "Inter";
+}
+
+body {
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
+}
