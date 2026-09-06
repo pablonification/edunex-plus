@@ -67,10 +67,13 @@ export function createAuthController(opts: {
     restore: async () => {
       await manager.restore();
       restored = true;
+      console.log("[auth] startup restore complete:", manager.status());
     },
     startLogin: () => manager.startLogin(),
 
     attachWebview(contents) {
+      console.log("[auth] login webview attached");
+
       // Zero popups (acceptance criteria): Azure AD / the SSO broker must
       // finish in-window. Anything asking for a new window is folded back
       // into the same webview — deferred off the handler per Electron's
@@ -84,12 +87,20 @@ export function createAuthController(opts: {
 
       // The SPA writes localStorage.auth ~2s after the redirect-back lands
       // (auth-spike). Poll until it shows up — MFA may take as long as the
-      // human needs, so there is no timeout.
-      const capture = createAuthCapture(
-        () => contents.executeJavaScript("localStorage.getItem('auth')", true),
-        { intervalMs: 1000 },
-      );
-      capture.start((auth: CapturedAuth) => void manager.capture(auth));
+      // human needs, so there is no timeout. The loop only runs while the
+      // webview sits on the EduNex origin: localStorage.auth only exists
+      // there, and a reader against a not-yet-committed frame can hang.
+      const capture = createAuthCapture(readWithTimeout(contents), { intervalMs: 1000 });
+      const maybeStart = (url: string) => {
+        if (isEdunexOrigin(url)) {
+          console.log("[auth] edunex origin — polling for localStorage.auth");
+          capture.start(onCaptured);
+        } else {
+          capture.stop();
+        }
+      };
+      contents.on("did-navigate", (_event, url) => maybeStart(url));
+      contents.on("did-navigate-in-page", (_event, url) => maybeStart(url));
       captures.set(contents.id, capture);
 
       // When the renderer unmounts the webview (login done or dismissed) its
@@ -100,4 +111,38 @@ export function createAuthController(opts: {
       });
     },
   };
+
+  function onCaptured(auth: CapturedAuth) {
+    console.log("[auth] session captured from webview, verifying");
+    void manager.capture(auth);
+  }
+}
+
+function isEdunexOrigin(url: string): boolean {
+  try {
+    return new URL(url).host === "edunex.itb.ac.id";
+  } catch {
+    return false;
+  }
+}
+
+/** Every read must settle (a reader against a wedged frame would otherwise
+ * block the poll loop's in-flight guard forever). */
+function readWithTimeout(contents: Electron.WebContents) {
+  return () =>
+    new Promise<unknown>((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error("auth read timed out")), 5000);
+      contents
+        .executeJavaScript("localStorage.getItem('auth')", true)
+        .then(
+          (value) => {
+            clearTimeout(timer);
+            resolve(value);
+          },
+          (err: unknown) => {
+            clearTimeout(timer);
+            reject(err);
+          },
+        );
+    });
 }

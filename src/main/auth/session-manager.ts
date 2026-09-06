@@ -91,6 +91,7 @@ export function createSessionManager(deps: SessionManagerDeps): SessionManager {
         console.error("[auth] could not persist session:", err);
       }
       const check = await deps.api.get("/login/me");
+      console.log("[auth] capture verify /login/me →", check.status);
       if (check.status === 401) {
         // The partition handed back stale tokens (a previous session's
         // localStorage.auth survived): straight into the re-login moment,
