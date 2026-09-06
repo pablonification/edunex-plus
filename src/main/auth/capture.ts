@@ -32,7 +32,8 @@ export function parseCapturedAuth(raw: unknown): CapturedAuth | null {
 export type AuthReader = () => Promise<unknown>;
 
 export interface AuthCapture {
-  start(onCaptured: (auth: CapturedAuth) => void): void;
+  /** Begins polling; returns false if the loop is already running. */
+  start(onCaptured: (auth: CapturedAuth) => void): boolean;
   stop(): void;
 }
 
@@ -72,9 +73,10 @@ export function createAuthCapture(
 
   return {
     start(onCaptured) {
-      if (running) return;
+      if (running) return false;
       running = true;
       void poll(onCaptured);
+      return true;
     },
     stop() {
       running = false;
