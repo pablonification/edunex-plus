@@ -13,6 +13,7 @@ import { buildTrayMenuTemplate } from "./tray-menu";
 import { buildAppMenuTemplate } from "./app-menu";
 import { loadWindowState, saveWindowState, type WindowState } from "./window-state";
 import { shouldFireStartupTestNotification } from "./notifications";
+import { createAuthController } from "./auth/auth-controller";
 import { NAV_VIEWS } from "../shared/shell";
 
 // Windows routes notifications by AppUserModelID; without it they fall under
@@ -61,6 +62,9 @@ function createWindow(state?: WindowState | null) {
       preload: path.join(__dirname, "../preload/preload.js"),
       contextIsolation: true,
       nodeIntegration: false,
+      // The embedded login webview (#18) lives in the renderer on a
+      // persistent partition; capture and state stay in main.
+      webviewTag: true,
     },
   });
 
@@ -74,6 +78,13 @@ function createWindow(state?: WindowState | null) {
   // re-aligns the brand row when they're gone.
   win.on("enter-full-screen", () => win?.webContents.send("window:fullscreen", true));
   win.on("leave-full-screen", () => win?.webContents.send("window:fullscreen", false));
+
+  // The login webview (#18) attaches here whenever the renderer mounts it.
+  // Main owns the capture loop and popup suppression for its webContents;
+  // the loop ends with the webview's own destroyed event.
+  win.webContents.on("did-attach-webview", (_event, contents) =>
+    authController.attachWebview(contents),
+  );
 
   win.on("resize", queueWindowStateSave);
   win.on("move", queueWindowStateSave);
@@ -171,6 +182,16 @@ function setApplicationMenu() {
   );
 }
 
+// Auth slice (#18): encrypted token store, capture from the login webview,
+// and the signed-out / authenticating / signed-in / session-expired machine.
+const authController = createAuthController({
+  sessionStorePath: path.join(app.getPath("userData"), "auth-session.enc"),
+  appVersion: app.getVersion(),
+  broadcast: (status) => {
+    if (win && !win.isDestroyed()) win.webContents.send("auth:state", status);
+  },
+});
+
 if (!gotSingleInstanceLock) {
   app.quit();
 } else {
@@ -186,6 +207,11 @@ if (!gotSingleInstanceLock) {
     }
     createWindow(loadWindowState(windowStatePath(), screen.getPrimaryDisplay().workArea));
     createTray();
+
+    // Restore the session before the renderer finishes booting; until this
+    // resolves the renderer holds back the auth-gated UI (status stays null)
+    // so a restored session never flashes the login view.
+    void authController.restore();
 
     app.setAboutPanelOptions({
       applicationName: "Edunex Plus",
@@ -205,6 +231,13 @@ if (!gotSingleInstanceLock) {
     trayActive: tray != null,
     notificationsSupported: Notification.isSupported(),
   }));
+
+  // Auth slice (#18): the renderer asks for the current status, requests the
+  // login webview moment, or dismisses it; state changes arrive pushed on
+  // auth:state.
+  ipcMain.handle("auth:get-state", () => authController.status());
+  ipcMain.handle("auth:start-login", () => authController.startLogin());
+  ipcMain.handle("auth:dismiss-login", () => authController.dismissLogin());
 
   // Deliberate no-op while a tray exists: closing the window must not end the
   // process — the app lives in the tray so notifications keep flowing (spec:
