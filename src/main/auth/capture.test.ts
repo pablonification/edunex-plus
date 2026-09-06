@@ -83,6 +83,33 @@ describe("auth capture loop", () => {
     expect(onCaptured).not.toHaveBeenCalled();
   });
 
+  it("start while already running does not double-poll", async () => {
+    const h = harness(null);
+    const onCaptured = vi.fn();
+    const capture = createAuthCapture(h.executeJs, { intervalMs: 1000 });
+    capture.start(onCaptured);
+    capture.start(onCaptured);
+
+    await vi.advanceTimersByTimeAsync(2999);
+    expect(h.executeJs).toHaveBeenCalledTimes(3);
+  });
+
+  it("restarts after stop for the next navigation onto the origin", async () => {
+    const h = harness(null);
+    const onCaptured = vi.fn();
+    const capture = createAuthCapture(h.executeJs, { intervalMs: 1000 });
+    capture.start(onCaptured);
+    capture.stop();
+    capture.start(onCaptured);
+
+    await vi.advanceTimersByTimeAsync(2999);
+    expect(h.executeJs).toHaveBeenCalledTimes(3);
+
+    h.setStorage(JSON.stringify(validRaw));
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(onCaptured).toHaveBeenCalledWith(validRaw);
+  });
+
   it("survives a rejected executeJavaScript (webview navigating)", async () => {
     const executeJs = vi.fn(async () => {
       throw new Error("frame detached");

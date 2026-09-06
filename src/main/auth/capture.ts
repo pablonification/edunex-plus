@@ -39,25 +39,26 @@ export interface AuthCapture {
 /**
  * Polls the webview's localStorage until a valid session shows up. No
  * timeout on purpose: MFA can take as long as the human needs; the loop only
- * ends on success or stop() (login closed / webview detached). Polls overlap
- * are guarded so a slow executeJavaScript can't double-fire.
+ * ends on success or stop() (login closed / webview left the origin). A hung
+ * reader must not wedge the loop, so only ever one poll is in flight and
+ * start() while already running is a no-op.
  */
 export function createAuthCapture(
   executeJs: AuthReader,
   opts: { intervalMs: number },
 ): AuthCapture {
   let timer: ReturnType<typeof setTimeout> | null = null;
+  let running = false;
   let inFlight = false;
-  let done = false;
 
   async function poll(onCaptured: (auth: CapturedAuth) => void) {
-    if (done || inFlight) return;
+    if (!running || inFlight) return;
     inFlight = true;
     try {
       const raw = await executeJs();
       const auth = parseCapturedAuth(typeof raw === "string" ? JSON.parse(raw) : raw);
       if (auth) {
-        done = true;
+        running = false;
         onCaptured(auth);
         return;
       }
@@ -66,16 +67,17 @@ export function createAuthCapture(
     } finally {
       inFlight = false;
     }
-    if (!done) timer = setTimeout(() => void poll(onCaptured), opts.intervalMs);
+    if (running) timer = setTimeout(() => void poll(onCaptured), opts.intervalMs);
   }
 
   return {
     start(onCaptured) {
-      done = false;
+      if (running) return;
+      running = true;
       void poll(onCaptured);
     },
     stop() {
-      done = true;
+      running = false;
       if (timer) {
         clearTimeout(timer);
         timer = null;

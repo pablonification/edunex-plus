@@ -41,7 +41,7 @@ export function App() {
 
   return (
     <div className="flex h-screen overflow-hidden">
-      <AppSidebar activeKey={activeKey} onSelect={setActiveKey} />
+      <AppSidebar activeKey={activeKey} onSelect={setActiveKey} signedIn={authStatus === "signed-in"} />
       <main className="flex min-w-0 flex-1 flex-col border-l border-black/[0.08] bg-background-primary-default">
         <header
           className={cx(
