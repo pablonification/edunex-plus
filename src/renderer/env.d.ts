@@ -19,7 +19,6 @@ declare global {
       onFullscreenChange(callback: (isFullscreen: boolean) => void): () => void;
       getAuthState(): Promise<AuthStatus | null>;
       startLogin(): Promise<void>;
-      dismissLogin(): Promise<void>;
       onAuthState(callback: (status: AuthStatus) => void): () => void;
     };
   }

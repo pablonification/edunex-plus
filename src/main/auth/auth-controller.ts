@@ -1,6 +1,5 @@
 import { safeStorage } from "electron";
 import type { AuthStatus, CapturedAuth } from "../../shared/auth";
-import { AUTH_PARTITION } from "../../shared/auth";
 import { createSessionStore, type SessionCodec } from "./session-store";
 import { createSessionManager, type SessionManager } from "./session-manager";
 import { createAuthCapture } from "./capture";
@@ -8,7 +7,6 @@ import { createEdunexApi } from "../api/client";
 
 /** The vendor API the captured bearer token talks to (spec: API stance). */
 export const EDUNEX_API_BASE_URL = "https://api-edunex.cognisia.id";
-export { AUTH_PARTITION };
 
 /**
  * Glue for the auth slice (#18): the testable pieces are session-store,
@@ -22,9 +20,7 @@ export interface AuthController {
   status(): AuthStatus | null;
   restore(): Promise<void>;
   startLogin(): void;
-  dismissLogin(): void;
   attachWebview(contents: Electron.WebContents): void;
-  detachWebview(contents: Electron.WebContents): void;
 }
 
 export function createAuthController(opts: {
@@ -73,14 +69,16 @@ export function createAuthController(opts: {
       restored = true;
     },
     startLogin: () => manager.startLogin(),
-    dismissLogin: () => manager.dismissLogin(),
 
     attachWebview(contents) {
       // Zero popups (acceptance criteria): Azure AD / the SSO broker must
       // finish in-window. Anything asking for a new window is folded back
-      // into the same webview.
+      // into the same webview — deferred off the handler per Electron's
+      // guidance against navigating synchronously from it.
       contents.setWindowOpenHandler(({ url }) => {
-        if (/^https?:/i.test(url)) void contents.loadURL(url).catch(() => {});
+        if (/^https?:/i.test(url)) {
+          setTimeout(() => void contents.loadURL(url).catch(() => {}), 0);
+        }
         return { action: "deny" };
       });
 
@@ -100,11 +98,6 @@ export function createAuthController(opts: {
         capture.stop();
         captures.delete(contents.id);
       });
-    },
-
-    detachWebview(contents) {
-      captures.get(contents.id)?.stop();
-      captures.delete(contents.id);
     },
   };
 }

@@ -26,7 +26,6 @@ contextBridge.exposeInMainWorld("edunex", {
   // Auth (#18): null until main's startup restore has resolved.
   getAuthState: () => ipcRenderer.invoke("auth:get-state") as Promise<AuthStatus | null>,
   startLogin: () => ipcRenderer.invoke("auth:start-login") as Promise<void>,
-  dismissLogin: () => ipcRenderer.invoke("auth:dismiss-login") as Promise<void>,
   onAuthState: (callback: (status: AuthStatus) => void) => {
     const listener = (_event: unknown, status: AuthStatus) => callback(status);
     ipcRenderer.on("auth:state", listener);

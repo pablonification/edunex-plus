@@ -72,22 +72,10 @@ describe("session manager", () => {
     expect(store.clear).toHaveBeenCalledTimes(1);
   });
 
-  it("startLogin opens the webview moment and dismiss returns to where we were", async () => {
+  it("startLogin opens the webview moment", () => {
     const { manager } = harness();
     manager.startLogin();
     expect(manager.status()).toBe("authenticating");
-    manager.dismissLogin();
-    expect(manager.status()).toBe("signed-out");
-  });
-
-  it("dismiss from a relogin lands back on session-expired, not stale data", async () => {
-    const { manager } = harness({ stored: session });
-    await manager.restore();
-    manager.handleUnauthorized();
-
-    manager.startLogin();
-    manager.dismissLogin();
-    expect(manager.status()).toBe("session-expired");
   });
 
   it("a successful capture from the relogin webview recovers without an app restart", async () => {
@@ -100,11 +88,23 @@ describe("session manager", () => {
     expect(manager.status()).toBe("signed-in");
   });
 
-  it("capture verification 401 keeps the re-login moment up", async () => {
-    const { manager, onChange } = harness({ apiStatus: 401 });
+  it("capture with a verify 401 goes straight to session-expired, never through signed-in", async () => {
+    const { manager, onChange, store } = harness({ apiStatus: 401 });
+    manager.startLogin();
+
     await manager.capture(session);
-    // signed-in optimistically, then the /login/me probe bounces it back
+
     expect(manager.status()).toBe("session-expired");
-    expect(onChange).toHaveBeenLastCalledWith("session-expired");
+    expect(onChange).not.toHaveBeenCalledWith("signed-in");
+    expect(store.clear).toHaveBeenCalledTimes(1);
+  });
+
+  it("capture with the API unreachable still signs in — tokens were just minted", async () => {
+    const { manager } = harness({ apiStatus: 0 });
+    manager.startLogin();
+
+    await manager.capture(session);
+
+    expect(manager.status()).toBe("signed-in");
   });
 });

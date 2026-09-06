@@ -44,10 +44,8 @@ export interface AuthCapture {
  */
 export function createAuthCapture(
   executeJs: AuthReader,
-  opts: { intervalMs: number; setTimeout?: typeof setTimeout; clearTimeout?: typeof clearTimeout },
+  opts: { intervalMs: number },
 ): AuthCapture {
-  const setTimeout_ = opts.setTimeout ?? setTimeout;
-  const clearTimeout_ = opts.clearTimeout ?? clearTimeout;
   let timer: ReturnType<typeof setTimeout> | null = null;
   let inFlight = false;
   let done = false;
@@ -68,7 +66,7 @@ export function createAuthCapture(
     } finally {
       inFlight = false;
     }
-    if (!done) timer = setTimeout_(() => void poll(onCaptured), opts.intervalMs);
+    if (!done) timer = setTimeout(() => void poll(onCaptured), opts.intervalMs);
   }
 
   return {
@@ -79,7 +77,7 @@ export function createAuthCapture(
     stop() {
       done = true;
       if (timer) {
-        clearTimeout_(timer);
+        clearTimeout(timer);
         timer = null;
       }
     },
