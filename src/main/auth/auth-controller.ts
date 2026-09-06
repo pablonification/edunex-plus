@@ -93,8 +93,9 @@ export function createAuthController(opts: {
       const capture = createAuthCapture(readWithTimeout(contents), { intervalMs: 1000 });
       const maybeStart = (url: string) => {
         if (isEdunexOrigin(url)) {
-          console.log("[auth] edunex origin — polling for localStorage.auth");
-          capture.start(onCaptured);
+          if (capture.start(onCaptured)) {
+            console.log("[auth] polling for localStorage.auth on", url);
+          }
         } else {
           capture.stop();
         }
