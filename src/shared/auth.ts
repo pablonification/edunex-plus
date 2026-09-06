@@ -27,9 +27,11 @@ export interface CapturedAuth {
  */
 export type AuthStatus = "signed-out" | "authenticating" | "signed-in" | "session-expired";
 
-/** Where the SSO journey starts; lands back on edunex.itb.ac.id after the
- * redirect (auth-spike). Used by the renderer's webview src. */
-export const EDUNEX_LOGIN_URL = "https://edunex.itb.ac.id/pages/login?to=%2F";
+/** Start of the SSO journey: the ITB broker straight to Azure AD — skipping
+ * the cluttered EduNex login page entirely. The redirect-back lands on
+ * edunex.itb.ac.id, where the capture polls (auth-spike). Used by the
+ * renderer's webview src. */
+export const EDUNEX_SSO_URL = "https://sso-edunex.itb.ac.id/";
 
 /** Persistent partition for the login webview — survives restarts so the SSO
  * broker can remember the device. Never share across app instances (the
