@@ -11,6 +11,8 @@ import type { MenuItemConstructorOptions } from "electron";
  */
 export interface AppMenuHandlers {
   gotoView(view: string): void;
+  /** Dev builds only: fake a 401 to demo the re-login moment end-to-end. */
+  simulateUnauthorized?(): void;
 }
 
 export function buildAppMenuTemplate(
@@ -25,6 +27,13 @@ export function buildAppMenuTemplate(
     accelerator: `CmdOrCtrl+${index + 1}`,
     click: () => handlers.gotoView(view.key),
   }));
+
+  const devAuthItem: MenuItemConstructorOptions | null = handlers.simulateUnauthorized
+    ? {
+        label: "Simulate 401 (dev)",
+        click: () => handlers.simulateUnauthorized!(),
+      }
+    : null;
 
   const macAppMenu: MenuItemConstructorOptions = {
     label: appName,
@@ -53,6 +62,7 @@ export function buildAppMenuTemplate(
         { type: "separator" },
         { role: "reload" },
         { role: "toggleDevTools" },
+        ...(devAuthItem ? [{ type: "separator" } as const, devAuthItem] : []),
         { type: "separator" },
         { role: "resetZoom" },
         { role: "zoomIn" },

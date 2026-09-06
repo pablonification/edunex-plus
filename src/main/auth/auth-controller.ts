@@ -20,6 +20,8 @@ export interface AuthController {
   status(): AuthStatus | null;
   restore(): Promise<void>;
   startLogin(): void;
+  /** Dev-only: fake a 401 to demo the re-login moment without the vendor API. */
+  simulateUnauthorized(): void;
   attachWebview(contents: Electron.WebContents): void;
 }
 
@@ -70,6 +72,10 @@ export function createAuthController(opts: {
       console.log("[auth] startup restore complete:", manager.status());
     },
     startLogin: () => manager.startLogin(),
+    simulateUnauthorized: () => {
+      console.log("[auth] dev: simulating a 401 — session should pause into re-login");
+      manager.handleUnauthorized();
+    },
 
     attachWebview(contents) {
       console.log("[auth] login webview attached");

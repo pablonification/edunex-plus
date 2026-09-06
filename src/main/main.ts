@@ -177,7 +177,12 @@ function sendToView(view: string) {
 function setApplicationMenu() {
   Menu.setApplicationMenu(
     Menu.buildFromTemplate(
-      buildAppMenuTemplate(app.name, NAV_VIEWS, { gotoView: sendToView }),
+      buildAppMenuTemplate(app.name, NAV_VIEWS, {
+        gotoView: sendToView,
+        // Dev-only hook to demo the re-login moment (#18) without needing the
+        // vendor API to actually reject a session.
+        simulateUnauthorized: app.isPackaged ? undefined : () => authController.simulateUnauthorized(),
+      }),
     ),
   );
 }
