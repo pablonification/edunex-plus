@@ -28,9 +28,9 @@ export interface SessionManager {
   restore(): Promise<void>;
   /** Login webview is now open in the renderer. */
   startLogin(): void;
-  /** User closed the webview without finishing; return to the prior state. */
-  dismissLogin(): void;
-  /** `localStorage.auth` was captured out of the webview after the redirect. */
+  /** `localStorage.auth` was captured out of the webview after the redirect.
+   * Persists the tokens, then verifies before leaving authenticating — a
+   * stale partition must not flash signed-in and yank the webview away. */
   capture(auth: CapturedAuth): Promise<void>;
   /** 401 from any API use: pause everything into the re-login moment. */
   handleUnauthorized(): void;
@@ -41,7 +41,6 @@ export interface SessionManager {
 export function createSessionManager(deps: SessionManagerDeps): SessionManager {
   let status: AuthStatus = "signed-out";
   let token: string | null = null;
-  let preLoginStatus: AuthStatus = "signed-out";
 
   function transitionTo(next: AuthStatus) {
     if (status === next) return;
@@ -57,6 +56,8 @@ export function createSessionManager(deps: SessionManagerDeps): SessionManager {
     async restore() {
       const stored = await deps.store.load();
       if (!stored) {
+        // Initial state is already signed-out; broadcast directly so the
+        // renderer leaves its boot gate even though nothing "changed".
         status = "signed-out";
         deps.onChange?.("signed-out");
         return;
@@ -67,7 +68,7 @@ export function createSessionManager(deps: SessionManagerDeps): SessionManager {
         // Stale session (cookies don't survive restarts anyway): clear it and
         // surface the re-login moment instead of showing stale data.
         token = null;
-        await deps.store.clear();
+        deps.store.clear();
         transitionTo("session-expired");
         return;
       }
@@ -77,17 +78,11 @@ export function createSessionManager(deps: SessionManagerDeps): SessionManager {
     },
 
     startLogin() {
-      if (status !== "authenticating") preLoginStatus = status;
       transitionTo("authenticating");
-    },
-
-    dismissLogin() {
-      transitionTo(preLoginStatus);
     },
 
     async capture(auth) {
       token = auth.accessToken;
-      transitionTo("signed-in");
       try {
         await deps.store.save(auth);
       } catch (err) {
@@ -97,14 +92,20 @@ export function createSessionManager(deps: SessionManagerDeps): SessionManager {
       }
       const check = await deps.api.get("/login/me");
       if (check.status === 401) {
+        // The partition handed back stale tokens (a previous session's
+        // localStorage.auth survived): straight into the re-login moment,
+        // never through a signed-in flash.
         this.handleUnauthorized();
+        return;
       }
+      // 200 → healthy; unreachable → the tokens were just minted by the SSO
+      // redirect, accept them and let the next online check re-verify.
+      transitionTo("signed-in");
     },
 
     handleUnauthorized() {
       token = null;
       void deps.store.clear();
-      preLoginStatus = "session-expired";
       transitionTo("session-expired");
     },
   };

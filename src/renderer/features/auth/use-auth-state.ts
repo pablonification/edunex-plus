@@ -11,8 +11,10 @@ export function useAuthState(): AuthStatus | null {
 
   useEffect(() => {
     let cancelled = false;
+    // prev ?? initial: a pushed status that arrived before this promise
+    // resolved must not be overwritten by the (older) initial value.
     void window.edunex.getAuthState().then((initial) => {
-      if (!cancelled && initial !== null) setStatus(initial);
+      if (!cancelled) setStatus((prev) => prev ?? initial);
     });
     const unsubscribe = window.edunex.onAuthState(setStatus);
     return () => {

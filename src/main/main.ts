@@ -232,12 +232,10 @@ if (!gotSingleInstanceLock) {
     notificationsSupported: Notification.isSupported(),
   }));
 
-  // Auth slice (#18): the renderer asks for the current status, requests the
-  // login webview moment, or dismisses it; state changes arrive pushed on
-  // auth:state.
+  // Auth slice (#18): the renderer asks for the current status or requests
+  // the login webview moment; state changes arrive pushed on auth:state.
   ipcMain.handle("auth:get-state", () => authController.status());
   ipcMain.handle("auth:start-login", () => authController.startLogin());
-  ipcMain.handle("auth:dismiss-login", () => authController.dismissLogin());
 
   // Deliberate no-op while a tray exists: closing the window must not end the
   // process — the app lives in the tray so notifications keep flowing (spec:
