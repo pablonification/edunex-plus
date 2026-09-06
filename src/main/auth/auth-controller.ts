@@ -94,7 +94,9 @@ export function createAuthController(opts: {
       const maybeStart = (url: string) => {
         if (isEdunexOrigin(url)) {
           if (capture.start(onCaptured)) {
-            console.log("[auth] polling for localStorage.auth on", url);
+            // Path only: edunex URLs can carry the bearer token as a query
+            // param (webhook/sso) — never log those.
+            console.log("[auth] polling for localStorage.auth on", new URL(url).pathname);
           }
         } else {
           capture.stop();

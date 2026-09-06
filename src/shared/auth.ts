@@ -12,8 +12,9 @@ export interface CapturedAuth {
   /** 2069 sentinel in practice; the SPA never refreshes (spec: auth & session). */
   expirationDate: string;
   verified: boolean;
-  /** Account map keyed "0","1",… — v1 is single-account, used as-is. */
-  accounts: Record<string, unknown>;
+  /** The student's identities (array from the SSO webhook — student +
+   * lecturer rows) or the SPA's keyed map; v1 is single-account, unused. */
+  accounts: unknown[] | Record<string, unknown>;
 }
 
 /**

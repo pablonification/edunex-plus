@@ -14,11 +14,19 @@ describe("parseCapturedAuth", () => {
     expect(parseCapturedAuth(validRaw)).toEqual(validRaw);
   });
 
+  it("accepts accounts as the SSO webhook's array of identities", () => {
+    const withArray = {
+      ...validRaw,
+      accounts: [{ id: 190136, level: "STUDENT" }, { id: 187138, level: "LECTURER" }],
+    };
+    expect(parseCapturedAuth(withArray)).toEqual(withArray);
+  });
+
   it("rejects null, partial and wrong-typed payloads", () => {
     expect(parseCapturedAuth(null)).toBeNull();
     expect(parseCapturedAuth({})).toBeNull();
     expect(parseCapturedAuth({ ...validRaw, accessToken: 42 })).toBeNull();
-    expect(parseCapturedAuth({ ...validRaw, accounts: [] })).toBeNull();
+    expect(parseCapturedAuth({ ...validRaw, accounts: "nope" })).toBeNull();
   });
 });
 
