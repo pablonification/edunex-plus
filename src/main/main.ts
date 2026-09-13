@@ -1,6 +1,7 @@
 import {
   app,
   BrowserWindow,
+  dialog,
   ipcMain,
   Menu,
   Notification,
@@ -9,14 +10,17 @@ import {
   screen,
 } from "electron";
 import path from "node:path";
+import { writeFile } from "node:fs/promises";
 import { buildTrayMenuTemplate } from "./tray-menu";
 import { buildAppMenuTemplate } from "./app-menu";
 import { loadWindowState, saveWindowState, type WindowState } from "./window-state";
 import { shouldFireStartupTestNotification } from "./notifications";
-import { createAuthController } from "./auth/auth-controller";
+import { createAuthController, EDUNEX_API_BASE_URL } from "./auth/auth-controller";
 import { createSnapshotCache } from "./sync/snapshot-cache";
 import { createSyncEngine, type SyncEngine } from "./sync/sync-engine";
 import { createNotificationStore } from "./notifications/notification-store";
+import { downloadMaterialFile } from "./materials/download";
+import { isMaterialDownloadRequest } from "../shared/materials";
 import { createInAppSink, createOsSink } from "./notifications/sinks";
 import { createTaskNotifier } from "./notifications/task-notifier";
 import type { InAppNotification } from "../shared/notifications";
@@ -335,6 +339,34 @@ if (!gotSingleInstanceLock) {
   ipcMain.handle("sync:get-feed", (_event, feed: unknown) => {
     if (!isFeedKey(feed)) return null;
     return sync?.read(feed) ?? null;
+  });
+
+  // Materials download (#30): explicit user action only. The renderer passes
+  // the cached file URL + name; main attaches the bearer token, shows the
+  // save dialog (a user-visible location), and writes the bytes. The sync
+  // tick never downloads — listing stays offline-readable from the cache
+  // while the bytes always need the network.
+  ipcMain.handle("materials:download", async (_event, request: unknown) => {
+    if (!isMaterialDownloadRequest(request)) {
+      return { ok: false, error: "This material has no downloadable file." };
+    }
+    try {
+      return await downloadMaterialFile(request, {
+        baseUrl: EDUNEX_API_BASE_URL,
+        getToken: () => authController.accessToken(),
+        userAgent: `EdunexPlus/${app.getVersion()} (desktop client; +https://github.com/pablonification/edunex-plus)`,
+        onUnauthorized: () => authController.handleUnauthorized(),
+        showSaveDialog: (options) =>
+          dialog.showSaveDialog({
+            defaultPath: options.defaultPath,
+            properties: ["createDirectory", "showOverwriteConfirmation"],
+          }),
+        writeFile: (filePath, data) => writeFile(filePath, data),
+      });
+    } catch (error) {
+      console.error("[materials] download failed:", error);
+      return { ok: false, error: "Download failed — check your connection and try again." };
+    }
   });
 
   // Shell preferences (#22): the renderer reads the persisted settings,

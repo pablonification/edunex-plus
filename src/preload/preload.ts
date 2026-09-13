@@ -1,6 +1,10 @@
 import { contextBridge, ipcRenderer } from "electron";
 import type { AuthStatus } from "../shared/auth";
 import type { FeedKey, FeedSnapshot } from "../shared/feeds";
+import type {
+  MaterialDownloadRequest,
+  MaterialDownloadResult,
+} from "../shared/materials";
 import type { InAppNotification } from "../shared/notifications";
 import type { AppInfo, NavKey, ShellSettings } from "../shared/shell";
 
@@ -42,6 +46,11 @@ contextBridge.exposeInMainWorld("edunex", {
     ipcRenderer.on("sync:feed-updated", listener);
     return () => ipcRenderer.removeListener("sync:feed-updated", listener);
   },
+  // Materials (#30): listing reads the cached feed above; downloading is an
+  // explicit user action that routes through main so the bearer token never
+  // reaches the renderer. Main shows the save dialog and writes the bytes.
+  downloadMaterial: (request: MaterialDownloadRequest) =>
+    ipcRenderer.invoke("materials:download", request) as Promise<MaterialDownloadResult>,
   // Shell preferences (#22): hidden views + the tray opt-out persist in
   // main's userData across restarts; writes push back on shell:settings-updated.
   getShellSettings: () => ipcRenderer.invoke("shell:get-settings") as Promise<ShellSettings>,

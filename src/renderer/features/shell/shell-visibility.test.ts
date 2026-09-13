@@ -76,6 +76,7 @@ function installEdunex(shell: ShellBridge) {
     onAuthState: vi.fn(() => () => undefined),
     getFeed: vi.fn(async (feed: FeedKey) => emptySnapshot(feed)),
     onFeedUpdated: vi.fn(() => () => undefined),
+    downloadMaterial: vi.fn(async () => ({ ok: false as const, error: "unreachable in test" })),
     getShellSettings: shell.getShellSettings,
     setViewHidden: shell.setViewHidden,
     setQuitOnClose: shell.setQuitOnClose,

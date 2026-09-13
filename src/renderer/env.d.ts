@@ -1,5 +1,9 @@
 import type { AuthStatus } from "@shared/auth";
 import type { FeedKey, FeedSnapshot } from "@shared/feeds";
+import type {
+  MaterialDownloadRequest,
+  MaterialDownloadResult,
+} from "@shared/materials";
 import type { InAppNotification } from "@shared/notifications";
 import type { AppInfo, NavKey, ShellSettings } from "@shared/shell";
 
@@ -24,6 +28,7 @@ declare global {
       onAuthState(callback: (status: AuthStatus) => void): () => void;
       getFeed(feed: FeedKey): Promise<FeedSnapshot | null>;
       onFeedUpdated(callback: (snapshot: FeedSnapshot) => void): () => void;
+      downloadMaterial(request: MaterialDownloadRequest): Promise<MaterialDownloadResult>;
       getShellSettings(): Promise<ShellSettings>;
       setViewHidden(view: NavKey, hidden: boolean): Promise<ShellSettings>;
       setQuitOnClose(quitOnClose: boolean): Promise<ShellSettings>;

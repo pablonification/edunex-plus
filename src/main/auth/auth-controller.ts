@@ -22,6 +22,8 @@ export interface AuthController {
   startLogin(): void;
   /** Main-process API adapter bound to the current session token. */
   api(): EdunexDataApi;
+  /** Current bearer token for main-process file downloads (never leaves main). */
+  accessToken(): string | null;
   /** Current account id for per-account feed storage. */
   accountId(): string | null;
   /** Pauses auth and opens the re-login moment after a feed 401. */
@@ -79,6 +81,7 @@ export function createAuthController(opts: {
     },
     startLogin: () => manager.startLogin(),
     api: () => api,
+    accessToken: () => manager.accessToken(),
     accountId: () => manager.accountId(),
     handleUnauthorized: () => manager.handleUnauthorized(),
     simulateUnauthorized: () => {
