@@ -6,6 +6,7 @@ import type {
 } from "@shared/materials";
 import type { InAppNotification } from "@shared/notifications";
 import type { AppInfo, NavKey, ShellSettings } from "@shared/shell";
+import type { SaveDraftInput, SaveDraftResult } from "@shared/submission";
 
 export {};
 
@@ -38,6 +39,7 @@ declare global {
       markAllNotificationsRead(): Promise<InAppNotification[]>;
       onNotificationsUpdated(callback: (entries: InAppNotification[]) => void): () => void;
       onNotificationClicked(callback: (payload: { taskIds: string[] }) => void): () => void;
+      saveDraft(input: SaveDraftInput): Promise<SaveDraftResult>;
     };
   }
 }
