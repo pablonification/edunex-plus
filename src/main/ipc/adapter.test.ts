@@ -1,7 +1,8 @@
 import { expect, it } from "@effect/vitest";
-import { Schema } from "effect";
-import { createApplicationRuntime } from "../effect/runtime";
+import { Effect, Layer, Schema } from "effect";
+import { composeApplicationLayer, createApplicationRuntime } from "../effect/runtime";
 import type { IpcEventService, IpcHandlerService, IpcMainService } from "../platform/services";
+import { IpcMain } from "../platform/services";
 import { registerIpcOperations } from "./adapter";
 
 it("decodes requests, passes sender context, encodes responses, and unregisters", async () => {
@@ -89,6 +90,40 @@ it("converts decoder failures into the operation fallback", async () => {
   await expect(handlers.get("test:decode-failure")!({ sender: "renderer" }, "input")).resolves.toEqual({
     ok: false,
   });
+
+  adapter.unregister();
+  await runtime.shutdown();
+});
+
+it("can resolve the IPC implementation from an Effect service Layer", async () => {
+  const handlers = new Map<string, IpcHandlerService>();
+  const service: IpcMainService = {
+    handle: (channel, handler) => handlers.set(channel, handler),
+  };
+  const runtime = createApplicationRuntime(
+    composeApplicationLayer(Layer.succeed(IpcMain, service)),
+  );
+  const ipcMain = await runtime.runPromise(
+    Effect.gen(function* () {
+      return yield* IpcMain;
+    }),
+  );
+  const adapter = registerIpcOperations(
+    [
+      {
+        channel: "test:layered",
+        operation: "test.layered",
+        inputSchema: Schema.String,
+        outputSchema: Schema.String,
+        handle: (input) => input,
+        onInvalidInput: () => "invalid",
+        onFailure: () => "failed",
+      },
+    ],
+    { ipcMain, runtime },
+  );
+
+  await expect(handlers.get("test:layered")!({ sender: "renderer" }, "ok")).resolves.toBe("ok");
 
   adapter.unregister();
   await runtime.shutdown();

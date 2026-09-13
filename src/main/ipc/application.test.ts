@@ -57,6 +57,16 @@ it("keeps shell settings behavior behind validated IPC operations", async () => 
     hiddenViews: ["todo"],
     quitOnClose: true,
   });
+  await expect(handlers.get("tasks:save-draft")!(event, { taskId: 42, answer: "draft" })).resolves.toEqual({
+    ok: false,
+    status: 400,
+    created: false,
+    answerId: null,
+  });
+  await expect(handlers.get("tasks:submit")!(event, { answerId: 42 })).resolves.toEqual({
+    ok: false,
+    status: 400,
+  });
 
   adapter.unregister();
   await runtime.shutdown();

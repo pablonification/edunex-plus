@@ -72,7 +72,7 @@ function broadcastShellSettings() {
 }
 
 function persistShellSettings() {
-  saveShellSettings(shellSettingsPath(), shellSettings);
+  saveShellSettings(shellSettingsPath(), shellSettings, { fileSystem, clock, random });
 }
 
 function isMac() {
