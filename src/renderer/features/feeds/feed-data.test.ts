@@ -3,17 +3,20 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import {
   filterAgendaItemsByCourse,
+  filterExamsByCourse,
+  filterExamsByCourses,
   filterTodoItemsByCourses,
   isViconMeeting,
   scopeCoursesToPeriod,
   toAgendaItems,
   toCourseItems,
   toCurrentPeriodId,
+  toExamItems,
   toPeriodItems,
   toTodoItems,
   toTodoSections,
 } from "./feed-data";
-import { AgendaList, TodoSections } from "./feed-panels";
+import { AgendaList, ExamsTable, TodoSections } from "./feed-panels";
 import { readCachedFeed } from "./use-cached-feed";
 
 const todoFixture = {
@@ -166,6 +169,8 @@ describe("cached feed view models", () => {
               year: "2026-1",
               faculty: "STEI",
               lecturer: "Dr. Example",
+              is_active: 1,
+              is_enrolled: true,
             },
           },
         ],
@@ -201,6 +206,8 @@ describe("cached feed view models", () => {
             sks: 3,
             hue: "#DCE4F5",
             is_current: true,
+            is_active: 1,
+            is_enrolled: true,
           },
         },
         {
@@ -215,6 +222,8 @@ describe("cached feed view models", () => {
             modules: 4,
             sks: 2,
             hue: "#FBE3CD",
+            is_active: 1,
+            is_enrolled: true,
           },
         },
         {
@@ -226,6 +235,8 @@ describe("cached feed view models", () => {
             class_name: "IF4050-01",
             semester: 2,
             year: "2025-2",
+            is_active: 1,
+            is_enrolled: true,
           },
         },
       ],
@@ -244,6 +255,66 @@ describe("cached feed view models", () => {
     ]);
   });
 
+  it("maps the enrolled-course payload fields returned by My Courses", () => {
+    expect(
+      toCourseItems([
+        {
+          type: "courses",
+          id: "401",
+          attributes: {
+            code: "II4091",
+            name: "Final Project Proposal",
+            class_name: "II4091-01",
+            period_id: 118,
+            period_year: "2026",
+            period_type: "1",
+            total_modules: 16,
+            credit: "3",
+            lecturer: "Dr. Fetty Fitriyanti Lubis, S.T., M.T.",
+            faculty: { code: "STEI", name: "STEI" },
+            thumbnail: "https://cdn-edunex.itb.ac.id/401/thumbnail.png",
+            is_active: 1,
+            is_enrolled: true,
+          },
+        },
+      ]),
+    ).toEqual([
+      {
+        id: "401",
+        code: "II4091",
+        name: "Final Project Proposal",
+        className: "II4091-01",
+        period: "2026-1",
+        faculty: "STEI",
+        lecturer: "Dr. Fetty Fitriyanti Lubis, S.T., M.T.",
+        sks: 3,
+        moduleCount: 16,
+        thumbnailUrl: "https://cdn-edunex.itb.ac.id/401/thumbnail.png",
+      },
+    ]);
+  });
+
+  it("does not show public or inactive records from a broad cached course response", () => {
+    expect(
+      toCourseItems([
+        {
+          id: "27011",
+          attributes: { code: "ED0001", name: "Public guide", is_active: 1, is_enrolled: false },
+        },
+        {
+          id: "60250",
+          attributes: { code: "IF2040", name: "Old enrollment", is_active: 0, is_enrolled: true },
+        },
+        {
+          id: "401",
+          attributes: { code: "ME4066", name: "Climate Change", is_active: 1, is_enrolled: true },
+        },
+      ]),
+    ).toEqual([
+      expect.objectContaining({ code: "ME4066", name: "Climate Change" }),
+    ]);
+  });
+
   it("scopes courses and To Do items to the selected offered Period", () => {
     const courses = toCourseItems({
       data: [
@@ -254,11 +325,19 @@ describe("cached feed view models", () => {
             name: "Current course",
             year: "2026-1",
             is_current: true,
+            is_active: 1,
+            is_enrolled: true,
           },
         },
         {
           id: "350",
-          attributes: { code: "IF4050", name: "Older course", year: "2025-2" },
+          attributes: {
+            code: "IF4050",
+            name: "Older course",
+            year: "2025-2",
+            is_active: 1,
+            is_enrolled: true,
+          },
         },
       ],
     });
@@ -300,6 +379,113 @@ describe("cached feed view models", () => {
     // sent_at must never leak into the view model.
     expect(JSON.stringify(items)).not.toContain("sent_at");
     expect(JSON.stringify(items)).not.toContain("2026-09-05 21:00:47");
+  });
+
+  it("maps the plain /exam/exams response into read-only rows with title, course and time", () => {
+    const examsFixture = [
+      {
+        type: "exam",
+        code: "II4091",
+        course: "Final Project Proposal",
+        name: "UTS — Final Project Proposal",
+        time: "2026-10-13T02:00:00.000Z",
+        id: 7001,
+      },
+      {
+        type: "exam",
+        code: "ME4066",
+        course: "Climate Change",
+        name: "UAS — Climate Change",
+        time: "2026-12-01T02:00:00.000Z",
+        id: 7002,
+      },
+    ];
+
+    expect(toExamItems(examsFixture)).toEqual([
+      {
+        id: "7001",
+        title: "UTS — Final Project Proposal",
+        courseCode: "II4091",
+        courseName: "Final Project Proposal",
+        time: "2026-10-13T02:00:00.000Z",
+      },
+      {
+        id: "7002",
+        title: "UAS — Climate Change",
+        courseCode: "ME4066",
+        courseName: "Climate Change",
+        time: "2026-12-01T02:00:00.000Z",
+      },
+    ]);
+
+    // Wrapped envelopes decode to the same rows.
+    expect(toExamItems({ exams: examsFixture })).toEqual(toExamItems(examsFixture));
+    expect(toExamItems({ data: examsFixture })).toEqual(toExamItems(examsFixture));
+  });
+
+  it("reads a cached /exam/exams snapshot through the preload seam and scopes it", async () => {
+    const snapshot = {
+      feed: "exams" as const,
+      accountId: "190136",
+      fetchedAt: "2026-09-13T12:00:00.000Z",
+      data: [
+        {
+          type: "exam",
+          code: "II4091",
+          course: "Final Project Proposal",
+          name: "UTS — Final Project Proposal",
+          time: "2026-10-13T02:00:00.000Z",
+          id: 7001,
+        },
+      ],
+    };
+    const bridge = { getFeed: vi.fn(async () => snapshot) };
+
+    const cached = await readCachedFeed("exams", bridge);
+
+    expect(cached).toEqual(snapshot);
+    expect(bridge.getFeed).toHaveBeenCalledWith("exams");
+    const items = toExamItems(cached?.data);
+    expect(items).toHaveLength(1);
+    expect(items[0]).toMatchObject({ title: "UTS — Final Project Proposal" });
+
+    const courses = toCourseItems({
+      data: [
+        { id: "401", attributes: { code: "II4091", name: "Current", year: "2026-1" } },
+        { id: "350", attributes: { code: "IF4050", name: "Older", year: "2025-2" } },
+      ],
+    });
+    expect(
+      filterExamsByCourses(items, scopeCoursesToPeriod(courses, "2025-2")),
+    ).toEqual([]);
+    expect(
+      filterExamsByCourse(items, courses[0]).map((item) => item.title),
+    ).toEqual(["UTS — Final Project Proposal"]);
+  });
+
+  it("renders cached exams as a read-only table with API times and no actions", () => {
+    const markup = renderToStaticMarkup(
+      createElement(ExamsTable, {
+        items: toExamItems([
+          {
+            type: "exam",
+            code: "II4091",
+            course: "Final Project Proposal",
+            name: "UTS — Final Project Proposal",
+            time: "2026-10-13T02:00:00.000Z",
+            id: 7001,
+          },
+        ]),
+        showCourse: true,
+      }),
+    );
+
+    expect(markup).toContain("<table");
+    expect(markup).toContain("UTS — Final Project Proposal");
+    expect(markup).toContain("II4091");
+    expect(markup).toContain('dateTime="2026-10-13T02:00:00.000Z"');
+    expect(markup).not.toContain("<button");
+    expect(markup).not.toContain("<a ");
   });
 });
 
