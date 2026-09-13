@@ -5,7 +5,7 @@
  * future diff baseline.
  */
 
-export const FEED_KEYS = ["todo", "courses", "agenda", "materials"] as const;
+export const FEED_KEYS = ["todo", "courses", "exams", "agenda", "materials"] as const;
 
 export type FeedKey = (typeof FEED_KEYS)[number];
 
