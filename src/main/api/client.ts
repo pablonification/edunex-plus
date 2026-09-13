@@ -32,6 +32,7 @@ export interface EdunexDataApi extends EdunexApi {
   getCourses(): Promise<ApiResult & { body: JsonApiResource[] }>;
   getCourseTasks(): Promise<ApiResult & { body: JsonApiResource[] }>;
   getAgenda(): Promise<ApiResult & { body: JsonApiResource[] }>;
+  getPresences(): Promise<ApiResult & { body: JsonApiResource[] }>;
 }
 
 export interface EdunexApiOptions {
@@ -93,6 +94,10 @@ export function createEdunexApi(options: EdunexApiOptions): EdunexDataApi {
       get("/course/tasks").then((result) => normalizeResult(result, normalizeCollection)),
     getAgenda: () =>
       get("/course/agenda").then((result) => normalizeResult(result, normalizeAgenda)),
+    getPresences: () =>
+      get("/course/presences/list").then((result) =>
+        normalizeResult(result, normalizePresences),
+      ),
   };
 }
 
@@ -135,6 +140,23 @@ function normalizeAgenda(body: unknown): JsonApiResource[] {
   const root = asRecord(body);
   if (!root) return [];
   for (const key of ["data", "agenda", "meetings"]) {
+    if (Array.isArray(root[key])) return (root[key] as unknown[]).filter(isRecord);
+  }
+  return [];
+}
+
+/**
+ * Normalizes the plain-array `/course/presences/list` response at the API
+ * boundary. The endpoint returns per-course rows carrying a nested
+ * `presences` array (unlike `/course/tasks`' JSON-API envelope), but nested
+ * `data`/`presences` variants are accepted so a wrapped response never
+ * becomes an empty presence history.
+ */
+function normalizePresences(body: unknown): JsonApiResource[] {
+  if (Array.isArray(body)) return body.filter(isRecord);
+  const root = asRecord(body);
+  if (!root) return [];
+  for (const key of ["data", "presences", "courses"]) {
     if (Array.isArray(root[key])) return (root[key] as unknown[]).filter(isRecord);
   }
   return [];
