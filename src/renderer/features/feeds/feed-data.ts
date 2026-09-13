@@ -43,6 +43,15 @@ export interface CourseItem {
   moduleCount?: number;
   color?: string;
   isCurrent?: boolean;
+  thumbnailUrl?: string;
+}
+
+export interface ExamItem {
+  id: string;
+  title: string;
+  courseCode: string;
+  courseName: string;
+  time: string | null;
 }
 
 export interface PeriodItem {
@@ -266,12 +275,13 @@ export function toCourseItems(data: unknown): CourseItem[] {
   const resources = courseResources(data);
   return resources.flatMap((resource, index) => {
     const attributes = asRecord(resource.attributes) ?? resource;
+    if (!isActiveEnrolledCourse(attributes)) return [];
     const id = scalarString(resource.id) ?? scalarString(attributes.id) ?? `course-${index}`;
     const code = readString(attributes, ["code", "course_code"]) ?? "";
     const name = readString(attributes, ["name", "courses_name", "course_name", "title"])
       ?? "Untitled course";
-    const year = scalarString(attributes.year);
-    const semester = scalarString(attributes.semester);
+    const year = scalarString(attributes.year) ?? scalarString(attributes.period_year);
+    const semester = scalarString(attributes.semester) ?? scalarString(attributes.period_type);
     const period = year && semester && !year.endsWith(`-${semester}`)
       ? `${year}-${semester}`
       : year;
@@ -282,18 +292,20 @@ export function toCourseItems(data: unknown): CourseItem[] {
       className: readString(attributes, ["class_name", "class"]),
       period,
     };
-    const faculty = readString(attributes, ["faculty", "faculty_name"]);
+    const faculty = readDisplayString(attributes, ["faculty", "faculty_name"]);
     const lecturer = readString(attributes, ["lecturer", "lecturer_name"]);
-    const sks = scalarNumber(attributes.sks);
-    const moduleCount = scalarNumber(attributes.modules);
+    const sks = scalarNumber(attributes.sks ?? attributes.credit);
+    const moduleCount = scalarNumber(attributes.modules ?? attributes.total_modules);
     const color = readString(attributes, ["hue", "color"]);
     const isCurrent = readBoolean(attributes, ["is_current", "current", "isCurrent"]);
+    const thumbnailUrl = readString(attributes, ["thumbnail", "thumbnail_url", "image", "image_url"]);
     if (faculty) item.faculty = faculty;
     if (lecturer) item.lecturer = lecturer;
     if (sks !== null) item.sks = sks;
     if (moduleCount !== null) item.moduleCount = moduleCount;
     if (color) item.color = color;
     if (isCurrent !== null) item.isCurrent = isCurrent;
+    if (thumbnailUrl) item.thumbnailUrl = thumbnailUrl;
     return [item];
   });
 }
@@ -332,6 +344,77 @@ export function filterTodoItemsByCourses(items: TodoItem[], courses: CourseItem[
   const courseCodes = new Set(courses.map((course) => course.code).filter(Boolean));
   if (courseCodes.size === 0) return items;
   return items.filter((item) => !item.courseCode || courseCodes.has(item.courseCode));
+}
+
+/**
+ * Turns the plain `/exam/exams` response into the small shape the renderer
+ * needs. Accepts a bare array or an object wrapping it (`exams` / `data`),
+ * and JSON-API resources with `attributes`, so the view never depends on
+ * which envelope the vendor sent.
+ */
+export function toExamItems(data: unknown): ExamItem[] {
+  const resources = examResources(data);
+  const items = resources.flatMap((resource, index) => {
+    const attributes = asRecord(resource.attributes) ?? resource;
+    const id =
+      scalarString(resource.id) ?? scalarString(attributes.id) ?? `exam-${index}`;
+    return [
+      {
+        id,
+        title:
+          readString(attributes, ["name", "title", "exam_name"]) ?? "Untitled exam",
+        courseCode: readString(attributes, ["code", "course_code"]) ?? "",
+        courseName:
+          readString(attributes, ["course", "course_name", "courses_name"]) ?? "",
+        time: readString(attributes, [
+          "time",
+          "start_at",
+          "startAt",
+          "exam_time",
+          "date",
+          "due_at",
+          "deadline",
+        ]),
+      },
+    ];
+  });
+  return sortExamsByTime(items);
+}
+
+/** Exams carry no Period field, so scope them through the Period's course codes. */
+export function filterExamsByCourses(items: ExamItem[], courses: CourseItem[]): ExamItem[] {
+  const courseCodes = new Set(courses.map((course) => course.code).filter(Boolean));
+  if (courseCodes.size === 0) return items;
+  return items.filter((item) => !item.courseCode || courseCodes.has(item.courseCode));
+}
+
+/** The course hub shows only the open course's scheduled exams. */
+export function filterExamsByCourse(items: ExamItem[], course: CourseItem): ExamItem[] {
+  if (!course.code) return items;
+  return items.filter((item) => !item.courseCode || item.courseCode === course.code);
+}
+
+function examResources(data: unknown): Record<string, unknown>[] {
+  if (Array.isArray(data)) return data.flatMap(asRecordValue);
+  const root = asRecord(data);
+  if (!root) return [];
+  for (const key of ["exams", "data"]) {
+    if (Array.isArray(root[key])) return (root[key] as unknown[]).flatMap(asRecordValue);
+  }
+  return [];
+}
+
+function sortExamsByTime(items: ExamItem[]): ExamItem[] {
+  return [...items].sort((a, b) => {
+    const aTime = a.time ? Date.parse(a.time) : Number.NaN;
+    const bTime = b.time ? Date.parse(b.time) : Number.NaN;
+    const aValid = Number.isFinite(aTime);
+    const bValid = Number.isFinite(bTime);
+    if (aValid && bValid) return (aTime as number) - (bTime as number);
+    if (aValid) return -1;
+    if (bValid) return 1;
+    return 0;
+  });
 }
 
 function courseResources(data: unknown): Record<string, unknown>[] {
@@ -373,6 +456,34 @@ function scalarNumber(value: unknown): number | null {
 function readBoolean(record: Record<string, unknown>, keys: string[]): boolean | null {
   for (const key of keys) {
     if (typeof record[key] === "boolean") return record[key];
+  }
+  return null;
+}
+
+function isActiveEnrolledCourse(record: Record<string, unknown>): boolean {
+  // Legacy fixtures and already-normalized course objects may omit both
+  // status fields. Preserve those at the renderer seam; real API responses
+  // carry both fields and are filtered strictly by the main client first.
+  if (!("is_active" in record) && !("is_enrolled" in record)) return true;
+  return (
+    "is_active" in record &&
+    "is_enrolled" in record &&
+    isEnabledCourseFlag(record.is_active) &&
+    isEnabledCourseFlag(record.is_enrolled)
+  );
+}
+
+function isEnabledCourseFlag(value: unknown): boolean {
+  return value === true || value === 1 || value === "1" || value === "true";
+}
+
+function readDisplayString(record: Record<string, unknown>, keys: string[]): string | null {
+  for (const key of keys) {
+    const value = record[key];
+    if (typeof value === "string" && value.length > 0) return value;
+    const nested = asRecord(value);
+    const name = nested?.name;
+    if (typeof name === "string" && name.length > 0) return name;
   }
   return null;
 }
