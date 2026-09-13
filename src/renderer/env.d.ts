@@ -1,5 +1,6 @@
 import type { AuthStatus } from "@shared/auth";
 import type { FeedKey, FeedSnapshot } from "@shared/feeds";
+import type { InAppNotification } from "@shared/notifications";
 import type { AppInfo, NavKey, ShellSettings } from "@shared/shell";
 
 export {};
@@ -27,6 +28,11 @@ declare global {
       setViewHidden(view: NavKey, hidden: boolean): Promise<ShellSettings>;
       setQuitOnClose(quitOnClose: boolean): Promise<ShellSettings>;
       onShellSettings(callback: (settings: ShellSettings) => void): () => void;
+      getNotifications(): Promise<InAppNotification[]>;
+      markNotificationsRead(ids: string[]): Promise<InAppNotification[]>;
+      markAllNotificationsRead(): Promise<InAppNotification[]>;
+      onNotificationsUpdated(callback: (entries: InAppNotification[]) => void): () => void;
+      onNotificationClicked(callback: (payload: { taskIds: string[] }) => void): () => void;
     };
   }
 }
