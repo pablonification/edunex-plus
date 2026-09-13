@@ -19,6 +19,12 @@ platform.
   launch (right-click → Open). Accepted and documented, not solved.
 - Test notification appeared in Notification Center on 2026-09-05
   (macOS 26, arm64, ad-hoc dev build).
+- Presence-open alerts (#24) travel the same `OsSink` → `new Notification`
+  path as new-Task alerts, so the signed-build verification above covers
+  them: no separate entitlement or signing work. Confirm on the ad-hoc
+  build by opening a Presence window (or a synthetic agenda window) and
+  checking the alert lands in Notification Center; then click it to confirm
+  focus + navigation to the agenda.
 
 ## Windows
 

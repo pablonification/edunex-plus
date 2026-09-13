@@ -28,7 +28,9 @@ const bridge = electronMocks.exposeInMainWorld.mock.calls[0][1] as {
   markNotificationsRead(ids: string[]): Promise<InAppNotification[]>;
   markAllNotificationsRead(): Promise<InAppNotification[]>;
   onNotificationsUpdated(callback: (entries: InAppNotification[]) => void): () => void;
-  onNotificationClicked(callback: (payload: { taskIds: string[] }) => void): () => void;
+  onNotificationClicked(
+    callback: (payload: { taskIds: string[]; presenceIds?: string[] }) => void,
+  ): () => void;
 };
 
 describe("preload feed bridge", () => {
@@ -222,7 +224,7 @@ describe("preload notification bridge", () => {
     const unsubscribeClicked = bridge.onNotificationClicked(clicked);
     const clickedListener = electronMocks.on.mock.calls.at(-1)?.[1] as (
       event: unknown,
-      payload: { taskIds: string[] },
+      payload: { taskIds: string[]; presenceIds?: string[] },
     ) => void;
     clickedListener({}, { taskIds: ["113986"] });
     unsubscribeClicked();

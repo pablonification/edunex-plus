@@ -9,6 +9,7 @@ export interface NotificationCenterProps {
   loading: boolean;
   onOpenTask: (taskId: string) => void;
   onOpenTodo: () => void;
+  onOpenAgenda: () => void;
   onMarkAllRead: () => void;
 }
 
@@ -16,9 +17,11 @@ export interface NotificationCenterProps {
 export function NotificationCenterPanel({
   onOpenTask,
   onOpenTodo,
+  onOpenAgenda,
 }: {
   onOpenTask: (taskId: string) => void;
   onOpenTodo: () => void;
+  onOpenAgenda: () => void;
 }) {
   const { entries, loading, markAllRead } = useNotifications();
   return (
@@ -28,6 +31,7 @@ export function NotificationCenterPanel({
         loading={loading}
         onOpenTask={onOpenTask}
         onOpenTodo={onOpenTodo}
+        onOpenAgenda={onOpenAgenda}
         onMarkAllRead={() => void markAllRead()}
       />
     </div>
@@ -35,16 +39,18 @@ export function NotificationCenterPanel({
 }
 
 /**
- * The in-app fallback feed (#23): every OS notification leaves a trace
- * here, newest first, so a missed or failed popup is still checkable. Built
- * free-tier from Badge/Chip — the BoardUI Notification Center block's
- * list shape, not a Pro component.
+ * The in-app fallback feed (#23, extended by #24): every OS notification
+ * leaves a trace here, newest first, so a missed or failed popup is still
+ * checkable. Built free-tier from Badge/Chip — the BoardUI Notification
+ * Center block's list shape, not a Pro component. Presence-open entries
+ * render with a Presence chip and land on the agenda.
  */
 export function NotificationCenter({
   entries,
   loading,
   onOpenTask,
   onOpenTodo,
+  onOpenAgenda,
   onMarkAllRead,
 }: NotificationCenterProps) {
   const unread = entries.filter((entry) => !entry.read).length;
@@ -83,7 +89,7 @@ export function NotificationCenter({
           </p>
         ) : entries.length === 0 ? (
           <p className="px-2 py-8 text-center text-[13px] text-text-tertiary">
-            No notifications yet — new tasks will appear here.
+            No notifications yet — new tasks and presence windows will appear here.
           </p>
         ) : (
           <ul className="flex flex-col gap-1.5">
@@ -93,6 +99,7 @@ export function NotificationCenter({
                 entry={entry}
                 onOpenTask={onOpenTask}
                 onOpenTodo={onOpenTodo}
+                onOpenAgenda={onOpenAgenda}
               />
             ))}
           </ul>
@@ -106,23 +113,36 @@ function NotificationRow({
   entry,
   onOpenTask,
   onOpenTodo,
+  onOpenAgenda,
 }: {
   entry: InAppNotification;
   onOpenTask: (taskId: string) => void;
   onOpenTodo: () => void;
+  onOpenAgenda: () => void;
 }) {
-  const isDigest = entry.taskIds.length > 1;
+  const isPresence = entry.kind === "presence" || (entry.presenceIds?.length ?? 0) > 0;
+  const isDigest = !isPresence && entry.taskIds.length > 1;
   const handleOpen = () => {
+    if (isPresence) {
+      onOpenAgenda();
+      return;
+    }
     if (!isDigest && entry.taskIds.length === 1) onOpenTask(entry.taskIds[0]);
     else onOpenTodo();
   };
+
+  const ariaLabel = isPresence
+    ? `Open agenda for ${entry.body}`
+    : isDigest
+      ? `Open To Do for ${entry.title}`
+      : `Open task ${entry.body}`;
 
   return (
     <li>
       <button
         type="button"
         onClick={handleOpen}
-        aria-label={isDigest ? `Open To Do for ${entry.title}` : `Open task ${entry.body}`}
+        aria-label={ariaLabel}
         className="block w-full cursor-pointer rounded-lg bg-background-primary-default p-3.5 text-left shadow-sm outline-none transition-[background-color,box-shadow] duration-150 hover:bg-background-primary-hover hover:shadow-md focus-visible:ring-2 focus-visible:ring-border-focus-ring"
       >
         <span className="flex items-center gap-2">
@@ -133,8 +153,11 @@ function NotificationRow({
               role="status"
             />
           )}
-          <Chip color={isDigest ? "purple" : "blue"} variant="caption">
-            {isDigest ? `${entry.taskIds.length} tasks` : "Task"}
+          <Chip
+            color={isPresence ? "lime" : isDigest ? "purple" : "blue"}
+            variant="caption"
+          >
+            {isPresence ? "Presence" : isDigest ? `${entry.taskIds.length} tasks` : "Task"}
           </Chip>
           <span className="truncate text-caption-1-semibold text-text-secondary">
             {entry.title}
