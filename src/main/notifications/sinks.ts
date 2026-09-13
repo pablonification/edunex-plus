@@ -1,0 +1,94 @@
+import type { InAppNotification, TaskNotification } from "../../shared/notifications";
+import { toInAppNotification } from "../../shared/notifications";
+import type { NotificationStore } from "./notification-store";
+
+/**
+ * The notification spine (#23): one sink interface, two implementations.
+ * The dispatcher fans a coalesced TaskNotification out to every sink; a
+ * throwing sink must never take the others (or the sync tick) down with it.
+ */
+export interface NotificationSink {
+  show(notification: TaskNotification): void;
+}
+
+export function createFanoutSink(sinks: NotificationSink[]): NotificationSink {
+  return {
+    show(notification) {
+      for (const sink of sinks) {
+        try {
+          sink.show(notification);
+        } catch (error) {
+          console.error("[notifications] sink failed:", error);
+        }
+      }
+    },
+  };
+}
+
+export interface OsSinkDeps {
+  /** Shows one OS notification; the click handler focuses + navigates. */
+  show: (options: { title: string; body: string }, onClick: () => void) => void;
+  /** Fired when the OS notification is clicked (main focuses + navigates). */
+  onClicked?: (notification: TaskNotification) => void;
+}
+
+/** First sink: one OS notification per tick (single task or digest). */
+export function createOsSink(deps: OsSinkDeps): NotificationSink {
+  return {
+    show(notification) {
+      try {
+        deps.show({ title: notification.title, body: notification.body }, () => {
+          try {
+            deps.onClicked?.(notification);
+          } catch (error) {
+            console.error("[notifications] click handler failed:", error);
+          }
+        });
+      } catch (error) {
+        console.error("[notifications] OS sink failed:", error);
+      }
+    },
+  };
+}
+
+/**
+ * Test seam for the OS sink: production passes Electron's Notification,
+ * tests pass a fake show and assert on the emitted payloads.
+ */
+export function createRecordingSink(): NotificationSink & { shown: TaskNotification[] } {
+  const shown: TaskNotification[] = [];
+  return {
+    shown,
+    show: (notification) => {
+      shown.push(notification);
+    },
+  };
+}
+
+export interface InAppSinkDeps {
+  storeFor: (accountId: string) => NotificationStore;
+  getAccountId: () => string | null;
+  broadcast: (accountId: string, entries: InAppNotification[]) => void;
+  createId?: () => string;
+  now?: () => number;
+}
+
+/** Second sink: persists the fallback feed entry and pushes it to the renderer. */
+export function createInAppSink(deps: InAppSinkDeps): NotificationSink {
+  let counter = 0;
+  return {
+    show(notification) {
+      const accountId = deps.getAccountId();
+      if (!accountId) return;
+      const clock = deps.now?.() ?? Date.now();
+      const createdId = deps.createId?.() ?? `inapp-${clock}-${(counter += 1)}`;
+      const entry = toInAppNotification(notification, createdId);
+      try {
+        const entries = deps.storeFor(accountId).append(entry);
+        deps.broadcast(accountId, entries);
+      } catch (error) {
+        console.error("[notifications] in-app sink failed:", error);
+      }
+    },
+  };
+}

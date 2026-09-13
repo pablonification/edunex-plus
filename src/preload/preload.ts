@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer } from "electron";
 import type { AuthStatus } from "../shared/auth";
 import type { FeedKey, FeedSnapshot } from "../shared/feeds";
+import type { InAppNotification } from "../shared/notifications";
 import type { AppInfo, NavKey, ShellSettings } from "../shared/shell";
 
 contextBridge.exposeInMainWorld("edunex", {
@@ -52,5 +53,24 @@ contextBridge.exposeInMainWorld("edunex", {
     const listener = (_event: unknown, settings: ShellSettings) => callback(settings);
     ipcRenderer.on("shell:settings-updated", listener);
     return () => ipcRenderer.removeListener("shell:settings-updated", listener);
+  },
+  // Notification Center fallback feed (#23): the persisted in-app entries.
+  // OS clicks arrive on a separate channel with the covered task ids so the
+  // renderer can land on the To Do destination (#21).
+  getNotifications: () =>
+    ipcRenderer.invoke("notifications:get") as Promise<InAppNotification[]>,
+  markNotificationsRead: (ids: string[]) =>
+    ipcRenderer.invoke("notifications:mark-read", ids) as Promise<InAppNotification[]>,
+  markAllNotificationsRead: () =>
+    ipcRenderer.invoke("notifications:mark-all-read") as Promise<InAppNotification[]>,
+  onNotificationsUpdated: (callback: (entries: InAppNotification[]) => void) => {
+    const listener = (_event: unknown, entries: InAppNotification[]) => callback(entries);
+    ipcRenderer.on("notifications:updated", listener);
+    return () => ipcRenderer.removeListener("notifications:updated", listener);
+  },
+  onNotificationClicked: (callback: (payload: { taskIds: string[] }) => void) => {
+    const listener = (_event: unknown, payload: { taskIds: string[] }) => callback(payload);
+    ipcRenderer.on("notifications:clicked", listener);
+    return () => ipcRenderer.removeListener("notifications:clicked", listener);
   },
 });
