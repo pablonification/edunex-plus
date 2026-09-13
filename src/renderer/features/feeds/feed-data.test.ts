@@ -59,6 +59,9 @@ describe("cached feed view models", () => {
         courseCode: "II4091",
         courseName: "Final Project Proposal",
         dueAt: "2026-09-14T23:59:00.000Z",
+        isSent: null,
+        answerId: null,
+        answer: null,
       },
       {
         id: "9001",
@@ -67,6 +70,9 @@ describe("cached feed view models", () => {
         courseCode: "ME4066",
         courseName: "Climate Change",
         dueAt: "2026-09-10T02:00:00.000Z",
+        isSent: null,
+        answerId: null,
+        answer: null,
       },
     ]);
   });
@@ -95,6 +101,9 @@ describe("cached feed view models", () => {
             courseCode: "II4091",
             courseName: "Final Project Proposal",
             dueAt: "2026-09-14T23:59:00.000Z",
+            isSent: null,
+            answerId: null,
+            answer: null,
           },
         ],
       },
@@ -125,6 +134,27 @@ describe("cached feed view models", () => {
     expect(markup).toContain('dateTime="2026-09-14T23:59:00.000Z"');
     expect(markup).toContain('dateTime="2026-09-10T02:00:00.000Z"');
     expect(markup).toContain("Quiz 01");
+  });
+
+  it("carries yellow draft, lime submitted, and rose overdue chips on Task rows", () => {
+    const markup = renderToStaticMarkup(
+      createElement(TodoSections, {
+        sections: toTodoSections({
+          tasks: [
+            { id: 1, name: "Future draft", time: "2100-01-01T00:00:00.000Z", is_sent: 0 },
+            { id: 2, name: "Sent work", time: "2000-01-01T00:00:00.000Z", is_sent: 1 },
+            { id: 3, name: "Missed work", time: "2000-01-01T00:00:00.000Z", is_sent: 0 },
+          ],
+          exams: [],
+        }),
+        onTaskSelect: vi.fn(),
+      }),
+    );
+
+    expect(markup).toContain(">Draft<");
+    expect(markup).toContain(">Submitted<");
+    expect(markup).toContain(">Overdue<");
+    expect(markup).not.toContain("sent_at");
   });
 
   it("maps the JSON-API /course/courses response into course cards", () => {
@@ -329,6 +359,30 @@ describe("cached feed view models", () => {
     expect(filterTodoItemsByCourses(todo, selectedCourses).map((item) => item.title)).toEqual([
       "Older task",
     ]);
+  });
+
+  it("reads the is_sent bit for Tasks and never the sent_at decoy", () => {
+    const items = toTodoItems({
+      tasks: [
+        { id: 1, name: "Draft task", is_sent: 0, sent_at: "2026-09-05 21:00:47" },
+        { id: 2, name: "Sent task", is_sent: 1, sent_at: "2026-09-05 21:00:47" },
+        {
+          id: 3,
+          name: "Nested answer",
+          answers: [{ id: 2644208, is_sent: 0, answer: "<p>draft</p>", sent_at: "2026-09-05 21:00:47" }],
+        },
+      ],
+      exams: [],
+    });
+
+    expect(items.map((item) => [item.title, item.isSent, item.answerId, item.answer])).toEqual([
+      ["Draft task", false, null, null],
+      ["Sent task", true, null, null],
+      ["Nested answer", false, "2644208", "<p>draft</p>"],
+    ]);
+    // sent_at must never leak into the view model.
+    expect(JSON.stringify(items)).not.toContain("sent_at");
+    expect(JSON.stringify(items)).not.toContain("2026-09-05 21:00:47");
   });
 
   it("maps the plain /exam/exams response into read-only rows with title, course and time", () => {
