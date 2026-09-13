@@ -92,11 +92,22 @@ function isStoredFeed(value: unknown, accountId: string): value is StoredFeed {
 function isInAppNotification(value: unknown): value is InAppNotification {
   if (typeof value !== "object" || value === null) return false;
   const entry = value as Partial<InAppNotification>;
+  const kindOk =
+    entry.kind === undefined ||
+    entry.kind === "single" ||
+    entry.kind === "digest" ||
+    entry.kind === "presence";
+  const presenceIdsOk =
+    entry.presenceIds === undefined ||
+    (Array.isArray(entry.presenceIds) &&
+      entry.presenceIds.every((id): id is string => typeof id === "string"));
   return (
     typeof entry.id === "string" &&
     typeof entry.title === "string" &&
     typeof entry.body === "string" &&
     Array.isArray(entry.taskIds) &&
+    kindOk &&
+    presenceIdsOk &&
     typeof entry.createdAt === "string" &&
     typeof entry.read === "boolean"
   );

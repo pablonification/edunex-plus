@@ -34,6 +34,10 @@ export interface InAppNotification {
   title: string;
   body: string;
   taskIds: string[];
+  /** Window ids for Presence-open entries; absent for Task entries. */
+  presenceIds?: string[];
+  /** Entry kind — absent on pre-#24 Task entries (treated as task). */
+  kind?: "single" | "digest" | "presence";
   createdAt: string;
   read: boolean;
 }
@@ -41,9 +45,11 @@ export interface InAppNotification {
 /** Where an OS or in-app notification click should land. */
 export interface NotificationDestination {
   /** The To Do screen (#21) is the destination for new-Task notifications. */
-  view: "todo";
+  view: "todo" | "agenda";
   /** Set for a single-task notification; absent for a digest. */
   taskId: string | null;
+  /** Set for a Presence-open notification; absent otherwise. */
+  presenceId?: string | null;
 }
 
 export function notificationDestinationFor(
@@ -101,15 +107,86 @@ export function buildTaskNotification(
 }
 
 export function toInAppNotification(
-  notification: TaskNotification,
+  notification: TaskNotification | PresenceNotification,
   id: string,
 ): InAppNotification {
+  if (notification.kind === "presence") {
+    return {
+      id,
+      title: notification.title,
+      body: notification.body,
+      taskIds: [],
+      presenceIds: [...notification.presenceIds],
+      kind: "presence",
+      createdAt: notification.createdAt,
+      read: false,
+    };
+  }
   return {
     id,
     title: notification.title,
     body: notification.body,
     taskIds: [...notification.taskIds],
+    kind: notification.kind,
     createdAt: notification.createdAt,
     read: false,
+  };
+}
+
+/** A Presence window distilled for notification use. */
+export interface PresenceWindowInfo {
+  id: string;
+  courseCode: string;
+  courseName: string;
+  meeting: string;
+  startAt: string;
+  endAt: string;
+}
+
+/**
+ * An immediate Presence-open alert (#24): one window, never coalesced into
+ * a digest. Time-critical windows bypass the tick-burst digest rule that
+ * new-Task notifications follow.
+ */
+export interface PresenceNotification {
+  kind: "presence";
+  title: string;
+  body: string;
+  /** Window ids covered — always length 1 in v1 (no coalescing). */
+  presenceIds: string[];
+  /** Full window details, in feed order (length 1 in v1). */
+  windows: PresenceWindowInfo[];
+  createdAt: string;
+}
+
+/** Any outbound notification the sink interface can deliver. */
+export type OutboundNotification = TaskNotification | PresenceNotification;
+
+/** Presence-open copy: the course + meeting lead so the window is actionable. */
+export function buildPresenceNotification(
+  window: PresenceWindowInfo,
+  createdAt: string,
+): PresenceNotification {
+  const course = window.courseCode || window.courseName;
+  const where = course ? `${window.meeting} — ${course}` : window.meeting;
+  return {
+    kind: "presence",
+    title: "Presence open",
+    body: `${where} — Presence is open`,
+    presenceIds: [window.id],
+    windows: [window],
+    createdAt,
+  };
+}
+
+export function presenceDestinationFor(
+  notification: Pick<PresenceNotification, "presenceIds">,
+): NotificationDestination {
+  // v1 windows are agenda meetings, so the click lands on the agenda where
+  // the open meeting is visible (the Presence view holds history records).
+  return {
+    view: "agenda",
+    taskId: null,
+    presenceId: notification.presenceIds.length === 1 ? notification.presenceIds[0] : null,
   };
 }
