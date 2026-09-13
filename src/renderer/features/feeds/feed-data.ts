@@ -39,6 +39,100 @@ export interface PeriodItem {
   count: number;
 }
 
+export interface AgendaItem {
+  id: string;
+  title: string;
+  courseName: string;
+  courseCode: string;
+  /** Raw vendor meeting type (e.g. "vicon", "offline") when provided. */
+  type: string | null;
+  /** True when the meeting is an online-class (Vicon) session. */
+  isVicon: boolean;
+  startAt: string | null;
+  endAt: string | null;
+}
+
+/**
+ * Returns true for online-class (Vicon) meetings. The vendor tags them
+ * through the agenda item's `type` — a case-insensitive "vicon" marker —
+ * so detection keys off that explicit tag (plus an explicit boolean flag
+ * when present) and never infers Vicon from a generic online/mode field.
+ */
+export function isViconMeeting(value: unknown): boolean {
+  if (typeof value === "string") return /vicon/i.test(value);
+  const record = asRecord(value);
+  if (!record) return false;
+  for (const key of ["type", "meeting_type", "meetingType"]) {
+    const candidate = record[key];
+    if (typeof candidate === "string" && /vicon/i.test(candidate)) return true;
+  }
+  for (const key of ["is_vicon", "isVicon", "vicon"]) {
+    if (record[key] === true) return true;
+  }
+  return false;
+}
+
+/**
+ * Turns the plain-array `/course/agenda` response into the small shape the
+ * renderer needs. Accepts the bare array as well as `data`/`agenda`/
+ * `meetings`-wrapped variants; items are ordered chronologically with
+ * undated meetings last.
+ */
+export function toAgendaItems(data: unknown): AgendaItem[] {
+  const records = agendaRecords(data);
+  const items = records.flatMap((record, index) => {
+    const item: AgendaItem = {
+      id: scalarString(record.id ?? record.agenda_id ?? record.meeting_id)
+        ?? `agenda-${index}`,
+      title: readString(record, ["name", "title", "topic", "meeting_name", "subject"])
+        ?? "Untitled meeting",
+      courseName: readString(record, ["course_name", "courses_name", "course", "courseName"])
+        ?? "",
+      courseCode: readString(record, ["course_code", "code", "courseCode"]) ?? "",
+      type: readString(record, ["type", "meeting_type", "meetingType"]),
+      isVicon: isViconMeeting(record),
+      startAt: readString(record, ["start_at", "startAt", "start", "start_time", "time"]),
+      endAt: readString(record, ["end_at", "endAt", "end", "end_time"]),
+    };
+    return [item];
+  });
+  return items.sort(compareAgendaItems);
+}
+
+/** Narrows agenda meetings to one course hub's course. */
+export function filterAgendaItemsByCourse(items: AgendaItem[], course: CourseItem): AgendaItem[] {
+  return items.filter((item) => {
+    if (item.courseCode && course.code && item.courseCode === course.code) return true;
+    if (item.courseName && course.name && item.courseName === course.name) return true;
+    return false;
+  });
+}
+
+function compareAgendaItems(a: AgendaItem, b: AgendaItem): number {
+  const aTime = agendaTime(a.startAt);
+  const bTime = agendaTime(b.startAt);
+  if (aTime === null && bTime === null) return 0;
+  if (aTime === null) return 1;
+  if (bTime === null) return -1;
+  return aTime - bTime;
+}
+
+function agendaTime(value: string | null): number | null {
+  if (!value) return null;
+  const time = Date.parse(value);
+  return Number.isNaN(time) ? null : time;
+}
+
+function agendaRecords(data: unknown): Record<string, unknown>[] {
+  if (Array.isArray(data)) return data.flatMap(asRecordValue);
+  const root = asRecord(data);
+  if (!root) return [];
+  for (const key of ["data", "agenda", "meetings"]) {
+    if (Array.isArray(root[key])) return (root[key] as unknown[]).flatMap(asRecordValue);
+  }
+  return [];
+}
+
 /** Turns the plain `/todo` response into the small shape the renderer needs. */
 export function toTodoItems(data: unknown): TodoItem[] {
   const root = asRecord(data);
