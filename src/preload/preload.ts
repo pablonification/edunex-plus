@@ -64,9 +64,10 @@ contextBridge.exposeInMainWorld("edunex", {
     ipcRenderer.on("shell:settings-updated", listener);
     return () => ipcRenderer.removeListener("shell:settings-updated", listener);
   },
-  // Notification Center fallback feed (#23): the persisted in-app entries.
-  // OS clicks arrive on a separate channel with the covered task ids so the
-  // renderer can land on the To Do destination (#21).
+  // Notification Center fallback feed (#23, extended by #24): the persisted
+  // in-app entries. OS clicks arrive on a separate channel with the covered
+  // task ids so the renderer can land on the To Do destination (#21), or
+  // with presence ids for Presence-open alerts (destination: agenda).
   getNotifications: () =>
     ipcRenderer.invoke("notifications:get") as Promise<InAppNotification[]>,
   markNotificationsRead: (ids: string[]) =>
@@ -78,8 +79,13 @@ contextBridge.exposeInMainWorld("edunex", {
     ipcRenderer.on("notifications:updated", listener);
     return () => ipcRenderer.removeListener("notifications:updated", listener);
   },
-  onNotificationClicked: (callback: (payload: { taskIds: string[] }) => void) => {
-    const listener = (_event: unknown, payload: { taskIds: string[] }) => callback(payload);
+  onNotificationClicked: (
+    callback: (payload: { taskIds: string[]; presenceIds?: string[] }) => void,
+  ) => {
+    const listener = (
+      _event: unknown,
+      payload: { taskIds: string[]; presenceIds?: string[] },
+    ) => callback(payload);
     ipcRenderer.on("notifications:clicked", listener);
     return () => ipcRenderer.removeListener("notifications:clicked", listener);
   },

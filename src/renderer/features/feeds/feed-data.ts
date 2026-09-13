@@ -168,6 +168,162 @@ function agendaRecords(data: unknown): Record<string, unknown>[] {
   return [];
 }
 
+export type PresenceKind = "present" | "absent" | "excused" | "unknown";
+
+export interface PresenceItem {
+  id: string;
+  courseCode: string;
+  courseName: string;
+  /** Meeting label (e.g. "Week 05", "Pertemuan 3") when the vendor provides one. */
+  meeting: string;
+  /** Attendance timestamp when the vendor provides one. */
+  dateAt: string | null;
+  /** Raw vendor status text when provided (e.g. "Hadir", "Alpa"). */
+  status: string | null;
+  /** Normalized attendance bucket derived from the raw status/flags. */
+  kind: PresenceKind;
+}
+
+/**
+ * Normalizes one attendance record's status. The vendor shape is only
+ * partially captured (the endpoint is history-shaped per the sync spike),
+ * so this keys off explicit Indonesian + English markers and boolean flags
+ * (`is_present`, `present`, `attended`, `hadir`) and falls back to unknown
+ * rather than guessing from unrelated fields.
+ */
+export function presenceKindOf(value: unknown): PresenceKind {
+  const record = asRecord(value);
+  if (record) {
+    for (const key of ["is_present", "isPresent", "present", "attended", "hadir"]) {
+      if (record[key] === true) return "present";
+      if (record[key] === false) return "absent";
+    }
+    for (const key of ["status", "presence_status", "presenceStatus", "state", "attendance", "attendance_status", "attendanceStatus", "result", "keterangan"]) {
+      const candidate = record[key];
+      if (typeof candidate === "string" && candidate.trim().length > 0) {
+        return presenceKindFromStatus(candidate);
+      }
+    }
+    return "unknown";
+  }
+  if (typeof value === "string") return presenceKindFromStatus(value);
+  if (typeof value === "number") return value === 1 ? "present" : value === 0 ? "absent" : "unknown";
+  return "unknown";
+}
+
+function presenceKindFromStatus(status: string): PresenceKind {
+  const text = status.toLowerCase();
+  if (/(alpa|absent|tidak|missing|alpha|unexcused)/.test(text)) return "absent";
+  if (/(izin|sakit|excused|permit|leave|dispens)/.test(text)) return "excused";
+  if (/(hadir|present|attend|done|valid|counted)/.test(text)) return "present";
+  return "unknown";
+}
+
+/**
+ * Turns the per-course `/course/presences/list` response into flat per-meeting
+ * records. Accepts the bare array as well as `data`/`presences`-wrapped
+ * variants; each course row contributes its nested `presences` (or
+ * `meetings`/`records`) array. Items sort chronologically with undated
+ * meetings last. Read-only: recording happens in EduNex itself.
+ */
+export function toPresenceItems(data: unknown): PresenceItem[] {
+  const rows = presenceRows(data);
+  const items = rows.flatMap((row, rowIndex) => {
+    const courseCode = readString(row, ["course_code", "code", "courseCode"]) ?? "";
+    const courseName = readString(row, ["courses_name", "course_name", "course", "courseName", "name"]) ?? "";
+    const meetings = presenceMeetings(row);
+    return meetings.flatMap((meeting, meetingIndex) => {
+      const status = readString(meeting, [
+        "status",
+        "presence_status",
+        "presenceStatus",
+        "state",
+        "attendance",
+        "attendance_status",
+        "attendanceStatus",
+        "result",
+        "keterangan",
+      ]);
+      const item: PresenceItem = {
+        id: scalarString(meeting.id ?? meeting.presence_id ?? meeting.meeting_id)
+          ?? `presence-${rowIndex}-${meetingIndex}`,
+        courseCode,
+        courseName,
+        meeting: readString(meeting, [
+          "name",
+          "title",
+          "meeting_name",
+          "meetingName",
+          "topic",
+          "meeting",
+          "week",
+          "pertemuan",
+          "description",
+          "label",
+        ]) ?? "Meeting",
+        dateAt: readString(meeting, [
+          "date",
+          "time",
+          "start_at",
+          "startAt",
+          "meeting_at",
+          "presence_date",
+          "attended_at",
+          "created_at",
+          "updated_at",
+          "date_at",
+        ]),
+        status,
+        kind: presenceKindOf(meeting),
+      };
+      return [item];
+    });
+  });
+  return items.sort(comparePresenceItems);
+}
+
+/** Narrows flattened presence records to one course hub's course. */
+export function filterPresenceItemsByCourse(items: PresenceItem[], course: CourseItem): PresenceItem[] {
+  return items.filter((item) => {
+    if (item.courseCode && course.code && item.courseCode === course.code) return true;
+    if (item.courseName && course.name && item.courseName === course.name) return true;
+    return false;
+  });
+}
+
+function comparePresenceItems(a: PresenceItem, b: PresenceItem): number {
+  const aTime = presenceTime(a.dateAt);
+  const bTime = presenceTime(b.dateAt);
+  if (aTime === null && bTime === null) return 0;
+  if (aTime === null) return 1;
+  if (bTime === null) return -1;
+  return aTime - bTime;
+}
+
+function presenceTime(value: string | null): number | null {
+  if (!value) return null;
+  const time = Date.parse(value);
+  return Number.isNaN(time) ? null : time;
+}
+
+function presenceRows(data: unknown): Record<string, unknown>[] {
+  if (Array.isArray(data)) return data.flatMap(asRecordValue);
+  const root = asRecord(data);
+  if (!root) return [];
+  for (const key of ["data", "presences", "courses"]) {
+    if (Array.isArray(root[key])) return (root[key] as unknown[]).flatMap(asRecordValue);
+  }
+  return [];
+}
+
+function presenceMeetings(row: Record<string, unknown>): Record<string, unknown>[] {
+  for (const key of ["presences", "meetings", "records", "items", "data", "attendance"]) {
+    const value = row[key];
+    if (Array.isArray(value)) return value.flatMap(asRecordValue);
+  }
+  return [];
+}
+
 /** Turns the plain `/todo` response into the small shape the renderer needs. */
 export function toTodoItems(data: unknown): TodoItem[] {
   const root = asRecord(data);

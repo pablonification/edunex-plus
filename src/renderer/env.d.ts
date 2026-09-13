@@ -38,7 +38,9 @@ declare global {
       markNotificationsRead(ids: string[]): Promise<InAppNotification[]>;
       markAllNotificationsRead(): Promise<InAppNotification[]>;
       onNotificationsUpdated(callback: (entries: InAppNotification[]) => void): () => void;
-      onNotificationClicked(callback: (payload: { taskIds: string[] }) => void): () => void;
+      onNotificationClicked(
+        callback: (payload: { taskIds: string[]; presenceIds?: string[] }) => void,
+      ): () => void;
       saveDraft(input: SaveDraftInput): Promise<SaveDraftResult>;
     };
   }
