@@ -31,6 +31,7 @@ export interface EdunexDataApi extends EdunexApi {
   getTodo(): Promise<ApiResult & { body: TodoFeed }>;
   getCourses(): Promise<ApiResult & { body: JsonApiResource[] }>;
   getCourseTasks(): Promise<ApiResult & { body: JsonApiResource[] }>;
+  getExams(): Promise<ApiResult & { body: JsonApiResource[] }>;
 }
 
 export interface EdunexApiOptions {
@@ -90,6 +91,8 @@ export function createEdunexApi(options: EdunexApiOptions): EdunexDataApi {
       get("/course/courses").then((result) => normalizeResult(result, normalizeCollection)),
     getCourseTasks: () =>
       get("/course/tasks").then((result) => normalizeResult(result, normalizeCollection)),
+    getExams: () =>
+      get("/exam/exams").then((result) => normalizeResult(result, normalizeExams)),
   };
 }
 
@@ -118,6 +121,21 @@ function normalizeCollection(body: unknown): JsonApiResource[] {
   if (!root) return [];
   if (Array.isArray(root.data)) return root.data.filter(isRecord);
   if (Array.isArray(root.courses)) return root.courses.filter(isRecord);
+  return [];
+}
+
+/**
+ * Normalizes the plain-JSON `/exam/exams` response at the API boundary.
+ * The vendor returns a plain shape (unlike `/course/tasks`' JSON-API
+ * envelope), but callers should not care whether it arrives as a bare
+ * array or wrapped in `exams`/`data`.
+ */
+function normalizeExams(body: unknown): JsonApiResource[] {
+  if (Array.isArray(body)) return body.filter(isRecord);
+  const root = asRecord(body);
+  if (!root) return [];
+  if (Array.isArray(root.exams)) return root.exams.filter(isRecord);
+  if (Array.isArray(root.data)) return root.data.filter(isRecord);
   return [];
 }
 
