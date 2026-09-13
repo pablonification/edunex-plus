@@ -16,6 +16,10 @@ import { shouldFireStartupTestNotification } from "./notifications";
 import { createAuthController } from "./auth/auth-controller";
 import { createSnapshotCache } from "./sync/snapshot-cache";
 import { createSyncEngine, type SyncEngine } from "./sync/sync-engine";
+import { createNotificationStore } from "./notifications/notification-store";
+import { createInAppSink, createOsSink } from "./notifications/sinks";
+import { createTaskNotifier } from "./notifications/task-notifier";
+import type { InAppNotification } from "../shared/notifications";
 import { isFeedKey } from "../shared/feeds";
 import { DEFAULT_SHELL_SETTINGS, NAV_VIEWS, isHideableNavKey } from "../shared/shell";
 import type { HideableNavKey } from "../shared/shell";
@@ -233,6 +237,43 @@ const authController = createAuthController({
   },
 });
 
+// Notification spine (#23): sink interface with two implementations — the
+// OS notification and the persisted in-app fallback feed. Detection is
+// id-diff against the snapshot cache plus a per-account seen-ledger, so
+// nothing replays across restarts. First sync baselines silently; bursts
+// coalesce into one digest; clicks focus the app and land on To Do (#21).
+const seenLedgerRoot = path.join(app.getPath("userData"), "seen-ledger");
+const inAppFeedRoot = path.join(app.getPath("userData"), "notifications");
+
+function handleNotificationClicked(taskIds: string[]) {
+  showWindow();
+  if (!win || win.isDestroyed()) return;
+  win.webContents.send("nav:goto", "todo");
+  win.webContents.send("notifications:clicked", { taskIds });
+}
+
+const taskNotifier = createTaskNotifier({
+  ledgerRoot: seenLedgerRoot,
+  sinks: [
+    createOsSink({
+      show: ({ title, body }, onClick) => {
+        const notification = new Notification({ title, body });
+        notification.on("click", onClick);
+        notification.show();
+      },
+      onClicked: (notification) =>
+        handleNotificationClicked([...notification.taskIds]),
+    }),
+    createInAppSink({
+      storeFor: (accountId) => createNotificationStore(inAppFeedRoot, accountId),
+      getAccountId: authController.accountId,
+      broadcast: (_accountId, entries) => {
+        if (win && !win.isDestroyed()) win.webContents.send("notifications:updated", entries);
+      },
+    }),
+  ],
+});
+
 // Sync slice (#19): main owns the API adapter, timer, and on-device snapshots.
 // The renderer only receives a cache snapshot over the preload bridge.
 sync = createSyncEngine({
@@ -240,6 +281,7 @@ sync = createSyncEngine({
   cache: createSnapshotCache(path.join(app.getPath("userData"), "feed-snapshots")),
   getAccountId: authController.accountId,
   onUnauthorized: authController.handleUnauthorized,
+  taskNotifier,
   onFeedUpdated: (snapshot) => {
     if (win && !win.isDestroyed()) win.webContents.send("sync:feed-updated", snapshot);
   },
@@ -320,6 +362,41 @@ if (!gotSingleInstanceLock) {
     persistShellSettings();
     broadcastShellSettings();
     return shellSettings;
+  });
+
+  // Notification Center fallback feed (#23): the renderer reads the
+  // persisted in-app entries and marks them read; new entries arrive pushed
+  // on notifications:updated, OS clicks on notifications:clicked.
+  ipcMain.handle("notifications:get", (): InAppNotification[] => {
+    const accountId = authController.accountId();
+    if (!accountId) return [];
+    try {
+      return createNotificationStore(inAppFeedRoot, accountId).list();
+    } catch (error) {
+      console.error("[notifications] read failed:", error);
+      return [];
+    }
+  });
+  ipcMain.handle("notifications:mark-read", (_event, ids: unknown): InAppNotification[] => {
+    const accountId = authController.accountId();
+    if (!accountId || !Array.isArray(ids)) return [];
+    const wanted = ids.filter((id): id is string => typeof id === "string");
+    try {
+      return createNotificationStore(inAppFeedRoot, accountId).markRead(wanted);
+    } catch (error) {
+      console.error("[notifications] mark-read failed:", error);
+      return [];
+    }
+  });
+  ipcMain.handle("notifications:mark-all-read", (): InAppNotification[] => {
+    const accountId = authController.accountId();
+    if (!accountId) return [];
+    try {
+      return createNotificationStore(inAppFeedRoot, accountId).markAllRead();
+    } catch (error) {
+      console.error("[notifications] mark-all-read failed:", error);
+      return [];
+    }
   });
 
   // Deliberate no-op while a tray exists: closing the window must not end the

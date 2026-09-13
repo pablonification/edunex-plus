@@ -1,4 +1,5 @@
 import type { ApiResult, EdunexApi, EdunexDataApi } from "../api/client";
+import type { TaskNotifier } from "../notifications/task-notifier";
 import {
   FEED_KEYS,
   type FeedKey,
@@ -37,6 +38,13 @@ export interface SyncEngineOptions {
   onFeedUpdated?: (snapshot: FeedSnapshot) => void;
   /** The auth controller pauses the session on real API 401s. */
   onUnauthorized?: () => void;
+  /**
+   * New-Task detection (#23). When present, the tick hands the pre-write
+   * `/todo` snapshot and the fresh payload to the notifier after a
+   * successful cache write; the notifier owns the silent-baseline, digest,
+   * ledger, and sink fan-out. Failures inside never fail the tick.
+   */
+  taskNotifier?: Pick<TaskNotifier, "handleSync">;
   now?: () => number;
   random?: () => number;
   setTimer?: (callback: () => void, delayMs: number) => ReturnType<typeof setTimeout>;
@@ -178,6 +186,9 @@ export function createSyncEngine(options: SyncEngineOptions): SyncEngine {
         .map(({ key }) => key);
       const updated: FeedSnapshot[] = [];
       const fetchedAt = new Date(now()).toISOString();
+      const prevTodoData = options.taskNotifier
+        ? safelyReadTodoForDiff(accountId)
+        : null;
 
       for (const { key, result } of responses) {
         if (!isSuccessful(result) || result.body == null) continue;
@@ -190,6 +201,9 @@ export function createSyncEngine(options: SyncEngineOptions): SyncEngine {
           );
           updated.push(snapshot);
           safelyCallFeedUpdated(snapshot);
+          if (key === "todo" && options.taskNotifier) {
+            safelyNotifyNewTasks(accountId, prevTodoData, result.body);
+          }
         } catch {
           if (!failedFeeds.includes(key)) failedFeeds.push(key);
         }
@@ -220,6 +234,23 @@ export function createSyncEngine(options: SyncEngineOptions): SyncEngine {
       options.onFeedUpdated?.(snapshot);
     } catch (error) {
       console.error("[sync] feed update handler failed:", error);
+    }
+  }
+
+  function safelyReadTodoForDiff(accountId: string): unknown {
+    try {
+      return options.cache.read(accountId, "todo")?.data ?? null;
+    } catch (error) {
+      console.error("[sync] todo diff baseline read failed:", error);
+      return null;
+    }
+  }
+
+  function safelyNotifyNewTasks(accountId: string, prevData: unknown, nextData: unknown) {
+    try {
+      options.taskNotifier?.handleSync(accountId, prevData, nextData);
+    } catch (error) {
+      console.error("[sync] task notification failed:", error);
     }
   }
 
