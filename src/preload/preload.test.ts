@@ -41,6 +41,7 @@ const bridge = electronMocks.exposeInMainWorld.mock.calls[0][1] as {
     created: boolean;
     answerId: string | null;
   }>;
+  submitAnswer(input: { answerId: string }): Promise<{ ok: boolean; status: number }>;
 };
 
 describe("preload feed bridge", () => {
@@ -322,6 +323,19 @@ describe("preload draft-save bridge", () => {
       taskId: "113986",
       answer: "<p>draft</p>",
       answerId: null,
+    });
+  });
+});
+
+describe("preload final-submit bridge", () => {
+  it("forwards the saved answer id through the tasks IPC channel", async () => {
+    const result = { ok: true, status: 200 };
+    electronMocks.invoke.mockClear();
+    electronMocks.invoke.mockResolvedValueOnce(result);
+
+    await expect(bridge.submitAnswer({ answerId: "2644208" })).resolves.toEqual(result);
+    expect(electronMocks.invoke).toHaveBeenCalledWith("tasks:submit", {
+      answerId: "2644208",
     });
   });
 });

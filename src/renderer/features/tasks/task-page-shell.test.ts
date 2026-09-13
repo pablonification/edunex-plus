@@ -36,6 +36,10 @@ type SaveDraftMock = ReturnType<
   >
 >;
 
+type SubmitAnswerMock = ReturnType<
+  typeof vi.fn<() => Promise<{ ok: boolean; status: number }>>
+>;
+
 function mount(
   task: TaskItem,
   saveDraft: SaveDraftMock = vi.fn(async () => ({
@@ -44,8 +48,9 @@ function mount(
     created: true,
     answerId: "2644208",
   })),
+  submitAnswer: SubmitAnswerMock = vi.fn(async () => ({ ok: true, status: 200 })),
 ) {
-  (window as unknown as { edunex: unknown }).edunex = { saveDraft };
+  (window as unknown as { edunex: unknown }).edunex = { saveDraft, submitAnswer };
   const container = document.createElement("div");
   document.body.append(container);
   const root = createRoot(container);
@@ -56,8 +61,12 @@ function mount(
   return { container, root, saveDraft: saveDraft as ReturnType<typeof vi.fn> };
 }
 
-async function renderShell(task: TaskItem, saveDraft?: Parameters<typeof mount>[1]) {
-  const { container, root } = mount(task, saveDraft);
+async function renderShell(
+  task: TaskItem,
+  saveDraft?: Parameters<typeof mount>[1],
+  submitAnswer?: Parameters<typeof mount>[2],
+) {
+  const { container, root } = mount(task, saveDraft, submitAnswer);
   await act(async () => {
     root.render(createElement(TaskPageShell, { task, onBack: vi.fn() }));
     await new Promise((resolve) => setTimeout(resolve, 0));
@@ -187,5 +196,89 @@ describe("task page shell", () => {
     });
 
     expect(container.textContent).toContain("Couldn't save the draft.");
+  });
+
+  it("keeps the submit action off an answer that has not been saved", async () => {
+    const container = await renderShell(draftTask());
+
+    expect(
+      [...container.querySelectorAll("button")].find((el) =>
+        el.textContent?.includes("Submit answer"),
+      ),
+    ).toBeUndefined();
+  });
+
+  it("shows the primary submit action and inline difference explainer for a saved draft", async () => {
+    const container = await renderShell(
+      draftTask({ answerId: "2644208", answer: "Saved draft" }),
+    );
+
+    const submitButton = [...container.querySelectorAll("button")].find((el) =>
+      el.textContent?.includes("Submit answer"),
+    );
+    const explainerButton = [...container.querySelectorAll("button")].find((el) =>
+      el.textContent?.includes("What's the difference?"),
+    );
+
+    expect(submitButton).toBeDefined();
+    expect(submitButton?.disabled).toBe(false);
+    expect(explainerButton).toBeDefined();
+    expect(container.textContent).not.toContain("Only you can see a saved draft");
+
+    await act(async () => {
+      explainerButton!.click();
+    });
+
+    expect(container.textContent).toContain("Only you can see a saved draft");
+    expect(explainerButton?.getAttribute("aria-expanded")).toBe("true");
+  });
+
+  it("submits the saved answer and replaces editing with a green receipt", async () => {
+    const submitAnswer = vi.fn(async () => ({ ok: true, status: 200 }));
+    const container = await renderShell(
+      draftTask({ answerId: "2644208", answer: "Saved draft" }),
+      undefined,
+      submitAnswer,
+    );
+    const submitButton = [...container.querySelectorAll("button")].find((el) =>
+      el.textContent?.includes("Submit answer"),
+    );
+
+    await act(async () => {
+      submitButton!.click();
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+
+    expect(submitAnswer).toHaveBeenCalledWith({ answerId: "2644208" });
+    expect(container.textContent).toContain("Submission receipt");
+    expect(container.textContent).toContain("Your answer was sent.");
+    expect(container.querySelector("textarea")).toBeNull();
+    expect(
+      [...container.querySelectorAll("button")].find((el) =>
+        el.textContent?.includes("Submit answer"),
+      ),
+    ).toBeUndefined();
+    expect(container.textContent).not.toContain("Resubmit");
+  });
+
+  it("leaves the draft state and shows a recoverable error when submit fails", async () => {
+    const submitAnswer = vi.fn(async () => ({ ok: false, status: 500 }));
+    const container = await renderShell(
+      draftTask({ answerId: "2644208", answer: "Saved draft" }),
+      undefined,
+      submitAnswer,
+    );
+    const submitButton = [...container.querySelectorAll("button")].find((el) =>
+      el.textContent?.includes("Submit answer"),
+    );
+
+    await act(async () => {
+      submitButton!.click();
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+
+    expect(container.textContent).toContain("Couldn't submit the answer.");
+    expect(container.textContent).toContain("DRAFT — NOT SUBMITTED");
+    expect(container.querySelector("textarea")).not.toBeNull();
   });
 });

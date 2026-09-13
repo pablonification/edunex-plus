@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { extractAnswerId, saveDraftAnswer } from "./task-answers";
+import { extractAnswerId, saveDraftAnswer, submitAnswer } from "./task-answers";
 
 function apiMock() {
   return {
@@ -65,5 +65,40 @@ describe("draft answer id extraction", () => {
     expect(extractAnswerId({ data: { attributes: { id: "2644208" } } })).toBe("2644208");
     expect(extractAnswerId(null)).toBeNull();
     expect(extractAnswerId({})).toBeNull();
+  });
+});
+
+describe("final-submit routing (captured API contract)", () => {
+  it("submits a saved answer by its id", async () => {
+    const api = {
+      submitAnswer: vi.fn(async () => ({ status: 200, ok: true, body: null })),
+    };
+
+    const result = await submitAnswer(api, { answerId: " 2644208 " });
+
+    expect(api.submitAnswer).toHaveBeenCalledWith("2644208");
+    expect(result).toEqual({ ok: true, status: 200 });
+  });
+
+  it("rejects a missing answer id without touching the API", async () => {
+    const api = {
+      submitAnswer: vi.fn(async () => ({ status: 200, ok: true, body: null })),
+    };
+
+    const result = await submitAnswer(api, { answerId: "  " });
+
+    expect(result).toEqual({ ok: false, status: 400 });
+    expect(api.submitAnswer).not.toHaveBeenCalled();
+  });
+
+  it("returns failed final-submit responses to the IPC layer", async () => {
+    const api = {
+      submitAnswer: vi.fn(async () => ({ status: 500, ok: false, body: null })),
+    };
+
+    await expect(submitAnswer(api, { answerId: "2644208" })).resolves.toEqual({
+      ok: false,
+      status: 500,
+    });
   });
 });

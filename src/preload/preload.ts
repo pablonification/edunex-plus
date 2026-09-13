@@ -7,7 +7,12 @@ import type {
 } from "../shared/materials";
 import type { InAppNotification } from "../shared/notifications";
 import type { AppInfo, NavKey, ShellSettings } from "../shared/shell";
-import type { SaveDraftInput, SaveDraftResult } from "../shared/submission";
+import type {
+  SaveDraftInput,
+  SaveDraftResult,
+  SubmitAnswerInput,
+  SubmitAnswerResult,
+} from "../shared/submission";
 
 contextBridge.exposeInMainWorld("edunex", {
   version: process.env.npm_package_version ?? "0.0.1",
@@ -94,4 +99,8 @@ contextBridge.exposeInMainWorld("edunex", {
   // PATCH /course/task/answers/{answerId}. Status refreshes on next sync.
   saveDraft: (input: SaveDraftInput) =>
     ipcRenderer.invoke("tasks:save-draft", input) as Promise<SaveDraftResult>,
+  // Final Task Answer submit (#26): explicit-only write. The API receives
+  // only the saved answer id and flips is_sent to 1.
+  submitAnswer: (input: SubmitAnswerInput) =>
+    ipcRenderer.invoke("tasks:submit", input) as Promise<SubmitAnswerResult>,
 });

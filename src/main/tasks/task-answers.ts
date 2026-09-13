@@ -1,9 +1,18 @@
 import type { ApiResult } from "../api/client";
-import type { SaveDraftInput, SaveDraftResult } from "../../shared/submission";
+import type {
+  SaveDraftInput,
+  SaveDraftResult,
+  SubmitAnswerInput,
+  SubmitAnswerResult,
+} from "../../shared/submission";
 
 export interface DraftApi {
   createDraftAnswer(taskId: string, answer: string): Promise<ApiResult>;
   updateDraftAnswer(answerId: string, taskId: string, answer: string): Promise<ApiResult>;
+}
+
+export interface SubmitApi {
+  submitAnswer(answerId: string): Promise<ApiResult>;
 }
 
 /**
@@ -28,6 +37,23 @@ export async function saveDraftAnswer(api: DraftApi, input: SaveDraftInput): Pro
     created: answerId === null,
     answerId: ok ? (extractAnswerId(result.body) ?? answerId) : answerId,
   };
+}
+
+/**
+ * Final-submit write path (issue #26, captured contract in #12). A saved
+ * answer is submitted by flipping only `is_sent` through the existing answer
+ * PATCH endpoint. Explicit-only: this is called solely from the Submit IPC
+ * handler after a deliberate user click.
+ */
+export async function submitAnswer(
+  api: SubmitApi,
+  input: SubmitAnswerInput,
+): Promise<SubmitAnswerResult> {
+  const answerId = input.answerId.trim();
+  if (!answerId) return { ok: false, status: 400 };
+
+  const result = await api.submitAnswer(answerId);
+  return { ok: isSuccessful(result), status: result.status };
 }
 
 /**

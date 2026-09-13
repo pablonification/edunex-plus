@@ -78,6 +78,22 @@ export function App() {
     [],
   );
 
+  // Keep an open Task page aligned with the server-owned snapshot. The page
+  // may show a transient submit receipt, but `is_sent` still comes from the
+  // next synced To Do payload rather than from optimistic renderer state.
+  useEffect(
+    () =>
+      window.edunex.onFeedUpdated((snapshot) => {
+        if (snapshot.feed !== "todo") return;
+        setSelectedTask((selected) => {
+          if (!selected) return selected;
+          const updated = toTodoItems(snapshot.data).find((item) => item.id === selected.id);
+          return updated && isTaskItem(updated) ? updated : selected;
+        });
+      }),
+    [],
+  );
+
   function selectView(view: NavKey) {
     setActiveKey(view);
     setSelectedTask(null);
