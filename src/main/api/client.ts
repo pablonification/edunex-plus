@@ -17,6 +17,10 @@ export interface EdunexApi {
   get(path: string): Promise<ApiResult>;
 }
 
+/** EduNex's active course-list request captured from the My Courses page. */
+export const ACTIVE_COURSES_PATH =
+  "/course/courses?include=lecturer,lecturer.user,contents,faculty&filter[is_active][is]=1&filter[is_enrolled][is]=1&page[limit]=100&page[offset]=0";
+
 export interface TodoFeed {
   tasks: unknown[];
   exams: unknown[];
@@ -89,7 +93,7 @@ export function createEdunexApi(options: EdunexApiOptions): EdunexDataApi {
     get,
     getTodo: () => get("/todo").then((result) => normalizeResult(result, normalizeTodo)),
     getCourses: () =>
-      get("/course/courses").then((result) => normalizeResult(result, normalizeCollection)),
+      get(ACTIVE_COURSES_PATH).then((result) => normalizeResult(result, normalizeCourses)),
     getCourseTasks: () =>
       get("/course/tasks").then((result) => normalizeResult(result, normalizeCollection)),
     getExams: () =>
@@ -156,6 +160,22 @@ function normalizeAgenda(body: unknown): JsonApiResource[] {
     if (Array.isArray(root[key])) return (root[key] as unknown[]).filter(isRecord);
   }
   return [];
+}
+
+function normalizeCourses(body: unknown): JsonApiResource[] {
+  return normalizeCollection(body).filter((resource) => {
+    const attributes = asRecord(resource.attributes) ?? resource;
+    return (
+      "is_active" in attributes &&
+      "is_enrolled" in attributes &&
+      isEnabledCourseFlag(attributes.is_active) &&
+      isEnabledCourseFlag(attributes.is_enrolled)
+    );
+  });
+}
+
+function isEnabledCourseFlag(value: unknown): boolean {
+  return value === true || value === 1 || value === "1" || value === "true";
 }
 
 function arrayOrEmpty(value: unknown): unknown[] {
