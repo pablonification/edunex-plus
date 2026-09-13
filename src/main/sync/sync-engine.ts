@@ -94,11 +94,11 @@ export interface SyncEngine {
  */
 export function createSyncEngine(options: SyncEngineOptions): SyncEngine {
   const clock = options.clock ?? systemClock;
-  const random = options.random ?? options.randomService?.next ?? systemRandom.next;
+  const random = options.random ?? (() => options.randomService?.next() ?? systemRandom.next());
   const setTimer = options.setTimer ?? ((callback, delayMs) =>
     clock.setTimeout(callback, delayMs) as ReturnType<typeof setTimeout>);
   const clearTimer = options.clearTimer ?? ((timer) => clock.clearTimeout(timer));
-  const now = options.now ?? clock.now;
+  const now = options.now ?? (() => clock.now());
   const intervalMs = options.intervalMs ?? DEFAULT_SYNC_INTERVAL_MS;
   const jitterMs = options.jitterMs ?? DEFAULT_SYNC_JITTER_MS;
   const minIntervalMs = Math.max(options.minIntervalMs ?? MIN_SYNC_INTERVAL_MS, 0);

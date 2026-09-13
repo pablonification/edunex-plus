@@ -34,7 +34,7 @@ export interface PresenceNotifier {
  * OS Do-Not-Disturb governs quiet time — the app implements no quiet hours.
  */
 export function createPresenceNotifier(options: PresenceNotifierOptions): PresenceNotifier {
-  const now = options.now ?? options.clock?.now ?? systemClock.now;
+  const now = options.now ?? (() => options.clock?.now() ?? systemClock.now());
   const ledgers = new Map<string, PresenceLedger>();
 
   function ledgerFor(accountId: string): PresenceLedger {
