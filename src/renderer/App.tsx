@@ -8,11 +8,13 @@ import { LoginView } from "./features/auth/login-view";
 import { ReloginModal } from "./features/auth/relogin-modal";
 import { useAuthState } from "./features/auth/use-auth-state";
 import { DashboardPanel, AgendaPanel, TodoPanel } from "./features/feeds/feed-panels";
-import type { TaskItem } from "./features/feeds/feed-data";
+import { isTaskItem, toTodoItems, type TaskItem } from "./features/feeds/feed-data";
+import { NotificationCenterPanel } from "./features/notifications/notification-center";
 import { TaskPageShell } from "./features/tasks/task-page-shell";
 import { navItem } from "./nav";
 import { cx } from "./utils/cx";
 import type { NavKey } from "@shared/shell";
+import { notificationDestinationFor } from "@shared/notifications";
 
 /**
  * App shell (#32), t3code-style native pass: flush sidebar + 52px topbar
@@ -51,6 +53,22 @@ export function App() {
     [hiddenViews],
   );
 
+  // OS notification clicks (#23) focus the app in main and land here with
+  // the covered task ids; the To Do screen (#21) is the destination, opening
+  // the single task when there is exactly one.
+  useEffect(
+    () =>
+      window.edunex.onNotificationClicked(({ taskIds }) => {
+        const destination = notificationDestinationFor({ taskIds });
+        if (destination.taskId) void openNotificationTask(destination.taskId);
+        else {
+          setActiveKey(destination.view);
+          setSelectedTask(null);
+        }
+      }),
+    [],
+  );
+
   function selectView(view: NavKey) {
     setActiveKey(view);
     setSelectedTask(null);
@@ -59,6 +77,23 @@ export function App() {
   function openTask(task: TaskItem) {
     setActiveKey("todo");
     setSelectedTask(task);
+  }
+
+  function openTodo() {
+    setActiveKey("todo");
+    setSelectedTask(null);
+  }
+
+  async function openNotificationTask(taskId: string) {
+    setActiveKey("todo");
+    setSelectedTask(null);
+    try {
+      const snapshot = await window.edunex.getFeed("todo");
+      const found = toTodoItems(snapshot?.data).find((item) => item.id === taskId);
+      if (found && isTaskItem(found)) setSelectedTask(found);
+    } catch {
+      // Stay on To Do when the cached feed can't be read.
+    }
   }
 
   if (authStatus === null) {
@@ -116,6 +151,7 @@ export function App() {
               {activeKeyVisible === "home" && (
                 <>
                   <DashboardPanel onTaskSelect={openTask} />
+                  <NotificationCenterPanel onOpenTask={openNotificationTask} onOpenTodo={openTodo} />
                   <SystemPanel />
                 </>
               )}

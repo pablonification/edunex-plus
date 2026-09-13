@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { FeedSnapshot } from "../shared/feeds";
+import type { InAppNotification } from "../shared/notifications";
 import type { ShellSettings } from "../shared/shell";
 
 const electronMocks = vi.hoisted(() => ({
@@ -23,6 +24,11 @@ import "./preload";
 const bridge = electronMocks.exposeInMainWorld.mock.calls[0][1] as {
   getFeed(feed: "todo" | "courses" | "agenda"): Promise<FeedSnapshot | null>;
   onFeedUpdated(callback: (snapshot: FeedSnapshot) => void): () => void;
+  getNotifications(): Promise<InAppNotification[]>;
+  markNotificationsRead(ids: string[]): Promise<InAppNotification[]>;
+  markAllNotificationsRead(): Promise<InAppNotification[]>;
+  onNotificationsUpdated(callback: (entries: InAppNotification[]) => void): () => void;
+  onNotificationClicked(callback: (payload: { taskIds: string[] }) => void): () => void;
 };
 
 describe("preload feed bridge", () => {
@@ -152,5 +158,56 @@ describe("preload shell-settings bridge", () => {
 
     expect(callback).toHaveBeenCalledWith(next);
     expect(electronMocks.removeListener).toHaveBeenCalledWith("shell:settings-updated", listener);
+  });
+});
+
+describe("preload notification bridge", () => {
+  it("reads the fallback feed through main's notification IPC channel", async () => {
+    const entries: InAppNotification[] = [
+      {
+        id: "entry-1",
+        title: "New task",
+        body: "Answer Tugas 01 — II4091",
+        taskIds: ["113986"],
+        createdAt: "2026-09-13T12:00:00.000Z",
+        read: false,
+      },
+    ];
+    electronMocks.invoke.mockResolvedValueOnce(entries);
+
+    await expect(bridge.getNotifications()).resolves.toEqual(entries);
+    expect(electronMocks.invoke).toHaveBeenCalledWith("notifications:get");
+  });
+
+  it("forwards fallback updates and OS clicks, removing listeners on unsubscribe", () => {
+    const updated = vi.fn();
+    const unsubscribeUpdated = bridge.onNotificationsUpdated(updated);
+    const updatedListener = electronMocks.on.mock.calls.at(-1)?.[1] as (
+      event: unknown,
+      entries: InAppNotification[],
+    ) => void;
+    updatedListener({}, []);
+    unsubscribeUpdated();
+
+    expect(updated).toHaveBeenCalledWith([]);
+    expect(electronMocks.removeListener).toHaveBeenCalledWith(
+      "notifications:updated",
+      updatedListener,
+    );
+
+    const clicked = vi.fn();
+    const unsubscribeClicked = bridge.onNotificationClicked(clicked);
+    const clickedListener = electronMocks.on.mock.calls.at(-1)?.[1] as (
+      event: unknown,
+      payload: { taskIds: string[] },
+    ) => void;
+    clickedListener({}, { taskIds: ["113986"] });
+    unsubscribeClicked();
+
+    expect(clicked).toHaveBeenCalledWith({ taskIds: ["113986"] });
+    expect(electronMocks.removeListener).toHaveBeenCalledWith(
+      "notifications:clicked",
+      clickedListener,
+    );
   });
 });
