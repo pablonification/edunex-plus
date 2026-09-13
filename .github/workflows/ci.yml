@@ -38,3 +38,6 @@ jobs:
 
       - name: Type-check and build
         run: npm run build
+
+      - name: Check runtime lifecycle
+        run: npm run smoke:runtime
