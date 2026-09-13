@@ -46,6 +46,8 @@ describe("material download (explicit user action)", () => {
 
     const [url] = (deps.fetchImpl as ReturnType<typeof vi.fn>).mock.calls[0];
     expect(url).toBe("https://cdn.example.id/files/slide.pdf");
+    const [, init] = (deps.fetchImpl as ReturnType<typeof vi.fn>).mock.calls[0];
+    expect(init.headers.get("Authorization")).toBeNull();
   });
 
   it("treats a cancelled save dialog as a quiet cancel without fetching", async () => {
