@@ -3,6 +3,7 @@ import type { AuthStatus } from "../shared/auth";
 import type { FeedKey, FeedSnapshot } from "../shared/feeds";
 import type { InAppNotification } from "../shared/notifications";
 import type { AppInfo, NavKey, ShellSettings } from "../shared/shell";
+import type { SaveDraftInput, SaveDraftResult } from "../shared/submission";
 
 contextBridge.exposeInMainWorld("edunex", {
   version: process.env.npm_package_version ?? "0.0.1",
@@ -73,4 +74,9 @@ contextBridge.exposeInMainWorld("edunex", {
     ipcRenderer.on("notifications:clicked", listener);
     return () => ipcRenderer.removeListener("notifications:clicked", listener);
   },
+  // Task Answer draft-save (#25): explicit-only write. Create = POST
+  // /course/task/answers (201) when no answer id is known, else update =
+  // PATCH /course/task/answers/{answerId}. Status refreshes on next sync.
+  saveDraft: (input: SaveDraftInput) =>
+    ipcRenderer.invoke("tasks:save-draft", input) as Promise<SaveDraftResult>,
 });

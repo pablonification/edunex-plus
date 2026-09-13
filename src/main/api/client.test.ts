@@ -278,4 +278,78 @@ describe("edunex api client", () => {
 
     await expect(api.getCourses()).resolves.toMatchObject({ body: [currentCourse] });
   });
+
+  it("creates a draft via POST /course/task/answers with task_id in the body (201)", async () => {
+    const fetchImpl = vi.fn(
+      async () => new Response(JSON.stringify({ data: { id: "2644208" } }), { status: 201 }),
+    );
+    const api = createEdunexApi({
+      baseUrl: "https://api-edunex.cognisia.id",
+      getToken: () => "tok",
+      userAgent: "EdunexPlus/0.0.1",
+      fetchImpl,
+    });
+
+    const result = await api.createDraftAnswer("113986", "<p>draft</p>");
+
+    expect(result.status).toBe(201);
+    expect(result.ok).toBe(true);
+    const [url, init] = fetchImpl.mock.calls[0];
+    expect(url).toBe("https://api-edunex.cognisia.id/course/task/answers");
+    expect(init.method).toBe("POST");
+    expect(init.headers.get("Authorization")).toBe("Bearer tok");
+    expect(JSON.parse(init.body)).toEqual({
+      data: { attributes: { task_id: "113986", answer: "<p>draft</p>", is_sent: 0 } },
+    });
+  });
+
+  it("updates a draft via PATCH /course/task/answers/{id} with files: [] (200)", async () => {
+    const fetchImpl = vi.fn(async () => okResponse({ data: { id: "2644208" } }));
+    const api = createEdunexApi({
+      baseUrl: "https://api-edunex.cognisia.id",
+      getToken: () => "tok",
+      userAgent: "EdunexPlus/0.0.1",
+      fetchImpl,
+    });
+
+    const result = await api.updateDraftAnswer("2644208", "113986", "<p>edit</p>");
+
+    expect(result.status).toBe(200);
+    expect(result.ok).toBe(true);
+    const [url, init] = fetchImpl.mock.calls[0];
+    expect(url).toBe("https://api-edunex.cognisia.id/course/task/answers/2644208");
+    expect(init.method).toBe("PATCH");
+    expect(JSON.parse(init.body)).toEqual({
+      data: { attributes: { task_id: "113986", files: [], answer: "<p>edit</p>", is_sent: 0 } },
+    });
+  });
+
+  it("treats draft writes like reads for auth: 401 signals, offline does not", async () => {
+    const onUnauthorized = vi.fn();
+    const unauthorizedFetch = vi.fn(async () => new Response("", { status: 401 }));
+    const unauthorizedApi = createEdunexApi({
+      baseUrl: "https://api-edunex.cognisia.id",
+      getToken: () => "stale",
+      userAgent: "EdunexPlus/0.0.1",
+      onUnauthorized,
+      fetchImpl: unauthorizedFetch,
+    });
+
+    const denied = await unauthorizedApi.createDraftAnswer("113986", "x");
+    expect(denied.status).toBe(401);
+    expect(onUnauthorized).toHaveBeenCalledTimes(1);
+
+    const offlineApi = createEdunexApi({
+      baseUrl: "https://api-edunex.cognisia.id",
+      getToken: () => "tok",
+      userAgent: "EdunexPlus/0.0.1",
+      onUnauthorized,
+      fetchImpl: vi.fn(async () => {
+        throw new TypeError("fetch failed");
+      }),
+    });
+    const offline = await offlineApi.updateDraftAnswer("1", "113986", "x");
+    expect(offline.status).toBe(0);
+    expect(onUnauthorized).toHaveBeenCalledTimes(1);
+  });
 });

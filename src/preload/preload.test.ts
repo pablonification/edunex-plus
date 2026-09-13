@@ -29,6 +29,12 @@ const bridge = electronMocks.exposeInMainWorld.mock.calls[0][1] as {
   markAllNotificationsRead(): Promise<InAppNotification[]>;
   onNotificationsUpdated(callback: (entries: InAppNotification[]) => void): () => void;
   onNotificationClicked(callback: (payload: { taskIds: string[] }) => void): () => void;
+  saveDraft(input: { taskId: string; answer: string; answerId?: string | null }): Promise<{
+    ok: boolean;
+    status: number;
+    created: boolean;
+    answerId: string | null;
+  }>;
 };
 
 describe("preload feed bridge", () => {
@@ -232,5 +238,22 @@ describe("preload notification bridge", () => {
       "notifications:clicked",
       clickedListener,
     );
+  });
+});
+
+describe("preload draft-save bridge", () => {
+  it("sends the editor text through main's tasks IPC channel", async () => {
+    const result = { ok: true, status: 201, created: true, answerId: "2644208" };
+    electronMocks.invoke.mockClear();
+    electronMocks.invoke.mockResolvedValueOnce(result);
+
+    await expect(
+      bridge.saveDraft({ taskId: "113986", answer: "<p>draft</p>", answerId: null }),
+    ).resolves.toEqual(result);
+    expect(electronMocks.invoke).toHaveBeenCalledWith("tasks:save-draft", {
+      taskId: "113986",
+      answer: "<p>draft</p>",
+      answerId: null,
+    });
   });
 });
