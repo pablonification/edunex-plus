@@ -7,7 +7,7 @@ import { useShellSettings } from "./features/shell/use-shell-settings";
 import { LoginView } from "./features/auth/login-view";
 import { ReloginModal } from "./features/auth/relogin-modal";
 import { useAuthState } from "./features/auth/use-auth-state";
-import { DashboardPanel, AgendaPanel, PresencePanel, TodoPanel } from "./features/feeds/feed-panels";
+import { AgendaPanel, DashboardPanel, ExamsPanel, PresencePanel, TodoPanel } from "./features/feeds/feed-panels";
 import { isTaskItem, toTodoItems, type TaskItem } from "./features/feeds/feed-data";
 import { NotificationCenterPanel } from "./features/notifications/notification-center";
 import { TaskPageShell } from "./features/tasks/task-page-shell";
@@ -157,8 +157,13 @@ export function App() {
               )}
               {activeKeyVisible === "todo" && <TodoPanel onTaskSelect={openTask} />}
               {activeKeyVisible === "agenda" && <AgendaPanel />}
+              {activeKeyVisible === "exams" && <ExamsPanel />}
               {activeKeyVisible === "presence" && <PresencePanel />}
-              {activeKeyVisible !== "home" && activeKeyVisible !== "todo" && activeKeyVisible !== "agenda" && activeKeyVisible !== "presence" && (
+              {activeKeyVisible !== "home" &&
+                activeKeyVisible !== "todo" &&
+                activeKeyVisible !== "agenda" &&
+                activeKeyVisible !== "exams" &&
+                activeKeyVisible !== "presence" && (
                 <p className="max-w-prose text-[13px] leading-5 text-text-secondary">
                   {active.placeholder}
                 </p>

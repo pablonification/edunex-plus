@@ -29,7 +29,7 @@ const META: Record<NavKey, { icon: string; placeholder: string }> = {
   },
   exams: {
     icon: "ri-file-list-3-line",
-    placeholder: "The read-only exams list will live here (#27).",
+    placeholder: "Your scheduled exams, read-only.",
   },
 };
 
