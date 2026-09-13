@@ -4,6 +4,8 @@ import { Chip } from "@/components/ui/chip";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import {
   filterAgendaItemsByCourse,
+  filterExamsByCourse,
+  filterExamsByCourses,
   filterTodoItemsByCourses,
   formatTimestamp,
   isTaskItem,
@@ -11,11 +13,13 @@ import {
   toAgendaItems,
   toCourseItems,
   toCurrentPeriodId,
+  toExamItems,
   toPeriodItems,
   toTodoItems,
   todoSectionsFromItems,
   type AgendaItem,
   type CourseItem,
+  type ExamItem,
   type PeriodItem,
   type TaskItem,
   type TodoItem,
@@ -141,6 +145,51 @@ export function TodoPanel({ onTaskSelect }: { onTaskSelect?: TodoSelectionHandle
   );
 }
 
+/** Standalone read-only exams list for the Exams navigation item (#27). */
+export function ExamsPanel() {
+  const coursesState = useCachedFeed("courses");
+  const examsState = useCachedFeed("exams");
+  const { periods, periodId, scopedCourses, onPeriodChange } =
+    useCoursePeriodScope(coursesState);
+  const allExams = useMemo(
+    () => toExamItems(examsState.snapshot?.data),
+    [examsState.snapshot?.data],
+  );
+  const scopedExams = useMemo(
+    () => filterExamsByCourses(allExams, scopedCourses),
+    [allExams, scopedCourses],
+  );
+  const combinedState: CachedFeedState = {
+    snapshot: examsState.snapshot,
+    loading: coursesState.loading || examsState.loading,
+    error: examsState.error,
+  };
+
+  return (
+    <div className="space-y-8">
+      <div className="px-1">
+        <p className="text-caption-1-semibold uppercase tracking-[0.08em] text-text-tertiary">
+          Scheduled exams
+        </p>
+        <h2 className="mt-1 text-[22px] font-semibold tracking-tight text-text-primary">
+          Exams
+        </h2>
+        <p className="mt-1 max-w-[46rem] text-[13px] leading-5 text-text-secondary">
+          Read-only — exam-taking happens in EduNex itself. The latest saved view stays
+          available offline.
+        </p>
+      </div>
+      <ExamsFeedSection
+        items={scopedExams}
+        feedState={combinedState}
+        periods={periods}
+        selectedPeriodId={periodId}
+        onPeriodChange={onPeriodChange}
+        showCourse
+      />
+    </div>
+  );
+}
 /** Standalone agenda feed for the Agenda navigation item. */
 export function AgendaPanel() {
   const feedState = useCachedFeed("agenda");
@@ -378,6 +427,133 @@ function TodoFeedSection({
         <EmptyFeed message="Nothing is pending in the latest snapshot." />
       )}
     </FeedSection>
+  );
+}
+
+function ExamsFeedSection({
+  items,
+  feedState,
+  periods,
+  selectedPeriodId,
+  onPeriodChange,
+  showCourse = false,
+  eyebrow = "Scheduled",
+  title = "Exams",
+}: {
+  items: ExamItem[];
+  feedState: CachedFeedState;
+  periods?: PeriodItem[];
+  selectedPeriodId?: string | null;
+  onPeriodChange?: (periodId: string) => void;
+  showCourse?: boolean;
+  eyebrow?: string;
+  title?: string;
+}) {
+  return (
+    <FeedSection
+      eyebrow={eyebrow}
+      title={title}
+      count={items.length}
+      snapshot={feedState.snapshot}
+      loading={feedState.loading}
+      error={feedState.error}
+      headerAction={
+        periods && selectedPeriodId !== undefined && onPeriodChange ? (
+          <PeriodSwitcher
+            periods={periods}
+            selectedPeriodId={selectedPeriodId}
+            onChange={onPeriodChange}
+          />
+        ) : undefined
+      }
+    >
+      {items.length > 0 ? (
+        <div className="space-y-2">
+          <ExamsTable items={items} showCourse={showCourse} />
+          <p className="px-1 text-caption-1-regular text-text-tertiary">
+            Read-only — exam-taking happens in EduNex itself.
+          </p>
+        </div>
+      ) : (
+        <EmptyFeed message="No scheduled exams in the latest snapshot." />
+      )}
+    </FeedSection>
+  );
+}
+
+export interface ExamsTableProps {
+  items: ExamItem[];
+  showCourse?: boolean;
+}
+
+/**
+ * Read-only exams table built from free-tier primitives. Deliberately no
+ * buttons, links, or selection handlers — v1 never opens exam delivery.
+ */
+export function ExamsTable({ items, showCourse = false }: ExamsTableProps) {
+  return (
+    <div className="overflow-hidden rounded-lg bg-background-primary-default shadow-sm">
+      <table className="w-full table-fixed border-collapse text-left">
+        <caption className="sr-only">Scheduled exams</caption>
+        <thead className="border-b border-black/[0.06] text-caption-1-semibold text-text-tertiary">
+          <tr>
+            <th
+              className={showCourse ? "w-[48%] px-3.5 py-2 font-semibold" : "w-[70%] px-3.5 py-2 font-semibold"}
+              scope="col"
+            >
+              Exam
+            </th>
+            {showCourse && (
+              <th className="w-[27%] px-3.5 py-2 font-semibold" scope="col">
+                Course
+              </th>
+            )}
+            <th
+              className={showCourse ? "w-[25%] px-3.5 py-2 text-right font-semibold" : "w-[30%] px-3.5 py-2 text-right font-semibold"}
+              scope="col"
+            >
+              Time
+            </th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-black/[0.06]">
+          {items.map((item) => (
+            <tr key={item.id} className="align-top">
+              <td className="px-3.5 py-3">
+                <div className="flex min-w-0 items-center gap-2">
+                  <span className="grid size-7 shrink-0 place-items-center rounded-md bg-accent-500/10 text-accent-600">
+                    <i className="ri-file-list-3-line text-[15px]" aria-hidden />
+                  </span>
+                  <span className="min-w-0 truncate text-[13px] font-medium leading-5 text-text-primary">
+                    {item.title}
+                  </span>
+                </div>
+              </td>
+              {showCourse && (
+                <td className="px-3.5 py-3">
+                  <span className="block truncate text-caption-1-semibold text-text-tertiary">
+                    {item.courseCode || "—"}
+                  </span>
+                  {item.courseName && (
+                    <span className="block truncate text-caption-1-regular text-text-secondary">
+                      {item.courseName}
+                    </span>
+                  )}
+                </td>
+              )}
+              <td className="px-3.5 py-3 text-right">
+                <time
+                  className="text-caption-1-regular text-text-tertiary"
+                  dateTime={item.time ?? undefined}
+                >
+                  {item.time ? formatTimestamp(item.time) : "No time set"}
+                </time>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
 
@@ -668,31 +844,47 @@ function CourseHub({
           <div>
             <h3 className="text-[16px] font-semibold text-text-primary">Course sections</h3>
             <p className="mt-1 text-[13px] text-text-secondary">
-              The course space is ready for the next content slices.
+              Scheduled exams and agenda meetings read from the latest snapshot. Other sections
+              land in their own slices.
             </p>
           </div>
           <span className="text-caption-1-regular text-text-tertiary">Read-only preview</span>
         </div>
-        <div className="mt-3 grid gap-2 sm:grid-cols-2">
-          <CourseAgendaSection course={course} />
-          <HubPlaceholder
-            icon="ri-file-list-3-line"
-            title="Exams"
-            description="Your scheduled exams will be listed here."
-          />
-          <HubPlaceholder
-            icon="ri-folder-3-line"
-            title="Materials"
-            description="Course files and downloads will live here."
-          />
-          <HubPlaceholder
-            icon="ri-hand-heart-line"
-            title="Presence"
-            description="Presence records and open windows will appear here."
-          />
+        <div className="mt-3 space-y-2">
+          <CourseExamsSection course={course} />
+          <div className="grid gap-2 sm:grid-cols-2">
+            <CourseAgendaSection course={course} />
+            <HubPlaceholder
+              icon="ri-folder-3-line"
+              title="Materials"
+              description="Course files and downloads will live here."
+            />
+            <HubPlaceholder
+              icon="ri-hand-heart-line"
+              title="Presence"
+              description="Presence records and open windows will appear here."
+            />
+          </div>
         </div>
       </div>
     </section>
+  );
+}
+
+function CourseExamsSection({ course }: { course: CourseItem }) {
+  const feedState = useCachedFeed("exams");
+  const items = useMemo(
+    () => filterExamsByCourse(toExamItems(feedState.snapshot?.data), course),
+    [feedState.snapshot?.data, course],
+  );
+
+  return (
+    <ExamsFeedSection
+      items={items}
+      feedState={feedState}
+      eyebrow={`Exams · ${course.code || "Course"}`}
+      title="Exams"
+    />
   );
 }
 
