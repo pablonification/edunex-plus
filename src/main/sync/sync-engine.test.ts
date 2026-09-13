@@ -40,6 +40,17 @@ const coursesFixture = {
   ],
 };
 
+const examsFixture = [
+  {
+    type: "exam",
+    code: "II4091",
+    course: "Final Project Proposal",
+    name: "UTS — Final Project Proposal",
+    time: "2026-10-13T02:00:00.000Z",
+    id: 7001,
+  },
+];
+
 const cacheRoots: string[] = [];
 
 afterEach(() => {
@@ -72,7 +83,9 @@ function fakeApi(resultFor: (path: string, callNumber: number) => ApiResult): {
 }
 
 function resultForFixture(path: string) {
-  return path === "/todo" ? success(todoFixture) : success(coursesFixture);
+  if (path === "/todo") return success(todoFixture);
+  if (path === "/exam/exams") return success(examsFixture);
+  return success(coursesFixture);
 }
 
 describe("sync engine", () => {
@@ -91,10 +104,11 @@ describe("sync engine", () => {
     const result = await engine.tick();
 
     expect(result.kind).toBe("success");
-    expect(calls).toEqual(["/todo", "/course/courses"]);
+    expect(calls).toEqual(["/todo", "/course/courses", "/exam/exams"]);
     expect(cache.read("190136", "todo")?.data).toEqual(todoFixture);
     expect(cache.read("190136", "courses")?.data).toEqual(coursesFixture);
-    expect(updates).toHaveLength(2);
+    expect(cache.read("190136", "exams")?.data).toEqual(examsFixture);
+    expect(updates).toHaveLength(3);
   });
 
   it("runs one immediate main-process tick, then uses 90s ± 30s cadence", async () => {
@@ -109,12 +123,12 @@ describe("sync engine", () => {
 
     expect(engine.start()).toBe(true);
     await vi.advanceTimersByTimeAsync(0);
-    expect(calls).toHaveLength(2);
+    expect(calls).toHaveLength(3);
 
     await vi.advanceTimersByTimeAsync(89_999);
-    expect(calls).toHaveLength(2);
+    expect(calls).toHaveLength(3);
     await vi.advanceTimersByTimeAsync(1);
-    expect(calls).toHaveLength(4);
+    expect(calls).toHaveLength(6);
 
     engine.stop();
   });
@@ -122,7 +136,7 @@ describe("sync engine", () => {
   it("backs off exponentially after a failed tick while keeping the 60s floor", async () => {
     vi.useFakeTimers();
     const { api, calls } = fakeApi((_feedPath, callNumber) =>
-      callNumber <= 2 ? { status: 503, ok: false, body: null } : success(todoFixture),
+      callNumber <= 3 ? { status: 503, ok: false, body: null } : success(todoFixture),
     );
     const engine = createSyncEngine({
       api,
@@ -133,14 +147,14 @@ describe("sync engine", () => {
 
     engine.start();
     await vi.advanceTimersByTimeAsync(0);
-    expect(calls).toHaveLength(2);
+    expect(calls).toHaveLength(3);
 
     // With the production 90s base, the first failure waits 180s. It must
     // not retry at the jittered 60s lower bound.
     await vi.advanceTimersByTimeAsync(179_999);
-    expect(calls).toHaveLength(2);
+    expect(calls).toHaveLength(3);
     await vi.advanceTimersByTimeAsync(1);
-    expect(calls).toHaveLength(4);
+    expect(calls).toHaveLength(6);
 
     engine.stop();
   });
@@ -163,7 +177,7 @@ describe("sync engine", () => {
     expect(onUnauthorized).toHaveBeenCalledTimes(1);
 
     await vi.advanceTimersByTimeAsync(900_000);
-    expect(calls).toHaveLength(2);
+    expect(calls).toHaveLength(3);
   });
 
   it("serves the last snapshot offline without asking the API", () => {

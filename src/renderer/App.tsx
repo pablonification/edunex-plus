@@ -4,7 +4,7 @@ import { SystemPanel } from "./features/shell/system-panel";
 import { LoginView } from "./features/auth/login-view";
 import { ReloginModal } from "./features/auth/relogin-modal";
 import { useAuthState } from "./features/auth/use-auth-state";
-import { DashboardPanel, TodoPanel } from "./features/feeds/feed-panels";
+import { DashboardPanel, ExamsPanel, TodoPanel } from "./features/feeds/feed-panels";
 import type { TaskItem } from "./features/feeds/feed-data";
 import { TaskPageShell } from "./features/tasks/task-page-shell";
 import { navItem } from "./nav";
@@ -101,7 +101,8 @@ export function App() {
                 </>
               )}
               {activeKey === "todo" && <TodoPanel onTaskSelect={openTask} />}
-              {activeKey !== "home" && activeKey !== "todo" && (
+              {activeKey === "exams" && <ExamsPanel />}
+              {activeKey !== "home" && activeKey !== "todo" && activeKey !== "exams" && (
                 <p className="max-w-prose text-[13px] leading-5 text-text-secondary">
                   {active.placeholder}
                 </p>

@@ -20,7 +20,7 @@ vi.mock("electron", () => ({
 import "./preload";
 
 const bridge = electronMocks.exposeInMainWorld.mock.calls[0][1] as {
-  getFeed(feed: "todo" | "courses"): Promise<FeedSnapshot | null>;
+  getFeed(feed: "todo" | "courses" | "exams"): Promise<FeedSnapshot | null>;
   onFeedUpdated(callback: (snapshot: FeedSnapshot) => void): () => void;
 };
 
@@ -87,5 +87,28 @@ describe("preload feed bridge", () => {
 
     await expect(bridge.getFeed("courses")).resolves.toEqual(snapshot);
     expect(electronMocks.invoke).toHaveBeenCalledWith("sync:get-feed", "courses");
+  });
+
+  it("reads a cached exams feed through the same cache IPC channel", async () => {
+    const snapshot: FeedSnapshot = {
+      feed: "exams",
+      accountId: "190136",
+      fetchedAt: "2026-09-13T12:00:00.000Z",
+      data: [
+        {
+          type: "exam",
+          code: "II4091",
+          course: "Final Project Proposal",
+          name: "UTS — Final Project Proposal",
+          time: "2026-10-13T02:00:00.000Z",
+          id: 7001,
+        },
+      ],
+    };
+    electronMocks.invoke.mockClear();
+    electronMocks.invoke.mockResolvedValueOnce(snapshot);
+
+    await expect(bridge.getFeed("exams")).resolves.toEqual(snapshot);
+    expect(electronMocks.invoke).toHaveBeenCalledWith("sync:get-feed", "exams");
   });
 });

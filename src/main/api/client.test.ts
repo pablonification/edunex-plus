@@ -144,4 +144,34 @@ describe("edunex api client", () => {
     expect(courses.body).toEqual([course]);
     expect(pending.body).toEqual(todo);
   });
+
+  it("normalizes the plain /exam/exams response whether bare or wrapped", async () => {
+    const exam = {
+      type: "exam",
+      code: "II4091",
+      course: "Final Project Proposal",
+      name: "UTS — Final Project Proposal",
+      time: "2026-10-13T02:00:00.000Z",
+      id: 7001,
+    };
+    const cases: Array<{ body: unknown; expected: unknown[] }> = [
+      { body: [exam], expected: [exam] },
+      { body: { exams: [exam] }, expected: [exam] },
+      { body: { data: [exam] }, expected: [exam] },
+    ];
+    for (const { body, expected } of cases) {
+      const fetchImpl = vi.fn(async () => okResponse(body));
+      const api = createEdunexApi({
+        baseUrl: "https://api-edunex.cognisia.id",
+        getToken: () => "tok",
+        userAgent: "EdunexPlus/0.0.1",
+        fetchImpl,
+      });
+
+      const result = await api.getExams();
+
+      expect(fetchImpl.mock.calls[0][0]).toBe("https://api-edunex.cognisia.id/exam/exams");
+      expect(result.body).toEqual(expected);
+    }
+  });
 });
