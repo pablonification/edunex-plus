@@ -17,7 +17,7 @@ const META: Record<NavKey, { icon: string; placeholder: string }> = {
   },
   agenda: {
     icon: "ri-calendar-line",
-    placeholder: "The course agenda with Vicon tags for online meetings will live here (#28).",
+    placeholder: "Your scheduled course meetings, with Vicon tags on online sessions.",
   },
   presence: {
     icon: "ri-hand-heart-line",
@@ -29,7 +29,7 @@ const META: Record<NavKey, { icon: string; placeholder: string }> = {
   },
   exams: {
     icon: "ri-file-list-3-line",
-    placeholder: "The read-only exams list will live here (#27).",
+    placeholder: "Your scheduled exams, read-only.",
   },
 };
 

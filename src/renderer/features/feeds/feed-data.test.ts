@@ -2,10 +2,13 @@ import { describe, expect, it, vi } from "vitest";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import {
+  filterAgendaItemsByCourse,
   filterExamsByCourse,
   filterExamsByCourses,
   filterTodoItemsByCourses,
+  isViconMeeting,
   scopeCoursesToPeriod,
+  toAgendaItems,
   toCourseItems,
   toCurrentPeriodId,
   toExamItems,
@@ -13,7 +16,7 @@ import {
   toTodoItems,
   toTodoSections,
 } from "./feed-data";
-import { ExamsTable, TodoSections } from "./feed-panels";
+import { AgendaList, ExamsTable, TodoSections } from "./feed-panels";
 import { readCachedFeed } from "./use-cached-feed";
 
 const todoFixture = {
@@ -353,5 +356,114 @@ describe("cached feed view models", () => {
     expect(markup).toContain('dateTime="2026-10-13T02:00:00.000Z"');
     expect(markup).not.toContain("<button");
     expect(markup).not.toContain("<a ");
+  });
+});
+
+const agendaFixture = [
+  {
+    type: "offline",
+    course_name: "Final Project Proposal",
+    name: "Week 06 — Studio review",
+    start_at: "2026-09-23T07:00:00.000Z",
+    end_at: "2026-09-23T09:00:00.000Z",
+    id: 502,
+  },
+  {
+    type: "vicon",
+    course_name: "Final Project Proposal",
+    name: "Week 05 — Online guidance",
+    start_at: "2026-09-16T07:00:00.000Z",
+    end_at: "2026-09-16T09:00:00.000Z",
+    id: 501,
+  },
+];
+
+describe("course agenda view model", () => {
+  it("maps the plain-array /course/agenda response and orders meetings chronologically", () => {
+    expect(toAgendaItems(agendaFixture)).toEqual([
+      {
+        id: "501",
+        title: "Week 05 — Online guidance",
+        courseName: "Final Project Proposal",
+        courseCode: "",
+        type: "vicon",
+        isVicon: true,
+        startAt: "2026-09-16T07:00:00.000Z",
+        endAt: "2026-09-16T09:00:00.000Z",
+      },
+      {
+        id: "502",
+        title: "Week 06 — Studio review",
+        courseName: "Final Project Proposal",
+        courseCode: "",
+        type: "offline",
+        isVicon: false,
+        startAt: "2026-09-23T07:00:00.000Z",
+        endAt: "2026-09-23T09:00:00.000Z",
+      },
+    ]);
+  });
+
+  it("tags only explicit Vicon meetings, case-insensitively", () => {
+    expect(isViconMeeting("Vicon")).toBe(true);
+    expect(isViconMeeting("vicon")).toBe(true);
+    expect(isViconMeeting("offline")).toBe(false);
+    expect(isViconMeeting({ type: "Online Vicon Session" })).toBe(true);
+    expect(isViconMeeting({ type: "offline" })).toBe(false);
+    expect(isViconMeeting({ type: "online" })).toBe(false);
+    expect(isViconMeeting(null)).toBe(false);
+  });
+
+  it("narrows the agenda to one course hub's course", () => {
+    const items = toAgendaItems([
+      ...agendaFixture,
+      {
+        type: "vicon",
+        course_name: "Climate Change",
+        name: "Week 02 — Guest lecture",
+        start_at: "2026-09-10T02:00:00.000Z",
+        end_at: "2026-09-10T04:00:00.000Z",
+        id: 601,
+      },
+    ]);
+    const course = {
+      id: "401",
+      code: "II4091",
+      name: "Final Project Proposal",
+      className: "II4091-01",
+      period: "2026-1",
+    };
+
+    expect(filterAgendaItemsByCourse(items, course).map((item) => item.id)).toEqual([
+      "501",
+      "502",
+    ]);
+  });
+
+  it("reads a cached /course/agenda snapshot through the preload seam and tags Vicon rows", async () => {
+    const snapshot = {
+      feed: "agenda" as const,
+      accountId: "190136",
+      fetchedAt: "2026-09-13T12:00:00.000Z",
+      data: agendaFixture,
+    };
+    const bridge = { getFeed: vi.fn(async () => snapshot) };
+
+    const cached = await readCachedFeed("agenda", bridge);
+    const items = toAgendaItems(cached?.data);
+
+    expect(bridge.getFeed).toHaveBeenCalledWith("agenda");
+    expect(items.filter((item) => item.isVicon).map((item) => item.title)).toEqual([
+      "Week 05 — Online guidance",
+    ]);
+
+    const markup = renderToStaticMarkup(createElement(AgendaList, { items }));
+
+    expect(markup).toContain(">Vicon<");
+    expect(markup).toContain("Week 05 — Online guidance");
+    expect(markup).toContain("Week 06 — Studio review");
+    expect(markup).toContain('dateTime="2026-09-16T07:00:00.000Z"');
+    // The offline meeting must not carry the Vicon tag: exactly one tag row.
+    expect(markup.match(/>Vicon</g)).toHaveLength(1);
   });
 });

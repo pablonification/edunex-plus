@@ -174,4 +174,58 @@ describe("edunex api client", () => {
       expect(result.body).toEqual(expected);
     }
   });
+
+  it("passes the plain-array /course/agenda response through at the API boundary", async () => {
+    const meetings = [
+      {
+        type: "vicon",
+        course_name: "Final Project Proposal",
+        name: "Week 05 — Online guidance",
+        start_at: "2026-09-16T07:00:00.000Z",
+        end_at: "2026-09-16T09:00:00.000Z",
+      },
+      {
+        type: "offline",
+        course_name: "Final Project Proposal",
+        name: "Week 06 — Studio review",
+        start_at: "2026-09-23T07:00:00.000Z",
+        end_at: "2026-09-23T09:00:00.000Z",
+      },
+    ];
+    const fetchImpl = vi.fn(async () => okResponse(meetings));
+    const api = createEdunexApi({
+      baseUrl: "https://api-edunex.cognisia.id",
+      getToken: () => "tok",
+      userAgent: "EdunexPlus/0.0.1",
+      fetchImpl,
+    });
+
+    const result = await api.getAgenda();
+
+    expect(fetchImpl.mock.calls[0][0]).toBe("https://api-edunex.cognisia.id/course/agenda");
+    expect(result.body).toEqual(meetings);
+  });
+
+  it("unwraps a nested /course/agenda payload without dropping meetings", async () => {
+    const meetings = [
+      {
+        type: "vicon",
+        course_name: "Climate Change",
+        name: "Week 02 — Guest lecture",
+        start_at: "2026-09-10T02:00:00.000Z",
+        end_at: "2026-09-10T04:00:00.000Z",
+      },
+    ];
+    const fetchImpl = vi.fn(async () => okResponse({ data: meetings }));
+    const api = createEdunexApi({
+      baseUrl: "https://api-edunex.cognisia.id",
+      getToken: () => "tok",
+      userAgent: "EdunexPlus/0.0.1",
+      fetchImpl,
+    });
+
+    const result = await api.getAgenda();
+
+    expect(result.body).toEqual(meetings);
+  });
 });
