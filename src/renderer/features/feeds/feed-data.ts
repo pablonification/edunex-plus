@@ -14,6 +14,16 @@ export interface CourseItem {
   period: string | null;
   faculty?: string;
   lecturer?: string;
+  sks?: number;
+  moduleCount?: number;
+  color?: string;
+  isCurrent?: boolean;
+}
+
+export interface PeriodItem {
+  id: string;
+  label: string;
+  count: number;
 }
 
 /** Turns the plain `/todo` response into the small shape the renderer needs. */
@@ -73,10 +83,54 @@ export function toCourseItems(data: unknown): CourseItem[] {
     };
     const faculty = readString(attributes, ["faculty", "faculty_name"]);
     const lecturer = readString(attributes, ["lecturer", "lecturer_name"]);
+    const sks = scalarNumber(attributes.sks);
+    const moduleCount = scalarNumber(attributes.modules);
+    const color = readString(attributes, ["hue", "color"]);
+    const isCurrent = readBoolean(attributes, ["is_current", "current", "isCurrent"]);
     if (faculty) item.faculty = faculty;
     if (lecturer) item.lecturer = lecturer;
+    if (sks !== null) item.sks = sks;
+    if (moduleCount !== null) item.moduleCount = moduleCount;
+    if (color) item.color = color;
+    if (isCurrent !== null) item.isCurrent = isCurrent;
     return [item];
   });
+}
+
+/** Returns only the Periods represented by vendor-provided cached course data. */
+export function toPeriodItems(courses: CourseItem[]): PeriodItem[] {
+  const counts = new Map<string, number>();
+  for (const course of courses) {
+    if (!course.period) continue;
+    counts.set(course.period, (counts.get(course.period) ?? 0) + 1);
+  }
+  return [...counts].map(([id, count]) => ({
+    id,
+    label: `Period ${id}`,
+    count,
+  }));
+}
+
+/** Uses an explicit vendor marker when present; a single cached Period is current by definition. */
+export function toCurrentPeriodId(courses: CourseItem[]): string | null {
+  const markedCurrent = courses.find((course) => course.isCurrent && course.period)?.period;
+  if (markedCurrent) return markedCurrent;
+
+  const periods = toPeriodItems(courses);
+  return periods.length === 1 ? periods[0].id : null;
+}
+
+/** Applies the selected Period without inventing an unavailable one. */
+export function scopeCoursesToPeriod(courses: CourseItem[], periodId: string | null): CourseItem[] {
+  if (!periodId) return courses;
+  return courses.filter((course) => course.period === periodId);
+}
+
+/** To Do has no Period field, so scope it through the selected Period's course codes. */
+export function filterTodoItemsByCourses(items: TodoItem[], courses: CourseItem[]): TodoItem[] {
+  const courseCodes = new Set(courses.map((course) => course.code).filter(Boolean));
+  if (courseCodes.size === 0) return items;
+  return items.filter((item) => !item.courseCode || courseCodes.has(item.courseCode));
 }
 
 function courseResources(data: unknown): Record<string, unknown>[] {
@@ -103,6 +157,22 @@ function asRecord(value: unknown): Record<string, unknown> | null {
 function scalarString(value: unknown): string | null {
   if (typeof value === "string" && value.length > 0) return value;
   if (typeof value === "number" && Number.isFinite(value)) return String(value);
+  return null;
+}
+
+function scalarNumber(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.length > 0) {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return null;
+}
+
+function readBoolean(record: Record<string, unknown>, keys: string[]): boolean | null {
+  for (const key of keys) {
+    if (typeof record[key] === "boolean") return record[key];
+  }
   return null;
 }
 
