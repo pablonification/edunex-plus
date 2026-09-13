@@ -19,8 +19,9 @@ export function buildAppMenuTemplate(
   appName: string,
   views: readonly { key: string; label: string }[],
   handlers: AppMenuHandlers,
+  platform: NodeJS.Platform = process.platform,
 ): MenuItemConstructorOptions[] {
-  const isMac = process.platform === "darwin";
+  const isMac = platform === "darwin";
 
   const viewItems: MenuItemConstructorOptions[] = views.map((view, index) => ({
     label: view.label,
