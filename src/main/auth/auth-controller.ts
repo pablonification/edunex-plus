@@ -1,5 +1,12 @@
-import { safeStorage } from "electron";
 import type { AuthStatus, CapturedAuth } from "../../shared/auth";
+import { systemClock } from "../platform/node";
+import type {
+  ClockService,
+  FileSystemService,
+  HttpTransportService,
+  SafeStorageService,
+  WebContentsService,
+} from "../platform/services";
 import { createSessionStore, type SessionCodec } from "./session-store";
 import { createSessionManager, type SessionManager } from "./session-manager";
 import { createAuthCapture } from "./capture";
@@ -30,15 +37,21 @@ export interface AuthController {
   handleUnauthorized(): void;
   /** Dev-only: fake a 401 to demo the re-login moment without the vendor API. */
   simulateUnauthorized(): void;
-  attachWebview(contents: Electron.WebContents): void;
+  attachWebview(contents: WebContentsService): void;
 }
 
 export function createAuthController(opts: {
   sessionStorePath: string;
   appVersion: string;
+  safeStorage?: SafeStorageService;
+  fileSystem?: FileSystemService;
+  httpTransport?: HttpTransportService;
+  clock?: ClockService;
   /** Push a status change to the renderer. */
   broadcast(status: AuthStatus): void;
 }): AuthController {
+  const safeStorage = opts.safeStorage ?? unavailableSafeStorage;
+  const clock = opts.clock ?? systemClock;
   const codec: SessionCodec = {
     encrypt(plaintext) {
       if (!safeStorage.isEncryptionAvailable()) {
@@ -47,11 +60,13 @@ export function createAuthController(opts: {
       return safeStorage.encryptString(plaintext);
     },
     decrypt(blob) {
-      return safeStorage.decryptString(blob);
+      return safeStorage.decryptString(
+        typeof blob === "string" ? Buffer.from(blob, "utf8") : blob,
+      );
     },
   };
 
-  const store = createSessionStore(opts.sessionStorePath, codec);
+  const store = createSessionStore(opts.sessionStorePath, codec, opts.fileSystem);
 
   // api ↔ manager are mutually referential; the token getter is bound after
   // the manager exists, before either is ever used.
@@ -60,6 +75,7 @@ export function createAuthController(opts: {
     baseUrl: EDUNEX_API_BASE_URL,
     getToken: () => getToken(),
     userAgent: `EdunexPlus/${opts.appVersion} (desktop client; +https://github.com/pablonification/edunex-plus)`,
+    transport: opts.httpTransport,
     onUnauthorized: () => manager.handleUnauthorized(),
   });
   const manager: SessionManager = createSessionManager({
@@ -98,7 +114,7 @@ export function createAuthController(opts: {
       // guidance against navigating synchronously from it.
       contents.setWindowOpenHandler(({ url }) => {
         if (/^https?:/i.test(url)) {
-          setTimeout(() => void contents.loadURL(url).catch(() => {}), 0);
+          clock.setTimeout(() => void contents.loadURL(url).catch(() => {}), 0);
         }
         return { action: "deny" };
       });
@@ -108,7 +124,10 @@ export function createAuthController(opts: {
       // human needs, so there is no timeout. The loop only runs while the
       // webview sits on the EduNex origin: localStorage.auth only exists
       // there, and a reader against a not-yet-committed frame can hang.
-      const capture = createAuthCapture(readWithTimeout(contents), { intervalMs: 1000 });
+      const capture = createAuthCapture(readWithTimeout(contents, clock), {
+        intervalMs: 1000,
+        clock,
+      });
       const maybeStart = (url: string) => {
         if (isEdunexOrigin(url)) {
           if (capture.start(onCaptured)) {
@@ -139,6 +158,16 @@ export function createAuthController(opts: {
   }
 }
 
+const unavailableSafeStorage: SafeStorageService = {
+  isEncryptionAvailable: () => false,
+  encryptString: () => {
+    throw new Error("safeStorage is unavailable");
+  },
+  decryptString: () => {
+    throw new Error("safeStorage is unavailable");
+  },
+};
+
 function isEdunexOrigin(url: string): boolean {
   try {
     return new URL(url).host === "edunex.itb.ac.id";
@@ -149,19 +178,19 @@ function isEdunexOrigin(url: string): boolean {
 
 /** Every read must settle (a reader against a wedged frame would otherwise
  * block the poll loop's in-flight guard forever). */
-function readWithTimeout(contents: Electron.WebContents) {
+function readWithTimeout(contents: WebContentsService, clock: ClockService) {
   return () =>
     new Promise<unknown>((resolve, reject) => {
-      const timer = setTimeout(() => reject(new Error("auth read timed out")), 5000);
+      const timer = clock.setTimeout(() => reject(new Error("auth read timed out")), 5000);
       contents
         .executeJavaScript("localStorage.getItem('auth')", true)
         .then(
           (value) => {
-            clearTimeout(timer);
+            clock.clearTimeout(timer);
             resolve(value);
           },
           (err: unknown) => {
-            clearTimeout(timer);
+            clock.clearTimeout(timer);
             reject(err);
           },
         );

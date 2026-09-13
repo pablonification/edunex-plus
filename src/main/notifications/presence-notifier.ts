@@ -2,11 +2,15 @@ import { buildPresenceNotification, type PresenceNotification } from "../../shar
 import { extractPresenceWindows, openWindows } from "./presence-detector";
 import { createPresenceLedger, type PresenceLedger } from "./presence-ledger";
 import { createFanoutSink, type NotificationSink } from "./sinks";
+import { systemClock } from "../platform/node";
+import type { ClockService } from "../platform/services";
 
 export interface PresenceNotifierOptions {
   ledgerRoot: string;
   sinks: NotificationSink[];
   now?: () => number;
+  clock?: ClockService;
+  persistence?: import("./presence-ledger").PresenceLedgerServices;
   ledgerFor?: (accountId: string) => PresenceLedger;
 }
 
@@ -30,14 +34,14 @@ export interface PresenceNotifier {
  * OS Do-Not-Disturb governs quiet time — the app implements no quiet hours.
  */
 export function createPresenceNotifier(options: PresenceNotifierOptions): PresenceNotifier {
-  const now = options.now ?? Date.now;
+  const now = options.now ?? options.clock?.now ?? systemClock.now;
   const ledgers = new Map<string, PresenceLedger>();
 
   function ledgerFor(accountId: string): PresenceLedger {
     if (options.ledgerFor) return options.ledgerFor(accountId);
     let ledger = ledgers.get(accountId);
     if (!ledger) {
-      ledger = createPresenceLedger(options.ledgerRoot, accountId);
+      ledger = createPresenceLedger(options.ledgerRoot, accountId, options.persistence);
       ledgers.set(accountId, ledger);
     }
     return ledger;
