@@ -1,3 +1,5 @@
+import { parseIsSent } from "@shared/submission";
+
 export interface TodoItem {
   id: string;
   kind: "Task" | "Exam";
@@ -5,6 +7,16 @@ export interface TodoItem {
   courseCode: string;
   courseName: string;
   dueAt: string | null;
+  /**
+   * Submission state for Tasks (issue #25). Derived from the vendor
+   * `is_sent` bit only — `sent_at` is stamped on drafts too and is never
+   * read here. Null means no answer bit was present (treated as not sent).
+   */
+  isSent: boolean | null;
+  /** Existing draft answer id when the feed carries one (for PATCH updates). */
+  answerId: string | null;
+  /** Existing draft answer body (HTML) when the feed carries one. */
+  answer: string | null;
 }
 
 export type TaskItem = Omit<TodoItem, "kind"> & { kind: "Task" };
@@ -31,6 +43,7 @@ export interface CourseItem {
   moduleCount?: number;
   color?: string;
   isCurrent?: boolean;
+  thumbnailUrl?: string;
 }
 
 export interface ExamItem {
@@ -157,6 +170,7 @@ export function toTodoItems(data: unknown): TodoItem[] {
     return values.flatMap((value, index) => {
       const item = asRecord(value);
       if (!item) return [];
+      const submission = kind === "Task" ? readTaskSubmission(item) : null;
 
       return [
         {
@@ -166,10 +180,55 @@ export function toTodoItems(data: unknown): TodoItem[] {
           courseCode: readString(item, ["code", "course_code"]) ?? "",
           courseName: readString(item, ["course", "course_name"]) ?? "",
           dueAt: readString(item, ["time", "due_at", "deadline"]),
+          isSent: submission?.isSent ?? null,
+          answerId: submission?.answerId ?? null,
+          answer: submission?.answer ?? null,
         },
       ];
     });
   });
+}
+
+/**
+ * Reads the draft/submitted bit for a Task row from the vendor payload.
+ * `is_sent` is the only reliable signal — `sent_at`/`sentAt` are stamped
+ * on drafts too (issue #16) and are deliberately never read.
+ *
+ * Accepts the direct bit (`is_sent`/`isSent` on the task) and the nested
+ * `answers[]` shape from `GET /course/tasks/{id}` (first entry wins);
+ * JSON-API `attributes` wrappers are unwrapped on both levels.
+ */
+function readTaskSubmission(item: Record<string, unknown>): {
+  isSent: boolean | null;
+  answerId: string | null;
+  answer: string | null;
+} {
+  const direct = parseIsSent(item.is_sent ?? item.isSent);
+  if (direct !== null) {
+    return { isSent: direct, answerId: null, answer: null };
+  }
+  const answers = firstRecord(item.answers ?? item.answer ?? item.submissions);
+  if (!answers) return { isSent: null, answerId: null, answer: null };
+  const nested = asRecord(answers.attributes) ?? answers;
+  return {
+    isSent: parseIsSent(nested.is_sent ?? nested.isSent),
+    answerId: scalarString(nested.id ?? nested.answer_id ?? nested.answerId),
+    answer:
+      typeof nested.answer === "string" && nested.answer.length > 0
+        ? (nested.answer as string)
+        : null,
+  };
+}
+
+function firstRecord(value: unknown): Record<string, unknown> | null {
+  if (Array.isArray(value)) {
+    for (const entry of value) {
+      const record = asRecord(entry);
+      if (record) return record;
+    }
+    return null;
+  }
+  return asRecord(value);
 }
 
 /**
@@ -216,12 +275,13 @@ export function toCourseItems(data: unknown): CourseItem[] {
   const resources = courseResources(data);
   return resources.flatMap((resource, index) => {
     const attributes = asRecord(resource.attributes) ?? resource;
+    if (!isActiveEnrolledCourse(attributes)) return [];
     const id = scalarString(resource.id) ?? scalarString(attributes.id) ?? `course-${index}`;
     const code = readString(attributes, ["code", "course_code"]) ?? "";
     const name = readString(attributes, ["name", "courses_name", "course_name", "title"])
       ?? "Untitled course";
-    const year = scalarString(attributes.year);
-    const semester = scalarString(attributes.semester);
+    const year = scalarString(attributes.year) ?? scalarString(attributes.period_year);
+    const semester = scalarString(attributes.semester) ?? scalarString(attributes.period_type);
     const period = year && semester && !year.endsWith(`-${semester}`)
       ? `${year}-${semester}`
       : year;
@@ -232,18 +292,20 @@ export function toCourseItems(data: unknown): CourseItem[] {
       className: readString(attributes, ["class_name", "class"]),
       period,
     };
-    const faculty = readString(attributes, ["faculty", "faculty_name"]);
+    const faculty = readDisplayString(attributes, ["faculty", "faculty_name"]);
     const lecturer = readString(attributes, ["lecturer", "lecturer_name"]);
-    const sks = scalarNumber(attributes.sks);
-    const moduleCount = scalarNumber(attributes.modules);
+    const sks = scalarNumber(attributes.sks ?? attributes.credit);
+    const moduleCount = scalarNumber(attributes.modules ?? attributes.total_modules);
     const color = readString(attributes, ["hue", "color"]);
     const isCurrent = readBoolean(attributes, ["is_current", "current", "isCurrent"]);
+    const thumbnailUrl = readString(attributes, ["thumbnail", "thumbnail_url", "image", "image_url"]);
     if (faculty) item.faculty = faculty;
     if (lecturer) item.lecturer = lecturer;
     if (sks !== null) item.sks = sks;
     if (moduleCount !== null) item.moduleCount = moduleCount;
     if (color) item.color = color;
     if (isCurrent !== null) item.isCurrent = isCurrent;
+    if (thumbnailUrl) item.thumbnailUrl = thumbnailUrl;
     return [item];
   });
 }
@@ -394,6 +456,34 @@ function scalarNumber(value: unknown): number | null {
 function readBoolean(record: Record<string, unknown>, keys: string[]): boolean | null {
   for (const key of keys) {
     if (typeof record[key] === "boolean") return record[key];
+  }
+  return null;
+}
+
+function isActiveEnrolledCourse(record: Record<string, unknown>): boolean {
+  // Legacy fixtures and already-normalized course objects may omit both
+  // status fields. Preserve those at the renderer seam; real API responses
+  // carry both fields and are filtered strictly by the main client first.
+  if (!("is_active" in record) && !("is_enrolled" in record)) return true;
+  return (
+    "is_active" in record &&
+    "is_enrolled" in record &&
+    isEnabledCourseFlag(record.is_active) &&
+    isEnabledCourseFlag(record.is_enrolled)
+  );
+}
+
+function isEnabledCourseFlag(value: unknown): boolean {
+  return value === true || value === 1 || value === "1" || value === "true";
+}
+
+function readDisplayString(record: Record<string, unknown>, keys: string[]): string | null {
+  for (const key of keys) {
+    const value = record[key];
+    if (typeof value === "string" && value.length > 0) return value;
+    const nested = asRecord(value);
+    const name = nested?.name;
+    if (typeof name === "string" && name.length > 0) return name;
   }
   return null;
 }

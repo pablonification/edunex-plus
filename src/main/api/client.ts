@@ -2,7 +2,8 @@
  * Direct API client for the vendor API (api-edunex.cognisia.id) — the app
  * talks to it with the bearer token captured from the webview, never with a
  * password (spec: auth & session, API stance). Read-mostly: the auth and sync
- * slices use GETs only.
+ * slices use GETs only; the only writes are the Task Answer draft-save pair
+ * below, which fire solely on an explicit Save-draft click (API guardrails).
  */
 
 export interface ApiResult {
@@ -15,7 +16,13 @@ export interface ApiResult {
 
 export interface EdunexApi {
   get(path: string): Promise<ApiResult>;
+  post(path: string, body: unknown): Promise<ApiResult>;
+  patch(path: string, body: unknown): Promise<ApiResult>;
 }
+
+/** EduNex's active course-list request captured from the My Courses page. */
+export const ACTIVE_COURSES_PATH =
+  "/course/courses?include=lecturer,lecturer.user,contents,faculty&filter[is_active][is]=1&filter[is_enrolled][is]=1&page[limit]=100&page[offset]=0";
 
 export interface TodoFeed {
   tasks: unknown[];
@@ -33,6 +40,13 @@ export interface EdunexDataApi extends EdunexApi {
   getCourseTasks(): Promise<ApiResult & { body: JsonApiResource[] }>;
   getExams(): Promise<ApiResult & { body: JsonApiResource[] }>;
   getAgenda(): Promise<ApiResult & { body: JsonApiResource[] }>;
+  /**
+   * Draft-save pair, verified live on Tugas 01 (issue #16). Both send
+   * `is_sent: 0` and `task_id` in a JSON-API `data.attributes` envelope.
+   * Create omits `files`; update carries an explicit `files: []`.
+   */
+  createDraftAnswer(taskId: string, answer: string): Promise<ApiResult>;
+  updateDraftAnswer(answerId: string, taskId: string, answer: string): Promise<ApiResult>;
 }
 
 export interface EdunexApiOptions {
@@ -56,7 +70,7 @@ export function createEdunexApi(options: EdunexApiOptions): EdunexDataApi {
     fetchImpl = fetch,
   } = options;
 
-  async function get(path: string): Promise<ApiResult> {
+  async function request(method: string, path: string, body?: unknown): Promise<ApiResult> {
     const token = getToken();
     if (!token) {
       onUnauthorized?.();
@@ -66,36 +80,61 @@ export function createEdunexApi(options: EdunexApiOptions): EdunexDataApi {
     let response: Response;
     try {
       response = await fetchImpl(`${baseUrl}${path}`, {
+        method,
         headers: new Headers({
           Authorization: `Bearer ${token}`,
           "User-Agent": userAgent,
+          ...(body !== undefined ? { "Content-Type": "application/json" } : {}),
         }),
+        ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
       });
     } catch {
       return { status: 0, ok: false, body: null };
     }
 
     if (response.status === 401) onUnauthorized?.();
-    let body: unknown = null;
+    let responseBody: unknown = null;
     try {
-      body = await response.json();
+      responseBody = await response.json();
     } catch {
       // Empty or non-JSON body — fine for a status-only check.
     }
-    return { status: response.status, ok: response.ok, body };
+    return { status: response.status, ok: response.ok, body: responseBody };
+  }
+
+  async function get(path: string): Promise<ApiResult> {
+    return request("GET", path);
+  }
+
+  async function post(path: string, body: unknown): Promise<ApiResult> {
+    return request("POST", path, body);
+  }
+
+  async function patch(path: string, body: unknown): Promise<ApiResult> {
+    return request("PATCH", path, body);
   }
 
   return {
     get,
+    post,
+    patch,
     getTodo: () => get("/todo").then((result) => normalizeResult(result, normalizeTodo)),
     getCourses: () =>
-      get("/course/courses").then((result) => normalizeResult(result, normalizeCollection)),
+      get(ACTIVE_COURSES_PATH).then((result) => normalizeResult(result, normalizeCourses)),
     getCourseTasks: () =>
       get("/course/tasks").then((result) => normalizeResult(result, normalizeCollection)),
     getExams: () =>
       get("/exam/exams").then((result) => normalizeResult(result, normalizeExams)),
     getAgenda: () =>
       get("/course/agenda").then((result) => normalizeResult(result, normalizeAgenda)),
+    createDraftAnswer: (taskId: string, answer: string) =>
+      post("/course/task/answers", {
+        data: { attributes: { task_id: taskId, answer, is_sent: 0 } },
+      }),
+    updateDraftAnswer: (answerId: string, taskId: string, answer: string) =>
+      patch(`/course/task/answers/${answerId}`, {
+        data: { attributes: { task_id: taskId, files: [], answer, is_sent: 0 } },
+      }),
   };
 }
 
@@ -156,6 +195,22 @@ function normalizeAgenda(body: unknown): JsonApiResource[] {
     if (Array.isArray(root[key])) return (root[key] as unknown[]).filter(isRecord);
   }
   return [];
+}
+
+function normalizeCourses(body: unknown): JsonApiResource[] {
+  return normalizeCollection(body).filter((resource) => {
+    const attributes = asRecord(resource.attributes) ?? resource;
+    return (
+      "is_active" in attributes &&
+      "is_enrolled" in attributes &&
+      isEnabledCourseFlag(attributes.is_active) &&
+      isEnabledCourseFlag(attributes.is_enrolled)
+    );
+  });
+}
+
+function isEnabledCourseFlag(value: unknown): boolean {
+  return value === true || value === 1 || value === "1" || value === "true";
 }
 
 function arrayOrEmpty(value: unknown): unknown[] {

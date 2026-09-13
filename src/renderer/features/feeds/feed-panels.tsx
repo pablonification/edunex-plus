@@ -25,6 +25,11 @@ import {
   type TodoItem,
   type TodoSection,
 } from "./feed-data";
+import {
+  SUBMISSION_CHIP_COLOR,
+  SUBMISSION_CHIP_LABEL,
+  deriveSubmissionStatus,
+} from "@shared/submission";
 import { useCachedFeed, type CachedFeedState } from "./use-cached-feed";
 
 export interface TodoSelectionHandler {
@@ -703,13 +708,21 @@ function CourseCard({ course, onOpen }: { course: CourseItem; onOpen: (course: C
         aria-hidden
       />
       <span className="flex min-w-0 items-start gap-3">
-        <span
-          className="grid size-10 shrink-0 place-items-center rounded-lg text-[13px] font-semibold text-text-secondary"
-          style={{ backgroundColor: tint }}
-          aria-hidden
-        >
-          {courseInitials}
-        </span>
+        {course.thumbnailUrl ? (
+          <img
+            src={course.thumbnailUrl}
+            alt=""
+            className="size-10 shrink-0 rounded-lg object-cover"
+          />
+        ) : (
+          <span
+            className="grid size-10 shrink-0 place-items-center rounded-lg text-[13px] font-semibold text-text-secondary"
+            style={{ backgroundColor: tint }}
+            aria-hidden
+          >
+            {courseInitials}
+          </span>
+        )}
         <span className="min-w-0 flex-1">
           <span className="flex items-center gap-2">
             <span className="truncate text-caption-1-semibold text-text-secondary">
@@ -786,13 +799,21 @@ function CourseHub({
           aria-hidden
         />
         <div className="relative flex flex-wrap items-start gap-4 p-5 sm:p-6">
-          <span
-            className="grid size-14 shrink-0 place-items-center rounded-xl text-[15px] font-semibold text-text-secondary shadow-sm"
-            style={{ backgroundColor: tint }}
-            aria-hidden
-          >
-            {courseMark(course)}
-          </span>
+          {course.thumbnailUrl ? (
+            <img
+              src={course.thumbnailUrl}
+              alt=""
+              className="size-14 shrink-0 rounded-xl object-cover shadow-sm"
+            />
+          ) : (
+            <span
+              className="grid size-14 shrink-0 place-items-center rounded-xl text-[15px] font-semibold text-text-secondary shadow-sm"
+              style={{ backgroundColor: tint }}
+              aria-hidden
+            >
+              {courseMark(course)}
+            </span>
+          )}
           <div className="min-w-0 flex-1">
             <p className="text-caption-1-semibold uppercase tracking-[0.08em] text-text-tertiary">
               Course hub
@@ -903,6 +924,9 @@ function TodoRow({
   onTaskSelect?: TodoSelectionHandler;
 }) {
   const task = isTaskItem(item) ? item : null;
+  // Submission status (#25) derives from `is_sent` only; `sent_at` never
+  // reaches the UI. Exams carry no submission state.
+  const submissionStatus = task ? deriveSubmissionStatus(task.isSent, task.dueAt) : null;
   const content = (
     <div className="grid min-w-0 grid-cols-[minmax(0,58%)_minmax(0,22%)_minmax(0,20%)] items-center gap-0 px-3.5 py-3">
       <div className="min-w-0 pr-3">
@@ -916,6 +940,11 @@ function TodoRow({
           <Chip color={task ? "blue" : "purple"} variant="caption">
             {item.kind}
           </Chip>
+          {task && submissionStatus && (
+            <Chip color={SUBMISSION_CHIP_COLOR[submissionStatus]} variant="caption">
+              {SUBMISSION_CHIP_LABEL[submissionStatus]}
+            </Chip>
+          )}
         </div>
         <h4 className="mt-1 truncate text-[13px] font-medium leading-5 text-text-primary">
           {item.title}
