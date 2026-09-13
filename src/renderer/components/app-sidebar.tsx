@@ -16,9 +16,10 @@ import { NAV_ITEMS, type NavKey } from "@/nav";
 export interface AppSidebarProps {
   activeKey: NavKey;
   onSelect: (key: NavKey) => void;
+  signedIn: boolean;
 }
 
-export function AppSidebar({ activeKey, onSelect }: AppSidebarProps) {
+export function AppSidebar({ activeKey, onSelect, signedIn }: AppSidebarProps) {
   const isMac = window.edunex.platform === "darwin";
   const [isFullscreen, setIsFullscreen] = useState(false);
 
@@ -82,9 +83,11 @@ export function AppSidebar({ activeKey, onSelect }: AppSidebarProps) {
             <i className="ri-user-3-line text-[15px]" aria-hidden />
           </span>
           <div className="min-w-0">
-            <div className="text-[13px] font-medium leading-4">Not signed in</div>
+            <div className="text-[13px] font-medium leading-4">
+              {signedIn ? "Signed in" : "Not signed in"}
+            </div>
             <div className="text-caption-1-regular text-text-tertiary">
-              INA sign-in lands in #18
+              {signedIn ? "INA account" : "Sign in with your INA account"}
             </div>
           </div>
         </div>

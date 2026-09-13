@@ -39,4 +39,24 @@ describe("buildAppMenuTemplate", () => {
     expect(roles).toContain("editMenu");
     expect(roles).toContain("windowMenu");
   });
+
+  it("includes the dev-only Simulate 401 item only when a handler is supplied", () => {
+    const findDevItem = (t: ReturnType<typeof buildAppMenuTemplate>) => {
+      const viewMenu = t.find((item) => "label" in item && item.label === "View");
+      return (viewMenu!.submenu as { label?: string }[]).find(
+        (item) => item.label === "Simulate 401 (dev)",
+      );
+    };
+
+    const without = buildAppMenuTemplate("Edunex Plus", NAV_VIEWS, { gotoView: vi.fn() });
+    expect(findDevItem(without)).toBeUndefined();
+
+    const simulate = vi.fn();
+    const withDev = buildAppMenuTemplate("Edunex Plus", NAV_VIEWS, {
+      gotoView: vi.fn(),
+      simulateUnauthorized: simulate,
+    });
+    findDevItem(withDev)!.click!();
+    expect(simulate).toHaveBeenCalledTimes(1);
+  });
 });

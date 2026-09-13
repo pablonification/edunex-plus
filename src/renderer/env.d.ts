@@ -1,3 +1,4 @@
+import type { AuthStatus } from "@shared/auth";
 import type { AppInfo, NavKey } from "@shared/shell";
 
 export {};
@@ -16,6 +17,26 @@ declare global {
       getAppInfo(): Promise<AppInfo>;
       onNavigate(callback: (view: NavKey) => void): () => void;
       onFullscreenChange(callback: (isFullscreen: boolean) => void): () => void;
+      getAuthState(): Promise<AuthStatus | null>;
+      startLogin(): Promise<void>;
+      onAuthState(callback: (status: AuthStatus) => void): () => void;
     };
+  }
+}
+
+/**
+ * The embedded login webview (#18): a plain <webview> tag on the persistent
+ * auth partition. Capture of localStorage.auth happens in main via the
+ * did-attach-webview hook — the renderer never touches token contents.
+ */
+declare module "react" {
+  namespace JSX {
+    interface IntrinsicElements {
+      webview: React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTMLElement> & {
+        src?: string;
+        partition?: string;
+        allowpopups?: string;
+      };
+    }
   }
 }

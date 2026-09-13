@@ -1,4 +1,5 @@
 import { contextBridge, ipcRenderer } from "electron";
+import type { AuthStatus } from "../shared/auth";
 import type { AppInfo, NavKey } from "../shared/shell";
 
 contextBridge.exposeInMainWorld("edunex", {
@@ -21,5 +22,13 @@ contextBridge.exposeInMainWorld("edunex", {
     const listener = (_event: unknown, isFullscreen: boolean) => callback(isFullscreen);
     ipcRenderer.on("window:fullscreen", listener);
     return () => ipcRenderer.removeListener("window:fullscreen", listener);
+  },
+  // Auth (#18): null until main's startup restore has resolved.
+  getAuthState: () => ipcRenderer.invoke("auth:get-state") as Promise<AuthStatus | null>,
+  startLogin: () => ipcRenderer.invoke("auth:start-login") as Promise<void>,
+  onAuthState: (callback: (status: AuthStatus) => void) => {
+    const listener = (_event: unknown, status: AuthStatus) => callback(status);
+    ipcRenderer.on("auth:state", listener);
+    return () => ipcRenderer.removeListener("auth:state", listener);
   },
 });
