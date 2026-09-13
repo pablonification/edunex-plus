@@ -198,4 +198,39 @@ describe("edunex api client", () => {
 
     expect(result.body).toEqual(meetings);
   });
+
+  it("normalizes the /course/materials collection whether bare or wrapped", async () => {
+    const material = {
+      id: 9001,
+      name: "Week 05 — Slides",
+      course_code: "II4091",
+      course_name: "Final Project Proposal",
+      file_name: "Week-05-Slides.pdf",
+      file_url: "/blob-storage/materials/9001/Week-05-Slides.pdf",
+      mime_type: "application/pdf",
+      size: 245760,
+    };
+    const cases: Array<{ body: unknown; expected: unknown[] }> = [
+      { body: [material], expected: [material] },
+      { body: { materials: [material] }, expected: [material] },
+      { body: { modules: [material] }, expected: [material] },
+      { body: { data: [material] }, expected: [material] },
+    ];
+    for (const { body, expected } of cases) {
+      const fetchImpl = vi.fn(async () => okResponse(body));
+      const api = createEdunexApi({
+        baseUrl: "https://api-edunex.cognisia.id",
+        getToken: () => "tok",
+        userAgent: "EdunexPlus/0.0.1",
+        fetchImpl,
+      });
+
+      const result = await api.getMaterials();
+
+      expect(fetchImpl.mock.calls[0][0]).toBe(
+        "https://api-edunex.cognisia.id/course/materials",
+      );
+      expect(result.body).toEqual(expected);
+    }
+  });
 });

@@ -64,11 +64,19 @@ spikes, September 2026). Reads only — all of these are `GET`:
 | `GET /course/tasks` | Tasks for a course | JSON-API envelope: `{meta, data, links}`, items `type` / `id` / `attributes` / `links` — unlike `/todo`'s plain shape |
 | `GET /exam/exams` | Exams list (read-only in v1) | Plain JSON |
 | `GET /course/agenda` | Course agenda (meetings, with Vicon tags for online sessions) | Plain array: items carry `type`, `course_name`, `name`, `start_at`, `end_at` |
+| `GET /course/materials` | Materials list per course with download | Plain collection: items carry `name`/`title`, `course_code`/`course_name`, `file_name`, `file_url`/`download_url`, `size`, `mime_type`. Bare array or `materials`/`modules`/`files`/`data`-wrapped; JSON-API `attributes` accepted |
 | `GET /course/presences/list` | Presence records per course | Plain array: items carry `course_id`, `course_code`, `courses_name`, `class_id`, `class_name`, `semester`, `year`, `presences` |
 | `GET /notifications/{userId}` | Notification feed | `{data: …}`. Note the bare path **404s**: `GET /notifications` without the user id returns 404 |
 
 Two envelope regimes exist — `/todo` returns plain JSON while `/course/tasks` speaks JSON-API —
 so the API client normalizes at the boundary rather than letting callers care.
+
+File downloads are reads, not writes: each material row carries its own file
+URL (`file_url`/`download_url`, absolute or vendor-relative). Downloading
+fetches that URL with the same bearer token + distinctive User-Agent through
+the main process into a user-chosen path (save dialog). It fires only on an
+explicit Download click — never from the sync tick or any background path —
+so the read-mostly stance holds.
 
 Also verified but **not called**: `PATCH /notifications` (notification read-state) exists;
 v1 has no flow that uses it. It is recorded here so nobody rediscovers it — and if it is ever
@@ -103,6 +111,10 @@ Task Answers (the "saved ≠ submitted" surface) and nothing else:
 
 - Endpoint existence, response shapes, and the auth capture were verified live via the
   prototype spikes (`prototype/auth-spike`, `prototype/sync-spike`, September 2026).
+- `GET /course/materials` follows the `/course/*` collection convention and the
+  client tolerates every envelope seen elsewhere (`materials`/`modules`/`files`/
+  `data`/bare array + JSON-API attributes); confirm the exact vendor field
+  names against a live session on first manual pass and tighten this row then.
 - The final-submit contract and the file-attachment upload endpoint behind
   `answers[].files[]` are pending capture (issue #12); the submission slice's final wiring
   waits on it.

@@ -39,6 +39,20 @@ export interface PeriodItem {
   count: number;
 }
 
+export interface MaterialItem {
+  id: string;
+  title: string;
+  courseCode: string;
+  courseName: string;
+  /** Suggested file name for the save dialog. */
+  fileName: string;
+  /** File URL as listed by the API (absolute or vendor-relative); null when unlisted. */
+  fileUrl: string | null;
+  mimeType: string | null;
+  size: number | null;
+  updatedAt: string | null;
+}
+
 export interface AgendaItem {
   id: string;
   title: string;
@@ -274,6 +288,116 @@ export function filterTodoItemsByCourses(items: TodoItem[], courses: CourseItem[
   const courseCodes = new Set(courses.map((course) => course.code).filter(Boolean));
   if (courseCodes.size === 0) return items;
   return items.filter((item) => !item.courseCode || courseCodes.has(item.courseCode));
+}
+
+/**
+ * Turns the `/course/materials` response into the small shape the renderer
+ * needs. Accepts a bare array as well as `materials`/`modules`/`files`/
+ * `data`-wrapped variants and JSON-API resources with `attributes`, so the
+ * view never depends on which envelope the vendor sent. Vendor order is
+ * preserved (week order matters more than alphabetical).
+ */
+export function toMaterialItems(data: unknown): MaterialItem[] {
+  const resources = materialResources(data);
+  return resources.flatMap((resource, index) => {
+    const attributes = asRecord(resource.attributes) ?? resource;
+    const id = scalarString(resource.id) ?? scalarString(attributes.id) ?? `material-${index}`;
+    const title = readString(attributes, [
+      "name",
+      "title",
+      "material_name",
+      "file_name",
+      "filename",
+      "subject",
+    ]) ?? "Untitled material";
+    const fileName = readString(attributes, [
+      "file_name",
+      "filename",
+      "attachment_name",
+      "name",
+      "title",
+    ]) ?? title;
+    const fileUrl = readString(attributes, [
+      "file_url",
+      "download_url",
+      "url",
+      "href",
+      "link",
+      "path",
+      "file_path",
+    ]);
+    const item: MaterialItem = {
+      id,
+      title,
+      courseCode: readString(attributes, ["code", "course_code", "courseCode"]) ?? "",
+      courseName:
+        readString(attributes, ["course", "course_name", "courses_name", "courseName"]) ?? "",
+      fileName,
+      fileUrl,
+      mimeType: readString(attributes, ["mime_type", "mimeType", "content_type", "file_type"]),
+      size: readMaterialSize(attributes),
+      updatedAt: readString(attributes, [
+        "updated_at",
+        "updatedAt",
+        "created_at",
+        "createdAt",
+        "upload_at",
+      ]),
+    };
+    return [item];
+  });
+}
+
+/** Materials carry no Period field, so scope them through the Period's course codes. */
+export function filterMaterialsByCourses(items: MaterialItem[], courses: CourseItem[]): MaterialItem[] {
+  const courseCodes = new Set(courses.map((course) => course.code).filter(Boolean));
+  if (courseCodes.size === 0) return items;
+  return items.filter((item) => !item.courseCode || courseCodes.has(item.courseCode));
+}
+
+/** Narrows materials to one course hub's course (code match, name fallback). */
+export function filterMaterialsByCourse(items: MaterialItem[], course: CourseItem): MaterialItem[] {
+  return items.filter((item) => {
+    if (item.courseCode && course.code && item.courseCode === course.code) return true;
+    if (item.courseName && course.name && item.courseName === course.name) return true;
+    // Orphan rows (no course fields) stay visible rather than vanishing.
+    if (!item.courseCode && !item.courseName) return true;
+    return false;
+  });
+}
+
+/** Human-readable file size for the materials list; null/NaN stays silent. */
+export function formatFileSize(size: number | null): string | null {
+  if (size === null || !Number.isFinite(size) || size < 0) return null;
+  if (size < 1024) return `${size} B`;
+  const units = ["KB", "MB", "GB"];
+  let value = size / 1024;
+  let unit = units[0];
+  for (const candidate of units) {
+    unit = candidate;
+    if (value < 1024 || candidate === "GB") break;
+    value /= 1024;
+  }
+  const rounded = value >= 100 ? Math.round(value) : Math.round(value * 10) / 10;
+  return `${rounded} ${unit}`;
+}
+
+function materialResources(data: unknown): Record<string, unknown>[] {
+  if (Array.isArray(data)) return data.flatMap(asRecordValue);
+  const root = asRecord(data);
+  if (!root) return [];
+  for (const key of ["data", "materials", "modules", "files"]) {
+    if (Array.isArray(root[key])) return (root[key] as unknown[]).flatMap(asRecordValue);
+  }
+  return [];
+}
+
+function readMaterialSize(record: Record<string, unknown>): number | null {
+  for (const key of ["size", "file_size", "filesize", "bytes", "content_length"]) {
+    const value = scalarNumber(record[key]);
+    if (value !== null) return value;
+  }
+  return null;
 }
 
 function courseResources(data: unknown): Record<string, unknown>[] {

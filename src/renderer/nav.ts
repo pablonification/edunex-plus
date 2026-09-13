@@ -25,7 +25,7 @@ const META: Record<NavKey, { icon: string; placeholder: string }> = {
   },
   materials: {
     icon: "ri-folder-3-line",
-    placeholder: "Course materials with download will live here (#30).",
+    placeholder: "Your course files with download live here.",
   },
   exams: {
     icon: "ri-file-list-3-line",
