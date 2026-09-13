@@ -92,6 +92,31 @@ const materialsFixture = [
     size: 102400,
   },
 ];
+const presencesFixture = [
+  {
+    course_id: 401,
+    course_code: "II4091",
+    courses_name: "Final Project Proposal",
+    class_id: 88,
+    class_name: "II4091-01",
+    semester: 1,
+    year: "2026-1",
+    presences: [
+      {
+        id: 7001,
+        name: "Week 01 — Opening",
+        date: "2026-08-19T07:00:00.000Z",
+        status: "Hadir",
+      },
+      {
+        id: 7002,
+        name: "Week 02 — Proposal draft",
+        date: "2026-08-26T07:00:00.000Z",
+        status: "Alpa",
+      },
+    ],
+  },
+];
 
 const cacheRoots: string[] = [];
 
@@ -128,8 +153,10 @@ function resultForFixture(path: string) {
   if (path === "/todo") return success(todoFixture);
   if (path === ACTIVE_COURSES_PATH) return success(coursesFixture);
   if (path === "/exam/exams") return success(examsFixture);
+  if (path === "/course/agenda") return success(agendaFixture);
+  if (path === "/course/presences/list") return success(presencesFixture);
   if (path === "/course/materials") return success(materialsFixture);
-  return success(agendaFixture);
+  return success(presencesFixture);
 }
 
 describe("sync engine", () => {
@@ -148,13 +175,14 @@ describe("sync engine", () => {
     const result = await engine.tick();
 
     expect(result.kind).toBe("success");
-    expect(calls).toEqual(["/todo", ACTIVE_COURSES_PATH, "/exam/exams", "/course/agenda", "/course/materials"]);
+    expect(calls).toEqual(["/todo", ACTIVE_COURSES_PATH, "/exam/exams", "/course/agenda", "/course/presences/list", "/course/materials"]);
     expect(cache.read("190136", "todo")?.data).toEqual(todoFixture);
     expect(cache.read("190136", "courses")?.data).toEqual(coursesFixture);
     expect(cache.read("190136", "exams")?.data).toEqual(examsFixture);
     expect(cache.read("190136", "agenda")?.data).toEqual(agendaFixture);
+    expect(cache.read("190136", "presences")?.data).toEqual(presencesFixture);
     expect(cache.read("190136", "materials")?.data).toEqual(materialsFixture);
-    expect(updates).toHaveLength(5);
+    expect(updates).toHaveLength(6);
   });
 
   it("runs one immediate main-process tick, then uses 90s ± 30s cadence", async () => {
@@ -169,12 +197,12 @@ describe("sync engine", () => {
 
     expect(engine.start()).toBe(true);
     await vi.advanceTimersByTimeAsync(0);
-    expect(calls).toHaveLength(5);
+    expect(calls).toHaveLength(6);
 
     await vi.advanceTimersByTimeAsync(89_999);
-    expect(calls).toHaveLength(5);
+    expect(calls).toHaveLength(6);
     await vi.advanceTimersByTimeAsync(1);
-    expect(calls).toHaveLength(10);
+    expect(calls).toHaveLength(12);
 
     engine.stop();
   });
@@ -182,7 +210,7 @@ describe("sync engine", () => {
   it("backs off exponentially after a failed tick while keeping the 60s floor", async () => {
     vi.useFakeTimers();
     const { api, calls } = fakeApi((_feedPath, callNumber) =>
-      callNumber <= 5 ? { status: 503, ok: false, body: null } : success(todoFixture),
+      callNumber <= 6 ? { status: 503, ok: false, body: null } : success(todoFixture),
     );
     const engine = createSyncEngine({
       api,
@@ -193,14 +221,14 @@ describe("sync engine", () => {
 
     engine.start();
     await vi.advanceTimersByTimeAsync(0);
-    expect(calls).toHaveLength(5);
+    expect(calls).toHaveLength(6);
 
     // With the production 90s base, the first failure waits 180s. It must
     // not retry at the jittered 60s lower bound.
     await vi.advanceTimersByTimeAsync(179_999);
-    expect(calls).toHaveLength(5);
+    expect(calls).toHaveLength(6);
     await vi.advanceTimersByTimeAsync(1);
-    expect(calls).toHaveLength(10);
+    expect(calls).toHaveLength(12);
 
     engine.stop();
   });
@@ -223,7 +251,7 @@ describe("sync engine", () => {
     expect(onUnauthorized).toHaveBeenCalledTimes(1);
 
     await vi.advanceTimersByTimeAsync(900_000);
-    expect(calls).toHaveLength(5);
+    expect(calls).toHaveLength(6);
   });
 
   it("serves the last snapshot offline without asking the API", () => {

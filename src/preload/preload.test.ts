@@ -22,7 +22,7 @@ vi.mock("electron", () => ({
 import "./preload";
 
 const bridge = electronMocks.exposeInMainWorld.mock.calls[0][1] as {
-  getFeed(feed: "todo" | "courses" | "exams" | "agenda" | "materials"): Promise<FeedSnapshot | null>;
+  getFeed(feed: "todo" | "courses" | "exams" | "agenda" | "presences" | "materials"): Promise<FeedSnapshot | null>;
   onFeedUpdated(callback: (snapshot: FeedSnapshot) => void): () => void;
   downloadMaterial(request: {
     fileUrl: string;
@@ -32,7 +32,9 @@ const bridge = electronMocks.exposeInMainWorld.mock.calls[0][1] as {
   markNotificationsRead(ids: string[]): Promise<InAppNotification[]>;
   markAllNotificationsRead(): Promise<InAppNotification[]>;
   onNotificationsUpdated(callback: (entries: InAppNotification[]) => void): () => void;
-  onNotificationClicked(callback: (payload: { taskIds: string[] }) => void): () => void;
+  onNotificationClicked(
+    callback: (payload: { taskIds: string[]; presenceIds?: string[] }) => void,
+  ): () => void;
   saveDraft(input: { taskId: string; answer: string; answerId?: string | null }): Promise<{
     ok: boolean;
     status: number;
@@ -185,6 +187,33 @@ describe("preload feed bridge", () => {
     await expect(bridge.downloadMaterial(request)).resolves.toEqual(result);
     expect(electronMocks.invoke).toHaveBeenCalledWith("materials:download", request);
   });
+
+  it("reads cached presence records through main's cache IPC channel", async () => {
+    const snapshot: FeedSnapshot = {
+      feed: "presences",
+      accountId: "190136",
+      fetchedAt: "2026-09-13T12:00:00.000Z",
+      data: [
+        {
+          course_id: 401,
+          course_code: "II4091",
+          courses_name: "Final Project Proposal",
+          class_id: 88,
+          class_name: "II4091-01",
+          semester: 1,
+          year: "2026-1",
+          presences: [
+            { id: 7001, name: "Week 01 — Opening", date: "2026-08-19T07:00:00.000Z", status: "Hadir" },
+          ],
+        },
+      ],
+    };
+    electronMocks.invoke.mockClear();
+    electronMocks.invoke.mockResolvedValueOnce(snapshot);
+
+    await expect(bridge.getFeed("presences")).resolves.toEqual(snapshot);
+    expect(electronMocks.invoke).toHaveBeenCalledWith("sync:get-feed", "presences");
+  });
 });
 
 describe("preload shell-settings bridge", () => {
@@ -267,7 +296,7 @@ describe("preload notification bridge", () => {
     const unsubscribeClicked = bridge.onNotificationClicked(clicked);
     const clickedListener = electronMocks.on.mock.calls.at(-1)?.[1] as (
       event: unknown,
-      payload: { taskIds: string[] },
+      payload: { taskIds: string[]; presenceIds?: string[] },
     ) => void;
     clickedListener({}, { taskIds: ["113986"] });
     unsubscribeClicked();

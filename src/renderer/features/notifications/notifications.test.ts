@@ -45,6 +45,7 @@ describe("notification center fallback feed", () => {
         loading: false,
         onOpenTask: vi.fn(),
         onOpenTodo: vi.fn(),
+        onOpenAgenda: vi.fn(),
         onMarkAllRead: vi.fn(),
       }),
     );
@@ -55,6 +56,33 @@ describe("notification center fallback feed", () => {
     expect(markup).toContain("3 tasks");
   });
 
+  it("renders Presence-open entries with a Presence chip landing on the agenda", () => {
+    const onOpenAgenda = vi.fn();
+    const markup = renderToStaticMarkup(
+      createElement(NotificationCenter, {
+        entries: [
+          entry({
+            id: "entry-p1",
+            title: "Presence open",
+            body: "Week 05 — Online guidance — II4091 is open for attendance",
+            taskIds: [],
+            presenceIds: ["501"],
+            kind: "presence",
+          }),
+        ],
+        loading: false,
+        onOpenTask: vi.fn(),
+        onOpenTodo: vi.fn(),
+        onOpenAgenda,
+        onMarkAllRead: vi.fn(),
+      }),
+    );
+
+    expect(markup).toContain("Presence");
+    expect(markup).toContain("Open agenda for");
+    expect(onOpenAgenda).not.toHaveBeenCalled();
+  });
+
   it("shows the empty fallback copy when nothing has arrived", () => {
     const markup = renderToStaticMarkup(
       createElement(NotificationCenter, {
@@ -62,6 +90,7 @@ describe("notification center fallback feed", () => {
         loading: false,
         onOpenTask: vi.fn(),
         onOpenTodo: vi.fn(),
+        onOpenAgenda: vi.fn(),
         onMarkAllRead: vi.fn(),
       }),
     );

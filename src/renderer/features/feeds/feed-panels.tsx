@@ -8,6 +8,7 @@ import {
   filterExamsByCourses,
   filterMaterialsByCourse,
   filterMaterialsByCourses,
+  filterPresenceItemsByCourse,
   filterTodoItemsByCourses,
   formatFileSize,
   formatTimestamp,
@@ -19,6 +20,7 @@ import {
   toExamItems,
   toMaterialItems,
   toPeriodItems,
+  toPresenceItems,
   toTodoItems,
   todoSectionsFromItems,
   type AgendaItem,
@@ -26,6 +28,7 @@ import {
   type ExamItem,
   type MaterialItem,
   type PeriodItem,
+  type PresenceItem,
   type TaskItem,
   type TodoItem,
   type TodoSection,
@@ -256,6 +259,16 @@ export function MaterialsPanel() {
   );
 }
 
+/** Standalone presence records feed for the Presence navigation item. */
+export function PresencePanel() {
+  const feedState = useCachedFeed("presences");
+  const items = useMemo(
+    () => toPresenceItems(feedState.snapshot?.data),
+    [feedState.snapshot?.data],
+  );
+  return <PresenceFeedSection items={items} feedState={feedState} />;
+}
+
 /** The course hub's agenda section: this course's meetings from the cache. */
 function CourseAgendaSection({ course }: { course: CourseItem }) {
   const feedState = useCachedFeed("agenda");
@@ -298,6 +311,54 @@ function CourseAgendaSection({ course }: { course: CourseItem }) {
           {feedState.snapshot
             ? "No meetings for this course in the latest snapshot."
             : "No agenda snapshot yet."}
+        </p>
+      )}
+    </article>
+  );
+}
+
+/** The course hub's presence section: this course's attendance records from the cache. */
+function CoursePresenceSection({ course }: { course: CourseItem }) {
+  const feedState = useCachedFeed("presences");
+  const items = useMemo(() => {
+    const all = toPresenceItems(feedState.snapshot?.data);
+    return filterPresenceItemsByCourse(all, course);
+  }, [feedState.snapshot?.data, course]);
+
+  if (feedState.loading) {
+    return (
+      <article className="rounded-xl bg-background-secondary-default p-4">
+        <PresenceSectionHeading title="Presence" count={null} />
+        <p className="mt-3 px-1 py-4 text-center text-[13px] text-text-tertiary">
+          Loading latest snapshot…
+        </p>
+      </article>
+    );
+  }
+
+  if (feedState.error) {
+    return (
+      <article className="rounded-xl bg-background-secondary-default p-4">
+        <PresenceSectionHeading title="Presence" count={null} />
+        <p className="mt-3 px-1 py-4 text-center text-[13px] text-text-secondary">
+          The cached feed could not be read.
+        </p>
+      </article>
+    );
+  }
+
+  return (
+    <article className="rounded-xl bg-background-secondary-default p-4">
+      <PresenceSectionHeading title="Presence" count={items.length} />
+      {items.length > 0 ? (
+        <div className="mt-3">
+          <PresenceList items={items} hideCourse />
+        </div>
+      ) : (
+        <p className="mt-3 px-1 py-4 text-center text-[13px] text-text-tertiary">
+          {feedState.snapshot
+            ? "No presence records for this course in the latest snapshot."
+            : "No presence snapshot yet."}
         </p>
       )}
     </article>
@@ -596,6 +657,132 @@ function AgendaSectionHeading({ title, count }: { title: string; count: number |
     <div className="flex items-center justify-between gap-3">
       <span className="grid size-8 place-items-center rounded-lg bg-background-primary-default text-text-secondary shadow-sm">
         <i className="ri-calendar-line text-[16px]" aria-hidden />
+      </span>
+      {count !== null && <Badge color="neutral">{count}</Badge>}
+      <h4 className="mr-auto text-[14px] font-semibold text-text-primary">{title}</h4>
+    </div>
+  );
+}
+
+function PresenceFeedSection({
+  items,
+  feedState,
+}: {
+  items: PresenceItem[];
+  feedState: CachedFeedState;
+}) {
+  return (
+    <FeedSection
+      eyebrow="Attendance"
+      title="Presence"
+      count={items.length}
+      snapshot={feedState.snapshot}
+      loading={feedState.loading}
+      error={feedState.error}
+    >
+      {items.length > 0 ? (
+        <div className="space-y-2">
+          <PresenceList items={items} />
+          <p className="px-1 text-caption-1-regular text-text-tertiary">
+            Read-only — recording attendance happens in EduNex itself.
+          </p>
+        </div>
+      ) : (
+        <EmptyFeed message="No presence records in the latest snapshot." />
+      )}
+    </FeedSection>
+  );
+}
+
+export interface PresenceListProps {
+  items: PresenceItem[];
+  /** The course hub already names the course, so rows skip repeating it. */
+  hideCourse?: boolean;
+}
+
+/**
+ * Read-only presence records list. Each row is one course meeting with the
+ * student's attendance status — present, absent, excused, or the raw vendor
+ * text when the status is unrecognized. Never offers a record action: v1
+ * detection/notification lives in #24, recording lives in EduNex itself.
+ */
+export function PresenceList({ items, hideCourse = false }: PresenceListProps) {
+  return (
+    <ul className="flex flex-col gap-2">
+      {items.map((item) => (
+        <li
+          key={item.id}
+          className="flex min-w-0 items-start gap-3 rounded-lg bg-background-primary-default p-3.5 shadow-sm"
+        >
+          <span
+            className="grid size-9 shrink-0 place-items-center rounded-lg bg-accent-500/10 text-accent-600"
+            aria-hidden
+          >
+            <i className="ri-hand-heart-line text-[16px]" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <PresenceStatusChip item={item} />
+              {!hideCourse && item.courseName && (
+                <span className="truncate text-caption-1-semibold text-text-tertiary">
+                  {item.courseCode ? `${item.courseCode} · ` : ""}{item.courseName}
+                </span>
+              )}
+            </div>
+            <h4 className="mt-1 line-clamp-2 text-[14px] font-semibold leading-5 text-text-primary">
+              {item.meeting}
+            </h4>
+            {item.dateAt ? (
+              <p className="mt-1 text-caption-1-regular text-text-secondary">
+                <time dateTime={item.dateAt}>{formatTimestamp(item.dateAt)}</time>
+              </p>
+            ) : (
+              <p className="mt-1 text-caption-1-regular text-text-tertiary">Date to be announced</p>
+            )}
+          </div>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function PresenceStatusChip({ item }: { item: PresenceItem }) {
+  if (item.kind === "present") {
+    return (
+      <Chip color="lime" variant="caption">
+        <i className="ri-check-line mr-1 text-[12px]" aria-hidden />
+        {item.status ?? "Present"}
+      </Chip>
+    );
+  }
+  if (item.kind === "absent") {
+    return (
+      <Chip color="rose" variant="caption">
+        <i className="ri-close-line mr-1 text-[12px]" aria-hidden />
+        {item.status ?? "Absent"}
+      </Chip>
+    );
+  }
+  if (item.kind === "excused") {
+    return (
+      <Chip color="yellow" variant="caption">
+        <i className="ri-mail-open-line mr-1 text-[12px]" aria-hidden />
+        {item.status ?? "Excused"}
+      </Chip>
+    );
+  }
+  return (
+    <Chip color="neutral" variant="caption">
+      {item.status ?? "Unknown"}
+    </Chip>
+  );
+}
+
+function PresenceSectionHeading({ title, count }: { title: string; count: number | null }) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <span className="grid size-8 place-items-center rounded-lg bg-background-primary-default text-text-secondary shadow-sm">
+        <i className="ri-hand-heart-line text-[16px]" aria-hidden />
       </span>
       {count !== null && <Badge color="neutral">{count}</Badge>}
       <h4 className="mr-auto text-[14px] font-semibold text-text-primary">{title}</h4>
@@ -1109,11 +1296,7 @@ function CourseHub({
           <div className="grid gap-2 sm:grid-cols-2">
             <CourseAgendaSection course={course} />
             <CourseMaterialsSection course={course} />
-            <HubPlaceholder
-              icon="ri-hand-heart-line"
-              title="Presence"
-              description="Presence records and open windows will appear here."
-            />
+            <CoursePresenceSection course={course} />
           </div>
         </div>
       </div>
@@ -1135,29 +1318,6 @@ function CourseExamsSection({ course }: { course: CourseItem }) {
       eyebrow={`Exams · ${course.code || "Course"}`}
       title="Exams"
     />
-  );
-}
-
-function HubPlaceholder({
-  icon,
-  title,
-  description,
-}: {
-  icon: string;
-  title: string;
-  description: string;
-}) {
-  return (
-    <article className="rounded-xl bg-background-secondary-default p-4">
-      <div className="flex items-center justify-between gap-3">
-        <span className="grid size-8 place-items-center rounded-lg bg-background-primary-default text-text-secondary shadow-sm">
-          <i className={`${icon} text-[16px]`} aria-hidden />
-        </span>
-        <Chip color="soft" variant="caption">Coming soon</Chip>
-      </div>
-      <h4 className="mt-4 text-[14px] font-semibold text-text-primary">{title}</h4>
-      <p className="mt-1 max-w-[30rem] text-[13px] leading-5 text-text-secondary">{description}</p>
-    </article>
   );
 }
 

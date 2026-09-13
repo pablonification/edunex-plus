@@ -7,14 +7,14 @@ import { useShellSettings } from "./features/shell/use-shell-settings";
 import { LoginView } from "./features/auth/login-view";
 import { ReloginModal } from "./features/auth/relogin-modal";
 import { useAuthState } from "./features/auth/use-auth-state";
-import { AgendaPanel, DashboardPanel, ExamsPanel, MaterialsPanel, TodoPanel } from "./features/feeds/feed-panels";
+import { AgendaPanel, DashboardPanel, ExamsPanel, MaterialsPanel, PresencePanel, TodoPanel } from "./features/feeds/feed-panels";
 import { isTaskItem, toTodoItems, type TaskItem } from "./features/feeds/feed-data";
 import { NotificationCenterPanel } from "./features/notifications/notification-center";
 import { TaskPageShell } from "./features/tasks/task-page-shell";
 import { navItem } from "./nav";
 import { cx } from "./utils/cx";
 import type { NavKey } from "@shared/shell";
-import { notificationDestinationFor } from "@shared/notifications";
+import { notificationDestinationFor, presenceDestinationFor } from "@shared/notifications";
 
 /**
  * App shell (#32), t3code-style native pass: flush sidebar + 52px topbar
@@ -53,12 +53,21 @@ export function App() {
     [hiddenViews],
   );
 
-  // OS notification clicks (#23) focus the app in main and land here with
-  // the covered task ids; the To Do screen (#21) is the destination, opening
-  // the single task when there is exactly one.
+  // OS notification clicks (#23, extended by #24) focus the app in main and
+  // land here with the covered ids; the To Do screen (#21) is the Task
+  // destination (opening the single task when there is exactly one), and
+  // the agenda is the Presence-open destination where the open meeting is
+  // visible. Main already sends nav:goto ahead of this event; the handler
+  // resolves the same destination so a missed nav message still lands right.
   useEffect(
     () =>
-      window.edunex.onNotificationClicked(({ taskIds }) => {
+      window.edunex.onNotificationClicked(({ taskIds, presenceIds }) => {
+        if (presenceIds && presenceIds.length > 0) {
+          const destination = presenceDestinationFor({ presenceIds });
+          setActiveKey(destination.view);
+          setSelectedTask(null);
+          return;
+        }
         const destination = notificationDestinationFor({ taskIds });
         if (destination.taskId) void openNotificationTask(destination.taskId);
         else {
@@ -81,6 +90,11 @@ export function App() {
 
   function openTodo() {
     setActiveKey("todo");
+    setSelectedTask(null);
+  }
+
+  function openAgenda() {
+    setActiveKey("agenda");
     setSelectedTask(null);
   }
 
@@ -151,7 +165,11 @@ export function App() {
               {activeKeyVisible === "home" && (
                 <>
                   <DashboardPanel onTaskSelect={openTask} />
-                  <NotificationCenterPanel onOpenTask={openNotificationTask} onOpenTodo={openTodo} />
+                  <NotificationCenterPanel
+                    onOpenTask={openNotificationTask}
+                    onOpenTodo={openTodo}
+                    onOpenAgenda={openAgenda}
+                  />
                   <SystemPanel />
                 </>
               )}
@@ -159,11 +177,13 @@ export function App() {
               {activeKeyVisible === "agenda" && <AgendaPanel />}
               {activeKeyVisible === "materials" && <MaterialsPanel />}
               {activeKeyVisible === "exams" && <ExamsPanel />}
+              {activeKeyVisible === "presence" && <PresencePanel />}
               {activeKeyVisible !== "home" &&
                 activeKeyVisible !== "todo" &&
                 activeKeyVisible !== "agenda" &&
                 activeKeyVisible !== "materials" &&
-                activeKeyVisible !== "exams" && (
+                activeKeyVisible !== "exams" &&
+                activeKeyVisible !== "presence" && (
                 <p className="max-w-prose text-[13px] leading-5 text-text-secondary">
                   {active.placeholder}
                 </p>
