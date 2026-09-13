@@ -4,13 +4,21 @@ import { NAV_VIEWS } from "../shared/shell";
 
 describe("buildAppMenuTemplate", () => {
   const handlers = { gotoView: vi.fn() };
-  const template = buildAppMenuTemplate("Edunex Plus", NAV_VIEWS, handlers);
+  const template = buildAppMenuTemplate("Edunex Plus", NAV_VIEWS, handlers, "darwin");
 
   it("opens with a named app menu on macOS (not Electron's default)", () => {
     const labels = template.map((item) => ("label" in item ? item.label : undefined));
     expect(labels[0]).toBe("Edunex Plus");
     const appSubmenu = template[0].submenu as { label: string }[];
     expect(appSubmenu.some((item) => item.label === "Quit Edunex Plus")).toBe(true);
+  });
+
+  it("does not add the macOS app menu outside macOS", () => {
+    const nonMacTemplate = buildAppMenuTemplate("Edunex Plus", NAV_VIEWS, handlers, "linux");
+    const labels = nonMacTemplate.map((item) => ("label" in item ? item.label : undefined));
+
+    expect(labels[0]).toBe("File");
+    expect(labels).not.toContain("Edunex Plus");
   });
 
   it("maps ⌘1–6 to the shell views in order", () => {
