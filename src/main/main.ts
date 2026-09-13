@@ -17,7 +17,9 @@ import { createAuthController } from "./auth/auth-controller";
 import { createSnapshotCache } from "./sync/snapshot-cache";
 import { createSyncEngine, type SyncEngine } from "./sync/sync-engine";
 import { isFeedKey } from "../shared/feeds";
-import { NAV_VIEWS } from "../shared/shell";
+import { DEFAULT_SHELL_SETTINGS, NAV_VIEWS, isHideableNavKey } from "../shared/shell";
+import type { HideableNavKey } from "../shared/shell";
+import { loadShellSettings, saveShellSettings } from "./shell/settings-store";
 
 // Windows routes notifications by AppUserModelID; without it they fall under
 // Electron's identity or fail entirely (docs/platform-notifications.md).
@@ -29,6 +31,7 @@ app.setAppUserModelId("id.edunexplus.desktop");
 const gotSingleInstanceLock = app.requestSingleInstanceLock();
 
 const windowStatePath = () => path.join(app.getPath("userData"), "window-state.json");
+const shellSettingsPath = () => path.join(app.getPath("userData"), "shell-settings.json");
 const trayIcon = () =>
   nativeImage.createFromPath(path.join(app.getAppPath(), "assets", "trayTemplate.png"));
 
@@ -37,6 +40,27 @@ let tray: Tray | null = null;
 // Close-to-tray: the window's close event is intercepted and only a real
 // quit path (tray Quit / app.quit) may pass through.
 let quitting = false;
+
+// Shell preferences (#22): hidden views + the tray opt-out, persisted across
+// restarts in userData. Loaded once the app is ready (userData is only
+// reliable then); until that moment the default-visible v1 set applies.
+let shellSettings = {
+  ...DEFAULT_SHELL_SETTINGS,
+  hiddenViews: [...DEFAULT_SHELL_SETTINGS.hiddenViews],
+};
+
+function visibleViews() {
+  const hidden = shellSettings.hiddenViews as readonly string[];
+  return NAV_VIEWS.filter((view) => !hidden.includes(view.key));
+}
+
+function broadcastShellSettings() {
+  if (win && !win.isDestroyed()) win.webContents.send("shell:settings-updated", shellSettings);
+}
+
+function persistShellSettings() {
+  saveShellSettings(shellSettingsPath(), shellSettings);
+}
 
 function isMac() {
   return process.platform === "darwin";
@@ -96,6 +120,9 @@ function createWindow(state?: WindowState | null) {
     // quit, so anything since the last hide-to-tray would be lost.
     flushWindowStateSave();
     if (quitting) return;
+    // Tray opt-out (#22): when on, closing the window really closes — the
+    // app quits on window-all-closed and notification delivery stops.
+    if (shellSettings.quitOnClose) return;
     if (tray) {
       event.preventDefault();
       win?.hide();
@@ -180,7 +207,9 @@ function sendToView(view: string) {
 function setApplicationMenu() {
   Menu.setApplicationMenu(
     Menu.buildFromTemplate(
-      buildAppMenuTemplate(app.name, NAV_VIEWS, {
+      // Hidden views (#22) leave the View menu: navigation only offers what
+      // the rail shows, in the same NAV_VIEWS order.
+      buildAppMenuTemplate(app.name, visibleViews(), {
         gotoView: sendToView,
         // Dev-only hook to demo the re-login moment (#18) without needing the
         // vendor API to actually reject a session.
@@ -222,6 +251,7 @@ if (!gotSingleInstanceLock) {
   app.on("second-instance", showWindow);
 
   app.whenReady().then(() => {
+    shellSettings = loadShellSettings(shellSettingsPath());
     setApplicationMenu();
     if (isMac() && app.dock) {
       // Cosmetic — a missing icon must never break boot.
@@ -265,12 +295,40 @@ if (!gotSingleInstanceLock) {
     return sync?.read(feed) ?? null;
   });
 
+  // Shell preferences (#22): the renderer reads the persisted settings,
+  // hides/shows hideable views, and flips the tray opt-out. Every write
+  // persists to disk, rebuilds the View menu, and pushes to the renderer.
+  ipcMain.handle("shell:get-settings", () => shellSettings);
+  ipcMain.handle("shell:set-view-hidden", (_event, view: unknown, hidden: unknown) => {
+    if (typeof view !== "string" || !isHideableNavKey(view)) return shellSettings;
+    const next = new Set<string>(shellSettings.hiddenViews);
+    if (hidden === true) next.add(view);
+    else next.delete(view);
+    shellSettings = {
+      ...shellSettings,
+      hiddenViews: NAV_VIEWS.map((entry) => entry.key).filter(
+        (key): key is HideableNavKey => next.has(key),
+      ),
+    };
+    persistShellSettings();
+    setApplicationMenu();
+    broadcastShellSettings();
+    return shellSettings;
+  });
+  ipcMain.handle("shell:set-quit-on-close", (_event, value: unknown) => {
+    shellSettings = { ...shellSettings, quitOnClose: value === true };
+    persistShellSettings();
+    broadcastShellSettings();
+    return shellSettings;
+  });
+
   // Deliberate no-op while a tray exists: closing the window must not end the
   // process — the app lives in the tray so notifications keep flowing (spec:
   // shell & navigation). Without a tray (rare Linux setups) a closed window
-  // leaves nothing to reach the app through, so quit instead.
+  // leaves nothing to reach the app through, so quit instead. The tray
+  // opt-out (#22) quits on close even when a tray exists.
   app.on("window-all-closed", () => {
-    if (!tray) app.quit();
+    if (!tray || shellSettings.quitOnClose) app.quit();
   });
 
   app.on("before-quit", () => {
