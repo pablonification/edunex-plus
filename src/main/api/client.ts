@@ -1,8 +1,8 @@
 /**
  * Direct API client for the vendor API (api-edunex.cognisia.id) — the app
  * talks to it with the bearer token captured from the webview, never with a
- * password (spec: auth & session, API stance). Read-mostly; v1 auth slice
- * only needs GETs to verify a session.
+ * password (spec: auth & session, API stance). Read-mostly: the auth and sync
+ * slices use GETs only.
  */
 
 export interface ApiResult {
@@ -17,6 +17,22 @@ export interface EdunexApi {
   get(path: string): Promise<ApiResult>;
 }
 
+export interface TodoFeed {
+  tasks: unknown[];
+  exams: unknown[];
+  questions: unknown[];
+  modules: unknown[];
+  [key: string]: unknown;
+}
+
+export type JsonApiResource = Record<string, unknown>;
+
+export interface EdunexDataApi extends EdunexApi {
+  getTodo(): Promise<ApiResult & { body: TodoFeed }>;
+  getCourses(): Promise<ApiResult & { body: JsonApiResource[] }>;
+  getCourseTasks(): Promise<ApiResult & { body: JsonApiResource[] }>;
+}
+
 export interface EdunexApiOptions {
   baseUrl: string;
   /** Current access token, or null when signed out. */
@@ -29,7 +45,7 @@ export interface EdunexApiOptions {
   fetchImpl?: typeof fetch;
 }
 
-export function createEdunexApi(options: EdunexApiOptions): EdunexApi {
+export function createEdunexApi(options: EdunexApiOptions): EdunexDataApi {
   const {
     baseUrl,
     getToken,
@@ -67,5 +83,58 @@ export function createEdunexApi(options: EdunexApiOptions): EdunexApi {
     return { status: response.status, ok: response.ok, body };
   }
 
-  return { get };
+  return {
+    get,
+    getTodo: () => get("/todo").then((result) => normalizeResult(result, normalizeTodo)),
+    getCourses: () =>
+      get("/course/courses").then((result) => normalizeResult(result, normalizeCollection)),
+    getCourseTasks: () =>
+      get("/course/tasks").then((result) => normalizeResult(result, normalizeCollection)),
+  };
+}
+
+function normalizeResult<T>(
+  result: ApiResult,
+  normalize: (body: unknown) => T,
+): ApiResult & { body: T } {
+  if (!isSuccessful(result)) return result as ApiResult & { body: T };
+  return { ...result, body: normalize(result.body) };
+}
+
+function normalizeTodo(body: unknown): TodoFeed {
+  const root = asRecord(body) ?? {};
+  return {
+    ...root,
+    tasks: arrayOrEmpty(root.tasks),
+    exams: arrayOrEmpty(root.exams),
+    questions: arrayOrEmpty(root.questions),
+    modules: arrayOrEmpty(root.modules),
+  };
+}
+
+function normalizeCollection(body: unknown): JsonApiResource[] {
+  if (Array.isArray(body)) return body.filter(isRecord);
+  const root = asRecord(body);
+  if (!root) return [];
+  if (Array.isArray(root.data)) return root.data.filter(isRecord);
+  if (Array.isArray(root.courses)) return root.courses.filter(isRecord);
+  return [];
+}
+
+function arrayOrEmpty(value: unknown): unknown[] {
+  return Array.isArray(value) ? value : [];
+}
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : null;
+}
+
+function isRecord(value: unknown): value is JsonApiResource {
+  return asRecord(value) !== null;
+}
+
+function isSuccessful(result: ApiResult) {
+  return result.ok || (result.status >= 200 && result.status < 300);
 }
