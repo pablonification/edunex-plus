@@ -9,11 +9,12 @@ import {
 import {
   BoundaryValidationError,
   SensitiveStringSchema,
+  RuntimeUnavailableError,
   decodeBoundary,
   formatSafeCause,
   safeCause,
   sensitiveString,
-} from "../../shared/effect";
+} from "./conventions";
 
 const SmokeResource = Context.Service<{ readonly value: string }>(
   "EdunexPlus/RuntimeSmokeResource",
@@ -30,6 +31,18 @@ it("provides the foundation service through the managed layer", async () => {
 
   expect(info.applicationName).toBe("Edunex Plus");
   expect(info.effectVersion).toBe(EFFECT_RUNTIME_VERSION);
+});
+
+it("rejects work after shutdown with a typed runtime error", async () => {
+  const runtime = createApplicationRuntime();
+  await runtime.shutdown();
+
+  const error = await runtime.runPromise(Effect.succeed("unavailable")).catch((cause: unknown) => cause);
+  expect(error).toBeInstanceOf(RuntimeUnavailableError);
+  expect(error).toMatchObject({
+    _tag: "RuntimeUnavailableError",
+    operation: "runtime.use-after-shutdown",
+  });
 });
 
 it("releases resources and interrupts runtime-owned fibers on shutdown", async () => {
@@ -83,8 +96,31 @@ it.effect("keeps boundary errors and causes safe", () =>
         _tag: "Fail",
         error: expect.any(BoundaryValidationError),
       });
+      expect((invalid.cause.reasons[0] as { error: BoundaryValidationError }).error.operation).toBe(
+        "task.read",
+      );
       expect(formatSafeCause(invalid.cause)).toBe("Failure(BoundaryValidationError)");
       expect(JSON.stringify(safeCause(invalid.cause))).not.toContain("bearer-secret");
+    }
+
+    const unsafeOperation = yield* Effect.exit(
+      decodeBoundary(Schema.String, 42, "ipc", "bearer secret"),
+    );
+    expect(Exit.isFailure(unsafeOperation)).toBe(true);
+    if (Exit.isFailure(unsafeOperation)) {
+      expect(
+        (unsafeOperation.cause.reasons[0] as { error: BoundaryValidationError }).error.operation,
+      ).toBe("unknown");
+      expect(JSON.stringify(safeCause(unsafeOperation.cause))).not.toContain("bearer-secret");
+    }
+
+    const unsafeFailure = yield* Effect.exit(
+      Effect.fail({ _tag: "ApiFailure", message: "bearer-secret" }),
+    );
+    expect(Exit.isFailure(unsafeFailure)).toBe(true);
+    if (Exit.isFailure(unsafeFailure)) {
+      expect(formatSafeCause(unsafeFailure.cause)).toBe("Failure(ApiFailure)");
+      expect(JSON.stringify(safeCause(unsafeFailure.cause))).not.toContain("bearer-secret");
     }
 
     const secret = sensitiveString("bearer-secret");

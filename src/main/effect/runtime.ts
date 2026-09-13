@@ -1,7 +1,6 @@
 import type * as EffectModule from "effect" with { "resolution-mode": "import" };
-import { createRequire } from "node:module";
-
-const effectRuntime = createRequire(__filename)("effect") as typeof EffectModule;
+import { RuntimeUnavailableError } from "./conventions";
+import { effectRuntime } from "./effect-runtime";
 
 /**
  * Main-process callers use these namespaces through this module so the ESM
@@ -74,7 +73,9 @@ export function createApplicationRuntime<
   }
 
   function rejectAfterShutdown<A>(): Promise<A> {
-    return Promise.reject(new Error("The Edunex Plus application runtime is shut down."));
+    return Promise.reject(
+      new RuntimeUnavailableError({ operation: "runtime.use-after-shutdown" }),
+    );
   }
 
   function runPromise<A, E>(effect: EffectModule.Effect.Effect<A, E, R>): Promise<A> {

@@ -36,8 +36,11 @@ npm run build:node
 npm run smoke:runtime
 ```
 
-The Effect import remains behind the main-process foundation. Renderer and
-preload contracts do not import it.
+The only Node-specific Effect loader is `src/main/effect/effect-runtime.ts`.
+Shared conventions are exposed as `createEffectConventions` without a runtime
+Node import: the main process instantiates them with that loader, while a
+future renderer consumer can instantiate them with its bundled ESM Effect
+import. Renderer and preload contracts do not import the foundation yet.
 
 ## Dependency-installed baseline
 
@@ -59,8 +62,9 @@ be separated from an installation or toolchain failure by repeating
 
 - Decode `unknown` only at a named boundary with `decodeBoundary`.
 - Use schema-backed `Schema.TaggedError` classes for typed failures. Include
-  stable operation/boundary metadata only; never put raw causes, request
-  bodies, tokens, or passwords in the error fields.
+  stable operation/boundary metadata only; operation identifiers are restricted
+  to safe lowercase names and unsafe values become `unknown`. Never put raw
+  causes, request bodies, tokens, or passwords in the error fields.
 - Preserve unexpected failures in Effect's `Cause`, then use `safeCause` or
   `formatSafeCause` for diagnostics. These helpers retain failure/defect/
   interruption shape and safe error tags without rendering arbitrary messages.

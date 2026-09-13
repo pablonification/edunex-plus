@@ -35,7 +35,7 @@ import {
   RuntimeEffect,
   RuntimeExit,
 } from "./effect/runtime";
-import { ApplicationLifecycleError, formatSafeCause } from "../shared/effect";
+import { ApplicationLifecycleError, formatSafeCause } from "./effect/conventions";
 
 // Windows routes notifications by AppUserModelID; without it they fall under
 // Electron's identity or fail entirely (docs/platform-notifications.md).
