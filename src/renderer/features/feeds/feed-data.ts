@@ -33,6 +33,14 @@ export interface CourseItem {
   isCurrent?: boolean;
 }
 
+export interface ExamItem {
+  id: string;
+  title: string;
+  courseCode: string;
+  courseName: string;
+  time: string | null;
+}
+
 export interface PeriodItem {
   id: string;
   label: string;
@@ -274,6 +282,77 @@ export function filterTodoItemsByCourses(items: TodoItem[], courses: CourseItem[
   const courseCodes = new Set(courses.map((course) => course.code).filter(Boolean));
   if (courseCodes.size === 0) return items;
   return items.filter((item) => !item.courseCode || courseCodes.has(item.courseCode));
+}
+
+/**
+ * Turns the plain `/exam/exams` response into the small shape the renderer
+ * needs. Accepts a bare array or an object wrapping it (`exams` / `data`),
+ * and JSON-API resources with `attributes`, so the view never depends on
+ * which envelope the vendor sent.
+ */
+export function toExamItems(data: unknown): ExamItem[] {
+  const resources = examResources(data);
+  const items = resources.flatMap((resource, index) => {
+    const attributes = asRecord(resource.attributes) ?? resource;
+    const id =
+      scalarString(resource.id) ?? scalarString(attributes.id) ?? `exam-${index}`;
+    return [
+      {
+        id,
+        title:
+          readString(attributes, ["name", "title", "exam_name"]) ?? "Untitled exam",
+        courseCode: readString(attributes, ["code", "course_code"]) ?? "",
+        courseName:
+          readString(attributes, ["course", "course_name", "courses_name"]) ?? "",
+        time: readString(attributes, [
+          "time",
+          "start_at",
+          "startAt",
+          "exam_time",
+          "date",
+          "due_at",
+          "deadline",
+        ]),
+      },
+    ];
+  });
+  return sortExamsByTime(items);
+}
+
+/** Exams carry no Period field, so scope them through the Period's course codes. */
+export function filterExamsByCourses(items: ExamItem[], courses: CourseItem[]): ExamItem[] {
+  const courseCodes = new Set(courses.map((course) => course.code).filter(Boolean));
+  if (courseCodes.size === 0) return items;
+  return items.filter((item) => !item.courseCode || courseCodes.has(item.courseCode));
+}
+
+/** The course hub shows only the open course's scheduled exams. */
+export function filterExamsByCourse(items: ExamItem[], course: CourseItem): ExamItem[] {
+  if (!course.code) return items;
+  return items.filter((item) => !item.courseCode || item.courseCode === course.code);
+}
+
+function examResources(data: unknown): Record<string, unknown>[] {
+  if (Array.isArray(data)) return data.flatMap(asRecordValue);
+  const root = asRecord(data);
+  if (!root) return [];
+  for (const key of ["exams", "data"]) {
+    if (Array.isArray(root[key])) return (root[key] as unknown[]).flatMap(asRecordValue);
+  }
+  return [];
+}
+
+function sortExamsByTime(items: ExamItem[]): ExamItem[] {
+  return [...items].sort((a, b) => {
+    const aTime = a.time ? Date.parse(a.time) : Number.NaN;
+    const bTime = b.time ? Date.parse(b.time) : Number.NaN;
+    const aValid = Number.isFinite(aTime);
+    const bValid = Number.isFinite(bTime);
+    if (aValid && bValid) return (aTime as number) - (bTime as number);
+    if (aValid) return -1;
+    if (bValid) return 1;
+    return 0;
+  });
 }
 
 function courseResources(data: unknown): Record<string, unknown>[] {
