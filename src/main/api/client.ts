@@ -7,6 +7,9 @@
  * guardrails).
  */
 
+import { fetchTransport } from "../platform/node";
+import type { HttpTransportService } from "../platform/services";
+
 export interface ApiResult {
   /** HTTP status; 0 means the request never completed (offline, DNS, …).
    * A network failure is not an auth failure — only 401 is. */
@@ -63,17 +66,21 @@ export interface EdunexApiOptions {
   /** Fired on 401 or missing token: the session is gone and the app must
    * pause into the re-login moment. Never fired for network errors. */
   onUnauthorized?: () => void;
+  /** Main supplies the process-wide HTTP transport service. */
+  transport?: HttpTransportService;
+  /** Kept as a narrow compatibility seam for existing unit tests/callers. */
   fetchImpl?: typeof fetch;
 }
 
 export function createEdunexApi(options: EdunexApiOptions): EdunexDataApi {
-  const {
-    baseUrl,
-    getToken,
-    userAgent,
-    onUnauthorized,
-    fetchImpl = fetch,
-  } = options;
+  const { baseUrl, getToken, userAgent, onUnauthorized } = options;
+  const transport: HttpTransportService =
+    options.transport ??
+    (options.fetchImpl
+      ? {
+          request: (url, init) => options.fetchImpl!(url, init),
+        }
+      : fetchTransport);
 
   async function request(method: string, path: string, body?: unknown): Promise<ApiResult> {
     const token = getToken();
@@ -82,9 +89,9 @@ export function createEdunexApi(options: EdunexApiOptions): EdunexDataApi {
       return { status: 401, ok: false, body: null };
     }
 
-    let response: Response;
+    let response;
     try {
-      response = await fetchImpl(`${baseUrl}${path}`, {
+      response = await transport.request(`${baseUrl}${path}`, {
         method,
         headers: new Headers({
           Authorization: `Bearer ${token}`,

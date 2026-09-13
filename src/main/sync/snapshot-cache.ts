@@ -1,13 +1,6 @@
-import {
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  renameSync,
-  unlinkSync,
-  writeFileSync,
-} from "node:fs";
-import path from "node:path";
 import type { FeedKey, FeedSnapshot } from "../../shared/feeds";
+import { nodeFileSystem, nodePath, systemClock, systemRandom } from "../platform/node";
+import type { ClockService, FileSystemService, PathService, RandomService } from "../platform/services";
 
 interface StoredSnapshot {
   version: 1;
@@ -27,20 +20,35 @@ export interface SnapshotCache {
   ): FeedSnapshot;
 }
 
+export interface SnapshotCacheServices {
+  readonly fileSystem?: FileSystemService;
+  readonly path?: PathService;
+  readonly clock?: ClockService;
+  readonly random?: RandomService;
+}
+
 /**
  * One JSON file per account/feed. The account id comes from the authenticated
  * API session, while the file contents retain the exact vendor response for
  * offline reading and the next sync's diff baseline.
  */
-export function createSnapshotCache(rootDir: string): SnapshotCache {
+export function createSnapshotCache(
+  rootDir: string,
+  services: SnapshotCacheServices = {},
+): SnapshotCache {
+  const fileSystem = services.fileSystem ?? nodeFileSystem;
+  const pathService = services.path ?? nodePath;
+  const clock = services.clock ?? systemClock;
+  const random = services.random ?? systemRandom;
+
   function filePath(accountId: string, feed: FeedKey) {
-    return path.join(rootDir, safePathSegment(accountId), `${feed}.json`);
+    return pathService.join(rootDir, safePathSegment(accountId), `${feed}.json`);
   }
 
   return {
     read(accountId, feed) {
       try {
-        const stored = JSON.parse(readFileSync(filePath(accountId, feed), "utf8")) as unknown;
+        const stored = JSON.parse(fileSystem.readText(filePath(accountId, feed))) as unknown;
         if (!isStoredSnapshot(stored, accountId, feed)) return null;
         return {
           feed: stored.feed,
@@ -53,21 +61,11 @@ export function createSnapshotCache(rootDir: string): SnapshotCache {
       }
     },
 
-    write(accountId, feed, data, fetchedAt = new Date().toISOString()) {
+    write(accountId, feed, data, fetchedAt = new Date(clock.now()).toISOString()) {
       const snapshot: FeedSnapshot = { feed, accountId, fetchedAt, data };
       const stored: StoredSnapshot = { version: 1, ...snapshot };
       const target = filePath(accountId, feed);
-      const directory = path.dirname(target);
-      const temporary = `${target}.${process.pid}.${Date.now()}.tmp`;
-
-      mkdirSync(directory, { recursive: true });
-      try {
-        writeFileSync(temporary, JSON.stringify(stored));
-        renameSync(temporary, target);
-      } catch (error) {
-        if (existsSync(temporary)) unlinkSync(temporary);
-        throw error;
-      }
+      fileSystem.atomicWrite(target, JSON.stringify(stored), `${clock.now()}-${random.next()}`);
 
       return snapshot;
     },

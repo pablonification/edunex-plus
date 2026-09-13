@@ -1,6 +1,8 @@
 import type { InAppNotification, OutboundNotification } from "../../shared/notifications";
 import { toInAppNotification } from "../../shared/notifications";
 import type { NotificationStore } from "./notification-store";
+import { systemClock } from "../platform/node";
+import type { ClockService } from "../platform/services";
 
 /**
  * The notification spine (#23, extended by #24): one sink interface, two
@@ -73,6 +75,7 @@ export interface InAppSinkDeps {
   broadcast: (accountId: string, entries: InAppNotification[]) => void;
   createId?: () => string;
   now?: () => number;
+  clock?: ClockService;
 }
 
 /** Second sink: persists the fallback feed entry and pushes it to the renderer. */
@@ -82,7 +85,7 @@ export function createInAppSink(deps: InAppSinkDeps): NotificationSink {
     show(notification) {
       const accountId = deps.getAccountId();
       if (!accountId) return;
-      const clock = deps.now?.() ?? Date.now();
+      const clock = deps.now?.() ?? deps.clock?.now() ?? systemClock.now();
       const createdId = deps.createId?.() ?? `inapp-${clock}-${(counter += 1)}`;
       const entry = toInAppNotification(notification, createdId);
       try {

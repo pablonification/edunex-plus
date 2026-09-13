@@ -1,16 +1,3 @@
-import {
-  app,
-  BrowserWindow,
-  dialog,
-  ipcMain,
-  Menu,
-  Notification,
-  Tray,
-  nativeImage,
-  screen,
-} from "electron";
-import path from "node:path";
-import { writeFile } from "node:fs/promises";
 import { buildTrayMenuTemplate } from "./tray-menu";
 import { buildAppMenuTemplate } from "./app-menu";
 import { loadWindowState, saveWindowState, type WindowState } from "./window-state";
@@ -20,39 +7,49 @@ import { createSnapshotCache } from "./sync/snapshot-cache";
 import { createSyncEngine, type SyncEngine } from "./sync/sync-engine";
 import { createNotificationStore } from "./notifications/notification-store";
 import { downloadMaterialFile } from "./materials/download";
-import { isMaterialDownloadRequest } from "../shared/materials";
 import { createInAppSink, createOsSink } from "./notifications/sinks";
 import { createTaskNotifier } from "./notifications/task-notifier";
 import { createPresenceNotifier } from "./notifications/presence-notifier";
-import type { InAppNotification, OutboundNotification } from "../shared/notifications";
-import { isFeedKey } from "../shared/feeds";
+import type { OutboundNotification } from "../shared/notifications";
 import { DEFAULT_SHELL_SETTINGS, NAV_VIEWS, isHideableNavKey } from "../shared/shell";
 import type { HideableNavKey } from "../shared/shell";
 import { loadShellSettings, saveShellSettings } from "./shell/settings-store";
 import { saveDraftAnswer, submitAnswer as submitTaskAnswer } from "./tasks/task-answers";
 import {
   createApplicationRuntime,
+  composeApplicationLayer,
   RuntimeEffect,
   RuntimeExit,
 } from "./effect/runtime";
 import { ApplicationLifecycleError, formatSafeCause } from "./effect/conventions";
+import { createLivePlatform } from "./platform/live";
+import type { WindowService, TrayService } from "./platform/services";
+import { registerApplicationIpc } from "./ipc/application";
+
+const livePlatform = createLivePlatform();
+const { services } = livePlatform;
+const platform = services.electron;
+const fileSystem = services.fileSystem;
+const pathService = services.path;
+const clock = services.clock;
+const random = services.random;
 
 // Windows routes notifications by AppUserModelID; without it they fall under
 // Electron's identity or fail entirely (docs/platform-notifications.md).
-app.setAppUserModelId("id.edunexplus.desktop");
+platform.setAppUserModelId("id.edunexplus.desktop");
 
 // One instance at a time: two instances would share the same persist:
 // partition and reset its quota DB, wiping on-device storage (spec:
 // auth & session). The lock is the guard.
-const gotSingleInstanceLock = app.requestSingleInstanceLock();
+const gotSingleInstanceLock = platform.requestSingleInstanceLock();
 
-const windowStatePath = () => path.join(app.getPath("userData"), "window-state.json");
-const shellSettingsPath = () => path.join(app.getPath("userData"), "shell-settings.json");
+const windowStatePath = () => pathService.join(platform.userDataPath, "window-state.json");
+const shellSettingsPath = () => pathService.join(platform.userDataPath, "shell-settings.json");
 const trayIcon = () =>
-  nativeImage.createFromPath(path.join(app.getAppPath(), "assets", "trayTemplate.png"));
+  pathService.join(platform.appPath, "assets", "trayTemplate.png");
 
-let win: BrowserWindow | null = null;
-let tray: Tray | null = null;
+let win: WindowService | null = null;
+let tray: TrayService | null = null;
 // Close-to-tray: the window's close event is intercepted and only a real
 // quit path (tray Quit / app.quit) may pass through.
 let quitting = false;
@@ -79,11 +76,11 @@ function persistShellSettings() {
 }
 
 function isMac() {
-  return process.platform === "darwin";
+  return platform.platform === "darwin";
 }
 
 function createWindow(state?: WindowState | null) {
-  win = new BrowserWindow({
+  win = platform.createWindow({
     width: state?.width ?? 1180,
     height: state?.height ?? 780,
     x: state?.x,
@@ -102,7 +99,7 @@ function createWindow(state?: WindowState | null) {
     visualEffectState: isMac() ? "followWindow" : undefined,
     backgroundColor: isMac() ? "#00000000" : "#f6f6f7",
     webPreferences: {
-      preload: path.join(__dirname, "../preload/preload.js"),
+      preload: pathService.join(__dirname, "../preload/preload.js"),
       contextIsolation: true,
       nodeIntegration: false,
       // The embedded login webview (#18) lives in the renderer on a
@@ -111,9 +108,9 @@ function createWindow(state?: WindowState | null) {
     },
   });
 
-  const startUrl = process.env.ELECTRON_START_URL;
-  if (startUrl) win.loadURL(startUrl);
-  else win.loadFile(path.join(__dirname, "../renderer/index.html"));
+  const startUrl = platform.environment.ELECTRON_START_URL;
+  if (startUrl) void win.loadURL(startUrl);
+  else void win.loadFile(pathService.join(__dirname, "../renderer/index.html"));
 
   if (state?.isMaximized) win.maximize();
 
@@ -125,9 +122,7 @@ function createWindow(state?: WindowState | null) {
   // The login webview (#18) attaches here whenever the renderer mounts it.
   // Main owns the capture loop and popup suppression for its webContents;
   // the loop ends with the webview's own destroyed event.
-  win.webContents.on("did-attach-webview", (_event, contents) =>
-    authController.attachWebview(contents),
-  );
+  win.webContents.on("did-attach-webview", (_event, contents) => authController.attachWebview(contents));
 
   win.on("resize", queueWindowStateSave);
   win.on("move", queueWindowStateSave);
@@ -164,21 +159,22 @@ function persistWindowStateNow() {
       y: bounds.y,
       isMaximized: win.isMaximized(),
     },
-    screen.getPrimaryDisplay().workArea,
+    platform.primaryWorkArea(),
+    { fileSystem, clock, random },
   );
 }
 
-let windowStateSaveTimer: NodeJS.Timeout | null = null;
+let windowStateSaveTimer: unknown = null;
 
 // resize/move fire in bursts while the user drags — debounce the writes.
 function queueWindowStateSave() {
-  if (windowStateSaveTimer) clearTimeout(windowStateSaveTimer);
-  windowStateSaveTimer = setTimeout(flushWindowStateSave, 400);
+  if (windowStateSaveTimer) clock.clearTimeout(windowStateSaveTimer);
+  windowStateSaveTimer = clock.setTimeout(flushWindowStateSave, 400);
 }
 
 function flushWindowStateSave() {
   if (windowStateSaveTimer) {
-    clearTimeout(windowStateSaveTimer);
+    clock.clearTimeout(windowStateSaveTimer);
     windowStateSaveTimer = null;
   }
   persistWindowStateNow();
@@ -193,7 +189,7 @@ function showWindow() {
 }
 
 function showTestNotification() {
-  new Notification({
+  platform.createNotification({
     title: "Edunex Plus",
     body: "Signed shell is live — OS notifications work on this build.",
   }).show();
@@ -205,13 +201,13 @@ function createTray() {
     // createFromPath picks up the sibling @2x automatically. Throws on Linux
     // setups with no StatusNotifier support — then there is no tray to hide
     // into and window close really closes (see docs/platform-notifications.md).
-    tray = new Tray(trayIcon());
+    tray = platform.createTray(trayIcon());
   } catch {
     return;
   }
   tray.setToolTip("Edunex Plus");
   tray.setContextMenu(
-    Menu.buildFromTemplate(buildTrayMenuTemplate({ show: showWindow, quit: () => app.quit() })),
+    platform.buildMenu(buildTrayMenuTemplate({ show: showWindow, quit: () => platform.quit() })),
   );
   tray.on("click", showWindow);
 }
@@ -221,16 +217,16 @@ function sendToView(view: string) {
 }
 
 function setApplicationMenu() {
-  Menu.setApplicationMenu(
-    Menu.buildFromTemplate(
+  platform.setApplicationMenu(
+    platform.buildMenu(
       // Hidden views (#22) leave the View menu: navigation only offers what
       // the rail shows, in the same NAV_VIEWS order.
-      buildAppMenuTemplate(app.name, visibleViews(), {
+      buildAppMenuTemplate(platform.appName, visibleViews(), {
         gotoView: sendToView,
         // Dev-only hook to demo the re-login moment (#18) without needing the
         // vendor API to actually reject a session.
-        simulateUnauthorized: app.isPackaged ? undefined : () => authController.simulateUnauthorized(),
-      }),
+        simulateUnauthorized: platform.isPackaged ? undefined : () => authController.simulateUnauthorized(),
+      }, platform.platform),
     ),
   );
 }
@@ -240,8 +236,12 @@ let sync: SyncEngine | null = null;
 // Auth slice (#18): encrypted token store, capture from the login webview,
 // and the signed-out / authenticating / signed-in / session-expired machine.
 const authController = createAuthController({
-  sessionStorePath: path.join(app.getPath("userData"), "auth-session.enc"),
-  appVersion: app.getVersion(),
+  sessionStorePath: pathService.join(platform.userDataPath, "auth-session.enc"),
+  appVersion: platform.appVersion,
+  safeStorage: services.safeStorage,
+  fileSystem,
+  httpTransport: services.httpTransport,
+  clock,
   broadcast: (status) => {
     if (win && !win.isDestroyed()) win.webContents.send("auth:state", status);
     if (status === "signed-in") sync?.start();
@@ -257,8 +257,8 @@ const authController = createAuthController({
 // and land on To Do (#21). Presence-open alerts share the same sinks but
 // fire immediately, one per window, never coalesced; clicks land on the
 // agenda where the open meeting is visible.
-const seenLedgerRoot = path.join(app.getPath("userData"), "seen-ledger");
-const inAppFeedRoot = path.join(app.getPath("userData"), "notifications");
+const seenLedgerRoot = pathService.join(platform.userDataPath, "seen-ledger");
+const inAppFeedRoot = pathService.join(platform.userDataPath, "notifications");
 
 function handleTaskNotificationClicked(taskIds: string[]) {
   showWindow();
@@ -284,39 +284,52 @@ function handleOutboundNotificationClicked(notification: OutboundNotification) {
 
 const osSink = createOsSink({
   show: ({ title, body }, onClick) => {
-    const notification = new Notification({ title, body });
+    const notification = platform.createNotification({ title, body });
     notification.on("click", onClick);
     notification.show();
   },
   onClicked: handleOutboundNotificationClicked,
 });
 const inAppSink = createInAppSink({
-  storeFor: (accountId) => createNotificationStore(inAppFeedRoot, accountId),
+  storeFor: (accountId) =>
+    createNotificationStore(inAppFeedRoot, accountId, { fileSystem, path: pathService, clock, random }),
   getAccountId: authController.accountId,
   broadcast: (_accountId, entries) => {
     if (win && !win.isDestroyed()) win.webContents.send("notifications:updated", entries);
   },
+  clock,
 });
 
 const taskNotifier = createTaskNotifier({
   ledgerRoot: seenLedgerRoot,
   sinks: [osSink, inAppSink],
+  clock,
+  persistence: { fileSystem, path: pathService, clock, random },
 });
 
 const presenceNotifier = createPresenceNotifier({
   ledgerRoot: seenLedgerRoot,
   sinks: [osSink, inAppSink],
+  clock,
+  persistence: { fileSystem, path: pathService, clock, random },
 });
 
 // Sync slice (#19): main owns the API adapter, timer, and on-device snapshots.
 // The renderer only receives a cache snapshot over the preload bridge.
 sync = createSyncEngine({
   api: authController.api(),
-  cache: createSnapshotCache(path.join(app.getPath("userData"), "feed-snapshots")),
+  cache: createSnapshotCache(pathService.join(platform.userDataPath, "feed-snapshots"), {
+    fileSystem,
+    path: pathService,
+    clock,
+    random,
+  }),
   getAccountId: authController.accountId,
   onUnauthorized: authController.handleUnauthorized,
   taskNotifier,
   presenceNotifier,
+  clock,
+  randomService: random,
   onFeedUpdated: (snapshot) => {
     if (win && !win.isDestroyed()) win.webContents.send("sync:feed-updated", snapshot);
   },
@@ -325,21 +338,18 @@ sync = createSyncEngine({
 // Effect foundation (#50): one managed runtime owns application-scoped
 // services and any future long-lived fibers. Existing feature modules remain
 // behaviorally unchanged until their migration tickets adopt these seams.
-const applicationRuntime = createApplicationRuntime();
+const applicationRuntime = createApplicationRuntime(
+  composeApplicationLayer(livePlatform.layer),
+);
 let runtimeShutdownStarted = false;
 let runtimeShutdownComplete = false;
 
 const startApplication = RuntimeEffect.try({
   try: () => {
-    shellSettings = loadShellSettings(shellSettingsPath());
+    shellSettings = loadShellSettings(shellSettingsPath(), { fileSystem, clock, random });
     setApplicationMenu();
-    if (isMac() && app.dock) {
-      // Cosmetic — a missing icon must never break boot.
-      try {
-        app.dock.setIcon(path.join(app.getAppPath(), "assets", "icon.png"));
-      } catch {}
-    }
-    createWindow(loadWindowState(windowStatePath(), screen.getPrimaryDisplay().workArea));
+    if (isMac()) platform.setDockIcon(pathService.join(platform.appPath, "assets", "icon.png"));
+    createWindow(loadWindowState(windowStatePath(), platform.primaryWorkArea(), { fileSystem }));
     createTray();
 
     // Restore the session before the renderer finishes booting; until this
@@ -347,170 +357,148 @@ const startApplication = RuntimeEffect.try({
     // so a restored session never flashes the login view.
     void authController.restore();
 
-    app.setAboutPanelOptions({
+    platform.setAboutPanelOptions({
       applicationName: "Edunex Plus",
-      applicationVersion: app.getVersion(),
+      applicationVersion: platform.appVersion,
       credits: "Unofficial, community-built desktop client for ITB's EduNex.",
     });
 
-    if (shouldFireStartupTestNotification(app.isPackaged, process.env)) showTestNotification();
+    if (shouldFireStartupTestNotification(platform.isPackaged, platform.environment)) showTestNotification();
 
-    app.on("activate", showWindow);
+    platform.on("activate", showWindow);
   },
   catch: () => new ApplicationLifecycleError({ phase: "startup", operation: "electron-ready" }),
 });
 
 if (!gotSingleInstanceLock) {
-  app.quit();
+  platform.quit();
 } else {
-  app.on("second-instance", showWindow);
+  platform.on("second-instance", showWindow);
 
-  app.whenReady().then(() => {
+  platform.whenReady().then(() => {
     void applicationRuntime
       .runPromiseExit(startApplication)
       .then((exit) => {
         if (RuntimeExit.isFailure(exit)) {
           console.error("[runtime] startup failed:", formatSafeCause(exit.cause));
-          app.quit();
+          platform.quit();
         }
       })
       .catch(() => {
-        if (!runtimeShutdownStarted) app.quit();
+        if (!runtimeShutdownStarted) platform.quit();
       });
   });
 
-  ipcMain.handle("notifications:test", showTestNotification);
-  ipcMain.handle("app:info", () => ({
-    version: app.getVersion(),
-    platform: process.platform,
-    trayActive: tray != null,
-    notificationsSupported: Notification.isSupported(),
-  }));
-
-  // Auth slice (#18): the renderer asks for the current status or requests
-  // the login webview moment; state changes arrive pushed on auth:state.
-  ipcMain.handle("auth:get-state", () => authController.status());
-  ipcMain.handle("auth:start-login", () => authController.startLogin());
-  ipcMain.handle("sync:get-feed", (_event, feed: unknown) => {
-    if (!isFeedKey(feed)) return null;
-    return sync?.read(feed) ?? null;
-  });
-
-  // Materials download (#30): explicit user action only. The renderer passes
-  // the cached file URL + name; main attaches the bearer token, shows the
-  // save dialog (a user-visible location), and writes the bytes. The sync
-  // tick never downloads — listing stays offline-readable from the cache
-  // while the bytes always need the network.
-  ipcMain.handle("materials:download", async (_event, request: unknown) => {
-    if (!isMaterialDownloadRequest(request)) {
-      return { ok: false, error: "This material has no downloadable file." };
-    }
-    try {
-      return await downloadMaterialFile(request, {
+  const ipcAdapter = registerApplicationIpc({
+    ipcMain: services.ipcMain,
+    runtime: applicationRuntime,
+    showTestNotification,
+    getAppInfo: () => ({
+      version: platform.appVersion,
+      platform: platform.platform,
+      trayActive: tray != null,
+      notificationsSupported: platform.notificationsSupported(),
+    }),
+    auth: {
+      status: () => authController.status(),
+      startLogin: () => authController.startLogin(),
+    },
+    sync: {
+      read: (feed) => sync?.read(feed) ?? null,
+    },
+    downloadMaterial: (request) =>
+      downloadMaterialFile(request, {
         baseUrl: EDUNEX_API_BASE_URL,
         getToken: () => authController.accessToken(),
-        userAgent: `EdunexPlus/${app.getVersion()} (desktop client; +https://github.com/pablonification/edunex-plus)`,
+        userAgent: `EdunexPlus/${platform.appVersion} (desktop client; +https://github.com/pablonification/edunex-plus)`,
         onUnauthorized: () => authController.handleUnauthorized(),
+        transport: services.httpTransport,
         showSaveDialog: (options) =>
-          dialog.showSaveDialog({
+          platform.showSaveDialog({
             defaultPath: options.defaultPath,
-            properties: ["createDirectory", "showOverwriteConfirmation"],
+            createDirectory: true,
+            showOverwriteConfirmation: true,
           }),
-        writeFile: (filePath, data) => writeFile(filePath, data),
-      });
-    } catch (error) {
-      console.error("[materials] download failed:", error);
-      return { ok: false, error: "Download failed — check your connection and try again." };
-    }
-  });
-
-  // Shell preferences (#22): the renderer reads the persisted settings,
-  // hides/shows hideable views, and flips the tray opt-out. Every write
-  // persists to disk, rebuilds the View menu, and pushes to the renderer.
-  ipcMain.handle("shell:get-settings", () => shellSettings);
-  ipcMain.handle("shell:set-view-hidden", (_event, view: unknown, hidden: unknown) => {
-    if (typeof view !== "string" || !isHideableNavKey(view)) return shellSettings;
-    const next = new Set<string>(shellSettings.hiddenViews);
-    if (hidden === true) next.add(view);
-    else next.delete(view);
-    shellSettings = {
-      ...shellSettings,
-      hiddenViews: NAV_VIEWS.map((entry) => entry.key).filter(
-        (key): key is HideableNavKey => next.has(key),
-      ),
-    };
-    persistShellSettings();
-    setApplicationMenu();
-    broadcastShellSettings();
-    return shellSettings;
-  });
-  ipcMain.handle("shell:set-quit-on-close", (_event, value: unknown) => {
-    shellSettings = { ...shellSettings, quitOnClose: value === true };
-    persistShellSettings();
-    broadcastShellSettings();
-    return shellSettings;
-  });
-
-  // Notification Center fallback feed (#23): the renderer reads the
-  // persisted in-app entries and marks them read; new entries arrive pushed
-  // on notifications:updated, OS clicks on notifications:clicked.
-  ipcMain.handle("notifications:get", (): InAppNotification[] => {
-    const accountId = authController.accountId();
-    if (!accountId) return [];
-    try {
-      return createNotificationStore(inAppFeedRoot, accountId).list();
-    } catch (error) {
-      console.error("[notifications] read failed:", error);
-      return [];
-    }
-  });
-  ipcMain.handle("notifications:mark-read", (_event, ids: unknown): InAppNotification[] => {
-    const accountId = authController.accountId();
-    if (!accountId || !Array.isArray(ids)) return [];
-    const wanted = ids.filter((id): id is string => typeof id === "string");
-    try {
-      return createNotificationStore(inAppFeedRoot, accountId).markRead(wanted);
-    } catch (error) {
-      console.error("[notifications] mark-read failed:", error);
-      return [];
-    }
-  });
-  ipcMain.handle("notifications:mark-all-read", (): InAppNotification[] => {
-    const accountId = authController.accountId();
-    if (!accountId) return [];
-    try {
-      return createNotificationStore(inAppFeedRoot, accountId).markAllRead();
-    } catch (error) {
-      console.error("[notifications] mark-all-read failed:", error);
-      return [];
-    }
-  });
-
-  // Task Answer draft-save (#25): explicit-only write. The renderer sends
-  // the editor text with the known answer id (if any); main chooses create
-  // (POST → 201) vs update (PATCH → 200) and returns the outcome. Status
-  // refreshes on the next sync tick — nothing here touches the cache.
-  ipcMain.handle("tasks:save-draft", async (_event, input: unknown) => {
-    const { taskId, answer, answerId } = asSaveDraftInput(input);
-    try {
-      return await saveDraftAnswer(authController.api(), { taskId, answer, answerId });
-    } catch (error) {
-      console.error("[tasks] save-draft failed:", error);
-      return { ok: false, status: 0, created: answerId == null, answerId: answerId ?? null };
-    }
-  });
-
-  // Task Answer final submit (#26): the renderer sends only the saved answer
-  // id; the main process routes the explicit action to PATCH is_sent: 1.
-  // Nothing here touches the cache — the next sync observes the server state.
-  ipcMain.handle("tasks:submit", async (_event, input: unknown) => {
-    const { answerId } = asSubmitAnswerInput(input);
-    try {
-      return await submitTaskAnswer(authController.api(), { answerId });
-    } catch (error) {
-      console.error("[tasks] submit failed:", error);
-      return { ok: false, status: 0 };
-    }
+        writeFile: (filePath, data) => fileSystem.writeBytes(filePath, data),
+      }),
+    shell: {
+      getSettings: () => shellSettings,
+      setViewHidden: (view, hidden) => {
+        if (!isHideableNavKey(view)) return shellSettings;
+        const next = new Set<string>(shellSettings.hiddenViews);
+        if (hidden) next.add(view);
+        else next.delete(view);
+        shellSettings = {
+          ...shellSettings,
+          hiddenViews: NAV_VIEWS.map((entry) => entry.key).filter(
+            (key): key is HideableNavKey => next.has(key),
+          ),
+        };
+        persistShellSettings();
+        setApplicationMenu();
+        broadcastShellSettings();
+        return shellSettings;
+      },
+      setQuitOnClose: (quitOnClose) => {
+        shellSettings = { ...shellSettings, quitOnClose };
+        persistShellSettings();
+        broadcastShellSettings();
+        return shellSettings;
+      },
+    },
+    notifications: {
+      get: () => {
+        const accountId = authController.accountId();
+        if (!accountId) return [];
+        try {
+          return createNotificationStore(inAppFeedRoot, accountId, {
+            fileSystem,
+            path: pathService,
+            clock,
+            random,
+          }).list();
+        } catch {
+          return [];
+        }
+      },
+      markRead: (ids) => {
+        const accountId = authController.accountId();
+        if (!accountId) return [];
+        try {
+          return createNotificationStore(inAppFeedRoot, accountId, {
+            fileSystem,
+            path: pathService,
+            clock,
+            random,
+          }).markRead(ids);
+        } catch {
+          return [];
+        }
+      },
+      markAllRead: () => {
+        const accountId = authController.accountId();
+        if (!accountId) return [];
+        try {
+          return createNotificationStore(inAppFeedRoot, accountId, {
+            fileSystem,
+            path: pathService,
+            clock,
+            random,
+          }).markAllRead();
+        } catch {
+          return [];
+        }
+      },
+    },
+    tasks: {
+      saveDraft: async (input) =>
+        saveDraftAnswer(authController.api(), {
+          taskId: input.taskId,
+          answer: input.answer,
+          answerId: input.answerId ?? null,
+        }),
+      submit: (input) => submitTaskAnswer(authController.api(), input),
+    },
   });
 
   // Deliberate no-op while a tray exists: closing the window must not end the
@@ -518,51 +506,31 @@ if (!gotSingleInstanceLock) {
   // shell & navigation). Without a tray (rare Linux setups) a closed window
   // leaves nothing to reach the app through, so quit instead. The tray
   // opt-out (#22) quits on close even when a tray exists.
-  app.on("window-all-closed", () => {
-    if (!tray || shellSettings.quitOnClose) app.quit();
+  platform.on("window-all-closed", () => {
+    if (!tray || shellSettings.quitOnClose) platform.quit();
   });
 
-  app.on("before-quit", (event) => {
+  platform.on("before-quit", (...args) => {
+    const event = args[0] as { preventDefault(): void } | undefined;
     if (runtimeShutdownComplete) return;
-    event.preventDefault();
+    event?.preventDefault();
     if (runtimeShutdownStarted) return;
 
     runtimeShutdownStarted = true;
     quitting = true;
     sync?.stop();
+    ipcAdapter.unregister();
     void applicationRuntime.shutdown().then(
       () => {
         runtimeShutdownComplete = true;
-        app.quit();
+        platform.quit();
       },
       () => {
         // Shutdown is best-effort at the final process boundary. Do not keep
         // the Student's quit action stuck behind a failed finalizer.
         runtimeShutdownComplete = true;
-        app.quit();
+        platform.quit();
       },
     );
   });
-}
-
-function asSaveDraftInput(input: unknown): {
-  taskId: string;
-  answer: string;
-  answerId: string | null;
-} {
-  const record =
-    typeof input === "object" && input !== null ? (input as Record<string, unknown>) : {};
-  return {
-    taskId: typeof record.taskId === "string" ? record.taskId : "",
-    answer: typeof record.answer === "string" ? record.answer : "",
-    answerId: typeof record.answerId === "string" ? record.answerId : null,
-  };
-}
-
-function asSubmitAnswerInput(input: unknown): { answerId: string } {
-  const record =
-    typeof input === "object" && input !== null ? (input as Record<string, unknown>) : {};
-  return {
-    answerId: typeof record.answerId === "string" ? record.answerId : "",
-  };
 }

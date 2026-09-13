@@ -42,6 +42,11 @@ Node import: the main process instantiates them with that loader, while a
 future renderer consumer can instantiate them with its bundled ESM Effect
 import. Renderer and preload contracts do not import the foundation yet.
 
+Issue #51 composes the replaceable platform services described in
+[`platform-services.md`](./platform-services.md) into this same managed
+runtime. Long-lived Electron resources are released by the layer finalizer;
+feature modules receive service contracts instead of importing host APIs.
+
 ## Dependency-installed baseline
 
 This baseline was recorded after `npm ci` and before adding the Effect

@@ -2,12 +2,15 @@ import type {
   MaterialDownloadRequest,
   MaterialDownloadResult,
 } from "../../shared/materials";
+import { fetchTransport } from "../platform/node";
+import type { HttpTransportService } from "../platform/services";
 
 export interface MaterialDownloadDeps {
   baseUrl: string;
   getToken: () => string | null;
   userAgent: string;
   onUnauthorized?: () => void;
+  transport?: HttpTransportService;
   fetchImpl?: typeof fetch;
   showSaveDialog: (options: { defaultPath: string }) => Promise<{
     canceled: boolean;
@@ -48,10 +51,16 @@ export async function downloadMaterialFile(
     return { ok: false, error: "Download cancelled.", cancelled: true };
   }
 
-  const fetchImpl = deps.fetchImpl ?? fetch;
-  let response: Response;
+  const transport: HttpTransportService =
+    deps.transport ??
+    (deps.fetchImpl
+      ? {
+          request: (requestUrl, init) => deps.fetchImpl!(requestUrl, init),
+        }
+      : fetchTransport);
+  let response;
   try {
-    response = await fetchImpl(url, {
+    response = await transport.request(url, {
       headers: new Headers({
         Authorization: `Bearer ${token}`,
         "User-Agent": deps.userAgent,
