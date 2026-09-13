@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import type { ApiResult, EdunexApi } from "../api/client";
+import { ACTIVE_COURSES_PATH, type ApiResult, type EdunexApi } from "../api/client";
 import { createSnapshotCache } from "./snapshot-cache";
 import { createSyncEngine } from "./sync-engine";
 
@@ -103,8 +103,8 @@ function fakeApi(resultFor: (path: string, callNumber: number) => ApiResult): {
 
 function resultForFixture(path: string) {
   if (path === "/todo") return success(todoFixture);
+  if (path === ACTIVE_COURSES_PATH) return success(coursesFixture);
   if (path === "/exam/exams") return success(examsFixture);
-  if (path === "/course/courses") return success(coursesFixture);
   return success(agendaFixture);
 }
 
@@ -124,7 +124,7 @@ describe("sync engine", () => {
     const result = await engine.tick();
 
     expect(result.kind).toBe("success");
-    expect(calls).toEqual(["/todo", "/course/courses", "/exam/exams", "/course/agenda"]);
+    expect(calls).toEqual(["/todo", ACTIVE_COURSES_PATH, "/exam/exams", "/course/agenda"]);
     expect(cache.read("190136", "todo")?.data).toEqual(todoFixture);
     expect(cache.read("190136", "courses")?.data).toEqual(coursesFixture);
     expect(cache.read("190136", "exams")?.data).toEqual(examsFixture);
