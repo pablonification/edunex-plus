@@ -21,7 +21,7 @@ vi.mock("electron", () => ({
 import "./preload";
 
 const bridge = electronMocks.exposeInMainWorld.mock.calls[0][1] as {
-  getFeed(feed: "todo" | "courses"): Promise<FeedSnapshot | null>;
+  getFeed(feed: "todo" | "courses" | "agenda"): Promise<FeedSnapshot | null>;
   onFeedUpdated(callback: (snapshot: FeedSnapshot) => void): () => void;
 };
 
@@ -60,7 +60,8 @@ describe("preload feed bridge", () => {
     expect(electronMocks.removeListener).toHaveBeenCalledWith("sync:feed-updated", listener);
   });
 
-  it("reads a cached course collection with its captured JSON-API shape", async () => {    const snapshot: FeedSnapshot = {
+  it("reads a cached course collection with its captured JSON-API shape", async () => {
+    const snapshot: FeedSnapshot = {
       feed: "courses",
       accountId: "190136",
       fetchedAt: "2026-09-13T12:00:00.000Z",
@@ -87,6 +88,28 @@ describe("preload feed bridge", () => {
 
     await expect(bridge.getFeed("courses")).resolves.toEqual(snapshot);
     expect(electronMocks.invoke).toHaveBeenCalledWith("sync:get-feed", "courses");
+  });
+
+  it("reads a cached agenda through main's cache IPC channel", async () => {
+    const snapshot: FeedSnapshot = {
+      feed: "agenda",
+      accountId: "190136",
+      fetchedAt: "2026-09-13T12:00:00.000Z",
+      data: [
+        {
+          type: "vicon",
+          course_name: "Final Project Proposal",
+          name: "Week 05 — Online guidance",
+          start_at: "2026-09-16T07:00:00.000Z",
+          end_at: "2026-09-16T09:00:00.000Z",
+        },
+      ],
+    };
+    electronMocks.invoke.mockClear();
+    electronMocks.invoke.mockResolvedValueOnce(snapshot);
+
+    await expect(bridge.getFeed("agenda")).resolves.toEqual(snapshot);
+    expect(electronMocks.invoke).toHaveBeenCalledWith("sync:get-feed", "agenda");
   });
 });
 
