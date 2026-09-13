@@ -17,6 +17,10 @@ export interface EdunexApi {
   get(path: string): Promise<ApiResult>;
 }
 
+/** EduNex's active course-list request captured from the My Courses page. */
+export const ACTIVE_COURSES_PATH =
+  "/course/courses?include=lecturer,lecturer.user,contents,faculty&filter[is_active][is]=1&filter[is_enrolled][is]=1&page[limit]=100&page[offset]=0";
+
 export interface TodoFeed {
   tasks: unknown[];
   exams: unknown[];
@@ -31,6 +35,7 @@ export interface EdunexDataApi extends EdunexApi {
   getTodo(): Promise<ApiResult & { body: TodoFeed }>;
   getCourses(): Promise<ApiResult & { body: JsonApiResource[] }>;
   getCourseTasks(): Promise<ApiResult & { body: JsonApiResource[] }>;
+  getExams(): Promise<ApiResult & { body: JsonApiResource[] }>;
   getAgenda(): Promise<ApiResult & { body: JsonApiResource[] }>;
   getPresences(): Promise<ApiResult & { body: JsonApiResource[] }>;
 }
@@ -89,9 +94,11 @@ export function createEdunexApi(options: EdunexApiOptions): EdunexDataApi {
     get,
     getTodo: () => get("/todo").then((result) => normalizeResult(result, normalizeTodo)),
     getCourses: () =>
-      get("/course/courses").then((result) => normalizeResult(result, normalizeCollection)),
+      get(ACTIVE_COURSES_PATH).then((result) => normalizeResult(result, normalizeCourses)),
     getCourseTasks: () =>
       get("/course/tasks").then((result) => normalizeResult(result, normalizeCollection)),
+    getExams: () =>
+      get("/exam/exams").then((result) => normalizeResult(result, normalizeExams)),
     getAgenda: () =>
       get("/course/agenda").then((result) => normalizeResult(result, normalizeAgenda)),
     getPresences: () =>
@@ -130,6 +137,21 @@ function normalizeCollection(body: unknown): JsonApiResource[] {
 }
 
 /**
+ * Normalizes the plain-JSON `/exam/exams` response at the API boundary.
+ * The vendor returns a plain shape (unlike `/course/tasks`' JSON-API
+ * envelope), but callers should not care whether it arrives as a bare
+ * array or wrapped in `exams`/`data`.
+ */
+function normalizeExams(body: unknown): JsonApiResource[] {
+  if (Array.isArray(body)) return body.filter(isRecord);
+  const root = asRecord(body);
+  if (!root) return [];
+  if (Array.isArray(root.exams)) return root.exams.filter(isRecord);
+  if (Array.isArray(root.data)) return root.data.filter(isRecord);
+  return [];
+}
+
+/**
  * Normalizes the plain-array `/course/agenda` response at the API boundary.
  * The endpoint returns a bare array (unlike `/course/tasks`' JSON-API
  * envelope), but nested `data`/`agenda` variants are accepted so a wrapped
@@ -160,6 +182,22 @@ function normalizePresences(body: unknown): JsonApiResource[] {
     if (Array.isArray(root[key])) return (root[key] as unknown[]).filter(isRecord);
   }
   return [];
+}
+
+function normalizeCourses(body: unknown): JsonApiResource[] {
+  return normalizeCollection(body).filter((resource) => {
+    const attributes = asRecord(resource.attributes) ?? resource;
+    return (
+      "is_active" in attributes &&
+      "is_enrolled" in attributes &&
+      isEnabledCourseFlag(attributes.is_active) &&
+      isEnabledCourseFlag(attributes.is_enrolled)
+    );
+  });
+}
+
+function isEnabledCourseFlag(value: unknown): boolean {
+  return value === true || value === 1 || value === "1" || value === "true";
 }
 
 function arrayOrEmpty(value: unknown): unknown[] {

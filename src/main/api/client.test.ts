@@ -125,10 +125,14 @@ describe("edunex api client", () => {
   });
 
   it("normalizes the course collection while leaving /todo's plain categories intact", async () => {
-    const course = { type: "course", id: "401", attributes: { code: "II4091" } };
+    const course = {
+      type: "course",
+      id: "401",
+      attributes: { code: "II4091", is_active: 1, is_enrolled: true },
+    };
     const todo = { tasks: [{ id: 113986 }], exams: [], questions: [], modules: [] };
     const fetchImpl = vi.fn(async (url: string) =>
-      url.endsWith("/course/courses")
+      url.endsWith("/course/courses?include=lecturer,lecturer.user,contents,faculty&filter[is_active][is]=1&filter[is_enrolled][is]=1&page[limit]=100&page[offset]=0")
         ? okResponse({ data: [course] })
         : okResponse(todo),
     );
@@ -143,6 +147,36 @@ describe("edunex api client", () => {
 
     expect(courses.body).toEqual([course]);
     expect(pending.body).toEqual(todo);
+  });
+
+  it("normalizes the plain /exam/exams response whether bare or wrapped", async () => {
+    const exam = {
+      type: "exam",
+      code: "II4091",
+      course: "Final Project Proposal",
+      name: "UTS — Final Project Proposal",
+      time: "2026-10-13T02:00:00.000Z",
+      id: 7001,
+    };
+    const cases: Array<{ body: unknown; expected: unknown[] }> = [
+      { body: [exam], expected: [exam] },
+      { body: { exams: [exam] }, expected: [exam] },
+      { body: { data: [exam] }, expected: [exam] },
+    ];
+    for (const { body, expected } of cases) {
+      const fetchImpl = vi.fn(async () => okResponse(body));
+      const api = createEdunexApi({
+        baseUrl: "https://api-edunex.cognisia.id",
+        getToken: () => "tok",
+        userAgent: "EdunexPlus/0.0.1",
+        fetchImpl,
+      });
+
+      const result = await api.getExams();
+
+      expect(fetchImpl.mock.calls[0][0]).toBe("https://api-edunex.cognisia.id/exam/exams");
+      expect(result.body).toEqual(expected);
+    }
   });
 
   it("passes the plain-array /course/agenda response through at the API boundary", async () => {
@@ -197,6 +231,52 @@ describe("edunex api client", () => {
     const result = await api.getAgenda();
 
     expect(result.body).toEqual(meetings);
+  });
+
+  it("requests the active enrolled course collection used by My Courses", async () => {
+    const fetchImpl = vi.fn(async () => okResponse({ data: [] }));
+    const api = createEdunexApi({
+      baseUrl: "https://api-edunex.cognisia.id",
+      getToken: () => "tok",
+      userAgent: "EdunexPlus/0.0.1",
+      fetchImpl,
+    });
+
+    await api.getCourses();
+
+    expect(fetchImpl).toHaveBeenCalledWith(
+      "https://api-edunex.cognisia.id/course/courses?include=lecturer,lecturer.user,contents,faculty&filter[is_active][is]=1&filter[is_enrolled][is]=1&page[limit]=100&page[offset]=0",
+      expect.anything(),
+    );
+  });
+
+  it("keeps active enrolled records when the endpoint also returns public catalog rows", async () => {
+    const publicCourse = {
+      type: "courses",
+      id: "27011",
+      attributes: { code: "ED0001", is_active: 1, is_enrolled: false },
+    };
+    const inactiveEnrollment = {
+      type: "courses",
+      id: "60250",
+      attributes: { code: "IF2040", is_active: 0, is_enrolled: true },
+    };
+    const currentCourse = {
+      type: "courses",
+      id: "401",
+      attributes: { code: "ME4066", is_active: 1, is_enrolled: true },
+    };
+    const fetchImpl = vi.fn(async () =>
+      okResponse({ data: [publicCourse, inactiveEnrollment, currentCourse] }),
+    );
+    const api = createEdunexApi({
+      baseUrl: "https://api-edunex.cognisia.id",
+      getToken: () => "tok",
+      userAgent: "EdunexPlus/0.0.1",
+      fetchImpl,
+    });
+
+    await expect(api.getCourses()).resolves.toMatchObject({ body: [currentCourse] });
   });
 
   it("passes the per-course /course/presences/list response through at the API boundary", async () => {
