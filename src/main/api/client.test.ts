@@ -324,6 +324,27 @@ describe("edunex api client", () => {
     });
   });
 
+  it("final-submits via PATCH with only the captured is_sent: 1 attribute", async () => {
+    const fetchImpl = vi.fn(async () => okResponse({}));
+    const api = createEdunexApi({
+      baseUrl: "https://api-edunex.cognisia.id",
+      getToken: () => "tok",
+      userAgent: "EdunexPlus/0.0.1",
+      fetchImpl,
+    });
+
+    const result = await api.submitAnswer("2644208");
+
+    expect(result.status).toBe(200);
+    expect(result.ok).toBe(true);
+    const [url, init] = fetchImpl.mock.calls[0];
+    expect(url).toBe("https://api-edunex.cognisia.id/course/task/answers/2644208");
+    expect(init.method).toBe("PATCH");
+    expect(JSON.parse(init.body)).toEqual({
+      data: { attributes: { is_sent: 1 } },
+    });
+  });
+
   it("treats draft writes like reads for auth: 401 signals, offline does not", async () => {
     const onUnauthorized = vi.fn();
     const unauthorizedFetch = vi.fn(async () => new Response("", { status: 401 }));

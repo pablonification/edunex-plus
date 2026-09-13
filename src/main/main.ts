@@ -24,7 +24,7 @@ import { isFeedKey } from "../shared/feeds";
 import { DEFAULT_SHELL_SETTINGS, NAV_VIEWS, isHideableNavKey } from "../shared/shell";
 import type { HideableNavKey } from "../shared/shell";
 import { loadShellSettings, saveShellSettings } from "./shell/settings-store";
-import { saveDraftAnswer } from "./tasks/task-answers";
+import { saveDraftAnswer, submitAnswer as submitTaskAnswer } from "./tasks/task-answers";
 
 // Windows routes notifications by AppUserModelID; without it they fall under
 // Electron's identity or fail entirely (docs/platform-notifications.md).
@@ -414,6 +414,19 @@ if (!gotSingleInstanceLock) {
     }
   });
 
+  // Task Answer final submit (#26): the renderer sends only the saved answer
+  // id; the main process routes the explicit action to PATCH is_sent: 1.
+  // Nothing here touches the cache — the next sync observes the server state.
+  ipcMain.handle("tasks:submit", async (_event, input: unknown) => {
+    const { answerId } = asSubmitAnswerInput(input);
+    try {
+      return await submitTaskAnswer(authController.api(), { answerId });
+    } catch (error) {
+      console.error("[tasks] submit failed:", error);
+      return { ok: false, status: 0 };
+    }
+  });
+
   // Deliberate no-op while a tray exists: closing the window must not end the
   // process — the app lives in the tray so notifications keep flowing (spec:
   // shell & navigation). Without a tray (rare Linux setups) a closed window
@@ -440,5 +453,13 @@ function asSaveDraftInput(input: unknown): {
     taskId: typeof record.taskId === "string" ? record.taskId : "",
     answer: typeof record.answer === "string" ? record.answer : "",
     answerId: typeof record.answerId === "string" ? record.answerId : null,
+  };
+}
+
+function asSubmitAnswerInput(input: unknown): { answerId: string } {
+  const record =
+    typeof input === "object" && input !== null ? (input as Record<string, unknown>) : {};
+  return {
+    answerId: typeof record.answerId === "string" ? record.answerId : "",
   };
 }

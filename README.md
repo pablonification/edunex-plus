@@ -23,8 +23,7 @@ Edunex Plus answers with a calm, minimal desktop client that wraps the EduNex AP
   with backoff) notices a new Task or an opened Presence window and raises the OS notification
   on its next poll — within a couple of minutes at worst, longer while errors back off.
 - **Status-first submissions** — draft, submitted, and overdue are unmistakable at a glance;
-  Save-draft is visually quiet. Submit — a deliberate act with a green receipt — lands only
-  once the final-submit wire contract is verified (issue #12).
+  Save-draft is visually quiet. Submit is a deliberate primary action with a green receipt.
 - **Calm shell** — a floating sidebar and content panel; hide the features you never use.
 - **Offline reading** — the last-synced feeds stay readable without a connection.
 - **Lives in the tray** — closing the window keeps notifications flowing.
