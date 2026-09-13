@@ -71,6 +71,10 @@ describe("To Do app flow", () => {
       onAuthState: vi.fn(() => () => undefined),
       getFeed,
       onFeedUpdated: vi.fn(() => () => undefined),
+      getShellSettings: vi.fn(async () => ({ hiddenViews: [], quitOnClose: false })),
+      setViewHidden: vi.fn(async () => ({ hiddenViews: [], quitOnClose: false })),
+      setQuitOnClose: vi.fn(async () => ({ hiddenViews: [], quitOnClose: false })),
+      onShellSettings: vi.fn(() => () => undefined),
     };
 
     const container = document.createElement("div");
