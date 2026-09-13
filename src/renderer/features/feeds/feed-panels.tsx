@@ -6,8 +6,11 @@ import {
   filterAgendaItemsByCourse,
   filterExamsByCourse,
   filterExamsByCourses,
+  filterMaterialsByCourse,
+  filterMaterialsByCourses,
   filterPresenceItemsByCourse,
   filterTodoItemsByCourses,
+  formatFileSize,
   formatTimestamp,
   isTaskItem,
   scopeCoursesToPeriod,
@@ -15,6 +18,7 @@ import {
   toCourseItems,
   toCurrentPeriodId,
   toExamItems,
+  toMaterialItems,
   toPeriodItems,
   toPresenceItems,
   toTodoItems,
@@ -22,6 +26,7 @@ import {
   type AgendaItem,
   type CourseItem,
   type ExamItem,
+  type MaterialItem,
   type PeriodItem,
   type PresenceItem,
   type TaskItem,
@@ -34,6 +39,7 @@ import {
   deriveSubmissionStatus,
 } from "@shared/submission";
 import { useCachedFeed, type CachedFeedState } from "./use-cached-feed";
+import { useMaterialDownload } from "./use-material-download";
 
 export interface TodoSelectionHandler {
   (task: TaskItem): void;
@@ -208,6 +214,51 @@ export function AgendaPanel() {
   return <AgendaFeedSection items={items} feedState={feedState} />;
 }
 
+/** Standalone materials list for the Materials navigation item (#30). */
+export function MaterialsPanel() {
+  const coursesState = useCachedFeed("courses");
+  const materialsState = useCachedFeed("materials");
+  const { periods, periodId, scopedCourses, onPeriodChange } =
+    useCoursePeriodScope(coursesState);
+  const allItems = useMemo(
+    () => toMaterialItems(materialsState.snapshot?.data),
+    [materialsState.snapshot?.data],
+  );
+  const scopedItems = useMemo(
+    () => filterMaterialsByCourses(allItems, scopedCourses),
+    [allItems, scopedCourses],
+  );
+  const combinedState: CachedFeedState = {
+    snapshot: materialsState.snapshot,
+    loading: coursesState.loading || materialsState.loading,
+    error: materialsState.error,
+  };
+
+  return (
+    <div className="space-y-8">
+      <div className="px-1">
+        <p className="text-caption-1-semibold uppercase tracking-[0.08em] text-text-tertiary">
+          Course files
+        </p>
+        <h2 className="mt-1 text-[22px] font-semibold tracking-tight text-text-primary">
+          Materials
+        </h2>
+        <p className="mt-1 max-w-[46rem] text-[13px] leading-5 text-text-secondary">
+          Files listed per course from the latest snapshot — readable offline.
+          Downloading saves the real file through a save dialog and needs the network.
+        </p>
+      </div>
+      <MaterialsFeedSection
+        items={scopedItems}
+        feedState={combinedState}
+        periods={periods}
+        selectedPeriodId={periodId}
+        onPeriodChange={onPeriodChange}
+      />
+    </div>
+  );
+}
+
 /** Standalone presence records feed for the Presence navigation item. */
 export function PresencePanel() {
   const feedState = useCachedFeed("presences");
@@ -336,6 +387,204 @@ function AgendaFeedSection({
         <EmptyFeed message="No meetings in the latest snapshot." />
       )}
     </FeedSection>
+  );
+}
+
+/** The course hub's materials section: this course's files from the cache. */
+function CourseMaterialsSection({ course }: { course: CourseItem }) {
+  const feedState = useCachedFeed("materials");
+  const items = useMemo(() => {
+    const all = toMaterialItems(feedState.snapshot?.data);
+    return filterMaterialsByCourse(all, course);
+  }, [feedState.snapshot?.data, course]);
+
+  if (feedState.loading) {
+    return (
+      <article className="rounded-xl bg-background-secondary-default p-4">
+        <MaterialsSectionHeading title="Materials" count={null} />
+        <p className="mt-3 px-1 py-4 text-center text-[13px] text-text-tertiary">
+          Loading latest snapshot…
+        </p>
+      </article>
+    );
+  }
+
+  if (feedState.error) {
+    return (
+      <article className="rounded-xl bg-background-secondary-default p-4">
+        <MaterialsSectionHeading title="Materials" count={null} />
+        <p className="mt-3 px-1 py-4 text-center text-[13px] text-text-secondary">
+          The cached feed could not be read.
+        </p>
+      </article>
+    );
+  }
+
+  return (
+    <article className="rounded-xl bg-background-secondary-default p-4">
+      <MaterialsSectionHeading title="Materials" count={items.length} />
+      {items.length > 0 ? (
+        <div className="mt-3">
+          <MaterialsList items={items} hideCourse />
+        </div>
+      ) : (
+        <p className="mt-3 px-1 py-4 text-center text-[13px] text-text-tertiary">
+          {feedState.snapshot
+            ? "No files for this course in the latest snapshot."
+            : "No materials snapshot yet."}
+        </p>
+      )}
+    </article>
+  );
+}
+
+function MaterialsFeedSection({
+  items,
+  feedState,
+  periods,
+  selectedPeriodId,
+  onPeriodChange,
+  hideCourse = false,
+  eyebrow = "Course files",
+  title = "Materials",
+}: {
+  items: MaterialItem[];
+  feedState: CachedFeedState;
+  periods?: PeriodItem[];
+  selectedPeriodId?: string | null;
+  onPeriodChange?: (periodId: string) => void;
+  hideCourse?: boolean;
+  eyebrow?: string;
+  title?: string;
+}) {
+  return (
+    <FeedSection
+      eyebrow={eyebrow}
+      title={title}
+      count={items.length}
+      snapshot={feedState.snapshot}
+      loading={feedState.loading}
+      error={feedState.error}
+      headerAction={
+        periods && selectedPeriodId !== undefined && onPeriodChange ? (
+          <PeriodSwitcher
+            periods={periods}
+            selectedPeriodId={selectedPeriodId}
+            onChange={onPeriodChange}
+          />
+        ) : undefined
+      }
+    >
+      {items.length > 0 ? (
+        <div className="space-y-2">
+          <MaterialsList items={items} hideCourse={hideCourse} />
+          <p className="px-1 text-caption-1-regular text-text-tertiary">
+            Downloading saves the real file through a save dialog — listing stays available offline.
+          </p>
+        </div>
+      ) : (
+        <EmptyFeed message="No course files in the latest snapshot." />
+      )}
+    </FeedSection>
+  );
+}
+
+export interface MaterialsListProps {
+  items: MaterialItem[];
+  /** The course hub already names the course, so rows skip repeating it. */
+  hideCourse?: boolean;
+}
+
+/**
+ * Materials list with explicit download actions. Each row's Download button
+ * is the only write-adjacent affordance: it invokes main's download IPC on
+ * click and never fires in the background (read-mostly API stance). List
+ * rows render from the snapshot cache, so they stay readable offline;
+ * failures surface inline per row.
+ */
+export function MaterialsList({ items, hideCourse = false }: MaterialsListProps) {
+  const { states, download } = useMaterialDownload();
+  const revealCourse = !hideCourse;
+
+  return (
+    <ul className="flex flex-col gap-2">
+      {items.map((item) => {
+        const state = states[item.id] ?? { status: "idle" as const, message: null };
+        const downloading = state.status === "downloading";
+        const downloadable = Boolean(item.fileUrl);
+        const sizeLabel = formatFileSize(item.size);
+        return (
+          <li
+            key={item.id}
+            className="flex min-w-0 items-start gap-3 rounded-lg bg-background-primary-default p-3.5 shadow-sm"
+          >
+            <span
+              className="grid size-9 shrink-0 place-items-center rounded-lg bg-accent-500/10 text-accent-600"
+              aria-hidden
+            >
+              <i className="ri-file-download-line text-[16px]" />
+            </span>
+            <div className="min-w-0 flex-1">
+              {revealCourse && (item.courseCode || item.courseName) && (
+                <span className="block truncate text-caption-1-semibold text-text-tertiary">
+                  {item.courseCode ? `${item.courseCode} · ` : ""}{item.courseName}
+                </span>
+              )}
+              <h4 className="mt-0.5 line-clamp-2 text-[14px] font-semibold leading-5 text-text-primary">
+                {item.title}
+              </h4>
+              <p className="mt-1 truncate text-caption-1-regular text-text-secondary">
+                {item.fileName}
+                {sizeLabel ? ` · ${sizeLabel}` : ""}
+                {item.mimeType ? ` · ${item.mimeType}` : ""}
+              </p>
+              {state.status === "done" && state.message && (
+                <p className="mt-1 text-caption-1-regular text-green-700" role="status">
+                  {state.message}
+                </p>
+              )}
+              {state.status === "error" && state.message && (
+                <p className="mt-1 text-caption-1-regular text-red-700" role="alert">
+                  {state.message}
+                </p>
+              )}
+              {!downloadable && (
+                <p className="mt-1 text-caption-1-regular text-text-tertiary">
+                  No downloadable file listed for this material.
+                </p>
+              )}
+            </div>
+            {downloadable && (
+              <button
+                type="button"
+                disabled={downloading}
+                onClick={() => void download(item)}
+                aria-label={`Download ${item.title}`}
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-md bg-background-secondary-default px-2.5 py-1.5 text-[13px] font-medium text-text-primary outline-none transition-colors duration-150 hover:bg-background-secondary-hover focus-visible:ring-2 focus-visible:ring-border-focus-ring disabled:cursor-wait disabled:opacity-60"
+              >
+                <i
+                  className={downloading ? "ri-loader-4-line animate-spin text-[15px]" : "ri-download-2-line text-[15px]"}
+                  aria-hidden
+                />
+                {downloading ? "Saving…" : state.status === "done" ? "Saved" : "Download"}
+              </button>
+            )}
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+function MaterialsSectionHeading({ title, count }: { title: string; count: number | null }) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <span className="grid size-8 place-items-center rounded-lg bg-background-primary-default text-text-secondary shadow-sm">
+        <i className="ri-folder-3-line text-[16px]" aria-hidden />
+      </span>
+      {count !== null && <Badge color="neutral">{count}</Badge>}
+      <h4 className="mr-auto text-[14px] font-semibold text-text-primary">{title}</h4>
+    </div>
   );
 }
 
@@ -1036,7 +1285,7 @@ function CourseHub({
           <div>
             <h3 className="text-[16px] font-semibold text-text-primary">Course sections</h3>
             <p className="mt-1 text-[13px] text-text-secondary">
-              Scheduled exams and agenda meetings read from the latest snapshot. Other sections
+              Agenda, exams, and files read from the latest snapshot. Other sections
               land in their own slices.
             </p>
           </div>
@@ -1046,12 +1295,8 @@ function CourseHub({
           <CourseExamsSection course={course} />
           <div className="grid gap-2 sm:grid-cols-2">
             <CourseAgendaSection course={course} />
+            <CourseMaterialsSection course={course} />
             <CoursePresenceSection course={course} />
-            <HubPlaceholder
-              icon="ri-folder-3-line"
-              title="Materials"
-              description="Course files and downloads will live here."
-            />
           </div>
         </div>
       </div>
@@ -1073,29 +1318,6 @@ function CourseExamsSection({ course }: { course: CourseItem }) {
       eyebrow={`Exams · ${course.code || "Course"}`}
       title="Exams"
     />
-  );
-}
-
-function HubPlaceholder({
-  icon,
-  title,
-  description,
-}: {
-  icon: string;
-  title: string;
-  description: string;
-}) {
-  return (
-    <article className="rounded-xl bg-background-secondary-default p-4">
-      <div className="flex items-center justify-between gap-3">
-        <span className="grid size-8 place-items-center rounded-lg bg-background-primary-default text-text-secondary shadow-sm">
-          <i className={`${icon} text-[16px]`} aria-hidden />
-        </span>
-        <Chip color="soft" variant="caption">Coming soon</Chip>
-      </div>
-      <h4 className="mt-4 text-[14px] font-semibold text-text-primary">{title}</h4>
-      <p className="mt-1 max-w-[30rem] text-[13px] leading-5 text-text-secondary">{description}</p>
-    </article>
   );
 }
 

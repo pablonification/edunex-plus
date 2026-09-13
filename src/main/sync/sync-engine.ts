@@ -25,6 +25,7 @@ const FEED_ENDPOINTS: ReadonlyArray<{ key: FeedKey; path: string }> = [
   { key: "exams", path: "/exam/exams" },
   { key: "agenda", path: "/course/agenda" },
   { key: "presences", path: "/course/presences/list" },
+  { key: "materials", path: "/course/materials" },
 ];
 
 export type SyncTickKind = "success" | "failed" | "unauthorized" | "not-ready" | "stopped";
@@ -37,7 +38,7 @@ export interface SyncTickResult {
 
 export interface SyncEngineOptions {
   api: Pick<EdunexApi, "get"> &
-    Partial<Pick<EdunexDataApi, "getTodo" | "getCourses" | "getExams" | "getAgenda" | "getPresences">>;
+    Partial<Pick<EdunexDataApi, "getTodo" | "getCourses" | "getExams" | "getAgenda" | "getPresences" | "getMaterials">>;
   cache: SnapshotCache;
   /** The authenticated account whose snapshots this engine owns. */
   getAccountId?: () => string | null;
@@ -168,6 +169,7 @@ export function createSyncEngine(options: SyncEngineOptions): SyncEngine {
     if (key === "exams" && options.api.getExams) return options.api.getExams();
     if (key === "agenda" && options.api.getAgenda) return options.api.getAgenda();
     if (key === "presences" && options.api.getPresences) return options.api.getPresences();
+    if (key === "materials" && options.api.getMaterials) return options.api.getMaterials();
     return options.api.get(path);
   }
 
