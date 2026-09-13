@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Chip } from "@/components/ui/chip";
 import { StatusDot } from "@/components/ui/status-dot";
@@ -27,7 +27,8 @@ const SUBMISSION_BODY: Record<SubmissionStatus, string> = {
  * answer page. The status card leads with a colored edge, status word, and
  * StatusDot — derived from `is_sent` only — and Save-draft is a visually
  * quiet secondary action wired to the verified create/update contract.
- * Submit lives in #26; no resubmit affordance (verified absent in #12).
+ * Submit is available only after an answer has been saved; no resubmit
+ * affordance is offered (verified absent in #12).
  */
 export function TaskPageShell({ task, onBack }: TaskPageShellProps) {
   const status = deriveSubmissionStatus(task.isSent, task.dueAt);
@@ -37,11 +38,22 @@ export function TaskPageShell({ task, onBack }: TaskPageShellProps) {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [explainerOpen, setExplainerOpen] = useState(false);
+  const [submissionReceipt, setSubmissionReceipt] = useState(false);
+
+  useEffect(() => {
+    // A sync snapshot is authoritative, including an unexpected server-side
+    // rejection/reversion of a just-submitted answer.
+    setSubmissionReceipt(false);
+  }, [task.id, task.isSent]);
 
   async function handleSaveDraft() {
     if (saving) return;
     setSaving(true);
     setError(null);
+    setSubmitError(null);
     setSaved(false);
     try {
       const result = await window.edunex.saveDraft({
@@ -61,6 +73,30 @@ export function TaskPageShell({ task, onBack }: TaskPageShellProps) {
       setError("Couldn't save the draft. Check your connection and try again.");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleSubmit() {
+    if (submitting || !answerId || status === "submitted") return;
+    setSubmitting(true);
+    setSubmitError(null);
+    setError(null);
+    setSaved(false);
+    try {
+      const result = await window.edunex.submitAnswer({ answerId });
+      if (result.ok) {
+        // The receipt acknowledges the explicit write. The status card stays
+        // derived from task.isSent until the next sync confirms the server.
+        setSubmissionReceipt(true);
+      } else if (result.status === 401) {
+        setSubmitError("Your session expired — sign in again, then retry submitting.");
+      } else {
+        setSubmitError("Couldn't submit the answer. Check your connection and try again.");
+      }
+    } catch {
+      setSubmitError("Couldn't submit the answer. Check your connection and try again.");
+    } finally {
+      setSubmitting(false);
     }
   }
 
@@ -112,9 +148,27 @@ export function TaskPageShell({ task, onBack }: TaskPageShellProps) {
             </div>
           </div>
 
-          {status === "submitted" ? (
+          {status === "submitted" || submissionReceipt ? (
             <div className="p-5">
-              <h3 className="text-[15px] font-semibold text-text-primary">Your answer</h3>
+              <div
+                className="flex items-start gap-3 rounded-lg border border-green-200 bg-green-50 p-3.5"
+                role="status"
+                aria-live="polite"
+              >
+                <StatusDot color="green" />
+                <div className="min-w-0">
+                  <p className="text-[14px] font-semibold text-green-900">Submission receipt</p>
+                  <p className="mt-0.5 text-[13px] leading-5 text-green-800/80">
+                    {status === "submitted"
+                      ? "Your answer was submitted successfully. The lecturer can see it now."
+                      : "Your answer was sent. The next sync will confirm the submitted status."}
+                  </p>
+                  {answerId && (
+                    <p className="mt-1 text-[12px] text-green-800/70">Answer ID {answerId}</p>
+                  )}
+                </div>
+              </div>
+              <h3 className="mt-5 text-[15px] font-semibold text-text-primary">Your answer</h3>
               {answer ? (
                 <p className="mt-2 whitespace-pre-wrap text-body-regular leading-5 text-text-secondary">
                   {answer}
@@ -127,12 +181,50 @@ export function TaskPageShell({ task, onBack }: TaskPageShellProps) {
             </div>
           ) : (
             <div className="p-5">
-              <label
-                htmlFor="task-answer-editor"
-                className="text-[15px] font-semibold text-text-primary"
-              >
-                Your answer
-              </label>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <label
+                  htmlFor="task-answer-editor"
+                  className="text-[15px] font-semibold text-text-primary"
+                >
+                  Your answer
+                </label>
+                <button
+                  type="button"
+                  className="rounded-sm px-1 text-[13px] font-medium text-accent-600 outline-none hover:underline focus-visible:ring-2 focus-visible:ring-border-focus-ring"
+                  aria-expanded={explainerOpen}
+                  aria-controls="submission-difference-explainer"
+                  onClick={() => setExplainerOpen((open) => !open)}
+                >
+                  What's the difference?
+                </button>
+              </div>
+              {explainerOpen && (
+                <div
+                  id="submission-difference-explainer"
+                  className="mt-3 grid gap-3 rounded-lg bg-background-secondary-default p-3.5 text-[13px]"
+                  role="region"
+                  aria-label="Difference between saving and submitting"
+                >
+                  <div className="flex items-start gap-2.5">
+                    <StatusDot color="yellow" />
+                    <div>
+                      <p className="font-semibold text-text-primary">Saved draft</p>
+                      <p className="mt-0.5 leading-5 text-text-secondary">
+                        Only you can see a saved draft. It does not count as turned in.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2.5">
+                    <StatusDot color="green" />
+                    <div>
+                      <p className="font-semibold text-text-primary">Submitted</p>
+                      <p className="mt-0.5 leading-5 text-text-secondary">
+                        Your lecturer can see it, and the answer is final.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
               <textarea
                 id="task-answer-editor"
                 rows={5}
@@ -143,16 +235,34 @@ export function TaskPageShell({ task, onBack }: TaskPageShellProps) {
               />
               <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
                 <p className="text-[13px] text-text-tertiary" aria-live="polite">
-                  {error ?? (saved ? "Draft saved — only you can see it." : "Saving keeps a draft. Submit turns it in.")}
+                  {submitError ?? error ?? (
+                    saved
+                      ? "Draft saved — only you can see it."
+                      : answerId
+                        ? "Saving keeps a draft. Submit turns it in."
+                        : "Save a draft to unlock final submission."
+                  )}
                 </p>
-                <Button
-                  variant="secondary"
-                  size="small"
-                  onClick={() => void handleSaveDraft()}
-                  disabled={saving}
-                >
-                  {saving ? "Saving…" : "Save draft"}
-                </Button>
+                <div className="flex flex-wrap items-center justify-end gap-2">
+                  <Button
+                    variant="secondary"
+                    size="small"
+                    onClick={() => void handleSaveDraft()}
+                    disabled={saving || submitting}
+                  >
+                    {saving ? "Saving…" : "Save draft"}
+                  </Button>
+                  {answerId && !submissionReceipt && (
+                    <Button
+                      variant="primary"
+                      size="small"
+                      onClick={() => void handleSubmit()}
+                      disabled={saving || submitting}
+                    >
+                      {submitting ? "Submitting…" : "Submit answer"}
+                    </Button>
+                  )}
+                </div>
               </div>
             </div>
           )}

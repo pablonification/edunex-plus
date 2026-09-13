@@ -81,6 +81,7 @@ describe("To Do app flow", () => {
       onNotificationsUpdated: vi.fn(() => () => undefined),
       onNotificationClicked: vi.fn(() => () => undefined),
       saveDraft: vi.fn(async () => ({ ok: true, status: 201, created: true, answerId: "2644208" })),
+      submitAnswer: vi.fn(async () => ({ ok: true, status: 200 })),
     };
 
     const container = document.createElement("div");
@@ -118,6 +119,130 @@ describe("To Do app flow", () => {
     expect(container.textContent).toContain("Your answer");
     expect(container.textContent).toContain("Save draft");
     expect(container.textContent).not.toContain("sent_at");
+  });
+
+  it("refreshes the open Task status from the next synced To Do snapshot", async () => {
+    const initialSnapshot: FeedSnapshot = {
+      feed: "todo",
+      accountId: "190136",
+      fetchedAt: "2026-09-13T12:00:00.000Z",
+      data: {
+        tasks: [
+          {
+            type: "task",
+            code: "II4091",
+            course: "Final Project Proposal",
+            name: "Answer Tugas 01",
+            time: "2100-09-14T23:59:00.000Z",
+            id: 113986,
+            answers: [{ id: 2644208, answer: "Saved draft", is_sent: 0 }],
+          },
+        ],
+        exams: [],
+        questions: [],
+        modules: [],
+      },
+    };
+    const submittedSnapshot: FeedSnapshot = {
+      ...initialSnapshot,
+      fetchedAt: "2026-09-13T12:02:00.000Z",
+      data: {
+        tasks: [
+          {
+            type: "task",
+            code: "II4091",
+            course: "Final Project Proposal",
+            name: "Answer Tugas 01",
+            time: "2100-09-14T23:59:00.000Z",
+            id: 113986,
+            answers: [{ id: 2644208, answer: "Saved draft", is_sent: 1, sent_by: 190136 }],
+          },
+        ],
+        exams: [],
+        questions: [],
+        modules: [],
+      },
+    };
+    const coursesSnapshot: FeedSnapshot = {
+      feed: "courses",
+      accountId: "190136",
+      fetchedAt: initialSnapshot.fetchedAt,
+      data: [],
+    };
+    const feedUpdateCallbacks: Array<(snapshot: FeedSnapshot) => void> = [];
+    const getFeed = vi.fn(async (feed: FeedKey) =>
+      feed === "todo" ? initialSnapshot : coursesSnapshot,
+    );
+
+    window.edunex = {
+      version: "0.0.1",
+      platform: "linux",
+      fireTestNotification: vi.fn(async () => undefined),
+      getAppInfo: vi.fn(async () => ({
+        version: "0.0.1",
+        platform: "linux",
+        trayActive: true,
+        notificationsSupported: true,
+      })),
+      onNavigate: vi.fn(() => () => undefined),
+      onFullscreenChange: vi.fn(() => () => undefined),
+      getAuthState: vi.fn(async () => "signed-in" as const),
+      startLogin: vi.fn(async () => undefined),
+      onAuthState: vi.fn(() => () => undefined),
+      getFeed,
+      onFeedUpdated: vi.fn((callback: (snapshot: FeedSnapshot) => void) => {
+        feedUpdateCallbacks.push(callback);
+        return () => undefined;
+      }),
+      getShellSettings: vi.fn(async () => ({ hiddenViews: [], quitOnClose: false })),
+      setViewHidden: vi.fn(async () => ({ hiddenViews: [], quitOnClose: false })),
+      setQuitOnClose: vi.fn(async () => ({ hiddenViews: [], quitOnClose: false })),
+      onShellSettings: vi.fn(() => () => undefined),
+      getNotifications: vi.fn(async () => []),
+      markNotificationsRead: vi.fn(async () => []),
+      markAllNotificationsRead: vi.fn(async () => []),
+      onNotificationsUpdated: vi.fn(() => () => undefined),
+      onNotificationClicked: vi.fn(() => () => undefined),
+      saveDraft: vi.fn(async () => ({ ok: true, status: 200, created: false, answerId: "2644208" })),
+      submitAnswer: vi.fn(async () => ({ ok: true, status: 200 })),
+    };
+
+    const container = document.createElement("div");
+    document.body.append(container);
+    const root = createRoot(container);
+    cleanup = () => {
+      root.unmount();
+      container.remove();
+    };
+
+    await act(async () => {
+      root.render(createElement(App));
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+
+    await act(async () => {
+      container.querySelector<HTMLButtonElement>(
+        'button[aria-label="Open task Answer Tugas 01"]',
+      )!.click();
+    });
+    const submitButton = [...container.querySelectorAll("button")].find((button) =>
+      button.textContent?.includes("Submit answer"),
+    );
+    expect(submitButton).not.toBeUndefined();
+
+    await act(async () => {
+      submitButton!.click();
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    expect(container.textContent).toContain("Your answer was sent.");
+
+    await act(async () => {
+      for (const callback of feedUpdateCallbacks) callback(submittedSnapshot);
+    });
+
+    expect(container.textContent).toContain("SUBMITTED");
+    expect(container.textContent).toContain("Your answer was submitted successfully.");
+    expect(container.querySelector("textarea")).toBeNull();
   });
 
   it("opens the task destination when an OS notification is clicked", async () => {
@@ -174,6 +299,7 @@ describe("To Do app flow", () => {
         return () => undefined;
       }),
       saveDraft: vi.fn(async () => ({ ok: true, status: 201, created: true, answerId: "2644208" })),
+      submitAnswer: vi.fn(async () => ({ ok: true, status: 200 })),
     };
 
     const container = document.createElement("div");
@@ -356,6 +482,7 @@ describe("To Do app flow", () => {
       onNotificationsUpdated: vi.fn(() => () => undefined),
       onNotificationClicked: vi.fn(() => () => undefined),
       saveDraft: vi.fn(async () => ({ ok: true, status: 201, created: true, answerId: "2644208" })),
+      submitAnswer: vi.fn(async () => ({ ok: true, status: 200 })),
     };
 
     const container = document.createElement("div");
@@ -475,6 +602,7 @@ describe("To Do app flow", () => {
       onNotificationsUpdated: vi.fn(() => () => undefined),
       onNotificationClicked: vi.fn(() => () => undefined),
       saveDraft: vi.fn(async () => ({ ok: true, status: 201, created: true, answerId: "2644208" })),
+      submitAnswer: vi.fn(async () => ({ ok: true, status: 200 })),
     };
 
     const container = document.createElement("div");

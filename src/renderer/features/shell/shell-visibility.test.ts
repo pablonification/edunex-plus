@@ -91,6 +91,7 @@ function installEdunex(shell: ShellBridge) {
     onNotificationsUpdated: vi.fn(() => () => undefined),
     onNotificationClicked: vi.fn(() => () => undefined),
     saveDraft: vi.fn(async () => ({ ok: true, status: 201, created: true, answerId: "2644208" })),
+    submitAnswer: vi.fn(async () => ({ ok: true, status: 200 })),
   };
 }
 

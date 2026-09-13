@@ -80,13 +80,14 @@ Task Answers (the "saved ≠ submitted" surface) and nothing else:
 
 - `POST /course/task/answers` — create a draft Answer, `task_id` in the body → `201`.
 - `PATCH /course/task/answers/{answerId}` — update a draft Answer.
-- Final submit: the exact wire contract is a **bounded known-unknown** — expected
-  `is_sent: 1` plus a sender field, captured on the user's next real submission (tracked in
-  issue #12). Until then the app never guesses it, and there is **no resubmit affordance**.
+- Final submit: `PATCH /course/task/answers/{answerId}` with exactly
+  `{ "data": { "attributes": { "is_sent": 1 } } }` → `200`. The server stamps `sent_by`,
+  `sent_at`, and the other receipt fields; the client reads `is_sent` on the next sync. There
+  is **no resubmit affordance**.
 - Status derivation uses **`is_sent` only** (`0` = draft): `sent_at` is stamped on drafts too,
   so the app never displays it.
-- Both draft calls fire only on an explicit click. There are no other `POST`/`PATCH`/`PUT`/
-  `DELETE` calls in the client.
+- All three answer writes fire only on an explicit click. There are no other `POST`/`PATCH`/
+  `PUT`/`DELETE` calls in the client.
 
 ## What the app deliberately does not do
 
@@ -103,7 +104,6 @@ Task Answers (the "saved ≠ submitted" surface) and nothing else:
 
 - Endpoint existence, response shapes, and the auth capture were verified live via the
   prototype spikes (`prototype/auth-spike`, `prototype/sync-spike`, September 2026).
-- The final-submit contract and the file-attachment upload endpoint behind
-  `answers[].files[]` are pending capture (issue #12); the submission slice's final wiring
-  waits on it.
+- The final-submit contract was captured live on Tugas 01 (issue #12). The file-attachment
+  upload endpoint behind `answers[].files[]` remains pending capture and is not called by v1.
 - Any new endpoint must land here first, verified, before the client calls it.

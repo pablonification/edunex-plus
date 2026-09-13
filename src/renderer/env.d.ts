@@ -1,8 +1,15 @@
+/// <reference types="vite/client" />
+
 import type { AuthStatus } from "@shared/auth";
 import type { FeedKey, FeedSnapshot } from "@shared/feeds";
 import type { InAppNotification } from "@shared/notifications";
 import type { AppInfo, NavKey, ShellSettings } from "@shared/shell";
-import type { SaveDraftInput, SaveDraftResult } from "@shared/submission";
+import type {
+  SaveDraftInput,
+  SaveDraftResult,
+  SubmitAnswerInput,
+  SubmitAnswerResult,
+} from "@shared/submission";
 
 export {};
 
@@ -35,6 +42,7 @@ declare global {
       onNotificationsUpdated(callback: (entries: InAppNotification[]) => void): () => void;
       onNotificationClicked(callback: (payload: { taskIds: string[] }) => void): () => void;
       saveDraft(input: SaveDraftInput): Promise<SaveDraftResult>;
+      submitAnswer(input: SubmitAnswerInput): Promise<SubmitAnswerResult>;
     };
   }
 }

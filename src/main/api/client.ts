@@ -2,8 +2,9 @@
  * Direct API client for the vendor API (api-edunex.cognisia.id) — the app
  * talks to it with the bearer token captured from the webview, never with a
  * password (spec: auth & session, API stance). Read-mostly: the auth and sync
- * slices use GETs only; the only writes are the Task Answer draft-save pair
- * below, which fire solely on an explicit Save-draft click (API guardrails).
+ * slices use GETs only; the only writes are the Task Answer draft-save and
+ * final-submit actions below, which fire solely on explicit user clicks (API
+ * guardrails).
  */
 
 export interface ApiResult {
@@ -47,6 +48,8 @@ export interface EdunexDataApi extends EdunexApi {
    */
   createDraftAnswer(taskId: string, answer: string): Promise<ApiResult>;
   updateDraftAnswer(answerId: string, taskId: string, answer: string): Promise<ApiResult>;
+  /** Final submit, verified live in issue #12: PATCH with only `is_sent: 1`. */
+  submitAnswer(answerId: string): Promise<ApiResult>;
 }
 
 export interface EdunexApiOptions {
@@ -134,6 +137,10 @@ export function createEdunexApi(options: EdunexApiOptions): EdunexDataApi {
     updateDraftAnswer: (answerId: string, taskId: string, answer: string) =>
       patch(`/course/task/answers/${answerId}`, {
         data: { attributes: { task_id: taskId, files: [], answer, is_sent: 0 } },
+      }),
+    submitAnswer: (answerId: string) =>
+      patch(`/course/task/answers/${answerId}`, {
+        data: { attributes: { is_sent: 1 } },
       }),
   };
 }
