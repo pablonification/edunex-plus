@@ -124,7 +124,7 @@ it("provides platform services through the managed application layer", async () 
       const electron = yield* ElectronPlatform;
       return {
         canRead: typeof fileSystem.readText === "function",
-        joined: path.join("a", "b"),
+    joined: nodePath.join("a", "b"),
         now: clock.now(),
         random: random.next(),
         encrypted: safeStorage.isEncryptionAvailable(),

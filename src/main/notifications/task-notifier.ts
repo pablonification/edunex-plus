@@ -35,7 +35,7 @@ export interface TaskNotifier {
  * write, and the fan-out to both sinks.
  */
 export function createTaskNotifier(options: TaskNotifierOptions): TaskNotifier {
-  const now = options.now ?? options.clock?.now ?? systemClock.now;
+  const now = options.now ?? (() => options.clock?.now() ?? systemClock.now());
   const ledgers = new Map<string, SeenLedger>();
 
   function ledgerFor(accountId: string): SeenLedger {
