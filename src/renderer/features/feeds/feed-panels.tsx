@@ -2,13 +2,26 @@ import { Badge } from "@/components/ui/badge";
 import { Chip } from "@/components/ui/chip";
 import type { ReactNode } from "react";
 import { useCachedFeed } from "./use-cached-feed";
-import { toCourseItems, toTodoItems, type CourseItem, type TodoItem } from "./feed-data";
+import {
+  formatTimestamp,
+  isTaskItem,
+  toCourseItems,
+  toTodoSections,
+  type CourseItem,
+  type TaskItem,
+  type TodoItem,
+  type TodoSection,
+} from "./feed-data";
 
-export function DashboardPanel() {
+export interface TodoSelectionHandler {
+  (task: TaskItem): void;
+}
+
+export function DashboardPanel({ onTaskSelect }: { onTaskSelect?: TodoSelectionHandler } = {}) {
   return (
     <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
       <CoursesPanel />
-      <TodoPanel />
+      <TodoPanel onTaskSelect={onTaskSelect} />
     </div>
   );
 }
@@ -37,27 +50,74 @@ export function CoursesPanel() {
   );
 }
 
-export function TodoPanel() {
+export function TodoPanel({ onTaskSelect }: { onTaskSelect?: TodoSelectionHandler } = {}) {
   const { snapshot, loading, error } = useCachedFeed("todo");
-  const items = toTodoItems(snapshot?.data);
+  const sections = toTodoSections(snapshot?.data);
+  const itemCount = sections.reduce((total, section) => total + section.items.length, 0);
 
   return (
     <FeedSection
       eyebrow="Deadlines"
       title="To Do"
-      count={items.length}
+      count={itemCount}
+      hideZeroCount
       snapshot={snapshot}
       loading={loading}
       error={error}
     >
-      {items.length > 0 ? (
-        <div className="flex flex-col gap-2">
-          {items.map((item) => <TodoRow key={`${item.kind}-${item.id}`} item={item} />)}
-        </div>
+      {itemCount > 0 ? (
+        <TodoSections sections={sections} onTaskSelect={onTaskSelect} />
       ) : (
         <EmptyFeed message="Nothing is pending in the latest snapshot." />
       )}
     </FeedSection>
+  );
+}
+
+export interface TodoSectionsProps {
+  sections: TodoSection[];
+  onTaskSelect?: TodoSelectionHandler;
+}
+
+/** The free-tier To Do tables; the Pro Task List block is intentionally not used. */
+export function TodoSections({ sections, onTaskSelect }: TodoSectionsProps) {
+  return (
+    <div className="flex flex-col gap-5">
+      {sections.map((section) => (
+        <section key={section.key} aria-labelledby={`todo-${section.key}-heading`}>
+          <div className="flex items-center gap-2 px-1">
+            <h3
+              id={`todo-${section.key}-heading`}
+              className="text-caption-1-semibold uppercase tracking-[0.08em] text-text-tertiary"
+            >
+              {section.label}
+            </h3>
+            <Badge color="neutral">{section.items.length}</Badge>
+          </div>
+          <div className="mt-2 overflow-hidden rounded-lg bg-background-primary-default shadow-sm">
+            <table className="w-full table-fixed border-collapse text-left">
+              <caption className="sr-only">Pending {section.label}</caption>
+              <thead className="border-b border-black/[0.06] text-caption-1-semibold text-text-tertiary">
+                <tr>
+                  <th className="w-[58%] px-3.5 py-2 font-semibold" scope="col">Item</th>
+                  <th className="w-[22%] px-3.5 py-2 font-semibold" scope="col">Course</th>
+                  <th className="w-[20%] px-3.5 py-2 text-right font-semibold" scope="col">Due</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-black/[0.06]">
+                {section.items.map((item) => (
+                  <TodoRow
+                    key={`${item.kind}-${item.id}`}
+                    item={item}
+                    onTaskSelect={onTaskSelect}
+                  />
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      ))}
+    </div>
   );
 }
 
@@ -68,6 +128,7 @@ function FeedSection({
   snapshot,
   loading,
   error,
+  hideZeroCount = false,
   children,
 }: {
   eyebrow: string;
@@ -76,6 +137,7 @@ function FeedSection({
   snapshot: { fetchedAt: string } | null;
   loading: boolean;
   error: boolean;
+  hideZeroCount?: boolean;
   children: ReactNode;
 }) {
   return (
@@ -87,7 +149,9 @@ function FeedSection({
           </p>
           <h2 className="mt-1 text-[20px] font-semibold tracking-tight text-text-primary">
             {title}
-            <Badge className="ml-2 align-middle" color="neutral">{count}</Badge>
+            {(!hideZeroCount || count > 0) && (
+              <Badge className="ml-2 align-middle" color="neutral">{count}</Badge>
+            )}
           </h2>
         </div>
         <span className="shrink-0 text-caption-1-regular text-text-tertiary">
@@ -119,24 +183,68 @@ function CourseCard({ course }: { course: CourseItem }) {
   );
 }
 
-function TodoRow({ item }: { item: TodoItem }) {
-  return (
-    <article className="flex min-w-0 items-start gap-3 rounded-lg bg-background-primary-default px-3.5 py-3 shadow-sm">
-      <span className="mt-0.5 grid size-7 shrink-0 place-items-center rounded-md bg-accent-500/10 text-accent-600">
-        <i className={item.kind === "Task" ? "ri-checkbox-line text-[15px]" : "ri-file-list-3-line text-[15px]"} aria-hidden />
-      </span>
-      <div className="min-w-0 flex-1">
+function TodoRow({
+  item,
+  onTaskSelect,
+}: {
+  item: TodoItem;
+  onTaskSelect?: TodoSelectionHandler;
+}) {
+  const task = isTaskItem(item) ? item : null;
+  const content = (
+    <div className="grid min-w-0 grid-cols-[minmax(0,58%)_minmax(0,22%)_minmax(0,20%)] items-center gap-0 px-3.5 py-3">
+      <div className="min-w-0 pr-3">
         <div className="flex flex-wrap items-center gap-1.5">
-          <Chip color={item.kind === "Task" ? "blue" : "purple"} variant="caption">{item.kind}</Chip>
-          {item.courseCode && <span className="text-caption-1-semibold text-text-tertiary">{item.courseCode}</span>}
+          <span className="grid size-7 shrink-0 place-items-center rounded-md bg-accent-500/10 text-accent-600">
+            <i
+              className={task ? "ri-checkbox-line text-[15px]" : "ri-file-list-3-line text-[15px]"}
+              aria-hidden
+            />
+          </span>
+          <Chip color={task ? "blue" : "purple"} variant="caption">
+            {item.kind}
+          </Chip>
         </div>
-        <h3 className="mt-1 text-[13px] font-medium leading-5 text-text-primary">{item.title}</h3>
-        {item.courseName && <p className="text-caption-1-regular text-text-secondary">{item.courseName}</p>}
+        <h4 className="mt-1 truncate text-[13px] font-medium leading-5 text-text-primary">
+          {item.title}
+        </h4>
       </div>
-      <time className="shrink-0 pt-0.5 text-right text-caption-1-regular text-text-tertiary" dateTime={item.dueAt ?? undefined}>
+      <div className="min-w-0 pr-3">
+        <span className="block truncate text-caption-1-semibold text-text-tertiary">
+          {item.courseCode || "—"}
+        </span>
+        {item.courseName && (
+          <span className="block truncate text-caption-1-regular text-text-secondary">
+            {item.courseName}
+          </span>
+        )}
+      </div>
+      <time
+        className="shrink-0 text-right text-caption-1-regular text-text-tertiary"
+        dateTime={item.dueAt ?? undefined}
+      >
         {item.dueAt ? formatTimestamp(item.dueAt) : "No deadline"}
       </time>
-    </article>
+    </div>
+  );
+
+  return (
+    <tr className="align-top transition-colors hover:bg-background-primary-hover">
+      <td className="p-0" colSpan={3}>
+        {task && onTaskSelect ? (
+          <button
+            type="button"
+            className="block w-full cursor-pointer text-left outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-border-focus-ring"
+            aria-label={`Open task ${item.title}`}
+            onClick={() => onTaskSelect(task)}
+          >
+            {content}
+          </button>
+        ) : (
+          content
+        )}
+      </td>
+    </tr>
   );
 }
 
@@ -150,13 +258,4 @@ function FeedError() {
 
 function EmptyFeed({ message }: { message: string }) {
   return <p className="px-2 py-8 text-center text-[13px] text-text-tertiary">{message}</p>;
-}
-
-function formatTimestamp(value: string) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "Unknown time";
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(date);
 }
