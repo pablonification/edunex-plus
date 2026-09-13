@@ -125,10 +125,14 @@ describe("edunex api client", () => {
   });
 
   it("normalizes the course collection while leaving /todo's plain categories intact", async () => {
-    const course = { type: "course", id: "401", attributes: { code: "II4091" } };
+    const course = {
+      type: "course",
+      id: "401",
+      attributes: { code: "II4091", is_active: 1, is_enrolled: true },
+    };
     const todo = { tasks: [{ id: 113986 }], exams: [], questions: [], modules: [] };
     const fetchImpl = vi.fn(async (url: string) =>
-      url.endsWith("/course/courses")
+      url.endsWith("/course/courses?include=lecturer,lecturer.user,contents,faculty&filter[is_active][is]=1&filter[is_enrolled][is]=1&page[limit]=100&page[offset]=0")
         ? okResponse({ data: [course] })
         : okResponse(todo),
     );
@@ -197,5 +201,51 @@ describe("edunex api client", () => {
     const result = await api.getAgenda();
 
     expect(result.body).toEqual(meetings);
+  });
+
+  it("requests the active enrolled course collection used by My Courses", async () => {
+    const fetchImpl = vi.fn(async () => okResponse({ data: [] }));
+    const api = createEdunexApi({
+      baseUrl: "https://api-edunex.cognisia.id",
+      getToken: () => "tok",
+      userAgent: "EdunexPlus/0.0.1",
+      fetchImpl,
+    });
+
+    await api.getCourses();
+
+    expect(fetchImpl).toHaveBeenCalledWith(
+      "https://api-edunex.cognisia.id/course/courses?include=lecturer,lecturer.user,contents,faculty&filter[is_active][is]=1&filter[is_enrolled][is]=1&page[limit]=100&page[offset]=0",
+      expect.anything(),
+    );
+  });
+
+  it("keeps active enrolled records when the endpoint also returns public catalog rows", async () => {
+    const publicCourse = {
+      type: "courses",
+      id: "27011",
+      attributes: { code: "ED0001", is_active: 1, is_enrolled: false },
+    };
+    const inactiveEnrollment = {
+      type: "courses",
+      id: "60250",
+      attributes: { code: "IF2040", is_active: 0, is_enrolled: true },
+    };
+    const currentCourse = {
+      type: "courses",
+      id: "401",
+      attributes: { code: "ME4066", is_active: 1, is_enrolled: true },
+    };
+    const fetchImpl = vi.fn(async () =>
+      okResponse({ data: [publicCourse, inactiveEnrollment, currentCourse] }),
+    );
+    const api = createEdunexApi({
+      baseUrl: "https://api-edunex.cognisia.id",
+      getToken: () => "tok",
+      userAgent: "EdunexPlus/0.0.1",
+      fetchImpl,
+    });
+
+    await expect(api.getCourses()).resolves.toMatchObject({ body: [currentCourse] });
   });
 });

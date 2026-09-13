@@ -60,7 +60,7 @@ spikes, September 2026). Reads only — all of these are `GET`:
 | Endpoint | Purpose | Response shape |
 | --- | --- | --- |
 | `GET /todo` | Aggregated To Do feed for the account (pending Tasks, exams, questions, modules) | Plain JSON: `{tasks: [], exams: [], questions: [], modules: []}` |
-| `GET /course/courses` | Courses of the current Period | Plain JSON |
+| `GET /course/courses?include=lecturer,lecturer.user,contents,faculty&filter[is_active][is]=1&filter[is_enrolled][is]=1&page[limit]=100&page[offset]=0` | Active enrolled courses for the current Period | JSON-API envelope, normalized and enrollment-filtered at the client boundary |
 | `GET /course/tasks` | Tasks for a course | JSON-API envelope: `{meta, data, links}`, items `type` / `id` / `attributes` / `links` — unlike `/todo`'s plain shape |
 | `GET /exam/exams` | Exams list (read-only in v1) | Plain JSON |
 | `GET /course/agenda` | Course agenda (meetings, with Vicon tags for online sessions) | Plain array: items carry `type`, `course_name`, `name`, `start_at`, `end_at` |
