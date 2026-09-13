@@ -7,7 +7,7 @@
  *
  * Three states, matching the accepted variant C prototype:
  *   draft     → yellow chip, yellow-edged status card (quiet Save-draft)
- *   submitted → lime chip, green-edged status card (Submit lives in #26)
+ *   submitted → lime chip, green-edged status card with no resubmit affordance
  *   overdue   → rose chip, rose-edged status card (past deadline, not sent)
  *
  * Overdue derives from the deadline vs `is_sent`: past due AND not
@@ -105,4 +105,14 @@ export interface SaveDraftResult {
   status: number;
   created: boolean;
   answerId: string | null;
+}
+
+/** Final-submit IPC contract (renderer → main → vendor API). */
+export interface SubmitAnswerInput {
+  answerId: string;
+}
+
+export interface SubmitAnswerResult {
+  ok: boolean;
+  status: number;
 }

@@ -1,3 +1,5 @@
+/// <reference types="vite/client" />
+
 import type { AuthStatus } from "@shared/auth";
 import type { FeedKey, FeedSnapshot } from "@shared/feeds";
 import type {
@@ -6,7 +8,12 @@ import type {
 } from "@shared/materials";
 import type { InAppNotification } from "@shared/notifications";
 import type { AppInfo, NavKey, ShellSettings } from "@shared/shell";
-import type { SaveDraftInput, SaveDraftResult } from "@shared/submission";
+import type {
+  SaveDraftInput,
+  SaveDraftResult,
+  SubmitAnswerInput,
+  SubmitAnswerResult,
+} from "@shared/submission";
 
 export {};
 
@@ -42,6 +49,7 @@ declare global {
         callback: (payload: { taskIds: string[]; presenceIds?: string[] }) => void,
       ): () => void;
       saveDraft(input: SaveDraftInput): Promise<SaveDraftResult>;
+      submitAnswer(input: SubmitAnswerInput): Promise<SubmitAnswerResult>;
     };
   }
 }
