@@ -2,6 +2,10 @@
 
 import type { AuthStatus } from "@shared/auth";
 import type { FeedKey, FeedSnapshot } from "@shared/feeds";
+import type {
+  MaterialDownloadRequest,
+  MaterialDownloadResult,
+} from "@shared/materials";
 import type { InAppNotification } from "@shared/notifications";
 import type { AppInfo, NavKey, ShellSettings } from "@shared/shell";
 import type {
@@ -32,6 +36,7 @@ declare global {
       onAuthState(callback: (status: AuthStatus) => void): () => void;
       getFeed(feed: FeedKey): Promise<FeedSnapshot | null>;
       onFeedUpdated(callback: (snapshot: FeedSnapshot) => void): () => void;
+      downloadMaterial(request: MaterialDownloadRequest): Promise<MaterialDownloadResult>;
       getShellSettings(): Promise<ShellSettings>;
       setViewHidden(view: NavKey, hidden: boolean): Promise<ShellSettings>;
       setQuitOnClose(quitOnClose: boolean): Promise<ShellSettings>;
@@ -40,7 +45,9 @@ declare global {
       markNotificationsRead(ids: string[]): Promise<InAppNotification[]>;
       markAllNotificationsRead(): Promise<InAppNotification[]>;
       onNotificationsUpdated(callback: (entries: InAppNotification[]) => void): () => void;
-      onNotificationClicked(callback: (payload: { taskIds: string[] }) => void): () => void;
+      onNotificationClicked(
+        callback: (payload: { taskIds: string[]; presenceIds?: string[] }) => void,
+      ): () => void;
       saveDraft(input: SaveDraftInput): Promise<SaveDraftResult>;
       submitAnswer(input: SubmitAnswerInput): Promise<SubmitAnswerResult>;
     };

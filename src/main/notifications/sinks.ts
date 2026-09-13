@@ -1,14 +1,16 @@
-import type { InAppNotification, TaskNotification } from "../../shared/notifications";
+import type { InAppNotification, OutboundNotification } from "../../shared/notifications";
 import { toInAppNotification } from "../../shared/notifications";
 import type { NotificationStore } from "./notification-store";
 
 /**
- * The notification spine (#23): one sink interface, two implementations.
- * The dispatcher fans a coalesced TaskNotification out to every sink; a
- * throwing sink must never take the others (or the sync tick) down with it.
+ * The notification spine (#23, extended by #24): one sink interface, two
+ * implementations. The dispatcher fans an outbound notification out to
+ * every sink; a throwing sink must never take the others (or the sync
+ * tick) down with it. Task bursts arrive coalesced as single/digest;
+ * Presence-open alerts arrive one per window and are never coalesced.
  */
 export interface NotificationSink {
-  show(notification: TaskNotification): void;
+  show(notification: OutboundNotification): void;
 }
 
 export function createFanoutSink(sinks: NotificationSink[]): NotificationSink {
@@ -29,10 +31,10 @@ export interface OsSinkDeps {
   /** Shows one OS notification; the click handler focuses + navigates. */
   show: (options: { title: string; body: string }, onClick: () => void) => void;
   /** Fired when the OS notification is clicked (main focuses + navigates). */
-  onClicked?: (notification: TaskNotification) => void;
+  onClicked?: (notification: OutboundNotification) => void;
 }
 
-/** First sink: one OS notification per tick (single task or digest). */
+/** First sink: one OS notification per emission (single, digest, or presence). */
 export function createOsSink(deps: OsSinkDeps): NotificationSink {
   return {
     show(notification) {
@@ -55,8 +57,8 @@ export function createOsSink(deps: OsSinkDeps): NotificationSink {
  * Test seam for the OS sink: production passes Electron's Notification,
  * tests pass a fake show and assert on the emitted payloads.
  */
-export function createRecordingSink(): NotificationSink & { shown: TaskNotification[] } {
-  const shown: TaskNotification[] = [];
+export function createRecordingSink(): NotificationSink & { shown: OutboundNotification[] } {
+  const shown: OutboundNotification[] = [];
   return {
     shown,
     show: (notification) => {

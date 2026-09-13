@@ -21,11 +21,11 @@ const META: Record<NavKey, { icon: string; placeholder: string }> = {
   },
   presence: {
     icon: "ri-hand-heart-line",
-    placeholder: "Your Presence records per course will live here (#29).",
+    placeholder: "Your attendance records per course meeting, read-only.",
   },
   materials: {
     icon: "ri-folder-3-line",
-    placeholder: "Course materials with download will live here (#30).",
+    placeholder: "Your course files with download live here.",
   },
   exams: {
     icon: "ri-file-list-3-line",
