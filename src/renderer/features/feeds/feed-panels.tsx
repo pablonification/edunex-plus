@@ -21,6 +21,11 @@ import {
   type TodoItem,
   type TodoSection,
 } from "./feed-data";
+import {
+  SUBMISSION_CHIP_COLOR,
+  SUBMISSION_CHIP_LABEL,
+  deriveSubmissionStatus,
+} from "@shared/submission";
 import { useCachedFeed, type CachedFeedState } from "./use-cached-feed";
 
 export interface TodoSelectionHandler {
@@ -711,6 +716,9 @@ function TodoRow({
   onTaskSelect?: TodoSelectionHandler;
 }) {
   const task = isTaskItem(item) ? item : null;
+  // Submission status (#25) derives from `is_sent` only; `sent_at` never
+  // reaches the UI. Exams carry no submission state.
+  const submissionStatus = task ? deriveSubmissionStatus(task.isSent, task.dueAt) : null;
   const content = (
     <div className="grid min-w-0 grid-cols-[minmax(0,58%)_minmax(0,22%)_minmax(0,20%)] items-center gap-0 px-3.5 py-3">
       <div className="min-w-0 pr-3">
@@ -724,6 +732,11 @@ function TodoRow({
           <Chip color={task ? "blue" : "purple"} variant="caption">
             {item.kind}
           </Chip>
+          {task && submissionStatus && (
+            <Chip color={SUBMISSION_CHIP_COLOR[submissionStatus]} variant="caption">
+              {SUBMISSION_CHIP_LABEL[submissionStatus]}
+            </Chip>
+          )}
         </div>
         <h4 className="mt-1 truncate text-[13px] font-medium leading-5 text-text-primary">
           {item.title}

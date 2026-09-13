@@ -1,3 +1,5 @@
+import { parseIsSent } from "@shared/submission";
+
 export interface TodoItem {
   id: string;
   kind: "Task" | "Exam";
@@ -5,6 +7,16 @@ export interface TodoItem {
   courseCode: string;
   courseName: string;
   dueAt: string | null;
+  /**
+   * Submission state for Tasks (issue #25). Derived from the vendor
+   * `is_sent` bit only — `sent_at` is stamped on drafts too and is never
+   * read here. Null means no answer bit was present (treated as not sent).
+   */
+  isSent: boolean | null;
+  /** Existing draft answer id when the feed carries one (for PATCH updates). */
+  answerId: string | null;
+  /** Existing draft answer body (HTML) when the feed carries one. */
+  answer: string | null;
 }
 
 export type TaskItem = Omit<TodoItem, "kind"> & { kind: "Task" };
@@ -149,6 +161,7 @@ export function toTodoItems(data: unknown): TodoItem[] {
     return values.flatMap((value, index) => {
       const item = asRecord(value);
       if (!item) return [];
+      const submission = kind === "Task" ? readTaskSubmission(item) : null;
 
       return [
         {
@@ -158,10 +171,55 @@ export function toTodoItems(data: unknown): TodoItem[] {
           courseCode: readString(item, ["code", "course_code"]) ?? "",
           courseName: readString(item, ["course", "course_name"]) ?? "",
           dueAt: readString(item, ["time", "due_at", "deadline"]),
+          isSent: submission?.isSent ?? null,
+          answerId: submission?.answerId ?? null,
+          answer: submission?.answer ?? null,
         },
       ];
     });
   });
+}
+
+/**
+ * Reads the draft/submitted bit for a Task row from the vendor payload.
+ * `is_sent` is the only reliable signal — `sent_at`/`sentAt` are stamped
+ * on drafts too (issue #16) and are deliberately never read.
+ *
+ * Accepts the direct bit (`is_sent`/`isSent` on the task) and the nested
+ * `answers[]` shape from `GET /course/tasks/{id}` (first entry wins);
+ * JSON-API `attributes` wrappers are unwrapped on both levels.
+ */
+function readTaskSubmission(item: Record<string, unknown>): {
+  isSent: boolean | null;
+  answerId: string | null;
+  answer: string | null;
+} {
+  const direct = parseIsSent(item.is_sent ?? item.isSent);
+  if (direct !== null) {
+    return { isSent: direct, answerId: null, answer: null };
+  }
+  const answers = firstRecord(item.answers ?? item.answer ?? item.submissions);
+  if (!answers) return { isSent: null, answerId: null, answer: null };
+  const nested = asRecord(answers.attributes) ?? answers;
+  return {
+    isSent: parseIsSent(nested.is_sent ?? nested.isSent),
+    answerId: scalarString(nested.id ?? nested.answer_id ?? nested.answerId),
+    answer:
+      typeof nested.answer === "string" && nested.answer.length > 0
+        ? (nested.answer as string)
+        : null,
+  };
+}
+
+function firstRecord(value: unknown): Record<string, unknown> | null {
+  if (Array.isArray(value)) {
+    for (const entry of value) {
+      const record = asRecord(entry);
+      if (record) return record;
+    }
+    return null;
+  }
+  return asRecord(value);
 }
 
 /**
