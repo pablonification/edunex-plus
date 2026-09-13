@@ -1,7 +1,7 @@
 import { contextBridge, ipcRenderer } from "electron";
 import type { AuthStatus } from "../shared/auth";
 import type { FeedKey, FeedSnapshot } from "../shared/feeds";
-import type { AppInfo, NavKey } from "../shared/shell";
+import type { AppInfo, NavKey, ShellSettings } from "../shared/shell";
 
 contextBridge.exposeInMainWorld("edunex", {
   version: process.env.npm_package_version ?? "0.0.1",
@@ -40,5 +40,17 @@ contextBridge.exposeInMainWorld("edunex", {
     const listener = (_event: unknown, snapshot: FeedSnapshot) => callback(snapshot);
     ipcRenderer.on("sync:feed-updated", listener);
     return () => ipcRenderer.removeListener("sync:feed-updated", listener);
+  },
+  // Shell preferences (#22): hidden views + the tray opt-out persist in
+  // main's userData across restarts; writes push back on shell:settings-updated.
+  getShellSettings: () => ipcRenderer.invoke("shell:get-settings") as Promise<ShellSettings>,
+  setViewHidden: (view: NavKey, hidden: boolean) =>
+    ipcRenderer.invoke("shell:set-view-hidden", view, hidden) as Promise<ShellSettings>,
+  setQuitOnClose: (quitOnClose: boolean) =>
+    ipcRenderer.invoke("shell:set-quit-on-close", quitOnClose) as Promise<ShellSettings>,
+  onShellSettings: (callback: (settings: ShellSettings) => void) => {
+    const listener = (_event: unknown, settings: ShellSettings) => callback(settings);
+    ipcRenderer.on("shell:settings-updated", listener);
+    return () => ipcRenderer.removeListener("shell:settings-updated", listener);
   },
 });
