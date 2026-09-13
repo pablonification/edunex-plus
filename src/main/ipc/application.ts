@@ -222,7 +222,7 @@ export function registerApplicationIpc(deps: ApplicationIpcDependencies): IpcAda
           answerId: value.answerId ?? null,
         });
       },
-      onInvalidInput: () => ({ ok: false, status: 0, created: true, answerId: null }),
+      onInvalidInput: () => ({ ok: false, status: 400, created: false, answerId: null }),
       onFailure: (_context, input) => {
         const answerId =
           typeof input === "object" && input !== null && "answerId" in input &&
@@ -238,7 +238,7 @@ export function registerApplicationIpc(deps: ApplicationIpcDependencies): IpcAda
       inputSchema: Schema.Struct({ answerId: Schema.String }),
       outputSchema: submitResult,
       handle: (input) => deps.tasks.submit(input as SubmitAnswerInput),
-      onInvalidInput: () => ({ ok: false, status: 0 }),
+      onInvalidInput: () => ({ ok: false, status: 400 }),
       onFailure: () => ({ ok: false, status: 0 }),
     }),
   ];

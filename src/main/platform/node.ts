@@ -1,3 +1,4 @@
+import { randomInt, randomUUID } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import type {
@@ -31,7 +32,7 @@ export const nodeFileSystem: FileSystemService = {
   remove(filePath) {
     fs.rmSync(filePath);
   },
-  atomicWrite(filePath, contents, nonce = `${Date.now()}-${Math.random()}`) {
+  atomicWrite(filePath, contents, nonce = `${Date.now()}-${randomUUID()}`) {
     const temporary = `${filePath}.${process.pid}.${nonce}.tmp`;
     try {
       fs.mkdirSync(path.dirname(filePath), { recursive: true });
@@ -56,7 +57,7 @@ export const systemClock: ClockService = {
 };
 
 export const systemRandom: RandomService = {
-  next: () => Math.random(),
+  next: () => randomInt(0, 1_000_000_000) / 1_000_000_000,
 };
 
 const nativeFetch = (url: string, init: RequestInit) => fetch(url, init);

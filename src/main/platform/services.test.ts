@@ -23,35 +23,44 @@ import { loadShellSettings, saveShellSettings } from "../shell/settings-store";
 import { loadWindowState, saveWindowState } from "../window-state";
 
 function fakeElectron(events: string[]): ElectronPlatformService {
-  const noopWindow = {
-    webContents: {
-      id: 1,
-      send: () => undefined,
-      setWindowOpenHandler: () => undefined,
+  let window: ReturnType<typeof createNoopWindow> | null = null;
+  let tray: ReturnType<typeof createNoopTray> | null = null;
+
+  function createNoopWindow() {
+    return {
+      webContents: {
+        id: 1,
+        send: () => undefined,
+        setWindowOpenHandler: () => undefined,
+        loadURL: async () => undefined,
+        executeJavaScript: async () => null,
+        on: () => undefined,
+        once: () => undefined,
+      },
       loadURL: async () => undefined,
-      executeJavaScript: async () => null,
+      loadFile: async () => undefined,
       on: () => undefined,
-      once: () => undefined,
-    },
-    loadURL: async () => undefined,
-    loadFile: async () => undefined,
-    on: () => undefined,
-    show: () => undefined,
-    focus: () => undefined,
-    hide: () => undefined,
-    destroy: () => undefined,
-    isDestroyed: () => false,
-    isMinimized: () => false,
-    isMaximized: () => false,
-    maximize: () => undefined,
-    getBounds: () => ({ width: 1, height: 1, x: 0, y: 0 }),
-  };
-  const noopTray = {
-    setToolTip: () => undefined,
-    setContextMenu: () => undefined,
-    on: () => undefined,
-    destroy: () => undefined,
-  };
+      show: () => undefined,
+      focus: () => undefined,
+      hide: () => undefined,
+      destroy: () => events.push("window.destroy"),
+      isDestroyed: () => false,
+      isMinimized: () => false,
+      isMaximized: () => false,
+      maximize: () => undefined,
+      getBounds: () => ({ width: 1, height: 1, x: 0, y: 0 }),
+    };
+  }
+
+  function createNoopTray() {
+    return {
+      setToolTip: () => undefined,
+      setContextMenu: () => undefined,
+      on: () => undefined,
+      destroy: () => events.push("tray.destroy"),
+    };
+  }
+
   return {
     platform: "linux",
     appName: "Test",
@@ -68,15 +77,19 @@ function fakeElectron(events: string[]): ElectronPlatformService {
     quit: () => undefined,
     setAboutPanelOptions: () => undefined,
     setDockIcon: () => undefined,
-    createWindow: () => noopWindow,
-    createTray: () => noopTray,
+    createWindow: () => (window = createNoopWindow()),
+    createTray: () => (tray = createNoopTray()),
     buildMenu: (template) => template,
     setApplicationMenu: () => undefined,
     createNotification: () => ({ on: () => undefined, show: () => undefined }),
     notificationsSupported: () => false,
     primaryWorkArea: () => ({ width: 1, height: 1 }),
     showSaveDialog: async () => ({ canceled: true }),
-    shutdown: () => events.push("electron.shutdown"),
+    shutdown: () => {
+      tray?.destroy();
+      window?.destroy();
+      events.push("electron.shutdown");
+    },
   };
 }
 
@@ -177,4 +190,47 @@ it("lets persistence use an in-memory filesystem while keeping atomic writes", (
     y: 20,
   });
   expect(nonces).toEqual(["1700000000000-0.5", "1700000000000-0.5"]);
+});
+
+it("releases platform-owned window and tray resources during Layer shutdown", async () => {
+  const events: string[] = [];
+  const electron = fakeElectron(events);
+  const services: PlatformServices = {
+    fileSystem: nodeFileSystem,
+    path: nodePath,
+    clock: systemClock,
+    random: systemRandom,
+    safeStorage: {
+      isEncryptionAvailable: () => false,
+      encryptString: () => new Uint8Array(),
+      decryptString: () => "",
+    },
+    httpTransport: fetchTransport,
+    ipcMain: electron.ipcMain,
+    electron,
+  };
+  const runtime = createApplicationRuntime(composeApplicationLayer(createPlatformLayer(services)));
+
+  await runtime.runPromise(
+    Effect.gen(function* () {
+      const platform = yield* ElectronPlatform;
+      platform.createWindow({
+        width: 1,
+        height: 1,
+        minWidth: 1,
+        minHeight: 1,
+        title: "Test",
+        webPreferences: {
+          preload: "test",
+          contextIsolation: true,
+          nodeIntegration: false,
+          webviewTag: false,
+        },
+      });
+      platform.createTray("test");
+    }),
+  );
+
+  await runtime.shutdown();
+  expect(events).toEqual(["tray.destroy", "window.destroy", "electron.shutdown"]);
 });
