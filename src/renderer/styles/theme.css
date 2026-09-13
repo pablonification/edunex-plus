@@ -307,6 +307,7 @@
   --color-status-dot-green-halo:    var(--color-green-100);
   --color-status-dot-yellow-halo:   var(--color-yellow-200);
   --color-status-dot-indigo-halo:   var(--color-indigo-100);
+  --color-status-dot-rose-halo:     var(--color-rose-100);
 
   /* Date range selection: the connecting band and its start/end caps. */
   --color-date-range-background:      var(--color-accent-100);
@@ -519,6 +520,7 @@
   --color-status-dot-green-halo:    color-mix(in srgb, var(--color-green-800) 40%, transparent);
   --color-status-dot-yellow-halo:   color-mix(in srgb, var(--color-yellow-800) 40%, transparent);
   --color-status-dot-indigo-halo:   color-mix(in srgb, var(--color-indigo-800) 40%, transparent);
+  --color-status-dot-rose-halo:     color-mix(in srgb, var(--color-rose-800) 40%, transparent);
 
   --color-date-range-background:      var(--color-accent-950);
   --color-date-range-edge-background: var(--color-accent-800);
@@ -698,6 +700,7 @@
   --color-status-dot-green-halo:    var(--color-status-dot-green-halo);
   --color-status-dot-yellow-halo:   var(--color-status-dot-yellow-halo);
   --color-status-dot-indigo-halo:   var(--color-status-dot-indigo-halo);
+  --color-status-dot-rose-halo:     var(--color-status-dot-rose-halo);
   --color-date-range-background:      var(--color-date-range-background);
   --color-date-range-edge-background: var(--color-date-range-edge-background);
   --color-calendar-event-blue-background:    var(--color-calendar-event-blue-background);

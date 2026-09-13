@@ -80,6 +80,7 @@ describe("To Do app flow", () => {
       markAllNotificationsRead: vi.fn(async () => []),
       onNotificationsUpdated: vi.fn(() => () => undefined),
       onNotificationClicked: vi.fn(() => () => undefined),
+      saveDraft: vi.fn(async () => ({ ok: true, status: 201, created: true, answerId: "2644208" })),
     };
 
     const container = document.createElement("div");
@@ -114,7 +115,9 @@ describe("To Do app flow", () => {
     });
 
     expect(container.querySelector('[aria-labelledby="task-page-title"]')).not.toBeNull();
-    expect(container.textContent).toContain("Submission details will appear here in #25.");
+    expect(container.textContent).toContain("Your answer");
+    expect(container.textContent).toContain("Save draft");
+    expect(container.textContent).not.toContain("sent_at");
   });
 
   it("opens the task destination when an OS notification is clicked", async () => {
@@ -170,6 +173,7 @@ describe("To Do app flow", () => {
         clickedCallback = callback;
         return () => undefined;
       }),
+      saveDraft: vi.fn(async () => ({ ok: true, status: 201, created: true, answerId: "2644208" })),
     };
 
     const container = document.createElement("div");
@@ -351,6 +355,7 @@ describe("To Do app flow", () => {
       markAllNotificationsRead: vi.fn(async () => []),
       onNotificationsUpdated: vi.fn(() => () => undefined),
       onNotificationClicked: vi.fn(() => () => undefined),
+      saveDraft: vi.fn(async () => ({ ok: true, status: 201, created: true, answerId: "2644208" })),
     };
 
     const container = document.createElement("div");
@@ -469,6 +474,7 @@ describe("To Do app flow", () => {
       markAllNotificationsRead: vi.fn(async () => []),
       onNotificationsUpdated: vi.fn(() => () => undefined),
       onNotificationClicked: vi.fn(() => () => undefined),
+      saveDraft: vi.fn(async () => ({ ok: true, status: 201, created: true, answerId: "2644208" })),
     };
 
     const container = document.createElement("div");
