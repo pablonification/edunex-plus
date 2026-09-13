@@ -14,6 +14,9 @@ import { buildAppMenuTemplate } from "./app-menu";
 import { loadWindowState, saveWindowState, type WindowState } from "./window-state";
 import { shouldFireStartupTestNotification } from "./notifications";
 import { createAuthController } from "./auth/auth-controller";
+import { createSnapshotCache } from "./sync/snapshot-cache";
+import { createSyncEngine, type SyncEngine } from "./sync/sync-engine";
+import { isFeedKey } from "../shared/feeds";
 import { NAV_VIEWS } from "../shared/shell";
 
 // Windows routes notifications by AppUserModelID; without it they fall under
@@ -187,6 +190,8 @@ function setApplicationMenu() {
   );
 }
 
+let sync: SyncEngine | null = null;
+
 // Auth slice (#18): encrypted token store, capture from the login webview,
 // and the signed-out / authenticating / signed-in / session-expired machine.
 const authController = createAuthController({
@@ -194,6 +199,20 @@ const authController = createAuthController({
   appVersion: app.getVersion(),
   broadcast: (status) => {
     if (win && !win.isDestroyed()) win.webContents.send("auth:state", status);
+    if (status === "signed-in") sync?.start();
+    else sync?.stop();
+  },
+});
+
+// Sync slice (#19): main owns the API adapter, timer, and on-device snapshots.
+// The renderer only receives a cache snapshot over the preload bridge.
+sync = createSyncEngine({
+  api: authController.api(),
+  cache: createSnapshotCache(path.join(app.getPath("userData"), "feed-snapshots")),
+  getAccountId: authController.accountId,
+  onUnauthorized: authController.handleUnauthorized,
+  onFeedUpdated: (snapshot) => {
+    if (win && !win.isDestroyed()) win.webContents.send("sync:feed-updated", snapshot);
   },
 });
 
@@ -241,6 +260,10 @@ if (!gotSingleInstanceLock) {
   // the login webview moment; state changes arrive pushed on auth:state.
   ipcMain.handle("auth:get-state", () => authController.status());
   ipcMain.handle("auth:start-login", () => authController.startLogin());
+  ipcMain.handle("sync:get-feed", (_event, feed: unknown) => {
+    if (!isFeedKey(feed)) return null;
+    return sync?.read(feed) ?? null;
+  });
 
   // Deliberate no-op while a tray exists: closing the window must not end the
   // process — the app lives in the tray so notifications keep flowing (spec:
@@ -252,5 +275,6 @@ if (!gotSingleInstanceLock) {
 
   app.on("before-quit", () => {
     quitting = true;
+    sync?.stop();
   });
 }

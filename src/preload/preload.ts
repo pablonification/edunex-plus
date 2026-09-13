@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer } from "electron";
 import type { AuthStatus } from "../shared/auth";
+import type { FeedKey, FeedSnapshot } from "../shared/feeds";
 import type { AppInfo, NavKey } from "../shared/shell";
 
 contextBridge.exposeInMainWorld("edunex", {
@@ -30,5 +31,14 @@ contextBridge.exposeInMainWorld("edunex", {
     const listener = (_event: unknown, status: AuthStatus) => callback(status);
     ipcRenderer.on("auth:state", listener);
     return () => ipcRenderer.removeListener("auth:state", listener);
+  },
+  // Sync (#19): feed reads always come through main's persisted snapshot
+  // cache. The renderer never receives the bearer token or calls the API.
+  getFeed: (feed: FeedKey) =>
+    ipcRenderer.invoke("sync:get-feed", feed) as Promise<FeedSnapshot | null>,
+  onFeedUpdated: (callback: (snapshot: FeedSnapshot) => void) => {
+    const listener = (_event: unknown, snapshot: FeedSnapshot) => callback(snapshot);
+    ipcRenderer.on("sync:feed-updated", listener);
+    return () => ipcRenderer.removeListener("sync:feed-updated", listener);
   },
 });

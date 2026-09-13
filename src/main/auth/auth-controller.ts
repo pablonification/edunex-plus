@@ -3,7 +3,7 @@ import type { AuthStatus, CapturedAuth } from "../../shared/auth";
 import { createSessionStore, type SessionCodec } from "./session-store";
 import { createSessionManager, type SessionManager } from "./session-manager";
 import { createAuthCapture } from "./capture";
-import { createEdunexApi } from "../api/client";
+import { createEdunexApi, type EdunexDataApi } from "../api/client";
 
 /** The vendor API the captured bearer token talks to (spec: API stance). */
 export const EDUNEX_API_BASE_URL = "https://api-edunex.cognisia.id";
@@ -20,6 +20,12 @@ export interface AuthController {
   status(): AuthStatus | null;
   restore(): Promise<void>;
   startLogin(): void;
+  /** Main-process API adapter bound to the current session token. */
+  api(): EdunexDataApi;
+  /** Current account id for per-account feed storage. */
+  accountId(): string | null;
+  /** Pauses auth and opens the re-login moment after a feed 401. */
+  handleUnauthorized(): void;
   /** Dev-only: fake a 401 to demo the re-login moment without the vendor API. */
   simulateUnauthorized(): void;
   attachWebview(contents: Electron.WebContents): void;
@@ -72,6 +78,9 @@ export function createAuthController(opts: {
       console.log("[auth] startup restore complete:", manager.status());
     },
     startLogin: () => manager.startLogin(),
+    api: () => api,
+    accountId: () => manager.accountId(),
+    handleUnauthorized: () => manager.handleUnauthorized(),
     simulateUnauthorized: () => {
       console.log("[auth] dev: simulating a 401 — session should pause into re-login");
       manager.handleUnauthorized();

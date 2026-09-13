@@ -9,12 +9,11 @@ import { NAV_VIEWS, type NavKey } from "@shared/shell";
 const META: Record<NavKey, { icon: string; placeholder: string }> = {
   home: {
     icon: "ri-home-5-line",
-    placeholder:
-      "The shell is live — native window chrome, menu shortcuts, tray and notifications. No EduNex account is connected yet; surfaces below arrive slice by slice.",
+    placeholder: "Your current Period courses and pending To Do items appear here.",
   },
   todo: {
     icon: "ri-checkbox-line",
-    placeholder: "Your aggregated pending Tasks and Exams will live here (#21).",
+    placeholder: "Your aggregated pending Tasks and Exams appear here.",
   },
   agenda: {
     icon: "ri-calendar-line",

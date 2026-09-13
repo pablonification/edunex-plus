@@ -36,11 +36,14 @@ export interface SessionManager {
   handleUnauthorized(): void;
   /** Token handed to the API client. */
   accessToken(): string | null;
+  /** Account id used to partition on-device feed snapshots. */
+  accountId(): string | null;
 }
 
 export function createSessionManager(deps: SessionManagerDeps): SessionManager {
   let status: AuthStatus = "signed-out";
   let token: string | null = null;
+  let accountId: string | null = null;
 
   function transitionTo(next: AuthStatus) {
     if (status === next) return;
@@ -48,10 +51,20 @@ export function createSessionManager(deps: SessionManagerDeps): SessionManager {
     deps.onChange?.(next);
   }
 
+  function handleUnauthorized() {
+    if (status === "session-expired" && token === null && accountId === null) return;
+    token = null;
+    accountId = null;
+    void deps.store.clear();
+    transitionTo("session-expired");
+  }
+
   return {
     status: () => status,
 
     accessToken: () => token,
+
+    accountId: () => accountId,
 
     async restore() {
       const stored = await deps.store.load();
@@ -59,17 +72,17 @@ export function createSessionManager(deps: SessionManagerDeps): SessionManager {
         // Initial state is already signed-out; broadcast directly so the
         // renderer leaves its boot gate even though nothing "changed".
         status = "signed-out";
+        accountId = null;
         deps.onChange?.("signed-out");
         return;
       }
       token = stored.accessToken;
+      accountId = accountIdFromSession(stored);
       const check = await deps.api.get("/login/me");
       if (check.status === 401) {
         // Stale session (cookies don't survive restarts anyway): clear it and
         // surface the re-login moment instead of showing stale data.
-        token = null;
-        deps.store.clear();
-        transitionTo("session-expired");
+        handleUnauthorized();
         return;
       }
       // 200 → healthy; unreachable/offline → keep the session, the next sync
@@ -83,6 +96,7 @@ export function createSessionManager(deps: SessionManagerDeps): SessionManager {
 
     async capture(auth) {
       token = auth.accessToken;
+      accountId = accountIdFromSession(auth);
       try {
         await deps.store.save(auth);
       } catch (err) {
@@ -96,7 +110,7 @@ export function createSessionManager(deps: SessionManagerDeps): SessionManager {
         // The partition handed back stale tokens (a previous session's
         // localStorage.auth survived): straight into the re-login moment,
         // never through a signed-in flash.
-        this.handleUnauthorized();
+        handleUnauthorized();
         return;
       }
       // 200 → healthy; unreachable → the tokens were just minted by the SSO
@@ -104,10 +118,36 @@ export function createSessionManager(deps: SessionManagerDeps): SessionManager {
       transitionTo("signed-in");
     },
 
-    handleUnauthorized() {
-      token = null;
-      void deps.store.clear();
-      transitionTo("session-expired");
-    },
+    handleUnauthorized,
   };
+}
+
+function accountIdFromSession(auth: CapturedAuth): string | null {
+  const jwtAccountId = accountIdFromJwt(auth.accessToken);
+  if (jwtAccountId) return jwtAccountId;
+
+  const accounts = Array.isArray(auth.accounts) ? auth.accounts : Object.values(auth.accounts);
+  for (const account of accounts) {
+    if (typeof account !== "object" || account === null) continue;
+    const id = (account as Record<string, unknown>).id;
+    if (typeof id === "string" && id.length > 0) return id;
+    if (typeof id === "number" && Number.isFinite(id)) return String(id);
+  }
+  return null;
+}
+
+function accountIdFromJwt(token: string): string | null {
+  try {
+    const encodedClaims = token.split(".")[1];
+    if (!encodedClaims) return null;
+    const claims = JSON.parse(Buffer.from(encodedClaims, "base64url").toString("utf8")) as unknown;
+    if (typeof claims !== "object" || claims === null) return null;
+    const subject = (claims as Record<string, unknown>).sub;
+    if (typeof subject === "string" && subject.length > 0) return subject;
+    if (typeof subject === "number" && Number.isFinite(subject)) return String(subject);
+  } catch {
+    // A malformed token can still be accepted while offline; the accounts map
+    // remains a safe fallback for the local cache key.
+  }
+  return null;
 }

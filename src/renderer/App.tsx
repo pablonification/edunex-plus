@@ -4,6 +4,7 @@ import { SystemPanel } from "./features/shell/system-panel";
 import { LoginView } from "./features/auth/login-view";
 import { ReloginModal } from "./features/auth/relogin-modal";
 import { useAuthState } from "./features/auth/use-auth-state";
+import { DashboardPanel, TodoPanel } from "./features/feeds/feed-panels";
 import { navItem } from "./nav";
 import { cx } from "./utils/cx";
 import type { NavKey } from "@shared/shell";
@@ -71,10 +72,18 @@ export function App() {
             <LoginView />
           ) : (
             <>
-              <p className="max-w-prose text-[13px] leading-5 text-text-secondary">
-                {active.placeholder}
-              </p>
-              {activeKey === "home" && <SystemPanel />}
+              {activeKey === "home" && (
+                <>
+                  <DashboardPanel />
+                  <SystemPanel />
+                </>
+              )}
+              {activeKey === "todo" && <TodoPanel />}
+              {activeKey !== "home" && activeKey !== "todo" && (
+                <p className="max-w-prose text-[13px] leading-5 text-text-secondary">
+                  {active.placeholder}
+                </p>
+              )}
             </>
           )}
         </div>
