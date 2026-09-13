@@ -85,6 +85,11 @@ function installEdunex(shell: ShellBridge) {
         shellListeners.delete(callback);
       };
     }),
+    getNotifications: vi.fn(async () => []),
+    markNotificationsRead: vi.fn(async () => []),
+    markAllNotificationsRead: vi.fn(async () => []),
+    onNotificationsUpdated: vi.fn(() => () => undefined),
+    onNotificationClicked: vi.fn(() => () => undefined),
   };
 }
 

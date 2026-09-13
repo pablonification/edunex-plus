@@ -75,6 +75,11 @@ describe("To Do app flow", () => {
       setViewHidden: vi.fn(async () => ({ hiddenViews: [], quitOnClose: false })),
       setQuitOnClose: vi.fn(async () => ({ hiddenViews: [], quitOnClose: false })),
       onShellSettings: vi.fn(() => () => undefined),
+      getNotifications: vi.fn(async () => []),
+      markNotificationsRead: vi.fn(async () => []),
+      markAllNotificationsRead: vi.fn(async () => []),
+      onNotificationsUpdated: vi.fn(() => () => undefined),
+      onNotificationClicked: vi.fn(() => () => undefined),
     };
 
     const container = document.createElement("div");
@@ -110,5 +115,84 @@ describe("To Do app flow", () => {
 
     expect(container.querySelector('[aria-labelledby="task-page-title"]')).not.toBeNull();
     expect(container.textContent).toContain("Submission details will appear here in #25.");
+  });
+
+  it("opens the task destination when an OS notification is clicked", async () => {
+    const todoSnapshot: FeedSnapshot = {
+      feed: "todo",
+      accountId: "190136",
+      fetchedAt: "2026-09-13T12:00:00.000Z",
+      data: {
+        tasks: [
+          {
+            type: "task",
+            code: "II4091",
+            course: "Final Project Proposal",
+            name: "Answer Tugas 01",
+            time: "2026-09-14T23:59:00.000Z",
+            id: 113986,
+          },
+        ],
+        exams: [],
+        questions: [],
+        modules: [],
+      },
+    };
+    const getFeed = vi.fn(async () => todoSnapshot);
+    let clickedCallback: ((payload: { taskIds: string[] }) => void) | null = null;
+
+    window.edunex = {
+      version: "0.0.1",
+      platform: "linux",
+      fireTestNotification: vi.fn(async () => undefined),
+      getAppInfo: vi.fn(async () => ({
+        version: "0.0.1",
+        platform: "linux",
+        trayActive: true,
+        notificationsSupported: true,
+      })),
+      onNavigate: vi.fn(() => () => undefined),
+      onFullscreenChange: vi.fn(() => () => undefined),
+      getAuthState: vi.fn(async () => "signed-in" as const),
+      startLogin: vi.fn(async () => undefined),
+      onAuthState: vi.fn(() => () => undefined),
+      getFeed,
+      onFeedUpdated: vi.fn(() => () => undefined),
+      getShellSettings: vi.fn(async () => ({ hiddenViews: [], quitOnClose: false })),
+      setViewHidden: vi.fn(async () => ({ hiddenViews: [], quitOnClose: false })),
+      setQuitOnClose: vi.fn(async () => ({ hiddenViews: [], quitOnClose: false })),
+      onShellSettings: vi.fn(() => () => undefined),
+      getNotifications: vi.fn(async () => []),
+      markNotificationsRead: vi.fn(async () => []),
+      markAllNotificationsRead: vi.fn(async () => []),
+      onNotificationsUpdated: vi.fn(() => () => undefined),
+      onNotificationClicked: vi.fn((callback) => {
+        clickedCallback = callback;
+        return () => undefined;
+      }),
+    };
+
+    const container = document.createElement("div");
+    document.body.append(container);
+    const root = createRoot(container);
+    cleanup = () => {
+      root.unmount();
+      container.remove();
+    };
+
+    await act(async () => {
+      root.render(createElement(App));
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+
+    expect(clickedCallback).not.toBeNull();
+
+    await act(async () => {
+      clickedCallback!({ taskIds: ["113986"] });
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+
+    expect(container.querySelector('[aria-labelledby="task-page-title"]')).not.toBeNull();
+    expect(container.textContent).toContain("Answer Tugas 01");
   });
 });
