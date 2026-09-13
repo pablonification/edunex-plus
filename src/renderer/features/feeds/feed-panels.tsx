@@ -3,15 +3,18 @@ import { Badge } from "@/components/ui/badge";
 import { Chip } from "@/components/ui/chip";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import {
+  filterAgendaItemsByCourse,
   filterTodoItemsByCourses,
   formatTimestamp,
   isTaskItem,
   scopeCoursesToPeriod,
+  toAgendaItems,
   toCourseItems,
   toCurrentPeriodId,
   toPeriodItems,
   toTodoItems,
   todoSectionsFromItems,
+  type AgendaItem,
   type CourseItem,
   type PeriodItem,
   type TaskItem,
@@ -135,6 +138,165 @@ export function TodoPanel({ onTaskSelect }: { onTaskSelect?: TodoSelectionHandle
       feedState={feedState}
       onTaskSelect={onTaskSelect}
     />
+  );
+}
+
+/** Standalone agenda feed for the Agenda navigation item. */
+export function AgendaPanel() {
+  const feedState = useCachedFeed("agenda");
+  const items = useMemo(
+    () => toAgendaItems(feedState.snapshot?.data),
+    [feedState.snapshot?.data],
+  );
+  return <AgendaFeedSection items={items} feedState={feedState} />;
+}
+
+/** The course hub's agenda section: this course's meetings from the cache. */
+function CourseAgendaSection({ course }: { course: CourseItem }) {
+  const feedState = useCachedFeed("agenda");
+  const items = useMemo(() => {
+    const all = toAgendaItems(feedState.snapshot?.data);
+    return filterAgendaItemsByCourse(all, course);
+  }, [feedState.snapshot?.data, course]);
+
+  if (feedState.loading) {
+    return (
+      <article className="rounded-xl bg-background-secondary-default p-4">
+        <AgendaSectionHeading title="Agenda" count={null} />
+        <p className="mt-3 px-1 py-4 text-center text-[13px] text-text-tertiary">
+          Loading latest snapshot…
+        </p>
+      </article>
+    );
+  }
+
+  if (feedState.error) {
+    return (
+      <article className="rounded-xl bg-background-secondary-default p-4">
+        <AgendaSectionHeading title="Agenda" count={null} />
+        <p className="mt-3 px-1 py-4 text-center text-[13px] text-text-secondary">
+          The cached feed could not be read.
+        </p>
+      </article>
+    );
+  }
+
+  return (
+    <article className="rounded-xl bg-background-secondary-default p-4">
+      <AgendaSectionHeading title="Agenda" count={items.length} />
+      {items.length > 0 ? (
+        <div className="mt-3">
+          <AgendaList items={items} hideCourse />
+        </div>
+      ) : (
+        <p className="mt-3 px-1 py-4 text-center text-[13px] text-text-tertiary">
+          {feedState.snapshot
+            ? "No meetings for this course in the latest snapshot."
+            : "No agenda snapshot yet."}
+        </p>
+      )}
+    </article>
+  );
+}
+
+function AgendaFeedSection({
+  items,
+  feedState,
+}: {
+  items: AgendaItem[];
+  feedState: CachedFeedState;
+}) {
+  return (
+    <FeedSection
+      eyebrow="Schedule"
+      title="Agenda"
+      count={items.length}
+      snapshot={feedState.snapshot}
+      loading={feedState.loading}
+      error={feedState.error}
+    >
+      {items.length > 0 ? (
+        <AgendaList items={items} />
+      ) : (
+        <EmptyFeed message="No meetings in the latest snapshot." />
+      )}
+    </FeedSection>
+  );
+}
+
+export interface AgendaListProps {
+  items: AgendaItem[];
+  /** The course hub already names the course, so rows skip repeating it. */
+  hideCourse?: boolean;
+}
+
+/**
+ * The free-tier agenda list. The Pro Calendar block is intentionally not
+ * used (BoardUI decision): meetings render chronologically with Vicon
+ * sessions tagged so virtual sessions stand out at a glance.
+ */
+export function AgendaList({ items, hideCourse = false }: AgendaListProps) {
+  return (
+    <ul className="flex flex-col gap-2">
+      {items.map((item) => (
+        <li
+          key={item.id}
+          className="flex min-w-0 items-start gap-3 rounded-lg bg-background-primary-default p-3.5 shadow-sm"
+        >
+          <span
+            className="grid size-9 shrink-0 place-items-center rounded-lg bg-accent-500/10 text-accent-600"
+            aria-hidden
+          >
+            <i
+              className={item.isVicon ? "ri-video-on-line text-[16px]" : "ri-presentation-line text-[16px]"}
+            />
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-1.5">
+              {item.isVicon && (
+                <Chip color="cyan" variant="caption">
+                  <i className="ri-video-on-line mr-1 text-[12px]" aria-hidden />
+                  Vicon
+                </Chip>
+              )}
+              {!hideCourse && item.courseName && (
+                <span className="truncate text-caption-1-semibold text-text-tertiary">
+                  {item.courseCode ? `${item.courseCode} · ` : ""}{item.courseName}
+                </span>
+              )}
+            </div>
+            <h4 className="mt-1 line-clamp-2 text-[14px] font-semibold leading-5 text-text-primary">
+              {item.title}
+            </h4>
+            {item.startAt ? (
+              <p className="mt-1 text-caption-1-regular text-text-secondary">
+                <time dateTime={item.startAt}>{formatTimestamp(item.startAt)}</time>
+                {item.endAt && item.endAt !== item.startAt && (
+                  <>
+                    {" – "}
+                    <time dateTime={item.endAt}>{formatTimestamp(item.endAt)}</time>
+                  </>
+                )}
+              </p>
+            ) : (
+              <p className="mt-1 text-caption-1-regular text-text-tertiary">Time to be announced</p>
+            )}
+          </div>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function AgendaSectionHeading({ title, count }: { title: string; count: number | null }) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <span className="grid size-8 place-items-center rounded-lg bg-background-primary-default text-text-secondary shadow-sm">
+        <i className="ri-calendar-line text-[16px]" aria-hidden />
+      </span>
+      {count !== null && <Badge color="neutral">{count}</Badge>}
+      <h4 className="mr-auto text-[14px] font-semibold text-text-primary">{title}</h4>
+    </div>
   );
 }
 
@@ -496,11 +658,7 @@ function CourseHub({
           <span className="text-caption-1-regular text-text-tertiary">Read-only preview</span>
         </div>
         <div className="mt-3 grid gap-2 sm:grid-cols-2">
-          <HubPlaceholder
-            icon="ri-calendar-line"
-            title="Agenda"
-            description="Class meetings and Vicon sessions will appear here."
-          />
+          <CourseAgendaSection course={course} />
           <HubPlaceholder
             icon="ri-file-list-3-line"
             title="Exams"
