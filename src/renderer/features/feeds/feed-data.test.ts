@@ -3,17 +3,20 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import {
   filterAgendaItemsByCourse,
+  filterExamsByCourse,
+  filterExamsByCourses,
   filterTodoItemsByCourses,
   isViconMeeting,
   scopeCoursesToPeriod,
   toAgendaItems,
   toCourseItems,
   toCurrentPeriodId,
+  toExamItems,
   toPeriodItems,
   toTodoItems,
   toTodoSections,
 } from "./feed-data";
-import { AgendaList, TodoSections } from "./feed-panels";
+import { AgendaList, ExamsTable, TodoSections } from "./feed-panels";
 import { readCachedFeed } from "./use-cached-feed";
 
 const todoFixture = {
@@ -246,6 +249,113 @@ describe("cached feed view models", () => {
     expect(filterTodoItemsByCourses(todo, selectedCourses).map((item) => item.title)).toEqual([
       "Older task",
     ]);
+  });
+
+  it("maps the plain /exam/exams response into read-only rows with title, course and time", () => {
+    const examsFixture = [
+      {
+        type: "exam",
+        code: "II4091",
+        course: "Final Project Proposal",
+        name: "UTS — Final Project Proposal",
+        time: "2026-10-13T02:00:00.000Z",
+        id: 7001,
+      },
+      {
+        type: "exam",
+        code: "ME4066",
+        course: "Climate Change",
+        name: "UAS — Climate Change",
+        time: "2026-12-01T02:00:00.000Z",
+        id: 7002,
+      },
+    ];
+
+    expect(toExamItems(examsFixture)).toEqual([
+      {
+        id: "7001",
+        title: "UTS — Final Project Proposal",
+        courseCode: "II4091",
+        courseName: "Final Project Proposal",
+        time: "2026-10-13T02:00:00.000Z",
+      },
+      {
+        id: "7002",
+        title: "UAS — Climate Change",
+        courseCode: "ME4066",
+        courseName: "Climate Change",
+        time: "2026-12-01T02:00:00.000Z",
+      },
+    ]);
+
+    // Wrapped envelopes decode to the same rows.
+    expect(toExamItems({ exams: examsFixture })).toEqual(toExamItems(examsFixture));
+    expect(toExamItems({ data: examsFixture })).toEqual(toExamItems(examsFixture));
+  });
+
+  it("reads a cached /exam/exams snapshot through the preload seam and scopes it", async () => {
+    const snapshot = {
+      feed: "exams" as const,
+      accountId: "190136",
+      fetchedAt: "2026-09-13T12:00:00.000Z",
+      data: [
+        {
+          type: "exam",
+          code: "II4091",
+          course: "Final Project Proposal",
+          name: "UTS — Final Project Proposal",
+          time: "2026-10-13T02:00:00.000Z",
+          id: 7001,
+        },
+      ],
+    };
+    const bridge = { getFeed: vi.fn(async () => snapshot) };
+
+    const cached = await readCachedFeed("exams", bridge);
+
+    expect(cached).toEqual(snapshot);
+    expect(bridge.getFeed).toHaveBeenCalledWith("exams");
+    const items = toExamItems(cached?.data);
+    expect(items).toHaveLength(1);
+    expect(items[0]).toMatchObject({ title: "UTS — Final Project Proposal" });
+
+    const courses = toCourseItems({
+      data: [
+        { id: "401", attributes: { code: "II4091", name: "Current", year: "2026-1" } },
+        { id: "350", attributes: { code: "IF4050", name: "Older", year: "2025-2" } },
+      ],
+    });
+    expect(
+      filterExamsByCourses(items, scopeCoursesToPeriod(courses, "2025-2")),
+    ).toEqual([]);
+    expect(
+      filterExamsByCourse(items, courses[0]).map((item) => item.title),
+    ).toEqual(["UTS — Final Project Proposal"]);
+  });
+
+  it("renders cached exams as a read-only table with API times and no actions", () => {
+    const markup = renderToStaticMarkup(
+      createElement(ExamsTable, {
+        items: toExamItems([
+          {
+            type: "exam",
+            code: "II4091",
+            course: "Final Project Proposal",
+            name: "UTS — Final Project Proposal",
+            time: "2026-10-13T02:00:00.000Z",
+            id: 7001,
+          },
+        ]),
+        showCourse: true,
+      }),
+    );
+
+    expect(markup).toContain("<table");
+    expect(markup).toContain("UTS — Final Project Proposal");
+    expect(markup).toContain("II4091");
+    expect(markup).toContain('dateTime="2026-10-13T02:00:00.000Z"');
+    expect(markup).not.toContain("<button");
+    expect(markup).not.toContain("<a ");
   });
 });
 
