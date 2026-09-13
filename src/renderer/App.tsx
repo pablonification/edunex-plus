@@ -5,6 +5,8 @@ import { LoginView } from "./features/auth/login-view";
 import { ReloginModal } from "./features/auth/relogin-modal";
 import { useAuthState } from "./features/auth/use-auth-state";
 import { DashboardPanel, TodoPanel } from "./features/feeds/feed-panels";
+import type { TaskItem } from "./features/feeds/feed-data";
+import { TaskPageShell } from "./features/tasks/task-page-shell";
 import { navItem } from "./nav";
 import { cx } from "./utils/cx";
 import type { NavKey } from "@shared/shell";
@@ -24,11 +26,29 @@ import type { NavKey } from "@shared/shell";
  */
 export function App() {
   const [activeKey, setActiveKey] = useState<NavKey>("home");
+  const [selectedTask, setSelectedTask] = useState<TaskItem | null>(null);
   const authStatus = useAuthState();
   const active = navItem(activeKey);
   const isMac = window.edunex.platform === "darwin";
 
-  useEffect(() => window.edunex.onNavigate(setActiveKey), []);
+  useEffect(
+    () =>
+      window.edunex.onNavigate((view) => {
+        setActiveKey(view);
+        setSelectedTask(null);
+      }),
+    [],
+  );
+
+  function selectView(view: NavKey) {
+    setActiveKey(view);
+    setSelectedTask(null);
+  }
+
+  function openTask(task: TaskItem) {
+    setActiveKey("todo");
+    setSelectedTask(task);
+  }
 
   if (authStatus === null) {
     return (
@@ -42,7 +62,7 @@ export function App() {
 
   return (
     <div className="flex h-screen overflow-hidden">
-      <AppSidebar activeKey={activeKey} onSelect={setActiveKey} signedIn={authStatus === "signed-in"} />
+      <AppSidebar activeKey={activeKey} onSelect={selectView} signedIn={authStatus === "signed-in"} />
       <main className="flex min-w-0 flex-1 flex-col border-l border-black/[0.08] bg-background-primary-default">
         <header
           className={cx(
@@ -51,7 +71,7 @@ export function App() {
           )}
         >
           <h1 className="text-[15px] font-semibold tracking-tight">
-            {showLogin ? "Sign in" : active.label}
+            {showLogin ? "Sign in" : selectedTask ? "Task" : active.label}
           </h1>
           <span
             className={cx(
@@ -70,15 +90,17 @@ export function App() {
         >
           {showLogin ? (
             <LoginView />
+          ) : selectedTask ? (
+            <TaskPageShell task={selectedTask} onBack={() => setSelectedTask(null)} />
           ) : (
             <>
               {activeKey === "home" && (
                 <>
-                  <DashboardPanel />
+                  <DashboardPanel onTaskSelect={openTask} />
                   <SystemPanel />
                 </>
               )}
-              {activeKey === "todo" && <TodoPanel />}
+              {activeKey === "todo" && <TodoPanel onTaskSelect={openTask} />}
               {activeKey !== "home" && activeKey !== "todo" && (
                 <p className="max-w-prose text-[13px] leading-5 text-text-secondary">
                   {active.placeholder}

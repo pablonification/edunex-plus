@@ -6,6 +6,19 @@ export interface TodoItem {
   courseName: string;
   dueAt: string | null;
 }
+
+export type TaskItem = Omit<TodoItem, "kind"> & { kind: "Task" };
+
+export function isTaskItem(item: TodoItem): item is TaskItem {
+  return item.kind === "Task";
+}
+
+export interface TodoSection {
+  key: "tasks" | "exams";
+  label: "Tasks" | "Exams";
+  items: TodoItem[];
+}
+
 export interface CourseItem {
   id: string;
   code: string;
@@ -55,6 +68,42 @@ export function toTodoItems(data: unknown): TodoItem[] {
       ];
     });
   });
+}
+
+/**
+ * Groups the aggregated feed into the two user-facing To Do categories.
+ * Empty categories are omitted so the screen never presents a misleading
+ * zero-row table for a feed that does not contain that kind of work.
+ */
+export function toTodoSections(data: unknown): TodoSection[] {
+  return todoSectionsFromItems(toTodoItems(data));
+}
+
+/** Groups already-normalized items when a dashboard has applied a Period scope. */
+export function todoSectionsFromItems(items: TodoItem[]): TodoSection[] {
+  const sections: TodoSection[] = [
+    {
+      key: "tasks",
+      label: "Tasks",
+      items: items.filter(isTaskItem),
+    },
+    {
+      key: "exams",
+      label: "Exams",
+      items: items.filter((item) => item.kind === "Exam"),
+    },
+  ];
+  return sections.filter((section) => section.items.length > 0);
+}
+
+/** Formats an API timestamp in the student's local date and time. */
+export function formatTimestamp(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Unknown time";
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
 }
 
 /**
