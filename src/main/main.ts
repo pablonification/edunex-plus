@@ -30,6 +30,12 @@ import { DEFAULT_SHELL_SETTINGS, NAV_VIEWS, isHideableNavKey } from "../shared/s
 import type { HideableNavKey } from "../shared/shell";
 import { loadShellSettings, saveShellSettings } from "./shell/settings-store";
 import { saveDraftAnswer, submitAnswer as submitTaskAnswer } from "./tasks/task-answers";
+import {
+  createApplicationRuntime,
+  RuntimeEffect,
+  RuntimeExit,
+} from "./effect/runtime";
+import { ApplicationLifecycleError, formatSafeCause } from "./effect/conventions";
 
 // Windows routes notifications by AppUserModelID; without it they fall under
 // Electron's identity or fail entirely (docs/platform-notifications.md).
@@ -316,12 +322,15 @@ sync = createSyncEngine({
   },
 });
 
-if (!gotSingleInstanceLock) {
-  app.quit();
-} else {
-  app.on("second-instance", showWindow);
+// Effect foundation (#50): one managed runtime owns application-scoped
+// services and any future long-lived fibers. Existing feature modules remain
+// behaviorally unchanged until their migration tickets adopt these seams.
+const applicationRuntime = createApplicationRuntime();
+let runtimeShutdownStarted = false;
+let runtimeShutdownComplete = false;
 
-  app.whenReady().then(() => {
+const startApplication = RuntimeEffect.try({
+  try: () => {
     shellSettings = loadShellSettings(shellSettingsPath());
     setApplicationMenu();
     if (isMac() && app.dock) {
@@ -347,6 +356,27 @@ if (!gotSingleInstanceLock) {
     if (shouldFireStartupTestNotification(app.isPackaged, process.env)) showTestNotification();
 
     app.on("activate", showWindow);
+  },
+  catch: () => new ApplicationLifecycleError({ phase: "startup", operation: "electron-ready" }),
+});
+
+if (!gotSingleInstanceLock) {
+  app.quit();
+} else {
+  app.on("second-instance", showWindow);
+
+  app.whenReady().then(() => {
+    void applicationRuntime
+      .runPromiseExit(startApplication)
+      .then((exit) => {
+        if (RuntimeExit.isFailure(exit)) {
+          console.error("[runtime] startup failed:", formatSafeCause(exit.cause));
+          app.quit();
+        }
+      })
+      .catch(() => {
+        if (!runtimeShutdownStarted) app.quit();
+      });
   });
 
   ipcMain.handle("notifications:test", showTestNotification);
@@ -492,9 +522,26 @@ if (!gotSingleInstanceLock) {
     if (!tray || shellSettings.quitOnClose) app.quit();
   });
 
-  app.on("before-quit", () => {
+  app.on("before-quit", (event) => {
+    if (runtimeShutdownComplete) return;
+    event.preventDefault();
+    if (runtimeShutdownStarted) return;
+
+    runtimeShutdownStarted = true;
     quitting = true;
     sync?.stop();
+    void applicationRuntime.shutdown().then(
+      () => {
+        runtimeShutdownComplete = true;
+        app.quit();
+      },
+      () => {
+        // Shutdown is best-effort at the final process boundary. Do not keep
+        // the Student's quit action stuck behind a failed finalizer.
+        runtimeShutdownComplete = true;
+        app.quit();
+      },
+    );
   });
 }
 

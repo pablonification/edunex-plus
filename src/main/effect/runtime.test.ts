@@ -1,0 +1,131 @@
+import { expect, it } from "@effect/vitest";
+import { Cause, Context, Effect, Exit, Fiber, Layer, Schema } from "effect";
+import {
+  ApplicationRuntimeInfo,
+  EFFECT_RUNTIME_VERSION,
+  composeApplicationLayer,
+  createApplicationRuntime,
+} from "./runtime";
+import {
+  BoundaryValidationError,
+  SensitiveStringSchema,
+  RuntimeUnavailableError,
+  decodeBoundary,
+  formatSafeCause,
+  safeCause,
+  sensitiveString,
+} from "./conventions";
+
+const SmokeResource = Context.Service<{ readonly value: string }>(
+  "EdunexPlus/RuntimeSmokeResource",
+);
+
+it("provides the foundation service through the managed layer", async () => {
+  const runtime = createApplicationRuntime();
+  const info = await runtime.runPromise(
+    Effect.gen(function* () {
+      return yield* ApplicationRuntimeInfo;
+    }),
+  );
+  await runtime.shutdown();
+
+  expect(info.applicationName).toBe("Edunex Plus");
+  expect(info.effectVersion).toBe(EFFECT_RUNTIME_VERSION);
+});
+
+it("rejects work after shutdown with a typed runtime error", async () => {
+  const runtime = createApplicationRuntime();
+  await runtime.shutdown();
+
+  const error = await runtime.runPromise(Effect.succeed("unavailable")).catch((cause: unknown) => cause);
+  expect(error).toBeInstanceOf(RuntimeUnavailableError);
+  expect(error).toMatchObject({
+    _tag: "RuntimeUnavailableError",
+    operation: "runtime.use-after-shutdown",
+  });
+});
+
+it("releases resources and interrupts runtime-owned fibers on shutdown", async () => {
+  const events: string[] = [];
+  const resourceLayer = Layer.effect(
+    SmokeResource,
+    Effect.acquireRelease(
+      Effect.sync(() => {
+        events.push("acquire");
+        return { value: "ready" };
+      }),
+      () => Effect.sync(() => events.push("release")),
+    ),
+  );
+  const runtime = createApplicationRuntime(composeApplicationLayer(resourceLayer));
+
+  const fiber = await runtime.fork(Effect.never);
+  await runtime.runPromise(
+    Effect.gen(function* () {
+      const resource = yield* SmokeResource;
+      expect(resource.value).toBe("ready");
+    }),
+  );
+
+  await runtime.shutdown();
+  await runtime.shutdown();
+
+  const exit = await Effect.runPromise(Fiber.await(fiber));
+  expect(Exit.isFailure(exit)).toBe(true);
+  if (Exit.isFailure(exit)) expect(Cause.hasInterrupts(exit.cause)).toBe(true);
+  expect(events).toEqual(["acquire", "release"]);
+  expect(runtime.isShutdown()).toBe(true);
+});
+
+it.effect("keeps boundary errors and causes safe", () =>
+  Effect.gen(function* () {
+    const valid = yield* decodeBoundary(
+      Schema.Struct({ id: Schema.String }),
+      { id: "task-1" },
+      "ipc",
+      "task.read",
+    );
+    expect(valid.id).toBe("task-1");
+
+    const invalid = yield* Effect.exit(
+      decodeBoundary(Schema.Struct({ id: Schema.String }), { id: 42 }, "ipc", "task.read"),
+    );
+    expect(Exit.isFailure(invalid)).toBe(true);
+    if (Exit.isFailure(invalid)) {
+      expect(invalid.cause.reasons[0]).toMatchObject({
+        _tag: "Fail",
+        error: expect.any(BoundaryValidationError),
+      });
+      expect((invalid.cause.reasons[0] as { error: BoundaryValidationError }).error.operation).toBe(
+        "task.read",
+      );
+      expect(formatSafeCause(invalid.cause)).toBe("Failure(BoundaryValidationError)");
+      expect(JSON.stringify(safeCause(invalid.cause))).not.toContain("bearer-secret");
+    }
+
+    const unsafeOperation = yield* Effect.exit(
+      decodeBoundary(Schema.String, 42, "ipc", "bearer secret"),
+    );
+    expect(Exit.isFailure(unsafeOperation)).toBe(true);
+    if (Exit.isFailure(unsafeOperation)) {
+      expect(
+        (unsafeOperation.cause.reasons[0] as { error: BoundaryValidationError }).error.operation,
+      ).toBe("unknown");
+      expect(JSON.stringify(safeCause(unsafeOperation.cause))).not.toContain("bearer-secret");
+    }
+
+    const unsafeFailure = yield* Effect.exit(
+      Effect.fail({ _tag: "ApiFailure", message: "bearer-secret" }),
+    );
+    expect(Exit.isFailure(unsafeFailure)).toBe(true);
+    if (Exit.isFailure(unsafeFailure)) {
+      expect(formatSafeCause(unsafeFailure.cause)).toBe("Failure(ApiFailure)");
+      expect(JSON.stringify(safeCause(unsafeFailure.cause))).not.toContain("bearer-secret");
+    }
+
+    const secret = sensitiveString("bearer-secret");
+    expect(String(secret)).toBe("<redacted>");
+    expect(JSON.stringify(secret)).not.toContain("bearer-secret");
+    expect(() => Schema.encodeSync(SensitiveStringSchema)(secret)).toThrow();
+  }),
+);
