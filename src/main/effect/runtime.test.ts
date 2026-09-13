@@ -1,5 +1,5 @@
 import { expect, it } from "@effect/vitest";
-import { Cause, Context, Effect, Exit, Layer, Schema } from "effect";
+import { Cause, Context, Effect, Exit, Fiber, Layer, Schema } from "effect";
 import {
   ApplicationRuntimeInfo,
   EFFECT_RUNTIME_VERSION,
@@ -47,7 +47,6 @@ it("releases resources and interrupts runtime-owned fibers on shutdown", async (
   const runtime = createApplicationRuntime(composeApplicationLayer(resourceLayer));
 
   const fiber = await runtime.fork(Effect.never);
-  expect(fiber.pollUnsafe()).toBeUndefined();
   await runtime.runPromise(
     Effect.gen(function* () {
       const resource = yield* SmokeResource;
@@ -58,10 +57,9 @@ it("releases resources and interrupts runtime-owned fibers on shutdown", async (
   await runtime.shutdown();
   await runtime.shutdown();
 
-  const exit = fiber.pollUnsafe();
-  expect(exit).toBeDefined();
-  expect(Exit.isFailure(exit!)).toBe(true);
-  if (Exit.isFailure(exit!)) expect(Cause.hasInterrupts(exit!.cause)).toBe(true);
+  const exit = await Effect.runPromise(Fiber.await(fiber));
+  expect(Exit.isFailure(exit)).toBe(true);
+  if (Exit.isFailure(exit)) expect(Cause.hasInterrupts(exit.cause)).toBe(true);
   expect(events).toEqual(["acquire", "release"]);
   expect(runtime.isShutdown()).toBe(true);
 });

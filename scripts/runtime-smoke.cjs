@@ -1,4 +1,4 @@
-const { Cause, Context, Effect, Exit, Layer } = require("effect");
+const { Cause, Context, Effect, Exit, Fiber, Layer } = require("effect");
 const {
   composeApplicationLayer,
   createApplicationRuntime,
@@ -30,7 +30,7 @@ runtime
     );
     await runtime.shutdown();
 
-    const exit = fiber.pollUnsafe();
+    const exit = await Effect.runPromise(Fiber.await(fiber));
     if (
       exit === undefined ||
       !Exit.isFailure(exit) ||
