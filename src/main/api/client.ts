@@ -31,6 +31,7 @@ export interface EdunexDataApi extends EdunexApi {
   getTodo(): Promise<ApiResult & { body: TodoFeed }>;
   getCourses(): Promise<ApiResult & { body: JsonApiResource[] }>;
   getCourseTasks(): Promise<ApiResult & { body: JsonApiResource[] }>;
+  getAgenda(): Promise<ApiResult & { body: JsonApiResource[] }>;
 }
 
 export interface EdunexApiOptions {
@@ -90,6 +91,8 @@ export function createEdunexApi(options: EdunexApiOptions): EdunexDataApi {
       get("/course/courses").then((result) => normalizeResult(result, normalizeCollection)),
     getCourseTasks: () =>
       get("/course/tasks").then((result) => normalizeResult(result, normalizeCollection)),
+    getAgenda: () =>
+      get("/course/agenda").then((result) => normalizeResult(result, normalizeAgenda)),
   };
 }
 
@@ -118,6 +121,22 @@ function normalizeCollection(body: unknown): JsonApiResource[] {
   if (!root) return [];
   if (Array.isArray(root.data)) return root.data.filter(isRecord);
   if (Array.isArray(root.courses)) return root.courses.filter(isRecord);
+  return [];
+}
+
+/**
+ * Normalizes the plain-array `/course/agenda` response at the API boundary.
+ * The endpoint returns a bare array (unlike `/course/tasks`' JSON-API
+ * envelope), but nested `data`/`agenda` variants are accepted so a wrapped
+ * response never becomes an empty agenda.
+ */
+function normalizeAgenda(body: unknown): JsonApiResource[] {
+  if (Array.isArray(body)) return body.filter(isRecord);
+  const root = asRecord(body);
+  if (!root) return [];
+  for (const key of ["data", "agenda", "meetings"]) {
+    if (Array.isArray(root[key])) return (root[key] as unknown[]).filter(isRecord);
+  }
   return [];
 }
 
