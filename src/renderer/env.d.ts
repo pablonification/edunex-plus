@@ -2,6 +2,7 @@ import type { AuthStatus } from "@shared/auth";
 import type { FeedKey, FeedSnapshot } from "@shared/feeds";
 import type { InAppNotification } from "@shared/notifications";
 import type { AppInfo, NavKey, ShellSettings } from "@shared/shell";
+import type { SaveDraftInput, SaveDraftResult } from "@shared/submission";
 
 export {};
 
@@ -35,6 +36,7 @@ declare global {
       onNotificationClicked(
         callback: (payload: { taskIds: string[]; presenceIds?: string[] }) => void,
       ): () => void;
+      saveDraft(input: SaveDraftInput): Promise<SaveDraftResult>;
     };
   }
 }

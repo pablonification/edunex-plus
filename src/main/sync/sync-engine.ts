@@ -1,4 +1,9 @@
-import type { ApiResult, EdunexApi, EdunexDataApi } from "../api/client";
+import {
+  ACTIVE_COURSES_PATH,
+  type ApiResult,
+  type EdunexApi,
+  type EdunexDataApi,
+} from "../api/client";
 import type { TaskNotifier } from "../notifications/task-notifier";
 import type { PresenceNotifier } from "../notifications/presence-notifier";
 import { extractPresenceWindows, nextPresenceDelay } from "../notifications/presence-detector";
@@ -16,7 +21,7 @@ export const DEFAULT_MAX_BACKOFF_MS = 15 * 60_000;
 
 const FEED_ENDPOINTS: ReadonlyArray<{ key: FeedKey; path: string }> = [
   { key: "todo", path: "/todo" },
-  { key: "courses", path: "/course/courses" },
+  { key: "courses", path: ACTIVE_COURSES_PATH },
   { key: "exams", path: "/exam/exams" },
   { key: "agenda", path: "/course/agenda" },
 ];

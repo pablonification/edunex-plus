@@ -25,6 +25,7 @@ import { isFeedKey } from "../shared/feeds";
 import { DEFAULT_SHELL_SETTINGS, NAV_VIEWS, isHideableNavKey } from "../shared/shell";
 import type { HideableNavKey } from "../shared/shell";
 import { loadShellSettings, saveShellSettings } from "./shell/settings-store";
+import { saveDraftAnswer } from "./tasks/task-answers";
 
 // Windows routes notifications by AppUserModelID; without it they fall under
 // Electron's identity or fail entirely (docs/platform-notifications.md).
@@ -423,6 +424,20 @@ if (!gotSingleInstanceLock) {
     }
   });
 
+  // Task Answer draft-save (#25): explicit-only write. The renderer sends
+  // the editor text with the known answer id (if any); main chooses create
+  // (POST → 201) vs update (PATCH → 200) and returns the outcome. Status
+  // refreshes on the next sync tick — nothing here touches the cache.
+  ipcMain.handle("tasks:save-draft", async (_event, input: unknown) => {
+    const { taskId, answer, answerId } = asSaveDraftInput(input);
+    try {
+      return await saveDraftAnswer(authController.api(), { taskId, answer, answerId });
+    } catch (error) {
+      console.error("[tasks] save-draft failed:", error);
+      return { ok: false, status: 0, created: answerId == null, answerId: answerId ?? null };
+    }
+  });
+
   // Deliberate no-op while a tray exists: closing the window must not end the
   // process — the app lives in the tray so notifications keep flowing (spec:
   // shell & navigation). Without a tray (rare Linux setups) a closed window
@@ -436,4 +451,18 @@ if (!gotSingleInstanceLock) {
     quitting = true;
     sync?.stop();
   });
+}
+
+function asSaveDraftInput(input: unknown): {
+  taskId: string;
+  answer: string;
+  answerId: string | null;
+} {
+  const record =
+    typeof input === "object" && input !== null ? (input as Record<string, unknown>) : {};
+  return {
+    taskId: typeof record.taskId === "string" ? record.taskId : "",
+    answer: typeof record.answer === "string" ? record.answer : "",
+    answerId: typeof record.answerId === "string" ? record.answerId : null,
+  };
 }

@@ -125,10 +125,14 @@ describe("edunex api client", () => {
   });
 
   it("normalizes the course collection while leaving /todo's plain categories intact", async () => {
-    const course = { type: "course", id: "401", attributes: { code: "II4091" } };
+    const course = {
+      type: "course",
+      id: "401",
+      attributes: { code: "II4091", is_active: 1, is_enrolled: true },
+    };
     const todo = { tasks: [{ id: 113986 }], exams: [], questions: [], modules: [] };
     const fetchImpl = vi.fn(async (url: string) =>
-      url.endsWith("/course/courses")
+      url.endsWith("/course/courses?include=lecturer,lecturer.user,contents,faculty&filter[is_active][is]=1&filter[is_enrolled][is]=1&page[limit]=100&page[offset]=0")
         ? okResponse({ data: [course] })
         : okResponse(todo),
     );
@@ -227,5 +231,125 @@ describe("edunex api client", () => {
     const result = await api.getAgenda();
 
     expect(result.body).toEqual(meetings);
+  });
+
+  it("requests the active enrolled course collection used by My Courses", async () => {
+    const fetchImpl = vi.fn(async () => okResponse({ data: [] }));
+    const api = createEdunexApi({
+      baseUrl: "https://api-edunex.cognisia.id",
+      getToken: () => "tok",
+      userAgent: "EdunexPlus/0.0.1",
+      fetchImpl,
+    });
+
+    await api.getCourses();
+
+    expect(fetchImpl).toHaveBeenCalledWith(
+      "https://api-edunex.cognisia.id/course/courses?include=lecturer,lecturer.user,contents,faculty&filter[is_active][is]=1&filter[is_enrolled][is]=1&page[limit]=100&page[offset]=0",
+      expect.anything(),
+    );
+  });
+
+  it("keeps active enrolled records when the endpoint also returns public catalog rows", async () => {
+    const publicCourse = {
+      type: "courses",
+      id: "27011",
+      attributes: { code: "ED0001", is_active: 1, is_enrolled: false },
+    };
+    const inactiveEnrollment = {
+      type: "courses",
+      id: "60250",
+      attributes: { code: "IF2040", is_active: 0, is_enrolled: true },
+    };
+    const currentCourse = {
+      type: "courses",
+      id: "401",
+      attributes: { code: "ME4066", is_active: 1, is_enrolled: true },
+    };
+    const fetchImpl = vi.fn(async () =>
+      okResponse({ data: [publicCourse, inactiveEnrollment, currentCourse] }),
+    );
+    const api = createEdunexApi({
+      baseUrl: "https://api-edunex.cognisia.id",
+      getToken: () => "tok",
+      userAgent: "EdunexPlus/0.0.1",
+      fetchImpl,
+    });
+
+    await expect(api.getCourses()).resolves.toMatchObject({ body: [currentCourse] });
+  });
+
+  it("creates a draft via POST /course/task/answers with task_id in the body (201)", async () => {
+    const fetchImpl = vi.fn(
+      async () => new Response(JSON.stringify({ data: { id: "2644208" } }), { status: 201 }),
+    );
+    const api = createEdunexApi({
+      baseUrl: "https://api-edunex.cognisia.id",
+      getToken: () => "tok",
+      userAgent: "EdunexPlus/0.0.1",
+      fetchImpl,
+    });
+
+    const result = await api.createDraftAnswer("113986", "<p>draft</p>");
+
+    expect(result.status).toBe(201);
+    expect(result.ok).toBe(true);
+    const [url, init] = fetchImpl.mock.calls[0];
+    expect(url).toBe("https://api-edunex.cognisia.id/course/task/answers");
+    expect(init.method).toBe("POST");
+    expect(init.headers.get("Authorization")).toBe("Bearer tok");
+    expect(JSON.parse(init.body)).toEqual({
+      data: { attributes: { task_id: "113986", answer: "<p>draft</p>", is_sent: 0 } },
+    });
+  });
+
+  it("updates a draft via PATCH /course/task/answers/{id} with files: [] (200)", async () => {
+    const fetchImpl = vi.fn(async () => okResponse({ data: { id: "2644208" } }));
+    const api = createEdunexApi({
+      baseUrl: "https://api-edunex.cognisia.id",
+      getToken: () => "tok",
+      userAgent: "EdunexPlus/0.0.1",
+      fetchImpl,
+    });
+
+    const result = await api.updateDraftAnswer("2644208", "113986", "<p>edit</p>");
+
+    expect(result.status).toBe(200);
+    expect(result.ok).toBe(true);
+    const [url, init] = fetchImpl.mock.calls[0];
+    expect(url).toBe("https://api-edunex.cognisia.id/course/task/answers/2644208");
+    expect(init.method).toBe("PATCH");
+    expect(JSON.parse(init.body)).toEqual({
+      data: { attributes: { task_id: "113986", files: [], answer: "<p>edit</p>", is_sent: 0 } },
+    });
+  });
+
+  it("treats draft writes like reads for auth: 401 signals, offline does not", async () => {
+    const onUnauthorized = vi.fn();
+    const unauthorizedFetch = vi.fn(async () => new Response("", { status: 401 }));
+    const unauthorizedApi = createEdunexApi({
+      baseUrl: "https://api-edunex.cognisia.id",
+      getToken: () => "stale",
+      userAgent: "EdunexPlus/0.0.1",
+      onUnauthorized,
+      fetchImpl: unauthorizedFetch,
+    });
+
+    const denied = await unauthorizedApi.createDraftAnswer("113986", "x");
+    expect(denied.status).toBe(401);
+    expect(onUnauthorized).toHaveBeenCalledTimes(1);
+
+    const offlineApi = createEdunexApi({
+      baseUrl: "https://api-edunex.cognisia.id",
+      getToken: () => "tok",
+      userAgent: "EdunexPlus/0.0.1",
+      onUnauthorized,
+      fetchImpl: vi.fn(async () => {
+        throw new TypeError("fetch failed");
+      }),
+    });
+    const offline = await offlineApi.updateDraftAnswer("1", "113986", "x");
+    expect(offline.status).toBe(0);
+    expect(onUnauthorized).toHaveBeenCalledTimes(1);
   });
 });

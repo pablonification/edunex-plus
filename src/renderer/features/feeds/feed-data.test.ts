@@ -55,6 +55,9 @@ describe("cached feed view models", () => {
         courseCode: "II4091",
         courseName: "Final Project Proposal",
         dueAt: "2026-09-14T23:59:00.000Z",
+        isSent: null,
+        answerId: null,
+        answer: null,
       },
       {
         id: "9001",
@@ -63,6 +66,9 @@ describe("cached feed view models", () => {
         courseCode: "ME4066",
         courseName: "Climate Change",
         dueAt: "2026-09-10T02:00:00.000Z",
+        isSent: null,
+        answerId: null,
+        answer: null,
       },
     ]);
   });
@@ -91,6 +97,9 @@ describe("cached feed view models", () => {
             courseCode: "II4091",
             courseName: "Final Project Proposal",
             dueAt: "2026-09-14T23:59:00.000Z",
+            isSent: null,
+            answerId: null,
+            answer: null,
           },
         ],
       },
@@ -123,6 +132,27 @@ describe("cached feed view models", () => {
     expect(markup).toContain("Quiz 01");
   });
 
+  it("carries yellow draft, lime submitted, and rose overdue chips on Task rows", () => {
+    const markup = renderToStaticMarkup(
+      createElement(TodoSections, {
+        sections: toTodoSections({
+          tasks: [
+            { id: 1, name: "Future draft", time: "2100-01-01T00:00:00.000Z", is_sent: 0 },
+            { id: 2, name: "Sent work", time: "2000-01-01T00:00:00.000Z", is_sent: 1 },
+            { id: 3, name: "Missed work", time: "2000-01-01T00:00:00.000Z", is_sent: 0 },
+          ],
+          exams: [],
+        }),
+        onTaskSelect: vi.fn(),
+      }),
+    );
+
+    expect(markup).toContain(">Draft<");
+    expect(markup).toContain(">Submitted<");
+    expect(markup).toContain(">Overdue<");
+    expect(markup).not.toContain("sent_at");
+  });
+
   it("maps the JSON-API /course/courses response into course cards", () => {
     expect(
       toCourseItems({
@@ -139,6 +169,8 @@ describe("cached feed view models", () => {
               year: "2026-1",
               faculty: "STEI",
               lecturer: "Dr. Example",
+              is_active: 1,
+              is_enrolled: true,
             },
           },
         ],
@@ -174,6 +206,8 @@ describe("cached feed view models", () => {
             sks: 3,
             hue: "#DCE4F5",
             is_current: true,
+            is_active: 1,
+            is_enrolled: true,
           },
         },
         {
@@ -188,6 +222,8 @@ describe("cached feed view models", () => {
             modules: 4,
             sks: 2,
             hue: "#FBE3CD",
+            is_active: 1,
+            is_enrolled: true,
           },
         },
         {
@@ -199,6 +235,8 @@ describe("cached feed view models", () => {
             class_name: "IF4050-01",
             semester: 2,
             year: "2025-2",
+            is_active: 1,
+            is_enrolled: true,
           },
         },
       ],
@@ -217,6 +255,66 @@ describe("cached feed view models", () => {
     ]);
   });
 
+  it("maps the enrolled-course payload fields returned by My Courses", () => {
+    expect(
+      toCourseItems([
+        {
+          type: "courses",
+          id: "401",
+          attributes: {
+            code: "II4091",
+            name: "Final Project Proposal",
+            class_name: "II4091-01",
+            period_id: 118,
+            period_year: "2026",
+            period_type: "1",
+            total_modules: 16,
+            credit: "3",
+            lecturer: "Dr. Fetty Fitriyanti Lubis, S.T., M.T.",
+            faculty: { code: "STEI", name: "STEI" },
+            thumbnail: "https://cdn-edunex.itb.ac.id/401/thumbnail.png",
+            is_active: 1,
+            is_enrolled: true,
+          },
+        },
+      ]),
+    ).toEqual([
+      {
+        id: "401",
+        code: "II4091",
+        name: "Final Project Proposal",
+        className: "II4091-01",
+        period: "2026-1",
+        faculty: "STEI",
+        lecturer: "Dr. Fetty Fitriyanti Lubis, S.T., M.T.",
+        sks: 3,
+        moduleCount: 16,
+        thumbnailUrl: "https://cdn-edunex.itb.ac.id/401/thumbnail.png",
+      },
+    ]);
+  });
+
+  it("does not show public or inactive records from a broad cached course response", () => {
+    expect(
+      toCourseItems([
+        {
+          id: "27011",
+          attributes: { code: "ED0001", name: "Public guide", is_active: 1, is_enrolled: false },
+        },
+        {
+          id: "60250",
+          attributes: { code: "IF2040", name: "Old enrollment", is_active: 0, is_enrolled: true },
+        },
+        {
+          id: "401",
+          attributes: { code: "ME4066", name: "Climate Change", is_active: 1, is_enrolled: true },
+        },
+      ]),
+    ).toEqual([
+      expect.objectContaining({ code: "ME4066", name: "Climate Change" }),
+    ]);
+  });
+
   it("scopes courses and To Do items to the selected offered Period", () => {
     const courses = toCourseItems({
       data: [
@@ -227,11 +325,19 @@ describe("cached feed view models", () => {
             name: "Current course",
             year: "2026-1",
             is_current: true,
+            is_active: 1,
+            is_enrolled: true,
           },
         },
         {
           id: "350",
-          attributes: { code: "IF4050", name: "Older course", year: "2025-2" },
+          attributes: {
+            code: "IF4050",
+            name: "Older course",
+            year: "2025-2",
+            is_active: 1,
+            is_enrolled: true,
+          },
         },
       ],
     });
@@ -249,6 +355,30 @@ describe("cached feed view models", () => {
     expect(filterTodoItemsByCourses(todo, selectedCourses).map((item) => item.title)).toEqual([
       "Older task",
     ]);
+  });
+
+  it("reads the is_sent bit for Tasks and never the sent_at decoy", () => {
+    const items = toTodoItems({
+      tasks: [
+        { id: 1, name: "Draft task", is_sent: 0, sent_at: "2026-09-05 21:00:47" },
+        { id: 2, name: "Sent task", is_sent: 1, sent_at: "2026-09-05 21:00:47" },
+        {
+          id: 3,
+          name: "Nested answer",
+          answers: [{ id: 2644208, is_sent: 0, answer: "<p>draft</p>", sent_at: "2026-09-05 21:00:47" }],
+        },
+      ],
+      exams: [],
+    });
+
+    expect(items.map((item) => [item.title, item.isSent, item.answerId, item.answer])).toEqual([
+      ["Draft task", false, null, null],
+      ["Sent task", true, null, null],
+      ["Nested answer", false, "2644208", "<p>draft</p>"],
+    ]);
+    // sent_at must never leak into the view model.
+    expect(JSON.stringify(items)).not.toContain("sent_at");
+    expect(JSON.stringify(items)).not.toContain("2026-09-05 21:00:47");
   });
 
   it("maps the plain /exam/exams response into read-only rows with title, course and time", () => {
