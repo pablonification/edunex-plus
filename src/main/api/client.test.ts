@@ -97,4 +97,51 @@ describe("edunex api client", () => {
     expect(result.status).toBe(500);
     expect(onUnauthorized).not.toHaveBeenCalled();
   });
+
+  it("normalizes the JSON-API course-task envelope at the API boundary", async () => {
+    const resource = {
+      type: "task",
+      id: "113986",
+      attributes: {
+        title: "Tugas 01",
+        course_code: "II4091",
+        due_at: "2026-09-14T23:59:00.000Z",
+      },
+      links: { self: "/course/tasks/113986" },
+    };
+    const fetchImpl = vi.fn(async () =>
+      okResponse({ meta: { count: 1 }, data: [resource], links: { self: "/course/tasks" } }),
+    );
+    const api = createEdunexApi({
+      baseUrl: "https://api-edunex.cognisia.id",
+      getToken: () => "tok",
+      userAgent: "EdunexPlus/0.0.1",
+      fetchImpl,
+    });
+
+    const result = await api.getCourseTasks();
+
+    expect(result.body).toEqual([resource]);
+  });
+
+  it("normalizes the course collection while leaving /todo's plain categories intact", async () => {
+    const course = { type: "course", id: "401", attributes: { code: "II4091" } };
+    const todo = { tasks: [{ id: 113986 }], exams: [], questions: [], modules: [] };
+    const fetchImpl = vi.fn(async (url: string) =>
+      url.endsWith("/course/courses")
+        ? okResponse({ data: [course] })
+        : okResponse(todo),
+    );
+    const api = createEdunexApi({
+      baseUrl: "https://api-edunex.cognisia.id",
+      getToken: () => "tok",
+      userAgent: "EdunexPlus/0.0.1",
+      fetchImpl,
+    });
+
+    const [courses, pending] = await Promise.all([api.getCourses(), api.getTodo()]);
+
+    expect(courses.body).toEqual([course]);
+    expect(pending.body).toEqual(todo);
+  });
 });

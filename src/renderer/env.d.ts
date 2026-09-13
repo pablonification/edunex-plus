@@ -1,4 +1,5 @@
 import type { AuthStatus } from "@shared/auth";
+import type { FeedKey, FeedSnapshot } from "@shared/feeds";
 import type { AppInfo, NavKey } from "@shared/shell";
 
 export {};
@@ -20,6 +21,8 @@ declare global {
       getAuthState(): Promise<AuthStatus | null>;
       startLogin(): Promise<void>;
       onAuthState(callback: (status: AuthStatus) => void): () => void;
+      getFeed(feed: FeedKey): Promise<FeedSnapshot | null>;
+      onFeedUpdated(callback: (snapshot: FeedSnapshot) => void): () => void;
     };
   }
 }

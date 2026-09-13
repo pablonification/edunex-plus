@@ -37,8 +37,20 @@ describe("session manager", () => {
     const { manager, api, onChange } = harness({ stored: session });
     await manager.restore();
     expect(manager.status()).toBe("signed-in");
+    expect(manager.accountId()).toBe("190136");
     expect(api.get).toHaveBeenCalledWith("/login/me");
     expect(onChange).toHaveBeenCalledWith("signed-in");
+  });
+
+  it("uses the authenticated account identity from a JWT when one is available", async () => {
+    const header = Buffer.from(JSON.stringify({ alg: "none" })).toString("base64url");
+    const claims = Buffer.from(JSON.stringify({ sub: "190136" })).toString("base64url");
+    const tokenSession = { ...session, accessToken: `${header}.${claims}.signature` };
+    const { manager } = harness({ stored: tokenSession });
+
+    await manager.restore();
+
+    expect(manager.accountId()).toBe("190136");
   });
 
   it("a 401 on restore clears the stale session and asks for re-login", async () => {
@@ -69,7 +81,19 @@ describe("session manager", () => {
 
     manager.handleUnauthorized();
     expect(manager.status()).toBe("session-expired");
+    expect(manager.accountId()).toBeNull();
     expect(store.clear).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not repeat the re-login transition when two feed requests see the same 401", async () => {
+    const { manager, store, onChange } = harness({ stored: session });
+    await manager.restore();
+
+    manager.handleUnauthorized();
+    manager.handleUnauthorized();
+
+    expect(store.clear).toHaveBeenCalledTimes(1);
+    expect(onChange).toHaveBeenCalledTimes(2);
   });
 
   it("startLogin opens the webview moment", () => {
