@@ -527,13 +527,21 @@ function CourseCard({ course, onOpen }: { course: CourseItem; onOpen: (course: C
         aria-hidden
       />
       <span className="flex min-w-0 items-start gap-3">
-        <span
-          className="grid size-10 shrink-0 place-items-center rounded-lg text-[13px] font-semibold text-text-secondary"
-          style={{ backgroundColor: tint }}
-          aria-hidden
-        >
-          {courseInitials}
-        </span>
+        {course.thumbnailUrl ? (
+          <img
+            src={course.thumbnailUrl}
+            alt=""
+            className="size-10 shrink-0 rounded-lg object-cover"
+          />
+        ) : (
+          <span
+            className="grid size-10 shrink-0 place-items-center rounded-lg text-[13px] font-semibold text-text-secondary"
+            style={{ backgroundColor: tint }}
+            aria-hidden
+          >
+            {courseInitials}
+          </span>
+        )}
         <span className="min-w-0 flex-1">
           <span className="flex items-center gap-2">
             <span className="truncate text-caption-1-semibold text-text-secondary">
@@ -610,13 +618,21 @@ function CourseHub({
           aria-hidden
         />
         <div className="relative flex flex-wrap items-start gap-4 p-5 sm:p-6">
-          <span
-            className="grid size-14 shrink-0 place-items-center rounded-xl text-[15px] font-semibold text-text-secondary shadow-sm"
-            style={{ backgroundColor: tint }}
-            aria-hidden
-          >
-            {courseMark(course)}
-          </span>
+          {course.thumbnailUrl ? (
+            <img
+              src={course.thumbnailUrl}
+              alt=""
+              className="size-14 shrink-0 rounded-xl object-cover shadow-sm"
+            />
+          ) : (
+            <span
+              className="grid size-14 shrink-0 place-items-center rounded-xl text-[15px] font-semibold text-text-secondary shadow-sm"
+              style={{ backgroundColor: tint }}
+              aria-hidden
+            >
+              {courseMark(course)}
+            </span>
+          )}
           <div className="min-w-0 flex-1">
             <p className="text-caption-1-semibold uppercase tracking-[0.08em] text-text-tertiary">
               Course hub
