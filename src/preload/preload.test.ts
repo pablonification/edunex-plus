@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { FeedSnapshot } from "../shared/feeds";
+import type { ShellSettings } from "../shared/shell";
 
 const electronMocks = vi.hoisted(() => ({
   exposeInMainWorld: vi.fn(),
@@ -109,5 +110,47 @@ describe("preload feed bridge", () => {
 
     await expect(bridge.getFeed("agenda")).resolves.toEqual(snapshot);
     expect(electronMocks.invoke).toHaveBeenCalledWith("sync:get-feed", "agenda");
+  });
+});
+
+describe("preload shell-settings bridge", () => {
+  const shellBridge = electronMocks.exposeInMainWorld.mock.calls[0][1] as {
+    getShellSettings(): Promise<ShellSettings>;
+    setViewHidden(view: string, hidden: boolean): Promise<ShellSettings>;
+    setQuitOnClose(quitOnClose: boolean): Promise<ShellSettings>;
+    onShellSettings(callback: (settings: ShellSettings) => void): () => void;
+  };
+
+  it("reads settings and writes hide/quit changes through main's IPC channels", async () => {
+    const stored: ShellSettings = { hiddenViews: [], quitOnClose: false };
+    electronMocks.invoke.mockClear();
+    electronMocks.invoke.mockResolvedValueOnce(stored);
+    await expect(shellBridge.getShellSettings()).resolves.toEqual(stored);
+    expect(electronMocks.invoke).toHaveBeenCalledWith("shell:get-settings");
+
+    const updated: ShellSettings = { hiddenViews: ["exams"], quitOnClose: true };
+    electronMocks.invoke.mockResolvedValueOnce(updated);
+    await expect(shellBridge.setViewHidden("exams", true)).resolves.toEqual(updated);
+    expect(electronMocks.invoke).toHaveBeenCalledWith("shell:set-view-hidden", "exams", true);
+
+    electronMocks.invoke.mockResolvedValueOnce(updated);
+    await expect(shellBridge.setQuitOnClose(true)).resolves.toEqual(updated);
+    expect(electronMocks.invoke).toHaveBeenCalledWith("shell:set-quit-on-close", true);
+  });
+
+  it("forwards settings pushes and removes the listener on unsubscribe", () => {
+    const callback = vi.fn();
+    const unsubscribe = shellBridge.onShellSettings(callback);
+    const listener = electronMocks.on.mock.calls.at(-1)?.[1] as (
+      event: unknown,
+      settings: ShellSettings,
+    ) => void;
+    const next: ShellSettings = { hiddenViews: ["todo"], quitOnClose: false };
+
+    listener({}, next);
+    unsubscribe();
+
+    expect(callback).toHaveBeenCalledWith(next);
+    expect(electronMocks.removeListener).toHaveBeenCalledWith("shell:settings-updated", listener);
   });
 });
