@@ -1,6 +1,7 @@
 import {
   app,
   BrowserWindow,
+  dialog,
   ipcMain,
   Menu,
   Notification,
@@ -9,17 +10,21 @@ import {
   screen,
 } from "electron";
 import path from "node:path";
+import { writeFile } from "node:fs/promises";
 import { buildTrayMenuTemplate } from "./tray-menu";
 import { buildAppMenuTemplate } from "./app-menu";
 import { loadWindowState, saveWindowState, type WindowState } from "./window-state";
 import { shouldFireStartupTestNotification } from "./notifications";
-import { createAuthController } from "./auth/auth-controller";
+import { createAuthController, EDUNEX_API_BASE_URL } from "./auth/auth-controller";
 import { createSnapshotCache } from "./sync/snapshot-cache";
 import { createSyncEngine, type SyncEngine } from "./sync/sync-engine";
 import { createNotificationStore } from "./notifications/notification-store";
+import { downloadMaterialFile } from "./materials/download";
+import { isMaterialDownloadRequest } from "../shared/materials";
 import { createInAppSink, createOsSink } from "./notifications/sinks";
 import { createTaskNotifier } from "./notifications/task-notifier";
-import type { InAppNotification } from "../shared/notifications";
+import { createPresenceNotifier } from "./notifications/presence-notifier";
+import type { InAppNotification, OutboundNotification } from "../shared/notifications";
 import { isFeedKey } from "../shared/feeds";
 import { DEFAULT_SHELL_SETTINGS, NAV_VIEWS, isHideableNavKey } from "../shared/shell";
 import type { HideableNavKey } from "../shared/shell";
@@ -238,41 +243,63 @@ const authController = createAuthController({
   },
 });
 
-// Notification spine (#23): sink interface with two implementations — the
-// OS notification and the persisted in-app fallback feed. Detection is
-// id-diff against the snapshot cache plus a per-account seen-ledger, so
-// nothing replays across restarts. First sync baselines silently; bursts
-// coalesce into one digest; clicks focus the app and land on To Do (#21).
+// Notification spine (#23, extended by #24): sink interface with two
+// implementations — the OS notification and the persisted in-app fallback
+// feed. Task detection is id-diff against the snapshot cache plus a
+// per-account seen-ledger, so nothing replays across restarts. First sync
+// baselines silently; bursts coalesce into one digest; clicks focus the app
+// and land on To Do (#21). Presence-open alerts share the same sinks but
+// fire immediately, one per window, never coalesced; clicks land on the
+// agenda where the open meeting is visible.
 const seenLedgerRoot = path.join(app.getPath("userData"), "seen-ledger");
 const inAppFeedRoot = path.join(app.getPath("userData"), "notifications");
 
-function handleNotificationClicked(taskIds: string[]) {
+function handleTaskNotificationClicked(taskIds: string[]) {
   showWindow();
   if (!win || win.isDestroyed()) return;
   win.webContents.send("nav:goto", "todo");
   win.webContents.send("notifications:clicked", { taskIds });
 }
 
+function handlePresenceNotificationClicked(presenceIds: string[]) {
+  showWindow();
+  if (!win || win.isDestroyed()) return;
+  win.webContents.send("nav:goto", "agenda");
+  win.webContents.send("notifications:clicked", { taskIds: [], presenceIds });
+}
+
+function handleOutboundNotificationClicked(notification: OutboundNotification) {
+  if (notification.kind === "presence") {
+    handlePresenceNotificationClicked([...notification.presenceIds]);
+  } else {
+    handleTaskNotificationClicked([...notification.taskIds]);
+  }
+}
+
+const osSink = createOsSink({
+  show: ({ title, body }, onClick) => {
+    const notification = new Notification({ title, body });
+    notification.on("click", onClick);
+    notification.show();
+  },
+  onClicked: handleOutboundNotificationClicked,
+});
+const inAppSink = createInAppSink({
+  storeFor: (accountId) => createNotificationStore(inAppFeedRoot, accountId),
+  getAccountId: authController.accountId,
+  broadcast: (_accountId, entries) => {
+    if (win && !win.isDestroyed()) win.webContents.send("notifications:updated", entries);
+  },
+});
+
 const taskNotifier = createTaskNotifier({
   ledgerRoot: seenLedgerRoot,
-  sinks: [
-    createOsSink({
-      show: ({ title, body }, onClick) => {
-        const notification = new Notification({ title, body });
-        notification.on("click", onClick);
-        notification.show();
-      },
-      onClicked: (notification) =>
-        handleNotificationClicked([...notification.taskIds]),
-    }),
-    createInAppSink({
-      storeFor: (accountId) => createNotificationStore(inAppFeedRoot, accountId),
-      getAccountId: authController.accountId,
-      broadcast: (_accountId, entries) => {
-        if (win && !win.isDestroyed()) win.webContents.send("notifications:updated", entries);
-      },
-    }),
-  ],
+  sinks: [osSink, inAppSink],
+});
+
+const presenceNotifier = createPresenceNotifier({
+  ledgerRoot: seenLedgerRoot,
+  sinks: [osSink, inAppSink],
 });
 
 // Sync slice (#19): main owns the API adapter, timer, and on-device snapshots.
@@ -283,6 +310,7 @@ sync = createSyncEngine({
   getAccountId: authController.accountId,
   onUnauthorized: authController.handleUnauthorized,
   taskNotifier,
+  presenceNotifier,
   onFeedUpdated: (snapshot) => {
     if (win && !win.isDestroyed()) win.webContents.send("sync:feed-updated", snapshot);
   },
@@ -336,6 +364,34 @@ if (!gotSingleInstanceLock) {
   ipcMain.handle("sync:get-feed", (_event, feed: unknown) => {
     if (!isFeedKey(feed)) return null;
     return sync?.read(feed) ?? null;
+  });
+
+  // Materials download (#30): explicit user action only. The renderer passes
+  // the cached file URL + name; main attaches the bearer token, shows the
+  // save dialog (a user-visible location), and writes the bytes. The sync
+  // tick never downloads — listing stays offline-readable from the cache
+  // while the bytes always need the network.
+  ipcMain.handle("materials:download", async (_event, request: unknown) => {
+    if (!isMaterialDownloadRequest(request)) {
+      return { ok: false, error: "This material has no downloadable file." };
+    }
+    try {
+      return await downloadMaterialFile(request, {
+        baseUrl: EDUNEX_API_BASE_URL,
+        getToken: () => authController.accessToken(),
+        userAgent: `EdunexPlus/${app.getVersion()} (desktop client; +https://github.com/pablonification/edunex-plus)`,
+        onUnauthorized: () => authController.handleUnauthorized(),
+        showSaveDialog: (options) =>
+          dialog.showSaveDialog({
+            defaultPath: options.defaultPath,
+            properties: ["createDirectory", "showOverwriteConfirmation"],
+          }),
+        writeFile: (filePath, data) => writeFile(filePath, data),
+      });
+    } catch (error) {
+      console.error("[materials] download failed:", error);
+      return { ok: false, error: "Download failed — check your connection and try again." };
+    }
   });
 
   // Shell preferences (#22): the renderer reads the persisted settings,

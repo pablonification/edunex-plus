@@ -85,6 +85,42 @@ export function createBrowserPreviewBridge(): Window["edunex"] {
       fetchedAt: PREVIEW_FETCHED_AT,
       data: [],
     },
+    presences: {
+      feed: "presences",
+      accountId: "browser-preview",
+      fetchedAt: PREVIEW_FETCHED_AT,
+      data: [
+        {
+          course_id: "preview-course",
+          course_code: "II4091",
+          courses_name: "Final Project Proposal",
+          class_id: 1,
+          class_name: "II4091-01",
+          semester: 1,
+          year: "2026-1",
+          presences: [
+            { id: 1, name: "Week 01 — Opening", date: "2026-08-19T07:00:00.000Z", status: "Present" },
+          ],
+        },
+      ],
+    },
+    materials: {
+      feed: "materials",
+      accountId: "browser-preview",
+      fetchedAt: PREVIEW_FETCHED_AT,
+      data: [
+        {
+          id: 9001,
+          name: "Week 05 — Slides",
+          course_code: "II4091",
+          course_name: "Final Project Proposal",
+          file_name: "Week-05-Slides.pdf",
+          file_url: "/blob-storage/materials/9001/Week-05-Slides.pdf",
+          mime_type: "application/pdf",
+          size: 245760,
+        },
+      ],
+    },
   };
 
   const noOpUnsubscribe = () => undefined;
@@ -107,6 +143,10 @@ export function createBrowserPreviewBridge(): Window["edunex"] {
     onAuthState: (_callback) => noOpUnsubscribe,
     getFeed: async (feed: FeedKey) => snapshots[feed] ?? null,
     onFeedUpdated: (_callback) => noOpUnsubscribe,
+    downloadMaterial: async () => ({
+      ok: false as const,
+      error: "Downloads require the Electron app.",
+    }),
     getShellSettings: async () => PREVIEW_SHELL_SETTINGS,
     setViewHidden: async () => PREVIEW_SHELL_SETTINGS,
     setQuitOnClose: async () => PREVIEW_SHELL_SETTINGS,

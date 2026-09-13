@@ -41,6 +41,8 @@ export interface EdunexDataApi extends EdunexApi {
   getCourseTasks(): Promise<ApiResult & { body: JsonApiResource[] }>;
   getExams(): Promise<ApiResult & { body: JsonApiResource[] }>;
   getAgenda(): Promise<ApiResult & { body: JsonApiResource[] }>;
+  getMaterials(): Promise<ApiResult & { body: JsonApiResource[] }>;
+  getPresences(): Promise<ApiResult & { body: JsonApiResource[] }>;
   /**
    * Draft-save pair, verified live on Tugas 01 (issue #16). Both send
    * `is_sent: 0` and `task_id` in a JSON-API `data.attributes` envelope.
@@ -130,6 +132,12 @@ export function createEdunexApi(options: EdunexApiOptions): EdunexDataApi {
       get("/exam/exams").then((result) => normalizeResult(result, normalizeExams)),
     getAgenda: () =>
       get("/course/agenda").then((result) => normalizeResult(result, normalizeAgenda)),
+    getMaterials: () =>
+      get("/course/materials").then((result) => normalizeResult(result, normalizeMaterials)),
+    getPresences: () =>
+      get("/course/presences/list").then((result) =>
+        normalizeResult(result, normalizePresences),
+      ),
     createDraftAnswer: (taskId: string, answer: string) =>
       post("/course/task/answers", {
         data: { attributes: { task_id: taskId, answer, is_sent: 0 } },
@@ -199,6 +207,39 @@ function normalizeAgenda(body: unknown): JsonApiResource[] {
   const root = asRecord(body);
   if (!root) return [];
   for (const key of ["data", "agenda", "meetings"]) {
+    if (Array.isArray(root[key])) return (root[key] as unknown[]).filter(isRecord);
+  }
+  return [];
+}
+
+/**
+ * Normalizes the `/course/materials` response at the API boundary.
+ * The vendor shape is a plain collection (like `/course/agenda`), but
+ * `materials`/`modules`/`data`-wrapped and JSON-API variants are accepted
+ * so an envelope change never becomes an empty materials list.
+ */
+function normalizeMaterials(body: unknown): JsonApiResource[] {
+  if (Array.isArray(body)) return body.filter(isRecord);
+  const root = asRecord(body);
+  if (!root) return [];
+  for (const key of ["data", "materials", "modules", "files"]) {
+    if (Array.isArray(root[key])) return (root[key] as unknown[]).filter(isRecord);
+  }
+  return [];
+}
+
+/**
+ * Normalizes the plain-array `/course/presences/list` response at the API
+ * boundary. The endpoint returns per-course rows carrying a nested
+ * `presences` array (unlike `/course/tasks`' JSON-API envelope), but nested
+ * `data`/`presences` variants are accepted so a wrapped response never
+ * becomes an empty presence history.
+ */
+function normalizePresences(body: unknown): JsonApiResource[] {
+  if (Array.isArray(body)) return body.filter(isRecord);
+  const root = asRecord(body);
+  if (!root) return [];
+  for (const key of ["data", "presences", "courses"]) {
     if (Array.isArray(root[key])) return (root[key] as unknown[]).filter(isRecord);
   }
   return [];

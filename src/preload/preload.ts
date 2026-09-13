@@ -1,6 +1,10 @@
 import { contextBridge, ipcRenderer } from "electron";
 import type { AuthStatus } from "../shared/auth";
 import type { FeedKey, FeedSnapshot } from "../shared/feeds";
+import type {
+  MaterialDownloadRequest,
+  MaterialDownloadResult,
+} from "../shared/materials";
 import type { InAppNotification } from "../shared/notifications";
 import type { AppInfo, NavKey, ShellSettings } from "../shared/shell";
 import type {
@@ -48,6 +52,11 @@ contextBridge.exposeInMainWorld("edunex", {
     ipcRenderer.on("sync:feed-updated", listener);
     return () => ipcRenderer.removeListener("sync:feed-updated", listener);
   },
+  // Materials (#30): listing reads the cached feed above; downloading is an
+  // explicit user action that routes through main so the bearer token never
+  // reaches the renderer. Main shows the save dialog and writes the bytes.
+  downloadMaterial: (request: MaterialDownloadRequest) =>
+    ipcRenderer.invoke("materials:download", request) as Promise<MaterialDownloadResult>,
   // Shell preferences (#22): hidden views + the tray opt-out persist in
   // main's userData across restarts; writes push back on shell:settings-updated.
   getShellSettings: () => ipcRenderer.invoke("shell:get-settings") as Promise<ShellSettings>,
@@ -60,9 +69,10 @@ contextBridge.exposeInMainWorld("edunex", {
     ipcRenderer.on("shell:settings-updated", listener);
     return () => ipcRenderer.removeListener("shell:settings-updated", listener);
   },
-  // Notification Center fallback feed (#23): the persisted in-app entries.
-  // OS clicks arrive on a separate channel with the covered task ids so the
-  // renderer can land on the To Do destination (#21).
+  // Notification Center fallback feed (#23, extended by #24): the persisted
+  // in-app entries. OS clicks arrive on a separate channel with the covered
+  // task ids so the renderer can land on the To Do destination (#21), or
+  // with presence ids for Presence-open alerts (destination: agenda).
   getNotifications: () =>
     ipcRenderer.invoke("notifications:get") as Promise<InAppNotification[]>,
   markNotificationsRead: (ids: string[]) =>
@@ -74,8 +84,13 @@ contextBridge.exposeInMainWorld("edunex", {
     ipcRenderer.on("notifications:updated", listener);
     return () => ipcRenderer.removeListener("notifications:updated", listener);
   },
-  onNotificationClicked: (callback: (payload: { taskIds: string[] }) => void) => {
-    const listener = (_event: unknown, payload: { taskIds: string[] }) => callback(payload);
+  onNotificationClicked: (
+    callback: (payload: { taskIds: string[]; presenceIds?: string[] }) => void,
+  ) => {
+    const listener = (
+      _event: unknown,
+      payload: { taskIds: string[]; presenceIds?: string[] },
+    ) => callback(payload);
     ipcRenderer.on("notifications:clicked", listener);
     return () => ipcRenderer.removeListener("notifications:clicked", listener);
   },

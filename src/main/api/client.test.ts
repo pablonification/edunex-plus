@@ -233,6 +233,41 @@ describe("edunex api client", () => {
     expect(result.body).toEqual(meetings);
   });
 
+  it("normalizes the /course/materials collection whether bare or wrapped", async () => {
+    const material = {
+      id: 9001,
+      name: "Week 05 — Slides",
+      course_code: "II4091",
+      course_name: "Final Project Proposal",
+      file_name: "Week-05-Slides.pdf",
+      file_url: "/blob-storage/materials/9001/Week-05-Slides.pdf",
+      mime_type: "application/pdf",
+      size: 245760,
+    };
+    const cases: Array<{ body: unknown; expected: unknown[] }> = [
+      { body: [material], expected: [material] },
+      { body: { materials: [material] }, expected: [material] },
+      { body: { modules: [material] }, expected: [material] },
+      { body: { data: [material] }, expected: [material] },
+    ];
+    for (const { body, expected } of cases) {
+      const fetchImpl = vi.fn(async () => okResponse(body));
+      const api = createEdunexApi({
+        baseUrl: "https://api-edunex.cognisia.id",
+        getToken: () => "tok",
+        userAgent: "EdunexPlus/0.0.1",
+        fetchImpl,
+      });
+
+      const result = await api.getMaterials();
+
+      expect(fetchImpl.mock.calls[0][0]).toBe(
+        "https://api-edunex.cognisia.id/course/materials",
+      );
+      expect(result.body).toEqual(expected);
+    }
+  });
+
   it("requests the active enrolled course collection used by My Courses", async () => {
     const fetchImpl = vi.fn(async () => okResponse({ data: [] }));
     const api = createEdunexApi({
@@ -277,6 +312,59 @@ describe("edunex api client", () => {
     });
 
     await expect(api.getCourses()).resolves.toMatchObject({ body: [currentCourse] });
+  });
+
+  it("passes the per-course /course/presences/list response through at the API boundary", async () => {
+    const rows = [
+      {
+        course_id: 401,
+        course_code: "II4091",
+        courses_name: "Final Project Proposal",
+        class_id: 88,
+        class_name: "II4091-01",
+        semester: 1,
+        year: "2026-1",
+        presences: [
+          { id: 7001, name: "Week 01 — Opening", date: "2026-08-19T07:00:00.000Z", status: "Hadir" },
+        ],
+      },
+    ];
+    const fetchImpl = vi.fn(async () => okResponse(rows));
+    const api = createEdunexApi({
+      baseUrl: "https://api-edunex.cognisia.id",
+      getToken: () => "tok",
+      userAgent: "EdunexPlus/0.0.1",
+      fetchImpl,
+    });
+
+    const result = await api.getPresences();
+
+    expect(fetchImpl.mock.calls[0][0]).toBe(
+      "https://api-edunex.cognisia.id/course/presences/list",
+    );
+    expect(result.body).toEqual(rows);
+  });
+
+  it("unwraps a nested /course/presences/list payload without dropping course rows", async () => {
+    const rows = [
+      {
+        course_id: 402,
+        course_code: "ME4066",
+        courses_name: "Climate Change",
+        presences: [],
+      },
+    ];
+    const fetchImpl = vi.fn(async () => okResponse({ data: rows }));
+    const api = createEdunexApi({
+      baseUrl: "https://api-edunex.cognisia.id",
+      getToken: () => "tok",
+      userAgent: "EdunexPlus/0.0.1",
+      fetchImpl,
+    });
+
+    const result = await api.getPresences();
+
+    expect(result.body).toEqual(rows);
   });
 
   it("creates a draft via POST /course/task/answers with task_id in the body (201)", async () => {

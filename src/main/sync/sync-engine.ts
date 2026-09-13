@@ -5,6 +5,8 @@ import {
   type EdunexDataApi,
 } from "../api/client";
 import type { TaskNotifier } from "../notifications/task-notifier";
+import type { PresenceNotifier } from "../notifications/presence-notifier";
+import { extractPresenceWindows, nextPresenceDelay } from "../notifications/presence-detector";
 import {
   FEED_KEYS,
   type FeedKey,
@@ -22,6 +24,8 @@ const FEED_ENDPOINTS: ReadonlyArray<{ key: FeedKey; path: string }> = [
   { key: "courses", path: ACTIVE_COURSES_PATH },
   { key: "exams", path: "/exam/exams" },
   { key: "agenda", path: "/course/agenda" },
+  { key: "presences", path: "/course/presences/list" },
+  { key: "materials", path: "/course/materials" },
 ];
 
 export type SyncTickKind = "success" | "failed" | "unauthorized" | "not-ready" | "stopped";
@@ -34,7 +38,7 @@ export interface SyncTickResult {
 
 export interface SyncEngineOptions {
   api: Pick<EdunexApi, "get"> &
-    Partial<Pick<EdunexDataApi, "getTodo" | "getCourses" | "getExams" | "getAgenda">>;
+    Partial<Pick<EdunexDataApi, "getTodo" | "getCourses" | "getExams" | "getAgenda" | "getPresences" | "getMaterials">>;
   cache: SnapshotCache;
   /** The authenticated account whose snapshots this engine owns. */
   getAccountId?: () => string | null;
@@ -50,6 +54,14 @@ export interface SyncEngineOptions {
    * ledger, and sink fan-out. Failures inside never fail the tick.
    */
   taskNotifier?: Pick<TaskNotifier, "handleSync">;
+  /**
+   * Presence-open detection (#24). When present, the tick hands the fresh
+   * agenda payload to the notifier after a successful cache write; the
+   * notifier emits one immediate alert per newly opened window (never a
+   * digest) and the scheduler event-aligns the next tick to the nearest
+   * future window opening. Failures inside never fail the tick.
+   */
+  presenceNotifier?: Pick<PresenceNotifier, "handleSync">;
   now?: () => number;
   random?: () => number;
   setTimer?: (callback: () => void, delayMs: number) => ReturnType<typeof setTimeout>;
@@ -115,6 +127,33 @@ export function createSyncEngine(options: SyncEngineOptions): SyncEngine {
     return Math.min(maxBackoffMs, Math.max(minIntervalMs, exponential));
   }
 
+  /**
+   * Success cadence (#24): the regular jittered tick, event-aligned to the
+   * nearest future Presence window opening so a window opening between
+   * ticks is caught at the right tick (opening + 1.5s grace) without
+   * faster polling. Falls back to the regular delay when no future
+   * window is known or the agenda read fails.
+   */
+  function nextSuccessDelay() {
+    const regular = nextRegularDelay();
+    if (!options.presenceNotifier) return regular;
+    try {
+      const accountId = getAccountId();
+      if (!accountId) return regular;
+      const agendaData = options.cache.read(accountId, "agenda")?.data;
+      if (agendaData == null) return regular;
+      const { delayMs } = nextPresenceDelay(
+        extractPresenceWindows(agendaData),
+        now(),
+        regular,
+      );
+      return Math.max(minIntervalMs, Math.min(maxBackoffMs, delayMs));
+    } catch (error) {
+      console.error("[sync] presence alignment failed:", error);
+      return regular;
+    }
+  }
+
   function schedule(runGeneration: number, delayMs: number) {
     if (!isActive(runGeneration)) return;
     if (timer) clearTimer(timer);
@@ -129,6 +168,8 @@ export function createSyncEngine(options: SyncEngineOptions): SyncEngine {
     if (key === "courses" && options.api.getCourses) return options.api.getCourses();
     if (key === "exams" && options.api.getExams) return options.api.getExams();
     if (key === "agenda" && options.api.getAgenda) return options.api.getAgenda();
+    if (key === "presences" && options.api.getPresences) return options.api.getPresences();
+    if (key === "materials" && options.api.getMaterials) return options.api.getMaterials();
     return options.api.get(path);
   }
 
@@ -148,7 +189,7 @@ export function createSyncEngine(options: SyncEngineOptions): SyncEngine {
     if (result.kind === "stopped" || result.kind === "unauthorized") return;
     schedule(
       runGeneration,
-      result.kind === "failed" ? nextBackoffDelay() : nextRegularDelay(),
+      result.kind === "failed" ? nextBackoffDelay() : nextSuccessDelay(),
     );
   }
 
@@ -209,6 +250,9 @@ export function createSyncEngine(options: SyncEngineOptions): SyncEngine {
           if (key === "todo" && options.taskNotifier) {
             safelyNotifyNewTasks(accountId, prevTodoData, result.body);
           }
+          if (key === "agenda" && options.presenceNotifier) {
+            safelyNotifyPresence(accountId, result.body);
+          }
         } catch {
           if (!failedFeeds.includes(key)) failedFeeds.push(key);
         }
@@ -256,6 +300,14 @@ export function createSyncEngine(options: SyncEngineOptions): SyncEngine {
       options.taskNotifier?.handleSync(accountId, prevData, nextData);
     } catch (error) {
       console.error("[sync] task notification failed:", error);
+    }
+  }
+
+  function safelyNotifyPresence(accountId: string, agendaData: unknown) {
+    try {
+      options.presenceNotifier?.handleSync(accountId, agendaData);
+    } catch (error) {
+      console.error("[sync] presence notification failed:", error);
     }
   }
 
