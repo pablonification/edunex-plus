@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
 import { AppSidebar } from "./components/app-sidebar";
 import { SystemPanel } from "./features/shell/system-panel";
+import { FeaturesPanel } from "./features/shell/features-panel";
+import { SettingsModal } from "./features/shell/settings-modal";
+import { useShellSettings } from "./features/shell/use-shell-settings";
 import { LoginView } from "./features/auth/login-view";
 import { ReloginModal } from "./features/auth/relogin-modal";
 import { useAuthState } from "./features/auth/use-auth-state";
@@ -27,17 +30,25 @@ import type { NavKey } from "@shared/shell";
 export function App() {
   const [activeKey, setActiveKey] = useState<NavKey>("home");
   const [selectedTask, setSelectedTask] = useState<TaskItem | null>(null);
+  const [featuresOpen, setFeaturesOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const authStatus = useAuthState();
-  const active = navItem(activeKey);
+  const shell = useShellSettings();
+  const hiddenViews = shell.hiddenViews;
+  // Hidden views (#22) leave navigation: a hidden active view falls back to
+  // the pinned Home, and menu-driven navigation into a hidden view is ignored.
+  const activeKeyVisible = shell.isHidden(activeKey) ? "home" : activeKey;
+  const active = navItem(activeKeyVisible);
   const isMac = window.edunex.platform === "darwin";
 
   useEffect(
     () =>
       window.edunex.onNavigate((view) => {
+        if ((hiddenViews as readonly string[]).includes(view)) return;
         setActiveKey(view);
         setSelectedTask(null);
       }),
-    [],
+    [hiddenViews],
   );
 
   function selectView(view: NavKey) {
@@ -62,7 +73,15 @@ export function App() {
 
   return (
     <div className="flex h-screen overflow-hidden">
-      <AppSidebar activeKey={activeKey} onSelect={selectView} signedIn={authStatus === "signed-in"} />
+      <AppSidebar
+        activeKey={activeKeyVisible}
+        onSelect={selectView}
+        signedIn={authStatus === "signed-in"}
+        hiddenViews={hiddenViews}
+        onHideView={(view) => shell.setViewHidden(view, true)}
+        onOpenFeatures={() => setFeaturesOpen(true)}
+        onOpenSettings={() => setSettingsOpen(true)}
+      />
       <main className="flex min-w-0 flex-1 flex-col border-l border-black/[0.08] bg-background-primary-default">
         <header
           className={cx(
@@ -94,15 +113,15 @@ export function App() {
             <TaskPageShell task={selectedTask} onBack={() => setSelectedTask(null)} />
           ) : (
             <>
-              {activeKey === "home" && (
+              {activeKeyVisible === "home" && (
                 <>
                   <DashboardPanel onTaskSelect={openTask} />
                   <SystemPanel />
                 </>
               )}
-              {activeKey === "todo" && <TodoPanel onTaskSelect={openTask} />}
-              {activeKey === "agenda" && <AgendaPanel />}
-              {activeKey !== "home" && activeKey !== "todo" && activeKey !== "agenda" && (
+              {activeKeyVisible === "todo" && <TodoPanel onTaskSelect={openTask} />}
+              {activeKeyVisible === "agenda" && <AgendaPanel />}
+              {activeKeyVisible !== "home" && activeKeyVisible !== "todo" && activeKeyVisible !== "agenda" && (
                 <p className="max-w-prose text-[13px] leading-5 text-text-secondary">
                   {active.placeholder}
                 </p>
@@ -112,6 +131,8 @@ export function App() {
         </div>
       </main>
       {authStatus === "session-expired" && <ReloginModal />}
+      {featuresOpen && <FeaturesPanel shell={shell} onClose={() => setFeaturesOpen(false)} />}
+      {settingsOpen && <SettingsModal shell={shell} onClose={() => setSettingsOpen(false)} />}
     </div>
   );
 }
