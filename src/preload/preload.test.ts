@@ -22,8 +22,12 @@ vi.mock("electron", () => ({
 import "./preload";
 
 const bridge = electronMocks.exposeInMainWorld.mock.calls[0][1] as {
-  getFeed(feed: "todo" | "courses" | "exams" | "agenda" | "presences"): Promise<FeedSnapshot | null>;
+  getFeed(feed: "todo" | "courses" | "exams" | "agenda" | "presences" | "materials"): Promise<FeedSnapshot | null>;
   onFeedUpdated(callback: (snapshot: FeedSnapshot) => void): () => void;
+  downloadMaterial(request: {
+    fileUrl: string;
+    fileName: string;
+  }): Promise<{ ok: boolean; filePath?: string; error?: string }>;
   getNotifications(): Promise<InAppNotification[]>;
   markNotificationsRead(ids: string[]): Promise<InAppNotification[]>;
   markAllNotificationsRead(): Promise<InAppNotification[]>;
@@ -147,6 +151,41 @@ describe("preload feed bridge", () => {
 
     await expect(bridge.getFeed("agenda")).resolves.toEqual(snapshot);
     expect(electronMocks.invoke).toHaveBeenCalledWith("sync:get-feed", "agenda");
+  });
+
+  it("reads cached materials through the same cache IPC channel", async () => {
+    const snapshot: FeedSnapshot = {
+      feed: "materials",
+      accountId: "190136",
+      fetchedAt: "2026-09-13T12:00:00.000Z",
+      data: [
+        {
+          id: 9001,
+          name: "Week 05 — Slides",
+          course_code: "II4091",
+          file_name: "Week-05-Slides.pdf",
+          file_url: "/blob-storage/materials/9001/Week-05-Slides.pdf",
+        },
+      ],
+    };
+    electronMocks.invoke.mockClear();
+    electronMocks.invoke.mockResolvedValueOnce(snapshot);
+
+    await expect(bridge.getFeed("materials")).resolves.toEqual(snapshot);
+    expect(electronMocks.invoke).toHaveBeenCalledWith("sync:get-feed", "materials");
+  });
+
+  it("routes an explicit download through main's materials channel", async () => {
+    const request = {
+      fileUrl: "/blob-storage/materials/9001/Week-05-Slides.pdf",
+      fileName: "Week-05-Slides.pdf",
+    };
+    const result = { ok: true, filePath: "/tmp/Week-05-Slides.pdf" };
+    electronMocks.invoke.mockClear();
+    electronMocks.invoke.mockResolvedValueOnce(result);
+
+    await expect(bridge.downloadMaterial(request)).resolves.toEqual(result);
+    expect(electronMocks.invoke).toHaveBeenCalledWith("materials:download", request);
   });
 
   it("reads cached presence records through main's cache IPC channel", async () => {

@@ -40,6 +40,7 @@ export interface EdunexDataApi extends EdunexApi {
   getCourseTasks(): Promise<ApiResult & { body: JsonApiResource[] }>;
   getExams(): Promise<ApiResult & { body: JsonApiResource[] }>;
   getAgenda(): Promise<ApiResult & { body: JsonApiResource[] }>;
+  getMaterials(): Promise<ApiResult & { body: JsonApiResource[] }>;
   getPresences(): Promise<ApiResult & { body: JsonApiResource[] }>;
   /**
    * Draft-save pair, verified live on Tugas 01 (issue #16). Both send
@@ -128,6 +129,8 @@ export function createEdunexApi(options: EdunexApiOptions): EdunexDataApi {
       get("/exam/exams").then((result) => normalizeResult(result, normalizeExams)),
     getAgenda: () =>
       get("/course/agenda").then((result) => normalizeResult(result, normalizeAgenda)),
+    getMaterials: () =>
+      get("/course/materials").then((result) => normalizeResult(result, normalizeMaterials)),
     getPresences: () =>
       get("/course/presences/list").then((result) =>
         normalizeResult(result, normalizePresences),
@@ -197,6 +200,22 @@ function normalizeAgenda(body: unknown): JsonApiResource[] {
   const root = asRecord(body);
   if (!root) return [];
   for (const key of ["data", "agenda", "meetings"]) {
+    if (Array.isArray(root[key])) return (root[key] as unknown[]).filter(isRecord);
+  }
+  return [];
+}
+
+/**
+ * Normalizes the `/course/materials` response at the API boundary.
+ * The vendor shape is a plain collection (like `/course/agenda`), but
+ * `materials`/`modules`/`data`-wrapped and JSON-API variants are accepted
+ * so an envelope change never becomes an empty materials list.
+ */
+function normalizeMaterials(body: unknown): JsonApiResource[] {
+  if (Array.isArray(body)) return body.filter(isRecord);
+  const root = asRecord(body);
+  if (!root) return [];
+  for (const key of ["data", "materials", "modules", "files"]) {
     if (Array.isArray(root[key])) return (root[key] as unknown[]).filter(isRecord);
   }
   return [];
