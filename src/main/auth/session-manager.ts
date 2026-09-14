@@ -1,11 +1,12 @@
+import { effectRuntime } from "../effect/effect-runtime";
+import { sensitiveString, type SensitiveString } from "../effect/conventions";
 import type { AuthStatus, CapturedAuth } from "../../shared/auth";
 
 /**
- * The auth state machine (see AuthStatus in shared/auth.ts). Owns the tokens
- * in main; the renderer only ever sees the status. Recovery is interactive
- * by design — there is deliberately no refresh logic anywhere (spec: auth &
- * session): a 401 or a missing token clears the session and pauses the app
- * into the "please sign in again" moment, which reopens the login webview.
+ * Promise-compatible compatibility seam retained for the original auth unit
+ * tests and any older main-process callers. The live application uses
+ * AuthService; even this seam stores state in an Effect synchronized reference
+ * so it cannot reintroduce a second free-mutable session machine.
  */
 
 export interface SessionStoreLike {
@@ -28,9 +29,7 @@ export interface SessionManager {
   restore(): Promise<void>;
   /** Login webview is now open in the renderer. */
   startLogin(): void;
-  /** `localStorage.auth` was captured out of the webview after the redirect.
-   * Persists the tokens, then verifies before leaving authenticating — a
-   * stale partition must not flash signed-in and yank the webview away. */
+  /** `localStorage.auth` was captured out of the webview after the redirect. */
   capture(auth: CapturedAuth): Promise<void>;
   /** 401 from any API use: pause everything into the re-login moment. */
   handleUnauthorized(): void;
@@ -40,53 +39,126 @@ export interface SessionManager {
   accountId(): string | null;
 }
 
+interface CompatibilityState {
+  readonly status: AuthStatus;
+  readonly accessToken: SensitiveString | null;
+  readonly accountId: string | null;
+}
+
 export function createSessionManager(deps: SessionManagerDeps): SessionManager {
-  let status: AuthStatus = "signed-out";
-  let token: string | null = null;
-  let accountId: string | null = null;
+  const state = effectRuntime.SynchronizedRef.makeUnsafe<CompatibilityState>({
+    status: "signed-out",
+    accessToken: null,
+    accountId: null,
+  });
+
+  function status(): AuthStatus {
+    return effectRuntime.SynchronizedRef.getUnsafe(state).status;
+  }
+
+  function accessToken(): string | null {
+    const token = effectRuntime.SynchronizedRef.getUnsafe(state).accessToken;
+    if (token === null) return null;
+    try {
+      return effectRuntime.Redacted.value(token);
+    } catch {
+      return null;
+    }
+  }
+
+  function accountId(): string | null {
+    return effectRuntime.SynchronizedRef.getUnsafe(state).accountId;
+  }
 
   function transitionTo(next: AuthStatus) {
-    if (status === next) return;
-    status = next;
-    deps.onChange?.(next);
+    const changed = effectRuntime.Effect.runSync(
+      effectRuntime.SynchronizedRef.modify(
+        state,
+        (current): readonly [boolean, CompatibilityState] => [
+          current.status !== next,
+          { ...current, status: next },
+        ],
+      ),
+    );
+    if (changed) deps.onChange?.(next);
+  }
+
+  function installSession(auth: CapturedAuth) {
+    effectRuntime.Effect.runSync(
+      effectRuntime.SynchronizedRef.set(state, {
+        status: status(),
+        accessToken: sensitiveString(auth.accessToken),
+        accountId: accountIdFromSession(auth),
+      }),
+    );
   }
 
   function handleUnauthorized() {
-    if (status === "session-expired" && token === null && accountId === null) return;
-    token = null;
-    accountId = null;
-    void deps.store.clear();
-    transitionTo("session-expired");
+    const changed = effectRuntime.Effect.runSync(
+      effectRuntime.SynchronizedRef.modify(
+        state,
+        (current): readonly [boolean, CompatibilityState] => {
+          const alreadyExpired =
+            current.status === "session-expired" &&
+            current.accessToken === null &&
+            current.accountId === null;
+          if (alreadyExpired) return [false, current];
+          return [true, {
+            status: "session-expired",
+            accessToken: null,
+            accountId: null,
+          }];
+        },
+      ),
+    );
+    if (!changed) return;
+    try {
+      deps.store.clear();
+    } catch {
+      // Clearing is best-effort; the in-memory state is already invalidated.
+    }
+    deps.onChange?.("session-expired");
+  }
+
+  async function verify(): Promise<{ status: number }> {
+    try {
+      return await deps.api.get("/login/me");
+    } catch {
+      return { status: 0 };
+    }
   }
 
   return {
-    status: () => status,
-
-    accessToken: () => token,
-
-    accountId: () => accountId,
+    status,
+    accessToken,
+    accountId,
 
     async restore() {
-      const stored = await deps.store.load();
+      let stored: CapturedAuth | null;
+      try {
+        stored = deps.store.load();
+      } catch {
+        stored = null;
+      }
       if (!stored) {
-        // Initial state is already signed-out; broadcast directly so the
-        // renderer leaves its boot gate even though nothing "changed".
-        status = "signed-out";
-        accountId = null;
+        effectRuntime.Effect.runSync(
+          effectRuntime.SynchronizedRef.set(state, {
+            status: "signed-out",
+            accessToken: null,
+            accountId: null,
+          }),
+        );
+        // Initial state is already signed-out; publish directly so the
+        // renderer leaves its boot gate even though nothing changed.
         deps.onChange?.("signed-out");
         return;
       }
-      token = stored.accessToken;
-      accountId = accountIdFromSession(stored);
-      const check = await deps.api.get("/login/me");
+      installSession(stored);
+      const check = await verify();
       if (check.status === 401) {
-        // Stale session (cookies don't survive restarts anyway): clear it and
-        // surface the re-login moment instead of showing stale data.
         handleUnauthorized();
         return;
       }
-      // 200 → healthy; unreachable/offline → keep the session, the next sync
-      // tick will re-check. Only a real 401 signs the user out.
       transitionTo("signed-in");
     },
 
@@ -95,26 +167,18 @@ export function createSessionManager(deps: SessionManagerDeps): SessionManager {
     },
 
     async capture(auth) {
-      token = auth.accessToken;
-      accountId = accountIdFromSession(auth);
+      installSession(auth);
       try {
-        await deps.store.save(auth);
-      } catch (err) {
-        // safeStorage refused (e.g. no keyring): the session works this run
-        // but can never survive a restart — never write plaintext instead.
-        console.error("[auth] could not persist session:", err);
+        deps.store.save(auth);
+      } catch {
+        // Never fall back to plaintext when encrypted persistence is unavailable.
+        console.error("[auth] could not persist session; it will not survive restart");
       }
-      const check = await deps.api.get("/login/me");
-      console.log("[auth] capture verify /login/me →", check.status);
+      const check = await verify();
       if (check.status === 401) {
-        // The partition handed back stale tokens (a previous session's
-        // localStorage.auth survived): straight into the re-login moment,
-        // never through a signed-in flash.
         handleUnauthorized();
         return;
       }
-      // 200 → healthy; unreachable → the tokens were just minted by the SSO
-      // redirect, accept them and let the next online check re-verify.
       transitionTo("signed-in");
     },
 
@@ -140,7 +204,7 @@ function accountIdFromJwt(token: string): string | null {
   try {
     const encodedClaims = token.split(".")[1];
     if (!encodedClaims) return null;
-    const claims = JSON.parse(Buffer.from(encodedClaims, "base64url").toString("utf8")) as unknown;
+    const claims = JSON.parse(decodeBase64Url(encodedClaims)) as unknown;
     if (typeof claims !== "object" || claims === null) return null;
     const subject = (claims as Record<string, unknown>).sub;
     if (typeof subject === "string" && subject.length > 0) return subject;
@@ -150,4 +214,14 @@ function accountIdFromJwt(token: string): string | null {
     // remains a safe fallback for the local cache key.
   }
   return null;
+}
+
+function decodeBase64Url(value: string): string {
+  const base64 = value.replace(/-/g, "+").replace(/_/g, "/").padEnd(
+    Math.ceil(value.length / 4) * 4,
+    "=",
+  );
+  const binary = globalThis.atob(base64);
+  const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
+  return new TextDecoder().decode(bytes);
 }

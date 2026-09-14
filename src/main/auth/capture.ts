@@ -1,5 +1,4 @@
 import type { CapturedAuth } from "../../shared/auth";
-import { systemClock } from "../platform/node";
 import type { ClockService } from "../platform/services";
 
 /**
@@ -48,9 +47,9 @@ export interface AuthCapture {
  */
 export function createAuthCapture(
   executeJs: AuthReader,
-  opts: { intervalMs: number; clock?: ClockService },
+  opts: { intervalMs: number; clock: ClockService },
 ): AuthCapture {
-  const clock = opts.clock ?? systemClock;
+  const clock = opts.clock;
   let timer: unknown = null;
   let running = false;
   let inFlight = false;

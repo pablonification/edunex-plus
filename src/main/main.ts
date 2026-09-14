@@ -3,6 +3,12 @@ import { buildAppMenuTemplate } from "./app-menu";
 import { loadWindowState, saveWindowState, type WindowState } from "./window-state";
 import { shouldFireStartupTestNotification } from "./notifications";
 import { createAuthController, EDUNEX_API_BASE_URL } from "./auth/auth-controller";
+import {
+  AuthService,
+  createAuthLayer,
+  edunexUserAgent,
+  type AuthServiceShape,
+} from "./auth/auth-service";
 import { createSnapshotCache } from "./sync/snapshot-cache";
 import { createSyncEngine, type SyncEngine } from "./sync/sync-engine";
 import { createNotificationStore } from "./notifications/notification-store";
@@ -20,7 +26,9 @@ import {
   composeApplicationLayer,
   RuntimeEffect,
   RuntimeExit,
+  type ApplicationRuntime,
 } from "./effect/runtime";
+import { effectRuntime } from "./effect/effect-runtime";
 import { ApplicationLifecycleError, formatSafeCause } from "./effect/conventions";
 import { createLivePlatform } from "./platform/live";
 import type { WindowService, TrayService } from "./platform/services";
@@ -233,20 +241,52 @@ function setApplicationMenu() {
 
 let sync: SyncEngine | null = null;
 
-// Auth slice (#18): encrypted token store, capture from the login webview,
-// and the signed-out / authenticating / signed-in / session-expired machine.
-const authController = createAuthController({
+// Auth slice (#52): the state machine, encrypted session store, API adapter,
+// and webview capture are all supplied by one managed Effect service. The
+// callbacks below are host boundaries only; they never expose the session to
+// preload or renderer code.
+let authService: AuthServiceShape | null = null;
+let applicationRuntimeRef: ApplicationRuntime<any, any> | null = null;
+
+function runAuthEffect<A>(effect: import("./auth/auth-service").AuthEffect<A>): Promise<A> | void {
+  const runtime = applicationRuntimeRef;
+  if (!runtime || runtime.isShutdown()) return;
+  return runtime.runPromise(effect);
+}
+
+function notifyAuthUnauthorized() {
+  const service = authService;
+  const runtime = applicationRuntimeRef;
+  if (!service || !runtime || runtime.isShutdown()) return;
+  try {
+    runtime.runSync(service.handleUnauthorized());
+  } catch {
+    // Auth callbacks cannot surface private Effect failures to a host API.
+  }
+}
+
+const authLayer = createAuthLayer({
   sessionStorePath: pathService.join(platform.userDataPath, "auth-session.enc"),
   appVersion: platform.appVersion,
-  safeStorage: services.safeStorage,
-  fileSystem,
-  httpTransport: services.httpTransport,
-  clock,
   broadcast: (status) => {
     if (win && !win.isDestroyed()) win.webContents.send("auth:state", status);
     if (status === "signed-in") sync?.start();
     else sync?.stop();
   },
+  runEffect: runAuthEffect,
+  onUnauthorized: notifyAuthUnauthorized,
+}).pipe(effectRuntime.Layer.provideMerge(livePlatform.layer));
+
+// Resolve the service once from the process-wide managed runtime. The service
+// itself owns all mutable session state; this controller is only a legacy
+// promise/callback adapter for existing main-process feature seams.
+const applicationRuntime = createApplicationRuntime(composeApplicationLayer(authLayer));
+applicationRuntimeRef = applicationRuntime;
+const resolvedAuthService = applicationRuntime.runSync(RuntimeEffect.service(AuthService));
+authService = resolvedAuthService;
+const authController = createAuthController({
+  runtime: applicationRuntime,
+  service: resolvedAuthService,
 });
 
 // Notification spine (#23, extended by #24): sink interface with two
@@ -335,12 +375,6 @@ sync = createSyncEngine({
   },
 });
 
-// Effect foundation (#50): one managed runtime owns application-scoped
-// services and any future long-lived fibers. Existing feature modules remain
-// behaviorally unchanged until their migration tickets adopt these seams.
-const applicationRuntime = createApplicationRuntime(
-  composeApplicationLayer(livePlatform.layer),
-);
 let runtimeShutdownStarted = false;
 let runtimeShutdownComplete = false;
 
@@ -410,7 +444,7 @@ if (!gotSingleInstanceLock) {
       downloadMaterialFile(request, {
         baseUrl: EDUNEX_API_BASE_URL,
         getToken: () => authController.accessToken(),
-        userAgent: `EdunexPlus/${platform.appVersion} (desktop client; +https://github.com/pablonification/edunex-plus)`,
+        userAgent: edunexUserAgent(platform.appVersion),
         onUnauthorized: () => authController.handleUnauthorized(),
         transport: services.httpTransport,
         showSaveDialog: (options) =>
