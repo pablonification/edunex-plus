@@ -112,7 +112,9 @@ describe("auth capture loop", () => {
     capture.start(onCaptured);
 
     await vi.advanceTimersByTimeAsync(2999);
-    expect(h.executeJs).toHaveBeenCalledTimes(3);
+    // The first run was already in flight when it was stopped; it is ignored
+    // after settling, while the restarted run owns the subsequent polls.
+    expect(h.executeJs).toHaveBeenCalledTimes(4);
 
     h.setStorage(JSON.stringify(validRaw));
     await vi.advanceTimersByTimeAsync(1000);
@@ -129,6 +131,29 @@ describe("auth capture loop", () => {
 
     await vi.advanceTimersByTimeAsync(2999);
     expect(executeJs).toHaveBeenCalledTimes(3);
+    expect(onCaptured).not.toHaveBeenCalled();
+  });
+
+  it("aborts a pending read and ignores its late result after stop", async () => {
+    let resolveRead!: (value: unknown) => void;
+    let signal!: AbortSignal;
+    const executeJs = vi.fn((readSignal: AbortSignal) => {
+      signal = readSignal;
+      return new Promise<unknown>((resolve) => {
+        resolveRead = resolve;
+      });
+    });
+    const onCaptured = vi.fn();
+    const capture = createAuthCapture(executeJs, { intervalMs: 1000, clock: systemClock });
+
+    capture.start(onCaptured);
+    expect(signal.aborted).toBe(false);
+
+    capture.stop();
+    expect(signal.aborted).toBe(true);
+
+    resolveRead(JSON.stringify(validRaw));
+    await Promise.resolve();
     expect(onCaptured).not.toHaveBeenCalled();
   });
 });

@@ -30,7 +30,7 @@ export function parseCapturedAuth(raw: unknown): CapturedAuth | null {
 
 /** Minimal surface of a WebContents this loop needs — keeps it testable
  * without Electron. */
-export type AuthReader = () => Promise<unknown>;
+export type AuthReader = (signal: AbortSignal) => Promise<unknown>;
 
 export interface AuthCapture {
   /** Begins polling; returns false if the loop is already running. */
@@ -52,14 +52,19 @@ export function createAuthCapture(
   const clock = opts.clock;
   let timer: unknown = null;
   let running = false;
-  let inFlight = false;
+  let generation = 0;
+  let inFlightGeneration: number | null = null;
+  let abortController: AbortController | null = null;
   let warnedAboutValue = false;
 
-  async function poll(onCaptured: (auth: CapturedAuth) => void) {
-    if (!running || inFlight) return;
-    inFlight = true;
+  async function poll(onCaptured: (auth: CapturedAuth) => void, runGeneration: number) {
+    if (!running || runGeneration !== generation || inFlightGeneration === runGeneration) return;
+    inFlightGeneration = runGeneration;
+    const controller = new AbortController();
+    abortController = controller;
     try {
-      const raw = await executeJs();
+      const raw = await executeJs(controller.signal);
+      if (!running || runGeneration !== generation) return;
       const auth = parseCapturedAuth(typeof raw === "string" ? JSON.parse(raw) : raw);
       if (auth) {
         running = false;
@@ -79,25 +84,35 @@ export function createAuthCapture(
     } catch {
       // Webview mid-navigation or frame gone — the next tick retries.
     } finally {
-      inFlight = false;
+      if (inFlightGeneration === runGeneration) inFlightGeneration = null;
+      if (abortController === controller) abortController = null;
     }
-    if (running) timer = clock.setTimeout(() => void poll(onCaptured), opts.intervalMs);
+    if (running && runGeneration === generation) {
+      timer = clock.setTimeout(() => {
+        timer = null;
+        void poll(onCaptured, runGeneration);
+      }, opts.intervalMs);
+    }
   }
 
   return {
     start(onCaptured) {
       if (running) return false;
       running = true;
+      const runGeneration = ++generation;
       warnedAboutValue = false;
-      void poll(onCaptured);
+      void poll(onCaptured, runGeneration);
       return true;
     },
     stop() {
       running = false;
-      if (timer) {
+      generation += 1;
+      if (timer !== null) {
         clock.clearTimeout(timer);
         timer = null;
       }
+      abortController?.abort();
+      abortController = null;
     },
   };
 }
