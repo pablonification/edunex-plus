@@ -7,6 +7,7 @@ import {
 } from "../auth/auth-service";
 import {
   createEdunexApi,
+  type ApiResponse,
   type ApiResult,
   type EdunexApi,
   type EdunexDataApi,
@@ -31,13 +32,13 @@ export type ApiEffect<A> = EffectModule.Effect.Effect<A, never, never>;
  */
 export interface CognisiaServiceShape {
   readonly get: (path: string) => ApiEffect<ApiResult>;
-  readonly getTodo: () => ApiEffect<ApiResult & { body: TodoFeed }>;
-  readonly getCourses: () => ApiEffect<ApiResult & { body: JsonApiResource[] }>;
-  readonly getCourseTasks: () => ApiEffect<ApiResult & { body: JsonApiResource[] }>;
-  readonly getExams: () => ApiEffect<ApiResult & { body: JsonApiResource[] }>;
-  readonly getAgenda: () => ApiEffect<ApiResult & { body: JsonApiResource[] }>;
-  readonly getMaterials: () => ApiEffect<ApiResult & { body: JsonApiResource[] }>;
-  readonly getPresences: () => ApiEffect<ApiResult & { body: JsonApiResource[] }>;
+  readonly getTodo: () => ApiEffect<ApiResponse<TodoFeed>>;
+  readonly getCourses: () => ApiEffect<ApiResponse<JsonApiResource[]>>;
+  readonly getCourseTasks: () => ApiEffect<ApiResponse<JsonApiResource[]>>;
+  readonly getExams: () => ApiEffect<ApiResponse<JsonApiResource[]>>;
+  readonly getAgenda: () => ApiEffect<ApiResponse<JsonApiResource[]>>;
+  readonly getMaterials: () => ApiEffect<ApiResponse<JsonApiResource[]>>;
+  readonly getPresences: () => ApiEffect<ApiResponse<JsonApiResource[]>>;
 }
 
 /** Explicit Context key for the authenticated Cognisia read service. */

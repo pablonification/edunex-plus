@@ -18,6 +18,9 @@ export interface ApiResult {
   body: unknown;
 }
 
+/** A normalized read result whose payload may be unavailable after failure. */
+export type ApiResponse<T> = Omit<ApiResult, "body"> & { body: T | null };
+
 export interface EdunexApi {
   get(path: string): Promise<ApiResult>;
   post(path: string, body: unknown): Promise<ApiResult>;
@@ -39,13 +42,13 @@ export interface TodoFeed {
 export type JsonApiResource = Record<string, unknown>;
 
 export interface EdunexDataApi extends EdunexApi {
-  getTodo(): Promise<ApiResult & { body: TodoFeed }>;
-  getCourses(): Promise<ApiResult & { body: JsonApiResource[] }>;
-  getCourseTasks(): Promise<ApiResult & { body: JsonApiResource[] }>;
-  getExams(): Promise<ApiResult & { body: JsonApiResource[] }>;
-  getAgenda(): Promise<ApiResult & { body: JsonApiResource[] }>;
-  getMaterials(): Promise<ApiResult & { body: JsonApiResource[] }>;
-  getPresences(): Promise<ApiResult & { body: JsonApiResource[] }>;
+  getTodo(): Promise<ApiResponse<TodoFeed>>;
+  getCourses(): Promise<ApiResponse<JsonApiResource[]>>;
+  getCourseTasks(): Promise<ApiResponse<JsonApiResource[]>>;
+  getExams(): Promise<ApiResponse<JsonApiResource[]>>;
+  getAgenda(): Promise<ApiResponse<JsonApiResource[]>>;
+  getMaterials(): Promise<ApiResponse<JsonApiResource[]>>;
+  getPresences(): Promise<ApiResponse<JsonApiResource[]>>;
   /**
    * Draft-save pair, verified live on Tugas 01 (issue #16). Both send
    * `is_sent: 0` and `task_id` in a JSON-API `data.attributes` envelope.
@@ -163,15 +166,15 @@ export function createEdunexApi(options: EdunexApiOptions): EdunexDataApi {
 function normalizeResult<T>(
   result: ApiResult,
   normalize: (body: unknown) => T | null,
-): ApiResult & { body: T } {
-  if (!isSuccessful(result)) return result as ApiResult & { body: T };
+): ApiResponse<T> {
+  if (!isSuccessful(result)) return result as ApiResponse<T>;
   const body = normalize(result.body);
   // A successful HTTP response with an unusable payload must not overwrite a
   // good snapshot with an empty list. Keep the established result shape, but
   // mark the body unavailable so sync treats this feed as failed and serves
   // its previous cache instead.
   if (body === null) {
-    return { ...result, ok: false, body: null } as ApiResult & { body: T };
+    return { ...result, ok: false, body: null };
   }
   return { ...result, body };
 }
