@@ -73,6 +73,7 @@ function installEdunex(shell: ShellBridge) {
     onFullscreenChange: vi.fn(() => () => undefined),
     getAuthState: vi.fn(async () => "signed-in" as const),
     startLogin: vi.fn(async () => undefined),
+    signOut: vi.fn(async () => undefined),
     onAuthState: vi.fn(() => () => undefined),
     getFeed: vi.fn(async (feed: FeedKey) => emptySnapshot(feed)),
     onFeedUpdated: vi.fn(() => () => undefined),

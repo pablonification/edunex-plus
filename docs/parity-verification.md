@@ -30,7 +30,7 @@ The expected test output still includes React `act(...)` warnings and intentiona
 `npm run smoke:electron` runs `scripts/electron-smoke.cjs`. It launches the real compiled Electron main process and renderer twice, using one temporary user-data directory:
 
 1. The online phase creates an encrypted test session through native Electron `safeStorage` when it is available (or an isolated AES test codec on headless hosts), seeds an empty Task seen-ledger, and supplies deterministic responses through the main-process HTTP transport. It verifies startup, `/login/me`, all six sync feeds, request headers, cache publication, a new Task notification, preload IPC, draft-save, final submit, material download, saved bytes, and quit/shutdown.
-2. The offline phase launches a fresh process with the same user-data directory. Every transport request fails as a simulated offline error. It verifies that `/login/me` returns the status-zero offline result without expiring the session, while the cached To Do/material feeds and in-app notification history remain readable, then verifies quit/shutdown again.
+2. The offline phase launches a fresh process with the same user-data directory. Every transport request fails as a simulated offline error. It verifies that `/login/me` returns the status-zero offline result without expiring the session, while the cached To Do/material feeds and in-app notification history remain readable. It then signs out through the renderer's preload bridge, verifies the public auth state is `signed-out`, confirms the encrypted session is removed, and verifies quit/shutdown again.
 
 The fixture token is synthetic and never written to the request report. The smoke therefore proves the shipped composition and boundaries without contacting Cognisia or requiring an INA login. Linux runs automatically under `xvfb-run` when no `DISPLAY` is present, but Electron's GTK shared libraries remain a host prerequisite.
 
@@ -43,15 +43,15 @@ Real SSO/MFA capture and native OS notification presentation are intentionally n
 | API headers and endpoints | PASS | API-client tests and the Electron request report verify the bearer header, distinctive User-Agent, six production feed paths, `/login/me`, answer writes, and material bytes. |
 | API normalization | PASS | Client tests cover plain, wrapped, JSON-API, malformed, and empty response variants. |
 | Unauthorized handling | PASS | A 401 invalidates the session and stops sync; status zero remains an offline condition. Auth, client, sync, task, and material tests cover the paths. |
-| IPC | PASS | Schema-backed registration tests plus the real Electron preload calls cover feed reads, notifications, Task actions, and material download. |
-| Auth/session restore | PASS at service and Electron seam | Auth tests cover capture, encrypted persistence, restore, offline verification, 401 expiry, sign-out, and shutdown. The smoke covers encrypted restore across a process restart. Real SSO/MFA remains manual. |
+| IPC | PASS | Schema-backed registration tests plus the real Electron preload calls cover auth sign-out, feed reads, notifications, Task actions, and material download. |
+| Auth/session restore | PASS at service and Electron seam | Auth tests cover capture, encrypted persistence, restore, offline verification, 401 expiry, sign-out, and shutdown. The smoke covers encrypted restore across a process restart and sign-out through the preload/IPC boundary. Real SSO/MFA remains manual. |
 | Local persistence | PASS | Version-1 account-scoped snapshots, Task/Presence ledgers, notification history, missing/corrupt fallbacks, atomic writes, and serialized service updates are tested. The smoke proves restart readability. |
 | Shell/startup/quit | PASS on Linux smoke | The real window, preload, application menu/tray attempt, renderer startup, and managed quit path run under Electron. macOS signing/Gatekeeper and Windows shortcut identity remain platform packaging checks. |
 | Sync cadence/backoff/cancellation | PASS | Sync tests cover the 60-second floor, jitter/backoff, feed isolation, generation guards, cancellation, auth ownership, Presence alignment, and runtime shutdown. |
 | Notifications | PASS at domain and persistence seams | Task diffing, Presence ordering, duplicate suppression, sink isolation, delivery ordering, in-app history, and click destinations are tested; the Electron smoke verifies persisted Task history. Native popup appearance/click behavior remains manual per platform. |
 | Task answers | PASS | Renderer, IPC, service, API wire-contract tests and the online Electron smoke cover explicit draft-save and submit. No background path writes answers. |
 | Materials | PASS at client boundary | Renderer, IPC, service, download-header, cancellation, save-dialog, and Electron fake-byte checks pass. Exact vendor field names need confirmation during the next real-session pass. |
-| Sign-out | PASS at application seam | `AuthService.signOut()` clears the encrypted session and stops sync; application integration tests verify the lifecycle. v1 exposes re-login/session expiry to the renderer, not a separate renderer sign-out command. |
+| Sign-out | PASS at Electron IPC boundary | `window.edunex.signOut()` routes through `auth:sign-out` to `AuthService.signOut()`. The Electron smoke verifies public state transition and encrypted-session removal; service and IPC tests cover the lifecycle without exposing credentials. |
 
 ## Reconciled API record
 

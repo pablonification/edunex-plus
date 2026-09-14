@@ -140,6 +140,7 @@ export function createBrowserPreviewBridge(): Window["edunex"] {
     onFullscreenChange: (_callback: (isFullscreen: boolean) => void) => noOpUnsubscribe,
     getAuthState: async () => "signed-in",
     startLogin: async () => undefined,
+    signOut: async () => undefined,
     onAuthState: (_callback) => noOpUnsubscribe,
     getFeed: async (feed: FeedKey) => snapshots[feed] ?? null,
     onFeedUpdated: (_callback) => noOpUnsubscribe,
