@@ -1,6 +1,6 @@
-import { existsSync, mkdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from "node:fs";
-import path from "node:path";
 import type { InAppNotification } from "../../shared/notifications";
+import { nodeFileSystem, nodePath, systemClock, systemRandom } from "../platform/node";
+import type { ClockService, FileSystemService, PathService, RandomService } from "../platform/services";
 
 interface StoredFeed {
   version: 1;
@@ -11,8 +11,12 @@ interface StoredFeed {
 /** Cap so the fallback feed never grows without bound on-device. */
 export const MAX_IN_APP_NOTIFICATIONS = 100;
 
-export function notificationFeedFileFor(rootDir: string, accountId: string): string {
-  return path.join(rootDir, safePathSegment(accountId), "notifications.json");
+export function notificationFeedFileFor(
+  rootDir: string,
+  accountId: string,
+  pathService: PathService = nodePath,
+): string {
+  return pathService.join(rootDir, safePathSegment(accountId), "notifications.json");
 }
 
 /**
@@ -28,12 +32,27 @@ export interface NotificationStore {
   markAllRead(): InAppNotification[];
 }
 
-export function createNotificationStore(rootDir: string, accountId: string): NotificationStore {
-  const filePath = notificationFeedFileFor(rootDir, accountId);
+export interface NotificationStoreServices {
+  readonly fileSystem?: FileSystemService;
+  readonly path?: PathService;
+  readonly clock?: ClockService;
+  readonly random?: RandomService;
+}
+
+export function createNotificationStore(
+  rootDir: string,
+  accountId: string,
+  services: NotificationStoreServices = {},
+): NotificationStore {
+  const fileSystem = services.fileSystem ?? nodeFileSystem;
+  const pathService = services.path ?? nodePath;
+  const clock = services.clock ?? systemClock;
+  const random = services.random ?? systemRandom;
+  const filePath = notificationFeedFileFor(rootDir, accountId, pathService);
 
   function load(): InAppNotification[] {
     try {
-      const stored = JSON.parse(readFileSync(filePath, "utf8")) as unknown;
+      const stored = JSON.parse(fileSystem.readText(filePath)) as unknown;
       if (!isStoredFeed(stored, accountId)) return [];
       return stored.entries;
     } catch {
@@ -47,16 +66,7 @@ export function createNotificationStore(rootDir: string, accountId: string): Not
       accountId,
       entries: entries.slice(0, MAX_IN_APP_NOTIFICATIONS),
     };
-    const directory = path.dirname(filePath);
-    const temporary = `${filePath}.${process.pid}.${Date.now()}.tmp`;
-    mkdirSync(directory, { recursive: true });
-    try {
-      writeFileSync(temporary, JSON.stringify(stored));
-      renameSync(temporary, filePath);
-    } catch (error) {
-      if (existsSync(temporary)) unlinkSync(temporary);
-      throw error;
-    }
+    fileSystem.atomicWrite(filePath, JSON.stringify(stored), `${clock.now()}-${random.next()}`);
     return stored.entries;
   }
 

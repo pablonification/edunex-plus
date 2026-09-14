@@ -3,11 +3,15 @@ import { diffNewTasks, extractTodoTasks } from "./task-detector";
 import { createSeenLedger, type SeenLedger } from "./seen-ledger";
 import { createFanoutSink } from "./sinks";
 import type { NotificationSink } from "./sinks";
+import { systemClock } from "../platform/node";
+import type { ClockService } from "../platform/services";
 
 export interface TaskNotifierOptions {
   ledgerRoot: string;
   sinks: NotificationSink[];
   now?: () => number;
+  clock?: ClockService;
+  persistence?: import("./seen-ledger").SeenLedgerServices;
   ledgerFor?: (accountId: string) => SeenLedger;
 }
 
@@ -31,14 +35,14 @@ export interface TaskNotifier {
  * write, and the fan-out to both sinks.
  */
 export function createTaskNotifier(options: TaskNotifierOptions): TaskNotifier {
-  const now = options.now ?? Date.now;
+  const now = options.now ?? (() => options.clock?.now() ?? systemClock.now());
   const ledgers = new Map<string, SeenLedger>();
 
   function ledgerFor(accountId: string): SeenLedger {
     if (options.ledgerFor) return options.ledgerFor(accountId);
     let ledger = ledgers.get(accountId);
     if (!ledger) {
-      ledger = createSeenLedger(options.ledgerRoot, accountId);
+      ledger = createSeenLedger(options.ledgerRoot, accountId, options.persistence);
       ledgers.set(accountId, ledger);
     }
     return ledger;
