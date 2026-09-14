@@ -593,7 +593,7 @@ function readWithTimeout(contents: WebContentsService, clock: ClockService) {
         5000,
       );
       void contents
-        .executeJavaScript("localStorage.getItem('auth')", true)
+        .executeJavaScript("localStorage.getItem('auth')", true, signal)
         .then(
           (value) => settle(() => resolve(value)),
           (error: unknown) => settle(() => reject(error)),

@@ -70,7 +70,11 @@ export interface WebContentsService {
   send(channel: string, payload?: unknown): void;
   setWindowOpenHandler(handler: (details: { url: string }) => { action: "deny" | "allow" }): void;
   loadURL(url: string): Promise<void>;
-  executeJavaScript(script: string, userGesture?: boolean): Promise<unknown>;
+  executeJavaScript(
+    script: string,
+    userGesture?: boolean,
+    signal?: AbortSignal,
+  ): Promise<unknown>;
   on(
     event: "did-navigate" | "did-navigate-in-page",
     listener: (event: unknown, url: string) => void,

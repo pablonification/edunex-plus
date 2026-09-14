@@ -34,7 +34,12 @@ function createWebContents(contents: Electron.WebContents): WebContentsService {
       contents.setWindowOpenHandler((details) => handler({ url: details.url }));
     },
     loadURL: (url) => contents.loadURL(url).then(() => undefined),
-    executeJavaScript: (script, userGesture) => contents.executeJavaScript(script, userGesture),
+    executeJavaScript: (script, userGesture, signal) =>
+      withAbortSignal(
+        () => contents.executeJavaScript(script, userGesture),
+        () => contents.stop(),
+        signal,
+      ),
     on: (event, listener) => {
       if (event === "did-attach-webview") {
         const attachListener = listener as (
@@ -50,6 +55,49 @@ function createWebContents(contents: Electron.WebContents): WebContentsService {
     },
     once: (event, listener) => contents.once(event, listener),
   };
+}
+
+/** Electron does not expose cancellation for `executeJavaScript`; make the
+ * platform-facing promise cancellation-aware so managed callers can stop
+ * waiting and ignore the native promise's eventual settlement. */
+function withAbortSignal<A>(
+  start: () => Promise<A>,
+  cancel: () => void,
+  signal?: AbortSignal,
+): Promise<A> {
+  if (!signal) return start();
+  return new Promise<A>((resolve, reject) => {
+    let settled = false;
+    const cleanup = () => signal.removeEventListener("abort", onAbort);
+    const settle = (complete: () => void) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      complete();
+    };
+    const onAbort = () => {
+      try {
+        cancel();
+      } catch {
+        // A destroyed webContents can reject cancellation during teardown.
+      }
+      settle(() => reject(new Error("web contents read aborted")));
+    };
+
+    if (signal.aborted) {
+      onAbort();
+      return;
+    }
+    signal.addEventListener("abort", onAbort, { once: true });
+    try {
+      void start().then(
+        (value) => settle(() => resolve(value)),
+        (error: unknown) => settle(() => reject(error)),
+      );
+    } catch (error) {
+      settle(() => reject(error));
+    }
+  });
 }
 
 function createWindow(window: BrowserWindow): WindowService {
