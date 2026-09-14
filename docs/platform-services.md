@@ -18,6 +18,19 @@ bearer token in a synchronized redacted reference and exposes only status
 through the renderer IPC contract; the API adapter and safeStorage-backed
 session store remain main-process values.
 
+`src/main/api/api-service.ts` exposes the read-only Cognisia operations through
+the `CognisiaService` Context key. The live layer obtains the bearer through
+`AuthService`'s accessor and builds its adapter from the injected
+`HttpTransport`; status-zero/network and 401 behavior remain unchanged.
+`createCognisiaHttpLayer` is available when a standalone service needs to be
+composed directly against that transport in a test or another host.
+
+`src/main/sync/snapshot-cache.ts` exposes `SnapshotCacheService` beside the
+legacy cache factory. Its read Effects keep missing or corrupt files as `null`,
+while writes retain the existing version-1 JSON shape and atomic temporary-file
+then rename behavior. The live layer receives `FileSystem`, `Path`, `Clock`,
+and `Random` from the same platform bundle.
+
 `platform/node.ts` and `platform/electron.ts` are the only production adapters
 that touch those host APIs. `platform/layer.ts` composes implementations into
 the managed application runtime; tests can provide in-memory implementations
