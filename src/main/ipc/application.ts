@@ -23,6 +23,7 @@ export interface ApplicationIpcDependencies {
   readonly auth: {
     status: AuthServiceShape["status"];
     startLogin: AuthServiceShape["startLogin"];
+    signOut: AuthServiceShape["signOut"];
     accountId: AuthServiceShape["accountId"];
   };
   readonly sync: {
@@ -121,6 +122,15 @@ export function registerApplicationIpc(deps: ApplicationIpcDependencies): IpcAda
       inputSchema: noInput,
       outputSchema: unknownOutput,
       handle: () => deps.runtime.runPromise(deps.auth.startLogin()),
+      onInvalidInput: () => undefined,
+      onFailure: () => undefined,
+    }),
+    operation({
+      channel: "auth:sign-out",
+      operation: "auth.sign-out",
+      inputSchema: noInput,
+      outputSchema: unknownOutput,
+      handle: () => deps.runtime.runPromise(deps.auth.signOut()),
       onInvalidInput: () => undefined,
       onFailure: () => undefined,
     }),

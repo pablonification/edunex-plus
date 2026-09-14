@@ -208,6 +208,7 @@ describe("Effect auth service", () => {
       auth: {
         status: () => h.service.status(),
         startLogin: () => h.service.startLogin(),
+        signOut: () => h.service.signOut(),
         accountId: () => h.service.accountId(),
       },
       sync: { read: () => Effect.succeed(null) },
@@ -236,6 +237,12 @@ describe("Effect auth service", () => {
     expect(JSON.stringify(publicResult)).not.toContain(session.refreshToken);
     expect(JSON.stringify(h.service)).not.toContain(session.accessToken);
     expect(JSON.stringify(h.service)).not.toContain(session.refreshToken);
+
+    const signOutHandler = handlers.get("auth:sign-out");
+    if (!signOutHandler) throw new Error("auth sign-out IPC handler was not registered");
+    await expect(signOutHandler({ sender: "renderer" })).resolves.toBeUndefined();
+    await expect(h.runtime.runPromise(h.service.status())).resolves.toBe("signed-out");
+    expect(h.files.has("auth-session.enc")).toBe(false);
 
     adapter.unregister();
   });

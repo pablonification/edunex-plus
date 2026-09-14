@@ -27,6 +27,7 @@ it("keeps shell settings behavior behind validated IPC operations", async () => 
     auth: {
       status: () => Effect.succeed(null),
       startLogin: () => Effect.succeed(undefined),
+      signOut: () => Effect.succeed(undefined),
       accountId: () => Effect.succeed(null),
     },
     sync: { read: () => Effect.succeed(null) },
@@ -111,6 +112,7 @@ it("runs the managed task/material services only after IPC input validation", as
     auth: {
       status: () => Effect.succeed("signed-in"),
       startLogin: () => Effect.succeed(undefined),
+      signOut: () => Effect.succeed(undefined),
       accountId: () => Effect.succeed("190136"),
     },
     materialDownloadService: { download: materialDownload },
