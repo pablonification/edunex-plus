@@ -339,6 +339,9 @@ if (!gotSingleInstanceLock) {
       .catch(() => {
         if (!runtimeShutdownStarted) platform.quit();
       });
+  }).catch(() => {
+    console.error("[runtime] platform readiness failed");
+    if (!runtimeShutdownStarted) platform.quit();
   });
 
   const ipcAdapter = registerApplicationIpc({
