@@ -1,4 +1,3 @@
-import { nodeFileSystem, nodePath, systemClock, systemRandom } from "../platform/node";
 import type { ClockService, FileSystemService, PathService, RandomService } from "../platform/services";
 
 interface StoredLedger {
@@ -33,16 +32,16 @@ export interface SeenLedger {
 export function ledgerFileFor(
   rootDir: string,
   accountId: string,
-  pathService: PathService = nodePath,
+  pathService: PathService,
 ): string {
   return pathService.join(rootDir, safePathSegment(accountId), "seen-tasks.json");
 }
 
 export interface SeenLedgerServices {
-  readonly fileSystem?: FileSystemService;
-  readonly path?: PathService;
-  readonly clock?: ClockService;
-  readonly random?: RandomService;
+  readonly fileSystem: FileSystemService;
+  readonly path: PathService;
+  readonly clock: ClockService;
+  readonly random: RandomService;
 }
 
 /**
@@ -53,10 +52,9 @@ export interface SeenLedgerServices {
 export function readSeenLedger(
   rootDir: string,
   accountId: string,
-  services: SeenLedgerServices = {},
+  services: SeenLedgerServices,
 ): SeenLedgerSnapshot {
-  const fileSystem = services.fileSystem ?? nodeFileSystem;
-  const pathService = services.path ?? nodePath;
+  const { fileSystem, path: pathService } = services;
   try {
     const stored = JSON.parse(
       fileSystem.readText(ledgerFileFor(rootDir, accountId, pathService)),
@@ -75,12 +73,9 @@ export function writeSeenLedger(
   rootDir: string,
   accountId: string,
   seenIds: Iterable<string>,
-  services: SeenLedgerServices = {},
+  services: SeenLedgerServices,
 ): void {
-  const fileSystem = services.fileSystem ?? nodeFileSystem;
-  const pathService = services.path ?? nodePath;
-  const clock = services.clock ?? systemClock;
-  const random = services.random ?? systemRandom;
+  const { fileSystem, path: pathService, clock, random } = services;
   const stored: StoredLedger = {
     version: 1,
     accountId,
@@ -96,12 +91,9 @@ export function writeSeenLedger(
 export function createSeenLedger(
   rootDir: string,
   accountId: string,
-  services: SeenLedgerServices = {},
+  services: SeenLedgerServices,
 ): SeenLedger {
-  const fileSystem = services.fileSystem ?? nodeFileSystem;
-  const pathService = services.path ?? nodePath;
-  const clock = services.clock ?? systemClock;
-  const random = services.random ?? systemRandom;
+  const { fileSystem, path: pathService, clock, random } = services;
   const snapshot = readSeenLedger(rootDir, accountId, {
     fileSystem,
     path: pathService,

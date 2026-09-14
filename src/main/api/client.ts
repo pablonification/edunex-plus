@@ -7,7 +7,6 @@
  * guardrails).
  */
 
-import { fetchTransport } from "../platform/node";
 import type { HttpTransportService } from "../platform/services";
 
 export interface ApiResult {
@@ -76,19 +75,19 @@ export interface EdunexApiOptions {
   onUnauthorized?: () => void;
   /** Main supplies the process-wide HTTP transport service. */
   transport?: HttpTransportService;
-  /** Kept as a narrow compatibility seam for existing unit tests/callers. */
+  /** Test-only transport seam; production supplies `transport`. */
   fetchImpl?: typeof fetch;
 }
 
 export function createEdunexApi(options: EdunexApiOptions): EdunexDataApi {
   const { baseUrl, getToken, userAgent, onUnauthorized } = options;
-  const transport: HttpTransportService =
+  const transport: HttpTransportService | null =
     options.transport ??
     (options.fetchImpl
       ? {
           request: (url, init) => options.fetchImpl!(url, init),
         }
-      : fetchTransport);
+      : null);
 
   async function request(
     method: string,
@@ -101,6 +100,8 @@ export function createEdunexApi(options: EdunexApiOptions): EdunexDataApi {
       onUnauthorized?.();
       return { status: 401, ok: false, body: null };
     }
+
+    if (!transport) return { status: 0, ok: false, body: null };
 
     let response;
     try {

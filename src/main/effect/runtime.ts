@@ -47,6 +47,10 @@ export interface ApplicationRuntime<R, ER> {
   readonly fork: <A, E>(
     effect: EffectModule.Effect.Effect<A, E, R>,
   ) => Promise<EffectModule.Fiber.Fiber<A, E>>;
+  /** Fork work synchronously for callbacks already at the process boundary. */
+  readonly forkSync: <A, E>(
+    effect: EffectModule.Effect.Effect<A, E, R>,
+  ) => EffectModule.Fiber.Fiber<A, E>;
   /** Idempotently closes the runtime scope and releases all owned resources. */
   readonly shutdown: () => Promise<void>;
   readonly isShutdown: () => boolean;
@@ -99,6 +103,10 @@ export function createApplicationRuntime<
       return isShutdown()
         ? rejectAfterShutdown()
         : runtime.runPromise(effectRuntime.Effect.forkIn(effect, runtime.scope));
+    },
+    forkSync(effect) {
+      if (isShutdown()) throw new RuntimeUnavailableError({ operation: "runtime.use-after-shutdown" });
+      return runtime.runSync(effectRuntime.Effect.forkIn(effect, runtime.scope));
     },
     shutdown() {
       if (shutdownPromise) return shutdownPromise;

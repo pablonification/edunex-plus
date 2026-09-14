@@ -36,7 +36,7 @@ export interface IpcAdapter {
 
 export interface IpcAdapterOptions {
   readonly ipcMain: IpcMainService;
-  readonly runtime: ApplicationRuntime<any, any>;
+  readonly runtime: ApplicationRuntime<never, never>;
 }
 
 /**
@@ -50,15 +50,48 @@ export function registerIpcOperations(
   operations: readonly IpcOperation[],
   options: IpcAdapterOptions,
 ): IpcAdapter {
+  const channels = new Set<string>();
   for (const operation of operations) {
-    options.ipcMain.handle(operation.channel, (event, ...args) =>
-      invokeOperation(operation, event, args, options),
-    );
+    if (channels.has(operation.channel)) {
+      throw new Error(`Duplicate IPC channel: ${operation.channel}`);
+    }
+    channels.add(operation.channel);
   }
+
+  const registered: IpcOperation[] = [];
+  try {
+    for (const operation of operations) {
+      options.ipcMain.handle(operation.channel, (event, ...args) =>
+        invokeOperation(operation, event, args, options),
+      );
+      registered.push(operation);
+    }
+  } catch (cause) {
+    for (const operation of registered.reverse()) {
+      try {
+        options.ipcMain.removeHandler(operation.channel);
+      } catch {
+        // Preserve the registration failure while still attempting every
+        // owned handler's cleanup.
+      }
+    }
+    throw cause;
+  }
+
+  let unregistered = false;
 
   return {
     unregister() {
-      for (const operation of operations) options.ipcMain.removeHandler?.(operation.channel);
+      if (unregistered) return;
+      unregistered = true;
+      for (const operation of operations) {
+        try {
+          options.ipcMain.removeHandler(operation.channel);
+        } catch {
+          // One stale handler must not prevent the remaining owned channels
+          // from being released during process shutdown.
+        }
+      }
     },
   };
 }

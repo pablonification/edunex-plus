@@ -3,13 +3,11 @@ import { effectRuntime } from "../effect/effect-runtime";
 import {
   EDUNEX_API_BASE_URL,
   AuthService,
-  edunexUserAgent,
 } from "../auth/auth-service";
 import {
   createEdunexApi,
   type ApiResponse,
   type ApiResult,
-  type EdunexApi,
   type EdunexDataApi,
   type JsonApiResource,
   type TodoFeed,
@@ -77,57 +75,24 @@ export function createCognisiaService(api: CognisiaReadApi): CognisiaServiceShap
   };
 }
 
-/** Options for the authenticated Cognisia read layer. */
-export interface CognisiaLayerOptions {
-  readonly baseUrl?: string;
-  readonly appVersion?: string;
-  readonly userAgent?: string;
-  readonly onUnauthorized?: () => void;
-}
-
 /**
  * The auth service remains the sole token owner. This layer obtains the token
- * through its Effect accessor and builds a read-only API adapter on the
- * injected HTTP port, so sync never reaches a free-standing fetch or token.
+ * through its owned API adapter. This keeps the token, transport, and
+ * unauthorized transition behind one authenticated service boundary; the
+ * synchronization service only receives the read-only Cognisia port.
  */
-export function createCognisiaLayer(
-  options: CognisiaLayerOptions = {},
-): EffectModule.Layer.Layer<
+export function createCognisiaLayer(): EffectModule.Layer.Layer<
   CognisiaService,
   never,
-  AuthService | HttpTransport
+  AuthService
 > {
   return effectRuntime.Layer.effect(
     CognisiaService,
     effectRuntime.Effect.gen(function* () {
       const auth = yield* AuthService;
-      const transport = yield* HttpTransport;
-      const getToken = () => {
-        try {
-          return effectRuntime.Effect.runSync(auth.accessToken());
-        } catch {
-          return null;
-        }
-      };
-      const onUnauthorized = options.onUnauthorized ?? (() => {
-        try {
-          effectRuntime.Effect.runSync(auth.handleUnauthorized());
-        } catch {
-          // Runtime shutdown or a destroyed auth service cannot surface through
-          // the transport callback.
-        }
-      });
-      return createCognisiaService(
-        createEdunexApi({
-          baseUrl: options.baseUrl ?? EDUNEX_API_BASE_URL,
-          getToken,
-          userAgent: options.userAgent ?? edunexUserAgent(options.appVersion ?? "unknown"),
-          onUnauthorized,
-          transport,
-        }),
-      );
+      return createCognisiaService(auth.api);
     }),
-  ) as EffectModule.Layer.Layer<CognisiaService, never, AuthService | HttpTransport>;
+  ) as EffectModule.Layer.Layer<CognisiaService, never, AuthService>;
 }
 
 /** Options for a standalone Cognisia service backed by the injected HTTP port. */
@@ -174,41 +139,11 @@ export const CognisiaServiceLive = createCognisiaLayer;
 export const ApiServiceLive = createCognisiaLayer;
 
 /** Conventional aliases for callers that name the service after its port. */
-export function createApiLayer(
-  options?: CognisiaLayerOptions,
-): ReturnType<typeof createCognisiaLayer> {
-  return createCognisiaLayer(options);
+export function createApiLayer(): ReturnType<typeof createCognisiaLayer> {
+  return createCognisiaLayer();
 }
 
 export const createDataLayer = createApiLayer;
-
-/**
- * Adapt an Effect service at the old promise seam for legacy callers. The
- * production synchronization path uses the Effect service directly; keeping
- * this adapter avoids changing unrelated promise-based feature seams.
- */
-export function toPromiseCognisiaApi(
-  service: CognisiaServiceShape,
-  runPromise: <A>(effect: ApiEffect<A>) => Promise<A>,
-): Pick<EdunexApi, "get"> &
-  Partial<
-    Pick<
-      EdunexDataApi,
-      "getTodo" | "getCourses" | "getCourseTasks" | "getExams" | "getAgenda" |
-        "getMaterials" | "getPresences"
-    >
-  > {
-  return {
-    get: (path) => runPromise(service.get(path)),
-    getTodo: () => runPromise(service.getTodo()),
-    getCourses: () => runPromise(service.getCourses()),
-    getCourseTasks: () => runPromise(service.getCourseTasks()),
-    getExams: () => runPromise(service.getExams()),
-    getAgenda: () => runPromise(service.getAgenda()),
-    getMaterials: () => runPromise(service.getMaterials()),
-    getPresences: () => runPromise(service.getPresences()),
-  };
-}
 
 function safeApiCall<A extends ApiResult>(
   operation: (signal: AbortSignal) => Promise<A>,
@@ -222,7 +157,3 @@ function safeApiCall<A extends ApiResult>(
 function failedResult<A extends ApiResult>(): A {
   return { status: 0, ok: false, body: null } as A;
 }
-
-// Keep these imports/exports available to callers that use this module as the
-// API composition boundary without reaching into the legacy client module.
-export { edunexUserAgent };

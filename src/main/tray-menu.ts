@@ -1,4 +1,4 @@
-import type { MenuItemConstructorOptions } from "electron";
+import type { MenuItemTemplate } from "./platform/services";
 
 /**
  * Tray menu contract for the shell slice (#32): the tray is what makes
@@ -12,10 +12,20 @@ export interface TrayMenuHandlers {
   quit(): void;
 }
 
-export function buildTrayMenuTemplate(handlers: TrayMenuHandlers): MenuItemConstructorOptions[] {
+export function buildTrayMenuTemplate(handlers: TrayMenuHandlers): MenuItemTemplate[] {
   return [
-    { label: "Show Edunex Plus", click: handlers.show },
+    {
+      label: "Show Edunex Plus",
+      click: () => {
+        handlers.show();
+      },
+    },
     { type: "separator" },
-    { label: "Quit Edunex Plus", click: handlers.quit },
+    {
+      label: "Quit Edunex Plus",
+      click: () => {
+        handlers.quit();
+      },
+    },
   ];
 }

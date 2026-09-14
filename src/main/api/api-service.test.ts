@@ -6,6 +6,7 @@ import {
   createCognisiaLayer,
   createCognisiaHttpLayer,
 } from "./api-service";
+import { createEdunexApi } from "./client";
 import { AuthService } from "../auth/auth-service";
 import {
   HttpTransport,
@@ -55,14 +56,17 @@ describe("Effect Cognisia read service", () => {
       },
     };
     const runtime = createApplicationRuntime(
-      createCognisiaLayer({ userAgent: "EdunexPlus/auth-test" }).pipe(
+      createCognisiaLayer().pipe(
         Layer.provide(
           Layer.mergeAll(
             Layer.succeed(AuthService, {
-              accessToken: () => Effect.succeed("auth-owned-token"),
-              handleUnauthorized: () => Effect.sync(() => undefined),
+              api: createEdunexApi({
+                baseUrl: "https://api-edunex.cognisia.id",
+                getToken: () => "auth-owned-token",
+                userAgent: "EdunexPlus/auth-test",
+                transport,
+              }),
             } as never),
-            Layer.succeed(HttpTransport, transport),
           ),
         ),
       ),

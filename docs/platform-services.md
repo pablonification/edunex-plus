@@ -18,6 +18,11 @@ bearer token in a synchronized redacted reference and exposes only status
 through the renderer IPC contract; the API adapter and safeStorage-backed
 session store remain main-process values.
 
+Webview auth capture polling is forked into the application's managed runtime.
+Stopping a capture interrupts its fiber, clears the injected polling/timeout
+resources, and ignores late webview results; sign-out, session expiry, webview
+destruction, and runtime shutdown all stop the active captures.
+
 The explicit write/read-through workflows are also managed services:
 `TaskAnswerService` exposes separate save-draft and final-submit Effects, while
 `MaterialDownloadService` exposes the one-click file download. Both are wired
@@ -28,18 +33,18 @@ the platform layer; task-answer writes use the authenticated API adapter.
 `src/main/api/api-service.ts` exposes the read-only Cognisia operations through
 the `CognisiaService` Context key. The live layer obtains the bearer through
 `AuthService`'s accessor and builds its adapter from the injected
-`HttpTransport`; status-zero/network and 401 behavior remain unchanged.
-`createCognisiaHttpLayer` is available when a standalone service needs to be
-composed directly against that transport in a test or another host.
+`AuthService`'s already-owned API adapter; the token and unauthorized-session
+transition therefore have one owner. Status-zero/network behavior and 401
+handling remain unchanged. `createCognisiaHttpLayer` is available only for a
+standalone test/host that explicitly supplies the HTTP port.
 
-`src/main/sync/snapshot-cache.ts` exposes `SnapshotCacheService` beside the
-legacy cache factory. Its read Effects keep missing or corrupt files as `null`,
-while writes retain the existing version-1 JSON shape and atomic temporary-file
-then rename behavior. The live layer receives `FileSystem`, `Path`, `Clock`,
-and `Random` from the same platform bundle.
+`src/main/sync/snapshot-cache.ts` exposes `SnapshotCacheService`. Its read
+Effects keep missing or corrupt files as `null`, while writes retain the
+existing version-1 JSON shape and atomic temporary-file then rename behavior.
+The live layer receives `FileSystem`, `Path`, `Clock`, and `Random` from the
+same platform bundle.
 
-`src/main/sync/sync-engine.ts` exposes `SyncService` (also available from
-`src/main/sync/sync-service.ts`). The service owns one interruptible
+`src/main/sync/sync-engine.ts` exposes `SyncService`. The service owns one interruptible
 session fiber: it starts an immediate six-feed read, keeps feed failures local,
 uses the injected `Clock` and `Random` for cadence/backoff, and stops on auth
 session changes or runtime shutdown. Cache publication, notification calls,
@@ -80,10 +85,11 @@ credentials never reach the renderer.
 
 The channel names and renderer-facing contracts remain unchanged. The
 application-specific registrations are in `ipc/application.ts`. Production
-registrations pass the managed task/material services to the adapter; the
-adapter runs each command in the application runtime, validates its input, and
-encodes the existing safe result shape. Compatibility callbacks remain
-available to focused tests and older main-process callers.
+registrations pass the managed auth, sync, task/material, and notification
+services to the adapter; the adapter runs each command in the application
+runtime, validates its input, and encodes the existing safe result shape. IPC
+registration is owned by that one adapter and is idempotently unregistered
+during quit.
 
 ## Persistence
 
@@ -92,6 +98,18 @@ ledgers receive filesystem/path/clock/random services. Their JSON formats,
 defaults, account partitioning, and temporary-file-then-rename writes remain
 unchanged. The main process wires all of them to the same live platform bundle.
 
-The Electron platform is a managed runtime resource. Runtime shutdown releases
-the tray and window, while the IPC adapter removes its handlers before the
-application asks Electron to quit.
+## Application composition and lifecycle
+
+`src/main/application.ts` is the visible production composition boundary. It
+builds the auth, Cognisia, snapshot, task, material, notification, and sync
+layers over one `LivePlatform`, resolves their services from one managed
+runtime, and exposes one idempotent shutdown operation. `main.ts` owns only
+Electron shell orchestration and renderer publication; it never constructs a
+feature runtime or reaches around a service for network/session work.
+
+The Electron platform tracks app listeners, IPC handlers, tray, and window
+ownership. Shutdown interrupts the session sync fiber, stops auth capture,
+removes app listeners and IPC handlers, and releases the tray/window before
+Electron is allowed to quit. Sign-out and session expiry publish through the
+same auth transition, which stops synchronization before the account-scoped
+state can be read or written again.
