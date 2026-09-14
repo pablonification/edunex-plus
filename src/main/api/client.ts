@@ -22,9 +22,9 @@ export interface ApiResult {
 export type ApiResponse<T> = Omit<ApiResult, "body"> & { body: T | null };
 
 export interface EdunexApi {
-  get(path: string): Promise<ApiResult>;
-  post(path: string, body: unknown): Promise<ApiResult>;
-  patch(path: string, body: unknown): Promise<ApiResult>;
+  get(path: string, signal?: AbortSignal): Promise<ApiResult>;
+  post(path: string, body: unknown, signal?: AbortSignal): Promise<ApiResult>;
+  patch(path: string, body: unknown, signal?: AbortSignal): Promise<ApiResult>;
 }
 
 /** EduNex's active course-list request captured from the My Courses page. */
@@ -54,10 +54,15 @@ export interface EdunexDataApi extends EdunexApi {
    * `is_sent: 0` and `task_id` in a JSON-API `data.attributes` envelope.
    * Create omits `files`; update carries an explicit `files: []`.
    */
-  createDraftAnswer(taskId: string, answer: string): Promise<ApiResult>;
-  updateDraftAnswer(answerId: string, taskId: string, answer: string): Promise<ApiResult>;
+  createDraftAnswer(taskId: string, answer: string, signal?: AbortSignal): Promise<ApiResult>;
+  updateDraftAnswer(
+    answerId: string,
+    taskId: string,
+    answer: string,
+    signal?: AbortSignal,
+  ): Promise<ApiResult>;
   /** Final submit, verified live in issue #12: PATCH with only `is_sent: 1`. */
-  submitAnswer(answerId: string): Promise<ApiResult>;
+  submitAnswer(answerId: string, signal?: AbortSignal): Promise<ApiResult>;
 }
 
 export interface EdunexApiOptions {
@@ -85,7 +90,12 @@ export function createEdunexApi(options: EdunexApiOptions): EdunexDataApi {
         }
       : fetchTransport);
 
-  async function request(method: string, path: string, body?: unknown): Promise<ApiResult> {
+  async function request(
+    method: string,
+    path: string,
+    body?: unknown,
+    signal?: AbortSignal,
+  ): Promise<ApiResult> {
     const token = getToken();
     if (!token) {
       onUnauthorized?.();
@@ -102,6 +112,7 @@ export function createEdunexApi(options: EdunexApiOptions): EdunexDataApi {
           ...(body !== undefined ? { "Content-Type": "application/json" } : {}),
         }),
         ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+        ...(signal ? { signal } : {}),
       });
     } catch {
       return { status: 0, ok: false, body: null };
@@ -117,16 +128,16 @@ export function createEdunexApi(options: EdunexApiOptions): EdunexDataApi {
     return { status: response.status, ok: response.ok, body: responseBody };
   }
 
-  async function get(path: string): Promise<ApiResult> {
-    return request("GET", path);
+  async function get(path: string, signal?: AbortSignal): Promise<ApiResult> {
+    return request("GET", path, undefined, signal);
   }
 
-  async function post(path: string, body: unknown): Promise<ApiResult> {
-    return request("POST", path, body);
+  async function post(path: string, body: unknown, signal?: AbortSignal): Promise<ApiResult> {
+    return request("POST", path, body, signal);
   }
 
-  async function patch(path: string, body: unknown): Promise<ApiResult> {
-    return request("PATCH", path, body);
+  async function patch(path: string, body: unknown, signal?: AbortSignal): Promise<ApiResult> {
+    return request("PATCH", path, body, signal);
   }
 
   return {
@@ -148,18 +159,23 @@ export function createEdunexApi(options: EdunexApiOptions): EdunexDataApi {
       get("/course/presences/list").then((result) =>
         normalizeResult(result, normalizePresences),
       ),
-    createDraftAnswer: (taskId: string, answer: string) =>
+    createDraftAnswer: (taskId: string, answer: string, signal?: AbortSignal) =>
       post("/course/task/answers", {
         data: { attributes: { task_id: taskId, answer, is_sent: 0 } },
-      }),
-    updateDraftAnswer: (answerId: string, taskId: string, answer: string) =>
+      }, signal),
+    updateDraftAnswer: (
+      answerId: string,
+      taskId: string,
+      answer: string,
+      signal?: AbortSignal,
+    ) =>
       patch(`/course/task/answers/${answerId}`, {
         data: { attributes: { task_id: taskId, files: [], answer, is_sent: 0 } },
-      }),
-    submitAnswer: (answerId: string) =>
+      }, signal),
+    submitAnswer: (answerId: string, signal?: AbortSignal) =>
       patch(`/course/task/answers/${answerId}`, {
         data: { attributes: { is_sent: 1 } },
-      }),
+      }, signal),
   };
 }
 

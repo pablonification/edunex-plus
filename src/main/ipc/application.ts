@@ -9,6 +9,8 @@ import type {
   SubmitAnswerInput,
   SubmitAnswerResult,
 } from "../../shared/submission";
+import type { MaterialDownloadServiceShape } from "../materials/download";
+import type { TaskAnswerServiceShape } from "../tasks/task-answers";
 import type { ApplicationRuntime } from "../effect/runtime";
 import { effectRuntime } from "../effect/effect-runtime";
 import type { IpcMainService } from "../platform/services";
@@ -26,9 +28,12 @@ export interface ApplicationIpcDependencies {
   readonly sync: {
     read(feed: FeedKey): FeedSnapshot | null;
   };
-  downloadMaterial(
+  /** Compatibility callback for callers that have not moved to the service. */
+  downloadMaterial?: (
     request: MaterialDownloadRequest,
-  ): Promise<MaterialDownloadResult>;
+  ) => Promise<MaterialDownloadResult>;
+  /** Managed Effect service used by the production application. */
+  readonly materialDownloadService?: Pick<MaterialDownloadServiceShape, "download">;
   readonly shell: {
     getSettings(): ShellSettings;
     setViewHidden(view: NavKey, hidden: boolean): ShellSettings;
@@ -39,10 +44,13 @@ export interface ApplicationIpcDependencies {
     markRead(ids: string[]): InAppNotification[];
     markAllRead(): InAppNotification[];
   };
-  readonly tasks: {
+  /** Compatibility callbacks for pre-migration callers and focused tests. */
+  readonly tasks?: {
     saveDraft(input: SaveDraftInput): Promise<SaveDraftResult>;
     submit(input: SubmitAnswerInput): Promise<SubmitAnswerResult>;
   };
+  /** Managed Effect service used by the production application. */
+  readonly taskAnswerService?: Pick<TaskAnswerServiceShape, "saveDraft" | "submit">;
 }
 
 /** Registers all renderer-facing request channels in one place. */
@@ -143,7 +151,16 @@ export function registerApplicationIpc(deps: ApplicationIpcDependencies): IpcAda
       operation: "materials.download",
       inputSchema: Schema.Struct({ fileUrl: Schema.String, fileName: Schema.String }),
       outputSchema: materialResult,
-      handle: (request) => deps.downloadMaterial(request as MaterialDownloadRequest),
+      handle: (request) => {
+        const value = request as MaterialDownloadRequest;
+        if (deps.materialDownloadService) {
+          return deps.runtime.runPromise(deps.materialDownloadService.download(value));
+        }
+        return deps.downloadMaterial?.(value) ?? {
+          ok: false,
+          error: "Download failed — check your connection and try again.",
+        };
+      },
       onInvalidInput: () => ({ ok: false, error: "This material has no downloadable file." }),
       onFailure: () => ({ ok: false, error: "Download failed — check your connection and try again." }),
     }),
@@ -216,11 +233,20 @@ export function registerApplicationIpc(deps: ApplicationIpcDependencies): IpcAda
       outputSchema: saveDraftResult,
       handle: (input) => {
         const value = input as { taskId: string; answer: string; answerId?: string | null };
-        return deps.tasks.saveDraft({
+        const command = {
           taskId: value.taskId,
           answer: value.answer,
           answerId: value.answerId ?? null,
-        });
+        };
+        if (deps.taskAnswerService) {
+          return deps.runtime.runPromise(deps.taskAnswerService.saveDraft(command));
+        }
+        return deps.tasks?.saveDraft(command) ?? {
+          ok: false,
+          status: 0,
+          created: command.answerId == null,
+          answerId: command.answerId,
+        };
       },
       onInvalidInput: () => ({ ok: false, status: 400, created: false, answerId: null }),
       onFailure: (_context, input) => {
@@ -237,7 +263,13 @@ export function registerApplicationIpc(deps: ApplicationIpcDependencies): IpcAda
       operation: "tasks.submit",
       inputSchema: Schema.Struct({ answerId: Schema.String }),
       outputSchema: submitResult,
-      handle: (input) => deps.tasks.submit(input as SubmitAnswerInput),
+      handle: (input) => {
+        const value = input as SubmitAnswerInput;
+        if (deps.taskAnswerService) {
+          return deps.runtime.runPromise(deps.taskAnswerService.submit(value));
+        }
+        return deps.tasks?.submit(value) ?? { ok: false, status: 0 };
+      },
       onInvalidInput: () => ({ ok: false, status: 400 }),
       onFailure: () => ({ ok: false, status: 0 }),
     }),
