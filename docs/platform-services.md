@@ -38,6 +38,14 @@ while writes retain the existing version-1 JSON shape and atomic temporary-file
 then rename behavior. The live layer receives `FileSystem`, `Path`, `Clock`,
 and `Random` from the same platform bundle.
 
+`src/main/sync/sync-engine.ts` exposes `SyncService` (also available from
+`src/main/sync/sync-service.ts`). The service owns one interruptible
+session fiber: it starts an immediate six-feed read, keeps feed failures local,
+uses the injected `Clock` and `Random` for cadence/backoff, and stops on auth
+session changes or runtime shutdown. Cache publication, notification calls,
+and renderer update events remain main-process boundaries; the renderer only
+reads snapshots and listens for updates.
+
 Notification behavior is exposed through `NotificationService`. Its Task and
 Presence sync operations are deterministic event-driven Effects, and its
 history operations are the seam used by notification IPC. The service depends

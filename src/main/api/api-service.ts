@@ -63,14 +63,17 @@ export type DataServiceShape = CognisiaServiceShape;
 /** Wrap an existing API adapter without changing its request behavior. */
 export function createCognisiaService(api: CognisiaReadApi): CognisiaServiceShape {
   return {
-    get: (path) => safeApiCall(() => api.get(path), failedResult()),
-    getTodo: () => safeApiCall(() => api.getTodo(), failedResult()),
-    getCourses: () => safeApiCall(() => api.getCourses(), failedResult()),
-    getCourseTasks: () => safeApiCall(() => api.getCourseTasks(), failedResult()),
-    getExams: () => safeApiCall(() => api.getExams(), failedResult()),
-    getAgenda: () => safeApiCall(() => api.getAgenda(), failedResult()),
-    getMaterials: () => safeApiCall(() => api.getMaterials(), failedResult()),
-    getPresences: () => safeApiCall(() => api.getPresences(), failedResult()),
+    // The operation's AbortSignal is supplied by Effect.tryPromise. Keeping
+    // it inside the service means an interrupted sync fiber also interrupts
+    // the underlying HTTP request instead of merely abandoning its result.
+    get: (path) => safeApiCall((signal) => api.get(path, signal), failedResult()),
+    getTodo: () => safeApiCall((signal) => api.getTodo(signal), failedResult()),
+    getCourses: () => safeApiCall((signal) => api.getCourses(signal), failedResult()),
+    getCourseTasks: () => safeApiCall((signal) => api.getCourseTasks(signal), failedResult()),
+    getExams: () => safeApiCall((signal) => api.getExams(signal), failedResult()),
+    getAgenda: () => safeApiCall((signal) => api.getAgenda(signal), failedResult()),
+    getMaterials: () => safeApiCall((signal) => api.getMaterials(signal), failedResult()),
+    getPresences: () => safeApiCall((signal) => api.getPresences(signal), failedResult()),
   };
 }
 
@@ -180,9 +183,9 @@ export function createApiLayer(
 export const createDataLayer = createApiLayer;
 
 /**
- * Adapt an Effect service at the old promise seam. The sync scheduler remains
- * a compatibility adapter until its own fiber migration; production reads
- * still execute through the managed runtime and the service above.
+ * Adapt an Effect service at the old promise seam for legacy callers. The
+ * production synchronization path uses the Effect service directly; keeping
+ * this adapter avoids changing unrelated promise-based feature seams.
  */
 export function toPromiseCognisiaApi(
   service: CognisiaServiceShape,
@@ -208,10 +211,10 @@ export function toPromiseCognisiaApi(
 }
 
 function safeApiCall<A extends ApiResult>(
-  operation: () => Promise<A>,
+  operation: (signal: AbortSignal) => Promise<A>,
   fallback: A,
 ): ApiEffect<A> {
-  return effectRuntime.Effect.tryPromise(() => operation()).pipe(
+  return effectRuntime.Effect.tryPromise((signal) => operation(signal)).pipe(
     effectRuntime.Effect.catch(() => effectRuntime.Effect.succeed(fallback)),
   ) as ApiEffect<A>;
 }
