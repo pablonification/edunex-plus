@@ -317,8 +317,12 @@ const startApplication = RuntimeEffect.try({
 
 if (!gotSingleInstanceLock) {
   void application.shutdown().then(
-    () => platform.quit(),
-    () => platform.quit(),
+    () => {
+      platform.quit();
+    },
+    () => {
+      platform.quit();
+    },
   );
 } else {
   platform.on("second-instance", showWindow);

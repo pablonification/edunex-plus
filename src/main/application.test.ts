@@ -82,7 +82,9 @@ function createHarness() {
     clock: {
       now: () => 1_700_000_000_000,
       setTimeout: (callback, delayMs) => setTimeout(callback, delayMs),
-      clearTimeout: (timer) => clearTimeout(timer as ReturnType<typeof setTimeout>),
+      clearTimeout: (timer) => {
+        clearTimeout(timer as ReturnType<typeof setTimeout>);
+      },
     },
     random: { next: () => 0.5 },
     safeStorage: {

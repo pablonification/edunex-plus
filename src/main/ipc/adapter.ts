@@ -36,7 +36,7 @@ export interface IpcAdapter {
 
 export interface IpcAdapterOptions {
   readonly ipcMain: IpcMainService;
-  readonly runtime: ApplicationRuntime<any, any>;
+  readonly runtime: ApplicationRuntime<never, never>;
 }
 
 /**

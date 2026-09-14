@@ -79,7 +79,7 @@ export interface ApplicationServices {
  * the resolved service bundle and call `shutdown` at the process boundary.
  */
 export interface ApplicationComposition {
-  readonly runtime: ApplicationRuntime<any, any>;
+  readonly runtime: ApplicationRuntime<never, never>;
   readonly services: ApplicationServices;
   readonly shutdown: () => Promise<void>;
 }
@@ -89,11 +89,11 @@ interface RuntimeBridge {
   readonly forkSync: <A>(
     effect: EffectModule.Effect.Effect<A, never, never>,
   ) => EffectModule.Fiber.Fiber<A, never> | undefined;
-  setRuntime(runtime: ApplicationRuntime<any, any>): void;
+  setRuntime(runtime: ApplicationRuntime<never, never>): void;
 }
 
 function createRuntimeBridge(): RuntimeBridge {
-  let runtime: ApplicationRuntime<any, any> | null = null;
+  let runtime: ApplicationRuntime<never, never> | null = null;
 
   return {
     setRuntime(next) {

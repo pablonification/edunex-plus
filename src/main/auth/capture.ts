@@ -67,15 +67,16 @@ export function createAuthCapture(
     onCaptured: (auth: CapturedAuth) => AuthCaptureEffect,
     runGeneration: number,
   ): AuthCaptureEffect {
+    const isCurrent = () => running && runGeneration === generation;
     const loop = effectRuntime.Effect.gen(function* () {
-      while (running && runGeneration === generation) {
+      while (isCurrent()) {
         const raw = yield* effectRuntime.Effect.tryPromise({
           try: (signal) => executeJs(signal),
           catch: () => null,
         }).pipe(
           effectRuntime.Effect.catch(() => effectRuntime.Effect.succeed(null)),
         );
-        if (!running || runGeneration !== generation) return;
+        if (!isCurrent()) return;
 
         const auth = parseRawAuth(raw);
         if (auth) {
@@ -148,11 +149,15 @@ function keysOfRaw(raw: unknown): string[] {
 }
 
 function sleepWithClock(clock: ClockService, delayMs: number): AuthCaptureEffect {
-  return effectRuntime.Effect.callback<void>((resume) => {
+  return effectRuntime.Effect.callback<undefined>((resume) => {
     const timer = clock.setTimeout(
-      () => resume(effectRuntime.Effect.void),
+      () => {
+        resume(effectRuntime.Effect.succeed(undefined));
+      },
       Math.max(0, Math.round(delayMs)),
     );
-    return effectRuntime.Effect.sync(() => clock.clearTimeout(timer));
+    return effectRuntime.Effect.sync(() => {
+      clock.clearTimeout(timer);
+    });
   });
 }
