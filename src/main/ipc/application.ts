@@ -1,16 +1,15 @@
-import type { AuthStatus } from "../../shared/auth";
-import type { FeedKey, FeedSnapshot } from "../../shared/feeds";
-import type { MaterialDownloadRequest, MaterialDownloadResult } from "../../shared/materials";
+import type { FeedKey } from "../../shared/feeds";
+import type { MaterialDownloadRequest } from "../../shared/materials";
 import type { InAppNotification } from "../../shared/notifications";
 import type { AppInfo, NavKey, ShellSettings } from "../../shared/shell";
 import type {
-  SaveDraftInput,
-  SaveDraftResult,
   SubmitAnswerInput,
-  SubmitAnswerResult,
 } from "../../shared/submission";
 import type { MaterialDownloadServiceShape } from "../materials/download";
 import type { TaskAnswerServiceShape } from "../tasks/task-answers";
+import type { AuthServiceShape } from "../auth/auth-service";
+import type { NotificationServiceShape } from "../notifications/notification-service";
+import type { SyncServiceShape } from "../sync/sync-engine";
 import type { ApplicationRuntime } from "../effect/runtime";
 import { effectRuntime } from "../effect/effect-runtime";
 import type { IpcMainService } from "../platform/services";
@@ -22,35 +21,23 @@ export interface ApplicationIpcDependencies {
   showTestNotification(): void;
   getAppInfo(): AppInfo;
   readonly auth: {
-    status(): AuthStatus | null;
-    startLogin(): void;
+    status: AuthServiceShape["status"];
+    startLogin: AuthServiceShape["startLogin"];
+    accountId: AuthServiceShape["accountId"];
   };
   readonly sync: {
-    read(feed: FeedKey): FeedSnapshot | null | Promise<FeedSnapshot | null>;
+    read: SyncServiceShape["read"];
   };
-  /** Compatibility callback for callers that have not moved to the service. */
-  downloadMaterial?: (
-    request: MaterialDownloadRequest,
-  ) => Promise<MaterialDownloadResult>;
-  /** Managed Effect service used by the production application. */
-  readonly materialDownloadService?: Pick<MaterialDownloadServiceShape, "download">;
+  readonly materialDownloadService: Pick<MaterialDownloadServiceShape, "download">;
   readonly shell: {
     getSettings(): ShellSettings;
     setViewHidden(view: NavKey, hidden: boolean): ShellSettings;
     setQuitOnClose(quitOnClose: boolean): ShellSettings;
   };
   readonly notifications: {
-    get(): InAppNotification[];
-    markRead(ids: string[]): InAppNotification[];
-    markAllRead(): InAppNotification[];
+    readonly service: Pick<NotificationServiceShape, "list" | "markRead" | "markAllRead">;
   };
-  /** Compatibility callbacks for pre-migration callers and focused tests. */
-  readonly tasks?: {
-    saveDraft(input: SaveDraftInput): Promise<SaveDraftResult>;
-    submit(input: SubmitAnswerInput): Promise<SubmitAnswerResult>;
-  };
-  /** Managed Effect service used by the production application. */
-  readonly taskAnswerService?: Pick<TaskAnswerServiceShape, "saveDraft" | "submit">;
+  readonly taskAnswerService: Pick<TaskAnswerServiceShape, "saveDraft" | "submit">;
 }
 
 /** Registers all renderer-facing request channels in one place. */
@@ -124,7 +111,7 @@ export function registerApplicationIpc(deps: ApplicationIpcDependencies): IpcAda
       operation: "auth.get-state",
       inputSchema: noInput,
       outputSchema: Schema.NullOr(Schema.Literals(["signed-out", "authenticating", "signed-in", "session-expired"])),
-      handle: () => deps.auth.status(),
+      handle: () => deps.runtime.runPromise(deps.auth.status()),
       onInvalidInput: () => null,
       onFailure: () => null,
     }),
@@ -133,7 +120,7 @@ export function registerApplicationIpc(deps: ApplicationIpcDependencies): IpcAda
       operation: "auth.start-login",
       inputSchema: noInput,
       outputSchema: unknownOutput,
-      handle: () => deps.auth.startLogin(),
+      handle: () => deps.runtime.runPromise(deps.auth.startLogin()),
       onInvalidInput: () => undefined,
       onFailure: () => undefined,
     }),
@@ -142,7 +129,7 @@ export function registerApplicationIpc(deps: ApplicationIpcDependencies): IpcAda
       operation: "sync.get-feed",
       inputSchema: Schema.Literals(["todo", "courses", "exams", "agenda", "presences", "materials"]),
       outputSchema: Schema.NullOr(feedSnapshot),
-      handle: (feed) => deps.sync.read(feed as FeedKey),
+      handle: (feed) => deps.runtime.runPromise(deps.sync.read(feed as FeedKey)),
       onInvalidInput: () => null,
       onFailure: () => null,
     }),
@@ -153,13 +140,7 @@ export function registerApplicationIpc(deps: ApplicationIpcDependencies): IpcAda
       outputSchema: materialResult,
       handle: (request) => {
         const value = request as MaterialDownloadRequest;
-        if (deps.materialDownloadService) {
-          return deps.runtime.runPromise(deps.materialDownloadService.download(value));
-        }
-        return deps.downloadMaterial?.(value) ?? {
-          ok: false,
-          error: "Download failed — check your connection and try again.",
-        };
+        return deps.runtime.runPromise(deps.materialDownloadService.download(value));
       },
       onInvalidInput: () => ({ ok: false, error: "This material has no downloadable file." }),
       onFailure: () => ({ ok: false, error: "Download failed — check your connection and try again." }),
@@ -200,7 +181,7 @@ export function registerApplicationIpc(deps: ApplicationIpcDependencies): IpcAda
       operation: "notifications.get",
       inputSchema: noInput,
       outputSchema: Schema.Array(notification),
-      handle: () => deps.notifications.get(),
+      handle: () => runNotificationEffect(deps, (accountId) => deps.notifications.service.list(accountId)),
       onInvalidInput: () => [],
       onFailure: () => [],
     }),
@@ -209,7 +190,9 @@ export function registerApplicationIpc(deps: ApplicationIpcDependencies): IpcAda
       operation: "notifications.mark-read",
       inputSchema: Schema.Array(Schema.String),
       outputSchema: Schema.Array(notification),
-      handle: (ids) => deps.notifications.markRead(ids as string[]),
+      handle: (ids) => runNotificationEffect(deps, (accountId) =>
+        deps.notifications.service.markRead(accountId, ids as string[]),
+      ),
       onInvalidInput: () => [],
       onFailure: () => [],
     }),
@@ -218,7 +201,9 @@ export function registerApplicationIpc(deps: ApplicationIpcDependencies): IpcAda
       operation: "notifications.mark-all-read",
       inputSchema: noInput,
       outputSchema: Schema.Array(notification),
-      handle: () => deps.notifications.markAllRead(),
+      handle: () => runNotificationEffect(deps, (accountId) =>
+        deps.notifications.service.markAllRead(accountId),
+      ),
       onInvalidInput: () => [],
       onFailure: () => [],
     }),
@@ -238,15 +223,7 @@ export function registerApplicationIpc(deps: ApplicationIpcDependencies): IpcAda
           answer: value.answer,
           answerId: value.answerId ?? null,
         };
-        if (deps.taskAnswerService) {
-          return deps.runtime.runPromise(deps.taskAnswerService.saveDraft(command));
-        }
-        return deps.tasks?.saveDraft(command) ?? {
-          ok: false,
-          status: 0,
-          created: command.answerId == null,
-          answerId: command.answerId,
-        };
+        return deps.runtime.runPromise(deps.taskAnswerService.saveDraft(command));
       },
       onInvalidInput: () => ({ ok: false, status: 400, created: false, answerId: null }),
       onFailure: (_context, input) => {
@@ -265,10 +242,7 @@ export function registerApplicationIpc(deps: ApplicationIpcDependencies): IpcAda
       outputSchema: submitResult,
       handle: (input) => {
         const value = input as SubmitAnswerInput;
-        if (deps.taskAnswerService) {
-          return deps.runtime.runPromise(deps.taskAnswerService.submit(value));
-        }
-        return deps.tasks?.submit(value) ?? { ok: false, status: 0 };
+        return deps.runtime.runPromise(deps.taskAnswerService.submit(value));
       },
       onInvalidInput: () => ({ ok: false, status: 400 }),
       onFailure: () => ({ ok: false, status: 0 }),
@@ -296,4 +270,16 @@ function safeAppInfo(): AppInfo {
     trayActive: false,
     notificationsSupported: false,
   };
+}
+
+function runNotificationEffect(
+  deps: ApplicationIpcDependencies,
+  operation: (accountId: string | null) => import("../notifications/notification-service").NotificationEffect<InAppNotification[]>,
+): Promise<InAppNotification[]> {
+  return deps.runtime.runPromise(
+    effectRuntime.Effect.gen(function* () {
+      const accountId = yield* deps.auth.accountId();
+      return yield* operation(accountId);
+    }),
+  );
 }

@@ -62,7 +62,7 @@ export type IpcHandlerService = (
 
 export interface IpcMainService {
   handle(channel: string, handler: IpcHandlerService): void;
-  removeHandler?(channel: string): void;
+  removeHandler(channel: string): void;
 }
 
 export interface WebContentsService {
@@ -120,6 +120,16 @@ export interface TrayService {
 export interface NotificationService {
   on(event: "click", listener: () => void): void;
   show(): void;
+}
+
+/** Renderer-independent menu data understood by the Electron adapter. */
+export interface MenuItemTemplate {
+  readonly label?: string;
+  readonly role?: string;
+  readonly type?: "separator";
+  readonly accelerator?: string;
+  readonly click?: () => void;
+  readonly submenu?: readonly MenuItemTemplate[];
 }
 
 export interface SaveDialogResultService {

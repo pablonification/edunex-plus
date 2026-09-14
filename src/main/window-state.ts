@@ -1,4 +1,3 @@
-import { nodeFileSystem, systemClock, systemRandom } from "./platform/node";
 import type { ClockService, FileSystemService, RandomService } from "./platform/services";
 
 /**
@@ -18,16 +17,10 @@ export interface WindowState {
 const MIN_SIZE = 200;
 
 export interface WindowStatePersistenceServices {
-  readonly fileSystem?: FileSystemService;
-  readonly clock?: ClockService;
-  readonly random?: RandomService;
+  readonly fileSystem: FileSystemService;
+  readonly clock: ClockService;
+  readonly random: RandomService;
 }
-
-const defaultServices: Required<WindowStatePersistenceServices> = {
-  fileSystem: nodeFileSystem,
-  clock: systemClock,
-  random: systemRandom,
-};
 
 /**
  * Returns a safe WindowState from arbitrary JSON, or null when unusable.
@@ -67,11 +60,10 @@ export function sanitizeWindowState(
 export function loadWindowState(
   filePath: string,
   workArea: { width: number; height: number },
-  services: WindowStatePersistenceServices = {},
+  services: WindowStatePersistenceServices,
 ) {
   try {
-    const fileSystem = services.fileSystem ?? defaultServices.fileSystem;
-    return sanitizeWindowState(JSON.parse(fileSystem.readText(filePath)), workArea);
+    return sanitizeWindowState(JSON.parse(services.fileSystem.readText(filePath)), workArea);
   } catch {
     return null;
   }
@@ -81,16 +73,13 @@ export function saveWindowState(
   filePath: string,
   state: WindowState,
   workArea: { width: number; height: number },
-  services: WindowStatePersistenceServices = {},
+  services: WindowStatePersistenceServices,
 ): void {
   try {
-    const fileSystem = services.fileSystem ?? defaultServices.fileSystem;
-    const clock = services.clock ?? defaultServices.clock;
-    const random = services.random ?? defaultServices.random;
-    fileSystem.atomicWrite(
+    services.fileSystem.atomicWrite(
       filePath,
       JSON.stringify(sanitizeWindowState(state, workArea)),
-      `${clock.now()}-${random.next()}`,
+      `${services.clock.now()}-${services.random.next()}`,
     );
   } catch {
     // userData may not exist yet on first run before app is ready — skip.

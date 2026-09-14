@@ -205,20 +205,27 @@ describe("Effect auth service", () => {
         notificationsSupported: false,
       }),
       auth: {
-        status: () => h.runtime.runSync(h.service.status()),
-        startLogin: () => undefined,
+        status: () => h.service.status(),
+        startLogin: () => h.service.startLogin(),
+        accountId: () => h.service.accountId(),
       },
-      sync: { read: () => null },
-      downloadMaterial: async () => ({ ok: false, error: "not used" }),
+      sync: { read: () => Effect.succeed(null) },
+      materialDownloadService: { download: () => Effect.succeed({ ok: false, error: "not used" }) },
       shell: {
         getSettings: () => ({ hiddenViews: [], quitOnClose: false }),
         setViewHidden: () => ({ hiddenViews: [], quitOnClose: false }),
         setQuitOnClose: () => ({ hiddenViews: [], quitOnClose: false }),
       },
-      notifications: { get: () => [], markRead: () => [], markAllRead: () => [] },
-      tasks: {
-        saveDraft: async () => ({ ok: false, status: 0, created: false, answerId: null }),
-        submit: async () => ({ ok: false, status: 0 }),
+      notifications: {
+        service: {
+          list: () => Effect.succeed([]),
+          markRead: () => Effect.succeed([]),
+          markAllRead: () => Effect.succeed([]),
+        },
+      },
+      taskAnswerService: {
+        saveDraft: () => Effect.succeed({ ok: false, status: 0, created: false, answerId: null }),
+        submit: () => Effect.succeed({ ok: false, status: 0 }),
       },
     });
 

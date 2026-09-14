@@ -1,7 +1,10 @@
 import { rmSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { DEFAULT_SHELL_SETTINGS } from "../../shared/shell";
+import { nodeFileSystem, systemClock, systemRandom } from "../platform/node";
 import { loadShellSettings, saveShellSettings } from "./settings-store";
+
+const services = { fileSystem: nodeFileSystem, clock: systemClock, random: systemRandom };
 
 describe("shell settings store", () => {
   it("defaults to the v1 visible set with tray opt-out off", () => {
@@ -9,7 +12,7 @@ describe("shell settings store", () => {
   });
 
   it("returns defaults for a missing or corrupt file", () => {
-    expect(loadShellSettings("/nonexistent/shell-settings.json")).toEqual({
+    expect(loadShellSettings("/nonexistent/shell-settings.json", services)).toEqual({
       hiddenViews: [],
       quitOnClose: false,
     });
@@ -18,9 +21,9 @@ describe("shell settings store", () => {
   it("round-trips hidden views and the tray opt-out", () => {
     const tmp = `/tmp/edunex-plus-shell-settings-${Date.now()}.json`;
     try {
-      saveShellSettings(tmp, { hiddenViews: ["exams", "todo"], quitOnClose: true });
+      saveShellSettings(tmp, { hiddenViews: ["exams", "todo"], quitOnClose: true }, services);
       // Sanitized into NAV_VIEWS order (todo before exams).
-      expect(loadShellSettings(tmp)).toEqual({
+      expect(loadShellSettings(tmp, services)).toEqual({
         hiddenViews: ["todo", "exams"],
         quitOnClose: true,
       });
@@ -37,8 +40,8 @@ describe("shell settings store", () => {
       saveShellSettings(tmp, {
         hiddenViews: ["home", "todo", "todo", "nope"] as unknown as ["todo"],
         quitOnClose: false,
-      });
-      expect(loadShellSettings(tmp)).toEqual({ hiddenViews: ["todo"], quitOnClose: false });
+      }, services);
+      expect(loadShellSettings(tmp, services)).toEqual({ hiddenViews: ["todo"], quitOnClose: false });
     } finally {
       try {
         rmSync(tmp);

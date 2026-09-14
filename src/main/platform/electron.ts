@@ -11,7 +11,6 @@ import {
 } from "electron";
 import type {
   ElectronPlatformService,
-  IpcHandlerService,
   IpcMainService,
   NotificationService,
   SafeStorageService,
@@ -97,14 +96,40 @@ function createNotification(notification: Electron.Notification): NotificationSe
   };
 }
 
+const ownedIpcChannels = new Set<string>();
+
+function releaseOwnedIpcHandlers(): void {
+  for (const channel of [...ownedIpcChannels]) {
+    try {
+      ipcMain.removeHandler(channel);
+    } catch {
+      // Continue releasing the rest of the process-owned handlers.
+    } finally {
+      ownedIpcChannels.delete(channel);
+    }
+  }
+}
+
 export const electronIpcMain: IpcMainService = {
+  // Keep the adapter's ownership model explicit. Electron itself also rejects
+  // duplicate handlers, but tracking the channels lets teardown release only
+  // handlers installed through this seam and makes a second registration a
+  // deterministic application error.
   handle(channel, handler) {
-    ipcMain.handle(channel, (event, ...args) =>
-      handler({ sender: event.sender, channel }, ...args),
-    );
+    if (ownedIpcChannels.has(channel)) throw new Error(`Duplicate IPC channel: ${channel}`);
+    try {
+      ipcMain.handle(channel, (event, ...args) =>
+        handler({ sender: event.sender, channel }, ...args),
+      );
+      ownedIpcChannels.add(channel);
+    } catch (cause) {
+      ownedIpcChannels.delete(channel);
+      throw cause;
+    }
   },
   removeHandler(channel) {
     ipcMain.removeHandler(channel);
+    ownedIpcChannels.delete(channel);
   },
 };
 
@@ -113,7 +138,12 @@ export const electronIpcMain: IpcMainService = {
 export function createElectronPlatform(): ElectronPlatformService {
   const appEvents = app as unknown as {
     on(event: string, listener: (...args: unknown[]) => void): void;
+    removeListener(event: string, listener: (...args: unknown[]) => void): void;
   };
+  const appListeners: Array<{
+    readonly event: string;
+    readonly listener: (...args: unknown[]) => void;
+  }> = [];
   let window: WindowService | null = null;
   let tray: TrayService | null = null;
   let shutDown = false;
@@ -130,7 +160,11 @@ export function createElectronPlatform(): ElectronPlatformService {
     setAppUserModelId: (id) => app.setAppUserModelId(id),
     requestSingleInstanceLock: () => app.requestSingleInstanceLock(),
     whenReady: () => app.whenReady().then(() => undefined),
-    on: (event, listener) => appEvents.on(event, listener),
+    on: (event, listener) => {
+      if (shutDown) return;
+      appEvents.on(event, listener);
+      appListeners.push({ event, listener });
+    },
     quit: () => app.quit(),
     setAboutPanelOptions: (options) => app.setAboutPanelOptions(options),
     setDockIcon: (filePath) => {
@@ -169,6 +203,15 @@ export function createElectronPlatform(): ElectronPlatformService {
     shutdown: () => {
       if (shutDown) return;
       shutDown = true;
+      releaseOwnedIpcHandlers();
+      for (const { event, listener } of appListeners.splice(0)) {
+        try {
+          appEvents.removeListener(event, listener);
+        } catch {
+          // App teardown is best effort; continue releasing the remaining
+          // platform-owned resources.
+        }
+      }
       try {
         tray?.destroy();
       } finally {

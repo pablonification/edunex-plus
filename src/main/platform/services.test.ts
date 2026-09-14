@@ -69,7 +69,7 @@ function fakeElectron(events: string[]): ElectronPlatformService {
     userDataPath: "/data",
     isPackaged: false,
     environment: {},
-    ipcMain: { handle: () => undefined },
+    ipcMain: { handle: () => undefined, removeHandler: () => undefined },
     setAppUserModelId: () => undefined,
     requestSingleInstanceLock: () => true,
     whenReady: async () => undefined,

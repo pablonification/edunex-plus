@@ -1,7 +1,6 @@
 import type * as EffectModule from "effect" with { "resolution-mode": "import" };
 import { effectRuntime } from "../effect/effect-runtime";
 import type { FeedKey, FeedSnapshot } from "../../shared/feeds";
-import { nodeFileSystem, nodePath, systemClock, systemRandom } from "../platform/node";
 import {
   Clock,
   FileSystem,
@@ -32,10 +31,10 @@ export interface SnapshotCache {
 }
 
 export interface SnapshotCacheServices {
-  readonly fileSystem?: FileSystemService;
-  readonly path?: PathService;
-  readonly clock?: ClockService;
-  readonly random?: RandomService;
+  readonly fileSystem: FileSystemService;
+  readonly path: PathService;
+  readonly clock: ClockService;
+  readonly random: RandomService;
 }
 
 /**
@@ -45,12 +44,9 @@ export interface SnapshotCacheServices {
  */
 export function createSnapshotCache(
   rootDir: string,
-  services: SnapshotCacheServices = {},
+  services: SnapshotCacheServices,
 ): SnapshotCache {
-  const fileSystem = services.fileSystem ?? nodeFileSystem;
-  const pathService = services.path ?? nodePath;
-  const clock = services.clock ?? systemClock;
-  const random = services.random ?? systemRandom;
+  const { fileSystem, path: pathService, clock, random } = services;
 
   function filePath(accountId: string, feed: FeedKey) {
     return pathService.join(rootDir, safePathSegment(accountId), `${feed}.json`);
@@ -196,20 +192,3 @@ export const SnapshotCacheServiceLive = createSnapshotCacheLayer;
 export const SnapshotServiceLive = createSnapshotCacheLayer;
 export const createSnapshotServiceLayer = createSnapshotCacheLayer;
 export const createFeedCacheLayer = createSnapshotCacheLayer;
-
-/** Adapt the Effect cache to the legacy synchronous sync engine. */
-export function toSyncSnapshotCache(
-  service: SnapshotCacheServiceShape,
-  runSync: <A>(effect: SnapshotEffect<A>) => A,
-): SnapshotCache {
-  return {
-    read: (accountId, feed) => runSync(service.read(accountId, feed)),
-    write: (accountId, feed, data, fetchedAt) =>
-      runSync(service.write(accountId, feed, data, fetchedAt)),
-  };
-}
-
-// Historical name retained for callers that use the adapter while the sync
-// scheduler is still promise-based. The adapted cache operations are actually
-// synchronous, matching SnapshotCache's original contract.
-export const toPromiseSnapshotCache = toSyncSnapshotCache;

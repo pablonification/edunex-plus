@@ -1,4 +1,4 @@
-import type { MenuItemConstructorOptions } from "electron";
+import type { MenuItemTemplate } from "./platform/services";
 
 /**
  * Application menu: without this, the macOS menu bar shows Electron's default
@@ -20,23 +20,23 @@ export function buildAppMenuTemplate(
   views: readonly { key: string; label: string }[],
   handlers: AppMenuHandlers,
   platform: NodeJS.Platform = process.platform,
-): MenuItemConstructorOptions[] {
+): MenuItemTemplate[] {
   const isMac = platform === "darwin";
 
-  const viewItems: MenuItemConstructorOptions[] = views.map((view, index) => ({
+  const viewItems: MenuItemTemplate[] = views.map((view, index) => ({
     label: view.label,
     accelerator: `CmdOrCtrl+${index + 1}`,
     click: () => handlers.gotoView(view.key),
   }));
 
-  const devAuthItem: MenuItemConstructorOptions | null = handlers.simulateUnauthorized
+  const devAuthItem: MenuItemTemplate | null = handlers.simulateUnauthorized
     ? {
         label: "Simulate 401 (dev)",
         click: () => handlers.simulateUnauthorized!(),
       }
     : null;
 
-  const macAppMenu: MenuItemConstructorOptions = {
+  const macAppMenu: MenuItemTemplate = {
     label: appName,
     submenu: [
       { role: "about", label: `About ${appName}` },
