@@ -5,15 +5,23 @@ describe("abortable host operations", () => {
   it("cancels and settles when a host operation never resolves", async () => {
     const controller = new AbortController();
     const cancel = vi.fn();
+    let rejectHost: (error: Error) => void = () => undefined;
+    const hostOperation = new Promise<never>((_resolve, reject) => {
+      rejectHost = reject;
+    });
     const operation = abortableOperation(
-      () => new Promise<never>(() => undefined),
-      cancel,
+      () => hostOperation,
+      () => {
+        cancel();
+        rejectHost(new Error("host operation cancelled"));
+      },
       controller.signal,
     );
 
     controller.abort();
 
     await expect(operation).rejects.toThrow("host operation aborted");
+    await expect(hostOperation).rejects.toThrow("host operation cancelled");
     expect(cancel).toHaveBeenCalledTimes(1);
   });
 
