@@ -1,5 +1,4 @@
 import type { CapturedAuth } from "../../shared/auth";
-import { nodeFileSystem } from "../platform/node";
 import type { FileSystemService } from "../platform/services";
 import { parseCapturedAuth } from "./capture";
 
@@ -23,7 +22,7 @@ export interface SessionStore {
 export function createSessionStore(
   filePath: string,
   codec: SessionCodec,
-  fileSystem: FileSystemService | LegacyFileSystem = nodeFileSystem,
+  fileSystem: FileSystemService | LegacyFileSystem,
 ): SessionStore {
   const readBytes = (target: string): Uint8Array =>
     "readBytes" in fileSystem
@@ -56,7 +55,10 @@ export function createSessionStore(
 
   function save(session: CapturedAuth): void {
     const encrypted = codec.encrypt(JSON.stringify(session));
-    writeBytes(filePath, typeof encrypted === "string" ? Buffer.from(encrypted) : encrypted);
+    writeBytes(
+      filePath,
+      typeof encrypted === "string" ? new TextEncoder().encode(encrypted) : encrypted,
+    );
   }
 
   function clear(): void {
@@ -72,7 +74,7 @@ export function createSessionStore(
 
 /** Compatibility shape retained for callers that used the old fs test seam. */
 interface LegacyFileSystem {
-  readFileSync(filePath: string): Buffer;
+  readFileSync(filePath: string): Uint8Array;
   writeFileSync(filePath: string, contents: Uint8Array | string): void;
   rmSync(filePath: string): void;
 }

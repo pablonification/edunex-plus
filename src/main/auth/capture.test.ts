@@ -1,5 +1,6 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { parseCapturedAuth, createAuthCapture } from "./capture";
+import { systemClock } from "../platform/node";
 
 const validRaw = {
   accessToken: "eyJ0eXAiOiJK.abc.def",
@@ -52,7 +53,7 @@ describe("auth capture loop", () => {
   it("polls localStorage.auth until it appears, then fires once and stops", async () => {
     const h = harness(null);
     const onCaptured = vi.fn();
-    const capture = createAuthCapture(h.executeJs, { intervalMs: 1000 });
+    const capture = createAuthCapture(h.executeJs, { intervalMs: 1000, clock: systemClock });
     capture.start(onCaptured);
 
     await vi.advanceTimersByTimeAsync(1500);
@@ -72,7 +73,7 @@ describe("auth capture loop", () => {
   it("ignores unparsable storage values and keeps polling", async () => {
     const h = harness("not-json");
     const onCaptured = vi.fn();
-    const capture = createAuthCapture(h.executeJs, { intervalMs: 1000 });
+    const capture = createAuthCapture(h.executeJs, { intervalMs: 1000, clock: systemClock });
     capture.start(onCaptured);
 
     await vi.advanceTimersByTimeAsync(2999);
@@ -83,7 +84,7 @@ describe("auth capture loop", () => {
   it("stop ends polling without firing", async () => {
     const h = harness(null);
     const onCaptured = vi.fn();
-    const capture = createAuthCapture(h.executeJs, { intervalMs: 1000 });
+    const capture = createAuthCapture(h.executeJs, { intervalMs: 1000, clock: systemClock });
     capture.start(onCaptured);
     capture.stop();
 
@@ -94,7 +95,7 @@ describe("auth capture loop", () => {
   it("start while already running does not double-poll", async () => {
     const h = harness(null);
     const onCaptured = vi.fn();
-    const capture = createAuthCapture(h.executeJs, { intervalMs: 1000 });
+    const capture = createAuthCapture(h.executeJs, { intervalMs: 1000, clock: systemClock });
     capture.start(onCaptured);
     capture.start(onCaptured);
 
@@ -105,7 +106,7 @@ describe("auth capture loop", () => {
   it("restarts after stop for the next navigation onto the origin", async () => {
     const h = harness(null);
     const onCaptured = vi.fn();
-    const capture = createAuthCapture(h.executeJs, { intervalMs: 1000 });
+    const capture = createAuthCapture(h.executeJs, { intervalMs: 1000, clock: systemClock });
     capture.start(onCaptured);
     capture.stop();
     capture.start(onCaptured);
@@ -123,7 +124,7 @@ describe("auth capture loop", () => {
       throw new Error("frame detached");
     });
     const onCaptured = vi.fn();
-    const capture = createAuthCapture(executeJs, { intervalMs: 1000 });
+    const capture = createAuthCapture(executeJs, { intervalMs: 1000, clock: systemClock });
     capture.start(onCaptured);
 
     await vi.advanceTimersByTimeAsync(2999);

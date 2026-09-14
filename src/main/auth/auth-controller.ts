@@ -1,25 +1,15 @@
-import type { AuthStatus, CapturedAuth } from "../../shared/auth";
-import { systemClock } from "../platform/node";
-import type {
-  ClockService,
-  FileSystemService,
-  HttpTransportService,
-  SafeStorageService,
-  WebContentsService,
-} from "../platform/services";
-import { createSessionStore, type SessionCodec } from "./session-store";
-import { createSessionManager, type SessionManager } from "./session-manager";
-import { createAuthCapture } from "./capture";
-import { createEdunexApi, type EdunexDataApi } from "../api/client";
+import type { AuthStatus } from "../../shared/auth";
+import type { ApplicationRuntime } from "../effect/runtime";
+import type { WebContentsService } from "../platform/services";
+import { EDUNEX_API_BASE_URL, type AuthServiceShape } from "./auth-service";
+import type { EdunexDataApi } from "../api/client";
 
-/** The vendor API the captured bearer token talks to (spec: API stance). */
-export const EDUNEX_API_BASE_URL = "https://api-edunex.cognisia.id";
+export { EDUNEX_API_BASE_URL } from "./auth-service";
 
 /**
- * Glue for the auth slice (#18): the testable pieces are session-store,
- * capture and session-manager; this module owns the Electron-side wiring —
- * safeStorage as the codec, the real API client, the capture loop attached
- * to the login webview's webContents, and popup-free in-window navigation.
+ * Compatibility adapter for the existing main-process wiring. Authentication
+ * behavior lives in AuthService; this object only converts its Effect methods
+ * into the synchronous/promise callbacks expected by the older feature seams.
  */
 export interface AuthController {
   /** null until the startup restore finished — the renderer holds the shell
@@ -35,164 +25,43 @@ export interface AuthController {
   accountId(): string | null;
   /** Pauses auth and opens the re-login moment after a feed 401. */
   handleUnauthorized(): void;
+  /** Explicitly clears the session and returns to the signed-out surface. */
+  signOut(): void;
   /** Dev-only: fake a 401 to demo the re-login moment without the vendor API. */
   simulateUnauthorized(): void;
   attachWebview(contents: WebContentsService): void;
 }
 
 export function createAuthController(opts: {
-  sessionStorePath: string;
-  appVersion: string;
-  safeStorage?: SafeStorageService;
-  fileSystem?: FileSystemService;
-  httpTransport?: HttpTransportService;
-  clock?: ClockService;
-  /** Push a status change to the renderer. */
-  broadcast(status: AuthStatus): void;
+  readonly runtime: ApplicationRuntime<any, any>;
+  readonly service: AuthServiceShape;
 }): AuthController {
-  const safeStorage = opts.safeStorage ?? unavailableSafeStorage;
-  const clock = opts.clock ?? systemClock;
-  const codec: SessionCodec = {
-    encrypt(plaintext) {
-      if (!safeStorage.isEncryptionAvailable()) {
-        throw new Error("safeStorage is unavailable; refusing to store tokens");
-      }
-      return safeStorage.encryptString(plaintext);
-    },
-    decrypt(blob) {
-      return safeStorage.decryptString(
-        typeof blob === "string" ? Buffer.from(blob, "utf8") : blob,
-      );
-    },
-  };
+  const { runtime, service } = opts;
 
-  const store = createSessionStore(opts.sessionStorePath, codec, opts.fileSystem);
-
-  // api ↔ manager are mutually referential; the token getter is bound after
-  // the manager exists, before either is ever used.
-  let getToken: () => string | null = () => null;
-  const api = createEdunexApi({
-    baseUrl: EDUNEX_API_BASE_URL,
-    getToken: () => getToken(),
-    userAgent: `EdunexPlus/${opts.appVersion} (desktop client; +https://github.com/pablonification/edunex-plus)`,
-    transport: opts.httpTransport,
-    onUnauthorized: () => manager.handleUnauthorized(),
-  });
-  const manager: SessionManager = createSessionManager({
-    store,
-    api,
-    onChange: opts.broadcast,
-  });
-  getToken = () => manager.accessToken();
-
-  let restored = false;
-  const captures = new Map<number, ReturnType<typeof createAuthCapture>>();
+  function run(effect: Parameters<typeof runtime.runSync>[0]): void {
+    try {
+      runtime.runSync(effect);
+    } catch {
+      // Public callbacks cannot surface Effect causes or private auth details.
+    }
+  }
 
   return {
-    status: () => (restored ? manager.status() : null),
+    status: () => runtime.runSync(service.status()),
     restore: async () => {
-      await manager.restore();
-      restored = true;
-      console.log("[auth] startup restore complete:", manager.status());
+      await runtime.runPromise(service.restore());
+      console.log("[auth] startup restore complete:", runtime.runSync(service.status()));
     },
-    startLogin: () => manager.startLogin(),
-    api: () => api,
-    accessToken: () => manager.accessToken(),
-    accountId: () => manager.accountId(),
-    handleUnauthorized: () => manager.handleUnauthorized(),
+    startLogin: () => run(service.startLogin()),
+    api: () => service.api,
+    accessToken: () => runtime.runSync(service.accessToken()),
+    accountId: () => runtime.runSync(service.accountId()),
+    handleUnauthorized: () => run(service.handleUnauthorized()),
+    signOut: () => run(service.signOut()),
     simulateUnauthorized: () => {
       console.log("[auth] dev: simulating a 401 — session should pause into re-login");
-      manager.handleUnauthorized();
+      run(service.handleUnauthorized());
     },
-
-    attachWebview(contents) {
-      console.log("[auth] login webview attached");
-
-      // Zero popups (acceptance criteria): Azure AD / the SSO broker must
-      // finish in-window. Anything asking for a new window is folded back
-      // into the same webview — deferred off the handler per Electron's
-      // guidance against navigating synchronously from it.
-      contents.setWindowOpenHandler(({ url }) => {
-        if (/^https?:/i.test(url)) {
-          clock.setTimeout(() => void contents.loadURL(url).catch(() => {}), 0);
-        }
-        return { action: "deny" };
-      });
-
-      // The SPA writes localStorage.auth ~2s after the redirect-back lands
-      // (auth-spike). Poll until it shows up — MFA may take as long as the
-      // human needs, so there is no timeout. The loop only runs while the
-      // webview sits on the EduNex origin: localStorage.auth only exists
-      // there, and a reader against a not-yet-committed frame can hang.
-      const capture = createAuthCapture(readWithTimeout(contents, clock), {
-        intervalMs: 1000,
-        clock,
-      });
-      const maybeStart = (url: string) => {
-        if (isEdunexOrigin(url)) {
-          if (capture.start(onCaptured)) {
-            // Path only: edunex URLs can carry the bearer token as a query
-            // param (webhook/sso) — never log those.
-            console.log("[auth] polling for localStorage.auth on", new URL(url).pathname);
-          }
-        } else {
-          capture.stop();
-        }
-      };
-      contents.on("did-navigate", (_event, url) => maybeStart(url));
-      contents.on("did-navigate-in-page", (_event, url) => maybeStart(url));
-      captures.set(contents.id, capture);
-
-      // When the renderer unmounts the webview (login done or dismissed) its
-      // webContents is destroyed — end the poll with it.
-      contents.once("destroyed", () => {
-        capture.stop();
-        captures.delete(contents.id);
-      });
-    },
+    attachWebview: (contents) => run(service.attachWebview(contents)),
   };
-
-  function onCaptured(auth: CapturedAuth) {
-    console.log("[auth] session captured from webview, verifying");
-    void manager.capture(auth);
-  }
-}
-
-const unavailableSafeStorage: SafeStorageService = {
-  isEncryptionAvailable: () => false,
-  encryptString: () => {
-    throw new Error("safeStorage is unavailable");
-  },
-  decryptString: () => {
-    throw new Error("safeStorage is unavailable");
-  },
-};
-
-function isEdunexOrigin(url: string): boolean {
-  try {
-    return new URL(url).host === "edunex.itb.ac.id";
-  } catch {
-    return false;
-  }
-}
-
-/** Every read must settle (a reader against a wedged frame would otherwise
- * block the poll loop's in-flight guard forever). */
-function readWithTimeout(contents: WebContentsService, clock: ClockService) {
-  return () =>
-    new Promise<unknown>((resolve, reject) => {
-      const timer = clock.setTimeout(() => reject(new Error("auth read timed out")), 5000);
-      contents
-        .executeJavaScript("localStorage.getItem('auth')", true)
-        .then(
-          (value) => {
-            clock.clearTimeout(timer);
-            resolve(value);
-          },
-          (err: unknown) => {
-            clock.clearTimeout(timer);
-            reject(err);
-          },
-        );
-    });
 }

@@ -46,7 +46,13 @@ export function LoginView() {
           resulting session and never sees your credentials.
         </p>
         <div className="mt-6 flex justify-center">
-          <Button variant="primary" onClick={() => setSsoStarted(true)}>
+          <Button
+            variant="primary"
+            onClick={() => {
+              void window.edunex.startLogin();
+              setSsoStarted(true);
+            }}
+          >
             Continue to ITB SSO
           </Button>
         </div>
