@@ -26,7 +26,7 @@ export interface ApplicationIpcDependencies {
     startLogin(): void;
   };
   readonly sync: {
-    read(feed: FeedKey): FeedSnapshot | null;
+    read(feed: FeedKey): FeedSnapshot | null | Promise<FeedSnapshot | null>;
   };
   /** Compatibility callback for callers that have not moved to the service. */
   downloadMaterial?: (

@@ -465,7 +465,7 @@ if (!gotSingleInstanceLock) {
     sync: {
       read: (feed) => {
         try {
-          return applicationRuntime.runSync(resolvedSyncService.read(feed));
+          return applicationRuntime.runPromise(resolvedSyncService.read(feed)).catch(() => null);
         } catch {
           return null;
         }
