@@ -162,14 +162,35 @@ export function createEdunexApi(options: EdunexApiOptions): EdunexDataApi {
 
 function normalizeResult<T>(
   result: ApiResult,
-  normalize: (body: unknown) => T,
+  normalize: (body: unknown) => T | null,
 ): ApiResult & { body: T } {
   if (!isSuccessful(result)) return result as ApiResult & { body: T };
-  return { ...result, body: normalize(result.body) };
+  const body = normalize(result.body);
+  // A successful HTTP response with an unusable payload must not overwrite a
+  // good snapshot with an empty list. Keep the established result shape, but
+  // mark the body unavailable so sync treats this feed as failed and serves
+  // its previous cache instead.
+  if (body === null) {
+    return { ...result, ok: false, body: null } as ApiResult & { body: T };
+  }
+  return { ...result, body };
 }
 
-function normalizeTodo(body: unknown): TodoFeed {
-  const root = asRecord(body) ?? {};
+function normalizeTodo(body: unknown): TodoFeed | null {
+  const root = asRecord(body);
+  if (!root) return null;
+
+  // The two rendered categories must exist and be arrays. Optional categories
+  // are filled for the existing renderer contract. Individual vendor records
+  // remain unknown because the API is undocumented and the renderer already
+  // tolerates optional fields.
+  for (const key of ["tasks", "exams"] as const) {
+    if (!(key in root) || !Array.isArray(root[key])) return null;
+  }
+  for (const key of ["questions", "modules"] as const) {
+    if (key in root && !Array.isArray(root[key])) return null;
+  }
+
   return {
     ...root,
     tasks: arrayOrEmpty(root.tasks),
@@ -179,13 +200,15 @@ function normalizeTodo(body: unknown): TodoFeed {
   };
 }
 
-function normalizeCollection(body: unknown): JsonApiResource[] {
-  if (Array.isArray(body)) return body.filter(isRecord);
+function normalizeCollection(body: unknown): JsonApiResource[] | null {
+  if (Array.isArray(body)) return recordsOrNull(body);
   const root = asRecord(body);
-  if (!root) return [];
-  if (Array.isArray(root.data)) return root.data.filter(isRecord);
-  if (Array.isArray(root.courses)) return root.courses.filter(isRecord);
-  return [];
+  if (!root) return null;
+  if ("data" in root) return Array.isArray(root.data) ? recordsOrNull(root.data) : null;
+  if ("courses" in root) {
+    return Array.isArray(root.courses) ? recordsOrNull(root.courses) : null;
+  }
+  return null;
 }
 
 /**
@@ -194,13 +217,13 @@ function normalizeCollection(body: unknown): JsonApiResource[] {
  * envelope), but callers should not care whether it arrives as a bare
  * array or wrapped in `exams`/`data`.
  */
-function normalizeExams(body: unknown): JsonApiResource[] {
-  if (Array.isArray(body)) return body.filter(isRecord);
+function normalizeExams(body: unknown): JsonApiResource[] | null {
+  if (Array.isArray(body)) return recordsOrNull(body);
   const root = asRecord(body);
-  if (!root) return [];
-  if (Array.isArray(root.exams)) return root.exams.filter(isRecord);
-  if (Array.isArray(root.data)) return root.data.filter(isRecord);
-  return [];
+  if (!root) return null;
+  if ("exams" in root) return Array.isArray(root.exams) ? recordsOrNull(root.exams) : null;
+  if ("data" in root) return Array.isArray(root.data) ? recordsOrNull(root.data) : null;
+  return null;
 }
 
 /**
@@ -209,14 +232,14 @@ function normalizeExams(body: unknown): JsonApiResource[] {
  * envelope), but nested `data`/`agenda` variants are accepted so a wrapped
  * response never becomes an empty agenda.
  */
-function normalizeAgenda(body: unknown): JsonApiResource[] {
-  if (Array.isArray(body)) return body.filter(isRecord);
+function normalizeAgenda(body: unknown): JsonApiResource[] | null {
+  if (Array.isArray(body)) return recordsOrNull(body);
   const root = asRecord(body);
-  if (!root) return [];
+  if (!root) return null;
   for (const key of ["data", "agenda", "meetings"]) {
-    if (Array.isArray(root[key])) return (root[key] as unknown[]).filter(isRecord);
+    if (key in root) return Array.isArray(root[key]) ? recordsOrNull(root[key]) : null;
   }
-  return [];
+  return null;
 }
 
 /**
@@ -225,14 +248,14 @@ function normalizeAgenda(body: unknown): JsonApiResource[] {
  * `materials`/`modules`/`data`-wrapped and JSON-API variants are accepted
  * so an envelope change never becomes an empty materials list.
  */
-function normalizeMaterials(body: unknown): JsonApiResource[] {
-  if (Array.isArray(body)) return body.filter(isRecord);
+function normalizeMaterials(body: unknown): JsonApiResource[] | null {
+  if (Array.isArray(body)) return recordsOrNull(body);
   const root = asRecord(body);
-  if (!root) return [];
+  if (!root) return null;
   for (const key of ["data", "materials", "modules", "files"]) {
-    if (Array.isArray(root[key])) return (root[key] as unknown[]).filter(isRecord);
+    if (key in root) return Array.isArray(root[key]) ? recordsOrNull(root[key]) : null;
   }
-  return [];
+  return null;
 }
 
 /**
@@ -242,18 +265,20 @@ function normalizeMaterials(body: unknown): JsonApiResource[] {
  * `data`/`presences` variants are accepted so a wrapped response never
  * becomes an empty presence history.
  */
-function normalizePresences(body: unknown): JsonApiResource[] {
-  if (Array.isArray(body)) return body.filter(isRecord);
+function normalizePresences(body: unknown): JsonApiResource[] | null {
+  if (Array.isArray(body)) return recordsOrNull(body);
   const root = asRecord(body);
-  if (!root) return [];
+  if (!root) return null;
   for (const key of ["data", "presences", "courses"]) {
-    if (Array.isArray(root[key])) return (root[key] as unknown[]).filter(isRecord);
+    if (key in root) return Array.isArray(root[key]) ? recordsOrNull(root[key]) : null;
   }
-  return [];
+  return null;
 }
 
-function normalizeCourses(body: unknown): JsonApiResource[] {
-  return normalizeCollection(body).filter((resource) => {
+function normalizeCourses(body: unknown): JsonApiResource[] | null {
+  const resources = normalizeCollection(body);
+  if (resources === null) return null;
+  return resources.filter((resource) => {
     const attributes = asRecord(resource.attributes) ?? resource;
     return (
       "is_active" in attributes &&
@@ -280,6 +305,16 @@ function asRecord(value: unknown): Record<string, unknown> | null {
 
 function isRecord(value: unknown): value is JsonApiResource {
   return asRecord(value) !== null;
+}
+
+/**
+ * Keep the tolerant item policy of the old client: unknown extra records are
+ * retained, while an all-malformed non-empty collection is rejected so it
+ * cannot look like a legitimate empty feed.
+ */
+function recordsOrNull(value: unknown[]): JsonApiResource[] | null {
+  const records = value.filter(isRecord);
+  return value.length > 0 && records.length === 0 ? null : records;
 }
 
 function isSuccessful(result: ApiResult) {

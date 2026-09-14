@@ -9,8 +9,17 @@ import {
   edunexUserAgent,
   type AuthServiceShape,
 } from "./auth/auth-service";
-import { createSnapshotCache } from "./sync/snapshot-cache";
 import { createSyncEngine, type SyncEngine } from "./sync/sync-engine";
+import {
+  CognisiaService,
+  createCognisiaLayer,
+  toPromiseCognisiaApi,
+} from "./api/api-service";
+import {
+  SnapshotCacheService,
+  createSnapshotCacheLayer,
+  toSyncSnapshotCache,
+} from "./sync/snapshot-cache-service";
 import { createNotificationStore } from "./notifications/notification-store";
 import { downloadMaterialFile } from "./materials/download";
 import { createInAppSink, createOsSink } from "./notifications/sinks";
@@ -280,10 +289,23 @@ const authLayer = createAuthLayer({
 // Resolve the service once from the process-wide managed runtime. The service
 // itself owns all mutable session state; this controller is only a legacy
 // promise/callback adapter for existing main-process feature seams.
-const applicationRuntime = createApplicationRuntime(composeApplicationLayer(authLayer));
+const readAndCacheLayer = effectRuntime.Layer.mergeAll(
+  createCognisiaLayer({
+    userAgent: edunexUserAgent(platform.appVersion),
+    onUnauthorized: notifyAuthUnauthorized,
+  }),
+  createSnapshotCacheLayer({
+    rootDir: pathService.join(platform.userDataPath, "feed-snapshots"),
+  }),
+).pipe(effectRuntime.Layer.provideMerge(authLayer));
+const applicationRuntime = createApplicationRuntime(composeApplicationLayer(readAndCacheLayer));
 applicationRuntimeRef = applicationRuntime;
 const resolvedAuthService = applicationRuntime.runSync(RuntimeEffect.service(AuthService));
 authService = resolvedAuthService;
+const cognisiaService = applicationRuntime.runSync(RuntimeEffect.service(CognisiaService));
+const snapshotCacheService = applicationRuntime.runSync(
+  RuntimeEffect.service(SnapshotCacheService),
+);
 const authController = createAuthController({
   runtime: applicationRuntime,
   service: resolvedAuthService,
@@ -354,16 +376,12 @@ const presenceNotifier = createPresenceNotifier({
   persistence: { fileSystem, path: pathService, clock, random },
 });
 
-// Sync slice (#19): main owns the API adapter, timer, and on-device snapshots.
-// The renderer only receives a cache snapshot over the preload bridge.
+// Sync slice (#19/#53): the managed Cognisia and snapshot services own the
+// read/cache ports; the compatibility scheduler only receives runtime-backed
+// adapters. The renderer only receives a cache snapshot over the preload bridge.
 sync = createSyncEngine({
-  api: authController.api(),
-  cache: createSnapshotCache(pathService.join(platform.userDataPath, "feed-snapshots"), {
-    fileSystem,
-    path: pathService,
-    clock,
-    random,
-  }),
+  api: toPromiseCognisiaApi(cognisiaService, (effect) => applicationRuntime.runPromise(effect)),
+  cache: toSyncSnapshotCache(snapshotCacheService, (effect) => applicationRuntime.runSync(effect)),
   getAccountId: authController.accountId,
   onUnauthorized: authController.handleUnauthorized,
   taskNotifier,

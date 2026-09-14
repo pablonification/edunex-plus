@@ -2,7 +2,12 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { ACTIVE_COURSES_PATH, type ApiResult, type EdunexApi } from "../api/client";
+import {
+  ACTIVE_COURSES_PATH,
+  type ApiResult,
+  type EdunexApi,
+  type TodoFeed,
+} from "../api/client";
 import { createSnapshotCache } from "./snapshot-cache";
 import { createSyncEngine } from "./sync-engine";
 
@@ -266,5 +271,32 @@ describe("sync engine", () => {
 
     expect(engine.read("todo")).toEqual(saved);
     expect(api.get).not.toHaveBeenCalled();
+  });
+
+  it("keeps the previous snapshot when a successful HTTP read has malformed data", async () => {
+    const cache = createSnapshotCache(tempRoot());
+    const previous = cache.write(
+      "190136",
+      "todo",
+      { tasks: [{ id: "old-task" }], exams: [], questions: [], modules: [] },
+      "2026-09-13T12:00:00.000Z",
+    );
+    const api: EdunexApi & {
+      getTodo: () => Promise<ApiResult & { body: TodoFeed }>;
+    } = {
+      get: vi.fn(async (feedPath: string) => resultForFixture(feedPath)),
+      getTodo: vi.fn(async () => ({
+        status: 200,
+        ok: false,
+        body: null,
+      } as ApiResult & { body: TodoFeed })),
+    };
+    const engine = createSyncEngine({ api, cache, getAccountId: () => "190136" });
+
+    const result = await engine.tick();
+
+    expect(result.kind).toBe("failed");
+    expect(result.failedFeeds).toContain("todo");
+    expect(cache.read("190136", "todo")).toEqual(previous);
   });
 });
