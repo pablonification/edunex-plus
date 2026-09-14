@@ -1,5 +1,22 @@
-import { describe, expect, it, vi } from "vitest";
-import { extractAnswerId, saveDraftAnswer, submitAnswer } from "./task-answers";
+import { Effect, Fiber, Layer } from "effect";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import type { AuthServiceShape } from "../auth/auth-service";
+import { AuthService } from "../auth/auth-service";
+import { createApplicationRuntime } from "../effect/runtime";
+import type { EdunexDataApi } from "../api/client";
+import {
+  createTaskAnswerLayer,
+  extractAnswerId,
+  saveDraftAnswer,
+  submitAnswer,
+  TaskAnswerService,
+} from "./task-answers";
+
+const liveRuntimes: Array<ReturnType<typeof createApplicationRuntime>> = [];
+
+afterEach(async () => {
+  await Promise.all(liveRuntimes.splice(0).map((runtime) => runtime.shutdown()));
+});
 
 function apiMock() {
   return {
@@ -100,5 +117,79 @@ describe("final-submit routing (captured API contract)", () => {
       ok: false,
       status: 500,
     });
+  });
+});
+
+function taskServiceHarness(api: Partial<EdunexDataApi> = {}) {
+  const unauthorized = vi.fn();
+  const auth = {
+    api: api as EdunexDataApi,
+    status: () => Effect.succeed("signed-in" as const),
+    accessToken: () => Effect.succeed("tok-123"),
+    handleUnauthorized: () => Effect.sync(unauthorized),
+  } as unknown as AuthServiceShape;
+  const runtime = createApplicationRuntime(
+    createTaskAnswerLayer().pipe(Layer.provide(Layer.succeed(AuthService, auth))),
+  );
+  liveRuntimes.push(runtime);
+  return {
+    runtime,
+    service: runtime.runSync(Effect.service(TaskAnswerService)),
+    unauthorized,
+  };
+}
+
+describe("Effect Task Answer service", () => {
+  it("keeps each explicit save attempt separate and never retries it", async () => {
+    const createDraftAnswer = vi.fn(async () => ({
+      status: 201,
+      ok: true,
+      body: { data: { id: "2644208" } },
+    }));
+    const h = taskServiceHarness({ createDraftAnswer });
+
+    await expect(h.runtime.runPromise(h.service.saveDraft({ taskId: "113986", answer: "x" })))
+      .resolves.toMatchObject({ ok: true, created: true, answerId: "2644208" });
+    await expect(h.runtime.runPromise(h.service.saveDraft({ taskId: "113986", answer: "x" })))
+      .resolves.toMatchObject({ ok: true, created: true, answerId: "2644208" });
+
+    expect(createDraftAnswer).toHaveBeenCalledTimes(2);
+  });
+
+  it("maps unauthorized and malformed API results to safe renderer results", async () => {
+    const createDraftAnswer = vi
+      .fn()
+      .mockResolvedValueOnce({ status: 401, ok: false, body: null })
+      .mockResolvedValueOnce({ status: "201", ok: true });
+    const h = taskServiceHarness({ createDraftAnswer });
+
+    await expect(h.runtime.runPromise(h.service.saveDraft({ taskId: "113986", answer: "x" })))
+      .resolves.toEqual({ ok: false, status: 401, created: true, answerId: null });
+    await expect(h.runtime.runPromise(h.service.saveDraft({ taskId: "113986", answer: "x" })))
+      .resolves.toEqual({ ok: false, status: 0, created: true, answerId: null });
+    expect(h.unauthorized).toHaveBeenCalledTimes(1);
+  });
+
+  it("passes Effect interruption to an in-flight write and does not start another attempt", async () => {
+    const aborted = vi.fn();
+    const createDraftAnswer = vi.fn(
+      async (_taskId: string, _answer: string, signal?: AbortSignal) =>
+        new Promise<{ status: number; ok: boolean; body: null }>((resolve) => {
+          signal?.addEventListener("abort", () => {
+            aborted();
+            resolve({ status: 0, ok: false, body: null });
+          }, { once: true });
+        }),
+    );
+    const h = taskServiceHarness({ createDraftAnswer });
+
+    const fiber = await h.runtime.fork(
+      h.service.saveDraft({ taskId: "113986", answer: "x" }),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    await h.runtime.runPromise(Fiber.interrupt(fiber));
+
+    expect(createDraftAnswer).toHaveBeenCalledTimes(1);
+    expect(aborted).toHaveBeenCalledTimes(1);
   });
 });
