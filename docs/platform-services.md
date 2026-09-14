@@ -18,6 +18,11 @@ bearer token in a synchronized redacted reference and exposes only status
 through the renderer IPC contract; the API adapter and safeStorage-backed
 session store remain main-process values.
 
+Webview auth capture polling is forked into the application's managed runtime.
+Stopping a capture interrupts its fiber, clears the injected polling/timeout
+resources, and ignores late webview results; sign-out, session expiry, webview
+destruction, and runtime shutdown all stop the active captures.
+
 The explicit write/read-through workflows are also managed services:
 `TaskAnswerService` exposes separate save-draft and final-submit Effects, while
 `MaterialDownloadService` exposes the one-click file download. Both are wired

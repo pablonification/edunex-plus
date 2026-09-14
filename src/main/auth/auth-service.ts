@@ -3,7 +3,12 @@ import { effectRuntime } from "../effect/effect-runtime";
 import { sensitiveString, type SensitiveString } from "../effect/conventions";
 import type { ApiResult, EdunexDataApi } from "../api/client";
 import { createEdunexApi } from "../api/client";
-import { createAuthCapture, type AuthCapture } from "./capture";
+import {
+  createAuthCapture,
+  type AuthCapture,
+  type AuthCaptureEffect,
+  type AuthCaptureFiber,
+} from "./capture";
 import { createSessionStore, type SessionCodec } from "./session-store";
 import type { AuthStatus, CapturedAuth } from "../../shared/auth";
 import {
@@ -82,12 +87,10 @@ export interface AuthServiceOptions {
   /** Push only the public status to the renderer. */
   readonly broadcast: (status: AuthStatus) => void;
   /**
-   * Runtime bridge for callbacks originating in promise-based host APIs.
-   * The production main process supplies the managed runtime. If a host does
-   * not supply the bridge, capture verification is skipped rather than
-   * creating a second unmanaged runtime.
+   * Runtime bridge for capture fibers started by promise-based host events.
+   * The production main process supplies the process runtime's managed fork.
    */
-  readonly runEffect?: <A>(effect: AuthEffect<A>) => Promise<A> | void;
+  readonly forkEffect?: (effect: AuthCaptureEffect) => AuthCaptureFiber | undefined;
 }
 
 export type AuthLayer = EffectModule.Layer.Layer<
@@ -268,6 +271,7 @@ function createService(deps: {
         },
       );
       if (!changed) return;
+      yield* stopCaptures();
       yield* clearStore();
       yield* broadcast("session-expired");
     });
@@ -275,6 +279,7 @@ function createService(deps: {
 
   function signOut(): AuthEffect<void> {
     return effectRuntime.Effect.gen(function* () {
+      yield* stopCaptures();
       yield* clearStore();
       yield* transition((current) => ({
         ...current,
@@ -298,46 +303,49 @@ function createService(deps: {
         return { action: "deny" };
       });
 
-      const capture = createAuthCapture(readWithTimeout(contents, clock), {
-        intervalMs: 1000,
-        clock,
-      });
+      const capture = options.forkEffect
+        ? createAuthCapture(readWithTimeout(contents, clock), {
+            intervalMs: 1000,
+            clock,
+            fork: (effect) => {
+              const fiber = options.forkEffect?.(effect);
+              if (!fiber) throw new Error("runtime unavailable");
+              return fiber;
+            },
+          })
+        : null;
       const maybeStart = (url: string) => {
         if (isEdunexOrigin(url)) {
-          if (capture.start(onCaptured)) {
+          if (capture?.start(onCaptured)) {
             // URLs can carry bearer material in their query; log only a path.
             console.log("[auth] polling for localStorage.auth on", new URL(url).pathname);
+          } else if (!capture) {
+            console.error("[auth] webview capture skipped: runtime unavailable");
           }
         } else {
-          capture.stop();
+          capture?.stop();
         }
       };
 
       contents.on("did-navigate", (_event, url) => maybeStart(url));
       contents.on("did-navigate-in-page", (_event, url) => maybeStart(url));
       contents.once("destroyed", () => {
-        capture.stop();
-        if (captures.get(contents.id) === capture) captures.delete(contents.id);
+        capture?.stop();
+        if (capture && captures.get(contents.id) === capture) captures.delete(contents.id);
       });
-      captures.set(contents.id, capture);
+      if (capture) captures.set(contents.id, capture);
     });
 
-    function onCaptured(auth: CapturedAuth) {
+    function onCaptured(auth: CapturedAuth): AuthCaptureEffect {
       console.log("[auth] session captured from webview, verifying");
-      const effect = capture(auth);
-      try {
-        const result = options.runEffect?.(effect);
-        if (!result) {
-          console.error("[auth] captured session verification skipped: runtime unavailable");
-          return;
-        }
-        void Promise.resolve(result).catch(() => {
-          console.error("[auth] captured session verification failed");
-        });
-      } catch {
-        console.error("[auth] captured session verification failed");
-      }
+      return capture(auth);
     }
+  }
+
+  function stopCaptures(): AuthEffect<void> {
+    return effectRuntime.Effect.sync(() => {
+      for (const capture of captures.values()) capture.stop();
+    });
   }
 
   function installSession(auth: CapturedAuth): AuthEffect<number> {

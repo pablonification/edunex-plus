@@ -85,8 +85,10 @@ export interface ApplicationComposition {
 }
 
 interface RuntimeBridge {
-  readonly runPromise: <A>(effect: EffectModule.Effect.Effect<A, never, never>) => Promise<A> | void;
   readonly runSync: <A>(effect: EffectModule.Effect.Effect<A, never, never>) => A | undefined;
+  readonly forkSync: <A>(
+    effect: EffectModule.Effect.Effect<A, never, never>,
+  ) => EffectModule.Fiber.Fiber<A, never> | undefined;
   setRuntime(runtime: ApplicationRuntime<any, any>): void;
 }
 
@@ -97,13 +99,13 @@ function createRuntimeBridge(): RuntimeBridge {
     setRuntime(next) {
       runtime = next;
     },
-    runPromise(effect) {
-      if (!runtime || runtime.isShutdown()) return;
-      return runtime.runPromise(effect);
-    },
     runSync(effect) {
       if (!runtime || runtime.isShutdown()) return;
       return runtime.runSync(effect);
+    },
+    forkSync(effect) {
+      if (!runtime || runtime.isShutdown()) return;
+      return runtime.forkSync(effect);
     },
   };
 }
@@ -135,9 +137,9 @@ export function createApplicationComposition(
         // Lifecycle callbacks are best effort at the host boundary.
       }
     },
-    // Webview capture is a promise callback from Electron. It must re-enter
-    // the process runtime rather than creating a standalone runtime.
-    runEffect: bridge.runPromise,
+    // Webview capture is a long-lived callback from Electron. Its polling
+    // fiber is forked into this process runtime's managed scope.
+    forkEffect: bridge.forkSync,
   });
 
   const taskAnswerLayer = createTaskAnswerLayer().pipe(
