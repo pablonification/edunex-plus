@@ -7,6 +7,11 @@ interface StoredPresenceLedger {
   seenIds: string[];
 }
 
+/** The validated on-disk state used by the Effect notification persistence service. */
+export interface PresenceLedgerSnapshot {
+  readonly seenIds: readonly string[];
+}
+
 /**
  * The persisted presence ledger (#24): every Presence window id the app has
  * notified for one account. Unlike the Task seen-ledger (#23) there is no
@@ -37,6 +42,48 @@ export interface PresenceLedgerServices {
   readonly random?: RandomService;
 }
 
+/** Reads the existing version-1 Presence ledger; corrupt data starts empty. */
+export function readPresenceLedger(
+  rootDir: string,
+  accountId: string,
+  services: PresenceLedgerServices = {},
+): PresenceLedgerSnapshot {
+  const fileSystem = services.fileSystem ?? nodeFileSystem;
+  const pathService = services.path ?? nodePath;
+  try {
+    const stored = JSON.parse(
+      fileSystem.readText(presenceLedgerFileFor(rootDir, accountId, pathService)),
+    ) as unknown;
+    if (isStoredLedger(stored, accountId)) return { seenIds: [...stored.seenIds] };
+  } catch {
+    // Missing or unreadable ledger — start empty; open windows notify.
+  }
+  return { seenIds: [] };
+}
+
+/** Writes the existing version-1 Presence ledger through the atomic-write port. */
+export function writePresenceLedger(
+  rootDir: string,
+  accountId: string,
+  seenIds: Iterable<string>,
+  services: PresenceLedgerServices = {},
+): void {
+  const fileSystem = services.fileSystem ?? nodeFileSystem;
+  const pathService = services.path ?? nodePath;
+  const clock = services.clock ?? systemClock;
+  const random = services.random ?? systemRandom;
+  const stored: StoredPresenceLedger = {
+    version: 1,
+    accountId,
+    seenIds: [...seenIds],
+  };
+  fileSystem.atomicWrite(
+    presenceLedgerFileFor(rootDir, accountId, pathService),
+    JSON.stringify(stored),
+    `${clock.now()}-${random.next()}`,
+  );
+}
+
 export function createPresenceLedger(
   rootDir: string,
   accountId: string,
@@ -46,17 +93,14 @@ export function createPresenceLedger(
   const pathService = services.path ?? nodePath;
   const clock = services.clock ?? systemClock;
   const random = services.random ?? systemRandom;
-  const filePath = presenceLedgerFileFor(rootDir, accountId, pathService);
-  const seen = new Set<string>();
-
-  try {
-    const stored = JSON.parse(fileSystem.readText(filePath)) as unknown;
-    if (isStoredLedger(stored, accountId)) {
-      for (const id of stored.seenIds) seen.add(id);
-    }
-  } catch {
-    // Missing or unreadable ledger — start empty; open windows notify.
-  }
+  const seen = new Set(
+    readPresenceLedger(rootDir, accountId, {
+      fileSystem,
+      path: pathService,
+      clock,
+      random,
+    }).seenIds,
+  );
 
   return {
     accountId,
@@ -74,12 +118,12 @@ export function createPresenceLedger(
       return added;
     },
     save() {
-      const stored: StoredPresenceLedger = {
-        version: 1,
-        accountId,
-        seenIds: [...seen],
-      };
-      fileSystem.atomicWrite(filePath, JSON.stringify(stored), `${clock.now()}-${random.next()}`);
+      writePresenceLedger(rootDir, accountId, seen, {
+        fileSystem,
+        path: pathService,
+        clock,
+        random,
+      });
     },
   };
 }

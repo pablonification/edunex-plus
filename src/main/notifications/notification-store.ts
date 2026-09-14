@@ -99,7 +99,7 @@ function isStoredFeed(value: unknown, accountId: string): value is StoredFeed {
   );
 }
 
-function isInAppNotification(value: unknown): value is InAppNotification {
+export function isInAppNotification(value: unknown): value is InAppNotification {
   if (typeof value !== "object" || value === null) return false;
   const entry = value as Partial<InAppNotification>;
   const kindOk =
@@ -107,17 +107,22 @@ function isInAppNotification(value: unknown): value is InAppNotification {
     entry.kind === "single" ||
     entry.kind === "digest" ||
     entry.kind === "presence";
+  const taskIdsOk =
+    Array.isArray(entry.taskIds) &&
+    entry.taskIds.every((id): id is string => typeof id === "string");
   const presenceIdsOk =
     entry.presenceIds === undefined ||
     (Array.isArray(entry.presenceIds) &&
       entry.presenceIds.every((id): id is string => typeof id === "string"));
+  const presenceShapeOk = entry.kind !== "presence" || Array.isArray(entry.presenceIds);
   return (
     typeof entry.id === "string" &&
     typeof entry.title === "string" &&
     typeof entry.body === "string" &&
-    Array.isArray(entry.taskIds) &&
+    taskIdsOk &&
     kindOk &&
     presenceIdsOk &&
+    presenceShapeOk &&
     typeof entry.createdAt === "string" &&
     typeof entry.read === "boolean"
   );

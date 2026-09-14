@@ -14,3 +14,9 @@ export function shouldFireStartupTestNotification(
 ): boolean {
   return !isPackaged && env.EDUNEX_SKIP_TEST_NOTIFICATION !== "1";
 }
+
+// Keep the historical root module as a discoverable public notification
+// surface while the implementation lives in the notifications directory.
+export * from "./notifications/notification-service";
+export * from "./notifications/persistence";
+export * from "./notifications/sinks";

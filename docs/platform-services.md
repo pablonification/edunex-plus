@@ -38,6 +38,24 @@ while writes retain the existing version-1 JSON shape and atomic temporary-file
 then rename behavior. The live layer receives `FileSystem`, `Path`, `Clock`,
 and `Random` from the same platform bundle.
 
+Notification behavior is exposed through `NotificationService`. Its Task and
+Presence sync operations are deterministic event-driven Effects, and its
+history operations are the seam used by notification IPC. The service depends
+on `NotificationPersistenceService` for the in-app feed, Task seen-ledger, and
+Presence ledger, and on `NotificationDeliveryService` for OS/in-app fan-out.
+The persistence service keeps the existing account-partitioned version-1 JSON
+formats, treats missing or corrupt files as safe empty state, and performs
+mutations through the existing atomic-write port. The delivery layer uses
+`ElectronPlatform` for OS notifications and a recording-sink layer is available
+for tests, so notification behavior never needs a real Electron notification.
+
+Delivery intentionally happens before the relevant ledger save. If the process
+crashes after a sink accepts an event but before the atomic ledger rename, a
+restart can deliver that event once more; this is the existing crash window and
+is covered by the notification service tests. In-app history is written as
+part of delivery, so a missed OS popup remains visible when the process stays
+alive or restarts successfully.
+
 `platform/node.ts` and `platform/electron.ts` are the only production adapters
 that touch those host APIs. `platform/layer.ts` composes implementations into
 the managed application runtime; tests can provide in-memory implementations

@@ -20,14 +20,16 @@ import {
   createSnapshotCacheLayer,
   toSyncSnapshotCache,
 } from "./sync/snapshot-cache-service";
-import { createNotificationStore } from "./notifications/notification-store";
 import {
   createMaterialDownloadLayer,
   MaterialDownloadService,
 } from "./materials/download";
-import { createInAppSink, createOsSink } from "./notifications/sinks";
-import { createTaskNotifier } from "./notifications/task-notifier";
-import { createPresenceNotifier } from "./notifications/presence-notifier";
+import {
+  createNotificationLayer,
+  NotificationService,
+  toSyncNotificationNotifiers,
+  type NotificationEffect,
+} from "./notifications/notification-service";
 import type { OutboundNotification } from "../shared/notifications";
 import { DEFAULT_SHELL_SETTINGS, NAV_VIEWS, isHideableNavKey } from "../shared/shell";
 import type { HideableNavKey } from "../shared/shell";
@@ -302,51 +304,9 @@ const materialDownloadLayer = createMaterialDownloadLayer({
   userAgent: edunexUserAgent(platform.appVersion),
 }).pipe(effectRuntime.Layer.provide(authLayer));
 
-// Resolve the service once from the process-wide managed runtime. The service
-// itself owns all mutable session state; this controller is only a legacy
-// promise/callback adapter for existing main-process feature seams.
-const readAndCacheLayer = effectRuntime.Layer.mergeAll(
-  createCognisiaLayer({
-    userAgent: edunexUserAgent(platform.appVersion),
-    onUnauthorized: notifyAuthUnauthorized,
-  }),
-  createSnapshotCacheLayer({
-    rootDir: pathService.join(platform.userDataPath, "feed-snapshots"),
-  }),
-).pipe(effectRuntime.Layer.provideMerge(authLayer));
-const applicationLayer = effectRuntime.Layer.mergeAll(
-  authLayer,
-  taskAnswerLayer,
-  materialDownloadLayer,
-  readAndCacheLayer,
-).pipe(effectRuntime.Layer.provideMerge(livePlatform.layer));
-const applicationRuntime = createApplicationRuntime(composeApplicationLayer(applicationLayer));
-applicationRuntimeRef = applicationRuntime;
-const resolvedAuthService = applicationRuntime.runSync(RuntimeEffect.service(AuthService));
-const resolvedTaskAnswerService = applicationRuntime.runSync(
-  RuntimeEffect.service(TaskAnswerService),
-);
-const resolvedMaterialDownloadService = applicationRuntime.runSync(
-  RuntimeEffect.service(MaterialDownloadService),
-);
-authService = resolvedAuthService;
-const cognisiaService = applicationRuntime.runSync(RuntimeEffect.service(CognisiaService));
-const snapshotCacheService = applicationRuntime.runSync(
-  RuntimeEffect.service(SnapshotCacheService),
-);
-const authController = createAuthController({
-  runtime: applicationRuntime,
-  service: resolvedAuthService,
-});
-
-// Notification spine (#23, extended by #24): sink interface with two
-// implementations — the OS notification and the persisted in-app fallback
-// feed. Task detection is id-diff against the snapshot cache plus a
-// per-account seen-ledger, so nothing replays across restarts. First sync
-// baselines silently; bursts coalesce into one digest; clicks focus the app
-// and land on To Do (#21). Presence-open alerts share the same sinks but
-// fire immediately, one per window, never coalesced; clicks land on the
-// agenda where the open meeting is visible.
+// Notification state and delivery are one managed service graph. The layer
+// owns the validated feed/ledger persistence and uses Electron only through
+// the platform service; tests can replace delivery with recording sinks.
 const seenLedgerRoot = pathService.join(platform.userDataPath, "seen-ledger");
 const inAppFeedRoot = pathService.join(platform.userDataPath, "notifications");
 
@@ -372,37 +332,60 @@ function handleOutboundNotificationClicked(notification: OutboundNotification) {
   }
 }
 
-const osSink = createOsSink({
-  show: ({ title, body }, onClick) => {
-    const notification = platform.createNotification({ title, body });
-    notification.on("click", onClick);
-    notification.show();
-  },
+const notificationLayer = createNotificationLayer({
+  ledgerRoot: seenLedgerRoot,
+  feedRoot: inAppFeedRoot,
   onClicked: handleOutboundNotificationClicked,
-});
-const inAppSink = createInAppSink({
-  storeFor: (accountId) =>
-    createNotificationStore(inAppFeedRoot, accountId, { fileSystem, path: pathService, clock, random }),
-  getAccountId: authController.accountId,
   broadcast: (_accountId, entries) => {
     if (win && !win.isDestroyed()) win.webContents.send("notifications:updated", entries);
   },
-  clock,
 });
 
-const taskNotifier = createTaskNotifier({
-  ledgerRoot: seenLedgerRoot,
-  sinks: [osSink, inAppSink],
-  clock,
-  persistence: { fileSystem, path: pathService, clock, random },
+// Resolve the service once from the process-wide managed runtime. The service
+// itself owns all mutable session state; this controller is only a legacy
+// promise/callback adapter for existing main-process feature seams.
+const readAndCacheLayer = effectRuntime.Layer.mergeAll(
+  createCognisiaLayer({
+    userAgent: edunexUserAgent(platform.appVersion),
+    onUnauthorized: notifyAuthUnauthorized,
+  }),
+  createSnapshotCacheLayer({
+    rootDir: pathService.join(platform.userDataPath, "feed-snapshots"),
+  }),
+).pipe(effectRuntime.Layer.provideMerge(authLayer));
+const applicationLayer = effectRuntime.Layer.mergeAll(
+  authLayer,
+  taskAnswerLayer,
+  materialDownloadLayer,
+  readAndCacheLayer,
+  notificationLayer,
+).pipe(effectRuntime.Layer.provideMerge(livePlatform.layer));
+const applicationRuntime = createApplicationRuntime(composeApplicationLayer(applicationLayer));
+applicationRuntimeRef = applicationRuntime;
+const resolvedAuthService = applicationRuntime.runSync(RuntimeEffect.service(AuthService));
+const resolvedTaskAnswerService = applicationRuntime.runSync(
+  RuntimeEffect.service(TaskAnswerService),
+);
+const resolvedMaterialDownloadService = applicationRuntime.runSync(
+  RuntimeEffect.service(MaterialDownloadService),
+);
+authService = resolvedAuthService;
+const cognisiaService = applicationRuntime.runSync(RuntimeEffect.service(CognisiaService));
+const snapshotCacheService = applicationRuntime.runSync(
+  RuntimeEffect.service(SnapshotCacheService),
+);
+const resolvedNotificationService = applicationRuntime.runSync(
+  RuntimeEffect.service(NotificationService),
+);
+const authController = createAuthController({
+  runtime: applicationRuntime,
+  service: resolvedAuthService,
 });
 
-const presenceNotifier = createPresenceNotifier({
-  ledgerRoot: seenLedgerRoot,
-  sinks: [osSink, inAppSink],
-  clock,
-  persistence: { fileSystem, path: pathService, clock, random },
-});
+const notificationNotifiers = toSyncNotificationNotifiers(
+  resolvedNotificationService,
+  <A>(effect: NotificationEffect<A>) => applicationRuntime.runSync(effect),
+);
 
 // Sync slice (#19/#53): the managed Cognisia and snapshot services own the
 // read/cache ports; the compatibility scheduler only receives runtime-backed
@@ -412,8 +395,8 @@ sync = createSyncEngine({
   cache: toSyncSnapshotCache(snapshotCacheService, (effect) => applicationRuntime.runSync(effect)),
   getAccountId: authController.accountId,
   onUnauthorized: authController.handleUnauthorized,
-  taskNotifier,
-  presenceNotifier,
+  taskNotifier: notificationNotifiers.taskNotifier,
+  presenceNotifier: notificationNotifiers.presenceNotifier,
   clock,
   randomService: random,
   onFeedUpdated: (snapshot) => {
@@ -514,43 +497,28 @@ if (!gotSingleInstanceLock) {
     },
     notifications: {
       get: () => {
-        const accountId = authController.accountId();
-        if (!accountId) return [];
         try {
-          return createNotificationStore(inAppFeedRoot, accountId, {
-            fileSystem,
-            path: pathService,
-            clock,
-            random,
-          }).list();
+          return applicationRuntime.runSync(
+            resolvedNotificationService.list(authController.accountId()),
+          );
         } catch {
           return [];
         }
       },
       markRead: (ids) => {
-        const accountId = authController.accountId();
-        if (!accountId) return [];
         try {
-          return createNotificationStore(inAppFeedRoot, accountId, {
-            fileSystem,
-            path: pathService,
-            clock,
-            random,
-          }).markRead(ids);
+          return applicationRuntime.runSync(
+            resolvedNotificationService.markRead(authController.accountId(), ids),
+          );
         } catch {
           return [];
         }
       },
       markAllRead: () => {
-        const accountId = authController.accountId();
-        if (!accountId) return [];
         try {
-          return createNotificationStore(inAppFeedRoot, accountId, {
-            fileSystem,
-            path: pathService,
-            clock,
-            random,
-          }).markAllRead();
+          return applicationRuntime.runSync(
+            resolvedNotificationService.markAllRead(authController.accountId()),
+          );
         } catch {
           return [];
         }
