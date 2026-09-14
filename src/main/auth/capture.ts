@@ -1,4 +1,6 @@
 import type { CapturedAuth } from "../../shared/auth";
+import { systemClock } from "../platform/node";
+import type { ClockService } from "../platform/services";
 
 /**
  * Reading `localStorage.auth` out of the login webview — the capture step the
@@ -46,9 +48,10 @@ export interface AuthCapture {
  */
 export function createAuthCapture(
   executeJs: AuthReader,
-  opts: { intervalMs: number },
+  opts: { intervalMs: number; clock?: ClockService },
 ): AuthCapture {
-  let timer: ReturnType<typeof setTimeout> | null = null;
+  const clock = opts.clock ?? systemClock;
+  let timer: unknown = null;
   let running = false;
   let inFlight = false;
   let warnedAboutValue = false;
@@ -79,7 +82,7 @@ export function createAuthCapture(
     } finally {
       inFlight = false;
     }
-    if (running) timer = setTimeout(() => void poll(onCaptured), opts.intervalMs);
+    if (running) timer = clock.setTimeout(() => void poll(onCaptured), opts.intervalMs);
   }
 
   return {
@@ -93,7 +96,7 @@ export function createAuthCapture(
     stop() {
       running = false;
       if (timer) {
-        clearTimeout(timer);
+        clock.clearTimeout(timer);
         timer = null;
       }
     },

@@ -1,5 +1,5 @@
-import { existsSync, mkdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from "node:fs";
-import path from "node:path";
+import { nodeFileSystem, nodePath, systemClock, systemRandom } from "../platform/node";
+import type { ClockService, FileSystemService, PathService, RandomService } from "../platform/services";
 
 interface StoredLedger {
   version: 1;
@@ -24,17 +24,36 @@ export interface SeenLedger {
   save(): void;
 }
 
-export function ledgerFileFor(rootDir: string, accountId: string): string {
-  return path.join(rootDir, safePathSegment(accountId), "seen-tasks.json");
+export function ledgerFileFor(
+  rootDir: string,
+  accountId: string,
+  pathService: PathService = nodePath,
+): string {
+  return pathService.join(rootDir, safePathSegment(accountId), "seen-tasks.json");
 }
 
-export function createSeenLedger(rootDir: string, accountId: string): SeenLedger {
-  const filePath = ledgerFileFor(rootDir, accountId);
+export interface SeenLedgerServices {
+  readonly fileSystem?: FileSystemService;
+  readonly path?: PathService;
+  readonly clock?: ClockService;
+  readonly random?: RandomService;
+}
+
+export function createSeenLedger(
+  rootDir: string,
+  accountId: string,
+  services: SeenLedgerServices = {},
+): SeenLedger {
+  const fileSystem = services.fileSystem ?? nodeFileSystem;
+  const pathService = services.path ?? nodePath;
+  const clock = services.clock ?? systemClock;
+  const random = services.random ?? systemRandom;
+  const filePath = ledgerFileFor(rootDir, accountId, pathService);
   const seen = new Set<string>();
   let initialized = false;
 
   try {
-    const stored = JSON.parse(readFileSync(filePath, "utf8")) as unknown;
+    const stored = JSON.parse(fileSystem.readText(filePath)) as unknown;
     if (isStoredLedger(stored, accountId)) {
       for (const id of stored.seenIds) seen.add(id);
       initialized = true;
@@ -67,16 +86,7 @@ export function createSeenLedger(rootDir: string, accountId: string): SeenLedger
         accountId,
         seenIds: [...seen],
       };
-      const directory = path.dirname(filePath);
-      const temporary = `${filePath}.${process.pid}.${Date.now()}.tmp`;
-      mkdirSync(directory, { recursive: true });
-      try {
-        writeFileSync(temporary, JSON.stringify(stored));
-        renameSync(temporary, filePath);
-      } catch (error) {
-        if (existsSync(temporary)) unlinkSync(temporary);
-        throw error;
-      }
+      fileSystem.atomicWrite(filePath, JSON.stringify(stored), `${clock.now()}-${random.next()}`);
       initialized = true;
     },
   };

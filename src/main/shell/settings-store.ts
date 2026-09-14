@@ -1,4 +1,5 @@
-import { readFileSync, writeFileSync } from "node:fs";
+import { nodeFileSystem, systemClock, systemRandom } from "../platform/node";
+import type { ClockService, FileSystemService, RandomService } from "../platform/services";
 import {
   DEFAULT_SHELL_SETTINGS,
   sanitizeShellSettings,
@@ -12,17 +13,44 @@ import {
  * than stranding navigation.
  */
 
-export function loadShellSettings(filePath: string): ShellSettings {
+export interface ShellSettingsPersistenceServices {
+  readonly fileSystem?: FileSystemService;
+  readonly clock?: ClockService;
+  readonly random?: RandomService;
+}
+
+const defaultServices: Required<ShellSettingsPersistenceServices> = {
+  fileSystem: nodeFileSystem,
+  clock: systemClock,
+  random: systemRandom,
+};
+
+export function loadShellSettings(
+  filePath: string,
+  services: ShellSettingsPersistenceServices = {},
+): ShellSettings {
   try {
-    return sanitizeShellSettings(JSON.parse(readFileSync(filePath, "utf8")));
+    const fileSystem = services.fileSystem ?? defaultServices.fileSystem;
+    return sanitizeShellSettings(JSON.parse(fileSystem.readText(filePath)));
   } catch {
     return { ...DEFAULT_SHELL_SETTINGS, hiddenViews: [...DEFAULT_SHELL_SETTINGS.hiddenViews] };
   }
 }
 
-export function saveShellSettings(filePath: string, settings: ShellSettings): void {
+export function saveShellSettings(
+  filePath: string,
+  settings: ShellSettings,
+  services: ShellSettingsPersistenceServices = {},
+): void {
   try {
-    writeFileSync(filePath, JSON.stringify(sanitizeShellSettings(settings)));
+    const fileSystem = services.fileSystem ?? defaultServices.fileSystem;
+    const clock = services.clock ?? defaultServices.clock;
+    const random = services.random ?? defaultServices.random;
+    fileSystem.atomicWrite(
+      filePath,
+      JSON.stringify(sanitizeShellSettings(settings)),
+      `${clock.now()}-${random.next()}`,
+    );
   } catch {
     // userData may not exist yet on first run before app is ready — skip.
   }

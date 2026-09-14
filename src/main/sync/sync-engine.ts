@@ -13,6 +13,8 @@ import {
   type FeedSnapshot,
 } from "../../shared/feeds";
 import type { SnapshotCache } from "./snapshot-cache";
+import { systemClock, systemRandom } from "../platform/node";
+import type { ClockService, RandomService } from "../platform/services";
 
 export const DEFAULT_SYNC_INTERVAL_MS = 90_000;
 export const DEFAULT_SYNC_JITTER_MS = 30_000;
@@ -62,6 +64,8 @@ export interface SyncEngineOptions {
    * future window opening. Failures inside never fail the tick.
    */
   presenceNotifier?: Pick<PresenceNotifier, "handleSync">;
+  clock?: ClockService;
+  randomService?: RandomService;
   now?: () => number;
   random?: () => number;
   setTimer?: (callback: () => void, delayMs: number) => ReturnType<typeof setTimeout>;
@@ -89,10 +93,12 @@ export interface SyncEngine {
  * be tested against a fake API at the network boundary.
  */
 export function createSyncEngine(options: SyncEngineOptions): SyncEngine {
-  const now = options.now ?? Date.now;
-  const random = options.random ?? Math.random;
-  const setTimer = options.setTimer ?? ((callback, delayMs) => setTimeout(callback, delayMs));
-  const clearTimer = options.clearTimer ?? ((timer) => clearTimeout(timer));
+  const clock = options.clock ?? systemClock;
+  const random = options.random ?? (() => options.randomService?.next() ?? systemRandom.next());
+  const setTimer = options.setTimer ?? ((callback, delayMs) =>
+    clock.setTimeout(callback, delayMs) as ReturnType<typeof setTimeout>);
+  const clearTimer = options.clearTimer ?? ((timer) => clock.clearTimeout(timer));
+  const now = options.now ?? (() => clock.now());
   const intervalMs = options.intervalMs ?? DEFAULT_SYNC_INTERVAL_MS;
   const jitterMs = options.jitterMs ?? DEFAULT_SYNC_JITTER_MS;
   const minIntervalMs = Math.max(options.minIntervalMs ?? MIN_SYNC_INTERVAL_MS, 0);
