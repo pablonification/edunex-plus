@@ -1,5 +1,6 @@
 import type * as EffectModule from "effect" with { "resolution-mode": "import" };
 import { effectRuntime } from "../effect/effect-runtime";
+import { formatSafeCause } from "../effect/conventions";
 import {
   ACTIVE_COURSES_PATH,
   type ApiResult,
@@ -515,7 +516,18 @@ function createSyncServiceFromDependencies(
   );
   const alignPresence = options.alignPresence ??
     Boolean(dependencies.notifications || options.presenceNotifier);
-  const lifecycle = effectRuntime.SynchronizedRef.makeUnsafe<SyncLifecycle>({
+  const feedReaders: Partial<Record<FeedKey, () => SyncEffect<ApiResult>>> = {
+    todo: dependencies.api.getTodo,
+    courses: dependencies.api.getCourses,
+    exams: dependencies.api.getExams,
+    agenda: dependencies.api.getAgenda,
+    presences: dependencies.api.getPresences,
+    materials: dependencies.api.getMaterials,
+  };
+  // Lifecycle transitions are pure atomic updates. A plain Ref keeps the
+  // auth callback's start/stop boundary synchronous, so a sign-out can bump
+  // the generation before a late HTTP promise settles.
+  const lifecycle = effectRuntime.Ref.makeUnsafe<SyncLifecycle>({
     running: false,
     generation: 0,
     inFlight: false,
@@ -524,7 +536,7 @@ function createSyncServiceFromDependencies(
 
   function start(): SyncEffect<boolean> {
     return effectRuntime.Effect.gen(function* () {
-      const generation = yield* effectRuntime.SynchronizedRef.modify(
+      const generation = yield* effectRuntime.Ref.modify(
         lifecycle,
         (current): readonly [number | null, SyncLifecycle] => {
           if (current.running) return [null, current];
@@ -550,7 +562,7 @@ function createSyncServiceFromDependencies(
 
   function stop(): SyncEffect<void> {
     return effectRuntime.Effect.gen(function* () {
-      yield* effectRuntime.SynchronizedRef.update(lifecycle, (current) => ({
+      yield* effectRuntime.Ref.update(lifecycle, (current) => ({
         ...current,
         running: false,
         generation: current.generation + 1,
@@ -570,7 +582,7 @@ function createSyncServiceFromDependencies(
 
   function isRunning(): SyncEffect<boolean> {
     return effectRuntime.Effect.sync(() =>
-      effectRuntime.SynchronizedRef.getUnsafe(lifecycle).running,
+      effectRuntime.Ref.getUnsafe(lifecycle).running,
     );
   }
 
@@ -579,7 +591,7 @@ function createSyncServiceFromDependencies(
   }
 
   function isActiveGeneration(generation: number): boolean {
-    const current = effectRuntime.SynchronizedRef.getUnsafe(lifecycle);
+    const current = effectRuntime.Ref.getUnsafe(lifecycle);
     return current.running && current.generation === generation;
   }
 
@@ -611,7 +623,7 @@ function createSyncServiceFromDependencies(
     return body.pipe(
       effectRuntime.Effect.catchCause((cause) => {
         if (effectRuntime.Cause.hasInterrupts(cause)) return effectRuntime.Effect.interrupt;
-        console.error("[sync] background loop stopped:", safeCauseLabel(cause));
+        console.error("[sync] background loop stopped:", formatSafeCause(cause));
         return effectRuntime.Effect.void;
       }),
       effectRuntime.Effect.ensuring(markLoopEnded(generation)),
@@ -709,7 +721,7 @@ function createSyncServiceFromDependencies(
   }
 
   function claimTick(scheduledGeneration: number | null): SyncEffect<TickClaim | null> {
-    return effectRuntime.SynchronizedRef.modify(
+    return effectRuntime.Ref.modify(
       lifecycle,
       (current): readonly [TickClaim | null, SyncLifecycle] => {
         if (current.inFlight) return [null, current];
@@ -728,7 +740,7 @@ function createSyncServiceFromDependencies(
   }
 
   function releaseTick(generation: number): SyncEffect<void> {
-    return effectRuntime.SynchronizedRef.update(lifecycle, (current) =>
+    return effectRuntime.Ref.update(lifecycle, (current) =>
       current.generation === generation ? { ...current, inFlight: false } : current,
     );
   }
@@ -737,7 +749,7 @@ function createSyncServiceFromDependencies(
     generation: number,
     result: SyncTickResult,
   ): SyncEffect<void> {
-    return effectRuntime.SynchronizedRef.update(lifecycle, (current) => {
+    return effectRuntime.Ref.update(lifecycle, (current) => {
       if (current.generation !== generation) return current;
       if (result.kind === "failed") {
         return {
@@ -751,7 +763,7 @@ function createSyncServiceFromDependencies(
   }
 
   function invalidateGeneration(generation: number): SyncEffect<void> {
-    return effectRuntime.SynchronizedRef.update(lifecycle, (current) =>
+    return effectRuntime.Ref.update(lifecycle, (current) =>
       current.generation === generation
         ? {
             ...current,
@@ -765,7 +777,7 @@ function createSyncServiceFromDependencies(
   }
 
   function markLoopEnded(generation: number): SyncEffect<void> {
-    return effectRuntime.SynchronizedRef.update(lifecycle, (current) =>
+    return effectRuntime.Ref.update(lifecycle, (current) =>
       current.generation === generation
         ? { ...current, running: false, inFlight: false }
         : current,
@@ -778,7 +790,7 @@ function createSyncServiceFromDependencies(
   ): SyncEffect<boolean> {
     return effectRuntime.Effect.gen(function* () {
       const current = lifecycle;
-      const state = effectRuntime.SynchronizedRef.getUnsafe(current);
+      const state = effectRuntime.Ref.getUnsafe(current);
       if (
         state.generation !== claim.generation ||
         (claim.scheduled && !state.running)
@@ -792,7 +804,9 @@ function createSyncServiceFromDependencies(
     try {
       randomValue = dependencies.random.next();
     } catch {
-      // A broken random adapter must not stop background synchronization.
+      // A broken random adapter must not stop background synchronization, but
+      // the failure should remain observable without exposing its message.
+      console.error("[sync] random source failed; using midpoint jitter");
     }
     const boundedRandom = Number.isFinite(randomValue)
       ? Math.min(1, Math.max(0, randomValue))
@@ -804,7 +818,7 @@ function createSyncServiceFromDependencies(
 
   function nextBackoffDelay(): number {
     const exponential = intervalMs *
-      2 ** effectRuntime.SynchronizedRef.getUnsafe(lifecycle).consecutiveFailures;
+      2 ** effectRuntime.Ref.getUnsafe(lifecycle).consecutiveFailures;
     return Math.min(maxBackoffMs, Math.max(minIntervalMs, exponential));
   }
 
@@ -817,16 +831,12 @@ function createSyncServiceFromDependencies(
       if (!accountId) return regular;
       const agenda = yield* readSnapshot(accountId, "agenda");
       if (agenda?.data == null) return regular;
-      try {
-        const { delayMs } = nextPresenceDelay(
-          extractPresenceWindows(agenda.data),
-          dependencies.clock.now(),
-          regular,
-        );
-        return Math.max(minIntervalMs, Math.min(maxBackoffMs, delayMs));
-      } catch {
-        return regular;
-      }
+      const { delayMs } = nextPresenceDelay(
+        extractPresenceWindows(agenda.data),
+        dependencies.clock.now(),
+        regular,
+      );
+      return Math.max(minIntervalMs, Math.min(maxBackoffMs, delayMs));
     });
   }
 
@@ -835,28 +845,15 @@ function createSyncServiceFromDependencies(
     // synchronous adapter defect local to its feed as well as handling the
     // normal failed Effect / rejected HTTP request path below.
     return effectRuntime.Effect.suspend(() => {
-      try {
-        let request: SyncEffect<ApiResult>;
-        if (key === "todo" && dependencies.api.getTodo) request = dependencies.api.getTodo();
-        else if (key === "courses" && dependencies.api.getCourses) request = dependencies.api.getCourses();
-        else if (key === "exams" && dependencies.api.getExams) request = dependencies.api.getExams();
-        else if (key === "agenda" && dependencies.api.getAgenda) request = dependencies.api.getAgenda();
-        else if (key === "presences" && dependencies.api.getPresences) request = dependencies.api.getPresences();
-        else if (key === "materials" && dependencies.api.getMaterials) request = dependencies.api.getMaterials();
-        else request = dependencies.api.get(path);
-
-        return request.pipe(
-          effectRuntime.Effect.map((result) => ({ key, result })),
-          effectRuntime.Effect.catchCause((cause) =>
-            effectRuntime.Cause.hasInterrupts(cause)
-              ? effectRuntime.Effect.interrupt
-              : effectRuntime.Effect.succeed({ key, result: null }),
-          ),
-        );
-      } catch {
+      const request = feedReaders[key]?.() ?? dependencies.api.get(path);
+      return request.pipe(effectRuntime.Effect.map((result) => ({ key, result })));
+    }).pipe(
+      effectRuntime.Effect.catchCause((cause) => {
+        if (effectRuntime.Cause.hasInterrupts(cause)) return effectRuntime.Effect.interrupt;
+        console.error(`[sync] ${key} feed read failed:`, formatSafeCause(cause));
         return effectRuntime.Effect.succeed({ key, result: null });
-      }
-    });
+      }),
+    );
   }
 
   function readSnapshot(accountId: string, feed: FeedKey): SyncEffect<FeedSnapshot | null> {
@@ -874,7 +871,7 @@ function createSyncServiceFromDependencies(
       effectRuntime.Effect.catchCause((cause) =>
         effectRuntime.Cause.hasInterrupts(cause)
           ? effectRuntime.Effect.interrupt
-          : effectRuntime.Effect.succeed(null),
+          : logAndSucceed(null, "[sync] snapshot write failed:", cause),
       ),
     );
   }
@@ -954,7 +951,7 @@ function isolateOrdinary<A>(
     effectRuntime.Effect.catchCause((cause) =>
       effectRuntime.Cause.hasInterrupts(cause)
         ? effectRuntime.Effect.interrupt
-        : effectRuntime.Effect.void,
+        : logAndSucceed(undefined, "[sync] isolated sync operation failed:", cause),
     ),
   );
 }
@@ -966,13 +963,16 @@ function recoverOrdinary<F>(fallback: F) {
     effectRuntime.Effect.catchCause((cause) =>
       effectRuntime.Cause.hasInterrupts(cause)
         ? effectRuntime.Effect.interrupt
-        : effectRuntime.Effect.succeed(fallback),
+        : logAndSucceed(fallback, "[sync] sync state access failed:", cause),
     ),
   );
 }
 
-function safeCauseLabel(cause: EffectModule.Cause.Cause<unknown>): string {
-  if (effectRuntime.Cause.hasInterrupts(cause)) return "interrupted";
-  if (cause.reasons.some((reason) => reason._tag === "Die")) return "defect";
-  return "failure";
+function logAndSucceed<A>(
+  value: A,
+  message: string,
+  cause: EffectModule.Cause.Cause<unknown>,
+): SyncEffect<A> {
+  console.error(message, formatSafeCause(cause));
+  return effectRuntime.Effect.succeed(value);
 }
