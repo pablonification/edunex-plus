@@ -516,14 +516,6 @@ function createSyncServiceFromDependencies(
   );
   const alignPresence = options.alignPresence ??
     Boolean(dependencies.notifications || options.presenceNotifier);
-  const feedReaders: Partial<Record<FeedKey, () => SyncEffect<ApiResult>>> = {
-    todo: dependencies.api.getTodo,
-    courses: dependencies.api.getCourses,
-    exams: dependencies.api.getExams,
-    agenda: dependencies.api.getAgenda,
-    presences: dependencies.api.getPresences,
-    materials: dependencies.api.getMaterials,
-  };
   // Lifecycle transitions are pure atomic updates. A plain Ref keeps the
   // auth callback's start/stop boundary synchronous, so a sign-out can bump
   // the generation before a late HTTP promise settles.
@@ -845,7 +837,7 @@ function createSyncServiceFromDependencies(
     // synchronous adapter defect local to its feed as well as handling the
     // normal failed Effect / rejected HTTP request path below.
     return effectRuntime.Effect.suspend(() => {
-      const request = feedReaders[key]?.() ?? dependencies.api.get(path);
+      const request = readFeedRequest(key, path);
       return request.pipe(effectRuntime.Effect.map((result) => ({ key, result })));
     }).pipe(
       effectRuntime.Effect.catchCause((cause) => {
@@ -854,6 +846,23 @@ function createSyncServiceFromDependencies(
         return effectRuntime.Effect.succeed({ key, result: null });
       }),
     );
+  }
+
+  function readFeedRequest(key: FeedKey, path: string): SyncEffect<ApiResult> {
+    switch (key) {
+      case "todo":
+        return dependencies.api.getTodo?.() ?? dependencies.api.get(path);
+      case "courses":
+        return dependencies.api.getCourses?.() ?? dependencies.api.get(path);
+      case "exams":
+        return dependencies.api.getExams?.() ?? dependencies.api.get(path);
+      case "agenda":
+        return dependencies.api.getAgenda?.() ?? dependencies.api.get(path);
+      case "presences":
+        return dependencies.api.getPresences?.() ?? dependencies.api.get(path);
+      case "materials":
+        return dependencies.api.getMaterials?.() ?? dependencies.api.get(path);
+    }
   }
 
   function readSnapshot(accountId: string, feed: FeedKey): SyncEffect<FeedSnapshot | null> {

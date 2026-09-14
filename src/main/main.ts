@@ -297,6 +297,7 @@ const authLayer = createAuthLayer({
       runtime.runSync(status === "signed-in" ? service.start() : service.stop());
     } catch {
       // Lifecycle callbacks cannot surface private Effect failures to auth.
+      console.error("[main] sync lifecycle transition failed");
     }
   },
   runEffect: runAuthEffect,
