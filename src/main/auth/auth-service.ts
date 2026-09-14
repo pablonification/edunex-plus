@@ -565,6 +565,7 @@ function isEdunexOrigin(url: string): boolean {
 function readWithTimeout(contents: WebContentsService, clock: ClockService) {
   return (signal: AbortSignal) =>
     new Promise<unknown>((resolve, reject) => {
+      const controller = new AbortController();
       let timer: unknown = null;
       let settled = false;
 
@@ -581,7 +582,12 @@ function readWithTimeout(contents: WebContentsService, clock: ClockService) {
         cleanup();
         complete();
       };
-      const onAbort = () => settle(() => reject(new Error("auth read aborted")));
+      const abortRead = (error: Error) => {
+        if (settled) return;
+        controller.abort();
+        settle(() => reject(error));
+      };
+      const onAbort = () => abortRead(new Error("auth read aborted"));
 
       if (signal.aborted) {
         onAbort();
@@ -589,11 +595,11 @@ function readWithTimeout(contents: WebContentsService, clock: ClockService) {
       }
       signal.addEventListener("abort", onAbort, { once: true });
       timer = clock.setTimeout(
-        () => settle(() => reject(new Error("auth read timed out"))),
+        () => abortRead(new Error("auth read timed out")),
         5000,
       );
       void contents
-        .executeJavaScript("localStorage.getItem('auth')", true, signal)
+        .executeJavaScript("localStorage.getItem('auth')", true, controller.signal)
         .then(
           (value) => settle(() => resolve(value)),
           (error: unknown) => settle(() => reject(error)),
