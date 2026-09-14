@@ -33,6 +33,7 @@ declare global {
       onFullscreenChange(callback: (isFullscreen: boolean) => void): () => void;
       getAuthState(): Promise<AuthStatus | null>;
       startLogin(): Promise<void>;
+      signOut(): Promise<void>;
       onAuthState(callback: (status: AuthStatus) => void): () => void;
       getFeed(feed: FeedKey): Promise<FeedSnapshot | null>;
       onFeedUpdated(callback: (snapshot: FeedSnapshot) => void): () => void;

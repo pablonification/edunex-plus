@@ -86,6 +86,10 @@ Tests assert external behavior at seams (a fake EduNex API client; the preload-e
 mock) rather than implementation details. Domain language — Period, Task, Presence, Vicon,
 To Do, INA account — is defined in [CONTEXT.md](CONTEXT.md).
 
+The production-readiness checklist, dependency-installed verification, Electron restart smoke,
+and documented manual follow-up are in
+[docs/parity-verification.md](docs/parity-verification.md).
+
 ## License
 
 MIT.
