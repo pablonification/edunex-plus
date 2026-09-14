@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { createSessionStore } from "./session-store";
 import type { CapturedAuth } from "../../shared/auth";
+import { nodeFileSystem } from "../platform/node";
 
 const session: CapturedAuth = {
   accessToken: "eyJ0eXAiOiJK.abc.def",
@@ -31,7 +32,7 @@ afterEach(() => {
 describe("session store", () => {
   it("round-trips a session through the encrypting codec", () => {
     const file = tmpFile();
-    const store = createSessionStore(file, codec);
+    const store = createSessionStore(file, codec, nodeFileSystem);
 
     store.save(session);
 
@@ -41,25 +42,25 @@ describe("session store", () => {
   });
 
   it("loads null when nothing is stored", () => {
-    expect(createSessionStore(tmpFile(), codec).load()).toBeNull();
+    expect(createSessionStore(tmpFile(), codec, nodeFileSystem).load()).toBeNull();
   });
 
   it("loads null from an undecryptable file instead of crashing startup", () => {
     const file = tmpFile();
     fs.writeFileSync(file, Buffer.from("garbage"));
-    expect(createSessionStore(file, codec).load()).toBeNull();
+    expect(createSessionStore(file, codec, nodeFileSystem).load()).toBeNull();
   });
 
   it("loads null from a file holding non-auth JSON", () => {
     const file = tmpFile();
-    const store = createSessionStore(file, codec);
+    const store = createSessionStore(file, codec, nodeFileSystem);
     fs.writeFileSync(file, codec.encrypt(JSON.stringify({ nope: true })));
     expect(store.load()).toBeNull();
   });
 
   it("clear removes the stored session", () => {
     const file = tmpFile();
-    const store = createSessionStore(file, codec);
+    const store = createSessionStore(file, codec, nodeFileSystem);
     store.save(session);
 
     store.clear();
@@ -69,7 +70,7 @@ describe("session store", () => {
   });
 
   it("clear tolerates a missing file", () => {
-    const store = createSessionStore(tmpFile(), codec);
+    const store = createSessionStore(tmpFile(), codec, nodeFileSystem);
     expect(() => store.clear()).not.toThrow();
   });
 });

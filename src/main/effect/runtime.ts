@@ -37,6 +37,8 @@ export interface ApplicationRuntime<R, ER> {
   readonly runtime: EffectModule.ManagedRuntime.ManagedRuntime<R, ER>;
   /** Run startup or another finite application effect through that runtime. */
   readonly start: <A, E>(effect: EffectModule.Effect.Effect<A, E, R>) => Promise<A>;
+  /** Resolve a synchronous effect at a process boundary (for service accessors). */
+  readonly runSync: <A, E>(effect: EffectModule.Effect.Effect<A, E, R>) => A;
   readonly runPromise: <A, E>(effect: EffectModule.Effect.Effect<A, E, R>) => Promise<A>;
   readonly runPromiseExit: <A, E>(
     effect: EffectModule.Effect.Effect<A, E, R>,
@@ -85,6 +87,10 @@ export function createApplicationRuntime<
   return {
     runtime,
     start: runPromise,
+    runSync(effect) {
+      if (isShutdown()) throw new RuntimeUnavailableError({ operation: "runtime.use-after-shutdown" });
+      return runtime.runSync(effect);
+    },
     runPromise,
     runPromiseExit(effect) {
       return isShutdown() ? rejectAfterShutdown() : runtime.runPromiseExit(effect);

@@ -11,6 +11,13 @@ Context keys for:
 - Electron lifecycle, windows, tray, notifications, dialogs, displays, and
   IPC registration.
 
+Authentication is provided by `src/main/auth/auth-service.ts`. Its
+`AuthService` Context key exposes Effect operations for capture, verification,
+restore, sign-out, and unauthorized-session handling. The service keeps the
+bearer token in a synchronized redacted reference and exposes only status
+through the renderer IPC contract; the API adapter and safeStorage-backed
+session store remain main-process values.
+
 `platform/node.ts` and `platform/electron.ts` are the only production adapters
 that touch those host APIs. `platform/layer.ts` composes implementations into
 the managed application runtime; tests can provide in-memory implementations
