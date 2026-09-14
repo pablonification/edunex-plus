@@ -469,7 +469,7 @@ function tokenFromState(state: SessionRef): string | null {
 }
 
 function valueOfToken(token: SensitiveString | null): string | null {
-  if (token === null) return null;
+  if (!token) return null;
   try {
     return effectRuntime.Redacted.value(token);
   } catch {

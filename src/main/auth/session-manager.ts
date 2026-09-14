@@ -58,7 +58,7 @@ export function createSessionManager(deps: SessionManagerDeps): SessionManager {
 
   function accessToken(): string | null {
     const token = effectRuntime.SynchronizedRef.getUnsafe(state).accessToken;
-    if (token === null) return null;
+    if (!token) return null;
     try {
       return effectRuntime.Redacted.value(token);
     } catch {
