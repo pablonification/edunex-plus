@@ -14,8 +14,8 @@ export interface TrayMenuHandlers {
 
 export function buildTrayMenuTemplate(handlers: TrayMenuHandlers): MenuItemTemplate[] {
   return [
-    { label: "Show Edunex Plus", click: handlers.show },
+    { label: "Show Edunex Plus", click: () => handlers.show() },
     { type: "separator" },
-    { label: "Quit Edunex Plus", click: handlers.quit },
+    { label: "Quit Edunex Plus", click: () => handlers.quit() },
   ];
 }

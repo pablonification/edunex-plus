@@ -95,11 +95,12 @@ export async function downloadMaterialFile(
     return { ok: false, error: "Download cancelled.", cancelled: true };
   }
 
+  const fetchImpl = deps.fetchImpl;
   const transport: HttpTransportService | null =
     deps.transport ??
-    (deps.fetchImpl
+    (fetchImpl
       ? {
-          request: (requestUrl, init) => deps.fetchImpl!(requestUrl, init),
+          request: (requestUrl, init) => fetchImpl(requestUrl, init),
         }
       : null);
   if (!transport) {

@@ -45,7 +45,7 @@ export const FEED_ENDPOINTS: ReadonlyArray<{ key: FeedKey; path: string }> = [
 ];
 
 function isSuccessful(result: ApiResult) {
-  return result.ok || (result.status >= 200 && result.status < 300);
+  return result.ok;
 }
 
 export type SyncTickKind = "success" | "failed" | "unauthorized" | "not-ready" | "stopped";

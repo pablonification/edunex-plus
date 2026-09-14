@@ -116,7 +116,6 @@ export function createApplicationComposition(
 ): ApplicationComposition {
   const { platform } = options;
   const bridge = createRuntimeBridge();
-  let authService: AuthServiceShape | null = null;
   let syncService: SyncServiceShape | null = null;
 
   const authLayer = createAuthLayer({
@@ -193,7 +192,6 @@ export function createApplicationComposition(
     notifications: runtime.runSync(RuntimeEffect.service(NotificationService)),
     sync: runtime.runSync(RuntimeEffect.service(SyncService)),
   };
-  authService = services.auth;
   syncService = services.sync;
 
   let shutdownPromise: Promise<void> | null = null;
