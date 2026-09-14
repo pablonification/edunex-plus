@@ -9,16 +9,16 @@ import {
   edunexUserAgent,
   type AuthServiceShape,
 } from "./auth/auth-service";
-import { createSyncEngine, type SyncEngine } from "./sync/sync-engine";
 import {
-  CognisiaService,
+  createSyncServiceLayer,
+  SyncService,
+  type SyncServiceShape,
+} from "./sync/sync-service";
+import {
   createCognisiaLayer,
-  toPromiseCognisiaApi,
 } from "./api/api-service";
 import {
-  SnapshotCacheService,
   createSnapshotCacheLayer,
-  toSyncSnapshotCache,
 } from "./sync/snapshot-cache-service";
 import {
   createMaterialDownloadLayer,
@@ -27,8 +27,6 @@ import {
 import {
   createNotificationLayer,
   NotificationService,
-  toSyncNotificationNotifiers,
-  type NotificationEffect,
 } from "./notifications/notification-service";
 import type { OutboundNotification } from "../shared/notifications";
 import { DEFAULT_SHELL_SETTINGS, NAV_VIEWS, isHideableNavKey } from "../shared/shell";
@@ -256,7 +254,7 @@ function setApplicationMenu() {
   );
 }
 
-let sync: SyncEngine | null = null;
+let syncService: SyncServiceShape | null = null;
 
 // Auth slice (#52): the state machine, encrypted session store, API adapter,
 // and webview capture are all supplied by one managed Effect service. The
@@ -287,8 +285,18 @@ const authLayer = createAuthLayer({
   appVersion: platform.appVersion,
   broadcast: (status) => {
     if (win && !win.isDestroyed()) win.webContents.send("auth:state", status);
-    if (status === "signed-in") sync?.start();
-    else sync?.stop();
+    // Authentication owns the session boundary; the synchronization service
+    // owns one managed fiber for the currently published session. These calls
+    // are synchronous at the lifecycle boundary so a sign-out/401 invalidates
+    // its generation before any late HTTP result can publish.
+    const service = syncService;
+    const runtime = applicationRuntimeRef;
+    if (!service || !runtime || runtime.isShutdown()) return;
+    try {
+      runtime.runSync(status === "signed-in" ? service.start() : service.stop());
+    } catch {
+      // Lifecycle callbacks cannot surface private Effect failures to auth.
+    }
   },
   runEffect: runAuthEffect,
   onUnauthorized: notifyAuthUnauthorized,
@@ -341,9 +349,8 @@ const notificationLayer = createNotificationLayer({
   },
 });
 
-// Resolve the service once from the process-wide managed runtime. The service
-// itself owns all mutable session state; this controller is only a legacy
-// promise/callback adapter for existing main-process feature seams.
+// Resolve the services once from the process-wide managed runtime. Each
+// feature owns its state; the sync service below owns its session fiber.
 const readAndCacheLayer = effectRuntime.Layer.mergeAll(
   createCognisiaLayer({
     userAgent: edunexUserAgent(platform.appVersion),
@@ -353,12 +360,23 @@ const readAndCacheLayer = effectRuntime.Layer.mergeAll(
     rootDir: pathService.join(platform.userDataPath, "feed-snapshots"),
   }),
 ).pipe(effectRuntime.Layer.provideMerge(authLayer));
+const syncDependenciesLayer = effectRuntime.Layer.mergeAll(
+  authLayer,
+  readAndCacheLayer,
+  notificationLayer,
+).pipe(effectRuntime.Layer.provideMerge(livePlatform.layer));
+const syncLayer = createSyncServiceLayer({
+  onFeedUpdated: (snapshot) => {
+    if (win && !win.isDestroyed()) win.webContents.send("sync:feed-updated", snapshot);
+  },
+}).pipe(effectRuntime.Layer.provide(syncDependenciesLayer));
 const applicationLayer = effectRuntime.Layer.mergeAll(
   authLayer,
   taskAnswerLayer,
   materialDownloadLayer,
   readAndCacheLayer,
   notificationLayer,
+  syncLayer,
 ).pipe(effectRuntime.Layer.provideMerge(livePlatform.layer));
 const applicationRuntime = createApplicationRuntime(composeApplicationLayer(applicationLayer));
 applicationRuntimeRef = applicationRuntime;
@@ -370,38 +388,16 @@ const resolvedMaterialDownloadService = applicationRuntime.runSync(
   RuntimeEffect.service(MaterialDownloadService),
 );
 authService = resolvedAuthService;
-const cognisiaService = applicationRuntime.runSync(RuntimeEffect.service(CognisiaService));
-const snapshotCacheService = applicationRuntime.runSync(
-  RuntimeEffect.service(SnapshotCacheService),
-);
 const resolvedNotificationService = applicationRuntime.runSync(
   RuntimeEffect.service(NotificationService),
 );
+const resolvedSyncService = applicationRuntime.runSync(
+  RuntimeEffect.service(SyncService),
+);
+syncService = resolvedSyncService;
 const authController = createAuthController({
   runtime: applicationRuntime,
   service: resolvedAuthService,
-});
-
-const notificationNotifiers = toSyncNotificationNotifiers(
-  resolvedNotificationService,
-  <A>(effect: NotificationEffect<A>) => applicationRuntime.runSync(effect),
-);
-
-// Sync slice (#19/#53): the managed Cognisia and snapshot services own the
-// read/cache ports; the compatibility scheduler only receives runtime-backed
-// adapters. The renderer only receives a cache snapshot over the preload bridge.
-sync = createSyncEngine({
-  api: toPromiseCognisiaApi(cognisiaService, (effect) => applicationRuntime.runPromise(effect)),
-  cache: toSyncSnapshotCache(snapshotCacheService, (effect) => applicationRuntime.runSync(effect)),
-  getAccountId: authController.accountId,
-  onUnauthorized: authController.handleUnauthorized,
-  taskNotifier: notificationNotifiers.taskNotifier,
-  presenceNotifier: notificationNotifiers.presenceNotifier,
-  clock,
-  randomService: random,
-  onFeedUpdated: (snapshot) => {
-    if (win && !win.isDestroyed()) win.webContents.send("sync:feed-updated", snapshot);
-  },
 });
 
 let runtimeShutdownStarted = false;
@@ -467,7 +463,13 @@ if (!gotSingleInstanceLock) {
       startLogin: () => authController.startLogin(),
     },
     sync: {
-      read: (feed) => sync?.read(feed) ?? null,
+      read: (feed) => {
+        try {
+          return applicationRuntime.runSync(resolvedSyncService.read(feed));
+        } catch {
+          return null;
+        }
+      },
     },
     materialDownloadService: resolvedMaterialDownloadService,
     shell: {
@@ -544,7 +546,12 @@ if (!gotSingleInstanceLock) {
 
     runtimeShutdownStarted = true;
     quitting = true;
-    sync?.stop();
+    try {
+      applicationRuntime.runSync(resolvedSyncService.stop());
+    } catch {
+      // The managed runtime shutdown below remains the final interruption
+      // boundary even if the synchronous lifecycle hook cannot run.
+    }
     ipcAdapter.unregister();
     void applicationRuntime.shutdown().then(
       () => {
