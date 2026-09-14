@@ -181,8 +181,8 @@ export function createNotificationPersistenceService(
     try {
       writeSeenLedger(options.ledgerRoot, accountId, nextIds, persistence);
       taskLedgers.set(accountId, { initialized: true, seenIds: nextIds });
-    } catch {
-      console.error("[notifications] task ledger save failed");
+    } catch (error) {
+      console.error("[notifications] task ledger save failed", error);
     }
   }
 
@@ -192,8 +192,8 @@ export function createNotificationPersistenceService(
     presenceLedgers.set(accountId, { seenIds: nextIds });
     try {
       writePresenceLedger(options.ledgerRoot, accountId, nextIds, presencePersistence);
-    } catch {
-      console.error("[notifications] presence ledger save failed");
+    } catch (error) {
+      console.error("[notifications] presence ledger save failed", error);
     }
   }
 

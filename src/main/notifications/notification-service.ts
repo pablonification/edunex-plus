@@ -309,9 +309,9 @@ export const PresenceNotificationServiceLive = createNotificationLayer;
 export const createNotificationApplicationLayer = createNotificationLayer;
 export const createNotificationDomainLayer = createNotificationLayer;
 
-function isolate<A>(effect: NotificationEffect<A>): NotificationEffect<A> {
+function isolate(effect: NotificationEffect<void>): NotificationEffect<void> {
   return effect.pipe(
-    effectRuntime.Effect.catchCause(() => effectRuntime.Effect.succeed(undefined as A)),
+    effectRuntime.Effect.catchCause(() => effectRuntime.Effect.succeed(undefined)),
   );
 }
 
