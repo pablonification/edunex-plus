@@ -12,6 +12,7 @@
     "typecheck": "npm run build:node && tsc --noEmit",
     "build": "npm run typecheck && vite build",
     "smoke:runtime": "node scripts/runtime-smoke.cjs",
+    "smoke:electron": "npm run build && node scripts/electron-smoke.cjs",
     "start": "electron .",
     "test": "vitest run",
     "package:mac": "npm run build && electron-packager . --overwrite --icon=assets/icon.icns && node scripts/adhoc-sign-electron.mjs \"Edunex Plus-darwin-arm64/Edunex Plus.app\""

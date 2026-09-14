@@ -47,10 +47,10 @@ Issue #51 composes the replaceable platform services described in
 runtime. Long-lived Electron resources are released by the layer finalizer;
 feature modules receive service contracts instead of importing host APIs.
 
-## Dependency-installed baseline
+## Historical dependency-installed baseline
 
-This baseline was recorded after `npm ci` and before adding the Effect
-dependencies, so it is the reference point for later migration parity:
+This is the pre-migration reference point, recorded after `npm ci` and before
+adding the Effect dependencies:
 
 ```text
 npm ci       pass; 257 packages added; 0 vulnerabilities
@@ -59,9 +59,10 @@ npm test     pass; 32 test files, 208 tests
 npm run build pass; Node build, renderer typecheck, and Vite production build
 ```
 
-The baseline was already green. Any later failure in the Effect migration must
-be separated from an installation or toolchain failure by repeating
-`npm ci` first.
+The baseline was already green. The final post-migration dependency-installed
+verification, including the current test count and Electron restart smoke, is
+maintained in [`parity-verification.md`](./parity-verification.md). Repeat
+`npm ci` before diagnosing a future toolchain failure.
 
 ## Error and schema conventions
 

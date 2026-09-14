@@ -30,9 +30,9 @@ or changes an API call must update this file and keep the guardrails true.
    Task Answer writes above, sent to Cognisia's API. No third-party servers, no sync of app
    data, no telemetry.
 7. **Distinctive User-Agent.** Every request carries
-   `EdunexPlus/<version> (+https://github.com/pablonification/edunex-plus)`. Never spoof a
-   browser User-Agent. The point is recognizability: Cognisia can identify — and optionally
-   allowlist or rate-limit — this client's traffic.
+   `EdunexPlus/<version> (desktop client; +https://github.com/pablonification/edunex-plus)`.
+   Never spoof a browser User-Agent. The point is recognizability: Cognisia can identify — and
+   optionally allowlist or rate-limit — this client's traffic.
 8. **Courtesy notice, shipped regardless.** Shipping does not wait for permission or for a
    reply: the owner sends a courtesy email to Cognisia/ITB describing the project and these
    guardrails, and offering to coordinate.
@@ -52,24 +52,52 @@ or changes an API call must update this file and keep the guardrails true.
   cookies do not survive app restarts.
 - Auth0 code in the SPA is dead code; the app ignores it.
 
-## Endpoints the app calls
+## Endpoints and contracts
 
-All facts below were verified against the live API with a real student session (prototype
-spikes, September 2026). Reads only — all of these are `GET`:
+The tables below distinguish the paths used by the production application from adapter/test
+support and prototype observations. Facts marked as live were verified against the live API
+with a real student session (prototype spikes, September 2026).
+
+### Production application calls
+
+The background tick reads the six feed paths below. Authentication performs one additional
+status-only `GET /login/me` check. The answer writes and explicit material download are listed
+separately because they are not background reads.
 
 | Endpoint | Purpose | Response shape |
 | --- | --- | --- |
+| `GET /login/me` | Verify that a captured/restored session is still authorized | The response body is intentionally ignored; the app uses the HTTP status only |
 | `GET /todo` | Aggregated To Do feed for the account (pending Tasks, exams, questions, modules) | Plain JSON: `{tasks: [], exams: [], questions: [], modules: []}` |
 | `GET /course/courses?include=lecturer,lecturer.user,contents,faculty&filter[is_active][is]=1&filter[is_enrolled][is]=1&page[limit]=100&page[offset]=0` | Active enrolled courses for the current Period | JSON-API envelope, normalized and enrollment-filtered at the client boundary |
-| `GET /course/tasks` | Tasks for a course | JSON-API envelope: `{meta, data, links}`, items `type` / `id` / `attributes` / `links` — unlike `/todo`'s plain shape |
 | `GET /exam/exams` | Exams list (read-only in v1) | Plain JSON |
 | `GET /course/agenda` | Course agenda (meetings, with Vicon tags for online sessions) | Plain array: items carry `type`, `course_name`, `name`, `start_at`, `end_at` |
 | `GET /course/materials` | Materials list per course with download | Plain collection: items carry `name`/`title`, `course_code`/`course_name`, `file_name`, `file_url`/`download_url`, `size`, `mime_type`. Bare array or `materials`/`modules`/`files`/`data`-wrapped; JSON-API `attributes` accepted |
 | `GET /course/presences/list` | Presence records per course | Plain array: items carry `course_id`, `course_code`, `courses_name`, `class_id`, `class_name`, `semester`, `year`, `presences` |
-| `GET /notifications/{userId}` | Notification feed | `{data: …}`. Note the bare path **404s**: `GET /notifications` without the user id returns 404 |
 
-Two envelope regimes exist — `/todo` returns plain JSON while `/course/tasks` speaks JSON-API —
-so the API client normalizes at the boundary rather than letting callers care.
+Two envelope regimes exist — `/todo` returns plain JSON while collection endpoints may return
+plain arrays or JSON-API-style `data` envelopes — so the API client normalizes at the boundary
+rather than letting callers care.
+
+`/login/me` is an authorization/liveness probe, not a profile fetch. The client deliberately
+does not depend on a response-body schema because the available vendor evidence confirms the
+endpoint and its use by the client, but does not establish a stable body contract. A `401`
+invalidates the session; a status-zero transport failure (offline, DNS, or equivalent) keeps
+the captured/restored session available for offline reading. Other statuses preserve the
+existing status-only behavior rather than being decoded as a user profile.
+
+### Adapter and test support
+
+`GET /course/tasks` remains a typed API-adapter method and a normalization/test fixture because
+the prototype captured its JSON-API shape. The current production sync uses the aggregated
+`/todo` feed instead, so this path is not called by the shipped background graph.
+
+### Observed but not called
+
+The prototype observed `GET /notifications/{userId}` as the vendor notification feed; the bare
+`GET /notifications` path returns 404. Edunex Plus v1 does not call either path: its notification
+center is the local, account-partitioned feed generated from Task and Presence sync events.
+`PATCH /notifications` (notification read-state) also exists but is not adopted. These paths
+remain documented as observations so they are not mistaken for production dependencies.
 
 File downloads are reads, not writes: each material row carries its own file
 URL (`file_url`/`download_url`, absolute or vendor-relative). Downloading
@@ -104,14 +132,18 @@ Task Answers (the "saved ≠ submitted" surface) and nothing else:
 - **No past-period browsing.** The server refuses it; v1 shows current/available Periods only.
 - **No socket usage.** The vendor's sockets carry only CRS and messaging; the app uses HTTP
   polling exclusively.
-- **No SPA-internal endpoints.** The web app calls many more paths (`/public/*`, `/login/me`,
-  `/message/unread`, announcements, …); the app calls only the subset listed above.
+- **No additional SPA-internal endpoints.** The web app calls many more paths (`/public/*`,
+  `/message/unread`, announcements, …). `/login/me` is the one intentional exception: it is
+  the app's status-only authorization probe and is listed above.
 - **No scraping or replay** of endpoints not listed here, and no polling under the 60s floor.
 
 ## Verification status
 
 - Endpoint existence, response shapes, and the auth capture were verified live via the
   prototype spikes (`prototype/auth-spike`, `prototype/sync-spike`, September 2026).
+- The current production call graph, dependency/toolchain verification, Electron restart smoke,
+  and the remaining manual boundaries are recorded in
+  [`docs/parity-verification.md`](docs/parity-verification.md).
 - `GET /course/materials` follows the `/course/*` collection convention and the
   client tolerates every envelope seen elsewhere (`materials`/`modules`/`files`/
   `data`/bare array + JSON-API attributes); confirm the exact vendor field
