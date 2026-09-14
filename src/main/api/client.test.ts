@@ -124,6 +124,52 @@ describe("edunex api client", () => {
     expect(result.body).toEqual([resource]);
   });
 
+  it("does not turn a malformed successful collection into an empty feed", async () => {
+    const fetchImpl = vi.fn(async () => okResponse({ data: "not-a-collection" }));
+    const api = createEdunexApi({
+      baseUrl: "https://api-edunex.cognisia.id",
+      getToken: () => "tok",
+      userAgent: "EdunexPlus/0.0.1",
+      fetchImpl,
+    });
+
+    const result = await api.getCourseTasks();
+
+    expect(result.status).toBe(200);
+    expect(result.ok).toBe(false);
+    expect(result.body).toBeNull();
+  });
+
+  it("validates To Do category containers while keeping vendor records open", async () => {
+    const task = { id: 113986, vendorField: { untouched: true } };
+    const fetchImpl = vi.fn(async () =>
+      okResponse({ tasks: [task], exams: [], questions: [], modules: [] }),
+    );
+    const api = createEdunexApi({
+      baseUrl: "https://api-edunex.cognisia.id",
+      getToken: () => "tok",
+      userAgent: "EdunexPlus/0.0.1",
+      fetchImpl,
+    });
+
+    await expect(api.getTodo()).resolves.toMatchObject({
+      ok: true,
+      body: {
+        tasks: [task],
+        exams: [],
+        questions: [],
+        modules: [],
+      },
+    });
+
+    fetchImpl.mockResolvedValueOnce(okResponse({ tasks: "not-an-array", exams: [] }));
+    await expect(api.getTodo()).resolves.toMatchObject({
+      status: 200,
+      ok: false,
+      body: null,
+    });
+  });
+
   it("normalizes the course collection while leaving /todo's plain categories intact", async () => {
     const course = {
       type: "course",

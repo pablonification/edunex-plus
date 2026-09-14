@@ -1,6 +1,17 @@
+import type * as EffectModule from "effect" with { "resolution-mode": "import" };
+import { effectRuntime } from "../effect/effect-runtime";
 import type { FeedKey, FeedSnapshot } from "../../shared/feeds";
 import { nodeFileSystem, nodePath, systemClock, systemRandom } from "../platform/node";
-import type { ClockService, FileSystemService, PathService, RandomService } from "../platform/services";
+import {
+  Clock,
+  FileSystem,
+  Path,
+  Random,
+  type ClockService,
+  type FileSystemService,
+  type PathService,
+  type RandomService,
+} from "../platform/services";
 
 interface StoredSnapshot {
   version: 1;
@@ -92,3 +103,113 @@ function safePathSegment(value: string): string {
   if (value !== "." && value !== ".." && /^[a-zA-Z0-9._-]+$/.test(value)) return value;
   return `encoded-${encodeURIComponent(value)}`;
 }
+
+export type SnapshotEffect<A> = EffectModule.Effect.Effect<A, never, never>;
+
+/** Effect-facing port for the per-account, per-feed JSON snapshot cache. */
+export interface SnapshotCacheServiceShape {
+  readonly read: (accountId: string, feed: FeedKey) => SnapshotEffect<FeedSnapshot | null>;
+  readonly get: (accountId: string, feed: FeedKey) => SnapshotEffect<FeedSnapshot | null>;
+  readonly write: (
+    accountId: string,
+    feed: FeedKey,
+    data: unknown,
+    fetchedAt?: string,
+  ) => SnapshotEffect<FeedSnapshot>;
+}
+
+/** Explicit Context key for persisted Student feed snapshots. */
+export class SnapshotCacheService extends effectRuntime.Context.Service<
+  SnapshotCacheService,
+  SnapshotCacheServiceShape
+>()("EdunexPlus/SnapshotCacheService") {}
+
+// Domain-oriented aliases share one Context key.
+export const SnapshotService = SnapshotCacheService;
+export const FeedCacheService = SnapshotCacheService;
+export const CacheService = SnapshotCacheService;
+export type SnapshotServiceShape = SnapshotCacheServiceShape;
+export type FeedCacheServiceShape = SnapshotCacheServiceShape;
+
+/** Lift the existing synchronous cache seam into Effects. */
+export function createSnapshotCacheService(cache: SnapshotCache): SnapshotCacheServiceShape {
+  const read = (accountId: string, feed: FeedKey): SnapshotEffect<FeedSnapshot | null> =>
+    effectRuntime.Effect.sync(() => {
+      try {
+        // SnapshotCache.read already treats missing/corrupt files as absent;
+        // this outer guard keeps that contract true for injected test ports.
+        return cache.read(accountId, feed);
+      } catch {
+        return null;
+      }
+    });
+
+  return {
+    read,
+    get: read,
+    write: (accountId, feed, data, fetchedAt) =>
+      effectRuntime.Effect.sync(() => cache.write(accountId, feed, data, fetchedAt)),
+  };
+}
+
+/**
+ * Live cache layer. The root directory and all filesystem effects are supplied
+ * explicitly; no cache operation reaches Node globals when this layer is used.
+ */
+export function createSnapshotCacheLayer(options: {
+  readonly rootDir: string;
+}): EffectModule.Layer.Layer<
+  SnapshotCacheService,
+  never,
+  FileSystem | Path | Clock | Random
+> {
+  return effectRuntime.Layer.effect(
+    SnapshotCacheService,
+    effectRuntime.Effect.gen(function* () {
+      const fileSystem = yield* FileSystem;
+      const path = yield* Path;
+      const clock = yield* Clock;
+      const random = yield* Random;
+      const cache = createSnapshotCache(options.rootDir, {
+        fileSystem,
+        path,
+        clock,
+        random,
+      });
+      return createSnapshotCacheService(cache);
+    }),
+  ) as EffectModule.Layer.Layer<
+    SnapshotCacheService,
+    never,
+    FileSystem | Path | Clock | Random
+  >;
+}
+
+/** Composition helper when a cache has already been made with test doubles. */
+export function createSnapshotCacheLayerFromCache(
+  cache: SnapshotCache,
+): EffectModule.Layer.Layer<SnapshotCacheService, never, never> {
+  return effectRuntime.Layer.succeed(SnapshotCacheService, createSnapshotCacheService(cache));
+}
+
+export const SnapshotCacheServiceLive = createSnapshotCacheLayer;
+export const SnapshotServiceLive = createSnapshotCacheLayer;
+export const createSnapshotServiceLayer = createSnapshotCacheLayer;
+export const createFeedCacheLayer = createSnapshotCacheLayer;
+
+/** Adapt the Effect cache to the legacy synchronous sync engine. */
+export function toSyncSnapshotCache(
+  service: SnapshotCacheServiceShape,
+  runSync: <A>(effect: SnapshotEffect<A>) => A,
+): SnapshotCache {
+  return {
+    read: (accountId, feed) => runSync(service.read(accountId, feed)),
+    write: (accountId, feed, data, fetchedAt) =>
+      runSync(service.write(accountId, feed, data, fetchedAt)),
+  };
+}
+
+// Historical name retained for callers that use the adapter while the sync
+// scheduler is still promise-based. The adapted cache operations are actually
+// synchronous, matching SnapshotCache's original contract.
+export const toPromiseSnapshotCache = toSyncSnapshotCache;
