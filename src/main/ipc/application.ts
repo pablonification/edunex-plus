@@ -17,7 +17,7 @@ import { registerIpcOperations, type IpcAdapter } from "./adapter";
 
 export interface ApplicationIpcDependencies {
   readonly ipcMain: IpcMainService;
-  readonly runtime: ApplicationRuntime<any, any>;
+  readonly runtime: ApplicationRuntime<never, never>;
   showTestNotification(): void;
   getAppInfo(): AppInfo;
   readonly auth: {

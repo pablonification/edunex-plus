@@ -12,7 +12,9 @@ export function abortableOperation<A>(
 
   return new Promise<A>((resolve, reject) => {
     let settled = false;
-    const cleanup = () => signal.removeEventListener("abort", onAbort);
+    const cleanup = () => {
+      signal.removeEventListener("abort", onAbort);
+    };
     const settle = (complete: () => void) => {
       if (settled) return;
       settled = true;
@@ -25,7 +27,9 @@ export function abortableOperation<A>(
       } catch {
         // The host object may already be destroyed during application exit.
       }
-      settle(() => reject(new Error("host operation aborted")));
+      settle(() => {
+        reject(new Error("host operation aborted"));
+      });
     };
 
     if (signal.aborted) {
@@ -35,12 +39,23 @@ export function abortableOperation<A>(
     signal.addEventListener("abort", onAbort, { once: true });
 
     try {
-      void start().then(
-        (value) => settle(() => resolve(value)),
-        (error: unknown) => settle(() => reject(error)),
+      const operation = start();
+      void operation.then(
+        (value) => {
+          settle(() => {
+            resolve(value);
+          });
+        },
+        (error: unknown) => {
+          settle(() => {
+            reject(error instanceof Error ? error : new Error(String(error)));
+          });
+        },
       );
     } catch (error) {
-      settle(() => reject(error));
+      settle(() => {
+        reject(error instanceof Error ? error : new Error(String(error)));
+      });
     }
   });
 }

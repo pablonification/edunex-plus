@@ -585,9 +585,13 @@ function readWithTimeout(contents: WebContentsService, clock: ClockService) {
       const abortRead = (error: Error) => {
         if (settled) return;
         controller.abort();
-        settle(() => reject(error));
+        settle(() => {
+          reject(error);
+        });
       };
-      const onAbort = () => abortRead(new Error("auth read aborted"));
+      const onAbort = () => {
+        abortRead(new Error("auth read aborted"));
+      };
 
       if (signal.aborted) {
         onAbort();
@@ -595,14 +599,24 @@ function readWithTimeout(contents: WebContentsService, clock: ClockService) {
       }
       signal.addEventListener("abort", onAbort, { once: true });
       timer = clock.setTimeout(
-        () => abortRead(new Error("auth read timed out")),
+        () => {
+          abortRead(new Error("auth read timed out"));
+        },
         5000,
       );
       void contents
         .executeJavaScript("localStorage.getItem('auth')", true, controller.signal)
         .then(
-          (value) => settle(() => resolve(value)),
-          (error: unknown) => settle(() => reject(error)),
+          (value) => {
+            settle(() => {
+              resolve(value);
+            });
+          },
+          (error: unknown) => {
+            settle(() => {
+              reject(error instanceof Error ? error : new Error(String(error)));
+            });
+          },
         );
     });
 }
