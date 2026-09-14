@@ -12,7 +12,10 @@ import {
 import { createSnapshotCache } from "./sync/snapshot-cache";
 import { createSyncEngine, type SyncEngine } from "./sync/sync-engine";
 import { createNotificationStore } from "./notifications/notification-store";
-import { downloadMaterialFile } from "./materials/download";
+import {
+  createMaterialDownloadLayer,
+  MaterialDownloadService,
+} from "./materials/download";
 import { createInAppSink, createOsSink } from "./notifications/sinks";
 import { createTaskNotifier } from "./notifications/task-notifier";
 import { createPresenceNotifier } from "./notifications/presence-notifier";
@@ -20,7 +23,10 @@ import type { OutboundNotification } from "../shared/notifications";
 import { DEFAULT_SHELL_SETTINGS, NAV_VIEWS, isHideableNavKey } from "../shared/shell";
 import type { HideableNavKey } from "../shared/shell";
 import { loadShellSettings, saveShellSettings } from "./shell/settings-store";
-import { saveDraftAnswer, submitAnswer as submitTaskAnswer } from "./tasks/task-answers";
+import {
+  createTaskAnswerLayer,
+  TaskAnswerService,
+} from "./tasks/task-answers";
 import {
   createApplicationRuntime,
   composeApplicationLayer,
@@ -275,14 +281,35 @@ const authLayer = createAuthLayer({
   },
   runEffect: runAuthEffect,
   onUnauthorized: notifyAuthUnauthorized,
-}).pipe(effectRuntime.Layer.provideMerge(livePlatform.layer));
+});
+
+// Explicit Task Answer commands and Material downloads share the authenticated
+// session but are separate managed services. Keeping them in the same layer
+// graph makes the dependency and shutdown boundary explicit without giving
+// background sync access to either write service.
+const taskAnswerLayer = createTaskAnswerLayer().pipe(effectRuntime.Layer.provide(authLayer));
+const materialDownloadLayer = createMaterialDownloadLayer({
+  baseUrl: EDUNEX_API_BASE_URL,
+  userAgent: edunexUserAgent(platform.appVersion),
+}).pipe(effectRuntime.Layer.provide(authLayer));
+const applicationLayer = effectRuntime.Layer.mergeAll(
+  authLayer,
+  taskAnswerLayer,
+  materialDownloadLayer,
+).pipe(effectRuntime.Layer.provideMerge(livePlatform.layer));
 
 // Resolve the service once from the process-wide managed runtime. The service
 // itself owns all mutable session state; this controller is only a legacy
 // promise/callback adapter for existing main-process feature seams.
-const applicationRuntime = createApplicationRuntime(composeApplicationLayer(authLayer));
+const applicationRuntime = createApplicationRuntime(composeApplicationLayer(applicationLayer));
 applicationRuntimeRef = applicationRuntime;
 const resolvedAuthService = applicationRuntime.runSync(RuntimeEffect.service(AuthService));
+const resolvedTaskAnswerService = applicationRuntime.runSync(
+  RuntimeEffect.service(TaskAnswerService),
+);
+const resolvedMaterialDownloadService = applicationRuntime.runSync(
+  RuntimeEffect.service(MaterialDownloadService),
+);
 authService = resolvedAuthService;
 const authController = createAuthController({
   runtime: applicationRuntime,
@@ -440,21 +467,7 @@ if (!gotSingleInstanceLock) {
     sync: {
       read: (feed) => sync?.read(feed) ?? null,
     },
-    downloadMaterial: (request) =>
-      downloadMaterialFile(request, {
-        baseUrl: EDUNEX_API_BASE_URL,
-        getToken: () => authController.accessToken(),
-        userAgent: edunexUserAgent(platform.appVersion),
-        onUnauthorized: () => authController.handleUnauthorized(),
-        transport: services.httpTransport,
-        showSaveDialog: (options) =>
-          platform.showSaveDialog({
-            defaultPath: options.defaultPath,
-            createDirectory: true,
-            showOverwriteConfirmation: true,
-          }),
-        writeFile: (filePath, data) => fileSystem.writeBytes(filePath, data),
-      }),
+    materialDownloadService: resolvedMaterialDownloadService,
     shell: {
       getSettings: () => shellSettings,
       setViewHidden: (view, hidden) => {
@@ -524,15 +537,7 @@ if (!gotSingleInstanceLock) {
         }
       },
     },
-    tasks: {
-      saveDraft: async (input) =>
-        saveDraftAnswer(authController.api(), {
-          taskId: input.taskId,
-          answer: input.answer,
-          answerId: input.answerId ?? null,
-        }),
-      submit: (input) => submitTaskAnswer(authController.api(), input),
-    },
+    taskAnswerService: resolvedTaskAnswerService,
   });
 
   // Deliberate no-op while a tray exists: closing the window must not end the
