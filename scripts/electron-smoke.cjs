@@ -139,7 +139,7 @@ async function runElectronPhase() {
     if (phase === "online") {
       await exerciseOnline(window, downloadPath);
     } else {
-      await exerciseOffline(window);
+      await exerciseOffline(window, userDataDir);
     }
 
     verifyRequests(phase, requests, userAgentForVersion(app.getVersion()));
@@ -407,14 +407,22 @@ async function exerciseOnline(window, downloadPath) {
   );
 }
 
-async function exerciseOffline(window) {
+async function exerciseOffline(window, userDataDir) {
   const result = await execute(window, `
-    (async () => ({
-      auth: await window.edunex.getAuthState(),
-      todo: await window.edunex.getFeed("todo"),
-      materials: await window.edunex.getFeed("materials"),
-      notifications: await window.edunex.getNotifications(),
-    }))()
+    (async () => {
+      const auth = await window.edunex.getAuthState();
+      const todo = await window.edunex.getFeed("todo");
+      const materials = await window.edunex.getFeed("materials");
+      const notifications = await window.edunex.getNotifications();
+      await window.edunex.signOut();
+      return {
+        auth,
+        todo,
+        materials,
+        notifications,
+        authAfterSignOut: await window.edunex.getAuthState(),
+      };
+    })()
   `);
 
   assert(result.auth === "signed-in", "offline session restore did not remain signed-in");
@@ -423,6 +431,11 @@ async function exerciseOffline(window) {
   assert(
     result.notifications?.some((entry) => entry.taskIds?.includes(TASK_ID)),
     "offline notification history was not restored",
+  );
+  assert(result.authAfterSignOut === "signed-out", "Electron sign-out did not clear auth state");
+  assert(
+    !fs.existsSync(path.join(userDataDir, "auth-session.enc")),
+    "Electron sign-out did not clear the encrypted session",
   );
 }
 

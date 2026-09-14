@@ -357,6 +357,7 @@ if (!gotSingleInstanceLock) {
     auth: {
       status: () => authService.status(),
       startLogin: () => authService.startLogin(),
+      signOut: () => authService.signOut(),
       accountId: () => authService.accountId(),
     },
     sync: {

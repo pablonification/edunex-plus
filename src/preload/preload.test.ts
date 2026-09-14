@@ -22,6 +22,7 @@ vi.mock("electron", () => ({
 import "./preload";
 
 const bridge = electronMocks.exposeInMainWorld.mock.calls[0][1] as {
+  signOut(): Promise<void>;
   getFeed(feed: "todo" | "courses" | "exams" | "agenda" | "presences" | "materials"): Promise<FeedSnapshot | null>;
   onFeedUpdated(callback: (snapshot: FeedSnapshot) => void): () => void;
   downloadMaterial(request: {
@@ -43,6 +44,15 @@ const bridge = electronMocks.exposeInMainWorld.mock.calls[0][1] as {
   }>;
   submitAnswer(input: { answerId: string }): Promise<{ ok: boolean; status: number }>;
 };
+
+describe("preload auth bridge", () => {
+  it("routes sign-out through main's auth IPC channel", async () => {
+    electronMocks.invoke.mockResolvedValueOnce(undefined);
+
+    await expect(bridge.signOut()).resolves.toBeUndefined();
+    expect(electronMocks.invoke).toHaveBeenCalledWith("auth:sign-out");
+  });
+});
 
 describe("preload feed bridge", () => {
   it("reads a feed through main's cache IPC channel", async () => {
