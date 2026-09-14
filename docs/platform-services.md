@@ -18,6 +18,13 @@ bearer token in a synchronized redacted reference and exposes only status
 through the renderer IPC contract; the API adapter and safeStorage-backed
 session store remain main-process values.
 
+The explicit write/read-through workflows are also managed services:
+`TaskAnswerService` exposes separate save-draft and final-submit Effects, while
+`MaterialDownloadService` exposes the one-click file download. Both are wired
+to the authenticated session and have no retry or background scheduling. The
+material service receives HTTP, filesystem, and save-dialog capabilities from
+the platform layer; task-answer writes use the authenticated API adapter.
+
 `src/main/api/api-service.ts` exposes the read-only Cognisia operations through
 the `CognisiaService` Context key. The live layer obtains the bearer through
 `AuthService`'s accessor and builds its adapter from the injected
@@ -46,7 +53,11 @@ operation's established safe fallback, so schema details, tagged errors, and
 credentials never reach the renderer.
 
 The channel names and renderer-facing contracts remain unchanged. The
-application-specific registrations are in `ipc/application.ts`.
+application-specific registrations are in `ipc/application.ts`. Production
+registrations pass the managed task/material services to the adapter; the
+adapter runs each command in the application runtime, validates its input, and
+encodes the existing safe result shape. Compatibility callbacks remain
+available to focused tests and older main-process callers.
 
 ## Persistence
 
