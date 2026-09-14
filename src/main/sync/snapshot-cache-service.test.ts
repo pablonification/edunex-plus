@@ -12,7 +12,7 @@ import {
 import {
   SnapshotCacheService,
   createSnapshotCacheLayer,
-} from "./snapshot-cache-service";
+} from "./snapshot-cache";
 
 const runtimes: Array<ReturnType<typeof createApplicationRuntime>> = [];
 

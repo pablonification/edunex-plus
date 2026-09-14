@@ -2,10 +2,8 @@ import type * as EffectModule from "effect" with { "resolution-mode": "import" }
 import { effectRuntime } from "../effect/effect-runtime";
 import type { InAppNotification, OutboundNotification } from "../../shared/notifications";
 import { toInAppNotification } from "../../shared/notifications";
-import type { NotificationStore } from "./notification-store";
 import { NotificationPersistenceService } from "./persistence";
-import { Clock, ElectronPlatform, type ClockService } from "../platform/services";
-import { systemClock } from "../platform/node";
+import { Clock, ElectronPlatform } from "../platform/services";
 
 /**
  * The notification spine (#23, extended by #24): one sink interface, two
@@ -15,7 +13,7 @@ import { systemClock } from "../platform/node";
  * Presence-open alerts arrive one per window and are never coalesced.
  */
 export interface NotificationSink {
-  /** The account is optional for compatibility with the original sink seam. */
+  /** The account lets test sinks observe the partition used for delivery. */
   show(notification: OutboundNotification, accountId?: string): void;
 }
 
@@ -69,35 +67,6 @@ export function createRecordingSink(): NotificationSink & { shown: OutboundNotif
     shown,
     show: (notification) => {
       shown.push(notification);
-    },
-  };
-}
-
-export interface InAppSinkDeps {
-  storeFor: (accountId: string) => NotificationStore;
-  getAccountId: () => string | null;
-  broadcast: (accountId: string, entries: InAppNotification[]) => void;
-  createId?: () => string;
-  now?: () => number;
-  clock?: ClockService;
-}
-
-/** Second sink: persists the fallback feed entry and pushes it to the renderer. */
-export function createInAppSink(deps: InAppSinkDeps): NotificationSink {
-  let counter = 0;
-  return {
-    show(notification, explicitAccountId) {
-      const accountId = explicitAccountId ?? deps.getAccountId();
-      if (!accountId) return;
-      const clock = deps.now?.() ?? deps.clock?.now() ?? systemClock.now();
-      const createdId = deps.createId?.() ?? `inapp-${clock}-${(counter += 1)}`;
-      const entry = toInAppNotification(notification, createdId);
-      try {
-        const entries = deps.storeFor(accountId).append(entry);
-        deps.broadcast(accountId, entries);
-      } catch (error) {
-        console.error("[notifications] in-app sink failed:", error);
-      }
     },
   };
 }

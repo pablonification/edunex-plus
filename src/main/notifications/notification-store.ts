@@ -1,5 +1,4 @@
 import type { InAppNotification } from "../../shared/notifications";
-import { nodeFileSystem, nodePath, systemClock, systemRandom } from "../platform/node";
 import type { ClockService, FileSystemService, PathService, RandomService } from "../platform/services";
 
 interface StoredFeed {
@@ -14,7 +13,7 @@ export const MAX_IN_APP_NOTIFICATIONS = 100;
 export function notificationFeedFileFor(
   rootDir: string,
   accountId: string,
-  pathService: PathService = nodePath,
+  pathService: PathService,
 ): string {
   return pathService.join(rootDir, safePathSegment(accountId), "notifications.json");
 }
@@ -33,21 +32,18 @@ export interface NotificationStore {
 }
 
 export interface NotificationStoreServices {
-  readonly fileSystem?: FileSystemService;
-  readonly path?: PathService;
-  readonly clock?: ClockService;
-  readonly random?: RandomService;
+  readonly fileSystem: FileSystemService;
+  readonly path: PathService;
+  readonly clock: ClockService;
+  readonly random: RandomService;
 }
 
 export function createNotificationStore(
   rootDir: string,
   accountId: string,
-  services: NotificationStoreServices = {},
+  services: NotificationStoreServices,
 ): NotificationStore {
-  const fileSystem = services.fileSystem ?? nodeFileSystem;
-  const pathService = services.path ?? nodePath;
-  const clock = services.clock ?? systemClock;
-  const random = services.random ?? systemRandom;
+  const { fileSystem, path: pathService, clock, random } = services;
   const filePath = notificationFeedFileFor(rootDir, accountId, pathService);
 
   function load(): InAppNotification[] {

@@ -6,7 +6,6 @@ import { isMaterialDownloadRequest } from "../../shared/materials";
 import type * as EffectModule from "effect" with { "resolution-mode": "import" };
 import { effectRuntime } from "../effect/effect-runtime";
 import { AuthService, type AuthServiceShape } from "../auth/auth-service";
-import { fetchTransport } from "../platform/node";
 import {
   ElectronPlatform,
   FileSystem,
@@ -96,13 +95,17 @@ export async function downloadMaterialFile(
     return { ok: false, error: "Download cancelled.", cancelled: true };
   }
 
-  const transport: HttpTransportService =
+  const fetchImpl = deps.fetchImpl;
+  const transport: HttpTransportService | null =
     deps.transport ??
-    (deps.fetchImpl
+    (fetchImpl
       ? {
-          request: (requestUrl, init) => deps.fetchImpl!(requestUrl, init),
+          request: (requestUrl, init) => fetchImpl(requestUrl, init),
         }
-      : fetchTransport);
+      : null);
+  if (!transport) {
+    return { ok: false, error: "Download failed — check your connection and try again." };
+  }
   let response;
   try {
     const headers = new Headers({ "User-Agent": deps.userAgent });

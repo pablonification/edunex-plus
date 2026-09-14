@@ -1,4 +1,3 @@
-import { nodeFileSystem, nodePath, systemClock, systemRandom } from "../platform/node";
 import type { ClockService, FileSystemService, PathService, RandomService } from "../platform/services";
 
 interface StoredPresenceLedger {
@@ -30,26 +29,25 @@ export interface PresenceLedger {
 export function presenceLedgerFileFor(
   rootDir: string,
   accountId: string,
-  pathService: PathService = nodePath,
+  pathService: PathService,
 ): string {
   return pathService.join(rootDir, safePathSegment(accountId), "seen-presence.json");
 }
 
 export interface PresenceLedgerServices {
-  readonly fileSystem?: FileSystemService;
-  readonly path?: PathService;
-  readonly clock?: ClockService;
-  readonly random?: RandomService;
+  readonly fileSystem: FileSystemService;
+  readonly path: PathService;
+  readonly clock: ClockService;
+  readonly random: RandomService;
 }
 
 /** Reads the existing version-1 Presence ledger; corrupt data starts empty. */
 export function readPresenceLedger(
   rootDir: string,
   accountId: string,
-  services: PresenceLedgerServices = {},
+  services: PresenceLedgerServices,
 ): PresenceLedgerSnapshot {
-  const fileSystem = services.fileSystem ?? nodeFileSystem;
-  const pathService = services.path ?? nodePath;
+  const { fileSystem, path: pathService } = services;
   try {
     const stored = JSON.parse(
       fileSystem.readText(presenceLedgerFileFor(rootDir, accountId, pathService)),
@@ -66,12 +64,9 @@ export function writePresenceLedger(
   rootDir: string,
   accountId: string,
   seenIds: Iterable<string>,
-  services: PresenceLedgerServices = {},
+  services: PresenceLedgerServices,
 ): void {
-  const fileSystem = services.fileSystem ?? nodeFileSystem;
-  const pathService = services.path ?? nodePath;
-  const clock = services.clock ?? systemClock;
-  const random = services.random ?? systemRandom;
+  const { fileSystem, path: pathService, clock, random } = services;
   const stored: StoredPresenceLedger = {
     version: 1,
     accountId,
@@ -87,12 +82,9 @@ export function writePresenceLedger(
 export function createPresenceLedger(
   rootDir: string,
   accountId: string,
-  services: PresenceLedgerServices = {},
+  services: PresenceLedgerServices,
 ): PresenceLedger {
-  const fileSystem = services.fileSystem ?? nodeFileSystem;
-  const pathService = services.path ?? nodePath;
-  const clock = services.clock ?? systemClock;
-  const random = services.random ?? systemRandom;
+  const { fileSystem, path: pathService, clock, random } = services;
   const seen = new Set(
     readPresenceLedger(rootDir, accountId, {
       fileSystem,

@@ -4,19 +4,9 @@ import { formatSafeCause } from "../effect/conventions";
 import {
   ACTIVE_COURSES_PATH,
   type ApiResult,
-  type EdunexApi,
-  type EdunexDataApi,
 } from "../api/client";
-import type { TaskNotifier } from "../notifications/task-notifier";
-import type { PresenceNotifier } from "../notifications/presence-notifier";
 import { extractPresenceWindows, nextPresenceDelay } from "../notifications/presence-detector";
-import {
-  FEED_KEYS,
-  type FeedKey,
-  type FeedSnapshot,
-} from "../../shared/feeds";
-import type { SnapshotCache } from "./snapshot-cache";
-import { systemClock, systemRandom } from "../platform/node";
+import { type FeedKey, type FeedSnapshot } from "../../shared/feeds";
 import {
   AuthService,
   type AuthServiceShape,
@@ -54,319 +44,16 @@ export const FEED_ENDPOINTS: ReadonlyArray<{ key: FeedKey; path: string }> = [
   { key: "materials", path: "/course/materials" },
 ];
 
+function isSuccessful(result: ApiResult) {
+  return result.ok;
+}
+
 export type SyncTickKind = "success" | "failed" | "unauthorized" | "not-ready" | "stopped";
 
 export interface SyncTickResult {
   kind: SyncTickKind;
   updated: FeedSnapshot[];
   failedFeeds: FeedKey[];
-}
-
-export interface SyncEngineOptions {
-  api: Pick<EdunexApi, "get"> &
-    Partial<Pick<EdunexDataApi, "getTodo" | "getCourses" | "getExams" | "getAgenda" | "getPresences" | "getMaterials">>;
-  cache: SnapshotCache;
-  /** The authenticated account whose snapshots this engine owns. */
-  getAccountId?: () => string | null;
-  /** Convenience for callers that own a single fixed account in a test. */
-  accountId?: string;
-  onFeedUpdated?: (snapshot: FeedSnapshot) => void;
-  /** The auth controller pauses the session on real API 401s. */
-  onUnauthorized?: () => void;
-  /**
-   * New-Task detection (#23). When present, the tick hands the pre-write
-   * `/todo` snapshot and the fresh payload to the notifier after a
-   * successful cache write; the notifier owns the silent-baseline, digest,
-   * ledger, and sink fan-out. Failures inside never fail the tick.
-   */
-  taskNotifier?: Pick<TaskNotifier, "handleSync">;
-  /**
-   * Presence-open detection (#24). When present, the tick hands the fresh
-   * agenda payload to the notifier after a successful cache write; the
-   * notifier emits one immediate alert per newly opened window (never a
-   * digest) and the scheduler event-aligns the next tick to the nearest
-   * future window opening. Failures inside never fail the tick.
-   */
-  presenceNotifier?: Pick<PresenceNotifier, "handleSync">;
-  clock?: ClockService;
-  randomService?: RandomService;
-  now?: () => number;
-  random?: () => number;
-  setTimer?: (callback: () => void, delayMs: number) => ReturnType<typeof setTimeout>;
-  clearTimer?: (timer: ReturnType<typeof setTimeout>) => void;
-  intervalMs?: number;
-  jitterMs?: number;
-  minIntervalMs?: number;
-  maxBackoffMs?: number;
-}
-
-export interface SyncEngine {
-  /** Starts one immediate tick and keeps ticking independently of the window. */
-  start(): boolean;
-  stop(): void;
-  isRunning(): boolean;
-  /** Runs exactly one tick. It does not add a timer when called directly. */
-  tick(): Promise<SyncTickResult>;
-  /** Reads the current account's persisted snapshot without touching the API. */
-  read(feed: FeedKey): FeedSnapshot | null;
-}
-
-/**
- * Main-process polling loop. It has no Electron/window dependency, so the
- * same engine continues while a BrowserWindow is hidden in the tray and can
- * be tested against a fake API at the network boundary.
- */
-export function createSyncEngine(options: SyncEngineOptions): SyncEngine {
-  const clock = options.clock ?? systemClock;
-  const random = options.random ?? (() => options.randomService?.next() ?? systemRandom.next());
-  const setTimer = options.setTimer ?? ((callback, delayMs) =>
-    clock.setTimeout(callback, delayMs) as ReturnType<typeof setTimeout>);
-  const clearTimer = options.clearTimer ?? ((timer) => clock.clearTimeout(timer));
-  const now = options.now ?? (() => clock.now());
-  const intervalMs = options.intervalMs ?? DEFAULT_SYNC_INTERVAL_MS;
-  const jitterMs = options.jitterMs ?? DEFAULT_SYNC_JITTER_MS;
-  const minIntervalMs = Math.max(options.minIntervalMs ?? MIN_SYNC_INTERVAL_MS, 0);
-  const maxBackoffMs = Math.max(options.maxBackoffMs ?? DEFAULT_MAX_BACKOFF_MS, minIntervalMs);
-
-  let running = false;
-  let inFlight = false;
-  let timer: ReturnType<typeof setTimeout> | null = null;
-  let generation = 0;
-  let consecutiveFailures = 0;
-
-  function getAccountId() {
-    const accountId = options.getAccountId?.() ?? options.accountId ?? null;
-    return accountId && accountId.length > 0 ? accountId : null;
-  }
-
-  function isActive(runGeneration: number) {
-    return running && generation === runGeneration;
-  }
-
-  function nextRegularDelay() {
-    const randomValue = random();
-    const boundedRandom = Number.isFinite(randomValue)
-      ? Math.min(1, Math.max(0, randomValue))
-      : 0.5;
-    const jittered = intervalMs - jitterMs + Math.floor(boundedRandom * jitterMs * 2);
-    return Math.max(minIntervalMs, Math.round(jittered));
-  }
-
-  function nextBackoffDelay() {
-    const exponential = intervalMs * 2 ** consecutiveFailures;
-    return Math.min(maxBackoffMs, Math.max(minIntervalMs, exponential));
-  }
-
-  /**
-   * Success cadence (#24): the regular jittered tick, event-aligned to the
-   * nearest future Presence window opening so a window opening between
-   * ticks is caught at the right tick (opening + 1.5s grace) without
-   * faster polling. Falls back to the regular delay when no future
-   * window is known or the agenda read fails.
-   */
-  function nextSuccessDelay() {
-    const regular = nextRegularDelay();
-    if (!options.presenceNotifier) return regular;
-    try {
-      const accountId = getAccountId();
-      if (!accountId) return regular;
-      const agendaData = options.cache.read(accountId, "agenda")?.data;
-      if (agendaData == null) return regular;
-      const { delayMs } = nextPresenceDelay(
-        extractPresenceWindows(agendaData),
-        now(),
-        regular,
-      );
-      return Math.max(minIntervalMs, Math.min(maxBackoffMs, delayMs));
-    } catch (error) {
-      console.error("[sync] presence alignment failed:", error);
-      return regular;
-    }
-  }
-
-  function schedule(runGeneration: number, delayMs: number) {
-    if (!isActive(runGeneration)) return;
-    if (timer) clearTimer(timer);
-    timer = setTimer(() => {
-      timer = null;
-      void runScheduledTick(runGeneration);
-    }, delayMs);
-  }
-
-  function fetchFeed(key: FeedKey, path: string) {
-    if (key === "todo" && options.api.getTodo) return options.api.getTodo();
-    if (key === "courses" && options.api.getCourses) return options.api.getCourses();
-    if (key === "exams" && options.api.getExams) return options.api.getExams();
-    if (key === "agenda" && options.api.getAgenda) return options.api.getAgenda();
-    if (key === "presences" && options.api.getPresences) return options.api.getPresences();
-    if (key === "materials" && options.api.getMaterials) return options.api.getMaterials();
-    return options.api.get(path);
-  }
-
-  function stop() {
-    running = false;
-    generation += 1;
-    if (timer) {
-      clearTimer(timer);
-      timer = null;
-    }
-  }
-
-  async function runScheduledTick(runGeneration: number) {
-    if (!isActive(runGeneration) || inFlight) return;
-    const result = await performTick(runGeneration);
-    if (!isActive(runGeneration)) return;
-    if (result.kind === "stopped" || result.kind === "unauthorized") return;
-    schedule(
-      runGeneration,
-      result.kind === "failed" ? nextBackoffDelay() : nextSuccessDelay(),
-    );
-  }
-
-  async function performTick(runGeneration: number | null): Promise<SyncTickResult> {
-    if (runGeneration !== null && !isActive(runGeneration)) {
-      return { kind: "stopped", updated: [], failedFeeds: [] };
-    }
-    if (inFlight) return { kind: "stopped", updated: [], failedFeeds: [] };
-
-    const accountId = getAccountId();
-    if (!accountId) return { kind: "not-ready", updated: [], failedFeeds: [] };
-
-    inFlight = true;
-    try {
-      let responses: Array<{ key: FeedKey; result: ApiResult }>;
-      try {
-        responses = await Promise.all(
-          FEED_ENDPOINTS.map(async ({ key, path }) => ({
-            key,
-            result: await fetchFeed(key, path),
-          })),
-        );
-      } catch {
-        consecutiveFailures += 1;
-        return { kind: "failed", updated: [], failedFeeds: [...FEED_KEYS] };
-      }
-
-      if (runGeneration !== null && !isActive(runGeneration)) {
-        return { kind: "stopped", updated: [], failedFeeds: [] };
-      }
-
-      if (responses.some(({ result }) => result.status === 401)) {
-        stop();
-        safelyCallUnauthorized();
-        return { kind: "unauthorized", updated: [], failedFeeds: [] };
-      }
-
-      const failedFeeds = responses
-        .filter(({ result }) => !isSuccessful(result) || result.body == null)
-        .map(({ key }) => key);
-      const updated: FeedSnapshot[] = [];
-      const fetchedAt = new Date(now()).toISOString();
-      const prevTodoData = options.taskNotifier
-        ? safelyReadTodoForDiff(accountId)
-        : null;
-
-      for (const { key, result } of responses) {
-        if (!isSuccessful(result) || result.body == null) continue;
-        try {
-          const snapshot = options.cache.write(
-            accountId,
-            key,
-            result.body,
-            fetchedAt,
-          );
-          updated.push(snapshot);
-          safelyCallFeedUpdated(snapshot);
-          if (key === "todo" && options.taskNotifier) {
-            safelyNotifyNewTasks(accountId, prevTodoData, result.body);
-          }
-          if (key === "agenda" && options.presenceNotifier) {
-            safelyNotifyPresence(accountId, result.body);
-          }
-        } catch {
-          if (!failedFeeds.includes(key)) failedFeeds.push(key);
-        }
-      }
-
-      if (failedFeeds.length > 0) {
-        consecutiveFailures += 1;
-        return { kind: "failed", updated, failedFeeds };
-      }
-
-      consecutiveFailures = 0;
-      return { kind: "success", updated, failedFeeds: [] };
-    } finally {
-      inFlight = false;
-    }
-  }
-
-  function safelyCallUnauthorized() {
-    try {
-      options.onUnauthorized?.();
-    } catch (error) {
-      console.error("[sync] unauthorized handler failed:", error);
-    }
-  }
-
-  function safelyCallFeedUpdated(snapshot: FeedSnapshot) {
-    try {
-      options.onFeedUpdated?.(snapshot);
-    } catch (error) {
-      console.error("[sync] feed update handler failed:", error);
-    }
-  }
-
-  function safelyReadTodoForDiff(accountId: string): unknown {
-    try {
-      return options.cache.read(accountId, "todo")?.data ?? null;
-    } catch (error) {
-      console.error("[sync] todo diff baseline read failed:", error);
-      return null;
-    }
-  }
-
-  function safelyNotifyNewTasks(accountId: string, prevData: unknown, nextData: unknown) {
-    try {
-      options.taskNotifier?.handleSync(accountId, prevData, nextData);
-    } catch (error) {
-      console.error("[sync] task notification failed:", error);
-    }
-  }
-
-  function safelyNotifyPresence(accountId: string, agendaData: unknown) {
-    try {
-      options.presenceNotifier?.handleSync(accountId, agendaData);
-    } catch (error) {
-      console.error("[sync] presence notification failed:", error);
-    }
-  }
-
-  return {
-    start() {
-      if (running) return false;
-      running = true;
-      consecutiveFailures = 0;
-      generation += 1;
-      const runGeneration = generation;
-      void runScheduledTick(runGeneration);
-      return true;
-    },
-
-    stop,
-
-    isRunning: () => running,
-
-    tick: () => performTick(null),
-
-    read(feed) {
-      const accountId = getAccountId();
-      return accountId ? options.cache.read(accountId, feed) : null;
-    },
-  };
-}
-
-function isSuccessful(result: ApiResult) {
-  return result.ok || (result.status >= 200 && result.status < 300);
 }
 
 // ---------------------------------------------------------------------------
@@ -403,10 +90,7 @@ export interface SyncServiceOptions {
   readonly maxBackoffMs?: number;
   /** Main-process publication boundary; never runs in the renderer. */
   readonly onFeedUpdated?: (snapshot: FeedSnapshot) => void;
-  /** Compatibility notification adapters for focused tests/older callers. */
-  readonly taskNotifier?: Pick<TaskNotifier, "handleSync">;
-  readonly presenceNotifier?: Pick<PresenceNotifier, "handleSync">;
-  /** Set false only for a host that deliberately has no Presence notifier. */
+  /** Set false only for a host that deliberately has no notification service. */
   readonly alignPresence?: boolean;
 }
 
@@ -514,8 +198,7 @@ function createSyncServiceFromDependencies(
     options.maxBackoffMs ?? DEFAULT_MAX_BACKOFF_MS,
     minIntervalMs,
   );
-  const alignPresence = options.alignPresence ??
-    Boolean(dependencies.notifications || options.presenceNotifier);
+  const alignPresence = options.alignPresence ?? Boolean(dependencies.notifications);
   // Lifecycle transitions are pure atomic updates. A plain Ref keeps the
   // auth callback's start/stop boundary synchronous, so a sign-out can bump
   // the generation before a late HTTP promise settles.
@@ -669,9 +352,7 @@ function createSyncServiceFromDependencies(
         .map(({ key }) => key);
       const updated: FeedSnapshot[] = [];
       const fetchedAt = new Date(dependencies.clock.now()).toISOString();
-      const notificationEnabled = Boolean(
-        dependencies.notifications || options.taskNotifier,
-      );
+      const notificationEnabled = Boolean(dependencies.notifications);
       const previousTodo = notificationEnabled
         ? yield* readSnapshot(accountId, "todo").pipe(
             effectRuntime.Effect.map((snapshot) => snapshot?.data ?? null),
@@ -893,15 +574,10 @@ function createSyncServiceFromDependencies(
   ): SyncEffect<void> {
     return effectRuntime.Effect.gen(function* () {
       if (!(yield* sessionIsCurrent(claim, accountId))) return;
-      if (dependencies.notifications) {
-        yield* isolateOrdinary(
-          dependencies.notifications.handleTaskSync(accountId, previous, current),
-        );
-      } else {
-        yield* isolateOrdinary(
-          effectRuntime.Effect.sync(() => options.taskNotifier?.handleSync(accountId, previous, current)),
-        );
-      }
+      if (!dependencies.notifications) return;
+      yield* isolateOrdinary(
+        dependencies.notifications.handleTaskSync(accountId, previous, current),
+      );
     });
   }
 
@@ -912,15 +588,10 @@ function createSyncServiceFromDependencies(
   ): SyncEffect<void> {
     return effectRuntime.Effect.gen(function* () {
       if (!(yield* sessionIsCurrent(claim, accountId))) return;
-      if (dependencies.notifications) {
-        yield* isolateOrdinary(
-          dependencies.notifications.handlePresenceSync(accountId, current),
-        );
-      } else {
-        yield* isolateOrdinary(
-          effectRuntime.Effect.sync(() => options.presenceNotifier?.handleSync(accountId, current)),
-        );
-      }
+      if (!dependencies.notifications) return;
+      yield* isolateOrdinary(
+        dependencies.notifications.handlePresenceSync(accountId, current),
+      );
     });
   }
 

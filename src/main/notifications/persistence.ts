@@ -88,16 +88,16 @@ export type NotificationHistoryServiceShape = NotificationPersistenceServiceShap
 export type NotificationStateServiceShape = NotificationPersistenceServiceShape;
 
 export interface NotificationPersistenceServices {
-  readonly fileSystem?: FileSystemService;
-  readonly path?: PathService;
-  readonly clock?: ClockService;
-  readonly random?: RandomService;
+  readonly fileSystem: FileSystemService;
+  readonly path: PathService;
+  readonly clock: ClockService;
+  readonly random: RandomService;
 }
 
 export interface NotificationPersistenceServiceOptions {
   readonly ledgerRoot: string;
   readonly feedRoot: string;
-  readonly services?: NotificationPersistenceServices;
+  readonly services: NotificationPersistenceServices;
   /** Test adapter for the in-app feed; production uses the validated store. */
   readonly storeFor?: (accountId: string) => NotificationStore;
 }
@@ -111,12 +111,9 @@ export interface NotificationPersistenceServiceOptions {
 export function createNotificationPersistenceService(
   options: NotificationPersistenceServiceOptions,
 ): NotificationPersistenceServiceShape {
-  const fileSystem = options.services?.fileSystem;
-  const path = options.services?.path;
-  const clock = options.services?.clock;
-  const random = options.services?.random;
-  const persistence: SeenLedgerServices = { fileSystem, path, clock, random };
-  const presencePersistence: PresenceLedgerServices = { fileSystem, path, clock, random };
+  const { fileSystem, path, clock, random } = options.services;
+  const persistence: SeenLedgerServices = options.services;
+  const presencePersistence: PresenceLedgerServices = options.services;
   const storeFor =
     options.storeFor ??
     ((accountId: string) =>

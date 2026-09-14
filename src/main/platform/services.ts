@@ -62,7 +62,7 @@ export type IpcHandlerService = (
 
 export interface IpcMainService {
   handle(channel: string, handler: IpcHandlerService): void;
-  removeHandler?(channel: string): void;
+  removeHandler(channel: string): void;
 }
 
 export interface WebContentsService {
@@ -70,7 +70,11 @@ export interface WebContentsService {
   send(channel: string, payload?: unknown): void;
   setWindowOpenHandler(handler: (details: { url: string }) => { action: "deny" | "allow" }): void;
   loadURL(url: string): Promise<void>;
-  executeJavaScript(script: string, userGesture?: boolean): Promise<unknown>;
+  executeJavaScript(
+    script: string,
+    userGesture?: boolean,
+    signal?: AbortSignal,
+  ): Promise<unknown>;
   on(
     event: "did-navigate" | "did-navigate-in-page",
     listener: (event: unknown, url: string) => void,
@@ -120,6 +124,16 @@ export interface TrayService {
 export interface NotificationService {
   on(event: "click", listener: () => void): void;
   show(): void;
+}
+
+/** Renderer-independent menu data understood by the Electron adapter. */
+export interface MenuItemTemplate {
+  readonly label?: string;
+  readonly role?: string;
+  readonly type?: "separator";
+  readonly accelerator?: string;
+  readonly click?: () => void;
+  readonly submenu?: readonly MenuItemTemplate[];
 }
 
 export interface SaveDialogResultService {

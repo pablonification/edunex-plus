@@ -3,7 +3,12 @@ import { effectRuntime } from "../effect/effect-runtime";
 import { sensitiveString, type SensitiveString } from "../effect/conventions";
 import type { ApiResult, EdunexDataApi } from "../api/client";
 import { createEdunexApi } from "../api/client";
-import { createAuthCapture, type AuthCapture } from "./capture";
+import {
+  createAuthCapture,
+  type AuthCapture,
+  type AuthCaptureEffect,
+  type AuthCaptureFiber,
+} from "./capture";
 import { createSessionStore, type SessionCodec } from "./session-store";
 import type { AuthStatus, CapturedAuth } from "../../shared/auth";
 import {
@@ -82,13 +87,10 @@ export interface AuthServiceOptions {
   /** Push only the public status to the renderer. */
   readonly broadcast: (status: AuthStatus) => void;
   /**
-   * Runtime bridge for callbacks originating in promise-based host APIs.
-   * The production main process supplies the managed runtime; unit tests can
-   * omit it and the service uses Effect's standalone runner.
+   * Runtime bridge for capture fibers started by promise-based host events.
+   * The production main process supplies the process runtime's managed fork.
    */
-  readonly runEffect?: <A>(effect: AuthEffect<A>) => Promise<A> | void;
-  /** Called by the API adapter when a non-verification request sees a 401. */
-  readonly onUnauthorized?: () => void;
+  readonly forkEffect?: (effect: AuthCaptureEffect) => AuthCaptureFiber | undefined;
 }
 
 export type AuthLayer = EffectModule.Layer.Layer<
@@ -128,10 +130,10 @@ export function createAuthLayer(options: AuthServiceOptions): AuthLayer {
       // handled by the verification Effect itself, which avoids racing the
       // restore/capture transition with an out-of-band callback.
       const verificationApi = createEdunexApi(apiOptions);
-      const api = createEdunexApi({
-        ...apiOptions,
-        onUnauthorized: options.onUnauthorized,
-      });
+      // Command and sync services handle a 401 in their own managed Effect.
+      // Keeping this adapter callback-free prevents an HTTP promise from
+      // re-entering the runtime through a second runSync call.
+      const api = createEdunexApi(apiOptions);
 
       const service = createService({
         api,
@@ -269,6 +271,7 @@ function createService(deps: {
         },
       );
       if (!changed) return;
+      yield* stopCaptures();
       yield* clearStore();
       yield* broadcast("session-expired");
     });
@@ -276,6 +279,7 @@ function createService(deps: {
 
   function signOut(): AuthEffect<void> {
     return effectRuntime.Effect.gen(function* () {
+      yield* stopCaptures();
       yield* clearStore();
       yield* transition((current) => ({
         ...current,
@@ -299,42 +303,49 @@ function createService(deps: {
         return { action: "deny" };
       });
 
-      const capture = createAuthCapture(readWithTimeout(contents, clock), {
-        intervalMs: 1000,
-        clock,
-      });
+      const capture = options.forkEffect
+        ? createAuthCapture(readWithTimeout(contents, clock), {
+            intervalMs: 1000,
+            clock,
+            fork: (effect) => {
+              const fiber = options.forkEffect?.(effect);
+              if (!fiber) throw new Error("runtime unavailable");
+              return fiber;
+            },
+          })
+        : null;
       const maybeStart = (url: string) => {
         if (isEdunexOrigin(url)) {
-          if (capture.start(onCaptured)) {
+          if (capture?.start(onCaptured)) {
             // URLs can carry bearer material in their query; log only a path.
             console.log("[auth] polling for localStorage.auth on", new URL(url).pathname);
+          } else if (!capture) {
+            console.error("[auth] webview capture skipped: runtime unavailable");
           }
         } else {
-          capture.stop();
+          capture?.stop();
         }
       };
 
       contents.on("did-navigate", (_event, url) => maybeStart(url));
       contents.on("did-navigate-in-page", (_event, url) => maybeStart(url));
       contents.once("destroyed", () => {
-        capture.stop();
-        if (captures.get(contents.id) === capture) captures.delete(contents.id);
+        capture?.stop();
+        if (capture && captures.get(contents.id) === capture) captures.delete(contents.id);
       });
-      captures.set(contents.id, capture);
+      if (capture) captures.set(contents.id, capture);
     });
 
-    function onCaptured(auth: CapturedAuth) {
+    function onCaptured(auth: CapturedAuth): AuthCaptureEffect {
       console.log("[auth] session captured from webview, verifying");
-      const effect = capture(auth);
-      try {
-        const result = options.runEffect?.(effect) ?? effectRuntime.Effect.runPromise(effect);
-        void Promise.resolve(result).catch(() => {
-          console.error("[auth] captured session verification failed");
-        });
-      } catch {
-        console.error("[auth] captured session verification failed");
-      }
+      return capture(auth);
     }
+  }
+
+  function stopCaptures(): AuthEffect<void> {
+    return effectRuntime.Effect.sync(() => {
+      for (const capture of captures.values()) capture.stop();
+    });
   }
 
   function installSession(auth: CapturedAuth): AuthEffect<number> {
@@ -552,19 +563,59 @@ function isEdunexOrigin(url: string): boolean {
 
 /** Every read must settle so a wedged frame cannot stop future polls. */
 function readWithTimeout(contents: WebContentsService, clock: ClockService) {
-  return () =>
+  return (signal: AbortSignal) =>
     new Promise<unknown>((resolve, reject) => {
-      const timer = clock.setTimeout(() => reject(new Error("auth read timed out")), 5000);
-      contents
-        .executeJavaScript("localStorage.getItem('auth')", true)
+      const controller = new AbortController();
+      let timer: unknown = null;
+      let settled = false;
+
+      const cleanup = () => {
+        if (timer !== null) {
+          clock.clearTimeout(timer);
+          timer = null;
+        }
+        signal.removeEventListener("abort", onAbort);
+      };
+      const settle = (complete: () => void) => {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        complete();
+      };
+      const abortRead = (error: Error) => {
+        if (settled) return;
+        controller.abort();
+        settle(() => {
+          reject(error);
+        });
+      };
+      const onAbort = () => {
+        abortRead(new Error("auth read aborted"));
+      };
+
+      if (signal.aborted) {
+        onAbort();
+        return;
+      }
+      signal.addEventListener("abort", onAbort, { once: true });
+      timer = clock.setTimeout(
+        () => {
+          abortRead(new Error("auth read timed out"));
+        },
+        5000,
+      );
+      void contents
+        .executeJavaScript("localStorage.getItem('auth')", true, controller.signal)
         .then(
           (value) => {
-            clock.clearTimeout(timer);
-            resolve(value);
+            settle(() => {
+              resolve(value);
+            });
           },
           (error: unknown) => {
-            clock.clearTimeout(timer);
-            reject(error);
+            settle(() => {
+              reject(error instanceof Error ? error : new Error(String(error)));
+            });
           },
         );
     });

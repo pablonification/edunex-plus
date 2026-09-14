@@ -15,6 +15,7 @@ import {
   type IpcHandlerService,
   type IpcMainService,
   type SafeStorageService,
+  type WebContentsService,
 } from "../platform/services";
 import { registerApplicationIpc } from "../ipc/application";
 
@@ -205,20 +206,27 @@ describe("Effect auth service", () => {
         notificationsSupported: false,
       }),
       auth: {
-        status: () => h.runtime.runSync(h.service.status()),
-        startLogin: () => undefined,
+        status: () => h.service.status(),
+        startLogin: () => h.service.startLogin(),
+        accountId: () => h.service.accountId(),
       },
-      sync: { read: () => null },
-      downloadMaterial: async () => ({ ok: false, error: "not used" }),
+      sync: { read: () => Effect.succeed(null) },
+      materialDownloadService: { download: () => Effect.succeed({ ok: false, error: "not used" }) },
       shell: {
         getSettings: () => ({ hiddenViews: [], quitOnClose: false }),
         setViewHidden: () => ({ hiddenViews: [], quitOnClose: false }),
         setQuitOnClose: () => ({ hiddenViews: [], quitOnClose: false }),
       },
-      notifications: { get: () => [], markRead: () => [], markAllRead: () => [] },
-      tasks: {
-        saveDraft: async () => ({ ok: false, status: 0, created: false, answerId: null }),
-        submit: async () => ({ ok: false, status: 0 }),
+      notifications: {
+        service: {
+          list: () => Effect.succeed([]),
+          markRead: () => Effect.succeed([]),
+          markAllRead: () => Effect.succeed([]),
+        },
+      },
+      taskAnswerService: {
+        saveDraft: () => Effect.succeed({ ok: false, status: 0, created: false, answerId: null }),
+        submit: () => Effect.succeed({ ok: false, status: 0 }),
       },
     });
 
@@ -230,6 +238,83 @@ describe("Effect auth service", () => {
     expect(JSON.stringify(h.service)).not.toContain(session.refreshToken);
 
     adapter.unregister();
+  });
+
+  it("interrupts a pending webview read when the application runtime shuts down", async () => {
+    vi.useFakeTimers();
+    const files = new Map<string, Uint8Array>();
+    const broadcast = vi.fn<(status: string) => void>();
+    const clearTimeoutSpy = vi.fn();
+    let readSignal: AbortSignal | undefined;
+    let resolveRead: (value: unknown) => void = () => undefined;
+    const executeJavaScript = vi.fn(
+      (_script: string, _userGesture?: boolean, signal?: AbortSignal) => {
+        readSignal = signal;
+        return new Promise<unknown>((resolve) => {
+          resolveRead = resolve;
+        });
+      },
+    );
+    const navigateListeners: Array<(event: unknown, url: string) => void> = [];
+    const contents: WebContentsService = {
+      id: 42,
+      send: () => undefined,
+      setWindowOpenHandler: () => ({ action: "deny" }),
+      loadURL: async () => undefined,
+      executeJavaScript,
+      on(event, listener) {
+        if (event === "did-navigate") {
+          navigateListeners.push(listener as (event: unknown, url: string) => void);
+        }
+      },
+      once: () => undefined,
+    };
+    const clock: ClockService = {
+      now: () => 1_700_000_000_000,
+      setTimeout: (callback, delayMs) => setTimeout(callback, delayMs),
+      clearTimeout: (timer) => {
+        clearTimeoutSpy();
+        clearTimeout(timer as ReturnType<typeof setTimeout>);
+      },
+    };
+    const platformLayer = Layer.mergeAll(
+      Layer.succeed(FileSystem, createMemoryFileSystem(files)),
+      Layer.succeed(Clock, clock),
+      Layer.succeed(SafeStorage, createTestSafeStorage(true)),
+      Layer.succeed(HttpTransport, {
+        request: async () => responseFor(200),
+      } satisfies HttpTransportService),
+    );
+    let runtime: ReturnType<typeof createApplicationRuntime> | null = null;
+
+    try {
+      runtime = createApplicationRuntime(
+        createAuthLayer({
+          sessionStorePath: "auth-session.enc",
+          appVersion: "0.0.1-test",
+          broadcast,
+          forkEffect: (effect) => runtime?.forkSync(effect),
+        }).pipe(Layer.provide(platformLayer)),
+      );
+      const service = runtime.runSync(Effect.service(AuthService));
+      await runtime.runPromise(service.attachWebview(contents));
+
+      navigateListeners[0]?.({}, "https://edunex.itb.ac.id/");
+      await Promise.resolve();
+      expect(executeJavaScript).toHaveBeenCalledTimes(1);
+      expect(readSignal?.aborted).toBe(false);
+
+      await runtime.shutdown();
+      expect(readSignal?.aborted).toBe(true);
+      expect(clearTimeoutSpy).toHaveBeenCalled();
+
+      resolveRead(JSON.stringify(session));
+      await Promise.resolve();
+      expect(broadcast).not.toHaveBeenCalled();
+    } finally {
+      await runtime?.shutdown();
+      vi.useRealTimers();
+    }
   });
 });
 

@@ -2,48 +2,15 @@ import { buildTrayMenuTemplate } from "./tray-menu";
 import { buildAppMenuTemplate } from "./app-menu";
 import { loadWindowState, saveWindowState, type WindowState } from "./window-state";
 import { shouldFireStartupTestNotification } from "./notifications";
-import { createAuthController, EDUNEX_API_BASE_URL } from "./auth/auth-controller";
-import {
-  AuthService,
-  createAuthLayer,
-  edunexUserAgent,
-  type AuthServiceShape,
-} from "./auth/auth-service";
-import {
-  createSyncServiceLayer,
-  SyncService,
-  type SyncServiceShape,
-} from "./sync/sync-service";
-import {
-  createCognisiaLayer,
-} from "./api/api-service";
-import {
-  createSnapshotCacheLayer,
-} from "./sync/snapshot-cache-service";
-import {
-  createMaterialDownloadLayer,
-  MaterialDownloadService,
-} from "./materials/download";
-import {
-  createNotificationLayer,
-  NotificationService,
-} from "./notifications/notification-service";
 import type { OutboundNotification } from "../shared/notifications";
 import { DEFAULT_SHELL_SETTINGS, NAV_VIEWS, isHideableNavKey } from "../shared/shell";
 import type { HideableNavKey } from "../shared/shell";
 import { loadShellSettings, saveShellSettings } from "./shell/settings-store";
+import { createApplicationComposition } from "./application";
 import {
-  createTaskAnswerLayer,
-  TaskAnswerService,
-} from "./tasks/task-answers";
-import {
-  createApplicationRuntime,
-  composeApplicationLayer,
   RuntimeEffect,
   RuntimeExit,
-  type ApplicationRuntime,
 } from "./effect/runtime";
-import { effectRuntime } from "./effect/effect-runtime";
 import { ApplicationLifecycleError, formatSafeCause } from "./effect/conventions";
 import { createLivePlatform } from "./platform/live";
 import type { WindowService, TrayService } from "./platform/services";
@@ -145,7 +112,11 @@ function createWindow(state?: WindowState | null) {
   // The login webview (#18) attaches here whenever the renderer mounts it.
   // Main owns the capture loop and popup suppression for its webContents;
   // the loop ends with the webview's own destroyed event.
-  win.webContents.on("did-attach-webview", (_event, contents) => authController.attachWebview(contents));
+  win.webContents.on("did-attach-webview", (_event, contents) => {
+    void applicationRuntime.runPromise(authService.attachWebview(contents)).catch(() => {
+      console.error("[auth] could not attach login webview");
+    });
+  });
 
   win.on("resize", queueWindowStateSave);
   win.on("move", queueWindowStateSave);
@@ -248,77 +219,17 @@ function setApplicationMenu() {
         gotoView: sendToView,
         // Dev-only hook to demo the re-login moment (#18) without needing the
         // vendor API to actually reject a session.
-        simulateUnauthorized: platform.isPackaged ? undefined : () => authController.simulateUnauthorized(),
+        simulateUnauthorized: platform.isPackaged
+          ? undefined
+          : () => {
+              void applicationRuntime.runPromise(authService.handleUnauthorized()).catch(() => {
+                console.error("[auth] could not simulate unauthorized session");
+              });
+            },
       }, platform.platform),
     ),
   );
 }
-
-let syncService: SyncServiceShape | null = null;
-
-// Auth slice (#52): the state machine, encrypted session store, API adapter,
-// and webview capture are all supplied by one managed Effect service. The
-// callbacks below are host boundaries only; they never expose the session to
-// preload or renderer code.
-let authService: AuthServiceShape | null = null;
-let applicationRuntimeRef: ApplicationRuntime<any, any> | null = null;
-
-function runAuthEffect<A>(effect: import("./auth/auth-service").AuthEffect<A>): Promise<A> | void {
-  const runtime = applicationRuntimeRef;
-  if (!runtime || runtime.isShutdown()) return;
-  return runtime.runPromise(effect);
-}
-
-function notifyAuthUnauthorized() {
-  const service = authService;
-  const runtime = applicationRuntimeRef;
-  if (!service || !runtime || runtime.isShutdown()) return;
-  try {
-    runtime.runSync(service.handleUnauthorized());
-  } catch {
-    // Auth callbacks cannot surface private Effect failures to a host API.
-  }
-}
-
-const authLayer = createAuthLayer({
-  sessionStorePath: pathService.join(platform.userDataPath, "auth-session.enc"),
-  appVersion: platform.appVersion,
-  broadcast: (status) => {
-    if (win && !win.isDestroyed()) win.webContents.send("auth:state", status);
-    // Authentication owns the session boundary; the synchronization service
-    // owns one managed fiber for the currently published session. These calls
-    // use the service's synchronous Ref/FiberHandle lifecycle boundary so a
-    // sign-out/401 invalidates its generation before any late HTTP result can
-    // publish.
-    const service = syncService;
-    const runtime = applicationRuntimeRef;
-    if (!service || !runtime || runtime.isShutdown()) return;
-    try {
-      runtime.runSync(status === "signed-in" ? service.start() : service.stop());
-    } catch {
-      // Lifecycle callbacks cannot surface private Effect failures to auth.
-      console.error("[main] sync lifecycle transition failed");
-    }
-  },
-  runEffect: runAuthEffect,
-  onUnauthorized: notifyAuthUnauthorized,
-});
-
-// Explicit Task Answer commands and Material downloads share the authenticated
-// session but are separate managed services. Keeping them in the same layer
-// graph makes the dependency and shutdown boundary explicit without giving
-// background sync access to either write service.
-const taskAnswerLayer = createTaskAnswerLayer().pipe(effectRuntime.Layer.provide(authLayer));
-const materialDownloadLayer = createMaterialDownloadLayer({
-  baseUrl: EDUNEX_API_BASE_URL,
-  userAgent: edunexUserAgent(platform.appVersion),
-}).pipe(effectRuntime.Layer.provide(authLayer));
-
-// Notification state and delivery are one managed service graph. The layer
-// owns the validated feed/ledger persistence and uses Electron only through
-// the platform service; tests can replace delivery with recording sinks.
-const seenLedgerRoot = pathService.join(platform.userDataPath, "seen-ledger");
-const inAppFeedRoot = pathService.join(platform.userDataPath, "notifications");
 
 function handleTaskNotificationClicked(taskIds: string[]) {
   showWindow();
@@ -342,65 +253,32 @@ function handleOutboundNotificationClicked(notification: OutboundNotification) {
   }
 }
 
-const notificationLayer = createNotificationLayer({
-  ledgerRoot: seenLedgerRoot,
-  feedRoot: inAppFeedRoot,
-  onClicked: handleOutboundNotificationClicked,
-  broadcast: (_accountId, entries) => {
+const application = createApplicationComposition({
+  platform: livePlatform,
+  sessionStorePath: pathService.join(platform.userDataPath, "auth-session.enc"),
+  snapshotRoot: pathService.join(platform.userDataPath, "feed-snapshots"),
+  seenLedgerRoot: pathService.join(platform.userDataPath, "seen-ledger"),
+  notificationFeedRoot: pathService.join(platform.userDataPath, "notifications"),
+  onAuthState: (status) => {
+    if (win && !win.isDestroyed()) win.webContents.send("auth:state", status);
+  },
+  onFeedUpdated: (snapshot) => {
+    if (win && !win.isDestroyed()) win.webContents.send("sync:feed-updated", snapshot);
+  },
+  onNotificationClicked: handleOutboundNotificationClicked,
+  onNotificationsUpdated: (_accountId, entries) => {
     if (win && !win.isDestroyed()) win.webContents.send("notifications:updated", entries);
   },
 });
 
-// Resolve the services once from the process-wide managed runtime. Each
-// feature owns its state; the sync service below owns its session fiber.
-const readAndCacheLayer = effectRuntime.Layer.mergeAll(
-  createCognisiaLayer({
-    userAgent: edunexUserAgent(platform.appVersion),
-    onUnauthorized: notifyAuthUnauthorized,
-  }),
-  createSnapshotCacheLayer({
-    rootDir: pathService.join(platform.userDataPath, "feed-snapshots"),
-  }),
-).pipe(effectRuntime.Layer.provideMerge(authLayer));
-const syncDependenciesLayer = effectRuntime.Layer.mergeAll(
-  authLayer,
-  readAndCacheLayer,
-  notificationLayer,
-).pipe(effectRuntime.Layer.provideMerge(livePlatform.layer));
-const syncLayer = createSyncServiceLayer({
-  onFeedUpdated: (snapshot) => {
-    if (win && !win.isDestroyed()) win.webContents.send("sync:feed-updated", snapshot);
-  },
-}).pipe(effectRuntime.Layer.provide(syncDependenciesLayer));
-const applicationLayer = effectRuntime.Layer.mergeAll(
-  authLayer,
-  taskAnswerLayer,
-  materialDownloadLayer,
-  readAndCacheLayer,
-  notificationLayer,
-  syncLayer,
-).pipe(effectRuntime.Layer.provideMerge(livePlatform.layer));
-const applicationRuntime = createApplicationRuntime(composeApplicationLayer(applicationLayer));
-applicationRuntimeRef = applicationRuntime;
-const resolvedAuthService = applicationRuntime.runSync(RuntimeEffect.service(AuthService));
-const resolvedTaskAnswerService = applicationRuntime.runSync(
-  RuntimeEffect.service(TaskAnswerService),
-);
-const resolvedMaterialDownloadService = applicationRuntime.runSync(
-  RuntimeEffect.service(MaterialDownloadService),
-);
-authService = resolvedAuthService;
-const resolvedNotificationService = applicationRuntime.runSync(
-  RuntimeEffect.service(NotificationService),
-);
-const resolvedSyncService = applicationRuntime.runSync(
-  RuntimeEffect.service(SyncService),
-);
-syncService = resolvedSyncService;
-const authController = createAuthController({
-  runtime: applicationRuntime,
-  service: resolvedAuthService,
-});
+const applicationRuntime = application.runtime;
+const {
+  auth: authService,
+  sync: syncService,
+  notifications: notificationService,
+  materialDownloads: materialDownloadService,
+  taskAnswers: taskAnswerService,
+} = application.services;
 
 let runtimeShutdownStarted = false;
 let runtimeShutdownComplete = false;
@@ -410,13 +288,19 @@ const startApplication = RuntimeEffect.try({
     shellSettings = loadShellSettings(shellSettingsPath(), { fileSystem, clock, random });
     setApplicationMenu();
     if (isMac()) platform.setDockIcon(pathService.join(platform.appPath, "assets", "icon.png"));
-    createWindow(loadWindowState(windowStatePath(), platform.primaryWorkArea(), { fileSystem }));
+    createWindow(loadWindowState(windowStatePath(), platform.primaryWorkArea(), {
+      fileSystem,
+      clock,
+      random,
+    }));
     createTray();
 
     // Restore the session before the renderer finishes booting; until this
     // resolves the renderer holds back the auth-gated UI (status stays null)
     // so a restored session never flashes the login view.
-    void authController.restore();
+    void applicationRuntime.runPromise(authService.restore()).catch(() => {
+      console.error("[auth] startup restore failed");
+    });
 
     platform.setAboutPanelOptions({
       applicationName: "Edunex Plus",
@@ -432,7 +316,14 @@ const startApplication = RuntimeEffect.try({
 });
 
 if (!gotSingleInstanceLock) {
-  platform.quit();
+  void application.shutdown().then(
+    () => {
+      platform.quit();
+    },
+    () => {
+      platform.quit();
+    },
+  );
 } else {
   platform.on("second-instance", showWindow);
 
@@ -448,6 +339,9 @@ if (!gotSingleInstanceLock) {
       .catch(() => {
         if (!runtimeShutdownStarted) platform.quit();
       });
+  }).catch(() => {
+    console.error("[runtime] platform readiness failed");
+    if (!runtimeShutdownStarted) platform.quit();
   });
 
   const ipcAdapter = registerApplicationIpc({
@@ -461,19 +355,14 @@ if (!gotSingleInstanceLock) {
       notificationsSupported: platform.notificationsSupported(),
     }),
     auth: {
-      status: () => authController.status(),
-      startLogin: () => authController.startLogin(),
+      status: () => authService.status(),
+      startLogin: () => authService.startLogin(),
+      accountId: () => authService.accountId(),
     },
     sync: {
-      read: (feed) => {
-        try {
-          return applicationRuntime.runPromise(resolvedSyncService.read(feed)).catch(() => null);
-        } catch {
-          return null;
-        }
-      },
+      read: (feed) => syncService.read(feed),
     },
-    materialDownloadService: resolvedMaterialDownloadService,
+    materialDownloadService,
     shell: {
       getSettings: () => shellSettings,
       setViewHidden: (view, hidden) => {
@@ -500,35 +389,9 @@ if (!gotSingleInstanceLock) {
       },
     },
     notifications: {
-      get: () => {
-        try {
-          return applicationRuntime.runSync(
-            resolvedNotificationService.list(authController.accountId()),
-          );
-        } catch {
-          return [];
-        }
-      },
-      markRead: (ids) => {
-        try {
-          return applicationRuntime.runSync(
-            resolvedNotificationService.markRead(authController.accountId(), ids),
-          );
-        } catch {
-          return [];
-        }
-      },
-      markAllRead: () => {
-        try {
-          return applicationRuntime.runSync(
-            resolvedNotificationService.markAllRead(authController.accountId()),
-          );
-        } catch {
-          return [];
-        }
-      },
+      service: notificationService,
     },
-    taskAnswerService: resolvedTaskAnswerService,
+    taskAnswerService,
   });
 
   // Deliberate no-op while a tray exists: closing the window must not end the
@@ -548,14 +411,9 @@ if (!gotSingleInstanceLock) {
 
     runtimeShutdownStarted = true;
     quitting = true;
-    try {
-      applicationRuntime.runSync(resolvedSyncService.stop());
-    } catch {
-      // The managed runtime shutdown below remains the final interruption
-      // boundary even if the synchronous lifecycle hook cannot run.
-    }
+    flushWindowStateSave();
     ipcAdapter.unregister();
-    void applicationRuntime.shutdown().then(
+    void application.shutdown().then(
       () => {
         runtimeShutdownComplete = true;
         platform.quit();
