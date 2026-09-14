@@ -42,13 +42,13 @@ export interface TodoFeed {
 export type JsonApiResource = Record<string, unknown>;
 
 export interface EdunexDataApi extends EdunexApi {
-  getTodo(): Promise<ApiResponse<TodoFeed>>;
-  getCourses(): Promise<ApiResponse<JsonApiResource[]>>;
-  getCourseTasks(): Promise<ApiResponse<JsonApiResource[]>>;
-  getExams(): Promise<ApiResponse<JsonApiResource[]>>;
-  getAgenda(): Promise<ApiResponse<JsonApiResource[]>>;
-  getMaterials(): Promise<ApiResponse<JsonApiResource[]>>;
-  getPresences(): Promise<ApiResponse<JsonApiResource[]>>;
+  getTodo(signal?: AbortSignal): Promise<ApiResponse<TodoFeed>>;
+  getCourses(signal?: AbortSignal): Promise<ApiResponse<JsonApiResource[]>>;
+  getCourseTasks(signal?: AbortSignal): Promise<ApiResponse<JsonApiResource[]>>;
+  getExams(signal?: AbortSignal): Promise<ApiResponse<JsonApiResource[]>>;
+  getAgenda(signal?: AbortSignal): Promise<ApiResponse<JsonApiResource[]>>;
+  getMaterials(signal?: AbortSignal): Promise<ApiResponse<JsonApiResource[]>>;
+  getPresences(signal?: AbortSignal): Promise<ApiResponse<JsonApiResource[]>>;
   /**
    * Draft-save pair, verified live on Tugas 01 (issue #16). Both send
    * `is_sent: 0` and `task_id` in a JSON-API `data.attributes` envelope.
@@ -144,19 +144,20 @@ export function createEdunexApi(options: EdunexApiOptions): EdunexDataApi {
     get,
     post,
     patch,
-    getTodo: () => get("/todo").then((result) => normalizeResult(result, normalizeTodo)),
-    getCourses: () =>
-      get(ACTIVE_COURSES_PATH).then((result) => normalizeResult(result, normalizeCourses)),
-    getCourseTasks: () =>
-      get("/course/tasks").then((result) => normalizeResult(result, normalizeCollection)),
-    getExams: () =>
-      get("/exam/exams").then((result) => normalizeResult(result, normalizeExams)),
-    getAgenda: () =>
-      get("/course/agenda").then((result) => normalizeResult(result, normalizeAgenda)),
-    getMaterials: () =>
-      get("/course/materials").then((result) => normalizeResult(result, normalizeMaterials)),
-    getPresences: () =>
-      get("/course/presences/list").then((result) =>
+    getTodo: (signal?: AbortSignal) =>
+      get("/todo", signal).then((result) => normalizeResult(result, normalizeTodo)),
+    getCourses: (signal?: AbortSignal) =>
+      get(ACTIVE_COURSES_PATH, signal).then((result) => normalizeResult(result, normalizeCourses)),
+    getCourseTasks: (signal?: AbortSignal) =>
+      get("/course/tasks", signal).then((result) => normalizeResult(result, normalizeCollection)),
+    getExams: (signal?: AbortSignal) =>
+      get("/exam/exams", signal).then((result) => normalizeResult(result, normalizeExams)),
+    getAgenda: (signal?: AbortSignal) =>
+      get("/course/agenda", signal).then((result) => normalizeResult(result, normalizeAgenda)),
+    getMaterials: (signal?: AbortSignal) =>
+      get("/course/materials", signal).then((result) => normalizeResult(result, normalizeMaterials)),
+    getPresences: (signal?: AbortSignal) =>
+      get("/course/presences/list", signal).then((result) =>
         normalizeResult(result, normalizePresences),
       ),
     createDraftAnswer: (taskId: string, answer: string, signal?: AbortSignal) =>
