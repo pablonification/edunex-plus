@@ -287,8 +287,9 @@ const authLayer = createAuthLayer({
     if (win && !win.isDestroyed()) win.webContents.send("auth:state", status);
     // Authentication owns the session boundary; the synchronization service
     // owns one managed fiber for the currently published session. These calls
-    // are synchronous at the lifecycle boundary so a sign-out/401 invalidates
-    // its generation before any late HTTP result can publish.
+    // use the service's synchronous Ref/FiberHandle lifecycle boundary so a
+    // sign-out/401 invalidates its generation before any late HTTP result can
+    // publish.
     const service = syncService;
     const runtime = applicationRuntimeRef;
     if (!service || !runtime || runtime.isShutdown()) return;

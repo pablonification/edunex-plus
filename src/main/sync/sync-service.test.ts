@@ -74,6 +74,8 @@ function createHarness(options: {
   readonly notifications?: SyncServiceDependencies["notifications"];
   readonly pending?: boolean;
   readonly failPaths?: ReadonlySet<string>;
+  readonly rejectPaths?: ReadonlySet<string>;
+  readonly randomValue?: number;
 } = {}) {
   const testClock = options.clock ?? createTestClock();
   const calls: string[] = [];
@@ -97,6 +99,10 @@ function createHarness(options: {
             abortedReads += 1;
           }, { once: true });
         }));
+      }
+
+      if (options.rejectPaths?.has(path)) {
+        return Effect.promise(() => Promise.reject(new Error("offline")));
       }
 
       return Effect.promise(() => {
@@ -143,7 +149,7 @@ function createHarness(options: {
         cache,
         notifications: options.notifications,
         clock: testClock.clock,
-        random: { next: () => 0.5 },
+        random: { next: () => options.randomValue ?? 0.5 },
       },
       { alignPresence: options.notifications !== undefined },
     ),
@@ -211,6 +217,19 @@ describe("Effect-owned sync service", () => {
     expect(harness.maxActiveReads).toBeGreaterThan(1);
   });
 
+  it("clamps jitter to the 60-second minimum and covers both jitter bounds", async () => {
+    const low = createHarness({ randomValue: 0 });
+    const high = createHarness({ randomValue: 1 });
+    runtimes.push(low.runtime, high.runtime);
+
+    low.runtime.runSync(low.service.start());
+    high.runtime.runSync(high.service.start());
+    await Promise.all([flush(low.runtime), flush(high.runtime)]);
+
+    expect(low.clock.delays[0]).toBe(60_000);
+    expect(high.clock.delays[0]).toBe(120_000);
+  });
+
   it("owns immediate startup and the jittered cadence in the injected Clock", async () => {
     const harness = createHarness();
     runtimes.push(harness.runtime);
@@ -239,6 +258,30 @@ describe("Effect-owned sync service", () => {
     await harness.clock.advance(180_000);
     await flush(harness.runtime);
     expect(harness.clock.delays[1]).toBe(360_000);
+
+    await harness.clock.advance(360_000);
+    await flush(harness.runtime);
+    expect(harness.clock.delays[2]).toBe(720_000);
+
+    await harness.clock.advance(720_000);
+    await flush(harness.runtime);
+    expect(harness.clock.delays[3]).toBe(900_000);
+
+    await harness.clock.advance(900_000);
+    await flush(harness.runtime);
+    expect(harness.clock.delays[4]).toBe(900_000);
+  });
+
+  it("isolates an offline feed rejection while publishing the other feeds", async () => {
+    const harness = createHarness({ rejectPaths: new Set(["/course/agenda"]) });
+    runtimes.push(harness.runtime);
+
+    const result = await harness.runtime.runPromise(harness.service.tick());
+
+    expect(result.kind).toBe("failed");
+    expect(result.failedFeeds).toEqual(["agenda"]);
+    expect(harness.calls).toHaveLength(6);
+    expect(harness.writes).toHaveLength(5);
   });
 
   it("stops and expires the session on a 401 without publishing other feeds", async () => {
