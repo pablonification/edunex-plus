@@ -40,6 +40,21 @@ platform.
   disappear against a dark taskbar. The notification slice should ship a
   light-outline Windows variant selected by platform.
 
+## Persistence and delivery crash window
+
+Notification events are delivered through the managed `NotificationService`.
+The OS and in-app sinks are independent: a failed OS notification does not
+prevent the fallback feed, and a failed fallback write does not stop the sync
+loop or discard the domain event. Each account's Task and Presence ledgers
+retain their existing version-1 JSON shapes and atomic writes.
+
+The service preserves the established ordering of delivery before ledger save.
+That leaves a deliberate narrow crash window: if the process stops after a sink
+accepts an event but before its ledger write completes, the next process may
+deliver the same event again. This is preferable to saving first and losing an
+event from both sinks; the behavior is documented and tested at the
+event-driven service seam.
+
 ## Linux
 
 - Notifications go through **libnotify** (`notify-send` path) and desktop
