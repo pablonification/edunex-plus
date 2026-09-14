@@ -24,8 +24,6 @@ import {
   createNotificationDeliveryLayerFromSinks,
 } from "./sinks";
 import { Clock, type ClockService } from "../platform/services";
-import type { TaskNotifier } from "./task-notifier";
-import type { PresenceNotifier } from "./presence-notifier";
 
 /** Effect operations exposed by the notification domain service. */
 export type NotificationEffect<A> = EffectModule.Effect.Effect<A, never, never>;
@@ -264,41 +262,6 @@ export function createNotificationLayerFromServices(
     NotificationService,
     createNotificationService(dependencies),
   );
-}
-
-/** Adapt the Effect service to the synchronous legacy sync-engine seam. */
-export function toSyncTaskNotifier(
-  service: NotificationServiceShape,
-  runSync: <A>(effect: NotificationEffect<A>) => A,
-): Pick<TaskNotifier, "handleSync"> {
-  return {
-    handleSync: (accountId, previous, current) =>
-      runSync(service.handleTaskSync(accountId, previous, current)),
-  };
-}
-
-/** Adapt the Effect service to the synchronous legacy sync-engine seam. */
-export function toSyncPresenceNotifier(
-  service: NotificationServiceShape,
-  runSync: <A>(effect: NotificationEffect<A>) => A,
-): Pick<PresenceNotifier, "handleSync"> {
-  return {
-    handleSync: (accountId, current) =>
-      runSync(service.handlePresenceSync(accountId, current)),
-  };
-}
-
-export function toSyncNotificationNotifiers(
-  service: NotificationServiceShape,
-  runSync: <A>(effect: NotificationEffect<A>) => A,
-): {
-  readonly taskNotifier: Pick<TaskNotifier, "handleSync">;
-  readonly presenceNotifier: Pick<PresenceNotifier, "handleSync">;
-} {
-  return {
-    taskNotifier: toSyncTaskNotifier(service, runSync),
-    presenceNotifier: toSyncPresenceNotifier(service, runSync),
-  };
 }
 
 export const NotificationServiceLive = createNotificationLayer;

@@ -83,12 +83,11 @@ export interface AuthServiceOptions {
   readonly broadcast: (status: AuthStatus) => void;
   /**
    * Runtime bridge for callbacks originating in promise-based host APIs.
-   * The production main process supplies the managed runtime; unit tests can
-   * omit it and the service uses Effect's standalone runner.
+   * The production main process supplies the managed runtime. If a host does
+   * not supply the bridge, capture verification is skipped rather than
+   * creating a second unmanaged runtime.
    */
   readonly runEffect?: <A>(effect: AuthEffect<A>) => Promise<A> | void;
-  /** Called by the API adapter when a non-verification request sees a 401. */
-  readonly onUnauthorized?: () => void;
 }
 
 export type AuthLayer = EffectModule.Layer.Layer<
@@ -128,10 +127,10 @@ export function createAuthLayer(options: AuthServiceOptions): AuthLayer {
       // handled by the verification Effect itself, which avoids racing the
       // restore/capture transition with an out-of-band callback.
       const verificationApi = createEdunexApi(apiOptions);
-      const api = createEdunexApi({
-        ...apiOptions,
-        onUnauthorized: options.onUnauthorized,
-      });
+      // Command and sync services handle a 401 in their own managed Effect.
+      // Keeping this adapter callback-free prevents an HTTP promise from
+      // re-entering the runtime through a second runSync call.
+      const api = createEdunexApi(apiOptions);
 
       const service = createService({
         api,
@@ -327,7 +326,11 @@ function createService(deps: {
       console.log("[auth] session captured from webview, verifying");
       const effect = capture(auth);
       try {
-        const result = options.runEffect?.(effect) ?? effectRuntime.Effect.runPromise(effect);
+        const result = options.runEffect?.(effect);
+        if (!result) {
+          console.error("[auth] captured session verification skipped: runtime unavailable");
+          return;
+        }
         void Promise.resolve(result).catch(() => {
           console.error("[auth] captured session verification failed");
         });

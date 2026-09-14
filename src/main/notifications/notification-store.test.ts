@@ -4,8 +4,10 @@ import os from "node:os";
 import path from "node:path";
 import { createNotificationStore } from "./notification-store";
 import type { InAppNotification } from "../../shared/notifications";
+import { nodeFileSystem, nodePath, systemClock, systemRandom } from "../platform/node";
 
 const roots: string[] = [];
+const persistence = { fileSystem: nodeFileSystem, path: nodePath, clock: systemClock, random: systemRandom };
 afterEach(() => {
   for (const root of roots.splice(0)) fs.rmSync(root, { recursive: true, force: true });
 });
@@ -30,10 +32,10 @@ function entry(id: string): InAppNotification {
 describe("in-app notification store", () => {
   it("persists fallback entries newest-first across restarts", () => {
     const root = tempRoot();
-    createNotificationStore(root, "190136").append(entry("113986"));
-    createNotificationStore(root, "190136").append(entry("113987"));
+    createNotificationStore(root, "190136", persistence).append(entry("113986"));
+    createNotificationStore(root, "190136", persistence).append(entry("113987"));
 
-    expect(createNotificationStore(root, "190136").list().map((e) => e.id)).toEqual([
+    expect(createNotificationStore(root, "190136", persistence).list().map((e) => e.id)).toEqual([
       "113987",
       "113986",
     ]);
@@ -41,11 +43,11 @@ describe("in-app notification store", () => {
 
   it("marks entries read without dropping them", () => {
     const root = tempRoot();
-    const store = createNotificationStore(root, "190136");
+    const store = createNotificationStore(root, "190136", persistence);
     store.append(entry("113986"));
     const updated = store.markRead(["113986"]);
 
     expect(updated[0].read).toBe(true);
-    expect(createNotificationStore(root, "190136").list()[0].read).toBe(true);
+    expect(createNotificationStore(root, "190136", persistence).list()[0].read).toBe(true);
   });
 });

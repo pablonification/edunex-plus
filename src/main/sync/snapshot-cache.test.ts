@@ -3,6 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { createSnapshotCache } from "./snapshot-cache";
+import { nodeFileSystem, nodePath, systemClock, systemRandom } from "../platform/node";
 
 const todo = {
   tasks: [
@@ -22,6 +23,7 @@ const todo = {
 };
 
 const cacheRoots: string[] = [];
+const services = { fileSystem: nodeFileSystem, path: nodePath, clock: systemClock, random: systemRandom };
 
 afterEach(() => {
   for (const root of cacheRoots.splice(0)) fs.rmSync(root, { recursive: true, force: true });
@@ -37,10 +39,10 @@ describe("snapshot cache", () => {
     const root = tempRoot();
     const fetchedAt = "2026-09-13T12:00:00.000Z";
 
-    const firstProcess = createSnapshotCache(root);
+    const firstProcess = createSnapshotCache(root, services);
     const written = firstProcess.write("190136", "todo", todo, fetchedAt);
 
-    const secondProcess = createSnapshotCache(root);
+    const secondProcess = createSnapshotCache(root, services);
 
     expect(written).toEqual({
       feed: "todo",
@@ -52,7 +54,7 @@ describe("snapshot cache", () => {
   });
 
   it("keeps snapshots isolated by account and feed", () => {
-    const cache = createSnapshotCache(tempRoot());
+    const cache = createSnapshotCache(tempRoot(), services);
     cache.write("190136", "todo", todo, "2026-09-13T12:00:00.000Z");
     cache.write("187138", "todo", { tasks: [] }, "2026-09-13T12:01:00.000Z");
     cache.write("190136", "courses", { data: [] }, "2026-09-13T12:02:00.000Z");
@@ -65,7 +67,7 @@ describe("snapshot cache", () => {
 
   it("ignores a missing or malformed snapshot", () => {
     const root = tempRoot();
-    const cache = createSnapshotCache(root);
+    const cache = createSnapshotCache(root, services);
 
     expect(cache.read("190136", "todo")).toBeNull();
 

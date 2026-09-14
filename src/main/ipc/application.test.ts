@@ -24,9 +24,13 @@ it("keeps shell settings behavior behind validated IPC operations", async () => 
       trayActive: true,
       notificationsSupported: false,
     }),
-    auth: { status: () => "signed-out", startLogin: () => undefined },
-    sync: { read: () => null },
-    downloadMaterial: async () => ({ ok: false, error: "Download failed" }),
+    auth: {
+      status: () => Effect.succeed(null),
+      startLogin: () => Effect.succeed(undefined),
+      accountId: () => Effect.succeed(null),
+    },
+    sync: { read: () => Effect.succeed(null) },
+    materialDownloadService: { download: () => Effect.succeed({ ok: false, error: "Download failed" }) },
     shell: {
       getSettings: () => settings,
       setViewHidden: (view, hidden) => {
@@ -38,10 +42,16 @@ it("keeps shell settings behavior behind validated IPC operations", async () => 
         return settings;
       },
     },
-    notifications: { get: () => [], markRead: () => [], markAllRead: () => [] },
-    tasks: {
-      saveDraft: async () => ({ ok: true, status: 201, created: true, answerId: "1" }),
-      submit: async () => ({ ok: true, status: 200 }),
+    notifications: {
+      service: {
+        list: () => Effect.succeed([]),
+        markRead: () => Effect.succeed([]),
+        markAllRead: () => Effect.succeed([]),
+      },
+    },
+    taskAnswerService: {
+      saveDraft: () => Effect.succeed({ ok: true, status: 201, created: true, answerId: "1" }),
+      submit: () => Effect.succeed({ ok: true, status: 200 }),
     },
   });
 
@@ -98,15 +108,24 @@ it("runs the managed task/material services only after IPC input validation", as
       trayActive: false,
       notificationsSupported: false,
     }),
-    auth: { status: () => "signed-in", startLogin: () => undefined },
-    sync: { read: () => null },
+    auth: {
+      status: () => Effect.succeed("signed-in"),
+      startLogin: () => Effect.succeed(undefined),
+      accountId: () => Effect.succeed("190136"),
+    },
     materialDownloadService: { download: materialDownload },
     shell: {
       getSettings: () => ({ hiddenViews: [], quitOnClose: false }),
       setViewHidden: () => ({ hiddenViews: [], quitOnClose: false }),
       setQuitOnClose: () => ({ hiddenViews: [], quitOnClose: false }),
     },
-    notifications: { get: () => [], markRead: () => [], markAllRead: () => [] },
+    notifications: {
+      service: {
+        list: () => Effect.succeed([]),
+        markRead: () => Effect.succeed([]),
+        markAllRead: () => Effect.succeed([]),
+      },
+    },
     taskAnswerService: { saveDraft, submit },
   });
 

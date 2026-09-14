@@ -59,14 +59,66 @@ it("decodes requests, passes sender context, encodes responses, and unregisters"
   expect(senders).toEqual(["renderer-1"]);
 
   adapter.unregister();
+  adapter.unregister();
   await runtime.shutdown();
   expect(removed).toEqual(["test:echo", "test:failure"]);
+});
+
+it("rejects duplicate channels before touching the IPC implementation", () => {
+  const ipcMain: IpcMainService = {
+    handle: () => {
+      throw new Error("should not register");
+    },
+    removeHandler: () => undefined,
+  };
+  const operation = {
+    channel: "test:duplicate",
+    operation: "test.duplicate",
+    inputSchema: Schema.Void,
+    outputSchema: Schema.Unknown,
+    handle: () => undefined,
+    onInvalidInput: () => undefined,
+    onFailure: () => undefined,
+  };
+
+  expect(() => registerIpcOperations([operation, operation], { ipcMain, runtime: createApplicationRuntime() }))
+    .toThrow("Duplicate IPC channel: test:duplicate");
+});
+
+it("continues releasing owned channels when one handler is already stale", async () => {
+  const removed: string[] = [];
+  const ipcMain: IpcMainService = {
+    handle: () => undefined,
+    removeHandler: (channel) => {
+      removed.push(channel);
+      if (channel === "test:stale") throw new Error("already removed");
+    },
+  };
+  const operation = (channel: string) => ({
+    channel,
+    operation: channel,
+    inputSchema: Schema.Void,
+    outputSchema: Schema.Unknown,
+    handle: () => undefined,
+    onInvalidInput: () => undefined,
+    onFailure: () => undefined,
+  });
+  const runtime = createApplicationRuntime();
+  const adapter = registerIpcOperations(
+    [operation("test:stale"), operation("test:live")],
+    { ipcMain, runtime },
+  );
+
+  adapter.unregister();
+  await runtime.shutdown();
+  expect(removed).toEqual(["test:stale", "test:live"]);
 });
 
 it("converts decoder failures into the operation fallback", async () => {
   const handlers = new Map<string, IpcHandlerService>();
   const ipcMain: IpcMainService = {
     handle: (channel, handler) => handlers.set(channel, handler),
+    removeHandler: (channel) => handlers.delete(channel),
   };
   const runtime = createApplicationRuntime();
   const adapter = registerIpcOperations(
@@ -99,6 +151,7 @@ it("can resolve the IPC implementation from an Effect service Layer", async () =
   const handlers = new Map<string, IpcHandlerService>();
   const service: IpcMainService = {
     handle: (channel, handler) => handlers.set(channel, handler),
+    removeHandler: (channel) => handlers.delete(channel),
   };
   const runtime = createApplicationRuntime(
     composeApplicationLayer(Layer.succeed(IpcMain, service)),

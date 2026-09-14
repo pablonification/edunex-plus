@@ -5,11 +5,7 @@ import {
   notificationDestinationFor,
   type NewTaskInfo,
 } from "../../shared/notifications";
-import { createFanoutSink, createInAppSink, createOsSink } from "./sinks";
-import { createNotificationStore } from "./notification-store";
-import fs from "node:fs";
-import os from "node:os";
-import path from "node:path";
+import { createFanoutSink, createOsSink } from "./sinks";
 
 function task(id: string, title = `Task ${id}`): NewTaskInfo {
   return { id, title, courseCode: "II4091", courseName: "Final Project Proposal", dueAt: null };
@@ -63,28 +59,6 @@ describe("sinks", () => {
     clickHandler?.();
 
     expect(clicks).toEqual([["7"]]);
-  });
-
-  it("in-app sink persists the fallback entry and broadcasts it", () => {
-    const root = fs.mkdtempSync(path.join(os.tmpdir(), "edunex-sink-"));
-    try {
-      const broadcast = vi.fn();
-      const sink = createInAppSink({
-        storeFor: (accountId) => createNotificationStore(root, accountId),
-        getAccountId: () => "190136",
-        broadcast: (_accountId, entries) => broadcast(entries),
-        createId: () => "entry-1",
-      });
-
-      sink.show(buildSingleTaskNotification(task("7"), "2026-09-13T12:00:00.000Z"));
-
-      expect(createNotificationStore(root, "190136").list().map((e) => e.id)).toEqual([
-        "entry-1",
-      ]);
-      expect(broadcast).toHaveBeenCalledTimes(1);
-    } finally {
-      fs.rmSync(root, { recursive: true, force: true });
-    }
   });
 
   it("fan-out isolates a throwing sink so the fallback still lands", () => {
