@@ -7,6 +7,12 @@ interface StoredLedger {
   seenIds: string[];
 }
 
+/** The validated on-disk state used by the Effect notification persistence service. */
+export interface SeenLedgerSnapshot {
+  readonly initialized: boolean;
+  readonly seenIds: readonly string[];
+}
+
 /**
  * The persisted seen-ledger (#23): every Task id the app has ever baselined
  * or notified for one account. The file's existence is the first-sync flag —
@@ -39,6 +45,54 @@ export interface SeenLedgerServices {
   readonly random?: RandomService;
 }
 
+/**
+ * Reads the existing version-1 task ledger format. Missing, malformed, or
+ * account-mismatched files intentionally look like an uninitialized ledger so
+ * the first valid sync can baseline silently.
+ */
+export function readSeenLedger(
+  rootDir: string,
+  accountId: string,
+  services: SeenLedgerServices = {},
+): SeenLedgerSnapshot {
+  const fileSystem = services.fileSystem ?? nodeFileSystem;
+  const pathService = services.path ?? nodePath;
+  try {
+    const stored = JSON.parse(
+      fileSystem.readText(ledgerFileFor(rootDir, accountId, pathService)),
+    ) as unknown;
+    if (isStoredLedger(stored, accountId)) {
+      return { initialized: true, seenIds: [...stored.seenIds] };
+    }
+  } catch {
+    // Missing or unreadable ledger — treated as first sync.
+  }
+  return { initialized: false, seenIds: [] };
+}
+
+/** Writes the existing version-1 task ledger using the platform atomic-write port. */
+export function writeSeenLedger(
+  rootDir: string,
+  accountId: string,
+  seenIds: Iterable<string>,
+  services: SeenLedgerServices = {},
+): void {
+  const fileSystem = services.fileSystem ?? nodeFileSystem;
+  const pathService = services.path ?? nodePath;
+  const clock = services.clock ?? systemClock;
+  const random = services.random ?? systemRandom;
+  const stored: StoredLedger = {
+    version: 1,
+    accountId,
+    seenIds: [...seenIds],
+  };
+  fileSystem.atomicWrite(
+    ledgerFileFor(rootDir, accountId, pathService),
+    JSON.stringify(stored),
+    `${clock.now()}-${random.next()}`,
+  );
+}
+
 export function createSeenLedger(
   rootDir: string,
   accountId: string,
@@ -48,19 +102,14 @@ export function createSeenLedger(
   const pathService = services.path ?? nodePath;
   const clock = services.clock ?? systemClock;
   const random = services.random ?? systemRandom;
-  const filePath = ledgerFileFor(rootDir, accountId, pathService);
-  const seen = new Set<string>();
-  let initialized = false;
-
-  try {
-    const stored = JSON.parse(fileSystem.readText(filePath)) as unknown;
-    if (isStoredLedger(stored, accountId)) {
-      for (const id of stored.seenIds) seen.add(id);
-      initialized = true;
-    }
-  } catch {
-    // Missing or unreadable ledger — treated as first sync (silent baseline).
-  }
+  const snapshot = readSeenLedger(rootDir, accountId, {
+    fileSystem,
+    path: pathService,
+    clock,
+    random,
+  });
+  const seen = new Set(snapshot.seenIds);
+  let initialized = snapshot.initialized;
 
   return {
     accountId,
@@ -81,12 +130,12 @@ export function createSeenLedger(
       return added;
     },
     save() {
-      const stored: StoredLedger = {
-        version: 1,
-        accountId,
-        seenIds: [...seen],
-      };
-      fileSystem.atomicWrite(filePath, JSON.stringify(stored), `${clock.now()}-${random.next()}`);
+      writeSeenLedger(rootDir, accountId, seen, {
+        fileSystem,
+        path: pathService,
+        clock,
+        random,
+      });
       initialized = true;
     },
   };
