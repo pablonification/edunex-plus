@@ -555,20 +555,40 @@ function isEdunexOrigin(url: string): boolean {
 
 /** Every read must settle so a wedged frame cannot stop future polls. */
 function readWithTimeout(contents: WebContentsService, clock: ClockService) {
-  return () =>
+  return (signal: AbortSignal) =>
     new Promise<unknown>((resolve, reject) => {
-      const timer = clock.setTimeout(() => reject(new Error("auth read timed out")), 5000);
-      contents
+      let timer: unknown = null;
+      let settled = false;
+
+      const cleanup = () => {
+        if (timer !== null) {
+          clock.clearTimeout(timer);
+          timer = null;
+        }
+        signal.removeEventListener("abort", onAbort);
+      };
+      const settle = (complete: () => void) => {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        complete();
+      };
+      const onAbort = () => settle(() => reject(new Error("auth read aborted")));
+
+      if (signal.aborted) {
+        onAbort();
+        return;
+      }
+      signal.addEventListener("abort", onAbort, { once: true });
+      timer = clock.setTimeout(
+        () => settle(() => reject(new Error("auth read timed out"))),
+        5000,
+      );
+      void contents
         .executeJavaScript("localStorage.getItem('auth')", true)
         .then(
-          (value) => {
-            clock.clearTimeout(timer);
-            resolve(value);
-          },
-          (error: unknown) => {
-            clock.clearTimeout(timer);
-            reject(error);
-          },
+          (value) => settle(() => resolve(value)),
+          (error: unknown) => settle(() => reject(error)),
         );
     });
 }
