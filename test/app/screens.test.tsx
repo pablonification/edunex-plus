@@ -164,6 +164,17 @@ describe("Home", () => {
 });
 
 describe("Settings", () => {
+  it("⌘2 with Settings open closes it and shows Tugas & Ujian, so the move is seen", async () => {
+    screen = await openApp({ signedIn: true });
+    await screen.click(/Dimas Pratama/);
+    expect(document.querySelector("[role=dialog]")).not.toBeNull();
+    await act(async () => {
+      (document.activeElement ?? document.body).dispatchEvent(new KeyboardEvent("keydown", { key: "2", metaKey: true, bubbles: true, cancelable: true }));
+    });
+    expect(document.querySelector("[role=dialog]")).toBeNull();
+    expect(document.querySelector("main h1")?.textContent).toBe("Tugas & Ujian");
+  });
+
   it("switches language and theme, and remembers them", async () => {
     screen = await openApp({ signedIn: true });
     await screen.click(/Dimas Pratama/);

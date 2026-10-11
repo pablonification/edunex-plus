@@ -4,6 +4,7 @@ import type { Entry } from "./entry";
 
 export const shellStrings = {
   // Shell
+  "nav.menu": { id: "Menu utama", en: "Main menu" },
   "nav.home": { id: "Beranda", en: "Home" },
   "nav.courses": { id: "Mata kuliah", en: "Courses" },
   "nav.tasks": { id: "Tugas & Ujian", en: "Tasks & Exams" },

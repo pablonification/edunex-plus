@@ -93,7 +93,7 @@ describe("Beranda on the recorded Thursday morning", () => {
     expect(text("home-now")).toContain("EduNex Presence is also open until 09:30; it's optional.");
     expect(row("home-today", "08:00")).toContain("You can miss 2 moreNow");
     expect(text("home-now")).toContain("New time · usually 08:00–09:30");
-    expect(row("home-today", "15:00")).toContain("Overlaps KU5014 16:00–16:30");
+    expect(row("home-today", "15:00")).toContain("Clashes with KU5014 16:00–16:30");
     expect(rows("home-needs")[0]).toContain("KU5014 can't reach 80% anymore");
     expect(text("home-changes")).toContain("PL3002 schedule changedThu, 8 Oct 08:00–10:00 · usually 08:00–09:30");
     expect(screen.text()).toContain("Midterm week starts Monday, 12 Oct · in 4 days");

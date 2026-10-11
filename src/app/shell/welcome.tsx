@@ -74,7 +74,7 @@ export function Welcome({ onDone }: { onDone: () => void }) {
           ]}
         />
       </div>
-      <div className="grid min-h-full place-items-center px-6 py-16">
+      <main className="grid min-h-full place-items-center px-6 py-16">
         <div className="w-full max-w-[460px]">
           <div className="mx-auto grid size-14 place-items-center rounded-[16px] bg-gradient-to-b from-[#4c8bf7] to-[#2563eb] text-white shadow-[0_8px_24px_-8px_rgb(37_99_235/0.55)]">
             <Icons.GraduationCap className="size-7" strokeWidth={1.9} />
@@ -112,7 +112,7 @@ export function Welcome({ onDone }: { onDone: () => void }) {
             </>
           )}
         </div>
-      </div>
+      </main>
     </div>
   );
 }

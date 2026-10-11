@@ -42,7 +42,7 @@ export const homeStrings = {
   "home.today.now": { id: "Sekarang", en: "Now" },
   "home.today.changed": { id: "Jam berubah · biasanya {usual}", en: "New time · usually {usual}" },
   "home.today.roomChanged": { id: "Ruang berubah · biasanya {room}", en: "New room · usually {room}" },
-  "home.today.overlap": { id: "Bentrok dengan {course} {time}", en: "Overlaps {course} {time}" },
+  "home.today.overlap": { id: "Bentrok dengan {course} {time}", en: "Clashes with {course} {time}" },
   "home.today.join": { id: "Gabung", en: "Join" },
   "home.today.joinLabel": { id: "Gabung kelas daring: {course}", en: "Join online class: {course}" },
   "home.today.notInSix": { id: "Tidak ada di jadwal SIX", en: "Not on SIX's timetable" },

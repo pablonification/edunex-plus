@@ -223,7 +223,7 @@ describe("Jadwal: the week as a timetable", () => {
     expect(subtitle()).toBe("Week 7 · 5–11 Oct");
     expect(items("Thursday 8 October")[0]).toBe("PL3002 · 08:00–10:00 · R.SG PWK LT.6 · Changed");
     expect(await details(s, /^PL3002 · 08:00–10:00/)).toContain("Changed · usually 08:00–09:30");
-    expect(await details(s, /^KU5014 · 16:00/)).toContain("Overlaps PL3032 · 16:00–16:30");
+    expect(await details(s, /^KU5014 · 16:00/)).toContain("Clashes with PL3032 · 16:00–16:30");
     expect(items("Friday 9 October")[0]).toBe("II4091 · Meeting 3 · 15:00–17:00 · Online · Not in SIX");
     expect(day("Monday 5 October")).toContain("Free");
   });

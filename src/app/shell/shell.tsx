@@ -65,7 +65,13 @@ function Layout() {
     ),
   );
   useRefreshWhenBackOnline();
-  useNavShortcuts(go);
+  useNavShortcuts(
+    useCallback(() => {
+      setSettingsOpen(false);
+      setSearchOpen(false);
+      setScanOpen(false);
+    }, []),
+  );
   // A new screen starts at its top.
   const key = JSON.stringify(route);
   useEffect(() => {
@@ -130,27 +136,29 @@ function CurrentScreen({ route }: { route: Route }) {
 
 const NAV_ORDER = ["home", "tasks", "schedule", "presence", "grades", "plan"] as const;
 
-/** ⌘1 to ⌘6 open the six places in the sidebar (Ctrl elsewhere); ⌘[ goes back. */
-function useNavShortcuts(go: (route: Route) => void) {
+/** ⌘1 to ⌘6 open the six places in the sidebar (Ctrl elsewhere); ⌘[ goes back. Either closes what's open over the screen first. */
+function useNavShortcuts(closeOverlays: () => void) {
   const store = useStore();
-  const { back } = useNav();
+  const { go, back } = useNav();
   useEffect(() => {
     const mac = store.platform === "darwin";
     const onKey = (event: globalThis.KeyboardEvent) => {
       if (event.altKey || event.shiftKey || !(mac ? event.metaKey : event.ctrlKey)) return;
       if (event.key === "[") {
         event.preventDefault();
+        closeOverlays();
         back();
         return;
       }
       const index = Number(event.key) - 1;
       if (!Number.isInteger(index) || index < 0 || index >= NAV_ORDER.length) return;
       event.preventDefault();
+      closeOverlays();
       go({ screen: NAV_ORDER[index] } as Route);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [store, go, back]);
+  }, [store, go, back, closeOverlays]);
 }
 
 /** Coming back online is the best moment to check again; the engine's own rhythm handles the rest. */
@@ -202,7 +210,7 @@ function Sidebar({ onSettings }: { onSettings: () => void }) {
     <aside className="flex h-full w-[248px] shrink-0 flex-col border-r border-line bg-sidebar select-none">
       <div className={cx("shrink-0", store.platform === "darwin" ? "drag h-[52px]" : "h-3")} />
 
-      <nav aria-label={t("nav.home")} className="space-y-0.5 px-3">
+      <nav aria-label={t("nav.menu")} className="space-y-0.5 px-3">
         {items
           .filter((item) => item.ready)
           .map(({ screen, label, Icon, badge, owns }, index) => {
