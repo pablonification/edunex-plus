@@ -314,10 +314,16 @@ export function createEngine(deps: EngineDeps): Engine {
         await store.remove(`${source.id}.`);
         setStatus(source.id, { state: "signed-out", updatedAt: null, detail: null });
       }
-      // Signing out of everything also forgets what the Student entered.
+      // Signing out of everything also forgets what the Student entered, and the
+      // next Student on this computer gets their own first-run scan.
       if (!only) {
         await store.remove("local.");
         await alerts.reset();
+        if (settings.firstScanDone) {
+          settings = { ...settings, firstScanDone: false };
+          await saveState();
+          deps.emit({ type: "settings", settings });
+        }
       }
     },
 
