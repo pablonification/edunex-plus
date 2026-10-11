@@ -194,7 +194,7 @@ describe("each system on its own", () => {
     screen = await openApp({ signedIn: true, six: true });
     screen.world.six.rateLimit(1);
     await refreshSix();
-    expect(await screen.sourceState("SIX")).toBe("Offline");
+    expect(await screen.sourceState("SIX")).toBe("Tidak terhubung");
     expect(card("DK4073")).toContain("4/6");
   });
 });

@@ -87,7 +87,7 @@ describe("Home", () => {
     expect(await screen.sourceState("EduNex")).toBe("Memeriksa…");
     await screen.engineDoes(async () => screen?.engine.start());
     await screen.wait();
-    expect(await screen.sourceState("EduNex")).toBe("Offline");
+    expect(await screen.sourceState("EduNex")).toBe("Tidak terhubung");
     // Nothing reaches the network: the whole window says so, with the time of the last data.
     expect(screen.text()).toContain("Tidak ada koneksi.");
     expect(cards()).toHaveLength(5);

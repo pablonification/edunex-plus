@@ -35,7 +35,7 @@ export const shellStrings = {
   "status.signed-out": { id: "Belum masuk", en: "Not signed in" },
   "status.connecting": { id: "Memeriksa…", en: "Checking…" },
   "status.live": { id: "Terhubung", en: "Connected" },
-  "status.offline": { id: "Offline", en: "Offline" },
+  "status.offline": { id: "Tidak terhubung", en: "Offline" },
   "status.expired": { id: "Sesi berakhir", en: "Session ended" },
   "status.changed": { id: "{source} berubah", en: "{source} changed something" },
   "status.updated": { id: "Diperbarui {when}", en: "Updated {when}" },
