@@ -84,14 +84,16 @@ describe("Perbarui sekarang", () => {
     expect(requestsTo(h, /^\/course\/tasks/, since).length).toBeGreaterThan(0);
   });
 
-  it("a feed with nothing to fetch says nothing about the connection", async () => {
+  it("the catalog losing the connection halfway tries again quietly: the calendar the Student sees is fine", async () => {
     const h = await startEngine();
     while (!h.world.itb.requests.some((r) => r.path === "/pub/kur2024/182")) await h.wait(1_000);
     h.world.setOffline(true);
     await h.wait(30_000);
-    expect(h.status("itb").state).toBe("offline");
-    // ITB's calendar is still fresh: refreshing it reads nothing, which proves nothing.
-    await h.engine.refresh("itb");
-    expect(h.status("itb").state).toBe("offline");
+    expect(h.status("itb").state).toBe("live");
+    expect(h.dataset("itb.catalog")!.programs.find((p) => p.id === "154")?.state).toBe("pending");
+    // Back online, it picks up where it stopped on its own.
+    h.world.setOffline(false);
+    await h.wait(30 * 60_000);
+    expect(h.dataset("itb.catalog")!.programs.find((p) => p.id === "154")?.state).toBe("ready");
   });
 });

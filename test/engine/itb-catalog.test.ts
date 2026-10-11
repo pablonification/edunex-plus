@@ -182,12 +182,13 @@ describe("SIX public course catalog", () => {
     expect(catalog.courses.find((c) => c.code === "II2210")?.owner).toBe("182");
   });
 
-  it("dropping offline halfway keeps the programs already read", async () => {
+  it("dropping offline halfway keeps the programs already read, and tries again quietly", async () => {
     const h = await startEngine();
     while (!catalogRequests(h).some((r) => r.path === "/pub/kur2024/182")) await h.wait(1_000);
     h.world.setOffline(true);
     await h.wait(FULL_READ);
-    expect(h.status("itb").state).toBe("offline");
+    // A background read: nothing the Student can act on, and the calendar they see is fine.
+    expect(h.status("itb").state).toBe("live");
     // Sistem dan Teknologi Informasi comes before Perencanaan Wilayah dan Kota in SIX's list.
     expect(program(h, "182").state).toBe("ready");
     expect(program(h, "154").state).toBe("pending");

@@ -18,7 +18,8 @@ export interface FeedSpec {
   /**
    * Runs only on its own schedule, never on "Perbarui sekarang": public
    * reference data that changes a few times a year and takes minutes to read
-   * (ITB's catalog), which a refresh would otherwise wait on.
+   * (ITB's catalog), which a refresh would otherwise wait on. Getting no
+   * answer doesn't mark the source offline: it just tries again later.
    */
   background?: boolean;
   /** `current()` turns false once the session this run started under has ended; store nothing then. */

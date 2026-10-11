@@ -144,8 +144,10 @@ export function createEngine(deps: EngineDeps): Engine {
       void checkLiveness(source);
       return;
     }
-    outcomes.set(feed, failure);
-    if (failure?.kind === "Offline" && failure.unreachable) unreachableAt.set(feed, ++tick);
+    // A background feed that got no answer just tries again on its own: nothing the Student can act on.
+    const quiet = failure?.kind === "Offline" && failure.unreachable && background.has(feed);
+    outcomes.set(feed, quiet ? null : failure);
+    if (failure?.kind === "Offline" && failure.unreachable && !quiet) unreachableAt.set(feed, ++tick);
     else unreachableAt.delete(feed);
     const reached = answered.get(source) ?? 0;
     for (const [name, at] of unreachableAt) {
