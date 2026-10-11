@@ -48,6 +48,15 @@ export function useTermName(record: Pick<StudentRecord, "entryTerm">): (term: st
   };
 }
 
+/** "2026/2027 Ganjil", "2026/2027 Pendek": a term without the Student's semester number (KRS, UKT, the calendar). */
+export function useTermYears(): (term: string) => string {
+  const t = useT();
+  return (term) => {
+    const kind = termKind(term);
+    return `${yearsOf(term)} ${t(kind === "odd" ? "planner.odd" : kind === "even" ? "planner.even" : "grades.shortTerm")}`;
+  };
+}
+
 /** "Smt 7", or "Pendek" for a short semester: the chart's columns. */
 export function useStepLabel(): (step: Pick<ProjectedStep, "term" | "semester">) => string {
   const t = useT();
