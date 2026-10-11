@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 // v2-08 (#76), seam 2: SIX in the window. The real engine reads the pretend
 // EduNex and SIX behind the bridge; the tests look at what the Student sees.
+import { act } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 import { openApp } from "./harness";
 
@@ -206,6 +207,11 @@ describe("Settings", () => {
     expect(screen.text()).toContain("Dimas Pratama · Sistem dan Teknologi Informasi");
     await screen.click("Keluar dari SIX");
     expect(screen.has("Masuk ke SIX")).toBe(true);
+    // Focus stays on the row's button (now "Masuk ke SIX"), not thrown to the dialog, so the list doesn't jump.
+    await act(async () => {
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+    });
+    expect(document.activeElement?.textContent).toBe("Masuk ke SIX");
     expect(screen.has("Keluar dari EduNex")).toBe(true);
     expect(screen.vault.secrets.has("six.session")).toBe(false);
     expect(screen.vault.secrets.has("edunex.session")).toBe(true);

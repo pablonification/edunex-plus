@@ -3,7 +3,7 @@
 // remove everything), then notifications and what closing the window does,
 // then appearance, then the rest (attendance target, version). A newer
 // release shows on top while there is one.
-import { useState, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import type { AlertGroup, Settings, SourceId } from "../../core/models";
 import type { StringKey } from "../../core/strings";
 import { ActionError } from "../bridge";
@@ -246,6 +246,7 @@ function AccountRow({ source, who }: { source: SourceId; who: string | null }) {
   const report = useReport();
   const { signIn, busy: signingIn } = useSignIn();
   const [busy, setBusy] = useState(false);
+  const row = useRef<HTMLDivElement>(null);
   const name = t(`source.${source}`);
   const signOut = async () => {
     setBusy(true);
@@ -256,6 +257,11 @@ function AccountRow({ source, who }: { source: SourceId; who: string | null }) {
     } finally {
       setBusy(false);
     }
+    // The busy button let go of focus: give it back (now "Masuk ke …") without moving the list, and keep the row in sight.
+    requestAnimationFrame(() => {
+      row.current?.querySelector("button")?.focus({ preventScroll: true });
+      row.current?.scrollIntoView?.({ block: "nearest" });
+    });
   };
   const needsSignIn = status.state === "signed-out" || status.state === "expired";
   // Each button says where it goes, both ways: "Masuk ke SIX", "Keluar dari SIX".
@@ -272,7 +278,7 @@ function AccountRow({ source, who }: { source: SourceId; who: string | null }) {
             ? { text: checked ? t("settings.account.live", { when: checked }) : t("status.live"), tone: "text-success-fg" }
             : { text: checked ? t("settings.account.stale", { when: checked }) : t(`status.${status.state}`, { source: name }), tone: "text-warning-fg" };
   return (
-    <div className="flex items-center gap-3.5 px-4 py-3">
+    <div ref={row} className="flex scroll-my-3 items-center gap-3.5 px-4 py-3">
       <span className="min-w-0 flex-1">
         <span className="block text-body font-medium">{name}</span>
         {who && <span className="block truncate text-small text-muted">{who}</span>}
