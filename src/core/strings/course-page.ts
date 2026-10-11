@@ -67,6 +67,7 @@ export const coursePageStrings = {
   "meeting.noSix": { id: "Jadwal pertemuan dan ruangnya datang dari SIX", en: "Meeting times and rooms come from SIX" },
   "meeting.noEdunexPresence": { id: "Kelas ini tidak memakai Presensi EduNex", en: "This class doesn't use EduNex Presence" },
   "meeting.number": { id: "Pertemuan {no}", en: "Meeting {no}" },
+  "meeting.module": { id: "Modul {no} · {title}", en: "Module {no} · {title}" },
   "meeting.untitled": { id: "Kuliah", en: "Class" },
   "meeting.window": { id: "Presensi {range}", en: "Presence {range}" },
   "meeting.notInSix": { id: "Tidak ada di SIX", en: "Not in SIX" },

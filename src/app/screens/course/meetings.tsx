@@ -6,7 +6,8 @@
 // absence where SIX is (or, signed out of SIX, may be) the one that counts.
 // A meeting carries one number only: the name EduNex or SIX gives it.
 import type { ReactNode } from "react";
-import { meetingState, nextMeetingIndex, type Meeting, wibDay } from "../../../core/course-meetings";
+import { type OutlineEntry, outlineEntries } from "../../../core/course-materials";
+import { meetingModules, meetingState, nextMeetingIndex, type Meeting, wibDay } from "../../../core/course-meetings";
 import { edunexCourseUrl } from "../../../core/links";
 import type { CalendarEvent } from "../../../core/models";
 import { dayStart } from "../../../core/schedule";
@@ -34,6 +35,8 @@ export function MeetingsTab({ page }: { page: CoursePage }) {
   const noEdunexPresence = presence !== undefined && presence.length === 0;
   const sixSignedOut = useStatus("six").state === "signed-out";
   const next = nextMeetingIndex(meetings, now);
+  // A meeting nothing names takes the one module the lecturer posted the week before it, when there is one.
+  const modules = meetingModules(meetings, page.outline && course.edunex ? outlineEntries(page.outline, course.edunex.courseId) : []);
   const periods = (calendar?.events ?? []).filter((e) => e.kind === "uts" || e.kind === "uas");
   // The exam period a meeting falls in, said once, before its first meeting.
   const periodOf = (meeting: Meeting) => periods.find((p) => wibDay(meeting.start) >= p.firstDay && wibDay(meeting.start) <= p.lastDay);
@@ -79,6 +82,7 @@ export function MeetingsTab({ page }: { page: CoursePage }) {
                 index={index}
                 next={index === next}
                 countedIn={countedIn}
+                module={modules.get(meeting.key)}
                 divider={firstInPeriod ? period : undefined}
                 fallbackUrl={course.edunex ? edunexCourseUrl(course.edunex.courseId) : null}
               />
@@ -127,6 +131,7 @@ function MeetingRow({
   index,
   next,
   countedIn,
+  module,
   divider,
   fallbackUrl,
 }: {
@@ -134,6 +139,7 @@ function MeetingRow({
   index: number;
   next: boolean;
   countedIn: CountedIn;
+  module: OutlineEntry | undefined;
   divider: CalendarEvent | undefined;
   fallbackUrl: string | null;
 }) {
@@ -146,7 +152,11 @@ function MeetingRow({
   const named = presence?.topic ?? six?.activity ?? null;
   // Unnamed, or only numbered ("Pertemuan 3"): said in a quieter color.
   const placeholder = !named || /^(pertemuan|meeting)\s*\d+$/i.test(named.trim());
-  const title = named ?? (announced ? t("meeting.number", { no: announced.number }) : six?.activity || t("meeting.untitled"));
+  // A meeting known only as a class takes EduNex's module for that week, numbered as on the Modul tab.
+  // A meeting EduNex or SIX numbers keeps its own number: one number per meeting.
+  const fromModule =
+    module && !announced && (!named || /^kuliah$/i.test(named.trim())) ? t("meeting.module", { no: module.number, title: module.module.title.trim() }) : null;
+  const title = fromModule ?? named ?? (announced ? t("meeting.number", { no: announced.number }) : six?.activity || t("meeting.untitled"));
   // EduNex's Presence window, when it isn't simply the meeting's time.
   const window = presence && (presence.opensAt !== meeting.start || presence.closesAt !== meeting.end) ? f.timeRange(presence.opensAt, presence.closesAt) : null;
   const presenceUrl = presence?.url ?? fallbackUrl;
@@ -201,7 +211,7 @@ function MeetingRow({
           <span className="block text-small text-muted">{f.timeRange(meeting.start, meeting.end)}</span>
         </span>
         <span className="min-w-0 text-body">
-          <span className={cx("block truncate", placeholder ? "text-muted" : "font-medium", future && !next && !placeholder && "text-fg/80")}>{title}</span>
+          <span className={cx("block truncate", placeholder && !fromModule ? "text-muted" : "font-medium", future && !next && (!placeholder || fromModule) && "text-fg/80")}>{title}</span>
           <span className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-small text-muted">
             {six?.room && (
               <span className="inline-flex items-center gap-1">

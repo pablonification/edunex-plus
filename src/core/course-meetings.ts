@@ -5,7 +5,7 @@
 // SIX's timetable for that month, read from its own page, doesn't list them.
 // Nothing here ever calls a meeting an absence: SIX may count what EduNex
 // didn't record.
-import { htmlText, materialKind } from "./course-materials";
+import { htmlText, materialKind, type OutlineEntry } from "./course-materials";
 import type { Announcement, ClassSession, Material, PresenceSession } from "./models";
 
 const HOUR = 3_600_000;
@@ -130,6 +130,27 @@ export interface Meeting {
  * Presence to tell.
  */
 export type MeetingState = "present" | "recorded" | "open" | "upcoming" | "unmarked" | "held";
+
+const WEEK = 7 * 24 * HOUR;
+
+/**
+ * The EduNex module that goes with a meeting, for a meeting nothing else names.
+ * EduNex's modules carry no date or week, only when the lecturer posted them, so
+ * a module goes with a meeting only when it is the one module posted in the week
+ * before it (after the meeting before it ended). A whole outline posted at once,
+ * or two modules in one week, say nothing about which meeting is which: no guess.
+ * Numbered placeholders ("Module 06") say nothing either.
+ */
+export function meetingModules(meetings: readonly Meeting[], entries: readonly OutlineEntry[]): Map<string, OutlineEntry> {
+  const named = entries.filter((e) => e.module.postedAt !== null && !/^(modul|module|pertemuan|minggu|week|sesi|session)\s*\d+$/i.test(e.module.title.trim()));
+  const out = new Map<string, OutlineEntry>();
+  meetings.forEach((meeting, index) => {
+    const from = Math.max(meeting.start - WEEK, index > 0 ? meetings[index - 1].end : -Infinity);
+    const posted = named.filter((e) => e.module.postedAt! > from && e.module.postedAt! <= meeting.end);
+    if (posted.length === 1) out.set(meeting.key, posted[0]);
+  });
+  return out;
+}
 
 export function meetingState(meeting: Meeting, now: number): MeetingState {
   const presence = meeting.presence;

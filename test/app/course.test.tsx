@@ -280,6 +280,17 @@ describe("meetings", () => {
     expect(meetings.find((m) => m.includes("18 Nov"))).toContain("Kuliah");
   });
 
+  it("a meeting known only as a class takes the module EduNex posted for that week", async () => {
+    await openCourse("PL3002", { six: true });
+    await tab(/^Pertemuan/);
+    const meetings = rows("main ol li");
+    expect(meetings.find((m) => m.includes("17 Sep"))).toContain("Modul 4 · Production Process Innovation");
+    // Two modules posted the week before 1 Oct: no guess.
+    expect(meetings.find((m) => m.includes("1 Okt"))).toContain("Kuliah");
+    // EduNex's own name for a meeting stays.
+    expect(meetings.find((m) => m.includes("27 Agu"))).toContain("Pendahuluan");
+  });
+
   it("a class without EduNex Presence says so; its meetings come from SIX", async () => {
     const s = await openCourse("KU5014");
     await tab(/^Pertemuan/);
