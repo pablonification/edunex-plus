@@ -17,7 +17,7 @@ const open = async (now?: string) => {
 };
 // The Task lists; the exam list above them has its own tests (exam.test.tsx).
 const sections = () =>
-  [...document.querySelectorAll("main section:not([aria-labelledby=tasks-exams]) h2")].map((h) => h.textContent!.replace(/(\D)(\d+)$/, "$1 $2"));
+  [...document.querySelectorAll("main section:not([aria-labelledby=tasks-exams]) h2")].map((h) => h.textContent!);
 const row = (title: string) => [...document.querySelectorAll<HTMLButtonElement>("main li button")].find((b) => b.textContent?.startsWith(title));
 // An exam's row: its take-home Task is folded into it.
 const examRow = (text: string) => [...document.querySelectorAll<HTMLButtonElement>("main li button")].find((b) => b.textContent?.includes(text));

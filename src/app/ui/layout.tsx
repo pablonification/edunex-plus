@@ -71,7 +71,8 @@ export function Section({
           <div className="min-w-0">
             <h2 id={id} className="text-title font-semibold tracking-[-0.01em]">
               {title}
-              {count !== undefined && <span className="ml-2 font-medium text-faint tabular-nums">{count}</span>}
+              {/* The space keeps the count its own word for a screen reader: "Nanti 3", not "Nanti3". */}
+              {count !== undefined && <span className="ml-1.5 font-medium text-faint tabular-nums">{` ${count}`}</span>}
             </h2>
             {description && <div className="mt-0.5 text-small text-muted">{description}</div>}
           </div>
