@@ -365,7 +365,7 @@ function CourseRow({ item, target, lastDay, index }: { item: CourseAttendance; t
   return (
     <li className="group relative motion-safe:stagger has-[>button:hover]:bg-hover" style={{ "--i": index } as CSSProperties}>
       {/* The whole row opens the course's meetings; the meeting squares sit above it. */}
-      <button type="button" aria-label={label} onClick={() => go({ screen: "course", code: course.code, tab: "meetings" })} className="absolute inset-0 z-0 outline-none focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus" />
+      <button type="button" aria-label={label} onClick={() => go({ screen: "course", code: course.code, tab: "meetings" })} className="absolute inset-0 z-0 outline-none focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-[-2px] focus-visible:outline-focus" />
       <div className="pointer-events-none relative grid grid-cols-[minmax(0,1fr)_auto_220px] items-center gap-x-6 px-5 py-4">
         <div className="min-w-0">
           <CourseCode code={course.code} color={course.color} className="text-small" />
