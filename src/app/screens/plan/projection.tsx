@@ -248,6 +248,8 @@ export function HonorsSentence({ projection, className }: { projection: Projecti
 export function HonorsList({ projection, className }: { projection: Projection; className?: string }) {
   const t = useT();
   const f = useFormat();
+  // Never three "di luar jangkauan" in a row: when every level is out, one honest, positive sentence.
+  if (honorsOutlook(projection).every((h) => h.kind === "out")) return <HonorsSentence projection={projection} className={className} />;
   return (
     <ul className={cx("space-y-1.5 text-small", className)}>
       {honorsOutlook(projection)

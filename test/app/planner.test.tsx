@@ -213,6 +213,9 @@ describe("the study planner", () => {
   it("an IPK target: the average the rest needs, one setting with Nilai", async () => {
     const s = await openPlan();
     expect(s.text()).toContain("IPK 3,50 di luar jangkauan dengan mata kuliah tersisa, walau semua A.");
+    // Every honors level out of reach: said once, kindly, not three "di luar jangkauan" rows.
+    expect(s.text()).toContain("Cum laude (≥ 3,50) sudah di luar jangkauan. Tiap nilai bagus tetap menaikkan IPK-mu.");
+    expect(s.text()).not.toContain("Summa cum laude ≥ 3,85di luar jangkauan");
     await s.click("Target IPK 3,00");
     expect(s.text()).toContain("Untuk IPK 3,00: rata-rata 1,74 (sekitar C) di 26 SKS tersisa.");
     expect(saved()?.target).toBe(3);
