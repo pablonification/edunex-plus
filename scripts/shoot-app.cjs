@@ -54,7 +54,47 @@ if (args[0] === "--seed") {
   async function script(win) {
     await waitFor(win, `document.querySelector("#root")?.children.length > 0`);
     await settings(win, { theme: "light", lang: "id" });
-    if (steps === "signin") {
+    if (steps === "tour") {
+      // Every screen and every tab, as a Student would click through them.
+      const click = (label) =>
+        run(win, `(() => { const el = [...document.querySelectorAll("button, [role=tab], a")].find((e) => e.textContent.trim() === ${JSON.stringify(label)} || e.getAttribute("aria-label") === ${JSON.stringify(label)}); if (!el) return false; el.click(); return true; })()`);
+      const tabs = () => run(win, `[...document.querySelectorAll("main [role=tab]")].map((t) => t.textContent.trim())`);
+      const clickTab = (i) => run(win, `document.querySelectorAll("main [role=tab]")[${i}].click()`);
+      const shotTabs = async (name) => {
+        const labels = await tabs();
+        if (!labels.length) return shot(win, name);
+        for (let i = 0; i < labels.length; i++) {
+          await clickTab(i);
+          await shot(win, `${name}-${i + 1}-${labels[i].toLowerCase().replace(/[^a-z0-9]+/g, "-")}`);
+        }
+      };
+      await waitFor(win, `!!document.querySelector("aside")`, 30_000);
+      await sleep(4_000);
+      await shot(win, "home");
+      for (const [label, name] of [["Tugas & Ujian", "tasks"], ["Jadwal", "schedule"], ["Presensi", "presence"], ["Nilai", "grades"], ["Rencana studi", "plan"]]) {
+        if (!(await click(label))) {
+          console.log("[tour] no", label);
+          continue;
+        }
+        await shotTabs(name);
+        if (name === "tasks") {
+          const opened = await run(win, `(() => { const row = document.querySelector("main li button, main [data-task]"); if (!row) return false; row.click(); return true; })()`);
+          if (opened) await shot(win, "task-page");
+        }
+      }
+      const codes = await run(win, `[...document.querySelectorAll("aside ul button")].map((b) => b.textContent.trim().slice(0, 6))`);
+      for (const code of codes.slice(0, 2)) {
+        await run(win, `[...document.querySelectorAll("aside ul button")].find((b) => b.textContent.trim().startsWith(${JSON.stringify(code)}))?.click()`);
+        await shotTabs(`course-${code}`);
+      }
+      await settings(win, { theme: "dark" });
+      await click("Beranda");
+      await shot(win, "home-dark");
+      if (codes[0]) {
+        await run(win, `[...document.querySelectorAll("aside ul button")].find((b) => b.textContent.trim().startsWith(${JSON.stringify(codes[0])}))?.click()`);
+        await shot(win, "course-dark");
+      }
+    } else if (steps === "signin") {
       // From the signed-in shell, sign out of everything first.
       if (await run(win, `!!document.querySelector("aside")`)) {
         await run(win, `document.querySelector("aside > div:last-child button").click()`);
