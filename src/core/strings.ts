@@ -9,8 +9,11 @@ import { alertsStrings } from "./strings/alerts";
 import { attendanceStrings } from "./strings/attendance";
 import { coursePageStrings } from "./strings/course-page";
 import { gradesStrings } from "./strings/grades";
+import { homeStrings } from "./strings/home";
 import { itbStrings } from "./strings/itb";
 import { planStrings } from "./strings/plan";
+import { scheduleStrings } from "./strings/schedule";
+import { searchStrings } from "./strings/search";
 import { shellStrings } from "./strings/shell";
 import { sixStrings } from "./strings/six";
 import { sixRecordsStrings } from "./strings/six-records";
@@ -30,6 +33,9 @@ export const STRINGS = {
   ...planStrings,
   ...gradesStrings,
   ...academicStrings,
+  ...scheduleStrings,
+  ...homeStrings,
+  ...searchStrings,
 } as const satisfies Record<string, Entry>;
 
 
