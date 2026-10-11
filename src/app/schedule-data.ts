@@ -8,26 +8,13 @@ import { type Exam, mergeExams } from "../core/exams";
 import { edunexMeetings, meetingsOutsideSix, type ScheduleInput, taskWindows } from "../core/schedule";
 import { isOpenStatus, taskStatus } from "../core/tasks";
 import { useTermCourses } from "./courses";
-import { useLang, useNow } from "./i18n";
+import { useNow } from "./i18n";
 import { useDataset } from "./store";
 
-/**
- * Course names as Jadwal and Presensi show them: SIX's (Indonesian) once SIX
- * is known; before that, on Indonesian screens, ITB's catalog name when the
- * catalog has the course, else EduNex's as it is. The code always goes first.
- */
+/** A course's name by its code, the one name it has everywhere (see ./courses), else the given fallback. */
 export function useCourseNames(): (code: string, fallback?: string) => string {
   const courses = useTermCourses();
-  const catalog = useDataset("itb.catalog");
-  const lang = useLang();
-  return useCallback(
-    (code: string, fallback?: string) => {
-      const course = courses?.find((c) => c.code === code);
-      if (course?.inSix || lang === "en") return course?.name ?? fallback ?? code;
-      return catalog?.courses.find((c) => c.code === code)?.name ?? course?.name ?? fallback ?? code;
-    },
-    [courses, catalog, lang],
-  );
+  return useCallback((code: string, fallback?: string) => courses?.find((c) => c.code === code)?.name ?? fallback ?? code, [courses]);
 }
 
 /** Minute precision is plenty, and keeps the merging from rerunning every tick. */
