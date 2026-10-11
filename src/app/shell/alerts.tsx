@@ -24,6 +24,7 @@ const KIND_ICON: Record<AlertKind, ComponentType<IconProps>> = {
   grade: Icons.Star,
   krs: Icons.ShieldCheck,
   bill: Icons.Wallet,
+  academic: Icons.CalendarClock,
 };
 
 /** Kinds that are about time running out. */

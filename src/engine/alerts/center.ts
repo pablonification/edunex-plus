@@ -203,7 +203,9 @@ export class AlertCenter {
         if (at <= now) due.push(draft);
         else if (at - now <= HEARTBEAT) this.planTimers.push(clock.setTimeout(() => this.replan(), at - now));
       }
-      if (due.length) this.accept(due, silentFor?.has(detector) ?? false);
+      // A watched dataset already stored but not yet announced (its write is still finishing) is a first sync too.
+      const unseen = detector.watches.some((name) => !this.last.has(name) && this.deps.get(name) !== undefined);
+      if (due.length) this.accept(due, unseen || (silentFor?.has(detector) ?? false));
     }
     this.planTimers.push(clock.setTimeout(() => this.replan(), HEARTBEAT));
   }

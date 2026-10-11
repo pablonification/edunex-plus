@@ -11,7 +11,7 @@ import { SourceId } from "./base";
  * The groups the Student can turn on or off in Settings (the approved
  * design's list). Every alert kind belongs to one.
  */
-export const AlertGroup = z.enum(["presence", "attendanceRisk", "changes", "exams", "deadline", "newTask", "newMaterial", "grade", "krs", "bill"]);
+export const AlertGroup = z.enum(["presence", "attendanceRisk", "changes", "exams", "deadline", "newTask", "newMaterial", "grade", "krs", "bill", "academic"]);
 export type AlertGroup = z.infer<typeof AlertGroup>;
 
 /**
@@ -31,6 +31,8 @@ export const AlertKind = z.enum([
   "grade",
   "krs",
   "bill",
+  /** An ITB academic calendar date coming up (DRS, URS, UKT deadline, questionnaire). */
+  "academic",
 ]);
 export type AlertKind = z.infer<typeof AlertKind>;
 
@@ -47,6 +49,7 @@ export const ALERT_GROUP: Record<AlertKind, AlertGroup> = {
   grade: "grade",
   krs: "krs",
   bill: "bill",
+  academic: "academic",
 };
 
 /** A piece of alert text: a catalog key and what fills its placeholders. */

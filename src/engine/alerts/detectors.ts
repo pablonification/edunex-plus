@@ -13,15 +13,25 @@
 // - Exams scheduled, and the day before (#74 exams, six.schedule UTS/UAS):
 //   `changed()` for new ones, `plan()` for the day before; kind "exam".
 // - New grade (#78 transcript): `changed()`, kind "grade".
-// - KRS approved or changed (#79): `changed()`, kind "krs".
-// - Bill deadline (#80 bills): `plan()` before the deadline while unpaid, kind "bill".
 // - Meetings announced outside SIX (#74 announcements + six.schedule):
 //   `changed()`, kind "meeting".
 // The same `changed()` results can later feed the in-app "what changed" list.
+import { academicCalendar, billReminders, krsChanged, newBill } from "./academic";
 import { attendanceBudget, sixNotCounting } from "./attendance";
 import type { Detector } from "./detector";
 import { edunexNotifications } from "./edunex-feed";
 import { presenceOpening } from "./presence";
 import { deadlineReminders, newTasks } from "./tasks";
 
-export const DETECTORS: readonly Detector[] = [newTasks, deadlineReminders, edunexNotifications, presenceOpening, sixNotCounting(), attendanceBudget];
+export const DETECTORS: readonly Detector[] = [
+  newTasks,
+  deadlineReminders,
+  edunexNotifications,
+  presenceOpening,
+  sixNotCounting(),
+  attendanceBudget,
+  krsChanged,
+  newBill,
+  billReminders,
+  academicCalendar,
+];
