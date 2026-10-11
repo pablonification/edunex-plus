@@ -77,10 +77,15 @@ world.edunex.submitOnWebsite(id);                               // the Student, 
 | Meeting moved (time or room) | `moveMeeting` | #77, v2-18 |
 | Classes that overlap | recorded | #77 |
 | Other months of the timetable | needs a recording | #77 |
-| Grade released | `releaseGrade` | #78 |
+| Grade released | `releaseGrade` (status page); `gradeCourse` (transcript and curriculum position) | #78 |
 | Transcript, curriculum position | recorded | #78, #79 |
-| KRS sent, approved, changed (URS) | recorded; `editPage` | #80 |
-| Bills (paid, in instalments, not billed yet) | recorded; `editPage` | #80 |
+| Grade changed, T (incomplete) grade | `gradeCourse` | #78 |
+| Repeated course | `retake`, then `gradeCourse` and `markOnTranscript` | #78 |
+| Course not counted in the transcript ("Masuk Transkrip" ✗) | `markOnTranscript` | #78 |
+| Course passed under an older code | recorded (KI1002-19 in the 2024 curriculum) | #79 |
+| KRS sent, approved, changed (URS) | recorded; `krsStep`, `dropKrsChange`, `krsCourse` | #80 |
+| KRS step not taken yet, course not approved by the advisor | needs a recording (an empty cell stands in) | #80 |
+| Bills (paid, in instalments, not billed yet) | recorded; `setBill` | #80 |
 | Course questionnaire window | recorded | #80 |
 | Curriculum structure (required, specializations, minors) | recorded | #79 |
 

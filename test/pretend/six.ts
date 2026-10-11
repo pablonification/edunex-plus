@@ -1,7 +1,8 @@
 // A pretend SIX for tests. It serves the recorded pages (test/fixtures/six),
 // redirects to /login when the session has ended, rate-limits like SIX's
 // firewall, and lets a test change a page the way staff would: attendance
-// counts, a moved meeting, a released grade.
+// counts, a moved meeting, a released grade, a retake, the study plan, a bill.
+import { type CheerioAPI, load } from "cheerio/slim";
 import type { HttpRequest, HttpResponse } from "../../src/engine/http/transport";
 import { bodyText, exchanges } from "../kit/fixtures";
 
@@ -65,6 +66,112 @@ export class PretendSix {
     );
   }
 
+  // ------------------------------------------------ records: transcript, KRS, bills (#78, #80)
+
+  /**
+   * Sets a course's grade for the term it was taken ("" takes it away) on the
+   * transcript, and on the curriculum-position page where that attempt is the
+   * one it lists.
+   */
+  gradeCourse(term: string, code: string, grade: string): void {
+    this.editRecord(TRANSCRIPT, ($) => transcriptRow($, term, code).children("td").eq(3).text(grade));
+    this.editRecord(POSITION, ($) => positionRow($, code).filter((_, tr) => $(tr).children("td").last().text().trim() === term).children("td").eq(4).text(grade));
+  }
+
+  /** Puts a transcript row on or off the official transcript (SIX's "Masuk Transkrip" ✓ or ✗). */
+  markOnTranscript(term: string, code: string, on: boolean): void {
+    const icon = on ? '<i class="fa fa-check fa-fw text-success" aria-hidden="true"></i>' : '<i class="fa fa-times fa-fw text-danger" aria-hidden="true"></i>';
+    this.editRecord(TRANSCRIPT, ($) => transcriptRow($, term, code).children("td").eq(5).html(icon));
+  }
+
+  /** The Student takes a course again in `term`: a new transcript row without a grade, and the course in progress on the curriculum-position page. */
+  retake(code: string, from: string, term: string): void {
+    this.editRecord(TRANSCRIPT, ($) => {
+      const copy = transcriptRow($, from, code).clone();
+      copy.children("td").eq(3).text("");
+      copy.children("td").eq(5).html('<i class="fa fa-times fa-fw text-danger" aria-hidden="true"></i>');
+      const footer = termHeading($, term).nextAll("tr.warning").first();
+      footer.before(copy);
+      const sks = Number(copy.children("td").eq(2).text());
+      // The term's SKS and the grand total below the last term.
+      for (const total of [footer, $("tr.warning").last()]) total.children("th").eq(1).text(String(Number(total.children("th").eq(1).text()) + sks));
+    });
+    this.editRecord(POSITION, ($) => {
+      const row = positionRow($, code);
+      row.children("td").eq(4).text("");
+      row.children("td").last().text(term);
+    });
+  }
+
+  /**
+   * Sets when a step of the study plan happened ("16 Agu 2026 10.45.42"), or
+   * clears it as before the step. SIX's look for a step not taken yet isn't
+   * recorded; an empty cell stands in for it.
+   */
+  krsStep(round: "plan" | "change", label: string, at: string | null): void {
+    this.editRecord(KRS, ($) => {
+      const rows = $("table").eq(1).find("tr").toArray();
+      const split = rows.findIndex((tr) => $(tr).children().length === 1);
+      const inRound = round === "plan" ? rows.slice(0, split < 0 ? undefined : split) : rows.slice(split + 1);
+      const row = $(inRound.find((tr) => $(tr).children("th").text().trim() === label));
+      if (row.length !== 1 || (round === "change" && split < 0)) throw new Error(`No KRS step "${label}" in the ${round} round`);
+      if (at) row.attr("class", "success").children("td").html(`\n${at}\n<i class="fa fa-check fa-fw pull-right text-success" aria-hidden="true"></i>`);
+      else row.removeAttr("class").children("td").html("");
+    });
+  }
+
+  /** Takes the change round (URS) off the study plan, as before the Student changed it. */
+  dropKrsChange(): void {
+    this.editRecord(KRS, ($) => {
+      const heading = $("table").eq(1).find("tr").filter((_, tr) => $(tr).children().length === 1);
+      heading.nextAll().remove();
+      heading.remove();
+    });
+  }
+
+  /**
+   * Changes a course on the study plan: its class, the advisor's approval, or
+   * takes it off. SIX's look for a course not approved isn't recorded; an
+   * empty cell stands in for it.
+   */
+  krsCourse(code: string, change: { classNo?: string; approved?: boolean } | "remove"): void {
+    this.editRecord(KRS, ($) => {
+      const row = $("table").eq(2).find("tr").filter((_, tr) => $(tr).children("td").first().text().trim() === code);
+      if (row.length !== 1) throw new Error(`No ${code} on the study plan`);
+      const cells = row.children("td");
+      if (change === "remove") {
+        const total = row.nextAll().last().children("th").first();
+        total.text(String(Number(total.text()) - Number(cells.eq(3).text())));
+        row.remove();
+        return;
+      }
+      if (change.classNo !== undefined) cells.eq(2).text(change.classNo);
+      if (change.approved !== undefined) cells.eq(4).html(change.approved ? '<i class="fa fa-check fa-fw text-success" aria-hidden="true" title="Disetujui"></i>' : "");
+    });
+  }
+
+  /** Sets a term's bill as SIX shows it: Rupiah ("5.400.000" or "-") and the last day to pay ("24 Jan 2027" or "-"). */
+  setBill(term: string, bill: { amount: string; paid: string; due: string }): void {
+    const [year, n] = term.split("-").map(Number) as [number, number];
+    this.editRecord(BILLS, ($) => {
+      const yearRow = $("tr.warning").filter((_, tr) => $(tr).text().replace(/\s+/g, " ").trim() === `Tahun ${year} / ${year + 1}`);
+      const row = yearRow.nextUntil("tr.warning").filter((_, tr) => $(tr).children("td").first().text().trim().startsWith(`${n}`));
+      if (row.length !== 1) throw new Error(`No bill for ${term}`);
+      const cells = row.children("td");
+      cells.eq(1).text(bill.amount);
+      cells.eq(2).text(bill.paid);
+      cells.eq(3).text(bill.due);
+    });
+  }
+
+  private editRecord(path: RegExp, edit: ($: CheerioAPI) => void): void {
+    this.editPage(path, (html) => {
+      const $ = load(html);
+      edit($);
+      return $.html();
+    });
+  }
+
   // ------------------------------------------------ the outside world
 
   expireSession(): void {
@@ -113,4 +220,31 @@ export class PretendSix {
     if (request.redirect === "manual") return { status: 302, headers: { location: login }, body: "", url: url.toString() };
     return { status: 200, headers: { "content-type": "text/html" }, body: LOGIN_HTML, url: login };
   }
+}
+
+const TRANSCRIPT = /\/transkrip\/historis\/\d+$/;
+const POSITION = /\/transkrip\/kurikulum\/\d+$/;
+const KRS = /\/registrasi\/rencanastudi\/\d+$/;
+const BILLS = /\/keuangan$/;
+
+/** A course row's code: the cell's own text, without SIX's curriculum suffix. */
+const codeOf = ($: CheerioAPI, tr: Parameters<CheerioAPI>[0]) => $(tr).children("td").first().contents().first().text().trim();
+
+function termHeading($: CheerioAPI, term: string) {
+  const [year, n] = term.split("-").map(Number) as [number, number];
+  const heading = $("tr.info").filter((_, tr) => $(tr).text().trim() === `Semester ${n} Tahun ${year}/${year + 1}`);
+  if (heading.length !== 1) throw new Error(`No term ${term} on the transcript`);
+  return heading;
+}
+
+function transcriptRow($: CheerioAPI, term: string, code: string) {
+  const row = termHeading($, term).nextUntil("tr.warning").filter((_, tr) => codeOf($, tr) === code);
+  if (row.length !== 1) throw new Error(`No ${code} in ${term} on the transcript`);
+  return row;
+}
+
+function positionRow($: CheerioAPI, code: string) {
+  const row = $("tr").filter((_, tr) => codeOf($, tr) === code);
+  if (row.length !== 1) throw new Error(`No ${code} on the curriculum-position page`);
+  return row;
 }
