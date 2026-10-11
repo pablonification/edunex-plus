@@ -229,7 +229,8 @@ const DO_KEY: Record<PresenceActivity, StringKey> = {
   other: "presence.do.other",
 };
 
-/** "Presensi PL3002 dibuka sampai 09:30" / "Catat di EduNex agar tercatat. Kehadiran resmi tetap dari SIX." and the way to do it, with the time left. */
+/** "Presensi PL3002 dibuka sampai 09:30" / what to do, and the way to do it, with the time left. Where only SIX counts,
+ *  the same story as Beranda: being in class is enough, so the window is optional and its button quiet. */
 function OpenPresence({ window }: { window: OpenWindow }) {
   const t = useT();
   const f = useFormat();
@@ -238,8 +239,12 @@ function OpenPresence({ window }: { window: OpenWindow }) {
   const { go } = useNav();
   const { session, code, health, action } = window;
   const task = action.activity === "assignment" ? action.task : null;
-  const what = action.activity === "assignment" && !task ? t("presence.do.assignmentUnknown") : t(DO_KEY[action.activity], { task: task?.title ?? "" });
-  const official = health?.countedIn === "six" ? t("presence.open.official") : null;
+  const optional = health?.countedIn === "six";
+  const what = optional
+    ? t("presence.open.optional")
+    : action.activity === "assignment" && !task
+      ? t("presence.do.assignmentUnknown")
+      : t(DO_KEY[action.activity], { task: task?.title ?? "" });
   return (
     <div className="rounded-2xl border border-edge bg-raised px-5 py-4 shadow-raised">
       <div className="flex flex-wrap items-start gap-x-6 gap-y-3">
@@ -250,16 +255,15 @@ function OpenPresence({ window }: { window: OpenWindow }) {
           </p>
           <p className="mt-1 text-body text-muted">
             {what}
-            {official && ` ${official}`}
           </p>
         </div>
         {task ? (
-          <Button variant="primary" onClick={() => go({ screen: "task", taskId: task.id })}>
+          <Button variant={optional ? "secondary" : "primary"} onClick={() => go({ screen: "task", taskId: task.id })}>
             {t("presence.open.task")}
             <Icons.ArrowRight className="size-3.5" />
           </Button>
         ) : (
-          <Button variant="primary" icon={<Icons.ArrowUpRight className="size-3.5" />} onClick={() => open(action.url)}>
+          <Button variant={optional ? "secondary" : "primary"} icon={<Icons.ArrowUpRight className="size-3.5" />} onClick={() => open(action.url)}>
             {t("presence.open.record")}
           </Button>
         )}

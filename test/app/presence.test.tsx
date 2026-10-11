@@ -93,11 +93,13 @@ describe("the Presensi screen", () => {
     expect(strip("PL3002")).toBe("Pertemuan: 6 hadir, 1 absen, sekitar 8 lagi");
   });
 
-  it("the window open now, action first: until when, what to do, the time left, and the button to that place in EduNex", async () => {
+  it("the window open now, action first: until when, what to do, the time left, and the button to that place in EduNex; optional where only SIX counts, as Beranda says", async () => {
     const s = await openPresence();
     await six([course("PL3002", 6, 7)], weekly("PL3002", "2026-08-27T08:00:00", 10));
     expect(opened()).toContain("Presensi PL3002 dibuka sampai 09:30");
-    expect(opened()).toContain("Catat di EduNex agar tercatat. Kehadiran resmi tetap dari SIX.");
+    // PL3002 isn't recorded in EduNex (SIX counts it), so the window is optional, the same story as Beranda's.
+    expect(opened()).toContain("Kehadiran dihitung di SIX: cukup hadir di kelas. Mencatat di EduNex tidak wajib.");
+    expect(opened()).not.toContain("agar tercatat");
     expect(opened()).not.toContain("Salinan");
     expect(opened()).toMatch(/1 jam \d+ mnt lagi/);
     await s.click("Catat di EduNex");
