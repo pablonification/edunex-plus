@@ -13,6 +13,13 @@ const summary = (needs: Need[]) => needs.map((n) => `${n.band} ${n.id}`);
 const find = (needs: Need[], id: string) => needs.find((n) => n.id === id);
 
 describe("the recorded Thursday morning (8 Oct, 08:12)", () => {
+  it("signed out of SIX, the open Presence can't be said to count: not a must-do, and the card doesn't claim it counts", async () => {
+    const h = await startHome();
+    const world = { ...h.home(), sixConnected: false };
+    const presence = find(needsYou(world), "presence:2194342");
+    expect(presence).toMatchObject({ kind: "presence", countedIn: "noSix" });
+  });
+
   it("ranks the open Presence first, then today's classes that can't be missed, the meeting only in EduNex, and attendance out of reach", async () => {
     const h = await startHome();
     const needs = needsYou(h.home());

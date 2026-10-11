@@ -73,6 +73,8 @@ export interface HomeWorld {
   /** SIX's study plan (KRS) for the term, and the UKT bills. */
   krs?: KrsPlan;
   bills?: readonly Bill[];
+  /** False while signed out of SIX: then which system counts can't be known. */
+  sixConnected?: boolean;
 }
 
 /** What every provider shares, worked out once. */
@@ -88,7 +90,7 @@ export function homeContext(world: HomeWorld): HomeContext {
   const health = new Map(
     world.courses.map((course) => [
       course.code,
-      attendanceHealth({ code: course.code, six: course.six, presence: world.presence[course.code] ?? [], schedule, period, target: world.target, now: world.now }),
+      attendanceHealth({ code: course.code, six: course.six, sixConnected: world.sixConnected, presence: world.presence[course.code] ?? [], schedule, period, target: world.target, now: world.now }),
     ]),
   );
   return { ...world, health, usesCalendar: period !== null };
@@ -317,7 +319,8 @@ export const presenceProvider: NeedProvider = {
     const facts = (code: string, session: PresenceSession) => {
       const action = presenceAction(session, context.tasks);
       const live = (context.schedule ?? []).find((s) => s.courseCode === code && s.start < session.closesAt && session.opensAt < s.end);
-      const countedIn = context.health.get(code)?.countedIn ?? "unknown";
+      // Signed out of SIX, even a course with no window closed yet can't be said to count in EduNex.
+      const countedIn: CountedIn = context.sixConnected === false ? "noSix" : (context.health.get(code)?.countedIn ?? "unknown");
       return { action, live: live ?? null, countedIn, moved: live ? slotChange(live, context.schedule ?? []) : null };
     };
     for (const { code, session } of openWindows(context.presence, now)) {
@@ -734,6 +737,8 @@ export interface OpenPresence {
    * course (not connected): nobody can say yet, and the app doesn't guess.
    */
   counts: boolean | null;
+  /** Signed out of SIX: whether EduNex counts can't be known, so it's said as a just-in-case. */
+  noSix: boolean;
 }
 
 /**
@@ -761,7 +766,7 @@ export function nowCard(world: HomeWorld | HomeContext): NowCard | null {
   const current = live ?? next ?? later;
   const windows = openWindows(context.presence, now);
   const counts = (code: string): boolean | null => {
-    if (!context.courses.find((course) => course.code === code)?.six) return null;
+    if (!context.courses.find((course) => course.code === code)?.six || context.sixConnected === false) return null;
     return context.health.get(code)?.countedIn !== "six";
   };
   // The window for this class; else, between classes, one that counts (it closes first, so it leads); else, with no class at all, any.
@@ -773,7 +778,7 @@ export function nowCard(world: HomeWorld | HomeContext): NowCard | null {
   let presence: OpenPresence | null = null;
   if (window) {
     const action = presenceAction(window.session, context.tasks);
-    presence = { code: window.code, session: window.session, activity: action.activity, task: action.task, url: action.url, counts: counts(window.code) };
+    presence = { code: window.code, session: window.session, activity: action.activity, task: action.task, url: action.url, counts: counts(window.code), noSix: context.sixConnected === false };
   }
   const shown = lead;
   return {
