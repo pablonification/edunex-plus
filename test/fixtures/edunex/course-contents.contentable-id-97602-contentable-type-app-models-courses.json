@@ -1,0 +1,95 @@
+{
+  "meta": {
+    "count": 3,
+    "total": 3
+  },
+  "data": [
+    {
+      "type": "contents",
+      "id": "858708",
+      "attributes": {
+        "contentable_type": "App\\Models\\Courses",
+        "contentable_id": 97602,
+        "index": 1,
+        "name": "Jadwal Kuliah TA & Mekanisme Pelaksanaan ",
+        "type": "text",
+        "content": "<p><strong>Pertemuan 02:</strong> Jumat, 11 September 2026 Pkl. 15:00 - 17:00 WIB (Online - Link meeting menyusul)</p><p><strong>Pertemuan 03:</strong> Jumat, 09 Oktober 2026 Pkl. 15:00 - 17:00 WIB (Online - Link meeting teams)</p><p>&nbsp;</p>",
+        "lptk_id": 2,
+        "size": null,
+        "created_by": "Dr. Hadi Halim, S.T., M.T.",
+        "updated_by": "Dr. Oki Susanto, S.T., M.T.",
+        "deleted_by": null,
+        "deleted_at": null,
+        "created_at": "2026-08-28T14:01:31+07:00",
+        "updated_at": "2026-10-05T16:53:35+07:00",
+        "course_id": 97602,
+        "completion_at": null,
+        "course_code": "II4091",
+        "course_name": "Final Project Proposal [Parent Class]"
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/contents/858708"
+      }
+    },
+    {
+      "type": "contents",
+      "id": "874303",
+      "attributes": {
+        "contentable_type": "App\\Models\\Courses",
+        "contentable_id": 97602,
+        "index": 2,
+        "name": "Link Teams Pertemuan 02, Jumat 11 September 2026",
+        "type": "ms-teams",
+        "content": "https://teams.microsoft.com/meet/000000000000?p=fixture",
+        "lptk_id": 2,
+        "size": null,
+        "created_by": "Dr. Hadi Halim, S.T., M.T.",
+        "updated_by": "Dr. Hadi Halim, S.T., M.T.",
+        "deleted_by": null,
+        "deleted_at": null,
+        "created_at": "2026-09-10T12:29:19+07:00",
+        "updated_at": "2026-09-10T12:29:19+07:00",
+        "course_id": 97602,
+        "completion_at": null,
+        "course_code": "II4091",
+        "course_name": "Final Project Proposal [Parent Class]"
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/contents/874303"
+      }
+    },
+    {
+      "type": "contents",
+      "id": "889385",
+      "attributes": {
+        "contentable_type": "App\\Models\\Courses",
+        "contentable_id": 97602,
+        "index": 3,
+        "name": "Link Teams Pertemuan 03: Jumat, 9 Oktober 2026",
+        "type": "ms-teams",
+        "content": "https://teams.microsoft.com/meet/000000000000?p=fixture",
+        "lptk_id": 2,
+        "size": null,
+        "created_by": "Dr. Oki Susanto, S.T., M.T.",
+        "updated_by": "Dr. Oki Susanto, S.T., M.T.",
+        "deleted_by": null,
+        "deleted_at": null,
+        "created_at": "2026-10-05T16:52:44+07:00",
+        "updated_at": "2026-10-05T16:53:03+07:00",
+        "course_id": 97602,
+        "completion_at": null,
+        "course_code": "II4091",
+        "course_name": "Final Project Proposal [Parent Class]"
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/contents/889385"
+      }
+    }
+  ],
+  "links": {
+    "first": "https://api-edunex.cognisia.id/course/contents?q=/api/v1/contents/&filter[contentable_id][is]=97602&filter[contentable_type][is]=App\\Models\\Courses&sort=index&page[limit]=0&page[offset]=0",
+    "last": "https://api-edunex.cognisia.id/course/contents?q=/api/v1/contents/&filter[contentable_id][is]=97602&filter[contentable_type][is]=App\\Models\\Courses&sort=index&page[limit]=0&page[offset]=0",
+    "next": "https://api-edunex.cognisia.id/course/contents?q=/api/v1/contents/&filter[contentable_id][is]=97602&filter[contentable_type][is]=App\\Models\\Courses&sort=index&page[limit]=0&page[offset]=0",
+    "prev": null
+  }
+}

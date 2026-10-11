@@ -1,0 +1,837 @@
+{
+  "data": {
+    "type": "courses",
+    "id": "95059",
+    "attributes": {
+      "code": "PL3032",
+      "name": "Infrastructure and Transportation Economics",
+      "period_id": 26,
+      "lecturer_id": 210,
+      "is_active": 1,
+      "start_at": "2026-08-11T02:22:29+07:00",
+      "end_at": "2026-08-11T02:22:29+07:00",
+      "lptk_id": 2,
+      "created_by": 0,
+      "updated_by": null,
+      "deleted_by": null,
+      "deleted_at": null,
+      "created_at": "2026-08-11T02:22:29+07:00",
+      "updated_at": "2026-08-22T08:33:10+07:00",
+      "status": "STUDENT",
+      "thumbnail": "https://cdn-edunex.itb.ac.id/placeholder/Placeholder%2003.png",
+      "classes": 1,
+      "is_enrolled": true,
+      "period_year": "2026",
+      "period_type": "1",
+      "lecturer": "Prof. Dr. Eng. Tegar Nugroho, S.E, M.Ec.Dev.",
+      "total_student": 160,
+      "is_open": 0,
+      "is_public": 0,
+      "view_count": null,
+      "need_campus": null,
+      "major": "S1 - Perencanaan Wilayah dan Kota (Kampus Cirebon)",
+      "faculty": {
+        "id": 21,
+        "lptk_id": 2,
+        "name": "SAPPK",
+        "deleted_at": null,
+        "created_at": "2021-01-01 00:00:00",
+        "updated_at": null,
+        "thumbnail": null,
+        "province": null,
+        "code": "SAPPK"
+      },
+      "is_from_six": 1,
+      "credit": "3",
+      "uuid": null,
+      "gradebook_publish": false,
+      "completion": {
+        "completionable": 6,
+        "completion": 0,
+        "percentage": "0%"
+      },
+      "enrollments": null,
+      "total_modules": 16,
+      "student_from_six": true,
+      "class_name": "PL3032-01",
+      "tags": null,
+      "certificates": [],
+      "plan_count": 0,
+      "is_view_only": 0,
+      "is_free": 0,
+      "is_rps": 0,
+      "is_parent": 0,
+      "curriculum": 2024,
+      "is_rps_approved": false,
+      "is_rps_available": false,
+      "rating": 4.5
+    },
+    "links": {
+      "self": "https://api-edunex.cognisia.id/course/courses/95059"
+    },
+    "relationships": {
+      "lecturer": {
+        "links": {
+          "self": "https://api-edunex.cognisia.id/course/courses/95059/relationships/lecturer",
+          "related": "https://api-edunex.cognisia.id/course/courses/95059/lecturer"
+        },
+        "data": {
+          "type": "lecturer",
+          "id": "210"
+        }
+      },
+      "modules": {
+        "links": {
+          "self": "https://api-edunex.cognisia.id/course/courses/95059/relationships/modules",
+          "related": "https://api-edunex.cognisia.id/course/courses/95059/modules"
+        },
+        "data": [
+          {
+            "type": "modules",
+            "id": "468757"
+          },
+          {
+            "type": "modules",
+            "id": "468758"
+          },
+          {
+            "type": "modules",
+            "id": "468759"
+          },
+          {
+            "type": "modules",
+            "id": "468760"
+          },
+          {
+            "type": "modules",
+            "id": "468761"
+          },
+          {
+            "type": "modules",
+            "id": "468762"
+          },
+          {
+            "type": "modules",
+            "id": "468763"
+          },
+          {
+            "type": "modules",
+            "id": "468764"
+          },
+          {
+            "type": "modules",
+            "id": "468765"
+          },
+          {
+            "type": "modules",
+            "id": "468766"
+          },
+          {
+            "type": "modules",
+            "id": "468767"
+          },
+          {
+            "type": "modules",
+            "id": "468768"
+          },
+          {
+            "type": "modules",
+            "id": "468769"
+          },
+          {
+            "type": "modules",
+            "id": "468770"
+          },
+          {
+            "type": "modules",
+            "id": "468771"
+          },
+          {
+            "type": "modules",
+            "id": "468772"
+          }
+        ]
+      },
+      "assistant": {
+        "links": {
+          "self": "https://api-edunex.cognisia.id/course/courses/95059/relationships/assistant",
+          "related": "https://api-edunex.cognisia.id/course/courses/95059/assistant"
+        },
+        "data": [
+          {
+            "type": "assistant",
+            "id": "118678"
+          }
+        ]
+      }
+    }
+  },
+  "included": [
+    {
+      "type": "user",
+      "id": "242",
+      "attributes": {
+        "username": "000000000000000003",
+        "name": "Prof. Dr. Eng. Tegar Nugroho, S.E, M.Ec.Dev.",
+        "passwordfixture": "CHANGED",
+        "email": "000000000000000000",
+        "is_active": 1,
+        "level": "LECTURER",
+        "lptk_id": 2,
+        "remember_token": null,
+        "thumbnail": null,
+        "created_by": 6,
+        "updated_by": null,
+        "deleted_by": null,
+        "created_at": "2020-03-21T16:18:46+07:00",
+        "updated_at": "2025-09-18T14:15:46+07:00",
+        "deleted_at": null,
+        "last_online": "2025-09-18T14:15:46+07:00"
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/user/242"
+      }
+    },
+    {
+      "type": "lecturer",
+      "id": "210",
+      "attributes": {
+        "user_id": 242,
+        "lptk_id": 2,
+        "nidn": "0000000000",
+        "name": "Prof. Dr. Eng. Tegar Nugroho, S.E, M.Ec.Dev.",
+        "place_of_birth": "-",
+        "date_of_birth": "2000-01-01T00:00:00.000Z",
+        "gender": "M",
+        "front_degree": "none",
+        "back_degree": "none",
+        "phone_number": "-",
+        "deleted_at": null,
+        "created_at": "2020-03-21T17:34:11+07:00",
+        "updated_at": "2025-09-18T14:15:46+07:00",
+        "last_online": "2025-09-18T14:15:46+07:00"
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/lecturer/210"
+      },
+      "relationships": {
+        "user": {
+          "links": {
+            "self": "https://api-edunex.cognisia.id/course/lecturer/210/relationships/user",
+            "related": "https://api-edunex.cognisia.id/course/lecturer/210/user"
+          },
+          "data": {
+            "type": "user",
+            "id": "242"
+          }
+        }
+      }
+    },
+    {
+      "type": "modules",
+      "id": "468757",
+      "attributes": {
+        "course_id": 95059,
+        "index": 1,
+        "name": "K2. Teori Eko. Infrastruktur (Pandangan Sisi Permintaan.. Tipologi Infr.)",
+        "is_active": true,
+        "start_at": "2026-09-08T06:51:39+07:00",
+        "end_at": "2026-09-08T06:51:39+07:00",
+        "lptk_id": 2,
+        "stages": [],
+        "created_by": 118678,
+        "updated_by": 118678,
+        "deleted_by": null,
+        "deleted_at": null,
+        "created_at": "2026-09-08T06:51:39+07:00",
+        "updated_at": "2026-09-08T06:52:02+07:00",
+        "module_exam": [],
+        "is_date_restricted": 0,
+        "is_completion_restricted": 0,
+        "is_exam_restricted": 0,
+        "exam_restriction": []
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/modules/468757"
+      },
+      "relationships": {
+        "activities": {
+          "links": {
+            "self": "https://api-edunex.cognisia.id/course/modules/468757/relationships/activities",
+            "related": "https://api-edunex.cognisia.id/course/modules/468757/activities"
+          },
+          "data": []
+        }
+      }
+    },
+    {
+      "type": "modules",
+      "id": "468758",
+      "attributes": {
+        "course_id": 95059,
+        "index": 2,
+        "name": "K3. Keterkaitan antara infra. dgn Pemb. Eko (Infr. & Pertumb. Ek. kasus)",
+        "is_active": true,
+        "start_at": "2026-09-08T06:51:39+07:00",
+        "end_at": "2026-09-08T06:51:39+07:00",
+        "lptk_id": 2,
+        "stages": [],
+        "created_by": 118678,
+        "updated_by": 118678,
+        "deleted_by": null,
+        "deleted_at": null,
+        "created_at": "2026-09-08T06:51:39+07:00",
+        "updated_at": "2026-09-08T06:53:08+07:00",
+        "module_exam": [],
+        "is_date_restricted": 0,
+        "is_completion_restricted": 0,
+        "is_exam_restricted": 0,
+        "exam_restriction": []
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/modules/468758"
+      },
+      "relationships": {
+        "activities": {
+          "links": {
+            "self": "https://api-edunex.cognisia.id/course/modules/468758/relationships/activities",
+            "related": "https://api-edunex.cognisia.id/course/modules/468758/activities"
+          },
+          "data": []
+        }
+      }
+    },
+    {
+      "type": "modules",
+      "id": "468759",
+      "attributes": {
+        "course_id": 95059,
+        "index": 3,
+        "name": "K4. Model & Aplikasi Keterkaitan antara Infr. & Eko. (Model Makro, Mikro..)",
+        "is_active": true,
+        "start_at": "2026-09-08T06:51:39+07:00",
+        "end_at": "2026-09-08T06:51:39+07:00",
+        "lptk_id": 2,
+        "stages": [],
+        "created_by": 118678,
+        "updated_by": 118678,
+        "deleted_by": null,
+        "deleted_at": null,
+        "created_at": "2026-09-08T06:51:39+07:00",
+        "updated_at": "2026-09-17T07:55:03+07:00",
+        "module_exam": [],
+        "is_date_restricted": 0,
+        "is_completion_restricted": 0,
+        "is_exam_restricted": 0,
+        "exam_restriction": []
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/modules/468759"
+      },
+      "relationships": {
+        "activities": {
+          "links": {
+            "self": "https://api-edunex.cognisia.id/course/modules/468759/relationships/activities",
+            "related": "https://api-edunex.cognisia.id/course/modules/468759/activities"
+          },
+          "data": []
+        }
+      }
+    },
+    {
+      "type": "modules",
+      "id": "468760",
+      "attributes": {
+        "course_id": 95059,
+        "index": 4,
+        "name": "K5. Permintaan infrastruktur (Model. Perm. Kontinu & Diskrit)",
+        "is_active": true,
+        "start_at": "2026-09-08T06:51:39+07:00",
+        "end_at": "2026-09-08T06:51:39+07:00",
+        "lptk_id": 2,
+        "stages": [],
+        "created_by": 118678,
+        "updated_by": 118678,
+        "deleted_by": null,
+        "deleted_at": null,
+        "created_at": "2026-09-08T06:51:39+07:00",
+        "updated_at": "2026-10-08T06:15:13+07:00",
+        "module_exam": [],
+        "is_date_restricted": 0,
+        "is_completion_restricted": 0,
+        "is_exam_restricted": 0,
+        "exam_restriction": []
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/modules/468760"
+      },
+      "relationships": {
+        "activities": {
+          "links": {
+            "self": "https://api-edunex.cognisia.id/course/modules/468760/relationships/activities",
+            "related": "https://api-edunex.cognisia.id/course/modules/468760/activities"
+          },
+          "data": []
+        }
+      }
+    },
+    {
+      "type": "modules",
+      "id": "468761",
+      "attributes": {
+        "course_id": 95059,
+        "index": 5,
+        "name": "K5. Permintaan infrastruktur (Model. Perm. Kontinu & Diskrit)",
+        "is_active": true,
+        "start_at": "2026-09-08T06:51:39+07:00",
+        "end_at": "2026-09-08T06:51:39+07:00",
+        "lptk_id": 2,
+        "stages": [],
+        "created_by": 118678,
+        "updated_by": 118678,
+        "deleted_by": null,
+        "deleted_at": null,
+        "created_at": "2026-09-08T06:51:39+07:00",
+        "updated_at": "2026-10-08T16:21:03+07:00",
+        "module_exam": [],
+        "is_date_restricted": 0,
+        "is_completion_restricted": 0,
+        "is_exam_restricted": 0,
+        "exam_restriction": []
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/modules/468761"
+      },
+      "relationships": {
+        "activities": {
+          "links": {
+            "self": "https://api-edunex.cognisia.id/course/modules/468761/relationships/activities",
+            "related": "https://api-edunex.cognisia.id/course/modules/468761/activities"
+          },
+          "data": []
+        }
+      }
+    },
+    {
+      "type": "modules",
+      "id": "468762",
+      "attributes": {
+        "course_id": 95059,
+        "index": 6,
+        "name": "Module 06",
+        "is_active": true,
+        "start_at": "2026-09-08T06:51:40+07:00",
+        "end_at": "2026-09-08T06:51:40+07:00",
+        "lptk_id": 2,
+        "stages": [],
+        "created_by": 118678,
+        "updated_by": null,
+        "deleted_by": null,
+        "deleted_at": null,
+        "created_at": "2026-09-08T06:51:39+07:00",
+        "updated_at": "2026-09-08T06:51:39+07:00",
+        "module_exam": [],
+        "is_date_restricted": 0,
+        "is_completion_restricted": 0,
+        "is_exam_restricted": 0,
+        "exam_restriction": []
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/modules/468762"
+      },
+      "relationships": {
+        "activities": {
+          "links": {
+            "self": "https://api-edunex.cognisia.id/course/modules/468762/relationships/activities",
+            "related": "https://api-edunex.cognisia.id/course/modules/468762/activities"
+          },
+          "data": []
+        }
+      }
+    },
+    {
+      "type": "modules",
+      "id": "468763",
+      "attributes": {
+        "course_id": 95059,
+        "index": 7,
+        "name": "Module 07",
+        "is_active": true,
+        "start_at": "2026-09-08T06:51:40+07:00",
+        "end_at": "2026-09-08T06:51:40+07:00",
+        "lptk_id": 2,
+        "stages": [],
+        "created_by": 118678,
+        "updated_by": null,
+        "deleted_by": null,
+        "deleted_at": null,
+        "created_at": "2026-09-08T06:51:39+07:00",
+        "updated_at": "2026-09-08T06:51:39+07:00",
+        "module_exam": [],
+        "is_date_restricted": 0,
+        "is_completion_restricted": 0,
+        "is_exam_restricted": 0,
+        "exam_restriction": []
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/modules/468763"
+      },
+      "relationships": {
+        "activities": {
+          "links": {
+            "self": "https://api-edunex.cognisia.id/course/modules/468763/relationships/activities",
+            "related": "https://api-edunex.cognisia.id/course/modules/468763/activities"
+          },
+          "data": []
+        }
+      }
+    },
+    {
+      "type": "modules",
+      "id": "468764",
+      "attributes": {
+        "course_id": 95059,
+        "index": 8,
+        "name": "Midex/UTS",
+        "is_active": true,
+        "start_at": "2026-09-08T06:51:40+07:00",
+        "end_at": "2026-09-08T06:51:40+07:00",
+        "lptk_id": 2,
+        "stages": [],
+        "created_by": 118678,
+        "updated_by": null,
+        "deleted_by": null,
+        "deleted_at": null,
+        "created_at": "2026-09-08T06:51:40+07:00",
+        "updated_at": "2026-09-08T06:51:40+07:00",
+        "module_exam": [],
+        "is_date_restricted": 0,
+        "is_completion_restricted": 0,
+        "is_exam_restricted": 0,
+        "exam_restriction": []
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/modules/468764"
+      },
+      "relationships": {
+        "activities": {
+          "links": {
+            "self": "https://api-edunex.cognisia.id/course/modules/468764/relationships/activities",
+            "related": "https://api-edunex.cognisia.id/course/modules/468764/activities"
+          },
+          "data": []
+        }
+      }
+    },
+    {
+      "type": "modules",
+      "id": "468765",
+      "attributes": {
+        "course_id": 95059,
+        "index": 9,
+        "name": "Module 09",
+        "is_active": true,
+        "start_at": "2026-09-08T06:51:40+07:00",
+        "end_at": "2026-09-08T06:51:40+07:00",
+        "lptk_id": 2,
+        "stages": [],
+        "created_by": 118678,
+        "updated_by": null,
+        "deleted_by": null,
+        "deleted_at": null,
+        "created_at": "2026-09-08T06:51:40+07:00",
+        "updated_at": "2026-09-08T06:51:40+07:00",
+        "module_exam": [],
+        "is_date_restricted": 0,
+        "is_completion_restricted": 0,
+        "is_exam_restricted": 0,
+        "exam_restriction": []
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/modules/468765"
+      },
+      "relationships": {
+        "activities": {
+          "links": {
+            "self": "https://api-edunex.cognisia.id/course/modules/468765/relationships/activities",
+            "related": "https://api-edunex.cognisia.id/course/modules/468765/activities"
+          },
+          "data": []
+        }
+      }
+    },
+    {
+      "type": "modules",
+      "id": "468766",
+      "attributes": {
+        "course_id": 95059,
+        "index": 10,
+        "name": "Module 10",
+        "is_active": true,
+        "start_at": "2026-09-08T06:51:40+07:00",
+        "end_at": "2026-09-08T06:51:40+07:00",
+        "lptk_id": 2,
+        "stages": [],
+        "created_by": 118678,
+        "updated_by": null,
+        "deleted_by": null,
+        "deleted_at": null,
+        "created_at": "2026-09-08T06:51:40+07:00",
+        "updated_at": "2026-09-08T06:51:40+07:00",
+        "module_exam": [],
+        "is_date_restricted": 0,
+        "is_completion_restricted": 0,
+        "is_exam_restricted": 0,
+        "exam_restriction": []
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/modules/468766"
+      },
+      "relationships": {
+        "activities": {
+          "links": {
+            "self": "https://api-edunex.cognisia.id/course/modules/468766/relationships/activities",
+            "related": "https://api-edunex.cognisia.id/course/modules/468766/activities"
+          },
+          "data": []
+        }
+      }
+    },
+    {
+      "type": "modules",
+      "id": "468767",
+      "attributes": {
+        "course_id": 95059,
+        "index": 11,
+        "name": "Module 11",
+        "is_active": true,
+        "start_at": "2026-09-08T06:51:40+07:00",
+        "end_at": "2026-09-08T06:51:40+07:00",
+        "lptk_id": 2,
+        "stages": [],
+        "created_by": 118678,
+        "updated_by": null,
+        "deleted_by": null,
+        "deleted_at": null,
+        "created_at": "2026-09-08T06:51:40+07:00",
+        "updated_at": "2026-09-08T06:51:40+07:00",
+        "module_exam": [],
+        "is_date_restricted": 0,
+        "is_completion_restricted": 0,
+        "is_exam_restricted": 0,
+        "exam_restriction": []
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/modules/468767"
+      },
+      "relationships": {
+        "activities": {
+          "links": {
+            "self": "https://api-edunex.cognisia.id/course/modules/468767/relationships/activities",
+            "related": "https://api-edunex.cognisia.id/course/modules/468767/activities"
+          },
+          "data": []
+        }
+      }
+    },
+    {
+      "type": "modules",
+      "id": "468768",
+      "attributes": {
+        "course_id": 95059,
+        "index": 12,
+        "name": "Quiz 2",
+        "is_active": true,
+        "start_at": "2026-09-08T06:51:40+07:00",
+        "end_at": "2026-09-08T06:51:40+07:00",
+        "lptk_id": 2,
+        "stages": [],
+        "created_by": 118678,
+        "updated_by": null,
+        "deleted_by": null,
+        "deleted_at": null,
+        "created_at": "2026-09-08T06:51:40+07:00",
+        "updated_at": "2026-09-08T06:51:40+07:00",
+        "module_exam": [],
+        "is_date_restricted": 0,
+        "is_completion_restricted": 0,
+        "is_exam_restricted": 0,
+        "exam_restriction": []
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/modules/468768"
+      },
+      "relationships": {
+        "activities": {
+          "links": {
+            "self": "https://api-edunex.cognisia.id/course/modules/468768/relationships/activities",
+            "related": "https://api-edunex.cognisia.id/course/modules/468768/activities"
+          },
+          "data": []
+        }
+      }
+    },
+    {
+      "type": "modules",
+      "id": "468769",
+      "attributes": {
+        "course_id": 95059,
+        "index": 13,
+        "name": "Module 13",
+        "is_active": true,
+        "start_at": "2026-09-08T06:51:40+07:00",
+        "end_at": "2026-09-08T06:51:40+07:00",
+        "lptk_id": 2,
+        "stages": [],
+        "created_by": 118678,
+        "updated_by": null,
+        "deleted_by": null,
+        "deleted_at": null,
+        "created_at": "2026-09-08T06:51:40+07:00",
+        "updated_at": "2026-09-08T06:51:40+07:00",
+        "module_exam": [],
+        "is_date_restricted": 0,
+        "is_completion_restricted": 0,
+        "is_exam_restricted": 0,
+        "exam_restriction": []
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/modules/468769"
+      },
+      "relationships": {
+        "activities": {
+          "links": {
+            "self": "https://api-edunex.cognisia.id/course/modules/468769/relationships/activities",
+            "related": "https://api-edunex.cognisia.id/course/modules/468769/activities"
+          },
+          "data": []
+        }
+      }
+    },
+    {
+      "type": "modules",
+      "id": "468770",
+      "attributes": {
+        "course_id": 95059,
+        "index": 14,
+        "name": "Module 14",
+        "is_active": true,
+        "start_at": "2026-09-08T06:51:40+07:00",
+        "end_at": "2026-09-08T06:51:40+07:00",
+        "lptk_id": 2,
+        "stages": [],
+        "created_by": 118678,
+        "updated_by": null,
+        "deleted_by": null,
+        "deleted_at": null,
+        "created_at": "2026-09-08T06:51:40+07:00",
+        "updated_at": "2026-09-08T06:51:40+07:00",
+        "module_exam": [],
+        "is_date_restricted": 0,
+        "is_completion_restricted": 0,
+        "is_exam_restricted": 0,
+        "exam_restriction": []
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/modules/468770"
+      },
+      "relationships": {
+        "activities": {
+          "links": {
+            "self": "https://api-edunex.cognisia.id/course/modules/468770/relationships/activities",
+            "related": "https://api-edunex.cognisia.id/course/modules/468770/activities"
+          },
+          "data": []
+        }
+      }
+    },
+    {
+      "type": "modules",
+      "id": "468771",
+      "attributes": {
+        "course_id": 95059,
+        "index": 15,
+        "name": "Module 15",
+        "is_active": true,
+        "start_at": "2026-09-08T06:51:41+07:00",
+        "end_at": "2026-09-08T06:51:41+07:00",
+        "lptk_id": 2,
+        "stages": [],
+        "created_by": 118678,
+        "updated_by": null,
+        "deleted_by": null,
+        "deleted_at": null,
+        "created_at": "2026-09-08T06:51:40+07:00",
+        "updated_at": "2026-09-08T06:51:40+07:00",
+        "module_exam": [],
+        "is_date_restricted": 0,
+        "is_completion_restricted": 0,
+        "is_exam_restricted": 0,
+        "exam_restriction": []
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/modules/468771"
+      },
+      "relationships": {
+        "activities": {
+          "links": {
+            "self": "https://api-edunex.cognisia.id/course/modules/468771/relationships/activities",
+            "related": "https://api-edunex.cognisia.id/course/modules/468771/activities"
+          },
+          "data": []
+        }
+      }
+    },
+    {
+      "type": "modules",
+      "id": "468772",
+      "attributes": {
+        "course_id": 95059,
+        "index": 16,
+        "name": "Finex/UAS",
+        "is_active": true,
+        "start_at": "2026-09-08T06:51:41+07:00",
+        "end_at": "2026-09-08T06:51:41+07:00",
+        "lptk_id": 2,
+        "stages": [],
+        "created_by": 118678,
+        "updated_by": null,
+        "deleted_by": null,
+        "deleted_at": null,
+        "created_at": "2026-09-08T06:51:40+07:00",
+        "updated_at": "2026-09-08T06:51:40+07:00",
+        "module_exam": [],
+        "is_date_restricted": 0,
+        "is_completion_restricted": 0,
+        "is_exam_restricted": 0,
+        "exam_restriction": []
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/modules/468772"
+      },
+      "relationships": {
+        "activities": {
+          "links": {
+            "self": "https://api-edunex.cognisia.id/course/modules/468772/relationships/activities",
+            "related": "https://api-edunex.cognisia.id/course/modules/468772/activities"
+          },
+          "data": []
+        }
+      }
+    },
+    {
+      "type": "assistant",
+      "id": "118678",
+      "attributes": {
+        "name": "Dr. Utami Siregar, S.E, MM, M.Si.",
+        "username": "000000013",
+        "email": "000000013",
+        "thumbnail": "https://cdn-edunex.itb.ac.id/Ava.jpg",
+        "is_coordinator": 0
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/assistant/118678"
+      }
+    }
+  ]
+}

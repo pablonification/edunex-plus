@@ -1,0 +1,44 @@
+[
+  {
+    "type": "TASK",
+    "course_name": "Final Project Proposal",
+    "name": "Tugas 02 Bab II",
+    "start_at": "2026-09-18 15:00:00",
+    "end_at": "2026-10-16 23:59:00"
+  },
+  {
+    "type": "TASK",
+    "course_name": "Final Project Proposal",
+    "name": "Tugas 03 Bab III",
+    "start_at": "2026-09-25 15:00:00",
+    "end_at": "2026-10-30 23:59:00"
+  },
+  {
+    "type": "TASK",
+    "course_name": "Final Project Proposal",
+    "name": "Tugas 04 Bab IV & V",
+    "start_at": "2026-10-02 15:00:00",
+    "end_at": "2026-11-13 23:59:00"
+  },
+  {
+    "type": "TASK",
+    "course_name": "Economics and Innovation in Planning",
+    "name": "Tugas tentang Imfact on Innovation The Economy  Kampus Ganesha",
+    "start_at": "2026-09-15 10:47:00",
+    "end_at": "2026-10-08 23:59:00"
+  },
+  {
+    "type": "TASK",
+    "course_name": "Marketing Communication",
+    "name": "UTS Markom",
+    "start_at": "2026-09-17 08:43:00",
+    "end_at": "2026-10-22 23:50:00"
+  },
+  {
+    "type": "TASK",
+    "course_name": "Economics and Innovation in Planning",
+    "name": "Tugas Mandiri Individu tentang Projek Penciptaan/Pengembangan Inovasi Kampus Ganesha",
+    "start_at": "2026-09-17 10:30:00",
+    "end_at": "2026-11-26 23:59:00"
+  }
+]

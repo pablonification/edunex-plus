@@ -1,0 +1,183 @@
+// Rencana studi tab — UKT: bills, instalments and deadlines (#80). This
+// semester's and next semester's bill with what's paid and the next deadline,
+// SIX's last day next to ITB's calendar deadline, an overdue bill said
+// plainly, then every term's bill. View only: the app never pays.
+import { type BillUrgency, billLeft, billNeedsStudent, billUrgency, currentTerm, nextTerm, rupiah, uktDeadline } from "../../../core/academic";
+import type { Bill } from "../../../core/models";
+import { useFormat, useNow, useT } from "../../i18n";
+import { SixEmptyState } from "../../shell/source-status";
+import { useDataset } from "../../store";
+import { cx } from "../../ui/cx";
+import { Card, SectionTitle, SourceTag } from "../../ui/display";
+import { Icons } from "../../ui/icons";
+
+export const ready = true;
+
+/** Bills overdue or due within a week. */
+export function useBadge(): { value: number; tone: "neutral" | "warning" } | null {
+  const bills = useDataset("six.bills");
+  const now = useNow();
+  const value = bills?.filter((bill) => billNeedsStudent(bill, now)).length ?? 0;
+  return value > 0 ? { value, tone: "warning" } : null;
+}
+
+/** This term: SIX's (the KRS page, then the status page), else from the calendar. */
+export function useThisTerm(): string | null {
+  const krs = useDataset("six.krs");
+  const student = useDataset("six.student");
+  const calendar = useDataset("itb.calendar");
+  const now = useNow();
+  return currentTerm(krs?.term ?? student?.term, calendar, now);
+}
+
+const STATUS: Record<BillUrgency, { tone: string; icon: typeof Icons.Clock }> = {
+  paid: { tone: "bg-success-bg text-success-fg", icon: Icons.CheckCircle },
+  "not-billed": { tone: "bg-neutral-bg text-neutral-fg", icon: Icons.Circle },
+  overdue: { tone: "bg-danger-bg text-danger-fg", icon: Icons.AlertTriangle },
+  soon: { tone: "bg-warning-bg text-warning-fg", icon: Icons.Clock },
+  due: { tone: "bg-neutral-bg text-neutral-fg", icon: Icons.Clock },
+  "no-date": { tone: "bg-neutral-bg text-neutral-fg", icon: Icons.Clock },
+};
+
+function StatusChip({ bill }: { bill: Bill }) {
+  const t = useT();
+  const now = useNow();
+  const urgency = billUrgency(bill, now);
+  const { tone, icon: Icon } = STATUS[urgency];
+  const label = urgency === "overdue" ? t("bills.status.overdue") : t(`bills.status.${bill.status}`);
+  return (
+    <span className={cx("inline-flex h-[22px] shrink-0 items-center gap-1.5 rounded-full px-2 text-caption font-semibold whitespace-nowrap", tone)}>
+      <Icon className="size-3" strokeWidth={2} />
+      {label}
+    </span>
+  );
+}
+
+const notBilled = (term: string): Bill => ({ term, amount: null, paid: null, status: "not-billed", dueDate: null, dueAt: null, instalments: [], nextDueAt: null });
+
+const dayMs = (iso: string) => Date.parse(`${iso}T12:00:00+07:00`);
+
+export function Tab() {
+  const t = useT();
+  const f = useFormat();
+  const now = useNow();
+  const bills = useDataset("six.bills");
+  const term = useThisTerm();
+  if (!bills) return <SixEmptyState icon={<Icons.Wallet className="size-5" />} title={t("bills.empty")} />;
+  const billed = bills.filter((b) => b.status !== "not-billed");
+  const current = (term && bills.find((b) => b.term === term)) || billed.at(-1);
+  // SIX lists a term's row only once the term is set up: until then it isn't billed either.
+  const next = current && (bills.find((b) => b.term === nextTerm(current.term)) ?? notBilled(nextTerm(current.term)));
+  const overdue = bills.filter((b) => billUrgency(b, now) === "overdue");
+  return (
+    <div className="space-y-8">
+      {overdue.length > 0 && (
+        <ul className="space-y-2">
+          {overdue.map((bill) => (
+            <li key={bill.term} role="alert" className="flex items-start gap-2.5 rounded-lg bg-danger-bg px-3.5 py-2.5 text-small leading-[1.5] font-medium text-danger-fg">
+              <Icons.AlertTriangle className="mt-0.5 size-4 shrink-0" />
+              {t("bills.overdue", { term: f.term(bill.term), date: f.dayMonth(bill.nextDueAt!), amount: rupiah(billLeft(bill)) })}
+            </li>
+          ))}
+        </ul>
+      )}
+      {current && (
+        <div className="grid grid-cols-2 gap-3">
+          <BillCard label={t("bills.thisTerm")} bill={current} />
+          {next && <BillCard label={t("bills.nextTerm")} bill={next} />}
+        </div>
+      )}
+      <section>
+        <SectionTitle aside={<SourceTag source="six" />}>{t("bills.history")}</SectionTitle>
+        <Card className="overflow-hidden">
+          <ul className="divide-y divide-line">
+            {[...billed].reverse().map((bill) => (
+              <li key={bill.term} className="grid grid-cols-[minmax(0,1fr)_180px_120px_150px] items-center gap-3 px-4 py-3 text-body">
+                <span className="font-medium">{f.term(bill.term)}</span>
+                <span className="tabular-nums">
+                  {bill.amount !== null ? rupiah(bill.amount) : "—"}
+                  {bill.instalments.length > 0 && <span className="ml-2 text-caption text-faint">{t("bills.inInstalments", { count: bill.instalments.length })}</span>}
+                </span>
+                <span className="text-small text-muted tabular-nums">{bill.dueDate ? f.dayMonth(dayMs(bill.dueDate)) + ` ${bill.dueDate.slice(0, 4)}` : "—"}</span>
+                <span className="text-right">
+                  <StatusChip bill={bill} />
+                </span>
+              </li>
+            ))}
+          </ul>
+        </Card>
+        <p className="mt-3 text-caption text-faint">{t("bills.viewOnly")}</p>
+      </section>
+    </div>
+  );
+}
+
+function BillCard({ label, bill }: { label: string; bill: Bill }) {
+  const t = useT();
+  const f = useFormat();
+  const calendar = useDataset("itb.calendar");
+  const itb = uktDeadline(calendar, bill.term);
+  const billedNow = bill.status !== "not-billed";
+  const paidInstalments = (() => {
+    let paid = bill.paid ?? 0;
+    return bill.instalments.map((i) => {
+      const covered = paid >= i.amount;
+      paid -= i.amount;
+      return covered;
+    });
+  })();
+  return (
+    <Card className="px-5 py-4">
+      <p className="text-small font-medium text-muted">
+        {label} · {f.term(bill.term)}
+      </p>
+      <p className="mt-1 text-[24px] leading-8 font-semibold tabular-nums">{billedNow && bill.amount !== null ? rupiah(bill.amount) : t("bills.notBilled")}</p>
+      <div className="mt-1.5 flex flex-wrap items-center gap-2">
+        {billedNow && <StatusChip bill={bill} />}
+        {bill.status === "partly-paid" && bill.paid !== null && (
+          <span className="text-small text-muted tabular-nums">
+            {t("bills.paidOf", { paid: rupiah(bill.paid) })} · {t("bills.left", { amount: rupiah(billLeft(bill)) })}
+          </span>
+        )}
+        {bill.nextDueAt !== null && <span className="text-small font-medium tabular-nums">{t("bills.nextDue", { date: f.dayMonth(bill.nextDueAt) })}</span>}
+      </div>
+      {(bill.dueDate || itb) && (
+        <dl className="mt-3 space-y-1 border-t border-line pt-3 text-small">
+          {bill.dueDate && (
+            <div className="flex items-center justify-between gap-3">
+              <dt className="flex items-center gap-1.5 text-muted">
+                <SourceTag source="six" /> {t("bills.dueSix")}
+              </dt>
+              <dd className="tabular-nums">{f.dayMonth(dayMs(bill.dueDate))}</dd>
+            </div>
+          )}
+          {itb && (
+            <div className="flex items-center justify-between gap-3">
+              <dt className="flex items-center gap-1.5 text-muted">
+                <SourceTag source="itb" /> {t("bills.dueItb")}
+              </dt>
+              <dd className="tabular-nums">{f.dayMonth(dayMs(itb.lastDay))}</dd>
+            </div>
+          )}
+        </dl>
+      )}
+      {bill.instalments.length > 0 && (
+        <div className="mt-3 border-t border-line pt-3">
+          <h3 className="mb-1.5 text-caption font-semibold tracking-[0.04em] text-muted uppercase">{t("bills.instalments")}</h3>
+          <ul className="space-y-1 text-small">
+            {bill.instalments.map((instalment, i) => (
+              <li key={instalment.number} className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-3">
+                <span className="flex items-center gap-1.5">
+                  {paidInstalments[i] ? <Icons.CheckCircle className="size-3.5 text-success-fg" /> : <Icons.Circle className="size-3.5 text-faint" />}
+                  {t("bills.instalment", { number: instalment.number })}
+                </span>
+                <span className="tabular-nums">{rupiah(instalment.amount)}</span>
+                <span className="text-muted tabular-nums">{f.dayMonth(dayMs(instalment.dueDate))}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </Card>
+  );
+}

@@ -1,6 +1,6 @@
-# EduNex Desktop
+# Edunex Plus
 
-A cross-platform desktop client for ITB's EduNex LMS, wrapping the platform's internal API with a purpose-built UI. This glossary defines the domain language shared by all project decisions and code.
+A cross-platform desktop app for ITB students that reads ITB's two student systems, EduNex (the LMS) and SIX (the academic system), plus ITB's public academic calendar and course catalog, and tells the Student what needs them, what changed, and where they stand. This glossary defines the domain language shared by all project decisions and code.
 
 ## Language
 
@@ -11,7 +11,7 @@ ITB's learning management system at edunex.itb.ac.id; a homegrown Vue.js SPA bui
 _Avoid_: "the LMS site", Edunex/edunex in prose (capital E, one word: EduNex)
 
 **Edunex Plus**:
-This project's product mark — the unofficial desktop client. Lowercase-n styling is deliberate, to stay distinct from Cognisia's EduNex trademark; never apply the "Edunex Plus" mark to EduNex itself.
+This project's product mark — the unofficial desktop app. Lowercase-n styling is deliberate, to stay distinct from Cognisia's EduNex trademark; never apply the "Edunex Plus" mark to EduNex itself.
 _Avoid_: "EduNEX Plus", "EdunexPlus"
 
 **Cognisia**:
@@ -59,3 +59,58 @@ _Avoid_: assignment in code identifiers (collides with programming terms); use T
 **To Do**:
 EduNex's aggregated list of pending items (tasks, exams) for the logged-in account.
 _Avoid_: todo list in UI copy without the EduNex meaning
+
+### SIX and ITB's rules
+
+**SIX**:
+ITB's academic information system at six.itb.ac.id: the official timetable with rooms, attendance counts, grades, the KRS and bills. Server-rendered HTML pages, not an API. See SIX.md.
+_Avoid_: "Six", "the portal"
+
+**NIM**:
+Nomor Induk Mahasiswa, the Student's student number; SIX's page paths carry it.
+_Avoid_: student ID
+
+**Term**:
+SIX's code for a semester: `YYYY-1` (odd), `YYYY-2` (even), `YYYY-3` (short semester), e.g. 2026-1. It maps to an EduNex Period.
+_Avoid_: Period (that's EduNex's entity)
+
+**Class**:
+A course's section in SIX, "Kelas", e.g. 01.
+_Avoid_: course (the course is what the class teaches)
+
+**Class session**:
+"Pertemuan", one scheduled meeting of a Class in SIX's timetable.
+_Avoid_: lecture, meeting (in code identifiers)
+
+**KRS**:
+"Rencana Studi": the term's study plan, the Classes a Student takes, approved by their academic advisor. Read-only in the app.
+_Avoid_: course registration
+
+**DRS / URS**:
+The windows in ITB's academic calendar for the KRS: DRS (Pengisian Rencana Studi) to fill it in, URS (also called PRS) to change it.
+
+**SKS**:
+Satuan Kredit Semester, credit units. The normal load is 20 SKS a term, up to 24 with the advisor's approval.
+_Avoid_: credits in Indonesian copy (SKS stays as is)
+
+**IP / IPK**:
+Indeks Prestasi, the term GPA, and Indeks Prestasi Kumulatif, the cumulative GPA, on a 4.00 scale. For a retaken course only the newest grade counts.
+_Avoid_: GPA in Indonesian copy
+
+**Kehadiran**:
+SIX's attendance percentage per Class, with the exact count in a tooltip: "Hadir X dari Y pertemuan" (present at X of Y Class sessions). ITB has no institute-wide minimum; each course contract sets one. The app's default target is 80%, editable.
+_Avoid_: Presence (that's the EduNex feature)
+
+**UKT**:
+Uang Kuliah Tunggal, the single tuition fee paid each term.
+
+**Bill**:
+A term's UKT invoice in SIX (Status Keuangan): amount billed and paid, status, payment deadline and any instalments.
+_Avoid_: invoice in code identifiers
+
+**Kalender Pendidikan**:
+ITB's academic calendar (a public calendar feed linked from SIX's home page): lecture period, UTS/UAS weeks, DRS/URS windows, the UKT deadline, the questionnaire window, the grade deadline and progress checks.
+_Avoid_: "the schedule" (that's the Student's timetable)
+
+**Peraturan Akademik**:
+ITB's academic regulations. Honors need IPK ≥ 3.50 (cum laude), ≥ 3.75 (magna cum laude), or ≥ 3.85 with no retaken course (summa cum laude), all within 9 semesters. Progress checks expect 24/48/72/96/120 SKS by the end of years 1–5.

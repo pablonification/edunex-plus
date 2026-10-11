@@ -1,0 +1,62 @@
+[
+  {
+    "course_id": 92948,
+    "course_code": "KU5014",
+    "courses_name": "Teknik Penyelesaian Masalah Terstruktur",
+    "class_id": 84725,
+    "class_name": "KU5014-01",
+    "semester": "1",
+    "year": "2026",
+    "presences": null
+  },
+  {
+    "course_id": 93409,
+    "course_code": "DK4073",
+    "courses_name": "Marketing Communication",
+    "class_id": 85186,
+    "class_name": "DK4073-01",
+    "semester": "1",
+    "year": "2026",
+    "presences": null
+  },
+  {
+    "course_id": 95001,
+    "course_code": "PL3002",
+    "courses_name": "Economics and Innovation in Planning",
+    "class_id": 86778,
+    "class_name": "PL3002-01",
+    "semester": "1",
+    "year": "2026",
+    "presences": "7"
+  },
+  {
+    "course_id": 95059,
+    "course_code": "PL3032",
+    "courses_name": "Infrastructure and Transportation Economics",
+    "class_id": 86836,
+    "class_name": "PL3032-01",
+    "semester": "1",
+    "year": "2026",
+    "presences": null
+  },
+  {
+    "course_id": 95326,
+    "course_code": "II4091",
+    "courses_name": "Final Project Proposal",
+    "class_id": 87103,
+    "class_name": "II4091-01",
+    "semester": "1",
+    "year": "2026",
+    "presences": "25"
+  },
+  {
+    "course_id": 97602,
+    "course_code": "II4091",
+    "courses_name": "Final Project Proposal [Parent Class]",
+    "class_id": 87103,
+    "class_name": "II4091-01",
+    "semester": "1",
+    "year": "2026",
+    "presences": null
+  }
+]

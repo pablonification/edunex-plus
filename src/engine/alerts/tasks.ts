@@ -1,0 +1,59 @@
+// Alerts from the Tasks dataset: a new Task (a short-window one at once), and
+// reminders 24 and 3 hours before the deadline while it isn't submitted. A
+// reminder's id carries the deadline, so a moved deadline gets new reminders
+// at the new times, and a submitted Task has none.
+import type { Task } from "../../core/models";
+import { type AlertDraft, clockTime, type Detector, type PlannedAlert } from "./detector";
+
+const HOUR = 3_600_000;
+/** A Task whose whole answer window is this short is announced at once, never grouped. */
+const SHORT_WINDOW = 12 * HOUR;
+
+const notSubmitted = (task: Task) => task.status === "not_started" || task.status === "draft";
+
+export function newTaskAlert(task: Task, now: number): AlertDraft {
+  const base = { id: `task.new:${task.id}`, kind: "newTask", source: "edunex", target: { screen: "task", taskId: task.id } } as const;
+  const opens = Math.max(task.opensAt ?? now, now);
+  if (task.dueAt !== null && task.dueAt > now && task.dueAt - opens <= SHORT_WINDOW) {
+    return {
+      ...base,
+      urgent: true,
+      title: { key: "alert.shortTask", vars: { course: task.courseCode } },
+      body: { key: "alert.shortTask.body", vars: { title: task.title, time: clockTime(task.dueAt) } },
+    };
+  }
+  return { ...base, title: { key: "alert.newTask", vars: { course: task.courseCode } }, body: { key: "alert.plain", vars: { title: task.title } } };
+}
+
+export const newTasks: Detector = {
+  name: "tasks.new",
+  watches: ["edunex.tasks"],
+  changed(change, { now }) {
+    if (change.name !== "edunex.tasks") return [];
+    const known = new Set((change.previous ?? []).map((task) => task.id));
+    return change.next
+      .filter((task) => !known.has(task.id) && (task.status === "not_started" || task.status === "draft") && (task.dueAt === null || task.dueAt > now))
+      .map((task) => newTaskAlert(task, now));
+  },
+};
+
+export const deadlineReminders: Detector = {
+  name: "tasks.deadline",
+  watches: ["edunex.tasks"],
+  plan({ get }) {
+    const planned: PlannedAlert[] = [];
+    for (const task of get("edunex.tasks") ?? []) {
+      if (task.dueAt === null || !notSubmitted(task)) continue;
+      const due = task.dueAt;
+      const common = { kind: "deadline", source: "edunex", target: { screen: "task", taskId: task.id } } as const;
+      const body = { key: "alert.due.body", vars: { title: task.title } } as const;
+      const reminders: PlannedAlert[] = [
+        { ...common, id: `task.due24:${task.id}:${due}`, at: due - 24 * HOUR, until: due - 3 * HOUR, title: { key: "alert.due24", vars: { course: task.courseCode } }, body },
+        { ...common, id: `task.due3:${task.id}:${due}`, at: due - 3 * HOUR, until: due, title: { key: "alert.due3", vars: { course: task.courseCode } }, body },
+      ];
+      // A reminder from before the Task opened says nothing the new-Task alert didn't (a 2-hour quiz).
+      planned.push(...reminders.filter((reminder) => task.opensAt === null || reminder.at >= task.opensAt));
+    }
+    return planned;
+  },
+};

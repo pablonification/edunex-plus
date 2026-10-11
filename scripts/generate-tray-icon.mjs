@@ -1,7 +1,9 @@
-// Generates assets/trayTemplate.png (+@2x) for the menu bar / tray: a
-// monochrome rounded-square mark. Re-run after changing the drawing:
+// Generates the tray icons, a monochrome rounded-square mark at 16 and 32 px:
+// assets/trayTemplate.png (+@2x), black, for the macOS menu bar (macOS picks
+// up the "Template" suffix and tints it itself) and light Windows/Linux
+// taskbars; assets/trayLight.png (+@2x), white, for dark taskbars.
+// Re-run after changing the drawing:
 //   node scripts/generate-tray-icon.mjs
-// macOS picks up the "Template" suffix and renders it adaptively.
 import { deflateSync } from "node:zlib";
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
@@ -57,7 +59,7 @@ function writePng(filePath, size, alphaAt) {
 }
 
 // Filled rounded square, inset by ~10% so the glyph doesn't touch the edge.
-function roundedSquare(x, y, size) {
+const roundedSquare = (rgb) => (x, y, size) => {
   const inset = Math.max(1, Math.round(size * 0.1));
   const radius = Math.round(size * 0.28);
   const min = inset;
@@ -69,10 +71,14 @@ function roundedSquare(x, y, size) {
   if (!inside) return [0, 0, 0, 0];
   // 1px soft edge so the icon doesn't alias harshly in the menu bar.
   const coverage = Math.max(0, Math.min(1, radius - d + 0.5));
-  return [0, 0, 0, Math.round(255 * coverage)];
-}
+  return [...rgb, Math.round(255 * coverage)];
+};
 
 const outDir = path.resolve(import.meta.dirname, "..", "assets");
 mkdirSync(outDir, { recursive: true });
-writePng(path.join(outDir, "trayTemplate.png"), 16, roundedSquare);
-writePng(path.join(outDir, "trayTemplate@2x.png"), 32, roundedSquare);
+const DARK = roundedSquare([0, 0, 0]);
+const LIGHT = roundedSquare([255, 255, 255]);
+writePng(path.join(outDir, "trayTemplate.png"), 16, DARK);
+writePng(path.join(outDir, "trayTemplate@2x.png"), 32, DARK);
+writePng(path.join(outDir, "trayLight.png"), 16, LIGHT);
+writePng(path.join(outDir, "trayLight@2x.png"), 32, LIGHT);

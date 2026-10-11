@@ -1,0 +1,396 @@
+{
+  "data": {
+    "type": "lptks",
+    "id": "2",
+    "attributes": {
+      "code": "002001",
+      "name": "Institut Teknologi Bandung",
+      "domain": "edunex.itb.ac.id,edunex.cognisia.id,localhost:8080,edunex2026.cognisia.id",
+      "is_active": "true",
+      "logo": "https://cdn-edunex.itb.ac.id/icons/edunex/logo.svg",
+      "show_landing_page": 0,
+      "landing_page_url": "https://edunex.itb.ac.id/edunex-landing",
+      "is_sso": 1,
+      "sso_url": "https://sso-edunex.itb.ac.id/",
+      "color_menu_bar": "#ffffff",
+      "color_menu_text": "#626262",
+      "color_menu_text_hover": "#007fff",
+      "logo_small": "https://cdn-edunex.itb.ac.id/icons/edunex/logo-small.svg",
+      "logo_login": "https://cdn-edunex.itb.ac.id/icons/edunex/logo.svg",
+      "can_register": 0,
+      "favicon": "https://cdn-edunex.itb.ac.id/icons/edunex/favicon.png",
+      "exam_intro": "Saya berjanji kepada Tuhan Yang Maha Esa bahwa saya akan berlaku jujur, patuh pada peraturan akademis, dan tidak akan melakukan kecurangan apapun dalam mengerjakan ujian ini. Jika saya terbukti berbuat curang, saya siap menerima konsekuensi sesuai peraturan ITB.",
+      "student_register": null,
+      "lecturer_register": null,
+      "forgot_url": null,
+      "menus": [
+        {
+          "id": 1,
+          "lptk_id": 2,
+          "menu": "home",
+          "title": "Homepage",
+          "icon": "https://cdn-edunex.itb.ac.id/icons/edunex/icon-home.svg",
+          "icon_hover": "https://cdn-edunex.itb.ac.id/icons/edunex/icon-home-hover.svg",
+          "index": 1,
+          "deleted_at": null,
+          "created_at": "2021-05-17 01:25:35",
+          "updated_at": null,
+          "type": "sidebar"
+        },
+        {
+          "id": 2,
+          "lptk_id": 2,
+          "menu": "courses",
+          "title": "My Courses",
+          "icon": "https://cdn-edunex.itb.ac.id/icons/edunex/icon-courses.svg",
+          "icon_hover": "https://cdn-edunex.itb.ac.id/icons/edunex/icon-courses-hover.svg",
+          "index": 2,
+          "deleted_at": null,
+          "created_at": "2021-05-17 01:26:02",
+          "updated_at": null,
+          "type": "sidebar"
+        },
+        {
+          "id": 3,
+          "lptk_id": 2,
+          "menu": "todos",
+          "title": "To Do List",
+          "icon": "https://cdn-edunex.itb.ac.id/icons/edunex/icon-todo.svg",
+          "icon_hover": "https://cdn-edunex.itb.ac.id/icons/edunex/icon-todo-hover.svg",
+          "index": 3,
+          "deleted_at": null,
+          "created_at": "2021-05-17 01:26:59",
+          "updated_at": null,
+          "type": "sidebar"
+        },
+        {
+          "id": 4,
+          "lptk_id": 2,
+          "menu": "vicons",
+          "title": "Vicon",
+          "icon": "https://cdn-edunex.itb.ac.id/icons/edunex/icon-vicon.svg",
+          "icon_hover": "https://cdn-edunex.itb.ac.id/icons/edunex/icon-vicon-hover.svg",
+          "index": 4,
+          "deleted_at": null,
+          "created_at": "2021-05-17 01:27:47",
+          "updated_at": null,
+          "type": "sidebar"
+        },
+        {
+          "id": 5,
+          "lptk_id": 2,
+          "menu": "assignments",
+          "title": "Assignments",
+          "icon": "https://cdn-edunex.itb.ac.id/icons/edunex/icon-assignment.svg",
+          "icon_hover": "https://cdn-edunex.itb.ac.id/icons/edunex/icon-assignment-hover.svg",
+          "index": 5,
+          "deleted_at": null,
+          "created_at": "2021-05-17 01:28:33",
+          "updated_at": null,
+          "type": "sidebar"
+        },
+        {
+          "id": 6,
+          "lptk_id": 2,
+          "menu": "exams",
+          "title": "Exams",
+          "icon": "https://cdn-edunex.itb.ac.id/icons/edunex/icon-exam.svg",
+          "icon_hover": "https://cdn-edunex.itb.ac.id/icons/edunex/icon-exam-hover.svg",
+          "index": 6,
+          "deleted_at": null,
+          "created_at": "2021-05-17 01:28:58",
+          "updated_at": null,
+          "type": "sidebar"
+        },
+        {
+          "id": 7,
+          "lptk_id": 2,
+          "menu": "discussions",
+          "title": "Discussions",
+          "icon": "https://cdn-edunex.itb.ac.id/icons/edunex/icon-discussion.svg",
+          "icon_hover": "https://cdn-edunex.itb.ac.id/icons/edunex/icon-discussion-hover.svg",
+          "index": 7,
+          "deleted_at": null,
+          "created_at": "2021-05-17 01:29:24",
+          "updated_at": null,
+          "type": "sidebar"
+        },
+        {
+          "id": 18,
+          "lptk_id": 2,
+          "menu": "presences",
+          "title": "Presences",
+          "icon": "https://cdn-edunex.itb.ac.id/icons/edunex/icon-presence.svg",
+          "icon_hover": "https://cdn-edunex.itb.ac.id/icons/edunex/icon-presence-hover.svg",
+          "index": 8,
+          "deleted_at": null,
+          "created_at": "2021-06-09 15:17:14",
+          "updated_at": null,
+          "type": "sidebar"
+        },
+        {
+          "id": 39,
+          "lptk_id": 2,
+          "menu": "surveys",
+          "title": "Survey",
+          "icon": "https://cdn-edunex.itb.ac.id/icons/edunex/icon-survey.svg",
+          "icon_hover": "https://cdn-edunex.itb.ac.id/icons/edunex/icon-survey-hover.svg",
+          "index": 8,
+          "deleted_at": null,
+          "created_at": "2021-06-09 15:17:14",
+          "updated_at": null,
+          "type": "sidebar"
+        },
+        {
+          "id": 41,
+          "lptk_id": 2,
+          "menu": "workspaces",
+          "title": "Workspace",
+          "icon": "https://cdn-edunex.itb.ac.id/icons/edunex/workspace.svg",
+          "icon_hover": "https://cdn-edunex.itb.ac.id/icons/edunex/workspace-hover.svg",
+          "index": 9,
+          "deleted_at": null,
+          "created_at": "2021-06-09 15:17:14",
+          "updated_at": null,
+          "type": "sidebar"
+        }
+      ],
+      "module_menus": [
+        {
+          "id": 8,
+          "lptk_id": 2,
+          "menu": "text",
+          "title": "Text",
+          "icon": "-",
+          "icon_hover": "-",
+          "index": 1,
+          "deleted_at": null,
+          "created_at": "2021-05-18 10:00:19",
+          "updated_at": null,
+          "type": "module"
+        },
+        {
+          "id": 9,
+          "lptk_id": 2,
+          "menu": "file",
+          "title": "File",
+          "icon": "-",
+          "icon_hover": "-",
+          "index": 2,
+          "deleted_at": null,
+          "created_at": "2021-05-18 10:00:49",
+          "updated_at": null,
+          "type": "module"
+        },
+        {
+          "id": 10,
+          "lptk_id": 2,
+          "menu": "video",
+          "title": "Video",
+          "icon": "-",
+          "icon_hover": "-",
+          "index": 3,
+          "deleted_at": null,
+          "created_at": "2021-05-18 10:01:09",
+          "updated_at": null,
+          "type": "module"
+        },
+        {
+          "id": 11,
+          "lptk_id": 2,
+          "menu": "vicon",
+          "title": "Vicon",
+          "icon": "-",
+          "icon_hover": "-",
+          "index": 4,
+          "deleted_at": null,
+          "created_at": "2021-05-18 10:01:26",
+          "updated_at": null,
+          "type": "module"
+        },
+        {
+          "id": 40,
+          "lptk_id": 2,
+          "menu": "board",
+          "title": "Board",
+          "icon": "-",
+          "icon_hover": "-",
+          "index": 4,
+          "deleted_at": null,
+          "created_at": "2021-05-18 10:01:52",
+          "updated_at": null,
+          "type": "module"
+        },
+        {
+          "id": 12,
+          "lptk_id": 2,
+          "menu": "assignment",
+          "title": "Assignment",
+          "icon": "-",
+          "icon_hover": "-",
+          "index": 5,
+          "deleted_at": null,
+          "created_at": "2021-05-18 10:01:52",
+          "updated_at": null,
+          "type": "module"
+        }
+      ],
+      "activity_menus": [
+        {
+          "id": 13,
+          "lptk_id": 2,
+          "menu": "text",
+          "title": "Text",
+          "icon": "-",
+          "icon_hover": "-",
+          "index": 1,
+          "deleted_at": null,
+          "created_at": "2021-05-18 10:02:20",
+          "updated_at": null,
+          "type": "activity"
+        },
+        {
+          "id": 14,
+          "lptk_id": 2,
+          "menu": "file",
+          "title": "File",
+          "icon": "-",
+          "icon_hover": "-",
+          "index": 2,
+          "deleted_at": null,
+          "created_at": "2021-05-18 10:02:38",
+          "updated_at": null,
+          "type": "activity"
+        },
+        {
+          "id": 15,
+          "lptk_id": 2,
+          "menu": "video",
+          "title": "Video",
+          "icon": "-",
+          "icon_hover": "-",
+          "index": 3,
+          "deleted_at": null,
+          "created_at": "2021-05-18 10:02:57",
+          "updated_at": null,
+          "type": "activity"
+        },
+        {
+          "id": 16,
+          "lptk_id": 2,
+          "menu": "forum",
+          "title": "Discussion",
+          "icon": "-",
+          "icon_hover": "-",
+          "index": 4,
+          "deleted_at": null,
+          "created_at": "2021-05-18 10:04:13",
+          "updated_at": null,
+          "type": "activity"
+        },
+        {
+          "id": 17,
+          "lptk_id": 2,
+          "menu": "exam",
+          "title": "Exam",
+          "icon": "-",
+          "icon_hover": "-",
+          "index": 5,
+          "deleted_at": null,
+          "created_at": "2021-05-18 10:04:29",
+          "updated_at": null,
+          "type": "activity"
+        },
+        {
+          "id": 19,
+          "lptk_id": 2,
+          "menu": "crs",
+          "title": "CRS (BETA)",
+          "icon": "-",
+          "icon_hover": "-",
+          "index": 6,
+          "deleted_at": null,
+          "created_at": "2021-07-23 22:26:16",
+          "updated_at": null,
+          "type": "activity"
+        }
+      ],
+      "deleted_at": null,
+      "created_at": "2020-03-20T16:17:20+07:00",
+      "updated_at": "2026-10-02T15:24:14+07:00",
+      "sso_label": "ITB Account/SSO Login",
+      "sso_text": "Have an ITB Account/SSO account?ng",
+      "google_url": "https://sso-edunex.itb.ac.id/auth/google",
+      "google_label": "Login with Google (Non-ITB Only)",
+      "google_text": "Don't have an ITB Account?",
+      "logo_dark": "https://cdn-edunex.itb.ac.id/logo-edunex-dark-fixed.svg",
+      "tawk_src": null,
+      "description": "Learning Management System ITB, LMS ITB",
+      "contact": [
+        {
+          "type": "whatsapp",
+          "label": "Care Center Edunex",
+          "number": "0812-1865-2480"
+        },
+        {
+          "type": "whatsapp",
+          "label": "Akademik ITB",
+          "number": "0811-2101-920"
+        },
+        {
+          "type": "whatsapp",
+          "label": "Info Layanan Ditmawa ITB",
+          "number": "0811-2111-446"
+        }
+      ],
+      "presence_categories": [
+        {
+          "text": "View Course",
+          "value": "course"
+        },
+        {
+          "text": "Read Module",
+          "value": "module"
+        },
+        {
+          "text": "Join Discussion",
+          "value": "thread"
+        },
+        {
+          "text": "Answer Assignment",
+          "value": "assignment"
+        },
+        {
+          "text": "Do Exam",
+          "value": "exam"
+        },
+        {
+          "text": "Join CRS (BETA)",
+          "value": "crs_join"
+        },
+        {
+          "text": "Chat in CRS (BETA)",
+          "value": "crs_chat"
+        },
+        {
+          "text": "Vote in CRS (BETA)",
+          "value": "crs_vote"
+        },
+        {
+          "text": "Join Vicon (BETA)",
+          "value": "vicon"
+        }
+      ],
+      "is_update_info": 0,
+      "update_url": null,
+      "profile_icon": null,
+      "profile_icon_hover": null,
+      "app_version": "eav2.0.20",
+      "play_store_link": null,
+      "app_store_link": null
+    },
+    "links": {
+      "self": "https://api-edunex.cognisia.id/course/lptks/2"
+    }
+  }
+}

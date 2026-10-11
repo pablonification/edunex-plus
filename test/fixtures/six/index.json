@@ -1,0 +1,118 @@
+[
+  {
+    "method": "GET",
+    "path": "/app/mahasiswa:18223901/keuangan",
+    "query": {},
+    "status": 200,
+    "file": "keuangan.html"
+  },
+  {
+    "method": "GET",
+    "path": "/app/mahasiswa:18223901/keuangan",
+    "query": {
+      "mahasiswa_id": "2021000001"
+    },
+    "status": 200,
+    "file": "keuangan-2.html"
+  },
+  {
+    "method": "GET",
+    "path": "/app/mahasiswa:18223901/kurikulum/kurikulum/1047/struktur",
+    "query": {},
+    "status": 200,
+    "file": "kurikulum-kurikulum-1047-struktur.html"
+  },
+  {
+    "method": "GET",
+    "path": "/app/mahasiswa:18223901/kurikulum/kurikulum/list",
+    "query": {},
+    "status": 200,
+    "file": "kurikulum-kurikulum-list.html"
+  },
+  {
+    "method": "GET",
+    "path": "/app/mahasiswa:18223901/kurikulum/silabus/47837/view",
+    "query": {},
+    "status": 200,
+    "file": "kurikulum-silabus-47837-view.html"
+  },
+  {
+    "method": "GET",
+    "path": "/app/mahasiswa:18223901/statusmhs",
+    "query": {},
+    "status": 200,
+    "file": "statusmhs.html"
+  },
+  {
+    "method": "GET",
+    "path": "/app/mahasiswa:18223901/statusmhs/program-integrasi/riwayat/2021000001",
+    "query": {},
+    "status": 200,
+    "file": "statusmhs-program-integrasi-riwayat-2021000001.html"
+  },
+  {
+    "method": "GET",
+    "path": "/app/mahasiswa:18223901/statusmhs/transkrip/historis/2021000001",
+    "query": {},
+    "status": 200,
+    "file": "statusmhs-transkrip-historis-2021000001.html"
+  },
+  {
+    "method": "GET",
+    "path": "/app/mahasiswa:18223901/statusmhs/transkrip/kurikulum/2021000001",
+    "query": {},
+    "status": 200,
+    "file": "statusmhs-transkrip-kurikulum-2021000001.html"
+  },
+  {
+    "method": "GET",
+    "path": "/app/mahasiswa:18223901/tugasakhir",
+    "query": {},
+    "status": 200,
+    "file": "tugasakhir.html"
+  },
+  {
+    "method": "GET",
+    "path": "/app/mahasiswa:18223901/wisuda",
+    "query": {},
+    "status": 200,
+    "file": "wisuda.html"
+  },
+  {
+    "method": "GET",
+    "path": "/app/mahasiswa:18223901+2025-2/evaluasi/kuesioner",
+    "query": {},
+    "status": 200,
+    "file": "evaluasi-kuesioner.html"
+  },
+  {
+    "method": "GET",
+    "path": "/app/mahasiswa:18223901+2026-1/kelas/jadwal/mahasiswa/2021000001",
+    "query": {},
+    "status": 200,
+    "file": "kelas-jadwal-mahasiswa-2021000001.html"
+  },
+  {
+    "method": "GET",
+    "path": "/app/mahasiswa:18223901+2026-1/registrasi/rencanastudi/2021000001",
+    "query": {},
+    "status": 200,
+    "file": "registrasi-rencanastudi-2021000001.html"
+  },
+  {
+    "method": "GET",
+    "path": "/home",
+    "query": {},
+    "status": 200,
+    "file": "home.html"
+  },
+  {
+    "method": "GET",
+    "path": "/home",
+    "query": {
+      "context": "mahasiswa:18223901+2026"
+    },
+    "status": 200,
+    "file": "home-2.html"
+  }
+]

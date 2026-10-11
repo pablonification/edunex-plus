@@ -1,0 +1,41 @@
+{
+  "meta": {
+    "count": 1,
+    "total": 1
+  },
+  "data": [
+    {
+      "type": "contents",
+      "id": "864414",
+      "attributes": {
+        "contentable_type": "App\\Models\\Courses",
+        "contentable_id": 95059,
+        "index": 1,
+        "name": "K1. SAP Ekonomi Infrastruktur dan Transportasi",
+        "type": "pdf",
+        "content": "https://edunexfixture.blob.core.windows.net/edunex/fixture-1",
+        "lptk_id": 2,
+        "size": "1947726",
+        "created_by": "Dr. Utami Siregar, S.E, MM, M.Si.",
+        "updated_by": "Dr. Utami Siregar, S.E, MM, M.Si.",
+        "deleted_by": null,
+        "deleted_at": null,
+        "created_at": "2026-09-01T11:40:00+07:00",
+        "updated_at": "2026-09-01T11:40:00+07:00",
+        "course_id": 95059,
+        "completion_at": null,
+        "course_code": "PL3032",
+        "course_name": "Infrastructure and Transportation Economics"
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/contents/864414"
+      }
+    }
+  ],
+  "links": {
+    "first": "https://api-edunex.cognisia.id/course/contents?q=/api/v1/contents/&filter[contentable_id][is]=95059&filter[contentable_type][is]=App\\Models\\Courses&sort=index&page[limit]=0&page[offset]=0",
+    "last": "https://api-edunex.cognisia.id/course/contents?q=/api/v1/contents/&filter[contentable_id][is]=95059&filter[contentable_type][is]=App\\Models\\Courses&sort=index&page[limit]=0&page[offset]=0",
+    "next": "https://api-edunex.cognisia.id/course/contents?q=/api/v1/contents/&filter[contentable_id][is]=95059&filter[contentable_type][is]=App\\Models\\Courses&sort=index&page[limit]=0&page[offset]=0",
+    "prev": null
+  }
+}

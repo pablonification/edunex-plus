@@ -1,0 +1,1401 @@
+{
+  "meta": {
+    "count": 9,
+    "total": 9
+  },
+  "data": [
+    {
+      "type": "courses",
+      "id": "27011",
+      "attributes": {
+        "code": "ED0001",
+        "name": "Panduan Edunex bagi Dosen",
+        "period_id": 7,
+        "lecturer_id": 1970,
+        "is_active": 1,
+        "start_at": "2021-02-11T13:44:19+07:00",
+        "end_at": "2021-02-11T13:44:19+07:00",
+        "lptk_id": 2,
+        "created_by": 6,
+        "updated_by": 111153,
+        "deleted_by": null,
+        "deleted_at": null,
+        "created_at": "2021-02-11T13:44:19+07:00",
+        "updated_at": "2026-09-10T10:06:28+07:00",
+        "status": "STUDENT",
+        "thumbnail": "https://cdn-edunex.itb.ac.id/27011-Panduan-Penggunaan-Edunex/thumbnail/01.png",
+        "classes": 0,
+        "is_enrolled": false,
+        "period_year": "2020",
+        "period_type": "2",
+        "lecturer": "Andi Wijaya",
+        "total_student": 0,
+        "is_open": 1,
+        "is_public": 0,
+        "view_count": 12,
+        "need_campus": 0,
+        "major": "DirdikNR",
+        "faculty": {
+          "id": 999,
+          "lptk_id": 2,
+          "name": "DITNR",
+          "deleted_at": null,
+          "created_at": "2021-01-01 00:00:00",
+          "updated_at": null,
+          "thumbnail": null,
+          "province": null,
+          "code": "DITNR"
+        },
+        "is_from_six": 0,
+        "credit": null,
+        "uuid": null,
+        "gradebook_publish": false,
+        "completion": {
+          "completionable": 174,
+          "completion": 0,
+          "percentage": "0%"
+        },
+        "enrollments": null,
+        "total_modules": 17,
+        "student_from_six": true,
+        "class_name": null,
+        "tags": null,
+        "certificates": [],
+        "plan_count": 0,
+        "is_view_only": 0,
+        "is_free": 0,
+        "is_rps": 0,
+        "is_parent": 0,
+        "curriculum": null,
+        "is_rps_approved": false,
+        "is_rps_available": false,
+        "rating": 4.5
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/courses/27011"
+      },
+      "relationships": {
+        "lecturer": {
+          "links": {
+            "self": "https://api-edunex.cognisia.id/course/courses/27011/relationships/lecturer",
+            "related": "https://api-edunex.cognisia.id/course/courses/27011/lecturer"
+          },
+          "data": {
+            "type": "lecturer",
+            "id": "1970"
+          }
+        },
+        "period": {
+          "links": {
+            "self": "https://api-edunex.cognisia.id/course/courses/27011/relationships/period",
+            "related": "https://api-edunex.cognisia.id/course/courses/27011/period"
+          },
+          "data": {
+            "type": "period",
+            "id": "7"
+          }
+        }
+      }
+    },
+    {
+      "type": "courses",
+      "id": "27724",
+      "attributes": {
+        "code": "ED0006",
+        "name": "Panduan Edunex bagi Mahasiswa",
+        "period_id": 8,
+        "lecturer_id": 1971,
+        "is_active": 1,
+        "start_at": "2021-08-03T10:13:36+07:00",
+        "end_at": "2021-08-03T10:13:36+07:00",
+        "lptk_id": 2,
+        "created_by": 67393,
+        "updated_by": 138944,
+        "deleted_by": null,
+        "deleted_at": null,
+        "created_at": "2021-08-03T10:13:36+07:00",
+        "updated_at": "2026-10-08T18:39:39+07:00",
+        "status": "STUDENT",
+        "thumbnail": "https://edunexfixture.blob.core.windows.net/edunex/fixture-3",
+        "classes": 0,
+        "is_enrolled": false,
+        "period_year": "2020",
+        "period_type": "3",
+        "lecturer": "Fajar Yuliana",
+        "total_student": 0,
+        "is_open": 1,
+        "is_public": 1,
+        "view_count": 87720,
+        "need_campus": 0,
+        "major": "DirdikNR",
+        "faculty": {
+          "id": 999,
+          "lptk_id": 2,
+          "name": "DITNR",
+          "deleted_at": null,
+          "created_at": "2021-01-01 00:00:00",
+          "updated_at": null,
+          "thumbnail": null,
+          "province": null,
+          "code": "DITNR"
+        },
+        "is_from_six": 0,
+        "credit": null,
+        "uuid": null,
+        "gradebook_publish": false,
+        "completion": {
+          "completionable": 43,
+          "completion": 0,
+          "percentage": "0%"
+        },
+        "enrollments": null,
+        "total_modules": 4,
+        "student_from_six": true,
+        "class_name": null,
+        "tags": null,
+        "certificates": [],
+        "plan_count": 0,
+        "is_view_only": 0,
+        "is_free": 0,
+        "is_rps": 0,
+        "is_parent": 0,
+        "curriculum": null,
+        "is_rps_approved": false,
+        "is_rps_available": false,
+        "rating": 4.5
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/courses/27724"
+      },
+      "relationships": {
+        "lecturer": {
+          "links": {
+            "self": "https://api-edunex.cognisia.id/course/courses/27724/relationships/lecturer",
+            "related": "https://api-edunex.cognisia.id/course/courses/27724/lecturer"
+          },
+          "data": {
+            "type": "lecturer",
+            "id": "1971"
+          }
+        },
+        "period": {
+          "links": {
+            "self": "https://api-edunex.cognisia.id/course/courses/27724/relationships/period",
+            "related": "https://api-edunex.cognisia.id/course/courses/27724/period"
+          },
+          "data": {
+            "type": "period",
+            "id": "8"
+          }
+        }
+      }
+    },
+    {
+      "type": "courses",
+      "id": "77122",
+      "attributes": {
+        "code": "ZZ0183",
+        "name": "Kumpulan Panduan Naskah Akademik",
+        "period_id": 22,
+        "lecturer_id": 3134,
+        "is_active": 1,
+        "start_at": "2025-07-28T08:42:09+07:00",
+        "end_at": "2025-07-28T08:42:09+07:00",
+        "lptk_id": 2,
+        "created_by": 67393,
+        "updated_by": 134965,
+        "deleted_by": null,
+        "deleted_at": null,
+        "created_at": "2025-07-28T08:42:09+07:00",
+        "updated_at": "2026-08-22T08:33:12+07:00",
+        "status": "STUDENT",
+        "thumbnail": "https://edunexfixture.blob.core.windows.net/edunex/fixture-4",
+        "classes": 0,
+        "is_enrolled": false,
+        "period_year": "2024",
+        "period_type": "3",
+        "lecturer": "Ir. Gita Kusuma, S.T., M.T., Ph.D.",
+        "total_student": 0,
+        "is_open": 1,
+        "is_public": 0,
+        "view_count": 0,
+        "need_campus": 0,
+        "major": "DirdikNR",
+        "faculty": {
+          "id": 999,
+          "lptk_id": 2,
+          "name": "DITNR",
+          "deleted_at": null,
+          "created_at": "2021-01-01 00:00:00",
+          "updated_at": null,
+          "thumbnail": null,
+          "province": null,
+          "code": "DITNR"
+        },
+        "is_from_six": 0,
+        "credit": "3",
+        "uuid": null,
+        "gradebook_publish": false,
+        "completion": {
+          "completionable": 7,
+          "completion": 0,
+          "percentage": "0%"
+        },
+        "enrollments": null,
+        "total_modules": 3,
+        "student_from_six": true,
+        "class_name": null,
+        "tags": null,
+        "certificates": [],
+        "plan_count": 0,
+        "is_view_only": 0,
+        "is_free": 0,
+        "is_rps": 0,
+        "is_parent": 0,
+        "curriculum": null,
+        "is_rps_approved": false,
+        "is_rps_available": false,
+        "rating": 4.5
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/courses/77122"
+      },
+      "relationships": {
+        "lecturer": {
+          "links": {
+            "self": "https://api-edunex.cognisia.id/course/courses/77122/relationships/lecturer",
+            "related": "https://api-edunex.cognisia.id/course/courses/77122/lecturer"
+          },
+          "data": {
+            "type": "lecturer",
+            "id": "3134"
+          }
+        },
+        "period": {
+          "links": {
+            "self": "https://api-edunex.cognisia.id/course/courses/77122/relationships/period",
+            "related": "https://api-edunex.cognisia.id/course/courses/77122/period"
+          },
+          "data": {
+            "type": "period",
+            "id": "22"
+          }
+        }
+      }
+    },
+    {
+      "type": "courses",
+      "id": "92948",
+      "attributes": {
+        "code": "KU5014",
+        "name": "Teknik Penyelesaian Masalah Terstruktur",
+        "period_id": 26,
+        "lecturer_id": 760,
+        "is_active": 1,
+        "start_at": "2026-08-11T02:17:29+07:00",
+        "end_at": "2026-08-11T02:17:29+07:00",
+        "lptk_id": 2,
+        "created_by": 0,
+        "updated_by": 0,
+        "deleted_by": null,
+        "deleted_at": null,
+        "created_at": "2026-08-11T02:17:29+07:00",
+        "updated_at": "2026-08-23T19:01:14+07:00",
+        "status": "STUDENT",
+        "thumbnail": "https://cdn-edunex.itb.ac.id/placeholder/Placeholder%2007.png",
+        "classes": 1,
+        "is_enrolled": true,
+        "period_year": "2026",
+        "period_type": "1",
+        "lecturer": "Prof. Dr. Ir. Indra Hartono",
+        "total_student": 56,
+        "is_open": 0,
+        "is_public": 0,
+        "view_count": null,
+        "need_campus": null,
+        "major": "Mata Kuliah Umum (MKU)",
+        "faculty": {
+          "id": 30,
+          "lptk_id": 2,
+          "name": "NONFS",
+          "deleted_at": null,
+          "created_at": "2021-01-01 00:00:00",
+          "updated_at": null,
+          "thumbnail": null,
+          "province": null,
+          "code": "NONFS"
+        },
+        "is_from_six": 1,
+        "credit": "3",
+        "uuid": null,
+        "gradebook_publish": false,
+        "completion": {
+          "completionable": 5,
+          "completion": 2,
+          "percentage": "40%"
+        },
+        "enrollments": null,
+        "total_modules": 4,
+        "student_from_six": true,
+        "class_name": "KU5014-01",
+        "tags": null,
+        "certificates": [],
+        "plan_count": 0,
+        "is_view_only": 0,
+        "is_free": 0,
+        "is_rps": 1,
+        "is_parent": 1,
+        "curriculum": 2024,
+        "is_rps_approved": false,
+        "is_rps_available": true,
+        "rating": 4.5
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/courses/92948"
+      },
+      "relationships": {
+        "lecturer": {
+          "links": {
+            "self": "https://api-edunex.cognisia.id/course/courses/92948/relationships/lecturer",
+            "related": "https://api-edunex.cognisia.id/course/courses/92948/lecturer"
+          },
+          "data": {
+            "type": "lecturer",
+            "id": "760"
+          }
+        },
+        "period": {
+          "links": {
+            "self": "https://api-edunex.cognisia.id/course/courses/92948/relationships/period",
+            "related": "https://api-edunex.cognisia.id/course/courses/92948/period"
+          },
+          "data": {
+            "type": "period",
+            "id": "26"
+          }
+        }
+      }
+    },
+    {
+      "type": "courses",
+      "id": "93409",
+      "attributes": {
+        "code": "DK4073",
+        "name": "Marketing Communication",
+        "period_id": 26,
+        "lecturer_id": 1539,
+        "is_active": 1,
+        "start_at": "2026-08-11T02:18:35+07:00",
+        "end_at": "2026-08-11T02:18:35+07:00",
+        "lptk_id": 2,
+        "created_by": 0,
+        "updated_by": 0,
+        "deleted_by": null,
+        "deleted_at": null,
+        "created_at": "2026-08-11T02:18:35+07:00",
+        "updated_at": "2026-08-23T19:01:27+07:00",
+        "status": "STUDENT",
+        "thumbnail": "https://cdn-edunex.itb.ac.id/placeholder/Placeholder%2002.png",
+        "classes": 1,
+        "is_enrolled": true,
+        "period_year": "2026",
+        "period_type": "1",
+        "lecturer": "Dra. Joko Hidayat, M.Si.",
+        "total_student": 214,
+        "is_open": 0,
+        "is_public": 0,
+        "view_count": null,
+        "need_campus": null,
+        "major": "S1 - Desain Komunikasi Visual",
+        "faculty": {
+          "id": 20,
+          "lptk_id": 2,
+          "name": "FSRD",
+          "deleted_at": null,
+          "created_at": "2021-01-01 00:00:00",
+          "updated_at": null,
+          "thumbnail": null,
+          "province": null,
+          "code": "FSRD"
+        },
+        "is_from_six": 1,
+        "credit": "3",
+        "uuid": null,
+        "gradebook_publish": false,
+        "completion": {
+          "completionable": 1,
+          "completion": 0,
+          "percentage": "0%"
+        },
+        "enrollments": null,
+        "total_modules": 1,
+        "student_from_six": true,
+        "class_name": "DK4073-01",
+        "tags": null,
+        "certificates": [],
+        "plan_count": 0,
+        "is_view_only": 0,
+        "is_free": 0,
+        "is_rps": 1,
+        "is_parent": 1,
+        "curriculum": 2024,
+        "is_rps_approved": false,
+        "is_rps_available": true,
+        "rating": 4.5
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/courses/93409"
+      },
+      "relationships": {
+        "lecturer": {
+          "links": {
+            "self": "https://api-edunex.cognisia.id/course/courses/93409/relationships/lecturer",
+            "related": "https://api-edunex.cognisia.id/course/courses/93409/lecturer"
+          },
+          "data": {
+            "type": "lecturer",
+            "id": "1539"
+          }
+        },
+        "period": {
+          "links": {
+            "self": "https://api-edunex.cognisia.id/course/courses/93409/relationships/period",
+            "related": "https://api-edunex.cognisia.id/course/courses/93409/period"
+          },
+          "data": {
+            "type": "period",
+            "id": "26"
+          }
+        }
+      }
+    },
+    {
+      "type": "courses",
+      "id": "95001",
+      "attributes": {
+        "code": "PL3002",
+        "name": "Economics and Innovation in Planning",
+        "period_id": 26,
+        "lecturer_id": 3082,
+        "is_active": 1,
+        "start_at": "2026-08-11T02:22:21+07:00",
+        "end_at": "2026-08-11T02:22:21+07:00",
+        "lptk_id": 2,
+        "created_by": 0,
+        "updated_by": null,
+        "deleted_by": null,
+        "deleted_at": null,
+        "created_at": "2026-08-11T02:22:21+07:00",
+        "updated_at": "2026-08-22T08:33:10+07:00",
+        "status": "STUDENT",
+        "thumbnail": "https://cdn-edunex.itb.ac.id/placeholder/Placeholder%2006.png",
+        "classes": 1,
+        "is_enrolled": true,
+        "period_year": "2026",
+        "period_type": "1",
+        "lecturer": "Dr. Ir. Maya Saputra, M.Si.",
+        "total_student": 169,
+        "is_open": 0,
+        "is_public": 0,
+        "view_count": null,
+        "need_campus": null,
+        "major": "S1 - Perencanaan Wilayah dan Kota (Kampus Cirebon)",
+        "faculty": {
+          "id": 21,
+          "lptk_id": 2,
+          "name": "SAPPK",
+          "deleted_at": null,
+          "created_at": "2021-01-01 00:00:00",
+          "updated_at": null,
+          "thumbnail": null,
+          "province": null,
+          "code": "SAPPK"
+        },
+        "is_from_six": 1,
+        "credit": "3",
+        "uuid": null,
+        "gradebook_publish": false,
+        "completion": {
+          "completionable": 9,
+          "completion": 1,
+          "percentage": "12%"
+        },
+        "enrollments": null,
+        "total_modules": 7,
+        "student_from_six": true,
+        "class_name": "PL3002-01",
+        "tags": null,
+        "certificates": [],
+        "plan_count": 0,
+        "is_view_only": 0,
+        "is_free": 0,
+        "is_rps": 0,
+        "is_parent": 0,
+        "curriculum": 2024,
+        "is_rps_approved": false,
+        "is_rps_available": false,
+        "rating": 4.5
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/courses/95001"
+      },
+      "relationships": {
+        "lecturer": {
+          "links": {
+            "self": "https://api-edunex.cognisia.id/course/courses/95001/relationships/lecturer",
+            "related": "https://api-edunex.cognisia.id/course/courses/95001/lecturer"
+          },
+          "data": {
+            "type": "lecturer",
+            "id": "3082"
+          }
+        },
+        "period": {
+          "links": {
+            "self": "https://api-edunex.cognisia.id/course/courses/95001/relationships/period",
+            "related": "https://api-edunex.cognisia.id/course/courses/95001/period"
+          },
+          "data": {
+            "type": "period",
+            "id": "26"
+          }
+        }
+      }
+    },
+    {
+      "type": "courses",
+      "id": "95059",
+      "attributes": {
+        "code": "PL3032",
+        "name": "Infrastructure and Transportation Economics",
+        "period_id": 26,
+        "lecturer_id": 210,
+        "is_active": 1,
+        "start_at": "2026-08-11T02:22:29+07:00",
+        "end_at": "2026-08-11T02:22:29+07:00",
+        "lptk_id": 2,
+        "created_by": 0,
+        "updated_by": null,
+        "deleted_by": null,
+        "deleted_at": null,
+        "created_at": "2026-08-11T02:22:29+07:00",
+        "updated_at": "2026-08-22T08:33:10+07:00",
+        "status": "STUDENT",
+        "thumbnail": "https://cdn-edunex.itb.ac.id/placeholder/Placeholder%2003.png",
+        "classes": 1,
+        "is_enrolled": true,
+        "period_year": "2026",
+        "period_type": "1",
+        "lecturer": "Prof. Dr. Eng. Tegar Nugroho, S.E, M.Ec.Dev.",
+        "total_student": 160,
+        "is_open": 0,
+        "is_public": 0,
+        "view_count": null,
+        "need_campus": null,
+        "major": "S1 - Perencanaan Wilayah dan Kota (Kampus Cirebon)",
+        "faculty": {
+          "id": 21,
+          "lptk_id": 2,
+          "name": "SAPPK",
+          "deleted_at": null,
+          "created_at": "2021-01-01 00:00:00",
+          "updated_at": null,
+          "thumbnail": null,
+          "province": null,
+          "code": "SAPPK"
+        },
+        "is_from_six": 1,
+        "credit": "3",
+        "uuid": null,
+        "gradebook_publish": false,
+        "completion": {
+          "completionable": 6,
+          "completion": 0,
+          "percentage": "0%"
+        },
+        "enrollments": null,
+        "total_modules": 16,
+        "student_from_six": true,
+        "class_name": "PL3032-01",
+        "tags": null,
+        "certificates": [],
+        "plan_count": 0,
+        "is_view_only": 0,
+        "is_free": 0,
+        "is_rps": 0,
+        "is_parent": 0,
+        "curriculum": 2024,
+        "is_rps_approved": false,
+        "is_rps_available": false,
+        "rating": 4.5
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/courses/95059"
+      },
+      "relationships": {
+        "lecturer": {
+          "links": {
+            "self": "https://api-edunex.cognisia.id/course/courses/95059/relationships/lecturer",
+            "related": "https://api-edunex.cognisia.id/course/courses/95059/lecturer"
+          },
+          "data": {
+            "type": "lecturer",
+            "id": "210"
+          }
+        },
+        "period": {
+          "links": {
+            "self": "https://api-edunex.cognisia.id/course/courses/95059/relationships/period",
+            "related": "https://api-edunex.cognisia.id/course/courses/95059/period"
+          },
+          "data": {
+            "type": "period",
+            "id": "26"
+          }
+        }
+      }
+    },
+    {
+      "type": "courses",
+      "id": "95326",
+      "attributes": {
+        "code": "II4091",
+        "name": "Final Project Proposal",
+        "period_id": 26,
+        "lecturer_id": 325,
+        "is_active": 1,
+        "start_at": "2026-08-11T02:23:06+07:00",
+        "end_at": "2026-08-11T02:23:06+07:00",
+        "lptk_id": 2,
+        "created_by": 0,
+        "updated_by": 357,
+        "deleted_by": null,
+        "deleted_at": null,
+        "created_at": "2026-08-11T02:23:06+07:00",
+        "updated_at": "2026-08-24T09:57:53+07:00",
+        "status": "STUDENT",
+        "thumbnail": "https://edunexfixture.blob.core.windows.net/edunex/fixture-5",
+        "classes": 1,
+        "is_enrolled": true,
+        "period_year": "2026",
+        "period_type": "1",
+        "lecturer": "Dr. Hadi Halim, S.T., M.T.",
+        "total_student": 68,
+        "is_open": 0,
+        "is_public": 0,
+        "view_count": null,
+        "need_campus": null,
+        "major": "S1 - Sistem dan Teknologi Informasi",
+        "faculty": {
+          "id": 14,
+          "lptk_id": 2,
+          "name": "STEI",
+          "deleted_at": null,
+          "created_at": "2020-03-20 16:18:29",
+          "updated_at": null,
+          "thumbnail": null,
+          "province": null,
+          "code": "STEI"
+        },
+        "is_from_six": 1,
+        "credit": "2",
+        "uuid": null,
+        "gradebook_publish": false,
+        "completion": {
+          "completionable": 10,
+          "completion": 2,
+          "percentage": "20%"
+        },
+        "enrollments": null,
+        "total_modules": 16,
+        "student_from_six": true,
+        "class_name": "II4091-01",
+        "tags": null,
+        "certificates": [],
+        "plan_count": 0,
+        "is_view_only": 0,
+        "is_free": 0,
+        "is_rps": 0,
+        "is_parent": 0,
+        "curriculum": 2024,
+        "is_rps_approved": false,
+        "is_rps_available": false,
+        "rating": 4.5
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/courses/95326"
+      },
+      "relationships": {
+        "lecturer": {
+          "links": {
+            "self": "https://api-edunex.cognisia.id/course/courses/95326/relationships/lecturer",
+            "related": "https://api-edunex.cognisia.id/course/courses/95326/lecturer"
+          },
+          "data": {
+            "type": "lecturer",
+            "id": "325"
+          }
+        },
+        "period": {
+          "links": {
+            "self": "https://api-edunex.cognisia.id/course/courses/95326/relationships/period",
+            "related": "https://api-edunex.cognisia.id/course/courses/95326/period"
+          },
+          "data": {
+            "type": "period",
+            "id": "26"
+          }
+        }
+      }
+    },
+    {
+      "type": "courses",
+      "id": "97602",
+      "attributes": {
+        "code": "II4091",
+        "name": "Final Project Proposal [Parent Class]",
+        "period_id": 26,
+        "lecturer_id": 325,
+        "is_active": 1,
+        "start_at": "2026-08-14T08:45:52+07:00",
+        "end_at": "2026-08-14T08:45:52+07:00",
+        "lptk_id": 2,
+        "created_by": 0,
+        "updated_by": 0,
+        "deleted_by": null,
+        "deleted_at": null,
+        "created_at": "2026-08-14T08:45:52+07:00",
+        "updated_at": "2026-08-23T19:02:10+07:00",
+        "status": "STUDENT",
+        "thumbnail": "https://cdn-edunex.itb.ac.id/placeholder/Placeholder%2004.png",
+        "classes": 2,
+        "is_enrolled": true,
+        "period_year": "2026",
+        "period_type": "1",
+        "lecturer": "Dr. Hadi Halim, S.T., M.T.",
+        "total_student": 146,
+        "is_open": 0,
+        "is_public": 0,
+        "view_count": null,
+        "need_campus": null,
+        "major": "S1 - Sistem dan Teknologi Informasi",
+        "faculty": {
+          "id": 14,
+          "lptk_id": 2,
+          "name": "STEI",
+          "deleted_at": null,
+          "created_at": "2020-03-20 16:18:29",
+          "updated_at": null,
+          "thumbnail": null,
+          "province": null,
+          "code": "STEI"
+        },
+        "is_from_six": 0,
+        "credit": "2",
+        "uuid": null,
+        "gradebook_publish": false,
+        "completion": {
+          "completionable": 5,
+          "completion": 0,
+          "percentage": "0%"
+        },
+        "enrollments": null,
+        "total_modules": 4,
+        "student_from_six": true,
+        "class_name": "II4091-00",
+        "tags": null,
+        "certificates": [],
+        "plan_count": 0,
+        "is_view_only": 1,
+        "is_free": 0,
+        "is_rps": 1,
+        "is_parent": 1,
+        "curriculum": 2024,
+        "is_rps_approved": false,
+        "is_rps_available": true,
+        "rating": 4.5
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/courses/97602"
+      },
+      "relationships": {
+        "lecturer": {
+          "links": {
+            "self": "https://api-edunex.cognisia.id/course/courses/97602/relationships/lecturer",
+            "related": "https://api-edunex.cognisia.id/course/courses/97602/lecturer"
+          },
+          "data": {
+            "type": "lecturer",
+            "id": "325"
+          }
+        },
+        "period": {
+          "links": {
+            "self": "https://api-edunex.cognisia.id/course/courses/97602/relationships/period",
+            "related": "https://api-edunex.cognisia.id/course/courses/97602/period"
+          },
+          "data": {
+            "type": "period",
+            "id": "26"
+          }
+        }
+      }
+    }
+  ],
+  "included": [
+    {
+      "type": "user",
+      "id": "111097",
+      "attributes": {
+        "username": "Edunex_2022!",
+        "name": "Andi Wijaya",
+        "passwordfixture": "changed",
+        "email": "Edunex_2022!",
+        "is_active": 1,
+        "level": "LECTURER",
+        "lptk_id": 2,
+        "remember_token": null,
+        "thumbnail": null,
+        "created_by": 6,
+        "updated_by": 67393,
+        "deleted_by": null,
+        "created_at": "2021-02-11T13:42:51+07:00",
+        "updated_at": "2024-07-22T09:36:13+07:00",
+        "deleted_at": null,
+        "last_online": "2023-02-13T15:41:05+07:00"
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/user/111097"
+      }
+    },
+    {
+      "type": "user",
+      "id": "111137",
+      "attributes": {
+        "username": "hebat",
+        "name": "Fajar Yuliana",
+        "passwordfixture": "changed",
+        "email": "hebat",
+        "is_active": 1,
+        "level": "LECTURER",
+        "lptk_id": 2,
+        "remember_token": null,
+        "thumbnail": null,
+        "created_by": 67393,
+        "updated_by": 111137,
+        "deleted_by": null,
+        "created_at": "2021-02-17T11:46:58+07:00",
+        "updated_at": "2026-10-08T16:02:32+07:00",
+        "deleted_at": null,
+        "last_online": "2026-10-08T16:02:32+07:00"
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/user/111137"
+      }
+    },
+    {
+      "type": "user",
+      "id": "134965",
+      "attributes": {
+        "username": "000000000000000004",
+        "name": "Ir. Gita Kusuma, S.T., M.T., Ph.D.",
+        "passwordfixture": "CHANGED",
+        "email": "000000000000000000",
+        "is_active": 1,
+        "level": "LECTURER",
+        "lptk_id": 2,
+        "remember_token": null,
+        "thumbnail": null,
+        "created_by": 6,
+        "updated_by": 67393,
+        "deleted_by": null,
+        "created_at": "2021-08-21T21:06:34+07:00",
+        "updated_at": "2026-10-08T16:24:59+07:00",
+        "deleted_at": null,
+        "last_online": "2026-10-08T16:24:59+07:00"
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/user/134965"
+      }
+    },
+    {
+      "type": "user",
+      "id": "792",
+      "attributes": {
+        "username": "000000000000000001",
+        "name": "Prof. Dr. Ir. Indra Hartono",
+        "passwordfixture": "CHANGED",
+        "email": "000000000000000000",
+        "is_active": 1,
+        "level": "LECTURER",
+        "lptk_id": 2,
+        "remember_token": null,
+        "thumbnail": null,
+        "created_by": 6,
+        "updated_by": 792,
+        "deleted_by": null,
+        "created_at": "2020-03-21T16:18:46+07:00",
+        "updated_at": "2026-10-02T04:10:47+07:00",
+        "deleted_at": null,
+        "last_online": "2026-10-02T04:10:47+07:00"
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/user/792"
+      }
+    },
+    {
+      "type": "user",
+      "id": "1571",
+      "attributes": {
+        "username": "000000000000000002",
+        "name": "Dra. Joko Hidayat, M.Si.",
+        "passwordfixture": "CHANGED",
+        "email": "000000000000000000",
+        "is_active": 1,
+        "level": "LECTURER",
+        "lptk_id": 2,
+        "remember_token": null,
+        "thumbnail": null,
+        "created_by": 6,
+        "updated_by": 1571,
+        "deleted_by": null,
+        "created_at": "2020-03-21T16:18:46+07:00",
+        "updated_at": "2026-09-24T15:27:19+07:00",
+        "deleted_at": null,
+        "last_online": "2026-09-24T15:27:19+07:00"
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/user/1571"
+      }
+    },
+    {
+      "type": "user",
+      "id": "134913",
+      "attributes": {
+        "username": "000000012",
+        "name": "Dr. Ir. Maya Saputra, M.Si.",
+        "passwordfixture": "CHANGED",
+        "email": "000000012",
+        "is_active": 1,
+        "level": "LECTURER",
+        "lptk_id": 2,
+        "remember_token": null,
+        "thumbnail": null,
+        "created_by": 6,
+        "updated_by": null,
+        "deleted_by": null,
+        "created_at": "2021-08-21T21:06:05+07:00",
+        "updated_at": "2026-09-10T00:46:16+07:00",
+        "deleted_at": null,
+        "last_online": "2026-09-10T00:46:16+07:00"
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/user/134913"
+      }
+    },
+    {
+      "type": "user",
+      "id": "242",
+      "attributes": {
+        "username": "000000000000000003",
+        "name": "Prof. Dr. Eng. Tegar Nugroho, S.E, M.Ec.Dev.",
+        "passwordfixture": "CHANGED",
+        "email": "000000000000000000",
+        "is_active": 1,
+        "level": "LECTURER",
+        "lptk_id": 2,
+        "remember_token": null,
+        "thumbnail": null,
+        "created_by": 6,
+        "updated_by": null,
+        "deleted_by": null,
+        "created_at": "2020-03-21T16:18:46+07:00",
+        "updated_at": "2025-09-18T14:15:46+07:00",
+        "deleted_at": null,
+        "last_online": "2025-09-18T14:15:46+07:00"
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/user/242"
+      }
+    },
+    {
+      "type": "user",
+      "id": "357",
+      "attributes": {
+        "username": "000000015",
+        "name": "Dr. Hadi Halim, S.T., M.T.",
+        "passwordfixture": "CHANGED",
+        "email": "000000015",
+        "is_active": 1,
+        "level": "LECTURER",
+        "lptk_id": 2,
+        "remember_token": null,
+        "thumbnail": null,
+        "created_by": 6,
+        "updated_by": 357,
+        "deleted_by": null,
+        "created_at": "2020-03-21T16:18:46+07:00",
+        "updated_at": "2026-10-08T09:32:28+07:00",
+        "deleted_at": null,
+        "last_online": "2026-10-08T09:32:28+07:00"
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/user/357"
+      }
+    },
+    {
+      "type": "lecturer",
+      "id": "1970",
+      "attributes": {
+        "user_id": 111097,
+        "lptk_id": 2,
+        "nidn": "0000000000",
+        "name": "Andi Wijaya",
+        "place_of_birth": "-",
+        "date_of_birth": "2000-01-01T00:00:00.000Z",
+        "gender": "M",
+        "front_degree": "none",
+        "back_degree": "none",
+        "phone_number": "-",
+        "deleted_at": null,
+        "created_at": "2021-02-11T13:42:51+07:00",
+        "updated_at": "2023-02-13T15:41:05+07:00",
+        "last_online": "2023-02-13T15:41:05+07:00"
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/lecturer/1970"
+      },
+      "relationships": {
+        "user": {
+          "links": {
+            "self": "https://api-edunex.cognisia.id/course/lecturer/1970/relationships/user",
+            "related": "https://api-edunex.cognisia.id/course/lecturer/1970/user"
+          },
+          "data": {
+            "type": "user",
+            "id": "111097"
+          }
+        }
+      }
+    },
+    {
+      "type": "period",
+      "id": "7",
+      "attributes": {
+        "lptk_id": 2,
+        "year": "2020",
+        "type": "2",
+        "is_active": 0,
+        "deleted_at": null,
+        "created_at": "2021-01-07T23:26:30+07:00",
+        "updated_at": "2026-08-22T08:33:10+07:00",
+        "prs_end": null
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/period/7"
+      }
+    },
+    {
+      "type": "lecturer",
+      "id": "1971",
+      "attributes": {
+        "user_id": 111137,
+        "lptk_id": 2,
+        "nidn": "0000000000",
+        "name": "Fajar Yuliana",
+        "place_of_birth": "-",
+        "date_of_birth": "2000-01-01T00:00:00.000Z",
+        "gender": "M",
+        "front_degree": "none",
+        "back_degree": "none",
+        "phone_number": "-",
+        "deleted_at": null,
+        "created_at": "2021-02-17T11:46:58+07:00",
+        "updated_at": "2026-10-08T16:02:32+07:00",
+        "last_online": "2026-10-08T16:02:32+07:00"
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/lecturer/1971"
+      },
+      "relationships": {
+        "user": {
+          "links": {
+            "self": "https://api-edunex.cognisia.id/course/lecturer/1971/relationships/user",
+            "related": "https://api-edunex.cognisia.id/course/lecturer/1971/user"
+          },
+          "data": {
+            "type": "user",
+            "id": "111137"
+          }
+        }
+      }
+    },
+    {
+      "type": "period",
+      "id": "8",
+      "attributes": {
+        "lptk_id": 2,
+        "year": "2020",
+        "type": "3",
+        "is_active": 0,
+        "deleted_at": null,
+        "created_at": "2021-06-10T12:13:09+07:00",
+        "updated_at": "2026-08-22T08:33:10+07:00",
+        "prs_end": "2021-07-12T09:13:43+07:00"
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/period/8"
+      }
+    },
+    {
+      "type": "lecturer",
+      "id": "3134",
+      "attributes": {
+        "user_id": 134965,
+        "lptk_id": 2,
+        "nidn": "0000000000",
+        "name": "Ir. Gita Kusuma, S.T., M.T., Ph.D.",
+        "place_of_birth": "-",
+        "date_of_birth": "2000-01-01T00:00:00.000Z",
+        "gender": "M",
+        "front_degree": "none",
+        "back_degree": "none",
+        "phone_number": "-",
+        "deleted_at": null,
+        "created_at": "2021-08-21T21:06:34+07:00",
+        "updated_at": "2026-10-08T16:24:59+07:00",
+        "last_online": "2026-10-08T16:24:59+07:00"
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/lecturer/3134"
+      },
+      "relationships": {
+        "user": {
+          "links": {
+            "self": "https://api-edunex.cognisia.id/course/lecturer/3134/relationships/user",
+            "related": "https://api-edunex.cognisia.id/course/lecturer/3134/user"
+          },
+          "data": {
+            "type": "user",
+            "id": "134965"
+          }
+        }
+      }
+    },
+    {
+      "type": "period",
+      "id": "22",
+      "attributes": {
+        "lptk_id": 2,
+        "year": "2024",
+        "type": "3",
+        "is_active": 0,
+        "deleted_at": null,
+        "created_at": "2024-12-14T08:09:24+07:00",
+        "updated_at": "2026-08-22T08:33:10+07:00",
+        "prs_end": "2025-07-18T23:59:00+07:00"
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/period/22"
+      }
+    },
+    {
+      "type": "lecturer",
+      "id": "760",
+      "attributes": {
+        "user_id": 792,
+        "lptk_id": 2,
+        "nidn": "0000000000",
+        "name": "Prof. Dr. Ir. Indra Hartono",
+        "place_of_birth": "-",
+        "date_of_birth": "2000-01-01T00:00:00.000Z",
+        "gender": "M",
+        "front_degree": "none",
+        "back_degree": "none",
+        "phone_number": "-",
+        "deleted_at": null,
+        "created_at": "2020-03-21T17:34:11+07:00",
+        "updated_at": "2026-10-02T04:10:47+07:00",
+        "last_online": "2026-10-02T04:10:47+07:00"
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/lecturer/760"
+      },
+      "relationships": {
+        "user": {
+          "links": {
+            "self": "https://api-edunex.cognisia.id/course/lecturer/760/relationships/user",
+            "related": "https://api-edunex.cognisia.id/course/lecturer/760/user"
+          },
+          "data": {
+            "type": "user",
+            "id": "792"
+          }
+        }
+      }
+    },
+    {
+      "type": "period",
+      "id": "26",
+      "attributes": {
+        "lptk_id": 2,
+        "year": "2026",
+        "type": "1",
+        "is_active": 1,
+        "deleted_at": null,
+        "created_at": "2026-08-11T09:13:16+07:00",
+        "updated_at": "2026-08-22T08:33:10+07:00",
+        "prs_end": "2026-09-18T12:00:00+07:00"
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/period/26"
+      }
+    },
+    {
+      "type": "lecturer",
+      "id": "1539",
+      "attributes": {
+        "user_id": 1571,
+        "lptk_id": 2,
+        "nidn": "0000000000",
+        "name": "Dra. Joko Hidayat, M.Si.",
+        "place_of_birth": "-",
+        "date_of_birth": "2000-01-01T00:00:00.000Z",
+        "gender": "M",
+        "front_degree": "none",
+        "back_degree": "none",
+        "phone_number": "-",
+        "deleted_at": null,
+        "created_at": "2020-03-21T17:34:11+07:00",
+        "updated_at": "2026-09-24T15:27:19+07:00",
+        "last_online": "2026-09-24T15:27:19+07:00"
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/lecturer/1539"
+      },
+      "relationships": {
+        "user": {
+          "links": {
+            "self": "https://api-edunex.cognisia.id/course/lecturer/1539/relationships/user",
+            "related": "https://api-edunex.cognisia.id/course/lecturer/1539/user"
+          },
+          "data": {
+            "type": "user",
+            "id": "1571"
+          }
+        }
+      }
+    },
+    {
+      "type": "lecturer",
+      "id": "3082",
+      "attributes": {
+        "user_id": 134913,
+        "lptk_id": 2,
+        "nidn": "0000000000",
+        "name": "Dr. Ir. Maya Saputra, M.Si.",
+        "place_of_birth": "-",
+        "date_of_birth": "2000-01-01T00:00:00.000Z",
+        "gender": "M",
+        "front_degree": "none",
+        "back_degree": "none",
+        "phone_number": "-",
+        "deleted_at": null,
+        "created_at": "2021-08-21T21:06:05+07:00",
+        "updated_at": "2026-09-10T00:46:16+07:00",
+        "last_online": "2026-09-10T00:46:16+07:00"
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/lecturer/3082"
+      },
+      "relationships": {
+        "user": {
+          "links": {
+            "self": "https://api-edunex.cognisia.id/course/lecturer/3082/relationships/user",
+            "related": "https://api-edunex.cognisia.id/course/lecturer/3082/user"
+          },
+          "data": {
+            "type": "user",
+            "id": "134913"
+          }
+        }
+      }
+    },
+    {
+      "type": "lecturer",
+      "id": "210",
+      "attributes": {
+        "user_id": 242,
+        "lptk_id": 2,
+        "nidn": "0000000000",
+        "name": "Prof. Dr. Eng. Tegar Nugroho, S.E, M.Ec.Dev.",
+        "place_of_birth": "-",
+        "date_of_birth": "2000-01-01T00:00:00.000Z",
+        "gender": "M",
+        "front_degree": "none",
+        "back_degree": "none",
+        "phone_number": "-",
+        "deleted_at": null,
+        "created_at": "2020-03-21T17:34:11+07:00",
+        "updated_at": "2025-09-18T14:15:46+07:00",
+        "last_online": "2025-09-18T14:15:46+07:00"
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/lecturer/210"
+      },
+      "relationships": {
+        "user": {
+          "links": {
+            "self": "https://api-edunex.cognisia.id/course/lecturer/210/relationships/user",
+            "related": "https://api-edunex.cognisia.id/course/lecturer/210/user"
+          },
+          "data": {
+            "type": "user",
+            "id": "242"
+          }
+        }
+      }
+    },
+    {
+      "type": "lecturer",
+      "id": "325",
+      "attributes": {
+        "user_id": 357,
+        "lptk_id": 2,
+        "nidn": "0000000000",
+        "name": "Dr. Hadi Halim, S.T., M.T.",
+        "place_of_birth": "-",
+        "date_of_birth": "2000-01-01T00:00:00.000Z",
+        "gender": "M",
+        "front_degree": "none",
+        "back_degree": "none",
+        "phone_number": "-",
+        "deleted_at": null,
+        "created_at": "2020-03-21T17:34:11+07:00",
+        "updated_at": "2026-10-08T09:32:28+07:00",
+        "last_online": "2026-10-08T09:32:28+07:00"
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/lecturer/325"
+      },
+      "relationships": {
+        "user": {
+          "links": {
+            "self": "https://api-edunex.cognisia.id/course/lecturer/325/relationships/user",
+            "related": "https://api-edunex.cognisia.id/course/lecturer/325/user"
+          },
+          "data": {
+            "type": "user",
+            "id": "357"
+          }
+        }
+      }
+    }
+  ],
+  "links": {
+    "first": "https://api-edunex.cognisia.id/course/courses?q=/api/v1/courses&include=lecturer,lecturer.user&filter[is_active][is]=1&sort=id&page[limit]=20&page[offset]=0",
+    "last": "https://api-edunex.cognisia.id/course/courses?q=/api/v1/courses&include=lecturer,lecturer.user&filter[is_active][is]=1&sort=id&page[limit]=20&page[offset]=0",
+    "next": null,
+    "prev": null
+  }
+}

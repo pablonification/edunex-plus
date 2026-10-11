@@ -1,0 +1,52 @@
+{
+  "tasks": [
+    {
+      "type": "task",
+      "code": "DK4073",
+      "course": "Marketing Communication",
+      "name": "Answer UTS Markom",
+      "time": "2026-10-22T23:50:00.000Z",
+      "id": 117764,
+      "taskable_id": 473251
+    },
+    {
+      "type": "task",
+      "code": "PL3002",
+      "course": "Economics and Innovation in Planning",
+      "name": "Answer Tugas Mandiri Individu tentang Projek Penciptaan/Pengembangan Inovasi Kampus Ganesha",
+      "time": "2026-11-26T23:59:00.000Z",
+      "id": 117873,
+      "taskable_id": 473117
+    },
+    {
+      "type": "task",
+      "code": "II4091",
+      "course": "Final Project Proposal",
+      "name": "Answer Tugas 02 Bab II",
+      "time": "2026-10-16T23:59:00.000Z",
+      "id": 117003,
+      "taskable_id": 450222
+    },
+    {
+      "type": "task",
+      "code": "II4091",
+      "course": "Final Project Proposal",
+      "name": "Answer Tugas 03 Bab III",
+      "time": "2026-10-30T23:59:00.000Z",
+      "id": 117010,
+      "taskable_id": 450222
+    },
+    {
+      "type": "task",
+      "code": "II4091",
+      "course": "Final Project Proposal",
+      "name": "Answer Tugas 04 Bab IV & V",
+      "time": "2026-11-13T23:59:00.000Z",
+      "id": 117023,
+      "taskable_id": 450222
+    }
+  ],
+  "exams": [],
+  "questions": [],
+  "modules": []
+}

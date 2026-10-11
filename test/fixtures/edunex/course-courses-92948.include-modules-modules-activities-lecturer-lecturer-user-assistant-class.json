@@ -1,0 +1,345 @@
+{
+  "data": {
+    "type": "courses",
+    "id": "92948",
+    "attributes": {
+      "code": "KU5014",
+      "name": "Teknik Penyelesaian Masalah Terstruktur",
+      "period_id": 26,
+      "lecturer_id": 760,
+      "is_active": 1,
+      "start_at": "2026-08-11T02:17:29+07:00",
+      "end_at": "2026-08-11T02:17:29+07:00",
+      "lptk_id": 2,
+      "created_by": 0,
+      "updated_by": 0,
+      "deleted_by": null,
+      "deleted_at": null,
+      "created_at": "2026-08-11T02:17:29+07:00",
+      "updated_at": "2026-08-23T19:01:14+07:00",
+      "status": "STUDENT",
+      "thumbnail": "https://cdn-edunex.itb.ac.id/placeholder/Placeholder%2007.png",
+      "classes": 1,
+      "is_enrolled": true,
+      "period_year": "2026",
+      "period_type": "1",
+      "lecturer": "Prof. Dr. Ir. Indra Hartono",
+      "total_student": 56,
+      "is_open": 0,
+      "is_public": 0,
+      "view_count": null,
+      "need_campus": null,
+      "major": "Mata Kuliah Umum (MKU)",
+      "faculty": {
+        "id": 30,
+        "lptk_id": 2,
+        "name": "NONFS",
+        "deleted_at": null,
+        "created_at": "2021-01-01 00:00:00",
+        "updated_at": null,
+        "thumbnail": null,
+        "province": null,
+        "code": "NONFS"
+      },
+      "is_from_six": 1,
+      "credit": "3",
+      "uuid": null,
+      "gradebook_publish": false,
+      "completion": {
+        "completionable": 5,
+        "completion": 2,
+        "percentage": "40%"
+      },
+      "enrollments": null,
+      "total_modules": 4,
+      "student_from_six": true,
+      "class_name": "KU5014-01",
+      "tags": null,
+      "certificates": [],
+      "plan_count": 0,
+      "is_view_only": 0,
+      "is_free": 0,
+      "is_rps": 1,
+      "is_parent": 1,
+      "curriculum": 2024,
+      "is_rps_approved": false,
+      "is_rps_available": true,
+      "rating": 4.5
+    },
+    "links": {
+      "self": "https://api-edunex.cognisia.id/course/courses/92948"
+    },
+    "relationships": {
+      "lecturer": {
+        "links": {
+          "self": "https://api-edunex.cognisia.id/course/courses/92948/relationships/lecturer",
+          "related": "https://api-edunex.cognisia.id/course/courses/92948/lecturer"
+        },
+        "data": {
+          "type": "lecturer",
+          "id": "760"
+        }
+      },
+      "modules": {
+        "links": {
+          "self": "https://api-edunex.cognisia.id/course/courses/92948/relationships/modules",
+          "related": "https://api-edunex.cognisia.id/course/courses/92948/modules"
+        },
+        "data": [
+          {
+            "type": "modules",
+            "id": "463349"
+          },
+          {
+            "type": "modules",
+            "id": "466684"
+          },
+          {
+            "type": "modules",
+            "id": "470899"
+          },
+          {
+            "type": "modules",
+            "id": "475745"
+          }
+        ]
+      },
+      "assistant": {
+        "links": {
+          "self": "https://api-edunex.cognisia.id/course/courses/92948/relationships/assistant",
+          "related": "https://api-edunex.cognisia.id/course/courses/92948/assistant"
+        },
+        "data": [
+          {
+            "type": "assistant",
+            "id": "244774"
+          }
+        ]
+      }
+    }
+  },
+  "included": [
+    {
+      "type": "user",
+      "id": "792",
+      "attributes": {
+        "username": "000000000000000001",
+        "name": "Prof. Dr. Ir. Indra Hartono",
+        "passwordfixture": "CHANGED",
+        "email": "000000000000000000",
+        "is_active": 1,
+        "level": "LECTURER",
+        "lptk_id": 2,
+        "remember_token": null,
+        "thumbnail": null,
+        "created_by": 6,
+        "updated_by": 792,
+        "deleted_by": null,
+        "created_at": "2020-03-21T16:18:46+07:00",
+        "updated_at": "2026-10-02T04:10:47+07:00",
+        "deleted_at": null,
+        "last_online": "2026-10-02T04:10:47+07:00"
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/user/792"
+      }
+    },
+    {
+      "type": "lecturer",
+      "id": "760",
+      "attributes": {
+        "user_id": 792,
+        "lptk_id": 2,
+        "nidn": "0000000000",
+        "name": "Prof. Dr. Ir. Indra Hartono",
+        "place_of_birth": "-",
+        "date_of_birth": "2000-01-01T00:00:00.000Z",
+        "gender": "M",
+        "front_degree": "none",
+        "back_degree": "none",
+        "phone_number": "-",
+        "deleted_at": null,
+        "created_at": "2020-03-21T17:34:11+07:00",
+        "updated_at": "2026-10-02T04:10:47+07:00",
+        "last_online": "2026-10-02T04:10:47+07:00"
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/lecturer/760"
+      },
+      "relationships": {
+        "user": {
+          "links": {
+            "self": "https://api-edunex.cognisia.id/course/lecturer/760/relationships/user",
+            "related": "https://api-edunex.cognisia.id/course/lecturer/760/user"
+          },
+          "data": {
+            "type": "user",
+            "id": "792"
+          }
+        }
+      }
+    },
+    {
+      "type": "modules",
+      "id": "463349",
+      "attributes": {
+        "course_id": 92948,
+        "index": 1,
+        "name": "Pengantar Problem Solving",
+        "is_active": true,
+        "start_at": "2026-08-31T19:19:03+07:00",
+        "end_at": "2026-08-31T19:19:03+07:00",
+        "lptk_id": 2,
+        "stages": [],
+        "created_by": 792,
+        "updated_by": 792,
+        "deleted_by": null,
+        "deleted_at": null,
+        "created_at": "2026-08-31T19:19:03+07:00",
+        "updated_at": "2026-08-31T19:19:18+07:00",
+        "module_exam": [],
+        "is_date_restricted": 0,
+        "is_completion_restricted": 0,
+        "is_exam_restricted": 0,
+        "exam_restriction": []
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/modules/463349"
+      },
+      "relationships": {
+        "activities": {
+          "links": {
+            "self": "https://api-edunex.cognisia.id/course/modules/463349/relationships/activities",
+            "related": "https://api-edunex.cognisia.id/course/modules/463349/activities"
+          },
+          "data": []
+        }
+      }
+    },
+    {
+      "type": "modules",
+      "id": "466684",
+      "attributes": {
+        "course_id": 92948,
+        "index": 2,
+        "name": "Problem Statement",
+        "is_active": true,
+        "start_at": "2026-09-03T17:08:33+07:00",
+        "end_at": "2026-09-03T17:08:33+07:00",
+        "lptk_id": 2,
+        "stages": [],
+        "created_by": 792,
+        "updated_by": 792,
+        "deleted_by": null,
+        "deleted_at": null,
+        "created_at": "2026-09-03T17:08:32+07:00",
+        "updated_at": "2026-09-03T17:11:32+07:00",
+        "module_exam": [],
+        "is_date_restricted": 0,
+        "is_completion_restricted": 0,
+        "is_exam_restricted": 0,
+        "exam_restriction": []
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/modules/466684"
+      },
+      "relationships": {
+        "activities": {
+          "links": {
+            "self": "https://api-edunex.cognisia.id/course/modules/466684/relationships/activities",
+            "related": "https://api-edunex.cognisia.id/course/modules/466684/activities"
+          },
+          "data": []
+        }
+      }
+    },
+    {
+      "type": "modules",
+      "id": "470899",
+      "attributes": {
+        "course_id": 92948,
+        "index": 3,
+        "name": "Tugas",
+        "is_active": true,
+        "start_at": "2026-09-11T17:05:55+07:00",
+        "end_at": "2026-09-11T17:05:55+07:00",
+        "lptk_id": 2,
+        "stages": [],
+        "created_by": 792,
+        "updated_by": 792,
+        "deleted_by": null,
+        "deleted_at": null,
+        "created_at": "2026-09-11T17:05:54+07:00",
+        "updated_at": "2026-09-11T17:15:10+07:00",
+        "module_exam": [],
+        "is_date_restricted": 0,
+        "is_completion_restricted": 0,
+        "is_exam_restricted": 0,
+        "exam_restriction": []
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/modules/470899"
+      },
+      "relationships": {
+        "activities": {
+          "links": {
+            "self": "https://api-edunex.cognisia.id/course/modules/470899/relationships/activities",
+            "related": "https://api-edunex.cognisia.id/course/modules/470899/activities"
+          },
+          "data": []
+        }
+      }
+    },
+    {
+      "type": "modules",
+      "id": "475745",
+      "attributes": {
+        "course_id": 92948,
+        "index": 4,
+        "name": "Tugas Problem Solving 5w +2H",
+        "is_active": true,
+        "start_at": "2026-09-24T15:58:17+07:00",
+        "end_at": "2026-09-24T15:58:17+07:00",
+        "lptk_id": 2,
+        "stages": [],
+        "created_by": 792,
+        "updated_by": 792,
+        "deleted_by": null,
+        "deleted_at": null,
+        "created_at": "2026-09-24T15:58:11+07:00",
+        "updated_at": "2026-09-24T15:58:34+07:00",
+        "module_exam": [],
+        "is_date_restricted": 0,
+        "is_completion_restricted": 0,
+        "is_exam_restricted": 0,
+        "exam_restriction": []
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/modules/475745"
+      },
+      "relationships": {
+        "activities": {
+          "links": {
+            "self": "https://api-edunex.cognisia.id/course/modules/475745/relationships/activities",
+            "related": "https://api-edunex.cognisia.id/course/modules/475745/activities"
+          },
+          "data": []
+        }
+      }
+    },
+    {
+      "type": "assistant",
+      "id": "244774",
+      "attributes": {
+        "name": "Asep Setiawan, S.Kom.",
+        "username": "000000014",
+        "email": "000000014",
+        "thumbnail": "https://cdn-edunex.itb.ac.id/Ava.jpg",
+        "is_coordinator": 0
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/assistant/244774"
+      }
+    }
+  ]
+}

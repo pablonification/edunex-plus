@@ -1,0 +1,704 @@
+[
+  {
+    "method": "GET",
+    "path": "/course/agenda",
+    "query": {
+      "date": "2026-10-08T12:01:27.831Z"
+    },
+    "status": 200,
+    "file": "course-agenda.date-2026-10-08t12-01-27-831z.json"
+  },
+  {
+    "method": "GET",
+    "path": "/course/agenda",
+    "query": {
+      "date": "2026-10-08T12:03:12.461Z"
+    },
+    "status": 200,
+    "file": "course-agenda.date-2026-10-08t12-03-12-461z.json"
+  },
+  {
+    "method": "GET",
+    "path": "/course/announcements",
+    "query": {
+      "filter[is_active][is]": "true",
+      "page[limit]": "-1"
+    },
+    "status": 200,
+    "file": "course-announcements.json"
+  },
+  {
+    "method": "GET",
+    "path": "/course/announcements/course/92948",
+    "query": {},
+    "status": 200,
+    "file": "course-announcements-course-92948.json"
+  },
+  {
+    "method": "GET",
+    "path": "/course/announcements/course/93409",
+    "query": {},
+    "status": 200,
+    "file": "course-announcements-course-93409.json"
+  },
+  {
+    "method": "GET",
+    "path": "/course/announcements/course/95001",
+    "query": {},
+    "status": 200,
+    "file": "course-announcements-course-95001.json"
+  },
+  {
+    "method": "GET",
+    "path": "/course/announcements/course/95059",
+    "query": {},
+    "status": 200,
+    "file": "course-announcements-course-95059.json"
+  },
+  {
+    "method": "GET",
+    "path": "/course/announcements/course/95326",
+    "query": {},
+    "status": 200,
+    "file": "course-announcements-course-95326.json"
+  },
+  {
+    "method": "GET",
+    "path": "/course/announcements/course/97602",
+    "query": {},
+    "status": 200,
+    "file": "course-announcements-course-97602.json"
+  },
+  {
+    "method": "GET",
+    "path": "/course/contents",
+    "query": {
+      "page[limit]": "3",
+      "page[offset]": "0",
+      "sort": "-updated_at",
+      "filter[type][in]": "zoom,google-meet,ms-teams,cloudx,webex"
+    },
+    "status": 200,
+    "file": "course-contents.page-offset-0-type-zoom-google-meet-ms-teams-cloudx-webex.json"
+  },
+  {
+    "method": "GET",
+    "path": "/course/contents/",
+    "query": {
+      "filter[contentable_id][is]": "92948",
+      "filter[contentable_type][is]": "App\\Models\\Courses",
+      "sort": "index",
+      "page[limit]": "0"
+    },
+    "status": 200,
+    "file": "course-contents.contentable-id-92948-contentable-type-app-models-courses.json"
+  },
+  {
+    "method": "GET",
+    "path": "/course/contents/",
+    "query": {
+      "filter[contentable_id][is]": "93409",
+      "filter[contentable_type][is]": "App\\Models\\Courses",
+      "sort": "index",
+      "page[limit]": "0"
+    },
+    "status": 200,
+    "file": "course-contents.contentable-id-93409-contentable-type-app-models-courses.json"
+  },
+  {
+    "method": "GET",
+    "path": "/course/contents/",
+    "query": {
+      "filter[contentable_id][is]": "95001",
+      "filter[contentable_type][is]": "App\\Models\\Courses",
+      "sort": "index",
+      "page[limit]": "0"
+    },
+    "status": 200,
+    "file": "course-contents.contentable-id-95001-contentable-type-app-models-courses.json"
+  },
+  {
+    "method": "GET",
+    "path": "/course/contents/",
+    "query": {
+      "filter[contentable_id][is]": "95059",
+      "filter[contentable_type][is]": "App\\Models\\Courses",
+      "sort": "index",
+      "page[limit]": "0"
+    },
+    "status": 200,
+    "file": "course-contents.contentable-id-95059-contentable-type-app-models-courses.json"
+  },
+  {
+    "method": "GET",
+    "path": "/course/contents/",
+    "query": {
+      "filter[contentable_id][is]": "95326",
+      "filter[contentable_type][is]": "App\\Models\\Courses",
+      "sort": "index",
+      "page[limit]": "0"
+    },
+    "status": 200,
+    "file": "course-contents.contentable-id-95326-contentable-type-app-models-courses.json"
+  },
+  {
+    "method": "GET",
+    "path": "/course/contents/",
+    "query": {
+      "filter[contentable_id][is]": "97602",
+      "filter[contentable_type][is]": "App\\Models\\Courses",
+      "sort": "index",
+      "page[limit]": "0"
+    },
+    "status": 200,
+    "file": "course-contents.contentable-id-97602-contentable-type-app-models-courses.json"
+  },
+  {
+    "method": "GET",
+    "path": "/course/courses",
+    "query": {
+      "include": "lecturer,lecturer.user",
+      "filter[is_active][is]": "1",
+      "sort": "id",
+      "page[limit]": "20",
+      "page[offset]": "0"
+    },
+    "status": 200,
+    "file": "course-courses.include-lecturer-lecturer-user-page-offset-0.json"
+  },
+  {
+    "method": "GET",
+    "path": "/course/courses/92948",
+    "query": {
+      "include": "modules,modules.activities,lecturer,lecturer.user,assistant,class"
+    },
+    "status": 200,
+    "file": "course-courses-92948.include-modules-modules-activities-lecturer-lecturer-user-assistant-class.json"
+  },
+  {
+    "method": "GET",
+    "path": "/course/courses/92948",
+    "query": {},
+    "status": 200,
+    "file": "course-courses-92948.json"
+  },
+  {
+    "method": "GET",
+    "path": "/course/courses/92948/classes",
+    "query": {},
+    "status": 200,
+    "file": "course-courses-92948-classes.json"
+  },
+  {
+    "method": "GET",
+    "path": "/course/courses/93409",
+    "query": {
+      "include": "modules,modules.activities,lecturer,lecturer.user,assistant,class"
+    },
+    "status": 200,
+    "file": "course-courses-93409.include-modules-modules-activities-lecturer-lecturer-user-assistant-class.json"
+  },
+  {
+    "method": "GET",
+    "path": "/course/courses/93409",
+    "query": {},
+    "status": 200,
+    "file": "course-courses-93409.json"
+  },
+  {
+    "method": "GET",
+    "path": "/course/courses/93409",
+    "query": {
+      "include": ""
+    },
+    "status": 200,
+    "file": "course-courses-93409.include.json"
+  },
+  {
+    "method": "GET",
+    "path": "/course/courses/93409/classes",
+    "query": {},
+    "status": 200,
+    "file": "course-courses-93409-classes.json"
+  },
+  {
+    "method": "GET",
+    "path": "/course/courses/95001",
+    "query": {
+      "include": "modules,modules.activities,lecturer,lecturer.user,assistant,class"
+    },
+    "status": 200,
+    "file": "course-courses-95001.include-modules-modules-activities-lecturer-lecturer-user-assistant-class.json"
+  },
+  {
+    "method": "GET",
+    "path": "/course/courses/95001",
+    "query": {},
+    "status": 200,
+    "file": "course-courses-95001.json"
+  },
+  {
+    "method": "GET",
+    "path": "/course/courses/95001/classes",
+    "query": {},
+    "status": 200,
+    "file": "course-courses-95001-classes.json"
+  },
+  {
+    "method": "GET",
+    "path": "/course/courses/95059",
+    "query": {
+      "include": "modules,modules.activities,lecturer,lecturer.user,assistant,class"
+    },
+    "status": 200,
+    "file": "course-courses-95059.include-modules-modules-activities-lecturer-lecturer-user-assistant-class.json"
+  },
+  {
+    "method": "GET",
+    "path": "/course/courses/95059",
+    "query": {},
+    "status": 200,
+    "file": "course-courses-95059.json"
+  },
+  {
+    "method": "GET",
+    "path": "/course/courses/95059/classes",
+    "query": {},
+    "status": 200,
+    "file": "course-courses-95059-classes.json"
+  },
+  {
+    "method": "GET",
+    "path": "/course/courses/95326",
+    "query": {
+      "include": "modules,modules.activities,lecturer,lecturer.user,assistant,class"
+    },
+    "status": 200,
+    "file": "course-courses-95326.include-modules-modules-activities-lecturer-lecturer-user-assistant-class.json"
+  },
+  {
+    "method": "GET",
+    "path": "/course/courses/95326",
+    "query": {},
+    "status": 200,
+    "file": "course-courses-95326.json"
+  },
+  {
+    "method": "GET",
+    "path": "/course/courses/95326/classes",
+    "query": {},
+    "status": 200,
+    "file": "course-courses-95326-classes.json"
+  },
+  {
+    "method": "GET",
+    "path": "/course/courses/97602",
+    "query": {
+      "include": "modules,modules.activities,lecturer,lecturer.user,assistant,class"
+    },
+    "status": 200,
+    "file": "course-courses-97602.include-modules-modules-activities-lecturer-lecturer-user-assistant-class.json"
+  },
+  {
+    "method": "GET",
+    "path": "/course/courses/97602",
+    "query": {},
+    "status": 200,
+    "file": "course-courses-97602.json"
+  },
+  {
+    "method": "GET",
+    "path": "/course/courses/97602/classes",
+    "query": {},
+    "status": 200,
+    "file": "course-courses-97602-classes.json"
+  },
+  {
+    "method": "GET",
+    "path": "/course/lptks/2",
+    "query": {},
+    "status": 200,
+    "file": "course-lptks-2.json"
+  },
+  {
+    "method": "GET",
+    "path": "/course/modules/473251",
+    "query": {
+      "include": ""
+    },
+    "status": 200,
+    "file": "course-modules-473251.include.json"
+  },
+  {
+    "method": "GET",
+    "path": "/course/presences",
+    "query": {
+      "filter[course_id][is]": "92948",
+      "filter[class_id][is]": "84725",
+      "sort": "start_at",
+      "page[limit]": "10",
+      "page[offset]": "0"
+    },
+    "status": 200,
+    "file": "course-presences.course-id-92948-class-id-84725-page-offset-0.json"
+  },
+  {
+    "method": "GET",
+    "path": "/course/presences",
+    "query": {
+      "filter[course_id][is]": "93409",
+      "filter[class_id][is]": "85186",
+      "sort": "start_at",
+      "page[limit]": "10",
+      "page[offset]": "0"
+    },
+    "status": 200,
+    "file": "course-presences.course-id-93409-class-id-85186-page-offset-0.json"
+  },
+  {
+    "method": "GET",
+    "path": "/course/presences",
+    "query": {
+      "filter[course_id][is]": "95001",
+      "filter[class_id][is]": "86778",
+      "sort": "start_at",
+      "page[limit]": "10",
+      "page[offset]": "0"
+    },
+    "status": 200,
+    "file": "course-presences.course-id-95001-class-id-86778-page-offset-0.json"
+  },
+  {
+    "method": "GET",
+    "path": "/course/presences",
+    "query": {
+      "filter[course_id][is]": "95059",
+      "filter[class_id][is]": "86836",
+      "sort": "start_at",
+      "page[limit]": "10",
+      "page[offset]": "0"
+    },
+    "status": 200,
+    "file": "course-presences.course-id-95059-class-id-86836-page-offset-0.json"
+  },
+  {
+    "method": "GET",
+    "path": "/course/presences",
+    "query": {
+      "filter[course_id][is]": "95326",
+      "filter[class_id][is]": "87103",
+      "sort": "start_at",
+      "page[limit]": "10",
+      "page[offset]": "0"
+    },
+    "status": 200,
+    "file": "course-presences.course-id-95326-class-id-87103-page-offset-0.json"
+  },
+  {
+    "method": "GET",
+    "path": "/course/presences",
+    "query": {
+      "filter[course_id][is]": "97602",
+      "filter[class_id][is]": "87103",
+      "sort": "start_at",
+      "page[limit]": "10",
+      "page[offset]": "0"
+    },
+    "status": 200,
+    "file": "course-presences.course-id-97602-class-id-87103-page-offset-0.json"
+  },
+  {
+    "method": "GET",
+    "path": "/course/presences/list",
+    "query": {},
+    "status": 200,
+    "file": "course-presences-list.json"
+  },
+  {
+    "method": "GET",
+    "path": "/course/tasks",
+    "query": {
+      "filter[course_id][is]": "92948",
+      "page[limit]": "0"
+    },
+    "status": 200,
+    "file": "course-tasks.course-id-92948.json"
+  },
+  {
+    "method": "GET",
+    "path": "/course/tasks",
+    "query": {
+      "filter[course_id][is]": "93409",
+      "page[limit]": "0"
+    },
+    "status": 200,
+    "file": "course-tasks.course-id-93409.json"
+  },
+  {
+    "method": "GET",
+    "path": "/course/tasks",
+    "query": {
+      "filter[course_id][is]": "95001",
+      "page[limit]": "0"
+    },
+    "status": 200,
+    "file": "course-tasks.course-id-95001.json"
+  },
+  {
+    "method": "GET",
+    "path": "/course/tasks",
+    "query": {
+      "filter[course_id][is]": "95059",
+      "page[limit]": "0"
+    },
+    "status": 200,
+    "file": "course-tasks.course-id-95059.json"
+  },
+  {
+    "method": "GET",
+    "path": "/course/tasks",
+    "query": {
+      "filter[course_id][is]": "95326",
+      "page[limit]": "0"
+    },
+    "status": 200,
+    "file": "course-tasks.course-id-95326.json"
+  },
+  {
+    "method": "GET",
+    "path": "/course/tasks",
+    "query": {
+      "filter[course_id][is]": "97602",
+      "page[limit]": "0"
+    },
+    "status": 200,
+    "file": "course-tasks.course-id-97602.json"
+  },
+  {
+    "method": "GET",
+    "path": "/course/tasks/117764",
+    "query": {
+      "include": "answers"
+    },
+    "status": 200,
+    "file": "course-tasks-117764.include-answers.json"
+  },
+  {
+    "method": "GET",
+    "path": "/exam/exams",
+    "query": {
+      "filter[course_id][is]": "92948",
+      "page[limit]": "0"
+    },
+    "status": 200,
+    "file": "exam-exams.course-id-92948.json"
+  },
+  {
+    "method": "GET",
+    "path": "/exam/exams",
+    "query": {
+      "filter[course_id][is]": "93409",
+      "page[limit]": "0"
+    },
+    "status": 200,
+    "file": "exam-exams.course-id-93409.json"
+  },
+  {
+    "method": "GET",
+    "path": "/exam/exams",
+    "query": {
+      "filter[course_id][is]": "95001",
+      "page[limit]": "0"
+    },
+    "status": 200,
+    "file": "exam-exams.course-id-95001.json"
+  },
+  {
+    "method": "GET",
+    "path": "/exam/exams",
+    "query": {
+      "filter[course_id][is]": "95059",
+      "page[limit]": "0"
+    },
+    "status": 200,
+    "file": "exam-exams.course-id-95059.json"
+  },
+  {
+    "method": "GET",
+    "path": "/exam/exams",
+    "query": {
+      "filter[course_id][is]": "95326",
+      "page[limit]": "0"
+    },
+    "status": 200,
+    "file": "exam-exams.course-id-95326.json"
+  },
+  {
+    "method": "GET",
+    "path": "/exam/exams",
+    "query": {
+      "filter[course_id][is]": "97602",
+      "page[limit]": "0"
+    },
+    "status": 200,
+    "file": "exam-exams.course-id-97602.json"
+  },
+  {
+    "method": "GET",
+    "path": "/gradebook",
+    "query": {
+      "course_id": "92948"
+    },
+    "status": 200,
+    "file": "gradebook.course-id-92948.json"
+  },
+  {
+    "method": "GET",
+    "path": "/gradebook",
+    "query": {
+      "course_id": "92948",
+      "class_id": "84725"
+    },
+    "status": 200,
+    "file": "gradebook.course-id-92948-class-id-84725.json"
+  },
+  {
+    "method": "GET",
+    "path": "/gradebook",
+    "query": {
+      "course_id": "93409"
+    },
+    "status": 200,
+    "file": "gradebook.course-id-93409.json"
+  },
+  {
+    "method": "GET",
+    "path": "/gradebook",
+    "query": {
+      "course_id": "93409",
+      "class_id": "85186"
+    },
+    "status": 200,
+    "file": "gradebook.course-id-93409-class-id-85186.json"
+  },
+  {
+    "method": "GET",
+    "path": "/gradebook",
+    "query": {
+      "course_id": "95001"
+    },
+    "status": 200,
+    "file": "gradebook.course-id-95001.json"
+  },
+  {
+    "method": "GET",
+    "path": "/gradebook",
+    "query": {
+      "course_id": "95001",
+      "class_id": "86778"
+    },
+    "status": 200,
+    "file": "gradebook.course-id-95001-class-id-86778.json"
+  },
+  {
+    "method": "GET",
+    "path": "/gradebook",
+    "query": {
+      "course_id": "95059"
+    },
+    "status": 200,
+    "file": "gradebook.course-id-95059.json"
+  },
+  {
+    "method": "GET",
+    "path": "/gradebook",
+    "query": {
+      "course_id": "95059",
+      "class_id": "86836"
+    },
+    "status": 200,
+    "file": "gradebook.course-id-95059-class-id-86836.json"
+  },
+  {
+    "method": "GET",
+    "path": "/gradebook",
+    "query": {
+      "course_id": "95326"
+    },
+    "status": 200,
+    "file": "gradebook.course-id-95326.json"
+  },
+  {
+    "method": "GET",
+    "path": "/gradebook",
+    "query": {
+      "course_id": "95326",
+      "class_id": "87103"
+    },
+    "status": 200,
+    "file": "gradebook.course-id-95326-class-id-87103.json"
+  },
+  {
+    "method": "GET",
+    "path": "/gradebook",
+    "query": {
+      "course_id": "97602"
+    },
+    "status": 200,
+    "file": "gradebook.course-id-97602.json"
+  },
+  {
+    "method": "GET",
+    "path": "/gradebook",
+    "query": {
+      "course_id": "97602",
+      "class_id": "87103"
+    },
+    "status": 200,
+    "file": "gradebook.course-id-97602-class-id-87103.json"
+  },
+  {
+    "method": "GET",
+    "path": "/login/me",
+    "query": {},
+    "status": 200,
+    "file": "login-me.json"
+  },
+  {
+    "method": "GET",
+    "path": "/message/unread",
+    "query": {},
+    "status": 200,
+    "file": "message-unread.json"
+  },
+  {
+    "method": "GET",
+    "path": "/notifications/900001",
+    "query": {},
+    "status": 200,
+    "file": "notifications-900001.json"
+  },
+  {
+    "method": "GET",
+    "path": "/public/version",
+    "query": {
+      "domain": "edunex.itb.ac.id"
+    },
+    "status": 200,
+    "file": "public-version.json"
+  },
+  {
+    "method": "GET",
+    "path": "/time",
+    "query": {},
+    "status": 200,
+    "file": "time.json"
+  },
+  {
+    "method": "GET",
+    "path": "/todo",
+    "query": {},
+    "status": 200,
+    "file": "todo.json"
+  }
+]

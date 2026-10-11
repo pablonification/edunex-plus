@@ -1,0 +1,46 @@
+[
+  {
+    "id": 97602,
+    "name": "Final Project Proposal [Parent Class]",
+    "classes": [
+      {
+        "id": 87103,
+        "major_id": 1719,
+        "created_by": null,
+        "updated_by": null,
+        "deleted_by": null,
+        "created_at": "2026-08-11 02:23:06",
+        "updated_at": "2026-08-11 02:23:06",
+        "lptk_id": 2,
+        "deleted_at": null,
+        "name": "II4091-01",
+        "periode_id": 26,
+        "uuid": null,
+        "is_from_six": 1,
+        "pivot": {
+          "course_id": 97602,
+          "class_id": 87103
+        }
+      },
+      {
+        "id": 87107,
+        "major_id": 1719,
+        "created_by": null,
+        "updated_by": null,
+        "deleted_by": null,
+        "created_at": "2026-08-11 02:23:07",
+        "updated_at": "2026-08-11 02:23:07",
+        "lptk_id": 2,
+        "deleted_at": null,
+        "name": "II4091-02",
+        "periode_id": 26,
+        "uuid": null,
+        "is_from_six": 1,
+        "pivot": {
+          "course_id": 97602,
+          "class_id": 87107
+        }
+      }
+    ]
+  }
+]
