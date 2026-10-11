@@ -4,6 +4,7 @@
 // what the Student sees. The recorded week of 5 October: PL3002 ran long on
 // Thursday, PL3032 and KU5014 overlap, and II4091's meeting 3 on Friday is
 // announced only in EduNex. The week after is ITB's UTS week.
+import { act } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 import { parseIcs } from "../../src/engine/sources/itb/ics";
 import { PretendWorld } from "../pretend/world";
@@ -307,6 +308,16 @@ describe("the phone calendar", () => {
     await s.click(/^Simpan \d+ acara$/);
     const again = parseIcs(s.exported[1]);
     expect(again.map((e) => e.uid).sort()).toEqual(events.map((e) => e.uid).sort());
+  });
+
+  it("with nothing to put in it, the button says why instead of opening an empty dialog", async () => {
+    const s = await openSchedule({ signedIn: true });
+    await s.wait();
+    for (const name of ["edunex.tasks", "itb.calendar"]) await s.apply({ type: "dataset.removed", name });
+    const button = s.button("Tambahkan ke kalender HP");
+    expect(button.disabled).toBe(true);
+    await act(async () => (button.parentElement as HTMLElement).focus());
+    expect(s.text()).toContain("Belum ada jadwal untuk ditambahkan");
   });
 
   it("only what the Student picks, as far ahead as they pick", async () => {
