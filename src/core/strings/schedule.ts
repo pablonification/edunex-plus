@@ -131,6 +131,8 @@ export const scheduleStrings = {
   "calendar.kind.uas": { id: "Masa UAS", en: "UAS period" },
   "calendar.kind.lecture-start": { id: "Hari pertama kuliah", en: "First lecture day" },
   "calendar.kind.lecture-end": { id: "Hari terakhir kuliah", en: "Last lecture day" },
+  "calendar.kind.drs": { id: "Pengisian KRS", en: "KRS registration" },
+  "calendar.kind.urs": { id: "Perubahan KRS", en: "KRS changes" },
 
   // Exams in Tugas & Ujian
   "exams.title": { id: "Ujian", en: "Exams" },

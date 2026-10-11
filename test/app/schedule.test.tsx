@@ -38,6 +38,8 @@ async function details(s: NonNullable<typeof screen>, name: string | RegExp): Pr
   await s.click(name);
   const text = popover();
   await s.key("Escape");
+  // Closing hands focus back to the block on the next tick, as for a person; let it land before the next click.
+  await act(async () => new Promise((resolve) => setTimeout(resolve, 5)));
   return text;
 }
 

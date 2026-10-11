@@ -22,7 +22,9 @@ import { handInLabel, periodName, timeRange, useWorld } from "./details";
 const LINES = 3;
 /** Weekends hold little: they give their width to the weekdays. */
 const COLUMNS = "repeat(5, minmax(0, 1fr)) repeat(2, minmax(0, 0.7fr))";
-const TINTED = new Set(["uts", "uas", "holiday"]);
+/** ITB's periods tinted behind their days; single days (the term's first and last lecture day) get a line instead. */
+const TINTED = new Set(["uts", "uas", "holiday", "drs", "urs"]);
+const MARKED = new Set(["lecture-start", "lecture-end"]);
 
 interface Line {
   key: string;
@@ -119,6 +121,9 @@ export function MonthView({ month, input, onShowWeek }: { month: MonthGrid; inpu
 function monthLines(day: ScheduleDay, t: Translate, f: Format, world: ReturnType<typeof useWorld>): Line[] {
   const lines: Line[] = [];
   const time = (ms: number) => f.time(ms);
+  for (const event of day.events.filter((e) => MARKED.has(e.kind))) {
+    lines.push({ key: `c${event.id}`, icon: <Icons.Flag className="size-3 shrink-0" strokeWidth={2} />, text: periodName(t, event), full: event.title, tone: "font-semibold text-(--source-itb-fg)" });
+  }
   for (const { session, exam } of day.classes) {
     if (!exam) continue;
     lines.push({

@@ -393,6 +393,8 @@ export function periodName(t: Translate, event: { kind: string; title: string })
     case "uas":
     case "lecture-start":
     case "lecture-end":
+    case "drs":
+    case "urs":
       return t(`calendar.kind.${event.kind}` as "calendar.kind.uts");
     case "holiday":
       return holidayName(event.title);

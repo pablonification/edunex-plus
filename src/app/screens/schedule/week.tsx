@@ -50,11 +50,13 @@ export function WeekView({ days, input }: { days: readonly string[]; input: Sche
   const hours = timeAxis(plan.flatMap((day) => [...day.classes.map((c) => c.session), ...day.outside, ...day.edunex]));
   const events = input.events.filter((e) => SCHEDULE_EVENT_KINDS.has(e.kind) && e.firstDay <= days[6] && e.lastDay >= days[0]);
 
+  // Busy days share the width; empty ones shrink. A single-day mark (the last lecture day) needs room for its name.
+  const busy = plan.map((day) => !isEmptyDay(day) || events.some((e) => e.firstDay === day.day && e.lastDay === day.day));
+  // A week with nothing on it keeps its weekdays wide: there's nothing to give the room to.
+  const anyBusy = busy.some(Boolean);
   const grid: GridDay[] = plan.map((day, i) => {
     const at = dayStart(day.day);
-    const marked = events.some((e) => e.firstDay <= day.day && day.day <= e.lastDay && (e.kind === "holiday" || e.firstDay === e.lastDay));
-    const busy = !isEmptyDay(day) || marked;
-    const size = busy ? "wide" : i >= 5 ? "slim" : "narrow";
+    const size = busy[i] || (!anyBusy && i < 5) ? "wide" : i >= 5 ? "slim" : "narrow";
     const lane = [...day.windows.map((w) => <WindowChip key={`w${w.presence.id}`} window={w} />), ...day.due.map((task) => <DueChip key={`t${task.id}`} task={task} />)];
     return {
       key: day.day,
@@ -69,24 +71,26 @@ export function WeekView({ days, input }: { days: readonly string[]; input: Sche
     };
   });
 
-  const bands = events.map((e) => ({
-    key: e.id,
-    from: Math.max(0, days.indexOf(e.firstDay) < 0 ? 0 : days.indexOf(e.firstDay)),
-    to: days.indexOf(e.lastDay) < 0 ? 6 : days.indexOf(e.lastDay),
-    label: <BandLabel event={e} f={f} uncertain={plan.some((day) => day.classes.some((c) => c.uncertain?.id === e.id))} />,
-  }));
+  const bands = events.map((e) => {
+    const from = Math.max(0, days.indexOf(e.firstDay) < 0 ? 0 : days.indexOf(e.firstDay));
+    const to = days.indexOf(e.lastDay) < 0 ? 6 : days.indexOf(e.lastDay);
+    // Over empty days only, the band is narrow: its name alone (the dates are on hover).
+    const short = grid.slice(from, to + 1).every((d) => d.size !== "wide") && grid.slice(from, to + 1).length < 4;
+    return { key: e.id, from, to, label: <BandLabel event={e} f={f} short={short} uncertain={plan.some((day) => day.classes.some((c) => c.uncertain?.id === e.id))} /> };
+  });
 
   return <TimeGrid className="mt-2" days={grid} hours={hours} bands={bands} laneLabel={t("schedule.lane")} hourLabel={clockOf} hourHeight={HOUR_HEIGHT} />;
 }
 
-function BandLabel({ event, f, uncertain }: { event: CalendarEvent; f: Format; uncertain: boolean }) {
+function BandLabel({ event, f, uncertain, short }: { event: CalendarEvent; f: Format; uncertain: boolean; short: boolean }) {
   const t = useT();
   const span = event.firstDay === event.lastDay ? f.dayMonth(dayStart(event.firstDay) + 12 * 3_600_000) : dayRange(f, event.firstDay, event.lastDay);
   return (
     <>
       <Icons.Flag className="size-3 shrink-0" strokeWidth={2} />
-      <span className="truncate" title={event.title}>
-        {periodName(t, event)} · {span}
+      <span className="truncate" title={`${event.title} · ${span}`}>
+        {periodName(t, event)}
+        {!short && ` · ${span}`}
         {uncertain && <span className="font-medium opacity-80"> · {t("schedule.band.uncertain")}</span>}
       </span>
     </>

@@ -402,7 +402,7 @@ export function edunexMeetings(
 // ---------------------------------------------------------------- days of the schedule
 
 /** ITB calendar events worth marking on a schedule. */
-export const SCHEDULE_EVENT_KINDS: ReadonlySet<CalendarEvent["kind"]> = new Set(["uts", "uas", "holiday", "lecture-start", "lecture-end"]);
+export const SCHEDULE_EVENT_KINDS: ReadonlySet<CalendarEvent["kind"]> = new Set(["uts", "uas", "holiday", "lecture-start", "lecture-end", "drs", "urs"]);
 
 /** Periods with no regular lectures: a lecture SIX still lists then may not happen. */
 const NO_LECTURES: ReadonlySet<CalendarEvent["kind"]> = new Set(["uts", "uas", "holiday"]);
