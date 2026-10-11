@@ -1,4 +1,87 @@
-// Text for Beranda: what needs the Student now, today, and what changed (#77).
+// Text for Beranda: what needs the Student now, today, and what changed (#77),
+// and the change alerts (Task edited, material for today's class).
 import type { Entry } from "./entry";
 
-export const homeStrings = {} as const satisfies Record<string, Entry>;
+export const homeStrings = {
+  "home.utsStarts": { id: "Masa UTS mulai {date}", en: "Midterm week starts {date}" },
+  "home.uasStarts": { id: "Masa UAS mulai {date}", en: "Final exams start {date}" },
+
+  // Needs you
+  "home.needs": { id: "Perlu perhatianmu", en: "Needs you" },
+  "home.needs.none": { id: "Tidak ada yang perlu kamu urus sekarang.", en: "Nothing needs you right now." },
+  "home.band.now": { id: "Sekarang", en: "Right now" },
+  "home.band.soon": { id: "Segera", en: "Soon" },
+  "home.band.later": { id: "Akan datang", en: "Coming up" },
+
+  "home.need.presence": { id: "Catat kehadiran {course}", en: "Record your {course} attendance" },
+  "home.need.presence.closes": { id: "tutup {time}", en: "closes {time}" },
+  "home.need.presence.class": { id: "Kuliah sampai {time} · {room}", en: "Class until {time} · {room}" },
+  "home.need.presenceAhead.assignment": { id: "Kumpulkan {task} {date}, {time}", en: "Hand in {task} on {date}, {time}" },
+  "home.need.presenceAhead": { id: "Presensi {course} {date}, {time}", en: "{course} Presence on {date}, {time}" },
+  "home.need.presenceAhead.detail": { id: "Hanya terhitung jika dilakukan di dalam jendela itu.", en: "It counts only if you do it inside that window." },
+  "home.need.class.live": { id: "{course} sedang berlangsung", en: "{course} is on now" },
+  "home.need.class.soon": { id: "{course} mulai {time}", en: "{course} starts at {time}" },
+  "home.need.class.dontMiss": { id: "Jangan lewatkan {course} hari ini", en: "Don't miss {course} today" },
+  "home.need.class.moved": { id: "{course} hari ini {time}, bukan jam biasanya", en: "{course} today at {time}, not its usual time" },
+  "home.need.class.movedRoom": { id: "{course} hari ini di {room}", en: "{course} today in {room}" },
+  "home.need.class.usual": { id: "biasanya {usual}", en: "usually {usual}" },
+  "home.need.task.overdue": { id: "Lewat tenggat {when} · masih diterima", en: "Past its deadline {when} · still accepted" },
+  "home.need.task.short": { id: "Hanya dibuka {duration} · tutup {when}", en: "Open for only {duration} · closes {when}" },
+  "home.need.task.due": { id: "Tenggat {when}", en: "Due {when}" },
+  "home.need.task.draft": { id: "Draf belum dikumpulkan", en: "Draft not handed in" },
+  "home.need.task.edited": {
+    id: "Diubah dosen {when}, setelah kamu kumpulkan · cek apakah perlu dikumpulkan ulang",
+    en: "The lecturer changed it {when}, after you handed it in · check whether to hand it in again",
+  },
+  "home.need.attendance.none": { id: "{course}: tidak boleh absen lagi", en: "{course}: no absences left" },
+  "home.need.attendance.out": { id: "{course} tak bisa lagi capai {target}%", en: "{course} can't reach {target}% anymore" },
+  "home.need.meeting": { id: "{course} ada pertemuan {day}, {time}", en: "{course} meets {day}, {time}" },
+  "home.need.meeting.online": { id: "{course} ada pertemuan daring {day}, {time}", en: "{course} meets online {day}, {time}" },
+  "home.need.meeting.detail": {
+    id: "Pertemuan {number} hanya diumumkan di EduNex, tidak ada di jadwal SIX.",
+    en: "Meeting {number} is announced only in EduNex; it isn't on SIX's timetable.",
+  },
+  "home.action.openTask": { id: "Buka tugas", en: "Open Task" },
+  "home.action.openCourse": { id: "Buka mata kuliah", en: "Open course" },
+  "home.action.seeAttendance": { id: "Lihat kehadiran", en: "See attendance" },
+  "home.action.join": { id: "Gabung kelas daring", en: "Join online class" },
+  "home.action.schedule": { id: "Lihat jadwal", en: "See schedule" },
+
+  // Today
+  "home.today": { id: "Hari ini", en: "Today" },
+  "home.today.none": { id: "Tidak ada kuliah hari ini", en: "No classes today" },
+  "home.today.noSix": { id: "Jadwal dan ruang kuliah muncul setelah SIX terhubung.", en: "Classes and rooms show once SIX is connected." },
+  "home.today.next": { id: "Kuliah berikutnya dalam {time}", en: "Next class in {time}" },
+  "home.today.done": { id: "Selesai", en: "Done" },
+  "home.today.now": { id: "Sekarang", en: "Now" },
+  "home.today.changed": { id: "Berubah · biasanya {usual}", en: "Changed · usually {usual}" },
+  "home.today.roomChanged": { id: "Ruang berubah · biasanya {room}", en: "Room changed · usually {room}" },
+  "home.today.join": { id: "Gabung", en: "Join" },
+  "home.today.joinLabel": { id: "Gabung kelas daring: {course}", en: "Join online class: {course}" },
+  "home.today.notInSix": { id: "Tidak ada di SIX", en: "Not in SIX" },
+  "home.today.meeting": { id: "Pertemuan {number}", en: "Meeting {number}" },
+  "home.today.meetingOnline": { id: "Pertemuan {number} · daring", en: "Meeting {number} · online" },
+  "home.today.due": { id: "Tenggat hari ini dan besok", en: "Due today and tomorrow" },
+  "home.today.nothingDue": { id: "Tidak ada tenggat hari ini dan besok", en: "Nothing due today or tomorrow" },
+  "home.countedIn.six": { id: "Presensi di SIX", en: "Attendance in SIX" },
+  "home.countedIn.edunex": { id: "Presensi di EduNex", en: "Attendance in EduNex" },
+  "home.countedIn.both": { id: "Presensi di SIX dan EduNex", en: "Attendance in SIX and EduNex" },
+
+  // What changed
+  "home.changes": { id: "Yang berubah", en: "What changed" },
+  "home.changes.none": { id: "Tidak ada perubahan minggu ini", en: "No changes this week" },
+  "home.change.moved": { id: "Jadwal {course} berubah", en: "{course} schedule changed" },
+  "home.change.moved.time": { id: "{date} {time} · biasanya {usual}", en: "{date} {time} · usually {usual}" },
+  "home.change.moved.room": { id: "{date} di {room} · biasanya {usual}", en: "{date} in {room} · usually {usual}" },
+  "home.change.meeting": { id: "Pertemuan {number} {course} diumumkan di EduNex", en: "{course} meeting {number} announced in EduNex" },
+  "home.change.meeting.body": { id: "{date} {time} · tidak ada di jadwal SIX", en: "{date} {time} · not on SIX's timetable" },
+
+  // Alerts: changes EduNex never announces
+  "alert.taskEdited": { id: "Tugas diubah · {course}", en: "Task edited · {course}" },
+  "alert.taskEdited.afterSubmit": { id: "Diubah setelah kamu kumpulkan · {course}", en: "Changed after you handed in · {course}" },
+  "alert.taskEdited.afterSubmit.body": { id: "{title} · cek apakah perlu dikumpulkan ulang", en: "{title} · check whether to hand it in again" },
+  "alert.materialToday": { id: "Materi untuk kuliah hari ini · {course}", en: "Material for today's class · {course}" },
+  "alert.materialToday.body": { id: "{title} · kuliah {time}", en: "{title} · class at {time}" },
+  "settings.alerts.changes": { id: "Perubahan", en: "Changes" },
+  "settings.alerts.changesHint": { id: "Tugas diubah dosen, terutama setelah kamu kumpulkan", en: "Tasks the lecturer edits, above all after you hand in" },
+} as const satisfies Record<string, Entry>;

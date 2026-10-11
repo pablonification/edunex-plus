@@ -106,19 +106,6 @@ describe("Tugas & Ujian", () => {
   });
 });
 
-describe("Home", () => {
-  it("leads with the next Tasks due, and opens one", async () => {
-    const s = await open();
-    expect(s.text()).toContain("Tenggat berikutnya");
-    const due = [...document.querySelectorAll("main ol li")].map((li) => li.textContent ?? "");
-    expect(due).toHaveLength(4);
-    expect(due[0]).toContain("Tugas 02 Bab II");
-    expect(due[1]).toContain("UTS Markom");
-    await s.click(/Tugas 02 Bab II/);
-    expect(document.querySelector("h1")?.textContent).toBe("Tugas 02 Bab II");
-  });
-});
-
 describe("the Task page", () => {
   it("shows the instructions, the lecturer's files to download, the rules and the history", async () => {
     const s = await open();

@@ -2,7 +2,10 @@
 // CONTENT a new material. The feed misses many Tasks, so the Tasks dataset
 // raises them too; both use the same id, so a Task alerts once. When the
 // Tasks dataset knows the Task better (a short window), that version wins.
+// A material for a course that meets today comes from the materials dataset
+// instead (./changes.ts), with its exact title and urgency.
 import type { Course, EdunexNotification } from "../../core/models";
+import { classesToday } from "./changes";
 import type { AlertDraft, Detector } from "./detector";
 import { newTaskAlert } from "./tasks";
 
@@ -28,6 +31,7 @@ export const edunexNotifications: Detector = {
         alerts.push(task ? newTaskAlert(task, now) : taskFromFeed(item, courses));
       } else {
         const course = courseOf(courses, item.objectId);
+        if (course && get("edunex.materials") && classesToday(get("six.schedule"), course.code, now).length) continue;
         alerts.push({
           id: `material.new:${item.key}`,
           kind: "newMaterial",

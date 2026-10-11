@@ -1,6 +1,7 @@
 // EduNex's notification feed (GET /notifications/{userId}), read every two to
 // three minutes as the new-item signal: ASSIGNMENT (a new Task) and CONTENT
-// (a new material). A new ASSIGNMENT also runs the Tasks feed at once. The
+// (a new material). A new ASSIGNMENT also runs the Tasks feed at once, a new
+// CONTENT the materials feed (material for today's class is told at once). The
 // app only reads it: it never marks anything read and never sends EduNex
 // "online", "viewed" or presence signals.
 import type { EdunexNotification } from "../../../core/models";
@@ -30,6 +31,9 @@ export function registerNotificationFeed(context: SourceContext, client: EdunexC
       const known = new Set(previous?.map((item) => item.key));
       if (previous && items.some((item) => item.type === "task" && !known.has(item.key))) {
         await context.runNow((feed) => feed.startsWith("edunex.tasks"));
+      }
+      if (previous && items.some((item) => item.type === "material" && !known.has(item.key))) {
+        await context.runNow((feed) => feed === "edunex.materials");
       }
     },
   });

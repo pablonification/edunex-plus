@@ -4,11 +4,6 @@
 // twice, the silent first sync, grouping, Settings and the history.
 //
 // Waiting for their data (each names the dataset it will watch):
-// - Material posted for today's class (#74 materials + six.schedule): `changed()`
-//   on materials, urgent when the course meets today.
-// - Task edited after posting / after submitting (#72 fields such as
-//   updatedAt and the answer's sentAt): `changed()` on edunex.tasks, kind
-//   "taskEdited", urgent when it was edited after the Student submitted.
 // - Overlapping classes (#76 six.schedule): `changed()`, kind "scheduleChanged".
 // - Exams scheduled, and the day before (#74 exams, six.schedule UTS/UAS):
 //   `changed()` for new ones, `plan()` for the day before; kind "exam".
@@ -17,6 +12,7 @@
 // The same `changed()` results can later feed the in-app "what changed" list.
 import { academicCalendar, billReminders, krsChanged, newBill } from "./academic";
 import { attendanceBudget, sixNotCounting } from "./attendance";
+import { materialForToday, taskEdits } from "./changes";
 import type { Detector } from "./detector";
 import { edunexNotifications } from "./edunex-feed";
 import { newGrades, questionnaireReminder } from "./grades";
@@ -27,6 +23,8 @@ export const DETECTORS: readonly Detector[] = [
   newTasks,
   deadlineReminders,
   edunexNotifications,
+  taskEdits,
+  materialForToday,
   presenceOpening,
   sixNotCounting(),
   attendanceBudget,
