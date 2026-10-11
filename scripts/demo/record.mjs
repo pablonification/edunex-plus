@@ -112,8 +112,9 @@ export async function captionBand(page, height = 84) {
     style.id = "demo-band";
     style.textContent = `
       .h-screen { height: calc(100vh - ${h}px) !important; }
-      /* Dialogs centre on the app's area, above the band. */
+      /* Dialogs centre on the app's area, above the band; toasts sit above it too. */
       [role="dialog"].fixed, [role="alertdialog"].fixed { top: calc(50% - ${h / 2}px) !important; max-height: calc(100vh - ${h + 48}px) !important; }
+      div[aria-live="polite"].fixed.bottom-5 { bottom: ${h + 20}px !important; }
       #demo-caption { left: 0 !important; right: 0; bottom: 0 !important; max-width: none !important; height: ${h}px; border-radius: 0 !important;
         transform: none !important; display: flex; flex-direction: column; align-items: center; justify-content: center;
         background: #111114 !important; box-shadow: none !important; opacity: 1 !important; padding: 0 40px !important; }

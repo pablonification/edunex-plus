@@ -97,8 +97,8 @@ const signedIn = [
       await attempt("point at now", () => h.point(h.page.locator("main section").first(), 2600));
       await h.say("Where attendance counts, said plainly.", "Counted in SIX: just be in class. EduNex's Presence is open too, but optional here.");
       await attempt("point at count", () => h.point(h.page.getByText(/Kehadiran dihitung di SIX/).first(), 3600));
-      await h.scrollMain(560);
-      await h.say("Today, hour by hour: rooms, changed times and clashes.", "PL3032 and KU5014 overlap from 16:00 to 16:30.");
+      await h.scrollMain(300);
+      await h.say("Today, hour by hour: rooms, changed times and clashes.", "PL3032 and KU5014 clash from 16:00 to 16:30.");
       await attempt("point at clash", () => h.point(h.page.getByText(/Bentrok dengan KU5014/).first(), 3400));
       await h.say("Beside it: what needs you, and what changed since you last looked.");
       await attempt("point at needs", () => h.point(h.page.locator("#home-needs").first(), 3000));
@@ -144,6 +144,7 @@ const signedIn = [
       await attempt("keep draft", () => h.click(h.page.locator("[role=alertdialog] button, [role=dialog] button").filter({ hasText: /Simpan sebagai draf|Nanti saja/ }).first()));
       await h.say("Kept as a draft, with when to hand it in.");
       await h.beat(2800);
+      await h.say("Now an ordinary Task, with no attendance attached.");
       await attempt("back to list", () => h.nav("Tugas & Ujian"));
       await attempt("all courses", () => h.click(h.page.locator("main button").filter({ hasText: /^Semua$/ }).first()));
       await attempt("open a plain Task", () => h.click(h.page.locator("main li button", { hasText: "Tugas Mandiri Individu" }).first()));
