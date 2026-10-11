@@ -37,7 +37,7 @@ describe("after the first full sync of EduNex and SIX", () => {
   it("opens by itself with what neither system says: each line with its number, the specifics and where they come from", async () => {
     screen = await openApp({ firstScan: true, signedIn: true, six: true });
     expect(dialog()).toBeDefined();
-    expect(dialog()?.querySelector("p")?.textContent).toBe("EduNex dan SIX terhubung · 5 mata kuliah, 10 tugas, 40 pertemuan dibaca");
+    expect(dialog()?.querySelector("p")?.textContent).toBe("EduNex dan SIX terhubung · 5 mata kuliah, 10 tugas dibaca");
     expect(dialog()?.querySelector("h3")?.textContent).toBe("7 hal yang tidak disampaikan kedua sistem");
     expect(titles()).toEqual([
       "Kehadiran 3 mata kuliah berisiko",
@@ -140,7 +140,7 @@ describe("after the welcome screen", () => {
     expect(screen.store.status("itb").state).toBe("connecting");
     expect(dialog()).toBeUndefined();
     await screen.wait();
-    expect(dialog()?.querySelector("p")?.textContent).toBe("EduNex terhubung · 5 mata kuliah, 10 tugas, 25 pertemuan dibaca");
+    expect(dialog()?.querySelector("p")?.textContent).toBe("EduNex terhubung · 5 mata kuliah, 10 tugas dibaca");
     expect(dialog()?.querySelector("h3")?.textContent).toBe("2 hal yang tidak disampaikan EduNex");
     expect(titles()).toEqual(["3 ujian akan datang", "Dosen mengubah 6 tugas setelah diunggah"]);
     await press("Escape");
@@ -196,7 +196,7 @@ describe("in English", () => {
     await screen.engineDoes(() => screen!.engine.updateSettings({ lang: "en", firstScanDone: false }));
     await screen.wait(1_000);
     expect(dialog()?.querySelector("h2")?.textContent).toBe("Your first-connection summary");
-    expect(dialog()?.querySelector("p")?.textContent).toBe("EduNex and SIX connected · 5 courses, 10 Tasks, 40 meetings read");
+    expect(dialog()?.querySelector("p")?.textContent).toBe("EduNex and SIX connected · 5 courses, 10 Tasks read");
     expect(dialog()?.querySelector("h3")?.textContent).toBe("7 things neither system tells you");
     expect(titles()).toEqual([
       "Attendance at risk in 3 courses",

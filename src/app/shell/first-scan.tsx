@@ -170,7 +170,11 @@ function Findings({ onGo }: { onGo: (route: Route) => void }) {
   );
 }
 
-/** "EduNex dan SIX terhubung · 5 mata kuliah, 10 tugas, 40 pertemuan dibaca" */
+/**
+ * "EduNex dan SIX terhubung · 5 mata kuliah, 10 tugas dibaca". No meeting count:
+ * the reading step hands over before SIX's timetable is in, so its running count
+ * ("25 pertemuan") would look contradicted by a final one here.
+ */
 function Summary({ summary }: { summary: ReturnType<typeof scanSummary> }) {
   const t = useT();
   if (!summary.read.length) return null;
@@ -179,7 +183,6 @@ function Summary({ summary }: { summary: ReturnType<typeof scanSummary> }) {
   const read = [
     t("scan.read.courses", { count: summary.courses }),
     summary.tasks ? t("scan.read.tasks", { count: summary.tasks }) : null,
-    summary.meetings ? t("scan.read.meetings", { count: summary.meetings }) : null,
   ].filter(Boolean);
   return (
     <p className="flex items-center gap-2 text-small font-medium text-muted">
