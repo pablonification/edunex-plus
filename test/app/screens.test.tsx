@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 // v2-03 (#71), seam 2: what the Student sees and can do in the window, with
 // the real engine and the pretend EduNex behind the bridge.
+import { act } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { openApp } from "./harness";
 
@@ -103,6 +104,19 @@ describe("Home", () => {
     await screen.click("Masuk lagi");
     expect(screen.text()).not.toContain("Sesi EduNex berakhir");
     await live();
+  });
+
+  it("while a slow refresh runs, the top bar still names an ended session instead of only saying it is updating", async () => {
+    screen = await openApp({ signedIn: true, six: true });
+    screen.world.edunex.expireSession();
+    await screen.engineDoes(async () => screen?.engine.refresh("edunex"));
+    // Every answer now takes a minute: "Perbarui sekarang" stays busy (SIX is read at human pace, so this is real).
+    screen.world.setLatency(60_000);
+    await screen.click(/^Status data:/);
+    await act(async () => screen!.button("Perbarui sekarang").click());
+    expect(screen.button(/^Status data:/).textContent).toBe("Sesi EduNex berakhir");
+    screen.world.setLatency(0);
+    await act(async () => screen!.world.clock.advance(60_000));
   });
 
   it("saved courses without a session (a computer that can't keep sessions) stay readable, with Sign in", async () => {
