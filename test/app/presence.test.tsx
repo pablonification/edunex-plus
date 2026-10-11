@@ -199,7 +199,7 @@ describe("the Presensi screen", () => {
     expect(pl).toContain("Until 4 Dec · 6/7 attended · 85%");
     expect(strip("PL3002")).toBe("Meetings: 6 attended, 1 missed, about 7 to go");
     // The open window says what to do, without claiming EduNex is what counts (the Indonesian says "agar tercatat").
-    expect(s.text()).toContain("Record your attendance in EduNex.");
+    expect(s.text()).toContain("SIX counts your attendance: just be in class. Recording in EduNex is optional.");
     expect(s.text()).not.toContain("so it counts");
   });
 
