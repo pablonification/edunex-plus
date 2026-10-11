@@ -93,6 +93,16 @@ describe("the Presensi screen", () => {
     expect(strip("PL3002")).toBe("Pertemuan: 6 hadir, 1 absen, sekitar 8 lagi");
   });
 
+  it("a next meeting that overlaps another course's class says so, in Jadwal's words", async () => {
+    await openPresence("2026-10-08T09:00:00+07:00");
+    // PL3032 15:00–17:00 and KU5014 16:00–18:00 every Thursday.
+    await six([course("PL3032", 5, 6), course("KU5014", 5, 6)], [...weekly("PL3032", "2026-08-27T15:00:00", 10), ...weekly("KU5014", "2026-08-27T16:00:00", 10)]);
+    expect(card("PL3032")).toContain("Bentrok dengan KU5014 · 16:00–17:00");
+    expect(card("KU5014")).toContain("Bentrok dengan PL3032 · 16:00–17:00");
+    const note = [...(row("PL3032")?.querySelectorAll("li") ?? [])].find((li) => li.textContent?.includes("Bentrok"));
+    expect(note?.className).toContain("text-warning-fg");
+  });
+
   it("the window open now, action first: until when, what to do, the time left, and the button to that place in EduNex; optional where only SIX counts, as Beranda says", async () => {
     const s = await openPresence();
     await six([course("PL3002", 6, 7)], weekly("PL3002", "2026-08-27T08:00:00", 10));
