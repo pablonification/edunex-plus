@@ -91,7 +91,8 @@ if (args[0] === "--seed") {
         }
         await shotTabs(name);
         if (name === "tasks") {
-          const opened = await run(win, `(() => { const row = document.querySelector("main li button, main [data-task]"); if (!row) return false; row.click(); return true; })()`);
+          // A Task's page: the exams listed above the Tasks open their own page.
+          const opened = await run(win, `(() => { const row = document.querySelector("main section:not([aria-label=Ujian]):not([aria-label=Exams]) li button, main [data-task]"); if (!row) return false; row.click(); return true; })()`);
           if (opened) await shot(win, "task-page");
         }
       }
