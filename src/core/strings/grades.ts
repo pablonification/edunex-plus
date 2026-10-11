@@ -14,7 +14,7 @@ export const gradesStrings = {
   "grades.best": { id: "IPK tertinggi yang masih mungkin", en: "Highest IPK still possible" },
   "grades.bestHint": { id: "jika semua A di {sks} SKS tersisa", en: "with straight A's in the {sks} SKS left" },
   "grades.bestNone": { id: "semua nilai sudah keluar", en: "every grade is in" },
-  "grades.stageIp": { id: "IPK tahap {name}: {ip}", en: "IPK for the {name} stage: {ip}" },
+  "grades.stageIp": { id: "IPK tanpa TPB: {ip}", en: "IPK without TPB: {ip}" },
   "grades.disagree": {
     id: "SIX menampilkan IPK {six}, sedangkan nilai di transkripmu menghasilkan {computed}. Yang ditampilkan angka SIX.",
     en: "SIX shows IPK {six}, but the grades on your transcript make {computed}. Shown: SIX's figure.",
