@@ -26,16 +26,10 @@ export function TasksTab({ tasks, exams }: { tasks: Task[]; exams: Exam[] }) {
       <Section id="course-todo" title={t("course.todo")} count={todo.length}>
         {todo.length ? <TaskRows tasks={todo} meta="module" label={t("course.todo")} /> : <p className="text-body text-muted">{t("course.nothingTodo")}</p>}
       </Section>
-      {exams.length > 0 ? (
-        <Section id="course-exams" title={t("course.exams")} count={exams.length}>
-          <ExamRows exams={exams} />
-        </Section>
-      ) : (
-        <p className="mt-10 flex items-center gap-2 text-body text-muted">
-          <Icons.ClipboardCheck className="size-4" />
-          {t("course.noExams")}
-        </p>
-      )}
+      {/* Always under its own heading, so "no exam yet" never floats between the Task lists. */}
+      <Section id="course-exams" title={t("course.exams")} count={exams.length || undefined}>
+        {exams.length > 0 ? <ExamRows exams={exams} /> : <p className="text-body text-muted">{t("course.noExams")}</p>}
+      </Section>
       {done.length > 0 && (
         <Section id="course-done" title={t("course.handedIn")} count={done.length}>
           <TaskRows tasks={done} meta="module" label={t("course.handedIn")} />

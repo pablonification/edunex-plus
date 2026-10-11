@@ -5,7 +5,7 @@
 // example weights say so loudly, and a score outside 0–100 is explained, not
 // quietly changed. What the Student enters stays on this computer
 // ("local.courseWeights").
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { percent } from "../../../core/attendance";
 import { EXAMPLE_CONTRACT, EXAMPLE_PART_IDS, letterFor, partScore, standing } from "../../../core/course-contract";
 import { CONTRACT_LETTERS, type ContractLetter, type ContractPart, type CourseContract } from "../../../core/models";
@@ -44,9 +44,9 @@ export function GradesTab({ page, onOpenModules }: { page: CoursePage; onOpenMod
 }
 
 /** "80" → 80; "" → null; anything else, or outside 0–100, is a problem to say, not to fix silently. */
-function readScore(text: string): { value: number | null; problem: "range" | "number" | null } {
+function readScore(text: string, required = false): { value: number | null; problem: "range" | "number" | null } {
   const clean = text.trim().replace(",", ".");
-  if (clean === "") return { value: null, problem: null };
+  if (clean === "") return { value: null, problem: required ? "number" : null };
   const value = Number(clean);
   if (!Number.isFinite(value)) return { value: null, problem: "number" };
   if (value < 0 || value > 100) return { value: null, problem: "range" };
@@ -67,6 +67,7 @@ function ScoreInput({
   highlight = false,
   width = "w-16",
   required = false,
+  onProblem,
 }: {
   label: string;
   value: number | null;
@@ -76,11 +77,18 @@ function ScoreInput({
   highlight?: boolean;
   width?: string;
   required?: boolean;
+  /** Told whether the box holds something that can't be used, so the answer can wait for it. */
+  onProblem?: (bad: boolean) => void;
 }) {
   const t = useT();
   const [text, setText] = useState<string | null>(null);
   const shown = text ?? (value === null ? "" : String(value).replace(".", ","));
-  const { problem } = readScore(shown);
+  const { problem } = readScore(shown, required);
+  const bad = problem !== null;
+  const report = useRef(onProblem);
+  report.current = onProblem;
+  useEffect(() => report.current?.(bad), [bad]);
+  useEffect(() => () => report.current?.(false), []);
   return (
     <span className={cx("inline-flex flex-col items-end", className)}>
       <input
@@ -91,11 +99,11 @@ function ScoreInput({
         value={shown}
         onChange={(event) => {
           setText(event.target.value);
-          const read = readScore(event.target.value);
-          if (!read.problem && !(required && read.value === null)) onValue(read.value);
+          const read = readScore(event.target.value, required);
+          if (!read.problem) onValue(read.value);
         }}
         onBlur={() => {
-          if (!readScore(shown).problem) setText(null);
+          if (!readScore(shown, required).problem) setText(null);
         }}
         className={cx(
           "focus-ring h-8 rounded-md border bg-surface px-2 text-right text-body tabular-nums shadow-[inset_0_1px_1px_rgb(0_0_0/0.04)] transition-colors duration-150",
@@ -151,11 +159,23 @@ function Calculator({ page, onOpenModules }: { page: CoursePage; onOpenModules?:
   const saved = useDataset("local.courseWeights");
   const [draft, setDraft] = useState<CourseContract | null>(null);
   const [target, setTarget] = useState<ContractLetter | null>(null);
+  // Boxes holding something unusable: no answer is given from numbers the Student can't see.
+  const [problems, setProblems] = useState<ReadonlySet<string>>(new Set());
+  const mark = (key: string) => (bad: boolean) =>
+    setProblems((current) => {
+      if (current.has(key) === bad) return current;
+      const next = new Set(current);
+      if (bad) next.add(key);
+      else next.delete(key);
+      return next;
+    });
   const contract = draft ?? saved?.[code] ?? EXAMPLE_CONTRACT;
   const isExample = !draft && !saved?.[code];
   const attendance = page.course.attendance && page.course.attendance.held > 0 ? percent(page.course.attendance.attended, page.course.attendance.held) : null;
   const result = standing(contract, attendance);
-  const weightsOk = Math.abs(result.totalWeight - 100) < 1e-9;
+  const fix = problems.size > 0;
+  const sumOk = Math.abs(result.totalWeight - 100) < 1e-9;
+  const weightsOk = !fix && sumOk;
   // The course contract, when the lecturer put it in a module ("Kontrak Belajar").
   const contractFile = (page.materials ?? []).some((m) => /kontrak/i.test(m.title)) || (page.outline?.modules ?? []).some((m) => /kontrak/i.test(m.title));
 
@@ -177,7 +197,8 @@ function Calculator({ page, onOpenModules }: { page: CoursePage; onOpenModules?:
   const best = result.secured + result.openWeight;
 
   let answer: string;
-  if (!weightsOk) answer = t("grade.answer.weights", { total: f.number(result.totalWeight, 0) });
+  if (fix) answer = t("grade.answer.fix");
+  else if (!weightsOk) answer = t("grade.answer.weights", { total: f.number(result.totalWeight, 0) });
   else if (result.final !== null) answer = t("grade.answer.final", { score: f.number(result.final, 1), letter: result.letter ?? "E" });
   else if (need.reached) answer = t("grade.answer.secured", { letter: aim });
   else if (need.need === null) answer = t("grade.answer.out", { letter: aim, best: f.number(best, 1), bestLetter: letterFor(best, contract.cutoffs) });
@@ -242,7 +263,7 @@ function Calculator({ page, onOpenModules }: { page: CoursePage; onOpenModules?:
           <thead>
             <tr className="text-left text-caption text-faint">
               <th className="py-1.5 font-medium">{t("grade.part")}</th>
-              <th className={cx("w-[96px] py-1.5 pr-4 text-right font-medium", !weightsOk && "font-semibold text-warning-fg")}>{t("grade.weight")}</th>
+              <th className={cx("w-[96px] py-1.5 pr-4 text-right font-medium", !fix && !sumOk && "font-semibold text-warning-fg")}>{t("grade.weight")}</th>
               <th className="w-[96px] py-1.5 text-right font-medium">{t("grade.score")}</th>
               <th className="w-9" />
             </tr>
@@ -257,7 +278,7 @@ function Calculator({ page, onOpenModules }: { page: CoursePage; onOpenModules?:
                     <PartName name={name} onRename={(next) => setPart(part.id, { name: next })} />
                   </td>
                   <td className="py-2 pr-4 text-right whitespace-nowrap">
-                    <ScoreInput label={t("grade.weightOf", { part: name })} value={part.weight} required highlight={!weightsOk} width="w-14" onValue={(value) => setPart(part.id, { weight: value ?? 0 })} />
+                    <ScoreInput label={t("grade.weightOf", { part: name })} value={part.weight} required highlight={!fix && !sumOk} width="w-14" onProblem={mark(`w:${part.id}`)} onValue={(value) => setPart(part.id, { weight: value ?? 0 })} />
                     <span className="ml-1 inline-block pt-1.5 align-top text-faint">%</span>
                   </td>
                   <td className="py-2 text-right">
@@ -267,7 +288,7 @@ function Calculator({ page, onOpenModules }: { page: CoursePage; onOpenModules?:
                         <span className="text-caption text-faint">{t("grade.fromSixShort")}</span>
                       </span>
                     ) : (
-                      <ScoreInput label={t("grade.scoreOf", { part: name })} value={part.score} placeholder="—" onValue={(value) => setPart(part.id, { score: value })} />
+                      <ScoreInput label={t("grade.scoreOf", { part: name })} value={part.score} placeholder="—" onProblem={mark(`s:${part.id}`)} onValue={(value) => setPart(part.id, { score: value })} />
                     )}
                   </td>
                   <td className="py-2 text-right">
@@ -293,7 +314,7 @@ function Calculator({ page, onOpenModules }: { page: CoursePage; onOpenModules?:
                   {t("grade.add")}
                 </Button>
               </td>
-              <td className={cx("py-2 pr-4 text-right font-semibold tabular-nums", weightsOk ? "text-muted" : "text-warning-fg")}>{f.number(result.totalWeight, 0)}%</td>
+              <td className={cx("py-2 pr-4 text-right font-semibold tabular-nums", fix || sumOk ? "text-muted" : "text-warning-fg")}>{f.number(result.totalWeight, 0)}%</td>
               <td colSpan={2} />
             </tr>
           </tfoot>
@@ -308,7 +329,7 @@ function Calculator({ page, onOpenModules }: { page: CoursePage; onOpenModules?:
             {CONTRACT_LETTERS.map((letter) => (
               <label key={letter} className="inline-flex items-start gap-1.5">
                 <span className="pt-1.5 font-semibold text-fg">{letter} ≥</span>
-                <ScoreInput label={t("grade.cutoffOf", { letter })} value={contract.cutoffs[letter]} required width="w-12" onValue={(value) => save({ ...contract, cutoffs: { ...contract.cutoffs, [letter]: value ?? 0 } })} />
+                <ScoreInput label={t("grade.cutoffOf", { letter })} value={contract.cutoffs[letter]} required width="w-12" onProblem={mark(`c:${letter}`)} onValue={(value) => save({ ...contract, cutoffs: { ...contract.cutoffs, [letter]: value ?? 0 } })} />
               </label>
             ))}
           </div>

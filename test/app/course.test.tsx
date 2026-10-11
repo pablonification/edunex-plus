@@ -171,7 +171,14 @@ describe("Tasks in modules", () => {
     await s.apply({ type: "dataset", dataset: { name: "edunex.tasks", value: [task], fetchedAt: 0, hash: "t1" } });
     // The module with an open Task says so in words in the table of contents.
     const toc = document.querySelector("nav[aria-label='Daftar isi']")!;
-    expect([...toc.querySelectorAll("button")].find((b) => b.textContent?.includes(module.title))?.textContent).toContain("1 tugas");
+    const tocEntry = () => [...toc.querySelectorAll("button")].find((b) => b.textContent?.includes(module.title))?.textContent;
+    expect(tocEntry()).toContain("1 tugas");
+    expect(tocEntry()).toContain("1 terbuka");
+    // With one handed in beside it, the count is all of them and the chip only the open one: never "1 tugas" next to "1 tugas".
+    const handedIn: Task = aTask({ id: 117501, courseCode: "PL3002", courseId: 95001, moduleId: module.id, title: "Tugas Lama", status: "submitted", dueAt: Date.parse("2026-09-20T23:59:00+07:00") });
+    await s.apply({ type: "dataset", dataset: { name: "edunex.tasks", value: [task, handedIn], fetchedAt: 0, hash: "t2" } });
+    expect(tocEntry()).toContain("2 tugas");
+    expect(tocEntry()).toContain("1 terbuka");
     await entry(module.title);
     expect(s.text()).toContain("Tugas Mandiri Inovasi");
     expect(s.text()).toContain("Belum dikerjakan");
@@ -205,6 +212,21 @@ describe("meetings", () => {
     const record = [...document.querySelectorAll("button")].find((b) => b.textContent === "Catat di EduNex")!;
     await s.click(record);
     expect(s.calls.at(-1)).toEqual({ name: "shell.openExternal", input: { url: "https://edunex.itb.ac.id/courses/95001" } });
+  });
+
+  it("a course past saving says it once, with what's still possible, the shared minutes of a clash and no second copy of the next meeting", async () => {
+    screen = await openApp({ signedIn: true, six: true });
+    const s = screen;
+    await s.click([...document.querySelectorAll<HTMLButtonElement>("aside button")].find((b) => b.textContent?.startsWith("KU5014"))!);
+    expect(document.querySelector("h1")?.textContent).toContain("Teknik Penyelesaian Masalah Terstruktur");
+    const text = s.text();
+    expect(text).toContain("80% tak terkejar");
+    expect(text).toContain("Paling tinggi 73% kalau kamu hadir di semua sisa pertemuan.");
+    // Beranda and Jadwal name the overlap (16:00–16:30), not the other class's whole slot.
+    expect(text).toContain("Bentrok dengan PL3032 16:00–16:30.");
+    expect(text).not.toContain("Bentrok dengan PL3032 15:00–16:30");
+    // The next meeting is in the strip under the notice; the notice doesn't repeat it.
+    expect(s.text()).not.toContain("Pertemuan berikutnya Hari ini");
   });
 
   it("a class without EduNex Presence says so; its meetings come from SIX", async () => {
@@ -283,6 +305,22 @@ describe("grades", () => {
     expect(s.calls.some((c) => c.name === "local.set")).toBe(false);
   });
 
+  it("gives no answer while a box holds a number it can't use, and says to fix it", async () => {
+    const s = await openCourse("PL3002");
+    await tab(/^Nilai/);
+    await type("Bobot UTS", "130");
+    expect(s.text()).toContain("Isi 0–100");
+    expect(s.text()).toContain("Perbaiki angka yang bertanda merah dulu.");
+    expect(s.text()).not.toMatch(/butuh rata-rata|Huruf lain/);
+    // An emptied weight is a problem too, not a silent "keep the old one".
+    await type("Bobot UTS", "");
+    expect(s.text()).toContain("Isi angka");
+    expect(s.text()).not.toMatch(/butuh rata-rata/);
+    await type("Bobot UTS", "30");
+    expect(s.text()).toContain("Untuk A kamu butuh rata-rata");
+    expect(s.text()).not.toContain("Perbaiki angka");
+  });
+
   it("answers for the letter the Student aims for", async () => {
     const s = await openCourse("PL3002");
     await tab(/^Nilai/);
@@ -327,9 +365,11 @@ describe("announcements and exams", () => {
   });
 
   it("Tasks & Exams says when neither SIX nor EduNex has an exam", async () => {
-    const s = await openCourse("PL3002");
+    await openCourse("PL3002");
     await tab(/^Tugas & Ujian/);
-    expect(s.text()).toContain("Belum ada ujian di SIX maupun EduNex");
+    const exams = [...document.querySelectorAll<HTMLElement>("main section")].find((section) => section.querySelector("h2")?.textContent?.startsWith("Ujian"));
+    // Said under the exams' own heading, not floating between the Task lists.
+    expect(exams?.textContent).toContain("Belum ada ujian di SIX maupun EduNex");
   });
 
   it("Tasks & Exams lists the same exams as Tugas & Ujian, each opening its page", async () => {
