@@ -5,6 +5,7 @@ import * as Tabs from "@radix-ui/react-tabs";
 import { useState } from "react";
 import { type StringKey, useT } from "../i18n";
 import { cx } from "../ui/cx";
+import { Page, PageHeader } from "../ui/layout";
 import * as bills from "./plan/bills";
 import * as curriculum from "./plan/curriculum";
 import * as deadlines from "./plan/deadlines";
@@ -42,10 +43,10 @@ export function PlanScreen({ tab }: { tab?: string }) {
   const [current, setCurrent] = useState<TabId>(shown.some(([id]) => id === tab) ? (tab as TabId) : first);
   if (!shown.length) return null;
   return (
-    <div className="mx-auto max-w-[1180px] px-10 pt-7 pb-20">
-      <h1 className="text-display leading-[1.15] font-semibold tracking-[-0.02em]">{t("nav.plan")}</h1>
+    <Page width="wide">
+      <PageHeader title={t("nav.plan")} className="mb-5" />
       <Tabs.Root value={current} onValueChange={(value) => setCurrent(value as TabId)}>
-        <Tabs.List aria-label={t("nav.plan")} className="mt-5 flex gap-6 border-b border-line">
+        <Tabs.List aria-label={t("nav.plan")} className="flex gap-6 border-b border-line">
           {shown.map(([id]) => (
             <Tabs.Trigger
               key={id}
@@ -61,10 +62,10 @@ export function PlanScreen({ tab }: { tab?: string }) {
         </Tabs.List>
         {shown.map(([id, { Tab }]) => (
           <Tabs.Content key={id} value={id} className="focus-ring rounded-sm pt-6">
-            <Tab />
+            <Tab onCalendar={() => setCurrent("deadlines")} />
           </Tabs.Content>
         ))}
       </Tabs.Root>
-    </div>
+    </Page>
   );
 }

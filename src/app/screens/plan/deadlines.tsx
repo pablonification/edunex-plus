@@ -30,7 +30,7 @@ export function useBadge(): { value: number; tone: "neutral" | "warning" } | nul
   return value > 0 ? { value, tone: "warning" } : null;
 }
 
-export function Tab() {
+export function Tab(_: { onCalendar?: () => void }) {
   const t = useT();
   const { calendar, upcoming, past } = useDeadlines();
   if (!calendar) return <EmptyState icon={<Icons.CalendarClock className="size-5" />} title={t("deadlines.empty")} />;

@@ -57,7 +57,7 @@ const notBilled = (term: string): Bill => ({ term, amount: null, paid: null, sta
 
 const dayMs = (iso: string) => Date.parse(`${iso}T12:00:00+07:00`);
 
-export function Tab() {
+export function Tab(_: { onCalendar?: () => void }) {
   const t = useT();
   const f = useFormat();
   const now = useNow();

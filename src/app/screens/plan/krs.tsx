@@ -45,7 +45,7 @@ const STAGE_TONE: Record<KrsStage, { box: string; icon: typeof Icons.Clock }> = 
   done: { box: "bg-success-bg text-success-fg", icon: Icons.ShieldCheck },
 };
 
-export function Tab() {
+export function Tab(_: { onCalendar?: () => void }) {
   const t = useT();
   const plan = useDataset("six.krs");
   if (!plan) return <SixEmptyState icon={<Icons.ClipboardCheck className="size-5" />} title={t("krs.empty")} />;
