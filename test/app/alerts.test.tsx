@@ -38,6 +38,13 @@ describe("the bell", () => {
     expect(unreadDots()).toBe(0);
   });
 
+  it("never says it reads SIX while SIX isn't connected", async () => {
+    screen = await openApp({ signedIn: true });
+    await screen.click("Notifikasi");
+    expect(panel()?.textContent).toContain("Dari EduNex · SIX belum terhubung");
+    expect(panel()?.textContent).not.toContain("Dari EduNex dan SIX");
+  });
+
   it("with nothing at all, says what will show here", async () => {
     const world = new PretendWorld({ now: "2026-10-10T10:00:00+07:00" });
     world.edunex.tasks.clear();

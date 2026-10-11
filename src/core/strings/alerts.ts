@@ -33,6 +33,7 @@ export const alertsStrings = {
   "alerts.period.yesterday": { id: "Kemarin", en: "Yesterday" },
   "alerts.period.week": { id: "Minggu ini", en: "This week" },
   "alerts.period.earlier": { id: "Sebelumnya", en: "Earlier" },
+  "alerts.footnoteEdunex": { id: "Dari EduNex · SIX belum terhubung", en: "From EduNex · SIX isn't connected" },
   "alerts.footnote": { id: "Dari EduNex dan SIX", en: "From EduNex and SIX" },
   "alerts.settings": { id: "Atur notifikasi", en: "Notification settings" },
 

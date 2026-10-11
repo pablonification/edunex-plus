@@ -12,7 +12,7 @@ import { useTermCourses } from "../courses";
 import { useHomeWorld } from "../home-world";
 import { type Format, useFormat, useNow, useT } from "../i18n";
 import { useNav } from "../nav";
-import { useBridge, useDataset, useStore } from "../store";
+import { useBridge, useDataset, useStatus, useStore } from "../store";
 import { IconButton } from "../ui/controls";
 import { cx } from "../ui/cx";
 import { CourseDot } from "../ui/display";
@@ -122,6 +122,8 @@ function AlertsPanel({ readAt, onRead, onClose }: { readAt: number; onRead: (at:
   const bridge = useBridge();
   const { go } = useNav();
   const history = useDataset("app.alerts");
+  // Signed out of SIX, nothing here came from SIX: the footnote doesn't say it did.
+  const sixOut = useStatus("six").state === "signed-out";
   const world = useHomeWorld();
   const courses = useTermCourses();
   const colors = useMemo(() => new Map((courses ?? []).map((course) => [course.code, course.color])), [courses]);
@@ -204,7 +206,7 @@ function AlertsPanel({ readAt, onRead, onClose }: { readAt: number; onRead: (at:
         ))}
       </div>
       <div className="flex shrink-0 items-center justify-between gap-3 border-t border-line px-4 py-2.5 text-caption text-muted">
-        <span>{t("alerts.footnote")}</span>
+        <span>{t(sixOut ? "alerts.footnoteEdunex" : "alerts.footnote")}</span>
         <button type="button" onClick={settings} className="focus-ring inline-flex items-center gap-1 rounded font-medium text-accent-fg hover:underline">
           <Icons.Settings className="size-3.5" />
           {t("alerts.settings")}
