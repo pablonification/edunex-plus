@@ -215,3 +215,44 @@ function uniqueName(name: string, isTaken: (candidate: string) => boolean): stri
     if (!isTaken(candidate)) return candidate;
   }
 }
+
+// ---------------------------------------------------------------- the Modul tab
+
+/** What a module holds, by the kinds a Student tells apart: "2 PDF · 1 tugas". */
+export type ContentKind = "task" | "pdf" | "vicon" | "note" | "video" | "link" | "file";
+
+export function contentCounts(materials: readonly Material[], tasks: number): { kind: ContentKind; count: number }[] {
+  const counts = new Map<ContentKind, number>();
+  if (tasks) counts.set("task", tasks);
+  for (const material of materials) {
+    const kind = materialKind(material.type);
+    const shown: ContentKind = kind === "pdf" || kind === "vicon" || kind === "note" || kind === "video" || kind === "link" ? kind : "file";
+    counts.set(shown, (counts.get(shown) ?? 0) + 1);
+  }
+  const order: ContentKind[] = ["task", "pdf", "video", "vicon", "note", "link", "file"];
+  return order.flatMap((kind) => (counts.has(kind) ? [{ kind, count: counts.get(kind)! }] : []));
+}
+
+/**
+ * The entry the Modul tab opens on: the newest one with something in it (by
+ * when it or its newest material was posted; the later in the outline on a
+ * tie), the class's own before the joint class's; never an empty one when
+ * any has content.
+ */
+export function newestWithContent(entries: readonly { hasContent: boolean; at: number | null; parent: boolean }[]): number {
+  let best = -1;
+  for (const [index, entry] of entries.entries()) {
+    if (!entry.hasContent) continue;
+    if (best === -1) {
+      best = index;
+      continue;
+    }
+    const current = entries[best];
+    if (entry.parent !== current.parent) {
+      if (!entry.parent) best = index;
+      continue;
+    }
+    if ((entry.at ?? 0) >= (current.at ?? 0)) best = index;
+  }
+  return best === -1 ? 0 : best;
+}
