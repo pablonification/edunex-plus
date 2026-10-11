@@ -118,7 +118,7 @@ function Answers({ context, courses }: { context: HomeContext; courses: readonly
         {/* The day on the left; what needs you and what changed beside it, so neither column runs on alone. */}
         <div className="grid items-start gap-x-8 gap-y-10 @min-[800px]:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
           <Today context={context} plan={plan} courses={courses} />
-          <div className="grid gap-y-10">
+          <div className="grid grid-cols-[minmax(0,1fr)] gap-y-10">
             <NeedsYou needs={needs} courses={courses} />
             <Changes context={context} courses={courses} />
           </div>

@@ -88,7 +88,9 @@ export function SyncStatus() {
   const itb = useStatus("itb");
   const { refresh, busy } = useRefresh();
   const signedIn = [edunex, six].filter((status) => status.state !== "signed-out");
-  const state = busy ? "connecting" : overall(signedIn.map((status) => status.state));
+  // A refresh can take minutes (SIX is read at human pace): a known problem stays named while it runs.
+  const worst = overall(signedIn.map((status) => status.state));
+  const state = busy && (worst === "live" || worst === "signed-out") ? "connecting" : worst;
   const troubled = signedIn.find((status) => status.state === state && (state === "changed" || state === "expired"));
   const updatedAt = Math.max(0, ...signedIn.map((status) => status.updatedAt ?? 0)) || null;
   let text: string;
@@ -207,7 +209,7 @@ export function ProblemBanner() {
       ? t("banner.expired", { source: name })
       : problem.state === "signed-out"
         ? t("banner.signedOut", { source: name })
-        : t("status.changed", { source: name });
+        : t("banner.changed", { source: name });
   const detail = offline
     ? lastUpdate
       ? t("banner.offlineHint", { time: f.time(lastUpdate) })
