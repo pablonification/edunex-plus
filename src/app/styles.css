@@ -1,0 +1,288 @@
+/* Edunex Plus design system (docs/design-system.md). Tokens are CSS variables
+   with a light and a dark value. The theme follows the system; the app's own
+   override is applied by the main process (nativeTheme), so
+   prefers-color-scheme is always the truth here. */
+@import "tailwindcss";
+
+:root {
+  color-scheme: light;
+
+  /* Surfaces */
+  --canvas: #ffffff;
+  --sidebar: #f7f7f8;
+  --surface: #ffffff;
+  --raised: #ffffff;
+  --welcome: #f5f5f7;
+  --edge: #e6e6ea;
+  --line: #ececef;
+  --fill: #f4f4f6;
+  --hover: #f1f1f4;
+  --selected: rgb(0 0 0 / 0.06);
+  --scrim: rgb(0 0 0 / 0.25);
+  --track: #d4d4da;
+  --segment: #ffffff;
+  --tooltip-bg: #1d1d1f;
+  --tooltip-fg: #ffffff;
+
+  /* Text (all AA on canvas, sidebar and fill) */
+  --fg: #1d1d1f;
+  --muted: #5b5b61;
+  --faint: #6f6f75;
+
+  /* Accent */
+  --accent: #2f6feb;
+  --accent-hover: #2763d8;
+  --accent-active: #2258c4;
+  --accent-fg: #2862d6;
+  --on-accent: #ffffff;
+  --focus: #2f6feb;
+
+  /* Tones */
+  --danger-bg: #fde7e4;
+  --danger-fg: #b42318;
+  --warning-bg: #fdf2d6;
+  --warning-fg: #855000;
+  --success-bg: #dcf4e5;
+  --success-fg: #166240;
+  --info-bg: #e6eefe;
+  --info-fg: #2a58b8;
+  --neutral-bg: #f0f0f2;
+  --neutral-fg: #4f4f56;
+  --live: #22a35a;
+
+  /* Task statuses */
+  --status-not-started-bg: var(--neutral-bg);
+  --status-not-started-fg: var(--neutral-fg);
+  --status-draft-bg: #fdf2d6;
+  --status-draft-fg: #855000;
+  --status-submitted-bg: #dcf4e5;
+  --status-submitted-fg: #166240;
+  --status-overdue-bg: #fde4e2;
+  --status-overdue-fg: #b42318;
+  --status-closed-bg: #e8e8eb;
+  --status-closed-fg: #3f3f46;
+  --status-review-bg: #ebe7fd;
+  --status-review-fg: #5a33c8;
+
+  /* Sources */
+  --source-six-bg: #e3f4f1;
+  --source-six-fg: #0f6b63;
+  --source-edunex-bg: #e6eefe;
+  --source-edunex-fg: #2a58b8;
+  --source-itb-bg: #f3ecfd;
+  --source-itb-fg: #6338b8;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+
+    --canvas: #161618;
+    --sidebar: #1b1b1e;
+    --surface: #1c1c1f;
+    --raised: #1f1f23;
+    --welcome: #121214;
+    --edge: #2a2a2f;
+    --line: #26262b;
+    --fill: #232327;
+    --hover: #222226;
+    --selected: rgb(255 255 255 / 0.08);
+    --scrim: rgb(0 0 0 / 0.45);
+    --track: #3a3a40;
+    --segment: #34343a;
+    --tooltip-bg: #ececef;
+    --tooltip-fg: #1d1d1f;
+
+    --fg: #ececef;
+    --muted: #a8a8b0;
+    --faint: #8c8c93;
+
+    --accent: #2f6feb;
+    --accent-hover: #2a66df;
+    --accent-active: #2763d8;
+    --accent-fg: #7aa2ff;
+    --on-accent: #ffffff;
+    --focus: #6f9bff;
+
+    --danger-bg: #3a1c19;
+    --danger-fg: #ff9c8f;
+    --warning-bg: #382d10;
+    --warning-fg: #f2c862;
+    --success-bg: #12301f;
+    --success-fg: #80e0a9;
+    --info-bg: #1b2742;
+    --info-fg: #9ab8ff;
+    --neutral-bg: #27272b;
+    --neutral-fg: #bdbdc5;
+    --live: #2fbf6c;
+
+    --status-draft-bg: #382d10;
+    --status-draft-fg: #f2c862;
+    --status-submitted-bg: #12301f;
+    --status-submitted-fg: #80e0a9;
+    --status-overdue-bg: #3a1817;
+    --status-overdue-fg: #ff9c94;
+    --status-closed-bg: #2a2a2f;
+    --status-closed-fg: #c6c6ce;
+    --status-review-bg: #272042;
+    --status-review-fg: #c4b5ff;
+
+    --source-six-bg: #11302c;
+    --source-six-fg: #6fd6c6;
+    --source-edunex-bg: #1b2742;
+    --source-edunex-fg: #9ab8ff;
+    --source-itb-bg: #271d3a;
+    --source-itb-fg: #c4b0f5;
+  }
+}
+
+@theme inline {
+  --color-canvas: var(--canvas);
+  --color-sidebar: var(--sidebar);
+  --color-surface: var(--surface);
+  --color-raised: var(--raised);
+  --color-welcome: var(--welcome);
+  --color-edge: var(--edge);
+  --color-line: var(--line);
+  --color-fill: var(--fill);
+  --color-hover: var(--hover);
+  --color-selected: var(--selected);
+  --color-scrim: var(--scrim);
+  --color-track: var(--track);
+  --color-segment: var(--segment);
+  --color-tooltip-bg: var(--tooltip-bg);
+  --color-tooltip-fg: var(--tooltip-fg);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-active: var(--accent-active);
+  --color-accent-fg: var(--accent-fg);
+  --color-on-accent: var(--on-accent);
+  --color-focus: var(--focus);
+  --color-danger-bg: var(--danger-bg);
+  --color-danger-fg: var(--danger-fg);
+  --color-warning-bg: var(--warning-bg);
+  --color-warning-fg: var(--warning-fg);
+  --color-success-bg: var(--success-bg);
+  --color-success-fg: var(--success-fg);
+  --color-info-bg: var(--info-bg);
+  --color-info-fg: var(--info-fg);
+  --color-neutral-bg: var(--neutral-bg);
+  --color-neutral-fg: var(--neutral-fg);
+  --color-live: var(--live);
+}
+
+@theme {
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI Variable Text", "Segoe UI", system-ui, "Noto Sans", "Inter", sans-serif;
+  --font-mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+
+  /* Type scale */
+  --text-micro: 11px;
+  --text-micro--line-height: 14px;
+  --text-caption: 11.5px;
+  --text-caption--line-height: 16px;
+  --text-small: 12.5px;
+  --text-small--line-height: 18px;
+  --text-body: 13.5px;
+  --text-body--line-height: 20px;
+  --text-lead: 14.5px;
+  --text-lead--line-height: 21px;
+  --text-title: 15px;
+  --text-title--line-height: 20px;
+  --text-heading: 20px;
+  --text-heading--line-height: 26px;
+  --text-display: 26px;
+  --text-display--line-height: 32px;
+
+  /* Elevation */
+  --shadow-button: inset 0 1px 0 rgb(255 255 255 / 0.18), 0 1px 2px rgb(16 24 40 / 0.12);
+  --shadow-thumb: 0 1px 2px rgb(16 24 40 / 0.2);
+  --shadow-lift: 0 6px 20px -8px rgb(16 24 40 / 0.18);
+  --shadow-pop: 0 20px 60px -12px rgb(0 0 0 / 0.3);
+  --shadow-dialog: 0 24px 80px -12px rgb(0 0 0 / 0.35);
+
+  /* Motion */
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --animate-fade-in: fade-in 160ms var(--ease-standard);
+  --animate-pop-in: pop-in 180ms var(--ease-standard);
+  --animate-shimmer: shimmer 1.4s ease-in-out infinite;
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+  }
+  @keyframes pop-in {
+    from {
+      opacity: 0;
+      transform: translateY(4px) scale(0.985);
+    }
+  }
+  @keyframes shimmer {
+    50% {
+      opacity: 0.55;
+    }
+  }
+}
+
+/* Window chrome: the top band of the window moves it, controls inside don't. */
+@utility drag {
+  -webkit-app-region: drag;
+}
+@utility no-drag {
+  -webkit-app-region: no-drag;
+}
+
+/* One visible focus style everywhere, keyboard only. */
+@utility focus-ring {
+  &:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+  body {
+    margin: 0;
+    background: var(--canvas);
+    color: var(--fg);
+    font-family: var(--font-sans);
+    font-size: var(--text-body);
+    line-height: var(--text-body--line-height);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    overflow: hidden;
+  }
+  button {
+    cursor: default;
+  }
+  :focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+  ::selection {
+    background: color-mix(in oklab, var(--accent) 28%, transparent);
+  }
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in oklab, var(--fg) 22%, transparent) transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
