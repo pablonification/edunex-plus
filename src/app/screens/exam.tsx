@@ -89,7 +89,7 @@ export function ExamRow({ exam, index }: { exam: Exam; index?: number }) {
     <Row
       index={index}
       onClick={() => go({ screen: "exam", examId: exam.id })}
-      leading={<DateTile at={exam.at} week={exam.week} />}
+      leading={<DateTile at={exam.at} week={exam.week} kind={exam.kind} />}
       title={
         <span className="flex min-w-0 items-center gap-2">
           <KindLabel exam={exam} />
@@ -137,14 +137,15 @@ function TakeHomeLine({ task }: { task: Task }) {
 }
 
 /** "KAM / 15 / Okt": the exam's day, the strongest thing in its row; without a day yet, its exam week ("12–16 / Okt"). */
-function DateTile({ at, week }: { at: number | null; week?: Exam["week"] }) {
+// An exam week leads with its own name ("UTS"), never "Minggu": that reads as Sunday next to "KAM 15".
+function DateTile({ at, week, kind }: { at: number | null; week?: Exam["week"]; kind: Exam["kind"] }) {
   const t = useT();
   const f = useFormat();
   return (
     <span className="flex w-12 flex-col items-center rounded-lg border border-edge bg-surface py-1 leading-none tabular-nums">
       {at === null && week ? (
         <>
-          <span className="text-micro font-semibold text-muted">{t("exam.tileWeek")}</span>
+          <span className="text-micro font-semibold text-muted uppercase">{t(`exam.kind.${kind}`)}</span>
           <span className="mt-1 text-caption font-semibold">
             {new Date(dayStart(week.firstDay)).getDate()}–{new Date(dayStart(week.lastDay)).getDate()}
           </span>

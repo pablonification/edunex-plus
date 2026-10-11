@@ -148,7 +148,6 @@ export const scheduleStrings = {
   "exam.due": { id: "Tenggat {when}", en: "Due {when}" },
   "exam.outlineOnly": { id: "Ada di daftar isi EduNex, belum ada tanggal", en: "In the EduNex outline, no date yet" },
   "exam.week": { id: "{kind} {from}–{to}", en: "{kind} {from}–{to}" },
-  "exam.tileWeek": { id: "MINGGU", en: "WEEK" },
   "exam.disagree": { id: "Dua tanggal berbeda. Pastikan ke dosen.", en: "Two different dates. Check with your lecturer." },
   "exam.noDate": { id: "Belum ada tanggal", en: "No date yet" },
   "exam.prepare": { id: "Persiapan", en: "Prepare" },
