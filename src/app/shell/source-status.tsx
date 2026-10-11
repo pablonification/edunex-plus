@@ -1,9 +1,9 @@
 // How each source is doing: one quiet status control in the top bar (it opens
 // each source in words, with its fix), and a banner under the top bar, on
 // every screen, when something needs the Student.
-import { useCallback, useState, type ReactNode } from "react";
+import { useCallback, useState, useSyncExternalStore, type ReactNode } from "react";
 import type { SourceId, SourceState } from "../../core/models";
-import { ActionError } from "../bridge";
+import { ActionError, type Bridge } from "../bridge";
 import { useFormat, useT } from "../i18n";
 import { useBridge, useDataset, useStatus } from "../store";
 import { Button, IconButton } from "../ui/controls";
@@ -33,23 +33,66 @@ export function useSignIn() {
   return { signIn, busy };
 }
 
-export function useRefresh() {
-  const bridge = useBridge();
-  const [busy, setBusy] = useState(false);
-  const refresh = useCallback(
-    async (source?: SourceId) => {
-      setBusy(true);
+// The sources a refresh is reading right now, whoever asked (the panel, ⌘R,
+// ⌘K, a "Coba lagi", coming back online), so the top bar and the panel say
+// what's still being read instead of each button keeping its own idea.
+const reading = new Map<SourceId, number>();
+let readingNow: readonly SourceId[] = [];
+const readingWatchers = new Set<() => void>();
+const EVERY_SOURCE: readonly SourceId[] = ["edunex", "six", "itb"];
+
+function noteReading(source: SourceId, step: 1 | -1): void {
+  const count = (reading.get(source) ?? 0) + step;
+  if (count > 0) reading.set(source, count);
+  else reading.delete(source);
+  readingNow = [...reading.keys()];
+  for (const watcher of readingWatchers) watcher();
+}
+
+/** Reads sources again now (every source without one), each on its own so the panel can show which is still going. */
+export async function refreshNow(bridge: Bridge, source?: SourceId): Promise<void> {
+  await Promise.all(
+    (source ? [source] : EVERY_SOURCE).map(async (one) => {
+      noteReading(one, 1);
       try {
-        await bridge.invoke("sync.refresh", source ? { source } : {});
+        await bridge.invoke("sync.refresh", { source: one });
       } catch {
         // The source's status already says what went wrong.
       } finally {
-        setBusy(false);
+        noteReading(one, -1);
+      }
+    }),
+  );
+}
+
+/** The sources a refresh is reading right now. */
+export function useReading(): readonly SourceId[] {
+  return useSyncExternalStore(
+    (watcher) => {
+      readingWatchers.add(watcher);
+      return () => void readingWatchers.delete(watcher);
+    },
+    () => readingNow,
+  );
+}
+
+/** `busy` while a source this one asked for is still being read. */
+export function useRefresh() {
+  const bridge = useBridge();
+  const now = useReading();
+  const [asked, setAsked] = useState<readonly SourceId[]>([]);
+  const refresh = useCallback(
+    async (source?: SourceId) => {
+      setAsked(source ? [source] : EVERY_SOURCE);
+      try {
+        await refreshNow(bridge, source);
+      } finally {
+        setAsked([]);
       }
     },
     [bridge],
   );
-  return { refresh, busy };
+  return { refresh, busy: asked.some((source) => now.includes(source)) };
 }
 
 function StateMark({ state, busy }: { state: SourceState; busy: boolean }) {
@@ -86,17 +129,22 @@ export function SyncStatus() {
   const edunex = useStatus("edunex");
   const six = useStatus("six");
   const itb = useStatus("itb");
-  const { refresh, busy } = useRefresh();
+  const bridge = useBridge();
+  const now = useReading();
   const signedIn = [edunex, six].filter((status) => status.state !== "signed-out");
-  // A refresh can take minutes (SIX is read at human pace): a known problem stays named while it runs.
+  const busy = now.length > 0;
+  // SIX is read at human pace, so a refresh takes a while: say which source is still going,
+  // and keep a known problem named while it runs.
+  const going = signedIn.filter((status) => now.includes(status.source));
   const worst = overall(signedIn.map((status) => status.state));
-  const state = busy && (worst === "live" || worst === "signed-out") ? "connecting" : worst;
+  const state = going.length > 0 && (worst === "live" || worst === "signed-out") ? "connecting" : worst;
   const troubled = signedIn.find((status) => status.state === state && (state === "changed" || state === "expired"));
+  const unreachable = signedIn.filter((status) => status.state === "offline");
   const updatedAt = Math.max(0, ...signedIn.map((status) => status.updatedAt ?? 0)) || null;
   let text: string;
-  if (state === "connecting") text = t("sync.checking");
+  if (state === "connecting") text = going.length === 1 && signedIn.length > 1 ? t("sync.checkingOne", { source: t(`source.${going[0]!.source}`) }) : t("sync.checking");
   else if (troubled) text = state === "expired" ? t("sync.expired", { source: t(`source.${troubled.source}`) }) : t("status.changed", { source: t(`source.${troubled.source}`) });
-  else if (state === "offline") text = t("status.offline");
+  else if (state === "offline") text = unreachable.length < signedIn.length ? t("sync.offlineOne", { source: t(`source.${unreachable[0]!.source}`) }) : t("status.offline");
   else text = updatedAt ? t("status.updated", { when: f.fromNow(updatedAt) }) : t("status.neverUpdated");
 
   return (
@@ -124,8 +172,8 @@ export function SyncStatus() {
         ))}
       </ul>
       <div className="mt-1 border-t border-line p-1.5 pt-2.5">
-        <Button className="w-full" busy={busy} disabled={!signedIn.length} icon={<Icons.RefreshCw className="size-3.5" />} onClick={() => void refresh()}>
-          {t("sync.refreshNow")}
+        <Button className="w-full" busy={busy} disabled={!signedIn.length} icon={<Icons.RefreshCw className="size-3.5" />} onClick={() => void refreshNow(bridge)}>
+          {busy ? t("sync.checking") : t("sync.refreshNow")}
         </Button>
       </div>
     </Popover>
@@ -138,10 +186,11 @@ function SourceRow({ source }: { source: SourceId }) {
   const f = useFormat();
   const status = useStatus(source);
   const { signIn, busy: signingIn } = useSignIn();
-  const { refresh, busy: refreshing } = useRefresh();
+  const { refresh } = useRefresh();
+  const refreshing = useReading().includes(source);
   const name = t(`source.${source}`);
   const needsSignIn = source !== "itb" && (status.state === "expired" || status.state === "signed-out");
-  const hint = hintFor(status.state, name, t);
+  const hint = refreshing ? t("sync.checking") : hintFor(status.state, name, t);
   const word = status.state === "changed" ? t("status.changedShort") : t(`status.${status.state}`);
   return (
     <li className="flex items-start gap-3 rounded-lg px-2.5 py-2">
@@ -156,7 +205,7 @@ function SourceRow({ source }: { source: SourceId }) {
       </div>
       {needsSignIn ? (
         <Button size="sm" variant={status.state === "expired" ? "primary" : "secondary"} busy={signingIn} onClick={() => void signIn(source)}>
-          {status.state === "expired" ? t("action.signInAgain") : t("action.signIn")}
+          {status.state === "expired" ? t("action.signInAgain") : t("action.signInTo", { source: name })}
         </Button>
       ) : status.state === "changed" || status.state === "offline" ? (
         <Button size="sm" busy={refreshing} onClick={() => void refresh(source)}>

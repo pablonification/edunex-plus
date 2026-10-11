@@ -22,6 +22,7 @@ import { cx } from "../ui/cx";
 import { Kbd } from "../ui/display";
 import { type IconProps, Icons } from "../ui/icons";
 import { isBuilt } from "./built";
+import { refreshNow } from "./source-status";
 
 /** The screens and tabs that are built, in the sidebar's order. */
 const BUILT = (Object.keys(SCREENS) as ScreenId[]).filter((screen) => {
@@ -183,7 +184,7 @@ function Palette({ onClose, onSettings }: { onClose: () => void; onSettings: () 
     const target = item.target;
     if (target === "settings") onSettings();
     else if ("action" in target) {
-      if (target.action === "refresh") void bridge.invoke("sync.refresh", {}).catch(() => undefined);
+      if (target.action === "refresh") void refreshNow(bridge);
       else void bridge.invoke("settings.update", { theme: nextTheme }).catch(() => undefined);
     } else go(target);
   };

@@ -119,6 +119,27 @@ describe("Home", () => {
     await act(async () => screen!.world.clock.advance(60_000));
   });
 
+  it("names the one source it can't reach; the whole-window banner is only for no connection at all", async () => {
+    screen = await openApp({ signedIn: true, six: true });
+    screen.world.six.fail(/./, 503);
+    await screen.engineDoes(async () => screen?.engine.refresh("six"));
+    expect(screen.button(/^Status data:/).textContent).toBe("SIX tidak terhubung");
+    expect(screen.text()).not.toContain("Tidak ada koneksi.");
+    expect(await screen.sourceState("EduNex")).toBe("Terhubung");
+  });
+
+  it("Perbarui sekarang says which source it is still reading", async () => {
+    screen = await openApp({ signedIn: true, six: true });
+    await screen.click(/^Status data:/);
+    // EduNex answers at once; SIX is read a page every two seconds, on a clock that stands still here.
+    await act(async () => screen!.button("Perbarui sekarang").click());
+    for (let i = 0; i < 20; i++) await act(async () => new Promise((resolve) => setImmediate(resolve)));
+    expect(screen.button(/^Status data:/).textContent).toBe("Memperbarui SIX…");
+    expect(screen.button("Memperbarui…").disabled).toBe(true);
+    await act(async () => screen!.world.clock.advance(120_000));
+    expect(screen.button(/^Status data:/).textContent).toBe("Diperbarui baru saja");
+  });
+
   it("saved courses without a session (a computer that can't keep sessions) stay readable, with Sign in", async () => {
     const before = await openApp({ signedIn: true });
     before.close();

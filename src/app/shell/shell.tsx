@@ -29,7 +29,7 @@ import { AlertsBell } from "./alerts";
 import { FirstScan } from "./first-scan";
 import { SearchButton, SearchPalette, useSearchShortcut } from "./search";
 import { SettingsDialog } from "./settings";
-import { ProblemBanner, SyncStatus } from "./source-status";
+import { ProblemBanner, refreshNow, SyncStatus } from "./source-status";
 
 export function Shell() {
   return (
@@ -58,7 +58,7 @@ function Layout() {
     useCallback(
       (command) => {
         if (command === "settings") setSettingsOpen(true);
-        if (command === "refresh") void bridge.invoke("sync.refresh", {}).catch(() => undefined);
+        if (command === "refresh") void refreshNow(bridge);
         if (command === "search") openSearch(false);
       },
       [bridge, openSearch],
@@ -157,7 +157,7 @@ function useNavShortcuts(go: (route: Route) => void) {
 function useRefreshWhenBackOnline() {
   const bridge = useBridge();
   useEffect(() => {
-    const refresh = () => void bridge.invoke("sync.refresh", {}).catch(() => undefined);
+    const refresh = () => void refreshNow(bridge);
     window.addEventListener("online", refresh);
     return () => window.removeEventListener("online", refresh);
   }, [bridge]);

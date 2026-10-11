@@ -44,6 +44,8 @@ export const shellStrings = {
   "status.changedShort": { id: "Berubah", en: "Changed" },
   "sync.title": { id: "Status data", en: "Data status" },
   "sync.checking": { id: "Memperbarui…", en: "Updating…" },
+  "sync.checkingOne": { id: "Memperbarui {source}…", en: "Updating {source}…" },
+  "sync.offlineOne": { id: "{source} tidak terhubung", en: "{source} offline" },
   "sync.expired": { id: "Sesi {source} berakhir", en: "{source} session ended" },
   "sync.refreshNow": { id: "Perbarui sekarang", en: "Refresh now" },
   "banner.offline": { id: "Tidak ada koneksi.", en: "No connection." },
