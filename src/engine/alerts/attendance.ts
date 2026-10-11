@@ -8,21 +8,17 @@
 //   moves into that state.
 import { afterClass, attendanceHealth, type CountAt, isExamActivity, lecturePeriod } from "../../core/attendance";
 import { wibDay } from "../../core/course-meetings";
-import type { ClassSession, DatasetName, SixCourse, SixStudent } from "../../core/models";
+import type { ClassSession, SixCourse } from "../../core/models";
 import type { AlertDraft, Detector, DetectorContext, PlannedAlert } from "./detector";
 
 const MINUTE = 60_000;
 const HOUR = 60 * MINUTE;
 
-// SIX's datasets are registered by the SIX ticket (#76); they're read by name until then.
-const SIX_COURSES = "six.courses" as DatasetName;
-const SIX_SCHEDULE = "six.schedule" as DatasetName;
-const SIX_STUDENT = "six.student" as DatasetName;
 
 type Read = Pick<DetectorContext, "get">;
-const sixCourses = ({ get }: Read) => get(SIX_COURSES) as SixCourse[] | undefined;
-const sixSchedule = ({ get }: Read) => (get(SIX_SCHEDULE) as ClassSession[] | undefined) ?? [];
-const sixTerm = ({ get }: Read) => (get(SIX_STUDENT) as SixStudent | undefined)?.term ?? null;
+const sixCourses = ({ get }: Read) => get("six.courses");
+const sixSchedule = ({ get }: Read) => get("six.schedule") ?? [];
+const sixTerm = ({ get }: Read) => get("six.student")?.term ?? null;
 
 /** Lecturers fill SIX in after class: give it this long. */
 const GRACE = 3 * HOUR;
@@ -51,11 +47,11 @@ export function sixNotCounting(): Detector {
   };
   return {
     name: "attendance.sixNotCounting",
-    watches: [SIX_COURSES, SIX_SCHEDULE],
+    watches: ["six.courses", "six.schedule"],
     changed(change, { now }) {
-      if (change.name !== SIX_COURSES) return [];
+      if (change.name !== "six.courses") return [];
       if (change.previous === undefined) seen.clear();
-      rememberAll(change.next as unknown as SixCourse[], now);
+      rememberAll(change.next, now);
       return [];
     },
     plan(context) {
@@ -70,7 +66,7 @@ export function sixNotCounting(): Detector {
         const before = seen.get(session.courseCode)?.filter((c) => c.at <= session.start).at(-1);
         if (!count || !before) continue;
         // Only a count read after the class says anything: SIX offline or signed out isn't SIX not counting.
-        const read = context.fetchedAt(SIX_COURSES);
+        const read = context.fetchedAt("six.courses");
         if (read === null || read <= session.end) continue;
         const result = afterClass(before, count);
         if (result === "counted") continue;
@@ -92,10 +88,10 @@ export function sixNotCounting(): Detector {
 /** No absences left, or the target out of reach: when a course's SIX count moves it there. */
 export const attendanceBudget: Detector = {
   name: "attendance.budget",
-  watches: [SIX_COURSES],
+  watches: ["six.courses"],
   changed(change, context) {
-    if (change.name !== SIX_COURSES || !change.previous) return [];
-    const previous = change.previous as unknown as SixCourse[];
+    if (change.name !== "six.courses" || !change.previous) return [];
+    const previous = change.previous;
     const { now, get, settings } = context;
     const schedule = sixSchedule(context);
     const period = lecturePeriod(get("itb.calendar"), sixTerm(context), now);
@@ -104,7 +100,7 @@ export const attendanceBudget: Detector = {
     const health = (course: SixCourse | undefined, code: string) =>
       attendanceHealth({ code, six: course?.attendance ?? null, presence: presence[code] ?? [], schedule, period, target, now });
     const drafts: AlertDraft[] = [];
-    for (const course of change.next as unknown as SixCourse[]) {
+    for (const course of change.next) {
       const next = health(course, course.code);
       const before = health(
         previous.find((c) => c.code === course.code),

@@ -3,7 +3,7 @@
 // own program first. Pages are kept for days; a page that doesn't answer is
 // skipped and tried again later, and one with a new layout marks the source
 // "changed" while every other program stays usable.
-import { type CatalogCourse, type CatalogProgram, type CourseCatalog, SixStudent } from "../../../core/models";
+import type { CatalogCourse, CatalogProgram, CourseCatalog } from "../../../core/models";
 import { EngineError, isEngineError } from "../../errors";
 import type { SourceContext } from "../source";
 import { readProgramList, readProgramPage, type ListedProgram, type ProgramPage } from "./catalog-pages";
@@ -131,14 +131,18 @@ const normal = (name: string) => name.toLowerCase().replace(/\s+/g, " ").trim();
 /** The Student's own program, once SIX has said which it is (the "six.student" dataset). */
 function ownProgram(context: SourceContext, catalog: CourseCatalog): string | null {
   // Read by name: the SIX side may publish it after this source started.
-  const student = SixStudent.safeParse((context.get as (name: string) => unknown)("six.student"));
-  const program = student.success ? student.data.program : null;
+  const student = context.get("six.student");
+  if (!student) return null;
+  // SIX's program number is exact; the name alone is shared by a campus copy ("… (Kampus Cirebon)").
+  if (student.programCode && catalog.programs.some((p) => p.id === student.programCode)) return student.programCode;
+  const program = student.program;
   if (!program) return null;
   return catalog.programs.find((p) => normal(p.name) === normal(program))?.id ?? null;
 }
 
 export function registerCatalogFeed(context: SourceContext): void {
-  const client = new PublicClient(context.transport, context.clock, context.userAgent, "SIX", CATALOG_GAP_MS);
+  // In SIX's own line: the signed-in SIX source reads the same site.
+  const client = new PublicClient(context.transport, context.clock, context.userAgent, "SIX", CATALOG_GAP_MS, context.pace(new URL(CATALOG_URL).host));
   context.feed({
     name: "itb.catalog",
     every: 6 * HOUR,

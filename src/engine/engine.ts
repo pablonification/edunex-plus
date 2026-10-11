@@ -8,6 +8,7 @@ import type { Detector } from "./alerts/detector";
 import { DETECTORS } from "./alerts/detectors";
 import type { Clock } from "./clock";
 import { EngineError, isEngineError } from "./errors";
+import { Pace } from "./http/pace";
 import type { Transport } from "./http/transport";
 import { type AnySource, SOURCES } from "./sources";
 import type { FeedSpec, SourceContext } from "./sources/source";
@@ -169,6 +170,14 @@ export function createEngine(deps: EngineDeps): Engine {
     });
   }
 
+  /** One line per website, shared by every source and kept across sessions (a 429 pause outlives a sign-in). */
+  const paces = new Map<string, Pace>();
+  const pace = (site: string) => {
+    let line = paces.get(site);
+    if (!line) paces.set(site, (line = new Pace(clock)));
+    return line;
+  };
+
   /** What a source reaches during one session. Writes from an ended session are dropped. */
   function contextFor(source: SourceId): SourceContext {
     const session = generation(source);
@@ -187,6 +196,7 @@ export function createEngine(deps: EngineDeps): Engine {
         if (current()) addFeed(source, spec);
       },
       runNow: (match) => scheduler.runNow((name) => sourceOf(name) === source && match(name)),
+      pace,
     };
   }
 

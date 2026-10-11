@@ -192,6 +192,11 @@ export class PretendSix {
     this.editPage(path, (html) => html.split(from).join(to));
   }
 
+  /** The Student switched SIX to English (its EN switch): the same pages in other words. */
+  useEnglish(): void {
+    for (const [key, html] of this.pages) this.pages.set(key, inEnglish(html));
+  }
+
   // ------------------------------------------------ answering requests
 
   handle(request: HttpRequest, url: URL): HttpResponse {
@@ -210,8 +215,10 @@ export class PretendSix {
     }
     const cookie = request.headers?.cookie ?? request.headers?.Cookie ?? "";
     if (!this.sessionValid || !cookie.includes(PRETEND_SIX_COOKIE)) return this.toLogin(request, url);
-    const page = this.pages.get(canonical(url.pathname));
+    let page = this.pages.get(canonical(url.pathname));
     if (!page) return { status: 404, headers: { "content-type": "text/html" }, body: "<h1>Not Found</h1>", url: url.toString() };
+    const month = url.searchParams.get("bulan");
+    if (month && /\/kelas\/jadwal\/mahasiswa\/\d+$/.test(url.pathname)) page = forMonth(page, month);
     return { status: 200, headers: { "content-type": "text/html; charset=UTF-8" }, body: page, url: url.toString() };
   }
 
@@ -247,4 +254,66 @@ function positionRow($: CheerioAPI, code: string) {
   const row = $("tr").filter((_, tr) => codeOf($, tr) === code);
   if (row.length !== 1) throw new Error(`No ${code} on the curriculum-position page`);
   return row;
+}
+
+// ---------------------------------------------------------------- other months, other words
+
+const MONTHS_ID = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+const MONTHS_EN = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+const DAY = 86_400_000;
+
+/**
+ * The timetable for another month of the term. Only one month was recorded,
+ * so another month is that page with its tab active and the month's days in
+ * the same grid, without meetings.
+ */
+function forMonth(html: string, month: string): string {
+  const shown = /<li role="presentation" class="active">\s*<a href="[^"]*bulan=(\d{6})"/.exec(html)?.[1];
+  if (shown === month) return html;
+  const year = Number(month.slice(0, 4));
+  const index = Number(month.slice(4)) - 1;
+  const first = Date.UTC(year, index, 1);
+  const last = Date.UTC(year, index + 1, 0);
+  let rows = "";
+  let cell = 0;
+  for (let monday = first - ((new Date(first).getUTCDay() + 6) % 7) * DAY; monday <= last; monday += 7 * DAY) {
+    rows += "<tr>";
+    for (let weekday = 0; weekday < 5; weekday++, cell++) {
+      const date = new Date(monday + weekday * DAY);
+      const name = cell === 0 || date.getUTCDate() === 1 ? `<span class="text-muted">${MONTHS_ID[date.getUTCMonth()]}</span>` : "";
+      rows += `<td ><div class="">\n                        ${date.getUTCDate()}\n                        ${name}</div><div style="min-height: 5em;"></div></td>`;
+    }
+    rows += "</tr>";
+  }
+  return html
+    .replace(/<li role="presentation" class="active">/g, '<li role="presentation" >')
+    .replace(new RegExp(`<li role="presentation" >(\\s*<a href="[^"]*bulan=${month}")`), '<li role="presentation" class="active">$1')
+    .replace(/(<\/thead>)[\s\S]*?(<\/table>)/, `$1${rows}$2`);
+}
+
+/** SIX's pages after its language switch. SIX's own English wording was never recorded; the layout is the same. */
+function inEnglish(html: string): string {
+  const short: Record<string, string> = { Agu: "Aug", Okt: "Oct", Des: "Dec", Mei: "May" };
+  const words: [RegExp, string | ((all: string, ...groups: string[]) => string)][] = [
+    [/<li class="active"><a href="\/pub\/locale\/id/g, '<li><a href="/pub/locale/id'],
+    [/<li><a href="\/pub\/locale\/en/g, '<li class="active"><a href="/pub/locale/en'],
+    [/Daftar Kuliah Semester/g, "Courses in Semester"],
+    [/Data Mahasiswa/g, "Student Data"],
+    [/Status Mahasiswa/g, "Student Status"],
+    [/Program Studi/g, "Study Program"],
+    [/<th>Nama<\/th>/g, "<th>Name</th>"],
+    [/<th>Kode<\/th>/g, "<th>Code</th>"],
+    [/<th>Mata Kuliah<\/th>/g, "<th>Course</th>"],
+    [/>Kelas<\/th>/g, ">Class</th>"],
+    [/>SKS<\/th>/g, ">Credits</th>"],
+    [/>Kehadiran<\/th>/g, ">Attendance</th>"],
+    [/>Nilai<\/th>/g, ">Grade</th>"],
+    [/Hadir (\d+) dari (\d+) pertemuan/g, "Attended $1 of $2 meetings"],
+    [/Jadwal Perkuliahan Mahasiswa/g, "Student Class Schedule"],
+    [/>(Senin|Selasa|Rabu|Kamis|Jumat)</g, (_, day) => `>${{ Senin: "Monday", Selasa: "Tuesday", Rabu: "Wednesday", Kamis: "Thursday", Jumat: "Friday" }[day]}<`],
+    [/>(Agu|Okt|Des|Mei) (\d{4})</g, (all, month, year) => (short[month] ? `>${short[month]} ${year}<` : all)],
+    [/<span class="text-muted">(\w+)<\/span>/g, (all, month) => (MONTHS_ID.includes(month) ? `<span class="text-muted">${MONTHS_EN[MONTHS_ID.indexOf(month)]}</span>` : all)],
+    [/\(Kuliah/g, "(Lecture"],
+  ];
+  return words.reduce((out, [from, to]) => out.replace(from, to as never), html);
 }

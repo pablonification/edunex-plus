@@ -1,20 +1,14 @@
-// EduNex sign-in in a window the app owns. It runs on a throwaway in-memory
-// session with no access to the app: the Student types their password and 2FA
-// code only on Microsoft's page. Once EduNex's website holds the session, the
-// app reads the access token, closes the window and wipes everything the
-// sign-in left behind. There's no time limit: 2FA takes as long as it takes.
-import { BrowserWindow, session } from "electron";
-import { randomUUID } from "node:crypto";
+// EduNex sign-in in a window the app owns. It runs on the throwaway sign-in
+// session (signin-session.ts) with no access to the app: the Student types
+// their password and 2FA code only on Microsoft's page. Once EduNex's website
+// holds the session, the app reads the access token and closes the window;
+// the sign-in session is wiped once SIX doesn't need it for its own sign-in.
+// There's no time limit: 2FA takes as long as it takes.
+import type { BrowserWindow } from "electron";
 import { EDUNEX_SIGN_IN_URL, EDUNEX_SITE_HOST, readSignInToken } from "../engine/sources/edunex/signin";
-import { denyPermissions } from "./security";
+import { openSignInWindow } from "./signin-session";
 
 let open: { window: BrowserWindow; token: Promise<string | null> } | null = null;
-
-function chromeUserAgent(): string {
-  const platform =
-    process.platform === "darwin" ? "Macintosh; Intel Mac OS X 10_15_7" : process.platform === "win32" ? "Windows NT 10.0; Win64; x64" : "X11; Linux x86_64";
-  return `Mozilla/5.0 (${platform}) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${process.versions.chrome} Safari/537.36`;
-}
 
 /** Resolves with the access token, or null when the Student closes the window. */
 export function signInToEdunex(options: { parent: BrowserWindow | null; title: string; devTools: boolean }): Promise<string | null> {
@@ -22,42 +16,8 @@ export function signInToEdunex(options: { parent: BrowserWindow | null; title: s
     open.window.focus();
     return open.token;
   }
-  const partition = `signin-${randomUUID()}`;
-  const signInSession = session.fromPartition(partition, { cache: false });
-  denyPermissions(signInSession);
-  // A plain Chrome identity: some sign-in pages turn away browsers they don't know.
-  signInSession.setUserAgent(chromeUserAgent());
-
-  const window = new BrowserWindow({
-    parent: options.parent ?? undefined,
-    width: 480,
-    height: 700,
-    minWidth: 380,
-    minHeight: 520,
-    title: options.title,
-    show: false,
-    autoHideMenuBar: true,
-    backgroundColor: "#ffffff",
-    webPreferences: {
-      partition,
-      sandbox: true,
-      contextIsolation: true,
-      nodeIntegration: false,
-      webviewTag: false,
-      spellcheck: false,
-      devTools: options.devTools,
-    },
-  });
+  const { window } = openSignInWindow(options);
   const contents = window.webContents;
-  // Pop-ups (some sign-in steps open one) continue in this window instead.
-  contents.setWindowOpenHandler(({ url }) => {
-    if (url.startsWith("https://")) setImmediate(() => void contents.loadURL(url).catch(() => undefined));
-    return { action: "deny" };
-  });
-  contents.on("will-navigate", (event, url) => {
-    if (!url.startsWith("https://")) event.preventDefault();
-  });
-  window.on("page-title-updated", (event) => event.preventDefault());
 
   const token = new Promise<string | null>((resolve) => {
     let done = false;
@@ -69,7 +29,7 @@ export function signInToEdunex(options: { parent: BrowserWindow | null; title: s
       clearTimeout(showAnyway);
       open = null;
       if (!window.isDestroyed()) window.destroy();
-      void Promise.allSettled([signInSession.clearStorageData(), signInSession.clearCache(), signInSession.clearAuthCache()]).then(() => resolve(value));
+      resolve(value);
     };
     // Reads never stop or reload the page; a slow page just gets read again later.
     const read = async () => {

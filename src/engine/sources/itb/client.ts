@@ -1,11 +1,16 @@
 // Reads ITB's public pages: no sign-in and no cookies, one request at a time,
-// at least `gapMs` apart. A dropped connection or a busy server is Offline;
-// any other refusal is a PageError the caller decides about.
-import { type Clock, sleep } from "../../clock";
+// at least `gapMs` apart, in the site's shared line when it has one (SIX's
+// catalog shares six.itb.ac.id with the signed-in SIX source). A dropped
+// connection or a busy server is Offline; any other refusal is a PageError
+// the caller decides about.
+import type { Clock } from "../../clock";
 import { EngineError } from "../../errors";
+import { Pace } from "../../http/pace";
 import { NetworkError, type Transport } from "../../http/transport";
 
 export const TIMEOUT_MS = 20_000;
+/** How long a site that answered 429 is left alone. */
+const RATE_LIMIT_PAUSE_MS = 15 * 60_000;
 
 /** The server answered with an error status. */
 export class PageError extends EngineError {
@@ -18,9 +23,6 @@ export class PageError extends EngineError {
 }
 
 export class PublicClient {
-  private lastAt = Number.NEGATIVE_INFINITY;
-  private queue: Promise<unknown> = Promise.resolve();
-
   constructor(
     private readonly transport: Transport,
     private readonly clock: Clock,
@@ -28,19 +30,17 @@ export class PublicClient {
     /** "SIX", "ITB's calendar": used in messages. */
     private readonly site: string,
     private readonly gapMs = 0,
+    private readonly pace: Pace = new Pace(clock),
   ) {}
 
   /** The text of a page; requests wait their turn and keep the gap. */
   text(url: string, accept = "text/html"): Promise<string> {
-    const run = this.queue.then(() => this.fetch(url, accept));
-    this.queue = run.catch(() => undefined);
-    return run;
+    return this.pace.turn(() => this.fetch(url, accept));
   }
 
   private async fetch(url: string, accept: string): Promise<string> {
-    const wait = this.lastAt + this.gapMs - this.clock.now();
-    if (wait > 0) await sleep(this.clock, wait);
-    this.lastAt = this.clock.now();
+    if (this.pace.paused) throw new PageError(429, `${this.site} asked to be left alone for now`);
+    await this.pace.gap(this.gapMs);
     let response;
     try {
       response = await this.transport.request({ method: "GET", url, headers: { accept, "user-agent": this.userAgent }, timeoutMs: TIMEOUT_MS });
@@ -49,8 +49,9 @@ export class PublicClient {
       throw error;
     } finally {
       // The gap counts from the end of a request, so a slow answer never shortens it.
-      this.lastAt = this.clock.now();
+      this.pace.touch();
     }
+    if (response.status === 429) this.pace.pause(this.clock.now() + RATE_LIMIT_PAUSE_MS);
     if (response.status >= 400) throw new PageError(response.status, `${this.site} answered ${response.status} for ${new URL(url).pathname}`);
     return response.body;
   }

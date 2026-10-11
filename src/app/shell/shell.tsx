@@ -2,9 +2,10 @@
 // its own crash guard. Settings opens over it (sidebar footer, or ⌘,). A
 // screen shows in the sidebar once it's built (its `ready` flag).
 import { useCallback, useEffect, useRef, useState, type ComponentType } from "react";
-import { edunexCourseUrl } from "../../core/links";
+import { edunexCourseUrl, sixStatusUrl } from "../../core/links";
 import type { StringKey } from "../../core/strings";
-import { useCourseColors, useOpenExternal } from "../hooks";
+import { type TermCourse, useTermCourses } from "../courses";
+import { useOpenExternal } from "../hooks";
 import { useFormat, useT } from "../i18n";
 import { displayName, initials } from "../names";
 import { NavProvider, type Route, useNav } from "../nav";
@@ -126,10 +127,17 @@ function Sidebar({ onSettings }: { onSettings: () => void }) {
   const f = useFormat();
   const { route, go } = useNav();
   const account = useDataset("edunex.account");
-  const courses = useDataset("edunex.courses");
+  const student = useDataset("six.student");
+  const courses = useTermCourses();
   const status = useStatus("edunex");
-  const colors = useCourseColors(courses);
   const open = useOpenExternal();
+  /** Until the course page exists, a course opens on its official site: EduNex's page, else SIX's list. */
+  const outside = (course: TermCourse) =>
+    course.edunex
+      ? { url: edunexCourseUrl(course.edunex.courseId), label: t("action.openInEdunex") }
+      : student
+        ? { url: sixStatusUrl(student.nim), label: t("action.openInSix") }
+        : null;
   const items: NavItem[] = [
     { screen: "home", label: "nav.home", Icon: Icons.Home, ready: true, badge: null },
     { screen: "tasks", label: "nav.tasks", Icon: Icons.ListChecks, ready: tasksReady, badge: useTasksBadge(), owns: ["task", "exam"] },
@@ -174,29 +182,30 @@ function Sidebar({ onSettings }: { onSettings: () => void }) {
             <ul className="space-y-px">
               {courses.map((course) => {
                 const active = route.screen === "course" && route.code === course.code;
+                const site = courseReady ? null : outside(course);
                 const row = (
                   <button
                     type="button"
                     aria-current={active ? "page" : undefined}
-                    onClick={() => (courseReady ? go({ screen: "course", code: course.code }) : open(edunexCourseUrl(course.edunex.courseId)))}
+                    onClick={() => (courseReady ? go({ screen: "course", code: course.code }) : site && open(site.url))}
                     className={cx(
                       "focus-ring flex h-8 w-full items-center gap-2.5 rounded-lg px-2.5 text-left text-body transition-colors duration-150",
                       active ? "bg-selected" : "hover:bg-hover",
                     )}
                   >
-                    <CourseDot color={colors.get(course.code) ?? "#888"} />
+                    <CourseDot color={course.color} />
                     <span className="shrink-0 font-semibold tabular-nums">{course.code}</span>
                     <span className="truncate text-muted">{course.name}</span>
                   </button>
                 );
                 return (
                   <li key={course.code}>
-                    {courseReady ? (
-                      row
-                    ) : (
-                      <Tooltip content={t("action.openInEdunex")} side="right">
+                    {site ? (
+                      <Tooltip content={site.label} side="right">
                         {row}
                       </Tooltip>
+                    ) : (
+                      row
                     )}
                   </li>
                 );
@@ -232,8 +241,10 @@ function TopBar() {
   const store = useStore();
   const t = useT();
   const { route, back, canGoBack } = useNav();
-  const status = useStatus("edunex");
+  const edunex = useStatus("edunex");
+  const six = useStatus("six");
   const { refresh, busy } = useRefresh();
+  const signedIn = [edunex, six].some((status) => status.state !== "signed-out" && status.state !== "expired");
   const detail = route.screen === "task" || route.screen === "exam" || route.screen === "course";
   return (
     <header className={cx("flex h-[52px] shrink-0 items-center gap-3 border-b border-line px-6 select-none", store.platform === "darwin" && "drag")}>
@@ -247,8 +258,9 @@ function TopBar() {
       <div className="no-drag ml-auto flex items-center gap-1.5">
         <AlertsBell />
         <SourceStatusChip source="edunex" />
+        <SourceStatusChip source="six" />
         <Tooltip content={t("action.refresh")}>
-          <IconButton label={t("action.refresh")} disabled={busy || status.state === "signed-out" || status.state === "expired"} onClick={() => void refresh()}>
+          <IconButton label={t("action.refresh")} disabled={busy || !signedIn} onClick={() => void refresh()}>
             <Icons.RefreshCw className={cx("size-4", busy && "animate-spin")} />
           </IconButton>
         </Tooltip>

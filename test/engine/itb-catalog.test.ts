@@ -2,7 +2,6 @@
 // courses, own courses, specializations and minors, read politely (one page
 // at a time, at least 3 s apart), kept for days, and robust to pages that fail.
 import { describe, expect, it } from "vitest";
-import { Datasets } from "../../src/core/models";
 import { MemoryStorage } from "../pretend/memory";
 import { PretendWorld } from "../pretend/world";
 import { startEngine } from "./harness";
@@ -160,10 +159,9 @@ describe("SIX public course catalog", () => {
     expect(program(h, "154").state).toBe("pending");
   });
 
-  // Runs once the SIX source publishes "six.student" (#76).
-  it.runIf("six.student" in Datasets)("reads the Student's own program first", async () => {
+  it("reads the Student's own program first", async () => {
     const storage = new MemoryStorage();
-    const value = { nim: "18223901", name: "Dimas Pratama", studentId: "2021000001", term: "2026-1", program: "Perencanaan Wilayah dan Kota" };
+    const value = { nim: "18223901", name: "Dimas Pratama", studentId: "2021000001", term: "2026-1", program: "Perencanaan Wilayah dan Kota", programCode: "154" };
     await storage.write("datasets/six.student.json", JSON.stringify({ format: 1, name: "six.student", value, fetchedAt: 0, hash: "x" }));
     const h = await startEngine({ storage });
     await h.wait(10_000);

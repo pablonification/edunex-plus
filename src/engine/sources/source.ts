@@ -5,6 +5,7 @@
 import type { z } from "zod";
 import type { DatasetName, DatasetValue, Settings, SourceId } from "../../core/models";
 import type { Clock } from "../clock";
+import type { Pace } from "../http/pace";
 import type { Transport } from "../http/transport";
 
 export interface FeedSpec {
@@ -33,6 +34,8 @@ export interface SourceContext {
   feed(spec: FeedSpec): void;
   /** Runs matching feeds now (a new-Task signal, a fresh session). */
   runNow(match: (feed: string) => boolean): Promise<void>;
+  /** The line every source shares for one website ("six.itb.ac.id"), so together they stay at human pace. */
+  pace(site: string): Pace;
 }
 
 /** A write the Student asked for, run with the source's current session. */

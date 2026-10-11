@@ -3,12 +3,11 @@
 // timetable, and the meetings merged from them.
 import { useMemo } from "react";
 import { announcedMeetings, courseMeetings, type Meeting } from "../../../core/course-meetings";
-import type { Announcement, ClassSession, CourseOutline, DatasetName, EdunexExam, Material, PresenceSession, Task } from "../../../core/models";
+import type { Announcement, CourseOutline, EdunexExam, Material, PresenceSession, Task } from "../../../core/models";
 import { type TermCourse, useTermCourses } from "../../courses";
 import { useDataset } from "../../store";
 
 // SIX's timetable is registered by the SIX ticket (#76); until then nothing arrives under this name.
-const SIX_SCHEDULE = "six.schedule" as DatasetName;
 
 export interface CoursePage {
   course: TermCourse;
@@ -32,7 +31,7 @@ export function useCoursePage(code: string): CoursePage | null | undefined {
   const announcements = useDataset("edunex.announcements");
   const exams = useDataset("edunex.exams");
   const tasks = useDataset("edunex.tasks");
-  const six = useDataset(SIX_SCHEDULE) as ClassSession[] | undefined;
+  const six = useDataset("six.schedule");
   return useMemo(() => {
     if (!courses) return undefined;
     const course = courses.find((c) => c.code === code);

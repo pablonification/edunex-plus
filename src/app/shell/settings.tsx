@@ -2,7 +2,7 @@
 // does, the accounts, and a visible Sign out that removes every session and
 // saved trace from this computer.
 import { useState, type ReactNode } from "react";
-import type { AlertGroup, Settings } from "../../core/models";
+import type { AlertGroup, Settings, SourceId } from "../../core/models";
 import type { StringKey } from "../../core/strings";
 import { ActionError } from "../bridge";
 import { useT } from "../i18n";
@@ -32,25 +32,22 @@ function SettingsBody({ onSignedOutOfEverything }: { onSignedOutOfEverything: ()
   const store = useStore();
   const settings = useSettings();
   const account = useDataset("edunex.account");
-  const status = useStatus("edunex");
-  const { signIn, busy: signingIn } = useSignIn();
+  const student = useDataset("six.student");
+  const report = useReport();
   const [confirming, setConfirming] = useState(false);
-  const [busy, setBusy] = useState<"edunex" | "all" | null>(null);
+  const [busy, setBusy] = useState(false);
 
-  const report = (error: unknown) => toast(t("error.action", { message: error instanceof ActionError ? error.message : String(error) }), "danger");
   const update = (patch: Partial<Settings>) => void bridge.invoke("settings.update", patch).catch(report);
-  const signOut = async (source?: "edunex") => {
-    setBusy(source ?? "all");
+  const signOutOfEverything = async () => {
+    setBusy(true);
     try {
-      await bridge.invoke("auth.signOut", source ? { source } : {});
-      if (!source) {
-        setConfirming(false);
-        onSignedOutOfEverything();
-      }
+      await bridge.invoke("auth.signOut", {});
+      setConfirming(false);
+      onSignedOutOfEverything();
     } catch (error) {
       report(error);
     } finally {
-      setBusy(null);
+      setBusy(false);
     }
   };
 
@@ -91,17 +88,8 @@ function SettingsBody({ onSignedOutOfEverything }: { onSignedOutOfEverything: ()
       </Group>
 
       <Group title={t("settings.accounts")}>
-        <Row label={t("source.edunex")} hint={account ? `${displayName(account.name)} · ${account.nim}` : t("settings.notConnected")}>
-          {status.state === "signed-out" || status.state === "expired" ? (
-            <Button size="sm" variant="primary" busy={signingIn} onClick={() => void signIn("edunex")}>
-              {status.state === "expired" ? t("action.signInAgain") : t("action.signIn")}
-            </Button>
-          ) : (
-            <Button size="sm" busy={busy === "edunex"} onClick={() => void signOut("edunex")}>
-              {t("action.signOut")}
-            </Button>
-          )}
-        </Row>
+        <AccountRow source="edunex" who={account ? `${displayName(account.name)} · ${account.nim}` : null} />
+        <AccountRow source="six" who={student ? `${displayName(student.name)} · ${student.program ?? student.nim}` : null} />
       </Group>
 
       {store.vault === "memory" && <p className="rounded-lg bg-warning-bg px-3.5 py-2.5 text-small text-warning-fg">{t("settings.sessionNotSaved")}</p>}
@@ -122,8 +110,8 @@ function SettingsBody({ onSignedOutOfEverything }: { onSignedOutOfEverything: ()
         title={t("settings.signOutAllConfirm")}
         body={t("settings.signOutAllHint")}
         confirmLabel={t("action.signOut")}
-        busy={busy === "all"}
-        onConfirm={() => void signOut()}
+        busy={busy}
+        onConfirm={() => void signOutOfEverything()}
       />
     </div>
   );
@@ -178,6 +166,47 @@ function AlertSettings({ settings, update, report }: { settings: Settings; updat
         </Button>
       </Row>
     </Group>
+  );
+}
+
+function useReport() {
+  const t = useT();
+  return (error: unknown) => toast(t("error.action", { message: error instanceof ActionError ? error.message : String(error) }), "danger");
+}
+
+/** One system's account: who is signed in, and Sign in (again) or Sign out of just that system. */
+function AccountRow({ source, who }: { source: SourceId; who: string | null }) {
+  const t = useT();
+  const bridge = useBridge();
+  const status = useStatus(source);
+  const report = useReport();
+  const { signIn, busy: signingIn } = useSignIn();
+  const [busy, setBusy] = useState(false);
+  const name = t(`source.${source}`);
+  const signOut = async () => {
+    setBusy(true);
+    try {
+      await bridge.invoke("auth.signOut", { source });
+    } catch (error) {
+      report(error);
+    } finally {
+      setBusy(false);
+    }
+  };
+  const needsSignIn = status.state === "signed-out" || status.state === "expired";
+  const label = needsSignIn ? (status.state === "expired" ? t("action.signInAgain") : t("action.signIn")) : t("action.signOut");
+  return (
+    <Row label={name} hint={who ?? t("settings.notConnected")}>
+      <Button
+        size="sm"
+        variant={needsSignIn ? "primary" : "secondary"}
+        busy={needsSignIn ? signingIn : busy}
+        aria-label={`${label}: ${name}`}
+        onClick={() => void (needsSignIn ? signIn(source) : signOut())}
+      >
+        {label}
+      </Button>
+    </Row>
   );
 }
 

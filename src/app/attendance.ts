@@ -4,15 +4,10 @@
 // Presensi screen, its sidebar badge and the course header read it.
 import { useMemo } from "react";
 import { type AttendanceHealth, attendanceHealth, lecturePeriod, openWindows, type PresenceAction, presenceAction } from "../core/attendance";
-import type { ClassSession, DatasetName, PresenceSession, SixCourse, SixStudent } from "../core/models";
+import type { ClassSession, PresenceSession } from "../core/models";
 import { type TermCourse, useTermCourses } from "./courses";
 import { useNow } from "./i18n";
 import { useDataset, useSettings } from "./store";
-
-// SIX's datasets are registered by the SIX ticket (#76); until then nothing arrives under these names.
-const SIX_COURSES = "six.courses" as DatasetName;
-const SIX_SCHEDULE = "six.schedule" as DatasetName;
-const SIX_STUDENT = "six.student" as DatasetName;
 
 export interface CourseAttendance {
   course: TermCourse;
@@ -43,9 +38,9 @@ export function useAttendance(): Attendance | undefined {
   const presence = useDataset("edunex.presence");
   const tasks = useDataset("edunex.tasks");
   const calendar = useDataset("itb.calendar");
-  const sixCourses = useDataset(SIX_COURSES) as SixCourse[] | undefined;
-  const schedule = useDataset(SIX_SCHEDULE) as ClassSession[] | undefined;
-  const student = useDataset(SIX_STUDENT) as SixStudent | undefined;
+  const sixCourses = useDataset("six.courses");
+  const schedule = useDataset("six.schedule");
+  const student = useDataset("six.student");
   const { attendanceTarget: target } = useSettings();
   // Minute precision is plenty, and keeps the math from rerunning every tick.
   const now = Math.floor(useNow() / 60_000) * 60_000;

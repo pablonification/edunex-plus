@@ -25,8 +25,10 @@ describe("first run", () => {
   it("welcomes the Student, and connecting EduNex shows their courses", async () => {
     screen = await openApp();
     expect(screen.text()).toContain("Selamat datang di Edunex Plus");
-    await screen.click("Hubungkan");
+    await screen.click("Hubungkan EduNex");
     expect(screen.calls.some((c) => c.name === "auth.signIn")).toBe(true);
+    // The welcome stays, so SIX can be connected next (#76); the Student moves on when ready.
+    await screen.click("Lanjut");
     expect(screen.text()).toContain("Mata kuliah semester ini");
     expect(cards()).toHaveLength(5);
     for (const [code, name] of COURSES) {
@@ -38,16 +40,16 @@ describe("first run", () => {
 
   it("closing the sign-in window leaves the welcome screen ready to try again", async () => {
     screen = await openApp({ signInWindow: "closes" });
-    await screen.click("Hubungkan");
+    await screen.click("Hubungkan EduNex");
     expect(screen.text()).toContain("Selamat datang di Edunex Plus");
-    expect(screen.button("Hubungkan").disabled).toBe(false);
+    expect(screen.button("Hubungkan EduNex").disabled).toBe(false);
   });
 
   it("speaks English before signing in, if asked", async () => {
     screen = await openApp();
     await screen.click("English");
     expect(screen.text()).toContain("Welcome to Edunex Plus");
-    expect(screen.has("Connect")).toBe(true);
+    expect(screen.has("Connect EduNex")).toBe(true);
   });
 
   it("says so when this computer can't keep the session safely", async () => {

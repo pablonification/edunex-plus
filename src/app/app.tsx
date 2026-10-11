@@ -1,6 +1,6 @@
 // The window's root: providers, then either the welcome screen (nobody signed
 // in) or the signed-in shell.
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import type { Bridge } from "./bridge";
 import { I18nProvider, type UiClock } from "./i18n";
 import { Shell } from "./shell/shell";
@@ -37,8 +37,14 @@ function Localized({ clock, children }: { clock?: UiClock; children: ReactNode }
 }
 
 function Root() {
-  const status = useStatus("edunex");
+  const edunex = useStatus("edunex");
+  const six = useStatus("six");
   const account = useDataset("edunex.account");
+  const student = useDataset("six.student");
   // Saved data keeps the shell up even while a session is being checked or has ended.
-  return status.state === "signed-out" && !account ? <Welcome /> : <Shell />;
+  const nobody = edunex.state === "signed-out" && !account && six.state === "signed-out" && !student;
+  // On first run the welcome screen stays until the Student moves on, so SIX can be connected right after EduNex.
+  const [welcoming, setWelcoming] = useState(nobody);
+  if (nobody && !welcoming) setWelcoming(true);
+  return welcoming ? <Welcome onDone={() => setWelcoming(false)} /> : <Shell />;
 }

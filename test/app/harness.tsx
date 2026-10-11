@@ -9,11 +9,13 @@ import type { UiClock } from "../../src/app/i18n";
 import { AppStore } from "../../src/app/store";
 import { type ActionName, type ActionResult, Actions, type AppSnapshot, type Event } from "../../src/core/contract";
 import { handInHandlers, type LocalFile } from "../../src/desktop/hand-in";
+import type { SourceId } from "../../src/core/models";
 import { createEngine, type Engine } from "../../src/engine/engine";
 import { planOfflineFiles } from "../../src/core/course-materials";
 import { EngineError, isEngineError } from "../../src/engine/errors";
 import { PRETEND_TOKEN } from "../pretend/edunex";
 import { MemoryStorage, MemoryVault } from "../pretend/memory";
+import { PRETEND_SIX_COOKIE } from "../pretend/six";
 import { PretendWorld } from "../pretend/world";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -30,6 +32,8 @@ export interface Options {
   vault?: MemoryVault;
   /** Sign in to EduNex before the window opens. */
   signedIn?: boolean;
+  /** Sign in to SIX before the window opens. */
+  six?: boolean;
   /** Start the engine's own rhythm (default true). */
   start?: boolean;
   /** What the Student does in the sign-in window. */
@@ -55,7 +59,24 @@ export async function openApp(options: Options = {}) {
   });
   await engine.load();
   if (options.start !== false) engine.start();
-  if (options.signedIn) await engine.signIn("edunex", { token: PRETEND_TOKEN });
+
+  /** SIX is read at human pace (a page every two seconds): the fake clock runs until the work is done. */
+  const meanwhile = async <T,>(work: Promise<T>): Promise<T> => {
+    let done = false;
+    const watched = work.finally(() => {
+      done = true;
+    });
+    watched.catch(() => undefined);
+    for (let second = 0; second < 600; second++) {
+      await new Promise((resolve) => setImmediate(resolve));
+      if (done) break;
+      await world.clock.advance(1_000);
+    }
+    return watched;
+  };
+  const sessionFor = (source: SourceId) => (source === "six" ? { cookie: PRETEND_SIX_COOKIE } : { token: PRETEND_TOKEN });
+  if (options.signedIn) await engine.signIn("edunex", sessionFor("edunex"));
+  if (options.six) await meanwhile(engine.signIn("six", sessionFor("six")));
 
   const calls: { name: ActionName; input: unknown }[] = [];
   /** What the system file picker gives the next time it opens (the Student's choice); nothing = cancelled. */
@@ -64,17 +85,18 @@ export async function openApp(options: Options = {}) {
   const handlers: { [N in ActionName]: (input: never) => Promise<unknown> } = {
     "app.snapshot": async () => ({ ...engine.snapshot(), platform: "darwin", vault: options.vaultMode ?? "encrypted" }),
     "app.ready": async () => ({}),
-    "auth.signIn": async ({ source }: { source: "edunex" }) => {
+    "auth.signIn": async ({ source }: { source: SourceId }) => {
       if (options.signInWindow === "closes") return { signedIn: false };
-      await engine.signIn(source, { token: PRETEND_TOKEN });
+      await meanwhile(engine.signIn(source, sessionFor(source)));
       return { signedIn: true };
     },
-    "auth.signOut": async ({ source }: { source?: "edunex" }) => {
+    "auth.signOut": async ({ source }: { source?: SourceId }) => {
       await engine.signOut(source);
       return {};
     },
-    "sync.refresh": async ({ source }: { source?: "edunex" }) => {
-      await engine.refresh(source);
+    "auth.signInDone": async () => ({}),
+    "sync.refresh": async ({ source }: { source?: SourceId }) => {
+      await meanwhile(engine.refresh(source));
       return {};
     },
     "settings.update": async (patch: never) => engine.updateSettings(patch),
@@ -215,7 +237,7 @@ export async function openApp(options: Options = {}) {
     /** Runs engine work (a refresh, a sign-out) as if it came from elsewhere. */
     async engineDoes(work: () => Promise<unknown>): Promise<void> {
       await act(async () => {
-        await work();
+        await meanwhile(work());
         await settle();
       });
     },

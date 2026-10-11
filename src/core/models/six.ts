@@ -11,6 +11,8 @@ export const SixStudent = z.object({
   term: z.string(),
   /** "Perencanaan Wilayah dan Kota", as SIX writes it. */
   program: z.string().nullable(),
+  /** ITB's number for the study program ("182"), as in the public catalog's addresses. */
+  programCode: z.string().nullable(),
 });
 export type SixStudent = z.infer<typeof SixStudent>;
 
@@ -41,4 +43,10 @@ export const ClassSession = z.object({
 });
 export type ClassSession = z.infer<typeof ClassSession>;
 
-export const sixDatasets = {} as const;
+export const sixDatasets = {
+  "six.student": SixStudent,
+  /** This term's courses, in SIX's order. */
+  "six.courses": z.array(SixCourse),
+  /** The class meetings of this month and the next, by start time. */
+  "six.schedule": z.array(ClassSession),
+} as const;

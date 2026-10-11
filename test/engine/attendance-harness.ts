@@ -45,7 +45,7 @@ export function standInSix(state: PretendSixState): Source<null> {
   };
 }
 
-export const STUDENT: SixStudent = { nim: "18223901", name: "Pretend Student", studentId: "900001", term: "2026-1", program: null };
+export const STUDENT: SixStudent = { nim: "18223901", name: "Pretend Student", studentId: "900001", term: "2026-1", program: null, programCode: null };
 
 export async function startAttendance(options: { world?: PretendWorld; six: PretendSixState; storage?: MemoryStorage; vault?: MemoryVault; signIn?: boolean }) {
   const world = options.world ?? new PretendWorld();
