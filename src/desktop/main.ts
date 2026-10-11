@@ -1,7 +1,7 @@
 // Edunex Plus, main process. Loads saved data before anything else, opens the
 // window hidden and shows it once the page has drawn that data, starts
 // syncing only then, and answers the window through the typed bridge.
-import { app, type BrowserWindow, dialog, nativeTheme, powerMonitor, session, shell } from "electron";
+import { app, type BrowserWindow, dialog, nativeTheme, powerMonitor, session } from "electron";
 import module from "node:module";
 import path from "node:path";
 import { CHANNEL_EVENT } from "../core/channels";
@@ -10,14 +10,17 @@ import type { Settings } from "../core/models";
 import { translate } from "../core/strings";
 import { systemClock } from "../engine/clock";
 import { createEngine, type Engine } from "../engine/engine";
-import { EngineError } from "../engine/errors";
+import { authHandlers } from "./handlers/auth";
+import type { DesktopContext } from "./handlers/context";
+import { coreHandlers } from "./handlers/core";
+import { coursePageHandlers } from "./handlers/course-page";
+import { sixHandlers } from "./handlers/six";
+import { tasksHandlers } from "./handlers/tasks";
 import { type Handlers, registerBridge } from "./ipc";
 import { installMenu } from "./menu";
 import { registerAppScheme, serveApp } from "./protocol";
-import { APP_HOST, APP_ORIGIN, APP_SCHEME, contentSecurityPolicy, denyPermissions, guardAppWindow, hardenAllContents, isOfficialUrl } from "./security";
-import { signInToEdunex } from "./signin";
+import { APP_HOST, APP_ORIGIN, APP_SCHEME, contentSecurityPolicy, denyPermissions, guardAppWindow, hardenAllContents } from "./security";
 import { FileStorage } from "./storage";
-import { removeEveryTrace } from "./traces";
 import { electronTransport } from "./transport";
 import { openVault } from "./vault";
 import { BACKGROUND, createMainWindow, loadWindowState } from "./window";
@@ -58,7 +61,7 @@ async function start(): Promise<void> {
   const storage = new FileStorage(path.join(root, "data"));
   const { vault, mode } = await openVault(new FileStorage(path.join(root, "vault")));
 
-  // The engine talks to EduNex on its own in-memory session; the page gets no permissions at all.
+  // The engine talks to the sources on its own in-memory session; the page gets no permissions at all.
   const engineSession = session.fromPartition("engine", { cache: false });
   denyPermissions(engineSession);
   denyPermissions(session.defaultSession);
@@ -66,7 +69,6 @@ async function start(): Promise<void> {
   const current = createEngine({ transport: electronTransport(engineSession), clock: systemClock, storage, vault, version: __APP_VERSION__, emit: send });
   engine = current;
   await current.load();
-  const settings = current.snapshot().settings;
 
   const csp = contentSecurityPolicy(devServer);
   serveApp(path.join(__dirname, "..", "app"), csp);
@@ -87,56 +89,28 @@ async function start(): Promise<void> {
     }
   };
 
-  let signingIn: Promise<boolean> | null = null;
-  const signInToEdunexOnce = () =>
-    (signingIn ??= (async () => {
-      try {
-        const token = await signInToEdunex({
-          parent: window,
-          title: translate(current.snapshot().settings.lang, "signIn.edunexTitle"),
-          devTools: !packaged,
-        });
-        if (!token) return false;
-        await current.signIn("edunex", { token });
-        return true;
-      } finally {
-        signingIn = null;
-      }
-    })());
-
+  const context: DesktopContext = {
+    engine: current,
+    window: () => window,
+    packaged,
+    userData,
+    engineSession,
+    vaultMode: mode,
+    lang: () => current.snapshot().settings.lang,
+    send,
+    applySettings,
+    reveal,
+    startSyncing,
+  };
   const handlers: Handlers = {
-    "app.snapshot": async () => ({ ...current.snapshot(), platform: platform(), vault: mode }),
-    "app.ready": async () => {
-      reveal();
-      startSyncing();
-      return {};
-    },
-    "auth.signIn": async ({ source }) => {
-      if (source !== "edunex") throw new EngineError("Rejected", "SIX sign-in isn't available yet");
-      return { signedIn: await signInToEdunexOnce() };
-    },
-    "auth.signOut": async ({ source }) => {
-      await current.signOut(source);
-      if (!source) await removeEveryTrace({ userData, engineSession });
-      return {};
-    },
-    "sync.refresh": async ({ source }) => {
-      await current.refresh(source);
-      return {};
-    },
-    "settings.update": async (patch) => {
-      const next = await current.updateSettings(patch);
-      applySettings(next);
-      return next;
-    },
-    "shell.openExternal": async ({ url }) => {
-      if (!isOfficialUrl(url)) throw new EngineError("Rejected", "Only official pages open from the app");
-      await shell.openExternal(url);
-      return {};
-    },
+    ...coreHandlers(context),
+    ...authHandlers(context),
+    ...tasksHandlers(context),
+    ...coursePageHandlers(context),
+    ...sixHandlers(context),
   };
   registerBridge({ window: () => window, isAppUrl, handlers });
-  applySettings(settings);
+  applySettings(current.snapshot().settings);
   nativeTheme.on("updated", paintBackground);
 
   window = createMainWindow({ preload: path.join(__dirname, "preload.cjs"), state: await loadWindowState(storage), devTools: !packaged, storage });
@@ -194,10 +168,6 @@ function reveal(): void {
   if (window.isMinimized()) window.restore();
   if (!window.isVisible()) window.show();
   window.focus();
-}
-
-function platform(): "darwin" | "win32" | "linux" {
-  return process.platform === "darwin" || process.platform === "win32" ? process.platform : "linux";
 }
 
 function fail(error: unknown): void {

@@ -5,7 +5,7 @@ import type { Course } from "../../core/models";
 import { useFormat, useNow, useT } from "../i18n";
 import { firstName } from "../names";
 import { SourceNotice, useRefresh } from "../shell/source-status";
-import { useCourseColors, useOpenExternal } from "../shell/shell";
+import { useCourseColors, useOpenExternal } from "../hooks";
 import { useDataset, useStatus } from "../store";
 import { Button } from "../ui/controls";
 import { Card, CourseCode, EmptyState, SectionTitle, Skeleton } from "../ui/display";
