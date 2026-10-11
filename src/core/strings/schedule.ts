@@ -152,6 +152,7 @@ export const scheduleStrings = {
   "exam.week": { id: "{kind} {range}", en: "{kind} {range}" },
   "exam.disagree": { id: "Dua tanggal berbeda. Pastikan ke dosen.", en: "Two different dates. Check with your lecturer." },
   "exam.noDate": { id: "Belum ada tanggal", en: "No date yet" },
+  "exam.dayUnknown": { id: "Hari dan jamnya belum diumumkan", en: "Day and time not announced yet" },
   "exam.prepare": { id: "Persiapan", en: "Prepare" },
 
   // The exam page

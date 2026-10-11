@@ -4,9 +4,9 @@ import type { Entry } from "./entry";
 
 export const homeStrings = {
   // The ITB calendar's next exam week, as a calm line under the greeting
-  "home.utsStarts": { id: "Masa UTS mulai {date}", en: "Midterm week starts {date}" },
+  "home.utsStarts": { id: "Masa UTS mulai {date}", en: "UTS period starts {date}" },
   "home.uasStarts": { id: "Masa UAS mulai {date}", en: "Final exams start {date}" },
-  "home.utsNow": { id: "Masa UTS sampai {date}", en: "Midterm week until {date}" },
+  "home.utsNow": { id: "Masa UTS sampai {date}", en: "UTS period until {date}" },
   "home.uasNow": { id: "Masa UAS sampai {date}", en: "Final exams until {date}" },
   "home.inDays": { id: "{count} hari lagi", en: { one: "in {count} day", other: "in {count} days" } },
   "home.tomorrowWord": { id: "besok", en: "tomorrow" },

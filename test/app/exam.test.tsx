@@ -35,8 +35,9 @@ describe("the exam list", () => {
     expect(row).toContain("dalam 7 hari");
     expect(examSection()?.querySelector("h2")?.parentElement?.textContent).toContain("Masa UTS 12–16 Okt");
     // A row with only ITB's exam week names the period on its date tile, never "Minggu" (it reads as Sunday).
-    const weekOnly = [...(examSection()?.querySelectorAll("li button") ?? [])].map((b) => b.textContent ?? "").find((t) => t.includes("Masa UAS"));
-    expect(weekOnly?.startsWith("UAS7–22Des")).toBe(true);
+    const weekOnly = [...(examSection()?.querySelectorAll("li button") ?? [])].map((b) => b.textContent ?? "").find((t) => t.startsWith("UAS7–22Des"));
+    // The tile gives the week; the row says what's still missing instead of repeating it.
+    expect(weekOnly).toContain("Hari dan jamnya belum diumumkan");
     expect(examSection()?.textContent).not.toMatch(/minggu/i);
   });
 

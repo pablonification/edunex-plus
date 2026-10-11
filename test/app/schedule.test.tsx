@@ -235,7 +235,7 @@ describe("Jadwal: the week as a timetable", () => {
     expect(s.text()).toContain("Jadwal kuliah & ruang butuh SIX");
     expect(subtitle()).toBe("Minggu ke-7 · 5–11 Okt");
     // EduNex's Presence windows and its announced meeting; never "free" (SIX would say).
-    expect(items("Kamis, 8 Oktober")).toEqual(["PL3002 · Pertemuan · 08:00–09:30 · Dari EduNex"]);
+    expect(items("Kamis, 8 Oktober")).toEqual(["PL3002 · Economics and Innovation in Planning · 08:00–09:30 · Dari EduNex"]);
     expect(items("Jumat, 9 Oktober")[0]).toBe("II4091 · Pertemuan 3 · 15:00–17:00 · Daring · Dari EduNex");
     expect(s.text()).not.toContain("Kosong");
     expect(s.text()).toContain("Pertemuan dan tenggat dari EduNex");

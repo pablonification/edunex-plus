@@ -307,7 +307,8 @@ function MeetingBlock({ meeting, minutes, notInSix }: { meeting: OutsideMeeting 
   const open = useOpenExternal();
   const time = timeRange(f, meeting.start, meeting.end);
   const lines = linesFor(minutes);
-  const what = meeting.number !== null ? t("schedule.meeting", { n: meeting.number }) : t("schedule.meetingEdunex");
+  // "Pertemuan" alone says nothing: a meeting EduNex didn't number names its course, like a class from SIX.
+  const what = meeting.number !== null ? t("schedule.meeting", { n: meeting.number }) : world.name(meeting.code);
   const where = meeting.online ? t("schedule.online") : null;
   const label = [meeting.code, what, time, where, notInSix ? t("schedule.notInSix") : t("schedule.fromEdunex")].filter(Boolean).join(" · ");
   const past = meeting.end <= world.now;

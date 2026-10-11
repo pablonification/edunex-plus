@@ -53,7 +53,9 @@ describe("the bell", () => {
     screen = await openApp({ world, signedIn: true });
     await screen.click("Notifikasi");
     expect(panel()?.textContent).toContain("Belum ada yang berubah");
-    expect(panel()?.textContent).toContain("Tugas baru, perubahan jadwal, dan tenggat yang mendekat muncul di sini.");
+    expect(panel()?.textContent).toContain("Tugas baru, materi, dan tenggat yang mendekat muncul di sini. EduNex diperiksa sendiri secara berkala; jadwal dan kehadiran menyusul setelah SIX terhubung.");
+    // It never claims SIX is checked while SIX isn't connected.
+    expect(panel()?.textContent).not.toContain("EduNex dan SIX diperiksa");
   });
 
   it("counts a new alert, lists it, and marks it read in the app only", async () => {

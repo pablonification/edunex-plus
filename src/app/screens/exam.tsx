@@ -81,7 +81,7 @@ export function ExamRow({ exam, index }: { exam: Exam; index?: number }) {
       : online?.start != null
         ? `${t("exam.onEdunex")} · ${f.time(online.start)}`
         : exam.at === null && exam.week && (exam.kind === "UTS" || exam.kind === "UAS")
-          ? examWeekLabel(t, f, exam.kind, exam.week)
+          ? t("exam.dayUnknown")
           : exam.at === null
             ? t("exam.noDate")
             : "";

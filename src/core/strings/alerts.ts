@@ -27,6 +27,10 @@ export const alertsStrings = {
     id: "Tugas baru, perubahan jadwal, dan tenggat yang mendekat muncul di sini. EduNex dan SIX diperiksa sendiri secara berkala.",
     en: "New Tasks, schedule changes and coming deadlines show here. EduNex and SIX are checked regularly on their own.",
   },
+  "alerts.emptyHintEdunex": {
+    id: "Tugas baru, materi, dan tenggat yang mendekat muncul di sini. EduNex diperiksa sendiri secara berkala; jadwal dan kehadiran menyusul setelah SIX terhubung.",
+    en: "New Tasks, materials and coming deadlines show here. EduNex is checked regularly on its own; schedule and attendance follow once SIX is connected.",
+  },
   "alerts.markAllRead": { id: "Tandai semua dibaca", en: "Mark all read" },
   "alerts.unread": { id: "belum dibaca", en: "unread" },
   "alerts.period.today": { id: "Hari ini", en: "Today" },

@@ -162,7 +162,7 @@ function AlertsPanel({ readAt, onRead, onClose }: { readAt: number; onRead: (at:
               <Icons.Bell className="size-4" />
             </span>
             <p className="mt-3 text-body font-semibold">{t("alerts.empty")}</p>
-            <p className="mx-auto mt-1 max-w-[36ch] text-small text-muted">{t("alerts.emptyHint")}</p>
+            <p className="mx-auto mt-1 max-w-[36ch] text-small text-muted">{t(sixOut ? "alerts.emptyHintEdunex" : "alerts.emptyHint")}</p>
           </div>
         )}
         {groups.map(({ period, items: group }) => (
