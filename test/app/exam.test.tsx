@@ -77,6 +77,7 @@ describe("the exam page", () => {
     const s = await openTasks();
     await s.click(examRow("DK4073")!);
     await s.click("Tambahkan ke kalender HP");
+    await s.click(/^Simpan \d+ acara$/);
     expect(s.exported).toHaveLength(1);
   });
 
