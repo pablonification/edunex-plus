@@ -128,13 +128,23 @@ export interface MeetingsLeft {
  * usual weekly slot(s) carried on to the last lecture day, skipping UTS and
  * UAS weeks and holidays. A session SIX lists inside those still counts
  * (SIX may hold it, and missing it would cost an absence) but is marked
- * uncertain, so screens can say "check first".
+ * uncertain, so screens can say "check first", unless the lecturer set an
+ * EduNex hand-in for attendance that day (`presence`).
  */
-export function meetingsLeft(code: string, schedule: readonly ClassSession[], period: ReturnType<typeof lecturePeriod>, now: number): MeetingsLeft {
+export function meetingsLeft(
+  code: string,
+  schedule: readonly ClassSession[],
+  period: ReturnType<typeof lecturePeriod>,
+  now: number,
+  presence: readonly PresenceSession[] = [],
+): MeetingsLeft {
   const mine = schedule.filter((s) => s.courseCode === code);
   const before = (s: ClassSession) => !period || wibDay(s.start) <= period.lastDay;
   const coming = mine.filter((s) => s.start > now && !isExamActivity(s.activity) && before(s)).sort((a, b) => a.start - b.start);
-  const upcoming: UpcomingMeeting[] = coming.map((session) => ({ start: session.start, session, estimated: false, uncertain: period?.offDays.has(wibDay(session.start)) ?? false }));
+  // A day the lecturer set a hand-in for attendance (EduNex's Answer Assignment) is a meeting that happens, exam week or not.
+  const handIn = new Set(presence.filter((p) => p.countsBy[0]?.kind === "assignment").map((p) => wibDay(p.opensAt)));
+  const uncertain = (day: string) => (period?.offDays.has(day) ?? false) && !handIn.has(day);
+  const upcoming: UpcomingMeeting[] = coming.map((session) => ({ start: session.start, session, estimated: false, uncertain: uncertain(wibDay(session.start)) }));
   if (period && schedule.length) {
     // SIX's timetable comes a month at a time: it covers through the end of its last month.
     const lastMonth = wibDay(Math.max(...schedule.map((s) => s.start))).slice(0, 7);
@@ -202,7 +212,7 @@ export function attendanceHealth({ code, six, presence, schedule, period, target
   const base = {
     code,
     countedIn: countedIn(six, presence, now),
-    left: meetingsLeft(code, schedule, period, now),
+    left: meetingsLeft(code, schedule, period, now, presence),
     edunexClosed: closed.length,
     edunexRecorded: closed.filter((p) => p.recorded?.present).length,
   };
