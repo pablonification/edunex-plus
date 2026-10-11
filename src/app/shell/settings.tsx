@@ -258,7 +258,8 @@ function AccountRow({ source, who }: { source: SourceId; who: string | null }) {
     }
   };
   const needsSignIn = status.state === "signed-out" || status.state === "expired";
-  const label = needsSignIn ? (status.state === "expired" ? t("action.signInAgain") : t("action.signIn")) : t("settings.signOutOf", { source: name });
+  // Each button says where it goes, both ways: "Masuk ke SIX", "Keluar dari SIX".
+  const label = needsSignIn ? t(status.state === "expired" ? "settings.signInAgainTo" : "settings.signInTo", { source: name }) : t("settings.signOutOf", { source: name });
   const checked = status.updatedAt !== null ? f.fromNow(status.updatedAt) : null;
   const state =
     status.state === "signed-out"
@@ -284,7 +285,6 @@ function AccountRow({ source, who }: { source: SourceId; who: string | null }) {
         size="sm"
         variant={needsSignIn ? "primary" : "secondary"}
         busy={needsSignIn ? signingIn : busy}
-        aria-label={needsSignIn ? `${label}: ${name}` : label}
         onClick={() => void (needsSignIn ? signIn(source) : signOut())}
       >
         {label}

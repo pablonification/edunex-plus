@@ -205,7 +205,7 @@ describe("Settings", () => {
     await screen.click(/Dimas Pratama/);
     expect(screen.text()).toContain("Dimas Pratama · Sistem dan Teknologi Informasi");
     await screen.click("Keluar dari SIX");
-    expect(screen.has("Masuk: SIX")).toBe(true);
+    expect(screen.has("Masuk ke SIX")).toBe(true);
     expect(screen.has("Keluar dari EduNex")).toBe(true);
     expect(screen.vault.secrets.has("six.session")).toBe(false);
     expect(screen.vault.secrets.has("edunex.session")).toBe(true);
@@ -219,7 +219,7 @@ describe("Settings", () => {
   it("connects SIX from Settings", async () => {
     screen = await openApp({ signedIn: true });
     await screen.click(/Dimas Pratama/);
-    await screen.click("Masuk: SIX");
+    await screen.click("Masuk ke SIX");
     expect(screen.text()).toContain("Dimas Pratama · Sistem dan Teknologi Informasi");
     expect(screen.has("Keluar dari SIX")).toBe(true);
   });
