@@ -29,7 +29,7 @@ export const searchStrings = {
   "search.class": { id: "Kelas {classNo}", en: "Class {classNo}" },
   "search.sks": { id: "{sks} SKS", en: "{sks} SKS" },
   "search.due": { id: "tenggat {when}", en: "due {when}" },
-  "search.examWeek": { id: "Minggu {kind} {range}", en: "{kind} week {range}" },
+  "search.examWeek": { id: "Masa {kind} {range}", en: "{kind} period {range}" },
   "search.noDate": { id: "Tanggal belum ada", en: "No date yet" },
   "search.group.course": { id: "Mata kuliah", en: "Courses" },
   "search.group.task": { id: "Tugas belum selesai", en: "Tasks to do" },
