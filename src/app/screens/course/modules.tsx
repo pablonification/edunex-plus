@@ -79,17 +79,25 @@ export function ModulesTab({ page, module }: { page: CoursePage; module?: number
   const active = entries.find((e) => e.id === selected) ?? first;
   const asked = module !== undefined && active?.id === String(module);
   const root = useRef<HTMLDivElement>(null);
+  const shown = useRef(false);
   useEffect(() => {
-    if (asked) root.current?.scrollIntoView?.({ block: "start" });
-    // Only on arrival, with the tabs still in view: picking another module later doesn't move the page.
-  }, []);
+    // Once, on arrival: the module asked for comes into view if it's below the fold; picking another later doesn't move the page.
+    if (!asked || shown.current) return;
+    // After the window puts a newly opened screen at its top.
+    const frame = requestAnimationFrame(() => {
+      shown.current = true;
+      root.current?.querySelector("[aria-current=true]")?.scrollIntoView?.({ block: "nearest" });
+      root.current?.querySelector("#course-entry")?.scrollIntoView?.({ block: "nearest" });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [asked]);
 
   if (!active) return <EmptyState icon={<Icons.BookOpen className="size-5" />} title={t("course.noMaterials")} />;
   const firstParent = entries.findIndex((e) => e.parent);
   const anyContent = entries.some((e) => e.tasks.length || e.materials.length);
 
   return (
-    <div ref={root} className="grid scroll-mt-20 grid-cols-[260px_minmax(0,1fr)] gap-8 max-[1180px]:grid-cols-[220px_minmax(0,1fr)]">
+    <div ref={root} className="grid grid-cols-[260px_minmax(0,1fr)] gap-8 max-[1180px]:grid-cols-[220px_minmax(0,1fr)]">
       <nav aria-label={t("course.contents")} className="self-start">
         <p className="mb-2 px-2 text-caption font-semibold tracking-[0.04em] text-faint uppercase">{t("course.contents")}</p>
         <ol className="space-y-0.5">
@@ -106,7 +114,7 @@ export function ModulesTab({ page, module }: { page: CoursePage; module?: number
                   aria-current={isActive ? "true" : undefined}
                   onClick={() => setSelected(entry.id)}
                   className={cx(
-                    "focus-ring flex w-full items-start gap-2.5 rounded-lg px-2 text-left transition-colors duration-150",
+                    "focus-ring flex w-full scroll-my-6 items-start gap-2.5 rounded-lg px-2 text-left transition-colors duration-150",
                     empty ? "py-1" : "py-2",
                     isActive ? "bg-selected" : "hover:bg-hover",
                   )}
