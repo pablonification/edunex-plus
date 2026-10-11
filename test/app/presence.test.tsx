@@ -101,6 +101,8 @@ describe("the Presensi screen", () => {
     expect(card("KU5014")).toContain("Bentrok dengan PL3032 · 16:00–17:00");
     const note = [...(row("PL3032")?.querySelectorAll("li") ?? [])].find((li) => li.textContent?.includes("Bentrok"));
     expect(note?.className).toContain("text-warning-fg");
+    // First under the row: it's today's choice.
+    expect(row("PL3032")?.querySelector("ul li")?.textContent).toContain("Bentrok dengan KU5014");
   });
 
   it("the window open now, action first: until when, what to do, the time left, and the button to that place in EduNex; optional where only SIX counts, as Beranda says", async () => {

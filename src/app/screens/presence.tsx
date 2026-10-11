@@ -470,8 +470,7 @@ function useNotes(item: CourseAttendance, target: number): Note[] {
   const dot = (tone: "bad" | "info" | "way") => (
     <span aria-hidden className={cx("mt-[5px] block size-1.5 rounded-full", tone === "bad" ? "bg-danger-fg" : tone === "way" ? "bg-warning-fg" : "bg-faint")} />
   );
-  if (health.toRecover !== null && health.toRecover > 0) notes.push({ key: "recover", tone: "way", icon: dot("way"), text: t("presence.recover", { target, count: health.toRecover }) });
-  // The next meeting overlaps another course's class: said in Jadwal's words, amber, as on Beranda and Jadwal.
+  // The next meeting overlaps another course's class: said first (it's a choice to make soon), in Jadwal's words, amber.
   const next = health.left.next;
   const clash = next ? clashes(next, next.courseCode, schedule ?? [])[0] : undefined;
   if (next && clash)
@@ -481,6 +480,7 @@ function useNotes(item: CourseAttendance, target: number): Note[] {
       icon: dot("way"),
       text: t("schedule.overlapWith", { code: clash.courseCode, from: f.time(Math.max(next.start, clash.start)), to: f.time(Math.min(next.end, clash.end)) }),
     });
+  if (health.toRecover !== null && health.toRecover > 0) notes.push({ key: "recover", tone: "way", icon: dot("way"), text: t("presence.recover", { target, count: health.toRecover }) });
   if (health.state === "out")
     notes.push({
       key: "out",
