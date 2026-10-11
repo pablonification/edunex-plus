@@ -3,8 +3,10 @@
 // Student submitted, a short answer window) and its history. Status comes
 // only from the answer's submit bit and the Task's own dates and state: never
 // from a draft's timestamps, and never from EduNex's To Do feed.
+import { presenceAction } from "./attendance";
+import { htmlText } from "./course-materials";
 import { EDUNEX_WEB } from "./links";
-import type { Task, TaskModule, TaskStatus } from "./models";
+import type { PresenceSession, SourceState, Task, TaskModule, TaskStatus } from "./models";
 
 const MINUTE = 60_000;
 const HOUR = 60 * MINUTE;
@@ -117,4 +119,116 @@ export function dueGroup(task: Pick<Task, "dueAt">, status: TaskStatus, now: num
   if (task.dueAt === null) return "later";
   const weeks = Math.round((weekStart(task.dueAt) - weekStart(now)) / (7 * DAY));
   return weeks <= 0 ? "thisWeek" : weeks === 1 ? "nextWeek" : "later";
+}
+
+// ---------------------------------------------------------------- before handing in
+
+/**
+ * The Presence session a Task's hand-in counts as attendance for (Answer
+ * Assignment), open, closed or still to come; the soonest still open, else
+ * the latest.
+ */
+export function attendanceSession(task: Task, sessions: readonly PresenceSession[], now: number): PresenceSession | null {
+  const mine = sessions.filter((session) => presenceAction(session, [task]).task !== null).sort((a, b) => a.opensAt - b.opensAt);
+  return mine.find((session) => session.closesAt > now) ?? mine.at(-1) ?? null;
+}
+
+/**
+ * What handing in did for attendance, once it's handed in: counted when
+ * EduNex recorded the Student or the hand-in fell inside the window; outside
+ * when it fell outside; null when the Task isn't attendance or isn't handed in.
+ */
+export function attendanceResult(task: Task, sessions: readonly PresenceSession[], now: number): { outcome: "counted" | "outside"; session: PresenceSession } | null {
+  const sentAt = submittedAt(task);
+  const session = attendanceSession(task, sessions, now);
+  if (sentAt === null || !session) return null;
+  if (session.recorded?.present) return { outcome: "counted", session };
+  return { outcome: sentAt >= session.opensAt && sentAt <= session.closesAt ? "counted" : "outside", session };
+}
+
+/** The file name the lecturer asks for, when the instructions quote one ("Penamaan file 'NIM Nama - Tugas 02.pdf'"). */
+export function namingPattern(instructions: string): string | null {
+  const text = htmlText(instructions);
+  if (!/\b(nama|penamaan|name|naming|format)\b/i.test(text)) return null;
+  const quoted = /["'‘’“”`]([^"'‘’“”`\n]{3,80}?\.(?:pdf|docx?|zip|rar|pptx?|xlsx?|ipynb|py))["'‘’“”`]/i.exec(text);
+  return quoted ? quoted[1].trim() : null;
+}
+
+// Words in a naming pattern that stand for the Student's own details.
+const PLACEHOLDER = /^(nim|nama|name|namalengkap|lengkap|kelas|class|kelompok|group|no|nomor|absen|x+|n)$/i;
+
+/**
+ * Whether a file's name looks like the pattern: the same extension, and the
+ * pattern's fixed words ("Tugas", "02") in it. Placeholders (NIM, Nama) can
+ * be anything.
+ */
+export function matchesNaming(pattern: string, fileName: string): boolean {
+  const ext = (name: string) => /\.([a-z0-9]+)$/i.exec(name)?.[1]?.toLowerCase() ?? "";
+  if (ext(pattern) !== ext(fileName)) return false;
+  const words = (name: string) => name.replace(/\.[a-z0-9]+$/i, "").toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+  const have = new Set(words(fileName));
+  return words(pattern)
+    .filter((word) => !PLACEHOLDER.test(word))
+    .every((word) => have.has(word) || [...have].some((h) => /^\d+$/.test(word) && /^\d+$/.test(h) && Number(h) === Number(word)));
+}
+
+/** The file type the instructions ask for ("format .pdf", "dalam bentuk PDF"): "pdf", or null. */
+export function requiredFileType(instructions: string): string | null {
+  const text = htmlText(instructions);
+  const hit = /\b(?:format|bentuk|berupa|tipe|jenis|type|ekstensi|as an?|as)\s+(?:file\s+|berkas\s+)?\.?(pdf|docx?|zip|pptx?|xlsx?|ipynb)\b/i.exec(text);
+  return hit ? hit[1].toLowerCase() : null;
+}
+
+/**
+ * One thing to know before handing in. Blocks: no connection, the session
+ * ended. Warnings: outside the attendance window (before it opens, so
+ * waiting helps; or after it closed), late, a file not in the asked type or
+ * name. Fine: inside the attendance window.
+ */
+export type HandInCheck =
+  | { kind: "offline" | "expired"; tone: "block" }
+  | { kind: "attendanceEarly"; tone: "warn"; opensAt: number; closesAt: number }
+  | { kind: "attendanceMissed"; tone: "warn"; opensAt: number; closesAt: number }
+  | { kind: "attendanceIn"; tone: "ok"; closesAt: number }
+  | { kind: "late"; tone: "warn"; dueAt: number }
+  | { kind: "fileType"; tone: "warn"; type: string; files: string[] }
+  | { kind: "naming"; tone: "warn"; pattern: string; files: string[] };
+
+export interface HandInFacts {
+  now: number;
+  /** The course's Presence sessions. */
+  sessions: readonly PresenceSession[];
+  /** EduNex's connection. */
+  edunex: SourceState;
+  /** The files that would be handed in. */
+  files: readonly { name: string }[];
+}
+
+/**
+ * Everything to check before a hand-in, worst first, and the safe default:
+ * `waitForWindow` when handing in now would lose the attendance that
+ * handing in later would count (so the main button is "save as draft").
+ */
+export function handInChecks(task: Task, facts: HandInFacts): { checks: HandInCheck[]; blocked: boolean; waitForWindow: boolean } {
+  const checks: HandInCheck[] = [];
+  if (facts.edunex === "offline") checks.push({ kind: "offline", tone: "block" });
+  else if (facts.edunex === "expired" || facts.edunex === "signed-out") checks.push({ kind: "expired", tone: "block" });
+  const session = isOpenStatus(taskStatus(task, facts.now)) ? attendanceSession(task, facts.sessions, facts.now) : null;
+  if (session && !session.recorded?.present) {
+    if (facts.now < session.opensAt) checks.push({ kind: "attendanceEarly", tone: "warn", opensAt: session.opensAt, closesAt: session.closesAt });
+    else if (facts.now > session.closesAt) checks.push({ kind: "attendanceMissed", tone: "warn", opensAt: session.opensAt, closesAt: session.closesAt });
+    else checks.push({ kind: "attendanceIn", tone: "ok", closesAt: session.closesAt });
+  }
+  if (taskStatus(task, facts.now) === "overdue" && task.dueAt !== null) checks.push({ kind: "late", tone: "warn", dueAt: task.dueAt });
+  const type = requiredFileType(task.instructions);
+  const wrongType = type ? facts.files.filter((file) => !file.name.toLowerCase().endsWith(`.${type}`) && !(type === "doc" && /\.docx$/i.test(file.name))) : [];
+  if (type && wrongType.length) checks.push({ kind: "fileType", tone: "warn", type, files: wrongType.map((file) => file.name) });
+  const pattern = namingPattern(task.instructions);
+  const misnamed = pattern ? facts.files.filter((file) => !matchesNaming(pattern, file.name)) : [];
+  if (pattern && misnamed.length) checks.push({ kind: "naming", tone: "warn", pattern, files: misnamed.map((file) => file.name) });
+  return {
+    checks,
+    blocked: checks.some((check) => check.tone === "block"),
+    waitForWindow: checks.some((check) => check.kind === "attendanceEarly"),
+  };
 }
