@@ -161,7 +161,8 @@ describe("materials, modules and announcements", () => {
     const material: Material = { id: 990001, courseId: module.courseId, moduleId: module.id, title: "Slide kuliah minggu 3", type: "pdf", content: null, sizeBytes: null, postedAt: null, updatedAt: null };
     const withMaterial = searchIndex({ ...saved, "edunex.materials": { ...saved["edunex.materials"], PL3002: [material] } }, { lang: "id", screens: [], now });
     const found = search(withMaterial, "product innovation slide").find((group) => group.kind === "material")?.items[0];
-    expect(found).toMatchObject({ key: "material:990001", target: { screen: "course", code: "PL3002", tab: "modules" } });
+    // It opens on its module.
+    expect(found).toMatchObject({ key: "material:990001", target: { screen: "course", code: "PL3002", tab: "modules", module: module.id } });
     expect(found?.kind === "material" && found.module).toMatchObject({ title: "Product Innovation", number: 3, parent: false });
   });
 
@@ -169,7 +170,7 @@ describe("materials, modules and announcements", () => {
     const midex = first("midex");
     expect(midex).toMatchObject({ kind: "module", title: "Midex/UTS", code: "PL3032" });
     expect(midex?.kind === "module" && midex.module.number).toBe(8);
-    expect(midex?.target).toMatchObject({ screen: "course", code: "PL3032", tab: "modules" });
+    expect(midex?.kind === "module" && midex.target).toEqual({ screen: "course", code: "PL3032", tab: "modules", module: midex?.kind === "module" && midex.module.id });
     // "Module 06" is found as module 6 too.
     expect(first("module 6")?.title).toBe("Module 06");
   });

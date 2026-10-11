@@ -45,10 +45,11 @@ const METER: Record<string, string> = {
   unknown: "var(--faint)",
 };
 
-export function CourseScreen({ code, tab }: { code: string; tab?: string }) {
+/** `module`: open the Modul tab on this EduNex module (search and alerts name one). */
+export function CourseScreen({ code, tab, module }: { code: string; tab?: string; module?: number }) {
   const t = useT();
   const page = useCoursePage(code);
-  const [current, setCurrent] = useState<Tab>((TABS as readonly string[]).includes(tab ?? "") ? (tab as Tab) : "modules");
+  const [current, setCurrent] = useState<Tab>(module === undefined && (TABS as readonly string[]).includes(tab ?? "") ? (tab as Tab) : "modules");
 
   if (page === undefined) return <Loading />;
   if (page === null)
@@ -92,7 +93,7 @@ export function CourseScreen({ code, tab }: { code: string; tab?: string }) {
           ) : (
             <>
               <Tabs.Content value="modules" className="focus-ring rounded-sm">
-                <ModulesTab page={page} />
+                <ModulesTab page={page} module={module} />
               </Tabs.Content>
               <Tabs.Content value="meetings" className="focus-ring rounded-sm">
                 <MeetingsTab page={page} />

@@ -120,6 +120,20 @@ describe("quick search", () => {
     expect(rows.filter((r) => r.includes("Kelas gabungan"))).toHaveLength(1);
   });
 
+  it("a module opens its course on that module, selected, and ⌘[ goes back", async () => {
+    screen = await openApp({ signedIn: true, six: true });
+    await commandK();
+    await type("02 penyusunan proposal");
+    expect(activeRow()).toMatch(/^02 Penyusunan Proposal TA/);
+    await press("Enter");
+    expect(h1()).toBe("Proposal Tugas Akhir");
+    expect(document.querySelector("[role=tab][data-state=active]")?.textContent).toMatch(/^Modul/);
+    expect(document.querySelector("#course-entry")?.textContent).toBe("02 Penyusunan Proposal TA");
+    expect(document.querySelector("nav [aria-current=true]")?.textContent).toContain("02 Penyusunan Proposal TA");
+    await press("[", { metaKey: true });
+    expect(document.querySelector("#course-entry")).toBeNull();
+  });
+
   it("an exam opens its exam page: SIX's sitting and EduNex's take-home are one UTS", async () => {
     screen = await openApp({ signedIn: true, six: true });
     await commandK();

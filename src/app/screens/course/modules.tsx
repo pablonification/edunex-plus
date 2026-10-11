@@ -3,7 +3,7 @@
 // Tasks and materials. It opens on the newest module with something in it;
 // empty modules take one quiet line. Each material type gets the one action
 // that fits it: download, join, read here, open, or EduNex itself.
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   contentCounts,
   htmlText,
@@ -50,7 +50,8 @@ const countLine = (t: Translate, entry: Entry) =>
     .map(({ kind, count }) => t(`course.kind.${kind}`, { count }))
     .join(" · ");
 
-export function ModulesTab({ page }: { page: CoursePage }) {
+/** `module`: the EduNex module asked for (from search or an alert); it opens selected and in view. */
+export function ModulesTab({ page, module }: { page: CoursePage; module?: number }) {
   const t = useT();
   const now = useNow();
   const { course, outline } = page;
@@ -74,15 +75,21 @@ export function ModulesTab({ page }: { page: CoursePage }) {
     })),
   ];
   const first = entries[newestWithContent(entries.map((e) => ({ hasContent: e.tasks.length + e.materials.length > 0, at: latest(e), parent: e.parent })))];
-  const [selected, setSelected] = useState<string | null>(null);
+  const [selected, setSelected] = useState<string | null>(module === undefined ? null : String(module));
   const active = entries.find((e) => e.id === selected) ?? first;
+  const asked = module !== undefined && active?.id === String(module);
+  const root = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (asked) root.current?.scrollIntoView?.({ block: "start" });
+    // Only on arrival, with the tabs still in view: picking another module later doesn't move the page.
+  }, []);
 
   if (!active) return <EmptyState icon={<Icons.BookOpen className="size-5" />} title={t("course.noMaterials")} />;
   const firstParent = entries.findIndex((e) => e.parent);
   const anyContent = entries.some((e) => e.tasks.length || e.materials.length);
 
   return (
-    <div className="grid grid-cols-[260px_minmax(0,1fr)] gap-8 max-[1180px]:grid-cols-[220px_minmax(0,1fr)]">
+    <div ref={root} className="grid scroll-mt-20 grid-cols-[260px_minmax(0,1fr)] gap-8 max-[1180px]:grid-cols-[220px_minmax(0,1fr)]">
       <nav aria-label={t("course.contents")} className="self-start">
         <p className="mb-2 px-2 text-caption font-semibold tracking-[0.04em] text-faint uppercase">{t("course.contents")}</p>
         <ol className="space-y-0.5">
