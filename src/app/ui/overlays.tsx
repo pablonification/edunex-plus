@@ -3,11 +3,36 @@
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import * as PopoverPrimitive from "@radix-ui/react-popover";
 import * as TooltipPrimitive from "@radix-ui/react-tooltip";
-import { useEffect, useSyncExternalStore, type ReactNode } from "react";
+import { useEffect, useRef, useSyncExternalStore, type ReactNode } from "react";
 import { useT } from "../i18n";
 import { Button, IconButton } from "./controls";
 import { cx } from "./cx";
 import { Icons } from "./icons";
+
+/**
+ * Focus goes back to what opened a dialog or panel when it closes, by Escape
+ * or its close button. Radix only does that through its own Trigger, which a
+ * dialog opened from state (Settings, ⌘K) or a trigger wrapped for its
+ * tooltip doesn't have: focus fell to the page and the next Tab started over.
+ * A click elsewhere in a panel leaves focus where the click put it.
+ */
+export function useReturnFocus() {
+  const opener = useRef<HTMLElement | null>(null);
+  const clickedAway = useRef(false);
+  return {
+    onOpenAutoFocus: () => {
+      opener.current = document.activeElement instanceof HTMLElement && document.activeElement !== document.body ? document.activeElement : null;
+      clickedAway.current = false;
+    },
+    onPointerDownOutside: () => {
+      clickedAway.current = true;
+    },
+    onCloseAutoFocus: (event: Event) => {
+      event.preventDefault();
+      if (!clickedAway.current && opener.current?.isConnected) opener.current.focus();
+    },
+  };
+}
 
 export function Dialog({
   open,
@@ -23,12 +48,15 @@ export function Dialog({
   className?: string;
 }) {
   const t = useT();
+  const { onOpenAutoFocus, onCloseAutoFocus } = useReturnFocus();
   return (
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
       <DialogPrimitive.Portal>
         <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-scrim backdrop-blur-[2px] motion-safe:animate-fade-in" />
         <DialogPrimitive.Content
           aria-describedby={undefined}
+          onOpenAutoFocus={onOpenAutoFocus}
+          onCloseAutoFocus={onCloseAutoFocus}
           className={cx(
             "fixed top-1/2 left-1/2 z-50 flex max-h-[min(720px,86vh)] w-[min(600px,calc(100vw-48px))] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden",
             "rounded-2xl bg-raised text-fg shadow-dialog ring-1 ring-black/10 focus:outline-none motion-safe:animate-pop-in dark:ring-white/10",
@@ -69,12 +97,15 @@ export function ConfirmDialog({
   busy?: boolean;
 }) {
   const t = useT();
+  const { onOpenAutoFocus, onCloseAutoFocus } = useReturnFocus();
   return (
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
       <DialogPrimitive.Portal>
         <DialogPrimitive.Overlay className="fixed inset-0 z-[55] bg-scrim motion-safe:animate-fade-in" />
         <DialogPrimitive.Content
           role="alertdialog"
+          onOpenAutoFocus={onOpenAutoFocus}
+          onCloseAutoFocus={onCloseAutoFocus}
           className="fixed top-1/2 left-1/2 z-[55] w-[min(420px,calc(100vw-48px))] -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-raised p-5 text-fg shadow-dialog ring-1 ring-black/10 focus:outline-none motion-safe:animate-pop-in dark:ring-white/10"
         >
           <DialogPrimitive.Title className="text-title font-semibold">{title}</DialogPrimitive.Title>
@@ -135,12 +166,14 @@ export function Popover({
   className?: string;
   children: ReactNode;
 }) {
+  const returnFocus = useReturnFocus();
   return (
     <PopoverPrimitive.Root open={open} onOpenChange={onOpenChange}>
       <PopoverPrimitive.Trigger asChild>{trigger}</PopoverPrimitive.Trigger>
       <PopoverPrimitive.Portal>
         <PopoverPrimitive.Content
           aria-label={label}
+          {...returnFocus}
           align={align}
           sideOffset={8}
           collisionPadding={12}
