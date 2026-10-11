@@ -47,3 +47,15 @@ export function nearestLetter(ip: number | null): LetterGrade {
   if (ip === null) return "B";
   return [...LETTER_GRADES].sort((a, b) => Math.abs(GRADE_POINTS[a] - ip) - Math.abs(GRADE_POINTS[b] - ip) || GRADE_POINTS[b] - GRADE_POINTS[a])[0];
 }
+
+/**
+ * The graduation predicate (Peraturan Akademik ITB): an honors level, else
+ * "sangat memuaskan" above 2,75, else "memuaskan" from 2,00. One word for an
+ * IPK, wherever it shows.
+ */
+export type Predicate = HonorLevel | "very-good" | "good";
+
+export function predicateFor(ipk: number | null, path: Path): Predicate | null {
+  if (ipk === null) return null;
+  return honorFor(ipk, path) ?? (ipk > 2.75 + 1e-9 ? "very-good" : ipk >= 2 - 1e-9 ? "good" : null);
+}

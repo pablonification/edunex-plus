@@ -174,13 +174,17 @@ const dismiss = (id: number) => {
   publish();
 };
 
-/** A short message at the bottom of the window that goes away by itself; with an action, a little later. */
-export function toast(text: string, tone: ToastItem["tone"] = "neutral", action?: ToastItem["action"]): void {
+/** A short message at the bottom of the window that goes away by itself; with an action, a little later. Returns its id. */
+export function toast(text: string, tone: ToastItem["tone"] = "neutral", action?: ToastItem["action"]): number {
   const id = nextId++;
   toasts = [...toasts.slice(-2), { id, text, tone, action }];
   publish();
   setTimeout(() => dismiss(id), action ? 8_000 : 5_000);
+  return id;
 }
+
+/** Takes a toast away early (an undo that no longer applies). */
+export const dismissToast = (id: number) => dismiss(id);
 
 export function Toaster() {
   const items = useSyncExternalStore(
