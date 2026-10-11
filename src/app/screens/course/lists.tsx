@@ -9,12 +9,30 @@ import type { Announcement, Task } from "../../../core/models";
 import { byDeadline, isOpenStatus, submittedAt, taskStatus } from "../../../core/tasks";
 import { useOpenExternal } from "../../hooks";
 import { useFormat, useNow, useT } from "../../i18n";
+import { useSignIn } from "../../shell/source-status";
+import { useStatus } from "../../store";
 import { Button } from "../../ui/controls";
 import { Card } from "../../ui/display";
 import { Icons } from "../../ui/icons";
 import { Section } from "../../ui/layout";
 import { ExamRows } from "../exam";
 import { TaskRows } from "../tasks";
+
+/** No exam known. Signed out of SIX, only EduNex was asked: said so, with the way to SIX's exam timetable. */
+function NoExams() {
+  const t = useT();
+  const sixOut = useStatus("six").state === "signed-out";
+  const { signIn, busy } = useSignIn();
+  if (!sixOut) return <p className="text-body text-muted">{t("course.noExams")}</p>;
+  return (
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+      <p className="text-body text-muted">{t("course.noExamsNoSix")}</p>
+      <Button size="sm" busy={busy} onClick={() => void signIn("six")}>
+        {t("action.signInTo", { source: "SIX" })}
+      </Button>
+    </div>
+  );
+}
 
 export function TasksTab({ tasks, exams }: { tasks: Task[]; exams: Exam[] }) {
   const t = useT();
@@ -28,7 +46,7 @@ export function TasksTab({ tasks, exams }: { tasks: Task[]; exams: Exam[] }) {
       </Section>
       {/* Always under its own heading, so "no exam yet" never floats between the Task lists. */}
       <Section id="course-exams" title={t("course.exams")} count={exams.length || undefined}>
-        {exams.length > 0 ? <ExamRows exams={exams} /> : <p className="text-body text-muted">{t("course.noExams")}</p>}
+        {exams.length > 0 ? <ExamRows exams={exams} /> : <NoExams />}
       </Section>
       {done.length > 0 && (
         <Section id="course-done" title={t("course.handedIn")} count={done.length}>

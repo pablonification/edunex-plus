@@ -83,6 +83,7 @@ export const coursePageStrings = {
   // Tasks and exams
   "course.noTasks": { id: "Tidak ada tugas", en: "No tasks" },
   "course.exams": { id: "Ujian", en: "Exams" },
+  "course.noExamsNoSix": { id: "Belum ada ujian di EduNex. Jadwal ujian dari SIX muncul setelah SIX terhubung.", en: "No exams in EduNex yet. SIX's exam timetable shows once SIX is connected." },
   "course.noExams": { id: "Belum ada ujian di SIX maupun EduNex", en: "No exams in SIX or EduNex yet" },
   "course.due": { id: "Tenggat {when}", en: "Due {when}" },
 

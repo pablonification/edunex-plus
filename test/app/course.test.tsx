@@ -427,11 +427,22 @@ describe("announcements and exams", () => {
   });
 
   it("Tasks & Exams says when neither SIX nor EduNex has an exam", async () => {
-    await openCourse("PL3002");
+    await openCourse("PL3002", { six: true });
     await tab(/^Tugas & Ujian/);
     const exams = [...document.querySelectorAll<HTMLElement>("main section")].find((section) => section.querySelector("h2")?.textContent?.startsWith("Ujian"));
     // Said under the exams' own heading, not floating between the Task lists.
     expect(exams?.textContent).toContain("Belum ada ujian di SIX maupun EduNex");
+  });
+
+  it("without SIX, Tasks & Exams doesn't claim SIX has no exam, and offers SIX", async () => {
+    const s = await openCourse("PL3002");
+    await tab(/^Tugas & Ujian/);
+    const exams = [...document.querySelectorAll<HTMLElement>("main section")].find((section) => section.querySelector("h2")?.textContent?.startsWith("Ujian"));
+    expect(exams?.textContent).toContain("Belum ada ujian di EduNex. Jadwal ujian dari SIX muncul setelah SIX terhubung.");
+    expect(exams?.textContent).not.toContain("SIX maupun");
+    await s.click([...exams!.querySelectorAll("button")].find((b) => b.textContent === "Masuk ke SIX")!);
+    await s.wait();
+    expect(s.store.status("six").state).toBe("live");
   });
 
   it("Tasks & Exams lists the same exams as Tugas & Ujian, each opening its page", async () => {
