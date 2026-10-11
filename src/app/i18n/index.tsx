@@ -13,13 +13,14 @@ export interface UiClock {
   subscribe(listener: () => void): () => void;
 }
 
-/** Real time, published on each minute boundary. */
-export function systemClock(): UiClock {
-  let current = Date.now();
+/** Real time (moved by `offsetMs`, for the development demo), published on each minute boundary. */
+export function systemClock(offsetMs = 0): UiClock {
+  const read = () => Date.now() + offsetMs;
+  let current = read();
   const listeners = new Set<() => void>();
   let timer: ReturnType<typeof setTimeout> | null = null;
   const tick = () => {
-    current = Date.now();
+    current = read();
     for (const listener of listeners) listener();
     timer = setTimeout(tick, 60_000 - (current % 60_000) + 50);
   };
@@ -27,7 +28,7 @@ export function systemClock(): UiClock {
     now: () => current,
     subscribe(listener) {
       listeners.add(listener);
-      if (!timer) timer = setTimeout(tick, 60_000 - (Date.now() % 60_000) + 50);
+      if (!timer) timer = setTimeout(tick, 60_000 - (read() % 60_000) + 50);
       return () => {
         listeners.delete(listener);
         if (!listeners.size && timer) {

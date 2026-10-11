@@ -34,7 +34,7 @@ export async function loadWindowState(storage: FileStorage): Promise<WindowState
   }
 }
 
-export function createMainWindow(options: { preload: string; state: WindowState | null; devTools: boolean; storage: FileStorage }): BrowserWindow {
+export function createMainWindow(options: { preload: string; state: WindowState | null; devTools: boolean; storage: FileStorage; clockOffset?: number }): BrowserWindow {
   const mac = process.platform === "darwin";
   const { state } = options;
   const window = new BrowserWindow({
@@ -58,6 +58,8 @@ export function createMainWindow(options: { preload: string; state: WindowState 
       webviewTag: false,
       spellcheck: false,
       devTools: options.devTools,
+      // Only the development demo runs on its own clock (see ./demo.ts).
+      additionalArguments: options.clockOffset ? [`--edunex-plus-clock-offset=${Math.round(options.clockOffset)}`] : [],
     },
   });
   if (state?.maximized) window.maximize();

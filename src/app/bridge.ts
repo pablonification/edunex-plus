@@ -7,6 +7,8 @@ import { Actions, Event, type ActionInput, type ActionName, type ActionOutput, t
 export interface BridgeApi {
   invoke(name: string, input: unknown): Promise<unknown>;
   onEvent(listener: (event: unknown) => void): () => void;
+  /** How far the development demo's clock is ahead of real time (ms); 0 in the real app. */
+  clockOffset?: number;
 }
 
 declare global {

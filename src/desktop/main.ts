@@ -16,6 +16,7 @@ import { authHandlers } from "./handlers/auth";
 import type { DesktopContext } from "./handlers/context";
 import { coreHandlers } from "./handlers/core";
 import { coursePageHandlers } from "./handlers/course-page";
+import { demo } from "./demo";
 import { scheduleHandlers } from "./handlers/schedule";
 import { sixHandlers } from "./handlers/six";
 import { tasksHandlers } from "./handlers/tasks";
@@ -39,10 +40,10 @@ declare const __APP_VERSION__: string;
 const packaged = app.isPackaged;
 /** The Vite dev server; honoured only in development. */
 const devServer = packaged ? undefined : process.env.ELECTRON_START_URL;
-// Development keeps its own name, keychain entry and data folder, apart from the installed app's.
+// Development keeps its own name, keychain entry and data folder, apart from the installed app's (the demo too).
 if (!packaged) {
-  app.setName("Edunex Plus Dev");
-  app.setPath("userData", path.join(app.getPath("appData"), "Edunex Plus Dev"));
+  app.setName(demo ? "Edunex Plus Demo" : "Edunex Plus Dev");
+  app.setPath("userData", path.join(app.getPath("appData"), demo?.profile ?? "Edunex Plus Dev"));
 }
 
 registerAppScheme();
@@ -75,9 +76,20 @@ async function start(): Promise<void> {
   denyPermissions(engineSession);
   denyPermissions(session.defaultSession);
 
-  const current = createEngine({ transport: electronTransport(engineSession), clock: systemClock, storage, vault, version: __APP_VERSION__, checkForUpdates: packaged, emit: send, alert: (notice) => void notifier.show(notice) });
+  const current = createEngine({
+    transport: demo?.transport ?? electronTransport(engineSession),
+    clock: demo?.clock ?? systemClock,
+    storage,
+    vault,
+    version: __APP_VERSION__,
+    checkForUpdates: packaged,
+    emit: send,
+    // The demo's made-up alerts stay in the app: no OS notifications.
+    alert: (notice) => void (demo ? undefined : notifier.show(notice)),
+  });
   engine = current;
   await current.load();
+  if (demo && (await demo.prepare(current))) syncing = true;
 
   const csp = contentSecurityPolicy(devServer);
   serveApp(path.join(__dirname, "..", "app"), csp);
@@ -126,7 +138,7 @@ async function start(): Promise<void> {
   applySettings(current.snapshot().settings);
   nativeTheme.on("updated", paintBackground);
 
-  window = createMainWindow({ preload: path.join(__dirname, "preload.cjs"), state: await loadWindowState(storage), devTools: !packaged, storage });
+  window = createMainWindow({ preload: path.join(__dirname, "preload.cjs"), state: await loadWindowState(storage), devTools: !packaged, storage, clockOffset: demo?.clockOffset() });
   guardAppWindow(window, isAppUrl);
   const shown = window;
   // If the page never says it's ready (it failed to load), show the window anyway so it can be closed or reloaded.
