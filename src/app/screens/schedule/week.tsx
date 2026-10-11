@@ -333,7 +333,8 @@ function MeetingBlock({ meeting, minutes, notInSix }: { meeting: OutsideMeeting 
         </span>
       )}
       {lines >= 3 && where && <span className="truncate text-muted">{where}</span>}
-      {lines >= (where ? 4 : 3) && <span className="truncate text-muted">{notInSix ? t("schedule.notInSix") : t("schedule.fromEdunex")}</span>}
+      {/* Not on SIX's timetable: easy to miss, so amber, as on Beranda and the course page. */}
+      {lines >= (where ? 4 : 3) && <span className={cx("truncate", notInSix ? "font-semibold text-warning-fg" : "text-muted")}>{notInSix ? t("schedule.notInSix") : t("schedule.fromEdunex")}</span>}
     </button>
   );
   return (

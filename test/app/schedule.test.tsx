@@ -99,6 +99,9 @@ describe("Jadwal: the week as a timetable", () => {
     expect(day("Rabu, 7 Oktober")).toContain("Kosong");
     expect(items("Jumat, 9 Oktober")).toEqual(["II4091 · Pertemuan 3 · 15:00–17:00 · Daring · Tidak ada di SIX", "Gabung"]);
     expect(day("Jumat, 9 Oktober")).not.toContain("Kosong");
+    // Easy to miss, so amber, as Beranda says it.
+    const mark = [...(section("Jumat, 9 Oktober")?.querySelectorAll("span") ?? [])].find((el) => el.textContent === "Tidak ada di SIX");
+    expect(mark?.className).toContain("text-warning-fg");
     const meeting = await details(s, /^II4091 · Pertemuan 3/);
     expect(meeting).toContain("Diumumkan dosen di EduNex; jadwal SIX tidak mencantumkannya.");
     await s.click("Gabung");

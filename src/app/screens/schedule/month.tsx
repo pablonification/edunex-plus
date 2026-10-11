@@ -176,7 +176,7 @@ function monthLines(day: ScheduleDay, t: Translate, f: Format, world: ReturnType
       icon: meeting.online ? <Icons.Video className="size-3 shrink-0" strokeWidth={2} /> : <span aria-hidden className="size-2 shrink-0 rounded-full border border-dashed border-current" />,
       text: `${meeting.code} ${time(meeting.start)}`,
       full: t("schedule.month.outside", { code: meeting.code, time: time(meeting.start) }),
-      tone: "text-fg",
+      tone: "font-semibold text-warning-fg",
     });
   }
   return lines;

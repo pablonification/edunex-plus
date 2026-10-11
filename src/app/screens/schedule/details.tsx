@@ -286,7 +286,7 @@ export function MeetingDetails({ meeting, notInSix }: { meeting: OutsideMeeting 
         </Fact>
         {lecturer && <Fact icon={<Icons.User className="size-3.5" />}>{lecturer}</Fact>}
         {notInSix && (
-          <Fact icon={<Icons.Info className="size-3.5" />} tone="text-muted">
+          <Fact icon={<Icons.Info className="size-3.5" />} tone="text-warning-fg">
             {t("schedule.notInSix.long")}
           </Fact>
         )}
