@@ -232,7 +232,7 @@ function Sidebar({ onSettings }: { onSettings: () => void }) {
                     active ? "bg-selected font-semibold" : "font-medium text-fg/90 hover:bg-hover",
                   )}
                 >
-                  <Icon className={cx("size-[17px] shrink-0", active ? "text-accent-fg" : "text-muted")} strokeWidth={active ? 2 : 1.75} />
+                  <Icon className={cx("size-[17px] shrink-0", active ? "text-accent-fg" : "text-muted")} weight={active ? "fill" : "regular"} />
                   <span className="flex-1 truncate text-left">{t(label)}</span>
                   {badge && <Badge tone={badge.tone === "warning" ? "warning" : "neutral"}>{badge.value}</Badge>}
                 </button>

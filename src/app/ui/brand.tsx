@@ -22,7 +22,7 @@ export function SourceLogo({ source, className }: { source: SourceId; className?
         className,
       )}
     >
-      {source === "edunex" ? <img src={edunexLogo} alt="" draggable={false} className="size-[84%] object-contain" /> : <Icons.Calendar className="size-[55%]" strokeWidth={2} />}
+      {source === "edunex" ? <img src={edunexLogo} alt="" draggable={false} className="size-[84%] object-contain" /> : <Icons.Calendar className="size-[55%]" weight="bold" />}
     </span>
   );
 }

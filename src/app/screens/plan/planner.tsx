@@ -672,7 +672,7 @@ function Rules({ record, rules }: { record: StudentRecord; rules: Rule[] }) {
               data-level={rule.level}
             >
               <span className={cx("mt-0.5 grid size-[18px] shrink-0 place-items-center rounded-full", mark.tone)} title={t(mark.label)}>
-                {rule.level === "ok" ? <Icons.Check className="size-3" strokeWidth={3} /> : <span className="text-micro font-bold">!</span>}
+                {rule.level === "ok" ? <Icons.Check className="size-3" weight="bold" /> : <span className="text-micro font-bold">!</span>}
                 <span className="sr-only">{t(mark.label)}</span>
               </span>
               <span className="min-w-0 flex-1 text-small">
@@ -740,7 +740,7 @@ function Minors({ record, state }: { record: StudentRecord; state: PlanState }) 
                 <span className="shrink-0 text-right">
                   <span className="block text-caption font-semibold tabular-nums">{t("planner.minorSks", { have: m.have, need: m.need })}</span>
                   <span className={cx("inline-flex items-center gap-1 text-caption", on ? "font-medium text-accent-fg" : "text-faint")}>
-                    {on ? <Icons.Check className="size-3" strokeWidth={2.5} /> : <Icons.Target className="size-3" />}
+                    {on ? <Icons.Check className="size-3" weight="bold" /> : <Icons.Target className="size-3" />}
                     {on ? t("planner.minorWatching") : t("planner.minorTrackShort")}
                   </span>
                 </span>

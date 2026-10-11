@@ -196,7 +196,7 @@ function AlertSettings({ settings, update, report }: { settings: Settings; updat
       </Row>
       {sent && (
         <p role="status" className="flex items-start gap-2 bg-success-bg/60 px-4 py-2.5 text-small text-success-fg">
-          <Icons.CheckCircle className="mt-0.5 size-4 shrink-0" strokeWidth={2} />
+          <Icons.CheckCircle className="mt-0.5 size-4 shrink-0" weight="bold" />
           {t("settings.alerts.testSent")}
         </p>
       )}

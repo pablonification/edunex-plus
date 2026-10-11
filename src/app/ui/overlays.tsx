@@ -246,7 +246,7 @@ export function Toaster() {
           )}
         >
           {item.tone === "danger" && <Icons.AlertTriangle className="size-4 shrink-0" />}
-          {item.tone === "success" && <Icons.CheckCircle className="size-4 shrink-0 text-live" strokeWidth={2} />}
+          {item.tone === "success" && <Icons.CheckCircle className="size-4 shrink-0 text-live" weight="bold" />}
           <span className="pr-1">{item.text}</span>
           {item.action && (
             <button

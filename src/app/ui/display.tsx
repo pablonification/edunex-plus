@@ -127,13 +127,13 @@ const STATUS_TONE: Record<TaskStatus, string> = {
 export function StatusGlyph({ status, className = "size-3.5" }: { status: TaskStatus; className?: string }) {
   switch (status) {
     case "submitted":
-      return <Icons.CheckCircle className={className} strokeWidth={2} />;
+      return <Icons.CheckCircle className={className} weight="bold" />;
     case "overdue":
-      return <Icons.AlertTriangle className={className} strokeWidth={2} />;
+      return <Icons.AlertTriangle className={className} weight="bold" />;
     case "closed":
-      return <Icons.Lock className={className} strokeWidth={2} />;
+      return <Icons.Lock className={className} weight="bold" />;
     case "in_review":
-      return <Icons.Clock className={className} strokeWidth={2} />;
+      return <Icons.Clock className={className} weight="bold" />;
     case "draft":
       return (
         <svg viewBox="0 0 24 24" className={className} aria-hidden focusable="false">
@@ -142,7 +142,7 @@ export function StatusGlyph({ status, className = "size-3.5" }: { status: TaskSt
         </svg>
       );
     default:
-      return <Icons.Circle className={className} strokeWidth={2} />;
+      return <Icons.Circle className={className} weight="bold" />;
   }
 }
 

@@ -171,7 +171,7 @@ function Status({ status, grade }: { status: SlotStatus; grade: string | null })
     case "exempt":
       return (
         <span className="inline-flex items-center gap-1 text-small text-muted whitespace-nowrap">
-          <Icons.Check className="size-3.5 text-success-fg" strokeWidth={2.5} />
+          <Icons.Check className="size-3.5 text-success-fg" weight="bold" />
           {label}
           {grade && status === "passed" && <span className="font-semibold text-fg tabular-nums">· {grade}</span>}
         </span>
@@ -280,7 +280,7 @@ function PackageMark({ status }: { status: SlotStatus }) {
   if (status === "passed" || status === "exempt")
     return (
       <span className="shrink-0">
-        <Icons.Check className="size-3.5 text-success-fg" strokeWidth={2.5} />
+        <Icons.Check className="size-3.5 text-success-fg" weight="bold" />
         <span className="sr-only">{t(`curriculum.status.${status}`)}</span>
       </span>
     );

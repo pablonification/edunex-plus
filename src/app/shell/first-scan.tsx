@@ -185,7 +185,7 @@ function Summary({ summary }: { summary: ReturnType<typeof scanSummary> }) {
   ].filter(Boolean);
   return (
     <p className="flex items-center gap-2 text-small font-medium text-muted">
-      <Icons.CheckCircle className="size-4 shrink-0 text-success-fg" strokeWidth={2} />
+      <Icons.CheckCircle className="size-4 shrink-0 text-success-fg" weight="bold" />
       {[connected, t("scan.read", { list: read.join(", ") })].filter(Boolean).join(" · ")}
     </p>
   );

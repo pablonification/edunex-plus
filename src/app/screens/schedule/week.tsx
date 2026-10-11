@@ -87,7 +87,7 @@ function BandLabel({ event, f, uncertain, short }: { event: CalendarEvent; f: Fo
   const span = f.dayRange(event.firstDay, event.lastDay);
   return (
     <>
-      <Icons.Flag className="size-3 shrink-0" strokeWidth={2} />
+      <Icons.Flag className="size-3 shrink-0" weight="bold" />
       <span className="truncate" title={`${event.title} · ${span}`}>
         {periodName(t, event)}
         {!short && ` · ${span}`}
@@ -223,7 +223,7 @@ function ClassBlock({ item, minutes, narrow }: { item: ScheduledClass; minutes: 
       {/* A narrow block has no room for "Bentrok PL3032": the icon and the other course's code say which class clashes, before the room. */}
       {clashLine && lines >= 3 && (
         <span className="relative flex min-w-0 items-center gap-1 font-semibold text-warning-fg tabular-nums">
-          <Icons.Overlap className="size-3 shrink-0" strokeWidth={2} />
+          <Icons.Overlap className="size-3 shrink-0" weight="bold" />
           <span className="truncate">{overlaps.map((o) => o.code).join(", ")}</span>
         </span>
       )}
@@ -293,9 +293,9 @@ function MarkWords({ item, max, narrow }: { item: ScheduledClass; max: number; n
 function MarkIcons({ item }: { item: ScheduledClass }) {
   return (
     <span aria-hidden className={cx("flex shrink-0 items-center gap-0.5", !item.uncertain && "ml-auto")}>
-      {item.moved && <Icons.History className="size-3 text-warning-fg" strokeWidth={2} />}
-      {item.extra && <Icons.Plus className="size-3 text-warning-fg" strokeWidth={2} />}
-      {item.overlaps.length > 0 && <Icons.Overlap className="size-3 text-warning-fg" strokeWidth={2} />}
+      {item.moved && <Icons.History className="size-3 text-warning-fg" weight="bold" />}
+      {item.extra && <Icons.Plus className="size-3 text-warning-fg" weight="bold" />}
+      {item.overlaps.length > 0 && <Icons.Overlap className="size-3 text-warning-fg" weight="bold" />}
     </span>
   );
 }
@@ -344,7 +344,7 @@ function MeetingBlock({ meeting, minutes, notInSix }: { meeting: OutsideMeeting 
           onClick={() => open(meeting.link!)}
           className="focus-ring absolute right-1 bottom-1 z-10 inline-flex h-6 items-center gap-1 rounded-md bg-accent px-2 text-micro font-semibold text-on-accent shadow-button hover:bg-accent-hover"
         >
-          <Icons.Video className="size-3" strokeWidth={2} />
+          <Icons.Video className="size-3" weight="bold" />
           {t("schedule.join")}
         </button>
       )}
@@ -369,7 +369,7 @@ function WindowChip({ window }: { window: TaskWindow }) {
         done ? "border-success-fg/40 text-success-fg" : "border-accent-fg/50 bg-surface",
       )}
     >
-      {done ? <Icons.CheckCircle className="mt-0.5 size-3 shrink-0" strokeWidth={2} /> : <Icons.Upload className="mt-0.5 size-3 shrink-0 text-accent-fg" strokeWidth={2} />}
+      {done ? <Icons.CheckCircle className="mt-0.5 size-3 shrink-0" weight="bold" /> : <Icons.Upload className="mt-0.5 size-3 shrink-0 text-accent-fg" weight="bold" />}
       <span className="line-clamp-3 min-w-0">
         <span className="font-semibold tabular-nums">{window.code}</span> {text}
       </span>
@@ -393,7 +393,7 @@ function DueChip({ task }: { task: Task }) {
       aria-label={t("schedule.due", { time, title: task.title })}
       className="focus-ring flex w-full items-start gap-1.5 rounded-md px-1.5 py-1 text-left text-caption transition-colors duration-150 hover:bg-hover"
     >
-      <Icons.Clock className="mt-0.5 size-3 shrink-0 text-muted" strokeWidth={2} />
+      <Icons.Clock className="mt-0.5 size-3 shrink-0 text-muted" weight="bold" />
       <span className="line-clamp-2 min-w-0">
         <span className="font-semibold tabular-nums">{time}</span>{" "}
         <span aria-hidden className="mb-px inline-block size-1.5 rounded-full align-middle" style={{ background: world.color(task.courseCode) }} />{" "}

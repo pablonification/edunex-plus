@@ -324,7 +324,7 @@ function Attendance({ card }: { card: NowCard }) {
       <div className="min-w-0 flex-1">
         {where && (
           <p className="flex items-center gap-2 text-body font-medium">
-            <Icons.CheckCircle className="size-4 shrink-0 text-success-fg" strokeWidth={2} />
+            <Icons.CheckCircle className="size-4 shrink-0 text-success-fg" weight="bold" />
             {where}
           </p>
         )}
@@ -586,7 +586,7 @@ function NeedsYou({ needs, courses }: { needs: Need[]; courses: readonly TermCou
       ) : (
         <div className="rounded-xl bg-sunken px-4 py-3.5">
           <p className="flex items-center gap-2 text-body font-medium">
-            <Icons.CheckCircle className="size-4 text-success-fg" strokeWidth={2} />
+            <Icons.CheckCircle className="size-4 text-success-fg" weight="bold" />
             {t("home.needs.none", { day: `${f.weekday(now + 7 * DAY)}, ${f.dayMonth(now + 7 * DAY)}` })}
           </p>
           <p className="mt-0.5 pl-6 text-small text-muted">{t("home.needs.noneHint")}</p>

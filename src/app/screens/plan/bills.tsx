@@ -49,7 +49,7 @@ function StatusChip({ bill }: { bill: Bill }) {
   const label = urgency === "overdue" ? t("bills.status.overdue") : t(`bills.status.${bill.status}`);
   return (
     <span className={cx("inline-flex h-[22px] shrink-0 items-center gap-1.5 rounded-full px-2 text-caption font-semibold whitespace-nowrap", tone)}>
-      <Icon className="size-3" strokeWidth={2} />
+      <Icon className="size-3" weight="bold" />
       {label}
     </span>
   );

@@ -211,7 +211,7 @@ export function Notice({
   const { box, Icon } = NOTICE[tone];
   return (
     <div className={cx("flex items-start gap-3 rounded-xl px-4 py-3", box, className)}>
-      <span className="mt-0.5 shrink-0">{icon ?? <Icon className="size-4" strokeWidth={2} />}</span>
+      <span className="mt-0.5 shrink-0">{icon ?? <Icon className="size-4" weight="bold" />}</span>
       <div className="min-w-0 flex-1">
         <div className="text-body font-semibold">{title}</div>
         {children && <div className="mt-0.5 text-small opacity-90">{children}</div>}

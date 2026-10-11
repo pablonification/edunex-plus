@@ -133,13 +133,13 @@ function Answer({ courses, known }: { courses: CourseAttendance[]; known: boolea
   if (!attention)
     return (
       <span className="inline-flex items-center gap-1.5 font-medium text-success-fg">
-        <Icons.CheckCircle className="size-4" strokeWidth={2} />
+        <Icons.CheckCircle className="size-4" weight="bold" />
         {t("presence.answer.fine")}
       </span>
     );
   return (
     <span className={cx("inline-flex items-center gap-1.5 font-medium", out ? "text-danger-fg" : "text-warning-fg")}>
-      <Icons.AlertTriangle className="size-4" strokeWidth={2} />
+      <Icons.AlertTriangle className="size-4" weight="bold" />
       {t("presence.answer.attention", { count: attention })}
     </span>
   );

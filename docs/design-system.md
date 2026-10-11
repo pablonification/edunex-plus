@@ -210,10 +210,12 @@ an instant and live dots stop pulsing.
 
 ## Icons
 
-Inline SVG in the Lucide style (`src/app/ui/icons.tsx`): 24 px grid, round
-caps, 1.75 stroke (2 when active or inside chips). Sizes: 12 to 14 px in
-chips and meta lines, 16 px in rows and buttons, 18 px in the top bar.
-Icons are decorative; the control around them carries the name.
+Phosphor (`src/app/ui/icons.tsx`; MIT), each icon imported on its own so only
+the ones in use ship. Regular weight by default; bold where a small icon has
+to read clearly or stand out (chips, notices, a moved class); fill for the
+place the Student is in (the sidebar's current screen). Sizes: 12 to 14 px in
+chips and meta lines, 16 px in rows and buttons, 18 px in the top bar. Icons
+are decorative; the control around them carries the name.
 
 ## Window chrome
 

@@ -161,7 +161,7 @@ function DeadlineRow({ deadline, index }: { deadline: Deadline; index?: number }
           </span>
           {meaning && (
             <span className={cx("mt-0.5 flex items-start gap-1.5 text-small", warn ? "font-medium text-warning-fg" : meaning.done ? "text-success-fg" : "text-muted")}>
-              {meaning.done && <Icons.Check className="mt-[3px] size-3 shrink-0" strokeWidth={2.5} />}
+              {meaning.done && <Icons.Check className="mt-[3px] size-3 shrink-0" weight="bold" />}
               {warn && <Icons.AlertTriangle className="mt-[3px] size-3 shrink-0" />}
               {t(meaning.key, meaning.vars)}
             </span>

@@ -162,7 +162,7 @@ function Timeline({ title, steps }: { title: string; steps: KrsStep[] }) {
                 step.done ? "bg-live text-white" : "border border-track bg-surface",
               )}
             >
-              {step.done && <Icons.Check className="size-2.5" strokeWidth={3.5} />}
+              {step.done && <Icons.Check className="size-2.5" weight="bold" />}
             </span>
             <p className={cx("text-body font-medium", !step.done && "text-muted")}>{t(`krs.step.${step.key}`)}</p>
             <p className="text-caption text-muted tabular-nums">

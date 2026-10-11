@@ -99,7 +99,7 @@ export function MonthView({ month, input, onShowWeek }: { month: MonthGrid; inpu
                   {routine && <span className="line-clamp-2 text-faint">{routine}</span>}
                   {clashes.length > 0 && (
                     <span title={clashes.map((c) => c.full).join(", ")} className="flex min-w-0 items-center gap-1 font-semibold text-warning-fg">
-                      <Icons.Overlap className="size-3 shrink-0" strokeWidth={2} />
+                      <Icons.Overlap className="size-3 shrink-0" weight="bold" />
                       <span className="truncate">{clashes.length === 1 ? t("schedule.month.clashAt", { time: clashes[0]!.from }) : t("schedule.month.clashes", { count: clashes.length })}</span>
                     </span>
                   )}
@@ -123,7 +123,7 @@ function monthLines(day: ScheduleDay, t: Translate, f: Format, world: ReturnType
   const lines: Line[] = [];
   const time = (ms: number) => f.time(ms);
   for (const event of day.events.filter((e) => MARKED.has(e.kind))) {
-    lines.push({ key: `c${event.id}`, icon: <Icons.Flag className="size-3 shrink-0" strokeWidth={2} />, text: periodName(t, event), full: event.title, tone: "font-semibold text-(--source-itb-fg)" });
+    lines.push({ key: `c${event.id}`, icon: <Icons.Flag className="size-3 shrink-0" weight="bold" />, text: periodName(t, event), full: event.title, tone: "font-semibold text-(--source-itb-fg)" });
   }
   for (const { session, exam } of day.classes) {
     if (!exam) continue;
@@ -139,7 +139,7 @@ function monthLines(day: ScheduleDay, t: Translate, f: Format, world: ReturnType
     const done = window.presence.recorded?.present || (window.task !== null && taskStatus(window.task, world.now) === "submitted");
     lines.push({
       key: `w${window.presence.id}`,
-      icon: done ? <Icons.CheckCircle className="size-3 shrink-0" strokeWidth={2} /> : <Icons.Upload className="size-3 shrink-0" strokeWidth={2} />,
+      icon: done ? <Icons.CheckCircle className="size-3 shrink-0" weight="bold" /> : <Icons.Upload className="size-3 shrink-0" weight="bold" />,
       text: window.task?.title ?? window.code,
       full: `${window.code} · ${done ? t("schedule.window.done", { task: window.task?.title ?? window.code }) : t("schedule.handIn", { task: window.task?.title ?? window.code, time: time(window.presence.closesAt) })}`,
       tone: done ? "text-success-fg" : "font-semibold text-accent-fg",
@@ -148,7 +148,7 @@ function monthLines(day: ScheduleDay, t: Translate, f: Format, world: ReturnType
   for (const task of day.due) {
     lines.push({
       key: `t${task.id}`,
-      icon: <Icons.Clock className="size-3 shrink-0" strokeWidth={2} />,
+      icon: <Icons.Clock className="size-3 shrink-0" weight="bold" />,
       text: task.title,
       full: t("schedule.month.due", { code: task.courseCode, title: task.title, time: time(task.dueAt!) }),
     });
@@ -157,7 +157,7 @@ function monthLines(day: ScheduleDay, t: Translate, f: Format, world: ReturnType
     if (moved)
       lines.push({
         key: `m${session.id}`,
-        icon: <Icons.History className="size-3 shrink-0" strokeWidth={2} />,
+        icon: <Icons.History className="size-3 shrink-0" weight="bold" />,
         text: session.courseCode,
         full: t("schedule.month.moved", { code: session.courseCode, time: time(session.start) }),
         tone: "font-semibold text-warning-fg",
@@ -165,7 +165,7 @@ function monthLines(day: ScheduleDay, t: Translate, f: Format, world: ReturnType
     if (extra)
       lines.push({
         key: `x${session.id}`,
-        icon: <Icons.Plus className="size-3 shrink-0" strokeWidth={2} />,
+        icon: <Icons.Plus className="size-3 shrink-0" weight="bold" />,
         text: session.courseCode,
         full: t("schedule.month.extra", { code: session.courseCode, time: time(session.start) }),
         tone: "font-semibold text-warning-fg",
@@ -174,7 +174,7 @@ function monthLines(day: ScheduleDay, t: Translate, f: Format, world: ReturnType
   for (const meeting of day.outside) {
     lines.push({
       key: `a${meeting.code}${meeting.start}`,
-      icon: meeting.online ? <Icons.Video className="size-3 shrink-0" strokeWidth={2} /> : <span aria-hidden className="size-2 shrink-0 rounded-full border border-dashed border-current" />,
+      icon: meeting.online ? <Icons.Video className="size-3 shrink-0" weight="bold" /> : <span aria-hidden className="size-2 shrink-0 rounded-full border border-dashed border-current" />,
       text: `${meeting.code} ${time(meeting.start)}`,
       full: t("schedule.month.outside", { code: meeting.code, time: time(meeting.start) }),
       tone: "font-semibold text-warning-fg",

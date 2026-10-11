@@ -178,7 +178,7 @@ function MeetingRow({
   if (state === "present")
     status = (
       <span className="inline-flex h-[22px] items-center gap-1.5 rounded-full bg-success-bg px-2 text-caption font-semibold text-success-fg">
-        <Icons.CheckCircle className="size-3" strokeWidth={2} />
+        <Icons.CheckCircle className="size-3" weight="bold" />
         {t("meeting.state.present")}
       </span>
     );

@@ -1278,7 +1278,7 @@ function FileRow({
           </span>
           {detail && !failed && (
             <span className="flex items-center gap-1 text-caption text-muted">
-              {state === "uploaded" && <Icons.Check className="size-3 text-success-fg" strokeWidth={2.5} />}
+              {state === "uploaded" && <Icons.Check className="size-3 text-success-fg" weight="bold" />}
               {detail}
             </span>
           )}

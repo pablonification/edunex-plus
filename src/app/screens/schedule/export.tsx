@@ -188,7 +188,7 @@ function Saved({ file, events, onDone }: { file: string; events: number; onDone:
     <div>
       <div className="flex items-start gap-3">
         <span className="grid size-9 shrink-0 place-items-center rounded-full bg-success-bg text-success-fg">
-          <Icons.Check className="size-5" strokeWidth={2.25} />
+          <Icons.Check className="size-5" weight="bold" />
         </span>
         <div className="min-w-0 flex-1">
           <p className="text-title font-semibold">{t("schedule.export.saved", { count: events })}</p>
