@@ -136,6 +136,8 @@ describe("Home", () => {
     screen.world.edunex.mangle(/^\/course\/presences\/list$/, { kind: "missing-field", field: "course_code" });
     await screen.engineDoes(async () => screen?.engine.refresh("edunex"));
     expect(screen.text()).toContain("EduNex berubah");
+    // The banner reads as two sentences, like the offline and ended-session ones.
+    expect(document.querySelector("[role=status] p")?.textContent).toMatch(/^EduNex berubah\. EduNex /);
     expect(cards()).toHaveLength(5);
   });
 });

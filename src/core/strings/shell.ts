@@ -49,6 +49,7 @@ export const shellStrings = {
   "banner.offline": { id: "Tidak ada koneksi.", en: "No connection." },
   "banner.offlineHint": { id: "Data dari {time} tetap ditampilkan; aplikasi mencoba lagi sendiri.", en: "Data from {time} is still shown; the app keeps trying." },
   "banner.expired": { id: "Sesi {source} berakhir.", en: "Your {source} session ended." },
+  "banner.changed": { id: "{source} berubah.", en: "{source} changed something." },
   "banner.signedOut": { id: "Kamu belum masuk ke {source}.", en: "You're not signed in to {source}." },
   "banner.keptHint": { id: "Data terakhir tetap bisa dibaca.", en: "Your last data stays readable." },
   "status.expiredHint": {

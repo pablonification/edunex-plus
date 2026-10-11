@@ -209,7 +209,7 @@ export function ProblemBanner() {
       ? t("banner.expired", { source: name })
       : problem.state === "signed-out"
         ? t("banner.signedOut", { source: name })
-        : t("status.changed", { source: name });
+        : t("banner.changed", { source: name });
   const detail = offline
     ? lastUpdate
       ? t("banner.offlineHint", { time: f.time(lastUpdate) })
