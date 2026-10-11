@@ -91,9 +91,10 @@ export function Switch({
       onCheckedChange={onCheckedChange}
       aria-label={label}
       disabled={disabled}
-      className="focus-ring relative inline-flex h-[22px] w-[38px] shrink-0 items-center rounded-full bg-track transition-colors duration-150 disabled:opacity-50 data-[state=checked]:bg-accent"
+      // Calm when on (ink, not accent): a settings list of ten switches must not shout.
+      className="focus-ring relative inline-flex h-5 w-[34px] shrink-0 items-center rounded-full bg-track transition-colors duration-150 disabled:opacity-50 data-[state=checked]:bg-fg"
     >
-      <SwitchPrimitive.Thumb className="block size-[18px] translate-x-[2px] rounded-full bg-white shadow-thumb transition-transform duration-150 ease-standard data-[state=checked]:translate-x-[18px]" />
+      <SwitchPrimitive.Thumb className="block size-4 translate-x-[2px] rounded-full bg-white shadow-thumb transition-transform duration-150 ease-standard data-[state=checked]:translate-x-4 data-[state=checked]:bg-surface" />
     </SwitchPrimitive.Root>
   );
 }
