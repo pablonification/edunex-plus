@@ -63,6 +63,7 @@ export const coursePageStrings = {
 
   // Meetings
   "meeting.none": { id: "Belum ada pertemuan", en: "No meetings yet" },
+  "meeting.noSix": { id: "Jadwal pertemuan dan ruangnya datang dari SIX", en: "Meeting times and rooms come from SIX" },
   "meeting.noEdunexPresence": { id: "Kelas ini tidak memakai Presensi EduNex", en: "This class doesn't use EduNex Presence" },
   "meeting.number": { id: "Pertemuan {no}", en: "Meeting {no}" },
   "meeting.window": { id: "Presensi {range}", en: "Presence {range}" },
@@ -79,8 +80,7 @@ export const coursePageStrings = {
   // Tasks and exams
   "course.noTasks": { id: "Tidak ada tugas", en: "No tasks" },
   "course.exams": { id: "Ujian", en: "Exams" },
-  "course.noExams": { id: "Tidak ada ujian di EduNex", en: "No exams on EduNex" },
-  "course.examUntitled": { id: "Ujian EduNex", en: "EduNex exam" },
+  "course.noExams": { id: "Belum ada ujian di SIX maupun EduNex", en: "No exams in SIX or EduNex yet" },
   "course.due": { id: "Tenggat {when}", en: "Due {when}" },
 
   // Announcements

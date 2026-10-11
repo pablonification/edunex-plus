@@ -38,10 +38,11 @@ import {
   type ProjectedStep,
 } from "../../../core/planner";
 import { useFormat, useT } from "../../i18n";
+import { SixEmptyState } from "../../shell/source-status";
 import { type PlanState, usePlan, useStudentRecord } from "../../study-plan";
 import { Button, IconButton } from "../../ui/controls";
 import { cx } from "../../ui/cx";
-import { Card, EmptyState, SourceTag } from "../../ui/display";
+import { Card, SourceTag } from "../../ui/display";
 import { Icons } from "../../ui/icons";
 import { Dialog } from "../../ui/overlays";
 import { GradeSelect, HonorsList, ProjectedTable, useTermLabel } from "./projection";
@@ -66,7 +67,7 @@ export function Tab() {
   const t = useT();
   const record = useStudentRecord();
   const state = usePlan(record);
-  if (!record || !state) return <EmptyState icon={<Icons.BookOpen className="size-5" />} title={t("planner.empty")} />;
+  if (!record || !state) return <SixEmptyState icon={<Icons.BookOpen className="size-5" />} title={t("planner.empty")} />;
   return <Planner record={record} state={state} />;
 }
 

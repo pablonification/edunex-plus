@@ -45,7 +45,7 @@ export function CourseScreen({ code, tab }: { code: string; tab?: string }) {
   const counts: Partial<Record<Tab, number>> = {
     modules: page.outline?.modules.length,
     meetings: page.meetings.length,
-    tasks: page.tasks.length + (page.exams?.length ?? 0),
+    tasks: page.tasks.length + page.exams.length,
     announcements: page.announcements?.length,
   };
 

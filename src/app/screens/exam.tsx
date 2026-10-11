@@ -47,7 +47,6 @@ export function ExamList({ past }: { past: boolean }) {
   const f = useFormat();
   const now = useNow();
   const exams = useExams();
-  const courses = useTermCourses();
   if (!exams) return null;
   const shown = exams.filter((exam) => examPassed(exam, now) === past);
   const weeks = (["UTS", "UAS"] as const).flatMap((kind) => {
@@ -60,13 +59,7 @@ export function ExamList({ past }: { past: boolean }) {
         {t("exams.title")} <span className="text-faint tabular-nums">{shown.length}</span>
       </h2>
       {shown.length ? (
-        <Card>
-          <ul>
-            {shown.map((exam, i) => (
-              <ExamRow key={exam.id} exam={exam} course={courses?.find((c) => c.code === exam.courseCode)} first={i === 0} last={i === shown.length - 1} />
-            ))}
-          </ul>
-        </Card>
+        <ExamRows exams={shown} />
       ) : (
         <p className="rounded-xl border border-dashed border-line px-4 py-3 text-small text-muted">{t(past ? "exams.nonePast" : "exams.none")}</p>
       )}
@@ -77,6 +70,20 @@ export function ExamList({ past }: { past: boolean }) {
         </p>
       )}
     </section>
+  );
+}
+
+/** Exams as rows, each opening its prep page (in Tugas & Ujian, and on a course's page). */
+export function ExamRows({ exams }: { exams: readonly Exam[] }) {
+  const courses = useTermCourses();
+  return (
+    <Card>
+      <ul>
+        {exams.map((exam, i) => (
+          <ExamRow key={exam.id} exam={exam} course={courses?.find((c) => c.code === exam.courseCode)} first={i === 0} last={i === exams.length - 1} />
+        ))}
+      </ul>
+    </Card>
   );
 }
 

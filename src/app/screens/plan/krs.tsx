@@ -8,9 +8,10 @@ import type { ClassSession, KrsPlan } from "../../../core/models";
 import { useTermCourses } from "../../courses";
 import { useFormat, useNow, useT } from "../../i18n";
 import { useNav } from "../../nav";
+import { SixEmptyState } from "../../shell/source-status";
 import { useDataset } from "../../store";
 import { cx } from "../../ui/cx";
-import { Bar, Card, CourseCode, EmptyState, SectionTitle, SourceTag } from "../../ui/display";
+import { Bar, Card, CourseCode, SectionTitle, SourceTag } from "../../ui/display";
 import { Icons } from "../../ui/icons";
 
 export const ready = true;
@@ -47,7 +48,7 @@ const STAGE_TONE: Record<KrsStage, { box: string; icon: typeof Icons.Clock }> = 
 export function Tab() {
   const t = useT();
   const plan = useDataset("six.krs");
-  if (!plan) return <EmptyState icon={<Icons.ClipboardCheck className="size-5" />} title={t("krs.empty")} />;
+  if (!plan) return <SixEmptyState icon={<Icons.ClipboardCheck className="size-5" />} title={t("krs.empty")} />;
   const { plan: steps, change } = krsTimeline(plan);
   return (
     <div className="grid grid-cols-[320px_minmax(0,1fr)] gap-8">

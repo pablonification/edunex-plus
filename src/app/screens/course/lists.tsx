@@ -1,14 +1,16 @@
 // The course page's simple lists: its Tasks (each opens the Task page), its
-// EduNex exams and its announcements.
+// exams (each opens the exam page) and its announcements.
 import { Fragment, type ReactNode } from "react";
 import { opensInBrowser } from "../../../core/course-materials";
-import type { Announcement, EdunexExam, Task } from "../../../core/models";
+import type { Exam } from "../../../core/exams";
+import type { Announcement, Task } from "../../../core/models";
 import { useOpenExternal } from "../../hooks";
 import { useFormat, useNow, useT } from "../../i18n";
 import { useNav } from "../../nav";
 import { cx } from "../../ui/cx";
 import { Card, EmptyState, SectionTitle, StatusChip } from "../../ui/display";
 import { Icons } from "../../ui/icons";
+import { ExamRows } from "../exam";
 import { isOpenTask } from "./data";
 
 export function TaskRows({ tasks }: { tasks: Task[] }) {
@@ -49,9 +51,8 @@ export function TaskRows({ tasks }: { tasks: Task[] }) {
   );
 }
 
-export function TasksTab({ tasks, exams }: { tasks: Task[]; exams: EdunexExam[] | undefined }) {
+export function TasksTab({ tasks, exams }: { tasks: Task[]; exams: Exam[] }) {
   const t = useT();
-  const f = useFormat();
   return (
     <div className="space-y-9">
       <section>
@@ -59,26 +60,8 @@ export function TasksTab({ tasks, exams }: { tasks: Task[]; exams: EdunexExam[] 
         <TaskRows tasks={tasks} />
       </section>
       <section>
-        <SectionTitle count={exams?.length}>{t("course.exams")}</SectionTitle>
-        {!exams?.length ? (
-          <EmptyState icon={<Icons.ClipboardCheck className="size-5" />} title={t("course.noExams")} />
-        ) : (
-          <Card className="overflow-hidden">
-            <ul>
-              {exams.map((exam, index) => (
-                <li key={exam.id} className={cx("flex items-center justify-between gap-4 px-4 py-3", index > 0 && "border-t border-line")}>
-                  <span className="truncate text-body font-medium">{exam.title ?? t("course.examUntitled")}</span>
-                  {exam.start !== null && (
-                    <span className="text-small whitespace-nowrap text-muted tabular-nums">
-                      {f.dueLabel(exam.start)}
-                      {exam.end !== null && `–${f.time(exam.end)}`}
-                    </span>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </Card>
-        )}
+        <SectionTitle count={exams.length}>{t("course.exams")}</SectionTitle>
+        {exams.length ? <ExamRows exams={exams} /> : <EmptyState icon={<Icons.ClipboardCheck className="size-5" />} title={t("course.noExams")} />}
       </section>
     </div>
   );

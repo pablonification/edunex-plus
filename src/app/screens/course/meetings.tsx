@@ -6,6 +6,8 @@ import { meetingState, type Meeting, type MeetingState } from "../../../core/cou
 import { edunexCourseUrl } from "../../../core/links";
 import { useOpenExternal } from "../../hooks";
 import { useFormat, useNow, useT } from "../../i18n";
+import { SixEmptyState } from "../../shell/source-status";
+import { useStatus } from "../../store";
 import { Button } from "../../ui/controls";
 import { cx } from "../../ui/cx";
 import { Card, EmptyState, LiveDot, SourceTag } from "../../ui/display";
@@ -25,6 +27,7 @@ export function MeetingsTab({ page }: { page: CoursePage }) {
   const t = useT();
   const { meetings, course, presence } = page;
   const noEdunexPresence = presence !== undefined && presence.length === 0;
+  const sixSignedOut = useStatus("six").state === "signed-out";
   return (
     <div>
       {(course.attendance || noEdunexPresence) && (
@@ -44,7 +47,11 @@ export function MeetingsTab({ page }: { page: CoursePage }) {
         </div>
       )}
       {meetings.length === 0 ? (
-        <EmptyState icon={<Icons.Calendar className="size-5" />} title={t("meeting.none")} />
+        sixSignedOut ? (
+          <SixEmptyState icon={<Icons.Calendar className="size-5" />} title={t("meeting.noSix")} />
+        ) : (
+          <EmptyState icon={<Icons.Calendar className="size-5" />} title={t("meeting.none")} />
+        )
       ) : (
         <Card className="overflow-hidden">
           <ol>

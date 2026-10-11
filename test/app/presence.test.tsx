@@ -145,6 +145,14 @@ describe("the Presensi screen", () => {
     expect(card("PL3002")).toContain("Belum ada hitungan SIX");
     expect(card("KU5014")).toContain("Belum ada catatan kehadiran");
     expect(s.text()).not.toMatch(/\bAbsent\b|Tidak hadir/);
+    // No counts to add up: where they come from and a way in, not four zeros.
+    expect(s.text()).toContain("Sisa jatah absen dihitung dari SIX");
+    expect(s.text()).not.toContain("Masih aman");
+    await s.click("Masuk");
+    await s.wait();
+    expect(s.store.status("six").state).toBe("live");
+    expect(s.text()).not.toContain("Sisa jatah absen dihitung dari SIX");
+    expect(s.text()).toContain("Masih aman");
   });
 });
 

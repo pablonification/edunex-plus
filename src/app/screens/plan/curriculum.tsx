@@ -7,10 +7,11 @@ import type { ReactNode } from "react";
 import { type CurriculumMap, curriculumMap, type MapCourse, type PackageProgress, type SlotStatus } from "../../../core/curriculum-map";
 import { useOpenExternal } from "../../hooks";
 import { useT } from "../../i18n";
+import { SixEmptyState } from "../../shell/source-status";
 import { usePlan, useStudentRecord } from "../../study-plan";
 import { IconButton } from "../../ui/controls";
 import { cx } from "../../ui/cx";
-import { Bar, Card, EmptyState, SectionTitle, SourceTag } from "../../ui/display";
+import { Bar, Card, SectionTitle, SourceTag } from "../../ui/display";
 import { Icons } from "../../ui/icons";
 
 export const ready = true;
@@ -37,7 +38,7 @@ export function Tab() {
   const t = useT();
   const record = useStudentRecord();
   const state = usePlan(record);
-  if (!record || !state || !record.curriculum) return <EmptyState icon={<Icons.Layers className="size-5" />} title={t("curriculum.empty")} />;
+  if (!record || !state || !record.curriculum) return <SixEmptyState icon={<Icons.Layers className="size-5" />} title={t("curriculum.empty")} />;
   const map = curriculumMap(record, state.plan);
   return (
     <div className="space-y-8">

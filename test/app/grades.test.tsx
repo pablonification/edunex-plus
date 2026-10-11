@@ -57,10 +57,15 @@ async function type(label: string, value: string) {
 const text = (selector: string) => document.querySelector(selector)?.textContent ?? "";
 
 describe("Nilai", () => {
-  it("before SIX is read: one plain line, no numbers", async () => {
+  it("before SIX is read: one plain line, no numbers, and a way in", async () => {
     screen = await openApp({ signedIn: true });
     await screen.click("Nilai");
     expect(screen.text()).toContain("Transkrip muncul setelah SIX tersambung.");
+    await screen.click("Masuk");
+    await screen.wait();
+    expect(screen.store.status("six").state).toBe("live");
+    expect(screen.text()).not.toContain("Transkrip muncul setelah SIX tersambung.");
+    expect(screen.text()).toContain("3,26");
   });
 
   it("where the Student stands: IPK, SKS passed, last IP, stage, from SIX", async () => {

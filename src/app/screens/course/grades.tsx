@@ -163,21 +163,24 @@ function Calculator({ page }: { page: CoursePage }) {
             </p>
           )}
         </div>
-        <fieldset className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-small text-muted">
+        <fieldset className="mt-3 text-small text-muted">
           <legend className="sr-only">{t("grade.cutoffs")}</legend>
-          <span aria-hidden>{t("grade.cutoffs")}</span>
-          {CONTRACT_LETTERS.map((letter) => (
-            <label key={letter} className="inline-flex items-center gap-1">
-              <span className="font-semibold text-fg">{letter}</span>≥
-              <input
-                aria-label={t("grade.cutoffOf", { letter })}
-                inputMode="numeric"
-                value={contract.cutoffs[letter]}
-                onChange={(event) => save({ ...contract, cutoffs: { ...contract.cutoffs, [letter]: clampScore(event.target.value) ?? 0 } })}
-                className="focus-ring h-6 w-10 rounded-md bg-fill px-1 text-right tabular-nums"
-              />
-            </label>
-          ))}
+          {/* The label on its own line, so the six letters stay on one row. */}
+          <p aria-hidden className="mb-1.5">{t("grade.cutoffs")}</p>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+            {CONTRACT_LETTERS.map((letter) => (
+              <label key={letter} className="inline-flex items-center gap-1">
+                <span className="font-semibold text-fg">{letter}</span>≥
+                <input
+                  aria-label={t("grade.cutoffOf", { letter })}
+                  inputMode="numeric"
+                  value={contract.cutoffs[letter]}
+                  onChange={(event) => save({ ...contract, cutoffs: { ...contract.cutoffs, [letter]: clampScore(event.target.value) ?? 0 } })}
+                  className="focus-ring h-6 w-10 rounded-md bg-fill px-1 text-right tabular-nums"
+                />
+              </label>
+            ))}
+          </div>
         </fieldset>
       </div>
 

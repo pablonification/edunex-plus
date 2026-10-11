@@ -43,7 +43,7 @@ export function PlanScreen({ tab }: { tab?: string }) {
   if (!shown.length) return null;
   return (
     <div className="mx-auto max-w-[1180px] px-10 pt-7 pb-20">
-      <h1 className="text-title font-semibold tracking-tight">{t("nav.plan")}</h1>
+      <h1 className="text-display leading-[1.15] font-semibold tracking-[-0.02em]">{t("nav.plan")}</h1>
       <Tabs.Root value={current} onValueChange={(value) => setCurrent(value as TabId)}>
         <Tabs.List aria-label={t("nav.plan")} className="mt-5 flex gap-6 border-b border-line">
           {shown.map(([id]) => (

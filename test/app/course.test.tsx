@@ -187,11 +187,16 @@ describe("meetings", () => {
     expect(s.calls.at(-1)).toEqual({ name: "shell.openExternal", input: { url: "https://edunex.itb.ac.id/courses/95001" } });
   });
 
-  it("a class without EduNex Presence says so", async () => {
+  it("a class without EduNex Presence says so; its meetings come from SIX", async () => {
     const s = await openCourse("KU5014");
     await tab(/^Pertemuan/);
     expect(s.text()).toContain("Kelas ini tidak memakai Presensi EduNex");
-    expect(s.text()).toContain("Belum ada pertemuan");
+    expect(s.text()).toContain("Jadwal pertemuan dan ruangnya datang dari SIX");
+    await s.click("Masuk");
+    await s.wait();
+    expect(s.store.status("six").state).toBe("live");
+    expect(s.text()).not.toContain("datang dari SIX");
+    expect(s.text()).toContain("Kelas ini tidak memakai Presensi EduNex");
   });
 
   it("SIX gives the room; a meeting announced only in EduNex text is marked not in SIX", async () => {
@@ -270,10 +275,20 @@ describe("announcements and exams", () => {
     expect(s.text()).toContain("Kuliah minggu depan daring");
   });
 
-  it("Tasks & Exams says when EduNex has no exams", async () => {
+  it("Tasks & Exams says when neither SIX nor EduNex has an exam", async () => {
     const s = await openCourse("PL3002");
     await tab(/^Tugas & Ujian/);
-    expect(s.text()).toContain("Tidak ada ujian di EduNex");
+    expect(s.text()).toContain("Belum ada ujian di SIX maupun EduNex");
+  });
+
+  it("Tasks & Exams lists the same exams as Tugas & Ujian, each opening its page", async () => {
+    const s = await openCourse("DK4073");
+    await tab(/^Tugas & Ujian/);
+    const exams = [...document.querySelectorAll<HTMLElement>("main section")].find((section) => section.querySelector("h2")?.textContent?.startsWith("Ujian"))!;
+    expect(exams.textContent).toContain("Take-home");
+    await s.click(exams.querySelector<HTMLButtonElement>("li button")!);
+    expect(document.querySelector("main h1")?.textContent).toBe("Marketing Communication");
+    expect(document.querySelector("main")?.textContent).toContain("Kapan dan di mana");
   });
 });
 

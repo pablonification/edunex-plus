@@ -1,10 +1,12 @@
 // Everything the course page reads for one course, from the store: EduNex's
-// outline, materials, Presence, announcements, exams and Tasks, SIX's
-// timetable, and the meetings merged from them.
+// outline, materials, Presence, announcements and Tasks, SIX's timetable, the
+// meetings merged from them, and the course's exams from every source.
 import { useMemo } from "react";
 import { announcedMeetings, courseMeetings, type Meeting } from "../../../core/course-meetings";
-import type { Announcement, CourseOutline, EdunexExam, Material, PresenceSession, Task } from "../../../core/models";
+import type { Exam } from "../../../core/exams";
+import type { Announcement, CourseOutline, Material, PresenceSession, Task } from "../../../core/models";
 import { type TermCourse, useTermCourses } from "../../courses";
+import { useExams } from "../../schedule-data";
 import { useDataset } from "../../store";
 
 // SIX's timetable is registered by the SIX ticket (#76); until then nothing arrives under this name.
@@ -16,7 +18,8 @@ export interface CoursePage {
   materials: Material[] | undefined;
   presence: PresenceSession[] | undefined;
   announcements: Announcement[] | undefined;
-  exams: EdunexExam[] | undefined;
+  /** The same exams as in Tugas & Ujian: SIX's sessions, EduNex's exams and take-homes, the outline. */
+  exams: Exam[];
   tasks: Task[];
   meetings: Meeting[];
   /** SIX's timetable has this course's sessions. */
@@ -29,7 +32,7 @@ export function useCoursePage(code: string): CoursePage | null | undefined {
   const materials = useDataset("edunex.materials");
   const presence = useDataset("edunex.presence");
   const announcements = useDataset("edunex.announcements");
-  const exams = useDataset("edunex.exams");
+  const exams = useExams();
   const tasks = useDataset("edunex.tasks");
   const six = useDataset("six.schedule");
   const sixMonths = useDataset("six.scheduleMonths");
@@ -46,7 +49,7 @@ export function useCoursePage(code: string): CoursePage | null | undefined {
       materials: courseMaterials,
       presence: presence?.[code],
       announcements: courseAnnouncements,
-      exams: exams?.[code],
+      exams: (exams ?? []).filter((exam) => exam.courseCode === code),
       tasks: (tasks ?? []).filter((task) => task.courseCode === code),
       meetings: courseMeetings(code, presence?.[code] ?? [], six ?? null, announced, sixMonths),
       inSix: (six ?? []).some((session) => session.courseCode === code),

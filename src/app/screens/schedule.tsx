@@ -27,11 +27,11 @@ import { useTermCourses } from "../courses";
 import { type Format, type Translate, useFormat, useLang, useNow, useT } from "../i18n";
 import { useNav } from "../nav";
 import { useExamIds, useScheduleInput } from "../schedule-data";
-import { SourceNotice, useSignIn } from "../shell/source-status";
+import { SixEmptyState, SourceNotice } from "../shell/source-status";
 import { useBridge, useStatus } from "../store";
 import { Button, IconButton, Segmented } from "../ui/controls";
 import { cx } from "../ui/cx";
-import { CourseCode, CourseDot, EmptyState, LiveDot, Skeleton, SourceTag } from "../ui/display";
+import { CourseCode, CourseDot, LiveDot, Skeleton, SourceTag } from "../ui/display";
 import { Icons } from "../ui/icons";
 import { toast } from "../ui/overlays";
 
@@ -133,7 +133,6 @@ export function ScheduleScreen() {
 function NoTimetable() {
   const t = useT();
   const status = useStatus("six");
-  const { signIn, busy } = useSignIn();
   if (status.state === "connecting" || status.state === "live")
     return (
       <div className="mt-6 grid grid-cols-5 gap-3" aria-busy="true">
@@ -144,13 +143,7 @@ function NoTimetable() {
     );
   return (
     <div className="mt-6">
-      <EmptyState icon={<Icons.Calendar className="size-5" />} title={t("schedule.noSix")}>
-        {status.state === "signed-out" && (
-          <Button size="sm" variant="primary" busy={busy} onClick={() => void signIn("six")}>
-            {t("action.signIn")}
-          </Button>
-        )}
-      </EmptyState>
+      <SixEmptyState icon={<Icons.Calendar className="size-5" />} title={t("schedule.noSix")} />
     </div>
   );
 }

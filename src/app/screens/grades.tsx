@@ -11,11 +11,12 @@ import { expectedGrade, type Need, project, type StudentRecord } from "../../cor
 import { useOpenExternal } from "../hooks";
 import { useFormat, useNow, useT } from "../i18n";
 import { useNav } from "../nav";
+import { SixEmptyState } from "../shell/source-status";
 import { type PlanState, usePlan, useStudentRecord } from "../study-plan";
 import { useDataset } from "../store";
 import { Button } from "../ui/controls";
 import { cx } from "../ui/cx";
-import { Card, EmptyState, SectionTitle, SourceTag } from "../ui/display";
+import { Card, SectionTitle, SourceTag } from "../ui/display";
 import { Icons } from "../ui/icons";
 import { GradeSelect, HonorsList, ProjectedTable, useStepLabel } from "./plan/projection";
 
@@ -40,7 +41,7 @@ export function GradesScreen() {
       <div className="mx-auto max-w-[1080px] px-10 pt-7 pb-20">
         <h1 className="text-display font-semibold tracking-[-0.02em]">{t("nav.grades")}</h1>
         <div className="mt-6">
-          <EmptyState icon={<Icons.GraduationCap className="size-5" />} title={t("grades.empty")} />
+          <SixEmptyState icon={<Icons.GraduationCap className="size-5" />} title={t("grades.empty")} />
         </div>
       </div>
     );

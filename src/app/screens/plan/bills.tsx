@@ -5,9 +5,10 @@
 import { type BillUrgency, billLeft, billNeedsStudent, billUrgency, currentTerm, nextTerm, rupiah, uktDeadline } from "../../../core/academic";
 import type { Bill } from "../../../core/models";
 import { useFormat, useNow, useT } from "../../i18n";
+import { SixEmptyState } from "../../shell/source-status";
 import { useDataset } from "../../store";
 import { cx } from "../../ui/cx";
-import { Card, EmptyState, SectionTitle, SourceTag } from "../../ui/display";
+import { Card, SectionTitle, SourceTag } from "../../ui/display";
 import { Icons } from "../../ui/icons";
 
 export const ready = true;
@@ -62,7 +63,7 @@ export function Tab() {
   const now = useNow();
   const bills = useDataset("six.bills");
   const term = useThisTerm();
-  if (!bills) return <EmptyState icon={<Icons.Wallet className="size-5" />} title={t("bills.empty")} />;
+  if (!bills) return <SixEmptyState icon={<Icons.Wallet className="size-5" />} title={t("bills.empty")} />;
   const billed = bills.filter((b) => b.status !== "not-billed");
   const current = (term && bills.find((b) => b.term === term)) || billed.at(-1);
   // SIX lists a term's row only once the term is set up: until then it isn't billed either.

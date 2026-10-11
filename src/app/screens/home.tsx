@@ -12,7 +12,7 @@ import { useOpenExternal } from "../hooks";
 import { type Format, useFormat, useNow, useT } from "../i18n";
 import { firstName } from "../names";
 import { useNav } from "../nav";
-import { SourceNotice, useRefresh } from "../shell/source-status";
+import { SourceNotice, useRefresh, useSignIn } from "../shell/source-status";
 import { useDataset, useSettings, useStatus } from "../store";
 import { Button } from "../ui/controls";
 import { cx } from "../ui/cx";
@@ -232,7 +232,8 @@ function useNeedView(): (need: Need) => NeedView {
           icon: <Icons.Hand className="size-4" />,
           live: false,
           title: need.task ? t("home.need.presenceAhead.assignment", { task: need.task.title, date, time }) : t("home.need.presenceAhead", { course: need.course ?? "", date, time }),
-          detail: [action, t("home.need.presenceAhead.detail")],
+          // With a Task, the title already says what to do.
+          detail: need.task ? [t("home.need.presenceAhead.assignmentDetail")] : [action, t("home.need.presenceAhead.detail")],
           when: f.fromNow(need.session.opensAt),
           button: need.task ? t("home.action.openTask") : t("presence.openInEdunex"),
         };
@@ -492,6 +493,23 @@ function NeedRow({ need, first, color }: { need: Need; first: boolean; color: st
 
 // ---------------------------------------------------------------- today
 
+/** Before SIX's timetable: where today's classes come from, and a way in while signed out. */
+function NoSixToday() {
+  const t = useT();
+  const signedOut = useStatus("six").state === "signed-out";
+  const { signIn, busy } = useSignIn();
+  return (
+    <p className="flex flex-wrap items-center gap-x-3 gap-y-2 text-body text-muted">
+      {t("home.today.noSix")}
+      {signedOut && (
+        <Button size="sm" busy={busy} onClick={() => void signIn("six")}>
+          {t("home.today.signInSix")}
+        </Button>
+      )}
+    </p>
+  );
+}
+
 function Today({ world, courses }: { world: HomeWorld; courses: readonly TermCourse[] }) {
   const t = useT();
   const f = useFormat();
@@ -510,7 +528,7 @@ function Today({ world, courses }: { world: HomeWorld; courses: readonly TermCou
         <span id="home-today">{t("home.today")}</span>
       </SectionTitle>
       {!world.schedule ? (
-        <p className="text-body text-muted">{t("home.today.noSix")}</p>
+        <NoSixToday />
       ) : plan.classes.length || plan.announced.length ? (
         <ol className="overflow-hidden rounded-xl border border-edge bg-surface">
           {plan.classes.map((item, i) => (

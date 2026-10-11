@@ -109,6 +109,11 @@ export const attendanceStrings = {
     en: "After each class the app checks that SIX's count went up, and tells you the same day if it didn't.",
   },
   "presence.empty": { id: "Belum ada mata kuliah", en: "No courses yet" },
+  "presence.noSix": { id: "Sisa jatah absen dihitung dari SIX", en: "Absences left are counted from SIX" },
+  "presence.noSix.hint": {
+    id: "Masuk ke SIX untuk melihat kehadiran resmimu dan berapa kali lagi kamu boleh absen.",
+    en: "Sign in to SIX to see your official attendance and how many more absences you can take.",
+  },
   "presence.absencesLeft": { id: "Jatah absen", en: "Absences left" },
 
   // Settings

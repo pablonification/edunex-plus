@@ -107,6 +107,19 @@ describe("an exam on Beranda", () => {
   });
 });
 
+describe("a Presence window ahead", () => {
+  it("a Task that takes attendance: what to hand in and when, said once, and the Task one click away", async () => {
+    screen = await openApp({ signedIn: true, world: new PretendWorld({ now: "2026-10-11T21:00:00+07:00" }) });
+    await screen.wait();
+    const ahead = row("home-needs", "Kumpulkan Tugas 02 Bab II");
+    expect(ahead).toContain("Kumpulkan Tugas 02 Bab II · Jum, 16 Okt, 15:00–23:59");
+    expect(ahead).toContain("Ini Presensi-nya: hanya terhitung jika dikumpulkan di dalam jendela itu.");
+    expect(ahead.match(/Tugas 02 Bab II/g)).toHaveLength(1);
+    await screen.click(/^Buka tugas: Kumpulkan Tugas 02 Bab II/);
+    expect(document.querySelector("main h1")?.textContent).toBe("Tugas 02 Bab II");
+  });
+});
+
 describe("a class moved to another day", () => {
   it("names the usual day: today's Friday meeting stands in for the week's Thursday one", async () => {
     screen = await openApp({ world: new PretendWorld({ now: "2026-10-16T07:00:00+07:00" }), signedIn: true });
@@ -148,5 +161,10 @@ describe("nothing to do", () => {
     expect(text("home-needs")).toContain("Tidak ada yang perlu kamu urus sekarang.");
     expect(text("home-today")).toContain("Jadwal dan ruang kuliah muncul setelah SIX terhubung.");
     expect(text("home-changes")).toContain("Tidak ada perubahan minggu ini");
+    // SIX is a click away from where its classes would be.
+    await screen.click("Masuk ke SIX");
+    await screen.wait();
+    expect(screen.store.status("six").state).toBe("live");
+    expect(text("home-today")).not.toContain("muncul setelah SIX terhubung");
   });
 });

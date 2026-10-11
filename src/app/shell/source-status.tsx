@@ -7,7 +7,7 @@ import { ActionError } from "../bridge";
 import { useFormat, useT } from "../i18n";
 import { useBridge, useStatus } from "../store";
 import { Button } from "../ui/controls";
-import { Card } from "../ui/display";
+import { Card, EmptyState } from "../ui/display";
 import { cx } from "../ui/cx";
 import { Icons } from "../ui/icons";
 import { Tooltip, toast } from "../ui/overlays";
@@ -154,5 +154,21 @@ export function SourceNotice({ source, hasData }: { source: SourceId; hasData: b
       </div>
       {action}
     </Card>
+  );
+}
+
+/** Where a screen's data comes from before SIX has given it, with a way in while signed out. */
+export function SixEmptyState({ icon, title }: { icon: ReactNode; title: string }) {
+  const t = useT();
+  const status = useStatus("six");
+  const { signIn, busy } = useSignIn();
+  return (
+    <EmptyState icon={icon} title={title}>
+      {status.state === "signed-out" && (
+        <Button size="sm" variant="primary" busy={busy} onClick={() => void signIn("six")}>
+          {t("action.signIn")}
+        </Button>
+      )}
+    </EmptyState>
   );
 }

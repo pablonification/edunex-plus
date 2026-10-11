@@ -11,7 +11,8 @@ import { type CourseAttendance, type OpenWindow, useAttendance } from "../attend
 import { useOpenExternal } from "../hooks";
 import { useFormat, useNow, useT } from "../i18n";
 import { useNav } from "../nav";
-import { useBridge, useSettings } from "../store";
+import { useSignIn } from "../shell/source-status";
+import { useBridge, useSettings, useStatus } from "../store";
 import { Button, IconButton } from "../ui/controls";
 import { cx } from "../ui/cx";
 import { Bar, Card, CourseCode, EmptyState, LiveDot, Skeleton, SourceTag } from "../ui/display";
@@ -72,12 +73,16 @@ export function PresenceScreen() {
         </div>
       ) : (
         <>
-          <div className="mt-6 grid grid-cols-4 gap-3">
-            <Summary value={count("out")} tone="out" label={t("presence.summary.out", { target })} />
-            <Summary value={count("none")} tone="none" label={t("presence.summary.none")} />
-            <Summary value={count("risk")} tone="risk" label={t("presence.summary.risk")} />
-            <Summary value={count("safe")} tone="safe" label={t("presence.summary.safe")} />
-          </div>
+          {courses.some((c) => c.health.state !== "unknown") ? (
+            <div className="mt-6 grid grid-cols-4 gap-3">
+              <Summary value={count("out")} tone="out" label={t("presence.summary.out", { target })} />
+              <Summary value={count("none")} tone="none" label={t("presence.summary.none")} />
+              <Summary value={count("risk")} tone="risk" label={t("presence.summary.risk")} />
+              <Summary value={count("safe")} tone="safe" label={t("presence.summary.safe")} />
+            </div>
+          ) : (
+            <NoSixCount />
+          )}
           <ul className="mt-6 space-y-3">
             {sorted.map((item) => (
               <CourseRow key={item.course.code} item={item} target={target} />
@@ -176,6 +181,28 @@ function OpenPresence({ window }: { window: OpenWindow }) {
   );
 }
 
+/** Before SIX's count: no tallies to add up, so where they come from instead of four zeros. */
+function NoSixCount() {
+  const t = useT();
+  const status = useStatus("six");
+  const { signIn, busy } = useSignIn();
+  if (status.state !== "signed-out") return null;
+  return (
+    <Card className="mt-6 flex items-center gap-3.5 px-4 py-3.5">
+      <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-fill text-muted">
+        <Icons.Target className="size-4" />
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="text-body font-semibold">{t("presence.noSix")}</p>
+        <p className="mt-0.5 text-small text-muted">{t("presence.noSix.hint")}</p>
+      </div>
+      <Button variant="primary" busy={busy} onClick={() => void signIn("six")}>
+        {t("action.signIn")}
+      </Button>
+    </Card>
+  );
+}
+
 function Summary({ value, label, tone }: { value: number; label: string; tone: AttendanceState }) {
   return (
     <Card className="px-4 py-3.5">
@@ -255,18 +282,20 @@ function CourseRow({ item, target }: { item: CourseAttendance; target: number })
                   {t(left.estimated ? "presence.tallyAbout" : "presence.tally", { attended, missed, left: left.count })}
                 </span>
               </>
-            ) : (
-              <span className="text-caption text-faint">—</span>
-            )}
+            ) : null}
           </span>
 
           <span className="text-right">
-            <span className="inline-flex items-center gap-1.5">
-              {share !== null && <SourceTag source="six" />}
-              <span className="text-[20px] leading-7 font-semibold tabular-nums">{share !== null ? `${share}%` : "—"}</span>
-            </span>
-            {share !== null && <TargetBar share={share} target={target} color={course.color} label={t("presence.share", { value: share, target })} />}
-            <span className={cx("mt-1 block text-small font-semibold", STATE_TONE[health.state])}>{budgetLabel(t, health, target)}</span>
+            {share !== null && (
+              <>
+                <span className="inline-flex items-center gap-1.5">
+                  <SourceTag source="six" />
+                  <span className="text-[20px] leading-7 font-semibold tabular-nums">{share}%</span>
+                </span>
+                <TargetBar share={share} target={target} color={course.color} label={t("presence.share", { value: share, target })} />
+              </>
+            )}
+            <span className={cx("block text-small font-semibold", share !== null && "mt-1", STATE_TONE[health.state])}>{budgetLabel(t, health, target)}</span>
             {health.state !== "out" && health.state !== "unknown" && health.best !== null && (
               <span className="block text-caption text-faint">{t("presence.best", { value: Math.round(health.best * 100) })}</span>
             )}
