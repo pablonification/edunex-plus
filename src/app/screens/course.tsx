@@ -7,6 +7,7 @@ import * as Tabs from "@radix-ui/react-tabs";
 import { useState } from "react";
 import { openPresence, pinnedMeeting } from "../../core/course-meetings";
 import { edunexCourseUrl } from "../../core/links";
+import { useAttendance } from "../attendance";
 import { useOpenExternal } from "../hooks";
 import { useFormat, useNow, useT, type StringKey } from "../i18n";
 import { SourceNotice, useRefresh } from "../shell/source-status";
@@ -21,6 +22,7 @@ import { GradesTab } from "./course/grades";
 import { AnnouncementsTab, TasksTab } from "./course/lists";
 import { MeetingsTab } from "./course/meetings";
 import { ModulesTab } from "./course/modules";
+import { budgetLabel, STATE_TONE } from "./presence";
 
 export const ready = true;
 
@@ -138,6 +140,7 @@ function Header({ page }: { page: CoursePage }) {
               </span>
             </p>
             <Bar className="mt-1.5" value={attendance.attended / attendance.held} color={course.color} label={t("course.attended", attendance)} />
+            <AbsencesLeft code={course.code} />
           </div>
         )}
         {course.edunex && <SaveOffline code={course.code} />}
@@ -149,6 +152,15 @@ function Header({ page }: { page: CoursePage }) {
       </div>
     </header>
   );
+}
+
+/** What SIX's count leaves before the Student's attendance target (#85). */
+function AbsencesLeft({ code }: { code: string }) {
+  const t = useT();
+  const attendance = useAttendance();
+  const health = attendance?.courses.find((c) => c.course.code === code)?.health;
+  if (!health || health.state === "unknown") return null;
+  return <p className={cx("mt-1 text-caption font-semibold", STATE_TONE[health.state])}>{budgetLabel(t, health, attendance.target)}</p>;
 }
 
 /** Saves the course's files by module, to Documents/Edunex Plus or a folder the Student picks. */

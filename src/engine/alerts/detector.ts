@@ -3,7 +3,7 @@
 // when something changed (a new Task), or at a moment (24 hours before a
 // deadline, the minute a Presence window opens). The alert center does the
 // rest: never twice, a silent first sync, grouping, Settings, the history.
-import type { Alert, DatasetName, DatasetValue } from "../../core/models";
+import type { Alert, DatasetName, DatasetValue, Settings } from "../../core/models";
 
 /** An alert a detector proposes. Its id must be stable: the same event, the same id, every time. */
 export interface AlertDraft extends Omit<Alert, "at"> {
@@ -17,10 +17,13 @@ export interface PlannedAlert extends AlertDraft {
   until: number;
 }
 
-/** What a detector can read: the current datasets and the engine's clock. */
+/** What a detector can read: the current datasets, the Student's settings and the engine's clock. */
 export interface DetectorContext {
   now: number;
   get<N extends DatasetName>(name: N): DatasetValue<N> | undefined;
+  /** When a dataset was last read from its source, changed or not: a quiet source isn't an unchanged one. */
+  fetchedAt(name: DatasetName): number | null;
+  settings: Settings;
 }
 
 /** One dataset changed. `previous` is undefined for its first value after sign-in (that one is the silent baseline). */

@@ -69,6 +69,7 @@ export function createEngine(deps: EngineDeps): Engine {
     storage,
     detectors: deps.detectors ?? DETECTORS,
     get: (name) => store.get(name),
+    fetchedAt: (name) => store.fetchedAt(name),
     set: (name, value) => store.set(name, value, clock.now()),
     remove: (prefix) => store.remove(prefix),
     settings: () => settings,

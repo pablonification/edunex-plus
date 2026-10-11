@@ -42,6 +42,11 @@ export class DatasetStore {
     return this.sets.get(name)?.value as DatasetValue<N> | undefined;
   }
 
+  /** When the dataset was last read from its source, changed or not. */
+  fetchedAt(name: DatasetName): number | null {
+    return this.sets.get(name)?.fetchedAt ?? null;
+  }
+
   /** Stores a fresh value. Returns true when the content changed (and the screens were told). */
   async set<N extends DatasetName>(name: N, value: DatasetValue<N>, fetchedAt: number): Promise<boolean> {
     const hash = hashOf(value);

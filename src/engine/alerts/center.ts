@@ -32,6 +32,7 @@ export interface AlertCenterDeps {
   storage: Storage;
   detectors: readonly Detector[];
   get<N extends DatasetName>(name: N): DatasetValue<N> | undefined;
+  fetchedAt(name: DatasetName): number | null;
   set<N extends DatasetName>(name: N, value: DatasetValue<N>): Promise<unknown>;
   remove(prefix: string): Promise<void>;
   settings(): Settings;
@@ -118,7 +119,7 @@ export class AlertCenter {
   }
 
   private context(): DetectorContext {
-    return { now: this.deps.clock.now(), get: (name) => this.deps.get(name) };
+    return { now: this.deps.clock.now(), get: (name) => this.deps.get(name), fetchedAt: (name) => this.deps.fetchedAt(name), settings: this.deps.settings() };
   }
 
   /**

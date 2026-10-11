@@ -7,6 +7,7 @@ import type { StringKey } from "../../core/strings";
 import { ActionError } from "../bridge";
 import { useT } from "../i18n";
 import { displayName } from "../names";
+import { TargetStepper } from "../screens/presence";
 import { useBridge, useDataset, useSettings, useStatus, useStore } from "../store";
 import { Button, Segmented, Switch } from "../ui/controls";
 import { Card } from "../ui/display";
@@ -83,6 +84,12 @@ function SettingsBody({ onSignedOutOfEverything }: { onSignedOutOfEverything: ()
 
       <AlertSettings settings={settings} update={update} report={report} />
 
+      <Group title={t("course.attendance")}>
+        <Row label={t("settings.attendance.target")} hint={t("settings.attendance.targetHint")}>
+          <TargetStepper />
+        </Row>
+      </Group>
+
       <Group title={t("settings.accounts")}>
         <Row label={t("source.edunex")} hint={account ? `${displayName(account.name)} · ${account.nim}` : t("settings.notConnected")}>
           {status.state === "signed-out" || status.state === "expired" ? (
@@ -124,6 +131,8 @@ function SettingsBody({ onSignedOutOfEverything }: { onSignedOutOfEverything: ()
 
 /** Alert groups with a detector so far, in the approved design's order. Add a group here when its alerts land. */
 const ALERT_ROWS: { group: AlertGroup; label: StringKey; hint: StringKey }[] = [
+  { group: "presence", label: "settings.alerts.presence", hint: "settings.alerts.presenceHint" },
+  { group: "attendanceRisk", label: "settings.alerts.attendanceRisk", hint: "settings.alerts.attendanceRiskHint" },
   { group: "deadline", label: "settings.alerts.deadline", hint: "settings.alerts.deadlineHint" },
   { group: "newTask", label: "settings.alerts.newTask", hint: "settings.alerts.newTaskHint" },
   { group: "newMaterial", label: "settings.alerts.newMaterial", hint: "settings.alerts.newMaterialHint" },

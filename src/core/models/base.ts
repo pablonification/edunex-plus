@@ -46,6 +46,8 @@ export const Settings = z.object({
   trayExplained: z.boolean(),
 
   // Attendance (#85)
+  /** The share of meetings (percent) the Student aims to attend; each course contract sets its own minimum. */
+  attendanceTarget: z.number().int().min(50).max(100),
 });
 export type Settings = z.infer<typeof Settings>;
 
@@ -59,6 +61,7 @@ export const DEFAULT_SETTINGS: Settings = {
   trayExplained: false,
 
   // Attendance (#85)
+  attendanceTarget: 80,
 };
 
 export interface Dataset<T = unknown> {

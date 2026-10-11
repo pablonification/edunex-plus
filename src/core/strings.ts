@@ -5,6 +5,7 @@
 // docs/design-system.md: SKS, IPK, IP, KRS and UKT stay as they are.
 import type { Entry } from "./strings/entry";
 import { alertsStrings } from "./strings/alerts";
+import { attendanceStrings } from "./strings/attendance";
 import { coursePageStrings } from "./strings/course-page";
 import { itbStrings } from "./strings/itb";
 import { shellStrings } from "./strings/shell";
@@ -22,6 +23,7 @@ export const STRINGS = {
   ...sixRecordsStrings,
   ...itbStrings,
   ...alertsStrings,
+  ...attendanceStrings,
 } as const satisfies Record<string, Entry>;
 
 
