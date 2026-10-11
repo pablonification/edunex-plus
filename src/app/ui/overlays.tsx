@@ -1,6 +1,7 @@
 // Things that float above the window: dialogs, the confirm dialog, tooltips
 // and toasts. Radix handles focus trapping, Escape and screen-reader roles.
 import * as DialogPrimitive from "@radix-ui/react-dialog";
+import * as PopoverPrimitive from "@radix-ui/react-popover";
 import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 import { useSyncExternalStore, type ReactNode } from "react";
 import { useT } from "../i18n";
@@ -115,12 +116,50 @@ export function Tooltip({ content, children, side = "bottom" }: { content: React
   );
 }
 
+/** A panel that opens from a control (alerts, sync status): Escape or a click outside closes it, focus goes back. */
+export function Popover({
+  trigger,
+  open,
+  onOpenChange,
+  align = "end",
+  label,
+  className,
+  children,
+}: {
+  trigger: ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  align?: "start" | "center" | "end";
+  /** The panel's accessible name. */
+  label: string;
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <PopoverPrimitive.Root open={open} onOpenChange={onOpenChange}>
+      <PopoverPrimitive.Trigger asChild>{trigger}</PopoverPrimitive.Trigger>
+      <PopoverPrimitive.Portal>
+        <PopoverPrimitive.Content
+          aria-label={label}
+          align={align}
+          sideOffset={8}
+          collisionPadding={12}
+          className={cx("z-[60] rounded-xl border border-edge bg-raised text-fg shadow-pop focus:outline-none motion-safe:animate-slide-down", className)}
+        >
+          {children}
+        </PopoverPrimitive.Content>
+      </PopoverPrimitive.Portal>
+    </PopoverPrimitive.Root>
+  );
+}
+
 // ---------------------------------------------------------------- toasts
 
 interface ToastItem {
   id: number;
   text: string;
-  tone: "neutral" | "danger";
+  tone: "neutral" | "success" | "danger";
+  action?: { label: string; onClick: () => void };
 }
 
 let toasts: ToastItem[] = [];
@@ -130,15 +169,17 @@ const publish = () => {
   for (const listener of toastListeners) listener();
 };
 
-/** A short message at the bottom of the window that goes away by itself. */
-export function toast(text: string, tone: ToastItem["tone"] = "neutral"): void {
-  const id = nextId++;
-  toasts = [...toasts.slice(-2), { id, text, tone }];
+const dismiss = (id: number) => {
+  toasts = toasts.filter((item) => item.id !== id);
   publish();
-  setTimeout(() => {
-    toasts = toasts.filter((item) => item.id !== id);
-    publish();
-  }, 5_000);
+};
+
+/** A short message at the bottom of the window that goes away by itself; with an action, a little later. */
+export function toast(text: string, tone: ToastItem["tone"] = "neutral", action?: ToastItem["action"]): void {
+  const id = nextId++;
+  toasts = [...toasts.slice(-2), { id, text, tone, action }];
+  publish();
+  setTimeout(() => dismiss(id), action ? 8_000 : 5_000);
 }
 
 export function Toaster() {
@@ -156,12 +197,25 @@ export function Toaster() {
           key={item.id}
           role="status"
           className={cx(
-            "pointer-events-auto flex items-center gap-2 rounded-lg px-3.5 py-2 text-small font-medium shadow-pop motion-safe:animate-pop-in",
+            "pointer-events-auto flex items-center gap-2.5 rounded-xl py-2.5 pr-2.5 pl-3.5 text-small font-medium shadow-pop motion-safe:animate-pop-in",
             item.tone === "danger" ? "bg-danger-bg text-danger-fg" : "bg-tooltip-bg text-tooltip-fg",
           )}
         >
-          {item.tone === "danger" && <Icons.AlertTriangle className="size-3.5" />}
-          {item.text}
+          {item.tone === "danger" && <Icons.AlertTriangle className="size-4 shrink-0" />}
+          {item.tone === "success" && <Icons.CheckCircle className="size-4 shrink-0 text-live" strokeWidth={2} />}
+          <span className="pr-1">{item.text}</span>
+          {item.action && (
+            <button
+              type="button"
+              onClick={() => {
+                item.action?.onClick();
+                dismiss(item.id);
+              }}
+              className="focus-ring -my-1 rounded-md px-2 py-1 font-semibold underline-offset-2 hover:underline"
+            >
+              {item.action.label}
+            </button>
+          )}
         </div>
       ))}
     </div>

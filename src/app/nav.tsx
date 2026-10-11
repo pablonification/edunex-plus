@@ -10,6 +10,8 @@ interface Nav {
   go(route: Route): void;
   back(): void;
   canGoBack: boolean;
+  /** Where back goes, to name it on the back button. */
+  previous: Route | null;
 }
 
 const NavContext = createContext<Nav | null>(null);
@@ -27,7 +29,7 @@ export function NavProvider({ initial, children }: { initial?: Route; children: 
     window.addEventListener("mouseup", onMouse);
     return () => window.removeEventListener("mouseup", onMouse);
   }, [back]);
-  const value = useMemo<Nav>(() => ({ route: history.at(-1)!, go, back, canGoBack: history.length > 1 }), [history, go, back]);
+  const value = useMemo<Nav>(() => ({ route: history.at(-1)!, go, back, canGoBack: history.length > 1, previous: history.at(-2) ?? null }), [history, go, back]);
   return <NavContext.Provider value={value}>{children}</NavContext.Provider>;
 }
 

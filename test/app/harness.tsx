@@ -19,6 +19,17 @@ import { MemoryStorage, MemoryVault } from "../pretend/memory";
 import { PRETEND_SIX_COOKIE } from "../pretend/six";
 import { PretendWorld } from "../pretend/world";
 
+// Popovers place themselves with floating-ui, which asks every ancestor whether it
+// matches ":popover-open" or ":modal". jsdom's selector engine doesn't know those and
+// rebuilds itself on each call, turning one open popover into seconds of work. No
+// element here is ever in the top layer, so answer them at once.
+if (typeof Element !== "undefined") {
+  const matches = Element.prototype.matches;
+  Element.prototype.matches = function (this: Element, selector: string) {
+    return selector === ":popover-open" || selector === ":modal" ? false : matches.call(this, selector);
+  };
+}
+
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 // Radix positions tooltips with ResizeObserver, which jsdom lacks.
 globalThis.ResizeObserver ??= class {
@@ -216,6 +227,14 @@ export async function openApp(options: Options = {}) {
       return found;
     },
     has: (name: string | RegExp) => Boolean(find("button, [role=radio], [role=switch]", name)),
+    /** What the top bar's data-status panel says about a source ("Terhubung", "Sesi berakhir"…), read the way the Student reads it. */
+    async sourceState(source: "EduNex" | "SIX" | "Kalender ITB" | "ITB calendar"): Promise<string> {
+      await screen.click(/^(Status data|Data status):/);
+      const line = [...document.querySelectorAll("[role=dialog] li p")].find((p) => p.textContent?.startsWith(`${source} ·`));
+      const state = line?.textContent?.slice(source.length + 3).trim() ?? "";
+      await screen.key("Escape");
+      return state;
+    },
     async click(target: string | RegExp | HTMLElement): Promise<void> {
       const element = target instanceof HTMLElement ? target : screen.button(target);
       await act(async () => {

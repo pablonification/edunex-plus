@@ -10,7 +10,7 @@ import { edunexCourseUrl } from "../../core/links";
 import { useAttendance } from "../attendance";
 import { useOpenExternal } from "../hooks";
 import { useFormat, useNow, useT, type StringKey } from "../i18n";
-import { SourceNotice, useRefresh } from "../shell/source-status";
+import { useRefresh } from "../shell/source-status";
 import { useBridge, useStatus } from "../store";
 import { Button, IconButton } from "../ui/controls";
 import { cx } from "../ui/cx";
@@ -52,7 +52,6 @@ export function CourseScreen({ code, tab }: { code: string; tab?: string }) {
   return (
     <div className="mx-auto max-w-[1180px] px-10 pt-7 pb-20">
       <Header page={page} />
-      <SourceNotice source="edunex" hasData={page.materials !== undefined} />
       <PinnedMeeting page={page} />
       <Tabs.Root value={current} onValueChange={(value) => setCurrent(value as Tab)}>
         <Tabs.List aria-label={page.course.code} className="mt-6 flex gap-6 border-b border-line">

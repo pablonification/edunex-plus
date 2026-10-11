@@ -26,7 +26,7 @@ import { ActionError } from "../bridge";
 import { useCourseColors, useOpenExternal } from "../hooks";
 import { type Translate, useFormat, useNow, useT } from "../i18n";
 import { useNav } from "../nav";
-import { SourceNotice, useRefresh, useSignIn } from "../shell/source-status";
+import { useRefresh, useSignIn } from "../shell/source-status";
 import { useBridge, useDataset, useStatus } from "../store";
 import { Button, IconButton, Segmented } from "../ui/controls";
 import { Bar, Card, CourseDot, EmptyState, SectionTitle, Skeleton, SourceTag, StatusChip, StatusGlyph } from "../ui/display";
@@ -130,7 +130,6 @@ export function TasksScreen() {
         />
       </header>
 
-      <SourceNotice source="edunex" hasData={rows !== undefined} />
 
       <ExamList past={show === "done"} />
 

@@ -51,7 +51,7 @@ describe("the bell", () => {
     await s.click(/Materi baru · PL3032/);
     // The course page (a detail screen) replaced Home.
     expect(s.text()).not.toContain("Mata kuliah semester ini");
-    expect(s.has("Kembali")).toBe(true);
+    expect(s.has(/^Kembali ke /)).toBe(true);
     expect(document.querySelector("[role=region]")).toBeNull();
   });
 
@@ -59,7 +59,7 @@ describe("the bell", () => {
     screen = await openApp({ signedIn: true });
     await screen.apply({ type: "navigate", route: { screen: "course", code: "PL3032", tab: "modules" } });
     expect(screen.text()).not.toContain("Mata kuliah semester ini");
-    expect(screen.has("Kembali")).toBe(true);
+    expect(screen.has(/^Kembali ke /)).toBe(true);
   });
 
   it("speaks English when asked", async () => {

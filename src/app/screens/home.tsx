@@ -12,7 +12,7 @@ import { useOpenExternal } from "../hooks";
 import { type Format, useFormat, useNow, useT } from "../i18n";
 import { firstName } from "../names";
 import { useNav } from "../nav";
-import { SourceNotice, useRefresh, useSignIn } from "../shell/source-status";
+import { useRefresh, useSignIn } from "../shell/source-status";
 import { useDataset, useSettings, useStatus } from "../store";
 import { Button } from "../ui/controls";
 import { cx } from "../ui/cx";
@@ -49,8 +49,6 @@ export function Home() {
         <ExamWeek />
       </header>
 
-      <SourceNotice source="edunex" hasData={account !== undefined} />
-      <SourceNotice source="six" hasData={student !== undefined} />
 
       {world && <NeedsYou world={world} courses={courses ?? []} />}
 

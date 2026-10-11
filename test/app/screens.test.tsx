@@ -19,7 +19,8 @@ afterEach(() => {
 });
 
 const cards = () => [...document.querySelectorAll("main ul li")].map((li) => li.textContent ?? "");
-const live = /^EduNex\s*Terhubung$/;
+/** The top bar's status panel says EduNex is connected. */
+const live = async () => expect(await screen!.sourceState("EduNex")).toBe("Terhubung");
 
 describe("first run", () => {
   it("welcomes the Student, and connecting EduNex shows their courses", async () => {
@@ -35,7 +36,7 @@ describe("first run", () => {
       expect(screen.text()).toContain(code);
       expect(screen.text()).toContain(name);
     }
-    expect(screen.has(live)).toBe(true);
+    await live();
   });
 
   it("closing the sign-in window leaves the welcome screen ready to try again", async () => {
@@ -66,7 +67,7 @@ describe("Home", () => {
     expect(cards().map((card) => card.slice(0, 6))).toEqual(COURSES.map(([code]) => code));
     expect(cards().every((card) => card.includes("Kelas 01"))).toBe(true);
     expect(screen.text()).not.toContain("[Parent Class]");
-    expect(screen.has(live)).toBe(true);
+    await live();
   });
 
   it("opens a course on EduNex's website", async () => {
@@ -82,23 +83,25 @@ describe("Home", () => {
     screen = await openApp({ world: before.world, storage: before.storage, vault: before.vault, start: false });
     // No request has been answered yet: everything on screen is saved data.
     expect(cards()).toHaveLength(5);
-    expect(screen.has(/^EduNex\s*Memeriksa…$/)).toBe(true);
+    expect(await screen.sourceState("EduNex")).toBe("Memeriksa…");
     await screen.engineDoes(async () => screen?.engine.start());
     await screen.wait();
-    expect(screen.has(/^EduNex\s*Offline$/)).toBe(true);
+    expect(await screen.sourceState("EduNex")).toBe("Offline");
+    // Nothing reaches the network: the whole window says so, with the time of the last data.
+    expect(screen.text()).toContain("Tidak ada koneksi.");
     expect(cards()).toHaveLength(5);
   });
 
-  it("when EduNex ends the session, the courses stay and Home asks to sign in again", async () => {
+  it("when EduNex ends the session, the courses stay and the window asks to sign in again", async () => {
     screen = await openApp({ signedIn: true });
     screen.world.edunex.expireSession();
     await screen.engineDoes(async () => screen?.engine.refresh("edunex"));
-    expect(screen.text()).toContain("Sesi berakhir");
+    expect(screen.text()).toContain("Sesi EduNex berakhir. Data terakhir tetap bisa dibaca.");
     expect(cards()).toHaveLength(5);
     screen.world.edunex.sessionValid = true;
     await screen.click("Masuk lagi");
-    expect(screen.text()).not.toContain("Sesi berakhir");
-    expect(screen.has(live)).toBe(true);
+    expect(screen.text()).not.toContain("Sesi EduNex berakhir");
+    await live();
   });
 
   it("saved courses without a session (a computer that can't keep sessions) stay readable, with Sign in", async () => {
@@ -107,16 +110,16 @@ describe("Home", () => {
     before.vault.secrets.clear();
     screen = await openApp({ world: before.world, storage: before.storage, vault: before.vault });
     expect(cards()).toHaveLength(5);
-    expect(screen.text()).toContain("Masuk ke EduNex untuk memperbarui data ini.");
+    expect(screen.text()).toContain("Kamu belum masuk ke EduNex. Data terakhir tetap bisa dibaca.");
     await screen.click("Masuk");
-    expect(screen.text()).not.toContain("untuk memperbarui data ini");
-    expect(screen.has(live)).toBe(true);
+    expect(screen.text()).not.toContain("Kamu belum masuk ke EduNex");
+    await live();
   });
 
-  it("when EduNex changes something, Home says so and keeps the last courses", async () => {
+  it("when EduNex changes something, the window says so and keeps the last courses", async () => {
     screen = await openApp({ signedIn: true });
     screen.world.edunex.mangle(/^\/course\/presences\/list$/, { kind: "missing-field", field: "course_code" });
-    await screen.click(live);
+    await screen.engineDoes(async () => screen?.engine.refresh("edunex"));
     expect(screen.text()).toContain("EduNex berubah");
     expect(cards()).toHaveLength(5);
   });
@@ -157,7 +160,7 @@ describe("crash guard", () => {
     await screen.apply({ type: "dataset", dataset: { ...good, value: { not: "a list" }, hash: "broken" } });
     expect(screen.text()).toContain("Bagian ini gagal ditampilkan");
     // The rest of the window keeps working.
-    expect(screen.has(live)).toBe(true);
+    await live();
     await screen.apply({ type: "dataset", dataset: good });
     for (const retry of [...document.querySelectorAll("button")].filter((b) => b.textContent === "Coba lagi")) await screen.click(retry);
     expect(screen.text()).not.toContain("Bagian ini gagal ditampilkan");

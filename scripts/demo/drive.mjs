@@ -62,6 +62,8 @@ export async function launchDemo(options = {}) {
     /** Changes settings the way the Settings screen does. */
     async settings(patch) {
       await page.evaluate((p) => window.edunexPlus.invoke("settings.update", p), patch);
+      // Playwright pins the page to light; the app follows the theme through prefers-color-scheme.
+      if (patch.theme) await page.emulateMedia({ colorScheme: patch.theme === "system" ? null : patch.theme });
       await settle(page);
     },
     /** Runs a function on the pretend world in the main process (post a Task, go offline, ...). */

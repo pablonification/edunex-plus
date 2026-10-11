@@ -13,8 +13,11 @@ afterEach(() => {
 const cards = () => [...document.querySelectorAll("main ul li")].map((li) => li.textContent ?? "");
 const card = (code: string) => cards().find((text) => text.startsWith(code)) ?? "";
 const sidebar = () => document.querySelector("aside")?.textContent ?? "";
-const edunexLive = /^EduNex\s*Terhubung$/;
-const sixLive = /^SIX\s*Terhubung$/;
+/** What the top bar's status panel says about each system. */
+const edunexLive = async () => expect(await screen!.sourceState("EduNex")).toBe("Terhubung");
+const sixLive = async () => expect(await screen!.sourceState("SIX")).toBe("Terhubung");
+/** SIX is read again (the status panel's "Perbarui sekarang" reads every source; here only SIX matters). */
+const refreshSix = () => screen!.engineDoes(() => screen!.engine.refresh("six"));
 
 describe("first run", () => {
   it("connects EduNex, then SIX, then shows this term's courses from SIX with SKS and attendance", async () => {
@@ -42,8 +45,8 @@ describe("first run", () => {
     expect(card("DK4073")).toContain("Kelas 01 · 3 SKS");
     expect(card("DK4073")).toContain("4/6");
     expect(card("DK4073")).toContain("66%");
-    expect(screen.has(edunexLive)).toBe(true);
-    expect(screen.has(sixLive)).toBe(true);
+    await edunexLive();
+    await sixLive();
   });
 
   it("SIX can come first; continuing needs at least one system", async () => {
@@ -81,8 +84,8 @@ describe("Home with both systems", () => {
     expect(card("PL3032")).toContain("Ekonomi Infrastruktur dan Transportasi");
     expect(screen.has("Buka di EduNex: PL3032")).toBe(true);
     expect(document.querySelector('[role="progressbar"][aria-label="Hadir 2 dari 6 pertemuan"]')).not.toBeNull();
-    expect(screen.has(edunexLive)).toBe(true);
-    expect(screen.has(sixLive)).toBe(true);
+    await edunexLive();
+    await sixLive();
   });
 
   it("attendance follows SIX", async () => {
@@ -100,7 +103,7 @@ describe("Home with both systems", () => {
     expect(card("PL3032")).toContain("Class 01 · 3 SKS");
     expect(card("PL3032")).toContain("Attendance");
     expect(document.querySelector('[role="progressbar"][aria-label="Attended 4 of 7 meetings"]')).not.toBeNull();
-    expect(screen.has(/^SIX\s*Live$/)).toBe(true);
+    expect(await screen.sourceState("SIX")).toBe("Connected");
   });
 
   it("a course in SIX but not on EduNex shows from SIX, and opens SIX", async () => {
@@ -142,22 +145,22 @@ describe("each system on its own", () => {
     screen = await openApp({ signedIn: true, six: true });
     screen.world.six.expireSession();
     await screen.engineDoes(() => screen!.engine.refresh("six"));
-    expect(screen.text()).toContain("SIX mengakhiri sesimu. Data terakhir tetap bisa dibaca.");
-    expect(screen.has(edunexLive)).toBe(true);
-    expect(screen.has(/^SIX\s*Sesi berakhir$/)).toBe(true);
+    expect(screen.text()).toContain("Sesi SIX berakhir. Data terakhir tetap bisa dibaca.");
+    await edunexLive();
+    expect(await screen.sourceState("SIX")).toBe("Sesi berakhir");
     expect(card("DK4073")).toContain("4/6");
     screen.world.six.sessionValid = true;
     await screen.click("Masuk lagi");
-    expect(screen.text()).not.toContain("SIX mengakhiri sesimu");
-    expect(screen.has(sixLive)).toBe(true);
+    expect(screen.text()).not.toContain("Sesi SIX berakhir");
+    await sixLive();
   });
 
   it("EduNex ending its session leaves SIX's courses and chip as they were", async () => {
     screen = await openApp({ signedIn: true, six: true });
     screen.world.edunex.expireSession();
     await screen.engineDoes(() => screen!.engine.refresh("edunex"));
-    expect(screen.text()).toContain("EduNex mengakhiri sesimu.");
-    expect(screen.has(sixLive)).toBe(true);
+    expect(screen.text()).toContain("Sesi EduNex berakhir.");
+    await sixLive();
     expect(cards()).toHaveLength(5);
     expect(card("PL3002")).toContain("6/7");
   });
@@ -165,18 +168,18 @@ describe("each system on its own", () => {
   it("SIX changing something says so and keeps the last courses", async () => {
     screen = await openApp({ signedIn: true, six: true });
     screen.world.six.changeLayout(/\/statusmhs$/, 'title="Hadir', 'data-note="Hadir');
-    await screen.click(sixLive);
+    await refreshSix();
     expect(screen.text()).toContain("SIX berubah");
     expect(screen.text()).toContain("SIX mengirim data yang tidak dikenali.");
     expect(card("DK4073")).toContain("4/6");
-    expect(screen.has(edunexLive)).toBe(true);
+    await edunexLive();
   });
 
   it("SIX rate-limiting the app shows offline and keeps the data", async () => {
     screen = await openApp({ signedIn: true, six: true });
     screen.world.six.rateLimit(1);
-    await screen.click(sixLive);
-    expect(screen.has(/^SIX\s*Offline$/)).toBe(true);
+    await refreshSix();
+    expect(await screen.sourceState("SIX")).toBe("Offline");
     expect(card("DK4073")).toContain("4/6");
   });
 });
@@ -194,7 +197,8 @@ describe("Settings", () => {
     // Back to EduNex's list: no SKS or attendance without SIX.
     expect(cards()).toHaveLength(5);
     expect(card("DK4073")).not.toContain("SKS");
-    expect(screen.has(/^SIX\s*Belum masuk$/)).toBe(true);
+    await screen.key("Escape");
+    expect(await screen.sourceState("SIX")).toBe("Belum masuk");
   });
 
   it("connects SIX from Settings", async () => {

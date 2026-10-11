@@ -27,7 +27,7 @@ import { useTermCourses } from "../courses";
 import { type Format, type Translate, useFormat, useLang, useNow, useT } from "../i18n";
 import { useNav } from "../nav";
 import { useExamIds, useScheduleInput } from "../schedule-data";
-import { SixEmptyState, SourceNotice } from "../shell/source-status";
+import { SixEmptyState } from "../shell/source-status";
 import { useBridge, useStatus } from "../store";
 import { Button, IconButton, Segmented } from "../ui/controls";
 import { cx } from "../ui/cx";
@@ -102,7 +102,6 @@ export function ScheduleScreen() {
         </div>
       </header>
 
-      <SourceNotice source="six" hasData={input !== undefined} />
 
       {!plan ? (
         <NoTimetable />
