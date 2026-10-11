@@ -364,7 +364,11 @@ function CourseRow({ item, target, lastDay, index }: { item: CourseAttendance; t
   const best = health.best !== null ? percent(health.best) : null;
   const until = lastDay && (health.state === "safe" || health.state === "risk") ? f.dayMonth(Date.parse(`${lastDay}T12:00:00+07:00`)) : null;
   const notes = useNotes(item, target);
-  const label = [course.code, name(course.code, course.name), statusSentence(t, health, target)].join(" · ");
+  // Signed out of SIX, with nothing of SIX's kept: the card above says once that the count is in SIX; no row
+  // claims SIX has none ("Belum ada hitungan SIX") or repeats where it counts.
+  const sixOut = useStatus("six").state === "signed-out" && held === null;
+  const sentence = sixOut ? null : statusSentence(t, health, target);
+  const label = [course.code, name(course.code, course.name), sentence].filter(Boolean).join(" · ");
 
   return (
     <li className="group relative motion-safe:stagger has-[>button:hover]:bg-hover" style={{ "--i": index } as CSSProperties}>
@@ -375,7 +379,7 @@ function CourseRow({ item, target, lastDay, index }: { item: CourseAttendance; t
           <CourseCode code={course.code} color={course.color} className="text-small" />
           <p className="mt-0.5 line-clamp-2 text-body font-semibold">{name(course.code, course.name)}</p>
           <p className="mt-1 text-small text-muted">
-            <Where health={health} />
+            {!(sixOut && health.countedIn === "noSix") && <Where health={health} />}
             <Next health={health} />
           </p>
         </div>
@@ -389,9 +393,11 @@ function CourseRow({ item, target, lastDay, index }: { item: CourseAttendance; t
         </div>
 
         <div className="min-w-0 text-right">
-          <p className={cx(health.state === "unknown" ? "text-small font-medium" : "text-title leading-snug font-semibold text-balance", STATE_TONE[health.state])}>
-            {statusSentence(t, health, target)}
-          </p>
+          {sentence && (
+            <p className={cx(health.state === "unknown" ? "text-small font-medium" : "text-title leading-snug font-semibold text-balance", STATE_TONE[health.state])}>
+              {sentence}
+            </p>
+          )}
           {share !== null ? (
             <>
               <p className="mt-0.5 text-small text-muted tabular-nums">
