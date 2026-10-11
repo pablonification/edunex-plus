@@ -356,11 +356,12 @@ function detailOf(item: SearchItem, t: Translate, f: Format, now: number): strin
     case "exam":
       parts.push(takeHomeOnly(item.exam) ? t("task.uts") : null, examWhen(item.exam, t, f));
       break;
+    // The joint class's copy of a module says so, or the two rows read the same.
     case "material":
-      if (item.module) parts.push(t("course.module", { no: item.module.number }), item.module.title);
+      if (item.module) parts.push(item.module.parent ? t("course.jointClass") : null, t("course.module", { no: item.module.number }), item.module.title);
       break;
     case "module":
-      parts.push(t("course.module", { no: item.module.number }));
+      parts.push(item.module.parent ? t("course.jointClass") : null, t("course.module", { no: item.module.number }));
       break;
     case "announcement":
       parts.push(item.announcement.postedAt !== null ? f.relativeDay(item.announcement.postedAt) : null);
