@@ -43,6 +43,9 @@ if (args[0] === "--seed") {
   };
   const shot = async (win, name) => {
     await sleep(1_200);
+    // Ask for a fresh frame first: right after a theme switch, the capture can hand back the previous one.
+    win.webContents.invalidate();
+    await Promise.race([run(win, "new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)))"), sleep(2_000)]).catch(() => {});
     const image = await win.webContents.capturePage();
     const file = path.join(out, `${String(++count).padStart(2, "0")}-${name}.png`);
     fs.writeFileSync(file, image.toPNG());
@@ -52,14 +55,18 @@ if (args[0] === "--seed") {
   const escape = (win) => run(win, `document.activeElement.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }))`);
 
   async function script(win) {
+    // Keep painting while other windows cover this one.
+    win.webContents.setBackgroundThrottling(false);
     await waitFor(win, `document.querySelector("#root")?.children.length > 0`);
     await settings(win, { theme: "light", lang: "id" });
     if (steps === "tour") {
       // Every screen and every tab, as a Student would click through them.
+      // Sidebar entries first; their text can end in a count ("Tugas & Ujian5").
       const click = (label) =>
-        run(win, `(() => { const el = [...document.querySelectorAll("button, [role=tab], a")].find((e) => e.textContent.trim() === ${JSON.stringify(label)} || e.getAttribute("aria-label") === ${JSON.stringify(label)}); if (!el) return false; el.click(); return true; })()`);
+        run(win, `(() => { const all = [...document.querySelectorAll("aside button, aside a"), ...document.querySelectorAll("button, [role=tab], a")]; const el = all.find((e) => e.textContent.trim() === ${JSON.stringify(label)} || e.getAttribute("aria-label") === ${JSON.stringify(label)}) ?? all.find((e) => e.closest("aside") && e.textContent.trim().startsWith(${JSON.stringify(label)})); if (!el) return false; el.click(); return true; })()`);
       const tabs = () => run(win, `[...document.querySelectorAll("main [role=tab]")].map((t) => t.textContent.trim())`);
-      const clickTab = (i) => run(win, `document.querySelectorAll("main [role=tab]")[${i}].click()`);
+      // Radix tabs switch on mousedown (left button), not on click.
+      const clickTab = (i) => run(win, `(() => { const tab = document.querySelectorAll("main [role=tab]")[${i}]; tab.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, cancelable: true, button: 0 })); tab.click(); })()`);
       const shotTabs = async (name) => {
         const labels = await tabs();
         if (!labels.length) return shot(win, name);
@@ -70,6 +77,12 @@ if (args[0] === "--seed") {
       };
       await waitFor(win, `!!document.querySelector("aside")`, 30_000);
       await sleep(4_000);
+      // The first-run scan opens by itself once: keep a picture of it, then close it.
+      if (await run(win, `!!document.querySelector("[role=dialog]")`)) {
+        await shot(win, "first-scan");
+        await escape(win);
+        await sleep(500);
+      }
       await shot(win, "home");
       for (const [label, name] of [["Tugas & Ujian", "tasks"], ["Jadwal", "schedule"], ["Presensi", "presence"], ["Nilai", "grades"], ["Rencana studi", "plan"]]) {
         if (!(await click(label))) {
