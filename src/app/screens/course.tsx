@@ -234,23 +234,30 @@ function RiskStrip({ page }: { page: CoursePage }) {
   if (!health || !attendance || (health.state !== "out" && health.state !== "none" && health.state !== "risk")) return null;
   const next = page.meetings.find((m) => m.end > now && !m.notInSix);
   const clash = next ? clashes(next, page.course.code, schedule ?? [])[0] : undefined;
+  // The strip right below already shows the next meeting; say it here only when it doesn't.
+  const nextShownBelow = next !== undefined && pinnedMeeting(page.meetings, now)?.meeting.key === next.key;
+  const out = health.state === "out";
   return (
     <Notice
-      tone={health.state === "out" ? "danger" : "warning"}
+      tone={out ? "danger" : "warning"}
       className="mb-4"
-      title={budgetLabel(t, health, attendance.target)}
+      title={out ? t("presence.status.out", { target: attendance.target }) : budgetLabel(t, health, attendance.target)}
       action={
         <Button size="sm" onClick={() => go({ screen: "presence" })}>
           {t("course.risk.seePresence")}
         </Button>
       }
     >
-      {next && (
-        <>
-          {t("course.risk.next", { when: `${f.relativeDay(next.start)}, ${f.timeRange(next.start, next.end)}`, room: next.six?.room ? t("course.risk.room", { room: next.six.room }) : "" })}
-          {clash && ` ${t("course.risk.clash", { code: clash.courseCode, time: f.timeRange(clash.start, clash.end) })}`}
-        </>
-      )}
+      {[
+        out ? t("course.risk.best", { best: percent(health.best ?? 0) }) : "",
+        next && !nextShownBelow
+          ? t("course.risk.next", { when: `${f.relativeDay(next.start)}, ${f.timeRange(next.start, next.end)}`, room: next.six?.room ? t("course.risk.room", { room: next.six.room }) : "" })
+          : "",
+        // The minutes the two classes share, as Beranda and Jadwal say it.
+        next && clash ? t("course.risk.clash", { code: clash.courseCode, time: f.timeRange(Math.max(next.start, clash.start), Math.min(next.end, clash.end)) }) : "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
     </Notice>
   );
 }

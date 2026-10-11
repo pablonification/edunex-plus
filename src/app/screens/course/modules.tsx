@@ -44,9 +44,9 @@ interface Entry {
 
 const latest = (entry: Pick<Entry, "postedAt" | "materials">) => Math.max(entry.postedAt ?? 0, ...entry.materials.map((m) => m.postedAt ?? m.updatedAt ?? 0)) || null;
 
-/** "2 PDF · 1 tugas": what's in it; Tasks still to do show as their own chip instead. */
-const countLine = (t: Translate, entry: Entry, open: number) =>
-  contentCounts(entry.materials, entry.tasks.length - open)
+/** "2 PDF · 4 tugas": what's in it; how many Tasks are still open shows as its own chip. */
+const countLine = (t: Translate, entry: Entry) =>
+  contentCounts(entry.materials, entry.tasks.length)
     .map(({ kind, count }) => t(`course.kind.${kind}`, { count }))
     .join(" · ");
 
@@ -117,7 +117,7 @@ export function ModulesTab({ page }: { page: CoursePage }) {
                     <span className={cx("line-clamp-2 leading-[1.35]", empty ? "text-small text-muted" : "text-body", !empty && (isActive ? "font-semibold" : "font-medium"))}>
                       {entry.title}
                     </span>
-                    {!empty && countLine(t, entry, open) && <span className="mt-0.5 block truncate text-caption text-faint">{countLine(t, entry, open)}</span>}
+                    {!empty && countLine(t, entry) && <span className="mt-0.5 block truncate text-caption text-faint">{countLine(t, entry)}</span>}
                   </span>
                   {(open > 0 || fresh) && (
                     <span className="mt-0.5 flex shrink-0 flex-col items-end gap-1">

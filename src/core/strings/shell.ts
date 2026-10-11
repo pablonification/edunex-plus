@@ -116,6 +116,8 @@ export const shellStrings = {
   "settings.account.stale": { id: "Tidak bisa diperiksa · data dari {when}", en: "Couldn't check · data from {when}" },
   "settings.account.expired": { id: "Sesi berakhir · masuk lagi untuk memperbarui", en: "Session ended · sign in again to update" },
   "settings.signOutOf": { id: "Keluar dari {source}", en: "Sign out of {source}" },
+  "settings.signInTo": { id: "Masuk ke {source}", en: "Sign in to {source}" },
+  "settings.signInAgainTo": { id: "Masuk lagi ke {source}", en: "Sign in to {source} again" },
   "settings.signOutAll": { id: "Keluar & hapus data", en: "Sign out & remove data" },
   "settings.signOutAll.label": { id: "Keluar dari semua akun", en: "Sign out of everything" },
   "settings.signOutAllHint": {

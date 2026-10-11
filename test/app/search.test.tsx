@@ -111,6 +111,15 @@ describe("quick search", () => {
     expect(document.querySelector("[role=tab][data-state=active]")?.textContent).toMatch(/^Modul/);
   });
 
+  it("a module in both the class and its joint class reads as two different rows", async () => {
+    screen = await openApp({ signedIn: true, six: true });
+    await commandK();
+    await type("02 penyusunan proposal");
+    const rows = [...document.querySelectorAll("[role=listbox] [role=option]")].map((o) => o.textContent ?? "").filter((r) => r.startsWith("02 Penyusunan Proposal TA"));
+    expect(rows).toHaveLength(2);
+    expect(rows.filter((r) => r.includes("Kelas gabungan"))).toHaveLength(1);
+  });
+
   it("an exam opens its exam page: SIX's sitting and EduNex's take-home are one UTS", async () => {
     screen = await openApp({ signedIn: true, six: true });
     await commandK();

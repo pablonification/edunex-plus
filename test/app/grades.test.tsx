@@ -88,6 +88,9 @@ describe("Nilai", () => {
     ]);
     expect(s.text()).not.toContain("SIX menampilkan IPK");
     expect(s.text()).not.toContain("Tahap Sarjana");
+    // SIX's stage IPK in the Student's words, not SIX's.
+    expect(s.text()).toContain("IPK tanpa TPB: 3,18");
+    expect(s.text()).not.toMatch(/tahap sarjana/i);
   });
 
   it("IP and IPK per semester on one chart, this semester and the plan marked as estimates", async () => {

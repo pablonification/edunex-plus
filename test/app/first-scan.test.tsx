@@ -146,7 +146,7 @@ describe("after the welcome screen", () => {
     await press("Escape");
 
     await screen.apply({ type: "command", command: "settings" });
-    await screen.click("Masuk: SIX");
+    await screen.click("Masuk ke SIX");
     await press("Escape");
     expect(screen.store.status("six").state).toBe("live");
     await screen.wait();

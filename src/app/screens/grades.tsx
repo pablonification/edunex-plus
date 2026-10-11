@@ -301,7 +301,8 @@ function Transcript({ record }: { record: StudentRecord }) {
       description={
         <Meta>
           {t("grades.transcriptFrom")}
-          {stage && stageIp !== null ? t("grades.stageIp", { name: stage.name.replace(/^Tahap\s+/i, "").toLowerCase(), ip: f.number(stageIp, 2) }) : ""}
+          {/* SIX's "Tahap Sarjana" IPK is the IPK without TPB: said in the Student's words. */}
+          {stage && stageIp !== null && !/persiapan/i.test(stage.name) ? t("grades.stageIp", { ip: f.number(stageIp, 2) }) : ""}
         </Meta>
       }
     >
