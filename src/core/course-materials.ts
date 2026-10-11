@@ -20,10 +20,18 @@ export const VICON_PROVIDERS: Readonly<Record<string, string>> = {
 };
 
 const KINDS: Readonly<Record<string, MaterialKind>> = { pdf: "pdf", text: "note", video: "video", audio: "audio", url: "link", file: "file", h5p: "interactive" };
+/** EduNex labels other uploads by their extension: "zip", "ppt", "docx"… */
+const UPLOAD_TYPE = /^[a-z0-9]{2,5}$/;
 
 export function materialKind(type: string): MaterialKind {
   if (Object.hasOwn(VICON_PROVIDERS, type)) return "vicon";
-  return Object.hasOwn(KINDS, type) ? KINDS[type] : "other";
+  if (Object.hasOwn(KINDS, type)) return KINDS[type];
+  return UPLOAD_TYPE.test(type) ? "file" : "other";
+}
+
+/** An upload's extension as EduNex's type names it (".zip"); null for EduNex's own kinds. */
+export function uploadExtension(type: string): string | null {
+  return materialKind(type) === "file" && type !== "file" ? `.${type}` : null;
 }
 
 /** Where EduNex keeps files: its storage on Azure, its API, ITB's own sites (as the desktop's download guard). */
@@ -123,7 +131,7 @@ function extensionOf(url: string | null): string | null {
 
 /** The file's name when saved: the lecturer's title with the file's extension. */
 export function fileName(material: Pick<Material, "title" | "type" | "content">): string {
-  const ext = material.type === "pdf" ? ".pdf" : (extensionOf(material.content) ?? "");
+  const ext = material.type === "pdf" ? ".pdf" : (extensionOf(material.content) ?? uploadExtension(material.type) ?? "");
   let base = material.title.trim();
   if (ext && base.toLowerCase().endsWith(ext)) base = base.slice(0, -ext.length);
   return `${safeFileName(base)}${ext}`;

@@ -3,7 +3,7 @@
 // entry's Tasks and materials. Each material type gets the one action that
 // fits it: download, join, read here, open, or EduNex itself.
 import { useState } from "react";
-import { htmlText, materialAction, materialKind, type MaterialKind, outlineEntries, VICON_PROVIDERS } from "../../../core/course-materials";
+import { htmlText, materialAction, materialKind, type MaterialKind, outlineEntries, uploadExtension, VICON_PROVIDERS } from "../../../core/course-materials";
 import type { Material, Task } from "../../../core/models";
 import { useOpenExternal } from "../../hooks";
 import { useFormat, useNow, useT } from "../../i18n";
@@ -165,10 +165,13 @@ export function MaterialRow({ material, first }: { material: Material; first: bo
   const Icon = KIND_ICON[kind];
 
   let meta: string;
-  if (kind === "pdf") meta = `${t("material.pdf")}${material.sizeBytes ? ` · ${f.fileSize(material.sizeBytes)}` : ""}`;
+  const size = material.sizeBytes ? ` · ${f.fileSize(material.sizeBytes)}` : "";
+  const upload = uploadExtension(material.type);
+  if (kind === "pdf") meta = `${t("material.pdf")}${size}`;
+  else if (upload) meta = `${upload.slice(1).toUpperCase()}${size}`;
   else if (kind === "vicon") meta = VICON_PROVIDERS[material.type] ? t("material.vicon", { service: VICON_PROVIDERS[material.type] }) : t("material.viconUnknown");
   else if (kind === "note") meta = htmlText(material.content ?? "").slice(0, 120) || t("material.note");
-  else meta = `${t(`material.${kind}`)}${material.sizeBytes ? ` · ${f.fileSize(material.sizeBytes)}` : ""}`;
+  else meta = `${t(`material.${kind}`)}${size}`;
 
   const download = async (url: string, name: string) => {
     setBusy(true);

@@ -114,6 +114,10 @@ describe("materials and offline files", () => {
     expect(materialAction({ ...base, type: "url", content: "https://example.org/x" })).toEqual({ kind: "edunex", url: "https://edunex.itb.ac.id/courses/95001/preview/470019" });
     expect(materialAction({ ...base, type: "h5p", content: "https://example.org/h5p" }).kind).toBe("edunex");
     expect(materialAction({ ...base, type: "quiz-of-the-future", content: blob }).kind).toBe("edunex");
+    // Other uploads carry their extension as the type (seen live: zip, ppt).
+    expect(materialAction({ ...base, type: "zip", content: blob })).toEqual({ kind: "download", url: blob, name: "Slide 1.zip" });
+    expect(materialAction({ ...base, type: "pptx", content: blob })).toEqual({ kind: "download", url: blob, name: "Slide 1.pptx" });
+    expect(materialAction({ ...base, type: "zip", content: "https://example.org/x.zip" }).kind).toBe("edunex");
   });
 
   it("lays a course's files out by module, the parent class's apart, names never colliding", async () => {
