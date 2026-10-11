@@ -253,6 +253,11 @@ Screens are composed, not styled one by one:
 | `SourceTag` | Quiet outline tag, only where the source changes what to do. |
 | `Badge` | Sidebar counts: neutral = how many; amber = something needs the Student today. |
 | `Skeleton` | Placeholders in the shape of what's coming; never a blank area or a lone spinner. |
+| `Menu` (`ui/menu.tsx`) | A "⋯" button for a screen's rare actions; an item that can't run stays, dimmed, with the reason under it. |
+| `LineChart` (`ui/chart.tsx`) | The one chart spec: a clean value range with hairline gridlines, estimates dashed, a labelled target line, a direct end label, a tooltip per column, a table for screen readers. |
+| `ShareMeter`, `CountdownBar` (`ui/meter.tsx`) | Status-colored meters: attendance against the target (the best still reachable as a ghost); time left in a window, shrinking, amber in its last 15 minutes. |
+| `TimeGrid`, `GridBlock` (`ui/time-grid.tsx`) | A week as a time grid: height is duration, shared time side by side, empty days narrow, periods tinted and named, a now line. |
+| `Flash` (`ui/motion.tsx`) | A figure the Student is watching glows briefly when it changes; the value itself changes at once. |
 
 The shell: a sidebar (⌘1–⌘6, courses with their dot, the Student's name
 opening Settings), a top bar (back button naming where it goes, ⌘K search,
