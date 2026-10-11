@@ -19,6 +19,7 @@ import { Button } from "../ui/controls";
 import { cx } from "../ui/cx";
 import { Card, CourseCode } from "../ui/display";
 import { Icons } from "../ui/icons";
+import { Flash } from "../ui/motion";
 import { List, Meta, Notice, Page, PageHeader, Row, Section, Stat } from "../ui/layout";
 import { GradeBadge, GradeSelect, HonorsSentence, IpkChart, NeedText, predicateFor, TargetControl, usePredicate, useTermName } from "./plan/projection";
 import { SixNeeded } from "./plan/six-needed";
@@ -147,7 +148,9 @@ function Graduation({ record, state }: { record: StudentRecord; state: PlanState
     <Card className="flex flex-col px-5 py-4">
       <h2 className="text-title font-semibold tracking-[-0.01em]">{t("grades.graduation")}</h2>
       <p className="text-caption text-muted">{t("grades.graduationEstimate")}</p>
-      <p className="mt-3 text-[34px] leading-10 font-semibold tracking-[-0.02em]">{final === null ? "—" : f.number(final, 2)}</p>
+      <p className="mt-3 text-[34px] leading-10 font-semibold tracking-[-0.02em]">
+        <Flash value={final}>{final === null ? "—" : f.number(final, 2)}</Flash>
+      </p>
       {word && <p className={cx("text-small font-semibold", projection.honor ? "text-success-fg" : "text-fg")}>{word}</p>}
       {finish && (
         <p className={cx("mt-1 flex items-center gap-1.5 text-small", finish.level === "error" ? "text-warning-fg" : "text-muted")}>

@@ -51,6 +51,7 @@ import { Button, IconButton } from "../../ui/controls";
 import { cx } from "../../ui/cx";
 import { Card } from "../../ui/display";
 import { Icons } from "../../ui/icons";
+import { Flash } from "../../ui/motion";
 import { ConfirmDialog, Dialog, dismissToast, toast, Tooltip } from "../../ui/overlays";
 import { GradeSelect, HonorsList, IpkChart, NeedText, predicateFor, TargetControl, usePredicate, useTermLabel } from "./projection";
 import { SixNeeded } from "./six-needed";
@@ -345,7 +346,9 @@ function Summary({ record, state, rules }: { record: StudentRecord; state: PlanS
           </div>
           <div>
             <dt className="text-caption font-medium text-muted">{t("grades.graduation")}</dt>
-            <dd className="text-title font-semibold tabular-nums">{projection.finalIpk === null ? "—" : f.number(projection.finalIpk, 2)}</dd>
+            <dd className="text-title font-semibold tabular-nums">
+              <Flash value={projection.finalIpk}>{projection.finalIpk === null ? "—" : f.number(projection.finalIpk, 2)}</Flash>
+            </dd>
             <dd className={cx("text-caption", projection.honor ? "font-semibold text-success-fg" : "text-muted")}>{word}</dd>
           </div>
         </dl>
