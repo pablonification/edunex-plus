@@ -70,7 +70,11 @@ export type Finding = FindingBase &
         /** The next level up is ruled out whatever the grades: a retake (summa), or past 9 semesters. */
         blocked: { level: HonorLevel; reason: "retake" | "time" } | null;
       }
-    | { kind: "unread"; parts: { source: SourceId; state: SourceState; missing: ScanPart[] }[] }
+    | {
+        kind: "unread";
+        /** `catalog`: what changed on ITB's side is a page of SIX's public catalog, not ITB's calendar. */
+        parts: { source: SourceId; state: SourceState; missing: ScanPart[]; catalog?: true }[];
+      }
   );
 export type FindingKind = Finding["kind"];
 
@@ -269,7 +273,10 @@ function unread({ saved, statuses }: ScanInput): Finding | null {
     const state = stateOf(statuses, source);
     if (state !== "offline" && state !== "changed" && state !== "expired") return [];
     const missing = SCAN_PARTS[source].filter((name) => saved[name] === undefined);
-    return missing.length || state === "changed" ? [{ source, state, missing }] : [];
+    if (!missing.length && state !== "changed") return [];
+    // ITB's side also reads SIX's public catalog: with the calendar there, a changed catalog page is what changed.
+    const catalog = source === "itb" && !missing.length && saved["itb.catalog"]?.programs.some((p) => p.state === "changed");
+    return [catalog ? { source, state, missing, catalog: true as const } : { source, state, missing }];
   });
   if (!parts.length) return null;
   return {

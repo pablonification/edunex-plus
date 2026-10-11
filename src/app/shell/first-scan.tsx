@@ -38,6 +38,7 @@ const SCANNED: readonly DatasetName[] = [
   "edunex.announcements",
   "edunex.exams",
   "itb.calendar",
+  "itb.catalog",
 ];
 
 /** Lines say at most this many courses, exams or meetings, then "and N more". */
@@ -334,7 +335,7 @@ function describe(finding: Finding, t: Translate, f: Format, target: number): { 
       return {
         title: t("scan.unread.title", { count: finding.count }),
         lines: finding.parts.map(
-          (part) => `${t(`scan.unread.${part.state as "offline" | "changed" | "expired"}`, { source: t(`source.${part.source}`) })}${part.missing.length ? `: ${part.missing.map((name) => t(`scan.part.${name}`)).join(", ")}` : ""}`,
+          (part) => `${t(`scan.unread.${part.state as "offline" | "changed" | "expired"}`, { source: part.catalog ? t("scan.unread.catalog") : t(`source.${part.source}`) })}${part.missing.length ? `: ${part.missing.map((name) => t(`scan.part.${name}`)).join(", ")}` : ""}`,
         ),
         note: null,
       };

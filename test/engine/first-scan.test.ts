@@ -189,6 +189,13 @@ describe("what couldn't be read", () => {
     expect(of(findings, "unread")?.parts).toEqual([{ source: "six", state: "offline", missing: ["six.schedule"] }]);
   });
 
+  it("a page of SIX's public catalog changed: the catalog is named, not ITB's calendar", async () => {
+    const h = await firstSync({ before: (h) => h.world.itb.changeLayout("/pub/kur2024/182", "<th>Kategori</th>", "<th>Jenis</th>") });
+    await h.wait(300_000);
+    expect(h.status("itb").state).toBe("changed");
+    expect(of(scan(h.saved(), h.statuses(), h.world.clock.now()), "unread")?.parts).toEqual([{ source: "itb", state: "changed", missing: [], catalog: true }]);
+  });
+
   it("an offline system whose earlier data is all there has nothing missing to report", async () => {
     const h = await firstSync();
     h.world.setOffline(true);
