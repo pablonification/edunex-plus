@@ -124,7 +124,6 @@ export function curriculumMap(record: StudentRecord, plan: StudyPlan): Curriculu
     semester(row.semester).others.push({ code: row.code, name: row.name, sks: row.sks, courseId: null, status: withPlan(statusOf(row), row.code), grade: row.grade, via: null });
   }
 
-  const electiveRows = rows.filter((r) => r.kind === "program-elective" || r.kind === "outside-elective");
   const requiredLeftSks = record.requiredLeft.reduce((sum, c) => sum + c.sks, 0);
 
   const packageStatus = (code: string): SlotStatus => {
@@ -161,8 +160,9 @@ export function curriculumMap(record: StudentRecord, plan: StudyPlan): Curriculu
     requiredSks: slots.reduce((sum, c) => sum + c.sks, 0),
     requiredLeftSks,
     electiveNeed: record.electiveNeed,
-    electivePassed: electiveRows.filter((r) => statusOf(r) === "passed" || statusOf(r) === "exempt").reduce((sum, r) => sum + r.sks, 0),
-    electiveInProgress: electiveRows.filter((r) => statusOf(r) === "in-progress").reduce((sum, r) => sum + r.sks, 0),
+    // The same count the planner checks, so the two tabs never disagree.
+    electivePassed: record.electivePassed,
+    electiveInProgress: record.electiveInProgress,
     specializations,
     minors,
   };
