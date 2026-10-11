@@ -24,12 +24,12 @@ export const alertsStrings = {
   "alerts.open": { id: "Notifikasi, {count} belum dibaca", en: "Notifications, {count} unread" },
   "alerts.empty": { id: "Belum ada yang berubah", en: "Nothing has changed yet" },
   "alerts.emptyHint": {
-    id: "Tugas baru, perubahan jadwal, dan tenggat yang mendekat muncul di sini. EduNex dan SIX diperiksa sendiri secara berkala.",
-    en: "New Tasks, schedule changes and coming deadlines show here. EduNex and SIX are checked regularly on their own.",
+    id: "Tugas baru, perubahan jadwal, dan tenggat yang mendekat muncul di sini. Edunex dan SIX diperiksa sendiri secara berkala.",
+    en: "New Tasks, schedule changes and coming deadlines show here. Edunex and SIX are checked regularly on their own.",
   },
   "alerts.emptyHintEdunex": {
-    id: "Tugas baru, materi, dan tenggat yang mendekat muncul di sini. EduNex diperiksa sendiri secara berkala; jadwal dan kehadiran menyusul setelah SIX terhubung.",
-    en: "New Tasks, materials and coming deadlines show here. EduNex is checked regularly on its own; schedule and attendance follow once SIX is connected.",
+    id: "Tugas baru, materi, dan tenggat yang mendekat muncul di sini. Edunex diperiksa sendiri secara berkala; jadwal dan kehadiran menyusul setelah SIX terhubung.",
+    en: "New Tasks, materials and coming deadlines show here. Edunex is checked regularly on its own; schedule and attendance follow once SIX is connected.",
   },
   "alerts.markAllRead": { id: "Tandai semua dibaca", en: "Mark all read" },
   "alerts.unread": { id: "belum dibaca", en: "unread" },
@@ -37,8 +37,8 @@ export const alertsStrings = {
   "alerts.period.yesterday": { id: "Kemarin", en: "Yesterday" },
   "alerts.period.week": { id: "Minggu ini", en: "This week" },
   "alerts.period.earlier": { id: "Sebelumnya", en: "Earlier" },
-  "alerts.footnoteEdunex": { id: "Dari EduNex · SIX belum terhubung", en: "From EduNex · SIX isn't connected" },
-  "alerts.footnote": { id: "Dari EduNex dan SIX", en: "From EduNex and SIX" },
+  "alerts.footnoteEdunex": { id: "Dari Edunex · SIX belum terhubung", en: "From Edunex · SIX isn't connected" },
+  "alerts.footnote": { id: "Dari Edunex dan SIX", en: "From Edunex and SIX" },
   "alerts.settings": { id: "Atur notifikasi", en: "Notification settings" },
 
   // Settings

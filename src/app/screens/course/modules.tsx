@@ -1,8 +1,8 @@
-// The Modul tab: EduNex's table of contents (course-wide items, then each
+// The Modul tab: Edunex's table of contents (course-wide items, then each
 // module, the joint class's after the class's own), and the selected entry's
 // Tasks and materials. It opens on the newest module with something in it;
 // empty modules take one quiet line. Each material type gets the one action
-// that fits it: download, join, read here, open, or EduNex itself, all alike.
+// that fits it: download, join, read here, open, or Edunex itself, all alike.
 import { useEffect, useRef, useState } from "react";
 import {
   contentCounts,
@@ -50,7 +50,7 @@ const countLine = (t: Translate, entry: Entry) =>
     .map(({ kind, count }) => t(`course.kind.${kind}`, { count }))
     .join(" · ");
 
-/** `module`: the EduNex module asked for (from search or an alert); it opens selected and in view. */
+/** `module`: the Edunex module asked for (from search or an alert); it opens selected and in view. */
 export function ModulesTab({ page, module }: { page: CoursePage; module?: number }) {
   const t = useT();
   const now = useNow();

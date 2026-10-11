@@ -1,5 +1,5 @@
 // Presensi (#85): am I in trouble anywhere? The header answers in one line
-// ("3 mata kuliah perlu perhatianmu", "Semua aman"). Then any EduNex Presence
+// ("3 mata kuliah perlu perhatianmu", "Semua aman"). Then any Edunex Presence
 // window open now, action first, with a countdown. Then every course, worst
 // first: its meetings (SIX's tally, and each meeting to come with its date),
 // one big status sentence ("Boleh absen 2× lagi", "Jangan absen lagi", "80%
@@ -468,7 +468,7 @@ interface Note {
   action?: ReactNode;
 }
 
-/** What to know under a course: the way back to the target, what to do when it's out of reach, how EduNex's record relates to SIX's. */
+/** What to know under a course: the way back to the target, what to do when it's out of reach, how Edunex's record relates to SIX's. */
 function useNotes(item: CourseAttendance, target: number): Note[] {
   const t = useT();
   const f = useFormat();
@@ -535,7 +535,7 @@ function MeetingStrip({ health }: { health: AttendanceHealth }) {
   return <Strip squares={squares} label={label} gapAfter={[attended - 1, held - 1]} />;
 }
 
-/** Without SIX's count: EduNex's Presence windows, each with its date and what EduNex recorded. */
+/** Without SIX's count: Edunex's Presence windows, each with its date and what Edunex recorded. */
 function EdunexStrip({ presence }: { presence: readonly PresenceSession[] }) {
   const t = useT();
   const f = useFormat();

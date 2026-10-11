@@ -1,7 +1,7 @@
 // What every part of the app shares: the sources, their status, and settings.
 import { z } from "zod";
 
-/** EduNex and SIX need the Student's sign-in; "itb" is ITB's public pages (academic calendar, course catalog). */
+/** Edunex and SIX need the Student's sign-in; "itb" is ITB's public pages (academic calendar, course catalog). */
 export const SourceId = z.enum(["edunex", "six", "itb"]);
 export type SourceId = z.infer<typeof SourceId>;
 

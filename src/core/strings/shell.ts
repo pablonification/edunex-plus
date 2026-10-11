@@ -23,14 +23,14 @@ export const shellStrings = {
   "action.tryAgain": { id: "Coba lagi", en: "Try again" },
   "action.copyDetails": { id: "Salin detail", en: "Copy details" },
   "action.copied": { id: "Tersalin", en: "Copied" },
-  "action.openInEdunex": { id: "Buka di EduNex", en: "Open in EduNex" },
+  "action.openInEdunex": { id: "Buka di Edunex", en: "Open in Edunex" },
   "action.signIn": { id: "Masuk", en: "Sign in" },
   "action.signInAgain": { id: "Masuk lagi", en: "Sign in again" },
   "action.signInTo": { id: "Masuk ke {source}", en: "Sign in to {source}" },
   "action.signOut": { id: "Keluar", en: "Sign out" },
 
   // Sources and their status
-  "source.edunex": { id: "EduNex", en: "EduNex" },
+  "source.edunex": { id: "Edunex", en: "Edunex" },
   "source.six": { id: "SIX", en: "SIX" },
   "source.itb": { id: "Kalender ITB", en: "ITB calendar" },
   "status.signed-out": { id: "Belum masuk", en: "Not signed in" },
@@ -75,8 +75,8 @@ export const shellStrings = {
   // Welcome / sign-in
   "welcome.title": { id: "Selamat datang di Edunex Plus", en: "Welcome to Edunex Plus" },
   "welcome.lead": {
-    id: "EduNex dan SIX tidak saling terhubung. Edunex Plus membaca keduanya dan memberi tahu apa yang perlu kamu urus, apa yang berubah, dan posisimu.",
-    en: "EduNex and SIX don't talk to each other. Edunex Plus reads both and tells you what needs you, what changed, and where you stand.",
+    id: "Edunex dan SIX tidak saling terhubung. Edunex Plus membaca keduanya dan memberi tahu apa yang perlu kamu urus, apa yang berubah, dan posisimu.",
+    en: "Edunex and SIX don't talk to each other. Edunex Plus reads both and tells you what needs you, what changed, and where you stand.",
   },
   "welcome.edunexDetail": { id: "Tugas, materi, presensi, unggahan dosen", en: "Tasks, materials, Presence, lecturer posts" },
   "welcome.connect": { id: "Hubungkan", en: "Connect" },
@@ -84,10 +84,10 @@ export const shellStrings = {
   "welcome.waiting": { id: "Masuk di jendela Microsoft yang terbuka…", en: "Sign in in the Microsoft window that opened…" },
   "welcome.waitingHint": { id: "Tutup jendela itu untuk membatalkan.", en: "Close that window to cancel." },
   "welcome.readingName": { id: "Membaca akunmu…", en: "Reading your account…" },
-  "welcome.continueHint": { id: "Hubungkan EduNex atau SIX dulu", en: "Connect EduNex or SIX first" },
+  "welcome.continueHint": { id: "Hubungkan Edunex atau SIX dulu", en: "Connect Edunex or SIX first" },
   "welcome.sixLater": { id: "SIX bisa dihubungkan nanti dari Pengaturan", en: "You can connect SIX later in Settings" },
-  "welcome.edunexLater": { id: "EduNex bisa dihubungkan nanti dari Pengaturan", en: "You can connect EduNex later in Settings" },
-  "welcome.reading": { id: "Membaca EduNex dan SIX…", en: "Reading EduNex and SIX…" },
+  "welcome.edunexLater": { id: "Edunex bisa dihubungkan nanti dari Pengaturan", en: "You can connect Edunex later in Settings" },
+  "welcome.reading": { id: "Membaca Edunex dan SIX…", en: "Reading Edunex and SIX…" },
   "welcome.readingOne": { id: "Membaca {source}…", en: "Reading {source}…" },
   "welcome.readingHint": { id: "Sekali ini saja, biasanya kurang dari semenit.", en: "Just this once; it usually takes under a minute." },
   "welcome.readingWait": { id: "Menyiapkan Beranda", en: "Getting Home ready" },
@@ -125,8 +125,8 @@ export const shellStrings = {
   "settings.signOutAll": { id: "Keluar & hapus data", en: "Sign out & remove data" },
   "settings.signOutAll.label": { id: "Keluar dari semua akun", en: "Sign out of everything" },
   "settings.signOutAllHint": {
-    id: "Keluar dari EduNex dan SIX, lalu menghapus semua data tersimpan dari komputer ini.",
-    en: "Signs out of EduNex and SIX, then removes all saved data from this computer.",
+    id: "Keluar dari Edunex dan SIX, lalu menghapus semua data tersimpan dari komputer ini.",
+    en: "Signs out of Edunex and SIX, then removes all saved data from this computer.",
   },
   "settings.signOutAllConfirm": { id: "Keluar dan hapus semua data?", en: "Sign out and remove all data?" },
   "settings.other": { id: "Lainnya", en: "Other" },
@@ -141,7 +141,7 @@ export const shellStrings = {
   "menu.refresh": { id: "Muat ulang", en: "Refresh" },
   "menu.file": { id: "Berkas", en: "File" },
   "menu.view": { id: "Tampilan", en: "View" },
-  "signIn.edunexTitle": { id: "Masuk ke EduNex", en: "Sign in to EduNex" },
+  "signIn.edunexTitle": { id: "Masuk ke Edunex", en: "Sign in to Edunex" },
   "app.startFailed": { id: "Edunex Plus tidak bisa dibuka", en: "Edunex Plus couldn't start" },
 
   // Crash guard

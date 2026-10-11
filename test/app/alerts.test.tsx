@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 // v2-07 (#75), seam 2: the bell, the alert history and the alert settings in
-// the window, with the real engine and the pretend EduNex behind the bridge.
+// the window, with the real engine and the pretend Edunex behind the bridge.
 import { afterEach, describe, expect, it } from "vitest";
 import { PretendWorld } from "../pretend/world";
 import { openApp } from "./harness";
@@ -41,8 +41,8 @@ describe("the bell", () => {
   it("never says it reads SIX while SIX isn't connected", async () => {
     screen = await openApp({ signedIn: true });
     await screen.click("Notifikasi");
-    expect(panel()?.textContent).toContain("Dari EduNex · SIX belum terhubung");
-    expect(panel()?.textContent).not.toContain("Dari EduNex dan SIX");
+    expect(panel()?.textContent).toContain("Dari Edunex · SIX belum terhubung");
+    expect(panel()?.textContent).not.toContain("Dari Edunex dan SIX");
   });
 
   it("with nothing at all, says what will show here", async () => {
@@ -53,9 +53,9 @@ describe("the bell", () => {
     screen = await openApp({ world, signedIn: true });
     await screen.click("Notifikasi");
     expect(panel()?.textContent).toContain("Belum ada yang berubah");
-    expect(panel()?.textContent).toContain("Tugas baru, materi, dan tenggat yang mendekat muncul di sini. EduNex diperiksa sendiri secara berkala; jadwal dan kehadiran menyusul setelah SIX terhubung.");
+    expect(panel()?.textContent).toContain("Tugas baru, materi, dan tenggat yang mendekat muncul di sini. Edunex diperiksa sendiri secara berkala; jadwal dan kehadiran menyusul setelah SIX terhubung.");
     // It never claims SIX is checked while SIX isn't connected.
-    expect(panel()?.textContent).not.toContain("EduNex dan SIX diperiksa");
+    expect(panel()?.textContent).not.toContain("Edunex dan SIX diperiksa");
   });
 
   it("counts a new alert, lists it, and marks it read in the app only", async () => {

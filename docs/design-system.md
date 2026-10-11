@@ -1,6 +1,6 @@
 # Design system
 
-The look and behaviour every Edunex Plus screen follows. The app is EduNex and
+The look and behaviour every Edunex Plus screen follows. The app is Edunex and
 SIX the way students already know them (course → modules, meetings, Jadwal,
 KRS), merged into one calm app that tells the Student what matters. It is not
 a calendar app or a to-do app; productivity ideas appear only as accents.
@@ -21,7 +21,7 @@ and every word in `src/core/strings/`. This page explains them.
    (Beranda: what do I do now; Presensi: am I in trouble; Nilai: where is my
    IPK). The answer is the first thing at the top left, in a sentence; the
    detail follows.
-2. **Nothing to relearn.** Same names and places as EduNex and SIX: Beranda,
+2. **Nothing to relearn.** Same names and places as Edunex and SIX: Beranda,
    Tugas & Ujian, Jadwal, Presensi, Nilai, Rencana studi, and the term's
    courses in the sidebar.
 3. **One idea per row.** A row says what it is (title), when or where (one
@@ -32,7 +32,7 @@ and every word in `src/core/strings/`. This page explains them.
    what needs the Student soon; green for done, safe and live. Course colors
    only mark identity, on a dot or a stripe, never a bar or a word.
 5. **The source only where it changes what to do.** Where to act ("Catat di
-   EduNex"), which date to trust when SIX and EduNex disagree, what is missing
+   Edunex"), which date to trust when SIX and Edunex disagree, what is missing
    ("Tidak ada di SIX"). Never a tag on every row.
 6. **Honest, quiet status.** Data status is one quiet line while everything
    is fresh, and a banner on every screen the moment it isn't (no connection,
@@ -134,14 +134,12 @@ once. Text colors are tested against every background they sit on
 | `--status-review-bg` | `#ebe7fd` | `#272042` |
 | `--status-review-fg` | `#5a33c8` | `#c4b5ff` |
 
-**Sources (background / text)**
+**Sources.** Edunex and SIX show their own logos (`SourceLogo`), never a
+letter in a colored square. The ITB calendar has no logo here: a calendar in
+its own colors (background / text) stands for it, and tints exam periods.
 
 | Token | Light | Dark |
 |---|---|---|
-| `--source-six-bg` | `#e3f4f1` | `#11302c` |
-| `--source-six-fg` | `#0f6b63` | `#6fd6c6` |
-| `--source-edunex-bg` | `#e6eefe` | `#1b2742` |
-| `--source-edunex-fg` | `#2a58b8` | `#9ab8ff` |
 | `--source-itb-bg` | `#f3ecfd` | `#271d3a` |
 | `--source-itb-fg` | `#6338b8` | `#c4b0f5` |
 
@@ -220,8 +218,8 @@ Icons are decorative; the control around them carries the name.
 ## Window chrome
 
 - **macOS**: hidden title bar; the traffic lights sit in the sidebar at
-  16, 18. The top 52 px of the sidebar and the top bar drag the window;
-  controls inside them don't.
+  16, 18, with the app's icon and name under them. The top of the sidebar
+  and the top bar drag the window; controls inside them don't.
 - **Windows and Linux**: the standard system frame and title bar; the app's
   menu bar shows on Alt.
 - The window opens only once the page has drawn the saved data, on a
@@ -251,6 +249,7 @@ Screens are composed, not styled one by one:
 | `toast(text, tone, action?)` | Neutral, success or danger; with an action ("Urungkan", "Lihat") it stays 8 s. Never the only place an error is said. |
 | `StatusChip` | A Task's true status: each its own color, glyph and word. Shown only where the status says something (not "Belum dikerjakan" on every to-do row). |
 | `SourceTag` | Quiet outline tag, only where the source changes what to do. |
+| `SourceLogo`, `AppMark` (`ui/brand.tsx`) | The real Edunex and SIX logos where the app stands for one of them (connecting, the data status, the accounts in Settings); Edunex Plus's own icon (`assets/icon.png`) in the sidebar, on the welcome screen and in Settings. |
 | `Badge` | Sidebar counts: neutral = how many; amber = something needs the Student today. |
 | `Skeleton` | Placeholders in the shape of what's coming; never a blank area or a lone spinner. |
 | `Menu` (`ui/menu.tsx`) | A "⋯" button for a screen's rare actions; an item that can't run stays, dimmed, with the reason under it. |
@@ -259,7 +258,7 @@ Screens are composed, not styled one by one:
 | `TimeGrid`, `GridBlock` (`ui/time-grid.tsx`) | A week as a time grid: height is duration, shared time side by side, empty days narrow, periods tinted and named, a now line. |
 | `Flash` (`ui/motion.tsx`) | A figure the Student is watching glows briefly when it changes; the value itself changes at once. |
 
-The shell: a sidebar (⌘1–⌘6, courses with their dot, the Student's name
+The shell: a sidebar (the app's icon and name, ⌘1–⌘6, courses with their dot, the Student's name
 opening Settings), a top bar (back button naming where it goes, ⌘K search,
 the alerts bell, the data-status control) and the problem banner under it.
 Every screen sits in its own crash guard.
@@ -293,11 +292,11 @@ URS stay as they are in both languages.
 | Beranda | Home | |
 | Mata kuliah | Course | |
 | Kelas | Class | A course's section, e.g. "Kelas 01" |
-| Modul | Module | EduNex's course outline |
+| Modul | Module | Edunex's course outline |
 | Materi | Material | |
-| Tugas | Task | EduNex's assignments |
+| Tugas | Task | Edunex's assignments |
 | Ujian | Exam | UTS (midterm) and UAS (final) stay as they are |
-| Presensi | Presence | EduNex's attendance session |
+| Presensi | Presence | Edunex's attendance session |
 | Kehadiran | Attendance | The count, from SIX |
 | Pertemuan | Meeting | One class session |
 | Jadwal | Schedule | |

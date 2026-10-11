@@ -1,9 +1,9 @@
-// Opens the demo app by hand: the real app on the pretend EduNex and SIX with
+// Opens the demo app by hand: the real app on the pretend Edunex and SIX with
 // made-up data (see ./setup.ts for the scenarios).
 //
 //   npm run demo                        signed in to both, on the recorded Thursday morning
 //   npm run demo -- first-run           the welcome screen, nobody signed in
-//   npm run demo -- edunex-only         EduNex connected, SIX not
+//   npm run demo -- edunex-only         Edunex connected, SIX not
 //   npm run demo -- signed-in --dev     the window from Vite: edits to the screens show live
 import { spawn } from "node:child_process";
 import { createRequire } from "node:module";

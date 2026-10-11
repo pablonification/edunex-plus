@@ -1,4 +1,4 @@
-// The first-run scan (#81, spec story 68): once the first full sync of EduNex
+// The first-run scan (#81, spec story 68): once the first full sync of Edunex
 // (and SIX when connected) is done, a short dialog of what the app found,
 // each line with its number and the screen that shows it. It opens by itself
 // once (a setting remembers) and only with something to say; Settings opens
@@ -170,7 +170,7 @@ function Findings({ onGo }: { onGo: (route: Route) => void }) {
 }
 
 /**
- * "EduNex dan SIX terhubung · 5 mata kuliah, 10 tugas dibaca". No meeting count:
+ * "Edunex dan SIX terhubung · 5 mata kuliah, 10 tugas dibaca". No meeting count:
  * the reading step hands over before SIX's timetable is in, so its running count
  * ("25 pertemuan") would look contradicted by a final one here.
  */

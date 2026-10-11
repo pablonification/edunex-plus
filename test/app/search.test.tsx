@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 // #81, seam 2: quick search in the window, by keyboard alone (⌘K, type,
 // arrows, Enter, Escape), over what the real engine saved from the pretend
-// EduNex, SIX and ITB calendar.
+// Edunex, SIX and ITB calendar.
 import { act } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 import { openApp } from "./harness";
@@ -134,7 +134,7 @@ describe("quick search", () => {
     expect(document.querySelector("#course-entry")).toBeNull();
   });
 
-  it("an exam opens its exam page: SIX's sitting and EduNex's take-home are one UTS", async () => {
+  it("an exam opens its exam page: SIX's sitting and Edunex's take-home are one UTS", async () => {
     screen = await openApp({ signedIn: true, six: true });
     await commandK();
     await type("uts komunikasi");

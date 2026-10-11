@@ -11,7 +11,7 @@ import { aTask } from "../kit/tasks";
 const wib = (iso: string) => Date.parse(`${iso}+07:00`);
 const now = wib("2026-10-08T08:12:00");
 
-/** Datasets as the engine holds them: SIX's timetable, a meeting announced only in EduNex, Tasks. */
+/** Datasets as the engine holds them: SIX's timetable, a meeting announced only in Edunex, Tasks. */
 function datasets(overrides: Partial<{ [N in DatasetName]: DatasetValue<N> }> = {}) {
   const values: Partial<{ [N in DatasetName]: DatasetValue<N> }> = {
     "six.schedule": [
@@ -64,7 +64,7 @@ describe("the phone calendar file", () => {
     const due = parseIcs(text).find((e) => e.uid === "edunex-task-117764@edunex-plus")!;
     expect([new Date(due.start).toISOString(), new Date(due.end).toISOString()]).toEqual(["2026-10-22T16:20:00.000Z", "2026-10-22T16:50:00.000Z"]);
     expect(text).toContain("DTSTART;TZID=Asia/Jakarta:20261022T232000\r\nDTEND;TZID=Asia/Jakarta:20261022T235000");
-    // EduNex's exam has a start and no end: a short event from its start.
+    // Edunex's exam has a start and no end: a short event from its start.
     const exam = parseIcs(text).find((e) => e.uid === "edunex-exam-e1@edunex-plus")!;
     expect(exam.end - exam.start).toBe(30 * 60_000);
   });
@@ -139,7 +139,7 @@ describe("what the Student puts on the phone", () => {
     expect(summaries({ include: { classes: false, exams: false, deadlines: false }, from: "2026-10-14", until: "2026-10-31" })).toEqual(["Masa Ujian Tengah Semester I-2026/2027"]);
   });
 
-  it("a roomless SIX meeting that EduNex counts by a handed-in Task goes in as the window to hand it in, never an 8-hour class", () => {
+  it("a roomless SIX meeting that Edunex counts by a handed-in Task goes in as the window to hand it in, never an 8-hour class", () => {
     const presence = {
       II4091: [
         {
@@ -174,7 +174,7 @@ describe("what the Student puts on the phone", () => {
   });
 });
 
-describe("a meeting announced in EduNex text, moved by the lecturer", () => {
+describe("a meeting announced in Edunex text, moved by the lecturer", () => {
   const announcement = (id: number, text: string, postedAt: string) => ({ id, courseId: 95326, text, author: null, postedAt: wib(postedAt) });
   const nine = announcement(1, "Pertemuan 03: Jumat, 09 Oktober 2026 Pkl. 15:00 - 17:00 WIB (Online - Link meeting teams)", "2026-10-01T10:00:00");
   const ten = "Pertemuan 03: Sabtu, 10 Oktober 2026 Pkl. 09:00 - 11:00 WIB (Online - Link meeting teams)";

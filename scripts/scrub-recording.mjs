@@ -22,7 +22,7 @@ const identityFile = path.join(root, ".scratch", "private-identity.json");
 
 // ---------------------------------------------------------------- what to keep
 
-/** EduNex calls the app uses (spec #68). Anything else stays out of the repo. */
+/** Edunex calls the app uses (spec #68). Anything else stays out of the repo. */
 const EDUNEX_KEEP = [
   /^\/login\/me$/,
   /^\/time$/,
@@ -139,7 +139,7 @@ const identityRow = (label) => {
 const student = {
   name: (me.name ?? identityRow("Nama") ?? "").trim(),
   nim: String(me.code ?? /mahasiswa:(\d{8})/.exec(sixBodies[0]?.path ?? "")?.[1] ?? ""),
-  // EduNex's "email" holds the NIM for students; only a real address counts as one.
+  // Edunex's "email" holds the NIM for students; only a real address counts as one.
   email: typeof me.email === "string" && me.email.includes("@") ? me.email : null,
   username: me.username ?? null,
   phone: me.phone_number && /\d{6,}/.test(me.phone_number) ? me.phone_number : null,
@@ -246,7 +246,7 @@ const scrubPatterns = (text) =>
     .replace(/(?<!\d)(?:\+62|62|0)8\d{7,11}(?!\d)/g, "080000000000")
     .replace(/[\w.+-]+@(?!example\.com)[\w-]+(?:\.[\w-]+)+/g, (email) => (email === FAKE_STUDENT.email ? email : "someone@example.com"));
 
-// ---------------------------------------------------------------- personal fields in EduNex JSON
+// ---------------------------------------------------------------- personal fields in Edunex JSON
 
 const scrubJson = (value) => {
   walk(value, (o) => {
@@ -414,6 +414,6 @@ const privateValues = [...new Set(replacements.map(([real]) => real).filter((v) 
 fs.writeFileSync(identityFile, `${JSON.stringify({ note: "Real identity values replaced in test/fixtures. Never commit.", values: privateValues }, null, 2)}\n`);
 
 console.log(
-  `fixtures → test/fixtures: ${index.edunex.length} EduNex responses, ${index.six.length} SIX pages; ` +
+  `fixtures → test/fixtures: ${index.edunex.length} Edunex responses, ${index.six.length} SIX pages; ` +
     `replaced ${people.size} people, ${nims.size} student numbers, ${gradeMap.size} grades (IPK ${realIpk} → ${fakeIpk}), ${blobIds.size} file links`,
 );

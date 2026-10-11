@@ -204,7 +204,7 @@ describe("SIX public course catalog", () => {
     expect(program(h, "154").state).toBe("ready");
   });
 
-  it("without SIX, reads first the programs offering the Student's EduNex courses (a campus copy's under the main campus too)", async () => {
+  it("without SIX, reads first the programs offering the Student's Edunex courses (a campus copy's under the main campus too)", async () => {
     const storage = new MemoryStorage();
     const outline = (program: string) => ({ lecturer: null, credits: null, program, modules: [], grade: null });
     const value = { DK4073: outline("S1 - Desain Komunikasi Visual"), PL3002: outline("S1 - Perencanaan Wilayah dan Kota (Kampus Cirebon)"), KU5014: outline("Mata Kuliah Umum (MKU)") };

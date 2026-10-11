@@ -26,7 +26,7 @@ export interface EngineDeps {
   version: string;
   emit(event: Event): void;
   random?: () => number;
-  /** Defaults to every source (EduNex, SIX, ITB's public pages). */
+  /** Defaults to every source (Edunex, SIX, ITB's public pages). */
   sources?: readonly AnySource[];
   /** Shows an alert to the Student (an OS notification). Its text is catalog keys, in no language yet. */
   alert?(notice: AlertNotice): void;
@@ -43,7 +43,7 @@ export interface Engine {
   start(): void;
   stop(): void;
   snapshot(): Snapshot;
-  /** Starts a session from what the source's sign-in captured (EduNex: { token }, SIX: { cookie }). */
+  /** Starts a session from what the source's sign-in captured (Edunex: { token }, SIX: { cookie }). */
   signIn(source: SourceId, session: unknown): Promise<void>;
   /** Without a source: sign out of everything. */
   signOut(source?: SourceId): Promise<void>;

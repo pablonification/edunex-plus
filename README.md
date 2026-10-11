@@ -1,18 +1,18 @@
 # Edunex Plus
 
-**An unofficial desktop app for ITB students** that puts EduNex and SIX in one calm window, for
+**An unofficial desktop app for ITB students** that puts Edunex and SIX in one calm window, for
 macOS, Windows and Linux.
 
 > ⚠️ **Unofficial — not an ITB or Cognisia product.**
 > Edunex Plus is an independent open-source project built by students. It is not affiliated
 > with, endorsed by, or connected to Institut Teknologi Bandung (ITB) or to Cognisia, the
-> vendor that builds and operates EduNex. "EduNex" is Cognisia's product; the lowercase-n
+> vendor that builds and operates Edunex. "Edunex" is Cognisia's product; the lowercase-n
 > "Edunex Plus" mark is deliberately distinct from it. Use at your own risk: the app uses your
-> own EduNex and SIX sessions, and your account remains your responsibility.
+> own Edunex and SIX sessions, and your account remains your responsibility.
 
 ## What it does
 
-EduNex holds what lecturers post; SIX holds what's official. Neither tells you what it means
+Edunex holds what lecturers post; SIX holds what's official. Neither tells you what it means
 for you. Edunex Plus reads both, plus ITB's public academic calendar and course catalog, and
 shows what needs you now, what changed, and where you stand:
 
@@ -20,8 +20,8 @@ shows what needs you now, what changed, and where you stand:
   thing to do.
 - **Tugas & Ujian** — every Task and exam with its real status (not started, draft, submitted,
   late), and handing in from the app: save a draft or submit, with a clear receipt.
-- **Presensi** — whether each course counts attendance in SIX or EduNex, which action an
-  EduNex Presence window wants, your exact SIX count ("Hadir X dari Y"), and how many absences
+- **Presensi** — whether each course counts attendance in SIX or Edunex, which action an
+  Edunex Presence window wants, your exact SIX count ("Hadir X dari Y"), and how many absences
   you have left before your target.
 - **Courses** — each course's modules, materials (saved by course and module, readable
   offline), meetings and rooms.
@@ -30,7 +30,7 @@ shows what needs you now, what changed, and where you stand:
   changes and bills, as OS notifications. Closing the window keeps the app alerting from the
   tray (or menu bar); you can choose to quit instead.
 
-The app never marks attendance, never sends EduNex "viewed" or "online" signals, and never
+The app never marks attendance, never sends Edunex "viewed" or "online" signals, and never
 changes your KRS. When something has to be done on the official site, it opens that page.
 
 Bahasa Indonesia and English, light and dark.
@@ -76,14 +76,14 @@ in your browser. The app never downloads or installs anything by itself.
 ## Signing in
 
 You sign in with your own **INA account** on ITB's real Microsoft sign-in page, inside a
-sign-in window the app opens: once for EduNex, once for SIX. Your password only ever reaches
+sign-in window the app opens: once for Edunex, once for SIX. Your password only ever reaches
 Microsoft; Edunex Plus never sees it. The app keeps the session those pages hand back.
 
 ## Privacy
 
 Everything stays on your computer:
 
-- **Your sessions** (EduNex token, SIX cookie) are encrypted with your system's keychain
+- **Your sessions** (Edunex token, SIX cookie) are encrypted with your system's keychain
   (Keychain on macOS, DPAPI on Windows, the keyring on Linux). If there is no secure storage,
   they are kept only in memory until you quit.
 - **What the app has read** (Tasks, courses, timetable, grades, alerts, settings) is saved as
@@ -98,7 +98,7 @@ from this computer.
 
 Nothing leaves your computer except the app's own requests to:
 
-- **EduNex** (`api-edunex.cognisia.id` and its file storage) and **SIX** (`six.itb.ac.id`),
+- **Edunex** (`api-edunex.cognisia.id` and its file storage) and **SIX** (`six.itb.ac.id`),
   with your session, to read your data and to hand in what you choose to submit;
 - **ITB's public pages** (the academic calendar and SIX's public course catalog), without any
   session;
@@ -106,7 +106,7 @@ Nothing leaves your computer except the app's own requests to:
 
 No other servers, no analytics, no telemetry. Every request says it comes from Edunex Plus
 (its User-Agent), and the app reads at a human pace. How it uses each system is written down in
-[API.md](API.md) (EduNex) and [SIX.md](SIX.md).
+[API.md](API.md) (Edunex) and [SIX.md](SIX.md).
 
 ## Build from source
 
@@ -136,7 +136,7 @@ best made on Windows or in CI; Linux builds on Linux.
 
 Electron + TypeScript. The engine (sign-in sessions, syncing, alerts) runs in the main process;
 the window is React 19 with Tailwind v4 and only reads what the engine publishes. Tests run the
-real engine against a pretend EduNex, SIX and ITB built from scrubbed real responses, and the
+real engine against a pretend Edunex, SIX and ITB built from scrubbed real responses, and the
 real screens against that engine.
 
 - [CONTEXT.md](CONTEXT.md) — the words the project uses (Task, Presence, KRS, Kehadiran…).

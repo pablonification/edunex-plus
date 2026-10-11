@@ -5,7 +5,7 @@ import { z } from "zod";
 
 export const coursePageActions = {
   /**
-   * Saves every file of a course from EduNex into <folder>/<course>/<module>/,
+   * Saves every file of a course from Edunex into <folder>/<course>/<module>/,
    * by default Documents/Edunex Plus. `pick`: the Student chooses the folder
    * first. Files already there are kept, so saving again fetches only what's new.
    */

@@ -6,6 +6,7 @@ import type { SourceId, SourceState } from "../../core/models";
 import { ActionError, type Bridge } from "../bridge";
 import { useFormat, useT } from "../i18n";
 import { useBridge, useDataset, useStatus } from "../store";
+import { SourceLogo } from "../ui/brand";
 import { Button, IconButton } from "../ui/controls";
 import { EmptyState } from "../ui/display";
 import { cx } from "../ui/cx";
@@ -194,8 +195,12 @@ function SourceRow({ source }: { source: SourceId }) {
   const word = status.state === "changed" ? t("status.changedShort") : t(`status.${status.state}`);
   return (
     <li className="flex items-start gap-3 rounded-lg px-2.5 py-2">
-      <span className="mt-1.5 grid size-3.5 place-items-center">
-        <StateMark state={status.state} busy={refreshing || signingIn} />
+      {/* The logo says which system; the mark on its corner, how it's doing. */}
+      <span className="relative mt-0.5 shrink-0">
+        <SourceLogo source={source} className="size-8" />
+        <span className="absolute -right-1 -bottom-1 grid size-[18px] place-items-center rounded-full bg-raised">
+          <StateMark state={status.state} busy={refreshing || signingIn} />
+        </span>
       </span>
       <div className="min-w-0 flex-1">
         <p className="text-body font-medium">

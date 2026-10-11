@@ -1,9 +1,9 @@
 // @vitest-environment jsdom
 // v2-09 (#77), seam 2: Jadwal in the window. The real engine reads the
-// pretend EduNex, SIX and ITB calendar behind the bridge; the tests look at
+// pretend Edunex, SIX and ITB calendar behind the bridge; the tests look at
 // what the Student sees. The recorded week of 5 October: PL3002 ran long on
 // Thursday, PL3032 and KU5014 overlap, and II4091's meeting 3 on Friday is
-// announced only in EduNex. The week after is ITB's UTS week.
+// announced only in Edunex. The week after is ITB's UTS week.
 import { act } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 import { parseIcs } from "../../src/engine/sources/itb/ics";
@@ -86,14 +86,14 @@ describe("Jadwal: the week as a timetable", () => {
     const s = await openSchedule();
     await s.click(/^PL3002 · 08:00–10:00/);
     expect(popover()).toContain("Kehadiran dihitung di SIX · Boleh absen 2× lagi");
-    expect(popover()).toContain("Presensi EduNex dibuka sampai 09:30");
-    await s.click("Catat di EduNex");
+    expect(popover()).toContain("Presensi Edunex dibuka sampai 09:30");
+    await s.click("Catat di Edunex");
     expect(s.calls.at(-1)).toEqual({ name: "shell.openExternal", input: { url: "https://edunex.itb.ac.id/courses/95001" } });
     await s.click("Buka mata kuliah");
     expect(document.querySelector("main h1")?.textContent).toContain("Ekonomi dan Inovasi dalam Perencanaan");
   });
 
-  it("empty days say so; a meeting announced only in EduNex shows on its day, with the way to join", async () => {
+  it("empty days say so; a meeting announced only in Edunex shows on its day, with the way to join", async () => {
     const s = await openSchedule();
     expect(day("Senin, 5 Oktober")).toContain("Kosong");
     expect(day("Rabu, 7 Oktober")).toContain("Kosong");
@@ -103,7 +103,7 @@ describe("Jadwal: the week as a timetable", () => {
     const mark = [...(section("Jumat, 9 Oktober")?.querySelectorAll("span") ?? [])].find((el) => el.textContent === "Tidak ada di SIX");
     expect(mark?.className).toContain("text-warning-fg");
     const meeting = await details(s, /^II4091 · Pertemuan 3/);
-    expect(meeting).toContain("Diumumkan dosen di EduNex; jadwal SIX tidak mencantumkannya.");
+    expect(meeting).toContain("Diumumkan dosen di Edunex; jadwal SIX tidak mencantumkannya.");
     await s.click("Gabung");
     expect(s.calls.at(-1)?.name).toBe("shell.openExternal");
     expect(String((s.calls.at(-1)?.input as { url: string }).url)).toMatch(/^https:\/\/teams\.microsoft\.com\//);
@@ -228,17 +228,17 @@ describe("Jadwal: the week as a timetable", () => {
     expect(day("Monday 5 October")).toContain("Free");
   });
 
-  it("without SIX: what EduNex knows, and one line saying classes and rooms need SIX", async () => {
+  it("without SIX: what Edunex knows, and one line saying classes and rooms need SIX", async () => {
     const s = await openSchedule({ signedIn: true });
     // ITB's public calendar arrives on the engine's own rhythm.
     await s.wait();
     expect(s.text()).toContain("Jadwal kuliah & ruang butuh SIX");
     expect(subtitle()).toBe("Minggu ke-7 · 5–11 Okt");
-    // EduNex's Presence windows and its announced meeting; never "free" (SIX would say).
-    expect(items("Kamis, 8 Oktober")).toEqual(["PL3002 · Economics and Innovation in Planning · 08:00–09:30 · Dari EduNex"]);
-    expect(items("Jumat, 9 Oktober")[0]).toBe("II4091 · Pertemuan 3 · 15:00–17:00 · Daring · Dari EduNex");
+    // Edunex's Presence windows and its announced meeting; never "free" (SIX would say).
+    expect(items("Kamis, 8 Oktober")).toEqual(["PL3002 · Economics and Innovation in Planning · 08:00–09:30 · Dari Edunex"]);
+    expect(items("Jumat, 9 Oktober")[0]).toBe("II4091 · Pertemuan 3 · 15:00–17:00 · Daring · Dari Edunex");
     expect(s.text()).not.toContain("Kosong");
-    expect(s.text()).toContain("Pertemuan dan tenggat dari EduNex");
+    expect(s.text()).toContain("Pertemuan dan tenggat dari Edunex");
     await s.click("Masuk ke SIX");
     await s.wait();
     expect(s.text()).not.toContain("Jadwal kuliah & ruang butuh SIX");

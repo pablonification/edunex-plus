@@ -53,7 +53,7 @@ const firstRun = [
   {
     id: "00-intro",
     async run(demo) {
-      await titleCard(demo.page, "Edunex Plus", "EduNex and SIX in one calm app", "A walkthrough with a made-up student · Thursday 8 October 2026", 3600);
+      await titleCard(demo.page, "Edunex Plus", "Edunex and SIX in one calm app", "A walkthrough with a made-up student · Thursday 8 October 2026", 3600);
     },
   },
   {
@@ -61,9 +61,9 @@ const firstRun = [
     async run(demo, rec) {
       const h = helpers(demo);
       await titleCard(h.page, "1 · First launch", "Connect both systems once", "", 2200);
-      await h.say("Connect EduNex and SIX once.", "Your password only ever goes to Microsoft's own sign-in page.");
+      await h.say("Connect Edunex and SIX once.", "Your password only ever goes to Microsoft's own sign-in page.");
       await h.beat(2400);
-      await attempt("connect EduNex", () => h.click(h.button("Hubungkan EduNex")));
+      await attempt("connect Edunex", () => h.click(h.button("Hubungkan Edunex")));
       await h.waitPaused(rec, () => /\d{8}/.test(document.body.innerText), 30_000);
       await h.say("Connected: your name appears right away.", "SIX next: the same Microsoft sign-in covers it.");
       await h.beat(2200);
@@ -95,7 +95,7 @@ const signedIn = [
       await titleCard(h.page, "2 · The morning check", "What do I need to do now?", "", 2200);
       await h.say("Beranda answers first: the class going on now, until when, and where.");
       await attempt("point at now", () => h.point(h.page.locator("main section").first(), 2600));
-      await h.say("Where attendance counts, said plainly.", "Counted in SIX: just be in class. EduNex's Presence is open too, but optional here.");
+      await h.say("Where attendance counts, said plainly.", "Counted in SIX: just be in class. Edunex's Presence is open too, but optional here.");
       await attempt("point at count", () => h.point(h.page.getByText(/Kehadiran dihitung di SIX/).first(), 3600));
       await h.scrollMain(300);
       await h.say("Today, hour by hour: rooms, changed times and clashes.", "PL3032 and KU5014 clash from 16:00 to 16:30.");
@@ -155,7 +155,7 @@ const signedIn = [
       await h.beat(2200);
       await attempt("confirm", () => h.click(h.page.locator("[role=alertdialog] button, [role=dialog] button").filter({ hasText: /Kumpulkan sekarang/ }).first()));
       await h.beat(2400);
-      await h.say("Handed in, read back from EduNex, and in the history.");
+      await h.say("Handed in, read back from Edunex, and in the history.");
       await h.beat(3000);
       await h.say("");
     },
@@ -172,7 +172,7 @@ const signedIn = [
       });
       await attempt("attach", () => h.click(h.button(/Lampirkan berkas/)));
       await h.beat(2000);
-      await h.say("EduNex's storage refused the upload: the reason in plain words, the file kept.");
+      await h.say("Edunex's storage refused the upload: the reason in plain words, the file kept.");
       await h.beat(3600);
       await attempt("retry", () => h.click(h.button(/^(Coba lagi|Unggah ulang)/)));
       await h.beat(1800);
@@ -190,7 +190,7 @@ const signedIn = [
       await attempt("open the exam", () => h.click(h.page.locator("main li button", { hasText: "Komunikasi Pemasaran" }).first()));
       await h.say("When and where come first, large.");
       await h.beat(2800);
-      await h.say("SIX and EduNex give two dates: the app says so, and helps you ask your lecturer.");
+      await h.say("SIX and Edunex give two dates: the app says so, and helps you ask your lecturer.");
       await attempt("copy question", () => h.click(h.button(/Salin pertanyaan/)));
       await h.beat(3200);
       await h.say("The lecturer's files, attendance before the exam, and a link to your phone's calendar.");
@@ -237,7 +237,7 @@ const signedIn = [
       await h.say("Now, room, Presence closing, attendance: at the top.");
       await h.beat(3200);
       await attempt("meetings", () => h.click(h.page.getByRole("tab", { name: /Pertemuan/ }).first()));
-      await h.say("The official count comes from SIX; meetings EduNex didn't record aren't absences.");
+      await h.say("The official count comes from SIX; meetings Edunex didn't record aren't absences.");
       await h.beat(3600);
       await attempt("grades", () => h.click(h.page.getByRole("tab", { name: /^Nilai/ }).first()));
       await h.say("The grade calculator answers first: what you need for the letter you want.");

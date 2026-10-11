@@ -1,5 +1,5 @@
 // v2-06 (#74): what the course page makes of the engine's data. Meetings
-// merged from SIX, EduNex Presence and EduNex text; the course-contract
+// merged from SIX, Edunex Presence and Edunex text; the course-contract
 // calculator; and how a course's files are laid out for offline reading.
 import { describe, expect, it } from "vitest";
 import { EXAMPLE_CONTRACT, standing } from "../../src/core/course-contract";
@@ -52,11 +52,11 @@ describe("meetings", () => {
     ]);
   });
 
-  it("SIX gives the time and room; a meeting only EduNex text announces is marked not in SIX", async () => {
+  it("SIX gives the time and room; a meeting only Edunex text announces is marked not in SIX", async () => {
     const h = await signedIn();
     const presence = h.dataset("edunex.presence")!.II4091;
     const announced = announcedMeetings(h.dataset("edunex.materials")!.II4091, h.dataset("edunex.announcements")!.II4091);
-    // SIX lists October's Friday meeting at 15:00–17:00 in room 7602 (EduNex's Presence runs to 23:59).
+    // SIX lists October's Friday meeting at 15:00–17:00 in room 7602 (Edunex's Presence runs to 23:59).
     const six = [sixSession("2026-10-16T15:00:00+07:00", "2026-10-16T17:00:00+07:00")];
     const meetings = courseMeetings("II4091", presence, six, announced, ["2026-10"]);
     const oct16 = meetings.find((m) => m.presence?.start === at("2026-10-16T15:00:00+07:00"))!;
@@ -70,7 +70,7 @@ describe("meetings", () => {
     expect(courseMeetings("II4091", presence, null, announced, ["2026-10"]).some((m) => m.notInSix)).toBe(false);
   });
 
-  it("never calls a meeting missed: an unmarked one stays 'not marked in EduNex', a future one 'upcoming'", async () => {
+  it("never calls a meeting missed: an unmarked one stays 'not marked in Edunex', a future one 'upcoming'", async () => {
     const h = await signedIn();
     const now = h.world.clock.now(); // Thursday 8 October, 08:12
     const meetings = courseMeetings("PL3002", h.dataset("edunex.presence")!.PL3002, null, []);
@@ -137,7 +137,7 @@ describe("course-contract calculator", () => {
 });
 
 describe("materials and offline files", () => {
-  it("each material type gets its action; unknown or unsafe ones fall back to EduNex", async () => {
+  it("each material type gets its action; unknown or unsafe ones fall back to Edunex", async () => {
     const base = { id: 1, courseId: 95001, moduleId: 470019, title: "Slide 1", content: "", sizeBytes: null, postedAt: null, updatedAt: null };
     const blob = "https://edunexfixture.blob.core.windows.net/edunex/fixture-1";
     expect(materialAction({ ...base, type: "pdf", content: blob })).toEqual({ kind: "download", url: blob, name: "Slide 1.pdf" });

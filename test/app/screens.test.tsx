@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 // v2-03 (#71), seam 2: what the Student sees and can do in the window, with
-// the real engine and the pretend EduNex behind the bridge.
+// the real engine and the pretend Edunex behind the bridge.
 import { act } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { openApp } from "./harness";
@@ -21,14 +21,14 @@ afterEach(() => {
 
 /** Beranda's course cards (the other lists on Beranda are rows). */
 const cards = () => [...document.querySelectorAll('main section[aria-labelledby="home-courses"] ul > li')].map((li) => li.textContent ?? "");
-/** The top bar's status panel says EduNex is connected. */
-const live = async () => expect(await screen!.sourceState("EduNex")).toBe("Terhubung");
+/** The top bar's status panel says Edunex is connected. */
+const live = async () => expect(await screen!.sourceState("Edunex")).toBe("Terhubung");
 
 describe("first run", () => {
-  it("welcomes the Student, and connecting EduNex shows their courses", async () => {
+  it("welcomes the Student, and connecting Edunex shows their courses", async () => {
     screen = await openApp();
     expect(screen.text()).toContain("Selamat datang di Edunex Plus");
-    await screen.click("Hubungkan EduNex");
+    await screen.click("Hubungkan Edunex");
     expect(screen.calls.some((c) => c.name === "auth.signIn")).toBe(true);
     // The welcome stays, so SIX can be connected next (#76); the Student moves on when ready.
     await screen.click("Lanjut");
@@ -43,16 +43,16 @@ describe("first run", () => {
 
   it("closing the sign-in window leaves the welcome screen ready to try again", async () => {
     screen = await openApp({ signInWindow: "closes" });
-    await screen.click("Hubungkan EduNex");
+    await screen.click("Hubungkan Edunex");
     expect(screen.text()).toContain("Selamat datang di Edunex Plus");
-    expect(screen.button("Hubungkan EduNex").disabled).toBe(false);
+    expect(screen.button("Hubungkan Edunex").disabled).toBe(false);
   });
 
   it("speaks English before signing in, if asked", async () => {
     screen = await openApp();
     await screen.click("English");
     expect(screen.text()).toContain("Welcome to Edunex Plus");
-    expect(screen.has("Connect EduNex")).toBe(true);
+    expect(screen.has("Connect Edunex")).toBe(true);
   });
 
   it("says so when this computer can't keep the session safely", async () => {
@@ -62,7 +62,7 @@ describe("first run", () => {
 });
 
 describe("Home", () => {
-  it("greets the Student by name and lists this term's EduNex courses, the parent class merged", async () => {
+  it("greets the Student by name and lists this term's Edunex courses, the parent class merged", async () => {
     screen = await openApp({ signedIn: true });
     expect(screen.text()).toContain("Kamis, 8 Oktober · Semester 1 2026/2027");
     expect(screen.text()).toContain("Selamat pagi, Dimas");
@@ -72,9 +72,9 @@ describe("Home", () => {
     await live();
   });
 
-  it("opens a course on EduNex's website", async () => {
+  it("opens a course on Edunex's website", async () => {
     screen = await openApp({ signedIn: true });
-    await screen.click("Buka di EduNex: PL3002");
+    await screen.click("Buka di Edunex: PL3002");
     expect(screen.calls.at(-1)).toEqual({ name: "shell.openExternal", input: { url: "https://edunex.itb.ac.id/courses/95001" } });
   });
 
@@ -85,24 +85,24 @@ describe("Home", () => {
     screen = await openApp({ world: before.world, storage: before.storage, vault: before.vault, start: false });
     // No request has been answered yet: everything on screen is saved data.
     expect(cards()).toHaveLength(5);
-    expect(await screen.sourceState("EduNex")).toBe("Memeriksa…");
+    expect(await screen.sourceState("Edunex")).toBe("Memeriksa…");
     await screen.engineDoes(async () => screen?.engine.start());
     await screen.wait();
-    expect(await screen.sourceState("EduNex")).toBe("Tidak terhubung");
+    expect(await screen.sourceState("Edunex")).toBe("Tidak terhubung");
     // Nothing reaches the network: the whole window says so, with the time of the last data.
     expect(screen.text()).toContain("Tidak ada koneksi.");
     expect(cards()).toHaveLength(5);
   });
 
-  it("when EduNex ends the session, the courses stay and the window asks to sign in again", async () => {
+  it("when Edunex ends the session, the courses stay and the window asks to sign in again", async () => {
     screen = await openApp({ signedIn: true });
     screen.world.edunex.expireSession();
     await screen.engineDoes(async () => screen?.engine.refresh("edunex"));
-    expect(screen.text()).toContain("Sesi EduNex berakhir. Data terakhir tetap bisa dibaca.");
+    expect(screen.text()).toContain("Sesi Edunex berakhir. Data terakhir tetap bisa dibaca.");
     expect(cards()).toHaveLength(5);
     screen.world.edunex.sessionValid = true;
     await screen.click("Masuk lagi");
-    expect(screen.text()).not.toContain("Sesi EduNex berakhir");
+    expect(screen.text()).not.toContain("Sesi Edunex berakhir");
     await live();
   });
 
@@ -114,7 +114,7 @@ describe("Home", () => {
     screen.world.setLatency(60_000);
     await screen.click(/^Status data:/);
     await act(async () => screen!.button("Perbarui sekarang").click());
-    expect(screen.button(/^Status data:/).textContent).toBe("Sesi EduNex berakhir");
+    expect(screen.button(/^Status data:/).textContent).toBe("Sesi Edunex berakhir");
     screen.world.setLatency(0);
     await act(async () => screen!.world.clock.advance(60_000));
   });
@@ -125,13 +125,13 @@ describe("Home", () => {
     await screen.engineDoes(async () => screen?.engine.refresh("six"));
     expect(screen.button(/^Status data:/).textContent).toBe("SIX tidak terhubung");
     expect(screen.text()).not.toContain("Tidak ada koneksi.");
-    expect(await screen.sourceState("EduNex")).toBe("Terhubung");
+    expect(await screen.sourceState("Edunex")).toBe("Terhubung");
   });
 
   it("Perbarui sekarang says which source it is still reading", async () => {
     screen = await openApp({ signedIn: true, six: true });
     await screen.click(/^Status data:/);
-    // EduNex answers at once; SIX is read a page every two seconds, on a clock that stands still here.
+    // Edunex answers at once; SIX is read a page every two seconds, on a clock that stands still here.
     await act(async () => screen!.button("Perbarui sekarang").click());
     for (let i = 0; i < 20; i++) await act(async () => new Promise((resolve) => setImmediate(resolve)));
     expect(screen.button(/^Status data:/).textContent).toBe("Memperbarui SIX…");
@@ -146,19 +146,19 @@ describe("Home", () => {
     before.vault.secrets.clear();
     screen = await openApp({ world: before.world, storage: before.storage, vault: before.vault });
     expect(cards()).toHaveLength(5);
-    expect(screen.text()).toContain("Kamu belum masuk ke EduNex. Data terakhir tetap bisa dibaca.");
-    await screen.click("Masuk ke EduNex");
-    expect(screen.text()).not.toContain("Kamu belum masuk ke EduNex");
+    expect(screen.text()).toContain("Kamu belum masuk ke Edunex. Data terakhir tetap bisa dibaca.");
+    await screen.click("Masuk ke Edunex");
+    expect(screen.text()).not.toContain("Kamu belum masuk ke Edunex");
     await live();
   });
 
-  it("when EduNex changes something, the window says so and keeps the last courses", async () => {
+  it("when Edunex changes something, the window says so and keeps the last courses", async () => {
     screen = await openApp({ signedIn: true });
     screen.world.edunex.mangle(/^\/course\/presences\/list$/, { kind: "missing-field", field: "course_code" });
     await screen.engineDoes(async () => screen?.engine.refresh("edunex"));
-    expect(screen.text()).toContain("EduNex berubah");
+    expect(screen.text()).toContain("Edunex berubah");
     // The banner reads as two sentences, like the offline and ended-session ones.
-    expect(document.querySelector("[role=status] p")?.textContent).toMatch(/^EduNex berubah\. EduNex /);
+    expect(document.querySelector("[role=status] p")?.textContent).toMatch(/^Edunex berubah\. Edunex /);
     expect(cards()).toHaveLength(5);
   });
 });

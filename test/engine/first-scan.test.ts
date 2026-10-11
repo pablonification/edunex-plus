@@ -1,5 +1,5 @@
 // #81 (spec story 68): the first-run scan over what the first full sync of
-// the pretend EduNex and SIX saved (real recorded shapes): which lines it
+// the pretend Edunex and SIX saved (real recorded shapes): which lines it
 // has, the number and courses on each, and the screen each opens. A line with
 // nothing to say stays out.
 import { describe, expect, it } from "vitest";
@@ -21,7 +21,7 @@ const of = <K extends FindingKind>(findings: Finding[], kind: K) => findings.fin
 const kinds = (findings: Finding[]) => findings.map((f) => f.kind);
 const scan = (saved: Saved, statuses: readonly SourceStatus[], now: number, target = 80) => firstScan({ saved, statuses, target, now });
 
-describe("after the first full sync of EduNex and SIX", () => {
+describe("after the first full sync of Edunex and SIX", () => {
   it("lists what neither system tells the Student, most pressing first", async () => {
     const h = await firstSync();
     const findings = scan(h.saved(), h.statuses(), h.world.clock.now());
@@ -47,11 +47,11 @@ describe("after the first full sync of EduNex and SIX", () => {
     });
     expect(clash.overlaps).toEqual([{ codes: ["KU5014", "PL3032"], count: 5, upcoming: true, start: wib("2026-10-08T16:00:00"), end: wib("2026-10-08T16:30:00") }]);
 
-    // PL3002 is counted in SIX (6 of 7); EduNex recorded 1 of its 6 closed windows, so it would show 5 absences.
+    // PL3002 is counted in SIX (6 of 7); Edunex recorded 1 of its 6 closed windows, so it would show 5 absences.
     expect(of(findings, "unusedPresence")).toMatchObject({ count: 1, tone: "info", sources: ["edunex", "six"], courses: [{ code: "PL3002", absent: 5, attended: 6, held: 7 }] });
 
-    // The exams as Tugas & Ujian lists them: DK4073's UTS (SIX's sitting with time and room, and EduNex's take-home
-    // due a week later: one exam whose dates disagree), and PL3032's UTS and UAS, named only in its EduNex outline and
+    // The exams as Tugas & Ujian lists them: DK4073's UTS (SIX's sitting with time and room, and Edunex's take-home
+    // due a week later: one exam whose dates disagree), and PL3032's UTS and UAS, named only in its Edunex outline and
     // dated by ITB's exam weeks. The line opens the soonest: PL3032's UTS week.
     const exams = of(findings, "exams")!;
     expect(exams).toMatchObject({ count: 3, tone: "warning", sources: ["six", "edunex", "itb"], routes: [{ screen: "exam", examId: "PL3032-UTS" }] });
@@ -64,7 +64,7 @@ describe("after the first full sync of EduNex and SIX", () => {
     expect(exams.exams[1]).toMatchObject({ at: wib("2026-10-15T11:00:00"), disagree: true, six: [{ room: "TVST C" }], tasks: [{ id: 117764, title: "UTS Markom" }] });
     expect(exams.exams[2]).toMatchObject({ inOutline: true, at: null, week: { firstDay: "2026-12-07", lastDay: "2026-12-22" } });
 
-    // "Pertemuan 03: Jumat, 09 Oktober 2026 Pkl. 15:00 - 17:00 WIB (Online …)" sits only in EduNex's parent class text.
+    // "Pertemuan 03: Jumat, 09 Oktober 2026 Pkl. 15:00 - 17:00 WIB (Online …)" sits only in Edunex's parent class text.
     const outside = of(findings, "notInSix")!;
     expect(outside).toMatchObject({ count: 1, sources: ["edunex"], routes: [{ screen: "course", code: "II4091", tab: "meetings" }] });
     expect(outside.meetings[0]).toMatchObject({ code: "II4091", meeting: { number: 3, start: wib("2026-10-09T15:00:00"), end: wib("2026-10-09T17:00:00"), online: true } });
@@ -84,7 +84,7 @@ describe("after the first full sync of EduNex and SIX", () => {
     const h = await firstSync();
     const summary = scanSummary(h.saved(), h.statuses());
     expect(summary).toMatchObject({ connected: ["edunex", "six"], read: ["edunex", "six"], courses: 5, tasks: 10 });
-    // Every SIX meeting, plus EduNex's Presence and announced meetings SIX doesn't list.
+    // Every SIX meeting, plus Edunex's Presence and announced meetings SIX doesn't list.
     expect(summary.meetings).toBeGreaterThan(h.saved()["six.schedule"]!.length);
 
     // SIX ends the session: its data was still read, but it isn't connected.
@@ -115,7 +115,7 @@ describe("after the first full sync of EduNex and SIX", () => {
 describe("when the scan is ready", () => {
   const statuses = (h: Awaited<ReturnType<typeof startEngine>>) => h.engine.snapshot().statuses;
 
-  it("after EduNex's first sync; with SIX connected, only once SIX has read its timetable and transcript too", async () => {
+  it("after Edunex's first sync; with SIX connected, only once SIX has read its timetable and transcript too", async () => {
     const h = await startEngine();
     await h.wait(5_000);
     expect(scanReady(savedOf(h), statuses(h))).toBe(false);
@@ -172,8 +172,8 @@ describe("when the scan is ready", () => {
   });
 });
 
-describe("with EduNex alone", () => {
-  it("only what EduNex can tell: exams it knows and edited Tasks", async () => {
+describe("with Edunex alone", () => {
+  it("only what Edunex can tell: exams it knows and edited Tasks", async () => {
     const h = await firstSync({ six: false });
     const findings = scan(h.saved(), h.statuses(), h.world.clock.now());
     expect(kinds(findings)).toEqual(["exams", "edited"]);
@@ -310,14 +310,14 @@ describe("each line's own rules", () => {
     expect(of(scan(onlySix, statuses, now), "exams")).toMatchObject({ count: 1, sources: ["six"], routes: [{ screen: "exam", examId: "DK4073-UTS" }] });
   });
 
-  it("a course whose EduNex record keeps up with SIX isn't flagged as counted elsewhere", async () => {
+  it("a course whose Edunex record keeps up with SIX isn't flagged as counted elsewhere", async () => {
     const { saved, statuses, now } = await base();
     const presence = { ...saved["edunex.presence"]! };
     presence.PL3002 = presence.PL3002.map((p) => (p.closesAt <= now ? { ...p, recorded: { present: true, at: p.opensAt } } : p));
     expect(of(scan({ ...saved, "edunex.presence": presence }, statuses, now), "unusedPresence")).toBeUndefined();
   });
 
-  it("a meeting announced only in EduNex needs SIX's timetable to be called that, and must still be to come", async () => {
+  it("a meeting announced only in Edunex needs SIX's timetable to be called that, and must still be to come", async () => {
     const { saved, statuses, now } = await base();
     const { ["six.schedule"]: _schedule, ...withoutTimetable } = saved;
     expect(of(scan(withoutTimetable, statuses, now), "notInSix")).toBeUndefined();

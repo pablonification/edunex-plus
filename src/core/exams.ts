@@ -1,9 +1,9 @@
 // Exams in one place (#77, user story 74): SIX's exam sessions (time, room),
-// EduNex's exams, EduNex's take-home UTS Tasks, exams named in the EduNex
+// Edunex's exams, Edunex's take-home UTS Tasks, exams named in the Edunex
 // course outline, and ITB's exam weeks, merged per course and exam (one
 // "DK4073 UTS" however many systems list it). None of them shows the others,
 // and they sometimes disagree: a UTS in class in SIX and a take-home UTS due
-// a week later in EduNex. Pure: Tugas & Ujian, the exam page, the alerts and
+// a week later in Edunex. Pure: Tugas & Ujian, the exam page, the alerts and
 // the calendar export read it.
 import { isExamActivity } from "./attendance";
 import { wibDay } from "./course-meetings";
@@ -33,9 +33,9 @@ export interface Exam {
   kind: ExamKind;
   /** SIX's exam sessions: the official time and room. */
   six: ClassSession[];
-  /** EduNex exams of the course of this kind. */
+  /** Edunex exams of the course of this kind. */
   edunex: EdunexExam[];
-  /** Take-home exams handed in as EduNex Tasks. */
+  /** Take-home exams handed in as Edunex Tasks. */
   tasks: Task[];
   /** The course outline has a module for it (no date there). */
   inOutline: boolean;
@@ -45,21 +45,21 @@ export interface Exam {
   at: number | null;
   /** The latest date any system gives: past it, the exam is behind the Student. */
   last: number | null;
-  /** SIX and EduNex both give dates, on no common day. */
+  /** SIX and Edunex both give dates, on no common day. */
   disagree: boolean;
 }
 
 export interface ExamSources {
   schedule?: readonly ClassSession[];
-  /** EduNex exams by course code. */
+  /** Edunex exams by course code. */
   edunexExams?: Record<string, readonly EdunexExam[]>;
   tasks?: readonly Task[];
-  /** EduNex course outlines by course code. */
+  /** Edunex course outlines by course code. */
   outline?: Record<string, CourseOutline>;
   calendar?: AcademicCalendar;
   /** SIX's term code ("2026-1"); without it the coming exam week is used. */
   term?: string | null;
-  /** This term's course codes: EduNex items of other courses are left out. Unset: all. */
+  /** This term's course codes: Edunex items of other courses are left out. Unset: all. */
   courses?: readonly string[];
   now: number;
 }
@@ -78,7 +78,7 @@ export function examWeek(calendar: AcademicCalendar | undefined, kind: ExamKind,
  * Every exam of the term, dated ones first by date, then the rest in exam
  * order. UTS and UAS are one per course, whatever lists them. Quizzes and
  * other exams stay apart: SIX's sessions of a kind on a day are one, and an
- * EduNex exam of that kind on that day joins them; any other is its own.
+ * Edunex exam of that kind on that day joins them; any other is its own.
  */
 export function mergeExams(sources: ExamSources): Exam[] {
   const exams = new Map<string, Exam>();

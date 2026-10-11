@@ -1,7 +1,7 @@
 // v2-09 (#77), seam 1: the schedule and exam alerts, by the real engine
-// against the pretend EduNex, SIX and ITB calendar, on a fake clock. The
+// against the pretend Edunex, SIX and ITB calendar, on a fake clock. The
 // recorded timetable has PL3032 and KU5014 overlapping on Thursdays, DK4073's
-// UTS in class on 15 October, and II4091's meeting 3 announced only in EduNex.
+// UTS in class on 15 October, and II4091's meeting 3 announced only in Edunex.
 import { describe, expect, it } from "vitest";
 import { mergeExams } from "../../src/core/exams";
 import type { AlertHistory } from "../../src/core/models";
@@ -116,7 +116,7 @@ describe("schedule alerts", () => {
     expect(app.texts()).toEqual(["Kelas bentrok · KU5014 dan PL3032 — Kam, 22 Okt 16:00–16:30"]);
   });
 
-  it("a meeting announced only in EduNex text", async () => {
+  it("a meeting announced only in Edunex text", async () => {
     const app = await start();
     app.world.edunex.postAnnouncement(95326, { announcement: "Pertemuan 05: Jumat, 23 Oktober 2026 Pkl. 13:00 - 15:00 WIB (Online)" });
     await app.refresh("edunex");
@@ -131,7 +131,7 @@ describe("schedule alerts", () => {
     // SIX's November page also shows 1–4 December, here with PL3002's class on Thursday 3 December.
     app.world.six.addMeeting({ id: "2194354", code: "PL3002", name: "Ekonomi dan Inovasi dalam Perencanaan", day: "2026-12-03", start: "08:00", end: "09:30", room: "R.SG PWK LT.6" });
     await app.refresh("six");
-    // Announced only in EduNex text: one in December (SIX's December page isn't read yet), one in November (it is).
+    // Announced only in Edunex text: one in December (SIX's December page isn't read yet), one in November (it is).
     app.world.edunex.postAnnouncement(95326, { announcement: "Pertemuan 09: Jumat, 11 Desember 2026 Pkl. 15:00 - 17:00 WIB" });
     app.world.edunex.postAnnouncement(95326, { announcement: "Pertemuan 07: Jumat, 13 November 2026 Pkl. 15:00 - 17:00 WIB" });
     await app.refresh("edunex");

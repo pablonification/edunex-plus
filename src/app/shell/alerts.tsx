@@ -4,7 +4,7 @@
 // "Yang berubah" is always a preview of this list. Grouped Hari ini /
 // Kemarin / Minggu ini / Sebelumnya; each row opens its screen. Opening it
 // clears the badge; the dots stay until "Tandai semua dibaca". Nothing is
-// ever marked in EduNex.
+// ever marked in Edunex.
 import { useMemo, useState, useSyncExternalStore, type ComponentType } from "react";
 import type { Alert, AlertKind } from "../../core/models";
 import { alertFeed } from "../../core/needs";

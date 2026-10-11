@@ -9,7 +9,7 @@ export function useCourseColors(courses: readonly Course[] | undefined): Map<str
   return useMemo(() => courseColors((courses ?? []).map((course) => course.code)), [courses]);
 }
 
-/** Opens an official page (EduNex, SIX, ITB, an online-class link) in the browser. */
+/** Opens an official page (Edunex, SIX, ITB, an online-class link) in the browser. */
 export function useOpenExternal(): (url: string) => void {
   const bridge = useBridge();
   return useCallback((url: string) => void bridge.invoke("shell.openExternal", { url }).catch(() => undefined), [bridge]);

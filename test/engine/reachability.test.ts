@@ -1,4 +1,4 @@
-// Whether EduNex, SIX and ITB can be reached follows the latest evidence: a
+// Whether Edunex, SIX and ITB can be reached follows the latest evidence: a
 // lost connection on a hand-in is checked at once, one answer after an outage
 // is enough to say "connected" again, and "Perbarui sekarang" doesn't wait
 // minutes on ITB's catalog.
@@ -30,10 +30,10 @@ describe("reaching the sources", () => {
     h.world.setOffline(true);
     expect((await failure(upload(h))).kind).toBe("Offline");
     await h.wait(1_000);
-    expect(h.status("edunex")).toMatchObject({ state: "offline", detail: "EduNex is unreachable" });
+    expect(h.status("edunex")).toMatchObject({ state: "offline", detail: "Edunex is unreachable" });
   });
 
-  it("a storage hiccup while EduNex itself answers leaves the status alone", async () => {
+  it("a storage hiccup while Edunex itself answers leaves the status alone", async () => {
     const h = await signedIn();
     h.world.failUploads("network");
     expect((await failure(upload(h))).kind).toBe("Offline");

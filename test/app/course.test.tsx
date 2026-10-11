@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 // v2-06 (#74), seam 2: the course page as the Student sees it, with the real
-// engine and the pretend EduNex behind the bridge.
+// engine and the pretend Edunex behind the bridge.
 import { act } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 import type { ClassSession, Task } from "../../src/core/models";
@@ -72,9 +72,9 @@ describe("the course page", () => {
     expect(toc).not.toContain("Module 06");
   });
 
-  it("Open in EduNex stays on Home's cards", async () => {
+  it("Open in Edunex stays on Home's cards", async () => {
     screen = await openApp({ signedIn: true });
-    await screen.click("Buka di EduNex: PL3002");
+    await screen.click("Buka di Edunex: PL3002");
     expect(screen.calls.at(-1)).toEqual({ name: "shell.openExternal", input: { url: "https://edunex.itb.ac.id/courses/95001" } });
   });
 
@@ -83,7 +83,7 @@ describe("the course page", () => {
     const world = new PretendWorld();
     world.edunex.tasks.set(92948, []);
     const s = await openCourse("KU5014", { world });
-    expect(s.text()).toContain("Belum ada materi di EduNex");
+    expect(s.text()).toContain("Belum ada materi di Edunex");
   });
 });
 
@@ -105,13 +105,13 @@ describe("materials", () => {
     await s.click("Baca: Jadwal Kuliah TA & Mekanisme Pelaksanaan");
     expect(s.button("Tutup: Jadwal Kuliah TA & Mekanisme Pelaksanaan").getAttribute("aria-expanded")).toBe("true");
     expect(document.querySelector("main strong")?.textContent).toBe("Pertemuan 02:");
-    // EduNex's inline styles never reach the page.
+    // Edunex's inline styles never reach the page.
     expect(document.querySelector("main strong")!.closest("li")!.querySelector("[style]")).toBeNull();
-    // A note that is only a picture opens on EduNex instead.
-    expect(s.has("Buka di EduNex: Course Tokens : FIXTUR")).toBe(true);
+    // A note that is only a picture opens on Edunex instead.
+    expect(s.has("Buka di Edunex: Course Tokens : FIXTUR")).toBe(true);
   });
 
-  it("each material type gets its own action; unknown types open in EduNex", async () => {
+  it("each material type gets its own action; unknown types open in Edunex", async () => {
     screen = await openApp({ signedIn: true });
     const e = screen.world.edunex;
     e.postMaterial(95001, { name: "Rekaman kuliah", type: "video", content: BLOB });
@@ -130,7 +130,7 @@ describe("materials", () => {
     await screen.click(card!);
     await entry("Pengantar");
     for (const name of ["Unduh: Rekaman kuliah", "Unduh: Podcast", "Unduh: Data", "Buka: Berita ITB", "Gabung: Zoom", "Gabung: Meet", "Gabung: Webex"]) expect(screen.has(name)).toBe(true);
-    for (const name of ["Situs luar", "Kuis interaktif", "CloudX", "Baru"]) expect(screen.has(`Buka di EduNex: ${name}`)).toBe(true);
+    for (const name of ["Situs luar", "Kuis interaktif", "CloudX", "Baru"]) expect(screen.has(`Buka di Edunex: ${name}`)).toBe(true);
     expect(screen.text()).toContain("Kelas online · Google Meet");
     // Every action looks alike and takes the same width, so the dates beside them line up.
     const actions = [...document.querySelectorAll<HTMLButtonElement>("main section li button[aria-label]")].filter((b) => /^(Unduh|Buka|Gabung|Baca)/.test(b.getAttribute("aria-label")!));
@@ -139,7 +139,7 @@ describe("materials", () => {
     expect(new Set(actions.map((b) => b.parentElement!.className)).size).toBe(1);
     await screen.click("Unduh: Data");
     expect(screen.calls.at(-1)).toMatchObject({ name: "files.download", input: { name: "Data.xlsx" } });
-    await screen.click("Buka di EduNex: Baru");
+    await screen.click("Buka di Edunex: Baru");
     expect(screen.calls.at(-1)).toEqual({ name: "shell.openExternal", input: { url: "https://edunex.itb.ac.id/courses/95001" } });
   });
 
@@ -199,11 +199,11 @@ describe("meetings", () => {
     const meetings = rows("main ol li");
     expect(meetings).toHaveLength(15);
     expect(meetings[0]).toContain("Hadir");
-    // SIX is the official record; the intro says once that EduNex's gaps can still count, and the rows stay quiet.
+    // SIX is the official record; the intro says once that Edunex's gaps can still count, and the rows stay quiet.
     expect(s.text()).toContain("Kehadiran resmi di SIX: hadir 6 dari 7");
-    expect(s.text()).toContain("yang tidak dicatat EduNex tetap bisa terhitung di SIX");
+    expect(s.text()).toContain("yang tidak dicatat Edunex tetap bisa terhitung di SIX");
     expect(meetings[1]).toMatch(/Selesai$/);
-    expect(s.text()).not.toContain("Tidak tercatat di EduNex");
+    expect(s.text()).not.toContain("Tidak tercatat di Edunex");
     expect(meetings.find((m) => m.includes("Berikutnya"))).toContain("15 Okt");
     expect(meetings.at(-1)).not.toMatch(/Akan datang|Tidak/);
     expect(s.text()).not.toMatch(/Absen|Tidak hadir|Absent/);
@@ -215,27 +215,27 @@ describe("meetings", () => {
     const open = [...document.querySelectorAll("main ol li")].find((li) => li.textContent?.includes("Presensi dibuka"))!;
     const chip = [...open.querySelectorAll("span")].find((el) => el.textContent?.startsWith("Presensi dibuka"))!;
     expect(chip.className).not.toContain("warning");
-    expect([...open.querySelectorAll("button")].find((b) => b.textContent === "Catat di EduNex")!.className).not.toContain("bg-accent ");
+    expect([...open.querySelectorAll("button")].find((b) => b.textContent === "Catat di Edunex")!.className).not.toContain("bg-accent ");
   });
 
   it("without SIX, the open window is worth recording just in case, said calmly", async () => {
     const s = await openCourse("PL3002");
     expect(s.text()).toContain("Tanpa SIX, belum pasti Presensi ini dihitung: catat saja untuk berjaga-jaga.");
-    const buttons = [...document.querySelectorAll("main button")].filter((b) => b.textContent === "Catat di EduNex");
+    const buttons = [...document.querySelectorAll("main button")].filter((b) => b.textContent === "Catat di Edunex");
     expect(buttons.length).toBeGreaterThan(0);
     expect(buttons.every((b) => !b.className.includes("bg-accent "))).toBe(true);
   });
 
-  it("pins the meeting going on now with its open Presence window and the button to act on EduNex", async () => {
+  it("pins the meeting going on now with its open Presence window and the button to act on Edunex", async () => {
     const s = await openCourse("PL3002", { six: true });
     expect(s.text()).toContain("Sedang berlangsung");
-    expect(s.text()).toContain("Presensi EduNex dibuka");
+    expect(s.text()).toContain("Presensi Edunex dibuka");
     expect(s.text()).toMatch(/tutup 09:30 \(1 jam 1\d mnt lagi\)/);
-    // PL3002 counts in SIX: recording on EduNex is offered, but quietly, and the page says why.
-    expect(s.text()).toContain("Kehadiranmu dihitung di SIX; Presensi EduNex juga dibuka.");
+    // PL3002 counts in SIX: recording on Edunex is offered, but quietly, and the page says why.
+    expect(s.text()).toContain("Kehadiranmu dihitung di SIX; Presensi Edunex juga dibuka.");
     // The meeting is named as on the Pertemuan tab: by the module posted for it, not "Kuliah".
     expect(s.text()).toContain("Modul 7 · Inovasi Pelayanan Publik");
-    const record = [...document.querySelectorAll("button")].find((b) => b.textContent === "Catat di EduNex")!;
+    const record = [...document.querySelectorAll("button")].find((b) => b.textContent === "Catat di Edunex")!;
     await s.click(record);
     expect(s.calls.at(-1)).toEqual({ name: "shell.openExternal", input: { url: "https://edunex.itb.ac.id/courses/95001" } });
   });
@@ -255,13 +255,13 @@ describe("meetings", () => {
     expect(s.text()).not.toContain("Pertemuan berikutnya Hari ini");
   });
 
-  it("without SIX, EduNex's tally is a fact: it doesn't claim to count, nothing is amber, and SIX is a click away", async () => {
+  it("without SIX, Edunex's tally is a fact: it doesn't claim to count, nothing is amber, and SIX is a click away", async () => {
     const s = await openCourse("PL3002");
     await tab(/^Pertemuan/);
-    expect(s.text()).toContain("EduNex: hadir 1 dari 6 Presensi");
+    expect(s.text()).toContain("Edunex: hadir 1 dari 6 Presensi");
     expect(s.text()).toContain("Hitungan resmi ada di SIX. Hubungkan SIX untuk tahu kehadiran mana yang dihitung.");
-    expect(s.text()).not.toContain("dicatat lewat Presensi EduNex");
-    const unrecorded = [...document.querySelectorAll("main ol li span")].filter((el) => el.textContent === "Tidak tercatat di EduNex");
+    expect(s.text()).not.toContain("dicatat lewat Presensi Edunex");
+    const unrecorded = [...document.querySelectorAll("main ol li span")].filter((el) => el.textContent === "Tidak tercatat di Edunex");
     expect(unrecorded.length).toBeGreaterThan(0);
     expect(unrecorded.every((el) => !el.className.includes("warning"))).toBe(true);
     await s.click("Masuk ke SIX");
@@ -270,7 +270,7 @@ describe("meetings", () => {
     expect(s.text()).toContain("Kehadiran resmi di SIX: hadir 6 dari 7");
   });
 
-  it("a meeting has one number: EduNex's, never a second count of the app's", async () => {
+  it("a meeting has one number: Edunex's, never a second count of the app's", async () => {
     await openCourse("II4091");
     await tab(/^Pertemuan/);
     const meetings = rows("main ol li");
@@ -282,30 +282,30 @@ describe("meetings", () => {
     expect(meetings.find((m) => m.includes("18 Nov"))).toContain("Kuliah");
   });
 
-  it("a meeting known only as a class takes the module EduNex posted for that week", async () => {
+  it("a meeting known only as a class takes the module Edunex posted for that week", async () => {
     await openCourse("PL3002", { six: true });
     await tab(/^Pertemuan/);
     const meetings = rows("main ol li");
     expect(meetings.find((m) => m.includes("17 Sep"))).toContain("Modul 4 · Production Process Innovation");
     // Two modules posted the week before 1 Oct: no guess.
     expect(meetings.find((m) => m.includes("1 Okt"))).toContain("Kuliah");
-    // EduNex's own name for a meeting stays.
+    // Edunex's own name for a meeting stays.
     expect(meetings.find((m) => m.includes("27 Agu"))).toContain("Pendahuluan");
   });
 
-  it("a class without EduNex Presence says so; its meetings come from SIX", async () => {
+  it("a class without Edunex Presence says so; its meetings come from SIX", async () => {
     const s = await openCourse("KU5014");
     await tab(/^Pertemuan/);
-    expect(s.text()).toContain("Kelas ini tidak memakai Presensi EduNex");
+    expect(s.text()).toContain("Kelas ini tidak memakai Presensi Edunex");
     expect(s.text()).toContain("Jadwal pertemuan dan ruangnya datang dari SIX");
     await s.click("Masuk ke SIX");
     await s.wait();
     expect(s.store.status("six").state).toBe("live");
     expect(s.text()).not.toContain("datang dari SIX");
-    expect(s.text()).toContain("Kelas ini tidak memakai Presensi EduNex");
+    expect(s.text()).toContain("Kelas ini tidak memakai Presensi Edunex");
   });
 
-  it("SIX gives the room; a meeting announced only in EduNex text is marked not in SIX", async () => {
+  it("SIX gives the room; a meeting announced only in Edunex text is marked not in SIX", async () => {
     const s = await openCourse("II4091");
     const session: ClassSession = {
       id: "s1",
@@ -331,10 +331,10 @@ describe("meetings", () => {
 });
 
 describe("grades", () => {
-  it("hides EduNex's placeholder gradebook and works out what's needed on what's left", async () => {
+  it("hides Edunex's placeholder gradebook and works out what's needed on what's left", async () => {
     const s = await openCourse("PL3002");
     await tab(/^Nilai/);
-    expect(s.text()).toContain("Buku nilai EduNex belum dirilis dosen");
+    expect(s.text()).toContain("Buku nilai Edunex belum dirilis dosen");
     expect(s.text()).not.toMatch(/0[.,]0+\s*·?\s*E\b/);
     // Example weights say so, loudly, with the way to the real ones.
     expect(s.text()).toContain("Ini contoh bobot, bukan bobot PL3002.");
@@ -428,19 +428,19 @@ describe("announcements and exams", () => {
     expect(s.text()).toContain("Kuliah minggu depan daring");
   });
 
-  it("Tasks & Exams says when neither SIX nor EduNex has an exam", async () => {
+  it("Tasks & Exams says when neither SIX nor Edunex has an exam", async () => {
     await openCourse("PL3002", { six: true });
     await tab(/^Tugas & Ujian/);
     const exams = [...document.querySelectorAll<HTMLElement>("main section")].find((section) => section.querySelector("h2")?.textContent?.startsWith("Ujian"));
     // Said under the exams' own heading, not floating between the Task lists.
-    expect(exams?.textContent).toContain("Belum ada ujian di SIX maupun EduNex");
+    expect(exams?.textContent).toContain("Belum ada ujian di SIX maupun Edunex");
   });
 
   it("without SIX, Tasks & Exams doesn't claim SIX has no exam, and offers SIX", async () => {
     const s = await openCourse("PL3002");
     await tab(/^Tugas & Ujian/);
     const exams = [...document.querySelectorAll<HTMLElement>("main section")].find((section) => section.querySelector("h2")?.textContent?.startsWith("Ujian"));
-    expect(exams?.textContent).toContain("Belum ada ujian di EduNex. Jadwal ujian dari SIX muncul setelah SIX terhubung.");
+    expect(exams?.textContent).toContain("Belum ada ujian di Edunex. Jadwal ujian dari SIX muncul setelah SIX terhubung.");
     expect(exams?.textContent).not.toContain("SIX maupun");
     await s.click([...exams!.querySelectorAll("button")].find((b) => b.textContent === "Masuk ke SIX")!);
     await s.wait();
@@ -467,7 +467,7 @@ describe("in English", () => {
     expect(screen.text()).toContain("Table of contents");
     expect(screen.text()).toContain("Joint class");
     await tab(/^Meetings/);
-    expect(screen.text()).toMatch(/Next|Not recorded in EduNex|Present/);
+    expect(screen.text()).toMatch(/Next|Not recorded in Edunex|Present/);
     await tab(/^Grades/);
     expect(screen.text()).toContain("Where your grade stands");
   });

@@ -7,7 +7,7 @@ interface TaskList {
 }
 
 describe("test kit", () => {
-  it("serves recorded EduNex responses and SIX pages", () => {
+  it("serves recorded Edunex responses and SIX pages", () => {
     expect(exchanges("edunex").length).toBeGreaterThan(50);
     expect(edunexJson<{ name: string }>("/login/me").name).toBe("Dimas Pratama");
     expect(sixPage(/\/statusmhs$/)).toContain("Indeks Prestasi Kumulatif");

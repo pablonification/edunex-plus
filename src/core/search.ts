@@ -48,7 +48,7 @@ export type ScreenId = keyof typeof SCREENS;
 export interface ModulePlace {
   id: number;
   title: string;
-  /** From 1, within its own EduNex course. */
+  /** From 1, within its own Edunex course. */
   number: number;
   /** It sits in the class's parent course. */
   parent: boolean;
@@ -214,7 +214,7 @@ export function searchIndex(saved: Saved, { lang, screens, now }: IndexOptions):
     const course = byCode.get(code);
     return [code, course?.six, course?.edunex, catalog.get(code)].filter(Boolean).join(" ");
   };
-  // Indonesian: the official name, SIX's or else ITB's catalog (as everywhere in the app without SIX), never EduNex's English one.
+  // Indonesian: the official name, SIX's or else ITB's catalog (as everywhere in the app without SIX), never Edunex's English one.
   const nameOf = (course: (typeof courses)[number]) => (lang === "id" ? (course.six ?? catalog.get(course.code) ?? courseName(course, lang)) : courseName(course, lang));
   const displayName = (code: string) => {
     const course = byCode.get(code);
@@ -249,14 +249,14 @@ export function searchIndex(saved: Saved, { lang, screens, now }: IndexOptions):
     const kind = translate(lang, `exam.kind.${exam.kind}`);
     const title = takeHomeOnly(exam) ? exam.tasks[0]!.title : (exam.edunex[0]?.title ?? `${kind} ${displayName(exam.courseCode)}`.trim());
     const session = exam.six[0];
-    // Every name the systems give it: SIX's sitting and room, EduNex's exam and take-home titles, the outline module ("Finex/UAS").
+    // Every name the systems give it: SIX's sitting and room, Edunex's exam and take-home titles, the outline module ("Finex/UAS").
     const modules = exam.inOutline ? (saved["edunex.outline"]?.[exam.courseCode]?.modules ?? []).filter((m) => examKind(m.title) === exam.kind).map((m) => m.title) : [];
     const own = [session ? `${session.activity} ${session.courseName} ${session.room ?? ""}` : null, ...exam.tasks.map((task) => task.title), ...exam.edunex.map((e) => e.title), ...modules, kind]
       .filter(Boolean)
       .join(" ");
     add({ kind: "exam", key: `exam:${exam.id}`, title, code: exam.courseCode, target: examRoute(exam), exam }, [
       [title, TITLE],
-      // A take-home's or EduNex exam's own title ("UTS Markom") names the exam as much as its shown title.
+      // A take-home's or Edunex exam's own title ("UTS Markom") names the exam as much as its shown title.
       ...[...exam.tasks.map((task) => task.title), ...exam.edunex.map((e) => e.title)].filter((name) => name && name !== title).map((name) => [name, TITLE] as [string, number]),
       [own, CONTEXT],
       [courseWords(exam.courseCode), CONTEXT],

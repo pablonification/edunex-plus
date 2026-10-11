@@ -10,6 +10,7 @@ import { ActionError } from "../bridge";
 import { useFormat, useT } from "../i18n";
 import { displayName } from "../names";
 import { useBridge, useDataset, useSettings, useStatus, useStore } from "../store";
+import { AppMark, SourceLogo } from "../ui/brand";
 import { Button, IconButton, Segmented, Switch } from "../ui/controls";
 import { cx } from "../ui/cx";
 import { Card } from "../ui/display";
@@ -109,8 +110,9 @@ function SettingsBody({ onSignedOutOfEverything, onShowFirstScan }: { onSignedOu
         <Row label={t("settings.attendance.target")} hint={t("settings.attendance.targetHint")}>
           <Target value={settings.attendanceTarget} onChange={(attendanceTarget) => update({ attendanceTarget })} />
         </Row>
-        <Row label={t("settings.version", { version: store.version })} />
       </Group>
+
+      <About version={store.version} />
 
       <ConfirmDialog
         open={confirming}
@@ -281,6 +283,7 @@ function AccountRow({ source, who }: { source: SourceId; who: string | null }) {
             : { text: checked ? t("settings.account.stale", { when: checked }) : t(`status.${status.state}`, { source: name }), tone: "text-warning-fg" };
   return (
     <div ref={row} className="flex scroll-my-3 items-center gap-3.5 px-4 py-3">
+      <SourceLogo source={source} className="size-9" />
       <span className="min-w-0 flex-1">
         <span className="block text-body font-medium">{name}</span>
         {who && <span className="block truncate text-small text-muted">{who}</span>}
@@ -297,6 +300,20 @@ function AccountRow({ source, who }: { source: SourceId; who: string | null }) {
       >
         {label}
       </Button>
+    </div>
+  );
+}
+
+/** Which app this is, and which version. */
+function About({ version }: { version: string }) {
+  const t = useT();
+  return (
+    <div className="flex items-center gap-3 px-1">
+      <AppMark className="size-9" />
+      <span className="min-w-0">
+        <span className="block text-body font-semibold">Edunex Plus</span>
+        <span className="block text-small text-muted">{t("settings.version", { version })}</span>
+      </span>
     </div>
   );
 }

@@ -66,10 +66,6 @@
   --status-review-fg: #5a33c8;
 
   /* Sources */
-  --source-six-bg: #e3f4f1;
-  --source-six-fg: #0f6b63;
-  --source-edunex-bg: #e6eefe;
-  --source-edunex-fg: #2a58b8;
   --source-itb-bg: #f3ecfd;
   --source-itb-fg: #6338b8;
 }
@@ -128,11 +124,6 @@
     --status-closed-fg: #c6c6ce;
     --status-review-bg: #272042;
     --status-review-fg: #c4b5ff;
-
-    --source-six-bg: #11302c;
-    --source-six-fg: #6fd6c6;
-    --source-edunex-bg: #1b2742;
-    --source-edunex-fg: #9ab8ff;
     --source-itb-bg: #271d3a;
     --source-itb-fg: #c4b0f5;
   }

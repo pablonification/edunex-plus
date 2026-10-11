@@ -1,8 +1,8 @@
 // Exams in one place (#77): the exam rows in Tugas & Ujian and on a course,
 // and an exam's prep page. An exam merges what SIX (in class, with the room),
-// EduNex (its exams, take-home UTS Tasks, the course outline) and ITB's
+// Edunex (its exams, take-home UTS Tasks, the course outline) and ITB's
 // calendar (the exam weeks) each know, and says plainly, with a next step,
-// when SIX and EduNex give different dates.
+// when SIX and Edunex give different dates.
 import { type Exam, examKind, examPassed } from "../../core/exams";
 import { edunexCourseUrl } from "../../core/links";
 import type { CalendarEvent, Task } from "../../core/models";
@@ -42,7 +42,7 @@ export const examWeekLabel = (t: Translate, f: Format, kind: "UTS" | "UAS", week
   t("exam.week", { kind: t(kind === "UTS" ? "calendar.kind.uts" : "calendar.kind.uas"), range: f.dayRange(week.firstDay, week.lastDay) });
 const dayLabel = (f: Format, at: number) => `${f.weekdayShort(at)} ${f.dayMonth(at)}`;
 
-/** The day each source gives: "Kam 15 Okt" (SIX) and "Kam 22 Okt" (EduNex). */
+/** The day each source gives: "Kam 15 Okt" (SIX) and "Kam 22 Okt" (Edunex). */
 function sourceDays(f: Format, exam: Exam): { six: string; edunex: string } {
   const edunex = [...exam.edunex.flatMap((e) => (e.start !== null ? [e.start] : [])), ...exam.tasks.flatMap((task) => (task.dueAt !== null ? [task.dueAt] : []))];
   return {

@@ -1,6 +1,6 @@
-// EduNex sign-in in a window the app owns. It runs on the throwaway sign-in
+// Edunex sign-in in a window the app owns. It runs on the throwaway sign-in
 // session (signin-session.ts) with no access to the app: the Student types
-// their password and 2FA code only on Microsoft's page. Once EduNex's website
+// their password and 2FA code only on Microsoft's page. Once Edunex's website
 // holds the session, the app reads the access token and closes the window;
 // the sign-in session is wiped once SIX doesn't need it for its own sign-in.
 // There's no time limit: 2FA takes as long as it takes.

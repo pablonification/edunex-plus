@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 // v2-04 (#72), seam 2: Tugas & Ujian and the Task page as the Student sees
-// them, with the real engine and the pretend EduNex behind the bridge.
+// them, with the real engine and the pretend Edunex behind the bridge.
 import { afterEach, describe, expect, it } from "vitest";
 import { PretendWorld } from "../pretend/world";
 import { openApp } from "./harness";
@@ -182,11 +182,11 @@ describe("the Task page", () => {
     expect(history).toEqual(["Diunggah dosenKam, 17 Sep, 08:45", "Diubah dosenKam, 24 Sep, 11:11", "TenggatKam, 22 Okt, 23:50"]);
     // An edit before the Student handed in is history, not a warning.
     expect(s.text()).not.toContain("Diubah dosen pada");
-    await s.click("Lihat di EduNex");
+    await s.click("Lihat di Edunex");
     expect(s.calls.at(-1)).toEqual({ name: "shell.openExternal", input: { url: "https://edunex.itb.ac.id/assignment/take/117764" } });
   });
 
-  it("formats the lecturer's instructions safely: no script or markup of EduNex's reaches the page", async () => {
+  it("formats the lecturer's instructions safely: no script or markup of Edunex's reaches the page", async () => {
     const s = await open();
     s.world.edunex.editTask(117003, { description: '<p>Kerjakan <strong>Bab II</strong>.</p><script>window.hacked = true</script><img src=x onerror="window.hacked = true"><a href="javascript:alert(1)">tautan</a>' });
     await s.engineDoes(() => s.engine.refresh("edunex"));
@@ -226,18 +226,18 @@ describe("the Task page", () => {
     expect(history).toContain("Kamu menyimpan drafHari ini, 08:12");
   });
 
-  it("submitted: the receipt from EduNex, the file to download, final", async () => {
+  it("submitted: the receipt from Edunex, the file to download, final", async () => {
     const s = await open();
     await goToTask(s, "Tugas tentang Imfact on Innovation");
-    expect(card()).toContain("TerkumpulEduNex mencatatnya Rab, 16 Sep, 15:29");
+    expect(card()).toContain("TerkumpulEdunex mencatatnya Rab, 16 Sep, 15:29");
     expect(card()).toContain("Sudah diserahkan. Pengumpulan bersifat final.");
     expect(s.has(/^Lampirkan berkas/)).toBe(false);
     expect(s.has("Kumpulkan")).toBe(false);
     await s.click("Unduh TUGAS IMPACT ON INNOVATION THE ECONOMY - 18223901.pdf");
     expect(s.calls.at(-1)?.name).toBe("files.download");
-    // EduNex never told the Student about this edit.
+    // Edunex never told the Student about this edit.
     expect(s.text()).toContain("Dosen mengubah tugas ini pada 8 Okt, setelah kamu mengumpulkan pada 16 Sep.");
-    await s.click("Lihat di EduNex");
+    await s.click("Lihat di Edunex");
     expect(s.calls.at(-1)?.name).toBe("shell.openExternal");
   });
 
@@ -301,7 +301,7 @@ describe("the Task page", () => {
     expect(s.has(/^Lampirkan berkas/)).toBe(false);
   });
 
-  it("a Task removed from EduNex says so, with the way back", async () => {
+  it("a Task removed from Edunex says so, with the way back", async () => {
     const s = await open();
     await goToTask(s, "Tugas 03 Bab III");
     s.world.edunex.tasks.set(95326, s.world.edunex.tasks.get(95326)!.filter((t) => Number(t.id) !== 117010));

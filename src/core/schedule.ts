@@ -3,7 +3,7 @@
 // day or room) and an extra meeting on top of it, classes that overlap (SIX
 // accepts a KRS whose classes clash and never says so), exam sessions,
 // lectures SIX lists inside an exam week or a holiday (they may not happen),
-// meetings announced only in EduNex text, Presence windows counted by
+// meetings announced only in Edunex text, Presence windows counted by
 // handing in a Task, Task deadlines and ITB's calendar. Also the week as a
 // time grid: its hours, classes that share time side by side, and the
 // term's week number. Pure: the Jadwal screen, Beranda, the calendar export
@@ -299,7 +299,7 @@ export interface OutsideMeeting {
 }
 
 /**
- * Meetings a lecturer announced only in EduNex text ("Pertemuan 03: Jumat,
+ * Meetings a lecturer announced only in Edunex text ("Pertemuan 03: Jumat,
  * 09 Oktober 2026 Pkl. 15:00 - 17:00 WIB") in a month whose own SIX
  * timetable page was read (`months`, "2026-10"), on a day SIX doesn't list
  * for that course. Nothing while SIX's timetable isn't known.
@@ -327,7 +327,7 @@ export function meetingsOutsideSix(
 // ---------------------------------------------------------------- Presence by handing in a Task
 
 /**
- * An EduNex Presence window counted by handing in a Task (EduNex's Answer
+ * An Edunex Presence window counted by handing in a Task (Edunex's Answer
  * Assignment): "Presensi dengan submit Tugas 02 Bab II". It isn't a place to
  * be but a time to hand something in. SIX often lists it as a meeting with
  * no room.
@@ -341,7 +341,7 @@ export interface TaskWindow {
   six: ClassSession | null;
 }
 
-/** A Presence window EduNex counts by a handed-in Task. */
+/** A Presence window Edunex counts by a handed-in Task. */
 export const isTaskWindow = (presence: PresenceSession) => presence.countsBy[0]?.kind === "assignment";
 
 const overlapOf = (a: { start: number; end: number }, b: { start: number; end: number }) => Math.min(a.end, b.end) - Math.max(a.start, b.start);
@@ -366,9 +366,9 @@ export function taskWindows(
   return windows.sort((a, b) => a.presence.opensAt - b.presence.opensAt);
 }
 
-// ---------------------------------------------------------------- what EduNex knows without SIX
+// ---------------------------------------------------------------- what Edunex knows without SIX
 
-/** A meeting as EduNex knows it: from its Presence windows and the lecturer's announced schedule. No room: that's SIX's. */
+/** A meeting as Edunex knows it: from its Presence windows and the lecturer's announced schedule. No room: that's SIX's. */
 export interface EdunexMeeting {
   code: string;
   start: number;
@@ -380,7 +380,7 @@ export interface EdunexMeeting {
 }
 
 /**
- * Every meeting EduNex knows for these courses, for a Student not signed in
+ * Every meeting Edunex knows for these courses, for a Student not signed in
  * to SIX: its Presence windows (except Task windows) and meetings announced
  * in its text, one per day.
  */
@@ -423,7 +423,7 @@ export interface ScheduleDay {
   day: string;
   classes: ScheduledClass[];
   outside: OutsideMeeting[];
-  /** Without SIX: the meetings EduNex knows that day. */
+  /** Without SIX: the meetings Edunex knows that day. */
   edunex: EdunexMeeting[];
   /** Presence windows opening that day that count by a handed-in Task. */
   windows: TaskWindow[];
@@ -442,7 +442,7 @@ export interface ScheduleInput {
   events: readonly CalendarEvent[];
   /** Task windows (see taskWindows): SIX's roomless meeting they stand for leaves the grid. */
   windows?: readonly TaskWindow[];
-  /** Without SIX: what EduNex knows. */
+  /** Without SIX: what Edunex knows. */
   edunex?: readonly EdunexMeeting[];
 }
 

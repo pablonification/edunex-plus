@@ -1,4 +1,4 @@
-// EduNex's core feeds (#71): who is signed in (also the liveness check) and
+// Edunex's core feeds (#71): who is signed in (also the liveness check) and
 // this term's courses.
 import type { Account, Course } from "../../../core/models";
 import type { SourceContext } from "../source";
@@ -39,7 +39,7 @@ export async function fetchAccount(client: EdunexClient): Promise<Account> {
 const PARENT = /\s*\[Parent Class\]\s*$/i;
 
 /**
- * The term's courses. EduNex lists a class's parent course ("… [Parent
+ * The term's courses. Edunex lists a class's parent course ("… [Parent
  * Class]") as a separate pair; both are kept on one course, the child first.
  */
 export async function fetchCourses(client: EdunexClient): Promise<Course[]> {

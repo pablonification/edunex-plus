@@ -1,5 +1,5 @@
 // #81: quick search over what the app saved after the first full sync of the
-// pretend EduNex and SIX (real recorded shapes): what each query finds, in
+// pretend Edunex and SIX (real recorded shapes): what each query finds, in
 // which order, and where picking it goes. Also that a full term stays instant.
 import { beforeAll, describe, expect, it } from "vitest";
 import { htmlText } from "../../src/core/course-materials";
@@ -140,7 +140,7 @@ describe("exams", () => {
     expect(exams?.items.map((item) => [item.title, item.target])).toEqual([
       // PL3032's outline has "Midex/UTS" and SIX lists no UTS for it: ITB's UTS week (12–16 Oct) dates it.
       ["UTS Ekonomi Infrastruktur dan Transportasi", { screen: "exam", examId: "PL3032-UTS" }],
-      // SIX's sitting and EduNex's take-home "UTS Markom" are one exam.
+      // SIX's sitting and Edunex's take-home "UTS Markom" are one exam.
       ["UTS Komunikasi Pemasaran", { screen: "exam", examId: "DK4073-UTS" }],
     ]);
     // The take-home's title finds its exam, not one more Task.
@@ -233,7 +233,7 @@ describe("screens, their tabs, and Settings", () => {
 });
 
 describe("only this term's courses", () => {
-  it("EduNex data of a course SIX doesn't list is left out", () => {
+  it("Edunex data of a course SIX doesn't list is left out", () => {
     const withoutPl3002: Saved = { ...saved, "six.courses": saved["six.courses"]!.filter((c) => c.code !== "PL3002") };
     const term = searchIndex(withoutPl3002, { lang: "id", screens: [], now });
     expect(keys(search(term, "PL3002")).filter((key) => key.includes("PL3002") || key.startsWith("task:1174") || key.startsWith("task:1178"))).toEqual([]);

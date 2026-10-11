@@ -64,14 +64,14 @@ const chartRows = () =>
 const termRow = (name: RegExp) => screen!.button(name);
 
 describe("Nilai", () => {
-  it("before SIX is read: what SIX unlocks, this term's courses from EduNex, and a way in", async () => {
+  it("before SIX is read: what SIX unlocks, this term's courses from Edunex, and a way in", async () => {
     screen = await openApp({ signedIn: true });
     await screen.click("Nilai");
     expect(screen.text()).toContain("Transkrip & IPK butuh SIX");
     expect(screen.text()).toContain("Masuk ke SIX untuk melihat IPK, transkrip, dan perkiraan IPK saat lulus.");
     // No grade published yet: said once, not on every course.
     expect(screen.text()).toContain("Belum ada nilai yang dirilis");
-    expect(screen.text()).not.toContain("Nilai belum dirilis di EduNex");
+    expect(screen.text()).not.toContain("Nilai belum dirilis di Edunex");
     await screen.click("Masuk ke SIX");
     await screen.wait();
     expect(screen.store.status("six").state).toBe("live");
@@ -171,10 +171,10 @@ describe("Nilai", () => {
     expect(s.store.dataset("local.plan")?.value).toMatchObject({ target: 3.5 });
   });
 
-  it("EduNex's placeholder gradebook is never a grade, said once", async () => {
+  it("Edunex's placeholder gradebook is never a grade, said once", async () => {
     const s = await openGrades();
-    expect(s.text().match(/Nilai EduNex belum dirilis/g)).toHaveLength(1);
-    expect(s.text()).not.toMatch(/EduNex 0[.,]0+ · E/);
+    expect(s.text().match(/Nilai Edunex belum dirilis/g)).toHaveLength(1);
+    expect(s.text()).not.toMatch(/Edunex 0[.,]0+ · E/);
   });
 
   it("the questionnaire reminder: ahead of ITB's window, during it, and gone once every grade is in", async () => {

@@ -1,4 +1,4 @@
-// A "⋯" menu for a screen's rare actions (save for offline, open in EduNex):
+// A "⋯" menu for a screen's rare actions (save for offline, open in Edunex):
 // a named icon button that opens a short list. Arrow keys move between the
 // items, Escape or a click outside closes it. An item that can't run stays in
 // the list, dimmed, with the reason under it.

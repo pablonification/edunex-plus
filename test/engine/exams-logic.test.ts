@@ -1,6 +1,6 @@
-// Exams in one place (#77): SIX's exam sessions, EduNex's exams and take-home
+// Exams in one place (#77): SIX's exam sessions, Edunex's exams and take-home
 // UTS Tasks, the course outline and ITB's exam weeks merged per course and
-// exam, and a warning when SIX and EduNex disagree.
+// exam, and a warning when SIX and Edunex disagree.
 import { describe, expect, it } from "vitest";
 import { examKind, examPassed, mergeExams } from "../../src/core/exams";
 import type { AcademicCalendar, ClassSession, CourseOutline } from "../../src/core/models";
@@ -35,7 +35,7 @@ const outline = (...titles: string[]): CourseOutline => ({
 const takeHome = aTask({ id: 117764, courseCode: "DK4073", courseId: 93409, title: "UTS Markom", status: "not_started", kind: "uts", dueAt: wib("2026-10-22T23:50:00") });
 
 describe("the merged exam list", () => {
-  it("a UTS in class in SIX and a take-home UTS in EduNex are one exam, and they disagree", () => {
+  it("a UTS in class in SIX and a take-home UTS in Edunex are one exam, and they disagree", () => {
     const [exam] = mergeExams({ schedule: [sixSession("2179909", "DK4073", "2026-10-15T11:00:00", "UTS")], tasks: [takeHome], calendar, term: "2026-1", now });
     expect(exam).toMatchObject({ id: "DK4073-UTS", kind: "UTS", disagree: true, at: wib("2026-10-15T11:00:00"), last: wib("2026-10-22T23:50:00") });
     expect(exam.six.map((s) => s.room)).toEqual(["TVST C"]);
@@ -43,7 +43,7 @@ describe("the merged exam list", () => {
     expect(exam.week?.firstDay).toBe("2026-10-12");
   });
 
-  it("agree when EduNex's exam is on SIX's day", () => {
+  it("agree when Edunex's exam is on SIX's day", () => {
     const [exam] = mergeExams({
       schedule: [sixSession("1", "PL3002", "2026-10-15T08:00:00", "UTS")],
       edunexExams: { PL3002: [{ id: "e1", courseId: 95001, title: "UTS Ekonomi Inovasi", start: wib("2026-10-15T08:00:00"), end: wib("2026-10-15T10:00:00") }] },
@@ -68,7 +68,7 @@ describe("the merged exam list", () => {
     ]);
   });
 
-  it("quizzes stay apart: each one is its own exam, joined across SIX and EduNex only on the same day", () => {
+  it("quizzes stay apart: each one is its own exam, joined across SIX and Edunex only on the same day", () => {
     const exams = mergeExams({
       schedule: [sixSession("q2", "PL3002", "2026-10-20T08:00:00", "Kuis"), sixSession("q1", "PL3002", "2026-10-06T08:00:00", "Kuis"), sixSession("u1", "PL3002", "2026-10-15T08:00:00", "UTS")],
       edunexExams: {
@@ -92,7 +92,7 @@ describe("the merged exam list", () => {
     expect(exams.filter((e) => e.kind === "UTS").map((e) => e.id)).toEqual(["PL3002-UTS"]);
   });
 
-  it("leaves out EduNex items of courses not taken this term", () => {
+  it("leaves out Edunex items of courses not taken this term", () => {
     expect(mergeExams({ tasks: [takeHome], courses: ["PL3002"], now })).toEqual([]);
   });
 

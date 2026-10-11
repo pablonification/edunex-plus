@@ -48,7 +48,7 @@ export interface TermCourseFacts {
   code: string;
   /** SIX's exact count, when SIX has one. */
   six: SixCourse["attendance"];
-  /** The EduNex course id, when the course is on EduNex. */
+  /** The Edunex course id, when the course is on Edunex. */
   edunexId: number | null;
 }
 
@@ -67,7 +67,7 @@ export interface HomeWorld {
   schedule: readonly ClassSession[] | null;
   /** The months whose own SIX timetable page was read ("2026-10"): only there can a meeting be "not in SIX". */
   scheduleMonths?: readonly string[];
-  /** EduNex's exams by course code. */
+  /** Edunex's exams by course code. */
   exams?: Readonly<Record<string, readonly EdunexExam[]>>;
   calendar: AcademicCalendar | undefined;
   /** SIX's study plan (KRS) for the term, and the UKT bills. */
@@ -156,10 +156,10 @@ export type NeedFacts =
   | { kind: "krs"; closesAt: number; open: boolean; window: "drs" }
   | { kind: "bill"; bill: Bill; overdue: boolean };
 
-/** When and where an exam is sat: SIX's session (with its room) or EduNex's dated exam. */
+/** When and where an exam is sat: SIX's session (with its room) or Edunex's dated exam. */
 export interface ExamSitting {
   start: number;
-  /** null when EduNex gives only the start. */
+  /** null when Edunex gives only the start. */
   end: number | null;
   room: string | null;
   source: "six" | "edunex";
@@ -230,7 +230,7 @@ export function slotChange(session: ClassSession, schedule: readonly ClassSessio
   };
 }
 
-/** Meetings each course announced in EduNex text, with the moment the text was posted. */
+/** Meetings each course announced in Edunex text, with the moment the text was posted. */
 function announced(context: HomeContext, code: string): (AnnouncedMeeting & { postedAt: number | null })[] {
   const materials = context.materials[code] ?? [];
   const announcements = context.announcements[code] ?? [];
@@ -256,7 +256,7 @@ function onlyInEdunex(context: HomeContext, code: string) {
 
 /**
  * The online-class link for a class on a day: the one posted for that
- * meeting in EduNex text, else the course's latest online-class material
+ * meeting in Edunex text, else the course's latest online-class material
  * (lecturers often keep one Teams link all term).
  */
 export function classLink(context: HomeContext, code: string, start: number): string | null {
@@ -306,7 +306,7 @@ function presenceTasks(context: HomeContext): Set<number> {
 // ---------------------------------------------------------------- providers
 
 /**
- * EduNex Presence: a window open now (always on top: the action takes
+ * Edunex Presence: a window open now (always on top: the action takes
  * seconds and closes soon), and a coming window that counts only by a
  * specific action (hand in a Task, open a module). The weekly View Course
  * default isn't announced ahead: it would repeat every week.
@@ -319,7 +319,7 @@ export const presenceProvider: NeedProvider = {
     const facts = (code: string, session: PresenceSession) => {
       const action = presenceAction(session, context.tasks);
       const live = (context.schedule ?? []).find((s) => s.courseCode === code && s.start < session.closesAt && session.opensAt < s.end);
-      // Signed out of SIX, even a course with no window closed yet can't be said to count in EduNex.
+      // Signed out of SIX, even a course with no window closed yet can't be said to count in Edunex.
       const countedIn: CountedIn = context.sixConnected === false ? "noSix" : (context.health.get(code)?.countedIn ?? "unknown");
       return { action, live: live ?? null, countedIn, moved: live ? slotChange(live, context.schedule ?? []) : null };
     };
@@ -372,7 +372,7 @@ export const presenceProvider: NeedProvider = {
 /**
  * SIX's classes today: one going on or starting within the hour (where to
  * be, where attendance counts), and one later today the Student can't
- * afford to miss or that moved from its usual slot. A class with an EduNex
+ * afford to miss or that moved from its usual slot. A class with an Edunex
  * window open is already the Presence item; an exam is the exam item.
  */
 export const classProvider: NeedProvider = {
@@ -442,7 +442,7 @@ export const taskProvider: NeedProvider = {
   },
 };
 
-/** Meetings announced only in EduNex text, not on SIX's timetable, in the coming week. */
+/** Meetings announced only in Edunex text, not on SIX's timetable, in the coming week. */
 export const meetingProvider: NeedProvider = {
   area: "meeting",
   needs(context) {
@@ -495,9 +495,9 @@ export const attendanceProvider: NeedProvider = {
 
 /**
  * Exams within the week, each at its next sitting: SIX's session with its
- * room, or EduNex's dated exam (a take-home exam is a Task, and the Task
+ * room, or Edunex's dated exam (a take-home exam is a Task, and the Task
  * item speaks for it). Within a day it's now, within three days soon, else
- * coming up; when SIX and EduNex give it different days it's at least soon,
+ * coming up; when SIX and Edunex give it different days it's at least soon,
  * time to ask the lecturer.
  */
 export const examProvider: NeedProvider = {
@@ -590,7 +590,7 @@ export interface TodayPlan {
   classes: ClassFacts[];
   /** The next class to start (today), for the countdown. */
   next: ClassSession | null;
-  /** Meetings announced only in EduNex today and tomorrow. */
+  /** Meetings announced only in Edunex today and tomorrow. */
   announced: { code: string; meeting: AnnouncedMeeting }[];
   /** Open Tasks due today and tomorrow, soonest first. */
   due: Task[];
@@ -722,28 +722,28 @@ export function recentChanges(world: HomeWorld | HomeContext, history: readonly 
 
 // ---------------------------------------------------------------- Beranda's three answers
 
-/** An EduNex Presence window open now, and whether doing it counts. */
+/** An Edunex Presence window open now, and whether doing it counts. */
 export interface OpenPresence {
   code: string;
   session: PresenceSession;
   activity: PresenceActivity;
   task: Task | null;
-  /** The Presence itself when EduNex gives its page; else where the action is done. */
+  /** The Presence itself when Edunex gives its page; else where the action is done. */
   url: string;
   /**
-   * Doing it counts for attendance: EduNex keeps the count. False when SIX
-   * counts and EduNex's record doesn't keep up: the window is open, but
+   * Doing it counts for attendance: Edunex keeps the count. False when SIX
+   * counts and Edunex's record doesn't keep up: the window is open, but
    * sitting in class is what counts. Null while SIX has no count for the
    * course (not connected): nobody can say yet, and the app doesn't guess.
    */
   counts: boolean | null;
-  /** Signed out of SIX: whether EduNex counts can't be known, so it's said as a just-in-case. */
+  /** Signed out of SIX: whether Edunex counts can't be known, so it's said as a just-in-case. */
   noSix: boolean;
 }
 
 /**
  * "Sekarang": the class going on (or else the next one today, or the next
- * one at all within the week), where its attendance counts, and the EduNex
+ * one at all within the week), where its attendance counts, and the Edunex
  * Presence open for it. Without a class, an open Presence alone.
  */
 export interface NowCard {

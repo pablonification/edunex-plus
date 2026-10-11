@@ -1,6 +1,6 @@
 // Jadwal's month: what's unusual, not the routine. Exams, deadlines, Presence
 // by handing in a Task, moved, extra and clashing classes and meetings only
-// EduNex announced each get a line with its own icon (the words in its
+// Edunex announced each get a line with its own icon (the words in its
 // name); the routine collapses to a quiet count ("4 kuliah"). ITB's periods
 // (UTS, UAS, holidays) tint their days, named on their first day. A day
 // opens its details in a popover, with the way to its week.
@@ -118,7 +118,7 @@ export function MonthView({ month, input, onShowWeek }: { month: MonthGrid; inpu
   );
 }
 
-/** What's unusual that day, one line each, worst first: exams, clashes, hand-in windows, deadlines, moves, meetings only EduNex announced. */
+/** What's unusual that day, one line each, worst first: exams, clashes, hand-in windows, deadlines, moves, meetings only Edunex announced. */
 function monthLines(day: ScheduleDay, t: Translate, f: Format, world: ReturnType<typeof useWorld>): Line[] {
   const lines: Line[] = [];
   const time = (ms: number) => f.time(ms);
@@ -195,7 +195,7 @@ function clashesOf(day: ScheduleDay, t: Translate, f: Format): { full: string; f
   return [...seen.values()];
 }
 
-/** The routine, quietly: "4 kuliah"; inside an exam week or a holiday, "3 kuliah belum pasti"; without SIX, EduNex's meetings. */
+/** The routine, quietly: "4 kuliah"; inside an exam week or a holiday, "3 kuliah belum pasti"; without SIX, Edunex's meetings. */
 function routineCount(day: ScheduleDay, t: Translate): string | null {
   const lectures = day.classes.filter((c) => !c.exam);
   if (lectures.length) return t(lectures.some((c) => c.uncertain) ? "schedule.month.uncertain" : "schedule.month.classes", { count: lectures.length });

@@ -3,7 +3,7 @@
 //
 //   electron scripts/shoot-app.cjs <out-dir>                 welcome screen (signed out)
 //   SHOOT_STEPS=home electron scripts/shoot-app.cjs <out-dir> signed-in screens
-//   electron scripts/shoot-app.cjs --seed <auth.json>        stores a saved EduNex session
+//   electron scripts/shoot-app.cjs --seed <auth.json>        stores a saved Edunex session
 //                                                            (the website's localStorage.auth)
 //                                                            in the development vault, then exits
 const { app, safeStorage } = require("electron");

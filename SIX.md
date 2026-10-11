@@ -24,7 +24,7 @@ adds or changes a SIX or ITB request must update this file and keep the guardrai
 5. **On-device only.** The session cookie is kept with OS-backed encryption (Electron
    safeStorage; in memory only when the computer has no secure storage). Pages are turned into
    datasets on this computer. Nothing is sent anywhere but SIX and ITB.
-6. **Same distinctive User-Agent as EduNex.** Every engine request carries
+6. **Same distinctive User-Agent as Edunex.** Every engine request carries
    `EdunexPlus/<version> (+https://github.com/pablonification/edunex-plus)`
    (`src/engine/engine.ts`). Never a spoofed browser identity. The one exception is the sign-in
    window itself, which is a real browser the Student uses and presents a plain Chrome
@@ -37,7 +37,7 @@ adds or changes a SIX or ITB request must update this file and keep the guardrai
   `https://six.itb.ac.id/login/MS365`, SIX's "Login dengan ITB Account" button. If SIX refuses
   that address (status ≥ 400), the window falls back to `https://six.itb.ac.id/login`.
 - SIX sends the Student on to Microsoft and back. The window runs on a throwaway in-memory
-  session shared with the EduNex sign-in window, so right after an EduNex sign-in SIX usually
+  session shared with the Edunex sign-in window, so right after an Edunex sign-in SIX usually
   comes straight back without a second password or 2FA (and the other way round). That
   session is wiped 5 minutes after the last sign-in window closes, on sign-out and on quit.
 - Every 400 ms the app checks whether the window shows a signed-in SIX page: on

@@ -11,7 +11,7 @@ const at = (iso: string) => Date.parse(`${iso}+07:00`);
 const ids = (world: HomeWorld) => attention(world, nowCard(world)).map((n) => n.id);
 
 describe("Sekarang", () => {
-  it("the class going on, said plainly: SIX counts it, so being in class is enough; EduNex's open window is optional", async () => {
+  it("the class going on, said plainly: SIX counts it, so being in class is enough; Edunex's open window is optional", async () => {
     const h = await startHome();
     const card = nowCard(h.home())!;
     expect(card.state).toBe("live");

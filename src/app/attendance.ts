@@ -1,5 +1,5 @@
 // Each term course's attendance as the screens show it (#85): SIX's count,
-// what's left before the Student's target, where it counts, and the EduNex
+// what's left before the Student's target, where it counts, and the Edunex
 // Presence windows open now with the action that counts in each. The
 // Presensi screen, its sidebar badge and the course header read it.
 import { useMemo } from "react";

@@ -247,7 +247,7 @@ function NowCardView({ card, courses }: { card: NowCard; courses: readonly TermC
   );
 }
 
-/** Where attendance counts, and the one thing to do: sit in class (SIX), or the EduNex Presence before it closes. */
+/** Where attendance counts, and the one thing to do: sit in class (SIX), or the Edunex Presence before it closes. */
 function Attendance({ card }: { card: NowCard }) {
   const t = useT();
   const f = useFormat();
@@ -567,7 +567,7 @@ function NeedsYou({ needs, courses }: { needs: Need[]; courses: readonly TermCou
   const f = useFormat();
   const now = useNow();
   const tasks = useDataset("edunex.tasks");
-  // Until EduNex's Tasks arrive, an empty list would claim more than the app knows.
+  // Until Edunex's Tasks arrive, an empty list would claim more than the app knows.
   const edunex = useStatus("edunex");
   const loading = tasks === undefined && edunex.state !== "signed-out";
   return (
@@ -899,7 +899,7 @@ function CourseCard({ course, nim, state }: { course: TermCourse; nim: string | 
       : null;
   return (
     <Card className={cx("group relative flex h-full flex-col p-4", course.edunex && "transition-shadow duration-150 hover:shadow-lift")}>
-      {/* A course on EduNex opens its course page (the whole card); one only in SIX has none. */}
+      {/* A course on Edunex opens its course page (the whole card); one only in SIX has none. */}
       {course.edunex ? (
         <button type="button" className="focus-ring block rounded pr-6 text-left after:absolute after:inset-0 after:rounded-xl after:content-['']" onClick={() => go({ screen: "course", code: course.code })}>
           <CardHead course={course} />
@@ -914,7 +914,7 @@ function CourseCard({ course, nim, state }: { course: TermCourse; nim: string | 
         {course.inSix && <CourseAttendance course={course} state={state} />}
         {!course.edunex && <span className="mt-1 block text-caption text-faint">{t("course.notOnEdunex")}</span>}
       </div>
-      {/* Last in the markup, so Tab reaches the course before its way out to EduNex or SIX. */}
+      {/* Last in the markup, so Tab reaches the course before its way out to Edunex or SIX. */}
       {external && (
         <Tooltip content={external.label}>
           <IconButton size="sm" label={`${external.label}: ${course.code}`} className="absolute top-2.5 right-2.5 z-10" onClick={() => open(external.url)}>

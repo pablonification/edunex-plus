@@ -1,4 +1,4 @@
-// The real engine after its first full sync of the pretend EduNex and SIX
+// The real engine after its first full sync of the pretend Edunex and SIX
 // (and ITB's public pages), for quick search and the first-run scan: what the
 // app has saved, by dataset name, exactly as the window's store holds it.
 import type { Saved } from "../../src/core/saved";
@@ -30,7 +30,7 @@ export interface FirstSyncOptions {
   before?: (h: Harness) => void;
 }
 
-/** Signs in to EduNex, then SIX, and lets ITB's calendar arrive. */
+/** Signs in to Edunex, then SIX, and lets ITB's calendar arrive. */
 export async function firstSync(options: FirstSyncOptions = {}) {
   const h = await startEngine({ now: options.now });
   options.before?.(h);

@@ -1,7 +1,7 @@
 // What Jadwal, the exam list and the exam page read (#77): SIX's timetable
-// with the meetings announced only in EduNex, the Presence windows counted by
+// with the meetings announced only in Edunex, the Presence windows counted by
 // handing in a Task, the Tasks still to hand in, ITB's calendar, and the
-// merged exam list. Without SIX, what EduNex knows: its meetings, deadlines
+// merged exam list. Without SIX, what Edunex knows: its meetings, deadlines
 // and ITB's calendar.
 import { useCallback, useMemo } from "react";
 import { type Exam, mergeExams } from "../core/exams";
@@ -23,11 +23,11 @@ const useMinute = () => Math.floor(useNow() / 60_000) * 60_000;
 export interface ScheduleData extends ScheduleInput {
   /** The months ("2026-10") whose own SIX timetable page was read. */
   months: readonly string[];
-  /** SIX's timetable was read; else this is what EduNex knows. */
+  /** SIX's timetable was read; else this is what Edunex knows. */
   six: boolean;
 }
 
-/** undefined until SIX's timetable or anything from EduNex or ITB's calendar is known. */
+/** undefined until SIX's timetable or anything from Edunex or ITB's calendar is known. */
 export function useScheduleInput(): ScheduleData | undefined {
   const schedule = useDataset("six.schedule");
   const months = useDataset("six.scheduleMonths");
@@ -49,7 +49,7 @@ export function useScheduleInput(): ScheduleData | undefined {
   }, [schedule, months, courses, materials, announcements, presence, tasks, calendar, now]);
 }
 
-/** Every exam of the term; undefined until SIX or EduNex has said anything. */
+/** Every exam of the term; undefined until SIX or Edunex has said anything. */
 export function useExams(): Exam[] | undefined {
   const schedule = useDataset("six.schedule");
   const edunexExams = useDataset("edunex.exams");

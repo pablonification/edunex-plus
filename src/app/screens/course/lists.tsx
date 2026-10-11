@@ -18,7 +18,7 @@ import { Section } from "../../ui/layout";
 import { ExamRows } from "../exam";
 import { TaskRows } from "../tasks";
 
-/** No exam known. Signed out of SIX, only EduNex was asked: said so, with the way to SIX's exam timetable. */
+/** No exam known. Signed out of SIX, only Edunex was asked: said so, with the way to SIX's exam timetable. */
 function NoExams() {
   const t = useT();
   const sixOut = useStatus("six").state === "signed-out";

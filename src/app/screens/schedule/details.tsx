@@ -72,7 +72,7 @@ export function useWorld(): ScheduleWorld {
 /** SIX's end time as it is ("12:59"); the grid draws the block to the next 5 minutes. */
 export const timeRange = (f: Format, start: number, end: number) => f.timeRange(start, end);
 
-/** The EduNex Presence window of the course open now, that hasn't recorded the Student yet, on the day of `start`. */
+/** The Edunex Presence window of the course open now, that hasn't recorded the Student yet, on the day of `start`. */
 function openWindow(world: ScheduleWorld, code: string, start: number): PresenceSession | null {
   return world.presence(code).find((p) => wibDay(p.opensAt) === wibDay(start) && p.opensAt <= world.now && world.now < p.closesAt && !p.recorded?.present) ?? null;
 }
@@ -130,7 +130,7 @@ function AttendanceFact({ code, world }: { code: string; world: ScheduleWorld })
   );
 }
 
-/** An EduNex Presence window open now: until when, and the button that opens the place in EduNex where it counts. */
+/** An Edunex Presence window open now: until when, and the button that opens the place in Edunex where it counts. */
 function OpenPresence({ code, start, world }: { code: string; start: number; world: ScheduleWorld }) {
   const t = useT();
   const f = useFormat();
@@ -265,7 +265,7 @@ function MovedFacts({ item }: { item: ScheduledClass }) {
   );
 }
 
-/** A meeting EduNex knows: announced only in EduNex (SIX's timetable for that month doesn't list it), or, without SIX, any. */
+/** A meeting Edunex knows: announced only in Edunex (SIX's timetable for that month doesn't list it), or, without SIX, any. */
 export function MeetingDetails({ meeting, notInSix }: { meeting: OutsideMeeting | EdunexMeeting; notInSix: boolean }) {
   const t = useT();
   const f = useFormat();

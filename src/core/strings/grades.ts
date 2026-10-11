@@ -54,11 +54,11 @@ export const gradesStrings = {
   "grades.thisTerm": { id: "Semester ini", en: "This semester" },
   "grades.whatIf": { id: "Perkiraan nilaimu · ubah untuk mencoba", en: "The grades you expect · change them to try" },
   "grades.edunexNote": {
-    id: "Nilai EduNex belum dirilis. \"0.00 · E\" di EduNex bukan nilaimu.",
-    en: "EduNex grades aren't published yet. \"0.00 · E\" on EduNex isn't your grade.",
+    id: "Nilai Edunex belum dirilis. \"0.00 · E\" di Edunex bukan nilaimu.",
+    en: "Edunex grades aren't published yet. \"0.00 · E\" on Edunex isn't your grade.",
   },
   "grades.expectedOf": { id: "Perkiraan nilai {code}", en: "Expected grade for {code}" },
-  "grades.edunexGrade": { id: "EduNex {total} · {letter}", en: "EduNex {total} · {letter}" },
+  "grades.edunexGrade": { id: "Edunex {total} · {letter}", en: "Edunex {total} · {letter}" },
   "grades.sixGrade": { id: "Nilai SIX", en: "SIX grade" },
   "grades.whatNeed": { id: "Butuh berapa?", en: "What do I need?" },
   "grades.ipkAfter": { id: "IPK setelah semester ini", en: "IPK after this semester" },
@@ -97,9 +97,9 @@ export const gradesStrings = {
   "grades.needSix": { id: "Transkrip & IPK butuh SIX", en: "Transcript & IPK need SIX" },
   "grades.needSixBody": { id: "Masuk ke SIX untuk melihat IPK, transkrip, dan perkiraan IPK saat lulus.", en: "Sign in to SIX to see your IPK, transcript and your IPK at graduation." },
   "grades.edunexTerm": { id: "Mata kuliah semester ini", en: "This semester's courses" },
-  "grades.edunexTermHint": { id: "Dari EduNex. Hitung nilai yang kamu butuhkan di tiap mata kuliah.", en: "From EduNex. Work out the scores you need in each course." },
-  "grades.edunexTermNoneHint": { id: "Dari EduNex. Belum ada nilai yang dirilis; hitung nilai yang kamu butuhkan di tiap mata kuliah.", en: "From EduNex. No grades published yet; work out the scores you need in each course." },
-  "grades.edunexNone": { id: "Nilai belum dirilis di EduNex", en: "No grade published on EduNex yet" },
+  "grades.edunexTermHint": { id: "Dari Edunex. Hitung nilai yang kamu butuhkan di tiap mata kuliah.", en: "From Edunex. Work out the scores you need in each course." },
+  "grades.edunexTermNoneHint": { id: "Dari Edunex. Belum ada nilai yang dirilis; hitung nilai yang kamu butuhkan di tiap mata kuliah.", en: "From Edunex. No grades published yet; work out the scores you need in each course." },
+  "grades.edunexNone": { id: "Nilai belum dirilis di Edunex", en: "No grade published on Edunex yet" },
 
   // ------------------------------------------------ the predicate (Peraturan Akademik ITB)
   "predicate.summa": { id: "Summa cum laude", en: "Summa cum laude" },

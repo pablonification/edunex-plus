@@ -1,4 +1,4 @@
-// What the app picks up from EduNex's website after the Student signs in
+// What the app picks up from Edunex's website after the Student signs in
 // (`localStorage.auth` on edunex.itb.ac.id), shaped like the recorded value.
 import { describe, expect, it } from "vitest";
 import { readSignInToken } from "../../src/engine/sources/edunex/signin";
@@ -12,7 +12,7 @@ const saved = {
   accounts: [{ id: 900001, username: "18223901", level: "student", name: "Dimas Pratama", lptk_id: 2 }],
 };
 
-describe("reading the EduNex session after sign-in", () => {
+describe("reading the Edunex session after sign-in", () => {
   it("takes only the access token from what the website saved", () => {
     expect(readSignInToken(JSON.stringify(saved))).toBe(token);
   });

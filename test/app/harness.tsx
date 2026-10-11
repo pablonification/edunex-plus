@@ -1,5 +1,5 @@
 // Seam 2: the real window code (src/app) on a fake bridge. Behind the bridge
-// runs the real engine against the pretend EduNex, so screens get real app
+// runs the real engine against the pretend Edunex, so screens get real app
 // models and events, exactly as they would through Electron's IPC.
 import { act } from "react";
 import { createRoot } from "react-dom/client";
@@ -42,7 +42,7 @@ export interface Options {
   world?: PretendWorld;
   storage?: MemoryStorage;
   vault?: MemoryVault;
-  /** Sign in to EduNex before the window opens. */
+  /** Sign in to Edunex before the window opens. */
   signedIn?: boolean;
   /** Sign in to SIX before the window opens. */
   six?: boolean;
@@ -229,7 +229,7 @@ export async function openApp(options: Options = {}) {
     },
     has: (name: string | RegExp) => Boolean(find("button, [role=radio], [role=switch]", name)),
     /** What the top bar's data-status panel says about a source ("Terhubung", "Sesi berakhir"…), read the way the Student reads it. */
-    async sourceState(source: "EduNex" | "SIX" | "Kalender ITB" | "ITB calendar"): Promise<string> {
+    async sourceState(source: "Edunex" | "SIX" | "Kalender ITB" | "ITB calendar"): Promise<string> {
       await screen.click(/^(Status data|Data status):/);
       const line = [...document.querySelectorAll("[role=dialog] li p")].find((p) => p.textContent?.startsWith(`${source} ·`));
       const state = line?.textContent?.slice(source.length + 3).trim() ?? "";

@@ -1,5 +1,5 @@
 // What goes into the phone calendar file (#77): SIX's classes and exam
-// sessions with their rooms, meetings announced only in EduNex, EduNex's
+// sessions with their rooms, meetings announced only in Edunex, Edunex's
 // dated exams, every Task deadline (marked once handed in, so importing
 // again updates it), and ITB's calendar (exam weeks, holidays, the last
 // lecture day) as whole days. The Student picks what goes in and how far
@@ -49,10 +49,10 @@ export function phoneItems(get: Get, lang: Lang, now: number, options: PhoneCale
   const schedule = get("six.schedule") ?? [];
   const courses = get("six.courses") ?? [];
   const nameOf = (code: string, fallback?: string) => courses.find((c) => c.code === code)?.name ?? get("edunex.courses")?.find((c) => c.code === code)?.name ?? fallback ?? code;
-  /** An exam's kind in the Student's language ("Kuis", "Quiz"), whatever word SIX or EduNex uses. */
+  /** An exam's kind in the Student's language ("Kuis", "Quiz"), whatever word SIX or Edunex uses. */
   const kindOf = (text: string | null) => translate(lang, `exam.kind.${examKind(text) ?? "UJIAN"}`);
   const items: PhoneItem[] = [];
-  // A roomless SIX meeting whose EduNex Presence counts a handed-in Task is a window to hand in, not a class to sit in.
+  // A roomless SIX meeting whose Edunex Presence counts a handed-in Task is a window to hand in, not a class to sit in.
   const handIn = new Map(taskWindows(get("edunex.presence"), schedule, get("edunex.tasks") ?? []).flatMap((w) => (w.six && !w.six.room ? [[w.six.id, w] as const] : [])));
 
   for (const session of schedule) {

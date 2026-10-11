@@ -1,5 +1,5 @@
 // A complete Task for tests that put Tasks on screen or in the engine without
-// reading them from the pretend EduNex: the shared fields come from the test,
+// reading them from the pretend Edunex: the shared fields come from the test,
 // the Task-page fields get plain defaults.
 import type { Task } from "../../src/core/models";
 

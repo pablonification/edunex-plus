@@ -1,5 +1,5 @@
-// The Nilai tab: EduNex's grade only once the lecturer publishes it (before
-// that EduNex says 0 · E, never shown), and the course-contract calculator.
+// The Nilai tab: Edunex's grade only once the lecturer publishes it (before
+// that Edunex says 0 · E, never shown), and the course-contract calculator.
 // The answer comes first, as a sentence for the letter the Student aims for;
 // it is only given when it can be trusted: the weights must add up to 100,
 // example weights say so loudly, and a score outside 0–100 is explained, not

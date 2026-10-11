@@ -1,5 +1,5 @@
 // Tugas & Ujian: every Task of the term with its true status (#72), and the
-// Task page with handing in (#73). A Task's status is worked out from EduNex's
+// Task page with handing in (#73). A Task's status is worked out from Edunex's
 // own facts at this moment (a deadline passing changes it), never from a
 // draft's timestamps. Handing in writes only on the Student's clicks, and
 // before it the page checks what it could cost: the attendance window the
@@ -149,7 +149,7 @@ export function TasksScreen() {
   const week = show === "open" ? (exams ?? []).find((exam) => exam.week && exam.week.end > now && exam.kind === "UTS")?.week ?? (exams ?? []).find((exam) => exam.week && exam.week.end > now)?.week : undefined;
   const weekExam = week ? (exams ?? []).find((exam) => exam.week === week) : undefined;
   const nothing = shownExams.length === 0 && sections.every((section) => section.rows.length === 0);
-  // Signed out of SIX, only EduNex's exams are known: said once, under them, with the way to SIX's timetable.
+  // Signed out of SIX, only Edunex's exams are known: said once, under them, with the way to SIX's timetable.
   const examsNoSix = useStatus("six").state === "signed-out" && show === "open" && course === null;
   // Courses with something in either segment, for the filter.
   const withItems = (courses ?? []).filter((c) => (rows ?? []).some((row) => row.task.courseCode === c.code) || (exams ?? []).some((exam) => exam.courseCode === c.code));
@@ -363,7 +363,7 @@ export function TaskDate({ task, status }: Row) {
   );
 }
 
-/** "● II4091 · Modul 5 · Tugas": the course and module, as EduNex lays the course out. */
+/** "● II4091 · Modul 5 · Tugas": the course and module, as Edunex lays the course out. */
 function Place({ task }: { task: Task }) {
   const t = useT();
   const course = useCourse(task.courseCode);
@@ -384,7 +384,7 @@ function moduleLabel(t: Translate, module: TaskModule | null): string | null {
 }
 
 /**
- * At most one thing EduNex's list doesn't say, the one that changes what to
+ * At most one thing Edunex's list doesn't say, the one that changes what to
  * do: changed after the Student handed in, attendance taken by handing in, a
  * short window, not open yet.
  */
@@ -560,7 +560,7 @@ function TaskPage({ task }: { task: Task }) {
 }
 
 /**
- * What EduNex doesn't say on its Task page: attendance taken by handing it in
+ * What Edunex doesn't say on its Task page: attendance taken by handing it in
  * (and, once handed in, whether it counted), a change after the Student
  * handed in (loud, with the way to check), a short window. An edit before the
  * Student handed in is only history.
@@ -624,7 +624,7 @@ function Notes({ task }: { task: Task }) {
   );
 }
 
-/** Downloads a file from EduNex through the browser's download manager (Downloads, then it opens). */
+/** Downloads a file from Edunex through the browser's download manager (Downloads, then it opens). */
 function useDownload() {
   const bridge = useBridge();
   const t = useT();
@@ -679,7 +679,7 @@ const HEADER: Record<TaskStatus, string> = {
   in_review: "bg-(--status-review-bg) [&_svg]:text-(--status-review-fg)",
 };
 
-/** A file the Student attached in this visit, before it's in EduNex's answer. */
+/** A file the Student attached in this visit, before it's in Edunex's answer. */
 interface Attached {
   /** The id main issued for it (or a local one for a file too big to send). */
   key: string;

@@ -147,7 +147,7 @@ export class AlertCenter {
   /**
    * Takes in what detectors proposed. `silent`: a first sync, so it only
    * counts as seen. An id already waiting to go out is replaced by the newer
-   * version (the Tasks dataset knows a Task better than EduNex's feed).
+   * version (the Tasks dataset knows a Task better than Edunex's feed).
    */
   private accept(drafts: readonly AlertDraft[], silent: boolean): void {
     const now = this.deps.clock.now();

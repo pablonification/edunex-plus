@@ -1,7 +1,7 @@
 // "Sign out of everything" leaves nothing behind on this computer: the app's
 // own browser storage, the engine's network session, and what the first
 // version of the app (v1) kept in the same folder, including its sign-in
-// browser profile, which held the EduNex session in plain text.
+// browser profile, which held the Edunex session in plain text.
 import { type Session, session } from "electron";
 import { promises as fs } from "node:fs";
 import path from "node:path";

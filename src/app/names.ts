@@ -1,4 +1,4 @@
-// People's names as EduNex stores them can be all capitals; show them the way
+// People's names as Edunex stores them can be all capitals; show them the way
 // people write them.
 
 export function displayName(name: string): string {

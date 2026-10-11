@@ -1,7 +1,7 @@
-// The course page (#74): one course, its parent and child EduNex classes
+// The course page (#74): one course, its parent and child Edunex classes
 // merged. The header says what it is and where attendance stands; under it
 // what is happening now or next (and, for a course at risk, what that means
-// today); then tabs: Modul (EduNex's table of contents with each module's
+// today); then tabs: Modul (Edunex's table of contents with each module's
 // Tasks and materials), Pertemuan, Tugas & Ujian, Nilai and Pengumuman.
 import * as Tabs from "@radix-ui/react-tabs";
 import { useMemo, useState } from "react";
@@ -45,7 +45,7 @@ const METER: Record<string, string> = {
   unknown: "var(--faint)",
 };
 
-/** `module`: open the Modul tab on this EduNex module (search and alerts name one). */
+/** `module`: open the Modul tab on this Edunex module (search and alerts name one). */
 export function CourseScreen({ code, tab, module }: { code: string; tab?: string; module?: number }) {
   const t = useT();
   const page = useCoursePage(code);
@@ -283,7 +283,7 @@ function NowStrip({ page }: { page: CoursePage }) {
   const url = presence?.url ?? (page.course.edunex ? edunexCourseUrl(page.course.edunex.courseId) : null);
   const link = meeting?.announced?.link ?? null;
   const online = meeting?.announced?.online ?? false;
-  // EduNex's window is the thing to do only where it may be what counts: not where SIX counts, and
+  // Edunex's window is the thing to do only where it may be what counts: not where SIX counts, and
   // not loudly without SIX (nobody can say; it's worth doing just in case).
   const presenceCounts = countedIn !== "six" && countedIn !== "noSix";
   const what = meeting ? (meetingModuleTitle(t, pageModules(page), meeting) ?? meeting.presence?.topic ?? meeting.six?.activity ?? null) : null;

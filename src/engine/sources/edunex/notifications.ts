@@ -1,8 +1,8 @@
-// EduNex's notification feed (GET /notifications/{userId}), read every two to
+// Edunex's notification feed (GET /notifications/{userId}), read every two to
 // three minutes as the new-item signal: ASSIGNMENT (a new Task) and CONTENT
 // (a new material). A new ASSIGNMENT also runs the Tasks feed at once, a new
 // CONTENT the materials feed (material for today's class is told at once). The
-// app only reads it: it never marks anything read and never sends EduNex
+// app only reads it: it never marks anything read and never sends Edunex
 // "online", "viewed" or presence signals.
 import type { EdunexNotification } from "../../../core/models";
 import { EngineError } from "../../errors";

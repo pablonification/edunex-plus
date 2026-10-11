@@ -1,9 +1,9 @@
 // Jadwal (#77): the week as a real timetable (the default) and the month as
 // what's unusual in it. SIX's classes with their rooms, exams, lectures that
 // may not run in an exam week, classes moved or clashing, meetings only
-// EduNex announced, Presence by handing in a Task, deadlines and ITB's
+// Edunex announced, Presence by handing in a Task, deadlines and ITB's
 // calendar. Each block opens its details in place; the week and view the
-// Student chose stay while the app is open. Without SIX, what EduNex knows.
+// Student chose stay while the app is open. Without SIX, what Edunex knows.
 // The phone calendar export lives here too.
 import { useCallback, useMemo, useState } from "react";
 import { wibDay } from "../../core/course-meetings";

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 // v2-16 (#85), seam 2: the Presensi screen as the Student sees it, with the
-// real engine, the pretend EduNex and ITB calendar behind the bridge, and
+// real engine, the pretend Edunex and ITB calendar behind the bridge, and
 // SIX's datasets injected (until #76 lands its source).
 import { afterEach, describe, expect, it } from "vitest";
 import type { ClassSession, SixCourse, Task } from "../../src/core/models";
@@ -52,7 +52,7 @@ const opened = () => document.querySelector('main section[aria-label="Presensi y
 const answer = () => document.querySelector("main h1")?.nextElementSibling?.textContent ?? "";
 
 describe("the Presensi screen", () => {
-  it("a course counted in SIX: EduNex's unused windows are explained, never called absences", async () => {
+  it("a course counted in SIX: Edunex's unused windows are explained, never called absences", async () => {
     const s = await openPresence();
     await six([course("PL3002", 6, 7)], withUts(weekly("PL3002", "2026-08-27T08:00:00", 10)));
     const pl = card("PL3002");
@@ -63,7 +63,7 @@ describe("the Presensi screen", () => {
     expect(strip("PL3002")).toBe("Pertemuan: 6 hadir, 1 absen, sekitar 7 lagi");
     expect(pl).toContain("Boleh absen 1× lagi");
     expect(pl).toContain("Sampai 4 Des");
-    expect(pl).toContain("EduNex mencatat hadir 1 dari 6 Presensi; yang dihitung adalah SIX (hadir 6 dari 7). Presensi EduNex yang tak tercatat bukan absen.");
+    expect(pl).toContain("Edunex mencatat hadir 1 dari 6 Presensi; yang dihitung adalah SIX (hadir 6 dari 7). Presensi Edunex yang tak tercatat bukan absen.");
     expect(s.text()).not.toMatch(/\bAbsent\b|Tidak hadir/);
   });
 
@@ -105,16 +105,16 @@ describe("the Presensi screen", () => {
     expect(row("PL3032")?.querySelector("ul li")?.textContent).toContain("Bentrok dengan KU5014");
   });
 
-  it("the window open now, action first: until when, what to do, the time left, and the button to that place in EduNex; optional where only SIX counts, as Beranda says", async () => {
+  it("the window open now, action first: until when, what to do, the time left, and the button to that place in Edunex; optional where only SIX counts, as Beranda says", async () => {
     const s = await openPresence();
     await six([course("PL3002", 6, 7)], weekly("PL3002", "2026-08-27T08:00:00", 10));
     expect(opened()).toContain("Presensi PL3002 dibuka sampai 09:30");
-    // PL3002 isn't recorded in EduNex (SIX counts it), so the window is optional, the same story as Beranda's.
-    expect(opened()).toContain("Kehadiran dihitung di SIX: cukup hadir di kelas. Mencatat di EduNex tidak wajib.");
+    // PL3002 isn't recorded in Edunex (SIX counts it), so the window is optional, the same story as Beranda's.
+    expect(opened()).toContain("Kehadiran dihitung di SIX: cukup hadir di kelas. Mencatat di Edunex tidak wajib.");
     expect(opened()).not.toContain("agar tercatat");
     expect(opened()).not.toContain("Salinan");
     expect(opened()).toMatch(/1 jam \d+ mnt lagi/);
-    await s.click("Catat di EduNex");
+    await s.click("Catat di Edunex");
     expect(s.calls.at(-1)).toEqual({ name: "shell.openExternal", input: { url: "https://edunex.itb.ac.id/courses/95001" } });
     // The app never records presence itself.
     expect(s.world.log.every((request) => request.method === "GET")).toBe(true);
@@ -210,8 +210,8 @@ describe("the Presensi screen", () => {
     expect(pl).toContain("You can miss 1 more");
     expect(pl).toContain("Until 4 Dec · 6/7 attended · 85%");
     expect(strip("PL3002")).toBe("Meetings: 6 attended, 1 missed, about 7 to go");
-    // The open window says what to do, without claiming EduNex is what counts (the Indonesian says "agar tercatat").
-    expect(s.text()).toContain("SIX counts your attendance: just be in class. Recording in EduNex is optional.");
+    // The open window says what to do, without claiming Edunex is what counts (the Indonesian says "agar tercatat").
+    expect(s.text()).toContain("SIX counts your attendance: just be in class. Recording in Edunex is optional.");
     expect(s.text()).not.toContain("so it counts");
   });
 
@@ -221,14 +221,14 @@ describe("the Presensi screen", () => {
     // Without SIX nobody knows which system counts: said once at the top; no row claims SIX has no count, or repeats it.
     expect(s.text().match(/Hitungan resmi/g)).toHaveLength(1);
     expect(s.text()).not.toContain("Belum ada hitungan SIX");
-    expect(card("PL3002")).toContain("EduNex: hadir 1 dari 6 Presensi");
-    expect(s.text()).not.toContain("Dicatat lewat Presensi EduNex");
+    expect(card("PL3002")).toContain("Edunex: hadir 1 dari 6 Presensi");
+    expect(s.text()).not.toContain("Dicatat lewat Presensi Edunex");
     // The open window: worth recording just in case, not a must-do (the same on Beranda and the course page).
     expect(s.text()).toContain("Tanpa SIX, belum pasti ini dihitung: catat saja untuk berjaga-jaga.");
-    expect([...document.querySelectorAll("main button")].find((b) => b.textContent === "Catat di EduNex")!.className).not.toContain("bg-accent ");
+    expect([...document.querySelectorAll("main button")].find((b) => b.textContent === "Catat di Edunex")!.className).not.toContain("bg-accent ");
     expect(card("KU5014")).toContain("Belum ada catatan kehadiran");
-    // EduNex's own record, with each window's date.
-    expect(squares("II4091")[0]).toBe("Rab 26 Agu · tercatat hadir di EduNex");
+    // Edunex's own record, with each window's date.
+    expect(squares("II4091")[0]).toBe("Rab 26 Agu · tercatat hadir di Edunex");
     expect(s.text()).not.toMatch(/\bAbsent\b|Tidak hadir/);
     // No counts to add up: where they come from and a way in, not four zeros.
     expect(s.text()).toContain("Sisa jatah absen dihitung dari SIX");

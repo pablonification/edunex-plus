@@ -1,4 +1,4 @@
-// Schedule and exam alerts (#77), from SIX's timetable and EduNex:
+// Schedule and exam alerts (#77), from SIX's timetable and Edunex:
 // - A class moved: a SIX meeting's time or room changed between two reads
 //   (naming old → new), or a meeting SIX newly lists that stands in for the
 //   week's usual meeting (naming that one → this one). Raised when it's seen.
@@ -6,9 +6,9 @@
 //   meeting(s), told as an extra meeting, never as the class having moved.
 // - Overlapping classes: once per pair of courses per week, on the Monday
 //   morning of a week where they clash. SIX never says so.
-// - A meeting announced only in EduNex text, in a month whose own SIX page
+// - A meeting announced only in Edunex text, in a month whose own SIX page
 //   was read, on a day SIX doesn't list it.
-// - An exam scheduled (a SIX exam session or a dated EduNex exam appears), and
+// - An exam scheduled (a SIX exam session or a dated Edunex exam appears), and
 //   the evening before it. Take-home exams are Tasks: the Task alerts cover them.
 // Every one is silent on the first sync (the center does that) and only
 // about what is still to come. Days read as the app writes them ("Kam, 15
@@ -148,7 +148,7 @@ interface DatedExam {
   source: "six" | "edunex";
 }
 
-/** Every dated exam sitting, SIX's sessions and EduNex's dated exams, each with the exam it belongs to. */
+/** Every dated exam sitting, SIX's sessions and Edunex's dated exams, each with the exam it belongs to. */
 function datedExams(get: Parameters<NonNullable<Detector["plan"]>>[0]["get"]): DatedExam[] {
   const out: DatedExam[] = [];
   for (const exam of mergeExams({ schedule: get("six.schedule"), edunexExams: get("edunex.exams"), now: 0 })) {

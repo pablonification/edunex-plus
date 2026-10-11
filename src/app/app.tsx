@@ -43,7 +43,7 @@ function Root() {
   const student = useDataset("six.student");
   // Saved data keeps the shell up even while a session is being checked or has ended.
   const nobody = edunex.state === "signed-out" && !account && six.state === "signed-out" && !student;
-  // On first run the welcome screen stays until the Student moves on, so SIX can be connected right after EduNex.
+  // On first run the welcome screen stays until the Student moves on, so SIX can be connected right after Edunex.
   const [welcoming, setWelcoming] = useState(nobody);
   if (nobody && !welcoming) setWelcoming(true);
   return welcoming ? <Welcome onDone={() => setWelcoming(false)} /> : <Shell />;

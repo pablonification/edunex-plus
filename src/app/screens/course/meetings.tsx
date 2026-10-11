@@ -1,10 +1,10 @@
 // The Pertemuan tab: SIX's timetable (official time and room) merged with
-// EduNex Presence (the window and what EduNex recorded) and meetings
-// announced only in EduNex text. The attendance story is told honestly: SIX's
-// count is the official one and comes first; EduNex's record per meeting is a
-// quiet second line, and a meeting EduNex didn't record never reads as an
+// Edunex Presence (the window and what Edunex recorded) and meetings
+// announced only in Edunex text. The attendance story is told honestly: SIX's
+// count is the official one and comes first; Edunex's record per meeting is a
+// quiet second line, and a meeting Edunex didn't record never reads as an
 // absence where SIX is (or, signed out of SIX, may be) the one that counts.
-// A meeting carries one number only: the name EduNex or SIX gives it.
+// A meeting carries one number only: the name Edunex or SIX gives it.
 import type { ReactNode } from "react";
 import { type OutlineEntry, outlineEntries } from "../../../core/course-materials";
 import { meetingModules, meetingState, nextMeetingIndex, type Meeting, wibDay } from "../../../core/course-meetings";
@@ -94,20 +94,20 @@ export function MeetingsTab({ page }: { page: CoursePage }) {
   );
 }
 
-/** Each meeting's EduNex module, where one goes with it (see meetingModules). */
+/** Each meeting's Edunex module, where one goes with it (see meetingModules). */
 export const pageModules = (page: CoursePage) =>
   meetingModules(page.meetings, page.outline && page.course.edunex ? outlineEntries(page.outline, page.course.edunex.courseId) : []);
 
 /** "Modul 7 · Inovasi Pelayanan Publik" for a meeting known only as a class, as its row on the Pertemuan tab says it. */
 export function meetingModuleTitle(t: ReturnType<typeof useT>, modules: ReadonlyMap<string, OutlineEntry>, meeting: Meeting): string | null {
   const named = meeting.presence?.topic ?? meeting.six?.activity ?? null;
-  // A meeting EduNex or SIX names or numbers keeps that: one number per meeting.
+  // A meeting Edunex or SIX names or numbers keeps that: one number per meeting.
   if (meeting.announced || (named && !/^kuliah$/i.test(named.trim()))) return null;
   const entry = modules.get(meeting.key);
   return entry ? t("meeting.module", { no: entry.number, title: entry.module.title.trim() }) : null;
 }
 
-/** Signed out of SIX: EduNex's own tally as a fact, and why it may not be the count that matters. */
+/** Signed out of SIX: Edunex's own tally as a fact, and why it may not be the count that matters. */
 function NoSixIntro({ recorded, closed }: { recorded: number; closed: number }) {
   const t = useT();
   const { signIn, busy } = useSignIn();
@@ -166,11 +166,11 @@ function MeetingRow({
   // Unnamed, only numbered ("Pertemuan 3") or just "Kuliah", with no module to name it: said in a quieter color.
   const placeholder = !moduleTitle && (!named || /^((pertemuan|meeting)\s*\d+|kuliah)$/i.test(named.trim()));
   const title = moduleTitle ?? named ?? (announced ? t("meeting.number", { no: announced.number }) : six?.activity || t("meeting.untitled"));
-  // EduNex's Presence window, when it isn't simply the meeting's time.
+  // Edunex's Presence window, when it isn't simply the meeting's time.
   const window = presence && (presence.opensAt !== meeting.start || presence.closesAt !== meeting.end) ? f.timeRange(presence.opensAt, presence.closesAt) : null;
   const presenceUrl = presence?.url ?? fallbackUrl;
   const future = meeting.start > now;
-  // An open window asks for you (amber, primary) only where EduNex may be what counts; where SIX counts, or
+  // An open window asks for you (amber, primary) only where Edunex may be what counts; where SIX counts, or
   // without SIX (nobody can say), the strip above says it once and the row stays calm.
   const quiet = countedIn === "six" || countedIn === "noSix";
 
@@ -195,7 +195,7 @@ function MeetingRow({
         {presence && <span className="font-medium opacity-80">· {f.countdown(presence.closesAt)}</span>}
       </span>
     );
-  // Not recorded in EduNex: a warning only where EduNex is what counts; where SIX
+  // Not recorded in Edunex: a warning only where Edunex is what counts; where SIX
   // counts the intro says it once and the row stays quiet; without SIX, a plain fact.
   else if (state === "unmarked")
     status =

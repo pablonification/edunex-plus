@@ -1,4 +1,4 @@
-// The first-run scan (#81, spec story 68): once the first full sync of EduNex
+// The first-run scan (#81, spec story 68): once the first full sync of Edunex
 // (and SIX when connected) is done, a short list of what the app found that
 // neither system says on its own, each finding with its number and the
 // screen that shows it. Only findings with something to say are listed. Pure:
@@ -27,7 +27,7 @@ const stateOf = (statuses: readonly SourceStatus[], source: SourceId): SourceSta
 const hasAll = (saved: Saved, source: SourceId) => SCAN_PARTS[source].every((name) => saved[name] !== undefined);
 
 /**
- * The first full sync is done: every signed-in system (EduNex, SIX) has read
+ * The first full sync is done: every signed-in system (Edunex, SIX) has read
  * what the scan needs, or has stopped for a reason it shows (offline, a
  * vendor change, an ended session), and so has ITB's calendar.
  */
@@ -39,7 +39,7 @@ export function scanReady(saved: Saved, statuses: readonly SourceStatus[]): bool
   return signedIn.length > 0 && signedIn.every(settled) && calendar;
 }
 
-/** What Beranda needs before it can speak without guessing: SIX's attendance and timetable, EduNex's courses, Tasks and Presence. */
+/** What Beranda needs before it can speak without guessing: SIX's attendance and timetable, Edunex's courses, Tasks and Presence. */
 const HOME_PARTS = {
   edunex: ["edunex.courses", "edunex.tasks", "edunex.presence"],
   six: ["six.courses", "six.schedule"],
@@ -175,7 +175,7 @@ function overlaps({ saved, now }: ScanInput, codes: readonly string[]): Finding 
   };
 }
 
-/** Courses counted in SIX whose EduNex Presence windows went unused: EduNex would show those meetings as absences. */
+/** Courses counted in SIX whose Edunex Presence windows went unused: Edunex would show those meetings as absences. */
 function unusedPresence({ saved, now }: ScanInput): Finding | null {
   const presence = saved["edunex.presence"];
   if (!presence) return null;
@@ -191,7 +191,7 @@ function unusedPresence({ saved, now }: ScanInput): Finding | null {
 
 /**
  * Exams still ahead, as Tugas & Ujian lists them (one per course and exam,
- * however many systems name it): SIX's sessions with time and room, EduNex
+ * however many systems name it): SIX's sessions with time and room, Edunex
  * exams, take-home exams not handed in, and exams named only in a course
  * outline, dated by ITB's exam week. The line opens the soonest.
  */
@@ -214,7 +214,7 @@ function exams({ saved, now }: ScanInput): Finding | null {
   };
 }
 
-/** Upcoming meetings a lecturer announced only in EduNex text, in a month SIX's timetable covers without them. */
+/** Upcoming meetings a lecturer announced only in Edunex text, in a month SIX's timetable covers without them. */
 function meetingsOutsideSix({ saved, now }: ScanInput, codes: readonly string[]): Finding | null {
   const schedule = saved["six.schedule"];
   if (!schedule) return null;
@@ -239,7 +239,7 @@ function meetingsOutsideSix({ saved, now }: ScanInput, codes: readonly string[])
   };
 }
 
-/** Tasks the lecturer changed after posting them: EduNex never says so. */
+/** Tasks the lecturer changed after posting them: Edunex never says so. */
 function editedTasks({ saved, now }: ScanInput, known: (code: string) => boolean): Finding | null {
   const tasks = (saved["edunex.tasks"] ?? [])
     .filter((task) => known(task.courseCode) && task.editedAt !== null && task.editedAt <= now)
@@ -320,7 +320,7 @@ export interface ScanSummary {
   read: ("edunex" | "six")[];
   courses: number;
   tasks: number;
-  /** Meetings of this term's courses: SIX's timetable, EduNex Presence and announced meetings, merged. */
+  /** Meetings of this term's courses: SIX's timetable, Edunex Presence and announced meetings, merged. */
   meetings: number;
 }
 

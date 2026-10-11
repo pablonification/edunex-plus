@@ -1,9 +1,9 @@
 // The demo's world, set up before the app's main process loads (./main.ts):
-// the pretend EduNex, SIX and ITB pages from the tests, with made-up student
+// the pretend Edunex, SIX and ITB pages from the tests, with made-up student
 // data, on a clock that starts at a chosen moment and then runs in real time.
 //
 //   EDUNEX_DEMO=signed-in    (default) both systems connected, synced, on Beranda
-//   EDUNEX_DEMO=edunex-only  EduNex connected, SIX not
+//   EDUNEX_DEMO=edunex-only  Edunex connected, SIX not
 //   EDUNEX_DEMO=first-run    nobody signed in: the welcome screen
 //   EDUNEX_DEMO_NOW=<ISO>    the moment the demo starts (default: the recorded Thursday morning)
 //
@@ -31,7 +31,7 @@ fs.rmSync(profileDir, { recursive: true, force: true });
 app.on("quit", () => fs.rmSync(profileDir, { recursive: true, force: true }));
 
 // Nothing leaves the demo: links the app would open in the browser are only
-// noted, the system's file pickers answer with a made-up file, and EduNex's
+// noted, the system's file pickers answer with a made-up file, and Edunex's
 // files download from the pretend storage into a throwaway folder.
 const scratch = path.join(os.tmpdir(), `edunex-plus-demo-${process.pid}`);
 fs.mkdirSync(path.join(scratch, "Downloads"), { recursive: true });

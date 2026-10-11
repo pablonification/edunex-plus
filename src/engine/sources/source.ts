@@ -1,6 +1,6 @@
 // What every source gives the engine: how its saved session looks, which feed
 // proves the session is alive, its feeds, and its explicit actions (writes
-// the Student asks for). EduNex and SIX need a session; ITB's public pages
+// the Student asks for). Edunex and SIX need a session; ITB's public pages
 // (academic calendar, course catalog) don't.
 import type { z } from "zod";
 import type { DatasetName, DatasetValue, Settings, SourceId } from "../../core/models";

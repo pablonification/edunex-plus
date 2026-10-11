@@ -177,7 +177,7 @@ await session("first-run", async (demo) => {
   const { page } = demo;
   await attempt("welcome", async () => {
     await demo.shot("32-pertama-selamat-datang");
-    await page.getByRole("button", { name: "Hubungkan EduNex" }).click();
+    await page.getByRole("button", { name: "Hubungkan Edunex" }).click();
     await page.waitForFunction(() => /\d{8}/.test(document.body.innerText), null, { timeout: 30_000 });
     await page.getByRole("button", { name: "Hubungkan SIX" }).click();
     await page.waitForFunction(() => /Teknik Informasi|Teknologi Informasi/.test(document.body.innerText), null, { timeout: 90_000 });

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 // v2-12 (#80), seam 2: the KRS, UKT and Kalender akademik tabs of Rencana
-// studi as the Student sees them, with the real engine, the pretend EduNex and
+// studi as the Student sees them, with the real engine, the pretend Edunex and
 // ITB calendar behind the bridge, and SIX's records injected (read from the
 // recorded pages by the real readers).
 import { act } from "react";

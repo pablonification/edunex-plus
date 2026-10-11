@@ -1,9 +1,9 @@
-// What the engine needs from EduNex responses, verified against recordings
+// What the engine needs from Edunex responses, verified against recordings
 // (test/fixtures/edunex). Unknown extra fields are ignored; a missing or
 // mistyped field the app relies on fails the check.
 import { z } from "zod";
 
-/** GET /login/me — also the liveness check. EduNex keeps the student number in `code`. */
+/** GET /login/me — also the liveness check. Edunex keeps the student number in `code`. */
 export const LoginMe = z.object({
   id: z.number(),
   name: z.string(),
@@ -23,7 +23,7 @@ export const CoursePairs = z.array(
   }),
 );
 
-/** GET /notifications/{userId} — EduNex's new-item signals. `isRead` is never changed by the app. */
+/** GET /notifications/{userId} — Edunex's new-item signals. `isRead` is never changed by the app. */
 export const NotificationFeed = z.object({
   data: z.object({
     notifications: z.array(

@@ -19,6 +19,7 @@ import { PresenceScreen, ready as presenceReady, useBadge as usePresenceBadge } 
 import { ScheduleScreen, ready as scheduleReady, useBadge as useScheduleBadge } from "../screens/schedule";
 import { TaskScreen, TasksScreen, ready as tasksReady, useBadge as useTasksBadge } from "../screens/tasks";
 import { useBridge, useCommand, useDataset, useNavigateRequests, useStore } from "../store";
+import { AppMark } from "../ui/brand";
 import { Button } from "../ui/controls";
 import { Badge, CourseDot } from "../ui/display";
 import { cx } from "../ui/cx";
@@ -190,7 +191,7 @@ function Sidebar({ onSettings }: { onSettings: () => void }) {
   const update = useDataset("app.update");
   const courses = useTermCourses();
   const open = useOpenExternal();
-  /** Until the course page exists, a course opens on its official site: EduNex's page, else SIX's list. */
+  /** Until the course page exists, a course opens on its official site: Edunex's page, else SIX's list. */
   const outside = (course: TermCourse) =>
     course.edunex
       ? { url: edunexCourseUrl(course.edunex.courseId), label: t("action.openInEdunex") }
@@ -208,7 +209,12 @@ function Sidebar({ onSettings }: { onSettings: () => void }) {
 
   return (
     <aside className="flex h-full w-[248px] shrink-0 flex-col border-r border-line bg-sidebar select-none">
-      <div className={cx("shrink-0", store.platform === "darwin" ? "drag h-[52px]" : "h-3")} />
+      {store.platform === "darwin" && <div className="drag h-10 shrink-0" />}
+      {/* The app's own name, under the window buttons on macOS. */}
+      <div className={cx("flex h-11 shrink-0 items-center gap-2.5 px-5", store.platform === "darwin" && "drag")}>
+        <AppMark className="size-5" />
+        <span className="text-body font-semibold tracking-[-0.01em]">Edunex Plus</span>
+      </div>
 
       <nav aria-label={t("nav.menu")} className="space-y-0.5 px-3">
         {items

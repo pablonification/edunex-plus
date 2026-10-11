@@ -1,4 +1,4 @@
-// First run (and after signing out): connect EduNex and SIX. Each sign-in
+// First run (and after signing out): connect Edunex and SIX. Each sign-in
 // happens in a window the app owns, on Microsoft's own page; right after the
 // first, the second needs no password again. "Lanjut" leads to a calm
 // "reading" step that stays until the first full read is in (counts ticking
@@ -11,16 +11,12 @@ import { useT } from "../i18n";
 import { displayName } from "../names";
 import { useSaved } from "../saved";
 import { useBridge, useDataset, useSettings, useStatus, useStore } from "../store";
+import { AppMark, SourceLogo } from "../ui/brand";
 import { Button, Segmented } from "../ui/controls";
 import { cx } from "../ui/cx";
 import { Card } from "../ui/display";
 import { Icons } from "../ui/icons";
 import { useSignIn } from "./source-status";
-
-const MARK: Record<"edunex" | "six", string> = {
-  edunex: "bg-(--source-edunex-bg) text-(--source-edunex-fg)",
-  six: "bg-(--source-six-bg) text-(--source-six-fg)",
-};
 
 /** What the reading step counts, and what decides it's done (src/core/first-scan.ts homeReady). */
 const READ: readonly DatasetName[] = [
@@ -76,9 +72,7 @@ export function Welcome({ onDone }: { onDone: () => void }) {
       </div>
       <main className="grid min-h-full place-items-center px-6 py-16">
         <div className="w-full max-w-[460px]">
-          <div className="mx-auto grid size-14 place-items-center rounded-[16px] bg-gradient-to-b from-[#4c8bf7] to-[#2563eb] text-white shadow-[0_8px_24px_-8px_rgb(37_99_235/0.55)]">
-            <Icons.GraduationCap className="size-7" strokeWidth={1.9} />
-          </div>
+          <AppMark className="mx-auto block size-16 drop-shadow-[0_8px_18px_rgb(37_99_235/0.35)]" />
           {reading ? (
             <Reading onDone={onDone} />
           ) : (
@@ -117,7 +111,7 @@ export function Welcome({ onDone }: { onDone: () => void }) {
   );
 }
 
-/** "Membaca EduNex dan SIX…": counts ticking up until the first full read is in. */
+/** "Membaca Edunex dan SIX…": counts ticking up until the first full read is in. */
 function Reading({ onDone }: { onDone: () => void }) {
   const t = useT();
   const saved = useSaved(READ);
@@ -191,9 +185,7 @@ function SourceRow({ source, detail, who, primary }: { source: Extract<SourceId,
 
   return (
     <div className="flex items-center gap-3.5 px-4 py-3.5">
-      <span aria-hidden className={cx("grid size-9 shrink-0 place-items-center rounded-lg text-[13px] font-bold", MARK[source])}>
-        {name[0]}
-      </span>
+      <SourceLogo source={source} className="size-10" />
       <span className="min-w-0 flex-1">
         <span className="block text-lead font-semibold">{name}</span>
         <span className={cx("line-clamp-2 block text-small", connected && who ? "text-fg/80" : "text-muted")}>{line}</span>

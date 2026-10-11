@@ -56,7 +56,7 @@ const pairs: [string, string, number][] = [
   ["--on-accent", "--accent-hover", 4.5],
   ...["danger", "warning", "success", "info", "neutral"].map((tone) => [`--${tone}-fg`, `--${tone}-bg`, 4.5] as [string, string, number]),
   ...["not-started", "draft", "submitted", "overdue", "closed", "review"].map((s) => [`--status-${s}-fg`, `--status-${s}-bg`, 4.5] as [string, string, number]),
-  ...["six", "edunex", "itb"].map((s) => [`--source-${s}-fg`, `--source-${s}-bg`, 4.5] as [string, string, number]),
+  ["--source-itb-fg", "--source-itb-bg", 4.5],
   ["--tooltip-fg", "--tooltip-bg", 4.5],
   ["--focus", "--canvas", 3],
   ["--focus", "--raised", 3],

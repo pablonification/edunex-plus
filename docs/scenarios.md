@@ -1,6 +1,6 @@
 # Scenarios
 
-Every state and event the app must handle, how the pretend EduNex and SIX
+Every state and event the app must handle, how the pretend Edunex and SIX
 (`test/pretend`) produce it, and the ticket whose tests cover it. Rows marked
 **needs a recording** have no real record to clone yet; the ticket that covers
 them records one first instead of guessing the shape.
@@ -18,7 +18,7 @@ world.edunex.moveDeadline(id, "2026-10-20T23:59:00+07:00");    // deadline exten
 world.edunex.submitOnWebsite(id);                               // the Student, on the website
 ```
 
-## EduNex: Tasks and answers
+## Edunex: Tasks and answers
 
 | State or event | How the pretend world makes it | Ticket |
 |---|---|---|
@@ -38,7 +38,7 @@ world.edunex.submitOnWebsite(id);                               // the Student, 
 | Draft save, file upload, submit from the app | `POST /course/task/answers`, `PATCH …/{id}`, `POST /blob-storage/sas`, `PUT` upload; reply shapes need a recording (the app re-reads the Task to confirm) | #73 |
 | Second answer for the same Task | `writes` log shows a duplicate POST | #73 |
 
-## EduNex: Presence
+## Edunex: Presence
 
 | State or event | How | Ticket |
 |---|---|---|
@@ -48,9 +48,9 @@ world.edunex.submitOnWebsite(id);                               // the Student, 
 | Read Module, Join Discussion, Do Exam, Join Vicon, CRS categories | `schedulePresence` with `patch: { presentable: [...] }` | v2-16 |
 | Student marked present | `markPresent` | v2-16 |
 | More sessions than one page | recorded total 15 over pages of 10 | #74 |
-| Class without EduNex Presence | recorded (four of five courses) | #74, v2-16 |
+| Class without Edunex Presence | recorded (four of five courses) | #74, v2-16 |
 
-## EduNex: materials, announcements, exams, notifications, gradebook
+## Edunex: materials, announcements, exams, notifications, gradebook
 
 | State or event | How | Ticket |
 |---|---|---|
@@ -61,7 +61,7 @@ world.edunex.submitOnWebsite(id);                               // the Student, 
 | Parent and child class (info only in the parent) | recorded | #74 |
 | Meeting announced only in a text item | recorded | #74, #77 |
 | Announcement posted | `postAnnouncement` | #74 |
-| Online exam on EduNex | needs a recording (none on the account) | v2-17 |
+| Online exam on Edunex | needs a recording (none on the account) | v2-17 |
 | Notification types `CONTENT`, `ASSIGNMENT` | recorded | #75 |
 | Notification types `MESSAGE`, `COMMON`, `TASK`, `GROUP`, `COMMENT` | needs a recording (shape is the same list item; type from the website code) | #75 |
 | Gradebook unpublished (`total: 0`, `index: "E"`) | recorded | #78 |
@@ -106,18 +106,18 @@ world.edunex.submitOnWebsite(id);                               // the Student, 
 
 | Event | How | Ticket |
 |---|---|---|
-| EduNex session expired (401 on everything) | `world.edunex.expireSession()` | #71 |
+| Edunex session expired (401 on everything) | `world.edunex.expireSession()` | #71 |
 | SIX session ended (redirect to `/login`) | `world.six.expireSession()` | #76 |
 | Network down | `world.setOffline(true)` | #71 |
 | Slow network, request timeout | `world.setLatency(ms)` with `timeoutMs` | #71 |
-| EduNex maintenance page (503 HTML) | `world.edunex.maintenance()` | #71 |
+| Edunex maintenance page (503 HTML) | `world.edunex.maintenance()` | #71 |
 | Error statuses 401, 403, 404, 429, 5xx | `world.edunex.fail(path, status, times)`, `world.six.fail(…)` | #71, #75 |
 | SIX rate limit (429) | `world.six.rateLimit(n)` | #76 |
 | The Student acts on the website (submits, opens material) | `submitOnWebsite`, `markPresent` | #72, v2-16 |
 
 ## Vendor changes
 
-The app must say "EduNex (or SIX) changed something" instead of showing empty
+The app must say "Edunex (or SIX) changed something" instead of showing empty
 screens.
 
 | Breakage | How | Ticket |
@@ -141,7 +141,7 @@ screens.
 
 | State or event | How | Ticket |
 |---|---|---|
-| First full sync done: EduNex, then SIX at human pace, and ITB's calendar | sign in to both, let the fake clock run (`test/engine/first-sync.ts`) | #81 |
+| First full sync done: Edunex, then SIX at human pace, and ITB's calendar | sign in to both, let the fake clock run (`test/engine/first-sync.ts`) | #81 |
 | A system stops during the first sync (offline, changed something) | `world.six.fail(timetable, 503)`, `world.six.changeLayout(transcript, …)` | #81 |
 | Nothing to say | Tasks, Presence, contents and announcements cleared, after the term's exams | #81 |
 | A full term of data | the recorded term spread over 8 courses (16 modules, 60 materials, 20 Tasks and 15 announcements each) | #81 |

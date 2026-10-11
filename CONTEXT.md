@@ -1,35 +1,35 @@
 # Edunex Plus
 
-A cross-platform desktop app for ITB students that reads ITB's two student systems, EduNex (the LMS) and SIX (the academic system), plus ITB's public academic calendar and course catalog, and tells the Student what needs them, what changed, and where they stand. This glossary defines the domain language shared by all project decisions and code.
+A cross-platform desktop app for ITB students that reads ITB's two student systems, Edunex (the LMS) and SIX (the academic system), plus ITB's public academic calendar and course catalog, and tells the Student what needs them, what changed, and where they stand. This glossary defines the domain language shared by all project decisions and code.
 
 ## Language
 
 ### Platform
 
-**EduNex**:
+**Edunex**:
 ITB's learning management system at edunex.itb.ac.id; a homegrown Vue.js SPA built by vendor Cognisia. Not Moodle/Open edX/Sakai.
-_Avoid_: "the LMS site", Edunex/edunex in prose (capital E, one word: EduNex)
+_Avoid_: "the LMS site", Edunex/edunex in prose (capital E, one word: Edunex)
 
 **Edunex Plus**:
-This project's product mark — the unofficial desktop app. Lowercase-n styling is deliberate, to stay distinct from Cognisia's EduNex trademark; never apply the "Edunex Plus" mark to EduNex itself.
+This project's product mark — the unofficial desktop app. Lowercase-n styling is deliberate, to stay distinct from Cognisia's Edunex trademark; never apply the "Edunex Plus" mark to Edunex itself.
 _Avoid_: "EduNEX Plus", "EdunexPlus"
 
 **Cognisia**:
-The vendor that builds and operates EduNex; hosts the API under its own domain (api-edunex.cognisia.id).
+The vendor that builds and operates Edunex; hosts the API under its own domain (api-edunex.cognisia.id).
 _Avoid_: "ITB's servers" (the API is vendor-hosted)
 
 **INA account**:
-A student's or lecturer's Microsoft (Azure AD/Entra) ITB account used for SSO login to EduNex.
+A student's or lecturer's Microsoft (Azure AD/Entra) ITB account used for SSO login to Edunex.
 _Avoid_: "ITB email", "SSO password"
 
 **Period**:
-A semester/term entity in EduNex that scopes courses, RPS, and scheduling.
+A semester/term entity in Edunex that scopes courses, RPS, and scheduling.
 _Avoid_: semester (use Period when referring to the API entity)
 
 ### Roles
 
 **Student**, **Lecturer**:
-The two EduNex user levels relevant to the desktop client; one human can hold several accounts (e.g. student + lecturer) and switch between them.
+The two Edunex user levels relevant to the desktop client; one human can hold several accounts (e.g. student + lecturer) and switch between them.
 _Avoid_: user (ambiguous between human and account)
 
 ### Academic features
@@ -42,23 +42,23 @@ _Avoid_: syllabus
 Course learning outcomes (Capaian Pembelajaran Mata Kuliah) that structure a course's RPS.
 
 **Vicon**:
-EduNex's video-conferencing feature for online classes.
+Edunex's video-conferencing feature for online classes.
 _Avoid_: Zoom (Zoom is one backend, Vicon is the feature)
 
 **CRS**:
-Class Response System — in-class polling/quizzing within EduNex.
+Class Response System — in-class polling/quizzing within Edunex.
 
 **Presence**:
 Attendance records for a class meeting.
-_Avoid_: attendance (use Presence when referring to the EduNex feature)
+_Avoid_: attendance (use Presence when referring to the Edunex feature)
 
 **Task**:
-An assignment in EduNex's API (course/tasks); distinct from an exam.
+An assignment in Edunex's API (course/tasks); distinct from an exam.
 _Avoid_: assignment in code identifiers (collides with programming terms); use Task
 
 **To Do**:
-EduNex's aggregated list of pending items (tasks, exams) for the logged-in account.
-_Avoid_: todo list in UI copy without the EduNex meaning
+Edunex's aggregated list of pending items (tasks, exams) for the logged-in account.
+_Avoid_: todo list in UI copy without the Edunex meaning
 
 ### SIX and ITB's rules
 
@@ -71,8 +71,8 @@ Nomor Induk Mahasiswa, the Student's student number; SIX's page paths carry it.
 _Avoid_: student ID
 
 **Term**:
-SIX's code for a semester: `YYYY-1` (odd), `YYYY-2` (even), `YYYY-3` (short semester), e.g. 2026-1. It maps to an EduNex Period.
-_Avoid_: Period (that's EduNex's entity)
+SIX's code for a semester: `YYYY-1` (odd), `YYYY-2` (even), `YYYY-3` (short semester), e.g. 2026-1. It maps to an Edunex Period.
+_Avoid_: Period (that's Edunex's entity)
 
 **Class**:
 A course's section in SIX, "Kelas", e.g. 01.
@@ -99,7 +99,7 @@ _Avoid_: GPA in Indonesian copy
 
 **Kehadiran**:
 SIX's attendance percentage per Class, with the exact count in a tooltip: "Hadir X dari Y pertemuan" (present at X of Y Class sessions). ITB has no institute-wide minimum; each course contract sets one. The app's default target is 80%, editable.
-_Avoid_: Presence (that's the EduNex feature)
+_Avoid_: Presence (that's the Edunex feature)
 
 **UKT**:
 Uang Kuliah Tunggal, the single tuition fee paid each term.

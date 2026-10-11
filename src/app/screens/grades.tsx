@@ -4,7 +4,7 @@
 // IPK per semester on one chart with the target; the IPK at graduation with
 // honors in one positive sentence (the ladder lives in the planner); this
 // term's grades as a clearly marked what-if with the one shared target; and
-// the transcript by term. Without SIX, this term's courses from EduNex with
+// the transcript by term. Without SIX, this term's courses from Edunex with
 // their calculators, and what signing in to SIX unlocks.
 import { useState } from "react";
 import type { CalendarEvent, CheckedIndex, TranscriptTerm } from "../../core/models";
@@ -372,7 +372,7 @@ function Tag({ tone = "neutral", children }: { tone?: "neutral" | "warning"; chi
 
 // ------------------------------------------------------------ without SIX
 
-/** This term's courses from EduNex, each with its calculator, and what SIX would add. */
+/** This term's courses from Edunex, each with its calculator, and what SIX would add. */
 function WithoutSix() {
   const t = useT();
   const nav = useNav();

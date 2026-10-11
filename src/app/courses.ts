@@ -1,8 +1,8 @@
 // This term's courses as the Student sees them: SIX is the truth for
-// enrollment (once SIX is connected) and EduNex adds its course pages, joined
+// enrollment (once SIX is connected) and Edunex adds its course pages, joined
 // by course code, class and term. A course has one name everywhere, in both
 // languages: its official one (SIX's, else ITB's public catalog), else the
-// name its EduNex page carries. The transcript, KRS and planner use the
+// name its Edunex page carries. The transcript, KRS and planner use the
 // official names too, so no two screens call one course differently.
 import { useMemo } from "react";
 import { courseColors } from "../core/course-colors";
@@ -17,12 +17,12 @@ export interface TermCourse {
   sks: number | null;
   attendance: SixCourse["attendance"];
   color: string;
-  /** The EduNex course pages, when the course has them. */
+  /** The Edunex course pages, when the course has them. */
   edunex: Course["edunex"] | null;
   inSix: boolean;
 }
 
-/** SIX's term code ("2026-1"): SIX's once connected, else EduNex's. */
+/** SIX's term code ("2026-1"): SIX's once connected, else Edunex's. */
 export function useTerm(): string | undefined {
   const student = useDataset("six.student");
   const edunex = useDataset("edunex.courses");
@@ -49,7 +49,7 @@ export function useTermCourses(): TermCourse[] | undefined {
         inSix: false,
       }));
     }
-    // EduNex courses of another term, or not in SIX at all, are left out: SIX says what the Student takes.
+    // Edunex courses of another term, or not in SIX at all, are left out: SIX says what the Student takes.
     const sameTerm = (edunex ?? []).filter((course) => course.term === six.term);
     const key = (code: string, classNo: string | null) => `${code}|${classNo ?? ""}`;
     const byClass = new Map(sameTerm.map((course) => [key(course.code, course.classNo), course]));

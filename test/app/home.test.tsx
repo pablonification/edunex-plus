@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 // v2-09 (#77), seam 2: Beranda as the Student sees it, with the real engine,
-// the pretend EduNex, SIX and ITB calendar behind the bridge.
+// the pretend Edunex, SIX and ITB calendar behind the bridge.
 import { afterEach, describe, expect, it } from "vitest";
 import { PretendWorld } from "../pretend/world";
 import { openApp } from "./harness";
@@ -17,7 +17,7 @@ const text = (id: string) => section(id)?.textContent ?? "";
 const rows = (id: string) => [...(section(id)?.querySelectorAll("li") ?? [])].map((li) => li.textContent ?? "");
 const row = (id: string, start: string) => rows(id).find((text) => text.startsWith(start)) ?? "";
 /** Source tags are gone from rows: the source shows only inside a sentence. */
-const tags = () => [...document.querySelectorAll("main li span")].filter((el) => /^(EduNex|SIX|Kalender ITB)$/.test(el.textContent ?? "") && el.children.length === 0);
+const tags = () => [...document.querySelectorAll("main li span")].filter((el) => /^(Edunex|SIX|Kalender ITB)$/.test(el.textContent ?? "") && el.children.length === 0);
 
 describe("Beranda on the recorded Thursday morning", () => {
   it("answers first: the class going on, where attendance counts and what to do, without contradicting itself", async () => {
@@ -27,15 +27,15 @@ describe("Beranda on the recorded Thursday morning", () => {
     expect(now).toContain("Ekonomi dan Inovasi dalam Perencanaan");
     expect(now).toContain("PL3002·08:00–10:00·R.SG PWK LT.6");
     expect(now).toContain("Jam berubah · biasanya 08:00–09:30");
-    // SIX counts PL3002: being in class is what counts, EduNex's window is optional (the audit's "Catat kehadiran" + "Buka di EduNex" + "dihitung di SIX").
+    // SIX counts PL3002: being in class is what counts, Edunex's window is optional (the audit's "Catat kehadiran" + "Buka di Edunex" + "dihitung di SIX").
     expect(now).toContain("Kehadiran dihitung di SIX: cukup hadir di kelas.");
-    expect(now).toContain("Presensi EduNex juga dibuka sampai 09:30, tidak wajib.");
+    expect(now).toContain("Presensi Edunex juga dibuka sampai 09:30, tidak wajib.");
     expect(now).not.toContain("Catat kehadiran");
     expect(now).toContain("Boleh absen 2× lagi");
     expect(now).toContain("Setelah ini 11:00 · DK4073 Komunikasi Pemasaran");
     // Optional means quiet: not the primary button.
-    expect(screen.button("Buka Presensi PL3002 di EduNex").className).not.toContain("bg-accent");
-    await screen.click("Buka Presensi PL3002 di EduNex");
+    expect(screen.button("Buka Presensi PL3002 di Edunex").className).not.toContain("bg-accent");
+    await screen.click("Buka Presensi PL3002 di Edunex");
     expect(screen.calls.at(-1)).toEqual({ name: "shell.openExternal", input: { url: "https://edunex.itb.ac.id/courses/95001" } });
     // The exam week from ITB's calendar is a calm line under the greeting, not a tag.
     expect(document.querySelector("main header")?.textContent).toContain("Masa UTS mulai Senin, 12 Okt · 4 hari lagi");
@@ -73,13 +73,13 @@ describe("Beranda on the recorded Thursday morning", () => {
     screen = await openApp({ signedIn: true, six: true });
     const changes = text("home-changes");
     expect(changes).toContain("Jadwal PL3002 berubahKam, 8 Okt 08:00–10:00 · biasanya 08:00–09:30");
-    expect(changes).toContain("Pertemuan 3 II4091 diumumkan di EduNexJum, 9 Okt 15:00–17:00 · tidak ada di jadwal SIX");
+    expect(changes).toContain("Pertemuan 3 II4091 diumumkan di EdunexJum, 9 Okt 15:00–17:00 · tidak ada di jadwal SIX");
     // An old meeting re-read in the same text isn't news.
     expect(changes).not.toContain("Pertemuan 2 II4091");
     await screen.click("Lihat semua");
     const bell = document.querySelector("[role=dialog][aria-label=Notifikasi]")?.textContent ?? "";
     expect(bell).toContain("Jadwal PL3002 berubah");
-    expect(bell).toContain("Pertemuan 3 II4091 diumumkan di EduNex");
+    expect(bell).toContain("Pertemuan 3 II4091 diumumkan di Edunex");
     await screen.key("Escape");
     await screen.click(/^Pertemuan 3 II4091 diumumkan/);
     expect(document.querySelector("h1")?.textContent).toContain("Proposal Tugas Akhir");
@@ -90,7 +90,7 @@ describe("Beranda on the recorded Thursday morning", () => {
     await screen.engineDoes(() => screen!.engine.updateSettings({ lang: "en" }));
     expect(text("home-now")).toContain("On now · until 10:00");
     expect(text("home-now")).toContain("Attendance counts in SIX: just be in class.");
-    expect(text("home-now")).toContain("EduNex Presence is also open until 09:30; it's optional.");
+    expect(text("home-now")).toContain("Edunex Presence is also open until 09:30; it's optional.");
     expect(row("home-today", "08:00")).toContain("You can miss 2 moreNow");
     expect(text("home-now")).toContain("New time · usually 08:00–09:30");
     expect(row("home-today", "15:00")).toContain("Clashes with KU5014 16:00–16:30");
@@ -105,7 +105,7 @@ describe("an open window that counts", () => {
     screen = await openApp({ world: new PretendWorld({ now: "2026-10-16T15:01:00+07:00" }), signedIn: true, six: true });
     const now = text("home-now");
     expect(now).toContain("Kumpulkan Tugas 02 Bab II sebelum 23:59");
-    expect(now).toContain("Kehadiran dihitung lewat Presensi EduNex.");
+    expect(now).toContain("Kehadiran dihitung lewat Presensi Edunex.");
     expect(now).toMatch(/tutup dalam 8 jam 5\d mnt/);
     expect(screen.button("Buka tugasnya").className).toContain("bg-accent");
     expect(document.querySelector('main [role="progressbar"]')).not.toBeNull();
@@ -114,14 +114,14 @@ describe("an open window that counts", () => {
   });
 });
 
-describe("with EduNex alone", () => {
+describe("with Edunex alone", () => {
   it("an open window leads, but where it counts isn't guessed before SIX is connected", async () => {
     screen = await openApp({ signedIn: true });
     const now = text("home-now");
     expect(now).toContain("Presensi PL3002 sedang dibuka");
-    // Without SIX nobody knows whether EduNex counts: said as a just-in-case, the button quiet.
+    // Without SIX nobody knows whether Edunex counts: said as a just-in-case, the button quiet.
     expect(now).toContain("Tanpa SIX, belum pasti ini dihitung: catat saja untuk berjaga-jaga.");
-    expect(now).not.toContain("dihitung lewat Presensi EduNex");
+    expect(now).not.toContain("dihitung lewat Presensi Edunex");
     const button = [...document.querySelectorAll<HTMLButtonElement>("section[aria-labelledby=home-now] button")].find((b) => b.textContent === "Buka Presensi");
     expect(button?.className).not.toContain("bg-accent ");
     expect(text("home-today")).toContain("Jadwal dan ruang kuliah muncul setelah SIX terhubung.");
@@ -129,10 +129,10 @@ describe("with EduNex alone", () => {
 });
 
 describe("an exam on Beranda", () => {
-  it("within the week: what, when and where, that SIX and EduNex disagree, and its page one click away", async () => {
+  it("within the week: what, when and where, that SIX and Edunex disagree, and its page one click away", async () => {
     screen = await openApp({ world: new PretendWorld({ now: "2026-10-13T09:00:00+07:00" }), signedIn: true, six: true });
     const exam = row("home-needs", "UTS Komunikasi Pemasaran");
-    expect(exam).toBe("UTS Komunikasi PemasaranDK4073·Kam, 15 Okt, 11:00–12:59·TVST C·SIX dan EduNex beda tanggallusa");
+    expect(exam).toBe("UTS Komunikasi PemasaranDK4073·Kam, 15 Okt, 11:00–12:59·TVST C·SIX dan Edunex beda tanggallusa");
     await screen.click(/^UTS Komunikasi Pemasaran/);
     expect(document.querySelector("main h1")?.textContent).toBe("Komunikasi Pemasaran");
     expect(screen.text()).toContain("Kapan dan di mana");
@@ -143,7 +143,7 @@ describe("an exam on Beranda", () => {
     await screen.engineDoes(() => screen!.engine.updateSettings({ lang: "en" }));
     const exam = rows("home-needs").find((r) => r.includes("UTS")) ?? "";
     expect(exam).toContain("Tomorrow, 11:00–12:59");
-    expect(exam).toContain("SIX and EduNex give different dates");
+    expect(exam).toContain("SIX and Edunex give different dates");
   });
 });
 
@@ -191,7 +191,7 @@ describe("Tasks on Beranda", () => {
 });
 
 describe("nothing to do", () => {
-  it("says so kindly, and claims nothing before EduNex's Tasks arrive", async () => {
+  it("says so kindly, and claims nothing before Edunex's Tasks arrive", async () => {
     const world = new PretendWorld({ now: "2026-10-10T10:00:00+07:00" });
     world.edunex.tasks.clear();
     world.edunex.presences.clear();

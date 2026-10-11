@@ -1,8 +1,8 @@
-// What a Task's facts mean at a given moment: its true status, whether EduNex
-// still takes an answer, what EduNex itself doesn't say (edited after the
+// What a Task's facts mean at a given moment: its true status, whether Edunex
+// still takes an answer, what Edunex itself doesn't say (edited after the
 // Student submitted, a short answer window) and its history. Status comes
 // only from the answer's submit bit and the Task's own dates and state: never
-// from a draft's timestamps, and never from EduNex's To Do feed.
+// from a draft's timestamps, and never from Edunex's To Do feed.
 import { presenceAction } from "./attendance";
 import { htmlText } from "./course-materials";
 import { EDUNEX_WEB } from "./links";
@@ -19,7 +19,7 @@ type StatusFacts = Pick<Task, "answer" | "closed" | "dueAt" | "lateAllowed" | "s
 
 export function taskStatus(task: StatusFacts, now: number): TaskStatus {
   const { answer } = task;
-  // Only the submit bit means handed in. "In review": the lecturer took it up (EduNex's verified_at) and no score shows yet.
+  // Only the submit bit means handed in. "In review": the lecturer took it up (Edunex's verified_at) and no score shows yet.
   if (answer?.sent) return answer.reviewedAt !== null && task.score === null ? "in_review" : "submitted";
   const pastDue = task.dueAt !== null && now > task.dueAt;
   if (task.closed || (pastDue && !task.lateAllowed)) return "closed";
@@ -32,7 +32,7 @@ export function isOpenStatus(status: TaskStatus): boolean {
   return status === "not_started" || status === "draft" || status === "overdue";
 }
 
-/** Not open for answers yet: EduNex takes them from `opensAt` on. */
+/** Not open for answers yet: Edunex takes them from `opensAt` on. */
 export function notOpenYet(task: Pick<Task, "opensAt">, now: number): boolean {
   return task.opensAt !== null && now < task.opensAt;
 }
@@ -55,12 +55,12 @@ export function editedAfterSubmit(task: Pick<Task, "editedAt" | "answer">): bool
   return task.editedAt !== null && sentAt !== null && task.editedAt > sentAt;
 }
 
-/** When EduNex says the answer was handed in; null for a draft, whatever its timestamps say. */
+/** When Edunex says the answer was handed in; null for a draft, whatever its timestamps say. */
 export function submittedAt(task: Pick<Task, "answer">): number | null {
   return task.answer?.sent ? task.answer.sentAt : null;
 }
 
-/** The Task's page on EduNex's website, as EduNex's own notifications link it. */
+/** The Task's page on Edunex's website, as Edunex's own notifications link it. */
 export const edunexTaskUrl = (taskId: number) => `${EDUNEX_WEB}/assignment/take/${taskId}`;
 
 /** The module's own name, unless it only repeats its number ("Module 06" for module 6). */
@@ -83,7 +83,7 @@ export interface HistoryStep {
 }
 
 /**
- * The Task's own timeline from EduNex's timestamps, the receipt the website
+ * The Task's own timeline from Edunex's timestamps, the receipt the website
  * never shows: posted, opens for answers, edited, draft saved, submitted,
  * deadline. Steps that repeat another (opening as it's posted, a draft saved
  * on the way to submitting) are left out.
@@ -135,7 +135,7 @@ export function attendanceSession(task: Task, sessions: readonly PresenceSession
 
 /**
  * What handing in did for attendance, once it's handed in: counted when
- * EduNex recorded the Student or the hand-in fell inside the window; outside
+ * Edunex recorded the Student or the hand-in fell inside the window; outside
  * when it fell outside; null when the Task isn't attendance or isn't handed in.
  */
 export function attendanceResult(task: Task, sessions: readonly PresenceSession[], now: number): { outcome: "counted" | "outside"; session: PresenceSession } | null {
@@ -198,7 +198,7 @@ export interface HandInFacts {
   now: number;
   /** The course's Presence sessions. */
   sessions: readonly PresenceSession[];
-  /** EduNex's connection. */
+  /** Edunex's connection. */
   edunex: SourceState;
   /** The files that would be handed in. */
   files: readonly { name: string }[];

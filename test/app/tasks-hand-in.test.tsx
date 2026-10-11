@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 // v2-05 (#73), seam 2: handing a Task in from the window: attach files (the
 // system file picker is the only pretend part), save a quiet draft, submit
-// with a confirmation, and a receipt only once EduNex says it's submitted.
+// with a confirmation, and a receipt only once Edunex says it's submitted.
 import { act } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 import { PretendWorld } from "../pretend/world";
@@ -33,13 +33,13 @@ const openTask = async (title: string, now?: string) => {
 };
 
 describe("handing in", () => {
-  it("attach, save a draft quietly, then submit with a confirmation and a receipt from EduNex", async () => {
+  it("attach, save a draft quietly, then submit with a confirmation and a receipt from Edunex", async () => {
     const s = await openTask("Tugas 02 Bab II");
     s.willPick([{ name: "Bab II.pdf", content: "%PDF bab dua" }]);
     await s.click(ATTACH);
     expect(card()).toContain("Bab II.pdf");
     expect(card()).toContain("Belum disimpan · 12 B");
-    // Uploading goes to EduNex's storage; nothing is in the answer yet.
+    // Uploading goes to Edunex's storage; nothing is in the answer yet.
     expect(s.world.edunex.writes.map((w) => w.path)).toEqual(["/blob-storage/sas"]);
 
     await s.click("Simpan draf");
@@ -57,7 +57,7 @@ describe("handing in", () => {
     await s.click(confirmButton()!);
     expect(answerWrites(s)).toHaveLength(3);
     expect(s.world.edunex.writes.at(-1)?.body).toEqual({ is_sent: 1 });
-    expect(card()).toContain("TerkumpulEduNex mencatatnya Hari ini, 08:12");
+    expect(card()).toContain("TerkumpulEdunex mencatatnya Hari ini, 08:12");
     expect(card()).toContain("Sudah diserahkan. Pengumpulan bersifat final.");
     expect(s.has(ATTACH)).toBe(false);
     expect(s.world.edunex.task(117003).attributes.answers).toHaveLength(1);
@@ -80,7 +80,7 @@ describe("handing in", () => {
     await s.click(ATTACH);
     expect(card()).toContain("Bab II.pdf");
     // The whole reason, a labelled way to try again, and why Kumpulkan waits.
-    expect(card()).toContain("EduNex tidak menerima unggahan ini (galat di server EduNex). Berkasmu tetap di sini.");
+    expect(card()).toContain("Edunex tidak menerima unggahan ini (galat di server Edunex). Berkasmu tetap di sini.");
     expect(s.button("Unggah ulang Bab II.pdf").textContent).toBe("Coba lagi");
     expect(s.button("Simpan draf").disabled).toBe(true);
     expect(s.button("Kumpulkan").disabled).toBe(true);
@@ -112,7 +112,7 @@ describe("handing in", () => {
     const s = await openTask("Tugas 02 Bab II");
     s.willPick([{ name: "rekaman.mp4", size: 200 * 1024 * 1024 }]);
     await s.click(ATTACH);
-    expect(card()).toContain("Lebih dari 100 MB: EduNex tidak menerima berkas sebesar ini");
+    expect(card()).toContain("Lebih dari 100 MB: Edunex tidak menerima berkas sebesar ini");
     expect(s.has(/^Unggah ulang/)).toBe(false);
     expect(s.world.edunex.writes).toEqual([]);
     await s.click("Hapus rekaman.mp4");
@@ -139,7 +139,7 @@ describe("handing in", () => {
   it("a draft saved on the website is updated, never answered twice", async () => {
     const s = await openTask("Tugas 02 Bab II");
     s.world.edunex.draftOnWebsite(117003, "draf-web.pdf");
-    // The app hasn't seen that draft yet: saving re-reads EduNex first.
+    // The app hasn't seen that draft yet: saving re-reads Edunex first.
     s.willPick([{ name: "Bab II.pdf" }]);
     await s.click(ATTACH);
     await s.click("Simpan draf");
@@ -166,29 +166,29 @@ describe("handing in", () => {
     s.world.edunex.expireSession();
     await s.click("Kumpulkan");
     await s.click(confirmButton()!);
-    expect(card()).toContain("Sesi EduNex berakhir. Masuk lagi, lalu coba lagi. Berkasmu tetap terlampir.");
+    expect(card()).toContain("Sesi Edunex berakhir. Masuk lagi, lalu coba lagi. Berkasmu tetap terlampir.");
     expect(card()).toContain("Bab II.pdf");
     s.world.edunex.sessionValid = true;
     await s.click("Masuk lagi");
-    expect(card()).not.toContain("Sesi EduNex berakhir");
+    expect(card()).not.toContain("Sesi Edunex berakhir");
     await s.click("Kumpulkan");
     await s.click(confirmButton()!);
     expect(card()).toContain("Terkumpul");
   });
 
-  it("a Task closed meanwhile: EduNex is asked first, and the page says the answer wasn't sent", async () => {
+  it("a Task closed meanwhile: Edunex is asked first, and the page says the answer wasn't sent", async () => {
     const s = await openTask("Tugas 02 Bab II");
     s.willPick([{ name: "Bab II.pdf" }]);
     await s.click(ATTACH);
     s.world.edunex.closeTask(117003);
     await s.click("Kumpulkan");
     await s.click(confirmButton()!);
-    expect(card()).toContain("EduNex sudah menutup pengumpulan tugas ini. Jawabanmu tidak terkirim.");
+    expect(card()).toContain("Edunex sudah menutup pengumpulan tugas ini. Jawabanmu tidak terkirim.");
     expect(card()).toContain("Ditutup");
     expect(answerWrites(s)).toEqual([]);
   });
 
-  it("EduNex taking a submit without showing it sent: no receipt, a way to check on EduNex", async () => {
+  it("Edunex taking a submit without showing it sent: no receipt, a way to check on Edunex", async () => {
     const s = await openTask("Tugas 02 Bab II");
     s.willPick([{ name: "Bab II.pdf" }]);
     await s.click(ATTACH);
@@ -196,9 +196,9 @@ describe("handing in", () => {
     s.world.edunex.fail(/^\/course\/task\/answers\/\d+$/, 200, 1);
     await s.click("Kumpulkan");
     await s.click(confirmButton()!);
-    expect(card()).toContain("EduNex menerima permintaanmu, tapi belum menunjukkan perubahannya.");
+    expect(card()).toContain("Edunex menerima permintaanmu, tapi belum menunjukkan perubahannya.");
     expect(card()).toContain("Draf");
-    await s.click("Buka di EduNex");
+    await s.click("Buka di Edunex");
     expect(s.calls.at(-1)).toEqual({ name: "shell.openExternal", input: { url: "https://edunex.itb.ac.id/assignment/take/117003" } });
   });
 
@@ -305,7 +305,7 @@ describe("handing in can't cost the Student their attendance", () => {
     s.world.setOffline(true);
     await s.engineDoes(() => s.engine.refresh("edunex"));
     expect(s.button("Kumpulkan").disabled).toBe(true);
-    expect(card()).toContain("Tidak terhubung ke EduNex. Berkasmu tetap di sini; kumpulkan setelah tersambung lagi.");
+    expect(card()).toContain("Tidak terhubung ke Edunex. Berkasmu tetap di sini; kumpulkan setelah tersambung lagi.");
     s.world.setOffline(false);
     const retry = [...document.querySelectorAll<HTMLButtonElement>("main aside button")].find((b) => b.textContent === "Coba lagi")!;
     await s.click(retry);
@@ -319,6 +319,6 @@ describe("handing in can't cost the Student their attendance", () => {
     s.world.edunex.expireSession();
     await s.engineDoes(() => s.engine.refresh("edunex"));
     expect(s.button("Kumpulkan").disabled).toBe(true);
-    expect(card()).toContain("Sesi EduNex berakhir. Masuk lagi untuk mengumpulkan.");
+    expect(card()).toContain("Sesi Edunex berakhir. Masuk lagi untuk mengumpulkan.");
   });
 });

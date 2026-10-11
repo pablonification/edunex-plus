@@ -1,9 +1,9 @@
 // A course's meetings, merged as the approved prototype does it (#74): SIX's
-// timetable gives the official time and room, EduNex Presence the window and
-// what EduNex recorded, and meetings announced only in EduNex text ("Pertemuan
+// timetable gives the official time and room, Edunex Presence the window and
+// what Edunex recorded, and meetings announced only in Edunex text ("Pertemuan
 // 03: Jumat, 09 Oktober 2026 Pkl. 15:00 - 17:00 WIB") join in, marked when
 // SIX's timetable for that month, read from its own page, doesn't list them.
-// Nothing here ever calls a meeting an absence: SIX may count what EduNex
+// Nothing here ever calls a meeting an absence: SIX may count what Edunex
 // didn't record.
 import { htmlText, materialKind, type OutlineEntry } from "./course-materials";
 import type { Announcement, ClassSession, Material, PresenceSession } from "./models";
@@ -112,7 +112,7 @@ export function classMeetingLink(announcements: readonly Announcement[]): string
 
 export interface Meeting {
   key: string;
-  /** SIX's time when SIX lists it, else EduNex's (ms). */
+  /** SIX's time when SIX lists it, else Edunex's (ms). */
   start: number;
   end: number;
   /** SIX's session: the official time and room. */
@@ -124,9 +124,9 @@ export interface Meeting {
 }
 
 /**
- * present / recorded: what EduNex recorded. open: the Presence window is open
+ * present / recorded: what Edunex recorded. open: the Presence window is open
  * now. upcoming: not happened yet. unmarked: the window closed with nothing
- * recorded in EduNex (SIX may still count it). held: past, with no EduNex
+ * recorded in Edunex (SIX may still count it). held: past, with no Edunex
  * Presence to tell.
  */
 export type MeetingState = "present" | "recorded" | "open" | "upcoming" | "unmarked" | "held";
@@ -134,8 +134,8 @@ export type MeetingState = "present" | "recorded" | "open" | "upcoming" | "unmar
 const WEEK = 7 * 24 * HOUR;
 
 /**
- * The EduNex module that goes with a meeting, for a meeting nothing else names.
- * EduNex's modules carry no date or week, only when the lecturer posted them, so
+ * The Edunex module that goes with a meeting, for a meeting nothing else names.
+ * Edunex's modules carry no date or week, only when the lecturer posted them, so
  * a module goes with a meeting only when it is the one module posted in the week
  * before it (after the meeting before it ended). A whole outline posted at once,
  * or two modules in one week, say nothing about which meeting is which: no guess.
@@ -163,7 +163,7 @@ export function meetingState(meeting: Meeting, now: number): MeetingState {
 }
 
 /**
- * One course's meetings in time order. SIX's sessions join EduNex's Presence
+ * One course's meetings in time order. SIX's sessions join Edunex's Presence
  * sessions of the same day (the most overlapping one); `sixSessions` is SIX's
  * whole timetable (every course), or null while SIX isn't connected.
  * `sixMonths` are the months whose own timetable page was read ("2026-10"):
@@ -202,7 +202,7 @@ export function pinnedMeeting(meetings: readonly Meeting[], now: number): { meet
   return next ? { meeting: next, current: false } : null;
 }
 
-/** An EduNex Presence window of the course that is open now and hasn't recorded the Student yet. */
+/** An Edunex Presence window of the course that is open now and hasn't recorded the Student yet. */
 export function openPresence(presence: readonly PresenceSession[], now: number): PresenceSession | null {
   return presence.find((p) => p.opensAt <= now && now < p.closesAt && !p.recorded?.present) ?? null;
 }

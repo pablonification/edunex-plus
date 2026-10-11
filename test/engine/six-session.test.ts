@@ -177,7 +177,7 @@ describe("human pace", () => {
 });
 
 describe("sessions", () => {
-  it("a redirect to sign-in ends SIX only; EduNex keeps going and SIX's data stays readable", async () => {
+  it("a redirect to sign-in ends SIX only; Edunex keeps going and SIX's data stays readable", async () => {
     const h = await signedIn();
     await h.engine.signIn("edunex", { token: PRETEND_TOKEN });
     h.world.six.expireSession();
@@ -194,7 +194,7 @@ describe("sessions", () => {
     expect(again.status("edunex").state).toBe("connecting");
   });
 
-  it("EduNex ending its session leaves SIX live", async () => {
+  it("Edunex ending its session leaves SIX live", async () => {
     const h = await signedIn();
     await h.engine.signIn("edunex", { token: PRETEND_TOKEN });
     h.world.edunex.expireSession();
@@ -233,7 +233,7 @@ describe("sessions", () => {
     expect(h.status("six").state).toBe("changed");
   });
 
-  it("sign-out of SIX removes its session and data, and leaves EduNex alone", async () => {
+  it("sign-out of SIX removes its session and data, and leaves Edunex alone", async () => {
     const h = await signedIn();
     await h.engine.signIn("edunex", { token: PRETEND_TOKEN });
     await h.engine.signOut("six");

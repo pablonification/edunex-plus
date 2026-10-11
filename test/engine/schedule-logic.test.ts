@@ -1,5 +1,5 @@
 // v2-09 (#77): Jadwal's logic. Weeks and months in WIB, a class moved off its
-// usual slot, overlapping classes, meetings announced only in EduNex text,
+// usual slot, overlapping classes, meetings announced only in Edunex text,
 // Task deadlines and ITB's calendar on the right days, and what changed
 // between two reads of SIX's timetable.
 import { describe, expect, it } from "vitest";
@@ -194,7 +194,7 @@ describe("overlaps", () => {
   });
 });
 
-describe("meetings announced only in EduNex text", () => {
+describe("meetings announced only in Edunex text", () => {
   const announcement = (text: string): Announcement => ({ id: 1, courseId: 95326, text, author: null, postedAt: wib("2026-10-01T10:00:00") });
   const schedule = [session("II4091", "2026-10-16T15:00:00", 480), session("II4091", "2026-10-30T15:00:00", 539)];
   const months = ["2026-10", "2026-11"];
@@ -354,7 +354,7 @@ describe("lectures in an exam week or on a holiday", () => {
   });
 });
 
-describe("what EduNex knows without SIX", () => {
+describe("what Edunex knows without SIX", () => {
   it("its Presence windows and announced meetings, one per day, without Task windows", () => {
     const presence: Record<string, PresenceSession[]> = {
       PL3002: [

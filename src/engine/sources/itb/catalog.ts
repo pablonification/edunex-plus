@@ -141,8 +141,8 @@ function ownProgram(context: SourceContext, catalog: CourseCatalog): string | nu
 }
 
 /**
- * The programs offering this term's EduNex courses ("S1 - Desain Komunikasi
- * Visual" on a course's EduNex page): their pages hold those courses'
+ * The programs offering this term's Edunex courses ("S1 - Desain Komunikasi
+ * Visual" on a course's Edunex page): their pages hold those courses'
  * official names, so a Student without SIX gets them in seconds, not after
  * every program page. A campus copy's course is looked for under the main
  * campus's program too.
