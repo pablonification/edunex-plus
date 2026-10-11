@@ -169,7 +169,7 @@ describe("no absences left, target out of reach", () => {
     await app.sixRefresh();
     await app.until("2026-10-21T21:30:00+07:00");
     expect(app.of("attendanceRisk").map((n) => n.text)).toEqual([
-      "Tidak boleh absen lagi · DK4073 — Hadir 7 dari 10 di SIX: hadiri setiap pertemuan tersisa untuk tetap 80%.",
+      "Jangan absen lagi · DK4073 — Hadir 7 dari 10 di SIX: hadiri setiap pertemuan tersisa untuk tetap 80%.",
     ]);
 
     six.courses = [course("DK4073", 7, 11)];

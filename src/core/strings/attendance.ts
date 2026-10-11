@@ -23,7 +23,7 @@ export const attendanceStrings = {
     id: "Hadir {attended} dari {held} di SIX. Jika kamu hadir, minta dosen memperbaikinya hari ini.",
     en: "Attended {attended} of {held} in SIX. If you were there, ask your lecturer to fix it today.",
   },
-  "alert.attendance.none": { id: "Tidak boleh absen lagi · {course}", en: "No absences left · {course}" },
+  "alert.attendance.none": { id: "Jangan absen lagi · {course}", en: "Don't miss any more · {course}" },
   "alert.attendance.none.body": {
     id: "Hadir {attended} dari {held} di SIX: hadiri setiap pertemuan tersisa untuk tetap {target}%.",
     en: "Attended {attended} of {held} in SIX: attend every remaining meeting to stay at {target}%.",
@@ -82,9 +82,9 @@ export const attendanceStrings = {
   "presence.square.edunexUnmarked": { id: "{when} · tidak tercatat di EduNex", en: "{when} · not recorded in EduNex" },
   "presence.square.edunexOpen": { id: "{when} · Presensi dibuka sampai {time}", en: "{when} · Presence open until {time}" },
   "presence.square.edunexComing": { id: "{when} · akan datang", en: "{when} · coming up" },
-  "presence.budget.safe": { id: "Boleh absen {count}x lagi", en: { one: "{count} more absence allowed", other: "{count} more absences allowed" } },
-  "presence.budget.none": { id: "Tidak boleh absen lagi", en: "No more absences" },
-  "presence.budget.out": { id: "{target}% tak tercapai · maks. {best}%", en: "{target}% out of reach · best {best}%" },
+  "presence.budget.safe": { id: "Boleh absen {count}× lagi", en: "You can miss {count} more" },
+  "presence.budget.none": { id: "Jangan absen lagi", en: "Don't miss any more" },
+  "presence.budget.out": { id: "{target}% tak terkejar · paling tinggi {best}%", en: "{target}% out of reach · best {best}%" },
   "presence.budget.unknown": { id: "Belum ada hitungan SIX", en: "No SIX count yet" },
   "presence.recover": {
     id: "Kembali ke {target}% setelah {count}× hadir berturut-turut",

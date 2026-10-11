@@ -230,7 +230,7 @@ export function ProblemBanner() {
       </p>
       {needsSignIn ? (
         <Button size="sm" variant="primary" busy={signingIn} onClick={() => void signIn(problem.source)}>
-          {problem.state === "expired" ? t("action.signInAgain") : t("action.signIn")}
+          {problem.state === "expired" ? t("action.signInAgain") : t("action.signInTo", { source: name })}
         </Button>
       ) : (
         <Button size="sm" busy={refreshing} onClick={() => void refresh(offline ? undefined : problem.source)}>
@@ -255,7 +255,7 @@ export function SixEmptyState({ icon, title }: { icon: ReactNode; title: string 
     <EmptyState icon={icon} title={title}>
       {status.state === "signed-out" && (
         <Button size="sm" variant="primary" busy={busy} onClick={() => void signIn("six")}>
-          {t("action.signIn")}
+          {t("action.signInTo", { source: "SIX" })}
         </Button>
       )}
     </EmptyState>

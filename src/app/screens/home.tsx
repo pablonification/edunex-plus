@@ -36,6 +36,7 @@ import { Button, IconButton } from "../ui/controls";
 import { cx } from "../ui/cx";
 import { Bar, Card, CourseDot, EmptyState, LiveDot, Skeleton } from "../ui/display";
 import { Icons } from "../ui/icons";
+import { CountdownBar } from "../ui/meter";
 import { List, Meta, Page, PageHeader, Row, Section } from "../ui/layout";
 import { Tooltip } from "../ui/overlays";
 import { budgetLabel, useActionLabel } from "./presence";
@@ -280,9 +281,6 @@ function Attendance({ card }: { card: NowCard }) {
   // Doing it counts, or nobody can say yet (doing it costs nothing): the Presence is the action.
   if (presence && presence.counts !== false) {
     const { session } = presence;
-    const span = Math.max(1, session.closesAt - session.opensAt);
-    const left = Math.max(0, session.closesAt - now);
-    const urgent = left <= 15 * MINUTE;
     const action = actionLabel({ action: { activity: presence.activity, task: presence.task, url: presence.url } });
     const viaTask = presence.activity === "assignment" && presence.task !== null;
     return (
@@ -311,10 +309,7 @@ function Attendance({ card }: { card: NowCard }) {
             </Button>
           </div>
         </div>
-        <div className="mt-3 flex items-center gap-3">
-          <Bar className="flex-1" value={left / span} color={urgent ? "var(--warning-fg)" : "var(--accent)"} label={t("home.now.closesIn", { left: f.countdown(session.closesAt) })} />
-          <span className={cx("shrink-0 text-caption font-medium tabular-nums", urgent ? "text-warning-fg" : "text-muted")}>{t("home.now.closesIn", { left: f.countdown(session.closesAt) })}</span>
-        </div>
+        <CountdownBar className="mt-3" opensAt={session.opensAt} closesAt={session.closesAt} now={now} label={t("home.now.closesIn", { left: f.countdown(session.closesAt) })} />
       </div>
     );
   }

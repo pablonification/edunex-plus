@@ -112,7 +112,7 @@ describe("Home", () => {
     screen = await openApp({ world: before.world, storage: before.storage, vault: before.vault });
     expect(cards()).toHaveLength(5);
     expect(screen.text()).toContain("Kamu belum masuk ke EduNex. Data terakhir tetap bisa dibaca.");
-    await screen.click("Masuk");
+    await screen.click("Masuk ke EduNex");
     expect(screen.text()).not.toContain("Kamu belum masuk ke EduNex");
     await live();
   });

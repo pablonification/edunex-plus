@@ -20,6 +20,7 @@ import { Button } from "../ui/controls";
 import { cx } from "../ui/cx";
 import { Bar, CourseDot, EmptyState, LiveDot, Skeleton } from "../ui/display";
 import { Icons } from "../ui/icons";
+import { CountdownBar } from "../ui/meter";
 import { Meta, Notice, Page, PageHeader } from "../ui/layout";
 import { Menu } from "../ui/menu";
 import { toast } from "../ui/overlays";
@@ -318,13 +319,14 @@ function NowStrip({ page }: { page: CoursePage }) {
         {presence ? (
           <div className="mt-1.5 flex max-w-[520px] items-center gap-3 text-small">
             <span className="shrink-0 font-semibold">{t("course.presenceOpen")}</span>
-            <Bar
+            {/* The same shrinking countdown as on Presensi and Beranda. */}
+            <CountdownBar
               className="min-w-16 flex-1"
-              value={(now - presence.opensAt) / Math.max(1, presence.closesAt - presence.opensAt)}
-              color="var(--warning-fg)"
-              label={t("course.presenceOpen")}
+              opensAt={presence.opensAt}
+              closesAt={presence.closesAt}
+              now={now}
+              label={t("course.closesAt", { time: f.time(presence.closesAt), left: f.countdown(presence.closesAt) })}
             />
-            <span className="shrink-0 text-muted tabular-nums">{t("course.closesAt", { time: f.time(presence.closesAt), left: f.countdown(presence.closesAt) })}</span>
           </div>
         ) : (
           meeting?.presence?.note && <p className="mt-1 truncate text-small text-muted">{meeting.presence.note}</p>

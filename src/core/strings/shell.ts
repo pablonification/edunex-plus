@@ -25,6 +25,7 @@ export const shellStrings = {
   "action.openInEdunex": { id: "Buka di EduNex", en: "Open in EduNex" },
   "action.signIn": { id: "Masuk", en: "Sign in" },
   "action.signInAgain": { id: "Masuk lagi", en: "Sign in again" },
+  "action.signInTo": { id: "Masuk ke {source}", en: "Sign in to {source}" },
   "action.signOut": { id: "Keluar", en: "Sign out" },
 
   // Sources and their status

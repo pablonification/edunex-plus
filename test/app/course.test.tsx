@@ -212,7 +212,7 @@ describe("meetings", () => {
     await tab(/^Pertemuan/);
     expect(s.text()).toContain("Kelas ini tidak memakai Presensi EduNex");
     expect(s.text()).toContain("Jadwal pertemuan dan ruangnya datang dari SIX");
-    await s.click("Masuk");
+    await s.click("Masuk ke SIX");
     await s.wait();
     expect(s.store.status("six").state).toBe("live");
     expect(s.text()).not.toContain("datang dari SIX");
