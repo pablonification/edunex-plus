@@ -283,15 +283,28 @@ function NoTasksYet() {
 /** Statuses worth a chip in a list: the rest are said by the segment and the date. */
 const LOUD: readonly TaskStatus[] = ["draft", "overdue", "in_review"];
 
-function TaskRow({ task, status, index }: Row & { index: number }) {
+/** Tasks as rows, each opening its page; on a course page the course itself goes without saying. */
+export function TaskRows({ tasks, meta = "course", label }: { tasks: readonly Task[]; meta?: "course" | "module" | "none"; label?: string }) {
+  const now = useNow();
+  return (
+    <List label={label}>
+      {tasks.map((task, index) => (
+        <TaskRow key={task.id} task={task} status={taskStatus(task, now)} index={index} meta={meta} />
+      ))}
+    </List>
+  );
+}
+
+function TaskRow({ task, status, index, meta = "course" }: Row & { index: number; meta?: "course" | "module" | "none" }) {
   const t = useT();
   const { go } = useNav();
+  const module = moduleLabel(t, task.module);
   return (
     <ListRow
       index={index}
       onClick={() => go({ screen: "task", taskId: task.id })}
       title={task.title}
-      meta={<Place task={task} />}
+      meta={meta === "course" ? <Place task={task} /> : meta === "module" ? (module ?? undefined) : undefined}
       trailing={
         <span className="flex items-center gap-4">
           {LOUD.includes(status) && <StatusChip status={status} />}

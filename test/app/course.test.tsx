@@ -44,6 +44,16 @@ async function entry(title: string) {
 /* eslint-disable-next-line @typescript-eslint/no-explicit-any -- a dataset as the engine holds it */
 const data = (name: string): any => screen!.engine.snapshot().datasets.find((d) => d.name === name)?.value;
 
+/** Types into the input with this name, as the Student does. */
+async function type(label: string, text: string) {
+  const input = document.querySelector<HTMLInputElement>(`input[aria-label='${label}']`);
+  if (!input) throw new Error(`No input ${label}`);
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(input, text);
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+}
+
 const rows = (selector = "main li") => [...document.querySelectorAll(selector)].map((el) => el.textContent ?? "");
 
 describe("the course page", () => {
@@ -57,7 +67,7 @@ describe("the course page", () => {
     // The class's modules, then its parent class's.
     const toc = document.querySelector("nav[aria-label='Daftar isi']")!.textContent!;
     expect(toc).toContain("List Penawaran Topik TA");
-    expect(toc).toContain("Kelas induk");
+    expect(toc).toContain("Kelas gabungan");
     expect(toc.indexOf("Tugas")).toBeLessThan(toc.indexOf("Penawaran Topik TA Dosen"));
     expect(toc).not.toContain("Module 06");
   });
@@ -141,9 +151,13 @@ describe("materials", () => {
   it("saves the course's files for offline reading only when asked", async () => {
     const s = await openCourse("PL3032");
     expect(s.calls.some((c) => c.name === "course.saveOffline")).toBe(false);
-    await s.click("Simpan untuk offline");
+    // A rare action: in the "⋯" menu, saying what it will save before you click.
+    await s.click("Lainnya");
+    expect(s.button(/^Simpan untuk offline/).textContent).toMatch(/^Simpan untuk offline1 berkas/);
+    await s.click(/^Simpan untuk offline/);
     expect(s.calls.at(-1)).toEqual({ name: "course.saveOffline", input: { code: "PL3032", pick: false } });
     expect(s.text()).toContain("1 berkas baru tersimpan, 0 sudah ada");
+    await s.click("Lainnya");
     await s.click("Simpan ke folder lain…");
     expect(s.calls.at(-1)).toEqual({ name: "course.saveOffline", input: { code: "PL3032", pick: true } });
   });
@@ -155,8 +169,9 @@ describe("Tasks in modules", () => {
     const module = data("edunex.outline").PL3002.modules[3];
     const task: Task = aTask({ id: 117500, courseCode: "PL3002", courseId: 95001, moduleId: module.id, title: "Tugas Mandiri Inovasi", status: "not_started", dueAt: Date.parse("2026-10-20T23:59:00+07:00") });
     await s.apply({ type: "dataset", dataset: { name: "edunex.tasks", value: [task], fetchedAt: 0, hash: "t1" } });
-    // The module with an open Task is marked in the table of contents.
-    expect(document.querySelector("[aria-label='Ada tugas terbuka']")).not.toBeNull();
+    // The module with an open Task says so in words in the table of contents.
+    const toc = document.querySelector("nav[aria-label='Daftar isi']")!;
+    expect([...toc.querySelectorAll("button")].find((b) => b.textContent?.includes(module.title))?.textContent).toContain("1 tugas");
     await entry(module.title);
     expect(s.text()).toContain("Tugas Mandiri Inovasi");
     expect(s.text()).toContain("Belum dikerjakan");
@@ -167,21 +182,26 @@ describe("Tasks in modules", () => {
 
 describe("meetings", () => {
   it("every Presence session of the class, across pages, never labelled absent", async () => {
-    const s = await openCourse("PL3002");
+    const s = await openCourse("PL3002", { six: true });
     await tab(/^Pertemuan/);
     const meetings = rows("main ol li");
     expect(meetings).toHaveLength(15);
     expect(meetings[0]).toContain("Hadir");
-    expect(meetings[1]).toContain("Tidak tercatat di EduNex");
-    expect(meetings.at(-1)).toContain("Akan datang");
+    // SIX is the official record; a meeting EduNex didn't record is said quietly, never as an absence.
+    expect(s.text()).toContain("Kehadiran resmi di SIX: hadir 6 dari 7");
+    expect(meetings[1]).toContain("Tidak dicatat EduNex, tidak apa-apa");
+    expect(meetings.find((m) => m.includes("Berikutnya"))).toContain("15 Okt");
+    expect(meetings.at(-1)).not.toMatch(/Akan datang|Tidak/);
     expect(s.text()).not.toMatch(/Absen|Tidak hadir|Absent/);
   });
 
   it("pins the meeting going on now with its open Presence window and the button to act on EduNex", async () => {
-    const s = await openCourse("PL3002");
+    const s = await openCourse("PL3002", { six: true });
     expect(s.text()).toContain("Sedang berlangsung");
     expect(s.text()).toContain("Presensi EduNex dibuka");
-    expect(s.text()).toContain("tutup dalam 1 jam 18 mnt");
+    expect(s.text()).toMatch(/tutup 09:30 \(1 jam 1\d mnt lagi\)/);
+    // PL3002 counts in SIX: recording on EduNex is offered, but quietly, and the page says why.
+    expect(s.text()).toContain("Kehadiranmu dihitung di SIX; Presensi EduNex juga dibuka.");
     const record = [...document.querySelectorAll("button")].find((b) => b.textContent === "Catat di EduNex")!;
     await s.click(record);
     expect(s.calls.at(-1)).toEqual({ name: "shell.openExternal", input: { url: "https://edunex.itb.ac.id/courses/95001" } });
@@ -230,18 +250,46 @@ describe("grades", () => {
     await tab(/^Nilai/);
     expect(s.text()).toContain("Buku nilai EduNex belum dirilis dosen");
     expect(s.text()).not.toMatch(/0[.,]0+\s*·?\s*E\b/);
-    expect(s.text()).toContain("Contoh bobot (kontrak kuliah ITB)");
-    const score = document.querySelector<HTMLInputElement>("input[aria-label='Nilai UTS']")!;
-    await act(async () => {
-      const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!;
-      setter.call(score, "80");
-      score.dispatchEvent(new Event("input", { bubbles: true }));
-    });
-    // UTS 80 secures 24 of the 75 an A needs; the other 70% must average 73.
-    expect(s.text()).toContain("A ≥ 73");
-    expect(s.text()).toContain("Bobot dari kontrak kuliahmu");
+    // Example weights say so, loudly, with the way to the real ones.
+    expect(s.text()).toContain("Ini contoh bobot, bukan bobot PL3002.");
+    await type("Nilai UTS", "80");
+    // UTS 80 secures 24 of the 75 an A needs; the other 70% must average 73. The answer comes as a sentence.
+    expect(s.text()).toContain("Untuk A kamu butuh rata-rata 73 di UAS, Tugas, Kuis dan Kehadiran.");
+    expect(s.text()).not.toContain("Ini contoh bobot");
     expect(s.calls.at(-1)).toMatchObject({ name: "local.set", input: { name: "local.courseWeights" } });
     expect(data("local.courseWeights").PL3002.parts[0]).toMatchObject({ id: "uts", score: 80 });
+  });
+
+  it("never answers when the weights don't add up to 100, and says what to fix", async () => {
+    const s = await openCourse("PL3002");
+    await tab(/^Nilai/);
+    await type("Bobot UTS", "70");
+    await type("Bobot Tugas", "75");
+    expect(s.text()).toContain("Lengkapi bobot dulu (sekarang 195%). Totalnya harus 100%.");
+    expect(s.text()).not.toMatch(/butuh rata-rata|Huruf lain/);
+    expect(document.querySelector<HTMLInputElement>("input[aria-label='Bobot UTS']")!.className).toContain("border-warning-fg");
+    await type("Bobot UTS", "30");
+    await type("Bobot Tugas", "20");
+    expect(s.text()).toContain("Untuk A kamu butuh rata-rata");
+  });
+
+  it("a score outside 0–100 is explained, not quietly changed", async () => {
+    const s = await openCourse("PL3002");
+    await tab(/^Nilai/);
+    await type("Nilai UTS", "120");
+    expect(s.text()).toContain("Isi 0–100");
+    expect(document.querySelector<HTMLInputElement>("input[aria-label='Nilai UTS']")!.value).toBe("120");
+    // Nothing was saved from it.
+    expect(s.calls.some((c) => c.name === "local.set")).toBe(false);
+  });
+
+  it("answers for the letter the Student aims for", async () => {
+    const s = await openCourse("PL3002");
+    await tab(/^Nilai/);
+    await type("Nilai UTS", "80");
+    await s.click("AB");
+    expect(s.text()).toContain("Untuk AB kamu butuh rata-rata 63 di UAS, Tugas, Kuis dan Kehadiran.");
+    expect(s.text()).toContain("A ≥ 73");
   });
 
   it("shows the grade once the lecturer publishes it", async () => {
@@ -261,7 +309,10 @@ describe("announcements and exams", () => {
     const s = await openCourse("II4091");
     await tab(/^Pengumuman/);
     expect(s.text()).toContain("Link teams untuk kuliah online Proposal TA");
-    expect(s.text()).toContain("Kelas induk");
+    expect(s.text()).toContain("dari kelas gabungan (semua kelas II4091)");
+    // A meeting link is a button, not only a raw address.
+    await s.click("Gabung rapat");
+    expect(s.calls.at(-1)).toEqual({ name: "shell.openExternal", input: { url: "https://teams.microsoft.com/meet/000000000000?p=fixture" } });
     const link = document.querySelector<HTMLAnchorElement>("main a[href^='https://teams.microsoft.com']")!;
     await s.click(link);
     expect(s.calls.at(-1)).toEqual({ name: "shell.openExternal", input: { url: "https://teams.microsoft.com/meet/000000000000?p=fixture" } });
@@ -299,9 +350,9 @@ describe("in English", () => {
     const card = [...document.querySelectorAll<HTMLButtonElement>("main ul li button")].find((b) => b.textContent?.startsWith("II4091"));
     await screen.click(card!);
     expect(screen.text()).toContain("Table of contents");
-    expect(screen.text()).toContain("Parent class");
+    expect(screen.text()).toContain("Joint class");
     await tab(/^Meetings/);
-    expect(screen.text()).toMatch(/Upcoming|Not marked in EduNex|Present/);
+    expect(screen.text()).toMatch(/Next|Not recorded in EduNex|Present/);
     await tab(/^Grades/);
     expect(screen.text()).toContain("Where your grade stands");
   });
