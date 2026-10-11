@@ -77,6 +77,7 @@ world.edunex.submitOnWebsite(id);                               // the Student, 
 | Meeting moved (time or room) | `moveMeeting` | #77, v2-18 |
 | Classes that overlap | recorded | #77 |
 | Other months of the timetable | the recorded page with that month's tab and an empty grid (`?bulan=`); real other months need a recording | #76, #77 |
+| A meeting in another month (an extra one, a quiz, one on the edge of the next month's grid) | `addMeeting`: it shows on every month page whose grid holds that day | #77 |
 | Pages in English (SIX's language switch) | `world.six.useEnglish()`; SIX's own English wording needs a recording (the readers don't depend on wording) | #76 |
 | Grade released | `releaseGrade` (status page); `gradeCourse` (transcript and curriculum position) | #78 |
 | Transcript, curriculum position | recorded | #78, #79 |

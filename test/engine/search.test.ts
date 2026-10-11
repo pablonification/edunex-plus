@@ -114,16 +114,16 @@ describe("Tasks", () => {
 });
 
 describe("exams", () => {
-  it("SIX's UTS sessions, take-home UTS Tasks, and an outline's exam week dated by ITB's calendar, soonest first, each opening where it shows", () => {
+  it("exams as Tugas & Ujian lists them (one per course and exam), soonest first, each opening its exam page", () => {
     const exams = search(index, "uts").find((group) => group.kind === "exam");
     expect(exams?.items.map((item) => [item.title, item.target])).toEqual([
       // PL3032's outline has "Midex/UTS" and SIX lists no UTS for it: ITB's UTS week (12–16 Oct) dates it.
-      ["UTS Ekonomi Infrastruktur dan Transportasi", { screen: "course", code: "PL3032", tab: "modules" }],
-      ["UTS Komunikasi Pemasaran", { screen: "course", code: "DK4073", tab: "meetings" }],
-      ["UTS Markom", { screen: "task", taskId: 117764 }],
+      ["UTS Ekonomi Infrastruktur dan Transportasi", { screen: "exam", examId: "PL3032-UTS" }],
+      // SIX's sitting and EduNex's take-home "UTS Markom" are one exam.
+      ["UTS Komunikasi Pemasaran", { screen: "exam", examId: "DK4073-UTS" }],
     ]);
-    // A take-home UTS is an exam, not one more Task (its module, "UTS Markom", is found too).
-    expect(keys(search(index, "markom"))).toEqual(["exam:task:117764", "module:473251"]);
+    // The take-home's title finds its exam, not one more Task; the module named "UTS Markom" itself comes first.
+    expect(keys(search(index, "markom"))).toEqual(["module:473251", "exam:DK4073-UTS"]);
   });
 
   it("by its room, or the final exam by its outline module's name", () => {

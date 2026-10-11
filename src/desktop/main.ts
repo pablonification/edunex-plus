@@ -16,6 +16,7 @@ import { authHandlers } from "./handlers/auth";
 import type { DesktopContext } from "./handlers/context";
 import { coreHandlers } from "./handlers/core";
 import { coursePageHandlers } from "./handlers/course-page";
+import { scheduleHandlers } from "./handlers/schedule";
 import { sixHandlers } from "./handlers/six";
 import { tasksHandlers } from "./handlers/tasks";
 import { updatesHandlers } from "./handlers/updates";
@@ -119,6 +120,7 @@ async function start(): Promise<void> {
     ...sixHandlers(context),
     ...alertsHandlers(context),
     ...updatesHandlers(context),
+    ...scheduleHandlers(context),
   };
   registerBridge({ window: () => window, isAppUrl, handlers });
   applySettings(current.snapshot().settings);

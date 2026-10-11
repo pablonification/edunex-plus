@@ -64,8 +64,8 @@ describe("Beranda on the recorded Thursday morning", () => {
   it("what changed: the moved class and the meeting announced outside SIX, by day, each opening its screen", async () => {
     screen = await openApp({ signedIn: true, six: true });
     const changes = text("home-changes");
-    expect(changes).toContain("Hari iniJadwal PL3002 berubahSIX8/10 08:00–10:00 · biasanya 08:00–09:30");
-    expect(changes).toContain("Pertemuan 3 II4091 diumumkan di EduNexEduNex9/10 15:00–17:00 · tidak ada di jadwal SIX");
+    expect(changes).toContain("Hari iniJadwal PL3002 berubahSIXKam, 8 Okt 08:00–10:00 · biasanya 08:00–09:30");
+    expect(changes).toContain("Pertemuan 3 II4091 diumumkan di EduNexEduNexJum, 9 Okt 15:00–17:00 · tidak ada di jadwal SIX");
     // An old meeting re-read in the same text isn't news.
     expect(changes).not.toContain("Pertemuan 2 II4091");
     await screen.click(/^Pertemuan 3 II4091 diumumkan/);
@@ -81,8 +81,43 @@ describe("Beranda on the recorded Thursday morning", () => {
     expect(row("home-needs", "Record your")).toContain("Open the course in EduNex · Class until 10:00 · R.SG PWK LT.6 · usually 08:00–09:30");
     expect(text("home-today")).toMatch(/Next class in 2h 4\dm/);
     expect(row("home-today", "08:00")).toContain("Attendance in SIX2 more absences allowedChanged · usually 08:00–09:30Now");
-    expect(text("home-changes")).toContain("TodayPL3002 schedule changed");
+    expect(text("home-changes")).toContain("TodayPL3002 schedule changedSIXThu, 8 Oct 08:00–10:00 · usually 08:00–09:30");
     expect(screen.text()).toContain("Midterm week starts Monday, 12 Oct");
+  });
+});
+
+describe("an exam on Beranda", () => {
+  it("within the week: what, when and where, that SIX and EduNex disagree, and its page one click away", async () => {
+    screen = await openApp({ world: new PretendWorld({ now: "2026-10-13T09:00:00+07:00" }), signedIn: true, six: true });
+    const exam = row("home-needs", "UTS DK4073");
+    expect(exam).toContain("UTS DK4073 Kam, 15 Okt, 11:00–12:59");
+    expect(exam).toContain("Ruang TVST C · Dua tanggal berbeda. Pastikan ke dosen.");
+    expect(exam).toContain("DK4073SIXEduNex");
+    await screen.click(/^Persiapan: UTS DK4073/);
+    expect(document.querySelector("main h1")?.textContent).toBe("Komunikasi Pemasaran");
+    expect(screen.text()).toContain("Kapan dan di mana");
+  });
+
+  it("speaks English", async () => {
+    screen = await openApp({ world: new PretendWorld({ now: "2026-10-14T09:00:00+07:00" }), signedIn: true, six: true });
+    await screen.engineDoes(() => screen!.engine.updateSettings({ lang: "en" }));
+    const exam = row("home-needs", "DK4073 UTS");
+    expect(exam).toContain("DK4073 UTS tomorrow, 11:00–12:59");
+    expect(exam).toContain("Room TVST C · Two different dates. Check with your lecturer.");
+  });
+});
+
+describe("a class moved to another day", () => {
+  it("names the usual day: today's Friday meeting stands in for the week's Thursday one", async () => {
+    screen = await openApp({ world: new PretendWorld({ now: "2026-10-16T07:00:00+07:00" }), signedIn: true });
+    const meeting = (id: string, start: string) => {
+      const at = Date.parse(`${start}+07:00`);
+      return { id, courseCode: "PL3002", courseName: "Ekonomi dan Inovasi dalam Perencanaan", start: at, end: at + 90 * 60_000, activity: "Kuliah", room: "R.SG PWK LT.6" };
+    };
+    const schedule = [meeting("1", "2026-10-01T08:00:00"), meeting("2", "2026-10-08T08:00:00"), meeting("3", "2026-10-16T10:00:00"), meeting("4", "2026-10-22T08:00:00")];
+    await screen.apply({ type: "dataset", dataset: { name: "six.schedule", value: schedule, fetchedAt: 0, hash: "s1" } });
+    await screen.apply({ type: "dataset", dataset: { name: "six.scheduleMonths", value: ["2026-10"], fetchedAt: 0, hash: "s2" } });
+    expect(row("home-today", "10:00")).toContain("Berubah · biasanya Kamis 08:00–09:30");
   });
 });
 

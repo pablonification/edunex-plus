@@ -206,6 +206,7 @@ describe("meetings", () => {
       room: "Ruang 7602",
     };
     await s.apply({ type: "dataset", dataset: { name: "six.schedule", value: [session], fetchedAt: 0, hash: "six1" } });
+    await s.apply({ type: "dataset", dataset: { name: "six.scheduleMonths", value: ["2026-10"], fetchedAt: 0, hash: "six2" } });
     await tab(/^Pertemuan/);
     const meetings = rows("main ol li");
     const oct9 = meetings.find((m) => m.includes("9 Okt"))!;

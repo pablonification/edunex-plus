@@ -3,8 +3,8 @@
 // passes in the datasets and the moment.
 //
 // "Needs you" is a list of providers, one per area (Presence, classes,
-// Tasks, announced meetings, attendance). A provider turns the datasets into
-// items; a later area (KRS steps, UKT due, exams) is one more provider.
+// exams, Tasks, announced meetings, attendance). A provider turns the
+// datasets into items; a later area (KRS steps, UKT due) is one more provider.
 // Ranking: the band first (now, soon, coming up), then the area in the order
 // of PROVIDERS, then the soonest moment, so the window closing first is on top.
 import {
@@ -17,18 +17,19 @@ import {
   openWindows,
   type PresenceActivity,
   presenceAction,
-  usualSlots,
 } from "./attendance";
 import { materialKind } from "./course-materials";
 import { type AnnouncedMeeting, announcedMeetings, wibDay } from "./course-meetings";
-import type { AcademicCalendar, Alert, AlertKind, Announcement, ClassSession, Material, PresenceSession, SixCourse, Task } from "./models";
+import { dateVars, sameLocalDay, weekdayVars } from "./dates";
+import { type Exam, mergeExams } from "./exams";
+import type { AcademicCalendar, Alert, AlertKind, Announcement, ClassSession, EdunexExam, Material, PresenceSession, SixCourse, Task } from "./models";
 import type { Route } from "./route";
+import { dayStart, isScheduleReminder, slotMarks, weekStart } from "./schedule";
 import { editedAfterSubmit, isOpenStatus, notOpenYet, shortWindow, takesAnswers, taskStatus } from "./tasks";
 
 const MINUTE = 60_000;
 const HOUR = 60 * MINUTE;
 const DAY = 24 * HOUR;
-const WIB = 7 * HOUR;
 
 /** A class starting this soon is "now": time to go. */
 export const STARTING_SOON = HOUR;
@@ -63,6 +64,10 @@ export interface HomeWorld {
   announcements: Readonly<Record<string, readonly Announcement[]>>;
   /** SIX's timetable; null while SIX isn't connected (then nothing can be "not in SIX"). */
   schedule: readonly ClassSession[] | null;
+  /** The months whose own SIX timetable page was read ("2026-10"): only there can a meeting be "not in SIX". */
+  scheduleMonths?: readonly string[];
+  /** EduNex's exams by course code. */
+  exams?: Readonly<Record<string, readonly EdunexExam[]>>;
   calendar: AcademicCalendar | undefined;
 }
 
@@ -138,7 +143,17 @@ export type NeedFacts =
   | ({ kind: "class" } & ClassFacts)
   | { kind: "task"; task: Task; reason: "overdue" | "short" | "due" | "edited"; draft: boolean }
   | { kind: "attendance"; health: AttendanceHealth; target: number }
-  | { kind: "meeting"; meeting: AnnouncedMeeting };
+  | { kind: "meeting"; meeting: AnnouncedMeeting }
+  | { kind: "exam"; exam: Exam; sitting: ExamSitting; disagree: boolean };
+
+/** When and where an exam is sat: SIX's session (with its room) or EduNex's dated exam. */
+export interface ExamSitting {
+  start: number;
+  /** null when EduNex gives only the start. */
+  end: number | null;
+  room: string | null;
+  source: "six" | "edunex";
+}
 
 export type Need = NeedBase & NeedFacts;
 /** What a provider gives: an item before ranking. */
@@ -175,11 +190,9 @@ const courseRoute = (code: string, tab = "meetings"): NeedAction => ({ kind: "go
 /** The course's page in the app, or Presensi for a course only in SIX. */
 const classAction = (context: HomeContext, code: string): NeedAction => (courseOf(context, code)?.edunexId != null ? courseRoute(code) : { kind: "go", route: { screen: "presence" } });
 
-const wibMinutes = (ms: number) => Math.round(((ms + WIB) % DAY) / MINUTE);
-const wibWeekday = (ms: number) => new Date(ms + WIB).getUTCDay();
 
 export interface SlotChange {
-  /** The usual time, when this one differs (ms of an example meeting in the usual slot, for formatting). */
+  /** The usual time, when this one differs: the usual slot on its own day that week (ms, for formatting). */
   usualStart: number | null;
   usualEnd: number | null;
   /** The usual room, when this one differs. */
@@ -187,30 +200,21 @@ export interface SlotChange {
 }
 
 /**
- * How a SIX meeting differs from its course's usual weekly slot: another time
- * on the usual weekday, or another room. SIX never marks these. A meeting on
- * another weekday is an extra one, not a move; exams aren't compared.
+ * How a SIX meeting differs from its course's usual weekly slot, by Jadwal's
+ * rule (slotMarks): another time or another weekday when it stands in for the
+ * week's usual meeting, or another room. SIX never marks these. An extra
+ * meeting on top of the usual one isn't a move; exams aren't compared.
  */
 export function slotChange(session: ClassSession, schedule: readonly ClassSession[]): SlotChange | null {
-  if (isExamActivity(session.activity)) return null;
-  const mine = schedule.filter((s) => s.courseCode === session.courseCode && !isExamActivity(s.activity));
-  const slots = usualSlots(mine);
-  const weekday = wibWeekday(session.start);
-  const sameDay = slots.filter((slot) => slot.weekday === weekday);
-  const fits = sameDay.some((slot) => slot.start === wibMinutes(session.start) && slot.length === session.end - session.start);
-  let usualStart: number | null = null;
-  let usualEnd: number | null = null;
-  if (sameDay.length && !fits && mine.length > 1) {
-    const slot = sameDay[0];
-    const dayStart = Date.parse(`${wibDay(session.start)}T00:00:00+07:00`);
-    usualStart = dayStart + slot.start * MINUTE;
-    usualEnd = usualStart + slot.length;
-  }
-  const rooms = new Map<string, number>();
-  for (const s of mine) if (s.room) rooms.set(s.room, (rooms.get(s.room) ?? 0) + 1);
-  const [usual] = [...rooms.entries()].sort((a, b) => b[1] - a[1]);
-  const usualRoom = usual && usual[1] >= 2 && session.room && session.room !== usual[0] ? usual[0] : null;
-  return usualStart !== null || usualRoom !== null ? { usualStart, usualEnd, usualRoom } : null;
+  const moved = slotMarks(schedule).moved.get(session.id);
+  if (!moved) return null;
+  const retimed = moved.kinds.includes("time") || moved.kinds.includes("day");
+  const usualDay = dayStart(weekStart(wibDay(session.start))) + moved.usual.weekday * DAY;
+  return {
+    usualStart: retimed ? usualDay + moved.usual.start * MINUTE : null,
+    usualEnd: retimed ? usualDay + moved.usual.end * MINUTE : null,
+    usualRoom: moved.kinds.includes("room") ? moved.usual.room : null,
+  };
 }
 
 /** Meetings each course announced in EduNex text, with the moment the text was posted. */
@@ -229,11 +233,12 @@ function announced(context: HomeContext, code: string): (AnnouncedMeeting & { po
   }));
 }
 
-/** Announced meetings SIX's timetable doesn't list (only when SIX is connected). */
+/** Announced meetings SIX's timetable doesn't list, in a month whose own SIX page was read (only when SIX is connected). */
 function onlyInEdunex(context: HomeContext, code: string) {
   if (!context.schedule) return [];
+  const read = new Set(context.scheduleMonths ?? []);
   const sixDays = new Set(context.schedule.filter((s) => s.courseCode === code).map((s) => wibDay(s.start)));
-  return announced(context, code).filter((meeting) => !sixDays.has(wibDay(meeting.start)));
+  return announced(context, code).filter((meeting) => read.has(wibDay(meeting.start).slice(0, 7)) && !sixDays.has(wibDay(meeting.start)));
 }
 
 /**
@@ -348,7 +353,7 @@ export const presenceProvider: NeedProvider = {
  * SIX's classes today: one going on or starting within the hour (where to
  * be, where attendance counts), and one later today the Student can't
  * afford to miss or that moved from its usual slot. A class with an EduNex
- * window open is already the Presence item.
+ * window open is already the Presence item; an exam is the exam item.
  */
 export const classProvider: NeedProvider = {
   area: "class",
@@ -358,11 +363,10 @@ export const classProvider: NeedProvider = {
     const withWindow = (s: ClassSession) => windows.some((w) => w.code === s.courseCode && s.start < w.session.closesAt && w.session.opensAt < s.end);
     const out: NeedDraft[] = [];
     for (const session of classesLeftToday(context)) {
-      if (withWindow(session)) continue;
+      if (withWindow(session) || isExamActivity(session.activity)) continue;
       const facts = classFacts(context, session);
       const close = session.start <= now + STARTING_SOON;
-      // An exam later today is the exams provider's (#77 schedule half), not a meeting to attend.
-      const notable = !isExamActivity(session.activity) && (facts.state === "none" || facts.moved !== null);
+      const notable = facts.state === "none" || facts.moved !== null;
       if (!close && !notable) continue;
       out.push({
         id: `class:${session.id}`,
@@ -448,7 +452,7 @@ export const meetingProvider: NeedProvider = {
 export const attendanceProvider: NeedProvider = {
   area: "attendance",
   needs(context) {
-    const meetsToday = new Set(classesLeftToday(context).map((s) => s.courseCode));
+    const meetsToday = new Set(classesLeftToday(context).filter((s) => !isExamActivity(s.activity)).map((s) => s.courseCode));
     const out: NeedDraft[] = [];
     for (const course of context.courses) {
       const health = context.health.get(course.code);
@@ -469,8 +473,47 @@ export const attendanceProvider: NeedProvider = {
   },
 };
 
+/**
+ * Exams within the week, each at its next sitting: SIX's session with its
+ * room, or EduNex's dated exam (a take-home exam is a Task, and the Task
+ * item speaks for it). Within a day it's now, within three days soon, else
+ * coming up; when SIX and EduNex give it different days it's at least soon,
+ * time to ask the lecturer.
+ */
+export const examProvider: NeedProvider = {
+  area: "exam",
+  needs(context) {
+    const { now } = context;
+    const exams = mergeExams({ schedule: context.schedule ?? [], edunexExams: context.exams, tasks: context.tasks, courses: context.courses.map((c) => c.code), now });
+    const out: NeedDraft[] = [];
+    for (const exam of exams) {
+      const sittings: ExamSitting[] = [
+        ...exam.six.map((s) => ({ start: s.start, end: s.end, room: s.room, source: "six" as const })),
+        ...exam.edunex.flatMap((e) => (e.start !== null ? [{ start: e.start, end: e.end, room: null, source: "edunex" as const }] : [])),
+      ];
+      const [next] = sittings.filter((s) => (s.end ?? s.start) > now).sort((a, b) => a.start - b.start);
+      if (!next || next.start - now > AHEAD) continue;
+      const left = next.start - now;
+      const sources: NeedSource[] = [...(exam.six.length ? ["six" as const] : []), ...(exam.edunex.length || exam.tasks.length ? ["edunex" as const] : [])];
+      out.push({
+        id: `exam:${exam.id}`,
+        kind: "exam",
+        course: exam.courseCode,
+        band: left <= DUE_NOW ? "now" : left <= DUE_SOON || exam.disagree ? "soon" : "later",
+        at: next.start,
+        sources,
+        action: { kind: "go", route: { screen: "exam", examId: exam.id } },
+        exam,
+        sitting: next,
+        disagree: exam.disagree,
+      });
+    }
+    return out;
+  },
+};
+
 /** In ranking order within a band. */
-export const PROVIDERS: readonly NeedProvider[] = [presenceProvider, classProvider, taskProvider, meetingProvider, attendanceProvider];
+export const PROVIDERS: readonly NeedProvider[] = [presenceProvider, classProvider, examProvider, taskProvider, meetingProvider, attendanceProvider];
 
 // ---------------------------------------------------------------- today
 
@@ -503,13 +546,21 @@ export function todayPlan(world: HomeWorld | HomeContext): TodayPlan {
 
 // ---------------------------------------------------------------- what changed
 
-// Change text is kept as catalog keys with language-free values, so it shows in
-// the Student's language wherever it appears: times on this computer's clock
-// (as alert text names them) and the date as "15/10".
+// Change text is kept as catalog keys, so it shows in the Student's language
+// wherever it appears: times on this computer's clock (as alert text names
+// them), and days in the app's words for both languages ("Kam, 15 Okt").
 const two = (n: number) => String(n).padStart(2, "0");
 const clock = (ms: number) => `${two(new Date(ms).getHours())}:${two(new Date(ms).getMinutes())}`;
 const timeRange = (start: number, end: number) => `${clock(start)}–${clock(end)}`;
-const dayMonth = (ms: number) => `${new Date(ms).getDate()}/${new Date(ms).getMonth() + 1}`;
+
+/** A moved class's usual slot: its time, with its weekday when that's another day ("Kamis 08:00–09:30"); else the usual room. */
+function usualVars(session: ClassSession, change: SlotChange): { usualId: string; usualEn: string } {
+  if (change.usualStart === null || change.usualEnd === null) return { usualId: change.usualRoom ?? "", usualEn: change.usualRoom ?? "" };
+  const time = timeRange(change.usualStart, change.usualEnd);
+  if (sameLocalDay(change.usualStart, session.start)) return { usualId: time, usualEn: time };
+  const { dayId, dayEn } = weekdayVars(change.usualStart);
+  return { usualId: `${dayId} ${time}`, usualEn: `${dayEn} ${time}` };
+}
 
 /** Alert kinds that are changes (not reminders): what "What changed" lists from the history. */
 const CHANGE_KINDS: ReadonlySet<AlertKind> = new Set(["newTask", "newMaterial", "taskEdited", "scheduleChanged", "meeting", "exam", "grade", "krs"]);
@@ -560,14 +611,15 @@ export function recentChanges(world: HomeWorld | HomeContext, history: readonly 
     if (!change) continue;
     // SIX says nothing about when it changed: it's known as of now.
     derived.push({
-      id: `schedule.moved:${session.id}:${session.start}:${session.room ?? ""}`,
+      // The id the change alert has (src/engine/alerts/schedule.ts), so the two show once.
+      id: `schedule.moved:${session.id}:${session.start}:${session.end}:${session.room ?? ""}`,
       kind: "scheduleChanged",
       source: "six",
       at: now,
       title: { key: "home.change.moved", vars: { course: session.courseCode } },
       body: {
         key: change.usualStart !== null ? "home.change.moved.time" : "home.change.moved.room",
-        vars: { date: dayMonth(session.start), time: timeRange(session.start, session.end), room: session.room ?? "", usual: change.usualStart !== null ? timeRange(change.usualStart, change.usualEnd!) : change.usualRoom ?? "" },
+        vars: { ...dateVars(session.start), time: timeRange(session.start, session.end), room: session.room ?? "", ...usualVars(session, change) },
       },
       target: { screen: "schedule" },
     });
@@ -582,7 +634,7 @@ export function recentChanges(world: HomeWorld | HomeContext, history: readonly 
           source: "edunex",
           at: meeting.postedAt,
           title: { key: "home.change.meeting", vars: { course: course.code, number: meeting.number } },
-          body: { key: "home.change.meeting.body", vars: { date: dayMonth(meeting.start), time: timeRange(meeting.start, meeting.end) } },
+          body: { key: "home.change.meeting.body", vars: { ...dateVars(meeting.start), time: timeRange(meeting.start, meeting.end) } },
           target: { screen: "course", code: course.code, tab: "meetings" },
         });
 
@@ -591,7 +643,7 @@ export function recentChanges(world: HomeWorld | HomeContext, history: readonly 
   const seenIds = new Set<string>();
   const seenAs = new Set<string>();
   const out: Alert[] = [];
-  for (const item of [...history.filter((a) => CHANGE_KINDS.has(a.kind)), ...derived]) {
+  for (const item of [...history.filter((a) => CHANGE_KINDS.has(a.kind) && !isScheduleReminder(a.id)), ...derived]) {
     if (item.at > now || now - item.at > RECENT || seenIds.has(item.id) || seenAs.has(sameness(item))) continue;
     seenIds.add(item.id);
     seenAs.add(sameness(item));

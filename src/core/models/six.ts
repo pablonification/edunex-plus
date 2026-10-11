@@ -49,4 +49,10 @@ export const sixDatasets = {
   "six.courses": z.array(SixCourse),
   /** The class meetings of this month and the next, by start time. */
   "six.schedule": z.array(ClassSession),
+  /**
+   * The months ("2026-10") whose own timetable page was read. A month page
+   * also shows the edges of the months around it; those days don't make
+   * their month read, so nothing there is called missing from SIX.
+   */
+  "six.scheduleMonths": z.array(z.string()),
 } as const;

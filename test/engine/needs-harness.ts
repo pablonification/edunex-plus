@@ -35,6 +35,8 @@ export async function startHome(options: { now?: string; world?: PretendWorld } 
       materials: h.dataset("edunex.materials") ?? {},
       announcements: h.dataset("edunex.announcements") ?? {},
       schedule: h.dataset("six.schedule") ?? null,
+      scheduleMonths: h.dataset("six.scheduleMonths"),
+      exams: h.dataset("edunex.exams"),
       calendar: h.dataset("itb.calendar"),
     };
   };

@@ -34,6 +34,7 @@ import { Icons } from "../ui/icons";
 import { ConfirmDialog, toast } from "../ui/overlays";
 import { RichText, plainText } from "../ui/rich-text";
 import { ready as courseReady } from "./course";
+import { ExamList } from "./exam";
 
 export const ready = true;
 
@@ -130,7 +131,7 @@ export function TasksScreen() {
 
       <SourceNotice source="edunex" hasData={rows !== undefined} />
 
-      {/* The exam list (SIX sessions, EduNex take-home exams, ITB's exam weeks) joins here with its own ticket. */}
+      <ExamList past={show === "done"} />
 
       <div className="mt-8 space-y-7">
         {!rows ? (

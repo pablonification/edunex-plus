@@ -15,7 +15,8 @@ const open = async (now?: string) => {
   screen = await openApp({ signedIn: true, world: new PretendWorld({ now }) });
   return screen;
 };
-const sections = () => [...document.querySelectorAll("main section h2")].map((h) => h.textContent);
+// The Task lists; the exam list above them has its own tests (exam.test.tsx).
+const sections = () => [...document.querySelectorAll("main section:not([aria-label=Ujian]):not([aria-label=Exams]) h2")].map((h) => h.textContent);
 const row = (title: string) => [...document.querySelectorAll<HTMLButtonElement>("main li button")].find((b) => b.textContent?.startsWith(title));
 const card = () => document.querySelector("main aside")?.textContent ?? "";
 const goToTask = async (s: NonNullable<typeof screen>, title: string) => {

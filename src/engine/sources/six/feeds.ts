@@ -30,21 +30,36 @@ export function registerSixFeeds(context: SourceContext, client: SixClient): voi
     every: 12 * HOUR,
     jitter: 30 * MINUTE,
     async run() {
-      await context.set("six.schedule", await readSchedule(client, context.clock.now()));
+      const { sessions, months } = await readSchedule(client, context.clock.now());
+      // The meetings first: for a moment the months may lag behind them, never run ahead (a month
+      // counted as read before its meetings arrive would call them all missing from SIX).
+      await context.set("six.schedule", sessions);
+      await context.set("six.scheduleMonths", months);
     },
   });
 }
 
-/** This month's and next month's meetings (the next only when SIX offers it for this term). */
-export async function readSchedule(pages: SixPages, now: number): Promise<ClassSession[]> {
+/**
+ * This month's and next month's meetings (the next only when SIX offers it
+ * for this term), and the months whose own page was read ("2026-10").
+ */
+export async function readSchedule(pages: SixPages, now: number): Promise<{ sessions: ClassSession[]; months: string[] }> {
   const { nim, studentId, term } = await pages.who();
   const base = `/app/mahasiswa:${nim}+${term}/kelas/jadwal/mahasiswa/${studentId}`;
   const thisMonth = wibMonth(now);
   const first = readTimetable(await pages.page(`${base}?bulan=${thisMonth}`), thisMonth);
   const sessions = [...first.sessions];
+  const months = [first.month];
   const following = nextMonth(first.month);
-  if (first.months.includes(following)) sessions.push(...readTimetable(await pages.page(`${base}?bulan=${following}`), following).sessions);
+  if (first.months.includes(following)) {
+    const second = readTimetable(await pages.page(`${base}?bulan=${following}`), following);
+    sessions.push(...second.sessions);
+    months.push(second.month);
+  }
   // The grid shows the edges of the months around it, so a meeting can appear on both pages.
   const byId = new Map(sessions.map((session) => [session.id, session]));
-  return [...byId.values()].sort((a, b) => a.start - b.start || a.courseCode.localeCompare(b.courseCode));
+  return {
+    sessions: [...byId.values()].sort((a, b) => a.start - b.start || a.courseCode.localeCompare(b.courseCode)),
+    months: months.map((month) => `${month.slice(0, 4)}-${month.slice(4)}`),
+  };
 }

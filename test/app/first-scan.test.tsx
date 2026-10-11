@@ -43,7 +43,7 @@ describe("after the first full sync of EduNex and SIX", () => {
       "Kehadiran 3 mata kuliah berisiko",
       "KU5014 dan PL3032 bentrok di 5 pertemuan",
       "Kehadiran 1 mata kuliah dihitung di SIX, bukan EduNex",
-      "4 ujian akan datang",
+      "3 ujian akan datang",
       "1 pertemuan hanya diumumkan di EduNex",
       "Dosen mengubah 6 tugas setelah diunggah",
       "IPK 3,26 · di bawah cum laude",
@@ -51,33 +51,34 @@ describe("after the first full sync of EduNex and SIX", () => {
     expect(detail("Kehadiran 3")).toBe("KU5014: hadir 2 dari 6, paling tinggi 73%, jadi 80% tak tercapai lagiDK4073: tidak boleh absen lagiPL3032: tidak boleh absen lagi");
     expect(detail("KU5014 dan PL3032")).toBe("Berikutnya Kam 8 Okt, 16:00–16:30. SIX menerimanya di KRS-mu tanpa peringatan.");
     expect(detail("Kehadiran 1")).toBe("PL3002: EduNex akan menampilkan 5x absen, SIX mencatat hadir 6 dari 7Presensi EduNex yang tak tercatat bukan absen.");
-    expect(detail("4 ujian")).toBe("UTS PL3032, minggu UTS 12–16 OktUTS DK4073: Kam 15 Okt, 11:00 · TVST CUTS take-home DK4073, tenggat Kam 22 Okt, 23:50dan 1 lainnya");
+    // DK4073's UTS is one exam: SIX's sitting, with the take-home a week later flagged as a second date.
+    expect(detail("3 ujian")).toBe("UTS PL3032, minggu UTS 12–16 OktUTS DK4073: Kam 15 Okt, 11:00 · TVST C · Dua tanggal berbeda. Pastikan ke dosen.UAS PL3032, minggu UAS 7–22 Des");
     expect(detail("1 pertemuan")).toBe("II4091 pertemuan 3: Jum 9 Okt, 15:00–17:00 · daringTidak ada di jadwal SIX.");
     expect(detail("Dosen mengubah")).toBe("2 di antaranya setelah kamu mengumpulkan. EduNex tidak memberi notifikasi.");
     expect(detail("IPK")).toBe("Kurang 0,24 untuk cum laude (3,50).");
     // Each line's sources, as tags: SIX and ITB's calendar for attendance, all three for exams.
     expect(line("Kehadiran 3").textContent).toMatch(/SIXKalender ITB$/);
-    expect(line("4 ujian").textContent).toMatch(/SIXEduNexKalender ITB$/);
+    expect(line("3 ujian").textContent).toMatch(/SIXEduNexKalender ITB$/);
     // Shown once: remembered right away.
     expect(screen.engine.snapshot().settings.firstScanDone).toBe(true);
   });
 
   it("each line opens the screen that shows it, and the scan closes", async () => {
     screen = await openApp({ firstScan: true, signedIn: true, six: true });
-    // Jadwal isn't built yet: the overlap opens KRS, where it's said too.
+    // The overlap opens Jadwal, where both classes show side by side.
     await screen.click(line("KU5014 dan PL3032"));
     expect(dialog()).toBeUndefined();
-    expect(h1()).toBe("Rencana studi");
-    expect(activeTab()).toBe("KRS");
+    expect(h1()).toBe("Jadwal");
 
     const again = async () => {
       await screen!.apply({ type: "command", command: "settings" });
       await screen!.click("Lihat: Hasil pemeriksaan pertama");
     };
     await again();
-    await screen.click(line("4 ujian"));
+    // The soonest exam's page: PL3032's UTS, named only in its EduNex outline.
+    await screen.click(line("3 ujian"));
     expect(h1()).toBe("Ekonomi Infrastruktur dan Transportasi");
-    expect(activeTab()).toMatch(/^Modul/);
+    expect(document.querySelector("main")?.textContent).toContain("UTS");
 
     await again();
     await screen.click(line("Kehadiran 3"));
@@ -199,7 +200,7 @@ describe("in English", () => {
       "Attendance at risk in 3 courses",
       "KU5014 and PL3032 overlap in 5 meetings",
       "1 course counts attendance in SIX, not EduNex",
-      "4 upcoming exams",
+      "3 upcoming exams",
       "1 meeting announced only in EduNex",
       "Lecturers edited 6 Tasks after posting them",
       "IPK 3.26 · below cum laude",

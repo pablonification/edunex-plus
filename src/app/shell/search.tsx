@@ -5,7 +5,8 @@
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { type ComponentType, type KeyboardEvent, useEffect, useId, useMemo, useState } from "react";
 import { materialKind } from "../../core/course-materials";
-import type { FoundExam } from "../../core/exam-sources";
+import { takeHomeOnly } from "../../core/exam-sources";
+import type { Exam } from "../../core/exams";
 import type { DatasetName } from "../../core/models";
 import { SCREENS, type ScreenId, type SearchItem, search, searchIndex, suggestions } from "../../core/search";
 import { isOpenStatus, taskStatus } from "../../core/tasks";
@@ -260,11 +261,12 @@ export function dayRange(f: Format, firstDay: string, lastDay: string): string {
 }
 
 /** When an exam is, as its row says it. */
-function examWhen(exam: FoundExam, t: Translate, f: Format): string {
-  if (exam.source === "outline") return exam.week ? t("search.examWeek", { kind: exam.kind ?? "", range: dayRange(f, exam.week.firstDay, exam.week.lastDay) }) : t("search.noDate");
-  if (exam.at === null) return t("search.noDate");
-  if (exam.source === "six") return `${f.relativeDay(exam.at)}, ${f.timeRange(exam.at, exam.until ?? exam.at)}${exam.session.room ? ` · ${exam.session.room}` : ""}`;
-  return f.dueLabel(exam.at);
+function examWhen(exam: Exam, t: Translate, f: Format): string {
+  const session = exam.six[0];
+  if (session) return `${f.relativeDay(session.start)}, ${f.timeRange(session.start, session.end)}${session.room ? ` · ${session.room}` : ""}`;
+  if (exam.at !== null) return f.dueLabel(exam.at);
+  if (exam.week) return t("search.examWeek", { kind: t(`exam.kind.${exam.kind}`), range: dayRange(f, exam.week.firstDay, exam.week.lastDay) });
+  return t("search.noDate");
 }
 
 /** The row's second line: the course's code, then what this result is and when. */
@@ -280,7 +282,7 @@ function detailOf(item: SearchItem, t: Translate, f: Format, now: number): strin
       break;
     }
     case "exam":
-      parts.push(item.exam.source === "task" ? t("task.uts") : null, examWhen(item.exam, t, f));
+      parts.push(takeHomeOnly(item.exam) ? t("task.uts") : null, examWhen(item.exam, t, f));
       break;
     case "material":
       if (item.module) parts.push(t("course.module", { no: item.module.number }), item.module.title);

@@ -80,6 +80,16 @@ describe("SIX sign-in → this term's courses", () => {
       .map((r) => new URL(r.url).searchParams.get("bulan"))
       .filter(Boolean);
     expect(months).toEqual(["202610", "202611"]);
+    expect(h.dataset("six.scheduleMonths")).toEqual(["2026-10", "2026-11"]);
+  });
+
+  it("a month counts as read only from its own page, not from the edge of another month's grid", async () => {
+    const h = await startEngine();
+    // November's page also shows 1–4 December: PL3002's class on Thursday 3 December is listed there.
+    h.world.six.addMeeting({ id: "2194354", code: "PL3002", name: "Ekonomi dan Inovasi dalam Perencanaan", day: "2026-12-03", start: "08:00", end: "09:30", room: "R.SG PWK LT.6" });
+    await until(h, h.engine.signIn("six", SIX));
+    expect(meeting(h, "2194354")).toMatchObject({ start: at("2026-12-03T08:00:00+07:00"), room: "R.SG PWK LT.6" });
+    expect(h.dataset("six.scheduleMonths")).toEqual(["2026-10", "2026-11"]);
   });
 
   it("in the term's last month, doesn't ask for a month the term doesn't have", async () => {
@@ -90,6 +100,7 @@ describe("SIX sign-in → this term's courses", () => {
     expect(months).toEqual(["202701"]);
     expect(h.status("six").state).toBe("live");
     expect(h.dataset("six.schedule")).toEqual([]);
+    expect(h.dataset("six.scheduleMonths")).toEqual(["2027-01"]);
   });
 
   it("keeps the session only in the vault, never in saved data", async () => {

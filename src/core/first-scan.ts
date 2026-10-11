@@ -6,7 +6,8 @@
 import { krsOverlaps, type Overlap } from "./academic";
 import { type AttendanceHealth, attendanceHealth, countedIn, lecturePeriod, needsAttention } from "./attendance";
 import { type AnnouncedMeeting, announcedMeetings, courseMeetings } from "./course-meetings";
-import { examAhead, examRoute, examsFound, type FoundExam } from "./exam-sources";
+import { examAhead, examRoute, examsFound } from "./exam-sources";
+import type { Exam } from "./exams";
 import { blockedBy, HONORS, type HonorLevel, honorFor, type Path } from "./honors";
 import type { DatasetName, SourceId, SourceState, SourceStatus, Task } from "./models";
 import { semesterOf } from "./planner";
@@ -57,7 +58,7 @@ export type Finding = FindingBase &
     | { kind: "attendance"; courses: AttendanceHealth[] }
     | { kind: "clash"; overlaps: Overlap[] }
     | { kind: "unusedPresence"; courses: { code: string; absent: number; attended: number; held: number }[] }
-    | { kind: "exams"; exams: FoundExam[] }
+    | { kind: "exams"; exams: Exam[] }
     | { kind: "notInSix"; meetings: { code: string; meeting: AnnouncedMeeting }[] }
     | { kind: "edited"; tasks: Task[]; afterSubmit: number }
     | {
@@ -163,17 +164,19 @@ function unusedPresence({ saved, now }: ScanInput): Finding | null {
 }
 
 /**
- * Exams still ahead, from both systems: SIX's UTS and UAS sessions (time and
- * room), EduNex exams, take-home UTS Tasks not handed in, and an exam module
- * in a course outline dated by ITB's exam week. The line opens the soonest.
+ * Exams still ahead, as Tugas & Ujian lists them (one per course and exam,
+ * however many systems name it): SIX's sessions with time and room, EduNex
+ * exams, take-home exams not handed in, and exams named only in a course
+ * outline, dated by ITB's exam week. The line opens the soonest.
  */
 function exams({ saved, now }: ScanInput): Finding | null {
   const ahead = examsFound(saved, now).filter((exam) => examAhead(exam, now));
   if (!ahead.length) return null;
   const sources = new Set<"edunex" | "six" | "itb">();
   for (const exam of ahead) {
-    sources.add(exam.source === "six" ? "six" : "edunex");
-    if (exam.source === "outline" && exam.week) sources.add("itb");
+    if (exam.six.length) sources.add("six");
+    if (exam.edunex.length || exam.tasks.length || exam.inOutline) sources.add("edunex");
+    if (exam.at === null && exam.week) sources.add("itb");
   }
   return {
     kind: "exams",
@@ -193,7 +196,7 @@ function meetingsOutsideSix({ saved, now }: ScanInput, codes: readonly string[])
   for (const code of codes) {
     const announced = announcedMeetings(saved["edunex.materials"]?.[code] ?? [], saved["edunex.announcements"]?.[code] ?? []);
     if (!announced.length) continue;
-    for (const meeting of courseMeetings(code, saved["edunex.presence"]?.[code] ?? [], schedule, announced))
+    for (const meeting of courseMeetings(code, saved["edunex.presence"]?.[code] ?? [], schedule, announced, saved["six.scheduleMonths"] ?? []))
       if (meeting.announced && meeting.notInSix && meeting.end > now) meetings.push({ code, meeting: meeting.announced });
   }
   if (!meetings.length) return null;

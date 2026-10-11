@@ -23,6 +23,8 @@ export class PretendSix {
   private faults: { path: RegExp; status: number; times: number }[] = [];
   /** Paths requested, in order (SIX must be read at human pace). */
   readonly requests: { at: number; path: string }[] = [];
+  /** Meetings tests added to months other than the recorded one. */
+  private readonly addedMeetings: AddedMeeting[] = [];
 
   constructor(private readonly now: () => number) {
     for (const ex of exchanges("six")) this.pages.set(canonical(ex.path), bodyText("six", ex.file));
@@ -57,6 +59,15 @@ export class PretendSix {
         return `${a}${start}-${end}${b}${room ? `${activity} ${room}` : where}${c}`;
       }),
     );
+  }
+
+  /**
+   * Puts a meeting on the timetable on a day outside the recorded month. It
+   * shows on every month page whose grid holds that day: a month page also
+   * shows the edges of the months around it, as SIX's does.
+   */
+  addMeeting(meeting: AddedMeeting): void {
+    this.addedMeetings.push(meeting);
   }
 
   /** Releases a grade for a course this semester (the Nilai column on the status page). */
@@ -218,7 +229,7 @@ export class PretendSix {
     let page = this.pages.get(canonical(url.pathname));
     if (!page) return { status: 404, headers: { "content-type": "text/html" }, body: "<h1>Not Found</h1>", url: url.toString() };
     const month = url.searchParams.get("bulan");
-    if (month && /\/kelas\/jadwal\/mahasiswa\/\d+$/.test(url.pathname)) page = forMonth(page, month);
+    if (month && /\/kelas\/jadwal\/mahasiswa\/\d+$/.test(url.pathname)) page = forMonth(page, month, this.addedMeetings);
     return { status: 200, headers: { "content-type": "text/html; charset=UTF-8" }, body: page, url: url.toString() };
   }
 
@@ -262,12 +273,37 @@ const MONTHS_ID = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli
 const MONTHS_EN = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 const DAY = 86_400_000;
 
+/** A meeting a test puts on a day outside the recorded month. Times are WIB ("08:00"). */
+export interface AddedMeeting {
+  /** SIX's meeting id. */
+  id: string;
+  code: string;
+  name: string;
+  /** "2026-12-03". */
+  day: string;
+  start: string;
+  end: string;
+  activity?: string;
+  room?: string | null;
+}
+
+/** A meeting as SIX's grid shows it in a day. */
+const meetingHtml = (m: AddedMeeting) => {
+  const activity = m.activity ?? "Kuliah";
+  return `<div title="${m.name} (${activity})"><a class="linkpertemuan" href="#" data-kuliah="${m.code} ${m.name}" data-url="/app/mahasiswa:18223901+2026-1/kelas/pertemuan/${m.id}/mhs/2021000001"><small>
+                                    ${m.start}-${m.end}
+                                    <strong>${m.code}</strong>
+                                    ${m.name.slice(0, 12)}...
+                                    (${activity}${m.room ? ` ${m.room}` : ""})
+                                </small></a></div>`;
+};
+
 /**
  * The timetable for another month of the term. Only one month was recorded,
  * so another month is that page with its tab active and the month's days in
- * the same grid, without meetings.
+ * the same grid, with only the meetings tests added (`addMeeting`).
  */
-function forMonth(html: string, month: string): string {
+function forMonth(html: string, month: string, added: readonly AddedMeeting[]): string {
   const shown = /<li role="presentation" class="active">\s*<a href="[^"]*bulan=(\d{6})"/.exec(html)?.[1];
   if (shown === month) return html;
   const year = Number(month.slice(0, 4));
@@ -281,7 +317,8 @@ function forMonth(html: string, month: string): string {
     for (let weekday = 0; weekday < 5; weekday++, cell++) {
       const date = new Date(monday + weekday * DAY);
       const name = cell === 0 || date.getUTCDate() === 1 ? `<span class="text-muted">${MONTHS_ID[date.getUTCMonth()]}</span>` : "";
-      rows += `<td ><div class="">\n                        ${date.getUTCDate()}\n                        ${name}</div><div style="min-height: 5em;"></div></td>`;
+      const meetings = added.filter((m) => m.day === date.toISOString().slice(0, 10)).map(meetingHtml).join("");
+      rows += `<td ><div class="">\n                        ${date.getUTCDate()}\n                        ${name}</div><div style="min-height: 5em;">${meetings}</div></td>`;
     }
     rows += "</tr>";
   }

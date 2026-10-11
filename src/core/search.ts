@@ -4,7 +4,8 @@
 // small typos. An exact course code ranks first, then prefix matches. Each
 // distinct word is matched once per query, so a full term answers within a frame.
 import { outlineEntries } from "./course-materials";
-import { examRoute, examsFound, type FoundExam } from "./exam-sources";
+import { examRoute, examsFound, takeHomeOnly } from "./exam-sources";
+import { type Exam, examKind } from "./exams";
 import type { Announcement, Material, Task } from "./models";
 import type { Route } from "./route";
 import { courseName, inTerm, type Saved, termCourses } from "./saved";
@@ -58,7 +59,7 @@ interface ItemBase {
 export type SearchItem =
   | (ItemBase & { kind: "course"; classNo: string | null; sks: number | null })
   | (ItemBase & { kind: "task"; task: Task })
-  | (ItemBase & { kind: "exam"; exam: FoundExam })
+  | (ItemBase & { kind: "exam"; exam: Exam })
   | (ItemBase & { kind: "material"; material: Material; module: ModulePlace | null })
   | (ItemBase & { kind: "module"; module: ModulePlace })
   | (ItemBase & { kind: "announcement"; announcement: Announcement })
@@ -224,18 +225,20 @@ export function searchIndex(saved: Saved, { lang, screens, now }: IndexOptions):
 
   // Soonest first, so the sooner exam wins a tie.
   for (const exam of examsFound(saved, now)) {
-    const title =
-      exam.source === "task"
-        ? exam.task.title
-        : exam.source === "edunex"
-          ? (exam.exam.title ?? translate(lang, "course.examUntitled"))
-          : `${exam.kind ?? (exam.source === "six" ? exam.session.activity : "")} ${displayName(exam.code)}`.trim();
-    const own =
-      exam.source === "six" ? `${exam.session.activity} ${exam.session.courseName} ${exam.session.room ?? ""}` : exam.source === "task" ? exam.task.module?.name : exam.source === "outline" ? exam.module.title : null;
-    add({ kind: "exam", key: `exam:${exam.key}`, title, code: exam.code, target: examRoute(exam), exam }, [
+    const kind = translate(lang, `exam.kind.${exam.kind}`);
+    const title = takeHomeOnly(exam) ? exam.tasks[0]!.title : (exam.edunex[0]?.title ?? `${kind} ${displayName(exam.courseCode)}`.trim());
+    const session = exam.six[0];
+    // Every name the systems give it: SIX's sitting and room, EduNex's exam and take-home titles, the outline module ("Finex/UAS").
+    const modules = exam.inOutline ? (saved["edunex.outline"]?.[exam.courseCode]?.modules ?? []).filter((m) => examKind(m.title) === exam.kind).map((m) => m.title) : [];
+    const own = [session ? `${session.activity} ${session.courseName} ${session.room ?? ""}` : null, ...exam.tasks.map((task) => task.title), ...exam.edunex.map((e) => e.title), ...modules, kind]
+      .filter(Boolean)
+      .join(" ");
+    add({ kind: "exam", key: `exam:${exam.id}`, title, code: exam.courseCode, target: examRoute(exam), exam }, [
       [title, TITLE],
+      // A take-home's or EduNex exam's own title ("UTS Markom") names the exam as much as its shown title.
+      ...[...exam.tasks.map((task) => task.title), ...exam.edunex.map((e) => e.title)].filter((name) => name && name !== title).map((name) => [name, TITLE] as [string, number]),
       [own, CONTEXT],
-      [courseWords(exam.code), CONTEXT],
+      [courseWords(exam.courseCode), CONTEXT],
     ]);
   }
 

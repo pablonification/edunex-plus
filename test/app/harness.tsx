@@ -12,6 +12,7 @@ import { handInHandlers, type LocalFile } from "../../src/desktop/hand-in";
 import type { SourceId } from "../../src/core/models";
 import { createEngine, type Engine } from "../../src/engine/engine";
 import { planOfflineFiles } from "../../src/core/course-materials";
+import { phoneCalendar } from "../../src/core/phone-calendar";
 import { EngineError, isEngineError } from "../../src/engine/errors";
 import { PRETEND_TOKEN } from "../pretend/edunex";
 import { MemoryStorage, MemoryVault } from "../pretend/memory";
@@ -87,6 +88,8 @@ export async function openApp(options: Options = {}) {
   const calls: { name: ActionName; input: unknown }[] = [];
   /** What the system file picker gives the next time it opens (the Student's choice); nothing = cancelled. */
   let nextPick: LocalFile[] = [];
+  /** Calendar files the Student saved, in order. */
+  const exported: string[] = [];
   const inFlight = new Set<Promise<unknown>>();
   const handlers: { [N in ActionName]: (input: never) => Promise<unknown> } = {
     "app.snapshot": async () => ({ ...engine.snapshot(), platform: "darwin", vault: options.vaultMode ?? "encrypted" }),
@@ -130,6 +133,12 @@ export async function openApp(options: Options = {}) {
     },
     "alerts.test": async () => ({ shown: true }),
     "app.openRelease": async () => ({}),
+    // The calendar file main would write through the save dialog; tests read it from `exported`.
+    "schedule.export": async () => {
+      const calendar = phoneCalendar((name) => engine.snapshot().datasets.find((d) => d.name === name)?.value as never, engine.snapshot().settings.lang, world.clock.now());
+      exported.push(calendar.text);
+      return { file: "Edunex Plus.ics", events: calendar.events };
+    },
     // Handing in runs main's real handlers; only the system file picker is pretend.
     ...handInHandlers(engine, async () => {
       const files = nextPick;
@@ -198,6 +207,7 @@ export async function openApp(options: Options = {}) {
     storage,
     vault,
     calls,
+    exported,
     text: () => document.body.textContent ?? "",
     /** A button (or radio, or switch) by its accessible name. */
     button(name: string | RegExp): HTMLButtonElement {

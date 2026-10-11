@@ -41,6 +41,8 @@ export const homeStrings = {
     id: "Pertemuan {number} hanya diumumkan di EduNex, tidak ada di jadwal SIX.",
     en: "Meeting {number} is announced only in EduNex; it isn't on SIX's timetable.",
   },
+  "home.need.exam": { id: "{kind} {course} {day}, {time}", en: "{course} {kind} {day}, {time}" },
+  "home.need.exam.room": { id: "Ruang {room}", en: "Room {room}" },
   "home.action.openTask": { id: "Buka tugas", en: "Open Task" },
   "home.action.openCourse": { id: "Buka mata kuliah", en: "Open course" },
   "home.action.seeAttendance": { id: "Lihat kehadiran", en: "See attendance" },
@@ -71,10 +73,10 @@ export const homeStrings = {
   "home.changes": { id: "Yang berubah", en: "What changed" },
   "home.changes.none": { id: "Tidak ada perubahan minggu ini", en: "No changes this week" },
   "home.change.moved": { id: "Jadwal {course} berubah", en: "{course} schedule changed" },
-  "home.change.moved.time": { id: "{date} {time} · biasanya {usual}", en: "{date} {time} · usually {usual}" },
-  "home.change.moved.room": { id: "{date} di {room} · biasanya {usual}", en: "{date} in {room} · usually {usual}" },
+  "home.change.moved.time": { id: "{dateId} {time} · biasanya {usualId}", en: "{dateEn} {time} · usually {usualEn}" },
+  "home.change.moved.room": { id: "{dateId} di {room} · biasanya {usualId}", en: "{dateEn} in {room} · usually {usualEn}" },
   "home.change.meeting": { id: "Pertemuan {number} {course} diumumkan di EduNex", en: "{course} meeting {number} announced in EduNex" },
-  "home.change.meeting.body": { id: "{date} {time} · tidak ada di jadwal SIX", en: "{date} {time} · not on SIX's timetable" },
+  "home.change.meeting.body": { id: "{dateId} {time} · tidak ada di jadwal SIX", en: "{dateEn} {time} · not on SIX's timetable" },
 
   // Alerts: changes EduNex never announces
   "alert.taskEdited": { id: "Tugas diubah · {course}", en: "Task edited · {course}" },
@@ -82,6 +84,7 @@ export const homeStrings = {
   "alert.taskEdited.afterSubmit.body": { id: "{title} · cek apakah perlu dikumpulkan ulang", en: "{title} · check whether to hand it in again" },
   "alert.materialToday": { id: "Materi untuk kuliah hari ini · {course}", en: "Material for today's class · {course}" },
   "alert.materialToday.body": { id: "{title} · kuliah {time}", en: "{title} · class at {time}" },
-  "settings.alerts.changes": { id: "Perubahan", en: "Changes" },
-  "settings.alerts.changesHint": { id: "Tugas diubah dosen, terutama setelah kamu kumpulkan", en: "Tasks the lecturer edits, above all after you hand in" },
+  // The whole "changes" group: Task edits, and Jadwal's moved, extra and overlapping classes and meetings outside SIX.
+  "settings.alerts.changes": { id: "Ada perubahan", en: "Something changed" },
+  "settings.alerts.changesHint": { id: "Ruang/jam pindah, tugas diubah, pertemuan baru", en: "Room or time moved, task edited, meeting added" },
 } as const satisfies Record<string, Entry>;

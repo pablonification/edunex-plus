@@ -2,8 +2,10 @@
 // pretend EduNex, SIX and ITB calendar on a fake clock: what each provider
 // raises, in which band, with which action and sources, and the ranking.
 import { describe, expect, it } from "vitest";
-import { type HomeWorld, type Need, type NeedProvider, needsYou, PROVIDERS } from "../../src/core/needs";
+import { type HomeWorld, type Need, type NeedProvider, needsYou, PROVIDERS, recentChanges, slotChange } from "../../src/core/needs";
+import { translate } from "../../src/core/strings";
 import { wib } from "../pretend/edunex";
+import { PretendWorld } from "../pretend/world";
 import { startHome } from "./needs-harness";
 
 const at = (iso: string) => Date.parse(`${iso}+07:00`);
@@ -116,6 +118,92 @@ describe("a class moved", () => {
     // Within the hour it's "now": time to go.
     await h.until("2026-10-15T09:10:00+07:00");
     expect(find(needsYou(h.home()), "class:2194343")).toMatchObject({ band: "now" });
+  });
+});
+
+describe("exams", () => {
+  it("an exam within the week, with when and where; SIX and EduNex disagreeing on its date makes it soon", async () => {
+    // Friday 9 October: DK4073's UTS is in class on Thursday 15 October (SIX), its take-home part due 22 October (EduNex).
+    const h = await startHome({ now: "2026-10-09T10:00:00+07:00" });
+    const uts = find(needsYou(h.home()), "exam:DK4073-UTS");
+    expect(uts).toMatchObject({ kind: "exam", band: "soon", course: "DK4073", at: at("2026-10-15T11:00:00"), disagree: true, sources: ["six", "edunex"] });
+    expect(uts).toMatchObject({ sitting: { start: at("2026-10-15T11:00:00"), end: at("2026-10-15T12:59:00"), room: "TVST C", source: "six" } });
+    expect(uts?.action).toEqual({ kind: "go", route: { screen: "exam", examId: "DK4073-UTS" } });
+  });
+
+  it("the morning of the exam it's now, and the class item never speaks for it; once it's over it's gone", async () => {
+    const h = await startHome({ now: "2026-10-15T10:30:00+07:00" });
+    const needs = needsYou(h.home());
+    expect(find(needs, "exam:DK4073-UTS")).toMatchObject({ band: "now" });
+    expect(find(needs, "class:2179909")).toBeUndefined();
+    await h.until("2026-10-15T13:00:00+07:00");
+    expect(find(needsYou(h.home()), "exam:DK4073-UTS")).toBeUndefined();
+  });
+
+  it("an exam only EduNex dates (an online quiz) is one too, on EduNex", async () => {
+    const h = await startHome({ now: "2026-10-19T09:00:00+07:00" });
+    const quiz = { id: "9001", courseId: 95001, title: "Kuis 2", start: at("2026-10-20T19:00:00"), end: at("2026-10-20T20:00:00") };
+    expect(find(needsYou({ ...h.home(), exams: { PL3002: [quiz] } }), "exam:PL3002-KUIS-e9001")).toMatchObject({
+      band: "soon",
+      sources: ["edunex"],
+      sitting: { start: quiz.start, end: quiz.end, room: null, source: "edunex" },
+      action: { kind: "go", route: { screen: "exam", examId: "PL3002-KUIS-e9001" } },
+    });
+  });
+
+  it("an exam SIX and EduNex agree on is coming up within the week, and not before", async () => {
+    // KU5014's class on Thursday 22 October becomes its UTS.
+    const world = new PretendWorld({ now: "2026-10-14T12:00:00+07:00" });
+    world.six.editPage(/\/kelas\/jadwal\/mahasiswa\/\d+$/, (html) => html.replace(/(<div title="[^"]*\()Kuliah(\)"><a [^>]*?pertemuan\/2185660\/[\s\S]*?\()Kuliah 9134\)/, "$1UTS$2UTS 9134)"));
+    const h = await startHome({ world });
+    expect(find(needsYou(h.home()), "exam:KU5014-UTS")).toBeUndefined();
+    await h.until("2026-10-16T09:00:00+07:00");
+    expect(find(needsYou(h.home()), "exam:KU5014-UTS")).toMatchObject({ band: "later", disagree: false, sources: ["six"], sitting: { room: "9134" } });
+  });
+});
+
+describe("an extra meeting", () => {
+  it("is never called a class that moved, on another day or the same day; one standing in for the week's usual meeting is", async () => {
+    const h = await startHome();
+    const schedule = h.home().schedule!;
+    // PL3002 usually meets Thursdays 08:00–09:30 in R.SG PWK LT.6.
+    const usual = schedule.find((s) => s.id === "2194343")!;
+    const meeting = (id: string, start: string, end: string, room: string) => ({ ...usual, id, start: at(start), end: at(end), room });
+    const friday = meeting("x1", "2026-10-16T13:00:00", "2026-10-16T14:30:00", "9009");
+    const afternoon = meeting("x2", "2026-10-22T13:00:00", "2026-10-22T14:30:00", "R.SG PWK LT.6");
+    expect(slotChange(friday, [...schedule, friday])).toBeNull();
+    expect(slotChange(afternoon, [...schedule, afternoon])).toBeNull();
+    // Without Thursday's meeting that week, Friday's stands in for it: moved, with the usual slot on its own day.
+    const standIn = [...schedule.filter((s) => s.id !== "2194343"), friday];
+    expect(slotChange(friday, standIn)).toEqual({ usualStart: at("2026-10-15T08:00:00"), usualEnd: at("2026-10-15T09:30:00"), usualRoom: "R.SG PWK LT.6" });
+    // "What changed" names the usual day, in each language.
+    const [moved] = recentChanges({ ...h.home(), now: at("2026-10-12T08:00:00"), schedule: standIn }, []).filter((a) => a.id.startsWith("schedule.moved:x1:"));
+    expect(translate("id", moved.body!.key, moved.body!.vars)).toBe("Jum, 16 Okt 13:00–14:30 · biasanya Kamis 08:00–09:30");
+    expect(translate("en", moved.body!.key, moved.body!.vars)).toBe("Fri, 16 Oct 13:00–14:30 · usually Thursday 08:00–09:30");
+  });
+});
+
+describe("what changed", () => {
+  it("a class SIX moves, or a meeting announced outside SIX, is one change, though it's both an alert and something Beranda sees itself", async () => {
+    const h = await startHome();
+    // DK4073 usually meets Thursdays 11:00–12:59 in TVST C: today's meeting moves to the afternoon in 9009.
+    h.world.six.moveMeeting("2153983", "13:00", "14:59", "9009");
+    h.world.edunex.postAnnouncement(95326, { announcement: "Pertemuan 05: Jumat, 23 Oktober 2026 Pkl. 13:00 - 15:00 WIB" });
+    await h.refresh();
+    const history = h.dataset("app.alerts")?.items ?? [];
+    expect(history.filter((a) => a.kind === "scheduleChanged" || a.kind === "meeting")).toHaveLength(2);
+    const changes = recentChanges(h.home(), history);
+    expect(changes.filter((a) => a.kind === "scheduleChanged" && a.title.vars?.course === "DK4073")).toHaveLength(1);
+    expect(changes.filter((a) => a.kind === "meeting" && a.id.endsWith(`:${at("2026-10-23T13:00:00")}`))).toHaveLength(1);
+  });
+
+  it("reminders aren't changes: the evening-before exam alert and the weekly overlap alert stay out", async () => {
+    // Sunday evening before UTS week; by Thursday both reminders have gone out.
+    const h = await startHome({ now: "2026-10-11T20:00:00+07:00" });
+    await h.until("2026-10-15T09:00:00+07:00");
+    const history = h.dataset("app.alerts")?.items ?? [];
+    expect(history.map((a) => translate("id", a.title.key, a.title.vars))).toEqual(expect.arrayContaining(["UTS besok · DK4073", "Kelas bentrok · KU5014 dan PL3032"]));
+    expect(recentChanges(h.home(), history).filter((a) => a.kind === "exam" || a.title.key === "alert.overlap")).toEqual([]);
   });
 });
 

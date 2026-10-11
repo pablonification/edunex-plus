@@ -2,8 +2,9 @@
 // timetable gives the official time and room, EduNex Presence the window and
 // what EduNex recorded, and meetings announced only in EduNex text ("Pertemuan
 // 03: Jumat, 09 Oktober 2026 Pkl. 15:00 - 17:00 WIB") join in, marked when
-// SIX's timetable for that month doesn't list them. Nothing here ever calls a
-// meeting an absence: SIX may count what EduNex didn't record.
+// SIX's timetable for that month, read from its own page, doesn't list them.
+// Nothing here ever calls a meeting an absence: SIX may count what EduNex
+// didn't record.
 import { htmlText, materialKind } from "./course-materials";
 import type { Announcement, ClassSession, Material, PresenceSession } from "./models";
 
@@ -51,7 +52,11 @@ function wib(year: number, month: number, day: number, hour: number, minute: num
 export const wibDay = (ms: number) => new Date(ms + 7 * HOUR).toISOString().slice(0, 10);
 const wibMonth = (ms: number) => wibDay(ms).slice(0, 7);
 
-/** Meetings the lecturer announced in a text material or an announcement, with the link posted for each. */
+/**
+ * Meetings the lecturer announced in a text material or an announcement,
+ * with the link posted for each: one per meeting number ("Pertemuan 03"),
+ * which is what identifies a meeting when the lecturer moves it.
+ */
 export function announcedMeetings(materials: readonly Material[], announcements: readonly Announcement[]): AnnouncedMeeting[] {
   const texts = [
     ...materials.filter((m) => materialKind(m.type) === "note" && m.content).map((m) => ({ text: htmlText(m.content ?? ""), at: m.updatedAt ?? m.postedAt ?? 0 })),
@@ -66,11 +71,11 @@ export function announcedMeetings(materials: readonly Material[], announcements:
       const start = wib(Number(year), month, Number(day), Number(h1), Number(m1));
       const end = wib(Number(year), month, Number(day), Number(h2), Number(m2));
       if (start === null || end === null || end <= start) continue;
-      // The latest text about a meeting wins: lecturers correct the schedule in place.
-      const previous = found.get(start);
+      // The latest text about a meeting wins: lecturers correct the schedule in place, or post the new time again.
+      const previous = found.get(Number(number));
       if (previous && previous.at > at) continue;
       const cleanNote = note?.trim() || null;
-      found.set(start, { number: Number(number), start, end, note: cleanNote, online: /online|daring|teams|zoom|meet|webex/i.test(cleanNote ?? ""), link: null, at });
+      found.set(Number(number), { number: Number(number), start, end, note: cleanNote, online: /online|daring|teams|zoom|meet|webex/i.test(cleanNote ?? ""), link: null, at });
     }
   }
   const vicons = materials.filter((m) => materialKind(m.type) === "vicon" && m.content).sort((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0));
@@ -93,7 +98,7 @@ export interface Meeting {
   six: ClassSession | null;
   presence: PresenceSession | null;
   announced: AnnouncedMeeting | null;
-  /** SIX's timetable covers that month and doesn't list this meeting. */
+  /** SIX's timetable for that month was read (from its own page) and doesn't list this meeting. */
   notInSix: boolean;
 }
 
@@ -119,8 +124,16 @@ export function meetingState(meeting: Meeting, now: number): MeetingState {
  * One course's meetings in time order. SIX's sessions join EduNex's Presence
  * sessions of the same day (the most overlapping one); `sixSessions` is SIX's
  * whole timetable (every course), or null while SIX isn't connected.
+ * `sixMonths` are the months whose own timetable page was read ("2026-10"):
+ * only there can a meeting be missing from SIX.
  */
-export function courseMeetings(code: string, presence: readonly PresenceSession[], sixSessions: readonly ClassSession[] | null, announced: readonly AnnouncedMeeting[]): Meeting[] {
+export function courseMeetings(
+  code: string,
+  presence: readonly PresenceSession[],
+  sixSessions: readonly ClassSession[] | null,
+  announced: readonly AnnouncedMeeting[],
+  sixMonths: readonly string[] = [],
+): Meeting[] {
   const meetings: Meeting[] = presence.map((p) => ({ key: `p${p.id}`, start: p.start, end: p.end, six: null, presence: p, announced: null, notInSix: false }));
   const overlap = (m: Meeting, start: number, end: number) => Math.min(m.end, end) - Math.max(m.start, start);
   for (const session of (sixSessions ?? []).filter((s) => s.courseCode === code)) {
@@ -134,8 +147,8 @@ export function courseMeetings(code: string, presence: readonly PresenceSession[
     if (match) match.announced = item;
     else meetings.push({ key: `a${item.start}`, start: item.start, end: item.end, six: null, presence: null, announced: item, notInSix: false });
   }
-  const covered = new Set((sixSessions ?? []).map((s) => wibMonth(s.start)));
-  for (const meeting of meetings) meeting.notInSix = !meeting.six && covered.has(wibMonth(meeting.start));
+  const read = new Set(sixSessions ? sixMonths : []);
+  for (const meeting of meetings) meeting.notInSix = !meeting.six && read.has(wibMonth(meeting.start));
   return meetings.sort((a, b) => a.start - b.start || a.key.localeCompare(b.key));
 }
 

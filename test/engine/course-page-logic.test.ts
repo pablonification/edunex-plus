@@ -37,13 +37,28 @@ describe("meetings", () => {
     ]);
   });
 
+  it("one meeting per number: when the lecturer posts a new time, the latest text wins", () => {
+    const post = (id: number, text: string, postedAt: string) => ({ id, courseId: 95326, text, author: null, postedAt: at(postedAt) });
+    const found = announcedMeetings(
+      [],
+      [
+        post(2, "Pertemuan 03: Sabtu, 10 Oktober 2026 Pkl. 09:00 - 11:00 WIB", "2026-10-05T10:00:00+07:00"),
+        post(1, "Pertemuan 03: Jumat, 09 Oktober 2026 Pkl. 15:00 - 17:00 WIB\nPertemuan 04: Jumat, 16 Oktober 2026 Pkl. 15:00 - 17:00 WIB", "2026-10-01T10:00:00+07:00"),
+      ],
+    );
+    expect(found.map((m) => [m.number, m.start])).toEqual([
+      [3, at("2026-10-10T09:00:00+07:00")],
+      [4, at("2026-10-16T15:00:00+07:00")],
+    ]);
+  });
+
   it("SIX gives the time and room; a meeting only EduNex text announces is marked not in SIX", async () => {
     const h = await signedIn();
     const presence = h.dataset("edunex.presence")!.II4091;
     const announced = announcedMeetings(h.dataset("edunex.materials")!.II4091, h.dataset("edunex.announcements")!.II4091);
     // SIX lists October's Friday meeting at 15:00–17:00 in room 7602 (EduNex's Presence runs to 23:59).
     const six = [sixSession("2026-10-16T15:00:00+07:00", "2026-10-16T17:00:00+07:00")];
-    const meetings = courseMeetings("II4091", presence, six, announced);
+    const meetings = courseMeetings("II4091", presence, six, announced, ["2026-10"]);
     const oct16 = meetings.find((m) => m.presence?.start === at("2026-10-16T15:00:00+07:00"))!;
     expect(oct16).toMatchObject({ start: at("2026-10-16T15:00:00+07:00"), end: at("2026-10-16T17:00:00+07:00"), notInSix: false });
     expect(oct16.six?.room).toBe("7602");
@@ -52,7 +67,7 @@ describe("meetings", () => {
     // SIX's September isn't known here, so September's announced meeting isn't called missing from it.
     expect(meetings.find((m) => m.announced?.number === 2)!.notInSix).toBe(false);
     // Without SIX nothing is "not in SIX".
-    expect(courseMeetings("II4091", presence, null, announced).some((m) => m.notInSix)).toBe(false);
+    expect(courseMeetings("II4091", presence, null, announced, ["2026-10"]).some((m) => m.notInSix)).toBe(false);
   });
 
   it("never calls a meeting missed: an unmarked one stays 'not marked in EduNex', a future one 'upcoming'", async () => {

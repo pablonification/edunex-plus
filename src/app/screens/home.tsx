@@ -94,6 +94,8 @@ function useHomeWorld(courses: TermCourse[] | undefined): HomeWorld | undefined 
   const materials = useDataset("edunex.materials");
   const announcements = useDataset("edunex.announcements");
   const schedule = useDataset("six.schedule");
+  const scheduleMonths = useDataset("six.scheduleMonths");
+  const exams = useDataset("edunex.exams");
   const calendar = useDataset("itb.calendar");
   const term = useTerm();
   const { attendanceTarget } = useSettings();
@@ -110,9 +112,11 @@ function useHomeWorld(courses: TermCourse[] | undefined): HomeWorld | undefined 
       materials: materials ?? {},
       announcements: announcements ?? {},
       schedule: schedule ?? null,
+      scheduleMonths,
+      exams,
       calendar,
     };
-  }, [courses, tasks, presence, materials, announcements, schedule, calendar, term, attendanceTarget, now]);
+  }, [courses, tasks, presence, materials, announcements, schedule, scheduleMonths, exams, calendar, term, attendanceTarget, now]);
 }
 
 const colorOf = (courses: readonly TermCourse[], code: string | null) => courses.find((course) => course.code === code)?.color ?? "var(--faint)";
@@ -216,7 +220,7 @@ function useNeedView(): (need: Need) => NeedView {
               action,
               need.activity === "assignment" ? need.session.note : null,
               need.class ? t("home.need.presence.class", { time: f.time(need.class.end), room: need.class.room ?? "–" }) : null,
-              need.classMoved ? t("home.need.class.usual", { usual: movedFrom(f, need.classMoved) }) : null,
+              need.classMoved && need.class ? t("home.need.class.usual", { usual: movedFrom(f, need.classMoved, need.class.start) }) : null,
               need.countedIn === "six" ? t("presence.open.alsoSix") : null,
             ].filter((part): part is string => !!part),
             when: t("home.need.presence.closes", { time: f.time(need.session.closesAt) }),
@@ -251,7 +255,7 @@ function useNeedView(): (need: Need) => NeedView {
           title,
           detail: [
             `${f.timeRange(session.start, session.end)}${session.room ? ` · ${session.room}` : ""}`,
-            need.moved ? t("home.need.class.usual", { usual: movedFrom(f, need.moved) }) : null,
+            need.moved ? t("home.need.class.usual", { usual: movedFrom(f, need.moved, session.start) }) : null,
             need.countedIn !== "unknown" ? t(`home.countedIn.${need.countedIn}`) : null,
             need.health && need.state !== "unknown" ? budgetLabel(t, need.health, attendanceTarget) : null,
           ].filter((part): part is string => !!part),
@@ -289,6 +293,23 @@ function useNeedView(): (need: Need) => NeedView {
           detail: [t(health.state === "out" ? "alert.attendance.out.body" : "alert.attendance.none.body", vars)],
           when: null,
           button: t("home.action.seeAttendance"),
+        };
+      }
+      case "exam": {
+        const { exam, sitting } = need;
+        const offset = f.dayOffset(sitting.start);
+        const day = offset === 0 || offset === 1 ? f.relativeDay(sitting.start).toLowerCase() : f.relativeDay(sitting.start);
+        const time = sitting.end !== null ? f.timeRange(sitting.start, sitting.end) : f.time(sitting.start);
+        return {
+          icon: <Icons.GraduationCap className="size-4" />,
+          live: sitting.start <= now && now < (sitting.end ?? sitting.start),
+          title: t("home.need.exam", { kind: t(`exam.kind.${exam.kind}`), course: need.course ?? "", day, time }),
+          detail: [
+            sitting.source === "six" ? (sitting.room ? t("home.need.exam.room", { room: sitting.room }) : t("exam.noRoom")) : t("exam.onEdunex"),
+            need.disagree ? t("exam.disagree") : null,
+          ].filter((part): part is string => !!part),
+          when: f.fromNow(sitting.start),
+          button: t("exam.prepare"),
         };
       }
       case "meeting": {
@@ -423,9 +444,11 @@ function Attendance({ course }: { course: TermCourse }) {
   );
 }
 
-/** "08:00–09:30" or the usual room, for a class that moved. */
-function movedFrom(f: Format, moved: NonNullable<ClassFacts["moved"]>): string {
-  return moved.usualStart !== null && moved.usualEnd !== null ? f.timeRange(moved.usualStart, moved.usualEnd) : (moved.usualRoom ?? "");
+/** "08:00–09:30", with the weekday when the usual slot is on another day ("Kamis 08:00–09:30"), or the usual room, for a class that moved. */
+function movedFrom(f: Format, moved: NonNullable<ClassFacts["moved"]>, at: number): string {
+  if (moved.usualStart === null || moved.usualEnd === null) return moved.usualRoom ?? "";
+  const time = f.timeRange(moved.usualStart, moved.usualEnd);
+  return f.dayOffset(moved.usualStart) === f.dayOffset(at) ? time : `${f.weekday(moved.usualStart)} ${time}`;
 }
 
 function NeedRow({ need, first, color }: { need: Need; first: boolean; color: string }) {
@@ -561,7 +584,7 @@ function ClassRow({ item, first, course }: { item: ClassFacts; first: boolean; c
             {item.health && item.state !== "unknown" && <span className={cx("font-semibold", STATE_TONE[item.state])}>{budgetLabel(t, item.health, attendanceTarget)}</span>}
             {item.moved && (
               <span className="font-semibold text-warning-fg">
-                {item.moved.usualStart !== null ? t("home.today.changed", { usual: movedFrom(f, item.moved) }) : t("home.today.roomChanged", { room: item.moved.usualRoom ?? "" })}
+                {item.moved.usualStart !== null ? t("home.today.changed", { usual: movedFrom(f, item.moved, session.start) }) : t("home.today.roomChanged", { room: item.moved.usualRoom ?? "" })}
               </span>
             )}
           </span>

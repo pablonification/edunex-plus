@@ -133,10 +133,11 @@ function SettingsBody({ onSignedOutOfEverything, onShowFirstScan }: { onSignedOu
 const ALERT_ROWS: { group: AlertGroup; label: StringKey; hint: StringKey }[] = [
   { group: "presence", label: "settings.alerts.presence", hint: "settings.alerts.presenceHint" },
   { group: "attendanceRisk", label: "settings.alerts.attendanceRisk", hint: "settings.alerts.attendanceRiskHint" },
+  { group: "changes", label: "settings.alerts.changes", hint: "settings.alerts.changesHint" },
+  { group: "exams", label: "settings.alerts.exams", hint: "settings.alerts.examsHint" },
   { group: "deadline", label: "settings.alerts.deadline", hint: "settings.alerts.deadlineHint" },
   { group: "newTask", label: "settings.alerts.newTask", hint: "settings.alerts.newTaskHint" },
   { group: "newMaterial", label: "settings.alerts.newMaterial", hint: "settings.alerts.newMaterialHint" },
-  { group: "changes", label: "settings.alerts.changes", hint: "settings.alerts.changesHint" },
   { group: "grade", label: "settings.alerts.grade", hint: "settings.alerts.gradeHint" },
   { group: "krs", label: "settings.alerts.krs", hint: "settings.alerts.krsHint" },
   { group: "bill", label: "settings.alerts.bill", hint: "settings.alerts.billHint" },

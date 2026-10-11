@@ -1,109 +1,45 @@
-// The exams the app knows of, read from the raw sources merged so far:
-// SIX's timetable sessions whose activity is UTS or UAS (time and room),
-// EduNex's exams per course and its take-home UTS Tasks, and a UTS or UAS
-// module in a course's EduNex outline, dated by ITB's exam week when no
-// system dates that exam. Quick search and the first-run scan read exams only
-// through here, so both move to the shared exam list (exams in one place) by
-// changing this one file.
-import type { AcademicCalendar, CalendarEvent, ClassSession, CourseModule, EdunexExam, Task } from "./models";
+// The exams quick search and the first-run scan know of: the shared exam list
+// (exams in one place, src/core/exams.ts) over what is saved, so the scan,
+// search and Tugas & Ujian always count the same exams.
+import { type Exam, mergeExams } from "./exams";
 import type { Route } from "./route";
-import { inTerm, type Saved, termCourses } from "./saved";
+import { type Saved, termCourses } from "./saved";
 
-export type ExamKind = "UTS" | "UAS";
+/** When an exam is: the earliest date a system gives, else ITB's exam week for it. */
+export const examTime = (exam: Exam): number | null => exam.at ?? exam.week?.start ?? null;
 
-interface ExamBase {
-  /** Unique: "six:2179909", "edunex:31", "task:117764", "outline:473251". */
-  key: string;
-  code: string;
-  /** UTS or UAS when the source says which. */
-  kind: ExamKind | null;
-  /** When it starts or is due (ms); null when nothing dates it. */
-  at: number | null;
-  /** When it's over (ms); null when unknown. */
-  until: number | null;
+/** This term's exams, soonest first (undated ones last). */
+export function examsFound(saved: Saved, now: number): Exam[] {
+  return mergeExams({
+    schedule: saved["six.schedule"],
+    edunexExams: saved["edunex.exams"],
+    tasks: saved["edunex.tasks"],
+    outline: saved["edunex.outline"],
+    calendar: saved["itb.calendar"],
+    term: saved["six.student"]?.term ?? saved["edunex.courses"]?.[0]?.term ?? null,
+    courses: termCourses(saved).map((course) => course.code),
+    now,
+  }).sort((a, b) => (examTime(a) ?? Number.MAX_SAFE_INTEGER) - (examTime(b) ?? Number.MAX_SAFE_INTEGER) || a.courseCode.localeCompare(b.courseCode));
 }
 
-export type FoundExam = ExamBase &
-  (
-    | { source: "six"; session: ClassSession }
-    | { source: "edunex"; exam: EdunexExam }
-    | { source: "task"; task: Task }
-    /** `week`: ITB's UTS or UAS week for the term, when the calendar has it. */
-    | { source: "outline"; module: CourseModule; week: CalendarEvent | null }
+/**
+ * Still ahead of the Student while some part of it is: a SIX sitting not over
+ * yet, an EduNex exam not over, a take-home not handed in and not past due.
+ * An exam no system dates is ahead until ITB's exam week for it is over.
+ */
+export function examAhead(exam: Exam, now: number): boolean {
+  const dated = exam.six.length + exam.edunex.length + exam.tasks.length > 0;
+  if (!dated) return exam.week === null || exam.week.end > now;
+  return (
+    exam.six.some((session) => session.end > now) ||
+    exam.edunex.some((e) => (e.end ?? e.start ?? Number.MAX_SAFE_INTEGER) > now) ||
+    exam.tasks.some((task) => !task.answer?.sent && (task.dueAt === null || task.dueAt > now))
   );
-
-/** UTS or UAS, as SIX, EduNex or a lecturer names it ("Midex/UTS", "Ujian Akhir Semester"). */
-export function examKind(text: string): ExamKind | null {
-  if (/\bUTS\b|ujian tengah semester|\bmid-?term\b/i.test(text)) return "UTS";
-  if (/\bUAS\b|ujian akhir semester|\bfinal exam\b/i.test(text)) return "UAS";
-  return null;
 }
 
-/** ITB's UTS or UAS week of a term; else the next one still to come that the calendar ties to no term. */
-export function examWeek(calendar: AcademicCalendar | undefined, kind: ExamKind, term: string | null, now: number): CalendarEvent | null {
-  const weeks = (calendar?.events ?? []).filter((event) => event.kind === kind.toLowerCase());
-  const ofTerm = term ? weeks.find((event) => event.term === term) : undefined;
-  if (ofTerm) return ofTerm;
-  return weeks.filter((event) => (term === null || event.term === null) && event.end > now).sort((a, b) => a.start - b.start)[0] ?? null;
-}
+/** Only a take-home exam (an EduNex Task), with no sitting in SIX or EduNex. */
+export const takeHomeOnly = (exam: Exam) => exam.six.length === 0 && exam.edunex.length === 0 && exam.tasks.length > 0;
 
-/** Every exam of this term's courses, past ones too, the soonest first and the undated last. */
-export function examsFound(saved: Saved, now: number): FoundExam[] {
-  const known = inTerm(termCourses(saved));
-  const found: FoundExam[] = [];
-  /** "code|UTS": exams some system dates. An outline's exam module only stands in for a missing one. */
-  const dated = new Set<string>();
-
-  for (const session of saved["six.schedule"] ?? []) {
-    const kind = examKind(session.activity);
-    if (!kind || !known(session.courseCode)) continue;
-    dated.add(`${session.courseCode}|${kind}`);
-    found.push({ source: "six", key: `six:${session.id}`, code: session.courseCode, kind, at: session.start, until: session.end, session });
-  }
-  for (const [code, exams] of Object.entries(saved["edunex.exams"] ?? {})) {
-    if (!known(code)) continue;
-    for (const exam of exams) {
-      const kind = examKind(exam.title ?? "");
-      if (kind) dated.add(`${code}|${kind}`);
-      found.push({ source: "edunex", key: `edunex:${exam.id}`, code, kind, at: exam.start, until: exam.end ?? exam.start, exam });
-    }
-  }
-  for (const task of saved["edunex.tasks"] ?? []) {
-    if (task.kind !== "uts" || !known(task.courseCode)) continue;
-    dated.add(`${task.courseCode}|UTS`);
-    found.push({ source: "task", key: `task:${task.id}`, code: task.courseCode, kind: "UTS", at: task.dueAt, until: task.dueAt, task });
-  }
-
-  const term = saved["six.student"]?.term ?? saved["edunex.courses"]?.[0]?.term ?? null;
-  for (const [code, outline] of Object.entries(saved["edunex.outline"] ?? {})) {
-    if (!known(code)) continue;
-    for (const kind of ["UTS", "UAS"] as const) {
-      const module = outline.modules.find((m) => examKind(m.title) === kind);
-      if (!module || dated.has(`${code}|${kind}`)) continue;
-      const week = examWeek(saved["itb.calendar"], kind, term, now);
-      found.push({ source: "outline", key: `outline:${module.id}`, code, kind, at: week?.start ?? null, until: week?.end ?? null, module, week });
-    }
-  }
-
-  return found.sort((a, b) => (a.at ?? Number.MAX_SAFE_INTEGER) - (b.at ?? Number.MAX_SAFE_INTEGER) || a.code.localeCompare(b.code));
-}
-
-/** Still ahead of the Student: not over yet (or not dated), and a take-home UTS not handed in. */
-export function examAhead(exam: FoundExam, now: number): boolean {
-  if (exam.source === "task" && exam.task.answer?.sent) return false;
-  return exam.until === null || exam.until > now;
-}
-
-/** Where an exam shows today: its course's meetings (SIX), its course's Tasks and exams (EduNex), its Task, or its outline. */
-export function examRoute(exam: FoundExam): Route {
-  switch (exam.source) {
-    case "six":
-      return { screen: "course", code: exam.code, tab: "meetings" };
-    case "edunex":
-      return { screen: "course", code: exam.code, tab: "tasks" };
-    case "task":
-      return { screen: "task", taskId: exam.task.id };
-    case "outline":
-      return { screen: "course", code: exam.code, tab: "modules" };
-  }
+export function examRoute(exam: Exam): Route {
+  return { screen: "exam", examId: exam.id };
 }

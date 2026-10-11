@@ -4,6 +4,7 @@
 // once (a setting remembers) and only with something to say; Settings opens
 // it again. The findings come from src/core/first-scan.ts.
 import { Component, type ComponentType, type ReactNode, useEffect, useId, useMemo, useRef } from "react";
+import { takeHomeOnly } from "../../core/exam-sources";
 import { type Finding, firstScan, notable, scanReady, scanSummary } from "../../core/first-scan";
 import type { DatasetName } from "../../core/models";
 import type { Route } from "../../core/route";
@@ -25,6 +26,7 @@ const SCANNED: readonly DatasetName[] = [
   "six.student",
   "six.courses",
   "six.schedule",
+  "six.scheduleMonths",
   "six.transcript",
   "six.progress",
   "six.krs",
@@ -281,15 +283,17 @@ function describe(finding: Finding, t: Translate, f: Format, target: number): { 
         lines: few(
           finding.exams,
           (exam) => {
-            if (exam.source === "task") return exam.at === null ? t("scan.exams.noDate", { name: t("task.uts"), code: exam.code }) : t("scan.exams.takeHome", { code: exam.code, when: `${day(f, exam.at)}, ${f.time(exam.at)}` });
-            if (exam.source === "outline")
-              return exam.week
-                ? t("scan.exams.week", { kind: exam.kind ?? "", code: exam.code, range: dayRange(f, exam.week.firstDay, exam.week.lastDay) })
-                : t("scan.exams.noDate", { name: exam.kind ?? "", code: exam.code });
-            const name = exam.source === "six" ? (exam.kind ?? exam.session.activity) : (exam.exam.title ?? t("course.examUntitled"));
-            if (exam.at === null) return t("scan.exams.noDate", { name, code: exam.code });
-            const room = exam.source === "six" && exam.session.room ? ` · ${exam.session.room}` : "";
-            return `${t("scan.exams.at", { name, code: exam.code, when: `${day(f, exam.at)}, ${f.time(exam.at)}` })}${room}`;
+            const code = exam.courseCode;
+            const kind = t(`exam.kind.${exam.kind}`);
+            const disagree = exam.disagree ? ` · ${t("exam.disagree")}` : "";
+            const session = exam.six[0];
+            if (session) return `${t("scan.exams.at", { name: kind, code, when: `${day(f, session.start)}, ${f.time(session.start)}` })}${session.room ? ` · ${session.room}` : ""}${disagree}`;
+            if (exam.at !== null) {
+              if (takeHomeOnly(exam)) return t("scan.exams.takeHome", { code, when: `${day(f, exam.at)}, ${f.time(exam.at)}` });
+              return `${t("scan.exams.at", { name: exam.edunex[0]?.title ?? kind, code, when: `${day(f, exam.at)}, ${f.time(exam.at)}` })}${disagree}`;
+            }
+            if (exam.week) return t("scan.exams.week", { kind, code, range: dayRange(f, exam.week.firstDay, exam.week.lastDay) });
+            return t("scan.exams.noDate", { name: kind, code });
           },
           t,
         ),

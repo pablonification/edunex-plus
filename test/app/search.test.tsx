@@ -62,7 +62,7 @@ describe("quick search", () => {
         "Ekonomi Infrastruktur dan Transportasi",
       ],
       // Jadwal isn't built yet, so it isn't offered.
-      ["Buka", "Beranda", "Tugas & Ujian", "Presensi", "Nilai", "Rencana studi", "Pengaturan"],
+      ["Buka", "Beranda", "Tugas & Ujian", "Jadwal", "Presensi", "Nilai", "Rencana studi", "Pengaturan"],
     ]);
     // Each row says its course by code (its color is the mark beside it) and what it is.
     expect(activeRow()).toBe("Tugas 02 Bab IIII4091 · Belum dikerjakan · tenggat Jum, 16 Okt, 23:59");
@@ -104,16 +104,15 @@ describe("quick search", () => {
     expect(document.querySelector("[role=tab][data-state=active]")?.textContent).toMatch(/^Modul/);
   });
 
-  it("an exam opens where it shows: SIX's UTS on its course's meetings", async () => {
+  it("an exam opens its exam page: SIX's sitting and EduNex's take-home are one UTS", async () => {
     screen = await openApp({ signedIn: true, six: true });
     await commandK();
     await type("uts komunikasi");
-    // Both of Komunikasi Pemasaran's: SIX's session first (its own name matches), then EduNex's take-home.
-    expect(groups()[0]).toEqual(["Ujian", "UTS Komunikasi Pemasaran", "UTS Markom"]);
+    expect(groups()[0]).toEqual(["Ujian", "UTS Komunikasi Pemasaran"]);
     expect(activeRow()).toBe("UTS Komunikasi PemasaranDK4073 · Kam, 15 Okt, 11:00–12:59 · TVST C");
     await press("Enter");
     expect(h1()).toBe("Komunikasi Pemasaran");
-    expect(document.querySelector("[role=tab][data-state=active]")?.textContent).toMatch(/^Pertemuan/);
+    expect(document.querySelector("main")?.textContent).toContain("TVST C");
   });
 
   it("reaches Rencana studi's tabs and Settings by name", async () => {
@@ -163,11 +162,11 @@ describe("quick search", () => {
     await commandK();
     await type("markom");
     expect(groups()).toEqual([
-      ["Ujian", "UTS Markom"],
       ["Modul", "UTS Markom"],
+      ["Ujian", "UTS Komunikasi Pemasaran"],
     ]);
     await press("Enter");
-    expect(h1()).toBe("UTS Markom");
+    expect(h1()).toBe("Komunikasi Pemasaran");
   });
 
   it("speaks English", async () => {
