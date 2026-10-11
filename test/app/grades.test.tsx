@@ -107,6 +107,15 @@ describe("Nilai", () => {
     ]);
   });
 
+  it("each course's \"Butuh berapa?\" says which course, for a screen reader, and opens that course's grades", async () => {
+    const s = await openGrades();
+    const asks = [...document.querySelectorAll("main button")].filter((b) => b.textContent === "Butuh berapa?").map((b) => b.getAttribute("aria-label"));
+    expect(asks.length).toBeGreaterThan(1);
+    expect(new Set(asks).size).toBe(asks.length);
+    await s.click(asks[0]!);
+    expect(document.querySelector("main h1")?.textContent).not.toBe("Nilai");
+  });
+
   it("IPK at graduation with one positive honors line; the ladder stays in the planner", async () => {
     const s = await openGrades();
     expect(s.text()).toContain("IPK saat lulusPerkiraan, dari nilai perkiraanmu3,30Sangat memuaskanLulus Smt 8 · 2026/2027 Genap");
