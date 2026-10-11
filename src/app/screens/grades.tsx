@@ -373,12 +373,14 @@ function WithoutSix() {
   const f = useFormat();
   const courses = useTermCourses();
   const outline = useDataset("edunex.outline");
+  const anyGrade = courses?.some((c) => outline?.[c.code]?.grade) ?? false;
   return (
     <Page>
       <PageHeader title={t("nav.grades")} />
       <SixNeeded icon={<Icons.GraduationCap className="size-5" />} title={t("grades.needSix")} body={t("grades.needSixBody")} />
       {courses && courses.length > 0 && (
-        <Section id="edunex-term" title={t("grades.edunexTerm")} description={t("grades.edunexTermHint")}>
+        // With no grade published anywhere, that's said once above the list, not on every row.
+        <Section id="edunex-term" title={t("grades.edunexTerm")} description={t(anyGrade ? "grades.edunexTermHint" : "grades.edunexTermNoneHint")}>
           <List label={t("grades.edunexTerm")}>
             {courses.map((course, i) => {
               const grade = outline?.[course.code]?.grade ?? null;
@@ -388,7 +390,7 @@ function WithoutSix() {
                   index={i}
                   leading={<CourseCode code={course.code} color={course.color} className="w-[76px] text-small" />}
                   title={course.name}
-                  meta={grade ? t("grades.edunexGrade", { total: f.number(grade.total, 1), letter: grade.letter }) : t("grades.edunexNone")}
+                  meta={grade ? t("grades.edunexGrade", { total: f.number(grade.total, 1), letter: grade.letter }) : anyGrade ? t("grades.edunexNone") : undefined}
                   trailing={<span className="text-small font-medium text-accent-fg">{t("grades.whatNeed")}</span>}
                   onClick={() => nav.go({ screen: "course", code: course.code, tab: "grades" })}
                 />

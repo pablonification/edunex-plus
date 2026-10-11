@@ -69,6 +69,9 @@ describe("Nilai", () => {
     await screen.click("Nilai");
     expect(screen.text()).toContain("Transkrip & IPK butuh SIX");
     expect(screen.text()).toContain("Masuk ke SIX untuk melihat IPK, transkrip, dan perkiraan IPK saat lulus.");
+    // No grade published yet: said once, not on every course.
+    expect(screen.text()).toContain("Belum ada nilai yang dirilis");
+    expect(screen.text()).not.toContain("Nilai belum dirilis di EduNex");
     await screen.click("Masuk ke SIX");
     await screen.wait();
     expect(screen.store.status("six").state).toBe("live");
