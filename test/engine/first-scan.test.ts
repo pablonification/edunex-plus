@@ -41,7 +41,7 @@ describe("after the first full sync of EduNex and SIX", () => {
     const clash = of(findings, "clash")!;
     expect(clash).toMatchObject({
       count: 1,
-      tone: "danger",
+      tone: "warning",
       sources: ["six"],
       routes: [{ screen: "schedule" }, { screen: "plan", tab: "krs" }, { screen: "course", code: "KU5014", tab: "meetings" }],
     });
