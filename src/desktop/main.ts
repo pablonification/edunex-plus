@@ -10,6 +10,7 @@ import type { Settings } from "../core/models";
 import { translate } from "../core/strings";
 import { systemClock } from "../engine/clock";
 import { createEngine, type Engine } from "../engine/engine";
+import { alertsHandlers } from "./handlers/alerts";
 import { authHandlers } from "./handlers/auth";
 import type { DesktopContext } from "./handlers/context";
 import { coreHandlers } from "./handlers/core";
@@ -108,6 +109,7 @@ async function start(): Promise<void> {
     ...tasksHandlers(context),
     ...coursePageHandlers(context),
     ...sixHandlers(context),
+    ...alertsHandlers(context),
   };
   registerBridge({ window: () => window, isAppUrl, handlers });
   applySettings(current.snapshot().settings);

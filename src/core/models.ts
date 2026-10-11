@@ -2,6 +2,7 @@
 // builds them from vendor data; the renderer only ever sees these. Each area
 // keeps its models in its own file under ./models; this file joins them.
 import { z } from "zod";
+import { alertsDatasets } from "./models/alerts";
 import { coursePageDatasets } from "./models/course-page";
 import { edunexDatasets } from "./models/edunex";
 import { itbDatasets } from "./models/itb";
@@ -9,6 +10,7 @@ import { sixDatasets } from "./models/six";
 import { sixRecordsDatasets } from "./models/six-records";
 import { tasksDatasets } from "./models/tasks";
 
+export * from "./models/alerts";
 export * from "./models/base";
 export * from "./models/course-page";
 export * from "./models/edunex";
@@ -25,6 +27,7 @@ export const Datasets = {
   ...sixDatasets,
   ...sixRecordsDatasets,
   ...itbDatasets,
+  ...alertsDatasets,
 } as const satisfies Record<string, z.ZodType>;
 export type DatasetName = keyof typeof Datasets;
 export type DatasetValue<N extends DatasetName> = z.infer<(typeof Datasets)[N]>;

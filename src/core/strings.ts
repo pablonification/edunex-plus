@@ -4,6 +4,7 @@
 // filled by translate(). Academic terms follow the glossary in
 // docs/design-system.md: SKS, IPK, IP, KRS and UKT stay as they are.
 import type { Entry } from "./strings/entry";
+import { alertsStrings } from "./strings/alerts";
 import { coursePageStrings } from "./strings/course-page";
 import { itbStrings } from "./strings/itb";
 import { shellStrings } from "./strings/shell";
@@ -20,6 +21,7 @@ export const STRINGS = {
   ...sixStrings,
   ...sixRecordsStrings,
   ...itbStrings,
+  ...alertsStrings,
 } as const satisfies Record<string, Entry>;
 
 

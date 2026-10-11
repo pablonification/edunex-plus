@@ -3,6 +3,7 @@
 // sides check every message against these schemas. Each area keeps its
 // actions in its own file under ./actions; this file joins them.
 import { z } from "zod";
+import { alertsActions } from "./actions/alerts";
 import { coreActions } from "./actions/core";
 import { coursePageActions } from "./actions/course-page";
 import { sixActions } from "./actions/six";
@@ -23,6 +24,7 @@ export const Actions = {
   ...tasksActions,
   ...coursePageActions,
   ...sixActions,
+  ...alertsActions,
 } as const satisfies Record<string, { input: z.ZodType; output: z.ZodType }>;
 export type ActionName = keyof typeof Actions;
 export type ActionInput<N extends ActionName> = z.input<(typeof Actions)[N]["input"]>;
