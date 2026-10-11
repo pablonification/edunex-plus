@@ -835,8 +835,12 @@ export function attention(world: HomeWorld | HomeContext, card: NowCard | null =
 export function alertFeed(world: HomeWorld | HomeContext, history: readonly Alert[]): Alert[] {
   const seen = new Set<string>();
   const out: Alert[] = [];
-  for (const item of [...history, ...recentChanges(world, history)]) {
-    if (seen.has(item.id) || item.at > world.now) continue;
+  // A raised alert has happened, even when the screen's clock (it moves once a minute) hasn't caught up with it:
+  // a new Task's bell badge must never open onto a panel without it. Only changes read off the data wait for now.
+  const raised = history.map((item) => ({ item, due: true }));
+  const derived = recentChanges(world, history).map((item) => ({ item, due: item.at <= world.now }));
+  for (const { item, due } of [...raised, ...derived]) {
+    if (seen.has(item.id) || !due) continue;
     seen.add(item.id);
     out.push(item);
   }

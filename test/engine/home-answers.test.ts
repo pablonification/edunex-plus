@@ -121,4 +121,12 @@ describe("the bell and Yang berubah", () => {
     // Yang berubah lists changes only: a reminder isn't one.
     expect(recentChanges(world, [reminder]).some((a) => a.id === "deadline:1")).toBe(false);
   });
+
+  it("an alert raised moments ago shows even before the screen's minute has ticked over", async () => {
+    const h = await startHome();
+    const world = h.home();
+    // The engine raised it 20 s past the screen's last tick: the badge counts it, so the panel lists it.
+    const fresh: Alert = { id: "task.new:9", kind: "newTask", source: "edunex", at: world.now + 20_000, title: { key: "alert.newTask", vars: { course: "PL3002" } }, body: null, target: { screen: "tasks" } };
+    expect(alertFeed(world, [fresh]).map((a) => a.id)).toContain("task.new:9");
+  });
 });
