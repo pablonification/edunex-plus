@@ -2,7 +2,7 @@
 // the network, time, disk and keychain injected. The desktop shell runs it in
 // Electron's main process; tests run it whole against the pretend world.
 import type { Event, Snapshot } from "../core/contract";
-import { DEFAULT_SETTINGS, Settings, SourceId, SourceStatus } from "../core/models";
+import { type DatasetName, Datasets, DEFAULT_SETTINGS, Settings, SourceId, SourceStatus } from "../core/models";
 import type { Clock } from "./clock";
 import { EngineError, isEngineError } from "./errors";
 import type { Transport } from "./http/transport";
@@ -38,6 +38,8 @@ export interface Engine {
   refresh(source?: SourceId): Promise<void>;
   /** Runs a write the Student asked for (save a draft, submit) with the source's current session. */
   act(source: SourceId, action: string, input: unknown): Promise<unknown>;
+  /** Keeps something the Student entered (course weights, a study plan) on this computer: a "local.*" dataset. */
+  setLocal(name: string, value: unknown): Promise<void>;
   updateSettings(patch: Partial<Settings>): Promise<Settings>;
 }
 
@@ -248,6 +250,15 @@ export function createEngine(deps: EngineDeps): Engine {
         await store.remove(`${source.id}.`);
         setStatus(source.id, { state: "signed-out", updatedAt: null, detail: null });
       }
+      // Signing out of everything also forgets what the Student entered.
+      if (!only) await store.remove("local.");
+    },
+
+    async setLocal(name, value) {
+      if (!name.startsWith("local.") || !Object.hasOwn(Datasets, name)) throw new EngineError("Rejected", `${name} isn't kept on this computer`);
+      const parsed = Datasets[name as DatasetName].safeParse(value);
+      if (!parsed.success) throw new EngineError("Rejected", `That isn't a valid ${name}`);
+      await store.set(name as DatasetName, parsed.data as never, clock.now());
     },
 
     async refresh(source) {

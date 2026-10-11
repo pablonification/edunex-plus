@@ -75,6 +75,11 @@ export async function openApp(options: Options = {}) {
     },
     "settings.update": async (patch: never) => engine.updateSettings(patch),
     "shell.openExternal": async () => ({}),
+    "files.download": async ({ name }: { name: string }) => ({ path: `/Downloads/${name}` }),
+    "local.set": async ({ name, value }: { name: string; value: unknown }) => {
+      await engine.setLocal(name, value);
+      return {};
+    },
   };
   // The preload's surface, answering the way main's bridge does (input checked against the contract).
   const api: BridgeApi = {
