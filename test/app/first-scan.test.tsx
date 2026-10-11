@@ -17,7 +17,7 @@ afterEach(() => {
 
 const TIMETABLE = /\/kelas\/jadwal\/mahasiswa\/\d+$/;
 
-const dialog = () => [...document.querySelectorAll<HTMLElement>("[role=dialog]")].find((d) => d.querySelector("h2")?.textContent === "Hasil pemeriksaan pertama" || d.querySelector("h2")?.textContent === "What the first check found");
+const dialog = () => [...document.querySelectorAll<HTMLElement>("[role=dialog]")].find((d) => d.querySelector("h2")?.textContent === "Ringkasan saat pertama terhubung" || d.querySelector("h2")?.textContent === "Your first-connection summary");
 const lines = () => [...(dialog()?.querySelectorAll<HTMLButtonElement>("ol > li > button") ?? [])];
 /** Each line's title (its accessible name). */
 const titles = () => lines().map((line) => document.getElementById(line.getAttribute("aria-labelledby") ?? "")?.textContent);
@@ -48,17 +48,19 @@ describe("after the first full sync of EduNex and SIX", () => {
       "Dosen mengubah 6 tugas setelah diunggah",
       "IPK 3,26 · di bawah cum laude",
     ]);
-    expect(detail("Kehadiran 3")).toBe("KU5014: hadir 2 dari 6, paling tinggi 73%, jadi 80% tak tercapai lagiDK4073: tidak boleh absen lagiPL3032: tidak boleh absen lagi");
-    expect(detail("KU5014 dan PL3032")).toBe("Berikutnya Kam 8 Okt, 16:00–16:30. SIX menerimanya di KRS-mu tanpa peringatan.");
-    expect(detail("Kehadiran 1")).toBe("PL3002: EduNex akan menampilkan 5x absen, SIX mencatat hadir 6 dari 7Presensi EduNex yang tak tercatat bukan absen.");
+    // Calm and action-first: the facts, then what to do.
+    expect(detail("Kehadiran 3")).toBe("KU5014: hadir 2 dari 6 · paling tinggi 73% dari target 80%DK4073: tidak boleh absen lagiPL3032: tidak boleh absen lagi");
+    expect(detail("KU5014 dan PL3032")).toBe("Berikutnya Hari ini, 16:00–16:30. Pilih yang akan kamu hadiri, atau tanyakan ke dosen.");
+    expect(detail("Kehadiran 1")).toBe('PL3002: SIX mencatat hadir 6 dari 7; abaikan 5 "absen" di EduNexCukup hadir di kelas; Presensi EduNex tidak wajib.');
     // DK4073's UTS is one exam: SIX's sitting, with the take-home a week later flagged as a second date.
     expect(detail("3 ujian")).toBe("UTS PL3032, minggu UTS 12–16 OktUTS DK4073: Kam 15 Okt, 11:00 · TVST C · Dua tanggal berbeda. Pastikan ke dosen.UAS PL3032, minggu UAS 7–22 Des");
-    expect(detail("1 pertemuan")).toBe("II4091 pertemuan 3: Jum 9 Okt, 15:00–17:00 · daringTidak ada di jadwal SIX.");
-    expect(detail("Dosen mengubah")).toBe("2 di antaranya setelah kamu mengumpulkan. EduNex tidak memberi notifikasi.");
+    expect(detail("1 pertemuan")).toBe("II4091 pertemuan 3: Besok, 15:00–17:00 · daringTidak ada di jadwal SIX; sudah ada di Beranda.");
+    expect(detail("Dosen mengubah")).toBe("2 di antaranya setelah kamu mengumpulkan. Cek lagi instruksinya; EduNex tidak mengabarkannya.");
     expect(detail("IPK")).toBe("Kurang 0,24 untuk cum laude (3,50).");
-    // Each line's sources, as tags: SIX and ITB's calendar for attendance, all three for exams.
-    expect(line("Kehadiran 3").textContent).toMatch(/SIXKalender ITB$/);
-    expect(line("3 ujian").textContent).toMatch(/SIXEduNexKalender ITB$/);
+    // No source tags: a line is its title and its facts.
+    expect(line("Kehadiran 3").textContent).toBe(`Kehadiran 3 mata kuliah berisiko${detail("Kehadiran 3")}`);
+    // "Ke Beranda" is always in reach, however long the list.
+    expect(screen.button("Ke Beranda").closest(".sticky")).not.toBeNull();
     // Shown once: remembered right away.
     expect(screen.engine.snapshot().settings.firstScanDone).toBe(true);
   });
@@ -72,7 +74,7 @@ describe("after the first full sync of EduNex and SIX", () => {
 
     const again = async () => {
       await screen!.apply({ type: "command", command: "settings" });
-      await screen!.click("Lihat: Hasil pemeriksaan pertama");
+      await screen!.click("Lihat: Ringkasan saat pertama terhubung");
     };
     await again();
     // The soonest exam's page: PL3032's UTS, named only in its EduNex outline.
@@ -96,7 +98,7 @@ describe("after the first full sync of EduNex and SIX", () => {
     await again();
     await screen.click("Ke Beranda");
     expect(dialog()).toBeUndefined();
-    expect(document.querySelector("main h2")?.textContent).toMatch(/^Perlu perhatianmu/);
+    expect(document.getElementById("home-needs")?.textContent).toMatch(/^Perlu perhatianmu/);
   });
 
   it("is shown once: Escape closes it, it doesn't come back at the next launch, and Settings opens it again", async () => {
@@ -115,7 +117,7 @@ describe("after the first full sync of EduNex and SIX", () => {
     expect(dialog()).toBeUndefined();
 
     await screen.apply({ type: "command", command: "settings" });
-    await screen.click("Lihat: Hasil pemeriksaan pertama");
+    await screen.click("Lihat: Ringkasan saat pertama terhubung");
     expect(titles()).toHaveLength(7);
   });
 });
@@ -166,7 +168,7 @@ describe("only with something to say", () => {
     expect(screen.engine.snapshot().settings.firstScanDone).toBe(true);
 
     await screen.apply({ type: "command", command: "settings" });
-    await screen.click("Lihat: Hasil pemeriksaan pertama");
+    await screen.click("Lihat: Ringkasan saat pertama terhubung");
     expect(dialog()?.textContent).toContain("Tidak ada yang perlu kamu perhatikan");
     expect(dialog()?.querySelector("h3")).toBeNull();
   });
@@ -182,7 +184,7 @@ describe("only with something to say", () => {
     // What couldn't be read isn't counted as something neither system says.
     expect(dialog()?.querySelector("h3")?.textContent).toBe("4 hal yang tidak disampaikan kedua sistem");
     await screen.click(line("1 bagian"));
-    expect(document.querySelector("main h2")?.textContent).toMatch(/^Perlu perhatianmu/);
+    expect(document.getElementById("home-needs")?.textContent).toMatch(/^Perlu perhatianmu/);
   });
 });
 
@@ -193,7 +195,7 @@ describe("in English", () => {
     screen = await openApp({ world, storage, signedIn: true, six: true });
     await screen.engineDoes(() => screen!.engine.updateSettings({ lang: "en", firstScanDone: false }));
     await screen.wait(1_000);
-    expect(dialog()?.querySelector("h2")?.textContent).toBe("What the first check found");
+    expect(dialog()?.querySelector("h2")?.textContent).toBe("Your first-connection summary");
     expect(dialog()?.querySelector("p")?.textContent).toBe("EduNex and SIX connected · 5 courses, 10 Tasks, 40 meetings read");
     expect(dialog()?.querySelector("h3")?.textContent).toBe("7 things neither system tells you");
     expect(titles()).toEqual([
@@ -205,7 +207,7 @@ describe("in English", () => {
       "Lecturers edited 6 Tasks after posting them",
       "IPK 3.26 · below cum laude",
     ]);
-    expect(detail("Attendance")).toBe("KU5014: 2 of 6, best case 73%, so 80% is out of reachDK4073: no absences leftPL3032: no absences left");
+    expect(detail("Attendance")).toBe("KU5014: 2 of 6 · best case 73% of the 80% targetDK4073: no absences leftPL3032: no absences left");
     expect(detail("IPK")).toBe("0.24 short of cum laude (3.50).");
     expect(screen.button("Go to Home")).toBeDefined();
   });

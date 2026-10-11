@@ -39,6 +39,27 @@ export function scanReady(saved: Saved, statuses: readonly SourceStatus[]): bool
   return signedIn.length > 0 && signedIn.every(settled) && calendar;
 }
 
+/** What Beranda needs before it can speak without guessing: SIX's attendance and timetable, EduNex's courses, Tasks and Presence. */
+const HOME_PARTS = {
+  edunex: ["edunex.courses", "edunex.tasks", "edunex.presence"],
+  six: ["six.courses", "six.schedule"],
+} as const satisfies Record<"edunex" | "six", readonly DatasetName[]>;
+
+/**
+ * The first read has what Beranda shows, so it opens complete (the full scan
+ * may still be reading): every signed-in system has its Beranda parts, or has
+ * stopped for a reason it shows. Never before anyone is signed in.
+ */
+export function homeReady(saved: Saved, statuses: readonly SourceStatus[]): boolean {
+  const signedIn = (["edunex", "six"] as const).filter((source) => stateOf(statuses, source) !== "signed-out");
+  const settled = (source: "edunex" | "six") => {
+    const state = stateOf(statuses, source);
+    const has = HOME_PARTS[source].every((name) => saved[name] !== undefined);
+    return has || (state !== "connecting" && state !== "live");
+  };
+  return signedIn.length > 0 && signedIn.every(settled);
+}
+
 // ---------------------------------------------------------------- findings
 
 export type Tone = "danger" | "warning" | "info" | "success";
