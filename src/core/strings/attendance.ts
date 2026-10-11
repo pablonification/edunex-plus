@@ -56,6 +56,7 @@ export const attendanceStrings = {
   "presence.where.edunex": { id: "Dicatat lewat Presensi EduNex", en: "Recorded through EduNex Presence" },
   "presence.where.both": { id: "Dihitung di SIX dan EduNex", en: "Counted in SIX and EduNex" },
   "presence.where.unknown": { id: "Belum ada catatan kehadiran", en: "No attendance record yet" },
+  "presence.where.noSix": { id: "Hitungan resmi ada di SIX", en: "The official count is in SIX" },
   "presence.next": { id: "Berikutnya: {when}", en: "Next: {when}" },
   "presence.next.uncertain": { id: "belum pasti, cek pengumuman", en: "may not run, check announcements" },
   "presence.status.left": { id: "Boleh absen {count}× lagi", en: "You can miss {count} more" },

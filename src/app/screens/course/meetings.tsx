@@ -3,16 +3,18 @@
 // announced only in EduNex text. The attendance story is told honestly: SIX's
 // count is the official one and comes first; EduNex's record per meeting is a
 // quiet second line, and a meeting EduNex didn't record never reads as an
-// absence where SIX is the one that counts.
+// absence where SIX is (or, signed out of SIX, may be) the one that counts.
+// A meeting carries one number only: the name EduNex or SIX gives it.
 import type { ReactNode } from "react";
 import { meetingState, nextMeetingIndex, type Meeting, wibDay } from "../../../core/course-meetings";
 import { edunexCourseUrl } from "../../../core/links";
 import type { CalendarEvent } from "../../../core/models";
 import { dayStart } from "../../../core/schedule";
+import type { CountedIn } from "../../../core/attendance";
 import { useAttendance } from "../../attendance";
 import { useOpenExternal } from "../../hooks";
 import { useFormat, useNow, useT } from "../../i18n";
-import { SixEmptyState } from "../../shell/source-status";
+import { SixEmptyState, useSignIn } from "../../shell/source-status";
 import { useDataset, useStatus } from "../../store";
 import { Button } from "../../ui/controls";
 import { cx } from "../../ui/cx";
@@ -45,15 +47,19 @@ export function MeetingsTab({ page }: { page: CoursePage }) {
             {health && attendance && health.state !== "unknown" && <span className={cx("font-semibold", STATE_TONE[health.state])}> · {budgetLabel(t, health, attendance.target)}</span>}
           </p>
         ) : null}
-        <p className="mt-1 max-w-[70ch] text-small text-muted">
-          {noEdunexPresence
-            ? t("meeting.noEdunexPresence")
-            : countedIn === "edunex"
-              ? t("meeting.edunexCounts")
-              : course.attendance && presence?.length
-                ? t("meeting.sixTotalsOnly")
-                : ""}
-        </p>
+        {countedIn === "noSix" && !noEdunexPresence && health ? (
+          <NoSixIntro recorded={health.edunexRecorded} closed={health.edunexClosed} />
+        ) : (
+          <p className="mt-1 max-w-[70ch] text-small text-muted">
+            {noEdunexPresence
+              ? t("meeting.noEdunexPresence")
+              : countedIn === "edunex"
+                ? t("meeting.edunexCounts")
+                : course.attendance && presence?.length
+                  ? t("meeting.sixTotalsOnly")
+                  : ""}
+          </p>
+        )}
       </div>
       {meetings.length === 0 ? (
         sixSignedOut ? (
@@ -72,7 +78,7 @@ export function MeetingsTab({ page }: { page: CoursePage }) {
                 meeting={meeting}
                 index={index}
                 next={index === next}
-                edunexCounts={countedIn === "edunex"}
+                countedIn={countedIn}
                 divider={firstInPeriod ? period : undefined}
                 fallbackUrl={course.edunex ? edunexCourseUrl(course.edunex.courseId) : null}
               />
@@ -80,6 +86,23 @@ export function MeetingsTab({ page }: { page: CoursePage }) {
           })}
         </ol>
       )}
+    </div>
+  );
+}
+
+/** Signed out of SIX: EduNex's own tally as a fact, and why it may not be the count that matters. */
+function NoSixIntro({ recorded, closed }: { recorded: number; closed: number }) {
+  const t = useT();
+  const { signIn, busy } = useSignIn();
+  return (
+    <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+      <div className="min-w-0 flex-1">
+        {closed > 0 && <p className="text-lead font-semibold">{t("presence.edunexTally", { recorded, closed })}</p>}
+        <p className="mt-1 max-w-[70ch] text-small text-muted">{t("meeting.noSixCount")}</p>
+      </div>
+      <Button size="sm" busy={busy} onClick={() => void signIn("six")}>
+        {t("presence.signInSix")}
+      </Button>
     </div>
   );
 }
@@ -103,14 +126,14 @@ function MeetingRow({
   meeting,
   index,
   next,
-  edunexCounts,
+  countedIn,
   divider,
   fallbackUrl,
 }: {
   meeting: Meeting;
   index: number;
   next: boolean;
-  edunexCounts: boolean;
+  countedIn: CountedIn;
   divider: CalendarEvent | undefined;
   fallbackUrl: string | null;
 }) {
@@ -121,8 +144,9 @@ function MeetingRow({
   const state = meetingState(meeting, now);
   const { six, presence, announced } = meeting;
   const named = presence?.topic ?? six?.activity ?? null;
+  // Unnamed, or only numbered ("Pertemuan 3"): said in a quieter color.
   const placeholder = !named || /^(pertemuan|meeting)\s*\d+$/i.test(named.trim());
-  const title = named ?? (announced ? t("meeting.number", { no: announced.number }) : t("meeting.number", { no: index + 1 }));
+  const title = named ?? (announced ? t("meeting.number", { no: announced.number }) : six?.activity || t("meeting.untitled"));
   // EduNex's Presence window, when it isn't simply the meeting's time.
   const window = presence && (presence.opensAt !== meeting.start || presence.closesAt !== meeting.end) ? f.timeRange(presence.opensAt, presence.closesAt) : null;
   const presenceUrl = presence?.url ?? fallbackUrl;
@@ -144,8 +168,15 @@ function MeetingRow({
         {presence && <span className="font-medium opacity-80">· {f.countdown(presence.closesAt)}</span>}
       </span>
     );
+  // Not recorded in EduNex: a warning only where EduNex is what counts; where SIX
+  // counts the intro says it once and the row stays quiet; without SIX, a plain fact.
   else if (state === "unmarked")
-    status = <span className={cx("text-small", edunexCounts ? "font-medium text-warning-fg" : "text-faint")}>{t(edunexCounts ? "meeting.edunexNotRecordedCounts" : "meeting.edunexNotRecorded")}</span>;
+    status =
+      countedIn === "six" ? (
+        <span className="text-small text-faint">{t("meeting.done")}</span>
+      ) : (
+        <span className={cx("text-small", countedIn === "edunex" ? "font-medium text-warning-fg" : "text-faint")}>{t("meeting.edunexNotRecordedCounts")}</span>
+      );
   else if (state === "recorded") status = <span className="text-small text-faint">{t("meeting.state.recorded")}</span>;
   else if (state === "held") status = <span className="text-small text-faint">{t("meeting.done")}</span>;
   else if (next)
@@ -154,8 +185,7 @@ function MeetingRow({
   return (
     <li className={cx(index > 0 && "border-t border-line")}>
       {divider && <PeriodDivider period={divider} />}
-      <div className={cx("grid grid-cols-[32px_132px_minmax(0,1fr)_auto] items-center gap-4 px-4 py-3", next && "bg-info-bg/30")}>
-        <span className="text-small font-semibold text-faint tabular-nums">{String(index + 1).padStart(2, "0")}</span>
+      <div className={cx("grid grid-cols-[132px_minmax(0,1fr)_auto] items-center gap-4 px-4 py-3", next && "bg-info-bg/30")}>
         <span className={cx("text-body tabular-nums", future && !next && "text-muted")}>
           <span className="block font-medium">
             {f.weekdayShort(meeting.start)}, {f.dayMonth(meeting.start)}

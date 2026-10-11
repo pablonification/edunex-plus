@@ -78,6 +78,11 @@ describe("where attendance counts", () => {
     // Windows still to come say nothing yet.
     expect(countedIn({ attended: 3, held: 4 }, [presence(1, "2026-10-15T08:00:00", 90)], now)).toBe("six");
   });
+
+  it("signed out of SIX: not known where it counts, so EduNex's record never claims to be the count", () => {
+    expect(countedIn(null, viewCourse, now, false)).toBe("noSix");
+    expect(countedIn(null, [], now, false)).toBe("unknown");
+  });
 });
 
 describe("meetings left to the last lecture day", () => {
