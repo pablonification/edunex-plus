@@ -141,7 +141,7 @@ function DateTile({ at, week }: { at: number | null; week?: Exam["week"] }) {
   const t = useT();
   const f = useFormat();
   return (
-    <span className="flex w-11 flex-col items-center rounded-lg border border-edge bg-surface py-1 leading-none tabular-nums">
+    <span className="flex w-12 flex-col items-center rounded-lg border border-edge bg-surface py-1 leading-none tabular-nums">
       {at === null && week ? (
         <>
           <span className="text-micro font-semibold text-muted">{t("exam.tileWeek")}</span>
