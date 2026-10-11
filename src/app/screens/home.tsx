@@ -4,6 +4,7 @@ import { edunexCourseUrl } from "../../core/links";
 import type { Course } from "../../core/models";
 import { useFormat, useNow, useT } from "../i18n";
 import { firstName } from "../names";
+import { useNav } from "../nav";
 import { SourceNotice, useRefresh } from "../shell/source-status";
 import { useCourseColors, useOpenExternal } from "../hooks";
 import { useDataset, useStatus } from "../store";
@@ -88,11 +89,14 @@ function Courses({ courses }: { courses: Course[] | undefined }) {
 function CourseCard({ course, color }: { course: Course; color: string }) {
   const t = useT();
   const open = useOpenExternal();
+  const { go } = useNav();
   return (
-    <Card className="flex h-full flex-col p-4">
-      <CourseCode code={course.code} color={color} className="text-small" />
-      <p className="mt-2 line-clamp-2 min-h-10 text-lead font-semibold tracking-[-0.01em]">{course.name}</p>
-      {course.classNo && <p className="mt-1 text-small text-muted">{t("course.class", { no: course.classNo })}</p>}
+    <Card className="flex h-full flex-col p-4 transition-shadow duration-150 hover:shadow-lift">
+      <button type="button" className="focus-ring -m-1 flex-1 rounded-lg p-1 text-left" onClick={() => go({ screen: "course", code: course.code })}>
+        <CourseCode code={course.code} color={color} className="text-small" />
+        <span className="mt-2 line-clamp-2 min-h-10 text-lead font-semibold tracking-[-0.01em]">{course.name}</span>
+        {course.classNo && <span className="mt-1 block text-small text-muted">{t("course.class", { no: course.classNo })}</span>}
+      </button>
       <div className="mt-3 border-t border-line pt-2.5">
         <Button
           variant="ghost"

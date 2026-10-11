@@ -9,7 +9,8 @@ import type { UiClock } from "../../src/app/i18n";
 import { AppStore } from "../../src/app/store";
 import { type ActionName, type ActionResult, Actions, type AppSnapshot, type Event } from "../../src/core/contract";
 import { createEngine, type Engine } from "../../src/engine/engine";
-import { isEngineError } from "../../src/engine/errors";
+import { planOfflineFiles } from "../../src/core/course-materials";
+import { EngineError, isEngineError } from "../../src/engine/errors";
 import { PRETEND_TOKEN } from "../pretend/edunex";
 import { MemoryStorage, MemoryVault } from "../pretend/memory";
 import { PretendWorld } from "../pretend/world";
@@ -76,6 +77,18 @@ export async function openApp(options: Options = {}) {
     "settings.update": async (patch: never) => engine.updateSettings(patch),
     "shell.openExternal": async () => ({}),
     "files.download": async ({ name }: { name: string }) => ({ path: `/Downloads/${name}` }),
+    "course.saveOffline": async ({ code, pick }: { code: string; pick: boolean }) => {
+      const value = <T,>(name: string) => engine.snapshot().datasets.find((d) => d.name === name)?.value as T | undefined;
+      const course = value<{ code: string; name: string; edunex: { courseId: number } }[]>("edunex.courses")?.find((c) => c.code === code);
+      if (!course) throw new EngineError("Rejected", `${code} isn't one of this term's courses`);
+      const plan = planOfflineFiles(
+        { code, name: course.name, mainCourseId: course.edunex.courseId },
+        value<Record<string, never>>("edunex.outline")?.[code],
+        value<Record<string, never[]>>("edunex.materials")?.[code] ?? [],
+        engine.snapshot().settings.lang,
+      );
+      return { folder: `${pick ? "/Picked" : "/Documents/Edunex Plus"}/${plan.folder}`, saved: plan.files.length, kept: 0, failed: 0 };
+    },
     "local.set": async ({ name, value }: { name: string; value: unknown }) => {
       await engine.setLocal(name, value);
       return {};
