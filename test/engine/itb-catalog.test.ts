@@ -124,6 +124,26 @@ describe("SIX public course catalog", () => {
     expect(h.status("itb")).toMatchObject({ state: "changed", detail: "SIX's catalog page for Sistem dan Teknologi Informasi (182) changed" });
   });
 
+  it("a page whose layout changed is read again at the next launch, not before a day within one", async () => {
+    const world = new PretendWorld();
+    world.itb.changeLayout("/pub/kur2024/182", "<th>Kategori</th>", "<th>Jenis</th>");
+    const h = await startEngine({ world });
+    await h.wait(FULL_READ);
+    expect(program(h, "182").state).toBe("changed");
+    await h.wait(7 * HOUR);
+    expect(catalogRequests(h).filter((r) => r.path === "/pub/kur2024/182")).toHaveLength(1);
+    const before = catalogRequests(h).length;
+    h.engine.stop();
+    // The next launch: say, an update that reads the new layout.
+    world.itb.changeLayout("/pub/kur2024/182", "<th>Jenis</th>", "<th>Kategori</th>");
+    const again = await startEngine({ world, storage: h.storage, vault: h.vault });
+    await again.wait(FULL_READ);
+    expect(program(again, "182").state).toBe("ready");
+    expect(again.status("itb").state).toBe("live");
+    // Only that page was read again.
+    expect(catalogRequests(h).length).toBe(before + 1);
+  });
+
   it("reads elective-slot codes with X, Y or Z inside, like AE40X0 and KL4XYZ", async () => {
     const world = new PretendWorld();
     // The real catalog has WI201X, AE40X0, MB210Y and KL4XYZ shapes; give recorded courses two of them.

@@ -143,6 +143,9 @@ function ownProgram(context: SourceContext, catalog: CourseCatalog): string | nu
 export function registerCatalogFeed(context: SourceContext): void {
   // In SIX's own line: the signed-in SIX source reads the same site.
   const client = new PublicClient(context.transport, context.clock, context.userAgent, "SIX", CATALOG_GAP_MS, context.pace(new URL(CATALOG_URL).host));
+  // Once per launch, pages whose layout looked changed are read again without
+  // waiting a day: an update may read them now.
+  let retryChanged = true;
   context.feed({
     name: "itb.catalog",
     every: 6 * HOUR,
@@ -165,7 +168,7 @@ export function registerCatalogFeed(context: SourceContext): void {
       for (;;) {
         if (!current()) return;
         const now = context.clock.now();
-        const waiting = catalog.programs.filter((p) => !tried.has(p.id) && due(p, now));
+        const waiting = catalog.programs.filter((p) => !tried.has(p.id) && (due(p, now) || (retryChanged && p.state === "changed")));
         if (waiting.length === 0) break;
         const own = ownProgram(context, catalog);
         const next = waiting.find((p) => p.id === own) ?? waiting[0]!;
@@ -186,6 +189,7 @@ export function registerCatalogFeed(context: SourceContext): void {
         if (next.id === own || unsaved >= SAVE_EVERY) await save();
       }
       await save();
+      retryChanged = false;
 
       const changed = catalog.programs.find((p) => p.state === "changed");
       if (changed) throw new EngineError("VendorChanged", `SIX's catalog page for ${changed.name} (${changed.id}) changed`);
