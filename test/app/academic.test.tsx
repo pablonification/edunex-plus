@@ -205,8 +205,10 @@ describe("the Kalender akademik tab", () => {
     const rows = (name: string) => [...(group(name)?.querySelectorAll("li") ?? [])].map((li) => li.textContent ?? "");
     expect(panel()).toContain("Sekarang · Min, 11 Okt");
     // A range says its days ("Sen–Jum"), not just the first.
-    expect(rows("Minggu ini")).toEqual(["12–16 OktSen–JumUTS · 2026/2027 GanjilMinggu ujian tengah semester.besok"]);
-    expect(group("Minggu ini")!.querySelector("li .text-warning-fg")?.textContent).toBe("besok");
+    // The coming seven days are named as such: next week's exam is never filed under "Minggu ini".
+    expect(rows("7 hari ke depan")).toEqual(["12–16 OktSen–JumUTS · 2026/2027 GanjilMinggu ujian tengah semester.besok"]);
+    expect(rows("Minggu ini")).toEqual([]);
+    expect(group("7 hari ke depan")!.querySelector("li .text-warning-fg")?.textContent).toBe("besok");
     expect(rows("Semester ini")[0]).toContain("Kuesioner evaluasi perkuliahan · 2026/2027 GanjilIsi kuesioner tiap mata kuliah, atau SIX menyembunyikan nilainya.");
     expect(rows("Semester ini").find((r) => r.includes("Evaluasi kemajuan studi"))).toContain("Target 72 SKS di akhir tahun ke-3; kamu sudah lulus 125 SKS.");
     // Next semester is folded until opened.

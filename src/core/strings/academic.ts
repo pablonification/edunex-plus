@@ -96,7 +96,7 @@ export const academicStrings = {
   "deadlines.today": { id: "Sekarang", en: "Now" },
   "deadlines.todayAt": { id: "Sekarang · {date}", en: "Now · {date}" },
   "deadlines.group.now": { id: "Sedang berlangsung", en: "Happening now" },
-  "deadlines.group.week": { id: "Minggu ini", en: "This week" },
+  "deadlines.group.week": { id: "7 hari ke depan", en: "Next 7 days" },
   "deadlines.group.month": { id: "Bulan ini", en: "This month" },
   "deadlines.group.term": { id: "Semester ini", en: "This semester" },
   "deadlines.group.next": { id: "Semester depan", en: "Next semester" },

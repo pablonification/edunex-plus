@@ -42,7 +42,7 @@ function groupOf(deadline: Deadline, now: number, term: string | null, termEnd: 
   if (deadline.when === "now") return "now";
   const today = new Date(now);
   today.setHours(0, 0, 0, 0);
-  // "This week" is the coming seven days: on a Sunday, Monday's exam is this week's news.
+  // The coming seven days, and named so ("7 hari ke depan"): on a Thursday, next Monday's exam is near but not "this week".
   const weekEnd = new Date(today);
   weekEnd.setDate(today.getDate() + 7);
   const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 1);
