@@ -249,7 +249,7 @@ function ClashTint({ item }: { item: ScheduledClass }) {
         <span
           key={o.code}
           aria-hidden
-          className="absolute inset-x-0 border-y border-danger-fg/45 bg-danger-bg"
+          className="absolute inset-x-0 border-y border-danger-fg/25 bg-danger-bg"
           style={{ top: `${((o.from - session.start) / length) * 100}%`, height: `${((o.to - o.from) / length) * 100}%` }}
         />
       ))}
