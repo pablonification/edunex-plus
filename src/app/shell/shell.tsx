@@ -1,6 +1,7 @@
 // The signed-in window: sidebar, top bar and the current screen, each inside
-// its own crash guard. Settings opens over it (sidebar footer, or ⌘,). A
-// screen shows in the sidebar once it's built (its `ready` flag).
+// its own crash guard. Settings opens over it (sidebar footer, or ⌘,), quick
+// search too (the top bar, or ⌘K), and once, after the first full sync, the
+// first-run scan. A screen shows in the sidebar once it's built (its `ready` flag).
 import { useCallback, useEffect, useRef, useState, type ComponentType } from "react";
 import { edunexCourseUrl, sixStatusUrl } from "../../core/links";
 import type { StringKey } from "../../core/strings";
@@ -25,6 +26,8 @@ import { type IconProps, Icons } from "../ui/icons";
 import { Tooltip } from "../ui/overlays";
 import { PanelBoundary } from "../ui/panel-boundary";
 import { AlertsBell } from "./alerts";
+import { FirstScan } from "./first-scan";
+import { SearchButton, SearchPalette, useSearchShortcut } from "./search";
 import { SettingsDialog } from "./settings";
 import { SourceStatusChip, useRefresh } from "./source-status";
 
@@ -38,17 +41,27 @@ export function Shell() {
 
 function Layout() {
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [scanOpen, setScanOpen] = useState(false);
   const bridge = useBridge();
   const { route, go } = useNav();
   const main = useRef<HTMLElement>(null);
+  /** Search opens over anything else; the shortcut also closes it. */
+  const openSearch = useCallback((toggle: boolean) => {
+    setSettingsOpen(false);
+    setScanOpen(false);
+    setSearchOpen((open) => !(toggle && open));
+  }, []);
   useNavigateRequests(go);
+  useSearchShortcut(useCallback(() => openSearch(true), [openSearch]));
   useCommand(
     useCallback(
       (command) => {
         if (command === "settings") setSettingsOpen(true);
         if (command === "refresh") void bridge.invoke("sync.refresh", {}).catch(() => undefined);
+        if (command === "search") openSearch(false);
       },
-      [bridge],
+      [bridge, openSearch],
     ),
   );
   useRefreshWhenBackOnline();
@@ -65,7 +78,7 @@ function Layout() {
       </PanelBoundary>
       <div className="flex min-w-0 flex-1 flex-col">
         <PanelBoundary name="top bar" compact>
-          <TopBar />
+          <TopBar onSearch={() => openSearch(false)} />
         </PanelBoundary>
         <main ref={main} className="min-h-0 flex-1 overflow-y-auto">
           <PanelBoundary key={key} name={route.screen}>
@@ -73,7 +86,16 @@ function Layout() {
           </PanelBoundary>
         </main>
       </div>
-      <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
+      <SettingsDialog
+        open={settingsOpen}
+        onOpenChange={setSettingsOpen}
+        onShowFirstScan={() => {
+          setSettingsOpen(false);
+          setScanOpen(true);
+        }}
+      />
+      <SearchPalette open={searchOpen} onOpenChange={setSearchOpen} onSettings={() => setSettingsOpen(true)} />
+      <FirstScan open={scanOpen} onOpenChange={setScanOpen} blocked={settingsOpen || searchOpen} />
     </div>
   );
 }
@@ -245,7 +267,7 @@ function Sidebar({ onSettings }: { onSettings: () => void }) {
   );
 }
 
-function TopBar() {
+function TopBar({ onSearch }: { onSearch: () => void }) {
   const store = useStore();
   const t = useT();
   const { route, back, canGoBack } = useNav();
@@ -264,6 +286,7 @@ function TopBar() {
         </Tooltip>
       )}
       <div className="no-drag ml-auto flex items-center gap-1.5">
+        <SearchButton onOpen={onSearch} />
         <AlertsBell />
         <SourceStatusChip source="edunex" />
         <SourceStatusChip source="six" />

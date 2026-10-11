@@ -41,6 +41,8 @@ export interface Options {
   vaultMode?: AppSnapshot["vault"];
   /** Run the packaged app's "new version available" check against the pretend GitHub. */
   checkForUpdates?: boolean;
+  /** Let the first-run scan open by itself, as for a new Student (default: already seen, so it doesn't cover the screen under test). */
+  firstScan?: boolean;
 }
 
 export async function openApp(options: Options = {}) {
@@ -61,6 +63,7 @@ export async function openApp(options: Options = {}) {
     },
   });
   await engine.load();
+  if (!options.firstScan) await engine.updateSettings({ firstScanDone: true });
   if (options.start !== false) engine.start();
 
   /** SIX is read at human pace (a page every two seconds): the fake clock runs until the work is done. */

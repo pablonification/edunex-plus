@@ -15,18 +15,18 @@ import { ConfirmDialog, Dialog, toast } from "../ui/overlays";
 import { PanelBoundary } from "../ui/panel-boundary";
 import { useSignIn } from "./source-status";
 
-export function SettingsDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
+export function SettingsDialog({ open, onOpenChange, onShowFirstScan }: { open: boolean; onOpenChange: (open: boolean) => void; onShowFirstScan?: () => void }) {
   const t = useT();
   return (
     <Dialog open={open} onOpenChange={onOpenChange} title={t("nav.settings")}>
       <PanelBoundary name="settings" compact>
-        <SettingsBody onSignedOutOfEverything={() => onOpenChange(false)} />
+        <SettingsBody onSignedOutOfEverything={() => onOpenChange(false)} onShowFirstScan={onShowFirstScan} />
       </PanelBoundary>
     </Dialog>
   );
 }
 
-function SettingsBody({ onSignedOutOfEverything }: { onSignedOutOfEverything: () => void }) {
+function SettingsBody({ onSignedOutOfEverything, onShowFirstScan }: { onSignedOutOfEverything: () => void; onShowFirstScan?: () => void }) {
   const t = useT();
   const bridge = useBridge();
   const store = useStore();
@@ -88,6 +88,16 @@ function SettingsBody({ onSignedOutOfEverything }: { onSignedOutOfEverything: ()
           <TargetStepper />
         </Row>
       </Group>
+
+      {onShowFirstScan && (
+        <Group>
+          <Row label={t("settings.firstScan")}>
+            <Button size="sm" aria-label={`${t("settings.firstScan.show")}: ${t("settings.firstScan")}`} onClick={onShowFirstScan}>
+              {t("settings.firstScan.show")}
+            </Button>
+          </Row>
+        </Group>
+      )}
 
       <Group title={t("settings.accounts")}>
         <AccountRow source="edunex" who={account ? `${displayName(account.name)} · ${account.nim}` : null} />

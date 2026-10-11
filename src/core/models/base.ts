@@ -48,6 +48,10 @@ export const Settings = z.object({
   // Attendance (#85)
   /** The share of meetings (percent) the Student aims to attend; each course contract sets its own minimum. */
   attendanceTarget: z.number().int().min(50).max(100),
+
+  // First-run scan (#81)
+  /** The first full sync's findings were shown (or there were none): the scan doesn't open by itself again. */
+  firstScanDone: z.boolean(),
 });
 export type Settings = z.infer<typeof Settings>;
 
@@ -62,6 +66,9 @@ export const DEFAULT_SETTINGS: Settings = {
 
   // Attendance (#85)
   attendanceTarget: 80,
+
+  // First-run scan (#81)
+  firstScanDone: false,
 };
 
 export interface Dataset<T = unknown> {

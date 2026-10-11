@@ -136,6 +136,16 @@ screens.
 | Already the latest, or nothing published | `latestTag` = the running version, or `null` (404) | #82 |
 | GitHub refuses or is unreachable | `world.github.failWith = 403`, `world.setOffline(true)` | #82 |
 
+## Quick search and the first-run scan
+
+| State or event | How | Ticket |
+|---|---|---|
+| First full sync done: EduNex, then SIX at human pace, and ITB's calendar | sign in to both, let the fake clock run (`test/engine/first-sync.ts`) | #81 |
+| A system stops during the first sync (offline, changed something) | `world.six.fail(timetable, 503)`, `world.six.changeLayout(transcript, …)` | #81 |
+| Nothing to say | Tasks, Presence, contents and announcements cleared, after the term's exams | #81 |
+| A full term of data | the recorded term spread over 8 courses (16 modules, 60 materials, 20 Tasks and 15 announcements each) | #81 |
+| Searching offline | `world.setOffline(true)` after the first sync | #81 |
+
 Tickets named v2-15 to v2-18 come from the approved prototype (public
 sources, attendance guard, exams, what changed + first-run scan) and are not
 filed on GitHub yet.
