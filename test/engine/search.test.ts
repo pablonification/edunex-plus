@@ -81,6 +81,17 @@ describe("courses", () => {
     expect(first("ekonomi inovasi", english)?.key).toBe("course:PL3002");
   });
 
+  it("without SIX, still the Indonesian name, from ITB's catalog, like the rest of the app", () => {
+    const edunexOnly: Saved = {
+      ...saved,
+      "six.courses": undefined,
+      "six.student": undefined,
+      "itb.catalog": { courses: [{ code: "PL3002", name: "Ekonomi dan Inovasi dalam Perencanaan" }] },
+    } as Saved;
+    const noSix = searchIndex(edunexOnly, { lang: "id", screens: [], now });
+    expect(first("PL3002", noSix)?.title).toBe("Ekonomi dan Inovasi dalam Perencanaan");
+  });
+
   it("isn't so forgiving that unrelated words match", () => {
     expect(search(index, "zzzz")).toEqual([]);
     expect(search(index, "kuis")).toEqual([]);
