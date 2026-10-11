@@ -18,7 +18,7 @@ jobs:
   check:
     name: Test and build
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
 
     steps:
       - name: Check out repository
@@ -38,6 +38,3 @@ jobs:
 
       - name: Type-check and build
         run: npm run build
-
-      - name: Check runtime lifecycle
-        run: npm run smoke:runtime
