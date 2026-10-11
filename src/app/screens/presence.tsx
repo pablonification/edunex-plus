@@ -5,7 +5,7 @@
 // SIX's exact count against the target, absences left, the best share still
 // reachable, and the next meeting.
 import type { ReactNode } from "react";
-import { type AttendanceHealth, type AttendanceState, needsAttention, type PresenceActivity } from "../../core/attendance";
+import { type AttendanceHealth, type AttendanceState, needsAttention, percent, type PresenceActivity } from "../../core/attendance";
 import type { StringKey } from "../../core/strings";
 import { type CourseAttendance, type OpenWindow, useAttendance } from "../attendance";
 import { useOpenExternal } from "../hooks";
@@ -213,7 +213,7 @@ function Summary({ value, label, tone }: { value: number; label: string; tone: A
 }
 
 export function budgetLabel(t: ReturnType<typeof useT>, health: AttendanceHealth, target: number): string {
-  const best = Math.round((health.best ?? 0) * 100);
+  const best = percent(health.best ?? 0);
   switch (health.state) {
     case "unknown":
       return t("presence.budget.unknown");
@@ -233,7 +233,7 @@ function CourseRow({ item, target }: { item: CourseAttendance; target: number })
   const { course, health, presence, exams } = item;
   const { attended, held, left } = health;
   const missed = attended !== null && held !== null ? held - attended : 0;
-  const share = attended !== null && held ? Math.round((attended / held) * 100) : null;
+  const share = attended !== null && held ? percent(attended, held) : null;
   const next = left.next;
 
   const notes: { tone: "info" | "bad"; text: string }[] = [];
@@ -297,7 +297,7 @@ function CourseRow({ item, target }: { item: CourseAttendance; target: number })
             )}
             <span className={cx("block text-small font-semibold", share !== null && "mt-1", STATE_TONE[health.state])}>{budgetLabel(t, health, target)}</span>
             {health.state !== "out" && health.state !== "unknown" && health.best !== null && (
-              <span className="block text-caption text-faint">{t("presence.best", { value: Math.round(health.best * 100) })}</span>
+              <span className="block text-caption text-faint">{t("presence.best", { value: percent(health.best) })}</span>
             )}
             {health.toRecover !== null && health.toRecover > 0 && (
               <span className="block text-caption text-faint">{t("presence.recover", { target, count: health.toRecover })}</span>

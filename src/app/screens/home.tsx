@@ -3,6 +3,7 @@
 // then today (SIX's classes with rooms, where attendance counts, online-class
 // links, what's due today and tomorrow); then what changed in the last week;
 // then this term's courses. The reasoning lives in src/core/needs.ts.
+import { percent } from "../../core/attendance";
 import { type ReactNode, useMemo } from "react";
 import type { Alert, AlertKind } from "../../core/models";
 import { type Band, type ClassFacts, type HomeWorld, type Need, needsYou, recentChanges, type TodayPlan, todayPlan } from "../../core/needs";
@@ -284,7 +285,7 @@ function useNeedView(): (need: Need) => NeedView {
       }
       case "attendance": {
         const { health } = need;
-        const vars = { attended: health.attended ?? 0, held: health.held ?? 0, target: attendanceTarget, best: Math.round((health.best ?? 0) * 100), course: need.course ?? "" };
+        const vars = { attended: health.attended ?? 0, held: health.held ?? 0, target: attendanceTarget, best: percent(health.best ?? 0), course: need.course ?? "" };
         return {
           icon: <Icons.AlertTriangle className="size-4" />,
           live: false,
@@ -434,7 +435,7 @@ function Attendance({ course }: { course: TermCourse }) {
           <span className="text-muted tabular-nums">
             {count.attended}/{count.held}
           </span>
-          <span className="min-w-9 text-right font-semibold tabular-nums">{Math.floor((count.attended * 100) / count.held)}%</span>
+          <span className="min-w-9 text-right font-semibold tabular-nums">{percent(count.attended, count.held)}%</span>
         </>
       ) : (
         <span className="ml-auto text-faint">{t("course.noMeetingsYet")}</span>

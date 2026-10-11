@@ -51,7 +51,8 @@ describe("the Presensi screen", () => {
     const pl = card("PL3002");
     expect(pl).toContain("Dihitung di");
     expect(pl).toContain("SIX");
-    expect(pl).toContain("86%");
+    // 6 of 7 is 85.7 %: shares round down everywhere, so no one reads a target as reached before it is.
+    expect(pl).toContain("85%");
     // 22, 29 Oct on SIX's timetable, then Thursdays to 3 Dec: one absence left.
     expect(pl).toContain("6 hadir · 1 absen · sekitar 7 lagi");
     expect(pl).toContain("Boleh absen 1x lagi");
@@ -100,7 +101,7 @@ describe("the Presensi screen", () => {
     expect(card("KU5014")).toContain("80% tak tercapai · maks. 71%");
     expect(card("KU5014")).toContain("minta dosen memperbaikinya sekarang");
     expect(card("DK4073")).toContain("Tidak boleh absen lagi");
-    expect(card("DK4073")).toContain("Paling tinggi 85%");
+    expect(card("DK4073")).toContain("Paling tinggi 84%");
     expect(card("DK4073")).toContain("Kembali ke 80% setelah 4x hadir berturut-turut");
     expect(card("DK4073")).toContain("UTS Sen 12 Okt memakai slot kuliah, bukan pertemuan.");
     // The sidebar counts the three courses at risk.

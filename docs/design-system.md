@@ -1,28 +1,50 @@
 # Design system
 
-The look and behaviour every Edunex Plus screen follows. It comes from the
-approved prototype, direction D "Kuliah" (branch `prototype/v2-design`,
-ticket #83): EduNex and SIX the way students already know them (course →
-modules, meetings, Jadwal, KRS), merged into one calm app. It is not a
-calendar app or a to-do app; productivity ideas appear only as accents.
+The look and behaviour every Edunex Plus screen follows. The app is EduNex and
+SIX the way students already know them (course → modules, meetings, Jadwal,
+KRS), merged into one calm app that tells the Student what matters. It is not
+a calendar app or a to-do app; productivity ideas appear only as accents.
+
+Every decision starts from the Student: a tired ITB student between classes,
+on a laptop, reading Indonesian, who needs one answer quickly and must never be
+misled about attendance, deadlines or grades. Every screen is checked against
+Nielsen's ten usability heuristics
+(https://www.nngroup.com/articles/ten-usability-heuristics/).
 
 The code is the source of truth: tokens live in `src/app/styles.css`, the
-components in `src/app/ui/`, and every word in `src/core/strings.ts`. This
-page explains them.
+components in `src/app/ui/` (screens are built from `src/app/ui/layout.tsx`),
+and every word in `src/core/strings/`. This page explains them.
 
 ## Principles
 
-1. **Nothing to relearn.** Same names and places as EduNex and SIX: Beranda,
+1. **Answer first.** Each screen answers one question before anything else
+   (Beranda: what do I do now; Presensi: am I in trouble; Nilai: where is my
+   IPK). The answer is the first thing at the top left, in a sentence; the
+   detail follows.
+2. **Nothing to relearn.** Same names and places as EduNex and SIX: Beranda,
    Tugas & Ujian, Jadwal, Presensi, Nilai, Rencana studi, and the term's
    courses in the sidebar.
-2. **What matters now comes first.** A screen opens with what needs the
-   Student, not with equal-weight lists.
-3. **Every merged fact shows its source.** A small tag says EduNex, SIX or
-   Kalender ITB, so the Student knows where to act.
-4. **Honest states.** A source is live, offline, checking, signed out, ended,
-   or "changed something", with when it last updated. Old data is never shown
-   as fresh, and a failure is never an empty screen.
-5. **Calm.** No explanatory filler, no decoration that isn't information.
+3. **One idea per row.** A row says what it is (title), when or where (one
+   meta line), and ends with its state or its one action. No run-on lines of
+   five facts; the rest belongs on the detail screen.
+4. **Color means something.** Neutral by default. Blue is for actions and
+   links; red for what is lost, overdue, failing or destructive; amber for
+   what needs the Student soon; green for done, safe and live. Course colors
+   only mark identity, on a dot or a stripe, never a bar or a word.
+5. **The source only where it changes what to do.** Where to act ("Catat di
+   EduNex"), which date to trust when SIX and EduNex disagree, what is missing
+   ("Tidak ada di SIX"). Never a tag on every row.
+6. **Honest, quiet status.** Data status is one quiet line while everything
+   is fresh, and a banner on every screen the moment it isn't (no connection,
+   a session ended, a source changed something), with the time of the last
+   data and the one fix. Old data is never shown as live.
+7. **Every action answers back, and can be taken back.** Buttons show they
+   are working; success is confirmed where the Student is looking; anything
+   destructive can be undone (an undo toast) or asks first. Final actions
+   (handing in) say plainly what they will and won't count for.
+8. **Motion explains change.** Screens arrive softly, rows rise in, numbers
+   that change get noticed, panels slide from where they open. Nothing moves
+   for decoration.
 
 ## Foundation
 
@@ -123,11 +145,20 @@ once. Text colors are tested against every background they sit on
 | `--source-itb-bg` | `#f3ecfd` | `#271d3a` |
 | `--source-itb-fg` | `#6338b8` | `#c4b0f5` |
 
-**Course colors.** Each course has an identity color for dots, bars and the
-sidebar: `#2F7CF6 #7C5CFC #1FA971 #F2884B #E0559A #14A3B8 #D7A20F #E5484D`.
-The color comes from the course code (`src/core/course-colors.ts`), so it
-stays the same across launches, and courses of one term don't share one.
-Course colors mark identity only; they never carry text.
+**Course colors.** Each course has an identity color for its dot and stripe:
+`#3366F0 #7C5CFC #0FA3B1 #D6409F #64748B #9D4EDD #0284C7 #8D6E63`. The
+palette leaves out the hues status speaks in (red, amber, orange, green), so a
+course never looks "in danger" because of its color. The color comes from the
+course code (`src/core/course-colors.ts`), so it stays the same across
+launches, and courses of one term don't share one. Course colors mark
+identity only: never a bar's fill, a status, or text.
+
+**Status colors.** Red (`danger`): lost, overdue, failed, can't reach the
+target, destructive. Amber (`warning`): needs the Student soon (no absences
+left, due within a day, a session ended). Green (`success`, `live`): done,
+safe, connected, happening now. Blue (`accent`, `info`): actions, links,
+neutral information. Grey (`neutral`): not yet, not applicable. Bars and
+meters take their color from status, never from the course.
 
 **Color is never the only signal.** Task statuses have their own glyph and
 word, source states their own mark and word.
@@ -135,46 +166,49 @@ word, source states their own mark and word.
 ## Type
 
 The system font (SF Pro on macOS, Segoe UI on Windows, the desktop's own on
-Linux); no web fonts to download. Numbers that line up use tabular figures.
+Linux); no web fonts. Numbers that line up use tabular figures. A row uses at
+most three styles: its title, one supporting line, one meta line.
 
 | Token | Size / line | Use |
 |---|---|---|
-| `text-micro` | 11 / 14 | Tags, badges, keyboard keys |
-| `text-caption` | 11.5 / 16 | Meta lines, section labels (uppercase, +0.04em) |
-| `text-small` | 12.5 / 18 | Secondary text, buttons |
-| `text-body` | 13.5 / 20 | Default UI text |
-| `text-lead` | 14.5 / 21 | List and card titles |
-| `text-title` | 15 / 20 | Section and dialog titles (semibold, −0.01em) |
-| `text-heading` | 20 / 26 | Page sub-titles |
-| `text-display` | 26 / 32 | Page titles (semibold, −0.02em) |
+| `text-micro` | 11 / 14 | Badges, keyboard keys |
+| `text-caption` | 12 / 16 | Section labels in panels, tiny meta |
+| `text-small` | 13 / 18 | Meta lines, secondary text, buttons |
+| `text-body` | 14 / 20 | Default text, row titles (medium) |
+| `text-lead` | 15 / 22 | A page's description line, card leads |
+| `text-title` | 16 / 22 | Section and dialog titles (semibold, −0.01em) |
+| `text-heading` | 20 / 26 | Big answers inside a card |
+| `text-display` | 28 / 34 | Page titles (semibold, −0.02em) |
 
 ## Space, shape, depth
 
-- **Spacing** uses Tailwind's 4 px steps. Pages: 40 px side padding, content
-  up to 1080 px wide. Cards: 16 px padding. Rows: 14 to 16 px across, 10 to
-  14 px high. Sections: 36 to 44 px apart.
-- **Radius**: 5 px keys and tags, 6 px small buttons, 8 px buttons, inputs and
-  nav items, 12 px cards, 16 px dialogs, full for chips and switches.
-- **Elevation**: cards use a 1 px edge, no shadow. Only floating things cast
-  shadows: `shadow-button` (primary buttons), `shadow-thumb` (switch knob,
-  selected segment), `shadow-lift` (a card on hover), `shadow-pop`
-  (tooltips, toasts, popovers), `shadow-dialog` with a dimmed, lightly blurred
-  backdrop.
+- **Spacing** on a 4 px grid. One page container for every screen
+  (`Page`): 40 px side padding, 1040 px wide (Jadwal goes wider), the same
+  left edge everywhere. Sections 40 px apart; inside a section 12 px.
+- **Radius**: 5 px keys and tags, 6–8 px buttons and inputs, 12 px cards and
+  lists, 16 px raised cards and dialogs, full for chips and switches.
+- **Depth**: one surface level per region; no card inside a card. Lists and
+  cards sit on the page with a 1 px edge and a faint shadow (`shadow-card`);
+  the one thing that matters most right now is raised (`shadow-raised`);
+  quiet areas inside are sunken (`bg-sunken`). Floating things cast real
+  shadows: `shadow-pop` (tooltips, toasts, popovers), `shadow-dialog`.
 
 ## Motion
 
-Restrained and quick. It confirms an action; it never performs.
+Quick and purposeful: it shows where something came from, or what changed.
 
 | What | Duration | Easing |
 |---|---|---|
 | Hover, press, color changes | 150 ms | ease |
-| Popovers, tooltips, toasts in | 160 to 180 ms | `ease-standard` cubic-bezier(0.2, 0, 0, 1) |
-| Closing a dialog or popover | instant | — |
-| Progress bars filling | 500 ms | ease |
+| A screen opening (`animate-enter`, done by the shell) | 280 ms | `ease-out` (0.16, 1, 0.3, 1) |
+| List rows arriving (`stagger` with `--i`, first 10 rows) | 360 ms, 28 ms apart | `ease-out` |
+| Popovers, banners (`animate-slide-down`), dialogs and toasts (`animate-pop-in`) | 180–220 ms | `ease-standard` / `ease-out` |
+| Bars filling, numbers changing | 300–500 ms | ease |
 | Loading placeholders | 1.4 s pulse | ease-in-out |
 
-With reduced motion turned on in the OS, every animation and transition is
-cut to an instant. Live dots stop pulsing.
+Rows stagger only when a list first appears, never on every update. With
+reduced motion turned on in the OS, every animation and transition is cut to
+an instant and live dots stop pulsing.
 
 ## Icons
 
@@ -195,48 +229,52 @@ Icons are decorative; the control around them carries the name.
 - Closing the window on macOS keeps the app running (Dock); elsewhere it
   quits, until the tray arrives with alerts.
 
-## Components
+## Layout parts and components
 
-Every component has a keyboard focus ring (2 px `--focus` outline, 2 px out)
-and an accessible name.
+Screens are composed, not styled one by one:
 
-| Component | States |
+| Part | Use |
 |---|---|
-| **Sidebar item** (nav, course) | default, hover (`--hover`), current (`--selected`, semibold, `aria-current`), focus. Course items show the course dot, code and name, truncated. |
-| **Top bar** | title area; source status chip; refresh (spinning while busy, disabled when signed out). |
-| **Button** | `primary` (one per view, the main action), `secondary`, `ghost`, `danger`; sizes 28 / 32 / 40 px; hover, pressed, focus, disabled (50%), busy (spinner, no clicks). |
-| **Icon button** | 28 / 32 px square, name required, tooltip with the same name. |
-| **Switch** | off, on, focus, disabled; the knob slides the track's width. |
-| **Segmented control** | one choice selected; arrow keys move the choice (radio group). |
-| **Card** | static; clickable cards lift slightly on hover. |
-| **Row list** | rows inside a card, 1 px dividers; hover background on clickable rows. |
-| **Task status chip** | not started, draft, submitted, overdue, closed, in review: each its own color, glyph and word. |
-| **Source tag** | EduNex, SIX, Kalender ITB. |
-| **Source status chip** | checking (spinner), live (green dot), offline (no-signal mark), session ended (amber, asks to sign in again), changed something (red, the call that failed in its tooltip), signed out. Click: refresh, or sign in again. Tooltip: what it means and when it last updated. |
-| **Source notice** | on Home when a session ended or the source changed something: one line of what happened and the one action. |
-| **Badge** | counts in the sidebar; neutral or amber. |
-| **Dialog** | title, close button, scrolling body; Escape and the backdrop close it; focus stays inside. |
-| **Confirm dialog** | before anything that can't be undone from inside the app (sign out of everything): title, what will happen, Cancel and the action in danger style. |
-| **Tooltip** | after 450 ms hover or on focus; short. |
-| **Toast** | bottom center, five seconds, at most three; neutral or danger. Never the only place an error is said. |
-| **Loading** | placeholders in the shape of what's coming, never a blank area or a lone spinner for a whole page. |
-| **Empty** | dashed outline, an icon and one plain sentence; an action when there is one. |
-| **Error (crash guard)** | every panel (sidebar, top bar, each screen, each dialog) has its own: a broken panel says "This part couldn't be shown", with Try again and Copy details; the rest of the window keeps working. |
-| **Offline** | shown by the source status chip and the saved data staying on screen; no separate page. |
-| **Tabs**, **menus**, **file drop** | Radix Tabs and Dropdown Menu, and a drop zone with a browse button and the attached files listed, built with the course page and the hand-in tickets in the same style. |
+| `Page` | Every screen's frame: width and padding. |
+| `PageHeader` | Eyebrow (the date, a course code), title, one description line, actions on the right. |
+| `Section` | A titled part of a screen with an optional count, description and a link-like action. |
+| `List` + `Row` | Rows on one card divided by hairlines. `Row`: leading indicator, title, one meta line, trailing state or action. A clickable row is one button: the whole row is the target, a chevron appears on hover. |
+| `Meta` | Facts on one line, quietly separated ("11:00–12:59 · TVST C"); empty parts drop out. |
+| `Notice` | Something to know right here (info, warning, danger, success, neutral) with the one thing to do. |
+| `Stat` | A figure read at a glance (IPK, SKS, absences left). |
+| `Card` | `plain`, `raised` (what matters most now), `sunken` (quiet areas). |
+| `EmptyState` | What would be here, why it is empty, and the way forward. Small and kind; hide empty groups instead where nothing is lost. |
+| `Button` | `primary` (one per view: the main action), `secondary`, `ghost`, `danger` (destructive only, never for a final but safe action like handing in). Shows a spinner while working. |
+| `IconButton` | Square, always with a name and a tooltip. |
+| `Popover` | A panel from a control (alerts, data status); Escape and a click outside close it. |
+| `Dialog`, `ConfirmDialog` | Focus stays inside; Escape closes. Confirm only before what can't be undone. |
+| `toast(text, tone, action?)` | Neutral, success or danger; with an action ("Urungkan", "Lihat") it stays 8 s. Never the only place an error is said. |
+| `StatusChip` | A Task's true status: each its own color, glyph and word. Shown only where the status says something (not "Belum dikerjakan" on every to-do row). |
+| `SourceTag` | Quiet outline tag, only where the source changes what to do. |
+| `Badge` | Sidebar counts: neutral = how many; amber = something needs the Student today. |
+| `Skeleton` | Placeholders in the shape of what's coming; never a blank area or a lone spinner. |
+
+The shell: a sidebar (⌘1–⌘6, courses with their dot, the Student's name
+opening Settings), a top bar (back button naming where it goes, ⌘K search,
+the alerts bell, the data-status control) and the problem banner under it.
+Every screen sits in its own crash guard.
 
 ## Copy
 
-- **No filler.** No sentences that explain the interface ("Files listed per
-  course from the latest snapshot…"). If a screen needs explaining, the
-  screen is wrong.
-- **Say what happened and what to do**, in that order: "EduNex ended your
-  session. Your last data stays readable." + **Sign in again**.
+- **Action first, one fact per line.** "Kumpulkan Tugas 02 · Jum 16 Okt
+  15:00–23:59", not a sentence that ends with the instruction.
+- **Say what happened and what to do**, in that order: "Sesi SIX berakhir.
+  Data terakhir tetap bisa dibaca." + **Masuk lagi**.
+- **Positive and honest framing**: "Masih bisa absen 2× lagi", "IPK
+  tertinggi yang masih mungkin: 3,45". Never three "tak tercapai" in a row.
+- **No system words**: no "snapshot", "salinan materi", "kelas induk",
+  "data source". The Student's words: kuliah, pertemuan, tugas, presensi.
 - **Human times**: "Besok, 23:59 · dalam 6 jam", "Diperbarui 5 menit yang
-  lalu", never a raw timestamp. Times are in the computer's time zone.
+  lalu", never a raw timestamp; one date format per context. Times are in
+  the computer's time zone.
 - **Voice**: Indonesian uses *kamu* and plain, friendly words; English is
-  plain and short. Sentence case for titles and buttons.
-- **Names** are shown as people write them (EduNex can send all capitals).
+  plain and short. Sentence case for titles and buttons. A button says what
+  it does ("Keluar dari SIX", not "Keluar").
 - **Every string comes from the catalog**, in both languages, with plural
   forms for English counts.
 

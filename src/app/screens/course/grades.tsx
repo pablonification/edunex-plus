@@ -3,6 +3,7 @@
 // the Student enters each part's weight and the score they have or expect,
 // and sees their final score or what they need on what's left. What they
 // enter stays on this computer ("local.courseWeights").
+import { percent } from "../../../core/attendance";
 import { useState } from "react";
 import { EXAMPLE_CONTRACT, EXAMPLE_PART_IDS, partScore, standing } from "../../../core/course-contract";
 import { CONTRACT_LETTERS, type ContractPart, type CourseContract } from "../../../core/models";
@@ -58,7 +59,7 @@ function Calculator({ page }: { page: CoursePage }) {
   const [draft, setDraft] = useState<CourseContract | null>(null);
   const contract = draft ?? saved?.[code] ?? EXAMPLE_CONTRACT;
   const isExample = !draft && !saved?.[code];
-  const attendance = page.course.attendance && page.course.attendance.held > 0 ? Math.round((page.course.attendance.attended / page.course.attendance.held) * 100) : null;
+  const attendance = page.course.attendance && page.course.attendance.held > 0 ? percent(page.course.attendance.attended, page.course.attendance.held) : null;
   const result = standing(contract, attendance);
 
   const save = (next: CourseContract | null) => {

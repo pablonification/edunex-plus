@@ -234,6 +234,14 @@ const ACTIVITIES: Readonly<Record<string, PresenceActivity>> = {
   crs_vote: "crs",
 };
 
+/**
+ * A share as a whole percent, rounded down, the same on every screen: 79.6 %
+ * must never read as the 80 % target. `whole` omitted: `part` is a fraction.
+ */
+export function percent(part: number, whole = 1): number {
+  return whole > 0 ? Math.floor((part / whole) * 100 + 1e-9) : 0;
+}
+
 export interface PresenceAction {
   activity: PresenceActivity;
   /** The Task to hand in, for Answer Assignment, when the app knows it. */
