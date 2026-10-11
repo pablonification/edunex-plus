@@ -55,6 +55,11 @@ describe("Beranda on the recorded Thursday morning", () => {
     expect(row("home-today", "08:0010:00")).toBe("08:0010:00Ekonomi dan Inovasi dalam PerencanaanPL3002R.SG PWK LT.6Presensi di SIXBoleh absen 2x lagiBerubah · biasanya 08:00–09:30Sekarang");
     expect(row("home-today", "11:00")).toContain("Komunikasi PemasaranDK4073TVST CPresensi di SIXTidak boleh absen lagidalam 3 jam");
     expect(row("home-today", "16:00")).toContain("80% tak tercapai · maks. 73%");
+    // PL3032 (15:00–16:30) and KU5014 (16:00–17:50) share half an hour: each row names the other.
+    expect(row("home-today", "15:00")).toContain("PL3032");
+    expect(row("home-today", "15:00")).toContain("Bentrok KU5014 16:00–16:30");
+    expect(row("home-today", "16:00")).toContain("Bentrok PL3032 16:00–16:30");
+    expect(row("home-today", "11:00")).not.toContain("Bentrok");
     expect(row("home-today", "Besok")).toBe("Besok15:00–17:00II4091 Pertemuan 3 · daringTidak ada di SIXGabung");
     await screen.click("Gabung kelas daring: II4091");
     expect(screen.calls.at(-1)).toMatchObject({ name: "shell.openExternal", input: { url: expect.stringContaining("teams.microsoft.com") } });
@@ -81,6 +86,7 @@ describe("Beranda on the recorded Thursday morning", () => {
     expect(row("home-needs", "Record your")).toContain("Open the course in EduNex · Class until 10:00 · R.SG PWK LT.6 · usually 08:00–09:30");
     expect(text("home-today")).toMatch(/Next class in 2h 4\dm/);
     expect(row("home-today", "08:00")).toContain("Attendance in SIX2 more absences allowedChanged · usually 08:00–09:30Now");
+    expect(row("home-today", "15:00")).toContain("Overlaps KU5014 16:00–16:30");
     expect(text("home-changes")).toContain("TodayPL3002 schedule changedSIXThu, 8 Oct 08:00–10:00 · usually 08:00–09:30");
     expect(screen.text()).toContain("Midterm week starts Monday, 12 Oct");
   });

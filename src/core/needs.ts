@@ -124,6 +124,8 @@ export interface ClassFacts {
   moved: SlotChange | null;
   /** The online-class link posted for it. */
   link: string | null;
+  /** Another course's class whose time overlaps this one, and the shared part. */
+  overlap: { code: string; from: number; to: number } | null;
 }
 
 export type NeedFacts =
@@ -265,7 +267,13 @@ function classFacts(context: HomeContext, session: ClassSession): ClassFacts {
     state: health?.state ?? "unknown",
     moved: slotChange(session, context.schedule ?? []),
     link: classLink(context, session.courseCode, session.start),
+    overlap: overlapWith(session, context.schedule ?? []),
   };
+}
+
+function overlapWith(session: ClassSession, schedule: readonly ClassSession[]): ClassFacts["overlap"] {
+  const other = schedule.find((s) => s.courseCode !== session.courseCode && s.start < session.end && session.start < s.end);
+  return other ? { code: other.courseCode, from: Math.max(session.start, other.start), to: Math.min(session.end, other.end) } : null;
 }
 
 const today = (context: HomeContext) => wibDay(context.now);

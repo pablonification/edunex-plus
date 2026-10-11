@@ -605,6 +605,9 @@ function ClassRow({ item, first, course }: { item: ClassFacts; first: boolean; c
                 {item.moved.usualStart !== null ? t("home.today.changed", { usual: movedFrom(f, item.moved, session.start) }) : t("home.today.roomChanged", { room: item.moved.usualRoom ?? "" })}
               </span>
             )}
+            {item.overlap && (
+              <span className="font-semibold text-warning-fg">{t("home.today.overlap", { course: item.overlap.code, time: f.timeRange(item.overlap.from, item.overlap.to) })}</span>
+            )}
           </span>
         </span>
       </span>

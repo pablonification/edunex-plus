@@ -63,6 +63,7 @@ export const homeStrings = {
   "home.today.now": { id: "Sekarang", en: "Now" },
   "home.today.changed": { id: "Berubah · biasanya {usual}", en: "Changed · usually {usual}" },
   "home.today.roomChanged": { id: "Ruang berubah · biasanya {room}", en: "Room changed · usually {room}" },
+  "home.today.overlap": { id: "Bentrok {course} {time}", en: "Overlaps {course} {time}" },
   "home.today.join": { id: "Gabung", en: "Join" },
   "home.today.joinLabel": { id: "Gabung kelas daring: {course}", en: "Join online class: {course}" },
   "home.today.notInSix": { id: "Tidak ada di SIX", en: "Not in SIX" },
