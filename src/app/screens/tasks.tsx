@@ -1156,14 +1156,15 @@ function HandInDialog({
               ))}
             </ul>
           )}
-          <div className="mt-5 flex flex-wrap justify-end gap-2">
+          {/* Two real choices, one of them costly: stacked full width, the safe one first. */}
+          <div className={cx("mt-5 gap-2", waitForWindow ? "grid" : "flex flex-wrap justify-end")}>
             {waitForWindow ? (
               <>
-                <Button variant="secondary" busy={busy === "submit"} disabled={busy === "draft"} onClick={onSubmit}>
-                  {t("handIn.submitAnyway")}
-                </Button>
-                <Button variant="primary" busy={busy === "draft"} disabled={busy === "submit"} onClick={onSaveDraft}>
+                <Button variant="primary" className="w-full" busy={busy === "draft"} disabled={busy === "submit"} onClick={onSaveDraft}>
                   {canSave ? t("handIn.saveInstead") : t("handIn.notNow")}
+                </Button>
+                <Button variant="secondary" className="w-full" busy={busy === "submit"} disabled={busy === "draft"} onClick={onSubmit}>
+                  {t("handIn.submitAnyway")}
                 </Button>
               </>
             ) : (

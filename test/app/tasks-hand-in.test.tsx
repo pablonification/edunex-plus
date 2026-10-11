@@ -17,7 +17,8 @@ const ATTACH = /^Lampirkan berkas · Lepas berkas di sini/;
 const card = () => document.querySelector("main aside")?.textContent ?? "";
 const answerWrites = (s: NonNullable<typeof screen>) =>
   s.world.edunex.writes.filter((w) => w.path.startsWith("/course/task/answers")).map((w) => `${w.method} ${w.path.replace(/\d+$/, ":id")}`);
-const confirmButton = () => [...(document.querySelector("[role=alertdialog]")?.querySelectorAll("button") ?? [])].find((b) => b.textContent !== "Batal");
+/** The confirm's submitting button ("Kumpulkan sekarang", "Kumpulkan tetap …", "Kumpulkan terlambat"). */
+const confirmButton = () => [...(document.querySelector("[role=alertdialog]")?.querySelectorAll("button") ?? [])].find((b) => b.textContent?.startsWith("Kumpulkan"));
 
 const openTask = async (title: string, now?: string) => {
   const s = await openApp({ signedIn: true, world: new PretendWorld({ now }) });

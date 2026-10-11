@@ -89,7 +89,7 @@ export function ExamRow({ exam, index }: { exam: Exam; index?: number }) {
     <Row
       index={index}
       onClick={() => go({ screen: "exam", examId: exam.id })}
-      leading={<DateTile at={exam.at} />}
+      leading={<DateTile at={exam.at} week={exam.week} />}
       title={
         <span className="flex min-w-0 items-center gap-2">
           <KindLabel exam={exam} />
@@ -136,13 +136,22 @@ function TakeHomeLine({ task }: { task: Task }) {
   );
 }
 
-/** "KAM / 15 / Okt": the exam's day, the strongest thing in its row. */
-function DateTile({ at }: { at: number | null }) {
+/** "KAM / 15 / Okt": the exam's day, the strongest thing in its row; without a day yet, its exam week ("12–16 / Okt"). */
+function DateTile({ at, week }: { at: number | null; week?: Exam["week"] }) {
+  const t = useT();
   const f = useFormat();
   return (
     <span className="flex w-11 flex-col items-center rounded-lg border border-edge bg-surface py-1 leading-none tabular-nums">
-      {at === null ? (
-        <span className="py-2 text-body text-faint">—</span>
+      {at === null && week ? (
+        <>
+          <span className="text-micro font-semibold text-muted">{t("exam.tileWeek")}</span>
+          <span className="mt-1 text-caption font-semibold">
+            {new Date(dayStart(week.firstDay)).getDate()}–{new Date(dayStart(week.lastDay)).getDate()}
+          </span>
+          <span className="mt-0.5 text-micro text-muted">{f.dayMonth(dayStart(week.lastDay)).replace(/^\d+\s*/, "")}</span>
+        </>
+      ) : at === null ? (
+        <span className="py-2 text-body text-faint">?</span>
       ) : (
         <>
           <span className="text-micro font-semibold text-muted uppercase">{f.weekdayShort(at)}</span>

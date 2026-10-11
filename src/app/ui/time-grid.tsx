@@ -151,7 +151,8 @@ export function TimeGrid({
 function NowLine({ minute }: { minute: number }) {
   const y = useY();
   return (
-    <div aria-hidden className="pointer-events-none absolute inset-x-0 z-20" style={{ top: y(minute) }}>
+    // Behind the blocks: it marks the time without running through a class's text (the class going on shows it itself).
+    <div aria-hidden className="pointer-events-none absolute inset-x-0 z-[5]" style={{ top: y(minute) }}>
       <div className="h-0.5 -translate-y-1/2 bg-danger-fg" />
       <div className="absolute top-0 -left-1 size-2 -translate-y-1/2 rounded-full bg-danger-fg" />
     </div>
