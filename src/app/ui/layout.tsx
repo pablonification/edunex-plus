@@ -129,7 +129,10 @@ export function Row({
     <>
       {leading !== undefined && <span className="flex shrink-0 self-start pt-px">{leading}</span>}
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-body font-medium">{title}</span>
+        {/* A long name wraps to a second line, then shows whole on hover: never cut with no way to read it. */}
+        <span className="line-clamp-2 block text-body font-medium [overflow-wrap:anywhere]" title={typeof title === "string" ? title : undefined}>
+          {title}
+        </span>
         {meta && <span className="mt-0.5 block text-small text-muted">{meta}</span>}
         {children}
       </span>
