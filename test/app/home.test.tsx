@@ -52,7 +52,9 @@ describe("Beranda on the recorded Thursday morning", () => {
 
   it("today: SIX's classes with time and room, absences left, the moved class, the overlap, and tomorrow's online meeting; rows open their course", async () => {
     screen = await openApp({ signedIn: true, six: true });
-    expect(row("home-today", "08:0010:00")).toBe("08:0010:00Ekonomi dan Inovasi dalam PerencanaanPL3002·R.SG PWK LT.6Boleh absen 2× lagiJam berubah · biasanya 08:00–09:30Sekarang");
+    // The now card above says "Jam berubah · biasanya 08:00–09:30" for this class; the row doesn't say it again.
+    expect(row("home-today", "08:0010:00")).toBe("08:0010:00Ekonomi dan Inovasi dalam PerencanaanPL3002·R.SG PWK LT.6Boleh absen 2× lagiSekarang");
+    expect(text("home-now")).toContain("Jam berubah · biasanya 08:00–09:30");
     expect(row("home-today", "11:00")).toBe("11:0012:59Komunikasi PemasaranDK4073·TVST CJangan absen lagidalam 3 jam");
     expect(row("home-today", "16:00")).toContain("80% tak terkejar · paling tinggi 73%");
     // PL3032 (15:00–16:30) and KU5014 (16:00–17:50) share half an hour: each row names the other.
@@ -89,7 +91,8 @@ describe("Beranda on the recorded Thursday morning", () => {
     expect(text("home-now")).toContain("On now · until 10:00");
     expect(text("home-now")).toContain("Attendance counts in SIX: just be in class.");
     expect(text("home-now")).toContain("EduNex Presence is also open until 09:30; it's optional.");
-    expect(row("home-today", "08:00")).toContain("You can miss 2 moreNew time · usually 08:00–09:30Now");
+    expect(row("home-today", "08:00")).toContain("You can miss 2 moreNow");
+    expect(text("home-now")).toContain("New time · usually 08:00–09:30");
     expect(row("home-today", "15:00")).toContain("Overlaps KU5014 16:00–16:30");
     expect(rows("home-needs")[0]).toContain("KU5014 can't reach 80% anymore");
     expect(text("home-changes")).toContain("PL3002 schedule changedThu, 8 Oct 08:00–10:00 · usually 08:00–09:30");
@@ -163,8 +166,9 @@ describe("a class moved to another day", () => {
     const schedule = [meeting("1", "2026-10-01T08:00:00"), meeting("2", "2026-10-08T08:00:00"), meeting("3", "2026-10-16T10:00:00"), meeting("4", "2026-10-22T08:00:00")];
     await screen.apply({ type: "dataset", dataset: { name: "six.schedule", value: schedule, fetchedAt: 0, hash: "s1" } });
     await screen.apply({ type: "dataset", dataset: { name: "six.scheduleMonths", value: ["2026-10"], fetchedAt: 0, hash: "s2" } });
-    expect(row("home-today", "10:00")).toContain("Jam berubah · biasanya Kamis 08:00–09:30");
     expect(text("home-now")).toContain("Jam berubah · biasanya Kamis 08:00–09:30");
+    // Said once: the now card shows this class, so its row in Hari ini doesn't repeat it.
+    expect(row("home-today", "10:00")).not.toContain("biasanya");
   });
 });
 
