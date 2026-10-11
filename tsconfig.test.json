@@ -10,5 +10,5 @@
     "noEmit": true,
     "types": ["node"]
   },
-  "include": ["test"]
+  "include": ["test", "src/engine"]
 }
