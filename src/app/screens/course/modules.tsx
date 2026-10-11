@@ -2,7 +2,7 @@
 // module, the joint class's after the class's own), and the selected entry's
 // Tasks and materials. It opens on the newest module with something in it;
 // empty modules take one quiet line. Each material type gets the one action
-// that fits it: download, join, read here, open, or EduNex itself.
+// that fits it: download, join, read here, open, or EduNex itself, all alike.
 import { useEffect, useRef, useState } from "react";
 import {
   contentCounts,
@@ -268,7 +268,7 @@ export function MaterialRow({ material }: { material: Material }) {
       break;
     default:
       button = (
-        <Button variant="ghost" size="sm" icon={<Icons.ArrowUpRight className="size-3.5" />} aria-label={named(t("action.openInEdunex"))} onClick={() => openExternal(action.url)}>
+        <Button size="sm" icon={<Icons.ArrowUpRight className="size-3.5" />} aria-label={named(t("action.openInEdunex"))} onClick={() => openExternal(action.url)}>
           {t("action.openInEdunex")}
         </Button>
       );
@@ -285,7 +285,8 @@ export function MaterialRow({ material }: { material: Material }) {
           <p className="mt-0.5 truncate text-small text-muted">{meta}</p>
         </div>
         {material.updatedAt !== null && <span className="text-small whitespace-nowrap text-faint">{f.fromNow(material.updatedAt)}</span>}
-        {button}
+        {/* One width for every action, so the dates beside them line up. */}
+        <span className="flex w-[9.5rem] shrink-0 justify-end">{button}</span>
       </div>
       {reading && action.kind === "read" && (
         <div className="border-t border-line bg-fill/50 px-4 py-3.5">

@@ -132,6 +132,11 @@ describe("materials", () => {
     for (const name of ["Unduh: Rekaman kuliah", "Unduh: Podcast", "Unduh: Data", "Buka: Berita ITB", "Gabung: Zoom", "Gabung: Meet", "Gabung: Webex"]) expect(screen.has(name)).toBe(true);
     for (const name of ["Situs luar", "Kuis interaktif", "CloudX", "Baru"]) expect(screen.has(`Buka di EduNex: ${name}`)).toBe(true);
     expect(screen.text()).toContain("Kelas online · Google Meet");
+    // Every action looks alike and takes the same width, so the dates beside them line up.
+    const actions = [...document.querySelectorAll<HTMLButtonElement>("main section li button[aria-label]")].filter((b) => /^(Unduh|Buka|Gabung|Baca)/.test(b.getAttribute("aria-label")!));
+    expect(actions.length).toBeGreaterThan(8);
+    expect(new Set(actions.map((b) => b.className)).size).toBe(1);
+    expect(new Set(actions.map((b) => b.parentElement!.className)).size).toBe(1);
     await screen.click("Unduh: Data");
     expect(screen.calls.at(-1)).toMatchObject({ name: "files.download", input: { name: "Data.xlsx" } });
     await screen.click("Buka di EduNex: Baru");
