@@ -222,6 +222,6 @@ describe("EduNex sign-in → your courses", () => {
     const h = await startEngine();
     await h.engine.updateSettings({ theme: "dark", lang: "en" });
     const again = await startEngine({ world: h.world, storage: h.storage, vault: h.vault });
-    expect(again.engine.snapshot().settings).toEqual({ theme: "dark", lang: "en" });
+    expect(again.engine.snapshot().settings).toMatchObject({ theme: "dark", lang: "en" });
   });
 });

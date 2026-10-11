@@ -93,6 +93,11 @@ export async function openApp(options: Options = {}) {
       await engine.setLocal(name, value);
       return {};
     },
+    "alerts.markRead": async () => {
+      await engine.markAlertsRead();
+      return {};
+    },
+    "alerts.test": async () => ({ shown: true }),
   };
   // The preload's surface, answering the way main's bridge does (input checked against the contract).
   const api: BridgeApi = {

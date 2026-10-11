@@ -1,12 +1,14 @@
-// Settings: theme, language, the accounts, and a visible Sign out that removes
-// every session and saved trace from this computer.
+// Settings: theme, language, which alerts notify and what closing the window
+// does, the accounts, and a visible Sign out that removes every session and
+// saved trace from this computer.
 import { useState, type ReactNode } from "react";
-import type { Settings } from "../../core/models";
+import type { AlertGroup, Settings } from "../../core/models";
+import type { StringKey } from "../../core/strings";
 import { ActionError } from "../bridge";
 import { useT } from "../i18n";
 import { displayName } from "../names";
 import { useBridge, useDataset, useSettings, useStatus, useStore } from "../store";
-import { Button, Segmented } from "../ui/controls";
+import { Button, Segmented, Switch } from "../ui/controls";
 import { Card } from "../ui/display";
 import { ConfirmDialog, Dialog, toast } from "../ui/overlays";
 import { PanelBoundary } from "../ui/panel-boundary";
@@ -79,6 +81,8 @@ function SettingsBody({ onSignedOutOfEverything }: { onSignedOutOfEverything: ()
         </Row>
       </Group>
 
+      <AlertSettings settings={settings} update={update} report={report} />
+
       <Group title={t("settings.accounts")}>
         <Row label={t("source.edunex")} hint={account ? `${displayName(account.name)} · ${account.nim}` : t("settings.notConnected")}>
           {status.state === "signed-out" || status.state === "expired" ? (
@@ -115,6 +119,56 @@ function SettingsBody({ onSignedOutOfEverything }: { onSignedOutOfEverything: ()
         onConfirm={() => void signOut()}
       />
     </div>
+  );
+}
+
+/** Alert groups with a detector so far, in the approved design's order. Add a group here when its alerts land. */
+const ALERT_ROWS: { group: AlertGroup; label: StringKey; hint: StringKey }[] = [
+  { group: "deadline", label: "settings.alerts.deadline", hint: "settings.alerts.deadlineHint" },
+  { group: "newTask", label: "settings.alerts.newTask", hint: "settings.alerts.newTaskHint" },
+  { group: "newMaterial", label: "settings.alerts.newMaterial", hint: "settings.alerts.newMaterialHint" },
+];
+
+function AlertSettings({ settings, update, report }: { settings: Settings; update: (patch: Partial<Settings>) => void; report: (error: unknown) => void }) {
+  const t = useT();
+  const bridge = useBridge();
+  const [testing, setTesting] = useState(false);
+  const setOn = (group: AlertGroup, on: boolean) =>
+    update({ mutedAlerts: on ? settings.mutedAlerts.filter((g) => g !== group) : [...settings.mutedAlerts.filter((g) => g !== group), group] });
+  const test = async () => {
+    setTesting(true);
+    try {
+      await bridge.invoke("alerts.test", {});
+    } catch (error) {
+      report(error);
+    } finally {
+      setTesting(false);
+    }
+  };
+  return (
+    <Group title={t("settings.alerts")}>
+      {ALERT_ROWS.map(({ group, label, hint }) => (
+        <Row key={group} label={t(label)} hint={t(hint)}>
+          <Switch checked={!settings.mutedAlerts.includes(group)} onCheckedChange={(on) => setOn(group, on)} label={t(label)} />
+        </Row>
+      ))}
+      <Row label={t("settings.closeWindow")}>
+        <Segmented
+          label={t("settings.closeWindow")}
+          value={settings.closeToTray ? "tray" : "quit"}
+          onChange={(choice) => update({ closeToTray: choice === "tray" })}
+          options={[
+            { value: "tray", label: t("settings.closeWindow.tray") },
+            { value: "quit", label: t("settings.closeWindow.quit") },
+          ]}
+        />
+      </Row>
+      <Row label={t("settings.alerts.test")}>
+        <Button size="sm" busy={testing} onClick={() => void test()}>
+          {t("settings.alerts.testAction")}
+        </Button>
+      </Row>
+    </Group>
   );
 }
 

@@ -4,6 +4,7 @@ import type { Event } from "../../core/contract";
 import type { Lang, Settings } from "../../core/models";
 import type { Engine } from "../../engine/engine";
 import type { Handlers } from "../ipc";
+import type { Notifier } from "../notifications";
 import type { VaultMode } from "../vault";
 
 export interface DesktopContext {
@@ -21,6 +22,8 @@ export interface DesktopContext {
   applySettings(settings: Settings): void;
   reveal(): void;
   startSyncing(): void;
+  /** OS notifications (alerts, the test notification). */
+  notifier: Notifier;
 }
 
 /** A group of handlers for some of the bridge's actions. */

@@ -1,9 +1,16 @@
 # OS notification notes per platform
 
-The notification slice (#23/#24) delivers through Electron's built-in OS
-notifications. Delivery is a platform-integration fact, not unit-testable
-logic — record what each platform needs here, and verify manually per
-platform.
+Alerts (#75) are decided by the engine's alert center (`src/engine/alerts`,
+tested against the pretend world) and shown by `src/desktop/notifications.ts`
+through Electron's built-in OS notifications. Delivery is a
+platform-integration fact, not unit-testable logic — record what each
+platform needs here, and verify manually per platform. Settings → Notifikasi
+→ "Coba notifikasi" sends a sample one; clicking it should bring the window
+forward on Tugas & Ujian.
+
+Do Not Disturb / Focus is left to the OS: macOS and Windows hold
+notifications back themselves (they still land in the in-app history); on
+Linux it depends on the desktop's notification daemon.
 
 ## macOS
 
@@ -12,19 +19,14 @@ platform.
   spec's narrow carve-out from release engineering (#15).
 - The dev build's `node_modules/electron/dist/Electron.app` is **linker-signed**
   and must be re-signed ad-hoc; `scripts/adhoc-sign-electron.mjs` does this as a
-  `postinstall`. Proof: one real test notification fires on dev startup
-  (`shouldFireStartupTestNotification`) and "Send test notification" in the
-  Home panel triggers the same path on demand.
+  `postinstall`. "Coba notifikasi" in Settings fires one on demand.
 - Known residue: downloaded ad-hoc packaged builds hit Gatekeeper on first
   launch (right-click → Open). Accepted and documented, not solved.
 - Test notification appeared in Notification Center on 2026-09-05
   (macOS 26, arm64, ad-hoc dev build).
-- Presence-open alerts (#24) travel the same `OsSink` → `new Notification`
-  path as new-Task alerts, so the signed-build verification above covers
-  them: no separate entitlement or signing work. Confirm on the ad-hoc
-  build by opening a Presence window (or a synthetic agenda window) and
-  checking the alert lands in Notification Center; then click it to confirm
-  focus + navigation to the agenda.
+- Every alert kind (Presence opening included) travels the same
+  `new Notification` path, so the signed-build verification above covers
+  them: no separate entitlement or signing work.
 
 ## Windows
 
@@ -37,23 +39,15 @@ platform.
   identity. Wire the shortcut in the packaging slice.
 - The tray icon (`assets/trayTemplate.png`) uses macOS's "Template" naming
   convention, which Windows ignores — it renders as a raw dark glyph that can
-  disappear against a dark taskbar. The notification slice should ship a
-  light-outline Windows variant selected by platform.
+  disappear against a dark taskbar. Still to do: a light-outline Windows
+  variant selected by platform.
 
-## Persistence and delivery crash window
+## Persistence and delivery
 
-Notification events are delivered through the managed `NotificationService`.
-The OS and in-app sinks are independent: a failed OS notification does not
-prevent the fallback feed, and a failed fallback write does not stop the sync
-loop or discard the domain event. Each account's Task and Presence ledgers
-retain their existing version-1 JSON shapes and atomic writes.
-
-The service preserves the established ordering of delivery before ledger save.
-That leaves a deliberate narrow crash window: if the process stops after a sink
-accepts an event but before its ledger write completes, the next process may
-deliver the same event again. This is preferable to saving first and losing an
-event from both sinks; the behavior is documented and tested at the
-event-driven service seam.
+The seen-ledger (`alerts/seen.json` in the engine's data folder) records an
+alert's id when the center takes it in, before the OS shows it. A crash in
+between can lose that one OS notification, never repeat it; the in-app
+history ("app.alerts") still has it. "Sign out of everything" removes both.
 
 ## Linux
 
@@ -61,6 +55,7 @@ event-driven service seam.
   environments vary widely in presentation and action support. Click-to-focus
   (user story 25) may not work everywhere — degrade to just showing, and treat
   the in-app fallback feed (#23) as the reliable path.
-- Tray support (`Tray.isSupported()`) also varies; without a StatusNotifier
-  implementation the shell lets window close actually quit rather than hide
-  into an unreachable tray.
+- Tray support also varies and can't be detected reliably: without a
+  StatusNotifier host the tray icon may not show while the window still
+  hides on close. Launching the app again brings the window back (single
+  instance), and Settings → "Saat jendela ditutup: Keluar" makes closing quit.

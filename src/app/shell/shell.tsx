@@ -16,13 +16,14 @@ import { PlanScreen, ready as planReady, useBadge as usePlanBadge } from "../scr
 import { PresenceScreen, ready as presenceReady, useBadge as usePresenceBadge } from "../screens/presence";
 import { ScheduleScreen, ready as scheduleReady, useBadge as useScheduleBadge } from "../screens/schedule";
 import { TaskScreen, TasksScreen, ready as tasksReady, useBadge as useTasksBadge } from "../screens/tasks";
-import { useBridge, useCommand, useDataset, useStatus, useStore } from "../store";
+import { useBridge, useCommand, useDataset, useNavigateRequests, useStatus, useStore } from "../store";
 import { IconButton } from "../ui/controls";
 import { Badge, CourseDot } from "../ui/display";
 import { cx } from "../ui/cx";
 import { type IconProps, Icons } from "../ui/icons";
 import { Tooltip } from "../ui/overlays";
 import { PanelBoundary } from "../ui/panel-boundary";
+import { AlertsBell } from "./alerts";
 import { SettingsDialog } from "./settings";
 import { SourceStatusChip, useRefresh } from "./source-status";
 
@@ -37,8 +38,9 @@ export function Shell() {
 function Layout() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const bridge = useBridge();
-  const { route } = useNav();
+  const { route, go } = useNav();
   const main = useRef<HTMLElement>(null);
+  useNavigateRequests(go);
   useCommand(
     useCallback(
       (command) => {
@@ -243,6 +245,7 @@ function TopBar() {
         </Tooltip>
       )}
       <div className="no-drag ml-auto flex items-center gap-1.5">
+        <AlertsBell />
         <SourceStatusChip source="edunex" />
         <Tooltip content={t("action.refresh")}>
           <IconButton label={t("action.refresh")} disabled={busy || status.state === "signed-out" || status.state === "expired"} onClick={() => void refresh()}>

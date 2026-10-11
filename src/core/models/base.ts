@@ -38,6 +38,12 @@ export const Settings = z.object({
   lang: Lang,
 
   // Alerts (#75)
+  /** Alert groups the Student turned off: no OS notification (they still land in the history). */
+  mutedAlerts: z.array(z.string()),
+  /** Closing the window keeps the app alerting from the tray; false quits instead. */
+  closeToTray: z.boolean(),
+  /** The one-time "still running in the tray" explainer was shown. */
+  trayExplained: z.boolean(),
 
   // Attendance (#85)
 });
@@ -48,6 +54,9 @@ export const DEFAULT_SETTINGS: Settings = {
   lang: "id",
 
   // Alerts (#75)
+  mutedAlerts: [],
+  closeToTray: true,
+  trayExplained: false,
 
   // Attendance (#85)
 };

@@ -4,6 +4,7 @@
 import { createContext, useContext, useEffect, useSyncExternalStore, type ReactNode } from "react";
 import type { AppSnapshot, DatasetPayload, Event } from "../core/contract";
 import type { DatasetName, DatasetValue, Settings, SourceId, SourceStatus } from "../core/models";
+import type { Route } from "../core/route";
 import type { Bridge } from "./bridge";
 
 type Command = Extract<Event, { type: "command" }>["command"];
@@ -14,6 +15,7 @@ export class AppStore {
   private settings: Settings;
   private readonly listeners = new Map<string, Set<() => void>>();
   private readonly commandListeners = new Set<(command: Command) => void>();
+  private readonly navigateListeners = new Set<(route: Route) => void>();
   readonly version: string;
   readonly platform: AppSnapshot["platform"];
   readonly vault: AppSnapshot["vault"];
@@ -46,6 +48,9 @@ export class AppStore {
         return this.notify("settings");
       case "command":
         for (const listener of this.commandListeners) listener(event.command);
+        return;
+      case "navigate":
+        for (const listener of this.navigateListeners) listener(event.route);
     }
   }
 
@@ -59,6 +64,11 @@ export class AppStore {
   onCommand(listener: (command: Command) => void): () => void {
     this.commandListeners.add(listener);
     return () => this.commandListeners.delete(listener);
+  }
+
+  onNavigate(listener: (route: Route) => void): () => void {
+    this.navigateListeners.add(listener);
+    return () => this.navigateListeners.delete(listener);
   }
 
   dataset<N extends DatasetName>(name: N): DatasetPayload | undefined {
@@ -138,4 +148,10 @@ export function useSettings(): Settings {
 export function useCommand(handler: (command: Command) => void): void {
   const store = useStore();
   useEffect(() => store.onCommand(handler), [store, handler]);
+}
+
+/** Runs `handler` when the engine asks for a screen (an OS notification was clicked). */
+export function useNavigateRequests(handler: (route: Route) => void): void {
+  const store = useStore();
+  useEffect(() => store.onNavigate(handler), [store, handler]);
 }

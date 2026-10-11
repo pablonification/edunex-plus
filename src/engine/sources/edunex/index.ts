@@ -4,6 +4,7 @@ import type { Source } from "../source";
 import { EdunexClient } from "./client";
 import { registerCoursePageFeeds } from "./course-page";
 import { registerCoreFeeds } from "./feeds";
+import { registerNotificationFeed } from "./notifications";
 import { EdunexSession } from "./session";
 import { registerTaskFeeds, taskActions } from "./tasks";
 
@@ -16,6 +17,7 @@ export const edunex: Source<EdunexSession> = {
     registerCoreFeeds(context, client);
     registerTaskFeeds(context, client);
     registerCoursePageFeeds(context, client);
+    registerNotificationFeed(context, client);
   },
   actions: { ...taskActions },
 };

@@ -9,6 +9,7 @@ import { coursePageActions } from "./actions/course-page";
 import { sixActions } from "./actions/six";
 import { tasksActions } from "./actions/tasks";
 import { Settings, SourceStatus } from "./models";
+import { Route } from "./route";
 import { DatasetPayload } from "./snapshot";
 
 export { AppSnapshot, DatasetPayload, Snapshot } from "./snapshot";
@@ -37,6 +38,8 @@ export const Event = z.discriminatedUnion("type", [
   z.object({ type: z.literal("settings"), settings: Settings }),
   /** A menu item or global shortcut the window should act on. */
   z.object({ type: z.literal("command"), command: z.enum(["settings", "refresh", "search"]) }),
+  /** Open a screen: the Student clicked an OS notification. */
+  z.object({ type: z.literal("navigate"), route: Route }),
 ]);
 export type Event = z.infer<typeof Event>;
 

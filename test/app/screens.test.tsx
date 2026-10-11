@@ -129,7 +129,7 @@ describe("Settings", () => {
     expect(screen.text()).toContain("Courses this semester");
     await screen.click("Dark");
     expect(screen.button("Dark").getAttribute("aria-checked")).toBe("true");
-    expect(screen.engine.snapshot().settings).toEqual({ theme: "dark", lang: "en" });
+    expect(screen.engine.snapshot().settings).toMatchObject({ theme: "dark", lang: "en" });
   });
 
   it("Sign out of everything asks first, then removes every trace and returns to the welcome screen", async () => {

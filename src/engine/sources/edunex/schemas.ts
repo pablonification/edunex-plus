@@ -22,3 +22,18 @@ export const CoursePairs = z.array(
     year: z.string(),
   }),
 );
+
+/** GET /notifications/{userId} — EduNex's new-item signals. `isRead` is never changed by the app. */
+export const NotificationFeed = z.object({
+  data: z.object({
+    notifications: z.array(
+      z.object({
+        type: z.string(),
+        title: z.string(),
+        objectId: z.union([z.string(), z.number()]),
+        date: z.string(),
+        message: z.string().nullish(),
+      }),
+    ),
+  }),
+});

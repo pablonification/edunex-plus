@@ -3,6 +3,9 @@
 // Electron's main process; tests run it whole against the pretend world.
 import type { Event, Snapshot } from "../core/contract";
 import { type DatasetName, Datasets, DEFAULT_SETTINGS, Settings, SourceId, SourceStatus } from "../core/models";
+import { type AlertNotice, AlertCenter } from "./alerts/center";
+import type { Detector } from "./alerts/detector";
+import { DETECTORS } from "./alerts/detectors";
 import type { Clock } from "./clock";
 import { EngineError, isEngineError } from "./errors";
 import type { Transport } from "./http/transport";
@@ -22,6 +25,10 @@ export interface EngineDeps {
   random?: () => number;
   /** Defaults to every source (EduNex, SIX, ITB's public pages). */
   sources?: readonly AnySource[];
+  /** Shows an alert to the Student (an OS notification). Its text is catalog keys, in no language yet. */
+  alert?(notice: AlertNotice): void;
+  /** Defaults to every alert detector. */
+  detectors?: readonly Detector[];
 }
 
 export interface Engine {
@@ -41,6 +48,8 @@ export interface Engine {
   /** Keeps something the Student entered (course weights, a study plan) on this computer: a "local.*" dataset. */
   setLocal(name: string, value: unknown): Promise<void>;
   updateSettings(patch: Partial<Settings>): Promise<Settings>;
+  /** The Student opened the alert history. */
+  markAlertsRead(): Promise<void>;
 }
 
 const sessionKey = (source: SourceId) => `${source}.session`;
@@ -49,9 +58,22 @@ const STATE_FORMAT = 1;
 export function createEngine(deps: EngineDeps): Engine {
   const { clock, storage, vault } = deps;
   const sources = new Map((deps.sources ?? SOURCES).map((source) => [source.id, source]));
-  const store = new DatasetStore(storage, deps.emit);
+  const store = new DatasetStore(storage, (event) => {
+    deps.emit(event);
+    alerts.observe(event);
+  });
   const statuses = new Map<SourceId, SourceStatus>(SourceId.options.map((source) => [source, { source, state: "signed-out", updatedAt: null, detail: null }]));
   let settings: Settings = DEFAULT_SETTINGS;
+  const alerts = new AlertCenter({
+    clock,
+    storage,
+    detectors: deps.detectors ?? DETECTORS,
+    get: (name) => store.get(name),
+    set: (name, value) => store.set(name, value, clock.now()),
+    remove: (prefix) => store.remove(prefix),
+    settings: () => settings,
+    deliver: (notice) => deps.alert?.(notice),
+  });
   /** The latest outcome of every feed: null when it worked. */
   const outcomes = new Map<string, EngineError | null>();
   /** Each source's current session number. Work started under an earlier one lands nowhere. */
@@ -185,6 +207,7 @@ export function createEngine(deps: EngineDeps): Engine {
   return {
     async load() {
       await store.load();
+      await alerts.load();
       try {
         const saved = JSON.parse((await storage.read("state.json")) ?? "null");
         if (saved?.format === STATE_FORMAT) {
@@ -218,10 +241,12 @@ export function createEngine(deps: EngineDeps): Engine {
 
     start() {
       scheduler.start();
+      alerts.start();
     },
 
     stop() {
       scheduler.stop();
+      alerts.stop();
     },
 
     snapshot() {
@@ -251,7 +276,10 @@ export function createEngine(deps: EngineDeps): Engine {
         setStatus(source.id, { state: "signed-out", updatedAt: null, detail: null });
       }
       // Signing out of everything also forgets what the Student entered.
-      if (!only) await store.remove("local.");
+      if (!only) {
+        await store.remove("local.");
+        await alerts.reset();
+      }
     },
 
     async setLocal(name, value) {
@@ -284,6 +312,10 @@ export function createEngine(deps: EngineDeps): Engine {
       await saveState();
       deps.emit({ type: "settings", settings });
       return settings;
+    },
+
+    markAlertsRead() {
+      return alerts.markRead();
     },
   };
 }

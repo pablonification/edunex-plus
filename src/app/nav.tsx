@@ -1,17 +1,9 @@
 // Where the Student is in the app, with a back history (mouse back button,
 // ⌘[ via the menu later). Screens move with go(); nothing reads the URL.
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import type { Route } from "../core/route";
 
-export type Route =
-  | { screen: "home" }
-  | { screen: "tasks" }
-  | { screen: "task"; taskId: number }
-  | { screen: "exam"; examId: string }
-  | { screen: "course"; code: string; tab?: string }
-  | { screen: "schedule" }
-  | { screen: "presence" }
-  | { screen: "grades" }
-  | { screen: "plan"; tab?: string };
+export type { Route } from "../core/route";
 
 interface Nav {
   route: Route;

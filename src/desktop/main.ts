@@ -7,6 +7,7 @@ import path from "node:path";
 import { CHANNEL_EVENT } from "../core/channels";
 import type { Event } from "../core/contract";
 import type { Settings } from "../core/models";
+import type { Route } from "../core/route";
 import { translate } from "../core/strings";
 import { systemClock } from "../engine/clock";
 import { createEngine, type Engine } from "../engine/engine";
@@ -19,10 +20,12 @@ import { sixHandlers } from "./handlers/six";
 import { tasksHandlers } from "./handlers/tasks";
 import { type Handlers, registerBridge } from "./ipc";
 import { installMenu } from "./menu";
+import { createNotifier } from "./notifications";
 import { registerAppScheme, serveApp } from "./protocol";
 import { APP_HOST, APP_ORIGIN, APP_SCHEME, contentSecurityPolicy, denyPermissions, guardAppWindow, hardenAllContents } from "./security";
 import { FileStorage } from "./storage";
 import { electronTransport } from "./transport";
+import { type AppTray, createTray } from "./tray";
 import { openVault } from "./vault";
 import { BACKGROUND, createMainWindow, loadWindowState } from "./window";
 
@@ -48,6 +51,8 @@ let window: BrowserWindow | null = null;
 let engine: Engine | null = null;
 let quitting = false;
 let syncing = false;
+let tray: AppTray | null = null;
+const notifier = createNotifier({ lang: () => engine?.snapshot().settings.lang ?? "id", open: openRoute });
 
 if (!app.requestSingleInstanceLock()) {
   app.quit();
@@ -67,7 +72,7 @@ async function start(): Promise<void> {
   denyPermissions(engineSession);
   denyPermissions(session.defaultSession);
 
-  const current = createEngine({ transport: electronTransport(engineSession), clock: systemClock, storage, vault, version: __APP_VERSION__, emit: send });
+  const current = createEngine({ transport: electronTransport(engineSession), clock: systemClock, storage, vault, version: __APP_VERSION__, emit: send, alert: (notice) => void notifier.show(notice) });
   engine = current;
   await current.load();
 
@@ -102,6 +107,7 @@ async function start(): Promise<void> {
     applySettings,
     reveal,
     startSyncing,
+    notifier,
   };
   const handlers: Handlers = {
     ...coreHandlers(context),
@@ -124,11 +130,17 @@ async function start(): Promise<void> {
     startSyncing();
   }, 6_000);
   shown.once("show", () => clearTimeout(fallback));
+  tray = createTray({ lang: current.snapshot().settings.lang, open: reveal, quit: () => app.quit() });
   shown.on("close", (event) => {
-    // macOS: closing the window keeps the app (and its sync) running, as Mac apps do.
-    if (process.platform === "darwin" && !quitting) {
+    if (quitting) return;
+    const { closeToTray, trayExplained } = current.snapshot().settings;
+    // Closing the window keeps the app (its sync and alerts) running, as Mac apps do; elsewhere only with a tray to come back from.
+    if (closeToTray && (process.platform === "darwin" || tray)) {
       event.preventDefault();
       shown.hide();
+      if (!trayExplained) void explainTray(current);
+    } else if (!closeToTray && process.platform === "darwin") {
+      app.quit();
     }
   });
   shown.on("closed", () => {
@@ -154,6 +166,7 @@ function startSyncing(): void {
 function applySettings(settings: Settings): void {
   nativeTheme.themeSource = settings.theme;
   paintBackground();
+  tray?.setLang(settings.lang);
   installMenu({ lang: settings.lang, devTools: !packaged, command: (command) => send({ type: "command", command }) });
 }
 
@@ -170,6 +183,28 @@ function reveal(): void {
   if (window.isMinimized()) window.restore();
   if (!window.isVisible()) window.show();
   window.focus();
+}
+
+/** A notification was clicked: the window comes forward on the alert's screen. */
+function openRoute(route: Route): void {
+  reveal();
+  send({ type: "navigate", route });
+}
+
+/** The first time the window closes into the tray: say so once, and offer to quit instead. */
+async function explainTray(current: Engine): Promise<void> {
+  const t = (key: Parameters<typeof translate>[1]) => translate(current.snapshot().settings.lang, key);
+  const { response } = await dialog.showMessageBox({
+    type: "info",
+    message: t("tray.explainer.title"),
+    detail: t("tray.explainer.body"),
+    buttons: [t("tray.explainer.keep"), t("tray.explainer.quit")],
+    defaultId: 0,
+    cancelId: 0,
+  });
+  const quit = response === 1;
+  await current.updateSettings(quit ? { trayExplained: true, closeToTray: false } : { trayExplained: true });
+  if (quit) app.quit();
 }
 
 function fail(error: unknown): void {
