@@ -120,6 +120,7 @@ describe("the KRS tab", () => {
     expect(panel()).toContain("KRS belum dikirim");
     expect(panel()).toContain("Pengisian KRS (DRS) dibuka sampai 20 Agu");
     expect(early.button(/^Rencana studi/).textContent).toBe("Rencana studi1");
+    expect(early.button(/^Rencana studi/).innerHTML).toContain("warning");
   });
 
   it("overlapping classes on SIX's timetable are flagged", async () => {
@@ -136,7 +137,10 @@ describe("the KRS tab", () => {
     expect(panel()).toContain("Bentrok dengan PL3002");
     await s.click("Lihat di Jadwal");
     expect(s.text()).not.toContain("KRS sah, tapi ada 1 bentrok");
-    expect(s.button(/^Rencana studi/).textContent).toBe("Rencana studi1");
+    // Counted in the sidebar, but not amber: amber is for what needs the Student today.
+    const badge = s.button(/^Rencana studi/);
+    expect(badge.textContent).toBe("Rencana studi1");
+    expect(badge.innerHTML).not.toContain("warning");
   });
 
   it("before SIX is read", async () => {

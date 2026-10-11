@@ -24,20 +24,24 @@ function useSchedule(): ClassSession[] {
 }
 
 /** A KRS step to take now, plus every pair of overlapping classes still to come. */
+/**
+ * Amber only for a step the Student must take today (send the KRS). A clash
+ * still to come counts in a neutral badge: worth a question to the lecturer,
+ * not a deadline.
+ */
 export function useBadge(): { value: number; tone: "neutral" | "warning" } | null {
   const plan = useDataset("six.krs");
   const calendar = useDataset("itb.calendar");
   const schedule = useSchedule();
   const now = useNow();
   if (!plan) return null;
-  const value =
-    (krsNeedsStudent(plan, calendar, now) ? 1 : 0) +
-    krsOverlaps(
-      plan.courses.map((c) => c.code),
-      schedule,
-      now,
-    ).filter((o) => o.upcoming).length;
-  return value > 0 ? { value, tone: "warning" } : null;
+  if (krsNeedsStudent(plan, calendar, now)) return { value: 1, tone: "warning" };
+  const value = krsOverlaps(
+    plan.courses.map((c) => c.code),
+    schedule,
+    now,
+  ).filter((o) => o.upcoming).length;
+  return value > 0 ? { value, tone: "neutral" } : null;
 }
 
 const STAGE_TONE: Record<KrsStage | "clash", { box: string; icon: typeof Icons.Clock }> = {
