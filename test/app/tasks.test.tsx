@@ -59,6 +59,18 @@ describe("Tugas & Ujian", () => {
     expect(examRow("Take-home: UTS Markom")!.textContent).toContain("Take-home: UTS Markom · tenggat Kam, 22 Okt, 23:50");
   });
 
+  it("a long Task title wraps rather than being cut, and shows whole on hover", async () => {
+    const s = await open();
+    await s.click(/^Tugas & Ujian\d*$/);
+    // The Task lists (the exam list above has its own rows).
+    const titles = [...document.querySelectorAll<HTMLElement>("main section:not([aria-labelledby=tasks-exams]) li button .line-clamp-2")];
+    expect(titles.length).toBe(4);
+    for (const title of titles) {
+      expect(title.className).not.toContain("truncate");
+      expect(title.title).toBe(title.textContent);
+    }
+  });
+
   it("filters by course, and hides the groups a course has nothing in", async () => {
     const s = await open();
     await s.click(/^Tugas & Ujian\d*$/);

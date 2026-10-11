@@ -216,7 +216,7 @@ export function ClassDetails({ item }: { item: ScheduledClass }) {
           </Fact>
         )}
         {overlaps.map((o) => (
-          <Fact key={o.code} icon={<Icons.Overlap className="size-3.5" />} tone="text-danger-fg">
+          <Fact key={o.code} icon={<Icons.Overlap className="size-3.5" />} tone="text-warning-fg">
             <span className="font-semibold">{t("schedule.overlapWith", { code: o.code, from: f.time(o.from), to: f.time(o.to) })}</span>
           </Fact>
         ))}
@@ -286,7 +286,7 @@ export function MeetingDetails({ meeting, notInSix }: { meeting: OutsideMeeting 
         </Fact>
         {lecturer && <Fact icon={<Icons.User className="size-3.5" />}>{lecturer}</Fact>}
         {notInSix && (
-          <Fact icon={<Icons.Info className="size-3.5" />} tone="text-muted">
+          <Fact icon={<Icons.Info className="size-3.5" />} tone="text-warning-fg">
             {t("schedule.notInSix.long")}
           </Fact>
         )}

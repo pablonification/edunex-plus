@@ -290,6 +290,10 @@ describe("handing in can't cost the Student their attendance", () => {
     s.willPick([{ name: "Laporan Tugas - Dimas Pratama.pdf" }]);
     await s.click(ATTACH);
     expect(card()).toContain("Dosen minta nama \u2018NIM Nama - Tugas 02.pdf\u2019");
+    // A long file name wraps and shows whole on hover; it's never cut with no way to read it.
+    const name = [...document.querySelectorAll<HTMLElement>("main aside li span")].find((el) => el.textContent === "Laporan Tugas - Dimas Pratama.pdf")!;
+    expect(name.title).toBe("Laporan Tugas - Dimas Pratama.pdf");
+    expect(name.className).not.toContain("truncate");
     await s.click("Kumpulkan");
     expect(dialogText()).toContain("Dosen minta nama berkas \u2018NIM Nama - Tugas 02.pdf\u2019.");
   });

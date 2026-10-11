@@ -117,7 +117,7 @@ function Answers({ context, courses }: { context: HomeContext; courses: readonly
       <div className="@container mt-10">
         {/* The day on the left; what needs you and what changed beside it, so neither column runs on alone. */}
         <div className="grid items-start gap-x-8 gap-y-10 @min-[800px]:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
-          <Today context={context} plan={plan} courses={courses} />
+          <Today context={context} plan={plan} courses={courses} onCard={card?.class?.session.id ?? null} />
           <div className="grid grid-cols-[minmax(0,1fr)] gap-y-10">
             <NeedsYou needs={needs} courses={courses} />
             <Changes context={context} courses={courses} />
@@ -399,7 +399,8 @@ type TodayItem =
   | { kind: "meeting"; at: number; code: string; meeting: TodayPlan["announced"][number]["meeting"] }
   | { kind: "due"; at: number; task: TodayPlan["due"][number] };
 
-function Today({ context, plan, courses }: { context: HomeContext; plan: TodayPlan; courses: readonly TermCourse[] }) {
+/** `onCard`: the class the now card above already shows, so its row doesn't say the same change again. */
+function Today({ context, plan, courses, onCard }: { context: HomeContext; plan: TodayPlan; courses: readonly TermCourse[]; onCard: string | null }) {
   const t = useT();
   const day = wibDay(context.now);
   const items: TodayItem[] = [
@@ -416,7 +417,7 @@ function Today({ context, plan, courses }: { context: HomeContext; plan: TodayPl
       {today.length > 0 ? (
         <List label={t("home.today")} className={cx(!context.schedule && "mt-3")}>
           {today.map((item) => (
-            <TodayRow key={keyOf(item)} item={item} courses={courses} index={index++} />
+            <TodayRow key={keyOf(item)} item={item} courses={courses} index={index++} onCard={onCard} />
           ))}
         </List>
       ) : (
@@ -427,7 +428,7 @@ function Today({ context, plan, courses }: { context: HomeContext; plan: TodayPl
           <h3 className="mt-5 mb-2 text-small font-semibold text-muted">{t("home.today.tomorrow")}</h3>
           <List label={t("home.today.tomorrow")}>
             {tomorrow.map((item) => (
-              <TodayRow key={keyOf(item)} item={item} courses={courses} index={index++} />
+              <TodayRow key={keyOf(item)} item={item} courses={courses} index={index++} onCard={onCard} />
             ))}
           </List>
         </>
@@ -449,7 +450,7 @@ function When({ start, end, past, tone }: { start: string; end?: string; past?: 
   );
 }
 
-function TodayRow({ item, courses, index }: { item: TodayItem; courses: readonly TermCourse[]; index: number }) {
+function TodayRow({ item, courses, index, onCard }: { item: TodayItem; courses: readonly TermCourse[]; index: number; onCard: string | null }) {
   const t = useT();
   const f = useFormat();
   const now = useNow();
@@ -506,6 +507,8 @@ function TodayRow({ item, courses, index }: { item: TodayItem; courses: readonly
   const course = courses.find((c) => c.code === session.courseCode);
   const exam = /\b(UTS|UAS)\b/i.test(session.activity);
   const budget = facts.health && facts.state !== "unknown" && !past ? budgetLabel(t, facts.health, attendanceTarget) : null;
+  // The now card says "Jam berubah · biasanya …" for its class; the row keeps only the amber time.
+  const moved = facts.moved && session.id !== onCard;
   return (
     <Row
       index={index}
@@ -533,10 +536,10 @@ function TodayRow({ item, courses, index }: { item: TodayItem; courses: readonly
       }
       onClick={() => go(course?.edunex ? { screen: "course", code: session.courseCode, tab: "meetings" } : { screen: "presence" })}
     >
-      {!past && (budget || facts.moved || facts.overlap) && (
+      {!past && (budget || moved || facts.overlap) && (
         <span className="mt-1 block text-small font-medium">
           {budget && <span className={cx("block", STATE_TEXT[facts.state])}>{budget}</span>}
-          {facts.moved && <span className="block text-warning-fg">{movedLabel(t, f, facts)}</span>}
+          {moved && <span className="block text-warning-fg">{movedLabel(t, f, facts)}</span>}
           {facts.overlap && <span className="block text-warning-fg">{t("home.today.overlap", { course: facts.overlap.code, time: f.timeRange(facts.overlap.from, facts.overlap.to) })}</span>}
         </span>
       )}

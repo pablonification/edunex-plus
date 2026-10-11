@@ -641,7 +641,9 @@ export function LecturerFile({ file }: { file: TaskFile }) {
       className="focus-ring flex w-full items-center gap-3 rounded-xl border border-edge bg-surface px-3 py-2.5 text-left shadow-card transition-colors duration-150 hover:bg-hover"
     >
       <FileBadge name={file.name} />
-      <span className="min-w-0 flex-1 truncate text-body font-medium">{file.name}</span>
+      <span className="line-clamp-2 min-w-0 flex-1 text-body font-medium [overflow-wrap:anywhere]" title={file.name}>
+        {file.name}
+      </span>
       {busy ? <Icons.Loader className="size-4 animate-spin text-faint" /> : <Icons.Download className="size-4 text-faint" />}
     </button>
   );
@@ -1249,7 +1251,9 @@ function FileRow({
       <div className="flex items-center gap-2.5">
         <FileBadge name={name} state={state} />
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-body font-medium">{name}</span>
+          <span className="line-clamp-2 block text-body font-medium [overflow-wrap:anywhere]" title={name}>
+            {name}
+          </span>
           {detail && !failed && (
             <span className="flex items-center gap-1 text-caption text-muted">
               {state === "uploaded" && <Icons.Check className="size-3 text-success-fg" strokeWidth={2.5} />}

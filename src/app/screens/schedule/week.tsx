@@ -184,6 +184,8 @@ function ClassBlock({ item, minutes, narrow }: { item: ScheduledClass; minutes: 
     ...overlaps.map((o) => t("schedule.mark.overlap", { code: o.code })),
   ].filter((m): m is string => m !== null);
   const label = [exam ? `${session.activity} ${code}` : code, time, room, ...marks].join(" · ");
+  const clashLine = narrow && overlaps.length > 0;
+  const roomLine = clashLine ? 4 : 3;
 
   const trigger = exam ? (
     <button type="button" aria-label={label} className={cx(BLOCK, "bg-fg py-1 pr-1.5 pl-2.5 text-canvas shadow-raised hover:shadow-lift", past && "opacity-60")}>
@@ -223,13 +225,20 @@ function ClassBlock({ item, minutes, narrow }: { item: ScheduledClass; minutes: 
           {!narrow && <span className="text-muted"> {world.name(code, session.courseName)}</span>}
         </span>
       )}
-      {lines >= 3 && (
+      {/* A narrow block has no room for "Bentrok PL3032": the icon and the other course's code say which class clashes, before the room. */}
+      {clashLine && lines >= 3 && (
+        <span className="relative flex min-w-0 items-center gap-1 font-semibold text-warning-fg tabular-nums">
+          <Icons.Overlap className="size-3 shrink-0" strokeWidth={2} />
+          <span className="truncate">{overlaps.map((o) => o.code).join(", ")}</span>
+        </span>
+      )}
+      {lines >= roomLine && (
         <span className="relative flex min-w-0 items-start gap-1 text-muted">
           <Icons.MapPin className="mt-0.5 size-3 shrink-0" />
           <span className={cx("min-w-0 break-words", !session.room && "italic")}>{room}</span>
         </span>
       )}
-      {lines >= 4 && <MarkWords item={item} max={lines - 3} narrow={narrow} />}
+      {lines > roomLine && <MarkWords item={item} max={lines - roomLine} narrow={narrow} />}
     </button>
   );
   return (
@@ -239,7 +248,7 @@ function ClassBlock({ item, minutes, narrow }: { item: ScheduledClass; minutes: 
   );
 }
 
-/** The minutes a class shares with another, tinted red behind its text. */
+/** The minutes a class shares with another, tinted amber behind its text (a choice to make, nothing lost yet). */
 function ClashTint({ item }: { item: ScheduledClass }) {
   const { session } = item;
   const length = session.end - session.start;
@@ -249,7 +258,7 @@ function ClashTint({ item }: { item: ScheduledClass }) {
         <span
           key={o.code}
           aria-hidden
-          className="absolute inset-x-0 border-y border-danger-fg/25 bg-danger-bg"
+          className="absolute inset-x-0 border-y border-warning-fg/25 bg-warning-bg"
           style={{ top: `${((o.from - session.start) / length) * 100}%`, height: `${((o.to - o.from) / length) * 100}%` }}
         />
       ))}
@@ -272,7 +281,8 @@ function MarkWords({ item, max, narrow }: { item: ScheduledClass; max: number; n
   }
   else if (item.moved) words.push({ text: t("schedule.mark.room"), tone: "text-warning-fg" });
   if (item.extra) words.push({ text: t("schedule.mark.extra"), tone: "text-warning-fg" });
-  for (const o of item.overlaps) words.push({ text: t("schedule.mark.overlap", { code: o.code }), tone: "text-danger-fg" });
+  // A narrow block names the clash beside the course code.
+  if (!narrow) for (const o of item.overlaps) words.push({ text: t("schedule.mark.overlap", { code: o.code }), tone: "text-warning-fg" });
   return (
     <>
       {words.slice(0, max).map((w) => (
@@ -290,7 +300,7 @@ function MarkIcons({ item }: { item: ScheduledClass }) {
     <span aria-hidden className={cx("flex shrink-0 items-center gap-0.5", !item.uncertain && "ml-auto")}>
       {item.moved && <Icons.History className="size-3 text-warning-fg" strokeWidth={2} />}
       {item.extra && <Icons.Plus className="size-3 text-warning-fg" strokeWidth={2} />}
-      {item.overlaps.length > 0 && <Icons.Overlap className="size-3 text-danger-fg" strokeWidth={2} />}
+      {item.overlaps.length > 0 && <Icons.Overlap className="size-3 text-warning-fg" strokeWidth={2} />}
     </span>
   );
 }
@@ -323,7 +333,8 @@ function MeetingBlock({ meeting, minutes, notInSix }: { meeting: OutsideMeeting 
         </span>
       )}
       {lines >= 3 && where && <span className="truncate text-muted">{where}</span>}
-      {lines >= (where ? 4 : 3) && <span className="truncate text-muted">{notInSix ? t("schedule.notInSix") : t("schedule.fromEdunex")}</span>}
+      {/* Not on SIX's timetable: easy to miss, so amber, as on Beranda and the course page. */}
+      {lines >= (where ? 4 : 3) && <span className={cx("truncate", notInSix ? "font-semibold text-warning-fg" : "text-muted")}>{notInSix ? t("schedule.notInSix") : t("schedule.fromEdunex")}</span>}
     </button>
   );
   return (

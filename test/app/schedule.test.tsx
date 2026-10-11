@@ -69,6 +69,19 @@ describe("Jadwal: the week as a timetable", () => {
     expect(await details(s, /^KU5014 · 16:00/)).toContain("Bentrok dengan PL3032 · 16:00–16:30");
   });
 
+  it("clashing classes side by side: each block names the other course, in amber (a choice to make, nothing lost)", async () => {
+    await openSchedule();
+    const blocks = [...(section("Kamis, 8 Oktober")?.querySelectorAll("button") ?? [])];
+    const block = (code: string) => blocks.find((b) => b.getAttribute("aria-label")?.startsWith(`${code} ·`))!;
+    // Half-width blocks: the overlap icon and the other code on the line under the course code, not words cut short.
+    expect(block("PL3032").textContent).toMatch(/^15:00–16:30PL3032KU5014/);
+    expect(block("KU5014").textContent).toMatch(/^16:00–17:50KU5014PL3032/);
+    for (const code of ["PL3032", "KU5014"]) {
+      expect(block(code).querySelector("[class*=danger]")).toBeNull();
+      expect(block(code).querySelector(".text-warning-fg")).not.toBeNull();
+    }
+  });
+
   it("a block's details: where attendance counts, the Presence window open now, and the way to the course", async () => {
     const s = await openSchedule();
     await s.click(/^PL3002 · 08:00–10:00/);
@@ -86,6 +99,9 @@ describe("Jadwal: the week as a timetable", () => {
     expect(day("Rabu, 7 Oktober")).toContain("Kosong");
     expect(items("Jumat, 9 Oktober")).toEqual(["II4091 · Pertemuan 3 · 15:00–17:00 · Daring · Tidak ada di SIX", "Gabung"]);
     expect(day("Jumat, 9 Oktober")).not.toContain("Kosong");
+    // Easy to miss, so amber, as Beranda says it.
+    const mark = [...(section("Jumat, 9 Oktober")?.querySelectorAll("span") ?? [])].find((el) => el.textContent === "Tidak ada di SIX");
+    expect(mark?.className).toContain("text-warning-fg");
     const meeting = await details(s, /^II4091 · Pertemuan 3/);
     expect(meeting).toContain("Diumumkan dosen di EduNex; jadwal SIX tidak mencantumkannya.");
     await s.click("Gabung");

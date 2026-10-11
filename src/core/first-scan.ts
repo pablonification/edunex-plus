@@ -167,7 +167,8 @@ function overlaps({ saved, now }: ScanInput, codes: readonly string[]): Finding 
   return {
     kind: "clash",
     count: found.length,
-    tone: "danger",
+    // A choice to make (which class to attend), nothing lost yet: amber, as on Beranda and Jadwal.
+    tone: "warning",
     sources: ["six"],
     routes: [{ screen: "schedule" }, ...(saved["six.krs"] ? [{ screen: "plan", tab: "krs" } as const] : []), meetings],
     overlaps: found,

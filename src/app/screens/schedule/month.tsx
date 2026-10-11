@@ -96,7 +96,7 @@ export function MonthView({ month, input, onShowWeek }: { month: MonthGrid; inpu
               {(routine || clashes.length > 0) && (
                 <span className="mt-auto flex min-w-0 flex-col gap-[3px] text-micro leading-[15px]">
                   {clashes.length > 0 && (
-                    <span title={clashes.join(", ")} className="flex min-w-0 items-center gap-1 font-semibold text-danger-fg">
+                    <span title={clashes.join(", ")} className="flex min-w-0 items-center gap-1 font-semibold text-warning-fg">
                       <Icons.Overlap className="size-3 shrink-0" strokeWidth={2} />
                       <span className="truncate">{t("schedule.month.clash")}</span>
                     </span>
@@ -176,7 +176,7 @@ function monthLines(day: ScheduleDay, t: Translate, f: Format, world: ReturnType
       icon: meeting.online ? <Icons.Video className="size-3 shrink-0" strokeWidth={2} /> : <span aria-hidden className="size-2 shrink-0 rounded-full border border-dashed border-current" />,
       text: `${meeting.code} ${time(meeting.start)}`,
       full: t("schedule.month.outside", { code: meeting.code, time: time(meeting.start) }),
-      tone: "text-fg",
+      tone: "font-semibold text-warning-fg",
     });
   }
   return lines;
