@@ -133,7 +133,8 @@ export function TargetControl({ record, state, className }: { record: StudentRec
       </span>
       <span role="radiogroup" aria-labelledby="target-label" className="flex items-center gap-1">
         {TARGET_PICKS.map((value) => {
-          const on = typing === null && Math.abs(value - target) < 1e-9;
+          // While a value is being typed, the pick still counted stays marked until the typed one is valid.
+          const on = Math.abs(value - target) < 1e-9 && (typing === null || parsed?.kind !== "ok");
           return (
             <button
               key={value}

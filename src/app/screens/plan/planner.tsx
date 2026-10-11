@@ -51,7 +51,7 @@ import { Button, IconButton } from "../../ui/controls";
 import { cx } from "../../ui/cx";
 import { Card } from "../../ui/display";
 import { Icons } from "../../ui/icons";
-import { ConfirmDialog, Dialog, toast, Tooltip } from "../../ui/overlays";
+import { ConfirmDialog, Dialog, dismissToast, toast, Tooltip } from "../../ui/overlays";
 import { GradeSelect, HonorsList, IpkChart, NeedText, predicateFor, TargetControl, usePredicate, useTermLabel } from "./projection";
 import { SixNeeded } from "./six-needed";
 
@@ -88,9 +88,11 @@ export function Tab({ onCalendar }: { onCalendar?: () => void }) {
 function useUndoable(state: PlanState) {
   const t = useT();
   const last = useRef<StudyPlan | null>(null);
+  const shown = useRef<number | null>(null);
   const restore = (before: StudyPlan) => {
     state.update(() => before);
     last.current = null;
+    if (shown.current !== null) dismissToast(shown.current);
   };
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -109,8 +111,9 @@ function useUndoable(state: PlanState) {
     const before = state.plan;
     state.update(edit);
     last.current = before;
-    // Only the latest change can be taken back: an older toast's undo would throw away what came after it.
-    toast(message, "neutral", { label: t("planner.undo"), onClick: () => last.current === before && restore(before) });
+    // Only the latest change can be taken back (an older undo would throw away what came after it), so its toast replaces the last one.
+    if (shown.current !== null) dismissToast(shown.current);
+    shown.current = toast(message, "neutral", { label: t("planner.undo"), onClick: () => last.current === before && restore(before) });
   };
 }
 

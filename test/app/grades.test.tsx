@@ -148,6 +148,8 @@ describe("Nilai", () => {
     expect(s.text()).toContain("Isi target antara 2,00 dan 4,00.");
     expect(text("section[aria-labelledby=this-term] [role=status]")).not.toContain("tercapai");
     expect(s.store.dataset("local.plan")?.value).toMatchObject({ target: 3.5 });
+    // The target still counted stays marked.
+    expect(s.button("Target IPK 3,50").getAttribute("aria-checked")).toBe("true");
     await type("Target IPK lainnya", "");
     expect(s.text()).not.toContain("Isi target antara 2,00 dan 4,00.");
     expect(text("section[aria-labelledby=this-term] [role=status]")).toContain("IPK 3,50 belum terkejar");

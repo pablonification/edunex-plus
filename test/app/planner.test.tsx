@@ -241,11 +241,9 @@ describe("the study planner", () => {
     await s.click("Atur ulang");
     expect(saved()?.terms[0].courses.map((c) => c.code)).toEqual(["II4090", "II4092", "II4010", "II4011"]);
     expect(toastText()).toContain("Rencana diatur ulangUrungkan");
-    // The older toast (the removal) can't undo past the reset; the newest one can.
-    const undos = [...document.querySelectorAll<HTMLButtonElement>("[role=status] button")].filter((b) => b.textContent === "Urungkan");
-    await s.click(undos[0]);
-    expect(saved()?.terms[0].courses.map((c) => c.code)).toContain("II4010");
-    await s.click(undos.at(-1)!);
+    // Only the newest change can be undone: its toast replaces the removal's.
+    expect(toastText()).not.toContain("II4010 dihapus");
+    await s.click("Urungkan");
     expect(saved()?.terms[0].courses.map((c) => c.code)).not.toContain("II4010");
   });
 

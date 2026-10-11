@@ -113,7 +113,7 @@ function Standing({ record, state }: { record: StudentRecord; state: PlanState }
   // Honors are a graduation word; today's IPK gets the plain predicate.
   const nowWord = predicate(predicateFor(shownIndex(transcript.ipk), { retakes: true, semesters: 99 }));
   return (
-    <div className="grid grid-cols-2 gap-3 @2xl:grid-cols-4">
+    <div className="grid grid-cols-2 gap-3 @4xl:grid-cols-4">
       <Stat className="flex flex-col [&>div:first-child]:flex-1" label={t("grades.ipk")} value={num(shownIndex(transcript.ipk))} hint={nowWord ?? undefined} />
       <Stat className="flex flex-col [&>div:first-child]:flex-1" label={t("grades.sksPassed")} value={String(record.passedSks)} hint={t("grades.sksPassedHint", { need: sks.need })} />
       <Stat
