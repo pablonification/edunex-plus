@@ -24,4 +24,6 @@ export const Task = z.object({
 });
 export type Task = z.infer<typeof Task>;
 
-export const tasksDatasets = {} as const;
+export const tasksDatasets = {
+  "edunex.tasks": z.array(Task),
+} as const;
