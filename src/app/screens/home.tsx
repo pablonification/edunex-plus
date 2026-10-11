@@ -887,13 +887,6 @@ function CourseCard({ course, nim, state }: { course: TermCourse; nim: string | 
       : null;
   return (
     <Card className={cx("group relative flex h-full flex-col p-4", course.edunex && "transition-shadow duration-150 hover:shadow-lift")}>
-      {external && (
-        <Tooltip content={external.label}>
-          <IconButton size="sm" label={`${external.label}: ${course.code}`} className="absolute top-2.5 right-2.5 z-10" onClick={() => open(external.url)}>
-            <Icons.ArrowUpRight className="size-3.5" />
-          </IconButton>
-        </Tooltip>
-      )}
       {/* A course on EduNex opens its course page (the whole card); one only in SIX has none. */}
       {course.edunex ? (
         <button type="button" className="focus-ring block rounded pr-6 text-left after:absolute after:inset-0 after:rounded-xl after:content-['']" onClick={() => go({ screen: "course", code: course.code })}>
@@ -909,6 +902,14 @@ function CourseCard({ course, nim, state }: { course: TermCourse; nim: string | 
         {course.inSix && <CourseAttendance course={course} state={state} />}
         {!course.edunex && <span className="mt-1 block text-caption text-faint">{t("course.notOnEdunex")}</span>}
       </div>
+      {/* Last in the markup, so Tab reaches the course before its way out to EduNex or SIX. */}
+      {external && (
+        <Tooltip content={external.label}>
+          <IconButton size="sm" label={`${external.label}: ${course.code}`} className="absolute top-2.5 right-2.5 z-10" onClick={() => open(external.url)}>
+            <Icons.ArrowUpRight className="size-3.5" />
+          </IconButton>
+        </Tooltip>
+      )}
     </Card>
   );
 }

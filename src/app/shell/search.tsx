@@ -21,6 +21,7 @@ import { useBridge, useSettings, useStore } from "../store";
 import { cx } from "../ui/cx";
 import { Kbd } from "../ui/display";
 import { type IconProps, Icons } from "../ui/icons";
+import { useReturnFocus } from "../ui/overlays";
 import { isBuilt } from "./built";
 import { refreshNow } from "./source-status";
 
@@ -129,12 +130,15 @@ export function SearchButton({ onOpen }: { onOpen: () => void }) {
 
 export function SearchPalette({ open, onOpenChange, onSettings }: { open: boolean; onOpenChange: (open: boolean) => void; onSettings: () => void }) {
   const t = useT();
+  const { onOpenAutoFocus, onCloseAutoFocus } = useReturnFocus();
   return (
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
       <DialogPrimitive.Portal>
         <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-scrim backdrop-blur-[2px] motion-safe:animate-fade-in" />
         <DialogPrimitive.Content
           aria-describedby={undefined}
+          onOpenAutoFocus={onOpenAutoFocus}
+          onCloseAutoFocus={onCloseAutoFocus}
           className={cx(
             "fixed top-[12vh] left-1/2 z-50 flex w-[min(620px,calc(100vw-48px))] -translate-x-1/2 flex-col overflow-hidden",
             "rounded-2xl bg-raised text-fg shadow-dialog ring-1 ring-black/10 focus:outline-none motion-safe:animate-pop-in dark:ring-white/10",
@@ -206,8 +210,8 @@ function Palette({ onClose, onSettings }: { onClose: () => void; onSettings: () 
     <>
       <div className="flex shrink-0 items-center gap-3 border-b border-line px-4">
         <Icons.Search className="size-4 text-muted" />
+        {/* No autoFocus: the dialog puts focus here itself, after noting what to return it to. */}
         <input
-          autoFocus
           value={query}
           role="combobox"
           aria-label={t("search.open")}

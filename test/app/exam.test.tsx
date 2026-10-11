@@ -34,6 +34,10 @@ describe("the exam list", () => {
     expect(row).toContain("SIX: Kam 15 Okt · EduNex: Kam 22 Okt. Pastikan ke dosen.");
     expect(row).toContain("dalam 7 hari");
     expect(examSection()?.querySelector("h2")?.parentElement?.textContent).toContain("Masa UTS 12–16 Okt");
+    // A row with only ITB's exam week names the period on its date tile, never "Minggu" (it reads as Sunday).
+    const weekOnly = [...(examSection()?.querySelectorAll("li button") ?? [])].map((b) => b.textContent ?? "").find((t) => t.includes("Masa UAS"));
+    expect(weekOnly?.startsWith("UAS7–22Des")).toBe(true);
+    expect(examSection()?.textContent).not.toMatch(/minggu/i);
   });
 
   it("an exam that has passed moves to Selesai", async () => {

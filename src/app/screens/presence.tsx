@@ -8,6 +8,7 @@
 // Student's, for every course.
 import { type CSSProperties, type KeyboardEvent, type ReactNode, useRef, useState } from "react";
 import { type AttendanceHealth, type AttendanceState, needsAttention, percent, type PresenceActivity, type UpcomingMeeting } from "../../core/attendance";
+import { clashes } from "../../core/course-meetings";
 import type { PresenceSession } from "../../core/models";
 import { sixTimetableUrl } from "../../core/schedule";
 import type { StringKey } from "../../core/strings";
@@ -364,7 +365,7 @@ function CourseRow({ item, target, lastDay, index }: { item: CourseAttendance; t
   return (
     <li className="group relative motion-safe:stagger has-[>button:hover]:bg-hover" style={{ "--i": index } as CSSProperties}>
       {/* The whole row opens the course's meetings; the meeting squares sit above it. */}
-      <button type="button" aria-label={label} onClick={() => go({ screen: "course", code: course.code, tab: "meetings" })} className="absolute inset-0 z-0 outline-none focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus" />
+      <button type="button" aria-label={label} onClick={() => go({ screen: "course", code: course.code, tab: "meetings" })} className="absolute inset-0 z-0 outline-none focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-[-2px] focus-visible:outline-focus" />
       <div className="pointer-events-none relative grid grid-cols-[minmax(0,1fr)_auto_220px] items-center gap-x-6 px-5 py-4">
         <div className="min-w-0">
           <CourseCode code={course.code} color={course.color} className="text-small" />
@@ -413,7 +414,7 @@ function CourseRow({ item, target, lastDay, index }: { item: CourseAttendance; t
       {(notes.length > 0 || exams.length > 0) && (
         <ul className="pointer-events-none relative space-y-1 px-5 pb-3.5 pl-[42px] text-small leading-[1.5] text-muted">
           {notes.map((note) => (
-            <li key={note.key} className={cx("flex items-start gap-2", note.tone === "bad" && "text-danger-fg", note.tone === "way" && "text-fg")}>
+            <li key={note.key} className={cx("flex items-start gap-2", note.tone === "bad" && "text-danger-fg", note.tone === "way" && "text-fg", note.tone === "clash" && "font-medium text-warning-fg")}>
               <span className="mt-[3px] shrink-0">{note.icon}</span>
               <span className="min-w-0">{note.text}</span>
               {note.action && <span className="pointer-events-auto ml-auto shrink-0">{note.action}</span>}
@@ -452,7 +453,7 @@ interface Note {
   key: string;
   text: ReactNode;
   icon: ReactNode;
-  tone?: "bad" | "way";
+  tone?: "bad" | "way" | "clash";
   action?: ReactNode;
 }
 
@@ -462,12 +463,23 @@ function useNotes(item: CourseAttendance, target: number): Note[] {
   const f = useFormat();
   const open = useOpenExternal();
   const student = useDataset("six.student");
+  const schedule = useDataset("six.schedule");
   const { health, presence, exams } = item;
   const { attended, held } = health;
   const notes: Note[] = [];
   const dot = (tone: "bad" | "info" | "way") => (
     <span aria-hidden className={cx("mt-[5px] block size-1.5 rounded-full", tone === "bad" ? "bg-danger-fg" : tone === "way" ? "bg-warning-fg" : "bg-faint")} />
   );
+  // The next meeting overlaps another course's class: said first (it's a choice to make soon), in Jadwal's words, amber.
+  const next = health.left.next;
+  const clash = next ? clashes(next, next.courseCode, schedule ?? [])[0] : undefined;
+  if (next && clash)
+    notes.push({
+      key: "clash",
+      tone: "clash",
+      icon: dot("way"),
+      text: t("schedule.overlapWith", { code: clash.courseCode, from: f.time(Math.max(next.start, clash.start)), to: f.time(Math.min(next.end, clash.end)) }),
+    });
   if (health.toRecover !== null && health.toRecover > 0) notes.push({ key: "recover", tone: "way", icon: dot("way"), text: t("presence.recover", { target, count: health.toRecover }) });
   if (health.state === "out")
     notes.push({

@@ -44,7 +44,7 @@ describe("Beranda on the recorded Thursday morning", () => {
 
   it("Perlu perhatianmu doesn't repeat today: today's classes and their risk are in Hari ini; a target out of reach stays, one click from Presensi", async () => {
     screen = await openApp({ signedIn: true, six: true });
-    expect(document.querySelector('main h2[id="home-needs"]')?.textContent).toBe("Perlu perhatianmu1");
+    expect(document.querySelector('main h2[id="home-needs"]')?.textContent).toBe("Perlu perhatianmu 1");
     expect(rows("home-needs")).toEqual(["KU5014 tak bisa lagi capai 80%Paling tinggi 73% · cek ke dosen kalau ada yang terlewat"]);
     await screen.click(/^KU5014 tak bisa lagi capai 80%/);
     expect(document.querySelector("h1")?.textContent).toBe("Presensi");

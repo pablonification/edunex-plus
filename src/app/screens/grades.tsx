@@ -201,7 +201,13 @@ function ThisTerm({ record, state }: { record: StudentRecord; state: PlanState }
                   }
                   trailing={
                     <span className="flex items-center gap-2">
-                      <Button variant="ghost" size="sm" className="text-accent-fg" onClick={() => nav.go({ screen: "course", code: course.code, tab: "grades" })}>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-accent-fg"
+                        aria-label={`${t("grades.whatNeed")} ${course.code}`}
+                        onClick={() => nav.go({ screen: "course", code: course.code, tab: "grades" })}
+                      >
                         {t("grades.whatNeed")}
                       </Button>
                       {course.grade ? (
