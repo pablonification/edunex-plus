@@ -15,6 +15,12 @@ export interface FeedSpec {
   every: number;
   /** Up to this much is added or removed at random each time (ms). */
   jitter: number;
+  /**
+   * Runs only on its own schedule, never on "Perbarui sekarang": public
+   * reference data that changes a few times a year and takes minutes to read
+   * (ITB's catalog), which a refresh would otherwise wait on.
+   */
+  background?: boolean;
   /** `current()` turns false once the session this run started under has ended; store nothing then. */
   run(current: () => boolean): Promise<void>;
 }

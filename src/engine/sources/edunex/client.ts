@@ -27,7 +27,7 @@ export class EdunexClient {
         timeoutMs: TIMEOUT_MS,
       });
     } catch (error) {
-      if (error instanceof NetworkError) throw new EngineError("Offline", error.reason === "timeout" ? "EduNex didn't answer in time" : "EduNex is unreachable");
+      if (error instanceof NetworkError) throw new EngineError("Offline", error.reason === "timeout" ? "EduNex didn't answer in time" : "EduNex is unreachable", true);
       throw error;
     }
     if (response.status === 401) throw new EngineError("Unauthorized", `EduNex refused ${path}`);

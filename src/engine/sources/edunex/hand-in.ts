@@ -234,7 +234,7 @@ async function write(context: SourceContext, session: EdunexSession, method: "PO
       timeoutMs: TIMEOUT_MS,
     });
   } catch (error) {
-    if (error instanceof NetworkError) throw new EngineError("Offline", error.reason === "timeout" ? "EduNex didn't answer in time" : "EduNex is unreachable");
+    if (error instanceof NetworkError) throw new EngineError("Offline", error.reason === "timeout" ? "EduNex didn't answer in time" : "EduNex is unreachable", true);
     throw error;
   }
   if (response.status === 401) throw new EngineError("Unauthorized", `EduNex refused ${path}`);
@@ -255,7 +255,7 @@ async function put(transport: Transport, userAgent: string, url: string, content
   try {
     response = await transport.request({ method: "PUT", url, headers: { "x-ms-blob-type": "BlockBlob", "content-type": contentType, "user-agent": userAgent }, body: bytes, timeoutMs });
   } catch (error) {
-    if (error instanceof NetworkError) throw new EngineError("Offline", error.reason === "timeout" ? "The upload took too long" : "EduNex's storage is unreachable");
+    if (error instanceof NetworkError) throw new EngineError("Offline", error.reason === "timeout" ? "The upload took too long" : "EduNex's storage is unreachable", true);
     throw error;
   }
   if (response.status < 200 || response.status >= 300) throw new EngineError("Failed", `EduNex's storage refused the file (${response.status})`);

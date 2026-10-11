@@ -85,7 +85,7 @@ export class SixClient implements SixPages {
         timeoutMs: TIMEOUT_MS,
       });
     } catch (error) {
-      if (error instanceof NetworkError) throw new EngineError("Offline", error.reason === "timeout" ? "SIX didn't answer in time" : "SIX is unreachable");
+      if (error instanceof NetworkError) throw new EngineError("Offline", error.reason === "timeout" ? "SIX didn't answer in time" : "SIX is unreachable", true);
       throw error;
     }
 

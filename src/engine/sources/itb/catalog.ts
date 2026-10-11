@@ -150,6 +150,7 @@ export function registerCatalogFeed(context: SourceContext): void {
     name: "itb.catalog",
     every: 6 * HOUR,
     jitter: 30 * MINUTE,
+    background: true,
     async run(current) {
       let catalog = context.get("itb.catalog");
       if (!catalog || context.clock.now() - catalog.checkedAt >= FRESH) {

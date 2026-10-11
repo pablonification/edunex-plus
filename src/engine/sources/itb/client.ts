@@ -45,7 +45,7 @@ export class PublicClient {
     try {
       response = await this.transport.request({ method: "GET", url, headers: { accept, "user-agent": this.userAgent }, timeoutMs: TIMEOUT_MS });
     } catch (error) {
-      if (error instanceof NetworkError) throw new EngineError("Offline", error.reason === "timeout" ? `${this.site} didn't answer in time` : `${this.site} is unreachable`);
+      if (error instanceof NetworkError) throw new EngineError("Offline", error.reason === "timeout" ? `${this.site} didn't answer in time` : `${this.site} is unreachable`, true);
       throw error;
     } finally {
       // The gap counts from the end of a request, so a slow answer never shortens it.
