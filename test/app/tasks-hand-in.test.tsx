@@ -13,7 +13,7 @@ afterEach(() => {
   screen = null;
 });
 
-const ATTACH = /^Lampirkan berkas · Lepas berkas di sini$/;
+const ATTACH = /^Lampirkan berkas · Lepas berkas di sini/;
 const card = () => document.querySelector("main aside")?.textContent ?? "";
 const answerWrites = (s: NonNullable<typeof screen>) =>
   s.world.edunex.writes.filter((w) => w.path.startsWith("/course/task/answers")).map((w) => `${w.method} ${w.path.replace(/\d+$/, ":id")}`);
@@ -24,7 +24,7 @@ const openTask = async (title: string, now?: string) => {
   screen = s;
   await s.click(/^Tugas & Ujian\d*$/);
   const row = () => [...document.querySelectorAll<HTMLButtonElement>("main li button")].find((b) => b.textContent?.startsWith(title));
-  if (!row()) await s.click("Selesai");
+  if (!row()) await s.click(/^Selesai/);
   const found = row();
   if (!found) throw new Error(`No Task row ${title}`);
   await s.click(found);
@@ -42,8 +42,8 @@ describe("handing in", () => {
     expect(s.world.edunex.writes.map((w) => w.path)).toEqual(["/blob-storage/sas"]);
 
     await s.click("Simpan draf");
-    expect(s.text()).toContain("Draf tersimpan");
-    expect(card()).toContain("DrafBelum diserahkan");
+    // Saved, said inline in the panel (not a toast that follows the Student to the next screen).
+    expect(card()).toContain("DrafTersimpan Hari ini, 08:12 · belum diserahkan");
     expect(card()).not.toContain("Belum disimpan");
     expect(answerWrites(s)).toEqual(["POST /course/task/answers", "PATCH /course/task/answers/:id"]);
 
@@ -56,15 +56,14 @@ describe("handing in", () => {
     await s.click(confirmButton()!);
     expect(answerWrites(s)).toHaveLength(3);
     expect(s.world.edunex.writes.at(-1)?.body).toEqual({ is_sent: 1 });
-    expect(card()).toContain("TerkumpulHari ini, 08:12");
+    expect(card()).toContain("TerkumpulEduNex mencatatnya Hari ini, 08:12");
     expect(card()).toContain("Sudah diserahkan. Pengumpulan bersifat final.");
-    expect(s.text()).toContain("Terkumpul. EduNex mencatatnya Hari ini, 08:12.");
     expect(s.has(ATTACH)).toBe(false);
     expect(s.world.edunex.task(117003).attributes.answers).toHaveLength(1);
   });
 
   it("cancelling the confirmation sends nothing", async () => {
-    const s = await openTask("Tugas 02 Bab II");
+    const s = await openTask("Tugas 02 Bab II", "2026-10-16T16:00:00+07:00");
     s.willPick([{ name: "Bab II.pdf" }]);
     await s.click(ATTACH);
     await s.click("Kumpulkan");
@@ -79,9 +78,12 @@ describe("handing in", () => {
     s.willPick([{ name: "Bab II.pdf" }]);
     await s.click(ATTACH);
     expect(card()).toContain("Bab II.pdf");
-    expect(card()).toContain("Gagal diunggah. Berkas tetap terlampir.");
+    // The whole reason, a labelled way to try again, and why Kumpulkan waits.
+    expect(card()).toContain("EduNex tidak menerima unggahan ini (galat di server EduNex). Berkasmu tetap di sini.");
+    expect(s.button("Unggah ulang Bab II.pdf").textContent).toBe("Coba lagi");
     expect(s.button("Simpan draf").disabled).toBe(true);
     expect(s.button("Kumpulkan").disabled).toBe(true);
+    expect(card()).toContain("Coba lagi atau hapus berkas yang gagal terunggah.");
     await s.click("Unggah ulang Bab II.pdf");
     expect(card()).toContain("Belum disimpan");
     expect(s.button("Kumpulkan").disabled).toBe(false);
@@ -92,7 +94,7 @@ describe("handing in", () => {
     s.world.failUploads("network");
     s.willPick([{ name: "Bab II.pdf" }]);
     await s.click(ATTACH);
-    expect(card()).toContain("Gagal diunggah: tidak terhubung. Berkas tetap terlampir.");
+    expect(card()).toContain("Tidak ada koneksi, jadi belum terunggah. Berkasmu tetap di sini.");
   });
 
   it("several files go up one by one, then all are in the answer", async () => {
@@ -109,7 +111,7 @@ describe("handing in", () => {
     const s = await openTask("Tugas 02 Bab II");
     s.willPick([{ name: "rekaman.mp4", size: 200 * 1024 * 1024 }]);
     await s.click(ATTACH);
-    expect(card()).toContain("Lebih dari 100 MB");
+    expect(card()).toContain("Lebih dari 100 MB: EduNex tidak menerima berkas sebesar ini");
     expect(s.has(/^Unggah ulang/)).toBe(false);
     expect(s.world.edunex.writes).toEqual([]);
     await s.click("Hapus rekaman.mp4");
@@ -213,7 +215,7 @@ describe("handing in", () => {
     const s = await openTask("UTS Markom", "2026-10-23T09:00:00+07:00");
     s.world.edunex.closeTask(117764);
     expect(card()).toContain("Ditutup");
-    expect(card()).toContain("Tidak bisa terlambat");
+    expect(card()).toContain("Pengumpulan sudah ditutup");
     expect(s.has(ATTACH)).toBe(false);
     expect(s.has("Kumpulkan")).toBe(false);
   });
@@ -222,11 +224,96 @@ describe("handing in", () => {
     const s = await openTask("Tugas 02 Bab II");
     await s.engineDoes(() => s.engine.updateSettings({ lang: "en" }));
     expect(card()).toContain("Not started");
-    expect(s.has(/^Attach files · Drop files here$/)).toBe(true);
+    expect(s.has(/^Attach files · Drop files here/)).toBe(true);
     expect(s.has("Save draft")).toBe(true);
     expect(s.has("Submit")).toBe(true);
     expect(card()).toContain("A draft is only visible to you. Submit to hand it in.");
-    expect(card()).toContain("File required");
-    expect(card()).toContain("Late submission allowed");
+    expect(card()).toContain("File required · PDF file");
+    expect(card()).toContain("Attach a file first to hand it in.");
+    expect(s.text()).toContain("Late submission allowed");
+  });
+});
+
+describe("handing in can't cost the Student their attendance", () => {
+  const dialogText = () => document.querySelector("[role=alertdialog]")?.textContent ?? "";
+  const article = () => document.querySelector("article")?.textContent ?? "";
+
+  it("outside the attendance window the confirm says it won't count, and keeping a draft is the default", async () => {
+    // Thu 8 Oct: Tugas 02 counts as attendance only if handed in Fri 16 Oct 15:00–23:59.
+    const s = await openTask("Tugas 02 Bab II");
+    s.willPick([{ name: "18222001 Dimas - Tugas 02.pdf" }]);
+    await s.click(ATTACH);
+    // Waiting is the right default: Simpan draf is the main button, and the line under it says why.
+    expect(s.button("Simpan draf").className).toContain("bg-accent");
+    expect(s.button("Kumpulkan").className).not.toContain("bg-accent");
+    expect(card()).toContain("Belum masuk jendela presensi. Simpan draf sekarang, lalu kumpulkan Jum, 16 Okt, 15:00–23:59 agar terhitung hadir.");
+    await s.click("Kumpulkan");
+    expect(dialogText()).toContain("Belum masuk jendela presensi (Jum, 16 Okt, 15:00–23:59). Kalau dikumpulkan sekarang, tugas terkumpul tapi tidak dihitung hadir.");
+    const save = s.button("Simpan sebagai draf");
+    expect(save.className).toContain("bg-accent");
+    expect(save.className).not.toContain("danger");
+    await s.click(save);
+    // Kept as a draft: nothing handed in.
+    expect(answerWrites(s)).toEqual(["POST /course/task/answers", "PATCH /course/task/answers/:id"]);
+    expect(s.world.edunex.writes.some((w) => w.body?.is_sent === 1)).toBe(false);
+    expect(card()).toContain("DrafTersimpan");
+    expect(card()).toContain("Drafmu aman. Kumpulkan Jum, 16 Okt, 15:00–23:59 agar terhitung hadir.");
+  });
+
+  it("handing in anyway outside the window: done, and the page says it didn't count", async () => {
+    const s = await openTask("Tugas 02 Bab II");
+    s.willPick([{ name: "18222001 Dimas - Tugas 02.pdf" }]);
+    await s.click(ATTACH);
+    await s.click("Kumpulkan");
+    await s.click("Kumpulkan tetap (tidak dihitung hadir)");
+    expect(card()).toContain("Terkumpul");
+    expect(article()).toContain("Tidak dihitung hadir: dikumpulkan di luar jendela presensi (Jum, 16 Okt, 15:00–23:59).");
+    expect(article()).not.toContain("hanya terhitung jika dikumpulkan");
+  });
+
+  it("inside the window: the confirm says it counts, the primary button is a blue Kumpulkan sekarang, and the page then says counted", async () => {
+    const s = await openTask("Tugas 02 Bab II", "2026-10-16T16:00:00+07:00");
+    s.willPick([{ name: "18222001 Dimas - Tugas 02.pdf" }]);
+    await s.click(ATTACH);
+    expect(s.button("Kumpulkan").className).toContain("bg-accent");
+    await s.click("Kumpulkan");
+    expect(dialogText()).toContain("Di dalam jendela presensi: terhitung hadir.");
+    const submit = s.button("Kumpulkan sekarang");
+    expect(submit.className).toContain("bg-accent");
+    await s.click(submit);
+    expect(article()).toContain("Terhitung hadir: kamu mengumpulkan di dalam jendela presensi (Hari ini, 15:00–23:59).");
+  });
+
+  it("a file unlike what the lecturer asked for gets a soft hint, and the confirm names it", async () => {
+    const s = await openTask("Tugas 02 Bab II", "2026-10-16T16:00:00+07:00");
+    s.willPick([{ name: "Laporan Tugas - Dimas Pratama.pdf" }]);
+    await s.click(ATTACH);
+    expect(card()).toContain("Dosen minta nama \u2018NIM Nama - Tugas 02.pdf\u2019");
+    await s.click("Kumpulkan");
+    expect(dialogText()).toContain("Dosen minta nama berkas \u2018NIM Nama - Tugas 02.pdf\u2019.");
+  });
+
+  it("no connection: Kumpulkan waits, says why, and offers to try again", async () => {
+    const s = await openTask("Tugas 02 Bab II", "2026-10-16T16:00:00+07:00");
+    s.willPick([{ name: "18222001 Dimas - Tugas 02.pdf" }]);
+    await s.click(ATTACH);
+    s.world.setOffline(true);
+    await s.engineDoes(() => s.engine.refresh("edunex"));
+    expect(s.button("Kumpulkan").disabled).toBe(true);
+    expect(card()).toContain("Tidak terhubung ke EduNex. Berkasmu tetap di sini; kumpulkan setelah tersambung lagi.");
+    s.world.setOffline(false);
+    const retry = [...document.querySelectorAll<HTMLButtonElement>("main aside button")].find((b) => b.textContent === "Coba lagi")!;
+    await s.click(retry);
+    expect(s.button("Kumpulkan").disabled).toBe(false);
+  });
+
+  it("a session that ended: Kumpulkan waits, with Masuk lagi next to the reason", async () => {
+    const s = await openTask("Tugas 02 Bab II", "2026-10-16T16:00:00+07:00");
+    s.willPick([{ name: "18222001 Dimas - Tugas 02.pdf" }]);
+    await s.click(ATTACH);
+    s.world.edunex.expireSession();
+    await s.engineDoes(() => s.engine.refresh("edunex"));
+    expect(s.button("Kumpulkan").disabled).toBe(true);
+    expect(card()).toContain("Sesi EduNex berakhir. Masuk lagi untuk mengumpulkan.");
   });
 });

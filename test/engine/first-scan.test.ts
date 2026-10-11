@@ -3,7 +3,7 @@
 // has, the number and courses on each, and the screen each opens. A line with
 // nothing to say stays out.
 import { describe, expect, it } from "vitest";
-import { type Finding, type FindingKind, firstScan, notable, scanReady, scanSummary } from "../../src/core/first-scan";
+import { type Finding, type FindingKind, firstScan, homeReady, notable, scanReady, scanSummary } from "../../src/core/first-scan";
 import type { SourceStatus, Transcript } from "../../src/core/models";
 import type { Saved } from "../../src/core/saved";
 import { aTask } from "../kit/tasks";
@@ -138,6 +138,30 @@ describe("when the scan is ready", () => {
     expect(reading.length).toBeGreaterThan(3);
     expect(reading.map((step) => step.ready)).toEqual(reading.map(() => false));
     expect(scanReady(savedOf(h), statuses(h))).toBe(true);
+  });
+
+  it("Beranda is ready sooner than the scan: once SIX's attendance and timetable are in (the welcome's reading step waits for this)", async () => {
+    const h = await startEngine();
+    expect(homeReady(savedOf(h), statuses(h))).toBe(false);
+    await h.engine.signIn("edunex", { token: PRETEND_TOKEN });
+    await h.wait(5_000);
+    expect(homeReady(savedOf(h), statuses(h))).toBe(true);
+
+    let done = false;
+    const signingIn = h.engine.signIn("six", { cookie: PRETEND_SIX_COOKIE }).finally(() => (done = true));
+    const steps: { home: boolean; scan: boolean; timetable: boolean }[] = [];
+    for (let second = 0; second < 600 && !done; second++) {
+      const saved = savedOf(h);
+      if (h.status("six").state !== "signed-out")
+        steps.push({ home: homeReady(saved, statuses(h)), scan: scanReady(saved, statuses(h)), timetable: saved["six.courses"] !== undefined && saved["six.schedule"] !== undefined });
+      await h.world.clock.advance(1_000);
+    }
+    await signingIn;
+    // Never before SIX's timetable: no flash of a Beranda without classes.
+    expect(steps.filter((step) => step.home).every((step) => step.timetable)).toBe(true);
+    // Never later than the scan.
+    expect(steps.filter((step) => step.scan).every((step) => step.home)).toBe(true);
+    expect(homeReady(savedOf(h), statuses(h))).toBe(true);
   });
 
   it("when a system stops with a reason instead of reading everything", async () => {

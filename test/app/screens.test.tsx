@@ -18,7 +18,8 @@ afterEach(() => {
   screen = null;
 });
 
-const cards = () => [...document.querySelectorAll("main ul li")].map((li) => li.textContent ?? "");
+/** Beranda's course cards (the other lists on Beranda are rows). */
+const cards = () => [...document.querySelectorAll('main section[aria-labelledby="home-courses"] ul > li')].map((li) => li.textContent ?? "");
 /** The top bar's status panel says EduNex is connected. */
 const live = async () => expect(await screen!.sourceState("EduNex")).toBe("Terhubung");
 
@@ -143,9 +144,9 @@ describe("Settings", () => {
     const row = [...document.querySelectorAll("[role=dialog] div")].find((el) => el.textContent?.startsWith("Keluar dari semua akun"));
     await screen.click(row!.querySelector("button")!);
     const confirm = document.querySelector("[role=alertdialog]");
-    expect(confirm?.textContent).toContain("Keluar dan hapus semuanya?");
+    expect(confirm?.textContent).toContain("Keluar dan hapus semua data?");
     expect(screen.vault.secrets.size).toBe(1);
-    await screen.click([...confirm!.querySelectorAll("button")].find((b) => b.textContent === "Keluar")!);
+    await screen.click([...confirm!.querySelectorAll("button")].find((b) => b.textContent === "Keluar & hapus data")!);
     expect(screen.text()).toContain("Selamat datang di Edunex Plus");
     expect(screen.vault.secrets.size).toBe(0);
     expect(screen.engine.snapshot().datasets).toEqual([]);

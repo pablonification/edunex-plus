@@ -3,7 +3,7 @@
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import * as PopoverPrimitive from "@radix-ui/react-popover";
 import * as TooltipPrimitive from "@radix-ui/react-tooltip";
-import { useSyncExternalStore, type ReactNode } from "react";
+import { useEffect, useSyncExternalStore, type ReactNode } from "react";
 import { useT } from "../i18n";
 import { Button, IconButton } from "./controls";
 import { cx } from "./cx";
@@ -174,15 +174,26 @@ const dismiss = (id: number) => {
   publish();
 };
 
-/** A short message at the bottom of the window that goes away by itself; with an action, a little later. */
-export function toast(text: string, tone: ToastItem["tone"] = "neutral", action?: ToastItem["action"]): void {
+/** A short message at the bottom of the window that goes away by itself; with an action, a little later. Returns its id. */
+export function toast(text: string, tone: ToastItem["tone"] = "neutral", action?: ToastItem["action"]): number {
   const id = nextId++;
   toasts = [...toasts.slice(-2), { id, text, tone, action }];
   publish();
   setTimeout(() => dismiss(id), action ? 8_000 : 5_000);
+  return id;
 }
 
+/** Takes a toast away early (an undo that no longer applies). */
+export const dismissToast = (id: number) => dismiss(id);
+
 export function Toaster() {
+  // Toasts belong to the window that shows them: when it goes, so do they (and their actions).
+  useEffect(
+    () => () => {
+      toasts = [];
+    },
+    [],
+  );
   const items = useSyncExternalStore(
     (listener) => {
       toastListeners.add(listener);

@@ -10,7 +10,8 @@ afterEach(() => {
   screen = null;
 });
 
-const cards = () => [...document.querySelectorAll("main ul li")].map((li) => li.textContent ?? "");
+/** Beranda's course cards (the other lists on Beranda are rows). */
+const cards = () => [...document.querySelectorAll('main section[aria-labelledby="home-courses"] ul > li')].map((li) => li.textContent ?? "");
 const card = (code: string) => cards().find((text) => text.startsWith(code)) ?? "";
 const sidebar = () => document.querySelector("aside")?.textContent ?? "";
 /** What the top bar's status panel says about each system. */
@@ -23,18 +24,25 @@ describe("first run", () => {
   it("connects EduNex, then SIX, then shows this term's courses from SIX with SKS and attendance", async () => {
     screen = await openApp();
     expect(screen.text()).toContain("Jadwal dan ruang, hitungan kehadiran, nilai, KRS, UKT");
+    // "Lanjut" is always the primary button; disabled, it says why.
     expect(screen.button("Lanjut").disabled).toBe(true);
+    expect(screen.button("Lanjut").className).toContain("bg-accent");
+    expect(screen.text()).toContain("Hubungkan EduNex atau SIX dulu");
 
     await screen.click("Hubungkan EduNex");
     // Still welcoming: SIX is next, with the same Microsoft sign-in.
     expect(screen.text()).toContain("Dimas Pratama · 18223901");
     expect(screen.has("Hubungkan EduNex")).toBe(false);
     expect(screen.button("Lanjut").disabled).toBe(false);
+    expect(screen.text()).toContain("SIX bisa dihubungkan nanti dari Pengaturan");
 
     await screen.click("Hubungkan SIX");
     expect(screen.calls.filter((c) => c.name === "auth.signIn").map((c) => c.input)).toEqual([{ source: "edunex" }, { source: "six" }]);
     expect(screen.text()).toContain("Dimas Pratama · Sistem dan Teknologi Informasi");
     expect(screen.has("Hubungkan SIX")).toBe(false);
+    // Connected says who, never still "waiting" (the audit's stale SIX line).
+    expect(screen.text()).not.toContain("Masuk di jendela Microsoft");
+    expect(screen.text()).not.toContain("Memeriksa…");
 
     await screen.click("Lanjut");
     // Moving on wipes the sign-in windows' Microsoft session.
@@ -69,7 +77,7 @@ describe("first run", () => {
 });
 
 describe("Home with both systems", () => {
-  it("each course shows its class, SKS and SIX's attendance count and share, with both chips", async () => {
+  it("each course shows its class, SKS and SIX's attendance count and share, with a meter in the status colors", async () => {
     screen = await openApp({ signedIn: true, six: true });
     expect(cards().map((text) => text.slice(0, 6))).toEqual(["DK4073", "II4091", "KU5014", "PL3002", "PL3032"]);
     const expected = {
@@ -84,6 +92,11 @@ describe("Home with both systems", () => {
     expect(card("PL3032")).toContain("Ekonomi Infrastruktur dan Transportasi");
     expect(screen.has("Buka di EduNex: PL3032")).toBe(true);
     expect(document.querySelector('[role="progressbar"][aria-label="Hadir 2 dari 6 pertemuan"]')).not.toBeNull();
+    // Meters speak in status colors, never the course's: KU5014 can't reach 80% (red), DK4073 has no absences left (amber), II4091 is safe (green).
+    const fill = (label: string) => document.querySelector<HTMLElement>(`[role="progressbar"][aria-label="${label}"] > span`)?.style.background;
+    expect(fill("Hadir 2 dari 6 pertemuan")).toBe("var(--danger-fg)");
+    expect(fill("Hadir 4 dari 6 pertemuan")).toBe("var(--warning-fg)");
+    expect(fill("Hadir 3 dari 3 pertemuan")).toBe("var(--live)");
     await edunexLive();
     await sixLive();
   });
@@ -101,7 +114,7 @@ describe("Home with both systems", () => {
     await screen.engineDoes(() => screen!.engine.updateSettings({ lang: "en" }));
     expect(card("PL3032")).toContain("Infrastructure and Transportation Economics");
     expect(card("PL3032")).toContain("Class 01 · 3 SKS");
-    expect(card("PL3032")).toContain("Attendance");
+    expect(card("PL3032")).toContain("4/757%");
     expect(document.querySelector('[role="progressbar"][aria-label="Attended 4 of 7 meetings"]')).not.toBeNull();
     expect(await screen.sourceState("SIX")).toBe("Connected");
   });
@@ -189,9 +202,9 @@ describe("Settings", () => {
     screen = await openApp({ signedIn: true, six: true });
     await screen.click(/Dimas Pratama/);
     expect(screen.text()).toContain("Dimas Pratama · Sistem dan Teknologi Informasi");
-    await screen.click("Keluar: SIX");
+    await screen.click("Keluar dari SIX");
     expect(screen.has("Masuk: SIX")).toBe(true);
-    expect(screen.has("Keluar: EduNex")).toBe(true);
+    expect(screen.has("Keluar dari EduNex")).toBe(true);
     expect(screen.vault.secrets.has("six.session")).toBe(false);
     expect(screen.vault.secrets.has("edunex.session")).toBe(true);
     // Back to EduNex's list: no SKS or attendance without SIX.
@@ -206,6 +219,6 @@ describe("Settings", () => {
     await screen.click(/Dimas Pratama/);
     await screen.click("Masuk: SIX");
     expect(screen.text()).toContain("Dimas Pratama · Sistem dan Teknologi Informasi");
-    expect(screen.has("Keluar: SIX")).toBe(true);
+    expect(screen.has("Keluar dari SIX")).toBe(true);
   });
 });

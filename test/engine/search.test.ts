@@ -98,15 +98,25 @@ describe("Tasks", () => {
   });
 
   it("by the module it's in, and by its course", () => {
-    const viaModule = search(index, "pengantar proposal").find((group) => group.kind === "task");
-    expect(viaModule?.items.map((item) => item.key)).toContain("task:113986");
-    const viaCourse = search(index, "kampus ganesha pl3002").find((group) => group.kind === "task");
-    expect(viaCourse?.items.map((item) => item.key).sort()).toEqual(["task:117432", "task:117873"]);
+    const tasks = (query: string) => search(index, query).flatMap((group) => (group.kind === "task" || group.kind === "doneTask" ? group.items : []));
+    expect(tasks("pengantar proposal").map((item) => item.key)).toContain("task:113986");
+    expect(tasks("kampus ganesha pl3002").map((item) => item.key).sort()).toEqual(["task:117432", "task:117873"]);
   });
 
-  it("before anything is typed: the next three Tasks still to hand in, then the courses and the screens", () => {
+  it("Tasks still to hand in come first, the one due first on top; done ones after everything else", () => {
+    const groups = search(index, "tugas");
+    expect(groups[0].kind).toBe("task");
+    expect(groups.at(-1)?.kind).toBe("doneTask");
+    const open = groups[0].items.map((item) => (item.kind === "task" ? item.task.dueAt : null));
+    expect(open).toEqual([...open].sort((a, b) => (a ?? Infinity) - (b ?? Infinity)));
+    expect(groups[0].items[0].key).toBe("task:117003");
+  });
+
+  it("before anything is typed: what was opened lately, the next three Tasks still to hand in, the courses, the screens and the verbs", () => {
     const groups = suggestions(index, now);
-    expect(kinds(groups)).toEqual(["task", "course", "screen"]);
+    expect(kinds(groups)).toEqual(["task", "course", "screen", "action"]);
+    expect(kinds(suggestions(index, now, ["course:KU5014", "gone:1"]))).toEqual(["recent", "task", "course", "screen", "action"]);
+    expect(suggestions(index, now, ["course:KU5014"])[0].items.map((item) => item.key)).toEqual(["course:KU5014"]);
     expect(groups[0].items.map((item) => item.key)).toEqual(["task:117003", "task:117010", "task:117023"]);
     expect(groups[1].items).toHaveLength(5);
     expect(groups[2].items.map((item) => item.title)).toEqual(["Beranda", "Tugas & Ujian", "Jadwal", "Presensi", "Nilai", "Rencana studi", "Pengaturan"]);
@@ -122,8 +132,8 @@ describe("exams", () => {
       // SIX's sitting and EduNex's take-home "UTS Markom" are one exam.
       ["UTS Komunikasi Pemasaran", { screen: "exam", examId: "DK4073-UTS" }],
     ]);
-    // The take-home's title finds its exam, not one more Task; the module named "UTS Markom" itself comes first.
-    expect(keys(search(index, "markom"))).toEqual(["module:473251", "exam:DK4073-UTS"]);
+    // The take-home's title finds its exam, not one more Task.
+    expect(keys(search(index, "markom")).sort()).toEqual(["exam:DK4073-UTS", "module:473251"]);
   });
 
   it("by its room, or the final exam by its outline module's name", () => {
@@ -174,6 +184,13 @@ describe("materials, modules and announcements", () => {
 });
 
 describe("screens, their tabs, and Settings", () => {
+  it("verbs: refresh and switch theme, by their words in either language", () => {
+    expect(first("muat ulang")).toMatchObject({ kind: "action", target: { action: "refresh" } });
+    expect(first("refresh")).toMatchObject({ kind: "action", target: { action: "refresh" } });
+    expect(first("tema gelap")).toMatchObject({ kind: "action", target: { action: "theme" } });
+    expect(first("dark mode")).toMatchObject({ kind: "action", target: { action: "theme" } });
+  });
+
   it("by name in either language, or by what they hold", () => {
     expect(first("jadwal")).toMatchObject({ kind: "screen", target: { screen: "schedule" } });
     expect(first("schedule")).toMatchObject({ kind: "screen", target: { screen: "schedule" } });

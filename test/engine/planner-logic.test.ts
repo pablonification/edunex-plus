@@ -4,7 +4,7 @@
 // catalog search and the curriculum map.
 import { beforeAll, describe, expect, it } from "vitest";
 import { curriculumMap, nameMatch } from "../../src/core/curriculum-map";
-import { honorFor, letterForAverage, nearestLetter } from "../../src/core/honors";
+import { honorFor, letterForAverage, nearestLetter, predicateFor } from "../../src/core/honors";
 import type { PlannedCourse, StudyPlan } from "../../src/core/models";
 import {
   addCourse,
@@ -16,6 +16,7 @@ import {
   defaultPlan,
   honorsOutlook,
   livePlan,
+  parseTarget,
   programElectives,
   project,
   removeCourse,
@@ -26,7 +27,9 @@ import {
   searchCourses,
   semesterOf,
   shortTermToAdd,
+  sksModel,
   studentRecord,
+  targetOf,
 } from "../../src/core/planner";
 import { type Records, records } from "./grades-records";
 
@@ -177,7 +180,8 @@ describe("rules, checked one by one", () => {
     expect(rule(list, "total")[0]).toMatchObject({ level: "error", have: 139, need: 144 });
     expect(rule(list, "required")[0]).toMatchObject({ level: "error", missing: [{ code: "II4090" }, { code: "II4092" }] });
     expect(rule(list, "specialization")[0]).toMatchObject({ level: "warn", missing: [{ code: "II4010" }, { code: "II4011" }] });
-    expect(rule(list, "finish")[0]).toMatchObject({ level: "ok", semester: 7 });
+    // One verdict: with rules unmet there is no graduation semester to promise (it used to say "graduate in semester 7").
+    expect(rule(list, "finish")[0]).toMatchObject({ level: "error", semester: 7, blocked: { sks: 5, required: 2, electives: 0, other: 0 } });
   });
 
   it("elective SKS: short until enough electives are planned", () => {
@@ -223,11 +227,69 @@ describe("rules, checked one by one", () => {
 
   it("finishing within 8 semesters, 9 (honors still possible), or later (no honors)", () => {
     const at = (p: StudyPlan) => rule(rules(record, p), "finish")[0];
-    expect(at(plan({ "2026-2": [course("II4092")] }))).toMatchObject({ level: "ok", semester: 8 });
-    expect(at(plan({ "2026-2": [], "2027-1": [course("II4092")] }))).toMatchObject({ level: "warn", semester: 9 });
-    const late = plan({ "2026-2": [], "2027-1": [], "2027-2": [course("II4092")] });
+    const rest = defaultPlan(record).terms[0].courses.filter((c) => c.code !== "II4092");
+    expect(at(plan({ "2026-2": [...rest, course("II4092")] }))).toMatchObject({ level: "ok", semester: 8, blocked: null });
+    expect(at(plan({ "2026-2": rest, "2027-1": [course("II4092")] }))).toMatchObject({ level: "warn", semester: 9, blocked: null });
+    const late = plan({ "2026-2": rest, "2027-1": [], "2027-2": [course("II4092")] });
     expect(at(late)).toMatchObject({ level: "warn", semester: 10 });
     expect(honorsOutlook(project(record, late)).every((h) => h.kind === "blocked" && h.reason === "time")).toBe(true);
+  });
+});
+
+describe("one SKS count for every screen", () => {
+  it("the starting plan: 144 needed, 151 counted (7 spare), electives 37 of 27 = 10 spare", () => {
+    const m = sksModel(record, defaultPlan(record));
+    expect(m).toMatchObject({ need: 144, requiredNeed: 117, electiveNeed: 27, passed: 125, inProgress: 14, planned: 12, total: 151, short: 0, extra: 7 });
+    expect(m.electives).toEqual({ passed: 19, inProgress: 12, planned: 6, have: 37, short: 0, extra: 10 });
+    expect(m.requiredLeft).toEqual({ count: 2, sks: 6 });
+    expect(m.requiredUnplanned).toEqual({ count: 0, sks: 0 });
+  });
+
+  it("the planner's rules and the curriculum map read the same numbers", () => {
+    const p = defaultPlan(record);
+    const m = sksModel(record, p);
+    const map = curriculumMap(record, p);
+    expect(map.electivePassed + map.electiveInProgress).toBe(m.electives.passed + m.electives.inProgress);
+    expect(map.requiredLeftSks).toBe(m.requiredLeft.sks);
+    expect(rule(rules(record, p), "electives")[0]).toMatchObject({ have: m.electives.have, need: m.electiveNeed });
+    expect(rule(rules(record, p), "total")[0]).toMatchObject({ have: m.total, need: m.need });
+  });
+
+  it("an empty plan: 5 SKS short, both required courses unplanned", () => {
+    const m = sksModel(record, plan({}));
+    expect(m).toMatchObject({ total: 139, short: 5, extra: 0, requiredUnplanned: { count: 2, sks: 6 } });
+  });
+});
+
+describe("the IPK target, one setting", () => {
+  it("accepts 2,00–4,00 with a comma or a point; empty and out of range are said, never 'reached'", () => {
+    expect(parseTarget("3,5")).toEqual({ kind: "ok", value: 3.5 });
+    expect(parseTarget(" 3.333 ")).toEqual({ kind: "ok", value: 3.33 });
+    expect(parseTarget("")).toEqual({ kind: "empty" });
+    expect(parseTarget("4,5")).toEqual({ kind: "invalid" });
+    expect(parseTarget("1.5")).toEqual({ kind: "invalid" });
+    expect(parseTarget("abc")).toEqual({ kind: "invalid" });
+  });
+
+  it("the Student's own target, else the next line above the IPK, the same on both screens", () => {
+    expect(targetOf(record, plan({}))).toBe(3.5);
+    expect(targetOf(record, plan({}, { target: 3 }))).toBe(3);
+    expect(targetOf(record, plan({}, { target: 7 }))).toBe(3.5);
+  });
+
+  it("the highest IPK still possible: straight A's in what's left", () => {
+    const p = project(record, defaultPlan(record));
+    // (408 + 4 × 26) / 151 = 3.39
+    expect(p.bestIpk).toBe(3.39);
+    expect(p.need(p.bestIpk!)).toMatchObject({ kind: "needs" });
+  });
+
+  it("the predicate is one word for an IPK", () => {
+    const path = { retakes: false, semesters: 8 };
+    expect(predicateFor(3.3, path)).toBe("very-good");
+    expect(predicateFor(3.6, path)).toBe("cum");
+    expect(predicateFor(2.5, path)).toBe("good");
+    expect(predicateFor(3.6, { retakes: false, semesters: 10 })).toBe("very-good");
   });
 });
 
