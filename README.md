@@ -59,8 +59,10 @@ notifications only once it has its Start menu shortcut.
 
 ### Linux
 
-- **AppImage:** `chmod +x "Edunex Plus-<version>.AppImage"` and run it.
-- **Debian / Ubuntu:** `sudo apt install ./edunex-plus_<version>_amd64.deb`.
+- **Debian / Ubuntu (recommended):** `sudo apt install ./edunex-plus_<version>_amd64.deb`.
+- **AppImage:** `chmod +x "Edunex Plus-<version>.AppImage"` and run it. On Ubuntu 24.04 and
+  newer, an AppImage can't set up Chromium's sandbox, so the app closes right away: use the
+  `.deb` (it sets the sandbox up), or start the AppImage with `--no-sandbox`.
 
 Saving your sign-in between launches needs a keyring (GNOME Keyring or KWallet). Without one,
 the app still works but asks you to sign in again after each restart, and Settings says so.

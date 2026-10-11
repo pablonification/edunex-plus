@@ -53,6 +53,24 @@ export default {
     synopsis: "EduNex and SIX in one calm desktop app",
     maintainer: "Edunex Plus contributors <https://github.com/pablonification/edunex-plus>",
   },
+  deb: {
+    // electron-builder's list, plus two libraries the app loads at start that
+    // it leaves out: without the sound library (libasound2t64 since Ubuntu
+    // 24.04) a fresh install doesn't open at all.
+    depends: [
+      "libgtk-3-0",
+      "libnotify4",
+      "libnss3",
+      "libxss1",
+      "libxtst6",
+      "xdg-utils",
+      "libatspi2.0-0",
+      "libuuid1",
+      "libsecret-1-0",
+      "libgbm1",
+      "libasound2t64 | libasound2",
+    ],
+  },
   // No auto-update feed: the app only checks GitHub Releases and links there.
   publish: null,
 };
