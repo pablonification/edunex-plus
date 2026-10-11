@@ -12,7 +12,6 @@
 // - Overlapping classes (#76 six.schedule): `changed()`, kind "scheduleChanged".
 // - Exams scheduled, and the day before (#74 exams, six.schedule UTS/UAS):
 //   `changed()` for new ones, `plan()` for the day before; kind "exam".
-// - New grade (#78 transcript): `changed()`, kind "grade".
 // - Meetings announced outside SIX (#74 announcements + six.schedule):
 //   `changed()`, kind "meeting".
 // The same `changed()` results can later feed the in-app "what changed" list.
@@ -20,6 +19,7 @@ import { academicCalendar, billReminders, krsChanged, newBill } from "./academic
 import { attendanceBudget, sixNotCounting } from "./attendance";
 import type { Detector } from "./detector";
 import { edunexNotifications } from "./edunex-feed";
+import { newGrades, questionnaireReminder } from "./grades";
 import { presenceOpening } from "./presence";
 import { deadlineReminders, newTasks } from "./tasks";
 
@@ -30,6 +30,8 @@ export const DETECTORS: readonly Detector[] = [
   presenceOpening,
   sixNotCounting(),
   attendanceBudget,
+  newGrades,
+  questionnaireReminder,
   krsChanged,
   newBill,
   billReminders,

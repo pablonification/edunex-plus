@@ -230,6 +230,7 @@ const GROUP_TITLE: Partial<Record<AlertKind, StringKey>> = {
   newTask: "alert.group.newTask",
   newMaterial: "alert.group.newMaterial",
   deadline: "alert.group.deadline",
+  grade: "alert.group.grade",
 };
 
 /** One notification for a burst of one kind: "8 new Tasks", naming the first few. */

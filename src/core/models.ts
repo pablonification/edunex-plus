@@ -6,6 +6,7 @@ import { alertsDatasets } from "./models/alerts";
 import { coursePageDatasets } from "./models/course-page";
 import { edunexDatasets } from "./models/edunex";
 import { itbDatasets } from "./models/itb";
+import { plannerDatasets } from "./models/planner";
 import { sixDatasets } from "./models/six";
 import { sixRecordsDatasets } from "./models/six-records";
 import { tasksDatasets } from "./models/tasks";
@@ -15,6 +16,7 @@ export * from "./models/base";
 export * from "./models/course-page";
 export * from "./models/edunex";
 export * from "./models/itb";
+export * from "./models/planner";
 export * from "./models/six";
 export * from "./models/six-records";
 export * from "./models/tasks";
@@ -27,6 +29,7 @@ export const Datasets = {
   ...sixDatasets,
   ...sixRecordsDatasets,
   ...itbDatasets,
+  ...plannerDatasets,
   ...alertsDatasets,
 } as const satisfies Record<string, z.ZodType>;
 export type DatasetName = keyof typeof Datasets;

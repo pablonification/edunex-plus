@@ -3,7 +3,7 @@
 // SIX's last day next to ITB's calendar deadline, an overdue bill said
 // plainly, then every term's bill. View only: the app never pays.
 import { type BillUrgency, billLeft, billNeedsStudent, billUrgency, currentTerm, nextTerm, rupiah, uktDeadline } from "../../../core/academic";
-import type { Bill, DatasetName, SixStudent } from "../../../core/models";
+import type { Bill } from "../../../core/models";
 import { useFormat, useNow, useT } from "../../i18n";
 import { useDataset } from "../../store";
 import { cx } from "../../ui/cx";
@@ -11,8 +11,6 @@ import { Card, EmptyState, SectionTitle, SourceTag } from "../../ui/display";
 import { Icons } from "../../ui/icons";
 
 export const ready = true;
-
-const SIX_STUDENT = "six.student" as DatasetName;
 
 /** Bills overdue or due within a week. */
 export function useBadge(): { value: number; tone: "neutral" | "warning" } | null {
@@ -25,7 +23,7 @@ export function useBadge(): { value: number; tone: "neutral" | "warning" } | nul
 /** This term: SIX's (the KRS page, then the status page), else from the calendar. */
 export function useThisTerm(): string | null {
   const krs = useDataset("six.krs");
-  const student = useDataset(SIX_STUDENT) as SixStudent | undefined;
+  const student = useDataset("six.student");
   const calendar = useDataset("itb.calendar");
   const now = useNow();
   return currentTerm(krs?.term ?? student?.term, calendar, now);

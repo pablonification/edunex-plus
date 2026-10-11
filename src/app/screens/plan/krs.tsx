@@ -4,7 +4,7 @@
 // class, SKS and the advisor's approval, and classes that overlap on SIX's
 // timetable (SIX accepts those and never says so). View only.
 import { type KrsStage, type KrsStep, krsNeedsStudent, krsOverlaps, krsStage, krsTimeline, nextKrsWindow, type Overlap, rupiah } from "../../../core/academic";
-import type { ClassSession, DatasetName, KrsPlan } from "../../../core/models";
+import type { ClassSession, KrsPlan } from "../../../core/models";
 import { useTermCourses } from "../../courses";
 import { useFormat, useNow, useT } from "../../i18n";
 import { useNav } from "../../nav";
@@ -15,11 +15,8 @@ import { Icons } from "../../ui/icons";
 
 export const ready = true;
 
-// SIX's timetable is registered by the SIX ticket (#76); read by name until then.
-const SIX_SCHEDULE = "six.schedule" as DatasetName;
-
 function useSchedule(): ClassSession[] {
-  return (useDataset(SIX_SCHEDULE) as ClassSession[] | undefined) ?? [];
+  return useDataset("six.schedule") ?? [];
 }
 
 /** A KRS step to take now, plus every pair of overlapping classes still to come. */
