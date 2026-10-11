@@ -203,4 +203,17 @@ describe("SIX public course catalog", () => {
     expect(catalogRequests(h).map((r) => r.path).slice(0, 2)).toEqual(["/pub/kur2024", "/pub/kur2024/154"]);
     expect(program(h, "154").state).toBe("ready");
   });
+
+  it("without SIX, reads first the programs offering the Student's EduNex courses (a campus copy's under the main campus too)", async () => {
+    const storage = new MemoryStorage();
+    const outline = (program: string) => ({ lecturer: null, credits: null, program, modules: [], grade: null });
+    const value = { DK4073: outline("S1 - Desain Komunikasi Visual"), PL3002: outline("S1 - Perencanaan Wilayah dan Kota (Kampus Cirebon)"), KU5014: outline("Mata Kuliah Umum (MKU)") };
+    await storage.write("datasets/edunex.outline.json", JSON.stringify({ format: 1, name: "edunex.outline", value, fetchedAt: 0, hash: "x" }));
+    const h = await startEngine({ storage });
+    await h.wait(20_000);
+    // In SIX's list order: Perencanaan Wilayah dan Kota (and its Cirebon copy), then Desain Komunikasi Visual, before any other.
+    expect(catalogRequests(h).map((r) => r.path).slice(0, 4)).toEqual(["/pub/kur2024", "/pub/kur2024/154", "/pub/kur2024/156", "/pub/kur2024/174"]);
+    expect(course(h, "DK4073")?.name).toBe("Komunikasi Pemasaran");
+    expect(course(h, "PL3002")?.name).toBe("Ekonomi dan Inovasi dalam Perencanaan");
+  });
 });

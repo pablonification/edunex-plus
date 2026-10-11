@@ -116,7 +116,7 @@ function CurrentScreen({ route }: { route: Route }) {
     case "exam":
       return <ExamScreen examId={route.examId} />;
     case "course":
-      return <CourseScreen code={route.code} tab={route.tab} />;
+      return <CourseScreen code={route.code} tab={route.tab} module={route.module} />;
     case "schedule":
       return <ScheduleScreen />;
     case "presence":

@@ -24,6 +24,8 @@ export const CourseOutline = z.object({
   lecturer: z.string().nullable(),
   /** SKS as EduNex has it; SIX's count wins once SIX is connected. */
   credits: z.number().nullable(),
+  /** The study program offering the course, as EduNex names it ("S1 - Desain Komunikasi Visual"): its catalog page has the course's official name. */
+  program: z.string().nullable().optional(),
   /** In EduNex's order, the class's own course first, then its parent's. Modules the lecturer switched off are left out. */
   modules: z.array(CourseModule),
   /** From EduNex's gradebook once the lecturer publishes it. Before that EduNex shows 0 · E, which is never a grade. */

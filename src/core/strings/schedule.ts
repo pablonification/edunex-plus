@@ -65,6 +65,7 @@ export const scheduleStrings = {
   "schedule.countedIn.edunex": { id: "Kehadiran dicatat di EduNex", en: "Attendance is recorded in EduNex" },
   "schedule.countedIn.both": { id: "Kehadiran dihitung di SIX dan EduNex", en: "Attendance counts in SIX and EduNex" },
   "schedule.countedIn.unknown": { id: "Belum ada catatan kehadiran", en: "No attendance record yet" },
+  "schedule.countedIn.noSix": { id: "Hitungan resmi kehadiran ada di SIX", en: "The official attendance count is in SIX" },
   "schedule.presenceOpen": { id: "Presensi EduNex dibuka sampai {time}", en: "EduNex Presence open until {time}" },
   "schedule.presenceOpen.closes": { id: "Tutup dalam {time}", en: "Closes in {time}" },
   "schedule.record": { id: "Catat di EduNex", en: "Record in EduNex" },

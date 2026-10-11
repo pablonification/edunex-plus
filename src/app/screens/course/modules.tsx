@@ -2,8 +2,8 @@
 // module, the joint class's after the class's own), and the selected entry's
 // Tasks and materials. It opens on the newest module with something in it;
 // empty modules take one quiet line. Each material type gets the one action
-// that fits it: download, join, read here, open, or EduNex itself.
-import { useState } from "react";
+// that fits it: download, join, read here, open, or EduNex itself, all alike.
+import { useEffect, useRef, useState } from "react";
 import {
   contentCounts,
   htmlText,
@@ -50,7 +50,8 @@ const countLine = (t: Translate, entry: Entry) =>
     .map(({ kind, count }) => t(`course.kind.${kind}`, { count }))
     .join(" · ");
 
-export function ModulesTab({ page }: { page: CoursePage }) {
+/** `module`: the EduNex module asked for (from search or an alert); it opens selected and in view. */
+export function ModulesTab({ page, module }: { page: CoursePage; module?: number }) {
   const t = useT();
   const now = useNow();
   const { course, outline } = page;
@@ -74,15 +75,29 @@ export function ModulesTab({ page }: { page: CoursePage }) {
     })),
   ];
   const first = entries[newestWithContent(entries.map((e) => ({ hasContent: e.tasks.length + e.materials.length > 0, at: latest(e), parent: e.parent })))];
-  const [selected, setSelected] = useState<string | null>(null);
+  const [selected, setSelected] = useState<string | null>(module === undefined ? null : String(module));
   const active = entries.find((e) => e.id === selected) ?? first;
+  const asked = module !== undefined && active?.id === String(module);
+  const root = useRef<HTMLDivElement>(null);
+  const shown = useRef(false);
+  useEffect(() => {
+    // Once, on arrival: the module asked for comes into view if it's below the fold; picking another later doesn't move the page.
+    if (!asked || shown.current) return;
+    // After the window puts a newly opened screen at its top.
+    const frame = requestAnimationFrame(() => {
+      shown.current = true;
+      root.current?.querySelector("[aria-current=true]")?.scrollIntoView?.({ block: "nearest" });
+      root.current?.querySelector("#course-entry")?.scrollIntoView?.({ block: "nearest" });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [asked]);
 
   if (!active) return <EmptyState icon={<Icons.BookOpen className="size-5" />} title={t("course.noMaterials")} />;
   const firstParent = entries.findIndex((e) => e.parent);
   const anyContent = entries.some((e) => e.tasks.length || e.materials.length);
 
   return (
-    <div className="grid grid-cols-[260px_minmax(0,1fr)] gap-8 max-[1180px]:grid-cols-[220px_minmax(0,1fr)]">
+    <div ref={root} className="grid grid-cols-[260px_minmax(0,1fr)] gap-8 max-[1180px]:grid-cols-[220px_minmax(0,1fr)]">
       <nav aria-label={t("course.contents")} className="self-start">
         <p className="mb-2 px-2 text-caption font-semibold tracking-[0.04em] text-faint uppercase">{t("course.contents")}</p>
         <ol className="space-y-0.5">
@@ -99,7 +114,7 @@ export function ModulesTab({ page }: { page: CoursePage }) {
                   aria-current={isActive ? "true" : undefined}
                   onClick={() => setSelected(entry.id)}
                   className={cx(
-                    "focus-ring flex w-full items-start gap-2.5 rounded-lg px-2 text-left transition-colors duration-150",
+                    "focus-ring flex w-full scroll-my-6 items-start gap-2.5 rounded-lg px-2 text-left transition-colors duration-150",
                     empty ? "py-1" : "py-2",
                     isActive ? "bg-selected" : "hover:bg-hover",
                   )}
@@ -261,7 +276,7 @@ export function MaterialRow({ material }: { material: Material }) {
       break;
     default:
       button = (
-        <Button variant="ghost" size="sm" icon={<Icons.ArrowUpRight className="size-3.5" />} aria-label={named(t("action.openInEdunex"))} onClick={() => openExternal(action.url)}>
+        <Button size="sm" icon={<Icons.ArrowUpRight className="size-3.5" />} aria-label={named(t("action.openInEdunex"))} onClick={() => openExternal(action.url)}>
           {t("action.openInEdunex")}
         </Button>
       );
@@ -278,7 +293,8 @@ export function MaterialRow({ material }: { material: Material }) {
           <p className="mt-0.5 truncate text-small text-muted">{meta}</p>
         </div>
         {material.updatedAt !== null && <span className="text-small whitespace-nowrap text-faint">{f.fromNow(material.updatedAt)}</span>}
-        {button}
+        {/* One width for every action, so the dates beside them line up. */}
+        <span className="flex w-[9.5rem] shrink-0 justify-end">{button}</span>
       </div>
       {reading && action.kind === "read" && (
         <div className="border-t border-line bg-fill/50 px-4 py-3.5">

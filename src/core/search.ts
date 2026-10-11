@@ -269,7 +269,7 @@ export function searchIndex(saved: Saved, { lang, screens, now }: IndexOptions):
     for (const entry of outlineEntries(outline, main)) {
       const module: ModulePlace = { id: entry.module.id, title: entry.module.title, number: entry.number, parent: entry.parent };
       places.set(module.id, module);
-      add({ kind: "module", key: `module:${module.id}`, title: module.title, code, target: { screen: "course", code, tab: "modules" }, module }, [
+      add({ kind: "module", key: `module:${module.id}`, title: module.title, code, target: { screen: "course", code, tab: "modules", module: module.id }, module }, [
         [module.title, TITLE],
         [courseWords(code), CONTEXT],
       ]);
@@ -284,7 +284,7 @@ export function searchIndex(saved: Saved, { lang, screens, now }: IndexOptions):
       // A material in a module the outline no longer shows has no place to open.
       if (material.moduleId !== null && !module) continue;
       add(
-        { kind: "material", key: `material:${material.id}`, title: material.title, code, target: { screen: "course", code, tab: "modules" }, material, module },
+        { kind: "material", key: `material:${material.id}`, title: material.title, code, target: { screen: "course", code, tab: "modules", ...(module && { module: module.id }) }, material, module },
         [
           [material.title, TITLE],
           [module?.title, CONTEXT],

@@ -132,6 +132,11 @@ describe("materials", () => {
     for (const name of ["Unduh: Rekaman kuliah", "Unduh: Podcast", "Unduh: Data", "Buka: Berita ITB", "Gabung: Zoom", "Gabung: Meet", "Gabung: Webex"]) expect(screen.has(name)).toBe(true);
     for (const name of ["Situs luar", "Kuis interaktif", "CloudX", "Baru"]) expect(screen.has(`Buka di EduNex: ${name}`)).toBe(true);
     expect(screen.text()).toContain("Kelas online · Google Meet");
+    // Every action looks alike and takes the same width, so the dates beside them line up.
+    const actions = [...document.querySelectorAll<HTMLButtonElement>("main section li button[aria-label]")].filter((b) => /^(Unduh|Buka|Gabung|Baca)/.test(b.getAttribute("aria-label")!));
+    expect(actions.length).toBeGreaterThan(8);
+    expect(new Set(actions.map((b) => b.className)).size).toBe(1);
+    expect(new Set(actions.map((b) => b.parentElement!.className)).size).toBe(1);
     await screen.click("Unduh: Data");
     expect(screen.calls.at(-1)).toMatchObject({ name: "files.download", input: { name: "Data.xlsx" } });
     await screen.click("Buka di EduNex: Baru");
@@ -194,9 +199,11 @@ describe("meetings", () => {
     const meetings = rows("main ol li");
     expect(meetings).toHaveLength(15);
     expect(meetings[0]).toContain("Hadir");
-    // SIX is the official record; a meeting EduNex didn't record is said quietly, never as an absence.
+    // SIX is the official record; the intro says once that EduNex's gaps can still count, and the rows stay quiet.
     expect(s.text()).toContain("Kehadiran resmi di SIX: hadir 6 dari 7");
-    expect(meetings[1]).toContain("Tidak dicatat EduNex, tidak apa-apa");
+    expect(s.text()).toContain("yang tidak dicatat EduNex tetap bisa terhitung di SIX");
+    expect(meetings[1]).toMatch(/Selesai$/);
+    expect(s.text()).not.toContain("Tidak tercatat di EduNex");
     expect(meetings.find((m) => m.includes("Berikutnya"))).toContain("15 Okt");
     expect(meetings.at(-1)).not.toMatch(/Akan datang|Tidak/);
     expect(s.text()).not.toMatch(/Absen|Tidak hadir|Absent/);
@@ -227,6 +234,33 @@ describe("meetings", () => {
     expect(text).not.toContain("Bentrok dengan PL3032 15:00–16:30");
     // The next meeting is in the strip under the notice; the notice doesn't repeat it.
     expect(s.text()).not.toContain("Pertemuan berikutnya Hari ini");
+  });
+
+  it("without SIX, EduNex's tally is a fact: it doesn't claim to count, nothing is amber, and SIX is a click away", async () => {
+    const s = await openCourse("PL3002");
+    await tab(/^Pertemuan/);
+    expect(s.text()).toContain("EduNex: hadir 1 dari 6 Presensi");
+    expect(s.text()).toContain("Hitungan resmi ada di SIX. Hubungkan SIX untuk tahu kehadiran mana yang dihitung.");
+    expect(s.text()).not.toContain("dicatat lewat Presensi EduNex");
+    const unrecorded = [...document.querySelectorAll("main ol li span")].filter((el) => el.textContent === "Tidak tercatat di EduNex");
+    expect(unrecorded.length).toBeGreaterThan(0);
+    expect(unrecorded.every((el) => !el.className.includes("warning"))).toBe(true);
+    await s.click("Masuk ke SIX");
+    await s.wait();
+    expect(s.store.status("six").state).toBe("live");
+    expect(s.text()).toContain("Kehadiran resmi di SIX: hadir 6 dari 7");
+  });
+
+  it("a meeting has one number: EduNex's, never a second count of the app's", async () => {
+    const s = await openCourse("II4091");
+    await tab(/^Pertemuan/);
+    const meetings = rows("main ol li");
+    const oct9 = meetings.find((m) => m.includes("9 Okt"))!;
+    expect(oct9).toMatch(/^Jum, 9 Okt/);
+    expect(oct9).toContain("Pertemuan 3");
+    expect(meetings.filter((m) => /Pertemuan \d/.test(m)).every((m) => !/^\d\d/.test(m))).toBe(true);
+    // A meeting nothing names is a class, not a number of the app's own.
+    expect(meetings.find((m) => m.includes("18 Nov"))).toContain("Kuliah");
   });
 
   it("a class without EduNex Presence says so; its meetings come from SIX", async () => {

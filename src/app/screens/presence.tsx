@@ -405,7 +405,7 @@ function CourseRow({ item, target, lastDay, index }: { item: CourseAttendance; t
                 label={t("presence.meter", { share, target, best: best ?? share })}
               />
             </>
-          ) : health.countedIn === "edunex" ? (
+          ) : health.countedIn === "edunex" || (health.countedIn === "noSix" && health.edunexClosed > 0) ? (
             <p className="mt-0.5 text-small text-muted tabular-nums">{t("presence.edunexTally", { recorded: health.edunexRecorded, closed: health.edunexClosed })}</p>
           ) : null}
         </div>

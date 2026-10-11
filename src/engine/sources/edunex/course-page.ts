@@ -33,6 +33,7 @@ export const CourseDetail = z.object({
     attributes: z.object({
       lecturer: z.string().nullable().optional(),
       credit: z.union([z.string(), z.number()]).nullable().optional(),
+      major: z.string().nullable().optional(),
       gradebook_publish: z.boolean().nullable().optional(),
     }),
   }),
@@ -152,13 +153,14 @@ export function registerCoursePageFeeds(context: SourceContext, client: EdunexCl
 const courseIds = (course: Course) => [course.edunex.courseId, ...course.edunex.relatedCourseIds];
 
 export async function fetchOutline(client: EdunexClient, course: Course, nim: string | null): Promise<CourseOutline> {
-  const outline: CourseOutline = { lecturer: null, credits: null, modules: [], grade: null };
+  const outline: CourseOutline = { lecturer: null, credits: null, program: null, modules: [], grade: null };
   for (const id of courseIds(course)) {
     const detail = await client.get(`/course/courses/${id}`, { include: "modules,modules.activities,lecturer,lecturer.user,assistant,class" }, CourseDetail);
     const { attributes } = detail.data;
     outline.lecturer ??= attributes.lecturer?.trim() || null;
     const credits = Number(attributes.credit);
     outline.credits ??= attributes.credit != null && Number.isFinite(credits) ? credits : null;
+    outline.program ??= attributes.major?.trim() || null;
     const modules: (CourseModule & { index: number })[] = [];
     for (const item of detail.included ?? []) {
       if (item.type !== "modules") continue;

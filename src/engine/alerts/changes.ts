@@ -61,7 +61,7 @@ export const materialForToday: Detector = {
           urgent: coming !== undefined,
           title: { key: "alert.materialToday", vars: { course: code } },
           body: { key: "alert.materialToday.body", vars: { title: material.title, time: clockTime((coming ?? today[0]).start) } },
-          target: { screen: "course", code, tab: "modules" },
+          target: { screen: "course", code, tab: "modules", ...(material.moduleId !== null && { module: material.moduleId }) },
         });
       }
     }

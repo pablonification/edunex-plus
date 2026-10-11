@@ -8,7 +8,7 @@ export const Route = z.discriminatedUnion("screen", [
   z.object({ screen: z.literal("tasks") }),
   z.object({ screen: z.literal("task"), taskId: z.number() }),
   z.object({ screen: z.literal("exam"), examId: z.string() }),
-  z.object({ screen: z.literal("course"), code: z.string(), tab: z.string().optional() }),
+  z.object({ screen: z.literal("course"), code: z.string(), tab: z.string().optional(), module: z.number().optional() }),
   z.object({ screen: z.literal("schedule") }),
   z.object({ screen: z.literal("presence") }),
   z.object({ screen: z.literal("grades") }),

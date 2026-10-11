@@ -23,9 +23,11 @@ export const DEFAULT_TARGET = 80;
  * six: the lecturer records attendance in SIX; EduNex's Presence windows (if
  * any) go unused, so their "Absent" means nothing. edunex: only EduNex has a
  * record (SIX shows no count). both: EduNex records keep up with SIX's count,
- * so the lecturer uses both. unknown: neither has a record yet.
+ * so the lecturer uses both. unknown: neither has a record yet. noSix: SIX
+ * isn't connected, so which one counts can't be known; what EduNex recorded
+ * is only a fact, never an absence.
  */
-export type CountedIn = "six" | "edunex" | "both" | "unknown";
+export type CountedIn = "six" | "edunex" | "both" | "unknown" | "noSix";
 
 /**
  * The rule. SIX's count is official, so wherever SIX has one, SIX counts.
@@ -35,8 +37,9 @@ export type CountedIn = "six" | "edunex" | "both" | "unknown";
  * recorded far fewer than SIX counted (the default View Course rule nobody
  * uses: 1 of 15 in EduNex against 6 of 7 in SIX) counts in SIX only.
  */
-export function countedIn(six: SixCourse["attendance"], presence: readonly PresenceSession[], now: number): CountedIn {
+export function countedIn(six: SixCourse["attendance"], presence: readonly PresenceSession[], now: number, sixConnected = true): CountedIn {
   const closed = presence.filter((p) => p.closesAt <= now);
+  if (!sixConnected) return closed.length > 0 ? "noSix" : "unknown";
   const recorded = closed.filter((p) => p.recorded?.present).length;
   const sixCounts = six !== null && six.held > 0;
   if (!sixCounts) return closed.length > 0 ? "edunex" : "unknown";
@@ -196,6 +199,8 @@ export interface AttendanceHealth {
 export interface AttendanceInput {
   code: string;
   six: SixCourse["attendance"];
+  /** false: the Student isn't signed in to SIX (default true). */
+  sixConnected?: boolean;
   presence: readonly PresenceSession[];
   /** SIX's whole timetable (every course). */
   schedule: readonly ClassSession[];
@@ -207,11 +212,11 @@ export interface AttendanceInput {
 
 const EPS = 1e-9;
 
-export function attendanceHealth({ code, six, presence, schedule, period, target, now }: AttendanceInput): AttendanceHealth {
+export function attendanceHealth({ code, six, sixConnected, presence, schedule, period, target, now }: AttendanceInput): AttendanceHealth {
   const closed = presence.filter((p) => p.closesAt <= now);
   const base = {
     code,
-    countedIn: countedIn(six, presence, now),
+    countedIn: countedIn(six, presence, now, sixConnected),
     left: meetingsLeft(code, schedule, period, now, presence),
     edunexClosed: closed.length,
     edunexRecorded: closed.filter((p) => p.recorded?.present).length,
