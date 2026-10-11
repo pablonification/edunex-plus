@@ -1,16 +1,18 @@
-// The pretend world the engine talks to in tests: EduNex, SIX and EduNex's
-// file storage behind one Transport, on a fake clock, with a network that can
-// drop or slow down.
+// The pretend world the engine talks to in tests: EduNex, SIX, ITB's public
+// pages and EduNex's file storage behind one Transport, on a fake clock, with
+// a network that can drop or slow down.
 import { type Clock, sleep } from "../../src/engine/clock";
 import { type HttpRequest, type HttpResponse, NetworkError, type Transport } from "../../src/engine/http/transport";
 import { FakeClock } from "./clock";
 import { PretendEdunex } from "./edunex";
+import { PretendItb } from "./itb";
 import { PretendSix } from "./six";
 
 export class PretendWorld implements Transport {
   readonly clock: FakeClock;
   readonly edunex: PretendEdunex;
   readonly six: PretendSix;
+  readonly itb: PretendItb;
   /** Files uploaded to EduNex's storage, by path. */
   readonly blobs = new Map<string, Uint8Array | string>();
   /** Every request that reached the world, for assertions about politeness. */
@@ -22,6 +24,7 @@ export class PretendWorld implements Transport {
     this.clock = FakeClock.at(options.now ?? "2026-10-08T08:12:00+07:00");
     this.edunex = new PretendEdunex(this.clock);
     this.six = new PretendSix(() => this.clock.now());
+    this.itb = new PretendItb(() => this.clock.now());
   }
 
   get engineClock(): Clock {
@@ -60,6 +63,7 @@ export class PretendWorld implements Transport {
   }
 
   private route(request: HttpRequest, url: URL): HttpResponse {
+    if (this.itb.serves(url)) return this.itb.handle(request, url);
     if (url.host === "api-edunex.cognisia.id") return this.edunex.handle(request, url);
     if (url.host === "six.itb.ac.id") return this.six.handle(request, url);
     if (url.host.endsWith(".blob.core.windows.net")) {

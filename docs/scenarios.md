@@ -88,9 +88,12 @@ world.edunex.submitOnWebsite(id);                               // the Student, 
 
 | State or event | How | Ticket |
 |---|---|---|
-| Public catalog index and program pages | `test/fixtures/pub` | #79, v2-15 |
-| A program page answering 500 | `PretendSix.fail` | v2-15 |
-| ITB academic calendar feed | needs a recording | v2-15 |
+| Public catalog index and program pages | `test/fixtures/pub`, served by `world.itb` (other programs answer 404) | #79, #84 |
+| A program page answering 500 | `world.itb.fail(path, 500, times)` | #84 |
+| Catalog page layout changed | `world.itb.changeLayout(path, from, to)` | #84 |
+| ITB academic calendar feed | `test/fixtures/itb/kalender-pendidikan.ics` (the 2026/2027 events of the public feed) | #84 |
+| Calendar changed (a moved exam week, not a calendar any more) | edit `world.itb.calendar` | #84 |
+| Offline with a cached copy | `world.setOffline(true)` after a first read | #84 |
 
 ## The outside world
 

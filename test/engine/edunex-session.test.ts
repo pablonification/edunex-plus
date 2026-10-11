@@ -174,9 +174,10 @@ describe("EduNex sign-in → your courses", () => {
     const h = await signedIn();
     await h.engine.signOut();
     expect(h.vault.secrets.size).toBe(0);
-    expect([...h.storage.files.keys()].filter((k) => k.startsWith("datasets/"))).toEqual([]);
+    // ITB's public pages hold nothing personal and stay.
+    expect([...h.storage.files.keys()].filter((k) => k.startsWith("datasets/") && !k.startsWith("datasets/itb."))).toEqual([]);
     expect(h.status("edunex")).toMatchObject({ state: "signed-out", updatedAt: null });
-    expect(h.engine.snapshot().datasets).toEqual([]);
+    expect(h.engine.snapshot().datasets.filter((d) => !d.name.startsWith("itb."))).toEqual([]);
   });
 
   it("signing out while a sync is still running never brings the data back", async () => {
@@ -186,7 +187,7 @@ describe("EduNex sign-in → your courses", () => {
     await h.engine.signOut();
     await h.wait(5_000);
     await refresh;
-    expect(h.engine.snapshot().datasets).toEqual([]);
+    expect(h.engine.snapshot().datasets.filter((d) => !d.name.startsWith("itb."))).toEqual([]);
     expect(h.status("edunex")).toMatchObject({ state: "signed-out", updatedAt: null });
   });
 
