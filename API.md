@@ -112,18 +112,25 @@ adopted, it is a write and falls under the explicit-only rule.
 
 ## The only writes
 
-Task Answers (the "saved ≠ submitted" surface) and nothing else:
+Task Answers (the "saved ≠ submitted" surface) and their files, and nothing else:
 
+- Files (v2, #73): `POST /blob-storage/sas` with
+  `{ "files": [{ "fileName", "contentType", "sizeInBytes" }] }` → an `uploadUrl` and a `readUrl`
+  per file, then `PUT uploadUrl` with `x-ms-blob-type: BlockBlob` straight to EduNex's Azure
+  storage (EduNex's token is never sent there). A draft update then lists the file as
+  `files: [{ "name", "file": readUrl }]`.
+- Before creating an Answer the app re-reads the Task's answers (`GET /course/tasks`): it creates
+  one only when none exists (without files, as checked live), otherwise it updates that one.
 - `POST /course/task/answers` — create a draft Answer, `task_id` in the body → `201`.
 - `PATCH /course/task/answers/{answerId}` — update a draft Answer.
 - Final submit: `PATCH /course/task/answers/{answerId}` with exactly
   `{ "data": { "attributes": { "is_sent": 1 } } }` → `200`. The server stamps `sent_by`,
-  `sent_at`, and the other receipt fields; the client reads `is_sent` on the next sync. There
-  is **no resubmit affordance**.
+  `sent_at`, and the other receipt fields; the app reads the Task back right away and shows the
+  receipt only when `is_sent` is 1. There is **no resubmit affordance**.
 - Status derivation uses **`is_sent` only** (`0` = draft): `sent_at` is stamped on drafts too,
   so the app never displays it.
-- All three answer writes fire only on an explicit click. There are no other `POST`/`PATCH`/
-  `PUT`/`DELETE` calls in the client.
+- Every write here fires only on an explicit click (attach, Save draft, Submit). There are no
+  other `POST`/`PATCH`/`PUT`/`DELETE` calls in the client.
 
 ## What the app deliberately does not do
 
@@ -148,6 +155,9 @@ Task Answers (the "saved ≠ submitted" surface) and nothing else:
   client tolerates every envelope seen elsewhere (`materials`/`modules`/`files`/
   `data`/bare array + JSON-API attributes); confirm the exact vendor field
   names against a live session on first manual pass and tighten this row then.
-- The final-submit contract was captured live on Tugas 01 (issue #12). The file-attachment
-  upload endpoint behind `answers[].files[]` remains pending capture and is not called by v1.
+- The final-submit contract was captured live on Tugas 01 (issue #12). The upload-link reply's
+  envelope and the `files` field of a draft save were never recorded (the recorder blocks
+  writes): v2 models them on the spec and on the files EduNex sends back on an Answer, keeps
+  them in one place (`src/engine/sources/edunex/hand-in.ts`), and confirms every write by
+  reading the Task back. One real submission must confirm them.
 - Any new endpoint must land here first, verified, before the client calls it.

@@ -11,6 +11,7 @@ import { useDataset, useStatus } from "../store";
 import { Button } from "../ui/controls";
 import { Card, CourseCode, EmptyState, SectionTitle, Skeleton } from "../ui/display";
 import { Icons } from "../ui/icons";
+import { DueNext } from "./tasks";
 
 export function Home() {
   const t = useT();
@@ -34,6 +35,8 @@ export function Home() {
       </header>
 
       <SourceNotice source="edunex" hasData={account !== undefined} />
+
+      <DueNext />
 
       <section className="mt-9" aria-labelledby="home-courses">
         <SectionTitle count={courses?.length}>

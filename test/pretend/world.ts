@@ -19,6 +19,8 @@ export class PretendWorld implements Transport {
   readonly log: { at: number; method: string; url: string; status: number | "network-error" }[] = [];
   private offline = false;
   private latencyMs = 0;
+  /** Uploads to the storage that fail next: an error status, or "network" for a dropped connection. */
+  private uploadFaults: (number | "network")[] = [];
 
   constructor(options: { now?: string } = {}) {
     this.clock = FakeClock.at(options.now ?? "2026-10-08T08:12:00+07:00");
@@ -34,6 +36,11 @@ export class PretendWorld implements Transport {
   /** No network at all: every request fails like a dropped connection. */
   setOffline(offline: boolean): void {
     this.offline = offline;
+  }
+
+  /** The next `times` uploads to EduNex's storage fail with `status`, or drop the connection. */
+  failUploads(status: number | "network", times = 1): void {
+    this.uploadFaults.push(...Array.from({ length: times }, () => status));
   }
 
   /** Every answer takes this long (on the fake clock). */
@@ -68,6 +75,11 @@ export class PretendWorld implements Transport {
     if (url.host === "six.itb.ac.id") return this.six.handle(request, url);
     if (url.host.endsWith(".blob.core.windows.net")) {
       if (request.method === "PUT") {
+        const fault = this.uploadFaults.shift();
+        if (fault === "network") throw new NetworkError("failed", "The connection to the storage dropped");
+        if (fault) return { status: fault, headers: {}, body: "ServerBusy", url: url.toString() };
+        // Azure refuses a blob upload that doesn't say what kind of blob it is.
+        if (request.headers?.["x-ms-blob-type"] !== "BlockBlob") return { status: 400, headers: {}, body: "MissingRequiredHeader", url: url.toString() };
         this.blobs.set(url.pathname, request.body ?? "");
         return { status: 201, headers: {}, body: "", url: url.toString() };
       }

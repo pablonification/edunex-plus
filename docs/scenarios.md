@@ -27,7 +27,7 @@ world.edunex.submitOnWebsite(id);                               // the Student, 
 | Task submitted (`is_sent: 1`) | recorded | #72 |
 | Task past deadline, late allowed (`is_lateable`) | recorded (stays `open_status: "open"`) | #72 |
 | Task past deadline, closed (`open_status: "overdue"` / `"closed"`) | recorded `overdue`; `closeTask` | #72 |
-| Answer in review | needs a recording (the website knows the state; the field is unconfirmed) | #72 |
+| Answer in review | needs a recording (the website knows the state; the field is unconfirmed); modelled for now on the answer's `verified_at` with no score shown: `reviewAnswer` | #72 |
 | Score published (`show_score: 1`) | `publishScore` | #72 |
 | New Task posted | `postTask` (+ ASSIGNMENT notification) | #72, #75 |
 | Deadline extended or moved | `moveDeadline` (`updated_at` moves, no notification) | #72, #75 |

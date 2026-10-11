@@ -65,7 +65,7 @@ export class PretendEdunex {
 
   // ------------------------------------------------ the outside world
   sessionValid = true;
-  /** Every change request the app sent, in order. */
+  /** Every change request the app sent, in order, with the fields EduNex reads from it. */
   readonly writes: { method: string; path: string; body: Json }[] = [];
   private faults: Fault[] = [];
   private nextId = 9_000_000;
@@ -107,7 +107,7 @@ export class PretendEdunex {
   // ------------------------------------------------ acting as the lecturer or admin
 
   /** Posts a Task to a course: a clone of one of its recorded Tasks, with a new id and fresh dates. */
-  postTask(courseId: number, patch: Json = {}): number {
+  postTask(courseId: number, patch: Json = {}, options: { announce?: boolean } = {}): number {
     const list = this.tasks.get(courseId) ?? [];
     const template = list[list.length - 1] ?? [...this.tasks.values()].flat()[0];
     const id = this.nextId++;
@@ -130,7 +130,10 @@ export class PretendEdunex {
     task.attributes = { ...task.attributes, ...patch };
     this.tasks.set(courseId, [...list, task]);
     const course = this.courseName(courseId);
-    this.notify({ type: "ASSIGNMENT", title: task.attributes.name, objectId: String(id), callbackUrl: `/assignment/take/${id}`, message: `${task.attributes.created_by ?? "Lecturer"} has been added new Assignment in ${course}` });
+    // EduNex's notification feed misses many Tasks: `announce: false` posts one it never mentions.
+    if (options.announce !== false) {
+      this.notify({ type: "ASSIGNMENT", title: task.attributes.name, objectId: String(id), callbackUrl: `/assignment/take/${id}`, message: `${task.attributes.created_by ?? "Lecturer"} has been added new Assignment in ${course}` });
+    }
     return id;
   }
 
@@ -152,6 +155,25 @@ export class PretendEdunex {
     const task = this.task(taskId);
     task.attributes.show_score = 1;
     task.attributes.answers = task.attributes.answers.map((a: Json) => ({ ...a, score }));
+  }
+
+  /**
+   * The lecturer takes the handed-in answer up for grading. Needs a recording:
+   * modelled on the answer's `verified_at` / `verified_by`, the only review
+   * fields EduNex sends.
+   */
+  reviewAnswer(taskId: number): void {
+    const task = this.task(taskId);
+    const now = wib(this.clock.now()).replace("T", " ").slice(0, 19);
+    task.attributes.answers = task.attributes.answers.map((a: Json) => (a.is_sent ? { ...a, verified_at: now, verified_by: 900002 } : a));
+  }
+
+  /** The Student saves a draft on the EduNex website (outside the app): an answer that isn't sent. */
+  draftOnWebsite(taskId: number, fileName = "draf.pdf"): void {
+    const task = this.task(taskId);
+    const answer = this.newAnswer(taskId, { is_sent: 0 });
+    answer.files = this.storedFiles(answer.id, task, [{ name: fileName, file: `https://edunexfixture.blob.core.windows.net/edunex/website-${answer.id}` }]);
+    task.attributes.answers = [...task.attributes.answers, answer];
   }
 
   /** The Student hands the Task in on the EduNex website (outside the app). */
@@ -283,6 +305,7 @@ export class PretendEdunex {
       body = request.method === "GET" ? this.read(path, q) : this.write(request, path);
     } catch (error) {
       if (error instanceof NotFound) return json(404, { message: "Not Found" }, url);
+      if (error instanceof Refused) return json(422, { message: "The given data was invalid." }, url);
       throw error;
     }
     if (fault?.breakage) return breakResponse(body, fault.breakage, url);
@@ -323,13 +346,18 @@ export class PretendEdunex {
   }
 
   // Shapes of these replies were never recorded (no real hand-in yet); the app must re-read the Task to confirm.
+  // The app sends EduNex's JSON:API envelope ({ data: { attributes } }); a bare body is read the same way.
   private write(request: HttpRequest, path: string): Json {
-    const body = typeof request.body === "string" && request.body ? JSON.parse(request.body) : {};
+    const raw = typeof request.body === "string" && request.body ? JSON.parse(request.body) : {};
+    const body = raw?.data?.attributes ?? raw;
     this.writes.push({ method: request.method, path, body });
+    const now = wib(this.clock.now()).replace("T", " ").slice(0, 19);
     let m: RegExpExecArray | null;
     if (request.method === "POST" && path === "/course/task/answers") {
-      const answer = this.newAnswer(Number(body.task_id), body);
       const task = this.task(Number(body.task_id));
+      if (!takesAnswers(task, this.clock.now())) throw new Refused();
+      const answer = this.newAnswer(Number(body.task_id), { ...body, files: [] });
+      answer.files = this.storedFiles(answer.id, task, body.files ?? []);
       task.attributes.answers = [...task.attributes.answers, answer];
       return { data: answer };
     }
@@ -339,9 +367,14 @@ export class PretendEdunex {
         for (const task of list) {
           const at = task.attributes.answers.findIndex((a: Json) => Number(a.id) === id);
           if (at < 0) continue;
-          const now = wib(this.clock.now()).replace("T", " ").slice(0, 19);
-          const next = { ...task.attributes.answers[at], ...body, updated_at: now };
-          if (body.is_sent) next.sent_at = now;
+          if (!takesAnswers(task, this.clock.now())) throw new Refused();
+          const current = task.attributes.answers[at];
+          const fields = { ...body };
+          delete fields.task_id;
+          delete fields.files;
+          // EduNex stamps sent_at on drafts too (API.md): only is_sent says it was handed in.
+          const next = { ...current, ...fields, sent_at: now, updated_at: now };
+          if (body.files) next.files = this.storedFiles(id, task, body.files);
           task.attributes.answers[at] = next;
           return { data: next };
         }
@@ -369,6 +402,22 @@ export class PretendEdunex {
     throw new NotFound();
   }
 
+  /** Files as EduNex returns them on an answer: the recorded file record, with this file's name and link. */
+  private storedFiles(answerId: number, task: Json, files: Json[]): Json[] {
+    const template = [...this.tasks.values()].flat().flatMap((t) => t.attributes.answers).flatMap((a: Json) => a.files)[0];
+    const now = wib(this.clock.now()).replace("T", " ").slice(0, 19);
+    return files.map((f: Json) => ({
+      ...structuredClone(template),
+      id: this.nextId++,
+      fileable_id: String(answerId),
+      name: f.name,
+      file: f.file,
+      course_id: task.attributes.course_id,
+      created_at: now,
+      updated_at: now,
+    }));
+  }
+
   private newAnswer(taskId: number, fields: Json): Json {
     const template = [...this.tasks.values()].flat().flatMap((t) => t.attributes.answers)[0];
     const now = wib(this.clock.now()).replace("T", " ").slice(0, 19);
@@ -380,7 +429,10 @@ export class PretendEdunex {
       answer: fields.answer ?? null,
       files: fields.files ?? [],
       is_sent: fields.is_sent ?? 0,
-      sent_at: fields.sent_at ?? (fields.is_sent ? now : null),
+      // EduNex stamps sent_at on drafts too (API.md).
+      sent_at: fields.sent_at ?? now,
+      verified_at: null,
+      verified_by: null,
       score: 0,
       created_at: now,
       updated_at: now,
@@ -403,6 +455,15 @@ export class PretendEdunex {
 // ---------------------------------------------------------------- responses
 
 class NotFound extends Error {}
+/** EduNex refusing a change (the Task stopped taking answers); the real reply was never recorded. */
+class Refused extends Error {}
+
+/** A Task takes answers while it's open, and past its deadline only when late submission is allowed. */
+function takesAnswers(task: Json, now: number): boolean {
+  const a = task.attributes;
+  if (a.open_status !== "open") return false;
+  return !(Date.parse(a.end_at) < now && !a.is_lateable);
+}
 
 function found<T>(value: T | undefined): T {
   if (value === undefined) throw new NotFound();

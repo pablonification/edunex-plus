@@ -8,6 +8,7 @@ import { type BridgeApi, createBridge } from "../../src/app/bridge";
 import type { UiClock } from "../../src/app/i18n";
 import { AppStore } from "../../src/app/store";
 import { type ActionName, type ActionResult, Actions, type AppSnapshot, type Event } from "../../src/core/contract";
+import { handInHandlers, type LocalFile } from "../../src/desktop/hand-in";
 import { createEngine, type Engine } from "../../src/engine/engine";
 import { planOfflineFiles } from "../../src/core/course-materials";
 import { EngineError, isEngineError } from "../../src/engine/errors";
@@ -57,6 +58,8 @@ export async function openApp(options: Options = {}) {
   if (options.signedIn) await engine.signIn("edunex", { token: PRETEND_TOKEN });
 
   const calls: { name: ActionName; input: unknown }[] = [];
+  /** What the system file picker gives the next time it opens (the Student's choice); nothing = cancelled. */
+  let nextPick: LocalFile[] = [];
   const inFlight = new Set<Promise<unknown>>();
   const handlers: { [N in ActionName]: (input: never) => Promise<unknown> } = {
     "app.snapshot": async () => ({ ...engine.snapshot(), platform: "darwin", vault: options.vaultMode ?? "encrypted" }),
@@ -98,6 +101,12 @@ export async function openApp(options: Options = {}) {
       return {};
     },
     "alerts.test": async () => ({ shown: true }),
+    // Handing in runs main's real handlers; only the system file picker is pretend.
+    ...handInHandlers(engine, async () => {
+      const files = nextPick;
+      nextPick = [];
+      return files;
+    }),
   };
   // The preload's surface, answering the way main's bridge does (input checked against the contract).
   const api: BridgeApi = {
@@ -179,6 +188,21 @@ export async function openApp(options: Options = {}) {
       await act(async () => {
         (document.activeElement ?? document.body).dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true }));
         await settle();
+      });
+    },
+    /** The files the Student will choose the next time the system file picker opens. */
+    willPick(files: { name: string; content?: string; size?: number; type?: string; unreadable?: boolean }[]): void {
+      nextPick = files.map((file) => {
+        const bytes = new TextEncoder().encode(file.content ?? `%PDF ${file.name}`);
+        return {
+          name: file.name,
+          size: file.size ?? bytes.byteLength,
+          type: file.type ?? "",
+          read: async () => {
+            if (file.unreadable) throw new Error("ENOENT");
+            return bytes;
+          },
+        };
       });
     },
     /** Lets engine time pass (its rhythm, back-off) and the screen catch up. */

@@ -32,7 +32,7 @@ export const newTasks: Detector = {
     if (change.name !== "edunex.tasks") return [];
     const known = new Set((change.previous ?? []).map((task) => task.id));
     return change.next
-      .filter((task) => !known.has(task.id) && task.status !== "closed" && task.status !== "submitted" && (task.dueAt === null || task.dueAt > now))
+      .filter((task) => !known.has(task.id) && (task.status === "not_started" || task.status === "draft") && (task.dueAt === null || task.dueAt > now))
       .map((task) => newTaskAlert(task, now));
   },
 };

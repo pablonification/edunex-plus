@@ -4,6 +4,8 @@
 import { act } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 import type { ClassSession, Task } from "../../src/core/models";
+import { aTask } from "../kit/tasks";
+import { PretendWorld } from "../pretend/world";
 import { openApp } from "./harness";
 
 let screen: Awaited<ReturnType<typeof openApp>> | null = null;
@@ -67,7 +69,10 @@ describe("the course page", () => {
   });
 
   it("an empty course says so", async () => {
-    const s = await openCourse("KU5014");
+    // KU5014 has no materials; take its two Tasks away too.
+    const world = new PretendWorld();
+    world.edunex.tasks.set(92948, []);
+    const s = await openCourse("KU5014", { world });
     expect(s.text()).toContain("Belum ada materi di EduNex");
   });
 });
@@ -148,7 +153,7 @@ describe("Tasks in modules", () => {
   it("shows a module's Tasks and opens one", async () => {
     const s = await openCourse("PL3002");
     const module = data("edunex.outline").PL3002.modules[3];
-    const task: Task = { id: 117500, courseCode: "PL3002", courseId: 95001, moduleId: module.id, title: "Tugas Mandiri Inovasi", status: "not_started", opensAt: null, dueAt: Date.parse("2026-10-20T23:59:00+07:00"), score: null };
+    const task: Task = aTask({ id: 117500, courseCode: "PL3002", courseId: 95001, moduleId: module.id, title: "Tugas Mandiri Inovasi", status: "not_started", dueAt: Date.parse("2026-10-20T23:59:00+07:00") });
     await s.apply({ type: "dataset", dataset: { name: "edunex.tasks", value: [task], fetchedAt: 0, hash: "t1" } });
     // The module with an open Task is marked in the table of contents.
     expect(document.querySelector("[aria-label='Ada tugas terbuka']")).not.toBeNull();
@@ -156,7 +161,7 @@ describe("Tasks in modules", () => {
     expect(s.text()).toContain("Tugas Mandiri Inovasi");
     expect(s.text()).toContain("Belum dikerjakan");
     await s.click(/^Tugas Mandiri Inovasi/);
-    expect(document.querySelector("h1")).toBeNull();
+    expect(document.querySelector("h1")?.textContent).toContain("Tugas Mandiri Inovasi");
   });
 });
 
