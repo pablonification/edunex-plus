@@ -53,10 +53,10 @@ describe("Sekarang", () => {
     expect(ids(h.home())).not.toContain("presence:2243740");
   });
 
-  it("without SIX: no class is guessed, an open window alone", async () => {
+  it("without SIX: no class is guessed, an open window alone, and where it counts isn't guessed either", async () => {
     const h = await startHome();
-    const world: HomeWorld = { ...h.home(), schedule: null };
-    expect(nowCard(world)).toMatchObject({ state: "presence", class: null, presence: { code: "PL3002" } });
+    const world: HomeWorld = { ...h.home(), schedule: null, courses: h.home().courses.map((c) => ({ ...c, six: null })) };
+    expect(nowCard(world)).toMatchObject({ state: "presence", class: null, presence: { code: "PL3002", counts: null } });
   });
 });
 

@@ -728,11 +728,12 @@ export interface OpenPresence {
   /** The Presence itself when EduNex gives its page; else where the action is done. */
   url: string;
   /**
-   * Doing it counts for attendance: EduNex keeps the count (or SIX hasn't
-   * one yet). False when SIX counts and EduNex's record doesn't keep up: the
-   * window is open, but sitting in class is what counts.
+   * Doing it counts for attendance: EduNex keeps the count. False when SIX
+   * counts and EduNex's record doesn't keep up: the window is open, but
+   * sitting in class is what counts. Null while SIX has no count for the
+   * course (not connected): nobody can say yet, and the app doesn't guess.
    */
-  counts: boolean;
+  counts: boolean | null;
 }
 
 /**
@@ -759,11 +760,14 @@ export function nowCard(world: HomeWorld | HomeContext): NowCard | null {
   const later = !live && !next ? (schedule.find((s) => s.start > now && s.start - now <= AHEAD) ?? null) : null;
   const current = live ?? next ?? later;
   const windows = openWindows(context.presence, now);
-  const counts = (code: string) => (context.health.get(code)?.countedIn ?? "unknown") !== "six";
+  const counts = (code: string): boolean | null => {
+    if (!context.courses.find((course) => course.code === code)?.six) return null;
+    return context.health.get(code)?.countedIn !== "six";
+  };
   // The window for this class; else, between classes, one that counts (it closes first, so it leads); else, with no class at all, any.
   const window =
     (current && windows.find((w) => w.code === current.courseCode && current.start < w.session.closesAt && w.session.opensAt < current.end)) ??
-    (live ? null : (windows.find((w) => counts(w.code)) ?? (current ? null : (windows[0] ?? null))));
+    (live ? null : (windows.find((w) => counts(w.code) !== false) ?? (current ? null : (windows[0] ?? null))));
   const lead = window && current && window.code !== current.courseCode ? null : current;
   if (!lead && !window) return null;
   let presence: OpenPresence | null = null;

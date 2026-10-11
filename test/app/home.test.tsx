@@ -111,6 +111,17 @@ describe("an open window that counts", () => {
   });
 });
 
+describe("with EduNex alone", () => {
+  it("an open window leads, but where it counts isn't guessed before SIX is connected", async () => {
+    screen = await openApp({ signedIn: true });
+    const now = text("home-now");
+    expect(now).toContain("Presensi PL3002 sedang dibuka");
+    expect(now).toContain("Belum tahu kehadiran dihitung di mana sampai SIX terhubung; mengisinya tidak ada ruginya.");
+    expect(now).not.toContain("dihitung lewat Presensi EduNex");
+    expect(text("home-today")).toContain("Jadwal dan ruang kuliah muncul setelah SIX terhubung.");
+  });
+});
+
 describe("an exam on Beranda", () => {
   it("within the week: what, when and where, that SIX and EduNex disagree, and its page one click away", async () => {
     screen = await openApp({ world: new PretendWorld({ now: "2026-10-13T09:00:00+07:00" }), signedIn: true, six: true });

@@ -20,6 +20,7 @@ export const homeStrings = {
   "home.now.countSix": { id: "Kehadiran dihitung di SIX: cukup hadir di kelas.", en: "Attendance counts in SIX: just be in class." },
   "home.now.countSixOnline": { id: "Kehadiran dihitung di SIX: cukup ikut kelasnya.", en: "Attendance counts in SIX: just join the class." },
   "home.now.countEdunex": { id: "Kehadiran dihitung lewat Presensi EduNex.", en: "Attendance counts through EduNex Presence." },
+  "home.now.countNotKnown": { id: "Belum tahu kehadiran dihitung di mana sampai SIX terhubung; mengisinya tidak ada ruginya.", en: "Where attendance counts is unknown until SIX is connected; filling it in costs nothing." },
   "home.now.countUnknown": { id: "Belum ada hitungan kehadiran di SIX.", en: "SIX has no attendance count yet." },
   "home.now.presenceDo": { id: "{action} sebelum {time}", en: "{action} before {time}" },
   "home.now.presenceExtra": { id: "Presensi EduNex juga dibuka sampai {time}, tidak wajib.", en: "EduNex Presence is also open until {time}; it's optional." },

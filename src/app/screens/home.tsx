@@ -114,7 +114,7 @@ function Answers({ context, courses }: { context: HomeContext; courses: readonly
     <>
       <NowSection card={card} courses={courses} hasSchedule={context.schedule !== null} />
       <div className="@container mt-10">
-        <div className="grid gap-x-8 gap-y-10 @min-[720px]:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
+        <div className="grid gap-x-8 gap-y-10 @min-[800px]:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
           <Today context={context} plan={plan} courses={courses} />
           <NeedsYou needs={needs} courses={courses} />
         </div>
@@ -260,6 +260,8 @@ function Attendance({ card }: { card: NowCard }) {
   const budget = facts?.health && facts.state !== "unknown" ? budgetLabel(t, facts.health, attendanceTarget) : null;
   const where = presence?.counts
     ? t("home.now.countEdunex")
+    : presence && presence.counts === null
+      ? t("home.now.countNotKnown")
     : counted === "six" || counted === "both"
       ? t(online ? "home.now.countSixOnline" : "home.now.countSix")
       : facts
@@ -272,7 +274,8 @@ function Attendance({ card }: { card: NowCard }) {
     else external(presence.url);
   };
 
-  if (presence?.counts) {
+  // Doing it counts, or nobody can say yet (doing it costs nothing): the Presence is the action.
+  if (presence && presence.counts !== false) {
     const { session } = presence;
     const span = Math.max(1, session.closesAt - session.opensAt);
     const left = Math.max(0, session.closesAt - now);
