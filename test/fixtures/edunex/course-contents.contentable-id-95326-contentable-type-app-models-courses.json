@@ -1,0 +1,68 @@
+{
+  "meta": {
+    "count": 2,
+    "total": 2
+  },
+  "data": [
+    {
+      "type": "contents",
+      "id": "858709",
+      "attributes": {
+        "contentable_type": "App\\Models\\Courses",
+        "contentable_id": 95326,
+        "index": 1,
+        "name": "Jadwal Kuliah TA & Mekanisme Pelaksanaan",
+        "type": "text",
+        "content": "<p><strong>Pertemuan 02:</strong><span style=\"background-color:rgb(255,255,255);color:rgb(22,22,22);\"> Jumat, 11 September 2026 Pkl. 15:00 - 17:00 WIB (Online - Link meeting menyusul)</span></p>",
+        "lptk_id": 2,
+        "size": null,
+        "created_by": "Dr. Hadi Halim, S.T., M.T.",
+        "updated_by": "Dr. Hadi Halim, S.T., M.T.",
+        "deleted_by": null,
+        "deleted_at": null,
+        "created_at": "2026-08-28T14:02:57+07:00",
+        "updated_at": "2026-08-28T14:03:03+07:00",
+        "course_id": 95326,
+        "completion_at": null,
+        "course_code": "II4091",
+        "course_name": "Final Project Proposal"
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/contents/858709"
+      }
+    },
+    {
+      "type": "contents",
+      "id": "851324",
+      "attributes": {
+        "contentable_type": "App\\Models\\Courses",
+        "contentable_id": 95326,
+        "index": 2,
+        "name": "Course Tokens : FIXTUR",
+        "type": "text",
+        "content": "<figure class=\"image\"><img src=\"https://edunexfixture.blob.core.windows.net/edunex/fixture-2\"></figure>",
+        "lptk_id": 2,
+        "size": null,
+        "created_by": "Dr. Hadi Halim, S.T., M.T.",
+        "updated_by": "Dr. Hadi Halim, S.T., M.T.",
+        "deleted_by": null,
+        "deleted_at": null,
+        "created_at": "2026-08-25T19:52:44+07:00",
+        "updated_at": "2026-08-28T14:03:03+07:00",
+        "course_id": 95326,
+        "completion_at": null,
+        "course_code": "II4091",
+        "course_name": "Final Project Proposal"
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/contents/851324"
+      }
+    }
+  ],
+  "links": {
+    "first": "https://api-edunex.cognisia.id/course/contents?q=/api/v1/contents/&filter[contentable_id][is]=95326&filter[contentable_type][is]=App\\Models\\Courses&sort=index&page[limit]=0&page[offset]=0",
+    "last": "https://api-edunex.cognisia.id/course/contents?q=/api/v1/contents/&filter[contentable_id][is]=95326&filter[contentable_type][is]=App\\Models\\Courses&sort=index&page[limit]=0&page[offset]=0",
+    "next": "https://api-edunex.cognisia.id/course/contents?q=/api/v1/contents/&filter[contentable_id][is]=95326&filter[contentable_type][is]=App\\Models\\Courses&sort=index&page[limit]=0&page[offset]=0",
+    "prev": null
+  }
+}

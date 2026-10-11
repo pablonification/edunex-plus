@@ -1,0 +1,345 @@
+{
+  "data": {
+    "type": "courses",
+    "id": "97602",
+    "attributes": {
+      "code": "II4091",
+      "name": "Final Project Proposal [Parent Class]",
+      "period_id": 26,
+      "lecturer_id": 325,
+      "is_active": 1,
+      "start_at": "2026-08-14T08:45:52+07:00",
+      "end_at": "2026-08-14T08:45:52+07:00",
+      "lptk_id": 2,
+      "created_by": 0,
+      "updated_by": 0,
+      "deleted_by": null,
+      "deleted_at": null,
+      "created_at": "2026-08-14T08:45:52+07:00",
+      "updated_at": "2026-08-23T19:02:10+07:00",
+      "status": "STUDENT",
+      "thumbnail": "https://cdn-edunex.itb.ac.id/placeholder/Placeholder%2004.png",
+      "classes": 2,
+      "is_enrolled": true,
+      "period_year": "2026",
+      "period_type": "1",
+      "lecturer": "Dr. Hadi Halim, S.T., M.T.",
+      "total_student": 146,
+      "is_open": 0,
+      "is_public": 0,
+      "view_count": null,
+      "need_campus": null,
+      "major": "S1 - Sistem dan Teknologi Informasi",
+      "faculty": {
+        "id": 14,
+        "lptk_id": 2,
+        "name": "STEI",
+        "deleted_at": null,
+        "created_at": "2020-03-20 16:18:29",
+        "updated_at": null,
+        "thumbnail": null,
+        "province": null,
+        "code": "STEI"
+      },
+      "is_from_six": 0,
+      "credit": "2",
+      "uuid": null,
+      "gradebook_publish": false,
+      "completion": {
+        "completionable": 5,
+        "completion": 0,
+        "percentage": "0%"
+      },
+      "enrollments": null,
+      "total_modules": 4,
+      "student_from_six": true,
+      "class_name": "II4091-00",
+      "tags": null,
+      "certificates": [],
+      "plan_count": 0,
+      "is_view_only": 1,
+      "is_free": 0,
+      "is_rps": 1,
+      "is_parent": 1,
+      "curriculum": 2024,
+      "is_rps_approved": false,
+      "is_rps_available": true,
+      "rating": 4.5
+    },
+    "links": {
+      "self": "https://api-edunex.cognisia.id/course/courses/97602"
+    },
+    "relationships": {
+      "lecturer": {
+        "links": {
+          "self": "https://api-edunex.cognisia.id/course/courses/97602/relationships/lecturer",
+          "related": "https://api-edunex.cognisia.id/course/courses/97602/lecturer"
+        },
+        "data": {
+          "type": "lecturer",
+          "id": "325"
+        }
+      },
+      "modules": {
+        "links": {
+          "self": "https://api-edunex.cognisia.id/course/courses/97602/relationships/modules",
+          "related": "https://api-edunex.cognisia.id/course/courses/97602/modules"
+        },
+        "data": [
+          {
+            "type": "modules",
+            "id": "460708"
+          },
+          {
+            "type": "modules",
+            "id": "460710"
+          },
+          {
+            "type": "modules",
+            "id": "460709"
+          },
+          {
+            "type": "modules",
+            "id": "470775"
+          }
+        ]
+      },
+      "assistant": {
+        "links": {
+          "self": "https://api-edunex.cognisia.id/course/courses/97602/relationships/assistant",
+          "related": "https://api-edunex.cognisia.id/course/courses/97602/assistant"
+        },
+        "data": [
+          {
+            "type": "assistant",
+            "id": "188"
+          }
+        ]
+      }
+    }
+  },
+  "included": [
+    {
+      "type": "user",
+      "id": "357",
+      "attributes": {
+        "username": "000000015",
+        "name": "Dr. Hadi Halim, S.T., M.T.",
+        "passwordfixture": "CHANGED",
+        "email": "000000015",
+        "is_active": 1,
+        "level": "LECTURER",
+        "lptk_id": 2,
+        "remember_token": null,
+        "thumbnail": null,
+        "created_by": 6,
+        "updated_by": 357,
+        "deleted_by": null,
+        "created_at": "2020-03-21T16:18:46+07:00",
+        "updated_at": "2026-10-08T09:32:28+07:00",
+        "deleted_at": null,
+        "last_online": "2026-10-08T09:32:28+07:00"
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/user/357"
+      }
+    },
+    {
+      "type": "lecturer",
+      "id": "325",
+      "attributes": {
+        "user_id": 357,
+        "lptk_id": 2,
+        "nidn": "0000000000",
+        "name": "Dr. Hadi Halim, S.T., M.T.",
+        "place_of_birth": "-",
+        "date_of_birth": "2000-01-01T00:00:00.000Z",
+        "gender": "M",
+        "front_degree": "none",
+        "back_degree": "none",
+        "phone_number": "-",
+        "deleted_at": null,
+        "created_at": "2020-03-21T17:34:11+07:00",
+        "updated_at": "2026-10-08T09:32:28+07:00",
+        "last_online": "2026-10-08T09:32:28+07:00"
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/lecturer/325"
+      },
+      "relationships": {
+        "user": {
+          "links": {
+            "self": "https://api-edunex.cognisia.id/course/lecturer/325/relationships/user",
+            "related": "https://api-edunex.cognisia.id/course/lecturer/325/user"
+          },
+          "data": {
+            "type": "user",
+            "id": "357"
+          }
+        }
+      }
+    },
+    {
+      "type": "modules",
+      "id": "460708",
+      "attributes": {
+        "course_id": 97602,
+        "index": 1,
+        "name": "Penawaran Topik TA Dosen",
+        "is_active": true,
+        "start_at": "2026-08-28T13:49:34+07:00",
+        "end_at": "2026-08-28T13:49:34+07:00",
+        "lptk_id": 2,
+        "stages": [],
+        "created_by": 357,
+        "updated_by": 357,
+        "deleted_by": null,
+        "deleted_at": null,
+        "created_at": "2026-08-28T13:49:34+07:00",
+        "updated_at": "2026-08-28T13:51:56+07:00",
+        "module_exam": [],
+        "is_date_restricted": 0,
+        "is_completion_restricted": 0,
+        "is_exam_restricted": 0,
+        "exam_restriction": []
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/modules/460708"
+      },
+      "relationships": {
+        "activities": {
+          "links": {
+            "self": "https://api-edunex.cognisia.id/course/modules/460708/relationships/activities",
+            "related": "https://api-edunex.cognisia.id/course/modules/460708/activities"
+          },
+          "data": []
+        }
+      }
+    },
+    {
+      "type": "modules",
+      "id": "460710",
+      "attributes": {
+        "course_id": 97602,
+        "index": 2,
+        "name": "Template Proposal TA & Laporan TA - Latex",
+        "is_active": true,
+        "start_at": "2026-08-28T13:51:54+07:00",
+        "end_at": "2026-08-28T13:51:54+07:00",
+        "lptk_id": 2,
+        "stages": [],
+        "created_by": 357,
+        "updated_by": 357,
+        "deleted_by": null,
+        "deleted_at": null,
+        "created_at": "2026-08-28T13:51:54+07:00",
+        "updated_at": "2026-08-28T13:57:05+07:00",
+        "module_exam": [],
+        "is_date_restricted": 0,
+        "is_completion_restricted": 0,
+        "is_exam_restricted": 0,
+        "exam_restriction": []
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/modules/460710"
+      },
+      "relationships": {
+        "activities": {
+          "links": {
+            "self": "https://api-edunex.cognisia.id/course/modules/460710/relationships/activities",
+            "related": "https://api-edunex.cognisia.id/course/modules/460710/activities"
+          },
+          "data": []
+        }
+      }
+    },
+    {
+      "type": "modules",
+      "id": "460709",
+      "attributes": {
+        "course_id": 97602,
+        "index": 3,
+        "name": "01 Pengantar Proposal TA",
+        "is_active": true,
+        "start_at": "2026-08-28T13:51:08+07:00",
+        "end_at": "2026-08-28T13:51:08+07:00",
+        "lptk_id": 2,
+        "stages": [],
+        "created_by": 357,
+        "updated_by": 357,
+        "deleted_by": null,
+        "deleted_at": null,
+        "created_at": "2026-08-28T13:51:09+07:00",
+        "updated_at": "2026-08-28T13:51:56+07:00",
+        "module_exam": [],
+        "is_date_restricted": 0,
+        "is_completion_restricted": 0,
+        "is_exam_restricted": 0,
+        "exam_restriction": []
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/modules/460709"
+      },
+      "relationships": {
+        "activities": {
+          "links": {
+            "self": "https://api-edunex.cognisia.id/course/modules/460709/relationships/activities",
+            "related": "https://api-edunex.cognisia.id/course/modules/460709/activities"
+          },
+          "data": []
+        }
+      }
+    },
+    {
+      "type": "modules",
+      "id": "470775",
+      "attributes": {
+        "course_id": 97602,
+        "index": 4,
+        "name": "02 Penyusunan Proposal TA",
+        "is_active": true,
+        "start_at": "2026-09-11T09:54:23+07:00",
+        "end_at": "2026-09-11T09:54:23+07:00",
+        "lptk_id": 2,
+        "stages": [],
+        "created_by": 357,
+        "updated_by": 357,
+        "deleted_by": null,
+        "deleted_at": null,
+        "created_at": "2026-09-11T09:54:23+07:00",
+        "updated_at": "2026-09-11T09:55:34+07:00",
+        "module_exam": [],
+        "is_date_restricted": 0,
+        "is_completion_restricted": 0,
+        "is_exam_restricted": 0,
+        "exam_restriction": []
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/modules/470775"
+      },
+      "relationships": {
+        "activities": {
+          "links": {
+            "self": "https://api-edunex.cognisia.id/course/modules/470775/relationships/activities",
+            "related": "https://api-edunex.cognisia.id/course/modules/470775/activities"
+          },
+          "data": []
+        }
+      }
+    },
+    {
+      "type": "assistant",
+      "id": "188",
+      "attributes": {
+        "name": "Dr. Oki Susanto, S.T., M.T.",
+        "username": "000000016",
+        "email": "000000016",
+        "thumbnail": "https://cdn-edunex.itb.ac.id/Ava.jpg",
+        "is_coordinator": 0
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/assistant/188"
+      }
+    }
+  ]
+}

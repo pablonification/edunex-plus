@@ -1,0 +1,344 @@
+{
+  "meta": {
+    "count": 10,
+    "total": 15
+  },
+  "data": [
+    {
+      "type": "Presences",
+      "id": "2194336",
+      "attributes": {
+        "course_id": 95001,
+        "class_id": 86778,
+        "start_at": "2026-08-27T08:00:00+07:00",
+        "end_at": "2026-08-27T09:30:00+07:00",
+        "presence_start": "2026-08-27T08:00:00+07:00",
+        "presence_end": "2026-08-27T09:30:00+07:00",
+        "topic": "Pendahuluan, CPL,CPMK, Kontrak Belajar",
+        "is_sent": 1,
+        "created_at": "2026-09-09T22:15:22+07:00",
+        "updated_at": "2026-09-09T22:15:22+07:00",
+        "note": null,
+        "act_code": "K",
+        "presentable": [],
+        "url": null,
+        "count_attandance": 1,
+        "attandance": {
+          "user_id": 900001,
+          "code": "18223901",
+          "name": "Dimas Pratama",
+          "presence_detail_id": 1605987,
+          "status": 1,
+          "presence_at": "2026-08-27 08:00:00",
+          "type": "attend"
+        }
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/Presences/2194336"
+      }
+    },
+    {
+      "type": "Presences",
+      "id": "2194337",
+      "attributes": {
+        "course_id": 95001,
+        "class_id": 86778,
+        "start_at": "2026-09-03T08:00:00+07:00",
+        "end_at": "2026-09-03T09:30:00+07:00",
+        "presence_start": "2026-09-03T08:00:00+07:00",
+        "presence_end": "2026-09-03T09:30:00+07:00",
+        "topic": "Inovasi Proses",
+        "is_sent": 1,
+        "created_at": "2026-09-09T22:15:22+07:00",
+        "updated_at": "2026-09-09T22:15:22+07:00",
+        "note": null,
+        "act_code": "K",
+        "presentable": [],
+        "url": null,
+        "count_attandance": 0,
+        "attandance": {
+          "user_id": 900001,
+          "code": "18223901",
+          "name": "Dimas Pratama",
+          "presence_detail_id": null,
+          "status": null,
+          "presence_at": null,
+          "type": null
+        }
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/Presences/2194337"
+      }
+    },
+    {
+      "type": "Presences",
+      "id": "2194338",
+      "attributes": {
+        "course_id": 95001,
+        "class_id": 86778,
+        "start_at": "2026-09-10T08:00:00+07:00",
+        "end_at": "2026-09-10T09:30:00+07:00",
+        "presence_start": "2026-09-10T08:00:00+07:00",
+        "presence_end": "2026-09-10T09:30:00+07:00",
+        "topic": null,
+        "is_sent": 0,
+        "created_at": "2026-09-09T22:15:22+07:00",
+        "updated_at": "2026-09-09T22:15:22+07:00",
+        "note": null,
+        "act_code": "K",
+        "presentable": [],
+        "url": null,
+        "count_attandance": 0,
+        "attandance": {
+          "user_id": 900001,
+          "code": "18223901",
+          "name": "Dimas Pratama",
+          "presence_detail_id": null,
+          "status": null,
+          "presence_at": null,
+          "type": null
+        }
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/Presences/2194338"
+      }
+    },
+    {
+      "type": "Presences",
+      "id": "2194339",
+      "attributes": {
+        "course_id": 95001,
+        "class_id": 86778,
+        "start_at": "2026-09-17T08:00:00+07:00",
+        "end_at": "2026-09-17T09:30:00+07:00",
+        "presence_start": "2026-09-17T08:00:00+07:00",
+        "presence_end": "2026-09-17T09:30:00+07:00",
+        "topic": null,
+        "is_sent": 0,
+        "created_at": "2026-09-09T22:15:22+07:00",
+        "updated_at": "2026-09-09T22:15:22+07:00",
+        "note": null,
+        "act_code": "K",
+        "presentable": [],
+        "url": null,
+        "count_attandance": 0,
+        "attandance": {
+          "user_id": 900001,
+          "code": "18223901",
+          "name": "Dimas Pratama",
+          "presence_detail_id": null,
+          "status": null,
+          "presence_at": null,
+          "type": null
+        }
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/Presences/2194339"
+      }
+    },
+    {
+      "type": "Presences",
+      "id": "2194340",
+      "attributes": {
+        "course_id": 95001,
+        "class_id": 86778,
+        "start_at": "2026-09-24T08:00:00+07:00",
+        "end_at": "2026-09-24T09:30:00+07:00",
+        "presence_start": "2026-09-24T08:00:00+07:00",
+        "presence_end": "2026-09-24T09:30:00+07:00",
+        "topic": null,
+        "is_sent": 0,
+        "created_at": "2026-09-09T22:15:22+07:00",
+        "updated_at": "2026-09-09T22:15:22+07:00",
+        "note": null,
+        "act_code": "K",
+        "presentable": [],
+        "url": null,
+        "count_attandance": 0,
+        "attandance": {
+          "user_id": 900001,
+          "code": "18223901",
+          "name": "Dimas Pratama",
+          "presence_detail_id": null,
+          "status": null,
+          "presence_at": null,
+          "type": null
+        }
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/Presences/2194340"
+      }
+    },
+    {
+      "type": "Presences",
+      "id": "2194341",
+      "attributes": {
+        "course_id": 95001,
+        "class_id": 86778,
+        "start_at": "2026-10-01T08:00:00+07:00",
+        "end_at": "2026-10-01T09:30:00+07:00",
+        "presence_start": "2026-10-01T08:00:00+07:00",
+        "presence_end": "2026-10-01T09:30:00+07:00",
+        "topic": null,
+        "is_sent": 0,
+        "created_at": "2026-09-09T22:15:22+07:00",
+        "updated_at": "2026-09-09T22:15:22+07:00",
+        "note": null,
+        "act_code": "K",
+        "presentable": [],
+        "url": null,
+        "count_attandance": 0,
+        "attandance": {
+          "user_id": 900001,
+          "code": "18223901",
+          "name": "Dimas Pratama",
+          "presence_detail_id": null,
+          "status": null,
+          "presence_at": null,
+          "type": null
+        }
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/Presences/2194341"
+      }
+    },
+    {
+      "type": "Presences",
+      "id": "2194342",
+      "attributes": {
+        "course_id": 95001,
+        "class_id": 86778,
+        "start_at": "2026-10-08T08:00:00+07:00",
+        "end_at": "2026-10-08T09:30:00+07:00",
+        "presence_start": "2026-10-08T08:00:00+07:00",
+        "presence_end": "2026-10-08T09:30:00+07:00",
+        "topic": null,
+        "is_sent": 0,
+        "created_at": "2026-09-09T22:15:22+07:00",
+        "updated_at": "2026-09-09T22:15:22+07:00",
+        "note": null,
+        "act_code": "K",
+        "presentable": [],
+        "url": null,
+        "count_attandance": 0,
+        "attandance": {
+          "user_id": 900001,
+          "code": "18223901",
+          "name": "Dimas Pratama",
+          "presence_detail_id": null,
+          "status": null,
+          "presence_at": null,
+          "type": null
+        }
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/Presences/2194342"
+      }
+    },
+    {
+      "type": "Presences",
+      "id": "2194343",
+      "attributes": {
+        "course_id": 95001,
+        "class_id": 86778,
+        "start_at": "2026-10-15T08:00:00+07:00",
+        "end_at": "2026-10-15T09:30:00+07:00",
+        "presence_start": "2026-10-15T08:00:00+07:00",
+        "presence_end": "2026-10-15T09:30:00+07:00",
+        "topic": null,
+        "is_sent": 0,
+        "created_at": "2026-09-09T22:15:22+07:00",
+        "updated_at": "2026-09-09T22:15:22+07:00",
+        "note": null,
+        "act_code": "K",
+        "presentable": [],
+        "url": null,
+        "count_attandance": 0,
+        "attandance": {
+          "user_id": 900001,
+          "code": "18223901",
+          "name": "Dimas Pratama",
+          "presence_detail_id": null,
+          "status": null,
+          "presence_at": null,
+          "type": null
+        }
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/Presences/2194343"
+      }
+    },
+    {
+      "type": "Presences",
+      "id": "2194344",
+      "attributes": {
+        "course_id": 95001,
+        "class_id": 86778,
+        "start_at": "2026-10-22T08:00:00+07:00",
+        "end_at": "2026-10-22T09:30:00+07:00",
+        "presence_start": "2026-10-22T08:00:00+07:00",
+        "presence_end": "2026-10-22T09:30:00+07:00",
+        "topic": null,
+        "is_sent": 0,
+        "created_at": "2026-09-09T22:15:22+07:00",
+        "updated_at": "2026-09-09T22:15:22+07:00",
+        "note": null,
+        "act_code": "K",
+        "presentable": [],
+        "url": null,
+        "count_attandance": 0,
+        "attandance": {
+          "user_id": 900001,
+          "code": "18223901",
+          "name": "Dimas Pratama",
+          "presence_detail_id": null,
+          "status": null,
+          "presence_at": null,
+          "type": null
+        }
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/Presences/2194344"
+      }
+    },
+    {
+      "type": "Presences",
+      "id": "2194345",
+      "attributes": {
+        "course_id": 95001,
+        "class_id": 86778,
+        "start_at": "2026-10-29T08:00:00+07:00",
+        "end_at": "2026-10-29T09:30:00+07:00",
+        "presence_start": "2026-10-29T08:00:00+07:00",
+        "presence_end": "2026-10-29T09:30:00+07:00",
+        "topic": null,
+        "is_sent": 0,
+        "created_at": "2026-09-09T22:15:22+07:00",
+        "updated_at": "2026-09-09T22:15:22+07:00",
+        "note": null,
+        "act_code": "K",
+        "presentable": [],
+        "url": null,
+        "count_attandance": 0,
+        "attandance": {
+          "user_id": 900001,
+          "code": "18223901",
+          "name": "Dimas Pratama",
+          "presence_detail_id": null,
+          "status": null,
+          "presence_at": null,
+          "type": null
+        }
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/Presences/2194345"
+      }
+    }
+  ],
+  "links": {
+    "first": "https://api-edunex.cognisia.id/course/Presences?q=/api/v1/presences&filter[course_id][is]=95001&filter[class_id][is]=86778&sort=start_at&page[limit]=10&page[offset]=0",
+    "last": "https://api-edunex.cognisia.id/course/Presences?q=/api/v1/presences&filter[course_id][is]=95001&filter[class_id][is]=86778&sort=start_at&page[limit]=10&page[offset]=10",
+    "next": "https://api-edunex.cognisia.id/course/Presences?q=/api/v1/presences&filter[course_id][is]=95001&filter[class_id][is]=86778&sort=start_at&page[limit]=10&page[offset]=10",
+    "prev": null
+  }
+}

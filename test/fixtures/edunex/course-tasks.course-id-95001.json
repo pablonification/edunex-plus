@@ -1,0 +1,132 @@
+{
+  "meta": {
+    "count": 2,
+    "total": 2
+  },
+  "data": [
+    {
+      "type": "tasks",
+      "id": "117432",
+      "attributes": {
+        "taskable_type": "modules",
+        "taskable_id": 470022,
+        "name": "Tugas tentang Imfact on Innovation The Economy  Kampus Ganesha",
+        "description": "<p>Mohon upload ulang tugas tentang Imfact on Innovation The Economy melalui Edunex paling lambat tgl 23 September 2026, pukul 23.59 WIB</p>",
+        "files": [],
+        "type": "PERSONAL",
+        "is_active": 1,
+        "start_at": "2026-09-15T10:47:00+07:00",
+        "end_at": "2026-10-08T23:59:00+07:00",
+        "lptk_id": 2,
+        "created_by": "Dr. Eko Setiadi, S.E., M.Si.",
+        "updated_by": "Dr. Eko Setiadi, S.E., M.Si.",
+        "deleted_by": null,
+        "created_at": "2026-09-15T10:54:44+07:00",
+        "updated_at": "2026-10-08T09:51:37+07:00",
+        "status": "assigned",
+        "course_id": 95001,
+        "download_url": "null",
+        "course_name": "Economics and Innovation in Planning",
+        "course_code": "PL3002",
+        "period_id": 26,
+        "lecturer_percentage": 0,
+        "student_percentage": 0,
+        "all_class": false,
+        "is_assesment_open": false,
+        "assesment_method": "point",
+        "rubrics": [],
+        "open_status": "open",
+        "answers": [
+          {
+            "id": 2689938,
+            "task_id": 117432,
+            "student_id": 900006,
+            "answer": "<p>Jawaban.</p>",
+            "file": null,
+            "score": 0,
+            "is_sent": 1,
+            "sent_at": "2026-09-16 15:29:06",
+            "deleted_at": null,
+            "created_at": "2026-09-16 15:28:42",
+            "updated_at": "2026-09-16 15:29:06",
+            "verified_at": null,
+            "comment": null,
+            "verified_by": null,
+            "sent_by": 900001,
+            "files": [
+              {
+                "id": 3217518,
+                "fileable_type": "task_answers",
+                "fileable_id": "2689938",
+                "name": "TUGAS IMPACT ON INNOVATION THE ECONOMY - 18223901.pdf",
+                "file": "https://edunexfixture.blob.core.windows.net/edunex/fixture-9",
+                "lptk_id": 2,
+                "course_id": 95001,
+                "created_at": "2026-09-16 15:28:44",
+                "updated_at": "2026-09-16 15:28:44",
+                "deleted_at": null
+              }
+            ]
+          }
+        ],
+        "file_required": true,
+        "is_lateable": false,
+        "domain": "task",
+        "show_score": 0,
+        "passing_grade": 0
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/tasks/117432"
+      }
+    },
+    {
+      "type": "tasks",
+      "id": "117873",
+      "attributes": {
+        "taskable_type": "modules",
+        "taskable_id": 473117,
+        "name": "Tugas Mandiri Individu tentang Projek Penciptaan/Pengembangan Inovasi Kampus Ganesha",
+        "description": "<p><strong>Tugas Mandiri Individu</strong></p><p><strong>Projek Peciptaan/Pengembangan Inovasi</strong></p><ul><li>Tentukan Ide, Gagasan, Pemikiran dalam bentuk Inovasi sesuai dengan Keilmuan yang diampu dan yang paling dikuasai</li><li>Inovasi bisa berupa Pengembangan, Modifikasi, atau penciptaan sesuatu yang baru</li><li>Inovasi bisa dalam bentuk Inovasi Produk, Proses Produksi, Kelembagaan, Pelayanan Publik dll</li><li>Tugas ini merupakan tugas mandiri Individu (Unsur penilaian Aktivitas Individu)</li><li>Tugas dikumpulkan Maksimal pada Perkuliahan Minggu ke-14 Via Edunex</li><li>Format Penulisan Tugas harus sesuai format yang telah di tentukan, namun Jika dianggap perlu ditambahkan atau diperbolehkan&nbsp;</li><li>Tugas dikumpulkan melalui Edunex paling lambat tgl 26 Nopember 2026 Pukul 23.59 WIB</li></ul>",
+        "files": [],
+        "type": "PERSONAL",
+        "is_active": 1,
+        "start_at": "2026-09-17T10:30:00+07:00",
+        "end_at": "2026-11-26T23:59:00+07:00",
+        "lptk_id": 2,
+        "created_by": "Dr. Eko Setiadi, S.E., M.Si.",
+        "updated_by": "Dr. Eko Setiadi, S.E., M.Si.",
+        "deleted_by": null,
+        "created_at": "2026-09-17T22:14:31+07:00",
+        "updated_at": "2026-09-17T22:14:31+07:00",
+        "status": "assigned",
+        "course_id": 95001,
+        "download_url": "null",
+        "course_name": "Economics and Innovation in Planning",
+        "course_code": "PL3002",
+        "period_id": 26,
+        "lecturer_percentage": 0,
+        "student_percentage": 0,
+        "all_class": false,
+        "is_assesment_open": false,
+        "assesment_method": "point",
+        "rubrics": [],
+        "open_status": "open",
+        "answers": [],
+        "file_required": true,
+        "is_lateable": false,
+        "domain": "task",
+        "show_score": 0,
+        "passing_grade": 0
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/tasks/117873"
+      }
+    }
+  ],
+  "links": {
+    "first": "https://api-edunex.cognisia.id/course/tasks?q=/api/v1/tasks&filter[course_id][is]=95001&page[limit]=0&page[offset]=0",
+    "last": "https://api-edunex.cognisia.id/course/tasks?q=/api/v1/tasks&filter[course_id][is]=95001&page[limit]=0&page[offset]=0",
+    "next": "https://api-edunex.cognisia.id/course/tasks?q=/api/v1/tasks&filter[course_id][is]=95001&page[limit]=0&page[offset]=0",
+    "prev": null
+  }
+}

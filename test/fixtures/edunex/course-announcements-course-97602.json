@@ -1,0 +1,25 @@
+[
+  {
+    "id": 2602,
+    "type": "section",
+    "announcement": "Link teams untuk kuliah online Proposal TA\nhttps://teams.microsoft.com/meet/000000000000?p=fixture\nMeeting ID: 000 000 000\nPasscode: fixture\n",
+    "lptk_id": 2,
+    "created_by": 357,
+    "updated_by": null,
+    "deleted_by": null,
+    "created_at": "2026-09-10 12:31:29",
+    "updated_at": "2026-09-10 12:31:29",
+    "deleted_at": null,
+    "urgency": "success",
+    "start_at": "2026-09-10 12:30:00",
+    "end_at": "2026-09-11 15:00:00",
+    "course_id": 97602,
+    "creator": {
+      "id": 357,
+      "name": "Dr. Hadi Halim, S.T., M.T.",
+      "username": "000000015",
+      "thumbnail": "https://cdn-edunex.itb.ac.id/avatar/fixture-avatar.jpg",
+      "email": "000000015"
+    }
+  }
+]

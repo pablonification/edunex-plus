@@ -1,0 +1,468 @@
+{
+  "data": {
+    "type": "courses",
+    "id": "95001",
+    "attributes": {
+      "code": "PL3002",
+      "name": "Economics and Innovation in Planning",
+      "period_id": 26,
+      "lecturer_id": 3082,
+      "is_active": 1,
+      "start_at": "2026-08-11T02:22:21+07:00",
+      "end_at": "2026-08-11T02:22:21+07:00",
+      "lptk_id": 2,
+      "created_by": 0,
+      "updated_by": null,
+      "deleted_by": null,
+      "deleted_at": null,
+      "created_at": "2026-08-11T02:22:21+07:00",
+      "updated_at": "2026-08-22T08:33:10+07:00",
+      "status": "STUDENT",
+      "thumbnail": "https://cdn-edunex.itb.ac.id/placeholder/Placeholder%2006.png",
+      "classes": 1,
+      "is_enrolled": true,
+      "period_year": "2026",
+      "period_type": "1",
+      "lecturer": "Dr. Ir. Maya Saputra, M.Si.",
+      "total_student": 169,
+      "is_open": 0,
+      "is_public": 0,
+      "view_count": null,
+      "need_campus": null,
+      "major": "S1 - Perencanaan Wilayah dan Kota (Kampus Cirebon)",
+      "faculty": {
+        "id": 21,
+        "lptk_id": 2,
+        "name": "SAPPK",
+        "deleted_at": null,
+        "created_at": "2021-01-01 00:00:00",
+        "updated_at": null,
+        "thumbnail": null,
+        "province": null,
+        "code": "SAPPK"
+      },
+      "is_from_six": 1,
+      "credit": "3",
+      "uuid": null,
+      "gradebook_publish": false,
+      "completion": {
+        "completionable": 9,
+        "completion": 1,
+        "percentage": "12%"
+      },
+      "enrollments": null,
+      "total_modules": 7,
+      "student_from_six": true,
+      "class_name": "PL3002-01",
+      "tags": null,
+      "certificates": [],
+      "plan_count": 0,
+      "is_view_only": 0,
+      "is_free": 0,
+      "is_rps": 0,
+      "is_parent": 0,
+      "curriculum": 2024,
+      "is_rps_approved": false,
+      "is_rps_available": false,
+      "rating": 4.5
+    },
+    "links": {
+      "self": "https://api-edunex.cognisia.id/course/courses/95001"
+    },
+    "relationships": {
+      "lecturer": {
+        "links": {
+          "self": "https://api-edunex.cognisia.id/course/courses/95001/relationships/lecturer",
+          "related": "https://api-edunex.cognisia.id/course/courses/95001/lecturer"
+        },
+        "data": {
+          "type": "lecturer",
+          "id": "3082"
+        }
+      },
+      "modules": {
+        "links": {
+          "self": "https://api-edunex.cognisia.id/course/courses/95001/relationships/modules",
+          "related": "https://api-edunex.cognisia.id/course/courses/95001/modules"
+        },
+        "data": [
+          {
+            "type": "modules",
+            "id": "470019"
+          },
+          {
+            "type": "modules",
+            "id": "470022"
+          },
+          {
+            "type": "modules",
+            "id": "470031"
+          },
+          {
+            "type": "modules",
+            "id": "473117"
+          },
+          {
+            "type": "modules",
+            "id": "477153"
+          },
+          {
+            "type": "modules",
+            "id": "477682"
+          },
+          {
+            "type": "modules",
+            "id": "479884"
+          }
+        ]
+      },
+      "assistant": {
+        "links": {
+          "self": "https://api-edunex.cognisia.id/course/courses/95001/relationships/assistant",
+          "related": "https://api-edunex.cognisia.id/course/courses/95001/assistant"
+        },
+        "data": [
+          {
+            "type": "assistant",
+            "id": "134914"
+          }
+        ]
+      }
+    }
+  },
+  "included": [
+    {
+      "type": "user",
+      "id": "134913",
+      "attributes": {
+        "username": "000000012",
+        "name": "Dr. Ir. Maya Saputra, M.Si.",
+        "passwordfixture": "CHANGED",
+        "email": "000000012",
+        "is_active": 1,
+        "level": "LECTURER",
+        "lptk_id": 2,
+        "remember_token": null,
+        "thumbnail": null,
+        "created_by": 6,
+        "updated_by": null,
+        "deleted_by": null,
+        "created_at": "2021-08-21T21:06:05+07:00",
+        "updated_at": "2026-09-10T00:46:16+07:00",
+        "deleted_at": null,
+        "last_online": "2026-09-10T00:46:16+07:00"
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/user/134913"
+      }
+    },
+    {
+      "type": "lecturer",
+      "id": "3082",
+      "attributes": {
+        "user_id": 134913,
+        "lptk_id": 2,
+        "nidn": "0000000000",
+        "name": "Dr. Ir. Maya Saputra, M.Si.",
+        "place_of_birth": "-",
+        "date_of_birth": "2000-01-01T00:00:00.000Z",
+        "gender": "M",
+        "front_degree": "none",
+        "back_degree": "none",
+        "phone_number": "-",
+        "deleted_at": null,
+        "created_at": "2021-08-21T21:06:05+07:00",
+        "updated_at": "2026-09-10T00:46:16+07:00",
+        "last_online": "2026-09-10T00:46:16+07:00"
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/lecturer/3082"
+      },
+      "relationships": {
+        "user": {
+          "links": {
+            "self": "https://api-edunex.cognisia.id/course/lecturer/3082/relationships/user",
+            "related": "https://api-edunex.cognisia.id/course/lecturer/3082/user"
+          },
+          "data": {
+            "type": "user",
+            "id": "134913"
+          }
+        }
+      }
+    },
+    {
+      "type": "modules",
+      "id": "470019",
+      "attributes": {
+        "course_id": 95001,
+        "index": 1,
+        "name": "Info Awal Perkuliahan, Kontrak Belajar ",
+        "is_active": true,
+        "start_at": "2026-09-09T22:40:43+07:00",
+        "end_at": "2026-09-09T22:40:43+07:00",
+        "lptk_id": 2,
+        "stages": [],
+        "created_by": 134914,
+        "updated_by": 134914,
+        "deleted_by": null,
+        "deleted_at": null,
+        "created_at": "2026-09-09T22:40:43+07:00",
+        "updated_at": "2026-09-09T22:42:50+07:00",
+        "module_exam": [],
+        "is_date_restricted": 0,
+        "is_completion_restricted": 0,
+        "is_exam_restricted": 0,
+        "exam_restriction": []
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/modules/470019"
+      },
+      "relationships": {
+        "activities": {
+          "links": {
+            "self": "https://api-edunex.cognisia.id/course/modules/470019/relationships/activities",
+            "related": "https://api-edunex.cognisia.id/course/modules/470019/activities"
+          },
+          "data": []
+        }
+      }
+    },
+    {
+      "type": "modules",
+      "id": "470022",
+      "attributes": {
+        "course_id": 95001,
+        "index": 2,
+        "name": "Impact of Innovation on the Economy",
+        "is_active": true,
+        "start_at": "2026-09-09T22:45:01+07:00",
+        "end_at": "2026-09-09T22:45:01+07:00",
+        "lptk_id": 2,
+        "stages": [],
+        "created_by": 134914,
+        "updated_by": 134914,
+        "deleted_by": null,
+        "deleted_at": null,
+        "created_at": "2026-09-09T22:45:01+07:00",
+        "updated_at": "2026-09-09T22:56:46+07:00",
+        "module_exam": [],
+        "is_date_restricted": 0,
+        "is_completion_restricted": 0,
+        "is_exam_restricted": 0,
+        "exam_restriction": []
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/modules/470022"
+      },
+      "relationships": {
+        "activities": {
+          "links": {
+            "self": "https://api-edunex.cognisia.id/course/modules/470022/relationships/activities",
+            "related": "https://api-edunex.cognisia.id/course/modules/470022/activities"
+          },
+          "data": []
+        }
+      }
+    },
+    {
+      "type": "modules",
+      "id": "470031",
+      "attributes": {
+        "course_id": 95001,
+        "index": 3,
+        "name": "Product Innovation",
+        "is_active": true,
+        "start_at": "2026-09-09T22:59:09+07:00",
+        "end_at": "2026-09-09T22:59:09+07:00",
+        "lptk_id": 2,
+        "stages": [],
+        "created_by": 134914,
+        "updated_by": 134914,
+        "deleted_by": null,
+        "deleted_at": null,
+        "created_at": "2026-09-09T22:59:10+07:00",
+        "updated_at": "2026-09-09T22:59:30+07:00",
+        "module_exam": [],
+        "is_date_restricted": 0,
+        "is_completion_restricted": 0,
+        "is_exam_restricted": 0,
+        "exam_restriction": []
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/modules/470031"
+      },
+      "relationships": {
+        "activities": {
+          "links": {
+            "self": "https://api-edunex.cognisia.id/course/modules/470031/relationships/activities",
+            "related": "https://api-edunex.cognisia.id/course/modules/470031/activities"
+          },
+          "data": []
+        }
+      }
+    },
+    {
+      "type": "modules",
+      "id": "473117",
+      "attributes": {
+        "course_id": 95001,
+        "index": 4,
+        "name": "Production Process Innovation",
+        "is_active": true,
+        "start_at": "2026-09-16T20:25:28+07:00",
+        "end_at": "2026-09-16T20:25:28+07:00",
+        "lptk_id": 2,
+        "stages": [],
+        "created_by": 134914,
+        "updated_by": 134914,
+        "deleted_by": null,
+        "deleted_at": null,
+        "created_at": "2026-09-16T20:25:29+07:00",
+        "updated_at": "2026-09-17T21:17:35+07:00",
+        "module_exam": [],
+        "is_date_restricted": 0,
+        "is_completion_restricted": 0,
+        "is_exam_restricted": 0,
+        "exam_restriction": []
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/modules/473117"
+      },
+      "relationships": {
+        "activities": {
+          "links": {
+            "self": "https://api-edunex.cognisia.id/course/modules/473117/relationships/activities",
+            "related": "https://api-edunex.cognisia.id/course/modules/473117/activities"
+          },
+          "data": []
+        }
+      }
+    },
+    {
+      "type": "modules",
+      "id": "477153",
+      "attributes": {
+        "course_id": 95001,
+        "index": 5,
+        "name": "Inovasi Kelembagaan Pasar",
+        "is_active": true,
+        "start_at": "2026-09-29T19:55:29+07:00",
+        "end_at": "2026-09-29T19:55:29+07:00",
+        "lptk_id": 2,
+        "stages": [],
+        "created_by": 134914,
+        "updated_by": 134914,
+        "deleted_by": null,
+        "deleted_at": null,
+        "created_at": "2026-09-29T19:55:29+07:00",
+        "updated_at": "2026-09-29T19:55:55+07:00",
+        "module_exam": [],
+        "is_date_restricted": 0,
+        "is_completion_restricted": 0,
+        "is_exam_restricted": 0,
+        "exam_restriction": []
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/modules/477153"
+      },
+      "relationships": {
+        "activities": {
+          "links": {
+            "self": "https://api-edunex.cognisia.id/course/modules/477153/relationships/activities",
+            "related": "https://api-edunex.cognisia.id/course/modules/477153/activities"
+          },
+          "data": []
+        }
+      }
+    },
+    {
+      "type": "modules",
+      "id": "477682",
+      "attributes": {
+        "course_id": 95001,
+        "index": 6,
+        "name": "Inovasi Keuangan dan Pembayaran",
+        "is_active": true,
+        "start_at": "2026-10-01T00:25:17+07:00",
+        "end_at": "2026-10-01T00:25:17+07:00",
+        "lptk_id": 2,
+        "stages": [],
+        "created_by": 134914,
+        "updated_by": 134914,
+        "deleted_by": null,
+        "deleted_at": null,
+        "created_at": "2026-10-01T00:25:18+07:00",
+        "updated_at": "2026-10-01T00:25:39+07:00",
+        "module_exam": [],
+        "is_date_restricted": 0,
+        "is_completion_restricted": 0,
+        "is_exam_restricted": 0,
+        "exam_restriction": []
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/modules/477682"
+      },
+      "relationships": {
+        "activities": {
+          "links": {
+            "self": "https://api-edunex.cognisia.id/course/modules/477682/relationships/activities",
+            "related": "https://api-edunex.cognisia.id/course/modules/477682/activities"
+          },
+          "data": []
+        }
+      }
+    },
+    {
+      "type": "modules",
+      "id": "479884",
+      "attributes": {
+        "course_id": 95001,
+        "index": 7,
+        "name": "Inovasi Pelayanan Publik",
+        "is_active": true,
+        "start_at": "2026-10-08T05:33:44+07:00",
+        "end_at": "2026-10-08T05:33:44+07:00",
+        "lptk_id": 2,
+        "stages": [],
+        "created_by": 134914,
+        "updated_by": 134914,
+        "deleted_by": null,
+        "deleted_at": null,
+        "created_at": "2026-10-08T05:33:44+07:00",
+        "updated_at": "2026-10-08T05:34:09+07:00",
+        "module_exam": [],
+        "is_date_restricted": 0,
+        "is_completion_restricted": 0,
+        "is_exam_restricted": 0,
+        "exam_restriction": []
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/modules/479884"
+      },
+      "relationships": {
+        "activities": {
+          "links": {
+            "self": "https://api-edunex.cognisia.id/course/modules/479884/relationships/activities",
+            "related": "https://api-edunex.cognisia.id/course/modules/479884/activities"
+          },
+          "data": []
+        }
+      }
+    },
+    {
+      "type": "assistant",
+      "id": "134914",
+      "attributes": {
+        "name": "Dr. Eko Setiadi, S.E., M.Si.",
+        "username": "000000011",
+        "email": "000000011",
+        "thumbnail": "https://cdn-edunex.itb.ac.id/Ava.jpg",
+        "is_coordinator": 0
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/assistant/134914"
+      }
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+[
+  {
+    "id": 95059,
+    "name": "Infrastructure and Transportation Economics",
+    "classes": [
+      {
+        "id": 86836,
+        "major_id": 1714,
+        "created_by": null,
+        "updated_by": null,
+        "deleted_by": null,
+        "created_at": "2026-08-11 02:22:29",
+        "updated_at": "2026-08-11 02:22:29",
+        "lptk_id": 2,
+        "deleted_at": null,
+        "name": "PL3032-01",
+        "periode_id": 26,
+        "uuid": null,
+        "is_from_six": 1,
+        "pivot": {
+          "course_id": 95059,
+          "class_id": 86836
+        }
+      }
+    ]
+  }
+]

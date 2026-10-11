@@ -1,0 +1,73 @@
+{
+  "data": {
+    "type": "courses",
+    "id": "92948",
+    "attributes": {
+      "code": "KU5014",
+      "name": "Teknik Penyelesaian Masalah Terstruktur",
+      "period_id": 26,
+      "lecturer_id": 760,
+      "is_active": 1,
+      "start_at": "2026-08-11T02:17:29+07:00",
+      "end_at": "2026-08-11T02:17:29+07:00",
+      "lptk_id": 2,
+      "created_by": 0,
+      "updated_by": 0,
+      "deleted_by": null,
+      "deleted_at": null,
+      "created_at": "2026-08-11T02:17:29+07:00",
+      "updated_at": "2026-08-23T19:01:14+07:00",
+      "status": "STUDENT",
+      "thumbnail": "https://cdn-edunex.itb.ac.id/placeholder/Placeholder%2007.png",
+      "classes": 1,
+      "is_enrolled": true,
+      "period_year": "2026",
+      "period_type": "1",
+      "lecturer": "Prof. Dr. Ir. Indra Hartono",
+      "total_student": 56,
+      "is_open": 0,
+      "is_public": 0,
+      "view_count": null,
+      "need_campus": null,
+      "major": "Mata Kuliah Umum (MKU)",
+      "faculty": {
+        "id": 30,
+        "lptk_id": 2,
+        "name": "NONFS",
+        "deleted_at": null,
+        "created_at": "2021-01-01 00:00:00",
+        "updated_at": null,
+        "thumbnail": null,
+        "province": null,
+        "code": "NONFS"
+      },
+      "is_from_six": 1,
+      "credit": "3",
+      "uuid": null,
+      "gradebook_publish": false,
+      "completion": {
+        "completionable": 5,
+        "completion": 2,
+        "percentage": "40%"
+      },
+      "enrollments": null,
+      "total_modules": 4,
+      "student_from_six": true,
+      "class_name": "KU5014-01",
+      "tags": null,
+      "certificates": [],
+      "plan_count": 0,
+      "is_view_only": 0,
+      "is_free": 0,
+      "is_rps": 1,
+      "is_parent": 1,
+      "curriculum": 2024,
+      "is_rps_approved": false,
+      "is_rps_available": true,
+      "rating": 4.5
+    },
+    "links": {
+      "self": "https://api-edunex.cognisia.id/course/courses/92948"
+    }
+  }
+}

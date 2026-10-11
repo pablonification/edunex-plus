@@ -1,0 +1,95 @@
+{
+  "meta": {
+    "count": 3,
+    "total": 13
+  },
+  "data": [
+    {
+      "type": "contents",
+      "id": "889385",
+      "attributes": {
+        "contentable_type": "App\\Models\\Courses",
+        "contentable_id": 97602,
+        "index": 3,
+        "name": "Link Teams Pertemuan 03: Jumat, 9 Oktober 2026",
+        "type": "ms-teams",
+        "content": "https://teams.microsoft.com/meet/000000000000?p=fixture",
+        "lptk_id": 2,
+        "size": null,
+        "created_by": "Dr. Oki Susanto, S.T., M.T.",
+        "updated_by": "Dr. Oki Susanto, S.T., M.T.",
+        "deleted_by": null,
+        "deleted_at": null,
+        "created_at": "2026-10-05T16:52:44+07:00",
+        "updated_at": "2026-10-05T16:53:03+07:00",
+        "course_id": 97602,
+        "completion_at": null,
+        "course_code": "II4091",
+        "course_name": "Final Project Proposal [Parent Class]"
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/contents/889385"
+      }
+    },
+    {
+      "type": "contents",
+      "id": "874303",
+      "attributes": {
+        "contentable_type": "App\\Models\\Courses",
+        "contentable_id": 97602,
+        "index": 2,
+        "name": "Link Teams Pertemuan 02, Jumat 11 September 2026",
+        "type": "ms-teams",
+        "content": "https://teams.microsoft.com/meet/000000000000?p=fixture",
+        "lptk_id": 2,
+        "size": null,
+        "created_by": "Dr. Hadi Halim, S.T., M.T.",
+        "updated_by": "Dr. Hadi Halim, S.T., M.T.",
+        "deleted_by": null,
+        "deleted_at": null,
+        "created_at": "2026-09-10T12:29:19+07:00",
+        "updated_at": "2026-09-10T12:29:19+07:00",
+        "course_id": 97602,
+        "completion_at": null,
+        "course_code": "II4091",
+        "course_name": "Final Project Proposal [Parent Class]"
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/contents/874303"
+      }
+    },
+    {
+      "type": "contents",
+      "id": "817052",
+      "attributes": {
+        "contentable_type": "App\\Models\\Modules",
+        "contentable_id": 405906,
+        "index": 2,
+        "name": "Kuliah 29 April 2026",
+        "type": "ms-teams",
+        "content": "https://teams.microsoft.com/meet/000000000000?p=fixture",
+        "lptk_id": 2,
+        "size": null,
+        "created_by": "Dr. Ir. Citra Wibowo, M.T.",
+        "updated_by": "Dr. Ir. Citra Wibowo, M.T.",
+        "deleted_by": null,
+        "deleted_at": null,
+        "created_at": "2026-04-29T08:41:13+07:00",
+        "updated_at": "2026-04-29T08:41:13+07:00",
+        "course_id": 89520,
+        "completion_at": null,
+        "course_code": "WI2022",
+        "course_name": "Project Management"
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/contents/817052"
+      }
+    }
+  ],
+  "links": {
+    "first": "https://api-edunex.cognisia.id/course/contents?q=/api/v1/contents&page[limit]=3&page[offset]=0&sort=-updated_at&filter[type][in]=zoom,google-meet,ms-teams,cloudx,webex",
+    "last": "https://api-edunex.cognisia.id/course/contents?q=/api/v1/contents&page[limit]=3&page[offset]=12&sort=-updated_at&filter[type][in]=zoom,google-meet,ms-teams,cloudx,webex",
+    "next": "https://api-edunex.cognisia.id/course/contents?q=/api/v1/contents&page[limit]=3&page[offset]=3&sort=-updated_at&filter[type][in]=zoom,google-meet,ms-teams,cloudx,webex",
+    "prev": null
+  }
+}

@@ -1,0 +1,162 @@
+{
+  "data": {
+    "id": "900001_1789430400000",
+    "count": 14,
+    "notifications": [
+      {
+        "isRead": 0,
+        "title": "Tugas tentang Imfact on Innovation The Economy  ",
+        "type": "ASSIGNMENT",
+        "message": "Dr. Eko Setiadi, S.E., M.Si. has been added new Assignment in Economics and Innovation in Planning",
+        "note": "",
+        "domain": "course",
+        "objectId": "117432",
+        "callbackUrl": "/assignment/take/117432",
+        "date": "2026-09-15T03:54:44.000Z"
+      },
+      {
+        "isRead": 0,
+        "title": "Production Process Innovation",
+        "type": "CONTENT",
+        "message": "Dr. Eko Setiadi, S.E., M.Si. has been added new Content in Economics and Innovation in Planning",
+        "note": "",
+        "domain": "course",
+        "objectId": "95001",
+        "callbackUrl": "/courses/95001",
+        "date": "2026-09-16T14:48:53.000Z"
+      },
+      {
+        "isRead": 0,
+        "title": "K4. Model & Aplikasi Keterkaitan antara Infr. & Eko. (Model Makro, Mikro..)",
+        "type": "CONTENT",
+        "message": "Dr. Utami Siregar, S.E, MM, M.Si. has been added new Content in Infrastructure and Transportation Economics",
+        "note": "",
+        "domain": "course",
+        "objectId": "95059",
+        "callbackUrl": "/courses/95059",
+        "date": "2026-09-17T00:55:57.000Z"
+      },
+      {
+        "isRead": 0,
+        "title": "UTS Markom",
+        "type": "ASSIGNMENT",
+        "message": "Dra. Joko Hidayat, M.Si. has been added new Assignment in Marketing Communication",
+        "note": "",
+        "domain": "course",
+        "objectId": "117764",
+        "callbackUrl": "/assignment/take/117764",
+        "date": "2026-09-17T01:45:35.000Z"
+      },
+      {
+        "isRead": 0,
+        "title": "Tugas Mandiri Individu Projek Penciptaan/Pengembangan Inovasi",
+        "type": "CONTENT",
+        "message": "Dr. Eko Setiadi, S.E., M.Si. has been added new Content in Economics and Innovation in Planning",
+        "note": "",
+        "domain": "course",
+        "objectId": "95001",
+        "callbackUrl": "/courses/95001",
+        "date": "2026-09-17T14:15:00.000Z"
+      },
+      {
+        "isRead": 0,
+        "title": "Tugas Mandiri Individu tentang Projek Penciptaan/Pengembangan Inovasi Kampus Ganesha",
+        "type": "ASSIGNMENT",
+        "message": "Dr. Eko Setiadi, S.E., M.Si. has been added new Assignment in Economics and Innovation in Planning",
+        "note": "",
+        "domain": "course",
+        "objectId": "117873",
+        "callbackUrl": "/assignment/take/117873",
+        "date": "2026-09-17T15:14:31.000Z"
+      },
+      {
+        "isRead": 0,
+        "title": "Tugas Problem Soving",
+        "type": "ASSIGNMENT",
+        "message": "Prof. Dr. Ir. Indra Hartono has been added new Assignment in Teknik Penyelesaian Masalah Terstruktur",
+        "note": "",
+        "domain": "course",
+        "objectId": "118842",
+        "callbackUrl": "/assignment/take/118842",
+        "date": "2026-09-24T09:03:11.000Z"
+      },
+      {
+        "isRead": 0,
+        "title": "Managing The problem Proccess",
+        "type": "CONTENT",
+        "message": "Prof. Dr. Ir. Indra Hartono has been added new Content in Teknik Penyelesaian Masalah Terstruktur",
+        "note": "",
+        "domain": "course",
+        "objectId": "92948",
+        "callbackUrl": "/courses/92948",
+        "date": "2026-09-24T09:54:36.000Z"
+      },
+      {
+        "isRead": 0,
+        "title": "Inovasi Kelembagaan Pasar",
+        "type": "CONTENT",
+        "message": "Dr. Eko Setiadi, S.E., M.Si. has been added new Content in Economics and Innovation in Planning",
+        "note": "",
+        "domain": "course",
+        "objectId": "95001",
+        "callbackUrl": "/courses/95001",
+        "date": "2026-09-29T12:56:56.000Z"
+      },
+      {
+        "isRead": 0,
+        "title": "Inovasi Keuangan dan Pembayaran",
+        "type": "CONTENT",
+        "message": "Dr. Eko Setiadi, S.E., M.Si. has been added new Content in Economics and Innovation in Planning",
+        "note": "",
+        "domain": "course",
+        "objectId": "95001",
+        "callbackUrl": "/courses/95001",
+        "date": "2026-09-30T17:26:29.000Z"
+      },
+      {
+        "isRead": 0,
+        "title": "Pertemuan 03: Jumat, 9 Oktober 2026",
+        "type": "CONTENT",
+        "message": "Dr. Oki Susanto, S.T., M.T. has been added new Content in Final Project Proposal [Parent Class]",
+        "note": "",
+        "domain": "course",
+        "objectId": "97602",
+        "callbackUrl": "/courses/97602",
+        "date": "2026-10-05T09:52:44.000Z"
+      },
+      {
+        "isRead": 0,
+        "title": "Inovasi Pelayanan Publik",
+        "type": "CONTENT",
+        "message": "Dr. Eko Setiadi, S.E., M.Si. has been added new Content in Economics and Innovation in Planning",
+        "note": "",
+        "domain": "course",
+        "objectId": "95001",
+        "callbackUrl": "/courses/95001",
+        "date": "2026-10-07T22:35:16.000Z"
+      },
+      {
+        "isRead": 0,
+        "title": "K5. Permintaan infrastruktur (Model. Perm. Kontinu & Diskrit)",
+        "type": "CONTENT",
+        "message": "Dr. Utami Siregar, S.E, MM, M.Si. has been added new Content in Infrastructure and Transportation Economics",
+        "note": "",
+        "domain": "course",
+        "objectId": "95059",
+        "callbackUrl": "/courses/95059",
+        "date": "2026-10-07T23:15:56.000Z"
+      },
+      {
+        "isRead": 0,
+        "title": "K5. Permintaan infrastruktur (Model. Perm. Kontinu & Diskrit)",
+        "type": "CONTENT",
+        "message": "Dr. Utami Siregar, S.E, MM, M.Si. has been added new Content in Infrastructure and Transportation Economics",
+        "note": "",
+        "domain": "course",
+        "objectId": "95059",
+        "callbackUrl": "/courses/95059",
+        "date": "2026-10-08T09:21:32.000Z"
+      }
+    ]
+  }
+}

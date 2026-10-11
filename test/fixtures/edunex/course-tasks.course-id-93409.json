@@ -1,0 +1,62 @@
+{
+  "meta": {
+    "count": 1,
+    "total": 1
+  },
+  "data": [
+    {
+      "type": "tasks",
+      "id": "117764",
+      "attributes": {
+        "taskable_type": "modules",
+        "taskable_id": 473251,
+        "name": "UTS Markom",
+        "description": "<p>Soal lihat .pdf</p>",
+        "files": [
+          {
+            "name": "UTS MARKOM SEM 1 2026 2027.pdf",
+            "file": "https://edunexfixture.blob.core.windows.net/edunex/fixture-8"
+          }
+        ],
+        "type": "PERSONAL",
+        "is_active": 1,
+        "start_at": "2026-09-17T08:43:00+07:00",
+        "end_at": "2026-10-22T23:50:00+07:00",
+        "lptk_id": 2,
+        "created_by": "Dra. Joko Hidayat, M.Si.",
+        "updated_by": "Dra. Joko Hidayat, M.Si.",
+        "deleted_by": null,
+        "created_at": "2026-09-17T08:45:35+07:00",
+        "updated_at": "2026-09-24T11:11:59+07:00",
+        "status": "assigned",
+        "course_id": 93409,
+        "download_url": "null",
+        "course_name": "Marketing Communication",
+        "course_code": "DK4073",
+        "period_id": 26,
+        "lecturer_percentage": 0,
+        "student_percentage": 0,
+        "all_class": true,
+        "is_assesment_open": false,
+        "assesment_method": "point",
+        "rubrics": [],
+        "open_status": "open",
+        "answers": [],
+        "file_required": true,
+        "is_lateable": false,
+        "domain": "uts",
+        "show_score": 0,
+        "passing_grade": 0
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/tasks/117764"
+      }
+    }
+  ],
+  "links": {
+    "first": "https://api-edunex.cognisia.id/course/tasks?q=/api/v1/tasks&filter[course_id][is]=93409&page[limit]=0&page[offset]=0",
+    "last": "https://api-edunex.cognisia.id/course/tasks?q=/api/v1/tasks&filter[course_id][is]=93409&page[limit]=0&page[offset]=0",
+    "next": "https://api-edunex.cognisia.id/course/tasks?q=/api/v1/tasks&filter[course_id][is]=93409&page[limit]=0&page[offset]=0",
+    "prev": null
+  }
+}

@@ -1,0 +1,164 @@
+{
+  "meta": {
+    "count": 2,
+    "total": 2
+  },
+  "data": [
+    {
+      "type": "tasks",
+      "id": "117044",
+      "attributes": {
+        "taskable_type": "modules",
+        "taskable_id": 470899,
+        "name": "TUGAS 1",
+        "description": "<p>Mahasiswa diminta untuk mencari buku: Critical Thinking Logic, Problem Solving. Oleh Neuronswaves Lab</p><p>Tugas membuat ringkasan dari:<br>1. Part 2 section 1: 5W2H (Analysis, The Art of&nbsp;Detailing a Problem).</p><p>2. Part 2 section 2: Leveraging The SCQH Framework for Problem Structuring.</p><p>dibuat dalam 4 halaman A4 degan Font 11</p><p>&nbsp;</p><p>Dikumpulkan pada:<br>17 September 2026</p><p>Sebelum Jam 12.00 WIB</p>",
+        "files": [],
+        "type": "PERSONAL",
+        "is_active": 1,
+        "start_at": "2026-09-11T17:12:00+07:00",
+        "end_at": "2026-09-17T12:00:00+07:00",
+        "lptk_id": 2,
+        "created_by": "Prof. Dr. Ir. Indra Hartono",
+        "updated_by": "Prof. Dr. Ir. Indra Hartono",
+        "deleted_by": null,
+        "created_at": "2026-09-11T17:14:59+07:00",
+        "updated_at": "2026-09-11T17:15:10+07:00",
+        "status": "assigned",
+        "course_id": 92948,
+        "download_url": "null",
+        "course_name": "Teknik Penyelesaian Masalah Terstruktur",
+        "course_code": "KU5014",
+        "period_id": 26,
+        "lecturer_percentage": 0,
+        "student_percentage": 0,
+        "all_class": false,
+        "is_assesment_open": false,
+        "assesment_method": "point",
+        "rubrics": [],
+        "open_status": "overdue",
+        "answers": [
+          {
+            "id": 2690141,
+            "task_id": 117044,
+            "student_id": 900006,
+            "answer": "<p>Jawaban.</p>",
+            "file": null,
+            "score": 0,
+            "is_sent": 1,
+            "sent_at": "2026-09-16 16:15:33",
+            "deleted_at": null,
+            "created_at": "2026-09-16 16:15:05",
+            "updated_at": "2026-09-16 16:15:33",
+            "verified_at": null,
+            "comment": null,
+            "verified_by": null,
+            "sent_by": 900001,
+            "files": [
+              {
+                "id": 3217866,
+                "fileable_type": "task_answers",
+                "fileable_id": "2690141",
+                "name": "Tugas Ringkasan_18223901_Dimas Pratama.pdf",
+                "file": "https://edunexfixture.blob.core.windows.net/edunex/fixture-6",
+                "lptk_id": 2,
+                "course_id": 92948,
+                "created_at": "2026-09-16 16:15:06",
+                "updated_at": "2026-09-16 16:15:06",
+                "deleted_at": null
+              }
+            ]
+          }
+        ],
+        "file_required": true,
+        "is_lateable": false,
+        "domain": "task",
+        "show_score": 0,
+        "passing_grade": 0
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/tasks/117044"
+      }
+    },
+    {
+      "type": "tasks",
+      "id": "118842",
+      "attributes": {
+        "taskable_type": "modules",
+        "taskable_id": 475745,
+        "name": "Tugas Problem Soving",
+        "description": "<p>Mahasiswa diminta untuk mengumpulkn Tugas kelompok:<br>Part Problem Solving: 5W2H (Analysis, The Art of&nbsp;Detailing a Problem).</p><p>Dikumpulkan pada:<br>24 September 2026</p><p>Sebelum Jam 19.00 WIB</p>",
+        "files": [],
+        "type": "PERSONAL",
+        "is_active": 1,
+        "start_at": "2026-09-24T16:01:00+07:00",
+        "end_at": "2026-09-24T19:01:00+07:00",
+        "lptk_id": 2,
+        "created_by": "Prof. Dr. Ir. Indra Hartono",
+        "updated_by": "Prof. Dr. Ir. Indra Hartono",
+        "deleted_by": null,
+        "created_at": "2026-09-24T16:03:11+07:00",
+        "updated_at": "2026-09-24T16:04:21+07:00",
+        "status": "assigned",
+        "course_id": 92948,
+        "download_url": "null",
+        "course_name": "Teknik Penyelesaian Masalah Terstruktur",
+        "course_code": "KU5014",
+        "period_id": 26,
+        "lecturer_percentage": 0,
+        "student_percentage": 0,
+        "all_class": false,
+        "is_assesment_open": false,
+        "assesment_method": "point",
+        "rubrics": [],
+        "open_status": "overdue",
+        "answers": [
+          {
+            "id": 2723631,
+            "task_id": 118842,
+            "student_id": 900006,
+            "answer": "<p>Jawaban.</p>",
+            "file": null,
+            "score": 0,
+            "is_sent": 1,
+            "sent_at": "2026-09-24 17:09:17",
+            "deleted_at": null,
+            "created_at": "2026-09-24 17:09:11",
+            "updated_at": "2026-09-24 17:09:17",
+            "verified_at": null,
+            "comment": null,
+            "verified_by": null,
+            "sent_by": 900001,
+            "files": [
+              {
+                "id": 3269818,
+                "fileable_type": "task_answers",
+                "fileable_id": "2723631",
+                "name": "Tugas 5W2H_18223901_18223902_18223903.pdf",
+                "file": "https://edunexfixture.blob.core.windows.net/edunex/fixture-7",
+                "lptk_id": 2,
+                "course_id": 92948,
+                "created_at": "2026-09-24 17:09:12",
+                "updated_at": "2026-09-24 17:09:12",
+                "deleted_at": null
+              }
+            ]
+          }
+        ],
+        "file_required": true,
+        "is_lateable": false,
+        "domain": "task",
+        "show_score": 0,
+        "passing_grade": 0
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/tasks/118842"
+      }
+    }
+  ],
+  "links": {
+    "first": "https://api-edunex.cognisia.id/course/tasks?q=/api/v1/tasks&filter[course_id][is]=92948&page[limit]=0&page[offset]=0",
+    "last": "https://api-edunex.cognisia.id/course/tasks?q=/api/v1/tasks&filter[course_id][is]=92948&page[limit]=0&page[offset]=0",
+    "next": "https://api-edunex.cognisia.id/course/tasks?q=/api/v1/tasks&filter[course_id][is]=92948&page[limit]=0&page[offset]=0",
+    "prev": null
+  }
+}

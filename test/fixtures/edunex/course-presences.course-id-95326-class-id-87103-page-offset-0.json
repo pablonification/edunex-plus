@@ -1,0 +1,318 @@
+{
+  "meta": {
+    "count": 8,
+    "total": 8
+  },
+  "data": [
+    {
+      "type": "Presences",
+      "id": "2243736",
+      "attributes": {
+        "course_id": 95326,
+        "class_id": 87103,
+        "start_at": "2026-08-26T14:00:00+07:00",
+        "end_at": "2026-08-26T16:00:00+07:00",
+        "presence_start": "2026-08-26T14:00:00+07:00",
+        "presence_end": "2026-08-26T16:00:00+07:00",
+        "topic": "01 Pengantar Proposal TA",
+        "is_sent": 1,
+        "created_at": "2026-09-11T14:23:14+07:00",
+        "updated_at": "2026-09-11T14:23:14+07:00",
+        "note": null,
+        "act_code": "K",
+        "presentable": [],
+        "url": null,
+        "count_attandance": 1,
+        "attandance": {
+          "user_id": 900001,
+          "code": "18223901",
+          "name": "Dimas Pratama",
+          "presence_detail_id": 1606580,
+          "status": 1,
+          "presence_at": "2026-08-26 14:00:00",
+          "type": "attend"
+        }
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/Presences/2243736"
+      }
+    },
+    {
+      "type": "Presences",
+      "id": "2243739",
+      "attributes": {
+        "course_id": 95326,
+        "class_id": 87103,
+        "start_at": "2026-09-18T15:00:00+07:00",
+        "end_at": "2026-09-18T17:00:00+07:00",
+        "presence_start": "2026-09-18T15:00:00+07:00",
+        "presence_end": "2026-09-18T23:59:00+07:00",
+        "topic": "Tugas",
+        "is_sent": 1,
+        "created_at": "2026-09-11T14:23:14+07:00",
+        "updated_at": "2026-09-11T14:25:29+07:00",
+        "note": "Presensi dengan submit Tugas 01 Bab I",
+        "act_code": "K",
+        "presentable": [
+          {
+            "id": 25553,
+            "presence_id": 2243739,
+            "course_id": 95326,
+            "presentable_id": "117001",
+            "presentable": "assignment",
+            "created_at": "2026-09-20 17:47:32",
+            "updated_at": "2026-09-20 17:47:32"
+          }
+        ],
+        "url": "https://edunex.itb.ac.id/courses/95326/preview/450222",
+        "count_attandance": 1,
+        "attandance": {
+          "user_id": 900001,
+          "code": "18223901",
+          "name": "Dimas Pratama",
+          "presence_detail_id": 1608278,
+          "status": 1,
+          "presence_at": "2026-09-18 17:16:13",
+          "type": "attend"
+        }
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/Presences/2243739"
+      }
+    },
+    {
+      "type": "Presences",
+      "id": "2243740",
+      "attributes": {
+        "course_id": 95326,
+        "class_id": 87103,
+        "start_at": "2026-10-16T15:00:00+07:00",
+        "end_at": "2026-10-16T23:59:00+07:00",
+        "presence_start": "2026-10-16T15:00:00+07:00",
+        "presence_end": "2026-10-16T23:59:00+07:00",
+        "topic": "Tugas",
+        "is_sent": 1,
+        "created_at": "2026-09-11T14:23:14+07:00",
+        "updated_at": "2026-09-28T05:25:36+07:00",
+        "note": "Presensi dengan submit Tugas 02 Bab II",
+        "act_code": "K",
+        "presentable": [
+          {
+            "id": 25626,
+            "presence_id": 2243740,
+            "course_id": 95326,
+            "presentable_id": "117003",
+            "presentable": "assignment",
+            "created_at": "2026-09-28 05:35:56",
+            "updated_at": "2026-09-28 05:35:56"
+          }
+        ],
+        "url": "https://edunex.itb.ac.id/courses/95326/preview/450222",
+        "count_attandance": 0,
+        "attandance": {
+          "user_id": 900001,
+          "code": "18223901",
+          "name": "Dimas Pratama",
+          "presence_detail_id": null,
+          "status": null,
+          "presence_at": null,
+          "type": null
+        }
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/Presences/2243740"
+      }
+    },
+    {
+      "type": "Presences",
+      "id": "2243744",
+      "attributes": {
+        "course_id": 95326,
+        "class_id": 87103,
+        "start_at": "2026-10-30T15:00:00+07:00",
+        "end_at": "2026-10-30T23:59:00+07:00",
+        "presence_start": "2026-10-30T15:00:00+07:00",
+        "presence_end": "2026-10-30T23:59:00+07:00",
+        "topic": "Tugas",
+        "is_sent": 0,
+        "created_at": "2026-09-11T14:23:14+07:00",
+        "updated_at": "2026-09-28T05:26:47+07:00",
+        "note": "Presensi dengan submit Tugas 03 Bab III",
+        "act_code": "K",
+        "presentable": [
+          {
+            "id": 25623,
+            "presence_id": 2243744,
+            "course_id": 95326,
+            "presentable_id": "117010",
+            "presentable": "assignment",
+            "created_at": "2026-09-28 05:26:47",
+            "updated_at": "2026-09-28 05:26:47"
+          }
+        ],
+        "url": "https://edunex.itb.ac.id/courses/95326/preview/450222",
+        "count_attandance": 0,
+        "attandance": {
+          "user_id": 900001,
+          "code": "18223901",
+          "name": "Dimas Pratama",
+          "presence_detail_id": null,
+          "status": null,
+          "presence_at": null,
+          "type": null
+        }
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/Presences/2243744"
+      }
+    },
+    {
+      "type": "Presences",
+      "id": "2243746",
+      "attributes": {
+        "course_id": 95326,
+        "class_id": 87103,
+        "start_at": "2026-11-13T15:00:00+07:00",
+        "end_at": "2026-11-13T23:59:00+07:00",
+        "presence_start": "2026-11-13T15:00:00+07:00",
+        "presence_end": "2026-11-13T23:59:00+07:00",
+        "topic": "Tugas",
+        "is_sent": 0,
+        "created_at": "2026-09-11T14:23:14+07:00",
+        "updated_at": "2026-09-28T05:27:49+07:00",
+        "note": "Presensi dengan submit Tugas 04 Bab IV & V",
+        "act_code": "K",
+        "presentable": [
+          {
+            "id": 25624,
+            "presence_id": 2243746,
+            "course_id": 95326,
+            "presentable_id": "117023",
+            "presentable": "assignment",
+            "created_at": "2026-09-28 05:27:50",
+            "updated_at": "2026-09-28 05:27:50"
+          }
+        ],
+        "url": "https://edunex.itb.ac.id/courses/95326/preview/450222",
+        "count_attandance": 0,
+        "attandance": {
+          "user_id": 900001,
+          "code": "18223901",
+          "name": "Dimas Pratama",
+          "presence_detail_id": null,
+          "status": null,
+          "presence_at": null,
+          "type": null
+        }
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/Presences/2243746"
+      }
+    },
+    {
+      "type": "Presences",
+      "id": "2243748",
+      "attributes": {
+        "course_id": 95326,
+        "class_id": 87103,
+        "start_at": "2026-11-18T14:00:00+07:00",
+        "end_at": "2026-11-18T16:00:00+07:00",
+        "presence_start": "2026-11-18T14:00:00+07:00",
+        "presence_end": "2026-11-18T16:00:00+07:00",
+        "topic": null,
+        "is_sent": 0,
+        "created_at": "2026-09-11T14:23:14+07:00",
+        "updated_at": "2026-09-11T14:23:14+07:00",
+        "note": null,
+        "act_code": "K",
+        "presentable": [],
+        "url": null,
+        "count_attandance": 0,
+        "attandance": {
+          "user_id": 900001,
+          "code": "18223901",
+          "name": "Dimas Pratama",
+          "presence_detail_id": null,
+          "status": null,
+          "presence_at": null,
+          "type": null
+        }
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/Presences/2243748"
+      }
+    },
+    {
+      "type": "Presences",
+      "id": "2243749",
+      "attributes": {
+        "course_id": 95326,
+        "class_id": 87103,
+        "start_at": "2026-11-25T14:00:00+07:00",
+        "end_at": "2026-11-25T16:00:00+07:00",
+        "presence_start": "2026-11-25T14:00:00+07:00",
+        "presence_end": "2026-11-25T16:00:00+07:00",
+        "topic": null,
+        "is_sent": 0,
+        "created_at": "2026-09-11T14:23:14+07:00",
+        "updated_at": "2026-09-11T14:23:14+07:00",
+        "note": null,
+        "act_code": "K",
+        "presentable": [],
+        "url": null,
+        "count_attandance": 0,
+        "attandance": {
+          "user_id": 900001,
+          "code": "18223901",
+          "name": "Dimas Pratama",
+          "presence_detail_id": null,
+          "status": null,
+          "presence_at": null,
+          "type": null
+        }
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/Presences/2243749"
+      }
+    },
+    {
+      "type": "Presences",
+      "id": "2243750",
+      "attributes": {
+        "course_id": 95326,
+        "class_id": 87103,
+        "start_at": "2026-12-02T14:00:00+07:00",
+        "end_at": "2026-12-02T16:00:00+07:00",
+        "presence_start": "2026-12-02T14:00:00+07:00",
+        "presence_end": "2026-12-02T16:00:00+07:00",
+        "topic": null,
+        "is_sent": 0,
+        "created_at": "2026-09-11T14:23:14+07:00",
+        "updated_at": "2026-09-11T14:23:14+07:00",
+        "note": null,
+        "act_code": "K",
+        "presentable": [],
+        "url": null,
+        "count_attandance": 0,
+        "attandance": {
+          "user_id": 900001,
+          "code": "18223901",
+          "name": "Dimas Pratama",
+          "presence_detail_id": null,
+          "status": null,
+          "presence_at": null,
+          "type": null
+        }
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/Presences/2243750"
+      }
+    }
+  ],
+  "links": {
+    "first": "https://api-edunex.cognisia.id/course/Presences?q=/api/v1/presences&filter[course_id][is]=95326&filter[class_id][is]=87103&sort=start_at&page[limit]=10&page[offset]=0",
+    "last": "https://api-edunex.cognisia.id/course/Presences?q=/api/v1/presences&filter[course_id][is]=95326&filter[class_id][is]=87103&sort=start_at&page[limit]=10&page[offset]=0",
+    "next": null,
+    "prev": null
+  }
+}
