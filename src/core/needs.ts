@@ -18,11 +18,12 @@ import {
   type PresenceActivity,
   presenceAction,
 } from "./attendance";
+import { billNeedsStudent, krsWindows } from "./academic";
 import { materialKind } from "./course-materials";
 import { type AnnouncedMeeting, announcedMeetings, wibDay } from "./course-meetings";
 import { dateVars, sameLocalDay, weekdayVars } from "./dates";
 import { type Exam, mergeExams } from "./exams";
-import type { AcademicCalendar, Alert, AlertKind, Announcement, ClassSession, EdunexExam, Material, PresenceSession, SixCourse, Task } from "./models";
+import type { AcademicCalendar, Alert, AlertKind, Announcement, Bill, ClassSession, EdunexExam, KrsPlan, Material, PresenceSession, SixCourse, Task } from "./models";
 import type { Route } from "./route";
 import { dayStart, isScheduleReminder, slotMarks, weekStart } from "./schedule";
 import { editedAfterSubmit, isOpenStatus, notOpenYet, shortWindow, takesAnswers, taskStatus } from "./tasks";
@@ -69,6 +70,9 @@ export interface HomeWorld {
   /** EduNex's exams by course code. */
   exams?: Readonly<Record<string, readonly EdunexExam[]>>;
   calendar: AcademicCalendar | undefined;
+  /** SIX's study plan (KRS) for the term, and the UKT bills. */
+  krs?: KrsPlan;
+  bills?: readonly Bill[];
 }
 
 /** What every provider shares, worked out once. */
@@ -146,7 +150,9 @@ export type NeedFacts =
   | { kind: "task"; task: Task; reason: "overdue" | "short" | "due" | "edited"; draft: boolean }
   | { kind: "attendance"; health: AttendanceHealth; target: number }
   | { kind: "meeting"; meeting: AnnouncedMeeting }
-  | { kind: "exam"; exam: Exam; sitting: ExamSitting; disagree: boolean };
+  | { kind: "exam"; exam: Exam; sitting: ExamSitting; disagree: boolean }
+  | { kind: "krs"; closesAt: number; open: boolean; window: "drs" }
+  | { kind: "bill"; bill: Bill; overdue: boolean };
 
 /** When and where an exam is sat: SIX's session (with its room) or EduNex's dated exam. */
 export interface ExamSitting {
@@ -162,6 +168,7 @@ export type Need = NeedBase & NeedFacts;
 export type NeedDraft = Omit<NeedBase, "rank"> & NeedFacts;
 
 export interface NeedProvider {
+  /** The first kind it gives, for the ranking (one provider may give more kinds). */
   area: NeedFacts["kind"];
   needs(context: HomeContext): NeedDraft[];
 }
@@ -171,13 +178,15 @@ const BAND_ORDER: Record<Band, number> = { now: 0, soon: 1, later: 2 };
 /** Every item from every provider, ranked. */
 export function needsYou(world: HomeWorld | HomeContext, providers: readonly NeedProvider[] = PROVIDERS): Need[] {
   const context = "health" in world ? world : homeContext(world);
-  const area = new Map(providers.map((provider, i) => [provider.area, i]));
+  const area = new Map<string, number>(providers.map((provider, i) => [provider.area, i]));
+  // A provider's other kinds rank with it.
+  if (area.has("krs")) area.set("bill", area.get("krs")!);
   return providers
     .flatMap((provider) => provider.needs(context))
     .sort(
       (a, b) =>
         BAND_ORDER[a.band] - BAND_ORDER[b.band] ||
-        area.get(a.kind)! - area.get(b.kind)! ||
+        (area.get(a.kind) ?? providers.length) - (area.get(b.kind) ?? providers.length) ||
         (a.at ?? Number.MAX_SAFE_INTEGER) - (b.at ?? Number.MAX_SAFE_INTEGER) ||
         a.id.localeCompare(b.id),
     )
@@ -520,8 +529,56 @@ export const examProvider: NeedProvider = {
   },
 };
 
+/**
+ * SIX's study-plan steps the Student must take: a KRS not sent while ITB's
+ * DRS window is open or opens within the week (now when it closes within a
+ * day, else soon); and a UKT bill overdue or due within the week.
+ */
+export const academicProvider: NeedProvider = {
+  area: "krs",
+  needs(context) {
+    const { now } = context;
+    const out: NeedDraft[] = [];
+    const plan = context.krs;
+    if (plan && plan.state === "not-sent") {
+      const { drs } = krsWindows(context.calendar, plan.term);
+      if (drs && drs.end > now && drs.start - now <= AHEAD) {
+        const open = drs.start <= now;
+        out.push({
+          id: `krs:${plan.term}`,
+          kind: "krs",
+          course: null,
+          band: open && drs.end - now <= DUE_NOW ? "now" : "soon",
+          at: open ? drs.end : drs.start,
+          sources: ["six"],
+          action: { kind: "go", route: { screen: "plan", tab: "krs" } },
+          closesAt: drs.end,
+          open,
+          window: "drs",
+        });
+      }
+    }
+    for (const bill of context.bills ?? []) {
+      if (!billNeedsStudent(bill, now) || bill.nextDueAt === null) continue;
+      const overdue = bill.nextDueAt < now;
+      out.push({
+        id: `bill:${bill.term}`,
+        kind: "bill",
+        course: null,
+        band: overdue || bill.nextDueAt - now <= DUE_NOW ? "now" : "soon",
+        at: bill.nextDueAt,
+        sources: ["six"],
+        action: { kind: "go", route: { screen: "plan", tab: "bills" } },
+        bill,
+        overdue,
+      });
+    }
+    return out;
+  },
+};
+
 /** In ranking order within a band. */
-export const PROVIDERS: readonly NeedProvider[] = [presenceProvider, classProvider, examProvider, taskProvider, meetingProvider, attendanceProvider];
+export const PROVIDERS: readonly NeedProvider[] = [presenceProvider, classProvider, examProvider, taskProvider, meetingProvider, attendanceProvider, academicProvider];
 
 // ---------------------------------------------------------------- today
 
@@ -655,6 +712,127 @@ export function recentChanges(world: HomeWorld | HomeContext, history: readonly 
     if (item.at > now || now - item.at > RECENT || seenIds.has(item.id) || seenAs.has(sameness(item))) continue;
     seenIds.add(item.id);
     seenAs.add(sameness(item));
+    out.push(item);
+  }
+  return out.sort((a, b) => b.at - a.at || a.id.localeCompare(b.id));
+}
+
+// ---------------------------------------------------------------- Beranda's three answers
+
+/** An EduNex Presence window open now, and whether doing it counts. */
+export interface OpenPresence {
+  code: string;
+  session: PresenceSession;
+  activity: PresenceActivity;
+  task: Task | null;
+  /** The Presence itself when EduNex gives its page; else where the action is done. */
+  url: string;
+  /**
+   * Doing it counts for attendance: EduNex keeps the count. False when SIX
+   * counts and EduNex's record doesn't keep up: the window is open, but
+   * sitting in class is what counts. Null while SIX has no count for the
+   * course (not connected): nobody can say yet, and the app doesn't guess.
+   */
+  counts: boolean | null;
+}
+
+/**
+ * "Sekarang": the class going on (or else the next one today, or the next
+ * one at all within the week), where its attendance counts, and the EduNex
+ * Presence open for it. Without a class, an open Presence alone.
+ */
+export interface NowCard {
+  state: "live" | "next" | "later" | "presence";
+  class: ClassFacts | null;
+  presence: OpenPresence | null;
+  /** The class after this one today. */
+  after: ClassSession | null;
+}
+
+export function nowCard(world: HomeWorld | HomeContext): NowCard | null {
+  const context = "health" in world ? world : homeContext(world);
+  const { now } = context;
+  const schedule = [...(context.schedule ?? [])].sort((a, b) => a.start - b.start);
+  const day = today(context);
+  const todays = schedule.filter((s) => wibDay(s.start) === day);
+  const live = todays.find((s) => s.start <= now && now < s.end) ?? null;
+  const next = todays.find((s) => s.start > now) ?? null;
+  const later = !live && !next ? (schedule.find((s) => s.start > now && s.start - now <= AHEAD) ?? null) : null;
+  const current = live ?? next ?? later;
+  const windows = openWindows(context.presence, now);
+  const counts = (code: string): boolean | null => {
+    if (!context.courses.find((course) => course.code === code)?.six) return null;
+    return context.health.get(code)?.countedIn !== "six";
+  };
+  // The window for this class; else, between classes, one that counts (it closes first, so it leads); else, with no class at all, any.
+  const window =
+    (current && windows.find((w) => w.code === current.courseCode && current.start < w.session.closesAt && w.session.opensAt < current.end)) ??
+    (live ? null : (windows.find((w) => counts(w.code) !== false) ?? (current ? null : (windows[0] ?? null))));
+  const lead = window && current && window.code !== current.courseCode ? null : current;
+  if (!lead && !window) return null;
+  let presence: OpenPresence | null = null;
+  if (window) {
+    const action = presenceAction(window.session, context.tasks);
+    presence = { code: window.code, session: window.session, activity: action.activity, task: action.task, url: action.url, counts: counts(window.code) };
+  }
+  const shown = lead;
+  return {
+    state: !shown ? "presence" : shown === live ? "live" : shown === next ? "next" : "later",
+    class: shown ? classFacts(context, shown) : null,
+    presence,
+    after: shown && wibDay(shown.start) === day ? (todays.find((s) => s.start > shown.start) ?? null) : null,
+  };
+}
+
+/**
+ * "Perlu perhatianmu": what needs the Student this week that "Sekarang" and
+ * "Hari ini" don't already show. Out: today's classes and their risk (each
+ * class row carries it, except a target out of reach: that's the course's, with its own step), the Presence on the card, meetings and deadlines of
+ * today and tomorrow (in "Hari ini"), and exams sat in today's classes.
+ */
+export function attention(world: HomeWorld | HomeContext, card: NowCard | null = null, plan?: TodayPlan): Need[] {
+  const context = "health" in world ? world : homeContext(world);
+  const day = today(context);
+  const tomorrow = wibDay(context.now + DAY);
+  const shownToday = plan ?? todayPlan(context);
+  const due = new Set(shownToday.due.map((task) => task.id));
+  const meetsToday = new Set(shownToday.classes.filter((c) => c.session.end > context.now).map((c) => c.session.courseCode));
+  const soon = (at: number) => wibDay(at) === day || wibDay(at) === tomorrow;
+  return needsYou(context)
+    .filter((need) => {
+      switch (need.kind) {
+        case "class":
+          return false;
+        case "presence":
+          return need.session.id !== card?.presence?.session.id;
+        case "meeting":
+          return !soon(need.meeting.start);
+        case "task":
+          return need.reason === "edited" || !due.has(need.task.id);
+        case "exam":
+          return !(need.sitting.source === "six" && wibDay(need.sitting.start) === day);
+        case "attendance":
+          // "No absences left" is on the class row; out of reach is the course's, with its own step.
+          return need.health.state === "out" || !meetsToday.has(need.course ?? "");
+        default:
+          return true;
+      }
+    })
+    .map((need, i) => ({ ...need, rank: i + 1 }));
+}
+
+/**
+ * The bell's history: every alert the app raised (reminders too), with the
+ * changes it can see in the data itself, so the bell and Beranda's "Yang
+ * berubah" never disagree. A first sync is silent (nothing raised), which is
+ * why the history alone was empty while the datasets showed changes. Newest first.
+ */
+export function alertFeed(world: HomeWorld | HomeContext, history: readonly Alert[]): Alert[] {
+  const seen = new Set<string>();
+  const out: Alert[] = [];
+  for (const item of [...history, ...recentChanges(world, history)]) {
+    if (seen.has(item.id) || item.at > world.now) continue;
+    seen.add(item.id);
     out.push(item);
   }
   return out.sort((a, b) => b.at - a.at || a.id.localeCompare(b.id));
