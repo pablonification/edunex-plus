@@ -25,6 +25,8 @@ export interface IcsItem {
   url?: string | null;
   /** Doesn't make the Student busy (a deadline). */
   free?: boolean;
+  /** Whole days (an exam week, a holiday): `start` is the first day's WIB midnight, `end` the midnight after the last. */
+  allDay?: boolean;
 }
 
 /** Text values escape backslashes, semicolons, commas and line breaks. */
@@ -32,6 +34,9 @@ const escapeText = (text: string) => text.replace(/\\/g, "\\\\").replace(/;/g, "
 
 /** "20261008T080000" in WIB. */
 const wibStamp = (ms: number) => new Date(ms + WIB).toISOString().slice(0, 19).replace(/[-:]/g, "");
+/** "20261008": the WIB day. */
+const wibDate = (ms: number) => wibStamp(ms).slice(0, 8);
+const DAY = 24 * 3_600_000;
 /** "20261008T010000Z". */
 const utcStamp = (ms: number) => `${new Date(ms).toISOString().slice(0, 19).replace(/[-:]/g, "")}Z`;
 
@@ -86,9 +91,11 @@ export function writeIcs(items: readonly IcsItem[], options: { name: string; now
       `DTSTAMP:${utcStamp(now)}`,
       `LAST-MODIFIED:${utcStamp(now)}`,
       `SEQUENCE:${sequence}`,
-      `DTSTART;TZID=${ICS_ZONE}:${wibStamp(item.start)}`,
-      // RFC 5545: the end must come after the start, or some calendars refuse the event.
-      `DTEND;TZID=${ICS_ZONE}:${wibStamp(item.end > item.start ? item.end : item.start + SHORTEST)}`,
+      ...(item.allDay
+        ? // Whole days: the end is the day after the last, and never before the day after the first.
+          [`DTSTART;VALUE=DATE:${wibDate(item.start)}`, `DTEND;VALUE=DATE:${wibDate(Math.max(item.end, item.start + DAY))}`]
+        : // RFC 5545: the end must come after the start, or some calendars refuse the event.
+          [`DTSTART;TZID=${ICS_ZONE}:${wibStamp(item.start)}`, `DTEND;TZID=${ICS_ZONE}:${wibStamp(item.end > item.start ? item.end : item.start + SHORTEST)}`]),
       `SUMMARY:${escapeText(item.summary)}`,
     );
     if (item.location) lines.push(`LOCATION:${escapeText(item.location)}`);

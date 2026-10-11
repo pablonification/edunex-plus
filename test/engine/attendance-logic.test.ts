@@ -118,6 +118,36 @@ describe("meetings left to the last lecture day", () => {
     expect(usualSlots(sessions)).toEqual([{ weekday: 4, start: 16 * 60, length: 2 * HOUR }]);
   });
 
+  it("a lecture SIX still lists inside the UTS week counts, marked uncertain, each meeting with its date", () => {
+    // SIX keeps the Thursday lecture in the 15 Oct slot of Masa UTS; it may not happen.
+    const schedule = weekly("PL3002", "2026-08-27T08:00:00", 10);
+    const left = meetingsLeft("PL3002", schedule, period, wib("2026-10-08T12:00:00"));
+    expect(left.count).toBe(8);
+    expect(left.upcoming).toHaveLength(8);
+    expect(left.upcoming.map((m) => [wibDate(m.start), m.estimated, m.uncertain])).toEqual([
+      ["2026-10-15", false, true],
+      ["2026-10-22", false, false],
+      ["2026-10-29", false, false],
+      ["2026-11-05", true, false],
+      ["2026-11-12", true, false],
+      ["2026-11-19", true, false],
+      ["2026-11-26", true, false],
+      ["2026-12-03", true, false],
+    ]);
+    // The next meeting is SIX's next, uncertain or not: a Student with no absences left must not skip it.
+    expect(wibDate(left.next!.start)).toBe("2026-10-15");
+    expect(left.upcoming[0].session?.id).toBe(left.next!.id);
+  });
+
+  it("a meeting in an exam week with a hand-in for attendance that day isn't uncertain: the lecturer set it", () => {
+    const schedule = [session("II4091", "2026-10-16T15:00:00", 8), session("II4091", "2026-10-30T15:00:00", 8)];
+    const handIn = presence(2243740, "2026-10-16T15:00:00", 539, { courseId: 95326, countsBy: [{ kind: "assignment", id: "117003" }] });
+    const viewCourse = presence(2243741, "2026-10-15T15:00:00", 90, { courseId: 95326 });
+    expect(meetingsLeft("II4091", schedule, period, wib("2026-10-08T12:00:00")).upcoming[0].uncertain).toBe(true);
+    expect(meetingsLeft("II4091", schedule, period, wib("2026-10-08T12:00:00"), [viewCourse]).upcoming[0].uncertain).toBe(true);
+    expect(meetingsLeft("II4091", schedule, period, wib("2026-10-08T12:00:00"), [handIn]).upcoming[0].uncertain).toBe(false);
+  });
+
   it("without the calendar, only SIX's listed sessions count, and not as an estimate", () => {
     const left = meetingsLeft("PL3002", weekly("PL3002", "2026-08-27T08:00:00", 10), null, wib("2026-10-08T12:00:00"));
     expect(left).toMatchObject({ count: 3, estimated: false });
