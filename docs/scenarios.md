@@ -128,6 +128,14 @@ screens.
 | HTML instead of JSON | `mangle(path, { kind: "html" })` | #71 onward |
 | SIX table layout changed | `world.six.changeLayout(path, from, to)` | #76 onward |
 
+## The app's own updates
+
+| State | How | Ticket |
+|---|---|---|
+| A newer release on GitHub | `world.github.latestTag = "v2.1.0"` | #82 |
+| Already the latest, or nothing published | `latestTag` = the running version, or `null` (404) | #82 |
+| GitHub refuses or is unreachable | `world.github.failWith = 403`, `world.setOffline(true)` | #82 |
+
 Tickets named v2-15 to v2-18 come from the approved prototype (public
 sources, attendance guard, exams, what changed + first-run scan) and are not
 filed on GitHub yet.

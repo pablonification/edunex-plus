@@ -39,6 +39,8 @@ export interface Options {
   /** What the Student does in the sign-in window. */
   signInWindow?: "completes" | "closes";
   vaultMode?: AppSnapshot["vault"];
+  /** Run the packaged app's "new version available" check against the pretend GitHub. */
+  checkForUpdates?: boolean;
 }
 
 export async function openApp(options: Options = {}) {
@@ -52,6 +54,7 @@ export async function openApp(options: Options = {}) {
     storage,
     vault,
     version: "2.0.0-test",
+    checkForUpdates: options.checkForUpdates,
     random: () => 0.5,
     emit: (event: Event) => {
       for (const listener of listeners) listener(event);
@@ -123,6 +126,7 @@ export async function openApp(options: Options = {}) {
       return {};
     },
     "alerts.test": async () => ({ shown: true }),
+    "app.openRelease": async () => ({}),
     // Handing in runs main's real handlers; only the system file picker is pretend.
     ...handInHandlers(engine, async () => {
       const files = nextPick;

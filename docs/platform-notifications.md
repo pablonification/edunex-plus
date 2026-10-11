@@ -20,6 +20,10 @@ Linux it depends on the desktop's notification daemon.
 - The dev build's `node_modules/electron/dist/Electron.app` is **linker-signed**
   and must be re-signed ad-hoc; `scripts/adhoc-sign-electron.mjs` does this as a
   `postinstall`. "Coba notifikasi" in Settings fires one on demand.
+- Packaged builds (`npm run package:mac`) are signed ad-hoc by electron-builder
+  (`identity: "-"`, no hardened runtime, which would refuse Electron's own
+  frameworks under an ad-hoc signature). Check with `codesign -dv`:
+  `Signature=adhoc`.
 - Known residue: downloaded ad-hoc packaged builds hit Gatekeeper on first
   launch (right-click → Open). Accepted and documented, not solved.
 - Test notification appeared in Notification Center on 2026-09-05
@@ -36,11 +40,11 @@ Linux it depends on the desktop's notification daemon.
 - A Start-Menu shortcut carrying the same AppUserModelID is what makes toasts
   come from "Edunex Plus" instead of a generic identity — installed builds
   handle this via the installer; portable/dev builds may show the raw
-  identity. Wire the shortcut in the packaging slice.
-- The tray icon (`assets/trayTemplate.png`) uses macOS's "Template" naming
-  convention, which Windows ignores — it renders as a raw dark glyph that can
-  disappear against a dark taskbar. Still to do: a light-outline Windows
-  variant selected by platform.
+  identity. The NSIS installer (`npm run package:win`) creates that shortcut;
+  electron-builder's `appId` is the same `id.edunexplus.desktop`.
+- The tray icon follows the taskbar: `assets/trayLight.png` (white) when
+  Windows' system UI is dark (`nativeTheme.shouldUseDarkColorsForSystemIntegratedUI`),
+  the dark glyph otherwise, switching live when the setting changes.
 
 ## Persistence and delivery
 

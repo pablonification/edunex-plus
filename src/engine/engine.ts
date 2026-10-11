@@ -3,6 +3,7 @@
 // Electron's main process; tests run it whole against the pretend world.
 import type { Event, Snapshot } from "../core/contract";
 import { type DatasetName, Datasets, DEFAULT_SETTINGS, Settings, SourceId, SourceStatus } from "../core/models";
+import { isNewerRelease } from "../core/updates";
 import { type AlertNotice, AlertCenter } from "./alerts/center";
 import type { Detector } from "./alerts/detector";
 import { DETECTORS } from "./alerts/detectors";
@@ -15,6 +16,7 @@ import type { FeedSpec, SourceContext } from "./sources/source";
 import { DatasetStore } from "./store/datasets";
 import type { Storage, Vault } from "./store/storage";
 import { Scheduler } from "./sync/scheduler";
+import { createUpdateCheck } from "./updates";
 
 export interface EngineDeps {
   transport: Transport;
@@ -30,6 +32,8 @@ export interface EngineDeps {
   alert?(notice: AlertNotice): void;
   /** Defaults to every alert detector. */
   detectors?: readonly Detector[];
+  /** Asks GitHub once a day for a newer release (packaged builds only). */
+  checkForUpdates?: boolean;
 }
 
 export interface Engine {
@@ -85,6 +89,19 @@ export function createEngine(deps: EngineDeps): Engine {
   // Feeds report their own outcome (see addFeed); the scheduler only uses failures to back off.
   const scheduler = new Scheduler(clock, () => undefined, deps.random);
   const userAgent = `EdunexPlus/${deps.version} (+https://github.com/pablonification/edunex-plus)`;
+  const updates = deps.checkForUpdates
+    ? createUpdateCheck({
+        transport: deps.transport,
+        clock,
+        storage,
+        version: deps.version,
+        userAgent,
+        publish: async (notice) => {
+          if (notice) await store.set("app.update", notice, clock.now());
+          else await store.remove("app.update");
+        },
+      })
+    : null;
   const sourceOf = (feed: string) => feed.split(".")[0] as SourceId;
   const generation = (source: SourceId) => generations.get(source) ?? 0;
 
@@ -225,6 +242,9 @@ export function createEngine(deps: EngineDeps): Engine {
     async load() {
       await store.load();
       await alerts.load();
+      // A notice saved before this version was installed.
+      const notice = store.get("app.update");
+      if (notice && !isNewerRelease(notice.version, deps.version)) await store.remove("app.update");
       try {
         const saved = JSON.parse((await storage.read("state.json")) ?? "null");
         if (saved?.format === STATE_FORMAT) {
@@ -259,11 +279,13 @@ export function createEngine(deps: EngineDeps): Engine {
     start() {
       scheduler.start();
       alerts.start();
+      updates?.start();
     },
 
     stop() {
       scheduler.stop();
       alerts.stop();
+      updates?.stop();
     },
 
     snapshot() {

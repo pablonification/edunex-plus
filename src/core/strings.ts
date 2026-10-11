@@ -18,6 +18,7 @@ import { shellStrings } from "./strings/shell";
 import { sixStrings } from "./strings/six";
 import { sixRecordsStrings } from "./strings/six-records";
 import { tasksStrings } from "./strings/tasks";
+import { updatesStrings } from "./strings/updates";
 
 export type { Entry } from "./strings/entry";
 
@@ -36,6 +37,7 @@ export const STRINGS = {
   ...scheduleStrings,
   ...homeStrings,
   ...searchStrings,
+  ...updatesStrings,
 } as const satisfies Record<string, Entry>;
 
 

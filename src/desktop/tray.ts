@@ -1,9 +1,9 @@
 // The tray (menu bar on macOS) icon that keeps the app reachable while its
 // window is closed and it keeps alerting: Open and Quit, in the Student's
-// language. assets/trayTemplate.png comes from scripts/generate-tray-icon.mjs;
-// macOS tints "Template" images itself. Windows shows the same dark glyph,
-// which a dark taskbar can hide (a light variant is still to be drawn).
-import { app, Menu, nativeImage, Tray } from "electron";
+// language. The icons come from scripts/generate-tray-icon.mjs: macOS tints
+// the "Template" image itself; Windows gets the dark or the light glyph to
+// match its taskbar, and switches when the Student changes it.
+import { app, Menu, type NativeImage, nativeImage, nativeTheme, Tray } from "electron";
 import path from "node:path";
 import type { Lang } from "../core/models";
 import { translate } from "../core/strings";
@@ -15,9 +15,8 @@ export interface AppTray {
 
 /** The tray icon, or null where the system has none to offer. */
 export function createTray(options: { lang: Lang; open: () => void; quit: () => void }): AppTray | null {
-  const image = nativeImage.createFromPath(path.join(app.getAppPath(), "assets", "trayTemplate.png"));
+  const image = icon();
   if (image.isEmpty()) return null;
-  image.setTemplateImage(true);
   let tray: Tray;
   try {
     tray = new Tray(image);
@@ -38,8 +37,24 @@ export function createTray(options: { lang: Lang; open: () => void; quit: () => 
   build(options.lang);
   // Windows and Linux: a click on the icon opens the window; the menu is on right-click.
   if (process.platform !== "darwin") tray.on("click", options.open);
+  const repaint = () => {
+    if (!tray.isDestroyed()) tray.setImage(icon());
+  };
+  if (process.platform === "win32") nativeTheme.on("updated", repaint);
   return {
     setLang: build,
-    destroy: () => tray.destroy(),
+    destroy: () => {
+      nativeTheme.off("updated", repaint);
+      tray.destroy();
+    },
   };
+}
+
+function icon(): NativeImage {
+  const assets = path.join(app.getAppPath(), "assets");
+  // The taskbar's own theme, which can differ from the apps' (Windows' "custom" colors).
+  if (process.platform === "win32" && nativeTheme.shouldUseDarkColorsForSystemIntegratedUI) return nativeImage.createFromPath(path.join(assets, "trayLight.png"));
+  const image = nativeImage.createFromPath(path.join(assets, "trayTemplate.png"));
+  image.setTemplateImage(true);
+  return image;
 }

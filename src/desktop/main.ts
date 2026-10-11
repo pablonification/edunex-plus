@@ -18,6 +18,7 @@ import { coreHandlers } from "./handlers/core";
 import { coursePageHandlers } from "./handlers/course-page";
 import { sixHandlers } from "./handlers/six";
 import { tasksHandlers } from "./handlers/tasks";
+import { updatesHandlers } from "./handlers/updates";
 import { type Handlers, registerBridge } from "./ipc";
 import { installMenu } from "./menu";
 import { createNotifier } from "./notifications";
@@ -73,7 +74,7 @@ async function start(): Promise<void> {
   denyPermissions(engineSession);
   denyPermissions(session.defaultSession);
 
-  const current = createEngine({ transport: electronTransport(engineSession), clock: systemClock, storage, vault, version: __APP_VERSION__, emit: send, alert: (notice) => void notifier.show(notice) });
+  const current = createEngine({ transport: electronTransport(engineSession), clock: systemClock, storage, vault, version: __APP_VERSION__, checkForUpdates: packaged, emit: send, alert: (notice) => void notifier.show(notice) });
   engine = current;
   await current.load();
 
@@ -117,6 +118,7 @@ async function start(): Promise<void> {
     ...coursePageHandlers(context),
     ...sixHandlers(context),
     ...alertsHandlers(context),
+    ...updatesHandlers(context),
   };
   registerBridge({ window: () => window, isAppUrl, handlers });
   applySettings(current.snapshot().settings);

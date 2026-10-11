@@ -1,7 +1,7 @@
 node_modules/
 dist/
 out/
-Edunex Plus-darwin-*/
+release/
 .env
 .env.*
 .DS_Store

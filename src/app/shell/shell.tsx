@@ -128,6 +128,7 @@ function Sidebar({ onSettings }: { onSettings: () => void }) {
   const { route, go } = useNav();
   const account = useDataset("edunex.account");
   const student = useDataset("six.student");
+  const update = useDataset("app.update");
   const courses = useTermCourses();
   const status = useStatus("edunex");
   const open = useOpenExternal();
@@ -230,7 +231,14 @@ function Sidebar({ onSettings }: { onSettings: () => void }) {
               {t("source.edunex")} · {status.updatedAt ? f.time(status.updatedAt) : t(`status.${status.state}`)}
             </span>
           </span>
-          <Icons.Settings className="ml-auto size-4 shrink-0 text-faint" />
+          <span className="relative ml-auto shrink-0">
+            <Icons.Settings className="size-4 text-faint" />
+            {update && (
+              <span className="absolute -top-0.5 -right-0.5 size-2 rounded-full bg-accent ring-2 ring-sidebar">
+                <span className="sr-only">{t("update.available")}</span>
+              </span>
+            )}
+          </span>
         </button>
       </div>
     </aside>

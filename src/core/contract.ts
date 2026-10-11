@@ -8,6 +8,7 @@ import { coreActions } from "./actions/core";
 import { coursePageActions } from "./actions/course-page";
 import { sixActions } from "./actions/six";
 import { tasksActions } from "./actions/tasks";
+import { updatesActions } from "./actions/updates";
 import { Settings, SourceStatus } from "./models";
 import { Route } from "./route";
 import { DatasetPayload } from "./snapshot";
@@ -26,6 +27,7 @@ export const Actions = {
   ...coursePageActions,
   ...sixActions,
   ...alertsActions,
+  ...updatesActions,
 } as const satisfies Record<string, { input: z.ZodType; output: z.ZodType }>;
 export type ActionName = keyof typeof Actions;
 export type ActionInput<N extends ActionName> = z.input<(typeof Actions)[N]["input"]>;

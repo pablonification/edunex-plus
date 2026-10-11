@@ -18,13 +18,13 @@ export interface Harness {
 }
 
 export async function startEngine(
-  options: { world?: PretendWorld; storage?: MemoryStorage; vault?: MemoryVault; now?: string; start?: boolean } = {},
+  options: { world?: PretendWorld; storage?: MemoryStorage; vault?: MemoryVault; now?: string; start?: boolean; version?: string; checkForUpdates?: boolean } = {},
 ): Promise<Harness> {
   const world = options.world ?? new PretendWorld({ now: options.now });
   const storage = options.storage ?? new MemoryStorage();
   const vault = options.vault ?? new MemoryVault();
   const events: Event[] = [];
-  const engine = createEngine({ transport: world, clock: world.clock, storage, vault, version: "2.0.0-test", emit: (e) => events.push(e), random: () => 0.5 });
+  const engine = createEngine({ transport: world, clock: world.clock, storage, vault, version: options.version ?? "2.0.0-test", checkForUpdates: options.checkForUpdates, emit: (e) => events.push(e), random: () => 0.5 });
   await engine.load();
   if (options.start !== false) engine.start();
   return {

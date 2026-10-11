@@ -1,6 +1,6 @@
-// Settings: theme, language, which alerts notify and what closing the window
-// does, the accounts, and a visible Sign out that removes every session and
-// saved trace from this computer.
+// Settings: a newer release when there is one, theme, language, which alerts
+// notify and what closing the window does, the accounts, and a visible Sign
+// out that removes every session and saved trace from this computer.
 import { useState, type ReactNode } from "react";
 import type { AlertGroup, Settings, SourceId } from "../../core/models";
 import type { StringKey } from "../../core/strings";
@@ -53,6 +53,8 @@ function SettingsBody({ onSignedOutOfEverything }: { onSignedOutOfEverything: ()
 
   return (
     <div className="space-y-7">
+      <UpdateNotice report={report} />
+
       <Group title={t("settings.appearance")}>
         <Row label={t("settings.theme")}>
           <Segmented
@@ -168,6 +170,23 @@ function AlertSettings({ settings, update, report }: { settings: Settings; updat
       <Row label={t("settings.alerts.test")}>
         <Button size="sm" busy={testing} onClick={() => void test()}>
           {t("settings.alerts.testAction")}
+        </Button>
+      </Row>
+    </Group>
+  );
+}
+
+/** A newer release on GitHub: shown only while there is one. The app never installs it itself. */
+function UpdateNotice({ report }: { report: (error: unknown) => void }) {
+  const t = useT();
+  const bridge = useBridge();
+  const update = useDataset("app.update");
+  if (!update) return null;
+  return (
+    <Group>
+      <Row label={t("update.available")} hint={t("update.version", { version: update.version })}>
+        <Button size="sm" variant="primary" onClick={() => void bridge.invoke("app.openRelease", {}).catch(report)}>
+          {t("update.download")}
         </Button>
       </Row>
     </Group>
