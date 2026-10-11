@@ -252,7 +252,7 @@ describe("meetings", () => {
   });
 
   it("a meeting has one number: EduNex's, never a second count of the app's", async () => {
-    const s = await openCourse("II4091");
+    await openCourse("II4091");
     await tab(/^Pertemuan/);
     const meetings = rows("main ol li");
     const oct9 = meetings.find((m) => m.includes("9 Okt"))!;

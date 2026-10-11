@@ -325,19 +325,12 @@ function ItemMark({ item, color }: { item: SearchItem; color: string | undefined
 }
 
 /** "12–16 Okt" from ITB's first and last day ("2026-10-12"), whatever the computer's time zone. */
-export function dayRange(f: Format, firstDay: string, lastDay: string): string {
-  const local = (day: string) => new Date(Number(day.slice(0, 4)), Number(day.slice(5, 7)) - 1, Number(day.slice(8, 10)), 12);
-  const [first, last] = [local(firstDay), local(lastDay)];
-  if (firstDay === lastDay) return f.dayMonth(first);
-  return first.getMonth() === last.getMonth() ? `${first.getDate()}–${f.dayMonth(last)}` : `${f.dayMonth(first)}–${f.dayMonth(last)}`;
-}
-
 /** When an exam is, as its row says it. */
 function examWhen(exam: Exam, t: Translate, f: Format): string {
   const session = exam.six[0];
   if (session) return `${f.relativeDay(session.start)}, ${f.timeRange(session.start, session.end)}${session.room ? ` · ${session.room}` : ""}`;
   if (exam.at !== null) return f.dueLabel(exam.at);
-  if (exam.week) return t("search.examWeek", { kind: t(`exam.kind.${exam.kind}`), range: dayRange(f, exam.week.firstDay, exam.week.lastDay) });
+  if (exam.week) return t("search.examWeek", { kind: t(`exam.kind.${exam.kind}`), range: f.dayRange(exam.week.firstDay, exam.week.lastDay) });
   return t("search.noDate");
 }
 

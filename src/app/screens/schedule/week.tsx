@@ -84,7 +84,7 @@ export function WeekView({ days, input }: { days: readonly string[]; input: Sche
 
 function BandLabel({ event, f, uncertain, short }: { event: CalendarEvent; f: Format; uncertain: boolean; short: boolean }) {
   const t = useT();
-  const span = event.firstDay === event.lastDay ? f.dayMonth(dayStart(event.firstDay) + 12 * 3_600_000) : dayRange(f, event.firstDay, event.lastDay);
+  const span = f.dayRange(event.firstDay, event.lastDay);
   return (
     <>
       <Icons.Flag className="size-3 shrink-0" strokeWidth={2} />
@@ -98,11 +98,6 @@ function BandLabel({ event, f, uncertain, short }: { event: CalendarEvent; f: Fo
 }
 
 /** "12–16 Okt", "26 Okt – 1 Nov". */
-export function dayRange(f: Format, first: string, last: string): string {
-  const [a, b] = [dayStart(first) + 12 * 3_600_000, dayStart(last) + 12 * 3_600_000];
-  return first.slice(0, 7) === last.slice(0, 7) ? `${Number(first.slice(8))}–${f.dayMonth(b)}` : `${f.dayMonth(a)} – ${f.dayMonth(b)}`;
-}
-
 function DayHead({ at, today, size }: { at: number; today: boolean; size: GridDay["size"] }) {
   const f = useFormat();
   const noon = at + 12 * 3_600_000;

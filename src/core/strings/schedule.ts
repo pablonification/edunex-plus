@@ -83,7 +83,8 @@ export const scheduleStrings = {
   "schedule.month.classes": { id: "{count} kuliah", en: { one: "{count} class", other: "{count} classes" } },
   "schedule.month.uncertain": { id: "{count} kuliah belum pasti", en: { one: "{count} class may not run", other: "{count} classes may not run" } },
   "schedule.month.meetings": { id: "{count} pertemuan", en: { one: "{count} meeting", other: "{count} meetings" } },
-  "schedule.month.clash": { id: "Bentrok", en: "Clash" },
+  "schedule.month.clashAt": { id: "Bentrok {time}", en: "Clash at {time}" },
+  "schedule.month.clashes": { id: "{count} bentrok", en: { one: "{count} clash", other: "{count} clashes" } },
   "schedule.month.nothing": { id: "Tidak ada jadwal di hari ini.", en: "Nothing on this day." },
   "schedule.month.showWeek": { id: "Lihat minggunya", en: "Show the week" },
 
@@ -148,7 +149,7 @@ export const scheduleStrings = {
   "exam.onEdunex": { id: "Di EduNex", en: "On EduNex" },
   "exam.due": { id: "Tenggat {when}", en: "Due {when}" },
   "exam.outlineOnly": { id: "Ada di daftar isi EduNex, belum ada tanggal", en: "In the EduNex outline, no date yet" },
-  "exam.week": { id: "{kind} {from}–{to}", en: "{kind} {from}–{to}" },
+  "exam.week": { id: "{kind} {range}", en: "{kind} {range}" },
   "exam.tileWeek": { id: "MINGGU", en: "WEEK" },
   "exam.disagree": { id: "Dua tanggal berbeda. Pastikan ke dosen.", en: "Two different dates. Check with your lecturer." },
   "exam.noDate": { id: "Belum ada tanggal", en: "No date yet" },

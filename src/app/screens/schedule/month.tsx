@@ -63,7 +63,7 @@ export function MonthView({ month, input, onShowWeek }: { month: MonthGrid; inpu
           const lines = inMonth ? monthLines(day, t, f, world) : [];
           const routine = inMonth ? routineCount(day, t) : null;
           const clashes = inMonth ? clashesOf(day, t, f) : [];
-          const summary = [...lines.map((l) => l.full), ...clashes, routine, period ? periodName(t, period) : null].filter(Boolean).join(", ");
+          const summary = [...lines.map((l) => l.full), ...clashes.map((c) => c.full), routine, period ? periodName(t, period) : null].filter(Boolean).join(", ");
           const label = summary ? `${f.dateLong(noon(day.day))}: ${summary}` : f.dateLong(noon(day.day));
           const cell = (
             <button
@@ -94,14 +94,15 @@ export function MonthView({ month, input, onShowWeek }: { month: MonthGrid; inpu
               ))}
               {lines.length > LINES && <span className="text-micro text-faint">{t("schedule.more", { count: lines.length - LINES })}</span>}
               {(routine || clashes.length > 0) && (
+                // The day's classes first, then the clash among them with its time ("Bentrok 16:00"), so it never reads as all of them clashing.
                 <span className="mt-auto flex min-w-0 flex-col gap-[3px] text-micro leading-[15px]">
+                  {routine && <span className="line-clamp-2 text-faint">{routine}</span>}
                   {clashes.length > 0 && (
-                    <span title={clashes.join(", ")} className="flex min-w-0 items-center gap-1 font-semibold text-warning-fg">
+                    <span title={clashes.map((c) => c.full).join(", ")} className="flex min-w-0 items-center gap-1 font-semibold text-warning-fg">
                       <Icons.Overlap className="size-3 shrink-0" strokeWidth={2} />
-                      <span className="truncate">{t("schedule.month.clash")}</span>
+                      <span className="truncate">{clashes.length === 1 ? t("schedule.month.clashAt", { time: clashes[0]!.from }) : t("schedule.month.clashes", { count: clashes.length })}</span>
                     </span>
                   )}
-                  {routine && <span className="line-clamp-2 text-faint">{routine}</span>}
                 </span>
               )}
             </button>
@@ -182,13 +183,13 @@ function monthLines(day: ScheduleDay, t: Translate, f: Format, world: ReturnType
   return lines;
 }
 
-/** Classes that share time, once per pair: "Bentrok KU5014 · PL3032 · 16:00–16:30". */
-function clashesOf(day: ScheduleDay, t: Translate, f: Format): string[] {
-  const seen = new Map<string, string>();
+/** Classes that share time, once per pair: "Bentrok KU5014 · PL3032 · 16:00–16:30", and when it starts. */
+function clashesOf(day: ScheduleDay, t: Translate, f: Format): { full: string; from: string }[] {
+  const seen = new Map<string, { full: string; from: string }>();
   for (const { session, overlaps } of day.classes) {
     for (const o of overlaps) {
       const pair = [session.courseCode, o.code].sort().join(" · ");
-      if (!seen.has(pair)) seen.set(pair, t("schedule.month.overlap", { pair, from: f.time(o.from), to: f.time(o.to) }));
+      if (!seen.has(pair)) seen.set(pair, { full: t("schedule.month.overlap", { pair, from: f.time(o.from), to: f.time(o.to) }), from: f.time(o.from) });
     }
   }
   return [...seen.values()];

@@ -37,9 +37,9 @@ function KindLabel({ exam, className }: { exam: Pick<Exam, "kind">; className?: 
   );
 }
 
-/** "Masa UTS 12 Okt–16 Okt". */
+/** "Masa UTS 12–16 Okt". */
 export const examWeekLabel = (t: Translate, f: Format, kind: "UTS" | "UAS", week: CalendarEvent) =>
-  t("exam.week", { kind: t(kind === "UTS" ? "calendar.kind.uts" : "calendar.kind.uas"), from: f.dayMonth(dayStart(week.firstDay)), to: f.dayMonth(dayStart(week.lastDay)) });
+  t("exam.week", { kind: t(kind === "UTS" ? "calendar.kind.uts" : "calendar.kind.uas"), range: f.dayRange(week.firstDay, week.lastDay) });
 const dayLabel = (f: Format, at: number) => `${f.weekdayShort(at)} ${f.dayMonth(at)}`;
 
 /** The day each source gives: "Kam 15 Okt" (SIX) and "Kam 22 Okt" (EduNex). */

@@ -19,6 +19,8 @@ export interface Format {
   weekdayShort(when: When): string;
   /** "8 Okt" / "8 Oct" */
   dayMonth(when: When): string;
+  /** Two days ("YYYY-MM-DD", WIB) as one span: "12–16 Okt", "30 Nov – 11 Des"; one day: "12 Okt". */
+  dayRange(first: string, last: string): string;
   /** "Kamis, 8 Oktober" / "Thursday, 8 October" */
   dateLong(when: When): string;
   /** "Hari ini" / "Besok" / "Kemarin", else "Kam, 8 Okt" */
@@ -74,6 +76,11 @@ export function makeFormat(lang: Lang, now: number): Format {
     weekday: (when) => weekdayFmt.format(ms(when)),
     weekdayShort,
     dayMonth,
+    dayRange: (first, last) => {
+      const noon = (day: string) => Date.parse(`${day}T12:00:00+07:00`);
+      if (first === last) return dayMonth(noon(first));
+      return first.slice(0, 7) === last.slice(0, 7) ? `${Number(first.slice(8, 10))}–${dayMonth(noon(last))}` : `${dayMonth(noon(first))} – ${dayMonth(noon(last))}`;
+    },
     dateLong: (when) => dateLongFmt.format(ms(when)),
     relativeDay,
     dueLabel: (when) => `${relativeDay(when)}, ${time(when)}`,

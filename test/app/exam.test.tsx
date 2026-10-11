@@ -33,7 +33,7 @@ describe("the exam list", () => {
     expect(row).toContain("Take-home: UTS Markom · tenggat Kam, 22 Okt, 23:50");
     expect(row).toContain("SIX: Kam 15 Okt · EduNex: Kam 22 Okt. Pastikan ke dosen.");
     expect(row).toContain("dalam 7 hari");
-    expect(examSection()?.querySelector("h2")?.parentElement?.textContent).toContain("Masa UTS 12 Okt–16 Okt");
+    expect(examSection()?.querySelector("h2")?.parentElement?.textContent).toContain("Masa UTS 12–16 Okt");
   });
 
   it("an exam that has passed moves to Selesai", async () => {

@@ -258,6 +258,8 @@ describe("Jadwal: the month", () => {
     expect(cell("Kamis, 8 Oktober")).toContain("PL3002 08:00: jadwal berubah");
     expect(cell("Kamis, 8 Oktober")).toContain("Bentrok KU5014 · PL3032 · 16:00–16:30");
     expect(cell("Kamis, 8 Oktober")).toContain("4 kuliah");
+    // On the cell: the day's classes, then the clash among them with its time, never read as all four clashing.
+    expect(s.button(/^Kamis, 8 Oktober/).textContent).toMatch(/4 kuliah\s*Bentrok 16:00$/);
     expect(cell("Jumat, 9 Oktober")).toContain("II4091 15:00: tidak ada di SIX");
     expect(cell("Jumat, 16 Oktober")).toContain("II4091 · Kumpulkan Tugas 02 Bab II sebelum 23:59 untuk hadir");
     // The routine is a count, not lines: no class codes on an ordinary Thursday.

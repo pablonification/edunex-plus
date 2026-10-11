@@ -5,7 +5,7 @@
 // perhatianmu" (the week ahead, never repeating today); then a short "Yang
 // berubah" (the bell has it all) and this term's courses. The reasoning lives
 // in src/core/needs.ts.
-import { type ReactNode, useMemo } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { rupiah } from "../../core/academic";
 import { type AttendanceState, percent } from "../../core/attendance";
 import { wibDay } from "../../core/course-meetings";
@@ -842,8 +842,30 @@ function Courses({ courses, nim, context }: { courses: TermCourse[] | undefined;
     );
   }
   if (courses.length === 0) return <EmptyState icon={<Icons.BookOpen className="size-5" />} title={t("home.noCourses")} />;
+  return <CourseGrid courses={courses} nim={nim} context={context} />;
+}
+
+const CARD_MIN = 220;
+const CARD_GAP = 12;
+
+/** The cards in even rows: five courses sit 3 + 2, not 4 + 1 with one left alone. */
+function CourseGrid({ courses, nim, context }: { courses: TermCourse[]; nim: string | undefined; context: HomeContext | undefined }) {
+  const list = useRef<HTMLUListElement>(null);
+  const [fits, setFits] = useState<number | null>(null);
+  useEffect(() => {
+    const element = list.current;
+    if (!element || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(([entry]) => setFits(Math.max(1, Math.floor((entry!.contentRect.width + CARD_GAP) / (CARD_MIN + CARD_GAP)))));
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+  const columns = fits === null ? null : Math.ceil(courses.length / Math.ceil(courses.length / fits));
   return (
-    <ul className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-3">
+    <ul
+      ref={list}
+      className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-3"
+      style={columns === null ? undefined : { gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}
+    >
       {courses.map((course) => (
         <li key={course.code}>
           <CourseCard course={course} nim={nim} state={context?.health.get(course.code)?.state ?? "unknown"} />

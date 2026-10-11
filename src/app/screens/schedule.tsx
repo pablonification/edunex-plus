@@ -20,7 +20,7 @@ import { Tooltip } from "../ui/overlays";
 import { ScheduleWorldProvider } from "./schedule/details";
 import { ExportButton } from "./schedule/export";
 import { MonthView } from "./schedule/month";
-import { dayRange, WeekView } from "./schedule/week";
+import { WeekView } from "./schedule/week";
 
 export { ExportButton } from "./schedule/export";
 
@@ -85,7 +85,7 @@ export function ScheduleScreen() {
     week ? setPlace({ week: shiftDay(monday, by * 7) }) : setPlace({ month: monthGrid(now, monthsBetween(thisMonth, month.month) + by).month });
   const showWeek = (day: string) => setPlace({ view: "week", week: weekStart(day) });
   const n = input ? termWeek(input.events, monday) : null;
-  const range = dayRange(f, days[0], days[6]);
+  const range = f.dayRange(days[0]!, days[6]!);
   const description = week
     ? n
       ? t("schedule.weekOf", { n, range })

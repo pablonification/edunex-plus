@@ -20,7 +20,6 @@ import { type IconProps, Icons } from "../ui/icons";
 import { Dialog } from "../ui/overlays";
 import { PanelBoundary } from "../ui/panel-boundary";
 import { isBuilt } from "./built";
-import { dayRange } from "./search";
 
 /** What the scan reads. */
 const SCANNED: readonly DatasetName[] = [
@@ -294,7 +293,7 @@ function describe(finding: Finding, t: Translate, f: Format, target: number): { 
               if (takeHomeOnly(exam)) return t("scan.exams.takeHome", { code, when: `${day(f, exam.at)}, ${f.time(exam.at)}` });
               return `${t("scan.exams.at", { name: exam.edunex[0]?.title ?? kind, code, when: `${day(f, exam.at)}, ${f.time(exam.at)}` })}${disagree}`;
             }
-            if (exam.week) return t("scan.exams.week", { kind, code, range: dayRange(f, exam.week.firstDay, exam.week.lastDay) });
+            if (exam.week) return t("scan.exams.week", { kind, code, range: f.dayRange(exam.week.firstDay, exam.week.lastDay) });
             return t("scan.exams.noDate", { name: kind, code });
           },
           t,
