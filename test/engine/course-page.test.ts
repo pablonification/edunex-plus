@@ -20,6 +20,8 @@ describe("course outline", () => {
     const outline = h.dataset("edunex.outline")!.II4091;
     expect(outline.lecturer).toBe("Dr. Hadi Halim, S.T., M.T.");
     expect(outline.credits).toBe(2);
+    // The program offering it: where ITB's catalog has its official name.
+    expect(outline.program).toBe("S1 - Sistem dan Teknologi Informasi");
     expect(outline.modules.map((m) => [m.courseId, m.title])).toEqual([
       [95326, "List Penawaran Topik TA"],
       [95326, "Template Proposal dan Laporan TA - Latex"],
