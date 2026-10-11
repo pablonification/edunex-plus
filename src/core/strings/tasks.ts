@@ -206,7 +206,7 @@ export const tasksStrings = {
   "examPage.copyQuestion": { id: "Salin pertanyaan untuk dosen", en: "Copy a question for your lecturer" },
   "examPage.copied": { id: "Pertanyaan tersalin. Tempel di chat atau email ke dosen.", en: "Question copied. Paste it into a chat or an email to your lecturer." },
   "examPage.question": {
-    id: "Selamat siang Bapak/Ibu, mohon maaf mengganggu. Untuk {kind} {code} {name}, SIX mencantumkan {six}, sedangkan EduNex {edunex}. Mohon konfirmasi tanggal dan bentuk ujian yang benar. Terima kasih.",
+    id: "{greeting} Bapak/Ibu, mohon maaf mengganggu. Untuk {kind} {code} {name}, SIX mencantumkan {six}, sedangkan EduNex {edunex}. Mohon konfirmasi tanggal dan bentuk ujian yang benar. Terima kasih.",
     en: "Dear lecturer, for the {code} {name} {kind}, SIX lists {six} while EduNex lists {edunex}. Could you confirm the right date and format? Thank you.",
   },
   "examPage.announcements": { id: "Lihat pengumuman", en: "See announcements" },

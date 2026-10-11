@@ -201,7 +201,8 @@ function ExamPage({ exam, others, course, courses }: { exam: Exam; others: Exam[
   const days = sourceDays(f, exam);
 
   const copyQuestion = async () => {
-    const text = t("examPage.question", { kind: t(`exam.kind.${exam.kind}`), code: exam.courseCode, name, ...days });
+    // Greeted for the time it's copied ("Selamat pagi" at 8): it's usually pasted right away.
+    const text = t("examPage.question", { greeting: f.greeting(), kind: t(`exam.kind.${exam.kind}`), code: exam.courseCode, name, ...days });
     try {
       await navigator.clipboard.writeText(text);
       toast(t("examPage.copied"), "success");

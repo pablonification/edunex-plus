@@ -89,6 +89,16 @@ describe("the exam page", () => {
     expect(document.querySelector("main h1")?.textContent).toBe("UTS Markom");
   });
 
+  it("the question for the lecturer greets for the time it's copied", async () => {
+    const s = await openTasks();
+    await s.click(examRow("DK4073")!);
+    let copied = "";
+    Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText: async (text: string) => void (copied = text) } });
+    await s.click("Salin pertanyaan untuk dosen");
+    // The demo's morning: "Selamat pagi", never a fixed "Selamat siang".
+    expect(copied).toMatch(/^Selamat pagi Bapak\/Ibu, mohon maaf mengganggu\. Untuk UTS DK4073 Komunikasi Pemasaran, SIX mencantumkan/);
+  });
+
   it("exports the phone calendar from the page", async () => {
     const s = await openTasks();
     await s.click(examRow("DK4073")!);
