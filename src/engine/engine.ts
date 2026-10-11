@@ -188,7 +188,13 @@ export function createEngine(deps: EngineDeps): Engine {
       userAgent,
       settings: () => settings,
       get: (name) => store.get(name),
-      set: async (name, value) => (current() ? store.set(name, value, clock.now()) : false),
+      set: async (name, value) => {
+        if (!current()) return false;
+        const changed = await store.set(name, value, clock.now());
+        // Read again but unchanged: plans that look at when it was read still need to know.
+        if (!changed) alerts.touched(name);
+        return changed;
+      },
       remove: async (prefix) => {
         if (current()) await store.remove(prefix);
       },

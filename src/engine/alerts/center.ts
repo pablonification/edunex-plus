@@ -12,7 +12,7 @@ import { ALERT_GROUP, type Alert, type AlertHistory, type AlertKind, type AlertT
 import type { StringKey } from "../../core/strings";
 import type { Clock, TimerHandle } from "../clock";
 import type { Storage } from "../store/storage";
-import type { AlertDraft, DatasetChange, Detector, DetectorContext } from "./detector";
+import type { AlertDraft, DatasetChange, Detector, DetectorContext, PlannedAlert } from "./detector";
 import { SeenLedger } from "./ledger";
 
 /** What goes out as one OS notification: a single alert, or a burst of one kind (`count` > 1). */
@@ -24,6 +24,18 @@ export interface AlertNotice extends Omit<Alert, "at"> {
 export const GROUP_WINDOW = 20_000;
 /** How often the plan is checked again anyway (time passes, the computer slept). */
 const HEARTBEAT = 5 * 60_000;
+/** A detector's plan is worked out again at least this often, and when the WIB day turns. */
+const PLAN_TTL = 60 * 60_000;
+const DAY = 24 * 60 * 60_000;
+const WIB = 7 * 60 * 60_000;
+const wibDayIndex = (ms: number) => Math.floor((ms + WIB) / DAY);
+
+/** A detector's plan as last worked out, and what it was worked out from. */
+interface CachedPlan {
+  items: PlannedAlert[];
+  at: number;
+  settings: Settings;
+}
 const HISTORY_LIMIT = 200;
 const EMPTY: AlertHistory = { items: [], readAt: 0 };
 
@@ -42,6 +54,8 @@ export interface AlertCenterDeps {
 export class AlertCenter {
   private readonly ledger: SeenLedger;
   private readonly watched: Set<DatasetName>;
+  /** Plans change only with their data, the settings or the day: the 5-minute check reuses them. */
+  private readonly plans = new Map<Detector, CachedPlan>();
   /** The last value of every watched dataset, to diff the next one against. */
   private readonly last = new Map<DatasetName, unknown>();
   private lastNim: string | null = null;
@@ -81,6 +95,7 @@ export class AlertCenter {
   observe(event: Event): void {
     if (event.type === "dataset.removed") {
       this.last.delete(event.name as DatasetName);
+      this.touched(event.name as DatasetName);
       return;
     }
     if (event.type !== "dataset") return;
@@ -93,6 +108,7 @@ export class AlertCenter {
       this.lastNim = nim;
     }
     if (!this.watched.has(name)) return;
+    this.touched(name);
     const previous = this.last.get(name);
     this.last.set(name, next);
     const baseline = previous === undefined;
@@ -103,6 +119,11 @@ export class AlertCenter {
     this.replan(baseline ? new Set(watching) : undefined);
   }
 
+  /** A dataset was read from its source, changed or not: plans built on it are worked out again. */
+  touched(name: DatasetName): void {
+    for (const detector of this.plans.keys()) if (detector.watches.includes(name)) this.plans.delete(detector);
+  }
+
   async markRead(): Promise<void> {
     await this.writeHistory((history) => ({ ...history, readAt: this.deps.clock.now() }));
   }
@@ -110,6 +131,7 @@ export class AlertCenter {
   /** Signing out of everything, or another Student: forget every alert and what was seen. */
   async reset(): Promise<void> {
     this.pending = [];
+    this.plans.clear();
     this.lastNim = null;
     this.writes = this.writes.then(async () => {
       await this.ledger.clear();
@@ -197,7 +219,7 @@ export class AlertCenter {
     for (const detector of this.deps.detectors) {
       if (!detector.plan) continue;
       const due: AlertDraft[] = [];
-      for (const planned of detector.plan(context)) {
+      for (const planned of this.planOf(detector, context)) {
         if (this.ledger.has(planned.id) || now >= planned.until) continue;
         const { at, until: _until, ...draft } = planned;
         if (at <= now) due.push(draft);
@@ -208,6 +230,14 @@ export class AlertCenter {
       if (due.length) this.accept(due, unseen || (silentFor?.has(detector) ?? false));
     }
     this.planTimers.push(clock.setTimeout(() => this.replan(), HEARTBEAT));
+  }
+
+  private planOf(detector: Detector, context: DetectorContext): PlannedAlert[] {
+    const cached = this.plans.get(detector);
+    if (cached && cached.settings === context.settings && context.now - cached.at < PLAN_TTL && wibDayIndex(cached.at) === wibDayIndex(context.now)) return cached.items;
+    const items = detector.plan!(context);
+    this.plans.set(detector, { items, at: context.now, settings: context.settings });
+    return items;
   }
 
   private clearPlan(): void {

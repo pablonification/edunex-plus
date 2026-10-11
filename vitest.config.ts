@@ -5,8 +5,9 @@ process.env.TZ = "Asia/Jakarta";
 
 export default defineConfig({
   test: {
-    // Whole simulated days on the fake clock take a few seconds when the machine is busy.
-    testTimeout: 20_000,
+    // Weeks simulated on the fake clock replay every sync (SIX's real pages each hour): seconds
+    // alone, much longer while the machine is busy.
+    testTimeout: 60_000,
     include: ["test/**/*.test.ts", "test/**/*.test.tsx"],
     environment: "node",
   },
