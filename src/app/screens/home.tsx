@@ -114,12 +114,15 @@ function Answers({ context, courses }: { context: HomeContext; courses: readonly
     <>
       <NowSection card={card} courses={courses} hasSchedule={context.schedule !== null} />
       <div className="@container mt-10">
-        <div className="grid gap-x-8 gap-y-10 @min-[800px]:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
+        {/* The day on the left; what needs you and what changed beside it, so neither column runs on alone. */}
+        <div className="grid items-start gap-x-8 gap-y-10 @min-[800px]:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
           <Today context={context} plan={plan} courses={courses} />
-          <NeedsYou needs={needs} courses={courses} />
+          <div className="grid gap-y-10">
+            <NeedsYou needs={needs} courses={courses} />
+            <Changes context={context} courses={courses} />
+          </div>
         </div>
       </div>
-      <Changes context={context} courses={courses} />
     </>
   );
 }
@@ -766,6 +769,7 @@ function Changes({ context, courses }: { context: HomeContext; courses: readonly
   return (
     <Section
       id="home-changes"
+      className="mt-0"
       title={t("home.changes")}
       action={
         <button type="button" onClick={openAlerts} className="focus-ring rounded text-small font-medium text-accent-fg hover:underline">
