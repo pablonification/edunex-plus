@@ -49,10 +49,10 @@ export const academicStrings = {
   "krs.approved": { id: "Disetujui", en: "Approved" },
   "krs.notApproved": { id: "Belum disetujui", en: "Not approved" },
   "krs.overlap": {
-    id: "{a} dan {b} bentrok {when}, {count} pertemuan. SIX menerima KRS ini tanpa peringatan.",
+    id: "{a} dan {b} bentrok di {count} pertemuan, berikutnya {when}. SIX menerima KRS ini tanpa peringatan.",
     en: {
-      one: "{a} and {b} overlap {when}, {count} meeting. SIX accepted this KRS without a warning.",
-      other: "{a} and {b} overlap {when}, {count} meetings. SIX accepted this KRS without a warning.",
+      one: "{a} and {b} overlap at {count} meeting, next {when}. SIX accepted this KRS without a warning.",
+      other: "{a} and {b} overlap at {count} meetings, next {when}. SIX accepted this KRS without a warning.",
     },
   },
   "krs.overlap.past": {
