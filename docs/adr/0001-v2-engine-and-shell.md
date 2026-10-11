@@ -29,8 +29,8 @@ and sends and draws as little as possible.
   - `src/desktop`: Electron main and preload: windows, sign-in windows,
     encrypted session vault, IPC, the `app://` protocol.
   - `src/app`: the renderer.
-  - The v1 code stays in `src/main`, `src/preload`, `src/renderer` and
-    `src/shared`, unused, until the final ticket removes it.
+  - The v1 code (`src/main`, `src/preload`, `src/renderer`, `src/shared`)
+    and its docs are gone; only v2 is built and run.
 - **Saved data first.** Datasets live in memory as `{ data, fetchedAt, hash }`
   and on disk as versioned JSON with atomic writes. At launch main loads them
   before creating the window; the renderer asks for one snapshot, draws it,
@@ -61,5 +61,4 @@ and sends and draws as little as possible.
   shapes, and every screen against the bridge contract.
 - Vendor changes show up as a status and a failing contract test instead of
   silent blanks.
-- Until the final ticket the tree holds both v1 and v2 code; only v2 is
-  built and run.
+- v1's code was removed once v2 had its own shell; its history stays in git.

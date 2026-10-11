@@ -10,7 +10,7 @@
     "dev": "node scripts/dev.mjs",
     "build:desktop": "node scripts/build-desktop.mjs",
     "build": "npm run typecheck && node scripts/build-desktop.mjs && vite build",
-    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.desktop.json && tsc -p tsconfig.test.json && tsc -p tsconfig.v1.json && tsc -p tsconfig.node.json --noEmit",
+    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.desktop.json && tsc -p tsconfig.test.json",
     "start": "electron .",
     "test": "vitest run",
     "record": "electron scripts/record-session.cjs",
