@@ -125,6 +125,7 @@ export const coursePageStrings = {
   "course.attendanceShare": { id: "{attended}/{held} · {percent}%", en: "{attended}/{held} · {percent}%" },
   "course.attendanceLabel": { id: "Kehadiran {attended} dari {held}, {percent}%", en: "Attendance {attended} of {held}, {percent}%" },
   "course.closesAt": { id: "tutup {time} ({left} lagi)", en: "closes {time} ({left} left)" },
+  "course.presenceNoSix": { id: "Tanpa SIX, belum pasti Presensi ini dihitung: catat saja untuk berjaga-jaga.", en: "Without SIX it's not certain this Presence counts: record it just in case." },
   "course.presenceCountsSix": { id: "Kehadiranmu dihitung di SIX; Presensi EduNex juga dibuka.", en: "Your attendance counts in SIX; EduNex Presence is open too." },
   "course.join": { id: "Gabung", en: "Join" },
   "course.online": { id: "Daring", en: "Online" },

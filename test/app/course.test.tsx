@@ -209,6 +209,23 @@ describe("meetings", () => {
     expect(s.text()).not.toMatch(/Absen|Tidak hadir|Absent/);
   });
 
+  it("where SIX counts, the open window's row is no louder than the strip that calls it optional", async () => {
+    await openCourse("PL3002", { six: true });
+    await tab(/^Pertemuan/);
+    const open = [...document.querySelectorAll("main ol li")].find((li) => li.textContent?.includes("Presensi dibuka"))!;
+    const chip = [...open.querySelectorAll("span")].find((el) => el.textContent?.startsWith("Presensi dibuka"))!;
+    expect(chip.className).not.toContain("warning");
+    expect([...open.querySelectorAll("button")].find((b) => b.textContent === "Catat di EduNex")!.className).not.toContain("bg-accent ");
+  });
+
+  it("without SIX, the open window is worth recording just in case, said calmly", async () => {
+    const s = await openCourse("PL3002");
+    expect(s.text()).toContain("Tanpa SIX, belum pasti Presensi ini dihitung: catat saja untuk berjaga-jaga.");
+    const buttons = [...document.querySelectorAll("main button")].filter((b) => b.textContent === "Catat di EduNex");
+    expect(buttons.length).toBeGreaterThan(0);
+    expect(buttons.every((b) => !b.className.includes("bg-accent "))).toBe(true);
+  });
+
   it("pins the meeting going on now with its open Presence window and the button to act on EduNex", async () => {
     const s = await openCourse("PL3002", { six: true });
     expect(s.text()).toContain("Sedang berlangsung");

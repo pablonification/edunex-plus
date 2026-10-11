@@ -108,6 +108,7 @@ export const attendanceStrings = {
   "presence.open.title": { id: "Presensi yang dibuka sekarang", en: "Presence open now" },
   "presence.open.headline": { id: "Presensi {code} dibuka sampai {time}", en: "{code} Presence is open until {time}" },
   "presence.open.optional": { id: "Kehadiran dihitung di SIX: cukup hadir di kelas. Mencatat di EduNex tidak wajib.", en: "SIX counts your attendance: just be in class. Recording in EduNex is optional." },
+  "presence.open.noSix": { id: "Tanpa SIX, belum pasti ini dihitung: catat saja untuk berjaga-jaga.", en: "Without SIX it's not certain this counts: record it just in case." },
   "presence.open.left": { id: "{time} lagi", en: "{time} left" },
   "presence.open.record": { id: "Catat di EduNex", en: "Record in EduNex" },
   "presence.open.task": { id: "Buka tugasnya", en: "Open the Task" },

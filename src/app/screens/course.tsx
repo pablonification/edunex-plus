@@ -283,7 +283,9 @@ function NowStrip({ page }: { page: CoursePage }) {
   const url = presence?.url ?? (page.course.edunex ? edunexCourseUrl(page.course.edunex.courseId) : null);
   const link = meeting?.announced?.link ?? null;
   const online = meeting?.announced?.online ?? false;
-  const presenceCounts = countedIn !== "six";
+  // EduNex's window is the thing to do only where it may be what counts: not where SIX counts, and
+  // not loudly without SIX (nobody can say; it's worth doing just in case).
+  const presenceCounts = countedIn !== "six" && countedIn !== "noSix";
   const what = meeting ? (meeting.presence?.topic ?? meeting.six?.activity ?? null) : null;
 
   return (
@@ -339,7 +341,7 @@ function NowStrip({ page }: { page: CoursePage }) {
         ) : (
           meeting?.presence?.note && <p className="mt-1 truncate text-small text-muted">{meeting.presence.note}</p>
         )}
-        {presence && !presenceCounts && <p className="mt-1 text-small text-muted">{t("course.presenceCountsSix")}</p>}
+        {presence && !presenceCounts && <p className="mt-1 text-small text-muted">{t(countedIn === "noSix" ? "course.presenceNoSix" : "course.presenceCountsSix")}</p>}
       </div>
       <div className="flex shrink-0 items-center gap-2">
         {link && meeting && meeting.end > now && (

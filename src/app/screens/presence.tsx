@@ -239,8 +239,13 @@ function OpenPresence({ window }: { window: OpenWindow }) {
   const { go } = useNav();
   const { session, code, health, action } = window;
   const task = action.activity === "assignment" ? action.task : null;
-  const optional = health?.countedIn === "six";
-  const what = optional
+  const noSix = health?.countedIn === "noSix";
+  // Quiet where SIX counts (optional) and without SIX (worth doing just in case, but nobody can say it counts).
+  // A Task to hand in keeps its own words: it's worth doing anyway.
+  const optional = health?.countedIn === "six" || noSix;
+  const what = noSix && !task
+    ? t("presence.open.noSix")
+    : optional && !noSix
     ? t("presence.open.optional")
     : action.activity === "assignment" && !task
       ? t("presence.do.assignmentUnknown")

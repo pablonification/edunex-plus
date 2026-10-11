@@ -211,6 +211,9 @@ describe("the Presensi screen", () => {
     expect(card("PL3002")).toContain("Hitungan resmi ada di SIX");
     expect(card("PL3002")).toContain("EduNex: hadir 1 dari 6 Presensi");
     expect(s.text()).not.toContain("Dicatat lewat Presensi EduNex");
+    // The open window: worth recording just in case, not a must-do (the same on Beranda and the course page).
+    expect(s.text()).toContain("Tanpa SIX, belum pasti ini dihitung: catat saja untuk berjaga-jaga.");
+    expect([...document.querySelectorAll("main button")].find((b) => b.textContent === "Catat di EduNex")!.className).not.toContain("bg-accent ");
     expect(card("KU5014")).toContain("Belum ada catatan kehadiran");
     // EduNex's own record, with each window's date.
     expect(squares("II4091")[0]).toBe("Rab 26 Agu · tercatat hadir di EduNex");

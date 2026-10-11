@@ -151,6 +151,9 @@ function MeetingRow({
   const window = presence && (presence.opensAt !== meeting.start || presence.closesAt !== meeting.end) ? f.timeRange(presence.opensAt, presence.closesAt) : null;
   const presenceUrl = presence?.url ?? fallbackUrl;
   const future = meeting.start > now;
+  // An open window asks for you (amber, primary) only where EduNex may be what counts; where SIX counts, or
+  // without SIX (nobody can say), the strip above says it once and the row stays calm.
+  const quiet = countedIn === "six" || countedIn === "noSix";
 
   let status: ReactNode = null;
   if (state === "present")
@@ -162,7 +165,12 @@ function MeetingRow({
     );
   else if (state === "open")
     status = (
-      <span className="inline-flex h-[22px] items-center gap-1.5 rounded-full bg-warning-bg px-2 text-caption font-semibold whitespace-nowrap text-warning-fg">
+      <span
+        className={cx(
+          "inline-flex h-[22px] items-center gap-1.5 rounded-full px-2 text-caption font-semibold whitespace-nowrap",
+          quiet ? "bg-fill text-muted" : "bg-warning-bg text-warning-fg",
+        )}
+      >
         <LiveDot className="scale-75" />
         {t("meeting.state.open")}
         {presence && <span className="font-medium opacity-80">· {f.countdown(presence.closesAt)}</span>}
@@ -220,7 +228,7 @@ function MeetingRow({
             </Button>
           )}
           {state === "open" && presenceUrl && (
-            <Button variant="primary" size="sm" icon={<Icons.ArrowUpRight className="size-3.5" />} onClick={() => open(presenceUrl)}>
+            <Button variant={quiet ? "secondary" : "primary"} size="sm" icon={<Icons.ArrowUpRight className="size-3.5" />} onClick={() => open(presenceUrl)}>
               {t("course.recordInEdunex")}
             </Button>
           )}
