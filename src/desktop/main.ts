@@ -65,6 +65,7 @@ async function start(): Promise<void> {
   const userData = app.getPath("userData");
   const root = path.join(userData, "v2");
   const storage = new FileStorage(path.join(root, "data"));
+  void storage.sweep();
   const { vault, mode } = await openVault(new FileStorage(path.join(root, "vault")));
 
   // The engine talks to the sources on its own in-memory session; the page gets no permissions at all.

@@ -1,6 +1,7 @@
 // The engine's disk: one file per key under the app's data folder, readable
 // only by this user. Every write goes to a temporary file first and is then
-// renamed over the old one, so a crash mid-write leaves the old value.
+// renamed over the old one, so a crash mid-write leaves the old value (and a
+// stray temporary file, swept on the next start).
 import { randomBytes } from "node:crypto";
 import { promises as fs } from "node:fs";
 import path from "node:path";
@@ -59,6 +60,32 @@ export class FileStorage implements Storage {
     };
     await walk(this.root, "");
     return keys.sort();
+  }
+
+  /** Removes temporary files that a quit or crash mid-write left behind. Recent ones may still be in use. */
+  async sweep(olderThanMs = 60_000): Promise<number> {
+    let removed = 0;
+    const walk = async (dir: string): Promise<void> => {
+      let entries;
+      try {
+        entries = await fs.readdir(dir, { withFileTypes: true });
+      } catch {
+        return;
+      }
+      for (const entry of entries) {
+        const at = path.join(dir, entry.name);
+        if (entry.isDirectory()) await walk(at);
+        else if (entry.name.endsWith(".tmp")) {
+          const stat = await fs.stat(at).catch(() => null);
+          if (stat && Date.now() - stat.mtimeMs >= olderThanMs) {
+            await fs.rm(at, { force: true });
+            removed += 1;
+          }
+        }
+      }
+    };
+    await walk(this.root);
+    return removed;
   }
 
   private file(key: string): string {
