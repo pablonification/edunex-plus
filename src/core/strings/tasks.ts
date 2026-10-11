@@ -27,6 +27,7 @@ export const tasksStrings = {
   "task.editedAfterSubmit": { id: "Diubah setelah kamu kumpulkan ({date})", en: "Changed after you submitted ({date})" },
   "task.shortWindow": { id: "Waktu singkat", en: "Short window" },
   "task.opens": { id: "Dibuka {when}", en: "Opens {when}" },
+  "task.attendance": { id: "Sekaligus Presensi · {date}, {time}", en: "Also your attendance · {date}, {time}" },
   "task.opened": { id: "Dibuka {date}", en: "Opened {date}" },
   "task.due": { id: "Tenggat {when}", en: "Due {when}" },
   "task.noDeadline": { id: "Tanpa tenggat", en: "No deadline" },
@@ -50,6 +51,10 @@ export const tasksStrings = {
     en: "Edited by the lecturer on {when}, after it was posted. EduNex sent no notification.",
   },
   "task.note.shortWindow": { id: "Hanya dibuka {duration} ({range}).", en: "Open for only {duration} ({range})." },
+  "task.note.attendance": {
+    id: "Tugas ini sekaligus Presensi-mu: hanya terhitung jika dikumpulkan di dalam jendelanya, {date}, {time}.",
+    en: "This Task is also your attendance: it counts only if handed in inside its window, {date}, {time}.",
+  },
   "task.duration.hours": { id: "{count} jam", en: { one: "{count} hour", other: "{count} hours" } },
   "task.duration.minutes": { id: "{count} menit", en: { one: "{count} minute", other: "{count} minutes" } },
 

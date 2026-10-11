@@ -54,6 +54,16 @@ describe("Tugas & Ujian", () => {
     expect(row("Tugas Problem Soving")!.textContent).toContain("Waktu singkat · 16:01–19:01");
   });
 
+  it("a Task whose hand-in is the class's attendance says so, with the Presence window, in the list and on its page", async () => {
+    const s = await open();
+    await s.click(/^Tugas & Ujian\d*$/);
+    // II4091's Presence on Friday is set to Answer Assignment: handing in Tugas 02 inside 15:00–23:59 is the attendance.
+    expect(row("Tugas 02 Bab II")!.textContent).toContain("Sekaligus Presensi · Jum, 16 Okt, 15:00–23:59");
+    expect(row("UTS Markom")!.textContent).not.toContain("Presensi");
+    await s.click(row("Tugas 02 Bab II")!);
+    expect(s.text()).toContain("Tugas ini sekaligus Presensi-mu: hanya terhitung jika dikumpulkan di dalam jendelanya, Jum, 16 Okt, 15:00–23:59.");
+  });
+
   it("counts the Tasks to hand in next to Tugas & Ujian in the sidebar", async () => {
     const s = await open();
     expect(s.button(/^Tugas & Ujian\d+$/).textContent).toBe("Tugas & Ujian5");
@@ -93,6 +103,7 @@ describe("Tugas & Ujian", () => {
     expect(sections()).toEqual(["Next week 1", "Later 4"]);
     expect(row("UTS Markom")!.textContent).toContain("Take-home UTS");
     expect(row("Tugas 02 Bab II")!.textContent).toContain("Fri, 16 Oct, 23:59");
+    expect(row("Tugas 02 Bab II")!.textContent).toContain("Also your attendance · Fri, 16 Oct, 15:00–23:59");
   });
 
   it("before the first Task list arrives, and when it can't: placeholders, then a way to try again", async () => {

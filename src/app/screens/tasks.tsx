@@ -4,6 +4,7 @@
 // draft's timestamps. Handing in writes only on the Student's clicks.
 import { type DragEvent, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { MAX_UPLOAD_BYTES, type HandInResult, type PickedFile } from "../../core/actions/tasks";
+import { attendanceWindow } from "../../core/attendance";
 import type { Task, TaskFile, TaskModule, TaskStatus } from "../../core/models";
 import type { StringKey } from "../../core/strings";
 import {
@@ -260,13 +261,22 @@ function moduleLabel(t: Translate, module: TaskModule | null): string | null {
   return name ? `${t("task.module", { n: module.index })} · ${name}` : t("task.module", { n: module.index });
 }
 
-/** What EduNex doesn't say in its list: a take-home UTS, an edit, a short window, the late rule. */
+/** What EduNex doesn't say in its list: a take-home UTS, attendance taken by handing in, an edit, a short window, the late rule. */
 function RowSignals({ task, status }: Row) {
   const t = useT();
   const f = useFormat();
   const now = useNow();
+  const presence = useDataset("edunex.presence");
   const signals: ReactNode[] = [];
   if (task.kind === "uts") signals.push(<span className="text-danger-fg">{t("task.uts")}</span>);
+  const window = isOpenStatus(status) ? attendanceWindow(task, presence, now) : null;
+  if (window)
+    signals.push(
+      <span className="inline-flex items-center gap-1 text-info-fg">
+        <Icons.Hand className="size-3" />
+        {t("task.attendance", { date: f.relativeDay(window.opensAt), time: f.timeRange(window.opensAt, window.closesAt) })}
+      </span>,
+    );
   if (task.editedAt !== null) {
     const loud = editedAfterSubmit(task);
     signals.push(
@@ -482,11 +492,20 @@ function TaskPage({ task }: { task: Task }) {
   );
 }
 
-/** What EduNex doesn't say on its Task page: an edit (loudly after the Student submitted), a short window. */
+/** What EduNex doesn't say on its Task page: attendance taken by handing it in, an edit (loudly after the Student submitted), a short window. */
 function Notes({ task }: { task: Task }) {
   const t = useT();
   const f = useFormat();
+  const now = useNow();
+  const presence = useDataset("edunex.presence");
   const notes: { tone: "warning" | "neutral"; icon: ReactNode; text: string }[] = [];
+  const attendance = attendanceWindow(task, presence, now);
+  if (attendance)
+    notes.push({
+      tone: "warning",
+      icon: <Icons.Hand className="mt-0.5 size-4 shrink-0" />,
+      text: t("task.note.attendance", { date: f.relativeDay(attendance.opensAt), time: f.timeRange(attendance.opensAt, attendance.closesAt) }),
+    });
   const sentAt = submittedAt(task);
   if (task.editedAt !== null && sentAt !== null && editedAfterSubmit(task))
     notes.push({

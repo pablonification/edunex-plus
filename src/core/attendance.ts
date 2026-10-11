@@ -260,6 +260,12 @@ export function presenceAction(session: PresenceSession, tasks: readonly Task[])
   return { activity, task, url: session.url ?? fallback };
 }
 
+/** The Presence window, not closed yet, that a Task's hand-in counts as attendance for (Answer Assignment); the soonest. */
+export function attendanceWindow(task: Task, presence: Readonly<Record<string, readonly PresenceSession[]>> | undefined, now: number): PresenceSession | null {
+  const windows = (presence?.[task.courseCode] ?? []).filter((session) => session.closesAt > now && presenceAction(session, [task]).task !== null);
+  return windows.sort((a, b) => a.opensAt - b.opensAt)[0] ?? null;
+}
+
 /** Presence windows open right now that haven't recorded the Student yet, soonest closing first. */
 export function openWindows(presence: Readonly<Record<string, readonly PresenceSession[]>>, now: number): { code: string; session: PresenceSession }[] {
   return Object.entries(presence)
