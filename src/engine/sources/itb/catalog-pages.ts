@@ -33,7 +33,8 @@ export interface ProgramPage {
 }
 
 /** "II2210", and ITB-wide ones like "WI201X" (one course, many religions). */
-const CODE = /^[A-Z]{2}\d{3}[0-9X]$/;
+/** "II2210", and elective slots with X, Y or Z in place of digits: "WI201X", "AE40X0", "MB210Y", "KL4XYZ". */
+const CODE = /^[A-Z]{2}\d[0-9XYZ]{3}$/;
 const PROGRAM_ID = /^\d{3}$/;
 
 // cheerio doesn't export its element type; take it from a selection.

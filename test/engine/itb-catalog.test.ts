@@ -124,6 +124,20 @@ describe("SIX public course catalog", () => {
     expect(h.status("itb")).toMatchObject({ state: "changed", detail: "SIX's catalog page for Sistem dan Teknologi Informasi (182) changed" });
   });
 
+  it("reads elective-slot codes with X, Y or Z inside, like AE40X0 and KL4XYZ", async () => {
+    const world = new PretendWorld();
+    // The real catalog has WI201X, AE40X0, MB210Y and KL4XYZ shapes; give recorded courses two of them.
+    world.itb.changeLayout("/pub/kur2024/182", "II4090", "II40X0");
+    world.itb.changeLayout("/pub/kur2024/154", "PL4111", "PL4XYZ");
+    const h = await startEngine({ world });
+    await h.wait(FULL_READ);
+    expect(program(h, "182").state).toBe("ready");
+    expect(program(h, "182").required.find((r) => r.code === "II40X0")).toEqual({ code: "II40X0", semester: 7 });
+    expect(program(h, "154").state).toBe("ready");
+    expect(course(h, "PL4XYZ")).toMatchObject({ owner: "154" });
+    expect(h.status("itb").state).toBe("live");
+  });
+
   it("a changed program list is a vendor change and stores nothing", async () => {
     const world = new PretendWorld();
     world.itb.changeLayout("/pub/kur2024", "No Prodi", "Kode Prodi");
