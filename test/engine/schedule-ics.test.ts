@@ -4,7 +4,7 @@
 import { describe, expect, it } from "vitest";
 import { writeIcs } from "../../src/core/ics";
 import type { DatasetName, DatasetValue } from "../../src/core/models";
-import { phoneCalendar } from "../../src/core/phone-calendar";
+import { phoneCalendar, phoneItems } from "../../src/core/phone-calendar";
 import { parseIcs } from "../../src/engine/sources/itb/ics";
 import { aTask } from "../kit/tasks";
 
@@ -104,6 +104,73 @@ describe("the phone calendar file", () => {
     const event = parseIcs(second).find((e) => e.uid === "six-2194342@edunex-plus")!;
     expect(new Date(event.start).toISOString()).toBe("2026-10-08T02:00:00.000Z");
     expect(second).toContain("LOCATION:9009");
+  });
+});
+
+describe("what the Student puts on the phone", () => {
+  const calendar = {
+    checkedAt: 0,
+    events: [
+      { id: "uts-1", title: "Masa Ujian Tengah Semester I-2026/2027", kind: "uts" as const, term: "2026-1", start: wib("2026-10-12T00:00:00"), end: wib("2026-10-17T00:00:00"), allDay: true, firstDay: "2026-10-12", lastDay: "2026-10-16" },
+      { id: "yud-1", title: "Yudisium ITB Bulan Oktober 2026", kind: "other" as const, term: null, start: wib("2026-10-20T00:00:00"), end: wib("2026-10-21T00:00:00"), allDay: true, firstDay: "2026-10-20", lastDay: "2026-10-20" },
+      { id: "end-1", title: "Hari Terakhir Masa Kuliah Semester I-2026/2027", kind: "lecture-end" as const, term: "2026-1", start: wib("2026-12-04T00:00:00"), end: wib("2026-12-05T00:00:00"), allDay: true, firstDay: "2026-12-04", lastDay: "2026-12-04" },
+    ],
+  };
+
+  it("ITB's exam weeks and the term's edges as whole days, never ITB's other news", () => {
+    const text = phoneCalendar(datasets({ "itb.calendar": calendar }), "id", now).text;
+    expect(text).toContain("DTSTART;VALUE=DATE:20261012\r\nDTEND;VALUE=DATE:20261017");
+    const itb = parseIcs(text).filter((e) => e.uid.startsWith("itb-"));
+    expect(itb.map((e) => [e.summary, e.allDay, new Date(e.start).toISOString(), new Date(e.end).toISOString()])).toEqual([
+      ["Masa Ujian Tengah Semester I-2026/2027", true, "2026-10-11T17:00:00.000Z", "2026-10-16T17:00:00.000Z"],
+      ["Hari Terakhir Masa Kuliah Semester I-2026/2027", true, "2026-12-03T17:00:00.000Z", "2026-12-04T17:00:00.000Z"],
+    ]);
+  });
+
+  it("only the kinds chosen, from one day to another", () => {
+    const get = datasets({ "itb.calendar": calendar });
+    const summaries = (options: Parameters<typeof phoneCalendar>[3]) => parseIcs(phoneCalendar(get, "id", now, options).text).map((e) => e.summary);
+    expect(summaries({ include: { classes: false, exams: false, itb: false } })).toEqual(["Terkumpul II4091: Tugas 01 Bab I", "Tenggat DK4073: UTS Markom; bagian 1, esai"]);
+    expect(summaries({ include: { deadlines: false, itb: false }, from: "2026-10-09", until: "2026-10-15" })).toEqual([
+      "Pertemuan 3 II4091 · II4091",
+      "UTS DK4073 · Komunikasi Pemasaran",
+    ]);
+    // A whole-day event still running on the first day goes in.
+    expect(summaries({ include: { classes: false, exams: false, deadlines: false }, from: "2026-10-14", until: "2026-10-31" })).toEqual(["Masa Ujian Tengah Semester I-2026/2027"]);
+  });
+
+  it("a roomless SIX meeting that EduNex counts by a handed-in Task goes in as the window to hand it in, never an 8-hour class", () => {
+    const presence = {
+      II4091: [
+        {
+          id: 2243740,
+          courseId: 95326,
+          classId: 87103,
+          start: wib("2026-10-16T15:00:00"),
+          end: wib("2026-10-16T23:59:00"),
+          opensAt: wib("2026-10-16T15:00:00"),
+          closesAt: wib("2026-10-16T23:59:00"),
+          topic: "Tugas",
+          note: "Presensi dengan submit Tugas 02 Bab II",
+          countsBy: [{ kind: "assignment", id: "117003" }],
+          url: null,
+          recorded: null,
+        },
+      ],
+    };
+    const tasks = [...datasets()("edunex.tasks")!, aTask({ id: 117003, courseCode: "II4091", courseId: 95326, title: "Tugas 02 Bab II", status: "not_started", dueAt: wib("2026-10-16T23:59:00") })];
+    const text = phoneCalendar(datasets({ "edunex.presence": presence, "edunex.tasks": tasks }), "id", now).text;
+    const event = parseIcs(text).find((e) => e.uid === "six-2311195@edunex-plus")!;
+    expect(event.summary).toBe("Presensi II4091: kumpulkan Tugas 02 Bab II");
+    expect([new Date(event.start).toISOString(), new Date(event.end).toISOString()]).toEqual(["2026-10-16T08:00:00.000Z", "2026-10-16T16:59:00.000Z"]);
+    const block = text.slice(text.indexOf("UID:six-2311195"), text.indexOf("END:VEVENT", text.indexOf("UID:six-2311195")));
+    expect(block).toContain("TRANSP:TRANSPARENT");
+  });
+
+  it("counts by kind, the way the export dialog shows them", () => {
+    const items = phoneItems(datasets({ "itb.calendar": calendar }), "id", now, { from: "2026-10-08" });
+    const count = (kind: string) => items.filter((i) => i.kind === kind).length;
+    expect([count("classes"), count("exams"), count("deadlines"), count("itb")]).toEqual([3, 1, 1, 2]);
   });
 });
 

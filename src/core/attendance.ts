@@ -100,12 +100,25 @@ export function lecturePeriod(calendar: AcademicCalendar | undefined, term: stri
   return { lastDay: end.lastDay, offDays };
 }
 
+/** One meeting still to come, as counted. */
+export interface UpcomingMeeting {
+  start: number;
+  /** SIX's session; null for the weekly slot carried on past SIX's timetable. */
+  session: ClassSession | null;
+  /** The weekly slot carried on: the date is the app's estimate. */
+  estimated: boolean;
+  /** Listed by SIX inside an exam week or a holiday on ITB's calendar: it may not happen. */
+  uncertain: boolean;
+}
+
 export interface MeetingsLeft {
   count: number;
   /** Part of it is the usual weekly slot carried on past SIX's timetable: say "about". */
   estimated: boolean;
-  /** The next meeting on SIX's timetable. */
+  /** The next meeting on SIX's timetable (it may be uncertain: see `upcoming`). */
   next: ClassSession | null;
+  /** Each meeting counted, in time order (`count` of them). */
+  upcoming: UpcomingMeeting[];
 }
 
 /**
@@ -113,14 +126,15 @@ export interface MeetingsLeft {
  * on SIX's timetable that haven't started, then, past the last day the
  * timetable covers (`schedule` is SIX's whole timetable, every course), the
  * usual weekly slot(s) carried on to the last lecture day, skipping UTS and
- * UAS weeks and holidays.
+ * UAS weeks and holidays. A session SIX lists inside those still counts
+ * (SIX may hold it, and missing it would cost an absence) but is marked
+ * uncertain, so screens can say "check first".
  */
 export function meetingsLeft(code: string, schedule: readonly ClassSession[], period: ReturnType<typeof lecturePeriod>, now: number): MeetingsLeft {
   const mine = schedule.filter((s) => s.courseCode === code);
   const before = (s: ClassSession) => !period || wibDay(s.start) <= period.lastDay;
   const coming = mine.filter((s) => s.start > now && !isExamActivity(s.activity) && before(s)).sort((a, b) => a.start - b.start);
-  let count = coming.length;
-  let estimated = false;
+  const upcoming: UpcomingMeeting[] = coming.map((session) => ({ start: session.start, session, estimated: false, uncertain: period?.offDays.has(wibDay(session.start)) ?? false }));
   if (period && schedule.length) {
     // SIX's timetable comes a month at a time: it covers through the end of its last month.
     const lastMonth = wibDay(Math.max(...schedule.map((s) => s.start))).slice(0, 7);
@@ -133,14 +147,12 @@ export function meetingsLeft(code: string, schedule: readonly ClassSession[], pe
       if (period.offDays.has(date)) continue;
       for (const slot of slots) {
         const at = day + slot.start * MINUTE;
-        if (slot.weekday === wibWeekday(day) && at >= from && at > now) {
-          count += 1;
-          estimated = true;
-        }
+        if (slot.weekday === wibWeekday(day) && at >= from && at > now) upcoming.push({ start: at, session: null, estimated: true, uncertain: false });
       }
     }
   }
-  return { count, estimated, next: coming[0] ?? null };
+  upcoming.sort((a, b) => a.start - b.start);
+  return { count: upcoming.length, estimated: upcoming.some((m) => m.estimated), next: coming[0] ?? null, upcoming };
 }
 
 // ---------------------------------------------------------------- the budget

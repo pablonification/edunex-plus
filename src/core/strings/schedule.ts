@@ -85,6 +85,9 @@ export const scheduleStrings = {
   "ics.fromSix": { id: "Dari jadwal SIX", en: "From SIX's timetable" },
   "ics.fromEdunex": { id: "Dari EduNex", en: "From EduNex" },
   "ics.notInSix": { id: "Diumumkan di EduNex, tidak ada di jadwal SIX", en: "Announced in EduNex, not in SIX's timetable" },
+  "ics.handIn": { id: "Presensi {code}: kumpulkan {task}", en: "Presence {code}: hand in {task}" },
+  "ics.handIn.note": { id: "Hadir tercatat hanya jika tugasnya dikumpulkan dalam jendela ini.", en: "You're marked present only if you hand the Task in within this window." },
+  "ics.fromItb": { id: "Dari Kalender ITB", en: "From the ITB calendar" },
 
   // Alerts
   "alert.moved": { id: "Jadwal berubah · {course}", en: "Class moved · {course}" },

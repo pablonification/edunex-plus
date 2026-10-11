@@ -145,11 +145,12 @@ export async function openApp(options: Options = {}) {
     "alerts.test": async () => ({ shown: true }),
     "app.openRelease": async () => ({}),
     // The calendar file main would write through the save dialog; tests read it from `exported`.
-    "schedule.export": async () => {
-      const calendar = phoneCalendar((name) => engine.snapshot().datasets.find((d) => d.name === name)?.value as never, engine.snapshot().settings.lang, world.clock.now());
+    "schedule.export": async (options: Parameters<typeof phoneCalendar>[3]) => {
+      const calendar = phoneCalendar((name) => engine.snapshot().datasets.find((d) => d.name === name)?.value as never, engine.snapshot().settings.lang, world.clock.now(), options);
       exported.push(calendar.text);
       return { file: "Edunex Plus.ics", events: calendar.events };
     },
+    "schedule.reveal": async () => ({}),
     // Handing in runs main's real handlers; only the system file picker is pretend.
     ...handInHandlers(engine, async () => {
       const files = nextPick;
