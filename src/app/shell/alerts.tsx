@@ -189,8 +189,8 @@ function AlertsPanel({ readAt, onRead, onClose }: { readAt: number; onRead: (at:
                         {color && <CourseDot color={color} className="absolute -right-1 -bottom-1 size-2 ring-2 ring-raised" />}
                       </span>
                       <span className="min-w-0 flex-1">
-                        <span className={cx("block truncate text-small", unread ? "font-semibold" : "font-medium")}>{t(item.title.key, item.title.vars)}</span>
-                        {item.body && <span className="mt-0.5 block truncate text-caption text-muted">{t(item.body.key, item.body.vars)}</span>}
+                        <span className={cx("line-clamp-2 text-small", unread ? "font-semibold" : "font-medium")}>{t(item.title.key, item.title.vars)}</span>
+                        {item.body && <span className="mt-0.5 line-clamp-2 text-caption text-muted">{t(item.body.key, item.body.vars)}</span>}
                       </span>
                       <span className="flex shrink-0 items-center gap-2 pt-0.5">
                         <span className="text-caption text-faint tabular-nums">{period === "today" || period === "yesterday" ? f.time(item.at) : `${f.weekdayShort(item.at)} ${f.dayMonth(item.at)}`}</span>

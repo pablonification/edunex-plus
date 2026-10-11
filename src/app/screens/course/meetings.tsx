@@ -150,8 +150,8 @@ function MeetingRow({
   const state = meetingState(meeting, now);
   const { six, presence, announced } = meeting;
   const named = presence?.topic ?? six?.activity ?? null;
-  // Unnamed, or only numbered ("Pertemuan 3"): said in a quieter color.
-  const placeholder = !named || /^(pertemuan|meeting)\s*\d+$/i.test(named.trim());
+  // Unnamed, only numbered ("Pertemuan 3") or just "Kuliah": said in a quieter color.
+  const placeholder = !named || /^((pertemuan|meeting)\s*\d+|kuliah)$/i.test(named.trim());
   // A meeting known only as a class takes EduNex's module for that week, numbered as on the Modul tab.
   // A meeting EduNex or SIX numbers keeps its own number: one number per meeting.
   const fromModule =
@@ -211,7 +211,7 @@ function MeetingRow({
           <span className="block text-small text-muted">{f.timeRange(meeting.start, meeting.end)}</span>
         </span>
         <span className="min-w-0 text-body">
-          <span className={cx("block truncate", placeholder && !fromModule ? "text-muted" : "font-medium", future && !next && (!placeholder || fromModule) && "text-fg/80")}>{title}</span>
+          <span title={title} className={cx("line-clamp-2", placeholder && !fromModule ? "text-muted" : "font-medium", future && !next && (!placeholder || fromModule) && "text-fg/80")}>{title}</span>
           <span className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-small text-muted">
             {six?.room && (
               <span className="inline-flex items-center gap-1">

@@ -251,7 +251,7 @@ function Palette({ onClose, onSettings }: { onClose: () => void; onSettings: () 
                 >
                   <ItemMark item={item} color={item.code ? colors.get(item.code) : undefined} />
                   <span className="min-w-0 flex-1">
-                    <span id={`${optionId(mine)}-title`} className="block truncate text-body font-medium">
+                    <span id={`${optionId(mine)}-title`} className="line-clamp-2 text-body font-medium">
                       {item.title}
                     </span>
                     {detail && (
