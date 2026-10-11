@@ -28,7 +28,7 @@ export const homeStrings = {
   "home.now.openPresence": { id: "Buka Presensi", en: "Open Presence" },
   "home.now.openPresenceLabel": { id: "Buka Presensi {course} di EduNex", en: "Open {course} Presence in EduNex" },
   "home.now.openTask": { id: "Buka tugasnya", en: "Open the Task" },
-  "home.now.after": { id: "Lalu {time} · {course}", en: "Then {time} · {course}" },
+  "home.now.after": { id: "Setelah ini {time} · {course}", en: "After this {time} · {course}" },
   "home.now.lastToday": { id: "Kuliah terakhir hari ini", en: "Last class today" },
   "home.now.free": { id: "Tidak ada kuliah dalam seminggu ke depan.", en: "No classes in the coming week." },
   "home.now.openCourse": { id: "Buka mata kuliah", en: "Open course" },

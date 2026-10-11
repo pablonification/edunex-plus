@@ -32,7 +32,7 @@ describe("Beranda on the recorded Thursday morning", () => {
     expect(now).toContain("Presensi EduNex juga dibuka sampai 09:30, tidak wajib.");
     expect(now).not.toContain("Catat kehadiran");
     expect(now).toContain("Boleh absen 2x lagi");
-    expect(now).toContain("Lalu 11:00 · DK4073 Komunikasi Pemasaran");
+    expect(now).toContain("Setelah ini 11:00 · DK4073 Komunikasi Pemasaran");
     // Optional means quiet: not the primary button.
     expect(screen.button("Buka Presensi PL3002 di EduNex").className).not.toContain("bg-accent");
     await screen.click("Buka Presensi PL3002 di EduNex");

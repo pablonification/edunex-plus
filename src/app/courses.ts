@@ -1,11 +1,12 @@
 // This term's courses as the Student sees them: SIX is the truth for
 // enrollment (once SIX is connected) and EduNex adds its course pages, joined
-// by course code, class and term. Indonesian screens use SIX's names, English
-// ones EduNex's when it has them.
+// by course code, class and term. A course has one name everywhere, in both
+// languages: its official one (SIX's, else ITB's public catalog), else the
+// name its EduNex page carries. The transcript, KRS and planner use the
+// official names too, so no two screens call one course differently.
 import { useMemo } from "react";
 import { courseColors } from "../core/course-colors";
 import type { Course, SixCourse } from "../core/models";
-import { useLang } from "./i18n";
 import { useDataset } from "./store";
 
 export interface TermCourse {
@@ -29,17 +30,18 @@ export function useTerm(): string | undefined {
 }
 
 export function useTermCourses(): TermCourse[] | undefined {
-  const lang = useLang();
   const edunex = useDataset("edunex.courses");
+  const catalog = useDataset("itb.catalog");
   const six = useSixCourses();
   return useMemo(() => {
     if (!edunex && !six) return undefined;
     if (!six) {
       const colors = courseColors(edunex!.map((course) => course.code));
+      const official = new Map((catalog?.courses ?? []).map((course) => [course.code, course.name]));
       return edunex!.map((course) => ({
         code: course.code,
         classNo: course.classNo,
-        name: course.name,
+        name: official.get(course.code) ?? course.name,
         sks: null,
         attendance: null,
         color: colors.get(course.code)!,
@@ -57,7 +59,7 @@ export function useTermCourses(): TermCourse[] | undefined {
       return {
         code: course.code,
         classNo: course.classNo,
-        name: lang === "en" && match ? match.name : course.name,
+        name: course.name,
         sks: course.sks,
         attendance: course.attendance,
         color: colors.get(course.code)!,
@@ -65,7 +67,7 @@ export function useTermCourses(): TermCourse[] | undefined {
         inSix: true,
       };
     });
-  }, [edunex, six, lang]);
+  }, [edunex, catalog, six]);
 }
 
 function useSixCourses(): { term: string; courses: SixCourse[] } | undefined {

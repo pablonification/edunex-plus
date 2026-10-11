@@ -109,10 +109,12 @@ describe("Home with both systems", () => {
     expect(card("KU5014")).toContain("42%");
   });
 
-  it("speaks English: EduNex's English names, the same counts", async () => {
+  it("speaks English with the official course names (the transcript's), the same counts", async () => {
     screen = await openApp({ signedIn: true, six: true });
     await screen.engineDoes(() => screen!.engine.updateSettings({ lang: "en" }));
-    expect(card("PL3032")).toContain("Infrastructure and Transportation Economics");
+    // One name per course on every screen and in both languages: SIX's, not EduNex's English page title.
+    expect(card("PL3032")).toContain("Ekonomi Infrastruktur dan Transportasi");
+    expect(card("PL3032")).not.toContain("Infrastructure and Transportation Economics");
     expect(card("PL3032")).toContain("Class 01 · 3 SKS");
     expect(card("PL3032")).toContain("4/757%");
     expect(document.querySelector('[role="progressbar"][aria-label="Attended 4 of 7 meetings"]')).not.toBeNull();
