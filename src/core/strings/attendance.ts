@@ -164,7 +164,8 @@ export const attendanceStrings = {
   "settings.attendance.target": { id: "Target kehadiran", en: "Attendance target" },
   "settings.attendance.targetHint": { id: "Kontrak tiap mata kuliah menentukan batasnya", en: "Each course contract sets its own minimum" },
   "settings.alerts.presence": { id: "Presensi dibuka", en: "Presence opens" },
-  "settings.alerts.presenceHint": { id: "Langsung, dengan aktivitas yang dihitung", en: "Immediately, with the action that counts" },
+  "settings.alerts.presenceHint": { id: "Langsung, dengan apa yang perlu kamu lakukan", en: "Right away, with what you need to do" },
+  "settings.alerts.needsSix": { id: "butuh SIX", en: "needs SIX" },
   "settings.alerts.attendanceRisk": { id: "Kehadiran", en: "Attendance" },
   "settings.alerts.attendanceRiskHint": {
     id: "SIX tidak mencatat kuliah, jatah absen habis",

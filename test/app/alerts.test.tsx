@@ -78,6 +78,9 @@ describe("the bell", () => {
     await screen.click("Atur notifikasi");
     expect(document.querySelector("[role=dialog]")?.textContent).toContain("Pengaturan");
     expect(screen.text()).toContain("24 jam dan 3 jam sebelumnya, hanya jika belum dikumpulkan");
+    // Without SIX, the alerts only SIX can raise say so.
+    expect(screen.text()).toContain("SIX tidak mencatat kuliah, jatah absen habis · butuh SIX");
+    expect(screen.text()).not.toContain("sebelumnya, hanya jika belum dikumpulkan · butuh SIX");
   });
 
   it("an item opens its screen", async () => {

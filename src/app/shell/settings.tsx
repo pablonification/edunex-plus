@@ -145,17 +145,17 @@ function Target({ value, onChange }: { value: number; onChange: (value: number) 
 }
 
 /** Alert groups with a detector so far, in the approved design's order. Add a group here when its alerts land. */
-const ALERT_ROWS: { group: AlertGroup; label: StringKey; hint: StringKey }[] = [
+const ALERT_ROWS: { group: AlertGroup; label: StringKey; hint: StringKey; six?: true }[] = [
   { group: "presence", label: "settings.alerts.presence", hint: "settings.alerts.presenceHint" },
-  { group: "attendanceRisk", label: "settings.alerts.attendanceRisk", hint: "settings.alerts.attendanceRiskHint" },
+  { group: "attendanceRisk", label: "settings.alerts.attendanceRisk", hint: "settings.alerts.attendanceRiskHint", six: true },
   { group: "changes", label: "settings.alerts.changes", hint: "settings.alerts.changesHint" },
   { group: "exams", label: "settings.alerts.exams", hint: "settings.alerts.examsHint" },
   { group: "deadline", label: "settings.alerts.deadline", hint: "settings.alerts.deadlineHint" },
   { group: "newTask", label: "settings.alerts.newTask", hint: "settings.alerts.newTaskHint" },
   { group: "newMaterial", label: "settings.alerts.newMaterial", hint: "settings.alerts.newMaterialHint" },
   { group: "grade", label: "settings.alerts.grade", hint: "settings.alerts.gradeHint" },
-  { group: "krs", label: "settings.alerts.krs", hint: "settings.alerts.krsHint" },
-  { group: "bill", label: "settings.alerts.bill", hint: "settings.alerts.billHint" },
+  { group: "krs", label: "settings.alerts.krs", hint: "settings.alerts.krsHint", six: true },
+  { group: "bill", label: "settings.alerts.bill", hint: "settings.alerts.billHint", six: true },
   { group: "academic", label: "settings.alerts.academic", hint: "settings.alerts.academicHint" },
 ];
 
@@ -164,6 +164,7 @@ function AlertSettings({ settings, update, report }: { settings: Settings; updat
   const bridge = useBridge();
   const [testing, setTesting] = useState(false);
   const [sent, setSent] = useState(false);
+  const sixOut = useStatus("six").state === "signed-out";
   const setOn = (group: AlertGroup, on: boolean) =>
     update({ mutedAlerts: on ? settings.mutedAlerts.filter((g) => g !== group) : [...settings.mutedAlerts.filter((g) => g !== group), group] });
   const test = async () => {
@@ -180,8 +181,9 @@ function AlertSettings({ settings, update, report }: { settings: Settings; updat
   };
   return (
     <Group title={t("settings.alerts")}>
-      {ALERT_ROWS.map(({ group, label, hint }) => (
-        <Row key={group} label={t(label)} hint={t(hint)}>
+      {ALERT_ROWS.map(({ group, label, hint, six }) => (
+        // Signed out of SIX, an alert only SIX can raise says so, rather than seeming to work.
+        <Row key={group} label={t(label)} hint={six && sixOut ? `${t(hint)} · ${t("settings.alerts.needsSix")}` : t(hint)}>
           <Switch checked={!settings.mutedAlerts.includes(group)} onCheckedChange={(on) => setOn(group, on)} label={t(label)} />
         </Row>
       ))}
