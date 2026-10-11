@@ -233,6 +233,8 @@ describe("meetings", () => {
     expect(s.text()).toMatch(/tutup 09:30 \(1 jam 1\d mnt lagi\)/);
     // PL3002 counts in SIX: recording on EduNex is offered, but quietly, and the page says why.
     expect(s.text()).toContain("Kehadiranmu dihitung di SIX; Presensi EduNex juga dibuka.");
+    // The meeting is named as on the Pertemuan tab: by the module posted for it, not "Kuliah".
+    expect(s.text()).toContain("Modul 7 · Inovasi Pelayanan Publik");
     const record = [...document.querySelectorAll("button")].find((b) => b.textContent === "Catat di EduNex")!;
     await s.click(record);
     expect(s.calls.at(-1)).toEqual({ name: "shell.openExternal", input: { url: "https://edunex.itb.ac.id/courses/95001" } });

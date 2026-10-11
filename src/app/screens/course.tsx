@@ -27,7 +27,7 @@ import { toast } from "../ui/overlays";
 import { type CoursePage, useCoursePage } from "./course/data";
 import { GradesTab } from "./course/grades";
 import { AnnouncementsTab, TasksTab } from "./course/lists";
-import { MeetingsTab } from "./course/meetings";
+import { meetingModuleTitle, MeetingsTab, pageModules } from "./course/meetings";
 import { ModulesTab } from "./course/modules";
 import { budgetLabel, STATE_TONE } from "./presence";
 
@@ -286,7 +286,7 @@ function NowStrip({ page }: { page: CoursePage }) {
   // EduNex's window is the thing to do only where it may be what counts: not where SIX counts, and
   // not loudly without SIX (nobody can say; it's worth doing just in case).
   const presenceCounts = countedIn !== "six" && countedIn !== "noSix";
-  const what = meeting ? (meeting.presence?.topic ?? meeting.six?.activity ?? null) : null;
+  const what = meeting ? (meetingModuleTitle(t, pageModules(page), meeting) ?? meeting.presence?.topic ?? meeting.six?.activity ?? null) : null;
 
   return (
     <div className="flex flex-wrap items-center gap-x-6 gap-y-3 rounded-xl border border-edge bg-raised px-5 py-3.5 shadow-card" style={{ boxShadow: `inset 3px 0 0 ${page.course.color}` }}>

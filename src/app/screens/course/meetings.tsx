@@ -36,7 +36,7 @@ export function MeetingsTab({ page }: { page: CoursePage }) {
   const sixSignedOut = useStatus("six").state === "signed-out";
   const next = nextMeetingIndex(meetings, now);
   // A meeting nothing names takes the one module the lecturer posted the week before it, when there is one.
-  const modules = meetingModules(meetings, page.outline && course.edunex ? outlineEntries(page.outline, course.edunex.courseId) : []);
+  const modules = pageModules(page);
   const periods = (calendar?.events ?? []).filter((e) => e.kind === "uts" || e.kind === "uas");
   // The exam period a meeting falls in, said once, before its first meeting.
   const periodOf = (meeting: Meeting) => periods.find((p) => wibDay(meeting.start) >= p.firstDay && wibDay(meeting.start) <= p.lastDay);
@@ -82,7 +82,7 @@ export function MeetingsTab({ page }: { page: CoursePage }) {
                 index={index}
                 next={index === next}
                 countedIn={countedIn}
-                module={modules.get(meeting.key)}
+                moduleTitle={meetingModuleTitle(t, modules, meeting)}
                 divider={firstInPeriod ? period : undefined}
                 fallbackUrl={course.edunex ? edunexCourseUrl(course.edunex.courseId) : null}
               />
@@ -92,6 +92,19 @@ export function MeetingsTab({ page }: { page: CoursePage }) {
       )}
     </div>
   );
+}
+
+/** Each meeting's EduNex module, where one goes with it (see meetingModules). */
+export const pageModules = (page: CoursePage) =>
+  meetingModules(page.meetings, page.outline && page.course.edunex ? outlineEntries(page.outline, page.course.edunex.courseId) : []);
+
+/** "Modul 7 · Inovasi Pelayanan Publik" for a meeting known only as a class, as its row on the Pertemuan tab says it. */
+export function meetingModuleTitle(t: ReturnType<typeof useT>, modules: ReadonlyMap<string, OutlineEntry>, meeting: Meeting): string | null {
+  const named = meeting.presence?.topic ?? meeting.six?.activity ?? null;
+  // A meeting EduNex or SIX names or numbers keeps that: one number per meeting.
+  if (meeting.announced || (named && !/^kuliah$/i.test(named.trim()))) return null;
+  const entry = modules.get(meeting.key);
+  return entry ? t("meeting.module", { no: entry.number, title: entry.module.title.trim() }) : null;
 }
 
 /** Signed out of SIX: EduNex's own tally as a fact, and why it may not be the count that matters. */
@@ -131,7 +144,7 @@ function MeetingRow({
   index,
   next,
   countedIn,
-  module,
+  moduleTitle,
   divider,
   fallbackUrl,
 }: {
@@ -139,7 +152,7 @@ function MeetingRow({
   index: number;
   next: boolean;
   countedIn: CountedIn;
-  module: OutlineEntry | undefined;
+  moduleTitle: string | null;
   divider: CalendarEvent | undefined;
   fallbackUrl: string | null;
 }) {
@@ -150,13 +163,9 @@ function MeetingRow({
   const state = meetingState(meeting, now);
   const { six, presence, announced } = meeting;
   const named = presence?.topic ?? six?.activity ?? null;
-  // Unnamed, only numbered ("Pertemuan 3") or just "Kuliah": said in a quieter color.
-  const placeholder = !named || /^((pertemuan|meeting)\s*\d+|kuliah)$/i.test(named.trim());
-  // A meeting known only as a class takes EduNex's module for that week, numbered as on the Modul tab.
-  // A meeting EduNex or SIX numbers keeps its own number: one number per meeting.
-  const fromModule =
-    module && !announced && (!named || /^kuliah$/i.test(named.trim())) ? t("meeting.module", { no: module.number, title: module.module.title.trim() }) : null;
-  const title = fromModule ?? named ?? (announced ? t("meeting.number", { no: announced.number }) : six?.activity || t("meeting.untitled"));
+  // Unnamed, only numbered ("Pertemuan 3") or just "Kuliah", with no module to name it: said in a quieter color.
+  const placeholder = !moduleTitle && (!named || /^((pertemuan|meeting)\s*\d+|kuliah)$/i.test(named.trim()));
+  const title = moduleTitle ?? named ?? (announced ? t("meeting.number", { no: announced.number }) : six?.activity || t("meeting.untitled"));
   // EduNex's Presence window, when it isn't simply the meeting's time.
   const window = presence && (presence.opensAt !== meeting.start || presence.closesAt !== meeting.end) ? f.timeRange(presence.opensAt, presence.closesAt) : null;
   const presenceUrl = presence?.url ?? fallbackUrl;
@@ -211,7 +220,7 @@ function MeetingRow({
           <span className="block text-small text-muted">{f.timeRange(meeting.start, meeting.end)}</span>
         </span>
         <span className="min-w-0 text-body">
-          <span title={title} className={cx("line-clamp-2", placeholder && !fromModule ? "text-muted" : "font-medium", future && !next && (!placeholder || fromModule) && "text-fg/80")}>{title}</span>
+          <span title={title} className={cx("line-clamp-2", placeholder ? "text-muted" : "font-medium", future && !next && !placeholder && "text-fg/80")}>{title}</span>
           <span className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-small text-muted">
             {six?.room && (
               <span className="inline-flex items-center gap-1">
