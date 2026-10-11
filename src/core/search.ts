@@ -214,13 +214,15 @@ export function searchIndex(saved: Saved, { lang, screens, now }: IndexOptions):
     const course = byCode.get(code);
     return [code, course?.six, course?.edunex, catalog.get(code)].filter(Boolean).join(" ");
   };
+  // Indonesian: the official name, SIX's or else ITB's catalog (as everywhere in the app without SIX), never EduNex's English one.
+  const nameOf = (course: (typeof courses)[number]) => (lang === "id" ? (course.six ?? catalog.get(course.code) ?? courseName(course, lang)) : courseName(course, lang));
   const displayName = (code: string) => {
     const course = byCode.get(code);
-    return course ? courseName(course, lang) : code;
+    return course ? nameOf(course) : code;
   };
 
   for (const course of courses) {
-    const title = courseName(course, lang);
+    const title = nameOf(course);
     add(
       { kind: "course", key: `course:${course.code}`, title, code: course.code, target: { screen: "course", code: course.code }, classNo: course.classNo, sks: course.sks },
       [

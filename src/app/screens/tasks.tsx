@@ -149,6 +149,8 @@ export function TasksScreen() {
   const week = show === "open" ? (exams ?? []).find((exam) => exam.week && exam.week.end > now && exam.kind === "UTS")?.week ?? (exams ?? []).find((exam) => exam.week && exam.week.end > now)?.week : undefined;
   const weekExam = week ? (exams ?? []).find((exam) => exam.week === week) : undefined;
   const nothing = shownExams.length === 0 && sections.every((section) => section.rows.length === 0);
+  // Signed out of SIX, only EduNex's exams are known: said once, under them, with the way to SIX's timetable.
+  const examsNoSix = useStatus("six").state === "signed-out" && show === "open" && course === null;
   // Courses with something in either segment, for the filter.
   const withItems = (courses ?? []).filter((c) => (rows ?? []).some((row) => row.task.courseCode === c.code) || (exams ?? []).some((exam) => exam.courseCode === c.code));
 
@@ -202,18 +204,21 @@ export function TasksScreen() {
         />
       ) : (
         <>
-          {shownExams.length > 0 && (
+          {(shownExams.length > 0 || examsNoSix) && (
             <Section
               id="tasks-exams"
               title={t("exams.title")}
-              count={shownExams.length}
+              count={shownExams.length || undefined}
               description={week && weekExam && (weekExam.kind === "UTS" || weekExam.kind === "UAS") ? examWeekLabel(t, f, weekExam.kind, week) : undefined}
             >
-              <List label={t("exams.title")}>
-                {shownExams.map((exam) => (
-                  <ExamRow key={exam.id} exam={exam} index={index++} />
-                ))}
-              </List>
+              {shownExams.length > 0 && (
+                <List label={t("exams.title")}>
+                  {shownExams.map((exam) => (
+                    <ExamRow key={exam.id} exam={exam} index={index++} />
+                  ))}
+                </List>
+              )}
+              {examsNoSix && <ExamsNoSix />}
             </Section>
           )}
           {sections
@@ -251,6 +256,20 @@ function FilterChip({ selected, onClick, children }: { selected: boolean; onClic
 }
 
 /** Before the first Task list has arrived: placeholders while it's on its way, else why it isn't. */
+/** Under the exams, without SIX: SIX's exam timetable is missing, and the one way to get it. */
+function ExamsNoSix() {
+  const t = useT();
+  const { signIn, busy } = useSignIn();
+  return (
+    <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
+      <p className="text-small text-muted">{t("tasks.examsNoSix")}</p>
+      <Button size="sm" busy={busy} onClick={() => void signIn("six")}>
+        {t("action.signInTo", { source: "SIX" })}
+      </Button>
+    </div>
+  );
+}
+
 function NoTasksYet() {
   const t = useT();
   const status = useStatus("edunex");

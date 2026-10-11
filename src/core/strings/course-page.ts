@@ -67,6 +67,7 @@ export const coursePageStrings = {
   "meeting.noSix": { id: "Jadwal pertemuan dan ruangnya datang dari SIX", en: "Meeting times and rooms come from SIX" },
   "meeting.noEdunexPresence": { id: "Kelas ini tidak memakai Presensi EduNex", en: "This class doesn't use EduNex Presence" },
   "meeting.number": { id: "Pertemuan {no}", en: "Meeting {no}" },
+  "meeting.module": { id: "Modul {no} · {title}", en: "Module {no} · {title}" },
   "meeting.untitled": { id: "Kuliah", en: "Class" },
   "meeting.window": { id: "Presensi {range}", en: "Presence {range}" },
   "meeting.notInSix": { id: "Tidak ada di SIX", en: "Not in SIX" },
@@ -82,6 +83,7 @@ export const coursePageStrings = {
   // Tasks and exams
   "course.noTasks": { id: "Tidak ada tugas", en: "No tasks" },
   "course.exams": { id: "Ujian", en: "Exams" },
+  "course.noExamsNoSix": { id: "Belum ada ujian di EduNex. Jadwal ujian dari SIX muncul setelah SIX terhubung.", en: "No exams in EduNex yet. SIX's exam timetable shows once SIX is connected." },
   "course.noExams": { id: "Belum ada ujian di SIX maupun EduNex", en: "No exams in SIX or EduNex yet" },
   "course.due": { id: "Tenggat {when}", en: "Due {when}" },
 
@@ -125,6 +127,7 @@ export const coursePageStrings = {
   "course.attendanceShare": { id: "{attended}/{held} · {percent}%", en: "{attended}/{held} · {percent}%" },
   "course.attendanceLabel": { id: "Kehadiran {attended} dari {held}, {percent}%", en: "Attendance {attended} of {held}, {percent}%" },
   "course.closesAt": { id: "tutup {time} ({left} lagi)", en: "closes {time} ({left} left)" },
+  "course.presenceNoSix": { id: "Tanpa SIX, belum pasti Presensi ini dihitung: catat saja untuk berjaga-jaga.", en: "Without SIX it's not certain this Presence counts: record it just in case." },
   "course.presenceCountsSix": { id: "Kehadiranmu dihitung di SIX; Presensi EduNex juga dibuka.", en: "Your attendance counts in SIX; EduNex Presence is open too." },
   "course.join": { id: "Gabung", en: "Join" },
   "course.online": { id: "Daring", en: "Online" },

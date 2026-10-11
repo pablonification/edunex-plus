@@ -119,8 +119,11 @@ describe("with EduNex alone", () => {
     screen = await openApp({ signedIn: true });
     const now = text("home-now");
     expect(now).toContain("Presensi PL3002 sedang dibuka");
-    expect(now).toContain("Belum tahu kehadiran dihitung di mana sampai SIX terhubung; mengisinya tidak ada ruginya.");
+    // Without SIX nobody knows whether EduNex counts: said as a just-in-case, the button quiet.
+    expect(now).toContain("Tanpa SIX, belum pasti ini dihitung: catat saja untuk berjaga-jaga.");
     expect(now).not.toContain("dihitung lewat Presensi EduNex");
+    const button = [...document.querySelectorAll<HTMLButtonElement>("section[aria-labelledby=home-now] button")].find((b) => b.textContent === "Buka Presensi");
+    expect(button?.className).not.toContain("bg-accent ");
     expect(text("home-today")).toContain("Jadwal dan ruang kuliah muncul setelah SIX terhubung.");
   });
 });

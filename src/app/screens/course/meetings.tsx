@@ -6,7 +6,8 @@
 // absence where SIX is (or, signed out of SIX, may be) the one that counts.
 // A meeting carries one number only: the name EduNex or SIX gives it.
 import type { ReactNode } from "react";
-import { meetingState, nextMeetingIndex, type Meeting, wibDay } from "../../../core/course-meetings";
+import { type OutlineEntry, outlineEntries } from "../../../core/course-materials";
+import { meetingModules, meetingState, nextMeetingIndex, type Meeting, wibDay } from "../../../core/course-meetings";
 import { edunexCourseUrl } from "../../../core/links";
 import type { CalendarEvent } from "../../../core/models";
 import { dayStart } from "../../../core/schedule";
@@ -34,6 +35,8 @@ export function MeetingsTab({ page }: { page: CoursePage }) {
   const noEdunexPresence = presence !== undefined && presence.length === 0;
   const sixSignedOut = useStatus("six").state === "signed-out";
   const next = nextMeetingIndex(meetings, now);
+  // A meeting nothing names takes the one module the lecturer posted the week before it, when there is one.
+  const modules = pageModules(page);
   const periods = (calendar?.events ?? []).filter((e) => e.kind === "uts" || e.kind === "uas");
   // The exam period a meeting falls in, said once, before its first meeting.
   const periodOf = (meeting: Meeting) => periods.find((p) => wibDay(meeting.start) >= p.firstDay && wibDay(meeting.start) <= p.lastDay);
@@ -79,6 +82,7 @@ export function MeetingsTab({ page }: { page: CoursePage }) {
                 index={index}
                 next={index === next}
                 countedIn={countedIn}
+                moduleTitle={meetingModuleTitle(t, modules, meeting)}
                 divider={firstInPeriod ? period : undefined}
                 fallbackUrl={course.edunex ? edunexCourseUrl(course.edunex.courseId) : null}
               />
@@ -88,6 +92,19 @@ export function MeetingsTab({ page }: { page: CoursePage }) {
       )}
     </div>
   );
+}
+
+/** Each meeting's EduNex module, where one goes with it (see meetingModules). */
+export const pageModules = (page: CoursePage) =>
+  meetingModules(page.meetings, page.outline && page.course.edunex ? outlineEntries(page.outline, page.course.edunex.courseId) : []);
+
+/** "Modul 7 · Inovasi Pelayanan Publik" for a meeting known only as a class, as its row on the Pertemuan tab says it. */
+export function meetingModuleTitle(t: ReturnType<typeof useT>, modules: ReadonlyMap<string, OutlineEntry>, meeting: Meeting): string | null {
+  const named = meeting.presence?.topic ?? meeting.six?.activity ?? null;
+  // A meeting EduNex or SIX names or numbers keeps that: one number per meeting.
+  if (meeting.announced || (named && !/^kuliah$/i.test(named.trim()))) return null;
+  const entry = modules.get(meeting.key);
+  return entry ? t("meeting.module", { no: entry.number, title: entry.module.title.trim() }) : null;
 }
 
 /** Signed out of SIX: EduNex's own tally as a fact, and why it may not be the count that matters. */
@@ -127,6 +144,7 @@ function MeetingRow({
   index,
   next,
   countedIn,
+  moduleTitle,
   divider,
   fallbackUrl,
 }: {
@@ -134,6 +152,7 @@ function MeetingRow({
   index: number;
   next: boolean;
   countedIn: CountedIn;
+  moduleTitle: string | null;
   divider: CalendarEvent | undefined;
   fallbackUrl: string | null;
 }) {
@@ -144,13 +163,16 @@ function MeetingRow({
   const state = meetingState(meeting, now);
   const { six, presence, announced } = meeting;
   const named = presence?.topic ?? six?.activity ?? null;
-  // Unnamed, or only numbered ("Pertemuan 3"): said in a quieter color.
-  const placeholder = !named || /^(pertemuan|meeting)\s*\d+$/i.test(named.trim());
-  const title = named ?? (announced ? t("meeting.number", { no: announced.number }) : six?.activity || t("meeting.untitled"));
+  // Unnamed, only numbered ("Pertemuan 3") or just "Kuliah", with no module to name it: said in a quieter color.
+  const placeholder = !moduleTitle && (!named || /^((pertemuan|meeting)\s*\d+|kuliah)$/i.test(named.trim()));
+  const title = moduleTitle ?? named ?? (announced ? t("meeting.number", { no: announced.number }) : six?.activity || t("meeting.untitled"));
   // EduNex's Presence window, when it isn't simply the meeting's time.
   const window = presence && (presence.opensAt !== meeting.start || presence.closesAt !== meeting.end) ? f.timeRange(presence.opensAt, presence.closesAt) : null;
   const presenceUrl = presence?.url ?? fallbackUrl;
   const future = meeting.start > now;
+  // An open window asks for you (amber, primary) only where EduNex may be what counts; where SIX counts, or
+  // without SIX (nobody can say), the strip above says it once and the row stays calm.
+  const quiet = countedIn === "six" || countedIn === "noSix";
 
   let status: ReactNode = null;
   if (state === "present")
@@ -162,7 +184,12 @@ function MeetingRow({
     );
   else if (state === "open")
     status = (
-      <span className="inline-flex h-[22px] items-center gap-1.5 rounded-full bg-warning-bg px-2 text-caption font-semibold whitespace-nowrap text-warning-fg">
+      <span
+        className={cx(
+          "inline-flex h-[22px] items-center gap-1.5 rounded-full px-2 text-caption font-semibold whitespace-nowrap",
+          quiet ? "bg-fill text-muted" : "bg-warning-bg text-warning-fg",
+        )}
+      >
         <LiveDot className="scale-75" />
         {t("meeting.state.open")}
         {presence && <span className="font-medium opacity-80">· {f.countdown(presence.closesAt)}</span>}
@@ -193,7 +220,7 @@ function MeetingRow({
           <span className="block text-small text-muted">{f.timeRange(meeting.start, meeting.end)}</span>
         </span>
         <span className="min-w-0 text-body">
-          <span className={cx("block truncate", placeholder ? "text-muted" : "font-medium", future && !next && !placeholder && "text-fg/80")}>{title}</span>
+          <span title={title} className={cx("line-clamp-2", placeholder ? "text-muted" : "font-medium", future && !next && !placeholder && "text-fg/80")}>{title}</span>
           <span className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-small text-muted">
             {six?.room && (
               <span className="inline-flex items-center gap-1">
@@ -220,7 +247,7 @@ function MeetingRow({
             </Button>
           )}
           {state === "open" && presenceUrl && (
-            <Button variant="primary" size="sm" icon={<Icons.ArrowUpRight className="size-3.5" />} onClick={() => open(presenceUrl)}>
+            <Button variant={quiet ? "secondary" : "primary"} size="sm" icon={<Icons.ArrowUpRight className="size-3.5" />} onClick={() => open(presenceUrl)}>
               {t("course.recordInEdunex")}
             </Button>
           )}

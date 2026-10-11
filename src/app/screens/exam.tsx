@@ -322,7 +322,13 @@ function ExamPage({ exam, others, course, courses }: { exam: Exam; others: Exam[
                   <KindLabel exam={other} />
                   <CourseDot color={courses.find((c) => c.code === other.courseCode)?.color ?? "#888"} className="size-2" />
                   {other.courseCode}
-                  <span className="text-faint">{other.at !== null ? f.dayMonth(other.at) : t("exam.noDate")}</span>
+                  <span className="text-faint">
+                    {other.at !== null
+                      ? f.dayMonth(other.at)
+                      : other.week && (other.kind === "UTS" || other.kind === "UAS")
+                        ? examWeekLabel(t, f, other.kind, other.week)
+                        : t("exam.noDate")}
+                  </span>
                 </button>
               </li>
             ))}

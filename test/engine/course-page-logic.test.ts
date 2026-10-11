@@ -4,7 +4,7 @@
 import { describe, expect, it } from "vitest";
 import { EXAMPLE_CONTRACT, standing } from "../../src/core/course-contract";
 import { materialAction, planOfflineFiles } from "../../src/core/course-materials";
-import { announcedMeetings, courseMeetings, meetingState, openPresence, pinnedMeeting } from "../../src/core/course-meetings";
+import { announcedMeetings, courseMeetings, type Meeting, meetingModules, meetingState, openPresence, pinnedMeeting } from "../../src/core/course-meetings";
 import type { ClassSession, CourseContract } from "../../src/core/models";
 import { PRETEND_TOKEN } from "../pretend/edunex";
 import { startEngine } from "./harness";
@@ -82,6 +82,27 @@ describe("meetings", () => {
     expect(states.slice(7).every((s) => s === "upcoming")).toBe(true);
     expect(pinnedMeeting(meetings, now)).toMatchObject({ current: true, meeting: { start: at("2026-10-08T08:00:00+07:00") } });
     expect(openPresence(h.dataset("edunex.presence")!.PL3002, now)?.start).toBe(at("2026-10-08T08:00:00+07:00"));
+  });
+});
+
+describe("a meeting's module", () => {
+  const meeting = (day: string): Meeting => ({ key: day, start: at(`${day}T08:00:00+07:00`), end: at(`${day}T09:30:00+07:00`), six: null, presence: null, announced: null, notInSix: false });
+  const entry = (number: number, title: string, posted: string) => ({ module: { id: number, courseId: 1, title, postedAt: at(`${posted}+07:00`) }, number, parent: false });
+  const meetings = ["2026-09-10", "2026-09-17", "2026-09-24", "2026-10-01"].map(meeting);
+
+  it("is the one module posted in the week before it; a batch or two in one week names nothing", () => {
+    const modules = meetingModules(meetings, [
+      entry(1, "Info Awal", "2026-09-09T22:40:00"),
+      entry(2, "Impact of Innovation", "2026-09-09T22:45:00"),
+      entry(4, "Production Process Innovation", "2026-09-16T20:25:00"),
+      entry(5, "Inovasi Kelembagaan Pasar", "2026-09-29T19:55:00"),
+      entry(6, "Inovasi Keuangan", "2026-10-01T00:25:00"),
+    ]);
+    expect([...modules].map(([key, e]) => [key, e.number])).toEqual([["2026-09-17", 4]]);
+  });
+
+  it("never from a numbered placeholder, or a module posted long before", () => {
+    expect(meetingModules(meetings, [entry(6, "Module 06", "2026-09-16T20:25:00"), entry(1, "Pengantar", "2026-08-01T10:00:00")]).size).toBe(0);
   });
 });
 

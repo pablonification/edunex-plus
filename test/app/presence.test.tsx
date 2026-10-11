@@ -218,11 +218,14 @@ describe("the Presensi screen", () => {
   it("before SIX is connected, says so instead of guessing, and what SIX unlocks", async () => {
     const s = await openPresence();
     expect(answer()).toBe("Hitungan resmi kehadiran ada di SIX");
-    expect(card("PL3002")).toContain("Belum ada hitungan SIX");
-    // Without SIX nobody knows which system counts: EduNex's tally is a fact, not "where it's recorded".
-    expect(card("PL3002")).toContain("Hitungan resmi ada di SIX");
+    // Without SIX nobody knows which system counts: said once at the top; no row claims SIX has no count, or repeats it.
+    expect(s.text().match(/Hitungan resmi/g)).toHaveLength(1);
+    expect(s.text()).not.toContain("Belum ada hitungan SIX");
     expect(card("PL3002")).toContain("EduNex: hadir 1 dari 6 Presensi");
     expect(s.text()).not.toContain("Dicatat lewat Presensi EduNex");
+    // The open window: worth recording just in case, not a must-do (the same on Beranda and the course page).
+    expect(s.text()).toContain("Tanpa SIX, belum pasti ini dihitung: catat saja untuk berjaga-jaga.");
+    expect([...document.querySelectorAll("main button")].find((b) => b.textContent === "Catat di EduNex")!.className).not.toContain("bg-accent ");
     expect(card("KU5014")).toContain("Belum ada catatan kehadiran");
     // EduNex's own record, with each window's date.
     expect(squares("II4091")[0]).toBe("Rab 26 Agu · tercatat hadir di EduNex");

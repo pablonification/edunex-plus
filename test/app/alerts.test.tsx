@@ -38,6 +38,13 @@ describe("the bell", () => {
     expect(unreadDots()).toBe(0);
   });
 
+  it("never says it reads SIX while SIX isn't connected", async () => {
+    screen = await openApp({ signedIn: true });
+    await screen.click("Notifikasi");
+    expect(panel()?.textContent).toContain("Dari EduNex · SIX belum terhubung");
+    expect(panel()?.textContent).not.toContain("Dari EduNex dan SIX");
+  });
+
   it("with nothing at all, says what will show here", async () => {
     const world = new PretendWorld({ now: "2026-10-10T10:00:00+07:00" });
     world.edunex.tasks.clear();
@@ -71,6 +78,9 @@ describe("the bell", () => {
     await screen.click("Atur notifikasi");
     expect(document.querySelector("[role=dialog]")?.textContent).toContain("Pengaturan");
     expect(screen.text()).toContain("24 jam dan 3 jam sebelumnya, hanya jika belum dikumpulkan");
+    // Without SIX, the alerts only SIX can raise say so.
+    expect(screen.text()).toContain("SIX tidak mencatat kuliah, jatah absen habis · butuh SIX");
+    expect(screen.text()).not.toContain("sebelumnya, hanya jika belum dikumpulkan · butuh SIX");
   });
 
   it("an item opens its screen", async () => {

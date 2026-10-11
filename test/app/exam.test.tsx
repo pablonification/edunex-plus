@@ -96,6 +96,20 @@ describe("the exam page", () => {
     expect(s.exported).toHaveLength(1);
   });
 
+  it("without SIX: says SIX's exam timetable is missing, once, and an exam known only by its week says the week", async () => {
+    screen = await openApp({ signedIn: true });
+    const s = screen;
+    // ITB's calendar (the exam weeks) is read after EduNex.
+    await s.wait(5 * 60_000);
+    await s.click(/^Tugas & Ujian\d*$/);
+    expect(examSection()?.textContent).toContain("Ujian dari jadwal SIX (tanggal dan ruangnya) muncul setelah SIX terhubung.");
+    expect(s.text().match(/muncul setelah SIX terhubung/g)).toHaveLength(1);
+    await s.click(examRow("DK4073")!);
+    const others = document.querySelector("main section[aria-labelledby=exam-others]")?.textContent ?? "";
+    expect(others).toContain("PL3032Masa UTS");
+    expect(others).not.toContain("Belum ada tanggal");
+  });
+
   it("an exam no longer listed says so", async () => {
     const s = await openTasks();
     await s.apply({ type: "navigate", route: { screen: "exam", examId: "PL3002-UAS" } });

@@ -98,6 +98,7 @@ export const gradesStrings = {
   "grades.needSixBody": { id: "Masuk ke SIX untuk melihat IPK, transkrip, dan perkiraan IPK saat lulus.", en: "Sign in to SIX to see your IPK, transcript and your IPK at graduation." },
   "grades.edunexTerm": { id: "Mata kuliah semester ini", en: "This semester's courses" },
   "grades.edunexTermHint": { id: "Dari EduNex. Hitung nilai yang kamu butuhkan di tiap mata kuliah.", en: "From EduNex. Work out the scores you need in each course." },
+  "grades.edunexTermNoneHint": { id: "Dari EduNex. Belum ada nilai yang dirilis; hitung nilai yang kamu butuhkan di tiap mata kuliah.", en: "From EduNex. No grades published yet; work out the scores you need in each course." },
   "grades.edunexNone": { id: "Nilai belum dirilis di EduNex", en: "No grade published on EduNex yet" },
 
   // ------------------------------------------------ the predicate (Peraturan Akademik ITB)

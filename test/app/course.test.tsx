@@ -209,6 +209,23 @@ describe("meetings", () => {
     expect(s.text()).not.toMatch(/Absen|Tidak hadir|Absent/);
   });
 
+  it("where SIX counts, the open window's row is no louder than the strip that calls it optional", async () => {
+    await openCourse("PL3002", { six: true });
+    await tab(/^Pertemuan/);
+    const open = [...document.querySelectorAll("main ol li")].find((li) => li.textContent?.includes("Presensi dibuka"))!;
+    const chip = [...open.querySelectorAll("span")].find((el) => el.textContent?.startsWith("Presensi dibuka"))!;
+    expect(chip.className).not.toContain("warning");
+    expect([...open.querySelectorAll("button")].find((b) => b.textContent === "Catat di EduNex")!.className).not.toContain("bg-accent ");
+  });
+
+  it("without SIX, the open window is worth recording just in case, said calmly", async () => {
+    const s = await openCourse("PL3002");
+    expect(s.text()).toContain("Tanpa SIX, belum pasti Presensi ini dihitung: catat saja untuk berjaga-jaga.");
+    const buttons = [...document.querySelectorAll("main button")].filter((b) => b.textContent === "Catat di EduNex");
+    expect(buttons.length).toBeGreaterThan(0);
+    expect(buttons.every((b) => !b.className.includes("bg-accent "))).toBe(true);
+  });
+
   it("pins the meeting going on now with its open Presence window and the button to act on EduNex", async () => {
     const s = await openCourse("PL3002", { six: true });
     expect(s.text()).toContain("Sedang berlangsung");
@@ -216,6 +233,8 @@ describe("meetings", () => {
     expect(s.text()).toMatch(/tutup 09:30 \(1 jam 1\d mnt lagi\)/);
     // PL3002 counts in SIX: recording on EduNex is offered, but quietly, and the page says why.
     expect(s.text()).toContain("Kehadiranmu dihitung di SIX; Presensi EduNex juga dibuka.");
+    // The meeting is named as on the Pertemuan tab: by the module posted for it, not "Kuliah".
+    expect(s.text()).toContain("Modul 7 · Inovasi Pelayanan Publik");
     const record = [...document.querySelectorAll("button")].find((b) => b.textContent === "Catat di EduNex")!;
     await s.click(record);
     expect(s.calls.at(-1)).toEqual({ name: "shell.openExternal", input: { url: "https://edunex.itb.ac.id/courses/95001" } });
@@ -261,6 +280,17 @@ describe("meetings", () => {
     expect(meetings.filter((m) => /Pertemuan \d/.test(m)).every((m) => !/^\d\d/.test(m))).toBe(true);
     // A meeting nothing names is a class, not a number of the app's own.
     expect(meetings.find((m) => m.includes("18 Nov"))).toContain("Kuliah");
+  });
+
+  it("a meeting known only as a class takes the module EduNex posted for that week", async () => {
+    await openCourse("PL3002", { six: true });
+    await tab(/^Pertemuan/);
+    const meetings = rows("main ol li");
+    expect(meetings.find((m) => m.includes("17 Sep"))).toContain("Modul 4 · Production Process Innovation");
+    // Two modules posted the week before 1 Oct: no guess.
+    expect(meetings.find((m) => m.includes("1 Okt"))).toContain("Kuliah");
+    // EduNex's own name for a meeting stays.
+    expect(meetings.find((m) => m.includes("27 Agu"))).toContain("Pendahuluan");
   });
 
   it("a class without EduNex Presence says so; its meetings come from SIX", async () => {
@@ -399,11 +429,22 @@ describe("announcements and exams", () => {
   });
 
   it("Tasks & Exams says when neither SIX nor EduNex has an exam", async () => {
-    await openCourse("PL3002");
+    await openCourse("PL3002", { six: true });
     await tab(/^Tugas & Ujian/);
     const exams = [...document.querySelectorAll<HTMLElement>("main section")].find((section) => section.querySelector("h2")?.textContent?.startsWith("Ujian"));
     // Said under the exams' own heading, not floating between the Task lists.
     expect(exams?.textContent).toContain("Belum ada ujian di SIX maupun EduNex");
+  });
+
+  it("without SIX, Tasks & Exams doesn't claim SIX has no exam, and offers SIX", async () => {
+    const s = await openCourse("PL3002");
+    await tab(/^Tugas & Ujian/);
+    const exams = [...document.querySelectorAll<HTMLElement>("main section")].find((section) => section.querySelector("h2")?.textContent?.startsWith("Ujian"));
+    expect(exams?.textContent).toContain("Belum ada ujian di EduNex. Jadwal ujian dari SIX muncul setelah SIX terhubung.");
+    expect(exams?.textContent).not.toContain("SIX maupun");
+    await s.click([...exams!.querySelectorAll("button")].find((b) => b.textContent === "Masuk ke SIX")!);
+    await s.wait();
+    expect(s.store.status("six").state).toBe("live");
   });
 
   it("Tasks & Exams lists the same exams as Tugas & Ujian, each opening its page", async () => {

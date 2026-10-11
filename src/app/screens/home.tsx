@@ -264,8 +264,10 @@ function Attendance({ card }: { card: NowCard }) {
   const budget = facts?.health && facts.state !== "unknown" ? budgetLabel(t, facts.health, attendanceTarget) : null;
   const where = presence?.counts
     ? t("home.now.countEdunex")
-    : presence && presence.counts === null
-      ? t("home.now.countNotKnown")
+    : presence?.noSix
+      ? t("home.now.countNoSix")
+      : presence && presence.counts === null
+        ? t("home.now.countNotKnown")
     : counted === "six" || counted === "both"
       ? t(online ? "home.now.countSixOnline" : "home.now.countSix")
       : facts
@@ -283,12 +285,14 @@ function Attendance({ card }: { card: NowCard }) {
     const { session } = presence;
     const action = actionLabel({ action: { activity: presence.activity, task: presence.task, url: presence.url } });
     const viaTask = presence.activity === "assignment" && presence.task !== null;
+    // Without SIX nobody can say it counts: worth doing just in case, so said calmly, its button quiet.
+    const quiet = presence.noSix;
     return (
       <div className="border-t border-line bg-sunken/60 px-5 py-4">
         <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
           <div className="min-w-0 flex-1">
             <p className="flex items-center gap-2 text-body font-semibold">
-              <Icons.Hand className="size-4 shrink-0 text-accent-fg" />
+              <Icons.Hand className={cx("size-4 shrink-0", quiet ? "text-muted" : "text-accent-fg")} />
               {t("home.now.presenceDo", { action, time: f.time(session.closesAt) })}
             </p>
             <p className="mt-0.5 text-small text-muted">
@@ -300,7 +304,7 @@ function Attendance({ card }: { card: NowCard }) {
           </div>
           <div className="flex shrink-0 flex-col items-end gap-1.5">
             <Button
-              variant="primary"
+              variant={quiet ? "secondary" : "primary"}
               icon={viaTask ? undefined : <Icons.ArrowUpRight className="size-3.5" />}
               onClick={openPresence}
               aria-label={viaTask ? t("home.now.openTask") : t("home.now.openPresenceLabel", { course: presence.code })}
@@ -614,7 +618,15 @@ function useNeedView(courses: readonly TermCourse[]): (need: Need) => NeedView {
       case "presence":
         if (need.open)
           // Where SIX counts, the window is optional: said so, never as a thing to do.
-          return need.countedIn === "six"
+          // Without SIX nobody knows whether it counts: worth doing just in case, so no amber.
+          return need.countedIn === "noSix"
+            ? {
+                title: t("home.need.presenceNoSix", { course: need.course ?? "" }),
+                meta: [course, t("home.need.presenceNoSix.meta", { time: f.time(need.session.closesAt) })],
+                when: f.fromNow(need.session.closesAt),
+                tone: null,
+              }
+            : need.countedIn === "six"
             ? {
                 title: t("home.need.presenceOptional", { course: need.course ?? "" }),
                 meta: [course, t("home.need.presenceOptional.meta", { time: f.time(need.session.closesAt) })],

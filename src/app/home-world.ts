@@ -5,7 +5,7 @@ import { useMemo } from "react";
 import type { HomeWorld } from "../core/needs";
 import { useTerm, useTermCourses } from "./courses";
 import { useNow } from "./i18n";
-import { useDataset, useSettings } from "./store";
+import { useDataset, useSettings, useStatus } from "./store";
 
 /**
  * Once the term's courses are known. The exact moment, not rounded down: a
@@ -24,6 +24,9 @@ export function useHomeWorld(): HomeWorld | undefined {
   const calendar = useDataset("itb.calendar");
   const krs = useDataset("six.krs");
   const bills = useDataset("six.bills");
+  const sixCourses = useDataset("six.courses");
+  // The same test as Presensi's: signed out of SIX, nothing reads as counting.
+  const sixConnected = useStatus("six").state !== "signed-out" || sixCourses !== undefined;
   const term = useTerm();
   const { attendanceTarget } = useSettings();
   const now = useNow();
@@ -44,6 +47,7 @@ export function useHomeWorld(): HomeWorld | undefined {
       calendar,
       krs,
       bills,
+      sixConnected,
     };
-  }, [courses, tasks, presence, materials, announcements, schedule, scheduleMonths, exams, calendar, krs, bills, term, attendanceTarget, now]);
+  }, [courses, tasks, presence, materials, announcements, schedule, scheduleMonths, exams, calendar, krs, bills, sixConnected, term, attendanceTarget, now]);
 }
