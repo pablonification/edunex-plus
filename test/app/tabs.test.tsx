@@ -1,11 +1,14 @@
 // @vitest-environment jsdom
-// Tabs: one underline that follows the pick (jsdom has no layout, so item
-// positions are made up here and only where the underline sits is read), and
-// every tab names a panel that exists.
+// Tabs and segmented pickers: one underline or highlight that follows the pick
+// (jsdom has no layout, so item positions are made up here and only where the
+// highlight sits is read), every tab names a panel that exists, and a picker
+// works with the keyboard as a radio group does, even with nothing picked (the
+// IPK target while another value is typed).
 import * as Tabs from "@radix-ui/react-tabs";
 import { act, type ReactNode, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { Segmented } from "../../src/app/ui/controls";
 import { TabBar } from "../../src/app/ui/tabs";
 import { records } from "../engine/grades-records";
 import { PretendWorld } from "../pretend/world";
@@ -44,6 +47,12 @@ function layOut() {
 }
 
 const highlight = (group: Element) => group.querySelector<HTMLElement>(":scope > span[aria-hidden]")!;
+
+async function press(element: Element, key: string) {
+  await act(async () => {
+    element.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true }));
+  });
+}
 
 /** Radix tabs switch on mouse down, as a real click starts. */
 async function pick(tab: Element) {
@@ -106,6 +115,48 @@ describe("TabBar", () => {
   });
 });
 
+describe("Segmented", () => {
+  function Picker({ start }: { start: string | null }) {
+    const [value, setValue] = useState(start);
+    return (
+      <Segmented
+        label="Target IPK"
+        value={value}
+        onChange={setValue}
+        options={["3", "3.5", "3.75"].map((v) => ({ value: v, label: v.replace(".", ","), name: `Target IPK ${v.replace(".", ",")}` }))}
+      />
+    );
+  }
+  const radios = (container: Element) => [...container.querySelectorAll<HTMLButtonElement>("[role=radio]")];
+
+  it("with nothing picked, the first choice is the one Tab stop and no highlight shows", async () => {
+    const container = await mount(<Picker start={null} />);
+    expect(radios(container).map((r) => [r.getAttribute("aria-label"), r.getAttribute("aria-checked"), r.tabIndex])).toEqual([
+      ["Target IPK 3", "false", 0],
+      ["Target IPK 3,5", "false", -1],
+      ["Target IPK 3,75", "false", -1],
+    ]);
+    expect(highlight(container.firstElementChild!).hidden).toBe(true);
+  });
+
+  it("the arrow keys move the choice, the focus and the highlight; clicking the picked one keeps it", async () => {
+    layOut();
+    const container = await mount(<Picker start="3.5" />);
+    const group = container.querySelector("[role=radiogroup]")!;
+    expect(highlight(group).style.translate).toBe("100px 0px");
+    await press(radios(container)[1], "ArrowRight");
+    expect(radios(container).map((r) => r.getAttribute("aria-checked"))).toEqual(["false", "false", "true"]);
+    expect(document.activeElement).toBe(radios(container)[2]);
+    expect(radios(container).map((r) => r.tabIndex)).toEqual([-1, -1, 0]);
+    expect(highlight(group).style.translate).toBe("200px 0px");
+    // Round to the first.
+    await press(radios(container)[2], "ArrowDown");
+    expect(document.activeElement).toBe(radios(container)[0]);
+    await act(async () => radios(container)[0].click());
+    expect(radios(container)[0].getAttribute("aria-checked")).toBe("true");
+  });
+});
+
 describe("tabs on the screens", () => {
   it("a course: every tab names its panel, also while Edunex's part is still coming", async () => {
     screen = await openApp({ signedIn: true });
@@ -148,5 +199,29 @@ describe("tabs on the screens", () => {
     // The picked tab's panel holds its courses.
     await pick(inDialog[3]);
     expect(document.getElementById(inDialog[3].getAttribute("aria-controls")!)?.textContent).toMatch(/^Ketik/);
+  });
+
+  it("Nilai's IPK target is one Tab stop, and the arrow keys change it", async () => {
+    screen = await openApp({ world: new PretendWorld({ now: "2026-10-11T09:00:00+07:00" }), signedIn: true });
+    const data = await records();
+    let hash = 0;
+    for (const [name, value] of [
+      ["six.transcript", data.transcript],
+      ["six.progress", data.progress],
+      ["six.curriculum", data.curriculum],
+      ["itb.catalog", data.catalog],
+      ["itb.calendar", data.calendar],
+    ] as const)
+      await screen.apply({ type: "dataset", dataset: { name, value: value as never, fetchedAt: 0, hash: `g${++hash}` } });
+    await screen.click("Nilai");
+    await screen.click("Target IPK 3,50");
+    const group = document.querySelector("[role=radiogroup][aria-label='Target IPK']")!;
+    const picks = [...group.querySelectorAll<HTMLButtonElement>("[role=radio]")];
+    expect(picks.map((p) => p.tabIndex)).toEqual([-1, 0, -1]);
+    // The typed value sits beside the picks, not among them.
+    expect(group.querySelector("input")).toBeNull();
+    await press(picks[1], "ArrowRight");
+    expect(screen.store.dataset("local.plan")?.value).toMatchObject({ target: 3.75 });
+    expect(document.activeElement).toBe(picks[2]);
   });
 });
