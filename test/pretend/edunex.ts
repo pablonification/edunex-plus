@@ -428,10 +428,11 @@ export class PretendEdunex {
       throw new NotFound();
     }
     // A link pair per storage path the website sent, keyed by that path (its onFilesAdded reads `files[fileName]`).
+    // Under "upload/", so the repository's privacy check can tell this made-up storage from a real link.
     if (request.method === "POST" && path === "/blob-storage/sas") {
       const files: Json = {};
       for (const f of body.files ?? []) {
-        const at = `https://edunexfixture.blob.core.windows.net/edunex/${encodeURI(String(f.fileName))}`;
+        const at = `https://edunexfixture.blob.core.windows.net/edunex/upload/${encodeURI(String(f.fileName))}`;
         files[f.fileName] = { uploadUrl: `${at}?sv=pretend&sp=cw&sig=pretend`, readUrl: at };
       }
       return { files };

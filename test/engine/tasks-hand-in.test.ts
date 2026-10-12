@@ -59,7 +59,7 @@ describe("uploading a file", () => {
       { method: "POST", path: "/blob-storage/sas", body: { files: [{ fileName: path, contentType: "application/pdf", sizeInBytes: 12 }] } },
     ]);
     // The link Edunex gave for that path.
-    expect(file.url).toBe(`https://edunexfixture.blob.core.windows.net/edunex/${path}`);
+    expect(file.url).toBe(`https://edunexfixture.blob.core.windows.net/edunex/upload/${path}`);
     expect(Buffer.from(h.world.blobs.get(new URL(file.url).pathname) as Uint8Array).toString()).toBe("%PDF bab dua");
     expect(h.world.blobHeaders.get(new URL(file.url).pathname)).toMatchObject({
       "x-ms-blob-type": "BlockBlob",
