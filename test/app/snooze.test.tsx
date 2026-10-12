@@ -2,6 +2,7 @@
 // "Ingatkan nanti" (Remind me later), seam 2: putting off Beranda's items and a
 // course's attendance banner as the Student does, with the real engine and the
 // pretend Edunex and SIX behind the bridge, on the Monday of the UTS week.
+import { act } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 import { MemoryStorage } from "../pretend/memory";
 import { PretendWorld } from "../pretend/world";
@@ -26,14 +27,22 @@ const heading = () => document.querySelector('main h2[id="home-needs"]')?.textCo
 const toastText = () => document.querySelector("[aria-live=polite]")?.textContent ?? "";
 const menuItems = () => [...document.querySelectorAll("[role=menuitem]")].map((item) => item.textContent ?? "");
 
+/** The next frame: focus handed on once the screen has redrawn is there by then. */
+const frame = () => act(() => new Promise<void>((resolve) => requestAnimationFrame(() => resolve())));
+/** Pressing a button as the keyboard (or the window, on a click) does: focused first. */
+async function press(button: HTMLElement) {
+  button.focus();
+  await screen!.click(button);
+}
+
 /** "Ingatkan nanti" on the row (or banner) named so, then the choice starting with `choice`. */
 async function snooze(name: string, choice: string | RegExp) {
-  await screen!.click(`Ingatkan nanti: ${name}`);
+  await press(screen!.button(`Ingatkan nanti: ${name}`));
   const item = [...document.querySelectorAll<HTMLElement>("[role=menuitem]")].find((el) =>
     typeof choice === "string" ? el.textContent?.startsWith(choice) : choice.test(el.textContent ?? ""),
   );
   if (!item) throw new Error(`No choice ${String(choice)} in ${menuItems().join(" | ")}`);
-  await screen!.click(item);
+  await press(item);
 }
 
 describe("putting off what needs you on Beranda", () => {
@@ -71,7 +80,7 @@ describe("putting off what needs you on Beranda", () => {
     expect(control.getAttribute("aria-haspopup")).toBe("menu");
     const next = control.closest("li")?.nextElementSibling?.querySelector("button");
     await snooze("UTS Komunikasi Pemasaran", "Besok pagi");
-    await s.wait(50);
+    await frame();
     expect(document.activeElement).toBe(next);
   });
 
@@ -117,9 +126,28 @@ describe("putting off what needs you on Beranda", () => {
       "UTS Komunikasi PemasaranKembali Besok, 07:00Ingatkan sekarang",
       "KU5014 tak bisa lagi capai 80%Sampai ada perubahan, paling lambat Sen, 26 Okt, 07:00Ingatkan sekarang",
     ]);
-    await s.click("Ingatkan sekarang: UTS Komunikasi Pemasaran");
+    await press(s.button("Ingatkan sekarang: UTS Komunikasi Pemasaran"));
     expect(titles().some((t) => t.startsWith("UTS Komunikasi Pemasaran"))).toBe(true);
     expect(needs()?.textContent).toContain("1 ditunda");
+    // Its row left with the button: focus goes on to the next thing put off…
+    await frame();
+    expect(document.activeElement).toBe(s.button("Ingatkan sekarang: KU5014 tak bisa lagi capai 80%"));
+
+    // …and with the last one, to the item itself, back in the list.
+    await press(s.button("Ingatkan sekarang: KU5014 tak bisa lagi capai 80%"));
+    await frame();
+    expect(document.activeElement?.closest("li")?.textContent).toMatch(/^KU5014 tak bisa lagi capai 80%/);
+    expect(needs()?.contains(document.activeElement)).toBe(true);
+  });
+
+  it("the list of what's put off closes once it's empty, so the next snooze doesn't find it open", async () => {
+    const s = await open();
+    await snooze("UTS Komunikasi Pemasaran", "Besok pagi");
+    await s.click("Tampilkan");
+    await s.click("Ingatkan sekarang: UTS Komunikasi Pemasaran");
+    await snooze("KU5014 tak bisa lagi capai 80%", "Besok pagi");
+    expect(document.querySelector('ul[aria-label="Yang ditunda"]')).toBeNull();
+    expect(needs()?.querySelector("[data-snoozed]")?.textContent).toBe("Tampilkan");
   });
 
   it("Undo takes back only its own snooze, not what the Student brought back since", async () => {
@@ -136,16 +164,6 @@ describe("putting off what needs you on Beranda", () => {
     expect(heading()).toBe("Perlu perhatianmu 6");
   });
 
-  it("the list of what's put off closes once it's empty, so the next snooze doesn't find it open", async () => {
-    const s = await open();
-    await snooze("UTS Komunikasi Pemasaran", "Besok pagi");
-    await s.click("Tampilkan");
-    await s.click("Ingatkan sekarang: UTS Komunikasi Pemasaran");
-    await snooze("KU5014 tak bisa lagi capai 80%", "Besok pagi");
-    expect(document.querySelector('ul[aria-label="Yang ditunda"]')).toBeNull();
-    expect(needs()?.querySelector("[data-snoozed]")?.textContent).toBe("Tampilkan");
-  });
-
   it("with everything put off, says so honestly: not 'nothing due'", async () => {
     await open();
     for (let left = 6; left > 0; left--) {
@@ -153,6 +171,9 @@ describe("putting off what needs you on Beranda", () => {
       await snooze(control!.getAttribute("aria-label")!.replace("Ingatkan nanti: ", ""), "Besok pagi");
     }
     expect(titles()).toEqual([]);
+    // The last row left with nothing beside it: focus goes to the line opening what's put off.
+    await frame();
+    expect(document.activeElement).toBe(needs()?.querySelector("[data-snoozed]"));
     const text = needs()?.textContent ?? "";
     expect(text).toContain("Tidak ada lagi yang perlu perhatianmu sekarang");
     expect(text).toContain("6 ditunda");
@@ -202,6 +223,10 @@ describe("the course page's attendance banner", () => {
     await snooze("KU5014: 80% tak terkejar", "Sebelum kuliah berikutnya");
     expect(banner()).toBe("");
     expect(toastText()).toContain("Diingatkan lagi Kam, 15 Okt, 15:00");
+    // Focus goes on to what follows the banner, not back to the start of the page.
+    await frame();
+    expect(document.activeElement).not.toBe(document.body);
+    expect(document.querySelector("main")?.contains(document.activeElement)).toBe(true);
     // The header still says where attendance stands.
     expect(document.querySelector("main header")?.textContent).toContain("80% tak terkejar");
 

@@ -110,6 +110,7 @@ export function Row({
   actions,
   onClick,
   label,
+  id,
   current,
   index,
   className,
@@ -130,6 +131,8 @@ export function Row({
   onClick?: () => void;
   /** The row's accessible name when its text alone isn't clear. */
   label?: string;
+  /** On the row's button (or body), so focus can be sent to it. */
+  id?: string;
   current?: boolean;
   /** The row's place, for the staggered arrival. */
   index?: number;
@@ -166,6 +169,7 @@ export function Row({
       {onClick ? (
         <button
           type="button"
+          id={id}
           onClick={onClick}
           aria-label={label}
           aria-current={current || undefined}
@@ -182,7 +186,9 @@ export function Row({
           )}
         </button>
       ) : (
-        <div className={cx("flex items-center gap-3.5 px-4 py-3", aside && "min-w-0 flex-1 pr-1", className)}>{body}</div>
+        <div id={id} className={cx("flex items-center gap-3.5 px-4 py-3", aside && "min-w-0 flex-1 pr-1", className)}>
+          {body}
+        </div>
       )}
       {aside && (
         <div className="flex shrink-0 items-center pr-2.5 transition-opacity duration-150 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-focus-within/row:opacity-100 [@media(hover:hover)]:group-hover/row:opacity-100 [@media(hover:hover)]:has-[[aria-expanded=true]]:opacity-100">

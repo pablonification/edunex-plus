@@ -1,7 +1,7 @@
 // "Ingatkan nanti" (Remind me later) on a row or a notice: a quiet menu of
 // moments that fit the item, each saying until when, then a toast saying when
-// it's back, with Undo. A row that leaves hands keyboard focus to the next one,
-// so nobody is left focused on nothing.
+// it's back, with Undo. A row or notice that leaves hands keyboard focus on
+// (the next row, or what follows the notice), so nobody is left focused on nothing.
 import { useRef } from "react";
 import { type Snoozable, snoozeChoices } from "../core/snooze";
 import { useFormat, useNow, useT } from "./i18n";
@@ -31,7 +31,7 @@ export function SnoozeMenu({ item, name, words = false, onTone = false }: { item
   if (!choices.length) return null;
 
   const put = (choice: (typeof choices)[number]) => {
-    const next = nextFocus(anchor.current);
+    const next = focusAfter(anchor.current);
     const when = f.dueLabel(choice.until);
     snooze(item.key, choice.until, choice.kind).then(
       () => {
@@ -43,10 +43,7 @@ export function SnoozeMenu({ item, name, words = false, onTone = false }: { item
       },
       (error: unknown) => toast(t("error.action", { message: error instanceof Error ? error.message : String(error) }), "danger"),
     );
-    // Only where focus was lost with the row: never pull it away from something the Student has moved on to.
-    requestAnimationFrame(() => {
-      if (!document.activeElement || document.activeElement === document.body) next?.focus();
-    });
+    refocus(next);
   };
 
   return (
@@ -70,10 +67,38 @@ export function SnoozeMenu({ item, name, words = false, onTone = false }: { item
   );
 }
 
-/** Where focus goes when the row holding `from` leaves: the next row, else the one before, else the list's "ditunda" line. */
-function nextFocus(from: HTMLElement | null): HTMLElement | null {
+/**
+ * Once the screen has redrawn, focuses `target()` if focus fell to the page
+ * with what left; never pulls it from something the Student has moved on to.
+ */
+export function refocus(target: () => HTMLElement | null | undefined) {
+  requestAnimationFrame(() => {
+    if (!document.activeElement || document.activeElement === document.body) target()?.focus();
+  });
+}
+
+/**
+ * Where focus goes when the row or notice holding `from` leaves, noted before
+ * it does: the next row, else the one before, else the list's "ditunda" line
+ * (looked up after the redraw, which draws it anew); after a notice, what a
+ * Tab would have reached next.
+ */
+function focusAfter(from: HTMLElement | null): () => HTMLElement | null | undefined {
   const row = from?.closest("li");
-  if (!row) return null;
-  const sibling = row.nextElementSibling ?? row.previousElementSibling;
-  return sibling?.querySelector<HTMLElement>("button") ?? row.closest("section")?.querySelector<HTMLElement>("[data-snoozed]") ?? null;
+  if (row) {
+    const sibling = (row.nextElementSibling ?? row.previousElementSibling)?.querySelector<HTMLElement>("button");
+    const section = row.closest("section");
+    return () => sibling ?? section?.querySelector<HTMLElement>("[data-snoozed]");
+  }
+  const after = from ? nextTabbable(from) : null;
+  return () => after;
+}
+
+const TABBABLE = "a[href], button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]";
+
+/** The first thing after `from` (and outside it) that Tab reaches. */
+function nextTabbable(from: HTMLElement): HTMLElement | null {
+  for (const element of document.querySelectorAll<HTMLElement>(TABBABLE))
+    if (element.tabIndex >= 0 && !from.contains(element) && from.compareDocumentPosition(element) & Node.DOCUMENT_POSITION_FOLLOWING) return element;
+  return null;
 }

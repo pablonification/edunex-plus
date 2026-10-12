@@ -34,7 +34,7 @@ import { firstName } from "../names";
 import { type Route, useNav } from "../nav";
 import { openAlerts } from "../shell/alerts";
 import { useRefresh, useSignIn } from "../shell/source-status";
-import { canSnooze, SnoozeMenu } from "../snooze-menu";
+import { canSnooze, refocus, SnoozeMenu } from "../snooze-menu";
 import { useSnoozes } from "../snoozes";
 import { useDataset, useStatus } from "../store";
 import { Button, IconButton } from "../ui/controls";
@@ -672,18 +672,28 @@ function SnoozedRow({ need, entry, courses }: { need: Need; entry: SnoozeEntry; 
   const { wake } = useSnoozes();
   const view = useNeedView(courses)(need);
   const when = f.dueLabel(entry.until);
+  const wakeNow = (button: HTMLElement) => {
+    const row = button.closest("li");
+    const sibling = (row?.nextElementSibling ?? row?.previousElementSibling)?.querySelector<HTMLElement>("button");
+    void wake(entry.id).catch(() => undefined);
+    // Its row leaves with the button: on to the next thing put off, else to the item itself, back in the list.
+    refocus(() => sibling ?? document.getElementById(needRowId(need.id)));
+  };
   return (
     <Row
       title={view.title}
       meta={<Meta>{entry.reason === "change" ? t("snooze.untilChange", { when }) : t("snooze.until", { when })}</Meta>}
       trailing={
-        <Button size="sm" variant="ghost" aria-label={t("snooze.wakeFor", { title: view.title })} onClick={() => void wake(entry.id).catch(() => undefined)}>
+        <Button size="sm" variant="ghost" aria-label={t("snooze.wakeFor", { title: view.title })} onClick={(event) => wakeNow(event.currentTarget)}>
           {t("snooze.wake")}
         </Button>
       }
     />
   );
 }
+
+/** A Needs-you row's id, so focus can be sent back to it. */
+const needRowId = (id: string) => `need-${id}`;
 
 interface NeedView {
   title: string;
@@ -847,6 +857,7 @@ function NeedRow({ need, courses, index }: { need: Need; courses: readonly TermC
   const later = snoozable(need, now);
   return (
     <Row
+      id={needRowId(need.id)}
       index={index}
       title={view.title}
       label={view.label}
