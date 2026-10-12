@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 // The kit's StatRow and Stat: figures side by side, split by hairlines. Nilai
-// shows its figures at the figure size; the first run's three small counts are
-// smaller. jsdom can't draw type sizes; this checks the classes that set them.
+// shows three figures in a wide column; the first run's three small counts sit
+// in a column about 380 px wide, smaller. jsdom can't measure container
+// queries or type sizes; this checks the classes that set them.
 import { act, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it } from "vitest";
@@ -46,5 +47,22 @@ describe("StatRow", () => {
       expect(classes(count)).toContain("text-heading");
       expect(classes(count)).not.toContain("text-figure");
     }
+  });
+
+  it("stays one row from a 320 px wide container, so three short counts in 380 px don't pile up", () => {
+    const row = draw(
+      <StatRow>
+        <Stat label="mata kuliah" value="5" />
+        <Stat label="tugas" value="10" />
+        <Stat label="pertemuan" value="25" />
+      </StatRow>,
+    );
+    const list = classes(row.querySelector("dl"));
+    const items = [...row.querySelectorAll("dl > div")].map(classes);
+    // @xs is a 20rem (320 px) container; below it the figures stack.
+    expect(list).toEqual(expect.arrayContaining(["grid-cols-1", "@xs:grid-flow-col", "@xs:grid-cols-none", "@xs:divide-x"]));
+    for (const item of items) expect(item).toEqual(expect.arrayContaining(["@xs:px-6", "@xs:py-0"]));
+    // Nothing switches at a wider container (@sm 384 px, @md 448 px).
+    expect([list, ...items].flat().filter((name) => /^@(sm|md):/.test(name))).toEqual([]);
   });
 });

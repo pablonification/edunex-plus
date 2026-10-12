@@ -349,14 +349,15 @@ const STAT_SIZE = { figure: "text-figure", heading: "text-heading" } as const;
  * Figures read at a glance, side by side on the page with no box, split by
  * hairlines. Labels, figures and hints each share a line across the row, so a
  * label that wraps never pushes its figure lower than the others'. They stack
- * only in a very narrow space.
+ * only in a container narrower than 320 px, so three short counts still sit in
+ * one row in a narrow column (the first run's, about 380 px).
  */
 export function StatRow({ label, className, children }: { label?: string; className?: string; children: ReactNode }) {
   return (
     <div className={cx("@container", className)}>
       <dl
         aria-label={label}
-        className="grid grid-cols-1 gap-y-1 divide-y divide-line @md:auto-cols-fr @md:grid-flow-col @md:grid-cols-none @md:grid-rows-[repeat(3,auto)] @md:divide-x @md:divide-y-0"
+        className="grid grid-cols-1 gap-y-1 divide-y divide-line @xs:auto-cols-fr @xs:grid-flow-col @xs:grid-cols-none @xs:grid-rows-[repeat(3,auto)] @xs:divide-x @xs:divide-y-0"
       >
         {children}
       </dl>
@@ -382,7 +383,7 @@ export function Stat({
   className?: string;
 }) {
   return (
-    <div className={cx("row-span-3 grid grid-rows-subgrid py-3 first:pt-0 last:pb-0 @md:px-6 @md:py-0 @md:first:pl-0 @md:last:pr-0", className)}>
+    <div className={cx("row-span-3 grid grid-rows-subgrid py-3 first:pt-0 last:pb-0 @xs:px-6 @xs:py-0 @xs:first:pl-0 @xs:last:pr-0", className)}>
       <dt className="self-end text-small font-medium text-muted">{label}</dt>
       <dd className={cx("font-semibold tabular-nums", STAT_SIZE[size], STAT_TONE[tone])}>{value}</dd>
       <dd className="text-small text-muted">{hint}</dd>
