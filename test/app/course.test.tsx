@@ -431,6 +431,14 @@ describe("meetings", () => {
     expect(line).toBeDefined();
   });
 
+  it('the card names the class going on as its row on the Pertemuan tab does, not just "Kuliah"', async () => {
+    await openCourse("II4091", { world: new PretendWorld({ now: "2026-10-09T15:30:00+07:00" }) });
+    const tabs = document.querySelector("main [role=tablist]")!;
+    const card = [...document.querySelectorAll("main .shadow-raised")].find((el) => el.compareDocumentPosition(tabs) & Node.DOCUMENT_POSITION_FOLLOWING)!;
+    expect(card.textContent).toContain("Sedang berlangsung");
+    expect(card.querySelector("p.text-title")?.textContent).toBe("Pertemuan 3");
+  });
+
   it("a course past saving says it once, with what's still possible, the shared minutes of a clash and no second copy of the next meeting", async () => {
     screen = await openApp({ signedIn: true, six: true });
     const s = screen;

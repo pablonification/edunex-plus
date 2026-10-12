@@ -33,7 +33,7 @@ import { toast } from "../ui/overlays";
 import { type CoursePage, useCoursePage } from "./course/data";
 import { GradesTab } from "./course/grades";
 import { AnnouncementsTab, TasksTab } from "./course/lists";
-import { MeetingsTab, meetingModuleTitle, pageModules } from "./course/meetings";
+import { MeetingsTab, meetingModuleTitle, meetingTitle, pageModules } from "./course/meetings";
 import { ModulesTab } from "./course/modules";
 
 export const ready = true;
@@ -331,7 +331,8 @@ function MeetingNow({ page }: { page: CoursePage }) {
   // Edunex's window is the thing to do only where it may be what counts: not where SIX counts, and
   // not loudly without SIX (nobody can say; it's worth doing just in case).
   const presenceCounts = countedIn !== "six" && countedIn !== "noSix";
-  const what = meeting ? (meetingModuleTitle(t, pageModules(page), meeting) ?? meeting.presence?.topic ?? meeting.six?.activity ?? null) : null;
+  const moduleTitle = meeting ? meetingModuleTitle(t, pageModules(page), meeting) : null;
+  const what = meeting ? (moduleTitle ?? meeting.presence?.topic ?? meeting.six?.activity ?? null) : null;
   const place = [
     meeting?.six?.room ? (
       <span key="room" className="inline-flex items-center gap-1">
@@ -395,7 +396,8 @@ function MeetingNow({ page }: { page: CoursePage }) {
           <span className="text-muted">{meeting ? `${t("course.next")} · ${f.relativeDay(meeting.start)}` : t("course.presenceOpen")}</span>
         )
       }
-      title={<p className="text-title font-semibold">{what ?? presence?.topic ?? t("meeting.untitled")}</p>}
+      // Named as its row on the Pertemuan tab names it ("Pertemuan 3"), never just "Kuliah" when there's more to say.
+      title={<p className="text-title font-semibold">{meeting ? meetingTitle(t, meeting, moduleTitle) : (presence?.topic ?? t("meeting.untitled"))}</p>}
       meta={
         place.some(Boolean) || notInSix ? (
           <Meta>
