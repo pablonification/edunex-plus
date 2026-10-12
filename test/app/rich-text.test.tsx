@@ -54,7 +54,7 @@ describe("lecturers' formatted text", () => {
 
   it("makes links of web pages only, http too, and opens them through the app", () => {
     const { container, opened } = draw(
-      '<p><a href="https://docs.google.com/x">Topik</a> <a href="http://example.org/">Lama</a> <a href="javascript:alert(1)">Jahat</a> <a href="mailto:a@example.com">Surel</a> <a href="https://u:p@evil.example/">Samaran</a></p>',
+      '<p><a href="https://docs.google.com/x">Topik</a> <a href="http://example.org/">Lama</a> <a href="javascript:alert(1)">Jahat</a> <a href="mailto:a@example.com">Surel</a> <a href="https://u:p@evil.example.com/">Samaran</a></p>',
     );
     const links = [...container.querySelectorAll("a")];
     expect(links.map((a) => a.textContent)).toEqual(["Topik", "Lama"]);

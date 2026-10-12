@@ -31,7 +31,7 @@ describe("opening pages in the browser", () => {
       "file:///etc/passwd",
       "mailto:a@example.com",
       "app://edunex-plus/index.html",
-      "https://name:secret@evil.example/",
+      "https://name:secret@evil.example.com/",
     ])
       await expect(handlers["shell.openLink"]({ url })).rejects.toMatchObject({ kind: "Rejected" });
     expect(opened).toEqual(["https://docs.google.com/spreadsheets/d/fixture/edit", "http://example.org/"]);

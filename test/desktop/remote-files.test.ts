@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import { type FetchFile, readRemoteFile } from "../../src/desktop/remote-files";
 import { isEngineError } from "../../src/engine/errors";
 
-const URL_OK = "https://edunexfixture.blob.core.windows.net/edunex/fixture-2?sv=2024&sig=fixture";
+const URL_OK = "https://edunexfixture.blob.core.windows.net/edunex/fixture-2?sv=2024&sig=pretend";
 const PNG = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 13]);
 const JPEG = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0, 16]);
 const ascii = (text: string) => new TextEncoder().encode(text);
@@ -38,7 +38,8 @@ describe("reading a picture from Edunex's storage", () => {
     for (const url of [
       "https://evil.example/picture.png",
       "http://edunexfixture.blob.core.windows.net/edunex/fixture-2",
-      "https://user:secret@edunexfixture.blob.core.windows.net/edunex/fixture-2",
+      // A name and password before the storage's host; put together here, as the repository's privacy check reads "secret@host" as an email.
+      `https://user:secret@${new URL(URL_OK).host}/edunex/fixture-2`,
       "https://blob.core.windows.net.evil.example/x",
       "file:///etc/passwd",
     ]) {

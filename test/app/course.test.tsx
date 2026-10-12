@@ -228,7 +228,7 @@ describe("materials", () => {
       name: "Kontak dosen",
       type: "text",
       content:
-        '<p><a href="https://user:pw@evil.example/">Tulis email</a> atau <a href="mailto:dosen@example.com">kirim surel</a>, atau isi <a href="https://forms.gle/fixture">formulir</a></p>',
+        '<p><a href="https://user:pw@evil.example.com/">Tulis email</a> atau <a href="mailto:dosen@example.com">kirim surel</a>, atau isi <a href="https://forms.gle/fixture">formulir</a></p>',
     });
     await screen.engineDoes(() => screen!.engine.refresh("edunex"));
     const card = [...document.querySelectorAll<HTMLButtonElement>("main ul li button")].find((b) => b.textContent?.startsWith("PL3002"));
