@@ -123,9 +123,14 @@ describe("handing in", () => {
     expect(card()).toContain("Edunex tidak menerima berkas jenis ini. Gunakan PDF, Word, Excel, PowerPoint, ZIP, RAR, JPG, atau PNG.");
     expect(s.has(/^Unggah ulang/)).toBe(false);
     expect(s.world.edunex.writes).toEqual([]);
+    // Nothing failed to upload, so there's no "try again": only removing them.
+    expect(s.button("Kumpulkan").disabled).toBe(true);
+    expect(card()).toContain("Hapus dulu berkas yang tidak diterima Edunex.");
+    expect(card()).not.toContain("Coba lagi");
     await s.click("Hapus rekaman.zip");
     await s.click("Hapus rekaman.mp4");
     expect(card()).not.toContain("rekaman");
+    expect(card()).not.toContain("Hapus dulu berkas");
   });
 
   it("a group Task: no answer form, the way to hand it in with the group on Edunex", async () => {
@@ -160,6 +165,7 @@ describe("handing in", () => {
     });
     expect(card()).toContain("catatan.txt");
     expect(card()).toContain("Edunex tidak menerima berkas jenis ini.");
+    expect(card()).toContain("Hapus dulu berkas yang tidak diterima Edunex.");
     expect(read).toBe(false);
     expect(s.world.edunex.writes).toEqual([]);
   });

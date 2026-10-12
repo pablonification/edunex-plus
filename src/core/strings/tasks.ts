@@ -200,6 +200,7 @@ export const tasksStrings = {
   "handIn.why.noFile": { id: "Lampirkan berkas dulu untuk mengumpulkan.", en: "Attach a file first to hand it in." },
   "handIn.why.uploading": { id: "Tunggu sampai semua berkas terunggah.", en: "Wait until every file is uploaded." },
   "handIn.why.failed": { id: "Coba lagi atau hapus berkas yang gagal terunggah.", en: "Try again or remove the file that didn't upload." },
+  "handIn.why.refused": { id: "Hapus dulu berkas yang tidak diterima Edunex.", en: "Remove the file Edunex doesn't take first." },
   "handIn.why.offline": {
     id: "Tidak terhubung ke Edunex. Berkasmu tetap di sini; kumpulkan setelah tersambung lagi.",
     en: "Not connected to Edunex. Your files stay here; hand in once you're back online.",

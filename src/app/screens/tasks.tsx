@@ -750,6 +750,9 @@ interface Attached {
   problem?: StringKey;
 }
 
+/** A file Edunex wouldn't take (its kind or size): never sent, so there's nothing to try again, only to remove. */
+const refused = (item: Attached) => item.problem === "handIn.tooBig" || item.problem === "handIn.wrongType";
+
 interface Notice {
   tone: "danger" | "warning" | "neutral";
   text: StringKey;
@@ -963,7 +966,9 @@ function HandIn({ task, status }: Row) {
             ),
           }
       : failed
-        ? { tone: "danger", text: t("handIn.why.failed") }
+        ? attached.some((item) => item.state === "failed" && !refused(item))
+          ? { tone: "danger", text: t("handIn.why.failed") }
+          : { tone: "neutral", text: t("handIn.why.refused") }
         : uploading
           ? { tone: "neutral", text: t("handIn.why.uploading") }
           : !hasAnswer
@@ -1046,7 +1051,7 @@ function HandIn({ task, status }: Row) {
                     )
                   }
                   hint={item.state === "uploaded" ? fileHint(t, item.name, pattern, type) : null}
-                  onRetry={item.state === "failed" && item.problem !== "handIn.tooBig" && item.problem !== "handIn.wrongType" ? () => retry(item) : undefined}
+                  onRetry={item.state === "failed" && !refused(item) ? () => retry(item) : undefined}
                   onRemove={editable ? () => removeAttached(item.key) : undefined}
                 />
               ))}
