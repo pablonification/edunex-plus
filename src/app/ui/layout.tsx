@@ -1,7 +1,7 @@
 // The parts every screen is built from, so all screens read alike: the page
 // frame, its header, sections, lists of rows, one-line facts, notices and
 // figures. Screens compose these instead of styling their own.
-import { Children, type CSSProperties, cloneElement, Fragment, isValidElement, type ReactNode } from "react";
+import { Children, cloneElement, Fragment, isValidElement, type ReactNode } from "react";
 import { cx } from "./cx";
 import { Icons } from "./icons";
 import { PresenceItem } from "./motion/presence-list";
@@ -133,7 +133,6 @@ export function Row({
   label,
   id,
   current,
-  index,
   className,
   children,
 }: {
@@ -155,8 +154,6 @@ export function Row({
   /** On the row's button (or body), so focus can be sent to it. */
   id?: string;
   current?: boolean;
-  /** The row's place, for the staggered arrival. */
-  index?: number;
   className?: string;
   /** More under the meta line (signals, a note). */
   children?: ReactNode;
@@ -175,13 +172,11 @@ export function Row({
       {trailing !== undefined && <span className="flex shrink-0 flex-col items-end gap-1 text-right">{trailing}</span>}
     </>
   );
-  const style = index === undefined ? undefined : ({ "--i": index } as CSSProperties);
   const aside = actions !== undefined && actions !== null && actions !== false;
   return (
     // A plain <li> outside a PresenceList; inside one, a row the Student removes fades out of it.
     <PresenceItem
       className={cx(
-        index !== undefined && "motion-safe:stagger",
         // With actions the row's hover belongs to the whole line, the control beside the button included,
         // and so does the button's focus ring: drawn inside the line, around both, never cut by the list's edges.
         aside && "group/row flex items-center hover:bg-hover has-[>button:active]:bg-selected",
@@ -189,7 +184,6 @@ export function Row({
           "has-[>button:focus-visible]:outline-2 has-[>button:focus-visible]:outline-offset-[-2px] has-[>button:focus-visible]:outline-focus has-[>button:focus-visible]:outline-solid",
         aside && current && "bg-selected",
       )}
-      style={style}
     >
       {onClick ? (
         <button

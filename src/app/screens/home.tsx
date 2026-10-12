@@ -481,14 +481,13 @@ function Today({ context, plan, courses, onCard }: { context: HomeContext; plan:
   ].sort((a, b) => a.at - b.at);
   const today = items.filter((item) => wibDay(item.at) === day);
   const tomorrow = items.filter((item) => wibDay(item.at) !== day);
-  let index = 0;
   return (
     <Section id="home-today" title={t("home.today")} className="mt-0">
       {!context.schedule && <NoSixToday />}
       {today.length > 0 ? (
         <List label={t("home.today")} className={cx(!context.schedule && "mt-3")}>
           {today.map((item) => (
-            <TodayRow key={keyOf(item)} item={item} courses={courses} index={index++} onCard={onCard} />
+            <TodayRow key={keyOf(item)} item={item} courses={courses} onCard={onCard} />
           ))}
         </List>
       ) : (
@@ -499,7 +498,7 @@ function Today({ context, plan, courses, onCard }: { context: HomeContext; plan:
           <h3 className="mt-5 mb-2 text-small font-semibold text-muted">{t("home.today.tomorrow")}</h3>
           <List label={t("home.today.tomorrow")}>
             {tomorrow.map((item) => (
-              <TodayRow key={keyOf(item)} item={item} courses={courses} index={index++} onCard={onCard} />
+              <TodayRow key={keyOf(item)} item={item} courses={courses} onCard={onCard} />
             ))}
           </List>
         </>
@@ -521,7 +520,7 @@ function When({ start, end, past, tone }: { start: string; end?: string; past?: 
   );
 }
 
-function TodayRow({ item, courses, index, onCard }: { item: TodayItem; courses: readonly TermCourse[]; index: number; onCard: string | null }) {
+function TodayRow({ item, courses, onCard }: { item: TodayItem; courses: readonly TermCourse[]; onCard: string | null }) {
   const t = useT();
   const f = useFormat();
   const now = useNow();
@@ -536,7 +535,6 @@ function TodayRow({ item, courses, index, onCard }: { item: TodayItem; courses: 
     const close = task.dueAt! - now <= 6 * 60 * MINUTE;
     return (
       <Row
-        index={index}
         leading={<When start={f.time(task.dueAt!)} tone={close ? "text-warning-fg" : undefined} />}
         title={task.title}
         meta={
@@ -560,7 +558,6 @@ function TodayRow({ item, courses, index, onCard }: { item: TodayItem; courses: 
     const live = meeting.start <= now && now < meeting.end;
     return (
       <Row
-        index={index}
         leading={<When start={f.time(meeting.start)} end={f.time(meeting.end)} />}
         title={nameOf(courses, code)}
         meta={
@@ -601,7 +598,6 @@ function TodayRow({ item, courses, index, onCard }: { item: TodayItem; courses: 
   const clash = facts.overlap ? t("home.today.overlap", { course: facts.overlap.code, time: f.timeRange(facts.overlap.from, facts.overlap.to) }) : null;
   return (
     <Row
-      index={index}
       // Past, quieter in token greys that still read at 4.5:1; never faded with opacity.
       className={cx(past && "text-muted")}
       leading={
@@ -691,8 +687,8 @@ function NeedsYou({ needs, courses }: { needs: Need[]; courses: readonly TermCou
           <List label={t("home.needs")}>
             {/* A row put off fades out, and focus moves on to the next. */}
             <PresenceList>
-              {shown.map((need, i) => (
-                <NeedRow key={need.id} need={need} courses={courses} index={i} />
+              {shown.map((need) => (
+                <NeedRow key={need.id} need={need} courses={courses} />
               ))}
             </PresenceList>
           </List>
@@ -967,7 +963,7 @@ function useNeedView(courses: readonly TermCourse[]): (need: Need) => NeedView {
   };
 }
 
-function NeedRow({ need, courses, index }: { need: Need; courses: readonly TermCourse[]; index: number }) {
+function NeedRow({ need, courses }: { need: Need; courses: readonly TermCourse[] }) {
   const view = useNeedView(courses)(need);
   const now = useNow();
   const { go } = useNav();
@@ -977,7 +973,6 @@ function NeedRow({ need, courses, index }: { need: Need; courses: readonly TermC
   return (
     <Row
       id={needRowId(need.id)}
-      index={index}
       title={view.title}
       label={view.label}
       meta={<Meta>{view.meta}</Meta>}
@@ -1047,8 +1042,8 @@ function Changes({ context, courses }: { context: HomeContext; courses: readonly
         <p className="rounded-xl bg-sunken px-4 py-3.5 text-body text-muted">{t("home.changes.none")}</p>
       ) : (
         <List label={t("home.changes")}>
-          {changes.map((item, i) => (
-            <ChangeRow key={item.id} item={item} index={i} f={f} courses={courses} onOpen={() => go(item.target)} />
+          {changes.map((item) => (
+            <ChangeRow key={item.id} item={item} f={f} courses={courses} onOpen={() => go(item.target)} />
           ))}
         </List>
       )}
@@ -1056,14 +1051,13 @@ function Changes({ context, courses }: { context: HomeContext; courses: readonly
   );
 }
 
-function ChangeRow({ item, index, f, courses, onOpen }: { item: Alert; index: number; f: Format; courses: readonly TermCourse[]; onOpen: () => void }) {
+function ChangeRow({ item, f, courses, onOpen }: { item: Alert; f: Format; courses: readonly TermCourse[]; onOpen: () => void }) {
   const t = useT();
   const Icon = CHANGE_ICON[item.kind] ?? Icons.Bell;
   const important = IMPORTANT.has(item.title.key);
   const code = typeof item.title.vars?.course === "string" ? item.title.vars.course : null;
   return (
     <Row
-      index={index}
       className="py-2.5"
       leading={
         <span className="relative mt-0.5">

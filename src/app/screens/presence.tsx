@@ -8,7 +8,7 @@
 // where it's recorded ("cukup hadir di kelas"); then one warning at most, and
 // a window that's optional as a quiet line. How it's counted is a closed
 // disclosure at the bottom. Nothing here is hidden by a snooze elsewhere.
-import { type CSSProperties, type ReactNode, useState } from "react";
+import { type ReactNode, useState } from "react";
 import { type AttendanceHealth, type AttendanceState, isExamActivity, needsAttention, percent } from "../../core/attendance";
 import { attendanceAnswer } from "../../core/attendance-answer";
 import { clashes, wibDay } from "../../core/course-meetings";
@@ -79,8 +79,8 @@ export function PresenceScreen() {
         <EmptyState icon={<Icons.Hand className="size-5" />} title={t("presence.empty")} />
       ) : (
         <List label={t("presence.courses")} className="@container">
-          {sorted.map((item, index) => (
-            <CourseRow key={item.course.code} item={item} optional={optional.get(item.course.code)} lastDay={lastDay} index={index} onTargetOpen={hold} />
+          {sorted.map((item) => (
+            <CourseRow key={item.course.code} item={item} optional={optional.get(item.course.code)} lastDay={lastDay} onTargetOpen={hold} />
           ))}
         </List>
       )}
@@ -223,13 +223,11 @@ function CourseRow({
   item,
   optional,
   lastDay,
-  index,
   onTargetOpen,
 }: {
   item: CourseAttendance;
   optional?: OpenWindow;
   lastDay: string | null;
-  index: number;
   onTargetOpen: (open: boolean) => void;
 }) {
   const t = useT();
@@ -250,7 +248,7 @@ function CourseRow({
   const share = counted ? percent(health.attended ?? 0, health.held ?? 0) : 0;
 
   return (
-    <li className="group relative motion-safe:stagger has-[>button:hover]:bg-hover" style={{ "--i": index } as CSSProperties}>
+    <li className="group relative has-[>button:hover]:bg-hover">
       {/* The whole row opens the course's meetings; its controls sit above it. */}
       <button
         type="button"
