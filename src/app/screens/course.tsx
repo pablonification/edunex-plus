@@ -4,10 +4,10 @@
 // today); then tabs: Modul (Edunex's table of contents with each module's
 // Tasks and materials), Pertemuan, Tugas & Ujian, Nilai and Pengumuman.
 import * as Tabs from "@radix-ui/react-tabs";
-import { useMemo, useState } from "react";
+import { type ReactNode, useMemo, useState } from "react";
 import { type AttendanceHealth, percent } from "../../core/attendance";
 import { planOfflineFiles } from "../../core/course-materials";
-import { clashes, openPresence, pinnedMeeting } from "../../core/course-meetings";
+import { clashes, type Meeting, openPresence, pinnedMeeting } from "../../core/course-meetings";
 import { edunexCourseUrl } from "../../core/links";
 import { sixTimetableUrl } from "../../core/schedule";
 import { attendanceKey, attendanceSnoozable } from "../../core/snooze";
@@ -310,8 +310,10 @@ function noneLeft(t: ReturnType<typeof useT>, f: ReturnType<typeof useFormat>, h
 /**
  * What's on now or next. While a class is on or a Presence window is open, a
  * raised card: its time, what it is, where, and the one thing to do (record
- * attendance, join online), with the window's countdown under it. Before
- * that, the next meeting in one quiet line under the header.
+ * attendance, join online), with the window's countdown under it. A window can
+ * stay open long after its class, for days: the card is then about that class,
+ * and the next one keeps its quiet line under it. Otherwise, the next meeting
+ * in one quiet line under the header.
  */
 function MeetingNow({ page }: { page: CoursePage }) {
   const t = useT();
@@ -320,29 +322,30 @@ function MeetingNow({ page }: { page: CoursePage }) {
   const open = useOpenExternal();
   const attendance = useAttendance();
   const live = useStatus("edunex").state === "live";
+  const modules = pageModules(page);
   const pinned = pinnedMeeting(page.meetings, now);
   const presence = openPresence(page.presence ?? [], now);
-  if (!pinned && !presence) return null;
-  const meeting = pinned?.meeting;
+  const current = pinned?.current ? pinned.meeting : null;
+  // The card's class: the one going on, else the one the open window is for (not next week's, under its window).
+  const meeting = current ?? (presence ? (page.meetings.find((m) => m.presence?.id === presence.id) ?? null) : null);
+  const next = pinned && !pinned.current && pinned.meeting !== meeting ? pinned.meeting : null;
   const countedIn = attendance?.courses.find((c) => c.course.code === page.course.code)?.health.countedIn;
   const url = presence?.url ?? (page.course.edunex ? edunexCourseUrl(page.course.edunex.courseId) : null);
-  const link = meeting && meeting.end > now ? (meeting.announced?.link ?? null) : null;
-  const online = meeting?.announced?.online ?? false;
   // Edunex's window is the thing to do only where it may be what counts: not where SIX counts, and
   // not loudly without SIX (nobody can say; it's worth doing just in case).
   const presenceCounts = countedIn !== "six" && countedIn !== "noSix";
-  const moduleTitle = meeting ? meetingModuleTitle(t, pageModules(page), meeting) : null;
-  const what = meeting ? (moduleTitle ?? meeting.presence?.topic ?? meeting.six?.activity ?? null) : null;
-  const place = [
-    meeting?.six?.room ? (
+
+  const linkOf = (m: Meeting) => (m.end > now ? (m.announced?.link ?? null) : null);
+  const placeOf = (m: Meeting) => [
+    m.six?.room ? (
       <span key="room" className="inline-flex items-center gap-1">
         <Icons.MapPin className="size-3.5" />
-        {meeting.six.room}
+        {m.six.room}
       </span>
     ) : (
       ""
     ),
-    online ? (
+    m.announced?.online ? (
       <span key="online" className="inline-flex items-center gap-1">
         <Icons.Video className="size-3.5" />
         {t("course.online")}
@@ -351,15 +354,17 @@ function MeetingNow({ page }: { page: CoursePage }) {
       ""
     ),
   ];
-  const notInSix = meeting?.notInSix ? <span className="text-warning-fg">{t("meeting.notInSix")}</span> : "";
+  const notInSixOf = (m: Meeting) => (m.notInSix ? <span className="text-warning-fg">{t("meeting.notInSix")}</span> : "");
 
-  if (meeting && !pinned.current && !presence) {
-    const today = f.dayOffset(meeting.start) === 0;
-    return (
+  let line: ReactNode = null;
+  if (next) {
+    const link = linkOf(next);
+    const what = meetingModuleTitle(t, modules, next) ?? next.presence?.topic ?? next.six?.activity ?? null;
+    line = (
       <NowLine
         icon={<Icons.CalendarClock className="size-4" />}
         action={
-          link && today ? (
+          link && f.dayOffset(next.start) === 0 ? (
             <Button size="sm" variant="ghost" icon={<Icons.Video className="size-3.5" />} onClick={() => open(link)}>
               {t("course.join")}
             </Button>
@@ -369,43 +374,46 @@ function MeetingNow({ page }: { page: CoursePage }) {
         <Meta>
           <span className="font-medium text-fg">{t("course.next")}</span>
           <span className="tabular-nums">
-            {f.relativeDay(meeting.start)}, {f.timeRange(meeting.start, meeting.end)}
+            {f.relativeDay(next.start)}, {f.timeRange(next.start, next.end)}
           </span>
-          {place}
+          {placeOf(next)}
           {/* "Kuliah" is every class: only a topic says something. */}
           {what && !/^kuliah$/i.test(what) ? what : ""}
-          {notInSix}
+          {notInSixOf(next)}
         </Meta>
       </NowLine>
     );
   }
+  if (!current && !presence) return line;
 
   const start = meeting?.start ?? presence!.start;
   const end = meeting?.end ?? presence!.end;
-  return (
+  const link = meeting ? linkOf(meeting) : null;
+  const upcoming = meeting !== null && meeting.start > now;
+  // A class that's over, on an earlier day: its day, so the time beside it isn't read as today's.
+  const day = meeting && !current && !upcoming && f.dayOffset(meeting.start) !== 0 ? <span className="tabular-nums">{f.relativeDay(meeting.start)}</span> : "";
+  const facts = meeting ? [day, ...placeOf(meeting), notInSixOf(meeting)] : [];
+  const card = (
     <NowCard
       raised
       time={{ start: f.time(start), end: f.time(end) }}
       eyebrow={
-        pinned?.current ? (
+        current ? (
           <span className="inline-flex items-center gap-2 text-success-fg">
             {live && <LiveDot />}
             {t("course.nowUntil", { time: f.time(end) })}
           </span>
         ) : (
-          <span className="text-muted">{meeting ? `${t("course.next")} · ${f.relativeDay(meeting.start)}` : t("course.presenceOpen")}</span>
+          <span className="text-muted">{upcoming ? `${t("course.next")} · ${f.relativeDay(meeting.start)}` : t("course.presenceOpen")}</span>
         )
       }
       // Named as its row on the Pertemuan tab names it ("Pertemuan 3"), never just "Kuliah" when there's more to say.
-      title={<p className="text-title font-semibold">{meeting ? meetingTitle(t, meeting, moduleTitle) : (presence?.topic ?? t("meeting.untitled"))}</p>}
-      meta={
-        place.some(Boolean) || notInSix ? (
-          <Meta>
-            {place}
-            {notInSix}
-          </Meta>
-        ) : undefined
+      title={
+        <p className="text-title font-semibold">
+          {meeting ? meetingTitle(t, meeting, meetingModuleTitle(t, modules, meeting)) : (presence?.topic ?? t("meeting.untitled"))}
+        </p>
       }
+      meta={facts.some(Boolean) ? <Meta>{facts}</Meta> : undefined}
       note={!presence && meeting?.presence?.note ? <p className="mt-1 truncate text-small text-muted">{meeting.presence.note}</p> : undefined}
       action={
         link || (presence && url) ? (
@@ -427,7 +435,8 @@ function MeetingNow({ page }: { page: CoursePage }) {
       {presence && (
         <NowZone>
           <div className="flex max-w-[560px] items-center gap-3 text-small">
-            {meeting && <span className="shrink-0 font-semibold">{t("course.presenceOpen")}</span>}
+            {/* Said here unless the line above already says it. */}
+            {(current || upcoming) && <span className="shrink-0 font-semibold">{t("course.presenceOpen")}</span>}
             {/* The same shrinking countdown as on Presensi and Beranda. */}
             <CountdownBar
               className="min-w-16 flex-1"
@@ -441,6 +450,14 @@ function MeetingNow({ page }: { page: CoursePage }) {
         </NowZone>
       )}
     </NowCard>
+  );
+  return line ? (
+    <>
+      {card}
+      <div className="mt-3">{line}</div>
+    </>
+  ) : (
+    card
   );
 }
 

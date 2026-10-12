@@ -439,6 +439,32 @@ describe("meetings", () => {
     expect(card.querySelector("p.text-title")?.textContent).toBe("Pertemuan 3");
   });
 
+  it("a Presence window still open after its class is about that class, with the next one still a quiet line", async () => {
+    const world = new PretendWorld({ now: "2026-10-09T11:00:00+07:00" });
+    // Thursday's window stays open until Saturday (a window tied to handing in a Task does that).
+    const key = "95001:86778";
+    world.edunex.presences.set(
+      key,
+      world.edunex.presences
+        .get(key)!
+        .map((s) =>
+          s.attributes.start_at.startsWith("2026-10-08") ? { ...s, attributes: { ...s.attributes, presence_end: "2026-10-10T23:00:00+07:00" } } : s,
+        ),
+    );
+    await openCourse("PL3002", { world, six: true });
+    const tabs = document.querySelector("main [role=tablist]")!;
+    const above = () => [...document.querySelectorAll("main *")].filter((el) => el.compareDocumentPosition(tabs) & Node.DOCUMENT_POSITION_FOLLOWING);
+    const card = above().find((el) => el.classList.contains("shadow-raised"))!;
+    // Yesterday's class, by its own time, day and name; the window said once.
+    expect(card.textContent).toContain("08:0010:00");
+    expect(card.textContent).toContain("Kemarin");
+    expect(card.textContent).toContain("Modul 7 · Inovasi Pelayanan Publik");
+    expect(card.textContent?.match(/Presensi Edunex dibuka/g)).toHaveLength(1);
+    expect(card.textContent).not.toContain("Pertemuan berikutnya");
+    // Next week's class keeps its own quiet line.
+    expect(above().find((el) => el.textContent?.startsWith("Pertemuan berikutnya·Kam, 15 Okt, 08:00"))).toBeDefined();
+  });
+
   it("a course past saving says it once, with what's still possible, the shared minutes of a clash and no second copy of the next meeting", async () => {
     screen = await openApp({ signedIn: true, six: true });
     const s = screen;
