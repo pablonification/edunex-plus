@@ -178,7 +178,7 @@ describe("saving a draft", () => {
   it("an answer's text from the website, left as it is, is sent back exactly, pictures and all", async () => {
     const h = await signedIn();
     const website =
-      '<p>Berikut <strong>Bab II</strong>.</p><figure class="image"><img src="https://edunexfixture.blob.core.windows.net/edunex/x.png"></figure>';
+      '<p>Berikut <strong>Bab II</strong>.</p><figure class="image"><img src="https://edunexfixture.blob.core.windows.net/edunex/website-x.png"></figure>';
     h.world.edunex.draftOnWebsite(OPEN, "draf.pdf", website);
     await h.engine.refresh("edunex");
     const file = await upload(h);
@@ -207,7 +207,11 @@ describe("saving a draft", () => {
 
   it("text the website wrote counts as the website counts it: a picture alone too", async () => {
     const h = await signedIn();
-    h.world.edunex.draftOnWebsite(OPEN, "draf.pdf", '<figure class="image"><img src="https://edunexfixture.blob.core.windows.net/edunex/foto.png"></figure>');
+    h.world.edunex.draftOnWebsite(
+      OPEN,
+      "draf.pdf",
+      '<figure class="image"><img src="https://edunexfixture.blob.core.windows.net/edunex/website-foto.png"></figure>',
+    );
     await h.engine.refresh("edunex");
     const [file] = task(h, OPEN).answer!.files;
     expect((await submit(h, OPEN, [file], null)).outcome).toBe("submitted");

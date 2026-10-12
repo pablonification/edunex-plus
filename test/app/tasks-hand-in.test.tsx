@@ -395,7 +395,7 @@ describe("the written answer", () => {
 
   it("a website draft with a picture or a table stays as it is, with the way to change it on Edunex", async () => {
     const s = await openTask("Tugas 02 Bab II");
-    const website = '<p>Lihat grafik:</p><figure class="image"><img src="https://edunexfixture.blob.core.windows.net/edunex/grafik.png"></figure>';
+    const website = '<p>Lihat grafik:</p><figure class="image"><img src="https://edunexfixture.blob.core.windows.net/edunex/website-grafik.png"></figure>';
     s.world.edunex.draftOnWebsite(117003, "Bab II.pdf", website);
     await s.engineDoes(() => s.engine.refresh("edunex"));
     await s.wait(0);
