@@ -9,10 +9,11 @@ import { useCallback, useMemo, useState } from "react";
 import { wibDay } from "../../core/course-meetings";
 import { dayStart, monthGrid, shiftDay, termWeek, weekStart } from "../../core/schedule";
 import { useFormat, useLang, useNow, useT } from "../i18n";
-import { type ScheduleData, useScheduleInput } from "../schedule-data";
+import { useScheduleInput } from "../schedule-data";
 import { useSignIn } from "../shell/source-status";
 import { type AppStore, useStatus, useStore } from "../store";
 import { Button, IconButton, Segmented } from "../ui/controls";
+import { cx } from "../ui/cx";
 import { Skeleton } from "../ui/display";
 import { Icons } from "../ui/icons";
 import { Meta, Page, PageHeader } from "../ui/layout";
@@ -118,7 +119,13 @@ export function ScheduleScreen() {
                   <Icons.ChevronLeft className="size-4" />
                 </IconButton>
               </Tooltip>
-              <Button variant="ghost" disabled={current} onClick={() => setPlace(week ? { week: null } : { month: null })} className="px-2.5 text-fg">
+              {/* On the current week it's there but does nothing: never disabled, so it doesn't look broken and focus stays on it after the press that brought the Student back. */}
+              <Button
+                variant="ghost"
+                aria-disabled={current || undefined}
+                onClick={() => !current && setPlace(week ? { week: null } : { month: null })}
+                className={cx("px-2.5 text-fg", current && "cursor-default hover:bg-transparent active:scale-100")}
+              >
                 {t(week ? "schedule.thisWeek" : "schedule.thisMonth")}
               </Button>
               <Tooltip content={t(week ? "schedule.nextWeek" : "schedule.nextMonth")}>
@@ -144,7 +151,6 @@ export function ScheduleScreen() {
             </p>
           )}
           {week ? <WeekView days={days} input={input} /> : <MonthView month={month} input={input} onShowWeek={showWeek} />}
-          <Provenance input={input} />
         </ScheduleWorldProvider>
       )}
     </Page>
@@ -170,12 +176,6 @@ function NeedsSix() {
       )}
     </div>
   );
-}
-
-/** Where it all comes from, said once. */
-function Provenance({ input }: { input: ScheduleData }) {
-  const t = useT();
-  return <Meta className="mt-5 text-small text-faint">{t(input.six ? "schedule.provenance.six" : "schedule.provenance.edunex")}</Meta>;
 }
 
 /** While SIX's timetable is on its way: the shape of a week. */

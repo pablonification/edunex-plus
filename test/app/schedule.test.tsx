@@ -181,6 +181,34 @@ describe("Jadwal: the week as a timetable", () => {
     expect(subtitle()).toBe("Minggu ke-7 · 5–11 Okt");
   });
 
+  it("Minggu ini and Bulan ini bring the Student back and keep focus; on the current week or month they do nothing", async () => {
+    const s = await openSchedule();
+    const back = (name: string) => s.button(name);
+    expect(back("Minggu ini").getAttribute("aria-disabled")).toBe("true");
+    expect(back("Minggu ini").disabled).toBe(false);
+    await s.click("Minggu ini");
+    expect(subtitle()).toBe("Minggu ke-7 · 5–11 Okt");
+    await s.click("Minggu berikutnya");
+    expect(back("Minggu ini").hasAttribute("aria-disabled")).toBe(false);
+    await act(async () => back("Minggu ini").focus());
+    await s.click("Minggu ini");
+    expect(subtitle()).toBe("Minggu ke-7 · 5–11 Okt");
+    expect(document.activeElement).toBe(back("Minggu ini"));
+    expect(back("Minggu ini").getAttribute("aria-disabled")).toBe("true");
+    // Pressed again: it stays where it is.
+    await s.click("Minggu ini");
+    expect(subtitle()).toBe("Minggu ke-7 · 5–11 Okt");
+    expect(document.activeElement).toBe(back("Minggu ini"));
+
+    await s.click("Bulan");
+    await s.click("Bulan berikutnya");
+    await act(async () => back("Bulan ini").focus());
+    await s.click("Bulan ini");
+    expect(subtitle()).toBe("Oktober 2026");
+    expect(document.activeElement).toBe(back("Bulan ini"));
+    expect(back("Bulan ini").getAttribute("aria-disabled")).toBe("true");
+  });
+
   it("month change: the week across October and November, and November itself", async () => {
     const s = await openSchedule();
     for (let i = 0; i < 3; i++) await s.click("Minggu berikutnya");

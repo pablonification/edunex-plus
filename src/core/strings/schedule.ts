@@ -20,14 +20,6 @@ export const scheduleStrings = {
     en: "Here's what Edunex knows: meetings, deadlines and the ITB calendar.",
   },
   "schedule.signInSix": { id: "Masuk ke SIX", en: "Sign in to SIX" },
-  "schedule.provenance.six": {
-    id: "Jadwal dari SIX · pertemuan tambahan dan tenggat dari Edunex · masa ujian dan libur dari Kalender ITB",
-    en: "Timetable from SIX · extra meetings and deadlines from Edunex · exam weeks and holidays from the ITB calendar",
-  },
-  "schedule.provenance.edunex": {
-    id: "Pertemuan dan tenggat dari Edunex · masa ujian dan libur dari Kalender ITB",
-    en: "Meetings and deadlines from Edunex · exam weeks and holidays from the ITB calendar",
-  },
   "schedule.free": { id: "Kosong", en: "Free" },
   "schedule.lane": { id: "Tenggat", en: "Due" },
   "schedule.live": { id: "Sedang berlangsung", en: "Happening now" },
