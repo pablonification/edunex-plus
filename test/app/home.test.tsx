@@ -121,6 +121,42 @@ describe("an open window that counts", () => {
   });
 });
 
+describe("a Presence window still open after its class", () => {
+  /** PL3002's window of Thursday 8 October, kept open until `end`. */
+  const keepThursdayOpen = (world: PretendWorld, end: string) => world.edunex.keepPresenceOpen(2194342, end);
+  const countdowns = () =>
+    [...document.querySelectorAll("main section[aria-labelledby=home-now] [role=progressbar]")].map((el) => el.getAttribute("aria-label"));
+
+  it("closing today, a row says the time alone", async () => {
+    const world = new PretendWorld({ now: "2026-10-09T11:00:00+07:00" });
+    keepThursdayOpen(world, "2026-10-09T23:00:00+07:00");
+    screen = await openApp({ world, signedIn: true, six: true });
+    expect(row("home-needs", "Presensi PL3002")).toBe("Presensi PL3002 dibuka, tidak wajibPL3002 · Dihitung di SIX · tutup 23:00");
+  });
+
+  it("alone on the card: the day it closes when that isn't today", async () => {
+    const world = new PretendWorld({ now: "2026-10-09T11:00:00+07:00" });
+    keepThursdayOpen(world, "2026-10-10T23:00:00+07:00");
+    screen = await openApp({ world, signedIn: true });
+    const now = text("home-now");
+    expect(now).toContain("Presensi PL3002 sedang dibuka");
+    expect(now).toContain("Buka mata kuliahnya di Edunex sebelum besok, 23:00");
+    // A day and a half away: its day, not "36 jam".
+    expect(countdowns()).toEqual(["tutup besok"]);
+  });
+
+  it("closing in three days: the day and date, in either language", async () => {
+    const world = new PretendWorld({ now: "2026-10-09T11:00:00+07:00" });
+    keepThursdayOpen(world, "2026-10-12T23:00:00+07:00");
+    screen = await openApp({ world, signedIn: true });
+    expect(text("home-now")).toContain("sebelum Sen, 12 Okt, 23:00");
+    expect(countdowns()).toEqual(["tutup dalam 3 hari"]);
+    await screen.engineDoes(() => screen!.engine.updateSettings({ lang: "en" }));
+    expect(text("home-now")).toContain("before Mon, 12 Oct, 23:00");
+    expect(countdowns()).toEqual(["closes in 3 days"]);
+  });
+});
+
 describe("with Edunex alone", () => {
   it("an open window leads, but where it counts isn't guessed before SIX is connected", async () => {
     screen = await openApp({ signedIn: true });

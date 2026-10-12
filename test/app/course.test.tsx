@@ -439,16 +439,8 @@ describe("meetings", () => {
     expect(card.querySelector("p.text-title")?.textContent).toBe("Pertemuan 3");
   });
 
-  /** PL3002's Presence window of Thursday 8 October, kept open until `end` (a window tied to handing in a Task does that). */
-  const keepThursdayOpen = (world: PretendWorld, end: string) => {
-    const key = "95001:86778";
-    world.edunex.presences.set(
-      key,
-      world.edunex.presences
-        .get(key)!
-        .map((s) => (s.attributes.start_at.startsWith("2026-10-08") ? { ...s, attributes: { ...s.attributes, presence_end: end } } : s)),
-    );
-  };
+  /** PL3002's Presence window of Thursday 8 October, kept open until `end`. */
+  const keepThursdayOpen = (world: PretendWorld, end: string) => world.edunex.keepPresenceOpen(2194342, end);
   /** The window's countdown on the card above the tabs, as a screen reader reads it. */
   const countdowns = () => [...document.querySelectorAll("main .shadow-raised [role=progressbar]")].map((el) => el.getAttribute("aria-label"));
 
