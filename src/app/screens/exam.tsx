@@ -283,14 +283,14 @@ function ExamPage({ exam, others, course, courses }: { exam: Exam; others: Exam[
           {exam.tasks.map((task) => (
             <TakeHomeCard key={task.id} task={task} />
           ))}
-          {!dated && (
+          {/* The header already says the day isn't known: here only what is, the exam week and where the exam is listed. */}
+          {!dated && exam.week && (exam.kind === "UTS" || exam.kind === "UAS") ? (
             <Card className="px-5 py-4">
-              <p className="text-small font-medium text-muted">{t("exam.notScheduled")}</p>
-              <p className="mt-1 text-heading font-semibold">
-                {exam.week && (exam.kind === "UTS" || exam.kind === "UAS") ? examWeekLabel(t, f, exam.kind, exam.week) : t("exam.noDate")}
-              </p>
+              <p className="text-heading font-semibold">{examWeekLabel(t, f, exam.kind, exam.week)}</p>
               {exam.inOutline && <p className="mt-1 text-small text-muted">{t("exam.outlineOnly")}</p>}
             </Card>
+          ) : (
+            !dated && exam.inOutline && <p className="text-body text-muted">{t("exam.outlineOnly")}</p>
           )}
         </div>
         {exam.disagree && (

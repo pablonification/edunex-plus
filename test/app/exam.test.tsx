@@ -168,6 +168,20 @@ describe("the exam page", () => {
     expect(when).toContain("Masa UTS 12–16 OktAda di daftar isi Edunex");
     expect(s.text()).not.toContain("belum ada tanggal");
     expect(s.text()).not.toContain("Belum ada tanggal");
+    expect(s.text()).not.toContain("Belum dijadwalkan");
+  });
+
+  it("an exam known only from the outline, with no exam week in ITB's calendar either, says it has no date once", async () => {
+    const world = new PretendWorld();
+    world.itb.fail(/Kalender/i, 500);
+    const s = await openTasks(world);
+    await s.apply({ type: "navigate", route: { screen: "exam", examId: "PL3032-UTS" } });
+    const header = document.querySelector("main header")?.textContent ?? "";
+    const when = document.querySelector("main section[aria-labelledby=exam-when]")?.textContent ?? "";
+    expect(header).toContain("Belum ada tanggal");
+    expect(when).toContain("Ada di daftar isi Edunex");
+    expect(when).not.toContain("Belum ada tanggal");
+    expect(when).not.toContain("Belum dijadwalkan");
   });
 
   it("an exam no longer listed says so", async () => {
