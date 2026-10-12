@@ -71,7 +71,12 @@ export function Home() {
     <Page>
       <PageHeader
         className="mb-6"
-        eyebrow={`${f.dateLong(now)}${term ? ` · ${f.term(term)}` : ""}`}
+        eyebrow={
+          <Meta>
+            {f.dateLong(now)}
+            {term ? f.term(term) : null}
+          </Meta>
+        }
         title={`${f.greeting()}${name ? `, ${firstName(name)}` : ""}`}
         description={<ExamWeek />}
       />
@@ -133,16 +138,19 @@ function ExamWeek() {
   const next = exams.find((e) => e.start > now && e.start - now <= 14 * DAY);
   if (!running && !next) return null;
   const date = (at: number) => `${f.weekday(at)}, ${f.dayMonth(at)}`;
-  let text: string;
-  if (running) text = t(running.kind === "uts" ? "home.utsNow" : "home.uasNow", { date: date(running.end - 1) });
+  let facts: string[];
+  if (running) facts = [t(running.kind === "uts" ? "home.utsNow" : "home.uasNow", { date: date(running.end - 1) })];
   else {
     const days = f.dayOffset(next!.start);
-    text = `${t(next!.kind === "uts" ? "home.utsStarts" : "home.uasStarts", { date: date(next!.start) })} · ${days === 1 ? t("home.tomorrowWord") : t("home.inDays", { count: days })}`;
+    facts = [
+      t(next!.kind === "uts" ? "home.utsStarts" : "home.uasStarts", { date: date(next!.start) }),
+      days === 1 ? t("home.tomorrowWord") : t("home.inDays", { count: days }),
+    ];
   }
   return (
-    <span className="inline-flex items-center gap-2 text-body text-muted">
+    <span className="flex items-center gap-2 text-body text-muted">
       <Icons.CalendarClock className="size-4 shrink-0 text-faint" />
-      {text}
+      <Meta>{facts}</Meta>
     </span>
   );
 }
@@ -204,8 +212,8 @@ function NowCardView({ card, courses }: { card: NowCard; courses: readonly TermC
         <span aria-hidden className="mt-1 h-11 w-[3px] shrink-0 rounded-full" style={{ background: color }} />
         <div className="min-w-0 flex-1">
           <p className={cx("flex items-center gap-2 text-small font-semibold", card.state === "live" ? "text-success-fg" : "text-muted")}>
-            {card.state === "live" && (fresh ? <LiveDot /> : <span aria-hidden className="size-2 rounded-full bg-faint" />)}
-            {eyebrow}
+            {card.state === "live" && (fresh ? <LiveDot /> : <span aria-hidden className="size-2 shrink-0 rounded-full bg-faint" />)}
+            <Meta>{eyebrow}</Meta>
           </p>
           <button
             type="button"
@@ -233,7 +241,7 @@ function NowCardView({ card, courses }: { card: NowCard; courses: readonly TermC
               )}
             </Meta>
           </div>
-          {facts?.moved && <p className="mt-1 text-small font-medium text-warning-fg">{movedLabel(t, f, facts)}</p>}
+          {facts?.moved && <Meta className="mt-1 text-small font-medium text-warning-fg">{movedLabel(t, f, facts)}</Meta>}
         </div>
         {facts?.link && card.state !== "later" && !card.presence?.counts && (
           <JoinButton link={facts.link} code={code} primary={card.state === "live" || (session !== null && session.start - now < 15 * MINUTE)} />
@@ -360,9 +368,7 @@ function AfterThis({ session, courses }: { session: ClassSession; courses: reado
     <p className="flex items-center gap-2 border-t border-line px-5 py-2.5 text-small text-muted">
       <Icons.ArrowRight className="size-3.5 shrink-0 text-faint" />
       <Meta>
-        <span>
-          {t("home.now.after", { time: f.time(session.start), course: session.courseCode })} {nameOf(courses, session.courseCode, session.courseName)}
-        </span>
+        {`${t("home.now.after", { time: f.time(session.start), course: session.courseCode })} ${nameOf(courses, session.courseCode, session.courseName)}`}
         {session.room ?? ""}
       </Meta>
     </p>
@@ -564,8 +570,8 @@ function TodayRow({ item, courses, index, onCard }: { item: TodayItem; courses: 
     >
       {!past && (budget || moved || facts.overlap) && (
         <span className="mt-1 block text-small font-medium">
-          {budget && <span className={cx("block", STATE_TEXT[facts.state])}>{budget}</span>}
-          {moved && <span className="block text-warning-fg">{movedLabel(t, f, facts)}</span>}
+          {budget && <Meta className={STATE_TEXT[facts.state]}>{budget}</Meta>}
+          {moved && <Meta className="text-warning-fg">{movedLabel(t, f, facts)}</Meta>}
           {facts.overlap && (
             <span className="block text-warning-fg">
               {t("home.today.overlap", { course: facts.overlap.code, time: f.timeRange(facts.overlap.from, facts.overlap.to) })}
@@ -624,7 +630,10 @@ function NeedsYou({ needs, courses }: { needs: Need[]; courses: readonly TermCou
 
 interface NeedView {
   title: string;
+  /** Short facts: the course, a time, a place. */
   meta: ReactNode[];
+  /** A sentence on its own line under the facts ("SIX dan Edunex beda tanggal"), so the facts line stays short. */
+  note?: { text: string; tone: "danger" | "warning" | null };
   /** The right side: when, said the human way. */
   when: string | null;
   tone: "danger" | "warning" | null;
@@ -647,7 +656,8 @@ function useNeedView(courses: readonly TermCourse[]): (need: Need) => NeedView {
           return need.countedIn === "noSix"
             ? {
                 title: t("home.need.presenceNoSix", { course: need.course ?? "" }),
-                meta: [course, t("home.need.presenceNoSix.meta", { time: f.time(need.session.closesAt) })],
+                meta: [course, t("home.need.presence.closes", { time: f.time(need.session.closesAt) })],
+                note: { text: t("home.need.presenceNoSix.note"), tone: null },
                 when: f.fromNow(need.session.closesAt),
                 tone: null,
               }
@@ -666,34 +676,38 @@ function useNeedView(courses: readonly TermCourse[]): (need: Need) => NeedView {
                 };
         return {
           title: need.task ? t("home.need.presenceAhead.assignment", { task: need.task.title }) : t("home.need.presenceAhead", { course: need.course ?? "" }),
-          meta: [
-            course,
-            t("home.need.presenceAhead.when", { date: f.relativeDay(need.session.opensAt), time: f.timeRange(need.session.opensAt, need.session.closesAt) }),
-          ],
+          meta: [course],
+          note: {
+            text: t("home.need.presenceAhead.when", {
+              date: f.relativeDay(need.session.opensAt),
+              time: f.timeRange(need.session.opensAt, need.session.closesAt),
+            }),
+            tone: null,
+          },
           when: f.fromNow(need.session.opensAt),
           tone: null,
         };
       case "task": {
         const { task } = need;
+        if (need.reason === "edited")
+          return { title: task.title, meta: [course], note: { text: t("home.need.task.edited"), tone: "warning" }, when: null, tone: "warning" };
         const meta =
-          need.reason === "edited"
-            ? t("home.need.task.edited")
-            : need.reason === "overdue"
-              ? t("home.need.task.overdue")
-              : need.reason === "short"
-                ? t("home.need.task.short", { duration: f.countdown(now + (task.dueAt! - task.opensAt!)) })
-                : t("home.need.task.due", { when: f.dueLabel(task.dueAt!) });
+          need.reason === "overdue"
+            ? t("home.need.task.overdue")
+            : need.reason === "short"
+              ? t("home.need.task.short", { duration: f.countdown(now + (task.dueAt! - task.opensAt!)) })
+              : t("home.need.task.due", { when: f.dueLabel(task.dueAt!) });
         return {
           title: task.title,
           meta: [
             course,
-            <span key="m" className={cx(need.reason === "edited" && "text-warning-fg", need.reason === "overdue" && "text-danger-fg")}>
+            <span key="m" className={cx(need.reason === "overdue" && "text-danger-fg")}>
               {meta}
             </span>,
             need.draft ? t("home.need.task.draft") : null,
           ],
-          when: need.reason === "edited" ? null : need.reason === "overdue" ? t("home.need.late") : f.fromNow(task.dueAt!),
-          tone: need.reason === "overdue" ? "danger" : need.reason === "edited" ? "warning" : near(task.dueAt),
+          when: need.reason === "overdue" ? t("home.need.late") : f.fromNow(task.dueAt!),
+          tone: need.reason === "overdue" ? "danger" : near(task.dueAt),
         };
       }
       case "exam": {
@@ -701,16 +715,8 @@ function useNeedView(courses: readonly TermCourse[]): (need: Need) => NeedView {
         const time = sitting.end !== null ? f.timeRange(sitting.start, sitting.end) : f.time(sitting.start);
         return {
           title: t("home.need.exam", { kind: t(`exam.kind.${exam.kind}`), course: nameOf(courses, exam.courseCode) }),
-          meta: [
-            course,
-            `${f.relativeDay(sitting.start)}, ${time}`,
-            sitting.source === "six" ? (sitting.room ?? "") : t("home.need.exam.edunex"),
-            need.disagree ? (
-              <span key="d" className="text-warning-fg">
-                {t("home.need.exam.disagree")}
-              </span>
-            ) : null,
-          ],
+          meta: [course, `${f.relativeDay(sitting.start)}, ${time}`, sitting.source === "six" ? sitting.room : t("home.need.exam.edunex")],
+          note: need.disagree ? { text: t("home.need.exam.disagree"), tone: "warning" } : undefined,
           when: f.fromNow(sitting.start),
           tone: near(sitting.start),
         };
@@ -785,7 +791,7 @@ function NeedRow({ need, courses, index }: { need: Need; courses: readonly TermC
       index={index}
       title={view.title}
       label={view.label}
-      meta={<Meta>{view.meta.filter((part): part is NonNullable<ReactNode> => part !== null && part !== "")}</Meta>}
+      meta={<Meta>{view.meta}</Meta>}
       trailing={
         view.when ? (
           <span
@@ -799,7 +805,18 @@ function NeedRow({ need, courses, index }: { need: Need; courses: readonly TermC
         ) : undefined
       }
       onClick={act}
-    />
+    >
+      {view.note && (
+        <Meta
+          className={cx(
+            "mt-1 text-small font-medium",
+            view.note.tone === "danger" ? "text-danger-fg" : view.note.tone === "warning" ? "text-warning-fg" : "text-muted",
+          )}
+        >
+          {view.note.text}
+        </Meta>
+      )}
+    </Row>
   );
 }
 
@@ -864,8 +881,8 @@ function ChangeRow({ item, index, f, courses, onOpen }: { item: Alert; index: nu
           {code && <CourseDot color={colorOf(courses, code)} className="absolute -right-1 -bottom-1 size-2 ring-2 ring-surface" />}
         </span>
       }
-      title={t(item.title.key, item.title.vars)}
-      meta={item.body ? <span className="block truncate">{t(item.body.key, item.body.vars)}</span> : undefined}
+      title={<Meta>{t(item.title.key, item.title.vars)}</Meta>}
+      meta={item.body ? <Meta truncate>{t(item.body.key, item.body.vars)}</Meta> : undefined}
       trailing={
         <span className="text-caption whitespace-nowrap text-faint tabular-nums">{f.dayOffset(item.at) === 0 ? f.time(item.at) : f.relativeDay(item.at)}</span>
       }
@@ -942,9 +959,7 @@ function CourseCard({ course, nim, health }: { course: TermCourse; nim: string |
   const t = useT();
   const open = useOpenExternal();
   const { go } = useNav();
-  const facts = [course.classNo && t("course.class", { no: course.classNo }), course.sks !== null && t("course.sks", { count: course.sks })]
-    .filter(Boolean)
-    .join(" · ");
+  const facts = [course.classNo ? t("course.class", { no: course.classNo }) : null, course.sks !== null ? t("course.sks", { count: course.sks }) : null];
   const external = course.edunex
     ? { label: t("action.openInEdunex"), url: edunexCourseUrl(course.edunex.courseId) }
     : nim
@@ -966,7 +981,7 @@ function CourseCard({ course, nim, health }: { course: TermCourse; nim: string |
           <CardHead course={course} />
         </div>
       )}
-      {facts && <span className="mt-0.5 block text-small text-muted">{facts}</span>}
+      {facts.some(Boolean) && <Meta className="mt-0.5 text-small text-muted">{facts}</Meta>}
       {/* From the top, so the meters of a row of cards line up (the name always takes two lines). */}
       <div className="pt-3">
         {course.inSix && <CourseAttendance health={health} />}

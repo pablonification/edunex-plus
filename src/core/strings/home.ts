@@ -68,9 +68,9 @@ export const homeStrings = {
   "home.need.presenceOptional": { id: "Presensi {course} dibuka, tidak wajib", en: "{course} Presence is open; it's optional" },
   "home.need.presenceOptional.meta": { id: "Dihitung di SIX · tutup {time}", en: "Counted in SIX · closes {time}" },
   "home.need.presenceNoSix": { id: "Presensi {course} dibuka", en: "{course} Presence is open" },
-  "home.need.presenceNoSix.meta": {
-    id: "Belum pasti dihitung tanpa SIX; catat untuk berjaga-jaga · tutup {time}",
-    en: "Not certain it counts without SIX; record it just in case · closes {time}",
+  "home.need.presenceNoSix.note": {
+    id: "Belum pasti dihitung tanpa SIX; catat untuk berjaga-jaga",
+    en: "Not certain it counts without SIX; record it just in case",
   },
   "home.need.presenceAhead.assignment": { id: "Kumpulkan {task}", en: "Hand in {task}" },
   "home.need.presenceAhead": { id: "Presensi {course}", en: "{course} Presence" },

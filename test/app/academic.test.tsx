@@ -76,7 +76,7 @@ describe("the KRS tab", () => {
     expect(text).toContain("14 dari maks. 24 SKS");
     // What every row shares is said once; no chip repeated on every row.
     expect(text).toContain("PL3032Ekonomi Infrastruktur dan Transportasi3 SKS");
-    expect(text).toContain("Semua di kelas 01·semua disetujui dosen wali");
+    expect(text).toContain("Semua di kelas 01 · semua disetujui dosen wali");
     expect(text).not.toContain("Disetujui3");
     expect(text).not.toContain("Perubahan rencana studi (URS)");
 
