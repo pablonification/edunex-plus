@@ -204,7 +204,7 @@ most three styles: its title, one supporting line, one meta line.
 | `text-body` | 14 / 20 | Default text, row titles (medium) |
 | `text-lead` | 15 / 22 | A page's description line, card leads |
 | `text-title` | 16 / 22 | Section and dialog titles (semibold, −0.01em) |
-| `text-heading` | 20 / 26 | Big answers inside a card |
+| `text-heading` | 20 / 26 | Big answers inside a card; a few small counts (`Stat size="heading"`) |
 | `text-figure` | 26 / 32 | A figure read at a glance (`Stat`: IPK, SKS, absences left) |
 | `text-display` | 28 / 34 | Page titles (semibold, −0.02em) |
 
@@ -331,7 +331,7 @@ Screens are composed, not styled one by one:
 | `Meta` | Facts on one line, quietly separated ("11:00–12:59 · TVST C"); empty parts drop out and text holding " · " splits into facts. The only place a "·" between facts is drawn: no line ever starts or ends with one (`align="end"` for a right-aligned column, `truncate` for one line). Labels and tooltips join facts with `factsLabel()`; a test fails on a "·" written by hand. |
 | `NowCard`, `NowZone`, `NowLine` (`ui/now-card.tsx`) | What's on now or next, the same on Beranda and a course page: a time block on the left (never a colored stripe; the course's color is its dot), what it is, one line of facts, the one thing to do, and zones under it split by hairlines. Raised while it matters now (a class on, a Presence window open), plain otherwise; a course page says what's next in one quiet line instead, and a Presence window still open from an earlier class in one of its own under the card. |
 | `Notice` | Something to know right here (info, warning, danger, success, neutral) with the one thing to do, and optionally a quiet "Ingatkan nanti" (`snooze`) after it. |
-| `StatRow` + `Stat` | Figures read at a glance (SKS, an IP, absences left), side by side with no box, split by hairlines; labels, figures and hints each line up across the row. Never a figure the page's answer just said. |
+| `StatRow` + `Stat` | Figures read at a glance (SKS, an IP, absences left), side by side with no box, split by hairlines; labels, figures and hints each line up across the row. Figures in `text-figure`, or `size="heading"` for a few small counts beside other content. Never a figure the page's answer just said. |
 | `Card` | `plain`, `raised` (what matters most now), `sunken` (quiet areas). |
 | `EmptyState` | What would be here, why it is empty, and the way forward. Small and kind; hide empty groups instead where nothing is lost. |
 | `Button` | `primary` (one per view: the main action), `secondary`, `ghost`, `danger` (destructive only, never for a final but safe action like handing in). Shows a spinner while working. |

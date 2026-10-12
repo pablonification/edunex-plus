@@ -343,6 +343,7 @@ export function Notice({
 }
 
 const STAT_TONE = { neutral: "", success: "text-success-fg", warning: "text-warning-fg", danger: "text-danger-fg" } as const;
+const STAT_SIZE = { figure: "text-figure", heading: "text-heading" } as const;
 
 /**
  * Figures read at a glance, side by side on the page with no box, split by
@@ -369,18 +370,21 @@ export function Stat({
   value,
   hint,
   tone = "neutral",
+  size = "figure",
   className,
 }: {
   label: ReactNode;
   value: ReactNode;
   hint?: ReactNode;
   tone?: keyof typeof STAT_TONE;
+  /** `heading`: smaller, for a few counts beside other content (the first run's courses, tasks, meetings). */
+  size?: keyof typeof STAT_SIZE;
   className?: string;
 }) {
   return (
     <div className={cx("row-span-3 grid grid-rows-subgrid py-3 first:pt-0 last:pb-0 @md:px-6 @md:py-0 @md:first:pl-0 @md:last:pr-0", className)}>
       <dt className="self-end text-small font-medium text-muted">{label}</dt>
-      <dd className={cx("text-figure font-semibold tabular-nums", STAT_TONE[tone])}>{value}</dd>
+      <dd className={cx("font-semibold tabular-nums", STAT_SIZE[size], STAT_TONE[tone])}>{value}</dd>
       <dd className="text-small text-muted">{hint}</dd>
     </div>
   );
