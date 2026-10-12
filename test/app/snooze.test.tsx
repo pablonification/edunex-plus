@@ -78,7 +78,8 @@ describe("putting off what needs you on Beranda", () => {
     const control = s.button("Ingatkan nanti: DK4073: jangan absen lagi");
     expect(control.closest("li")?.querySelector(":scope > button")?.contains(control)).toBe(false);
     expect(control.getAttribute("aria-haspopup")).toBe("menu");
-    const next = control.closest("li")?.nextElementSibling?.querySelector("button");
+    // The row fades out of the list (PresenceList), handing focus to the same control in the next row.
+    const next = control.closest("li")?.nextElementSibling?.querySelector<HTMLElement>("[aria-haspopup=menu]");
     expect(next).toBeTruthy();
     await snooze("DK4073: jangan absen lagi", "Besok pagi");
     await frame();
