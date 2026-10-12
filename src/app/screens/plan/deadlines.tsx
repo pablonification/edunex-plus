@@ -7,7 +7,15 @@
 // event ITB lists, by month, ITB's own title first, with chips and a search,
 // so a dense calendar stays readable. Works without SIX.
 import { type CSSProperties, Fragment, useState } from "react";
-import { academicDeadlines, CALENDAR_GROUPS, type CalendarEntry, type CalendarGroup, type Deadline, fullCalendar } from "../../../core/academic";
+import {
+  academicDeadlines,
+  CALENDAR_GROUPS,
+  type CalendarEntry,
+  type CalendarGroup,
+  DEADLINE_KINDS,
+  type Deadline,
+  fullCalendar,
+} from "../../../core/academic";
 import type { StringKey } from "../../../core/strings";
 import { useFormat, useLang, useNow, useT } from "../../i18n";
 import { useDataset } from "../../store";
@@ -246,11 +254,18 @@ function EveryEvent() {
   const [earlier, setEarlier] = useState(false);
   const { months, total, counts } = fullCalendar(
     { calendar, now, krs, bills, progress },
-    // The app's own words count in the search too: "UTS", "KRS", "midterms".
+    // The app's own words count in the search too: its short name for the kind ("UTS", "Midterms"), what it means, the chip.
     {
       groups,
       query,
-      extra: (entry) => [entry.meaning && t(entry.meaning.key, entry.meaning.vars), t(`calendar.group.${entry.group}`)].filter(Boolean).join(" "),
+      extra: (entry) =>
+        [
+          DEADLINE_KINDS.includes(entry.event.kind) && t(`deadline.kind.${entry.event.kind}` as StringKey),
+          entry.meaning && t(entry.meaning.key, entry.meaning.vars),
+          t(`calendar.group.${entry.group}`),
+        ]
+          .filter(Boolean)
+          .join(" "),
     },
   );
   const shown = months.reduce((sum, m) => sum + m.entries.length, 0);

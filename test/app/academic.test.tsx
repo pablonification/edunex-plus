@@ -61,6 +61,15 @@ async function tab(name: string | RegExp) {
 
 const panel = () => document.querySelector("[role=tabpanel][data-state=active]")?.textContent ?? "";
 
+/** Types into the full calendar's search. */
+async function searchFor(text: string) {
+  await act(async () => {
+    const input = document.querySelector<HTMLInputElement>("[role=tabpanel][data-state=active] input")!;
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(input, text);
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+}
+
 describe("the KRS tab", () => {
   it("sent, waiting for the advisor; then approved; courses with class, SKS and approval", async () => {
     const s = await openPlan("2026-08-17T09:00:00+07:00");
@@ -292,6 +301,24 @@ describe("the Kalender akademik tab", () => {
     });
     expect(months()).toEqual(["September 20261", "Februari 20271"]);
     expect(rows("September 2026")).toEqual(["18 SepJumBatas Akhir Pengajuan Cuti Semester I-2026/2027"]);
+  });
+
+  it("the full calendar's search knows the app's short names: 'UTS' finds the midterm weeks, 'UAS' the finals and not 'Evaluasi'", async () => {
+    const s = await openPlan("2026-10-11T09:00:00+07:00");
+    await s.click(/^Rencana studi/);
+    await tab("Kalender akademik");
+    await s.click("Kalender lengkap");
+    const titles = () =>
+      [...document.querySelectorAll("[role=tabpanel][data-state=active] section li:not([aria-label])")].map(
+        (li) => li.querySelector("span.min-w-0 > span")?.textContent ?? "",
+      );
+    await searchFor("UTS");
+    expect(titles()).toEqual(["Masa Ujian Tengah Semester I-2026/2027", "Masa Ujian Tengah Semester II-2026/2027"]);
+    await searchFor("uas");
+    expect(titles()).toEqual(["Ujian Akhir Semester I-2026/2027", "Ujian Akhir Semester II-2026/2027"]);
+    await s.engineDoes(() => s.engine.updateSettings({ lang: "en" }));
+    await searchFor("midterms");
+    expect(titles()).toEqual(["Masa Ujian Tengah Semester I-2026/2027", "Masa Ujian Tengah Semester II-2026/2027"]);
   });
 
   it("the full calendar keeps a month in view while something that started in it is still running", async () => {
