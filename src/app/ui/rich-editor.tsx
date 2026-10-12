@@ -81,10 +81,11 @@ export default function RichEditor({ initial, onChange, label, placeholder, desc
           "[&_code]:rounded [&_code]:bg-fill [&_code]:px-1 [&_code]:font-mono [&_code]:text-small [&_pre]:my-1.5 [&_pre]:rounded-lg [&_pre]:bg-fill [&_pre]:p-3",
         ),
       },
-      // ⌘K / Ctrl+K adds a link, as in most editors.
+      // ⌘K / Ctrl+K adds a link, as in most editors; here it never also opens the app's search.
       handleKeyDown: (_view, event) => {
         if (event.key.toLowerCase() !== "k" || !(event.metaKey || event.ctrlKey)) return false;
         event.preventDefault();
+        event.stopPropagation();
         setLinking(true);
         return true;
       },

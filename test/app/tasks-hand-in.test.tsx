@@ -357,6 +357,15 @@ describe("the written answer", () => {
     expect(sentAnswer(s)).toBe("<ul><li><strong>Penting</strong></li></ul>");
   });
 
+  it("⌘K in the box opens its link field, not the app's search", async () => {
+    const s = await openTask("Tugas 02 Bab II");
+    await s.write("<p>Lihat sumbernya</p>");
+    const editor = await s.editor();
+    await act(async () => void editor.dispatchEvent(new KeyboardEvent("keydown", { key: "k", metaKey: true, bubbles: true, cancelable: true })));
+    expect(document.activeElement?.getAttribute("type")).toBe("url");
+    expect(document.querySelector("[role=dialog]")).toBeNull();
+  });
+
   it("submitted with text and a file, the text is then shown as handed in", async () => {
     const s = await openTask("Tugas 02 Bab II", "2026-10-16T16:00:00+07:00");
     await s.write("<p>Berikut <em>Bab II</em>.</p>");
