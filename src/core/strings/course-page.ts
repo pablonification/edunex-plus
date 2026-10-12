@@ -172,7 +172,6 @@ export const coursePageStrings = {
   "offline.noneYet": { id: "Belum ada berkas untuk disimpan", en: "No files to save yet" },
   "course.openEdunex": { id: "Buka di Edunex", en: "Open in Edunex" },
   "course.openSix": { id: "Lihat jadwal di SIX", en: "View the timetable in SIX" },
-  "course.newest": { id: "Terbaru", en: "Newest" },
   "course.new": { id: "Baru", en: "New" },
   "course.newHint": { id: "Ada materi baru minggu ini", en: "New material this week" },
   "course.openTasks": { id: "{count} terbuka", en: "{count} open" },

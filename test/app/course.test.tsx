@@ -84,6 +84,15 @@ describe("the course page", () => {
     expect(toc).not.toContain("Module 06");
   });
 
+  it("the table of contents' headings read like the others, not in capitals, and no module is called the newest", async () => {
+    const s = await openCourse("II4091");
+    const headings = [...document.querySelectorAll("nav[aria-label='Daftar isi'] p")];
+    expect(headings.map((p) => p.textContent)).toEqual(["Daftar isi", "Kelas gabungan"]);
+    expect(headings.every((p) => !p.className.includes("uppercase"))).toBe(true);
+    // "Terbaru" beside a five-week-old module meant nothing next to the "Baru" of this week.
+    expect(s.text()).not.toContain("Terbaru");
+  });
+
   it("Open in Edunex stays on Home's cards", async () => {
     screen = await openApp({ signedIn: true });
     await screen.click("Buka di Edunex: PL3002");
@@ -345,6 +354,7 @@ describe("Tasks in modules", () => {
     const tocEntry = () => [...toc.querySelectorAll("button")].find((b) => b.textContent?.includes(module.title))?.textContent;
     expect(tocEntry()).toContain("1 tugas");
     expect(tocEntry()).toContain("1 terbuka");
+    expect([...toc.querySelectorAll("span")].filter((el) => el.textContent === "1 terbuka").at(-1)!.className).toContain("rounded-tag");
     // With one handed in beside it, the count is all of them and the chip only the open one: never "1 tugas" next to "1 tugas".
     const handedIn: Task = aTask({
       id: 117501,
