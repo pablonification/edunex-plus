@@ -25,14 +25,32 @@ const light = variables(block(css, css.indexOf(":root")));
 const darkMedia = css.indexOf("@media (prefers-color-scheme: dark)");
 const dark = new Map([...light, ...variables(block(css, css.indexOf(":root", darkMedia)))]);
 
-function resolve(theme: Map<string, string>, name: string): string {
+function lookup(theme: Map<string, string>, name: string): string {
   let value = theme.get(name);
   for (let guard = 0; value?.startsWith("var("); guard++) {
     if (guard > 5) throw new Error(`circular ${name}`);
     value = theme.get(value.slice(4, -1).trim());
   }
-  if (!value || !/^#[0-9a-f]{6}$/i.test(value)) throw new Error(`${name} is not a plain color: ${value}`);
+  if (!value) throw new Error(`${name} is not defined`);
   return value;
+}
+
+const hex = (channels: number[]) => `#${channels.map((c) => Math.round(c).toString(16).padStart(2, "0")).join("")}`;
+
+/**
+ * A token as the plain color the eye sees. A see-through token ("rgb(0 0 0 /
+ * 0.065)", --selected) is blended over the background it sits on, given as
+ * "--selected@--sidebar".
+ */
+function resolve(theme: Map<string, string>, token: string): string {
+  const [name, over] = token.split("@");
+  const value = lookup(theme, name);
+  if (/^#[0-9a-f]{6}$/i.test(value)) return value;
+  const rgba = value.match(/^rgb\((\d+) (\d+) (\d+) \/ ([\d.]+)\)$/);
+  if (!rgba || !over) throw new Error(`${name} is not a plain color: ${value}`);
+  const base = resolve(theme, over);
+  const alpha = Number(rgba[4]);
+  return hex([1, 2, 3].map((i) => Number(rgba[i]) * alpha + Number.parseInt(base.slice(i * 2 - 1, i * 2 + 1), 16) * (1 - alpha)));
 }
 
 function luminance(hex: string): number {
@@ -49,9 +67,12 @@ function contrast(a: string, b: string): number {
 }
 
 const TEXT_ON = ["--canvas", "--sidebar", "--surface", "--raised", "--welcome", "--fill"];
+// Where rows and controls show they're hovered, picked or quiet: text keeps reading there too
+// (--selected@--raised: the picked result in ⌘K search, a raised dialog).
+const STATE_ON = ["--hover", "--sunken", "--selected@--sidebar", "--selected@--surface", "--selected@--raised"];
 const pairs: [string, string, number][] = [
-  ...["--fg", "--muted", "--faint"].flatMap((fg) => TEXT_ON.map((bg) => [fg, bg, 4.5] as [string, string, number])),
-  ...["--canvas", "--surface", "--raised"].map((bg) => ["--accent-fg", bg, 4.5] as [string, string, number]),
+  ...["--fg", "--muted", "--faint"].flatMap((fg) => [...TEXT_ON, ...STATE_ON].map((bg) => [fg, bg, 4.5] as [string, string, number])),
+  ...["--canvas", "--surface", "--raised", "--hover", "--sunken", "--selected@--surface"].map((bg) => ["--accent-fg", bg, 4.5] as [string, string, number]),
   ["--on-accent", "--accent", 4.5],
   ["--on-accent", "--accent-hover", 4.5],
   ...["danger", "warning", "success", "info", "neutral"].map((tone) => [`--${tone}-fg`, `--${tone}-bg`, 4.5] as [string, string, number]),

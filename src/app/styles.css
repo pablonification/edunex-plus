@@ -17,7 +17,7 @@
   --line: #ededf0;
   --fill: #f4f4f6;
   --hover: #f1f1f4;
-  --selected: rgb(0 0 0 / 0.065);
+  --selected: rgb(0 0 0 / 0.055);
   --sunken: #f7f7f9;
   --scrim: rgb(0 0 0 / 0.25);
   --track: #d4d4da;
@@ -25,10 +25,10 @@
   --tooltip-bg: #1d1d1f;
   --tooltip-fg: #ffffff;
 
-  /* Text (all AA on canvas, sidebar and fill) */
+  /* Text (all AA on every surface, and on hover, selected and sunken: test/app/contrast.test.ts) */
   --fg: #1d1d1f;
   --muted: #5b5b61;
-  --faint: #6f6f75;
+  --faint: #68686e;
 
   /* Accent */
   --accent: #2f6feb;
@@ -83,7 +83,7 @@
     --line: #26262b;
     --fill: #232327;
     --hover: #222226;
-    --selected: rgb(255 255 255 / 0.08);
+    --selected: rgb(255 255 255 / 0.07);
     --sunken: #19191c;
     --scrim: rgb(0 0 0 / 0.45);
     --track: #3a3a40;
@@ -93,7 +93,7 @@
 
     --fg: #ececef;
     --muted: #a8a8b0;
-    --faint: #8c8c93;
+    --faint: #97979d;
 
     --accent: #2f6feb;
     --accent-hover: #2a66df;
