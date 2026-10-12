@@ -11,6 +11,7 @@ import { act, type ReactNode, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { I18nProvider } from "../../src/app/i18n";
+import { LiveDot, Skeleton } from "../../src/app/ui/display";
 import { Menu } from "../../src/app/ui/menu";
 import { skipAnimations } from "../../src/app/ui/motion/animate";
 import { AnimatedNumber } from "../../src/app/ui/motion/animated-number";
@@ -243,6 +244,62 @@ describe("a dialog or menu on its way out", () => {
     await act(async () => item.click());
     await act(async () => item.click());
     expect(opened).toHaveBeenCalledOnce();
+  });
+});
+
+describe("loops", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    Object.defineProperty(document, "hidden", { configurable: true, value: false });
+    document.dispatchEvent(new Event("visibilitychange"));
+  });
+
+  it("rest while the window is hidden", async () => {
+    const { container } = await mount(
+      <>
+        <Skeleton />
+        <LiveDot />
+      </>,
+    );
+    const loops = container.querySelectorAll("[data-loop]");
+    expect(loops).toHaveLength(2);
+    // The rule that pauses them, for a hidden window and for one off-screen.
+    expect(css).toMatch(/html\[data-hidden\] \[data-loop\][^{]*\{\s*animation-play-state: paused;/);
+    expect(css).toMatch(/\[data-loop\]\[data-offscreen\],/);
+
+    Object.defineProperty(document, "hidden", { configurable: true, value: true });
+    await act(async () => document.dispatchEvent(new Event("visibilitychange")));
+    expect(document.documentElement.hasAttribute("data-hidden")).toBe(true);
+    Object.defineProperty(document, "hidden", { configurable: true, value: false });
+    await act(async () => document.dispatchEvent(new Event("visibilitychange")));
+    expect(document.documentElement.hasAttribute("data-hidden")).toBe(false);
+  });
+
+  it("rest while scrolled out of sight, and are no longer watched once gone", async () => {
+    let report: IntersectionObserverCallback = () => undefined;
+    const watched = new Set<Element>();
+    vi.stubGlobal(
+      "IntersectionObserver",
+      class {
+        constructor(callback: IntersectionObserverCallback) {
+          report = callback;
+        }
+        observe = (element: Element) => watched.add(element);
+        unobserve = (element: Element) => watched.delete(element);
+      },
+    );
+    const view = await mount(<Skeleton />);
+    const loop = view.container.querySelector("[data-loop]")!;
+    expect(watched.has(loop)).toBe(true);
+    const seen = (isIntersecting: boolean) => report([{ target: loop, isIntersecting } as IntersectionObserverEntry], {} as IntersectionObserver);
+    seen(false);
+    expect(loop.hasAttribute("data-offscreen")).toBe(true);
+    seen(true);
+    expect(loop.hasAttribute("data-offscreen")).toBe(false);
+
+    await view.unmount();
+    unmount = null;
+    expect(watched.size).toBe(0);
   });
 });
 

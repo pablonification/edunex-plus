@@ -237,7 +237,8 @@
   --animate-popover-out: pop-out var(--duration-quick) var(--ease-standard) both;
   --animate-slide-down: slide-down var(--duration-base) var(--ease-out) both;
   --animate-toast-in: toast-in var(--duration-base) var(--ease-out);
-  --animate-shimmer: shimmer 1.4s ease-in-out infinite;
+  /* Stepped, as T3 Code's loops: a few held frames per cycle instead of one every frame. */
+  --animate-shimmer: shimmer 1.4s steps(4, jump-none) infinite;
 
   @keyframes fade-in {
     from {
@@ -341,6 +342,25 @@
     scrollbar-width: thin;
     scrollbar-color: color-mix(in oklab, var(--fg) 22%, transparent) transparent;
   }
+}
+
+/* A light/dark switch repaints at once instead of fading hundreds of colors
+   (main.tsx puts this on <html> for two frames). Animations are left alone:
+   cutting them would replay an open dialog's entrance. */
+.no-transitions,
+.no-transitions *,
+.no-transitions *::before,
+.no-transitions *::after {
+  transition: none !important;
+}
+
+/* Loops rest where no one can see them: off-screen, or in a hidden window
+   (ui/motion/visible.ts marks both). */
+[data-loop][data-offscreen],
+[data-loop][data-offscreen] *,
+html[data-hidden] [data-loop],
+html[data-hidden] [data-loop] * {
+  animation-play-state: paused;
 }
 
 /* A native disclosure (<details>) opens and closes smoothly instead of jumping. */

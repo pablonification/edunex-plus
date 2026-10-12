@@ -240,6 +240,7 @@ keeps them equal).
 | What | How |
 |---|---|
 | Hover, press, color changes | Hover backgrounds: instant. Buttons press to 97% in 150 ms (not menu or popover triggers, not rows; a row's press is its darker background). Other color changes: 150 ms |
+| Switching light and dark | At once: nothing fades its color (`.no-transitions` on `<html>` for two frames) |
 | Screens and their rows | Nothing: switching screens or going further in is instant, and rows don't rise in |
 | Dialogs (`animate-pop-in`, `animate-pop-out`; the scrim `animate-fade-in`, `animate-fade-out`) | In 200 ms from 98%, out 150 ms |
 | Popovers and tooltips (`animate-popover-in`, `animate-popover-out`) | 150 ms, growing from their control (`origin-(--radix-popover-content-transform-origin)`), so the side they open on shows. A tooltip grows in only after the wait; moving on to the next control shows its tooltip at once, and a tooltip goes at once |
@@ -251,7 +252,7 @@ keeps them equal).
 | A segmented control's or tab list's highlight (`SlidingHighlight`) | Sits on the new pick at once and glides there from the old one as a transform (translate and scale), 150 ms ease-out |
 | A figure the Student just changed (`AnimatedNumber`) | Counts 400 ms ease-out with no overshoot, while the page's text is already the true value. A figure that changes on its own just changes |
 | Bars filling | 300–500 ms |
-| Loading placeholders | 1.4 s pulse |
+| Loading placeholders | 1.4 s pulse in four held steps, not every frame |
 
 **Rules.**
 - Only transform and opacity move, except a few small, isolated heights (a
@@ -262,7 +263,9 @@ keeps them equal).
 - Screens and rows never animate in; a row moves only when the Student's own
   action removes it.
 - No decoration: no glow, spotlight, tilt or parallax, and nothing loops except
-  loading placeholders, spinners and live dots.
+  loading placeholders, spinners and live dots. A loop (`data-loop`, with
+  `ref={pauseUnseen}` from `ui/motion/visible.ts`) rests while it is
+  off-screen or the window is hidden.
 - No animation library. JS animation only through the kit's
   `src/app/ui/motion/` pieces and the toasts, with `element.animate` (via
   `animate()` and `leave()` in `ui/motion/animate.ts`); a number counting is
