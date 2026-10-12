@@ -326,7 +326,7 @@ describe("the curriculum map", () => {
     const dialog = document.querySelector("[role=dialog]")!.textContent!;
     expect(dialog).toContain("Yang dihitung sebagai WI1111 Laboratorium Fisika Dasar");
     expect(dialog).toMatch(/SIX menaruhnya di semester 1II1101Komputasi dan MasyarakatA · 2 SKS/);
-    await s.click("FI1201 dihitung sebagai WI1111");
+    await s.click(/^FI1201Fisika Dasar IIA/);
     expect(row("WI1111")).toBe("WI1111Laboratorium Fisika Dasarlewat FI1201 Fisika Dasar IIA·Dikoreksi olehmuLulus· BC1");
     expect(row("FI1201")).toBeUndefined();
     expect(toastText()).toContain("FI1201 sekarang dihitung sebagai WI1111");
@@ -374,5 +374,51 @@ describe("the curriculum map", () => {
     expect(s.text()).toContain("Keamanan dan Privasi Siber0 dari 12 SKS");
     expect(s.text()).toContain("MinorBranding Berbasis DigitalDesain Komunikasi Visual3 dari 12 SKS");
     expect(document.querySelectorAll("aside .bg-warning-bg")).toHaveLength(0);
+  });
+});
+
+describe("the keyboard: focus stays where the Student is", () => {
+  const tick = () => act(() => new Promise<void>((resolve) => setTimeout(resolve, 10)));
+  const focused = () => document.activeElement?.getAttribute("aria-label") ?? document.activeElement?.tagName;
+  /** Opens a menu from the keyboard and picks an item, as Enter on the focused item does. */
+  async function choose(menu: string, item: RegExp) {
+    const trigger = screen!.button(menu);
+    trigger.focus();
+    await screen!.click(trigger);
+    const option = screen!.button(item);
+    option.focus();
+    await screen!.click(option);
+    await tick();
+  }
+
+  it("'Counted as…' gives focus back to the row's ⋯, closed or used", async () => {
+    const s = await openPlan();
+    await tab("Kurikulum");
+    await choose("Koreksi WI1111", /^Dihitung sebagai…/);
+    expect(document.querySelector("[role=dialog]")).not.toBeNull();
+    await s.key("Escape");
+    await tick();
+    expect(focused()).toBe("Koreksi WI1111");
+    await choose("Koreksi WI1111", /^Dihitung sebagai…/);
+    // Read as what it is, not as codes only.
+    expect(s.button(/^FI1201/).textContent).toContain("Fisika Dasar IIA");
+    await s.click(/^FI1201/);
+    await tick();
+    expect(focused()).toBe("Koreksi WI1111");
+  });
+
+  it("with 'What's left only' on, a corrected row goes and focus moves to the next row's ⋯, then to the switch", async () => {
+    const s = await openPlan();
+    await tab("Kurikulum");
+    await s.click("Sisa saja");
+    const menus = () => [...document.querySelectorAll("main [aria-haspopup=menu]")].map((el) => el.getAttribute("aria-label"));
+    expect(menus()).toEqual(["Koreksi II4091", "Koreksi II4090", "Koreksi II4092"]);
+    await choose("Koreksi II4090", /^Sudah selesai/);
+    await tick();
+    expect(menus()).toEqual(["Koreksi II4091", "Koreksi II4092"]);
+    expect(focused()).toBe("Koreksi II4092");
+    await choose("Koreksi II4092", /^Tidak ada di kurikulumku/);
+    await tick();
+    expect(focused()).toBe("Sisa saja");
   });
 });

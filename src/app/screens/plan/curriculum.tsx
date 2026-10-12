@@ -7,7 +7,7 @@
 // each course's syllabus on SIX's public pages; and the Student's own
 // corrections where SIX's record doesn't match their curriculum, each one
 // marked and reversible.
-import { type ReactNode, useState } from "react";
+import { type ReactNode, type Ref, useEffect, useRef, useState } from "react";
 import { curriculumMap, type MapCourse, type PackageProgress, type SlotStatus, type StandIn, standIns } from "../../../core/curriculum-map";
 import type { CurriculumFix } from "../../../core/models";
 import { type SksModel, type StudentRecord, sksModel } from "../../../core/planner";
@@ -36,6 +36,41 @@ export const syllabusUrl = (courseId: string) => `https://six.itb.ac.id/pub/mata
 /** Still to do: everything not passed, credited, or off the Student's list (SIX doesn't ask it of them, or they said so). */
 const isLeft = (status: SlotStatus) => !["passed", "exempt", "unlisted", "not-mine", "done"].includes(status);
 
+/**
+ * With "Sisa saja" on, a course the Student corrects is no longer left, and
+ * its row goes once the correction is saved: focus moves to the next row's
+ * ⋯ (or the switch, after the last row) instead of falling to the page.
+ */
+function useFocusAfterCorrection(rows: MapCourse[]) {
+  const pending = useRef<{ code: string; at: number; next: string | null } | null>(null);
+  const rowEls = useRef(new Map<string, HTMLElement>());
+  const toggle = useRef<HTMLLabelElement>(null);
+  useEffect(() => {
+    const wait = pending.current;
+    if (!wait) return;
+    const row = rows.find((c) => c.code === wait.code);
+    // Still listed: not saved yet (keep waiting), or saved and still left (its ⋯ keeps focus).
+    if (row) {
+      if (row.fix?.at === wait.at) pending.current = null;
+      return;
+    }
+    pending.current = null;
+    const next = wait.next === null ? null : rowEls.current.get(wait.next)?.querySelector<HTMLElement>("[aria-haspopup=menu]");
+    (next ?? toggle.current?.querySelector<HTMLElement>("[role=switch]"))?.focus();
+  });
+  return {
+    corrected(course: MapCourse, at: number) {
+      const index = rows.findIndex((c) => c.code === course.code);
+      pending.current = { code: course.code, at, next: rows[index + 1]?.code ?? null };
+    },
+    row: (code: string) => (el: HTMLElement | null) => {
+      if (el) rowEls.current.set(code, el);
+      else rowEls.current.delete(code);
+    },
+    toggle,
+  };
+}
+
 export function Tab({ onCalendar }: { onCalendar?: () => void }) {
   const t = useT();
   const record = useStudentRecord();
@@ -43,7 +78,16 @@ export function Tab({ onCalendar }: { onCalendar?: () => void }) {
   const setFix = useCurriculumFix();
   const [onlyLeft, setOnlyLeft] = useState(false);
   const [picking, setPicking] = useState<MapCourse | null>(null);
-  if (!record || !state || !record.curriculum)
+  const map = record?.curriculum && state ? curriculumMap(record, state.plan) : null;
+  const semesters = (map?.semesters ?? [])
+    .map((s) => ({
+      ...s,
+      required: onlyLeft ? s.required.filter((c) => isLeft(c.status)) : s.required,
+      others: onlyLeft ? s.others.filter((c) => isLeft(c.status)) : s.others,
+    }))
+    .filter((s) => s.required.length + s.others.length > 0);
+  const focus = useFocusAfterCorrection(semesters.flatMap((s) => s.required));
+  if (!record || !state || !record.curriculum || !map)
     return (
       <SixNeeded
         icon={<Icons.Layers className="size-5" />}
@@ -58,18 +102,11 @@ export function Tab({ onCalendar }: { onCalendar?: () => void }) {
         }
       />
     );
-  const map = curriculumMap(record, state.plan);
   const sks = sksModel(record, state.plan);
-  const semesters = map.semesters
-    .map((s) => ({
-      ...s,
-      required: onlyLeft ? s.required.filter((c) => isLeft(c.status)) : s.required,
-      others: onlyLeft ? s.others.filter((c) => isLeft(c.status)) : s.others,
-    }))
-    .filter((s) => s.required.length + s.others.length > 0);
   const hidden = map.semesters.length - semesters.length;
   const correct = (course: MapCourse, fix: CurriculumFix | null, message: string) => {
     const before = course.fix;
+    if (onlyLeft && fix) focus.corrected(course, fix.at);
     setFix(course.code, fix);
     toast(message, "neutral", { label: t("planner.undo"), onClick: () => setFix(course.code, before) });
   };
@@ -116,7 +153,7 @@ export function Tab({ onCalendar }: { onCalendar?: () => void }) {
       />
       <div className="grid grid-cols-1 items-start gap-6 @4xl:grid-cols-[minmax(0,1fr)_320px]">
         <div className="min-w-0 space-y-3">
-          <LeftBar sks={sks} onlyLeft={onlyLeft} onToggle={setOnlyLeft} />
+          <LeftBar sks={sks} onlyLeft={onlyLeft} onToggle={setOnlyLeft} toggleRef={focus.toggle} />
           {semesters.map((semester) => (
             <Card key={semester.semester} className="overflow-hidden">
               <section aria-label={t("planner.semester", { n: semester.semester })}>
@@ -130,7 +167,7 @@ export function Tab({ onCalendar }: { onCalendar?: () => void }) {
                 </header>
                 <ul>
                   {semester.required.map((course) => (
-                    <CourseRow key={course.code} course={course} menu={menuOf(course)} />
+                    <CourseRow key={course.code} ref={focus.row(course.code)} course={course} menu={menuOf(course)} />
                   ))}
                 </ul>
                 {semester.others.length > 0 && (
@@ -220,7 +257,17 @@ function Totals({ name, year, startedOn, unlisted, sks }: { name: string; year: 
 }
 
 /** "Sisa saja" and what's left, kept in view while scrolling. */
-function LeftBar({ sks, onlyLeft, onToggle }: { sks: SksModel; onlyLeft: boolean; onToggle: (on: boolean) => void }) {
+function LeftBar({
+  sks,
+  onlyLeft,
+  onToggle,
+  toggleRef,
+}: {
+  sks: SksModel;
+  onlyLeft: boolean;
+  onToggle: (on: boolean) => void;
+  toggleRef: Ref<HTMLLabelElement>;
+}) {
   const t = useT();
   const parts = [
     sks.requiredLeft.count ? t("curriculum.left.required", { count: sks.requiredLeft.count, sks: sks.requiredLeft.sks }) : t("curriculum.left.requiredNone"),
@@ -231,7 +278,7 @@ function LeftBar({ sks, onlyLeft, onToggle }: { sks: SksModel; onlyLeft: boolean
       <p className="flex min-w-0 items-start gap-1.5 text-small text-muted" role="status">
         <span className="shrink-0 font-semibold text-fg">{t("curriculum.left")}:</span> <Meta>{parts}</Meta>
       </p>
-      <label className="flex items-center gap-2 text-small font-medium">
+      <label ref={toggleRef} className="flex items-center gap-2 text-small font-medium">
         <Switch checked={onlyLeft} onCheckedChange={onToggle} label={t("curriculum.onlyLeft")} />
         {t("curriculum.onlyLeft")}
       </label>
@@ -301,12 +348,15 @@ function Status({ status, grade }: { status: SlotStatus; grade: string | null })
 /** Shown on hover or keyboard focus, so a list of 45 rows stays calm; kept while its menu is open. */
 const ON_HOVER = "opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 focus-visible:opacity-100 aria-expanded:opacity-100";
 
-function CourseRow({ course, menu }: { course: MapCourse; menu?: MenuItem[] }) {
+function CourseRow({ course, menu, ref }: { course: MapCourse; menu?: MenuItem[]; ref?: Ref<HTMLLIElement> }) {
   const t = useT();
   const open = useOpenExternal();
   const crossed = course.status === "not-mine";
   return (
-    <li className="group grid grid-cols-[68px_minmax(0,1fr)_auto_28px_28px_28px] items-center gap-3 border-b border-line px-4 py-2 text-body last:border-b-0">
+    <li
+      ref={ref}
+      className="group grid grid-cols-[68px_minmax(0,1fr)_auto_28px_28px_28px] items-center gap-3 border-b border-line px-4 py-2 text-body last:border-b-0"
+    >
       <span className={cx("text-small font-semibold tabular-nums", crossed && "text-muted")}>{course.code}</span>
       <span className="min-w-0">
         <span className={cx("block truncate", crossed && "text-muted")}>{course.name}</span>
@@ -364,7 +414,6 @@ function PickStandIn({ record, course, onPick, onClose }: { record: StudentRecor
             <li key={c.code}>
               <button
                 type="button"
-                aria-label={t("curriculum.pick.choose", { from: c.code, code: course.code })}
                 onClick={() => onPick(c.code)}
                 className="focus-ring grid w-full grid-cols-[64px_minmax(0,1fr)_auto] items-center gap-3 rounded-lg px-1 py-2 text-left transition-colors duration-150 hover:bg-hover"
               >

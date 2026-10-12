@@ -372,7 +372,6 @@ export const gradesStrings = {
   "curriculum.pick.suggested": { id: "SIX menaruhnya di semester {n}", en: "SIX places it in semester {n}" },
   "curriculum.pick.others": { id: "Mata kuliah lain yang kamu lulusi", en: "Other courses you passed" },
   "curriculum.pick.fills": { id: "sekarang dihitung sebagai {code}", en: "now counts as {code}" },
-  "curriculum.pick.choose": { id: "{from} dihitung sebagai {code}", en: "{from} counts as {code}" },
   "curriculum.pick.none": { id: "Belum ada mata kuliah lulus yang bisa dipilih.", en: "No passed course to pick yet." },
   "curriculum.via": { id: "lewat {code} {name}", en: "as {code} {name}" },
   "curriculum.others": { id: "Mata kuliah lain yang ikut dihitung", en: "Other courses that count" },

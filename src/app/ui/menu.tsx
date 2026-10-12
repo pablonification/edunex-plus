@@ -3,8 +3,9 @@
 // items, Escape or a click outside closes it. An item that can't run stays in
 // the list, dimmed, with the reason under it. A quieter trigger (a small "⋯"
 // or another icon, with its words where there's room) serves a row's or a
-// notice's own small menu, such as "Ingatkan nanti".
-import { type KeyboardEvent, type ReactNode, useState } from "react";
+// notice's own small menu, such as "Ingatkan nanti". Choosing an item puts
+// focus back on the trigger first, so a dialog the item opens returns focus there.
+import { type KeyboardEvent, type ReactNode, useRef, useState } from "react";
 import { Button, IconButton } from "./controls";
 import { cx } from "./cx";
 import { Icons } from "./icons";
@@ -36,6 +37,7 @@ export interface MenuTrigger {
 /** `label` names the menu and its button for screen readers ("Ingatkan nanti: Tugas 02 Bab II"). */
 export function Menu({ label, items, trigger, className }: { label: string; items: MenuItem[]; trigger?: MenuTrigger; className?: string }) {
   const [open, setOpen] = useState(false);
+  const button = useRef<HTMLButtonElement>(null);
   const move = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.key !== "ArrowDown" && event.key !== "ArrowUp" && event.key !== "Home" && event.key !== "End") return;
     event.preventDefault();
@@ -54,12 +56,22 @@ export function Menu({ label, items, trigger, className }: { label: string; item
       trigger={
         <span className="inline-flex">
           {trigger?.words ? (
-            <Button variant="ghost" size="sm" icon={trigger.icon} aria-label={label} aria-haspopup="menu" aria-expanded={open} className={trigger.className}>
+            <Button
+              ref={button}
+              variant="ghost"
+              size="sm"
+              icon={trigger.icon}
+              aria-label={label}
+              aria-haspopup="menu"
+              aria-expanded={open}
+              className={trigger.className}
+            >
               {trigger.text ?? label}
             </Button>
           ) : (
             <Tooltip content={trigger?.text ?? label}>
               <IconButton
+                ref={button}
                 label={label}
                 aria-haspopup="menu"
                 aria-expanded={open}
@@ -81,6 +93,8 @@ export function Menu({ label, items, trigger, className }: { label: string; item
             role="menuitem"
             disabled={item.disabled}
             onClick={() => {
+              // Before the item runs: a dialog it opens takes the trigger as what to give focus back to (the item itself is gone by then).
+              button.current?.focus();
               setOpen(false);
               item.onSelect();
             }}
