@@ -1,5 +1,5 @@
 // cx() lets a later class win over an earlier one of the same kind. That only
-// works for the app's own tokens (shadow-card, animate-slide-down…)
+// works for the app's own tokens (shadow-card, animate-slide-down, rounded-tag…)
 // when tailwind-merge knows them; otherwise both classes stay and the CSS
 // order, not the component's caller, decides which one shows.
 import { describe, expect, it } from "vitest";
@@ -13,6 +13,11 @@ describe("cx", () => {
     ["animate-slide-down", "animate-fade-in"],
     ["animate-pop-in", "animate-shimmer"],
     ["ease-standard", "ease-out"],
+    ["rounded-tag", "rounded-full"],
+    ["rounded-xl", "rounded-tag"],
+    ["text-small", "text-figure"],
+    ["z-50", "z-(--z-dialog)"],
+    ["z-(--z-popover)", "z-(--z-tooltip)"],
   ])("%s gives way to %s", (first, later) => {
     expect(cx(first, later)).toBe(later);
   });

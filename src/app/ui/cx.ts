@@ -8,10 +8,11 @@ import { extendTailwindMerge } from "tailwind-merge";
 const merge = extendTailwindMerge({
   extend: {
     theme: {
-      text: ["micro", "caption", "small", "body", "lead", "title", "heading", "display"],
+      text: ["micro", "caption", "small", "body", "lead", "title", "heading", "figure", "display"],
       shadow: ["button", "thumb", "card", "raised", "lift", "pop", "dialog"],
       animate: ["fade-in", "pop-in", "slide-down", "shimmer"],
       ease: ["standard", "out"],
+      radius: ["tag"],
     },
   },
 });
