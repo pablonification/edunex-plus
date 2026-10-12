@@ -23,7 +23,6 @@ import { SnoozeMenu } from "../snooze-menu";
 import { useSnoozes } from "../snoozes";
 import { useBridge, useDataset, useStatus } from "../store";
 import { Button } from "../ui/controls";
-import { cx } from "../ui/cx";
 import { CourseDot, EmptyState, LiveDot, Skeleton } from "../ui/display";
 import { Icons } from "../ui/icons";
 import { Meta, Notice, Page, PageHeader } from "../ui/layout";
@@ -31,6 +30,7 @@ import { Menu } from "../ui/menu";
 import { CountdownBar } from "../ui/meter";
 import { NowCard, NowLine, NowZone } from "../ui/now-card";
 import { toast } from "../ui/overlays";
+import { TabBar } from "../ui/tabs";
 import { type CoursePage, useCoursePage } from "./course/data";
 import { GradesTab } from "./course/grades";
 import { AnnouncementsTab, TasksTab } from "./course/lists";
@@ -56,6 +56,7 @@ export function CourseScreen({ code, tab, module }: { code: string; tab?: string
       </Page>
     );
 
+  const loaded = page.materials !== undefined;
   const counts: Partial<Record<Tab, number>> = {
     modules: page.outline?.modules.length,
     meetings: page.meetings.length,
@@ -69,40 +70,30 @@ export function CourseScreen({ code, tab, module }: { code: string; tab?: string
       <RiskStrip page={page} />
       <MeetingNow page={page} />
       <Tabs.Root value={current} onValueChange={(value) => setCurrent(value as Tab)}>
-        <Tabs.List aria-label={page.course.code} className="mt-8 flex gap-6 border-b border-line">
-          {TABS.map((key) => (
-            <Tabs.Trigger
-              key={key}
-              value={key}
-              className={cx(
-                "focus-ring relative -mb-px flex h-10 items-center gap-1.5 rounded-t-sm border-b-2 text-body font-medium transition-colors duration-150",
-                "border-transparent text-muted hover:text-fg data-[state=active]:border-fg data-[state=active]:text-fg",
-              )}
-            >
-              {t(`course.tab.${key}` as StringKey)}
-              {counts[key] !== undefined && <span className="text-small font-medium text-faint tabular-nums">{counts[key]}</span>}
-            </Tabs.Trigger>
-          ))}
-        </Tabs.List>
+        <TabBar
+          value={current}
+          label={page.course.code}
+          tabs={TABS.map((key) => ({ value: key, label: t(`course.tab.${key}` as StringKey), count: counts[key] }))}
+          className="mt-8 border-b border-line"
+        />
         <div className="pt-6">
-          {page.materials === undefined && current !== "grades" ? (
-            <NotLoaded />
-          ) : (
-            <>
-              <Tabs.Content value="modules" className="focus-ring rounded-sm">
-                <ModulesTab page={page} module={module} />
-              </Tabs.Content>
-              <Tabs.Content value="meetings" className="focus-ring rounded-sm">
-                <MeetingsTab page={page} />
-              </Tabs.Content>
-              <Tabs.Content value="tasks" className="focus-ring rounded-sm">
-                <TasksTab tasks={page.tasks} exams={page.exams} />
-              </Tabs.Content>
-              <Tabs.Content value="announcements" className="focus-ring rounded-sm">
-                <AnnouncementsTab announcements={page.announcements} mainCourseId={page.course.edunex?.courseId ?? null} code={page.course.code} />
-              </Tabs.Content>
-            </>
-          )}
+          {/* Every tab keeps its panel while Edunex's part isn't here yet, so each tab still names the panel it controls. */}
+          <Tabs.Content value="modules" className="focus-ring rounded-sm">
+            {loaded ? <ModulesTab page={page} module={module} /> : <NotLoaded />}
+          </Tabs.Content>
+          <Tabs.Content value="meetings" className="focus-ring rounded-sm">
+            {loaded ? <MeetingsTab page={page} /> : <NotLoaded />}
+          </Tabs.Content>
+          <Tabs.Content value="tasks" className="focus-ring rounded-sm">
+            {loaded ? <TasksTab tasks={page.tasks} exams={page.exams} /> : <NotLoaded />}
+          </Tabs.Content>
+          <Tabs.Content value="announcements" className="focus-ring rounded-sm">
+            {loaded ? (
+              <AnnouncementsTab announcements={page.announcements} mainCourseId={page.course.edunex?.courseId ?? null} code={page.course.code} />
+            ) : (
+              <NotLoaded />
+            )}
+          </Tabs.Content>
           <Tabs.Content value="grades" className="focus-ring rounded-sm">
             <GradesTab page={page} onOpenModules={() => setCurrent("modules")} />
           </Tabs.Content>
