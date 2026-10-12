@@ -66,6 +66,8 @@ describe("a course's own attendance target", () => {
     await s.apply({ type: "command", command: "settings" });
     expect(dialog()).toContain("Target kehadiranUntuk mata kuliah tanpa target sendiri");
     expect(dialog()).toContain("Komunikasi PemasaranDK4073 · target sendiriPakai target umum75%");
+    // Meta's facts, so the dot can't end a line.
+    expect([...document.querySelectorAll("[role=dialog] [data-fact] > :last-child")].map((fact) => fact.textContent)).toContain("target sendiri");
     // Each stepper says whose target it changes.
     expect(s.has("Naikkan target umum")).toBe(true);
     expect(s.has("Naikkan target DK4073")).toBe(true);

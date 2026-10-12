@@ -193,7 +193,7 @@ function OpenPresence({ window }: { window: OpenWindow }) {
             <LiveDot />
             {t("presence.open.do", { action: actionLabel(window), time: f.time(session.closesAt) })}
           </p>
-          <p className="mt-1 text-small text-muted">{t(where, { code })}</p>
+          <Meta className="mt-1 text-small text-muted">{t(where, { code })}</Meta>
         </div>
         {task ? (
           <Button variant={noSix ? "secondary" : "primary"} onClick={() => go({ screen: "task", taskId: task.id })}>

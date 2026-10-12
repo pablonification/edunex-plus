@@ -160,7 +160,7 @@ function AttendanceTargets() {
         </span>
       </Row>
       {codes.map((code) => (
-        <Row key={code} label={name(code)} hint={t("settings.attendance.own", { code })}>
+        <Row key={code} label={name(code)} hint={<Meta>{t("settings.attendance.own", { code })}</Meta>}>
           {/* The steppers line up in one column with the default's. */}
           <span className="flex shrink-0 items-center gap-1.5">
             <Button
