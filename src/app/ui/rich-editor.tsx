@@ -16,7 +16,7 @@ import { type Editor, EditorContent, useEditor, useEditorState } from "@tiptap/r
 import StarterKit from "@tiptap/starter-kit";
 import { type KeyboardEvent, type ReactNode, type Ref, useEffect, useId, useImperativeHandle, useRef, useState } from "react";
 import { useT } from "../i18n";
-import { Button } from "./controls";
+import { Button, IconButton } from "./controls";
 import { cx } from "./cx";
 import { Icons, icon } from "./icons";
 import { Tooltip } from "./overlays";
@@ -201,21 +201,18 @@ function Tool({
 }) {
   return (
     <Tooltip content={label}>
-      <button
-        type="button"
-        aria-label={label}
-        aria-pressed={active === undefined ? undefined : active}
+      <IconButton
+        size="sm"
+        label={label}
+        aria-pressed={active}
         disabled={disabled}
         // Keeps the text's selection while the button is pressed.
         onMouseDown={(event) => event.preventDefault()}
         onClick={onClick}
-        className={cx(
-          "focus-ring grid size-7 place-items-center rounded-md transition-colors duration-150 disabled:pointer-events-none disabled:opacity-40",
-          active ? "bg-selected text-fg" : "text-muted hover:bg-hover hover:text-fg",
-        )}
+        className={cx(active && "bg-selected text-fg hover:bg-selected")}
       >
         {children}
-      </button>
+      </IconButton>
     </Tooltip>
   );
 }
@@ -268,7 +265,7 @@ function LinkRow({ editor, onDone }: { editor: Editor; onDone: () => void }) {
         onChange={(event) => setHref(event.target.value)}
         onKeyDown={keys}
         placeholder="https://"
-        className="h-8 min-w-0 flex-1 rounded-md border border-edge bg-canvas px-2.5 text-small outline-none focus-visible:border-(--focus)"
+        className="focus-ring h-8 min-w-0 flex-1 rounded-md border border-edge bg-canvas px-2.5 text-small"
       />
       <Button size="sm" variant="primary" disabled={!valid} onClick={apply}>
         {t("editor.linkApply")}
