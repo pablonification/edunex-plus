@@ -825,7 +825,7 @@ function useAnswerText(task: Task) {
 }
 
 /** The submission card: status, the Student's answer, attaching files, Save draft and Submit. */
-function HandIn({ task, status, onPreview }: Row & { onPreview?: (file: TaskFile) => void }) {
+function HandIn({ task, status }: Row) {
   const t = useT();
   const f = useFormat();
   const now = useNow();
@@ -837,6 +837,7 @@ function HandIn({ task, status, onPreview }: Row & { onPreview?: (file: TaskFile
   const { signIn, busy: signingIn } = useSignIn();
   const { refresh, busy: refreshing } = useRefresh();
   const { download, busy: downloading } = useDownload();
+  const pdf = usePdfViewer();
   const [attached, setAttached] = useState<Attached[]>([]);
   const [removed, setRemoved] = useState<string[]>([]);
   const [busy, setBusy] = useState<"draft" | "submit" | null>(null);
@@ -939,6 +940,19 @@ function HandIn({ task, status, onPreview }: Row & { onPreview?: (file: TaskFile
       }
     }
   };
+
+  // A PDF in the answer opens in the viewer: one on Edunex (saved, or uploaded a moment ago) by its link, with
+  // the Task's page as the way out; one still on its way up from its bytes, read by main by the id it gave.
+  const preview = (file: TaskFile) => () => pdf.open({ kind: "edunex", url: file.url, name: file.name, edunexUrl: edunexTaskUrl(task.id) });
+  const previewPicked = (item: Attached) => () =>
+    pdf.open({
+      kind: "bytes",
+      name: item.name,
+      load: async () => {
+        const read = await bridge.invoke("tasks.readPicked", { fileId: item.key });
+        return "problem" in read ? read : read.bytes;
+      },
+    });
 
   const removeSaved = (url: string) => setRemoved((list) => [...list, url]);
   const removeAttached = (key: string) => setAttached((list) => list.filter((item) => item.key !== key));
@@ -1147,8 +1161,7 @@ function HandIn({ task, status, onPreview }: Row & { onPreview?: (file: TaskFile
                   hint={editable ? fileHint(t, file.name, pattern, type) : null}
                   onRemove={editable ? () => removeSaved(file.url) : undefined}
                   onDownload={editable ? undefined : () => void download(file)}
-                  onPreview={onPreview && isPdf(file.name) ? () => onPreview(file) : undefined}
-                  view={isPdfName(file.name) ? { url: file.url, edunexUrl: edunexTaskUrl(task.id) } : undefined}
+                  onPreview={isPdfName(file.name) ? preview(file) : undefined}
                   downloading={downloading === file.url}
                 />
               ))}
@@ -1172,7 +1185,7 @@ function HandIn({ task, status, onPreview }: Row & { onPreview?: (file: TaskFile
                   hint={item.state === "uploaded" ? fileHint(t, item.name, pattern, type) : null}
                   onRetry={item.state === "failed" && !refused(item) ? () => retry(item) : undefined}
                   onRemove={editable ? () => removeAttached(item.key) : undefined}
-                  onPreview={onPreview && item.file && isPdf(item.name) ? () => item.file && onPreview(item.file) : undefined}
+                  onPreview={!isPdfName(item.name) || refused(item) ? undefined : item.file ? preview(item.file) : previewPicked(item)}
                 />
               ))}
             </ul>
@@ -1463,12 +1476,7 @@ function FileBadge({ name, state }: { name: string; state?: Attached["state"] })
   );
 }
 
-const isPdf = (name: string) => /\.pdf$/i.test(name);
-
-/**
- * One file of the answer. `onPreview` is the seam for an in-app viewer of the
- * Student's own files: given (or a `view`), the row offers to look at the file.
- */
+/** One file of the answer; with `onPreview`, the row offers to look at it in the app. */
 function FileRow({
   name,
   state,
@@ -1479,7 +1487,6 @@ function FileRow({
   onDownload,
   onPreview,
   downloading = false,
-  view,
 }: {
   name: string;
   state?: Attached["state"];
@@ -1490,11 +1497,8 @@ function FileRow({
   onDownload?: () => void;
   onPreview?: () => void;
   downloading?: boolean;
-  /** A PDF already on Edunex (and its Task's page there): it opens in the app's viewer, even while the answer can still change. */
-  view?: { url: string; edunexUrl: string };
 }) {
   const t = useT();
-  const pdf = usePdfViewer();
   const failed = state === "failed";
   return (
     <li className={cx("rounded-lg px-2.5 py-2", failed ? "bg-danger-bg/50 ring-1 ring-danger-fg/30 ring-inset" : "bg-fill")}>
@@ -1511,11 +1515,11 @@ function FileRow({
             </span>
           )}
         </span>
-        {(onPreview || view) && !failed && (
+        {onPreview && !failed && (
           <button
             type="button"
             aria-label={t("handIn.preview", { name })}
-            onClick={onPreview ?? (() => view && pdf.open({ kind: "edunex", url: view.url, name, edunexUrl: view.edunexUrl }))}
+            onClick={onPreview}
             className="focus-ring grid size-7 shrink-0 place-items-center rounded-md text-muted transition-colors duration-150 hover:bg-hover hover:text-fg"
           >
             <Icons.Eye className="size-3.5" />

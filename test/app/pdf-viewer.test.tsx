@@ -363,4 +363,41 @@ describe("PDFs on a Task", () => {
     expect(s.calls).toContainEqual({ name: "files.read", input: { url: file.url, as: "pdf" } });
     expect(viewer()?.textContent).toContain("dari 4");
   });
+
+  it("a PDF the Student just attached opens from its content, read by main by the id it gave; once on Edunex, from there", async () => {
+    const s = await openTask("Tugas 02 Bab II");
+    // Edunex's storage answers slowly: the files are still on their way up when the Student looks. (So no
+    // waiting for every request here, only for the screen to catch up.)
+    s.world.setLatency(10_000);
+    const press = async (name: string | RegExp, until: () => boolean = () => true) =>
+      act(async () => {
+        s.button(name).click();
+        for (let round = 0; round < 100 && !until(); round++) await new Promise((resolve) => setImmediate(resolve));
+      });
+    s.willPick([
+      { name: "Bab II.pdf", content: "%PDF-1.4 Pages: 5" },
+      { name: "Lampiran.pdf", content: "bukan PDF" },
+      { name: "Catatan.docx", content: "PK" },
+    ]);
+    await press(/^Lampirkan berkas/, () => s.has("Lihat Bab II.pdf"));
+    await press("Lihat Bab II.pdf", () => Boolean(viewer()?.textContent?.includes("dari 5")));
+    expect(viewer()?.textContent).toContain("dari 5");
+    // The window asks by the id main gave the file; where it is on the computer never reaches the window.
+    expect(s.calls.filter((call) => call.name === "tasks.readPicked")).toEqual([{ name: "tasks.readPicked", input: { fileId: expect.any(String) } }]);
+    expect(s.calls.some((call) => call.name === "files.read")).toBe(false);
+    await key(document.activeElement!, "Escape");
+    // Only a PDF offers a look, and one that isn't really a PDF says so instead of drawing nothing.
+    expect(s.has("Lihat Catatan.docx")).toBe(false);
+    await press("Lihat Lampiran.pdf", () => Boolean(viewer()?.querySelector("[role=alert]")));
+    expect(viewer()?.textContent).toContain("Berkas ini tidak bisa ditampilkan di aplikasi.");
+    await key(document.activeElement!, "Escape");
+
+    // Uploaded: it opens from Edunex's storage, as the lecturer will get it.
+    s.world.setLatency(0);
+    await s.wait(10 * 60_000);
+    expect(document.querySelector("main aside")?.textContent).not.toContain("Mengunggah");
+    await s.click("Lihat Bab II.pdf");
+    expect(s.calls.at(-1)).toEqual({ name: "files.read", input: { url: expect.stringContaining("/edunex/upload/"), as: "pdf" } });
+    expect(viewer()?.textContent).toContain("dari 5");
+  });
 });

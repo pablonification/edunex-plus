@@ -51,7 +51,10 @@ never web content, a strict content policy.
   loads remote content; pdf.js (`pdfjs-dist`, Apache-2.0, the engine Edunex's
   own site uses) draws from bytes inside the app's page instead. The bytes
   come through `files.read` like pictures (Edunex's storage only, at most
-  100 MB, starting with `%PDF-`). It loads only when a PDF is first opened,
+  100 MB, starting with `%PDF-`); a PDF the Student just attached to an
+  answer comes through `tasks.readPicked`, by the id main gave it when it was
+  picked or dropped, with the same checks, so the window still never learns
+  where a file is on the computer. It loads only when a PDF is first opened,
   as its own chunk. Two small, explained changes serve it from the app's own
   files: `app://` sends `.mjs` as JavaScript (its worker is a module, and
   `nosniff` refuses a script without the right type), and the content policy

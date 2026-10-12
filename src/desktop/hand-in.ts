@@ -6,10 +6,11 @@
 import { randomUUID } from "node:crypto";
 import path from "node:path";
 import type { z } from "zod";
-import { answerFileProblem, type PickedFile } from "../core/actions/tasks";
+import { answerFileProblem, MAX_UPLOAD_BYTES, type PickedFile } from "../core/actions/tasks";
 import { type ActionOutput, Actions } from "../core/contract";
 import type { Engine } from "../engine/engine";
 import { EngineError, isEngineError } from "../engine/errors";
+import { sniff } from "./remote-files";
 
 /** A file on this computer the Student chose. */
 export interface LocalFile {
@@ -21,7 +22,7 @@ export interface LocalFile {
   read(): Promise<Uint8Array>;
 }
 
-export type HandInAction = "tasks.pickFiles" | "tasks.dropFiles" | "tasks.upload" | "tasks.saveDraft" | "tasks.submit";
+export type HandInAction = "tasks.pickFiles" | "tasks.dropFiles" | "tasks.readPicked" | "tasks.upload" | "tasks.saveDraft" | "tasks.submit";
 type HandInHandlers = { [N in HandInAction]: (input: z.infer<(typeof Actions)[N]["input"]>) => Promise<ActionOutput<N>> };
 
 /** Picked files stay known this long a list (the latest ones). */
@@ -47,6 +48,15 @@ export function handInHandlers(engine: Engine, pick: () => Promise<LocalFile[]>)
         return keep({ name: path.basename(file.name), size: bytes.byteLength, type: file.type || contentType(file.name), read: async () => bytes });
       }),
     }),
+    // Only a PDF is read back, to be looked at in the app's viewer; the window still never learns where it is.
+    "tasks.readPicked": async ({ fileId }) => {
+      const file = picked.get(fileId);
+      if (!file) throw new EngineError("Rejected", "That file isn't attached any more");
+      if (!/\.pdf$/i.test(file.name)) throw new EngineError("Rejected", `${file.name} isn't a PDF`);
+      if (file.size > MAX_UPLOAD_BYTES) return { problem: "too-big" };
+      const bytes = await file.read().catch(() => null);
+      return bytes && sniff(bytes, "pdf") ? { bytes } : { problem: "unreadable" };
+    },
     "tasks.upload": async ({ fileId, taskId }) => {
       const file = picked.get(fileId);
       if (!file) throw new EngineError("Rejected", "That file isn't attached any more");

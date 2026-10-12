@@ -18,7 +18,9 @@ const PdfViewer = lazy(() => import("./ui/pdf-viewer").then((module) => ({ defau
 
 export type PdfSource =
   /** A file on Edunex's storage; `edunexUrl`: its page on Edunex, offered when it can't be shown. */
-  { kind: "edunex"; url: string; name: string; edunexUrl?: string } | { kind: "bytes"; name: string; load: () => Promise<Uint8Array> };
+  | { kind: "edunex"; url: string; name: string; edunexUrl?: string }
+  /** Any other file (one the Student is about to hand in): its bytes, or why they can't be shown. */
+  | { kind: "bytes"; name: string; load: () => Promise<Uint8Array | { problem: FileProblem }> };
 
 /** A file the viewer can show, by its name. */
 export const isPdfName = (name: string) => /\.pdf$/i.test(name.trim());
