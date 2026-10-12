@@ -386,6 +386,14 @@ describe("Tasks in modules", () => {
 });
 
 describe("meetings", () => {
+  it("the lecturer's note on a Presence wraps like the meeting's other facts, never cut off with no way to read the rest", async () => {
+    await openCourse("II4091");
+    await tab(/^Pertemuan/);
+    const note = [...document.querySelectorAll("main ol li span")].filter((el) => el.textContent === "Presensi dengan submit Tugas 01 Bab I").at(-1)!;
+    expect(note.className).toContain("break-words");
+    expect(note.className).not.toContain("truncate");
+  });
+
   it("every Presence session of the class, across pages, never labelled absent", async () => {
     const s = await openCourse("PL3002", { six: true });
     await tab(/^Pertemuan/);

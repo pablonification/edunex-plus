@@ -195,13 +195,7 @@ function MeetingRow({
       ""
     ),
     window ? t("meeting.window", { range: window }) : "",
-    presence?.note ? (
-      <span key="note" className="min-w-0 truncate">
-        {presence.note}
-      </span>
-    ) : (
-      ""
-    ),
+    presence?.note ?? "",
     announced && !presence && announced.note && !announced.online ? announced.note : "",
     meeting.notInSix ? (
       <span key="notInSix" className="font-medium text-warning-fg">
