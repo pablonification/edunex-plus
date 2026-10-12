@@ -13,7 +13,7 @@ export const gradesStrings = {
   "grades.sksPassedHint": { id: "dari {need} SKS untuk lulus", en: "of the {need} SKS to graduate" },
   "grades.lastIp": { id: "IP semester lalu", en: "Last semester IP" },
   "grades.lastIpHint": { id: "{term} · {delta} dari sebelumnya", en: "{term} · {delta} on the one before" },
-  "grades.best": { id: "IPK tertinggi", en: "Highest possible IPK" },
+  "grades.best": { id: "IPK tertinggi yang mungkin", en: "Highest possible IPK" },
   "grades.bestHint": { id: "jika semua A di {sks} SKS tersisa", en: "with straight A's in the {sks} SKS left" },
   "grades.bestNone": { id: "semua nilai sudah keluar", en: "every grade is in" },
   "grades.stageIp": { id: "IPK tanpa TPB: {ip}", en: "IPK without TPB: {ip}" },

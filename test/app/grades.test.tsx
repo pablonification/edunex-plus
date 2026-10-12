@@ -86,7 +86,7 @@ describe("Nilai", () => {
       "SKS lulus125dari 144 SKS untuk lulus",
       "IP semester lalu3,27Smt 6 · +0,17 dari sebelumnya",
       // (408 + 4 × 26) / 151
-      "IPK tertinggi3,39jika semua A di 26 SKS tersisa",
+      "IPK tertinggi yang mungkin3,39jika semua A di 26 SKS tersisa",
     ]);
     expect(s.text()).not.toContain("SIX menampilkan IPK");
     expect(s.text()).not.toContain("Tahap Sarjana");
