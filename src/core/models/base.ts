@@ -24,6 +24,9 @@ export const SourceStatus = z.object({
 });
 export type SourceStatus = z.infer<typeof SourceStatus>;
 
+/** An attendance target: a whole percent, 50–100. */
+export const AttendanceTarget = z.number().int().min(50).max(100);
+
 export const Theme = z.enum(["system", "light", "dark"]);
 export const Lang = z.enum(["id", "en"]);
 export type Lang = z.infer<typeof Lang>;
@@ -46,8 +49,10 @@ export const Settings = z.object({
   trayExplained: z.boolean(),
 
   // Attendance (#85)
-  /** The share of meetings (percent) the Student aims to attend; each course contract sets its own minimum. */
-  attendanceTarget: z.number().int().min(50).max(100),
+  /** The share of meetings (percent) the Student aims to attend, for every course without its own target. */
+  attendanceTarget: AttendanceTarget,
+  /** A course's own target (percent) by course code, from its course contract; see `targetFor`. */
+  attendanceTargets: z.record(z.string().min(1).max(32), AttendanceTarget),
 
   // First-run scan (#81)
   /** The first full sync's findings were shown (or there were none): the scan doesn't open by itself again. */
@@ -66,6 +71,7 @@ export const DEFAULT_SETTINGS: Settings = {
 
   // Attendance (#85)
   attendanceTarget: 80,
+  attendanceTargets: {},
 
   // First-run scan (#81)
   firstScanDone: false,

@@ -23,6 +23,7 @@ import {
   type TodayPlan,
   todayPlan,
 } from "../../core/needs";
+import { budgetLabel, useActionLabel } from "../attendance-labels";
 import { type TermCourse, useTerm, useTermCourses } from "../courses";
 import { useHomeWorld } from "../home-world";
 import { useOpenExternal } from "../hooks";
@@ -31,7 +32,7 @@ import { firstName } from "../names";
 import { type Route, useNav } from "../nav";
 import { openAlerts } from "../shell/alerts";
 import { useRefresh, useSignIn } from "../shell/source-status";
-import { useDataset, useSettings, useStatus } from "../store";
+import { useDataset, useStatus } from "../store";
 import { Button, IconButton } from "../ui/controls";
 import { cx } from "../ui/cx";
 import { Bar, Card, CourseDot, EmptyState, LiveDot, Skeleton } from "../ui/display";
@@ -39,7 +40,6 @@ import { Icons } from "../ui/icons";
 import { List, Meta, Page, PageHeader, Row, Section } from "../ui/layout";
 import { CountdownBar } from "../ui/meter";
 import { Tooltip } from "../ui/overlays";
-import { budgetLabel, useActionLabel } from "./presence";
 
 const MINUTE = 60_000;
 const DAY = 86_400_000;
@@ -258,14 +258,13 @@ function Attendance({ card }: { card: NowCard }) {
   const now = useNow();
   const { go } = useNav();
   const external = useOpenExternal();
-  const { attendanceTarget } = useSettings();
   const actionLabel = useActionLabel();
   const facts = card.class;
   const presence = card.presence;
   const counted = facts?.countedIn ?? "unknown";
   const online = facts?.link !== null && facts?.link !== undefined;
 
-  const budget = facts?.health && facts.state !== "unknown" ? budgetLabel(t, facts.health, attendanceTarget) : null;
+  const budget = facts?.health && facts.state !== "unknown" ? budgetLabel(t, facts.health) : null;
   const where = presence?.counts
     ? t("home.now.countEdunex")
     : presence?.noSix
@@ -484,7 +483,6 @@ function TodayRow({ item, courses, index, onCard }: { item: TodayItem; courses: 
   const now = useNow();
   const { go } = useNav();
   const open = useOpenExternal();
-  const { attendanceTarget } = useSettings();
   const fresh = useStatus("six").state === "live";
 
   if (item.kind === "due") {
@@ -538,7 +536,7 @@ function TodayRow({ item, courses, index, onCard }: { item: TodayItem; courses: 
   const past = session.end <= now;
   const course = courses.find((c) => c.code === session.courseCode);
   const exam = /\b(UTS|UAS)\b/i.test(session.activity);
-  const budget = facts.health && facts.state !== "unknown" && !past ? budgetLabel(t, facts.health, attendanceTarget) : null;
+  const budget = facts.health && facts.state !== "unknown" && !past ? budgetLabel(t, facts.health) : null;
   // The now card says "Jam berubah · biasanya …" for its class; the row keeps only the amber time.
   const moved = facts.moved && session.id !== onCard;
   return (
@@ -644,7 +642,6 @@ function useNeedView(courses: readonly TermCourse[]): (need: Need) => NeedView {
   const t = useT();
   const f = useFormat();
   const now = useNow();
-  const { attendanceTarget } = useSettings();
   const near = (at: number | null) => (at !== null && at - now <= DAY ? "warning" : null);
   return (need) => {
     const course = need.course ? <CourseMark key="course" code={need.course} courses={courses} /> : null;
@@ -729,7 +726,7 @@ function useNeedView(courses: readonly TermCourse[]): (need: Need) => NeedView {
         const vars = {
           attended: health.attended ?? 0,
           held: health.held ?? 0,
-          target: attendanceTarget,
+          target: health.target,
           best: percent(health.best ?? 0),
           course: need.course ?? "",
         };

@@ -98,7 +98,7 @@ Indeks Prestasi, the term GPA, and Indeks Prestasi Kumulatif, the cumulative GPA
 _Avoid_: GPA in Indonesian copy
 
 **Kehadiran**:
-SIX's attendance percentage per Class, with the exact count in a tooltip: "Hadir X dari Y pertemuan" (present at X of Y Class sessions). ITB has no institute-wide minimum; each course contract sets one. The app's default target is 80%, editable.
+SIX's attendance percentage per Class, with the exact count in a tooltip: "Hadir X dari Y pertemuan" (present at X of Y Class sessions). ITB has no institute-wide minimum; each course contract sets one. The app's default target is 80%, editable, and a course can have its own target (from its contract). "Absences left" counts only meetings sure to come: a class SIX still lists in a UTS or UAS week or on a holiday may not run, so it isn't counted.
 _Avoid_: Presence (that's the Edunex feature)
 
 **UKT**:

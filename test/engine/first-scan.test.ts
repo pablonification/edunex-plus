@@ -20,7 +20,8 @@ const TIMETABLE = /\/kelas\/jadwal\/mahasiswa\/\d+$/;
 type Of<K extends FindingKind> = Extract<Finding, { kind: K }>;
 const of = <K extends FindingKind>(findings: Finding[], kind: K) => findings.find((f): f is Of<K> => f.kind === kind);
 const kinds = (findings: Finding[]) => findings.map((f) => f.kind);
-const scan = (saved: Saved, statuses: readonly SourceStatus[], now: number, target = 80) => firstScan({ saved, statuses, target, now });
+const scan = (saved: Saved, statuses: readonly SourceStatus[], now: number, target = 80) =>
+  firstScan({ saved, statuses, targets: { attendanceTarget: target, attendanceTargets: {} }, now });
 
 describe("after the first full sync of Edunex and SIX", () => {
   it("lists what neither system tells the Student, most pressing first", async () => {

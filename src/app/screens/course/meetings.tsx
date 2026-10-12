@@ -13,6 +13,7 @@ import { edunexCourseUrl } from "../../../core/links";
 import type { CalendarEvent } from "../../../core/models";
 import { dayStart } from "../../../core/schedule";
 import { useAttendance } from "../../attendance";
+import { budgetLabel, STATE_TONE } from "../../attendance-labels";
 import { useOpenExternal } from "../../hooks";
 import { useFormat, useNow, useT } from "../../i18n";
 import { SixEmptyState, useSignIn } from "../../shell/source-status";
@@ -21,7 +22,6 @@ import { Button } from "../../ui/controls";
 import { cx } from "../../ui/cx";
 import { EmptyState, LiveDot } from "../../ui/display";
 import { Icons } from "../../ui/icons";
-import { budgetLabel, STATE_TONE } from "../presence";
 import type { CoursePage } from "./data";
 
 export function MeetingsTab({ page }: { page: CoursePage }) {
@@ -47,9 +47,7 @@ export function MeetingsTab({ page }: { page: CoursePage }) {
         {course.attendance && course.attendance.held > 0 ? (
           <p className="text-lead">
             <span className="font-semibold">{t("meeting.official", course.attendance)}</span>
-            {health && attendance && health.state !== "unknown" && (
-              <span className={cx("font-semibold", STATE_TONE[health.state])}> · {budgetLabel(t, health, attendance.target)}</span>
-            )}
+            {health && health.state !== "unknown" && <span className={cx("font-semibold", STATE_TONE[health.state])}> · {budgetLabel(t, health)}</span>}
           </p>
         ) : null}
         {countedIn === "noSix" && !noEdunexPresence && health ? (

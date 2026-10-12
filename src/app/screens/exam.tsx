@@ -9,6 +9,7 @@ import type { CalendarEvent, Task } from "../../core/models";
 import { dayStart, sixTimetableUrl } from "../../core/schedule";
 import { edunexTaskUrl, isOpenStatus, taskStatus } from "../../core/tasks";
 import { useAttendance } from "../attendance";
+import { budgetLabel, STATE_TONE } from "../attendance-labels";
 import { type TermCourse, useTermCourses } from "../courses";
 import { useOpenExternal } from "../hooks";
 import { type Format, type Translate, useFormat, useNow, useT } from "../i18n";
@@ -21,7 +22,6 @@ import { Card, CourseDot, EmptyState, Skeleton, StatusChip } from "../ui/display
 import { Icons } from "../ui/icons";
 import { List, Notice, Page, PageHeader, Row, Section } from "../ui/layout";
 import { toast } from "../ui/overlays";
-import { budgetLabel, STATE_TONE } from "./presence";
 import { ExportButton } from "./schedule";
 import { LecturerFile } from "./tasks";
 
@@ -455,7 +455,7 @@ function BeforeExam({ code }: { code: string }) {
       <p className="min-w-0 flex-1 text-body">
         <span className="font-medium">{t("examPage.attendance")}</span>
         <span className="text-muted"> · {t("examPage.attendanceLine", { attended: health.attended ?? 0, held: health.held ?? 0 })} · </span>
-        <span className={cx("font-semibold", STATE_TONE[health.state])}>{budgetLabel(t, health, attendance!.target)}</span>
+        <span className={cx("font-semibold", STATE_TONE[health.state])}>{budgetLabel(t, health)}</span>
       </p>
       <button
         type="button"

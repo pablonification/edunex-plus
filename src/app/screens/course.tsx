@@ -11,6 +11,8 @@ import { clashes, openPresence, pinnedMeeting } from "../../core/course-meetings
 import { edunexCourseUrl } from "../../core/links";
 import { sixTimetableUrl } from "../../core/schedule";
 import { useAttendance } from "../attendance";
+import { verdictLabel } from "../attendance-labels";
+import { AttendanceSummary, CourseTarget } from "../attendance-parts";
 import { useOpenExternal } from "../hooks";
 import { type StringKey, useFormat, useLang, useNow, useT } from "../i18n";
 import { useNav } from "../nav";
@@ -18,7 +20,7 @@ import { useRefresh } from "../shell/source-status";
 import { useBridge, useDataset, useStatus } from "../store";
 import { Button } from "../ui/controls";
 import { cx } from "../ui/cx";
-import { Bar, CourseDot, EmptyState, LiveDot, Skeleton } from "../ui/display";
+import { CourseDot, EmptyState, LiveDot, Skeleton } from "../ui/display";
 import { Icons } from "../ui/icons";
 import { Meta, Notice, Page, PageHeader } from "../ui/layout";
 import { Menu } from "../ui/menu";
@@ -29,21 +31,11 @@ import { GradesTab } from "./course/grades";
 import { AnnouncementsTab, TasksTab } from "./course/lists";
 import { MeetingsTab, meetingModuleTitle, pageModules } from "./course/meetings";
 import { ModulesTab } from "./course/modules";
-import { budgetLabel, STATE_TONE } from "./presence";
 
 export const ready = true;
 
 const TABS = ["modules", "meetings", "tasks", "grades", "announcements"] as const;
 type Tab = (typeof TABS)[number];
-
-/** A meter's fill by where attendance stands: status colors, never the course's. */
-const METER: Record<string, string> = {
-  safe: "var(--success-fg)",
-  risk: "var(--warning-fg)",
-  none: "var(--warning-fg)",
-  out: "var(--danger-fg)",
-  unknown: "var(--faint)",
-};
 
 /** `module`: open the Modul tab on this Edunex module (search and alerts name one). */
 export function CourseScreen({ code, tab, module }: { code: string; tab?: string; module?: number }) {
@@ -153,26 +145,19 @@ function Header({ page }: { page: CoursePage }) {
   );
 }
 
-/** SIX's count, as a share and a meter in status color, with what's left before the target (#85). */
+/** SIX's count against the course's target, what's left before it in words, and the target, a click from changing it (#85). */
 function AttendanceMeter({ page }: { page: CoursePage }) {
   const t = useT();
   const attendance = useAttendance();
-  const counted = page.course.attendance;
-  if (!counted || counted.held === 0) return null;
   const health = attendance?.courses.find((c) => c.course.code === page.course.code)?.health;
-  const share = percent(counted.attended, counted.held);
-  const state = health?.state ?? "unknown";
+  if (!health?.held) return null;
   return (
-    <div className="w-[200px] pt-0.5">
-      <p className="flex items-baseline justify-between text-small font-medium text-muted">
-        {t("course.attendance")}
-        <span className="text-body font-semibold text-fg tabular-nums">{t("course.attendanceShare", { ...counted, percent: share })}</span>
-      </p>
-      <Bar className="mt-1.5" value={share / 100} color={METER[state]} label={t("course.attendanceLabel", { ...counted, percent: share })} />
-      {health && health.state !== "unknown" && attendance && (
-        <p className={cx("mt-1 text-small font-semibold", STATE_TONE[health.state])}>{budgetLabel(t, health, attendance.target)}</p>
-      )}
-    </div>
+    <AttendanceSummary
+      className="w-[220px] pt-0.5"
+      health={health}
+      words={verdictLabel(t, health)}
+      aside={<CourseTarget code={page.course.code} className="shrink-0" />}
+    />
   );
 }
 
@@ -252,7 +237,7 @@ function RiskStrip({ page }: { page: CoursePage }) {
   const attendance = useAttendance();
   const schedule = useDataset("six.schedule");
   const health = attendance?.courses.find((c) => c.course.code === page.course.code)?.health;
-  if (!health || !attendance || (health.state !== "out" && health.state !== "none" && health.state !== "risk")) return null;
+  if (!health || (health.state !== "out" && health.state !== "none" && health.state !== "risk")) return null;
   const next = page.meetings.find((m) => m.end > now && !m.notInSix);
   const clash = next ? clashes(next, page.course.code, schedule ?? [])[0] : undefined;
   // The strip right below already shows the next meeting; say it here only when it doesn't.
@@ -262,7 +247,7 @@ function RiskStrip({ page }: { page: CoursePage }) {
     <Notice
       tone={out ? "danger" : "warning"}
       className="mb-4"
-      title={out ? t("presence.status.out", { target: attendance.target }) : budgetLabel(t, health, attendance.target)}
+      title={verdictLabel(t, health)}
       action={
         <Button size="sm" onClick={() => go({ screen: "presence" })}>
           {t("course.risk.seePresence")}

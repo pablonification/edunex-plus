@@ -61,6 +61,22 @@ export interface Engine {
 const sessionKey = (source: SourceId) => `${source}.session`;
 const STATE_FORMAT = 1;
 
+/**
+ * Settings saved by any version. One field that no longer fits (a value a
+ * newer version allowed, a hand-edited file) falls back to its default
+ * alone, so it never resets the Student's theme, language or alerts.
+ */
+function loadSettings(saved: unknown): Settings {
+  const fields = saved !== null && typeof saved === "object" ? (saved as Record<string, unknown>) : {};
+  const whole = Settings.safeParse({ ...DEFAULT_SETTINGS, ...fields });
+  if (whole.success) return whole.data;
+  const each = Object.entries(DEFAULT_SETTINGS).map(([key, fallback]) => {
+    const parsed = Settings.shape[key as keyof Settings].safeParse(fields[key]);
+    return [key, parsed.success ? parsed.data : fallback];
+  });
+  return Settings.parse(Object.fromEntries(each));
+}
+
 export function createEngine(deps: EngineDeps): Engine {
   const { clock, storage, vault } = deps;
   const sources = new Map((deps.sources ?? SOURCES).map((source) => [source.id, source]));
@@ -299,8 +315,7 @@ export function createEngine(deps: EngineDeps): Engine {
       try {
         const saved = JSON.parse((await storage.read("state.json")) ?? "null");
         if (saved?.format === STATE_FORMAT) {
-          const parsedSettings = Settings.safeParse({ ...DEFAULT_SETTINGS, ...saved.settings });
-          if (parsedSettings.success) settings = parsedSettings.data;
+          settings = loadSettings(saved.settings);
           for (const status of saved.statuses ?? []) {
             const parsed = SourceStatus.safeParse(status);
             if (parsed.success) statuses.set(parsed.data.source, parsed.data);
@@ -365,13 +380,14 @@ export function createEngine(deps: EngineDeps): Engine {
         await store.remove(`${source.id}.`);
         setStatus(source.id, { state: "signed-out", updatedAt: null, detail: null });
       }
-      // Signing out of everything also forgets what the Student entered, and the
-      // next Student on this computer gets their own first-run scan.
+      // Signing out of everything also forgets what the Student entered (their
+      // courses' own attendance targets too), and the next Student on this
+      // computer gets their own first-run scan.
       if (!only) {
         await store.remove("local.");
         await alerts.reset();
-        if (settings.firstScanDone) {
-          settings = { ...settings, firstScanDone: false };
+        if (settings.firstScanDone || Object.keys(settings.attendanceTargets).length > 0) {
+          settings = { ...settings, firstScanDone: false, attendanceTargets: {} };
           await saveState();
           deps.emit({ type: "settings", settings });
         }

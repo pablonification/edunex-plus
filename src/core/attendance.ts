@@ -8,14 +8,21 @@
 // Edunex didn't record may still have been counted in SIX.
 import { wibDay } from "./course-meetings";
 import { EDUNEX_WEB, edunexCourseUrl } from "./links";
-import type { AcademicCalendar, ClassSession, PresenceSession, SixCourse, Task } from "./models";
+import type { AcademicCalendar, ClassSession, PresenceSession, Settings, SixCourse, Task } from "./models";
 
 const MINUTE = 60_000;
 const HOUR = 60 * MINUTE;
 const DAY = 24 * HOUR;
 const WIB = 7 * HOUR;
 
-export const DEFAULT_TARGET = 80;
+// ---------------------------------------------------------------- the target
+
+export type TargetSettings = Pick<Settings, "attendanceTarget" | "attendanceTargets">;
+
+/** The course's own target when the Student set one (its course contract), else the default. Percent. */
+export function targetFor(settings: TargetSettings, code: string): number {
+  return Object.hasOwn(settings.attendanceTargets, code) ? settings.attendanceTargets[code] : settings.attendanceTarget;
+}
 
 // ---------------------------------------------------------------- where it counts
 
@@ -204,6 +211,8 @@ export interface AttendanceHealth {
   /** Meetings in a row that bring the Student back to the target, when below it now and it can be done this term. */
   toRecover: number | null;
   state: AttendanceState;
+  /** The target this course is judged against (percent): its own, or the default. */
+  target: number;
   /** Edunex Presence: windows that closed, and how many recorded the Student present. */
   edunexClosed: number;
   edunexRecorded: number;
@@ -229,6 +238,7 @@ export function attendanceHealth({ code, six, sixConnected, presence, schedule, 
   const closed = presence.filter((p) => p.closesAt <= now);
   const base = {
     code,
+    target,
     countedIn: countedIn(six, presence, now, sixConnected),
     left: meetingsLeft(code, schedule, period, now, presence),
     edunexClosed: closed.length,

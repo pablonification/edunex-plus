@@ -1,6 +1,7 @@
 // The real engine with every source against the pretend world, signed in to
 // Edunex and SIX, and Beranda's view of its datasets at the fake clock's
 // moment: what src/app/screens/home.tsx passes to src/core/needs.ts.
+import { targetFor } from "../../src/core/attendance";
 import type { HomeWorld } from "../../src/core/needs";
 import { PRETEND_TOKEN } from "../pretend/edunex";
 import { PRETEND_SIX_COOKIE } from "../pretend/six";
@@ -27,12 +28,12 @@ export async function startHome(options: { now?: string; world?: PretendWorld } 
     const edunex = h.dataset("edunex.courses") ?? [];
     return {
       now: world.clock.now(),
-      target: h.engine.snapshot().settings.attendanceTarget,
       term: h.dataset("six.student")?.term ?? null,
       courses: six.map((course) => ({
         code: course.code,
         six: course.attendance,
         edunexId: edunex.find((e) => e.code === course.code)?.edunex.courseId ?? null,
+        target: targetFor(h.engine.snapshot().settings, course.code),
       })),
       tasks: h.dataset("edunex.tasks") ?? [],
       presence: h.dataset("edunex.presence") ?? {},

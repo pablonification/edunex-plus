@@ -4,7 +4,7 @@
 // screen that shows it. Only findings with something to say are listed. Pure:
 // the dialog and its tests reason with this.
 import { krsOverlaps, type Overlap } from "./academic";
-import { type AttendanceHealth, attendanceHealth, countedIn, lecturePeriod, needsAttention } from "./attendance";
+import { type AttendanceHealth, attendanceHealth, countedIn, lecturePeriod, needsAttention, type TargetSettings, targetFor } from "./attendance";
 import { type AnnouncedMeeting, announcedMeetings, courseMeetings } from "./course-meetings";
 import { examAhead, examRoute, examsFound } from "./exam-sources";
 import type { Exam } from "./exams";
@@ -102,8 +102,8 @@ export type FindingKind = Finding["kind"];
 export interface ScanInput {
   saved: Saved;
   statuses: readonly SourceStatus[];
-  /** The Student's attendance target (percent). */
-  target: number;
+  /** The Student's attendance targets: the default, and each course's own. */
+  targets: TargetSettings;
   now: number;
 }
 
@@ -129,7 +129,7 @@ export const notable = (findings: readonly Finding[]) => findings.filter((findin
 const STATE_ORDER = { out: 0, none: 1, risk: 2, safe: 3, unknown: 4 } as const;
 
 /** Courses with one absence left or fewer, or the target out of reach, from SIX's exact counts. */
-function attendanceAtRisk({ saved, target, now }: ScanInput): Finding | null {
+function attendanceAtRisk({ saved, targets, now }: ScanInput): Finding | null {
   const six = saved["six.courses"];
   const schedule = saved["six.schedule"];
   // Without SIX's whole timetable and ITB's last lecture day the meetings left, and so the absences left, would be undercounted.
@@ -137,7 +137,17 @@ function attendanceAtRisk({ saved, target, now }: ScanInput): Finding | null {
   if (!six || !schedule || !period) return null;
   const presence = saved["edunex.presence"] ?? {};
   const courses = six
-    .map((course) => attendanceHealth({ code: course.code, six: course.attendance, presence: presence[course.code] ?? [], schedule, period, target, now }))
+    .map((course) =>
+      attendanceHealth({
+        code: course.code,
+        six: course.attendance,
+        presence: presence[course.code] ?? [],
+        schedule,
+        period,
+        target: targetFor(targets, course.code),
+        now,
+      }),
+    )
     .filter((health) => needsAttention(health.state))
     .sort((a, b) => STATE_ORDER[a.state] - STATE_ORDER[b.state]);
   if (!courses.length) return null;

@@ -9,6 +9,7 @@ import type { PresenceSession, Task } from "../../../core/models";
 import { clockOf, type EdunexMeeting, type OutsideMeeting, type ScheduledClass, type TaskWindow, weekDays } from "../../../core/schedule";
 import { isOpenStatus, taskStatus } from "../../../core/tasks";
 import { useAttendance } from "../../attendance";
+import { budgetLabel, STATE_TONE } from "../../attendance-labels";
 import { useTermCourses } from "../../courses";
 import { useOpenExternal } from "../../hooks";
 import { type Format, type Translate, useFormat, useNow, useT } from "../../i18n";
@@ -19,7 +20,6 @@ import { Button } from "../../ui/controls";
 import { cx } from "../../ui/cx";
 import { CourseDot, LiveDot, StatusChip } from "../../ui/display";
 import { Icons } from "../../ui/icons";
-import { budgetLabel, STATE_TONE } from "../presence";
 
 /** What every block on the screen reads besides its own item. */
 export interface ScheduleWorld {
@@ -28,7 +28,6 @@ export interface ScheduleWorld {
   name(code: string, fallback?: string): string;
   lecturer(code: string): string | null;
   health(code: string): AttendanceHealth | undefined;
-  target: number;
   presence(code: string): readonly PresenceSession[];
   tasks: readonly Task[];
   examId(sessionId: string): string | undefined;
@@ -54,7 +53,6 @@ export function ScheduleWorldProvider({ children }: { children: ReactNode }) {
       name: names,
       lecturer: (code) => outline?.[code]?.lecturer ?? null,
       health: (code) => health.get(code),
-      target: attendance?.target ?? 80,
       presence: (code) => presence?.[code] ?? [],
       tasks: tasks ?? [],
       examId: (id) => examIds.get(id),
@@ -125,7 +123,7 @@ function AttendanceFact({ code, world }: { code: string; world: ScheduleWorld })
       {health.state !== "unknown" && (
         <>
           {" · "}
-          <span className={cx("font-semibold", STATE_TONE[health.state])}>{budgetLabel(t, health, world.target)}</span>
+          <span className={cx("font-semibold", STATE_TONE[health.state])}>{budgetLabel(t, health)}</span>
         </>
       )}
     </Fact>

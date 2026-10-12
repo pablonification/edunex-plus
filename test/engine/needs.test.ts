@@ -283,7 +283,6 @@ describe("the ranking", () => {
     ({ id, kind, band, at, course: null, sources: [], action: { kind: "go", route: { screen: "home" } } }) as never;
   const world = {
     now: 0,
-    target: 80,
     term: null,
     courses: [],
     tasks: [],

@@ -187,6 +187,49 @@ describe("no absences left, target out of reach", () => {
     expect(app.of("attendanceRisk")).toHaveLength(2);
   });
 
+  it("against the course's own target, the best case rounded down as the screens say it", async () => {
+    const world = new PretendWorld({ now: "2026-10-21T20:00:00+07:00" });
+    const six: PretendSixState = { student: STUDENT, courses: [course("DK4073", 7, 7)], schedule: weekly("DK4073", "2026-08-24T11:00:00", 10) };
+    const app = await startAttendance({ world, six });
+    // DK4073's contract asks for 90%.
+    await app.engine.updateSettings({ attendanceTargets: { DK4073: 90 } });
+    await app.until("2026-10-21T21:00:00+07:00");
+    expect(app.of("attendanceRisk")).toEqual([]);
+
+    // 7 of 8 with 6 to go: one absence left at the default 80%, none at 90%.
+    six.courses = [course("DK4073", 7, 8)];
+    await app.sixRefresh();
+    await app.until("2026-10-21T21:30:00+07:00");
+    expect(app.of("attendanceRisk").map((n) => n.text)).toEqual([
+      "Jangan absen lagi · DK4073 — Hadir 7 dari 8 di SIX: hadiri setiap pertemuan tersisa untuk tetap 90%.",
+    ]);
+
+    // 7 of 9: at best 13 of 15, 86.7%: said as 86%, never rounded up.
+    six.courses = [course("DK4073", 7, 9)];
+    await app.sixRefresh();
+    await app.until("2026-10-21T22:00:00+07:00");
+    expect(app.of("attendanceRisk")[1].text).toMatch(/^Target 90% tak tercapai lagi · DK4073 — Paling tinggi 86%\./);
+  });
+
+  it("changing a target never alerts: the Student is the one changing it", async () => {
+    const world = new PretendWorld({ now: "2026-10-21T20:00:00+07:00" });
+    const six: PretendSixState = { student: STUDENT, courses: [course("DK4073", 7, 8)], schedule: weekly("DK4073", "2026-08-24T11:00:00", 10) };
+    const app = await startAttendance({ world, six });
+    await app.until("2026-10-21T21:00:00+07:00");
+    // 7 of 8 with 6 to go: one absence left at 80%. Raised to 90%: none left, said by the screens, not an alert.
+    await app.engine.updateSettings({ attendanceTargets: { DK4073: 90 } });
+    // SIX counts the next class: still none left at 90%, so nothing new to say.
+    six.courses = [course("DK4073", 8, 9)];
+    await app.sixRefresh();
+    await app.until("2026-10-21T21:30:00+07:00");
+    // Raised past reach (95%), then back to the default.
+    await app.engine.updateSettings({ attendanceTargets: { DK4073: 95 } });
+    await app.until("2026-10-21T22:00:00+07:00");
+    await app.engine.updateSettings({ attendanceTargets: {} });
+    await app.until("2026-10-22T08:00:00+07:00");
+    expect(app.of("attendanceRisk")).toEqual([]);
+  });
+
   it("already there at the first sync: silent", async () => {
     const world = new PretendWorld({ now: "2026-10-21T20:00:00+07:00" });
     const six: PretendSixState = { student: STUDENT, courses: [course("DK4073", 2, 8)], schedule: weekly("DK4073", "2026-08-24T11:00:00", 10) };

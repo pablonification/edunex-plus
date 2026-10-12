@@ -179,8 +179,8 @@ describe("the Presensi screen", () => {
       ],
     );
     expect(s.button("0 · Hati-hati").disabled).toBe(true);
-    await s.click("1 · 80% tak terkejar");
-    expect(s.button("1 · 80% tak terkejar").getAttribute("aria-pressed")).toBe("true");
+    await s.click("1 · Target tak terkejar");
+    expect(s.button("1 · Target tak terkejar").getAttribute("aria-pressed")).toBe("true");
     expect([...document.querySelectorAll('main ul[aria-label="Mata kuliah"] > li')].map((li) => li.textContent?.slice(0, 6))).toEqual(["KU5014"]);
     await s.click("Tampilkan semua (5)");
     expect(document.querySelectorAll('main ul[aria-label="Mata kuliah"] > li')).toHaveLength(5);
@@ -203,20 +203,40 @@ describe("the Presensi screen", () => {
     expect(s.text()).not.toContain("16:00 · 9134");
   });
 
-  it("the target is the Student's, for every course, and says so", async () => {
+  it("a course's own target, set on its row; the default is for every other course, and says so", async () => {
     const s = await openPresence();
-    await six([course("PL3002", 6, 7)], withUts(weekly("PL3002", "2026-08-27T08:00:00", 10)));
+    await six(
+      [course("PL3002", 6, 7), course("DK4073", 4, 6)],
+      [...withUts(weekly("PL3002", "2026-08-27T08:00:00", 10)), ...withUts(weekly("DK4073", "2026-08-24T11:00:00", 10))],
+    );
     expect(card("PL3002")).toContain("Boleh absen 1× lagi");
+    expect(card("DK4073")).toContain("Jangan absen lagi");
+    // DK4073's course contract asks for 75%.
+    await s.click("Target 80% untuk DK4073");
+    expect(document.querySelector("[role=dialog]")?.textContent).toContain("Target kehadiran DK4073");
+    await s.click("Turunkan target");
+    expect(s.calls.at(-1)).toEqual({ name: "settings.update", input: { attendanceTargets: { DK4073: 75 } } });
+    expect(card("DK4073")).toContain("Boleh absen 1× lagi");
+    expect(card("DK4073")).toContain("Target 75%");
+    expect(card("PL3002")).toContain("Target 80%");
+    await s.key("Escape");
+    // The default moves every course without its own.
     await s.click("Target kehadiran 80%");
-    expect(document.querySelector("[role=dialog]")?.textContent).toContain("Berlaku untuk semua mata kuliah: di Presensi, Beranda, dan pengingat.");
+    expect(document.querySelector("[role=dialog]")?.textContent).toContain("Untuk mata kuliah yang tak punya target sendiri");
     await s.click("Naikkan target");
     expect(s.calls.at(-1)).toEqual({ name: "settings.update", input: { attendanceTarget: 85 } });
-    expect(card("PL3002")).toContain("Boleh absen 1× lagi");
     await s.click("Naikkan target");
     expect(s.has("Target kehadiran 90%")).toBe(true);
     expect(card("PL3002")).toContain("Jangan absen lagi");
+    expect(card("DK4073")).toContain("Boleh absen 1× lagi");
     await s.click("Kembali ke 80%");
     expect(s.calls.at(-1)).toEqual({ name: "settings.update", input: { attendanceTarget: 80 } });
+    await s.key("Escape");
+    // Back to the default for DK4073.
+    await s.click("Target 75% untuk DK4073");
+    await s.click("Pakai target umum (80%)");
+    expect(s.calls.at(-1)).toEqual({ name: "settings.update", input: { attendanceTargets: {} } });
+    expect(card("DK4073")).toContain("Jangan absen lagi");
   });
 
   it("in English", async () => {

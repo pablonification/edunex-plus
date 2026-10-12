@@ -4,9 +4,10 @@
 //   Held up but attended not: SIX marked the Student absent. Neither: SIX
 //   hasn't recorded the meeting. Either way the Student hears it while the
 //   lecturer still remembers. Once per class.
-// - No absences left, or the target out of reach: once each time a course
-//   moves into that state.
-import { afterClass, attendanceHealth, type CountAt, isExamActivity, lecturePeriod } from "../../core/attendance";
+// - No absences left, or the target out of reach: once each time a course's
+//   SIX count moves it into that state, against the course's own target.
+//   Changing a target never alerts: the Student is looking right at it.
+import { afterClass, attendanceHealth, type CountAt, isExamActivity, lecturePeriod, percent, targetFor } from "../../core/attendance";
 import { wibDay } from "../../core/course-meetings";
 import type { ClassSession, SixCourse } from "../../core/models";
 import type { AlertDraft, Detector, DetectorContext, PlannedAlert } from "./detector";
@@ -98,9 +99,8 @@ export const attendanceBudget: Detector = {
     const schedule = sixSchedule(context);
     const period = lecturePeriod(get("itb.calendar"), sixTerm(context), now);
     const presence = get("edunex.presence") ?? {};
-    const target = settings.attendanceTarget;
     const health = (course: SixCourse | undefined, code: string) =>
-      attendanceHealth({ code, six: course?.attendance ?? null, presence: presence[code] ?? [], schedule, period, target, now });
+      attendanceHealth({ code, six: course?.attendance ?? null, presence: presence[code] ?? [], schedule, period, target: targetFor(settings, code), now });
     const drafts: AlertDraft[] = [];
     for (const course of change.next) {
       const next = health(course, course.code);
@@ -109,7 +109,8 @@ export const attendanceBudget: Detector = {
         course.code,
       );
       if ((next.state !== "none" && next.state !== "out") || next.state === before.state) continue;
-      const counts = { course: course.code, attended: next.attended ?? 0, held: next.held ?? 0, target, best: Math.round((next.best ?? 0) * 100) };
+      // The best case rounded down, as every screen says it: 79.6 % never reads as 80 %.
+      const counts = { course: course.code, attended: next.attended ?? 0, held: next.held ?? 0, target: next.target, best: percent(next.best ?? 0) };
       drafts.push({
         id: `attendance.${next.state}:${course.code}:${next.attended}/${next.held}`,
         kind: "attendanceRisk",

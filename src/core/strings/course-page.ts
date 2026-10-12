@@ -128,7 +128,6 @@ export const coursePageStrings = {
   "course.fromJointClass": { id: "dari kelas gabungan (semua kelas {code})", en: "from the joint class (every {code} class)" },
   "course.more": { id: "Lainnya", en: "More" },
   "course.attendanceShare": { id: "{attended}/{held} · {percent}%", en: "{attended}/{held} · {percent}%" },
-  "course.attendanceLabel": { id: "Kehadiran {attended} dari {held}, {percent}%", en: "Attendance {attended} of {held}, {percent}%" },
   "course.closesAt": { id: "tutup {time} ({left} lagi)", en: "closes {time} ({left} left)" },
   "course.presenceNoSix": {
     id: "Tanpa SIX, belum pasti Presensi ini dihitung: catat saja untuk berjaga-jaga.",

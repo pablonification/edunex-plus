@@ -11,6 +11,7 @@ import {
   lecturePeriod,
   meetingsLeft,
   presenceAction,
+  targetFor,
   usualSlots,
 } from "../../src/core/attendance";
 import type { AcademicCalendar, CalendarEvent, ClassSession, PresenceSession, Task } from "../../src/core/models";
@@ -228,7 +229,7 @@ describe("the absence budget", () => {
 
   it("is unknown until SIX shows a count", () => {
     const input: AttendanceInput = { code: "X", six: null, presence: [], schedule: [], period: null, target: 80, now };
-    expect(attendanceHealth(input)).toMatchObject({ state: "unknown", absencesLeft: null, best: null });
+    expect(attendanceHealth(input)).toMatchObject({ state: "unknown", absencesLeft: null, best: null, target: 80 });
   });
 
   it("a UTS-week lecture SIX still lists is no absence to spare: 6 of 7 leaves one, not two", () => {
@@ -245,6 +246,34 @@ describe("the absence budget", () => {
     };
     expect(attendanceHealth(input)).toMatchObject({ state: "risk", absencesLeft: 1 });
     expect(attendanceHealth(input).left.upcoming.filter((m) => m.uncertain)).toHaveLength(1);
+  });
+});
+
+describe("each course's own target", () => {
+  const now = wib("2026-10-08T12:00:00");
+  const settings = { attendanceTarget: 80, attendanceTargets: { DK4073: 75 } };
+
+  it("is the course contract's when the Student set one, else the default", () => {
+    expect(targetFor(settings, "DK4073")).toBe(75);
+    expect(targetFor(settings, "PL3002")).toBe(80);
+    // Not a property every object has.
+    expect(targetFor(settings, "constructor")).toBe(80);
+  });
+
+  it("is what the course is judged against, and says so: 4 of 6 with 7 to go has no absences left at 80%, one at 75%", () => {
+    const schedule = Array.from({ length: 7 }, (_, i) => ({ ...session("DK4073", "2026-10-09T08:00:00"), start: wib("2026-10-09T08:00:00") + i * DAY }));
+    const health = (code: string) =>
+      attendanceHealth({
+        code,
+        six: { attended: 4, held: 6 },
+        presence: [],
+        schedule: schedule.map((s) => ({ ...s, courseCode: code })),
+        period: null,
+        target: targetFor(settings, code),
+        now,
+      });
+    expect(health("PL3002")).toMatchObject({ state: "none", absencesLeft: 0, target: 80 });
+    expect(health("DK4073")).toMatchObject({ state: "risk", absencesLeft: 1, target: 75 });
   });
 });
 

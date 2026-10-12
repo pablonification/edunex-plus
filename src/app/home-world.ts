@@ -2,6 +2,7 @@
 // now. Beranda and the alerts bell both read it, so "Yang berubah" and the
 // bell's history come from one place and never disagree.
 import { useMemo } from "react";
+import { targetFor } from "../core/attendance";
 import type { HomeWorld } from "../core/needs";
 import { useTerm, useTermCourses } from "./courses";
 import { useNow } from "./i18n";
@@ -28,15 +29,19 @@ export function useHomeWorld(): HomeWorld | undefined {
   // The same test as Presensi's: signed out of SIX, nothing reads as counting.
   const sixConnected = useStatus("six").state !== "signed-out" || sixCourses !== undefined;
   const term = useTerm();
-  const { attendanceTarget } = useSettings();
+  const { attendanceTarget, attendanceTargets } = useSettings();
   const now = useNow();
   return useMemo(() => {
     if (!courses) return undefined;
     return {
       now,
-      target: attendanceTarget,
       term: term ?? null,
-      courses: courses.map((course) => ({ code: course.code, six: course.attendance, edunexId: course.edunex?.courseId ?? null })),
+      courses: courses.map((course) => ({
+        code: course.code,
+        six: course.attendance,
+        edunexId: course.edunex?.courseId ?? null,
+        target: targetFor({ attendanceTarget, attendanceTargets }, course.code),
+      })),
       tasks: tasks ?? [],
       presence: presence ?? {},
       materials: materials ?? {},
@@ -49,5 +54,22 @@ export function useHomeWorld(): HomeWorld | undefined {
       bills,
       sixConnected,
     };
-  }, [courses, tasks, presence, materials, announcements, schedule, scheduleMonths, exams, calendar, krs, bills, sixConnected, term, attendanceTarget, now]);
+  }, [
+    courses,
+    tasks,
+    presence,
+    materials,
+    announcements,
+    schedule,
+    scheduleMonths,
+    exams,
+    calendar,
+    krs,
+    bills,
+    sixConnected,
+    term,
+    attendanceTarget,
+    attendanceTargets,
+    now,
+  ]);
 }
