@@ -10,6 +10,7 @@ import {
   countedIn,
   lecturePeriod,
   meetingsLeft,
+  percent,
   presenceAction,
   targetFor,
   usualSlots,
@@ -244,8 +245,29 @@ describe("the absence budget", () => {
       target: 80,
       now,
     };
-    expect(attendanceHealth(input)).toMatchObject({ state: "risk", absencesLeft: 1 });
+    expect(attendanceHealth(input)).toMatchObject({ state: "risk", absencesLeft: 1, needsUncertain: false });
     expect(attendanceHealth(input).left.upcoming.filter((m) => m.uncertain)).toHaveLength(1);
+  });
+
+  it("nor does it take the target away: 4 of 7 can still finish at 80% if the UTS-week lecture runs, so it's no absences left, not out of reach", () => {
+    const period = lecturePeriod(CALENDAR, "2026-1", now)!;
+    const input: AttendanceInput = {
+      code: "PL3002",
+      six: { attended: 4, held: 7 },
+      presence: [],
+      schedule: weekly("PL3002", "2026-08-27T08:00:00", 10),
+      period,
+      target: 80,
+      now,
+    };
+    // 15 Oct (may not run), 22 and 29 Oct, then Thursdays to 3 Dec: 12 of 15 if every one runs and is attended.
+    const health = attendanceHealth(input);
+    expect(health).toMatchObject({ state: "none", absencesLeft: 0, needsUncertain: true });
+    expect(percent(health.best!)).toBe(80);
+    // Without that lecture on SIX's timetable, 80% is out of reach.
+    const without = attendanceHealth({ ...input, schedule: input.schedule.filter((s) => wibDate(s.start) !== "2026-10-15") });
+    expect(without).toMatchObject({ state: "out", needsUncertain: false });
+    expect(percent(without.best!)).toBe(78);
   });
 });
 

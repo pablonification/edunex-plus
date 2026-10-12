@@ -266,12 +266,24 @@ describe("meetings", () => {
     expect(document.querySelector("h1")?.textContent).toContain("Teknik Penyelesaian Masalah Terstruktur");
     const text = s.text();
     expect(text).toContain("80% tak terkejar");
-    expect(text).toContain("Paling tinggi 71% kalau kamu hadir di semua sisa pertemuan.");
+    expect(text).toContain("Paling tinggi 73% kalau kamu hadir di semua sisa pertemuan.");
     // Beranda and Jadwal name the overlap (16:00–16:30), not the other class's whole slot.
     expect(text).toContain("Bentrok dengan PL3032 16:00–16:30.");
     expect(text).not.toContain("Bentrok dengan PL3032 15:00–16:30");
     // The next meeting is in the strip under the notice; the notice doesn't repeat it.
     expect(s.text()).not.toContain("Pertemuan berikutnya Hari ini");
+  });
+
+  it("a target in reach only if the UTS-week lecture runs: no absences left, not out of reach, and the banner says that lecture is needed", async () => {
+    const world = new PretendWorld();
+    // 4 of 7: the sure meetings alone reach 78%; with 15 Oct (UTS week, may not run) 12 of 15 is 80%.
+    world.six.setAttendance("PL3002", 4, 7);
+    screen = await openApp({ signedIn: true, six: true, world });
+    await screen.click([...document.querySelectorAll<HTMLButtonElement>("aside button")].find((b) => b.textContent?.startsWith("PL3002"))!);
+    const text = screen.text();
+    expect(text).not.toContain("tak terkejar");
+    expect(text).toContain("Jangan absen lagi");
+    expect(text).toContain("80% hanya masih bisa kalau kuliah di masa ujian atau libur tetap ada. Hadiri semua pertemuan, termasuk yang itu.");
   });
 
   it("without SIX, Edunex's tally is a fact: it doesn't claim to count, nothing is amber, and SIX is a click away", async () => {

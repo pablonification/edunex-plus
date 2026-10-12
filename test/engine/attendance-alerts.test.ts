@@ -211,6 +211,19 @@ describe("no absences left, target out of reach", () => {
     expect(app.of("attendanceRisk")[1].text).toMatch(/^Target 90% tak tercapai lagi · DK4073 — Paling tinggi 86%\./);
   });
 
+  it("a lecture that may not run (UTS week) never makes the target out of reach while attending it could still get there", async () => {
+    // PL3002 on Thursdays; SIX lists 15 Oct in UTS week. 4 of 6 after the 8 Oct class: no absences left.
+    const world = new PretendWorld({ now: "2026-10-08T20:00:00+07:00" });
+    const six: PretendSixState = { student: STUDENT, courses: [course("PL3002", 4, 6)], schedule: weekly("PL3002", "2026-08-27T08:00:00", 10) };
+    const app = await startAttendance({ world, six });
+    await app.until("2026-10-08T21:00:00+07:00");
+    // SIX marks 8 Oct absent: 4 of 7. Sure meetings alone reach 78%, but with 15 Oct, 12 of 15 is 80%: still "attend every one".
+    six.courses = [course("PL3002", 4, 7)];
+    await app.sixRefresh();
+    await app.until("2026-10-08T22:00:00+07:00");
+    expect(app.of("attendanceRisk").filter((n) => n.id.startsWith("attendance.out"))).toEqual([]);
+  });
+
   it("changing a target never alerts: the Student is the one changing it", async () => {
     const world = new PretendWorld({ now: "2026-10-21T20:00:00+07:00" });
     const six: PretendSixState = { student: STUDENT, courses: [course("DK4073", 7, 8)], schedule: weekly("DK4073", "2026-08-24T11:00:00", 10) };

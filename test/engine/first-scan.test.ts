@@ -39,7 +39,7 @@ describe("after the first full sync of Edunex and SIX", () => {
       ["PL3032", "none", 4, 7],
       ["PL3002", "risk", 6, 7],
     ]);
-    expect(percent(attendance.courses[0].best!)).toBe(71);
+    expect(percent(attendance.courses[0].best!)).toBe(73);
 
     // PL3032 (15:00–16:30) and KU5014 (16:00–17:50) share every Thursday's half hour: five on SIX's timetable, counted as the KRS tab counts them.
     const clash = of(findings, "clash")!;

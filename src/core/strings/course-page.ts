@@ -157,6 +157,10 @@ export const coursePageStrings = {
       other: "About {count} meetings left until {date}: attend them all to stay at {target}%.",
     },
   },
+  "course.risk.noneIfRuns": {
+    id: "{target}% hanya masih bisa kalau kuliah di masa ujian atau libur tetap ada. Hadiri semua pertemuan, termasuk yang itu.",
+    en: "You can still reach {target}% only if a class in an exam week or holiday still runs. Attend every class, including that one.",
+  },
   "course.risk.noneNoDate": { id: "Hadiri setiap pertemuan yang tersisa agar tetap {target}%.", en: "Attend every meeting left to stay at {target}%." },
   "course.risk.next": { id: "Pertemuan berikutnya {when}{room}.", en: "Next meeting {when}{room}." },
   "course.risk.room": { id: " di {room}", en: " in {room}" },

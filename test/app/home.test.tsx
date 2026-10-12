@@ -47,7 +47,7 @@ describe("Beranda on the recorded Thursday morning", () => {
   it("Perlu perhatianmu doesn't repeat today: today's classes and their risk are in Hari ini; a target out of reach stays, one click from Presensi", async () => {
     screen = await openApp({ signedIn: true, six: true });
     expect(document.querySelector('main h2[id="home-needs"]')?.textContent).toBe("Perlu perhatianmu 1");
-    expect(rows("home-needs")).toEqual(["KU5014 tak bisa lagi capai 80%Paling tinggi 71% · cek ke dosen kalau ada yang terlewat"]);
+    expect(rows("home-needs")).toEqual(["KU5014 tak bisa lagi capai 80%Paling tinggi 73% · cek ke dosen kalau ada yang terlewat"]);
     await screen.click(/^KU5014 tak bisa lagi capai 80%/);
     expect(document.querySelector("h1")?.textContent).toBe("Presensi");
   });
@@ -58,7 +58,7 @@ describe("Beranda on the recorded Thursday morning", () => {
     expect(row("home-today", "08:0010:00")).toBe("08:0010:00Ekonomi dan Inovasi dalam PerencanaanPL3002·R.SG PWK LT.6Boleh absen 1× lagiSekarang");
     expect(text("home-now")).toContain("Jam berubah · biasanya 08:00–09:30");
     expect(row("home-today", "11:00")).toBe("11:0012:59Komunikasi PemasaranDK4073·TVST CJangan absen lagidalam 3 jam");
-    expect(row("home-today", "16:00")).toContain("80% tak terkejar · paling tinggi 71%");
+    expect(row("home-today", "16:00")).toContain("80% tak terkejar · paling tinggi 73%");
     // PL3032 (15:00–16:30) and KU5014 (16:00–17:50) share half an hour: each row names the other.
     expect(row("home-today", "15:00")).toContain("Bentrok dengan KU5014 16:00–16:30");
     expect(row("home-today", "16:00")).toContain("Bentrok dengan PL3032 16:00–16:30");

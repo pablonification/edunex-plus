@@ -278,6 +278,8 @@ function RiskStrip({ page }: { page: CoursePage }) {
 /** "7 pertemuan lagi sampai 4 Des: hadiri semuanya agar tetap 80%." ("Sekitar" when part of it is the weekly slot carried on.) */
 function noneLeft(t: ReturnType<typeof useT>, f: ReturnType<typeof useFormat>, health: AttendanceHealth, lastDay: string | null): string {
   const { count, estimated } = health.left;
+  // The sure meetings alone fall short: one that may not run has to.
+  if (health.needsUncertain) return t("course.risk.noneIfRuns", { target: health.target });
   if (count === 0) return "";
   if (!lastDay) return t("course.risk.noneNoDate", { target: health.target });
   const date = f.dayMonth(Date.parse(`${lastDay}T12:00:00+07:00`));

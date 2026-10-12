@@ -204,10 +204,12 @@ export interface AttendanceHealth {
   attended: number | null;
   held: number | null;
   left: MeetingsLeft;
-  /** Absences still allowed while finishing at the target; negative when out of reach. */
+  /** Absences still allowed while finishing at the target, counting only meetings sure to happen; negative when out of reach. */
   absencesLeft: number | null;
-  /** The share if every remaining meeting is attended (0–1). */
+  /** The share if every remaining meeting is attended, the ones that may not run too (0–1). */
   best: number | null;
+  /** No absences left, and the target is in reach only if a class that may not run (exam week, holiday) runs and the Student attends it. */
+  needsUncertain: boolean;
   /** Meetings in a row that bring the Student back to the target, when below it now and it can be done this term. */
   toRecover: number | null;
   state: AttendanceState;
@@ -245,20 +247,35 @@ export function attendanceHealth({ code, six, sixConnected, presence, schedule, 
     edunexRecorded: closed.filter((p) => p.recorded?.present).length,
   };
   if (!six || six.held === 0)
-    return { ...base, attended: six?.attended ?? null, held: six?.held ?? null, absencesLeft: null, best: null, toRecover: null, state: "unknown" };
+    return {
+      ...base,
+      attended: six?.attended ?? null,
+      held: six?.held ?? null,
+      absencesLeft: null,
+      best: null,
+      toRecover: null,
+      needsUncertain: false,
+      state: "unknown",
+    };
   const { attended, held } = six;
   const t = target / 100;
-  const remaining = base.left.count;
-  const planned = held + remaining;
   // a + r − (allowed) ≥ t·(h + r)  →  allowed = ⌊a + r − t·(h + r)⌋
-  const absencesLeft = Math.floor(attended + remaining - t * planned + EPS);
-  const best = (attended + remaining) / planned;
+  const allowed = (remaining: number) => Math.floor(attended + remaining - t * (held + remaining) + EPS);
+  // Absences to spare count only the meetings sure to happen; out of reach
+  // counts every one that may still run: a class that may not run never
+  // takes an absence away from the count, nor the target from the Student.
+  const sure = base.left.count;
+  const all = base.left.upcoming.length;
+  const atBest = allowed(all);
+  const absencesLeft = atBest < 0 ? atBest : Math.max(0, allowed(sure));
+  const needsUncertain = atBest >= 0 && allowed(sure) < 0;
+  const best = (attended + all) / (held + all);
   // (a + k) / (h + k) ≥ t  →  k = ⌈(t·h − a) / (1 − t)⌉
   const below = attended / held < t - EPS;
   const k = !below ? 0 : t >= 1 ? Number.POSITIVE_INFINITY : Math.ceil((t * held - attended) / (1 - t) - EPS);
-  const toRecover = below && k <= remaining ? k : null;
+  const toRecover = below && k <= sure ? k : null;
   const state: AttendanceState = absencesLeft < 0 ? "out" : absencesLeft === 0 ? "none" : absencesLeft === 1 || below ? "risk" : "safe";
-  return { ...base, attended, held, absencesLeft, best, toRecover, state };
+  return { ...base, attended, held, absencesLeft, best, toRecover, needsUncertain, state };
 }
 
 /** A state worth a word: not safe and known. */
