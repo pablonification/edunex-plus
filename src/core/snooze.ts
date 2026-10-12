@@ -70,7 +70,8 @@ export function snoozeKey(need: Need): SnoozeKey {
     case "exam":
       return {
         id: need.id,
-        facts: facts(urgent, need.sitting.source, need.sitting.start, need.sitting.end, need.sitting.room, need.disagree),
+        // The take-home's deadline is on the row ("Take-home tenggat Kam 22 Okt"): a new one is news.
+        facts: facts(urgent, need.sitting.source, need.sitting.start, need.sitting.end, need.sitting.room, need.disagree, need.takeHomeDue),
       };
     case "attendance":
       return attendanceKey(need.health.code, need.health);

@@ -54,6 +54,42 @@ describe("what brings a snoozed item back", () => {
     expect(snoozeKey(urgent).facts).not.toBe(moved.facts);
   });
 
+  it("a Task whose Presence window is optional (its course counts in SIX): its own item, held through a refresh, back when the deadline moves", async () => {
+    // PL3002 counts in SIX. Its lecturer ties Thursday's window to a Task: the Task keeps its own item, not the window's.
+    const h = await startHome({ now: "2026-10-12T20:00:00+07:00" });
+    h.world.edunex.moveDeadline(117873, "2026-10-15T23:59:00+07:00");
+    const window = h.world.edunex.schedulePresence(95001, 86778, {
+      start: "2026-10-15T08:00:00+07:00",
+      end: "2026-10-15T23:59:00+07:00",
+      patch: { presentable: [{ presentable: "assignment", presentable_id: "117873" }] },
+    });
+    await h.refresh();
+    expect(needsYou(h.home()).some((n) => n.id === `presence:${window}`)).toBe(false);
+    const key = snoozeKey(need(needsYou(h.home()), "task:117873"));
+    const entry: SnoozeEntry = { id: key.id, facts: key.facts, until: at("2026-10-14T07:00:00"), reason: "morning" };
+
+    await h.refresh();
+    expect(activeSnooze(snoozeKey(need(needsYou(h.home()), "task:117873")), [entry], h.world.clock.now())).toBe(entry);
+
+    h.world.edunex.moveDeadline(117873, "2026-10-16T23:59:00+07:00");
+    await h.refresh();
+    expect(activeSnooze(snoozeKey(need(needsYou(h.home()), "task:117873")), [entry], h.world.clock.now())).toBeUndefined();
+  });
+
+  it("an exam: new facts when its take-home's deadline moves, since its row says that date", async () => {
+    const h = await startHome({ now: MONDAY });
+    const before = need(needsYou(h.home()), "exam:DK4073-UTS");
+    expect(before).toMatchObject({ disagree: false, takeHomeDue: at("2026-10-22T23:50:00") });
+
+    const takeHome = h.dataset("edunex.tasks")?.find((task) => task.courseCode === "DK4073" && task.kind === "uts");
+    h.world.edunex.moveDeadline(takeHome!.id, "2026-10-23T23:50:00+07:00");
+    await h.refresh();
+    const moved = need(needsYou(h.home()), "exam:DK4073-UTS");
+    expect(moved).toMatchObject({ takeHomeDue: at("2026-10-23T23:50:00") });
+    expect(snoozeKey(moved).id).toBe(snoozeKey(before).id);
+    expect(snoozeKey(moved).facts).not.toBe(snoozeKey(before).facts);
+  });
+
   it("attendance: one id for Beranda and the course page, new facts when SIX records another meeting", async () => {
     const h = await startHome({ now: MONDAY });
     const ku = need(needsYou(h.home()), "attendance:KU5014");
