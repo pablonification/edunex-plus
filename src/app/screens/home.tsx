@@ -17,15 +17,15 @@ import {
   type HomeContext,
   homeContext,
   type Need,
-  nowCard,
   type NowCard,
+  nowCard,
   recentChanges,
   type TodayPlan,
   todayPlan,
 } from "../../core/needs";
 import { type TermCourse, useTerm, useTermCourses } from "../courses";
-import { useOpenExternal } from "../hooks";
 import { useHomeWorld } from "../home-world";
+import { useOpenExternal } from "../hooks";
 import { type Format, type Translate, useFormat, useNow, useT } from "../i18n";
 import { firstName } from "../names";
 import { type Route, useNav } from "../nav";
@@ -36,8 +36,8 @@ import { Button, IconButton } from "../ui/controls";
 import { cx } from "../ui/cx";
 import { Bar, Card, CourseDot, EmptyState, LiveDot, Skeleton } from "../ui/display";
 import { Icons } from "../ui/icons";
-import { CountdownBar } from "../ui/meter";
 import { List, Meta, Page, PageHeader, Row, Section } from "../ui/layout";
+import { CountdownBar } from "../ui/meter";
 import { Tooltip } from "../ui/overlays";
 import { budgetLabel, useActionLabel } from "./presence";
 
@@ -232,7 +232,11 @@ function NowCardView({ card, courses }: { card: NowCard; courses: readonly TermC
               ) : (
                 ""
               )}
-              {session && !/^kuliah$/i.test(session.activity) ? <span className={cx("font-semibold", /\b(UTS|UAS)\b/i.test(session.activity) && "text-danger-fg")}>{session.activity}</span> : ""}
+              {session && !/^kuliah$/i.test(session.activity) ? (
+                <span className={cx("font-semibold", /\b(UTS|UAS)\b/i.test(session.activity) && "text-danger-fg")}>{session.activity}</span>
+              ) : (
+                ""
+              )}
             </Meta>
           </div>
           {facts?.moved && <p className="mt-1 text-small font-medium text-warning-fg">{movedLabel(t, f, facts)}</p>}
@@ -268,11 +272,11 @@ function Attendance({ card }: { card: NowCard }) {
       ? t("home.now.countNoSix")
       : presence && presence.counts === null
         ? t("home.now.countNotKnown")
-    : counted === "six" || counted === "both"
-      ? t(online ? "home.now.countSixOnline" : "home.now.countSix")
-      : facts
-        ? t("home.now.countUnknown")
-        : null;
+        : counted === "six" || counted === "both"
+          ? t(online ? "home.now.countSixOnline" : "home.now.countSix")
+          : facts
+            ? t("home.now.countUnknown")
+            : null;
 
   const openPresence = () => {
     if (!presence) return;
@@ -313,7 +317,13 @@ function Attendance({ card }: { card: NowCard }) {
             </Button>
           </div>
         </div>
-        <CountdownBar className="mt-3" opensAt={session.opensAt} closesAt={session.closesAt} now={now} label={t("home.now.closesIn", { left: f.countdown(session.closesAt) })} />
+        <CountdownBar
+          className="mt-3"
+          opensAt={session.opensAt}
+          closesAt={session.closesAt}
+          now={now}
+          label={t("home.now.closesIn", { left: f.countdown(session.closesAt) })}
+        />
       </div>
     );
   }
@@ -336,7 +346,13 @@ function Attendance({ card }: { card: NowCard }) {
         </p>
       </div>
       {presence && (
-        <Button variant="ghost" size="sm" icon={<Icons.ArrowUpRight className="size-3.5" />} onClick={openPresence} aria-label={t("home.now.openPresenceLabel", { course: presence.code })}>
+        <Button
+          variant="ghost"
+          size="sm"
+          icon={<Icons.ArrowUpRight className="size-3.5" />}
+          onClick={openPresence}
+          aria-label={t("home.now.openPresenceLabel", { course: presence.code })}
+        >
           {t("home.now.openPresence")}
         </Button>
       )}
@@ -364,7 +380,9 @@ function movedLabel(t: Translate, f: Format, facts: ClassFacts): string {
   const moved = facts.moved!;
   if (moved.usualStart !== null && moved.usualEnd !== null) {
     const time = f.timeRange(moved.usualStart, moved.usualEnd);
-    return t("home.today.changed", { usual: f.dayOffset(moved.usualStart) === f.dayOffset(facts.session.start) ? time : `${f.weekday(moved.usualStart)} ${time}` });
+    return t("home.today.changed", {
+      usual: f.dayOffset(moved.usualStart) === f.dayOffset(facts.session.start) ? time : `${f.weekday(moved.usualStart)} ${time}`,
+    });
   }
   return t("home.today.roomChanged", { room: moved.usualRoom ?? "" });
 }
@@ -373,7 +391,12 @@ function JoinButton({ link, code, primary = false }: { link: string; code: strin
   const t = useT();
   const open = useOpenExternal();
   return (
-    <Button variant={primary ? "primary" : "secondary"} icon={<Icons.Video className="size-3.5" />} onClick={() => open(link)} aria-label={t("home.today.joinLabel", { course: code })}>
+    <Button
+      variant={primary ? "primary" : "secondary"}
+      icon={<Icons.Video className="size-3.5" />}
+      onClick={() => open(link)}
+      aria-label={t("home.today.joinLabel", { course: code })}
+    >
       {t("home.today.join")}
     </Button>
   );
@@ -442,7 +465,8 @@ function Today({ context, plan, courses, onCard }: { context: HomeContext; plan:
   );
 }
 
-const keyOf = (item: TodayItem) => (item.kind === "class" ? `class:${item.facts.session.id}` : item.kind === "meeting" ? `meeting:${item.code}:${item.at}` : `due:${item.task.id}`);
+const keyOf = (item: TodayItem) =>
+  item.kind === "class" ? `class:${item.facts.session.id}` : item.kind === "meeting" ? `meeting:${item.code}:${item.at}` : `due:${item.task.id}`;
 
 /** The time column: start over end, or a deadline's one time. */
 function When({ start, end, past, tone }: { start: string; end?: string; past?: boolean; tone?: string }) {
@@ -477,7 +501,11 @@ function TodayRow({ item, courses, index, onCard }: { item: TodayItem; courses: 
             {t("home.today.due")}
           </Meta>
         }
-        trailing={<span className={cx("text-caption whitespace-nowrap tabular-nums", close ? "font-semibold text-warning-fg" : "text-muted")}>{f.fromNow(task.dueAt!)}</span>}
+        trailing={
+          <span className={cx("text-caption whitespace-nowrap tabular-nums", close ? "font-semibold text-warning-fg" : "text-muted")}>
+            {f.fromNow(task.dueAt!)}
+          </span>
+        }
         onClick={() => go({ screen: "task", taskId: task.id })}
       />
     );
@@ -517,7 +545,9 @@ function TodayRow({ item, courses, index, onCard }: { item: TodayItem; courses: 
     <Row
       index={index}
       className={cx(past && "[&>span:not(:first-child)]:opacity-60")}
-      leading={<When start={f.time(session.start)} end={f.time(session.end)} past={past} tone={facts.moved?.usualStart != null ? "text-warning-fg" : undefined} />}
+      leading={
+        <When start={f.time(session.start)} end={f.time(session.end)} past={past} tone={facts.moved?.usualStart != null ? "text-warning-fg" : undefined} />
+      }
       title={course?.name ?? session.courseName}
       meta={
         <Meta>
@@ -544,7 +574,11 @@ function TodayRow({ item, courses, index, onCard }: { item: TodayItem; courses: 
         <span className="mt-1 block text-small font-medium">
           {budget && <span className={cx("block", STATE_TEXT[facts.state])}>{budget}</span>}
           {moved && <span className="block text-warning-fg">{movedLabel(t, f, facts)}</span>}
-          {facts.overlap && <span className="block text-warning-fg">{t("home.today.overlap", { course: facts.overlap.code, time: f.timeRange(facts.overlap.from, facts.overlap.to) })}</span>}
+          {facts.overlap && (
+            <span className="block text-warning-fg">
+              {t("home.today.overlap", { course: facts.overlap.code, time: f.timeRange(facts.overlap.from, facts.overlap.to) })}
+            </span>
+          )}
         </span>
       )}
     </Row>
@@ -627,21 +661,24 @@ function useNeedView(courses: readonly TermCourse[]): (need: Need) => NeedView {
                 tone: null,
               }
             : need.countedIn === "six"
-            ? {
-                title: t("home.need.presenceOptional", { course: need.course ?? "" }),
-                meta: [course, t("home.need.presenceOptional.meta", { time: f.time(need.session.closesAt) })],
-                when: null,
-                tone: null,
-              }
-            : {
-                title: t("home.need.presence", { course: need.course ?? "" }),
-                meta: [course, t("home.need.presence.closes", { time: f.time(need.session.closesAt) })],
-                when: f.fromNow(need.session.closesAt),
-                tone: "warning",
-              };
+              ? {
+                  title: t("home.need.presenceOptional", { course: need.course ?? "" }),
+                  meta: [course, t("home.need.presenceOptional.meta", { time: f.time(need.session.closesAt) })],
+                  when: null,
+                  tone: null,
+                }
+              : {
+                  title: t("home.need.presence", { course: need.course ?? "" }),
+                  meta: [course, t("home.need.presence.closes", { time: f.time(need.session.closesAt) })],
+                  when: f.fromNow(need.session.closesAt),
+                  tone: "warning",
+                };
         return {
           title: need.task ? t("home.need.presenceAhead.assignment", { task: need.task.title }) : t("home.need.presenceAhead", { course: need.course ?? "" }),
-          meta: [course, t("home.need.presenceAhead.when", { date: f.relativeDay(need.session.opensAt), time: f.timeRange(need.session.opensAt, need.session.closesAt) })],
+          meta: [
+            course,
+            t("home.need.presenceAhead.when", { date: f.relativeDay(need.session.opensAt), time: f.timeRange(need.session.opensAt, need.session.closesAt) }),
+          ],
           when: f.fromNow(need.session.opensAt),
           tone: null,
         };
@@ -657,7 +694,13 @@ function useNeedView(courses: readonly TermCourse[]): (need: Need) => NeedView {
                 : t("home.need.task.due", { when: f.dueLabel(task.dueAt!) });
         return {
           title: task.title,
-          meta: [course, <span key="m" className={cx(need.reason === "edited" && "text-warning-fg", need.reason === "overdue" && "text-danger-fg")}>{meta}</span>, need.draft ? t("home.need.task.draft") : null],
+          meta: [
+            course,
+            <span key="m" className={cx(need.reason === "edited" && "text-warning-fg", need.reason === "overdue" && "text-danger-fg")}>
+              {meta}
+            </span>,
+            need.draft ? t("home.need.task.draft") : null,
+          ],
           when: need.reason === "edited" ? null : need.reason === "overdue" ? t("home.need.late") : f.fromNow(task.dueAt!),
           tone: need.reason === "overdue" ? "danger" : need.reason === "edited" ? "warning" : near(task.dueAt),
         };
@@ -683,7 +726,13 @@ function useNeedView(courses: readonly TermCourse[]): (need: Need) => NeedView {
       }
       case "attendance": {
         const { health } = need;
-        const vars = { attended: health.attended ?? 0, held: health.held ?? 0, target: attendanceTarget, best: percent(health.best ?? 0), course: need.course ?? "" };
+        const vars = {
+          attended: health.attended ?? 0,
+          held: health.held ?? 0,
+          target: attendanceTarget,
+          best: percent(health.best ?? 0),
+          course: need.course ?? "",
+        };
         return {
           title: t(health.state === "out" ? "home.need.attendance.out" : "home.need.attendance.none", vars),
           meta: [
@@ -719,7 +768,11 @@ function useNeedView(courses: readonly TermCourse[]): (need: Need) => NeedView {
         const date = `${f.weekdayShort(bill.nextDueAt! - 1)} ${f.dayMonth(bill.nextDueAt! - 1)}`;
         return {
           title: t("home.need.bill", { amount: rupiah(Math.max(0, (bill.amount ?? 0) - (bill.paid ?? 0))) }),
-          meta: [<span key="b" className={cx(need.overdue && "text-danger-fg")}>{t(need.overdue ? "home.need.bill.overdue" : "home.need.bill.due", { date })}</span>],
+          meta: [
+            <span key="b" className={cx(need.overdue && "text-danger-fg")}>
+              {t(need.overdue ? "home.need.bill.overdue" : "home.need.bill.due", { date })}
+            </span>,
+          ],
           when: need.overdue ? t("home.need.late") : f.fromNow(bill.nextDueAt!),
           tone: need.overdue ? "danger" : near(bill.nextDueAt),
         };
@@ -744,7 +797,12 @@ function NeedRow({ need, courses, index }: { need: Need; courses: readonly TermC
       meta={<Meta>{view.meta.filter((part): part is NonNullable<ReactNode> => part !== null && part !== "")}</Meta>}
       trailing={
         view.when ? (
-          <span className={cx("text-caption font-medium whitespace-nowrap tabular-nums", view.tone === "danger" ? "text-danger-fg" : view.tone === "warning" ? "text-warning-fg" : "text-muted")}>
+          <span
+            className={cx(
+              "text-caption font-medium whitespace-nowrap tabular-nums",
+              view.tone === "danger" ? "text-danger-fg" : view.tone === "warning" ? "text-warning-fg" : "text-muted",
+            )}
+          >
             {view.when}
           </span>
         ) : undefined
@@ -817,7 +875,9 @@ function ChangeRow({ item, index, f, courses, onOpen }: { item: Alert; index: nu
       }
       title={t(item.title.key, item.title.vars)}
       meta={item.body ? <span className="block truncate">{t(item.body.key, item.body.vars)}</span> : undefined}
-      trailing={<span className="text-caption whitespace-nowrap text-faint tabular-nums">{f.dayOffset(item.at) === 0 ? f.time(item.at) : f.relativeDay(item.at)}</span>}
+      trailing={
+        <span className="text-caption whitespace-nowrap text-faint tabular-nums">{f.dayOffset(item.at) === 0 ? f.time(item.at) : f.relativeDay(item.at)}</span>
+      }
       onClick={onOpen}
     />
   );
@@ -891,7 +951,9 @@ function CourseCard({ course, nim, state }: { course: TermCourse; nim: string | 
   const t = useT();
   const open = useOpenExternal();
   const { go } = useNav();
-  const facts = [course.classNo && t("course.class", { no: course.classNo }), course.sks !== null && t("course.sks", { count: course.sks })].filter(Boolean).join(" · ");
+  const facts = [course.classNo && t("course.class", { no: course.classNo }), course.sks !== null && t("course.sks", { count: course.sks })]
+    .filter(Boolean)
+    .join(" · ");
   const external = course.edunex
     ? { label: t("action.openInEdunex"), url: edunexCourseUrl(course.edunex.courseId) }
     : nim
@@ -901,7 +963,11 @@ function CourseCard({ course, nim, state }: { course: TermCourse; nim: string | 
     <Card className={cx("group relative flex h-full flex-col p-4", course.edunex && "transition-shadow duration-150 hover:shadow-lift")}>
       {/* A course on Edunex opens its course page (the whole card); one only in SIX has none. */}
       {course.edunex ? (
-        <button type="button" className="focus-ring block rounded pr-6 text-left after:absolute after:inset-0 after:rounded-xl after:content-['']" onClick={() => go({ screen: "course", code: course.code })}>
+        <button
+          type="button"
+          className="focus-ring block rounded pr-6 text-left after:absolute after:inset-0 after:rounded-xl after:content-['']"
+          onClick={() => go({ screen: "course", code: course.code })}
+        >
           <CardHead course={course} />
         </button>
       ) : (
@@ -945,11 +1011,21 @@ function CourseAttendance({ course, state }: { course: TermCourse; state: Attend
   if (!count || count.held === 0) return <span className="text-caption text-faint">{t("course.noMeetingsYet")}</span>;
   return (
     <div className="flex items-center gap-2.5 text-small">
-      <Bar className="flex-1" value={count.attended / count.held} color={STATE_FILL[state]} label={t("course.attendanceCount", { attended: count.attended, count: count.held })} />
+      <Bar
+        className="flex-1"
+        value={count.attended / count.held}
+        color={STATE_FILL[state]}
+        label={t("course.attendanceCount", { attended: count.attended, count: count.held })}
+      />
       <span className="text-muted tabular-nums">
         {count.attended}/{count.held}
       </span>
-      <span className={cx("min-w-9 text-right font-semibold tabular-nums", state === "out" ? "text-danger-fg" : state === "none" || state === "risk" ? "text-warning-fg" : "")}>
+      <span
+        className={cx(
+          "min-w-9 text-right font-semibold tabular-nums",
+          state === "out" ? "text-danger-fg" : state === "none" || state === "risk" ? "text-warning-fg" : "",
+        )}
+      >
         {percent(count.attended, count.held)}%
       </span>
     </div>

@@ -2,7 +2,7 @@
 // a Monday-first grid of days, each with its meetings (SIX's meeting id,
 // time, course, activity and room). Times are WIB.
 import type { ClassSession } from "../../../core/models";
-import { changed, clean, COURSE_CODE, type Element, type Nodes, parse } from "./html";
+import { COURSE_CODE, changed, clean, type Element, type Nodes, parse } from "./html";
 
 export interface TimetablePage {
   /** The month shown, "202610". */

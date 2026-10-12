@@ -9,7 +9,7 @@ import { bodyText, exchanges } from "../kit/fixtures";
 export const SIX_ORIGIN = "https://six.itb.ac.id";
 export const PRETEND_SIX_COOKIE = "khongguan=pretend-six-session";
 
-const LOGIN_HTML = "<!DOCTYPE html><html><head><title>SIX</title></head><body><a href=\"/login/MS365\">Login dengan ITB Account</a></body></html>";
+const LOGIN_HTML = '<!DOCTYPE html><html><head><title>SIX</title></head><body><a href="/login/MS365">Login dengan ITB Account</a></body></html>';
 const MAINTENANCE_HTML = "<!DOCTYPE html><html><body><h1>Service Unavailable</h1></body></html>";
 
 /** "/app/mahasiswa:18223901+2026-1/kelas" and "/app/mahasiswa:18223901/kelas" are the same page. */
@@ -47,17 +47,23 @@ export class PretendSix {
   setAttendance(code: string, attended: number, held: number): void {
     const pct = held ? ((attended / held) * 100).toFixed(2) : "0.00";
     this.editPage(/\/statusmhs$/, (html) =>
-      html.replace(new RegExp(`(<td>${code}</td>[\\s\\S]*?)<span title="Hadir \\d+ dari \\d+ pertemuan">[\\d.]+%</span>`), `$1<span title="Hadir ${attended} dari ${held} pertemuan">${pct}%</span>`),
+      html.replace(
+        new RegExp(`(<td>${code}</td>[\\s\\S]*?)<span title="Hadir \\d+ dari \\d+ pertemuan">[\\d.]+%</span>`),
+        `$1<span title="Hadir ${attended} dari ${held} pertemuan">${pct}%</span>`,
+      ),
     );
   }
 
   /** Moves one meeting on the timetable to a new time and room. */
   moveMeeting(meetingId: string, start: string, end: string, room?: string): void {
     this.editPage(/\/kelas\/jadwal\/mahasiswa\/\d+$/, (html) =>
-      html.replace(new RegExp(`(data-url="[^"]*/pertemuan/${meetingId}/[^"]*"[^>]*>\\s*<small>\\s*)\\d{2}:\\d{2}-\\d{2}:\\d{2}([\\s\\S]*?\\()([^)]*)(\\))`), (_, a, b, where, c) => {
-        const activity = where.split(" ")[0];
-        return `${a}${start}-${end}${b}${room ? `${activity} ${room}` : where}${c}`;
-      }),
+      html.replace(
+        new RegExp(`(data-url="[^"]*/pertemuan/${meetingId}/[^"]*"[^>]*>\\s*<small>\\s*)\\d{2}:\\d{2}-\\d{2}:\\d{2}([\\s\\S]*?\\()([^)]*)(\\))`),
+        (_, a, b, where, c) => {
+          const activity = where.split(" ")[0];
+          return `${a}${start}-${end}${b}${room ? `${activity} ${room}` : where}${c}`;
+        },
+      ),
     );
   }
 
@@ -86,7 +92,13 @@ export class PretendSix {
    */
   gradeCourse(term: string, code: string, grade: string): void {
     this.editRecord(TRANSCRIPT, ($) => transcriptRow($, term, code).children("td").eq(3).text(grade));
-    this.editRecord(POSITION, ($) => positionRow($, code).filter((_, tr) => $(tr).children("td").last().text().trim() === term).children("td").eq(4).text(grade));
+    this.editRecord(POSITION, ($) =>
+      positionRow($, code)
+        .filter((_, tr) => $(tr).children("td").last().text().trim() === term)
+        .children("td")
+        .eq(4)
+        .text(grade),
+    );
   }
 
   /** Puts a transcript row on or off the official transcript (SIX's "Masuk Transkrip" ✓ or ✗). */
@@ -105,7 +117,11 @@ export class PretendSix {
       footer.before(copy);
       const sks = Number(copy.children("td").eq(2).text());
       // The term's SKS and the grand total below the last term.
-      for (const total of [footer, $("tr.warning").last()]) total.children("th").eq(1).text(String(Number(total.children("th").eq(1).text()) + sks));
+      for (const total of [footer, $("tr.warning").last()])
+        total
+          .children("th")
+          .eq(1)
+          .text(String(Number(total.children("th").eq(1).text()) + sks));
     });
     this.editRecord(POSITION, ($) => {
       const row = positionRow($, code);
@@ -134,7 +150,10 @@ export class PretendSix {
   /** Takes the change round (URS) off the study plan, as before the Student changed it. */
   dropKrsChange(): void {
     this.editRecord(KRS, ($) => {
-      const heading = $("table").eq(1).find("tr").filter((_, tr) => $(tr).children().length === 1);
+      const heading = $("table")
+        .eq(1)
+        .find("tr")
+        .filter((_, tr) => $(tr).children().length === 1);
       heading.nextAll().remove();
       heading.remove();
     });
@@ -147,7 +166,10 @@ export class PretendSix {
    */
   krsCourse(code: string, change: { classNo?: string; approved?: boolean } | "remove"): void {
     this.editRecord(KRS, ($) => {
-      const row = $("table").eq(2).find("tr").filter((_, tr) => $(tr).children("td").first().text().trim() === code);
+      const row = $("table")
+        .eq(2)
+        .find("tr")
+        .filter((_, tr) => $(tr).children("td").first().text().trim() === code);
       if (row.length !== 1) throw new Error(`No ${code} on the study plan`);
       const cells = row.children("td");
       if (change === "remove") {
@@ -157,7 +179,8 @@ export class PretendSix {
         return;
       }
       if (change.classNo !== undefined) cells.eq(2).text(change.classNo);
-      if (change.approved !== undefined) cells.eq(4).html(change.approved ? '<i class="fa fa-check fa-fw text-success" aria-hidden="true" title="Disetujui"></i>' : "");
+      if (change.approved !== undefined)
+        cells.eq(4).html(change.approved ? '<i class="fa fa-check fa-fw text-success" aria-hidden="true" title="Disetujui"></i>' : "");
     });
   }
 
@@ -256,7 +279,9 @@ function termHeading($: CheerioAPI, term: string) {
 }
 
 function transcriptRow($: CheerioAPI, term: string, code: string) {
-  const row = termHeading($, term).nextUntil("tr.warning").filter((_, tr) => codeOf($, tr) === code);
+  const row = termHeading($, term)
+    .nextUntil("tr.warning")
+    .filter((_, tr) => codeOf($, tr) === code);
   if (row.length !== 1) throw new Error(`No ${code} in ${term} on the transcript`);
   return row;
 }
@@ -317,7 +342,10 @@ function forMonth(html: string, month: string, added: readonly AddedMeeting[]): 
     for (let weekday = 0; weekday < 5; weekday++, cell++) {
       const date = new Date(monday + weekday * DAY);
       const name = cell === 0 || date.getUTCDate() === 1 ? `<span class="text-muted">${MONTHS_ID[date.getUTCMonth()]}</span>` : "";
-      const meetings = added.filter((m) => m.day === date.toISOString().slice(0, 10)).map(meetingHtml).join("");
+      const meetings = added
+        .filter((m) => m.day === date.toISOString().slice(0, 10))
+        .map(meetingHtml)
+        .join("");
       rows += `<td ><div class="">\n                        ${date.getUTCDate()}\n                        ${name}</div><div style="min-height: 5em;">${meetings}</div></td>`;
     }
     rows += "</tr>";
@@ -347,9 +375,15 @@ function inEnglish(html: string): string {
     [/>Nilai<\/th>/g, ">Grade</th>"],
     [/Hadir (\d+) dari (\d+) pertemuan/g, "Attended $1 of $2 meetings"],
     [/Jadwal Perkuliahan Mahasiswa/g, "Student Class Schedule"],
-    [/>(Senin|Selasa|Rabu|Kamis|Jumat)</g, (_, day) => `>${{ Senin: "Monday", Selasa: "Tuesday", Rabu: "Wednesday", Kamis: "Thursday", Jumat: "Friday" }[day]}<`],
+    [
+      />(Senin|Selasa|Rabu|Kamis|Jumat)</g,
+      (_, day) => `>${{ Senin: "Monday", Selasa: "Tuesday", Rabu: "Wednesday", Kamis: "Thursday", Jumat: "Friday" }[day]}<`,
+    ],
     [/>(Agu|Okt|Des|Mei) (\d{4})</g, (all, month, year) => (short[month] ? `>${short[month]} ${year}<` : all)],
-    [/<span class="text-muted">(\w+)<\/span>/g, (all, month) => (MONTHS_ID.includes(month) ? `<span class="text-muted">${MONTHS_EN[MONTHS_ID.indexOf(month)]}</span>` : all)],
+    [
+      /<span class="text-muted">(\w+)<\/span>/g,
+      (all, month) => (MONTHS_ID.includes(month) ? `<span class="text-muted">${MONTHS_EN[MONTHS_ID.indexOf(month)]}</span>` : all),
+    ],
     [/\(Kuliah/g, "(Lecture"],
   ];
   return words.reduce((out, [from, to]) => out.replace(from, to as never), html);

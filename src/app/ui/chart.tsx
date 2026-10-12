@@ -43,7 +43,22 @@ export interface LineChartProps {
 
 const PAD = { top: 12, right: 12, bottom: 26, left: 34 };
 
-export function LineChart({ label, columns, shortColumns, series, estimateFrom, min, max, gridlines, reference, endLabel, estimateWord, format, height = 168, className }: LineChartProps) {
+export function LineChart({
+  label,
+  columns,
+  shortColumns,
+  series,
+  estimateFrom,
+  min,
+  max,
+  gridlines,
+  reference,
+  endLabel,
+  estimateWord,
+  format,
+  height = 168,
+  className,
+}: LineChartProps) {
   const box = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
   const [hover, setHover] = useState<number | null>(null);
@@ -121,7 +136,15 @@ export function LineChart({ label, columns, shortColumns, series, estimateFrom, 
           {hover !== null && <line x1={x(hover)} x2={x(hover)} y1={PAD.top} y2={PAD.top + plotH} stroke="var(--edge)" strokeWidth={1} />}
           {reference && (
             <g>
-              <line x1={PAD.left} x2={PAD.left + plotW} y1={y(reference.value)} y2={y(reference.value)} stroke="var(--muted)" strokeWidth={1.25} strokeDasharray="5 4" />
+              <line
+                x1={PAD.left}
+                x2={PAD.left + plotW}
+                y1={y(reference.value)}
+                y2={y(reference.value)}
+                stroke="var(--muted)"
+                strokeWidth={1.25}
+                strokeDasharray="5 4"
+              />
               <text x={PAD.left + plotW + 10} y={refLabelY} dy="0.32em" fontSize={11} fontWeight={600} fill="var(--muted)">
                 {reference.label}
               </text>
@@ -238,7 +261,15 @@ export function Key({ series, dashed }: { series: Pick<ChartSeries, "kind" | "co
 }
 
 /** The chart's legend: each series' mark and name, then what dashed means. */
-export function ChartLegend({ series, estimate, reference }: { series: Pick<ChartSeries, "kind" | "color" | "name">[]; estimate?: string; reference?: string }) {
+export function ChartLegend({
+  series,
+  estimate,
+  reference,
+}: {
+  series: Pick<ChartSeries, "kind" | "color" | "name">[];
+  estimate?: string;
+  reference?: string;
+}) {
   return (
     <ul className="flex flex-wrap items-center gap-x-4 gap-y-1 text-caption text-muted">
       {series.map((s) => (

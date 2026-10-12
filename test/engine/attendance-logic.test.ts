@@ -4,6 +4,7 @@
 // counts.
 import { describe, expect, it } from "vitest";
 import {
+  type AttendanceInput,
   afterClass,
   attendanceHealth,
   countedIn,
@@ -11,7 +12,6 @@ import {
   meetingsLeft,
   presenceAction,
   usualSlots,
-  type AttendanceInput,
 } from "../../src/core/attendance";
 import type { AcademicCalendar, CalendarEvent, ClassSession, PresenceSession, Task } from "../../src/core/models";
 import { aTask } from "../kit/tasks";
@@ -21,7 +21,17 @@ const DAY = 24 * HOUR;
 const wib = (iso: string) => Date.parse(`${iso}+07:00`);
 
 function event(kind: CalendarEvent["kind"], firstDay: string, lastDay: string): CalendarEvent {
-  return { id: `${kind}-${firstDay}`, title: kind, kind, term: "2026-1", start: wib(`${firstDay}T00:00:00`), end: wib(`${lastDay}T00:00:00`) + DAY, allDay: true, firstDay, lastDay };
+  return {
+    id: `${kind}-${firstDay}`,
+    title: kind,
+    kind,
+    term: "2026-1",
+    start: wib(`${firstDay}T00:00:00`),
+    end: wib(`${lastDay}T00:00:00`) + DAY,
+    allDay: true,
+    firstDay,
+    lastDay,
+  };
 }
 
 /** ITB's real 2026-1 dates: UTS 12–16 Oct, last lecture day 4 Dec, UAS 7–22 Dec, Christmas. */
@@ -51,14 +61,33 @@ const weekly = (code: string, firstIso: string, weeks: number, hours = 2) =>
 
 function presence(id: number, startIso: string, minutes: number, patch: Partial<PresenceSession> = {}): PresenceSession {
   const start = wib(startIso);
-  return { id, courseId: 95001, classId: 86778, start, end: start + minutes * 60_000, opensAt: start, closesAt: start + minutes * 60_000, topic: null, note: null, countsBy: [], url: null, recorded: null, ...patch };
+  return {
+    id,
+    courseId: 95001,
+    classId: 86778,
+    start,
+    end: start + minutes * 60_000,
+    opensAt: start,
+    closesAt: start + minutes * 60_000,
+    topic: null,
+    note: null,
+    countsBy: [],
+    url: null,
+    recorded: null,
+    ...patch,
+  };
 }
 
 describe("where attendance counts", () => {
   const now = wib("2026-10-08T12:00:00");
   // The View Course default nobody uses: Edunex recorded the Student once in 7 closed windows.
   const viewCourse = Array.from({ length: 7 }, (_, i) =>
-    presence(i + 1, new Date(wib("2026-08-27T08:00:00") + i * 7 * DAY + 7 * HOUR).toISOString().slice(0, 19), 90, i === 0 ? { recorded: { present: true, at: null } } : {}),
+    presence(
+      i + 1,
+      new Date(wib("2026-08-27T08:00:00") + i * 7 * DAY + 7 * HOUR).toISOString().slice(0, 19),
+      90,
+      i === 0 ? { recorded: { present: true, at: null } } : {},
+    ),
   );
 
   it("in SIX when SIX counted far more than Edunex recorded (Edunex's unused windows aren't absences)", () => {
@@ -202,7 +231,11 @@ describe("what counts in an Edunex Presence window", () => {
   const task: Task = aTask({ id: 117003, courseCode: "II4091", courseId: 95326, moduleId: 450222, title: "Tugas 02 Bab II", status: "not_started" });
 
   it("View Course by default: the course page", () => {
-    expect(presenceAction(presence(1, "2026-10-15T08:00:00", 90), [])).toEqual({ activity: "course", task: null, url: "https://edunex.itb.ac.id/courses/95001" });
+    expect(presenceAction(presence(1, "2026-10-15T08:00:00", 90), [])).toEqual({
+      activity: "course",
+      task: null,
+      url: "https://edunex.itb.ac.id/courses/95001",
+    });
   });
 
   it("Answer Assignment: the Task, on the page Edunex gives, else the Task's module", () => {
@@ -222,7 +255,16 @@ describe("what counts in an Edunex Presence window", () => {
       "https://edunex.itb.ac.id/courses/95001/preview/473251",
     );
     const kind = (k: string) => presenceAction(presence(4, "2026-10-15T08:00:00", 90, { countsBy: [{ kind: k, id: "1" }] }), []).activity;
-    expect(["thread", "exam", "vicon", "crs_join", "crs_chat", "crs_vote", "course", "something_new"].map(kind)).toEqual(["thread", "exam", "vicon", "crs", "crs", "crs", "course", "other"]);
+    expect(["thread", "exam", "vicon", "crs_join", "crs_chat", "crs_vote", "course", "something_new"].map(kind)).toEqual([
+      "thread",
+      "exam",
+      "vicon",
+      "crs",
+      "crs",
+      "crs",
+      "course",
+      "other",
+    ]);
   });
 });
 

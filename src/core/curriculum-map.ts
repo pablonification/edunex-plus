@@ -59,7 +59,11 @@ export interface CurriculumMap {
 type Row = ProgressCourse & { semester: number };
 
 const STOP = new Set(["dan", "di", "untuk", "the", "and", "of", "pengantar", "pengenalan", "dasar", "i", "ii", "iii", "ia", "iia", "ib", "a", "b"]);
-const words = (name: string) => name.toLowerCase().split(/[^a-z]+/).filter((w) => w.length > 1 && !STOP.has(w));
+const words = (name: string) =>
+  name
+    .toLowerCase()
+    .split(/[^a-z]+/)
+    .filter((w) => w.length > 1 && !STOP.has(w));
 const sameWord = (a: string, b: string) => a === b || (a.length >= 7 && b.length >= 7 && a.slice(0, 7) === b.slice(0, 7));
 /** Words two course names share, when they cover every word of the shorter name ("Olah Raga", "Pancasila"); else 0. */
 export function nameMatch(a: string, b: string): number {
@@ -69,7 +73,8 @@ export function nameMatch(a: string, b: string): number {
 }
 
 /** "WI201X" is any of WI2010–WI2019. */
-const fillsSlot = (slot: string, code: string) => (slot.endsWith("X") ? code.length === slot.length && code.startsWith(slot.slice(0, -1)) && /\d$/.test(code) : slot === code);
+const fillsSlot = (slot: string, code: string) =>
+  slot.endsWith("X") ? code.length === slot.length && code.startsWith(slot.slice(0, -1)) && /\d$/.test(code) : slot === code;
 
 function statusOf(row: Row): SlotStatus {
   if (row.status === "exempt") return "exempt";
@@ -80,13 +85,16 @@ function statusOf(row: Row): SlotStatus {
 
 export function curriculumMap(record: StudentRecord, plan: StudyPlan): CurriculumMap {
   const planned = plannedCodes(plan);
-  const rows: Row[] = (record.progress?.stages ?? []).flatMap((stage) => stage.semesters.flatMap((s) => s.courses.map((c) => ({ ...c, semester: s.semester }))));
+  const rows: Row[] = (record.progress?.stages ?? []).flatMap((stage) =>
+    stage.semesters.flatMap((s) => s.courses.map((c) => ({ ...c, semester: s.semester }))),
+  );
   const slots = [...record.required.values()];
   const isSlotCode = (code: string) => slots.some((s) => fillsSlot(s.code, code));
   // Required-kind rows under codes the curriculum doesn't have: older-curriculum courses standing in for a slot.
   const substitutes = rows.filter((r) => r.kind === "required" && !isSlotCode(r.code));
   const used = new Set<string>();
-  const withPlan = (status: SlotStatus, code: string): SlotStatus => ((status === "left" || status === "unlisted" || status === "failed") && planned.has(code) ? "planned" : status);
+  const withPlan = (status: SlotStatus, code: string): SlotStatus =>
+    (status === "left" || status === "unlisted" || status === "failed") && planned.has(code) ? "planned" : status;
 
   const fromTranscript = (code: string): { status: SlotStatus; grade: string | null } | null => {
     if (record.thisTerm.some((c) => fillsSlot(code, c.code))) return { status: "in-progress", grade: null };
@@ -121,7 +129,15 @@ export function curriculumMap(record: StudentRecord, plan: StudyPlan): Curriculu
   for (const row of rows) {
     if (used.has(row.code) || isSlotCode(row.code)) continue;
     used.add(row.code);
-    semester(row.semester).others.push({ code: row.code, name: row.name, sks: row.sks, courseId: null, status: withPlan(statusOf(row), row.code), grade: row.grade, via: null });
+    semester(row.semester).others.push({
+      code: row.code,
+      name: row.name,
+      sks: row.sks,
+      courseId: null,
+      status: withPlan(statusOf(row), row.code),
+      grade: row.grade,
+      via: null,
+    });
   }
 
   const requiredLeftSks = record.requiredLeft.reduce((sum, c) => sum + c.sks, 0);
@@ -152,7 +168,12 @@ export function curriculumMap(record: StudentRecord, plan: StudyPlan): Curriculu
     sks: minorNeed(record, m),
     have: minorCoverage(record, plan, m).have,
     registered: m.key === record.registeredMinor,
-    courses: m.courses.map((code) => ({ code, name: record.courses.get(code)?.name ?? code, sks: record.courses.get(code)?.sks ?? 0, status: packageStatus(code) })),
+    courses: m.courses.map((code) => ({
+      code,
+      name: record.courses.get(code)?.name ?? code,
+      sks: record.courses.get(code)?.sks ?? 0,
+      status: packageStatus(code),
+    })),
   }));
 
   return {

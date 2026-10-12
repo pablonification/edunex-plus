@@ -87,7 +87,10 @@ export function Section({
 /** Rows that belong together, on one card, divided by hairlines. */
 export function List({ label, className, children }: { label?: string; className?: string; children: ReactNode }) {
   return (
-    <ul aria-label={label} className={cx("overflow-hidden rounded-xl border border-edge bg-surface shadow-card [&>li+li]:border-t [&>li+li]:border-line", className)}>
+    <ul
+      aria-label={label}
+      className={cx("overflow-hidden rounded-xl border border-edge bg-surface shadow-card [&>li+li]:border-t [&>li+li]:border-line", className)}
+    >
       {children}
     </ul>
   );

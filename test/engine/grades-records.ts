@@ -3,11 +3,11 @@
 // tests see exactly what the app would. Each call returns fresh copies.
 import type { AcademicCalendar, CourseCatalog, Curriculum, Progress, Transcript } from "../../src/core/models";
 import { readCalendar } from "../../src/engine/sources/itb/calendar";
-import { readProgramList, readProgramPage } from "../../src/engine/sources/itb/catalog-pages";
 import { withProgramList, withProgramPage } from "../../src/engine/sources/itb/catalog";
-import { fetchCurriculum } from "../../src/engine/sources/six/records";
+import { readProgramList, readProgramPage } from "../../src/engine/sources/itb/catalog-pages";
 import { readProgress } from "../../src/engine/sources/six/readers/progress";
 import { readTranscript } from "../../src/engine/sources/six/readers/transcript";
+import { fetchCurriculum } from "../../src/engine/sources/six/records";
 import { publicPage, sixPage } from "../kit/fixtures";
 import { calendarFixture } from "../pretend/itb";
 

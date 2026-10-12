@@ -22,8 +22,28 @@ const sixSession = (id: string, code: string, iso: string, activity: string, roo
 const calendar: AcademicCalendar = {
   checkedAt: now,
   events: [
-    { id: "uts", title: "Masa Ujian Tengah Semester I-2026/2027", kind: "uts", term: "2026-1", start: wib("2026-10-12T00:00:00"), end: wib("2026-10-17T00:00:00"), allDay: true, firstDay: "2026-10-12", lastDay: "2026-10-16" },
-    { id: "uas", title: "Ujian Akhir Semester I-2026/2027", kind: "uas", term: "2026-1", start: wib("2026-12-07T00:00:00"), end: wib("2026-12-23T00:00:00"), allDay: true, firstDay: "2026-12-07", lastDay: "2026-12-22" },
+    {
+      id: "uts",
+      title: "Masa Ujian Tengah Semester I-2026/2027",
+      kind: "uts",
+      term: "2026-1",
+      start: wib("2026-10-12T00:00:00"),
+      end: wib("2026-10-17T00:00:00"),
+      allDay: true,
+      firstDay: "2026-10-12",
+      lastDay: "2026-10-16",
+    },
+    {
+      id: "uas",
+      title: "Ujian Akhir Semester I-2026/2027",
+      kind: "uas",
+      term: "2026-1",
+      start: wib("2026-12-07T00:00:00"),
+      end: wib("2026-12-23T00:00:00"),
+      allDay: true,
+      firstDay: "2026-12-07",
+      lastDay: "2026-12-22",
+    },
   ],
 };
 const outline = (...titles: string[]): CourseOutline => ({
@@ -32,7 +52,15 @@ const outline = (...titles: string[]): CourseOutline => ({
   grade: null,
   modules: titles.map((title, i) => ({ id: i + 1, courseId: 95059, title, postedAt: null })),
 });
-const takeHome = aTask({ id: 117764, courseCode: "DK4073", courseId: 93409, title: "UTS Markom", status: "not_started", kind: "uts", dueAt: wib("2026-10-22T23:50:00") });
+const takeHome = aTask({
+  id: 117764,
+  courseCode: "DK4073",
+  courseId: 93409,
+  title: "UTS Markom",
+  status: "not_started",
+  kind: "uts",
+  dueAt: wib("2026-10-22T23:50:00"),
+});
 
 describe("the merged exam list", () => {
   it("a UTS in class in SIX and a take-home UTS in Edunex are one exam, and they disagree", () => {
@@ -46,7 +74,9 @@ describe("the merged exam list", () => {
   it("agree when Edunex's exam is on SIX's day", () => {
     const [exam] = mergeExams({
       schedule: [sixSession("1", "PL3002", "2026-10-15T08:00:00", "UTS")],
-      edunexExams: { PL3002: [{ id: "e1", courseId: 95001, title: "UTS Ekonomi Inovasi", start: wib("2026-10-15T08:00:00"), end: wib("2026-10-15T10:00:00") }] },
+      edunexExams: {
+        PL3002: [{ id: "e1", courseId: 95001, title: "UTS Ekonomi Inovasi", start: wib("2026-10-15T08:00:00"), end: wib("2026-10-15T10:00:00") }],
+      },
       now,
     });
     expect(exam).toMatchObject({ id: "PL3002-UTS", disagree: false });
@@ -70,7 +100,11 @@ describe("the merged exam list", () => {
 
   it("quizzes stay apart: each one is its own exam, joined across SIX and Edunex only on the same day", () => {
     const exams = mergeExams({
-      schedule: [sixSession("q2", "PL3002", "2026-10-20T08:00:00", "Kuis"), sixSession("q1", "PL3002", "2026-10-06T08:00:00", "Kuis"), sixSession("u1", "PL3002", "2026-10-15T08:00:00", "UTS")],
+      schedule: [
+        sixSession("q2", "PL3002", "2026-10-20T08:00:00", "Kuis"),
+        sixSession("q1", "PL3002", "2026-10-06T08:00:00", "Kuis"),
+        sixSession("u1", "PL3002", "2026-10-15T08:00:00", "UTS"),
+      ],
       edunexExams: {
         PL3002: [
           { id: "e1", courseId: 95001, title: "Kuis 2", start: wib("2026-10-20T08:00:00"), end: wib("2026-10-20T09:00:00") },
@@ -107,6 +141,16 @@ describe("the merged exam list", () => {
 
 describe("what kind of exam a name speaks of", () => {
   it("reads ITB's words and the outline template's", () => {
-    expect(["UTS", "UAS", "Midex/UTS", "Finex", "Kuis 2", "Quiz", "Ujian Praktikum", "Kuliah", null].map(examKind)).toEqual(["UTS", "UAS", "UTS", "UAS", "KUIS", "KUIS", "UJIAN", null, null]);
+    expect(["UTS", "UAS", "Midex/UTS", "Finex", "Kuis 2", "Quiz", "Ujian Praktikum", "Kuliah", null].map(examKind)).toEqual([
+      "UTS",
+      "UAS",
+      "UTS",
+      "UAS",
+      "KUIS",
+      "KUIS",
+      "UJIAN",
+      null,
+      null,
+    ]);
   });
 });

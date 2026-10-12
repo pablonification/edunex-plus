@@ -55,7 +55,8 @@ export class PretendItb {
     }
     if (CALENDAR_HOSTS.has(url.host)) {
       // The short link redirects to the current file; the transport follows it.
-      if (url.toString() !== CALENDAR_FILE_URL && url.pathname !== "/KalenderPendidikan-ics") return { status: 404, headers: {}, body: "Not Found", url: url.toString() };
+      if (url.toString() !== CALENDAR_FILE_URL && url.pathname !== "/KalenderPendidikan-ics")
+        return { status: 404, headers: {}, body: "Not Found", url: url.toString() };
       return { status: 200, headers: { "content-type": "text/calendar" }, body: this.calendar, url: CALENDAR_FILE_URL };
     }
     const page = this.pages.get(url.pathname);

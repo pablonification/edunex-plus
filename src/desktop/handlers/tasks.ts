@@ -1,9 +1,10 @@
 // Bridge handlers for handing in Tasks (#73). Files come only from the
 // system's file picker or a drop on the window, and the window refers to them
 // by ids issued in ../hand-in.ts: it never names a path on this computer.
-import { type OpenDialogOptions, dialog } from "electron";
+
 import { promises as fs } from "node:fs";
 import path from "node:path";
+import { dialog, type OpenDialogOptions } from "electron";
 import { translate } from "../../core/strings";
 import { contentType, type HandInAction, handInHandlers, type LocalFile } from "../hand-in";
 import type { HandlerGroup } from "./context";
@@ -19,7 +20,12 @@ export const tasksHandlers: HandlerGroup<HandInAction> = (context) =>
     for (const filePath of result.filePaths) {
       const stat = await fs.stat(filePath).catch(() => null);
       if (!stat?.isFile()) continue;
-      files.push({ name: path.basename(filePath), size: stat.size, type: contentType(filePath), read: async () => new Uint8Array(await fs.readFile(filePath)) });
+      files.push({
+        name: path.basename(filePath),
+        size: stat.size,
+        type: contentType(filePath),
+        read: async () => new Uint8Array(await fs.readFile(filePath)),
+      });
     }
     return files;
   });

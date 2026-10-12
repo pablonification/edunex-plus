@@ -29,7 +29,10 @@ export const newGrades: Detector = {
         id: `grade:${c.term}:${c.code}:${c.to}`,
         kind: "grade",
         source: "six",
-        title: c.from === null ? { key: "alert.grade.new", vars: { course: c.code, grade: c.to } } : { key: "alert.grade.changed", vars: { course: c.code, from: c.from, grade: c.to } },
+        title:
+          c.from === null
+            ? { key: "alert.grade.new", vars: { course: c.code, grade: c.to } }
+            : { key: "alert.grade.changed", vars: { course: c.code, from: c.from, grade: c.to } },
         body: { key: "alert.grade.body", vars: { name: c.name, ipk: ipk === null ? "—" : ipk.toFixed(2) } },
         target: { screen: "grades" },
       }),

@@ -1,6 +1,6 @@
 // The window's root: providers, then either the welcome screen (nobody signed
 // in) or the signed-in shell.
-import { useEffect, useState, type ReactNode } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import type { Bridge } from "./bridge";
 import { I18nProvider, type UiClock } from "./i18n";
 import { Shell } from "./shell/shell";

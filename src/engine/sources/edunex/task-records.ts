@@ -15,7 +15,15 @@ const Id = z.union([z.number().int(), z.string().regex(/^\d+$/)]).transform(Numb
 const Flag = z.union([z.boolean(), z.literal(0), z.literal(1)]).transform((value) => value === true || value === 1);
 /** The submit bit. Any other value is a vendor change, never a guess. */
 const SubmitBit = z.union([z.literal(0), z.literal(1), z.literal("0"), z.literal("1"), z.boolean()]).transform((v) => v === 1 || v === "1" || v === true);
-const Score = z.union([z.number(), z.string().regex(/^\d+(\.\d+)?$/).transform(Number)]).nullable();
+const Score = z
+  .union([
+    z.number(),
+    z
+      .string()
+      .regex(/^\d+(\.\d+)?$/)
+      .transform(Number),
+  ])
+  .nullable();
 const Time = z.string().nullable();
 const StoredFile = z.object({ name: z.string(), file: z.string() });
 
@@ -60,7 +68,8 @@ const CourseTasks = z.object({ meta: z.object({ total: z.number() }), data: z.ar
 export async function fetchCourseTasks(client: EdunexClient, courseId: number): Promise<EdunexTask[]> {
   const list = await client.get("/course/tasks", { "filter[course_id][is]": courseId, "page[limit]": 0 }, CourseTasks);
   // "page[limit]=0" means everything; fewer than Edunex counts would silently hide Tasks.
-  if (list.data.length < list.meta.total) throw new EngineError("VendorChanged", `/course/tasks: ${list.data.length} of ${list.meta.total} Tasks for course ${courseId}`);
+  if (list.data.length < list.meta.total)
+    throw new EngineError("VendorChanged", `/course/tasks: ${list.data.length} of ${list.meta.total} Tasks for course ${courseId}`);
   return list.data;
 }
 

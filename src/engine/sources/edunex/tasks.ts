@@ -87,7 +87,14 @@ const ModuleFields = z.object({ name: z.string(), index: z.number() });
  * module the outline doesn't list. Best effort: a failed fetch keeps the
  * names already known, and the course page reports a broken outline.
  */
-async function nameModules(client: EdunexClient, tasks: Task[], outlines: Map<number, Outline>, previous: Task[], now: number, current: () => boolean): Promise<Task[]> {
+async function nameModules(
+  client: EdunexClient,
+  tasks: Task[],
+  outlines: Map<number, Outline>,
+  previous: Task[],
+  now: number,
+  current: () => boolean,
+): Promise<Task[]> {
   const wanted = new Map<number, number[]>();
   for (const task of tasks) if (task.moduleId !== null) wanted.set(task.courseId, [...(wanted.get(task.courseId) ?? []), task.moduleId]);
   for (const [courseId, moduleIds] of wanted) {

@@ -26,7 +26,8 @@ const upload = async (h: Harness, name = "jawaban.pdf", content = "%PDF-1.7 jawa
 };
 const saveDraft = (h: Harness, taskId: number, files: TaskFile[]) => h.engine.act("edunex", "saveDraft", { taskId, files }) as Promise<HandInResult>;
 const submit = (h: Harness, taskId: number, files: TaskFile[]) => h.engine.act("edunex", "submit", { taskId, files }) as Promise<HandInResult>;
-const answerWrites = (h: Harness) => h.world.edunex.writes.filter((w) => w.path.startsWith("/course/task/answers")).map((w) => `${w.method} ${w.path.replace(/\d+$/, ":id")}`);
+const answerWrites = (h: Harness) =>
+  h.world.edunex.writes.filter((w) => w.path.startsWith("/course/task/answers")).map((w) => `${w.method} ${w.path.replace(/\d+$/, ":id")}`);
 const answersOn = (h: Harness, taskId: number) => h.world.edunex.task(taskId).attributes.answers;
 const failure = async (work: Promise<unknown>) => {
   try {
@@ -47,7 +48,9 @@ describe("uploading a file", () => {
   it("goes through Edunex's own flow: an upload link, then the file to Edunex's storage", async () => {
     const h = await signedIn();
     const file = await upload(h, "Bab II.pdf", "%PDF bab dua");
-    expect(h.world.edunex.writes).toEqual([{ method: "POST", path: "/blob-storage/sas", body: { files: [{ fileName: "Bab II.pdf", contentType: "application/pdf", sizeInBytes: 12 }] } }]);
+    expect(h.world.edunex.writes).toEqual([
+      { method: "POST", path: "/blob-storage/sas", body: { files: [{ fileName: "Bab II.pdf", contentType: "application/pdf", sizeInBytes: 12 }] } },
+    ]);
     expect(new URL(file.url).hostname).toBe("edunexfixture.blob.core.windows.net");
     expect(Buffer.from(h.world.blobs.get(new URL(file.url).pathname) as Uint8Array).toString()).toBe("%PDF bab dua");
     // Uploading attaches nothing yet.
@@ -80,7 +83,11 @@ describe("saving a draft", () => {
     const result = await saveDraft(h, OPEN, [file]);
     expect(result.outcome).toBe("saved");
     expect(answerWrites(h)).toEqual(["POST /course/task/answers", "PATCH /course/task/answers/:id"]);
-    expect(h.world.edunex.writes.find((w) => w.method === "POST" && w.path === "/course/task/answers")?.body).toEqual({ task_id: OPEN, answer: "", is_sent: 0 });
+    expect(h.world.edunex.writes.find((w) => w.method === "POST" && w.path === "/course/task/answers")?.body).toEqual({
+      task_id: OPEN,
+      answer: "",
+      is_sent: 0,
+    });
     expect(h.world.edunex.writes.at(-1)?.body).toMatchObject({ files: [{ name: "jawaban.pdf", file: file.url }], is_sent: 0 });
     expect(task(h, OPEN).status).toBe("draft");
     expect(task(h, OPEN).answer?.files).toEqual([file]);

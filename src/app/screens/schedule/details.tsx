@@ -74,7 +74,9 @@ export const timeRange = (f: Format, start: number, end: number) => f.timeRange(
 
 /** The Edunex Presence window of the course open now, that hasn't recorded the Student yet, on the day of `start`. */
 function openWindow(world: ScheduleWorld, code: string, start: number): PresenceSession | null {
-  return world.presence(code).find((p) => wibDay(p.opensAt) === wibDay(start) && p.opensAt <= world.now && world.now < p.closesAt && !p.recorded?.present) ?? null;
+  return (
+    world.presence(code).find((p) => wibDay(p.opensAt) === wibDay(start) && p.opensAt <= world.now && world.now < p.closesAt && !p.recorded?.present) ?? null
+  );
 }
 
 // ---------------------------------------------------------------- parts
@@ -201,7 +203,11 @@ export function ClassDetails({ item }: { item: ScheduledClass }) {
           {live && <span className="block font-semibold text-success-fg">{t("schedule.live")}</span>}
         </Fact>
         <Fact icon={<Icons.MapPin className="size-3.5" />}>
-          {session.room ? <span className={cx(exam && "text-title font-semibold")}>{session.room}</span> : <span className="text-muted">{t("schedule.room.none")}</span>}
+          {session.room ? (
+            <span className={cx(exam && "text-title font-semibold")}>{session.room}</span>
+          ) : (
+            <span className="text-muted">{t("schedule.room.none")}</span>
+          )}
         </Fact>
         {lecturer && <Fact icon={<Icons.User className="size-3.5" />}>{lecturer}</Fact>}
         {uncertain && (

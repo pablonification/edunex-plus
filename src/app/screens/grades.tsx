@@ -8,19 +8,19 @@
 // their calculators, and what signing in to SIX unlocks.
 import { useState } from "react";
 import type { CalendarEvent, CheckedIndex, TranscriptTerm } from "../../core/models";
-import { checkPlan, expectedGrade, project, sksModel, type StudentRecord, targetOf } from "../../core/planner";
+import { checkPlan, expectedGrade, project, type StudentRecord, sksModel, targetOf } from "../../core/planner";
 import { useTermCourses } from "../courses";
 import { useOpenExternal } from "../hooks";
 import { useFormat, useNow, useT } from "../i18n";
 import { useNav } from "../nav";
-import { type PlanState, usePlan, useStudentRecord } from "../study-plan";
 import { useDataset } from "../store";
+import { type PlanState, usePlan, useStudentRecord } from "../study-plan";
 import { Button } from "../ui/controls";
 import { cx } from "../ui/cx";
 import { Card, CourseCode } from "../ui/display";
 import { Icons } from "../ui/icons";
-import { Flash } from "../ui/motion";
 import { List, Meta, Notice, Page, PageHeader, Row, Section, Stat } from "../ui/layout";
+import { Flash } from "../ui/motion";
 import { GradeBadge, GradeSelect, HonorsSentence, IpkChart, NeedText, predicateFor, TargetControl, usePredicate, useTermName } from "./plan/projection";
 import { SixNeeded } from "./plan/six-needed";
 
@@ -89,7 +89,9 @@ function Disagreement({ record }: { record: StudentRecord }) {
   return (
     <Notice tone="warning" title={t("grades.disagreeTitle")} className="mb-6">
       <span role="status">
-        {ipk.six !== null && Math.abs(ipk.six - (ipk.computed ?? -1)) > 0.005 + 1e-9 && t("grades.disagree", { six: num(ipk.six), computed: num(ipk.computed) })}{" "}
+        {ipk.six !== null &&
+          Math.abs(ipk.six - (ipk.computed ?? -1)) > 0.005 + 1e-9 &&
+          t("grades.disagree", { six: num(ipk.six), computed: num(ipk.computed) })}{" "}
         {ipk.sixSks !== null && ipk.sixSks !== ipk.sks && t("grades.disagreeSks", { six: ipk.sixSks, rows: ipk.sks })}
       </span>
     </Notice>
@@ -116,12 +118,23 @@ function Standing({ record, state }: { record: StudentRecord; state: PlanState }
   return (
     <div className="grid grid-cols-2 gap-3 @4xl:grid-cols-4">
       <Stat className="flex flex-col [&>div:first-child]:flex-1" label={t("grades.ipk")} value={num(shownIndex(transcript.ipk))} hint={nowWord ?? undefined} />
-      <Stat className="flex flex-col [&>div:first-child]:flex-1" label={t("grades.sksPassed")} value={String(record.passedSks)} hint={t("grades.sksPassedHint", { need: sks.need })} />
+      <Stat
+        className="flex flex-col [&>div:first-child]:flex-1"
+        label={t("grades.sksPassed")}
+        value={String(record.passedSks)}
+        hint={t("grades.sksPassedHint", { need: sks.need })}
+      />
       <Stat
         className="flex flex-col [&>div:first-child]:flex-1"
         label={t("grades.lastIp")}
         value={num(lastIp)}
-        hint={last ? (delta === null ? termName(last.term) : t("grades.lastIpHint", { term: termName(last.term).split(" · ")[0], delta: signed(delta) })) : undefined}
+        hint={
+          last
+            ? delta === null
+              ? termName(last.term)
+              : t("grades.lastIpHint", { term: termName(last.term).split(" · ")[0], delta: signed(delta) })
+            : undefined
+        }
       />
       <Stat
         className="flex flex-col [&>div:first-child]:flex-1"
@@ -330,7 +343,12 @@ function TermRow({ record, term, open, onToggle }: { record: StudentRecord; term
   const now = term.term === record.term && ip === null;
   return (
     <li>
-      <button type="button" onClick={onToggle} aria-expanded={open} className="focus-ring flex w-full items-center gap-3 px-4 py-3 text-left transition-colors duration-150 hover:bg-hover">
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={open}
+        className="focus-ring flex w-full items-center gap-3 px-4 py-3 text-left transition-colors duration-150 hover:bg-hover"
+      >
         <Icons.ChevronRight className={cx("size-4 text-faint transition-transform duration-150", open && "rotate-90")} />
         <span className="flex-1 text-body font-medium">{termName(term.term)}</span>
         {!term.ip.agrees && (
@@ -340,7 +358,9 @@ function TermRow({ record, term, open, onToggle }: { record: StudentRecord; term
           </span>
         )}
         <span className="text-small text-muted">{t("grades.courseCount", { count: term.courses.length })}</span>
-        <span className={cx("w-[84px] text-right tabular-nums", now ? "text-small text-muted" : "text-body font-semibold")}>{now ? t("grades.inProgress") : `IP ${num(ip)}`}</span>
+        <span className={cx("w-[84px] text-right tabular-nums", now ? "text-small text-muted" : "text-body font-semibold")}>
+          {now ? t("grades.inProgress") : `IP ${num(ip)}`}
+        </span>
       </button>
       {open && (
         <ul className="border-t border-line bg-sunken px-4 py-2">
@@ -350,10 +370,14 @@ function TermRow({ record, term, open, onToggle }: { record: StudentRecord; term
               <span className="truncate">{course.name}</span>
               <span className="flex justify-end gap-1.5">
                 {course.attempt > 1 && <Tag>{t("grades.retaken")}</Tag>}
-                {course.standing !== "counted" && <Tag tone={course.standing === "pending" ? "neutral" : "warning"}>{t(`grades.standing.${course.standing}`)}</Tag>}
+                {course.standing !== "counted" && (
+                  <Tag tone={course.standing === "pending" ? "neutral" : "warning"}>{t(`grades.standing.${course.standing}`)}</Tag>
+                )}
               </span>
               <span className="text-right text-small text-muted tabular-nums">{course.sks} SKS</span>
-              <span className="text-right">{course.grade ? <GradeBadge grade={course.grade} struck={course.standing === "replaced"} /> : <span className="text-faint">—</span>}</span>
+              <span className="text-right">
+                {course.grade ? <GradeBadge grade={course.grade} struck={course.standing === "replaced"} /> : <span className="text-faint">—</span>}
+              </span>
             </li>
           ))}
         </ul>
@@ -364,7 +388,12 @@ function TermRow({ record, term, open, onToggle }: { record: StudentRecord; term
 
 function Tag({ tone = "neutral", children }: { tone?: "neutral" | "warning"; children: string }) {
   return (
-    <span className={cx("inline-flex h-[18px] items-center rounded-[5px] px-1.5 text-micro font-semibold whitespace-nowrap", tone === "warning" ? "bg-warning-bg text-warning-fg" : "bg-neutral-bg text-neutral-fg")}>
+    <span
+      className={cx(
+        "inline-flex h-[18px] items-center rounded-[5px] px-1.5 text-micro font-semibold whitespace-nowrap",
+        tone === "warning" ? "bg-warning-bg text-warning-fg" : "bg-neutral-bg text-neutral-fg",
+      )}
+    >
       {children}
     </span>
   );
@@ -396,7 +425,9 @@ function WithoutSix() {
                   index={i}
                   leading={<CourseCode code={course.code} color={course.color} className="w-[76px] text-small" />}
                   title={course.name}
-                  meta={grade ? t("grades.edunexGrade", { total: f.number(grade.total, 1), letter: grade.letter }) : anyGrade ? t("grades.edunexNone") : undefined}
+                  meta={
+                    grade ? t("grades.edunexGrade", { total: f.number(grade.total, 1), letter: grade.letter }) : anyGrade ? t("grades.edunexNone") : undefined
+                  }
                   trailing={<span className="text-small font-medium text-accent-fg">{t("grades.whatNeed")}</span>}
                   onClick={() => nav.go({ screen: "course", code: course.code, tab: "grades" })}
                 />

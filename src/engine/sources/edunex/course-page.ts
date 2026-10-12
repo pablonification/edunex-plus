@@ -75,7 +75,10 @@ export const Presences = z.object({
         presence_end: z.string().nullable(),
         topic: z.string().nullable(),
         note: z.string().nullable().optional(),
-        presentable: z.array(z.object({ presentable: z.string(), presentable_id: z.union([z.string(), z.number()]) })).nullable().optional(),
+        presentable: z
+          .array(z.object({ presentable: z.string(), presentable_id: z.union([z.string(), z.number()]) }))
+          .nullable()
+          .optional(),
         url: z.string().nullable().optional(),
         attandance: z.object({ status: z.number().nullable(), presence_at: z.string().nullable() }).nullable(),
       }),
@@ -144,9 +147,24 @@ export function registerCoursePageFeeds(context: SourceContext, client: EdunexCl
       await context.set("edunex.materials", materials);
     },
   });
-  perCourse("edunex.presence", 30 * MINUTE, (course) => fetchPresence(client, course), (value) => context.set("edunex.presence", value));
-  perCourse("edunex.announcements", HOUR, (course) => fetchAnnouncements(client, course), (value) => context.set("edunex.announcements", value));
-  perCourse("edunex.exams", 3 * HOUR, (course) => fetchExams(client, course), (value) => context.set("edunex.exams", value));
+  perCourse(
+    "edunex.presence",
+    30 * MINUTE,
+    (course) => fetchPresence(client, course),
+    (value) => context.set("edunex.presence", value),
+  );
+  perCourse(
+    "edunex.announcements",
+    HOUR,
+    (course) => fetchAnnouncements(client, course),
+    (value) => context.set("edunex.announcements", value),
+  );
+  perCourse(
+    "edunex.exams",
+    3 * HOUR,
+    (course) => fetchExams(client, course),
+    (value) => context.set("edunex.exams", value),
+  );
 }
 
 /** The class's own Edunex course first, then its parent's. */

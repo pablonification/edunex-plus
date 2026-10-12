@@ -135,23 +135,25 @@ export const newBill: Detector = {
         const was = before.get(bill.term);
         return owed(bill) && (!was || was.status === "not-billed");
       })
-      .map((bill): AlertDraft => ({
-        id: `bill.new:${bill.term}:${bill.amount}`,
-        kind: "bill",
-        source: "six",
-        title: { key: "alert.bill.new", vars: termVars(bill.term) },
-        body:
-          bill.nextDueAt !== null
-            ? {
-                key: "alert.bill.newBody",
-                vars: {
-                  amount: leftText(bill),
-                  ...dayVars(wibDay(bill.nextDueAt)),
-                },
-              }
-            : { key: "alert.bill.newNoDate", vars: { amount: leftText(bill) } },
-        target: BILL_TARGET,
-      }));
+      .map(
+        (bill): AlertDraft => ({
+          id: `bill.new:${bill.term}:${bill.amount}`,
+          kind: "bill",
+          source: "six",
+          title: { key: "alert.bill.new", vars: termVars(bill.term) },
+          body:
+            bill.nextDueAt !== null
+              ? {
+                  key: "alert.bill.newBody",
+                  vars: {
+                    amount: leftText(bill),
+                    ...dayVars(wibDay(bill.nextDueAt)),
+                  },
+                }
+              : { key: "alert.bill.newNoDate", vars: { amount: leftText(bill) } },
+          target: BILL_TARGET,
+        }),
+      );
   },
 };
 

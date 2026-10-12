@@ -12,7 +12,18 @@ const sixAuth = { cookie: PRETEND_SIX_COOKIE };
 
 async function edunexGet(world: PretendWorld, path: string, headers: Record<string, string> = auth) {
   const response = await world.request({ method: "GET", url: `${EDUNEX_API}${path}`, headers });
-  return { status: response.status, body: response.body ? (() => { try { return JSON.parse(response.body); } catch { return response.body; } })() : null };
+  return {
+    status: response.status,
+    body: response.body
+      ? (() => {
+          try {
+            return JSON.parse(response.body);
+          } catch {
+            return response.body;
+          }
+        })()
+      : null,
+  };
 }
 
 describe("fake clock", () => {
@@ -116,7 +127,10 @@ describe("pretend Edunex", () => {
     expect((await edunexGet(world, `/course/tasks/${id}?include=answers`)).body.data.attributes.open_status).toBe("closed");
 
     const material = world.edunex.postMaterial(95059, { name: "K6. Slides", type: "pdf" });
-    const contents = await edunexGet(world, "/course/contents/?filter[contentable_id][is]=95059&filter[contentable_type][is]=App%5CModels%5CCourses&page[limit]=0");
+    const contents = await edunexGet(
+      world,
+      "/course/contents/?filter[contentable_id][is]=95059&filter[contentable_type][is]=App%5CModels%5CCourses&page[limit]=0",
+    );
     expect(contents.body.data.find((c: any) => c.id === material)?.attributes.name).toBe("K6. Slides");
 
     const session = world.edunex.schedulePresence(95001, 86778, { start: "2026-10-08T08:00:00+07:00", end: "2026-10-08T09:30:00+07:00" });
@@ -132,7 +146,12 @@ describe("pretend Edunex", () => {
   it("accepts the app's hand-in writes and logs them", async () => {
     const world = new PretendWorld();
     const taskId = world.edunex.postTask(95326);
-    const post = await world.request({ method: "POST", url: `${EDUNEX_API}/course/task/answers`, headers: auth, body: JSON.stringify({ task_id: taskId, answer: "<p>x</p>", files: [] }) });
+    const post = await world.request({
+      method: "POST",
+      url: `${EDUNEX_API}/course/task/answers`,
+      headers: auth,
+      body: JSON.stringify({ task_id: taskId, answer: "<p>x</p>", files: [] }),
+    });
     const answer = JSON.parse(post.body).data;
     expect(answer.is_sent).toBe(0);
     await world.request({ method: "PATCH", url: `${EDUNEX_API}/course/task/answers/${answer.id}`, headers: auth, body: JSON.stringify({ is_sent: 1 }) });
@@ -141,7 +160,12 @@ describe("pretend Edunex", () => {
     expect(task.body.data.attributes.answers[0].is_sent).toBe(1);
     expect(world.edunex.writes.map((w) => `${w.method} ${w.path}`)).toEqual(["POST /course/task/answers", `PATCH /course/task/answers/${answer.id}`]);
 
-    const sas = await world.request({ method: "POST", url: `${EDUNEX_API}/blob-storage/sas`, headers: auth, body: JSON.stringify({ files: [{ fileName: "jawaban.pdf", contentType: "application/pdf", sizeInBytes: 3 }] }) });
+    const sas = await world.request({
+      method: "POST",
+      url: `${EDUNEX_API}/blob-storage/sas`,
+      headers: auth,
+      body: JSON.stringify({ files: [{ fileName: "jawaban.pdf", contentType: "application/pdf", sizeInBytes: 3 }] }),
+    });
     const { uploadUrl, readUrl } = JSON.parse(sas.body).data[0];
     expect((await world.request({ method: "PUT", url: uploadUrl, headers: { "x-ms-blob-type": "BlockBlob" }, body: "pdf" })).status).toBe(201);
     expect((await world.request({ method: "GET", url: readUrl })).body).toBe("pdf");

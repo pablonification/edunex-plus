@@ -2,12 +2,20 @@
 // link from the class's own announcements, the next meeting, and a clash with
 // another course's class.
 import { describe, expect, it } from "vitest";
-import { announcedMeetings, classMeetingLink, clashes, meetingLinks, nextMeetingIndex } from "../../src/core/course-meetings";
+import { announcedMeetings, clashes, classMeetingLink, meetingLinks, nextMeetingIndex } from "../../src/core/course-meetings";
 import type { Announcement, ClassSession } from "../../src/core/models";
 
 const at = (iso: string) => Date.parse(iso);
 const post = (id: number, text: string, postedAt: string): Announcement => ({ id, courseId: 1, text, author: null, postedAt: at(postedAt) });
-const session = (code: string, start: string, end: string): ClassSession => ({ id: `${code}${start}`, courseCode: code, courseName: code, start: at(start), end: at(end), activity: "Kuliah", room: null });
+const session = (code: string, start: string, end: string): ClassSession => ({
+  id: `${code}${start}`,
+  courseCode: code,
+  courseName: code,
+  start: at(start),
+  end: at(end),
+  activity: "Kuliah",
+  room: null,
+});
 
 describe("online-meeting links", () => {
   it("finds Teams, Zoom and Meet links in a text, without trailing punctuation", () => {
@@ -18,7 +26,10 @@ describe("online-meeting links", () => {
   });
 
   it("the class's standing link is the newest one posted", () => {
-    const list = [post(1, "Link lama https://meet.google.com/aaa", "2026-09-01T10:00:00+07:00"), post(2, "Link teams https://teams.microsoft.com/meet/new", "2026-09-10T10:00:00+07:00")];
+    const list = [
+      post(1, "Link lama https://meet.google.com/aaa", "2026-09-01T10:00:00+07:00"),
+      post(2, "Link teams https://teams.microsoft.com/meet/new", "2026-09-10T10:00:00+07:00"),
+    ];
     expect(classMeetingLink(list)).toBe("https://teams.microsoft.com/meet/new");
     expect(classMeetingLink([post(3, "Tidak ada kuliah minggu ini", "2026-09-10T10:00:00+07:00")])).toBeNull();
   });
@@ -37,9 +48,10 @@ describe("online-meeting links", () => {
 
 describe("next and clashing meetings", () => {
   it("marks the next meeting to start", () => {
-    const meetings = [session("KU5014", "2026-10-01T16:00:00+07:00", "2026-10-01T18:00:00+07:00"), session("KU5014", "2026-10-08T16:00:00+07:00", "2026-10-08T18:00:00+07:00")].map(
-      (s) => ({ key: s.id, start: s.start, end: s.end, six: s, presence: null, announced: null, notInSix: false }),
-    );
+    const meetings = [
+      session("KU5014", "2026-10-01T16:00:00+07:00", "2026-10-01T18:00:00+07:00"),
+      session("KU5014", "2026-10-08T16:00:00+07:00", "2026-10-08T18:00:00+07:00"),
+    ].map((s) => ({ key: s.id, start: s.start, end: s.end, six: s, presence: null, announced: null, notInSix: false }));
     expect(nextMeetingIndex(meetings, at("2026-10-08T08:12:00+07:00"))).toBe(1);
     expect(nextMeetingIndex(meetings, at("2026-10-09T08:12:00+07:00"))).toBe(-1);
   });

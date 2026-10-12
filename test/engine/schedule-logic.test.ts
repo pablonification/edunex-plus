@@ -115,7 +115,13 @@ describe("a day of the schedule", () => {
       event("ukt-deadline", "Batas Waktu Pembayaran", "2026-12-24", "2026-12-24"),
     ];
     const days = scheduleDays(["2026-12-23", "2026-12-24", "2026-12-25", "2026-10-14", "2026-12-04"], { ...empty, events });
-    expect(days.map((d) => d.holiday?.title ?? null)).toEqual([null, "Libur Kuliah dalam rangka Hari Raya Natal", "Libur Kuliah dalam rangka Hari Raya Natal", null, null]);
+    expect(days.map((d) => d.holiday?.title ?? null)).toEqual([
+      null,
+      "Libur Kuliah dalam rangka Hari Raya Natal",
+      "Libur Kuliah dalam rangka Hari Raya Natal",
+      null,
+      null,
+    ]);
     expect(days[1].events.map((e) => e.kind)).toEqual(["holiday"]);
     expect(days[3].events.map((e) => e.kind)).toEqual(["uts"]);
     expect(days[4].events.map((e) => e.kind)).toEqual(["lecture-end"]);
@@ -129,7 +135,11 @@ describe("a day of the schedule", () => {
   });
 
   it("an exam session is marked, and never counted as moved", () => {
-    const schedule = [...weekly("DK4073", "2026-10-01T11:00:00", 2, 119), session("DK4073", "2026-10-15T11:00:00", 119, { activity: "UTS" }), session("DK4073", "2026-10-22T08:00:00", 60, { activity: "UTS" })];
+    const schedule = [
+      ...weekly("DK4073", "2026-10-01T11:00:00", 2, 119),
+      session("DK4073", "2026-10-15T11:00:00", 119, { activity: "UTS" }),
+      session("DK4073", "2026-10-22T08:00:00", 60, { activity: "UTS" }),
+    ];
     const days = scheduleDays(["2026-10-15", "2026-10-22"], { ...empty, schedule });
     expect(days.map((d) => d.classes.map((c) => [c.exam, c.moved]))).toEqual([[[true, null]], [[true, null]]]);
   });
@@ -178,7 +188,10 @@ describe("a class moved off its usual slot, or an extra meeting", () => {
   });
 
   it("one meeting is no pattern: two meetings at different times are neither moves nor extra", () => {
-    const { moved, extra } = slotMarks([session("II4091", "2026-10-16T15:00:00", 480, { room: null }), session("II4091", "2026-10-30T15:00:00", 539, { room: null })]);
+    const { moved, extra } = slotMarks([
+      session("II4091", "2026-10-16T15:00:00", 480, { room: null }),
+      session("II4091", "2026-10-30T15:00:00", 539, { room: null }),
+    ]);
     expect([moved.size, extra.size]).toEqual([0, 0]);
   });
 });
@@ -229,8 +242,17 @@ describe("meetings announced only in Edunex text", () => {
 
 describe("what changed between two reads of SIX's timetable", () => {
   it("names the meetings whose time or room changed", () => {
-    const before = [session("PL3002", "2026-10-15T08:00:00", 90, { id: "a" }), session("DK4073", "2026-10-15T11:00:00", 119, { id: "b" }), session("KU5014", "2026-10-15T16:00:00", 110, { id: "c" })];
-    const after = [{ ...before[0], end: before[0].end + 30 * 60_000 }, { ...before[1], room: "TVST A" }, before[2], session("II4091", "2026-10-16T15:00:00", 60, { id: "d" })];
+    const before = [
+      session("PL3002", "2026-10-15T08:00:00", 90, { id: "a" }),
+      session("DK4073", "2026-10-15T11:00:00", 119, { id: "b" }),
+      session("KU5014", "2026-10-15T16:00:00", 110, { id: "c" }),
+    ];
+    const after = [
+      { ...before[0], end: before[0].end + 30 * 60_000 },
+      { ...before[1], room: "TVST A" },
+      before[2],
+      session("II4091", "2026-10-16T15:00:00", 60, { id: "d" }),
+    ];
     expect(sessionChanges(before, after).map((c) => [c.after.id, c.kinds])).toEqual([
       ["a", ["time"]],
       ["b", ["room"]],
@@ -313,7 +335,14 @@ describe("Presence by handing in a Task", () => {
     recorded: null,
   });
   const viewCourse: PresenceSession = { ...window(9, "2026-10-08T08:00:00", "2026-10-08T09:30:00", "x"), courseId: 95001, countsBy: [] };
-  const tugas02 = aTask({ id: 117003, courseCode: "II4091", courseId: 95326, title: "Tugas 02 Bab II", status: "not_started", dueAt: wib("2026-10-16T23:59:00") });
+  const tugas02 = aTask({
+    id: 117003,
+    courseCode: "II4091",
+    courseId: 95326,
+    title: "Tugas 02 Bab II",
+    status: "not_started",
+    dueAt: wib("2026-10-16T23:59:00"),
+  });
   // SIX lists the window as a roomless meeting 15:00–23:00.
   const six = session("II4091", "2026-10-16T15:00:00", 480, { room: null });
 
@@ -344,7 +373,11 @@ describe("Presence by handing in a Task", () => {
 describe("lectures in an exam week or on a holiday", () => {
   it("are marked uncertain; exam sessions aren't", () => {
     const events = [event("uts", "Masa Ujian Tengah Semester I-2026/2027", "2026-10-12", "2026-10-16")];
-    const schedule = [session("PL3002", "2026-10-15T08:00:00", 90), session("DK4073", "2026-10-15T11:00:00", 119, { activity: "UTS" }), session("PL3002", "2026-10-22T08:00:00", 90)];
+    const schedule = [
+      session("PL3002", "2026-10-15T08:00:00", 90),
+      session("DK4073", "2026-10-15T11:00:00", 119, { activity: "UTS" }),
+      session("PL3002", "2026-10-22T08:00:00", 90),
+    ];
     const days = scheduleDays(["2026-10-15", "2026-10-22"], { ...empty, schedule, events });
     expect(days[0].classes.map((c) => [c.session.courseCode, c.uncertain?.kind ?? null])).toEqual([
       ["PL3002", "uts"],
@@ -358,17 +391,70 @@ describe("what Edunex knows without SIX", () => {
   it("its Presence windows and announced meetings, one per day, without Task windows", () => {
     const presence: Record<string, PresenceSession[]> = {
       PL3002: [
-        { id: 1, courseId: 95001, classId: 86778, start: wib("2026-10-08T08:00:00"), end: wib("2026-10-08T09:30:00"), opensAt: wib("2026-10-08T08:00:00"), closesAt: wib("2026-10-08T09:30:00"), topic: null, note: null, countsBy: [], url: null, recorded: null },
+        {
+          id: 1,
+          courseId: 95001,
+          classId: 86778,
+          start: wib("2026-10-08T08:00:00"),
+          end: wib("2026-10-08T09:30:00"),
+          opensAt: wib("2026-10-08T08:00:00"),
+          closesAt: wib("2026-10-08T09:30:00"),
+          topic: null,
+          note: null,
+          countsBy: [],
+          url: null,
+          recorded: null,
+        },
       ],
       II4091: [
-        { id: 2, courseId: 95326, classId: 87103, start: wib("2026-10-16T15:00:00"), end: wib("2026-10-16T23:59:00"), opensAt: wib("2026-10-16T15:00:00"), closesAt: wib("2026-10-16T23:59:00"), topic: "Tugas", note: null, countsBy: [{ kind: "assignment", id: "117003" }], url: null, recorded: null },
+        {
+          id: 2,
+          courseId: 95326,
+          classId: 87103,
+          start: wib("2026-10-16T15:00:00"),
+          end: wib("2026-10-16T23:59:00"),
+          opensAt: wib("2026-10-16T15:00:00"),
+          closesAt: wib("2026-10-16T23:59:00"),
+          topic: "Tugas",
+          note: null,
+          countsBy: [{ kind: "assignment", id: "117003" }],
+          url: null,
+          recorded: null,
+        },
       ],
     };
-    const announcements = { II4091: [{ id: 1, courseId: 95326, text: "Pertemuan 03: Jumat, 09 Oktober 2026 Pkl. 15:00 - 17:00 WIB (Online - Link meeting teams)", author: null, postedAt: wib("2026-10-01T10:00:00") }] };
-    const link: Material = { id: 7, courseId: 95326, moduleId: null, title: "Link Teams Pertemuan 03", type: "ms-teams", content: "https://teams.microsoft.com/meet/1", sizeBytes: null, postedAt: null, updatedAt: null };
+    const announcements = {
+      II4091: [
+        {
+          id: 1,
+          courseId: 95326,
+          text: "Pertemuan 03: Jumat, 09 Oktober 2026 Pkl. 15:00 - 17:00 WIB (Online - Link meeting teams)",
+          author: null,
+          postedAt: wib("2026-10-01T10:00:00"),
+        },
+      ],
+    };
+    const link: Material = {
+      id: 7,
+      courseId: 95326,
+      moduleId: null,
+      title: "Link Teams Pertemuan 03",
+      type: "ms-teams",
+      content: "https://teams.microsoft.com/meet/1",
+      sizeBytes: null,
+      postedAt: null,
+      updatedAt: null,
+    };
     expect(edunexMeetings(["PL3002", "II4091"], { presence, announcements, materials: { II4091: [link] } })).toEqual([
       { code: "PL3002", start: wib("2026-10-08T08:00:00"), end: wib("2026-10-08T09:30:00"), number: null, online: false, link: null },
-      { code: "II4091", start: wib("2026-10-09T15:00:00"), end: wib("2026-10-09T17:00:00"), number: 3, online: true, link: "https://teams.microsoft.com/meet/1" },
+      {
+        code: "II4091",
+        start: wib("2026-10-09T15:00:00"),
+        end: wib("2026-10-09T17:00:00"),
+        number: 3,
+        online: true,
+        link: "https://teams.microsoft.com/meet/1",
+      },
     ]);
   });
 });

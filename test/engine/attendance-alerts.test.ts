@@ -72,7 +72,10 @@ describe("Presence opening", () => {
     const app = await startAttendance({ world, six: sixState() });
     await app.until("2026-10-15T18:00:00+07:00");
     const texts = app.of("presenceOpen").map((n) => n.text);
-    expect(texts).toEqual(["Presensi dibuka · PL3002 — Buka mata kuliahnya di Edunex · tutup 09:30", "Presensi dibuka · PL3002 — Buka modulnya di Edunex · tutup 15:00"]);
+    expect(texts).toEqual([
+      "Presensi dibuka · PL3002 — Buka mata kuliahnya di Edunex · tutup 09:30",
+      "Presensi dibuka · PL3002 — Buka modulnya di Edunex · tutup 15:00",
+    ]);
     expect(app.of("presenceOpen")[1].id).toBe(`presence.open:${module}:${wib("2026-10-15T13:00:00")}`);
   });
 

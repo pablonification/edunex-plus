@@ -1,9 +1,10 @@
 // Files from Edunex go through Chromium's own download manager, so the OS
 // marks them as downloaded from the internet (quarantine / Mark of the Web).
 // They land in Downloads under their own name and open when done.
-import { app, shell, type WebContents } from "electron";
+
 import { existsSync } from "node:fs";
 import path from "node:path";
+import { app, shell, type WebContents } from "electron";
 import { EngineError } from "../engine/errors";
 
 /** Where Edunex keeps files: its storage on Azure, its API, ITB's own sites. */
@@ -39,7 +40,10 @@ export function download(contents: WebContents, url: string, name: string): Prom
 
 /** A file name with no folders or characters the file system refuses. */
 function safeName(name: string): string {
-  const clean = name.replace(/[/\\:*?"<>|\u0000-\u001f]/g, "_").replace(/^\.+/, "").trim();
+  const clean = name
+    .replace(/[/\\:*?"<>|\u0000-\u001f]/g, "_")
+    .replace(/^\.+/, "")
+    .trim();
   return clean || "file";
 }
 

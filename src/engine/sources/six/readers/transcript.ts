@@ -2,8 +2,22 @@
 // every course per term with its grade, SIX's IP per term, and SKS totals.
 // Works out how each row counts (retakes, rows off the transcript, T and
 // missing grades) and checks SIX's IP and IPK against the rows.
-import { checkIndex, cumulativeIndex, isLetterGrade, type Standing, termIndex, type Transcript, type TranscriptCourse } from "../../../../core/models";
-import { cellsOf, changed, codeWithCurriculum, type Elem, expectLabels, indexValue, int, intOrNull, openPage, type Page, rowsOf, termFromHeading, textOf } from "./records-common";
+import { checkIndex, cumulativeIndex, isLetterGrade, type Standing, type Transcript, type TranscriptCourse, termIndex } from "../../../../core/models";
+import {
+  cellsOf,
+  changed,
+  codeWithCurriculum,
+  type Elem,
+  expectLabels,
+  indexValue,
+  int,
+  intOrNull,
+  openPage,
+  type Page,
+  rowsOf,
+  termFromHeading,
+  textOf,
+} from "./records-common";
 
 const HEADER = ["", "Kode", "Mata Kuliah", "SKS", "Nilai", "Semester Kurikulum", "Masuk Transkrip"];
 
@@ -47,7 +61,11 @@ export function readTranscript(html: string, sixIpk: SixIpk): Transcript {
   if (terms.some((t) => !t.footer) || sksTaken === null) changed(page, "a total row is missing");
   if (new Set(terms.map((t) => t.term)).size !== terms.length) changed(page, "a semester appears twice");
   // Oldest first, whatever SIX's order: which attempt of a course is the newest depends on it.
-  return assemble(terms.sort((a, b) => a.term.localeCompare(b.term)), sksTaken, sixIpk);
+  return assemble(
+    terms.sort((a, b) => a.term.localeCompare(b.term)),
+    sksTaken,
+    sixIpk,
+  );
 }
 
 function termIp(page: Page, text: string): number | null {

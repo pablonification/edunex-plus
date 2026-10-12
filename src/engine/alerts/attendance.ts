@@ -14,7 +14,6 @@ import type { AlertDraft, Detector, DetectorContext, PlannedAlert } from "./dete
 const MINUTE = 60_000;
 const HOUR = 60 * MINUTE;
 
-
 type Read = Pick<DetectorContext, "get">;
 const sixCourses = ({ get }: Read) => get("six.courses");
 const sixSchedule = ({ get }: Read) => get("six.schedule") ?? [];
@@ -63,7 +62,10 @@ export function sixNotCounting(): Detector {
       for (const session of sixSchedule(context)) {
         if (isExamActivity(session.activity) || wibDay(session.start) !== today) continue;
         const count = courses.find((c) => c.code === session.courseCode)?.attendance;
-        const before = seen.get(session.courseCode)?.filter((c) => c.at <= session.start).at(-1);
+        const before = seen
+          .get(session.courseCode)
+          ?.filter((c) => c.at <= session.start)
+          .at(-1);
         if (!count || !before) continue;
         // Only a count read after the class says anything: SIX offline or signed out isn't SIX not counting.
         const read = context.fetchedAt("six.courses");

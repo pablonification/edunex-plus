@@ -147,7 +147,12 @@ export function meetingsLeft(
   // A day the lecturer set a hand-in for attendance (Edunex's Answer Assignment) is a meeting that happens, exam week or not.
   const handIn = new Set(presence.filter((p) => p.countsBy[0]?.kind === "assignment").map((p) => wibDay(p.opensAt)));
   const uncertain = (day: string) => (period?.offDays.has(day) ?? false) && !handIn.has(day);
-  const upcoming: UpcomingMeeting[] = coming.map((session) => ({ start: session.start, session, estimated: false, uncertain: uncertain(wibDay(session.start)) }));
+  const upcoming: UpcomingMeeting[] = coming.map((session) => ({
+    start: session.start,
+    session,
+    estimated: false,
+    uncertain: uncertain(wibDay(session.start)),
+  }));
   if (period && schedule.length) {
     // SIX's timetable comes a month at a time: it covers through the end of its last month.
     const lastMonth = wibDay(Math.max(...schedule.map((s) => s.start))).slice(0, 7);
@@ -221,7 +226,8 @@ export function attendanceHealth({ code, six, sixConnected, presence, schedule, 
     edunexClosed: closed.length,
     edunexRecorded: closed.filter((p) => p.recorded?.present).length,
   };
-  if (!six || six.held === 0) return { ...base, attended: six?.attended ?? null, held: six?.held ?? null, absencesLeft: null, best: null, toRecover: null, state: "unknown" };
+  if (!six || six.held === 0)
+    return { ...base, attended: six?.attended ?? null, held: six?.held ?? null, absencesLeft: null, best: null, toRecover: null, state: "unknown" };
   const { attended, held } = six;
   const t = target / 100;
   const remaining = base.left.count;

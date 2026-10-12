@@ -57,7 +57,15 @@ export function TasksTab({ tasks, exams }: { tasks: Task[]; exams: Exam[] }) {
   );
 }
 
-export function AnnouncementsTab({ announcements, mainCourseId, code }: { announcements: Announcement[] | undefined; mainCourseId: number | null; code: string }) {
+export function AnnouncementsTab({
+  announcements,
+  mainCourseId,
+  code,
+}: {
+  announcements: Announcement[] | undefined;
+  mainCourseId: number | null;
+  code: string;
+}) {
   const t = useT();
   const f = useFormat();
   const open = useOpenExternal();

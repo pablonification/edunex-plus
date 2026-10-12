@@ -5,7 +5,7 @@
 // disagree.
 import { useMemo, useState } from "react";
 import type { StudyPlan } from "../core/models";
-import { defaultPlan, livePlan, project, type Projection, type StudentRecord, studentRecord } from "../core/planner";
+import { defaultPlan, livePlan, type Projection, project, type StudentRecord, studentRecord } from "../core/planner";
 import { useBridge, useDataset } from "./store";
 
 /** The record, or undefined while SIX's transcript hasn't been read. */

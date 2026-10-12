@@ -1,7 +1,7 @@
 // Interactive controls: buttons, the switch, the segmented control. Every
 // control has a visible keyboard focus and a name screen readers can read.
 import * as SwitchPrimitive from "@radix-ui/react-switch";
-import { useRef, type ButtonHTMLAttributes, type ReactNode, type Ref } from "react";
+import { type ButtonHTMLAttributes, type ReactNode, type Ref, useRef } from "react";
 import { cx } from "./cx";
 import { Icons } from "./icons";
 

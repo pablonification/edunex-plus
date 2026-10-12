@@ -32,8 +32,20 @@ describe("meetings", () => {
     const h = await signedIn();
     const announced = announcedMeetings(h.dataset("edunex.materials")!.II4091, h.dataset("edunex.announcements")!.II4091);
     expect(announced).toEqual([
-      expect.objectContaining({ number: 2, start: at("2026-09-11T15:00:00+07:00"), end: at("2026-09-11T17:00:00+07:00"), online: true, link: expect.stringContaining("teams.microsoft.com") }),
-      expect.objectContaining({ number: 3, start: at("2026-10-09T15:00:00+07:00"), end: at("2026-10-09T17:00:00+07:00"), note: "Online - Link meeting teams", online: true }),
+      expect.objectContaining({
+        number: 2,
+        start: at("2026-09-11T15:00:00+07:00"),
+        end: at("2026-09-11T17:00:00+07:00"),
+        online: true,
+        link: expect.stringContaining("teams.microsoft.com"),
+      }),
+      expect.objectContaining({
+        number: 3,
+        start: at("2026-10-09T15:00:00+07:00"),
+        end: at("2026-10-09T17:00:00+07:00"),
+        note: "Online - Link meeting teams",
+        online: true,
+      }),
     ]);
   });
 
@@ -43,7 +55,11 @@ describe("meetings", () => {
       [],
       [
         post(2, "Pertemuan 03: Sabtu, 10 Oktober 2026 Pkl. 09:00 - 11:00 WIB", "2026-10-05T10:00:00+07:00"),
-        post(1, "Pertemuan 03: Jumat, 09 Oktober 2026 Pkl. 15:00 - 17:00 WIB\nPertemuan 04: Jumat, 16 Oktober 2026 Pkl. 15:00 - 17:00 WIB", "2026-10-01T10:00:00+07:00"),
+        post(
+          1,
+          "Pertemuan 03: Jumat, 09 Oktober 2026 Pkl. 15:00 - 17:00 WIB\nPertemuan 04: Jumat, 16 Oktober 2026 Pkl. 15:00 - 17:00 WIB",
+          "2026-10-01T10:00:00+07:00",
+        ),
       ],
     );
     expect(found.map((m) => [m.number, m.start])).toEqual([
@@ -86,8 +102,20 @@ describe("meetings", () => {
 });
 
 describe("a meeting's module", () => {
-  const meeting = (day: string): Meeting => ({ key: day, start: at(`${day}T08:00:00+07:00`), end: at(`${day}T09:30:00+07:00`), six: null, presence: null, announced: null, notInSix: false });
-  const entry = (number: number, title: string, posted: string) => ({ module: { id: number, courseId: 1, title, postedAt: at(`${posted}+07:00`) }, number, parent: false });
+  const meeting = (day: string): Meeting => ({
+    key: day,
+    start: at(`${day}T08:00:00+07:00`),
+    end: at(`${day}T09:30:00+07:00`),
+    six: null,
+    presence: null,
+    announced: null,
+    notInSix: false,
+  });
+  const entry = (number: number, title: string, posted: string) => ({
+    module: { id: number, courseId: 1, title, postedAt: at(`${posted}+07:00`) },
+    number,
+    parent: false,
+  });
   const meetings = ["2026-09-10", "2026-09-17", "2026-09-24", "2026-10-01"].map(meeting);
 
   it("is the one module posted in the week before it; a batch or two in one week names nothing", () => {
@@ -147,7 +175,10 @@ describe("materials and offline files", () => {
     // A note that is only a picture has nothing to read here.
     expect(materialAction({ ...base, type: "text", content: '<figure><img src="x"></figure>' }).kind).toBe("edunex");
     expect(materialAction({ ...base, type: "url", content: "https://www.itb.ac.id/news" })).toEqual({ kind: "open", url: "https://www.itb.ac.id/news" });
-    expect(materialAction({ ...base, type: "url", content: "https://example.org/x" })).toEqual({ kind: "edunex", url: "https://edunex.itb.ac.id/courses/95001/preview/470019" });
+    expect(materialAction({ ...base, type: "url", content: "https://example.org/x" })).toEqual({
+      kind: "edunex",
+      url: "https://edunex.itb.ac.id/courses/95001/preview/470019",
+    });
     expect(materialAction({ ...base, type: "h5p", content: "https://example.org/h5p" }).kind).toBe("edunex");
     expect(materialAction({ ...base, type: "quiz-of-the-future", content: blob }).kind).toBe("edunex");
     // Other uploads carry their extension as the type (seen live: zip, ppt).

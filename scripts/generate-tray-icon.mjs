@@ -4,9 +4,10 @@
 // taskbars; assets/trayLight.png (+@2x), white, for dark taskbars.
 // Re-run after changing the drawing:
 //   node scripts/generate-tray-icon.mjs
-import { deflateSync } from "node:zlib";
+
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
+import { deflateSync } from "node:zlib";
 
 const CRC_TABLE = new Int32Array(256).map((_, n) => {
   let c = n;

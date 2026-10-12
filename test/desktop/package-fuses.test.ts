@@ -25,7 +25,15 @@ describe("packaged build fuse check", () => {
   });
 
   it("fails an unpackaged Electron (Node mode, inspector and NODE_OPTIONS on; no cookie encryption or archive checks)", () => {
-    const stock = { ...good(), [FuseV1Options.RunAsNode]: ON, [FuseV1Options.EnableNodeOptionsEnvironmentVariable]: ON, [FuseV1Options.EnableNodeCliInspectArguments]: ON, [FuseV1Options.EnableCookieEncryption]: OFF, [FuseV1Options.EnableEmbeddedAsarIntegrityValidation]: OFF, [FuseV1Options.OnlyLoadAppFromAsar]: OFF };
+    const stock = {
+      ...good(),
+      [FuseV1Options.RunAsNode]: ON,
+      [FuseV1Options.EnableNodeOptionsEnvironmentVariable]: ON,
+      [FuseV1Options.EnableNodeCliInspectArguments]: ON,
+      [FuseV1Options.EnableCookieEncryption]: OFF,
+      [FuseV1Options.EnableEmbeddedAsarIntegrityValidation]: OFF,
+      [FuseV1Options.OnlyLoadAppFromAsar]: OFF,
+    };
     expect(fuseProblems(stock)).toEqual([
       "RunAsNode is on, should be off",
       "EnableNodeOptionsEnvironmentVariable is on, should be off",

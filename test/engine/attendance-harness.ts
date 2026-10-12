@@ -38,7 +38,8 @@ export function standInSix(state: PretendSixState): Source<null> {
         async run(current) {
           if (!current()) return;
           if (state.offline) throw new EngineError("Offline", "SIX is unreachable");
-          for (const [name, value] of [as("six.student", state.student), as("six.courses", state.courses), as("six.schedule", state.schedule)]) await context.set(name, structuredClone(value));
+          for (const [name, value] of [as("six.student", state.student), as("six.courses", state.courses), as("six.schedule", state.schedule)])
+            await context.set(name, structuredClone(value));
         },
       });
     },

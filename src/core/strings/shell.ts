@@ -50,7 +50,10 @@ export const shellStrings = {
   "sync.expired": { id: "Sesi {source} berakhir", en: "{source} session ended" },
   "sync.refreshNow": { id: "Perbarui sekarang", en: "Refresh now" },
   "banner.offline": { id: "Tidak ada koneksi.", en: "No connection." },
-  "banner.offlineHint": { id: "Data dari {time} tetap ditampilkan; aplikasi mencoba lagi sendiri.", en: "Data from {time} is still shown; the app keeps trying." },
+  "banner.offlineHint": {
+    id: "Data dari {time} tetap ditampilkan; aplikasi mencoba lagi sendiri.",
+    en: "Data from {time} is still shown; the app keeps trying.",
+  },
   "banner.expired": { id: "Sesi {source} berakhir.", en: "Your {source} session ended." },
   "banner.changed": { id: "{source} berubah.", en: "{source} changed something." },
   "banner.signedOut": { id: "Kamu belum masuk ke {source}.", en: "You're not signed in to {source}." },
@@ -115,7 +118,10 @@ export const shellStrings = {
   "settings.language": { id: "Bahasa", en: "Language" },
   "settings.accounts": { id: "Akun", en: "Accounts" },
   "settings.notConnected": { id: "Belum terhubung", en: "Not connected" },
-  "settings.accounts.note": { id: "Kalau sesi berakhir, kamu cukup masuk lagi; data terakhir tetap bisa dibaca.", en: "If a session ends, just sign in again; your last data stays readable." },
+  "settings.accounts.note": {
+    id: "Kalau sesi berakhir, kamu cukup masuk lagi; data terakhir tetap bisa dibaca.",
+    en: "If a session ends, just sign in again; your last data stays readable.",
+  },
   "settings.account.live": { id: "Terhubung · diperiksa {when}", en: "Connected · checked {when}" },
   "settings.account.stale": { id: "Tidak bisa diperiksa · data dari {when}", en: "Couldn't check · data from {when}" },
   "settings.account.expired": { id: "Sesi berakhir · masuk lagi untuk memperbarui", en: "Session ended · sign in again to update" },

@@ -23,18 +23,44 @@ export interface AnnouncedMeeting {
 }
 
 const MONTHS: Readonly<Record<string, number>> = {
-  januari: 1, jan: 1, january: 1,
-  februari: 2, feb: 2, february: 2,
-  maret: 3, mar: 3, march: 3,
-  april: 4, apr: 4,
-  mei: 5, may: 5,
-  juni: 6, jun: 6, june: 6,
-  juli: 7, jul: 7, july: 7,
-  agustus: 8, agu: 8, agt: 8, ags: 8, aug: 8, august: 8,
-  september: 9, sep: 9, sept: 9,
-  oktober: 10, okt: 10, oct: 10, october: 10,
-  november: 11, nov: 11,
-  desember: 12, des: 12, dec: 12, december: 12,
+  januari: 1,
+  jan: 1,
+  january: 1,
+  februari: 2,
+  feb: 2,
+  february: 2,
+  maret: 3,
+  mar: 3,
+  march: 3,
+  april: 4,
+  apr: 4,
+  mei: 5,
+  may: 5,
+  juni: 6,
+  jun: 6,
+  june: 6,
+  juli: 7,
+  jul: 7,
+  july: 7,
+  agustus: 8,
+  agu: 8,
+  agt: 8,
+  ags: 8,
+  aug: 8,
+  august: 8,
+  september: 9,
+  sep: 9,
+  sept: 9,
+  oktober: 10,
+  okt: 10,
+  oct: 10,
+  october: 10,
+  november: 11,
+  nov: 11,
+  desember: 12,
+  des: 12,
+  dec: 12,
+  december: 12,
 };
 
 // "Pertemuan 03: Jumat, 09 Oktober 2026 Pkl. 15:00 - 17:00 WIB (Online - Link meeting teams)"
@@ -59,7 +85,9 @@ const wibMonth = (ms: number) => wibDay(ms).slice(0, 7);
  */
 export function announcedMeetings(materials: readonly Material[], announcements: readonly Announcement[]): AnnouncedMeeting[] {
   const texts = [
-    ...materials.filter((m) => materialKind(m.type) === "note" && m.content).map((m) => ({ text: htmlText(m.content ?? ""), at: m.updatedAt ?? m.postedAt ?? 0 })),
+    ...materials
+      .filter((m) => materialKind(m.type) === "note" && m.content)
+      .map((m) => ({ text: htmlText(m.content ?? ""), at: m.updatedAt ?? m.postedAt ?? 0 })),
     ...announcements.map((a) => ({ text: a.text, at: a.postedAt ?? 0 })),
   ];
   const found = new Map<number, AnnouncedMeeting & { at: number }>();
@@ -75,7 +103,15 @@ export function announcedMeetings(materials: readonly Material[], announcements:
       const previous = found.get(Number(number));
       if (previous && previous.at > at) continue;
       const cleanNote = note?.trim() || null;
-      found.set(Number(number), { number: Number(number), start, end, note: cleanNote, online: /online|daring|teams|zoom|meet|webex/i.test(cleanNote ?? ""), link: null, at });
+      found.set(Number(number), {
+        number: Number(number),
+        start,
+        end,
+        note: cleanNote,
+        online: /online|daring|teams|zoom|meet|webex/i.test(cleanNote ?? ""),
+        link: null,
+        at,
+      });
     }
   }
   const vicons = materials.filter((m) => materialKind(m.type) === "vicon" && m.content).sort((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0));

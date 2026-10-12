@@ -22,7 +22,12 @@ describe("SIX public course catalog", () => {
     await h.wait(FULL_READ);
     const catalog = h.dataset("itb.catalog")!;
     expect(catalog.programs).toHaveLength(53);
-    expect(catalog.programs.filter((p) => p.state === "ready").map((p) => p.id).sort()).toEqual(["154", "174", "182"]);
+    expect(
+      catalog.programs
+        .filter((p) => p.state === "ready")
+        .map((p) => p.id)
+        .sort(),
+    ).toEqual(["154", "174", "182"]);
     // The others aren't in the recording (the pretend SIX answers 404): skipped, not failed.
     expect(catalog.programs.filter((p) => p.state === "missing")).toHaveLength(50);
 
@@ -196,23 +201,42 @@ describe("SIX public course catalog", () => {
 
   it("reads the Student's own program first", async () => {
     const storage = new MemoryStorage();
-    const value = { nim: "18223901", name: "Dimas Pratama", studentId: "2021000001", term: "2026-1", program: "Perencanaan Wilayah dan Kota", programCode: "154" };
+    const value = {
+      nim: "18223901",
+      name: "Dimas Pratama",
+      studentId: "2021000001",
+      term: "2026-1",
+      program: "Perencanaan Wilayah dan Kota",
+      programCode: "154",
+    };
     await storage.write("datasets/six.student.json", JSON.stringify({ format: 1, name: "six.student", value, fetchedAt: 0, hash: "x" }));
     const h = await startEngine({ storage });
     await h.wait(10_000);
-    expect(catalogRequests(h).map((r) => r.path).slice(0, 2)).toEqual(["/pub/kur2024", "/pub/kur2024/154"]);
+    expect(
+      catalogRequests(h)
+        .map((r) => r.path)
+        .slice(0, 2),
+    ).toEqual(["/pub/kur2024", "/pub/kur2024/154"]);
     expect(program(h, "154").state).toBe("ready");
   });
 
   it("without SIX, reads first the programs offering the Student's Edunex courses (a campus copy's under the main campus too)", async () => {
     const storage = new MemoryStorage();
     const outline = (program: string) => ({ lecturer: null, credits: null, program, modules: [], grade: null });
-    const value = { DK4073: outline("S1 - Desain Komunikasi Visual"), PL3002: outline("S1 - Perencanaan Wilayah dan Kota (Kampus Cirebon)"), KU5014: outline("Mata Kuliah Umum (MKU)") };
+    const value = {
+      DK4073: outline("S1 - Desain Komunikasi Visual"),
+      PL3002: outline("S1 - Perencanaan Wilayah dan Kota (Kampus Cirebon)"),
+      KU5014: outline("Mata Kuliah Umum (MKU)"),
+    };
     await storage.write("datasets/edunex.outline.json", JSON.stringify({ format: 1, name: "edunex.outline", value, fetchedAt: 0, hash: "x" }));
     const h = await startEngine({ storage });
     await h.wait(20_000);
     // In SIX's list order: Perencanaan Wilayah dan Kota (and its Cirebon copy), then Desain Komunikasi Visual, before any other.
-    expect(catalogRequests(h).map((r) => r.path).slice(0, 4)).toEqual(["/pub/kur2024", "/pub/kur2024/154", "/pub/kur2024/156", "/pub/kur2024/174"]);
+    expect(
+      catalogRequests(h)
+        .map((r) => r.path)
+        .slice(0, 4),
+    ).toEqual(["/pub/kur2024", "/pub/kur2024/154", "/pub/kur2024/156", "/pub/kur2024/174"]);
     expect(course(h, "DK4073")?.name).toBe("Komunikasi Pemasaran");
     expect(course(h, "PL3002")?.name).toBe("Ekonomi dan Inovasi dalam Perencanaan");
   });

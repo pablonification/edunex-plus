@@ -125,7 +125,10 @@ describe("ITB calendar alerts", () => {
     expect(app.of("academic")).toHaveLength(1);
     // URS 15–18 Sep: open, and the day before it closes.
     await app.until("2026-09-18T09:00:00+07:00");
-    expect(app.texts("academic").slice(1)).toEqual(["Perubahan KRS dibuka — Ubah KRS di SIX sampai 18 Sep", "Perubahan KRS ditutup besok — Ubah KRS di SIX sampai 18 Sep"]);
+    expect(app.texts("academic").slice(1)).toEqual([
+      "Perubahan KRS dibuka — Ubah KRS di SIX sampai 18 Sep",
+      "Perubahan KRS ditutup besok — Ubah KRS di SIX sampai 18 Sep",
+    ]);
   }, 30_000);
 
   it("the questionnaire opening", async () => {

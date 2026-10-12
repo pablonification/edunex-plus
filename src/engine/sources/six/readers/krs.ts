@@ -25,7 +25,10 @@ export function readKrs(html: string): KrsPlan {
   const page = openPage(html, "KRS");
   const heading = page.$(".page-header h1 small").first();
   if (heading.length !== 1) changed(page, "it names no term");
-  const tables = page.$("table").toArray().map((table) => page.$(table));
+  const tables = page
+    .$("table")
+    .toArray()
+    .map((table) => page.$(table));
   // Student data, the registration status, then the courses.
   const [data, status, courses] = tables as [Elem | undefined, Elem | undefined, Elem | undefined];
   if (!data || !status || !courses) changed(page, "its tables moved");
@@ -95,7 +98,13 @@ function readCourses(page: Page, table: Elem): { list: KrsCourse[]; sks: number 
     if (cells.length !== COURSE_HEADER.length) changed(page, `a course row has ${cells.length} cells`);
     const [code, name, classNo, sks, approved] = cells as [Elem, Elem, Elem, Elem, Elem];
     if (!/^[A-Z]{2}\d{4}$/.test(textOf(code))) changed(page, `"${textOf(code)}" isn't a course code`);
-    return { code: textOf(code), name: textOf(name), classNo: textOf(classNo), sks: int(page, textOf(sks), "SKS"), approved: approved.find(".fa-check").length > 0 };
+    return {
+      code: textOf(code),
+      name: textOf(name),
+      classNo: textOf(classNo),
+      sks: int(page, textOf(sks), "SKS"),
+      approved: approved.find(".fa-check").length > 0,
+    };
   });
   return { list, sks: int(page, textOf(total[1]!), "SKS total") };
 }

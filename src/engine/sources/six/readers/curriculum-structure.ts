@@ -3,7 +3,7 @@
 // the minors open to the Student, and the program's course catalog. Every
 // course carries SIX's id, which leads to its syllabus.
 import type { Curriculum, CurriculumCourse } from "../../../../core/models";
-import { cellsOf, changed, clean, COURSE_CODE, courseIdOf, type Elem, expectLabels, int, openPage, type Page, rowsOf, textOf } from "./records-common";
+import { COURSE_CODE, cellsOf, changed, clean, courseIdOf, type Elem, expectLabels, int, openPage, type Page, rowsOf, textOf } from "./records-common";
 
 const COURSE_HEADER = ["Kode", "Mata Kuliah", "SKS"];
 const CATALOG_HEADER = ["Kode", "Mata Kuliah", "Kategori", "SKS"];
@@ -51,7 +51,12 @@ function readRequired(page: Page, pane: Elem): Curriculum["required"] {
           return int(page, /(\d+)$/.exec(text)?.[1] ?? text, "semester");
         });
       } else if (cells.every((cell) => cell.is("th"))) {
-        expectLabels(page, cells.map(textOf), semesters.flatMap(() => COURSE_HEADER), "the required courses header");
+        expectLabels(
+          page,
+          cells.map(textOf),
+          semesters.flatMap(() => COURSE_HEADER),
+          "the required courses header",
+        );
       } else {
         let at = 0;
         for (const semester of semesters) {

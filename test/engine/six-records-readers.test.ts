@@ -40,14 +40,17 @@ function verdict<T>(read: () => T): T | string {
 function inEnglish(html: string, labels: [string, string][], switchLanguage = true): string {
   let out = html;
   if (switchLanguage) {
-    out = out.replace('<li class="active"><a href="/pub/locale/id', '<li><a href="/pub/locale/id').replace('<li><a href="/pub/locale/en', '<li class="active"><a href="/pub/locale/en');
+    out = out
+      .replace('<li class="active"><a href="/pub/locale/id', '<li><a href="/pub/locale/id')
+      .replace('<li><a href="/pub/locale/en', '<li class="active"><a href="/pub/locale/en');
   }
   for (const [from, to] of labels) out = out.split(from).join(to);
   return out;
 }
 
 const transcriptOf = (six: PretendSix, ipk = IPK) => readTranscript(six.page(TRANSCRIPT), ipk);
-const course = (transcript: ReturnType<typeof transcriptOf>, term: string, code: string) => transcript.terms.find((t) => t.term === term)!.courses.find((c) => c.code === code)!;
+const course = (transcript: ReturnType<typeof transcriptOf>, term: string, code: string) =>
+  transcript.terms.find((t) => t.term === term)!.courses.find((c) => c.code === code)!;
 
 describe("transcript by semester", () => {
   it("reads every term with its courses, SIX's IP and the IPK, all agreeing with the rows", () => {
@@ -142,11 +145,19 @@ describe("transcript by semester", () => {
   it("refuses layouts it doesn't know", () => {
     const page = sixPage(TRANSCRIPT);
     const refused = (html: string) => verdict(() => readTranscript(html, IPK));
-    expect(refused(page.split("<th>Nilai</th>").join("<th>Indeks</th>"))).toBe('VendorChanged: SIX transcript page: the course header reads " | Kode | Mata Kuliah | SKS | Indeks | Semester Kurikulum | Masuk Transkrip"');
+    expect(refused(page.split("<th>Nilai</th>").join("<th>Indeks</th>"))).toBe(
+      'VendorChanged: SIX transcript page: the course header reads " | Kode | Mata Kuliah | SKS | Indeks | Semester Kurikulum | Masuk Transkrip"',
+    );
     // A new column shifts every cell: refused rather than read as grades.
-    expect(refused(page.split("<th>Nilai</th>").join("<th>Bobot</th><th>Nilai</th>"))).toMatch(/^VendorChanged: SIX transcript page: the course header has 8 columns/);
-    expect(refused(page.replace(/(<td>FI1101<span[^>]*>-19<\/span><\/td><td>[^<]*<\/td><td>4<\/td><td>)\s*A\s*/, "$185.5"))).toBe('VendorChanged: SIX transcript page: grade "85.5" isn\'t a grade');
-    expect(refused(page.replace("Semester 1 Tahun 2023/2024", "Semester Ganjil"))).toBe('VendorChanged: SIX transcript page: semester heading "Semester Ganjil" names no term');
+    expect(refused(page.split("<th>Nilai</th>").join("<th>Bobot</th><th>Nilai</th>"))).toMatch(
+      /^VendorChanged: SIX transcript page: the course header has 8 columns/,
+    );
+    expect(refused(page.replace(/(<td>FI1101<span[^>]*>-19<\/span><\/td><td>[^<]*<\/td><td>4<\/td><td>)\s*A\s*/, "$185.5"))).toBe(
+      'VendorChanged: SIX transcript page: grade "85.5" isn\'t a grade',
+    );
+    expect(refused(page.replace("Semester 1 Tahun 2023/2024", "Semester Ganjil"))).toBe(
+      'VendorChanged: SIX transcript page: semester heading "Semester Ganjil" names no term',
+    );
     expect(refused(page.replace("NR 3.69", "NR 3,6"))).toMatch(/^VendorChanged: SIX transcript page: semester IP "3,6"/);
     expect(refused(page.replace('<i class="fa fa-check fa-fw text-success" aria-hidden="true"></i></td></tr>', "Ya</td></tr>"))).toMatch(/neither ✓ nor ✗/);
     expect(refused(page.replace(/<tr class="info">[\s\S]*<\/table>/, "</table>"))).toBe("VendorChanged: SIX transcript page: no table of semesters");
@@ -190,7 +201,18 @@ describe("graduation progress (curriculum position)", () => {
 
     const courses = progress.stages.flatMap((s) => s.semesters.flatMap((x) => x.courses));
     const byCode = (code: string) => courses.find((c) => c.code === code);
-    expect(byCode("MA1101")).toEqual({ code: "MA1101", curriculumYear: 2019, name: "Matematika IA", kind: "required", kindCode: "W", sks: 4, status: "graded", grade: "AB", term: "2023-1", note: null });
+    expect(byCode("MA1101")).toEqual({
+      code: "MA1101",
+      curriculumYear: 2019,
+      name: "Matematika IA",
+      kind: "required",
+      kindCode: "W",
+      sks: 4,
+      status: "graded",
+      grade: "AB",
+      term: "2023-1",
+      note: null,
+    });
     expect(byCode("WI1103")).toMatchObject({ status: "exempt", grade: null, term: null, note: "Transfer" });
     expect(byCode("II4091")).toMatchObject({ status: "in-progress", grade: null, term: "2026-1" });
     expect(byCode("II4012")).toMatchObject({ kind: "program-elective", kindCode: "PD", grade: "C" });
@@ -200,7 +222,8 @@ describe("graduation progress (curriculum position)", () => {
       ["II4092", "required", 4],
     ]);
     // SIX's "Jenis Mata Kuliah" totals are the rows taken (graded or in progress), exempt ones aside.
-    const taken = (kind: string) => courses.filter((c) => c.kind === kind && (c.status === "graded" || c.status === "in-progress")).reduce((sum, c) => sum + c.sks, 0);
+    const taken = (kind: string) =>
+      courses.filter((c) => c.kind === kind && (c.status === "graded" || c.status === "in-progress")).reduce((sum, c) => sum + c.sks, 0);
     expect([taken("required"), taken("program-elective"), taken("outside-elective")]).toEqual([108, 6, 25]);
   });
 
@@ -216,12 +239,18 @@ describe("graduation progress (curriculum position)", () => {
     const page = sixPage(PROGRESS);
     const refused = (html: string) => verdict(() => readProgress(html));
     expect(refused(page.replace("<th>Sifat</th>", "<th>Jenis</th>"))).toMatch(/^VendorChanged: SIX curriculum position page: the course header reads/);
-    expect(refused(page.replace(/Tahap Sarjana\s*\(IP 3\.18 \/ SKS Lulus 107\)/, "Tahap Sarjana (3.18)"))).toBe('VendorChanged: SIX curriculum position page: stage "Tahap Sarjana (3.18)" isn\'t readable');
+    expect(refused(page.replace(/Tahap Sarjana\s*\(IP 3\.18 \/ SKS Lulus 107\)/, "Tahap Sarjana (3.18)"))).toBe(
+      'VendorChanged: SIX curriculum position page: stage "Tahap Sarjana (3.18)" isn\'t readable',
+    );
     expect(refused(page.replace('<span class="label label-danger" title="Belum diambil">', '<span class="label label-warning" title="Belum diambil">'))).toBe(
       'VendorChanged: SIX curriculum position page: course II4090 has an unknown status "Belum diambil"',
     );
-    expect(refused(page.replace(/Lulus 125 SKS\s*\/\s*Nilai T 0 SKS/, "125 SKS"))).toBe('VendorChanged: SIX curriculum position page: SKS "125 SKS" isn\'t readable');
-    expect(refused(page.replace(/<tr class="info"><th colspan="3">Semua[\s\S]*?<\/tr>/, ""))).toBe("VendorChanged: SIX curriculum position page: the overall total is missing");
+    expect(refused(page.replace(/Lulus 125 SKS\s*\/\s*Nilai T 0 SKS/, "125 SKS"))).toBe(
+      'VendorChanged: SIX curriculum position page: SKS "125 SKS" isn\'t readable',
+    );
+    expect(refused(page.replace(/<tr class="info"><th colspan="3">Semua[\s\S]*?<\/tr>/, ""))).toBe(
+      "VendorChanged: SIX curriculum position page: the overall total is missing",
+    );
   });
 
   it("reads SIX's English page by structure; kinds it can't name stay as SIX labels them", () => {
@@ -268,7 +297,16 @@ describe("curriculum", () => {
     expect(structure.name).toBe("Kurikulum 2024 - Sarjana Sistem dan Teknologi Informasi");
     expect(structure.required).toHaveLength(45);
     expect(structure.required.reduce((sum, c) => sum + c.sks, 0)).toBe(117);
-    expect(structure.required.filter((c) => c.semester === 1).map((c) => c.code)).toEqual(["MA1101", "FI1101", "KI1101", "WI1101", "WI1102", "WI1103", "WI1111", "WI1116"]);
+    expect(structure.required.filter((c) => c.semester === 1).map((c) => c.code)).toEqual([
+      "MA1101",
+      "FI1101",
+      "KI1101",
+      "WI1101",
+      "WI1102",
+      "WI1103",
+      "WI1111",
+      "WI1116",
+    ]);
     expect(structure.required.filter((c) => c.semester === 6).map((c) => c.code)).toEqual(["II3220", "II3230", "II3240", "IF3211", "WI2022"]);
     expect(structure.required.find((c) => c.code === "WI201X")).toEqual({ code: "WI201X", name: "Agama", sks: 2, courseId: "47573", semester: 2 });
     expect(structure.required.find((c) => c.code === "II1200")).toMatchObject({ courseId: "47837", semester: 2 });
@@ -291,20 +329,37 @@ describe("curriculum", () => {
 
   it("reads what the Student registered for", () => {
     expect(readSchemes(sixPage(SCHEMES))).toEqual([
-      { kind: "specialization", name: "Sistem Informasi Cerdas", program: "Sistem dan Teknologi Informasi", advisorApprovedOn: "2026-02-05", programApprovedOn: "2026-02-05", status: "On Progress" },
+      {
+        kind: "specialization",
+        name: "Sistem Informasi Cerdas",
+        program: "Sistem dan Teknologi Informasi",
+        advisorApprovedOn: "2026-02-05",
+        programApprovedOn: "2026-02-05",
+        status: "On Progress",
+      },
     ]);
   });
 
   it("refuses layouts it doesn't know", () => {
-    expect(verdict(() => readCurriculumList(sixPage(LIST).replace("<th class=\"text-center\">SKS Lulus</th>", "<th class=\"text-center\">Beban</th>")))).toMatch(
+    expect(verdict(() => readCurriculumList(sixPage(LIST).replace('<th class="text-center">SKS Lulus</th>', '<th class="text-center">Beban</th>')))).toMatch(
       /^VendorChanged: SIX curriculum list page: the list header reads/,
     );
     const structure = sixPage(STRUCTURE);
-    expect(verdict(() => readCurriculumStructure(structure.replace('id="katalog"', 'id="catalog"')))).toBe("VendorChanged: SIX curriculum structure page: the katalog tab is missing");
-    expect(verdict(() => readCurriculumStructure(structure.replace(/(<a href="\/pub\/matakuliah\/47455">)\s*MA1101\s*</, "$1 Matematika <")))).toBe('VendorChanged: SIX curriculum structure page: "Matematika" isn\'t a course code');
-    expect(verdict(() => readSchemes(sixPage(SCHEMES).replace(/<div class="panel-title">[^<]*<\/div>/g, "").replace(/tab=[a-z]+/g, "")))).toBe(
-      "VendorChanged: SIX education scheme page: no scheme panels",
+    expect(verdict(() => readCurriculumStructure(structure.replace('id="katalog"', 'id="catalog"')))).toBe(
+      "VendorChanged: SIX curriculum structure page: the katalog tab is missing",
     );
+    expect(verdict(() => readCurriculumStructure(structure.replace(/(<a href="\/pub\/matakuliah\/47455">)\s*MA1101\s*</, "$1 Matematika <")))).toBe(
+      'VendorChanged: SIX curriculum structure page: "Matematika" isn\'t a course code',
+    );
+    expect(
+      verdict(() =>
+        readSchemes(
+          sixPage(SCHEMES)
+            .replace(/<div class="panel-title">[^<]*<\/div>/g, "")
+            .replace(/tab=[a-z]+/g, ""),
+        ),
+      ),
+    ).toBe("VendorChanged: SIX education scheme page: no scheme panels");
   });
 });
 
@@ -332,7 +387,7 @@ describe("syllabus", () => {
   it("keeps a filled syllabus's lines and its weekly plan", () => {
     const page = sixPage(SYLLABUS)
       .replace("<tr><th>Silabus Ringkas</th><td></td>", "<tr><th>Silabus Ringkas</th><td>Konsep dasar STI.<br />Peran STI di organisasi.</td>")
-      .replace("<tr><td colspan=\"5\"><em>Belum ada</em></td></tr>", "<tr><td>1</td><td>Pengantar</td><td>Ruang lingkup</td><td></td><td>Buku 1</td></tr>");
+      .replace('<tr><td colspan="5"><em>Belum ada</em></td></tr>', "<tr><td>1</td><td>Pengantar</td><td>Ruang lingkup</td><td></td><td>Buku 1</td></tr>");
     const syllabus = readSyllabus(page, "47837");
     expect(syllabus.summary).toEqual({ id: "Konsep dasar STI.\nPeran STI di organisasi.", en: null });
     expect(syllabus.weeks).toEqual([{ week: "1", topic: "Pengantar", subtopics: "Ruang lingkup", outcomes: null, sources: "Buku 1" }]);
@@ -365,7 +420,11 @@ describe("study plan (KRS)", () => {
     six.dropKrsChange();
     six.krsStep("plan", "Pengesahan KSM", null);
     six.krsStep("plan", "Persetujuan Dosen Wali", null);
-    expect(readKrs(six.page(KRS))).toMatchObject({ state: "sent", change: null, plan: { sentAt: wib("2026-08-16T10:45:42"), approvedAt: null, legalizedAt: null } });
+    expect(readKrs(six.page(KRS))).toMatchObject({
+      state: "sent",
+      change: null,
+      plan: { sentAt: wib("2026-08-16T10:45:42"), approvedAt: null, legalizedAt: null },
+    });
     six.krsStep("plan", "Persetujuan Dosen Wali", "18 Agu 2026 14.39.32");
     expect(readKrs(six.page(KRS)).state).toBe("approved");
     six.krsStep("plan", "Pengesahan KSM", "20 Agu 2026 14.34.46");
@@ -388,11 +447,24 @@ describe("study plan (KRS)", () => {
   it("refuses layouts it doesn't know", () => {
     const page = sixPage(KRS);
     const refused = (html: string) => verdict(() => readKrs(html));
-    expect(refused(page.replace("<th>Persetujuan Dosen Wali</th>", "<th>Persetujuan Wali</th>"))).toBe("VendorChanged: SIX KRS page: the plan round has no Persetujuan Dosen Wali row");
+    expect(refused(page.replace("<th>Persetujuan Dosen Wali</th>", "<th>Persetujuan Wali</th>"))).toBe(
+      "VendorChanged: SIX KRS page: the plan round has no Persetujuan Dosen Wali row",
+    );
     // A row the app doesn't use is fine.
-    expect(refused(page.replace("<tr class=\"success\"><th>Pembayaran UKT</th>", "<tr><th>Pengisian Kuesioner</th><td>Sudah</td></tr><tr class=\"success\"><th>Pembayaran UKT</th>"))).toMatchObject({ state: "official" });
-    expect(refused(page.replace("18 Agu 2026 14.39.32", "18/08/2026 14:39"))).toBe('VendorChanged: SIX KRS page: Persetujuan Dosen Wali "18/08/2026 14:39" isn\'t a date');
-    expect(refused(page.replace('<th class="text-center">Disetujui</th>', '<th class="text-center">Status</th>'))).toMatch(/^VendorChanged: SIX KRS page: the course header reads/);
+    expect(
+      refused(
+        page.replace(
+          '<tr class="success"><th>Pembayaran UKT</th>',
+          '<tr><th>Pengisian Kuesioner</th><td>Sudah</td></tr><tr class="success"><th>Pembayaran UKT</th>',
+        ),
+      ),
+    ).toMatchObject({ state: "official" });
+    expect(refused(page.replace("18 Agu 2026 14.39.32", "18/08/2026 14:39"))).toBe(
+      'VendorChanged: SIX KRS page: Persetujuan Dosen Wali "18/08/2026 14:39" isn\'t a date',
+    );
+    expect(refused(page.replace('<th class="text-center">Disetujui</th>', '<th class="text-center">Status</th>'))).toMatch(
+      /^VendorChanged: SIX KRS page: the course header reads/,
+    );
     expect(refused(page.replace(/<h1>[\s\S]*?<\/h1>/, "<h1>Rencana Studi</h1>"))).toBe("VendorChanged: SIX KRS page: it names no term");
   });
 
@@ -409,7 +481,10 @@ describe("study plan (KRS)", () => {
       ["<th>Pengesahan KSM Pengganti</th>", "<th>Replacement KSM Validation</th>"],
       ["Penggantian Rencana Studi (URS)", "Study Plan Change (URS)"],
       [" Agu 2026 ", " Aug 2026 "],
-      ['<th>Kode</th><th>Mata Kuliah</th><th class="text-center">Kelas</th><th class="text-center">SKS </th><th class="text-center">Disetujui</th>', "<th>Code</th><th>Course</th><th>Class</th><th>Credits</th><th>Approved</th>"],
+      [
+        '<th>Kode</th><th>Mata Kuliah</th><th class="text-center">Kelas</th><th class="text-center">SKS </th><th class="text-center">Disetujui</th>',
+        "<th>Code</th><th>Course</th><th>Class</th><th>Credits</th><th>Approved</th>",
+      ],
     ]);
     for (const label of ["<th>Pengiriman", "<th>Persetujuan", "<th>Pengesahan", ">Disetujui<", " Agu "]) expect(english).not.toContain(label);
     expect(readKrs(english)).toEqual(readKrs(page));
@@ -466,23 +541,35 @@ describe("bills", () => {
     expect(readBills(six.page(BILLS)).find((b) => b.term === "2026-2")).toMatchObject({ status: "paid", nextDueAt: null });
 
     const partly = new PretendSix(() => 0);
-    partly.editPage(BILLS, (html) => html.replace(/(2&nbsp;-&nbsp;Genap\s*<\/strong><\/td><td class="text-right">\s*10\.500\.000\s*<\/td><td class="text-right">\s*)10\.500\.000/, "$15.250.000"));
+    partly.editPage(BILLS, (html) =>
+      html.replace(
+        /(2&nbsp;-&nbsp;Genap\s*<\/strong><\/td><td class="text-right">\s*10\.500\.000\s*<\/td><td class="text-right">\s*)10\.500\.000/,
+        "$15.250.000",
+      ),
+    );
     expect(readBills(partly.page(BILLS)).find((b) => b.term === "2023-2")).toMatchObject({ status: "partly-paid", nextDueAt: wib("2024-03-24T23:59:59.999") });
   });
 
   it("refuses layouts it doesn't know", () => {
     const page = sixPage(BILLS);
     const refused = (html: string) => verdict(() => readBills(html));
-    expect(refused(page.replace("<th class='text-right'>Pembayaran (Rp)</th>", "<th class='text-right'>Dibayar (Rp)</th>"))).toMatch(/^VendorChanged: SIX finance page: the bills header reads/);
+    expect(refused(page.replace("<th class='text-right'>Pembayaran (Rp)</th>", "<th class='text-right'>Dibayar (Rp)</th>"))).toMatch(
+      /^VendorChanged: SIX finance page: the bills header reads/,
+    );
     expect(refused(page.replace("24 Agu 2026", "2026-08-24"))).toBe('VendorChanged: SIX finance page: deadline of 2026-1 "2026-08-24" isn\'t a date');
-    expect(refused(page.replace(/(<td class="text-right">\s*)5\.400\.000/, "$15.400.000,00"))).toBe('VendorChanged: SIX finance page: bill of 2025-1 "5.400.000,00" isn\'t an amount');
+    expect(refused(page.replace(/(<td class="text-right">\s*)5\.400\.000/, "$15.400.000,00"))).toBe(
+      'VendorChanged: SIX finance page: bill of 2025-1 "5.400.000,00" isn\'t an amount',
+    );
     expect(refused(page.replace("1&nbsp;-&nbsp;Ganjil", "Ganjil"))).toBe('VendorChanged: SIX finance page: term "Ganjil" isn\'t readable');
   });
 
   it("reads SIX's English page the same way", () => {
     const page = sixPage(BILLS);
     const english = inEnglish(page, [
-      ["<th class='text-right'>Tagihan (Rp)</th><th class='text-right'>Pembayaran (Rp)</th><th class='text-left'>Batas Pembayaran</th><th class='text-center'>Petunjuk</th>", "<th class='text-right'>Bill (Rp)</th><th class='text-right'>Paid (Rp)</th><th class='text-left'>Due</th><th class='text-center'>Help</th>"],
+      [
+        "<th class='text-right'>Tagihan (Rp)</th><th class='text-right'>Pembayaran (Rp)</th><th class='text-left'>Batas Pembayaran</th><th class='text-center'>Petunjuk</th>",
+        "<th class='text-right'>Bill (Rp)</th><th class='text-right'>Paid (Rp)</th><th class='text-left'>Due</th><th class='text-center'>Help</th>",
+      ],
       ["Tahun ", "Year "],
       ["Ganjil", "Odd"],
       ["Genap", "Even"],
@@ -510,7 +597,9 @@ describe("every reader, given a page it isn't for", () => {
 
   it("says SIX changed something: no crash, no data", () => {
     for (const [own, read] of readers) {
-      const others = exchanges("six").filter((e) => !own.test(e.path)).map((e) => bodyText("six", e.file));
+      const others = exchanges("six")
+        .filter((e) => !own.test(e.path))
+        .map((e) => bodyText("six", e.file));
       for (const html of [...others, login, ""]) expect(verdict(() => read(html))).toMatch(/^VendorChanged: /);
     }
   });

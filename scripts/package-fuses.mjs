@@ -49,7 +49,11 @@ export function binaryPath(context) {
 export async function verifyFuses(binary) {
   const problems = fuseProblems(await getCurrentFuseWire(binary));
   if (problems.length) throw new Error(`Electron fuses are wrong in ${binary}:\n  ${problems.join("\n  ")}`);
-  console.log(`  • fuses checked  ${Object.entries(FUSES).map(([name, on]) => `${name}=${on ? "on" : "off"}`).join(" ")}`);
+  console.log(
+    `  • fuses checked  ${Object.entries(FUSES)
+      .map(([name, on]) => `${name}=${on ? "on" : "off"}`)
+      .join(" ")}`,
+  );
 }
 
 /** electron-builder hook: flip, then read back. The build stops here if a fuse didn't take. */

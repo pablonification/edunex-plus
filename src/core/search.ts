@@ -86,7 +86,11 @@ const PLAIN = /^[\x20-\x7e]*$/;
 /** Lowercase, accents dropped, anything but letters and digits as one space. */
 export function fold(text: string): string {
   // Most titles are plain ASCII: the quick way gives the same result.
-  if (PLAIN.test(text)) return text.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  if (PLAIN.test(text))
+    return text
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, " ")
+      .trim();
   return text
     .normalize("NFKD")
     .replace(/\p{M}+/gu, "")
@@ -215,7 +219,8 @@ export function searchIndex(saved: Saved, { lang, screens, now }: IndexOptions):
     return [code, course?.six, course?.edunex, catalog.get(code)].filter(Boolean).join(" ");
   };
   // Indonesian: the official name, SIX's or else ITB's catalog (as everywhere in the app without SIX), never Edunex's English one.
-  const nameOf = (course: (typeof courses)[number]) => (lang === "id" ? (course.six ?? catalog.get(course.code) ?? courseName(course, lang)) : courseName(course, lang));
+  const nameOf = (course: (typeof courses)[number]) =>
+    lang === "id" ? (course.six ?? catalog.get(course.code) ?? courseName(course, lang)) : courseName(course, lang);
   const displayName = (code: string) => {
     const course = byCode.get(code);
     return course ? nameOf(course) : code;
@@ -224,7 +229,15 @@ export function searchIndex(saved: Saved, { lang, screens, now }: IndexOptions):
   for (const course of courses) {
     const title = nameOf(course);
     add(
-      { kind: "course", key: `course:${course.code}`, title, code: course.code, target: { screen: "course", code: course.code }, classNo: course.classNo, sks: course.sks },
+      {
+        kind: "course",
+        key: `course:${course.code}`,
+        title,
+        code: course.code,
+        target: { screen: "course", code: course.code },
+        classNo: course.classNo,
+        sks: course.sks,
+      },
       [
         [title, TITLE],
         [course.code, TITLE],
@@ -250,14 +263,24 @@ export function searchIndex(saved: Saved, { lang, screens, now }: IndexOptions):
     const title = takeHomeOnly(exam) ? exam.tasks[0]!.title : (exam.edunex[0]?.title ?? `${kind} ${displayName(exam.courseCode)}`.trim());
     const session = exam.six[0];
     // Every name the systems give it: SIX's sitting and room, Edunex's exam and take-home titles, the outline module ("Finex/UAS").
-    const modules = exam.inOutline ? (saved["edunex.outline"]?.[exam.courseCode]?.modules ?? []).filter((m) => examKind(m.title) === exam.kind).map((m) => m.title) : [];
-    const own = [session ? `${session.activity} ${session.courseName} ${session.room ?? ""}` : null, ...exam.tasks.map((task) => task.title), ...exam.edunex.map((e) => e.title), ...modules, kind]
+    const modules = exam.inOutline
+      ? (saved["edunex.outline"]?.[exam.courseCode]?.modules ?? []).filter((m) => examKind(m.title) === exam.kind).map((m) => m.title)
+      : [];
+    const own = [
+      session ? `${session.activity} ${session.courseName} ${session.room ?? ""}` : null,
+      ...exam.tasks.map((task) => task.title),
+      ...exam.edunex.map((e) => e.title),
+      ...modules,
+      kind,
+    ]
       .filter(Boolean)
       .join(" ");
     add({ kind: "exam", key: `exam:${exam.id}`, title, code: exam.courseCode, target: examRoute(exam), exam }, [
       [title, TITLE],
       // A take-home's or Edunex exam's own title ("UTS Markom") names the exam as much as its shown title.
-      ...[...exam.tasks.map((task) => task.title), ...exam.edunex.map((e) => e.title)].filter((name) => name && name !== title).map((name) => [name, TITLE] as [string, number]),
+      ...[...exam.tasks.map((task) => task.title), ...exam.edunex.map((e) => e.title)]
+        .filter((name) => name && name !== title)
+        .map((name) => [name, TITLE] as [string, number]),
       [own, CONTEXT],
       [courseWords(exam.courseCode), CONTEXT],
     ]);
@@ -271,10 +294,20 @@ export function searchIndex(saved: Saved, { lang, screens, now }: IndexOptions):
     for (const entry of outlineEntries(outline, main)) {
       const module: ModulePlace = { id: entry.module.id, title: entry.module.title, number: entry.number, parent: entry.parent };
       places.set(module.id, module);
-      add({ kind: "module", key: `module:${module.id}`, title: module.title, code, target: { screen: "course", code, tab: "modules", module: module.id }, module }, [
-        [module.title, TITLE],
-        [courseWords(code), CONTEXT],
-      ]);
+      add(
+        {
+          kind: "module",
+          key: `module:${module.id}`,
+          title: module.title,
+          code,
+          target: { screen: "course", code, tab: "modules", module: module.id },
+          module,
+        },
+        [
+          [module.title, TITLE],
+          [courseWords(code), CONTEXT],
+        ],
+      );
     }
     modulePlaces.set(code, places);
   }
@@ -286,7 +319,15 @@ export function searchIndex(saved: Saved, { lang, screens, now }: IndexOptions):
       // A material in a module the outline no longer shows has no place to open.
       if (material.moduleId !== null && !module) continue;
       add(
-        { kind: "material", key: `material:${material.id}`, title: material.title, code, target: { screen: "course", code, tab: "modules", ...(module && { module: module.id }) }, material, module },
+        {
+          kind: "material",
+          key: `material:${material.id}`,
+          title: material.title,
+          code,
+          target: { screen: "course", code, tab: "modules", ...(module && { module: module.id }) },
+          material,
+          module,
+        },
         [
           [material.title, TITLE],
           [module?.title, CONTEXT],
@@ -301,10 +342,13 @@ export function searchIndex(saved: Saved, { lang, screens, now }: IndexOptions):
     for (const announcement of announcements) {
       const title = firstLine(announcement.text);
       if (!title) continue;
-      add({ kind: "announcement", key: `announcement:${announcement.id}`, title, code, target: { screen: "course", code, tab: "announcements" }, announcement }, [
-        [title, TITLE],
-        [courseWords(code), CONTEXT],
-      ]);
+      add(
+        { kind: "announcement", key: `announcement:${announcement.id}`, title, code, target: { screen: "course", code, tab: "announcements" }, announcement },
+        [
+          [title, TITLE],
+          [courseWords(code), CONTEXT],
+        ],
+      );
     }
   }
 
@@ -313,11 +357,14 @@ export function searchIndex(saved: Saved, { lang, screens, now }: IndexOptions):
     const spec: { label: StringKey; within?: StringKey; target: SearchTarget } = SCREENS[screen];
     const title = translate(lang, spec.label);
     const alias = `search.alias.${screen}` as StringKey;
-    add({ kind: "screen", key: `screen:${screen}`, title, code: null, target: spec.target, screen, within: spec.within ? translate(lang, spec.within) : null }, [
-      [title, TITLE],
-      [`${translate(other, spec.label)} ${translate("id", alias)} ${translate("en", alias)}`, ALIAS],
-      [spec.within && `${translate("id", spec.within)} ${translate("en", spec.within)}`, CONTEXT],
-    ]);
+    add(
+      { kind: "screen", key: `screen:${screen}`, title, code: null, target: spec.target, screen, within: spec.within ? translate(lang, spec.within) : null },
+      [
+        [title, TITLE],
+        [`${translate(other, spec.label)} ${translate("id", alias)} ${translate("en", alias)}`, ALIAS],
+        [spec.within && `${translate("id", spec.within)} ${translate("en", spec.within)}`, CONTEXT],
+      ],
+    );
   }
 
   for (const action of Object.keys(ACTIONS) as SearchAction[]) {
@@ -396,7 +443,8 @@ function distance(a: string, b: string, max: number): number {
     for (let j = 1; j <= b.length; j++) {
       const same = a.charCodeAt(i - 1) === b.charCodeAt(j - 1);
       let value = Math.min(previous[j] + 1, current[j - 1] + 1, previous[j - 1] + (same ? 0 : 1));
-      if (i > 1 && j > 1 && a.charCodeAt(i - 1) === b.charCodeAt(j - 2) && a.charCodeAt(i - 2) === b.charCodeAt(j - 1)) value = Math.min(value, beforePrevious[j - 2] + 1);
+      if (i > 1 && j > 1 && a.charCodeAt(i - 1) === b.charCodeAt(j - 2) && a.charCodeAt(i - 2) === b.charCodeAt(j - 1))
+        value = Math.min(value, beforePrevious[j - 2] + 1);
       current[j] = value;
       if (value < rowMin) rowMin = value;
     }

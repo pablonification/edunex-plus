@@ -68,10 +68,13 @@ export async function launchDemo(options = {}) {
     },
     /** Runs a function on the pretend world in the main process (post a Task, go offline, ...). */
     world(fn, arg) {
-      return app.evaluate((_electron, [source, value]) => {
-        const world = globalThis.__edunexPlusDemoWorld;
-        return new Function("world", "arg", `return (${source})(world, arg)`)(world, value);
-      }, [fn.toString(), arg]);
+      return app.evaluate(
+        (_electron, [source, value]) => {
+          const world = globalThis.__edunexPlusDemoWorld;
+          return new Function("world", "arg", `return (${source})(world, arg)`)(world, value);
+        },
+        [fn.toString(), arg],
+      );
     },
     /** The window's visible text, for quick checks. */
     text: () => page.evaluate(() => document.body.innerText),
@@ -81,7 +84,8 @@ export async function launchDemo(options = {}) {
       return video ? await video.path() : null;
     },
   };
-  if (options.theme || options.lang) await demo.settings({ ...(options.theme ? { theme: options.theme } : {}), ...(options.lang ? { lang: options.lang } : {}) });
+  if (options.theme || options.lang)
+    await demo.settings({ ...(options.theme ? { theme: options.theme } : {}), ...(options.lang ? { lang: options.lang } : {}) });
   return demo;
 }
 

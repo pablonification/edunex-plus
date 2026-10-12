@@ -19,7 +19,15 @@ export const VICON_PROVIDERS: Readonly<Record<string, string>> = {
   webex: "Webex",
 };
 
-const KINDS: Readonly<Record<string, MaterialKind>> = { pdf: "pdf", text: "note", video: "video", audio: "audio", url: "link", file: "file", h5p: "interactive" };
+const KINDS: Readonly<Record<string, MaterialKind>> = {
+  pdf: "pdf",
+  text: "note",
+  video: "video",
+  audio: "audio",
+  url: "link",
+  file: "file",
+  h5p: "interactive",
+};
 /** Edunex labels other uploads by their extension: "zip", "ppt", "docx"… */
 const UPLOAD_TYPE = /^[a-z0-9]{2,5}$/;
 

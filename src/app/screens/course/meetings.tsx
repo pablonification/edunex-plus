@@ -6,12 +6,12 @@
 // absence where SIX is (or, signed out of SIX, may be) the one that counts.
 // A meeting carries one number only: the name Edunex or SIX gives it.
 import type { ReactNode } from "react";
+import type { CountedIn } from "../../../core/attendance";
 import { type OutlineEntry, outlineEntries } from "../../../core/course-materials";
-import { meetingModules, meetingState, nextMeetingIndex, type Meeting, wibDay } from "../../../core/course-meetings";
+import { type Meeting, meetingModules, meetingState, nextMeetingIndex, wibDay } from "../../../core/course-meetings";
 import { edunexCourseUrl } from "../../../core/links";
 import type { CalendarEvent } from "../../../core/models";
 import { dayStart } from "../../../core/schedule";
-import type { CountedIn } from "../../../core/attendance";
 import { useAttendance } from "../../attendance";
 import { useOpenExternal } from "../../hooks";
 import { useFormat, useNow, useT } from "../../i18n";
@@ -47,7 +47,9 @@ export function MeetingsTab({ page }: { page: CoursePage }) {
         {course.attendance && course.attendance.held > 0 ? (
           <p className="text-lead">
             <span className="font-semibold">{t("meeting.official", course.attendance)}</span>
-            {health && attendance && health.state !== "unknown" && <span className={cx("font-semibold", STATE_TONE[health.state])}> · {budgetLabel(t, health, attendance.target)}</span>}
+            {health && attendance && health.state !== "unknown" && (
+              <span className={cx("font-semibold", STATE_TONE[health.state])}> · {budgetLabel(t, health, attendance.target)}</span>
+            )}
           </p>
         ) : null}
         {countedIn === "noSix" && !noEdunexPresence && health ? (
@@ -167,7 +169,8 @@ function MeetingRow({
   const placeholder = !moduleTitle && (!named || /^((pertemuan|meeting)\s*\d+|kuliah)$/i.test(named.trim()));
   const title = moduleTitle ?? named ?? (announced ? t("meeting.number", { no: announced.number }) : six?.activity || t("meeting.untitled"));
   // Edunex's Presence window, when it isn't simply the meeting's time.
-  const window = presence && (presence.opensAt !== meeting.start || presence.closesAt !== meeting.end) ? f.timeRange(presence.opensAt, presence.closesAt) : null;
+  const window =
+    presence && (presence.opensAt !== meeting.start || presence.closesAt !== meeting.end) ? f.timeRange(presence.opensAt, presence.closesAt) : null;
   const presenceUrl = presence?.url ?? fallbackUrl;
   const future = meeting.start > now;
   // An open window asks for you (amber, primary) only where Edunex may be what counts; where SIX counts, or
@@ -207,7 +210,9 @@ function MeetingRow({
   else if (state === "recorded") status = <span className="text-small text-faint">{t("meeting.state.recorded")}</span>;
   else if (state === "held") status = <span className="text-small text-faint">{t("meeting.done")}</span>;
   else if (next)
-    status = <span className="inline-flex h-[22px] items-center rounded-full bg-info-bg px-2 text-caption font-semibold text-info-fg">{t("meeting.next")}</span>;
+    status = (
+      <span className="inline-flex h-[22px] items-center rounded-full bg-info-bg px-2 text-caption font-semibold text-info-fg">{t("meeting.next")}</span>
+    );
 
   return (
     <li className={cx(index > 0 && "border-t border-line")}>
@@ -220,7 +225,9 @@ function MeetingRow({
           <span className="block text-small text-muted">{f.timeRange(meeting.start, meeting.end)}</span>
         </span>
         <span className="min-w-0 text-body">
-          <span title={title} className={cx("line-clamp-2", placeholder ? "text-muted" : "font-medium", future && !next && !placeholder && "text-fg/80")}>{title}</span>
+          <span title={title} className={cx("line-clamp-2", placeholder ? "text-muted" : "font-medium", future && !next && !placeholder && "text-fg/80")}>
+            {title}
+          </span>
           <span className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-small text-muted">
             {six?.room && (
               <span className="inline-flex items-center gap-1">

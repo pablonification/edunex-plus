@@ -51,4 +51,12 @@ export type Event = z.infer<typeof Event>;
 export type ActionResult<T> = { ok: true; value: T } | { ok: false; error: BridgeError };
 
 /** Hosts the app may open in the browser. */
-export const OFFICIAL_HOSTS = [/(^|\.)itb\.ac\.id$/, /^api-edunex\.cognisia\.id$/, /^teams\.microsoft\.com$/, /^teams\.live\.com$/, /(^|\.)zoom\.us$/, /^meet\.google\.com$/, /(^|\.)webex\.com$/];
+export const OFFICIAL_HOSTS = [
+  /(^|\.)itb\.ac\.id$/,
+  /^api-edunex\.cognisia\.id$/,
+  /^teams\.microsoft\.com$/,
+  /^teams\.live\.com$/,
+  /(^|\.)zoom\.us$/,
+  /^meet\.google\.com$/,
+  /(^|\.)webex\.com$/,
+];

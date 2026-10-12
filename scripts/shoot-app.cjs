@@ -63,10 +63,17 @@ if (args[0] === "--seed") {
       // Every screen and every tab, as a Student would click through them.
       // Sidebar entries first; their text can end in a count ("Tugas & Ujian5").
       const click = (label) =>
-        run(win, `(() => { const all = [...document.querySelectorAll("aside button, aside a"), ...document.querySelectorAll("button, [role=tab], a")]; const el = all.find((e) => e.textContent.trim() === ${JSON.stringify(label)} || e.getAttribute("aria-label") === ${JSON.stringify(label)}) ?? all.find((e) => e.closest("aside") && e.textContent.trim().startsWith(${JSON.stringify(label)})); if (!el) return false; el.click(); return true; })()`);
+        run(
+          win,
+          `(() => { const all = [...document.querySelectorAll("aside button, aside a"), ...document.querySelectorAll("button, [role=tab], a")]; const el = all.find((e) => e.textContent.trim() === ${JSON.stringify(label)} || e.getAttribute("aria-label") === ${JSON.stringify(label)}) ?? all.find((e) => e.closest("aside") && e.textContent.trim().startsWith(${JSON.stringify(label)})); if (!el) return false; el.click(); return true; })()`,
+        );
       const tabs = () => run(win, `[...document.querySelectorAll("main [role=tab]")].map((t) => t.textContent.trim())`);
       // Radix tabs switch on mousedown (left button), not on click.
-      const clickTab = (i) => run(win, `(() => { const tab = document.querySelectorAll("main [role=tab]")[${i}]; tab.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, cancelable: true, button: 0 })); tab.click(); })()`);
+      const clickTab = (i) =>
+        run(
+          win,
+          `(() => { const tab = document.querySelectorAll("main [role=tab]")[${i}]; tab.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, cancelable: true, button: 0 })); tab.click(); })()`,
+        );
       const shotTabs = async (name) => {
         const labels = await tabs();
         if (!labels.length) return shot(win, name);
@@ -84,7 +91,13 @@ if (args[0] === "--seed") {
         await sleep(500);
       }
       await shot(win, "home");
-      for (const [label, name] of [["Tugas & Ujian", "tasks"], ["Jadwal", "schedule"], ["Presensi", "presence"], ["Nilai", "grades"], ["Rencana studi", "plan"]]) {
+      for (const [label, name] of [
+        ["Tugas & Ujian", "tasks"],
+        ["Jadwal", "schedule"],
+        ["Presensi", "presence"],
+        ["Nilai", "grades"],
+        ["Rencana studi", "plan"],
+      ]) {
         if (!(await click(label))) {
           console.log("[tour] no", label);
           continue;
@@ -92,7 +105,10 @@ if (args[0] === "--seed") {
         await shotTabs(name);
         if (name === "tasks") {
           // A Task's page: the exams listed above the Tasks open their own page.
-          const opened = await run(win, `(() => { const row = document.querySelector("main section:not([aria-label=Ujian]):not([aria-label=Exams]) li button, main [data-task]"); if (!row) return false; row.click(); return true; })()`);
+          const opened = await run(
+            win,
+            `(() => { const row = document.querySelector("main section:not([aria-label=Ujian]):not([aria-label=Exams]) li button, main [data-task]"); if (!row) return false; row.click(); return true; })()`,
+          );
           if (opened) await shot(win, "task-page");
         }
       }
@@ -165,11 +181,13 @@ if (args[0] === "--seed") {
     win.webContents.on("console-message", (event) => console.log(`[page:${event.level}]`, event.message));
     win.webContents.on("did-fail-load", (_e, code, description, url) => console.log("[page] failed to load", code, description, url));
     win.webContents.on("preload-error", (_e, file, error) => console.log("[page] preload error", file, error));
-    win.once("show", () =>
-      void script(win).catch((error) => {
-        console.error(error);
-        app.exit(1);
-      }),
+    win.once(
+      "show",
+      () =>
+        void script(win).catch((error) => {
+          console.error(error);
+          app.exit(1);
+        }),
     );
   });
   require("../dist/desktop/main.cjs");

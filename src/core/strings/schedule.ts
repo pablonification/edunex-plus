@@ -15,7 +15,10 @@ export const scheduleStrings = {
   "schedule.weekOf": { id: "Minggu ke-{n} · {range}", en: "Week {n} · {range}" },
   "schedule.notCovered": { id: "SIX belum menampilkan jadwal untuk tanggal ini", en: "SIX hasn't published the timetable for these dates yet" },
   "schedule.needsSix": { id: "Jadwal kuliah & ruang butuh SIX", en: "Your classes and rooms need SIX" },
-  "schedule.needsSix.hint": { id: "Ini yang Edunex tahu: pertemuan, tenggat, dan kalender ITB.", en: "Here's what Edunex knows: meetings, deadlines and the ITB calendar." },
+  "schedule.needsSix.hint": {
+    id: "Ini yang Edunex tahu: pertemuan, tenggat, dan kalender ITB.",
+    en: "Here's what Edunex knows: meetings, deadlines and the ITB calendar.",
+  },
   "schedule.signInSix": { id: "Masuk ke SIX", en: "Sign in to SIX" },
   "schedule.provenance.six": {
     id: "Jadwal dari SIX · pertemuan tambahan dan tenggat dari Edunex · masa ujian dan libur dari Kalender ITB",
@@ -49,7 +52,10 @@ export const scheduleStrings = {
   "schedule.meetingEdunex": { id: "Pertemuan", en: "Meeting" },
   "schedule.online": { id: "Daring", en: "Online" },
   "schedule.notInSix": { id: "Tidak ada di SIX", en: "Not in SIX" },
-  "schedule.notInSix.long": { id: "Diumumkan dosen di Edunex; jadwal SIX tidak mencantumkannya.", en: "Your lecturer announced it in Edunex; SIX's timetable doesn't list it." },
+  "schedule.notInSix.long": {
+    id: "Diumumkan dosen di Edunex; jadwal SIX tidak mencantumkannya.",
+    en: "Your lecturer announced it in Edunex; SIX's timetable doesn't list it.",
+  },
   "schedule.fromEdunex": { id: "Dari Edunex", en: "From Edunex" },
   "schedule.due": { id: "Tenggat {time}: {title}", en: "Due {time}: {title}" },
   "schedule.due.kind": { id: "Tenggat", en: "Deadline" },
@@ -57,7 +63,10 @@ export const scheduleStrings = {
   "schedule.handIn": { id: "Kumpulkan {task} sebelum {time} untuk hadir", en: "Hand in {task} before {time} to be marked present" },
   "schedule.handIn.unknown": { id: "Kumpulkan tugasnya sebelum {time} untuk hadir", en: "Hand in the Task before {time} to be marked present" },
   "schedule.window.kind": { id: "Presensi lewat tugas", en: "Presence by hand-in" },
-  "schedule.window.only": { id: "Hadir tercatat hanya jika dikumpulkan dalam jendela ini.", en: "You're marked present only if you hand it in within this window." },
+  "schedule.window.only": {
+    id: "Hadir tercatat hanya jika dikumpulkan dalam jendela ini.",
+    en: "You're marked present only if you hand it in within this window.",
+  },
   "schedule.window.six": { id: "Di jadwal SIX: pertemuan {time}", en: "In SIX's timetable: a meeting {time}" },
   "schedule.window.recorded": { id: "Edunex sudah mencatatmu hadir", en: "Edunex has marked you present" },
   "schedule.window.done": { id: "{task} terkumpul", en: "{task} handed in" },
@@ -91,7 +100,10 @@ export const scheduleStrings = {
   // The phone calendar export
   "schedule.export": { id: "Tambahkan ke kalender HP", en: "Add to phone calendar" },
   "schedule.export.title": { id: "Tambahkan ke kalender HP", en: "Add to your phone's calendar" },
-  "schedule.export.lead": { id: "Simpan jadwalmu sebagai berkas kalender, lalu buka berkasnya di HP.", en: "Save your schedule as a calendar file, then open the file on your phone." },
+  "schedule.export.lead": {
+    id: "Simpan jadwalmu sebagai berkas kalender, lalu buka berkasnya di HP.",
+    en: "Save your schedule as a calendar file, then open the file on your phone.",
+  },
   "schedule.export.what": { id: "Yang dimasukkan", en: "What goes in" },
   "schedule.export.classes": { id: "Kuliah", en: "Classes" },
   "schedule.export.classes.hint": { id: "Dengan ruangnya, dari SIX", en: "With rooms, from SIX" },
@@ -108,7 +120,10 @@ export const scheduleStrings = {
   "schedule.export.range.until": { id: "sampai {date}", en: "until {date}" },
   "schedule.export.fromToday": { id: "Mulai hari ini.", en: "Starting today." },
   "schedule.export.sixUntil": { id: "Jadwal kuliah dari SIX baru ada sampai {date}.", en: "SIX's timetable only goes up to {date} so far." },
-  "schedule.export.once": { id: "Ini salinan sekali ambil: ekspor lagi jika jadwal berubah.", en: "It's a one-time copy: export again if your schedule changes." },
+  "schedule.export.once": {
+    id: "Ini salinan sekali ambil: ekspor lagi jika jadwal berubah.",
+    en: "It's a one-time copy: export again if your schedule changes.",
+  },
   "schedule.export.save": { id: "Simpan {count} acara", en: { one: "Save {count} event", other: "Save {count} events" } },
   "schedule.export.nothing": { id: "Tidak ada yang bisa disimpan", en: "Nothing to save" },
   "schedule.export.saved": { id: "{count} acara tersimpan", en: { one: "{count} event saved", other: "{count} events saved" } },
@@ -184,7 +199,10 @@ export const scheduleStrings = {
   "ics.fromEdunex": { id: "Dari Edunex", en: "From Edunex" },
   "ics.notInSix": { id: "Diumumkan di Edunex, tidak ada di jadwal SIX", en: "Announced in Edunex, not in SIX's timetable" },
   "ics.handIn": { id: "Presensi {code}: kumpulkan {task}", en: "Presence {code}: hand in {task}" },
-  "ics.handIn.note": { id: "Hadir tercatat hanya jika tugasnya dikumpulkan dalam jendela ini.", en: "You're marked present only if you hand the Task in within this window." },
+  "ics.handIn.note": {
+    id: "Hadir tercatat hanya jika tugasnya dikumpulkan dalam jendela ini.",
+    en: "You're marked present only if you hand the Task in within this window.",
+  },
   "ics.fromItb": { id: "Dari Kalender ITB", en: "From the ITB calendar" },
 
   // Alerts

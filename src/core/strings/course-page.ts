@@ -83,7 +83,10 @@ export const coursePageStrings = {
   // Tasks and exams
   "course.noTasks": { id: "Tidak ada tugas", en: "No tasks" },
   "course.exams": { id: "Ujian", en: "Exams" },
-  "course.noExamsNoSix": { id: "Belum ada ujian di Edunex. Jadwal ujian dari SIX muncul setelah SIX terhubung.", en: "No exams in Edunex yet. SIX's exam timetable shows once SIX is connected." },
+  "course.noExamsNoSix": {
+    id: "Belum ada ujian di Edunex. Jadwal ujian dari SIX muncul setelah SIX terhubung.",
+    en: "No exams in Edunex yet. SIX's exam timetable shows once SIX is connected.",
+  },
   "course.noExams": { id: "Belum ada ujian di SIX maupun Edunex", en: "No exams in SIX or Edunex yet" },
   "course.due": { id: "Tenggat {when}", en: "Due {when}" },
 
@@ -127,11 +130,20 @@ export const coursePageStrings = {
   "course.attendanceShare": { id: "{attended}/{held} · {percent}%", en: "{attended}/{held} · {percent}%" },
   "course.attendanceLabel": { id: "Kehadiran {attended} dari {held}, {percent}%", en: "Attendance {attended} of {held}, {percent}%" },
   "course.closesAt": { id: "tutup {time} ({left} lagi)", en: "closes {time} ({left} left)" },
-  "course.presenceNoSix": { id: "Tanpa SIX, belum pasti Presensi ini dihitung: catat saja untuk berjaga-jaga.", en: "Without SIX it's not certain this Presence counts: record it just in case." },
-  "course.presenceCountsSix": { id: "Kehadiranmu dihitung di SIX; Presensi Edunex juga dibuka.", en: "Your attendance counts in SIX; Edunex Presence is open too." },
+  "course.presenceNoSix": {
+    id: "Tanpa SIX, belum pasti Presensi ini dihitung: catat saja untuk berjaga-jaga.",
+    en: "Without SIX it's not certain this Presence counts: record it just in case.",
+  },
+  "course.presenceCountsSix": {
+    id: "Kehadiranmu dihitung di SIX; Presensi Edunex juga dibuka.",
+    en: "Your attendance counts in SIX; Edunex Presence is open too.",
+  },
   "course.join": { id: "Gabung", en: "Join" },
   "course.online": { id: "Daring", en: "Online" },
-  "course.risk.best": { id: "Paling tinggi {best}% kalau kamu hadir di semua sisa pertemuan. Cek ke dosen kalau ada yang terlewat.", en: "At best {best}% if you attend every meeting left. Ask the lecturer if one was missed." },
+  "course.risk.best": {
+    id: "Paling tinggi {best}% kalau kamu hadir di semua sisa pertemuan. Cek ke dosen kalau ada yang terlewat.",
+    en: "At best {best}% if you attend every meeting left. Ask the lecturer if one was missed.",
+  },
   "course.risk.next": { id: "Pertemuan berikutnya {when}{room}.", en: "Next meeting {when}{room}." },
   "course.risk.room": { id: " di {room}", en: " in {room}" },
   "course.risk.clash": { id: "Bentrok dengan {code} {time}.", en: "Clashes with {code} {time}." },
@@ -179,13 +191,22 @@ export const coursePageStrings = {
   "grade.target": { id: "Target", en: "Target" },
   "grade.answer.need": { id: "Untuk {letter} kamu butuh rata-rata {need} di {parts}.", en: "For {letter} you need an average of {need} on {parts}." },
   "grade.answer.secured": { id: "{letter} sudah aman, berapa pun nilai sisanya.", en: "{letter} is secured, whatever you score on the rest." },
-  "grade.answer.out": { id: "{letter} tidak tercapai lagi. Paling tinggi yang masih mungkin: {best} ({bestLetter}).", en: "{letter} is out of reach. The best still possible: {best} ({bestLetter})." },
+  "grade.answer.out": {
+    id: "{letter} tidak tercapai lagi. Paling tinggi yang masih mungkin: {best} ({bestLetter}).",
+    en: "{letter} is out of reach. The best still possible: {best} ({bestLetter}).",
+  },
   "grade.answer.final": { id: "Nilai akhirmu {score}: {letter}.", en: "Your final score is {score}: {letter}." },
-  "grade.answer.weights": { id: "Lengkapi bobot dulu (sekarang {total}%). Totalnya harus 100%.", en: "Fix the weights first (now {total}%). They must add up to 100%." },
+  "grade.answer.weights": {
+    id: "Lengkapi bobot dulu (sekarang {total}%). Totalnya harus 100%.",
+    en: "Fix the weights first (now {total}%). They must add up to 100%.",
+  },
   "grade.answer.fix": { id: "Perbaiki angka yang bertanda merah dulu.", en: "Fix the numbers marked in red first." },
   "grade.answer.others": { id: "Huruf lain", en: "Other letters" },
   "grade.exampleNotice": { id: "Ini contoh bobot, bukan bobot {code}.", en: "These are example weights, not {code}'s." },
-  "grade.exampleHint": { id: "Salin bobot dari kontrak kuliahmu agar hasilnya benar.", en: "Copy the weights from your course contract so the answer is right." },
+  "grade.exampleHint": {
+    id: "Salin bobot dari kontrak kuliahmu agar hasilnya benar.",
+    en: "Copy the weights from your course contract so the answer is right.",
+  },
   "grade.openContract": { id: "Buka kontrak kuliah", en: "Open the course contract" },
   "grade.rename": { id: "Ganti nama {part}", en: "Rename {part}" },
   "grade.range": { id: "Isi 0–100", en: "Enter 0–100" },

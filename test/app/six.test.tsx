@@ -149,7 +149,9 @@ describe("Home with both systems", () => {
   it("an Edunex course of another term isn't joined to this term's SIX course", async () => {
     const world = (await openApp({ start: false })).world;
     screen?.close();
-    world.edunex.pairs = world.edunex.pairs.map((pair: { course_code: string }) => (pair.course_code === "DK4073" ? { ...pair, year: "2025", semester: "2" } : pair));
+    world.edunex.pairs = world.edunex.pairs.map((pair: { course_code: string }) =>
+      pair.course_code === "DK4073" ? { ...pair, year: "2025", semester: "2" } : pair,
+    );
     screen = await openApp({ world, signedIn: true, six: true });
     expect(card("DK4073")).toContain("Tidak ada di Edunex");
     expect(screen.has("Buka di Edunex: DK4073")).toBe(false);

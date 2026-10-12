@@ -1,6 +1,6 @@
 // The whole surface the window gets: ask the engine (invoke) and hear from it
 // (onEvent). No Node, no Electron objects, nothing else crosses.
-import { contextBridge, ipcRenderer, type IpcRendererEvent } from "electron";
+import { contextBridge, type IpcRendererEvent, ipcRenderer } from "electron";
 import { CHANNEL_EVENT, CHANNEL_INVOKE } from "../core/channels";
 
 // The development demo runs on its own clock; the window shows the same time.

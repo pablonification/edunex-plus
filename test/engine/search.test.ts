@@ -29,7 +29,11 @@ describe("courses", () => {
     for (const query of ["PL3002", "pl3002", " pl 3002 ", "Pl-3002"]) {
       const groups = search(index, query);
       expect(groups[0].kind, query).toBe("course");
-      expect(groups[0].items[0]).toMatchObject({ key: "course:PL3002", title: "Ekonomi dan Inovasi dalam Perencanaan", target: { screen: "course", code: "PL3002" } });
+      expect(groups[0].items[0]).toMatchObject({
+        key: "course:PL3002",
+        title: "Ekonomi dan Inovasi dalam Perencanaan",
+        target: { screen: "course", code: "PL3002" },
+      });
     }
   });
 
@@ -46,9 +50,23 @@ describe("courses", () => {
   });
 
   it("the course itself beats a title that starts with its code", () => {
-    const syllabus: Material = { id: 990002, courseId: 95001, moduleId: null, title: "PL3002 Silabus dan Kontrak Kuliah", type: "pdf", content: null, sizeBytes: null, postedAt: null, updatedAt: null };
+    const syllabus: Material = {
+      id: 990002,
+      courseId: 95001,
+      moduleId: null,
+      title: "PL3002 Silabus dan Kontrak Kuliah",
+      type: "pdf",
+      content: null,
+      sizeBytes: null,
+      postedAt: null,
+      updatedAt: null,
+    };
     const withTitle = searchIndex({ ...saved, "edunex.materials": { ...saved["edunex.materials"], PL3002: [syllabus] } }, { lang: "id", screens: [], now });
-    expect(search(withTitle, "PL3002").map((group) => group.items[0].key).slice(0, 2)).toEqual(["course:PL3002", "material:990002"]);
+    expect(
+      search(withTitle, "PL3002")
+        .map((group) => group.items[0].key)
+        .slice(0, 2),
+    ).toEqual(["course:PL3002", "material:990002"]);
     expect(search(withTitle, "pl30")[0].items.map((item) => item.key)).toEqual(["course:PL3002", "course:PL3032"]);
   });
 
@@ -111,7 +129,11 @@ describe("Tasks", () => {
   it("by the module it's in, and by its course", () => {
     const tasks = (query: string) => search(index, query).flatMap((group) => (group.kind === "task" || group.kind === "doneTask" ? group.items : []));
     expect(tasks("pengantar proposal").map((item) => item.key)).toContain("task:113986");
-    expect(tasks("kampus ganesha pl3002").map((item) => item.key).sort()).toEqual(["task:117432", "task:117873"]);
+    expect(
+      tasks("kampus ganesha pl3002")
+        .map((item) => item.key)
+        .sort(),
+    ).toEqual(["task:117432", "task:117873"]);
   });
 
   it("Tasks still to hand in come first, the one due first on top; done ones after everything else", () => {
@@ -169,7 +191,17 @@ describe("materials, modules and announcements", () => {
   it("a material inside a module also by the module's name", () => {
     const outline = saved["edunex.outline"]!.PL3002;
     const module = outline.modules.find((m) => m.title === "Product Innovation")!;
-    const material: Material = { id: 990001, courseId: module.courseId, moduleId: module.id, title: "Slide kuliah minggu 3", type: "pdf", content: null, sizeBytes: null, postedAt: null, updatedAt: null };
+    const material: Material = {
+      id: 990001,
+      courseId: module.courseId,
+      moduleId: module.id,
+      title: "Slide kuliah minggu 3",
+      type: "pdf",
+      content: null,
+      sizeBytes: null,
+      postedAt: null,
+      updatedAt: null,
+    };
     const withMaterial = searchIndex({ ...saved, "edunex.materials": { ...saved["edunex.materials"], PL3002: [material] } }, { lang: "id", screens: [], now });
     const found = search(withMaterial, "product innovation slide").find((group) => group.kind === "material")?.items[0];
     // It opens on its module.
@@ -181,7 +213,12 @@ describe("materials, modules and announcements", () => {
     const midex = first("midex");
     expect(midex).toMatchObject({ kind: "module", title: "Midex/UTS", code: "PL3032" });
     expect(midex?.kind === "module" && midex.module.number).toBe(8);
-    expect(midex?.kind === "module" && midex.target).toEqual({ screen: "course", code: "PL3032", tab: "modules", module: midex?.kind === "module" && midex.module.id });
+    expect(midex?.kind === "module" && midex.target).toEqual({
+      screen: "course",
+      code: "PL3032",
+      tab: "modules",
+      module: midex?.kind === "module" && midex.module.id,
+    });
     // "Module 06" is found as module 6 too.
     expect(first("module 6")?.title).toBe("Module 06");
   });
@@ -220,7 +257,11 @@ describe("screens, their tabs, and Settings", () => {
     expect(first("kalender akademik")).toMatchObject({ title: "Kalender akademik", target: { screen: "plan", tab: "deadlines" } });
     expect(first("dosen wali")).toMatchObject({ target: { screen: "plan", tab: "krs" } });
     // "Rencana studi" itself first, its planner tab next.
-    expect(search(index, "rencana")[0].items.slice(0, 2).map((item) => item.target)).toEqual([{ screen: "plan" }, { screen: "plan", tab: "planner" }]);
+    expect(
+      search(index, "rencana")[0]
+        .items.slice(0, 2)
+        .map((item) => item.target),
+    ).toEqual([{ screen: "plan" }, { screen: "plan", tab: "planner" }]);
     const english = searchIndex(saved, { lang: "en", screens: ALL, now });
     expect(first("bills", english)).toMatchObject({ title: "UKT", within: "Study plan", target: { screen: "plan", tab: "bills" } });
   });
@@ -249,7 +290,15 @@ describe("a full term", () => {
     const edunex = base["edunex.courses"]!;
     const codes = ["DK4073", "II4091", "KU5014", "PL3002", "PL3032", "II3120", "II3240", "PL4011"];
     const sixCourses = codes.map((code, i) => courses[i] ?? { ...courses[0], code, name: `${courses[i % 5].name} Lanjut` });
-    const edunexCourses = codes.map((code, i) => edunex[i] ?? { ...edunex[i % 5], code, name: `${edunex[i % 5].name} Advanced`, edunex: { courseId: 80000 + i, classId: 70000 + i, relatedCourseIds: [] } });
+    const edunexCourses = codes.map(
+      (code, i) =>
+        edunex[i] ?? {
+          ...edunex[i % 5],
+          code,
+          name: `${edunex[i % 5].name} Advanced`,
+          edunex: { courseId: 80000 + i, classId: 70000 + i, relatedCourseIds: [] },
+        },
+    );
     const titles = (base["edunex.tasks"] ?? []).map((t) => t.title);
     // Real words, as varied as a term's titles: ITB's course names and the recorded Tasks' instructions.
     const texts = [
@@ -282,8 +331,18 @@ describe("a full term", () => {
         postedAt: null,
         updatedAt: null,
       }));
-      announcements[course.code] = Array.from({ length: 15 }, (_, a): Announcement => ({ id: ++id, courseId, text: `Pengumuman ${a + 1}: ${pick(4)}\nDetail`, author: null, postedAt: null }));
-      for (let t = 0; t < 20; t++) tasks.push({ ...(base["edunex.tasks"]![t % 10] as Task), id: ++id, courseCode: course.code, courseId, title: `${titles[t % titles.length]} ${pick(2)}` });
+      announcements[course.code] = Array.from(
+        { length: 15 },
+        (_, a): Announcement => ({ id: ++id, courseId, text: `Pengumuman ${a + 1}: ${pick(4)}\nDetail`, author: null, postedAt: null }),
+      );
+      for (let t = 0; t < 20; t++)
+        tasks.push({
+          ...(base["edunex.tasks"]![t % 10] as Task),
+          id: ++id,
+          courseCode: course.code,
+          courseId,
+          title: `${titles[t % titles.length]} ${pick(2)}`,
+        });
     });
     return {
       ...base,
@@ -298,7 +357,19 @@ describe("a full term", () => {
 
   it("builds in well under a tenth of a second and answers each query within a frame", () => {
     const term = fullTerm();
-    const queries = ["pl3002", "slide", "ekonmi", "rekaman perencanaan", "tugas 02 bab", "infrastrukturr", "pengumuman 12", "lnk teams", "k", "sistem informasi manajemen", "pemrogaman"];
+    const queries = [
+      "pl3002",
+      "slide",
+      "ekonmi",
+      "rekaman perencanaan",
+      "tugas 02 bab",
+      "infrastrukturr",
+      "pengumuman 12",
+      "lnk teams",
+      "k",
+      "sistem informasi manajemen",
+      "pemrogaman",
+    ];
     const ranked = (samples: number[], share: number) => [...samples].sort((a, b) => a - b)[Math.floor(samples.length * share)];
     // Once to warm up, as the window has by the time the Student opens search.
     let big = searchIndex(term, { lang: "id", screens: ALL, now });

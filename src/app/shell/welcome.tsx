@@ -81,7 +81,12 @@ export function Welcome({ onDone }: { onDone: () => void }) {
               <p className="mx-auto mt-2 max-w-[400px] text-center text-lead text-muted">{t("welcome.lead")}</p>
 
               <Card className="mt-7 divide-y divide-line overflow-hidden">
-                <SourceRow source="edunex" detail={t("welcome.edunexDetail")} who={account ? `${displayName(account.name)} · ${account.nim}` : null} primary={!edunex && !six} />
+                <SourceRow
+                  source="edunex"
+                  detail={t("welcome.edunexDetail")}
+                  who={account ? `${displayName(account.name)} · ${account.nim}` : null}
+                  primary={!edunex && !six}
+                />
                 <SourceRow
                   source="six"
                   detail={t("welcome.sixDetail")}
@@ -95,7 +100,9 @@ export function Welcome({ onDone }: { onDone: () => void }) {
                 {t("welcome.passwordNote")}
               </p>
               <p className="mt-1 text-center text-caption text-faint">{t("welcome.readOnly")}</p>
-              {store.vault === "memory" && <p className="mt-4 rounded-lg bg-warning-bg px-3.5 py-2.5 text-center text-small text-warning-fg">{t("settings.sessionNotSaved")}</p>}
+              {store.vault === "memory" && (
+                <p className="mt-4 rounded-lg bg-warning-bg px-3.5 py-2.5 text-center text-small text-warning-fg">{t("settings.sessionNotSaved")}</p>
+              )}
 
               <Button variant="primary" size="lg" className="mt-7 w-full" disabled={!edunex && !six} onClick={next} aria-describedby="welcome-next-hint">
                 {t("welcome.continue")}
@@ -145,7 +152,10 @@ function Reading({ onDone }: { onDone: () => void }) {
       <p className="mx-auto mt-2 max-w-[360px] text-lead text-muted">{t("welcome.readingHint")}</p>
       <ul className="mx-auto mt-7 grid max-w-[380px] grid-cols-3 gap-2">
         {parts.map((part) => (
-          <li key={part.key} className={cx("rounded-xl border border-edge bg-surface px-3 py-3 shadow-card transition-opacity duration-300", part.count === 0 && "opacity-60")}>
+          <li
+            key={part.key}
+            className={cx("rounded-xl border border-edge bg-surface px-3 py-3 shadow-card transition-opacity duration-300", part.count === 0 && "opacity-60")}
+          >
             <span className="block text-[22px] leading-7 font-semibold tabular-nums">{part.count}</span>
             <span className="block text-small text-muted">{part.label.replace(/^\d+\s*/, "")}</span>
           </li>
@@ -197,7 +207,12 @@ function SourceRow({ source, detail, who, primary }: { source: Extract<SourceId,
           {t("welcome.connected")}
         </span>
       ) : (
-        <Button variant={primary ? "primary" : "secondary"} busy={busy} aria-label={t("welcome.connectSource", { source: name })} onClick={() => void signIn(source)}>
+        <Button
+          variant={primary ? "primary" : "secondary"}
+          busy={busy}
+          aria-label={t("welcome.connectSource", { source: name })}
+          onClick={() => void signIn(source)}
+        >
           {t("welcome.connect")}
         </Button>
       )}

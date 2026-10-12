@@ -304,7 +304,9 @@ export const Syllabus = z.object({
   assessment: Bilingual,
   notes: Bilingual,
   /** The weekly plan ("Satuan Acara Perkuliahan"); empty when SIX has none. */
-  weeks: z.array(z.object({ week: z.string(), topic: z.string(), subtopics: z.string().nullable(), outcomes: z.string().nullable(), sources: z.string().nullable() })),
+  weeks: z.array(
+    z.object({ week: z.string(), topic: z.string(), subtopics: z.string().nullable(), outcomes: z.string().nullable(), sources: z.string().nullable() }),
+  ),
 });
 export type Syllabus = z.infer<typeof Syllabus>;
 

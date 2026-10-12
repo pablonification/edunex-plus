@@ -112,6 +112,18 @@ describe("what changed, for alerts", () => {
     ]);
 
     const lastTerm = { ...approved, term: "2025-2" };
-    expect(krsChanges(lastTerm, approved).map((c) => c.kind)).toEqual(["sent", "approved", "legalized", "sent", "approved", "legalized", "course-added", "course-added", "course-added", "course-added", "course-added"]);
+    expect(krsChanges(lastTerm, approved).map((c) => c.kind)).toEqual([
+      "sent",
+      "approved",
+      "legalized",
+      "sent",
+      "approved",
+      "legalized",
+      "course-added",
+      "course-added",
+      "course-added",
+      "course-added",
+      "course-added",
+    ]);
   });
 });

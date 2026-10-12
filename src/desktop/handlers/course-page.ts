@@ -2,9 +2,10 @@
 // for offline reading, by course and module. Only on the Student's click. The
 // files go through Chromium's download manager like single downloads, so the
 // OS marks them as downloaded from the internet.
-import { app, dialog, shell, type WebContents } from "electron";
+
 import { existsSync, mkdirSync } from "node:fs";
 import path from "node:path";
+import { app, dialog, shell, type WebContents } from "electron";
 import { planOfflineFiles } from "../../core/course-materials";
 import type { DatasetName, DatasetValue } from "../../core/models";
 import { EngineError } from "../../engine/errors";

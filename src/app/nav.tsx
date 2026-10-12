@@ -1,6 +1,6 @@
 // Where the Student is in the app, with a back history (mouse back button,
 // ⌘[ via the menu later). Screens move with go(); nothing reads the URL.
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import type { Route } from "../core/route";
 
 export type { Route } from "../core/route";
@@ -29,7 +29,10 @@ export function NavProvider({ initial, children }: { initial?: Route; children: 
     window.addEventListener("mouseup", onMouse);
     return () => window.removeEventListener("mouseup", onMouse);
   }, [back]);
-  const value = useMemo<Nav>(() => ({ route: history.at(-1)!, go, back, canGoBack: history.length > 1, previous: history.at(-2) ?? null }), [history, go, back]);
+  const value = useMemo<Nav>(
+    () => ({ route: history.at(-1)!, go, back, canGoBack: history.length > 1, previous: history.at(-2) ?? null }),
+    [history, go, back],
+  );
   return <NavContext.Provider value={value}>{children}</NavContext.Provider>;
 }
 

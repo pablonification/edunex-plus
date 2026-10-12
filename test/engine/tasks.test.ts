@@ -68,7 +68,9 @@ describe("Tasks with their true status", () => {
       lateAllowed: false,
     });
     expect(task(h, 117003)).toMatchObject({ kind: "task", lateAllowed: true, fileRequired: true });
-    expect(task(h, 117432).answer?.files).toEqual([{ name: "TUGAS IMPACT ON INNOVATION THE ECONOMY - 18223901.pdf", url: "https://edunexfixture.blob.core.windows.net/edunex/fixture-9" }]);
+    expect(task(h, 117432).answer?.files).toEqual([
+      { name: "TUGAS IMPACT ON INNOVATION THE ECONOMY - 18223901.pdf", url: "https://edunexfixture.blob.core.windows.net/edunex/fixture-9" },
+    ]);
   });
 
   it("names the module each Task sits in, from the course outline", async () => {

@@ -7,7 +7,7 @@
 // and each course's syllabus on SIX's public pages.
 import { type ReactNode, useState } from "react";
 import { type CurriculumMap, curriculumMap, type MapCourse, type PackageProgress, type SlotStatus } from "../../../core/curriculum-map";
-import { sksModel, type SksModel } from "../../../core/planner";
+import { type SksModel, sksModel } from "../../../core/planner";
 import { useOpenExternal } from "../../hooks";
 import { useT } from "../../i18n";
 import { usePlan, useStudentRecord } from "../../study-plan";
@@ -55,7 +55,11 @@ export function Tab({ onCalendar }: { onCalendar?: () => void }) {
   const map = curriculumMap(record, state.plan);
   const sks = sksModel(record, state.plan);
   const semesters = map.semesters
-    .map((s) => ({ ...s, required: onlyLeft ? s.required.filter((c) => isLeft(c.status)) : s.required, others: onlyLeft ? s.others.filter((c) => isLeft(c.status)) : s.others }))
+    .map((s) => ({
+      ...s,
+      required: onlyLeft ? s.required.filter((c) => isLeft(c.status)) : s.required,
+      others: onlyLeft ? s.others.filter((c) => isLeft(c.status)) : s.others,
+    }))
     .filter((s) => s.required.length + s.others.length > 0);
   const hidden = map.semesters.length - semesters.length;
   return (
@@ -69,7 +73,11 @@ export function Tab({ onCalendar }: { onCalendar?: () => void }) {
               <section aria-label={t("planner.semester", { n: semester.semester })}>
                 <header className="flex items-center justify-between gap-3 border-b border-line px-4 py-2.5">
                   <h3 className="text-body font-semibold">{t("planner.semester", { n: semester.semester })}</h3>
-                  {!onlyLeft && <span className="text-small font-medium text-muted tabular-nums">{t("curriculum.sks", { sks: semester.required.reduce((sum, c) => sum + c.sks, 0) })}</span>}
+                  {!onlyLeft && (
+                    <span className="text-small font-medium text-muted tabular-nums">
+                      {t("curriculum.sks", { sks: semester.required.reduce((sum, c) => sum + c.sks, 0) })}
+                    </span>
+                  )}
                 </header>
                 <ul>
                   {semester.required.map((course) => (
@@ -119,11 +127,15 @@ function Totals({ name, sks }: { name: string; sks: SksModel }) {
         {figure(
           t("curriculum.total"),
           t("curriculum.sks", { sks: sks.need }),
-          sks.requiredNeed !== null && sks.electiveNeed !== null ? t("curriculum.totalSplit", { required: sks.requiredNeed, electives: sks.electiveNeed }) : undefined,
+          sks.requiredNeed !== null && sks.electiveNeed !== null
+            ? t("curriculum.totalSplit", { required: sks.requiredNeed, electives: sks.electiveNeed })
+            : undefined,
         )}
         {figure(
           t("curriculum.requiredLeft"),
-          sks.requiredLeft.count ? t("curriculum.requiredLeftValue", { count: sks.requiredLeft.count, sks: sks.requiredLeft.sks }) : t("curriculum.requiredNone"),
+          sks.requiredLeft.count
+            ? t("curriculum.requiredLeftValue", { count: sks.requiredLeft.count, sks: sks.requiredLeft.sks })
+            : t("curriculum.requiredNone"),
           sks.requiredLeft.count > 0 && sks.requiredUnplanned.count === 0 ? t("curriculum.requiredLeftHint") : undefined,
         )}
         {sks.electiveNeed !== null &&
@@ -253,15 +265,29 @@ function Packages({ title, packages }: { title: string; packages: PackageProgres
                 {p.program && <span className="block truncate text-caption text-muted">{p.program}</span>}
               </span>
               <span className="flex shrink-0 items-center gap-2">
-                {p.registered && <span className="rounded-[5px] bg-info-bg px-1.5 text-micro leading-[18px] font-semibold text-info-fg">{t("curriculum.registered")}</span>}
+                {p.registered && (
+                  <span className="rounded-[5px] bg-info-bg px-1.5 text-micro leading-[18px] font-semibold text-info-fg">{t("curriculum.registered")}</span>
+                )}
                 <span className="text-small font-semibold tabular-nums">{t("curriculum.packageSks", { have: p.have, need: p.sks })}</span>
               </span>
             </p>
-            <Bar className="mt-2" value={p.sks ? p.have / p.sks : 0} color="var(--live)" label={`${p.name}: ${t("curriculum.packageSks", { have: p.have, need: p.sks })}`} />
+            <Bar
+              className="mt-2"
+              value={p.sks ? p.have / p.sks : 0}
+              color="var(--live)"
+              label={`${p.name}: ${t("curriculum.packageSks", { have: p.have, need: p.sks })}`}
+            />
             <ul className="mt-2 space-y-1">
               {p.courses.map((c) => (
                 <li key={c.code} className="flex items-center gap-2 text-caption">
-                  <span className={cx("w-[56px] font-semibold tabular-nums", isLeft(c.status) && c.status !== "in-progress" && c.status !== "planned" && "text-muted")}>{c.code}</span>
+                  <span
+                    className={cx(
+                      "w-[56px] font-semibold tabular-nums",
+                      isLeft(c.status) && c.status !== "in-progress" && c.status !== "planned" && "text-muted",
+                    )}
+                  >
+                    {c.code}
+                  </span>
                   <span className={cx("min-w-0 flex-1 truncate", isLeft(c.status) ? "text-muted" : "text-fg")}>{c.name}</span>
                   <PackageMark status={c.status} />
                 </li>
@@ -285,6 +311,12 @@ function PackageMark({ status }: { status: SlotStatus }) {
       </span>
     );
   if (status === "in-progress" || status === "planned" || status === "failed")
-    return <span className={cx("shrink-0", status === "in-progress" ? "font-medium text-info-fg" : status === "failed" ? "font-medium text-danger-fg" : "text-muted")}>{t(`curriculum.status.${status}`)}</span>;
+    return (
+      <span
+        className={cx("shrink-0", status === "in-progress" ? "font-medium text-info-fg" : status === "failed" ? "font-medium text-danger-fg" : "text-muted")}
+      >
+        {t(`curriculum.status.${status}`)}
+      </span>
+    );
   return <span className="sr-only">{t("curriculum.status.left")}</span>;
 }

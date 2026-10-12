@@ -12,11 +12,23 @@ const HOUR = 60 * MINUTE;
 const wib = (iso: string) => Date.parse(`${iso}+07:00`);
 
 const course = (code: string, attended: number, held: number): SixCourse => ({ code, name: code, classNo: "01", sks: 3, attendance: { attended, held } });
-const session = (id: string, code: string, startIso: string): ClassSession => ({ id, courseCode: code, courseName: code, start: wib(startIso), end: wib(startIso) + 2 * HOUR, activity: "Kuliah", room: "9134" });
+const session = (id: string, code: string, startIso: string): ClassSession => ({
+  id,
+  courseCode: code,
+  courseName: code,
+  start: wib(startIso),
+  end: wib(startIso) + 2 * HOUR,
+  activity: "Kuliah",
+  room: "9134",
+});
 
 /** PL3002 meets today (Thursday 8 Oct) at 13:00; PL3032 doesn't meet today. */
 function sixState(): PretendSixState {
-  return { student: STUDENT, courses: [course("PL3002", 6, 7), course("PL3032", 4, 7)], schedule: [session("s1", "PL3002", "2026-10-01T13:00:00"), session("s2", "PL3002", "2026-10-08T13:00:00")] };
+  return {
+    student: STUDENT,
+    courses: [course("PL3002", 6, 7), course("PL3032", 4, 7)],
+    schedule: [session("s1", "PL3002", "2026-10-01T13:00:00"), session("s2", "PL3002", "2026-10-08T13:00:00")],
+  };
 }
 
 async function start() {
@@ -57,7 +69,10 @@ describe("a Task edited", () => {
     app.world.edunex.editTask(117010, { description: "<p>Revisi.</p>" });
     await app.until("2026-10-08T10:00:00+07:00");
     const edits = app.of("taskEdited");
-    expect(edits.map((n) => n.text)).toEqual(["Diubah setelah kamu kumpulkan · II4091 — Tugas 02 Bab II · cek apakah perlu dikumpulkan ulang", "Tugas diubah · II4091 — Tugas 03 Bab III"]);
+    expect(edits.map((n) => n.text)).toEqual([
+      "Diubah setelah kamu kumpulkan · II4091 — Tugas 02 Bab II · cek apakah perlu dikumpulkan ulang",
+      "Tugas diubah · II4091 — Tugas 03 Bab III",
+    ]);
     expect(edits[0].shownAt).toBeLessThan(edits[1].shownAt);
   });
 

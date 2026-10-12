@@ -1,7 +1,7 @@
 // The window's memory: the snapshot it started with, kept current by engine
 // events. Screens read it through hooks that subscribe to one dataset or one
 // source each, so an update redraws only what uses it.
-import { createContext, useContext, useEffect, useSyncExternalStore, type ReactNode } from "react";
+import { createContext, type ReactNode, useContext, useEffect, useSyncExternalStore } from "react";
 import type { AppSnapshot, DatasetPayload, Event } from "../core/contract";
 import type { DatasetName, DatasetValue, Settings, SourceId, SourceStatus } from "../core/models";
 import type { Route } from "../core/route";

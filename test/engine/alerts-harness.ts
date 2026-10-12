@@ -17,7 +17,9 @@ export interface Shown extends AlertNotice {
   text: string;
 }
 
-export async function startAlerts(options: { world?: PretendWorld; storage?: MemoryStorage; vault?: MemoryVault; signIn?: boolean; detectors?: readonly Detector[] } = {}) {
+export async function startAlerts(
+  options: { world?: PretendWorld; storage?: MemoryStorage; vault?: MemoryVault; signIn?: boolean; detectors?: readonly Detector[] } = {},
+) {
   const world = options.world ?? new PretendWorld();
   const storage = options.storage ?? new MemoryStorage();
   const vault = options.vault ?? new MemoryVault();
@@ -46,7 +48,8 @@ export async function startAlerts(options: { world?: PretendWorld; storage?: Mem
     storage,
     vault,
     shown,
-    history: () => engine.snapshot().datasets.find((d) => d.name === "app.alerts")?.value as { items: { id: string; kind: string }[]; readAt: number } | undefined,
+    history: () =>
+      engine.snapshot().datasets.find((d) => d.name === "app.alerts")?.value as { items: { id: string; kind: string }[]; readAt: number } | undefined,
     wait: (ms: number) => world.clock.advance(ms),
     until: (iso: string) => world.clock.advanceTo(iso),
   };

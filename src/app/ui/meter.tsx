@@ -37,11 +37,7 @@ export function ShareMeter({
   const clamp = (value: number) => Math.max(0, Math.min(100, value));
   const fill = FILL[tone];
   return (
-    <span
-      role="img"
-      aria-label={label}
-      className={cx("relative block h-1.5 rounded-full bg-black/[0.07] dark:bg-white/[0.09]", className)}
-    >
+    <span role="img" aria-label={label} className={cx("relative block h-1.5 rounded-full bg-black/[0.07] dark:bg-white/[0.09]", className)}>
       {best != null && best > share && (
         <span
           aria-hidden
@@ -49,14 +45,30 @@ export function ShareMeter({
           style={{ width: `${clamp(best)}%`, background: fill }}
         />
       )}
-      <span aria-hidden className="absolute inset-y-0 left-0 rounded-full motion-safe:transition-[width] motion-safe:duration-500" style={{ width: `${clamp(share)}%`, background: fill }} />
+      <span
+        aria-hidden
+        className="absolute inset-y-0 left-0 rounded-full motion-safe:transition-[width] motion-safe:duration-500"
+        style={{ width: `${clamp(share)}%`, background: fill }}
+      />
       <span aria-hidden className="absolute -top-1 h-3.5 w-0.5 -translate-x-1/2 rounded-full bg-fg" style={{ left: `${clamp(target)}%` }} />
     </span>
   );
 }
 
 /** Time left in a window, shrinking as it runs out; amber in the last 15 minutes. `label` says how long is left. */
-export function CountdownBar({ opensAt, closesAt, now, label, className }: { opensAt: number; closesAt: number; now: number; label: string; className?: string }) {
+export function CountdownBar({
+  opensAt,
+  closesAt,
+  now,
+  label,
+  className,
+}: {
+  opensAt: number;
+  closesAt: number;
+  now: number;
+  label: string;
+  className?: string;
+}) {
   const left = Math.max(0, Math.min(1, (closesAt - now) / Math.max(1, closesAt - opensAt)));
   const soon = closesAt - now < 15 * 60_000;
   return (

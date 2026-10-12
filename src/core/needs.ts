@@ -7,6 +7,8 @@
 // datasets into items; a later area (KRS steps, UKT due) is one more provider.
 // Ranking: the band first (now, soon, coming up), then the area in the order
 // of PROVIDERS, then the soonest moment, so the window closing first is on top.
+
+import { billNeedsStudent, krsWindows } from "./academic";
 import {
   type AttendanceHealth,
   type AttendanceState,
@@ -18,12 +20,24 @@ import {
   type PresenceActivity,
   presenceAction,
 } from "./attendance";
-import { billNeedsStudent, krsWindows } from "./academic";
 import { materialKind } from "./course-materials";
 import { type AnnouncedMeeting, announcedMeetings, wibDay } from "./course-meetings";
 import { dateVars, sameLocalDay, weekdayVars } from "./dates";
 import { type Exam, mergeExams } from "./exams";
-import type { AcademicCalendar, Alert, AlertKind, Announcement, Bill, ClassSession, EdunexExam, KrsPlan, Material, PresenceSession, SixCourse, Task } from "./models";
+import type {
+  AcademicCalendar,
+  Alert,
+  AlertKind,
+  Announcement,
+  Bill,
+  ClassSession,
+  EdunexExam,
+  KrsPlan,
+  Material,
+  PresenceSession,
+  SixCourse,
+  Task,
+} from "./models";
 import type { Route } from "./route";
 import { dayStart, isScheduleReminder, slotMarks, weekStart } from "./schedule";
 import { editedAfterSubmit, isOpenStatus, notOpenYet, shortWindow, takesAnswers, taskStatus } from "./tasks";
@@ -90,7 +104,16 @@ export function homeContext(world: HomeWorld): HomeContext {
   const health = new Map(
     world.courses.map((course) => [
       course.code,
-      attendanceHealth({ code: course.code, six: course.six, sixConnected: world.sixConnected, presence: world.presence[course.code] ?? [], schedule, period, target: world.target, now: world.now }),
+      attendanceHealth({
+        code: course.code,
+        six: course.six,
+        sixConnected: world.sixConnected,
+        presence: world.presence[course.code] ?? [],
+        schedule,
+        period,
+        target: world.target,
+        now: world.now,
+      }),
     ]),
   );
   return { ...world, health, usesCalendar: period !== null };
@@ -201,8 +224,8 @@ const courseOf = (context: HomeContext, code: string) => context.courses.find((c
 const courseRoute = (code: string, tab = "meetings"): NeedAction => ({ kind: "go", route: { screen: "course", code, tab } });
 
 /** The course's page in the app, or Presensi for a course only in SIX. */
-const classAction = (context: HomeContext, code: string): NeedAction => (courseOf(context, code)?.edunexId != null ? courseRoute(code) : { kind: "go", route: { screen: "presence" } });
-
+const classAction = (context: HomeContext, code: string): NeedAction =>
+  courseOf(context, code)?.edunexId != null ? courseRoute(code) : { kind: "go", route: { screen: "presence" } };
 
 export interface SlotChange {
   /** The usual time, when this one differs: the usual slot on its own day that week (ms, for formatting). */
@@ -242,7 +265,9 @@ function announced(context: HomeContext, code: string): (AnnouncedMeeting & { po
   ];
   return meetings.map((meeting) => ({
     ...meeting,
-    postedAt: posts.filter((p) => p.found.some((m) => m.start === meeting.start)).reduce<number | null>((latest, p) => (p.at !== null && (latest === null || p.at > latest) ? p.at : latest), null),
+    postedAt: posts
+      .filter((p) => p.found.some((m) => m.start === meeting.start))
+      .reduce<number | null>((latest, p) => (p.at !== null && (latest === null || p.at > latest) ? p.at : latest), null),
   }));
 }
 
@@ -417,7 +442,14 @@ export const taskProvider: NeedProvider = {
     for (const task of context.tasks) {
       if (viaPresence.has(task.id)) continue;
       const status = taskStatus(task, now);
-      const base = { kind: "task", course: task.courseCode, at: task.dueAt, sources: ["edunex"], action: { kind: "go", route: { screen: "task", taskId: task.id } }, task } as const;
+      const base = {
+        kind: "task",
+        course: task.courseCode,
+        at: task.dueAt,
+        sources: ["edunex"],
+        action: { kind: "go", route: { screen: "task", taskId: task.id } },
+        task,
+      } as const;
       if (editedAfterSubmit(task) && task.editedAt! <= now && now - task.editedAt! < RECENT) {
         const stillOpen = task.dueAt === null || task.dueAt > now || task.lateAllowed;
         out.push({ ...base, id: `task:${task.id}:edited`, band: stillOpen && !task.closed ? "now" : "soon", reason: "edited", draft: false });
@@ -450,16 +482,18 @@ export const meetingProvider: NeedProvider = {
     return context.courses.flatMap((course) =>
       onlyInEdunex(context, course.code)
         .filter((m) => m.end > now && m.start - now <= AHEAD)
-        .map(({ postedAt: _postedAt, ...meeting }): NeedDraft => ({
-          id: `meeting:${course.code}:${meeting.start}`,
-          kind: "meeting",
-          course: course.code,
-          band: meeting.start <= now + STARTING_SOON ? "now" : meeting.start - now <= 2 * DAY ? "soon" : "later",
-          at: meeting.start,
-          sources: ["edunex"],
-          action: meeting.link ? { kind: "open", url: meeting.link, via: "link" } : courseRoute(course.code),
-          meeting,
-        })),
+        .map(
+          ({ postedAt: _postedAt, ...meeting }): NeedDraft => ({
+            id: `meeting:${course.code}:${meeting.start}`,
+            kind: "meeting",
+            course: course.code,
+            band: meeting.start <= now + STARTING_SOON ? "now" : meeting.start - now <= 2 * DAY ? "soon" : "later",
+            at: meeting.start,
+            sources: ["edunex"],
+            action: meeting.link ? { kind: "open", url: meeting.link, via: "link" } : courseRoute(course.code),
+            meeting,
+          }),
+        ),
     );
   },
 };
@@ -472,7 +506,11 @@ export const meetingProvider: NeedProvider = {
 export const attendanceProvider: NeedProvider = {
   area: "attendance",
   needs(context) {
-    const meetsToday = new Set(classesLeftToday(context).filter((s) => !isExamActivity(s.activity)).map((s) => s.courseCode));
+    const meetsToday = new Set(
+      classesLeftToday(context)
+        .filter((s) => !isExamActivity(s.activity))
+        .map((s) => s.courseCode),
+    );
     const out: NeedDraft[] = [];
     for (const course of context.courses) {
       const health = context.health.get(course.code);
@@ -504,7 +542,13 @@ export const examProvider: NeedProvider = {
   area: "exam",
   needs(context) {
     const { now } = context;
-    const exams = mergeExams({ schedule: context.schedule ?? [], edunexExams: context.exams, tasks: context.tasks, courses: context.courses.map((c) => c.code), now });
+    const exams = mergeExams({
+      schedule: context.schedule ?? [],
+      edunexExams: context.exams,
+      tasks: context.tasks,
+      courses: context.courses.map((c) => c.code),
+      now,
+    });
     const out: NeedDraft[] = [];
     for (const exam of exams) {
       const sittings: ExamSitting[] = [
@@ -581,7 +625,15 @@ export const academicProvider: NeedProvider = {
 };
 
 /** In ranking order within a band. */
-export const PROVIDERS: readonly NeedProvider[] = [presenceProvider, classProvider, examProvider, taskProvider, meetingProvider, attendanceProvider, academicProvider];
+export const PROVIDERS: readonly NeedProvider[] = [
+  presenceProvider,
+  classProvider,
+  examProvider,
+  taskProvider,
+  meetingProvider,
+  attendanceProvider,
+  academicProvider,
+];
 
 // ---------------------------------------------------------------- today
 
@@ -601,7 +653,10 @@ export function todayPlan(world: HomeWorld | HomeContext): TodayPlan {
   const { now } = context;
   const day = today(context);
   const tomorrow = wibDay(now + DAY);
-  const classes = (context.schedule ?? []).filter((s) => wibDay(s.start) === day).sort((a, b) => a.start - b.start).map((s) => classFacts(context, s));
+  const classes = (context.schedule ?? [])
+    .filter((s) => wibDay(s.start) === day)
+    .sort((a, b) => a.start - b.start)
+    .map((s) => classFacts(context, s));
   const announcedSoon = context.courses
     .flatMap((course) => onlyInEdunex(context, course.code).map(({ postedAt: _p, ...meeting }) => ({ code: course.code, meeting })))
     .filter(({ meeting }) => meeting.end > now && (wibDay(meeting.start) === day || wibDay(meeting.start) === tomorrow))
@@ -640,7 +695,10 @@ export const materialPostedId = (material: Pick<Material, "id">) => `material.po
 /** The text of a Task edit, as the alert and the list both say it. */
 export function taskEditedText(task: Task): Pick<Alert, "title" | "body"> {
   return editedAfterSubmit(task)
-    ? { title: { key: "alert.taskEdited.afterSubmit", vars: { course: task.courseCode } }, body: { key: "alert.taskEdited.afterSubmit.body", vars: { title: task.title } } }
+    ? {
+        title: { key: "alert.taskEdited.afterSubmit", vars: { course: task.courseCode } },
+        body: { key: "alert.taskEdited.afterSubmit.body", vars: { title: task.title } },
+      }
     : { title: { key: "alert.taskEdited", vars: { course: task.courseCode } }, body: { key: "alert.plain", vars: { title: task.title } } };
 }
 
@@ -658,8 +716,17 @@ export function recentChanges(world: HomeWorld | HomeContext, history: readonly 
   for (const task of context.tasks) {
     const target = { screen: "task", taskId: task.id } as const;
     if (task.postedAt !== null)
-      derived.push({ id: `task.new:${task.id}`, kind: "newTask", source: "edunex", at: task.postedAt, title: { key: "alert.newTask", vars: { course: task.courseCode } }, body: { key: "alert.plain", vars: { title: task.title } }, target });
-    if (task.editedAt !== null) derived.push({ id: taskEditedId(task), kind: "taskEdited", source: "edunex", at: task.editedAt, ...taskEditedText(task), target });
+      derived.push({
+        id: `task.new:${task.id}`,
+        kind: "newTask",
+        source: "edunex",
+        at: task.postedAt,
+        title: { key: "alert.newTask", vars: { course: task.courseCode } },
+        body: { key: "alert.plain", vars: { title: task.title } },
+        target,
+      });
+    if (task.editedAt !== null)
+      derived.push({ id: taskEditedId(task), kind: "taskEdited", source: "edunex", at: task.editedAt, ...taskEditedText(task), target });
   }
   for (const [code, materials] of Object.entries(context.materials))
     for (const material of materials)
@@ -692,9 +759,9 @@ export function recentChanges(world: HomeWorld | HomeContext, history: readonly 
       target: { screen: "schedule" },
     });
   }
+  // Upcoming meetings, and ones held in the last week: an old meeting re-read in a text isn't news.
   for (const course of context.courses)
     for (const meeting of onlyInEdunex(context, course.code))
-      // Upcoming meetings, and ones held in the last week: an old meeting re-read in a text isn't news.
       if (meeting.postedAt !== null && meeting.end > now - RECENT)
         derived.push({
           id: `meeting:${course.code}:${meeting.start}`,
@@ -778,7 +845,15 @@ export function nowCard(world: HomeWorld | HomeContext): NowCard | null {
   let presence: OpenPresence | null = null;
   if (window) {
     const action = presenceAction(window.session, context.tasks);
-    presence = { code: window.code, session: window.session, activity: action.activity, task: action.task, url: action.url, counts: counts(window.code), noSix: context.sixConnected === false };
+    presence = {
+      code: window.code,
+      session: window.session,
+      activity: action.activity,
+      task: action.task,
+      url: action.url,
+      counts: counts(window.code),
+      noSix: context.sixConnected === false,
+    };
   }
   const shown = lead;
   return {

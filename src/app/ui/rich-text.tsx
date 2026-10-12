@@ -81,7 +81,12 @@ function render(node: Node, open: (url: string) => void, key: string): ReactNode
       </a>
     );
   }
-  if (HEADING.test(tag)) return <p key={key} className="mt-3 mb-1 font-semibold first:mt-0">{inner}</p>;
+  if (HEADING.test(tag))
+    return (
+      <p key={key} className="mt-3 mb-1 font-semibold first:mt-0">
+        {inner}
+      </p>
+    );
   if (tag in BLOCK) return createElement(tag, { key, className: BLOCK[tag] || undefined }, ...inner);
   if (tag in INLINE) return createElement(tag, { key, className: INLINE[tag] || undefined }, ...inner);
   // Anything else (img, font, custom tags): keep its text, drop the element.

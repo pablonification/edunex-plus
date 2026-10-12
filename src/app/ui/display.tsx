@@ -78,7 +78,10 @@ export function Bar({ value, color, label, className }: { value: number; color: 
       aria-valuenow={Math.round(clamped * 100)}
       className={cx("block h-1.5 overflow-hidden rounded-full bg-black/[0.06] dark:bg-white/[0.08]", className)}
     >
-      <span className="block h-full rounded-full motion-safe:transition-[width] motion-safe:duration-500" style={{ width: `${clamped * 100}%`, background: color }} />
+      <span
+        className="block h-full rounded-full motion-safe:transition-[width] motion-safe:duration-500"
+        style={{ width: `${clamped * 100}%`, background: color }}
+      />
     </span>
   );
 }
@@ -94,7 +97,9 @@ export type Tone = keyof typeof TONE;
 
 /** A small count or label pill. */
 export function Badge({ tone = "neutral", children, className }: { tone?: Tone; children: ReactNode; className?: string }) {
-  return <span className={cx("inline-flex h-[18px] items-center rounded-full px-1.5 text-micro font-semibold tabular-nums", TONE[tone], className)}>{children}</span>;
+  return (
+    <span className={cx("inline-flex h-[18px] items-center rounded-full px-1.5 text-micro font-semibold tabular-nums", TONE[tone], className)}>{children}</span>
+  );
 }
 
 /** The official systems a fact can come from. */
@@ -107,7 +112,12 @@ export type Source = "edunex" | "six" | "itb";
 export function SourceTag({ source, className }: { source: Source; className?: string }) {
   const t = useT();
   return (
-    <span className={cx("inline-flex h-[18px] shrink-0 items-center rounded-[5px] border border-edge px-1.5 text-micro font-semibold tracking-[0.01em] text-muted", className)}>
+    <span
+      className={cx(
+        "inline-flex h-[18px] shrink-0 items-center rounded-[5px] border border-edge px-1.5 text-micro font-semibold tracking-[0.01em] text-muted",
+        className,
+      )}
+    >
       {t(`source.${source}`)}
     </span>
   );
@@ -150,7 +160,9 @@ export function StatusGlyph({ status, className = "size-3.5" }: { status: TaskSt
 export function StatusChip({ status }: { status: TaskStatus }) {
   const t = useT();
   return (
-    <span className={cx("inline-flex h-[22px] shrink-0 items-center gap-1.5 rounded-full px-2 text-caption font-semibold whitespace-nowrap", STATUS_TONE[status])}>
+    <span
+      className={cx("inline-flex h-[22px] shrink-0 items-center gap-1.5 rounded-full px-2 text-caption font-semibold whitespace-nowrap", STATUS_TONE[status])}
+    >
       <StatusGlyph status={status} className="size-3" />
       {t(`taskStatus.${status}`)}
     </span>

@@ -1,9 +1,9 @@
 // Language and time for the screens. The language comes from settings; the
 // clock ticks once a minute so "in 6 hours" stays true without re-rendering
 // every second. Tests pass their own clock.
-import { createContext, useCallback, useContext, useMemo, useSyncExternalStore, type ReactNode } from "react";
+import { createContext, type ReactNode, useCallback, useContext, useMemo, useSyncExternalStore } from "react";
+import { type Lang, type StringKey, translate, type Vars } from "../../core/strings";
 import { type Format, makeFormat } from "./format";
-import { type Lang, type StringKey, type Vars, translate } from "../../core/strings";
 
 export type { Lang, StringKey } from "../../core/strings";
 export type { Format } from "./format";

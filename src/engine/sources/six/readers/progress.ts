@@ -2,7 +2,7 @@
 // "Transkrip Posisi Kurikulum"): the Student's courses placed in their
 // curriculum by stage and recommended semester, SIX's IP and passed SKS per
 // stage, the IPK, and SKS by kind of course.
-import { checkIndex, type CourseKind, type Progress, type ProgressCourse, type ProgressStage, termIndex } from "../../../../core/models";
+import { type CourseKind, checkIndex, type Progress, type ProgressCourse, type ProgressStage, termIndex } from "../../../../core/models";
 import {
   cellsOf,
   changed,
@@ -29,7 +29,10 @@ const KIND_LABELS: Record<string, CourseKind> = { wajib: "required", "pilihan da
 /** The progress, and SIX's IPK with the SKS it covers (to check the transcript's). */
 export function readProgress(html: string): { progress: Progress; ipk: SixIpk } {
   const page = openPage(html, "curriculum position");
-  const tables = page.$("table").toArray().map((table) => page.$(table));
+  const tables = page
+    .$("table")
+    .toArray()
+    .map((table) => page.$(table));
   const maps = tables.filter((table) => table.find("tr.info").length > 0);
   if (tables.length < 3 || maps.length !== 1) changed(page, "its tables moved");
   const [data, kinds] = tables as [Elem, Elem];
