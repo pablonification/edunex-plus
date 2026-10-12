@@ -236,6 +236,11 @@ export function partitionSnoozed<T>(
   return { shown, snoozed };
 }
 
+/** The saved snoozes still hiding one of these items: one whose item has changed or gone hides nothing. */
+export function holding(entries: readonly SnoozeEntry[], keys: readonly SnoozeKey[], now: number): SnoozeEntry[] {
+  return entries.filter((entry) => entry.until > now && keys.some((key) => key.id === entry.id && key.facts === entry.facts));
+}
+
 /** The saved list without what's over, newest kept. */
 export function pruneSnoozes(entries: readonly SnoozeEntry[], now: number): SnoozeEntry[] {
   return entries.filter((entry) => entry.until > now).slice(-KEPT);

@@ -12,7 +12,7 @@ import { ActionError } from "../bridge";
 import { useFormat, useT } from "../i18n";
 import { displayName } from "../names";
 import { useCourseNames } from "../schedule-data";
-import { useSnoozes } from "../snoozes";
+import { useHeldBack, useSnoozes } from "../snoozes";
 import { useBridge, useDataset, useSettings, useStatus, useStore } from "../store";
 import { AppMark, SourceLogo } from "../ui/brand";
 import { Button, Segmented, Switch } from "../ui/controls";
@@ -296,10 +296,11 @@ function useReport() {
 /** What's put off with "Ingatkan nanti" on Beranda and course pages, and the way to bring it all back; only while there is some. */
 function SnoozedReminders({ report }: { report: (error: unknown) => void }) {
   const t = useT();
-  const { entries, wakeAll } = useSnoozes();
-  if (!entries.length) return null;
+  const { wakeAll } = useSnoozes();
+  const held = useHeldBack();
+  if (!held.length) return null;
   return (
-    <Row label={t("settings.snoozed", { count: entries.length })} hint={t("settings.snoozed.hint")}>
+    <Row label={t("settings.snoozed", { count: held.length })} hint={t("settings.snoozed.hint")}>
       <Button size="sm" onClick={() => wakeAll().then(() => toast(t("settings.snoozed.woken"), "success"), report)}>
         {t("settings.snoozed.wakeAll")}
       </Button>

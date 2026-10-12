@@ -9,6 +9,7 @@ import { type Need, needsYou } from "../../src/core/needs";
 import {
   activeSnooze,
   attendanceKey,
+  holding,
   LONGEST,
   partitionSnoozed,
   pruneSnoozes,
@@ -179,6 +180,14 @@ describe("which items a list still shows", () => {
     const { shown, snoozed } = partitionSnoozed(items, (item) => item, [entry()], 1_000);
     expect(shown).toEqual([{ id: "task:2", facts: "x" }]);
     expect(snoozed).toEqual([{ item: key, entry: entry() }]);
+  });
+
+  it("counts as holding something only a snooze whose item is still there with the same facts", () => {
+    const changed = entry({ id: "task:2", facts: "old" });
+    const gone = entry({ id: "task:3" });
+    const keys = [key, { id: "task:2", facts: "new" }];
+    expect(holding([entry(), changed, gone], keys, 1_000)).toEqual([entry()]);
+    expect(holding([entry()], keys, 2_000)).toEqual([]);
   });
 
   it("forgets what's over, and keeps the newest when the list grows long", () => {

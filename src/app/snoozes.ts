@@ -5,7 +5,10 @@
 // whole list). The rules (what matches, until when) live in core/snooze.ts.
 import { useSyncExternalStore } from "react";
 import type { SnoozeEntry } from "../core/models";
-import { activeSnooze, pruneSnoozes, type SnoozeKey } from "../core/snooze";
+import { attention, homeContext, nowCard, todayPlan } from "../core/needs";
+import { activeSnooze, attendanceKey, holding, pruneSnoozes, type SnoozeKey, snoozeKey } from "../core/snooze";
+import { useAttendance } from "./attendance";
+import { useHomeWorld } from "./home-world";
 import { useNow } from "./i18n";
 import { useBridge, useDataset, useStore } from "./store";
 
@@ -67,4 +70,23 @@ export function useSnoozes(): Snoozes {
     wake: (id) => update((current) => current.filter((entry) => entry.id !== id)),
     wakeAll: () => update(() => []),
   };
+}
+
+/**
+ * The snoozes still hiding something now, on Beranda (its "Perlu perhatianmu",
+ * as it shows it) or on a course page (the attendance banner): what Settings
+ * counts. One whose deadline moved, whose count changed or whose Task was
+ * handed in hides nothing, so it isn't counted.
+ */
+export function useHeldBack(): readonly SnoozeEntry[] {
+  const { entries } = useSnoozes();
+  const world = useHomeWorld();
+  const attendance = useAttendance();
+  const now = useNow();
+  if (!world) return [];
+  const context = homeContext(world);
+  const keys = attention(context, nowCard(context), todayPlan(context)).map(snoozeKey);
+  // A banner's key carries its course's state, so only a course still showing that banner matches.
+  if (attendance) for (const { course, health } of attendance.courses) keys.push(attendanceKey(course.code, health, attendance.target));
+  return holding(entries, keys, now);
 }

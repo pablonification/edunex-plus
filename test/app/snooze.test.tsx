@@ -219,4 +219,20 @@ describe("Settings", () => {
     await s.key("Escape");
     expect(heading()).toBe("Perlu perhatianmu 6");
   });
+
+  it("doesn't count a snooze whose item came back by changing", async () => {
+    const s = await open();
+    const id = s.world.edunex.postTask(95059, { name: "Ringkasan K6", end_at: "2026-10-14T23:59:00+07:00" });
+    await s.engineDoes(() => s.engine.refresh("edunex"));
+    await snooze("Ringkasan K6", "Sampai ada perubahan");
+    await snooze("UTS Komunikasi Pemasaran", "Besok pagi");
+    s.world.edunex.moveDeadline(id, "2026-10-16T23:59:00+07:00");
+    await s.engineDoes(() => s.engine.refresh("edunex"));
+    expect(titles().some((t) => t.startsWith("Ringkasan K6"))).toBe(true);
+    expect(needs()?.textContent).toContain("1 ditunda");
+
+    await s.apply({ type: "command", command: "settings" });
+    const dialog = document.querySelector("[role=dialog]")?.textContent ?? "";
+    expect(dialog).toContain("Pengingat yang ditunda (1)");
+  });
 });
