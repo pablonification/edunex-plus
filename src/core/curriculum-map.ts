@@ -5,7 +5,7 @@
 // specializations and minors with progress.
 import { fillsSlot, type ProgressRow, rowStatus, type StandingStatus } from "./curriculum-slots";
 import type { CurriculumFix, StudyPlan } from "./models";
-import { minorCoverage, minorNeed, plannedCodes, rankedMinors, type StudentRecord } from "./planner";
+import { activeSpecialization, minorCoverage, minorNeed, plannedCodes, rankedMinors, type StudentRecord } from "./planner";
 
 /** Where a course stands, and planned: in the Student's plan. */
 export type SlotStatus = StandingStatus | "planned";
@@ -40,6 +40,8 @@ export interface PackageProgress {
   sks: number;
   have: number;
   registered: boolean;
+  /** Registered, but the Student said they aren't continuing it. */
+  notContinuing: boolean;
   courses: { code: string; name: string; sks: number; status: SlotStatus }[];
 }
 
@@ -93,8 +95,10 @@ export function curriculumMap(record: StudentRecord, plan: StudyPlan): Curriculu
   const bySemester = new Map<number, MapSemester>();
   const semester = (n: number) => bySemester.get(n) ?? bySemester.set(n, { semester: n, required: [], others: [] }).get(n)!;
   for (const slot of slots) semester(slot.semester).required.push(slotCourse(slot));
+  // This term's what-ifs, as the planner counts them: a course left out doesn't count; one added counts in this semester.
+  const leftOut = new Set(record.thisTermDropped.map((c) => c.code));
   for (const row of rows) {
-    if (used.has(row.code) || isSlotCode(row.code)) continue;
+    if (used.has(row.code) || isSlotCode(row.code) || leftOut.has(row.code)) continue;
     used.add(row.code);
     semester(row.semester).others.push({
       code: row.code,
@@ -103,6 +107,22 @@ export function curriculumMap(record: StudentRecord, plan: StudyPlan): Curriculu
       courseId: null,
       status: withPlan(rowStatus(row), row.code),
       grade: row.grade,
+      via: null,
+      fix: null,
+      sixLeft: false,
+    });
+  }
+  const nowSemester = record.semesterNow ?? Math.max(1, ...bySemester.keys());
+  for (const code of record.thisTermAdded) {
+    const course = record.thisTerm.find((c) => c.code === code);
+    if (!course || used.has(code) || isSlotCode(code) || rows.some((r) => r.code === code)) continue;
+    semester(nowSemester).others.push({
+      code,
+      name: course.name,
+      sks: course.sks,
+      courseId: null,
+      status: "in-progress",
+      grade: null,
       via: null,
       fix: null,
       sixLeft: false,
@@ -124,6 +144,7 @@ export function curriculumMap(record: StudentRecord, plan: StudyPlan): Curriculu
       sks: p.sks ?? courses.reduce((sum, c) => sum + c.sks, 0),
       have: courses.filter((c) => c.status === "passed" || c.status === "in-progress").reduce((sum, c) => sum + c.sks, 0),
       registered: record.specialization?.name === p.name,
+      notContinuing: record.specialization?.name === p.name && activeSpecialization(record, plan) === null,
       courses,
     };
   });
@@ -137,6 +158,7 @@ export function curriculumMap(record: StudentRecord, plan: StudyPlan): Curriculu
     sks: minorNeed(record, m),
     have: minorCoverage(record, plan, m).have,
     registered: m.key === record.registeredMinor,
+    notContinuing: false,
     courses: m.courses.map((code) => ({
       code,
       name: record.courses.get(code)?.name ?? code,

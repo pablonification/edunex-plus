@@ -73,8 +73,9 @@ function useFocusAfterCorrection(rows: MapCourse[]) {
 
 export function Tab({ onCalendar }: { onCalendar?: () => void }) {
   const t = useT();
-  const record = useStudentRecord();
-  const state = usePlan(record);
+  const state = usePlan(useStudentRecord());
+  // With this term's what-ifs, like the planner: the two tabs never disagree.
+  const record = state?.record;
   const setFix = useCurriculumFix();
   const [onlyLeft, setOnlyLeft] = useState(false);
   const [picking, setPicking] = useState<MapCourse | null>(null);
@@ -457,7 +458,14 @@ function Packages({ title, packages }: { title: string; packages: PackageProgres
               </span>
               <span className="flex shrink-0 items-center gap-2">
                 {p.registered && (
-                  <span className="rounded-[5px] bg-info-bg px-1.5 text-micro leading-[18px] font-semibold text-info-fg">{t("curriculum.registered")}</span>
+                  <span
+                    className={cx(
+                      "rounded-[5px] px-1.5 text-micro leading-[18px] font-semibold",
+                      p.notContinuing ? "bg-neutral-bg text-neutral-fg" : "bg-info-bg text-info-fg",
+                    )}
+                  >
+                    {t(p.notContinuing ? "curriculum.notContinuing" : "curriculum.registered")}
+                  </span>
                 )}
                 <span className="text-small font-semibold tabular-nums">{t("curriculum.packageSks", { have: p.have, need: p.sks })}</span>
               </span>

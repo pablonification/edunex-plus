@@ -32,6 +32,18 @@ describe("the study plan's saved data", () => {
     expect(again.dataset("local.plan")).toEqual(OLD_PLAN);
   });
 
+  it("this term's what-ifs and hidden warnings are kept too", async () => {
+    const h = await startEngine({ start: false });
+    const plan = {
+      ...OLD_PLAN,
+      now: { term: "2026-1", added: [{ code: "II4090", name: "Kerja Praktik", sks: 2 }], dropped: ["PL3032"] },
+      hidden: { "parity|II4090": { reason: "program-adds", at: 3 } },
+    };
+    await h.engine.setLocal("local.plan", plan);
+    const again = await startEngine({ world: h.world, storage: h.storage, vault: h.vault, start: false });
+    expect(again.dataset("local.plan")).toEqual(plan);
+  });
+
   it("refuses a correction it can't read, and keeps the one it had", async () => {
     const h = await startEngine({ start: false });
     await h.engine.setLocal("local.curriculum", { slots: { WI1111: { kind: "done", at: 1 } } });
