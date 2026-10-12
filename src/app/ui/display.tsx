@@ -1,4 +1,4 @@
-// Things that show information: cards, section titles, chips, course marks,
+// Things that show information: cards, chips, course marks,
 // loading and empty states.
 import type { ReactNode } from "react";
 import { useT } from "../i18n";
@@ -17,18 +17,6 @@ const CARD = {
 
 export function Card({ variant = "plain", className, children }: { variant?: keyof typeof CARD; className?: string; children: ReactNode }) {
   return <div className={cx(CARD[variant], className)}>{children}</div>;
-}
-
-export function SectionTitle({ children, aside, count }: { children: ReactNode; aside?: ReactNode; count?: number }) {
-  return (
-    <div className="mb-3 flex items-baseline justify-between gap-4">
-      <h2 className="text-title font-semibold tracking-[-0.01em]">
-        {children}
-        {count !== undefined && <span className="ml-2 text-body font-medium text-faint tabular-nums">{count}</span>}
-      </h2>
-      {aside}
-    </div>
-  );
 }
 
 /** Nothing here yet: what would be here, why it's empty, and the way forward when there is one. */
