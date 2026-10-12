@@ -573,7 +573,7 @@ function TermBlock({
             {whatIf ? (
               <span className="flex items-center gap-1 text-caption font-medium text-info-fg" role="status">
                 <Icons.Info className="size-3 shrink-0" weight="bold" />
-                {subtitle}
+                <Meta>{subtitle}</Meta>
               </span>
             ) : (
               <span className="block text-caption text-faint">{subtitle}</span>
@@ -914,8 +914,10 @@ function Rules({ record, rules, plan, undoable }: { record: StudentRecord; rules
             onClick={() => setShowHidden(!showHidden)}
             className="focus-ring -mx-1 rounded px-1 py-0.5 text-caption text-muted hover:text-fg"
           >
-            {t("planner.hidden", { count: hidden.length })} ·{" "}
-            <span className="font-medium text-accent-fg">{t(showHidden ? "planner.hiddenClose" : "planner.hiddenShow")}</span>
+            <Meta>
+              {t("planner.hidden", { count: hidden.length })}
+              <span className="font-medium text-accent-fg">{t(showHidden ? "planner.hiddenClose" : "planner.hiddenShow")}</span>
+            </Meta>
           </button>
           {showHidden && (
             <ul className="mt-1 space-y-1 pb-1" aria-label={t("planner.hidden", { count: hidden.length })}>
@@ -1071,9 +1073,9 @@ function MinorPanel({
       </p>
       <p className="mt-3 flex flex-wrap items-baseline gap-x-2">
         <span className="text-title font-semibold tabular-nums">{t("planner.minorSks", { have, need: progress.need })}</span>
-        <span className="text-small text-muted tabular-nums">
+        <Meta className="text-small text-muted tabular-nums">
           {t("planner.minorSplit", { passed: progress.passed, now: progress.now, planned: progress.planned })}
-        </span>
+        </Meta>
       </p>
       {minor.note && (
         <section className="mt-4">
