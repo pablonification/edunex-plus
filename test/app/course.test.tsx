@@ -120,12 +120,17 @@ describe("materials", () => {
     expect(materials()[1]).toContain("Course Tokens : FIXTUR");
     expect(s.text()).not.toContain("Microsoft Teams");
 
+    // Heard apart without the heading above them: the joint class's entries say whose they are.
+    const named = [...document.querySelectorAll("nav[aria-label='Daftar isi'] button")]
+      .map((b) => b.textContent ?? "")
+      .filter((n) => n.startsWith("Pengantar"));
+    expect(named).toEqual([expect.not.stringContaining("Kelas gabungan"), expect.stringContaining("Pengantar · Kelas gabungan")]);
     await entry("Pengantar", { joint: true });
     expect(document.querySelector("main section header")?.textContent).toContain("Kelas gabungan");
     // The joint class's own copy of the schedule, the newer one with meeting 03, and its online-class links.
     expect(materials().filter((m) => m.includes("Jadwal Kuliah TA & Mekanisme Pelaksanaan"))).toHaveLength(1);
     expect(materials()[0]).toContain("Pertemuan 03");
-    expect(s.text()).toContain("Kelas online · Microsoft Teams");
+    expect(s.text()).toContain("Kelas online·Microsoft Teams");
     await s.click("Gabung: Link Teams Pertemuan 03: Jumat, 9 Oktober 2026");
     expect(s.calls.at(-1)).toEqual({ name: "shell.openExternal", input: { url: "https://teams.microsoft.com/meet/000000000000?p=fixture" } });
   });
@@ -178,6 +183,42 @@ describe("materials", () => {
     await s.click(link);
     expect(s.calls.at(-1)).toEqual({ name: "shell.openLink", input: { url: "https://docs.google.com/spreadsheets/d/fixture-topik-ta/edit" } });
     expect(s.text()).not.toContain("tidak bisa dibuka");
+  });
+
+  it("a long note folds; the keyboard reaching its hidden part unfolds it, and folding it again keeps the note in view", async () => {
+    // jsdom lays nothing out: here every note is long, and its link sits below the fold.
+    const scrolled: Element[] = [];
+    const rect = Element.prototype.getBoundingClientRect;
+    Object.defineProperty(HTMLElement.prototype, "scrollHeight", {
+      configurable: true,
+      get(this: HTMLElement) {
+        return this.id && this.classList.contains("overflow-hidden") ? 1000 : 0;
+      },
+    });
+    Element.prototype.getBoundingClientRect = function (this: Element) {
+      return { x: 0, y: 0, left: 0, right: 0, width: 0, height: 0, top: 0, bottom: this.tagName === "A" ? 400 : 0, toJSON: () => ({}) };
+    };
+    Element.prototype.scrollIntoView = function (this: Element) {
+      scrolled.push(this);
+    };
+    try {
+      const s = await openCourse("II4091");
+      await entry("List Penawaran Topik TA");
+      const toggle = () => document.querySelector<HTMLButtonElement>("main section button[aria-controls]");
+      expect(toggle()?.getAttribute("aria-expanded")).toBe("false");
+      const link = [...document.querySelectorAll<HTMLAnchorElement>("main section a")].find((a) => a.textContent === "Penawaran topik TA 2026-2027")!;
+      await act(async () => link.focus());
+      expect(toggle()?.getAttribute("aria-expanded")).toBe("true");
+      const body = document.getElementById(toggle()!.getAttribute("aria-controls")!);
+      expect(scrolled).not.toContain(body);
+      await s.click(toggle()!);
+      expect(toggle()?.getAttribute("aria-expanded")).toBe("false");
+      expect(scrolled).toContain(body);
+    } finally {
+      delete (HTMLElement.prototype as { scrollHeight?: number }).scrollHeight;
+      Element.prototype.getBoundingClientRect = rect;
+      delete (Element.prototype as { scrollIntoView?: unknown }).scrollIntoView;
+    }
   });
 
   it("a disguised address or another scheme is never a link; a link the computer can't open says so instead of a dead click", async () => {
@@ -238,7 +279,7 @@ describe("materials", () => {
     ])
       expect(screen.has(name)).toBe(true);
     for (const name of ["Halaman", "Paket SCORM", "Kuis interaktif", "CloudX", "Baru"]) expect(screen.has(`Buka di Edunex: ${name}`)).toBe(true);
-    expect(screen.text()).toContain("Kelas online · Google Meet");
+    expect(screen.text()).toContain("Kelas online·Google Meet");
     expect(screen.text()).toContain("Tautan·example.org");
     expect(screen.text()).toContain("Video·youtube.com");
     // A whiteboard is a picture on the page, as on Edunex.

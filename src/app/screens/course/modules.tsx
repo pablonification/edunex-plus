@@ -170,6 +170,8 @@ export function ModulesTab({ page, module }: { page: CoursePage; module?: number
                       )}
                     >
                       {entry.title}
+                      {/* Heard with the title: two "Pengantar" (or two same-named modules) are told apart without the heading above. */}
+                      {entry.parent && <span className="sr-only">{` · ${t("course.jointClass")}`}</span>}
                     </span>
                     {!empty && countFacts(t, entry).length > 0 && (
                       <Meta truncate className="mt-0.5 text-caption text-faint">
@@ -308,13 +310,13 @@ export function MaterialRow({ material }: { material: Material }) {
   const size = material.sizeBytes ? f.fileSize(material.sizeBytes) : null;
   const upload = uploadExtension(material.type);
   const where = action.kind === "open" ? linkHost(action.url) : null;
-  // What it is ("ZIP", "Kelas online · Microsoft Teams"), then its size or where it goes.
-  let what: string;
-  if (kind === "pdf") what = t("material.pdf");
-  else if (upload) what = upload.slice(1).toUpperCase();
-  else if (kind === "vicon")
-    what = VICON_PROVIDERS[material.type] ? t("material.vicon", { service: VICON_PROVIDERS[material.type] }) : t("material.viconUnknown");
-  else what = t(`material.${kind}`);
+  // What it is ("ZIP"; "Kelas online", "Microsoft Teams"), then its size or where it goes.
+  let what: string[];
+  if (kind === "pdf") what = [t("material.pdf")];
+  else if (upload) what = [upload.slice(1).toUpperCase()];
+  else if (kind === "vicon") what = [t("material.vicon"), ...(VICON_PROVIDERS[material.type] ? [VICON_PROVIDERS[material.type]] : [])];
+  else what = [t(`material.${kind}`)];
+  const ago = material.updatedAt !== null ? f.fromNow(material.updatedAt) : null;
 
   const download = async (url: string, name: string) => {
     setBusy(true);
@@ -375,10 +377,25 @@ export function MaterialRow({ material }: { material: Material }) {
         {icon}
         <div className="min-w-0 flex-1">
           <p className="line-clamp-2 text-body font-medium [overflow-wrap:anywhere]">{material.title}</p>
-          <Meta className="mt-0.5 text-small text-muted">
+          {/* One line, whatever the width: the date gives way first, never a "·" left hanging at a line's end. */}
+          <Meta truncate className="mt-0.5 text-small text-muted">
             {what}
-            {kind !== "vicon" && (where ?? size)}
-            {material.updatedAt !== null && <span className="text-faint">{f.fromNow(material.updatedAt)}</span>}
+            {kind !== "vicon" && where ? (
+              <span className="min-w-0 truncate" title={where}>
+                {where}
+              </span>
+            ) : kind !== "vicon" && size ? (
+              size
+            ) : (
+              ""
+            )}
+            {ago ? (
+              <span className="min-w-0 truncate text-faint" title={ago}>
+                {ago}
+              </span>
+            ) : (
+              ""
+            )}
           </Meta>
         </div>
         <span className="flex shrink-0 justify-end">{button}</span>
@@ -406,14 +423,27 @@ function Folded({ label, children }: { label: string; children: ReactNode }) {
     observer.observe(element);
     return () => observer.disconnect();
   }, []);
+  // Folding a note read to its end brings it back into view; the page would otherwise be left past it.
+  const folding = useRef(false);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: runs when the note folds, on purpose
+  useLayoutEffect(() => {
+    if (!folding.current) return;
+    folding.current = false;
+    body.current?.scrollIntoView?.({ block: "nearest" });
+  }, [open]);
   const folded = long && !open;
   return (
     <>
+      {/* biome-ignore lint/a11y/noStaticElementInteractions: focus arriving inside a folded note unfolds it; the note itself does nothing */}
       <div
         ref={body}
         id={id}
         style={folded ? { maxHeight: FOLD_PX } : undefined}
         className={cx("overflow-hidden", folded && "[mask-image:linear-gradient(to_bottom,black_65%,transparent)]")}
+        // A link the keyboard reaches in the faded or hidden part unfolds the note, so it's seen where it is.
+        onFocus={(event) => {
+          if (folded && event.target.getBoundingClientRect().bottom > event.currentTarget.getBoundingClientRect().top + FOLD_PX * 0.65) setOpen(true);
+        }}
       >
         {children}
       </div>
@@ -423,7 +453,10 @@ function Folded({ label, children }: { label: string; children: ReactNode }) {
           aria-expanded={open}
           aria-controls={id}
           aria-label={`${t(open ? "note.less" : "note.more")}: ${label}`}
-          onClick={() => setOpen(!open)}
+          onClick={() => {
+            folding.current = open;
+            setOpen(!open);
+          }}
           className="focus-ring mt-1.5 inline-flex items-center gap-1 rounded-md text-small font-medium text-accent-fg hover:underline"
         >
           {t(open ? "note.less" : "note.more")}
