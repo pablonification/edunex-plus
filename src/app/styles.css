@@ -78,7 +78,8 @@
   --z-tooltip: 70;
   --z-toast: 80;
 
-  /* Motion durations: duration-(--duration-quick).
+  /* Motion durations: duration-(--duration-quick). JS animation (element.animate)
+     reads the same values from src/app/ui/motion/tokens.ts (a test keeps them equal).
      quick: press, colors, tooltips, popovers, anything leaving, a highlight sliding.
      base: dialogs, a panel opening, the gap closing after a row or toast leaves.
      slow: a number changing, a bar filling.
@@ -316,8 +317,27 @@
   }
 }
 
-/* Reduced motion: every CSS animation and transition becomes instant. A
-   spinner still says "working": it turns slowly instead of freezing mid-turn. */
+/* A native disclosure (<details>) opens and closes smoothly instead of jumping. */
+@media (prefers-reduced-motion: no-preference) {
+  :root {
+    interpolate-size: allow-keywords;
+  }
+  details::details-content {
+    height: 0;
+    overflow: clip;
+    transition:
+      height var(--duration-base) var(--ease-out),
+      content-visibility var(--duration-base) allow-discrete;
+  }
+  details[open]::details-content {
+    height: auto;
+  }
+}
+
+/* Reduced motion: every CSS animation and transition becomes instant. This
+   doesn't reach element.animate: the kit's JS animation asks the same setting
+   before it starts (src/app/ui/motion/animate.ts). A spinner still says
+   "working": it turns slowly instead of freezing mid-turn. */
 @media (prefers-reduced-motion: reduce) {
   *,
   ::before,
