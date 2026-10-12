@@ -411,7 +411,7 @@ export interface FullCalendar {
 }
 
 const fold = (text: string) => text.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
-/** A text's words, folded: a search word has to start one of them ("uas" finds "UAS", not "evaluasi"). */
+/** A text's words, folded. */
 const wordsOf = (text: string) =>
   fold(text)
     .split(/[^\p{L}\p{N}]+/u)
@@ -434,8 +434,9 @@ function mergeRevisions(events: readonly CalendarEvent[]): { event: CalendarEven
  * own title and, when the app knows, what it means for the Student;
  * "(Revisi)" copies merged into the latest. The chips (`groups`, empty for
  * all) and the search narrow it: the search ignores case and accents,
- * matches the start of words, and also looks in `extra` (the words the
- * screen has for an event). Grouped by month, in time order.
+ * matches a short word only at the start of a word, and also looks in
+ * `extra` (the words the screen has for an event). Grouped by month, in
+ * time order.
  */
 export function fullCalendar(
   facts: Omit<DeadlineFacts, "term">,
@@ -458,7 +459,9 @@ export function fullCalendar(
     if (view.groups?.size && !view.groups.has(entry.group)) return false;
     if (!words.length) return true;
     const text = wordsOf(`${entry.title} ${view.extra?.(entry) ?? ""}`);
-    return words.every((w) => text.some((x) => x.startsWith(w)));
+    // A short word (UTS, UAS, KRS) has to start a word: "uas" isn't "evaluasi". A longer one is found inside words too,
+    // as ITB's titles add to a root ("daftar" in "Pendaftaran", "ubah" in "Perubahan").
+    return words.every((w) => text.some((x) => (w.length <= 3 ? x.startsWith(w) : x.includes(w))));
   });
   const months = new Map<string, CalendarEntry[]>();
   for (const entry of shown.sort((a, b) => a.event.start - b.event.start || a.title.localeCompare(b.title))) {

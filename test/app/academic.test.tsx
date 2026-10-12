@@ -319,6 +319,14 @@ describe("the Kalender akademik tab", () => {
     expect(titles()).toEqual(["Masa Ujian Tengah Semester I-2026/2027", "Masa Ujian Tengah Semester II-2026/2027"]);
     await searchFor("uas");
     expect(titles()).toEqual(["Ujian Akhir Semester I-2026/2027", "Ujian Akhir Semester II-2026/2027"]);
+    // A longer word is still found inside one: ITB's titles add to a root ("Pendaftaran").
+    await searchFor("daftar");
+    expect(titles()).toEqual(
+      expect.arrayContaining([
+        "Pendaftaran Rencana Studi (DRS) dan Perwalian Semester I-2026/2027",
+        "Pendaftaran Rencana Studi (DRS) dan Perwalian Semester II-2026/2027",
+      ]),
+    );
     await s.engineDoes(() => s.engine.updateSettings({ lang: "en" }));
     await searchFor("midterms");
     expect(titles()).toEqual(["Masa Ujian Tengah Semester I-2026/2027", "Masa Ujian Tengah Semester II-2026/2027"]);

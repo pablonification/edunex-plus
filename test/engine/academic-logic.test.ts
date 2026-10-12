@@ -273,6 +273,27 @@ describe("the full calendar", () => {
     ]);
   });
 
+  it("search: a short word (UAS, KRS) starts a word; a longer one is found inside words too, as ITB's titles add to a root (bug)", () => {
+    // "uas" is inside "Evaluasi", but that's no final exam.
+    expect(titles({ query: "uas" })).toEqual([]);
+    expect(titles({ query: "uas", extra: (e) => (e.event.kind === "uas" ? "UAS" : "") })).toEqual([
+      "Ujian Akhir Semester I-2026/2027",
+      "Ujian Akhir Semester II-2026/2027",
+    ]);
+    // "daftar" finds "Pendaftaran", "ubah" finds "Perubahan", "lulus" finds "Kelulusan".
+    const drs = all()
+      .months.flatMap((m) => m.entries)
+      .filter((e) => e.event.kind === "drs")
+      .map((e) => e.title);
+    expect(drs).toHaveLength(3);
+    expect(titles({ query: "daftar" })).toEqual(expect.arrayContaining(drs));
+    expect(titles({ query: "ubah" })).toEqual(
+      expect.arrayContaining(["Batas Akhir Perubahan Nilai Mata Kuliah Semester II-2025/2026 Kategori Non TA/Tesis/Disertasi"]),
+    );
+    expect(titles({ query: "ubah rencana" }).length).toBeGreaterThan(0);
+    expect(titles({ query: "lulus" }).some((t) => /kelulusan/i.test(t))).toBe(true);
+  });
+
   it("nothing without a calendar", () => {
     expect(fullCalendar({ calendar: undefined, now })).toMatchObject({ months: [], total: 0 });
   });
