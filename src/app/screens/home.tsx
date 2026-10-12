@@ -566,7 +566,17 @@ function TodayRow({ item, courses, index, onCard }: { item: TodayItem; courses: 
           </Meta>
         }
         trailing={live ? <NowMark fresh={edunexFresh} /> : meeting.link ? <Icons.Video className="size-4 text-faint" /> : undefined}
-        label={meeting.link ? t("home.today.joinLabel", { course: code }) : undefined}
+        // The name replaces the row's text, so it carries what the row shows: when, "Sekarang", where it came from.
+        label={
+          meeting.link
+            ? factsLabel(
+                t("home.today.joinLabel", { course: code }),
+                f.timeRange(meeting.start, meeting.end),
+                live && t("home.today.now"),
+                !shownAbove && t("home.today.notInSix"),
+              )
+            : undefined
+        }
         onClick={() => (meeting.link ? open(meeting.link) : go({ screen: "course", code, tab: "meetings" }))}
       >
         {/* The now card says it for the meeting it shows. */}

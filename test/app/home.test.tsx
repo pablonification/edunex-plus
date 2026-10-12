@@ -70,7 +70,8 @@ describe("Beranda on the recorded Thursday morning", () => {
     expect(row("home-today", "11:00")).not.toContain("Bentrok");
     expect(text("home-today")).toContain("Besok");
     expect(row("home-today", "15:0017:00")).toBe("15:0017:00Proposal Tugas AkhirII4091 · Pertemuan 3 · daringTidak ada di jadwal SIX");
-    await screen.click("Gabung kelas daring: II4091");
+    // The row is one button: its name says what the row shows, as a screen reader reads only the name.
+    await screen.click("Gabung kelas daring: II4091 · 15:00–17:00 · Tidak ada di jadwal SIX");
     expect(screen.calls.at(-1)).toMatchObject({ name: "shell.openExternal", input: { url: expect.stringContaining("teams.microsoft.com") } });
     await screen.click(/^11:0012:59Komunikasi Pemasaran/);
     expect(document.querySelector("main h1")?.textContent).toBe("Komunikasi Pemasaran");
@@ -283,6 +284,10 @@ describe("an online meeting only Edunex announced", () => {
     await screen.click(join);
     expect(screen.calls.at(-1)).toMatchObject({ name: "shell.openExternal", input: { url: expect.stringContaining("teams.microsoft.com") } });
     expect(row("home-today", "15:0017:00")).toBe("15:0017:00Proposal Tugas AkhirII4091 · Pertemuan 3 · daringSekarang");
+    // A screen reader hears the row's name, not its text: the name says when and that it's on now, so it isn't the card's Gabung again.
+    expect(section("home-today")!.querySelector("button[aria-label^='Gabung']")?.getAttribute("aria-label")).toBe(
+      "Gabung kelas daring: II4091 · 15:00–17:00 · Sekarang",
+    );
   });
 
   it("the evening before: the card says it's tomorrow, without a Join button yet", async () => {
@@ -302,6 +307,9 @@ describe("an online meeting only Edunex announced", () => {
     expect(text("home-now")).toContain("On now · until 17:00");
     expect(text("home-now")).toContain("Not on SIX's timetable");
     expect(row("home-today", "15:00")).toContain("Now");
+    expect(section("home-today")!.querySelector("button[aria-label^='Join']")?.getAttribute("aria-label")).toBe(
+      "Join online class: II4091 · 15:00–17:00 · Now",
+    );
   });
 });
 
