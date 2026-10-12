@@ -149,6 +149,10 @@ export const academicStrings = {
     id: "Tampilkan {count} bulan sebelumnya",
     en: { one: "Show {count} earlier month", other: "Show {count} earlier months" },
   },
+  "calendar.earlierHide": {
+    id: "Sembunyikan {count} bulan sebelumnya",
+    en: { one: "Hide {count} earlier month", other: "Hide {count} earlier months" },
+  },
   "calendar.revised": { id: "Direvisi ITB", en: "Revised by ITB" },
   "deadline.kind.drs": { id: "Pengisian KRS (DRS)", en: "KRS registration (DRS)" },
   "deadline.kind.urs": { id: "Perubahan KRS (URS)", en: "KRS changes (URS)" },

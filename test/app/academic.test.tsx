@@ -321,6 +321,34 @@ describe("the Kalender akademik tab", () => {
     expect(titles()).toEqual(["Masa Ujian Tengah Semester I-2026/2027", "Masa Ujian Tengah Semester II-2026/2027"]);
   });
 
+  it("the full calendar from the keyboard: one button folds the earlier months open and shut, 'Hapus saringan' hands focus to the search, only the count is announced", async () => {
+    const s = await openPlan("2026-10-11T09:00:00+07:00");
+    await s.click(/^Rencana studi/);
+    await tab("Kalender akademik");
+    await s.click("Kalender lengkap");
+    const months = () => [...document.querySelectorAll("[role=tabpanel][data-state=active] section h3")].map((h) => h.textContent);
+    const earlier = s.button("Tampilkan 3 bulan sebelumnya");
+    earlier.focus();
+    await s.click(earlier);
+    expect(document.activeElement).toBe(earlier);
+    expect(earlier.getAttribute("aria-expanded")).toBe("true");
+    expect(earlier.textContent).toBe("Sembunyikan 3 bulan sebelumnya");
+    expect(months()[0]).toBe("Juli 20264");
+    await s.click(earlier);
+    expect(document.activeElement).toBe(earlier);
+    expect(earlier.getAttribute("aria-expanded")).toBe("false");
+    expect(months()[0]).toBe("Oktober 20266");
+
+    await s.click(/^Libur/);
+    const status = () => document.querySelector("[role=tabpanel][data-state=active] [role=status]")!.textContent;
+    expect(status()).toBe("2 dari 108 acara");
+    const clear = s.button("Hapus saringan");
+    clear.focus();
+    await s.click(clear);
+    expect(status()).toBe("108 acara");
+    expect(document.activeElement).toBe(document.querySelector("[role=tabpanel][data-state=active] input"));
+  });
+
   it("the full calendar keeps a month in view while something that started in it is still running", async () => {
     const s = await openPlan("2026-12-05T09:00:00+07:00");
     await s.click(/^Rencana studi/);

@@ -6,7 +6,7 @@
 // against the progress check); past ones folded away. "Full calendar": every
 // event ITB lists, by month, ITB's own title first, with chips and a search,
 // so a dense calendar stays readable. Works without SIX.
-import { type CSSProperties, Fragment, useState } from "react";
+import { type CSSProperties, Fragment, useRef, useState } from "react";
 import {
   academicDeadlines,
   CALENDAR_GROUPS,
@@ -252,6 +252,7 @@ function EveryEvent() {
   const [query, setQuery] = useState("");
   const [groups, setGroups] = useState<ReadonlySet<CalendarGroup>>(new Set());
   const [earlier, setEarlier] = useState(false);
+  const search = useRef<HTMLInputElement>(null);
   const { months, total, counts } = fullCalendar(
     { calendar, now, krs, bills, progress },
     // The app's own words count in the search too: its short name for the kind ("UTS", "Midterms"), what it means, the chip.
@@ -270,12 +271,12 @@ function EveryEvent() {
   );
   const shown = months.reduce((sum, m) => sum + m.entries.length, 0);
   const thisMonth = new Date(now + 7 * 3_600_000).toISOString().slice(0, 7);
-  const filtered = query.trim() !== "" || groups.size > 0;
-  const unfold = earlier || query.trim() !== "";
-  // A month that's over folds away, unless something in it is still running (a payment window opened last month).
+  const searching = query.trim() !== "";
+  const filtered = searching || groups.size > 0;
+  // A month that's over folds away, unless something in it is still running (a payment window opened last month); a search looks in them all.
   const over = (m: (typeof months)[number]) => m.month < thisMonth && m.entries.every((e) => e.when === "past");
-  const before = unfold ? [] : months.filter(over);
-  const visible = unfold ? months : months.filter((m) => !over(m));
+  const before = searching ? [] : months.filter(over);
+  const visible = earlier || searching ? months : months.filter((m) => !over(m));
   const toggle = (group: CalendarGroup) => {
     const next = new Set(groups);
     if (next.has(group)) next.delete(group);
@@ -284,9 +285,11 @@ function EveryEvent() {
   };
   return (
     <div>
-      <label className="flex h-9 items-center gap-2 rounded-lg bg-fill px-3">
+      {/* The box shows the focus ring: the input itself is borderless inside it. */}
+      <label className="flex h-9 items-center gap-2 rounded-lg bg-fill px-3 has-[input:focus-visible]:outline-2 has-[input:focus-visible]:outline-offset-2 has-[input:focus-visible]:outline-focus">
         <Icons.Search className="size-4 text-faint" />
         <input
+          ref={search}
           value={query}
           aria-label={t("calendar.search")}
           placeholder={t("calendar.search")}
@@ -318,14 +321,17 @@ function EveryEvent() {
           })}
         </div>
       </fieldset>
-      <p className="mt-3 flex items-center gap-3 text-caption text-muted" role="status">
-        {filtered ? t("calendar.countOf", { shown, count: total }) : t("calendar.count", { count: total })}
+      <p className="mt-3 flex items-center gap-3 text-caption text-muted">
+        {/* Only the count is announced as it changes, not the button beside it. */}
+        <span role="status">{filtered ? t("calendar.countOf", { shown, count: total }) : t("calendar.count", { count: total })}</span>
         {filtered && (
           <button
             type="button"
             onClick={() => {
               setQuery("");
               setGroups(new Set());
+              // The button goes with the filters: focus goes back to the search, where the next one starts.
+              search.current?.focus();
             }}
             className="focus-ring rounded font-medium text-accent-fg hover:underline"
           >
@@ -334,8 +340,16 @@ function EveryEvent() {
         )}
       </p>
       {before.length > 0 && (
-        <Button variant="ghost" size="sm" className="mt-3 -ml-2.5" onClick={() => setEarlier(true)} icon={<Icons.ChevronRight className="size-3.5" />}>
-          {t("calendar.earlier", { count: before.length })}
+        // Stays where it is, so focus does too, and folds them again.
+        <Button
+          variant="ghost"
+          size="sm"
+          className="mt-3 -ml-2.5"
+          aria-expanded={earlier}
+          onClick={() => setEarlier(!earlier)}
+          icon={earlier ? <Icons.ChevronDown className="size-3.5" /> : <Icons.ChevronRight className="size-3.5" />}
+        >
+          {t(earlier ? "calendar.earlierHide" : "calendar.earlier", { count: before.length })}
         </Button>
       )}
       {shown === 0 && <p className="mt-6 rounded-xl bg-sunken px-4 py-6 text-center text-small text-muted">{t("calendar.none")}</p>}
