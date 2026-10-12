@@ -709,6 +709,7 @@ function SnoozedRow({ need, entry, courses }: { need: Need; entry: SnoozeEntry; 
       meta={
         <Meta>
           {view.titleLacksCourse && need.course ? <CourseMark code={need.course} courses={courses} /> : null}
+          {view.which ? <span className="tabular-nums">{view.which}</span> : null}
           {entry.reason === "change" ? t("snooze.untilChange", { when }) : t("snooze.until", { when })}
         </Meta>
       }
@@ -737,10 +738,12 @@ interface NeedView {
   label?: string;
   /** The title is a Task's own name ("Tugas 02"), which doesn't say which course. */
   titleLacksCourse?: boolean;
+  /** What tells it from a look-alike of the same course: a Presence window's class ("Kam, 8 Okt, 08:00–10:00"). */
+  which?: string;
 }
 
-/** What an item is, said whole where its facts aren't beside it: a Task's name with its course ("Tugas 02 · II4091"). */
-const fullName = (need: Need, view: NeedView) => (view.titleLacksCourse && need.course ? factsLabel(view.title, need.course) : view.title);
+/** What an item is, said whole where its facts aren't beside it: a Task's name with its course ("Tugas 02 · II4091"), a window with its class. */
+const fullName = (need: Need, view: NeedView) => factsLabel(view.title, view.titleLacksCourse && need.course, view.which);
 
 function useNeedView(courses: readonly TermCourse[]): (need: Need) => NeedView {
   const t = useT();
@@ -753,9 +756,10 @@ function useNeedView(courses: readonly TermCourse[]): (need: Need) => NeedView {
       case "presence": {
         // Which class it's for: a window can stay open for days, into the course's next class.
         const of = need.class ?? need.session;
+        const which = classDayTime(f, of.start, of.end);
         const forClass = (
           <span key="class" className="tabular-nums">
-            {classDayTime(f, of.start, of.end)}
+            {which}
           </span>
         );
         const closes = t("home.need.presence.closes", { time: f.dayTime(need.session.closesAt) });
@@ -765,6 +769,7 @@ function useNeedView(courses: readonly TermCourse[]): (need: Need) => NeedView {
           return need.countedIn === "noSix"
             ? {
                 title: t("home.need.presenceNoSix", { course: need.course ?? "" }),
+                which,
                 meta: [course, forClass, closes],
                 note: { text: t("home.need.presenceNoSix.note"), tone: null },
                 when: f.fromNow(need.session.closesAt),
@@ -773,12 +778,14 @@ function useNeedView(courses: readonly TermCourse[]): (need: Need) => NeedView {
             : need.countedIn === "six"
               ? {
                   title: t("home.need.presenceOptional", { course: need.course ?? "" }),
+                  which,
                   meta: [course, forClass, t("home.need.presenceOptional.counted"), closes],
                   when: null,
                   tone: null,
                 }
               : {
                   title: t("home.need.presence", { course: need.course ?? "" }),
+                  which,
                   meta: [course, forClass, closes],
                   when: f.fromNow(need.session.closesAt),
                   tone: "warning",
