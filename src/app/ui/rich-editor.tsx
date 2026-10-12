@@ -11,9 +11,10 @@ import { QuotesIcon } from "@phosphor-icons/react/dist/csr/Quotes";
 import { TextBIcon } from "@phosphor-icons/react/dist/csr/TextB";
 import { TextItalicIcon } from "@phosphor-icons/react/dist/csr/TextItalic";
 import { Placeholder } from "@tiptap/extensions";
+import { closeHistory } from "@tiptap/pm/history";
 import { type Editor, EditorContent, useEditor, useEditorState } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import { type KeyboardEvent, type ReactNode, useId, useRef, useState } from "react";
+import { type KeyboardEvent, type ReactNode, type Ref, useId, useImperativeHandle, useRef, useState } from "react";
 import { useT } from "../i18n";
 import { Button } from "./controls";
 import { cx } from "./cx";
@@ -31,6 +32,12 @@ const Glyph = {
   Redo: icon(ArrowUUpRightIcon),
 };
 
+/** What the screen holding the box can ask of it. */
+export interface RichEditorHandle {
+  /** Puts `html` in the box with the cursor at its end, as one step Undo takes back. */
+  reset: (html: string) => void;
+}
+
 export interface RichEditorProps {
   /** The HTML to start from. */
   initial: string;
@@ -41,11 +48,12 @@ export interface RichEditorProps {
   placeholder: string;
   /** An element saying more about it (a hint under the box). */
   describedBy?: string;
+  ref?: Ref<RichEditorHandle>;
 }
 
 const LINK = /^(https?:\/\/|mailto:)/i;
 
-export default function RichEditor({ initial, onChange, label, placeholder, describedBy }: RichEditorProps) {
+export default function RichEditor({ initial, onChange, label, placeholder, describedBy, ref }: RichEditorProps) {
   const [linking, setLinking] = useState(false);
   // The editor is made once; its change handler always reaches the latest onChange.
   const changed = useRef(onChange);
@@ -92,6 +100,19 @@ export default function RichEditor({ initial, onChange, label, placeholder, desc
     },
     onUpdate: ({ editor }) => changed.current(editor.isEmpty ? "" : editor.getHTML()),
   });
+  useImperativeHandle(
+    ref,
+    () => ({
+      reset: (html) =>
+        editor
+          .chain()
+          .command(({ tr }) => Boolean(closeHistory(tr)))
+          .setContent(html)
+          .focus("end")
+          .run(),
+    }),
+    [editor],
+  );
 
   return (
     <div className="rounded-lg border border-edge bg-surface transition-colors duration-150 has-[.ProseMirror:focus-visible]:border-(--focus) has-[.ProseMirror:focus-visible]:outline-2 has-[.ProseMirror:focus-visible]:outline-offset-1 has-[.ProseMirror:focus-visible]:outline-(--focus)">

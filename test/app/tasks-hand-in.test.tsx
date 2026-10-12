@@ -425,6 +425,13 @@ describe("the written answer", () => {
     await s.click("Buang perubahan");
     expect((await s.editor()).textContent).toBe("");
     expect(card()).not.toContain("Jawaban belum disimpan");
+    // The cursor stays in the box, and Undo brings the text back.
+    await act(async () => void (await new Promise((resolve) => setTimeout(resolve, 50))));
+    expect(document.activeElement).toBe(await s.editor());
+    await s.click("Urungkan");
+    expect((await s.editor()).textContent).toBe("Separuh jalan");
+    expect(card()).toContain("Jawaban belum disimpan");
+    await s.click("Buang perubahan");
     await goTo(s, { type: "navigate", route: { screen: "home" } });
     await goTo(s, { type: "navigate", route: { screen: "task", taskId: 117003 } });
     expect((await s.editor()).textContent).toBe("");

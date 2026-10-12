@@ -49,6 +49,7 @@ import { Card, CourseDot, EmptyState, Skeleton, StatusChip, StatusGlyph } from "
 import { Icons } from "../ui/icons";
 import { factsLabel, List, Row as ListRow, Meta, Page, PageHeader, Section } from "../ui/layout";
 import { toast, useReturnFocus } from "../ui/overlays";
+import type { RichEditorHandle } from "../ui/rich-editor";
 import { plainText, RichText } from "../ui/rich-text";
 import { ready as courseReady } from "./course";
 import { ExamRow, examWeekLabel } from "./exam";
@@ -802,10 +803,12 @@ function useAnswerText(task: Task) {
     else unsavedText.delete(key);
   }, [dirty, key, text]);
 
-  const discard = () => {
+  /** Back to Edunex's text: through the box when it's open, so the cursor stays in it and Undo brings the text back. */
+  const discard = (box: RichEditorHandle | null) => {
     unsavedText.delete(key);
+    if (box) box.reset(base);
+    else setVersion((v) => v + 1);
     setText(base);
-    setVersion((v) => v + 1);
   };
   return { text, setText, saved, dirty, discard, version };
 }
@@ -842,6 +845,7 @@ function HandIn({ task, status, onPreview }: Row & { onPreview?: (file: TaskFile
   // A group Task is handed in by the group on Edunex's own pages.
   const editable = !task.group && takesAnswers(task, now);
   const answer = useAnswerText(task);
+  const box = useRef<RichEditorHandle>(null);
   // A draft written on Edunex with pictures, tables or formulas stays as it is: the box would lose them.
   const textLocked = useMemo(() => Boolean(answer.saved) && !editableInApp(answer.saved), [answer.saved]);
   // Edunex's website takes any text it wrote itself (a picture alone included); what's typed here needs words.
@@ -1087,6 +1091,7 @@ function HandIn({ task, status, onPreview }: Row & { onPreview?: (file: TaskFile
             <div className="mb-3">
               <Suspense fallback={<Skeleton className="h-[170px] w-full rounded-lg" />}>
                 <RichEditor
+                  ref={box}
                   key={answer.version}
                   initial={answer.text}
                   onChange={answer.setText}
@@ -1098,7 +1103,7 @@ function HandIn({ task, status, onPreview }: Row & { onPreview?: (file: TaskFile
               {textChanged && (
                 <p className="mt-1.5 flex flex-wrap items-center justify-between gap-x-3 text-caption text-muted">
                   {t("handIn.textUnsaved")}
-                  <button type="button" onClick={answer.discard} className="focus-ring rounded font-medium text-accent-fg hover:underline">
+                  <button type="button" onClick={() => answer.discard(box.current)} className="focus-ring rounded font-medium text-accent-fg hover:underline">
                     {t("handIn.textDiscard")}
                   </button>
                 </p>
