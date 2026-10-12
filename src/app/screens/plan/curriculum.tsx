@@ -422,9 +422,10 @@ function PickStandIn({ record, course, onPick, onClose }: { record: StudentRecor
                   <span className="block truncate text-body">{c.name}</span>
                   {c.fills && <span className="block truncate text-caption text-muted">{t("curriculum.pick.fills", { code: c.fills })}</span>}
                 </span>
-                <span className="text-small text-muted tabular-nums">
-                  {c.grade} · {c.sks} SKS
-                </span>
+                <Meta align="end" className="text-small text-muted tabular-nums">
+                  {c.grade}
+                  {`${c.sks} SKS`}
+                </Meta>
               </button>
             </li>
           ))}
