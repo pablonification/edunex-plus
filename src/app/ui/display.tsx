@@ -77,7 +77,7 @@ export function Bar({ value, color, label, className }: { value: number; color: 
       aria-valuemin={0}
       aria-valuemax={100}
       aria-valuenow={Math.round(clamped * 100)}
-      className={cx("block h-1.5 overflow-hidden rounded-full bg-black/[0.06] dark:bg-white/[0.08]", className)}
+      className={cx("block h-1.5 overflow-hidden rounded-full bg-meter-track", className)}
     >
       <span
         className="block h-full rounded-full motion-safe:transition-[width] motion-safe:duration-500"

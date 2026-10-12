@@ -135,6 +135,16 @@ the focus ring.
 | `--neutral-fg` | `#4f4f56` | `#bdbdc5` |
 | `--live` | `#22a35a` | `#2fbf6c` |
 
+**Meters (fill on track).** A meter's fill reads 3:1 on its own track. Amber
+and green have meter colors of their own: the tones' `-fg` colors are for
+text, and amber text is brown. Red uses `--danger-fg`, blue `--accent`.
+
+| Token | Light | Dark |
+|---|---|---|
+| `--meter-track` | `#ececef` | `#2c2c30` |
+| `--meter-warning` | `#b26b00` | `#f2c862` |
+| `--meter-success` | `#1e8f4f` | `#2fbf6c` (`--live`) |
+
 **Task statuses (background / text)**
 
 | Token | Light | Dark |
@@ -174,7 +184,8 @@ target, destructive. Amber (`warning`): needs the Student soon (no absences
 left, due within a day, a session ended). Green (`success`, `live`): done,
 safe, connected, happening now. Blue (`accent`, `info`): actions, links,
 neutral information. Grey (`neutral`): not yet, not applicable. Bars and
-meters take their color from status, never from the course.
+meters take their color from status (the meter colors above), never from the
+course.
 
 **Color is never the only signal.** Task statuses have their own glyph and
 word, source states their own mark and word.
@@ -255,7 +266,7 @@ keeps them equal).
 | A tab's content | Swaps at once; only the tab's highlight moves |
 | A segmented control's or tab list's highlight (`SlidingHighlight`) | Sits on the new pick at once and glides there from the old one as a transform (translate and scale), 150 ms ease-out |
 | A figure the Student just changed (`AnimatedNumber`) | Counts 400 ms ease-out with no overshoot, while the page's text is already the true value. A figure that changes on its own just changes |
-| Bars filling | 300–500 ms |
+| Bars filling | 500 ms, when new data arrives. A window's time left (`CountdownBar`), which shrinks every minute, slides as a transform in 400 ms ease-out |
 | Loading placeholders | 1.4 s pulse in four held steps, not every frame |
 
 **Rules.**

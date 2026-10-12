@@ -51,6 +51,12 @@
   --neutral-fg: #4f4f56;
   --live: #22a35a;
 
+  /* Meters: fills that read as their status on the meter's own track (3:1, test/app/contrast.test.ts).
+     The tones' -fg colors are for text: amber text is brown. */
+  --meter-track: #ececef;
+  --meter-warning: #b26b00;
+  --meter-success: #1e8f4f;
+
   /* Task statuses */
   --status-not-started-bg: var(--neutral-bg);
   --status-not-started-fg: var(--neutral-fg);
@@ -132,6 +138,9 @@
     --neutral-bg: #27272b;
     --neutral-fg: #bdbdc5;
     --live: #2fbf6c;
+    --meter-track: #2c2c30;
+    --meter-warning: #f2c862;
+    --meter-success: var(--live);
 
     --status-draft-bg: #382d10;
     --status-draft-fg: #f2c862;
@@ -185,6 +194,9 @@
   --color-neutral-bg: var(--neutral-bg);
   --color-neutral-fg: var(--neutral-fg);
   --color-live: var(--live);
+  --color-meter-track: var(--meter-track);
+  --color-meter-warning: var(--meter-warning);
+  --color-meter-success: var(--meter-success);
 }
 
 @theme {
