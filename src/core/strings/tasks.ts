@@ -187,9 +187,7 @@ export const tasksStrings = {
   },
   "task.note.editedCheck": { id: "Lihat di Edunex", en: "View on Edunex" },
   "exam.row.takeHome": { id: "Take-home: {title} · tenggat {when}", en: "Take-home: {title} · due {when}" },
-  "exam.row.inClass": { id: "Di kelas · {time}", en: "In class · {time}" },
   "exam.row.disagree": { id: "SIX: {six} · Edunex: {edunex}. Pastikan ke dosen.", en: "SIX: {six} · Edunex: {edunex}. Check with your lecturer." },
-  "exam.row.sixToo": { id: "SIX juga mencantumkan ujian di kelas · {time}", en: "SIX also lists a class sitting · {time}" },
 
   // The hand-in panel, redesigned
   "handIn.dueIn": { id: "Tenggat {when}", en: "Due {when}" },
@@ -273,10 +271,6 @@ export const tasksStrings = {
     id: "SIX: {six} · Edunex: {edunex}. Bisa jadi satu ujian dua bagian, atau salah satunya belum diperbarui.",
     en: "SIX: {six} · Edunex: {edunex}. It may be one exam in two parts, or one of them isn't updated yet.",
   },
-  "examPage.takeHomeApart": {
-    id: "SIX juga mencantumkan ujian di kelas pada {six} · take-home-nya tenggat {due}",
-    en: "SIX also lists a class sitting on {six} · the take-home is due {due}",
-  },
   "examPage.copyQuestion": { id: "Salin pertanyaan untuk dosen", en: "Copy a question for your lecturer" },
   "examPage.copied": {
     id: "Pertanyaan tersalin. Tempel di chat atau email ke dosen.",
@@ -288,6 +282,7 @@ export const tasksStrings = {
   },
   "examPage.announcements": { id: "Lihat pengumuman", en: "See announcements" },
   "examPage.study": { id: "Bahan belajar", en: "What to study" },
+  "examPage.checkAnnouncements": { id: "Cek pengumuman dosen", en: "Check your lecturer's announcements" },
   "examPage.lecturerFiles": { id: "Berkas dari dosen", en: "Files from your lecturer" },
   "examPage.modulesBefore": { id: "Modul sebelum {kind}", en: "Modules before the {kind}" },
   "examPage.openModules": { id: "Buka modul", en: "Open modules" },

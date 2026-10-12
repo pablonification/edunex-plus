@@ -163,7 +163,7 @@ export const scheduleStrings = {
   "exam.takeHome": { id: "Take-home", en: "Take-home" },
   "exam.onEdunex": { id: "Di Edunex", en: "On Edunex" },
   "exam.due": { id: "Tenggat {when}", en: "Due {when}" },
-  "exam.outlineOnly": { id: "Ada di daftar isi Edunex, belum ada tanggal", en: "In the Edunex outline, no date yet" },
+  "exam.outlineOnly": { id: "Ada di daftar isi Edunex", en: "In the Edunex outline" },
   "exam.week": { id: "{kind} {range}", en: "{kind} {range}" },
   "exam.disagree": { id: "Dua tanggal berbeda. Pastikan ke dosen.", en: "Two different dates. Check with your lecturer." },
   "exam.noDate": { id: "Belum ada tanggal", en: "No date yet" },
