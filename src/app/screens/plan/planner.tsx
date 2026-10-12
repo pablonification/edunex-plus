@@ -635,15 +635,16 @@ function useRuleText(record: StudentRecord): (rule: Rule) => { title: string; de
           detail: rule.level === "ok" ? t("rule.total.ok") : t("rule.total.short", { short: rule.need - rule.have }),
         };
       }
-      case "required":
-        return {
-          title: t("rule.required"),
-          detail: rule.missing.length
-            ? t("rule.missing", { list: list(rule.missing) })
-            : rule.total
-              ? t("rule.required.okCount", { count: rule.total })
-              : t("rule.required.ok"),
-        };
+      case "required": {
+        const detail = rule.missing.length
+          ? t("rule.missing", { list: list(rule.missing) })
+          : rule.total
+            ? t("rule.required.okCount", { count: rule.total })
+            : t("rule.required.ok");
+        // Honest about what the Student's own corrections decided.
+        const corrected = rule.corrected.length ? t("rule.required.corrected", { list: list(rule.corrected), count: rule.corrected.length }) : null;
+        return { title: t("rule.required"), detail: corrected ? `${detail} ${corrected}` : detail };
+      }
       case "electives": {
         const extra = rule.have - rule.need;
         return {

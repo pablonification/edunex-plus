@@ -3,9 +3,10 @@
 // (Pasal 49), every rule a plan is checked against, the plan edits, the
 // catalog search and the curriculum map.
 import { beforeAll, describe, expect, it } from "vitest";
-import { curriculumMap, nameMatch } from "../../src/core/curriculum-map";
+import { curriculumMap, standIns } from "../../src/core/curriculum-map";
+import { nameMatch } from "../../src/core/curriculum-slots";
 import { honorFor, letterForAverage, nearestLetter, predicateFor } from "../../src/core/honors";
-import type { PlannedCourse, StudyPlan } from "../../src/core/models";
+import type { CurriculumFix, PlannedCourse, StudyPlan } from "../../src/core/models";
 import {
   addCourse,
   addShortTerm,
@@ -81,9 +82,13 @@ describe("the Student's record", () => {
     const bare = studentRecord({ transcript: data.transcript, curriculum: data.curriculum, term: "2026-1" });
     const left = bare.requiredLeft.map((c) => c.code);
     expect(left).toContain("II4090");
-    expect(left).toContain("WI2005");
+    expect(left).toContain("WI1111"); // a lab course the Student never took
+    expect(left).not.toContain("WI2005"); // KU1011 Tata Tulis Karya Ilmiah stands in for it (the equivalence table)
+    expect(left).not.toContain("WI201X"); // any WI2010–WI2019: WI2011 Agama Islam
     expect(left).not.toContain("II4091"); // this term
     expect(left).not.toContain("II2100"); // passed with C
+    // Courses that fill a slot count there, not also as electives: KU1011 and WI2011 (2 SKS each) used to be counted twice.
+    expect(bare.electivePassed).toBe(40);
   });
 
   it("numbers semesters from the entry term; short semesters have none", () => {
@@ -371,8 +376,21 @@ describe("the curriculum map", () => {
     expect(slot("WI1103")).toMatchObject({ status: "exempt" });
     expect(slot("II4091")).toMatchObject({ status: "in-progress" });
     expect(slot("II4090")).toMatchObject({ status: "planned" });
-    // SIX lists it neither as taken nor as still to take: said so, never guessed.
-    expect(slot("WI2005")).toMatchObject({ status: "unlisted", via: null });
+    // SIX lists it neither as taken nor as still to take: not asked of the Student, said so, never guessed.
+    expect(slot("WI1111")).toMatchObject({ status: "unlisted", via: null });
+    // The equivalence table: Tata Tulis Karya Ilmiah counts as Bahasa Indonesia (no shared word, so no name guess could find it).
+    expect(slot("WI2005")).toMatchObject({ status: "passed", grade: "AB", via: { code: "KU1011", name: "Tata Tulis Karya Ilmiah" } });
+    expect(map.semesters.find((s) => s.semester === 2)!.others.map((c) => c.code)).toEqual(["IF2111", "FI1201", "MA1201"]);
+  });
+
+  it("a course SIX doesn't list for the Student isn't left: the rules and the map agree", () => {
+    const p = defaultPlan(record);
+    const map = curriculumMap(record, p);
+    const unlisted = map.semesters.flatMap((s) => s.required).filter((c) => c.status === "unlisted");
+    expect(unlisted.map((c) => c.code)).toEqual(["WI1111", "WI1116", "WI2002"]);
+    expect(record.requiredLeft.map((c) => c.code)).toEqual(["II4090", "II4092"]);
+    // "All 42": the 45 required courses less the 3 SIX doesn't ask of this Student.
+    expect(rule(rules(record, p), "required")[0]).toMatchObject({ level: "ok", total: 42, missing: [], corrected: [] });
   });
 
   it("an empty plan leaves required courses to take", () => {
@@ -390,6 +408,64 @@ describe("the curriculum map", () => {
     ]);
     expect(map.specializations[0].courses.map((c) => c.status)).toEqual(["planned", "planned", "passed", "passed"]);
     expect(map.minors[0]).toMatchObject({ have: 3 });
+  });
+
+  it("the Student's corrections: not in their curriculum, counted as a passed course, done; each changes the rules and the map alike", () => {
+    const fixed = (fixes: Record<string, CurriculumFix>) => studentRecord({ ...data, term: "2026-1", fixes });
+    const slot = (r: StudentRecord, code: string) =>
+      curriculumMap(r, defaultPlan(r))
+        .semesters.flatMap((s) => s.required)
+        .find((c) => c.code === code)!;
+
+    const notMine = fixed({ WI1111: { kind: "not-mine", at: 1 } });
+    expect(slot(notMine, "WI1111")).toMatchObject({ status: "not-mine", fix: { kind: "not-mine" }, sixLeft: false });
+
+    // A passed course stands in: it leaves "other courses", and counts once (FI1201 was an outside elective on SIX).
+    const counted = fixed({ WI1111: { kind: "counted-as", code: "FI1201", at: 1 } });
+    expect(slot(counted, "WI1111")).toMatchObject({
+      status: "passed",
+      grade: "BC",
+      via: { code: "FI1201", name: "Fisika Dasar IIA" },
+      fix: { kind: "counted-as" },
+    });
+    expect(
+      curriculumMap(counted, defaultPlan(counted))
+        .semesters.find((s) => s.semester === 2)!
+        .others.map((c) => c.code),
+    ).toEqual(["IF2111", "MA1201"]);
+    expect(counted.electivePassed).toBe(record.electivePassed - 4);
+    // Corrections never change what the curriculum needs.
+    expect(counted.electiveNeed).toBe(record.electiveNeed);
+
+    // A correction to a course SIX still lists as to take: no longer left, and said so.
+    const done = fixed({ II4090: { kind: "done", at: 1 } });
+    expect(done.requiredLeft.map((c) => c.code)).toEqual(["II4092"]);
+    expect(slot(done, "II4090")).toMatchObject({ status: "done", sixLeft: true });
+    const p = plan({ "2026-2": [course("II4092")] });
+    expect(rule(rules(done, p), "required")[0]).toMatchObject({ level: "ok", missing: [], corrected: [{ code: "II4090", name: "Kerja Praktik" }] });
+    expect(rule(rules(record, p), "required")[0]).toMatchObject({ level: "error", missing: [{ code: "II4090" }] });
+
+    // Marking a passed course not in the curriculum takes it out of the count of courses that apply.
+    expect(rule(rules(fixed({ WI2003: { kind: "not-mine", at: 1 } }), defaultPlan(record)), "required")[0]).toMatchObject({ total: 41 });
+  });
+
+  it("'Counted as…' offers passed courses: SIX's same-semester ones that fill nothing first", () => {
+    const list = standIns(record, "WI2002");
+    expect(list.slice(0, 3).map((c) => [c.code, c.suggested])).toEqual([
+      ["FI1201", true],
+      ["IF2111", true],
+      ["MA1201", true],
+    ]);
+    // Only guessed for WI1102 (by name): offered, and picking it moves it there.
+    expect(list.find((c) => c.code === "KU1102")).toMatchObject({ suggested: false, fills: "WI1102" });
+    const moved = studentRecord({ ...data, term: "2026-1", fixes: { WI2002: { kind: "counted-as", code: "KU1102", at: 1 } } });
+    expect(moved.slots.get("WI2002")).toMatchObject({ status: "passed", via: { code: "KU1102" } });
+    expect(moved.slots.get("WI1102")).toMatchObject({ status: "unlisted", via: null });
+    // Never a curriculum course itself, never one already settled in a slot (the table put KU1011 in WI2005), never the one standing in.
+    expect(list.map((c) => c.code)).not.toContain("MA1101");
+    expect(list.map((c) => c.code)).not.toContain("KU1011");
+    expect(standIns(record, "WI2005").map((c) => c.code)).not.toContain("KU1011");
+    expect(standIns(record, "WI1111")[0]).toMatchObject({ code: "II1101", suggested: true });
   });
 
   it("matches names only when every word of the shorter one is shared", () => {

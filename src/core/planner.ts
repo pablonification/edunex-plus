@@ -2,11 +2,13 @@
 // the IP/IPK projection Nilai and the planner share, the rules a plan is
 // checked against (Peraturan Akademik ITB and the program's curriculum), and
 // the plan edits. Pure: the screens and the tests call the same functions.
+import { fillsSlot, type ProgressRow, type SlotStanding, slotStandings } from "./curriculum-slots";
 import { blockedBy, HONORS, type HonorLevel, honorFor, nearestLetter, type Path } from "./honors";
 import {
   type CourseCatalog,
   type CoursePackage,
   type Curriculum,
+  type CurriculumFix,
   cumulativeIndex,
   GRADE_POINTS,
   type IndexSum,
@@ -112,7 +114,9 @@ export interface StudentRecord {
   retookBefore: boolean;
   /** The curriculum's required courses by code. */
   required: Map<string, RequiredCourse>;
-  /** Required courses still to take (SIX's graduation progress), failed ones included. */
+  /** Where each of them stands for the Student, the Student's corrections applied. */
+  slots: Map<string, SlotStanding>;
+  /** Required courses still to take (SIX's graduation progress), failed ones included, less those the Student corrected. */
   requiredLeft: RequiredCourse[];
   /** Elective SKS the program needs (graduation SKS minus required), and those passed or in progress. */
   electiveNeed: number | null;
@@ -139,6 +143,8 @@ export interface RecordInput {
   term?: string | null;
   /** This term's courses when the transcript doesn't list the term yet (SIX's status page). */
   termCourses?: readonly { code: string; name: string; sks: number }[];
+  /** The Student's corrections to the curriculum, by course code ("local.curriculum"). */
+  fixes?: Readonly<Record<string, CurriculumFix>>;
 }
 
 const passedGrade = (grade: string | null): grade is LetterGrade => isLetterGrade(grade) && grade !== "E";
@@ -162,7 +168,9 @@ export function studentRecord(input: RecordInput): StudentRecord {
       if (c.standing === "counted" && isLetterGrade(c.grade)) graded.set(c.code, { name: c.name, sks: c.sks, grade: c.grade, term: t.term });
   const rows = terms.flatMap((t) => t.courses);
 
-  const progressRows = (progress?.stages ?? []).flatMap((stage) => stage.semesters.flatMap((s) => s.courses.map((c) => ({ ...c, semester: s.semester }))));
+  const progressRows: ProgressRow[] = (progress?.stages ?? []).flatMap((stage) =>
+    stage.semesters.flatMap((s) => s.courses.map((c) => ({ ...c, semester: s.semester }))),
+  );
   const exempt = new Set(progressRows.filter((c) => c.status === "exempt").map((c) => c.code));
 
   const courses = new Map<string, CourseInfo>();
@@ -178,27 +186,38 @@ export function studentRecord(input: RecordInput): StudentRecord {
   for (const c of [...rows, ...progressRows, ...thisTerm]) know(c.code, c.name, c.sks, null, false);
 
   const required = new Map((curriculum?.required ?? []).map((c) => [c.code, { code: c.code, name: c.name, sks: c.sks, semester: c.semester }]));
+  const slots = slotStandings({ slots: [...required.values()], rows: progress ? progressRows : null, graded, thisTerm, fixes: input.fixes ?? {} });
+  // Courses filling a slot under another code count there, never also as electives.
+  const filling = new Set([...slots.values()].flatMap((s) => (s.via ? [s.via.code] : [])));
   const thisTermCodes = new Set(thisTerm.map((c) => c.code));
   const requiredLeft: RequiredCourse[] = [];
   if (progress) {
+    // A course the Student corrected (not in their curriculum, done, or counted as another) is no longer left, whatever SIX lists.
+    const corrected = (code: string) => {
+      const slot = [...required.keys()].find((s) => fillsSlot(s, code));
+      const standing = slot === undefined ? undefined : slots.get(slot);
+      return Boolean(standing?.fix) && standing?.status !== "left" && standing?.status !== "failed";
+    };
     for (const row of progressRows) {
-      if (row.kind !== "required" || requiredLeft.some((c) => c.code === row.code)) continue;
+      if (row.kind !== "required" || requiredLeft.some((c) => c.code === row.code) || corrected(row.code)) continue;
       const failed = row.status === "graded" && row.grade === "E" && !thisTermCodes.has(row.code);
       if (row.status === "not-taken" || failed) requiredLeft.push({ code: row.code, name: row.name, sks: row.sks, semester: row.semester });
     }
   } else {
-    for (const c of required.values())
-      if (!passedGrade(graded.get(c.code)?.grade ?? null) && !thisTermCodes.has(c.code) && !exempt.has(c.code)) requiredLeft.push(c);
+    for (const c of required.values()) {
+      const status = slots.get(c.code)?.status;
+      if (status === "left" || status === "failed") requiredLeft.push(c);
+    }
   }
 
   const requiredSks = curriculum ? curriculum.required.reduce((sum, c) => sum + c.sks, 0) : null;
   const graduationSks = curriculum?.graduationSks ?? DEFAULT_GRADUATION_SKS;
-  const electiveRows = progressRows.filter((c) => ELECTIVE.has(c.kind));
+  const electiveRows = progressRows.filter((c) => ELECTIVE.has(c.kind) && !filling.has(c.code));
   const sksOf = (list: { sks: number }[]) => list.reduce((sum, c) => sum + c.sks, 0);
   // A graded elective without a letter yet is this term's, as SIX lists it.
   const electivePassed = progress
     ? sksOf(electiveRows.filter((c) => c.status === "exempt" || (c.status === "graded" && passedGrade(c.grade))))
-    : sksOf([...graded.entries()].filter(([code, g]) => !required.has(code) && passedGrade(g.grade)).map(([, g]) => g));
+    : sksOf([...graded.entries()].filter(([code, g]) => !required.has(code) && !filling.has(code) && passedGrade(g.grade)).map(([, g]) => g));
   const electiveInProgress = progress ? sksOf(electiveRows.filter((c) => c.status === "in-progress" || (c.status === "graded" && !isLetterGrade(c.grade)))) : 0;
   const electiveHave = electivePassed + electiveInProgress;
 
@@ -235,6 +254,7 @@ export function studentRecord(input: RecordInput): StudentRecord {
     exempt,
     retookBefore: rows.some((c) => c.attempt > 1 || c.standing === "replaced"),
     required,
+    slots,
     requiredLeft,
     electiveNeed: requiredSks === null ? null : Math.max(0, graduationSks - requiredSks),
     electiveHave,
@@ -552,7 +572,15 @@ export type RuleLevel = "ok" | "warn" | "error";
 
 export type Rule =
   | { id: "total"; level: RuleLevel; have: number; need: number }
-  | { id: "required"; level: RuleLevel; total: number | null; missing: { code: string; name: string }[] }
+  | {
+      id: "required";
+      level: RuleLevel;
+      /** Required courses that apply to the Student (not those SIX doesn't ask of them or they marked not in their curriculum). */
+      total: number | null;
+      missing: { code: string; name: string }[];
+      /** Courses SIX still lists as to take that the Student corrected. */
+      corrected: { code: string; name: string }[];
+    }
   | { id: "electives"; level: RuleLevel; have: number; need: number }
   | { id: "specialization"; level: RuleLevel; name: string; total: number; missing: { code: string; name: string }[] }
   | { id: "minor"; level: RuleLevel; name: string; have: number; need: number }
@@ -590,7 +618,10 @@ export function checkPlan(record: StudentRecord, rawPlan: StudyPlan, projection:
   rules.push({ id: "total", level: sks.short ? "error" : "ok", have: sks.total, need: sks.need });
 
   const missing = record.requiredLeft.filter((c) => !planned.has(c.code)).map(({ code, name }) => ({ code, name }));
-  rules.push({ id: "required", level: missing.length ? "error" : "ok", total: record.curriculum ? record.required.size : null, missing });
+  const standings = [...record.slots.entries()];
+  const applies = standings.filter(([, s]) => s.status !== "unlisted" && s.status !== "not-mine").length;
+  const corrected = standings.filter(([, s]) => s.sixLeft).map(([code]) => ({ code, name: record.required.get(code)?.name ?? code }));
+  rules.push({ id: "required", level: missing.length ? "error" : "ok", total: record.curriculum ? applies : null, missing, corrected });
 
   if (record.electiveNeed !== null) {
     rules.push({ id: "electives", level: sks.electives.short ? "error" : "ok", have: sks.electives.have, need: record.electiveNeed });

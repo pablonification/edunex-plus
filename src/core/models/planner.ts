@@ -38,6 +38,27 @@ export const StudyPlan = z.object({
 });
 export type StudyPlan = z.infer<typeof StudyPlan>;
 
+/**
+ * The Student's correction to one required course of the curriculum, when
+ * SIX's record doesn't match theirs: not-mine (their cohort's curriculum
+ * doesn't have it), counted-as (a course they passed stands in for it), done
+ * (taken care of some other way).
+ */
+export const CurriculumFix = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("not-mine"), at: z.number() }),
+  z.object({ kind: z.literal("counted-as"), code: z.string().min(1).max(20), at: z.number() }),
+  z.object({ kind: z.literal("done"), at: z.number() }),
+]);
+export type CurriculumFix = z.infer<typeof CurriculumFix>;
+
+/** Facts the Student told the app about their curriculum, kept apart from the plan so "Reset plan" leaves them. */
+export const CurriculumFixes = z.object({
+  /** By the curriculum's course code ("WI1111", "WI201X"). */
+  slots: z.record(z.string().min(1).max(20), CurriculumFix),
+});
+export type CurriculumFixes = z.infer<typeof CurriculumFixes>;
+
 export const plannerDatasets = {
   "local.plan": StudyPlan,
+  "local.curriculum": CurriculumFixes,
 } as const;

@@ -4,19 +4,23 @@
 // plain words that say what to do; "Sisa saja" hides what's done, with a
 // summary of what's left that stays in view; the totals labelled and from the
 // same SKS count as the planner; specializations and minors with progress;
-// and each course's syllabus on SIX's public pages.
+// each course's syllabus on SIX's public pages; and the Student's own
+// corrections where SIX's record doesn't match their curriculum, each one
+// marked and reversible.
 import { type ReactNode, useState } from "react";
-import { type CurriculumMap, curriculumMap, type MapCourse, type PackageProgress, type SlotStatus } from "../../../core/curriculum-map";
-import { type SksModel, sksModel } from "../../../core/planner";
+import { curriculumMap, type MapCourse, type PackageProgress, type SlotStatus, type StandIn, standIns } from "../../../core/curriculum-map";
+import type { CurriculumFix } from "../../../core/models";
+import { type SksModel, type StudentRecord, sksModel } from "../../../core/planner";
 import { useOpenExternal } from "../../hooks";
 import { useT } from "../../i18n";
-import { usePlan, useStudentRecord } from "../../study-plan";
+import { useCurriculumFix, usePlan, useStudentRecord } from "../../study-plan";
 import { IconButton, Switch } from "../../ui/controls";
 import { cx } from "../../ui/cx";
 import { Bar, Card, SectionTitle } from "../../ui/display";
 import { Icons } from "../../ui/icons";
 import { Meta } from "../../ui/layout";
-import { Tooltip } from "../../ui/overlays";
+import { Menu, type MenuItem } from "../../ui/menu";
+import { Dialog, Tooltip, toast } from "../../ui/overlays";
 import { SixNeeded } from "./six-needed";
 
 export const ready = true;
@@ -29,15 +33,16 @@ export function useBadge(): { value: number; tone: "neutral" | "warning" } | nul
 /** SIX's public course page (no sign-in): the syllabus. */
 export const syllabusUrl = (courseId: string) => `https://six.itb.ac.id/pub/matakuliah/${courseId}`;
 
-/** Still to do: everything not passed or credited. */
-const isLeft = (status: SlotStatus) => status !== "passed" && status !== "exempt";
+/** Still to do: everything not passed, credited, or off the Student's list (SIX doesn't ask it of them, or they said so). */
+const isLeft = (status: SlotStatus) => !["passed", "exempt", "unlisted", "not-mine", "done"].includes(status);
 
 export function Tab({ onCalendar }: { onCalendar?: () => void }) {
   const t = useT();
   const record = useStudentRecord();
   const state = usePlan(record);
-  // Late in the studies, what's left is what matters: start there.
-  const [onlyLeft, setOnlyLeft] = useState((record?.semesterNow ?? 0) >= 5);
+  const setFix = useCurriculumFix();
+  const [onlyLeft, setOnlyLeft] = useState(false);
+  const [picking, setPicking] = useState<MapCourse | null>(null);
   if (!record || !state || !record.curriculum)
     return (
       <SixNeeded
@@ -63,12 +68,55 @@ export function Tab({ onCalendar }: { onCalendar?: () => void }) {
     }))
     .filter((s) => s.required.length + s.others.length > 0);
   const hidden = map.semesters.length - semesters.length;
+  const correct = (course: MapCourse, fix: CurriculumFix | null, message: string) => {
+    const before = course.fix;
+    setFix(course.code, fix);
+    toast(message, "neutral", { label: t("planner.undo"), onClick: () => setFix(course.code, before) });
+  };
+  const menuOf = (course: MapCourse): MenuItem[] => {
+    const at = Date.now();
+    const items: MenuItem[] = [];
+    if (course.fix?.kind !== "not-mine")
+      items.push({
+        label: t("curriculum.fix.not-mine"),
+        hint: t("curriculum.fix.not-mineHint"),
+        icon: <Icons.Minus className="size-4" />,
+        onSelect: () => correct(course, { kind: "not-mine", at }, t("curriculum.fixDone.not-mine", { code: course.code })),
+      });
+    items.push({
+      label: t("curriculum.fix.counted-as"),
+      hint: t("curriculum.fix.counted-asHint"),
+      icon: <Icons.Route className="size-4" />,
+      onSelect: () => setPicking(course),
+    });
+    if (course.fix?.kind !== "done")
+      items.push({
+        label: t("curriculum.fix.done"),
+        hint: t("curriculum.fix.doneHint"),
+        icon: <Icons.Check className="size-4" />,
+        onSelect: () => correct(course, { kind: "done", at }, t("curriculum.fixDone.done", { code: course.code })),
+      });
+    if (course.fix)
+      items.push({
+        label: t("curriculum.fix.restore"),
+        hint: t("curriculum.fix.restoreHint"),
+        icon: <Icons.History className="size-4" />,
+        onSelect: () => correct(course, null, t("curriculum.fixDone.restore", { code: course.code })),
+      });
+    return items;
+  };
   return (
     <div className="@container space-y-6">
-      <Totals name={record.curriculum.name} sks={sks} />
+      <Totals
+        name={record.curriculum.name}
+        year={record.curriculum.year}
+        startedOn={map.startedOn}
+        unlisted={map.semesters.flatMap((s) => s.required).filter((c) => c.status === "unlisted").length}
+        sks={sks}
+      />
       <div className="grid grid-cols-1 items-start gap-6 @4xl:grid-cols-[minmax(0,1fr)_320px]">
         <div className="min-w-0 space-y-3">
-          <LeftBar map={map} sks={sks} onlyLeft={onlyLeft} onToggle={setOnlyLeft} />
+          <LeftBar sks={sks} onlyLeft={onlyLeft} onToggle={setOnlyLeft} />
           {semesters.map((semester) => (
             <Card key={semester.semester} className="overflow-hidden">
               <section aria-label={t("planner.semester", { n: semester.semester })}>
@@ -82,7 +130,7 @@ export function Tab({ onCalendar }: { onCalendar?: () => void }) {
                 </header>
                 <ul>
                   {semester.required.map((course) => (
-                    <CourseRow key={course.code} course={course} />
+                    <CourseRow key={course.code} course={course} menu={menuOf(course)} />
                   ))}
                 </ul>
                 {semester.others.length > 0 && (
@@ -106,12 +154,23 @@ export function Tab({ onCalendar }: { onCalendar?: () => void }) {
           {map.minors.length > 0 && <Packages title={t("curriculum.minors")} packages={map.minors} />}
         </aside>
       </div>
+      {picking && (
+        <PickStandIn
+          record={record}
+          course={picking}
+          onPick={(from) => {
+            setPicking(null);
+            correct(picking, { kind: "counted-as", code: from, at: Date.now() }, t("curriculum.fixDone.counted-as", { from, code: picking.code }));
+          }}
+          onClose={() => setPicking(null)}
+        />
+      )}
     </div>
   );
 }
 
 /** The curriculum's three numbers, each with its label: the total, required left, electives. */
-function Totals({ name, sks }: { name: string; sks: SksModel }) {
+function Totals({ name, year, startedOn, unlisted, sks }: { name: string; year: number; startedOn: number | null; unlisted: number; sks: SksModel }) {
   const t = useT();
   const figure = (label: string, value: ReactNode, hint?: ReactNode) => (
     <div className="min-w-0">
@@ -124,6 +183,13 @@ function Totals({ name, sks }: { name: string; sks: SksModel }) {
   return (
     <Card className="px-6 py-4">
       <p className="text-small font-medium text-muted">{name}</p>
+      {(startedOn !== null || unlisted > 0) && (
+        <p className="mt-0.5 max-w-[72ch] text-caption text-muted">
+          {[startedOn !== null && t("curriculum.startedOn", { from: startedOn, to: year }), unlisted > 0 && t("curriculum.unlistedNote", { count: unlisted })]
+            .filter(Boolean)
+            .join(" ")}
+        </p>
+      )}
       <dl className="mt-3 grid grid-cols-1 gap-x-8 gap-y-3 @2xl:grid-cols-3">
         {figure(
           t("curriculum.total"),
@@ -154,13 +220,11 @@ function Totals({ name, sks }: { name: string; sks: SksModel }) {
 }
 
 /** "Sisa saja" and what's left, kept in view while scrolling. */
-function LeftBar({ map, sks, onlyLeft, onToggle }: { map: CurriculumMap; sks: SksModel; onlyLeft: boolean; onToggle: (on: boolean) => void }) {
+function LeftBar({ sks, onlyLeft, onToggle }: { sks: SksModel; onlyLeft: boolean; onToggle: (on: boolean) => void }) {
   const t = useT();
-  const check = map.semesters.flatMap((s) => s.required).filter((c) => c.status === "unlisted").length;
   const parts = [
     sks.requiredLeft.count ? t("curriculum.left.required", { count: sks.requiredLeft.count, sks: sks.requiredLeft.sks }) : t("curriculum.left.requiredNone"),
     sks.electiveNeed === null ? null : sks.electives.short ? t("curriculum.left.electives", { sks: sks.electives.short }) : t("curriculum.left.electivesNone"),
-    check ? t("curriculum.left.check", { count: check }) : null,
   ].filter((part): part is string => part !== null);
   return (
     <div className="sticky top-0 z-10 -mx-1 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-xl bg-canvas/90 px-1 py-2 backdrop-blur-sm">
@@ -182,6 +246,7 @@ function Status({ status, grade }: { status: SlotStatus; grade: string | null })
   switch (status) {
     case "passed":
     case "exempt":
+    case "done":
       return (
         <span className="inline-flex items-center gap-1 text-small text-muted whitespace-nowrap">
           <Icons.Check className="size-3.5 text-success-fg" weight="bold" />
@@ -214,8 +279,17 @@ function Status({ status, grade }: { status: SlotStatus; grade: string | null })
       );
     case "unlisted":
       return (
-        <span className="inline-flex items-center gap-1 text-small text-muted">
-          <Icons.Info className="size-3.5 shrink-0" />
+        <Tooltip content={t("curriculum.unlistedWhy")}>
+          <span className="inline-flex items-center gap-1 text-small whitespace-nowrap text-muted">
+            <Icons.Info className="size-3.5 shrink-0" />
+            {label}
+          </span>
+        </Tooltip>
+      );
+    case "not-mine":
+      return (
+        <span className="inline-flex items-center gap-1 text-small text-faint">
+          <Icons.Minus className="size-3.5 shrink-0" />
           {label}
         </span>
       );
@@ -224,15 +298,25 @@ function Status({ status, grade }: { status: SlotStatus; grade: string | null })
   }
 }
 
-function CourseRow({ course }: { course: MapCourse }) {
+/** Shown on hover or keyboard focus, so a list of 45 rows stays calm; kept while its menu is open. */
+const ON_HOVER = "opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 focus-visible:opacity-100 aria-expanded:opacity-100";
+
+function CourseRow({ course, menu }: { course: MapCourse; menu?: MenuItem[] }) {
   const t = useT();
   const open = useOpenExternal();
+  const crossed = course.status === "not-mine";
   return (
-    <li className="group grid grid-cols-[68px_minmax(0,1fr)_auto_28px_28px] items-center gap-3 border-b border-line px-4 py-2 text-body last:border-b-0">
-      <span className="text-small font-semibold tabular-nums">{course.code}</span>
+    <li className="group grid grid-cols-[68px_minmax(0,1fr)_auto_28px_28px_28px] items-center gap-3 border-b border-line px-4 py-2 text-body last:border-b-0">
+      <span className={cx("text-small font-semibold tabular-nums", crossed && "text-muted")}>{course.code}</span>
       <span className="min-w-0">
-        <span className="block truncate">{course.name}</span>
-        {course.via && <span className="block truncate text-caption text-muted">{t("curriculum.via", { code: course.via.code, name: course.via.name })}</span>}
+        <span className={cx("block truncate", crossed && "text-muted")}>{course.name}</span>
+        {(course.via || course.fix) && (
+          <Meta className="text-caption text-muted">
+            {course.via && <span className="truncate">{t("curriculum.via", { code: course.via.code, name: course.via.name })}</span>}
+            {course.fix && <span className="inline-flex items-center gap-1 whitespace-nowrap">{t("curriculum.fixed")}</span>}
+            {course.sixLeft && <span>{t("curriculum.sixStillLeft")}</span>}
+          </Meta>
+        )}
       </span>
       <Status status={course.status} grade={course.grade} />
       <span className="text-right text-small text-muted tabular-nums">{course.sks}</span>
@@ -241,7 +325,7 @@ function CourseRow({ course }: { course: MapCourse }) {
           <IconButton
             label={t("curriculum.syllabusOf", { code: course.code })}
             size="sm"
-            className="opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 focus-visible:opacity-100"
+            className={ON_HOVER}
             onClick={() => open(syllabusUrl(course.courseId!))}
           >
             <Icons.FileText className="size-3.5" />
@@ -250,7 +334,61 @@ function CourseRow({ course }: { course: MapCourse }) {
       ) : (
         <span />
       )}
+      {menu ? (
+        // The rows most likely to need a correction keep theirs in view.
+        <Menu
+          label={t("curriculum.fix.menu", { code: course.code })}
+          items={menu}
+          trigger={{ className: course.status === "unlisted" || course.fix ? undefined : ON_HOVER }}
+        />
+      ) : (
+        <span />
+      )}
     </li>
+  );
+}
+
+/** "Counted as…": the passed courses that could stand in for a required one, SIX's own suggestion first. */
+function PickStandIn({ record, course, onPick, onClose }: { record: StudentRecord; course: MapCourse; onPick: (code: string) => void; onClose: () => void }) {
+  const t = useT();
+  const all = standIns(record, course.code);
+  const semester = record.required.get(course.code)?.semester;
+  const suggested = all.filter((c) => c.suggested);
+  const rest = all.filter((c) => !c.suggested);
+  const group = (title: string, list: StandIn[]) =>
+    list.length > 0 && (
+      <section className="mt-4 first:mt-0">
+        <h3 className="px-1 pb-1 text-caption font-medium text-muted">{title}</h3>
+        <ul>
+          {list.map((c) => (
+            <li key={c.code}>
+              <button
+                type="button"
+                aria-label={t("curriculum.pick.choose", { from: c.code, code: course.code })}
+                onClick={() => onPick(c.code)}
+                className="focus-ring grid w-full grid-cols-[64px_minmax(0,1fr)_auto] items-center gap-3 rounded-lg px-1 py-2 text-left transition-colors duration-150 hover:bg-hover"
+              >
+                <span className="text-small font-semibold tabular-nums">{c.code}</span>
+                <span className="min-w-0">
+                  <span className="block truncate text-body">{c.name}</span>
+                  {c.fills && <span className="block truncate text-caption text-muted">{t("curriculum.pick.fills", { code: c.fills })}</span>}
+                </span>
+                <span className="text-small text-muted tabular-nums">
+                  {c.grade} · {c.sks} SKS
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      </section>
+    );
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()} title={t("curriculum.pick.title", { code: course.code, name: course.name })}>
+      <p className="mb-4 text-small text-muted">{t("curriculum.pick.body")}</p>
+      {all.length === 0 && <p className="py-6 text-center text-small text-muted">{t("curriculum.pick.none")}</p>}
+      {semester !== undefined && group(t("curriculum.pick.suggested", { n: semester }), suggested)}
+      {group(t("curriculum.pick.others"), rest)}
+    </Dialog>
   );
 }
 

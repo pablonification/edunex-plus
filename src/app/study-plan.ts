@@ -1,12 +1,12 @@
 // The Student's record and study plan for Nilai and Rencana studi (#78,
 // #79): SIX's transcript, graduation progress and curriculum with ITB's
-// catalog, read into one record, and the plan kept on this computer
-// ("local.plan"). Both screens project with the same functions, so they never
-// disagree.
+// catalog and the Student's corrections to it ("local.curriculum"), read into
+// one record, and the plan kept on this computer ("local.plan"). Both screens
+// project with the same functions, so they never disagree.
 import { useMemo, useState } from "react";
-import type { StudyPlan } from "../core/models";
+import type { CurriculumFix, StudyPlan } from "../core/models";
 import { defaultPlan, livePlan, type Projection, project, type StudentRecord, studentRecord } from "../core/planner";
-import { useBridge, useDataset } from "./store";
+import { useBridge, useDataset, useStore } from "./store";
 
 /** The record, or undefined while SIX's transcript hasn't been read. */
 export function useStudentRecord(): StudentRecord | undefined {
@@ -17,12 +17,24 @@ export function useStudentRecord(): StudentRecord | undefined {
   const krs = useDataset("six.krs");
   const student = useDataset("six.student");
   const courses = useDataset("six.courses");
+  const fixes = useDataset("local.curriculum");
   return useMemo(() => {
     if (!transcript) return undefined;
     const term = student?.term ?? krs?.term ?? null;
     const termCourses = courses ?? (krs && krs.term === term ? krs.courses : undefined);
-    return studentRecord({ transcript, progress, curriculum, catalog, term, termCourses });
-  }, [transcript, progress, curriculum, catalog, krs, student, courses]);
+    return studentRecord({ transcript, progress, curriculum, catalog, term, termCourses, fixes: fixes?.slots });
+  }, [transcript, progress, curriculum, catalog, krs, student, courses, fixes]);
+}
+
+/** Saves or removes the Student's correction to one curriculum course, on this computer. */
+export function useCurriculumFix(): (slot: string, fix: CurriculumFix | null) => void {
+  const bridge = useBridge();
+  const store = useStore();
+  return (slot, fix) => {
+    // Read at the moment of the change, so an undo from a toast never puts back an older set.
+    const { [slot]: _, ...rest } = (store.dataset("local.curriculum")?.value as { slots: Record<string, CurriculumFix> } | undefined)?.slots ?? {};
+    void bridge.invoke("local.set", { name: "local.curriculum", value: { slots: fix ? { ...rest, [slot]: fix } : rest } }).catch(() => undefined);
+  };
 }
 
 export interface PlanState {
