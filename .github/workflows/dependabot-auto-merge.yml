@@ -1,0 +1,67 @@
+# Lets Dependabot's small updates to build and test tools merge on their own,
+# once every required check on main has passed. Anything else waits for a
+# person: the app's own packages, Electron, big version jumps, GitHub Actions.
+name: Dependabot auto-merge
+
+on:
+  pull_request:
+
+permissions: {}
+
+jobs:
+  auto-merge:
+    name: auto-merge
+    if: github.event.pull_request.user.login == 'dependabot[bot]' && github.repository == 'pablonification/edunex-plus'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write # merge the pull request once the checks pass
+      pull-requests: write # turn on auto-merge
+    steps:
+      - name: Read what Dependabot updates
+        id: meta
+        uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3.1.0
+
+      - name: Decide whether it can merge on its own
+        id: decide
+        env:
+          ECOSYSTEM: ${{ steps.meta.outputs.package-ecosystem }}
+          UPDATES: ${{ steps.meta.outputs.updated-dependencies-json }}
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          # Every package in it must be a build or test tool getting a patch or minor update.
+          small_dev_only=$(jq -r '
+            length > 0 and all(.[];
+              .dependencyType == "direct:development"
+              and (.updateType == "version-update:semver-patch" or .updateType == "version-update:semver-minor")
+              and (.dependencyName | test("^(electron|electron-builder|@electron/.+)$") | not))' <<< "$UPDATES")
+          # Without required checks on main, auto-merge would merge before CI finishes.
+          ruleset_checks=$(gh api "repos/$REPO/rules/branches/main" --jq '[.[] | select(.type == "required_status_checks")] | length')
+          protection_checks=$(gh api "repos/$REPO/branches/main" --jq '.protection.required_status_checks.contexts | length')
+          # shellcheck disable=SC2016 # $owner and $name are GraphQL variables
+          auto_merge=$(gh api graphql -f query='query($owner: String!, $name: String!) { repository(owner: $owner, name: $name) { autoMergeAllowed } }' \
+            -f owner="${REPO%/*}" -f name="${REPO#*/}" --jq .data.repository.autoMergeAllowed)
+
+          why=""
+          if [ "$ECOSYSTEM" != npm_and_yarn ] || [ "$small_dev_only" != true ]; then
+            why="it updates more than small build and test tools, so it waits for you."
+          elif [ "$ruleset_checks" = 0 ] && [ "$protection_checks" = 0 ]; then
+            why="main doesn't require the checks to pass yet, so merging on its own isn't safe."
+          elif [ "$auto_merge" != true ]; then
+            why="auto-merge is turned off in the repository settings."
+          fi
+          if [ -n "$why" ]; then
+            echo "merge=false" >> "$GITHUB_OUTPUT"
+            printf '### Dependabot auto-merge\n\nNot merging on its own: %s\n' "$why" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "merge=true" >> "$GITHUB_OUTPUT"
+            printf '### Dependabot auto-merge\n\nSmall build and test tool updates only: this merges on its own once the required checks pass.\n' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Turn on auto-merge
+        if: steps.decide.outputs.merge == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+        run: gh pr merge --auto --squash "$PR_URL"
