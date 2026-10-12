@@ -153,7 +153,7 @@ function AttendanceMeter({ page }: { page: CoursePage }) {
   if (!health?.held) return null;
   return (
     <AttendanceSummary
-      className="w-[220px] pt-0.5"
+      className="w-[260px] pt-0.5"
       health={health}
       // With no room left the banner below says it, as its title.
       words={health.state === "out" || health.state === "none" ? null : verdictLabel(t, health)}

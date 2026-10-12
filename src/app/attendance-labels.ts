@@ -20,7 +20,7 @@ export const STATE_TONE: Record<AttendanceState, string> = {
 /** A state's meter fill, in the same status colors. */
 export const METER_TONE: Record<AttendanceState, MeterTone> = { out: "danger", none: "warning", risk: "warning", safe: "success", unknown: "neutral" };
 
-/** What's left before the course's own target: "Boleh absen 2× lagi", "Jangan absen lagi", "80% tak terkejar · paling tinggi 71%". */
+/** What's left before the course's own target: "Masih bisa absen 2× lagi", "Jangan absen lagi", "Tak bisa lagi capai 80% · paling tinggi 71%". */
 export function budgetLabel(t: Translate, health: AttendanceHealth): string {
   switch (health.state) {
     case "unknown":
@@ -34,7 +34,7 @@ export function budgetLabel(t: Translate, health: AttendanceHealth): string {
   }
 }
 
-/** The short verdict: "Boleh absen 2× lagi", "Jangan absen lagi", "80% tak terkejar". */
+/** The short verdict: "Masih bisa absen 2× lagi", "Jangan absen lagi", "Tak bisa lagi capai 80%". */
 export function verdictLabel(t: Translate, health: AttendanceHealth): string {
   return health.state === "out" ? t("presence.status.out", { target: health.target }) : budgetLabel(t, health);
 }

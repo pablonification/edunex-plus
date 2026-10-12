@@ -18,6 +18,7 @@ function course(code: string, state: AttendanceState, absencesLeft: number | nul
     held: 6,
     best: null,
     toRecover: null,
+    needsUncertain: false,
     left: { count: 7, estimated: false, next: null, upcoming: [] },
     edunexClosed: 0,
     edunexRecorded: 0,
