@@ -43,7 +43,13 @@ export function forgetOtherStudentsFiles(cache: FileCache, nim: string | null): 
   };
 }
 
-/** The copy "Simpan untuk offline" saved of this file, if it's still in its place (Documents/Edunex Plus/<course>/<module>/). */
+/**
+ * The copy "Simpan untuk offline" saved of this file, if it's still in its
+ * place (Documents/Edunex Plus/<course>/<module>/) and is this very file: the
+ * place goes by title, and a lecturer's corrected upload under the same title
+ * would otherwise show the old one. Edunex's size for it must match; unknown,
+ * the copy isn't trusted.
+ */
 async function offlineCopy(context: DesktopContext, url: string): Promise<Uint8Array | null> {
   const datasets = context.engine.snapshot().datasets;
   const dataset = <N extends DatasetName>(name: N) => datasets.find((d) => d.name === name)?.value as DatasetValue<N> | undefined;
@@ -58,7 +64,8 @@ async function offlineCopy(context: DesktopContext, url: string): Promise<Uint8A
       if (!file) continue;
       const target = path.join(offlineRoot(), plan.folder, ...file.folders, file.name);
       const stat = await fs.stat(target).catch(() => null);
-      if (stat?.isFile() && stat.size <= LIMITS.pdf.bytes) return new Uint8Array(await fs.readFile(target));
+      if (stat?.isFile() && file.sizeBytes !== null && stat.size === file.sizeBytes && stat.size <= LIMITS.pdf.bytes)
+        return new Uint8Array(await fs.readFile(target));
     }
   }
   return null;

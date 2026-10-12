@@ -68,7 +68,9 @@ never web content, a strict content policy.
   read still on its way at that moment isn't kept; another Student's
   account arriving (a sign-in after the last session ran out) empties it at
   once, and nothing is kept while nobody is signed in. A PDF the
-  Student saved for offline reading opens from that copy first.
+  Student saved for offline reading opens from that copy first, only while
+  its size still matches Edunex's, so a lecturer's corrected upload under the
+  same title isn't hidden behind the old one.
 - **Reading never tells Edunex.** Fetching a picture from Azure doesn't touch
   Edunex's API, so it never counts as "viewed" or presence (0001).
 
