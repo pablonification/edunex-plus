@@ -72,10 +72,78 @@ describe("Sekarang", () => {
   it("no class left today: the next one this week", async () => {
     const h = await startHome();
     await h.until("2026-10-08T18:00:00+07:00");
-    const card = nowCard(h.home())!;
+    // Without Friday's meeting only Edunex announced, SIX's next class.
+    const world = { ...h.home(), announcements: {}, materials: {} };
+    const card = nowCard(world)!;
     expect(card.state).toBe("later");
     expect(card.class!.session.start).toBeGreaterThan(at("2026-10-09T00:00:00"));
     expect(card.after).toBeNull();
+  });
+
+  it("a meeting only Edunex announced, going on: the card shows it, not next week's class", async () => {
+    const h = await startHome({ now: "2026-10-09T15:10:00" });
+    const card = nowCard(h.home())!;
+    expect(card).toMatchObject({ state: "live", class: null, presence: null, after: null });
+    expect(card.meeting).toMatchObject({ code: "II4091", meeting: { number: 3, start: at("2026-10-09T15:00:00"), end: at("2026-10-09T17:00:00") } });
+    expect(card.meeting!.meeting.link).toMatch(/^https:\/\/teams\.microsoft\.com\//);
+  });
+
+  it("the evening before that meeting: it's the next thing, said as another day's, not the class a week away", async () => {
+    const h = await startHome({ now: "2026-10-08T20:00:00" });
+    const card = nowCard(h.home())!;
+    // "next" stays today's: tomorrow's meeting is "later", its line saying "Besok".
+    expect(card).toMatchObject({ state: "later", class: null, after: null });
+    expect(card.meeting).toMatchObject({ code: "II4091", meeting: { start: at("2026-10-09T15:00:00") } });
+  });
+
+  it("a meeting later today is next, and the class going on names it as what comes after", async () => {
+    const h = await startHome({ now: "2026-10-09T11:00:00" });
+    const world = h.home();
+    const classes = (world.schedule ?? []).filter((s) => s.start < at("2026-10-10T00:00:00") && s.end > at("2026-10-09T00:00:00"));
+    // Friday has no SIX class: the meeting is the next one today.
+    expect(classes).toEqual([]);
+    expect(nowCard(world)).toMatchObject({ state: "next", class: null, meeting: { code: "II4091" } });
+    // A SIX class going on before it: the meeting is what comes after.
+    const lab = {
+      id: "x1",
+      courseCode: "PL3002",
+      courseName: "Ekonomi dan Inovasi dalam Perencanaan",
+      start: at("2026-10-09T10:00:00"),
+      end: at("2026-10-09T12:00:00"),
+      activity: "Praktikum",
+      room: "R.SG PWK LT.6",
+    };
+    expect(nowCard({ ...world, schedule: [...world.schedule!, lab] })).toMatchObject({
+      state: "live",
+      class: { session: { id: "x1" } },
+      meeting: null,
+      after: { courseCode: "II4091", start: at("2026-10-09T15:00:00") },
+    });
+  });
+
+  it("a meeting the card shows days ahead isn't in Perlu perhatianmu too", async () => {
+    const h = await startHome({ now: "2026-10-09T17:30:00" });
+    const base = h.home();
+    const fourth = {
+      id: 1,
+      courseId: 0,
+      author: null,
+      postedAt: at("2026-10-09T17:00:00"),
+      text: "Pertemuan 04: Selasa, 13 Oktober 2026 Pkl. 15:00 - 17:00 WIB (Online)",
+    };
+    const world: HomeWorld = { ...base, announcements: { ...base.announcements, II4091: [...(base.announcements.II4091 ?? []), fourth] } };
+    const card = nowCard(world)!;
+    expect(card).toMatchObject({ state: "later", meeting: { code: "II4091", meeting: { number: 4, start: at("2026-10-13T15:00:00") } } });
+    const id = `meeting:II4091:${at("2026-10-13T15:00:00")}`;
+    expect(needsYou(world).map((n) => n.id)).toContain(id);
+    expect(attention(world, card).map((n) => n.id)).not.toContain(id);
+  });
+
+  it("without SIX, a meeting only Edunex announced changes nothing: there's no 'only in Edunex' to know", async () => {
+    const h = await startHome({ now: "2026-10-09T15:10:00" });
+    const world: HomeWorld = { ...h.home(), schedule: null, courses: h.home().courses.map((c) => ({ ...c, six: null })) };
+    expect(nowCard(world)?.meeting ?? null).toBeNull();
+    expect(nowCard(world)?.state ?? "none").not.toBe("live");
   });
 
   it("a window that counts for the class going on: handing in the Task is the thing to do", async () => {

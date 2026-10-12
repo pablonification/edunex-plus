@@ -839,25 +839,40 @@ export interface OpenPresence {
 /**
  * "Sekarang": the class going on (or else the next one today, or the next
  * one at all within the week), where its attendance counts, and the Edunex
- * Presence open for it. Without a class, an open Presence alone.
+ * Presence open for it. Without a class, an open Presence alone. A meeting
+ * announced only in Edunex text counts as a class here: an online class
+ * missing from SIX's timetable is the easiest one to miss.
  */
 export interface NowCard {
   state: "live" | "next" | "later" | "presence";
   class: ClassFacts | null;
+  /** The meeting shown instead of a SIX class (only with SIX connected: else nothing is "only in Edunex"). */
+  meeting: { code: string; meeting: AnnouncedMeeting } | null;
   presence: OpenPresence | null;
-  /** The class after this one today. */
-  after: ClassSession | null;
+  /** The class (or meeting) after this one today. */
+  after: (Pick<ClassSession, "courseCode" | "start" | "room"> & { courseName?: string }) | null;
 }
+
+type CardItem = { start: number; end: number } & ({ kind: "class"; session: ClassSession } | { kind: "meeting"; code: string; meeting: AnnouncedMeeting });
 
 export function nowCard(world: HomeWorld | HomeContext): NowCard | null {
   const context = "health" in world ? world : homeContext(world);
   const { now } = context;
-  const schedule = [...(context.schedule ?? [])].sort((a, b) => a.start - b.start);
+  const meetings = context.courses.flatMap((course) =>
+    onlyInEdunex(context, course.code)
+      .filter((m) => m.end > now && m.start - now <= AHEAD)
+      .map(({ postedAt: _p, ...meeting }): CardItem => ({ kind: "meeting", start: meeting.start, end: meeting.end, code: course.code, meeting })),
+  );
+  // SIX's class first at the same start: it's the surer of the two.
+  const items = [
+    ...(context.schedule ?? []).map((session): CardItem => ({ kind: "class", start: session.start, end: session.end, session })),
+    ...meetings,
+  ].sort((a, b) => a.start - b.start);
   const day = today(context);
-  const todays = schedule.filter((s) => wibDay(s.start) === day);
-  const live = todays.find((s) => s.start <= now && now < s.end) ?? null;
-  const next = todays.find((s) => s.start > now) ?? null;
-  const later = !live && !next ? (schedule.find((s) => s.start > now && s.start - now <= AHEAD) ?? null) : null;
+  const todays = items.filter((item) => wibDay(item.start) === day);
+  const live = todays.find((item) => item.start <= now && now < item.end) ?? null;
+  const next = todays.find((item) => item.start > now) ?? null;
+  const later = !live && !next ? (items.find((item) => item.start > now && item.start - now <= AHEAD) ?? null) : null;
   const current = live ?? next ?? later;
   const windows = openWindows(context.presence, now);
   const counts = (code: string): boolean | null => {
@@ -866,7 +881,11 @@ export function nowCard(world: HomeWorld | HomeContext): NowCard | null {
   };
   // The class's own window, never an earlier class's still open (that one is in Perlu perhatianmu);
   // else, between classes, one that counts (it closes first, so it leads); else, with no class at all, any.
-  const own = current ? (windows.find((w) => w.code === current.courseCode && classOfWindow(context, w.code, w.session)?.id === current.id) ?? null) : null;
+  // A meeting has no Presence window of its own.
+  const own =
+    current?.kind === "class"
+      ? (windows.find((w) => w.code === current.session.courseCode && classOfWindow(context, w.code, w.session)?.id === current.session.id) ?? null)
+      : null;
   const window = own ?? (live ? null : (windows.find((w) => counts(w.code) !== false) ?? (current ? null : (windows[0] ?? null))));
   // A window that isn't the class's own leads the card alone, about its own class.
   const lead = window && window !== own ? null : current;
@@ -886,18 +905,23 @@ export function nowCard(world: HomeWorld | HomeContext): NowCard | null {
     };
   }
   const shown = lead;
+  const after = shown && wibDay(shown.start) === day ? (todays.find((item) => item.start > shown.start) ?? null) : null;
   return {
     state: !shown ? "presence" : shown === live ? "live" : shown === next ? "next" : "later",
-    class: shown ? classFacts(context, shown) : null,
+    class: shown?.kind === "class" ? classFacts(context, shown.session) : null,
+    meeting: shown?.kind === "meeting" ? { code: shown.code, meeting: shown.meeting } : null,
     presence,
-    after: shown && wibDay(shown.start) === day ? (todays.find((s) => s.start > shown.start) ?? null) : null,
+    after: !after ? null : after.kind === "class" ? after.session : { courseCode: after.code, start: after.start, room: null },
   };
 }
+
+/** The id of the meeting need the card shows, so the list doesn't repeat it. */
+const cardMeetingId = (card: NowCard | null) => (card?.meeting ? `meeting:${card.meeting.code}:${card.meeting.meeting.start}` : null);
 
 /**
  * "Perlu perhatianmu": what needs the Student this week that "Sekarang" and
  * "Hari ini" don't already show. Out: today's classes and their risk (each
- * class row carries it, except a target out of reach: that's the course's, with its own step), the Presence on the card, meetings and deadlines of
+ * class row carries it, except a target out of reach: that's the course's, with its own step), the Presence and the meeting on the card, meetings and deadlines of
  * today and tomorrow (in "Hari ini"), and exams sat in today's classes.
  */
 export function attention(world: HomeWorld | HomeContext, card: NowCard | null = null, plan?: TodayPlan): Need[] {
@@ -916,7 +940,7 @@ export function attention(world: HomeWorld | HomeContext, card: NowCard | null =
         case "presence":
           return need.session.id !== card?.presence?.session.id;
         case "meeting":
-          return !soon(need.meeting.start);
+          return !soon(need.meeting.start) && need.id !== cardMeetingId(card);
         case "task":
           return need.reason === "edited" || !due.has(need.task.id);
         case "exam":

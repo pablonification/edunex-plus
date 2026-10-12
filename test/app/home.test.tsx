@@ -267,6 +267,44 @@ describe("a class moved to another day", () => {
   });
 });
 
+describe("an online meeting only Edunex announced", () => {
+  it("going on: the card shows it with its Join button and where it came from; its row says Sekarang, not that again", async () => {
+    screen = await openApp({ world: new PretendWorld({ now: "2026-10-09T15:10:00+07:00" }), signedIn: true, six: true });
+    const now = text("home-now");
+    expect(now).toContain("Sedang berlangsung · sampai 17:00");
+    expect(now).toContain("Proposal Tugas Akhir");
+    expect(now).toContain("15:0017:00");
+    expect(now).toContain("II4091 · Pertemuan 3 · daring");
+    expect(now).toContain("Tidak ada di jadwal SIX");
+    // Not next week's class.
+    expect(now).not.toContain("Kuliah berikutnya");
+    const join = section("home-now")!.querySelector<HTMLButtonElement>('button[aria-label="Gabung kelas daring: II4091"]')!;
+    expect(join.className).toContain("bg-accent");
+    await screen.click(join);
+    expect(screen.calls.at(-1)).toMatchObject({ name: "shell.openExternal", input: { url: expect.stringContaining("teams.microsoft.com") } });
+    expect(row("home-today", "15:0017:00")).toBe("15:0017:00Proposal Tugas AkhirII4091 · Pertemuan 3 · daringSekarang");
+  });
+
+  it("the evening before: the card says it's tomorrow, without a Join button yet", async () => {
+    screen = await openApp({ world: new PretendWorld({ now: "2026-10-08T20:00:00+07:00" }), signedIn: true, six: true });
+    const now = text("home-now");
+    expect(now).toContain("Kuliah berikutnya · Besok");
+    expect(now).toContain("Proposal Tugas Akhir");
+    expect(now).toContain("Tidak ada di jadwal SIX");
+    expect(section("home-now")!.querySelector("button[aria-label^='Gabung']")).toBeNull();
+    // Its row under Besok keeps the video mark: it isn't on yet.
+    expect(row("home-today", "15:0017:00")).toBe("15:0017:00Proposal Tugas AkhirII4091 · Pertemuan 3 · daring");
+  });
+
+  it("speaks English", async () => {
+    screen = await openApp({ world: new PretendWorld({ now: "2026-10-09T15:10:00+07:00" }), signedIn: true, six: true });
+    await screen.engineDoes(() => screen!.engine.updateSettings({ lang: "en" }));
+    expect(text("home-now")).toContain("On now · until 17:00");
+    expect(text("home-now")).toContain("Not on SIX's timetable");
+    expect(row("home-today", "15:00")).toContain("Now");
+  });
+});
+
 describe("Tasks on Beranda", () => {
   it("a Task due tonight is in Hari ini (not twice); edited after handing in, it says to check", async () => {
     screen = await openApp({ signedIn: true, six: true });
