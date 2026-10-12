@@ -359,10 +359,7 @@ function EveryEvent() {
           const todayAt = month === thisMonth ? entries.findIndex((e) => e.when !== "past") : -2;
           return (
             <section key={month} aria-labelledby={`month-${month}`}>
-              <h3
-                id={`month-${month}`}
-                className="sticky top-0 z-10 -mx-1 mb-1.5 flex items-baseline gap-2 bg-canvas/90 px-1 py-1 text-small font-semibold backdrop-blur-sm"
-              >
+              <h3 id={`month-${month}`} className="sticky top-0 z-10 -mx-1 mb-1.5 flex items-baseline gap-2 bg-canvas px-1 py-1 text-small font-semibold">
                 {monthName(month)}
                 <span className="font-medium text-faint tabular-nums">{entries.length}</span>
               </h3>
