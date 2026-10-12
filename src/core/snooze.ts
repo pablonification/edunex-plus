@@ -68,7 +68,7 @@ export function snoozeKey(need: Need): SnoozeKey {
         facts: facts(need.band, need.sitting.source, need.sitting.start, need.sitting.end, need.sitting.room, need.disagree),
       };
     case "attendance":
-      return attendanceKey(need.health.code, need.health, need.target);
+      return attendanceKey(need.health.code, need.health, need.health.target);
     case "meeting":
       return { id: need.id, facts: facts(need.band, need.meeting.start, need.meeting.end, need.meeting.link) };
     case "krs":

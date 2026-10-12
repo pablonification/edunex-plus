@@ -62,6 +62,10 @@ describe("what brings a snoozed item back", () => {
     h.world.six.setAttendance("KU5014", 2, 7);
     await h.refresh();
     expect(snoozeKey(need(needsYou(h.home()), "attendance:KU5014")).facts).toBe("out|2/7|80");
+
+    // The course's own target, not the default: changing it brings the item back too.
+    await h.engine.updateSettings({ attendanceTargets: { KU5014: 85 } });
+    expect(snoozeKey(need(needsYou(h.home()), "attendance:KU5014")).facts).toBe("out|2/7|85");
   });
 });
 
