@@ -425,10 +425,11 @@ function useQuietLine(item: CourseAttendance, optional: OpenWindow | undefined, 
 }
 
 /**
- * One warning at most, the most pressing: the next class clashes with
- * another; it may not run (exam week, holiday); the target is out of reach
- * (a meeting SIX missed is the one thing left to fix); below the target now,
- * the way back. Never "the way back" next to "Jangan absen lagi".
+ * One warning at most, the most pressing: the target hangs on a class that
+ * may not run; the next class clashes with another; it may not run (exam
+ * week, holiday); the target is out of reach (a meeting SIX missed is the one
+ * thing left to fix); below the target now, the way back. Never "the way
+ * back" next to "Jangan absen lagi".
  */
 function useWarning(health: AttendanceHealth): ReactNode {
   const t = useT();
@@ -438,6 +439,8 @@ function useWarning(health: AttendanceHealth): ReactNode {
   const calendar = useDataset("itb.calendar");
   const student = useDataset("six.student");
   const next = health.left.next;
+  const needed = health.needsUncertain ? health.left.upcoming.find((m) => m.uncertain) : undefined;
+  if (needed) return <Warning tone="warning">{uncertainText(t, f, needed.start, calendar?.events, health.target)}</Warning>;
   const clash = next ? clashes(next, next.courseCode, schedule ?? [])[0] : undefined;
   if (next && clash)
     return (
@@ -473,14 +476,23 @@ function useWarning(health: AttendanceHealth): ReactNode {
   return null;
 }
 
-/** "Kam 15 Okt jatuh di masa UTS: …", naming the period from ITB's calendar. */
-function uncertainText(t: Translate, f: Format, start: number, events: readonly { kind: string; firstDay: string; lastDay: string }[] = []): string {
+/**
+ * "Kam 15 Okt masuk masa UTS, …", naming the period from ITB's calendar.
+ * `target`: the course's target hangs on that class running.
+ */
+function uncertainText(
+  t: Translate,
+  f: Format,
+  start: number,
+  events: readonly { kind: string; firstDay: string; lastDay: string }[] = [],
+  target?: number,
+): string {
   const day = wibDay(start);
   const date = `${f.weekdayShort(start)} ${f.dayMonth(start)}`;
   const event = events.find((e) => (e.kind === "uts" || e.kind === "uas" || e.kind === "holiday") && e.firstDay <= day && day <= e.lastDay);
-  if (event?.kind === "holiday") return t("presence.warn.uncertainHoliday", { date });
-  const period = event?.kind === "uts" ? "presence.period.uts" : event?.kind === "uas" ? "presence.period.uas" : "presence.period.off";
-  return t("presence.warn.uncertain", { date, period: t(period) });
+  if (event?.kind === "holiday") return target ? t("presence.warn.neededHoliday", { date, target }) : t("presence.warn.uncertainHoliday", { date });
+  const period = t(event?.kind === "uts" ? "presence.period.uts" : event?.kind === "uas" ? "presence.period.uas" : "presence.period.off");
+  return target ? t("presence.warn.needed", { date, period, target }) : t("presence.warn.uncertain", { date, period });
 }
 
 function Warning({ tone, action, children }: { tone: "warning" | "danger"; action?: ReactNode; children: ReactNode }) {

@@ -113,12 +113,20 @@ export const attendanceStrings = {
   "presence.row.window": { id: "Presensi Edunex {when}: {action}", en: "Edunex Presence {when}: {action}" },
   "presence.row.optional": { id: "Presensi Edunex juga dibuka sampai {time}, tidak wajib.", en: "Edunex Presence is also open until {time}; it's optional." },
   "presence.warn.uncertain": {
-    id: "{date} jatuh di {period}: belum pasti ada kuliah, jadi tidak dihitung. Kalau tetap ada, hadiri.",
-    en: "{date} falls in {period}: the class may not run, so it isn't counted. If it runs, go.",
+    id: "{date} masuk {period}, jadi kuliahnya mungkin tak ada. Kalau tetap ada, hadiri: tetap dihitung.",
+    en: "{date} is in {period}, so the class may not run. If it does, go: it still counts.",
   },
   "presence.warn.uncertainHoliday": {
-    id: "{date} hari libur: belum pasti ada kuliah, jadi tidak dihitung. Kalau tetap ada, hadiri.",
-    en: "{date} is a holiday: the class may not run, so it isn't counted. If it runs, go.",
+    id: "{date} hari libur, jadi kuliahnya mungkin tak ada. Kalau tetap ada, hadiri: tetap dihitung.",
+    en: "{date} is a holiday, so the class may not run. If it does, go: it still counts.",
+  },
+  "presence.warn.needed": {
+    id: "{date} masuk {period}: {target}% hanya masih bisa kalau kuliahnya tetap ada dan kamu hadir.",
+    en: "{date} is in {period}: {target}% is within reach only if that class runs and you go.",
+  },
+  "presence.warn.neededHoliday": {
+    id: "{date} hari libur: {target}% hanya masih bisa kalau kuliahnya tetap ada dan kamu hadir.",
+    en: "{date} is a holiday: {target}% is within reach only if that class runs and you go.",
   },
   "presence.period.uts": { id: "masa UTS", en: "the UTS period" },
   "presence.period.uas": { id: "masa UAS", en: "the UAS period" },
@@ -128,8 +136,8 @@ export const attendanceStrings = {
     en: "Was a class you attended not counted? Ask your lecturer to fix it in SIX.",
   },
   "presence.recover": {
-    id: "Hadir {count}× berturut-turut untuk kembali ke {target}%",
-    en: { one: "Attend {count} in a row to get back to {target}%", other: "Attend {count} in a row to get back to {target}%" },
+    id: "Hadiri {count} pertemuan berikutnya untuk kembali ke {target}%",
+    en: { one: "Attend the next class to get back to {target}%", other: "Attend the next {count} classes to get back to {target}%" },
   },
   "presence.checkSix": { id: "Cek di SIX", en: "Check in SIX" },
 
@@ -173,8 +181,8 @@ export const attendanceStrings = {
     en: "Meetings left follow SIX's timetable, then the weekly slot up to the last lecture day ({date}, ITB calendar), skipping UTS, UAS and holidays.",
   },
   "presence.how.uncertain": {
-    id: "Kuliah yang masih dijadwalkan SIX di minggu UTS, UAS atau hari libur belum pasti ada, jadi tidak dihitung sebagai jatah absen. Kalau ternyata tetap ada, hadiri saja.",
-    en: "A class SIX still lists in a UTS or UAS week or on a holiday may not run, so it isn't counted toward your absences left. If it does run, go.",
+    id: "Kuliah yang masih dijadwalkan SIX di minggu UTS, UAS atau hari libur belum pasti ada, jadi tidak dihitung sebagai jatah absen, tapi juga tak membuat target dianggap tak terkejar. Kalau ternyata tetap ada, hadiri: tetap dihitung.",
+    en: "A class SIX still lists in a UTS or UAS week or on a holiday may not run, so it isn't counted toward your absences left, nor does it put your target out of reach. If it does run, go: it still counts.",
   },
   "presence.how.edunex": {
     id: "Di mata kuliah yang dicatat SIX, Presensi Edunex yang tak kamu isi bukan absen.",

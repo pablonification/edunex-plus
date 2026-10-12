@@ -73,7 +73,7 @@ describe("the Presensi screen", () => {
     expect(dk).toContain("Berikutnya: Hari ini, 11:00·TVST C·cukup hadir di kelas");
     expect(row("DK4073")?.querySelector("[role=img]")?.getAttribute("aria-label")).toBe("Hadir 4 dari 6, 66%, target 80%");
     // No way back next to "Jangan absen lagi": every class from here on is the one instruction.
-    expect(dk).not.toContain("berturut-turut");
+    expect(dk).not.toContain("untuk kembali ke");
     // One absence left: said in words, not only in amber.
     expect(card("PL3002")).toContain("Masih bisa absen 1× lagi");
     // Recorded through Edunex too: be in class, then what that day's Presence asks for, said once with the class.
@@ -112,12 +112,13 @@ describe("the Presensi screen", () => {
     await six([course("PL3002", 6, 7)], weekly("PL3002", "2026-08-27T08:00:00", 10));
     const pl = card("PL3002");
     expect(pl).toContain("Berikutnya: Kam, 15 Okt, 08:00·9134·cukup hadir di kelas");
-    expect(pl).toContain("Kam 15 Okt jatuh di masa UTS: belum pasti ada kuliah, jadi tidak dihitung. Kalau tetap ada, hadiri.");
+    // It may not run; if it does, attending it still counts.
+    expect(pl).toContain("Kam 15 Okt masuk masa UTS, jadi kuliahnya mungkin tak ada. Kalau tetap ada, hadiri: tetap dihitung.");
     // Counted, it would say "2× lagi": one absence too many if the lecture doesn't run.
     expect(pl).toContain("Masih bisa absen 1× lagi");
     expect(pl).toContain("Hadir 6 dari 7·sekitar 7 pertemuan lagi sampai 4 Des");
     expect(s.text()).toContain(
-      "Kuliah yang masih dijadwalkan SIX di minggu UTS, UAS atau hari libur belum pasti ada, jadi tidak dihitung sebagai jatah absen.",
+      "Kuliah yang masih dijadwalkan SIX di minggu UTS, UAS atau hari libur belum pasti ada, jadi tidak dihitung sebagai jatah absen, tapi juga tak membuat target dianggap tak terkejar.",
     );
   });
 
@@ -130,10 +131,20 @@ describe("the Presensi screen", () => {
     );
     expect(card("PL3032")).toContain("Bentrok dengan KU5014 16:00–17:00");
     expect(card("KU5014")).toContain("Bentrok dengan PL3032 16:00–17:00");
-    expect(card("PL3032")).not.toContain("berturut-turut");
-    expect(card("DK4073")).toContain("Hadir 1× berturut-turut untuk kembali ke 80%");
+    expect(card("PL3032")).not.toContain("untuk kembali ke");
+    expect(card("DK4073")).toContain("Hadiri 1 pertemuan berikutnya untuk kembali ke 80%");
     // The warning is the row's last part, a single line.
     expect(row("PL3032")?.querySelectorAll(":scope > div:last-child > p")).toHaveLength(1);
+  });
+
+  it("a target that hangs on a UTS-week lecture: no absences left, not out of reach, and the row says that lecture is needed", async () => {
+    await openPresence("2026-10-09T09:00:00+07:00");
+    // 4 of 7: the sure meetings alone reach 78%; with 15 Oct, 12 of 15 is 80%.
+    await six([course("PL3002", 4, 7)], weekly("PL3002", "2026-08-27T08:00:00", 10));
+    const pl = card("PL3002");
+    expect(pl).toContain("Jangan absen lagi");
+    expect(pl).not.toContain("Tak bisa lagi capai");
+    expect(pl).toContain("Kam 15 Okt masuk masa UTS: 80% hanya masih bisa kalau kuliahnya tetap ada dan kamu hadir.");
   });
 
   it("an Edunex window on another day than the next class keeps a quiet line of its own", async () => {
