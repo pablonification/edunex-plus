@@ -86,6 +86,14 @@ describe("Tugas & Ujian", () => {
     expect(row("Tugas 02 Bab II")).toBeDefined();
   });
 
+  it('a long title may wrap after a "/" instead of mid-word, and shows whole on hover', async () => {
+    const s = await open();
+    await s.click(/^Tugas & Ujian\d*$/);
+    const title = row("Tugas Mandiri Individu")!.querySelector("[title]")!;
+    expect(title.getAttribute("title")).toBe("Tugas Mandiri Individu tentang Projek Penciptaan/Pengembangan Inovasi Kampus Ganesha");
+    expect(title.innerHTML).toContain("Penciptaan/<wbr>Pengembangan");
+  });
+
   it("the course filter is one radio group: a single Tab stop, arrows move the pick, a second click keeps it", async () => {
     const s = await open();
     await s.click(/^Tugas & Ujian\d*$/);
