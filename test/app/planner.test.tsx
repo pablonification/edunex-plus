@@ -294,7 +294,7 @@ describe("the curriculum map", () => {
   it("Tata Tulis Karya Ilmiah counts as Bahasa Indonesia; courses SIX doesn't ask of the Student are said quietly, not counted as left", async () => {
     const s = await openPlan();
     await tab("Kurikulum");
-    expect(row("WI2005")).toBe("WI2005Bahasa Indonesialewat KU1011 Tata Tulis Karya IlmiahLulus· AB2");
+    expect(row("WI2005")).toBe("WI2005Bahasa Indonesialewat KU1011 Tata Tulis Karya IlmiahLulus · AB2");
     expect(row("KU1011")).toBeUndefined();
     expect(row("WI1111")).toBe("WI1111Laboratorium Fisika DasarTidak ada di catatan SIX-mu1");
     expect(s.text()).toContain(
@@ -327,14 +327,14 @@ describe("the curriculum map", () => {
     expect(dialog).toContain("Yang dihitung sebagai WI1111 Laboratorium Fisika Dasar");
     expect(dialog).toMatch(/SIX menaruhnya di semester 1II1101Komputasi dan MasyarakatA · 2 SKS/);
     await s.click(/^FI1201Fisika Dasar IIA/);
-    expect(row("WI1111")).toBe("WI1111Laboratorium Fisika Dasarlewat FI1201 Fisika Dasar IIA·Dikoreksi olehmuLulus· BC1");
+    expect(row("WI1111")).toBe("WI1111Laboratorium Fisika Dasarlewat FI1201 Fisika Dasar IIA · Dikoreksi olehmuLulus · BC1");
     expect(row("FI1201")).toBeUndefined();
     expect(toastText()).toContain("FI1201 sekarang dihitung sebagai WI1111");
 
     // A correction to a course SIX still lists as to take: the planner says so, and doesn't ask for it.
     await s.click("Koreksi II4090");
     await s.click(/^Sudah selesai/);
-    expect(row("II4090")).toBe("II4090Kerja PraktikDikoreksi olehmu·SIX masih mencatatnya belum diambilSudah selesai2");
+    expect(row("II4090")).toBe("II4090Kerja PraktikDikoreksi olehmu · SIX masih mencatatnya belum diambilSudah selesai2");
     await tab("Rencana");
     expect(rule("required")[0]).toContain("Kamu mengoreksi II4090 Kerja Praktik; SIX masih mencatatnya belum diambil.");
     expect(rule("parity")).toEqual([]);
@@ -357,7 +357,7 @@ describe("the curriculum map", () => {
     const s = await openPlan();
     await s.engineDoes(() => s.engine.setLocal("local.curriculum", { slots: { WI2002: { kind: "counted-as", code: "KU1102", at: 1 } } }));
     await tab("Kurikulum");
-    expect(row("WI2002")).toBe("WI2002Literasi Data dan Inteligensi Artifisiallewat KU1102 Pengenalan Komputasi·Dikoreksi olehmuLulus· AB2");
+    expect(row("WI2002")).toBe("WI2002Literasi Data dan Inteligensi Artifisiallewat KU1102 Pengenalan Komputasi · Dikoreksi olehmuLulus · AB2");
   });
 
   it("opens a course's syllabus on SIX's public pages", async () => {
