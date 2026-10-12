@@ -192,9 +192,11 @@ jobs:
           curl -sSfL -o "$archive" "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz"
           echo "${ACTIONLINT_SHA256}  ${archive}" | sha256sum --check --quiet
           tar -xzf "$archive" -C "$RUNNER_TEMP" actionlint
-          # Each problem as a note on its line (the template is actionlint's, not the shell's).
-          # shellcheck disable=SC2016
-          "$RUNNER_TEMP/actionlint" -format '{{range $err := .}}::error file={{$err.Filepath}},line={{$err.Line}},col={{$err.Column}}::{{$err.Message}}{{"\n"}}{{end}}'
+          # Each problem as a note on its line: actionlint reports JSON, jq turns it into notes.
+          status=0
+          "$RUNNER_TEMP/actionlint" -format '{{json .}}' > "$RUNNER_TEMP/actionlint.json" || status=$?
+          jq -r '.[]? | "::error file=\(.filepath),line=\(.line),col=\(.column)::\(.message)"' "$RUNNER_TEMP/actionlint.json"
+          exit "$status"
       - name: Check the workflows for security slips (zizmor)
         uses: zizmorcore/zizmor-action@cc914d7f3750a2d13d75c7f184a1060aa0e9d482 # v0.6.4
         with:
