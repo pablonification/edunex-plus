@@ -26,7 +26,7 @@ import { Button, IconButton } from "./controls";
 import { cx } from "./cx";
 import { Skeleton } from "./display";
 import { Icons } from "./icons";
-import { Tooltip, useReturnFocus } from "./overlays";
+import { ignoreClosingClick, PANEL_MOTION_CLASS, SCRIM_CLASS, Tooltip, useReturnFocus } from "./overlays";
 import { PanelBoundary } from "./panel-boundary";
 import { openPdf, type PdfDocument, type PdfLink, PdfOpenError, type PdfPage, type PdfSize, type PdfTask } from "./pdf-engine";
 
@@ -106,7 +106,7 @@ export function PdfViewer({ open, onOpenChange, name, load, actions, fallback, o
   return (
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
       <DialogPrimitive.Portal>
-        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-scrim backdrop-blur-[2px] motion-safe:animate-fade-in" />
+        <DialogPrimitive.Overlay className={cx(SCRIM_CLASS, "z-(--z-dialog)")} />
         <DialogPrimitive.Content
           aria-describedby={undefined}
           onOpenAutoFocus={(event) => {
@@ -116,12 +116,14 @@ export function PdfViewer({ open, onOpenChange, name, load, actions, fallback, o
             scroller.current?.focus();
           }}
           onCloseAutoFocus={returnFocus.onCloseAutoFocus}
+          onClickCapture={ignoreClosingClick}
           onEscapeKeyDown={(event) => {
             // Escape while typing a page number only lets go of the number (the page box does that); the next one closes.
             if (event.target instanceof HTMLElement && event.target.dataset.editing) event.preventDefault();
           }}
           className={cx(
-            "fixed inset-x-3 bottom-3 z-50 flex flex-col overflow-hidden rounded-2xl bg-raised text-fg shadow-dialog ring-1 ring-black/10 focus:outline-none motion-safe:animate-pop-in dark:ring-white/10",
+            "fixed inset-x-3 bottom-3 z-(--z-dialog) flex flex-col overflow-hidden rounded-2xl bg-raised text-fg shadow-dialog ring-1 ring-black/10 focus:outline-none dark:ring-white/10",
+            PANEL_MOTION_CLASS,
             clearTitleBar ? "top-10" : "top-3",
           )}
         >
@@ -557,7 +559,7 @@ function PageView({
       <div ref={text} className="pdf-text" />
       {near &&
         links.map((link) => {
-          const className = "focus-ring absolute rounded-[2px] hover:bg-[rgb(47_111_235/0.12)]";
+          const className = "focus-ring absolute rounded-xs hover:bg-[rgb(47_111_235/0.12)]";
           return link.url ? (
             <a
               key={`${link.left}:${link.top}`}

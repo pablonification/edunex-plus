@@ -105,3 +105,33 @@ describe("focus when the focused control goes", () => {
     expect(document.activeElement?.getAttribute("aria-label")).toBe("Turunkan target umum");
   });
 });
+
+describe("a question before something final", () => {
+  it("takes no click beside it as an answer, starts on Cancel, and Escape gives focus back to the button that asked", async () => {
+    screen = await openApp({ signedIn: true });
+    await screen.click(/Dimas Pratama/);
+    const row = [...document.querySelectorAll("[role=dialog] div")].find((el) => el.textContent?.startsWith("Keluar dari semua akun"));
+    const asker = row!.querySelector("button")!;
+    asker.focus();
+    await screen.click(asker);
+    const question = () => document.querySelector("[role=alertdialog]");
+    expect(question()?.textContent).toContain("Keluar dan hapus semua data?");
+    await tick();
+    expect(document.activeElement?.textContent).toBe("Batal");
+
+    // A click on the dimmed window around it.
+    const scrim = question()!.previousElementSibling as HTMLElement;
+    scrim.dispatchEvent(new MouseEvent("pointerdown", { bubbles: true, cancelable: true }));
+    scrim.dispatchEvent(new MouseEvent("pointerup", { bubbles: true }));
+    scrim.click();
+    await tick();
+    expect(question()).not.toBeNull();
+
+    await screen.key("Escape");
+    await tick();
+    expect(question()).toBeNull();
+    expect(document.querySelector("[role=dialog]")).not.toBeNull();
+    expect(document.activeElement).toBe(asker);
+    expect(screen.vault.secrets.size).toBe(1);
+  });
+});

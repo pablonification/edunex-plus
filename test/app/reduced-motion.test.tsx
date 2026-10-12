@@ -11,6 +11,7 @@ import { AnimatedNumber } from "../../src/app/ui/motion/animated-number";
 import { DisclosurePanel } from "../../src/app/ui/motion/disclosure";
 import { PresenceItem, PresenceList } from "../../src/app/ui/motion/presence-list";
 import { SlidingHighlight } from "../../src/app/ui/motion/sliding-highlight";
+import { dismissToast, Toaster, toast } from "../../src/app/ui/overlays";
 import { playAnimations } from "./fake-animations";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -48,6 +49,20 @@ async function mount() {
 }
 
 describe("with Reduce motion on", () => {
+  it("a toast rises in only where motion is welcome, and once taken away is gone at once", async () => {
+    const { container, show } = await mount();
+    await show(<Toaster />);
+    let id = 0;
+    await act(async () => {
+      id = toast("Draf tersimpan", "success");
+    });
+    const shown = container.querySelector<HTMLElement>("[aria-live] > div")!;
+    expect(shown.textContent).toBe("Draf tersimpan");
+    expect(shown.className.split(" ").filter((name) => name.includes("animate-"))).toEqual(["motion-safe:animate-toast-in"]);
+    await act(async () => dismissToast(id));
+    expect(container.textContent).not.toContain("Draf tersimpan");
+  });
+
   it("a row that leaves is gone at once", async () => {
     const { container, show } = await mount();
     const rows = (ids: string[]) => (

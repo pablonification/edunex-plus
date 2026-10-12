@@ -1,29 +1,37 @@
 // @vitest-environment jsdom
 // Motion: the CSS and the JS timings stay the same numbers, something animated
-// out (a row, a panel) is really gone once it has left, focus never
+// out (a toast, a row, a panel) is really gone once it has left, focus never
 // falls off the page, a counting number never shows screen readers or tests a
 // value that isn't real, and no animation keeps running on something that has
 // gone. Animations run on a fake element.animate (fake-animations.ts) that the
 // test ends when it chooses, so nothing here waits on a clock.
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { act, type ReactNode } from "react";
+import { act, type ReactNode, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { I18nProvider } from "../../src/app/i18n";
+import { Menu } from "../../src/app/ui/menu";
 import { skipAnimations } from "../../src/app/ui/motion/animate";
 import { AnimatedNumber } from "../../src/app/ui/motion/animated-number";
 import { DisclosurePanel, disclosureTrigger } from "../../src/app/ui/motion/disclosure";
 import { focusInsteadOf, PresenceItem, PresenceList } from "../../src/app/ui/motion/presence-list";
 import { SlidingHighlight } from "../../src/app/ui/motion/sliding-highlight";
 import { DURATION, EASE } from "../../src/app/ui/motion/tokens";
+import { ConfirmDialog, dismissToast, Toaster, Tooltip, TooltipProvider, toast } from "../../src/app/ui/overlays";
+import { PdfViewer } from "../../src/app/ui/pdf-viewer";
 import { playAnimations } from "./fake-animations";
+import { openApp } from "./harness";
 
 const css = readFileSync(path.resolve(import.meta.dirname, "../../src/app/styles.css"), "utf8");
 const cssValue = (name: string) => css.match(new RegExp(`${name}:\\s*([^;]+);`))?.[1].trim();
 
+let screen: Awaited<ReturnType<typeof openApp>> | null = null;
 let unmount: (() => void) | null = null;
 let animations: ReturnType<typeof playAnimations> | null = null;
 afterEach(() => {
+  screen?.close();
+  screen = null;
   unmount?.();
   unmount = null;
   animations?.stop();
@@ -36,6 +44,8 @@ function animating() {
   animations = playAnimations();
   return animations;
 }
+
+const pause = (ms: number) => act(async () => new Promise<void>((resolve) => setTimeout(resolve, ms)));
 
 /** Renders kit pieces as the window does; `show` re-renders. */
 async function mount(node: ReactNode) {
@@ -57,6 +67,206 @@ describe("motion timings", () => {
 
   it.each(Object.entries(EASE))("ease %s curves the same in JS as in CSS", (name, curve) => {
     expect(cssValue(`--ease-${name}`)).toBe(curve);
+  });
+});
+
+describe("toasts", () => {
+  it("one that's taken away is gone, and the others and the live region stay", async () => {
+    screen = await openApp({ signedIn: true });
+    let first = 0;
+    await act(async () => {
+      first = toast("Draf tersimpan", "success");
+      toast("Tugas terkumpul");
+    });
+    const live = document.querySelector("[aria-live=polite]");
+    expect(live?.textContent).toContain("Draf tersimpan");
+    expect(live?.querySelectorAll("[role=status]")).toHaveLength(2);
+
+    await act(async () => dismissToast(first));
+    expect(screen.text()).not.toContain("Draf tersimpan");
+    expect(screen.text()).toContain("Tugas terkumpul");
+    expect(document.querySelector("[aria-live=polite]")).toBe(live);
+  });
+
+  it("one that goes fades, then its gap closes so the rest slide into place; it takes no clicks meanwhile and is gone after", async () => {
+    const { started, on, finishAll } = animating();
+    const { container } = await mount(<Toaster />);
+    let first = 0;
+    await act(async () => {
+      first = toast("Draf tersimpan", "success", { label: "Urungkan", onClick: () => {} });
+      toast("Tugas terkumpul");
+    });
+    // Rising in is CSS, and none with Reduce motion.
+    const [leaving, staying] = container.querySelectorAll<HTMLElement>("[aria-live] > div");
+    expect(leaving.className).toContain("motion-safe:animate-toast-in");
+    expect(started).toHaveLength(0);
+
+    await act(async () => dismissToast(first));
+    expect(leaving.isConnected).toBe(true);
+    // Its card can't be clicked or focused; the box around it catches a second click, so it doesn't
+    // land on the page behind; clipped while it shrinks.
+    expect(leaving.querySelector("[role=status]")?.hasAttribute("inert")).toBe(true);
+    expect(leaving.className).toContain("pointer-events-auto");
+    expect(leaving.className).toContain("overflow-clip");
+    expect(staying.className).not.toContain("overflow-clip");
+    const [fade, gap] = on(leaving);
+    expect(fade.moves).toEqual(["opacity"]);
+    expect(fade.options.duration).toBe(DURATION.quick);
+    expect(gap.moves).toEqual(SPACE);
+    expect(gap.keyframes.at(-1)).toMatchObject({ height: "0px", paddingTop: "0px" });
+    expect(gap.options.delay).toBeGreaterThan(0);
+    expect(on(staying)).toHaveLength(0);
+
+    await finishAll();
+    expect(leaving.isConnected).toBe(false);
+    expect(container.textContent).toBe("Tugas terkumpul");
+  });
+
+  it("the toaster going away stops a toast mid-way out", async () => {
+    const { running } = animating();
+    const view = await mount(<Toaster />);
+    let id = 0;
+    await act(async () => {
+      id = toast("Draf tersimpan");
+    });
+    await act(async () => dismissToast(id));
+    expect(running()).toHaveLength(2);
+    await view.unmount();
+    unmount = null;
+    expect(running()).toHaveLength(0);
+  });
+});
+
+describe("a dialog or menu on its way out", () => {
+  // jsdom runs no CSS, so Radix drops a closing panel at once. Here every panel reports the
+  // animation its classes give its state (data-[state=closed]:animate-pop-out → "pop-out"), as
+  // Chromium does, so a closing one stays on screen until its animation ends, as in the window.
+  function playCssAnimations() {
+    const real = window.getComputedStyle.bind(window);
+    const animationName = (element: HTMLElement) =>
+      element.getAttribute("class")?.match(new RegExp(`data-\\[state=${element.dataset.state}\\]:animate-([\\w-]+)`))?.[1] ?? "none";
+    vi.spyOn(window, "getComputedStyle").mockImplementation((element, pseudo) => {
+      const style = real(element, pseudo);
+      if (!(element instanceof HTMLElement) || !element.dataset.state) return style;
+      return new Proxy(style, {
+        get: (target, key) => {
+          if (key === "animationName") return animationName(element);
+          const value = Reflect.get(target, key, target);
+          return typeof value === "function" ? value.bind(target) : value;
+        },
+      });
+    });
+    globalThis.CSS ??= { escape: (text: string) => text } as typeof CSS;
+  }
+  const finishLeaving = (element: Element) =>
+    act(async () => {
+      element.dispatchEvent(Object.assign(new Event("animationend"), { animationName: "pop-out" }));
+    });
+  afterEach(() => vi.restoreAllMocks());
+
+  it("a confirm takes the second click of a double-click as nothing, while it fades", async () => {
+    playCssAnimations();
+    const confirmed = vi.fn();
+    function Reset() {
+      const [open, setOpen] = useState(true);
+      return (
+        <I18nProvider lang="id">
+          <ConfirmDialog
+            open={open}
+            onOpenChange={setOpen}
+            title="Atur ulang rencana?"
+            body="Rencanamu kembali ke rencana awal."
+            confirmLabel="Atur ulang"
+            onConfirm={() => {
+              setOpen(false);
+              confirmed();
+            }}
+          />
+        </I18nProvider>
+      );
+    }
+    await mount(<Reset />);
+    const question = document.querySelector<HTMLElement>("[role=alertdialog]")!;
+    const yes = [...question.querySelectorAll("button")].find((button) => button.textContent === "Atur ulang")!;
+    await act(async () => yes.click());
+    expect(question.isConnected && question.dataset.state).toBe("closed");
+    await act(async () => yes.click());
+    expect(confirmed).toHaveBeenCalledOnce();
+
+    await finishLeaving(question);
+    expect(document.querySelector("[role=alertdialog]")).toBeNull();
+  });
+
+  it("the PDF viewer leaves the way it came, and a click on it while it goes runs nothing", async () => {
+    playCssAnimations();
+    const downloaded = vi.fn();
+    function Reader() {
+      const [open, setOpen] = useState(true);
+      return (
+        <I18nProvider lang="id">
+          <TooltipProvider>
+            <PdfViewer
+              open={open}
+              onOpenChange={setOpen}
+              name="Modul 01.pdf"
+              // Still opening: its toolbar's own buttons are there.
+              load={() => new Promise(() => undefined)}
+              actions={
+                <button type="button" onClick={downloaded}>
+                  Unduh
+                </button>
+              }
+              onOpenLink={() => undefined}
+            />
+          </TooltipProvider>
+        </I18nProvider>
+      );
+    }
+    await mount(<Reader />);
+    const viewer = document.querySelector<HTMLElement>("[role=dialog]")!;
+    await act(async () => viewer.querySelector<HTMLButtonElement>("button[aria-label='Tutup']")!.click());
+    expect(viewer.isConnected && viewer.dataset.state).toBe("closed");
+    await act(async () => [...viewer.querySelectorAll("button")].find((button) => button.textContent === "Unduh")!.click());
+    expect(downloaded).not.toHaveBeenCalled();
+
+    await finishLeaving(viewer);
+    expect(document.querySelector("[role=dialog]")).toBeNull();
+  });
+
+  it("moving to the next control's tooltip takes the last one away at once, so two never show", async () => {
+    playCssAnimations();
+    const { container } = await mount(
+      <TooltipProvider>
+        <Tooltip content="Minggu sebelumnya">
+          <button type="button">‹</button>
+        </Tooltip>
+        <Tooltip content="Minggu berikutnya">
+          <button type="button">›</button>
+        </Tooltip>
+      </TooltipProvider>,
+    );
+    const [back, next] = container.querySelectorAll("button");
+    await act(async () => back.focus());
+    expect(document.querySelector("[data-radix-popper-content-wrapper]")?.textContent).toContain("Minggu sebelumnya");
+    await act(async () => next.focus());
+    const showing = [...document.querySelectorAll("[data-radix-popper-content-wrapper]")].map((tip) => tip.textContent);
+    expect(showing).toHaveLength(1);
+    expect(showing[0]).toContain("Minggu berikutnya");
+  });
+
+  it("a menu runs a picked item once, however fast the second click", async () => {
+    playCssAnimations();
+    const opened = vi.fn();
+    const { container } = await mount(
+      <TooltipProvider>
+        <Menu label="Lainnya" items={[{ label: "Buka di Edunex", onSelect: opened }]} />
+      </TooltipProvider>,
+    );
+    await act(async () => container.querySelector("button")!.click());
+    const item = document.querySelector<HTMLElement>("[role=menuitem]")!;
+    await act(async () => item.click());
+    await act(async () => item.click());
+    expect(opened).toHaveBeenCalledOnce();
   });
 });
 
@@ -431,6 +641,42 @@ describe("PresenceList", () => {
     await view.unmount();
     unmount = null;
     expect(running()).toHaveLength(0);
+  });
+
+  it.each([
+    ["with animations off", false],
+    ["while it fades", true],
+  ])("a row taken away from its own menu gives focus to the same menu in the next row, %s", async (_, moving) => {
+    const finish = moving ? animating().finishAll : async () => {};
+    let remove: (id: string) => void = () => {};
+    function Rows() {
+      const [ids, setIds] = useState(["A", "B", "C"]);
+      remove = (id) => setIds((now) => now.filter((other) => other !== id));
+      return (
+        <TooltipProvider>
+          <ul>
+            <PresenceList>
+              {ids.map((id) => (
+                <PresenceItem key={id}>
+                  <span>Tugas {id}</span>
+                  <Menu label={`Lainnya ${id}`} items={[{ label: "Ingatkan nanti", onSelect: () => remove(id) }]} />
+                </PresenceItem>
+              ))}
+            </PresenceList>
+          </ul>
+        </TooltipProvider>
+      );
+    }
+    const { container } = await mount(<Rows />);
+    const menuOf = (id: string) => container.querySelector<HTMLElement>(`button[aria-label="Lainnya ${id}"]`)!;
+    menuOf("B").focus();
+    await act(async () => menuOf("B").click());
+    await act(async () => document.querySelector<HTMLElement>("[role=menuitem]")!.click());
+    // Radix gives focus back on a timer after the menu closes.
+    await pause(30);
+    expect(document.activeElement).toBe(menuOf("C"));
+    await finish();
+    expect(texts(container)).toEqual(["Tugas A", "Tugas C"]);
   });
 
   it("outside a PresenceList it's a plain list item", async () => {
