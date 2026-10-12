@@ -97,7 +97,7 @@ describe("putting off what needs you on Beranda", () => {
     const s = await open();
     const id = s.world.edunex.postTask(95059, { name: "Ringkasan K6", end_at: "2026-10-14T23:59:00+07:00" });
     await s.engineDoes(() => s.engine.refresh("edunex"));
-    await snooze("Ringkasan K6", "Sampai ada perubahan");
+    await snooze("Ringkasan K6 · PL3032", "Sampai ada perubahan");
     expect(toastText()).toContain("Disembunyikan sampai ada perubahan");
     expect(titles().some((t) => t.startsWith("Ringkasan K6"))).toBe(false);
 
@@ -138,6 +138,24 @@ describe("putting off what needs you on Beranda", () => {
     await frame();
     expect(document.activeElement?.closest("li")?.textContent).toMatch(/^KU5014 tak bisa lagi capai 80%/);
     expect(needs()?.contains(document.activeElement)).toBe(true);
+  });
+
+  it("a Task is named with its course, so two courses' 'Tugas 02' can be told apart", async () => {
+    const s = await open();
+    s.world.edunex.postTask(95059, { name: "Tugas 02", end_at: "2026-10-16T23:59:00+07:00" });
+    s.world.edunex.postTask(95001, { name: "Tugas 02", end_at: "2026-10-17T23:59:00+07:00" });
+    await s.engineDoes(() => s.engine.refresh("edunex"));
+    const names = [...document.querySelectorAll('[aria-label^="Ingatkan nanti: Tugas 02"]')].map((el) => el.getAttribute("aria-label")!);
+    expect(names).toHaveLength(2);
+    expect(names.every((name) => /^Ingatkan nanti: Tugas 02 · [A-Z]{2}\d{4}$/.test(name))).toBe(true);
+    expect(new Set(names).size).toBe(2);
+
+    for (const name of names) await snooze(name.replace("Ingatkan nanti: ", ""), "Besok pagi");
+    await s.click("Tampilkan");
+    const codes = names.map((name) => name.slice(-6));
+    const rows = [...document.querySelectorAll('ul[aria-label="Yang ditunda"] li')].map((li) => li.textContent ?? "");
+    expect(rows).toEqual(codes.map((code) => `Tugas 02${code} · Kembali Besok, 07:00Ingatkan sekarang`));
+    expect(s.has(`Ingatkan sekarang: Tugas 02 · ${codes[0]}`)).toBe(true);
   });
 
   it("the list of what's put off closes once it's empty, so the next snooze doesn't find it open", async () => {
@@ -259,7 +277,7 @@ describe("Settings", () => {
     const s = await open();
     const id = s.world.edunex.postTask(95059, { name: "Ringkasan K6", end_at: "2026-10-14T23:59:00+07:00" });
     await s.engineDoes(() => s.engine.refresh("edunex"));
-    await snooze("Ringkasan K6", "Sampai ada perubahan");
+    await snooze("Ringkasan K6 · PL3032", "Sampai ada perubahan");
     await snooze("UTS Komunikasi Pemasaran", "Besok pagi");
     s.world.edunex.moveDeadline(id, "2026-10-16T23:59:00+07:00");
     await s.engineDoes(() => s.engine.refresh("edunex"));

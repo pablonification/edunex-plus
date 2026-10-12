@@ -41,7 +41,7 @@ import { Button, IconButton } from "../ui/controls";
 import { cx } from "../ui/cx";
 import { Card, CourseDot, EmptyState, LiveDot, Skeleton } from "../ui/display";
 import { Icons } from "../ui/icons";
-import { List, Meta, Page, PageHeader, Row, Section } from "../ui/layout";
+import { factsLabel, List, Meta, Page, PageHeader, Row, Section } from "../ui/layout";
 import { CountdownBar } from "../ui/meter";
 import { Tooltip } from "../ui/overlays";
 
@@ -682,9 +682,14 @@ function SnoozedRow({ need, entry, courses }: { need: Need; entry: SnoozeEntry; 
   return (
     <Row
       title={view.title}
-      meta={<Meta>{entry.reason === "change" ? t("snooze.untilChange", { when }) : t("snooze.until", { when })}</Meta>}
+      meta={
+        <Meta>
+          {view.titleLacksCourse && need.course ? <CourseMark code={need.course} courses={courses} /> : null}
+          {entry.reason === "change" ? t("snooze.untilChange", { when }) : t("snooze.until", { when })}
+        </Meta>
+      }
       trailing={
-        <Button size="sm" variant="ghost" aria-label={t("snooze.wakeFor", { title: view.title })} onClick={(event) => wakeNow(event.currentTarget)}>
+        <Button size="sm" variant="ghost" aria-label={t("snooze.wakeFor", { title: fullName(need, view) })} onClick={(event) => wakeNow(event.currentTarget)}>
           {t("snooze.wake")}
         </Button>
       }
@@ -706,7 +711,12 @@ interface NeedView {
   tone: "danger" | "warning" | null;
   /** What the row's click does, for screen readers. */
   label?: string;
+  /** The title is a Task's own name ("Tugas 02"), which doesn't say which course. */
+  titleLacksCourse?: boolean;
 }
+
+/** What an item is, said whole where its facts aren't beside it: a Task's name with its course ("Tugas 02 · II4091"). */
+const fullName = (need: Need, view: NeedView) => (view.titleLacksCourse && need.course ? factsLabel(view.title, need.course) : view.title);
 
 function useNeedView(courses: readonly TermCourse[]): (need: Need) => NeedView {
   const t = useT();
@@ -743,6 +753,7 @@ function useNeedView(courses: readonly TermCourse[]): (need: Need) => NeedView {
                 };
         return {
           title: need.task ? t("home.need.presenceAhead.assignment", { task: need.task.title }) : t("home.need.presenceAhead", { course: need.course ?? "" }),
+          titleLacksCourse: need.task !== null,
           meta: [course],
           note: {
             text: t("home.need.presenceAhead.when", {
@@ -757,7 +768,14 @@ function useNeedView(courses: readonly TermCourse[]): (need: Need) => NeedView {
       case "task": {
         const { task } = need;
         if (need.reason === "edited")
-          return { title: task.title, meta: [course], note: { text: t("home.need.task.edited"), tone: "warning" }, when: null, tone: "warning" };
+          return {
+            title: task.title,
+            titleLacksCourse: true,
+            meta: [course],
+            note: { text: t("home.need.task.edited"), tone: "warning" },
+            when: null,
+            tone: "warning",
+          };
         const meta =
           need.reason === "overdue"
             ? t("home.need.task.overdue")
@@ -766,6 +784,7 @@ function useNeedView(courses: readonly TermCourse[]): (need: Need) => NeedView {
               : t("home.need.task.due", { when: f.dueLabel(task.dueAt!) });
         return {
           title: task.title,
+          titleLacksCourse: true,
           meta: [
             course,
             <span key="m" className={cx(need.reason === "overdue" && "text-danger-fg")}>
@@ -862,7 +881,7 @@ function NeedRow({ need, courses, index }: { need: Need; courses: readonly TermC
       title={view.title}
       label={view.label}
       meta={<Meta>{view.meta}</Meta>}
-      actions={canSnooze(later, now) ? <SnoozeMenu item={later} name={view.title} /> : undefined}
+      actions={canSnooze(later, now) ? <SnoozeMenu item={later} name={fullName(need, view)} /> : undefined}
       trailing={
         view.when ? (
           <span
