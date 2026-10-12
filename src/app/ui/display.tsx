@@ -40,7 +40,7 @@ export function Skeleton({ className }: { className?: string }) {
 
 export function Kbd({ children }: { children: ReactNode }) {
   return (
-    <kbd className="rounded-[5px] border border-black/10 bg-surface px-1 font-sans text-micro font-medium text-faint shadow-[0_1px_0_rgb(0_0_0/0.06)] dark:border-white/10">
+    <kbd className="rounded-tag border border-black/10 bg-surface px-1 font-sans text-micro font-medium text-faint shadow-[0_1px_0_rgb(0_0_0/0.06)] dark:border-white/10">
       {children}
     </kbd>
   );
@@ -162,7 +162,7 @@ export function StatusChip({ status }: { status: TaskStatus }) {
 }
 
 export function CourseDot({ color, className }: { color: string; className?: string }) {
-  return <span aria-hidden className={cx("inline-block size-2.5 shrink-0 rounded-[3px]", className)} style={{ background: color }} />;
+  return <span aria-hidden className={cx("inline-block size-2.5 shrink-0 rounded-xs", className)} style={{ background: color }} />;
 }
 
 export function CourseCode({ code, color, className }: { code: string; color: string; className?: string }) {

@@ -406,7 +406,7 @@ function Summary({ record, state, rules }: { record: StudentRecord; state: PlanS
       <div className="flex flex-wrap items-start justify-between gap-x-10 gap-y-4">
         <div className="min-w-0">
           {record.program && <p className="text-small font-medium text-muted">{t("planner.program", { name: record.program.name })}</p>}
-          <p className="mt-1 flex flex-wrap items-baseline gap-x-2 text-[26px] leading-8 font-semibold tracking-[-0.02em]">
+          <p className="mt-1 flex flex-wrap items-baseline gap-x-2 text-figure font-semibold tracking-[-0.02em]">
             {sks.short ? t("planner.sksShort", { total: sks.total, need: sks.need }) : t("planner.sksDone", { need: sks.need })}
             <span className={cx("text-body font-semibold tracking-normal", sks.short ? "text-danger-fg" : "text-success-fg")}>
               {sks.short ? t("planner.sksShortBy", { short: sks.short }) : sks.extra ? t("planner.sksSpare", { extra: sks.extra }) : null}

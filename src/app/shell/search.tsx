@@ -244,7 +244,7 @@ function Palette({ shown, onClose, onSettings }: { shown: boolean; onClose: () =
             setActive(0);
           }}
           onKeyDown={onKeyDown}
-          className="h-12 min-w-0 flex-1 bg-transparent text-[15px] text-fg outline-none placeholder:text-faint"
+          className="h-12 min-w-0 flex-1 bg-transparent text-lead text-fg outline-none placeholder:text-faint"
         />
         <Kbd>esc</Kbd>
       </div>
@@ -347,7 +347,7 @@ function ItemMark({ item, color }: { item: SearchItem; color: string | undefined
   return (
     <span className="relative grid size-7 shrink-0 place-items-center rounded-md bg-fill">
       <Icon className="size-3.5 text-muted" />
-      {color && <span aria-hidden className="absolute -right-0.5 -bottom-0.5 size-2 rounded-[3px] ring-2 ring-raised" style={{ background: color }} />}
+      {color && <span aria-hidden className="absolute -right-0.5 -bottom-0.5 size-2 rounded-xs ring-2 ring-raised" style={{ background: color }} />}
     </span>
   );
 }
