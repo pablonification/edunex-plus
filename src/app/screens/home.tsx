@@ -309,9 +309,11 @@ function Attendance({ card }: { card: NowCard }) {
             ? t("home.now.countUnknown")
             : null;
 
+  // A Presence recorded by handing in a Task opens that Task here, so its button says so; any other opens Edunex.
+  const viaTask = presence?.activity === "assignment" && presence.task !== null;
   const openPresence = () => {
     if (!presence) return;
-    if (presence.activity === "assignment" && presence.task) go({ screen: "task", taskId: presence.task.id });
+    if (viaTask && presence.task) go({ screen: "task", taskId: presence.task.id });
     else external(presence.url);
   };
 
@@ -319,7 +321,6 @@ function Attendance({ card }: { card: NowCard }) {
   if (presence && presence.counts !== false) {
     const { session } = presence;
     const action = actionLabel({ action: { activity: presence.activity, task: presence.task, url: presence.url } });
-    const viaTask = presence.activity === "assignment" && presence.task !== null;
     // Without SIX nobody can say it counts: worth doing just in case, so said calmly, its button quiet.
     const quiet = presence.noSix;
     return (
@@ -387,11 +388,11 @@ function Attendance({ card }: { card: NowCard }) {
         <Button
           variant="ghost"
           size="sm"
-          icon={<Icons.ArrowUpRight className="size-3.5" />}
+          icon={viaTask ? undefined : <Icons.ArrowUpRight className="size-3.5" />}
           onClick={openPresence}
-          aria-label={t("home.now.recordLabel", { course: presence.code })}
+          aria-label={viaTask ? t("home.now.openTask") : t("home.now.recordLabel", { course: presence.code })}
         >
-          {t("presence.open.record")}
+          {viaTask ? t("home.now.openTask") : t("presence.open.record")}
         </Button>
       )}
     </div>

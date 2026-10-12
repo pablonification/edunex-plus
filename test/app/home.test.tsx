@@ -145,6 +145,20 @@ describe("an open window that counts", () => {
   });
 });
 
+describe("an open window that doesn't count, recorded by handing in a Task", () => {
+  it("its quiet button opens the Task here, and says so instead of Edunex", async () => {
+    const world = new PretendWorld({ now: "2026-10-16T15:01:00+07:00" });
+    // SIX counts II4091 too: its Presence (hand in Tugas 02 Bab II) is optional.
+    world.six.setAttendance("II4091", 7, 8);
+    screen = await openApp({ world, signedIn: true, six: true });
+    expect(text("home-now")).toContain("Presensi Edunex juga dibuka sampai 23:59, tidak wajib.");
+    expect(screen.button("Buka tugasnya").className).not.toContain("bg-accent");
+    expect([...(section("home-now")?.querySelectorAll("button") ?? [])].map((b) => b.textContent)).not.toContain("Catat di Edunex");
+    await screen.click("Buka tugasnya");
+    expect(document.querySelector("main h1")?.textContent).toBe("Tugas 02 Bab II");
+  });
+});
+
 describe("a Presence window still open after its class", () => {
   /** PL3002's window of Thursday 8 October, kept open until `end`. */
   const keepThursdayOpen = (world: PretendWorld, end: string) => world.edunex.keepPresenceOpen(2194342, end);
