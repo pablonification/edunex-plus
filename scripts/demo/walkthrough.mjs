@@ -129,17 +129,14 @@ const signedIn = [
     id: "03-attendance",
     async run(demo) {
       const h = helpers(demo);
-      await titleCard(h.page, "3 · Attendance", "Am I in trouble anywhere?", "", 2200);
+      await titleCard(h.page, "3 · Attendance", "Am I OK, and what do I need to do?", "", 2200);
       await h.nav("Presensi");
-      await h.say("Presensi answers first: which courses need you.", "Counted from SIX, rounded down, so 79.6% never reads as 80%.");
+      await h.say("Presensi answers first, naming the courses and what to do.", "Counted from SIX, rounded down, so 79.6% never reads as 80%.");
       await h.beat(3400);
-      await attempt("hover a meeting", async () => {
-        const square = h.page.locator("main [role=list] [role=listitem]").nth(4);
-        await h.point(square, 400);
-        await square.hover();
-      });
-      await h.say("Every meeting with its date and status, so you can name the one to ask your lecturer about.");
+      await attempt("open a course's target", () => h.click(h.page.getByRole("button", { name: /^Target \d+% untuk DK4073$/ })));
+      await h.say("Each course can have its own target, from its course contract.", "Every screen and every alert then judges it against that.");
       await h.beat(3600);
+      await h.page.keyboard.press("Escape");
       await h.say("");
     },
   },
