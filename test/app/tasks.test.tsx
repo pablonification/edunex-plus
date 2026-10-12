@@ -261,8 +261,12 @@ describe("the Task page", () => {
   it("not started: due when, the attach area, and nothing to submit yet", async () => {
     const s = await open();
     await goToTask(s, "Tugas 02 Bab II");
-    expect(card()).toContain("Belum dikerjakan");
-    expect(card()).toContain("dalam 8 hari");
+    // The status is the card's plain first line; the deadline is said once, in the header, as one line of facts.
+    expect(card()).toContain("Belum dikerjakanJawabanmu");
+    expect(card()).not.toContain("dalam 8 hari");
+    expect(document.querySelector("article")?.textContent).toContain("Tenggat Jum, 16 Okt, 23:59 · dalam 8 hari · Boleh terlambat");
+    // When it opened is history (Riwayat), not a fact for the header.
+    expect(document.querySelector("article")?.textContent).not.toContain("Dibuka");
     expect(s.has(/^Lampirkan berkas · Lepas berkas di sini/)).toBe(true);
     expect(card()).toContain("Wajib unggah berkas · Berkas PDF");
     expect(s.button("Simpan draf").disabled).toBe(true);
@@ -356,7 +360,11 @@ describe("the Task page", () => {
     await s.engineDoes(() => s.engine.refresh("edunex"));
     await goToTask(s, "Tugas Pekan Depan");
     expect(id).toBeGreaterThan(0);
-    expect(card()).toContain("Dibuka Sen, 12 Okt, 08:00");
+    // Said once in the header and once where the hand-in would be, not again as the card's subtitle.
+    expect(document.querySelector("article")?.textContent).toContain(
+      "Tenggat Sen, 19 Okt, 23:59 · dalam 11 hari · Tidak bisa terlambat · Dibuka Sen, 12 Okt, 08:00",
+    );
+    expect(card()).not.toContain("Dibuka");
     expect(card()).toContain("Bisa dikumpulkan mulai Sen, 12 Okt, 08:00.");
     expect(s.has(/^Lampirkan berkas/)).toBe(false);
   });

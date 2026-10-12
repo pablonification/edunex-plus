@@ -32,7 +32,6 @@ export const tasksStrings = {
   "task.shortWindow": { id: "Waktu singkat", en: "Short window" },
   "task.opens": { id: "Dibuka {when}", en: "Opens {when}" },
   "task.attendance": { id: "Sekaligus Presensi · {date}, {time}", en: "Also your attendance · {date}, {time}" },
-  "task.opened": { id: "Dibuka {date}", en: "Opened {date}" },
   "task.due": { id: "Tenggat {when}", en: "Due {when}" },
   "task.noDeadline": { id: "Tanpa tenggat", en: "No deadline" },
   "task.submittedOn": { id: "Dikumpulkan", en: "Submitted" },
@@ -190,7 +189,6 @@ export const tasksStrings = {
   "exam.row.disagree": { id: "SIX: {six} · Edunex: {edunex}. Pastikan ke dosen.", en: "SIX: {six} · Edunex: {edunex}. Check with your lecturer." },
 
   // The hand-in panel, redesigned
-  "handIn.dueIn": { id: "Tenggat {when}", en: "Due {when}" },
   "handIn.draftSaved": { id: "Tersimpan {when}", en: "Saved {when}" },
   "handIn.recorded": { id: "Edunex mencatatnya {when}", en: "Edunex recorded it {when}" },
   "handIn.ruleType": { id: "Berkas {type}", en: "{type} file" },
@@ -199,7 +197,10 @@ export const tasksStrings = {
   "handIn.uploaded": { id: "Terunggah", en: "Uploaded" },
   "handIn.retryShort": { id: "Coba lagi", en: "Try again" },
   "handIn.removeShort": { id: "Hapus", en: "Remove" },
-  "handIn.why.noFile": { id: "Lampirkan berkas dulu untuk mengumpulkan.", en: "Attach a file first to hand it in." },
+  "handIn.why.noFile": {
+    id: "Lampirkan berkas dulu untuk menyimpan draf atau mengumpulkan.",
+    en: "Attach a file first to save a draft or hand it in.",
+  },
   "handIn.why.noText": {
     id: "Tulis jawabanmu dulu. Edunex butuh teks, meski kamu melampirkan berkas.",
     en: "Write your answer first. Edunex needs text, even when you attach a file.",
@@ -281,8 +282,8 @@ export const tasksStrings = {
     en: "Dear lecturer, for the {code} {name} {kind}, SIX lists {six} while Edunex lists {edunex}. Could you confirm the right date and format? Thank you.",
   },
   "examPage.announcements": { id: "Lihat pengumuman", en: "See announcements" },
-  "examPage.study": { id: "Bahan belajar", en: "What to study" },
   "examPage.checkAnnouncements": { id: "Cek pengumuman dosen", en: "Check your lecturer's announcements" },
+  "examPage.study": { id: "Bahan belajar", en: "What to study" },
   "examPage.lecturerFiles": { id: "Berkas dari dosen", en: "Files from your lecturer" },
   "examPage.modulesBefore": { id: "Modul sebelum {kind}", en: "Modules before the {kind}" },
   "examPage.openModules": { id: "Buka modul", en: "Open modules" },
