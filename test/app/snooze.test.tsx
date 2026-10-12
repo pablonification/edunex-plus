@@ -47,7 +47,7 @@ describe("putting off what needs you on Beranda", () => {
       expect.stringMatching(/^3 jam lagiHari ini, 11:0\d$/),
       "Besok pagiBesok, 07:00",
       "Sehari sebelumnyaRab, 14 Okt, 07:00",
-      "Sampai ada perubahanPaling lambat Kam, 15 Okt, 06:00",
+      "Sampai ada perubahanPaling lambat Rab, 14 Okt, 11:00",
     ]);
     await s.click([...document.querySelectorAll<HTMLElement>("[role=menuitem]")][1]!);
 

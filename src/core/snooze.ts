@@ -8,7 +8,7 @@
 import type { AttendanceHealth } from "./attendance";
 import { wibDay } from "./course-meetings";
 import type { SnoozeEntry } from "./models";
-import type { Need } from "./needs";
+import { DUE_NOW, type Need, STARTING_SOON } from "./needs";
 import { dayStart } from "./schedule";
 
 const MINUTE = 60_000;
@@ -52,31 +52,61 @@ export interface Snoozable {
 /** 07:00 WIB on the day before `at`. */
 const dayBefore = (at: number) => dayStart(wibDay(at)) - DAY + MORNING;
 
-/** The id and facts of a Beranda item. Its band (how urgent it is) is a fact, so turning urgent brings it back. */
+/**
+ * The id and facts of a Beranda item. Turning urgent ("now") is a fact, so it
+ * brings the item back; the steps before that (coming up, then soon) aren't,
+ * so a snooze isn't cut short on the way to the time it promised.
+ */
 export function snoozeKey(need: Need): SnoozeKey {
   const facts = (...parts: unknown[]) => parts.map((part) => (part === null || part === undefined ? "" : String(part))).join("|");
+  const urgent = need.band === "now" ? "urgent" : "";
   switch (need.kind) {
     case "presence":
-      return { id: need.id, facts: facts(need.open ? "open" : "ahead", need.band, need.session.opensAt, need.session.closesAt, need.activity, need.countedIn) };
+      return { id: need.id, facts: facts(need.open ? "open" : "ahead", urgent, need.session.opensAt, need.session.closesAt, need.activity, need.countedIn) };
     case "task":
       return need.reason === "edited"
         ? { id: need.id, facts: facts("edited", need.task.editedAt) }
-        : { id: need.id, facts: facts(need.reason, need.band, need.task.dueAt, need.task.lateAllowed, need.task.closed) };
+        : { id: need.id, facts: facts(need.reason, urgent, need.task.dueAt, need.task.lateAllowed, need.task.closed) };
     case "exam":
       return {
         id: need.id,
-        facts: facts(need.band, need.sitting.source, need.sitting.start, need.sitting.end, need.sitting.room, need.disagree),
+        facts: facts(urgent, need.sitting.source, need.sitting.start, need.sitting.end, need.sitting.room, need.disagree),
       };
     case "attendance":
       return attendanceKey(need.health.code, need.health, need.health.target);
     case "meeting":
-      return { id: need.id, facts: facts(need.band, need.meeting.start, need.meeting.end, need.meeting.link) };
+      return { id: need.id, facts: facts(urgent, need.meeting.start, need.meeting.end, need.meeting.link) };
     case "krs":
-      return { id: need.id, facts: facts(need.band, need.open, need.at, need.closesAt) };
+      return { id: need.id, facts: facts(urgent, need.open, need.at, need.closesAt) };
     case "bill":
-      return { id: need.id, facts: facts(need.band, need.overdue, need.bill.nextDueAt, (need.bill.amount ?? 0) - (need.bill.paid ?? 0)) };
+      return { id: need.id, facts: facts(urgent, need.overdue, need.bill.nextDueAt, (need.bill.amount ?? 0) - (need.bill.paid ?? 0)) };
     case "class":
-      return { id: need.id, facts: facts(need.band, need.session.start, need.session.room) };
+      return { id: need.id, facts: facts(urgent, need.session.start, need.session.room) };
+  }
+}
+
+/**
+ * When an item that isn't urgent yet turns urgent by time alone (needs.ts's
+ * thresholds). That brings it back, so nothing is offered past it. null: it
+ * doesn't (a Presence window ahead ends at its opening, attendance at a new count).
+ */
+function turnsUrgent(need: Need): number | null {
+  if (need.band === "now") return null;
+  switch (need.kind) {
+    case "task":
+      return need.reason === "due" && need.task.dueAt !== null ? need.task.dueAt - DUE_NOW : null;
+    case "exam":
+      return need.sitting.start - DUE_NOW;
+    case "meeting":
+      return need.meeting.start - STARTING_SOON;
+    case "class":
+      return need.session.start - STARTING_SOON;
+    case "krs":
+      return need.open ? need.closesAt - DUE_NOW : null;
+    case "bill":
+      return need.bill.nextDueAt === null ? null : need.bill.nextDueAt - DUE_NOW;
+    default:
+      return null;
   }
 }
 
@@ -89,8 +119,15 @@ export function attendanceKey(code: string, health: Pick<AttendanceHealth, "stat
   return { id: `attendance:${code}`, facts: `${health.state}|${health.attended ?? ""}/${health.held ?? ""}|${target}` };
 }
 
-/** What a Beranda item can be put off until. */
+/** What a Beranda item can be put off until: never past the moment it turns urgent. */
 export function snoozable(need: Need, now: number): Snoozable {
+  const item = ownTerms(need, now);
+  const urgent = turnsUrgent(need);
+  return urgent !== null && (item.cap === null || urgent < item.cap) ? { ...item, cap: urgent } : item;
+}
+
+/** An item's own last useful moment and the moment that fits it. */
+function ownTerms(need: Need, now: number): Snoozable {
   const key = snoozeKey(need);
   const later = need.band !== "now";
   switch (need.kind) {

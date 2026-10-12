@@ -82,7 +82,7 @@ describe("what an item can be put off until", () => {
     ]);
   });
 
-  it("an exam: the day before, and until something changes ends on the exam's morning", async () => {
+  it("an exam: the day before, and until something changes ends when it turns urgent, a day ahead", async () => {
     const h = await startHome({ now: MONDAY });
     const now = h.world.clock.now();
     const exam = need(needsYou(h.home()), "exam:DK4073-UTS");
@@ -90,7 +90,8 @@ describe("what an item can be put off until", () => {
       inThreeHours(now),
       `morning ${iso("2026-10-13T07:00:00")}`,
       `dayBefore ${iso("2026-10-14T07:00:00")}`,
-      `change ${iso("2026-10-15T06:00:00")}`,
+      // Thursday 11:00's exam is "now" from Wednesday 11:00: that brings it back, so that's the latest.
+      `change ${iso("2026-10-14T11:00:00")}`,
     ]);
   });
 
@@ -119,6 +120,38 @@ describe("what an item can be put off until", () => {
     // Two hours later, less than half an hour of putting off is left: nothing to offer.
     await h.until("2026-10-12T13:45:00+07:00");
     expect(offered(need(needsYou(h.home()), `task:${id}`), h.world.clock.now())).toEqual([]);
+  });
+
+  it("holds until the time it promised: getting closer (coming up, then soon) doesn't bring it back early", async () => {
+    const h = await startHome({ now: MONDAY });
+    const now = h.world.clock.now();
+    const id = h.world.edunex.postTask(95059, { name: "Laporan akhir", end_at: "2026-10-17T23:59:00+07:00" });
+    await h.refresh();
+    const items = needsYou(h.home());
+    // "When it opens" on Monday, for Friday 15:00's window; "the day before it's due" for Saturday's Task.
+    const ahead = need(items, "presence:2243740");
+    const task = need(items, `task:${id}`);
+    expect(task.band).toBe("later");
+    const entries: SnoozeEntry[] = [
+      { ...snoozeKey(ahead), until: snoozeChoices(snoozable(ahead, now), now).find((c) => c.kind === "opens")!.until },
+      { ...snoozeKey(task), until: snoozeChoices(snoozable(task, now), now).find((c) => c.kind === "dayBeforeDue")!.until },
+    ];
+    expect(entries.map((e) => new Date(e.until).toISOString())).toEqual([iso("2026-10-16T15:00:00"), iso("2026-10-16T07:00:00")]);
+    const held = () => {
+      const { snoozed } = partitionSnoozed(needsYou(h.home()), snoozeKey, entries, h.world.clock.now());
+      return snoozed.map(({ item }) => item.id).sort();
+    };
+
+    // Thursday 15:01: the window opens within a day ("soon"), the Task is due within three; both still put off.
+    await h.until("2026-10-15T15:01:00+07:00");
+    expect(need(needsYou(h.home()), "presence:2243740").band).toBe("soon");
+    expect(need(needsYou(h.home()), `task:${id}`).band).toBe("soon");
+    expect(held()).toEqual(["presence:2243740", `task:${id}`]);
+
+    await h.until("2026-10-16T07:00:00+07:00");
+    expect(held()).toEqual(["presence:2243740"]);
+    await h.until("2026-10-16T15:00:00+07:00");
+    expect(held()).toEqual([]);
   });
 
   it("every choice ends by the item's last useful moment and within two weeks", async () => {
