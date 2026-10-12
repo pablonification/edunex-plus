@@ -141,6 +141,8 @@ describe("handing in", () => {
     await s.click(/^Tugas & Ujian\d*$/);
     await s.click([...document.querySelectorAll<HTMLButtonElement>("main li button")].find((b) => b.textContent?.startsWith("Tugas Kelompok 1"))!);
     expect(card()).toContain("Ini tugas kelompok. Kumpulkan bersama kelompokmu di Edunex.");
+    // Nothing of the Student's own to show, so no "Jawabanmu" over it.
+    expect(card()).not.toContain("Jawabanmu");
     expect(s.has(ATTACH)).toBe(false);
     expect(s.has("Kumpulkan")).toBe(false);
     await s.click("Buka di Edunex");

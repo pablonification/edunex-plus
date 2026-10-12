@@ -1020,7 +1020,8 @@ function HandIn({ task, status }: Row) {
 
       <div className="space-y-4 p-4">
         <div>
-          <p className="mb-2 text-small font-semibold text-muted">{t("handIn.yourAnswer")}</p>
+          {/* A group's answer is written on Edunex: the label only heads the files already in it. */}
+          {(!task.group || saved.length > 0) && <p className="mb-2 text-small font-semibold text-muted">{t("handIn.yourAnswer")}</p>}
           {(saved.length > 0 || attached.length > 0) && (
             <ul className="mb-2 space-y-1.5">
               {saved.map((file) => (
@@ -1089,8 +1090,8 @@ function HandIn({ task, status }: Row) {
             </button>
           )}
           {task.group && !sent && status !== "closed" && (
-            <div className="flex items-center gap-3 rounded-lg bg-fill px-3 py-2.5">
-              <p className="min-w-0 flex-1 text-small text-muted">{t("handIn.group")}</p>
+            <div className="space-y-2">
+              <p className="text-small text-muted">{t("handIn.group")}</p>
               <Button size="sm" icon={<Icons.ArrowUpRight className="size-3.5" />} onClick={() => open(edunexTaskUrl(task.id))}>
                 {t("action.openInEdunex")}
               </Button>
