@@ -93,4 +93,29 @@ describe("lecturers' formatted text", () => {
     ]);
     expect(container.querySelector("iframe")).toBeNull();
   });
+
+  it("a linked picture or video is one link: one click opens one page", () => {
+    const { container, opened } = draw(
+      '<p><a href="https://forms.example/daftar"><img src="https://imgur.example/poster.png"></a></p><p><a href="https://example.org/kelas"><oembed url="https://www.youtube.com/watch?v=fixture"></oembed></a></p>',
+    );
+    const links = [...container.querySelectorAll("a")];
+    expect(links.map((a) => a.getAttribute("href"))).toEqual(["https://forms.example/daftar", "https://example.org/kelas"]);
+    expect(links[0].textContent).toBe("Gambar dari imgur.example");
+    expect(container.querySelector("a a")).toBeNull();
+    act(() => links[0].click());
+    expect(opened).toEqual(["https://forms.example/daftar"]);
+  });
+
+  it("keeps a table's merged cells, so every later cell stays under its heading", () => {
+    const { container } = draw(
+      '<table><tr><th colspan="2">Minggu 1</th><th>Minggu 2</th></tr><tr><td>Senin</td><td>Kamis</td><td rowspan="1" colspan="999">Senin</td></tr></table>',
+    );
+    const cells = [...container.querySelectorAll("th, td")];
+    expect(cells.map((cell) => cell.getAttribute("colspan"))).toEqual(["2", null, null, null, null]);
+  });
+
+  it("describes a picture written into the HTML without a description of its own", () => {
+    const { container } = draw('<img src="data:image/png;base64,iVBORw0KGgo="><img src="data:image/png;base64,iVBORw0KGgo=" alt="Denah ruang">');
+    expect([...container.querySelectorAll("img")].map((img) => img.getAttribute("alt"))).toEqual(["Gambar dari dosen", "Denah ruang"]);
+  });
 });

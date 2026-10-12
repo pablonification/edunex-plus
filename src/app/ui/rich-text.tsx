@@ -54,6 +54,8 @@ export interface RichTextImage {
 interface Hooks {
   open: (url: string) => void;
   image?: (image: RichTextImage) => ReactNode | null;
+  /** Inside a lecturer's link: what's in it is part of that one link, never a second one (one click, one page). */
+  inLink?: boolean;
 }
 
 export function RichText({
@@ -100,14 +102,22 @@ export function WebLink({ href, onOpen, children, className }: { href: string; o
   );
 }
 
-/** A picture from elsewhere that isn't drawn here: named by where it is, and opened there. */
+/** A picture from elsewhere that isn't drawn here: named by where it is, and opened there (inside a link, just named). */
 function PictureLink({ src, hooks }: { src: string; hooks: Hooks }) {
   const t = useT();
+  const name = t("image.from", { host: linkHost(src) ?? src });
+  if (hooks.inLink) return <>{name}</>;
   return (
     <WebLink href={src} onOpen={hooks.open}>
-      {t("image.from", { host: linkHost(src) ?? src })}
+      {name}
     </WebLink>
   );
+}
+
+/** A picture written right into the HTML; most have no description of their own. */
+function InlinePicture({ src, alt }: RichTextImage) {
+  const t = useT();
+  return <img src={src} alt={alt || t("image.alt")} className="h-auto max-w-full rounded-lg" />;
 }
 
 const STRUCTURAL = new Set(["table", "thead", "tbody", "tr", "ul", "ol"]);
@@ -138,7 +148,7 @@ function render(node: Node, hooks: Hooks, key: string): ReactNode {
   if (tag === "img") {
     const src = element.getAttribute("src")?.trim() ?? "";
     const alt = element.getAttribute("alt")?.trim() ?? "";
-    if (INLINE_PICTURE.test(src)) return <img key={key} src={src} alt={alt} className="h-auto max-w-full rounded-lg" />;
+    if (INLINE_PICTURE.test(src)) return <InlinePicture key={key} src={src} alt={alt} />;
     if (!isWebLink(src)) return null;
     const drawn = hooks.image?.({ src, alt });
     return <Fragment key={key}>{drawn ?? <PictureLink src={src} hooks={hooks} />}</Fragment>;
@@ -147,6 +157,7 @@ function render(node: Node, hooks: Hooks, key: string): ReactNode {
   if (tag === "oembed" || tag === "iframe") {
     const url = element.getAttribute(tag === "oembed" ? "url" : "src")?.trim() ?? "";
     if (!isWebLink(url)) return null;
+    if (hooks.inLink) return url;
     return (
       <span key={key} className="my-2 block">
         <WebLink href={url} onOpen={hooks.open}>
@@ -155,16 +166,17 @@ function render(node: Node, hooks: Hooks, key: string): ReactNode {
       </span>
     );
   }
-  const inner = children(element, hooks, key);
   if (tag === "a") {
     const href = element.getAttribute("href")?.trim() ?? "";
-    if (!isWebLink(href)) return <span key={key}>{inner}</span>;
+    if (hooks.inLink || !isWebLink(href)) return <span key={key}>{children(element, hooks, key)}</span>;
+    const inner = children(element, { ...hooks, inLink: true }, key);
     return (
       <WebLink key={key} href={href} onOpen={hooks.open}>
         {inner}
       </WebLink>
     );
   }
+  const inner = children(element, hooks, key);
   if (HEADING.test(tag))
     return (
       <p key={key} className={cx("mb-1 font-semibold first:mt-0", tag === "h1" || tag === "h2" ? "mt-4 text-title" : "mt-3")}>
@@ -178,6 +190,14 @@ function render(node: Node, hooks: Hooks, key: string): ReactNode {
         <table className="border-collapse text-small">{inner}</table>
       </div>
     );
+  if (tag === "td" || tag === "th") {
+    // A merged cell (a schedule's header over two columns) keeps its span, or every later cell shifts.
+    const span = (name: string) => {
+      const value = Number(element.getAttribute(name));
+      return Number.isInteger(value) && value > 1 && value <= 50 ? value : undefined;
+    };
+    return createElement(tag, { key, className: BLOCK[tag], colSpan: span("colspan"), rowSpan: span("rowspan") }, ...inner);
+  }
   if (tag in BLOCK) return createElement(tag, { key, className: BLOCK[tag] || undefined }, ...inner);
   if (tag in INLINE) return createElement(tag, { key, className: INLINE[tag] || undefined }, ...inner);
   // Anything else (font, custom tags): keep its text, drop the element.
