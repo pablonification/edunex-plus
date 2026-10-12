@@ -20,11 +20,17 @@ async function inject(name: string, value: unknown) {
   await screen!.apply({ type: "dataset", dataset: { name: name as never, value: value as never, fetchedAt: 0, hash: `p${++hash}` } });
 }
 
-async function openPlan(options: { saved?: StudyPlan; lang?: "en"; noRecords?: boolean } = {}) {
+/** `emptyTerm`: SIX already on this term, its KRS without courses yet (DRS not done). */
+async function openPlan(options: { saved?: StudyPlan; lang?: "en"; noRecords?: boolean; emptyTerm?: boolean } = {}) {
   screen = await openApp({ world: new PretendWorld({ now: "2026-10-11T09:00:00+07:00" }), signedIn: true });
   if (options.lang) await screen.engineDoes(() => screen!.engine.updateSettings({ lang: options.lang }));
   if (!options.noRecords) {
     const data = await records();
+    if (options.emptyTerm) {
+      data.transcript.terms = data.transcript.terms.filter((t) => t.term !== "2026-1");
+      await inject("six.student", { nim: "18223901", name: "Mahasiswa Contoh", studentId: "2021000001", term: "2026-1", program: null, programCode: null });
+      await inject("six.courses", []);
+    }
     for (const [name, value] of [
       ["six.transcript", data.transcript],
       ["six.progress", data.progress],
@@ -371,6 +377,29 @@ describe("the study planner", () => {
     expect(toastText()).not.toContain("II4010 dihapus");
     await s.click("Urungkan");
     expect(saved()?.terms[0].courses.map((c) => c.code)).not.toContain("II4010");
+  });
+
+  it("a course left out stays where it was in the KRS, crossed out, in the same columns", async () => {
+    const s = await openPlan();
+    const rows = () => [...block(/^Semester 7 · sekarang/)!.querySelectorAll("li")];
+    const first = rows()[0].textContent;
+    expect(first).toMatch(/^DK4073/);
+    await s.click("Coba tanpa DK4073");
+    expect(rows()[0].textContent).toBe("DK4073Komunikasi PemasaranTidak diambil di rencana3Kembalikan");
+    expect(rows()[0].className).toBe(rows()[1].className.replace(" text-body", " text-body text-muted"));
+  });
+
+  it("this semester's block is there while its KRS is still empty: a course can be tried, and its SKS count", async () => {
+    const s = await openPlan({ emptyTerm: true });
+    const now = () => block(/^Semester 7 · sekarang/)!;
+    expect(now().textContent).toContain("KRS-mu di SIX belum berisi mata kuliah.");
+    await s.click("Coba tambah mata kuliah");
+    await search("II4021");
+    await s.click("Tambah II4021");
+    expect(now().textContent).toContain("II4021");
+    expect(now().textContent).toContain("Hanya di rencanamu · KRS-mu di SIX tidak berubah");
+    expect(now().textContent).toContain("3 / 24 SKS");
+    expect(summary()).toContain("3 semester ini");
   });
 
   it("removing the semester a course tried now was planned in: the toast counts what goes, and the course isn't lost (bug)", async () => {

@@ -193,6 +193,9 @@ function Planner({ real, record, state }: { real: StudentRecord; record: Student
   for (const rule of rules) if ((rule.id === "parity" || rule.id === "early") && !isHidden(rule, plan)) flags.set(`${rule.term}|${rule.code}`, rule);
   const whatIf = hasWhatIfs(plan, record);
   const added = new Set(record.thisTermAdded);
+  const leftOut = new Set(record.thisTermDropped.map((c) => c.code));
+  // This semester in SIX's KRS order, a course left out crossed out where it was, then the ones tried.
+  const nowCourses = [...real.thisTerm, ...record.thisTerm.filter((c) => added.has(c.code))];
   const nowLabel = record.semesterNow ? t("planner.now", { n: record.semesterNow }) : t("planner.nowPlain");
 
   return (
@@ -201,7 +204,8 @@ function Planner({ real, record, state }: { real: StudentRecord; record: Student
       <div className="grid grid-cols-1 items-start gap-6 @4xl:grid-cols-[minmax(0,1fr)_340px]">
         <div className="min-w-0 space-y-3">
           <Past record={record} steps={projection.steps.filter((s) => !s.projected && s.term !== record.term)} />
-          {record.term && (record.thisTerm.length > 0 || record.thisTermDropped.length > 0) && (
+          {/* Shown while this term's KRS is still empty too: that's when trying courses matters most. */}
+          {record.term && (
             <TermBlock
               title={nowLabel}
               subtitle={whatIf ? t("planner.nowWhatIf") : t("planner.nowSub")}
@@ -212,9 +216,19 @@ function Planner({ real, record, state }: { real: StudentRecord; record: Student
               onAdd={() => setAdding(record.term)}
               addLabel={t("planner.addWhatIf")}
             >
-              {record.thisTerm.map((course) => {
+              {nowCourses.map((course) => {
                 const mine = added.has(course.code);
                 const term = record.term!;
+                if (leftOut.has(course.code))
+                  return (
+                    <DroppedLine
+                      key={course.code}
+                      code={course.code}
+                      name={course.name}
+                      sks={course.sks}
+                      onPutBack={() => undoable((p) => putBack(p, term, course.code), t("planner.putBackDone", { code: course.code }))}
+                    />
+                  );
                 return (
                   <CourseLine
                     key={course.code}
@@ -241,15 +255,7 @@ function Planner({ real, record, state }: { real: StudentRecord; record: Student
                   />
                 );
               })}
-              {record.thisTermDropped.map((course) => (
-                <DroppedLine
-                  key={course.code}
-                  code={course.code}
-                  name={course.name}
-                  sks={course.sks}
-                  onPutBack={() => undoable((p) => putBack(p, record.term!, course.code), t("planner.putBackDone", { code: course.code }))}
-                />
-              ))}
+              {nowCourses.length === 0 && <li className="px-4 py-3 text-small text-faint">{t("planner.nowEmpty")}</li>}
             </TermBlock>
           )}
           {plan.terms.map((term) => {
@@ -703,11 +709,11 @@ function CourseLine({
   );
 }
 
-/** A KRS course the Student left out as a what-if: crossed out, with the way back. */
+/** A KRS course the Student left out as a what-if: crossed out where it was, in the columns of the rows around it, with the way back. */
 function DroppedLine({ code, name, sks, onPutBack }: { code: string; name: string; sks: number; onPutBack: () => void }) {
   const t = useT();
   return (
-    <li className="grid grid-cols-[64px_minmax(0,1fr)_auto_28px_90px] items-center gap-3 border-b border-line px-4 py-2 text-body text-muted last:border-b-0">
+    <li className="grid grid-cols-[64px_minmax(0,1fr)_auto_28px_62px_28px] items-center gap-3 border-b border-line px-4 py-2 text-body text-muted last:border-b-0">
       <span className="text-small font-semibold tabular-nums line-through">{code}</span>
       <span className="min-w-0">
         <span className="block truncate line-through">{name}</span>
@@ -715,7 +721,13 @@ function DroppedLine({ code, name, sks, onPutBack }: { code: string; name: strin
       </span>
       <span />
       <span className="text-right text-small tabular-nums line-through">{sks}</span>
-      <Button size="sm" variant="ghost" className="justify-self-end text-accent-fg" aria-label={t("planner.putBackCode", { code })} onClick={onPutBack}>
+      <Button
+        size="sm"
+        variant="ghost"
+        className="col-span-2 justify-self-end text-accent-fg"
+        aria-label={t("planner.putBackCode", { code })}
+        onClick={onPutBack}
+      >
         {t("planner.putBack")}
       </Button>
     </li>

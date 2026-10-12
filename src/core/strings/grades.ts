@@ -222,6 +222,7 @@ export const gradesStrings = {
   "planner.removeTerm": { id: "Hapus {term}", en: "Remove {term}" },
   "planner.removeCourse": { id: "Hapus {code}", en: "Remove {code}" },
   "planner.nothing": { id: "Belum ada rencana.", en: "Nothing planned yet." },
+  "planner.nowEmpty": { id: "KRS-mu di SIX belum berisi mata kuliah.", en: "Your KRS on SIX has no courses yet." },
   "planner.local": {
     id: "Rencana ini tersimpan di komputer ini. Aplikasi tidak pernah mengirim KRS.",
     en: "This plan stays on this computer. The app never sends a KRS.",
