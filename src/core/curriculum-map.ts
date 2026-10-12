@@ -24,6 +24,8 @@ export interface MapCourse {
   fix: CurriculumFix | null;
   /** SIX still lists it as to take, though the Student corrected it. */
   sixLeft: boolean;
+  /** Only in the plan: tried this semester, or a KRS course left out of it (SIX's KRS doesn't change). */
+  whatIf: "added" | "left-out" | null;
 }
 
 export interface MapSemester {
@@ -42,7 +44,7 @@ export interface PackageProgress {
   registered: boolean;
   /** Registered, but the Student said they aren't continuing it. */
   notContinuing: boolean;
-  courses: { code: string; name: string; sks: number; status: SlotStatus }[];
+  courses: { code: string; name: string; sks: number; status: SlotStatus; whatIf: MapCourse["whatIf"] }[];
 }
 
 export interface CurriculumMap {
@@ -87,6 +89,7 @@ export function curriculumMap(record: StudentRecord, plan: StudyPlan): Curriculu
       via: standing?.via ?? null,
       fix: standing?.fix ?? null,
       sixLeft: standing?.sixLeft ?? false,
+      whatIf: standing?.whatIf ?? null,
     };
   };
   // Older courses already standing in for a slot aren't listed again under "other courses".
@@ -95,10 +98,11 @@ export function curriculumMap(record: StudentRecord, plan: StudyPlan): Curriculu
   const bySemester = new Map<number, MapSemester>();
   const semester = (n: number) => bySemester.get(n) ?? bySemester.set(n, { semester: n, required: [], others: [] }).get(n)!;
   for (const slot of slots) semester(slot.semester).required.push(slotCourse(slot));
-  // This term's what-ifs, as the planner counts them: a course left out doesn't count; one added counts in this semester.
+  // This term's what-ifs, as the planner counts them and marked as only in the plan: a course left out stays listed but
+  // doesn't count (the totals come from the record); one added counts in this semester.
   const leftOut = new Set(record.thisTermDropped.map((c) => c.code));
   for (const row of rows) {
-    if (used.has(row.code) || isSlotCode(row.code) || leftOut.has(row.code)) continue;
+    if (used.has(row.code) || isSlotCode(row.code)) continue;
     used.add(row.code);
     semester(row.semester).others.push({
       code: row.code,
@@ -110,6 +114,7 @@ export function curriculumMap(record: StudentRecord, plan: StudyPlan): Curriculu
       via: null,
       fix: null,
       sixLeft: false,
+      whatIf: leftOut.has(row.code) ? "left-out" : null,
     });
   }
   const nowSemester = record.semesterNow ?? Math.max(1, ...bySemester.keys());
@@ -126,18 +131,21 @@ export function curriculumMap(record: StudentRecord, plan: StudyPlan): Curriculu
       via: null,
       fix: null,
       sixLeft: false,
+      whatIf: "added",
     });
   }
 
   const requiredLeftSks = record.requiredLeft.reduce((sum, c) => sum + c.sks, 0);
 
+  const tried = new Set(record.thisTermAdded);
+  const packageWhatIf = (code: string): MapCourse["whatIf"] => (tried.has(code) ? "added" : leftOut.has(code) ? "left-out" : null);
   const packageStatus = (code: string): SlotStatus => {
     const seen = fromTranscript(code);
     return seen ? seen.status : planned.has(code) ? "planned" : record.exempt.has(code) ? "exempt" : "left";
   };
   const spec = record.curriculum?.specializations ?? [];
   const specializations: PackageProgress[] = spec.map((p) => {
-    const courses = p.courses.map((c) => ({ code: c.code, name: c.name, sks: c.sks, status: packageStatus(c.code) }));
+    const courses = p.courses.map((c) => ({ code: c.code, name: c.name, sks: c.sks, status: packageStatus(c.code), whatIf: packageWhatIf(c.code) }));
     return {
       name: p.name,
       program: null,
@@ -164,6 +172,7 @@ export function curriculumMap(record: StudentRecord, plan: StudyPlan): Curriculu
       name: record.courses.get(code)?.name ?? code,
       sks: record.courses.get(code)?.sks ?? 0,
       status: packageStatus(code),
+      whatIf: packageWhatIf(code),
     })),
   }));
 

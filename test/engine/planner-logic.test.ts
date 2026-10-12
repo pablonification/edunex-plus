@@ -3,7 +3,7 @@
 // (Pasal 49), every rule a plan is checked against, the plan edits, the
 // catalog search and the curriculum map.
 import { beforeAll, describe, expect, it } from "vitest";
-import { curriculumMap, standIns } from "../../src/core/curriculum-map";
+import { curriculumMap, type MapCourse, standIns } from "../../src/core/curriculum-map";
 import { nameMatch } from "../../src/core/curriculum-slots";
 import { honorFor, letterForAverage, nearestLetter, predicateFor } from "../../src/core/honors";
 import type { CurriculumFix, PlannedCourse, StudyPlan } from "../../src/core/models";
@@ -482,12 +482,26 @@ describe("this semester's what-ifs, only in the plan", () => {
     expect(pruneWhatIfs(caughtUp, real).now).toBeUndefined();
   });
 
-  it("Kurikulum's other courses follow the what-ifs too", () => {
-    const p = addToNow(leaveOut(defaultPlan(record), "2026-1", "PL3032"), "2026-1", nowCourse("II4021"));
-    const map = curriculumMap(withWhatIf(record, p), livePlan(p, withWhatIf(record, p)));
-    const others = (n: number) => map.semesters.find((s) => s.semester === n)!.others.map((c) => `${c.code}:${c.status}`);
-    expect(others(5)).toEqual(["DK3071:passed", "PL3002:in-progress"]);
-    expect(others(7)).toEqual(["DK4073:in-progress", "II4021:in-progress"]);
+  it("Kurikulum follows the what-ifs too, and marks each as only in the plan", () => {
+    const p = addToNow(leaveOut(leaveOut(defaultPlan(record), "2026-1", "PL3032"), "2026-1", "II4091"), "2026-1", nowCourse("II4021"));
+    const tried = addToNow(p, "2026-1", nowCourse("II4090"));
+    const r = withWhatIf(record, tried);
+    const map = curriculumMap(r, livePlan(tried, r));
+    const mark = (c: MapCourse) => `${c.code}:${c.status}${c.whatIf ? `:${c.whatIf}` : ""}`;
+    const others = (n: number) => map.semesters.find((s) => s.semester === n)!.others.map(mark);
+    // A course left out stays listed, marked, and isn't counted (the totals come from the record).
+    expect(others(5)).toEqual(["DK3071:passed", "PL3002:in-progress", "PL3032:in-progress:left-out"]);
+    expect(others(7)).toEqual(["DK4073:in-progress", "II4021:in-progress:added"]);
+    const required = (code: string) => mark(map.semesters.flatMap((s) => s.required).find((c) => c.code === code)!);
+    expect(required("II4090")).toBe("II4090:in-progress:added");
+    expect(required("II4091")).toBe("II4091:left:left-out");
+    expect(required("II4092")).toBe("II4092:planned");
+    // SIX's own record has none of it.
+    expect(
+      curriculumMap(record, livePlan(tried, record))
+        .semesters.flatMap((s) => [...s.required, ...s.others])
+        .filter((c) => c.whatIf),
+    ).toEqual([]);
   });
 
   it("this semester's load is checked once it's changed; a course graded already can't be left out", () => {

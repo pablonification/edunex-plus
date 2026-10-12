@@ -382,10 +382,15 @@ export function withWhatIf(record: StudentRecord, plan: StudyPlan): StudentRecor
     // Not retaking after all: a grade from before stands; without one, or with an E, it's left again.
     const before = record.graded.get(c.code);
     if (before && passedGrade(before.grade)) {
-      slots.set(slot, { ...standing, status: "passed", grade: before.grade });
+      slots.set(slot, { ...standing, status: "passed", grade: before.grade, whatIf: "left-out" });
       continue;
     }
-    slots.set(slot, before ? { ...standing, status: "failed", grade: before.grade } : { ...standing, status: "left", grade: null, via: null });
+    slots.set(
+      slot,
+      before
+        ? { ...standing, status: "failed", grade: before.grade, whatIf: "left-out" }
+        : { ...standing, status: "left", grade: null, via: null, whatIf: "left-out" },
+    );
     if (!requiredLeft.some((r) => r.code === slot || r.code === c.code)) requiredLeft = [...requiredLeft, record.required.get(slot)!];
   }
   for (const c of added) {
@@ -393,7 +398,7 @@ export function withWhatIf(record: StudentRecord, plan: StudyPlan): StudentRecor
     const slot = slotOf(c.code);
     const standing = slot === undefined ? undefined : slots.get(slot);
     if (slot !== undefined && standing && ["left", "unlisted", "failed"].includes(standing.status))
-      slots.set(slot, { ...standing, status: "in-progress", grade: null, via: c.code === slot ? null : { code: c.code, name: c.name } });
+      slots.set(slot, { ...standing, status: "in-progress", grade: null, via: c.code === slot ? null : { code: c.code, name: c.name }, whatIf: "added" });
   }
 
   // Electives: SIX counts this term's in its progress; a what-if elective counts the same way.

@@ -599,7 +599,7 @@ function TermBlock({
 }
 
 /** A course's type: neutral, except "Wajib", the one that matters for graduating, and a what-if, dashed because it isn't real. */
-function Tag({ tone = "neutral", children }: { tone?: "neutral" | "required" | "what-if"; children: ReactNode }) {
+export function Tag({ tone = "neutral", children }: { tone?: "neutral" | "required" | "what-if"; children: ReactNode }) {
   return (
     <span
       className={cx(

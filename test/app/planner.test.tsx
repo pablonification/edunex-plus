@@ -483,6 +483,18 @@ describe("the curriculum map", () => {
     expect(toastText()).toContain("Koreksi II4090 dihapus");
   });
 
+  it("this semester's what-ifs count here too, each marked as only in the plan, never as if SIX had it", async () => {
+    const s = await openPlan();
+    await s.click("Coba tambah mata kuliah");
+    await s.click("Tambah II4090");
+    await s.click("Coba tanpa II4091");
+    await tab("Kurikulum");
+    expect(s.text()).toContain("Termasuk perubahan semester ini yang hanya ada di rencanamu.");
+    expect(row("II4090")).toBe("II4090Kerja PraktikHanya di rencana2");
+    expect(row("II4091")).toBe("II4091Proposal Tugas AkhirTidak diambil di rencana2");
+    expect(s.text()).not.toContain("Semester ini2");
+  });
+
   it("corrections are kept on this computer: there again after a restart", async () => {
     const s = await openPlan();
     await s.engineDoes(() => s.engine.setLocal("local.curriculum", { slots: { WI2002: { kind: "counted-as", code: "KU1102", at: 1 } } }));

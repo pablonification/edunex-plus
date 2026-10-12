@@ -398,6 +398,10 @@ export const gradesStrings = {
         "{count} courses aren't on your SIX record, so they aren't counted as left. If your program says one is yours, correct it from the ⋯ menu on its row.",
     },
   },
+  "curriculum.withWhatIfs": {
+    id: "Termasuk perubahan semester ini yang hanya ada di rencanamu.",
+    en: "Includes this semester's changes that are only in your plan.",
+  },
   "curriculum.startedOn": {
     id: "Kamu mulai dengan Kurikulum {from}; SIX menaruh mata kuliahmu di Kurikulum {to}.",
     en: "You started on Kurikulum {from}; SIX places your courses in Kurikulum {to}.",
