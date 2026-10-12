@@ -609,6 +609,8 @@ function NeedsYou({ needs, courses }: { needs: Need[]; courses: readonly TermCou
   const { entries } = useSnoozes();
   const { shown, snoozed } = useMemo(() => partitionSnoozed(needs, snoozeKey, entries, now), [needs, entries, now]);
   const [listOpen, setListOpen] = useState(false);
+  // Closed once nothing is put off, so the next snooze doesn't find the list open.
+  if (listOpen && !snoozed.length) setListOpen(false);
   const snoozedLine = snoozed.length > 0 && <SnoozedLine count={snoozed.length} open={listOpen} onToggle={() => setListOpen(!listOpen)} />;
   return (
     <Section id="home-needs" title={t("home.needs")} count={loading || shown.length === 0 ? undefined : shown.length} className="mt-0">

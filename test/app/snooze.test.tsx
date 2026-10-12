@@ -136,6 +136,16 @@ describe("putting off what needs you on Beranda", () => {
     expect(heading()).toBe("Perlu perhatianmu 6");
   });
 
+  it("the list of what's put off closes once it's empty, so the next snooze doesn't find it open", async () => {
+    const s = await open();
+    await snooze("UTS Komunikasi Pemasaran", "Besok pagi");
+    await s.click("Tampilkan");
+    await s.click("Ingatkan sekarang: UTS Komunikasi Pemasaran");
+    await snooze("KU5014 tak bisa lagi capai 80%", "Besok pagi");
+    expect(document.querySelector('ul[aria-label="Yang ditunda"]')).toBeNull();
+    expect(needs()?.querySelector("[data-snoozed]")?.textContent).toBe("Tampilkan");
+  });
+
   it("with everything put off, says so honestly: not 'nothing due'", async () => {
     await open();
     for (let left = 6; left > 0; left--) {
