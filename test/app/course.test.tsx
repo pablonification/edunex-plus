@@ -590,7 +590,8 @@ describe("meetings", () => {
     await s.click("Masuk ke SIX");
     await s.wait();
     expect(s.store.status("six").state).toBe("live");
-    expect(s.text()).toContain("Kehadiran resmi di SIX: hadir 6 dari 7");
+    expect(s.text()).toContain("6/7 · 85%");
+    expect(s.text()).toContain("SIX hanya memberi jumlahnya.");
   });
 
   it("a meeting has one number: Edunex's, never a second count of the app's", async () => {
@@ -716,7 +717,7 @@ describe("grades", () => {
     expect(s.text()).not.toContain("Posisi nilaimu");
     expect(s.text()).not.toContain("Kembali ke contoh");
     await type("Nilai UTS", "80");
-    const reset = [...panel.querySelectorAll("tfoot button")].find((b) => b.textContent === "Kembali ke contoh")!;
+    const reset = [...panel.querySelectorAll<HTMLButtonElement>("tfoot button")].find((b) => b.textContent === "Kembali ke contoh")!;
     expect(reset).toBeDefined();
     await s.click(reset);
     expect(s.text()).toContain("Ini contoh bobot, bukan bobot PL3002.");
@@ -813,6 +814,6 @@ describe("in English", () => {
     await tab(/^Meetings/);
     expect(screen.text()).toMatch(/Next|Not recorded in Edunex|Present/);
     await tab(/^Grades/);
-    expect(screen.text()).toContain("Where your grade stands");
+    expect(screen.text()).toContain("These are example weights, not II4091's.");
   });
 });

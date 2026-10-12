@@ -213,20 +213,12 @@ function Calculator({ page, onOpenModules }: { page: CoursePage; onOpenModules?:
   else answer = t("grade.answer.need", { letter: aim, need: need.need, parts: listed });
 
   return (
-    <Card className="overflow-hidden">
-      <div className="flex items-start justify-between gap-4 px-5 pt-4">
-        <h2 className="text-title font-semibold">{t("grade.standing")}</h2>
-        {!isExample && (
-          <Button variant="ghost" size="sm" onClick={() => save(null)}>
-            {t("grade.reset")}
-          </Button>
-        )}
-      </div>
-
+    // On the page, not in a box of its own: the warning, the answer, then the table it comes from.
+    <div className="min-w-0">
       {isExample && (
         <Notice
           tone="warning"
-          className="mx-5 mt-3"
+          className="mb-5"
           title={t("grade.exampleNotice", { code })}
           action={
             contractFile && onOpenModules ? (
@@ -240,7 +232,7 @@ function Calculator({ page, onOpenModules }: { page: CoursePage; onOpenModules?:
         </Notice>
       )}
 
-      <div className="px-5 pt-3 pb-4" aria-live="polite">
+      <div aria-live="polite">
         {weightsOk && result.final === null && (
           <div className="mb-3 flex items-center gap-3">
             <span className="text-small font-medium text-muted">{t("grade.target")}</span>
@@ -276,7 +268,7 @@ function Calculator({ page, onOpenModules }: { page: CoursePage; onOpenModules?:
         )}
       </div>
 
-      <div className="border-t border-line px-5 py-3">
+      <div className="mt-5 border-t border-line pt-3">
         <table className="w-full text-body">
           <thead>
             <tr className="text-left text-caption text-faint">
@@ -339,16 +331,23 @@ function Calculator({ page, onOpenModules }: { page: CoursePage; onOpenModules?:
           <tfoot>
             <tr className="border-t border-line">
               <td className="py-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="-ml-2"
-                  icon={<Icons.Plus className="size-3.5" />}
-                  disabled={contract.parts.length >= 20}
-                  onClick={() => save({ ...contract, parts: [...contract.parts, { id: `p${Date.now().toString(36)}`, name: "", weight: 0, score: null }] })}
-                >
-                  {t("grade.add")}
-                </Button>
+                {/* What changes the table, at its foot: a part more, or the example weights back. */}
+                <span className="-ml-2 flex flex-wrap items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    icon={<Icons.Plus className="size-3.5" />}
+                    disabled={contract.parts.length >= 20}
+                    onClick={() => save({ ...contract, parts: [...contract.parts, { id: `p${Date.now().toString(36)}`, name: "", weight: 0, score: null }] })}
+                  >
+                    {t("grade.add")}
+                  </Button>
+                  {!isExample && (
+                    <Button variant="ghost" size="sm" onClick={() => save(null)}>
+                      {t("grade.reset")}
+                    </Button>
+                  )}
+                </span>
               </td>
               <td className={cx("py-2 pr-4 text-right font-semibold tabular-nums", fix || sumOk ? "text-muted" : "text-warning-fg")}>
                 {f.number(result.totalWeight, 0)}%
@@ -380,6 +379,6 @@ function Calculator({ page, onOpenModules }: { page: CoursePage; onOpenModules?:
           </div>
         </fieldset>
       </div>
-    </Card>
+    </div>
   );
 }

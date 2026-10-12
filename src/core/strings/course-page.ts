@@ -95,7 +95,6 @@ export const coursePageStrings = {
   // Grades and the course-contract calculator
   "grade.edunex": { id: "Nilai di Edunex", en: "Grade on Edunex" },
   "grade.unpublished": { id: "Buku nilai Edunex belum dirilis dosen", en: "The lecturer hasn't published Edunex's gradebook" },
-  "grade.standing": { id: "Posisi nilaimu", en: "Where your grade stands" },
   "grade.example": { id: "Contoh bobot (kontrak kuliah ITB)", en: "Example weights (an ITB course contract)" },
   "grade.yours": { id: "Bobot dari kontrak kuliahmu", en: "Weights from your course contract" },
   "grade.part": { id: "Komponen", en: "Part" },
