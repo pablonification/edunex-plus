@@ -171,7 +171,7 @@ export function ModulesTab({ page, module }: { page: CoursePage; module?: number
                     >
                       {entry.title}
                       {/* Heard with the title: two "Pengantar" (or two same-named modules) are told apart without the heading above. */}
-                      {entry.parent && <span className="sr-only">{` · ${t("course.jointClass")}`}</span>}
+                      {entry.parent && <span className="sr-only">{`, ${t("course.jointClass")}`}</span>}
                     </span>
                     {!empty && countFacts(t, entry).length > 0 && (
                       <Meta truncate className="mt-0.5 text-caption text-faint">

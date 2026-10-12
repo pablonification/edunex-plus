@@ -102,7 +102,7 @@ describe("the course page", () => {
 describe("materials", () => {
   it("a PDF downloads through the browser's download manager", async () => {
     const s = await openCourse("PL3032");
-    expect(s.text()).toContain("PDF·1,9 MB");
+    expect(s.text()).toContain("PDF · 1,9 MB");
     await s.click("Unduh: K1. SAP Ekonomi Infrastruktur dan Transportasi");
     expect(s.calls.at(-1)).toEqual({ name: "files.download", input: { url: BLOB, name: "K1. SAP Ekonomi Infrastruktur dan Transportasi.pdf" } });
     expect(s.text()).toContain("Tersimpan di Unduhan");
@@ -124,13 +124,13 @@ describe("materials", () => {
     const named = [...document.querySelectorAll("nav[aria-label='Daftar isi'] button")]
       .map((b) => b.textContent ?? "")
       .filter((n) => n.startsWith("Pengantar"));
-    expect(named).toEqual([expect.not.stringContaining("Kelas gabungan"), expect.stringContaining("Pengantar · Kelas gabungan")]);
+    expect(named).toEqual([expect.not.stringContaining("Kelas gabungan"), expect.stringContaining("Pengantar, Kelas gabungan")]);
     await entry("Pengantar", { joint: true });
     expect(document.querySelector("main section header")?.textContent).toContain("Kelas gabungan");
     // The joint class's own copy of the schedule, the newer one with meeting 03, and its online-class links.
     expect(materials().filter((m) => m.includes("Jadwal Kuliah TA & Mekanisme Pelaksanaan"))).toHaveLength(1);
     expect(materials()[0]).toContain("Pertemuan 03");
-    expect(s.text()).toContain("Kelas online·Microsoft Teams");
+    expect(s.text()).toContain("Kelas online · Microsoft Teams");
     await s.click("Gabung: Link Teams Pertemuan 03: Jumat, 9 Oktober 2026");
     expect(s.calls.at(-1)).toEqual({ name: "shell.openExternal", input: { url: "https://teams.microsoft.com/meet/000000000000?p=fixture" } });
   });
@@ -279,9 +279,9 @@ describe("materials", () => {
     ])
       expect(screen.has(name)).toBe(true);
     for (const name of ["Halaman", "Paket SCORM", "Kuis interaktif", "CloudX", "Baru"]) expect(screen.has(`Buka di Edunex: ${name}`)).toBe(true);
-    expect(screen.text()).toContain("Kelas online·Google Meet");
-    expect(screen.text()).toContain("Tautan·example.org");
-    expect(screen.text()).toContain("Video·youtube.com");
+    expect(screen.text()).toContain("Kelas online · Google Meet");
+    expect(screen.text()).toContain("Tautan · example.org");
+    expect(screen.text()).toContain("Video · youtube.com");
     // A whiteboard is a picture on the page, as on Edunex.
     const board = [...document.querySelectorAll("main section ul > li")].find((li) => li.textContent?.includes("Papan tulis"))!;
     expect(board.querySelector("button")).toBeNull();
