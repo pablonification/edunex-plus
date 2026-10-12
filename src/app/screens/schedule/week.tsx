@@ -197,15 +197,15 @@ function ClassBlock({ item, minutes, narrow }: { item: ScheduledClass; minutes: 
     <button
       type="button"
       aria-label={label}
-      className={cx(BLOCK, "bg-fg py-1 pr-1.5 pl-2.5 text-canvas shadow-raised hover:shadow-lift", past && "opacity-60")}
+      className={cx(BLOCK, "border border-edge bg-raised py-1 pr-1.5 pl-2.5 text-fg shadow-raised hover:border-track hover:shadow-lift", past && "opacity-60")}
     >
       <Stripe color={world.color(code)} />
-      <Meta truncate className="font-bold tracking-[0.01em]">
+      <Meta truncate className="font-bold">
         {session.activity}
         {code}
       </Meta>
       {lines >= 2 && <span className="text-title leading-[18px] font-semibold break-words">{room}</span>}
-      {lines >= 3 && <span className="tabular-nums opacity-75">{time}</span>}
+      {lines >= 3 && <span className="text-muted tabular-nums">{time}</span>}
     </button>
   ) : (
     <button
@@ -222,20 +222,25 @@ function ClassBlock({ item, minutes, narrow }: { item: ScheduledClass; minutes: 
     >
       <Stripe color={world.color(code)} faded={uncertain !== null} />
       <ClashTint item={item} />
-      <span className={cx("relative flex items-center gap-1 font-semibold tabular-nums", !uncertain && "text-fg")}>
-        <span className="truncate">{time}</span>
+      <span className={cx(FITS, "font-semibold tabular-nums", !uncertain && "text-fg")}>
+        <span className="min-w-0 truncate">{time}</span>
         {live && <LiveDot className="ml-auto shrink-0" />}
-        {uncertain && !narrow && (
-          <span className="ml-auto shrink-0 rounded-[4px] bg-warning-bg px-1 text-micro font-semibold text-warning-fg">{t("schedule.uncertain.short")}</span>
-        )}
+        {uncertain && !narrow && <Uncertain />}
         {!live && !narrow && lines < 4 && <MarkIcons item={item} />}
       </span>
-      {lines >= 2 && (
-        <span className="relative truncate">
-          <span className={cx("font-semibold tabular-nums", !uncertain && "text-fg")}>{code}</span>
-          {!narrow && <span className="text-muted"> {world.name(code, session.courseName)}</span>}
-        </span>
-      )}
+      {lines >= 2 &&
+        (narrow ? (
+          // Beside another class the time fills the line; the course line holds only the code, so the word goes there.
+          <span className={FITS}>
+            <span className={cx("min-w-0 truncate font-semibold tabular-nums", !uncertain && "text-fg")}>{code}</span>
+            {uncertain && <Uncertain />}
+          </span>
+        ) : (
+          <span className="relative truncate">
+            <span className={cx("font-semibold tabular-nums", !uncertain && "text-fg")}>{code}</span>
+            <span className="text-muted"> {world.name(code, session.courseName)}</span>
+          </span>
+        ))}
       {/* A narrow block has no room for "Bentrok PL3032": the icon and the other course's code say which class clashes, before the room. */}
       {clashLine && lines >= 3 && (
         <span className="relative flex min-w-0 items-center gap-1 font-semibold text-warning-fg tabular-nums">
@@ -259,6 +264,15 @@ function ClassBlock({ item, minutes, narrow }: { item: ScheduledClass; minutes: 
   );
 }
 
+/** A line whose first fact always wins: what doesn't fit beside it wraps onto a second line, out of sight, never cut to "Bel…". */
+const FITS = "relative flex max-h-3.75 flex-wrap items-center gap-x-1 overflow-hidden";
+
+/** A lecture that may not run in an exam week or a holiday: said once, quietly (the hatch, the band and its details say why). */
+function Uncertain() {
+  const t = useT();
+  return <span className="ml-auto shrink-0 text-micro font-medium whitespace-nowrap text-muted">{t("schedule.uncertain.short")}</span>;
+}
+
 /** The minutes a class shares with another, tinted amber behind its text (a choice to make, nothing lost yet). */
 function ClashTint({ item }: { item: ScheduledClass }) {
   const { session } = item;
@@ -269,7 +283,7 @@ function ClashTint({ item }: { item: ScheduledClass }) {
         <span
           key={o.code}
           aria-hidden
-          className="absolute inset-x-0 border-y border-warning-fg/25 bg-warning-bg"
+          className="absolute inset-x-0 bg-warning-bg"
           style={{ top: `${((o.from - session.start) / length) * 100}%`, height: `${((o.to - o.from) / length) * 100}%` }}
         />
       ))}
@@ -285,7 +299,6 @@ function Stripe({ color, faded = false }: { color: string; faded?: boolean }) {
 function MarkWords({ item, max, narrow }: { item: ScheduledClass; max: number; narrow: boolean }) {
   const t = useT();
   const words: { text: string; tone: string }[] = [];
-  if (item.uncertain && narrow) words.push({ text: t("schedule.uncertain.short"), tone: "text-warning-fg" });
   if (item.moved?.kinds.some((k) => k !== "room")) {
     const usual = `${clockOf(item.moved.usual.start)}–${clockOf(item.moved.usual.end)}`;
     words.push({ text: t(narrow ? "schedule.moved.short" : "schedule.moved.time", { usual }), tone: "text-warning-fg" });
@@ -324,9 +337,17 @@ function MeetingBlock({ meeting, minutes, notInSix }: { meeting: OutsideMeeting 
   const lines = linesFor(minutes);
   // "Pertemuan" alone says nothing: a meeting Edunex didn't number names its course, like a class from SIX.
   const what = meeting.number !== null ? t("schedule.meeting", { n: meeting.number }) : world.name(meeting.code);
-  const where = meeting.online ? t("schedule.online") : null;
-  const label = factsLabel(meeting.code, what, time, where, notInSix ? t("schedule.notInSix") : t("schedule.fromEdunex"));
+  const label = factsLabel(
+    meeting.code,
+    what,
+    time,
+    meeting.online ? t("schedule.online") : null,
+    notInSix ? t("schedule.notInSix") : t("schedule.fromEdunex"),
+  );
   const past = meeting.end <= world.now;
+  // The Gabung button says it's online; the line it would cover goes to it.
+  const joinable = Boolean(meeting.link) && lines >= 2;
+  const where = meeting.online && !joinable ? t("schedule.online") : null;
   const trigger = (
     <button
       type="button"
@@ -335,7 +356,7 @@ function MeetingBlock({ meeting, minutes, notInSix }: { meeting: OutsideMeeting 
     >
       <span className="flex items-center gap-1 font-semibold text-fg tabular-nums">
         <span className="truncate">{time}</span>
-        {meeting.online && <Icons.Video className="ml-auto size-3.5 shrink-0 text-muted" />}
+        {meeting.online && !joinable && <Icons.Video className="ml-auto size-3.5 shrink-0 text-muted" />}
       </span>
       {lines >= 2 && (
         <span className="truncate">
@@ -344,12 +365,8 @@ function MeetingBlock({ meeting, minutes, notInSix }: { meeting: OutsideMeeting 
         </span>
       )}
       {lines >= 3 && where && <span className="truncate text-muted">{where}</span>}
-      {/* Not on SIX's timetable: easy to miss, so amber, as on Beranda and the course page. */}
-      {lines >= (where ? 4 : 3) && (
-        <span className={cx("truncate", notInSix ? "font-semibold text-warning-fg" : "text-muted")}>
-          {notInSix ? t("schedule.notInSix") : t("schedule.fromEdunex")}
-        </span>
-      )}
+      {/* Not on SIX's timetable: easy to miss, so amber, as on Beranda and the course page. Without SIX everything is from Edunex: its name and details say so. */}
+      {notInSix && lines >= (where ? 4 : 3) && <span className="truncate font-semibold text-warning-fg">{t("schedule.notInSix")}</span>}
     </button>
   );
   return (
@@ -357,7 +374,7 @@ function MeetingBlock({ meeting, minutes, notInSix }: { meeting: OutsideMeeting 
       <Popover trigger={trigger} align="start" label={label} className="w-[340px] p-4">
         <MeetingDetails meeting={meeting} notInSix={notInSix} />
       </Popover>
-      {meeting.link && lines >= 2 && (
+      {joinable && (
         <button
           type="button"
           onClick={() => open(meeting.link!)}
