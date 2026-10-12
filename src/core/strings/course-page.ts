@@ -106,6 +106,7 @@ export const coursePageStrings = {
   "grade.remove": { id: "Hapus {part}", en: "Remove {part}" },
   "grade.add": { id: "Tambah komponen", en: "Add part" },
   "grade.reset": { id: "Kembali ke contoh", en: "Back to the example" },
+  "grade.resetDone": { id: "Bobot dan nilai yang kamu isi dihapus", en: "The weights and scores you entered were cleared" },
   "grade.fromSix": { id: "dari SIX", en: "from SIX" },
   "grade.cutoffs": { id: "Batas huruf", en: "Letter cut-offs" },
   "grade.cutoffOf": { id: "Batas {letter}", en: "{letter} cut-off" },

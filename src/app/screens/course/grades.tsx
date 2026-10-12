@@ -16,6 +16,7 @@ import { cx } from "../../ui/cx";
 import { Card } from "../../ui/display";
 import { Icons } from "../../ui/icons";
 import { Notice } from "../../ui/layout";
+import { dismissToast, toast } from "../../ui/overlays";
 import type { CoursePage } from "./data";
 
 export function GradesTab({ page, onOpenModules }: { page: CoursePage; onOpenModules?: () => void }) {
@@ -185,12 +186,31 @@ function Calculator({ page, onOpenModules }: { page: CoursePage; onOpenModules?:
   // The course contract, when the lecturer put it in a module ("Kontrak Belajar").
   const contractFile = (page.materials ?? []).some((m) => /kontrak/i.test(m.title)) || (page.outline?.modules ?? []).some((m) => /kontrak/i.test(m.title));
 
+  const addPart = useRef<HTMLButtonElement>(null);
+  // "Kembali ke contoh" can be taken back until the table changes again or the tab closes.
+  const undo = useRef<number | null>(null);
+  useEffect(
+    () => () => {
+      if (undo.current !== null) dismissToast(undo.current);
+    },
+    [],
+  );
+
   const save = (next: CourseContract | null) => {
+    if (undo.current !== null) dismissToast(undo.current);
+    undo.current = null;
     setDraft(next);
     const all = { ...(saved ?? {}) };
     if (next) all[code] = next;
     else delete all[code];
     void bridge.invoke("local.set", { name: "local.courseWeights", value: all }).catch(() => undefined);
+  };
+  const reset = () => {
+    const before = contract;
+    // The button goes with the Student's weights: focus stays at the table's foot, on the one beside it.
+    addPart.current?.focus();
+    save(null);
+    undo.current = toast(t("grade.resetDone"), "neutral", { label: t("action.undo"), onClick: () => save(before) });
   };
   const setPart = (id: string, patch: Partial<ContractPart>) => save({ ...contract, parts: contract.parts.map((p) => (p.id === id ? { ...p, ...patch } : p)) });
   const nameOf = (part: ContractPart) =>
@@ -334,6 +354,7 @@ function Calculator({ page, onOpenModules }: { page: CoursePage; onOpenModules?:
                 {/* What changes the table, at its foot: a part more, or the example weights back. */}
                 <span className="-ml-2 flex flex-wrap items-center gap-1">
                   <Button
+                    ref={addPart}
                     variant="ghost"
                     size="sm"
                     icon={<Icons.Plus className="size-3.5" />}
@@ -343,7 +364,7 @@ function Calculator({ page, onOpenModules }: { page: CoursePage; onOpenModules?:
                     {t("grade.add")}
                   </Button>
                   {!isExample && (
-                    <Button variant="ghost" size="sm" onClick={() => save(null)}>
+                    <Button variant="ghost" size="sm" onClick={reset}>
                       {t("grade.reset")}
                     </Button>
                   )}

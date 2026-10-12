@@ -721,8 +721,21 @@ describe("grades", () => {
     await type("Nilai UTS", "80");
     const reset = [...panel.querySelectorAll<HTMLButtonElement>("tfoot button")].find((b) => b.textContent === "Kembali ke contoh")!;
     expect(reset).toBeDefined();
+    reset.focus();
     await s.click(reset);
     expect(s.text()).toContain("Ini contoh bobot, bukan bobot PL3002.");
+    // The pressed button is gone: focus stays at the table's foot, on the one beside it.
+    expect(document.activeElement?.textContent).toBe("Tambah komponen");
+    // Right beside "Tambah komponen", a slip can be taken back.
+    expect(s.text()).toContain("Bobot dan nilai yang kamu isi dihapus");
+    await s.click("Urungkan");
+    expect(document.querySelector<HTMLInputElement>("input[aria-label='Nilai UTS']")!.value).toBe("80");
+    expect(s.text()).not.toContain("Ini contoh bobot");
+    // Once the table changes again, the reset can't be taken back any more.
+    await s.click(panel.querySelector<HTMLButtonElement>("tfoot button:nth-child(2)")!);
+    expect(s.has("Urungkan")).toBe(true);
+    await type("Nilai UTS", "70");
+    expect(s.has("Urungkan")).toBe(false);
   });
 
   it("answers for the letter the Student aims for", async () => {
