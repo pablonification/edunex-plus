@@ -49,7 +49,7 @@ describe("putting off what needs you on Beranda", () => {
   it("offers moments that fit, hides the row, says when it's back, and Undo brings it back", async () => {
     const s = await open();
     expect(heading()).toBe("Perlu perhatianmu 6");
-    expect(titles()).toContain("UTS Komunikasi PemasaranDK4073 · Kam, 15 Okt, 11:00–12:59 · TVST CSIX dan Edunex beda tanggaldalam 3 hari");
+    expect(titles()).toContain("UTS Komunikasi PemasaranDK4073 · Kam, 15 Okt, 11:00–12:59 · TVST CTake-home tenggat Kam 22 Oktdalam 3 hari");
 
     await s.click("Ingatkan nanti: UTS Komunikasi Pemasaran");
     expect(menuItems()).toEqual([
@@ -75,11 +75,12 @@ describe("putting off what needs you on Beranda", () => {
 
   it("the row's control sits beside its button, not inside it, and hands focus to the next row", async () => {
     const s = await open();
-    const control = s.button("Ingatkan nanti: UTS Komunikasi Pemasaran");
+    const control = s.button("Ingatkan nanti: DK4073: tidak boleh absen lagi");
     expect(control.closest("li")?.querySelector(":scope > button")?.contains(control)).toBe(false);
     expect(control.getAttribute("aria-haspopup")).toBe("menu");
     const next = control.closest("li")?.nextElementSibling?.querySelector("button");
-    await snooze("UTS Komunikasi Pemasaran", "Besok pagi");
+    expect(next).toBeTruthy();
+    await snooze("DK4073: tidak boleh absen lagi", "Besok pagi");
     await frame();
     expect(document.activeElement).toBe(next);
   });
@@ -122,21 +123,22 @@ describe("putting off what needs you on Beranda", () => {
     expect(needs()?.textContent).toContain("2 ditunda");
     await s.click("Tampilkan");
     const list = [...document.querySelectorAll('ul[aria-label="Yang ditunda"] li')].map((li) => li.textContent);
+    // In Beranda's order: the attendance that's out of reach before an exam three days away.
     expect(list).toEqual([
-      "UTS Komunikasi PemasaranKembali Besok, 07:00Ingatkan sekarang",
       "KU5014 tak bisa lagi capai 80%Sampai ada perubahan, paling lambat Sen, 26 Okt, 07:00Ingatkan sekarang",
+      "UTS Komunikasi PemasaranKembali Besok, 07:00Ingatkan sekarang",
     ]);
-    await press(s.button("Ingatkan sekarang: UTS Komunikasi Pemasaran"));
-    expect(titles().some((t) => t.startsWith("UTS Komunikasi Pemasaran"))).toBe(true);
+    await press(s.button("Ingatkan sekarang: KU5014 tak bisa lagi capai 80%"));
+    expect(titles().some((t) => t.startsWith("KU5014 tak bisa lagi capai 80%"))).toBe(true);
     expect(needs()?.textContent).toContain("1 ditunda");
     // Its row left with the button: focus goes on to the next thing put off…
     await frame();
-    expect(document.activeElement).toBe(s.button("Ingatkan sekarang: KU5014 tak bisa lagi capai 80%"));
+    expect(document.activeElement).toBe(s.button("Ingatkan sekarang: UTS Komunikasi Pemasaran"));
 
     // …and with the last one, to the item itself, back in the list.
-    await press(s.button("Ingatkan sekarang: KU5014 tak bisa lagi capai 80%"));
+    await press(s.button("Ingatkan sekarang: UTS Komunikasi Pemasaran"));
     await frame();
-    expect(document.activeElement?.closest("li")?.textContent).toMatch(/^KU5014 tak bisa lagi capai 80%/);
+    expect(document.activeElement?.closest("li")?.textContent).toMatch(/^UTS Komunikasi Pemasaran/);
     expect(needs()?.contains(document.activeElement)).toBe(true);
   });
 
