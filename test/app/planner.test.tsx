@@ -238,7 +238,7 @@ describe("the study planner", () => {
 
   it("'Plan this minor': its courses and where each stands, what planning it changes, and stopping again", async () => {
     const s = await openPlan();
-    await s.click("Minor Branding Berbasis Digital: lihat mata kuliahnya");
+    await s.click(/^Branding Berbasis Digital/);
     const dialog = () => document.querySelector("[role=dialog]")!.textContent!;
     expect(dialog()).toContain("Minor Branding Berbasis Digital");
     expect(dialog()).toContain("3 dari 12 SKS0 lulus · 3 semester ini · 0 direncanakan");
@@ -259,7 +259,7 @@ describe("the study planner", () => {
     expect(saved()?.minor).toBe("Desain Komunikasi Visual · Branding Berbasis Digital");
     await s.key("Escape");
     // The card says it's planned; the Add dialog offers its courses.
-    expect(s.button("Minor Branding Berbasis Digital: lihat mata kuliahnya").textContent).toContain("Direncanakan");
+    expect(s.button(/^Branding Berbasis Digital/).textContent).toContain("Direncanakan");
     await s.click(addIn(/^Semester 8/));
     expect(document.querySelector("[role=dialog]")!.textContent).toContain("Minor Branding Berbasis Digital");
   });
@@ -553,7 +553,13 @@ describe("the curriculum map", () => {
 
 describe("the keyboard: focus stays where the Student is", () => {
   const tick = () => act(() => new Promise<void>((resolve) => setTimeout(resolve, 10)));
-  const focused = () => document.activeElement?.getAttribute("aria-label") ?? document.activeElement?.tagName;
+  const focused = () => document.activeElement?.getAttribute("aria-label") ?? document.activeElement?.textContent ?? document.activeElement?.tagName;
+  const press = async (name: string | RegExp) => {
+    const button = screen!.button(name);
+    button.focus();
+    await screen!.click(button);
+    await tick();
+  };
   /** Opens a menu from the keyboard and picks an item, as Enter on the focused item does. */
   async function choose(menu: string, item: RegExp) {
     const trigger = screen!.button(menu);
@@ -594,5 +600,38 @@ describe("the keyboard: focus stays where the Student is", () => {
     await choose("Koreksi II4092", /^Tidak ada di kurikulumku/);
     await tick();
     expect(focused()).toBe("Sisa saja");
+  });
+
+  it("'Try without', 'Put back' and removing a tried course: focus moves to what took the control's place", async () => {
+    const s = await openPlan();
+    await press("Coba tanpa PL3032");
+    expect(focused()).toBe("Kembalikan PL3032");
+    await press("Kembalikan PL3032");
+    expect(focused()).toBe("Coba tanpa PL3032");
+    await s.click("Coba tambah mata kuliah");
+    await s.click("Tambah II4090");
+    await press("Hapus II4090");
+    expect(focused()).toBe("Coba tambah mata kuliah");
+  });
+
+  it("hiding a warning moves focus to the hidden list; showing it again, back to the warning", async () => {
+    const s = await openPlan();
+    await choose("Sembunyikan peringatan: II4090 Kerja Praktik", /^Prodiku akan menambahkannya/);
+    expect(focused()).toBe("Disembunyikan (1) · Tampilkan");
+    await s.click("Disembunyikan (1) · Tampilkan");
+    await press("Tampilkan lagi: II4090 Kerja Praktik");
+    expect(focused()).toBe("Sembunyikan peringatan: II4090 Kerja Praktik");
+  });
+
+  it("adding a minor's course from its panel moves focus to the next course to add", async () => {
+    const s = await openPlan();
+    await s.click(/^Branding Berbasis Digital/);
+    const adds = () =>
+      [...document.querySelectorAll("[role=dialog] button")].map((b) => b.getAttribute("aria-label") ?? "").filter((l) => l.startsWith("Tambah"));
+    const [first, second] = adds();
+    await press(first);
+    expect(focused()).toBe(second);
+    for (const label of adds()) await press(label);
+    expect(focused()).toBe("Rencanakan minor ini");
   });
 });

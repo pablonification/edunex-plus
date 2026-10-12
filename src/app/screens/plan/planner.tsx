@@ -65,6 +65,7 @@ import {
   untried,
   withWhatIf,
 } from "../../../core/planner";
+import { useFocusNext } from "../../hooks";
 import { useFormat, useLang, useT } from "../../i18n";
 import { type PlanState, usePlan, useStudentRecord } from "../../study-plan";
 import { Button, IconButton } from "../../ui/controls";
@@ -173,6 +174,7 @@ function Planner({ real, record, state }: { real: StudentRecord; record: Student
   const [adding, setAdding] = useState<string | null>(null);
   const [confirmReset, setConfirmReset] = useState(false);
   const undoable = useUndoable(state);
+  const focusNext = useFocusNext();
   const rules = checkPlan(record, plan, projection);
   const minor = record.minors.find((m) => m.key === plan.minor) ?? null;
   const spec = activeSpecialization(record, plan);
@@ -215,6 +217,7 @@ function Planner({ real, record, state }: { real: StudentRecord; record: Student
               step={stepOf.get(record.term)}
               onAdd={() => setAdding(record.term)}
               addLabel={t("planner.addWhatIf")}
+              addKey="now-add"
             >
               {nowCourses.map((course) => {
                 const mine = added.has(course.code);
@@ -226,7 +229,10 @@ function Planner({ real, record, state }: { real: StudentRecord; record: Student
                       code={course.code}
                       name={course.name}
                       sks={course.sks}
-                      onPutBack={() => undoable((p) => putBack(p, term, course.code), t("planner.putBackDone", { code: course.code }))}
+                      onPutBack={() => {
+                        undoable((p) => putBack(p, term, course.code), t("planner.putBackDone", { code: course.code }));
+                        focusNext(`now-remove-${course.code}`);
+                      }}
                     />
                   );
                 return (
@@ -244,14 +250,18 @@ function Planner({ real, record, state }: { real: StudentRecord; record: Student
                     // A course SIX already graded stays: there's nothing to try without it.
                     onRemove={
                       course.grade === null
-                        ? () =>
+                        ? () => {
                             undoable(
                               (p) => (mine ? removeTried(p, term, course.code) : leaveOut(p, term, course.code)),
                               t(mine ? "planner.removedNow" : "planner.leftOut", { code: course.code }),
-                            )
+                            );
+                            // The row goes (or turns into its crossed-out self): focus follows to what's there now.
+                            focusNext(mine ? "now-add" : `now-putback-${course.code}`);
+                          }
                         : undefined
                     }
                     removeLabel={t(mine ? "planner.removeCourse" : "planner.leaveOut", { code: course.code })}
+                    removeKey={`now-remove-${course.code}`}
                   />
                 );
               })}
@@ -533,6 +543,7 @@ function TermBlock({
   step,
   onAdd,
   addLabel,
+  addKey,
   onRemove,
   removeLabel,
   children,
@@ -546,6 +557,8 @@ function TermBlock({
   step: ProjectedStep | undefined;
   onAdd?: () => void;
   addLabel?: string;
+  /** Marks the add button for `useFocusNext`. */
+  addKey?: string;
   onRemove?: () => void;
   removeLabel?: string;
   children: ReactNode;
@@ -593,6 +606,7 @@ function TermBlock({
           <button
             type="button"
             onClick={onAdd}
+            data-focus={addKey}
             className="focus-ring flex w-full items-center gap-2 border-t border-line px-4 py-2.5 text-left text-small font-semibold text-accent-fg transition-colors duration-150 hover:bg-hover"
           >
             <Icons.Plus className="size-3.5" />
@@ -652,6 +666,7 @@ function CourseLine({
   onGrade,
   onRemove,
   removeLabel,
+  removeKey,
 }: {
   code: string;
   name: string;
@@ -664,6 +679,8 @@ function CourseLine({
   onGrade: (grade: LetterGrade) => void;
   onRemove?: () => void;
   removeLabel?: string;
+  /** Marks the remove button for `useFocusNext`. */
+  removeKey?: string;
 }) {
   const t = useT();
   return (
@@ -698,7 +715,7 @@ function CourseLine({
       )}
       {onRemove ? (
         <Tooltip content={removeLabel ?? t("planner.removeCourse", { code })}>
-          <IconButton label={removeLabel ?? t("planner.removeCourse", { code })} size="sm" onClick={onRemove}>
+          <IconButton label={removeLabel ?? t("planner.removeCourse", { code })} size="sm" onClick={onRemove} data-focus={removeKey}>
             <Icons.X className="size-3.5" />
           </IconButton>
         </Tooltip>
@@ -726,6 +743,7 @@ function DroppedLine({ code, name, sks, onPutBack }: { code: string; name: strin
         variant="ghost"
         className="col-span-2 justify-self-end text-accent-fg"
         aria-label={t("planner.putBackCode", { code })}
+        data-focus={`now-putback-${code}`}
         onClick={onPutBack}
       >
         {t("planner.putBack")}
@@ -830,6 +848,7 @@ type Undoable = (edit: (plan: StudyPlan) => StudyPlan, message: string) => void;
 function Rules({ record, rules, plan, undoable }: { record: StudentRecord; rules: Rule[]; plan: StudyPlan; undoable: Undoable }) {
   const t = useT();
   const text = useRuleText(record);
+  const focusNext = useFocusNext();
   const [showHidden, setShowHidden] = useState(false);
   const hidden: { key: string; anchor: string; title: string }[] = rules
     .filter((rule) => isHidden(rule, plan))
@@ -841,7 +860,9 @@ function Rules({ record, rules, plan, undoable }: { record: StudentRecord; rules
     hidden.push({ key: specKey, anchor: specKey, title: spec.name });
   return (
     <Card className="overflow-hidden">
-      <h3 className="px-4 pt-3.5 text-body font-semibold">{t("planner.rules")}</h3>
+      <h3 className="px-4 pt-3.5 text-body font-semibold" tabIndex={-1} data-focus="rules">
+        {t("planner.rules")}
+      </h3>
       <ul className="space-y-1 px-2 pt-2 pb-3" aria-label={t("planner.rules")}>
         {rules
           .filter((rule) => !isHidden(rule, plan))
@@ -866,14 +887,18 @@ function Rules({ record, rules, plan, undoable }: { record: StudentRecord; rules
                   <span className="text-muted">{detail}</span>
                 </span>
                 {key && (
-                  <span className="-mt-0.5 -mr-1 shrink-0">
+                  <span className="-mt-0.5 -mr-1 shrink-0" data-focus={`hide-${key}`}>
                     <Menu
                       trigger={{ icon: <Icons.EyeOff className="size-3.5" /> }}
                       label={t("planner.hideRule", { title })}
                       items={hideReasons(rule).map((reason) => ({
                         label: t(`planner.hideReason.${reason}`),
                         hint: reason === "not-continuing" ? t("planner.hideReason.not-continuingHint") : undefined,
-                        onSelect: () => undoable((p) => hideRule(p, key, reason, Date.now()), t("planner.hiddenDone", { title })),
+                        onSelect: () => {
+                          undoable((p) => hideRule(p, key, reason, Date.now()), t("planner.hiddenDone", { title }));
+                          // Its row goes: focus lands on the list it went to.
+                          focusNext("hidden-toggle");
+                        },
                       }))}
                     />
                   </span>
@@ -887,6 +912,7 @@ function Rules({ record, rules, plan, undoable }: { record: StudentRecord; rules
           <button
             type="button"
             aria-expanded={showHidden}
+            data-focus="hidden-toggle"
             onClick={() => setShowHidden(!showHidden)}
             className="focus-ring -mx-1 rounded px-1 py-0.5 text-caption text-muted hover:text-fg"
           >
@@ -895,8 +921,11 @@ function Rules({ record, rules, plan, undoable }: { record: StudentRecord; rules
           </button>
           {showHidden && (
             <ul className="mt-1 space-y-1 pb-1" aria-label={t("planner.hidden", { count: hidden.length })}>
-              {hidden.map(({ key, anchor, title }) => {
+              {hidden.map(({ key, anchor, title }, index) => {
                 const reason = plan.hidden?.[key]?.reason ?? "other";
+                // Once shown, its line goes: focus moves to the next hidden one, or back to the warning when none is left.
+                const rest = hidden.filter((h) => h.key !== key);
+                const after = rest.length ? [`show-${rest[Math.min(index, rest.length - 1)].key}`, "hidden-toggle"] : [`hide-${key}`, "rules"];
                 return (
                   <li key={anchor} className="flex items-center gap-2 text-small">
                     <span className="min-w-0 flex-1">
@@ -907,7 +936,11 @@ function Rules({ record, rules, plan, undoable }: { record: StudentRecord; rules
                       size="sm"
                       variant="ghost"
                       aria-label={t("planner.showAgainRule", { title })}
-                      onClick={() => undoable((p) => showRule(p, key), t("planner.shownDone", { title }))}
+                      data-focus={`show-${key}`}
+                      onClick={() => {
+                        undoable((p) => showRule(p, key), t("planner.shownDone", { title }));
+                        focusNext(...after);
+                      }}
                     >
                       {t("planner.showAgain")}
                     </Button>
@@ -967,7 +1000,7 @@ function Minors({ record, state, undoable }: { record: StudentRecord; state: Pla
             <li key={m.key}>
               <button
                 type="button"
-                aria-label={t("planner.minorOpen", { name: m.name })}
+                aria-haspopup="dialog"
                 onClick={() => setOpen(m.key)}
                 className="focus-ring group flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left transition-colors duration-150 hover:bg-hover"
               >
@@ -1018,6 +1051,7 @@ function MinorPanel({
 }) {
   const t = useT();
   const termLabel = useTermLabel();
+  const focusNext = useFocusNext();
   const { plan } = state;
   const on = plan.minor === minor.key;
   const progress = minorProgress(record, plan, minor);
@@ -1026,6 +1060,9 @@ function MinorPanel({
   const label = (term: string) => termLabel(term, semesterOf(term, record.entryTerm));
   const stateText = (code: string, st: CourseState) =>
     st === "passed" ? t("planner.state.passed", { grade: record.graded.get(code)?.grade ?? "" }) : st ? t(`planner.state.${st}`) : null;
+  const termOf = (code: string) => (courseState(record, plan, code) ? null : termFor(plan, courseInfo(record, code).sks));
+  // The courses with an Add button, in order: once one is added, focus moves to the next (the button turns into its status).
+  const addable = minor.courses.filter((code) => termOf(code) !== null);
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()} title={t("rule.minor", { name: minor.name })}>
       <p className="text-small text-muted">
@@ -1052,7 +1089,7 @@ function MinorPanel({
           {minor.courses.map((code) => {
             const info = courseInfo(record, code);
             const st = courseState(record, plan, code);
-            const term = st ? null : termFor(plan, info.sks);
+            const term = termOf(code);
             return (
               <li key={code} className="grid grid-cols-[64px_minmax(0,1fr)_auto] items-center gap-3 border-b border-line py-2 last:border-b-0">
                 <span className="text-small font-semibold tabular-nums">{code}</span>
@@ -1068,12 +1105,15 @@ function MinorPanel({
                   <Button
                     size="sm"
                     aria-label={t("planner.addCodeTo", { code, term: label(term) })}
-                    onClick={() =>
+                    data-focus={`minor-add-${code}`}
+                    onClick={() => {
                       undoable(
                         (p) => addCourse(p, term, { code, name: info.name, sks: info.sks, grade, retake: false }),
                         t("planner.addedTo", { code, term: label(term) }),
-                      )
-                    }
+                      );
+                      const next = addable[addable.indexOf(code) + 1];
+                      focusNext(...(next ? [`minor-add-${next}`] : []), "minor-plan");
+                    }}
                   >
                     {t("planner.add")}
                   </Button>
@@ -1088,10 +1128,13 @@ function MinorPanel({
       <p className="mt-4 text-caption text-muted">{t("planner.minorWhat")}</p>
       <div className="mt-4 flex justify-end">
         {on ? (
-          <Button onClick={() => undoable((p) => ({ ...p, minor: null }), t("planner.minorStopped", { name: minor.name }))}>{t("planner.minorStop")}</Button>
+          <Button data-focus="minor-plan" onClick={() => undoable((p) => ({ ...p, minor: null }), t("planner.minorStopped", { name: minor.name }))}>
+            {t("planner.minorStop")}
+          </Button>
         ) : (
           <Button
             variant="primary"
+            data-focus="minor-plan"
             icon={<Icons.Target className="size-3.5" />}
             onClick={() => undoable((p) => ({ ...p, minor: minor.key }), t("planner.minorPlannedDone", { name: minor.name }))}
           >

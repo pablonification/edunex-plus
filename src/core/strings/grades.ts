@@ -324,7 +324,6 @@ export const gradesStrings = {
   "planner.retakeSumma": { id: "Mengulang menutup summa cum laude.", en: "Any retake rules out summa cum laude." },
   "planner.minors": { id: "Minor yang paling dekat", en: "Minors you're closest to" },
   "planner.minorNone": { id: "Belum ada minor yang kamu mulai.", en: "No minor started yet." },
-  "planner.minorOpen": { id: "Minor {name}: lihat mata kuliahnya", en: "The {name} minor: see its courses" },
   "planner.minorSks": { id: "{have} dari {need} SKS", en: "{have} of {need} SKS" },
   "planner.minorPlanned": { id: "Direncanakan", en: "Planned" },
   "planner.minorRegistered": { id: "Terdaftar di SIX", en: "Registered on SIX" },
