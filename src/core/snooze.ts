@@ -73,7 +73,7 @@ export function snoozeKey(need: Need): SnoozeKey {
         facts: facts(urgent, need.sitting.source, need.sitting.start, need.sitting.end, need.sitting.room, need.disagree),
       };
     case "attendance":
-      return attendanceKey(need.health.code, need.health, need.health.target);
+      return attendanceKey(need.health.code, need.health);
     case "meeting":
       return { id: need.id, facts: facts(urgent, need.meeting.start, need.meeting.end, need.meeting.link) };
     case "krs":
@@ -113,10 +113,10 @@ function turnsUrgent(need: Need): number | null {
 /**
  * A course's attendance, the same on Beranda and on the course page, so
  * putting off one puts off both. Back when SIX records another meeting, the
- * state changes or the target does.
+ * state changes or the course's target does (its own, or the default).
  */
-export function attendanceKey(code: string, health: Pick<AttendanceHealth, "state" | "attended" | "held">, target: number): SnoozeKey {
-  return { id: `attendance:${code}`, facts: `${health.state}|${health.attended ?? ""}/${health.held ?? ""}|${target}` };
+export function attendanceKey(code: string, health: Pick<AttendanceHealth, "state" | "attended" | "held" | "target">): SnoozeKey {
+  return { id: `attendance:${code}`, facts: `${health.state}|${health.attended ?? ""}/${health.held ?? ""}|${health.target}` };
 }
 
 /** What a Beranda item can be put off until: never past the moment it turns urgent. */
@@ -170,10 +170,10 @@ function ownTerms(need: Need, now: number): Snoozable {
 }
 
 /** A course banner's attendance: until the next class, a morning, or the count changing. */
-export function attendanceSnoozable(code: string, health: AttendanceHealth, target: number): Snoozable {
+export function attendanceSnoozable(code: string, health: AttendanceHealth): Snoozable {
   const next = health.left.next;
   return {
-    key: attendanceKey(code, health, target),
+    key: attendanceKey(code, health),
     cap: null,
     moment: next ? { kind: "beforeClass", at: next.start - HOUR } : null,
     untilChange: true,

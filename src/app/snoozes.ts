@@ -87,6 +87,6 @@ export function useHeldBack(): readonly SnoozeEntry[] {
   const context = homeContext(world);
   const keys = attention(context, nowCard(context), todayPlan(context)).map(snoozeKey);
   // A banner's key carries its course's state, so only a course still showing that banner matches.
-  if (attendance) for (const { course, health } of attendance.courses) keys.push(attendanceKey(course.code, health, attendance.target));
+  if (attendance) for (const { course, health } of attendance.courses) keys.push(attendanceKey(course.code, health));
   return holding(entries, keys, now);
 }

@@ -278,6 +278,17 @@ describe("Settings", () => {
     expect(heading()).toBe("Perlu perhatianmu 6");
   });
 
+  it("counts a course banner put off under the course's own target", async () => {
+    // Thursday: DK4073 has class today, so Beranda says its risk in that class's row, not in "Perlu perhatianmu".
+    const s = await open({ world: new PretendWorld() });
+    // DK4073 keeps 80% as its own target while the default moves to 75%: still no absence to spare.
+    await s.engineDoes(() => s.engine.updateSettings({ attendanceTarget: 75, attendanceTargets: { DK4073: 80 } }));
+    await s.click([...document.querySelectorAll<HTMLButtonElement>("aside button")].find((b) => b.textContent?.startsWith("DK4073"))!);
+    await snooze("DK4073: Jangan absen lagi", "Besok pagi");
+    await s.apply({ type: "command", command: "settings" });
+    expect(document.querySelector("[role=dialog]")?.textContent).toContain("Pengingat yang ditunda (1)");
+  });
+
   it("doesn't count a snooze whose item came back by changing", async () => {
     const s = await open();
     const id = s.world.edunex.postTask(95059, { name: "Ringkasan K6", end_at: "2026-10-14T23:59:00+07:00" });

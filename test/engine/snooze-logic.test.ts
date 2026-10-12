@@ -58,7 +58,7 @@ describe("what brings a snoozed item back", () => {
     const h = await startHome({ now: MONDAY });
     const ku = need(needsYou(h.home()), "attendance:KU5014");
     expect(snoozeKey(ku)).toEqual({ id: "attendance:KU5014", facts: "out|2/6|80" });
-    expect(attendanceKey("KU5014", { state: "out", attended: 2, held: 6 }, 80)).toEqual(snoozeKey(ku));
+    expect(attendanceKey("KU5014", { state: "out", attended: 2, held: 6, target: 80 })).toEqual(snoozeKey(ku));
 
     h.world.six.setAttendance("KU5014", 2, 7);
     await h.refresh();

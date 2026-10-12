@@ -174,7 +174,7 @@ function AttendanceMeter({ page }: { page: CoursePage }) {
 function useBannerShows(code: string, health: AttendanceHealth | undefined): boolean {
   const { snoozed } = useSnoozes();
   if (!health || (health.state !== "out" && health.state !== "none")) return false;
-  return !snoozed(attendanceKey(code, health, health.target));
+  return !snoozed(attendanceKey(code, health));
 }
 
 /** The rare actions: save the files for offline, open the official pages. */
@@ -257,7 +257,7 @@ function RiskStrip({ page }: { page: CoursePage }) {
   const health = attendance?.courses.find((c) => c.course.code === page.course.code)?.health;
   const shows = useBannerShows(page.course.code, health);
   if (!health || !attendance || !shows) return null;
-  const later = attendanceSnoozable(page.course.code, health, health.target);
+  const later = attendanceSnoozable(page.course.code, health);
   const next = page.meetings.find((m) => m.end > now && !m.notInSix);
   const clash = next ? clashes(next, page.course.code, schedule ?? [])[0] : undefined;
   // The strip right below already shows the next meeting; say it here only when it doesn't.
