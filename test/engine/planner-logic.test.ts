@@ -482,6 +482,24 @@ describe("this semester's what-ifs, only in the plan", () => {
     expect(pruneWhatIfs(caughtUp, real).now).toBeUndefined();
   });
 
+  it("a course tried now, then registered on SIX and dropped there again, is still planned where it was (bug)", () => {
+    const start = defaultPlan(record);
+    const p = addToNow(start, "2026-1", nowCourse("II4010"));
+    const transcript = structuredClone(data.transcript);
+    transcript.terms.at(-1)!.courses.push({ ...transcript.terms.at(-1)!.courses[0]!, code: "II4010", name: "Manajemen Data", sks: 3 });
+    const registered = studentRecord({ ...data, transcript, term: "2026-1" });
+    // SIX caught up: the what-if goes, and the plan as saved holds the course where it was planned again.
+    const saved = pruneWhatIfs(p, registered);
+    expect(saved.now).toBeUndefined();
+    expect(saved.terms[0].courses.map((c) => c.code)).toContain("II4010");
+    // While it's in the KRS, that copy neither shows nor counts.
+    expect(livePlan(saved, registered).terms[0].courses.map((c) => c.code)).not.toContain("II4010");
+    expect(sksModel(registered, saved)).toEqual(sksModel(registered, start));
+    // Dropped on SIX during URS: it's planned again, as it was.
+    const codes = (q: StudyPlan) => livePlan(q, record).terms.map((t) => [t.term, t.courses.map((c) => `${c.code}:${c.grade}`).sort()]);
+    expect(codes(saved)).toEqual(codes(start));
+  });
+
   it("Kurikulum follows the what-ifs too, and marks each as only in the plan", () => {
     const p = addToNow(leaveOut(leaveOut(defaultPlan(record), "2026-1", "PL3032"), "2026-1", "II4091"), "2026-1", nowCourse("II4021"));
     const tried = addToNow(p, "2026-1", nowCourse("II4090"));

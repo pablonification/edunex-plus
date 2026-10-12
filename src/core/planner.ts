@@ -345,14 +345,21 @@ export function hasWhatIfs(plan: StudyPlan, record: StudentRecord): boolean {
   return applied.thisTermAdded.length > 0 || applied.thisTermDropped.length > 0;
 }
 
-/** The plan without what-ifs SIX's record has caught up with: a course since added to the KRS, or one left out that SIX graded or dropped. */
+/**
+ * The plan without what-ifs SIX's record has caught up with: a course since
+ * added to the KRS, or one left out that SIX graded or dropped. A course SIX
+ * added goes back to the semester it was planned in: `livePlan` hides it while
+ * it's in the KRS (or passed), and a drop on SIX later doesn't lose it.
+ */
 export function pruneWhatIfs(plan: StudyPlan, record: StudentRecord): StudyPlan {
   const { now, ...rest } = plan;
   if (!now) return plan;
-  const added = now.added.filter((c) => !record.thisTerm.some((t) => t.code === c.code));
+  const inKrs = (code: string) => record.thisTerm.some((t) => t.code === code);
+  const added = now.added.filter((c) => !inKrs(c.code));
   const dropped = now.dropped.filter((code) => record.thisTerm.some((t) => t.code === code && t.grade === null));
   if (added.length === now.added.length && dropped.length === now.dropped.length) return plan;
-  return added.length || dropped.length ? { ...rest, now: { ...now, added, dropped } } : rest;
+  const kept = now.added.filter((c) => inKrs(c.code)).reduce<StudyPlan>((p, c) => placeBack(p, c, now.term), rest);
+  return added.length || dropped.length ? { ...kept, now: { ...now, added, dropped } } : kept;
 }
 
 /**
