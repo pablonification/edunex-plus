@@ -1,14 +1,14 @@
-// How each Edunex material is offered on the course page (#74): a file to
-// download, an online class to join, a text note to read in the app, a page
-// to open, or Edunex itself when the app can't do better. Also how a
+// How each Edunex material is offered on the course page (#74), the way
+// Edunex's own course page shows it: a note drawn right on the page, a file
+// to download, an online class to join, a picture, a lecturer's link to open
+// in the browser, or Edunex itself when the app can't do better. Also how a
 // course's files are laid out when the Student saves them for offline
 // reading: Edunex Plus/<course>/<module>/<file>.
-import { OFFICIAL_HOSTS } from "./contract";
-import { EDUNEX_WEB, edunexCourseUrl } from "./links";
+import { EDUNEX_WEB, edunexCourseUrl, isOfficialUrl, isWebLink } from "./links";
 import type { CourseModule, CourseOutline, Material } from "./models";
 import { type Lang, translate } from "./strings";
 
-export type MaterialKind = "pdf" | "vicon" | "note" | "video" | "audio" | "link" | "file" | "interactive" | "other";
+export type MaterialKind = "pdf" | "vicon" | "note" | "video" | "audio" | "link" | "file" | "image" | "page" | "interactive" | "other";
 
 /** Edunex's online-class (Vicon) types and the service each one is. */
 export const VICON_PROVIDERS: Readonly<Record<string, string>> = {
@@ -19,6 +19,7 @@ export const VICON_PROVIDERS: Readonly<Record<string, string>> = {
   webex: "Webex",
 };
 
+/** Edunex's own content types, as its website's course page reads them (`contentReaders`, checked 2026-10-12). */
 const KINDS: Readonly<Record<string, MaterialKind>> = {
   pdf: "pdf",
   text: "note",
@@ -26,6 +27,11 @@ const KINDS: Readonly<Record<string, MaterialKind>> = {
   audio: "audio",
   url: "link",
   file: "file",
+  // A whiteboard: Edunex shows it as a picture.
+  board: "image",
+  // A web page Edunex shows inside its own page.
+  html: "page",
+  scorm: "interactive",
   h5p: "interactive",
 };
 /** Edunex labels other uploads by their extension: "zip", "ppt", "docx"… */
@@ -45,24 +51,13 @@ export function uploadExtension(type: string): string | null {
 /** Where Edunex keeps files: its storage on Azure, its API, ITB's own sites (as the desktop's download guard). */
 const FILE_HOSTS = [/\.blob\.core\.windows\.net$/, /^api-edunex\.cognisia\.id$/, /(^|\.)itb\.ac\.id$/];
 
-function httpsHost(url: string): string | null {
+export function isEdunexFile(url: string): boolean {
   try {
     const parsed = new URL(url);
-    return parsed.protocol === "https:" ? parsed.hostname : null;
+    return parsed.protocol === "https:" && FILE_HOSTS.some((pattern) => pattern.test(parsed.hostname));
   } catch {
-    return null;
+    return false;
   }
-}
-
-export function isEdunexFile(url: string): boolean {
-  const host = httpsHost(url);
-  return host !== null && FILE_HOSTS.some((pattern) => pattern.test(host));
-}
-
-/** Official pages and online-class services, the only links the app opens in the browser. */
-export function opensInBrowser(url: string): boolean {
-  const host = httpsHost(url);
-  return host !== null && OFFICIAL_HOSTS.some((pattern) => pattern.test(host));
 }
 
 /** A material's own place on Edunex's website: its module's page, or the course's. */
@@ -73,31 +68,43 @@ export function edunexMaterialUrl(material: Pick<Material, "courseId" | "moduleI
 export type MaterialAction =
   | { kind: "download"; url: string; name: string }
   | { kind: "join"; url: string }
-  | { kind: "read"; html: string }
+  /** Drawn right on the page, as Edunex does: the lecturer's HTML, with its pictures and links. */
+  | { kind: "note"; html: string }
+  | { kind: "image"; url: string }
   | { kind: "open"; url: string }
   | { kind: "edunex"; url: string };
 
 export function materialAction(material: Material): MaterialAction {
   const content = material.content?.trim() ?? "";
   const edunex: MaterialAction = { kind: "edunex", url: edunexMaterialUrl(material) };
+  // A lecturer's link elsewhere (YouTube, Google Drive) opens in the browser, as Edunex opens it.
+  const elsewhere: MaterialAction = isWebLink(content) ? { kind: "open", url: content } : edunex;
   switch (materialKind(material.type)) {
     case "pdf":
     case "file":
     case "video":
     case "audio":
-      if (isEdunexFile(content)) return { kind: "download", url: content, name: fileName(material) };
-      return opensInBrowser(content) ? { kind: "open", url: content } : edunex;
+      return isEdunexFile(content) ? { kind: "download", url: content, name: fileName(material) } : elsewhere;
     case "vicon":
-      return opensInBrowser(content) ? { kind: "join", url: content } : edunex;
+      // Only the services' own pages: a CloudX room is joined through Edunex.
+      return isOfficialUrl(content) ? { kind: "join", url: content } : edunex;
     case "note":
-      // A note that is only a picture has nothing to read here.
-      return htmlText(content) ? { kind: "read", html: content } : edunex;
+      return { kind: "note", html: content };
     case "link":
-      return opensInBrowser(content) ? { kind: "open", url: content } : edunex;
+      return elsewhere;
+    case "image":
+      return isEdunexFile(content) ? { kind: "image", url: content } : elsewhere;
     default:
       return edunex;
   }
 }
+
+/**
+ * The Modul tab's address for an Edunex course's course-wide items (its
+ * Introduction), in a route's `module`: Edunex's module ids are positive, so
+ * the course's id, negated.
+ */
+export const introModule = (courseId: number) => -courseId;
 
 /** The text of a lecturer's HTML, roughly (no DOM here): enough to tell whether there is any, and to search it. */
 export function htmlText(html: string): string {
@@ -227,17 +234,17 @@ function uniqueName(name: string, isTaken: (candidate: string) => boolean): stri
 // ---------------------------------------------------------------- the Modul tab
 
 /** What a module holds, by the kinds a Student tells apart: "2 PDF · 1 tugas". */
-export type ContentKind = "task" | "pdf" | "vicon" | "note" | "video" | "link" | "file";
+export type ContentKind = "task" | "pdf" | "vicon" | "note" | "video" | "link" | "image" | "file";
 
 export function contentCounts(materials: readonly Material[], tasks: number): { kind: ContentKind; count: number }[] {
   const counts = new Map<ContentKind, number>();
   if (tasks) counts.set("task", tasks);
   for (const material of materials) {
     const kind = materialKind(material.type);
-    const shown: ContentKind = kind === "pdf" || kind === "vicon" || kind === "note" || kind === "video" || kind === "link" ? kind : "file";
+    const shown: ContentKind = kind === "pdf" || kind === "vicon" || kind === "note" || kind === "video" || kind === "link" || kind === "image" ? kind : "file";
     counts.set(shown, (counts.get(shown) ?? 0) + 1);
   }
-  const order: ContentKind[] = ["task", "pdf", "video", "vicon", "note", "link", "file"];
+  const order: ContentKind[] = ["task", "pdf", "video", "vicon", "note", "link", "image", "file"];
   return order.flatMap((kind) => (counts.has(kind) ? [{ kind, count: counts.get(kind)! }] : []));
 }
 

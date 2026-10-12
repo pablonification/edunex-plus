@@ -70,7 +70,28 @@ describe("materials", () => {
     // The online-class links exist only in the parent class.
     const teams = materials.II4091.filter((m) => m.type === "ms-teams");
     expect(teams.map((m) => m.courseId)).toEqual([97602, 97602]);
-    expect(materials.II4091.filter((m) => m.type === "text").map((m) => m.courseId)).toEqual([95326, 95326, 97602]);
+    // Each Edunex course's own course-wide notes: the class's two, and the joint class's copy of the schedule.
+    expect(materials.II4091.filter((m) => m.type === "text" && m.moduleId === null).map((m) => m.courseId)).toEqual([95326, 95326, 97602]);
+  });
+
+  it("reads each module's contents under the module and the Edunex course it's in", async () => {
+    const h = await signedIn();
+    const materials = h.dataset("edunex.materials")!.II4091;
+    expect(materials.find((m) => m.title === "Link Penawaran Topik TA")).toMatchObject({
+      courseId: 95326,
+      moduleId: 450218,
+      type: "text",
+      content: '<p><a href="https://docs.google.com/spreadsheets/d/fixture-topik-ta/edit">Penawaran topik TA 2026-2027</a></p>',
+      postedAt: at("2026-08-28T14:10:00+07:00"),
+    });
+    expect(materials.filter((m) => m.moduleId === 450220).map((m) => [m.type, m.sizeBytes])).toEqual([
+      ["zip", 8_402_113],
+      ["zip", 1_004_200],
+    ]);
+    expect(materials.filter((m) => m.title === "Slide Pengantar Proposal TA").map((m) => [m.courseId, m.moduleId])).toEqual([
+      [95326, 450219],
+      [97602, 460709],
+    ]);
   });
 
   it("an empty course is read and empty, not missing", async () => {

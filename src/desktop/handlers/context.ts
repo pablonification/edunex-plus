@@ -5,6 +5,7 @@ import type { Lang, Settings } from "../../core/models";
 import type { Engine } from "../../engine/engine";
 import type { Handlers } from "../ipc";
 import type { Notifier } from "../notifications";
+import type { FetchFile } from "../remote-files";
 import type { VaultMode } from "../vault";
 
 export interface DesktopContext {
@@ -15,6 +16,8 @@ export interface DesktopContext {
   userData: string;
   /** The in-memory Electron session the engine's requests go through. */
   engineSession: Session;
+  /** Fetches a file from Edunex's storage (through the engine's session; the demo's pretend storage). */
+  fetchFile: FetchFile;
   vaultMode: VaultMode;
   lang(): Lang;
   send(event: Event): void;

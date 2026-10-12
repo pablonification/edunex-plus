@@ -3,7 +3,7 @@
 // screens and tabs, and a matcher that forgives case, accents, word order and
 // small typos. An exact course code ranks first, then prefix matches. Each
 // distinct word is matched once per query, so a full term answers within a frame.
-import { outlineEntries } from "./course-materials";
+import { introModule, outlineEntries } from "./course-materials";
 import { examRoute, examsFound, takeHomeOnly } from "./exam-sources";
 import { type Exam, examKind, takeHomeKind } from "./exams";
 import type { Announcement, Material, Task } from "./models";
@@ -68,7 +68,8 @@ export type SearchItem =
   | (ItemBase & { kind: "course"; classNo: string | null; sks: number | null })
   | (ItemBase & { kind: "task"; task: Task })
   | (ItemBase & { kind: "exam"; exam: Exam })
-  | (ItemBase & { kind: "material"; material: Material; module: ModulePlace | null })
+  /** `module` null: course-wide, in its Edunex course's Introduction; `jointClass`: that course is the joint class's. */
+  | (ItemBase & { kind: "material"; material: Material; module: ModulePlace | null; jointClass: boolean })
   | (ItemBase & { kind: "module"; module: ModulePlace })
   | (ItemBase & { kind: "announcement"; announcement: Announcement })
   | (ItemBase & { kind: "screen"; screen: ScreenId; within: string | null })
@@ -314,6 +315,7 @@ export function searchIndex(saved: Saved, { lang, screens, now }: IndexOptions):
 
   for (const [code, materials] of Object.entries(saved["edunex.materials"] ?? {})) {
     if (!known(code)) continue;
+    const main = byCode.get(code)?.edunexCourseId ?? saved["edunex.courses"]?.find((c) => c.code === code)?.edunex.courseId ?? -1;
     for (const material of materials) {
       const module = material.moduleId === null ? null : (modulePlaces.get(code)?.get(material.moduleId) ?? null);
       // A material in a module the outline no longer shows has no place to open.
@@ -324,9 +326,11 @@ export function searchIndex(saved: Saved, { lang, screens, now }: IndexOptions):
           key: `material:${material.id}`,
           title: material.title,
           code,
-          target: { screen: "course", code, tab: "modules", ...(module && { module: module.id }) },
+          // Course-wide: its Edunex course's Introduction (the class's own, or the joint class's).
+          target: { screen: "course", code, tab: "modules", module: module ? module.id : introModule(material.courseId) },
           material,
           module,
+          jointClass: module ? module.parent : material.courseId !== main,
         },
         [
           [material.title, TITLE],

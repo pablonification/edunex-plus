@@ -165,26 +165,40 @@ describe("course-contract calculator", () => {
 });
 
 describe("materials and offline files", () => {
-  it("each material type gets its action; unknown or unsafe ones fall back to Edunex", async () => {
+  it("each material type gets the action Edunex's own course page gives it", async () => {
     const base = { id: 1, courseId: 95001, moduleId: 470019, title: "Slide 1", content: "", sizeBytes: null, postedAt: null, updatedAt: null };
     const blob = "https://edunexfixture.blob.core.windows.net/edunex/fixture-1";
+    const edunex = { kind: "edunex", url: "https://edunex.itb.ac.id/courses/95001/preview/470019" };
     expect(materialAction({ ...base, type: "pdf", content: blob })).toEqual({ kind: "download", url: blob, name: "Slide 1.pdf" });
     expect(materialAction({ ...base, type: "zoom", content: "https://itb.zoom.us/j/1" })).toEqual({ kind: "join", url: "https://itb.zoom.us/j/1" });
     expect(materialAction({ ...base, type: "webex", content: "https://itb.webex.com/meet/x" }).kind).toBe("join");
-    expect(materialAction({ ...base, type: "text", content: "<p>Bab 2</p>" })).toEqual({ kind: "read", html: "<p>Bab 2</p>" });
-    // A note that is only a picture has nothing to read here.
-    expect(materialAction({ ...base, type: "text", content: '<figure><img src="x"></figure>' }).kind).toBe("edunex");
-    expect(materialAction({ ...base, type: "url", content: "https://www.itb.ac.id/news" })).toEqual({ kind: "open", url: "https://www.itb.ac.id/news" });
-    expect(materialAction({ ...base, type: "url", content: "https://example.org/x" })).toEqual({
-      kind: "edunex",
-      url: "https://edunex.itb.ac.id/courses/95001/preview/470019",
+    // A CloudX room is joined through Edunex, never from an unknown address.
+    expect(materialAction({ ...base, type: "cloudx", content: "https://cloudx.example/room" })).toEqual(edunex);
+    // Notes are drawn right on the page, a picture-only one too (Course Tokens).
+    expect(materialAction({ ...base, type: "text", content: "<p>Bab 2</p>" })).toEqual({ kind: "note", html: "<p>Bab 2</p>" });
+    expect(materialAction({ ...base, type: "text", content: '<figure><img src="x"></figure>' })).toEqual({
+      kind: "note",
+      html: '<figure><img src="x"></figure>',
     });
-    expect(materialAction({ ...base, type: "h5p", content: "https://example.org/h5p" }).kind).toBe("edunex");
-    expect(materialAction({ ...base, type: "quiz-of-the-future", content: blob }).kind).toBe("edunex");
+    // A lecturer's link opens wherever it goes, as Edunex's "Open Link" does; never another scheme.
+    expect(materialAction({ ...base, type: "url", content: "https://www.itb.ac.id/news" })).toEqual({ kind: "open", url: "https://www.itb.ac.id/news" });
+    expect(materialAction({ ...base, type: "url", content: "https://docs.google.com/x" })).toEqual({ kind: "open", url: "https://docs.google.com/x" });
+    expect(materialAction({ ...base, type: "url", content: "http://example.org/x" })).toEqual({ kind: "open", url: "http://example.org/x" });
+    expect(materialAction({ ...base, type: "url", content: "javascript:alert(1)" })).toEqual(edunex);
+    expect(materialAction({ ...base, type: "url", content: "https://user:secret@example.org/" })).toEqual(edunex);
+    expect(materialAction({ ...base, type: "video", content: "https://www.youtube.com/watch?v=x" })).toEqual({
+      kind: "open",
+      url: "https://www.youtube.com/watch?v=x",
+    });
+    expect(materialAction({ ...base, type: "video", content: blob }).kind).toBe("download");
+    // A whiteboard is a picture on Edunex's storage.
+    expect(materialAction({ ...base, type: "board", content: blob })).toEqual({ kind: "image", url: blob });
+    // What only Edunex can show (its embedded pages and packages) and types it doesn't know open there.
+    for (const type of ["html", "scorm", "h5p", "quiz-of-the-future"]) expect(materialAction({ ...base, type, content: blob })).toEqual(edunex);
     // Other uploads carry their extension as the type (seen live: zip, ppt).
     expect(materialAction({ ...base, type: "zip", content: blob })).toEqual({ kind: "download", url: blob, name: "Slide 1.zip" });
     expect(materialAction({ ...base, type: "pptx", content: blob })).toEqual({ kind: "download", url: blob, name: "Slide 1.pptx" });
-    expect(materialAction({ ...base, type: "zip", content: "https://example.org/x.zip" }).kind).toBe("edunex");
+    expect(materialAction({ ...base, type: "zip", content: "https://example.org/x.zip" })).toEqual({ kind: "open", url: "https://example.org/x.zip" });
   });
 
   it("lays a course's files out by module, the parent class's apart, names never colliding", async () => {
@@ -202,10 +216,16 @@ describe("materials and offline files", () => {
       "id",
     );
     expect(plan.folder).toBe("II4091 Final Project Proposal");
+    // The modules' own uploads (zip templates, PDF slides) and the ones posted here; notes aren't files.
     expect(plan.files.map((f) => [...f.folders, f.name].join("/"))).toEqual([
+      "02 Template Proposal dan Laporan TA - Latex/Template Proposal TA - LaTeX.zip",
+      "02 Template Proposal dan Laporan TA - Latex/Template Laporan TA - LaTeX.zip",
       "02 Template Proposal dan Laporan TA - Latex/Template Proposal.pdf",
       "02 Template Proposal dan Laporan TA - Latex/Template Proposal (2).pdf",
+      "03 01 Pengantar Proposal TA/Slide Pengantar Proposal TA.pdf",
       "Kelas induk/01 Penawaran Topik TA Dosen/Topik- TA-2026.pdf",
+      "Kelas induk/02 Template Proposal TA & Laporan TA - Latex/Template Proposal TA - LaTeX.zip",
+      "Kelas induk/03 01 Pengantar Proposal TA/Slide Pengantar Proposal TA.pdf",
     ]);
   });
 });

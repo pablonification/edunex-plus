@@ -36,6 +36,8 @@ import { GlobeIcon } from "@phosphor-icons/react/dist/csr/Globe";
 import { GraduationCapIcon } from "@phosphor-icons/react/dist/csr/GraduationCap";
 import { HandIcon } from "@phosphor-icons/react/dist/csr/Hand";
 import { HouseIcon } from "@phosphor-icons/react/dist/csr/House";
+import { ImageIcon } from "@phosphor-icons/react/dist/csr/Image";
+import { ImageBrokenIcon } from "@phosphor-icons/react/dist/csr/ImageBroken";
 import { InfoIcon } from "@phosphor-icons/react/dist/csr/Info";
 import { IntersectSquareIcon } from "@phosphor-icons/react/dist/csr/IntersectSquare";
 import { LightningIcon } from "@phosphor-icons/react/dist/csr/Lightning";
@@ -149,6 +151,8 @@ export const Icons = {
   Hand: icon(HandIcon),
   /** "Ingatkan nanti": an alarm clock, not a bell, since the bell and notifications aren't affected. */
   Snooze: icon(AlarmIcon),
+  Image: icon(ImageIcon),
+  ImageBroken: icon(ImageBrokenIcon),
 };
 
 export type IconName = keyof typeof Icons;

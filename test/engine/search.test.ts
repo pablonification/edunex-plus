@@ -184,13 +184,16 @@ describe("exams", () => {
 });
 
 describe("materials, modules and announcements", () => {
-  it("a material by title opens its course on the Modul tab", () => {
+  it("a material by title opens its course on the Modul tab, a course-wide one at its own Edunex course's Introduction", () => {
+    // The online-class link is the joint class's: its Introduction, not the class's own.
     expect(first("link teams pertemuan 03")).toMatchObject({
       kind: "material",
       code: "II4091",
       module: null,
-      target: { screen: "course", code: "II4091", tab: "modules" },
+      jointClass: true,
+      target: { screen: "course", code: "II4091", tab: "modules", module: -97602 },
     });
+    expect(first("course tokens")).toMatchObject({ kind: "material", jointClass: false, target: { module: -95326 } });
     const sap = first("sap ekonomi infrastruktur");
     expect(sap).toMatchObject({ kind: "material", title: "K1. SAP Ekonomi Infrastruktur dan Transportasi", code: "PL3032" });
   });

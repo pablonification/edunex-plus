@@ -4,6 +4,7 @@
 // meets today per SIX's timetable (urgent while that class is still to come
 // or going on). The first sync is silent (the center does that); a Task new
 // to the list is the new-Task alert, never an edit.
+import { introModule } from "../../core/course-materials";
 import { wibDay } from "../../core/course-meetings";
 import type { ClassSession } from "../../core/models";
 import { materialPostedId, taskEditedId, taskEditedText } from "../../core/needs";
@@ -61,7 +62,7 @@ export const materialForToday: Detector = {
           urgent: coming !== undefined,
           title: { key: "alert.materialToday", vars: { course: code } },
           body: { key: "alert.materialToday.body", vars: { title: material.title, time: clockTime((coming ?? today[0]).start) } },
-          target: { screen: "course", code, tab: "modules", ...(material.moduleId !== null && { module: material.moduleId }) },
+          target: { screen: "course", code, tab: "modules", module: material.moduleId ?? introModule(material.courseId) },
         });
       }
     }

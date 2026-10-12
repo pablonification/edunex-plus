@@ -18,6 +18,7 @@ import { authHandlers } from "./handlers/auth";
 import type { DesktopContext } from "./handlers/context";
 import { coreHandlers } from "./handlers/core";
 import { coursePageHandlers } from "./handlers/course-page";
+import { filesHandlers } from "./handlers/files";
 import { scheduleHandlers } from "./handlers/schedule";
 import { sixHandlers } from "./handlers/six";
 import { tasksHandlers } from "./handlers/tasks";
@@ -117,6 +118,7 @@ async function start(): Promise<void> {
     packaged,
     userData,
     engineSession,
+    fetchFile: demo?.fetchFile ?? ((url, init) => engineSession.fetch(url, { ...init, bypassCustomProtocolHandlers: true })),
     vaultMode: mode,
     lang: () => current.snapshot().settings.lang,
     send,
@@ -130,6 +132,7 @@ async function start(): Promise<void> {
     ...authHandlers(context),
     ...tasksHandlers(context),
     ...coursePageHandlers(context),
+    ...filesHandlers(context),
     ...sixHandlers(context),
     ...alertsHandlers(context),
     ...updatesHandlers(context),

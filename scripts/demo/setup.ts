@@ -11,6 +11,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import zlib from "node:zlib";
 import { app, dialog, net, session, shell } from "electron";
 import type { DemoHooks } from "../../src/desktop/demo";
 import { PRETEND_TOKEN } from "../../test/pretend/edunex";
@@ -93,6 +94,40 @@ function runInRealTime(): void {
   }, 200).unref();
 }
 
+/** A made-up picture (soft stripes on a card) standing in for a lecturer's image in a note: a real PNG, drawn here. */
+function samplePicture(width = 640, height = 220): Uint8Array {
+  const raw = Buffer.alloc((width * 3 + 1) * height);
+  for (let y = 0; y < height; y++) {
+    raw[y * (width * 3 + 1)] = 0;
+    for (let x = 0; x < width; x++) {
+      const edge = x < 24 || x >= width - 24 || y < 24 || y >= height - 24;
+      const stripe = Math.floor((x + y) / 28) % 2 === 0;
+      const [r, g, b] = edge ? [236, 240, 252] : stripe ? [214, 225, 252] : [196, 211, 250];
+      raw.set([r, g, b], y * (width * 3 + 1) + 1 + x * 3);
+    }
+  }
+  const chunk = (type: string, data: Buffer) => {
+    const body = Buffer.concat([Buffer.from(type, "ascii"), data]);
+    const length = Buffer.alloc(4);
+    length.writeUInt32BE(data.length);
+    const crc = Buffer.alloc(4);
+    crc.writeUInt32BE(zlib.crc32(body));
+    return Buffer.concat([length, body, crc]);
+  };
+  const header = Buffer.alloc(13);
+  header.writeUInt32BE(width, 0);
+  header.writeUInt32BE(height, 4);
+  header.set([8, 2, 0, 0, 0], 8);
+  return Buffer.concat([
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    chunk("IHDR", header),
+    chunk("IDAT", zlib.deflateSync(raw)),
+    chunk("IEND", Buffer.alloc(0)),
+  ]);
+}
+// The picture in II4091's "Course Tokens" note.
+world.putFile("https://edunexfixture.blob.core.windows.net/edunex/fixture-2", samplePicture());
+
 const hooks: DemoHooks = {
   transport: world,
   clock: world.clock,
@@ -117,6 +152,7 @@ const hooks: DemoHooks = {
     return true;
   },
   clockOffset: () => world.clock.now() - Date.now(),
+  fetchFile: (url, init) => world.fetch(url, init),
 };
 
 globalThis.__edunexPlusDemo = hooks;

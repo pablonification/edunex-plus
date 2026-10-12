@@ -9,9 +9,11 @@ import type { UiClock } from "../../src/app/i18n";
 import { AppStore } from "../../src/app/store";
 import { type ActionName, type ActionResult, Actions, type AppSnapshot, type Event } from "../../src/core/contract";
 import { planOfflineFiles } from "../../src/core/course-materials";
+import { isOfficialUrl, isWebLink } from "../../src/core/links";
 import type { SourceId } from "../../src/core/models";
 import { phoneCalendar } from "../../src/core/phone-calendar";
 import { handInHandlers, type LocalFile } from "../../src/desktop/hand-in";
+import { readRemoteFile } from "../../src/desktop/remote-files";
 import { createEngine, type Engine } from "../../src/engine/engine";
 import { EngineError, isEngineError } from "../../src/engine/errors";
 import { PRETEND_TOKEN } from "../pretend/edunex";
@@ -38,6 +40,10 @@ globalThis.ResizeObserver ??= class {
   unobserve() {}
   disconnect() {}
 } as unknown as typeof ResizeObserver;
+// Pictures read in from Edunex's storage show from memory through object URLs, which jsdom can't make.
+let objectUrls = 0;
+URL.createObjectURL = () => `blob:app://edunex-plus/${++objectUrls}`;
+URL.revokeObjectURL = () => undefined;
 
 // The writing box (ProseMirror) measures text to keep the cursor in view; jsdom measures nothing.
 if (typeof Range !== "undefined" && !Range.prototype.getClientRects) {
@@ -109,6 +115,8 @@ export async function openApp(options: Options = {}) {
   let nextPick: LocalFile[] = [];
   /** Calendar files the Student saved, in order. */
   const exported: string[] = [];
+  /** The system can't open links (no browser set, the OS refused). */
+  let linksFail = false;
   const inFlight = new Set<Promise<unknown>>();
   const handlers: { [N in ActionName]: (input: never) => Promise<unknown> } = {
     "app.snapshot": async () => ({ ...engine.snapshot(), platform: "darwin", vault: options.vaultMode ?? "encrypted" }),
@@ -128,7 +136,19 @@ export async function openApp(options: Options = {}) {
       return {};
     },
     "settings.update": async (patch: never) => engine.updateSettings(patch),
-    "shell.openExternal": async () => ({}),
+    // Main's rules: the app's own links open only official pages; a lecturer's link, any web page.
+    "shell.openExternal": async ({ url }: { url: string }) => {
+      if (!isOfficialUrl(url)) throw new EngineError("Rejected", "Only official pages open from the app");
+      if (linksFail) throw new EngineError("Failed", "The system couldn't open it");
+      return {};
+    },
+    "shell.openLink": async ({ url }: { url: string }) => {
+      if (!isWebLink(url)) throw new EngineError("Rejected", "Only web pages open from a lecturer's link");
+      if (linksFail) throw new EngineError("Failed", "The system couldn't open it");
+      return {};
+    },
+    // Main's real reader, on the pretend storage.
+    "files.read": async ({ url, as }: { url: string; as: "image" }) => readRemoteFile((address, init) => world.fetch(address, init), url, as),
     "files.download": async ({ name }: { name: string }) => ({ path: `/Downloads/${name}` }),
     "course.saveOffline": async ({ code, pick }: { code: string; pick: boolean }) => {
       const value = <T,>(name: string) => engine.snapshot().datasets.find((d) => d.name === name)?.value as T | undefined;
@@ -273,6 +293,10 @@ export async function openApp(options: Options = {}) {
         await settle();
       });
       assertTidyFacts();
+    },
+    /** From now on the system fails to open links in the browser. */
+    failLinks(): void {
+      linksFail = true;
     },
     /** The files the Student will choose the next time the system file picker opens. */
     willPick(files: { name: string; content?: string; size?: number; type?: string; unreadable?: boolean }[]): void {

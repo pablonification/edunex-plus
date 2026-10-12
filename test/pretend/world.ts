@@ -15,10 +15,12 @@ export class PretendWorld implements Transport {
   readonly six: PretendSix;
   readonly itb: PretendItb;
   readonly github: PretendGithub;
-  /** Files uploaded to Edunex's storage, by path. */
+  /** Files on Edunex's storage (uploaded, or put there by a test), by path. */
   readonly blobs = new Map<string, Uint8Array | string>();
   /** The headers each upload to the storage came with, by path. */
   readonly blobHeaders = new Map<string, Record<string, string>>();
+  /** Files on the storage that answer with this status instead (403: the storage link expired). */
+  readonly blobStatus = new Map<string, number>();
   /** Every request that reached the world, for assertions about politeness. */
   readonly log: { at: number; method: string; url: string; status: number | "network-error" }[] = [];
   private offline = false;
@@ -72,6 +74,34 @@ export class PretendWorld implements Transport {
       if (error instanceof NetworkError) this.log.push({ at, method: request.method, url: request.url, status: "network-error" });
       throw error;
     }
+  }
+
+  /** Puts a file on Edunex's storage at this address, as a lecturer's upload. */
+  putFile(url: string, content: Uint8Array | string): void {
+    this.blobs.set(new URL(url).pathname, content);
+  }
+
+  /**
+   * Main's own fetch for a file on Edunex's storage, to show it in the app (a
+   * picture in a note): the bytes as stored. Offline, latency and the log
+   * apply as for the engine's requests.
+   */
+  async fetch(url: string, init: { signal?: AbortSignal } = {}): Promise<Response> {
+    const parsed = new URL(url);
+    const at = this.clock.now();
+    const failed = (message: string) => {
+      this.log.push({ at, method: "GET", url, status: "network-error" });
+      return new TypeError(message);
+    };
+    if (this.offline) throw failed(`${parsed.host} is unreachable`);
+    if (!parsed.host.endsWith(".blob.core.windows.net")) throw failed(`The pretend world has no files on ${parsed.host}`);
+    if (this.latencyMs > 0) await sleep(this.clock, this.latencyMs);
+    if (init.signal?.aborted) throw failed("The request was cancelled");
+    const blob = this.blobs.get(parsed.pathname);
+    const status = this.blobStatus.get(parsed.pathname) ?? (blob === undefined ? 404 : 200);
+    this.log.push({ at, method: "GET", url, status });
+    if (status !== 200) return new Response(status === 404 ? "BlobNotFound" : "AuthenticationFailed", { status });
+    return new Response(typeof blob === "string" ? new TextEncoder().encode(blob) : new Uint8Array(blob!), { status });
   }
 
   private route(request: HttpRequest, url: URL): HttpResponse {
