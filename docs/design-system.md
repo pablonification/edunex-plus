@@ -239,7 +239,7 @@ Screens are composed, not styled one by one:
 | `PageHeader` | Eyebrow (the date, a course code), title, one description line, actions on the right. |
 | `Section` | A titled part of a screen with an optional count, description and a link-like action. |
 | `List` + `Row` | Rows on one card divided by hairlines. `Row`: leading indicator, title, one meta line, trailing state or action. A clickable row is one button: the whole row is the target, a chevron appears on hover. |
-| `Meta` | Facts on one line, quietly separated ("11:00–12:59 · TVST C"); empty parts drop out. |
+| `Meta` | Facts on one line, quietly separated ("11:00–12:59 · TVST C"); empty parts drop out and text holding " · " splits into facts. The only place a "·" between facts is drawn: no line ever starts or ends with one (`align="end"` for a right-aligned column, `truncate` for one line). Labels and tooltips join facts with `factsLabel()`; a test fails on a "·" written by hand. |
 | `Notice` | Something to know right here (info, warning, danger, success, neutral) with the one thing to do. |
 | `Stat` | A figure read at a glance (IPK, SKS, absences left). |
 | `Card` | `plain`, `raised` (what matters most now), `sunken` (quiet areas). |
