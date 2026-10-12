@@ -437,11 +437,12 @@ describe("the written answer", () => {
     expect((await s.editor()).textContent).toBe("");
   });
 
-  it("speaks English", async () => {
+  it("speaks English, switched to with the page open", async () => {
     const s = await openApp({ signedIn: true });
     screen = s;
-    await s.engineDoes(() => s.engine.updateSettings({ lang: "en" }));
     await s.apply({ type: "navigate", route: { screen: "task", taskId: 117003 } });
+    await s.editor();
+    await s.engineDoes(() => s.engine.updateSettings({ lang: "en" }));
     const editor = await s.editor(/^Your answer$/);
     expect(editor.querySelector("[data-placeholder]")?.getAttribute("data-placeholder")).toBe("Write your answer here…");
     expect(s.has("Bold")).toBe(true);

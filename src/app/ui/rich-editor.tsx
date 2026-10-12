@@ -14,7 +14,7 @@ import { Placeholder } from "@tiptap/extensions";
 import { closeHistory } from "@tiptap/pm/history";
 import { type Editor, EditorContent, useEditor, useEditorState } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import { type KeyboardEvent, type ReactNode, type Ref, useId, useImperativeHandle, useRef, useState } from "react";
+import { type KeyboardEvent, type ReactNode, type Ref, useEffect, useId, useImperativeHandle, useRef, useState } from "react";
 import { useT } from "../i18n";
 import { Button } from "./controls";
 import { cx } from "./cx";
@@ -58,6 +58,7 @@ export default function RichEditor({ initial, onChange, label, placeholder, desc
   // The editor is made once; its change handler always reaches the latest onChange.
   const changed = useRef(onChange);
   changed.current = onChange;
+  const hint = useRef(placeholder);
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -71,7 +72,7 @@ export default function RichEditor({ initial, onChange, label, placeholder, desc
           HTMLAttributes: { target: null, rel: null },
         },
       }),
-      Placeholder.configure({ placeholder }),
+      Placeholder.configure({ placeholder: () => hint.current }),
     ],
     content: initial,
     shouldRerenderOnTransaction: false,
@@ -100,6 +101,11 @@ export default function RichEditor({ initial, onChange, label, placeholder, desc
     },
     onUpdate: ({ editor }) => changed.current(editor.isEmpty ? "" : editor.getHTML()),
   });
+  // A placeholder in a newly chosen language shows at once, with the text and its history kept.
+  useEffect(() => {
+    hint.current = placeholder;
+    editor.view.updateState(editor.state);
+  }, [editor, placeholder]);
   useImperativeHandle(
     ref,
     () => ({
