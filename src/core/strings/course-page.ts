@@ -143,6 +143,21 @@ export const coursePageStrings = {
     id: "Paling tinggi {best}% kalau kamu hadir di semua sisa pertemuan. Cek ke dosen kalau ada yang terlewat.",
     en: "At best {best}% if you attend every meeting left. Ask the lecturer if one was missed.",
   },
+  "course.risk.none": {
+    id: "{count} pertemuan lagi sampai {date}: hadiri semuanya agar tetap {target}%.",
+    en: {
+      one: "{count} meeting left until {date}: attend it to stay at {target}%.",
+      other: "{count} meetings left until {date}: attend them all to stay at {target}%.",
+    },
+  },
+  "course.risk.noneAbout": {
+    id: "Sekitar {count} pertemuan lagi sampai {date}: hadiri semuanya agar tetap {target}%.",
+    en: {
+      one: "About {count} meeting left until {date}: attend it to stay at {target}%.",
+      other: "About {count} meetings left until {date}: attend them all to stay at {target}%.",
+    },
+  },
+  "course.risk.noneNoDate": { id: "Hadiri setiap pertemuan yang tersisa agar tetap {target}%.", en: "Attend every meeting left to stay at {target}%." },
   "course.risk.next": { id: "Pertemuan berikutnya {when}{room}.", en: "Next meeting {when}{room}." },
   "course.risk.room": { id: " di {room}", en: " in {room}" },
   "course.risk.clash": { id: "Bentrok dengan {code} {time}.", en: "Clashes with {code} {time}." },

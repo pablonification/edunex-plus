@@ -5,7 +5,7 @@
 // Tasks and materials), Pertemuan, Tugas & Ujian, Nilai and Pengumuman.
 import * as Tabs from "@radix-ui/react-tabs";
 import { useMemo, useState } from "react";
-import { percent } from "../../core/attendance";
+import { type AttendanceHealth, percent } from "../../core/attendance";
 import { planOfflineFiles } from "../../core/course-materials";
 import { clashes, openPresence, pinnedMeeting } from "../../core/course-meetings";
 import { edunexCourseUrl } from "../../core/links";
@@ -226,8 +226,10 @@ function MoreMenu({ page }: { page: CoursePage }) {
 }
 
 /**
- * For a course at risk: what that means now, in one place. How many absences
- * are left, the next meeting, and a clash with another class that day.
+ * For a course in trouble (no absences left, or the target out of reach):
+ * what that means now, in one place. The next meeting, and a clash with
+ * another class that day. One absence left is said by the header's meter,
+ * not by a banner.
  */
 function RiskStrip({ page }: { page: CoursePage }) {
   const t = useT();
@@ -237,7 +239,7 @@ function RiskStrip({ page }: { page: CoursePage }) {
   const attendance = useAttendance();
   const schedule = useDataset("six.schedule");
   const health = attendance?.courses.find((c) => c.course.code === page.course.code)?.health;
-  if (!health || (health.state !== "out" && health.state !== "none" && health.state !== "risk")) return null;
+  if (!health || (health.state !== "out" && health.state !== "none")) return null;
   const next = page.meetings.find((m) => m.end > now && !m.notInSix);
   const clash = next ? clashes(next, page.course.code, schedule ?? [])[0] : undefined;
   // The strip right below already shows the next meeting; say it here only when it doesn't.
@@ -255,7 +257,7 @@ function RiskStrip({ page }: { page: CoursePage }) {
       }
     >
       {[
-        out ? t("course.risk.best", { best: percent(health.best ?? 0) }) : "",
+        out ? t("course.risk.best", { best: percent(health.best ?? 0) }) : noneLeft(t, f, health, attendance.lastDay),
         next && !nextShownBelow
           ? t("course.risk.next", {
               when: `${f.relativeDay(next.start)}, ${f.timeRange(next.start, next.end)}`,
@@ -271,6 +273,15 @@ function RiskStrip({ page }: { page: CoursePage }) {
         .join(" ")}
     </Notice>
   );
+}
+
+/** "7 pertemuan lagi sampai 4 Des: hadiri semuanya agar tetap 80%." ("Sekitar" when part of it is the weekly slot carried on.) */
+function noneLeft(t: ReturnType<typeof useT>, f: ReturnType<typeof useFormat>, health: AttendanceHealth, lastDay: string | null): string {
+  const { count, estimated } = health.left;
+  if (count === 0) return "";
+  if (!lastDay) return t("course.risk.noneNoDate", { target: health.target });
+  const date = f.dayMonth(Date.parse(`${lastDay}T12:00:00+07:00`));
+  return t(estimated ? "course.risk.noneAbout" : "course.risk.none", { count, date, target: health.target });
 }
 
 /**
