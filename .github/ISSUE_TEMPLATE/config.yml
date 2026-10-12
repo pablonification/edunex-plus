@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: A security problem
+    url: https://github.com/pablonification/edunex-plus/security/advisories/new
+    about: Report it privately, so it isn't public before it's fixed (see SECURITY.md).

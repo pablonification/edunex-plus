@@ -1,0 +1,85 @@
+name: Something's wrong
+description: A screen shows something wrong, an alert misbehaves, or the app breaks.
+labels: [bug, needs-triage]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        > [!WARNING]
+        > **This page is public. Remove your personal data before you send it:** no name, NIM, email, grades, Teams links or course files, and blur them in screenshots. Describe what you see instead; that's enough.
+
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What you saw, and what you expected instead.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: where
+    attributes:
+      label: Where in the app?
+      multiple: true
+      options:
+        - Beranda
+        - Tugas & Ujian
+        - Jadwal
+        - Presensi
+        - Nilai
+        - Rencana studi
+        - A course page
+        - Notifications or alerts
+        - Search
+        - Settings
+        - Signing in
+        - Installing or updating
+        - Somewhere else
+
+  - type: dropdown
+    id: source
+    attributes:
+      label: Whose data is it about?
+      options:
+        - Edunex
+        - SIX
+        - Both
+        - Not sure
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: How to make it happen
+      placeholder: |
+        1. Open Jadwal
+        2. Go to next week
+        3. ...
+
+  - type: input
+    id: version
+    attributes:
+      label: App version
+      description: Settings shows it ("Versi …").
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Computer
+      options:
+        - macOS
+        - Windows
+        - Linux
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots
+      description: Optional. Blur your name, NIM, grades and anything else personal first.
+
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Privacy
+      options:
+        - label: I removed or blurred my personal data (name, NIM, email, grades, links).
+          required: true
