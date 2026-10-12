@@ -4,6 +4,7 @@
 // these end up in the app. Icons are decorative: give the control around them
 // an accessible name.
 import type { Icon as PhosphorIcon } from "@phosphor-icons/react";
+import { AlarmIcon } from "@phosphor-icons/react/dist/csr/Alarm";
 import { ArrowRightIcon } from "@phosphor-icons/react/dist/csr/ArrowRight";
 import { ArrowsClockwiseIcon } from "@phosphor-icons/react/dist/csr/ArrowsClockwise";
 import { ArrowUpRightIcon } from "@phosphor-icons/react/dist/csr/ArrowUpRight";
@@ -143,6 +144,8 @@ export const Icons = {
   MoreHorizontal: icon(DotsThreeIcon),
   CalendarCheck: icon(CalendarCheckIcon),
   Hand: icon(HandIcon),
+  /** "Ingatkan nanti": an alarm clock, not a bell, since the bell and notifications aren't affected. */
+  Snooze: icon(AlarmIcon),
 };
 
 export type IconName = keyof typeof Icons;
