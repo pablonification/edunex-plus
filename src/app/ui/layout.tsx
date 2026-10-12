@@ -176,7 +176,8 @@ export function Row({
  * the dot of a fact that starts a line sits outside the box, clipped away.
  * `align="end"` is the mirror image for a right-aligned column (the dot after
  * each fact, clipped on the right); centered text can't be made safe this way.
- * `truncate` keeps the facts on one line and cuts the last one short instead.
+ * `truncate` keeps the facts on one line and cuts the last one short instead
+ * (an earlier fact that fills the line on its own ends in "…" there).
  */
 export function Meta({
   className,
@@ -214,7 +215,8 @@ export function Meta({
               // biome-ignore lint/suspicious/noArrayIndexKey: the parts are positional children; text has no key of its own
               key={i}
               data-fact=""
-              className={cx("inline-flex min-w-0 items-center", truncate && i < parts.length - 1 && "shrink-0")}
+              // Short facts keep their width; one wider than the line stops at its edge, so its text can end in "…".
+              className={cx("inline-flex min-w-0 items-center", truncate && i < parts.length - 1 && "max-w-full shrink-0")}
             >
               {!end && sep}
               <span className={cx("min-w-0", truncate ? "truncate" : "break-words")}>{part}</span>

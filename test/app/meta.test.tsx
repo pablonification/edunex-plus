@@ -102,6 +102,15 @@ describe("Meta", () => {
     expect(facts(meta).map((fact) => fact.className.includes("shrink-0"))).toEqual([true, true, false]);
     expect(facts(meta).at(-1)?.lastElementChild?.className).toContain("truncate");
   });
+
+  it("truncated: an earlier fact as wide as the line ends in '…' at its edge, not cut mid-letter", () => {
+    const meta = draw(<Meta truncate>{"Ringkasan bab dua dengan judul yang sangat panjang sekali · cek apakah perlu dikumpulkan ulang"}</Meta>);
+    const [long] = facts(meta);
+    // Kept from shrinking, but never wider than the line: its text box can cut itself short with "…".
+    expect(long?.className).toContain("shrink-0");
+    expect(long?.className).toContain("max-w-full");
+    expect(long?.lastElementChild?.className).toContain("truncate");
+  });
 });
 
 describe("the check every screen test runs", () => {
