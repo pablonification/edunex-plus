@@ -77,12 +77,14 @@ export function ExamRow({ exam, index }: { exam: Exam; index?: number }) {
   const [inClass] = exam.six;
   const online = exam.edunex.find((e) => e.start !== null);
   const days = sourceDays(f, exam);
+  // The tile shows the earliest date, which can be a take-home's deadline: a sitting on another day names its own.
+  const ownDay = (at: number) => (exam.at !== null && wibDay(at) !== wibDay(exam.at) ? dayLabel(f, at) : "");
   const when =
     inClass !== undefined
       ? // Said plainly, as the exam page's "Di kelas" card does; a take-home due another day is its own line below.
-        [t("exam.inClass"), f.timeRange(inClass.start, inClass.end), inClass.room]
+        [t("exam.inClass"), ownDay(inClass.start), f.timeRange(inClass.start, inClass.end), inClass.room]
       : online?.start != null
-        ? [t("exam.onEdunex"), f.time(online.start)]
+        ? [t("exam.onEdunex"), ownDay(online.start), f.time(online.start)]
         : exam.at === null && exam.week && (exam.kind === "UTS" || exam.kind === "UAS")
           ? [t("exam.dayUnknown")]
           : exam.at === null

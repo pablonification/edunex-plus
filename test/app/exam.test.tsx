@@ -56,6 +56,16 @@ describe("the exam list", () => {
     expect(examSection()?.textContent).not.toMatch(/minggu/i);
   });
 
+  it("a take-home due before SIX's sitting: the tile shows the deadline's day, and the class sitting names its own", async () => {
+    const world = new PretendWorld();
+    world.edunex.moveDeadline(117764, "2026-10-12T23:59:00+07:00");
+    await openTasks(world);
+    const row = examRow("DK4073")!.textContent ?? "";
+    expect(row.startsWith("Sen12Okt")).toBe(true);
+    expect(row).toContain("DK4073 · Di kelas · Kam 15 Okt · 11:00–12:59 · TVST C");
+    expect(row).toContain("Take-home: UTS Markom · tenggat Sen, 12 Okt, 23:59");
+  });
+
   it("an exam that has passed moves to Selesai", async () => {
     const s = await openTasks();
     await s.click(/^Selesai/);
