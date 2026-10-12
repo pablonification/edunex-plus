@@ -46,6 +46,26 @@ never web content, a strict content policy.
   markup, style or handler from Edunex reaches the page. It now also keeps
   figures, captions, highlights and rules, turns an embedded video or page
   into its link, and drops CKEditor's empty spacer paragraphs, as Edunex does.
+- **PDFs read in the app with pdf.js, never Chromium's PDF plugin.** The
+  plugin would need `plugins: true`, frames or `object-src`, and a page that
+  loads remote content; pdf.js (`pdfjs-dist`, Apache-2.0, the engine Edunex's
+  own site uses) draws from bytes inside the app's page instead. The bytes
+  come through `files.read` like pictures (Edunex's storage only, at most
+  100 MB, starting with `%PDF-`). It loads only when a PDF is first opened,
+  as its own chunk. Two small, explained changes serve it from the app's own
+  files: `app://` sends `.mjs` as JavaScript (its worker is a module, and
+  `nosniff` refuses a script without the right type), and the content policy
+  says `worker-src 'self'` outright (it already followed from `script-src
+  'self'`). It runs with `useWasm: false`, using pdf.js's JavaScript image
+  decoders, so `script-src` needs no `'wasm-unsafe-eval'`; v6 has no eval
+  path, and a PDF's own scripts never run (`pdf.sandbox` isn't shipped). A
+  link inside a PDF follows the lecturer-link rule above or goes to its page.
+- **A small file cache, wiped at sign-out.** Files the window showed are kept
+  in the app's data folder (`file-cache/`, named by a hash of their address,
+  the least recently opened dropped past 300 MB) so opening one again is
+  instant and works offline. Signing out of Edunex, or of everything, removes
+  it (`traces.ts`). A PDF the Student saved for offline reading opens from
+  that copy first.
 - **Reading never tells Edunex.** Fetching a picture from Azure doesn't touch
   Edunex's API, so it never counts as "viewed" or presence (0001).
 
@@ -57,3 +77,8 @@ never web content, a strict content policy.
   behaviour, and they open in the Student's browser, never inside the app.
 - Tests run main's real reader on the pretend storage (`world.fetch`), and the
   test bridge refuses links the way main does, so a dead link fails a test.
+  pdf.js can't draw in jsdom: screen tests use a stand-in for it, and the
+  demo's made-up PDFs show the real drawing.
+- The app's files grow by pdf.js's worker (1.3 MB), its lazy chunk (437 KB)
+  and its data files (3 MB of character maps, standard fonts and decoders);
+  the window's start-up bundle doesn't.
