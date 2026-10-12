@@ -413,6 +413,27 @@ describe("the study planner", () => {
     expect(saved()?.terms.map((t) => [t.term, t.courses.map((c) => c.code)])).toEqual([["2026-2", ["II4010"]]]);
   });
 
+  it("removing a semester counts only the courses it shows, not copies of ones taken already (bug)", async () => {
+    const planned = (code: string, name: string, sks: number) => ({ code, name, sks, grade: "AB" as const, retake: false });
+    // PL3032 is in this semester's KRS and II2100 is passed: both copies are hidden.
+    const s = await openPlan({
+      saved: {
+        terms: [
+          {
+            term: "2026-2",
+            courses: [planned("II4092", "Tugas Akhir", 4), planned("PL3032", "Mata Kuliah Contoh", 3), planned("II2100", "Mata Kuliah Lulus", 3)],
+          },
+        ],
+        expected: {},
+        target: null,
+        minor: null,
+      },
+    });
+    expect(block(/^Semester 8 · 2026\/2027 Genap/)!.querySelectorAll("li")).toHaveLength(1);
+    await s.click("Hapus Semester 8 · 2026/2027 Genap");
+    expect(toastText()).toContain("Semester 8 · 2026/2027 Genap dihapus (1 mata kuliah)");
+  });
+
   it("in English", async () => {
     const s = await openPlan({ lang: "en" });
     expect(summary()).toContain("144 SKS covered+7 to spare");

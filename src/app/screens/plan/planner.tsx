@@ -281,11 +281,9 @@ function Planner({ real, record, state }: { real: StudentRecord; record: Student
                 step={stepOf.get(term.term)}
                 onRemove={
                   canRemoveTerm(plan, term.term)
-                    ? () => {
-                        // What's really removed: the semester as saved (an older plan can still hold a course tried now).
-                        const count = state.base.terms.find((x) => x.term === term.term)?.courses.length ?? term.courses.length;
-                        undoable((p) => removeTerm(p, term.term), t("planner.removedTerm", { term: label, count }));
-                      }
+                    ? () =>
+                        // The courses the Student sees: a hidden copy of one taken already (in the KRS, passed) isn't lost with it.
+                        undoable((p) => removeTerm(p, term.term), t("planner.removedTerm", { term: label, count: term.courses.length }))
                     : undefined
                 }
                 removeLabel={t("planner.removeTerm", { term: label })}
