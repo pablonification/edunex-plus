@@ -1,6 +1,6 @@
 # The checks every pull request and every push to main goes through. They run
 # side by side, and each writes its result in plain words on the run's summary
-# page. lint, typecheck, test and build must pass; knip only advises.
+# page. lint, typecheck, test and build must pass; knip and screens only advise.
 name: CI
 
 on:
@@ -21,6 +21,41 @@ defaults:
     shell: bash
 
 jobs:
+  # Which parts of the repository a pull request touches, so the slower or
+  # narrower checks below only run when they have something to look at.
+  # A skipped check still counts as passed for merging.
+  changes:
+    name: changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      pull-requests: read # list the pull request's changed files
+    outputs:
+      screens: ${{ steps.areas.outputs.screens }}
+    steps:
+      - name: See which areas the change touches
+        id: areas
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+          PR: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          everything=false
+          files=""
+          if [ "$EVENT" != pull_request ]; then
+            everything=true
+          elif ! files=$(gh api --paginate "repos/$REPO/pulls/$PR/files" --jq '.[].filename'); then
+            echo "::warning::Couldn't list the changed files, so every check runs."
+            everything=true
+          fi
+          area() {
+            if [ "$everything" = true ] || grep -qE "$2" <<< "$files"; then echo "$1=true"; else echo "$1=false"; fi
+          }
+          {
+            area screens '^(src/app/|src/core/|scripts/demo/|test/pretend/|package-lock\.json$|\.github/workflows/ci\.yml$)'
+          } | tee -a "$GITHUB_OUTPUT"
+
   lint:
     name: lint
     runs-on: ubuntu-latest
@@ -131,3 +166,62 @@ jobs:
         run: |
           node scripts/ci/summary.mjs knip "$OUTCOME" "$RUNNER_TEMP/knip.md"
           if [ "$OUTCOME" != success ]; then echo "::warning title=knip::knip found unused code (advisory for now). The run summary lists it."; fi
+
+  # Pictures of every screen, on the demo's made-up data, attached to the pull
+  # request so the maintainer sees what changed without reading code.
+  screens:
+    name: screens
+    needs: changes
+    if: github.event_name == 'pull_request' && needs.changes.outputs.screens == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    # Advisory: Electron on a virtual screen can be flaky. A failure shows but doesn't block merging.
+    continue-on-error: true
+    permissions:
+      contents: read
+      pull-requests: write # post and update the pictures comment
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Node and packages
+        uses: ./.github/actions/setup
+      - name: Let Electron's sandbox start (Ubuntu 24.04 limits it by default)
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+      - name: Get a virtual screen
+        run: command -v xvfb-run || { sudo apt-get update && sudo apt-get install -y xvfb; }
+      - name: Download Electron
+        run: node -e 'console.log(require("electron"))'
+      - name: Build the demo app
+        run: npm run demo:build
+      - name: Take the pictures
+        # About 8 minutes: the first-run scenario waits in real time for the first sync.
+        timeout-minutes: 18
+        run: >-
+          xvfb-run --auto-servernum --server-args="-screen 0 1600x1000x24"
+          node scripts/demo/capture.mjs "$RUNNER_TEMP/screens" 2>&1 | tee "$RUNNER_TEMP/capture.log"
+      - name: Upload the pictures
+        id: upload
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: screens-pr${{ github.event.pull_request.number }}
+          path: |
+            ${{ runner.temp }}/screens
+            ${{ runner.temp }}/capture.log
+          if-no-files-found: ignore
+          retention-days: 14
+      - name: Write the comment
+        if: ${{ !cancelled() }}
+        env:
+          ARTIFACT_URL: ${{ steps.upload.outputs.artifact-url }}
+          COMMIT: ${{ github.event.pull_request.head.sha }}
+        run: node scripts/ci/screens-comment.mjs "$RUNNER_TEMP/screens" "$RUNNER_TEMP/capture.log" "$ARTIFACT_URL" "$COMMIT" "$RUNNER_TEMP/comment.md"
+      - name: Post it on the pull request
+        # Pull requests from forks get a read-only token; their pictures are still in the run.
+        if: ${{ !cancelled() && github.event.pull_request.head.repo.full_name == github.repository }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+        run: bash scripts/ci/sticky-comment.sh "$PR" screens "$RUNNER_TEMP/comment.md"

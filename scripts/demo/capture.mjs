@@ -145,7 +145,7 @@ await session("signed-in", async (demo) => {
   });
   await attempt("cari", async () => {
     await nav(demo, "Beranda");
-    await page.keyboard.press("Meta+K");
+    await page.keyboard.press("ControlOrMeta+K");
     await page.keyboard.type("bab 2", { delay: 30 });
     await settle(page, 400);
     await demo.shot("23-cari");
