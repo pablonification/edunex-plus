@@ -74,7 +74,7 @@ import { Card } from "../../ui/display";
 import { Icons } from "../../ui/icons";
 import { Meta } from "../../ui/layout";
 import { Menu } from "../../ui/menu";
-import { Flash } from "../../ui/motion";
+import { AnimatedNumber } from "../../ui/motion/animated-number";
 import { ConfirmDialog, Dialog, dismissToast, Tooltip, toast } from "../../ui/overlays";
 import { TabBar } from "../../ui/tabs";
 import { GradeSelect, HonorsList, IpkChart, NeedText, predicateFor, TargetControl, usePredicate, useTermLabel } from "./projection";
@@ -440,7 +440,7 @@ function Summary({ record, state, rules }: { record: StudentRecord; state: PlanS
           <div>
             <dt className="text-caption font-medium text-muted">{t("grades.graduation")}</dt>
             <dd className="text-title font-semibold tabular-nums">
-              <Flash value={projection.finalIpk}>{projection.finalIpk === null ? "—" : f.number(projection.finalIpk, 2)}</Flash>
+              {projection.finalIpk === null ? "—" : <AnimatedNumber value={projection.finalIpk} format={(value) => f.number(value, 2)} />}
             </dd>
             <dd className={cx("text-caption", projection.honor ? "font-semibold text-success-fg" : "text-muted")}>{word}</dd>
           </div>
