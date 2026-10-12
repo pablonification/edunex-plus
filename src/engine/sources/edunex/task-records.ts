@@ -81,11 +81,6 @@ export async function fetchCourseTasks(client: EdunexClient, courseId: number): 
   return list.data;
 }
 
-/** One Task read back from Edunex (through its course's list, the shape verified with answers). Null when it's gone. */
-export async function readTask(client: EdunexClient, known: Pick<Task, "id" | "courseId" | "courseCode" | "module">, now: number): Promise<Task | null> {
-  return (await readTaskRecord(client, known, now))?.task ?? null;
-}
-
 /** A Task read back with Edunex's own records of it and of the Student's answer, which handing in sends parts of back. */
 export interface TaskRecord {
   task: Task;
@@ -93,6 +88,7 @@ export interface TaskRecord {
   answer: EdunexAnswer | null;
 }
 
+/** One Task read back from Edunex (through its course's list, the shape verified with answers). Null when it's gone. */
 export async function readTaskRecord(
   client: EdunexClient,
   known: Pick<Task, "id" | "courseId" | "courseCode" | "module">,
