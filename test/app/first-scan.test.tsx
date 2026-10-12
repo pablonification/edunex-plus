@@ -202,6 +202,16 @@ describe("only with something to say", () => {
   });
 });
 
+describe("a course with one absence left", () => {
+  it("says it as Beranda and Presensi do", async () => {
+    const world = new PretendWorld();
+    // DK4073 safe: PL3002, with one absence left, is among the lines shown.
+    world.six.setAttendance("DK4073", 7, 7);
+    screen = await openApp({ world, firstScan: true, signedIn: true, six: true });
+    expect(detail("Kehadiran 3")).toBe("KU5014: hadir 2 dari 6 · paling tinggi 73% dari target 80%PL3032: jangan absen lagiPL3002: masih bisa absen 1× lagi");
+  });
+});
+
 describe("in English", () => {
   it("says the same", async () => {
     const world = new PretendWorld();
