@@ -158,8 +158,9 @@ describe("a Presence window still open after its class", () => {
     expect(now).toContain("Presensi PL3002 sedang dibuka");
     expect(now).toContain("PL3002 · Kemarin, 08:00–09:30");
     expect(now).toContain("Buka mata kuliahnya di Edunex sebelum besok, 23:00");
-    // A day and a half away: its day, not "36 jam".
+    // A day and a half away: its day, not "36 jam", said once: the bar beside it shows no second "tutup besok".
     expect(countdowns()).toEqual(["tutup besok"]);
+    expect(now.match(/besok/g)).toHaveLength(1);
   });
 
   it("closing in three days: the day and date, in either language", async () => {
@@ -167,7 +168,9 @@ describe("a Presence window still open after its class", () => {
     keepThursdayOpen(world, "2026-10-12T23:00:00+07:00");
     screen = await openApp({ world, signedIn: true });
     expect(text("home-now")).toContain("sebelum Sen, 12 Okt, 23:00");
+    // Further off, how long is left adds something: shown beside the bar.
     expect(countdowns()).toEqual(["tutup dalam 3 hari"]);
+    expect(text("home-now")).toContain("tutup dalam 3 hari");
     await screen.engineDoes(() => screen!.engine.updateSettings({ lang: "en" }));
     expect(text("home-now")).toContain("before Mon, 12 Oct, 23:00");
     expect(text("home-now")).toContain("PL3002 · Yesterday, 08:00–09:30");

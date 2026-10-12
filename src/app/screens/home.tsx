@@ -343,6 +343,8 @@ function Attendance({ card }: { card: NowCard }) {
               ? t("home.now.closesIn", { left: f.countdown(session.closesAt) })
               : t("home.now.closesWhen", { when: f.fromNow(session.closesAt) })
           }
+          // "tutup besok" under "sebelum besok, 23:00" would say it twice.
+          showLabel={session.closesAt - now < DAY || f.dayOffset(session.closesAt) > 1}
         />
       </div>
     );

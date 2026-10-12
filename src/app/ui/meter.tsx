@@ -61,12 +61,15 @@ export function CountdownBar({
   closesAt,
   now,
   label,
+  showLabel = true,
   className,
 }: {
   opensAt: number;
   closesAt: number;
   now: number;
   label: string;
+  /** False when the words beside the bar already say it: the label stays the bar's name for screen readers. */
+  showLabel?: boolean;
   className?: string;
 }) {
   const left = Math.max(0, Math.min(1, (closesAt - now) / Math.max(1, closesAt - opensAt)));
@@ -86,7 +89,7 @@ export function CountdownBar({
           style={{ width: `${left * 100}%` }}
         />
       </span>
-      <span className={cx("shrink-0 text-small font-semibold tabular-nums", soon ? "text-warning-fg" : "text-muted")}>{label}</span>
+      {showLabel && <span className={cx("shrink-0 text-small font-semibold tabular-nums", soon ? "text-warning-fg" : "text-muted")}>{label}</span>}
     </span>
   );
 }
