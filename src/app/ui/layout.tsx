@@ -4,6 +4,7 @@
 import { Children, type CSSProperties, cloneElement, Fragment, isValidElement, type ReactNode } from "react";
 import { cx } from "./cx";
 import { Icons } from "./icons";
+import { PresenceItem } from "./motion/presence-list";
 
 const WIDTH = {
   narrow: "max-w-[760px]",
@@ -157,7 +158,8 @@ export function Row({
   const style = index === undefined ? undefined : ({ "--i": index } as CSSProperties);
   const aside = actions !== undefined && actions !== null && actions !== false;
   return (
-    <li
+    // A plain <li> outside a PresenceList; inside one, a row the Student removes fades out of it.
+    <PresenceItem
       className={cx(
         index !== undefined && "motion-safe:stagger",
         // With actions the row's hover belongs to the whole line, the control beside the button included,
@@ -198,7 +200,7 @@ export function Row({
           {actions}
         </div>
       )}
-    </li>
+    </PresenceItem>
   );
 }
 

@@ -2,16 +2,22 @@
 // The kit's Row with a control of its own beside its button ("Ingatkan nanti"):
 // keyboard focus on the row is framed around the whole line, inside it, so the
 // list's clipped edges can't cut the frame down to a stray bar. jsdom can't draw
-// outlines; this checks the styles that place the frame.
+// outlines; this checks the styles that place the frame. A Row in a list that
+// opts in (PresenceList) leaves it gently when the Student removes it.
 import { act, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it } from "vitest";
 import { List, Row } from "../../src/app/ui/layout";
+import { PresenceList } from "../../src/app/ui/motion/presence-list";
+import { playAnimations } from "./fake-animations";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 let root: Root | null = null;
+let animations: ReturnType<typeof playAnimations> | null = null;
 afterEach(() => {
+  animations?.stop();
+  animations = null;
   act(() => root?.unmount());
   root = null;
   document.body.replaceChildren();
@@ -50,5 +56,33 @@ describe("Row's focus frame", () => {
     );
     expect(classes(list.querySelector("li > button"))).toContain("focus-ring");
     expect(classes(list.querySelector("li")).some((name) => name.startsWith("has-[>button:focus-visible]"))).toBe(false);
+  });
+});
+
+describe("Row in a PresenceList", () => {
+  const list = (ids: string[]) => (
+    <List>
+      <PresenceList>
+        {ids.map((id) => (
+          <Row key={id} title={`Tugas ${id}`} onClick={() => undefined} />
+        ))}
+      </PresenceList>
+    </List>
+  );
+
+  it("a removed row fades out of the list, focus moving on to the next row, and is gone once it has", async () => {
+    animations = playAnimations();
+    const container = draw(list(["A", "B", "C"]));
+    const leaving = container.querySelectorAll("li")[1];
+    leaving.querySelector("button")!.focus();
+    act(() => root!.render(list(["A", "C"])));
+    expect(leaving.isConnected).toBe(true);
+    expect(leaving.inert).toBe(true);
+    expect(animations.on(leaving).length).toBeGreaterThan(0);
+    expect(document.activeElement?.textContent).toBe("Tugas C");
+
+    await animations.finishAll();
+    expect(leaving.isConnected).toBe(false);
+    expect([...container.querySelectorAll("li")].map((li) => li.textContent)).toEqual(["Tugas A", "Tugas C"]);
   });
 });

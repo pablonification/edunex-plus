@@ -358,7 +358,7 @@ Screens are composed, not styled one by one:
 | `AnimatedNumber` (`ui/motion/`) | A figure the Student just changed counts to its new value, in the app's number format; screen readers and copies only ever get the true value. |
 | `SlidingHighlight` (`ui/motion/`) | The highlight of a segmented control or tab list, gliding to the new pick. The group keeps its own buttons; items carry `data-highlight`. A rounded fill stretches a little while it glides between items of different widths. |
 | `DisclosurePanel`, `disclosureTrigger` (`ui/motion/`) | A panel opening smoothly under the screen's own button, which says what it controls. |
-| `PresenceList`, `PresenceItem` (`ui/motion/`) | Rows the Student can remove (snoozed, handed in) without the list jumping or focus getting lost. Built on `Presence` (`ui/motion/presence.tsx`), which keeps a leaving child on screen until it has played its way out; the toasts use it too. |
+| `PresenceList`, `PresenceItem` (`ui/motion/`) | Rows the Student can remove (snoozed, handed in) without the list jumping or focus getting lost. A kit `Row` is a `PresenceItem` (a plain `<li>` outside a list that opts in), so a list opts in by wrapping its rows in `PresenceList`. Built on `Presence` (`ui/motion/presence.tsx`), which keeps a leaving child on screen until it has played its way out; the toasts use it too. |
 
 The shell: a sidebar (the app's icon and name, ⌘1–⌘6, courses with their dot, the Student's name
 opening Settings), a top bar (back button naming where it goes, ⌘K search,
