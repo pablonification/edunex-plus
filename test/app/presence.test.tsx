@@ -89,11 +89,16 @@ describe("the Presensi screen", () => {
     });
   });
 
-  it("the next meeting inside Masa UTS is said to be uncertain, and counted (missing it would cost an absence)", async () => {
-    await openPresence("2026-10-09T09:00:00+07:00");
+  it("the next meeting inside Masa UTS is said to be uncertain, and buys no absence (it may not run)", async () => {
+    const s = await openPresence("2026-10-09T09:00:00+07:00");
     // SIX still lists the Thursday lecture in UTS week.
     await six([course("PL3002", 6, 7)], weekly("PL3002", "2026-08-27T08:00:00", 10));
     expect(card("PL3002")).toContain("Berikutnya: Kam, 15 Okt, 08:00 · 9134 · belum pasti, cek pengumuman");
+    // Counted, it would say "2× lagi": one absence too many if the lecture doesn't run.
+    expect(card("PL3002")).toContain("Boleh absen 1× lagi");
+    expect(s.text()).toContain(
+      "Kuliah yang masih dijadwalkan SIX di minggu UTS, UAS atau hari libur belum pasti ada, jadi tidak dihitung sebagai jatah absen.",
+    );
     expect(squares("PL3002")[7]).toBe("Kam 15 Okt, 08:00 · masa ujian atau libur: belum pasti ada kuliah");
     expect(strip("PL3002")).toBe("Pertemuan: 6 hadir, 1 absen, sekitar 8 lagi");
   });

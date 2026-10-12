@@ -140,8 +140,9 @@ describe("meetings left to the last lecture day", () => {
     const after = weekly("II3120", "2026-10-07T13:00:00", 4);
     expect(usualSlots([...before, ...after])).toEqual([{ weekday: 3, start: 13 * 60, length: 2 * HOUR }]);
     const left = meetingsLeft("II3120", [...before, ...after], period, wib("2026-10-08T12:00:00"));
-    // 14 (listed by SIX, so it counts), 21, 28 Oct, then Wednesdays 4 Nov – 2 Dec.
-    expect(left.count).toBe(8);
+    // 14 Oct (listed by SIX in UTS week: it may not run, so not counted), 21, 28 Oct, then Wednesdays 4 Nov – 2 Dec.
+    expect(left.count).toBe(7);
+    expect(left.upcoming).toHaveLength(8);
     // SIX moves one class: the next meeting follows.
     const moved = after.map((s, i) => (i === 1 ? { ...s, start: s.start + DAY, end: s.end + DAY } : s));
     expect(wibDate(meetingsLeft("II3120", [...before, ...moved], period, wib("2026-10-08T12:00:00")).next!.start)).toBe("2026-10-15");
@@ -152,11 +153,11 @@ describe("meetings left to the last lecture day", () => {
     expect(usualSlots(sessions)).toEqual([{ weekday: 4, start: 16 * 60, length: 2 * HOUR }]);
   });
 
-  it("a lecture SIX still lists inside the UTS week counts, marked uncertain, each meeting with its date", () => {
+  it("a lecture SIX still lists inside the UTS week is uncertain and not counted, yet listed with its date", () => {
     // SIX keeps the Thursday lecture in the 15 Oct slot of Masa UTS; it may not happen.
     const schedule = weekly("PL3002", "2026-08-27T08:00:00", 10);
     const left = meetingsLeft("PL3002", schedule, period, wib("2026-10-08T12:00:00"));
-    expect(left.count).toBe(8);
+    expect(left.count).toBe(7);
     expect(left.upcoming).toHaveLength(8);
     expect(left.upcoming.map((m) => [wibDate(m.start), m.estimated, m.uncertain])).toEqual([
       ["2026-10-15", false, true],
@@ -180,6 +181,10 @@ describe("meetings left to the last lecture day", () => {
     expect(meetingsLeft("II4091", schedule, period, wib("2026-10-08T12:00:00")).upcoming[0].uncertain).toBe(true);
     expect(meetingsLeft("II4091", schedule, period, wib("2026-10-08T12:00:00"), [viewCourse]).upcoming[0].uncertain).toBe(true);
     expect(meetingsLeft("II4091", schedule, period, wib("2026-10-08T12:00:00"), [handIn]).upcoming[0].uncertain).toBe(false);
+    // So it counts: one more meeting than without the hand-in.
+    expect(meetingsLeft("II4091", schedule, period, wib("2026-10-08T12:00:00"), [handIn]).count).toBe(
+      meetingsLeft("II4091", schedule, period, wib("2026-10-08T12:00:00")).count + 1,
+    );
   });
 
   it("without the calendar, only SIX's listed sessions count, and not as an estimate", () => {
@@ -224,6 +229,22 @@ describe("the absence budget", () => {
   it("is unknown until SIX shows a count", () => {
     const input: AttendanceInput = { code: "X", six: null, presence: [], schedule: [], period: null, target: 80, now };
     expect(attendanceHealth(input)).toMatchObject({ state: "unknown", absencesLeft: null, best: null });
+  });
+
+  it("a UTS-week lecture SIX still lists is no absence to spare: 6 of 7 leaves one, not two", () => {
+    // PL3002 on Thursdays; SIX lists 15 Oct (UTS week) as a lecture. Counting it would say "2× lagi".
+    const period = lecturePeriod(CALENDAR, "2026-1", now)!;
+    const input: AttendanceInput = {
+      code: "PL3002",
+      six: { attended: 6, held: 7 },
+      presence: [],
+      schedule: weekly("PL3002", "2026-08-27T08:00:00", 10),
+      period,
+      target: 80,
+      now,
+    };
+    expect(attendanceHealth(input)).toMatchObject({ state: "risk", absencesLeft: 1 });
+    expect(attendanceHealth(input).left.upcoming.filter((m) => m.uncertain)).toHaveLength(1);
   });
 });
 

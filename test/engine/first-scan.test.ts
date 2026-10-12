@@ -3,6 +3,7 @@
 // has, the number and courses on each, and the screen each opens. A line with
 // nothing to say stays out.
 import { describe, expect, it } from "vitest";
+import { percent } from "../../src/core/attendance";
 import { type Finding, type FindingKind, firstScan, homeReady, notable, scanReady, scanSummary } from "../../src/core/first-scan";
 import type { SourceStatus, Transcript } from "../../src/core/models";
 import type { Saved } from "../../src/core/saved";
@@ -27,15 +28,17 @@ describe("after the first full sync of Edunex and SIX", () => {
     const findings = scan(h.saved(), h.statuses(), h.world.clock.now());
     expect(kinds(findings)).toEqual(["attendance", "clash", "unusedPresence", "exams", "notInSix", "edited", "ipk"]);
 
-    // SIX's exact counts against 80%, to ITB's last lecture day (4 Dec): KU5014 can't make it, DK4073 and PL3032 have no absences left.
+    // SIX's exact counts against 80%, to ITB's last lecture day (4 Dec): KU5014 can't make it, DK4073 and PL3032 have no
+    // absences left, PL3002 one (its 15 Oct lecture in UTS week may not run, so it isn't counted).
     const attendance = of(findings, "attendance")!;
-    expect(attendance).toMatchObject({ count: 3, tone: "danger", sources: ["six", "itb"], routes: [{ screen: "presence" }] });
+    expect(attendance).toMatchObject({ count: 4, tone: "danger", sources: ["six", "itb"], routes: [{ screen: "presence" }] });
     expect(attendance.courses.map((c) => [c.code, c.state, c.attended, c.held])).toEqual([
       ["KU5014", "out", 2, 6],
       ["DK4073", "none", 4, 6],
       ["PL3032", "none", 4, 7],
+      ["PL3002", "risk", 6, 7],
     ]);
-    expect(Math.round(attendance.courses[0].best! * 100)).toBe(73);
+    expect(percent(attendance.courses[0].best!)).toBe(71);
 
     // PL3032 (15:00–16:30) and KU5014 (16:00–17:50) share every Thursday's half hour: five on SIX's timetable, counted as the KRS tab counts them.
     const clash = of(findings, "clash")!;

@@ -691,6 +691,7 @@ function HowCounted({ lastDay }: { lastDay: string | null }) {
         <li>{t("presence.how.six")}</li>
         <li>{t("presence.how.which")}</li>
         <li>{t("presence.how.left", { date })}</li>
+        <li>{t("presence.how.uncertain")}</li>
         <li>{t("presence.how.target")}</li>
         <li>{t("presence.how.check")}</li>
       </ul>

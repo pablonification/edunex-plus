@@ -103,24 +103,25 @@ export function lecturePeriod(calendar: AcademicCalendar | undefined, term: stri
   return { lastDay: end.lastDay, offDays };
 }
 
-/** One meeting still to come, as counted. */
+/** One meeting still to come. */
 export interface UpcomingMeeting {
   start: number;
   /** SIX's session; null for the weekly slot carried on past SIX's timetable. */
   session: ClassSession | null;
   /** The weekly slot carried on: the date is the app's estimate. */
   estimated: boolean;
-  /** Listed by SIX inside an exam week or a holiday on ITB's calendar: it may not happen. */
+  /** Listed by SIX inside an exam week or a holiday on ITB's calendar: it may not happen, so it isn't counted. */
   uncertain: boolean;
 }
 
 export interface MeetingsLeft {
+  /** Meetings sure enough to count on: every one in `upcoming` but the uncertain ones. */
   count: number;
   /** Part of it is the usual weekly slot carried on past SIX's timetable: say "about". */
   estimated: boolean;
   /** The next meeting on SIX's timetable (it may be uncertain: see `upcoming`). */
   next: ClassSession | null;
-  /** Each meeting counted, in time order (`count` of them). */
+  /** Each meeting to come, in time order, the uncertain ones too (they aren't in `count`). */
   upcoming: UpcomingMeeting[];
 }
 
@@ -129,10 +130,12 @@ export interface MeetingsLeft {
  * on SIX's timetable that haven't started, then, past the last day the
  * timetable covers (`schedule` is SIX's whole timetable, every course), the
  * usual weekly slot(s) carried on to the last lecture day, skipping UTS and
- * UAS weeks and holidays. A session SIX lists inside those still counts
- * (SIX may hold it, and missing it would cost an absence) but is marked
- * uncertain, so screens can say "check first", unless the lecturer set an
- * Edunex hand-in for attendance that day (`presence`).
+ * UAS weeks and holidays. A session SIX lists inside those may not happen,
+ * so it's uncertain and left out of the count: more meetings to come means
+ * more absences allowed, and the Student must never be told they have one
+ * to spare that isn't there. (Missing it if it does happen still costs one:
+ * screens say "attend if it runs".) Unless the lecturer set an Edunex hand-in
+ * for attendance that day (`presence`): then it happens.
  */
 export function meetingsLeft(
   code: string,
@@ -170,7 +173,12 @@ export function meetingsLeft(
     }
   }
   upcoming.sort((a, b) => a.start - b.start);
-  return { count: upcoming.length, estimated: upcoming.some((m) => m.estimated), next: coming[0] ?? null, upcoming };
+  return {
+    count: upcoming.filter((m) => !m.uncertain).length,
+    estimated: upcoming.some((m) => m.estimated),
+    next: coming[0] ?? null,
+    upcoming,
+  };
 }
 
 // ---------------------------------------------------------------- the budget

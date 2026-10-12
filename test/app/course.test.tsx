@@ -266,7 +266,7 @@ describe("meetings", () => {
     expect(document.querySelector("h1")?.textContent).toContain("Teknik Penyelesaian Masalah Terstruktur");
     const text = s.text();
     expect(text).toContain("80% tak terkejar");
-    expect(text).toContain("Paling tinggi 73% kalau kamu hadir di semua sisa pertemuan.");
+    expect(text).toContain("Paling tinggi 71% kalau kamu hadir di semua sisa pertemuan.");
     // Beranda and Jadwal name the overlap (16:00–16:30), not the other class's whole slot.
     expect(text).toContain("Bentrok dengan PL3032 16:00–16:30.");
     expect(text).not.toContain("Bentrok dengan PL3032 15:00–16:30");

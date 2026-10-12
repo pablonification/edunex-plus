@@ -158,8 +158,12 @@ export const attendanceStrings = {
     en: "SIX gives only how many meetings you attended and missed, not which. To see which meeting was marked absent, open it in SIX.",
   },
   "presence.how.left": {
-    id: "Sisa pertemuan mengikuti jadwal SIX (yang jatuh di masa ujian atau libur ditandai belum pasti), lalu jadwal mingguannya sampai hari kuliah terakhir ({date}, Kalender ITB), tanpa minggu UTS, UAS dan libur.",
-    en: "Meetings left follow SIX's timetable (one in an exam week or a holiday is marked as uncertain), then the weekly slot up to the last lecture day ({date}, ITB calendar), skipping UTS, UAS and holidays.",
+    id: "Sisa pertemuan mengikuti jadwal SIX, lalu jadwal mingguannya sampai hari kuliah terakhir ({date}, Kalender ITB), tanpa minggu UTS, UAS dan libur.",
+    en: "Meetings left follow SIX's timetable, then the weekly slot up to the last lecture day ({date}, ITB calendar), skipping UTS, UAS and holidays.",
+  },
+  "presence.how.uncertain": {
+    id: "Kuliah yang masih dijadwalkan SIX di minggu UTS, UAS atau hari libur belum pasti ada, jadi tidak dihitung sebagai jatah absen. Kalau ternyata tetap ada, hadiri saja.",
+    en: "A class SIX still lists in a UTS or UAS week or on a holiday may not run, so it isn't counted toward your absences left. If it does run, go.",
   },
   "presence.how.target": {
     id: "Tidak ada batas minimal untuk seluruh ITB: kontrak tiap mata kuliah yang menentukan.",

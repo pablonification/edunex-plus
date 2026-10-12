@@ -93,7 +93,7 @@ describe("Jadwal: the week as a timetable", () => {
   it("a block's details: where attendance counts, the Presence window open now, and the way to the course", async () => {
     const s = await openSchedule();
     await s.click(/^PL3002 · 08:00–10:00/);
-    expect(popover()).toContain("Kehadiran dihitung di SIX · Boleh absen 2× lagi");
+    expect(popover()).toContain("Kehadiran dihitung di SIX · Boleh absen 1× lagi");
     expect(popover()).toContain("Presensi Edunex dibuka sampai 09:30");
     await s.click("Catat di Edunex");
     expect(s.calls.at(-1)).toEqual({ name: "shell.openExternal", input: { url: "https://edunex.itb.ac.id/courses/95001" } });
