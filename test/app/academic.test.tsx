@@ -242,25 +242,23 @@ describe("the Kalender akademik tab", () => {
     expect(panel()).toContain("Sekarang · Min, 11 Okt");
     // A range says its days ("Sen–Jum"), not just the first.
     // The coming seven days are named as such: next week's exam is never filed under "Minggu ini".
-    expect(rows("7 hari ke depan")).toEqual(["12–16 OktSen–JumUTS · 2026/2027 GanjilMinggu ujian tengah semester.besok"]);
+    expect(rows("7 hari ke depan")).toEqual(["12–16 OktSen–JumUTSMinggu ujian tengah semester.besok"]);
     expect(rows("Minggu ini")).toEqual([]);
     expect(group("7 hari ke depan")!.querySelector("li .text-warning-fg")?.textContent).toBe("besok");
-    expect(rows("Semester ini")[0]).toContain(
-      "Kuesioner evaluasi perkuliahan · 2026/2027 GanjilIsi kuesioner tiap mata kuliah, atau SIX menyembunyikan nilainya.",
-    );
+    expect(rows("Semester ini")[0]).toContain("Kuesioner evaluasi perkuliahanIsi kuesioner tiap mata kuliah, atau SIX menyembunyikan nilainya.");
     expect(rows("Semester ini").find((r) => r.includes("Evaluasi kemajuan studi"))).toContain("Target 72 SKS di akhir tahun ke-3; kamu sudah lulus 125 SKS.");
-    // Next semester is folded until opened.
+    // This term's events don't repeat the term; next semester names its term once, in its heading, and is folded until opened.
+    expect(panel()).not.toContain("· 2026/2027 Ganjil");
+    expect(group("Semester depan")!.querySelector("h3")!.textContent).toBe("Semester depan · 2026/2027 Genap12");
     expect(rows("Semester depan")).toEqual([]);
     await s.click(/^Semester depan/);
-    expect(rows("Semester depan").find((r) => r.startsWith("20–28 Jan"))).toContain(
-      "Pengisian KRS (DRS) · 2026/2027 GenapIsi KRS di SIX, lalu minta persetujuan dosen wali.",
-    );
+    expect(rows("Semester depan").find((r) => r.startsWith("20–28 Jan"))).toContain("Pengisian KRS (DRS)Isi KRS di SIX, lalu minta persetujuan dosen wali.");
     // Past ones: folded, then opened.
     const past = document.querySelector("details")!;
     expect(past.open).toBe(false);
     expect(past.querySelector("summary")?.textContent).toBe("Sudah lewat4");
-    expect(past.textContent).toContain("Pengisian KRS (DRS) · 2026/2027 GanjilKRS-mu sudah dikirim.");
-    expect(past.textContent).toContain("Batas bayar UKT · 2026/2027 GanjilUKT-mu sudah lunas.");
+    expect(past.textContent).toContain("Pengisian KRS (DRS)KRS-mu sudah dikirim.");
+    expect(past.textContent).toContain("Batas bayar UKTUKT-mu sudah lunas.");
   });
 
   it("the full calendar: every event by month with ITB's own title, chips, an accent-blind search, revised copies merged", async () => {
@@ -381,7 +379,8 @@ describe("the Kalender akademik tab", () => {
     await s.engineDoes(() => s.engine.updateSettings({ lang: "en" }));
     await s.click(/^Study plan/);
     await tab("Academic calendar");
-    expect(panel()).toContain("Midterms (UTS) · 2026/2027 OddMidterm exam week.tomorrow");
+    expect(panel()).toContain("Midterms (UTS)Midterm exam week.tomorrow");
+    expect(panel()).toContain("Next semester · 2026/2027 Even");
     await s.click("Full calendar");
     expect(panel()).toContain("108 events");
     expect(panel()).toContain("October 2026");
