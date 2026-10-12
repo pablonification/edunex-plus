@@ -17,9 +17,9 @@ afterEach(async () => {
   await fs.rm(root, { recursive: true, force: true });
 });
 
-const URL_A = "https://edunexfixture.blob.core.windows.net/edunex/fixture-1?sig=a";
-const URL_B = "https://edunexfixture.blob.core.windows.net/edunex/fixture-2?sig=b";
-const URL_C = "https://edunexfixture.blob.core.windows.net/edunex/fixture-3?sig=c";
+const URL_A = "https://edunexfixture.blob.core.windows.net/edunex/fixture-1?sig=pretend";
+const URL_B = "https://edunexfixture.blob.core.windows.net/edunex/fixture-2?sig=pretend";
+const URL_C = "https://edunexfixture.blob.core.windows.net/edunex/fixture-3?sig=pretend";
 const pdf = (size: number) => {
   const bytes = new Uint8Array(size);
   bytes.set(new TextEncoder().encode("%PDF-1.7"));

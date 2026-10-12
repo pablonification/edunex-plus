@@ -16,8 +16,8 @@ const { filesHandlers } = await import("../../src/desktop/handlers/files");
 const { planOfflineFiles } = await import("../../src/core/course-materials");
 type Context = Parameters<typeof filesHandlers>[0];
 
-const OLD = "https://edunexfixture.blob.core.windows.net/edunex/slides-v1.pdf?sig=a";
-const NEW = "https://edunexfixture.blob.core.windows.net/edunex/slides-v2.pdf?sig=b";
+const OLD = "https://edunexfixture.blob.core.windows.net/edunex/fixture-slides-v1.pdf?sig=pretend";
+const NEW = "https://edunexfixture.blob.core.windows.net/edunex/fixture-slides-v2.pdf?sig=pretend";
 const pdf = (text: string) => new TextEncoder().encode(`%PDF-1.7 ${text}`);
 const course = { code: "PL3002", name: "Fixture Course", edunex: { courseId: 1 } };
 const slides = (url: string, sizeBytes: number | null): Material => ({

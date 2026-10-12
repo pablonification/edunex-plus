@@ -25,8 +25,8 @@ const { readFile } = await import("../../src/desktop/remote-files");
 const { forgetOtherStudentsFiles } = await import("../../src/desktop/handlers/files");
 type Context = Parameters<typeof authHandlers>[0];
 
-const URL_A = "https://edunexfixture.blob.core.windows.net/edunex/fixture-1?sig=a";
-const URL_B = "https://edunexfixture.blob.core.windows.net/edunex/fixture-2?sig=b";
+const URL_A = "https://edunexfixture.blob.core.windows.net/edunex/fixture-1?sig=pretend";
+const URL_B = "https://edunexfixture.blob.core.windows.net/edunex/fixture-2?sig=pretend";
 const pdf = () => new TextEncoder().encode("%PDF-1.7 fixture");
 
 let root: string;
