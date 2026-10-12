@@ -5,7 +5,7 @@
 
 /** What the writing box holds, and sends back, as it is: the plain formatting of Edunex's editor. */
 const HELD = new Set(["p", "br", "strong", "b", "em", "i", "u", "s", "strike", "del", "a", "ul", "ol", "li", "blockquote", "h2", "h3", "h4", "code", "pre"]);
-/** Where black text looks like the rest of the text. */
+/** Where pasted black text sits inside ordinary text, so losing the colour only makes it match. */
 const PLAIN = new Set(["p", "li", "ul", "ol", "span", "strong", "b", "em", "i", "u", "s", "strike", "del"]);
 const LINK = /^(https?:\/\/|mailto:)/i;
 const BLACK = /^(black|#000|#000000|rgb\(0,0,0\))$/;
@@ -30,9 +30,10 @@ function kept(element: Element): boolean {
 }
 
 /**
- * Styles that change nothing a reader sees, as pasting from a document leaves
- * them on Edunex ("background-color:transparent;color:#000000"): no
- * background, and black where the text around is black too.
+ * Styles pasting from a document leaves on Edunex ("background-color:transparent;color:#000000").
+ * A transparent background shows nothing. Black is a shade darker than Edunex's grey text (and
+ * nearly vanishes in its dark theme), so dropping it on save only makes the pasted words match the
+ * rest; locking the draft for it would make an ordinary pasted answer read-only.
  */
 function unseen(element: Element, style: string): boolean {
   return style.split(";").every((declaration) => {

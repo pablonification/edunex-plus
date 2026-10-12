@@ -460,6 +460,18 @@ describe("the written answer", () => {
     expect((await s.editor()).textContent).toBe("");
   });
 
+  it("text typed and thrown away in the same visit comes back with Undo", async () => {
+    const s = await openTask("Tugas 02 Bab II");
+    await s.write("<p>Baru saja</p>");
+    await s.click("Buang perubahan");
+    expect((await s.editor()).textContent).toBe("");
+    await s.click("Urungkan");
+    expect((await s.editor()).textContent).toBe("Baru saja");
+    expect(answerWrites(s)).toEqual([]);
+    // Unsaved text outlives the page while the app runs: leave none for the next test.
+    await s.click("Buang perubahan");
+  });
+
   it("speaks English, switched to with the page open", async () => {
     const s = await openApp({ signedIn: true });
     screen = s;
