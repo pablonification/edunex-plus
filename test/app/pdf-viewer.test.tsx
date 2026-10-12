@@ -97,9 +97,10 @@ describe("the PDF viewer", () => {
     expect(viewer()?.textContent).toContain("Isi halaman 1");
     await s.click("Unduh");
     expect(s.calls.at(-1)).toEqual({ name: "files.download", input: { url: BLOB, name: "K1. SAP Ekonomi Infrastruktur dan Transportasi.pdf" } });
-    // Escape closes it, and the keyboard is back where the Student was.
+    // Escape closes it, and the keyboard is back where the Student was (the dialog hands it back on its next tick).
     await key(document.activeElement!, "Escape");
     expect(viewer()).toBeNull();
+    await act(async () => new Promise((resolve) => setTimeout(resolve, 0)));
     expect(document.activeElement).toBe(view);
   });
 
