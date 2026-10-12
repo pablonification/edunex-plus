@@ -43,7 +43,7 @@ describe("a course's own attendance target", () => {
     await s.click("Target 80% untuk DK4073");
     expect(dialog()).toContain("Target kehadiran DK4073");
     expect(dialog()).toContain("Sekarang ikut target umum.");
-    await s.click("Turunkan target");
+    await s.click("Turunkan target DK4073");
     expect(s.engine.snapshot().settings).toMatchObject({ attendanceTarget: 80, attendanceTargets: { DK4073: 75 } });
     expect(dialog()).toContain("Target khusus mata kuliah ini.");
     await s.key("Escape");
@@ -65,6 +65,9 @@ describe("a course's own attendance target", () => {
     await s.apply({ type: "command", command: "settings" });
     expect(dialog()).toContain("Target kehadiranUntuk mata kuliah tanpa target sendiri");
     expect(dialog()).toContain("Komunikasi PemasaranDK4073 · target sendiriPakai target umum75%");
+    // Each stepper says whose target it changes.
+    expect(s.has("Naikkan target umum")).toBe(true);
+    expect(s.has("Naikkan target DK4073")).toBe(true);
     await s.click("Pakai target umum untuk DK4073");
     expect(s.engine.snapshot().settings.attendanceTargets).toEqual({});
     expect(dialog()).not.toContain("DK4073 · target sendiri");

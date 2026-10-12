@@ -142,19 +142,40 @@ function AttendanceTargets() {
   const name = useCourseNames();
   const { target, own, setDefault, setOwn } = useTargets();
   const codes = Object.keys(own).sort();
+  const resets = useRef(new Map<string, HTMLButtonElement>());
+  const general = useRef<HTMLSpanElement>(null);
+  const followDefault = (code: string) => {
+    // Its row goes: focus moves to the next course's, else the one before, else the default's stepper, never back to the top of Settings.
+    const at = codes.indexOf(code);
+    const neighbour = codes[at + 1] ?? codes[at - 1];
+    const next = neighbour ? resets.current.get(neighbour) : general.current?.querySelector<HTMLButtonElement>("button:enabled");
+    next?.focus();
+    setOwn(code, null);
+  };
   return (
     <>
       <Row label={t("settings.attendance.target")} hint={t(codes.length ? "settings.attendance.targetHintOwn" : "settings.attendance.targetHint")}>
-        <TargetStepper value={target} onChange={setDefault} />
+        <span ref={general} className="flex shrink-0">
+          <TargetStepper value={target} onChange={setDefault} />
+        </span>
       </Row>
       {codes.map((code) => (
         <Row key={code} label={name(code)} hint={t("settings.attendance.own", { code })}>
           {/* The steppers line up in one column with the default's. */}
           <span className="flex shrink-0 items-center gap-1.5">
-            <Button size="sm" variant="ghost" aria-label={t("settings.attendance.useDefaultFor", { code })} onClick={() => setOwn(code, null)}>
+            <Button
+              ref={(button) => {
+                if (button) resets.current.set(code, button);
+                else resets.current.delete(code);
+              }}
+              size="sm"
+              variant="ghost"
+              aria-label={t("settings.attendance.useDefaultFor", { code })}
+              onClick={() => followDefault(code)}
+            >
               {t("settings.attendance.useDefault")}
             </Button>
-            <TargetStepper value={own[code]} onChange={(value) => setOwn(code, value)} />
+            <TargetStepper value={own[code]} onChange={(value) => setOwn(code, value)} code={code} />
           </span>
         </Row>
       ))}

@@ -214,7 +214,7 @@ describe("the Presensi screen", () => {
     // DK4073's course contract asks for 75%.
     await s.click("Target 80% untuk DK4073");
     expect(document.querySelector("[role=dialog]")?.textContent).toContain("Target kehadiran DK4073");
-    await s.click("Turunkan target");
+    await s.click("Turunkan target DK4073");
     expect(s.calls.at(-1)).toEqual({ name: "settings.update", input: { attendanceTargets: { DK4073: 75 } } });
     expect(card("DK4073")).toContain("Boleh absen 1× lagi");
     expect(card("DK4073")).toContain("Target 75%");
@@ -223,15 +223,16 @@ describe("the Presensi screen", () => {
     // The default moves every course without its own.
     await s.click("Target kehadiran 80%");
     expect(document.querySelector("[role=dialog]")?.textContent).toContain("Untuk mata kuliah yang tak punya target sendiri");
-    await s.click("Naikkan target");
+    await s.click("Naikkan target umum");
     expect(s.calls.at(-1)).toEqual({ name: "settings.update", input: { attendanceTarget: 85 } });
-    await s.click("Naikkan target");
+    await s.click("Naikkan target umum");
     expect(s.has("Target kehadiran 90%")).toBe(true);
     expect(card("PL3002")).toContain("Jangan absen lagi");
     expect(card("DK4073")).toContain("Boleh absen 1× lagi");
     await s.click("Kembali ke 80%");
     expect(s.calls.at(-1)).toEqual({ name: "settings.update", input: { attendanceTarget: 80 } });
-    await s.key("Escape");
+    // The button is gone once pressed: the panel closes with it.
+    expect(document.querySelector("[role=dialog]")).toBeNull();
     // Back to the default for DK4073.
     await s.click("Target 75% untuk DK4073");
     await s.click("Pakai target umum (80%)");
@@ -287,7 +288,7 @@ describe("attendance in Settings", () => {
     await screen.click("Kehadiran");
     expect(screen.engine.snapshot().settings.mutedAlerts).toEqual(["presence", "attendanceRisk"]);
     expect(screen.text()).toContain("Target kehadiran");
-    await screen.click("Turunkan target");
+    await screen.click("Turunkan target umum");
     expect(screen.engine.snapshot().settings.attendanceTarget).toBe(75);
   });
 });

@@ -3,7 +3,7 @@
 // the control that sets a course's own target (its course contract may ask
 // for more or less than the Student's default). Changing a target is a
 // setting: it never sends an alert.
-import type { ReactNode } from "react";
+import { type ReactNode, useState } from "react";
 import { type AttendanceHealth, percent } from "../core/attendance";
 import { DEFAULT_SETTINGS, type Settings } from "../core/models";
 import { METER_TONE, STATE_TONE } from "./attendance-labels";
@@ -44,8 +44,8 @@ export function useTargets() {
   };
 }
 
-/** "− 80% +", in steps of 5 between 50 and 100. */
-export function TargetStepper({ value, onChange }: { value: number; onChange: (value: number) => void }) {
+/** "− 80% +", in steps of 5 between 50 and 100; its buttons name the course (`code`), or the default. */
+export function TargetStepper({ value, onChange, code }: { value: number; onChange: (value: number) => void; code?: string }) {
   const t = useT();
   return (
     <Stepper
@@ -55,21 +55,32 @@ export function TargetStepper({ value, onChange }: { value: number; onChange: (v
       max={MAX}
       step={STEP}
       format={(v) => `${v}%`}
-      lowerLabel={t("presence.target.lower")}
-      raiseLabel={t("presence.target.raise")}
+      lowerLabel={code ? t("presence.target.lowerFor", { code }) : t("presence.target.lower")}
+      raiseLabel={code ? t("presence.target.raiseFor", { code }) : t("presence.target.raise")}
     />
   );
 }
 
-/** The Student's default target, for every course without its own; "Kembali ke 80%" when it moved. */
-export function DefaultTarget() {
+/**
+ * The Student's default target, for every course without its own; "Kembali
+ * ke 80%" when it moved. `onReset`: that button goes once pressed, so the
+ * panel holding it closes and focus goes back to what opened it.
+ */
+export function DefaultTarget({ onReset }: { onReset?: () => void }) {
   const { target, setDefault } = useTargets();
   const t = useT();
   return (
     <div className="flex items-center justify-between gap-3">
       <TargetStepper value={target} onChange={setDefault} />
       {target !== DEFAULT_SETTINGS.attendanceTarget && (
-        <Button size="sm" variant="ghost" onClick={() => setDefault(DEFAULT_SETTINGS.attendanceTarget)}>
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => {
+            setDefault(DEFAULT_SETTINGS.attendanceTarget);
+            onReset?.();
+          }}
+        >
           {t("presence.target.reset", { value: DEFAULT_SETTINGS.attendanceTarget })}
         </Button>
       )}
@@ -77,14 +88,25 @@ export function DefaultTarget() {
   );
 }
 
-/** "Target 80%": a course's target, a click from changing it for that course alone, or going back to the default. */
-export function CourseTarget({ code, className }: { code: string; className?: string }) {
+/**
+ * "Target 80%": a course's target, a click from changing it for that course
+ * alone, or going back to the default. `onOpenChange`: Presensi holds its
+ * rows still while the panel is open.
+ */
+export function CourseTarget({ code, className, onOpenChange }: { code: string; className?: string; onOpenChange?: (open: boolean) => void }) {
   const t = useT();
   const { target, own, setOwn } = useTargets();
+  const [open, setOpen] = useState(false);
   const mine = Object.hasOwn(own, code) ? own[code] : null;
   const value = mine ?? target;
+  const toggle = (next: boolean) => {
+    setOpen(next);
+    onOpenChange?.(next);
+  };
   return (
     <Popover
+      open={open}
+      onOpenChange={toggle}
       label={t("presence.target.course", { code })}
       align="end"
       className="w-[280px] p-4"
@@ -105,9 +127,17 @@ export function CourseTarget({ code, className }: { code: string; className?: st
       <p className="text-body font-semibold">{t("presence.target.course", { code })}</p>
       <p className="mt-0.5 text-small text-muted">{t(mine === null ? "presence.target.followsDefault" : "presence.target.ownSet")}</p>
       <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-        <TargetStepper value={value} onChange={(next) => setOwn(code, next)} />
+        <TargetStepper value={value} onChange={(next) => setOwn(code, next)} code={code} />
         {mine !== null && (
-          <Button size="sm" variant="ghost" onClick={() => setOwn(code, null)}>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => {
+              setOwn(code, null);
+              // The button goes with the course's own target: close, so focus lands back on "Target 80%".
+              toggle(false);
+            }}
+          >
             {t("presence.target.useDefault", { value: target })}
           </Button>
         )}

@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 // Keyboard use: a dialog or panel closed with Escape puts focus back on what
-// opened it, so the next Tab carries on from there instead of the top of the page.
+// opened it, so the next Tab carries on from there instead of the top of the page;
+// a button that goes once pressed hands focus on instead of dropping it.
 import { afterEach, describe, expect, it } from "vitest";
 import { openApp } from "./harness";
 
@@ -42,5 +43,65 @@ describe("focus after closing", () => {
     const opener = screen.button(/kalender HP/);
     await openAndEscape(opener);
     expect(document.activeElement).toBe(opener);
+  });
+});
+
+describe("focus when the focused control goes", () => {
+  const rows = () => [...document.querySelectorAll('main ul[aria-label="Mata kuliah"] > li')].map((li) => li.textContent?.slice(0, 6));
+
+  it("a course's target, back to the default from its panel: the panel closes and focus is on its button again", async () => {
+    screen = await openApp({ signedIn: true, six: true });
+    await screen.engineDoes(() => screen!.engine.updateSettings({ attendanceTargets: { DK4073: 75 } }));
+    await screen.click(/^Presensi/);
+    const opener = screen.button("Target 75% untuk DK4073");
+    opener.focus();
+    await screen.click(opener);
+    await screen.click("Pakai target umum (80%)");
+    await tick();
+    expect(document.querySelector("[role=dialog]")).toBeNull();
+    expect(screen.engine.snapshot().settings.attendanceTargets).toEqual({});
+    expect(document.activeElement?.getAttribute("aria-label")).toBe("Target 80% untuk DK4073");
+  });
+
+  it("the default target, back to 80% from Presensi's panel: the panel closes and focus is on its button again", async () => {
+    screen = await openApp({ signedIn: true, six: true });
+    await screen.engineDoes(() => screen!.engine.updateSettings({ attendanceTarget: 75 }));
+    await screen.click(/^Presensi/);
+    const opener = screen.button("Target kehadiran 75%");
+    opener.focus();
+    await screen.click(opener);
+    await screen.click("Kembali ke 80%");
+    await tick();
+    expect(document.querySelector("[role=dialog]")).toBeNull();
+    expect(document.activeElement?.textContent).toBe("Target kehadiran 80%");
+  });
+
+  it("Presensi's rows hold still while a course's target is being changed, and sort again once it closes", async () => {
+    screen = await openApp({ signedIn: true, six: true });
+    await screen.click(/^Presensi/);
+    const before = rows();
+    expect(before.indexOf("DK4073")).toBeLessThan(before.indexOf("PL3032"));
+    const opener = screen.button("Target 80% untuk DK4073");
+    opener.focus();
+    await screen.click(opener);
+    // 75%: one absence left, so DK4073 would sort below PL3032 (none left).
+    await screen.click("Turunkan target DK4073");
+    expect(rows()).toEqual(before);
+    await screen.key("Escape");
+    await tick();
+    const after = rows();
+    expect(after.indexOf("DK4073")).toBeGreaterThan(after.indexOf("PL3032"));
+  });
+
+  it("Settings: a course back to the default gives focus to the next course's, then to the default's stepper", async () => {
+    screen = await openApp({ signedIn: true, six: true });
+    await screen.engineDoes(() => screen!.engine.updateSettings({ attendanceTargets: { DK4073: 75, PL3032: 85 } }));
+    await screen.apply({ type: "command", command: "settings" });
+    await screen.click("Pakai target umum untuk DK4073");
+    expect(screen.engine.snapshot().settings.attendanceTargets).toEqual({ PL3032: 85 });
+    expect(document.activeElement?.getAttribute("aria-label")).toBe("Pakai target umum untuk PL3032");
+    await screen.click("Pakai target umum untuk PL3032");
+    expect(screen.engine.snapshot().settings.attendanceTargets).toEqual({});
+    expect(document.activeElement?.getAttribute("aria-label")).toBe("Turunkan target umum");
   });
 });

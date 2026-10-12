@@ -47,11 +47,15 @@ export function PresenceScreen() {
   const t = useT();
   const attendance = useAttendance();
   const [filter, setFilter] = useState<Filter | null>(null);
+  // While a row's target is being changed the rows hold still, so the one being changed doesn't move under the pointer.
+  const [still, setStill] = useState<string[] | null>(null);
   if (!attendance) return <Loading />;
   const { courses, open, target } = attendance;
   const known = courses.some((c) => c.health.state !== "unknown");
   const count = (state: AttendanceState) => courses.filter((c) => c.health.state === state).length;
-  const shown = [...courses].filter((c) => !filter || c.health.state === filter).sort((a, b) => ORDER[a.health.state] - ORDER[b.health.state]);
+  const rank = (c: CourseAttendance) => (still ? still.indexOf(c.course.code) : ORDER[c.health.state]);
+  const shown = [...courses].filter((c) => !filter || c.health.state === filter).sort((a, b) => rank(a) - rank(b));
+  const hold = (open: boolean) => setStill(open ? shown.map((c) => c.course.code) : null);
 
   return (
     <Page>
@@ -98,7 +102,7 @@ export function PresenceScreen() {
             className="overflow-hidden rounded-xl border border-edge bg-surface shadow-card [&>li+li]:border-t [&>li+li]:border-line"
           >
             {shown.map((item, index) => (
-              <CourseRow key={item.course.code} item={item} lastDay={attendance.lastDay} index={index} />
+              <CourseRow key={item.course.code} item={item} lastDay={attendance.lastDay} index={index} onTargetOpen={hold} />
             ))}
           </ul>
         </>
@@ -152,8 +156,11 @@ function Answer({ courses, known }: { courses: CourseAttendance[]; known: boolea
 /** "Target kehadiran 80%": the default, for every course without its own (also in Settings). */
 function TargetControl({ target }: { target: number }) {
   const t = useT();
+  const [open, setOpen] = useState(false);
   return (
     <Popover
+      open={open}
+      onOpenChange={setOpen}
       label={t("settings.attendance.target")}
       align="end"
       className="w-[300px] p-4"
@@ -162,7 +169,7 @@ function TargetControl({ target }: { target: number }) {
       <p className="text-title font-semibold">{t("settings.attendance.target")}</p>
       <p className="mt-1 text-small text-muted">{t("presence.target.global")}</p>
       <div className="mt-3">
-        <DefaultTarget />
+        <DefaultTarget onReset={() => setOpen(false)} />
       </div>
     </Popover>
   );
@@ -296,7 +303,17 @@ function statusSentence(t: Translate, health: AttendanceHealth): string {
   }
 }
 
-function CourseRow({ item, lastDay, index }: { item: CourseAttendance; lastDay: string | null; index: number }) {
+function CourseRow({
+  item,
+  lastDay,
+  index,
+  onTargetOpen,
+}: {
+  item: CourseAttendance;
+  lastDay: string | null;
+  index: number;
+  onTargetOpen: (open: boolean) => void;
+}) {
   const t = useT();
   const f = useFormat();
   const { go } = useNav();
@@ -364,7 +381,7 @@ function CourseRow({ item, lastDay, index }: { item: CourseAttendance; lastDay: 
                 tone={METER_TONE[health.state]}
                 label={t("presence.meter", { share, target: health.target, best: best ?? share })}
               />
-              <CourseTarget code={course.code} className="pointer-events-auto relative mt-1.5" />
+              <CourseTarget code={course.code} className="pointer-events-auto relative mt-1.5" onOpenChange={onTargetOpen} />
             </>
           ) : health.countedIn === "edunex" || (health.countedIn === "noSix" && health.edunexClosed > 0) ? (
             <p className="mt-0.5 text-small text-muted tabular-nums">
