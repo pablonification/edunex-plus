@@ -1,8 +1,9 @@
 // Quick search (⌘K, Ctrl+K elsewhere): a palette over everything the app has
 // saved, so it works offline. Results come grouped by kind (what's pressing
-// first), each with its course's color and a type word; the places carry
-// their ⌘1–⌘6. With nothing typed: what was opened lately, the next Tasks,
-// the courses, the places and the verbs (refresh, theme). Arrows move, Enter
+// first), each with its course's color; only what was opened lately mixes
+// kinds, so only there does a row say its kind. The places carry their
+// ⌘1–⌘6. With nothing typed: what was opened lately, the next Tasks, the
+// courses, the places and the verbs (refresh, theme). Arrows move, Enter
 // opens (everything opens inside the app), Escape closes. The index
 // (src/core/search.ts) is built when the palette opens.
 import * as DialogPrimitive from "@radix-ui/react-dialog";
@@ -293,7 +294,8 @@ function Palette({ shown, onClose, onSettings }: { shown: boolean; onClose: () =
                         <Kbd>{key}</Kbd>
                       </span>
                     ) : (
-                      <span className="text-caption text-faint">{t(`search.type.${item.kind}`)}</span>
+                      // Only where kinds mix: elsewhere the group's name already says what each row is.
+                      group.kind === "recent" && <span className="text-caption text-faint">{t(`search.type.${item.kind}`)}</span>
                     )}
                     <span aria-hidden className={cx("w-3.5 text-center text-small text-faint", !selected && "invisible")}>
                       ↵
