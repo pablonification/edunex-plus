@@ -15,7 +15,7 @@ import { useAttendance } from "../attendance";
 import { verdictLabel } from "../attendance-labels";
 import { AttendanceSummary, CourseTarget } from "../attendance-parts";
 import { useOpenExternal } from "../hooks";
-import { type StringKey, useFormat, useLang, useNow, useT } from "../i18n";
+import { type Format, type StringKey, type Translate, useFormat, useLang, useNow, useT } from "../i18n";
 import { useNav } from "../nav";
 import { useRefresh } from "../shell/source-status";
 import { SnoozeMenu } from "../snooze-menu";
@@ -307,6 +307,22 @@ function noneLeft(t: ReturnType<typeof useT>, f: ReturnType<typeof useFormat>, h
   return t(estimated ? "course.risk.noneAbout" : "course.risk.none", { count, date, target: health.target });
 }
 
+const DAY = 86_400_000;
+
+/**
+ * When a Presence window closes, as the Student reads it: "tutup 23:00 (1 jam
+ * 5 mnt lagi)" today; a window can stay open for days, so with its day when
+ * it isn't today ("tutup besok, 23:00", "tutup Sen, 12 Okt, 23:00"), and how
+ * long is left only while that's under a day.
+ */
+function closesLabel(t: Translate, f: Format, closesAt: number, now: number): string {
+  const offset = f.dayOffset(closesAt);
+  // Mid-sentence, so "besok", not "Besok".
+  const day = offset === 1 ? t("home.tomorrowWord") : f.relativeDay(closesAt);
+  const time = offset === 0 ? f.time(closesAt) : `${day}, ${f.time(closesAt)}`;
+  return closesAt - now < DAY ? t("course.closesAt", { time, left: f.countdown(closesAt) }) : t("course.closesOn", { time });
+}
+
 /**
  * What's on now or next. While a class is on or a Presence window is open, a
  * raised card: its time, what it is, where, and the one thing to do (record
@@ -443,7 +459,7 @@ function MeetingNow({ page }: { page: CoursePage }) {
               opensAt={presence.opensAt}
               closesAt={presence.closesAt}
               now={now}
-              label={t("course.closesAt", { time: f.time(presence.closesAt), left: f.countdown(presence.closesAt) })}
+              label={closesLabel(t, f, presence.closesAt, now)}
             />
           </div>
           {!presenceCounts && <p className="mt-1.5 text-small text-muted">{t(countedIn === "noSix" ? "course.presenceNoSix" : "course.presenceCountsSix")}</p>}

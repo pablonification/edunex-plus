@@ -126,7 +126,9 @@ export const coursePageStrings = {
   "course.fromJointClass": { id: "dari kelas gabungan (semua kelas {code})", en: "from the joint class (every {code} class)" },
   "course.more": { id: "Lainnya", en: "More" },
   "course.attendanceShare": { id: "{attended}/{held} · {percent}%", en: "{attended}/{held} · {percent}%" },
+  // {time}: "23:00" today, "besok, 23:00", "Sen, 12 Okt, 23:00"; how long is left only while it's under a day.
   "course.closesAt": { id: "tutup {time} ({left} lagi)", en: "closes {time} ({left} left)" },
+  "course.closesOn": { id: "tutup {time}", en: "closes {time}" },
   "course.presenceNoSix": {
     id: "Tanpa SIX, belum pasti Presensi ini dihitung: catat saja untuk berjaga-jaga.",
     en: "Without SIX it's not certain this Presence counts: record it just in case.",
