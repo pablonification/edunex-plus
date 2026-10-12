@@ -393,11 +393,15 @@ function TodayLine({ label }: { label: string }) {
   );
 }
 
+/** Meanings that only say again what ITB's title says ("Masa Ujian Tengah Semester": "Midterm exam week."); the search still finds them. */
+const RESTATED: ReadonlySet<StringKey> = new Set<StringKey>(["deadline.uts", "deadline.lectureStart"]);
+
 /** One event, compact (one line unless the app has something to say about it): its days, ITB's title, and what it means. */
 function EventRow({ entry }: { entry: CalendarEntry }) {
   const t = useT();
   const f = useFormat();
-  const { event, meaning, when } = entry;
+  const { event, when } = entry;
+  const meaning = entry.meaning && !RESTATED.has(entry.meaning.key) ? entry.meaning : null;
   const noon = (day: string) => Date.parse(`${day}T12:00:00+07:00`);
   const days =
     event.firstDay === event.lastDay ? f.weekdayShort(noon(event.firstDay)) : `${f.weekdayShort(noon(event.firstDay))}–${f.weekdayShort(noon(event.lastDay))}`;

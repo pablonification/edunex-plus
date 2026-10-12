@@ -279,8 +279,11 @@ describe("the Kalender akademik tab", () => {
       "9 OktJumBatas Waktu Pemasukan Nilai Konversi Aktivitas Kemahasiswaan Semester II-2025/2026",
       "Sekarang · Min, 11 Okt",
       "12 OktSenHari Pertama Periode Pembukaan Kelas/Mata Kuliah Semester II-2026/2027 oleh Program Studi",
-      "12–16 OktSen–JumMasa Ujian Tengah Semester I-2026/2027Minggu ujian tengah semester.",
+      // ITB's title says it all: no second line that only says it again ("Minggu ujian tengah semester.").
+      "12–16 OktSen–JumMasa Ujian Tengah Semester I-2026/2027",
     ]);
+    // One that tells the Student something keeps its line.
+    expect(rows("November 2026").find((r) => r.includes("Kuesioner"))).toContain("Isi kuesioner tiap mata kuliah, atau SIX menyembunyikan nilainya.");
     // The short semester is there too.
     expect(rows("Juni 2027").some((r) => r.includes("Pendaftaran Rencana Studi (DRS) dan Perwalian Semester Antara 2026/2027"))).toBe(true);
     await s.click("Tampilkan 3 bulan sebelumnya");
