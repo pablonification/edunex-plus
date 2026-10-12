@@ -349,6 +349,9 @@ describe("the study planner", () => {
     expect(saved()?.terms[0].courses.map((c) => c.code)).toEqual(["II4090", "II4092"]);
     await tab("Kurikulum");
     expect(s.text()).toContain("Sistem Informasi CerdasTerdaftar · tidak dilanjutkan");
+    // Said under the name, not as a tag beside the SKS that squeezed the name to a few letters per line.
+    const card = [...document.querySelectorAll("aside p")].find((p) => p.textContent?.startsWith("Sistem Informasi Cerdas"))!;
+    expect([...card.children].map((c) => c.textContent)).toEqual(["Sistem Informasi CerdasTerdaftar · tidak dilanjutkan", "6 dari 12 SKS"]);
   });
 
   it("reset asks first, says what's lost, and can still be undone (bug: it used to wipe at once)", async () => {

@@ -482,23 +482,20 @@ function Packages({ title, packages }: { title: string; packages: PackageProgres
         {packages.map((p) => (
           <Card key={`${p.program ?? ""}${p.name}`} className="px-4 py-3">
             <p className="flex items-start justify-between gap-3">
-              <span className="min-w-0">
+              <span className="min-w-0 flex-1">
                 <span className="block text-small font-semibold">{p.name}</span>
-                {p.program && <span className="block truncate text-caption text-muted">{p.program}</span>}
-              </span>
-              <span className="flex shrink-0 items-center gap-2">
-                {p.registered && (
-                  <span
-                    className={cx(
-                      "rounded-[5px] px-1.5 text-micro leading-[18px] font-semibold",
-                      p.notContinuing ? "bg-neutral-bg text-neutral-fg" : "bg-info-bg text-info-fg",
+                {(p.program || p.registered) && (
+                  <Meta className="text-caption text-muted">
+                    {p.program && <span className="truncate">{p.program}</span>}
+                    {p.registered && (
+                      <span className={p.notContinuing ? undefined : "font-medium text-info-fg"}>
+                        {t(p.notContinuing ? "curriculum.notContinuing" : "curriculum.registered")}
+                      </span>
                     )}
-                  >
-                    {t(p.notContinuing ? "curriculum.notContinuing" : "curriculum.registered")}
-                  </span>
+                  </Meta>
                 )}
-                <span className="text-small font-semibold tabular-nums">{t("curriculum.packageSks", { have: p.have, need: p.sks })}</span>
               </span>
+              <span className="shrink-0 text-small font-semibold tabular-nums">{t("curriculum.packageSks", { have: p.have, need: p.sks })}</span>
             </p>
             <Bar
               className="mt-2"
