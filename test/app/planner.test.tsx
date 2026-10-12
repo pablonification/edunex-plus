@@ -472,9 +472,9 @@ describe("the curriculum map", () => {
     const s = await openPlan();
     await tab("Kurikulum");
     expect(s.text()).toContain("Sisa: 2 wajib (6 SKS) · pilihan terpenuhi");
-    expect(row("MA1101")).toBe("MA1101Matematika ILulus · AB4");
-    expect(row("KI1101")).toBe("KI1101Kimia Dasar Ilewat KI1002 Kimia Dasar BLulus · A3");
-    expect(row("WI2003")).toBe("WI2003Olah Ragalewat KU1001 Olah RagaLulus · BC1");
+    expect(row("MA1101")).toBe("MA1101Matematika ILulus AB4");
+    expect(row("KI1101")).toBe("KI1101Kimia Dasar Ilewat KI1002 Kimia Dasar BLulus A3");
+    expect(row("WI2003")).toBe("WI2003Olah Ragalewat KU1001 Olah RagaLulus BC1");
     expect(row("II4091")).toBe("II4091Proposal Tugas AkhirSemester ini2");
     expect(row("II4090")).toBe("II4090Kerja PraktikDirencanakan2");
     expect(s.text()).toContain("Mata kuliah lain yang ikut dihitung");
@@ -486,7 +486,7 @@ describe("the curriculum map", () => {
   it("Tata Tulis Karya Ilmiah counts as Bahasa Indonesia; courses SIX doesn't ask of the Student are said quietly, not counted as left", async () => {
     const s = await openPlan();
     await tab("Kurikulum");
-    expect(row("WI2005")).toBe("WI2005Bahasa Indonesialewat KU1011 Tata Tulis Karya IlmiahLulus · AB2");
+    expect(row("WI2005")).toBe("WI2005Bahasa Indonesialewat KU1011 Tata Tulis Karya IlmiahLulus AB2");
     expect(row("KU1011")).toBeUndefined();
     expect(row("WI1111")).toBe("WI1111Laboratorium Fisika DasarTidak ada di catatan SIX-mu1");
     expect(s.text()).toContain(
@@ -519,7 +519,7 @@ describe("the curriculum map", () => {
     expect(dialog).toContain("Yang dihitung sebagai WI1111 Laboratorium Fisika Dasar");
     expect(dialog).toMatch(/SIX menaruhnya di semester 1II1101Komputasi dan MasyarakatA · 2 SKS/);
     await s.click(/^FI1201Fisika Dasar IIA/);
-    expect(row("WI1111")).toBe("WI1111Laboratorium Fisika Dasarlewat FI1201 Fisika Dasar IIA · Dikoreksi olehmuLulus · BC1");
+    expect(row("WI1111")).toBe("WI1111Laboratorium Fisika Dasarlewat FI1201 Fisika Dasar IIA · Dikoreksi olehmuLulus BC1");
     expect(row("FI1201")).toBeUndefined();
     expect(toastText()).toContain("FI1201 sekarang dihitung sebagai WI1111");
 
@@ -561,7 +561,7 @@ describe("the curriculum map", () => {
     const s = await openPlan();
     await s.engineDoes(() => s.engine.setLocal("local.curriculum", { slots: { WI2002: { kind: "counted-as", code: "KU1102", at: 1 } } }));
     await tab("Kurikulum");
-    expect(row("WI2002")).toBe("WI2002Literasi Data dan Inteligensi Artifisiallewat KU1102 Pengenalan Komputasi · Dikoreksi olehmuLulus · AB2");
+    expect(row("WI2002")).toBe("WI2002Literasi Data dan Inteligensi Artifisiallewat KU1102 Pengenalan Komputasi · Dikoreksi olehmuLulus AB2");
   });
 
   it("opens a course's syllabus on SIX's public pages", async () => {
