@@ -319,6 +319,17 @@ describe("materials", () => {
     expect(screen.calls.at(-1)).toEqual({ name: "shell.openExternal", input: { url: "https://edunex.itb.ac.id/courses/95001" } });
   });
 
+  it('a material\'s long name may wrap after a "/" instead of mid-word, and shows whole on hover', async () => {
+    screen = await openApp({ signedIn: true });
+    screen.world.edunex.postMaterial(95001, { name: "Panduan Penciptaan/Pengembangan Inovasi Kampus", type: "url", content: "https://example.org/" });
+    await screen.engineDoes(() => screen!.engine.refresh("edunex"));
+    const card = [...document.querySelectorAll<HTMLButtonElement>("main ul li button")].find((b) => b.textContent?.startsWith("PL3002"));
+    await screen.click(card!);
+    await entry("Pengantar");
+    const name = document.querySelector("main section ul[aria-label='Materi'] [title='Panduan Penciptaan/Pengembangan Inovasi Kampus']")!;
+    expect(name.innerHTML).toBe("Panduan Penciptaan/<wbr>Pengembangan Inovasi Kampus");
+  });
+
   it("a material the lecturer adds appears, and goes when removed", async () => {
     const s = await openCourse("PL3032");
     const id = s.world.edunex.postMaterial(95059, { name: "K2. Slide baru", type: "pdf", content: BLOB });

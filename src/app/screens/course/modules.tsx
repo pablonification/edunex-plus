@@ -29,7 +29,7 @@ import { Button, IconButton } from "../../ui/controls";
 import { cx } from "../../ui/cx";
 import { EmptyState, Tag } from "../../ui/display";
 import { Icons } from "../../ui/icons";
-import { List, Meta } from "../../ui/layout";
+import { breakAfterSlashes, List, Meta } from "../../ui/layout";
 import { Tooltip, toast } from "../../ui/overlays";
 import { TaskRows } from "../tasks";
 import { type CoursePage, isOpenTask } from "./data";
@@ -382,7 +382,10 @@ export function MaterialRow({ material }: { material: Material }) {
       <div className="flex items-center gap-3 px-4 py-3">
         {icon}
         <div className="min-w-0 flex-1">
-          <p className="line-clamp-2 text-body font-medium break-words">{material.title}</p>
+          {/* As a list row's name: wraps after a "/" too, and shows whole on hover when two lines aren't enough. */}
+          <p className="line-clamp-2 text-body font-medium break-words" title={material.title}>
+            {breakAfterSlashes(material.title)}
+          </p>
           {/* One line, whatever the width: the date gives way first, never a "·" left hanging at a line's end. */}
           <Meta truncate className="mt-0.5 text-small text-muted">
             {what}
