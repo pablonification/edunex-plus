@@ -21,7 +21,7 @@ import { Icons } from "../../ui/icons";
 import { Meta, Section } from "../../ui/layout";
 import { Menu, type MenuItem } from "../../ui/menu";
 import { Dialog, Tooltip, toast } from "../../ui/overlays";
-import { Tag } from "./planner";
+import { WhatIfTag } from "./planner";
 import { SixNeeded } from "./six-needed";
 
 export const ready = true;
@@ -413,7 +413,7 @@ function CourseRow({ course, menu, ref }: { course: MapCourse; menu?: MenuItem[]
       </span>
       {course.whatIf === "added" ? (
         // Tried this semester, not on SIX's KRS: never "This semester" as if it were.
-        <Tag tone="what-if">{t("planner.whatIfTag")}</Tag>
+        <WhatIfTag />
       ) : course.whatIf === "left-out" ? (
         <span className="text-small whitespace-nowrap text-info-fg">{t("planner.droppedTag")}</span>
       ) : (

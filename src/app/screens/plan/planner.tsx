@@ -70,7 +70,7 @@ import { useFormat, useLang, useT } from "../../i18n";
 import { type PlanState, usePlan, useStudentRecord } from "../../study-plan";
 import { Button, IconButton } from "../../ui/controls";
 import { cx } from "../../ui/cx";
-import { Card } from "../../ui/display";
+import { Card, Tag } from "../../ui/display";
 import { Icons } from "../../ui/icons";
 import { Meta } from "../../ui/layout";
 import { Menu } from "../../ui/menu";
@@ -244,7 +244,7 @@ function Planner({ real, record, state }: { real: StudentRecord; record: Student
                     code={course.code}
                     name={course.name}
                     sks={course.sks}
-                    tag={mine ? <Tag tone="what-if">{t("planner.whatIfTag")}</Tag> : <RoleTag record={record} code={course.code} minor={minor} spec={spec} />}
+                    tag={mine ? <WhatIfTag /> : <RoleTag record={record} code={course.code} minor={minor} spec={spec} />}
                     flag={mine ? flags.get(`${term}|${course.code}`) : undefined}
                     grade={course.grade ?? expectedGrade(record, plan, course.code)}
                     guess={plan.expected[course.code] === undefined}
@@ -620,21 +620,13 @@ function TermBlock({
   );
 }
 
-/** A course's exception: "Wajib", the one that matters for graduating, a retake, and a what-if, dashed because it isn't real. */
-export function Tag({ tone = "neutral", children }: { tone?: "neutral" | "required" | "what-if"; children: ReactNode }) {
+/** "Hanya di rencana": a course tried in the plan, dashed because it isn't real. */
+export function WhatIfTag() {
+  const t = useT();
   return (
-    <span
-      className={cx(
-        "inline-flex h-[20px] items-center rounded-[5px] px-1.5 text-micro font-semibold whitespace-nowrap",
-        tone === "required"
-          ? "bg-info-bg text-info-fg"
-          : tone === "what-if"
-            ? "border border-dashed border-info-fg/60 text-info-fg"
-            : "border border-edge text-muted",
-      )}
-    >
-      {children}
-    </span>
+    <Tag tone="info" className="border border-dashed border-info-fg/60 bg-transparent">
+      {t("planner.whatIfTag")}
+    </Tag>
   );
 }
 
@@ -644,7 +636,7 @@ function RoleTag({ record, code, minor, spec }: { record: StudentRecord; code: s
   // An empty cell keeps the row's columns.
   if (courseRole(record, code, minor, spec) !== "required") return <span />;
   const semester = record.required.get(code)?.semester ?? record.requiredLeft.find((c) => c.code === code)?.semester;
-  return <Tag tone="required">{t("planner.role.required", { n: semester ?? "—" })}</Tag>;
+  return <Tag tone="info">{t("planner.role.required", { n: semester ?? "—" })}</Tag>;
 }
 
 const ruleAnchor = (rule: Rule) => `rule-${rule.id}${"code" in rule ? `-${rule.code}` : ""}${"term" in rule ? `-${rule.term}` : ""}`;
