@@ -92,7 +92,7 @@ export const searchStrings = {
     id: "{code}: hadir {attended} dari {held} · paling tinggi {best}% dari target {target}%",
     en: "{code}: {attended} of {held} · best case {best}% of the {target}% target",
   },
-  "scan.attendance.none": { id: "{code}: tidak boleh absen lagi", en: "{code}: no absences left" },
+  "scan.attendance.none": { id: "{code}: jangan absen lagi", en: "{code}: don't miss another class" },
   "scan.attendance.one": { id: "{code}: tinggal satu absen", en: "{code}: one absence left" },
   "scan.attendance.below": {
     id: "{code}: di bawah {target}%, kembali setelah {count}x hadir berturut-turut",

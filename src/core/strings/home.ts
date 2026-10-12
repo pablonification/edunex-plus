@@ -81,8 +81,8 @@ export const homeStrings = {
   "home.need.task.due": { id: "Tenggat {when}", en: "Due {when}" },
   "home.need.task.draft": { id: "Draf belum dikumpulkan", en: "Draft not handed in" },
   "home.need.task.edited": { id: "Diubah dosen setelah kamu kumpulkan · cek lagi", en: "Changed after you handed it in · check again" },
-  "home.need.attendance.none": { id: "{course}: tidak boleh absen lagi", en: "{course}: no absences left" },
-  "home.need.attendance.out": { id: "{course} tak bisa lagi capai {target}%", en: "{course} can't reach {target}% anymore" },
+  "home.need.attendance.none": { id: "{course}: jangan absen lagi", en: "{course}: don't miss another class" },
+  "home.need.attendance.out": { id: "{course}: tak bisa lagi capai {target}%", en: "{course}: can't reach {target}% anymore" },
   "home.need.attendance.outMeta": {
     id: "Paling tinggi {best}% · cek ke dosen kalau ada yang terlewat",
     en: "Best case {best}% · ask the lecturer if one was missed",
