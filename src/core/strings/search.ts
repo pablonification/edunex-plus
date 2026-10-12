@@ -78,7 +78,10 @@ export const searchStrings = {
   "scan.read": { id: "{list} dibaca", en: "{list} read" },
   "scan.read.courses": { id: "{count} mata kuliah", en: { one: "{count} course", other: "{count} courses" } },
   "scan.read.tasks": { id: "{count} tugas", en: { one: "{count} Task", other: "{count} Tasks" } },
-  "scan.read.meetings": { id: "{count} pertemuan", en: { one: "{count} meeting", other: "{count} meetings" } },
+  // The reading step's figures: the count stands alone below its label.
+  "scan.count.courses": { id: "Mata kuliah", en: "Courses" },
+  "scan.count.tasks": { id: "Tugas", en: "Tasks" },
+  "scan.count.meetings": { id: "Pertemuan", en: "Meetings" },
   "scan.more": { id: "dan {count} lainnya", en: "and {count} more" },
   "scan.goHome": { id: "Ke Beranda", en: "Go to Home" },
   "scan.later": { id: "Bisa dibuka lagi dari Pengaturan › Akun", en: "Open it again from Settings › Accounts" },

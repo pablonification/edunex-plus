@@ -141,9 +141,9 @@ function Reading({ onDone }: { onDone: () => void }) {
 
   const both = summary.connected.length === 2;
   const parts = [
-    { key: "courses", count: summary.courses, label: t("scan.read.courses", { count: summary.courses }) },
-    { key: "tasks", count: summary.tasks, label: t("scan.read.tasks", { count: summary.tasks }) },
-    { key: "meetings", count: summary.meetings, label: t("scan.read.meetings", { count: summary.meetings }) },
+    { key: "courses", count: summary.courses, label: t("scan.count.courses") },
+    { key: "tasks", count: summary.tasks, label: t("scan.count.tasks") },
+    { key: "meetings", count: summary.meetings, label: t("scan.count.meetings") },
   ];
   return (
     <div className="mt-6 text-center" aria-live="polite" aria-busy="true">
@@ -151,9 +151,9 @@ function Reading({ onDone }: { onDone: () => void }) {
         {both ? t("welcome.reading") : t("welcome.readingOne", { source: t(`source.${summary.connected[0] ?? "edunex"}`) })}
       </h1>
       <p className="mx-auto mt-2 max-w-[360px] text-lead text-muted">{t("welcome.readingHint")}</p>
-      <StatRow className="mx-auto mt-7 max-w-[380px] text-left">
+      <StatRow className="mx-auto mt-7 max-w-[380px]">
         {parts.map((part) => (
-          <Stat key={part.key} size="heading" label={part.label.replace(/^\d+\s*/, "")} value={part.count} />
+          <Stat key={part.key} size="heading" label={part.label} value={part.count} />
         ))}
       </StatRow>
       <p className="mt-6 inline-flex items-center gap-2 text-small text-muted">
