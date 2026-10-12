@@ -427,7 +427,7 @@ describe("meetings", () => {
     // KU5014 meets later today: no card, one line with when, where and that it's next.
     await s.click([...document.querySelectorAll<HTMLButtonElement>("aside button")].find((b) => b.textContent?.startsWith("KU5014"))!);
     expect(above().some((el) => el.classList.contains("shadow-raised"))).toBe(false);
-    const line = above().find((el) => el.textContent?.startsWith("Pertemuan berikutnya·Hari ini, 16:00–17:50"));
+    const line = above().find((el) => el.textContent?.startsWith("Pertemuan berikutnya · Hari ini, 16:00–17:50"));
     expect(line).toBeDefined();
   });
 
@@ -468,7 +468,7 @@ describe("meetings", () => {
     // It closes tomorrow night, a day and a half away: its day, not "23:00" alone or "36 jam".
     expect(countdowns()).toEqual(["tutup besok, 23:00"]);
     // Next week's class keeps its own quiet line.
-    expect(above().find((el) => el.textContent?.startsWith("Pertemuan berikutnya·Kam, 15 Okt, 08:00"))).toBeDefined();
+    expect(above().find((el) => el.textContent?.startsWith("Pertemuan berikutnya · Kam, 15 Okt, 08:00"))).toBeDefined();
   });
 
   it("the class going on shows its own Presence window, never an earlier class's still open; that one is a quiet line under it", async () => {
@@ -484,7 +484,7 @@ describe("meetings", () => {
     expect(countdowns()).toEqual([expect.stringMatching(/^tutup 09:30 \(\d+ mnt lagi\)$/)]);
     expect(card.textContent).not.toContain("23:00");
     // Last week's window keeps its own class and close, quietly, with the way to record it.
-    const line = above().find((el) => el.textContent?.startsWith("Presensi Edunex masih dibuka·Kam, 8 Okt, 08:00–10:00·tutup besok, 23:00"));
+    const line = above().find((el) => el.textContent?.startsWith("Presensi Edunex masih dibuka · Kam, 8 Okt, 08:00–10:00 · tutup besok, 23:00"));
     expect(line).toBeDefined();
     expect(line!.closest(".shadow-raised")).toBeNull();
     expect(line!.querySelector("button")?.textContent).toBe("Catat di Edunex");
@@ -498,7 +498,7 @@ describe("meetings", () => {
     expect(document.querySelector("main .shadow-raised")?.textContent).toContain("Sedang berlangsung · sampai 09:30");
     expect(countdowns()).toEqual([]);
     expect(document.querySelector("main .shadow-raised")?.textContent).not.toContain("Presensi Edunex");
-    expect(screen!.text()).toContain("Presensi Edunex masih dibuka·Kam, 8 Okt, 08:00–10:00·tutup besok, 23:00");
+    expect(screen!.text()).toContain("Presensi Edunex masih dibuka · Kam, 8 Okt, 08:00–10:00 · tutup besok, 23:00");
   });
 
   it("a Presence window closing on another day says which day, and how long is left only while that's under a day", async () => {

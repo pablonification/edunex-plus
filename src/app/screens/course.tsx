@@ -453,10 +453,15 @@ function MeetingNow({ page }: { page: CoursePage }) {
         current ? (
           <span className="inline-flex items-center gap-2 text-success-fg">
             {live && <LiveDot />}
-            {t("course.nowUntil", { time: f.time(end) })}
+            <Meta>{t("course.nowUntil", { time: f.time(end) })}</Meta>
           </span>
+        ) : upcoming ? (
+          <Meta className="text-muted">
+            {t("course.next")}
+            {f.relativeDay(meeting.start)}
+          </Meta>
         ) : (
-          <span className="text-muted">{upcoming ? `${t("course.next")} · ${f.relativeDay(meeting.start)}` : t("course.presenceOpen")}</span>
+          <span className="text-muted">{t("course.presenceOpen")}</span>
         )
       }
       // Named as its row on the Pertemuan tab names it ("Pertemuan 3"), never just "Kuliah" when there's more to say.
