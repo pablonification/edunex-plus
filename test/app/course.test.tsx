@@ -392,9 +392,14 @@ describe("meetings", () => {
     const meetings = rows("main ol li");
     expect(meetings).toHaveLength(15);
     expect(meetings[0]).toContain("Hadir");
+    expect([...document.querySelectorAll("main ol li span")].filter((el) => el.textContent === "Hadir").at(-1)!.className).toContain("rounded-tag");
+    // A meeting's facts are one line, a "·" between each, not spread apart by gaps.
+    expect(meetings.find((m) => m.includes("8 Okt"))).toContain("R.SG PWK LT.6 · Presensi 08:00–09:30");
     // SIX is the official record; the intro says once that Edunex's gaps can still count, and the rows stay quiet.
-    expect(s.text()).toContain("Kehadiran resmi di SIX: hadir 6 dari 7");
     expect(s.text()).toContain("yang tidak dicatat Edunex tetap bisa terhitung di SIX");
+    // The count and what's left are the header meter's: the tab doesn't say them a second time.
+    expect(s.text().match(/6\/7|hadir 6 dari 7/g)).toHaveLength(1);
+    expect(s.text().match(/Masih bisa absen 1× lagi/g)).toHaveLength(1);
     expect(meetings[1]).toMatch(/Selesai$/);
     expect(s.text()).not.toContain("Tidak tercatat di Edunex");
     expect(meetings.find((m) => m.includes("Berikutnya"))).toContain("15 Okt");
@@ -701,6 +706,20 @@ describe("grades", () => {
     await type("Bobot UTS", "30");
     expect(s.text()).toContain("Untuk A kamu butuh rata-rata");
     expect(s.text()).not.toContain("Perbaiki angka");
+  });
+
+  it("the calculator sits on the page, not in a box titled like its tab; going back to the example is at the table's foot", async () => {
+    const s = await openCourse("PL3002");
+    await tab(/^Nilai/);
+    const panel = document.querySelector("main [role=tabpanel][data-state=active]")!;
+    expect(panel.querySelector("h2")).toBeNull();
+    expect(s.text()).not.toContain("Posisi nilaimu");
+    expect(s.text()).not.toContain("Kembali ke contoh");
+    await type("Nilai UTS", "80");
+    const reset = [...panel.querySelectorAll("tfoot button")].find((b) => b.textContent === "Kembali ke contoh")!;
+    expect(reset).toBeDefined();
+    await s.click(reset);
+    expect(s.text()).toContain("Ini contoh bobot, bukan bobot PL3002.");
   });
 
   it("answers for the letter the Student aims for", async () => {

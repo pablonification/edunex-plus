@@ -190,7 +190,6 @@ export const coursePageStrings = {
   "course.nothingTodo": { id: "Tidak ada tugas yang perlu dikerjakan.", en: "Nothing to hand in." },
 
   // Meetings, the honest attendance story
-  "meeting.official": { id: "Kehadiran resmi di SIX: hadir {attended} dari {held}", en: "Official attendance in SIX: {attended} of {held}" },
   "meeting.sixTotalsOnly": {
     id: "SIX hanya memberi jumlahnya. Di bawah ini catatan Edunex per pertemuan; yang tidak dicatat Edunex tetap bisa terhitung di SIX.",
     en: "SIX gives only the total. Below is what Edunex recorded per meeting; one Edunex didn't record can still count in SIX.",
