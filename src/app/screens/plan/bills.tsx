@@ -153,18 +153,20 @@ function BillCard({ label, bill }: { label: string; bill: Bill }) {
   })();
   return (
     <Card className="flex flex-col px-5 py-4">
-      <p className="text-small font-medium text-muted">
-        {label} · {termYears(bill.term)}
-      </p>
+      <Meta className="text-small font-medium text-muted">
+        {label}
+        {termYears(bill.term)}
+      </Meta>
       {billedNow ? (
         <>
           <p className="mt-1 text-[24px] leading-8 font-semibold tabular-nums">{bill.amount !== null ? rupiah(bill.amount) : "—"}</p>
           <div className="mt-1.5 flex flex-wrap items-center gap-2">
             <StatusChip bill={bill} />
             {bill.status === "partly-paid" && bill.paid !== null && (
-              <span className="text-small text-muted tabular-nums">
-                {t("bills.paidOf", { paid: rupiah(bill.paid) })} · {t("bills.left", { amount: rupiah(billLeft(bill)) })}
-              </span>
+              <Meta className="text-small text-muted tabular-nums">
+                {t("bills.paidOf", { paid: rupiah(bill.paid) })}
+                {t("bills.left", { amount: rupiah(billLeft(bill)) })}
+              </Meta>
             )}
             {bill.nextDueAt !== null && <span className="text-small font-medium tabular-nums">{t("bills.nextDue", { date: f.dayMonth(bill.nextDueAt) })}</span>}
           </div>

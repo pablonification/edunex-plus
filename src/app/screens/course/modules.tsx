@@ -23,7 +23,7 @@ import { Button } from "../../ui/controls";
 import { cx } from "../../ui/cx";
 import { EmptyState } from "../../ui/display";
 import { Icons } from "../../ui/icons";
-import { List } from "../../ui/layout";
+import { List, Meta } from "../../ui/layout";
 import { Tooltip, toast } from "../../ui/overlays";
 import { RichText } from "../../ui/rich-text";
 import { TaskRows } from "../tasks";
@@ -45,11 +45,9 @@ interface Entry {
 const latest = (entry: Pick<Entry, "postedAt" | "materials">) =>
   Math.max(entry.postedAt ?? 0, ...entry.materials.map((m) => m.postedAt ?? m.updatedAt ?? 0)) || null;
 
-/** "2 PDF · 4 tugas": what's in it; how many Tasks are still open shows as its own chip. */
-const countLine = (t: Translate, entry: Entry) =>
-  contentCounts(entry.materials, entry.tasks.length)
-    .map(({ kind, count }) => t(`course.kind.${kind}`, { count }))
-    .join(" · ");
+/** "2 PDF", "4 tugas": what's in it; how many Tasks are still open shows as its own chip. */
+const countFacts = (t: Translate, entry: Entry) =>
+  contentCounts(entry.materials, entry.tasks.length).map(({ kind, count }) => t(`course.kind.${kind}`, { count }));
 
 /** `module`: the Edunex module asked for (from search or an alert); it opens selected and in view. */
 export function ModulesTab({ page, module }: { page: CoursePage; module?: number }) {
@@ -143,7 +141,11 @@ export function ModulesTab({ page, module }: { page: CoursePage; module?: number
                     >
                       {entry.title}
                     </span>
-                    {!empty && countLine(t, entry) && <span className="mt-0.5 block truncate text-caption text-faint">{countLine(t, entry)}</span>}
+                    {!empty && countFacts(t, entry).length > 0 && (
+                      <Meta truncate className="mt-0.5 text-caption text-faint">
+                        {countFacts(t, entry)}
+                      </Meta>
+                    )}
                   </span>
                   {(open > 0 || fresh) && (
                     <span className="mt-0.5 flex shrink-0 flex-col items-end gap-1">
@@ -173,8 +175,10 @@ export function ModulesTab({ page, module }: { page: CoursePage; module?: number
       <section className="min-w-0" aria-labelledby="course-entry">
         <header className="mb-5">
           <p className="flex items-center gap-2 text-small font-semibold text-muted">
-            {active.id === INTRO ? t("course.courseWide") : t("course.module", { no: active.label ?? "" })}
-            {active.parent && <span className="font-normal text-faint">· {t("course.jointClass")}</span>}
+            <Meta>
+              {active.id === INTRO ? t("course.courseWide") : t("course.module", { no: active.label ?? "" })}
+              {active.parent ? <span className="font-normal text-faint">{t("course.jointClass")}</span> : null}
+            </Meta>
             {active === first && anyContent && entries.length > 1 && (
               <span className="inline-flex h-[18px] items-center rounded-full bg-fill px-1.5 text-micro font-semibold text-muted">{t("course.newest")}</span>
             )}
@@ -236,15 +240,15 @@ export function MaterialRow({ material }: { material: Material }) {
   const action = materialAction(material);
   const Icon = KIND_ICON[kind];
 
-  let meta: string;
-  const size = material.sizeBytes ? ` · ${f.fileSize(material.sizeBytes)}` : "";
+  let meta: (string | null)[];
+  const size = material.sizeBytes ? f.fileSize(material.sizeBytes) : null;
   const upload = uploadExtension(material.type);
-  if (kind === "pdf") meta = `${t("material.pdf")}${size}`;
-  else if (upload) meta = `${upload.slice(1).toUpperCase()}${size}`;
+  if (kind === "pdf") meta = [t("material.pdf"), size];
+  else if (upload) meta = [upload.slice(1).toUpperCase(), size];
   else if (kind === "vicon")
-    meta = VICON_PROVIDERS[material.type] ? t("material.vicon", { service: VICON_PROVIDERS[material.type] }) : t("material.viconUnknown");
-  else if (kind === "note") meta = htmlText(material.content ?? "").slice(0, 120) || t("material.note");
-  else meta = `${t(`material.${kind}`)}${size}`;
+    meta = [VICON_PROVIDERS[material.type] ? t("material.vicon", { service: VICON_PROVIDERS[material.type] }) : t("material.viconUnknown")];
+  else if (kind === "note") meta = [htmlText(material.content ?? "").slice(0, 120) || t("material.note")];
+  else meta = [t(`material.${kind}`), size];
 
   const download = async (url: string, name: string) => {
     setBusy(true);
@@ -317,7 +321,9 @@ export function MaterialRow({ material }: { material: Material }) {
         </span>
         <div className="min-w-0 flex-1">
           <p className="truncate text-body font-medium">{material.title}</p>
-          <p className="mt-0.5 truncate text-small text-muted">{meta}</p>
+          <Meta truncate className="mt-0.5 text-small text-muted">
+            {meta}
+          </Meta>
         </div>
         {material.updatedAt !== null && <span className="text-small whitespace-nowrap text-faint">{f.fromNow(material.updatedAt)}</span>}
         {/* One width for every action, so the dates beside them line up. */}

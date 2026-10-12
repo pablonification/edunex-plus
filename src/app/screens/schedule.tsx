@@ -15,7 +15,7 @@ import { type AppStore, useStatus, useStore } from "../store";
 import { Button, IconButton, Segmented } from "../ui/controls";
 import { Skeleton } from "../ui/display";
 import { Icons } from "../ui/icons";
-import { Page, PageHeader } from "../ui/layout";
+import { Meta, Page, PageHeader } from "../ui/layout";
 import { Tooltip } from "../ui/overlays";
 import { ScheduleWorldProvider } from "./schedule/details";
 import { ExportButton } from "./schedule/export";
@@ -159,10 +159,10 @@ function NeedsSix() {
   return (
     <div className="mb-3 flex items-center gap-3 rounded-lg border border-edge bg-sunken py-1.5 pr-1.5 pl-3.5 text-small">
       <Icons.Lock className="size-3.5 shrink-0 text-muted" />
-      <span className="min-w-0 flex-1">
+      <Meta className="flex-1">
         <span className="font-semibold">{t("schedule.needsSix")}</span>
-        <span className="text-muted"> · {t("schedule.needsSix.hint")}</span>
-      </span>
+        <span className="text-muted">{t("schedule.needsSix.hint")}</span>
+      </Meta>
       {six.state === "signed-out" && (
         <Button size="sm" busy={busy} onClick={() => void signIn("six")}>
           {t("schedule.signInSix")}
@@ -175,7 +175,7 @@ function NeedsSix() {
 /** Where it all comes from, said once. */
 function Provenance({ input }: { input: ScheduleData }) {
   const t = useT();
-  return <p className="mt-5 text-small text-faint">{t(input.six ? "schedule.provenance.six" : "schedule.provenance.edunex")}</p>;
+  return <Meta className="mt-5 text-small text-faint">{t(input.six ? "schedule.provenance.six" : "schedule.provenance.edunex")}</Meta>;
 }
 
 /** While SIX's timetable is on its way: the shape of a week. */

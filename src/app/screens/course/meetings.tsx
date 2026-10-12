@@ -22,6 +22,7 @@ import { Button } from "../../ui/controls";
 import { cx } from "../../ui/cx";
 import { EmptyState, LiveDot } from "../../ui/display";
 import { Icons } from "../../ui/icons";
+import { Meta } from "../../ui/layout";
 import type { CoursePage } from "./data";
 
 export function MeetingsTab({ page }: { page: CoursePage }) {
@@ -45,10 +46,10 @@ export function MeetingsTab({ page }: { page: CoursePage }) {
     <div className="max-w-[960px]">
       <div className="mb-5">
         {course.attendance && course.attendance.held > 0 ? (
-          <p className="text-lead">
+          <Meta className="text-lead">
             <span className="font-semibold">{t("meeting.official", course.attendance)}</span>
-            {health && health.state !== "unknown" && <span className={cx("font-semibold", STATE_TONE[health.state])}> · {budgetLabel(t, health)}</span>}
-          </p>
+            {health && health.state !== "unknown" ? <span className={cx("font-semibold", STATE_TONE[health.state])}>{budgetLabel(t, health)}</span> : null}
+          </Meta>
         ) : null}
         {countedIn === "noSix" && !noEdunexPresence && health ? (
           <NoSixIntro recorded={health.edunexRecorded} closed={health.edunexClosed} />
@@ -192,8 +193,10 @@ function MeetingRow({
         )}
       >
         <LiveDot className="scale-75" />
-        {t("meeting.state.open")}
-        {presence && <span className="font-medium opacity-80">· {f.countdown(presence.closesAt)}</span>}
+        <Meta truncate>
+          {t("meeting.state.open")}
+          {presence ? <span className="font-medium opacity-80">{f.countdown(presence.closesAt)}</span> : null}
+        </Meta>
       </span>
     );
   // Not recorded in Edunex: a warning only where Edunex is what counts; where SIX

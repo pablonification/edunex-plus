@@ -17,6 +17,7 @@ import { IconButton } from "../ui/controls";
 import { cx } from "../ui/cx";
 import { CourseDot } from "../ui/display";
 import { type IconProps, Icons } from "../ui/icons";
+import { Meta } from "../ui/layout";
 import { Popover } from "../ui/overlays";
 
 const KIND_ICON: Record<AlertKind, ComponentType<IconProps>> = {
@@ -191,8 +192,8 @@ function AlertsPanel({ readAt, onRead, onClose }: { readAt: number; onRead: (at:
                         {color && <CourseDot color={color} className="absolute -right-1 -bottom-1 size-2 ring-2 ring-raised" />}
                       </span>
                       <span className="min-w-0 flex-1">
-                        <span className={cx("line-clamp-2 text-small", unread ? "font-semibold" : "font-medium")}>{t(item.title.key, item.title.vars)}</span>
-                        {item.body && <span className="mt-0.5 line-clamp-2 text-caption text-muted">{t(item.body.key, item.body.vars)}</span>}
+                        <Meta className={cx("text-small", unread ? "font-semibold" : "font-medium")}>{t(item.title.key, item.title.vars)}</Meta>
+                        {item.body && <Meta className="mt-0.5 text-caption text-muted">{t(item.body.key, item.body.vars)}</Meta>}
                       </span>
                       <span className="flex shrink-0 items-center gap-2 pt-0.5">
                         <span className="text-caption text-faint tabular-nums">
@@ -210,7 +211,7 @@ function AlertsPanel({ readAt, onRead, onClose }: { readAt: number; onRead: (at:
         ))}
       </div>
       <div className="flex shrink-0 items-center justify-between gap-3 border-t border-line px-4 py-2.5 text-caption text-muted">
-        <span>{t(sixOut ? "alerts.footnoteEdunex" : "alerts.footnote")}</span>
+        <Meta>{t(sixOut ? "alerts.footnoteEdunex" : "alerts.footnote")}</Meta>
         <button type="button" onClick={settings} className="focus-ring inline-flex items-center gap-1 rounded font-medium text-accent-fg hover:underline">
           <Icons.Settings className="size-3.5" />
           {t("alerts.settings")}

@@ -20,6 +20,7 @@ import { Button } from "../../ui/controls";
 import { cx } from "../../ui/cx";
 import { CourseDot, LiveDot, StatusChip } from "../../ui/display";
 import { Icons } from "../../ui/icons";
+import { Meta } from "../../ui/layout";
 
 /** What every block on the screen reads besides its own item. */
 export interface ScheduleWorld {
@@ -82,14 +83,13 @@ function openWindow(world: ScheduleWorld, code: string, start: number): Presence
 function Head({ code, kind, title, world }: { code: string; kind: string; title: string; world: ScheduleWorld }) {
   return (
     <div>
-      <p className="flex items-center gap-1.5 text-caption font-semibold text-muted">
-        <CourseDot color={world.color(code)} className="size-2" />
-        <span className="text-fg tabular-nums">{code}</span>
-        <span aria-hidden className="text-faint">
-          ·
+      <Meta className="text-caption font-semibold text-muted">
+        <span className="inline-flex items-center gap-1.5 text-fg tabular-nums">
+          <CourseDot color={world.color(code)} className="size-2" />
+          {code}
         </span>
-        <span>{kind}</span>
-      </p>
+        {kind}
+      </Meta>
       <p className="mt-1 text-title leading-snug font-semibold text-balance">{title}</p>
     </div>
   );
@@ -119,13 +119,10 @@ function AttendanceFact({ code, world }: { code: string; world: ScheduleWorld })
   if (!health || health.countedIn === "unknown") return null;
   return (
     <Fact icon={<Icons.Hand className="size-3.5" />}>
-      {t(`schedule.countedIn.${health.countedIn}`)}
-      {health.state !== "unknown" && (
-        <>
-          {" · "}
-          <span className={cx("font-semibold", STATE_TONE[health.state])}>{budgetLabel(t, health)}</span>
-        </>
-      )}
+      <Meta>
+        {t(`schedule.countedIn.${health.countedIn}`)}
+        {health.state !== "unknown" ? <span className={cx("font-semibold", STATE_TONE[health.state])}>{budgetLabel(t, health)}</span> : null}
+      </Meta>
     </Fact>
   );
 }
@@ -194,10 +191,11 @@ export function ClassDetails({ item }: { item: ScheduledClass }) {
       <Head code={code} kind={session.activity} title={world.name(code, session.courseName)} world={world} />
       <Facts>
         <Fact icon={<Icons.Clock className="size-3.5" />}>
-          <span className="tabular-nums">
-            {f.dateLong(session.start)} · {timeRange(f, session.start, session.end)}
-          </span>
-          {exam && <span className="text-muted"> · {t("exam.length", { minutes: Math.round((session.end - session.start) / 60_000) })}</span>}
+          <Meta className="tabular-nums">
+            {f.dateLong(session.start)}
+            {timeRange(f, session.start, session.end)}
+            {exam ? <span className="text-muted">{t("exam.length", { minutes: Math.round((session.end - session.start) / 60_000) })}</span> : null}
+          </Meta>
           {live && <span className="block font-semibold text-success-fg">{t("schedule.live")}</span>}
         </Fact>
         <Fact icon={<Icons.MapPin className="size-3.5" />}>
@@ -221,7 +219,7 @@ export function ClassDetails({ item }: { item: ScheduledClass }) {
         )}
         {overlaps.map((o) => (
           <Fact key={o.code} icon={<Icons.Overlap className="size-3.5" />} tone="text-warning-fg">
-            <span className="font-semibold">{t("schedule.overlapWith", { code: o.code, from: f.time(o.from), to: f.time(o.to) })}</span>
+            <Meta className="font-semibold">{t("schedule.overlapWith", { code: o.code, from: f.time(o.from), to: f.time(o.to) })}</Meta>
           </Fact>
         ))}
         {!exam && <AttendanceFact code={code} world={world} />}
@@ -252,17 +250,17 @@ function MovedFacts({ item }: { item: ScheduledClass }) {
     <>
       {moved.kinds.includes("time") && (
         <Fact icon={<Icons.History className="size-3.5" />} tone="text-warning-fg">
-          {t("schedule.moved.time", { usual })}
+          <Meta>{t("schedule.moved.time", { usual })}</Meta>
         </Fact>
       )}
       {moved.kinds.includes("day") && (
         <Fact icon={<Icons.History className="size-3.5" />} tone="text-warning-fg">
-          {t("schedule.moved.day", { day, usual })}
+          <Meta>{t("schedule.moved.day", { day, usual })}</Meta>
         </Fact>
       )}
       {moved.kinds.includes("room") && moved.usual.room && (
         <Fact icon={<Icons.MapPin className="size-3.5" />} tone="text-warning-fg">
-          {t("schedule.moved.room", { room: moved.usual.room })}
+          <Meta>{t("schedule.moved.room", { room: moved.usual.room })}</Meta>
         </Fact>
       )}
     </>
@@ -281,9 +279,10 @@ export function MeetingDetails({ meeting, notInSix }: { meeting: OutsideMeeting 
       <Head code={meeting.code} kind={kind} title={world.name(meeting.code)} world={world} />
       <Facts>
         <Fact icon={<Icons.Clock className="size-3.5" />}>
-          <span className="tabular-nums">
-            {f.dateLong(meeting.start)} · {timeRange(f, meeting.start, meeting.end)}
-          </span>
+          <Meta className="tabular-nums">
+            {f.dateLong(meeting.start)}
+            {timeRange(f, meeting.start, meeting.end)}
+          </Meta>
         </Fact>
         <Fact icon={meeting.online ? <Icons.Video className="size-3.5" /> : <Icons.MapPin className="size-3.5" />}>
           {meeting.online ? t("schedule.online") : <span className="text-muted">{notInSix ? t("schedule.room.none") : t("schedule.room.fromSix")}</span>}
@@ -318,9 +317,10 @@ export function WindowDetails({ window }: { window: TaskWindow }) {
       <Head code={code} kind={t("schedule.window.kind")} title={handInLabel(t, f, window)} world={world} />
       <Facts>
         <Fact icon={<Icons.Clock className="size-3.5" />}>
-          <span className="tabular-nums">
-            {f.dateLong(presence.opensAt)} · {timeRange(f, presence.opensAt, presence.closesAt)}
-          </span>
+          <Meta className="tabular-nums">
+            {f.dateLong(presence.opensAt)}
+            {timeRange(f, presence.opensAt, presence.closesAt)}
+          </Meta>
           <span className="block text-muted">{t("schedule.window.only")}</span>
         </Fact>
         {six && (
@@ -370,8 +370,10 @@ export function DueDetails({ task }: { task: Task }) {
       <Head code={task.courseCode} kind={t("schedule.due.kind")} title={task.title} world={world} />
       <Facts>
         <Fact icon={<Icons.Clock className="size-3.5" />}>
-          <span className="tabular-nums">{f.dueLabel(task.dueAt!)}</span>
-          <span className="text-muted"> · {f.fromNow(task.dueAt!)}</span>
+          <Meta className="tabular-nums">
+            {f.dueLabel(task.dueAt!)}
+            <span className="text-muted">{f.fromNow(task.dueAt!)}</span>
+          </Meta>
         </Fact>
         <Fact icon={<Icons.BookOpen className="size-3.5" />}>{world.name(task.courseCode)}</Fact>
         {status !== "not_started" && (

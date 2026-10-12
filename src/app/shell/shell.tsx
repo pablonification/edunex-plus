@@ -24,6 +24,7 @@ import { Button } from "../ui/controls";
 import { cx } from "../ui/cx";
 import { Badge, CourseDot } from "../ui/display";
 import { type IconProps, Icons } from "../ui/icons";
+import { factsLabel } from "../ui/layout";
 import { Tooltip } from "../ui/overlays";
 import { PanelBoundary } from "../ui/panel-boundary";
 import { AlertsBell } from "./alerts";
@@ -223,7 +224,7 @@ function Sidebar({ onSettings }: { onSettings: () => void }) {
           .map(({ screen, label, Icon, badge, owns }, index) => {
             const active = route.screen === screen || (owns ?? []).includes(route.screen);
             return (
-              <Tooltip key={screen} side="right" content={`${t(label)} · ${store.platform === "darwin" ? "⌘" : "Ctrl+"}${index + 1}`}>
+              <Tooltip key={screen} side="right" content={factsLabel(t(label), `${store.platform === "darwin" ? "⌘" : "Ctrl+"}${index + 1}`)}>
                 <button
                   type="button"
                   aria-current={active ? "page" : undefined}
@@ -335,7 +336,7 @@ function TopBar({ onSearch }: { onSearch: () => void }) {
   return (
     <header className={cx("flex h-[52px] shrink-0 items-center gap-3 border-b border-line px-5 select-none", store.platform === "darwin" && "drag")}>
       {detail && canGoBack && (
-        <Tooltip content={`${t("action.back")} · ${store.platform === "darwin" ? "⌘[" : "Ctrl+["}`}>
+        <Tooltip content={factsLabel(t("action.back"), store.platform === "darwin" ? "⌘[" : "Ctrl+[")}>
           <Button
             variant="ghost"
             size="sm"

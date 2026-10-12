@@ -45,7 +45,7 @@ import { Button, Segmented } from "../ui/controls";
 import { cx } from "../ui/cx";
 import { Card, CourseDot, EmptyState, Skeleton, StatusChip, StatusGlyph } from "../ui/display";
 import { Icons } from "../ui/icons";
-import { List, Row as ListRow, Page, PageHeader, Section } from "../ui/layout";
+import { factsLabel, List, Row as ListRow, Meta, Page, PageHeader, Section } from "../ui/layout";
 import { toast, useReturnFocus } from "../ui/overlays";
 import { plainText, RichText } from "../ui/rich-text";
 import { ready as courseReady } from "./course";
@@ -330,7 +330,7 @@ function TaskRow({ task, status, index, meta = "course" }: Row & { index: number
       index={index}
       onClick={() => go({ screen: "task", taskId: task.id })}
       title={task.title}
-      meta={meta === "course" ? <Place task={task} /> : meta === "module" ? (module ?? undefined) : undefined}
+      meta={meta === "course" ? <Place task={task} /> : meta === "module" && module ? <Meta>{module}</Meta> : undefined}
       trailing={
         <span className="flex items-center gap-4">
           {LOUD.includes(status) && <StatusChip status={status} />}
@@ -378,18 +378,20 @@ function Place({ task }: { task: Task }) {
   const course = useCourse(task.courseCode);
   const where = moduleLabel(t, task.module) ?? course?.name ?? null;
   return (
-    <span className="flex min-w-0 items-center gap-1.5">
-      <CourseDot color={course?.color ?? "#888"} className="size-2" />
-      <span className="shrink-0 font-medium text-fg/80">{task.courseCode}</span>
-      {where && <span className="truncate">· {where}</span>}
-    </span>
+    <Meta truncate>
+      <span className="inline-flex items-center gap-1.5 font-medium text-fg/80">
+        <CourseDot color={course?.color ?? "#888"} className="size-2" />
+        {task.courseCode}
+      </span>
+      {where}
+    </Meta>
   );
 }
 
 function moduleLabel(t: Translate, module: TaskModule | null): string | null {
   if (!module) return null;
   const name = moduleName(module);
-  return name ? `${t("task.module", { n: module.index })} · ${name}` : t("task.module", { n: module.index });
+  return factsLabel(t("task.module", { n: module.index }), name);
 }
 
 /**
@@ -407,8 +409,8 @@ function Signal({ task, status }: Row) {
   if (editedAfterSubmit(task) && task.editedAt !== null)
     signal = (
       <span className="font-medium text-warning-fg">
-        <Icons.PenLine className="size-3.5" />
-        {t("task.editedAfterSubmitLine", { date: f.dayMonth(task.editedAt) })}
+        <Icons.PenLine className="size-3.5 shrink-0" />
+        <Meta>{t("task.editedAfterSubmitLine", { date: f.dayMonth(task.editedAt) })}</Meta>
       </span>
     );
   else if (window)
@@ -423,7 +425,10 @@ function Signal({ task, status }: Row) {
     signal = (
       <span>
         <Icons.Zap className="size-3.5" />
-        {t("task.shortWindow")} · {f.timeRange(task.opensAt, task.dueAt)}
+        <Meta>
+          {t("task.shortWindow")}
+          {f.timeRange(task.opensAt, task.dueAt)}
+        </Meta>
       </span>
     );
   if (!signal) return null;
@@ -475,8 +480,8 @@ function TaskPage({ task }: { task: Task }) {
       <span className="font-semibold">{task.courseCode}</span>
       {where && (
         <>
-          <Icons.ChevronRight className="size-3" />
-          <span className="truncate">{where}</span>
+          <Icons.ChevronRight className="size-3 shrink-0" />
+          <Meta truncate>{where}</Meta>
         </>
       )}
     </>
@@ -500,9 +505,11 @@ function TaskPage({ task }: { task: Task }) {
         <p className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-body">
           {task.dueAt !== null ? (
             <span className={cx("inline-flex items-center gap-1.5 font-medium", (late || soon) && "text-danger-fg")}>
-              <Icons.Clock className="size-3.5" />
-              {t("task.due", { when: f.dueLabel(task.dueAt) })}
-              <span className={cx("font-normal", !(late || soon) && "text-muted")}>· {f.fromNow(task.dueAt)}</span>
+              <Icons.Clock className="size-3.5 shrink-0" />
+              <Meta>
+                {t("task.due", { when: f.dueLabel(task.dueAt) })}
+                <span className={cx("font-normal", !(late || soon) && "text-muted")}>{f.fromNow(task.dueAt)}</span>
+              </Meta>
             </span>
           ) : (
             <span className="text-muted">{t("task.noDeadline")}</span>
@@ -893,7 +900,7 @@ function HandIn({ task, status }: Row) {
           : ""
       : status === "draft"
         ? draftAt !== null
-          ? `${t("handIn.draftSaved", { when: f.dueLabel(draftAt) })} · ${t("handIn.draftStatus").toLowerCase()}`
+          ? factsLabel(t("handIn.draftSaved", { when: f.dueLabel(draftAt) }), t("handIn.draftStatus").toLowerCase())
           : t("handIn.draftStatus")
         : status === "overdue"
           ? t("handIn.lateStill")
@@ -970,7 +977,7 @@ function HandIn({ task, status }: Row) {
         </span>
         <div className="min-w-0">
           <p className="text-lead font-semibold">{t(`taskStatus.${status}`)}</p>
-          {subtitle && <p className="text-small text-muted">{subtitle}</p>}
+          {subtitle && <Meta className="text-small text-muted">{subtitle}</Meta>}
         </div>
         {(task.score !== null || status === "in_review") && (
           <span className="ml-auto text-right text-caption text-muted">
@@ -1001,13 +1008,16 @@ function HandIn({ task, status }: Row) {
                   name={item.name}
                   state={item.state}
                   detail={
-                    item.state === "failed"
-                      ? t(item.problem ?? "handIn.uploadFailed")
-                      : item.state === "uploaded"
-                        ? `${t("handIn.notSaved")} · ${f.fileSize(item.size)}`
-                        : item.state === "uploading"
-                          ? `${t("handIn.uploading")} · ${f.fileSize(item.size)}`
-                          : t("handIn.waiting")
+                    item.state === "failed" ? (
+                      t(item.problem ?? "handIn.uploadFailed")
+                    ) : item.state === "uploaded" || item.state === "uploading" ? (
+                      <Meta>
+                        {t(item.state === "uploaded" ? "handIn.notSaved" : "handIn.uploading")}
+                        {f.fileSize(item.size)}
+                      </Meta>
+                    ) : (
+                      t("handIn.waiting")
+                    )
                   }
                   hint={item.state === "uploaded" ? fileHint(t, item.name, pattern, type) : null}
                   onRetry={item.state === "failed" && item.problem !== "handIn.tooBig" ? () => retry(item) : undefined}
@@ -1027,22 +1037,24 @@ function HandIn({ task, status }: Row) {
               onDragLeave={() => setDragging(false)}
               onDrop={(event) => void drop(event)}
               className={cx(
-                "focus-ring flex w-full flex-col items-center gap-1 rounded-lg border border-dashed px-3 py-4 text-center transition-colors duration-150 [&>*]:pointer-events-none",
+                // Start-aligned, so its facts wrap without a dangling "·" (Meta can't do that centered).
+                "focus-ring flex w-full items-center gap-3 rounded-lg border border-dashed px-3.5 py-3 text-left transition-colors duration-150 [&>*]:pointer-events-none",
                 dragging ? "border-accent bg-info-bg" : "border-track hover:border-accent hover:bg-hover",
               )}
             >
-              <Icons.Upload className="size-4 text-muted" />
-              <span className="text-small">
-                <span className="font-semibold text-accent-fg">{t("handIn.attach")}</span>
-                <span className="text-muted"> · {t("handIn.drop")}</span>
+              <Icons.Upload className="size-4 shrink-0 text-muted" />
+              <span className="min-w-0 flex-1">
+                <Meta className="text-small">
+                  <span className="font-semibold text-accent-fg">{t("handIn.attach")}</span>
+                  <span className="text-muted">{t("handIn.drop")}</span>
+                </Meta>
+                {(task.fileRequired || type) && (
+                  <Meta className="mt-0.5 text-caption text-faint">
+                    {task.fileRequired ? t("handIn.fileRequired") : null}
+                    {type ? t("handIn.ruleType", { type: type.toUpperCase() }) : null}
+                  </Meta>
+                )}
               </span>
-              {(task.fileRequired || type) && (
-                <span className="text-caption text-faint">
-                  {[task.fileRequired ? t("handIn.fileRequired") : null, type ? t("handIn.ruleType", { type: type.toUpperCase() }) : null]
-                    .filter(Boolean)
-                    .join(" · ")}
-                </span>
-              )}
             </button>
           )}
           {!editable && !sent && status !== "closed" && task.opensAt !== null && (

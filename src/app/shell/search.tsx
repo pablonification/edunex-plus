@@ -21,6 +21,7 @@ import { useBridge, useSettings, useStore } from "../store";
 import { cx } from "../ui/cx";
 import { Kbd } from "../ui/display";
 import { type IconProps, Icons } from "../ui/icons";
+import { factsLabel, Meta } from "../ui/layout";
 import { useReturnFocus } from "../ui/overlays";
 import { isBuilt } from "./built";
 import { refreshNow } from "./source-status";
@@ -265,8 +266,8 @@ function Palette({ onClose, onSettings }: { onClose: () => void; onSettings: () 
                       {item.title}
                     </span>
                     {detail && (
-                      <span id={`${optionId(mine)}-detail`} className="block truncate text-small text-muted">
-                        {detail}
+                      <span id={`${optionId(mine)}-detail`} className="block text-small text-muted">
+                        <Meta truncate>{detail}</Meta>
                       </span>
                     )}
                   </span>
@@ -338,7 +339,7 @@ function ItemMark({ item, color }: { item: SearchItem; color: string | undefined
 /** When an exam is, as its row says it. */
 function examWhen(exam: Exam, t: Translate, f: Format): string {
   const session = exam.six[0];
-  if (session) return `${f.relativeDay(session.start)}, ${f.timeRange(session.start, session.end)}${session.room ? ` · ${session.room}` : ""}`;
+  if (session) return factsLabel(`${f.relativeDay(session.start)}, ${f.timeRange(session.start, session.end)}`, session.room);
   if (exam.at !== null) return f.dueLabel(exam.at);
   if (exam.week) return t("search.examWeek", { kind: t(`exam.kind.${exam.kind}`), range: f.dayRange(exam.week.firstDay, exam.week.lastDay) });
   return t("search.noDate");
@@ -377,5 +378,5 @@ function detailOf(item: SearchItem, t: Translate, f: Format, now: number): strin
       parts.push(item.within);
       break;
   }
-  return parts.filter(Boolean).join(" · ");
+  return factsLabel(...parts);
 }

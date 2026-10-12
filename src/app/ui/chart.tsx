@@ -6,6 +6,7 @@
 // readers. Drawn at the container's real width, so text never scales.
 import { useLayoutEffect, useRef, useState } from "react";
 import { cx } from "./cx";
+import { Meta } from "./layout";
 
 export interface ChartSeries {
   name: string;
@@ -202,10 +203,10 @@ export function LineChart({
           className="pointer-events-none absolute z-10 min-w-[120px] -translate-x-1/2 rounded-lg bg-raised px-2.5 py-2 text-caption shadow-pop ring-1 ring-black/5 dark:ring-white/10"
           style={{ left: Math.min(Math.max(x(hover), 70), width - 70), top: 0 }}
         >
-          <div className="font-semibold text-fg">
+          <Meta className="font-semibold text-fg">
             {columns[hover]}
-            {estimate(hover) && estimateWord && <span className="font-normal text-muted"> · {estimateWord}</span>}
-          </div>
+            {estimate(hover) && estimateWord ? <span className="font-normal text-muted">{estimateWord}</span> : null}
+          </Meta>
           {series.map((s) =>
             s.values[hover] === null || s.values[hover] === undefined ? null : (
               <div key={s.name} className="mt-0.5 flex items-center justify-between gap-3 text-muted">

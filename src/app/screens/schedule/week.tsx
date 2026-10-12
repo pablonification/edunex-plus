@@ -31,6 +31,7 @@ import type { ScheduleData } from "../../schedule-data";
 import { cx } from "../../ui/cx";
 import { LiveDot } from "../../ui/display";
 import { Icons } from "../../ui/icons";
+import { factsLabel, Meta } from "../../ui/layout";
 import { Popover } from "../../ui/overlays";
 import { GridBlock, type GridDay, TimeGrid } from "../../ui/time-grid";
 import { ClassDetails, DueDetails, handInLabel, MeetingDetails, periodName, timeRange, useWorld, WindowDetails } from "./details";
@@ -96,10 +97,12 @@ function BandLabel({ event, f, uncertain, short }: { event: CalendarEvent; f: Fo
   return (
     <>
       <Icons.Flag className="size-3 shrink-0" weight="bold" />
-      <span className="truncate" title={`${event.title} · ${span}`}>
-        {periodName(t, event)}
-        {!short && ` · ${span}`}
-        {uncertain && <span className="font-medium opacity-80"> · {t("schedule.band.uncertain")}</span>}
+      <span className="min-w-0 flex-1" title={factsLabel(event.title, span)}>
+        <Meta truncate>
+          {periodName(t, event)}
+          {short ? null : span}
+          {uncertain ? <span className="font-medium opacity-80">{t("schedule.band.uncertain")}</span> : null}
+        </Meta>
       </span>
     </>
   );
@@ -186,7 +189,7 @@ function ClassBlock({ item, minutes, narrow }: { item: ScheduledClass; minutes: 
     extra ? t("schedule.mark.extra") : null,
     ...overlaps.map((o) => t("schedule.mark.overlap", { code: o.code })),
   ].filter((m): m is string => m !== null);
-  const label = [exam ? `${session.activity} ${code}` : code, time, room, ...marks].join(" · ");
+  const label = factsLabel(exam ? `${session.activity} ${code}` : code, time, room, ...marks);
   const clashLine = narrow && overlaps.length > 0;
   const roomLine = clashLine ? 4 : 3;
 
@@ -197,9 +200,10 @@ function ClassBlock({ item, minutes, narrow }: { item: ScheduledClass; minutes: 
       className={cx(BLOCK, "bg-fg py-1 pr-1.5 pl-2.5 text-canvas shadow-raised hover:shadow-lift", past && "opacity-60")}
     >
       <Stripe color={world.color(code)} />
-      <span className="truncate font-bold tracking-[0.01em]">
-        {session.activity} · {code}
-      </span>
+      <Meta truncate className="font-bold tracking-[0.01em]">
+        {session.activity}
+        {code}
+      </Meta>
       {lines >= 2 && <span className="text-title leading-[18px] font-semibold break-words">{room}</span>}
       {lines >= 3 && <span className="tabular-nums opacity-75">{time}</span>}
     </button>
@@ -321,7 +325,7 @@ function MeetingBlock({ meeting, minutes, notInSix }: { meeting: OutsideMeeting 
   // "Pertemuan" alone says nothing: a meeting Edunex didn't number names its course, like a class from SIX.
   const what = meeting.number !== null ? t("schedule.meeting", { n: meeting.number }) : world.name(meeting.code);
   const where = meeting.online ? t("schedule.online") : null;
-  const label = [meeting.code, what, time, where, notInSix ? t("schedule.notInSix") : t("schedule.fromEdunex")].filter(Boolean).join(" · ");
+  const label = factsLabel(meeting.code, what, time, where, notInSix ? t("schedule.notInSix") : t("schedule.fromEdunex"));
   const past = meeting.end <= world.now;
   const trigger = (
     <button
@@ -378,7 +382,7 @@ function WindowChip({ window }: { window: TaskWindow }) {
   const trigger = (
     <button
       type="button"
-      aria-label={`${window.code} · ${text}`}
+      aria-label={factsLabel(window.code, text)}
       className={cx(
         "focus-ring flex w-full items-start gap-1.5 rounded-md border border-dashed px-1.5 py-1 text-left text-caption transition-colors duration-150 hover:bg-hover",
         done ? "border-success-fg/40 text-success-fg" : "border-accent-fg/50 bg-surface",

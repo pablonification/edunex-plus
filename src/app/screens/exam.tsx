@@ -3,6 +3,7 @@
 // Edunex (its exams, take-home UTS Tasks, the course outline) and ITB's
 // calendar (the exam weeks) each know, and says plainly, with a next step,
 // when SIX and Edunex give different dates.
+import type { ReactNode } from "react";
 import { type Exam, examKind, examPassed } from "../../core/exams";
 import { edunexCourseUrl } from "../../core/links";
 import type { CalendarEvent, Task } from "../../core/models";
@@ -20,7 +21,7 @@ import { Button } from "../ui/controls";
 import { cx } from "../ui/cx";
 import { Card, CourseDot, EmptyState, Skeleton, StatusChip } from "../ui/display";
 import { Icons } from "../ui/icons";
-import { List, Notice, Page, PageHeader, Row, Section } from "../ui/layout";
+import { List, Meta, Notice, Page, PageHeader, Row, Section } from "../ui/layout";
 import { toast } from "../ui/overlays";
 import { ExportButton } from "./schedule";
 import { LecturerFile } from "./tasks";
@@ -82,14 +83,14 @@ export function ExamRow({ exam, index }: { exam: Exam; index?: number }) {
   const days = sourceDays(f, exam);
   const when =
     inClass !== undefined
-      ? t("exam.row.inClass", { time: [f.timeRange(inClass.start, inClass.end), inClass.room].filter(Boolean).join(" · ") })
+      ? [t("exam.row.inClass", { time: f.timeRange(inClass.start, inClass.end) }), inClass.room]
       : online?.start != null
-        ? `${t("exam.onEdunex")} · ${f.time(online.start)}`
+        ? [t("exam.onEdunex"), f.time(online.start)]
         : exam.at === null && exam.week && (exam.kind === "UTS" || exam.kind === "UAS")
-          ? t("exam.dayUnknown")
+          ? [t("exam.dayUnknown")]
           : exam.at === null
-            ? t("exam.noDate")
-            : "";
+            ? [t("exam.noDate")]
+            : [];
   return (
     <Row
       index={index}
@@ -102,11 +103,13 @@ export function ExamRow({ exam, index }: { exam: Exam; index?: number }) {
         </span>
       }
       meta={
-        <span className="flex min-w-0 items-center gap-1.5">
-          <CourseDot color={course?.color ?? "#888"} className="size-2" />
-          <span className="shrink-0 font-medium text-fg/80">{exam.courseCode}</span>
-          {when && <span className="truncate">· {when}</span>}
-        </span>
+        <Meta truncate>
+          <span className="inline-flex items-center gap-1.5 font-medium text-fg/80">
+            <CourseDot color={course?.color ?? "#888"} className="size-2" />
+            {exam.courseCode}
+          </span>
+          {when}
+        </Meta>
       }
       trailing={exam.at !== null && !examPassed(exam, now) ? <span className="text-small text-muted tabular-nums">{f.fromNow(exam.at)}</span> : undefined}
     >
@@ -116,7 +119,7 @@ export function ExamRow({ exam, index }: { exam: Exam; index?: number }) {
       {exam.disagree && (
         <span className="mt-1 flex items-center gap-1.5 text-small font-medium text-warning-fg">
           <Icons.AlertTriangle className="size-3.5 shrink-0" />
-          {t("exam.row.disagree", days)}
+          <Meta>{t("exam.row.disagree", days)}</Meta>
         </span>
       )}
     </Row>
@@ -131,7 +134,7 @@ function TakeHomeLine({ task }: { task: Task }) {
   return (
     <span className="mt-1 flex min-w-0 items-center gap-2 text-small text-muted">
       <Icons.Upload className="size-3.5 shrink-0" />
-      <span className="truncate">{task.dueAt !== null ? t("exam.row.takeHome", { title: task.title, when: f.dueLabel(task.dueAt) }) : task.title}</span>
+      <Meta truncate>{task.dueAt !== null ? t("exam.row.takeHome", { title: task.title, when: f.dueLabel(task.dueAt) }) : task.title}</Meta>
       {(status === "draft" || status === "overdue" || status === "submitted") && <StatusChip status={status} />}
     </span>
   );
@@ -212,10 +215,21 @@ function ExamPage({ exam, others, course, courses }: { exam: Exam; others: Exam[
     }
   };
 
-  const links: { label: string; url: string }[] = [];
+  const links: { label: ReactNode; url: string }[] = [];
   if (exam.six.length > 0 && student) links.push({ label: t("examPage.seeSix"), url: sixTimetableUrl(student) });
   for (const task of exam.tasks)
-    links.push({ label: exam.tasks.length > 1 ? `${t("examPage.seeTask")} · ${task.title}` : t("examPage.seeTask"), url: edunexTaskUrl(task.id) });
+    links.push({
+      label:
+        exam.tasks.length > 1 ? (
+          <Meta>
+            {t("examPage.seeTask")}
+            {task.title}
+          </Meta>
+        ) : (
+          t("examPage.seeTask")
+        ),
+      url: edunexTaskUrl(task.id),
+    });
   if (!exam.tasks.length && course?.edunex) links.push({ label: t("examPage.seeCourse"), url: edunexCourseUrl(course.edunex.courseId) });
 
   return (
@@ -229,7 +243,16 @@ function ExamPage({ exam, others, course, courses }: { exam: Exam; others: Exam[
           </span>
         }
         title={name}
-        description={exam.at !== null ? `${f.dateLong(exam.at)} · ${exam.at > now ? f.fromNow(exam.at) : f.relativeDay(exam.at)}` : t("exam.noDate")}
+        description={
+          exam.at !== null ? (
+            <Meta>
+              {f.dateLong(exam.at)}
+              {exam.at > now ? f.fromNow(exam.at) : f.relativeDay(exam.at)}
+            </Meta>
+          ) : (
+            t("exam.noDate")
+          )
+        }
         actions={<ExportButton />}
       />
 
@@ -239,10 +262,10 @@ function ExamPage({ exam, others, course, courses }: { exam: Exam; others: Exam[
             <Card key={session.id} variant="raised" className="px-5 py-4">
               <p className="text-small font-medium text-muted">{t("exam.inClass")}</p>
               <p className="mt-1 text-heading font-semibold tabular-nums">{dayLabel(f, session.start)}</p>
-              <p className="mt-0.5 text-lead tabular-nums">
-                {f.timeRange(session.start, session.end)}{" "}
-                <span className="text-muted">· {t("exam.length", { minutes: Math.round((session.end - session.start) / 60_000) })}</span>
-              </p>
+              <Meta className="mt-0.5 text-lead tabular-nums">
+                {f.timeRange(session.start, session.end)}
+                <span className="text-muted">{t("exam.length", { minutes: Math.round((session.end - session.start) / 60_000) })}</span>
+              </Meta>
               <p className="mt-3 flex items-center gap-1.5 text-lead font-semibold">
                 <Icons.MapPin className="size-4 shrink-0 text-muted" />
                 {session.room ?? <span className="font-normal text-muted">{t("exam.noRoom")}</span>}
@@ -299,26 +322,22 @@ function ExamPage({ exam, others, course, courses }: { exam: Exam; others: Exam[
       <Study exam={exam} />
 
       {links.length > 0 && (
-        <p className="mt-10 flex flex-wrap items-center gap-x-2 gap-y-1 text-small text-muted">
-          <span>{t("examPage.official")}:</span>
-          {links.map((link, i) => (
-            <span key={link.url} className="inline-flex items-center gap-2">
-              {i > 0 && (
-                <span aria-hidden className="text-faint">
-                  ·
-                </span>
-              )}
+        <div className="mt-10 flex items-start gap-2 text-small text-muted">
+          <span className="shrink-0">{t("examPage.official")}:</span>
+          <Meta>
+            {links.map((link) => (
               <button
+                key={link.url}
                 type="button"
                 onClick={() => open(link.url)}
                 className="focus-ring inline-flex items-center gap-0.5 rounded font-medium text-accent-fg hover:underline"
               >
                 {link.label}
-                <Icons.ArrowUpRight className="size-3.5" />
+                <Icons.ArrowUpRight className="size-3.5 shrink-0" />
               </button>
-            </span>
-          ))}
-        </p>
+            ))}
+          </Meta>
+        </div>
       )}
 
       {others.length > 0 && (
@@ -370,10 +389,10 @@ function TakeHomeCard({ task }: { task: Task }) {
       <span className="mt-1 text-heading font-semibold tabular-nums">{task.dueAt !== null ? dayLabel(f, task.dueAt) : t("exam.noDate")}</span>
       {task.dueAt !== null && <span className="mt-0.5 text-lead tabular-nums">{t("exam.due", { when: f.time(task.dueAt) })}</span>}
       <span className="mt-3 flex items-center gap-1 text-small font-medium text-accent-fg">
-        <span className="truncate">
+        <Meta truncate>
           {isOpenStatus(status) ? t("examPage.openTask") : task.title}
-          {isOpenStatus(status) && <span className="font-normal text-muted"> · {task.title}</span>}
-        </span>
+          {isOpenStatus(status) ? <span className="font-normal text-muted">{task.title}</span> : null}
+        </Meta>
         <Icons.ChevronRight className="size-3.5 shrink-0 transition-transform duration-150 group-hover:translate-x-0.5" />
       </span>
     </button>
@@ -452,11 +471,11 @@ function BeforeExam({ code }: { code: string }) {
   return (
     <div className="mt-3 flex items-center gap-3 rounded-xl border border-edge bg-surface px-4 py-3 shadow-card">
       <Icons.Hand className="size-4 shrink-0 text-muted" />
-      <p className="min-w-0 flex-1 text-body">
+      <Meta className="flex-1 text-body">
         <span className="font-medium">{t("examPage.attendance")}</span>
-        <span className="text-muted"> · {t("examPage.attendanceLine", { attended: health.attended ?? 0, held: health.held ?? 0 })} · </span>
+        <span className="text-muted">{t("examPage.attendanceLine", { attended: health.attended ?? 0, held: health.held ?? 0 })}</span>
         <span className={cx("font-semibold", STATE_TONE[health.state])}>{budgetLabel(t, health)}</span>
-      </p>
+      </Meta>
       <button
         type="button"
         onClick={() => go({ screen: "presence" })}

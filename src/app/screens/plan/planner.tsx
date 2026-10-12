@@ -51,6 +51,7 @@ import { Button, IconButton } from "../../ui/controls";
 import { cx } from "../../ui/cx";
 import { Card } from "../../ui/display";
 import { Icons } from "../../ui/icons";
+import { Meta } from "../../ui/layout";
 import { Flash } from "../../ui/motion";
 import { ConfirmDialog, Dialog, dismissToast, Tooltip, toast } from "../../ui/overlays";
 import { GradeSelect, HonorsList, IpkChart, NeedText, predicateFor, TargetControl, usePredicate, useTermLabel } from "./projection";
@@ -418,19 +419,20 @@ function Past({ record, steps }: { record: StudentRecord; steps: ProjectedStep[]
         className="focus-ring flex w-full items-center gap-3 px-4 py-3 text-left transition-colors duration-150 hover:bg-hover"
       >
         <Icons.ChevronRight className={cx("size-4 text-faint transition-transform duration-150", open && "rotate-90")} />
-        <span className="flex-1 text-body font-semibold">
+        <Meta className="flex-1 text-body font-semibold">
           {t("planner.past", { n: last })}
-          <span className="ml-2 font-normal text-muted">· {t("planner.pastMeta", { sks: record.passedSks, ipk: ipk === null ? "—" : f.number(ipk, 2) })}</span>
-        </span>
+          <span className="font-normal text-muted">{t("planner.pastMeta", { sks: record.passedSks, ipk: ipk === null ? "—" : f.number(ipk, 2) })}</span>
+        </Meta>
       </button>
       {open && (
         <ul className="grid grid-cols-2 gap-2 border-t border-line bg-sunken px-4 py-3 @2xl:grid-cols-3">
           {steps.map((s) => (
             <li key={s.term} className="text-small">
               <span className="font-medium">{termLabel(s.term, s.semester)}</span>
-              <span className="block text-muted tabular-nums">
-                IP {s.ip === null ? "—" : f.number(s.ip, 2)} · {s.sks} SKS
-              </span>
+              <Meta className="text-muted tabular-nums">
+                {`IP ${s.ip === null ? "—" : f.number(s.ip, 2)}`}
+                {`${s.sks} SKS`}
+              </Meta>
             </li>
           ))}
         </ul>
@@ -839,18 +841,14 @@ function AddCourse({ record, state, term, title, onClose }: { record: StudentRec
         <span className="w-[64px] shrink-0 text-small font-semibold tabular-nums">{code}</span>
         <span className="min-w-0 flex-1">
           <span className="block truncate text-body font-medium">{info.name}</span>
-          <span className="block truncate text-caption text-muted">
-            {[
-              `${info.sks} SKS`,
-              owner,
-              why,
-              retake && retake.now !== null && retake.after !== null
-                ? t("planner.retakeGain", { now: f.number(retake.now, 2), after: f.number(retake.after, 2) })
-                : null,
-            ]
-              .filter(Boolean)
-              .join(" · ")}
-          </span>
+          <Meta truncate className="text-caption text-muted">
+            {`${info.sks} SKS`}
+            {owner}
+            {why}
+            {retake && retake.now !== null && retake.after !== null
+              ? t("planner.retakeGain", { now: f.number(retake.now, 2), after: f.number(retake.after, 2) })
+              : null}
+          </Meta>
         </span>
         {st ? (
           <span className="text-caption font-semibold whitespace-nowrap text-faint">
@@ -926,9 +924,10 @@ function AddCourse({ record, state, term, title, onClose }: { record: StudentRec
                   <li key={m.key} className="border-b border-line px-5 py-2.5 last:border-b-0">
                     <p className="flex items-center justify-between gap-3 text-body font-semibold">
                       {m.name}
-                      <span className="text-caption font-medium text-muted">
-                        {m.program} · {m.need} SKS
-                      </span>
+                      <Meta className="text-caption font-medium text-muted">
+                        {m.program}
+                        {`${m.need} SKS`}
+                      </Meta>
                     </p>
                     {m.note && <p className="mt-0.5 line-clamp-2 text-caption text-muted">{m.note}</p>}
                     <ul className="mt-1.5 flex flex-wrap gap-1.5">

@@ -11,6 +11,7 @@ import { Button, IconButton } from "../ui/controls";
 import { cx } from "../ui/cx";
 import { EmptyState } from "../ui/display";
 import { Icons } from "../ui/icons";
+import { Meta } from "../ui/layout";
 import { Popover, toast } from "../ui/overlays";
 
 /** Opens the sign-in window for a source; resolves when it closes. */
@@ -218,10 +219,12 @@ function SourceRow({ source }: { source: SourceId }) {
       </span>
       <div className="min-w-0 flex-1">
         <p className="text-body font-medium">
-          {name}{" "}
-          <span className={cx("font-normal", status.state === "expired" ? "text-warning-fg" : status.state === "changed" ? "text-danger-fg" : "text-muted")}>
-            · {word}
-          </span>
+          <Meta>
+            {name}
+            <span className={cx("font-normal", status.state === "expired" ? "text-warning-fg" : status.state === "changed" ? "text-danger-fg" : "text-muted")}>
+              {word}
+            </span>
+          </Meta>
         </p>
         <p className="text-small text-muted">
           {hint ?? (status.updatedAt ? t("status.updated", { when: f.fromNow(status.updatedAt) }) : t("status.neverUpdated"))}
