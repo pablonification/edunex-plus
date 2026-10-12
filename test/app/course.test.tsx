@@ -482,6 +482,24 @@ describe("meetings", () => {
     expect(line!.querySelector("button")?.textContent).toBe("Catat di Edunex");
   });
 
+  it("a lab earlier the same day never takes the lecture's Presence: the lecture going on keeps its window", async () => {
+    const world = new PretendWorld({ now: "2026-10-15T08:30:00+07:00" });
+    // SIX lists a PL3002 lab at 06:00 before Thursday's 08:00 lecture; Edunex has a Presence for the lecture only.
+    world.six.addMeetingBeside("2194343", {
+      id: "2194390",
+      code: "PL3002",
+      name: "Ekonomi dan Inovasi dalam Perencanaan",
+      start: "06:00",
+      end: "07:30",
+      activity: "Praktikum",
+    });
+    await openCourse("PL3002", { world, six: true });
+    expect(document.querySelector("main .shadow-raised")?.textContent).toContain("Sedang berlangsung · sampai 09:30");
+    expect(countdowns()).toEqual([expect.stringMatching(/^tutup 09:30 \(\d+ mnt lagi\)$/)]);
+    // Never offered again as the lab's.
+    expect(screen!.text()).not.toContain("Presensi Edunex masih dibuka");
+  });
+
   it("a class going on whose own Presence is done shows no countdown, while an earlier class's window still open stays a quiet line", async () => {
     const world = new PretendWorld({ now: "2026-10-15T08:30:00+07:00" });
     keepThursdayOpen(world, "2026-10-16T23:00:00+07:00");

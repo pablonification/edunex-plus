@@ -76,6 +76,16 @@ export class PretendSix {
     this.addedMeetings.push(meeting);
   }
 
+  /** Puts another meeting on the recorded month's timetable, on the day of SIX meeting `beside`, just before it (a lab on a lecture's day). */
+  addMeetingBeside(beside: string, meeting: Omit<AddedMeeting, "day">): void {
+    this.editPage(/\/kelas\/jadwal\/mahasiswa\/\d+$/, (html) =>
+      html.replace(
+        new RegExp(`<div title="[^"]*"><a class="linkpertemuan" href="#"\\s+data-kuliah="[^"]*"\\s+data-url="[^"]*/pertemuan/${beside}/`),
+        (hit) => `${meetingHtml(meeting)}${hit}`,
+      ),
+    );
+  }
+
   /** Releases a grade for a course this semester (the Nilai column on the status page). */
   releaseGrade(code: string, grade: string): void {
     this.editPage(/\/statusmhs$/, (html) =>
@@ -313,7 +323,7 @@ export interface AddedMeeting {
 }
 
 /** A meeting as SIX's grid shows it in a day. */
-const meetingHtml = (m: AddedMeeting) => {
+const meetingHtml = (m: Omit<AddedMeeting, "day">) => {
   const activity = m.activity ?? "Kuliah";
   return `<div title="${m.name} (${activity})"><a class="linkpertemuan" href="#" data-kuliah="${m.code} ${m.name}" data-url="/app/mahasiswa:18223901+2026-1/kelas/pertemuan/${m.id}/mhs/2021000001"><small>
                                     ${m.start}-${m.end}

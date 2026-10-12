@@ -200,10 +200,11 @@ export function meetingState(meeting: Meeting, now: number): MeetingState {
 
 /**
  * One course's meetings in time order. SIX's sessions join Edunex's Presence
- * sessions of the same day (the most overlapping one); `sixSessions` is SIX's
- * whole timetable (every course), or null while SIX isn't connected.
- * `sixMonths` are the months whose own timetable page was read ("2026-10"):
- * only there can a meeting be missing from SIX.
+ * sessions of the same day (the most overlapping one); with two classes of the
+ * course that day (a lecture and a lab), a Presence joins only the one its time
+ * overlaps most. `sixSessions` is SIX's whole timetable (every course), or null
+ * while SIX isn't connected. `sixMonths` are the months whose own timetable
+ * page was read ("2026-10"): only there can a meeting be missing from SIX.
  */
 export function courseMeetings(
   code: string,
@@ -214,8 +215,18 @@ export function courseMeetings(
 ): Meeting[] {
   const meetings: Meeting[] = presence.map((p) => ({ key: `p${p.id}`, start: p.start, end: p.end, six: null, presence: p, announced: null, notInSix: false }));
   const overlap = (m: Meeting, start: number, end: number) => Math.min(m.end, end) - Math.max(m.start, start);
-  for (const session of (sixSessions ?? []).filter((s) => s.courseCode === code)) {
-    const sameDay = meetings.filter((m) => !m.six && m.presence && wibDay(m.start) === wibDay(session.start));
+  const own = (sixSessions ?? []).filter((s) => s.courseCode === code);
+  /** The class of the day a Presence overlaps most; none when it overlaps none. */
+  const closest = (m: Meeting, sessions: readonly ClassSession[]) => {
+    const best = sessions.reduce((a, b) => (overlap(m, b.start, b.end) > overlap(m, a.start, a.end) ? b : a));
+    return overlap(m, best.start, best.end) > 0 ? best : null;
+  };
+  for (const session of own) {
+    const day = own.filter((s) => wibDay(s.start) === wibDay(session.start));
+    // The day alone pairs them only when it has one class of the course: else the 06:00 lab would take the 08:00 lecture's Presence.
+    const sameDay = meetings.filter(
+      (m) => !m.six && m.presence && wibDay(m.start) === wibDay(session.start) && (day.length === 1 || closest(m, day) === session),
+    );
     const match = sameDay.sort((a, b) => overlap(b, session.start, session.end) - overlap(a, session.start, session.end))[0];
     if (match) Object.assign(match, { six: session, start: session.start, end: session.end });
     else meetings.push({ key: `s${session.id}`, start: session.start, end: session.end, six: session, presence: null, announced: null, notInSix: false });

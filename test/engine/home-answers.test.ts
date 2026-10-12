@@ -47,6 +47,28 @@ describe("Sekarang", () => {
     expect(attention(h.home(), card).find((n) => n.id === "presence:2194342")).toMatchObject({ class: { start: at("2026-10-08T08:00:00") } });
   });
 
+  it("a lab earlier the same day never takes the lecture's window: the lecture going on keeps it", async () => {
+    const world = new PretendWorld({ now: "2026-10-15T08:30:00+07:00" });
+    // SIX lists a PL3002 lab at 06:00 before Thursday's 08:00 lecture; Edunex has a Presence for the lecture only.
+    world.six.addMeetingBeside("2194343", {
+      id: "2194390",
+      code: "PL3002",
+      name: "Ekonomi dan Inovasi dalam Perencanaan",
+      start: "06:00",
+      end: "07:30",
+      activity: "Praktikum",
+    });
+    const h = await startHome({ world });
+    expect(h.home().schedule?.find((s) => s.id === "2194390")).toMatchObject({ start: at("2026-10-15T06:00:00") });
+    const card = nowCard(h.home())!;
+    expect(card).toMatchObject({ state: "live", class: { session: { id: "2194343" } } });
+    expect(card.presence).toMatchObject({ session: { id: 2194343 }, class: { id: "2194343" } });
+    // So no row offers the lecture's window as the lab's.
+    const rows = attention(h.home(), card);
+    expect(rows.find((n) => n.id === "presence:2194343")).toBeUndefined();
+    expect(rows.find((n) => n.kind === "presence" && n.class?.id === "2194390")).toBeUndefined();
+  });
+
   it("no class left today: the next one this week", async () => {
     const h = await startHome();
     await h.until("2026-10-08T18:00:00+07:00");
