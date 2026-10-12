@@ -160,8 +160,11 @@ export function Row({
     <li
       className={cx(
         index !== undefined && "motion-safe:stagger",
-        // With actions the row's hover belongs to the whole line, the control beside the button included.
+        // With actions the row's hover belongs to the whole line, the control beside the button included,
+        // and so does the button's focus ring: drawn inside the line, around both, never cut by the list's edges.
         aside && "group/row flex items-center transition-colors duration-150 hover:bg-hover has-[>button:active]:bg-selected",
+        aside &&
+          "has-[>button:focus-visible]:outline-2 has-[>button:focus-visible]:outline-offset-[-2px] has-[>button:focus-visible]:outline-focus has-[>button:focus-visible]:outline-solid",
         aside && current && "bg-selected",
       )}
       style={style}
@@ -174,8 +177,8 @@ export function Row({
           aria-label={label}
           aria-current={current || undefined}
           className={cx(
-            "focus-ring group flex w-full items-center gap-3.5 px-4 py-3 text-left transition-colors duration-150",
-            aside ? "min-w-0 flex-1 pr-1" : "hover:bg-hover active:bg-selected",
+            "group flex w-full items-center gap-3.5 px-4 py-3 text-left transition-colors duration-150",
+            aside ? "min-w-0 flex-1 pr-1 focus-visible:outline-none" : "focus-ring hover:bg-hover active:bg-selected",
             current && !aside && "bg-selected",
             className,
           )}
