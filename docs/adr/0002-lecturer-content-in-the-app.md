@@ -21,7 +21,9 @@ never web content, a strict content policy.
   a host and no name or password in it (a way to disguise where a link goes).
   Other schemes (`mailto:`, `file:`, `javascript:`…) are never made links.
   It is used only for what a lecturer wrote: notes, Task instructions,
-  announcements and link materials. The app's own links keep
+  announcements and link materials; and for the Student's own answer as
+  Edunex keeps it, which, written on Edunex's website, can hold links and
+  storage pictures just like a lecturer's note. The app's own links keep
   `shell.openExternal`, official pages only, and the window's navigation
   guard is unchanged: a page trying to leave still opens only when official.
   The browser is the safe place for the web; the window never loads it.

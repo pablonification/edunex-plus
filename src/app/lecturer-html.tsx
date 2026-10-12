@@ -1,7 +1,9 @@
-// What lecturers write, as the app shows it (notes, Task instructions): the
-// kit's safe RichText, with links opening in the browser and pictures on
-// Edunex's storage read in through the main process (the window's content
-// policy never lets it load anything remote) and shown from memory.
+// What lecturers write, as the app shows it (notes, Task instructions), and the
+// Student's own answer as Edunex keeps it (written on its website, it can hold
+// links and pictures too): the kit's safe RichText, with links opening in the
+// browser and pictures on Edunex's storage read in through the main process
+// (the window's content policy never lets it load anything remote) and shown
+// from memory.
 import { useEffect, useState } from "react";
 import type { FileProblem } from "../core/actions/files";
 import { isStorageFile } from "../core/links";
@@ -14,13 +16,23 @@ import { Skeleton } from "./ui/display";
 import { Icons } from "./ui/icons";
 import { RichText } from "./ui/rich-text";
 
-export function LecturerHtml({ html, className }: { html: string; className?: string }) {
+export function LecturerHtml({
+  html,
+  pictureAlt,
+  className,
+}: {
+  html: string;
+  /** What a picture with no description of its own is called; the lecturer's by default. */
+  pictureAlt?: string;
+  className?: string;
+}) {
   const openLink = useOpenLink();
   return (
     <RichText
       html={html}
       onOpenLink={openLink}
-      renderImage={({ src, alt }) => (isStorageFile(src) ? <RemoteImage src={src} alt={alt} /> : null)}
+      renderImage={({ src, alt }) => (isStorageFile(src) ? <RemoteImage src={src} alt={alt || pictureAlt || ""} /> : null)}
+      pictureAlt={pictureAlt}
       className={className}
     />
   );

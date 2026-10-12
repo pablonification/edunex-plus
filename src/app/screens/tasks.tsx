@@ -51,7 +51,7 @@ import { Icons } from "../ui/icons";
 import { factsLabel, List, Row as ListRow, Meta, Page, PageHeader, Section } from "../ui/layout";
 import { toast, useReturnFocus } from "../ui/overlays";
 import type { RichEditorHandle } from "../ui/rich-editor";
-import { plainText, RichText } from "../ui/rich-text";
+import { plainText } from "../ui/rich-text";
 import { ready as courseReady } from "./course";
 import { ExamRow, examWeekLabel } from "./exam";
 
@@ -1114,7 +1114,7 @@ function HandIn({ task, status, onPreview }: Row & { onPreview?: (file: TaskFile
             (textLocked || plainText(answer.saved)) && (
               <div className="mb-3 space-y-2">
                 <div className="rounded-lg bg-fill px-3 py-2.5">
-                  <RichText html={answer.saved} onOpenLink={open} />
+                  <LecturerHtml html={answer.saved} pictureAlt={t("image.altYours")} />
                 </div>
                 {editable && textLocked && (
                   <div className="space-y-2">

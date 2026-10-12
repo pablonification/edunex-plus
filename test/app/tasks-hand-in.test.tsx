@@ -17,6 +17,8 @@ const ATTACH = /^Lampirkan berkas · Lepas berkas di sini/;
 /** What the Student writes in the answer box: Edunex needs text in every answer. */
 const ANSWER = "<p>Berikut jawaban saya.</p>";
 const card = () => document.querySelector("main aside")?.textContent ?? "";
+/** The first bytes of a PNG: enough for main's check that a picture really is one. */
+const PNG = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 13]);
 const answerWrites = (s: NonNullable<typeof screen>) =>
   s.world.edunex.writes.filter((w) => w.path.startsWith("/course/task/answers")).map((w) => `${w.method} ${w.path.replace(/\d+$/, ":id")}`);
 /** The confirm's submitting button ("Kumpulkan sekarang", "Kumpulkan tetap …", "Kumpulkan terlambat"). */
@@ -395,13 +397,24 @@ describe("the written answer", () => {
 
   it("a website draft with a picture or a table stays as it is, with the way to change it on Edunex", async () => {
     const s = await openTask("Tugas 02 Bab II");
-    const website = '<p>Lihat grafik:</p><figure class="image"><img src="https://edunexfixture.blob.core.windows.net/edunex/website-grafik.png"></figure>';
+    const picture = "https://edunexfixture.blob.core.windows.net/edunex/website-grafik.png";
+    s.world.putFile(picture, PNG);
+    const website = `<p>Lihat grafik dari <a href="https://github.com/fixture/grafik">repo saya</a>:</p><figure class="image"><img src="${picture}"></figure>`;
     s.world.edunex.draftOnWebsite(117003, "Bab II.pdf", website);
     await s.engineDoes(() => s.engine.refresh("edunex"));
     await s.wait(0);
     expect(box()).toBeNull();
-    expect(card()).toContain("Lihat grafik:");
+    expect(card()).toContain("Lihat grafik dari repo saya:");
     expect(card()).toContain("Jawaban ini berisi gambar, tabel, rumus, atau gaya teks yang tidak bisa diubah di sini.");
+    // The picture shows, as on Edunex: read in from its storage by the main process, not offered as a link.
+    const img = document.querySelector("main aside img");
+    expect(img?.getAttribute("src")).toMatch(/^blob:/);
+    expect(img?.getAttribute("alt")).toBe("Gambar dalam jawabanmu");
+    expect(s.calls).toContainEqual({ name: "files.read", input: { url: picture, as: "image" } });
+    expect(card()).not.toContain("Gambar dari");
+    // A link the Student wrote opens in the browser, wherever it goes.
+    await s.click(document.querySelector<HTMLElement>('main aside a[href="https://github.com/fixture/grafik"]')!);
+    expect(s.calls.at(-1)).toEqual({ name: "shell.openLink", input: { url: "https://github.com/fixture/grafik" } });
     await s.click("Ubah di Edunex");
     expect(s.calls.at(-1)).toEqual({ name: "shell.openExternal", input: { url: "https://edunex.itb.ac.id/assignment/take/117003" } });
     // The files can still change; the text goes back exactly as Edunex has it.

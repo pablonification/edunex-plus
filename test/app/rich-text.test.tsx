@@ -19,7 +19,7 @@ afterEach(() => {
   document.body.replaceChildren();
 });
 
-function draw(html: string, options: { renderImage?: (image: RichTextImage) => ReactNode | null } = {}) {
+function draw(html: string, options: { renderImage?: (image: RichTextImage) => ReactNode | null; pictureAlt?: string } = {}) {
   const opened: string[] = [];
   const container = document.body.appendChild(document.createElement("div"));
   root = createRoot(container);
@@ -27,7 +27,7 @@ function draw(html: string, options: { renderImage?: (image: RichTextImage) => R
     root!.render(
       <I18nProvider lang="id">
         <TooltipProvider>
-          <RichText html={html} onOpenLink={(url) => opened.push(url)} renderImage={options.renderImage} />
+          <RichText html={html} onOpenLink={(url) => opened.push(url)} renderImage={options.renderImage} pictureAlt={options.pictureAlt} />
         </TooltipProvider>
       </I18nProvider>,
     ),
@@ -117,5 +117,10 @@ describe("lecturers' formatted text", () => {
   it("describes a picture written into the HTML without a description of its own", () => {
     const { container } = draw('<img src="data:image/png;base64,iVBORw0KGgo="><img src="data:image/png;base64,iVBORw0KGgo=" alt="Denah ruang">');
     expect([...container.querySelectorAll("img")].map((img) => img.getAttribute("alt"))).toEqual(["Gambar dari dosen", "Denah ruang"]);
+  });
+
+  it("names such a picture as the caller says when it isn't the lecturer's (the Student's own answer)", () => {
+    const { container } = draw('<img src="data:image/png;base64,iVBORw0KGgo=">', { pictureAlt: "Gambar dalam jawabanmu" });
+    expect(container.querySelector("img")?.getAttribute("alt")).toBe("Gambar dalam jawabanmu");
   });
 });

@@ -56,22 +56,31 @@ interface Hooks {
   image?: (image: RichTextImage) => ReactNode | null;
   /** Inside a lecturer's link: what's in it is part of that one link, never a second one (one click, one page). */
   inLink?: boolean;
+  /** What a picture with no description of its own is called. */
+  alt?: string;
 }
 
 export function RichText({
   html,
   onOpenLink,
   renderImage,
+  pictureAlt,
   className,
 }: {
   html: string;
   onOpenLink: (url: string) => void;
   /** Draws a picture from the web; null (or no function) shows it as a link to where it is. */
   renderImage?: (image: RichTextImage) => ReactNode | null;
+  /** What a picture with no description of its own is called; the lecturer's by default. */
+  pictureAlt?: string;
   className?: string;
 }) {
   const doc = new DOMParser().parseFromString(html, "text/html");
-  return <div className={cx("text-body leading-relaxed break-words", className)}>{children(doc.body, { open: onOpenLink, image: renderImage }, "r")}</div>;
+  return (
+    <div className={cx("text-body leading-relaxed break-words", className)}>
+      {children(doc.body, { open: onOpenLink, image: renderImage, alt: pictureAlt }, "r")}
+    </div>
+  );
 }
 
 /** The text alone, for previews and search. */
@@ -115,9 +124,9 @@ function PictureLink({ src, hooks }: { src: string; hooks: Hooks }) {
 }
 
 /** A picture written right into the HTML; most have no description of their own. */
-function InlinePicture({ src, alt }: RichTextImage) {
+function InlinePicture({ src, alt, fallback }: RichTextImage & { fallback?: string }) {
   const t = useT();
-  return <img src={src} alt={alt || t("image.alt")} className="h-auto max-w-full rounded-lg" />;
+  return <img src={src} alt={alt || fallback || t("image.alt")} className="h-auto max-w-full rounded-lg" />;
 }
 
 const STRUCTURAL = new Set(["table", "thead", "tbody", "tr", "ul", "ol"]);
@@ -148,7 +157,7 @@ function render(node: Node, hooks: Hooks, key: string): ReactNode {
   if (tag === "img") {
     const src = element.getAttribute("src")?.trim() ?? "";
     const alt = element.getAttribute("alt")?.trim() ?? "";
-    if (INLINE_PICTURE.test(src)) return <InlinePicture key={key} src={src} alt={alt} />;
+    if (INLINE_PICTURE.test(src)) return <InlinePicture key={key} src={src} alt={alt} fallback={hooks.alt} />;
     if (!isWebLink(src)) return null;
     const drawn = hooks.image?.({ src, alt });
     return <Fragment key={key}>{drawn ?? <PictureLink src={src} hooks={hooks} />}</Fragment>;

@@ -9,6 +9,7 @@ export const contentStrings = {
   "image.loading": { id: "Memuat gambar…", en: "Loading the picture…" },
   "image.from": { id: "Gambar dari {host}", en: "Picture from {host}" },
   "image.alt": { id: "Gambar dari dosen", en: "Picture from the lecturer" },
+  "image.altYours": { id: "Gambar dalam jawabanmu", en: "Picture in your answer" },
   "file.problem.expired": { id: "Tautan berkas ini sudah tidak berlaku di Edunex.", en: "This file's link no longer works on Edunex." },
   "file.problem.missing": { id: "Berkas ini sudah tidak ada di Edunex.", en: "This file isn't on Edunex any more." },
   "file.problem.too-big": { id: "Berkas ini terlalu besar untuk ditampilkan di aplikasi.", en: "This file is too big to show in the app." },
