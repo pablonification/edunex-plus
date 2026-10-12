@@ -110,8 +110,10 @@ export function meetingModuleTitle(t: ReturnType<typeof useT>, modules: Readonly
 
 /** What a meeting is called, the same on its row and on the card above the tabs: its module, its name, "Pertemuan 3", or "Kuliah". */
 export function meetingTitle(t: ReturnType<typeof useT>, meeting: Meeting, moduleTitle: string | null): string {
-  const named = meeting.presence?.topic ?? meeting.six?.activity ?? null;
-  return moduleTitle ?? named ?? (meeting.announced ? t("meeting.number", { no: meeting.announced.number }) : meeting.six?.activity || t("meeting.untitled"));
+  const named = meeting.presence?.topic?.trim() || meeting.six?.activity?.trim() || null;
+  // SIX calls nearly every class "Kuliah": Edunex's number for it says more.
+  const telling = named && !/^kuliah$/i.test(named) ? named : null;
+  return moduleTitle ?? telling ?? (meeting.announced ? t("meeting.number", { no: meeting.announced.number }) : (named ?? t("meeting.untitled")));
 }
 
 /** Signed out of SIX: Edunex's own tally as a fact, and why it may not be the count that matters. */
