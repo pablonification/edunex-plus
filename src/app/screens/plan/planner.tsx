@@ -62,6 +62,7 @@ import {
   sksModel,
   targetOf,
   termKind,
+  untried,
   withWhatIf,
 } from "../../../core/planner";
 import { useFormat, useLang, useT } from "../../i18n";
@@ -149,13 +150,15 @@ function whatIfCount(record: StudentRecord, plan: StudyPlan): number {
 function resetLoss(record: StudentRecord, plan: StudyPlan): { grades: number; added: number; removed: number; terms: number; whatIfs: number; other: boolean } {
   const start = livePlan(defaultPlan(record, plan.hidden), record);
   const startCourses = new Map(start.terms.flatMap((term) => term.courses.map((c) => [c.code, c] as const)));
-  const now = plan.terms.flatMap((term) => term.courses);
+  // A course tried this semester still counts where it was planned: its what-if is counted on its own.
+  const live = livePlan(untried(plan), record);
+  const now = live.terms.flatMap((term) => term.courses);
   const startTerms = new Set(start.terms.map((term) => term.term));
   return {
     grades: Object.keys(plan.expected).length + now.filter((c) => startCourses.has(c.code) && startCourses.get(c.code)!.grade !== c.grade).length,
     added: now.filter((c) => !startCourses.has(c.code)).length,
     removed: [...startCourses.keys()].filter((code) => !now.some((c) => c.code === code)).length,
-    terms: plan.terms.filter((term) => !startTerms.has(term.term)).length,
+    terms: live.terms.filter((term) => !startTerms.has(term.term)).length,
     whatIfs: whatIfCount(record, plan),
     other: plan.target !== null || plan.minor !== start.minor,
   };
@@ -175,7 +178,6 @@ function Planner({ real, record, state }: { real: StudentRecord; record: Student
   const spec = activeSpecialization(record, plan);
   const stepOf = new Map(projection.steps.map((s) => [s.term, s]));
   const short = shortTermToAdd(plan, record);
-  // The plan as saved: a course a what-if moved into this semester still counts where it was planned.
   const loss = resetLoss(real, state.base);
   const lossParts = [
     loss.grades && t("planner.reset.grades", { n: loss.grades, count: loss.grades }),
@@ -263,7 +265,11 @@ function Planner({ real, record, state }: { real: StudentRecord; record: Student
                 step={stepOf.get(term.term)}
                 onRemove={
                   canRemoveTerm(plan, term.term)
-                    ? () => undoable((p) => removeTerm(p, term.term), t("planner.removedTerm", { term: label, count: term.courses.length }))
+                    ? () => {
+                        // What's really removed: the semester as saved (an older plan can still hold a course tried now).
+                        const count = state.base.terms.find((x) => x.term === term.term)?.courses.length ?? term.courses.length;
+                        undoable((p) => removeTerm(p, term.term), t("planner.removedTerm", { term: label, count }));
+                      }
                     : undefined
                 }
                 removeLabel={t("planner.removeTerm", { term: label })}

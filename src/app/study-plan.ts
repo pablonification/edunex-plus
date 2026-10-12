@@ -6,7 +6,18 @@
 // never disagree; Nilai keeps to SIX's own record for this term.
 import { useMemo, useState } from "react";
 import type { CurriculumFix, StudyPlan } from "../core/models";
-import { aheadPlan, defaultPlan, livePlan, type Projection, project, pruneWhatIfs, type StudentRecord, studentRecord, withWhatIf } from "../core/planner";
+import {
+  aheadPlan,
+  defaultPlan,
+  livePlan,
+  type Projection,
+  project,
+  pruneWhatIfs,
+  type StudentRecord,
+  studentRecord,
+  untried,
+  withWhatIf,
+} from "../core/planner";
 import { useBridge, useDataset, useStore } from "./store";
 
 /** The record, or undefined while SIX's transcript hasn't been read. */
@@ -64,7 +75,8 @@ export function usePlan(record: StudentRecord | undefined, whatIfs = true): Plan
   const current = draft ?? stored ?? fallback;
   const base = useMemo(() => (record && current ? pruneWhatIfs(aheadPlan(current, record), record) : null), [record, current]);
   const effective = useMemo(() => (record && base ? (whatIfs ? withWhatIf(record, base) : record) : undefined), [record, base, whatIfs]);
-  const plan = useMemo(() => (effective && base ? livePlan(base, effective) : null), [effective, base]);
+  // Without the what-ifs, a course tried this term counts where it was planned.
+  const plan = useMemo(() => (effective && base ? livePlan(whatIfs ? base : untried(base), effective) : null), [effective, base, whatIfs]);
   const projection = useMemo(() => (effective && plan ? project(effective, plan) : null), [effective, plan]);
   if (!record || !effective || !base || !plan || !projection) return undefined;
   const save = (next: StudyPlan) => {
@@ -77,7 +89,7 @@ export function usePlan(record: StudentRecord | undefined, whatIfs = true): Plan
     record: effective,
     saved: Boolean(draft ?? stored),
     projection,
-    // Edits apply to the plan as saved, so a course a what-if hides from a later semester isn't lost.
+    // Edits apply to the plan as saved, not the one the figures read: nothing a figure leaves out is lost.
     update: (edit) => save(edit(base)),
     reset: () => save(defaultPlan(record, base.hidden)),
   };

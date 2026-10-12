@@ -36,7 +36,15 @@ describe("the study plan's saved data", () => {
     const h = await startEngine({ start: false });
     const plan = {
       ...OLD_PLAN,
-      now: { term: "2026-1", added: [{ code: "II4090", name: "Kerja Praktik", sks: 2 }], dropped: ["PL3032"] },
+      now: {
+        term: "2026-1",
+        // A what-if as the version before this one saved it (no `from`), and one tried from a later semester.
+        added: [
+          { code: "II4090", name: "Kerja Praktik", sks: 2 },
+          { code: "II4010", name: "Manajemen Data", sks: 3, from: { term: "2026-2", grade: "AB", retake: false } },
+        ],
+        dropped: ["PL3032"],
+      },
       hidden: { "parity|II4090": { reason: "program-adds", at: 3 } },
     };
     await h.engine.setLocal("local.plan", plan);

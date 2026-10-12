@@ -308,29 +308,37 @@ export function courseRole(record: StudentRecord, code: string, minor: MinorOpti
 
 // ------------------------------------------------------------ the plan
 
-/** The plan as it's kept: the terms still ahead (a plan made last term drops what has started), and this term's what-ifs only while it lasts. */
+/**
+ * The plan as it's kept: the terms still ahead (a plan made last term drops
+ * what has started), and this term's what-ifs only while it lasts. A term
+ * that has ended takes its what-ifs with it: a course only tried in it (not
+ * on SIX's transcript for it) goes back to the semester it was planned in.
+ */
 export function aheadPlan(plan: StudyPlan, record: StudentRecord): StudyPlan {
-  const ahead = record.term ? plan.terms.filter((t) => t.term > record.term!) : plan.terms;
-  const { now, ...rest } = plan;
-  return { ...rest, ...(now && now.term === record.term ? { now } : {}), terms: [...ahead].sort((a, b) => a.term.localeCompare(b.term)) };
+  const ended = plan.now && plan.now.term !== record.term ? plan.now : null;
+  const took = (code: string) => (record.transcript?.terms ?? []).some((t) => t.term >= ended!.term && t.courses.some((c) => c.code === code));
+  const kept = ended ? ended.added.filter((c) => !took(c.code)).reduce((p, c) => placeBack(p, c, record.term ?? ended.term), plan) : plan;
+  const ahead = record.term ? kept.terms.filter((t) => t.term > record.term!) : kept.terms;
+  const { now, ...rest } = kept;
+  return { ...rest, ...(now && !ended ? { now } : {}), terms: [...ahead].sort((a, b) => a.term.localeCompare(b.term)) };
 }
 
 /**
- * The plan as every figure reads it: `aheadPlan`, less what this term
- * already holds. A course is taken once, so one added to this term as a
- * what-if leaves the later semester it was planned in (and comes back there
- * when the what-if goes); a retake planned for later stays.
+ * The plan as every figure reads it: `aheadPlan`, less what the Student has
+ * taken already. A course is taken once: one in this term (SIX's KRS, or a
+ * what-if a plan saved before `from` still holds later too), passed or
+ * credited isn't planned again, so a later copy (planned, then taken for
+ * real) neither shows nor counts its SKS twice. A retake planned for later stays.
  */
 export function livePlan(plan: StudyPlan, record: StudentRecord): StudyPlan {
   const ahead = aheadPlan(plan, record);
   const now = new Set(record.thisTerm.map((c) => c.code));
-  if (!now.size) return ahead;
-  return { ...ahead, terms: ahead.terms.map((t) => ({ ...t, courses: t.courses.filter((c) => c.retake || !now.has(c.code)) })) };
+  const taken = (code: string) => now.has(code) || passedGrade(record.graded.get(code)?.grade ?? null) || record.exempt.has(code);
+  return { ...ahead, terms: ahead.terms.map((t) => ({ ...t, courses: t.courses.filter((c) => c.retake || !taken(c.code)) })) };
 }
 
 // ------------------------------------------------------------ this term's what-ifs
 
-/** Whether the plan has what-ifs for this term. */
 /** Whether the plan's what-ifs still change this term (one SIX has caught up with changes nothing). Takes SIX's record or one with the what-ifs. */
 export function hasWhatIfs(plan: StudyPlan, record: StudentRecord): boolean {
   const applied = withWhatIf(record, plan);
@@ -420,17 +428,58 @@ export function withWhatIf(record: StudentRecord, plan: StudyPlan): StudentRecor
 
 const nowOf = (plan: StudyPlan, term: string) => (plan.now?.term === term ? plan.now : { term, added: [], dropped: [] });
 
-/** Adds a course to this term as a what-if; a KRS course left out comes back instead. */
+/**
+ * Adds a course to this term as a what-if; a KRS course left out comes back
+ * instead. A course is taken once: one planned for a later semester moves out
+ * of it, and the what-if remembers where it was (see `removeTried`).
+ */
 export function addToNow(plan: StudyPlan, term: string, course: WhatIfCourse): StudyPlan {
   const now = nowOf(plan, term);
   if (now.dropped.includes(course.code)) return { ...plan, now: { ...now, dropped: now.dropped.filter((c) => c !== course.code) } };
-  return { ...plan, now: { ...now, added: [...now.added.filter((c) => c.code !== course.code), course] } };
+  const at = plan.terms.find((t) => t.courses.some((c) => c.code === course.code));
+  const planned = at?.courses.find((c) => c.code === course.code);
+  const from = at && planned ? { term: at.term, grade: planned.grade, retake: planned.retake } : now.added.find((c) => c.code === course.code)?.from;
+  const tried: WhatIfCourse = { code: course.code, name: course.name, sks: course.sks, ...(from ? { from } : {}) };
+  return {
+    ...plan,
+    terms: plan.terms.map((t) => (t === at ? { ...t, courses: t.courses.filter((c) => c.code !== course.code) } : t)),
+    now: { ...now, added: [...now.added.filter((c) => c.code !== course.code), tried] },
+  };
 }
 
-/** Removes a course the Student added to this term as a what-if. */
+/**
+ * Puts a course tried now back where it was planned: its semester, or, when
+ * that one is gone (or over), the last regular one planned after `after`, a
+ * new one when none is left. A course that wasn't planned goes nowhere.
+ */
+function placeBack(plan: StudyPlan, tried: WhatIfCourse, after: string): StudyPlan {
+  const { from } = tried;
+  if (!from || plan.terms.some((t) => t.courses.some((c) => c.code === tried.code))) return plan;
+  const later = plan.terms.filter((t) => t.term > after);
+  const back = later.some((t) => t.term === from.term) ? from.term : (later.filter((t) => termKind(t.term) !== "short").at(-1)?.term ?? nextTerm(after));
+  const terms = plan.terms.some((t) => t.term === back)
+    ? plan.terms
+    : [...plan.terms, { term: back, courses: [] }].sort((a, b) => a.term.localeCompare(b.term));
+  const course: PlannedCourse = { code: tried.code, name: tried.name, sks: tried.sks, grade: from.grade, retake: from.retake };
+  return { ...plan, terms: terms.map((t) => (t.term === back ? { ...t, courses: [...t.courses, course] } : t)) };
+}
+
+/** Removes a course the Student added to this term as a what-if; one that was planned for later goes back there (see `placeBack`). */
 export function removeTried(plan: StudyPlan, term: string, code: string): StudyPlan {
   const now = nowOf(plan, term);
-  return { ...plan, now: { ...now, added: now.added.filter((c) => c.code !== code) } };
+  const tried = now.added.find((c) => c.code === code);
+  const rest: StudyPlan = { ...plan, now: { ...now, added: now.added.filter((c) => c.code !== code) } };
+  return tried ? placeBack(rest, tried, term) : rest;
+}
+
+/**
+ * The plan as SIX's own record reads it (Nilai, and what a reset compares):
+ * each course tried this term back in the semester it was planned in. The
+ * what-ifs stay, so a screen can still say it leaves them out.
+ */
+export function untried(plan: StudyPlan): StudyPlan {
+  const { now } = plan;
+  return now ? now.added.reduce((p, c) => placeBack(p, c, now.term), plan) : plan;
 }
 
 /** Leaves a KRS course out of this term as a what-if. */

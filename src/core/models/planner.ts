@@ -27,7 +27,23 @@ export const PlannedTerm = z.object({
 export type PlannedTerm = z.infer<typeof PlannedTerm>;
 
 /** A course added to this term as a what-if: kept with the plan, so it reads the same without the catalog. */
-export const WhatIfCourse = z.object({ code: z.string().min(1).max(20), name: z.string().max(200), sks: z.number().int().min(0).max(24) });
+export const WhatIfCourse = z.object({
+  code: z.string().min(1).max(20),
+  name: z.string().max(200),
+  sks: z.number().int().min(0).max(24),
+  /**
+   * Where it was planned before it was tried now (a course is taken once, so
+   * it left that semester): taking the what-if away puts it back. Optional:
+   * what-ifs saved before it existed keep loading.
+   */
+  from: z
+    .object({
+      term: z.string().regex(/^\d{4}-[123]$/),
+      grade: Letter,
+      retake: z.boolean(),
+    })
+    .optional(),
+});
 export type WhatIfCourse = z.infer<typeof WhatIfCourse>;
 
 /** Why the Student hid a rule's warning. */

@@ -283,6 +283,8 @@ describe("the study planner", () => {
     await s.click("Nilai");
     expect(s.text()).toContain("PL3032");
     expect(s.text()).toContain("Dengan KRS-mu di SIX, tanpa perubahan semester ini yang hanya ada di rencanamu.");
+    // Kerja Praktik still counts in semester 8 there (it isn't in SIX's KRS): the same 26 SKS left as before any what-if.
+    expect(s.text()).toContain("jika semua A di 26 SKS tersisa");
     await s.click("Rencana studi");
 
     // A reset would end them, and says so (Kerja Praktik isn't counted as removed from semester 8 too).
@@ -366,6 +368,17 @@ describe("the study planner", () => {
     expect(toastText()).not.toContain("II4010 dihapus");
     await s.click("Urungkan");
     expect(saved()?.terms[0].courses.map((c) => c.code)).not.toContain("II4010");
+  });
+
+  it("removing the semester a course tried now was planned in: the toast counts what goes, and the course isn't lost (bug)", async () => {
+    const s = await openPlan();
+    await s.click("Coba tambah mata kuliah");
+    await s.click("Tambah II4010");
+    await s.click("Hapus Semester 8 · 2026/2027 Genap");
+    expect(toastText()).toContain("Semester 8 · 2026/2027 Genap dihapus (3 mata kuliah)");
+    await s.click("Hapus II4010");
+    expect(block(/^Semester 8 · 2026\/2027 Genap/)!.textContent).toContain("II4010Manajemen Data");
+    expect(saved()?.terms.map((t) => [t.term, t.courses.map((c) => c.code)])).toEqual([["2026-2", ["II4010"]]]);
   });
 
   it("in English", async () => {
