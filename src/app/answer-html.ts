@@ -1,17 +1,48 @@
 // The Student's written answer on screen: whether the app's writing box can
-// hold an answer written on Edunex's website without losing anything
-// (pictures, tables and formulas it can't), and whether the Student changed
-// the text, compared the way Edunex's editor writes it.
+// hold an answer written on Edunex's website without losing anything (its
+// pictures, tables, formulas, colours, sizes, alignment), and whether the
+// Student changed the text, compared the way Edunex's editor writes it.
 
-/** What the writing box would drop: pictures, tables, formulas, embeds. */
-const LOSSY = "img, picture, figure, table, iframe, video, audio, object, embed, svg, math, canvas, sub, sup, .math-tex, script, oembed";
+/** What the writing box holds, and sends back, as it is: the plain formatting of Edunex's editor. */
+const HELD = new Set(["p", "br", "strong", "b", "em", "i", "u", "s", "strike", "del", "a", "ul", "ol", "li", "blockquote", "h2", "h3", "h4", "code", "pre"]);
+/** Where black text looks like the rest of the text. */
+const PLAIN = new Set(["p", "li", "ul", "ol", "span", "strong", "b", "em", "i", "u", "s", "strike", "del"]);
+const LINK = /^(https?:\/\/|mailto:)/i;
+const BLACK = /^(black|#000|#000000|rgb\(0,0,0\))$/;
 /** The same formatting under another name. */
 const SAME: Record<string, string> = { b: "strong", i: "em", strike: "s", del: "s" };
 const BLOCK = new Set(["p", "li", "ul", "ol", "blockquote", "h1", "h2", "h3", "h4", "h5", "h6", "pre", "div"]);
 
-/** Whether the writing box can edit this answer and keep everything in it. */
+/** Whether the writing box can edit this answer and keep everything a reader sees in it. */
 export function editableInApp(html: string): boolean {
-  return !new DOMParser().parseFromString(html, "text/html").body.querySelector(LOSSY);
+  return [...new DOMParser().parseFromString(html, "text/html").body.querySelectorAll("*")].every(kept);
+}
+
+/** A tag the box holds (or a span it can drop unseen), with nothing on it the box would drop that shows. */
+function kept(element: Element): boolean {
+  const tag = element.tagName.toLowerCase();
+  if (!HELD.has(tag) && tag !== "span") return false;
+  return [...element.attributes].every(({ name, value }) => {
+    if (tag === "a") return name === "href" ? LINK.test(value.trim()) : name === "target" || name === "rel";
+    if (tag === "code" && name === "class") return /^language-[\w-]+$/.test(value) && element.parentElement?.tagName === "PRE";
+    return name === "style" && unseen(element, value);
+  });
+}
+
+/**
+ * Styles that change nothing a reader sees, as pasting from a document leaves
+ * them on Edunex ("background-color:transparent;color:#000000"): no
+ * background, and black where the text around is black too.
+ */
+function unseen(element: Element, style: string): boolean {
+  return style.split(";").every((declaration) => {
+    const [property, value = ""] = declaration.split(":").map((part) => part.trim().toLowerCase());
+    if (!property) return true;
+    if (property === "background-color") return value === "transparent";
+    if (property !== "color" || !BLACK.test(value.replace(/\s+/g, ""))) return false;
+    for (let at: Element | null = element; at && at.tagName !== "BODY"; at = at.parentElement) if (!PLAIN.has(at.tagName.toLowerCase())) return false;
+    return true;
+  });
 }
 
 /** An answer reduced to what it says and how it's formatted: no attributes, no spacing, no empty paragraphs. */

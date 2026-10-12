@@ -401,7 +401,7 @@ describe("the written answer", () => {
     await s.wait(0);
     expect(box()).toBeNull();
     expect(card()).toContain("Lihat grafik:");
-    expect(card()).toContain("Jawaban ini berisi gambar, tabel, atau rumus yang tidak bisa diubah di sini.");
+    expect(card()).toContain("Jawaban ini berisi gambar, tabel, rumus, atau gaya teks yang tidak bisa diubah di sini.");
     await s.click("Ubah di Edunex");
     expect(s.calls.at(-1)).toEqual({ name: "shell.openExternal", input: { url: "https://edunex.itb.ac.id/assignment/take/117003" } });
     // The files can still change; the text goes back exactly as Edunex has it.
@@ -409,6 +409,29 @@ describe("the written answer", () => {
     await s.click(ATTACH);
     await s.click("Simpan draf");
     expect(sentAnswer(s)).toBe(website);
+  });
+
+  it("a website draft with colours, sizes or centring stays as it is too: the box would drop them", async () => {
+    const s = await openTask("Tugas 02 Bab II");
+    const website = '<p style="text-align:center">Judul</p><p>Kata <span style="color:#e74c3c">merah</span> dan <span class="text-big">besar</span>.</p>';
+    s.world.edunex.draftOnWebsite(117003, "Bab II.pdf", website);
+    await s.engineDoes(() => s.engine.refresh("edunex"));
+    await s.wait(0);
+    expect(box()).toBeNull();
+    expect(card()).toContain("Kata merah dan besar.");
+    expect(s.has("Ubah di Edunex")).toBe(true);
+    // Saving file changes sends the text back exactly as Edunex has it.
+    s.willPick([{ name: "Lampiran.pdf" }]);
+    await s.click(ATTACH);
+    await s.click("Simpan draf");
+    expect(sentAnswer(s)).toBe(website);
+  });
+
+  it("a website draft pasted from a document, with styles that show nothing, is ready to edit", async () => {
+    const s = await openTask("Tugas 02 Bab II");
+    s.world.edunex.draftOnWebsite(117003, "Bab II.pdf", '<p><span style="background-color:transparent;color:#000000;">Dari dokumen</span></p>');
+    await s.engineDoes(() => s.engine.refresh("edunex"));
+    expect((await s.editor()).textContent).toBe("Dari dokumen");
   });
 
   it("text not saved yet is kept when the page closes, until it's saved or thrown away", async () => {

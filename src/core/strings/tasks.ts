@@ -245,8 +245,8 @@ export const tasksStrings = {
   "handIn.textUnsaved": { id: "Jawaban belum disimpan", en: "Answer not saved yet" },
   "handIn.textDiscard": { id: "Buang perubahan", en: "Discard changes" },
   "handIn.textRich": {
-    id: "Jawaban ini berisi gambar, tabel, atau rumus yang tidak bisa diubah di sini. Ubah teksnya di Edunex; berkasnya tetap bisa diatur di sini.",
-    en: "This answer has pictures, tables or formulas the app can't edit. Change the text on Edunex; you can still manage the files here.",
+    id: "Jawaban ini berisi gambar, tabel, rumus, atau gaya teks yang tidak bisa diubah di sini. Ubah teksnya di Edunex; berkasnya tetap bisa diatur di sini.",
+    en: "This answer has pictures, tables, formulas or text styling the app can't edit. Change the text on Edunex; you can still manage the files here.",
   },
   "handIn.editOnEdunex": { id: "Ubah di Edunex", en: "Edit on Edunex" },
   "handIn.preview": { id: "Lihat {name}", en: "Preview {name}" },

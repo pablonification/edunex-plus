@@ -846,7 +846,7 @@ function HandIn({ task, status, onPreview }: Row & { onPreview?: (file: TaskFile
   const editable = !task.group && takesAnswers(task, now);
   const answer = useAnswerText(task);
   const box = useRef<RichEditorHandle>(null);
-  // A draft written on Edunex with pictures, tables or formulas stays as it is: the box would lose them.
+  // A draft written on Edunex with pictures, tables, formulas or text styling (colours, sizes, centring) stays as it is: the box would lose them.
   const textLocked = useMemo(() => Boolean(answer.saved) && !editableInApp(answer.saved), [answer.saved]);
   // Edunex's website takes any text it wrote itself (a picture alone included); what's typed here needs words.
   const hasText = textLocked ? Boolean(answer.saved.trim()) : Boolean(plainText(answer.text));
