@@ -1,14 +1,17 @@
 // Joins class names, letting a later class win over an earlier one of the same
 // kind ("text-muted" over "text-fg"), so components can take a className.
+// tailwind-merge only knows Tailwind's own scale: every token the app adds in
+// styles.css (@theme) is listed here, or it would read "shadow-card" as a
+// shadow color and keep both "animate-slide-down" and "animate-fade-in".
 import { extendTailwindMerge } from "tailwind-merge";
 
 const merge = extendTailwindMerge({
   extend: {
     theme: {
       text: ["micro", "caption", "small", "body", "lead", "title", "heading", "display"],
-      shadow: ["button", "thumb", "lift", "pop", "dialog"],
-      animate: ["fade-in", "pop-in", "shimmer"],
-      ease: ["standard"],
+      shadow: ["button", "thumb", "card", "raised", "lift", "pop", "dialog"],
+      animate: ["fade-in", "pop-in", "slide-down", "shimmer"],
+      ease: ["standard", "out"],
     },
   },
 });
