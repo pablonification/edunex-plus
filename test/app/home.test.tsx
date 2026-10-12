@@ -222,6 +222,17 @@ describe("a Presence window ahead", () => {
     await screen.click(/^Kumpulkan Tugas 02 Bab II/);
     expect(document.querySelector("main h1")?.textContent).toBe("Tugas 02 Bab II");
   });
+
+  it("open across days: each end with its own day, never a range read as one day's", async () => {
+    const world = new PretendWorld({ now: "2026-10-15T10:30:00+07:00" });
+    // II4091's window for handing in Tugas 02 Bab II opens tomorrow 15:00 and stays open until Monday night.
+    world.edunex.keepPresenceOpen(2243740, "2026-10-19T23:00:00+07:00");
+    screen = await openApp({ signedIn: true, world });
+    await screen.wait();
+    expect(row("home-needs", "Kumpulkan Tugas 02 Bab II")).toContain("II4091Juga presensi: Besok, 15:00 sampai Sen, 19 Okt, 23:00");
+    await screen.engineDoes(() => screen!.engine.updateSettings({ lang: "en" }));
+    expect(row("home-needs", "Hand in Tugas 02 Bab II")).toContain("II4091Also attendance: Tomorrow, 15:00 until Mon, 19 Oct, 23:00");
+  });
 });
 
 describe("a class moved to another day", () => {
