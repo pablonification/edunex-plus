@@ -13,6 +13,7 @@ import {
   type RefObject,
   useCallback,
   useEffect,
+  useId,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -25,6 +26,7 @@ import { cx } from "./cx";
 import { Skeleton } from "./display";
 import { Icons } from "./icons";
 import { Tooltip, useReturnFocus } from "./overlays";
+import { PanelBoundary } from "./panel-boundary";
 import { openPdf, type PdfDocument, type PdfLink, PdfOpenError, type PdfPage, type PdfSize, type PdfTask } from "./pdf-engine";
 
 /** 100%: a page at its printed size (PDF points are 1/72 inch, the screen's CSS pixels 1/96). */
@@ -67,7 +69,12 @@ export function PdfViewer({ open, onOpenChange, name, load, actions, fallback, o
     setView({ phase: "loading" });
     void (async () => {
       try {
-        doc = await openPdf(await load());
+        const bytes = await load();
+        if (!live) return;
+        const opened = await openPdf(bytes);
+        // Shut while it opened: the cleanup below already ran, so it's freed here (each holds a worker and the whole file).
+        if (!live) return opened.destroy();
+        doc = opened;
         const first = (await doc.page(1)).size;
         if (!live) return;
         let sizes: PdfSize[] = Array.from({ length: doc.pages }, () => first);
@@ -108,6 +115,10 @@ export function PdfViewer({ open, onOpenChange, name, load, actions, fallback, o
             scroller.current?.focus();
           }}
           onCloseAutoFocus={returnFocus.onCloseAutoFocus}
+          onEscapeKeyDown={(event) => {
+            // Escape while typing a page number only lets go of the number (the page box does that); the next one closes.
+            if (event.target instanceof HTMLElement && event.target.dataset.editing) event.preventDefault();
+          }}
           className={cx(
             "fixed inset-x-3 bottom-3 z-50 flex flex-col overflow-hidden rounded-2xl bg-raised text-fg shadow-dialog ring-1 ring-black/10 focus:outline-none motion-safe:animate-pop-in dark:ring-white/10",
             clearTitleBar ? "top-10" : "top-3",
@@ -179,6 +190,9 @@ function Toolbar({ name, actions, children }: { name: string; actions?: ReactNod
   );
 }
 
+/** A zoom button at its limit: dimmed, still focusable; a click there changes nothing (zoomBy has no step further). */
+const LIMIT = "aria-disabled:opacity-50 aria-disabled:hover:bg-transparent aria-disabled:hover:text-muted";
+
 const Divider = () => <span aria-hidden className="mx-1.5 h-5 w-px shrink-0 bg-line" />;
 
 function Reader({
@@ -197,6 +211,7 @@ function Reader({
   onOpenLink: (url: string) => void;
 }) {
   const t = useT();
+  const total = useId();
   const pages = useRef<(HTMLElement | null)[]>([]);
   // Slides (landscape) open whole; a document fills the width, as people read it.
   const [zoom, setZoom] = useState<Zoom>(() => ({ fit: sizes[0].width > sizes[0].height ? "page" : "width" }));
@@ -322,11 +337,12 @@ function Reader({
     <div className="flex min-h-0 flex-1 flex-col" onKeyDown={onKeyDown}>
       <Toolbar name={name} actions={actions}>
         <label className="flex shrink-0 items-center gap-1.5 text-small text-muted">
-          <span className="sr-only">{t("pdf.page")}</span>
           <input
             value={draft ?? String(current)}
             inputMode="numeric"
             aria-label={t("pdf.page")}
+            aria-describedby={total}
+            data-editing={draft !== null || undefined}
             onFocus={(event) => event.target.select()}
             onChange={(event) => setDraft(event.target.value.replace(/\D/g, "").slice(0, 5))}
             onBlur={() => setDraft(null)}
@@ -336,18 +352,20 @@ function Reader({
                 setDraft(null);
                 scroller.current?.focus();
               } else if (event.key === "Escape" && draft !== null) {
-                // Escape first leaves the box; the next one closes the viewer.
-                event.stopPropagation();
+                // The viewer stays open for this one (see onEscapeKeyDown); the next Escape closes it.
                 setDraft(null);
               }
             }}
             className="h-7 w-11 rounded-md border border-edge bg-surface text-center text-small text-fg tabular-nums focus:border-focus focus:outline-none"
           />
-          <span className="tabular-nums">{t("pdf.of", { count: doc.pages })}</span>
+          <span id={total} className="tabular-nums">
+            {t("pdf.of", { count: doc.pages })}
+          </span>
         </label>
         <Divider />
         <Tooltip content={t("pdf.zoomOut")}>
-          <IconButton label={t("pdf.zoomOut")} size="sm" disabled={percent <= STEPS[0]} onClick={() => zoomBy(-1)}>
+          {/* At a limit the button says so but keeps the keyboard: a disabled button would drop focus out of the viewer. */}
+          <IconButton label={t("pdf.zoomOut")} size="sm" aria-disabled={percent <= STEPS[0]} className={LIMIT} onClick={() => zoomBy(-1)}>
             <Icons.Minus className="size-4" />
           </IconButton>
         </Tooltip>
@@ -355,7 +373,7 @@ function Reader({
           {percent}%
         </span>
         <Tooltip content={t("pdf.zoomIn")}>
-          <IconButton label={t("pdf.zoomIn")} size="sm" disabled={percent >= STEPS.at(-1)!} onClick={() => zoomBy(1)}>
+          <IconButton label={t("pdf.zoomIn")} size="sm" aria-disabled={percent >= STEPS.at(-1)!} className={LIMIT} onClick={() => zoomBy(1)}>
             <Icons.Plus className="size-4" />
           </IconButton>
         </Tooltip>
@@ -382,25 +400,28 @@ function Reader({
         onScroll={track}
         className="min-h-0 flex-1 overflow-auto bg-sunken outline-none focus-visible:shadow-[inset_0_0_0_2px_var(--focus)]"
       >
-        <div className="relative flex w-max min-w-full flex-col items-center gap-4" style={{ padding: PAD }}>
-          {sizes.map((size, index) => (
-            <PageView
-              // biome-ignore lint/suspicious/noArrayIndexKey: a PDF's pages are its positions
-              key={index}
-              ref={(element) => {
-                pages.current[index] = element;
-              }}
-              doc={doc}
-              number={index + 1}
-              count={doc.pages}
-              size={size}
-              scale={scale}
-              near={near.has(index + 1)}
-              onOpenLink={onOpenLink}
-              onGoTo={go}
-            />
-          ))}
-        </div>
+        {/* A page that fails to draw breaks the pages, not the window; the toolbar and Close stay. */}
+        <PanelBoundary name="pdf pages" compact>
+          <div className="relative flex w-max min-w-full flex-col items-center gap-4" style={{ padding: PAD }}>
+            {sizes.map((size, index) => (
+              <PageView
+                // biome-ignore lint/suspicious/noArrayIndexKey: a PDF's pages are its positions
+                key={index}
+                ref={(element) => {
+                  pages.current[index] = element;
+                }}
+                doc={doc}
+                number={index + 1}
+                count={doc.pages}
+                size={size}
+                scale={scale}
+                near={near.has(index + 1)}
+                onOpenLink={onOpenLink}
+                onGoTo={go}
+              />
+            ))}
+          </div>
+        </PanelBoundary>
       </section>
     </div>
   );

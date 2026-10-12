@@ -22,9 +22,15 @@ export type PdfSource =
 /** A file the viewer can show, by its name. */
 export const isPdfName = (name: string) => /\.pdf$/i.test(name.trim());
 
-const Context = createContext<{ open(source: PdfSource): void } | null>(null);
+interface PdfViewerControl {
+  open(source: PdfSource): void;
+  /** Shuts it (the screen behind is changing). */
+  close(): void;
+}
 
-export function usePdfViewer(): { open(source: PdfSource): void } {
+const Context = createContext<PdfViewerControl | null>(null);
+
+export function usePdfViewer(): PdfViewerControl {
   const viewer = useContext(Context);
   if (!viewer) throw new Error("usePdfViewer needs a PdfViewerProvider");
   return viewer;
@@ -97,6 +103,7 @@ export function PdfViewerProvider({ children }: { children: ReactNode }) {
         setSource(next);
         setOpen(true);
       },
+      close: () => setOpen(false),
     }),
     [],
   );

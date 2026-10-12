@@ -10,6 +10,7 @@ import { useOpenExternal } from "../hooks";
 import { useT } from "../i18n";
 import { displayName, initials } from "../names";
 import { NavProvider, type Route, useNav } from "../nav";
+import { usePdfViewer } from "../pdf";
 import { CourseScreen, ready as courseReady } from "../screens/course";
 import { ExamScreen } from "../screens/exam";
 import { GradesScreen, ready as gradesReady, useBadge as useGradesBadge } from "../screens/grades";
@@ -47,6 +48,7 @@ function Layout() {
   const [scanOpen, setScanOpen] = useState(false);
   const bridge = useBridge();
   const { route, go } = useNav();
+  const pdf = usePdfViewer();
   const main = useRef<HTMLElement>(null);
   /** Search opens over anything else; the shortcut also closes it. */
   const openSearch = useCallback((toggle: boolean) => {
@@ -72,13 +74,15 @@ function Layout() {
       setSettingsOpen(false);
       setSearchOpen(false);
       setScanOpen(false);
-    }, []),
+      pdf.close();
+    }, [pdf]),
   );
-  // A new screen starts at its top.
+  // A new screen starts at its top, with no PDF from the last one left open over it (a search result, a notification, ⌘[).
   const key = JSON.stringify(route);
   // biome-ignore lint/correctness/useExhaustiveDependencies: key is the route; it changing is what scrolls back to the top
   useEffect(() => {
     if (main.current) main.current.scrollTop = 0;
+    pdf.close();
   }, [key]);
 
   return (

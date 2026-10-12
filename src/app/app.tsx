@@ -15,11 +15,11 @@ export function App({ store, bridge, clock }: { store: AppStore; bridge: Bridge;
     <StoreProvider store={store} bridge={bridge}>
       <Localized clock={clock}>
         <TooltipProvider>
-          <PdfViewerProvider>
-            <PanelBoundary name="app">
+          <PanelBoundary name="app">
+            <PdfViewerProvider>
               <Root />
-            </PanelBoundary>
-          </PdfViewerProvider>
+            </PdfViewerProvider>
+          </PanelBoundary>
           <Toaster />
         </TooltipProvider>
       </Localized>
