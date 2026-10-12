@@ -466,6 +466,13 @@ describe("the curriculum map", () => {
     expect(s.text()).toContain(
       "Total kurikulum144 SKSwajib 117 · pilihan 27Wajib tersisa2 mata kuliah · 6 SKSsemua sudah direncanakanPilihan27 dari 27 SKS+1019 lulus · 12 semester ini · 6 direncanakan",
     );
+    // Three side by side are narrow: a hint wraps between its facts, never between "6" and "direncanakan".
+    const facts = (label: string) =>
+      [...([...document.querySelectorAll("main dt")].find((dt) => dt.textContent === label)?.parentElement?.querySelectorAll("[data-fact]") ?? [])].map(
+        (fact) => fact.textContent?.replace(" · ", "").trim(),
+      );
+    expect(facts("Total kurikulum")).toEqual(["wajib 117", "pilihan 27"]);
+    expect(facts("Pilihan")).toEqual(["19 lulus", "12 semester ini", "6 direncanakan"]);
   });
 
   it("opens on everything; 'What's left only' hides what's done and keeps a summary in view", async () => {

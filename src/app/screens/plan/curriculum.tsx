@@ -233,7 +233,12 @@ function Totals({
     <div className="min-w-0">
       <dt className="text-caption font-medium text-muted">{label}</dt>
       <dd className="mt-0.5 text-title font-semibold tabular-nums">{value}</dd>
-      {hint && <dd className="text-caption text-muted tabular-nums">{hint}</dd>}
+      {hint && (
+        // Fact by fact, so a narrow column wraps between "12 semester ini" and "6 direncanakan", never inside one.
+        <dd className="text-caption text-muted tabular-nums">
+          <Meta>{hint}</Meta>
+        </dd>
+      )}
     </div>
   );
   const e = sks.electives;
