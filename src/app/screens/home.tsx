@@ -118,8 +118,9 @@ function Answers({ context, courses }: { context: HomeContext; courses: readonly
     <>
       <NowSection card={card} courses={courses} hasSchedule={context.schedule !== null} />
       <div className="@container mt-10">
-        {/* The day on the left; what needs you and what changed beside it, so neither column runs on alone. */}
-        <div className="grid items-start gap-x-8 gap-y-10 @min-[800px]:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
+        {/* The day on the left; what needs you and what changed beside it, so neither column runs on alone.
+            Narrower, one column that can shrink: a long title with no spaces wraps instead of widening the page. */}
+        <div className="grid grid-cols-1 items-start gap-x-8 gap-y-10 @min-[800px]:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
           <Today context={context} plan={plan} courses={courses} onCard={cardKey(card)} />
           <div className="grid grid-cols-[minmax(0,1fr)] gap-y-10">
             <NeedsYou needs={needs} courses={courses} />

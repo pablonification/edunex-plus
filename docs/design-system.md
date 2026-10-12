@@ -202,6 +202,10 @@ most three styles: its title, one supporting line, one meta line.
 - **Spacing** on a 4 px grid. One page container for every screen
   (`Page`): 40 px side padding, 1040 px wide (Jadwal goes wider), the same
   left edge everywhere. Sections 40 px apart; inside a section 12 px.
+  A grid that holds rows gives every column a size that can shrink
+  (`grid-cols-1`, `minmax(0,…)`), at every width: a column that fits its
+  content would grow to a long title with no spaces and push the page past
+  the window.
 - **Radius**: 5 px keys and tags (`rounded-tag`), 6–8 px buttons and inputs
   (`rounded-md`, `rounded-lg`), 12 px cards and lists (`rounded-xl`), 16 px
   raised cards and dialogs (`rounded-2xl`), full for chips and switches. No
