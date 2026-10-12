@@ -193,11 +193,16 @@ describe("the Task page", () => {
     expect(s.text()).toContain("Tenggat Kam, 22 Okt, 23:50");
     expect(s.text()).toContain("Soal lihat .pdf");
     expect(s.text()).toContain("Berkas dari dosen");
-    await s.click("Unduh UTS MARKOM SEM 1 2026 2027.pdf");
+    // A PDF opens in the viewer; downloading it stays one click away (here, the file isn't on the pretend storage).
+    await s.click("Lihat UTS MARKOM SEM 1 2026 2027.pdf");
+    expect(s.calls.at(-1)).toEqual({ name: "files.read", input: { url: "https://edunexfixture.blob.core.windows.net/edunex/fixture-8", as: "pdf" } });
+    await s.click("Unduh");
     expect(s.calls.at(-1)).toEqual({
       name: "files.download",
       input: { url: "https://edunexfixture.blob.core.windows.net/edunex/fixture-8", name: "UTS MARKOM SEM 1 2026 2027.pdf" },
     });
+    await s.key("Escape");
+    expect(document.querySelector("[role=dialog]")).toBeNull();
     // The rules sit where they matter: the file rule in the drop zone, the late rule by the deadline.
     expect(card()).toContain("Wajib unggah berkas");
     expect(document.querySelector("article")?.textContent).toContain("Tidak bisa terlambat");

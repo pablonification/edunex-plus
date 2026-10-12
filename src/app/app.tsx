@@ -3,6 +3,7 @@
 import { type ReactNode, useEffect, useState } from "react";
 import type { Bridge } from "./bridge";
 import { I18nProvider, type UiClock } from "./i18n";
+import { PdfViewerProvider } from "./pdf";
 import { Shell } from "./shell/shell";
 import { Welcome } from "./shell/welcome";
 import { type AppStore, StoreProvider, useDataset, useSettings, useStatus } from "./store";
@@ -14,9 +15,11 @@ export function App({ store, bridge, clock }: { store: AppStore; bridge: Bridge;
     <StoreProvider store={store} bridge={bridge}>
       <Localized clock={clock}>
         <TooltipProvider>
-          <PanelBoundary name="app">
-            <Root />
-          </PanelBoundary>
+          <PdfViewerProvider>
+            <PanelBoundary name="app">
+              <Root />
+            </PanelBoundary>
+          </PdfViewerProvider>
           <Toaster />
         </TooltipProvider>
       </Localized>

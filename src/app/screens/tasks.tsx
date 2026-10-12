@@ -41,6 +41,7 @@ import { useOpenExternal } from "../hooks";
 import { type Format, type Translate, useFormat, useNow, useT } from "../i18n";
 import { LecturerHtml } from "../lecturer-html";
 import { useNav } from "../nav";
+import { isPdfName, usePdfViewer } from "../pdf";
 import { useExams } from "../schedule-data";
 import { useRefresh, useSignIn } from "../shell/source-status";
 import { useBridge, useDataset, useStatus } from "../store";
@@ -714,18 +715,27 @@ function shortName(name: string): string {
 export function LecturerFile({ file }: { file: TaskFile }) {
   const t = useT();
   const { download, busy } = useDownload();
+  const pdf = usePdfViewer();
+  // A PDF reads in the app (its viewer can download it too); other files download and open.
+  const viewable = isPdfName(file.name);
   return (
     <button
       type="button"
-      aria-label={t("task.download", { name: file.name })}
-      onClick={() => void download(file)}
+      aria-label={t(viewable ? "pdf.viewFile" : "task.download", { name: file.name })}
+      onClick={() => (viewable ? pdf.open({ kind: "edunex", url: file.url, name: file.name }) : void download(file))}
       className="focus-ring flex w-full items-center gap-3 rounded-xl border border-edge bg-surface px-3 py-2.5 text-left shadow-card transition-colors duration-150 hover:bg-hover"
     >
       <FileBadge name={file.name} />
       <span className="line-clamp-2 min-w-0 flex-1 text-body font-medium [overflow-wrap:anywhere]" title={file.name}>
         {file.name}
       </span>
-      {busy ? <Icons.Loader className="size-4 animate-spin text-faint" /> : <Icons.Download className="size-4 text-faint" />}
+      {busy ? (
+        <Icons.Loader className="size-4 animate-spin text-faint" />
+      ) : viewable ? (
+        <Icons.Eye className="size-4 text-faint" />
+      ) : (
+        <Icons.Download className="size-4 text-faint" />
+      )}
     </button>
   );
 }
@@ -1137,6 +1147,7 @@ function HandIn({ task, status, onPreview }: Row & { onPreview?: (file: TaskFile
                   onRemove={editable ? () => removeSaved(file.url) : undefined}
                   onDownload={editable ? undefined : () => void download(file)}
                   onPreview={onPreview && isPdf(file.name) ? () => onPreview(file) : undefined}
+                  viewUrl={isPdfName(file.name) ? file.url : undefined}
                   downloading={downloading === file.url}
                 />
               ))}
@@ -1455,7 +1466,7 @@ const isPdf = (name: string) => /\.pdf$/i.test(name);
 
 /**
  * One file of the answer. `onPreview` is the seam for an in-app viewer of the
- * Student's own files: given, the row offers to look at the file.
+ * Student's own files: given (or a `viewUrl`), the row offers to look at the file.
  */
 function FileRow({
   name,
@@ -1467,6 +1478,7 @@ function FileRow({
   onDownload,
   onPreview,
   downloading = false,
+  viewUrl,
 }: {
   name: string;
   state?: Attached["state"];
@@ -1477,8 +1489,11 @@ function FileRow({
   onDownload?: () => void;
   onPreview?: () => void;
   downloading?: boolean;
+  /** A PDF already on Edunex: it opens in the app's viewer, even while the answer can still change. */
+  viewUrl?: string;
 }) {
   const t = useT();
+  const pdf = usePdfViewer();
   const failed = state === "failed";
   return (
     <li className={cx("rounded-lg px-2.5 py-2", failed ? "bg-danger-bg/50 ring-1 ring-danger-fg/30 ring-inset" : "bg-fill")}>
@@ -1495,11 +1510,11 @@ function FileRow({
             </span>
           )}
         </span>
-        {onPreview && !failed && (
+        {(onPreview || viewUrl) && !failed && (
           <button
             type="button"
             aria-label={t("handIn.preview", { name })}
-            onClick={onPreview}
+            onClick={onPreview ?? (() => viewUrl && pdf.open({ kind: "edunex", url: viewUrl, name }))}
             className="focus-ring grid size-7 shrink-0 place-items-center rounded-md text-muted transition-colors duration-150 hover:bg-hover hover:text-fg"
           >
             <Icons.Eye className="size-3.5" />

@@ -8,7 +8,7 @@ import { demo } from "../demo";
 import { signInToEdunex } from "../signin";
 import { forgetSignInSession } from "../signin-session";
 import { signInToSix } from "../six-signin";
-import { removeEveryTrace } from "../traces";
+import { removeEdunexFiles, removeEveryTrace } from "../traces";
 import type { HandlerGroup } from "./context";
 
 export const authHandlers: HandlerGroup<"auth.signIn" | "auth.signOut"> = (context) => {
@@ -60,6 +60,7 @@ export const authHandlers: HandlerGroup<"auth.signIn" | "auth.signOut"> = (conte
     "auth.signOut": async ({ source }) => {
       await context.engine.signOut(source);
       if (!source) await Promise.all([removeEveryTrace({ userData: context.userData, engineSession: context.engineSession }), forgetSignInSession()]);
+      else if (source === "edunex") await removeEdunexFiles(context.userData);
       return {};
     },
   };

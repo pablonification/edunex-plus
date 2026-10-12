@@ -13,7 +13,7 @@ import { isOfficialUrl, isWebLink } from "../../src/core/links";
 import type { SourceId } from "../../src/core/models";
 import { phoneCalendar } from "../../src/core/phone-calendar";
 import { handInHandlers, type LocalFile } from "../../src/desktop/hand-in";
-import { readRemoteFile } from "../../src/desktop/remote-files";
+import { readFile } from "../../src/desktop/remote-files";
 import { createEngine, type Engine } from "../../src/engine/engine";
 import { EngineError, isEngineError } from "../../src/engine/errors";
 import { PRETEND_TOKEN } from "../pretend/edunex";
@@ -148,7 +148,7 @@ export async function openApp(options: Options = {}) {
       return {};
     },
     // Main's real reader, on the pretend storage.
-    "files.read": async ({ url, as }: { url: string; as: "image" }) => readRemoteFile((address, init) => world.fetch(address, init), url, as),
+    "files.read": async ({ url, as }: { url: string; as: "image" | "pdf" }) => readFile({ fetch: (address, init) => world.fetch(address, init) }, url, as),
     "files.download": async ({ name }: { name: string }) => ({ path: `/Downloads/${name}` }),
     "course.saveOffline": async ({ code, pick }: { code: string; pick: boolean }) => {
       const value = <T,>(name: string) => engine.snapshot().datasets.find((d) => d.name === name)?.value as T | undefined;

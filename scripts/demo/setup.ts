@@ -125,8 +125,86 @@ function samplePicture(width = 640, height = 220): Uint8Array {
     chunk("IEND", Buffer.alloc(0)),
   ]);
 }
-// The picture in II4091's "Course Tokens" note.
+/**
+ * A made-up PDF for the viewer: one page per section (a heading, lines of
+ * text in the standard Helvetica the PDF doesn't embed, a page number), a
+ * link to a web page and one to the last page. Built by hand: a real PDF.
+ */
+function samplePdf(sections: { heading: string; lines: string[] }[], size: [number, number] = [595, 842]): Uint8Array {
+  const [width, height] = size;
+  const esc = (text: string) => text.replace(/[\\()]/g, (c) => `\\${c}`);
+  const objects: string[] = [];
+  const add = (body: string) => objects.push(body);
+  add("<< /Type /Catalog /Pages 2 0 R >>");
+  add("");
+  add("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>");
+  add("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>");
+  const kids: number[] = [];
+  for (const [index, section] of sections.entries()) {
+    const top = height - 72;
+    const ops = [
+      "0.18 0.44 0.92 rg",
+      `72 ${top + 18} ${width - 144} 3 re f`,
+      "0 g",
+      `BT /F2 22 Tf 72 ${top - 20} Td (${esc(section.heading)}) Tj ET`,
+      `BT /F1 12 Tf 17 TL 72 ${top - 52} Td`,
+      ...section.lines.map((line) => `(${esc(line)}) '`),
+      "ET",
+      `BT /F1 9 Tf ${width - 140} 40 Td (Halaman ${index + 1} dari ${sections.length}) Tj ET`,
+    ].join("\n");
+    add(`<< /Length ${Buffer.byteLength(ops)} >>\nstream\n${ops}\nendstream`);
+    const content = objects.length;
+    const annots =
+      index === 0
+        ? ` /Annots [<< /Type /Annot /Subtype /Link /Rect [72 ${top - 52 - 17 * section.lines.length - 30} 330 ${top - 52 - 17 * section.lines.length - 14}] /Border [0 0 0] /A << /S /URI /URI (https://docs.google.com/document/d/fixture-sap) >> >>]`
+        : "";
+    add(
+      `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${width} ${height}] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents ${content} 0 R${annots} >>`,
+    );
+    kids.push(objects.length);
+  }
+  objects[1] = `<< /Type /Pages /Kids [${kids.map((id) => `${id} 0 R`).join(" ")}] /Count ${kids.length} >>`;
+  let out = "%PDF-1.4\n";
+  const offsets: number[] = [];
+  for (const [index, body] of objects.entries()) {
+    offsets.push(Buffer.byteLength(out));
+    out += `${index + 1} 0 obj\n${body}\nendobj\n`;
+  }
+  const xref = Buffer.byteLength(out);
+  out += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n${offsets.map((at) => `${String(at).padStart(10, "0")} 00000 n \n`).join("")}`;
+  out += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`;
+  return Buffer.from(out, "latin1");
+}
+const week = (n: number, topic: string) => ({
+  heading: `Minggu ${n}: ${topic}`,
+  lines: [
+    "Capaian: mahasiswa mampu menjelaskan konsep utama dan menerapkannya pada kasus.",
+    "Bahan bacaan: bab yang sesuai di buku ajar dan catatan kuliah minggu ini.",
+    "Kegiatan: kuliah, diskusi kelompok kecil, dan latihan soal di kelas.",
+    "Penilaian: kuis singkat di akhir pertemuan (tidak memengaruhi nilai akhir).",
+    "",
+    "Contoh data dan tugas ada di tautan ini: dokumen latihan minggu ini.",
+  ],
+});
+
+// The picture in II4091's "Course Tokens" note, and PDFs to read in the viewer (all made up).
 world.putFile("https://edunexfixture.blob.core.windows.net/edunex/fixture-2", samplePicture());
+world.putFile(
+  "https://edunexfixture.blob.core.windows.net/edunex/fixture-1",
+  samplePdf(
+    ["Pengantar", "Permintaan Transportasi", "Penawaran dan Kapasitas", "Biaya dan Tarif", "Evaluasi Proyek", "Ringkasan"].map((topic, i) =>
+      week(i + 1, topic),
+    ),
+  ),
+);
+const slides = samplePdf(
+  ["Proposal Tugas Akhir", "Memilih Topik", "Menulis Latar Belakang", "Jadwal dan Bimbingan"].map((heading) => ({
+    heading,
+    lines: ["Poin utama untuk pertemuan ini.", "Contoh dari proposal tahun lalu.", "Pertanyaan untuk diskusi."],
+  })),
+  [842, 595],
+);
+for (const name of ["slide-pengantar", "slide-pengantar-gabungan"]) world.putFile(`https://edunexfixture.blob.core.windows.net/edunex/fixture-${name}`, slides);
 
 const hooks: DemoHooks = {
   transport: world,
