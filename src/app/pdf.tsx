@@ -2,8 +2,8 @@
 // viewer over the current screen. A file on Edunex is read in by the main
 // process (or taken from a copy on this computer) and can be downloaded from
 // the viewer; any other file (one the Student is about to hand in) comes as
-// bytes the caller reads.
-import { createContext, type ReactNode, useCallback, useContext, useMemo, useState } from "react";
+// bytes the caller reads. The viewer itself loads on first use, like pdf.js.
+import { createContext, lazy, type ReactNode, Suspense, useCallback, useContext, useMemo, useState } from "react";
 import type { ActionOutput } from "../core/contract";
 import { ActionError } from "./bridge";
 import { useOpenExternal, useOpenLink } from "./hooks";
@@ -12,7 +12,8 @@ import { useBridge, useStore } from "./store";
 import { Button } from "./ui/controls";
 import { Icons } from "./ui/icons";
 import { Tooltip, toast } from "./ui/overlays";
-import { PdfViewer } from "./ui/pdf-viewer";
+
+const PdfViewer = lazy(() => import("./ui/pdf-viewer").then((module) => ({ default: module.PdfViewer })));
 
 export type PdfSource =
   /** A file on Edunex's storage; `edunexUrl`: its page on Edunex, offered when it can't be shown. */
@@ -103,16 +104,18 @@ export function PdfViewerProvider({ children }: { children: ReactNode }) {
     <Context value={viewer}>
       {children}
       {source && (
-        <PdfViewer
-          open={open}
-          onOpenChange={setOpen}
-          name={source.name}
-          load={load}
-          actions={downloadButton}
-          fallback={fallback}
-          onOpenLink={openLink}
-          clearTitleBar={mac}
-        />
+        <Suspense fallback={null}>
+          <PdfViewer
+            open={open}
+            onOpenChange={setOpen}
+            name={source.name}
+            load={load}
+            actions={downloadButton}
+            fallback={fallback}
+            onOpenLink={openLink}
+            clearTitleBar={mac}
+          />
+        </Suspense>
       )}
     </Context>
   );
