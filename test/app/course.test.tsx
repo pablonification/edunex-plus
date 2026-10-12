@@ -471,6 +471,36 @@ describe("meetings", () => {
     expect(above().find((el) => el.textContent?.startsWith("Pertemuan berikutnya·Kam, 15 Okt, 08:00"))).toBeDefined();
   });
 
+  it("the class going on shows its own Presence window, never an earlier class's still open; that one is a quiet line under it", async () => {
+    // Thursday 15 October, in class; last Thursday's window stays open until tomorrow night.
+    const world = new PretendWorld({ now: "2026-10-15T08:30:00+07:00" });
+    keepThursdayOpen(world, "2026-10-16T23:00:00+07:00");
+    await openCourse("PL3002", { world, six: true });
+    const tabs = document.querySelector("main [role=tablist]")!;
+    const above = () => [...document.querySelectorAll("main *")].filter((el) => el.compareDocumentPosition(tabs) & Node.DOCUMENT_POSITION_FOLLOWING);
+    const card = above().find((el) => el.classList.contains("shadow-raised"))!;
+    expect(card.textContent).toContain("Sedang berlangsung · sampai 09:30");
+    // Today's window, closing at 09:30, not last week's at 23:00 tomorrow.
+    expect(countdowns()).toEqual([expect.stringMatching(/^tutup 09:30 \(\d+ mnt lagi\)$/)]);
+    expect(card.textContent).not.toContain("23:00");
+    // Last week's window keeps its own class and close, quietly, with the way to record it.
+    const line = above().find((el) => el.textContent?.startsWith("Presensi Edunex masih dibuka·Kam, 8 Okt, 08:00–10:00·tutup besok, 23:00"));
+    expect(line).toBeDefined();
+    expect(line!.closest(".shadow-raised")).toBeNull();
+    expect(line!.querySelector("button")?.textContent).toBe("Catat di Edunex");
+  });
+
+  it("a class going on whose own Presence is done shows no countdown, while an earlier class's window still open stays a quiet line", async () => {
+    const world = new PretendWorld({ now: "2026-10-15T08:30:00+07:00" });
+    keepThursdayOpen(world, "2026-10-16T23:00:00+07:00");
+    world.edunex.markPresent(2194343);
+    await openCourse("PL3002", { world, six: true });
+    expect(document.querySelector("main .shadow-raised")?.textContent).toContain("Sedang berlangsung · sampai 09:30");
+    expect(countdowns()).toEqual([]);
+    expect(document.querySelector("main .shadow-raised")?.textContent).not.toContain("Presensi Edunex");
+    expect(screen!.text()).toContain("Presensi Edunex masih dibuka·Kam, 8 Okt, 08:00–10:00·tutup besok, 23:00");
+  });
+
   it("a Presence window closing on another day says which day, and how long is left only while that's under a day", async () => {
     const world = new PretendWorld({ now: "2026-10-09T11:00:00+07:00" });
     keepThursdayOpen(world, "2026-10-12T23:00:00+07:00");

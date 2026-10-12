@@ -22,6 +22,7 @@ export const coursePageStrings = {
   "course.next": { id: "Pertemuan berikutnya", en: "Next meeting" },
   "course.presenceOpen": { id: "Presensi Edunex dibuka", en: "Edunex Presence open" },
   "course.recordInEdunex": { id: "Catat di Edunex", en: "Record in Edunex" },
+  "course.presenceStillOpen": { id: "Presensi Edunex masih dibuka", en: "Edunex Presence still open" },
 
   // Modules and materials
   "course.contents": { id: "Daftar isi", en: "Table of contents" },

@@ -240,7 +240,12 @@ export function pinnedMeeting(meetings: readonly Meeting[], now: number): { meet
 
 /** An Edunex Presence window of the course that is open now and hasn't recorded the Student yet. */
 export function openPresence(presence: readonly PresenceSession[], now: number): PresenceSession | null {
-  return presence.find((p) => p.opensAt <= now && now < p.closesAt && !p.recorded?.present) ?? null;
+  return openPresences(presence, now)[0] ?? null;
+}
+
+/** Every such window, the one closing first first: one can stay open for days after its class, into the next. */
+export function openPresences(presence: readonly PresenceSession[], now: number): PresenceSession[] {
+  return presence.filter((p) => p.opensAt <= now && now < p.closesAt && !p.recorded?.present).sort((a, b) => a.closesAt - b.closesAt);
 }
 
 /** The next meeting still to start (its index), for the "Berikutnya" mark. */

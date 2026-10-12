@@ -63,7 +63,7 @@ export function NowZone({ className, children }: { className?: string; children:
   return <div className={cx("border-t border-line bg-sunken/60 px-5 py-3.5", className)}>{children}</div>;
 }
 
-/** What's next when nothing is on: one quiet line, an icon, the facts, at most one small action. */
+/** One quiet line, under the card or instead of it (what's next, a window still open from an earlier class): an icon, the facts, at most one small action. */
 export function NowLine({ icon, action, children }: { icon: ReactNode; action?: ReactNode; children: ReactNode }) {
   return (
     <div className="flex min-h-8 flex-wrap items-center gap-x-3 gap-y-1 text-body text-muted">
