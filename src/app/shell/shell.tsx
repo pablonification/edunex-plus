@@ -86,7 +86,7 @@ function Layout() {
   }, [key]);
 
   return (
-    <div className="flex h-screen overflow-hidden bg-canvas text-fg">
+    <div className="flex h-dvh overflow-hidden bg-canvas text-fg">
       <PanelBoundary name="sidebar" compact>
         <Sidebar onSettings={() => setSettingsOpen(true)} />
       </PanelBoundary>
@@ -97,10 +97,7 @@ function Layout() {
         </PanelBoundary>
         <main ref={main} className="min-h-0 flex-1 overflow-y-auto">
           <PanelBoundary key={key} name={route.screen}>
-            {/* Every screen arrives the same soft way. */}
-            <div className="motion-safe:animate-enter">
-              <CurrentScreen route={route} />
-            </div>
+            <CurrentScreen route={route} />
           </PanelBoundary>
         </main>
       </div>
@@ -234,7 +231,7 @@ function Sidebar({ onSettings }: { onSettings: () => void }) {
                   aria-current={active ? "page" : undefined}
                   onClick={() => go({ screen } as Route)}
                   className={cx(
-                    "focus-ring flex h-[34px] w-full items-center gap-2.5 rounded-lg px-2.5 text-body transition-colors duration-150",
+                    "focus-ring flex h-[34px] w-full items-center gap-2.5 rounded-lg px-2.5 text-body",
                     active ? "bg-selected font-semibold" : "font-medium text-fg/90 hover:bg-hover",
                   )}
                 >
@@ -262,7 +259,7 @@ function Sidebar({ onSettings }: { onSettings: () => void }) {
                     onClick={() => (courseReady ? go({ screen: "course", code: course.code }) : site && open(site.url))}
                     title={course.name}
                     className={cx(
-                      "focus-ring flex h-[34px] w-full items-center gap-2.5 rounded-lg px-2.5 text-left text-body transition-colors duration-150",
+                      "focus-ring flex h-[34px] w-full items-center gap-2.5 rounded-lg px-2.5 text-left text-body",
                       active ? "bg-selected" : "hover:bg-hover",
                     )}
                   >
@@ -289,11 +286,7 @@ function Sidebar({ onSettings }: { onSettings: () => void }) {
       </div>
 
       <div className="border-t border-line px-2 py-2">
-        <button
-          type="button"
-          onClick={onSettings}
-          className="focus-ring flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left transition-colors duration-150 hover:bg-hover"
-        >
+        <button type="button" onClick={onSettings} className="focus-ring flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left hover:bg-hover">
           <span className="grid size-7 shrink-0 place-items-center rounded-full bg-info-bg text-micro font-bold text-info-fg">
             {account ? initials(account.name) : <Icons.User className="size-3.5" />}
           </span>

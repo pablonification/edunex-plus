@@ -58,7 +58,7 @@ export function Welcome({ onDone }: { onDone: () => void }) {
   };
 
   return (
-    <div className="relative h-screen overflow-y-auto bg-welcome text-fg">
+    <div className="relative h-dvh overflow-y-auto bg-welcome text-fg">
       {store.platform === "darwin" && <div className="drag absolute inset-x-0 top-0 h-[52px]" />}
       <div className="no-drag absolute top-3 right-4 z-10">
         <Segmented

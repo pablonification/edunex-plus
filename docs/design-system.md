@@ -239,7 +239,7 @@ keeps them equal).
 
 | What | How |
 |---|---|
-| Hover, press, color changes | 150 ms color change |
+| Hover, press, color changes | Hover backgrounds: instant. Buttons press to 97% in 150 ms (not menu or popover triggers, not rows; a row's press is its darker background). Other color changes: 150 ms |
 | Screens and their rows | Nothing: switching screens or going further in is instant, and rows don't rise in |
 | Dialogs (`animate-pop-in`, `animate-pop-out`; the scrim `animate-fade-in`, `animate-fade-out`) | In 200 ms from 98%, out 150 ms |
 | Popovers and tooltips (`animate-popover-in`, `animate-popover-out`) | 150 ms, growing from their control (`origin-(--radix-popover-content-transform-origin)`), so the side they open on shows. A tooltip grows in only after the wait; moving on to the next control shows its tooltip at once, and a tooltip goes at once |
