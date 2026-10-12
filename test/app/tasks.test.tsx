@@ -86,6 +86,36 @@ describe("Tugas & Ujian", () => {
     expect(row("Tugas 02 Bab II")).toBeDefined();
   });
 
+  it("the course filter is one radio group: a single Tab stop, arrows move the pick, a second click keeps it", async () => {
+    const s = await open();
+    await s.click(/^Tugas & Ujian\d*$/);
+    const group = document.querySelector<HTMLElement>("[role=radiogroup][aria-label='Mata kuliah']")!;
+    const chips = () => [...group.querySelectorAll<HTMLButtonElement>("[role=radio]")];
+    const checked = () => chips().find((chip) => chip.getAttribute("aria-checked") === "true")?.textContent;
+    expect(checked()).toBe("Semua");
+    expect(
+      chips()
+        .filter((chip) => chip.tabIndex === 0)
+        .map((chip) => chip.textContent),
+    ).toEqual(["Semua"]);
+    chips()[0].focus();
+    await s.key("ArrowRight");
+    const first = chips()[1].textContent!;
+    expect(checked()).toBe(first);
+    expect(document.activeElement).toBe(chips()[1]);
+    expect(chips().filter((chip) => chip.tabIndex === 0)).toEqual([chips()[1]]);
+    await s.key("ArrowLeft");
+    expect(checked()).toBe("Semua");
+    // Wraps around from the first to the last.
+    await s.key("ArrowLeft");
+    expect(checked()).toBe(chips().at(-1)!.textContent);
+    // Clicking the picked course keeps it picked.
+    await s.click("PL3002");
+    await s.click("PL3002");
+    expect(checked()).toBe("PL3002");
+    expect(row("Tugas 02 Bab II")).toBeUndefined();
+  });
+
   it("shows what was handed in, loudly when the lecturer changed it afterwards, and a short window", async () => {
     const s = await open();
     await s.click(/^Tugas & Ujian\d*$/);

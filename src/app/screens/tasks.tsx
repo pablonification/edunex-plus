@@ -45,7 +45,7 @@ import { isPdfName, usePdfViewer } from "../pdf";
 import { useExams } from "../schedule-data";
 import { useRefresh, useSignIn } from "../shell/source-status";
 import { useBridge, useDataset, useStatus } from "../store";
-import { Button, Segmented } from "../ui/controls";
+import { Button, Segmented, useRadioKeys } from "../ui/controls";
 import { cx } from "../ui/cx";
 import { Card, CourseDot, EmptyState, Skeleton, StatusChip, StatusGlyph } from "../ui/display";
 import { Icons } from "../ui/icons";
@@ -169,6 +169,8 @@ export function TasksScreen() {
   const withItems = (courses ?? []).filter(
     (c) => (rows ?? []).some((row) => row.task.courseCode === c.code) || (exams ?? []).some((exam) => exam.courseCode === c.code),
   );
+  // One radio group: "Semua" (null) first, then each course; arrows move the pick, a second click keeps it.
+  const radio = useRadioKeys([null, ...withItems.map((c) => c.code)], course, setCourse);
 
   let index = 0;
   return (
@@ -191,11 +193,9 @@ export function TasksScreen() {
 
       {withItems.length > 1 && (
         <div role="radiogroup" aria-label={t("tasks.filter.course")} className="mb-8 flex flex-wrap gap-1.5">
-          <FilterChip selected={course === null} onClick={() => setCourse(null)}>
-            {t("tasks.filter.all")}
-          </FilterChip>
-          {withItems.map((c) => (
-            <FilterChip key={c.code} selected={course === c.code} onClick={() => setCourse(course === c.code ? null : c.code)}>
+          <FilterChip radio={radio(0)}>{t("tasks.filter.all")}</FilterChip>
+          {withItems.map((c, i) => (
+            <FilterChip key={c.code} radio={radio(i + 1)}>
               <CourseDot color={c.color} className="size-2" />
               {c.code}
             </FilterChip>
@@ -254,17 +254,14 @@ export function TasksScreen() {
   );
 }
 
-function FilterChip({ selected, onClick, children }: { selected: boolean; onClick: () => void; children: ReactNode }) {
+function FilterChip({ radio, children }: { radio: ReturnType<ReturnType<typeof useRadioKeys>>; children: ReactNode }) {
   return (
-    // biome-ignore lint/a11y/useSemanticElements: filter chips are styled buttons; the radio role says only one is on
     <button
       type="button"
-      role="radio"
-      aria-checked={selected}
-      onClick={onClick}
+      {...radio}
       className={cx(
         "focus-ring inline-flex h-7 items-center gap-1.5 rounded-full border px-3 text-small font-medium transition-colors duration-150",
-        selected ? "border-transparent bg-fg text-canvas" : "border-edge bg-surface text-muted hover:bg-hover hover:text-fg",
+        radio["aria-checked"] ? "border-transparent bg-selected text-fg" : "border-edge text-muted hover:bg-hover hover:text-fg",
       )}
     >
       {children}
