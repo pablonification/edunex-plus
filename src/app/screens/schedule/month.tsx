@@ -13,7 +13,7 @@ import { type Format, type Translate, useFormat, useT } from "../../i18n";
 import type { ScheduleData } from "../../schedule-data";
 import { Button } from "../../ui/controls";
 import { cx } from "../../ui/cx";
-import { CourseDot } from "../../ui/display";
+import { CourseDot, Tag } from "../../ui/display";
 import { Icons } from "../../ui/icons";
 import { factsLabel, Meta } from "../../ui/layout";
 import { Popover } from "../../ui/overlays";
@@ -48,14 +48,15 @@ export function MonthView({ month, input, onShowWeek }: { month: MonthGrid; inpu
 
   return (
     <div className="mt-2">
-      <div className="grid gap-1.5 pb-1.5" style={{ gridTemplateColumns: COLUMNS }} aria-hidden>
+      <div className="grid pb-1.5" style={{ gridTemplateColumns: COLUMNS }} aria-hidden>
         {days.slice(0, 7).map((day) => (
           <span key={day} className="px-2 text-caption font-semibold text-muted">
             {f.weekdayShort(noon(day))}
           </span>
         ))}
       </div>
-      <div className="grid gap-1.5" style={{ gridTemplateColumns: COLUMNS }}>
+      {/* One frame, the days sharing hairlines. */}
+      <div className="grid overflow-hidden rounded-xl border border-line bg-surface" style={{ gridTemplateColumns: COLUMNS }}>
         {plan.map((day, i) => {
           const inMonth = day.day.startsWith(month.month);
           const period = periods.find((e) => e.firstDay <= day.day && day.day <= e.lastDay) ?? null;
@@ -73,13 +74,12 @@ export function MonthView({ month, input, onShowWeek }: { month: MonthGrid; inpu
               type="button"
               aria-label={label}
               className={cx(
-                "focus-ring flex min-h-[104px] min-w-0 flex-col items-stretch gap-[3px] rounded-lg border p-1.5 text-left transition-colors duration-150",
-                period
-                  ? "border-transparent bg-(--source-itb-bg)/70 hover:bg-(--source-itb-bg)"
-                  : inMonth
-                    ? "border-edge bg-surface hover:bg-hover"
-                    : "border-transparent bg-sunken",
-                !inMonth && "opacity-60",
+                // The ring sits inside the cell, so neighbours and the frame never hide it.
+                "focus-ring flex min-h-[104px] min-w-0 flex-col items-stretch gap-[3px] border-line p-1.5 text-left transition-colors duration-150 focus-visible:-outline-offset-2",
+                i % 7 < 6 && "border-r",
+                i < plan.length - 7 && "border-b",
+                period ? "bg-(--source-itb-bg)/70 hover:bg-(--source-itb-bg)" : inMonth ? "hover:bg-hover" : "bg-sunken",
+                !inMonth && period && "bg-(--source-itb-bg)/40",
               )}
             >
               <span className="flex min-w-0 items-center gap-1.5">
@@ -146,7 +146,7 @@ function monthLines(day: ScheduleDay, t: Translate, f: Format, world: ReturnType
     if (!exam) continue;
     lines.push({
       key: `e${session.id}`,
-      icon: <span className="shrink-0 rounded-[3px] bg-fg px-1 text-[10px] leading-[14px] font-bold text-canvas">{session.activity}</span>,
+      icon: <Tag>{session.activity}</Tag>,
       text: session.courseCode,
       full: t("schedule.month.exam", { activity: session.activity, code: session.courseCode, time: time(session.start), room: session.room ?? "" }),
       tone: "font-semibold",
