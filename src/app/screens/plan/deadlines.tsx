@@ -415,16 +415,10 @@ function EventRow({ entry }: { entry: CalendarEntry }) {
           {when === "now" && <span className="ml-2 text-small font-semibold text-success-fg">{t("deadlines.now")}</span>}
         </span>
         {(meaning || entry.revised) && (
-          <span
-            className={cx(
-              "mt-0.5 block text-small",
-              warn ? "font-medium text-warning-fg" : meaning?.done && when !== "past" ? "text-success-fg" : "text-muted",
-            )}
-          >
-            {meaning && t(meaning.key, meaning.vars)}
-            {meaning && entry.revised && <span className="text-faint"> · </span>}
-            {entry.revised && <span className="text-faint">{t("calendar.revised")}</span>}
-          </span>
+          <Meta className={cx("mt-0.5 text-small", warn ? "font-medium text-warning-fg" : meaning?.done && when !== "past" ? "text-success-fg" : "text-muted")}>
+            {meaning ? t(meaning.key, meaning.vars) : null}
+            {entry.revised ? <span className="text-faint">{t("calendar.revised")}</span> : null}
+          </Meta>
         )}
       </span>
     </li>
