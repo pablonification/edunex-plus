@@ -10,6 +10,7 @@ import { planOfflineFiles } from "../../core/course-materials";
 import { clashes, openPresence, pinnedMeeting } from "../../core/course-meetings";
 import { edunexCourseUrl } from "../../core/links";
 import { sixTimetableUrl } from "../../core/schedule";
+import { attendanceSnoozable } from "../../core/snooze";
 import { useAttendance } from "../attendance";
 import { verdictLabel } from "../attendance-labels";
 import { AttendanceSummary, CourseTarget } from "../attendance-parts";
@@ -17,6 +18,8 @@ import { useOpenExternal } from "../hooks";
 import { type StringKey, useFormat, useLang, useNow, useT } from "../i18n";
 import { useNav } from "../nav";
 import { useRefresh } from "../shell/source-status";
+import { SnoozeMenu } from "../snooze-menu";
+import { useSnoozes } from "../snoozes";
 import { useBridge, useDataset, useStatus } from "../store";
 import { Button } from "../ui/controls";
 import { cx } from "../ui/cx";
@@ -239,23 +242,29 @@ function RiskStrip({ page }: { page: CoursePage }) {
   const { go } = useNav();
   const attendance = useAttendance();
   const schedule = useDataset("six.schedule");
+  const { snoozed } = useSnoozes();
   const health = attendance?.courses.find((c) => c.course.code === page.course.code)?.health;
-  if (!health || (health.state !== "out" && health.state !== "none")) return null;
+  if (!health || !attendance || (health.state !== "out" && health.state !== "none")) return null;
+  // Put off with "Ingatkan nanti" (here or on Beranda: they share it), until its time or a new count. The header meter still says it.
+  const later = attendanceSnoozable(page.course.code, health, health.target);
+  if (snoozed(later.key)) return null;
   const next = page.meetings.find((m) => m.end > now && !m.notInSix);
   const clash = next ? clashes(next, page.course.code, schedule ?? [])[0] : undefined;
   // The strip right below already shows the next meeting; say it here only when it doesn't.
   const nextShownBelow = next !== undefined && pinnedMeeting(page.meetings, now)?.meeting.key === next.key;
   const out = health.state === "out";
+  const title = verdictLabel(t, health);
   return (
     <Notice
       tone={out ? "danger" : "warning"}
       className="mb-4"
-      title={verdictLabel(t, health)}
+      title={title}
       action={
         <Button size="sm" onClick={() => go({ screen: "presence" })}>
           {t("course.risk.seePresence")}
         </Button>
       }
+      snooze={<SnoozeMenu item={later} name={`${page.course.code}: ${title}`} words onTone />}
     >
       {[
         out ? t("course.risk.best", { best: percent(health.best ?? 0) }) : noneLeft(t, f, health, attendance.lastDay),

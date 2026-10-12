@@ -18,6 +18,7 @@ import { searchStrings } from "./strings/search";
 import { shellStrings } from "./strings/shell";
 import { sixStrings } from "./strings/six";
 import { sixRecordsStrings } from "./strings/six-records";
+import { snoozeStrings } from "./strings/snooze";
 import { tasksStrings } from "./strings/tasks";
 import { updatesStrings } from "./strings/updates";
 
@@ -39,6 +40,7 @@ export const STRINGS = {
   ...homeStrings,
   ...searchStrings,
   ...updatesStrings,
+  ...snoozeStrings,
 } as const satisfies Record<string, Entry>;
 
 export type StringKey = keyof typeof STRINGS;

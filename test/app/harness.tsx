@@ -200,7 +200,15 @@ export async function openApp(options: Options = {}) {
 
   const container = document.body.appendChild(document.createElement("div"));
   const root = createRoot(container);
-  const clock: UiClock = { now: () => world.clock.now(), subscribe: () => () => undefined };
+  // The window's clock reads the fake one; screens re-read it on `tick()`, as the real one does each minute.
+  const minute = new Set<() => void>();
+  const clock: UiClock = {
+    now: () => world.clock.now(),
+    subscribe: (listener) => {
+      minute.add(listener);
+      return () => minute.delete(listener);
+    },
+  };
   await act(async () => root.render(<App store={store} bridge={bridge} clock={clock} />));
   // Every screen, after every step a test takes: no empty fact, no dangling "·".
   assertTidyFacts();
@@ -278,6 +286,14 @@ export async function openApp(options: Options = {}) {
     async wait(ms = 5_000): Promise<void> {
       await act(async () => {
         await world.clock.advance(ms);
+        await settle();
+      });
+      assertTidyFacts();
+    },
+    /** The window's minute tick: screens re-read the time (after `wait`, say). */
+    async tick(): Promise<void> {
+      await act(async () => {
+        for (const listener of minute) listener();
         await settle();
       });
       assertTidyFacts();
