@@ -236,5 +236,20 @@ describe("tabs on the screens", () => {
     await press(picks[1], "ArrowRight");
     expect(screen.store.dataset("local.plan")?.value).toMatchObject({ target: 3.75 });
     expect(document.activeElement).toBe(picks[2]);
+
+    // A typed target that counts looks like the box at rest, its number showing: no blue border, which
+    // reads as focus (blue is for actions and links).
+    const other = document.querySelector<HTMLInputElement>("input[aria-label='Target IPK lainnya']")!;
+    const resting = other.className;
+    await act(async () => {
+      other.focus();
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(other, "3,6");
+      other.dispatchEvent(new Event("input", { bubbles: true }));
+      other.blur();
+    });
+    expect(screen.store.dataset("local.plan")?.value).toMatchObject({ target: 3.6 });
+    expect(picks.map((p) => p.getAttribute("aria-checked"))).toEqual(["false", "false", "false"]);
+    expect(other.value).toBe("3,60");
+    expect(other.className).toBe(resting);
   });
 });

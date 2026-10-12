@@ -169,7 +169,7 @@ export function TargetControl({ record, state, className }: { record: StudentRec
           onBlur={() => setTyping(null)}
           className={cx(
             "focus-ring h-8 w-[76px] rounded-lg border bg-surface px-2 text-right text-small font-semibold text-fg tabular-nums placeholder:font-normal placeholder:text-faint",
-            parsed?.kind === "invalid" ? "border-danger-fg" : custom && typing === null ? "border-accent" : "border-edge",
+            parsed?.kind === "invalid" ? "border-danger-fg" : "border-edge",
           )}
         />
       </span>
