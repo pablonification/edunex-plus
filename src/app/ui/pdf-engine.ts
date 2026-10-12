@@ -66,6 +66,20 @@ function pdfjs(): Promise<PdfJs> {
   return library;
 }
 
+/** The most pixels one page's drawing holds, pdf.js's own viewer's cap (about 128 MB), and the longest side a canvas can have. */
+const MAX_PIXELS = 2 ** 25;
+const MAX_SIDE = 32_767;
+
+/**
+ * How many canvas pixels per CSS pixel a page is drawn at: the screen's own
+ * density, so it's sharp, until the drawing would pass the caps (a page
+ * zoomed in far on a Retina screen); past them it's drawn smaller and
+ * stretched, a little soft instead of hundreds of MB, or blank.
+ */
+export function drawingRatio(width: number, height: number, pixelRatio: number): number {
+  return Math.min(pixelRatio, Math.sqrt(MAX_PIXELS / (width * height)), MAX_SIDE / width, MAX_SIDE / height);
+}
+
 const cancelled = (error: unknown) => error instanceof Error && error.name === "RenderingCancelledException";
 
 export async function openPdf(bytes: Uint8Array): Promise<PdfDocument> {
@@ -114,15 +128,16 @@ export async function openPdf(bytes: Uint8Array): Promise<PdfDocument> {
         size: { width: base.width, height: base.height },
         render(canvas, scale, pixelRatio) {
           const viewport = page.getViewport({ scale });
-          canvas.width = Math.max(1, Math.floor(viewport.width * pixelRatio));
-          canvas.height = Math.max(1, Math.floor(viewport.height * pixelRatio));
+          const ratio = drawingRatio(viewport.width, viewport.height, pixelRatio);
+          canvas.width = Math.max(1, Math.floor(viewport.width * ratio));
+          canvas.height = Math.max(1, Math.floor(viewport.height * ratio));
           const context = canvas.getContext("2d");
           if (!context) return { promise: Promise.resolve(), cancel: () => undefined };
           const rendering = page.render({
             canvas,
             canvasContext: context,
             viewport,
-            transform: pixelRatio === 1 ? undefined : [pixelRatio, 0, 0, pixelRatio, 0, 0],
+            transform: ratio === 1 ? undefined : [ratio, 0, 0, ratio, 0, 0],
           });
           return {
             promise: rendering.promise.catch((error: unknown) => {

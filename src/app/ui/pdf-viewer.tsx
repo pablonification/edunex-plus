@@ -428,6 +428,14 @@ function Reader({
   );
 }
 
+/** A drawing no longer shown gives its memory back now, not whenever it's collected (zooming makes a new one each step). */
+function free(node: Node | null | undefined): void {
+  if (node instanceof HTMLCanvasElement) {
+    node.width = 0;
+    node.height = 0;
+  }
+}
+
 function PageView({
   ref,
   doc,
@@ -471,6 +479,7 @@ function PageView({
   // Far out of view: the drawing goes, to keep memory low; the page keeps its place.
   useEffect(() => {
     if (near || !page) return;
+    free(paper.current?.firstChild);
     paper.current?.replaceChildren();
     text.current?.replaceChildren();
     drawn.current = false;
@@ -488,10 +497,13 @@ function PageView({
       task = page.render(canvas, scale, window.devicePixelRatio || 1);
       task.promise.then(
         () => {
-          paper.current?.replaceChildren(canvas);
+          if (!paper.current) return free(canvas);
+          const before = paper.current.firstChild;
+          paper.current.replaceChildren(canvas);
+          free(before);
           drawn.current = true;
         },
-        () => undefined,
+        () => free(canvas),
       );
     };
     // Zooming in quick steps draws once, at the end.

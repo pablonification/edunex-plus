@@ -224,6 +224,23 @@ describe("the PDF viewer", () => {
     expect(document.activeElement).toBe(zoomIn);
   });
 
+  it("a page drawn again at a new zoom gives the old drawing's memory back at once", async () => {
+    const world = new PretendWorld();
+    world.putFile(BLOB, "%PDF-1.7 Pages: 2");
+    const s = await openPl3032(world);
+    await s.click("Lihat: K1. SAP Ekonomi Infrastruktur dan Transportasi");
+    const wait = (ms: number) => act(async () => new Promise((resolve) => setTimeout(resolve, ms)));
+    const drawing = () => viewer()!.querySelector<HTMLCanvasElement>("[data-page='1'] canvas");
+    await wait(10);
+    const first = drawing();
+    expect(first!.width).toBeGreaterThan(0);
+    await s.click("Perbesar");
+    // Quick zoom steps draw once, a moment after the last.
+    await wait(200);
+    expect(drawing()).not.toBe(first);
+    expect(first!.width).toBe(0);
+  });
+
   it("closing it while the PDF is still opening frees it all the same", async () => {
     const world = new PretendWorld();
     world.putFile(BLOB, "%PDF-1.7 Pages: 3");
