@@ -165,10 +165,11 @@ const addPerson = (value) => {
 const PERSON_FIELDS = new Set(["lecturer", "created_by", "updated_by", "sent_by", "verified_by"]);
 const isPersonObject = (o) => ["user_id", "nidn", "front_degree", "back_degree", "last_online", "place_of_birth"].some((k) => k in o);
 const walk = (value, visit) => {
-  if (Array.isArray(value)) value.forEach((v) => walk(v, visit));
-  else if (value && typeof value === "object") {
+  if (Array.isArray(value)) {
+    for (const v of value) walk(v, visit);
+  } else if (value && typeof value === "object") {
     visit(value);
-    Object.values(value).forEach((v) => walk(v, visit));
+    for (const v of Object.values(value)) walk(v, visit);
   }
 };
 for (const ex of edunexBodies) {
@@ -205,8 +206,12 @@ const fakeNims = new Map();
   add(nim, fakeNims.get(nim));
 });
 if (student.username && !fakeNims.has(student.username)) add(student.username, "dimas.pratama");
-[...sixIds].sort().forEach((id, i) => add(id, String(2021000001 + i)));
-[...edunexIds].sort().forEach((id, i) => add(id, String(900001 + i)));
+[...sixIds].sort().forEach((id, i) => {
+  add(id, String(2021000001 + i));
+});
+[...edunexIds].sort().forEach((id, i) => {
+  add(id, String(900001 + i));
+});
 const usedFakes = new Set();
 [...people].sort().forEach((core, i) => {
   let fake = `${FIRST[i % FIRST.length]} ${LAST[(i * 7 + Math.floor(i / FIRST.length)) % LAST.length]}`;

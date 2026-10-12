@@ -1,3 +1,4 @@
+// biome-ignore-all lint/suspicious/noExplicitAny: vendor JSON is untyped on purpose: tests see exactly what Edunex sends
 import { describe, expect, it } from "vitest";
 import { sleep } from "../../src/engine/clock";
 import { NetworkError } from "../../src/engine/http/transport";
@@ -6,7 +7,6 @@ import { EDUNEX_API, PRETEND_TOKEN } from "./edunex";
 import { PRETEND_SIX_COOKIE, SIX_ORIGIN } from "./six";
 import { PretendWorld } from "./world";
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 const auth = { authorization: `Bearer ${PRETEND_TOKEN}` };
 const sixAuth = { cookie: PRETEND_SIX_COOKIE };
 

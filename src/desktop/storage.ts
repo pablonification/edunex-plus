@@ -3,7 +3,7 @@
 // renamed over the old one, so a crash mid-write leaves the old value (and a
 // stray temporary file, swept on the next start).
 import { randomBytes } from "node:crypto";
-import { promises as fs } from "node:fs";
+import { type Dirent, promises as fs } from "node:fs";
 import path from "node:path";
 import type { Storage } from "../engine/store/storage";
 
@@ -45,7 +45,7 @@ export class FileStorage implements Storage {
   async list(prefix: string): Promise<string[]> {
     const keys: string[] = [];
     const walk = async (dir: string, relative: string): Promise<void> => {
-      let entries;
+      let entries: Dirent[];
       try {
         entries = await fs.readdir(dir, { withFileTypes: true });
       } catch {
@@ -66,7 +66,7 @@ export class FileStorage implements Storage {
   async sweep(olderThanMs = 60_000): Promise<number> {
     let removed = 0;
     const walk = async (dir: string): Promise<void> => {
-      let entries;
+      let entries: Dirent[];
       try {
         entries = await fs.readdir(dir, { withFileTypes: true });
       } catch {

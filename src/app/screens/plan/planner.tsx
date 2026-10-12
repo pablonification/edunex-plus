@@ -660,12 +660,12 @@ function Rules({ record, rules }: { record: StudentRecord; rules: Rule[] }) {
     <Card className="overflow-hidden">
       <h3 className="px-4 pt-3.5 text-body font-semibold">{t("planner.rules")}</h3>
       <ul className="space-y-1 px-2 pt-2 pb-3" aria-label={t("planner.rules")}>
-        {rules.map((rule, i) => {
+        {rules.map((rule) => {
           const { title, detail } = text(rule);
           const mark = LEVEL_MARK[rule.level];
           return (
             <li
-              key={`${rule.id}-${i}`}
+              key={ruleAnchor(rule)}
               id={ruleAnchor(rule)}
               className="flex scroll-m-24 items-start gap-2.5 rounded-lg px-2 py-1.5 transition-colors duration-500"
               data-rule={rule.id}

@@ -171,6 +171,7 @@ export function Meta({ className, children }: { className?: string; children: Re
   return (
     <span className={cx("inline-flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5", className)}>
       {parts.map((part, i) => (
+        // biome-ignore lint/suspicious/noArrayIndexKey: the parts are positional children; Children.toArray gives text no key
         <Fragment key={i}>
           {i > 0 && (
             <span aria-hidden className="text-faint">

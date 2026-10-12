@@ -106,7 +106,7 @@ describe("Jadwal: the week as a timetable", () => {
     expect(meeting).toContain("Diumumkan dosen di Edunex; jadwal SIX tidak mencantumkannya.");
     await s.click("Gabung");
     expect(s.calls.at(-1)?.name).toBe("shell.openExternal");
-    expect(String((s.calls.at(-1)?.input as { url: string }).url)).toMatch(/^https:\/\/teams\.microsoft\.com\//);
+    expect(String((s.calls.at(-1)!.input as { url: string }).url)).toMatch(/^https:\/\/teams\.microsoft\.com\//);
   });
 
   it("next week: ITB's UTS week, the UTS as an exam, lectures that may not run, and Presence by handing in a Task", async () => {

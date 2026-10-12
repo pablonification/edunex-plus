@@ -8,7 +8,7 @@ import { Bytes, HandIn, type HandInResult, MAX_UPLOAD_BYTES } from "../../../cor
 import type { Task, TaskFile } from "../../../core/models";
 import { takesAnswers } from "../../../core/tasks";
 import { EngineError, isEngineError } from "../../errors";
-import { NetworkError, type Transport } from "../../http/transport";
+import { type HttpResponse, NetworkError, type Transport } from "../../http/transport";
 import type { SourceAction, SourceContext } from "../source";
 import { EDUNEX_API, EdunexClient, TIMEOUT_MS } from "./client";
 import type { EdunexSession } from "./session";
@@ -219,7 +219,7 @@ function parse<S extends z.ZodType>(schema: S, input: unknown): z.infer<S> {
 
 /** A write to Edunex's API. A refusal is "Rejected"; an ended session "Unauthorized". */
 async function write(context: SourceContext, session: EdunexSession, method: "POST" | "PATCH", path: string, body: unknown): Promise<unknown> {
-  let response;
+  let response: HttpResponse;
   try {
     response = await context.transport.request({
       method,
@@ -251,7 +251,7 @@ async function write(context: SourceContext, session: EdunexSession, method: "PO
 async function put(transport: Transport, userAgent: string, url: string, contentType: string, bytes: Uint8Array): Promise<void> {
   // Room for a slow connection: a minute, plus a second for every 50 KB.
   const timeoutMs = Math.min(30 * 60_000, 60_000 + Math.ceil(bytes.byteLength / 50));
-  let response;
+  let response: HttpResponse;
   try {
     response = await transport.request({ method: "PUT", url, headers: { "x-ms-blob-type": "BlockBlob", "content-type": contentType, "user-agent": userAgent }, body: bytes, timeoutMs });
   } catch (error) {

@@ -240,6 +240,7 @@ export function TasksScreen() {
 
 function FilterChip({ selected, onClick, children }: { selected: boolean; onClick: () => void; children: ReactNode }) {
   return (
+    // biome-ignore lint/a11y/useSemanticElements: filter chips are styled buttons; the radio role says only one is on
     <button
       type="button"
       role="radio"

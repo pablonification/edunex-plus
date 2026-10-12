@@ -113,7 +113,7 @@ function readAttendance($: Page, cell: Nodes, at: string): SixCourse["attendance
     return null;
   }
   const numbers = titles.length === 1 ? titles[0].match(/\d+/g) : null;
-  if (!numbers || numbers.length !== 2) throw changed(PAGE, `${at}: attendance without its count`);
+  if (numbers?.length !== 2) throw changed(PAGE, `${at}: attendance without its count`);
   const [attended, held] = numbers.map(Number);
   if (attended > held) throw changed(PAGE, `${at}: attended more meetings than were held`);
   if (held === 0) return { attended, held };

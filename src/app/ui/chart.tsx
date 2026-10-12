@@ -92,6 +92,7 @@ export function LineChart({ label, columns, shortColumns, series, estimateFrom, 
   const split = estimateFrom === undefined ? n : Math.max(0, estimateFrom);
 
   return (
+    // biome-ignore lint/a11y/noStaticElementInteractions: mouse hover only clears the tooltip; the same numbers are in the table for screen readers
     <div ref={box} className={cx("relative w-full", className)} onMouseLeave={() => setHover(null)}>
       {width > 0 && (
         <svg width={width} height={height} aria-hidden className="block overflow-visible">
@@ -104,7 +105,16 @@ export function LineChart({ label, columns, shortColumns, series, estimateFrom, 
             </g>
           ))}
           {columns.map((c, i) => (
-            <text key={c + i} x={x(i)} y={height - 8} textAnchor="middle" fontSize={11} fill={estimate(i) ? "var(--muted)" : "var(--faint)"} fontWeight={hover === i ? 600 : 400}>
+            <text
+              // biome-ignore lint/suspicious/noArrayIndexKey: a column is its place on the axis; labels can repeat
+              key={c + i}
+              x={x(i)}
+              y={height - 8}
+              textAnchor="middle"
+              fontSize={11}
+              fill={estimate(i) ? "var(--muted)" : "var(--faint)"}
+              fontWeight={hover === i ? 600 : 400}
+            >
               {ticks[i]}
             </text>
           ))}
@@ -130,6 +140,7 @@ export function LineChart({ label, columns, shortColumns, series, estimateFrom, 
               {s.values.map((v, i) =>
                 v === null ? null : (
                   <circle
+                    // biome-ignore lint/suspicious/noArrayIndexKey: a point is its column's place on the axis
                     key={i}
                     cx={x(i)}
                     cy={y(v)}
@@ -149,7 +160,9 @@ export function LineChart({ label, columns, shortColumns, series, estimateFrom, 
           )}
           {/* Hit areas: a column each, wider than the marks. */}
           {columns.map((c, i) => (
+            // biome-ignore lint/a11y/noStaticElementInteractions: the hover area is for the mouse; the same numbers are in the table for screen readers
             <rect
+              // biome-ignore lint/suspicious/noArrayIndexKey: a column is its place on the axis; labels can repeat
               key={`hit-${c}-${i}`}
               x={x(i) - Math.max(step, 24) / 2}
               y={PAD.top - 6}
@@ -197,6 +210,7 @@ export function LineChart({ label, columns, shortColumns, series, estimateFrom, 
         </thead>
         <tbody>
           {columns.map((c, i) => (
+            // biome-ignore lint/suspicious/noArrayIndexKey: a row is its column's place on the axis; labels can repeat
             <tr key={c + i}>
               <th scope="row">
                 {c}

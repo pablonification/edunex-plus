@@ -123,7 +123,7 @@ export function nextKrsWindow(plan: KrsPlan, calendar: AcademicCalendar | undefi
 
 /** The Student has a KRS step to take now: nothing sent while the DRS window hasn't closed. */
 export function krsNeedsStudent(plan: KrsPlan | undefined, calendar: AcademicCalendar | undefined, now: number): boolean {
-  if (!plan || plan.state !== "not-sent") return false;
+  if (plan?.state !== "not-sent") return false;
   const { drs } = krsWindows(calendar, plan.term);
   return drs === null || drs.end > now;
 }

@@ -95,7 +95,7 @@ export function Tab(_: { onCalendar?: () => void }) {
                 {bill.amount !== null ? rupiah(bill.amount) : "—"}
                 {bill.instalments.length > 0 && <span className="ml-2 text-caption text-faint">{t("bills.inInstalments", { count: bill.instalments.length })}</span>}
               </span>
-              <span className="text-right text-small text-muted tabular-nums">{bill.dueDate ? f.dayMonth(dayMs(bill.dueDate)) + ` ${bill.dueDate.slice(0, 4)}` : "—"}</span>
+              <span className="text-right text-small text-muted tabular-nums">{bill.dueDate ? `${f.dayMonth(dayMs(bill.dueDate))} ${bill.dueDate.slice(0, 4)}` : "—"}</span>
               <span className="text-right">
                 <StatusChip bill={bill} />
               </span>

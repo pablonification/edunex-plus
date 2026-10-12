@@ -29,7 +29,7 @@ export const ready = shown.length > 0;
 
 /** The tabs' counts together: what needs the Student (warnings) first. */
 export function useBadge(): Badge {
-  // Every tab's hook runs on every render, in the same order.
+  // biome-ignore lint/correctness/useHookAtTopLevel: TABS is fixed, so every tab's hook runs on every render, in the same order
   const badges = TABS.map(([, tab]) => tab.useBadge()).filter((badge, i): badge is NonNullable<Badge> => badge !== null && TABS[i][1].ready);
   const warnings = badges.filter((badge) => badge.tone === "warning");
   const pick = warnings.length ? warnings : badges;

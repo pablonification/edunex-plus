@@ -232,6 +232,7 @@ function Palette({ onClose, onSettings }: { onClose: () => void; onSettings: () 
       </div>
       <div id={`${id}-results`} role="listbox" aria-label={t("search.results")} className="max-h-[min(420px,64vh)] overflow-y-auto p-2">
         {groups.map((group) => (
+          // biome-ignore lint/a11y/useSemanticElements: a group of options inside the listbox (the ARIA listbox pattern); a fieldset can't go there
           <div key={group.kind} role="group" aria-labelledby={`${id}-${group.kind}`}>
             <p id={`${id}-${group.kind}`} role="presentation" className="px-3 pt-2.5 pb-1 text-caption font-semibold text-faint">
               {t(`search.group.${group.kind}`)}
@@ -242,6 +243,7 @@ function Palette({ onClose, onSettings }: { onClose: () => void; onSettings: () 
               const detail = item.kind === "action" && item.action === "theme" ? t("search.action.themeTo", { theme: t(`settings.theme.${nextTheme}`) }) : detailOf(item, t, f, now);
               const key = item.kind === "screen" ? SHORTCUT[item.screen] : undefined;
               return (
+                // biome-ignore lint/a11y/useFocusableInteractive lint/a11y/useKeyWithClickEvents: focus stays in the search field, which moves through the options (aria-activedescendant) and opens one on Enter
                 <div
                   key={item.key}
                   id={optionId(mine)}

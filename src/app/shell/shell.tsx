@@ -75,6 +75,7 @@ function Layout() {
   );
   // A new screen starts at its top.
   const key = JSON.stringify(route);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: key is the route; it changing is what scrolls back to the top
   useEffect(() => {
     if (main.current) main.current.scrollTop = 0;
   }, [key]);

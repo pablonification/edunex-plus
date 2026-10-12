@@ -352,5 +352,5 @@ describe("SIX pages for other readers", () => {
   });
 });
 
-// Keeps the ClassSession import honest if the schedule's shape changes.
+// biome-ignore lint/suspicious/noExportsInTest: keeps the ClassSession import honest if the schedule's shape changes
 export type { ClassSession };

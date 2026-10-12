@@ -60,7 +60,9 @@ describe("the phone calendar file", () => {
     const stamps = (name: string) => [...text.matchAll(new RegExp(`^${name};TZID=Asia/Jakarta:(\\d{8}T\\d{6})`, "gm"))].map((m) => m[1]);
     const [starts, ends] = [stamps("DTSTART"), stamps("DTEND")];
     expect(starts).toHaveLength(7);
-    starts.forEach((start, i) => expect(ends[i] > start).toBe(true));
+    starts.forEach((start, i) => {
+      expect(ends[i] > start).toBe(true);
+    });
     const due = parseIcs(text).find((e) => e.uid === "edunex-task-117764@edunex-plus")!;
     expect([new Date(due.start).toISOString(), new Date(due.end).toISOString()]).toEqual(["2026-10-22T16:20:00.000Z", "2026-10-22T16:50:00.000Z"]);
     expect(text).toContain("DTSTART;TZID=Asia/Jakarta:20261022T232000\r\nDTEND;TZID=Asia/Jakarta:20261022T235000");

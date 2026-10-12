@@ -136,6 +136,7 @@ export function TargetControl({ record, state, className }: { record: StudentRec
           // While a value is being typed, the pick still counted stays marked until the typed one is valid.
           const on = Math.abs(value - target) < 1e-9 && (typing === null || parsed?.kind !== "ok");
           return (
+            // biome-ignore lint/a11y/useSemanticElements: the picks are styled buttons beside a typed value; the radio role says only one counts
             <button
               key={value}
               type="button"

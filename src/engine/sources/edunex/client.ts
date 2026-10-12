@@ -3,7 +3,7 @@
 // something", never an empty screen.
 import type { z } from "zod";
 import { EngineError } from "../../errors";
-import { NetworkError, type Transport } from "../../http/transport";
+import { type HttpResponse, NetworkError, type Transport } from "../../http/transport";
 
 export const EDUNEX_API = "https://api-edunex.cognisia.id";
 export const TIMEOUT_MS = 15_000;
@@ -18,7 +18,7 @@ export class EdunexClient {
   async get<S extends z.ZodType>(path: string, query: Record<string, string | number>, schema: S): Promise<z.infer<S>> {
     const url = new URL(path, EDUNEX_API);
     for (const [key, value] of Object.entries(query)) url.searchParams.set(key, String(value));
-    let response;
+    let response: HttpResponse;
     try {
       response = await this.transport.request({
         method: "GET",

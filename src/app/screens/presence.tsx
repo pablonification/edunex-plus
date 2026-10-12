@@ -78,6 +78,7 @@ export function PresenceScreen() {
       ) : (
         <>
           {known ? (
+            // biome-ignore lint/a11y/useSemanticElements: a grid of toggle tiles, not form fields; a fieldset would also size the grid differently
             <div role="group" aria-label={t("presence.filter")} className="mb-4 grid grid-cols-4 gap-3">
               {FILTERS.map((state) => (
                 <SummaryTile key={state} state={state} value={count(state)} target={target} selected={filter === state} onToggle={() => setFilter(filter === state ? null : state)} />
@@ -588,9 +589,11 @@ function Strip({ squares, label, gapAfter }: { squares: Square[]; label: string;
     refs.current[next]?.focus();
   };
   return (
+    // biome-ignore lint/a11y/useSemanticElements: a strip of small marks in a flex row; the list roles describe it without list markup
     <div role="list" aria-label={label} className="flex max-w-[260px] flex-wrap gap-y-1">
       {squares.map((square, i) => (
         <Tooltip key={square.key} content={square.tip} side="top">
+          {/* biome-ignore lint/a11y/useSemanticElements: each mark is a span (a tooltip trigger) inside the strip's list role */}
           <span
             ref={(el) => {
               refs.current[i] = el;

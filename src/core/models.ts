@@ -1,7 +1,7 @@
 // App models: what the screens show, already joined and cleaned. The engine
 // builds them from vendor data; the renderer only ever sees these. Each area
 // keeps its models in its own file under ./models; this file joins them.
-import { z } from "zod";
+import type { z } from "zod";
 import { alertsDatasets } from "./models/alerts";
 import { appDatasets } from "./models/app";
 import { coursePageDatasets } from "./models/course-page";

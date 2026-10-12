@@ -19,14 +19,14 @@ export interface Records {
   calendar: AcademicCalendar;
 }
 
-const escape = (path: string) => new RegExp(`^${path.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`);
+const exactPath = (path: string) => new RegExp(`^${path.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`);
 
 export async function records(): Promise<Records> {
   const { progress, ipk } = readProgress(sixPage(/\/transkrip\/kurikulum\/\d+$/));
   const transcript = readTranscript(sixPage(/\/transkrip\/historis\/\d+$/), ipk);
   const curriculum = await fetchCurriculum({
     who: async () => ({ nim: "18223901", studentId: "2021000001", term: "2026-1" }),
-    page: async (path) => sixPage(escape(path)),
+    page: async (path) => sixPage(exactPath(path)),
   });
   let catalog = withProgramList(undefined, readProgramList(publicPage("kur2024")), 0);
   for (const id of ["154", "174", "182"]) catalog = withProgramPage(catalog, id, readProgramPage(publicPage(`kur2024-${id}`)), 0);

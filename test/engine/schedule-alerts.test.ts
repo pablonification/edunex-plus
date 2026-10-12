@@ -163,7 +163,7 @@ describe("schedule alerts", () => {
     app.world.six.addMeeting({ ...pl, id: "2194370", day: "2026-11-05", start: "08:00", end: "09:00" });
     app.world.six.addMeeting({ ...pl, id: "2194371", day: "2026-11-19", start: "08:00", end: "09:00" });
     await app.refresh("six");
-    const history = (app.engine.snapshot().datasets.find((d) => d.name === "app.alerts")?.value as AlertHistory).items.filter((a) => a.kind === "exam");
+    const history = (app.engine.snapshot().datasets.find((d) => d.name === "app.alerts")!.value as AlertHistory).items.filter((a) => a.kind === "exam");
     const targets = history.map((a) => (a.target.screen === "exam" ? a.target.examId : null));
     expect(new Set(targets).size).toBe(2);
     // Each target is an exam of the merged list, so the page finds it.

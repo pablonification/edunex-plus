@@ -11,7 +11,7 @@ import type { FakeClock } from "./clock";
 export const EDUNEX_API = "https://api-edunex.cognisia.id";
 export const PRETEND_TOKEN = "pretend-edunex-token";
 
-/* eslint-disable @typescript-eslint/no-explicit-any -- vendor JSON is untyped on purpose: tests see exactly what Edunex sends */
+// biome-ignore lint/suspicious/noExplicitAny: vendor JSON is untyped on purpose: tests see exactly what Edunex sends
 type Json = any;
 
 export type Breakage =

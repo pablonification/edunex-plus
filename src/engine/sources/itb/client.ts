@@ -6,7 +6,7 @@
 import type { Clock } from "../../clock";
 import { EngineError } from "../../errors";
 import { Pace } from "../../http/pace";
-import { NetworkError, type Transport } from "../../http/transport";
+import { type HttpResponse, NetworkError, type Transport } from "../../http/transport";
 
 export const TIMEOUT_MS = 20_000;
 /** How long a site that answered 429 is left alone. */
@@ -41,7 +41,7 @@ export class PublicClient {
   private async fetch(url: string, accept: string): Promise<string> {
     if (this.pace.paused) throw new PageError(429, `${this.site} asked to be left alone for now`);
     await this.pace.gap(this.gapMs);
-    let response;
+    let response: HttpResponse;
     try {
       response = await this.transport.request({ method: "GET", url, headers: { accept, "user-agent": this.userAgent }, timeoutMs: TIMEOUT_MS });
     } catch (error) {

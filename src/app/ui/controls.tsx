@@ -122,6 +122,7 @@ export function Segmented<T extends string>({
       {options.map((option, index) => {
         const selected = option.value === value;
         return (
+          // biome-ignore lint/a11y/useSemanticElements: a segmented control of styled buttons; the radio role and arrow keys are handled here
           <button
             key={option.value}
             ref={(el) => {

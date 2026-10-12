@@ -12,7 +12,7 @@ import { registerSixRecordFeeds } from "../../src/engine/sources/six/records";
 import type { Source } from "../../src/engine/sources/source";
 import { MemoryStorage, MemoryVault } from "../pretend/memory";
 import { PRETEND_SIX_COOKIE, SIX_ORIGIN } from "../pretend/six";
-import { PretendWorld } from "../pretend/world";
+import type { PretendWorld } from "../pretend/world";
 import type { Shown } from "./alerts-harness";
 
 const IDENTITY = { nim: "18223901", studentId: "2021000001", term: "2026-1" };

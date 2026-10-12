@@ -287,7 +287,7 @@ describe("each line's own rules", () => {
     ]);
     expect(of(scan(saved, statuses, wib("2026-10-29T16:31:00")), "clash")).toBeUndefined();
     // Without SIX's KRS the overlap shows on the course's meetings.
-    const { ["six.krs"]: _krs, ...withoutKrs } = saved;
+    const { "six.krs": _krs, ...withoutKrs } = saved;
     expect(of(scan(withoutKrs, statuses, now), "clash")?.routes).toEqual([{ screen: "schedule" }, { screen: "course", code: "KU5014", tab: "meetings" }]);
   });
 
@@ -319,7 +319,7 @@ describe("each line's own rules", () => {
 
   it("a meeting announced only in Edunex needs SIX's timetable to be called that, and must still be to come", async () => {
     const { saved, statuses, now } = await base();
-    const { ["six.schedule"]: _schedule, ...withoutTimetable } = saved;
+    const { "six.schedule": _schedule, ...withoutTimetable } = saved;
     expect(of(scan(withoutTimetable, statuses, now), "notInSix")).toBeUndefined();
     expect(of(scan(saved, statuses, wib("2026-10-09T17:01:00")), "notInSix")).toBeUndefined();
   });

@@ -3,7 +3,7 @@
 // Tasks and materials. It opens on the newest module with something in it;
 // empty modules take one quiet line. Each material type gets the one action
 // that fits it: download, join, read here, open, or Edunex itself, all alike.
-import { useEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import {
   contentCounts,
   htmlText,
@@ -243,7 +243,7 @@ export function MaterialRow({ material }: { material: Material }) {
   };
 
   const named = (label: string) => `${label}: ${material.title}`;
-  let button;
+  let button: ReactNode;
   switch (action.kind) {
     case "download":
       button = (

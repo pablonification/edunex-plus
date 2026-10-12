@@ -41,7 +41,7 @@ async function entry(title: string) {
   await screen!.click(button);
 }
 
-/* eslint-disable-next-line @typescript-eslint/no-explicit-any -- a dataset as the engine holds it */
+// biome-ignore lint/suspicious/noExplicitAny: a dataset as the engine holds it
 const data = (name: string): any => screen!.engine.snapshot().datasets.find((d) => d.name === name)?.value;
 
 /** Types into the input with this name, as the Student does. */

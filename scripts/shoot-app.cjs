@@ -52,9 +52,9 @@ if (args[0] === "--seed") {
     console.log("saved", file);
   };
   const settings = (win, patch) => run(win, `window.edunexPlus.invoke("settings.update", ${JSON.stringify(patch)})`);
-  const escape = (win) => run(win, `document.activeElement.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }))`);
+  const pressEscape = (win) => run(win, `document.activeElement.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }))`);
 
-  async function script(win) {
+  const script = async (win) => {
     // Keep painting while other windows cover this one.
     win.webContents.setBackgroundThrottling(false);
     await waitFor(win, `document.querySelector("#root")?.children.length > 0`);
@@ -80,7 +80,7 @@ if (args[0] === "--seed") {
       // The first-run scan opens by itself once: keep a picture of it, then close it.
       if (await run(win, `!!document.querySelector("[role=dialog]")`)) {
         await shot(win, "first-scan");
-        await escape(win);
+        await pressEscape(win);
         await sleep(500);
       }
       await shot(win, "home");
@@ -144,7 +144,7 @@ if (args[0] === "--seed") {
       await run(win, `document.querySelector("aside > div:last-child button").click()`);
       await waitFor(win, `!!document.querySelector("[role=dialog]")`);
       await shot(win, "settings-light-id");
-      await escape(win);
+      await pressEscape(win);
       await settings(win, { theme: "dark" });
       await shot(win, "home-dark-id");
       await settings(win, { lang: "en" });
@@ -152,11 +152,11 @@ if (args[0] === "--seed") {
       await run(win, `document.querySelector("aside > div:last-child button").click()`);
       await waitFor(win, `!!document.querySelector("[role=dialog]")`);
       await shot(win, "settings-dark-en");
-      await escape(win);
+      await pressEscape(win);
     }
     await settings(win, { theme: "system", lang: "id" });
     app.exit(0);
-  }
+  };
 
   const windows = [];
   app.on("browser-window-created", (_event, win) => {

@@ -35,17 +35,21 @@ export class AppStore {
         const current = this.datasets.get(event.dataset.name);
         if (current?.hash === event.dataset.hash) return;
         this.datasets.set(event.dataset.name, event.dataset);
-        return this.notify(`dataset:${event.dataset.name}`);
+        this.notify(`dataset:${event.dataset.name}`);
+        return;
       }
       case "dataset.removed":
         if (!this.datasets.delete(event.name)) return;
-        return this.notify(`dataset:${event.name}`);
+        this.notify(`dataset:${event.name}`);
+        return;
       case "status":
         this.statuses.set(event.status.source, event.status);
-        return this.notify(`status:${event.status.source}`);
+        this.notify(`status:${event.status.source}`);
+        return;
       case "settings":
         this.settings = event.settings;
-        return this.notify("settings");
+        this.notify("settings");
+        return;
       case "command":
         for (const listener of this.commandListeners) listener(event.command);
         return;

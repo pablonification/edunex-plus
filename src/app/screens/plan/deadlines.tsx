@@ -82,7 +82,7 @@ export function Tab(_: { onCalendar?: () => void }) {
           return (
             <Fragment key={group}>
               {group !== "now" && group === GROUPS.find((g) => g !== "now" && grouped.get(g)?.length) && (
-                <p aria-label={t("deadlines.today")} className="flex items-center gap-2 text-caption font-semibold text-accent-fg">
+                <p className="flex items-center gap-2 text-caption font-semibold text-accent-fg">
                   <span className="size-2 rounded-full bg-accent" />
                   {t("deadlines.todayAt", { date: `${f.weekdayShort(now)}, ${f.dayMonth(now)}` })}
                   <span className="h-px flex-1 bg-accent/40" />

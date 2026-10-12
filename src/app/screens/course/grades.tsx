@@ -127,6 +127,7 @@ function PartName({ name, onRename }: { name: string; onRename: (name: string) =
     return (
       <input
         aria-label={t("grade.partName")}
+        // biome-ignore lint/a11y/noAutofocus: the field appears only when the Student asks to rename, so it takes focus
         autoFocus
         defaultValue={name}
         maxLength={80}

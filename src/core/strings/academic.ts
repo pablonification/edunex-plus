@@ -93,7 +93,6 @@ export const academicStrings = {
   // Kalender akademik tab
   "deadlines.empty": { id: "Kalender akademik ITB belum terbaca", en: "ITB's academic calendar isn't read yet" },
   "deadlines.intro": { id: "Dari kalender akademik resmi ITB, dengan artinya untukmu.", en: "From ITB's official academic calendar, with what each means for you." },
-  "deadlines.today": { id: "Sekarang", en: "Now" },
   "deadlines.todayAt": { id: "Sekarang · {date}", en: "Now · {date}" },
   "deadlines.group.now": { id: "Sedang berlangsung", en: "Happening now" },
   "deadlines.group.week": { id: "7 hari ke depan", en: "Next 7 days" },

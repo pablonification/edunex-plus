@@ -13,7 +13,9 @@ export function useSaved(names: readonly DatasetName[]): Saved {
   const subscribe = useCallback(
     (listener: () => void) => {
       const stops = names.map((name) => store.subscribe(`dataset:${name}`, listener));
-      return () => stops.forEach((stop) => stop());
+      return () => {
+        for (const stop of stops) stop();
+      };
     },
     [store, names],
   );

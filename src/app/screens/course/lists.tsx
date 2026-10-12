@@ -104,6 +104,7 @@ function Linked({ text }: { text: string }) {
   const parts: ReactNode[] = text.split(/(https:\/\/[^\s<>"]+)/g).map((part, index) =>
     index % 2 === 1 && opensInBrowser(part) ? (
       <a
+        // biome-ignore lint/suspicious/noArrayIndexKey: the pieces of one fixed text; a position is all they have
         key={index}
         href={part}
         onClick={(event) => {
@@ -115,6 +116,7 @@ function Linked({ text }: { text: string }) {
         {part}
       </a>
     ) : (
+      // biome-ignore lint/suspicious/noArrayIndexKey: the pieces of one fixed text; a position is all they have
       <Fragment key={index}>{part}</Fragment>
     ),
   );

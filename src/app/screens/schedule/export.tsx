@@ -46,6 +46,7 @@ export function ExportButton({ className }: { className?: string }) {
         button
       ) : (
         <Tooltip content={t("schedule.export.disabled")}>
+          {/* biome-ignore lint/a11y/noNoninteractiveTabindex: a disabled button can't take focus; its wrapper does, so the keyboard reaches the reason */}
           <span tabIndex={0} className={cx("focus-ring inline-flex rounded-lg", className)}>
             {button}
           </span>
