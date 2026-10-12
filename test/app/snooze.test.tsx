@@ -122,6 +122,20 @@ describe("putting off what needs you on Beranda", () => {
     expect(needs()?.textContent).toContain("1 ditunda");
   });
 
+  it("Undo takes back only its own snooze, not what the Student brought back since", async () => {
+    const s = await open();
+    await snooze("UTS Komunikasi Pemasaran", "Besok pagi");
+    await snooze("KU5014 tak bisa lagi capai 80%", "Besok pagi");
+    await s.click("Tampilkan");
+    await s.click("Ingatkan sekarang: UTS Komunikasi Pemasaran");
+    // The toast still offers to undo putting off KU5014.
+    await s.click("Urungkan");
+    expect(s.store.dataset("local.snoozes")?.value).toEqual([]);
+    expect(titles().some((t) => t.startsWith("UTS Komunikasi Pemasaran"))).toBe(true);
+    expect(titles().some((t) => t.startsWith("KU5014"))).toBe(true);
+    expect(heading()).toBe("Perlu perhatianmu 6");
+  });
+
   it("with everything put off, says so honestly: not 'nothing due'", async () => {
     await open();
     for (let left = 6; left > 0; left--) {

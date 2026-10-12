@@ -7,7 +7,7 @@ import { useSyncExternalStore } from "react";
 import type { SnoozeEntry } from "../core/models";
 import { activeSnooze, pruneSnoozes, type SnoozeKey } from "../core/snooze";
 import { useNow } from "./i18n";
-import { useBridge, useDataset } from "./store";
+import { useBridge, useDataset, useStore } from "./store";
 
 /** What the window wrote and the engine hasn't confirmed yet, with how many writes are on their way. */
 let pending: { entries: SnoozeEntry[]; writes: number } | null = null;
@@ -32,12 +32,19 @@ export interface Snoozes {
 }
 
 export function useSnoozes(): Snoozes {
+  const store = useStore();
   const bridge = useBridge();
   const now = useNow();
   const saved = useDataset("local.snoozes");
   const mine = useSyncExternalStore(subscribe, () => pending);
   const all = mine?.entries ?? saved ?? [];
-  const write = async (entries: SnoozeEntry[]) => {
+  /**
+   * Changes the list as it stands when called, not as this render saw it: a
+   * toast's Undo seconds later mustn't put back what was changed meanwhile.
+   */
+  const update = async (change: (current: SnoozeEntry[]) => SnoozeEntry[]) => {
+    const current = pending?.entries ?? (store.dataset("local.snoozes")?.value as SnoozeEntry[] | undefined) ?? [];
+    const entries = change(pruneSnoozes(current, now));
     pending = { entries, writes: (pending?.writes ?? 0) + 1 };
     publish();
     try {
@@ -54,8 +61,10 @@ export function useSnoozes(): Snoozes {
     entries: all.filter((entry) => entry.until > now),
     snoozed: (key) => activeSnooze(key, all, now),
     snooze: (key, until, reason) =>
-      write(pruneSnoozes([...all.filter((entry) => entry.id !== key.id), { id: key.id, facts: key.facts, until, ...(reason ? { reason } : {}) }], now)),
-    wake: (id) => write(pruneSnoozes(all, now).filter((entry) => entry.id !== id)),
-    wakeAll: () => write([]),
+      update((current) =>
+        pruneSnoozes([...current.filter((entry) => entry.id !== key.id), { id: key.id, facts: key.facts, until, ...(reason ? { reason } : {}) }], now),
+      ),
+    wake: (id) => update((current) => current.filter((entry) => entry.id !== id)),
+    wakeAll: () => update(() => []),
   };
 }
