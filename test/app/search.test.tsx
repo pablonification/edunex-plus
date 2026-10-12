@@ -3,7 +3,8 @@
 // arrows, Enter, Escape), over what the real engine saved from the pretend
 // Edunex, SIX and ITB calendar.
 import { act } from "react";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { finishLeaving, playCssAnimations } from "./fake-animations";
 import { openApp } from "./harness";
 
 let screen: Awaited<ReturnType<typeof openApp>> | null = null;
@@ -11,6 +12,7 @@ afterEach(() => {
   screen?.close();
   screen = null;
   localStorage.clear();
+  vi.restoreAllMocks();
 });
 
 const palette = () => document.querySelector<HTMLElement>("[role=dialog]");
@@ -195,6 +197,35 @@ describe("quick search", () => {
     await press("Enter");
     await commandK();
     expect(groups()[0]).toEqual(["Terakhir dibuka", "Teknik Penyelesaian Masalah Terstruktur"]);
+  });
+
+  it("opens one thing, however fast the second Enter or click while it leaves", async () => {
+    playCssAnimations();
+    screen = await openApp({ signedIn: true, six: true });
+    await commandK();
+    await type("muat ulang");
+    const leaving = palette()!;
+    const result = leaving.querySelector<HTMLElement>("[role=option]")!;
+    const refreshes = () => screen!.calls.filter((call) => call.name === "sync.refresh").length;
+    await press("Enter");
+    const once = refreshes();
+    expect(once).toBeGreaterThan(0);
+    expect(leaving.isConnected && leaving.dataset.state).toBe("closed");
+    expect(document.activeElement).toBe(input());
+    await press("Enter");
+    await act(async () => result.click());
+    expect(refreshes()).toBe(once);
+
+    // Opened again before it has gone, it starts afresh, and Enter opens again.
+    await commandK();
+    expect(palette()).toBe(leaving);
+    expect(leaving.dataset.state).toBe("open");
+    expect(input()?.value).toBe("");
+    await type("muat ulang");
+    await press("Enter");
+    expect(refreshes()).toBe(2 * once);
+    await finishLeaving(leaving);
+    expect(palette()).toBeNull();
   });
 
   it("does things too: refresh, and switch the theme", async () => {

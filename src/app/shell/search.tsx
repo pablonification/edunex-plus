@@ -22,7 +22,7 @@ import { cx } from "../ui/cx";
 import { Kbd } from "../ui/display";
 import { type IconProps, Icons } from "../ui/icons";
 import { factsLabel, Meta } from "../ui/layout";
-import { useReturnFocus } from "../ui/overlays";
+import { ignoreClosingClick, PANEL_MOTION_CLASS, SCRIM_CLASS, useReturnFocus } from "../ui/overlays";
 import { isBuilt } from "./built";
 import { refreshNow } from "./source-status";
 
@@ -135,25 +135,28 @@ export function SearchPalette({ open, onOpenChange, onSettings }: { open: boolea
   return (
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
       <DialogPrimitive.Portal>
-        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-scrim backdrop-blur-[2px] motion-safe:animate-fade-in" />
+        <DialogPrimitive.Overlay className={cx(SCRIM_CLASS, "z-(--z-dialog)")} />
         <DialogPrimitive.Content
           aria-describedby={undefined}
           onOpenAutoFocus={onOpenAutoFocus}
           onCloseAutoFocus={onCloseAutoFocus}
+          onClickCapture={ignoreClosingClick}
+          // It hangs from the top, so it grows from there and leaves the same way, its results still in it.
           className={cx(
-            "fixed top-[12vh] left-1/2 z-50 flex w-[min(620px,calc(100vw-48px))] -translate-x-1/2 flex-col overflow-hidden",
-            "rounded-2xl bg-raised text-fg shadow-dialog ring-1 ring-black/10 focus:outline-none motion-safe:animate-pop-in dark:ring-white/10",
+            "fixed top-[12vh] left-1/2 z-(--z-dialog) flex w-[min(620px,calc(100vw-48px))] origin-top -translate-x-1/2 flex-col overflow-hidden",
+            "rounded-2xl bg-raised text-fg shadow-dialog ring-1 ring-black/10 focus:outline-none dark:ring-white/10",
+            PANEL_MOTION_CLASS,
           )}
         >
           <DialogPrimitive.Title className="sr-only">{t("search.open")}</DialogPrimitive.Title>
-          {open && <Palette onClose={() => onOpenChange(false)} onSettings={onSettings} />}
+          <Palette shown={open} onClose={() => onOpenChange(false)} onSettings={onSettings} />
         </DialogPrimitive.Content>
       </DialogPrimitive.Portal>
     </DialogPrimitive.Root>
   );
 }
 
-function Palette({ onClose, onSettings }: { onClose: () => void; onSettings: () => void }) {
+function Palette({ shown, onClose, onSettings }: { shown: boolean; onClose: () => void; onSettings: () => void }) {
   const t = useT();
   const f = useFormat();
   const lang = useLang();
@@ -169,7 +172,17 @@ function Palette({ onClose, onSettings }: { onClose: () => void; onSettings: () 
   const store = useStore();
   const settings = useSettings();
   const mac = store.platform === "darwin";
-  const [recent] = useState(readRecent);
+  const [recent, setRecent] = useState(readRecent);
+  // Opened again while still leaving, it starts afresh (and keeps the focus it has).
+  const [wasShown, setWasShown] = useState(shown);
+  if (shown !== wasShown) {
+    setWasShown(shown);
+    if (shown) {
+      setQuery("");
+      setActive(0);
+      setRecent(readRecent());
+    }
+  }
   const index = useMemo(() => searchIndex(saved, { lang, screens: BUILT, now }), [saved, lang, now]);
   const groups = useMemo(() => (query.trim() ? search(index, query) : suggestions(index, now, recent)), [index, query, now, recent]);
   const items = groups.flatMap((group) => group.items);
@@ -185,6 +198,8 @@ function Palette({ onClose, onSettings }: { onClose: () => void; onSettings: () 
   });
 
   const open = (item: SearchItem) => {
+    // It stays on screen while it leaves: a second Enter or click then opens nothing more.
+    if (!shown) return;
     onClose();
     remember(item.key);
     const target = item.target;

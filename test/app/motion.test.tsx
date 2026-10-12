@@ -20,7 +20,7 @@ import { SlidingHighlight } from "../../src/app/ui/motion/sliding-highlight";
 import { DURATION, EASE } from "../../src/app/ui/motion/tokens";
 import { ConfirmDialog, dismissToast, Toaster, Tooltip, TooltipProvider, toast } from "../../src/app/ui/overlays";
 import { PdfViewer } from "../../src/app/ui/pdf-viewer";
-import { playAnimations } from "./fake-animations";
+import { finishLeaving, playAnimations, playCssAnimations } from "./fake-animations";
 import { openApp } from "./harness";
 
 const css = readFileSync(path.resolve(import.meta.dirname, "../../src/app/styles.css"), "utf8");
@@ -138,30 +138,6 @@ describe("toasts", () => {
 });
 
 describe("a dialog or menu on its way out", () => {
-  // jsdom runs no CSS, so Radix drops a closing panel at once. Here every panel reports the
-  // animation its classes give its state (data-[state=closed]:animate-pop-out → "pop-out"), as
-  // Chromium does, so a closing one stays on screen until its animation ends, as in the window.
-  function playCssAnimations() {
-    const real = window.getComputedStyle.bind(window);
-    const animationName = (element: HTMLElement) =>
-      element.getAttribute("class")?.match(new RegExp(`data-\\[state=${element.dataset.state}\\]:animate-([\\w-]+)`))?.[1] ?? "none";
-    vi.spyOn(window, "getComputedStyle").mockImplementation((element, pseudo) => {
-      const style = real(element, pseudo);
-      if (!(element instanceof HTMLElement) || !element.dataset.state) return style;
-      return new Proxy(style, {
-        get: (target, key) => {
-          if (key === "animationName") return animationName(element);
-          const value = Reflect.get(target, key, target);
-          return typeof value === "function" ? value.bind(target) : value;
-        },
-      });
-    });
-    globalThis.CSS ??= { escape: (text: string) => text } as typeof CSS;
-  }
-  const finishLeaving = (element: Element) =>
-    act(async () => {
-      element.dispatchEvent(Object.assign(new Event("animationend"), { animationName: "pop-out" }));
-    });
   afterEach(() => vi.restoreAllMocks());
 
   it("a confirm takes the second click of a double-click as nothing, while it fades", async () => {
