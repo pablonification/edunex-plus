@@ -342,7 +342,26 @@ export function Notice({
 
 const STAT_TONE = { neutral: "", success: "text-success-fg", warning: "text-warning-fg", danger: "text-danger-fg" } as const;
 
-/** A figure read at a glance: IPK, SKS, absences left. */
+/**
+ * Figures read at a glance, side by side on the page with no box, split by
+ * hairlines. Labels, figures and hints each share a line across the row, so a
+ * label that wraps never pushes its figure lower than the others'. They stack
+ * only in a very narrow space.
+ */
+export function StatRow({ label, className, children }: { label?: string; className?: string; children: ReactNode }) {
+  return (
+    <div className={cx("@container", className)}>
+      <dl
+        aria-label={label}
+        className="grid grid-cols-1 gap-y-1 divide-y divide-line @md:auto-cols-fr @md:grid-flow-col @md:grid-cols-none @md:grid-rows-[repeat(3,auto)] @md:divide-x @md:divide-y-0"
+      >
+        {children}
+      </dl>
+    </div>
+  );
+}
+
+/** One figure in a `StatRow`: IPK, SKS, absences left. */
 export function Stat({
   label,
   value,
@@ -357,10 +376,10 @@ export function Stat({
   className?: string;
 }) {
   return (
-    <div className={cx("rounded-xl border border-edge bg-surface px-4 py-3.5 shadow-card", className)}>
-      <div className="text-small font-medium text-muted">{label}</div>
-      <div className={cx("mt-1 text-[26px] leading-8 font-semibold tracking-[-0.02em] tabular-nums", STAT_TONE[tone])}>{value}</div>
-      {hint && <div className="mt-0.5 text-small text-muted">{hint}</div>}
+    <div className={cx("row-span-3 grid grid-rows-subgrid py-3 first:pt-0 last:pb-0 @md:px-6 @md:py-0 @md:first:pl-0 @md:last:pr-0", className)}>
+      <dt className="self-end text-small font-medium text-muted">{label}</dt>
+      <dd className={cx("text-figure font-semibold tabular-nums", STAT_TONE[tone])}>{value}</dd>
+      <dd className="text-small text-muted">{hint}</dd>
     </div>
   );
 }
