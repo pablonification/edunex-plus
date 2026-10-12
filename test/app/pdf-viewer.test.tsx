@@ -276,6 +276,17 @@ describe("the PDF viewer", () => {
     expect(s.has("Lihat: K1. SAP Ekonomi Infrastruktur dan Transportasi")).toBe(false);
   });
 
+  it("a notification click (or a search result, or ⌘[) going to another screen shuts it too", async () => {
+    const world = new PretendWorld();
+    world.putFile(BLOB, "%PDF-1.7 Pages: 3");
+    const s = await openPl3032(world);
+    await s.click("Lihat: K1. SAP Ekonomi Infrastruktur dan Transportasi");
+    expect(viewer()).not.toBeNull();
+    await s.apply({ type: "navigate", route: { screen: "course", code: "PL3002", tab: "modules" } });
+    expect(viewer()).toBeNull();
+    expect(document.querySelector("h1")?.textContent).toBe("Economics and Innovation in Planning");
+  });
+
   it("a page that can't be drawn breaks the pages, not the window: the title and Close stay", async () => {
     const world = new PretendWorld();
     world.putFile(BLOB, "%PDF-1.7 Pages: 2 Rusak");
