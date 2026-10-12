@@ -212,7 +212,7 @@ function Line({ finding, onGo }: { finding: Finding; onGo: (route: Route) => voi
       aria-labelledby={`${id}-title`}
       aria-describedby={lines.length || note ? `${id}-detail` : undefined}
       onClick={() => onGo(route)}
-      className="flex w-full items-start gap-3.5 px-5 py-3.5 text-left transition-colors duration-150 hover:bg-hover focus-visible:-outline-offset-2"
+      className="flex w-full items-start gap-3.5 px-5 py-3.5 text-left hover:bg-hover focus-visible:-outline-offset-2"
     >
       <Icon className={cx("mt-0.5 size-4 shrink-0", TONE[finding.tone])} />
       <span className="min-w-0 flex-1">
@@ -226,7 +226,7 @@ function Line({ finding, onGo }: { finding: Finding; onGo: (route: Route) => voi
           {note && <span className="block">{note}</span>}
         </span>
       </span>
-      <Icons.ChevronRight className="mt-1 size-4 shrink-0 text-faint transition-opacity duration-150" />
+      <Icons.ChevronRight className="mt-1 size-4 shrink-0 text-faint" />
     </button>
   );
 }
