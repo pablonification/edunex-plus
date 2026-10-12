@@ -160,7 +160,7 @@ describe("the questionnaire reminder", () => {
     await world.clock.advanceTo("2026-12-09T08:01:00+07:00");
     expect(app.grades().map((n) => n.title.key)).toEqual(["alert.questionnaire.open", "alert.questionnaire.closing"]);
     expect(app.grades()[1].shownAt).toBeGreaterThanOrEqual(wib("2026-12-09T08:00:00"));
-  }, 20_000);
+  });
 
   it("not once every course of the term has its grade", async () => {
     const world = new PretendWorld({ now: "2026-12-08T09:00:00+07:00" });
@@ -169,5 +169,5 @@ describe("the questionnaire reminder", () => {
     await world.clock.advanceTo("2026-12-10T00:00:00+07:00");
     expect(app.grades()).toEqual([]);
     expect(app.history().some((a) => a.id.startsWith("grade.questionnaire"))).toBe(false);
-  }, 20_000);
+  });
 });
