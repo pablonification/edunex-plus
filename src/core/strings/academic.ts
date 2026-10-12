@@ -109,6 +109,7 @@ export const academicStrings = {
   "bills.instalment": { id: "Cicilan {number}", en: "Instalment {number}" },
   "bills.inInstalments": { id: "dicicil {count}x", en: { one: "{count} instalment", other: "{count} instalments" } },
   "bills.history": { id: "Riwayat", en: "History" },
+  "bills.allPaid": { id: "Semua lunas", en: "All paid" },
   "bills.viewOnly": { id: "Pembayaran dilakukan lewat bank, bukan dari aplikasi ini.", en: "Payments go through the bank, never through this app." },
 
   // Kalender akademik tab

@@ -190,8 +190,9 @@ describe("the UKT tab", () => {
     expect(text).toContain("Batas bayar31 Jan");
     expect(text).not.toContain("ikuti yang lebih awal");
     expect(text).toContain("Semester depan · 2027/2028 GanjilBelum ditagihTagihan biasanya muncul menjelang semester dimulai.");
-    // History: newest first, instalments said.
-    expect(text).toMatch(/2026\/2027 GenapRp5\.400\.00031 Jan 2027Belum dibayar2026\/2027 GanjilRp5\.400\.00024 Agu 2026Lunas/);
+    // History: newest first, instalments said; only a bill that isn't paid says so, and a paid one stays quiet.
+    expect(text).toMatch(/Riwayat2026\/2027 GenapRp5\.400\.00031 Jan 2027Belum dibayar2026\/2027 GanjilRp5\.400\.00024 Agu 20262025\/2026 Genap/);
+    expect(text).not.toContain("Semua lunas");
     expect(text).toContain("Rp10.500.000dicicil 2x");
     expect(s.button(/^Rencana studi/).textContent).toBe("Rencana studi");
 
@@ -202,6 +203,9 @@ describe("the UKT tab", () => {
     text = panel();
     expect(text).toContain("Rp5.400.000Lunas");
     expect(text).not.toContain("Bayar paling lambat");
+    // Every bill paid: said once under the heading, not as a chip on every row.
+    expect(text).toContain("RiwayatSemua lunas2026/2027 GenapRp5.400.00031 Jan 20272026/2027 Ganjil");
+    expect(text.match(/Lunas/g)).toHaveLength(1);
   });
 
   it("due within a week is a warning; overdue is said plainly", async () => {
