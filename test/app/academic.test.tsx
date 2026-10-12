@@ -176,6 +176,7 @@ describe("the KRS tab", () => {
 });
 
 describe("the UKT tab", () => {
+  const historyRows = () => [...document.querySelectorAll("section[aria-labelledby=bills-history] li")];
   const unpaid = (six: PretendSix) => six.setBill("2026-2", { amount: "5.400.000", paid: "-", due: "31 Jan 2027" });
 
   it("a new bill: amount, status, SIX's last day next to ITB's deadline; then paid", async () => {
@@ -194,6 +195,8 @@ describe("the UKT tab", () => {
     expect(text).toMatch(/Riwayat2026\/2027 GenapRp5\.400\.00031 Jan 2027Belum dibayar2026\/2027 GanjilRp5\.400\.00024 Agu 20262025\/2026 Genap/);
     expect(text).not.toContain("Semua lunas");
     expect(text).toContain("Rp10.500.000dicicil 2x");
+    // Every row keeps a status column, so amounts and dates line up with the one that has a chip.
+    expect(new Set(historyRows().map((row) => row.children.length))).toEqual(new Set([4]));
     expect(s.button(/^Rencana studi/).textContent).toBe("Rencana studi");
 
     await inject(
@@ -206,6 +209,8 @@ describe("the UKT tab", () => {
     // Every bill paid: said once under the heading, not as a chip on every row.
     expect(text).toContain("RiwayatSemua lunas2026/2027 GenapRp5.400.00031 Jan 20272026/2027 Ganjil");
     expect(text.match(/Lunas/g)).toHaveLength(1);
+    // No chip anywhere: no empty status column at the end of every row; the date ends it.
+    expect(new Set(historyRows().map((row) => row.children.length))).toEqual(new Set([3]));
   });
 
   it("due within a week is a warning; overdue is said plainly", async () => {

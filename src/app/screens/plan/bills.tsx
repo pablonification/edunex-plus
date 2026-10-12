@@ -82,6 +82,8 @@ export function Tab(_: { onCalendar?: () => void }) {
   const next = current && (bills.find((b) => b.term === nextTerm(current.term)) ?? notBilled(nextTerm(current.term)));
   const overdue = bills.filter((b) => billUrgency(b, now) === "overdue");
   const allPaid = billed.length > 0 && billed.every((b) => b.status === "paid");
+  // The status column only where a row has a chip in it: all paid, the date ends the row instead of an empty strip.
+  const statusColumn = billed.some((b) => b.status !== "paid");
   return (
     <div className="@container space-y-8">
       {overdue.map((bill) => (
@@ -99,7 +101,13 @@ export function Tab(_: { onCalendar?: () => void }) {
       <Section id="bills-history" title={t("bills.history")} description={allPaid ? t("bills.allPaid") : undefined} className="mt-0">
         <List label={t("bills.history")}>
           {[...billed].reverse().map((bill) => (
-            <li key={bill.term} className="grid grid-cols-[minmax(0,1fr)_auto_110px_130px] items-center gap-4 px-4 py-3 text-body">
+            <li
+              key={bill.term}
+              className={cx(
+                "grid items-center gap-4 px-4 py-3 text-body",
+                statusColumn ? "grid-cols-[minmax(0,1fr)_auto_110px_130px]" : "grid-cols-[minmax(0,1fr)_auto_110px]",
+              )}
+            >
               <span className="font-medium">{termYears(bill.term)}</span>
               <span className="text-right tabular-nums">
                 {bill.amount !== null ? rupiah(bill.amount) : "—"}
@@ -110,7 +118,7 @@ export function Tab(_: { onCalendar?: () => void }) {
               <span className="text-right text-small text-muted tabular-nums">
                 {bill.dueDate ? `${f.dayMonth(dayMs(bill.dueDate))} ${bill.dueDate.slice(0, 4)}` : "—"}
               </span>
-              <span className="text-right">{bill.status !== "paid" && <StatusChip bill={bill} />}</span>
+              {statusColumn && <span className="text-right">{bill.status !== "paid" && <StatusChip bill={bill} />}</span>}
             </li>
           ))}
         </List>
