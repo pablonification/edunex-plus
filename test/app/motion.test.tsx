@@ -138,6 +138,51 @@ describe("toasts", () => {
   });
 });
 
+describe("a toast being read", () => {
+  afterEach(() => vi.useRealTimers());
+  const card = () => document.querySelector<HTMLElement>("[aria-live] [role=status]");
+  // React hears the pointer arriving and leaving through pointerover and pointerout.
+  const point = (element: HTMLElement, at: boolean) =>
+    act(async () => {
+      element.dispatchEvent(new MouseEvent(at ? "pointerover" : "pointerout", { bubbles: true, relatedTarget: document.body }));
+    });
+  const wait = (ms: number) => act(async () => vi.advanceTimersByTime(ms));
+
+  it("stays while the pointer is on it, and goes when the time it had left runs out after", async () => {
+    vi.useFakeTimers();
+    await mount(<Toaster />);
+    await act(async () => {
+      toast("Diingatkan lagi besok", "neutral", { label: "Urungkan", onClick: () => {} });
+    });
+    await wait(3_000);
+    await point(card()!, true);
+    await wait(20_000);
+    expect(card()?.textContent).toContain("Diingatkan lagi besok");
+
+    await point(card()!, false);
+    await wait(4_900);
+    expect(card()).not.toBeNull();
+    await wait(200);
+    expect(card()).toBeNull();
+  });
+
+  it("stays while focus is on its action, and goes once focus leaves and its time runs out", async () => {
+    vi.useFakeTimers();
+    await mount(<Toaster />);
+    await act(async () => {
+      toast("Diingatkan lagi besok", "neutral", { label: "Urungkan", onClick: () => {} });
+    });
+    const undo = card()!.querySelector("button")!;
+    await act(async () => undo.focus());
+    await wait(20_000);
+    expect(card()).not.toBeNull();
+
+    await act(async () => undo.blur());
+    await wait(8_000);
+    expect(card()).toBeNull();
+  });
+});
+
 describe("a dialog or menu on its way out", () => {
   afterEach(() => vi.restoreAllMocks());
 
