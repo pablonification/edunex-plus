@@ -25,10 +25,16 @@ export function answerFileProblem(name: string, size: number): "type" | "size" |
 export const PickedFile = z.object({ id: z.string(), name: z.string(), size: z.number(), type: z.string() });
 export type PickedFile = z.infer<typeof PickedFile>;
 
-/** What the answer should hold: the files already in it the Student kept, and the newly uploaded ones. */
+/**
+ * What the answer should hold: its text, the files already in it the Student
+ * kept, and the newly uploaded ones. `text` is the Student's written answer
+ * (HTML) when they changed it; without it, the answer's text stays exactly as
+ * Edunex has it. Edunex needs text in every answer, as its website does.
+ */
 export const HandIn = z.object({
   taskId: z.number().int().positive(),
   files: z.array(TaskFile).max(50),
+  text: z.string().max(500_000).optional(),
 });
 export type HandIn = z.infer<typeof HandIn>;
 

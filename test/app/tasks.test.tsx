@@ -235,7 +235,7 @@ describe("the Task page", () => {
     expect(s.button("Simpan draf").disabled).toBe(true);
     expect(s.button("Kumpulkan").disabled).toBe(true);
     // A disabled Kumpulkan says why.
-    expect(card()).toContain("Lampirkan berkas dulu untuk mengumpulkan.");
+    expect(card()).toContain("Tulis jawabanmu dulu. Edunex butuh teks, meski kamu melampirkan berkas.");
     expect(card()).toContain("Dosen bisa melihat draf yang tersimpan, tapi hanya Kumpulkan yang menyerahkannya.");
     expect(document.querySelector("article")?.textContent).toContain("Boleh terlambat");
   });
