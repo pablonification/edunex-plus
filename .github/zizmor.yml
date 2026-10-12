@@ -1,0 +1,6 @@
+# zizmor (the workflow security check in CI) settings.
+rules:
+  # zizmor asks for GitHub's new `uses: $/...` form for this repository's own
+  # actions, but actionlint doesn't understand it yet. Revisit when it does.
+  self-repository:
+    disable: true
