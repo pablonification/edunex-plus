@@ -196,6 +196,19 @@ describe("tabs on the screens", () => {
       expect(panel?.getAttribute("role")).toBe("tabpanel");
       expect(dialog.contains(panel)).toBe(true);
     }
+    // Tab goes from the tabs straight to the first course's button: a list that took focus itself
+    // would scroll the search and the tabs out of view.
+    const list = dialog.querySelector("[role=tablist]")!;
+    const next = [...dialog.querySelectorAll<HTMLElement>("button, input, [tabindex]")].find(
+      (el) =>
+        el.tabIndex >= 0 &&
+        !el.closest("[hidden]") &&
+        !(el as HTMLButtonElement).disabled &&
+        !list.contains(el) &&
+        list.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING,
+    )!;
+    expect(next.tagName).toBe("BUTTON");
+    expect(document.getElementById(inDialog[0].getAttribute("aria-controls")!)?.contains(next)).toBe(true);
     // The picked tab's panel holds its courses.
     await pick(inDialog[3]);
     expect(document.getElementById(inDialog[3].getAttribute("aria-controls")!)?.textContent).toMatch(/^Ketik/);

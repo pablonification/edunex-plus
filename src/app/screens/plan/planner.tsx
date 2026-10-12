@@ -1259,8 +1259,9 @@ function AddCourse({
             className="mt-2 gap-5"
           />
         </div>
+        {/* The lists aren't Tab stops of their own (Radix makes a panel one): Tab goes from the tab to the first course's button, and the search and tabs stay in view. */}
         <div className="min-h-[300px]">
-          <Tabs.Content value="needed" className="focus-ring focus-visible:-outline-offset-2">
+          <Tabs.Content value="needed" tabIndex={-1}>
             <ul>{needed.map((x) => row(x.code, x.why))}</ul>
             {retakes.length > 0 && (
               <>
@@ -1270,14 +1271,14 @@ function AddCourse({
               </>
             )}
           </Tabs.Content>
-          <Tabs.Content value="program" className="focus-ring focus-visible:-outline-offset-2">
+          <Tabs.Content value="program" tabIndex={-1}>
             <ul>
               {programElectives(record)
                 .filter(matches)
                 .map((c) => row(c.code))}
             </ul>
           </Tabs.Content>
-          <Tabs.Content value="minors" className="focus-ring focus-visible:-outline-offset-2">
+          <Tabs.Content value="minors" tabIndex={-1}>
             <ul>
               {rankedMinors(record, plan)
                 .filter((m) => !q || m.name.toLowerCase().includes(q) || m.program.toLowerCase().includes(q))
@@ -1320,7 +1321,7 @@ function AddCourse({
                 ))}
             </ul>
           </Tabs.Content>
-          <Tabs.Content value="all" className="focus-ring focus-visible:-outline-offset-2">
+          <Tabs.Content value="all" tabIndex={-1}>
             {q.length < 2 ? (
               <p className="px-5 py-6 text-center text-body text-muted">{t("planner.typeMore", { count: record.courses.size })}</p>
             ) : (
