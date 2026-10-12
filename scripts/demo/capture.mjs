@@ -58,6 +58,9 @@ await session("signed-in", async (demo) => {
     await page.locator("main li button", { hasText: "Tugas 02 Bab II" }).first().click();
     await settle(page, 500);
     await demo.shot("04-tugas");
+    // Edunex keeps Kumpulkan off until the answer has text, even with a file.
+    await page.locator("main [role=textbox][contenteditable=true]").first().click();
+    await page.keyboard.type("Jawaban lengkap ada di berkas terlampir.");
     await page
       .getByRole("button", { name: /Lampirkan berkas/ })
       .first()
