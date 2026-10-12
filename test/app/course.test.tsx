@@ -84,6 +84,15 @@ describe("the course page", () => {
     expect(toc).not.toContain("Module 06");
   });
 
+  it("the ⋯ menu stays beside the header, never among what wraps under the title in a narrow window", async () => {
+    await openCourse("PL3002", { six: true });
+    const header = document.querySelector("main header")!;
+    const more = document.querySelector("main button[aria-label='Lainnya']")!;
+    expect(header.textContent).toContain("Kehadiran");
+    expect(header.contains(more)).toBe(false);
+    expect(header.parentElement!.contains(more)).toBe(true);
+  });
+
   it("the table of contents' headings read like the others, not in capitals, and no module is called the newest", async () => {
     const s = await openCourse("II4091");
     const headings = [...document.querySelectorAll("nav[aria-label='Daftar isi'] p")];

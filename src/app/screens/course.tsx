@@ -108,36 +108,35 @@ function Header({ page }: { page: CoursePage }) {
   const { course, outline } = page;
   const sks = course.sks ?? outline?.credits ?? null;
   return (
-    <PageHeader
-      className="mb-6 items-start"
-      eyebrow={
-        <span className="flex items-center gap-1.5">
-          <CourseDot color={course.color} className="size-2" />
-          <span className="font-semibold text-fg/80">{course.code}</span>
-        </span>
-      }
-      title={course.name}
-      description={
-        <Meta className="text-body">
-          {course.classNo ? t("course.class", { no: course.classNo }) : ""}
-          {sks !== null ? t("course.sks", { count: sks }) : ""}
-          {outline?.lecturer ? (
-            <span className="inline-flex items-center gap-1.5">
-              <Icons.User className="size-3.5" aria-label={t("course.lecturer")} />
-              {outline.lecturer}
-            </span>
-          ) : (
-            ""
-          )}
-        </Meta>
-      }
-      actions={
-        <div className="flex items-start gap-4">
-          <AttendanceMeter page={page} />
-          <MoreMenu page={page} />
-        </div>
-      }
-    />
+    // The "⋯" stays at the top right at every width; only the meter wraps under the class line when the window is narrow.
+    <div className="mb-6 flex items-start gap-4">
+      <PageHeader
+        className="mb-0 min-w-0 flex-1 items-start"
+        eyebrow={
+          <span className="flex items-center gap-1.5">
+            <CourseDot color={course.color} className="size-2" />
+            <span className="font-semibold text-fg/80">{course.code}</span>
+          </span>
+        }
+        title={course.name}
+        description={
+          <Meta className="text-body">
+            {course.classNo ? t("course.class", { no: course.classNo }) : ""}
+            {sks !== null ? t("course.sks", { count: sks }) : ""}
+            {outline?.lecturer ? (
+              <span className="inline-flex items-center gap-1.5">
+                <Icons.User className="size-3.5" aria-label={t("course.lecturer")} />
+                {outline.lecturer}
+              </span>
+            ) : (
+              ""
+            )}
+          </Meta>
+        }
+        actions={<AttendanceMeter page={page} />}
+      />
+      <MoreMenu page={page} />
+    </div>
   );
 }
 
