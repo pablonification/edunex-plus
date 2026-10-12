@@ -112,6 +112,27 @@ describe("a Presence window opening midday", () => {
   });
 });
 
+describe("a Presence window of a course that counts in SIX", () => {
+  it("is optional: not announced ahead, and the Task it asks for keeps its own deadline item", async () => {
+    // PL3002 counts in SIX (6 of 7; Edunex recorded 1 of its 6 windows). Its lecturer ties Thursday's window to a Task.
+    const h = await startHome({ now: "2026-10-12T20:00:00+07:00" });
+    h.world.edunex.moveDeadline(117873, "2026-10-15T23:59:00+07:00");
+    const id = h.world.edunex.schedulePresence(95001, 86778, {
+      start: "2026-10-15T08:00:00+07:00",
+      end: "2026-10-15T23:59:00+07:00",
+      patch: { presentable: [{ presentable: "assignment", presentable_id: "117873" }] },
+    });
+    await h.refresh();
+    const needs = needsYou(h.home());
+    expect(find(needs, `presence:${id}`)).toBeUndefined();
+    expect(find(needs, "task:117873")).toMatchObject({ band: "later", reason: "due" });
+    // Open, it's said as optional; the Task still stands on its own.
+    await h.until("2026-10-15T08:01:00+07:00");
+    expect(find(needsYou(h.home()), `presence:${id}`)).toMatchObject({ open: true, countedIn: "six", task: { id: 117873 } });
+    expect(find(needsYou(h.home()), "task:117873")).toMatchObject({ band: "now" });
+  });
+});
+
 describe("a deadline at midnight", () => {
   it("due tonight is now, in three days soon, within a week coming up, later not yet; past midnight it's gone unless still accepted", async () => {
     const h = await startHome();
@@ -170,11 +191,19 @@ describe("a class moved", () => {
 });
 
 describe("exams", () => {
-  it("an exam within the week, with when and where; SIX and Edunex disagreeing on its date makes it soon", async () => {
+  it("an exam within the week, with when and where; a take-home due another day is its second part, not a reason to worry", async () => {
     // Friday 9 October: DK4073's UTS is in class on Thursday 15 October (SIX), its take-home part due 22 October (Edunex).
     const h = await startHome({ now: "2026-10-09T10:00:00+07:00" });
     const uts = find(needsYou(h.home()), "exam:DK4073-UTS");
-    expect(uts).toMatchObject({ kind: "exam", band: "soon", course: "DK4073", at: at("2026-10-15T11:00:00"), disagree: true, sources: ["six", "edunex"] });
+    expect(uts).toMatchObject({
+      kind: "exam",
+      band: "later",
+      course: "DK4073",
+      at: at("2026-10-15T11:00:00"),
+      disagree: false,
+      takeHomeDue: at("2026-10-22T23:50:00"),
+      sources: ["six", "edunex"],
+    });
     expect(uts).toMatchObject({ sitting: { start: at("2026-10-15T11:00:00"), end: at("2026-10-15T12:59:00"), room: "TVST C", source: "six" } });
     expect(uts?.action).toEqual({ kind: "go", route: { screen: "exam", examId: "DK4073-UTS" } });
   });
@@ -186,6 +215,12 @@ describe("exams", () => {
     expect(find(needs, "class:2179909")).toBeUndefined();
     await h.until("2026-10-15T13:00:00+07:00");
     expect(find(needsYou(h.home()), "exam:DK4073-UTS")).toBeUndefined();
+  });
+
+  it("SIX and Edunex giving its sitting different days makes it soon: time to ask the lecturer", async () => {
+    const h = await startHome({ now: "2026-10-09T10:00:00+07:00" });
+    const online = { id: "9002", courseId: 93409, title: "UTS Markom", start: at("2026-10-16T09:00:00"), end: null };
+    expect(find(needsYou({ ...h.home(), exams: { DK4073: [online] } }), "exam:DK4073-UTS")).toMatchObject({ band: "soon", disagree: true });
   });
 
   it("an exam only Edunex dates (an online quiz) is one too, on Edunex", async () => {

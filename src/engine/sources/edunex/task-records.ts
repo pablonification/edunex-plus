@@ -100,8 +100,19 @@ export function edunexTime(value: string | null): number | null {
 
 // ---------------------------------------------------------------- the app's Task
 
-/** Edunex's `open_status` values that mean it takes no more answers. */
-const CLOSED = new Set(["overdue", "closed"]);
+/**
+ * Edunex's `open_status`: "open", "overdue" (no more answers: "Sorry, the
+ * assignment was closed on …") or "close"/"closed", which its website reads as
+ * not open yet ("You can answer this question on {start_at}"). Only "overdue"
+ * closes a Task; not open yet is judged by `start_at`.
+ */
+const CLOSED = new Set(["overdue"]);
+
+/** Edunex's category, any case: its lecturer form stores "uts" and "UAS". */
+function taskKind(domain: string | null): Task["kind"] {
+  const value = domain?.trim().toLowerCase();
+  return value === "uts" || value === "uas" ? value : "task";
+}
 
 export function toTask(item: EdunexTask, place: Pick<Task, "courseCode" | "courseId">, module: TaskModule | null, now: number): Task {
   const a = item.attributes;
@@ -137,7 +148,7 @@ export function toTask(item: EdunexTask, place: Pick<Task, "courseCode" | "cours
     dueAt,
     score: facts.score,
     module,
-    kind: a.domain === "uts" ? "uts" : "task",
+    kind: taskKind(a.domain),
     instructions: a.description ?? "",
     files: a.files.map(fileOf),
     fileRequired: a.file_required,

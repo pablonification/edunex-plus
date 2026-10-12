@@ -169,6 +169,13 @@ describe("exams", () => {
     expect(keys(search(index, "markom")).sort()).toEqual(["exam:DK4073-UTS", "module:473251"]);
   });
 
+  it("a take-home UAS is found as its exam too, never also as a Task", () => {
+    const tasks = saved["edunex.tasks"] ?? [];
+    const uas = { ...tasks.find((task) => task.id === 117764)!, id: 990001, title: "Proyek Akhir Markom", kind: "uas" as const };
+    const withUas = searchIndex({ ...saved, "edunex.tasks": [...tasks, uas] }, { lang: "id", screens: ALL, now });
+    expect(keys(search(withUas, "proyek akhir markom"))).toEqual(["exam:DK4073-UAS"]);
+  });
+
   it("by its room, or the final exam by its outline module's name", () => {
     expect(first("tvst")).toMatchObject({ kind: "exam", title: "UTS Komunikasi Pemasaran" });
     const finex = search(index, "finex").find((group) => group.kind === "exam");

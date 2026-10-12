@@ -131,10 +131,13 @@ describe("with Edunex alone", () => {
 });
 
 describe("an exam on Beranda", () => {
-  it("within the week: what, when and where, that SIX and Edunex disagree, and its page one click away", async () => {
+  it("within the week: what, when and where, its take-home due later said calmly, and its page one click away", async () => {
     screen = await openApp({ world: new PretendWorld({ now: "2026-10-13T09:00:00+07:00" }), signedIn: true, six: true });
     const exam = row("home-needs", "UTS Komunikasi Pemasaran");
-    expect(exam).toBe("UTS Komunikasi PemasaranDK4073 · Kam, 15 Okt, 11:00–12:59 · TVST CSIX dan Edunex beda tanggallusa");
+    // The take-home's deadline on its own line under the facts, not a warning: nothing in it is amber.
+    expect(exam).toBe("UTS Komunikasi PemasaranDK4073 · Kam, 15 Okt, 11:00–12:59 · TVST CTake-home tenggat Kam 22 Oktlusa");
+    const item = [...document.querySelectorAll("section[aria-labelledby=home-needs] li")].find((li) => li.textContent?.startsWith("UTS Komunikasi"));
+    expect(item?.querySelector(".text-warning-fg")).toBeNull();
     await screen.click(/^UTS Komunikasi Pemasaran/);
     expect(document.querySelector("main h1")?.textContent).toBe("Komunikasi Pemasaran");
     expect(screen.text()).toContain("Kapan dan di mana");
@@ -145,7 +148,7 @@ describe("an exam on Beranda", () => {
     await screen.engineDoes(() => screen!.engine.updateSettings({ lang: "en" }));
     const exam = rows("home-needs").find((r) => r.includes("UTS")) ?? "";
     expect(exam).toContain("Tomorrow, 11:00–12:59");
-    expect(exam).toContain("SIX and Edunex give different dates");
+    expect(exam).toContain("Take-home due Thu 22 Oct");
   });
 });
 

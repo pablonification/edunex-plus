@@ -153,6 +153,24 @@ describe("Tasks with their true status", () => {
     expect(task(h, 117010).status).toBe("closed");
   });
 
+  it('Edunex\'s "closed" means not open yet, as its website reads it: open to answers from its start', async () => {
+    const h = await signedIn();
+    const id = h.world.edunex.postTask(95059, { start_at: wib(h.world.clock.now() + 2 * 60 * MINUTE) });
+    await h.engine.refresh("edunex");
+    expect(task(h, id)).toMatchObject({ status: "not_started", closed: false, opensAt: h.world.clock.now() + 2 * 60 * MINUTE });
+    await h.world.clock.advance(2 * 60 * MINUTE + MINUTE);
+    await h.engine.refresh("edunex");
+    expect(task(h, id)).toMatchObject({ status: "not_started", closed: false });
+  });
+
+  it('reads Edunex\'s category in any case: the lecturer\'s form stores "uts" and "UAS"', async () => {
+    const h = await signedIn();
+    const uas = h.world.edunex.postTask(95001, { name: "Tugas Akhir", domain: "UAS" });
+    const uts = h.world.edunex.postTask(95001, { name: "Soal", domain: "UTS" });
+    await h.engine.refresh("edunex");
+    expect([task(h, uas).kind, task(h, uts).kind, task(h, 117764).kind, task(h, 117873).kind]).toEqual(["uas", "uts", "uts", "task"]);
+  });
+
   it("past its deadline: overdue while late submission is allowed, closed when it isn't", async () => {
     const h = await signedIn("2026-10-17T08:00:00+07:00");
     // Tugas 02 Bab II was due 16 Oct and allows late submission; Edunex keeps it open.

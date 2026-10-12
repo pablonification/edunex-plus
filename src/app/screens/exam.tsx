@@ -1,10 +1,12 @@
 // Exams in one place (#77): the exam rows in Tugas & Ujian and on a course,
 // and an exam's prep page. An exam merges what SIX (in class, with the room),
-// Edunex (its exams, take-home UTS Tasks, the course outline) and ITB's
-// calendar (the exam weeks) each know, and says plainly, with a next step,
-// when SIX and Edunex give different dates.
+// Edunex (its exams, take-home Tasks, the course outline) and ITB's calendar
+// (the exam weeks) each know, and says plainly, with a next step, when SIX and
+// Edunex give a sitting different dates. A take-home due on another day than
+// SIX's sitting is said calmly: two parts, not a conflict.
 import type { ReactNode } from "react";
-import { type Exam, examKind, examPassed } from "../../core/exams";
+import { wibDay } from "../../core/course-meetings";
+import { dueOn, type Exam, examKind, examPassed } from "../../core/exams";
 import { edunexCourseUrl } from "../../core/links";
 import type { CalendarEvent, Task } from "../../core/models";
 import { dayStart, sixTimetableUrl } from "../../core/schedule";
@@ -45,15 +47,15 @@ export const examWeekLabel = (t: Translate, f: Format, kind: "UTS" | "UAS", week
   t("exam.week", { kind: t(kind === "UTS" ? "calendar.kind.uts" : "calendar.kind.uas"), range: f.dayRange(week.firstDay, week.lastDay) });
 const dayLabel = (f: Format, at: number) => `${f.weekdayShort(at)} ${f.dayMonth(at)}`;
 
-/** The day each source gives: "Kam 15 Okt" (SIX) and "Kam 22 Okt" (Edunex). */
-function sourceDays(f: Format, exam: Exam): { six: string; edunex: string } {
-  const edunex = [
-    ...exam.edunex.flatMap((e) => (e.start !== null ? [e.start] : [])),
-    ...exam.tasks.flatMap((task) => (task.dueAt !== null ? [task.dueAt] : [])),
-  ];
+/** The days each source gives: SIX's sittings ("Kam 15 Okt"), Edunex's sittings, and the take-homes' deadlines ("Kam 22 Okt"). */
+function sourceDays(f: Format, exam: Exam): { six: string; edunex: string; due: string } {
+  const days = (times: number[]) => [...new Set(times.sort((a, b) => a - b).map((at) => dayLabel(f, at)))].join(", ");
+  const sixDays = new Set(exam.six.map((s) => wibDay(s.start)));
   return {
-    six: [...new Set(exam.six.map((s) => dayLabel(f, s.start)))].join(", "),
-    edunex: [...new Set(edunex.sort((a, b) => a - b).map((at) => dayLabel(f, at)))].join(", "),
+    six: days(exam.six.map((s) => s.start)),
+    edunex: days(exam.edunex.flatMap((e) => (e.start !== null ? [e.start] : []))),
+    // Only the deadlines on another day than SIX's sittings.
+    due: days(exam.tasks.flatMap((task) => (task.dueAt !== null && !dueOn(task.dueAt, sixDays) ? [task.dueAt] : []))),
   };
 }
 
@@ -83,7 +85,8 @@ export function ExamRow({ exam, index }: { exam: Exam; index?: number }) {
   const days = sourceDays(f, exam);
   const when =
     inClass !== undefined
-      ? [t("exam.row.inClass", { time: f.timeRange(inClass.start, inClass.end) }), inClass.room]
+      ? // With a take-home due another day, SIX's sitting is said as the second part it may be.
+        [t(exam.takeHomeApart !== null ? "exam.row.sixToo" : "exam.row.inClass", { time: f.timeRange(inClass.start, inClass.end) }), inClass.room]
       : online?.start != null
         ? [t("exam.onEdunex"), f.time(online.start)]
         : exam.at === null && exam.week && (exam.kind === "UTS" || exam.kind === "UAS")
@@ -315,6 +318,22 @@ function ExamPage({ exam, others, course, courses }: { exam: Exam; others: Exam[
           >
             {t("examPage.disagreeBody", days)}
           </Notice>
+        )}
+        {exam.takeHomeApart !== null && (
+          <Notice
+            tone="neutral"
+            className="mt-3"
+            title={<Meta>{t("examPage.takeHomeApart", days)}</Meta>}
+            action={
+              <button
+                type="button"
+                onClick={() => go({ screen: "course", code: exam.courseCode, tab: "announcements" })}
+                className="focus-ring rounded text-small font-medium text-accent-fg underline-offset-2 hover:underline"
+              >
+                {t("examPage.announcements")}
+              </button>
+            }
+          />
         )}
         <BeforeExam code={exam.courseCode} />
       </Section>

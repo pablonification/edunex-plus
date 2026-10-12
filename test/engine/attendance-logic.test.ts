@@ -12,6 +12,7 @@ import {
   meetingsLeft,
   percent,
   presenceAction,
+  presenceOptional,
   targetFor,
   usualSlots,
 } from "../../src/core/attendance";
@@ -320,6 +321,24 @@ describe("what counts in an Edunex Presence window", () => {
     expect(presenceAction(window, [task])).toEqual({ activity: "assignment", task, url: "https://edunex.itb.ac.id/courses/95326/preview/450222" });
     expect(presenceAction({ ...window, url: null }, [task]).url).toBe("https://edunex.itb.ac.id/courses/95326/preview/450222");
     expect(presenceAction({ ...window, url: null }, [])).toMatchObject({ task: null, url: "https://edunex.itb.ac.id/courses/95326" });
+  });
+
+  it("a window that counts by several things: the Task the app knows, wherever the lecturer listed it", () => {
+    const window = presence(5, "2026-10-16T15:00:00", 539, {
+      courseId: 95326,
+      countsBy: [
+        { kind: "module", id: "450218" },
+        { kind: "assignment", id: "117010" },
+        { kind: "assignment", id: "117003" },
+      ],
+    });
+    expect(presenceAction(window, [task])).toMatchObject({ activity: "assignment", task: { id: 117003 } });
+    // Without the Task, the first thing the lecturer chose.
+    expect(presenceAction(window, [])).toMatchObject({ activity: "module", task: null, url: "https://edunex.itb.ac.id/courses/95326/preview/450218" });
+  });
+
+  it("an Edunex window is optional only where SIX counts", () => {
+    expect((["six", "both", "edunex", "unknown", "noSix", undefined] as const).map(presenceOptional)).toEqual([true, false, false, false, false, false]);
   });
 
   it("Read Module opens the module; every other category is named", () => {

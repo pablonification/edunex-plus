@@ -171,9 +171,14 @@ except Presence `start_at`/`end_at`, which must be readable).
 - **Submit status.** `is_sent` alone decides (`0`/`1`, `"0"`/`"1"` or a boolean; anything else
   is a vendor change). `sent_at` is stamped on drafts too, so it counts only when `is_sent` is
   set. With several answers on one Task, the handed-in one wins, else the latest draft.
-- **Flags** come as booleans or 0/1. `open_status` `overdue` or `closed` means no more
-  answers. `domain: "uts"` marks a mid-term exam Task. `taskable_type: "modules"` ties a Task
-  to a module.
+- **Flags** come as booleans or 0/1. `open_status` `overdue` means no more answers; `close` or
+  `closed` means not open yet (the website says "You can answer this question on {start_at}"),
+  so the app judges that by `start_at` (website code: `task-reader.2eb63cbd.js`, module `cef2`).
+  `domain` is the lecturer's category, read in any case: `uts` and `UAS` (as the lecturer's form
+  stores them) mark a take-home exam Task. `taskable_type: "modules"` ties a Task to a module.
+- **Presence links.** `presentable` can list several things that count (two Tasks, a Task and a
+  module); every one is read. `url` holds one link per chosen topic joined with `;` (the
+  lecturer's form in `app.79bf84f4.js`); the first is the page to open.
 - **Switched-off modules** (`is_active` false) are hidden, as on the website.
 - **A different Student** signing in on the same computer wipes the previous one's data first.
 

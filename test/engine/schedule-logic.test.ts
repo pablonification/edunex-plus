@@ -352,6 +352,17 @@ describe("Presence by handing in a Task", () => {
     expect(found[0]).toMatchObject({ code: "II4091", task: { id: 117003 }, six: { id: six.id } });
   });
 
+  it("a window that counts by a module and a Task is a time to hand that Task in", () => {
+    const both = {
+      ...window(2, "2026-10-16T15:00:00", "2026-10-16T23:59:00", "117003"),
+      countsBy: [
+        { kind: "module", id: "450218" },
+        { kind: "assignment", id: "117003" },
+      ],
+    };
+    expect(taskWindows({ II4091: [both] }, [six], [tugas02])).toMatchObject([{ code: "II4091", task: { id: 117003 } }]);
+  });
+
   it("on the day: a time to hand in, not a place to be; its Task's deadline isn't said twice", () => {
     const windows = taskWindows({ II4091: [window(1, "2026-10-16T15:00:00", "2026-10-16T23:59:00", "117003")] }, [six], [tugas02]);
     const [day] = scheduleDays(["2026-10-16"], { ...empty, schedule: [six], tasks: [tugas02], windows });

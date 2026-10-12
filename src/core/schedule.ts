@@ -9,7 +9,7 @@
 // term's week number. Pure: the Jadwal screen, Beranda, the calendar export
 // and the alert detectors all reason with this. Days are WIB days, ITB's
 // own, so a class lands on the same day on any computer.
-import { isExamActivity, usualSlots } from "./attendance";
+import { isExamActivity, presenceAction, usualSlots } from "./attendance";
 import { announcedMeetings, courseMeetings, wibDay } from "./course-meetings";
 import { SIX_WEB } from "./links";
 import type { Announcement, CalendarEvent, ClassSession, Material, PresenceSession, SixStudent, Task } from "./models";
@@ -347,8 +347,8 @@ export interface TaskWindow {
   six: ClassSession | null;
 }
 
-/** A Presence window Edunex counts by a handed-in Task. */
-export const isTaskWindow = (presence: PresenceSession) => presence.countsBy[0]?.kind === "assignment";
+/** A Presence window Edunex counts by a handed-in Task (one of the things the lecturer chose). */
+export const isTaskWindow = (presence: PresenceSession) => presence.countsBy.some((link) => link.kind === "assignment");
 
 const overlapOf = (a: { start: number; end: number }, b: { start: number; end: number }) => Math.min(a.end, b.end) - Math.max(a.start, b.start);
 
@@ -366,7 +366,7 @@ export function taskWindows(
       const [six] = schedule
         .filter((s) => s.courseCode === code && !isExamActivity(s.activity) && wibDay(s.start) === wibDay(p.opensAt) && overlapOf(s, span) > 0)
         .sort((a, b) => overlapOf(b, span) - overlapOf(a, span));
-      windows.push({ code, presence: p, task: tasks.find((t) => String(t.id) === p.countsBy[0].id) ?? null, six: six ?? null });
+      windows.push({ code, presence: p, task: presenceAction(p, tasks).task, six: six ?? null });
     }
   }
   return windows.sort((a, b) => a.presence.opensAt - b.presence.opensAt);

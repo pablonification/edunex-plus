@@ -53,15 +53,15 @@ export const Task = z.object({
 
   /** The module's place and name, when Edunex gave the course outline. */
   module: TaskModule.nullable(),
-  /** Edunex's category: a regular Task, or a take-home UTS (`domain: "uts"`). */
-  kind: z.enum(["task", "uts"]),
+  /** Edunex's category: a regular Task, or a take-home UTS or UAS (`domain: "uts"` / `"UAS"`). */
+  kind: z.enum(["task", "uts", "uas"]),
   /** The lecturer's instructions as HTML: shown only through the safe renderer. */
   instructions: z.string(),
   /** Files the lecturer attached. */
   files: z.array(TaskFile),
   fileRequired: z.boolean(),
   lateAllowed: z.boolean(),
-  /** Edunex had stopped taking answers at the last check (deadline passed without late submission, or closed). */
+  /** Edunex had stopped taking answers at the last check (`open_status: "overdue"`: past its deadline, no late answers). */
   closed: z.boolean(),
   answer: TaskAnswer.nullable(),
   /** When the lecturer posted it. */

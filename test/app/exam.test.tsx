@@ -2,7 +2,8 @@
 // Exams in one place (#77), seam 2: the exam list in Tugas & Ujian and the
 // exam page, from the real engine reading the pretend Edunex, SIX and ITB
 // calendar. Recorded: DK4073's UTS in class in SIX (15 October, TVST C) and
-// its take-home UTS Task in Edunex due a week later: two dates that disagree.
+// its take-home UTS Task in Edunex due a week later: one exam in two parts.
+// Two sittings on different days (SIX's and an Edunex exam's) disagree.
 import { afterEach, describe, expect, it } from "vitest";
 import { PretendWorld } from "../pretend/world";
 import { openApp } from "./harness";
@@ -17,22 +18,33 @@ const examSection = () => document.querySelector("main section[aria-labelledby=t
 const examRow = (code: string) =>
   [...(examSection()?.querySelectorAll("li button") ?? [])].find((b) => b.textContent?.includes(code)) as HTMLButtonElement | undefined;
 
-async function openTasks() {
-  screen = await openApp({ signedIn: true, six: true });
+async function openTasks(world?: PretendWorld) {
+  screen = await openApp({ world, signedIn: true, six: true });
   await screen.click(/^Tugas & Ujian\d*$/);
   return screen;
 }
 
+/** DK4073's lecturer also sets the UTS as an Edunex exam, on Friday: SIX says Thursday. */
+function withEdunexSitting(): PretendWorld {
+  const world = new PretendWorld();
+  world.edunex.exams.set(93409, [
+    { id: 7001, type: "exams", attributes: { name: "UTS Markom", start_at: "2026-10-16T09:00:00+07:00", end_at: "2026-10-16T11:00:00+07:00" } },
+  ]);
+  return world;
+}
+
 describe("the exam list", () => {
-  it("merges SIX's UTS in class and Edunex's take-home UTS, warns they disagree, and lists ITB's exam weeks", async () => {
+  it("merges SIX's UTS in class and Edunex's take-home UTS as two parts, calmly, and lists ITB's exam weeks", async () => {
     await openTasks();
     const row = examRow("DK4073")!.textContent ?? "";
-    // The date leads; the kind is a quiet label; no source tags, the source only where they disagree.
+    // The date leads; the kind is a quiet label; no source tags, the source only where it changes what to do.
     expect(row.startsWith("Kam15Okt")).toBe(true);
     expect(row).toContain("UTSKomunikasi Pemasaran");
-    expect(row).toContain("Di kelas · 11:00–12:59 · TVST C");
+    // A take-home due a week after SIX's sitting is no conflict: SIX's sitting is said as the other part it may be.
+    expect(row).toContain("SIX juga mencantumkan ujian di kelas · 11:00–12:59 · TVST C");
     expect(row).toContain("Take-home: UTS Markom · tenggat Kam, 22 Okt, 23:50");
-    expect(row).toContain("SIX: Kam 15 Okt · Edunex: Kam 22 Okt. Pastikan ke dosen.");
+    expect(row).not.toContain("Pastikan ke dosen");
+    expect(examRow("DK4073")!.querySelector(".text-warning-fg")).toBeNull();
     expect(row).toContain("dalam 7 hari");
     expect(examSection()?.querySelector("h2")?.parentElement?.textContent).toContain("Masa UTS 12–16 Okt");
     // A row with only ITB's exam week names the period on its date tile, never "Minggu" (it reads as Sunday).
@@ -58,7 +70,7 @@ describe("the exam list", () => {
 });
 
 describe("the exam page", () => {
-  it("what, when, where, how long until, what it covers, the warning and the official pages", async () => {
+  it("what, when, where, how long until, what it covers, the take-home's note and the official pages", async () => {
     const s = await openTasks();
     await s.click(examRow("DK4073")!);
     expect(document.querySelector("main h1")?.textContent).toBe("Komunikasi Pemasaran");
@@ -67,9 +79,11 @@ describe("the exam page", () => {
     // When and where first: the day, the time, the room.
     expect(text).toContain("Di kelasKam 15 Okt11:00–12:59 · 119 menitTVST C");
     expect(text).toContain("Take-homeKam 22 OktTenggat 23:50Buka tugas · UTS Markom");
-    // The disagreement, with something to do about it.
-    expect(text).toContain("SIX dan Edunex memberi tanggal berbeda");
-    expect(text).toContain("SIX: Kam 15 Okt · Edunex: Kam 22 Okt.");
+    // Two parts, said calmly: no warning, no question for the lecturer; the announcements say whether the sitting happens.
+    expect(text).toContain("SIX juga mencantumkan ujian di kelas pada Kam 15 Okt · take-home-nya tenggat Kam 22 Okt");
+    expect(text).not.toContain("SIX dan Edunex memberi tanggal berbeda");
+    expect(s.has("Salin pertanyaan untuk dosen")).toBe(false);
+    expect(document.querySelector("main section[aria-labelledby=exam-when] .bg-warning-bg")).toBeNull();
     await s.click("Lihat pengumuman");
     expect(s.text()).toContain("Pengumuman");
     await s.apply({ type: "navigate", route: { screen: "exam", examId: "DK4073-UTS" } });
@@ -93,14 +107,19 @@ describe("the exam page", () => {
     expect(document.querySelector("main h1")?.textContent).toBe("UTS Markom");
   });
 
-  it("the question for the lecturer greets for the time it's copied", async () => {
-    const s = await openTasks();
+  it("two sittings on different days: the warning, and a question for the lecturer that greets for the time it's copied", async () => {
+    const s = await openTasks(withEdunexSitting());
+    expect(examRow("DK4073")!.textContent).toContain("SIX: Kam 15 Okt · Edunex: Jum 16 Okt. Pastikan ke dosen.");
     await s.click(examRow("DK4073")!);
+    expect(s.text()).toContain("SIX dan Edunex memberi tanggal berbeda");
+    expect(s.text()).toContain("SIX: Kam 15 Okt · Edunex: Jum 16 Okt.");
     let copied = "";
     Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText: async (text: string) => void (copied = text) } });
     await s.click("Salin pertanyaan untuk dosen");
-    // The demo's morning: "Selamat pagi", never a fixed "Selamat siang".
-    expect(copied).toMatch(/^Selamat pagi Bapak\/Ibu, mohon maaf mengganggu\. Untuk UTS DK4073 Komunikasi Pemasaran, SIX mencantumkan/);
+    // The demo's morning: "Selamat pagi", never a fixed "Selamat siang". The take-home's deadline isn't one of the dates asked about.
+    expect(copied).toMatch(
+      /^Selamat pagi Bapak\/Ibu, mohon maaf mengganggu\. Untuk UTS DK4073 Komunikasi Pemasaran, SIX mencantumkan Kam 15 Okt, sedangkan Edunex Jum 16 Okt\./,
+    );
   });
 
   it("exports the phone calendar from the page", async () => {
@@ -135,11 +154,16 @@ describe("the exam page", () => {
     const s = await openTasks();
     await s.engineDoes(() => s.engine.updateSettings({ lang: "en" }));
     const row = examRow("DK4073")!;
-    expect(row.textContent).toContain("In class · 11:00–12:59 · TVST C");
-    expect(row.textContent).toContain("SIX: Thu 15 Oct · Edunex: Thu 22 Oct. Check with your lecturer.");
+    expect(row.textContent).toContain("SIX also lists a class sitting · 11:00–12:59 · TVST C");
     await s.click(row);
     expect(s.text()).toContain("When and where");
-    expect(s.text()).toContain("SIX and Edunex give different dates");
-    expect(s.has("Copy a question for your lecturer")).toBe(true);
+    expect(s.text()).toContain("SIX also lists a class sitting on Thu 15 Oct · the take-home is due Thu 22 Oct");
+    s.close();
+    const other = await openTasks(withEdunexSitting());
+    await other.engineDoes(() => other.engine.updateSettings({ lang: "en" }));
+    expect(examRow("DK4073")!.textContent).toContain("SIX: Thu 15 Oct · Edunex: Fri 16 Oct. Check with your lecturer.");
+    await other.click(examRow("DK4073")!);
+    expect(other.text()).toContain("SIX and Edunex give different dates");
+    expect(other.has("Copy a question for your lecturer")).toBe(true);
   });
 });

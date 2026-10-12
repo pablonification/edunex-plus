@@ -1,10 +1,10 @@
 // Exams in one place (#77, user story 74): SIX's exam sessions (time, room),
-// Edunex's exams, Edunex's take-home UTS Tasks, exams named in the Edunex
-// course outline, and ITB's exam weeks, merged per course and exam (one
-// "DK4073 UTS" however many systems list it). None of them shows the others,
-// and they sometimes disagree: a UTS in class in SIX and a take-home UTS due
-// a week later in Edunex. Pure: Tugas & Ujian, the exam page, the alerts and
-// the calendar export read it.
+// Edunex's exams, Edunex's take-home UTS and UAS Tasks, exams named in the
+// Edunex course outline, and ITB's exam weeks, merged per course and exam (one
+// "DK4073 UTS" however many systems list it). None of them shows the others.
+// Two sittings on different days disagree; a sitting in SIX and a take-home due
+// a week later in Edunex are two parts, not a conflict. Pure: Tugas & Ujian,
+// the exam page, the alerts and the calendar export read it.
 import { isExamActivity } from "./attendance";
 import { wibDay } from "./course-meetings";
 import type { AcademicCalendar, CalendarEvent, ClassSession, CourseOutline, EdunexExam, Task } from "./models";
@@ -26,6 +26,29 @@ export function examKind(text: string | null): ExamKind | null {
   return "UJIAN";
 }
 
+/** A word right after the exam's that makes a Task about the exam rather than the exam itself: "UTS - Pembahasan", "UAS Latihan". */
+const ABOUT_EXAM = /^[\s:([–-]*(pra|pre|kisi|latihan|pembahasan|review|remedial|persiapan|simulasi|contoh|practice|mock)\b/i;
+/** An exam's word at the start of a title, perhaps after "Take-home": "UTS Markom", "Take-home UAS", "Midex DK4073". */
+const NAMES_EXAM = /^[\s[({"'“‘]*(?:take[\s-]?home\s*[:–-]?\s*)?(UTS|UAS|Midex|Finex|Ujian\s+Tengah\s+Semester|Ujian\s+Akhir\s+Semester)\b/i;
+
+/**
+ * The exam a Task is the take-home of: Edunex's own category first (the
+ * lecturer picks UTS or UAS), else a title that names the exam. A Task whose
+ * title only speaks of one ("Tugas Pra-UTS", "UTS - Pembahasan") is a Task;
+ * one about a subject is the exam ("UAS Literature Review").
+ */
+export function takeHomeKind(task: Pick<Task, "kind" | "title">): "UTS" | "UAS" | null {
+  if (task.kind === "uts") return "UTS";
+  if (task.kind === "uas") return "UAS";
+  const match = NAMES_EXAM.exec(task.title);
+  if (!match || ABOUT_EXAM.test(task.title.slice(match[0].length))) return null;
+  return /^(UTS|Midex|Ujian\s+Tengah)/i.test(match[1]) ? "UTS" : "UAS";
+}
+
+const HOUR = 3_600_000;
+/** A deadline on one of these days: its own, or the day before for one just past midnight ("00:00" closes the day before). */
+export const dueOn = (at: number, days: ReadonlySet<string>) => days.has(wibDay(at)) || days.has(wibDay(at - 3 * HOUR));
+
 export interface Exam {
   /** The route's examId: "DK4073-UTS"; a quiz or another exam carries its first item's id ("PL3002-KUIS-s2194370"). */
   id: string;
@@ -45,8 +68,10 @@ export interface Exam {
   at: number | null;
   /** The latest date any system gives: past it, the exam is behind the Student. */
   last: number | null;
-  /** SIX and Edunex both give dates, on no common day. */
+  /** SIX and Edunex both give a sitting, on no common day. */
   disagree: boolean;
+  /** When SIX also lists a class sitting and a take-home is due on another day: that deadline (the soonest). Two parts, not a conflict. */
+  takeHomeApart: number | null;
 }
 
 export interface ExamSources {
@@ -88,7 +113,20 @@ export function mergeExams(sources: ExamSources): Exam[] {
   const entry = (id: string, code: string, kind: ExamKind) => {
     let exam = exams.get(id);
     if (!exam) {
-      exam = { id, courseCode: code, kind, six: [], edunex: [], tasks: [], inOutline: false, week: null, at: null, last: null, disagree: false };
+      exam = {
+        id,
+        courseCode: code,
+        kind,
+        six: [],
+        edunex: [],
+        tasks: [],
+        inOutline: false,
+        week: null,
+        at: null,
+        last: null,
+        disagree: false,
+        takeHomeApart: null,
+      };
       exams.set(id, exam);
     }
     return exam;
@@ -119,8 +157,8 @@ export function mergeExams(sources: ExamSources): Exam[] {
   }
   for (const task of sources.tasks ?? []) {
     if (!keep(task.courseCode)) continue;
-    const kind = task.kind === "uts" ? "UTS" : examKind(task.title);
-    if (kind === "UTS" || kind === "UAS") entry(`${task.courseCode}-${kind}`, task.courseCode, kind).tasks.push(task);
+    const kind = takeHomeKind(task);
+    if (kind) entry(`${task.courseCode}-${kind}`, task.courseCode, kind).tasks.push(task);
   }
   for (const [code, outline] of Object.entries(sources.outline ?? {})) {
     if (!keep(code)) continue;
@@ -134,11 +172,14 @@ export function mergeExams(sources: ExamSources): Exam[] {
     exam.six.sort((a, b) => a.start - b.start);
     exam.week = examWeek(sources.calendar, exam.kind, sources.term, sources.now);
     const sixDays = new Set(exam.six.map((s) => wibDay(s.start)));
-    const edunexTimes = [...exam.edunex.flatMap((e) => (e.start !== null ? [e.start] : [])), ...exam.tasks.flatMap((t) => (t.dueAt !== null ? [t.dueAt] : []))];
-    const times = [...exam.six.map((s) => s.start), ...edunexTimes];
+    const sittings = exam.edunex.flatMap((e) => (e.start !== null ? [e.start] : []));
+    const dues = exam.tasks.flatMap((t) => (t.dueAt !== null ? [t.dueAt] : []));
+    const times = [...exam.six.map((s) => s.start), ...sittings, ...dues];
     exam.at = times.length ? Math.min(...times) : null;
-    exam.last = times.length ? Math.max(...[...exam.six.map((s) => s.end), ...edunexTimes]) : null;
-    exam.disagree = sixDays.size > 0 && edunexTimes.length > 0 && !edunexTimes.some((t) => sixDays.has(wibDay(t)));
+    exam.last = times.length ? Math.max(...[...exam.six.map((s) => s.end), ...sittings, ...dues]) : null;
+    // A sitting is compared with sittings only: a take-home's deadline isn't the day of an exam.
+    exam.disagree = sixDays.size > 0 && sittings.length > 0 && !sittings.some((t) => sixDays.has(wibDay(t)));
+    exam.takeHomeApart = sixDays.size ? (dues.filter((t) => !dueOn(t, sixDays)).sort((a, b) => a - b)[0] ?? null) : null;
   }
   return [...exams.values()].sort(
     (a, b) =>

@@ -129,7 +129,7 @@ export const searchStrings = {
   // Exams
   "scan.exams.title": { id: "{count} ujian akan datang", en: { one: "{count} upcoming exam", other: "{count} upcoming exams" } },
   "scan.exams.at": { id: "{name} {code}: {when}", en: "{name} {code}: {when}" },
-  "scan.exams.takeHome": { id: "UTS take-home {code}, tenggat {when}", en: "Take-home UTS {code}, due {when}" },
+  "scan.exams.takeHome": { id: "{kind} take-home {code}, tenggat {when}", en: "Take-home {kind} {code}, due {when}" },
   "scan.exams.week": { id: "{kind} {code}, minggu {kind} {range}", en: "{kind} {code}, {kind} week {range}" },
   "scan.exams.noDate": { id: "{name} {code}, tanggal belum ada", en: "{name} {code}, no date yet" },
 

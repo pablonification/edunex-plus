@@ -278,7 +278,12 @@ function presenceSession(item: z.infer<typeof Presences>["data"][number]): Prese
     topic: a.topic?.trim() || null,
     note: a.note?.trim() || null,
     countsBy: (a.presentable ?? []).map((p) => ({ kind: p.presentable, id: String(p.presentable_id) })),
-    url: a.url || null,
+    // The lecturer's form joins one link per chosen topic with ";": the first is the page to open.
+    url:
+      a.url
+        ?.split(";")
+        .map((link) => link.trim())
+        .find(Boolean) ?? null,
     recorded,
   };
 }

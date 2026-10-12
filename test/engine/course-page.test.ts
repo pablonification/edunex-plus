@@ -139,6 +139,30 @@ describe("Presence", () => {
     });
   });
 
+  it("a window that counts by several things keeps every one, and opens the first of the pages Edunex lists", async () => {
+    const h = await signedIn();
+    // The lecturer's form stores one link per chosen topic, joined with ";".
+    const id = h.world.edunex.schedulePresence(95326, 87103, {
+      start: "2026-10-23T15:00:00+07:00",
+      end: "2026-10-23T23:59:00+07:00",
+      patch: {
+        presentable: [
+          { presentable: "module", presentable_id: 450218 },
+          { presentable: "assignment", presentable_id: "117010" },
+        ],
+        url: "https://edunex.itb.ac.id/courses/95326/preview/450218;https://edunex.itb.ac.id/courses/95326/preview/450222",
+      },
+    });
+    await h.wait(31 * 60_000);
+    expect(h.dataset("edunex.presence")!.II4091.find((s) => s.id === id)).toMatchObject({
+      countsBy: [
+        { kind: "module", id: "450218" },
+        { kind: "assignment", id: "117010" },
+      ],
+      url: "https://edunex.itb.ac.id/courses/95326/preview/450218",
+    });
+  });
+
   it("a class without Edunex Presence has none, and a new session shows after the next check", async () => {
     const h = await signedIn();
     expect(h.dataset("edunex.presence")!.KU5014).toEqual([]);

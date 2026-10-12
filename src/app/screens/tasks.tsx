@@ -7,7 +7,7 @@
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { type DragEvent, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { type HandInResult, MAX_UPLOAD_BYTES, type PickedFile } from "../../core/actions/tasks";
-import { attendanceWindow } from "../../core/attendance";
+import { attendanceWindow, type CountedIn, presenceOptional } from "../../core/attendance";
 import { examPassed } from "../../core/exams";
 import type { Task, TaskFile, TaskModule, TaskStatus } from "../../core/models";
 import type { StringKey } from "../../core/strings";
@@ -33,6 +33,7 @@ import {
   taskHistory,
   taskStatus,
 } from "../../core/tasks";
+import { useAttendance } from "../attendance";
 import { ActionError } from "../bridge";
 import { type TermCourse, useTermCourses } from "../courses";
 import { useOpenExternal } from "../hooks";
@@ -90,6 +91,11 @@ export function useBadge(): { value: number; tone: "neutral" | "warning" } | nul
 /** A course's name and color, for a row's "course · module" line. */
 function useCourse(code: string): TermCourse | undefined {
   return useTermCourses()?.find((course) => course.code === code);
+}
+
+/** Where a course's attendance counts: where SIX counts, a Task's attendance window is optional. */
+function useCountedIn(code: string): CountedIn | undefined {
+  return useAttendance()?.courses.find((entry) => entry.course.code === code)?.health.countedIn;
 }
 
 // ---------------------------------------------------------------- Tugas & Ujian
@@ -404,6 +410,7 @@ function Signal({ task, status }: Row) {
   const f = useFormat();
   const now = useNow();
   const presence = useDataset("edunex.presence");
+  const optional = presenceOptional(useCountedIn(task.courseCode));
   let signal: ReactNode = null;
   const window = isOpenStatus(status) ? attendanceWindow(task, presence, now) : null;
   if (editedAfterSubmit(task) && task.editedAt !== null)
@@ -417,7 +424,9 @@ function Signal({ task, status }: Row) {
     signal = (
       <span>
         <Icons.Hand className="size-3.5" />
-        {t("task.attendanceLine", { when: `${f.relativeDay(window.opensAt)} ${f.timeRange(window.opensAt, window.closesAt)}` })}
+        {t(optional ? "task.attendanceLineOptional" : "task.attendanceLine", {
+          when: `${f.relativeDay(window.opensAt)} ${f.timeRange(window.opensAt, window.closesAt)}`,
+        })}
       </span>
     );
   else if (task.opensAt !== null && notOpenYet(task, now)) signal = <span>{t("task.opens", { when: f.dueLabel(task.opensAt) })}</span>;
@@ -579,7 +588,8 @@ function TaskPage({ task }: { task: Task }) {
  * What Edunex doesn't say on its Task page: attendance taken by handing it in
  * (and, once handed in, whether it counted), a change after the Student
  * handed in (loud, with the way to check), a short window. An edit before the
- * Student handed in is only history.
+ * Student handed in is only history. Where the course counts in SIX, the
+ * attendance window is optional: said once, calmly, and nothing about it after.
  */
 function Notes({ task }: { task: Task }) {
   const t = useT();
@@ -587,13 +597,25 @@ function Notes({ task }: { task: Task }) {
   const now = useNow();
   const open = useOpenExternal();
   const presence = useDataset("edunex.presence");
+  const optional = presenceOptional(useCountedIn(task.courseCode));
   const sessions = presence?.[task.courseCode] ?? [];
   const notes: { tone: "warning" | "neutral" | "success" | "danger"; icon: ReactNode; text: string; action?: ReactNode }[] = [];
   const range = (opensAt: number, closesAt: number) => `${f.relativeDay(opensAt)}, ${f.timeRange(opensAt, closesAt)}`;
   const result = attendanceResult(task, sessions, now);
   const status = taskStatus(task, now);
   const session = isOpenStatus(status) ? attendanceSession(task, sessions, now) : null;
-  if (result)
+  if (optional) {
+    if (session && session.closesAt > now)
+      notes.push({
+        tone: "neutral",
+        icon: <Icons.Hand className="mt-0.5 size-4 shrink-0" />,
+        text: t("task.note.attendanceOptional", {
+          date: f.relativeDay(session.opensAt),
+          time: f.timeRange(session.opensAt, session.closesAt),
+          course: task.courseCode,
+        }),
+      });
+  } else if (result)
     notes.push(
       result.outcome === "counted"
         ? {
@@ -745,6 +767,7 @@ function HandIn({ task, status }: Row) {
   const open = useOpenExternal();
   const edunex = useStatus("edunex");
   const presence = useDataset("edunex.presence");
+  const countedIn = useCountedIn(task.courseCode);
   const { signIn, busy: signingIn } = useSignIn();
   const { refresh, busy: refreshing } = useRefresh();
   const { download, busy: downloading } = useDownload();
@@ -773,7 +796,7 @@ function HandIn({ task, status }: Row) {
   const failed = attached.some((item) => item.state === "failed");
   const hasAnswer = files.length > 0 || (!task.fileRequired && Boolean(task.answer?.text));
   const changed = uploaded.length > 0 || removed.length > 0;
-  const guard = handInChecks(task, { now, sessions: presence?.[task.courseCode] ?? [], edunex: edunex.state, files });
+  const guard = handInChecks(task, { now, sessions: presence?.[task.courseCode] ?? [], edunex: edunex.state, files, countedIn });
   // Waiting for the attendance window is the default only once there is something to keep as a draft.
   const wait = guard.waitForWindow && hasAnswer;
   // The one primary button: Kumpulkan, or, when waiting is better, Simpan draf (once there is something new to save).
