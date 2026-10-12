@@ -151,7 +151,7 @@ function Reading({ onDone }: { onDone: () => void }) {
         {both ? t("welcome.reading") : t("welcome.readingOne", { source: t(`source.${summary.connected[0] ?? "edunex"}`) })}
       </h1>
       <p className="mx-auto mt-2 max-w-[360px] text-lead text-muted">{t("welcome.readingHint")}</p>
-      <StatRow className="mx-auto mt-7 w-fit max-w-full text-left">
+      <StatRow className="mx-auto mt-7 max-w-[380px] text-left">
         {parts.map((part) => (
           <Stat key={part.key} size="heading" label={part.label.replace(/^\d+\s*/, "")} value={part.count} />
         ))}
