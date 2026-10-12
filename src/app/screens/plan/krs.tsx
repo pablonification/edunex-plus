@@ -11,9 +11,9 @@ import { useNav } from "../../nav";
 import { useDataset } from "../../store";
 import { Button } from "../../ui/controls";
 import { cx } from "../../ui/cx";
-import { Bar, Card, CourseCode, SectionTitle } from "../../ui/display";
+import { Bar, Card, CourseCode } from "../../ui/display";
 import { Icons } from "../../ui/icons";
-import { List, Meta, Row } from "../../ui/layout";
+import { List, Meta, Row, Section } from "../../ui/layout";
 import { useTermYears } from "./projection";
 import { SixNeeded } from "./six-needed";
 
@@ -44,13 +44,14 @@ export function useBadge(): { value: number; tone: "neutral" | "warning" } | nul
   return value > 0 ? { value, tone: "neutral" } : null;
 }
 
-const STAGE_TONE: Record<KrsStage | "clash", { box: string; icon: typeof Icons.Clock }> = {
-  send: { box: "bg-warning-bg text-warning-fg", icon: Icons.AlertTriangle },
-  advisor: { box: "bg-fill text-muted", icon: Icons.Clock },
-  ukt: { box: "bg-warning-bg text-warning-fg", icon: Icons.Wallet },
-  official: { box: "bg-info-bg text-info-fg", icon: Icons.Clock },
-  done: { box: "bg-success-bg text-success-fg", icon: Icons.ShieldCheck },
-  clash: { box: "bg-warning-bg text-warning-fg", icon: Icons.Overlap },
+/** The stage's icon color, drawn bare before its title the way a Notice draws its icon. */
+const STAGE_TONE: Record<KrsStage | "clash", { tone: string; icon: typeof Icons.Clock }> = {
+  send: { tone: "text-warning-fg", icon: Icons.AlertTriangle },
+  advisor: { tone: "text-muted", icon: Icons.Clock },
+  ukt: { tone: "text-warning-fg", icon: Icons.Wallet },
+  official: { tone: "text-info-fg", icon: Icons.Clock },
+  done: { tone: "text-success-fg", icon: Icons.ShieldCheck },
+  clash: { tone: "text-warning-fg", icon: Icons.Overlap },
 };
 
 export function Tab(_: { onCalendar?: () => void }) {
@@ -93,17 +94,15 @@ function Stage({ plan, overlaps }: { plan: KrsPlan; overlaps: Overlap[] }) {
   const calendar = useDataset("itb.calendar");
   const stage = krsStage(plan);
   const clash = overlaps.length > 0 && (stage === "done" || stage === "official");
-  const { box, icon: Icon } = STAGE_TONE[clash ? "clash" : stage];
+  const { tone, icon: Icon } = STAGE_TONE[clash ? "clash" : stage];
   const window = nextKrsWindow(plan, calendar, now);
   const day = (iso: string) => f.dayMonth(Date.parse(`${iso}T12:00:00+07:00`));
   const first = overlaps[0];
   const when = first ? `${f.weekdayShort(first.start)} ${f.dayMonth(first.start)}, ${f.timeRange(first.start, first.end)}` : "";
   return (
     <Card variant="raised" className="px-5 py-4">
-      <div className="flex items-start gap-3.5">
-        <span className={cx("grid size-9 shrink-0 place-items-center rounded-lg", box)}>
-          <Icon className="size-[18px]" />
-        </span>
+      <div className="flex items-start gap-2.5">
+        <Icon className={cx("mt-[3px] size-4 shrink-0", tone)} weight="bold" />
         <div className="min-w-0 flex-1">
           <p className={cx("text-title font-semibold", clash && "text-warning-fg")}>
             {clash ? t(stage === "done" ? "krs.stage.clash" : "krs.stage.clashApproved", { count: overlaps.length }) : t(`krs.stage.${stage}`)}
@@ -196,22 +195,22 @@ function Courses({ plan, overlaps }: { plan: KrsPlan; overlaps: Overlap[] }) {
   const clashWith = (code: string) => overlaps.filter((o) => o.upcoming && o.codes.includes(code)).map((o) => o.codes.find((c) => c !== code)!);
   const past = overlaps.filter((o) => !o.upcoming);
   return (
-    <section className="min-w-0">
-      <SectionTitle
-        aside={
-          <span className={cx("text-small font-medium tabular-nums", over ? "text-danger-fg" : "text-muted")}>
-            {plan.maxSks !== null ? t("krs.sksOfMax", { sks: plan.sks, max: plan.maxSks }) : t("krs.sks", { sks: plan.sks })}
-          </span>
-        }
-      >
-        {t("krs.courses")}
-      </SectionTitle>
+    <Section
+      id="krs-courses"
+      title={t("krs.courses")}
+      action={
+        <span className={cx("text-small font-medium tabular-nums", over ? "text-danger-fg" : "text-muted")}>
+          {plan.maxSks !== null ? t("krs.sksOfMax", { sks: plan.sks, max: plan.maxSks }) : t("krs.sks", { sks: plan.sks })}
+        </span>
+      }
+      className="min-w-0"
+    >
       {plan.maxSks !== null && (
         <>
           <Bar
             className="mb-3"
             value={plan.sks / plan.maxSks}
-            color={over ? "var(--danger-fg)" : "var(--live)"}
+            color={over ? "var(--danger-fg)" : "var(--meter-success)"}
             label={t("krs.sksOfMax", { sks: plan.sks, max: plan.maxSks })}
           />
           {over && <p className="mb-3 text-small font-medium text-danger-fg">{t("krs.overMax", { max: plan.maxSks })}</p>}
@@ -276,6 +275,6 @@ function Courses({ plan, overlaps }: { plan: KrsPlan; overlaps: Overlap[] }) {
           })}
         </p>
       ))}
-    </section>
+    </Section>
   );
 }
