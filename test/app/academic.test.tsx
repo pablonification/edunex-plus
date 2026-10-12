@@ -250,11 +250,71 @@ describe("the Kalender akademik tab", () => {
     expect(past.textContent).toContain("Batas bayar UKT · 2026/2027 GanjilUKT-mu sudah lunas.");
   });
 
+  it("the full calendar: every event by month with ITB's own title, chips, an accent-blind search, revised copies merged", async () => {
+    const s = await openPlan("2026-10-11T09:00:00+07:00");
+    await inject("six.krs", krs());
+    await s.click(/^Rencana studi/);
+    await tab("Kalender akademik");
+    await s.click("Kalender lengkap");
+    const months = () => [...document.querySelectorAll("[role=tabpanel][data-state=active] section h3")].map((h) => h.textContent);
+    const rows = (month: string) =>
+      [
+        ...([...document.querySelectorAll("[role=tabpanel][data-state=active] section")]
+          .find((el) => el.querySelector("h3")?.textContent?.startsWith(month))
+          ?.querySelectorAll("li") ?? []),
+      ].map((li) => li.textContent ?? "");
+    expect(panel()).toContain("108 acara");
+    // Months already over wait behind one line; this month marks today before what's still to come.
+    expect(months()[0]).toBe("Oktober 20266");
+    expect(rows("Oktober 2026").slice(0, 4)).toEqual([
+      "9 OktJumBatas Waktu Pemasukan Nilai Konversi Aktivitas Kemahasiswaan Semester II-2025/2026",
+      "Sekarang · Min, 11 Okt",
+      "12 OktSenHari Pertama Periode Pembukaan Kelas/Mata Kuliah Semester II-2026/2027 oleh Program Studi",
+      "12–16 OktSen–JumMasa Ujian Tengah Semester I-2026/2027Minggu ujian tengah semester.",
+    ]);
+    // The short semester is there too.
+    expect(rows("Juni 2027").some((r) => r.includes("Pendaftaran Rencana Studi (DRS) dan Perwalian Semester Antara 2026/2027"))).toBe(true);
+    await s.click("Tampilkan 3 bulan sebelumnya");
+    expect(months().slice(0, 3)).toEqual(["Juli 20264", "Agustus 202616", "September 20267"]);
+    // ITB's "(Revisi)" copy replaces the old one, and says so.
+    expect(rows("Agustus 2026").filter((r) => r.includes("Hari Wisuda Ketiga Tahun Akademik 2025/2026"))).toEqual([
+      "27–29 AguKam–SabHari Wisuda Ketiga Tahun Akademik 2025/2026Direvisi ITB",
+    ]);
+
+    await s.click(/^Libur/);
+    expect(panel()).toContain("2 dari 108 acara");
+    expect(months()).toEqual(["Desember 20261", "Maret 20271"]);
+    await s.click("Hapus saringan");
+    await act(async () => {
+      const input = document.querySelector<HTMLInputElement>("input[aria-label^='Cari']")!;
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(input, "CUTÍ");
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    expect(months()).toEqual(["September 20261", "Februari 20271"]);
+    expect(rows("September 2026")).toEqual(["18 SepJumBatas Akhir Pengajuan Cuti Semester I-2026/2027"]);
+  });
+
+  it("the full calendar keeps a month in view while something that started in it is still running", async () => {
+    const s = await openPlan("2026-12-05T09:00:00+07:00");
+    await s.click(/^Rencana studi/);
+    await tab("Kalender akademik");
+    await s.click("Kalender lengkap");
+    const months = () => [...document.querySelectorAll("[role=tabpanel][data-state=active] section h3")].map((h) => h.textContent);
+    // The questionnaire runs 30 Nov – 11 Dec: November stays, the four months before it fold.
+    expect(months()[0]).toBe("November 20265");
+    expect(s.has("Tampilkan 4 bulan sebelumnya")).toBe(true);
+    expect(panel()).toContain("Pengisian Kuesioner Evaluasi Perkuliahan Semester I-2026/2027Berlangsung");
+  });
+
   it("in English", async () => {
     const s = await openPlan("2026-10-11T09:00:00+07:00");
     await s.engineDoes(() => s.engine.updateSettings({ lang: "en" }));
     await s.click(/^Study plan/);
     await tab("Academic calendar");
     expect(panel()).toContain("Midterms (UTS) · 2026/2027 OddMidterm exam week.tomorrow");
+    await s.click("Full calendar");
+    expect(panel()).toContain("108 events");
+    expect(panel()).toContain("October 2026");
+    expect(s.has(/^Exams & grades/)).toBe(true);
   });
 });

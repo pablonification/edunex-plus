@@ -2,6 +2,7 @@
 // events the rest of the app reasons with, refreshed daily, kept when offline.
 import { describe, expect, it } from "vitest";
 import type { CalendarEvent } from "../../src/core/models";
+import { kindOf } from "../../src/engine/sources/itb/calendar";
 import { startEngine } from "./harness";
 
 const HOUR = 3_600_000;
@@ -44,9 +45,11 @@ describe("ITB academic calendar", () => {
       "Libur Kuliah dalam rangka Hari Raya Natal",
       "Libur Kuliah dalam rangka Hari Raya Idul Fitri*)",
     ]);
-    // Escaped commas come out as commas; events the app doesn't know stay, as "other".
+    // Escaped commas come out as commas.
     const ijazah = events.find((e) => e.id === "2026-penerbitan-ijazah-yudisium-mei")!;
-    expect(ijazah).toMatchObject({ kind: "other", title: "Penerbitan Ijazah Yudisium Mei 2026, Juni 2026, dan Juli 2026 (Revisi-02)" });
+    expect(ijazah).toMatchObject({ kind: "graduation", title: "Penerbitan Ijazah Yudisium Mei 2026, Juni 2026, dan Juli 2026 (Revisi-02)" });
+    // Events the app doesn't know stay, as "other".
+    expect(events.find((e) => e.title.startsWith("Sidang Terbuka Dalam Rangka Dies Natalis"))).toMatchObject({ kind: "other" });
     // In time order.
     expect(events.map((e) => e.start)).toEqual([...events.map((e) => e.start)].sort((a, b) => a - b));
     expect(h.status("itb").state).toBe("live");
@@ -99,5 +102,21 @@ describe("ITB academic calendar", () => {
     await again.wait();
     expect(again.status("itb")).toMatchObject({ state: "offline", detail: "ITB's calendar is unreachable" });
     expect(again.dataset("itb.calendar")!.events).toHaveLength(110);
+  });
+});
+
+describe("what an event is, from ITB's title", () => {
+  it("titles ITB wrote in other years too (from the live feed), and the kinds the full calendar groups by", () => {
+    // These two used to fall through to "other".
+    expect(kindOf("Pemantauan dan Evaluasi Kemajuan Studi Mahasiswa")).toBe("progress-check");
+    expect(kindOf("Batas Akhir Pemasukan Nilai Mata Kuliah Semester I-2024/2025")).toBe("grade-deadline");
+    expect(kindOf("Batas Akhir Kategori Tepat Waktu Pemasukan Nilai Akhir Mata Kuliah Semester I-2026/2027")).toBe("grade-deadline");
+    expect(kindOf("Batas Waktu Pemasukan Nilai Konversi Aktivitas Kemahasiswaan Semester II-2025/2026")).toBe("other");
+    expect(kindOf("Batas Akhir Perubahan Nilai Mata Kuliah Semester I-2026/2027")).toBe("grade-change-deadline");
+    expect(kindOf("Batas Akhir Pengajuan Cuti Semester I-2026/2027")).toBe("leave");
+    expect(kindOf("Batas Akhir Pengajuan Perpanjangan Waktu Studi Semester I-2026/2027 dari mahasiswa")).toBe("study-extension");
+    expect(kindOf("Yudisium ITB Bulan Juli 2026")).toBe("graduation");
+    expect(kindOf("Hari Wisuda Ketiga Tahun Akademik 2025/2026 (Revisi)")).toBe("graduation");
+    expect(kindOf("Batas Waktu Pemenuhan Persyaratan Administrasi Kelulusan untuk Yudisium September 2026")).toBe("graduation");
   });
 });

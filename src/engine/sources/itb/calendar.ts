@@ -25,10 +25,14 @@ const KINDS: [RegExp, CalendarKind][] = [
   [/(pendaftaran|pengisian) rencana studi|\(drs\)|pendaftaran semester (antara|pendek)/, "drs"],
   [/pembayaran biaya pendidikan/, "ukt-deadline"],
   [/kuesioner evaluasi perkuliahan/, "questionnaire"],
-  [/pemasukan nilai akhir/, "grade-deadline"],
+  // "Pemasukan Nilai Akhir Mata Kuliah", and the older "Pemasukan Nilai Mata Kuliah" (not "Nilai Konversi").
+  [/pemasukan nilai (akhir|mata kuliah)/, "grade-deadline"],
   [/perubahan nilai/, "grade-change-deadline"],
-  [/pemantauan dan evaluasi akademik/, "progress-check"],
+  [/pemantauan dan evaluasi (akademik|kemajuan studi)/, "progress-check"],
   [/^libur\b/, "holiday"],
+  [/pengajuan cuti/, "leave"],
+  [/perpanjangan waktu studi/, "study-extension"],
+  [/yudisium|wisuda|penerbitan ijazah|administrasi kelulusan/, "graduation"],
 ];
 
 export function kindOf(title: string): CalendarKind {
