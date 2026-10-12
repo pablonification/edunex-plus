@@ -76,9 +76,9 @@ describe("the Presensi screen", () => {
     expect(dk).not.toContain("berturut-turut");
     // One absence left: said in words, not only in amber.
     expect(card("PL3002")).toContain("Masih bisa absen 1× lagi");
-    // Recorded through Edunex too: be in class, and fill in its Presence; the one it asks for is named.
-    expect(card("II4091")).toContain("hadir, lalu isi Presensi Edunex");
-    expect(card("II4091")).toContain("Presensi Edunex Jum, 16 Okt, 15:00–23:59: Kumpulkan Tugas 02 Bab II");
+    // Recorded through Edunex too: be in class, then what that day's Presence asks for, said once with the class.
+    expect(card("II4091")).toContain("Berikutnya: Jum, 16 Okt, 15:00·hadir, lalu kumpulkan Tugas 02 Bab II sebelum 23:59");
+    expect(card("II4091")).not.toContain("Presensi Edunex Jum");
     // Never an absence on Edunex's word.
     expect(document.body.textContent).not.toMatch(/\bAbsent\b|Tidak hadir/);
   });
@@ -134,6 +134,15 @@ describe("the Presensi screen", () => {
     expect(card("DK4073")).toContain("Hadir 1× berturut-turut untuk kembali ke 80%");
     // The warning is the row's last part, a single line.
     expect(row("PL3032")?.querySelectorAll(":scope > div:last-child > p")).toHaveLength(1);
+  });
+
+  it("an Edunex window on another day than the next class keeps a quiet line of its own", async () => {
+    await openPresence(undefined, true);
+    // II4091 meets on Mondays here: its next class isn't on the day of its window (Fri 16 Oct).
+    await six([course("II4091", 3, 3)], weekly("II4091", "2026-08-24T08:00:00", 10));
+    const ii = card("II4091");
+    expect(ii).toContain("Presensi Edunex Jum, 16 Okt, 15:00–23:59: Kumpulkan Tugas 02 Bab II");
+    expect(ii).not.toContain("lalu kumpulkan");
   });
 
   it("out of reach: the best still possible, and the one thing left to do, a click from SIX", async () => {

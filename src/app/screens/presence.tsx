@@ -12,6 +12,7 @@ import { type CSSProperties, type ReactNode, useState } from "react";
 import { type AttendanceHealth, type AttendanceState, isExamActivity, needsAttention, percent } from "../../core/attendance";
 import { attendanceAnswer } from "../../core/attendance-answer";
 import { clashes, wibDay } from "../../core/course-meetings";
+import type { ClassSession } from "../../core/models";
 import { sixTimetableUrl } from "../../core/schedule";
 import { type CourseAttendance, type OpenWindow, useAttendance } from "../attendance";
 import { METER_TONE, STATE_TONE, useActionLabel, verdictLabel } from "../attendance-labels";
@@ -77,7 +78,7 @@ export function PresenceScreen() {
       {courses.length === 0 ? (
         <EmptyState icon={<Icons.Hand className="size-5" />} title={t("presence.empty")} />
       ) : (
-        <List label={t("presence.courses")}>
+        <List label={t("presence.courses")} className="@container">
           {sorted.map((item, index) => (
             <CourseRow key={item.course.code} item={item} optional={optional.get(item.course.code)} lastDay={lastDay} index={index} onTargetOpen={hold} />
           ))}
@@ -240,9 +241,12 @@ function CourseRow({
   const sixOut = useStatus("six").state === "signed-out" && health.held === null;
   const verdict = sixOut ? null : verdictLabel(t, health);
   const facts = useFacts(health, lastDay);
-  const next = useNextLine(item);
+  const upcoming = useNextClass(health);
+  // The next Edunex window on the next class's day is said with that class, not on a line of its own.
+  const withClass = Boolean(upcoming && item.nextWindow && quietWindow(item) && wibDay(item.nextWindow.session.opensAt) === wibDay(upcoming.session.start));
+  const next = useNextLine(item, upcoming, withClass);
   const warning = useWarning(health);
-  const quiet = useQuietLine(item, optional);
+  const quiet = useQuietLine(item, optional, withClass);
   const share = counted ? percent(health.attended ?? 0, health.held ?? 0) : 0;
 
   return (
@@ -254,33 +258,46 @@ function CourseRow({
         onClick={() => go({ screen: "course", code: course.code, tab: "meetings" })}
         className="absolute inset-0 z-0 outline-none focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-[-2px] focus-visible:outline-focus"
       />
-      <div className="pointer-events-none relative flex gap-6 px-5 py-4">
-        <div className="min-w-0 flex-1">
-          <p className="flex min-w-0 items-baseline gap-2">
-            <CourseCode code={course.code} color={course.color} className="shrink-0 text-small" />
-            <span className="line-clamp-2 min-w-0 text-body font-semibold">{name(course.code, course.name)}</span>
-          </p>
-          {facts && <p className="mt-1 text-small text-muted tabular-nums">{facts}</p>}
-          {next && <p className="mt-0.5 text-small text-muted">{next}</p>}
-          {quiet}
-        </div>
-        <div className="flex w-[236px] shrink-0 flex-col items-end text-right">
-          {verdict && (
-            <p className={cx(counted ? "text-title leading-snug font-semibold text-balance" : "text-small font-medium", STATE_TONE[health.state])}>{verdict}</p>
-          )}
-          {counted && (
-            <>
-              <ShareMeter
-                className="mt-2 w-full max-w-[160px]"
-                share={share}
-                target={health.target}
-                tone={METER_TONE[health.state]}
-                label={t("presence.meter.target", { attended: health.attended ?? 0, held: health.held ?? 0, share, target: health.target })}
-              />
-              <CourseTarget code={course.code} className="pointer-events-auto relative mt-1.5" onOpenChange={onTargetOpen} />
-            </>
-          )}
-        </div>
+      {/*
+        Wide: the facts on the left, the verdict with its meter and target on the right. Narrow: the verdict, meter and target
+        on one line under the name, so each fact keeps a line of its own. The markup is in reading order either way; the last
+        row takes up what the verdict's column needs, so the facts stay close together.
+      */}
+      <div className="pointer-events-none relative grid grid-cols-1 px-5 py-4 @3xl:grid-cols-[minmax(0,1fr)_236px] @3xl:grid-rows-[auto_auto_auto_1fr] @3xl:gap-x-6">
+        <p className="flex min-w-0 items-baseline gap-2 @3xl:col-start-1 @3xl:row-start-1">
+          <CourseCode code={course.code} color={course.color} className="shrink-0 text-small" />
+          <span className="line-clamp-2 min-w-0 text-body font-semibold">{name(course.code, course.name)}</span>
+        </p>
+        {(verdict || counted) && (
+          <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 @3xl:col-start-2 @3xl:row-[1/span_4] @3xl:mt-0 @3xl:flex-col @3xl:flex-nowrap @3xl:items-end @3xl:gap-y-0 @3xl:self-start @3xl:text-right">
+            {verdict && (
+              <p
+                className={cx(
+                  "min-w-0 grow @3xl:grow-0",
+                  counted ? "text-title leading-snug font-semibold text-balance" : "text-small font-medium",
+                  STATE_TONE[health.state],
+                )}
+              >
+                {verdict}
+              </p>
+            )}
+            {counted && (
+              <>
+                <ShareMeter
+                  className="w-[120px] @3xl:mt-2 @3xl:w-full @3xl:max-w-[160px]"
+                  share={share}
+                  target={health.target}
+                  tone={METER_TONE[health.state]}
+                  label={t("presence.meter.target", { attended: health.attended ?? 0, held: health.held ?? 0, share, target: health.target })}
+                />
+                <CourseTarget code={course.code} className="pointer-events-auto relative @3xl:mt-1.5" onOpenChange={onTargetOpen} />
+              </>
+            )}
+          </div>
+        )}
+        {facts && <p className="mt-1 text-small text-muted tabular-nums @3xl:col-start-1 @3xl:row-start-2">{facts}</p>}
+        {next && <p className="mt-0.5 text-small text-muted @3xl:col-start-1 @3xl:row-start-3">{next}</p>}
+        {quiet && <div className="@3xl:col-start-1 @3xl:row-start-4">{quiet}</div>}
       </div>
       {warning && <div className="pointer-events-none relative -mt-1.5 px-5 pb-3.5">{warning}</div>}
     </li>
@@ -322,21 +339,48 @@ const RECORD = {
   noSix: null,
 } as const;
 
-/** "Berikutnya Hari ini, 16:00 · 9134 · cukup hadir di kelas", or the class going on now: when, where, and what records it. */
-function useNextLine({ health }: CourseAttendance): ReactNode {
-  const t = useT();
-  const f = useFormat();
+/** The class going on now, else the next one on SIX's timetable. */
+function useNextClass(health: AttendanceHealth): { session: ClassSession; live: boolean } | null {
   const now = useNow();
   const schedule = useDataset("six.schedule");
   const live = schedule?.find((s) => s.courseCode === health.code && s.start <= now && now < s.end && !isExamActivity(s.activity));
-  const session = live ?? health.left.next;
-  if (!session) return null;
+  if (live) return { session: live, live: true };
+  return health.left.next ? { session: health.left.next, live: false } : null;
+}
+
+/** The next Edunex window, when it counts and asks for something particular (not just opening the course). */
+const quietWindow = ({ health, nextWindow }: CourseAttendance) => nextWindow !== null && health.countedIn !== "six" && nextWindow.action.activity !== "course";
+
+/**
+ * "Berikutnya Hari ini, 16:00 · 9134 · cukup hadir di kelas", or the class
+ * going on now: when, where, and what records it; with that day's Edunex
+ * window when it asks for something ("hadir, lalu kumpulkan Tugas 02 Bab II
+ * sebelum 23:59").
+ */
+function useNextLine(item: CourseAttendance, upcoming: { session: ClassSession; live: boolean } | null, withClass: boolean): ReactNode {
+  const t = useT();
+  const f = useFormat();
+  const actionLabel = useActionLabel();
+  if (!upcoming) return null;
+  const { session, live } = upcoming;
+  const { health, nextWindow } = item;
   const record = RECORD[health.countedIn];
+  const label = nextWindow ? actionLabel(nextWindow) : "";
+  // Mid-sentence, the action starts small: "hadir, lalu kumpulkan …".
+  const action = label.charAt(0).toLowerCase() + label.slice(1);
+  const what =
+    withClass && nextWindow
+      ? t(health.countedIn === "both" ? "presence.record.bothDo" : "presence.record.edunexDo", { action, time: f.time(nextWindow.session.closesAt) })
+      : record
+        ? t(record)
+        : "";
   return (
     <Meta>
-      {live ? t("presence.row.now", { time: f.time(live.end) }) : t("presence.row.next", { when: `${f.relativeDay(session.start)}, ${f.time(session.start)}` })}
+      {live
+        ? t("presence.row.now", { time: f.time(session.end) })
+        : t("presence.row.next", { when: `${f.relativeDay(session.start)}, ${f.time(session.start)}` })}
       {session.room ?? ""}
-      {record ? t(record) : ""}
+      {what}
     </Meta>
   );
 }
@@ -344,10 +388,10 @@ function useNextLine({ health }: CourseAttendance): ReactNode {
 /**
  * A quiet line: the Edunex window open now where only SIX counts (optional,
  * with the way to it anyway), else the next window that counts when it asks
- * for something particular ("Presensi Edunex Jum, 16 Okt, 15:00–23:59:
- * Kumpulkan Tugas 02 Bab II").
+ * for something particular and isn't on the next class's day ("Presensi
+ * Edunex Jum, 16 Okt, 15:00–23:59: Kumpulkan Tugas 02 Bab II").
  */
-function useQuietLine({ health, nextWindow }: CourseAttendance, optional: OpenWindow | undefined): ReactNode {
+function useQuietLine(item: CourseAttendance, optional: OpenWindow | undefined, withClass: boolean): ReactNode {
   const t = useT();
   const f = useFormat();
   const open = useOpenExternal();
@@ -367,7 +411,8 @@ function useQuietLine({ health, nextWindow }: CourseAttendance, optional: OpenWi
         </Button>
       </p>
     );
-  if (!nextWindow || health.countedIn === "six" || nextWindow.action.activity === "course") return null;
+  const { nextWindow } = item;
+  if (!nextWindow || !quietWindow(item) || withClass) return null;
   const { session } = nextWindow;
   return (
     <p className="mt-0.5 text-small text-muted">

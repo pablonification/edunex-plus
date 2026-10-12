@@ -108,6 +108,8 @@ export const attendanceStrings = {
   "presence.record.six": { id: "cukup hadir di kelas", en: "just be in class" },
   "presence.record.both": { id: "hadir, lalu isi Presensi Edunex", en: "be in class, then check in on Edunex" },
   "presence.record.edunex": { id: "isi Presensi Edunex tiap pertemuan", en: "check in on Edunex every meeting" },
+  "presence.record.bothDo": { id: "hadir, lalu {action} sebelum {time}", en: "be in class, then {action} before {time}" },
+  "presence.record.edunexDo": { id: "Presensi Edunex: {action} sebelum {time}", en: "Edunex Presence: {action} before {time}" },
   "presence.row.window": { id: "Presensi Edunex {when}: {action}", en: "Edunex Presence {when}: {action}" },
   "presence.row.optional": { id: "Presensi Edunex juga dibuka sampai {time}, tidak wajib.", en: "Edunex Presence is also open until {time}; it's optional." },
   "presence.warn.uncertain": {
