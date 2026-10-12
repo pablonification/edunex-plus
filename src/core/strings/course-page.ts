@@ -18,7 +18,7 @@ export const coursePageStrings = {
   "course.tab.announcements": { id: "Pengumuman", en: "Announcements" },
 
   // Pinned meeting
-  "course.nowUntil": { id: "Sedang berlangsung · sampai {time}", en: "In progress · until {time}" },
+  "course.nowUntil": { id: "Sedang berlangsung · sampai {time}", en: "On now · until {time}" },
   "course.next": { id: "Pertemuan berikutnya", en: "Next meeting" },
   "course.presenceOpen": { id: "Presensi Edunex dibuka", en: "Edunex Presence open" },
   "course.recordInEdunex": { id: "Catat di Edunex", en: "Record in Edunex" },
@@ -134,8 +134,8 @@ export const coursePageStrings = {
     en: "Without SIX it's not certain this Presence counts: record it just in case.",
   },
   "course.presenceCountsSix": {
-    id: "Kehadiranmu dihitung di SIX; Presensi Edunex juga dibuka.",
-    en: "Your attendance counts in SIX; Edunex Presence is open too.",
+    id: "Kehadiranmu dihitung di SIX; Presensi ini tidak wajib.",
+    en: "Your attendance counts in SIX; this Presence is optional.",
   },
   "course.join": { id: "Gabung", en: "Join" },
   "course.online": { id: "Daring", en: "Online" },

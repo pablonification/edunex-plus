@@ -430,7 +430,9 @@ describe("meetings", () => {
     expect(s.text()).toContain("Presensi Edunex dibuka");
     expect(s.text()).toMatch(/tutup 09:30 \(1 jam 1\d mnt lagi\)/);
     // PL3002 counts in SIX: recording on Edunex is offered, but quietly, and the page says why.
-    expect(s.text()).toContain("Kehadiranmu dihitung di SIX; Presensi Edunex juga dibuka.");
+    // "Dibuka" is said once, beside the countdown; the line under it says the window is optional.
+    expect(s.text()).toContain("Kehadiranmu dihitung di SIX; Presensi ini tidak wajib.");
+    expect(s.text()).not.toContain("juga dibuka");
     // The meeting is named as on the Pertemuan tab: by the module posted for it, not "Kuliah".
     expect(s.text()).toContain("Modul 7 · Inovasi Pelayanan Publik");
     const record = [...document.querySelectorAll("button")].find((b) => b.textContent === "Catat di Edunex")!;
@@ -815,5 +817,13 @@ describe("in English", () => {
     expect(screen.text()).toMatch(/Next|Not recorded in Edunex|Present/);
     await tab(/^Grades/);
     expect(screen.text()).toContain("These are example weights, not II4091's.");
+  });
+
+  it('says "On now" for the class going on, as Home does', async () => {
+    const s = await openCourse("PL3002", { six: true });
+    await s.engineDoes(() => s.engine.updateSettings({ lang: "en" }));
+    expect(s.text()).toContain("On now · until 10:00");
+    expect(s.text()).not.toContain("In progress");
+    expect(s.text()).toContain("Your attendance counts in SIX; this Presence is optional.");
   });
 });
