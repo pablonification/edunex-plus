@@ -193,6 +193,8 @@ describe("putting off what needs you on Beranda", () => {
     await frame();
     expect(document.activeElement).toBe(needs()?.querySelector("[data-snoozed]"));
     const text = needs()?.textContent ?? "";
+    // Nothing reads as "all clear": no green check while things are only put off.
+    expect(needs()?.querySelector(".text-success-fg")).toBeNull();
     expect(text).toContain("Tidak ada lagi yang perlu perhatianmu sekarang");
     expect(text).toContain("6 ditunda");
     expect(text).not.toContain("Bebas tenggat");

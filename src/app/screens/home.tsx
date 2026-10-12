@@ -632,7 +632,12 @@ function NeedsYou({ needs, courses }: { needs: Need[]; courses: readonly TermCou
         // Everything left is put off: say so, never "nothing due".
         <div className="rounded-xl bg-sunken px-4 py-3.5">
           <p className="flex items-center gap-2 text-body font-medium">
-            <Icons.CheckCircle className="size-4 shrink-0 text-success-fg" weight="bold" />
+            {/* Green says "all clear": not while things are only put off. */}
+            {snoozed.length ? (
+              <Icons.Snooze className="size-4 shrink-0 text-faint" />
+            ) : (
+              <Icons.CheckCircle className="size-4 shrink-0 text-success-fg" weight="bold" />
+            )}
             {snoozed.length ? t("home.needs.allSnoozed") : t("home.needs.none", { day: `${f.weekday(now + 7 * DAY)}, ${f.dayMonth(now + 7 * DAY)}` })}
           </p>
           <div className="mt-0.5 pl-6 text-small text-muted">{snoozedLine || t("home.needs.noneHint")}</div>
