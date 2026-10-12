@@ -36,7 +36,8 @@ describe("a course's own attendance target", () => {
     expect(todayRow("11:00")).toContain("Jangan absen lagi");
 
     await openCourse("DK4073");
-    expect(s.text()).toContain("Kehadiran4/6 · 66%Jangan absen lagiTarget 80%");
+    // No room left: the banner says it, so the meter above it doesn't say it again.
+    expect(s.text()).toContain("Kehadiran4/6 · 66%Target 80%");
     // The banner says what "no absences left" means: every meeting to the last lecture day (November's are the weekly slot carried on).
     expect(banner()).toContain("Jangan absen lagiSekitar 8 pertemuan lagi sampai 4 Des: hadiri semuanya agar tetap 80%.");
     // Its course contract asks for 75%.
