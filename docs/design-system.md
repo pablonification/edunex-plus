@@ -327,7 +327,7 @@ Screens are composed, not styled one by one:
 | `IconButton` | Square, always with a name and a tooltip. |
 | `Popover` | A panel from a control (alerts, data status); Escape and a click outside close it. |
 | `Dialog`, `ConfirmDialog` | Focus stays inside; Escape closes; both leave the way they came, taking no second click while they go (other dialog shells reuse `SCRIM_CLASS`, `PANEL_MOTION_CLASS` and `onClickCapture={ignoreClosingClick}`). Confirm only before what can't be undone: it is an alert dialog, so a click beside it isn't an answer and Cancel has focus first. |
-| `toast(text, tone, action?)` | Neutral, success or danger; with an action ("Urungkan", "Lihat") it stays 8 s. It waits while the pointer is on it or focus is in it, then goes on with the time it had left. Never the only place an error is said. |
+| `toast(text, tone, action?)` | Neutral, success or danger; with an action ("Urungkan", "Lihat") it stays 8 s. It waits while the pointer is on it or focus is in it, then goes on with the time it had left. When it goes (Urungkan pressed from the keyboard), focus goes back where it came from, never to the page. Never the only place an error is said. |
 | `StatusChip` | A Task's true status: each its own color, glyph and word. Shown only where the status says something (not "Belum dikerjakan" on every to-do row). |
 | `SourceTag` | Quiet outline tag, only where the source changes what to do. |
 | `SourceLogo`, `AppMark` (`ui/brand.tsx`) | The real Edunex and SIX logos where the app stands for one of them (connecting, the data status, the accounts in Settings); Edunex Plus's own icon (`assets/icon.png`) in the sidebar, on the welcome screen and in Settings. |

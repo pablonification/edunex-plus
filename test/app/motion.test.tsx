@@ -181,6 +181,31 @@ describe("a toast being read", () => {
     await wait(8_000);
     expect(card()).toBeNull();
   });
+
+  it("one that goes with focus in it gives focus back where it came from, even by way of a toast that went first", async () => {
+    await mount(
+      <>
+        <button type="button">Simpan</button>
+        <Toaster />
+      </>,
+    );
+    const page = document.querySelector("button")!;
+    let first = 0;
+    let second = 0;
+    await act(async () => {
+      first = toast("Diingatkan lagi besok", "neutral", { label: "Urungkan", onClick: () => {} });
+      second = toast("Disembunyikan sampai ada perubahan", "neutral", { label: "Urungkan", onClick: () => {} });
+    });
+    const [one, two] = document.querySelectorAll<HTMLElement>("[aria-live] [role=status] button");
+    await act(async () => page.focus());
+    await act(async () => one.focus());
+    await act(async () => two.focus());
+
+    await act(async () => dismissToast(first));
+    expect(document.activeElement).toBe(two);
+    await act(async () => dismissToast(second));
+    expect(document.activeElement).toBe(page);
+  });
 });
 
 describe("a dialog or menu on its way out", () => {

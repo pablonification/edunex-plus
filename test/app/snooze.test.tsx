@@ -85,6 +85,19 @@ describe("putting off what needs you on Beranda", () => {
     expect(document.activeElement).toBe(next);
   });
 
+  it("Undo pressed from the keyboard gives focus back where it was, not to the page", async () => {
+    const s = await open();
+    await snooze("UTS Komunikasi Pemasaran", "Besok pagi");
+    await frame();
+    // The snoozed row handed focus on to the next row; from there the Student goes to the toast's Undo.
+    const before = document.activeElement;
+    expect(needs()?.contains(before)).toBe(true);
+    await press(s.button("Urungkan"));
+    await frame();
+    expect(titles().some((t) => t.startsWith("UTS Komunikasi Pemasaran"))).toBe(true);
+    expect(document.activeElement).toBe(before);
+  });
+
   it("comes back by itself at its time", async () => {
     const s = await open();
     await snooze("UTS Komunikasi Pemasaran", "3 jam lagi");

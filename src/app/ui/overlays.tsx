@@ -332,22 +332,42 @@ export function Toaster() {
   );
 }
 
+/** Where focus was before it came into each toast (its card): it goes back there when the toast goes. */
+const focusCameFrom = new WeakMap<Element, HTMLElement>();
+
 function Toast({ item }: { item: ToastItem }) {
   const ref = useRef<HTMLDivElement>(null);
+  const card = useRef<HTMLDivElement>(null);
   const exit = usePresence()?.exit;
   const leaving = exit !== undefined;
-  useLayoutEffect(() => (exit && ref.current ? exit(ref.current) : undefined), [exit]);
+  useLayoutEffect(() => {
+    if (!exit || !ref.current || !card.current) return;
+    // Focus in a leaving toast (Undo pressed from the keyboard) goes back where it came from, or where
+    // that has gone with its row, before the card turns inert: as a prop, React would make it inert
+    // first and drop the focus on the page.
+    const back = focusCameFrom.get(card.current);
+    if (back && card.current.contains(document.activeElement) && !focusInsteadOf(back) && back.isConnected) back.focus();
+    card.current.setAttribute("inert", "");
+    return exit(ref.current);
+  }, [exit]);
   return (
     // Rises in with CSS (none with Reduce motion); leaves with the kit's fade and closing gap, clipped
     // meanwhile. A leaving toast takes no more clicks, so a second click on Undo can't run it twice:
     // its card is inert, and the box around it catches the click so it doesn't land on the page behind.
     <div ref={ref} className={cx("flex justify-center pt-2 motion-safe:animate-toast-in", leaving && "pointer-events-auto overflow-clip")}>
       <div
+        ref={card}
         role="status"
-        inert={leaving}
         onPointerEnter={() => holdClock(item.id, "pointer")}
         onPointerLeave={() => releaseClock(item.id, "pointer")}
-        onFocus={() => holdClock(item.id, "focus")}
+        onFocus={(event) => {
+          holdClock(item.id, "focus");
+          const from = event.relatedTarget;
+          if (!(from instanceof HTMLElement) || event.currentTarget.contains(from)) return;
+          // From another toast: where that one's focus came from, which outlasts it.
+          const toastBefore = from.closest("[role=status]");
+          focusCameFrom.set(event.currentTarget, (toastBefore && focusCameFrom.get(toastBefore)) || from);
+        }}
         onBlur={(event) => !event.currentTarget.contains(event.relatedTarget) && releaseClock(item.id, "focus")}
         className={cx(
           "pointer-events-auto flex items-center gap-2.5 rounded-xl py-2.5 pr-2.5 pl-3.5 text-small font-medium shadow-pop",
