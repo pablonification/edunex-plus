@@ -236,7 +236,7 @@ describe("the Task page", () => {
     expect(s.button("Kumpulkan").disabled).toBe(true);
     // A disabled Kumpulkan says why.
     expect(card()).toContain("Lampirkan berkas dulu untuk mengumpulkan.");
-    expect(card()).toContain("Draf hanya terlihat olehmu. Kumpulkan untuk menyerahkan.");
+    expect(card()).toContain("Dosen bisa melihat draf yang tersimpan, tapi hanya Kumpulkan yang menyerahkannya.");
     expect(document.querySelector("article")?.textContent).toContain("Boleh terlambat");
   });
 
@@ -248,7 +248,7 @@ describe("the Task page", () => {
     expect(card()).toContain("DrafTersimpan Hari ini, 08:12 · belum diserahkan");
     expect(card()).toContain("bab2-draf.pdf");
     expect(s.button("Kumpulkan").disabled).toBe(false);
-    expect(card()).toContain("Draf hanya terlihat olehmu.");
+    expect(card()).toContain("Dosen bisa melihat draf yang tersimpan");
     const history = [...document.querySelectorAll("main aside ol li")].map((li) => li.textContent);
     expect(history).toContain("Kamu menyimpan drafHari ini, 08:12");
   });

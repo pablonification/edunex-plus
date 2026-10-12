@@ -17,6 +17,8 @@ export class PretendWorld implements Transport {
   readonly github: PretendGithub;
   /** Files uploaded to Edunex's storage, by path. */
   readonly blobs = new Map<string, Uint8Array | string>();
+  /** The headers each upload to the storage came with, by path. */
+  readonly blobHeaders = new Map<string, Record<string, string>>();
   /** Every request that reached the world, for assertions about politeness. */
   readonly log: { at: number; method: string; url: string; status: number | "network-error" }[] = [];
   private offline = false;
@@ -85,6 +87,7 @@ export class PretendWorld implements Transport {
         // Azure refuses a blob upload that doesn't say what kind of blob it is.
         if (request.headers?.["x-ms-blob-type"] !== "BlockBlob") return { status: 400, headers: {}, body: "MissingRequiredHeader", url: url.toString() };
         this.blobs.set(url.pathname, request.body ?? "");
+        this.blobHeaders.set(url.pathname, { ...request.headers });
         return { status: 201, headers: {}, body: "", url: url.toString() };
       }
       const blob = this.blobs.get(url.pathname);

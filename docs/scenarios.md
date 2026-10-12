@@ -36,7 +36,9 @@ world.edunex.submitOnWebsite(id);                               // the Student, 
 | Short answer window (hours, posted during class) | `postTask` with close `start_at`/`end_at` | #72, #75 |
 | Take-home exam Task (`domain: "uts"`; `"UAS"` as the lecturer's form stores it) | recorded (`uts`); `postTask` with `domain: "UAS"` | #72, v2-17 |
 | Task required file (`file_required`) | recorded (all recorded Tasks) | #73 |
-| Draft save, file upload, submit from the app | `POST /course/task/answers`, `PATCH …/{id}`, `POST /blob-storage/sas`, `PUT` upload; reply shapes need a recording (the app re-reads the Task to confirm) | #73 |
+| Draft save, file upload, submit from the app | the website's requests (API.md "The only writes"): `POST /blob-storage/sas` replying `{ files: { [path]: links } }`, `PUT` upload, `POST`/`PATCH /course/task/answers` with text and files, `PATCH {is_sent: 1}`, `DELETE /blob-storage//task/{id}/export`; write replies need a recording (the app re-reads the Task to confirm) | #73 |
+| Clearing the lecturer's cached download fails | `fail(/\/export$/, 500)` | #73 |
+| Group Task (`type: "GROUP"`) | `postTask` with `type: "GROUP"` | #73 |
 | Second answer for the same Task | `writes` log shows a duplicate POST | #73 |
 
 ## Edunex: Presence

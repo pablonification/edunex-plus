@@ -103,13 +103,14 @@ or mistyped field the app relies on is a vendor change (see [Errors](#errors)).
 | `/login/me` | none | `id` (user id), `name`, `code` (the NIM) |
 | `/notifications/{userId}` | none | `data.notifications[]`: `type`, `title`, `objectId`, `date`, `message` |
 | `/course/presences/list` | none | `course_id`, `course_code`, `courses_name`, `class_id`, `class_name`, `semester`, `year` |
-| `/course/tasks` | `filter[course_id][is]={courseId}`, `page[limit]=0` | `meta.total`; per Task `id`, `taskable_type`, `taskable_id`, `name`, `description`, `files[{name,file}]`, `start_at`, `end_at`, `created_at`, `updated_at`, `open_status`, `file_required`, `is_lateable`, `domain`, `show_score`, `answers[]`: `id`, `answer`, `files`, `score`, `is_sent`, `sent_at`, `created_at`, `updated_at`, `verified_at` |
+| `/course/tasks` | `filter[course_id][is]={courseId}`, `page[limit]=0` | `meta.total`; per Task `id`, `taskable_type`, `taskable_id`, `course_name`, `type`, `tasks_type`, `name`, `description`, `files[{name,file}]`, `start_at`, `end_at`, `created_at`, `updated_at`, `open_status`, `file_required`, `is_lateable`, `domain`, `show_score`, `answers[]`: `id`, `answer`, `files`, `score`, `is_sent`, `sent_at`, `created_at`, `updated_at`, `verified_at` |
 | `/course/courses/{courseId}` | `include=modules,modules.activities,lecturer,lecturer.user,assistant,class` | `lecturer`, `credit`, `gradebook_publish`; `included[]` of type `modules`: `id`, `course_id`, `index`, `name`, `is_active`, `created_at` |
 | `/gradebook` | `course_id={courseId}`, `class_id={classId}` | `students[]`: `code`, `total`, `index` |
 | `/course/contents/` | `filter[contentable_id][is]={id}`, `filter[contentable_type][is]=App\Models\Courses` or `App\Models\Modules`, `sort=index`, `page[limit]=0` | `id`, `contentable_type`, `contentable_id`, `name`, `type`, `content`, `size`, `created_at`, `updated_at` |
 | `/course/presences` | `filter[course_id][is]`, `filter[class_id][is]`, `sort=start_at`, `page[limit]=10`, `page[offset]` | `meta.total`; `course_id`, `class_id`, `start_at`, `end_at`, `presence_start`, `presence_end`, `topic`, `note`, `presentable[{presentable, presentable_id}]`, `url`, `attandance{status, presence_at}` |
 | `/course/announcements/course/{courseId}` | none | `id`, `announcement`, `created_at`, `creator.name` |
 | `/exam/exams` | `filter[course_id][is]={courseId}`, `page[limit]=0` | `data[].id`; from `attributes`, if present: `name` or `title`, `start_at`, `end_at` |
+| `/course/modules/{moduleId}` | `include=` (empty, as the website sends it) | `data.attributes.name`; only right before an upload |
 
 Notes:
 
@@ -135,7 +136,8 @@ Notes:
 - Seen in recordings but **not called** by v2: `/todo` (no submit status, and its times are
   WIB marked as UTC), `/course/agenda` (Task deadlines with no timezone),
   `/course/tasks/{id}?include=answers` (a Task is read back through its course's list instead),
-  `/message/unread`, `/public/*`, `/course/lptks/*`, `/course/modules/{id}`. `/course/materials`
+  `/message/unread`, `/public/*`, `/course/lptks/*`. `/course/modules/{id}` is read only right
+  before an upload, as the website reads it (see [The only writes](#the-only-writes)). `/course/materials`
   does not exist; `/rps/v1/rps` answers 403 for Students. No sockets are used.
 
 ## Timestamps
@@ -188,25 +190,50 @@ Task Answers (the "saved ≠ submitted" surface) and their files, and nothing el
 `src/engine/sources/edunex/hand-in.ts`. Each runs only from an explicit click, one at a time
 per Task (a second click waits, then re-reads).
 
-**Upload a file** (on attach; 100 MB at most):
+**From the website's code, not a live recording.** The recorder blocks writes, so these
+requests copy what Edunex's own website sends, read from its public JavaScript (fetched
+2026-10-12 without signing in): the answer form `ContentTaskAnswer` (`getFilePath`,
+`onFilesAdded`, `onProcessing`, `onSuccess`, `saveData`, `submit`) in
+`js/components/content/reader/task-reader.2eb63cbd.js`, and the task store's `answerCreate`,
+`answerUpdate` and `answerSend` in `js/app.79bf84f4.js`. If Edunex ships new code, check these
+again. One real hand-in on a throwaway Task is still the only proof.
 
-1. `POST /blob-storage/sas` with `{ "files": [{ "fileName", "contentType", "sizeInBytes" }] }`.
-   The reply must hold an `uploadUrl` and a `readUrl` (accepted as a bare object, an array, or
-   wrapped in `data`), both `https://…blob.core.windows.net`.
-2. `PUT {uploadUrl}` with the file bytes, `x-ms-blob-type: BlockBlob`, `Content-Type` and the
-   User-Agent. Edunex's token is never sent to storage. Time limit: 1 min plus 1 s per 50 KB,
-   30 min at most.
+**What Edunex takes.** The website's uploader accepts `.pdf .doc .docx .xls .xlsx .ppt .pptx
+.zip .rar .jpg .jpeg .png`; the app refuses anything else before sending it, and anything over
+100 MB (the uploader's own `maxFileSize: 100`; note that Dropzone reads `maxFilesize`, so the
+website itself may let bigger files through). A group Task (`tasks_type: "GROUP"`, or a `type`
+other than `PERSONAL`) is handed in through the website's group pages
+(`/course/task/answer/groups`); the app never writes to it and sends the Student to Edunex.
 
-**Save draft:**
+**Upload a file** (on attach):
+
+1. Reads, as the website's Task page does: the course's Task list (for `course_name`,
+   `taskable_type`, `taskable_id` and the type), `GET /course/modules/{taskable_id}?include=`
+   (the module's `name`), and `GET /login/me` (the Student's user `id`). Without `course_name`,
+   `GET /course/courses/{course_id}` gives the course's `name`.
+2. `POST /blob-storage/sas` with `{ "files": [{ "fileName", "contentType", "sizeInBytes" }] }`.
+   `fileName` is the storage path the website builds:
+   `{year}/{course_id}-{course name}/{module id}-{module name}/task/{user id}/{ms}_{file name}`,
+   whitespace as `-` and the file's extension left off (the module part only for a Task in a
+   module). The reply is `{ "files": { "<that path>": { "uploadUrl", "readUrl" } } }`; both
+   links must be `https://…blob.core.windows.net`. Anything else is a vendor change.
+3. `PUT {uploadUrl}` with the file bytes, `x-ms-blob-type: BlockBlob`, `Content-Type` (the
+   file's type), `Content-Disposition: inline` and the User-Agent. Edunex's token is never sent
+   to storage. Time limit: 1 min plus 1 s per 50 KB, 30 min at most.
+
+**Save draft** ("Save Answer" on the website):
 
 1. Read the Task back (`GET /course/tasks` for its course). Stop if it's gone, already handed in,
-   not open yet, or closed.
-2. If there is no answer: `POST /course/task/answers` with
-   `{ "data": { "attributes": { "task_id", "answer": "", "is_sent": 0 } } }`, then read back.
-3. `PATCH /course/task/answers/{answerId}` with
-   `{ "data": { "attributes": { "task_id", "answer", "files": [{ "name", "file": readUrl }], "is_sent": 0 } } }`.
-   `files` is the full list the draft should hold; only links on Edunex's storage are allowed.
-4. Read back. "Saved" only if Edunex now holds exactly those files in an unsent answer;
+   not open yet, closed, or a group Task.
+2. One request with the text and every file:
+   - no answer yet: `POST /course/task/answers`,
+   - else: `PATCH /course/task/answers/{answerId}`,
+
+   both with `{ "data": { "attributes": { "task_id", "files", "answer", "is_sent": 0 } } }`.
+   `files` is the full list the draft should hold, as the website sends it: Edunex's own record
+   (as read, with its `id`) for each file kept, `{ "file": readUrl, "name" }` for a new one; only
+   links on Edunex's storage. `answer` is the answer's text (HTML).
+3. Read back. "Saved" only if Edunex now holds exactly those files in an unsent answer;
    otherwise "unconfirmed".
 
 **Submit:**
@@ -214,18 +241,21 @@ per Task (a second click waits, then re-reads).
 1. Read back and check as above; a Task with `file_required` needs a file.
 2. If the answer doesn't hold exactly the chosen files, save the draft first (steps above).
 3. `PATCH /course/task/answers/{answerId}` with exactly `{ "data": { "attributes": { "is_sent": 1 } } }`.
-4. Read back. "Submitted" only when `is_sent` is 1; otherwise "unconfirmed". There is no
+4. `DELETE /blob-storage//task/{taskId}/export` (the double slash is the website's), with no
+   body. This clears the lecturer's cached "download all answers" file so it's built again with
+   this answer in it. Best effort, as on the website: any failure is ignored and never fails the
+   submit.
+5. Read back. "Submitted" only when `is_sent` is 1; otherwise "unconfirmed". There is no
    resubmit.
 
-All write requests send `Content-Type: application/json`. Replies are not parsed beyond the
-status: every write is confirmed by reading the Task back. There are no other `POST`, `PATCH`,
-`PUT` or `DELETE` calls to Edunex.
+Writes with a body send `Content-Type: application/json`. Replies are not parsed beyond the
+status, except the upload links: every write is confirmed by reading the Task back. There are no
+other `POST`, `PATCH`, `PUT` or `DELETE` calls to Edunex.
 
-What's confirmed: the submit body (captured live in v1, issue #12) and creating an answer without
-files (checked live in v1). What isn't: the recorder blocks writes, so the upload-link reply's
-envelope, the `files` field in a draft update, and the write replies were never recorded. They
-are modelled on the spec and on the `files` Edunex sends back on an answer, and kept in one place
-so one real submission can confirm or correct them.
+What's confirmed live: the submit body (v1, issue #12) and creating an answer (v1). Everything
+else above comes from the website's code. A draft saved on Edunex shows to the lecturer as
+"Answered" (the lecturer's answer list in `js/assignment/detail-student.819acb73.js`), so the
+app never calls a draft private.
 
 ## Errors
 
@@ -247,8 +277,9 @@ one success resets it. Edunex has no shared pace line (SIX and ITB's catalog do;
 
 ## Unconfirmed / not yet recorded
 
-- The `/blob-storage/sas` reply envelope, the `files` field of a draft update, and the replies
-  to all writes (see above). Whether the storage `PUT` needs more headers than it sends.
+- Every hand-in request is taken from the website's code, not seen live (see above); the
+  replies to the writes other than the upload links were never seen.
+- Whether the API itself refuses an answer with no text (the website never sends one).
 - Whether a second create-answer call for the same Task makes a duplicate (the app avoids it
   either way by re-reading first).
 - What `/gradebook` looks like once a lecturer publishes.
