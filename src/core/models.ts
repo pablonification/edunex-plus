@@ -10,6 +10,7 @@ import { itbDatasets } from "./models/itb";
 import { plannerDatasets } from "./models/planner";
 import { sixDatasets } from "./models/six";
 import { sixRecordsDatasets } from "./models/six-records";
+import { snoozeDatasets } from "./models/snoozes";
 import { tasksDatasets } from "./models/tasks";
 
 export * from "./models/alerts";
@@ -21,6 +22,7 @@ export * from "./models/itb";
 export * from "./models/planner";
 export * from "./models/six";
 export * from "./models/six-records";
+export * from "./models/snoozes";
 export * from "./models/tasks";
 
 /** Every dataset the engine publishes, by name ("<source>.<what>"). */
@@ -34,6 +36,7 @@ export const Datasets = {
   ...plannerDatasets,
   ...alertsDatasets,
   ...appDatasets,
+  ...snoozeDatasets,
 } as const satisfies Record<string, z.ZodType>;
 export type DatasetName = keyof typeof Datasets;
 export type DatasetValue<N extends DatasetName> = z.infer<(typeof Datasets)[N]>;
