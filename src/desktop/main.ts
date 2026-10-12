@@ -13,12 +13,13 @@ import { translate } from "../core/strings";
 import { systemClock } from "../engine/clock";
 import { createEngine, type Engine } from "../engine/engine";
 import { demo } from "./demo";
+import { createFileCache, FILE_CACHE_FOLDER } from "./file-cache";
 import { alertsHandlers } from "./handlers/alerts";
 import { authHandlers } from "./handlers/auth";
 import type { DesktopContext } from "./handlers/context";
 import { coreHandlers } from "./handlers/core";
 import { coursePageHandlers } from "./handlers/course-page";
-import { filesHandlers } from "./handlers/files";
+import { edunexNim, filesHandlers, forgetOtherStudentsFiles } from "./handlers/files";
 import { scheduleHandlers } from "./handlers/schedule";
 import { sixHandlers } from "./handlers/six";
 import { tasksHandlers } from "./handlers/tasks";
@@ -78,6 +79,8 @@ async function start(): Promise<void> {
   denyPermissions(engineSession);
   denyPermissions(session.defaultSession);
 
+  const fileCache = createFileCache(path.join(userData, FILE_CACHE_FOLDER), { owner: () => edunexNim(current) });
+  let followAccount: (event: Event) => Promise<void> = async () => undefined;
   const current = createEngine({
     transport: demo?.transport ?? electronTransport(engineSession),
     clock: demo?.clock ?? systemClock,
@@ -85,12 +88,16 @@ async function start(): Promise<void> {
     vault,
     version: __APP_VERSION__,
     checkForUpdates: packaged,
-    emit: send,
+    emit: (event) => {
+      send(event);
+      void followAccount(event);
+    },
     // The demo's made-up alerts stay in the app: no OS notifications.
     alert: (notice) => void (demo ? undefined : notifier.show(notice)),
   });
   engine = current;
   await current.load();
+  followAccount = forgetOtherStudentsFiles(fileCache, edunexNim(current));
   if (demo && (await demo.prepare(current))) syncing = true;
 
   const csp = contentSecurityPolicy(devServer);
@@ -119,6 +126,7 @@ async function start(): Promise<void> {
     userData,
     engineSession,
     fetchFile: demo?.fetchFile ?? ((url, init) => engineSession.fetch(url, { ...init, bypassCustomProtocolHandlers: true })),
+    fileCache,
     vaultMode: mode,
     lang: () => current.snapshot().settings.lang,
     send,

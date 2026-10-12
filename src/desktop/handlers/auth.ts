@@ -8,7 +8,7 @@ import { demo } from "../demo";
 import { signInToEdunex } from "../signin";
 import { forgetSignInSession } from "../signin-session";
 import { signInToSix } from "../six-signin";
-import { removeEdunexFiles, removeEveryTrace } from "../traces";
+import { removeEveryTrace } from "../traces";
 import type { HandlerGroup } from "./context";
 
 export const authHandlers: HandlerGroup<"auth.signIn" | "auth.signOut"> = (context) => {
@@ -59,8 +59,10 @@ export const authHandlers: HandlerGroup<"auth.signIn" | "auth.signOut"> = (conte
     },
     "auth.signOut": async ({ source }) => {
       await context.engine.signOut(source);
+      // Edunex's files go with the account they came from, even one still on its way in. Signing out of
+      // everything carries on if this fails: removeEveryTrace removes the folder too.
+      if (!source || source === "edunex") await context.fileCache.clear().catch(() => undefined);
       if (!source) await Promise.all([removeEveryTrace({ userData: context.userData, engineSession: context.engineSession }), forgetSignInSession()]);
-      else if (source === "edunex") await removeEdunexFiles(context.userData);
       return {};
     },
   };

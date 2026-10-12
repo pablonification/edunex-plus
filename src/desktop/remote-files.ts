@@ -7,6 +7,7 @@
 import type { FileProblem } from "../core/actions/files";
 import { isStorageFile } from "../core/links";
 import { EngineError } from "../engine/errors";
+import type { FileCache } from "./file-cache";
 
 /** The part of the Fetch API this needs: Electron's session.fetch in the app, the pretend storage in tests. */
 export type FetchFile = (url: string, init: { signal: AbortSignal; credentials: "omit"; redirect: "error" }) => Promise<Response>;
@@ -25,7 +26,7 @@ export const LIMITS: Record<ReadAs, { bytes: number; quietMs: number }> = {
 export interface FileSources {
   fetch: FetchFile;
   /** Files read before (wiped at sign-out). */
-  cache?: { get(url: string): Promise<Uint8Array | null>; put(url: string, bytes: Uint8Array): Promise<void> };
+  cache?: Pick<FileCache, "get" | "put" | "generation">;
   /** The Student's own copy, saved for offline reading. */
   offline?: (url: string) => Promise<Uint8Array | null>;
 }
@@ -33,13 +34,15 @@ export interface FileSources {
 /** A copy on this computer first (one read before, or saved for offline), else Edunex's storage; whatever comes back is checked the same way. */
 export async function readFile(sources: FileSources, url: string, as: ReadAs): Promise<ReadResult> {
   if (!isStorageFile(url)) throw new EngineError("Rejected", "Only Edunex's files are read into the app");
+  // A sign-out any time after this wipes the cache; what this reads isn't kept then.
+  const since = sources.cache?.generation();
   for (const local of [sources.cache?.get(url), sources.offline?.(url)]) {
     const bytes = await local?.catch(() => null);
     const type = bytes && bytes.byteLength <= LIMITS[as].bytes ? sniff(bytes, as) : null;
     if (bytes && type) return { bytes, type };
   }
   const result = await readRemoteFile(sources.fetch, url, as);
-  if ("bytes" in result) await sources.cache?.put(url, result.bytes).catch(() => undefined);
+  if ("bytes" in result) await sources.cache?.put(url, result.bytes, since).catch(() => undefined);
   return result;
 }
 

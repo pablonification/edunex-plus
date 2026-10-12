@@ -63,9 +63,12 @@ never web content, a strict content policy.
 - **A small file cache, wiped at sign-out.** Files the window showed are kept
   in the app's data folder (`file-cache/`, named by a hash of their address,
   the least recently opened dropped past 300 MB) so opening one again is
-  instant and works offline. Signing out of Edunex, or of everything, removes
-  it (`traces.ts`). A PDF the Student saved for offline reading opens from
-  that copy first.
+  instant and works offline. The files belong to the Student who opened
+  them: signing out of Edunex, or of everything, removes the folder, and a
+  read still on its way at that moment isn't kept; another Student's
+  account arriving (a sign-in after the last session ran out) empties it at
+  once, and nothing is kept while nobody is signed in. A PDF the
+  Student saved for offline reading opens from that copy first.
 - **Reading never tells Edunex.** Fetching a picture from Azure doesn't touch
   Edunex's API, so it never counts as "viewed" or presence (0001).
 

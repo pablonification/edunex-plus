@@ -25,8 +25,3 @@ export async function removeEveryTrace(options: { userData: string; engineSessio
   ]);
   await Promise.allSettled([...V1_FILES, FILE_CACHE_FOLDER].map((name) => fs.rm(path.join(options.userData, name), { recursive: true, force: true })));
 }
-
-/** Signing out of Edunex alone forgets its files too: they belong to that account. */
-export async function removeEdunexFiles(userData: string): Promise<void> {
-  await fs.rm(path.join(userData, FILE_CACHE_FOLDER), { recursive: true, force: true });
-}

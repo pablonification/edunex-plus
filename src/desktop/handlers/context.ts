@@ -3,6 +3,7 @@ import type { BrowserWindow, Session } from "electron";
 import type { Event } from "../../core/contract";
 import type { Lang, Settings } from "../../core/models";
 import type { Engine } from "../../engine/engine";
+import type { FileCache } from "../file-cache";
 import type { Handlers } from "../ipc";
 import type { Notifier } from "../notifications";
 import type { FetchFile } from "../remote-files";
@@ -18,6 +19,8 @@ export interface DesktopContext {
   engineSession: Session;
   /** Fetches a file from Edunex's storage (through the engine's session; the demo's pretend storage). */
   fetchFile: FetchFile;
+  /** Files from Edunex the window showed, the signed-in Student's only; wiped at sign-out. */
+  fileCache: FileCache;
   vaultMode: VaultMode;
   lang(): Lang;
   send(event: Event): void;
