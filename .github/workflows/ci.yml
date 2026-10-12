@@ -1,40 +1,133 @@
+# The checks every pull request and every push to main goes through. They run
+# side by side, and each writes its result in plain words on the run's summary
+# page. lint, typecheck, test and build must pass; knip only advises.
 name: CI
 
 on:
   pull_request:
   push:
-    branches:
-      - main
+    branches: [main]
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+defaults:
+  run:
+    shell: bash
 
 jobs:
-  check:
-    name: Test and build
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Node and packages
+        uses: ./.github/actions/setup
+      - name: Lint and check formatting (Biome)
+        id: check
+        run: npx biome ci --colors=off . 2>&1 | tee "$RUNNER_TEMP/check.log"
+      - name: Summarize
+        if: ${{ !cancelled() && steps.check.outcome != 'skipped' }}
+        env:
+          OUTCOME: ${{ steps.check.outcome }}
+        run: node scripts/ci/summary.mjs lint "$OUTCOME" "$RUNNER_TEMP/check.log"
+
+  typecheck:
+    name: typecheck
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Node and packages
+        uses: ./.github/actions/setup
+      - name: Check types (window, desktop and engine, tests)
+        id: check
+        run: npm run typecheck 2>&1 | tee "$RUNNER_TEMP/check.log"
+      - name: Summarize
+        if: ${{ !cancelled() && steps.check.outcome != 'skipped' }}
+        env:
+          OUTCOME: ${{ steps.check.outcome }}
+        run: node scripts/ci/summary.mjs typecheck "$OUTCOME" "$RUNNER_TEMP/check.log"
+
+  test:
+    name: test
     runs-on: ubuntu-latest
     timeout-minutes: 15
-
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          node-version: 22
-          cache: npm
+          persist-credentials: false
+      - name: Set up Node and packages
+        uses: ./.github/actions/setup
+      - name: Run the tests
+        id: check
+        # Failures become notes on their lines; the summary below replaces Vitest's own table.
+        run: >-
+          GITHUB_STEP_SUMMARY=''
+          npx vitest run --reporter=default --reporter=github-actions
+          --reporter=json --outputFile.json="$RUNNER_TEMP/vitest.json"
+      - name: Summarize
+        if: ${{ !cancelled() && steps.check.outcome != 'skipped' }}
+        env:
+          OUTCOME: ${{ steps.check.outcome }}
+        run: node scripts/ci/summary.mjs test "$OUTCOME" "$RUNNER_TEMP/vitest.json"
 
-      - name: Install dependencies
-        run: npm ci
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Node and packages
+        uses: ./.github/actions/setup
+      - name: Build the desktop side
+        run: node scripts/build-desktop.mjs
+      - name: Build the window
+        run: npx vite build
+      - name: Check the window's size
+        id: size
+        run: node scripts/check-bundle-size.mjs
+      - name: Summarize a failed build
+        if: ${{ failure() && steps.size.outcome == 'skipped' }}
+        run: printf '### Build\n\n**The app did not build.** The log of this job says why.\n' >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Run tests
-        run: npm test
-
-      - name: Type-check and build
-        run: npm run build
+  knip:
+    name: knip
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Node and packages
+        uses: ./.github/actions/setup
+      - name: Look for unused files, exports and dependencies
+        id: check
+        # Advisory while the revamp branches still move code around. Delete this
+        # line to make knip block merging.
+        continue-on-error: true
+        run: npx knip --reporter markdown > "$RUNNER_TEMP/knip.md"
+      - name: Summarize
+        if: ${{ !cancelled() && steps.check.outcome != 'skipped' }}
+        env:
+          OUTCOME: ${{ steps.check.outcome }}
+        run: |
+          node scripts/ci/summary.mjs knip "$OUTCOME" "$RUNNER_TEMP/knip.md"
+          if [ "$OUTCOME" != success ]; then echo "::warning title=knip::knip found unused code (advisory for now). The run summary lists it."; fi

@@ -1,0 +1,23 @@
+# Node (the version in .nvmrc) and the project's packages, the same way in every job.
+# Check out the repository before using this.
+name: Set up Node and packages
+description: Installs Node from .nvmrc and runs npm ci.
+
+inputs:
+  cache:
+    description: Reuse npm's download cache between runs (turn off in release builds).
+    default: "true"
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Node
+      uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      with:
+        node-version-file: .nvmrc
+        cache: ${{ inputs.cache == 'true' && 'npm' || '' }}
+        package-manager-cache: ${{ inputs.cache }}
+
+    - name: Install packages
+      shell: bash
+      run: npm ci --no-audit --no-fund
