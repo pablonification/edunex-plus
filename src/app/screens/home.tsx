@@ -43,6 +43,7 @@ import { Card, CourseDot, EmptyState, LiveDot, Skeleton } from "../ui/display";
 import { Icons } from "../ui/icons";
 import { factsLabel, List, Meta, Page, PageHeader, Row, Section } from "../ui/layout";
 import { CountdownBar } from "../ui/meter";
+import { NowCard as NowCardShell } from "../ui/now-card";
 import { Tooltip } from "../ui/overlays";
 
 const MINUTE = 60_000;
@@ -202,57 +203,64 @@ function NowCardView({ card, courses }: { card: NowCard; courses: readonly TermC
     card.state === "live" && session
       ? t("home.now.live", { time: f.time(session.end) })
       : card.state === "next" && session
-        ? t("home.now.next", { time: f.time(session.start), when: f.fromNow(session.start) })
+        ? t("home.now.next", { when: f.fromNow(session.start) })
         : card.state === "later" && session
-          ? t("home.now.later", { day: f.relativeDay(session.start), time: f.time(session.start) })
+          ? t("home.now.later", { day: f.relativeDay(session.start) })
           : t("home.now.presenceOnly", { course: code });
 
   const open = (): Route => (course?.edunex ? { screen: "course", code, tab: "meetings" } : { screen: "presence" });
 
   return (
-    <Card variant="raised" className="overflow-hidden">
-      <div className="flex items-start gap-4 px-5 pt-4.5 pb-4">
-        <span aria-hidden className="mt-1 h-11 w-[3px] shrink-0 rounded-full" style={{ background: color }} />
-        <div className="min-w-0 flex-1">
-          <p className={cx("flex items-center gap-2 text-small font-semibold", card.state === "live" ? "text-success-fg" : "text-muted")}>
-            {card.state === "live" && (fresh ? <LiveDot /> : <span aria-hidden className="size-2 shrink-0 rounded-full bg-faint" />)}
-            <Meta>{eyebrow}</Meta>
-          </p>
-          <button
-            type="button"
-            onClick={() => go(open())}
-            className="focus-ring mt-1 block max-w-full truncate rounded text-left text-heading font-semibold tracking-[-0.01em] hover:underline hover:decoration-faint hover:underline-offset-4"
-          >
-            {nameOf(courses, code, session?.courseName)}
-          </button>
-          <div className="mt-1 text-body text-muted">
-            <Meta>
-              <span className="font-semibold text-fg tabular-nums">{code}</span>
-              {session ? <span className="tabular-nums">{f.timeRange(session.start, session.end)}</span> : ""}
-              {session?.room ? (
-                <span className="inline-flex items-center gap-1">
-                  <Icons.MapPin className="size-3.5" />
-                  {session.room}
-                </span>
-              ) : (
-                ""
-              )}
-              {session && !/^kuliah$/i.test(session.activity) ? (
-                <span className={cx("font-semibold", /\b(UTS|UAS)\b/i.test(session.activity) && "text-danger-fg")}>{session.activity}</span>
-              ) : (
-                ""
-              )}
-            </Meta>
-          </div>
-          {facts?.moved && <Meta className="mt-1 text-small font-medium text-warning-fg">{movedLabel(t, f, facts)}</Meta>}
-        </div>
-        {facts?.link && card.state !== "later" && !card.presence?.counts && (
+    <NowCardShell
+      // Lifted while it matters now: a class on, or a Presence window to do.
+      raised={card.state === "live" || Boolean(card.presence && card.presence.counts !== false)}
+      time={session ? { start: f.time(session.start), end: f.time(session.end) } : null}
+      eyebrow={
+        <span className={cx("flex items-center gap-2", card.state === "live" ? "text-success-fg" : "text-muted")}>
+          {card.state === "live" && (fresh ? <LiveDot /> : <span aria-hidden className="size-2 shrink-0 rounded-full bg-faint" />)}
+          <Meta>{eyebrow}</Meta>
+        </span>
+      }
+      title={
+        <button
+          type="button"
+          onClick={() => go(open())}
+          className="focus-ring block max-w-full truncate rounded text-left text-heading font-semibold tracking-[-0.01em] hover:underline hover:decoration-faint hover:underline-offset-4"
+        >
+          {nameOf(courses, code, session?.courseName)}
+        </button>
+      }
+      meta={
+        <Meta>
+          <span className="inline-flex items-center gap-1.5 font-semibold text-fg tabular-nums">
+            <CourseDot color={color} className="size-2" />
+            {code}
+          </span>
+          {session?.room ? (
+            <span className="inline-flex items-center gap-1">
+              <Icons.MapPin className="size-3.5" />
+              {session.room}
+            </span>
+          ) : (
+            ""
+          )}
+          {session && !/^kuliah$/i.test(session.activity) ? (
+            <span className={cx("font-semibold", /\b(UTS|UAS)\b/i.test(session.activity) && "text-danger-fg")}>{session.activity}</span>
+          ) : (
+            ""
+          )}
+        </Meta>
+      }
+      note={facts?.moved ? <Meta className="mt-1 text-small font-medium text-warning-fg">{movedLabel(t, f, facts)}</Meta> : undefined}
+      action={
+        facts?.link && card.state !== "later" && !card.presence?.counts ? (
           <JoinButton link={facts.link} code={code} primary={card.state === "live" || (session !== null && session.start - now < 15 * MINUTE)} />
-        )}
-      </div>
+        ) : undefined
+      }
+    >
       <Attendance card={card} />
       {card.after && <AfterThis session={card.after} courses={courses} />}
-    </Card>
+    </NowCardShell>
   );
 }
 

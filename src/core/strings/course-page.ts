@@ -18,10 +18,9 @@ export const coursePageStrings = {
   "course.tab.announcements": { id: "Pengumuman", en: "Announcements" },
 
   // Pinned meeting
-  "course.now": { id: "Sedang berlangsung", en: "In progress" },
+  "course.nowUntil": { id: "Sedang berlangsung · sampai {time}", en: "In progress · until {time}" },
   "course.next": { id: "Pertemuan berikutnya", en: "Next meeting" },
   "course.presenceOpen": { id: "Presensi Edunex dibuka", en: "Edunex Presence open" },
-  "course.closesIn": { id: "tutup dalam {time}", en: "closes in {time}" },
   "course.recordInEdunex": { id: "Catat di Edunex", en: "Record in Edunex" },
 
   // Modules and materials

@@ -28,6 +28,7 @@ import { Icons } from "../ui/icons";
 import { Meta, Notice, Page, PageHeader } from "../ui/layout";
 import { Menu } from "../ui/menu";
 import { CountdownBar } from "../ui/meter";
+import { NowCard, NowLine, NowZone } from "../ui/now-card";
 import { toast } from "../ui/overlays";
 import { type CoursePage, useCoursePage } from "./course/data";
 import { GradesTab } from "./course/grades";
@@ -65,7 +66,7 @@ export function CourseScreen({ code, tab, module }: { code: string; tab?: string
     <Page width="wide">
       <Header page={page} />
       <RiskStrip page={page} />
-      <NowStrip page={page} />
+      <MeetingNow page={page} />
       <Tabs.Root value={current} onValueChange={(value) => setCurrent(value as Tab)}>
         <Tabs.List aria-label={page.course.code} className="mt-8 flex gap-6 border-b border-line">
           {TABS.map((key) => (
@@ -260,7 +261,7 @@ function RiskStrip({ page }: { page: CoursePage }) {
   const later = attendanceSnoozable(page.course.code, health);
   const next = page.meetings.find((m) => m.end > now && !m.notInSix);
   const clash = next ? clashes(next, page.course.code, schedule ?? [])[0] : undefined;
-  // The strip right below already shows the next meeting; say it here only when it doesn't.
+  // The meeting right below already shows the next one; say it here only when it doesn't.
   const nextShownBelow = next !== undefined && pinnedMeeting(page.meetings, now)?.meeting.key === next.key;
   const out = health.state === "out";
   const title = verdictLabel(t, health);
@@ -307,11 +308,12 @@ function noneLeft(t: ReturnType<typeof useT>, f: ReturnType<typeof useFormat>, h
 }
 
 /**
- * What's happening now, or next, in two fixed lines: the class and its room;
- * then the one thing to do (record attendance while Presence is open, join an
- * online meeting).
+ * What's on now or next. While a class is on or a Presence window is open, a
+ * raised card: its time, what it is, where, and the one thing to do (record
+ * attendance, join online), with the window's countdown under it. Before
+ * that, the next meeting in one quiet line under the header.
  */
-function NowStrip({ page }: { page: CoursePage }) {
+function MeetingNow({ page }: { page: CoursePage }) {
   const t = useT();
   const f = useFormat();
   const now = useNow();
@@ -324,57 +326,106 @@ function NowStrip({ page }: { page: CoursePage }) {
   const meeting = pinned?.meeting;
   const countedIn = attendance?.courses.find((c) => c.course.code === page.course.code)?.health.countedIn;
   const url = presence?.url ?? (page.course.edunex ? edunexCourseUrl(page.course.edunex.courseId) : null);
-  const link = meeting?.announced?.link ?? null;
+  const link = meeting && meeting.end > now ? (meeting.announced?.link ?? null) : null;
   const online = meeting?.announced?.online ?? false;
   // Edunex's window is the thing to do only where it may be what counts: not where SIX counts, and
   // not loudly without SIX (nobody can say; it's worth doing just in case).
   const presenceCounts = countedIn !== "six" && countedIn !== "noSix";
   const what = meeting ? (meetingModuleTitle(t, pageModules(page), meeting) ?? meeting.presence?.topic ?? meeting.six?.activity ?? null) : null;
+  const place = [
+    meeting?.six?.room ? (
+      <span key="room" className="inline-flex items-center gap-1">
+        <Icons.MapPin className="size-3.5" />
+        {meeting.six.room}
+      </span>
+    ) : (
+      ""
+    ),
+    online ? (
+      <span key="online" className="inline-flex items-center gap-1">
+        <Icons.Video className="size-3.5" />
+        {t("course.online")}
+      </span>
+    ) : (
+      ""
+    ),
+  ];
+  const notInSix = meeting?.notInSix ? <span className="text-warning-fg">{t("meeting.notInSix")}</span> : "";
 
+  if (meeting && !pinned.current && !presence) {
+    const today = f.dayOffset(meeting.start) === 0;
+    return (
+      <NowLine
+        icon={<Icons.CalendarClock className="size-4" />}
+        action={
+          link && today ? (
+            <Button size="sm" variant="ghost" icon={<Icons.Video className="size-3.5" />} onClick={() => open(link)}>
+              {t("course.join")}
+            </Button>
+          ) : undefined
+        }
+      >
+        <Meta>
+          <span className="font-medium text-fg">{t("course.next")}</span>
+          <span className="tabular-nums">
+            {f.relativeDay(meeting.start)}, {f.timeRange(meeting.start, meeting.end)}
+          </span>
+          {place}
+          {/* "Kuliah" is every class: only a topic says something. */}
+          {what && !/^kuliah$/i.test(what) ? what : ""}
+          {notInSix}
+        </Meta>
+      </NowLine>
+    );
+  }
+
+  const start = meeting?.start ?? presence!.start;
+  const end = meeting?.end ?? presence!.end;
   return (
-    <div
-      className="flex flex-wrap items-center gap-x-6 gap-y-3 rounded-xl border border-edge bg-raised px-5 py-3.5 shadow-card"
-      style={{ boxShadow: `inset 3px 0 0 ${page.course.color}` }}
-    >
-      <div className="min-w-0 flex-1">
-        {meeting && (
-          <p className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-body">
-            {pinned.current ? (
-              <span className="inline-flex items-center gap-2 font-semibold text-success-fg">
-                {live && <LiveDot />}
-                {t("course.now")}
-              </span>
-            ) : (
-              <span className="font-semibold text-muted">{t("course.next")}</span>
+    <NowCard
+      raised
+      time={{ start: f.time(start), end: f.time(end) }}
+      eyebrow={
+        pinned?.current ? (
+          <span className="inline-flex items-center gap-2 text-success-fg">
+            {live && <LiveDot />}
+            {t("course.nowUntil", { time: f.time(end) })}
+          </span>
+        ) : (
+          <span className="text-muted">{meeting ? `${t("course.next")} · ${f.relativeDay(meeting.start)}` : t("course.presenceOpen")}</span>
+        )
+      }
+      title={<p className="text-title font-semibold">{what ?? presence?.topic ?? t("meeting.untitled")}</p>}
+      meta={
+        place.some(Boolean) || notInSix ? (
+          <Meta>
+            {place}
+            {notInSix}
+          </Meta>
+        ) : undefined
+      }
+      note={!presence && meeting?.presence?.note ? <p className="mt-1 truncate text-small text-muted">{meeting.presence.note}</p> : undefined}
+      action={
+        link || (presence && url) ? (
+          <>
+            {link && (
+              <Button variant={presence ? "secondary" : "primary"} icon={<Icons.Video className="size-3.5" />} onClick={() => open(link)}>
+                {t("course.join")}
+              </Button>
             )}
-            <Meta className="font-medium">
-              <span className="tabular-nums">
-                {f.relativeDay(meeting.start)}, {f.timeRange(meeting.start, meeting.end)}
-              </span>
-              {meeting.six?.room ? (
-                <span className="inline-flex items-center gap-1">
-                  <Icons.MapPin className="size-3.5 text-muted" />
-                  {meeting.six.room}
-                </span>
-              ) : (
-                ""
-              )}
-              {online ? (
-                <span className="inline-flex items-center gap-1 text-muted">
-                  <Icons.Video className="size-3.5" />
-                  {t("course.online")}
-                </span>
-              ) : (
-                ""
-              )}
-              {what ? <span className="font-normal text-muted">{what}</span> : ""}
-              {meeting.notInSix ? <span className="text-small text-warning-fg">{t("meeting.notInSix")}</span> : ""}
-            </Meta>
-          </p>
-        )}
-        {presence ? (
-          <div className="mt-1.5 flex max-w-[520px] items-center gap-3 text-small">
-            <span className="shrink-0 font-semibold">{t("course.presenceOpen")}</span>
+            {presence && url && (
+              <Button variant={presenceCounts ? "primary" : "secondary"} icon={<Icons.ArrowUpRight className="size-3.5" />} onClick={() => open(url)}>
+                {t("course.recordInEdunex")}
+              </Button>
+            )}
+          </>
+        ) : undefined
+      }
+    >
+      {presence && (
+        <NowZone>
+          <div className="flex max-w-[560px] items-center gap-3 text-small">
+            {meeting && <span className="shrink-0 font-semibold">{t("course.presenceOpen")}</span>}
             {/* The same shrinking countdown as on Presensi and Beranda. */}
             <CountdownBar
               className="min-w-16 flex-1"
@@ -384,26 +435,10 @@ function NowStrip({ page }: { page: CoursePage }) {
               label={t("course.closesAt", { time: f.time(presence.closesAt), left: f.countdown(presence.closesAt) })}
             />
           </div>
-        ) : (
-          meeting?.presence?.note && <p className="mt-1 truncate text-small text-muted">{meeting.presence.note}</p>
-        )}
-        {presence && !presenceCounts && (
-          <p className="mt-1 text-small text-muted">{t(countedIn === "noSix" ? "course.presenceNoSix" : "course.presenceCountsSix")}</p>
-        )}
-      </div>
-      <div className="flex shrink-0 items-center gap-2">
-        {link && meeting && meeting.end > now && (
-          <Button variant={presence ? "secondary" : "primary"} icon={<Icons.Video className="size-3.5" />} onClick={() => open(link)}>
-            {t("course.join")}
-          </Button>
-        )}
-        {presence && url && (
-          <Button variant={presenceCounts ? "primary" : "secondary"} icon={<Icons.ArrowUpRight className="size-3.5" />} onClick={() => open(url)}>
-            {t("course.recordInEdunex")}
-          </Button>
-        )}
-      </div>
-    </div>
+          {!presenceCounts && <p className="mt-1.5 text-small text-muted">{t(countedIn === "noSix" ? "course.presenceNoSix" : "course.presenceCountsSix")}</p>}
+        </NowZone>
+      )}
+    </NowCard>
   );
 }
 

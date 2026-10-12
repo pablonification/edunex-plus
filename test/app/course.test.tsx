@@ -414,6 +414,23 @@ describe("meetings", () => {
     expect(s.calls.at(-1)).toEqual({ name: "shell.openExternal", input: { url: "https://edunex.itb.ac.id/courses/95001" } });
   });
 
+  it("the class going on is a raised card with its time and no colored stripe; the next one is a quiet line", async () => {
+    const s = await openCourse("PL3002", { six: true });
+    const tabs = document.querySelector("main [role=tablist]")!;
+    const above = () => [...document.querySelectorAll("main *")].filter((el) => el.compareDocumentPosition(tabs) & Node.DOCUMENT_POSITION_FOLLOWING);
+    const card = above().find((el) => el.classList.contains("shadow-raised"))!;
+    expect(card.textContent).toContain("08:0010:00");
+    expect(card.textContent).toContain("Sedang berlangsung · sampai 10:00");
+    expect(card.textContent).toContain("R.SG PWK LT.6");
+    expect(above().some((el) => (el as HTMLElement).style?.boxShadow)).toBe(false);
+
+    // KU5014 meets later today: no card, one line with when, where and that it's next.
+    await s.click([...document.querySelectorAll<HTMLButtonElement>("aside button")].find((b) => b.textContent?.startsWith("KU5014"))!);
+    expect(above().some((el) => el.classList.contains("shadow-raised"))).toBe(false);
+    const line = above().find((el) => el.textContent?.startsWith("Pertemuan berikutnya·Hari ini, 16:00–17:50"));
+    expect(line).toBeDefined();
+  });
+
   it("a course past saving says it once, with what's still possible, the shared minutes of a clash and no second copy of the next meeting", async () => {
     screen = await openApp({ signedIn: true, six: true });
     const s = screen;
