@@ -198,6 +198,8 @@ function NowCardView({ card, courses }: { card: NowCard; courses: readonly TermC
   const code = session?.courseCode ?? card.presence!.code;
   const color = colorOf(courses, code);
   const course = courses.find((c) => c.code === code);
+  // A window alone on the card: the class it's for, as a window can stay open for days, into the next one.
+  const windowFor = !session && card.presence ? (card.presence.class ?? card.presence.session) : null;
 
   const eyebrow =
     card.state === "live" && session
@@ -244,6 +246,7 @@ function NowCardView({ card, courses }: { card: NowCard; courses: readonly TermC
           ) : (
             ""
           )}
+          {windowFor ? <span className="tabular-nums">{classDayTime(f, windowFor.start, windowFor.end)}</span> : ""}
           {session && !/^kuliah$/i.test(session.activity) ? (
             <span className={cx("font-semibold", /\b(UTS|UAS)\b/i.test(session.activity) && "text-danger-fg")}>{session.activity}</span>
           ) : (
@@ -390,6 +393,9 @@ function AfterThis({ session, courses }: { session: ClassSession; courses: reado
     </p>
   );
 }
+
+/** A class's day and time, as the course page names the class a window is for: "Kam, 8 Okt, 08:00–10:00". */
+const classDayTime = (f: Format, start: number, end: number) => `${f.relativeDay(start)}, ${f.timeRange(start, end)}`;
 
 function movedLabel(t: Translate, f: Format, facts: ClassFacts): string {
   const moved = facts.moved!;
@@ -745,6 +751,13 @@ function useNeedView(courses: readonly TermCourse[]): (need: Need) => NeedView {
     const course = need.course ? <CourseMark key="course" code={need.course} courses={courses} /> : null;
     switch (need.kind) {
       case "presence": {
+        // Which class it's for: a window can stay open for days, into the course's next class.
+        const of = need.class ?? need.session;
+        const forClass = (
+          <span key="class" className="tabular-nums">
+            {classDayTime(f, of.start, of.end)}
+          </span>
+        );
         const closes = t("home.need.presence.closes", { time: f.dayTime(need.session.closesAt) });
         if (need.open)
           // Where SIX counts, the window is optional: said so, never as a thing to do.
@@ -752,7 +765,7 @@ function useNeedView(courses: readonly TermCourse[]): (need: Need) => NeedView {
           return need.countedIn === "noSix"
             ? {
                 title: t("home.need.presenceNoSix", { course: need.course ?? "" }),
-                meta: [course, closes],
+                meta: [course, forClass, closes],
                 note: { text: t("home.need.presenceNoSix.note"), tone: null },
                 when: f.fromNow(need.session.closesAt),
                 tone: null,
@@ -760,13 +773,13 @@ function useNeedView(courses: readonly TermCourse[]): (need: Need) => NeedView {
             : need.countedIn === "six"
               ? {
                   title: t("home.need.presenceOptional", { course: need.course ?? "" }),
-                  meta: [course, t("home.need.presenceOptional.counted"), closes],
+                  meta: [course, forClass, t("home.need.presenceOptional.counted"), closes],
                   when: null,
                   tone: null,
                 }
               : {
                   title: t("home.need.presence", { course: need.course ?? "" }),
-                  meta: [course, closes],
+                  meta: [course, forClass, closes],
                   when: f.fromNow(need.session.closesAt),
                   tone: "warning",
                 };

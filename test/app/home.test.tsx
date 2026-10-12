@@ -127,19 +127,36 @@ describe("a Presence window still open after its class", () => {
   const countdowns = () =>
     [...document.querySelectorAll("main section[aria-labelledby=home-now] [role=progressbar]")].map((el) => el.getAttribute("aria-label"));
 
+  it("the class going on shows its own window, not last week's; last week's is in Perlu perhatianmu with its own class and day", async () => {
+    // Thursday 15 October, in class. Last Thursday's window stays open until tomorrow 23:00; today's, until 23:59: last week's closes first.
+    const world = new PretendWorld({ now: "2026-10-15T08:30:00+07:00" });
+    keepThursdayOpen(world, "2026-10-16T23:00:00+07:00");
+    world.edunex.keepPresenceOpen(2194343, "2026-10-16T23:59:00+07:00");
+    screen = await openApp({ world, signedIn: true, six: true });
+    const now = text("home-now");
+    expect(now).toContain("Sedang berlangsung · sampai 09:30");
+    // Today's window, not last week's.
+    expect(now).toContain("Presensi Edunex juga dibuka sampai besok, 23:59, tidak wajib.");
+    expect(now).not.toContain("23:00");
+    expect(row("home-needs", "Presensi PL3002")).toBe(
+      "Presensi PL3002 dibuka, tidak wajibPL3002 · Kam, 8 Okt, 08:00–10:00 · Dihitung di SIX · tutup besok, 23:00",
+    );
+  });
+
   it("closing today, a row says the time alone", async () => {
     const world = new PretendWorld({ now: "2026-10-09T11:00:00+07:00" });
     keepThursdayOpen(world, "2026-10-09T23:00:00+07:00");
     screen = await openApp({ world, signedIn: true, six: true });
-    expect(row("home-needs", "Presensi PL3002")).toBe("Presensi PL3002 dibuka, tidak wajibPL3002 · Dihitung di SIX · tutup 23:00");
+    expect(row("home-needs", "Presensi PL3002")).toBe("Presensi PL3002 dibuka, tidak wajibPL3002 · Kemarin, 08:00–10:00 · Dihitung di SIX · tutup 23:00");
   });
 
-  it("alone on the card: the day it closes when that isn't today", async () => {
+  it("alone on the card: which class it's for, and the day it closes when that isn't today", async () => {
     const world = new PretendWorld({ now: "2026-10-09T11:00:00+07:00" });
     keepThursdayOpen(world, "2026-10-10T23:00:00+07:00");
     screen = await openApp({ world, signedIn: true });
     const now = text("home-now");
     expect(now).toContain("Presensi PL3002 sedang dibuka");
+    expect(now).toContain("PL3002 · Kemarin, 08:00–09:30");
     expect(now).toContain("Buka mata kuliahnya di Edunex sebelum besok, 23:00");
     // A day and a half away: its day, not "36 jam".
     expect(countdowns()).toEqual(["tutup besok"]);
@@ -153,6 +170,7 @@ describe("a Presence window still open after its class", () => {
     expect(countdowns()).toEqual(["tutup dalam 3 hari"]);
     await screen.engineDoes(() => screen!.engine.updateSettings({ lang: "en" }));
     expect(text("home-now")).toContain("before Mon, 12 Oct, 23:00");
+    expect(text("home-now")).toContain("PL3002 · Yesterday, 08:00–09:30");
     expect(countdowns()).toEqual(["closes in 3 days"]);
   });
 });
