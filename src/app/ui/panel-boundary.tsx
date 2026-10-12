@@ -12,6 +12,8 @@ interface Props {
   name: string;
   children: ReactNode;
   compact?: boolean;
+  /** Kept above the error when the panel breaks: a dialog's title and Close, so the way out stays. */
+  header?: ReactNode;
 }
 
 export class PanelBoundary extends Component<Props, { error: Error | null }> {
@@ -28,7 +30,12 @@ export class PanelBoundary extends Component<Props, { error: Error | null }> {
   render() {
     const { error } = this.state;
     if (!error) return this.props.children;
-    return <PanelError name={this.props.name} error={error} compact={this.props.compact} onRetry={() => this.setState({ error: null })} />;
+    return (
+      <>
+        {this.props.header}
+        <PanelError name={this.props.name} error={error} compact={this.props.compact} onRetry={() => this.setState({ error: null })} />
+      </>
+    );
   }
 }
 

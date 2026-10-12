@@ -125,47 +125,50 @@ export function PdfViewer({ open, onOpenChange, name, load, actions, fallback, o
             clearTitleBar ? "top-10" : "top-3",
           )}
         >
-          {view.phase === "ready" ? (
-            <Reader doc={view.doc} sizes={view.sizes} name={name} actions={actions} scroller={scroller} onOpenLink={onOpenLink} />
-          ) : (
-            <>
-              <Toolbar name={name} actions={view.phase === "failed" ? undefined : actions} />
-              <section
-                ref={scroller}
-                tabIndex={-1}
-                aria-label={name}
-                className="grid min-h-0 flex-1 place-items-center overflow-auto bg-sunken p-6 outline-none"
-              >
-                {view.phase === "loading" ? (
-                  <div role="status" className="flex w-full flex-col items-center gap-3">
-                    <Skeleton className="aspect-[1/1.414] w-full max-w-[520px] rounded-sm" />
-                    <span className="text-small text-muted">{t("pdf.loading")}</span>
-                  </div>
-                ) : (
-                  <div role="alert" className="flex max-w-[44ch] flex-col items-center gap-3 text-center">
-                    <span className="grid size-10 place-items-center rounded-full bg-surface text-muted shadow-card">
-                      <Icons.FileText className="size-5" />
-                    </span>
-                    <div>
-                      <p className="text-body font-semibold">{t("pdf.failed")}</p>
-                      <p className="mt-1 text-small text-muted">
-                        {view.problem === "locked" ? t("pdf.locked") : view.problem === "broken" ? t("pdf.broken") : t(`file.problem.${view.problem}`)}
-                      </p>
+          {/* Whatever in the viewer fails breaks the viewer, not the window; its title and Close stay. */}
+          <PanelBoundary name="pdf viewer" compact header={<Toolbar name={name} />}>
+            {view.phase === "ready" ? (
+              <Reader doc={view.doc} sizes={view.sizes} name={name} actions={actions} scroller={scroller} onOpenLink={onOpenLink} />
+            ) : (
+              <>
+                <Toolbar name={name} actions={view.phase === "failed" ? undefined : actions} />
+                <section
+                  ref={scroller}
+                  tabIndex={-1}
+                  aria-label={name}
+                  className="grid min-h-0 flex-1 place-items-center overflow-auto bg-sunken p-6 outline-none"
+                >
+                  {view.phase === "loading" ? (
+                    <div role="status" className="flex w-full flex-col items-center gap-3">
+                      <Skeleton className="aspect-[1/1.414] w-full max-w-[520px] rounded-sm" />
+                      <span className="text-small text-muted">{t("pdf.loading")}</span>
                     </div>
-                    <div className="flex flex-wrap justify-center gap-2">
-                      {view.problem === "unreachable" ? (
-                        <Button variant="primary" icon={<Icons.RefreshCw className="size-3.5" />} onClick={() => setAttempt((n) => n + 1)}>
-                          {t("action.tryAgain")}
-                        </Button>
-                      ) : (
-                        fallback?.(view.problem)
-                      )}
+                  ) : (
+                    <div role="alert" className="flex max-w-[44ch] flex-col items-center gap-3 text-center">
+                      <span className="grid size-10 place-items-center rounded-full bg-surface text-muted shadow-card">
+                        <Icons.FileText className="size-5" />
+                      </span>
+                      <div>
+                        <p className="text-body font-semibold">{t("pdf.failed")}</p>
+                        <p className="mt-1 text-small text-muted">
+                          {view.problem === "locked" ? t("pdf.locked") : view.problem === "broken" ? t("pdf.broken") : t(`file.problem.${view.problem}`)}
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap justify-center gap-2">
+                        {view.problem === "unreachable" ? (
+                          <Button variant="primary" icon={<Icons.RefreshCw className="size-3.5" />} onClick={() => setAttempt((n) => n + 1)}>
+                            {t("action.tryAgain")}
+                          </Button>
+                        ) : (
+                          fallback?.(view.problem)
+                        )}
+                      </div>
                     </div>
-                  </div>
-                )}
-              </section>
-            </>
-          )}
+                  )}
+                </section>
+              </>
+            )}
+          </PanelBoundary>
         </DialogPrimitive.Content>
       </DialogPrimitive.Portal>
     </DialogPrimitive.Root>

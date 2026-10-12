@@ -303,6 +303,24 @@ describe("the PDF viewer", () => {
       errors.mockRestore();
     }
   });
+
+  it("whatever else in the viewer fails breaks the viewer, not the window: the title and Close stay", async () => {
+    const world = new PretendWorld();
+    // No pages at all: the reader has nothing to lay out.
+    world.putFile(BLOB, "%PDF-1.7 Pages: 0");
+    const s = await openPl3032(world);
+    const errors = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    try {
+      await s.click("Lihat: K1. SAP Ekonomi Infrastruktur dan Transportasi");
+      expect(viewer()?.textContent).toContain("Bagian ini gagal ditampilkan");
+      expect(viewer()?.textContent).toContain("K1. SAP Ekonomi Infrastruktur dan Transportasi.pdf");
+      await s.click("Tutup");
+      expect(viewer()).toBeNull();
+      expect(document.querySelector("h1")?.textContent).toBe("Infrastructure and Transportation Economics");
+    } finally {
+      errors.mockRestore();
+    }
+  });
 });
 
 describe("PDFs on a Task", () => {
