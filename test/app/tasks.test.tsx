@@ -193,14 +193,12 @@ describe("the Task page", () => {
     expect(s.text()).toContain("Tenggat Kam, 22 Okt, 23:50");
     expect(s.text()).toContain("Soal lihat .pdf");
     expect(s.text()).toContain("Berkas dari dosen");
-    // A PDF opens in the viewer; downloading it stays one click away (here, the file isn't on the pretend storage).
+    // A PDF opens in the viewer. Here the file isn't on the pretend storage, so the way forward is the Task's page on Edunex.
     await s.click("Lihat UTS MARKOM SEM 1 2026 2027.pdf");
     expect(s.calls.at(-1)).toEqual({ name: "files.read", input: { url: "https://edunexfixture.blob.core.windows.net/edunex/fixture-8", as: "pdf" } });
-    await s.click("Unduh");
-    expect(s.calls.at(-1)).toEqual({
-      name: "files.download",
-      input: { url: "https://edunexfixture.blob.core.windows.net/edunex/fixture-8", name: "UTS MARKOM SEM 1 2026 2027.pdf" },
-    });
+    expect(document.querySelector("[role=dialog]")?.textContent).toContain("Berkas ini sudah tidak ada di Edunex.");
+    await s.click("Buka di Edunex");
+    expect(s.calls.at(-1)).toEqual({ name: "shell.openExternal", input: { url: "https://edunex.itb.ac.id/assignment/take/117764" } });
     await s.key("Escape");
     expect(document.querySelector("[role=dialog]")).toBeNull();
     // The rules sit where they matter: the file rule in the drop zone, the late rule by the deadline.

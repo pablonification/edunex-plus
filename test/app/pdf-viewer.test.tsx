@@ -149,7 +149,7 @@ describe("the PDF viewer", () => {
     expect(pageBox().value).toBe("3");
   });
 
-  it("says why when a PDF can't be shown, with the ways forward", async () => {
+  it("says why when a PDF can't be shown, with the one way forward that can work", async () => {
     const world = new PretendWorld();
     world.putFile(BLOB, "%PDF-1.7 Pages: 3");
     world.blobStatus.set(new URL(BLOB).pathname, 403);
@@ -157,20 +157,33 @@ describe("the PDF viewer", () => {
     await s.click("Lihat: K1. SAP Ekonomi Infrastruktur dan Transportasi");
     expect(viewer()?.textContent).toContain("PDF ini tidak bisa ditampilkan");
     expect(viewer()?.textContent).toContain("Tautan berkas ini sudah tidak berlaku di Edunex.");
-    expect(s.has("Buka di Edunex")).toBe(true);
-    // Fixed on Edunex's side: trying again shows it.
+    // The link stopped working: downloading or trying it again can't help; Edunex's page can.
+    expect([...viewer()!.querySelectorAll("button")].map((b) => b.textContent)).toEqual(["", "Buka di Edunex"]);
+    await s.click("Buka di Edunex");
+    expect(s.calls.at(-1)?.name).toBe("shell.openExternal");
+
+    // Edunex's storage out of reach: trying again is the way, and works once it answers.
+    world.blobStatus.set(new URL(BLOB).pathname, 503);
+    await key(document.activeElement!, "Escape");
+    await s.click("Lihat: K1. SAP Ekonomi Infrastruktur dan Transportasi");
+    expect(viewer()?.textContent).toContain("Penyimpanan Edunex tidak terjangkau.");
+    expect(s.has("Buka di Edunex")).toBe(false);
     world.blobStatus.clear();
     await s.click("Coba lagi");
     expect(viewer()?.textContent).toContain("dari 3");
 
-    // Bytes that aren't a PDF are never handed to the reader; a locked one says so.
+    // Bytes that aren't a PDF are never handed to the reader; one the app can't read is still a download away.
     world.putFile(BLOB, "<html>not a pdf</html>");
     await key(document.activeElement!, "Escape");
     await s.click("Lihat: K1. SAP Ekonomi Infrastruktur dan Transportasi");
     expect(viewer()?.textContent).toContain("Berkas ini tidak bisa ditampilkan di aplikasi.");
+    expect([...viewer()!.querySelectorAll("button")].map((b) => b.textContent)).toEqual(["", "Unduh"]);
     world.putFile(BLOB, "%PDF-1.7 /Encrypt");
-    await s.click("Coba lagi");
+    await key(document.activeElement!, "Escape");
+    await s.click("Lihat: K1. SAP Ekonomi Infrastruktur dan Transportasi");
     expect(viewer()?.textContent).toContain("PDF ini dikunci dengan kata sandi.");
+    await s.click("Unduh");
+    expect(s.calls.at(-1)).toEqual({ name: "files.download", input: { url: BLOB, name: "K1. SAP Ekonomi Infrastruktur dan Transportasi.pdf" } });
   });
 
   it("Escape while typing a page number lets go of the number; the next one closes the viewer", async () => {
@@ -283,6 +296,17 @@ describe("PDFs on a Task", () => {
     await s.click("Lihat UTS MARKOM SEM 1 2026 2027.pdf");
     expect(s.calls).toContainEqual({ name: "files.read", input: { url: file.url, as: "pdf" } });
     expect(viewer()?.textContent).toContain("dari 2");
+
+    // Gone from Edunex's storage: the Task's own page on Edunex is the way forward.
+    s.world.blobStatus.set(new URL(file.url).pathname, 404);
+    await key(document.activeElement!, "Escape");
+    await s.click("Lihat UTS MARKOM SEM 1 2026 2027.pdf");
+    expect(viewer()?.textContent).toContain("Berkas ini sudah tidak ada di Edunex.");
+    await s.click("Buka di Edunex");
+    expect(s.calls.at(-1)).toEqual({
+      name: "shell.openExternal",
+      input: { url: `https://edunex.itb.ac.id/assignment/take/${tasks(s).find((task) => task.title === "UTS Markom")!.id}` },
+    });
   });
 
   it("the Student's own PDF in the answer opens in the viewer, even while the answer can still change", async () => {

@@ -571,7 +571,7 @@ function TaskPage({ task }: { task: Task }) {
             <ul className="grid gap-2 sm:grid-cols-2">
               {task.files.map((file) => (
                 <li key={file.url}>
-                  <LecturerFile file={file} />
+                  <LecturerFile file={file} taskId={task.id} />
                 </li>
               ))}
             </ul>
@@ -712,7 +712,8 @@ function shortName(name: string): string {
   return name.slice(0, 200 - ext.length) + ext;
 }
 
-export function LecturerFile({ file }: { file: TaskFile }) {
+/** `taskId`: the Task it's on, whose page on Edunex is the way forward when the file's link stops working. */
+export function LecturerFile({ file, taskId }: { file: TaskFile; taskId: number }) {
   const t = useT();
   const { download, busy } = useDownload();
   const pdf = usePdfViewer();
@@ -722,7 +723,7 @@ export function LecturerFile({ file }: { file: TaskFile }) {
     <button
       type="button"
       aria-label={t(viewable ? "pdf.viewFile" : "task.download", { name: file.name })}
-      onClick={() => (viewable ? pdf.open({ kind: "edunex", url: file.url, name: file.name }) : void download(file))}
+      onClick={() => (viewable ? pdf.open({ kind: "edunex", url: file.url, name: file.name, edunexUrl: edunexTaskUrl(taskId) }) : void download(file))}
       className="focus-ring flex w-full items-center gap-3 rounded-xl border border-edge bg-surface px-3 py-2.5 text-left shadow-card transition-colors duration-150 hover:bg-hover"
     >
       <FileBadge name={file.name} />
@@ -1147,7 +1148,7 @@ function HandIn({ task, status, onPreview }: Row & { onPreview?: (file: TaskFile
                   onRemove={editable ? () => removeSaved(file.url) : undefined}
                   onDownload={editable ? undefined : () => void download(file)}
                   onPreview={onPreview && isPdf(file.name) ? () => onPreview(file) : undefined}
-                  viewUrl={isPdfName(file.name) ? file.url : undefined}
+                  view={isPdfName(file.name) ? { url: file.url, edunexUrl: edunexTaskUrl(task.id) } : undefined}
                   downloading={downloading === file.url}
                 />
               ))}
@@ -1466,7 +1467,7 @@ const isPdf = (name: string) => /\.pdf$/i.test(name);
 
 /**
  * One file of the answer. `onPreview` is the seam for an in-app viewer of the
- * Student's own files: given (or a `viewUrl`), the row offers to look at the file.
+ * Student's own files: given (or a `view`), the row offers to look at the file.
  */
 function FileRow({
   name,
@@ -1478,7 +1479,7 @@ function FileRow({
   onDownload,
   onPreview,
   downloading = false,
-  viewUrl,
+  view,
 }: {
   name: string;
   state?: Attached["state"];
@@ -1489,8 +1490,8 @@ function FileRow({
   onDownload?: () => void;
   onPreview?: () => void;
   downloading?: boolean;
-  /** A PDF already on Edunex: it opens in the app's viewer, even while the answer can still change. */
-  viewUrl?: string;
+  /** A PDF already on Edunex (and its Task's page there): it opens in the app's viewer, even while the answer can still change. */
+  view?: { url: string; edunexUrl: string };
 }) {
   const t = useT();
   const pdf = usePdfViewer();
@@ -1510,11 +1511,11 @@ function FileRow({
             </span>
           )}
         </span>
-        {(onPreview || viewUrl) && !failed && (
+        {(onPreview || view) && !failed && (
           <button
             type="button"
             aria-label={t("handIn.preview", { name })}
-            onClick={onPreview ?? (() => viewUrl && pdf.open({ kind: "edunex", url: viewUrl, name }))}
+            onClick={onPreview ?? (() => view && pdf.open({ kind: "edunex", url: view.url, name, edunexUrl: view.edunexUrl }))}
             className="focus-ring grid size-7 shrink-0 place-items-center rounded-md text-muted transition-colors duration-150 hover:bg-hover hover:text-fg"
           >
             <Icons.Eye className="size-3.5" />

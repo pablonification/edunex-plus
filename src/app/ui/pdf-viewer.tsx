@@ -19,9 +19,10 @@ import {
   useRef,
   useState,
 } from "react";
+import type { FileProblem } from "../../core/actions/files";
 import { linkHost } from "../../core/links";
 import { useT } from "../i18n";
-import { IconButton } from "./controls";
+import { Button, IconButton } from "./controls";
 import { cx } from "./cx";
 import { Skeleton } from "./display";
 import { Icons } from "./icons";
@@ -36,19 +37,22 @@ const STEPS = [25, 33, 50, 67, 75, 90, 100, 110, 125, 150, 175, 200, 250, 300, 4
 const PAD = 24;
 
 type Zoom = { fit: "width" | "page" } | { percent: number };
-type View = { phase: "loading" } | { phase: "ready"; doc: PdfDocument; sizes: PdfSize[] } | { phase: "failed"; reason: string };
+/** Why a PDF isn't shown: its file couldn't be read, it asks for a password, or it isn't a PDF that can be read. */
+export type PdfProblem = FileProblem | "locked" | "broken";
+
+type View = { phase: "loading" } | { phase: "ready"; doc: PdfDocument; sizes: PdfSize[] } | { phase: "failed"; problem: PdfProblem };
 
 export interface PdfViewerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   /** The file's name, as its title. */
   name: string;
-  /** Reads the file. An Error's message, when it has one, says why it couldn't. */
-  load: () => Promise<Uint8Array>;
-  /** Buttons for the toolbar (Download). */
+  /** Reads the file: its bytes, or why it couldn't. */
+  load: () => Promise<Uint8Array | { problem: FileProblem }>;
+  /** Buttons for the toolbar while the PDF is there to read (Download). */
   actions?: ReactNode;
-  /** What to offer when it can't be shown (Download, Open in Edunex). */
-  fallback?: ReactNode;
+  /** The way forward when it can't be shown, for that reason (Open in Edunex, Download). Storage out of reach is the viewer's own "Try again". */
+  fallback?: (problem: PdfProblem) => ReactNode;
   onOpenLink: (url: string) => void;
   /** Leaves room at the top for macOS's window buttons. */
   clearTitleBar?: boolean;
@@ -69,9 +73,13 @@ export function PdfViewer({ open, onOpenChange, name, load, actions, fallback, o
     setView({ phase: "loading" });
     void (async () => {
       try {
-        const bytes = await load();
+        const read = await load();
         if (!live) return;
-        const opened = await openPdf(bytes);
+        if ("problem" in read) {
+          setView({ phase: "failed", problem: read.problem });
+          return;
+        }
+        const opened = await openPdf(read);
         // Shut while it opened: the cleanup below already ran, so it's freed here (each holds a worker and the whole file).
         if (!live) return opened.destroy();
         doc = opened;
@@ -86,21 +94,14 @@ export function PdfViewer({ open, onOpenChange, name, load, actions, fallback, o
           if ((n % 25 === 0 || n === doc.pages) && live) setView({ phase: "ready", doc, sizes });
         }
       } catch (error) {
-        if (!live) return;
-        const reason =
-          error instanceof PdfOpenError
-            ? t(error.reason === "locked" ? "pdf.locked" : "pdf.broken")
-            : error instanceof Error && error.message
-              ? error.message
-              : t("pdf.broken");
-        setView({ phase: "failed", reason });
+        if (live) setView({ phase: "failed", problem: error instanceof PdfOpenError ? error.reason : "broken" });
       }
     })();
     return () => {
       live = false;
       doc?.destroy();
     };
-  }, [open, load, attempt, t]);
+  }, [open, load, attempt]);
 
   return (
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
@@ -128,7 +129,7 @@ export function PdfViewer({ open, onOpenChange, name, load, actions, fallback, o
             <Reader doc={view.doc} sizes={view.sizes} name={name} actions={actions} scroller={scroller} onOpenLink={onOpenLink} />
           ) : (
             <>
-              <Toolbar name={name} actions={actions} />
+              <Toolbar name={name} actions={view.phase === "failed" ? undefined : actions} />
               <section
                 ref={scroller}
                 tabIndex={-1}
@@ -147,18 +148,18 @@ export function PdfViewer({ open, onOpenChange, name, load, actions, fallback, o
                     </span>
                     <div>
                       <p className="text-body font-semibold">{t("pdf.failed")}</p>
-                      <p className="mt-1 text-small text-muted">{view.reason}</p>
+                      <p className="mt-1 text-small text-muted">
+                        {view.problem === "locked" ? t("pdf.locked") : view.problem === "broken" ? t("pdf.broken") : t(`file.problem.${view.problem}`)}
+                      </p>
                     </div>
                     <div className="flex flex-wrap justify-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setAttempt((n) => n + 1)}
-                        className="focus-ring inline-flex h-8 items-center gap-1.5 rounded-lg border border-edge bg-surface px-3 text-small font-semibold hover:bg-hover"
-                      >
-                        <Icons.RefreshCw className="size-3.5" />
-                        {t("action.tryAgain")}
-                      </button>
-                      {fallback}
+                      {view.problem === "unreachable" ? (
+                        <Button variant="primary" icon={<Icons.RefreshCw className="size-3.5" />} onClick={() => setAttempt((n) => n + 1)}>
+                          {t("action.tryAgain")}
+                        </Button>
+                      ) : (
+                        fallback?.(view.problem)
+                      )}
                     </div>
                   </div>
                 )}

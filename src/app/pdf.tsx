@@ -4,7 +4,7 @@
 // the viewer; any other file (one the Student is about to hand in) comes as
 // bytes the caller reads. The viewer itself loads on first use, like pdf.js.
 import { createContext, lazy, type ReactNode, Suspense, useCallback, useContext, useMemo, useState } from "react";
-import type { ActionOutput } from "../core/contract";
+import type { FileProblem } from "../core/actions/files";
 import { ActionError } from "./bridge";
 import { useOpenExternal, useOpenLink } from "./hooks";
 import { useT } from "./i18n";
@@ -12,6 +12,7 @@ import { useBridge, useStore } from "./store";
 import { Button } from "./ui/controls";
 import { Icons } from "./ui/icons";
 import { Tooltip, toast } from "./ui/overlays";
+import type { PdfProblem } from "./ui/pdf-viewer";
 
 const PdfViewer = lazy(() => import("./ui/pdf-viewer").then((module) => ({ default: module.PdfViewer })));
 
@@ -50,17 +51,15 @@ export function PdfViewerProvider({ children }: { children: ReactNode }) {
   const load = useMemo(() => {
     if (!source) return async () => new Uint8Array();
     if (source.kind === "bytes") return source.load;
-    return async () => {
-      let result: ActionOutput<"files.read">;
+    return async (): Promise<Uint8Array | { problem: FileProblem }> => {
       try {
-        result = await bridge.invoke("files.read", { url: source.url, as: "pdf" });
+        const result = await bridge.invoke("files.read", { url: source.url, as: "pdf" });
+        return "problem" in result ? result : result.bytes;
       } catch (error) {
-        throw new Error(t(error instanceof ActionError && error.kind === "Rejected" ? "file.problem.unreadable" : "file.problem.unreachable"));
+        return { problem: error instanceof ActionError && error.kind === "Rejected" ? "unreadable" : "unreachable" };
       }
-      if ("problem" in result) throw new Error(t(`file.problem.${result.problem}`));
-      return result.bytes;
     };
-  }, [source, bridge, t]);
+  }, [source, bridge]);
 
   const download = useCallback(async () => {
     if (source?.kind !== "edunex") return;
@@ -83,19 +82,22 @@ export function PdfViewerProvider({ children }: { children: ReactNode }) {
         </Button>
       </Tooltip>
     ) : null;
-  const fallback =
-    source?.kind === "edunex" ? (
-      <>
-        <Button icon={<Icons.Download className="size-3.5" />} busy={busy} onClick={() => void download()}>
-          {t("material.download")}
+  // One way forward that can work: a link that stopped working or a file that's gone is only on Edunex's page now;
+  // one the app can't draw (too big, locked, not a PDF it reads) still opens in the computer's PDF app.
+  const fallback = (problem: PdfProblem) => {
+    if (source?.kind !== "edunex") return null;
+    if (problem === "expired" || problem === "missing")
+      return source.edunexUrl ? (
+        <Button variant="primary" icon={<Icons.ArrowUpRight className="size-3.5" />} onClick={() => openExternal(source.edunexUrl!)}>
+          {t("action.openInEdunex")}
         </Button>
-        {source.edunexUrl && (
-          <Button icon={<Icons.ArrowUpRight className="size-3.5" />} onClick={() => openExternal(source.edunexUrl!)}>
-            {t("action.openInEdunex")}
-          </Button>
-        )}
-      </>
-    ) : null;
+      ) : null;
+    return (
+      <Button variant="primary" icon={<Icons.Download className="size-3.5" />} busy={busy} onClick={() => void download()}>
+        {t("material.download")}
+      </Button>
+    );
+  };
 
   const viewer = useMemo(
     () => ({
