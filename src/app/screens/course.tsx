@@ -10,7 +10,7 @@ import { planOfflineFiles } from "../../core/course-materials";
 import { clashes, openPresence, pinnedMeeting } from "../../core/course-meetings";
 import { edunexCourseUrl } from "../../core/links";
 import { sixTimetableUrl } from "../../core/schedule";
-import { attendanceSnoozable } from "../../core/snooze";
+import { attendanceKey, attendanceSnoozable } from "../../core/snooze";
 import { useAttendance } from "../attendance";
 import { verdictLabel } from "../attendance-labels";
 import { AttendanceSummary, CourseTarget } from "../attendance-parts";
@@ -153,16 +153,28 @@ function AttendanceMeter({ page }: { page: CoursePage }) {
   const t = useT();
   const attendance = useAttendance();
   const health = attendance?.courses.find((c) => c.course.code === page.course.code)?.health;
+  const banner = useBannerShows(page.course.code, health);
   if (!health?.held) return null;
   return (
     <AttendanceSummary
       className="w-[260px] pt-0.5"
       health={health}
-      // With no room left the banner below says it, as its title.
-      words={health.state === "out" || health.state === "none" ? null : verdictLabel(t, health)}
+      // With no room left the banner below says it, as its title; put off with "Ingatkan nanti", the words are back here.
+      words={banner ? null : verdictLabel(t, health)}
       aside={<CourseTarget code={page.course.code} className="shrink-0" />}
     />
   );
+}
+
+/**
+ * The attendance banner shows with no room left or the target out of reach,
+ * unless it's put off with "Ingatkan nanti" (here or on Beranda: they share
+ * it) until its time or a new count; the header meter says it meanwhile.
+ */
+function useBannerShows(code: string, health: AttendanceHealth | undefined): boolean {
+  const { snoozed } = useSnoozes();
+  if (!health || (health.state !== "out" && health.state !== "none")) return false;
+  return !snoozed(attendanceKey(code, health, health.target));
 }
 
 /** The rare actions: save the files for offline, open the official pages. */
@@ -242,12 +254,10 @@ function RiskStrip({ page }: { page: CoursePage }) {
   const { go } = useNav();
   const attendance = useAttendance();
   const schedule = useDataset("six.schedule");
-  const { snoozed } = useSnoozes();
   const health = attendance?.courses.find((c) => c.course.code === page.course.code)?.health;
-  if (!health || !attendance || (health.state !== "out" && health.state !== "none")) return null;
-  // Put off with "Ingatkan nanti" (here or on Beranda: they share it), until its time or a new count. The header meter still says it.
+  const shows = useBannerShows(page.course.code, health);
+  if (!health || !attendance || !shows) return null;
   const later = attendanceSnoozable(page.course.code, health, health.target);
-  if (snoozed(later.key)) return null;
   const next = page.meetings.find((m) => m.end > now && !m.notInSix);
   const clash = next ? clashes(next, page.course.code, schedule ?? [])[0] : undefined;
   // The strip right below already shows the next meeting; say it here only when it doesn't.

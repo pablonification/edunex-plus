@@ -237,18 +237,21 @@ describe("the course page's attendance banner", () => {
     const s = await open();
     await s.click([...document.querySelectorAll<HTMLButtonElement>("aside button")].find((b) => b.textContent?.startsWith("KU5014"))!);
     const banner = () => document.querySelector("main .bg-danger-bg")?.textContent ?? "";
-    expect(banner()).toContain("80% tak terkejar");
+    const header = () => document.querySelector("main header")?.textContent ?? "";
+    expect(banner()).toContain("Tak bisa lagi capai 80%");
+    // Said once: the banner has it, so the header only counts.
+    expect(header()).not.toContain("Tak bisa lagi capai 80%");
     expect(s.button(/^Ingatkan nanti: KU5014: /).textContent).toBe("Ingatkan nanti");
 
-    await snooze("KU5014: 80% tak terkejar", "Sebelum kuliah berikutnya");
+    await snooze("KU5014: Tak bisa lagi capai 80%", "Sebelum kuliah berikutnya");
     expect(banner()).toBe("");
     expect(toastText()).toContain("Diingatkan lagi Kam, 15 Okt, 15:00");
     // Focus goes on to what follows the banner, not back to the start of the page.
     await frame();
     expect(document.activeElement).not.toBe(document.body);
     expect(document.querySelector("main")?.contains(document.activeElement)).toBe(true);
-    // The header still says where attendance stands.
-    expect(document.querySelector("main header")?.textContent).toContain("80% tak terkejar");
+    // The header still says where attendance stands, in words, not by its color alone.
+    expect(header()).toContain("Tak bisa lagi capai 80%");
 
     await s.click([...document.querySelectorAll<HTMLButtonElement>("aside nav button")].find((b) => b.textContent?.startsWith("Beranda"))!);
     expect(titles().some((t) => t.startsWith("KU5014"))).toBe(false);
