@@ -1,19 +1,14 @@
 // The curriculum map (#79): the program's required courses by recommended
-// semester with where the Student stands on each, from SIX's graduation
-// progress and the transcript. Students who started on an older curriculum
-// passed many courses under other codes (KU1001 Olah Raga for WI2003); SIX's
-// progress page places those in the semester of the course they stand in
-// for, so a slot is matched to such a course by semester and name. A slot SIX
-// neither lists as taken nor as still to take is shown as such, never guessed.
-import { isLetterGrade, type ProgressCourse, type StudyPlan } from "./models";
+// semester with where the Student stands on each, as the record decided it
+// (src/core/curriculum-slots.ts, so Rencana and Kurikulum never disagree),
+// the Student's plan on top, the other courses SIX counts, and the
+// specializations and minors with progress.
+import { fillsSlot, type ProgressRow, rowStatus, type StandingStatus } from "./curriculum-slots";
+import type { CurriculumFix, StudyPlan } from "./models";
 import { minorCoverage, minorNeed, plannedCodes, rankedMinors, type StudentRecord } from "./planner";
 
-/**
- * passed: graded (not E). failed: graded E. in-progress: this term. exempt:
- * credited without a grade. planned: in the Student's plan. left: still to
- * take. unlisted: SIX's progress doesn't list it at all.
- */
-export type SlotStatus = "passed" | "failed" | "in-progress" | "exempt" | "planned" | "left" | "unlisted";
+/** Where a course stands, and planned: in the Student's plan. */
+export type SlotStatus = StandingStatus | "planned";
 
 export interface MapCourse {
   code: string;
@@ -25,6 +20,10 @@ export interface MapCourse {
   grade: string | null;
   /** The course that fills the slot under another code. */
   via: { code: string; name: string } | null;
+  /** The Student's correction (required courses only). */
+  fix: CurriculumFix | null;
+  /** SIX still lists it as to take, though the Student corrected it. */
+  sixLeft: boolean;
 }
 
 export interface MapSemester {
@@ -51,48 +50,20 @@ export interface CurriculumMap {
   electiveNeed: number | null;
   electivePassed: number;
   electiveInProgress: number;
+  /** The curriculum the Student started on, when older than this one (2019 for Kurikulum 2024). */
+  startedOn: number | null;
   specializations: PackageProgress[];
   /** The tracked or registered minor first, then the closest. */
   minors: PackageProgress[];
 }
 
-type Row = ProgressCourse & { semester: number };
-
-const STOP = new Set(["dan", "di", "untuk", "the", "and", "of", "pengantar", "pengenalan", "dasar", "i", "ii", "iii", "ia", "iia", "ib", "a", "b"]);
-const words = (name: string) =>
-  name
-    .toLowerCase()
-    .split(/[^a-z]+/)
-    .filter((w) => w.length > 1 && !STOP.has(w));
-const sameWord = (a: string, b: string) => a === b || (a.length >= 7 && b.length >= 7 && a.slice(0, 7) === b.slice(0, 7));
-/** Words two course names share, when they cover every word of the shorter name ("Olah Raga", "Pancasila"); else 0. */
-export function nameMatch(a: string, b: string): number {
-  const [short, long] = [words(a), words(b)].sort((x, y) => x.length - y.length);
-  const shared = short.filter((w) => long.some((v) => sameWord(w, v))).length;
-  return shared > 0 && shared === short.length ? shared : 0;
-}
-
-/** "WI201X" is any of WI2010–WI2019. */
-const fillsSlot = (slot: string, code: string) =>
-  slot.endsWith("X") ? code.length === slot.length && code.startsWith(slot.slice(0, -1)) && /\d$/.test(code) : slot === code;
-
-function statusOf(row: Row): SlotStatus {
-  if (row.status === "exempt") return "exempt";
-  if (row.status === "in-progress") return "in-progress";
-  if (row.status === "not-taken") return "left";
-  return row.grade === "E" ? "failed" : isLetterGrade(row.grade) ? "passed" : "in-progress";
-}
-
 export function curriculumMap(record: StudentRecord, plan: StudyPlan): CurriculumMap {
   const planned = plannedCodes(plan);
-  const rows: Row[] = (record.progress?.stages ?? []).flatMap((stage) =>
+  const rows: ProgressRow[] = (record.progress?.stages ?? []).flatMap((stage) =>
     stage.semesters.flatMap((s) => s.courses.map((c) => ({ ...c, semester: s.semester }))),
   );
   const slots = [...record.required.values()];
   const isSlotCode = (code: string) => slots.some((s) => fillsSlot(s.code, code));
-  // Required-kind rows under codes the curriculum doesn't have: older-curriculum courses standing in for a slot.
-  const substitutes = rows.filter((r) => r.kind === "required" && !isSlotCode(r.code));
-  const used = new Set<string>();
   const withPlan = (status: SlotStatus, code: string): SlotStatus =>
     (status === "left" || status === "unlisted" || status === "failed") && planned.has(code) ? "planned" : status;
 
@@ -103,25 +74,21 @@ export function curriculumMap(record: StudentRecord, plan: StudyPlan): Curriculu
   };
 
   const slotCourse = (slot: (typeof slots)[number]): MapCourse => {
-    const base = { code: slot.code, name: slot.name, sks: slot.sks, courseId: record.curriculum?.required.find((c) => c.code === slot.code)?.courseId ?? null };
-    const own = rows.find((r) => fillsSlot(slot.code, r.code));
-    if (own) {
-      used.add(own.code);
-      const via = own.code === slot.code ? null : { code: own.code, name: own.name };
-      return { ...base, status: withPlan(statusOf(own), slot.code), grade: own.grade, via };
-    }
-    const seen = fromTranscript(slot.code);
-    if (seen) return { ...base, ...seen, status: withPlan(seen.status, slot.code), via: null };
-    const best = substitutes
-      .map((r) => ({ r, score: nameMatch(slot.name, r.name) + (r.semester === slot.semester ? 2 : 0) - (used.has(r.code) ? 0.5 : 0) }))
-      .filter((x) => nameMatch(slot.name, x.r.name) > 0)
-      .sort((a, b) => b.score - a.score)[0];
-    if (best) {
-      used.add(best.r.code);
-      return { ...base, status: statusOf(best.r), grade: best.r.grade, via: { code: best.r.code, name: best.r.name } };
-    }
-    return { ...base, status: withPlan(record.progress ? "unlisted" : "left", slot.code), grade: null, via: null };
+    const standing = record.slots.get(slot.code);
+    return {
+      code: slot.code,
+      name: slot.name,
+      sks: slot.sks,
+      courseId: record.curriculum?.required.find((c) => c.code === slot.code)?.courseId ?? null,
+      status: withPlan(standing?.status ?? "left", slot.code),
+      grade: standing?.grade ?? null,
+      via: standing?.via ?? null,
+      fix: standing?.fix ?? null,
+      sixLeft: standing?.sixLeft ?? false,
+    };
   };
+  // Older courses already standing in for a slot aren't listed again under "other courses".
+  const used = new Set([...record.slots.values()].flatMap((s) => (s.via ? [s.via.code] : [])));
 
   const bySemester = new Map<number, MapSemester>();
   const semester = (n: number) => bySemester.get(n) ?? bySemester.set(n, { semester: n, required: [], others: [] }).get(n)!;
@@ -134,9 +101,11 @@ export function curriculumMap(record: StudentRecord, plan: StudyPlan): Curriculu
       name: row.name,
       sks: row.sks,
       courseId: null,
-      status: withPlan(statusOf(row), row.code),
+      status: withPlan(rowStatus(row), row.code),
       grade: row.grade,
       via: null,
+      fix: null,
+      sixLeft: false,
     });
   }
 
@@ -176,6 +145,9 @@ export function curriculumMap(record: StudentRecord, plan: StudyPlan): Curriculu
     })),
   }));
 
+  const firstYear = record.transcript?.terms[0]?.courses.map((c) => c.curriculumYear).find((y): y is number => y !== null) ?? null;
+  const year = record.curriculum?.year ?? null;
+
   return {
     semesters: [...bySemester.values()].sort((a, b) => a.semester - b.semester),
     requiredSks: slots.reduce((sum, c) => sum + c.sks, 0),
@@ -184,7 +156,49 @@ export function curriculumMap(record: StudentRecord, plan: StudyPlan): Curriculu
     // The same count the planner checks, so the two tabs never disagree.
     electivePassed: record.electivePassed,
     electiveInProgress: record.electiveInProgress,
+    startedOn: firstYear !== null && year !== null && firstYear < year ? firstYear : null,
     specializations,
     minors,
   };
+}
+
+export interface StandIn {
+  code: string;
+  name: string;
+  sks: number;
+  grade: string;
+  /** SIX places it in the slot's semester and it fills no other slot. */
+  suggested: boolean;
+  /** The slot the app guessed it counts for, when any: picking it here moves it. */
+  fills: string | null;
+}
+
+/**
+ * Courses the Student passed that could count for a slot ("Counted as…"):
+ * SIX's rows in the slot's semester that fill nothing first, then the others
+ * that fill nothing, then those the app only guessed for another slot (a
+ * pick moves them). A course the Student or the table already put in a slot
+ * isn't offered: one course counts once.
+ */
+export function standIns(record: StudentRecord, slotCode: string): StandIn[] {
+  const semester = record.required.get(slotCode)?.semester;
+  const placed = new Map(
+    (record.progress?.stages ?? []).flatMap((stage) => stage.semesters.flatMap((s) => s.courses.map((c) => [c.code, s.semester] as const))),
+  );
+  const fills = new Map([...record.slots.entries()].flatMap(([code, s]) => (s.via && s.guessed ? [[s.via.code, code] as const] : [])));
+  // Already this slot's, or settled in another one (by the Student or the table).
+  const taken = new Set([...record.slots.entries()].flatMap(([code, s]) => (s.via && (!s.guessed || code === slotCode) ? [s.via.code] : [])));
+  const slotCodes = [...record.required.keys()];
+  const rank = (c: StandIn) => (c.suggested ? 0 : c.fills ? 2 : 1);
+  return [...record.graded.entries()]
+    .filter(([code, g]) => g.grade !== "E" && !taken.has(code) && !slotCodes.some((s) => fillsSlot(s, code)))
+    .map(([code, g]) => ({
+      code,
+      name: g.name,
+      sks: g.sks,
+      grade: g.grade,
+      suggested: !fills.has(code) && placed.get(code) === semester,
+      fills: fills.get(code) ?? null,
+    }))
+    .sort((a, b) => rank(a) - rank(b) || a.code.localeCompare(b.code));
 }

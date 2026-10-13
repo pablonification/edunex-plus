@@ -1,10 +1,11 @@
 // A "⋯" menu for a screen's rare actions (save for offline, open in Edunex):
 // a named icon button that opens a short list. Arrow keys move between the
 // items, Escape or a click outside closes it. An item that can't run stays in
-// the list, dimmed, with the reason under it. A quieter trigger (an icon, with
-// its words where there's room) serves a row's or a notice's own small menu,
-// such as "Ingatkan nanti".
-import { type KeyboardEvent, type ReactNode, useState } from "react";
+// the list, dimmed, with the reason under it. A quieter trigger (a small "⋯"
+// or another icon, with its words where there's room) serves a row's or a
+// notice's own small menu, such as "Ingatkan nanti". Choosing an item puts
+// focus back on the trigger first, so a dialog the item opens returns focus there.
+import { type KeyboardEvent, type ReactNode, useRef, useState } from "react";
 import { Button, IconButton } from "./controls";
 import { cx } from "./cx";
 import { Icons } from "./icons";
@@ -20,10 +21,15 @@ export interface MenuItem {
   onSelect: () => void;
 }
 
+/**
+ * A quieter trigger than the outlined "⋯" a screen's header uses: a smaller,
+ * borderless button for a row's or a notice's own actions.
+ */
 export interface MenuTrigger {
-  icon: ReactNode;
-  /** Its short name: the tooltip, or the words beside the icon with `words`. */
-  text: string;
+  /** Its glyph; a small, bold "⋯" when left out. */
+  icon?: ReactNode;
+  /** Its short name: the tooltip, or the words beside the icon with `words`. The menu's `label` when left out. */
+  text?: string;
   words?: boolean;
   className?: string;
 }
@@ -31,6 +37,7 @@ export interface MenuTrigger {
 /** `label` names the menu and its button for screen readers ("Ingatkan nanti: Tugas 02 Bab II"). */
 export function Menu({ label, items, trigger, className }: { label: string; items: MenuItem[]; trigger?: MenuTrigger; className?: string }) {
   const [open, setOpen] = useState(false);
+  const button = useRef<HTMLButtonElement>(null);
   const move = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.key !== "ArrowDown" && event.key !== "ArrowUp" && event.key !== "Home" && event.key !== "End") return;
     event.preventDefault();
@@ -49,19 +56,29 @@ export function Menu({ label, items, trigger, className }: { label: string; item
       trigger={
         <span className="inline-flex">
           {trigger?.words ? (
-            <Button variant="ghost" size="sm" icon={trigger.icon} aria-label={label} aria-haspopup="menu" aria-expanded={open} className={trigger.className}>
-              {trigger.text}
+            <Button
+              ref={button}
+              variant="ghost"
+              size="sm"
+              icon={trigger.icon}
+              aria-label={label}
+              aria-haspopup="menu"
+              aria-expanded={open}
+              className={trigger.className}
+            >
+              {trigger.text ?? label}
             </Button>
           ) : (
             <Tooltip content={trigger?.text ?? label}>
               <IconButton
+                ref={button}
                 label={label}
                 aria-haspopup="menu"
                 aria-expanded={open}
                 size={trigger ? "sm" : "md"}
                 className={trigger ? trigger.className : "border border-edge bg-surface"}
               >
-                {trigger?.icon ?? <Icons.MoreHorizontal className="size-4" />}
+                {trigger?.icon ?? <Icons.MoreHorizontal className={trigger ? "size-3.5" : "size-4"} weight={trigger ? "bold" : "regular"} />}
               </IconButton>
             </Tooltip>
           )}
@@ -76,6 +93,8 @@ export function Menu({ label, items, trigger, className }: { label: string; item
             role="menuitem"
             disabled={item.disabled}
             onClick={() => {
+              // Before the item runs: a dialog it opens takes the trigger as what to give focus back to (the item itself is gone by then).
+              button.current?.focus();
               setOpen(false);
               item.onSelect();
             }}
