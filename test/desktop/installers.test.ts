@@ -1,6 +1,8 @@
-// The macOS disk image, the first thing someone who downloads Edunex Plus for a Mac sees:
-// its window says what to do, with the app and Applications side by side. Read from
-// electron-builder's config and the pictures it ships, since a test can't open Finder.
+// The installers, the first thing someone who downloads Edunex Plus sees. macOS: the disk
+// image's window says what to do, with the app and Applications side by side. Windows: one
+// click installs for the Student's own account, opens the app and keeps their data when it's
+// uninstalled, with the app's icon sharp at every size. Read from electron-builder's config
+// and the files it ships, since a test can't open Finder or run the Windows installer.
 import fs from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
@@ -25,6 +27,17 @@ function pngText(png: Buffer): Record<string, string> {
   return text;
 }
 
+/** Each picture in an .ico: the size its entry says, and the size of the picture it holds (a PNG, or a bitmap whose height counts its mask too). */
+function icoPictures(ico: Buffer) {
+  expect([ico.readUInt16LE(0), ico.readUInt16LE(2)]).toEqual([0, 1]);
+  return Array.from({ length: ico.readUInt16LE(4) }, (_, i) => {
+    const entry = 6 + 16 * i;
+    const data = ico.subarray(ico.readUInt32LE(entry + 12), ico.readUInt32LE(entry + 12) + ico.readUInt32LE(entry + 8));
+    const isPng = data.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
+    const { width, height } = isPng ? PNG.sync.read(data) : { width: data.readInt32LE(4), height: data.readInt32LE(8) / 2 };
+    return { size: ico.readUInt8(entry) || 256, width, height };
+  });
+}
 
 /** Where in the picture something other than the plain background shows, if anywhere. */
 function drawnIn(picture: Picture, scale: number, box: { x: number; y: number; width: number; height: number }) {
@@ -80,5 +93,42 @@ describe("the macOS disk image", () => {
 
   it("was drawn from the current drawing and icon (after a change: node scripts/make-dmg-background.mjs)", () => {
     for (const { file } of PICTURES) expect(pngText(read(file))[HASH_KEY], file).toBe(sourceHash());
+  });
+});
+
+describe("the Windows installer", () => {
+  const nsis = config.nsis ?? {};
+
+  it("installs in one click, for this Windows user only, and opens the app", () => {
+    expect(nsis).toMatchObject({ oneClick: true, perMachine: false, runAfterFinish: true });
+    expect(nsis.allowToChangeInstallationDirectory).toBeFalsy();
+  });
+
+  it("keeps the Student's data when the app is uninstalled", () => {
+    // electron-builder's default; "Keluar & hapus data" in Settings is how to remove it.
+    expect(nsis.deleteAppDataOnUninstall ?? false).toBe(false);
+  });
+
+  it("names the Start menu and desktop shortcuts Edunex Plus", () => {
+    expect(nsis.shortcutName ?? config.productName).toBe("Edunex Plus");
+  });
+
+  it("shows the app's icon at every size Windows asks for: the app, its installer and its uninstaller", () => {
+    const icon = config.win?.icon ?? "";
+    // The installer's and uninstaller's icons are the app's unless set; the header's must be set.
+    const icons = new Set([icon, nsis.installerIcon ?? icon, nsis.uninstallerIcon ?? icon, nsis.installerHeaderIcon ?? ""]);
+    expect([...icons]).toEqual(["assets/icon.ico"]);
+    const sizes = icoPictures(read(icon));
+    expect(sizes.map(({ size }) => size)).toEqual([16, 20, 24, 32, 40, 48, 64, 256]);
+    for (const { size, width, height } of sizes) expect([width, height]).toEqual([size, size]);
+  });
+
+  it("stops and says what to do if an older test version is installed for everyone on the computer", () => {
+    expect(nsis.include).toBe("assets/installer.nsh");
+    const script = read("assets/installer.nsh").toString();
+    expect(script).toContain("!macro customInit");
+    // biome-ignore lint/suspicious/noTemplateCurlyInString: an NSIS name, as the script spells it
+    expect(script).toContain('ReadRegStr $0 HKLM "${INSTALL_REGISTRY_KEY}" InstallLocation');
+    expect(script).toContain('ExecShell "open" "ms-settings:appsfeatures"');
   });
 });

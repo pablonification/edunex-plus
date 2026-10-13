@@ -1,6 +1,6 @@
 // Draws Edunex Plus's icon and writes every file made from it:
 //   assets/icon.svg              the drawing (made here; edit the numbers below, not the file)
-//   assets/icon.png              1024 px, for Windows and Linux packages and the Dock in development
+//   assets/icon.png              1024 px, for the Linux packages and the Dock in development
 //   assets/icon.icns             the macOS app icon
 //   src/app/assets/edunex-plus.png  the in-app mark (sidebar, welcome, Settings): the tile alone, no shadow
 //   assets/icon.ico              the app's icon on Windows (window, taskbar, Start, the installer), 16 to 256 px
@@ -8,6 +8,7 @@
 //   assets/tray.png (+ @2x)      the tray icon on Linux, 24 px
 // Windows' and Linux's are the tile alone, edge to edge as their icons are, each size drawn
 // from the drawing itself rather than shrunk from 1024 px, so the small ones stay sharp.
+// Then re-run scripts/make-dmg-background.mjs: the disk image's window shows the icon too.
 //
 // The mark is a lowercase "e" with a raised "+", white on the app's blue, on a
 // macOS-shaped tile (Apple's grid: an 824 px tile with 100 px around it).
