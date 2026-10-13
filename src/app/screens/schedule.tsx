@@ -26,13 +26,6 @@ import { WeekView } from "./schedule/week";
 
 export { ExportButton } from "./schedule/export";
 
-export const ready = true;
-
-/** The count shown next to this screen in the sidebar, if any. */
-export function useBadge(): { value: number; tone: "neutral" | "warning" } | null {
-  return null;
-}
-
 type View = "week" | "month";
 
 /** Where the Student is in Jadwal: the view, the week's Monday and the month ("2026-10"); null = the current one. */

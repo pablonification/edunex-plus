@@ -1,46 +1,37 @@
-// Which screens and tabs are built (each screen's `ready` flag), for the
-// parts of the shell that can link anywhere: quick search and the first-run
-// scan only offer, or open, a screen that's there.
+// Which screens and tabs are built, for the parts of the shell that can link
+// anywhere: the sidebar shows a screen once it's built, and quick search and
+// the first-run scan only offer, or open, one that's there. Kept here rather
+// than in each screen, so the shell can ask without loading the screens.
 import type { Route } from "../../core/route";
-import { ready as courseReady } from "../screens/course";
-import { ready as examReady } from "../screens/exam";
-import { ready as gradesReady } from "../screens/grades";
-import { ready as planReady } from "../screens/plan";
-import { ready as billsReady } from "../screens/plan/bills";
-import { ready as curriculumReady } from "../screens/plan/curriculum";
-import { ready as deadlinesReady } from "../screens/plan/deadlines";
-import { ready as krsReady } from "../screens/plan/krs";
-import { ready as plannerReady } from "../screens/plan/planner";
-import { ready as presenceReady } from "../screens/presence";
-import { ready as scheduleReady } from "../screens/schedule";
-import { ready as tasksReady } from "../screens/tasks";
 
-const PLAN_TABS: Readonly<Record<string, boolean>> = {
-  planner: plannerReady,
-  curriculum: curriculumReady,
-  krs: krsReady,
-  bills: billsReady,
-  deadlines: deadlinesReady,
+const SCREENS: Readonly<Record<Route["screen"], boolean>> = {
+  home: true,
+  tasks: true,
+  task: true,
+  exam: true,
+  course: true,
+  schedule: true,
+  presence: true,
+  grades: true,
+  plan: true,
 };
 
+/** Rencana studi's tabs, in their order. */
+export const PLAN_TABS = ["planner", "curriculum", "krs", "bills", "deadlines"] as const;
+export type PlanTab = (typeof PLAN_TABS)[number];
+
+const PLAN_TAB_BUILT: Readonly<Record<PlanTab, boolean>> = {
+  planner: true,
+  curriculum: true,
+  krs: true,
+  bills: true,
+  deadlines: true,
+};
+
+/** Rencana studi's tabs that are built; the screen shows once one is. */
+export const builtPlanTabs: readonly PlanTab[] = PLAN_TABS.filter((tab) => PLAN_TAB_BUILT[tab]);
+
 export function isBuilt(route: Route): boolean {
-  switch (route.screen) {
-    case "home":
-      return true;
-    case "tasks":
-    case "task":
-      return tasksReady;
-    case "exam":
-      return examReady;
-    case "course":
-      return courseReady;
-    case "schedule":
-      return scheduleReady;
-    case "presence":
-      return presenceReady;
-    case "grades":
-      return gradesReady;
-    case "plan":
-      return planReady && (route.tab === undefined || PLAN_TABS[route.tab] === true);
-  }
+  if (route.screen === "plan") return builtPlanTabs.length > 0 && (route.tab === undefined || (builtPlanTabs as readonly string[]).includes(route.tab));
+  return SCREENS[route.screen];
 }

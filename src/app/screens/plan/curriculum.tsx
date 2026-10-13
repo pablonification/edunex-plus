@@ -25,13 +25,6 @@ import { useViewChoice } from "../../view-choice";
 import { WhatIfTag } from "./planner";
 import { SixNeeded } from "./six-needed";
 
-export const ready = true;
-
-/** A count for the Rencana studi sidebar entry, if any. */
-export function useBadge(): { value: number; tone: "neutral" | "warning" } | null {
-  return null;
-}
-
 /** SIX's public course page (no sign-in): the syllabus. */
 export const syllabusUrl = (courseId: string) => `https://six.itb.ac.id/pub/matakuliah/${courseId}`;
 

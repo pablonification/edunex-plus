@@ -25,13 +25,6 @@ import { DisclosurePanel, disclosureTrigger } from "../ui/motion/disclosure";
 import { GradeBadge, GradeSelect, HonorsSentence, IpkChart, NeedText, predicateFor, TargetControl, usePredicate, useTermName } from "./plan/projection";
 import { SixNeeded } from "./plan/six-needed";
 
-export const ready = true;
-
-/** The count shown next to this screen in the sidebar, if any. */
-export function useBadge(): { value: number; tone: "neutral" | "warning" } | null {
-  return null;
-}
-
 const SIX_WEB = "https://six.itb.ac.id";
 
 /** SIX's figure when it shows one (it wins when the rows disagree), else the app's. */

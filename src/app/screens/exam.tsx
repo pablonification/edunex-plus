@@ -28,8 +28,6 @@ import { toast } from "../ui/overlays";
 import { ExportButton } from "./schedule";
 import { LecturerFile } from "./tasks";
 
-export const ready = true;
-
 /** UTS, UAS, Kuis: a quiet label; the date is what stands out. */
 function KindLabel({ exam }: { exam: Pick<Exam, "kind"> }) {
   const t = useT();

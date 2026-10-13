@@ -3,7 +3,7 @@
 // step asks of the Student and ITB's next window for it, the courses with
 // class, SKS and the advisor's approval, and classes that overlap on SIX's
 // timetable (SIX accepts those and never says so). View only.
-import { type KrsStage, type KrsStep, krsNeedsStudent, krsOverlaps, krsStage, krsTimeline, nextKrsWindow, type Overlap, rupiah } from "../../../core/academic";
+import { type KrsStage, type KrsStep, krsOverlaps, krsStage, krsTimeline, nextKrsWindow, type Overlap, rupiah } from "../../../core/academic";
 import type { ClassSession, KrsPlan } from "../../../core/models";
 import { useTermCourses } from "../../courses";
 import { useFormat, useNow, useT } from "../../i18n";
@@ -17,31 +17,8 @@ import { List, Meta, Row, Section } from "../../ui/layout";
 import { useTermYears } from "./projection";
 import { SixNeeded } from "./six-needed";
 
-export const ready = true;
-
 function useSchedule(): ClassSession[] {
   return useDataset("six.schedule") ?? [];
-}
-
-/** A KRS step to take now, plus every pair of overlapping classes still to come. */
-/**
- * Amber only for a step the Student must take today (send the KRS). A clash
- * still to come counts in a neutral badge: worth a question to the lecturer,
- * not a deadline.
- */
-export function useBadge(): { value: number; tone: "neutral" | "warning" } | null {
-  const plan = useDataset("six.krs");
-  const calendar = useDataset("itb.calendar");
-  const schedule = useSchedule();
-  const now = useNow();
-  if (!plan) return null;
-  if (krsNeedsStudent(plan, calendar, now)) return { value: 1, tone: "warning" };
-  const value = krsOverlaps(
-    plan.courses.map((c) => c.code),
-    schedule,
-    now,
-  ).filter((o) => o.upcoming).length;
-  return value > 0 ? { value, tone: "neutral" } : null;
 }
 
 /** The stage's icon color, drawn bare before its title the way a Notice draws its icon. */

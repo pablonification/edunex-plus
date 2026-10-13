@@ -91,13 +91,6 @@ import { TabBar } from "../../ui/tabs";
 import { GradeSelect, HonorsList, IpkChart, NeedText, predicateFor, TargetControl, usePredicate, useTermLabel } from "./projection";
 import { SixNeeded } from "./six-needed";
 
-export const ready = true;
-
-/** A count for the Rencana studi sidebar entry, if any. */
-export function useBadge(): { value: number; tone: "neutral" | "warning" } | null {
-  return null;
-}
-
 export function Tab({ onCalendar }: { onCalendar?: () => void }) {
   const t = useT();
   const record = useStudentRecord();

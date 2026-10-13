@@ -9,18 +9,11 @@
 // open; ITB's calendar is named and linked, with when it was last checked.
 // Works without SIX.
 import { Fragment, useRef, useState } from "react";
-import {
-  academicDeadlines,
-  CALENDAR_GROUPS,
-  type CalendarEntry,
-  type CalendarGroup,
-  DEADLINE_KINDS,
-  type Deadline,
-  fullCalendar,
-} from "../../../core/academic";
+import { CALENDAR_GROUPS, type CalendarEntry, type CalendarGroup, DEADLINE_KINDS, type Deadline, fullCalendar } from "../../../core/academic";
 import { itbCalendar } from "../../../core/links";
 import type { AcademicCalendar } from "../../../core/models";
 import type { StringKey } from "../../../core/strings";
+import { useDeadlines, useThisTerm } from "../../deadlines";
 import { useOpenExternal } from "../../hooks";
 import { useFormat, useLang, useNow, useT } from "../../i18n";
 import { useDataset } from "../../store";
@@ -31,27 +24,7 @@ import { Icons } from "../../ui/icons";
 import { List, Meta } from "../../ui/layout";
 import { WebLink } from "../../ui/rich-text";
 import { useViewChoice } from "../../view-choice";
-import { useThisTerm } from "./bills";
 import { useTermYears } from "./projection";
-
-export const ready = true;
-
-function useDeadlines() {
-  const calendar = useDataset("itb.calendar");
-  const krs = useDataset("six.krs");
-  const bills = useDataset("six.bills");
-  const progress = useDataset("six.progress");
-  const term = useThisTerm();
-  const now = useNow();
-  return { calendar, ...academicDeadlines({ calendar, term, now, krs, bills, progress }) };
-}
-
-/** The questionnaire running now: SIX hides grades until it's filled. (KRS and UKT count in their own tabs.) */
-export function useBadge(): { value: number; tone: "neutral" | "warning" } | null {
-  const { upcoming } = useDeadlines();
-  const value = upcoming.filter((d) => d.when === "now" && d.event.kind === "questionnaire").length;
-  return value > 0 ? { value, tone: "warning" } : null;
-}
 
 type Group = "now" | "week" | "month" | "term" | "next";
 
