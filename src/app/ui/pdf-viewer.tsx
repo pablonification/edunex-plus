@@ -78,6 +78,8 @@ export interface PdfViewerProps {
   onAttach?: (bytes: Uint8Array) => Promise<boolean>;
   /** Bumped to ask the viewer to close from outside (the screen behind changed): it asks first when there's unsaved filling. */
   closeRequest?: number;
+  /** The Student chose to keep filling when asked about closing. */
+  onStay?: () => void;
   /** Whether there's unsaved filling, as it changes. */
   onDirtyChange?: (dirty: boolean) => void;
   /** Leaves room at the top for macOS's window buttons, and names shortcuts with ⌘. */
@@ -95,6 +97,7 @@ export function PdfViewer({
   onSaveCopy,
   onAttach,
   closeRequest = 0,
+  onStay,
   onDirtyChange,
   clearTitleBar = false,
 }: PdfViewerProps) {
@@ -263,7 +266,10 @@ export function PdfViewer({
           </PanelBoundary>
           <ConfirmDialog
             open={asking}
-            onOpenChange={setAsking}
+            onOpenChange={(next) => {
+              setAsking(next);
+              if (!next) onStay?.();
+            }}
             title={t("pdf.discard.title")}
             body={t("pdf.discard.body")}
             confirmLabel={t("pdf.discard.confirm")}

@@ -37,8 +37,11 @@ export const isPdfName = (name: string) => /\.pdf$/i.test(name.trim());
 
 interface PdfViewerControl {
   open(source: PdfSource): void;
-  /** Shuts it (the screen behind is changing); with filling not saved, it asks first. */
-  close(): void;
+  /**
+   * Shuts it, then runs `then` (the screen behind changing). With filling not
+   * saved it asks first: `then` waits for "Buang", and "Lanjut mengisi" drops it.
+   */
+  close(then?: () => void): void;
   /** A Task's answer taking filled-in PDFs, until the returned function says it no longer does. */
   offerAnswer(taskId: number, attach: AnswerAttach): () => void;
 }
@@ -76,6 +79,8 @@ export function PdfViewerProvider({ children }: { children: ReactNode }) {
   const [answers, setAnswers] = useState<ReadonlyMap<number, AnswerAttach>>(new Map());
   const [closeRequest, setCloseRequest] = useState(0);
   const dirty = useRef(false);
+  /** What waits for the viewer to shut (going to another screen) while it asks about unsaved filling. */
+  const leaving = useRef<(() => void) | null>(null);
 
   const load = useMemo(() => {
     if (!source) return async () => new Uint8Array();
@@ -167,7 +172,15 @@ export function PdfViewerProvider({ children }: { children: ReactNode }) {
         setSource(next);
         setOpen(true);
       },
-      close: () => (dirty.current ? setCloseRequest((n) => n + 1) : setOpen(false)),
+      close: (then?: () => void) => {
+        if (dirty.current) {
+          leaving.current = then ?? null;
+          setCloseRequest((n) => n + 1);
+          return;
+        }
+        setOpen(false);
+        then?.();
+      },
       offerAnswer: (taskId: number, attach: AnswerAttach) => {
         setAnswers((all) => new Map(all).set(taskId, attach));
         return () =>
@@ -184,6 +197,12 @@ export function PdfViewerProvider({ children }: { children: ReactNode }) {
   const onDirtyChange = useCallback((now: boolean) => {
     dirty.current = now;
   }, []);
+  const onOpenChange = (next: boolean) => {
+    setOpen(next);
+    const then = leaving.current;
+    leaving.current = null;
+    if (!next) then?.();
+  };
   return (
     <Context value={viewer}>
       {children}
@@ -191,7 +210,7 @@ export function PdfViewerProvider({ children }: { children: ReactNode }) {
         <Suspense fallback={null}>
           <PdfViewer
             open={open}
-            onOpenChange={setOpen}
+            onOpenChange={onOpenChange}
             name={source.name}
             load={load}
             actions={downloadButton}
@@ -200,6 +219,9 @@ export function PdfViewerProvider({ children }: { children: ReactNode }) {
             onSaveCopy={saveCopy}
             onAttach={attach}
             closeRequest={closeRequest}
+            onStay={() => {
+              leaving.current = null;
+            }}
             onDirtyChange={onDirtyChange}
             clearTitleBar={mac}
           />

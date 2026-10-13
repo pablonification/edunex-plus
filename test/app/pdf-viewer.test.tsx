@@ -531,13 +531,30 @@ describe("filling a PDF", () => {
     expect(s.has("Simpan salinan")).toBe(false);
   });
 
-  it("going to another screen with filling not saved asks too", async () => {
+  it("going to another screen with filling not saved asks too, and the screen waits for the answer", async () => {
     const s = await openCourseForm();
+    const course = document.querySelector("h1")?.textContent;
     await type(box("Nama"), "Ana");
     await key(document.activeElement!, "1", { metaKey: true });
     expect(asking()?.textContent).toContain("Buang isianmu?");
+    // Still on the course behind the question; keeping on filling stays there.
+    expect(document.querySelector("h1")?.textContent).toBe(course);
+    await s.click("Lanjut mengisi");
+    expect(viewer()).not.toBeNull();
+    expect(box("Nama").value).toBe("Ana");
+    expect(document.querySelector("h1")?.textContent).toBe(course);
+    // Closing later doesn't go anywhere either: the earlier way out was dropped.
+    await s.click("Tutup");
     await s.click("Buang");
     expect(viewer()).toBeNull();
+    expect(document.querySelector("h1")?.textContent).toBe(course);
+    // Asked again on the way out, "Buang" goes on to where the Student was going.
+    await s.click(`Lihat: ${NAME}`);
+    await type(box("Nama"), "Ana");
+    await key(document.activeElement!, "1", { metaKey: true });
+    await s.click("Buang");
+    expect(viewer()).toBeNull();
+    expect(document.querySelector("h1")?.textContent).not.toBe(course);
   });
 
   it("⌘Z takes back the last change, typing in one box as one step; ⌘⇧Z brings it back", async () => {
