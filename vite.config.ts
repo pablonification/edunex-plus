@@ -3,7 +3,7 @@ import path from "node:path";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig, type Plugin } from "vite";
-import { openSourceList, PDFJS_DATA } from "./scripts/third-party-notices.mjs";
+import { type OpenSourceEntry, openSourceList, PDFJS_DATA, unlistedPackages } from "./scripts/third-party-notices.mjs";
 
 const outDir = path.resolve(__dirname, "dist/app");
 
@@ -39,21 +39,28 @@ function pdfjsAssets(): Plugin {
  * The open-source software the app ships, each with its licence
  * (scripts/third-party-notices.mjs), as licences.json next to the window.
  * Settings reads it only when the Student opens the list, so none of it loads
- * with the window.
+ * with the window. The build stops if the window bundles a package the list
+ * leaves out, which would ship without its licence.
  */
 function licencesFile(): Plugin {
-  let json: string | undefined;
-  const list = () => (json ??= JSON.stringify(openSourceList()));
+  let entries: OpenSourceEntry[] | undefined;
+  const list = () => (entries ??= openSourceList());
   return {
     name: "licences-file",
     configureServer(server) {
       server.middlewares.use("/licences.json", (_request, response) => {
         response.setHeader("content-type", "application/json");
-        response.end(list());
+        response.end(JSON.stringify(list()));
       });
     },
-    generateBundle() {
-      this.emitFile({ type: "asset", fileName: "licences.json", source: list() });
+    generateBundle(_options, bundle) {
+      const files = Object.values(bundle).flatMap((file) => (file.type === "chunk" ? Object.keys(file.modules) : []));
+      const unlisted = unlistedPackages(files, list());
+      if (unlisted.length > 0)
+        this.error(
+          `The window includes ${unlisted.join(", ")}, which the list of open-source software leaves out, so it would ship without its licence: install it under "dependencies" in package.json, not "devDependencies".`,
+        );
+      this.emitFile({ type: "asset", fileName: "licences.json", source: JSON.stringify(list()) });
     },
   };
 }

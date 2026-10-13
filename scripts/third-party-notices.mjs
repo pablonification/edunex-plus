@@ -227,6 +227,25 @@ export function openSourceList(root = ROOT) {
   return entries.sort((a, b) => a.name.localeCompare(b.name, "en") || (a.version ?? "").localeCompare(b.version ?? "", "en"));
 }
 
+/**
+ * The packages among `files` (what a bundler put in the app: esbuild's inputs,
+ * Vite's modules) that the list leaves out, by the node_modules folder each
+ * came from. One the app imports but installs only to build it (a
+ * devDependency) isn't on the list, and would ship without its licence.
+ */
+export function unlistedPackages(files, list) {
+  const listed = new Set(list.map((entry) => entry.name));
+  const unlisted = new Set();
+  for (const file of files) {
+    const folders = `/${file.replaceAll("\\", "/")}`.split("/node_modules/");
+    if (folders.length < 2) continue;
+    const [first, second] = folders[folders.length - 1].split("/");
+    const name = first.startsWith("@") ? `${first}/${second}` : first;
+    if (!listed.has(name)) unlisted.add(name);
+  }
+  return [...unlisted].sort();
+}
+
 /** The text file the installed app carries: a short header, then each entry with its licence. */
 export function noticesText(list) {
   const rule = "-".repeat(78);

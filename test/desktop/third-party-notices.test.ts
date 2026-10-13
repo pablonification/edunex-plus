@@ -7,7 +7,8 @@ import path from "node:path";
 import { build } from "esbuild";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
-import { noticesText, openSourceList } from "../../scripts/third-party-notices.mjs";
+import { desktopBundle } from "../../scripts/desktop-bundle.mjs";
+import { noticesText, openSourceList, unlistedPackages } from "../../scripts/third-party-notices.mjs";
 import { Licence } from "../../src/app/licences";
 import { isWebLink } from "../../src/core/links";
 
@@ -71,22 +72,25 @@ describe("the list of open-source software the app ships", () => {
   });
 
   it("covers everything the main process bundles", async () => {
-    // The main process and preload as scripts/desktop-bundle.mjs builds them, read for what they take from node_modules.
-    const result = await build({
-      absWorkingDir: root,
-      entryPoints: ["src/desktop/main.ts", "src/desktop/preload.ts"],
-      bundle: true,
-      platform: "node",
-      format: "cjs",
-      external: ["electron"],
-      outdir: "dist/desktop",
-      write: false,
-      metafile: true,
-      logLevel: "silent",
-    });
-    const bundled = new Set(Object.keys(result.metafile.inputs).flatMap((input) => /node_modules\/((?:@[^/]+\/)?[^/]+)/.exec(input)?.[1] ?? []));
-    expect(bundled.size).toBeGreaterThan(5);
-    expect([...bundled].filter((name) => !names.has(name))).toEqual([]);
+    // The main process and preload as scripts/build-desktop.mjs builds them, read for what they take from node_modules.
+    const result = await build({ ...desktopBundle, absWorkingDir: root, write: false, metafile: true, logLevel: "silent" });
+    const files = Object.keys(result.metafile.inputs);
+    expect(files.filter((file) => file.includes("node_modules/")).length).toBeGreaterThan(5);
+    expect(unlistedPackages(files, list)).toEqual([]);
+  });
+
+  it("names a package the app bundles that the list leaves out, so the build stops on it (vite.config.ts)", () => {
+    const files = [
+      "/repo/node_modules/zod/v4/core/util.js",
+      // esbuild names its files from the project's folder, Vite by their full path (with "/" on Windows too).
+      "node_modules/cheerio/dist/commonjs/index.js",
+      "/repo/node_modules/@tiptap/pm/node_modules/prosemirror-model/dist/index.js",
+      "C:\\repo\\node_modules\\@example\\only-for-building\\index.js",
+      "\0/repo/node_modules/left-pad/index.js?commonjs-exports",
+      "\0vite/preload-helper.js",
+      "/repo/src/app/main.tsx",
+    ];
+    expect(unlistedPackages(files, list)).toEqual(["@example/only-for-building", "left-pad"]);
   });
 
   it("includes the fonts and data the PDF viewer carries, each with its own licence", () => {
