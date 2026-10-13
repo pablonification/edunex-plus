@@ -3,7 +3,7 @@
 // calculator; and how a course's files are laid out for offline reading.
 import { describe, expect, it } from "vitest";
 import { EXAMPLE_CONTRACT, standing } from "../../src/core/course-contract";
-import { materialAction, planOfflineFiles } from "../../src/core/course-materials";
+import { materialAction, outlineEntries, planOfflineFiles } from "../../src/core/course-materials";
 import {
   announcedMeetings,
   courseMeetings,
@@ -260,5 +260,38 @@ describe("materials and offline files", () => {
       "Kelas induk/02 Template Proposal TA & Laporan TA - Latex/Template Proposal TA - LaTeX.zip",
       "Kelas induk/03 01 Pengantar Proposal TA/Slide Pengantar Proposal TA.pdf",
     ]);
+  });
+
+  it("modules keep Edunex's own numbers past one not opened yet; data saved without them counts the opened ones", () => {
+    const module = (id: number, courseId: number, number?: number) => ({ id, courseId, title: `M${id}`, postedAt: null, ...(number ? { number } : {}) });
+    const outline = { lecturer: null, credits: null, grade: null, modules: [module(1, 10, 1), module(2, 10, 2), module(4, 10, 4), module(5, 20, 1)] };
+    expect(outlineEntries(outline, 10).map((e) => [e.module.id, e.number, e.parent])).toEqual([
+      [1, 1, false],
+      [2, 2, false],
+      [4, 4, false],
+      [5, 1, true],
+    ]);
+    const saved = { ...outline, modules: [module(1, 10), module(2, 10), module(4, 10), module(5, 20)] };
+    expect(outlineEntries(saved, 10).map((e) => e.number)).toEqual([1, 2, 3, 1]);
+    // The offline folders are named by the same numbers.
+    const files = planOfflineFiles(
+      { code: "X", name: "Y", mainCourseId: 10 },
+      outline,
+      [
+        {
+          id: 9,
+          courseId: 10,
+          moduleId: 4,
+          title: "Slide",
+          type: "pdf",
+          content: "https://edunexfixture.blob.core.windows.net/edunex/fixture-1",
+          sizeBytes: null,
+          postedAt: null,
+          updatedAt: null,
+        },
+      ],
+      "id",
+    );
+    expect(files.files.map((f) => f.folders)).toEqual([["04 M4"]]);
   });
 });

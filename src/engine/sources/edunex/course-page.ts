@@ -4,7 +4,17 @@
 // under the course code. Calls go one after another, except a course's
 // module contents, a few at a time.
 import { z } from "zod";
-import type { Announcement, Course, CourseModule, CourseOutline, EdunexExam, GradebookGrade, Material, PresenceSession } from "../../../core/models";
+import type {
+  Announcement,
+  Course,
+  CourseModule,
+  CourseOutline,
+  EdunexExam,
+  GradebookGrade,
+  Material,
+  PresenceSession,
+  UnopenedModule,
+} from "../../../core/models";
 import { EngineError } from "../../errors";
 import type { SourceContext } from "../source";
 import type { EdunexClient } from "./client";
@@ -23,7 +33,16 @@ const Stamp = z.string().nullable().optional();
 const ModuleRecord = z.object({
   type: z.literal("modules"),
   id: z.string(),
-  attributes: z.object({ course_id: z.number(), index: z.number(), name: z.string(), is_active: z.union([z.boolean(), z.number()]), created_at: Stamp }),
+  attributes: z.object({
+    course_id: z.number(),
+    index: z.number(),
+    name: z.string(),
+    is_active: z.union([z.boolean(), z.number()]),
+    created_at: Stamp,
+    start_at: Stamp,
+    /** 1: Edunex opens it by itself at start_at. */
+    is_date_restricted: z.union([z.boolean(), z.number()]).nullable().optional(),
+  }),
 });
 
 /** GET /course/courses/{id}?include=modules,… */
@@ -53,6 +72,9 @@ export const Contents = z.object({
         type: z.string(),
         content: z.string().nullable(),
         size: z.union([z.string(), z.number()]).nullable().optional(),
+        /** The names Edunex shows under each item ("Created by … at …"). */
+        created_by: z.union([z.string(), z.number()]).nullable().optional(),
+        updated_by: z.union([z.string(), z.number()]).nullable().optional(),
         created_at: Stamp,
         updated_at: Stamp,
       }),
@@ -171,7 +193,7 @@ export function registerCoursePageFeeds(context: SourceContext, client: EdunexCl
 const courseIds = (course: Course) => [course.edunex.courseId, ...course.edunex.relatedCourseIds];
 
 export async function fetchOutline(client: EdunexClient, course: Course, nim: string | null): Promise<CourseOutline> {
-  const outline: CourseOutline = { lecturer: null, credits: null, program: null, modules: [], grade: null };
+  const outline: CourseOutline = { lecturer: null, credits: null, program: null, modules: [], unopened: [], grade: null };
   for (const id of courseIds(course)) {
     const detail = await client.get(`/course/courses/${id}`, { include: "modules,modules.activities,lecturer,lecturer.user,assistant,class" }, CourseDetail);
     const { attributes } = detail.data;
@@ -179,17 +201,20 @@ export async function fetchOutline(client: EdunexClient, course: Course, nim: st
     const credits = Number(attributes.credit);
     outline.credits ??= attributes.credit != null && Number.isFinite(credits) ? credits : null;
     outline.program ??= attributes.major?.trim() || null;
-    const modules: (CourseModule & { index: number })[] = [];
+    const records: z.infer<typeof ModuleRecord>[] = [];
     for (const item of detail.included ?? []) {
       if (item.type !== "modules") continue;
       const parsed = ModuleRecord.safeParse(item);
       if (!parsed.success) throw vendorChanged(`/course/courses/${id}: a module`);
-      const m = parsed.data.attributes;
-      // Modules the lecturer switched off are hidden from Students on Edunex too.
-      if (!m.is_active) continue;
-      modules.push({ id: Number(parsed.data.id), courseId: m.course_id, title: m.name.trim(), postedAt: edunexTime(m.created_at), index: m.index });
+      records.push(parsed.data);
     }
-    outline.modules.push(...modules.sort((a, b) => a.index - b.index).map(({ index: _index, ...m }) => m));
+    // Edunex lists every module, the ones the lecturer hasn't opened greyed, and numbers them by place: "Module 7".
+    for (const [at, record] of records.sort((a, b) => a.attributes.index - b.attributes.index).entries()) {
+      const m = record.attributes;
+      const module = { id: Number(record.id), courseId: m.course_id, title: m.name.trim(), number: at + 1 };
+      if (m.is_active) outline.modules.push({ ...module, postedAt: edunexTime(m.created_at) } satisfies CourseModule);
+      else (outline.unopened ??= []).push({ ...module, opensAt: Number(m.is_date_restricted) === 1 ? edunexTime(m.start_at) : null } satisfies UnopenedModule);
+    }
     // Before the lecturer publishes, Edunex's gradebook says 0 · E for everyone: never a grade.
     if (!outline.grade && attributes.gradebook_publish) outline.grade = await fetchGrade(client, id, course.edunex.classId, nim);
   }
@@ -232,6 +257,8 @@ export async function fetchMaterials(client: EdunexClient, course: Course, modul
         sizeBytes: a.size != null && Number.isFinite(size) && size > 0 ? size : null,
         postedAt: edunexTime(a.created_at),
         updatedAt: edunexTime(a.updated_at),
+        createdBy: person(a.created_by),
+        updatedBy: person(a.updated_by),
       });
     }
   });
@@ -310,6 +337,9 @@ export async function fetchExams(client: EdunexClient, course: Course): Promise<
   }
   return out;
 }
+
+/** A name as Edunex writes it on an item; a bare number is an account id, never shown. */
+const person = (value: string | number | null | undefined) => (typeof value === "string" && value.trim()) || null;
 
 async function inGroups<T, R>(items: readonly T[], size: number, run: (item: T) => Promise<R>): Promise<R[]> {
   const out: R[] = [];

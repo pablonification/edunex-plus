@@ -156,17 +156,18 @@ export function fileName(material: Pick<Material, "title" | "type" | "content">)
 
 export interface OutlineEntry {
   module: CourseModule;
-  /** Its place in its own Edunex course, from 1. */
+  /** Its number on Edunex: its place among its own Edunex course's modules, from 1, the unopened ones counted too. */
   number: number;
   /** It sits in the class's parent course. */
   parent: boolean;
 }
 
-/** The course's modules as Edunex numbers them: the class's own course first, then its parent's. */
+/** The course's opened modules as Edunex numbers them: the class's own course first, then its parent's. */
 export function outlineEntries(outline: CourseOutline, mainCourseId: number): OutlineEntry[] {
+  // Data saved before Edunex's own numbers were kept: the place among the opened ones.
   const counts = new Map<number, number>();
   return outline.modules.map((module) => {
-    const number = (counts.get(module.courseId) ?? 0) + 1;
+    const number = module.number ?? (counts.get(module.courseId) ?? 0) + 1;
     counts.set(module.courseId, number);
     return { module, number, parent: module.courseId !== mainCourseId };
   });

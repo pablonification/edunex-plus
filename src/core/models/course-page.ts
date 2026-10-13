@@ -14,8 +14,21 @@ export const CourseModule = z.object({
   title: z.string(),
   /** When the lecturer posted it (ms). */
   postedAt: z.number().nullable(),
+  /** Its number on Edunex ("Module 7"): its place among all its Edunex course's modules, the unopened ones too. Missing in data saved before it was kept. */
+  number: z.number().optional(),
 });
 export type CourseModule = z.infer<typeof CourseModule>;
+
+/** A module Edunex lists but the lecturer hasn't opened yet: greyed on Edunex, and nothing in it to read. */
+export const UnopenedModule = z.object({
+  id: z.number(),
+  courseId: z.number(),
+  title: z.string(),
+  number: z.number(),
+  /** When Edunex opens it by itself, if the lecturer set a date (ms). */
+  opensAt: z.number().nullable(),
+});
+export type UnopenedModule = z.infer<typeof UnopenedModule>;
 
 export const GradebookGrade = z.object({ total: z.number(), letter: z.string() });
 export type GradebookGrade = z.infer<typeof GradebookGrade>;
@@ -26,8 +39,10 @@ export const CourseOutline = z.object({
   credits: z.number().nullable(),
   /** The study program offering the course, as Edunex names it ("S1 - Desain Komunikasi Visual"): its catalog page has the course's official name. */
   program: z.string().nullable().optional(),
-  /** In Edunex's order, the class's own course first, then its parent's. Modules the lecturer switched off are left out. */
+  /** In Edunex's order, the class's own course first, then its parent's. Only the modules the lecturer has opened. */
   modules: z.array(CourseModule),
+  /** The modules Edunex lists that the lecturer hasn't opened yet. Missing in data saved before they were kept. */
+  unopened: z.array(UnopenedModule).optional(),
   /** From Edunex's gradebook once the lecturer publishes it. Before that Edunex shows 0 · E, which is never a grade. */
   grade: GradebookGrade.nullable(),
 });
@@ -46,6 +61,9 @@ export const Material = z.object({
   sizeBytes: z.number().nullable(),
   postedAt: z.number().nullable(),
   updatedAt: z.number().nullable(),
+  /** Who posted it and who last changed it, as Edunex names them (a lecturer, an assistant). Missing in data saved before they were kept. */
+  createdBy: z.string().nullable().optional(),
+  updatedBy: z.string().nullable().optional(),
 });
 export type Material = z.infer<typeof Material>;
 

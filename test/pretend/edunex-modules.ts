@@ -14,7 +14,12 @@ export interface ModuleContent {
   size: number | null;
   /** When the lecturer posted it, as Edunex writes it. */
   at: string;
+  /** Who posted it, as Edunex names them under the item. */
+  by: string;
 }
+
+/** II4091's lecturer in the recordings (a made-up name). */
+const LECTURER = "Dr. Hadi Halim, S.T., M.T.";
 
 const file = (name: string) => `https://edunexfixture.blob.core.windows.net/edunex/fixture-${name}`;
 
@@ -26,6 +31,7 @@ export const MODULE_CONTENTS: readonly ModuleContent[] = [
     type: "text",
     content: '<p><a href="https://docs.google.com/spreadsheets/d/fixture-topik-ta/edit">Penawaran topik TA 2026-2027</a></p>',
     size: null,
+    by: LECTURER,
     at: "2026-08-28T14:10:00+07:00",
   },
   {
@@ -35,6 +41,7 @@ export const MODULE_CONTENTS: readonly ModuleContent[] = [
     type: "zip",
     content: file("template-proposal"),
     size: 8_402_113,
+    by: LECTURER,
     at: "2026-08-28T14:12:00+07:00",
   },
   {
@@ -44,6 +51,7 @@ export const MODULE_CONTENTS: readonly ModuleContent[] = [
     type: "zip",
     content: file("template-laporan"),
     size: 1_004_200,
+    by: LECTURER,
     at: "2026-08-28T14:12:30+07:00",
   },
   {
@@ -53,6 +61,7 @@ export const MODULE_CONTENTS: readonly ModuleContent[] = [
     type: "pdf",
     content: file("slide-pengantar"),
     size: 2_310_544,
+    by: LECTURER,
     at: "2026-09-04T09:20:00+07:00",
   },
   {
@@ -63,6 +72,7 @@ export const MODULE_CONTENTS: readonly ModuleContent[] = [
     content:
       '<p><strong>Daftar topik dari dosen:</strong> <a href="https://docs.google.com/spreadsheets/d/fixture-topik-dosen/edit">Topik TA Dosen 2026</a></p>',
     size: null,
+    by: LECTURER,
     at: "2026-08-28T14:15:00+07:00",
   },
   {
@@ -72,6 +82,7 @@ export const MODULE_CONTENTS: readonly ModuleContent[] = [
     type: "zip",
     content: file("template-proposal-gabungan"),
     size: 8_402_113,
+    by: LECTURER,
     at: "2026-08-28T14:16:00+07:00",
   },
   {
@@ -81,6 +92,7 @@ export const MODULE_CONTENTS: readonly ModuleContent[] = [
     type: "pdf",
     content: file("slide-pengantar-gabungan"),
     size: 2_310_544,
+    by: LECTURER,
     at: "2026-09-04T09:22:00+07:00",
   },
 ];
