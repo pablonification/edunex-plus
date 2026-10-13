@@ -36,7 +36,7 @@ export function useBadge(): { value: number; tone: "neutral" | "warning" } | nul
 export const syllabusUrl = (courseId: string) => `https://six.itb.ac.id/pub/matakuliah/${courseId}`;
 
 /** Still to do: everything not passed, credited, or off the Student's list (SIX doesn't ask it of them, or they said so). */
-const isLeft = (status: SlotStatus) => !["passed", "exempt", "unlisted", "not-mine", "done"].includes(status);
+const isLeft = (status: SlotStatus) => !["passed", "exempt", "unlisted", "not-mine", "done", "program-adds"].includes(status);
 
 /**
  * With "Sisa saja" on, a course the Student corrects is no longer left, and
@@ -108,14 +108,21 @@ export function Tab({ onCalendar }: { onCalendar?: () => void }) {
   const sks = sksModel(record, state.plan);
   const hidden = map.semesters.length - semesters.length;
   const correct = (course: MapCourse, fix: CurriculumFix | null, message: string) => {
-    const before = course.fix;
     if (onlyLeft && fix) focus.corrected(course, fix.at);
-    setFix(course.code, fix);
+    const before = setFix(course.code, fix);
     toast(message, "neutral", { label: t("planner.undo"), onClick: () => setFix(course.code, before) });
   };
   const menuOf = (course: MapCourse): MenuItem[] => {
     const at = Date.now();
     const items: MenuItem[] = [];
+    // SIX's record leaves it out: the Student can say it's theirs to take after all, as the note above the list says.
+    if (course.status === "unlisted")
+      items.push({
+        label: t("curriculum.fix.mine"),
+        hint: t("curriculum.fix.mineHint"),
+        icon: <Icons.Plus className="size-4" />,
+        onSelect: () => correct(course, { kind: "mine", at }, t("curriculum.fixDone.mine", { code: course.code })),
+      });
     if (course.fix?.kind !== "not-mine")
       items.push({
         label: t("curriculum.fix.not-mine"),
@@ -341,6 +348,7 @@ function Status({ status, grade }: { status: SlotStatus; grade: string | null })
       );
     case "exempt":
     case "done":
+    case "program-adds":
       return (
         <span className="inline-flex items-center gap-1 text-small text-muted whitespace-nowrap">
           <Icons.Check className="size-3.5 text-success-fg" weight="bold" />

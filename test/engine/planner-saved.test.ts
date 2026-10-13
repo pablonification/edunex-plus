@@ -1,7 +1,7 @@
 // What the Student entered for the study plan stays on this computer: the
 // plan and their curriculum corrections, as earlier versions saved them, load
-// after an update; a bad one is refused, never half-saved; signing out of
-// everything forgets them.
+// after an update, and so do the kinds this version adds; a bad one is
+// refused, never half-saved; signing out of everything forgets them.
 import { describe, expect, it } from "vitest";
 import { MemoryStorage } from "../pretend/memory";
 import { startEngine } from "./harness";
@@ -49,6 +49,19 @@ describe("the study plan's saved data", () => {
     };
     await h.engine.setLocal("local.plan", plan);
     const again = await startEngine({ world: h.world, storage: h.storage, vault: h.vault, start: false });
+    expect(again.dataset("local.plan")).toEqual(plan);
+  });
+
+  it("what this version adds is kept too: a course that is the Student's after all, one their program will add, a registered minor not continued", async () => {
+    const h = await startEngine({ start: false });
+    const fixes = {
+      slots: { WI1111: { kind: "mine", at: 1 }, II4090: { kind: "program-adds", at: 2 }, WI2002: { kind: "counted-as", code: "KU1102", at: 3 } },
+    };
+    const plan = { ...OLD_PLAN, hidden: { "minor|branding berbasis digital": { reason: "not-continuing", at: 4 } } };
+    await h.engine.setLocal("local.curriculum", fixes);
+    await h.engine.setLocal("local.plan", plan);
+    const again = await startEngine({ world: h.world, storage: h.storage, vault: h.vault, start: false });
+    expect(again.dataset("local.curriculum")).toEqual(fixes);
     expect(again.dataset("local.plan")).toEqual(plan);
   });
 

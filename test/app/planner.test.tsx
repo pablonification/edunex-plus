@@ -73,6 +73,7 @@ const rulesCard = () => document.querySelector("ul[aria-label='Aturan, dicek lan
 const rule = (id: string) =>
   [...document.querySelectorAll<HTMLElement>(`[data-rule=${id}]`)].map((el) => `${el.dataset.level}: ${el.textContent?.replace(/^!/, "")}`);
 const saved = () => screen!.store.dataset("local.plan")?.value as StudyPlan | undefined;
+const fixes = () => (screen!.store.dataset("local.curriculum")?.value as { slots: Record<string, { kind: string }> } | undefined)?.slots;
 /** The open menu's items, each its label and hint. */
 const menuItems = () => [...document.querySelectorAll("[role=menuitem]")].map((el) => el.textContent);
 const dialogText = () => document.querySelector("[role=dialog]")?.textContent ?? "";
@@ -158,7 +159,8 @@ describe("the study planner", () => {
   it("removing a required course: the rule says what's missing, the header agrees, and it can be undone", async () => {
     const s = await openPlan();
     await s.click("Hapus II4092");
-    expect(rule("required")).toEqual(["error: Belum terpenuhiMata kuliah wajibBelum direncanakan: II4092 Tugas Akhir."]);
+    // The error offers the one way to settle it here: the program adds the course.
+    expect(rule("required")).toEqual(["error: Belum terpenuhiMata kuliah wajibBelum direncanakan: II4092 Tugas Akhir.Prodiku akan menambahkannya"]);
     expect(rule("total")[0]).toContain("ok: Terpenuhi144 SKS terpenuhi (+3 cadangan)");
     expect(summary()).toContain("Belum bisa lulusKurang 1 mata kuliah wajib");
     expect(toastText()).toContain("II4092 dihapus dari rencanaUrungkan");
@@ -453,6 +455,53 @@ describe("the study planner", () => {
     expect(rule("minor")[0]).toContain("warn: Perlu dicek");
   });
 
+  it("a required course the program will add (Kerja Praktik) is settled right on its error: covered with its SKS, kept through a reset, taken back from the quiet list", async () => {
+    const s = await openPlan();
+    await s.click("Hapus II4090");
+    expect(rule("required")).toEqual(["error: Belum terpenuhiMata kuliah wajibBelum direncanakan: II4090 Kerja Praktik.Prodiku akan menambahkannya"]);
+    expect(summary()).toContain("Belum bisa lulusKurang 1 mata kuliah wajib");
+    await s.click("Prodiku akan menambahkan II4090 Kerja Praktik");
+    expect(toastText()).toContain("II4090 Kerja Praktik dihitung terpenuhi: prodimu akan menambahkannyaUrungkan");
+    expect(fixes()).toEqual({ II4090: expect.objectContaining({ kind: "program-adds" }) });
+    await s.click("Urungkan");
+    expect(fixes()).toEqual({});
+    expect(rule("required")[0]).toContain("error:");
+
+    await s.click("Prodiku akan menambahkan II4090 Kerja Praktik");
+    expect(rule("required")).toEqual([
+      "ok: TerpenuhiMata kuliah wajibSemua 42 sudah diambil, sedang diambil, atau direncanakan. Prodimu akan menambahkan II4090 Kerja Praktik.",
+    ]);
+    // Its 2 SKS count as coming: the same total as with it planned, and said apart.
+    expect(summary()).toContain("144 SKS terpenuhi+7 cadangan");
+    expect(summary()).toContain("125 lulus14 semester ini10 direncanakan2 ditambahkan prodi");
+    expect(summary()).toContain("LulusSemester 8Tepat waktu");
+    // Kept with the curriculum corrections: a reset doesn't plan it again, and Kurikulum agrees.
+    await s.click("Hapus II4010");
+    await s.click("Atur ulang rencana");
+    await s.click("Atur ulang");
+    expect(saved()?.terms[0].courses.map((c) => c.code)).toEqual(["II4092", "II4010", "II4011"]);
+    await tab("Kurikulum");
+    const row = [...document.querySelectorAll("main li")].find((li) => li.textContent?.startsWith("II4090"))?.textContent;
+    expect(row).toBe("II4090Kerja PraktikDikoreksi olehmu · SIX masih mencatatnya belum diambilDitambahkan prodi2");
+    await tab("Rencana");
+    await s.click("Disembunyikan (1) · Tampilkan");
+    expect(rulesCard()).toContain("II4090 Kerja PraktikProdi akan menambahkannya");
+    await s.click("Tampilkan lagi: II4090 Kerja Praktik");
+    expect(fixes()).toEqual({});
+    expect(rule("required")[0]).toContain("error: Belum terpenuhiMata kuliah wajibBelum direncanakan: II4090 Kerja Praktik.");
+  });
+
+  it("several required courses unplanned: the program-will-add choice asks which", async () => {
+    const s = await openPlan({ saved: { terms: [{ term: "2026-2", courses: [] }], expected: {}, target: null, minor: null } });
+    await s.click("Prodiku akan menambahkan…");
+    expect(menuItems()).toEqual(["II4090 Kerja Praktik", "II4092 Tugas Akhir"]);
+    await s.click("II4090 Kerja Praktik");
+    // One left: the choice names no list any more.
+    expect(rule("required")).toEqual([
+      "error: Belum terpenuhiMata kuliah wajibBelum direncanakan: II4092 Tugas Akhir. Prodimu akan menambahkan II4090 Kerja Praktik.Prodiku akan menambahkannya",
+    ]);
+  });
+
   it("reset asks first, says what's lost, and can still be undone (bug: it used to wipe at once)", async () => {
     const s = await openPlan();
     expect(s.button("Atur ulang rencana").disabled).toBe(true);
@@ -538,6 +587,10 @@ describe("the study planner", () => {
     await s.click("Try without PL3032");
     expect(block(/^Semester 7 · now/)!.textContent).toContain("Only in your plan · your KRS on SIX doesn't change");
     expect(s.has("Put PL3032 back")).toBe(true);
+    await s.click("Remove II4090");
+    await s.click("My program will add II4090 Kerja Praktik");
+    expect(rulesText()).toContain("Your program will add II4090 Kerja Praktik.");
+    expect(summary()).toContain("2 your program adds");
   });
 });
 
@@ -646,6 +699,36 @@ describe("the curriculum map", () => {
     expect(row("II4090")).toBe("II4090Kerja PraktikHanya di rencana2");
     expect(row("II4091")).toBe("II4091Proposal Tugas AkhirTidak diambil di rencana2");
     expect(s.text()).not.toContain("Semester ini2");
+  });
+
+  it("'In my curriculum': a course SIX leaves off the record counts as left, here and in the plan's rules, as the note says", async () => {
+    const planned = (code: string, name: string, sks: number) => ({ code, name, sks, grade: "AB" as const, retake: false });
+    // A plan the Student made: the course isn't in it.
+    const s = await openPlan({
+      saved: {
+        terms: [{ term: "2026-2", courses: [planned("II4090", "Kerja Praktik", 2), planned("II4092", "Tugas Akhir", 4)] }],
+        expected: {},
+        target: null,
+        minor: null,
+      },
+    });
+    await tab("Kurikulum");
+    expect(s.text()).toContain("Kalau prodimu bilang itu wajib untukmu, pilih “Ada di kurikulumku” di menu ⋯ barisnya.");
+    await s.click("Koreksi WI1111");
+    await s.click(/^Ada di kurikulumku/);
+    expect(row("WI1111")).toBe("WI1111Laboratorium Fisika DasarDikoreksi olehmuBelum diambil1");
+    expect(fixes()?.WI1111).toMatchObject({ kind: "mine" });
+    expect(toastText()).toContain("WI1111 dihitung sebagai sisa yang masih harus diambilUrungkan");
+    expect(s.text()).toContain("Wajib tersisa3 mata kuliah · 7 SKS");
+    expect(s.text()).toContain("2 mata kuliah tidak ada di catatan SIX-mu");
+    // Only a course SIX leaves out gets the choice.
+    await s.click("Koreksi MA1101");
+    expect(menuItems().some((item) => item?.startsWith("Ada di kurikulumku"))).toBe(false);
+    await s.key("Escape");
+    await tab("Rencana");
+    expect(rule("required")[0]).toContain("error: Belum terpenuhiMata kuliah wajibBelum direncanakan: WI1111 Laboratorium Fisika Dasar.");
+    await s.click("Tambah mata kuliah");
+    expect(dialogText()).toContain("WI1111Laboratorium Fisika Dasar1 SKS · Wajib, belum diambil");
   });
 
   it("'What's left only' stays as the Student left it while the app is open", async () => {
@@ -758,6 +841,16 @@ describe("the keyboard: focus stays where the Student is", () => {
     await s.click("Disembunyikan (1) · Tampilkan");
     await press("Tampilkan lagi: II4090 Kerja Praktik");
     expect(focused()).toBe("Sembunyikan peringatan: II4090 Kerja Praktik");
+  });
+
+  it("saying the program will add a course moves focus to the quiet list it went to; taking it back, to the choice again", async () => {
+    const s = await openPlan();
+    await press("Hapus II4090");
+    await press("Prodiku akan menambahkan II4090 Kerja Praktik");
+    expect(focused()).toBe("Disembunyikan (1) · Tampilkan");
+    await s.click("Disembunyikan (1) · Tampilkan");
+    await press("Tampilkan lagi: II4090 Kerja Praktik");
+    expect(focused()).toBe("Prodiku akan menambahkan II4090 Kerja Praktik");
   });
 
   it("not continuing the registered minor from its panel leaves focus on the panel's button", async () => {

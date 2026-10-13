@@ -38,14 +38,15 @@ export function useStudentRecord(): StudentRecord | undefined {
   }, [transcript, progress, curriculum, catalog, krs, student, courses, fixes]);
 }
 
-/** Saves or removes the Student's correction to one curriculum course, on this computer. */
-export function useCurriculumFix(): (slot: string, fix: CurriculumFix | null) => void {
+/** Saves or removes the Student's correction to one curriculum course, on this computer; gives back the one it replaced, for an undo. */
+export function useCurriculumFix(): (slot: string, fix: CurriculumFix | null) => CurriculumFix | null {
   const bridge = useBridge();
   const store = useStore();
   return (slot, fix) => {
     // Read at the moment of the change, so an undo from a toast never puts back an older set.
-    const { [slot]: _, ...rest } = (store.dataset("local.curriculum")?.value as { slots: Record<string, CurriculumFix> } | undefined)?.slots ?? {};
+    const { [slot]: before, ...rest } = (store.dataset("local.curriculum")?.value as { slots: Record<string, CurriculumFix> } | undefined)?.slots ?? {};
     void bridge.invoke("local.set", { name: "local.curriculum", value: { slots: fix ? { ...rest, [slot]: fix } : rest } }).catch(() => undefined);
+    return before ?? null;
   };
 }
 

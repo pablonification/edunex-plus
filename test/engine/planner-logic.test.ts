@@ -769,6 +769,57 @@ describe("the curriculum map", () => {
     expect(rule(rules(fixed({ WI2003: { kind: "not-mine", at: 1 } }), defaultPlan(record)), "required")[0]).toMatchObject({ total: 41 });
   });
 
+  it("'In my curriculum': a course SIX leaves off the record counts as left to take, in the rules and the map alike", () => {
+    const mine = studentRecord({ ...data, term: "2026-1", fixes: { WI1111: { kind: "mine", at: 1 } } });
+    expect(mine.requiredLeft.map((c) => c.code)).toEqual(["II4090", "II4092", "WI1111"]);
+    const p = defaultPlan(record);
+    expect(rule(rules(mine, p), "required")[0]).toMatchObject({
+      level: "error",
+      total: 43,
+      missing: [{ code: "WI1111", name: "Laboratorium Fisika Dasar", slot: "WI1111" }],
+    });
+    const row = curriculumMap(mine, p)
+      .semesters.flatMap((s) => s.required)
+      .find((c) => c.code === "WI1111");
+    expect(row).toMatchObject({ status: "left", fix: { kind: "mine" } });
+    expect(sksModel(mine, p).requiredLeft).toEqual({ count: 3, sks: 7 });
+    // A fresh plan places it.
+    expect(defaultPlan(mine).terms[0].courses.map((c) => c.code)).toContain("WI1111");
+    // Where SIX already has the course, SIX's word stands.
+    const passed = studentRecord({ ...data, term: "2026-1", fixes: { MA1101: { kind: "mine", at: 1 } } });
+    expect(passed.slots.get("MA1101")).toMatchObject({ status: "passed", fix: null });
+  });
+
+  it("'My program will add it': covered, its SKS counted as coming, said apart from corrections; SIX's word wins once it has it", () => {
+    const adds = studentRecord({ ...data, term: "2026-1", fixes: { II4090: { kind: "program-adds", at: 1 } } });
+    expect(adds.requiredLeft.map((c) => c.code)).toEqual(["II4092"]);
+    expect(adds.slots.get("II4090")).toMatchObject({ status: "program-adds", sixLeft: true });
+    expect(adds.byProgram.map((c) => c.code)).toEqual(["II4090"]);
+    const p = removeCourse(defaultPlan(record), "2026-2", "II4090");
+    expect(rule(rules(record, p), "required")[0]).toMatchObject({ level: "error", missing: [{ code: "II4090", slot: "II4090" }] });
+    expect(rule(rules(adds, p), "required")[0]).toMatchObject({
+      level: "ok",
+      missing: [],
+      corrected: [],
+      byProgram: [{ code: "II4090", name: "Kerja Praktik" }],
+    });
+    // Its 2 SKS count as coming, once: not while it's also planned.
+    expect(sksModel(adds, p)).toMatchObject({ planned: 10, byProgram: 2, total: 151, extra: 7 });
+    expect(sksModel(adds, defaultPlan(record))).toMatchObject({ planned: 12, byProgram: 0, total: 151 });
+    expect(
+      curriculumMap(adds, p)
+        .semesters.flatMap((s) => s.required)
+        .find((c) => c.code === "II4090"),
+    ).toMatchObject({ status: "program-adds" });
+    // SIX shows it graded: the fix rests.
+    const progress = structuredClone(data.progress);
+    const row = progress.stages.flatMap((stage) => stage.semesters.flatMap((sem) => sem.courses)).find((c) => c.code === "II4090")!;
+    Object.assign(row, { status: "graded", grade: "A", term: "2026-1" });
+    const added = studentRecord({ ...data, progress, term: "2026-1", fixes: { II4090: { kind: "program-adds", at: 1 } } });
+    expect(added.slots.get("II4090")).toMatchObject({ status: "passed", fix: null });
+    expect(added.byProgram).toEqual([]);
+  });
+
   it("'Counted as…' offers passed courses: SIX's same-semester ones that fill nothing first", () => {
     const list = standIns(record, "WI2002");
     expect(list.slice(0, 3).map((c) => [c.code, c.suggested])).toEqual([

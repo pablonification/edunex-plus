@@ -9,7 +9,8 @@
 // on this computer; the app never sends a KRS. This semester takes what-ifs
 // (a course added or left out, only in the plan), warnings can be hidden with
 // a reason, a registered specialization or minor can be left for good (its
-// courses with it, if the Student wants), and a minor can be planned with its
+// courses with it, if the Student wants), a required course the program will
+// add can be settled right on its rule, and a minor can be planned with its
 // courses in view.
 import * as Tabs from "@radix-ui/react-tabs";
 import { type ReactNode, useEffect, useId, useRef, useState } from "react";
@@ -75,7 +76,7 @@ import {
 } from "../../../core/planner";
 import { useFocusNext } from "../../hooks";
 import { useFormat, useLang, useT } from "../../i18n";
-import { type PlanState, usePlan, useStudentRecord } from "../../study-plan";
+import { type PlanState, useCurriculumFix, usePlan, useStudentRecord } from "../../study-plan";
 import { Button, IconButton } from "../../ui/controls";
 import { cx } from "../../ui/cx";
 import { Card, Tag } from "../../ui/display";
@@ -119,16 +120,16 @@ export function Tab({ onCalendar }: { onCalendar?: () => void }) {
   return <Planner real={record} record={state.record} state={state} />;
 }
 
-/** A plan change that can be taken back: an 8-second toast with "Urungkan", and ⌘Z. */
+/**
+ * A plan change that can be taken back: an 8-second toast with "Urungkan",
+ * and ⌘Z. `offer` does the same for a change kept apart from the plan (a
+ * required course the program will add), so the newest change is always the
+ * one taken back, whatever kind it is.
+ */
 function useUndoable(state: PlanState): Undoable {
   const t = useT();
-  const last = useRef<StudyPlan | null>(null);
+  const last = useRef<(() => void) | null>(null);
   const shown = useRef<number | null>(null);
-  const restore = (before: StudyPlan) => {
-    state.update(() => before);
-    last.current = null;
-    if (shown.current !== null) dismissToast(shown.current);
-  };
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (!(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== "z" || event.shiftKey) return;
@@ -136,20 +137,30 @@ function useUndoable(state: PlanState): Undoable {
       if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)) return;
       if (!last.current) return;
       event.preventDefault();
-      restore(last.current);
+      last.current();
       toast(t("planner.undone"));
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   });
-  return (edit: (plan: StudyPlan) => StudyPlan, message: string) => {
-    const before = state.base;
-    state.update(edit);
-    last.current = before;
+  const offer = (undo: () => void, message: string) => {
+    const take = () => {
+      if (last.current !== take) return;
+      undo();
+      last.current = null;
+      if (shown.current !== null) dismissToast(shown.current);
+    };
+    last.current = take;
     // Only the latest change can be taken back (an older undo would throw away what came after it), so its toast replaces the last one.
     if (shown.current !== null) dismissToast(shown.current);
-    shown.current = toast(message, "neutral", { label: t("planner.undo"), onClick: () => last.current === before && restore(before) });
+    shown.current = toast(message, "neutral", { label: t("planner.undo"), onClick: take });
   };
+  const edit = (change: (plan: StudyPlan) => StudyPlan, message: string) => {
+    const before = state.base;
+    state.update(change);
+    offer(() => state.update(() => before), message);
+  };
+  return Object.assign(edit, { offer });
 }
 
 /** How many of the plan's what-ifs still change this term. */
@@ -470,6 +481,8 @@ function SksBar({ sks }: { sks: SksModel }) {
     { n: sks.passed, label: t("planner.legend.passed", { n: sks.passed }), color: "bg-live" },
     { n: sks.inProgress, label: t("planner.legend.now", { n: sks.inProgress }), color: "bg-live/45" },
     { n: sks.planned, label: t("planner.legend.planned", { n: sks.planned }), color: "bg-info-fg/55" },
+    // Only once the Student said their program will add a required course.
+    ...(sks.byProgram ? [{ n: sks.byProgram, label: t("planner.legend.byProgram", { n: sks.byProgram }), color: "bg-info-fg/25" }] : []),
   ];
   return (
     <div className="mt-4">
@@ -791,7 +804,8 @@ function useRuleText(record: StudentRecord): (rule: Rule) => { title: string; de
             : t("rule.required.ok");
         // Honest about what the Student's own corrections decided.
         const corrected = rule.corrected.length ? t("rule.required.corrected", { list: list(rule.corrected), count: rule.corrected.length }) : null;
-        return { title: t("rule.required"), detail: corrected ? `${detail} ${corrected}` : detail };
+        const byProgram = rule.byProgram.length ? t("rule.required.byProgram", { list: list(rule.byProgram) }) : null;
+        return { title: t("rule.required"), detail: [detail, corrected, byProgram].filter(Boolean).join(" ") };
       }
       case "electives": {
         const extra = rule.have - rule.need;
@@ -846,7 +860,8 @@ function useRuleText(record: StudentRecord): (rule: Rule) => { title: string; de
   };
 }
 
-type Undoable = (edit: (plan: StudyPlan) => StudyPlan, message: string) => void;
+/** Changes the plan, offering to take it back; `offer` offers taking back a change made elsewhere. */
+type Undoable = ((edit: (plan: StudyPlan) => StudyPlan, message: string) => void) & { offer(undo: () => void, message: string): void };
 
 /** What the Student set aside, in the quiet list under the rules: why, and how it comes back (`back`: where focus goes once it has). */
 interface SetAside {
@@ -899,11 +914,18 @@ function useNotContinuing(record: StudentRecord, plan: StudyPlan, undoable: Undo
   };
 }
 
-/** The rules, each warning with "Hide" and a reason; hidden ones wait in a quiet list to be shown again. Errors decide graduating: they can't be hidden. */
+/**
+ * The rules, each warning with "Hide" and a reason; hidden ones wait in a
+ * quiet list to be shown again. Errors decide graduating: they can't be
+ * hidden, but a required course the Student's program will add can be
+ * settled right there (kept with the curriculum corrections, listed with the
+ * hidden warnings, and taken back from there).
+ */
 function Rules({ record, rules, plan, undoable }: { record: StudentRecord; rules: Rule[]; plan: StudyPlan; undoable: Undoable }) {
   const t = useT();
   const text = useRuleText(record);
   const focusNext = useFocusNext();
+  const setFix = useCurriculumFix();
   const notContinuingItems = useNotContinuing(record, plan, undoable);
   const [showHidden, setShowHidden] = useState(false);
   const minor = activeMinor(record, plan);
@@ -941,6 +963,27 @@ function Rules({ record, rules, plan, undoable }: { record: StudentRecord; rules
     const title = t("rule.minor", { name: registeredMinor.name });
     hidden.push({ key, anchor: key, title, reason: "not-continuing", back: `hide-${key}`, show: shownAgain(title, (p) => planMinor(p, registeredMinor)) });
   }
+  for (const course of record.byProgram) {
+    const title = `${course.code} ${course.name}`;
+    hidden.push({
+      key: `program-adds|${course.code}`,
+      anchor: `program-adds-${course.code}`,
+      title,
+      reason: "program-adds",
+      back: "program-adds",
+      show: () => {
+        const before = setFix(course.code, null);
+        undoable.offer(() => setFix(course.code, before), t("planner.shownDone", { title }));
+      },
+    });
+  }
+  /** A required course the Student's program will add: covered from now on, with the curriculum corrections, until they take it back. */
+  const settle = (course: { code: string; name: string; slot: string }) => {
+    const before = setFix(course.slot, { kind: "program-adds", at: Date.now() });
+    undoable.offer(() => setFix(course.slot, before), t("planner.programAddsDone", { course: `${course.code} ${course.name}` }));
+    // Its line goes: focus lands on the list it went to.
+    focusNext("hidden-toggle");
+  };
   const hideItems = (rule: Rule, key: string, title: string): MenuItem[] =>
     hideReasons(rule).flatMap((reason) => {
       if (reason === "not-continuing" && (rule.id === "specialization" || rule.id === "minor")) {
@@ -975,6 +1018,7 @@ function Rules({ record, rules, plan, undoable }: { record: StudentRecord; rules
               const { title, detail } = text(rule);
               const mark = LEVEL_MARK[rule.level];
               const key = ruleKey(rule);
+              const settleable = rule.id === "required" ? rule.missing.filter((c): c is { code: string; name: string; slot: string } => c.slot !== null) : [];
               return (
                 <PresenceItem key={ruleAnchor(rule)}>
                   <div
@@ -1003,6 +1047,34 @@ function Rules({ record, rules, plan, undoable }: { record: StudentRecord; rules
                             label={t("planner.hideRule", { title })}
                             items={hideItems(rule, key, title)}
                           />
+                        </span>
+                      )}
+                      {/* The one way an error is settled here: the program adds the course (Kerja Praktik, say), so it isn't the Student's to plan. */}
+                      {settleable.length > 0 && (
+                        <span className="-ml-2.5 block" data-focus="program-adds">
+                          {settleable.length === 1 ? (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              icon={<Icons.ClipboardCheck className="size-3.5" />}
+                              className="text-muted hover:text-fg"
+                              aria-label={t("planner.programAddsCode", { course: `${settleable[0].code} ${settleable[0].name}` })}
+                              onClick={() => settle(settleable[0])}
+                            >
+                              {t("planner.hideReason.program-adds")}
+                            </Button>
+                          ) : (
+                            <Menu
+                              trigger={{
+                                icon: <Icons.ClipboardCheck className="size-3.5" />,
+                                words: true,
+                                text: t("planner.programAddsWhich"),
+                                className: "text-muted hover:text-fg",
+                              }}
+                              label={t("planner.programAddsWhich")}
+                              items={settleable.map((c) => ({ label: `${c.code} ${c.name}`, onSelect: () => settle(c) }))}
+                            />
+                          )}
                         </span>
                       )}
                     </span>
