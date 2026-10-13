@@ -12,6 +12,12 @@ export default {
   copyright: "Copyright © 2026 Edunex Plus contributors",
   directories: { output: "release" },
   files: ["package.json", "dist/desktop/*.cjs", "dist/app/**/*", "assets/tray*.png", "!node_modules/**/*"],
+  // Beside the app, where anyone can read them: its own licence, and the licences of the
+  // open-source packages it includes (written by `npm run build`, scripts/third-party-notices.mjs).
+  extraResources: [
+    { from: "LICENSE", to: "LICENSE.txt" },
+    { from: "dist/third-party-notices.txt", to: "third-party-notices.txt" },
+  ],
   asar: true,
   // Nothing native to rebuild: the main process is one bundled file.
   npmRebuild: false,
@@ -24,6 +30,11 @@ export default {
     ],
     icon: "assets/icon.icns",
     category: "public.app-category.education",
+    // Windows and Linux builds carry Electron's and Chromium's licences beside the app; macOS gets them here.
+    extraResources: [
+      { from: "node_modules/electron/dist/LICENSE", to: "LICENSE.electron.txt" },
+      { from: "node_modules/electron/dist/LICENSES.chromium.html", to: "LICENSES.chromium.html" },
+    ],
     // Ad-hoc: no Apple certificate, but signed, so macOS delivers notifications.
     // Hardened runtime would refuse Electron's own frameworks under an ad-hoc signature.
     identity: "-",

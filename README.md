@@ -154,4 +154,5 @@ a security problem? Report it privately ([SECURITY.md](SECURITY.md)). Everyone h
 
 ## License
 
-MIT.
+[MIT](LICENSE). The installed app carries the same licence and the licences of the open-source
+libraries it includes (`third-party-notices.txt`, beside the app; `npm run build` writes it).
