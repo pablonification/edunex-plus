@@ -27,9 +27,9 @@ import { isPdfName, usePdfViewer } from "../../pdf";
 import { useBridge } from "../../store";
 import { Button, IconButton } from "../../ui/controls";
 import { cx } from "../../ui/cx";
-import { EmptyState } from "../../ui/display";
+import { EmptyState, Tag } from "../../ui/display";
 import { Icons } from "../../ui/icons";
-import { List, Meta } from "../../ui/layout";
+import { breakAfterSlashes, List, Meta } from "../../ui/layout";
 import { Tooltip, toast } from "../../ui/overlays";
 import { TaskRows } from "../tasks";
 import { type CoursePage, isOpenTask } from "./data";
@@ -131,7 +131,7 @@ export function ModulesTab({ page, module }: { page: CoursePage; module?: number
   return (
     <div ref={root} className="grid grid-cols-[260px_minmax(0,1fr)] gap-8 max-[1180px]:grid-cols-[220px_minmax(0,1fr)]">
       <nav aria-label={t("course.contents")} className="self-start">
-        <p className="mb-2 px-2 text-caption font-semibold tracking-[0.04em] text-faint uppercase">{t("course.contents")}</p>
+        <p className="mb-2 px-2 text-small font-semibold text-muted">{t("course.contents")}</p>
         <ol className="space-y-0.5">
           {entries.map((entry, index) => {
             const isActive = entry.id === active.id;
@@ -140,15 +140,13 @@ export function ModulesTab({ page, module }: { page: CoursePage; module?: number
             const fresh = !empty && (latest(entry) ?? 0) > now - WEEK;
             return (
               <li key={entry.id}>
-                {index === firstParent && (
-                  <p className="mt-4 mb-1 px-2 text-caption font-semibold tracking-[0.04em] text-faint uppercase">{t("course.jointClass")}</p>
-                )}
+                {index === firstParent && <p className="mt-4 mb-1 px-2 text-small font-semibold text-muted">{t("course.jointClass")}</p>}
                 <button
                   type="button"
                   aria-current={isActive ? "true" : undefined}
                   onClick={() => setSelected(entry.id)}
                   className={cx(
-                    "focus-ring flex w-full scroll-my-6 items-start gap-2.5 rounded-lg px-2 text-left transition-colors duration-150",
+                    "focus-ring flex w-full scroll-my-6 items-start gap-2.5 rounded-lg px-2 text-left",
                     empty ? "py-1" : "py-2",
                     isActive ? "bg-selected" : "hover:bg-hover",
                   )}
@@ -163,13 +161,7 @@ export function ModulesTab({ page, module }: { page: CoursePage; module?: number
                     {entry.label ?? <Icons.BookOpen className="size-3" />}
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span
-                      className={cx(
-                        "line-clamp-2 leading-[1.35]",
-                        empty ? "text-small text-muted" : "text-body",
-                        !empty && (isActive ? "font-semibold" : "font-medium"),
-                      )}
-                    >
+                    <span className={cx("line-clamp-2", empty ? "text-small text-muted" : "text-body", !empty && (isActive ? "font-semibold" : "font-medium"))}>
                       {entry.title}
                       {/* Heard with the title: two "Pengantar" (or two same-named modules) are told apart without the heading above. */}
                       {entry.parent && <span className="sr-only">{`, ${t("course.jointClass")}`}</span>}
@@ -184,15 +176,15 @@ export function ModulesTab({ page, module }: { page: CoursePage; module?: number
                     <span className="mt-0.5 flex shrink-0 flex-col items-end gap-1">
                       {open > 0 && (
                         <Tooltip content={t("course.openTasksHint")}>
-                          <span className="inline-flex h-[18px] items-center rounded-full bg-warning-bg px-1.5 text-micro font-semibold text-warning-fg">
-                            {t("course.openTasks", { count: open })}
+                          <span className="inline-flex">
+                            <Tag tone="warning">{t("course.openTasks", { count: open })}</Tag>
                           </span>
                         </Tooltip>
                       )}
                       {fresh && (
                         <Tooltip content={t("course.newHint")}>
-                          <span className="inline-flex h-[18px] items-center rounded-full bg-info-bg px-1.5 text-micro font-semibold text-info-fg">
-                            {t("course.new")}
+                          <span className="inline-flex">
+                            <Tag tone="info">{t("course.new")}</Tag>
                           </span>
                         </Tooltip>
                       )}
@@ -207,15 +199,10 @@ export function ModulesTab({ page, module }: { page: CoursePage; module?: number
 
       <section className="min-w-0" aria-labelledby="course-entry">
         <header className="mb-5">
-          <p className="flex items-center gap-2 text-small font-semibold text-muted">
-            <Meta>
-              {active.intro ? t("course.courseWide") : t("course.module", { no: active.label ?? "" })}
-              {active.parent ? <span className="font-normal text-faint">{t("course.jointClass")}</span> : null}
-            </Meta>
-            {active === first && anyContent && entries.length > 1 && (
-              <span className="inline-flex h-[18px] items-center rounded-full bg-fill px-1.5 text-micro font-semibold text-muted">{t("course.newest")}</span>
-            )}
-          </p>
+          <Meta className="text-small font-semibold text-muted">
+            {active.intro ? t("course.courseWide") : t("course.module", { no: active.label ?? "" })}
+            {active.parent ? <span className="font-normal text-faint">{t("course.jointClass")}</span> : null}
+          </Meta>
           <h2 id="course-entry" className="mt-1 text-heading font-semibold tracking-[-0.015em]">
             {active.title}
           </h2>
@@ -395,7 +382,10 @@ export function MaterialRow({ material }: { material: Material }) {
       <div className="flex items-center gap-3 px-4 py-3">
         {icon}
         <div className="min-w-0 flex-1">
-          <p className="line-clamp-2 text-body font-medium [overflow-wrap:anywhere]">{material.title}</p>
+          {/* As a list row's name: wraps after a "/" too, and shows whole on hover when two lines aren't enough. */}
+          <p className="line-clamp-2 text-body font-medium break-words" title={material.title}>
+            {breakAfterSlashes(material.title)}
+          </p>
           {/* One line, whatever the width: the date gives way first, never a "·" left hanging at a line's end. */}
           <Meta truncate className="mt-0.5 text-small text-muted">
             {what}

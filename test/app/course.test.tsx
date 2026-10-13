@@ -84,6 +84,24 @@ describe("the course page", () => {
     expect(toc).not.toContain("Module 06");
   });
 
+  it("the ⋯ menu stays beside the header, never among what wraps under the title in a narrow window", async () => {
+    await openCourse("PL3002", { six: true });
+    const header = document.querySelector("main header")!;
+    const more = document.querySelector("main button[aria-label='Lainnya']")!;
+    expect(header.textContent).toContain("Kehadiran");
+    expect(header.contains(more)).toBe(false);
+    expect(header.parentElement!.contains(more)).toBe(true);
+  });
+
+  it("the table of contents' headings read like the others, not in capitals, and no module is called the newest", async () => {
+    const s = await openCourse("II4091");
+    const headings = [...document.querySelectorAll("nav[aria-label='Daftar isi'] p")];
+    expect(headings.map((p) => p.textContent)).toEqual(["Daftar isi", "Kelas gabungan"]);
+    expect(headings.every((p) => !p.className.includes("uppercase"))).toBe(true);
+    // "Terbaru" beside a five-week-old module meant nothing next to the "Baru" of this week.
+    expect(s.text()).not.toContain("Terbaru");
+  });
+
   it("Open in Edunex stays on Home's cards", async () => {
     screen = await openApp({ signedIn: true });
     await screen.click("Buka di Edunex: PL3002");
@@ -301,6 +319,17 @@ describe("materials", () => {
     expect(screen.calls.at(-1)).toEqual({ name: "shell.openExternal", input: { url: "https://edunex.itb.ac.id/courses/95001" } });
   });
 
+  it('a material\'s long name may wrap after a "/" instead of mid-word, and shows whole on hover', async () => {
+    screen = await openApp({ signedIn: true });
+    screen.world.edunex.postMaterial(95001, { name: "Panduan Penciptaan/Pengembangan Inovasi Kampus", type: "url", content: "https://example.org/" });
+    await screen.engineDoes(() => screen!.engine.refresh("edunex"));
+    const card = [...document.querySelectorAll<HTMLButtonElement>("main ul li button")].find((b) => b.textContent?.startsWith("PL3002"));
+    await screen.click(card!);
+    await entry("Pengantar");
+    const name = document.querySelector("main section ul[aria-label='Materi'] [title='Panduan Penciptaan/Pengembangan Inovasi Kampus']")!;
+    expect(name.innerHTML).toBe("Panduan Penciptaan/<wbr>Pengembangan Inovasi Kampus");
+  });
+
   it("a material the lecturer adds appears, and goes when removed", async () => {
     const s = await openCourse("PL3032");
     const id = s.world.edunex.postMaterial(95059, { name: "K2. Slide baru", type: "pdf", content: BLOB });
@@ -345,6 +374,7 @@ describe("Tasks in modules", () => {
     const tocEntry = () => [...toc.querySelectorAll("button")].find((b) => b.textContent?.includes(module.title))?.textContent;
     expect(tocEntry()).toContain("1 tugas");
     expect(tocEntry()).toContain("1 terbuka");
+    expect([...toc.querySelectorAll("span")].filter((el) => el.textContent === "1 terbuka").at(-1)!.className).toContain("rounded-tag");
     // With one handed in beside it, the count is all of them and the chip only the open one: never "1 tugas" next to "1 tugas".
     const handedIn: Task = aTask({
       id: 117501,
@@ -367,15 +397,28 @@ describe("Tasks in modules", () => {
 });
 
 describe("meetings", () => {
+  it("the lecturer's note on a Presence wraps like the meeting's other facts, never cut off with no way to read the rest", async () => {
+    await openCourse("II4091");
+    await tab(/^Pertemuan/);
+    const note = [...document.querySelectorAll("main ol li span")].filter((el) => el.textContent === "Presensi dengan submit Tugas 01 Bab I").at(-1)!;
+    expect(note.className).toContain("break-words");
+    expect(note.className).not.toContain("truncate");
+  });
+
   it("every Presence session of the class, across pages, never labelled absent", async () => {
     const s = await openCourse("PL3002", { six: true });
     await tab(/^Pertemuan/);
     const meetings = rows("main ol li");
     expect(meetings).toHaveLength(15);
     expect(meetings[0]).toContain("Hadir");
+    expect([...document.querySelectorAll("main ol li span")].filter((el) => el.textContent === "Hadir").at(-1)!.className).toContain("rounded-tag");
+    // A meeting's facts are one line, a "·" between each, not spread apart by gaps.
+    expect(meetings.find((m) => m.includes("8 Okt"))).toContain("R.SG PWK LT.6 · Presensi 08:00–09:30");
     // SIX is the official record; the intro says once that Edunex's gaps can still count, and the rows stay quiet.
-    expect(s.text()).toContain("Kehadiran resmi di SIX: hadir 6 dari 7");
     expect(s.text()).toContain("yang tidak dicatat Edunex tetap bisa terhitung di SIX");
+    // The count and what's left are the header meter's: the tab doesn't say them a second time.
+    expect(s.text().match(/6\/7|hadir 6 dari 7/g)).toHaveLength(1);
+    expect(s.text().match(/Masih bisa absen 1× lagi/g)).toHaveLength(1);
     expect(meetings[1]).toMatch(/Selesai$/);
     expect(s.text()).not.toContain("Tidak tercatat di Edunex");
     expect(meetings.find((m) => m.includes("Berikutnya"))).toContain("15 Okt");
@@ -406,7 +449,9 @@ describe("meetings", () => {
     expect(s.text()).toContain("Presensi Edunex dibuka");
     expect(s.text()).toMatch(/tutup 09:30 \(1 jam 1\d mnt lagi\)/);
     // PL3002 counts in SIX: recording on Edunex is offered, but quietly, and the page says why.
-    expect(s.text()).toContain("Kehadiranmu dihitung di SIX; Presensi Edunex juga dibuka.");
+    // "Dibuka" is said once, beside the countdown; the line under it says the window is optional.
+    expect(s.text()).toContain("Kehadiranmu dihitung di SIX; Presensi ini tidak wajib.");
+    expect(s.text()).not.toContain("juga dibuka");
     // The meeting is named as on the Pertemuan tab: by the module posted for it, not "Kuliah".
     expect(s.text()).toContain("Modul 7 · Inovasi Pelayanan Publik");
     const record = [...document.querySelectorAll("button")].find((b) => b.textContent === "Catat di Edunex")!;
@@ -566,7 +611,8 @@ describe("meetings", () => {
     await s.click("Masuk ke SIX");
     await s.wait();
     expect(s.store.status("six").state).toBe("live");
-    expect(s.text()).toContain("Kehadiran resmi di SIX: hadir 6 dari 7");
+    expect(s.text()).toContain("6/7 · 85%");
+    expect(s.text()).toContain("SIX hanya memberi jumlahnya.");
   });
 
   it("a meeting has one number: Edunex's, never a second count of the app's", async () => {
@@ -684,6 +730,33 @@ describe("grades", () => {
     expect(s.text()).not.toContain("Perbaiki angka");
   });
 
+  it("the calculator sits on the page, not in a box titled like its tab; going back to the example is at the table's foot", async () => {
+    const s = await openCourse("PL3002");
+    await tab(/^Nilai/);
+    const panel = document.querySelector("main [role=tabpanel][data-state=active]")!;
+    expect(panel.querySelector("h2")).toBeNull();
+    expect(s.text()).not.toContain("Posisi nilaimu");
+    expect(s.text()).not.toContain("Kembali ke contoh");
+    await type("Nilai UTS", "80");
+    const reset = [...panel.querySelectorAll<HTMLButtonElement>("tfoot button")].find((b) => b.textContent === "Kembali ke contoh")!;
+    expect(reset).toBeDefined();
+    reset.focus();
+    await s.click(reset);
+    expect(s.text()).toContain("Ini contoh bobot, bukan bobot PL3002.");
+    // The pressed button is gone: focus stays at the table's foot, on the one beside it.
+    expect(document.activeElement?.textContent).toBe("Tambah komponen");
+    // Right beside "Tambah komponen", a slip can be taken back.
+    expect(s.text()).toContain("Bobot dan nilai yang kamu isi dihapus");
+    await s.click("Urungkan");
+    expect(document.querySelector<HTMLInputElement>("input[aria-label='Nilai UTS']")!.value).toBe("80");
+    expect(s.text()).not.toContain("Ini contoh bobot");
+    // Once the table changes again, the reset can't be taken back any more.
+    await s.click(panel.querySelector<HTMLButtonElement>("tfoot button:nth-child(2)")!);
+    expect(s.has("Urungkan")).toBe(true);
+    await type("Nilai UTS", "70");
+    expect(s.has("Urungkan")).toBe(false);
+  });
+
   it("answers for the letter the Student aims for", async () => {
     const s = await openCourse("PL3002");
     await tab(/^Nilai/);
@@ -775,6 +848,14 @@ describe("in English", () => {
     await tab(/^Meetings/);
     expect(screen.text()).toMatch(/Next|Not recorded in Edunex|Present/);
     await tab(/^Grades/);
-    expect(screen.text()).toContain("Where your grade stands");
+    expect(screen.text()).toContain("These are example weights, not II4091's.");
+  });
+
+  it('says "On now" for the class going on, as Home does', async () => {
+    const s = await openCourse("PL3002", { six: true });
+    await s.engineDoes(() => s.engine.updateSettings({ lang: "en" }));
+    expect(s.text()).toContain("On now · until 10:00");
+    expect(s.text()).not.toContain("In progress");
+    expect(s.text()).toContain("Your attendance counts in SIX; this Presence is optional.");
   });
 });

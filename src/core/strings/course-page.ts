@@ -18,7 +18,7 @@ export const coursePageStrings = {
   "course.tab.announcements": { id: "Pengumuman", en: "Announcements" },
 
   // Pinned meeting
-  "course.nowUntil": { id: "Sedang berlangsung · sampai {time}", en: "In progress · until {time}" },
+  "course.nowUntil": { id: "Sedang berlangsung · sampai {time}", en: "On now · until {time}" },
   "course.next": { id: "Pertemuan berikutnya", en: "Next meeting" },
   "course.presenceOpen": { id: "Presensi Edunex dibuka", en: "Edunex Presence open" },
   "course.recordInEdunex": { id: "Catat di Edunex", en: "Record in Edunex" },
@@ -95,7 +95,6 @@ export const coursePageStrings = {
   // Grades and the course-contract calculator
   "grade.edunex": { id: "Nilai di Edunex", en: "Grade on Edunex" },
   "grade.unpublished": { id: "Buku nilai Edunex belum dirilis dosen", en: "The lecturer hasn't published Edunex's gradebook" },
-  "grade.standing": { id: "Posisi nilaimu", en: "Where your grade stands" },
   "grade.example": { id: "Contoh bobot (kontrak kuliah ITB)", en: "Example weights (an ITB course contract)" },
   "grade.yours": { id: "Bobot dari kontrak kuliahmu", en: "Weights from your course contract" },
   "grade.part": { id: "Komponen", en: "Part" },
@@ -107,6 +106,7 @@ export const coursePageStrings = {
   "grade.remove": { id: "Hapus {part}", en: "Remove {part}" },
   "grade.add": { id: "Tambah komponen", en: "Add part" },
   "grade.reset": { id: "Kembali ke contoh", en: "Back to the example" },
+  "grade.resetDone": { id: "Bobot dan nilai yang kamu isi dihapus", en: "The weights and scores you entered were cleared" },
   "grade.fromSix": { id: "dari SIX", en: "from SIX" },
   "grade.cutoffs": { id: "Batas huruf", en: "Letter cut-offs" },
   "grade.cutoffOf": { id: "Batas {letter}", en: "{letter} cut-off" },
@@ -135,8 +135,8 @@ export const coursePageStrings = {
     en: "Without SIX it's not certain this Presence counts: record it just in case.",
   },
   "course.presenceCountsSix": {
-    id: "Kehadiranmu dihitung di SIX; Presensi Edunex juga dibuka.",
-    en: "Your attendance counts in SIX; Edunex Presence is open too.",
+    id: "Kehadiranmu dihitung di SIX; Presensi ini tidak wajib.",
+    en: "Your attendance counts in SIX; this Presence is optional.",
   },
   "course.join": { id: "Gabung", en: "Join" },
   "course.online": { id: "Daring", en: "Online" },
@@ -172,7 +172,6 @@ export const coursePageStrings = {
   "offline.noneYet": { id: "Belum ada berkas untuk disimpan", en: "No files to save yet" },
   "course.openEdunex": { id: "Buka di Edunex", en: "Open in Edunex" },
   "course.openSix": { id: "Lihat jadwal di SIX", en: "View the timetable in SIX" },
-  "course.newest": { id: "Terbaru", en: "Newest" },
   "course.new": { id: "Baru", en: "New" },
   "course.newHint": { id: "Ada materi baru minggu ini", en: "New material this week" },
   "course.openTasks": { id: "{count} terbuka", en: "{count} open" },
@@ -191,7 +190,6 @@ export const coursePageStrings = {
   "course.nothingTodo": { id: "Tidak ada tugas yang perlu dikerjakan.", en: "Nothing to hand in." },
 
   // Meetings, the honest attendance story
-  "meeting.official": { id: "Kehadiran resmi di SIX: hadir {attended} dari {held}", en: "Official attendance in SIX: {attended} of {held}" },
   "meeting.sixTotalsOnly": {
     id: "SIX hanya memberi jumlahnya. Di bawah ini catatan Edunex per pertemuan; yang tidak dicatat Edunex tetap bisa terhitung di SIX.",
     en: "SIX gives only the total. Below is what Edunex recorded per meeting; one Edunex didn't record can still count in SIX.",
