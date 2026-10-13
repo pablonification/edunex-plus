@@ -64,7 +64,7 @@ the app then opens normally until the next update.
 ### macOS
 
 1. Open the `.dmg`. In the window that opens, drag **Edunex Plus** onto **Applications**, then
-   eject the disk (⏏ beside **Edunex Plus <version>** in Finder's sidebar).
+   eject the disk (⏏ beside **Edunex Plus \<version\>** in Finder's sidebar).
 2. Open **Edunex Plus** from Applications. macOS says it can't check the app: click **Done**
    (not "Move to Trash").
 3. Open **System Settings → Privacy & Security**, scroll down to the line about Edunex Plus, and
