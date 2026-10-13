@@ -80,7 +80,8 @@ Once a day the app asks GitHub whether a newer release exists. If so, a dot appe
 settings button and Settings shows the new version with **Unduh**, which opens the release page
 in your browser. The app never downloads or installs anything by itself.
 
-An alpha also tells you about the next alpha. A full release only ever offers full releases.
+An alpha tells you about the newest release, whether that is the next alpha or the full release.
+A full release only ever offers full releases.
 
 ## Signing in
 
