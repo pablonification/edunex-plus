@@ -45,6 +45,8 @@ for (const file of jsFiles) {
 const over = kb(startBytes) > budgetKb;
 const line = `Window JS loaded at start: ${kb(startBytes)} kB gzip of a ${budgetKb} kB budget${laterBytes ? ` (plus ${kb(laterBytes)} kB loaded later, when needed)` : ""}.`;
 console.log(line);
+// Soft: how much a change can add before it fails here.
+if (!over) console.log(`Room left before the budget: ${budgetKb - kb(startBytes)} kB.`);
 
 if (process.env.GITHUB_STEP_SUMMARY) {
   const verdict = over

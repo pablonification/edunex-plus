@@ -37,8 +37,6 @@ import { AnnouncementsTab, TasksTab } from "./course/lists";
 import { MeetingsTab, meetingModuleTitle, meetingTitle, pageModules } from "./course/meetings";
 import { ModulesTab } from "./course/modules";
 
-export const ready = true;
-
 const TABS = ["modules", "meetings", "tasks", "grades", "announcements"] as const;
 type Tab = (typeof TABS)[number];
 

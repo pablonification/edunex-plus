@@ -6,6 +6,7 @@ import { createRoot } from "react-dom/client";
 import { App } from "../../src/app/app";
 import { type BridgeApi, createBridge } from "../../src/app/bridge";
 import type { UiClock } from "../../src/app/i18n";
+import { preloadAll } from "../../src/app/later";
 import { AppStore } from "../../src/app/store";
 import { skipAnimations } from "../../src/app/ui/motion/animate";
 import { type ActionName, type ActionResult, Actions, type AppSnapshot, type Event } from "../../src/core/contract";
@@ -274,6 +275,8 @@ export async function openApp(options: Options = {}) {
   current = store;
   for (const event of early) store.apply(event);
 
+  // The screens that load after the first one are in already, so every step draws its screen at once, as after the idle preload.
+  await preloadAll();
   const container = document.body.appendChild(document.createElement("div"));
   const root = createRoot(container);
   // The window's clock reads the fake one; screens re-read it on `tick()`, as the real one does each minute.

@@ -2,8 +2,9 @@
 // semester's and next semester's bill with what's paid and the next deadline,
 // SIX's last day next to ITB's calendar deadline, an overdue bill said
 // plainly, then every term's bill. View only: the app never pays.
-import { type BillUrgency, billLeft, billNeedsStudent, billUrgency, currentTerm, nextTerm, rupiah, uktDeadline } from "../../../core/academic";
+import { type BillUrgency, billLeft, billUrgency, nextTerm, rupiah, uktDeadline } from "../../../core/academic";
 import type { Bill } from "../../../core/models";
+import { useThisTerm } from "../../deadlines";
 import { useFormat, useNow, useT } from "../../i18n";
 import { useDataset } from "../../store";
 import { cx } from "../../ui/cx";
@@ -12,25 +13,6 @@ import { Icons } from "../../ui/icons";
 import { List, Meta, Notice, Section } from "../../ui/layout";
 import { useTermYears } from "./projection";
 import { SixNeeded } from "./six-needed";
-
-export const ready = true;
-
-/** Bills overdue or due within a week. */
-export function useBadge(): { value: number; tone: "neutral" | "warning" } | null {
-  const bills = useDataset("six.bills");
-  const now = useNow();
-  const value = bills?.filter((bill) => billNeedsStudent(bill, now)).length ?? 0;
-  return value > 0 ? { value, tone: "warning" } : null;
-}
-
-/** This term: SIX's (the KRS page, then the status page), else from the calendar. */
-export function useThisTerm(): string | null {
-  const krs = useDataset("six.krs");
-  const student = useDataset("six.student");
-  const calendar = useDataset("itb.calendar");
-  const now = useNow();
-  return currentTerm(krs?.term ?? student?.term, calendar, now);
-}
 
 const STATUS: Record<BillUrgency, { tone: string; icon: typeof Icons.Clock }> = {
   paid: { tone: "text-success-fg", icon: Icons.CheckCircle },

@@ -9,7 +9,7 @@
 // a window that's optional as a quiet line. How it's counted is a closed
 // disclosure at the bottom. Nothing here is hidden by a snooze elsewhere.
 import { type ReactNode, useState } from "react";
-import { type AttendanceHealth, type AttendanceState, isExamActivity, needsAttention, percent } from "../../core/attendance";
+import { type AttendanceHealth, type AttendanceState, isExamActivity, percent } from "../../core/attendance";
 import { attendanceAnswer } from "../../core/attendance-answer";
 import { clashes, wibDay } from "../../core/course-meetings";
 import type { ClassSession } from "../../core/models";
@@ -30,15 +30,6 @@ import { Icons } from "../ui/icons";
 import { factsLabel, List, Meta, Page, PageHeader } from "../ui/layout";
 import { CountdownBar, ShareMeter } from "../ui/meter";
 import { Popover } from "../ui/overlays";
-
-export const ready = true;
-
-/** Courses that need the Student: no absences left, or the target out of reach. */
-export function useBadge(): { value: number; tone: "neutral" | "warning" } | null {
-  const attendance = useAttendance();
-  const value = attendance?.courses.filter((c) => needsAttention(c.health.state)).length ?? 0;
-  return value > 0 ? { value, tone: "warning" } : null;
-}
 
 /** Worst first, as the answer on top says it; a course whose lectures are over after the ones still going. */
 const ORDER: Record<AttendanceState, number> = { out: 0, missed: 1, none: 2, risk: 3, safe: 4, met: 5, unknown: 6 };

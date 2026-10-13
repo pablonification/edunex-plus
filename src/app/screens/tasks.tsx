@@ -43,6 +43,7 @@ import { LecturerHtml } from "../lecturer-html";
 import { useNav } from "../nav";
 import { isPdfName, useAnswerAttach, usePdfViewer } from "../pdf";
 import { useExams } from "../schedule-data";
+import { isBuilt } from "../shell/built";
 import { useRefresh, useSignIn } from "../shell/source-status";
 import { useBridge, useDataset, useStatus } from "../store";
 import { Button, Segmented, useRadioKeys } from "../ui/controls";
@@ -53,10 +54,7 @@ import { factsLabel, List, Row as ListRow, Meta, Page, PageHeader, Section } fro
 import { ignoreClosingClick, PANEL_MOTION_CLASS, SCRIM_CLASS, toast, useReturnFocus } from "../ui/overlays";
 import type { RichEditorHandle } from "../ui/rich-editor";
 import { plainText } from "../ui/rich-text";
-import { ready as courseReady } from "./course";
 import { ExamRow, examWeekLabel, takeHomeWhy } from "./exam";
-
-export const ready = true;
 
 const MINUTE = 60_000;
 const HOUR = 60 * MINUTE;
@@ -72,24 +70,6 @@ function useRows(): Row[] | undefined {
   const tasks = useDataset("edunex.tasks");
   const now = useNow();
   return useMemo(() => tasks?.map((task) => ({ task, status: taskStatus(task, now) })), [tasks, now]);
-}
-
-/** The sidebar count: Tasks still to hand in; amber when one is late or due within a day. */
-export function useBadge(): { value: number; tone: "neutral" | "warning" } | null {
-  const tasks = useDataset("edunex.tasks");
-  const now = useNow();
-  return useMemo(() => {
-    if (!Array.isArray(tasks)) return null;
-    let value = 0;
-    let urgent = false;
-    for (const task of tasks) {
-      const status = taskStatus(task, now);
-      if (!isOpenStatus(status)) continue;
-      value += 1;
-      if (status === "overdue" || (task.dueAt !== null && task.dueAt - now < DAY)) urgent = true;
-    }
-    return value ? { value, tone: urgent ? "warning" : "neutral" } : null;
-  }, [tasks, now]);
 }
 
 /** A course's name and color, for a row's "course · module" line. */
@@ -499,7 +479,7 @@ function TaskPage({ task }: { task: Task }) {
   return (
     <Page width="wide" className="grid gap-10 min-[1100px]:grid-cols-[minmax(0,1fr)_340px]">
       <article className="min-w-0">
-        {courseReady ? (
+        {isBuilt({ screen: "course", code: task.courseCode }) ? (
           <button
             type="button"
             onClick={() => go({ screen: "course", code: task.courseCode })}

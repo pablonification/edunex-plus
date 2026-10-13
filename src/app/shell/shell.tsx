@@ -1,24 +1,19 @@
 // The signed-in window: sidebar, top bar and the current screen, each inside
 // its own crash guard. Settings opens over it (sidebar footer, or ⌘,), quick
 // search too (the top bar, or ⌘K), and once, after the first full sync, the
-// first-run scan. A screen shows in the sidebar once it's built (its `ready` flag).
-import { type ComponentType, useCallback, useEffect, useRef, useState } from "react";
+// first-run scan. A screen shows in the sidebar once it's built (./built.ts).
+// Beranda comes with the window; every other screen loads after it (../later.tsx).
+import { type ComponentType, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { edunexCourseUrl, sixStatusUrl } from "../../core/links";
 import type { StringKey } from "../../core/strings";
 import { type TermCourse, useTermCourses } from "../courses";
 import { useOpenExternal } from "../hooks";
 import { useT } from "../i18n";
+import { later } from "../later";
 import { displayName, initials } from "../names";
 import { NavProvider, type Route, useNav } from "../nav";
 import { usePdfViewer } from "../pdf";
-import { CourseScreen, ready as courseReady } from "../screens/course";
-import { ExamScreen } from "../screens/exam";
-import { GradesScreen, ready as gradesReady, useBadge as useGradesBadge } from "../screens/grades";
 import { Home } from "../screens/home";
-import { PlanScreen, ready as planReady, useBadge as usePlanBadge } from "../screens/plan";
-import { PresenceScreen, ready as presenceReady, useBadge as usePresenceBadge } from "../screens/presence";
-import { ScheduleScreen, ready as scheduleReady, useBadge as useScheduleBadge } from "../screens/schedule";
-import { TaskScreen, TasksScreen, ready as tasksReady, useBadge as useTasksBadge } from "../screens/tasks";
 import { useBridge, useCommand, useDataset, useJoined, useNavigateRequests, useStore } from "../store";
 import { AppMark } from "../ui/brand";
 import { Button } from "../ui/controls";
@@ -29,17 +24,45 @@ import { factsLabel } from "../ui/layout";
 import { Tooltip, toast } from "../ui/overlays";
 import { PanelBoundary } from "../ui/panel-boundary";
 import { AlertsBell } from "./alerts";
-import { FirstScan } from "./first-scan";
-import { SearchButton, SearchPalette, useSearchShortcut } from "./search";
-import { SettingsDialog } from "./settings";
+import { type Badge as BadgeValue, usePlanBadge, usePresenceBadge, useTasksBadge } from "./badges";
+import { isBuilt } from "./built";
+import { SearchButton, useSearchShortcut } from "./search-button";
 import { ProblemBanner, refreshNow, SyncStatus } from "./source-status";
+
+// In the sidebar's order, the order they load in.
+const TasksScreen = later(() => import("../screens/tasks").then((screen) => screen.TasksScreen));
+const ScheduleScreen = later(() => import("../screens/schedule").then((screen) => screen.ScheduleScreen));
+const PresenceScreen = later(() => import("../screens/presence").then((screen) => screen.PresenceScreen));
+const GradesScreen = later(() => import("../screens/grades").then((screen) => screen.GradesScreen));
+const PlanScreen = later(() => import("../screens/plan").then((screen) => screen.PlanScreen));
+const CourseScreen = later(() => import("../screens/course").then((screen) => screen.CourseScreen));
+const TaskScreen = later(() => import("../screens/tasks").then((screen) => screen.TaskScreen));
+const ExamScreen = later(() => import("../screens/exam").then((screen) => screen.ExamScreen));
+// What opens over the screen: Settings, quick search and the first-run scan.
+const SettingsDialog = later(() => import("./settings").then((dialog) => dialog.SettingsDialog));
+const SearchPalette = later(() => import("./search").then((dialog) => dialog.SearchPalette));
+const FirstScan = later(() => import("./first-scan").then((dialog) => dialog.FirstScan));
+
+const SCREENS: Record<Route["screen"], { loaded(): boolean } | null> = {
+  home: null,
+  tasks: TasksScreen,
+  task: TaskScreen,
+  exam: ExamScreen,
+  course: CourseScreen,
+  schedule: ScheduleScreen,
+  presence: PresenceScreen,
+  grades: GradesScreen,
+  plan: PlanScreen,
+};
+/** Beranda comes with the window; any other screen once its code is in. */
+const drawsAtOnce = (route: Route) => SCREENS[route.screen]?.loaded() ?? true;
 
 export function Shell() {
   // No PDF from the last screen is left open over the next one (a search result, a notification, ⌘[); with
   // filling not saved, the screen waits for the Student's answer.
   const pdf = usePdfViewer();
   return (
-    <NavProvider leave={pdf.close}>
+    <NavProvider leave={pdf.close} drawsAtOnce={drawsAtOnce}>
       <Layout />
     </NavProvider>
   );
@@ -53,6 +76,9 @@ function Layout() {
   const t = useT();
   const { route, go } = useNav();
   const main = useRef<HTMLElement>(null);
+  const settingsLoaded = SettingsDialog.useLoaded();
+  const searchLoaded = SearchPalette.useLoaded();
+  const scanLoaded = FirstScan.useLoaded();
   /** Search opens over anything else; the shortcut also closes it. */
   const openSearch = useCallback((toggle: boolean) => {
     setSettingsOpen(false);
@@ -99,21 +125,41 @@ function Layout() {
           <ProblemBanner />
         </PanelBoundary>
         <main ref={main} className="min-h-0 flex-1 overflow-y-auto">
-          <PanelBoundary key={key} name={route.screen}>
-            <CurrentScreen route={route} />
-          </PanelBoundary>
+          {/* Outside the screen's own guard, so the screen before stays while the next one's code loads. */}
+          <Suspense fallback={null}>
+            <PanelBoundary key={key} name={route.screen}>
+              <CurrentScreen route={route} />
+            </PanelBoundary>
+          </Suspense>
         </main>
       </div>
-      <SettingsDialog
-        open={settingsOpen}
-        onOpenChange={setSettingsOpen}
-        onShowFirstScan={() => {
-          setSettingsOpen(false);
-          setScanOpen(true);
-        }}
-      />
-      <SearchPalette open={searchOpen} onOpenChange={setSearchOpen} onSettings={() => setSettingsOpen(true)} />
-      <FirstScan open={scanOpen} onOpenChange={setScanOpen} blocked={settingsOpen || searchOpen} />
+      {/* Each waits for its code (in at once after the idle preload) or for the Student to open it, then opens.
+          Its own guard keeps a failed load to that dialog, with "Coba lagi", never the whole window. */}
+      <PanelBoundary name="settings" compact>
+        <Suspense fallback={null}>
+          {(settingsOpen || settingsLoaded) && (
+            <SettingsDialog
+              open={settingsOpen}
+              onOpenChange={setSettingsOpen}
+              onShowFirstScan={() => {
+                setSettingsOpen(false);
+                setScanOpen(true);
+              }}
+            />
+          )}
+        </Suspense>
+      </PanelBoundary>
+      <PanelBoundary name="search" compact>
+        <Suspense fallback={null}>
+          {(searchOpen || searchLoaded) && <SearchPalette open={searchOpen} onOpenChange={setSearchOpen} onSettings={() => setSettingsOpen(true)} />}
+        </Suspense>
+      </PanelBoundary>
+      <PanelBoundary name="first scan" compact>
+        <Suspense fallback={null}>
+          {/* It also watches for the first full sync to open itself, so it stays drawn once in. */}
+          {(scanOpen || scanLoaded) && <FirstScan open={scanOpen} onOpenChange={setScanOpen} blocked={settingsOpen || searchOpen} />}
+        </Suspense>
+      </PanelBoundary>
     </div>
   );
 }
@@ -182,8 +228,7 @@ interface NavItem {
   screen: "home" | "tasks" | "schedule" | "presence" | "grades" | "plan";
   label: StringKey;
   Icon: ComponentType<IconProps>;
-  ready: boolean;
-  badge: ReturnType<typeof useTasksBadge>;
+  badge: BadgeValue;
   /** Detail screens that belong to this item. */
   owns?: Route["screen"][];
 }
@@ -204,13 +249,14 @@ function Sidebar({ onSettings }: { onSettings: () => void }) {
       : student
         ? { url: sixStatusUrl(student.nim), label: t("action.openInSix") }
         : null;
+  const courseReady = isBuilt({ screen: "course", code: "" });
   const items: NavItem[] = [
-    { screen: "home", label: "nav.home", Icon: Icons.Home, ready: true, badge: null },
-    { screen: "tasks", label: "nav.tasks", Icon: Icons.ListChecks, ready: tasksReady, badge: useTasksBadge(), owns: ["task", "exam"] },
-    { screen: "schedule", label: "nav.schedule", Icon: Icons.Calendar, ready: scheduleReady, badge: useScheduleBadge() },
-    { screen: "presence", label: "nav.presence", Icon: Icons.Hand, ready: presenceReady, badge: usePresenceBadge() },
-    { screen: "grades", label: "nav.grades", Icon: Icons.GraduationCap, ready: gradesReady, badge: useGradesBadge() },
-    { screen: "plan", label: "nav.plan", Icon: Icons.BookOpen, ready: planReady, badge: usePlanBadge() },
+    { screen: "home", label: "nav.home", Icon: Icons.Home, badge: null },
+    { screen: "tasks", label: "nav.tasks", Icon: Icons.ListChecks, badge: useTasksBadge(), owns: ["task", "exam"] },
+    { screen: "schedule", label: "nav.schedule", Icon: Icons.Calendar, badge: null },
+    { screen: "presence", label: "nav.presence", Icon: Icons.Hand, badge: usePresenceBadge() },
+    { screen: "grades", label: "nav.grades", Icon: Icons.GraduationCap, badge: null },
+    { screen: "plan", label: "nav.plan", Icon: Icons.BookOpen, badge: usePlanBadge() },
   ];
 
   return (
@@ -229,7 +275,7 @@ function Sidebar({ onSettings }: { onSettings: () => void }) {
 
       <nav aria-label={t("nav.menu")} className="space-y-0.5 px-3">
         {items
-          .filter((item) => item.ready)
+          .filter((item) => isBuilt({ screen: item.screen } as Route))
           .map(({ screen, label, Icon, badge, owns }, index) => {
             const active = route.screen === screen || (owns ?? []).includes(route.screen);
             return (
