@@ -109,11 +109,14 @@ files", "Window JS loaded at start: 320 kB gzip of a 360 kB budget"). When
 something fails, the summary says what, and each problem is also marked on its
 line in the pull request's **Files changed** tab.
 
-**The pictures.** For pull requests that touch the screens, a comment
-"Pictures of every screen" appears and updates on each push. Its link
-downloads a zip of every screen (light and dark, Indonesian and English, the
-first run, Edunex without SIX), taken on the demo's made-up data. The same zip
-is under **Artifacts** on the run's summary page, for 14 days.
+**The pictures.** For pull requests that touch the screens, CI takes a picture
+of every screen on the demo's made-up data twice, as the pull request leaves
+the app and as its base has it, and compares them. A comment "Screens this pull
+request changes" shows each screen that differs, before and after, cropped to
+the change, and updates on each push (the pictures live on the `pr-assets`
+branch). Every picture is also in a zip under **Artifacts** on the run's
+summary page, for 14 days. Pull requests from forks get the zip and the list,
+not the comment.
 
 **When a check fails:**
 

@@ -236,40 +236,68 @@ jobs:
             MIT, MIT-0, ISC, 0BSD, BSD-2-Clause, BSD-3-Clause, Apache-2.0, MPL-2.0,
             BlueOak-1.0.0, Python-2.0, CC-BY-4.0, CC0-1.0, Unlicense, WTFPL, Zlib
 
-  # Pictures of every screen, on the demo's made-up data, attached to the pull
-  # request so the maintainer sees what changed without reading code.
+  # The screens a pull request changes, before and after, on the demo's made-up
+  # data, so the maintainer sees what changed without reading code: the tour of
+  # every screen runs on the pull request and on its base side by side, and the
+  # pictures that differ are kept, cropped to the change.
   screens:
     name: screens
     needs: changes
     if: github.event_name == 'pull_request' && needs.changes.outputs.screens == 'true'
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 40
     # Advisory: Electron on a virtual screen can be flaky. A failure shows but doesn't block merging.
     continue-on-error: true
     permissions:
       contents: read
-      pull-requests: write # post and update the pictures comment
     steps:
       - name: Check out
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - name: Check out the base, for the pictures before
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: .base
+          persist-credentials: false
       - name: Set up Node and packages
         uses: ./.github/actions/setup
+      - name: Set up the base's packages
+        working-directory: .base
+        run: npm ci --no-audit --no-fund
       - name: Let Electron's sandbox start (Ubuntu 24.04 limits it by default)
         run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
       - name: Get a virtual screen
         run: command -v xvfb-run || { sudo apt-get update && sudo apt-get install -y xvfb; }
       - name: Download Electron
-        run: node -e 'console.log(require("electron"))'
-      - name: Build the demo app
-        run: npm run demo:build
-      - name: Take the pictures
-        # About 8 minutes: the first-run scenario waits in real time for the first sync.
-        timeout-minutes: 18
-        run: >-
-          xvfb-run --auto-servernum --server-args="-screen 0 1600x1000x24"
-          node scripts/demo/capture.mjs "$RUNNER_TEMP/screens" 2>&1 | tee "$RUNNER_TEMP/capture.log"
+        run: |
+          node -e 'console.log(require("electron"))'
+          (cd .base && node -e 'console.log(require("electron"))')
+      - name: Build the demo app, as the pull request leaves it and as its base has it
+        run: |
+          npm run demo:build
+          (cd .base && npm run demo:build)
+      - name: Take the pictures, before and after
+        # About 8 minutes each, side by side: the first-run scenario waits in real time for the first sync.
+        timeout-minutes: 25
+        run: |
+          screen=(xvfb-run --auto-servernum --server-args="-screen 0 1600x1000x24")
+          "${screen[@]}" node scripts/demo/capture.mjs "$RUNNER_TEMP/screens" > "$RUNNER_TEMP/capture.log" 2>&1 &
+          after=$!
+          (cd .base && "${screen[@]}" node scripts/demo/capture.mjs "$RUNNER_TEMP/screens-before" > "$RUNNER_TEMP/capture-before.log" 2>&1) &
+          before=$!
+          status=0
+          wait "$after" || status=$?
+          wait "$before" || echo "The base's pictures couldn't all be taken (see capture-before.log in the artifact)."
+          cat "$RUNNER_TEMP/capture.log"
+          exit "$status"
+      - name: Find the screens that changed
+        if: ${{ !cancelled() }}
+        run: |
+          if [ -d "$RUNNER_TEMP/screens-before" ] && [ -d "$RUNNER_TEMP/screens" ]; then
+            node scripts/ci/screens-compare.mjs "$RUNNER_TEMP/screens-before" "$RUNNER_TEMP/screens" "$RUNNER_TEMP/changed"
+          fi
       - name: Upload the pictures
         id: upload
         if: ${{ !cancelled() }}
@@ -279,6 +307,7 @@ jobs:
           path: |
             ${{ runner.temp }}/screens
             ${{ runner.temp }}/capture.log
+            ${{ runner.temp }}/capture-before.log
           if-no-files-found: ignore
           retention-days: 14
       - name: Write the comment
@@ -286,11 +315,81 @@ jobs:
         env:
           ARTIFACT_URL: ${{ steps.upload.outputs.artifact-url }}
           COMMIT: ${{ github.event.pull_request.head.sha }}
-        run: node scripts/ci/screens-comment.mjs "$RUNNER_TEMP/screens" "$RUNNER_TEMP/capture.log" "$ARTIFACT_URL" "$COMMIT" "$RUNNER_TEMP/comment.md"
-      - name: Post it on the pull request
-        # Pull requests from forks get a read-only token; their pictures are still in the run.
-        if: ${{ !cancelled() && github.event.pull_request.head.repo.full_name == github.repository }}
+          BASE: ${{ github.event.pull_request.base.ref }}
+        run: |
+          node scripts/ci/screens-comment.mjs "$RUNNER_TEMP/screens" "$RUNNER_TEMP/capture.log" "$RUNNER_TEMP/changed" \
+            "$ARTIFACT_URL" "$COMMIT" "$BASE" "$RUNNER_TEMP/changed/comment.md"
+      - name: Hand the changed screens and the comment to screens-post
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: screens-changed-pr${{ github.event.pull_request.number }}
+          path: ${{ runner.temp }}/changed
+          if-no-files-found: ignore
+          retention-days: 1
+
+  # Puts the changed screens' pictures where the comment can show them (the
+  # pr-assets branch, which only holds pictures), then posts the comment. A job
+  # of its own: it may write, so it runs none of the pull request's code, and
+  # only for pull requests from this repository (a fork's run can't write).
+  screens-post:
+    name: screens-post
+    needs: screens
+    if: ${{ !cancelled() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && needs.screens.result != 'skipped' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    continue-on-error: true
+    permissions:
+      contents: write # add the pictures to the pr-assets branch
+      pull-requests: write # post and update the pictures comment
+    steps:
+      - name: Get the changed screens and the comment
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: screens-changed-pr${{ github.event.pull_request.number }}
+          path: ${{ runner.temp }}/changed
+      - name: Put the pictures on the pr-assets branch
         env:
           GH_TOKEN: ${{ github.token }}
           PR: ${{ github.event.pull_request.number }}
-        run: bash scripts/ci/sticky-comment.sh "$PR" screens "$RUNNER_TEMP/comment.md"
+          COMMIT: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          from="$RUNNER_TEMP/changed"
+          folder="pr-$PR/${COMMIT:0:7}"
+          comment="$RUNNER_TEMP/comment.md"
+          sed "s#{{IMAGES}}#https://github.com/$GITHUB_REPOSITORY/blob/pr-assets/$folder#g" "$from/comment.md" > "$comment"
+          if ! ls "$from"/*.png > /dev/null 2>&1; then exit 0; fi
+          git init -q "$RUNNER_TEMP/assets" && cd "$RUNNER_TEMP/assets"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          auth="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          remote="https://github.com/$GITHUB_REPOSITORY.git"
+          for attempt in 1 2 3 4 5; do
+            if git -c http.extraheader="$auth" fetch -q --depth 1 "$remote" pr-assets; then
+              git checkout -q -B pr-assets FETCH_HEAD
+            else
+              git checkout -q --orphan pr-assets
+            fi
+            mkdir -p "$folder" && cp "$from"/*.png "$folder/"
+            git add "$folder" && git commit -q -m "screens: #$PR at ${COMMIT:0:7}"
+            if git -c http.extraheader="$auth" push -q "$remote" pr-assets; then exit 0; fi
+            sleep $((attempt * 3))
+          done
+          echo "Couldn't add the pictures to pr-assets." && exit 1
+      - name: Post it on the pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          marker="<!-- edunex-plus:screens -->"
+          body="$marker
+          $(cat "$RUNNER_TEMP/comment.md")"
+          id=$(gh api --paginate "repos/$GITHUB_REPOSITORY/issues/$PR/comments" \
+            --jq ".[] | select(.user.login == \"github-actions[bot]\" and (.body | startswith(\"$marker\"))) | .id" | head -n 1)
+          if [ -n "$id" ]; then
+            gh api --method PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$id" -f body="$body" > /dev/null
+          else
+            gh api --method POST "repos/$GITHUB_REPOSITORY/issues/$PR/comments" -f body="$body" > /dev/null
+          fi
