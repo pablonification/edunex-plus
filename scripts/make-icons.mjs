@@ -3,6 +3,11 @@
 //   assets/icon.png              1024 px, for Windows and Linux packages and the Dock in development
 //   assets/icon.icns             the macOS app icon
 //   src/app/assets/edunex-plus.png  the in-app mark (sidebar, welcome, Settings): the tile alone, no shadow
+//   assets/icon.ico              the app's icon on Windows (window, taskbar, Start, the installer), 16 to 256 px
+//   assets/tray.ico              the tray icon on Windows, 16 to 48 px (display scaling 100% to 300%)
+//   assets/tray.png (+ @2x)      the tray icon on Linux, 24 px
+// Windows' and Linux's are the tile alone, edge to edge as their icons are, each size drawn
+// from the drawing itself rather than shrunk from 1024 px, so the small ones stay sharp.
 //
 // The mark is a lowercase "e" with a raised "+", white on the app's blue, on a
 // macOS-shaped tile (Apple's grid: an 824 px tile with 100 px around it).
@@ -12,6 +17,7 @@ import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { PNG } from "pngjs";
 
 const root = path.resolve(import.meta.dirname, "..");
 const out = (file) => path.join(root, file);
@@ -94,5 +100,64 @@ run("rsvg-convert", ["-s", noShadow, "-w", "1024", "-h", "1024", out("assets/ico
 run("sips", ["-c", "824", "824", "--cropOffset", "100", "100", flat, "--out", flat]);
 run("sips", ["-z", "128", "128", flat, "--out", out("src/app/assets/edunex-plus.png")]);
 
+// Windows and Linux: the tile alone at each size, a hair of room around it.
+const edgeToEdge = path.join(tmp, "tile.svg");
+fs.writeFileSync(edgeToEdge, svg.replace('viewBox="0 0 1024 1024"', 'viewBox="88 88 848 848"'));
+const drawn = (size) => {
+  const file = path.join(tmp, `tile-${size}.png`);
+  run("rsvg-convert", ["-s", noShadow, "-w", `${size}`, "-h", `${size}`, edgeToEdge, "-o", file]);
+  return { size, png: fs.readFileSync(file) };
+};
+fs.writeFileSync(out("assets/icon.ico"), ico([16, 20, 24, 32, 40, 48, 64, 256].map(drawn)));
+fs.writeFileSync(out("assets/tray.ico"), ico([16, 20, 24, 32, 40, 48].map(drawn)));
+fs.writeFileSync(out("assets/tray.png"), drawn(24).png);
+fs.writeFileSync(out("assets/tray@2x.png"), drawn(48).png);
+
 fs.rmSync(tmp, { recursive: true, force: true });
-console.log("wrote assets/icon.svg, assets/icon.png, assets/icon.icns, src/app/assets/edunex-plus.png");
+console.log("wrote assets/icon.svg, assets/icon.png, assets/icon.icns, assets/icon.ico, assets/tray.ico, assets/tray.png, src/app/assets/edunex-plus.png");
+
+/**
+ * A Windows .ico holding every size: the 256 px one as PNG, the smaller ones as
+ * 32-bit bitmaps, the form every part of Windows (and every tool that embeds the
+ * icon into the app) reads.
+ */
+function ico(images) {
+  const entries = images.map(({ size, png }) => ({ size, data: size >= 256 ? png : bitmap(PNG.sync.read(png)) }));
+  const header = Buffer.alloc(6 + 16 * entries.length);
+  header.writeUInt16LE(1, 2); // an icon
+  header.writeUInt16LE(entries.length, 4);
+  let offset = header.length;
+  entries.forEach(({ size, data }, i) => {
+    const at = 6 + 16 * i;
+    header[at] = size >= 256 ? 0 : size; // 0 means 256
+    header[at + 1] = size >= 256 ? 0 : size;
+    header.writeUInt16LE(1, at + 4); // colour planes
+    header.writeUInt16LE(32, at + 6); // bits per pixel
+    header.writeUInt32LE(data.length, at + 8);
+    header.writeUInt32LE(offset, at + 12);
+    offset += data.length;
+  });
+  return Buffer.concat([header, ...entries.map(({ data }) => data)]);
+}
+
+/** A 32-bit BGRA bitmap, bottom row first, with the empty transparency mask icons carry after it. */
+function bitmap({ width, height, data }) {
+  const info = Buffer.alloc(40);
+  info.writeUInt32LE(40, 0);
+  info.writeInt32LE(width, 4);
+  info.writeInt32LE(height * 2, 8); // the colours and the mask, stacked
+  info.writeUInt16LE(1, 12);
+  info.writeUInt16LE(32, 14);
+  const pixels = Buffer.alloc(width * height * 4);
+  for (let y = 0; y < height; y++)
+    for (let x = 0; x < width; x++) {
+      const from = (y * width + x) * 4;
+      const to = ((height - 1 - y) * width + x) * 4;
+      pixels[to] = data[from + 2];
+      pixels[to + 1] = data[from + 1];
+      pixels[to + 2] = data[from];
+      pixels[to + 3] = data[from + 3];
+    }
+  const mask = Buffer.alloc(Math.ceil(width / 32) * 4 * height);
+  return Buffer.concat([info, pixels, mask]);
+}

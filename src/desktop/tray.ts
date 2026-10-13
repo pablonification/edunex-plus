@@ -1,11 +1,11 @@
 // The tray (menu bar on macOS) icon that keeps the app reachable while its
 // window is closed and it keeps alerting: Open and Quit, in the Student's
-// language. The icons come from scripts/generate-tray-icon.mjs: macOS tints
-// the "Template" image itself; Windows gets the dark or the light glyph to
-// match its taskbar, and switches when the Student changes it.
+// language. macOS's menu bar gets a one-colour "Template" glyph it tints itself
+// (scripts/generate-tray-icon.mjs); Windows and Linux the app's own colour
+// icon, as their other apps do, drawn at each size (scripts/make-icons.mjs).
 
 import path from "node:path";
-import { app, Menu, type NativeImage, nativeImage, nativeTheme, Tray } from "electron";
+import { app, Menu, type NativeImage, nativeImage, Tray } from "electron";
 import type { Lang } from "../core/models";
 import { translate } from "../core/strings";
 
@@ -38,24 +38,14 @@ export function createTray(options: { lang: Lang; open: () => void; quit: () => 
   build(options.lang);
   // Windows and Linux: a click on the icon opens the window; the menu is on right-click.
   if (process.platform !== "darwin") tray.on("click", options.open);
-  const repaint = () => {
-    if (!tray.isDestroyed()) tray.setImage(icon());
-  };
-  if (process.platform === "win32") nativeTheme.on("updated", repaint);
-  return {
-    setLang: build,
-    destroy: () => {
-      nativeTheme.off("updated", repaint);
-      tray.destroy();
-    },
-  };
+  return { setLang: build, destroy: () => tray.destroy() };
 }
 
 function icon(): NativeImage {
   const assets = path.join(app.getAppPath(), "assets");
-  // The taskbar's own theme, which can differ from the apps' (Windows' "custom" colors).
-  if (process.platform === "win32" && nativeTheme.shouldUseDarkColorsForSystemIntegratedUI)
-    return nativeImage.createFromPath(path.join(assets, "trayLight.png"));
+  // Windows picks the size its display scaling needs (16 px at 100%, 24 at 150%...) from the .ico.
+  if (process.platform === "win32") return nativeImage.createFromPath(path.join(assets, "tray.ico"));
+  if (process.platform !== "darwin") return nativeImage.createFromPath(path.join(assets, "tray.png"));
   const image = nativeImage.createFromPath(path.join(assets, "trayTemplate.png"));
   image.setTemplateImage(true);
   return image;
