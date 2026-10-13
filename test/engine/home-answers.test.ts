@@ -5,6 +5,7 @@
 import { describe, expect, it } from "vitest";
 import type { Alert, Bill, CalendarEvent, KrsPlan } from "../../src/core/models";
 import { alertFeed, attention, type HomeWorld, needsYou, nowCard, recentChanges, todayPlan } from "../../src/core/needs";
+import { PretendWorld } from "../pretend/world";
 import { startHome } from "./needs-harness";
 
 const at = (iso: string) => Date.parse(`${iso}+07:00`);
@@ -32,6 +33,40 @@ describe("Sekarang", () => {
     const card = nowCard(h.home())!;
     expect(card).toMatchObject({ state: "next", class: { session: { courseCode: "PL3032" } }, presence: null });
     expect(attention(h.home(), card).find((n) => n.id === `presence:${id}`)).toMatchObject({ countedIn: "six" });
+  });
+
+  it("the class going on gets its own window, never last week's still open; that one stays in Perlu perhatianmu, for its own class", async () => {
+    const world = new PretendWorld({ now: "2026-10-15T08:30:00+07:00" });
+    // Last Thursday's PL3002 window stays open over today's class, until tomorrow 23:00; today's, until 23:59: last week's closes first.
+    world.edunex.keepPresenceOpen(2194342, "2026-10-16T23:00:00+07:00");
+    world.edunex.keepPresenceOpen(2194343, "2026-10-16T23:59:00+07:00");
+    const h = await startHome({ world });
+    const card = nowCard(h.home())!;
+    expect(card).toMatchObject({ state: "live", class: { session: { courseCode: "PL3002", start: at("2026-10-15T08:00:00") } } });
+    expect(card.presence).toMatchObject({ code: "PL3002", session: { id: 2194343 }, class: { start: at("2026-10-15T08:00:00") } });
+    expect(attention(h.home(), card).find((n) => n.id === "presence:2194342")).toMatchObject({ class: { start: at("2026-10-08T08:00:00") } });
+  });
+
+  it("a lab earlier the same day never takes the lecture's window: the lecture going on keeps it", async () => {
+    const world = new PretendWorld({ now: "2026-10-15T08:30:00+07:00" });
+    // SIX lists a PL3002 lab at 06:00 before Thursday's 08:00 lecture; Edunex has a Presence for the lecture only.
+    world.six.addMeetingBeside("2194343", {
+      id: "2194390",
+      code: "PL3002",
+      name: "Ekonomi dan Inovasi dalam Perencanaan",
+      start: "06:00",
+      end: "07:30",
+      activity: "Praktikum",
+    });
+    const h = await startHome({ world });
+    expect(h.home().schedule?.find((s) => s.id === "2194390")).toMatchObject({ start: at("2026-10-15T06:00:00") });
+    const card = nowCard(h.home())!;
+    expect(card).toMatchObject({ state: "live", class: { session: { id: "2194343" } } });
+    expect(card.presence).toMatchObject({ session: { id: 2194343 }, class: { id: "2194343" } });
+    // So no row offers the lecture's window as the lab's.
+    const rows = attention(h.home(), card);
+    expect(rows.find((n) => n.id === "presence:2194343")).toBeUndefined();
+    expect(rows.find((n) => n.kind === "presence" && n.class?.id === "2194390")).toBeUndefined();
   });
 
   it("no class left today: the next one this week", async () => {

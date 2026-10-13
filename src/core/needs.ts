@@ -22,7 +22,7 @@ import {
   presenceOptional,
 } from "./attendance";
 import { materialKind } from "./course-materials";
-import { type AnnouncedMeeting, announcedMeetings, wibDay } from "./course-meetings";
+import { type AnnouncedMeeting, announcedMeetings, courseMeetings, wibDay } from "./course-meetings";
 import { dateVars, sameLocalDay, weekdayVars } from "./dates";
 import { type Exam, mergeExams } from "./exams";
 import type {
@@ -167,7 +167,7 @@ export type NeedFacts =
       /** The Task to hand in, for Answer Assignment. */
       task: Task | null;
       countedIn: CountedIn;
-      /** The class going on with it, from SIX. */
+      /** The class it's for, from SIX. */
       class: ClassSession | null;
       /** That class is off its usual slot. */
       classMoved: SlotChange | null;
@@ -230,6 +230,15 @@ export function needsYou(world: HomeWorld | HomeContext, providers: readonly Nee
 // ---------------------------------------------------------------- shared facts
 
 const courseOf = (context: HomeContext, code: string) => context.courses.find((course) => course.code === code);
+
+/**
+ * The SIX class a Presence session is for, paired as the course page pairs
+ * them (courseMeetings): by the session's own class, never a later class its
+ * window stays open into.
+ */
+function classOfWindow(context: HomeContext, code: string, session: PresenceSession): ClassSession | null {
+  return courseMeetings(code, context.presence[code] ?? [], context.schedule, []).find((m) => m.presence?.id === session.id)?.six ?? null;
+}
 const courseRoute = (code: string, tab = "meetings"): NeedAction => ({ kind: "go", route: { screen: "course", code, tab } });
 
 /** The course's page in the app, or Presensi for a course only in SIX. */
@@ -359,9 +368,9 @@ export const presenceProvider: NeedProvider = {
     const out: NeedDraft[] = [];
     const facts = (code: string, session: PresenceSession) => {
       const action = presenceAction(session, context.tasks);
-      const live = (context.schedule ?? []).find((s) => s.courseCode === code && s.start < session.closesAt && session.opensAt < s.end);
+      const live = classOfWindow(context, code, session);
       const countedIn = countedHere(context, code);
-      return { action, live: live ?? null, countedIn, moved: live ? slotChange(live, context.schedule ?? []) : null };
+      return { action, live, countedIn, moved: live ? slotChange(live, context.schedule ?? []) : null };
     };
     for (const { code, session } of openWindows(context.presence, now)) {
       const { action, live, countedIn, moved } = facts(code, session);
@@ -421,7 +430,7 @@ export const classProvider: NeedProvider = {
   needs(context) {
     const { now } = context;
     const windows = openWindows(context.presence, now);
-    const withWindow = (s: ClassSession) => windows.some((w) => w.code === s.courseCode && s.start < w.session.closesAt && w.session.opensAt < s.end);
+    const withWindow = (s: ClassSession) => windows.some((w) => w.code === s.courseCode && classOfWindow(context, w.code, w.session)?.id === s.id);
     const out: NeedDraft[] = [];
     for (const session of classesLeftToday(context)) {
       if (withWindow(session) || isExamActivity(session.activity)) continue;
@@ -810,6 +819,8 @@ export function recentChanges(world: HomeWorld | HomeContext, history: readonly 
 export interface OpenPresence {
   code: string;
   session: PresenceSession;
+  /** The class it's for, from SIX. */
+  class: ClassSession | null;
   activity: PresenceActivity;
   task: Task | null;
   /** The Presence itself when Edunex gives its page; else where the action is done. */
@@ -853,11 +864,12 @@ export function nowCard(world: HomeWorld | HomeContext): NowCard | null {
     if (!context.courses.find((course) => course.code === code)?.six || context.sixConnected === false) return null;
     return context.health.get(code)?.countedIn !== "six";
   };
-  // The window for this class; else, between classes, one that counts (it closes first, so it leads); else, with no class at all, any.
-  const window =
-    (current && windows.find((w) => w.code === current.courseCode && current.start < w.session.closesAt && w.session.opensAt < current.end)) ??
-    (live ? null : (windows.find((w) => counts(w.code) !== false) ?? (current ? null : (windows[0] ?? null))));
-  const lead = window && current && window.code !== current.courseCode ? null : current;
+  // The class's own window, never an earlier class's still open (that one is in Perlu perhatianmu);
+  // else, between classes, one that counts (it closes first, so it leads); else, with no class at all, any.
+  const own = current ? (windows.find((w) => w.code === current.courseCode && classOfWindow(context, w.code, w.session)?.id === current.id) ?? null) : null;
+  const window = own ?? (live ? null : (windows.find((w) => counts(w.code) !== false) ?? (current ? null : (windows[0] ?? null))));
+  // A window that isn't the class's own leads the card alone, about its own class.
+  const lead = window && window !== own ? null : current;
   if (!lead && !window) return null;
   let presence: OpenPresence | null = null;
   if (window) {
@@ -865,6 +877,7 @@ export function nowCard(world: HomeWorld | HomeContext): NowCard | null {
     presence = {
       code: window.code,
       session: window.session,
+      class: classOfWindow(context, window.code, window.session),
       activity: action.activity,
       task: action.task,
       url: action.url,

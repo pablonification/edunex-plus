@@ -317,10 +317,7 @@ const DAY = 86_400_000;
  * long is left only while that's under a day.
  */
 function closesLabel(t: Translate, f: Format, closesAt: number, now: number): string {
-  const offset = f.dayOffset(closesAt);
-  // Mid-sentence, so "besok", not "Besok".
-  const day = offset === 1 ? t("home.tomorrowWord") : f.relativeDay(closesAt);
-  const time = offset === 0 ? f.time(closesAt) : `${day}, ${f.time(closesAt)}`;
+  const time = f.dayTime(closesAt);
   return closesAt - now < DAY ? t("course.closesAt", { time, left: f.countdown(closesAt) }) : t("course.closesOn", { time });
 }
 

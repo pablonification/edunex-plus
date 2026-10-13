@@ -27,6 +27,8 @@ export interface Format {
   relativeDay(when: When): string;
   /** "Besok, 23:59" */
   dueLabel(when: When): string;
+  /** Mid-sentence, with its day only when it isn't today: "23:00", "besok, 23:00", "Sen, 12 Okt, 23:00". */
+  dayTime(when: When): string;
   /** "dalam 6 jam" / "6 hours ago" / "baru saja" */
   fromNow(when: When): string;
   /** "18 mnt" / "1 jam 5 mnt"; "18 min" / "1h 05m" */
@@ -86,6 +88,13 @@ export function makeFormat(lang: Lang, now: number): Format {
     dateLong: (when) => dateLongFmt.format(ms(when)),
     relativeDay,
     dueLabel: (when) => `${relativeDay(when)}, ${time(when)}`,
+    dayTime: (when) => {
+      const offset = dayOffset(when);
+      if (offset === 0) return time(when);
+      // Mid-sentence, so "besok", not "Besok".
+      const day = offset === 1 ? t("time.tomorrowWord") : offset === -1 ? t("time.yesterdayWord") : relativeDay(when);
+      return `${day}, ${time(when)}`;
+    },
     fromNow: (when) => {
       const diff = ms(when) - now;
       const abs = Math.abs(diff);

@@ -293,6 +293,15 @@ export class PretendEdunex {
     return id;
   }
 
+  /** The lecturer keeps a Presence window open longer (a window tied to handing in a Task does that), until `end` (ISO). */
+  keepPresenceOpen(presenceId: number, end: string): void {
+    for (const [key, list] of this.presences)
+      this.presences.set(
+        key,
+        list.map((s) => (Number(s.id) === presenceId ? { ...s, attributes: { ...s.attributes, presence_end: end } } : s)),
+      );
+  }
+
   /** The Student did the activity that counts as presence (opened the material, handed in the Task…). */
   markPresent(presenceId: number): void {
     for (const list of this.presences.values()) {

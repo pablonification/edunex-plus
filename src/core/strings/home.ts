@@ -9,7 +9,6 @@ export const homeStrings = {
   "home.utsNow": { id: "Masa UTS sampai {date}", en: "UTS period until {date}" },
   "home.uasNow": { id: "Masa UAS sampai {date}", en: "Final exams until {date}" },
   "home.inDays": { id: "{count} hari lagi", en: { one: "in {count} day", other: "in {count} days" } },
-  "home.tomorrowWord": { id: "besok", en: "tomorrow" },
 
   // Sekarang: the class going on or next, where attendance counts, the open Presence
   "home.now": { id: "Sekarang", en: "Now" },
@@ -32,6 +31,7 @@ export const homeStrings = {
   "home.now.presenceDo": { id: "{action} sebelum {time}", en: "{action} before {time}" },
   "home.now.presenceExtra": { id: "Presensi Edunex juga dibuka sampai {time}, tidak wajib.", en: "Edunex Presence is also open until {time}; it's optional." },
   "home.now.closesIn": { id: "tutup dalam {left}", en: "closes in {left}" },
+  "home.now.closesWhen": { id: "tutup {when}", en: "closes {when}" },
   "home.now.openPresence": { id: "Buka Presensi", en: "Open Presence" },
   "home.now.openPresenceLabel": { id: "Buka Presensi {course} di Edunex", en: "Open {course} Presence in Edunex" },
   "home.now.openTask": { id: "Buka tugasnya", en: "Open the Task" },
@@ -66,7 +66,7 @@ export const homeStrings = {
   "home.need.presence": { id: "Isi Presensi {course}", en: "Fill in {course} Presence" },
   "home.need.presence.closes": { id: "tutup {time}", en: "closes {time}" },
   "home.need.presenceOptional": { id: "Presensi {course} dibuka, tidak wajib", en: "{course} Presence is open; it's optional" },
-  "home.need.presenceOptional.meta": { id: "Dihitung di SIX · tutup {time}", en: "Counted in SIX · closes {time}" },
+  "home.need.presenceOptional.counted": { id: "Dihitung di SIX", en: "Counted in SIX" },
   "home.need.presenceNoSix": { id: "Presensi {course} dibuka", en: "{course} Presence is open" },
   "home.need.presenceNoSix.note": {
     id: "Belum pasti dihitung tanpa SIX; catat untuk berjaga-jaga",
@@ -75,6 +75,7 @@ export const homeStrings = {
   "home.need.presenceAhead.assignment": { id: "Kumpulkan {task}", en: "Hand in {task}" },
   "home.need.presenceAhead": { id: "Presensi {course}", en: "{course} Presence" },
   "home.need.presenceAhead.when": { id: "Juga presensi: {date}, {time}", en: "Also attendance: {date}, {time}" },
+  "home.need.presenceAhead.span": { id: "Juga presensi: {from} sampai {to}", en: "Also attendance: {from} until {to}" },
   "home.need.task.overdue": { id: "Lewat tenggat, masih diterima", en: "Past due, still accepted" },
   "home.need.task.short": { id: "Hanya dibuka {duration}", en: "Open for only {duration}" },
   "home.need.task.due": { id: "Tenggat {when}", en: "Due {when}" },

@@ -184,8 +184,10 @@ describe("a class moved", () => {
     });
     // An exam later today isn't a class to attend: DK4073's UTS (no absences left) isn't raised here.
     expect(find(needsYou(h.home()), "class:2179909")).toBeUndefined();
-    // Within the hour it's "now": time to go.
+    // Within the hour it's "now": time to go. (Until 09:30 its own Presence window, open from 08:00, speaks for it.)
     await h.until("2026-10-15T09:10:00+07:00");
+    expect(find(needsYou(h.home()), "presence:2194343")).toMatchObject({ class: { id: "2194343" } });
+    await h.until("2026-10-15T09:31:00+07:00");
     expect(find(needsYou(h.home()), "class:2194343")).toMatchObject({ band: "now" });
   });
 });

@@ -439,16 +439,8 @@ describe("meetings", () => {
     expect(card.querySelector("p.text-title")?.textContent).toBe("Pertemuan 3");
   });
 
-  /** PL3002's Presence window of Thursday 8 October, kept open until `end` (a window tied to handing in a Task does that). */
-  const keepThursdayOpen = (world: PretendWorld, end: string) => {
-    const key = "95001:86778";
-    world.edunex.presences.set(
-      key,
-      world.edunex.presences
-        .get(key)!
-        .map((s) => (s.attributes.start_at.startsWith("2026-10-08") ? { ...s, attributes: { ...s.attributes, presence_end: end } } : s)),
-    );
-  };
+  /** PL3002's Presence window of Thursday 8 October, kept open until `end`. */
+  const keepThursdayOpen = (world: PretendWorld, end: string) => world.edunex.keepPresenceOpen(2194342, end);
   /** The window's countdown on the card above the tabs, as a screen reader reads it. */
   const countdowns = () => [...document.querySelectorAll("main .shadow-raised [role=progressbar]")].map((el) => el.getAttribute("aria-label"));
 
@@ -488,6 +480,24 @@ describe("meetings", () => {
     expect(line).toBeDefined();
     expect(line!.closest(".shadow-raised")).toBeNull();
     expect(line!.querySelector("button")?.textContent).toBe("Catat di Edunex");
+  });
+
+  it("a lab earlier the same day never takes the lecture's Presence: the lecture going on keeps its window", async () => {
+    const world = new PretendWorld({ now: "2026-10-15T08:30:00+07:00" });
+    // SIX lists a PL3002 lab at 06:00 before Thursday's 08:00 lecture; Edunex has a Presence for the lecture only.
+    world.six.addMeetingBeside("2194343", {
+      id: "2194390",
+      code: "PL3002",
+      name: "Ekonomi dan Inovasi dalam Perencanaan",
+      start: "06:00",
+      end: "07:30",
+      activity: "Praktikum",
+    });
+    await openCourse("PL3002", { world, six: true });
+    expect(document.querySelector("main .shadow-raised")?.textContent).toContain("Sedang berlangsung · sampai 09:30");
+    expect(countdowns()).toEqual([expect.stringMatching(/^tutup 09:30 \(\d+ mnt lagi\)$/)]);
+    // Never offered again as the lab's.
+    expect(screen!.text()).not.toContain("Presensi Edunex masih dibuka");
   });
 
   it("a class going on whose own Presence is done shows no countdown, while an earlier class's window still open stays a quiet line", async () => {

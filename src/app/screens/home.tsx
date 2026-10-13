@@ -148,7 +148,7 @@ function ExamWeek() {
     const days = f.dayOffset(next!.start);
     facts = [
       t(next!.kind === "uts" ? "home.utsStarts" : "home.uasStarts", { date: date(next!.start) }),
-      days === 1 ? t("home.tomorrowWord") : t("home.inDays", { count: days }),
+      days === 1 ? t("time.tomorrowWord") : t("home.inDays", { count: days }),
     ];
   }
   return (
@@ -198,6 +198,8 @@ function NowCardView({ card, courses }: { card: NowCard; courses: readonly TermC
   const code = session?.courseCode ?? card.presence!.code;
   const color = colorOf(courses, code);
   const course = courses.find((c) => c.code === code);
+  // A window alone on the card: the class it's for, as a window can stay open for days, into the next one.
+  const windowFor = !session && card.presence ? (card.presence.class ?? card.presence.session) : null;
 
   const eyebrow =
     card.state === "live" && session
@@ -244,6 +246,7 @@ function NowCardView({ card, courses }: { card: NowCard; courses: readonly TermC
           ) : (
             ""
           )}
+          {windowFor ? <span className="tabular-nums">{classDayTime(f, windowFor.start, windowFor.end)}</span> : ""}
           {session && !/^kuliah$/i.test(session.activity) ? (
             <span className={cx("font-semibold", /\b(UTS|UAS)\b/i.test(session.activity) && "text-danger-fg")}>{session.activity}</span>
           ) : (
@@ -309,7 +312,7 @@ function Attendance({ card }: { card: NowCard }) {
           <div className="min-w-0 flex-1">
             <p className="flex items-center gap-2 text-body font-semibold">
               <Icons.Hand className={cx("size-4 shrink-0", quiet ? "text-muted" : "text-accent-fg")} />
-              {t("home.now.presenceDo", { action, time: f.time(session.closesAt) })}
+              {t("home.now.presenceDo", { action, time: f.dayTime(session.closesAt) })}
             </p>
             <p className="mt-0.5 text-small text-muted">
               <Meta>
@@ -334,7 +337,14 @@ function Attendance({ card }: { card: NowCard }) {
           opensAt={session.opensAt}
           closesAt={session.closesAt}
           now={now}
-          label={t("home.now.closesIn", { left: f.countdown(session.closesAt) })}
+          // Under a day, how long is left; a window can stay open for days, and "50 jam" says nothing.
+          label={
+            session.closesAt - now < DAY
+              ? t("home.now.closesIn", { left: f.countdown(session.closesAt) })
+              : t("home.now.closesWhen", { when: f.fromNow(session.closesAt) })
+          }
+          // "tutup besok" under "sebelum besok, 23:00" would say it twice.
+          showLabel={session.closesAt - now < DAY || f.dayOffset(session.closesAt) > 1}
         />
       </div>
     );
@@ -353,7 +363,7 @@ function Attendance({ card }: { card: NowCard }) {
         <p className="mt-0.5 pl-6 text-small text-muted">
           <Meta>
             {budget ? <span className={cx("font-medium", STATE_TEXT[facts!.state])}>{budget}</span> : ""}
-            {presence ? t("home.now.presenceExtra", { time: f.time(presence.session.closesAt) }) : ""}
+            {presence ? t("home.now.presenceExtra", { time: f.dayTime(presence.session.closesAt) }) : ""}
           </Meta>
         </p>
       </div>
@@ -385,6 +395,9 @@ function AfterThis({ session, courses }: { session: ClassSession; courses: reado
     </p>
   );
 }
+
+/** A class's day and time, as the course page names the class a window is for: "Kam, 8 Okt, 08:00–10:00". */
+const classDayTime = (f: Format, start: number, end: number) => `${f.relativeDay(start)}, ${f.timeRange(start, end)}`;
 
 function movedLabel(t: Translate, f: Format, facts: ClassFacts): string {
   const moved = facts.moved!;
@@ -698,6 +711,7 @@ function SnoozedRow({ need, entry, courses }: { need: Need; entry: SnoozeEntry; 
       meta={
         <Meta>
           {view.titleLacksCourse && need.course ? <CourseMark code={need.course} courses={courses} /> : null}
+          {view.which ? <span className="tabular-nums">{view.which}</span> : null}
           {entry.reason === "change" ? t("snooze.untilChange", { when }) : t("snooze.until", { when })}
         </Meta>
       }
@@ -726,10 +740,12 @@ interface NeedView {
   label?: string;
   /** The title is a Task's own name ("Tugas 02"), which doesn't say which course. */
   titleLacksCourse?: boolean;
+  /** What tells it from a look-alike of the same course: a Presence window's class ("Kam, 8 Okt, 08:00–10:00"). */
+  which?: string;
 }
 
-/** What an item is, said whole where its facts aren't beside it: a Task's name with its course ("Tugas 02 · II4091"). */
-const fullName = (need: Need, view: NeedView) => (view.titleLacksCourse && need.course ? factsLabel(view.title, need.course) : view.title);
+/** What an item is, said whole where its facts aren't beside it: a Task's name with its course ("Tugas 02 · II4091"), a window with its class. */
+const fullName = (need: Need, view: NeedView) => factsLabel(view.title, view.titleLacksCourse && need.course, view.which);
 
 function useNeedView(courses: readonly TermCourse[]): (need: Need) => NeedView {
   const t = useT();
@@ -739,14 +755,24 @@ function useNeedView(courses: readonly TermCourse[]): (need: Need) => NeedView {
   return (need) => {
     const course = need.course ? <CourseMark key="course" code={need.course} courses={courses} /> : null;
     switch (need.kind) {
-      case "presence":
+      case "presence": {
+        // Which class it's for: a window can stay open for days, into the course's next class.
+        const of = need.class ?? need.session;
+        const which = classDayTime(f, of.start, of.end);
+        const forClass = (
+          <span key="class" className="tabular-nums">
+            {which}
+          </span>
+        );
+        const closes = t("home.need.presence.closes", { time: f.dayTime(need.session.closesAt) });
         if (need.open)
           // Where SIX counts, the window is optional: said so, never as a thing to do.
           // Without SIX nobody knows whether it counts: worth doing just in case, so no amber.
           return need.countedIn === "noSix"
             ? {
                 title: t("home.need.presenceNoSix", { course: need.course ?? "" }),
-                meta: [course, t("home.need.presence.closes", { time: f.time(need.session.closesAt) })],
+                which,
+                meta: [course, forClass, closes],
                 note: { text: t("home.need.presenceNoSix.note"), tone: null },
                 when: f.fromNow(need.session.closesAt),
                 tone: null,
@@ -754,13 +780,15 @@ function useNeedView(courses: readonly TermCourse[]): (need: Need) => NeedView {
             : need.countedIn === "six"
               ? {
                   title: t("home.need.presenceOptional", { course: need.course ?? "" }),
-                  meta: [course, t("home.need.presenceOptional.meta", { time: f.time(need.session.closesAt) })],
+                  which,
+                  meta: [course, forClass, t("home.need.presenceOptional.counted"), closes],
                   when: null,
                   tone: null,
                 }
               : {
                   title: t("home.need.presence", { course: need.course ?? "" }),
-                  meta: [course, t("home.need.presence.closes", { time: f.time(need.session.closesAt) })],
+                  which,
+                  meta: [course, forClass, closes],
                   when: f.fromNow(need.session.closesAt),
                   tone: "warning",
                 };
@@ -769,15 +797,20 @@ function useNeedView(courses: readonly TermCourse[]): (need: Need) => NeedView {
           titleLacksCourse: need.task !== null,
           meta: [course],
           note: {
-            text: t("home.need.presenceAhead.when", {
-              date: f.relativeDay(need.session.opensAt),
-              time: f.timeRange(need.session.opensAt, need.session.closesAt),
-            }),
+            text:
+              f.dayOffset(need.session.opensAt) === f.dayOffset(need.session.closesAt)
+                ? t("home.need.presenceAhead.when", {
+                    date: f.relativeDay(need.session.opensAt),
+                    time: f.timeRange(need.session.opensAt, need.session.closesAt),
+                  })
+                : // Open across days: each end with its own day.
+                  t("home.need.presenceAhead.span", { from: f.dueLabel(need.session.opensAt), to: f.dayTime(need.session.closesAt) }),
             tone: null,
           },
           when: f.fromNow(need.session.opensAt),
           tone: null,
         };
+      }
       case "task": {
         const { task } = need;
         if (need.reason === "edited")

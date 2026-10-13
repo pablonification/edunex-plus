@@ -95,6 +95,19 @@ describe("meetings", () => {
     expect(courseMeetings("II4091", presence, null, announced, ["2026-10"]).some((m) => m.notInSix)).toBe(false);
   });
 
+  it("with a lab and a lecture the same day, a Presence joins the class its time overlaps, never one by the day alone", async () => {
+    const h = await signedIn();
+    const presence = h.dataset("edunex.presence")!.II4091.filter((p) => p.start === at("2026-10-16T15:00:00+07:00"));
+    const lab = { ...sixSession("2026-10-16T08:00:00+07:00", "2026-10-16T10:00:00+07:00"), activity: "Praktikum" };
+    const lecture = sixSession("2026-10-16T15:00:00+07:00", "2026-10-16T17:00:00+07:00");
+    expect(courseMeetings("II4091", presence, [lab, lecture], []).find((m) => m.presence)?.six).toBe(lecture);
+    // Edunex's time overlapping neither: no guess, the Presence keeps its own time.
+    const elsewhen = presence.map((p) => ({ ...p, start: at("2026-10-16T12:00:00+07:00"), end: at("2026-10-16T13:00:00+07:00") }));
+    expect(courseMeetings("II4091", elsewhen, [lab, lecture], []).find((m) => m.presence)).toMatchObject({ six: null, start: at("2026-10-16T12:00:00+07:00") });
+    // With one class that day, the day pairs them.
+    expect(courseMeetings("II4091", elsewhen, [lecture], []).find((m) => m.presence)?.six).toBe(lecture);
+  });
+
   it("never calls a meeting missed: an unmarked one stays 'not marked in Edunex', a future one 'upcoming'", async () => {
     const h = await signedIn();
     const now = h.world.clock.now(); // Thursday 8 October, 08:12

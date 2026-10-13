@@ -160,6 +160,26 @@ describe("putting off what needs you on Beranda", () => {
     expect(s.has(`Ingatkan sekarang: Tugas 02 · ${codes[0]}`)).toBe(true);
   });
 
+  it("two Presence windows of one course are named with their own class, so they can be told apart, put off too", async () => {
+    // Thursday 15 October after class: last Thursday's PL3002 window is still open, and so is today's.
+    const world = new PretendWorld({ now: "2026-10-15T10:30:00+07:00" });
+    world.edunex.keepPresenceOpen(2194342, "2026-10-16T23:00:00+07:00");
+    world.edunex.keepPresenceOpen(2194343, "2026-10-15T23:59:00+07:00");
+    const s = await open({ world });
+    const title = "Presensi PL3002 dibuka, tidak wajib";
+    const names = [...document.querySelectorAll(`[aria-label^="Ingatkan nanti: ${title}"]`)].map((el) => el.getAttribute("aria-label")!);
+    expect(names).toEqual([`Ingatkan nanti: ${title} · Hari ini, 08:00–09:30`, `Ingatkan nanti: ${title} · Kam, 8 Okt, 08:00–10:00`]);
+
+    for (const name of names) await snooze(name.replace("Ingatkan nanti: ", ""), /^3 jam lagi/);
+    await s.click("Tampilkan");
+    const rows = [...document.querySelectorAll('ul[aria-label="Yang ditunda"] li')].map((li) => li.textContent ?? "");
+    expect(rows).toEqual([
+      `${title}Hari ini, 08:00–09:30 · Kembali Hari ini, 13:30Ingatkan sekarang`,
+      `${title}Kam, 8 Okt, 08:00–10:00 · Kembali Hari ini, 13:30Ingatkan sekarang`,
+    ]);
+    expect(s.has(`Ingatkan sekarang: ${title} · Kam, 8 Okt, 08:00–10:00`)).toBe(true);
+  });
+
   it("the list of what's put off closes once it's empty, so the next snooze doesn't find it open", async () => {
     const s = await open();
     await snooze("UTS Komunikasi Pemasaran", "Besok pagi");
