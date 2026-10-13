@@ -69,7 +69,9 @@ export async function launchDemo(options = {}) {
       return { app, page };
     } catch (error) {
       trace("launch: failed", String(error).split("\n")[0]);
-      await app.close().catch(() => {});
+      await Promise.race([app.close().catch(() => {}), new Promise((resolve) => setTimeout(resolve, 5_000))]);
+      trace("launch: stopping electron");
+      app.process().kill("SIGKILL");
       throw error;
     }
   };

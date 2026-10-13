@@ -249,7 +249,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        copy: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+        copy: [1, 2, 3, 4, 5, 6]
     # Advisory: Electron on a virtual screen can be flaky. A failure shows but doesn't block merging.
     continue-on-error: true
     permissions:
@@ -287,6 +287,7 @@ jobs:
         timeout-minutes: 14
         env:
           DEBUG: pw:api
+          FORCE_FAIL_ONCE: ${{ matrix.copy <= 2 && '1' || '' }}
         run: |
           cp scripts/demo/capture.mjs scripts/demo/drive.mjs .base/scripts/demo/
           (

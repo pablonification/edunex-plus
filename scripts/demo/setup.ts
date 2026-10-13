@@ -69,14 +69,22 @@ void app.whenReady().then(() =>
   }),
 );
 
-/** Lets the pretend clock run fast until `work` is done (at most ten pretend minutes). */
+/**
+ * Lets the pretend clock run fast until `work` is done. Ten pretend minutes fly by in under a second, which on a
+ * busy machine can be sooner than the sync's real disk writes finish: past them the clock slows down, and the
+ * work gets up to half a minute of real time before the demo gives up.
+ */
 async function fastForward<T>(work: Promise<T>): Promise<T> {
   let outcome: { value: T } | { error: unknown } | null = null;
   void work.then(
     (value) => (outcome = { value }),
     (error: unknown) => (outcome = { error }),
   );
-  for (let second = 0; second < 600 && !outcome; second++) await world.clock.advance(1_000);
+  const deadline = Date.now() + 30_000;
+  for (let second = 0; !outcome && (second < 600 || Date.now() < deadline); second++) {
+    await world.clock.advance(1_000);
+    if (second >= 600) await new Promise((resolve) => setTimeout(resolve, 50));
+  }
   if (!outcome) throw new Error("the demo's first sync didn't finish");
   const done = outcome as { value: T } | { error: unknown };
   if ("error" in done) throw done.error;
@@ -231,7 +239,12 @@ const hooks: DemoHooks = {
       return false;
     }
     engine.start();
-    await fastForward(engine.signIn("edunex", { token: PRETEND_TOKEN }));
+    await fastForward(new Promise((resolve) => setTimeout(resolve, 2_000)).then(() => engine.signIn("edunex", { token: PRETEND_TOKEN })));
+    const marker = path.join(process.cwd(), ".failed-once");
+    if (process.env.FORCE_FAIL_ONCE && !fs.existsSync(marker)) {
+      fs.writeFileSync(marker, "");
+      throw new Error("debug: a forced failed start");
+    }
     if (scenario === "signed-in") await fastForward(engine.signIn("six", { cookie: PRETEND_SIX_COOKIE }));
     // ITB's calendar, the public catalog's pages (one every 3.5 s), and the first alerts settle.
     await world.clock.advance(200_000);
