@@ -153,6 +153,10 @@ remove absolutely everything, delete the app's folder after uninstalling:
 - **Windows:** `%APPDATA%\Edunex Plus`
 - **Linux:** `~/.config/Edunex Plus`
 
+Course files you saved for offline reading are your own copies and stay where you put them: in
+**Documents → Edunex Plus** unless you picked another folder, and files you downloaded are in
+**Downloads**. Delete those yourself if you want them gone too.
+
 ## Signing in
 
 You sign in with your own **INA account** on ITB's real Microsoft sign-in page, inside a
