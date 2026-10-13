@@ -1,0 +1,163 @@
+# The installable app for macOS, Windows and Linux.
+#
+# - On a version tag (v1.2.3): checks that the tag matches package.json's
+#   version, builds all three, and puts them in a DRAFT release with notes
+#   written from the merged pull requests (.github/release.yml groups them).
+#   You publish the draft by hand after trying it on real accounts; only then
+#   does the app's once-a-day update check see the new version.
+# - On pushes to main that touch packaging, and by hand from a branch (Actions →
+#   Package and release → Run workflow): builds all three as a check, keeps
+#   them for a week on the run's page, and publishes nothing.
+name: Package and release
+
+on:
+  push:
+    tags: ["v*.*.*"]
+    branches: [main]
+    # Pushes to main only build when packaging could have changed. (GitHub
+    # doesn't apply this list to tags: every version tag builds.)
+    paths:
+      - "electron-builder.config.mjs"
+      - "scripts/package-fuses.mjs"
+      - "scripts/build-desktop.mjs"
+      - "scripts/desktop-bundle.mjs"
+      - "scripts/adhoc-sign-electron.mjs"
+      - "src/desktop/**"
+      - "assets/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/release.yml"
+      - ".github/actions/setup/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  verify:
+    name: verify
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Check the tag matches package.json's version
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          version=$(node -p 'require("./package.json").version')
+          if [ "$TAG" != "v$version" ]; then
+            echo "::error::The tag $TAG doesn't match package.json's version ($version). The app compares the two to offer updates: run \`npm version <new-version>\` and push that commit and its tag instead."
+            exit 1
+          fi
+          echo "Tag $TAG matches package.json."
+
+  package:
+    name: package (${{ matrix.name }})
+    needs: verify
+    # verify only runs for tags; elsewhere it's skipped and packaging goes ahead.
+    if: ${{ !failure() && !cancelled() }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: macOS
+            os: macos-latest
+            target: mac
+          - name: Windows
+            os: windows-latest
+            target: win
+          - name: Linux
+            os: ubuntu-latest
+            target: linux
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Node and packages
+        uses: ./.github/actions/setup
+        with:
+          # Release builds start from a clean download, never from a shared cache.
+          cache: "false"
+      - name: Build and package
+        env:
+          TARGET: ${{ matrix.target }}
+          # Ad-hoc signing on macOS (electron-builder.config.mjs); don't look for certificates.
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+        run: npm run "package:$TARGET" -- --publish never
+      - name: Start the packaged app (Linux)
+        if: matrix.target == 'linux'
+        run: |
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+          command -v xvfb-run || { sudo apt-get update && sudo apt-get install -y xvfb; }
+          # Still running after 25 seconds (timeout's 124) means it opened and stayed open.
+          status=0
+          timeout 25 xvfb-run --auto-servernum release/linux-unpacked/edunex-plus || status=$?
+          if [ "$status" -ne 124 ]; then
+            echo "::error::The packaged app closed by itself (exit $status) instead of staying open."
+            exit 1
+          fi
+          echo "The packaged app opened and stayed open."
+      - name: Keep the installers
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: app-${{ matrix.target }}
+          path: |
+            release/*.dmg
+            release/*.zip
+            release/*.exe
+            release/*.AppImage
+            release/*.deb
+          if-no-files-found: error
+          retention-days: ${{ startsWith(github.ref, 'refs/tags/') && 30 || 7 }}
+          compression-level: 0
+
+  publish:
+    name: publish
+    needs: package
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write # create the draft release and attach the installers
+    steps:
+      - name: Collect the installers
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: app-*
+          path: installers
+          merge-multiple: true
+      - name: Put them in a draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          if gh release view "$TAG" --repo "$REPO" > /dev/null 2>&1; then
+            # A re-run: refresh the files on the release that already exists.
+            gh release upload "$TAG" --repo "$REPO" --clobber installers/*
+          else
+            flags=(--draft --generate-notes --verify-tag --title "Edunex Plus ${TAG#v}")
+            # v1.2.3-rc.1 and the like are test builds: installed apps never offer them.
+            if [[ "$TAG" == *-* ]]; then flags+=(--prerelease); fi
+            gh release create "$TAG" --repo "$REPO" "${flags[@]}" installers/*
+          fi
+          {
+            echo "### Draft release ready"
+            echo
+            echo "**$TAG** is a draft with the installers for macOS, Windows and Linux. Try it on real accounts, then publish it from the Releases page; installed apps see it only once it's published."
+          } >> "$GITHUB_STEP_SUMMARY"

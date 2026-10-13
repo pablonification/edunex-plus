@@ -1,40 +1,296 @@
+# The checks every pull request and every push to main goes through. They run
+# side by side, and each writes its result in plain words on the run's summary
+# page. lint, typecheck, test and build must pass; knip and screens only advise.
 name: CI
 
 on:
   pull_request:
   push:
-    branches:
-      - main
+    branches: [main]
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+defaults:
+  run:
+    shell: bash
 
 jobs:
-  check:
-    name: Test and build
+  # Which parts of the repository a pull request touches, so the slower or
+  # narrower checks below only run when they have something to look at.
+  # A skipped check still counts as passed for merging.
+  changes:
+    name: changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      pull-requests: read # list the pull request's changed files
+    outputs:
+      screens: ${{ steps.areas.outputs.screens }}
+      deps: ${{ steps.areas.outputs.deps }}
+      workflows: ${{ steps.areas.outputs.workflows }}
+    steps:
+      - name: See which areas the change touches
+        id: areas
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+          PR: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          everything=false
+          files=""
+          if [ "$EVENT" != pull_request ]; then
+            everything=true
+          elif ! files=$(gh api --paginate "repos/$REPO/pulls/$PR/files" --jq '.[].filename'); then
+            echo "::warning::Couldn't list the changed files, so every check runs."
+            everything=true
+          fi
+          area() {
+            if [ "$everything" = true ] || grep -qE "$2" <<< "$files"; then echo "$1=true"; else echo "$1=false"; fi
+          }
+          {
+            area screens '^(src/app/|src/core/|scripts/demo/|test/pretend/|package-lock\.json$|\.github/workflows/ci\.yml$)'
+            area deps '^package(-lock)?\.json$'
+            area workflows '^\.github/'
+          } | tee -a "$GITHUB_OUTPUT"
+
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Node and packages
+        uses: ./.github/actions/setup
+      - name: Lint and check formatting (Biome)
+        id: check
+        run: npx biome ci --colors=off . 2>&1 | tee "$RUNNER_TEMP/check.log"
+      - name: Summarize
+        if: ${{ !cancelled() && steps.check.outcome != 'skipped' }}
+        env:
+          OUTCOME: ${{ steps.check.outcome }}
+        run: node scripts/ci/summary.mjs lint "$OUTCOME" "$RUNNER_TEMP/check.log"
+
+  typecheck:
+    name: typecheck
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Node and packages
+        uses: ./.github/actions/setup
+      - name: Check types (window, desktop and engine, tests)
+        id: check
+        run: npm run typecheck 2>&1 | tee "$RUNNER_TEMP/check.log"
+      - name: Summarize
+        if: ${{ !cancelled() && steps.check.outcome != 'skipped' }}
+        env:
+          OUTCOME: ${{ steps.check.outcome }}
+        run: node scripts/ci/summary.mjs typecheck "$OUTCOME" "$RUNNER_TEMP/check.log"
+
+  test:
+    name: test
     runs-on: ubuntu-latest
     timeout-minutes: 15
-
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          node-version: 22
-          cache: npm
+          persist-credentials: false
+      - name: Set up Node and packages
+        uses: ./.github/actions/setup
+      - name: Run the tests
+        id: check
+        # Failures become notes on their lines; the summary below replaces Vitest's own table.
+        run: >-
+          GITHUB_STEP_SUMMARY=''
+          npx vitest run --reporter=default --reporter=github-actions
+          --reporter=json --outputFile.json="$RUNNER_TEMP/vitest.json"
+      - name: Summarize
+        if: ${{ !cancelled() && steps.check.outcome != 'skipped' }}
+        env:
+          OUTCOME: ${{ steps.check.outcome }}
+        run: node scripts/ci/summary.mjs test "$OUTCOME" "$RUNNER_TEMP/vitest.json"
 
-      - name: Install dependencies
-        run: npm ci
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Node and packages
+        uses: ./.github/actions/setup
+      - name: Build the desktop side
+        run: node scripts/build-desktop.mjs
+      - name: Build the window
+        run: npx vite build
+      - name: Check the window's size
+        id: size
+        run: node scripts/check-bundle-size.mjs
+      - name: Summarize a failed build
+        if: ${{ failure() && steps.size.outcome == 'skipped' }}
+        run: printf '### Build\n\n**The app did not build.** The log of this job says why.\n' >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Run tests
-        run: npm test
+  knip:
+    name: knip
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Node and packages
+        uses: ./.github/actions/setup
+      - name: Look for unused files, exports and dependencies
+        id: check
+        # Advisory while the revamp branches still move code around. Delete this
+        # line to make knip block merging.
+        continue-on-error: true
+        run: npx knip --reporter markdown > "$RUNNER_TEMP/knip.md"
+      - name: Summarize
+        if: ${{ !cancelled() && steps.check.outcome != 'skipped' }}
+        env:
+          OUTCOME: ${{ steps.check.outcome }}
+        run: |
+          node scripts/ci/summary.mjs knip "$OUTCOME" "$RUNNER_TEMP/knip.md"
+          if [ "$OUTCOME" != success ]; then echo "::warning title=knip::knip found unused code (advisory for now). The run summary lists it."; fi
 
-      - name: Type-check and build
-        run: npm run build
+  # Workflow files: mistakes (actionlint) and security slips (zizmor).
+  workflows:
+    name: workflows
+    needs: changes
+    if: needs.changes.outputs.workflows == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Check the workflow files (actionlint)
+        env:
+          ACTIONLINT_VERSION: 1.7.12
+          ACTIONLINT_SHA256: 8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8
+        run: |
+          archive="$RUNNER_TEMP/actionlint.tar.gz"
+          curl -sSfL -o "$archive" "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz"
+          echo "${ACTIONLINT_SHA256}  ${archive}" | sha256sum --check --quiet
+          tar -xzf "$archive" -C "$RUNNER_TEMP" actionlint
+          # Each problem as a note on its line: actionlint reports JSON, jq turns it into notes.
+          status=0
+          "$RUNNER_TEMP/actionlint" -format '{{json .}}' > "$RUNNER_TEMP/actionlint.json" || status=$?
+          jq -r '.[]? | "::error file=\(.filepath),line=\(.line),col=\(.column)::\(.message)"' "$RUNNER_TEMP/actionlint.json"
+          exit "$status"
+      - name: Check the workflows for security slips (zizmor)
+        uses: zizmorcore/zizmor-action@cc914d7f3750a2d13d75c7f184a1060aa0e9d482 # v0.6.4
+        with:
+          version: 1.30.1
+          advanced-security: false
+          annotations: true
+      - name: Summarize
+        if: ${{ !cancelled() }}
+        env:
+          OUTCOME: ${{ job.status }}
+        run: |
+          if [ "$OUTCOME" = success ]; then
+            line="All clear: the workflow files have no mistakes (actionlint) and no known security slips (zizmor)."
+          else
+            line="**The workflow files have problems.** Each is marked on its line in the pull request's Files tab."
+          fi
+          printf '### Workflow files\n\n%s\n' "$line" >> "$GITHUB_STEP_SUMMARY"
+
+  # New or updated packages: no known high-severity hole, no licence that
+  # would force the app's licence to change.
+  dependency-review:
+    name: dependency-review
+    needs: changes
+    if: github.event_name == 'pull_request' && needs.changes.outputs.deps == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Review new and updated packages
+        uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+        with:
+          fail-on-severity: high
+          # Electron and the build tools ship inside the app, so their holes count too.
+          fail-on-scopes: runtime, development
+          # Permissive licences only (this also keeps GPL and AGPL out). A new
+          # package with an unknown licence is reported but doesn't fail.
+          allow-licenses: >-
+            MIT, MIT-0, ISC, 0BSD, BSD-2-Clause, BSD-3-Clause, Apache-2.0, MPL-2.0,
+            BlueOak-1.0.0, Python-2.0, CC-BY-4.0, CC0-1.0, Unlicense, WTFPL, Zlib
+
+  # Pictures of every screen, on the demo's made-up data, attached to the pull
+  # request so the maintainer sees what changed without reading code.
+  screens:
+    name: screens
+    needs: changes
+    if: github.event_name == 'pull_request' && needs.changes.outputs.screens == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    # Advisory: Electron on a virtual screen can be flaky. A failure shows but doesn't block merging.
+    continue-on-error: true
+    permissions:
+      contents: read
+      pull-requests: write # post and update the pictures comment
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Node and packages
+        uses: ./.github/actions/setup
+      - name: Let Electron's sandbox start (Ubuntu 24.04 limits it by default)
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+      - name: Get a virtual screen
+        run: command -v xvfb-run || { sudo apt-get update && sudo apt-get install -y xvfb; }
+      - name: Download Electron
+        run: node -e 'console.log(require("electron"))'
+      - name: Build the demo app
+        run: npm run demo:build
+      - name: Take the pictures
+        # About 8 minutes: the first-run scenario waits in real time for the first sync.
+        timeout-minutes: 18
+        run: >-
+          xvfb-run --auto-servernum --server-args="-screen 0 1600x1000x24"
+          node scripts/demo/capture.mjs "$RUNNER_TEMP/screens" 2>&1 | tee "$RUNNER_TEMP/capture.log"
+      - name: Upload the pictures
+        id: upload
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: screens-pr${{ github.event.pull_request.number }}
+          path: |
+            ${{ runner.temp }}/screens
+            ${{ runner.temp }}/capture.log
+          if-no-files-found: ignore
+          retention-days: 14
+      - name: Write the comment
+        if: ${{ !cancelled() }}
+        env:
+          ARTIFACT_URL: ${{ steps.upload.outputs.artifact-url }}
+          COMMIT: ${{ github.event.pull_request.head.sha }}
+        run: node scripts/ci/screens-comment.mjs "$RUNNER_TEMP/screens" "$RUNNER_TEMP/capture.log" "$ARTIFACT_URL" "$COMMIT" "$RUNNER_TEMP/comment.md"
+      - name: Post it on the pull request
+        # Pull requests from forks get a read-only token; their pictures are still in the run.
+        if: ${{ !cancelled() && github.event.pull_request.head.repo.full_name == github.repository }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+        run: bash scripts/ci/sticky-comment.sh "$PR" screens "$RUNNER_TEMP/comment.md"

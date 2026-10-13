@@ -1,0 +1,131 @@
+# An AI review of each pull request, written for a maintainer who doesn't read
+# code: one comment saying what changes for the student, how risky it is, what
+# to try by hand, and any problems (each also noted on its line). Advisory: it
+# never blocks merging. It skips itself until a Claude key is added as a
+# repository secret (CLAUDE_CODE_OAUTH_TOKEN or ANTHROPIC_API_KEY), and always
+# for drafts, forks and Dependabot, which get no secrets.
+name: Claude review
+
+on:
+  pull_request:
+    types: [opened, synchronize, ready_for_review, reopened]
+
+permissions: {}
+
+concurrency:
+  group: claude-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    name: claude-review
+    if: >-
+      github.event.pull_request.draft == false &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.user.login != 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read # read the code under review
+      pull-requests: write # inline notes and the summary comment
+    steps:
+      - name: Look for a Claude key
+        id: key
+        env:
+          OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          if [ -n "$OAUTH_TOKEN" ] || [ -n "$API_KEY" ]; then
+            echo "found=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "found=false" >> "$GITHUB_OUTPUT"
+            cat >> "$GITHUB_STEP_SUMMARY" <<'EOF'
+          ### Claude review
+
+          Skipped: no Claude key yet. Add `CLAUDE_CODE_OAUTH_TOKEN` (from `claude setup-token`) or `ANTHROPIC_API_KEY` as a repository secret to turn it on.
+          EOF
+          fi
+
+      - name: Check out
+        if: steps.key.outputs.found == 'true'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Review
+        id: claude
+        if: steps.key.outputs.found == 'true'
+        # An outage or a used-up quota shouldn't paint the pull request red.
+        continue-on-error: true
+        uses: anthropics/claude-code-action@1d6de8cb0c237e7c15e9e1bdf973826ebae490cc # v1.0.248
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          # The job's own short-lived token: Claude can comment, but can't push.
+          github_token: ${{ github.token }}
+          prompt: |
+            You are reviewing pull request #${{ github.event.pull_request.number }} in ${{ github.repository }}: Edunex Plus,
+            an unofficial desktop app that puts ITB's Edunex and SIX in one window for students. The maintainer is a
+            student who doesn't read code. Your result is how they decide whether to merge, so write for them.
+
+            First read CONTEXT.md (the project's words), docs/design-system.md (the look) and
+            docs/adr/0001-v2-engine-and-shell.md (how it's built). Then read the change with
+            `gh pr view ${{ github.event.pull_request.number }}` and `gh pr diff ${{ github.event.pull_request.number }}`,
+            and open files in the repository when you need more context.
+
+            Look for what would go wrong for a student:
+            - wrong, missing or stale information: a deadline, grade, attendance count or schedule shown wrongly; an
+              alert that wouldn't fire, fires twice, or fires for nothing;
+            - words shown to the student that aren't in both Indonesian and English (they live in src/core/strings);
+            - light or dark mode, narrow windows, keyboard use or screen readers broken;
+            - saved data: a new field in saved data or Settings that isn't optional with a default (one bad field
+              silently resets every setting);
+            - anything that writes to Edunex or SIX (the app must never mark attendance, send "viewed" or "online"
+              signals, or change the KRS), sends data somewhere new, or loosens the window's security settings;
+            - new behaviour without tests.
+
+            For each real problem, leave an inline comment on the line with
+            mcp__github_inline_comment__create_inline_comment, in plain words: what goes wrong for the student, and
+            the fix. Only real problems: no style remarks (Biome checks style), no praise, no restating the diff.
+
+            Rules. The repository is public: never quote test fixture contents, tokens, names, student numbers,
+            emails or any other personal data in a comment. Don't post any other comment; the summary is posted
+            for you from your result. Use plain words, no jargon ("refactor", "component", "hook", "schema",
+            "state" and the like).
+
+            Your result:
+            - student_change: what changes for the student, in one to four plain sentences. If nothing visible
+              changes, say so and say what it's for.
+            - risk: low, medium or high. risk_reason: one plain sentence saying why.
+            - try_by_hand: up to five short things to check in the real app with a real Edunex and SIX account
+              (empty if nothing needs it).
+            - problems: one short plain sentence per problem you left an inline comment for (empty if none).
+          claude_args: |
+            --max-turns 40
+            --allowedTools "Read,Glob,Grep,Bash(gh pr view:*),Bash(gh pr diff:*),mcp__github_inline_comment__create_inline_comment"
+            --json-schema '{"type":"object","additionalProperties":false,"required":["student_change","risk","risk_reason","try_by_hand","problems"],"properties":{"student_change":{"type":"string"},"risk":{"type":"string","enum":["low","medium","high"]},"risk_reason":{"type":"string"},"try_by_hand":{"type":"array","maxItems":5,"items":{"type":"string"}},"problems":{"type":"array","items":{"type":"string"}}}}'
+
+      - name: Post the summary comment
+        if: steps.key.outputs.found == 'true'
+        env:
+          RESULT: ${{ steps.claude.outputs.structured_output }}
+          COMMIT: ${{ github.event.pull_request.head.sha }}
+          PR: ${{ github.event.pull_request.number }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ -z "$RESULT" ]; then
+            printf "### Claude review\n\n**Claude couldn't finish the review this time** (an outage, a used-up quota or a very large change). The log of this job says which.\n" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          jq -r --arg commit "${COMMIT:0:7}" '
+            def bullets(empty): if length == 0 then empty else map("- " + .) | join("\n") end;
+            "### What changes for the student\n\n\(.student_change)\n\n"
+            + "**Risk: \((.risk[0:1] | ascii_upcase) + .risk[1:]).** \(.risk_reason)\n\n"
+            + "### Try by hand on a real account\n\n\(.try_by_hand | bullets("Nothing in particular."))\n\n"
+            + "### Problems found\n\n\(.problems | bullets("None."))"
+            + (if (.problems | length) > 0 then "\n\nEach has a note on its line in the Files tab." else "" end)
+            + "\n\n<sub>Written by Claude, an AI reviewer that can be wrong; the CI checks are what must pass. Reviewed at \($commit).</sub>"
+          ' <<< "$RESULT" > "$RUNNER_TEMP/review.md"
+          cat "$RUNNER_TEMP/review.md" >> "$GITHUB_STEP_SUMMARY"
+          bash scripts/ci/sticky-comment.sh "$PR" claude-review "$RUNNER_TEMP/review.md"

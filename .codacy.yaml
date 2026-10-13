@@ -1,0 +1,23 @@
+---
+# Codacy is an outside reviewer on this repo. Biome (biome.json) is the one linter and
+# formatter, and its rules win: Codacy's own ESLint rules disagree with it on style, so
+# ESLint is pointed at nothing. Semgrep still checks the app's code; build scripts and
+# tests build file paths on purpose and only ever run on a developer's or CI's machine.
+engines:
+  eslint:
+    exclude_paths:
+      - "**"
+  eslint-8:
+    exclude_paths:
+      - "**"
+  eslint-9:
+    exclude_paths:
+      - "**"
+  semgrep:
+    exclude_paths:
+      - "scripts/**"
+      - "test/**"
+exclude_paths:
+  - "docs/**"
+  - "**/*.md"
+  - "package-lock.json"

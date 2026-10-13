@@ -1,0 +1,63 @@
+# Dependabot: a few grouped update pull requests a week instead of one per
+# package. Each goes through CI like any other change. Small updates to build
+# and test tools merge themselves once the required checks pass
+# (.github/workflows/dependabot-auto-merge.yml); everything else waits for you.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Asia/Jakarta
+    # Brand-new releases wait a week first, so a bad or hijacked release is
+    # usually caught by others before it reaches the app. Security fixes don't wait.
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 5
+    labels: [dependencies]
+    commit-message:
+      prefix: "chore(deps)"
+      prefix-development: "chore(deps-dev)"
+    groups:
+      # Electron and its packager move together; their updates always need a look by hand.
+      electron:
+        patterns: ["electron", "electron-builder", "@electron/*"]
+      runtime:
+        dependency-type: production
+        update-types: [minor, patch]
+      dev-tools:
+        dependency-type: development
+        update-types: [minor, patch]
+    ignore:
+      # Big upgrades that need someone to try them on a branch first.
+      - dependency-name: typescript
+        update-types: ["version-update:semver-major"]
+      - dependency-name: vite
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@vitejs/plugin-react"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: jsdom
+        update-types: ["version-update:semver-major"]
+      # Follows the Node version the app is built with (22).
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
+      # Only its types are used, and they must match the ones cheerio brings.
+      - dependency-name: domhandler
+        update-types: ["version-update:semver-major"]
+
+  - package-ecosystem: github-actions
+    # The workflows, and this repository's own shared steps.
+    directories: ["/", "/.github/actions/*"]
+    schedule:
+      interval: monthly
+      timezone: Asia/Jakarta
+    cooldown:
+      default-days: 7
+    labels: [dependencies, "area:ci"]
+    commit-message:
+      prefix: "ci(deps)"
+    groups:
+      actions:
+        patterns: ["*"]

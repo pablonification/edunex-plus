@@ -1,0 +1,56 @@
+# Which labels a pull request gets from the files it changes
+# (.github/workflows/labels.yml), so its list says at a glance what it touches.
+
+"area:app":
+  - changed-files:
+      - any-glob-to-any-file: ["src/app/**", "src/core/strings/**"]
+
+"area:engine":
+  - changed-files:
+      - any-glob-to-any-file: ["src/engine/**"]
+  - changed-files:
+      - all-globs-to-any-file: ["src/core/**", "!src/core/strings/**"]
+
+"area:desktop":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "src/desktop/**"
+          - "electron-builder.config.mjs"
+          - "scripts/build-desktop.mjs"
+          - "scripts/desktop-bundle.mjs"
+          - "scripts/package-fuses.*"
+          - "scripts/adhoc-sign-electron.mjs"
+          - "assets/**"
+
+"area:ci":
+  - changed-files:
+      - any-glob-to-any-file:
+          - ".github/**"
+          - "scripts/ci/**"
+          - "scripts/check-bundle-size.mjs"
+          - "biome.json"
+          - "knip.json"
+          - ".nvmrc"
+
+documentation:
+  - changed-files:
+      - any-glob-to-any-file: ["docs/**", "*.md"]
+
+tests:
+  - changed-files:
+      - any-glob-to-any-file: ["test/**"]
+
+dependencies:
+  - changed-files:
+      - any-glob-to-any-file: ["package.json", "package-lock.json"]
+
+# Sessions, tokens, the window's locks and the bridge to it, packaging switches,
+# and the workflows that hold the repository's keys: worth a careful look.
+security-sensitive:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "src/desktop/**"
+          - "src/core/actions/**"
+          - "electron-builder.config.mjs"
+          - "scripts/package-fuses.*"
+          - ".github/workflows/**"

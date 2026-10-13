@@ -78,7 +78,7 @@ describe("UKT alerts", () => {
     await app.sixRefresh();
     await app.until("2027-02-03T09:00:00+07:00");
     expect(app.of("bill")).toHaveLength(2);
-  }, 20_000);
+  });
 
   it("left unpaid: the day before, then overdue once", async () => {
     const world = new PretendWorld({ now: "2027-01-28T09:00:00+07:00" });
@@ -109,7 +109,7 @@ describe("ITB calendar alerts", () => {
     expect(app.texts("academic")[1]).toBe("Pengisian KRS ditutup besok — Isi KRS di SIX sampai 20 Agu, lalu minta persetujuan dosen wali");
     await app.until("2026-08-22T08:01:00+07:00");
     expect(app.texts("academic")[2]).toBe("Batas bayar UKT besok — Kalender ITB: bayar paling lambat 23 Agu");
-  }, 20_000);
+  });
 
   it("nothing about a KRS already sent or a UKT already paid; the URS window", async () => {
     const world = new PretendWorld({ now: "2026-08-10T09:00:00+07:00" });
@@ -129,7 +129,7 @@ describe("ITB calendar alerts", () => {
       "Perubahan KRS dibuka — Ubah KRS di SIX sampai 18 Sep",
       "Perubahan KRS ditutup besok — Ubah KRS di SIX sampai 18 Sep",
     ]);
-  }, 30_000);
+  });
 
   it("the questionnaire opening", async () => {
     const app = await startAcademic({ world: new PretendWorld({ now: "2026-11-28T09:00:00+07:00" }) });

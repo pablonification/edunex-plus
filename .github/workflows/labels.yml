@@ -1,0 +1,50 @@
+# Labels each pull request by the areas it touches (.github/labeler.yml) and by
+# its size, so the list of pull requests says what each one is about.
+name: Labels
+
+on:
+  # pull_request_target, so pull requests from forks get labels too. Safe here:
+  # this only reads file names through the API, and never checks out or runs
+  # the pull request's code.
+  pull_request_target: # zizmor: ignore[dangerous-triggers]
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions: {}
+
+concurrency:
+  group: labels-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  label:
+    name: label
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read # read .github/labeler.yml from main
+      pull-requests: write # add and remove labels
+    steps:
+      - name: Label by area
+        uses: actions/labeler@bf12e9b00b37c5c0ca2b87b79b2daf7891dbda13 # v7.0.0
+
+      - name: Label by size
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          # Changed lines, leaving out the lockfile and the recorded test data.
+          lines=$(gh api --paginate "repos/$REPO/pulls/$PR/files" \
+            --jq '.[] | select(.filename != "package-lock.json" and (.filename | startswith("test/fixtures/") | not)) | .additions + .deletions' |
+            awk '{ total += $1 } END { print total + 0 }')
+          if [ "$lines" -lt 10 ]; then size=XS
+          elif [ "$lines" -lt 100 ]; then size=S
+          elif [ "$lines" -lt 500 ]; then size=M
+          elif [ "$lines" -lt 1000 ]; then size=L
+          else size=XL
+          fi
+          for label in $(gh api "repos/$REPO/issues/$PR/labels" --jq '.[].name | select(startswith("size/"))'); do
+            if [ "$label" != "size/$size" ]; then gh api --method DELETE "repos/$REPO/issues/$PR/labels/${label/\//%2F}" > /dev/null; fi
+          done
+          gh api --method POST "repos/$REPO/issues/$PR/labels" -f "labels[]=size/$size" > /dev/null
+          echo "$lines changed lines: size/$size" | tee -a "$GITHUB_STEP_SUMMARY"
