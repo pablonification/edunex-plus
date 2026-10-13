@@ -116,6 +116,13 @@ describe("Settings → Tentang", () => {
     expect(dialog()?.classList.contains("h-[min(720px,86vh)]")).toBe(true);
   });
 
+  it("keeps a row reached from the keyboard clear of the search pinned over the top of the list", async () => {
+    screen = await openApp({ signedIn: true });
+    await openLicences();
+    // Going back up with Shift+Tab scrolls each row in at the top edge, where the search would cover it whole.
+    expect(dialog()?.querySelector("ul")?.className).toContain("[&_button]:scroll-mt-16");
+  });
+
   it("a search narrows the list by name or licence, says how many, and says when nothing matches", async () => {
     screen = await openApp({ signedIn: true });
     await openLicences();

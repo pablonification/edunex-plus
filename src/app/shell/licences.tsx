@@ -94,7 +94,8 @@ export default function Licences() {
       ) : !list ? (
         <Loading />
       ) : shown.length > 0 ? (
-        <List label={t("licences.title")}>
+        // A row reached with Shift+Tab scrolls in at the top edge: its buttons keep the pinned search's height (60 px) clear, or it would sit under it.
+        <List label={t("licences.title")} className="[&_button]:scroll-mt-16">
           {shown.map((entry) => {
             const key = keyOf(entry);
             return <LicenceRow key={key} entry={entry} open={open.has(key)} onToggle={() => setOpen((was) => toggled(was, key))} />;
