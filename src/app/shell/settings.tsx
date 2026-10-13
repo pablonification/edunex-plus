@@ -22,7 +22,7 @@ import { Icons } from "../ui/icons";
 import { Meta, Notice } from "../ui/layout";
 import { ConfirmDialog, Dialog, toast } from "../ui/overlays";
 import { PanelBoundary } from "../ui/panel-boundary";
-import { useSignIn } from "./source-status";
+import { useSignIn, useSignInNote } from "./source-status";
 
 export function SettingsDialog({
   open,
@@ -317,6 +317,7 @@ function AccountRow({ source, who }: { source: SourceId; who: readonly string[] 
   const status = useStatus(source);
   const report = useReport();
   const { signIn, busy: signingIn } = useSignIn();
+  const note = useSignInNote(source);
   const [busy, setBusy] = useState(false);
   const row = useRef<HTMLDivElement>(null);
   const name = t(`source.${source}`);
@@ -342,15 +343,17 @@ function AccountRow({ source, who }: { source: SourceId; who: readonly string[] 
     : t("settings.signOutOf", { source: name });
   const checked = status.updatedAt !== null ? f.fromNow(status.updatedAt) : null;
   const state =
-    status.state === "signed-out"
-      ? { text: t("settings.notConnected"), tone: "text-muted" }
-      : status.state === "expired"
-        ? { text: t("settings.account.expired"), tone: "text-warning-fg" }
-        : status.state === "connecting"
-          ? { text: t("status.connecting"), tone: "text-muted" }
-          : status.state === "live"
-            ? { text: checked ? t("settings.account.live", { when: checked }) : t("status.live"), tone: "text-success-fg" }
-            : { text: checked ? t("settings.account.stale", { when: checked }) : t(`status.${status.state}`, { source: name }), tone: "text-warning-fg" };
+    needsSignIn && note
+      ? { text: note.text, tone: note.slow ? "text-warning-fg" : "text-muted" }
+      : status.state === "signed-out"
+        ? { text: t("settings.notConnected"), tone: "text-muted" }
+        : status.state === "expired"
+          ? { text: t("settings.account.expired"), tone: "text-warning-fg" }
+          : status.state === "connecting"
+            ? { text: t("status.connecting"), tone: "text-muted" }
+            : status.state === "live"
+              ? { text: checked ? t("settings.account.live", { when: checked }) : t("status.live"), tone: "text-success-fg" }
+              : { text: checked ? t("settings.account.stale", { when: checked }) : t(`status.${status.state}`, { source: name }), tone: "text-warning-fg" };
   return (
     <div ref={row} className="flex scroll-my-3 items-center gap-3.5 px-4 py-3">
       <SourceLogo source={source} className="size-9" />

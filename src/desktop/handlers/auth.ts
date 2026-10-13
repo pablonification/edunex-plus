@@ -1,6 +1,7 @@
 // Signing in (in a window the app owns) and out (#71; SIX: #76). Both
 // sign-ins run on one throwaway sign-in session, kept only while the other
 // system still needs a sign-in, so one Microsoft sign-in covers both.
+import type { SignInStep } from "../../core/contract";
 import type { SourceId } from "../../core/models";
 import { translate } from "../../core/strings";
 import { EngineError } from "../../engine/errors";
@@ -17,23 +18,27 @@ export const authHandlers: HandlerGroup<"auth.signIn" | "auth.signOut"> = (conte
     const state = context.engine.snapshot().statuses.find((status) => status.source === other)?.state;
     if (state !== "signed-out" && state !== "expired") void forgetSignInSession();
   };
-  const windowOptions = (title: "signIn.edunexTitle" | "signIn.sixTitle") => ({
+  const windowOptions = (source: "edunex" | "six") => ({
     parent: context.window(),
-    title: translate(context.lang(), title),
+    title: translate(context.lang(), source === "edunex" ? "signIn.edunexTitle" : "signIn.sixTitle"),
     devTools: !context.packaged,
+    quiet: false,
+    // Past the Student's part the window is out of sight: the app's window says where it stands.
+    onStep: (step: SignInStep | null) => context.send({ type: "signIn", source, step }),
   });
 
   let edunex: Promise<boolean> | null = null;
   const signInToEdunexOnce = () =>
     (edunex ??= (async () => {
       try {
-        const token = demo ? await demo.signIn("edunex") : await signInToEdunex(windowOptions("signIn.edunexTitle"));
+        const token = demo ? await demo.signIn("edunex", windowOptions("edunex")) : await signInToEdunex(windowOptions("edunex"));
         if (!token) return false;
         await context.engine.signIn("edunex", { token });
         afterSignIn("six");
         return true;
       } finally {
         edunex = null;
+        context.send({ type: "signIn", source: "edunex", step: null });
       }
     })());
 
@@ -41,13 +46,14 @@ export const authHandlers: HandlerGroup<"auth.signIn" | "auth.signOut"> = (conte
   const signInToSixOnce = () =>
     (six ??= (async () => {
       try {
-        const cookie = demo ? await demo.signIn("six") : await signInToSix(windowOptions("signIn.sixTitle"));
+        const cookie = demo ? await demo.signIn("six", windowOptions("six")) : await signInToSix(windowOptions("six"));
         if (!cookie) return false;
         await context.engine.signIn("six", { cookie });
         afterSignIn("edunex");
         return true;
       } finally {
         six = null;
+        context.send({ type: "signIn", source: "six", step: null });
       }
     })());
 

@@ -4,13 +4,14 @@
 // comes straight back (no second password or 2FA), and the other way round.
 // It lives only in memory, has no access to the app, and is wiped as soon as
 // nothing needs it: when the other system needs no sign-in, when the Student
-// moves on, a few minutes after the last sign-in window closed, and on quit.
+// moves on, a few minutes after the last sign-in window they saw closed, and
+// on quit. A hidden window trying the other system by itself adds no time.
 
 import { randomUUID } from "node:crypto";
 import { app, BrowserWindow, type Session, session as sessions } from "electron";
 import { denyPermissions } from "./security";
 
-/** How long Microsoft's session is kept after the last sign-in window closed. */
+/** How long Microsoft's session is kept after the last sign-in window the Student opened closed. */
 const KEEP_MS = 5 * 60_000;
 
 interface Shared {
@@ -20,6 +21,8 @@ interface Shared {
   windows: number;
   timer: ReturnType<typeof setTimeout> | null;
   wipeWhenClosed: boolean;
+  /** When it goes, counted from the last window the Student opened closing; none yet: once no window is open. */
+  keepUntil: number;
 }
 
 let shared: Shared | null = null;
@@ -38,7 +41,7 @@ function borrow(): Shared {
     denyPermissions(session);
     // A plain Chrome identity: some sign-in pages turn away browsers they don't know.
     session.setUserAgent(chromeUserAgent());
-    shared = { partition, session, windows: 0, timer: null, wipeWhenClosed: false };
+    shared = { partition, session, windows: 0, timer: null, wipeWhenClosed: false, keepUntil: 0 };
   }
   if (shared.timer) clearTimeout(shared.timer);
   shared.timer = null;
@@ -46,12 +49,14 @@ function borrow(): Shared {
   return shared;
 }
 
-function giveBack(lease: Shared): void {
+function giveBack(lease: Shared, students: boolean): void {
   if (shared !== lease) return;
   lease.windows -= 1;
+  if (students) lease.keepUntil = Date.now() + KEEP_MS;
   if (lease.windows > 0) return;
-  if (lease.wipeWhenClosed) void forgetSignInSession();
-  else lease.timer = setTimeout(() => void forgetSignInSession(), KEEP_MS);
+  const left = lease.keepUntil - Date.now();
+  if (lease.wipeWhenClosed || left <= 0) void forgetSignInSession();
+  else lease.timer = setTimeout(() => void forgetSignInSession(), left);
 }
 
 async function wipe(lease: Shared): Promise<void> {
@@ -77,9 +82,14 @@ app.on("before-quit", () => {
 /**
  * A sign-in window on the shared session. It can't reach the app; pop-ups
  * (some sign-in steps open one) continue in the same window. The caller shows
- * it, loads the sign-in page and destroys it when done.
+ * it (or keeps it hidden), loads the sign-in page and destroys it when done.
+ * `quiet`: the app opened it on its own; `adopt` once the Student asks for it.
  */
-export function openSignInWindow(options: { parent: BrowserWindow | null; title: string; devTools: boolean }): { window: BrowserWindow; session: Session } {
+export function openSignInWindow(options: { parent: BrowserWindow | null; title: string; devTools: boolean; quiet: boolean }): {
+  window: BrowserWindow;
+  session: Session;
+  adopt(): void;
+} {
   const lease = borrow();
   const window = new BrowserWindow({
     parent: options.parent ?? undefined,
@@ -99,6 +109,8 @@ export function openSignInWindow(options: { parent: BrowserWindow | null; title:
       webviewTag: false,
       spellcheck: false,
       devTools: options.devTools,
+      // A hidden sign-in page runs at full speed: it finishes as fast as a shown one.
+      backgroundThrottling: false,
     },
   });
   const contents = window.webContents;
@@ -110,6 +122,13 @@ export function openSignInWindow(options: { parent: BrowserWindow | null; title:
     if (!url.startsWith("https://")) event.preventDefault();
   });
   window.on("page-title-updated", (event) => event.preventDefault());
-  window.once("closed", () => giveBack(lease));
-  return { window, session: lease.session };
+  let students = !options.quiet;
+  window.once("closed", () => giveBack(lease, students));
+  return {
+    window,
+    session: lease.session,
+    adopt: () => {
+      students = true;
+    },
+  };
 }

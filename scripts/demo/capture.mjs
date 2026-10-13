@@ -227,6 +227,9 @@ await session("first-run", async (demo) => {
   await attempt("welcome", async () => {
     await demo.shot("32-pertama-selamat-datang");
     await page.getByRole("button", { name: "Hubungkan Edunex" }).click();
+    // Microsoft handed back: the sign-in window is out of sight while Edunex's session is read.
+    await page.getByText("Menyelesaikan masuk ke Edunex…").waitFor({ timeout: 30_000 });
+    await demo.shot("32a-pertama-menyelesaikan");
     await page.waitForFunction(() => /\d{8}/.test(document.body.innerText), null, { timeout: 30_000 });
     await page.getByRole("button", { name: "Hubungkan SIX" }).click();
     await page.waitForFunction(() => /Teknik Informasi|Teknologi Informasi/.test(document.body.innerText), null, { timeout: 90_000 });
