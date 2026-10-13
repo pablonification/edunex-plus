@@ -26,7 +26,7 @@ export const tasksStrings = {
 
   // A Task in a list or on its page
   "task.module": { id: "Modul {n}", en: "Module {n}" },
-  "task.uts": { id: "UTS take-home", en: "Take-home UTS" },
+  "task.takeHome": { id: "{kind} take-home", en: "Take-home {kind}" },
   "task.edited": { id: "Diubah dosen {date}", en: "Edited by lecturer {date}" },
   "task.editedAfterSubmit": { id: "Diubah setelah kamu kumpulkan ({date})", en: "Changed after you submitted ({date})" },
   "task.shortWindow": { id: "Waktu singkat", en: "Short window" },
@@ -58,6 +58,10 @@ export const tasksStrings = {
   "task.note.attendance": {
     id: "Tugas ini sekaligus Presensi-mu: hanya terhitung jika dikumpulkan di dalam jendelanya, {date}, {time}.",
     en: "This Task is also your attendance: it counts only if handed in inside its window, {date}, {time}.",
+  },
+  "task.note.attendanceOptional": {
+    id: "Mengumpulkan pada {date}, {time} juga mengisi Presensi Edunex. Tidak wajib: kehadiran {course} dihitung di SIX.",
+    en: "Handing it in on {date}, {time} also fills in Edunex Presence. It's optional: {course} attendance is counted in SIX.",
   },
   "task.duration.hours": { id: "{count} jam", en: { one: "{count} hour", other: "{count} hours" } },
   "task.duration.minutes": { id: "{count} menit", en: { one: "{count} minute", other: "{count} minutes" } },
@@ -151,6 +155,7 @@ export const tasksStrings = {
   "tasks.noneForCourse": { id: "Tidak ada yang perlu dikerjakan di {code}", en: "Nothing to do in {code}" },
   "tasks.examsFootnote": { id: "Tanggal dan ruang ujian dari SIX; take-home dari Edunex", en: "Exam dates and rooms from SIX; take-homes from Edunex" },
   "task.attendanceLine": { id: "Juga presensi: {when}", en: "Also your attendance: {when}" },
+  "task.attendanceLineOptional": { id: "Juga Presensi Edunex, tidak wajib: {when}", en: "Also Edunex Presence, optional: {when}" },
   "task.editedAfterSubmitLine": { id: "Diubah setelah kamu kumpulkan ({date}) · cek lagi", en: "Changed after you submitted ({date}) · check again" },
   "task.submittedOnDate": { id: "Dikumpulkan {date}", en: "Submitted {date}" },
   "task.partOfExam": { id: "Bagian dari {kind} {code}", en: "Part of {code} {kind}" },
@@ -171,6 +176,7 @@ export const tasksStrings = {
   "exam.row.takeHome": { id: "Take-home: {title} · tenggat {when}", en: "Take-home: {title} · due {when}" },
   "exam.row.inClass": { id: "Di kelas · {time}", en: "In class · {time}" },
   "exam.row.disagree": { id: "SIX: {six} · Edunex: {edunex}. Pastikan ke dosen.", en: "SIX: {six} · Edunex: {edunex}. Check with your lecturer." },
+  "exam.row.sixToo": { id: "SIX juga mencantumkan ujian di kelas · {time}", en: "SIX also lists a class sitting · {time}" },
 
   // The hand-in panel, redesigned
   "handIn.dueIn": { id: "Tenggat {when}", en: "Due {when}" },
@@ -223,6 +229,10 @@ export const tasksStrings = {
   "examPage.disagreeBody": {
     id: "SIX: {six} · Edunex: {edunex}. Bisa jadi satu ujian dua bagian, atau salah satunya belum diperbarui.",
     en: "SIX: {six} · Edunex: {edunex}. It may be one exam in two parts, or one of them isn't updated yet.",
+  },
+  "examPage.takeHomeApart": {
+    id: "SIX juga mencantumkan ujian di kelas pada {six} · take-home-nya tenggat {due}",
+    en: "SIX also lists a class sitting on {six} · the take-home is due {due}",
   },
   "examPage.copyQuestion": { id: "Salin pertanyaan untuk dosen", en: "Copy a question for your lecturer" },
   "examPage.copied": {

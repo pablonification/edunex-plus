@@ -91,6 +91,7 @@ export const homeStrings = {
   "home.need.meeting.online": { id: "{course} ada pertemuan daring {day}", en: "{course} meets online {day}" },
   "home.need.exam": { id: "{kind} {course}", en: "{course} {kind}" },
   "home.need.exam.disagree": { id: "SIX dan Edunex beda tanggal", en: "SIX and Edunex give different dates" },
+  "home.need.exam.takeHome": { id: "Take-home tenggat {date}", en: "Take-home due {date}" },
   "home.need.exam.edunex": { id: "di Edunex", en: "in Edunex" },
   "home.need.krs": { id: "Kirim KRS", en: "Send your KRS" },
   "home.need.krs.closes": { id: "DRS tutup {date}", en: "DRS closes {date}" },

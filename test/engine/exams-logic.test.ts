@@ -1,8 +1,9 @@
 // Exams in one place (#77): SIX's exam sessions, Edunex's exams and take-home
-// UTS Tasks, the course outline and ITB's exam weeks merged per course and
-// exam, and a warning when SIX and Edunex disagree.
+// UTS and UAS Tasks, the course outline and ITB's exam weeks merged per course
+// and exam; a warning when two sittings disagree, and a calm note when a
+// take-home is due on another day than SIX's sitting.
 import { describe, expect, it } from "vitest";
-import { examKind, examPassed, mergeExams } from "../../src/core/exams";
+import { examKind, examPassed, mergeExams, takeHomeKind } from "../../src/core/exams";
 import type { AcademicCalendar, ClassSession, CourseOutline } from "../../src/core/models";
 import { aTask } from "../kit/tasks";
 
@@ -63,12 +64,41 @@ const takeHome = aTask({
 });
 
 describe("the merged exam list", () => {
-  it("a UTS in class in SIX and a take-home UTS in Edunex are one exam, and they disagree", () => {
+  it("a UTS in class in SIX and a take-home UTS in Edunex due a week later are one exam in two parts, not a conflict", () => {
     const [exam] = mergeExams({ schedule: [sixSession("2179909", "DK4073", "2026-10-15T11:00:00", "UTS")], tasks: [takeHome], calendar, term: "2026-1", now });
-    expect(exam).toMatchObject({ id: "DK4073-UTS", kind: "UTS", disagree: true, at: wib("2026-10-15T11:00:00"), last: wib("2026-10-22T23:50:00") });
+    expect(exam).toMatchObject({
+      id: "DK4073-UTS",
+      kind: "UTS",
+      disagree: false,
+      takeHomeApart: wib("2026-10-22T23:50:00"),
+      at: wib("2026-10-15T11:00:00"),
+      last: wib("2026-10-22T23:50:00"),
+    });
     expect(exam.six.map((s) => s.room)).toEqual(["TVST C"]);
     expect(exam.tasks.map((t) => t.title)).toEqual(["UTS Markom"]);
     expect(exam.week?.firstDay).toBe("2026-10-12");
+  });
+
+  it("a take-home due on the sitting's day, or at its midnight, is no second part", () => {
+    const sitting = sixSession("2179909", "DK4073", "2026-10-15T11:00:00", "UTS");
+    const due = (iso: string) => mergeExams({ schedule: [sitting], tasks: [{ ...takeHome, dueAt: wib(iso) }], now })[0].takeHomeApart;
+    expect(due("2026-10-15T13:00:00")).toBeNull();
+    expect(due("2026-10-16T00:00:00")).toBeNull();
+    // Due at the very start of the sitting's own day: still that day, as it's written.
+    expect(due("2026-10-15T00:00:00")).toBeNull();
+    expect(due("2026-10-16T09:00:00")).toBe(wib("2026-10-16T09:00:00"));
+    // Without a sitting in SIX, a take-home is just the exam.
+    expect(mergeExams({ tasks: [takeHome], now })[0]).toMatchObject({ disagree: false, takeHomeApart: null });
+  });
+
+  it("two sittings on different days disagree: SIX's in class and Edunex's own exam", () => {
+    const [exam] = mergeExams({
+      schedule: [sixSession("2179909", "DK4073", "2026-10-15T11:00:00", "UTS")],
+      edunexExams: { DK4073: [{ id: "e1", courseId: 93409, title: "UTS Markom (online)", start: wib("2026-10-16T09:00:00"), end: null }] },
+      tasks: [takeHome],
+      now,
+    });
+    expect(exam).toMatchObject({ id: "DK4073-UTS", disagree: true, takeHomeApart: wib("2026-10-22T23:50:00") });
   });
 
   it("agree when Edunex's exam is on SIX's day", () => {
@@ -136,6 +166,68 @@ describe("the merged exam list", () => {
     expect(examPassed(exam, wib("2026-10-22T23:50:00") + DAY)).toBe(true);
     const [undated] = mergeExams({ outline: { PL3032: outline("UAS") }, now });
     expect(examPassed(undated, now + 400 * DAY)).toBe(false);
+  });
+});
+
+describe("which Tasks are take-home exams", () => {
+  const kindOf = (title: string, kind: "task" | "uts" | "uas" = "task") => takeHomeKind({ title, kind });
+
+  it("Edunex's own category first, whatever the title: the lecturer picks UTS or UAS", () => {
+    expect(kindOf("Tugas Akhir Semester", "uas")).toBe("UAS");
+    expect(kindOf("Soal", "uts")).toBe("UTS");
+  });
+
+  it("else a title that names the exam, never one that only speaks of it", () => {
+    const titles = [
+      "UTS Markom",
+      "UAS - Ekonomi Inovasi",
+      "[UTS] Analisis Kebijakan",
+      "Take-home UAS",
+      "Take Home UTS: Studi Kasus",
+      "Midex DK4073",
+      "Finex",
+      "Ujian Tengah Semester",
+      "UAS Literature Review",
+      "UTS Pemodelan dan Simulasi",
+      "Tugas Pra-UTS",
+      "Kisi-kisi UTS",
+      "UTS - Pembahasan",
+      "Latihan Soal UAS",
+      "Tugas 3 (setelah UTS)",
+      "UTSnya dikumpulkan di sini",
+    ];
+    expect(titles.map((title) => kindOf(title))).toEqual([
+      "UTS",
+      "UAS",
+      "UTS",
+      "UAS",
+      "UTS",
+      "UTS",
+      "UAS",
+      "UTS",
+      "UAS",
+      "UTS",
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+    ]);
+  });
+
+  it("a take-home UAS joins its course's UAS; a Task about the UTS stays a Task", () => {
+    const uas = aTask({
+      id: 1,
+      courseCode: "PL3002",
+      courseId: 95001,
+      title: "Tugas Akhir",
+      status: "not_started",
+      kind: "uas",
+      dueAt: wib("2026-12-10T23:59:00"),
+    });
+    const before = aTask({ id: 2, courseCode: "PL3002", courseId: 95001, title: "Tugas Pra-UTS", status: "not_started", dueAt: wib("2026-10-10T23:59:00") });
+    expect(mergeExams({ tasks: [uas, before], now }).map((exam) => [exam.id, exam.tasks.map((t) => t.id)])).toEqual([["PL3002-UAS", [1]]]);
   });
 });
 

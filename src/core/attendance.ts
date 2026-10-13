@@ -36,6 +36,9 @@ export function targetFor(settings: TargetSettings, code: string): number {
  */
 export type CountedIn = "six" | "edunex" | "both" | "unknown" | "noSix";
 
+/** Where SIX counts, an Edunex Presence window is optional: said so on every screen, never as a thing to do. */
+export const presenceOptional = (where: CountedIn | null | undefined) => where === "six";
+
 /**
  * The rule. SIX's count is official, so wherever SIX has one, SIX counts.
  * Edunex counts too when what it recorded keeps up with SIX: at least SIX's
@@ -155,7 +158,7 @@ export function meetingsLeft(
   const before = (s: ClassSession) => !period || wibDay(s.start) <= period.lastDay;
   const coming = mine.filter((s) => s.start > now && !isExamActivity(s.activity) && before(s)).sort((a, b) => a.start - b.start);
   // A day the lecturer set a hand-in for attendance (Edunex's Answer Assignment) is a meeting that happens, exam week or not.
-  const handIn = new Set(presence.filter((p) => p.countsBy[0]?.kind === "assignment").map((p) => wibDay(p.opensAt)));
+  const handIn = new Set(presence.filter((p) => p.countsBy.some((link) => link.kind === "assignment")).map((p) => wibDay(p.opensAt)));
   const uncertain = (day: string) => (period?.offDays.has(day) ?? false) && !handIn.has(day);
   const upcoming: UpcomingMeeting[] = coming.map((session) => ({
     start: session.start,
@@ -321,10 +324,13 @@ export interface PresenceAction {
 /**
  * The activity that counts in a Presence window and the Edunex page to do it
  * on: the session's own link when Edunex gives one, else the Task's or
- * module's page, else the course. The app only opens the page; the Student acts.
+ * module's page, else the course. A window can count by several things (two
+ * Tasks, a Task and a module): a Task the app knows comes first, else the
+ * first the lecturer chose. The app only opens the page; the Student acts.
  */
 export function presenceAction(session: PresenceSession, tasks: readonly Task[]): PresenceAction {
-  const first = session.countsBy[0];
+  const known = session.countsBy.find((link) => link.kind === "assignment" && tasks.some((t) => String(t.id) === link.id));
+  const first = known ?? session.countsBy[0];
   const activity = first ? (ACTIVITIES[first.kind] ?? "other") : "course";
   const task = activity === "assignment" ? (tasks.find((t) => String(t.id) === first?.id) ?? null) : null;
   const fallback =

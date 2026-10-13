@@ -107,6 +107,28 @@ describe("Tugas & Ujian", () => {
     expect(s.text()).toContain("Tugas ini sekaligus Presensi-mu: hanya terhitung jika dikumpulkan di dalam jendelanya, Jum, 16 Okt, 15:00–23:59.");
   });
 
+  it("where the course counts in SIX, the Task's attendance window is optional: said so in the list and on its page, never pushed", async () => {
+    // PL3002 counts in SIX (6 of 7); its lecturer ties Thursday's Edunex window to Tugas Mandiri Individu anyway.
+    const world = new PretendWorld({ now: "2026-10-12T20:00:00+07:00" });
+    world.edunex.schedulePresence(95001, 86778, {
+      start: "2026-10-15T08:00:00+07:00",
+      end: "2026-10-15T23:59:00+07:00",
+      patch: { presentable: [{ presentable: "assignment", presentable_id: "117873" }] },
+    });
+    screen = await openApp({ signedIn: true, six: true, world });
+    const s = screen;
+    await s.click(/^Tugas & Ujian\d*$/);
+    expect(row("Tugas Mandiri Individu")!.textContent).toContain("Juga Presensi Edunex, tidak wajib: Kam, 15 Okt 08:00–23:59");
+    await s.click(row("Tugas Mandiri Individu")!);
+    expect(s.text()).toContain("Mengumpulkan pada Kam, 15 Okt, 08:00–23:59 juga mengisi Presensi Edunex. Tidak wajib: kehadiran PL3002 dihitung di SIX.");
+    expect(s.text()).not.toContain("hanya terhitung jika dikumpulkan");
+    // Nothing nudges the Student to wait for the window: Kumpulkan stays the main button once there's a file.
+    s.willPick([{ name: "Projek Inovasi.pdf" }]);
+    await s.click(/^Lampirkan berkas · Lepas berkas di sini/);
+    expect(s.button("Kumpulkan").className).toContain("bg-accent");
+    expect(card()).not.toContain("jendela presensi");
+  });
+
   it("counts the Tasks to hand in next to Tugas & Ujian in the sidebar", async () => {
     const s = await open();
     expect(s.button(/^Tugas & Ujian\d+$/).textContent).toBe("Tugas & Ujian5");

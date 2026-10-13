@@ -58,9 +58,9 @@ describe("after the first full sync of Edunex and SIX", () => {
     );
     expect(detail("KU5014 dan PL3032")).toBe("Berikutnya Hari ini, 16:00–16:30. Pilih yang akan kamu hadiri, atau tanyakan ke dosen.");
     expect(detail("Kehadiran 1")).toBe('PL3002: SIX mencatat hadir 6 dari 7; abaikan 5 "absen" di EdunexCukup hadir di kelas; Presensi Edunex tidak wajib.');
-    // DK4073's UTS is one exam: SIX's sitting, with the take-home a week later flagged as a second date.
+    // DK4073's UTS is one exam: SIX's sitting, with the take-home a week later said calmly as its second part.
     expect(detail("3 ujian")).toBe(
-      "UTS PL3032, minggu UTS 12–16 OktUTS DK4073: Kam 15 Okt, 11:00 · TVST C · Dua tanggal berbeda. Pastikan ke dosen.UAS PL3032, minggu UAS 7–22 Des",
+      "UTS PL3032, minggu UTS 12–16 OktUTS DK4073: Kam 15 Okt, 11:00 · TVST C · Take-home tenggat Kam 22 OktUAS PL3032, minggu UAS 7–22 Des",
     );
     expect(detail("1 pertemuan")).toBe("II4091 pertemuan 3: Besok, 15:00–17:00 · daringTidak ada di jadwal SIX; sudah ada di Beranda.");
     expect(detail("Dosen mengubah")).toBe("2 di antaranya setelah kamu mengumpulkan. Cek lagi instruksinya; Edunex tidak mengabarkannya.");

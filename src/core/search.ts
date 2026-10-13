@@ -5,7 +5,7 @@
 // distinct word is matched once per query, so a full term answers within a frame.
 import { outlineEntries } from "./course-materials";
 import { examRoute, examsFound, takeHomeOnly } from "./exam-sources";
-import { type Exam, examKind } from "./exams";
+import { type Exam, examKind, takeHomeKind } from "./exams";
 import type { Announcement, Material, Task } from "./models";
 import type { Route } from "./route";
 import { courseName, inTerm, type Saved, termCourses } from "./saved";
@@ -248,8 +248,8 @@ export function searchIndex(saved: Saved, { lang, screens, now }: IndexOptions):
   }
 
   for (const task of saved["edunex.tasks"] ?? []) {
-    // A take-home UTS is handed in as a Task, but it's an exam: it's listed with them.
-    if (task.kind === "uts" || !known(task.courseCode)) continue;
+    // A take-home UTS or UAS is handed in as a Task, but it's an exam: it's listed with them.
+    if (takeHomeKind(task) || !known(task.courseCode)) continue;
     add({ kind: "task", key: `task:${task.id}`, title: task.title, code: task.courseCode, target: { screen: "task", taskId: task.id }, task }, [
       [task.title, TITLE],
       [task.module?.name, CONTEXT],

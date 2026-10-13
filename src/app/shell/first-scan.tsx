@@ -289,13 +289,15 @@ function describe(finding: Finding, t: Translate, f: Format): { title: string; l
           (exam) => {
             const code = exam.courseCode;
             const kind = t(`exam.kind.${exam.kind}`);
-            const disagree = exam.disagree && t("exam.disagree");
+            const apart = exam.takeHomeApart;
+            // Different days for a sitting is a question for the lecturer; a take-home due another day is only its second part.
+            const note = exam.disagree ? t("exam.disagree") : apart !== null && t("home.need.exam.takeHome", { date: day(f, apart) });
             const session = exam.six[0];
             if (session)
-              return factsLabel(t("scan.exams.at", { name: kind, code, when: `${day(f, session.start)}, ${f.time(session.start)}` }), session.room, disagree);
+              return factsLabel(t("scan.exams.at", { name: kind, code, when: `${day(f, session.start)}, ${f.time(session.start)}` }), session.room, note);
             if (exam.at !== null) {
-              if (takeHomeOnly(exam)) return t("scan.exams.takeHome", { code, when: `${day(f, exam.at)}, ${f.time(exam.at)}` });
-              return factsLabel(t("scan.exams.at", { name: exam.edunex[0]?.title ?? kind, code, when: `${day(f, exam.at)}, ${f.time(exam.at)}` }), disagree);
+              if (takeHomeOnly(exam)) return t("scan.exams.takeHome", { kind, code, when: `${day(f, exam.at)}, ${f.time(exam.at)}` });
+              return factsLabel(t("scan.exams.at", { name: exam.edunex[0]?.title ?? kind, code, when: `${day(f, exam.at)}, ${f.time(exam.at)}` }), note);
             }
             if (exam.week) return t("scan.exams.week", { kind, code, range: f.dayRange(exam.week.firstDay, exam.week.lastDay) });
             return t("scan.exams.noDate", { name: kind, code });

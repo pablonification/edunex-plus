@@ -26,14 +26,15 @@ world.edunex.submitOnWebsite(id);                               // the Student, 
 | Task with a draft (answer saved, `is_sent: 0`) | recorded history; `submitOnWebsite` / app writes | #72 |
 | Task submitted (`is_sent: 1`) | recorded | #72 |
 | Task past deadline, late allowed (`is_lateable`) | recorded (stays `open_status: "open"`) | #72 |
-| Task past deadline, closed (`open_status: "overdue"` / `"closed"`) | recorded `overdue`; `closeTask` | #72 |
+| Task past deadline, closed (`open_status: "overdue"`) | recorded `overdue`; `closeTask` | #72 |
+| Task not open yet (`open_status: "closed"`, which the website reads as "you can answer from {start_at}") | `postTask` with a later `start_at`; it reads `"open"` once that time comes | #72 |
 | Answer in review | needs a recording (the website knows the state; the field is unconfirmed); modelled for now on the answer's `verified_at` with no score shown: `reviewAnswer` | #72 |
 | Score published (`show_score: 1`) | `publishScore` | #72 |
 | New Task posted | `postTask` (+ ASSIGNMENT notification) | #72, #75 |
 | Deadline extended or moved | `moveDeadline` (`updated_at` moves, no notification) | #72, #75 |
 | Instructions or files edited, before or after the Student submitted | `editTask` | #72, v2-18 |
 | Short answer window (hours, posted during class) | `postTask` with close `start_at`/`end_at` | #72, #75 |
-| Take-home exam Task (`domain: "uts"`) | recorded | #72, v2-17 |
+| Take-home exam Task (`domain: "uts"`; `"UAS"` as the lecturer's form stores it) | recorded (`uts`); `postTask` with `domain: "UAS"` | #72, v2-17 |
 | Task required file (`file_required`) | recorded (all recorded Tasks) | #73 |
 | Draft save, file upload, submit from the app | `POST /course/task/answers`, `PATCH …/{id}`, `POST /blob-storage/sas`, `PUT` upload; reply shapes need a recording (the app re-reads the Task to confirm) | #73 |
 | Second answer for the same Task | `writes` log shows a duplicate POST | #73 |
@@ -45,6 +46,7 @@ world.edunex.submitOnWebsite(id);                               // the Student, 
 | Presence window open, closed, upcoming | recorded; `schedulePresence` | #74, v2-16 |
 | Counted by viewing the course (default category) | recorded (`presentable: []`) | v2-16 |
 | Counted by answering an assignment (`presentable: assignment`) | recorded | v2-16 |
+| Counted by several things (a module and a Task; links joined with `;`) | `schedulePresence` with `patch: { presentable: [...], url }` | v2-16 |
 | Read Module, Join Discussion, Do Exam, Join Vicon, CRS categories | `schedulePresence` with `patch: { presentable: [...] }` | v2-16 |
 | Student marked present | `markPresent` | v2-16 |
 | More sessions than one page | recorded total 15 over pages of 10 | #74 |

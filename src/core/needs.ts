@@ -19,6 +19,7 @@ import {
   openWindows,
   type PresenceActivity,
   presenceAction,
+  presenceOptional,
 } from "./attendance";
 import { materialKind } from "./course-materials";
 import { type AnnouncedMeeting, announcedMeetings, wibDay } from "./course-meetings";
@@ -175,7 +176,15 @@ export type NeedFacts =
   | { kind: "task"; task: Task; reason: "overdue" | "short" | "due" | "edited"; draft: boolean }
   | { kind: "attendance"; health: AttendanceHealth }
   | { kind: "meeting"; meeting: AnnouncedMeeting }
-  | { kind: "exam"; exam: Exam; sitting: ExamSitting; disagree: boolean }
+  | {
+      kind: "exam";
+      exam: Exam;
+      sitting: ExamSitting;
+      /** SIX and Edunex give the sitting on different days. */
+      disagree: boolean;
+      /** The take-home's deadline, when it's due on another day than SIX's sitting (two parts, not a conflict). */
+      takeHomeDue: number | null;
+    }
   | { kind: "krs"; closesAt: number; open: boolean; window: "drs" }
   | { kind: "bill"; bill: Bill; overdue: boolean };
 
@@ -316,12 +325,18 @@ const today = (context: HomeContext) => wibDay(context.now);
 /** SIX's meetings today that haven't ended. */
 const classesLeftToday = (context: HomeContext) => (context.schedule ?? []).filter((s) => wibDay(s.start) === today(context) && s.end > context.now);
 
+/** Where a course's attendance counts. Signed out of SIX, even a course with no window closed yet can't be said to count in Edunex. */
+const countedHere = (context: HomeContext, code: string): CountedIn =>
+  context.sixConnected === false ? "noSix" : (context.health.get(code)?.countedIn ?? "unknown");
+
 /** The Tasks a Presence window open now or coming up asks to hand in: the Presence item speaks for them. */
 function presenceTasks(context: HomeContext): Set<number> {
   const ids = new Set<number>();
-  for (const sessions of Object.values(context.presence))
+  for (const [code, sessions] of Object.entries(context.presence))
     for (const session of sessions) {
       if (session.closesAt <= context.now || session.opensAt - context.now > AHEAD || session.recorded?.present) continue;
+      // Where SIX counts the window is optional: the Task's own deadline speaks for it.
+      if (presenceOptional(countedHere(context, code))) continue;
       const action = presenceAction(session, context.tasks);
       if (action.task) ids.add(action.task.id);
     }
@@ -334,7 +349,8 @@ function presenceTasks(context: HomeContext): Set<number> {
  * Edunex Presence: a window open now (always on top: the action takes
  * seconds and closes soon), and a coming window that counts only by a
  * specific action (hand in a Task, open a module). The weekly View Course
- * default isn't announced ahead: it would repeat every week.
+ * default isn't announced ahead: it would repeat every week. Nor is a window
+ * of a course that counts in SIX: it's optional.
  */
 export const presenceProvider: NeedProvider = {
   area: "presence",
@@ -344,8 +360,7 @@ export const presenceProvider: NeedProvider = {
     const facts = (code: string, session: PresenceSession) => {
       const action = presenceAction(session, context.tasks);
       const live = (context.schedule ?? []).find((s) => s.courseCode === code && s.start < session.closesAt && session.opensAt < s.end);
-      // Signed out of SIX, even a course with no window closed yet can't be said to count in Edunex.
-      const countedIn: CountedIn = context.sixConnected === false ? "noSix" : (context.health.get(code)?.countedIn ?? "unknown");
+      const countedIn = countedHere(context, code);
       return { action, live: live ?? null, countedIn, moved: live ? slotChange(live, context.schedule ?? []) : null };
     };
     for (const { code, session } of openWindows(context.presence, now)) {
@@ -371,7 +386,8 @@ export const presenceProvider: NeedProvider = {
       for (const session of sessions) {
         if (session.opensAt <= now || session.opensAt - now > AHEAD || session.recorded?.present) continue;
         const { action, live, countedIn, moved } = facts(code, session);
-        if (action.activity === "course") continue;
+        // Viewing the course is every week's default; where SIX counts, the window is optional: neither is a thing to do.
+        if (action.activity === "course" || presenceOptional(countedIn)) continue;
         out.push({
           id: `presence:${session.id}`,
           kind: "presence",
@@ -534,8 +550,9 @@ export const attendanceProvider: NeedProvider = {
  * Exams within the week, each at its next sitting: SIX's session with its
  * room, or Edunex's dated exam (a take-home exam is a Task, and the Task
  * item speaks for it). Within a day it's now, within three days soon, else
- * coming up; when SIX and Edunex give it different days it's at least soon,
- * time to ask the lecturer.
+ * coming up; when SIX and Edunex give the sitting different days it's at
+ * least soon, time to ask the lecturer. A take-home due on another day than
+ * SIX's sitting is said calmly: two parts, not a conflict.
  */
 export const examProvider: NeedProvider = {
   area: "exam",
@@ -569,6 +586,7 @@ export const examProvider: NeedProvider = {
         exam,
         sitting: next,
         disagree: exam.disagree,
+        takeHomeDue: next.source === "six" ? exam.takeHomeApart : null,
       });
     }
     return out;

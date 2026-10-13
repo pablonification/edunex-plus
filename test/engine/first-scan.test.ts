@@ -62,7 +62,7 @@ describe("after the first full sync of Edunex and SIX", () => {
     });
 
     // The exams as Tugas & Ujian lists them: DK4073's UTS (SIX's sitting with time and room, and Edunex's take-home
-    // due a week later: one exam whose dates disagree), and PL3032's UTS and UAS, named only in its Edunex outline and
+    // due a week later: one exam in two parts), and PL3032's UTS and UAS, named only in its Edunex outline and
     // dated by ITB's exam weeks. The line opens the soonest: PL3032's UTS week.
     const exams = of(findings, "exams")!;
     expect(exams).toMatchObject({ count: 3, tone: "warning", sources: ["six", "edunex", "itb"], routes: [{ screen: "exam", examId: "PL3032-UTS" }] });
@@ -74,7 +74,8 @@ describe("after the first full sync of Edunex and SIX", () => {
     expect(exams.exams[0]).toMatchObject({ inOutline: true, at: null, week: { firstDay: "2026-10-12", lastDay: "2026-10-16" } });
     expect(exams.exams[1]).toMatchObject({
       at: wib("2026-10-15T11:00:00"),
-      disagree: true,
+      disagree: false,
+      takeHomeApart: wib("2026-10-22T23:50:00"),
       six: [{ room: "TVST C" }],
       tasks: [{ id: 117764, title: "UTS Markom" }],
     });

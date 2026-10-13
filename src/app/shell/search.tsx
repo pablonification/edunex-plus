@@ -362,7 +362,7 @@ function detailOf(item: SearchItem, t: Translate, f: Format, now: number): strin
       break;
     }
     case "exam":
-      parts.push(takeHomeOnly(item.exam) ? t("task.uts") : null, examWhen(item.exam, t, f));
+      parts.push(takeHomeOnly(item.exam) ? t("task.takeHome", { kind: t(`exam.kind.${item.exam.kind}`) }) : null, examWhen(item.exam, t, f));
       break;
     // The joint class's copy of a module says so, or the two rows read the same.
     case "material":

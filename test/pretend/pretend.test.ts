@@ -124,7 +124,7 @@ describe("pretend Edunex", () => {
     expect(graded.body.data.attributes.show_score).toBe(1);
 
     world.edunex.closeTask(id);
-    expect((await edunexGet(world, `/course/tasks/${id}?include=answers`)).body.data.attributes.open_status).toBe("closed");
+    expect((await edunexGet(world, `/course/tasks/${id}?include=answers`)).body.data.attributes.open_status).toBe("overdue");
 
     const material = world.edunex.postMaterial(95059, { name: "K6. Slides", type: "pdf" });
     const contents = await edunexGet(

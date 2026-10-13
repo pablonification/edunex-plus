@@ -106,7 +106,7 @@ export class PretendEdunex {
 
   // ------------------------------------------------ acting as the lecturer or admin
 
-  /** Posts a Task to a course: a clone of one of its recorded Tasks, with a new id and fresh dates. */
+  /** Posts a Task to a course: a clone of one of its recorded Tasks, with a new id and fresh dates. Opening later, it's "closed" until then. */
   postTask(courseId: number, patch: Json = {}, options: { announce?: boolean } = {}): number {
     const list = this.tasks.get(courseId) ?? [];
     const template = list[list.length - 1] ?? [...this.tasks.values()].flat()[0];
@@ -128,6 +128,7 @@ export class PretendEdunex {
       },
     });
     task.attributes = { ...task.attributes, ...patch };
+    if (!("open_status" in patch) && Date.parse(task.attributes.start_at) > now) task.attributes.open_status = "closed";
     this.tasks.set(courseId, [...list, task]);
     const course = this.courseName(courseId);
     // Edunex's notification feed misses many Tasks: `announce: false` posts one it never mentions.
@@ -153,8 +154,9 @@ export class PretendEdunex {
     this.editTask(taskId, { end_at: endAt });
   }
 
+  /** The deadline passes with no late answers: Edunex says "overdue" ("Sorry, the assignment was closed on …"). */
   closeTask(taskId: number): void {
-    this.editTask(taskId, { open_status: "closed", end_at: wib(this.clock.now() - 60_000), is_lateable: false });
+    this.editTask(taskId, { open_status: "overdue", end_at: wib(this.clock.now() - 60_000), is_lateable: false });
   }
 
   publishScore(taskId: number, score: number): void {
@@ -356,9 +358,14 @@ export class PretendEdunex {
       return found((q.include ? this.courseDetail : this.coursePlain).get(Number(m[1])) ?? this.courseDetail.get(Number(m[1])));
     if ((m = /^\/course\/courses\/(\d+)\/classes$/.exec(path))) return found(this.classes.get(Number(m[1])));
     if ((m = /^\/course\/modules\/(\d+)$/.exec(path))) return found(this.modules.get(Number(m[1])));
-    if (path === "/course/tasks") return page(this.tasks.get(Number(q["filter[course_id][is]"])) ?? [], q, path);
+    if (path === "/course/tasks")
+      return page(
+        (this.tasks.get(Number(q["filter[course_id][is]"])) ?? []).map((task) => this.asOfNow(task)),
+        q,
+        path,
+      );
     if ((m = /^\/course\/tasks\/(\d+)$/.exec(path))) {
-      const item = this.task(Number(m[1]));
+      const item = this.asOfNow(this.task(Number(m[1])));
       return { data: { ...this.singleTaskTemplate.data, type: item.type, id: item.id, attributes: item.attributes, links: item.links } };
     }
     if (path === "/course/presences") return page(this.presences.get(`${q["filter[course_id][is]"]}:${q["filter[class_id][is]"]}`) ?? [], q, path);
@@ -386,7 +393,7 @@ export class PretendEdunex {
     let m: RegExpExecArray | null;
     if (request.method === "POST" && path === "/course/task/answers") {
       const task = this.task(Number(body.task_id));
-      if (!takesAnswers(task, this.clock.now())) throw new Refused();
+      if (!takesAnswers(this.asOfNow(task), this.clock.now())) throw new Refused();
       const answer = this.newAnswer(Number(body.task_id), { ...body, files: [] });
       answer.files = this.storedFiles(answer.id, task, body.files ?? []);
       task.attributes.answers = [...task.attributes.answers, answer];
@@ -398,7 +405,7 @@ export class PretendEdunex {
         for (const task of list) {
           const at = task.attributes.answers.findIndex((a: Json) => Number(a.id) === id);
           if (at < 0) continue;
-          if (!takesAnswers(task, this.clock.now())) throw new Refused();
+          if (!takesAnswers(this.asOfNow(task), this.clock.now())) throw new Refused();
           const current = task.attributes.answers[at];
           const fields = { ...body };
           delete fields.task_id;
@@ -428,6 +435,17 @@ export class PretendEdunex {
   }
 
   // ------------------------------------------------ helpers
+
+  /**
+   * A Task as Edunex sends it at this moment: one "closed" (not open yet, as
+   * the website reads it) opens once its start has come. The recorded statuses
+   * are kept as they are.
+   */
+  private asOfNow(task: Json): Json {
+    const a = task.attributes;
+    const opened = (a.open_status === "closed" || a.open_status === "close") && a.start_at && Date.parse(a.start_at) <= this.clock.now();
+    return opened ? { ...task, attributes: { ...a, open_status: "open" } } : task;
+  }
 
   task(taskId: number): Json {
     for (const list of this.tasks.values()) {

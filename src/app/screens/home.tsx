@@ -807,7 +807,12 @@ function useNeedView(courses: readonly TermCourse[]): (need: Need) => NeedView {
         return {
           title: t("home.need.exam", { kind: t(`exam.kind.${exam.kind}`), course: nameOf(courses, exam.courseCode) }),
           meta: [course, `${f.relativeDay(sitting.start)}, ${time}`, sitting.source === "six" ? sitting.room : t("home.need.exam.edunex")],
-          note: need.disagree ? { text: t("home.need.exam.disagree"), tone: "warning" } : undefined,
+          note: need.disagree
+            ? { text: t("home.need.exam.disagree"), tone: "warning" }
+            : need.takeHomeDue !== null
+              ? // A take-home due another day is the exam's second part: said plainly, no warning.
+                { text: t("home.need.exam.takeHome", { date: `${f.weekdayShort(need.takeHomeDue)} ${f.dayMonth(need.takeHomeDue)}` }), tone: null }
+              : undefined,
           when: f.fromNow(sitting.start),
           tone: near(sitting.start),
         };
