@@ -121,6 +121,9 @@ export async function openApp(options: Options = {}) {
   let nextPick: LocalFile[] = [];
   /** Calendar files the Student saved, in order. */
   const exported: string[] = [];
+  /** PDFs the Student filled in and saved a copy of, in order (their content as text). */
+  const savedCopies: { name: string; text: string }[] = [];
+  let saveDialogCloses = false;
   /** The system can't open links (no browser set, the OS refused). */
   let linksFail = false;
   const inFlight = new Set<Promise<unknown>>();
@@ -156,6 +159,15 @@ export async function openApp(options: Options = {}) {
     // Main's real reader, on the pretend storage.
     "files.read": async ({ url, as }: { url: string; as: "image" | "pdf" }) => readFile({ fetch: (address, init) => world.fetch(address, init) }, url, as),
     "files.download": async ({ name }: { name: string }) => ({ path: `/Downloads/${name}` }),
+    // The save dialog: the Student keeps the name offered, or closes it once (`closeSaveDialog`). Tests read `savedCopies`.
+    "files.saveCopy": async ({ name, bytes }: { name: string; bytes: Uint8Array }) => {
+      if (saveDialogCloses) {
+        saveDialogCloses = false;
+        return { file: null };
+      }
+      savedCopies.push({ name, text: new TextDecoder().decode(bytes) });
+      return { file: name };
+    },
     "course.saveOffline": async ({ code, pick }: { code: string; pick: boolean }) => {
       const value = <T,>(name: string) => engine.snapshot().datasets.find((d) => d.name === name)?.value as T | undefined;
       const course = value<{ code: string; name: string; edunex: { courseId: number } }[]>("edunex.courses")?.find((c) => c.code === code);
@@ -269,6 +281,7 @@ export async function openApp(options: Options = {}) {
     vault,
     calls,
     exported,
+    savedCopies,
     text: () => document.body.textContent ?? "",
     /** A button (or radio, or switch) by its accessible name. */
     button(name: string | RegExp): HTMLButtonElement {
@@ -299,6 +312,10 @@ export async function openApp(options: Options = {}) {
         await settle();
       });
       assertTidyFacts();
+    },
+    /** The next save dialog is closed without saving. */
+    closeSaveDialog(): void {
+      saveDialogCloses = true;
     },
     /** From now on the system fails to open links in the browser. */
     failLinks(): void {

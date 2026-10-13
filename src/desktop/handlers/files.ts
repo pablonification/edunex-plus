@@ -2,22 +2,43 @@
 // lecturers' notes, PDFs in the viewer). The rules live in ../remote-files.ts;
 // here are where copies on this computer live: the app's file cache (the
 // signed-in Student's, wiped at sign-out) and the Student's own offline
-// copies under Documents.
+// copies under Documents. And saving a PDF filled in the app, only where the
+// Student chooses in the save dialog.
 import { promises as fs } from "node:fs";
 import path from "node:path";
+import { app, dialog } from "electron";
 import type { Event } from "../../core/contract";
 import { planOfflineFiles } from "../../core/course-materials";
 import type { DatasetName, DatasetValue } from "../../core/models";
 import type { Engine } from "../../engine/engine";
+import { EngineError } from "../../engine/errors";
+import { safeName } from "../downloads";
 import type { FileCache } from "../file-cache";
-import { LIMITS, readFile } from "../remote-files";
+import { LIMITS, readFile, sniff } from "../remote-files";
 import type { DesktopContext, HandlerGroup } from "./context";
 import { offlineRoot } from "./course-page";
 
-export const filesHandlers: HandlerGroup<"files.read"> = (context) => ({
+export const filesHandlers: HandlerGroup<"files.read" | "files.saveCopy"> = (context) => ({
   "files.read": ({ url, as }) =>
     readFile({ fetch: context.fetchFile, cache: context.fileCache, offline: as === "pdf" ? (address) => offlineCopy(context, address) : undefined }, url, as),
+  "files.saveCopy": async ({ name, bytes }) => {
+    if (!sniff(bytes, "pdf")) throw new EngineError("Rejected", "Only a PDF is saved from the viewer");
+    const window = context.window();
+    if (!window) throw new EngineError("Failed", "The window is closed");
+    // The dialog asks before it replaces a file that's already there.
+    const chosen = await dialog.showSaveDialog(window, {
+      defaultPath: path.join(app.getPath("downloads"), pdfName(safeName(name))),
+      filters: [{ name: "PDF", extensions: ["pdf"] }],
+    });
+    if (chosen.canceled || !chosen.filePath) return { file: null };
+    const file = pdfName(chosen.filePath);
+    await fs.writeFile(file, bytes);
+    return { file: path.basename(file) };
+  },
 });
+
+/** A file name that ends in ".pdf", whatever the Student typed. */
+export const pdfName = (name: string) => (/\.pdf$/i.test(name) ? name : `${name}.pdf`);
 
 /** Who is signed in to Edunex (their NIM): the files the app keeps are theirs. */
 export function edunexNim(engine: Engine): string | null {
