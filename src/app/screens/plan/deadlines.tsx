@@ -19,6 +19,7 @@ import {
   fullCalendar,
 } from "../../../core/academic";
 import { itbCalendar } from "../../../core/links";
+import type { AcademicCalendar } from "../../../core/models";
 import type { StringKey } from "../../../core/strings";
 import { useOpenExternal } from "../../hooks";
 import { useFormat, useLang, useNow, useT } from "../../i18n";
@@ -83,7 +84,7 @@ export function Tab(_: { onCalendar?: () => void }) {
       <div className="mb-5 flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
         <div className="min-w-0">
           <p className="text-small text-muted">{t(view === "mine" ? "deadlines.intro" : "calendar.intro")}</p>
-          <Source checkedAt={calendar.checkedAt} />
+          <Source calendar={calendar} />
         </div>
         <Segmented
           label={t("deadlines.view")}
@@ -101,11 +102,11 @@ export function Tab(_: { onCalendar?: () => void }) {
 }
 
 /** "Dari Kalender Pendidikan ITB 2026/2027 · diperiksa 2 jam yang lalu": where every date here comes from, to read for oneself, and how fresh it is. */
-function Source({ checkedAt }: { checkedAt: number }) {
+function Source({ calendar }: { calendar: AcademicCalendar }) {
   const t = useT();
   const f = useFormat();
   const open = useOpenExternal();
-  const { url, year } = itbCalendar(useThisTerm());
+  const { url, year } = itbCalendar(useThisTerm(), calendar);
   return (
     <p className="mt-0.5 text-caption text-muted">
       <Meta>
@@ -115,7 +116,7 @@ function Source({ checkedAt }: { checkedAt: number }) {
             {year ? t("deadlines.source", { years: `${year}/${year + 1}` }) : t("deadlines.sourcePlain")}
           </WebLink>
         </span>
-        {t("deadlines.checked", { when: f.fromNow(checkedAt) })}
+        {t("deadlines.checked", { when: f.fromNow(calendar.checkedAt) })}
       </Meta>
     </p>
   );
