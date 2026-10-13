@@ -192,11 +192,13 @@ describe("the Presensi screen", () => {
       [...weekly("DK4073", "2026-08-27T11:00:00", 15), ...weekly("PL3032", "2026-08-27T08:00:00", 15)],
     );
     const dk = card("DK4073");
-    expect(dk).toContain("Selesai: target 80% tercapai");
+    expect(dk).toContain("Selesai, 80% tercapai");
     expect(dk).toContain("tak ada pertemuan lagi");
     expect(dk).not.toMatch(/Jangan absen|Masih bisa absen/);
-    expect(card("PL3032")).toContain("Selesai di bawah target 80%");
+    expect(card("PL3032")).toContain("Selesai di bawah 80%");
     expect(card("PL3032")).not.toContain("Tak bisa lagi capai");
+    // Final and calm: the red verdict, no warning line under it.
+    expect(card("PL3032")).not.toContain("Ada pertemuan yang kamu hadiri");
     expect(answer()).toEqual(["PL3032 selesai di bawah 80%."]);
     // Nothing needs the Student: no count on the sidebar.
     expect(s.button(/^Presensi/).textContent).toBe("Presensi");
@@ -204,7 +206,7 @@ describe("the Presensi screen", () => {
     // The course page: no banner, the header says it once.
     await s.click([...document.querySelectorAll<HTMLButtonElement>("aside button")].find((b) => b.textContent?.startsWith("DK4073"))!);
     expect(document.querySelector("main .bg-warning-bg, main .bg-danger-bg")).toBeNull();
-    expect(document.querySelector("main header")?.textContent).toContain("Selesai: target 80% tercapai");
+    expect(document.querySelector("main header")?.textContent).toContain("Selesai, 80% tercapai");
 
     // Beranda: no attendance item.
     await s.click([...document.querySelectorAll<HTMLButtonElement>("aside nav button")].find((b) => b.textContent?.startsWith("Beranda"))!);

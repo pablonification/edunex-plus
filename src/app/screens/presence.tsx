@@ -452,7 +452,8 @@ function useWarning(health: AttendanceHealth): ReactNode {
     );
   const first = health.left.upcoming[0];
   if (next && first?.uncertain && first.session?.id === next.id) return <Warning tone="warning">{uncertainText(t, f, next.start, calendar?.events)}</Warning>;
-  if (health.state === "out" || health.state === "missed")
+  // Once lectures are over the verdict says it all, calmly: no warning under it.
+  if (health.state === "out")
     return (
       <Warning
         tone="danger"

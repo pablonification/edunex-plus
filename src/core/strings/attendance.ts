@@ -89,8 +89,8 @@ export const attendanceStrings = {
   "presence.budget.out": { id: "Tak bisa lagi capai {target}% · paling tinggi {best}%", en: "Can't reach {target}% anymore · at best {best}%" },
   "presence.budget.unknown": { id: "Belum ada hitungan SIX", en: "No SIX count yet" },
   // Lectures are over: the final word, calm
-  "presence.budget.met": { id: "Selesai: target {target}% tercapai", en: "Finished: {target}% target reached" },
-  "presence.budget.missed": { id: "Selesai di bawah target {target}%", en: "Finished below the {target}% target" },
+  "presence.budget.met": { id: "Selesai, {target}% tercapai", en: "Finished, {target}% reached" },
+  "presence.budget.missed": { id: "Selesai di bawah {target}%", en: "Finished below {target}%" },
   "presence.status.out": { id: "Tak bisa lagi capai {target}%", en: "Can't reach {target}% anymore" },
 
   // A course's row

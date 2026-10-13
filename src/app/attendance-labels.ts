@@ -37,7 +37,7 @@ export const METER_TONE: Record<AttendanceState, MeterTone> = {
 /**
  * What's left before the course's own target: "Masih bisa absen 2× lagi",
  * "Jangan absen lagi", "Tak bisa lagi capai 80% · paling tinggi 71%"; once
- * lectures are over, the final word: "Selesai: target 80% tercapai".
+ * lectures are over, the final word: "Selesai, 80% tercapai".
  */
 export function budgetLabel(t: Translate, health: AttendanceHealth): string {
   switch (health.state) {
