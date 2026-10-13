@@ -133,26 +133,33 @@ function Layout() {
           </Suspense>
         </main>
       </div>
-      {/* Each waits for its code (in at once after the idle preload) or for the Student to open it, then opens. */}
-      <Suspense fallback={null}>
-        {(settingsOpen || settingsLoaded) && (
-          <SettingsDialog
-            open={settingsOpen}
-            onOpenChange={setSettingsOpen}
-            onShowFirstScan={() => {
-              setSettingsOpen(false);
-              setScanOpen(true);
-            }}
-          />
-        )}
-      </Suspense>
-      <Suspense fallback={null}>
-        {(searchOpen || searchLoaded) && <SearchPalette open={searchOpen} onOpenChange={setSearchOpen} onSettings={() => setSettingsOpen(true)} />}
-      </Suspense>
-      <Suspense fallback={null}>
-        {/* It also watches for the first full sync to open itself, so it stays drawn once in. */}
-        {(scanOpen || scanLoaded) && <FirstScan open={scanOpen} onOpenChange={setScanOpen} blocked={settingsOpen || searchOpen} />}
-      </Suspense>
+      {/* Each waits for its code (in at once after the idle preload) or for the Student to open it, then opens.
+          Its own guard keeps a failed load to that dialog, with "Coba lagi", never the whole window. */}
+      <PanelBoundary name="settings" compact>
+        <Suspense fallback={null}>
+          {(settingsOpen || settingsLoaded) && (
+            <SettingsDialog
+              open={settingsOpen}
+              onOpenChange={setSettingsOpen}
+              onShowFirstScan={() => {
+                setSettingsOpen(false);
+                setScanOpen(true);
+              }}
+            />
+          )}
+        </Suspense>
+      </PanelBoundary>
+      <PanelBoundary name="search" compact>
+        <Suspense fallback={null}>
+          {(searchOpen || searchLoaded) && <SearchPalette open={searchOpen} onOpenChange={setSearchOpen} onSettings={() => setSettingsOpen(true)} />}
+        </Suspense>
+      </PanelBoundary>
+      <PanelBoundary name="first scan" compact>
+        <Suspense fallback={null}>
+          {/* It also watches for the first full sync to open itself, so it stays drawn once in. */}
+          {(scanOpen || scanLoaded) && <FirstScan open={scanOpen} onOpenChange={setScanOpen} blocked={settingsOpen || searchOpen} />}
+        </Suspense>
+      </PanelBoundary>
     </div>
   );
 }
