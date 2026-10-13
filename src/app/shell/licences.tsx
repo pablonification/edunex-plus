@@ -2,6 +2,10 @@
 // Plus is built with, how many, and a search; one row each (name, version,
 // licence, a link to its source) whose licence text opens under it. The page
 // and its list load when the Student opens it, never with the window.
+//
+// Each row opens and closes on its own. Opening one never closes another: a
+// long text closing above the row the Student clicked would pull that row,
+// and the text they asked for, far out of view.
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { isWebLink, linkHost } from "../../core/links";
 import { useOpenLink } from "../hooks";
@@ -19,12 +23,19 @@ type Loaded = { list: readonly Licence[] } | "loading" | "failed";
 
 const keyOf = (entry: Licence) => `${entry.name}@${entry.version ?? ""}`;
 
+/** The rows that are open, with `key` opened, or closed if it was open. */
+function toggled(open: ReadonlySet<string>, key: string): ReadonlySet<string> {
+  const next = new Set(open);
+  if (!next.delete(key)) next.add(key);
+  return next;
+}
+
 export default function Licences() {
   const t = useT();
   const [loaded, setLoaded] = useState<Loaded>("loading");
   const [attempt, setAttempt] = useState(0);
   const [query, setQuery] = useState("");
-  const [open, setOpen] = useState<string | null>(null);
+  const [open, setOpen] = useState<ReadonlySet<string>>(() => new Set());
   const search = useRef<HTMLInputElement>(null);
   // The button that led here has gone with Settings' page: the search takes its focus.
   useEffect(() => search.current?.focus(), []);
@@ -86,7 +97,7 @@ export default function Licences() {
         <List label={t("licences.title")}>
           {shown.map((entry) => {
             const key = keyOf(entry);
-            return <LicenceRow key={key} entry={entry} open={open === key} onToggle={() => setOpen(open === key ? null : key)} />;
+            return <LicenceRow key={key} entry={entry} open={open.has(key)} onToggle={() => setOpen((was) => toggled(was, key))} />;
           })}
         </List>
       ) : (

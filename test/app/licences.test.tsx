@@ -124,7 +124,7 @@ describe("Settings → Tentang", () => {
     expect(rows()).toHaveLength(5);
   });
 
-  it("a row opens its licence text under it, one at a time; Chromium's says which file beside the app has them", async () => {
+  it("a row opens its licence text under it and closes it again, each on its own; Chromium's says which file beside the app has them", async () => {
     screen = await openApp({ signedIn: true });
     await openLicences();
     const zod = row("zod")!;
@@ -134,10 +134,19 @@ describe("Settings → Tentang", () => {
     const text = document.getElementById(zod.getAttribute("aria-controls")!);
     expect([...(text?.querySelectorAll("p") ?? [])].map((p) => p.textContent)).toEqual(["MIT License", "Copyright (c) Example Zod Authors"]);
 
-    const chromium = row("Chromium")!;
-    await screen.click(chromium);
+    // Opening another leaves this one open: closing a long text above the row the Student clicked would pull that row out of view.
+    const radix = row("@radix-ui/react-dialog")!;
+    await screen.click(radix);
+    expect(radix.getAttribute("aria-expanded")).toBe("true");
+    expect(zod.getAttribute("aria-expanded")).toBe("true");
+    expect(dialog()?.textContent).toContain("Example Zod Authors");
+    await screen.click(zod);
     expect(zod.getAttribute("aria-expanded")).toBe("false");
     expect(dialog()?.textContent).not.toContain("Example Zod Authors");
+    expect(radix.getAttribute("aria-expanded")).toBe("true");
+
+    const chromium = row("Chromium")!;
+    await screen.click(chromium);
     expect(document.getElementById(chromium.getAttribute("aria-controls")!)?.textContent).toBe(
       "Lisensi Chromium dan Node.js, juga semua perangkat lunak sumber terbuka di dalamnya, ada di berkas LICENSES.chromium.html di folder aplikasi.",
     );
