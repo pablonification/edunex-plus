@@ -59,7 +59,11 @@ world.edunex.submitOnWebsite(id);                               // the Student, 
 | State or event | How | Ticket |
 |---|---|---|
 | Material type `pdf`, `text`, `ms-teams` | recorded | #74 |
-| Material type `video`, `audio`, `url`, `file`, `h5p`, `zoom`, `google-meet`, `webex`, `cloudx` | `postMaterial` with that `type` (clone of a recorded content) | #74 |
+| Material type `video`, `audio`, `url`, `file`, `ppt`, `board`, `html`, `scorm`, `h5p`, `zoom`, `google-meet`, `webex`, `cloudx` | `postMaterial` with that `type` (clone of a recorded content) | #74 |
+| A module's contents (a lecturer's link written as a note, zip templates, PDF slides; the joint class's own copies) | made up in the real shape, never recorded: `test/pretend/edunex-modules.ts` (II4091) | #74 |
+| A course-wide note in both the class and its joint class (two different items) | recorded (II4091's schedule note) | #74 |
+| A picture in a note: shown, its storage link expired, not a picture | `world.putFile`, `world.blobStatus` (403) | #74 |
+| Sub-modules (Edunex "activities") | needs a recording (every recorded module has none) | #74 |
 | Material added or removed | `postMaterial`, `deleteMaterial` | #74, #75 |
 | Material posted just before today's class | `postMaterial` at a chosen clock time | #75 |
 | Parent and child class (info only in the parent) | recorded | #74 |

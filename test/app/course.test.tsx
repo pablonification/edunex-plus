@@ -33,13 +33,25 @@ async function tab(name: RegExp) {
   });
 }
 
-/** The table-of-contents entry with this title. */
-async function entry(title: string) {
+/** The table-of-contents entry with this title; `joint`: the one in the joint class's part. */
+async function entry(title: string, { joint = false } = {}) {
   const nav = document.querySelector("nav[aria-label='Daftar isi'], nav[aria-label='Table of contents']")!;
-  const button = [...nav.querySelectorAll("button")].find((b) => b.textContent?.includes(title));
-  if (!button) throw new Error(`No entry ${title} in ${nav.textContent}`);
+  const items = [...nav.querySelectorAll("li")];
+  const from = joint ? items.findIndex((li) => /^(Kelas gabungan|Joint class)$/.test(li.querySelector("p")?.textContent ?? "")) : 0;
+  const button = items
+    .slice(Math.max(from, 0))
+    .map((li) => li.querySelector("button"))
+    .find((b) => b?.textContent?.includes(title));
+  if (!button || from < 0) throw new Error(`No entry ${title} in ${nav.textContent}`);
   await screen!.click(button);
 }
+
+/** The materials of the open table-of-contents entry, as the Student reads them. */
+const materials = () => [...document.querySelectorAll("main section ul[aria-label='Materi'] > li")].map((li) => li.textContent ?? "");
+
+/** The first bytes of a PNG: enough for main's check that a picture really is one. */
+const PNG = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 13]);
+const TOKENS_PICTURE = "https://edunexfixture.blob.core.windows.net/edunex/fixture-2";
 
 // biome-ignore lint/suspicious/noExplicitAny: a dataset as the engine holds it
 const data = (name: string): any => screen!.engine.snapshot().datasets.find((d) => d.name === name)?.value;
@@ -96,29 +108,153 @@ describe("materials", () => {
     expect(s.text()).toContain("Tersimpan di Unduhan");
   });
 
-  it("the parent class's online-class link opens in the browser, and a text note reads safely in the app", async () => {
+  it("each Edunex course has its own Introduction, as on Edunex: the class's, then the joint class's", async () => {
     const s = await openCourse("II4091");
     await entry("Pengantar");
+    expect(document.querySelector("#course-entry")?.textContent).toBe("Pengantar");
+    expect(document.querySelector("main section header")?.textContent).not.toContain("Kelas gabungan");
+    // The class's own schedule note (meeting 02 only) and its token picture; the joint class's links aren't mixed in.
+    expect(materials()).toHaveLength(2);
+    expect(materials()[0]).toContain("Jadwal Kuliah TA & Mekanisme Pelaksanaan");
+    expect(materials()[0]).not.toContain("Pertemuan 03");
+    expect(materials()[1]).toContain("Course Tokens : FIXTUR");
+    expect(s.text()).not.toContain("Microsoft Teams");
+
+    // Heard apart without the heading above them: the joint class's entries say whose they are.
+    const named = [...document.querySelectorAll("nav[aria-label='Daftar isi'] button")]
+      .map((b) => b.textContent ?? "")
+      .filter((n) => n.startsWith("Pengantar"));
+    expect(named).toEqual([expect.not.stringContaining("Kelas gabungan"), expect.stringContaining("Pengantar, Kelas gabungan")]);
+    await entry("Pengantar", { joint: true });
+    expect(document.querySelector("main section header")?.textContent).toContain("Kelas gabungan");
+    // The joint class's own copy of the schedule, the newer one with meeting 03, and its online-class links.
+    expect(materials().filter((m) => m.includes("Jadwal Kuliah TA & Mekanisme Pelaksanaan"))).toHaveLength(1);
+    expect(materials()[0]).toContain("Pertemuan 03");
     expect(s.text()).toContain("Kelas online · Microsoft Teams");
     await s.click("Gabung: Link Teams Pertemuan 03: Jumat, 9 Oktober 2026");
     expect(s.calls.at(-1)).toEqual({ name: "shell.openExternal", input: { url: "https://teams.microsoft.com/meet/000000000000?p=fixture" } });
-    await s.click("Baca: Jadwal Kuliah TA & Mekanisme Pelaksanaan");
-    expect(s.button("Tutup: Jadwal Kuliah TA & Mekanisme Pelaksanaan").getAttribute("aria-expanded")).toBe("true");
-    expect(document.querySelector("main strong")?.textContent).toBe("Pertemuan 02:");
-    // Edunex's inline styles never reach the page.
-    expect(document.querySelector("main strong")!.closest("li")!.querySelector("[style]")).toBeNull();
-    // A note that is only a picture opens on Edunex instead.
-    expect(s.has("Buka di Edunex: Course Tokens : FIXTUR")).toBe(true);
   });
 
-  it("each material type gets its own action; unknown types open in Edunex", async () => {
+  it("a note is drawn right on the page, its formatting without Edunex's styles, and a picture-only note shows its picture", async () => {
+    const world = new PretendWorld();
+    world.putFile(TOKENS_PICTURE, PNG);
+    const s = await openCourse("II4091", { world });
+    await entry("Pengantar");
+    // No "Read" to click: the lecturer's words are there, as on Edunex.
+    expect(s.has(/^Baca/)).toBe(false);
+    const note = [...document.querySelectorAll("main section ul > li")].find((li) => li.textContent?.includes("Jadwal Kuliah"))!;
+    expect(note.querySelector("strong")?.textContent).toBe("Pertemuan 02:");
+    expect(note.textContent).toContain("Jumat, 11 September 2026 Pkl. 15:00 - 17:00 WIB");
+    expect(note.textContent).toContain("Diposting");
+    expect(note.querySelector("[style]")).toBeNull();
+    // "Course Tokens" is only a picture: read in from Edunex's storage by the main process, shown from memory.
+    const tokens = [...document.querySelectorAll("main section ul > li")].find((li) => li.textContent?.includes("Course Tokens"))!;
+    const picture = tokens.querySelector("img")!;
+    expect(picture.getAttribute("src")).toMatch(/^blob:/);
+    expect(picture.getAttribute("alt")).toBe("Gambar dari dosen");
+    expect(s.calls).toContainEqual({ name: "files.read", input: { url: TOKENS_PICTURE, as: "image" } });
+    expect(s.has("Buka di Edunex: Course Tokens : FIXTUR")).toBe(false);
+  });
+
+  it("a picture that can't be shown says why, in place", async () => {
+    const world = new PretendWorld();
+    world.putFile(TOKENS_PICTURE, PNG);
+    world.blobStatus.set(new URL(TOKENS_PICTURE).pathname, 403);
+    const s = await openCourse("II4091", { world });
+    await entry("Pengantar");
+    expect(s.text()).toContain("Tautan berkas ini sudah tidak berlaku di Edunex.");
+    // Bytes that aren't a picture are never shown as one.
+    world.blobStatus.clear();
+    world.putFile(TOKENS_PICTURE, "<html><script>alert(1)</script></html>");
+    await s.wait(70 * 60_000);
+    await tab(/^Pertemuan/);
+    await tab(/^Modul/);
+    await entry("Pengantar");
+    expect(s.text()).toContain("Berkas ini tidak bisa ditampilkan di aplikasi.");
+    expect(document.querySelector("main section ul img")).toBeNull();
+  });
+
+  it("a lecturer's link in a note is a link, and opens in the browser wherever it goes", async () => {
+    const s = await openCourse("II4091");
+    await entry("List Penawaran Topik TA");
+    expect(materials()[0]).toContain("Link Penawaran Topik TA");
+    const link = [...document.querySelectorAll<HTMLAnchorElement>("main section a")].find((a) => a.textContent === "Penawaran topik TA 2026-2027")!;
+    expect(link.getAttribute("href")).toBe("https://docs.google.com/spreadsheets/d/fixture-topik-ta/edit");
+    await s.click(link);
+    expect(s.calls.at(-1)).toEqual({ name: "shell.openLink", input: { url: "https://docs.google.com/spreadsheets/d/fixture-topik-ta/edit" } });
+    expect(s.text()).not.toContain("tidak bisa dibuka");
+  });
+
+  it("a long note folds; the keyboard reaching its hidden part unfolds it, and folding it again keeps the note in view", async () => {
+    // jsdom lays nothing out: here every note is long, and its link sits below the fold.
+    const scrolled: Element[] = [];
+    const rect = Element.prototype.getBoundingClientRect;
+    Object.defineProperty(HTMLElement.prototype, "scrollHeight", {
+      configurable: true,
+      get(this: HTMLElement) {
+        return this.id && this.classList.contains("overflow-hidden") ? 1000 : 0;
+      },
+    });
+    Element.prototype.getBoundingClientRect = function (this: Element) {
+      return { x: 0, y: 0, left: 0, right: 0, width: 0, height: 0, top: 0, bottom: this.tagName === "A" ? 400 : 0, toJSON: () => ({}) };
+    };
+    Element.prototype.scrollIntoView = function (this: Element) {
+      scrolled.push(this);
+    };
+    try {
+      const s = await openCourse("II4091");
+      await entry("List Penawaran Topik TA");
+      const toggle = () => document.querySelector<HTMLButtonElement>("main section button[aria-controls]");
+      expect(toggle()?.getAttribute("aria-expanded")).toBe("false");
+      const link = [...document.querySelectorAll<HTMLAnchorElement>("main section a")].find((a) => a.textContent === "Penawaran topik TA 2026-2027")!;
+      await act(async () => link.focus());
+      expect(toggle()?.getAttribute("aria-expanded")).toBe("true");
+      const body = document.getElementById(toggle()!.getAttribute("aria-controls")!);
+      expect(scrolled).not.toContain(body);
+      await s.click(toggle()!);
+      expect(toggle()?.getAttribute("aria-expanded")).toBe("false");
+      expect(scrolled).toContain(body);
+    } finally {
+      delete (HTMLElement.prototype as { scrollHeight?: number }).scrollHeight;
+      Element.prototype.getBoundingClientRect = rect;
+      delete (Element.prototype as { scrollIntoView?: unknown }).scrollIntoView;
+    }
+  });
+
+  it("a disguised address or another scheme is never a link; a link the computer can't open says so instead of a dead click", async () => {
+    screen = await openApp({ signedIn: true });
+    const e = screen.world.edunex;
+    e.postMaterial(95001, {
+      name: "Kontak dosen",
+      type: "text",
+      content:
+        '<p><a href="https://user:pw@evil.example.com/">Tulis email</a> atau <a href="mailto:dosen@example.com">kirim surel</a>, atau isi <a href="https://forms.gle/fixture">formulir</a></p>',
+    });
+    await screen.engineDoes(() => screen!.engine.refresh("edunex"));
+    const card = [...document.querySelectorAll<HTMLButtonElement>("main ul li button")].find((b) => b.textContent?.startsWith("PL3002"));
+    await screen.click(card!);
+    await entry("Pengantar");
+    const links = [...document.querySelectorAll<HTMLAnchorElement>("main section a")];
+    expect(links.map((a) => a.textContent)).toEqual(["formulir"]);
+    expect(screen.text()).toContain("Tulis email atau kirim surel, atau isi formulir");
+    screen.failLinks();
+    await screen.click(links[0]);
+    expect(screen.text()).toContain("Tautan ke forms.gle tidak bisa dibuka");
+  });
+
+  it("each material type gets the action Edunex's own page gives it; what only Edunex can show opens there", async () => {
     screen = await openApp({ signedIn: true });
     const e = screen.world.edunex;
     e.postMaterial(95001, { name: "Rekaman kuliah", type: "video", content: BLOB });
+    e.postMaterial(95001, { name: "Video YouTube", type: "video", content: "https://www.youtube.com/watch?v=fixture" });
     e.postMaterial(95001, { name: "Podcast", type: "audio", content: BLOB });
     e.postMaterial(95001, { name: "Data", type: "file", content: `${BLOB}.xlsx` });
+    e.postMaterial(95001, { name: "Slide", type: "ppt", content: BLOB });
     e.postMaterial(95001, { name: "Berita ITB", type: "url", content: "https://www.itb.ac.id/berita" });
     e.postMaterial(95001, { name: "Situs luar", type: "url", content: "https://example.org/" });
+    e.postMaterial(95001, { name: "Papan tulis", type: "board", content: BLOB });
+    e.postMaterial(95001, { name: "Halaman", type: "html", content: "https://example.org/page" });
+    e.postMaterial(95001, { name: "Paket SCORM", type: "scorm", content: BLOB });
     e.postMaterial(95001, { name: "Kuis interaktif", type: "h5p", content: "https://example.org/h5p" });
     e.postMaterial(95001, { name: "Zoom", type: "zoom", content: "https://itb.zoom.us/j/123" });
     e.postMaterial(95001, { name: "Meet", type: "google-meet", content: "https://meet.google.com/abc-defg-hij" });
@@ -129,19 +265,38 @@ describe("materials", () => {
     const card = [...document.querySelectorAll<HTMLButtonElement>("main ul li button")].find((b) => b.textContent?.startsWith("PL3002"));
     await screen.click(card!);
     await entry("Pengantar");
-    for (const name of ["Unduh: Rekaman kuliah", "Unduh: Podcast", "Unduh: Data", "Buka: Berita ITB", "Gabung: Zoom", "Gabung: Meet", "Gabung: Webex"])
+    for (const name of [
+      "Unduh: Rekaman kuliah",
+      "Buka: Video YouTube",
+      "Unduh: Podcast",
+      "Unduh: Data",
+      "Unduh: Slide",
+      "Buka: Berita ITB",
+      "Buka: Situs luar",
+      "Gabung: Zoom",
+      "Gabung: Meet",
+      "Gabung: Webex",
+    ])
       expect(screen.has(name)).toBe(true);
-    for (const name of ["Situs luar", "Kuis interaktif", "CloudX", "Baru"]) expect(screen.has(`Buka di Edunex: ${name}`)).toBe(true);
+    for (const name of ["Halaman", "Paket SCORM", "Kuis interaktif", "CloudX", "Baru"]) expect(screen.has(`Buka di Edunex: ${name}`)).toBe(true);
     expect(screen.text()).toContain("Kelas online · Google Meet");
-    // Every action looks alike and takes the same width, so the dates beside them line up.
+    expect(screen.text()).toContain("Tautan · example.org");
+    expect(screen.text()).toContain("Video · youtube.com");
+    // A whiteboard is a picture on the page, as on Edunex.
+    const board = [...document.querySelectorAll("main section ul > li")].find((li) => li.textContent?.includes("Papan tulis"))!;
+    expect(board.querySelector("button")).toBeNull();
+    expect(screen.calls).toContainEqual({ name: "files.read", input: { url: BLOB, as: "image" } });
+    // Every action looks alike and sits at the row's end, so they line up down the list.
     const actions = [...document.querySelectorAll<HTMLButtonElement>("main section li button[aria-label]")].filter((b) =>
-      /^(Unduh|Buka|Gabung|Baca)/.test(b.getAttribute("aria-label")!),
+      /^(Unduh|Buka|Gabung)/.test(b.getAttribute("aria-label")!),
     );
-    expect(actions.length).toBeGreaterThan(8);
+    expect(actions.length).toBeGreaterThan(12);
     expect(new Set(actions.map((b) => b.className)).size).toBe(1);
     expect(new Set(actions.map((b) => b.parentElement!.className)).size).toBe(1);
     await screen.click("Unduh: Data");
     expect(screen.calls.at(-1)).toMatchObject({ name: "files.download", input: { name: "Data.xlsx" } });
+    await screen.click("Buka: Situs luar");
+    expect(screen.calls.at(-1)).toEqual({ name: "shell.openLink", input: { url: "https://example.org/" } });
     await screen.click("Buka di Edunex: Baru");
     expect(screen.calls.at(-1)).toEqual({ name: "shell.openExternal", input: { url: "https://edunex.itb.ac.id/courses/95001" } });
   });
@@ -446,17 +601,24 @@ describe("announcements and exams", () => {
     // A meeting link is a button, not only a raw address.
     await s.click("Gabung rapat");
     expect(s.calls.at(-1)).toEqual({ name: "shell.openExternal", input: { url: "https://teams.microsoft.com/meet/000000000000?p=fixture" } });
+    // Every link in the text opens in the browser too.
     const link = document.querySelector<HTMLAnchorElement>("main a[href^='https://teams.microsoft.com']")!;
     await s.click(link);
-    expect(s.calls.at(-1)).toEqual({ name: "shell.openExternal", input: { url: "https://teams.microsoft.com/meet/000000000000?p=fixture" } });
+    expect(s.calls.at(-1)).toEqual({ name: "shell.openLink", input: { url: "https://teams.microsoft.com/meet/000000000000?p=fixture" } });
   });
 
   it("an announcement the lecturer posts appears", async () => {
     const s = await openCourse("PL3002");
-    s.world.edunex.postAnnouncement(95001, { announcement: "Kuliah minggu depan daring", created_at: "2026-10-08 09:00:00" });
+    s.world.edunex.postAnnouncement(95001, {
+      announcement: "Kuliah minggu depan daring. Isi presensi di https://forms.gle/fixture",
+      created_at: "2026-10-08 09:00:00",
+    });
     await s.wait(70 * 60_000);
     await tab(/^Pengumuman/);
     expect(s.text()).toContain("Kuliah minggu depan daring");
+    // A link to any page is clickable, as on Edunex, and opens in the browser.
+    await s.click(document.querySelector<HTMLAnchorElement>("main a[href='https://forms.gle/fixture']")!);
+    expect(s.calls.at(-1)).toEqual({ name: "shell.openLink", input: { url: "https://forms.gle/fixture" } });
   });
 
   it("Tasks & Exams says when neither SIX nor Edunex has an exam", async () => {

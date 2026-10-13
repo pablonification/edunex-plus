@@ -1,13 +1,14 @@
 // The course page's simple lists: its Tasks (to do, then handed in; each
 // opens the Task page), its exams (each opens the exam page) and its
-// announcements, with online-meeting links as a button.
+// announcements, with online-meeting links as a button and every other link
+// opening in the browser.
 import { Fragment, type ReactNode } from "react";
-import { opensInBrowser } from "../../../core/course-materials";
 import { meetingLinks } from "../../../core/course-meetings";
 import type { Exam } from "../../../core/exams";
+import { isOfficialUrl, isWebLink } from "../../../core/links";
 import type { Announcement, Task } from "../../../core/models";
 import { byDeadline, isOpenStatus, submittedAt, taskStatus } from "../../../core/tasks";
-import { useOpenExternal } from "../../hooks";
+import { useOpenExternal, useOpenLink } from "../../hooks";
 import { useFormat, useNow, useT } from "../../i18n";
 import { useSignIn } from "../../shell/source-status";
 import { useStatus } from "../../store";
@@ -15,6 +16,7 @@ import { Button } from "../../ui/controls";
 import { Card } from "../../ui/display";
 import { Icons } from "../../ui/icons";
 import { Section } from "../../ui/layout";
+import { WebLink } from "../../ui/rich-text";
 import { ExamRows } from "../exam";
 import { TaskRows } from "../tasks";
 
@@ -79,7 +81,7 @@ export function AnnouncementsTab({
   return (
     <ul className="max-w-[760px] space-y-3">
       {announcements.map((item) => {
-        const [link] = meetingLinks(item.text).filter(opensInBrowser);
+        const [link] = meetingLinks(item.text).filter(isOfficialUrl);
         return (
           <li key={`${item.courseId}:${item.id}`}>
             <Card className="px-5 py-4">
@@ -106,23 +108,15 @@ export function AnnouncementsTab({
   );
 }
 
-/** Plain text with its official links (online classes, ITB pages) made clickable. */
+/** Plain text with its links made clickable: they open in the browser, as on Edunex. */
 function Linked({ text }: { text: string }) {
-  const open = useOpenExternal();
-  const parts: ReactNode[] = text.split(/(https:\/\/[^\s<>"]+)/g).map((part, index) =>
-    index % 2 === 1 && opensInBrowser(part) ? (
-      <a
-        // biome-ignore lint/suspicious/noArrayIndexKey: the pieces of one fixed text; a position is all they have
-        key={index}
-        href={part}
-        onClick={(event) => {
-          event.preventDefault();
-          open(part);
-        }}
-        className="focus-ring rounded-sm break-all text-accent-fg underline decoration-accent-fg/40 underline-offset-2 hover:decoration-accent-fg"
-      >
+  const open = useOpenLink();
+  const parts: ReactNode[] = text.split(/(https?:\/\/[^\s<>"]+)/g).map((part, index) =>
+    index % 2 === 1 && isWebLink(part) ? (
+      // biome-ignore lint/suspicious/noArrayIndexKey: the pieces of one fixed text; a position is all they have
+      <WebLink key={index} href={part} onOpen={open} className="break-all">
         {part}
-      </a>
+      </WebLink>
     ) : (
       // biome-ignore lint/suspicious/noArrayIndexKey: the pieces of one fixed text; a position is all they have
       <Fragment key={index}>{part}</Fragment>

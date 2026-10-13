@@ -1,11 +1,11 @@
-// Start-up, refresh, settings and opening official pages (#71).
+// Start-up, refresh, settings, opening official pages and lecturers' links (#71).
 import { shell } from "electron";
+import { isOfficialUrl, isWebLink } from "../../core/links";
 import { EngineError } from "../../engine/errors";
 import { download, isDownloadable } from "../downloads";
-import { isOfficialUrl } from "../security";
 import type { HandlerGroup } from "./context";
 
-type Core = "app.snapshot" | "app.ready" | "sync.refresh" | "settings.update" | "shell.openExternal" | "files.download" | "local.set";
+type Core = "app.snapshot" | "app.ready" | "sync.refresh" | "settings.update" | "shell.openExternal" | "shell.openLink" | "files.download" | "local.set";
 
 export const coreHandlers: HandlerGroup<Core> = (context) => ({
   "app.snapshot": async () => ({ ...context.engine.snapshot(), platform: platform(), vault: context.vaultMode }),
@@ -25,6 +25,12 @@ export const coreHandlers: HandlerGroup<Core> = (context) => ({
   },
   "shell.openExternal": async ({ url }) => {
     if (!isOfficialUrl(url)) throw new EngineError("Rejected", "Only official pages open from the app");
+    await shell.openExternal(url);
+    return {};
+  },
+  // A lecturer's link opens like it does on Edunex: any web page, but in the system browser, never in the app.
+  "shell.openLink": async ({ url }) => {
+    if (!isWebLink(url)) throw new EngineError("Rejected", "Only web pages open from a lecturer's link");
     await shell.openExternal(url);
     return {};
   },

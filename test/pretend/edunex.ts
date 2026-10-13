@@ -7,6 +7,7 @@ import type { HttpRequest, HttpResponse } from "../../src/engine/http/transport"
 import { withFields } from "../kit/builder";
 import { edunexJson, exchanges } from "../kit/fixtures";
 import type { FakeClock } from "./clock";
+import { MODULE_CONTENTS } from "./edunex-modules";
 
 export const EDUNEX_API = "https://api-edunex.cognisia.id";
 export const PRETEND_TOKEN = "pretend-edunex-token";
@@ -100,6 +101,33 @@ export class PretendEdunex {
       if (ex.path === "/gradebook") this.gradebooks.set(`${q.course_id}:${q.class_id ?? ""}`, edunexJson(ex.path, q));
     }
     this.singleTaskTemplate = edunexJson(/^\/course\/tasks\/\d+$/);
+    this.seedModuleContents();
+  }
+
+  /** Module contents were never recorded: the made-up ones (./edunex-modules.ts), each a clone of a recorded content record. */
+  private seedModuleContents(): void {
+    const template = [...this.contents.values()].flat().find((c) => c.attributes.type === "text");
+    for (const [at, item] of MODULE_CONTENTS.entries()) {
+      const key = `App\\Models\\Modules:${item.moduleId}`;
+      const list = this.contents.get(key) ?? [];
+      const record = withFields(template, {
+        id: String(880_001 + at),
+        attributes: {
+          contentable_type: "App\\Models\\Modules",
+          contentable_id: item.moduleId,
+          index: list.length + 1,
+          name: item.name,
+          type: item.type,
+          content: item.content,
+          size: item.size,
+          created_at: item.at,
+          updated_at: item.at,
+          course_id: item.courseId,
+        },
+        links: { self: `https://api-edunex.cognisia.id/course/contents/${880_001 + at}` },
+      });
+      this.contents.set(key, [...list, record]);
+    }
   }
 
   get userId(): number {

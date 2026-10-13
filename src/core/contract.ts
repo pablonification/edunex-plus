@@ -6,6 +6,7 @@ import { z } from "zod";
 import { alertsActions } from "./actions/alerts";
 import { coreActions } from "./actions/core";
 import { coursePageActions } from "./actions/course-page";
+import { filesActions } from "./actions/files";
 import { scheduleActions } from "./actions/schedule";
 import { sixActions } from "./actions/six";
 import { tasksActions } from "./actions/tasks";
@@ -26,6 +27,7 @@ export const Actions = {
   ...coreActions,
   ...tasksActions,
   ...coursePageActions,
+  ...filesActions,
   ...sixActions,
   ...alertsActions,
   ...updatesActions,
@@ -49,14 +51,3 @@ export type Event = z.infer<typeof Event>;
 
 /** What crosses the IPC boundary for an action: a result or a typed error, never a thrown Error. */
 export type ActionResult<T> = { ok: true; value: T } | { ok: false; error: BridgeError };
-
-/** Hosts the app may open in the browser. */
-export const OFFICIAL_HOSTS = [
-  /(^|\.)itb\.ac\.id$/,
-  /^api-edunex\.cognisia\.id$/,
-  /^teams\.microsoft\.com$/,
-  /^teams\.live\.com$/,
-  /(^|\.)zoom\.us$/,
-  /^meet\.google\.com$/,
-  /(^|\.)webex\.com$/,
-];

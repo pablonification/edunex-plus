@@ -1,8 +1,9 @@
 // The security baseline: the app's page may only be the app's page, it never
-// embeds web content, every permission is refused, and only official pages
-// open (in the system browser).
+// embeds web content, every permission is refused, and a page trying to leave
+// opens in the system browser only when it's official. (A lecturer's link the
+// Student clicks goes through the bridge's "shell.openLink" instead.)
 import { app, type BrowserWindow, type Session, shell } from "electron";
-import { OFFICIAL_HOSTS } from "../core/contract";
+import { isOfficialUrl } from "../core/links";
 
 export const APP_SCHEME = "app";
 export const APP_HOST = "edunex-plus";
@@ -25,15 +26,6 @@ export function contentSecurityPolicy(devServer?: string): string {
     "frame-ancestors 'none'",
     "object-src 'none'",
   ].join("; ");
-}
-
-export function isOfficialUrl(url: string): boolean {
-  try {
-    const parsed = new URL(url);
-    return parsed.protocol === "https:" && OFFICIAL_HOSTS.some((host) => host.test(parsed.hostname));
-  } catch {
-    return false;
-  }
 }
 
 export function denyPermissions(session: Session): void {

@@ -6,6 +6,7 @@ import { app } from "electron";
 import type { Clock } from "../engine/clock";
 import type { Engine } from "../engine/engine";
 import type { Transport } from "../engine/http/transport";
+import type { FetchFile } from "./remote-files";
 
 export interface DemoHooks {
   transport: Transport;
@@ -18,6 +19,8 @@ export interface DemoHooks {
   prepare(engine: Engine): Promise<boolean>;
   /** How far the demo's clock is ahead of real time (ms), so the window shows the same time. */
   clockOffset(): number;
+  /** Files from the pretend storage, for the window to show (pictures in notes). */
+  fetchFile?: FetchFile;
 }
 
 declare global {

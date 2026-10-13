@@ -101,14 +101,15 @@ describe("quick search", () => {
     expect(h1()).toBe("Tugas 03 Bab III");
   });
 
-  it("forgives a typo and word order: a material by its title opens its course's modules", async () => {
+  it("forgives a typo and word order: a material by its title opens its course's modules, where it is", async () => {
     screen = await openApp({ signedIn: true, six: true });
     await commandK();
     await type("ekonomi infrastruktr sap");
-    expect(activeRow()).toBe("K1. SAP Ekonomi Infrastruktur dan TransportasiPL3032Materi↵");
+    expect(activeRow()).toBe("K1. SAP Ekonomi Infrastruktur dan TransportasiPL3032 · PengantarMateri↵");
     await press("Enter");
     expect(h1()).toBe("Ekonomi Infrastruktur dan Transportasi");
     expect(document.querySelector("[role=tab][data-state=active]")?.textContent).toMatch(/^Modul/);
+    expect(document.querySelector("#course-entry")?.textContent).toBe("Pengantar");
   });
 
   it("a module in both the class and its joint class reads as two different rows", async () => {

@@ -39,6 +39,7 @@ import { ActionError } from "../bridge";
 import { type TermCourse, useTermCourses } from "../courses";
 import { useOpenExternal } from "../hooks";
 import { type Format, type Translate, useFormat, useNow, useT } from "../i18n";
+import { LecturerHtml } from "../lecturer-html";
 import { useNav } from "../nav";
 import { useExams } from "../schedule-data";
 import { useRefresh, useSignIn } from "../shell/source-status";
@@ -50,7 +51,7 @@ import { Icons } from "../ui/icons";
 import { factsLabel, List, Row as ListRow, Meta, Page, PageHeader, Section } from "../ui/layout";
 import { toast, useReturnFocus } from "../ui/overlays";
 import type { RichEditorHandle } from "../ui/rich-editor";
-import { plainText, RichText } from "../ui/rich-text";
+import { plainText } from "../ui/rich-text";
 import { ready as courseReady } from "./course";
 import { ExamRow, examWeekLabel } from "./exam";
 
@@ -478,7 +479,6 @@ function TaskPage({ task }: { task: Task }) {
   const f = useFormat();
   const now = useNow();
   const { go } = useNav();
-  const open = useOpenExternal();
   const course = useCourse(task.courseCode);
   const exam = useExams()?.find((e) => e.tasks.some((item) => item.id === task.id));
   const status = taskStatus(task, now);
@@ -556,7 +556,7 @@ function TaskPage({ task }: { task: Task }) {
             {t("task.instructions")}
           </h2>
           {plainText(task.instructions) ? (
-            <RichText html={task.instructions} onOpenLink={open} className="text-lead leading-relaxed" />
+            <LecturerHtml html={task.instructions} className="text-lead leading-relaxed" />
           ) : (
             <p className="text-body text-muted">{t("task.noInstructions")}</p>
           )}
@@ -1114,7 +1114,7 @@ function HandIn({ task, status, onPreview }: Row & { onPreview?: (file: TaskFile
             (textLocked || plainText(answer.saved)) && (
               <div className="mb-3 space-y-2">
                 <div className="rounded-lg bg-fill px-3 py-2.5">
-                  <RichText html={answer.saved} onOpenLink={open} />
+                  <LecturerHtml html={answer.saved} pictureAlt={t("image.altYours")} />
                 </div>
                 {editable && textLocked && (
                   <div className="space-y-2">
