@@ -268,6 +268,64 @@ describe("putting off what needs you on Beranda", () => {
   });
 });
 
+describe("putting off a deadline in Hari ini", () => {
+  const today = () => document.querySelector('main section[aria-labelledby="home-today"]');
+  const todayRows = () => [...(today()?.querySelectorAll("li") ?? [])].map((li) => li.textContent ?? "");
+  const controls = (root: Element | null) => [...(root?.querySelectorAll("[aria-label^='Ingatkan nanti: ']") ?? [])].map((el) => el.getAttribute("aria-label"));
+
+  it("a Task due tomorrow can be put off from Hari ini, never past the moment it turns urgent, and is listed with the rest", async () => {
+    const s = await open();
+    s.world.edunex.postTask(95059, { name: "Kumpulkan Tugas 02", end_at: "2026-10-13T23:59:00+07:00" });
+    await s.engineDoes(() => s.engine.refresh("edunex"));
+    expect(todayRows().some((row) => row.startsWith("23:59Kumpulkan Tugas 02"))).toBe(true);
+    // Classes have nothing to put off: only the deadline has the control.
+    expect(controls(today())).toEqual(["Ingatkan nanti: Kumpulkan Tugas 02 · PL3032"]);
+
+    // Due tomorrow 23:59: back by tonight, when it's due within a day, whatever is chosen.
+    await s.click("Ingatkan nanti: Kumpulkan Tugas 02 · PL3032");
+    expect(menuItems()).toEqual(["3 jam lagiHari ini, 11:07", "Sampai ada perubahanPaling lambat Hari ini, 23:59"]);
+    await s.click([...document.querySelectorAll<HTMLElement>("[role=menuitem]")][0]!);
+
+    expect(todayRows().some((row) => row.includes("Kumpulkan Tugas 02"))).toBe(false);
+    expect(toastText()).toContain("Diingatkan lagi Hari ini, 11:07");
+    // Listed where everything put off is, in "Perlu perhatianmu", and brought back from there.
+    expect(needs()?.textContent).toContain("1 ditunda");
+    await s.click("Tampilkan");
+    expect([...document.querySelectorAll('ul[aria-label="Yang ditunda"] li')].map((li) => li.textContent)).toEqual([
+      "Kumpulkan Tugas 02PL3032 · Kembali Hari ini, 11:07Ingatkan sekarang",
+    ]);
+    await press(s.button("Ingatkan sekarang: Kumpulkan Tugas 02 · PL3032"));
+    expect(todayRows().some((row) => row.startsWith("23:59Kumpulkan Tugas 02"))).toBe(true);
+    // Its row in Hari ini takes the focus back.
+    await frame();
+    expect(document.activeElement?.closest("li")?.textContent).toMatch(/^23:59Kumpulkan Tugas 02/);
+  });
+
+  it("a Task due tonight offers only what ends before its last hours; within them, nothing", async () => {
+    const s = await open();
+    s.world.edunex.postTask(95059, { name: "Ringkasan K6", end_at: "2026-10-12T23:59:00+07:00" });
+    // Due in two and a half hours: inside its last three, there's no putting it off.
+    s.world.edunex.postTask(95059, { name: "Ringkasan K7", end_at: "2026-10-12T10:37:00+07:00" });
+    await s.engineDoes(() => s.engine.refresh("edunex"));
+    expect(todayRows().some((row) => row.includes("Ringkasan K7"))).toBe(true);
+    expect(controls(today())).toEqual(["Ingatkan nanti: Ringkasan K6 · PL3032"]);
+    await s.click("Ingatkan nanti: Ringkasan K6 · PL3032");
+    expect(menuItems()).toEqual(["3 jam lagiHari ini, 11:07"]);
+  });
+
+  it("with today's only deadline put off, Hari ini doesn't claim there's none; Settings counts it", async () => {
+    const world = new PretendWorld({ now: "2026-10-10T10:00:00+07:00" });
+    const s = await open({ world });
+    s.world.edunex.postTask(95059, { name: "Ringkasan K6", end_at: "2026-10-10T23:59:00+07:00" });
+    await s.engineDoes(() => s.engine.refresh("edunex"));
+    await snooze("Ringkasan K6 · PL3032", "3 jam lagi");
+    expect(today()?.textContent).toContain("Tidak ada kuliah hari ini. Tenggat hari ini kamu tunda.");
+    expect(today()?.textContent).not.toContain("Tidak ada kuliah atau tenggat hari ini.");
+    await s.apply({ type: "command", command: "settings" });
+    expect(document.querySelector("[role=dialog]")?.textContent).toContain("Pengingat yang ditunda (1)");
+  });
+});
+
 describe("the course page's attendance banner", () => {
   it("puts off the banner and Beranda's item together, keeps the header's count, and comes back with a new count", async () => {
     const s = await open();

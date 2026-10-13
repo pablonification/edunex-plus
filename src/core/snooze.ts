@@ -1,14 +1,14 @@
-// "Remind me later" (Ingatkan nanti) for Beranda's items and a course's
-// attendance banner: what identifies an item, the facts that bring it back
-// when they change, the moments it can be put off until, and which items a
-// list still shows. Every snooze ends: at the moment chosen, at the item's own
+// "Remind me later" (Ingatkan nanti) for Beranda's items ("Perlu perhatianmu",
+// and the deadlines in "Hari ini") and a course's attendance banner: what
+// identifies an item, the facts that bring it back when they change, the
+// moments it can be put off until, and which items a list still shows. Every snooze ends: at the moment chosen, at the item's own
 // last useful moment (a deadline's last hours, a class about to start), and
 // never later than two weeks out. Nothing here is "don't remind me again".
 // OS notifications and the bell don't look at snoozes: they stay the safety net.
 import type { AttendanceHealth } from "./attendance";
 import { wibDay } from "./course-meetings";
 import type { SnoozeEntry } from "./models";
-import { DUE_NOW, type Need, STARTING_SOON } from "./needs";
+import { DUE_NOW, type NeedDraft, STARTING_SOON } from "./needs";
 import { dayStart } from "./schedule";
 
 const MINUTE = 60_000;
@@ -57,7 +57,7 @@ const dayBefore = (at: number) => dayStart(wibDay(at)) - DAY + MORNING;
  * brings the item back; the steps before that (coming up, then soon) aren't,
  * so a snooze isn't cut short on the way to the time it promised.
  */
-export function snoozeKey(need: Need): SnoozeKey {
+export function snoozeKey(need: NeedDraft): SnoozeKey {
   const facts = (...parts: unknown[]) => parts.map((part) => (part === null || part === undefined ? "" : String(part))).join("|");
   const urgent = need.band === "now" ? "urgent" : "";
   switch (need.kind) {
@@ -91,7 +91,7 @@ export function snoozeKey(need: Need): SnoozeKey {
  * thresholds). That brings it back, so nothing is offered past it. null: it
  * doesn't (a Presence window ahead ends at its opening, attendance at a new count).
  */
-function turnsUrgent(need: Need): number | null {
+function turnsUrgent(need: NeedDraft): number | null {
   if (need.band === "now") return null;
   switch (need.kind) {
     case "task":
@@ -121,14 +121,14 @@ export function attendanceKey(code: string, health: Pick<AttendanceHealth, "stat
 }
 
 /** What a Beranda item can be put off until: never past the moment it turns urgent. */
-export function snoozable(need: Need, now: number): Snoozable {
+export function snoozable(need: NeedDraft, now: number): Snoozable {
   const item = ownTerms(need, now);
   const urgent = turnsUrgent(need);
   return urgent !== null && (item.cap === null || urgent < item.cap) ? { ...item, cap: urgent } : item;
 }
 
 /** An item's own last useful moment and the moment that fits it. */
-function ownTerms(need: Need, now: number): Snoozable {
+function ownTerms(need: NeedDraft, now: number): Snoozable {
   const key = snoozeKey(need);
   const later = need.band !== "now";
   switch (need.kind) {

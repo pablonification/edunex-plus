@@ -33,14 +33,15 @@ import { Popover } from "../ui/overlays";
 
 export const ready = true;
 
-/** Courses at risk: one absence left or fewer, or the target out of reach. */
+/** Courses that need the Student: no absences left, or the target out of reach. */
 export function useBadge(): { value: number; tone: "neutral" | "warning" } | null {
   const attendance = useAttendance();
   const value = attendance?.courses.filter((c) => needsAttention(c.health.state)).length ?? 0;
   return value > 0 ? { value, tone: "warning" } : null;
 }
 
-const ORDER: Record<AttendanceState, number> = { out: 0, none: 1, risk: 2, safe: 3, unknown: 4 };
+/** Worst first, as the answer on top says it; a course whose lectures are over after the ones still going. */
+const ORDER: Record<AttendanceState, number> = { out: 0, missed: 1, none: 2, risk: 3, safe: 4, met: 5, unknown: 6 };
 
 export function PresenceScreen() {
   const t = useT();
@@ -145,7 +146,10 @@ function Answer({ courses, quiet }: { courses: CourseAttendance[]; quiet: boolea
   );
 }
 
-/** "Target kehadiran 80%": the default, for every course without its own (also in Settings). */
+/**
+ * "Target semua mata kuliah: 80%": the default, for every course without its
+ * own (also in Settings); a row's own "Target 80%" sets that course's alone.
+ */
 function TargetControl({ target }: { target: number }) {
   const t = useT();
   const [open, setOpen] = useState(false);
@@ -302,7 +306,7 @@ function CourseRow({
   );
 }
 
-/** "Hadir 4 dari 6 · sekitar 8 pertemuan lagi sampai 4 Des"; out of reach, the best still possible; without SIX, Edunex's own tally. */
+/** "Hadir 4 dari 6 · 66% · sekitar 8 pertemuan lagi sampai 4 Des", as the course page says it; out of reach, the best still possible; without SIX, Edunex's own tally. */
 function useFacts(health: AttendanceHealth, lastDay: string | null): ReactNode {
   const t = useT();
   const f = useFormat();
@@ -322,7 +326,7 @@ function useFacts(health: AttendanceHealth, lastDay: string | null): ReactNode {
           : t(left.estimated ? "presence.row.leftAbout" : "presence.row.left", { count, date: f.dayMonth(Date.parse(`${lastDay}T12:00:00+07:00`)) });
   return (
     <Meta>
-      {t("presence.row.count", { attended, held })}
+      {t("presence.row.count", { attended, held, percent: percent(attended, held) })}
       {rest}
     </Meta>
   );
@@ -448,6 +452,7 @@ function useWarning(health: AttendanceHealth): ReactNode {
     );
   const first = health.left.upcoming[0];
   if (next && first?.uncertain && first.session?.id === next.id) return <Warning tone="warning">{uncertainText(t, f, next.start, calendar?.events)}</Warning>;
+  // Once lectures are over the verdict says it all, calmly: no warning under it.
   if (health.state === "out")
     return (
       <Warning

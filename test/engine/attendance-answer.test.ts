@@ -33,7 +33,7 @@ const answer = (courses: AttendanceHealth[], lang: Lang = "id") =>
   );
 
 describe("Presensi's answer", () => {
-  it("names the courses and what to do, worst first: no absences left, then out of reach, then one left", () => {
+  it("names the courses and what to do, worst first, as the rows are ordered: out of reach, then no absences left, then one left", () => {
     const courses = [
       course("PL3002", "risk", 1),
       course("KU5014", "out", -2),
@@ -42,13 +42,13 @@ describe("Presensi's answer", () => {
       course("PL3032", "none", 0),
     ];
     expect(answer(courses)).toEqual([
-      { tone: "warning", text: "Jangan absen lagi di DK4073 dan PL3032." },
       { tone: "danger", text: "KU5014 sudah tak bisa capai 80%." },
-      { tone: "warning", text: "Masih bisa absen 1× lagi di PL3002." },
+      { tone: "warning", text: "Jangan absen lagi di DK4073 dan PL3032." },
+      { tone: "success", text: "Masih bisa absen 1× lagi di PL3002." },
     ]);
     expect(answer(courses, "en").map((line) => line.text)).toEqual([
-      "Don't miss another class in DK4073 and PL3032.",
       "KU5014 can't reach 80% anymore.",
+      "Don't miss another class in DK4073 and PL3032.",
       "You can miss 1 more class in PL3002.",
     ]);
   });
@@ -69,6 +69,22 @@ describe("Presensi's answer", () => {
     const courses = [course("II4091", "safe", 4), course("PL3002", "safe", 2), course("DK4073", "unknown", null)];
     expect(answer(courses)).toEqual([{ tone: "success", text: "Semua aman. Paling mepet PL3002: masih bisa absen 2× lagi." }]);
     expect(answer(courses, "en")[0].text).toBe("All good. The closest is PL3002: you can miss 2 more classes.");
+  });
+
+  it("once lectures are over: finished below the target is said plainly, and nothing asks to attend", () => {
+    const courses = [course("DK4073", "met", 0), course("PL3032", "missed", -1), course("KU5014", "missed", -2, 75)];
+    expect(answer(courses)).toEqual([
+      { tone: "danger", text: "PL3032 selesai di bawah 80%." },
+      { tone: "danger", text: "KU5014 selesai di bawah 75%." },
+    ]);
+    expect(answer(courses, "en").map((line) => line.text)).toEqual(["PL3032 finished below 80%.", "KU5014 finished below 75%."]);
+    expect(answer(courses).some((line) => /absen/.test(line.text))).toBe(false);
+  });
+
+  it("once lectures are over with every target met: one calm line", () => {
+    const courses = [course("DK4073", "met", 0), course("PL3032", "met", 0), course("II4091", "unknown", null)];
+    expect(answer(courses)).toEqual([{ tone: "success", text: "Kuliah sudah selesai: target kehadiran tercapai di 2 mata kuliah." }]);
+    expect(answer(courses, "en")[0].text).toBe("Lectures are over: attendance target reached in 2 courses.");
   });
 
   it("nothing to say before SIX has a count", () => {

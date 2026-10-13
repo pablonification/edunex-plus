@@ -79,16 +79,17 @@ export function refocus(target: () => HTMLElement | null | undefined) {
 
 /**
  * Where focus goes when the row or notice holding `from` leaves, noted before
- * it does: the next row, else the one before, else the list's "ditunda" line
- * (looked up after the redraw, which draws it anew); after a notice, what a
- * Tab would have reached next.
+ * it does: the next row, else the one before, else the "ditunda" line (looked
+ * up after the redraw, which draws it anew): its own list's, or, for a
+ * deadline in "Hari ini", the one in "Perlu perhatianmu" that lists it; after a
+ * notice, what a Tab would have reached next.
  */
 function focusAfter(from: HTMLElement | null): () => HTMLElement | null | undefined {
   const row = from?.closest("li");
   if (row) {
     const sibling = (row.nextElementSibling ?? row.previousElementSibling)?.querySelector<HTMLElement>("button");
     const section = row.closest("section");
-    return () => sibling ?? section?.querySelector<HTMLElement>("[data-snoozed]");
+    return () => sibling ?? section?.querySelector<HTMLElement>("[data-snoozed]") ?? document.querySelector<HTMLElement>("[data-snoozed]");
   }
   const after = from ? nextTabbable(from) : null;
   return () => after;

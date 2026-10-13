@@ -32,18 +32,28 @@ const ABOUT_EXAM = /^[\s:([–-]*(pra|pre|kisi|latihan|pembahasan|review|remedia
 const NAMES_EXAM = /^[\s[({"'“‘]*(?:take[\s-]?home\s*[:–-]?\s*)?(UTS|UAS|Midex|Finex|Ujian\s+Tengah\s+Semester|Ujian\s+Akhir\s+Semester)\b/i;
 
 /**
+ * Why a Task is an exam's take-home, said where it's shown: Edunex files it
+ * under UTS or UAS (`edunex`), or its name starts with the exam's word
+ * (`name`, with the start as written: "UTS", "Take-home UAS", "Midex").
+ */
+export type TakeHome = { kind: "UTS" | "UAS" } & ({ by: "edunex" } | { by: "name"; start: string });
+
+/**
  * The exam a Task is the take-home of: Edunex's own category first (the
  * lecturer picks UTS or UAS), else a title that names the exam. A Task whose
  * title only speaks of one ("Tugas Pra-UTS", "UTS - Pembahasan") is a Task;
  * one about a subject is the exam ("UAS Literature Review").
  */
-export function takeHomeKind(task: Pick<Task, "kind" | "title">): "UTS" | "UAS" | null {
-  if (task.kind === "uts") return "UTS";
-  if (task.kind === "uas") return "UAS";
+export function takeHomeOf(task: Pick<Task, "kind" | "title">): TakeHome | null {
+  if (task.kind === "uts") return { kind: "UTS", by: "edunex" };
+  if (task.kind === "uas") return { kind: "UAS", by: "edunex" };
   const match = NAMES_EXAM.exec(task.title);
   if (!match || ABOUT_EXAM.test(task.title.slice(match[0].length))) return null;
-  return /^(UTS|Midex|Ujian\s+Tengah)/i.test(match[1]) ? "UTS" : "UAS";
+  const kind = /^(UTS|Midex|Ujian\s+Tengah)/i.test(match[1]) ? "UTS" : "UAS";
+  return { kind, by: "name", start: match[0].replace(/^[\s[({"'“‘]+/, "") };
 }
+
+export const takeHomeKind = (task: Pick<Task, "kind" | "title">): "UTS" | "UAS" | null => takeHomeOf(task)?.kind ?? null;
 
 const HOUR = 3_600_000;
 /** A deadline on one of these days: its own, or the day before for one just past midnight ("00:00" closes the day before). */

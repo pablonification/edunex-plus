@@ -142,7 +142,10 @@ describe("Tugas & Ujian", () => {
     expect(row("Tugas 02 Bab II")!.textContent).toContain("Juga presensi: Jum, 16 Okt 15:00–23:59");
     expect(row("Tugas Mandiri Individu")!.textContent).not.toContain("presensi");
     await s.click(row("Tugas 02 Bab II")!);
-    expect(s.text()).toContain("Tugas ini sekaligus Presensi-mu: hanya terhitung jika dikumpulkan di dalam jendelanya, Jum, 16 Okt, 15:00–23:59.");
+    // How the app knows: the lecturer linked the Task to that class's Edunex Presence.
+    expect(s.text()).toContain(
+      "Tugas ini sekaligus Presensi-mu: dosen menautkannya ke Presensi Edunex, jadi hanya terhitung hadir jika dikumpulkan di dalam jendelanya, Jum, 16 Okt, 15:00–23:59.",
+    );
   });
 
   it("where the course counts in SIX, the Task's attendance window is optional: said so in the list and on its page, never pushed", async () => {
@@ -158,7 +161,9 @@ describe("Tugas & Ujian", () => {
     await s.click(/^Tugas & Ujian\d*$/);
     expect(row("Tugas Mandiri Individu")!.textContent).toContain("Juga Presensi Edunex, tidak wajib: Kam, 15 Okt 08:00–23:59");
     await s.click(row("Tugas Mandiri Individu")!);
-    expect(s.text()).toContain("Mengumpulkan pada Kam, 15 Okt, 08:00–23:59 juga mengisi Presensi Edunex. Tidak wajib: kehadiran PL3002 dihitung di SIX.");
+    expect(s.text()).toContain(
+      "Dosen menautkan tugas ini ke Presensi Edunex: mengumpulkan pada Kam, 15 Okt, 08:00–23:59 juga mengisinya. Tidak wajib: kehadiran PL3002 dihitung di SIX.",
+    );
     expect(s.text()).not.toContain("hanya terhitung jika dikumpulkan");
     // Nothing nudges the Student to wait for the window: Kumpulkan stays the main button once there's a file.
     s.willPick([{ name: "Projek Inovasi.pdf" }]);
@@ -242,13 +247,22 @@ describe("the Task page", () => {
     // The rules sit where they matter: the file rule in the drop zone, the late rule by the deadline.
     expect(card()).toContain("Wajib unggah berkas");
     expect(document.querySelector("article")?.textContent).toContain("Tidak bisa terlambat");
-    expect(s.text()).toContain("Bagian dari UTS DK4073");
+    // The exam it's part of, and how the app knows.
+    expect(s.text()).toContain("Bagian dari UTS DK4073 · Edunex menandainya UTS");
     const history = [...document.querySelectorAll("main aside ol li")].map((li) => li.textContent);
     expect(history).toEqual(["Diunggah dosenKam, 17 Sep, 08:45", "Diubah dosenKam, 24 Sep, 11:11", "TenggatKam, 22 Okt, 23:50"]);
     // An edit before the Student handed in is history, not a warning.
     expect(s.text()).not.toContain("Diubah dosen pada");
     await s.click("Lihat di Edunex");
     expect(s.calls.at(-1)).toEqual({ name: "shell.openExternal", input: { url: "https://edunex.itb.ac.id/assignment/take/117764" } });
+  });
+
+  it("a take-home known by its name says so: Edunex files it as a plain Task", async () => {
+    const s = await open();
+    s.world.edunex.postTask(95059, { name: "Midex Esai Transportasi", domain: "task", end_at: "2026-10-16T23:59:00+07:00" });
+    await s.engineDoes(() => s.engine.refresh("edunex"));
+    await goToTask(s, "Midex Esai Transportasi");
+    expect(s.text()).toContain("Bagian dari UTS PL3032 · Namanya diawali “Midex”");
   });
 
   it("formats the lecturer's instructions safely: no script or markup of Edunex's reaches the page", async () => {

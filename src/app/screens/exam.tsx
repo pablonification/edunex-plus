@@ -6,7 +6,7 @@
 // SIX's sitting is said calmly: two parts, not a conflict.
 import type { ReactNode } from "react";
 import { wibDay } from "../../core/course-meetings";
-import { dueOn, type Exam, examKind, examPassed } from "../../core/exams";
+import { dueOn, type Exam, examKind, examPassed, takeHomeOf } from "../../core/exams";
 import { edunexCourseUrl } from "../../core/links";
 import type { CalendarEvent, Task } from "../../core/models";
 import { dayStart, sixTimetableUrl } from "../../core/schedule";
@@ -34,6 +34,13 @@ export const ready = true;
 function KindLabel({ exam }: { exam: Pick<Exam, "kind"> }) {
   const t = useT();
   return <Tag>{t(`exam.kind.${exam.kind}`)}</Tag>;
+}
+
+/** Why a Task is the exam's take-home, in a few quiet words: "Edunex menandainya UTS", "Namanya diawali “Midex”". */
+export function takeHomeWhy(t: Translate, task: Pick<Task, "kind" | "title">): string | null {
+  const why = takeHomeOf(task);
+  if (!why) return null;
+  return why.by === "edunex" ? t("exam.takeHomeBy.edunex", { kind: why.kind }) : t("exam.takeHomeBy.name", { start: why.start });
 }
 
 /** "Masa UTS 12–16 Okt". */
@@ -393,7 +400,11 @@ function TakeHomeCard({ task }: { task: Task }) {
       className="focus-ring group flex flex-col rounded-xl border border-edge bg-surface px-5 py-4 text-left shadow-card transition-colors duration-150 hover:bg-hover"
     >
       <span className="flex items-center justify-between gap-2 text-small font-medium text-muted">
-        {t("exam.takeHome")}
+        {/* How the app knows it's the exam's take-home, said once where it's shown. */}
+        <Meta>
+          {t("exam.takeHome")}
+          <span className="font-normal">{takeHomeWhy(t, task) ?? ""}</span>
+        </Meta>
         {status !== "not_started" && <StatusChip status={status} />}
       </span>
       <span className="mt-1 text-heading font-semibold tabular-nums">{task.dueAt !== null ? dayLabel(f, task.dueAt) : t("exam.noDate")}</span>

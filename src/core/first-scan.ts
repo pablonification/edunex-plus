@@ -126,9 +126,9 @@ export function firstScan(input: ScanInput): Finding[] {
 /** The lines that say something neither system tells the Student (what couldn't be read doesn't count). */
 export const notable = (findings: readonly Finding[]) => findings.filter((finding) => finding.kind !== "unread").length;
 
-const STATE_ORDER = { out: 0, none: 1, risk: 2, safe: 3, unknown: 4 } as const;
+const STATE_ORDER = { out: 0, missed: 1, none: 2, risk: 3, safe: 4, met: 5, unknown: 6 } as const;
 
-/** Courses with one absence left or fewer, or the target out of reach, from SIX's exact counts. */
+/** Courses with no absences left, or the target out of reach, from SIX's exact counts. */
 function attendanceAtRisk({ saved, targets, now }: ScanInput): Finding | null {
   const six = saved["six.courses"];
   const schedule = saved["six.schedule"];

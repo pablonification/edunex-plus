@@ -42,6 +42,7 @@ export const homeStrings = {
   // Hari ini: today's classes, meetings outside SIX, and what's due today and tomorrow
   "home.today": { id: "Hari ini", en: "Today" },
   "home.today.none": { id: "Tidak ada kuliah atau tenggat hari ini.", en: "No classes or deadlines today." },
+  "home.today.noneSnoozed": { id: "Tidak ada kuliah hari ini. Tenggat hari ini kamu tunda.", en: "No classes today. You snoozed today's deadlines." },
   "home.today.noSix": { id: "Jadwal dan ruang kuliah muncul setelah SIX terhubung.", en: "Classes and rooms show once SIX is connected." },
   "home.today.signInSix": { id: "Masuk ke SIX", en: "Sign in to SIX" },
   "home.today.done": { id: "Selesai", en: "Done" },

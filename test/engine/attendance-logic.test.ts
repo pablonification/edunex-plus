@@ -272,6 +272,77 @@ describe("the absence budget", () => {
   });
 });
 
+describe("once lectures are over", () => {
+  /** PL3002 meets on Thursdays to 3 Dec (ITB's last lecture day is Friday 4 Dec). */
+  const pl = (attended: number, held: number, now: string, period: ReturnType<typeof lecturePeriod> = lecturePeriod(CALENDAR, "2026-1", wib(now))) =>
+    attendanceHealth({
+      code: "PL3002",
+      six: { attended, held },
+      presence: [],
+      schedule: weekly("PL3002", "2026-08-27T08:00:00", 15),
+      period,
+      target: 80,
+      now: wib(now),
+    });
+
+  it("after the course's last class, the verdict is final: met at or above the target, never 'don't miss another'", () => {
+    // 4 of 4, 12 of 15, 15 of 15: nothing left to attend, so no absence is "left" or "needed".
+    for (const [attended, held] of [
+      [4, 4],
+      [12, 15],
+      [15, 15],
+    ])
+      expect(pl(attended, held, "2026-12-03T12:00:00")).toMatchObject({ state: "met", absencesLeft: 0, toRecover: null, needsUncertain: false });
+    // That morning, before it, the last class is still to come: the budget, as before ("Masih bisa absen 1× lagi").
+    expect(pl(4, 4, "2026-12-03T07:00:00").state).not.toBe("met");
+  });
+
+  it("finished below the target: missed, with the share it finished at, not 'out of reach'", () => {
+    const health = pl(11, 15, "2026-12-03T12:00:00");
+    expect(health).toMatchObject({ state: "missed", toRecover: null });
+    expect(health.absencesLeft).toBeLessThan(0);
+    expect(percent(health.best!)).toBe(73);
+  });
+
+  it("past ITB's last lecture day it's over, even for a course SIX never timetabled", () => {
+    const period = lecturePeriod(CALENDAR, "2026-1", wib("2026-12-08T09:00:00"));
+    const health = attendanceHealth({
+      code: "KP",
+      six: { attended: 4, held: 4 },
+      presence: [],
+      schedule: [],
+      period,
+      target: 80,
+      now: wib("2026-12-08T09:00:00"),
+    });
+    expect(health.state).toBe("met");
+  });
+
+  it("isn't over while a Presence window of the course is still open: marking it there still counts", () => {
+    const during = (closesIn: number) =>
+      attendanceHealth({
+        code: "PL3002",
+        six: { attended: 11, held: 15 },
+        // The last class (3 Dec 08:00–10:00) ran, and its window closes at 13:00, or already closed.
+        presence: [presence(1, "2026-12-03T08:00:00", 300 + closesIn)],
+        schedule: weekly("PL3002", "2026-08-27T08:00:00", 15),
+        period: lecturePeriod(CALENDAR, "2026-1", wib("2026-12-03T12:00:00")),
+        target: 80,
+        now: wib("2026-12-03T12:00:00"),
+      }).state;
+    expect(during(0)).not.toMatch(/met|missed/);
+    expect(during(-180)).toBe("missed");
+  });
+
+  it("isn't over while a class may still run, nor without ITB's calendar to say when lectures end", () => {
+    // Only a class SIX still lists on a holiday is left (3 Dec made a holiday): it may run, so nothing is final yet.
+    const holiday = { ...CALENDAR, events: [...CALENDAR.events, event("holiday", "2026-12-03", "2026-12-03")] };
+    expect(pl(12, 14, "2026-11-27T12:00:00", lecturePeriod(holiday, "2026-1", wib("2026-11-27T12:00:00"))).state).not.toMatch(/met|missed/);
+    // Without the calendar, SIX's timetable alone can't say the term is over.
+    expect(pl(4, 4, "2026-12-03T12:00:00", null).state).not.toMatch(/met|missed/);
+  });
+});
+
 describe("each course's own target", () => {
   const now = wib("2026-10-08T12:00:00");
   const settings = { attendanceTarget: 80, attendanceTargets: { DK4073: 75 } };

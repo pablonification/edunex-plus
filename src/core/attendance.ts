@@ -194,11 +194,15 @@ export function meetingsLeft(
 // ---------------------------------------------------------------- the budget
 
 /**
- * safe: room to spare. risk: one absence left, or below the target now.
- * none: no absences left (every remaining meeting needed). out: the target
- * can't be reached anymore. unknown: SIX has no count yet.
+ * safe: room to spare. risk: one absence left, or below the target now with
+ * absences still to spare by the end of term. none: no absences left (every
+ * remaining meeting needed). out: the target can't be reached anymore.
+ * met / missed: the course's lectures are over (nothing left to attend), and
+ * it finished at or above its target / below it: final, nothing to do.
+ * unknown: SIX has no count yet. Only none and out are warnings: while an
+ * absence is still allowed (risk too), the course is fine.
  */
-export type AttendanceState = "safe" | "risk" | "none" | "out" | "unknown";
+export type AttendanceState = "safe" | "risk" | "none" | "out" | "met" | "missed" | "unknown";
 
 export interface AttendanceHealth {
   code: string;
@@ -264,6 +268,29 @@ export function attendanceHealth({ code, six, sixConnected, presence, schedule, 
   const t = target / 100;
   // a + r − (allowed) ≥ t·(h + r)  →  allowed = ⌊a + r − t·(h + r)⌋
   const allowed = (remaining: number) => Math.floor(attended + remaining - t * (held + remaining) + EPS);
+  // Nothing left to attend, by ITB's calendar: past the last lecture day, or no
+  // meeting of the course's own still to come before it (not even one that may
+  // not run). Without the calendar, or the course's own classes on SIX's
+  // timetable, that can't be told from a timetable that hasn't come yet. Nor
+  // while a Presence window is still open: marking it there still counts.
+  const over =
+    period !== null &&
+    base.left.upcoming.length === 0 &&
+    !presence.some((p) => p.closesAt > now) &&
+    (wibDay(now) > period.lastDay || schedule.some((s) => s.courseCode === code && !isExamActivity(s.activity)));
+  if (over) {
+    const final = allowed(0);
+    return {
+      ...base,
+      attended,
+      held,
+      absencesLeft: Math.min(final, 0),
+      best: attended / held,
+      toRecover: null,
+      needsUncertain: false,
+      state: final < 0 ? "missed" : "met",
+    };
+  }
   // Absences to spare count only the meetings sure to happen; out of reach
   // counts every one that may still run: a class that may not run never
   // takes an absence away from the count, nor the target from the Student.
@@ -281,8 +308,8 @@ export function attendanceHealth({ code, six, sixConnected, presence, schedule, 
   return { ...base, attended, held, absencesLeft, best, toRecover, needsUncertain, state };
 }
 
-/** A state worth a word: not safe and known. */
-export const needsAttention = (state: AttendanceState) => state === "risk" || state === "none" || state === "out";
+/** A state that needs the Student: no absences left, or the target out of reach. */
+export const needsAttention = (state: AttendanceState) => state === "none" || state === "out";
 
 // ---------------------------------------------------------------- what counts in an Edunex window
 

@@ -54,6 +54,8 @@ describe("the exam list", () => {
     // The tile gives the week; the row says what's still missing instead of repeating it.
     expect(weekOnly).toContain("Hari dan jamnya belum diumumkan");
     expect(examSection()?.textContent).not.toMatch(/minggu/i);
+    // Under the list, once: how a take-home is told from a Task.
+    expect(examSection()?.textContent).toContain("Take-home: tugas Edunex yang ditandai UTS atau UAS, atau yang namanya diawali UTS, UAS, Midex atau Finex.");
   });
 
   it("a take-home due before SIX's sitting: the tile shows the deadline's day, and the class sitting names its own", async () => {
@@ -90,7 +92,8 @@ describe("the exam page", () => {
     expect(text).toContain("Kamis, 15 Oktober · dalam 7 hari");
     // When and where first: the day, the time, the room.
     expect(text).toContain("Di kelasKam 15 Okt11:00–12:59 · 119 menitTVST C");
-    expect(text).toContain("Take-homeKam 22 OktTenggat 23:50Buka tugas · UTS Markom");
+    // The take-home's card says how the app knows it's the exam's: Edunex files the Task under UTS.
+    expect(text).toContain("Take-home · Edunex menandainya UTSKam 22 OktTenggat 23:50Buka tugas · UTS Markom");
     // Two parts, said calmly by the two cards: no warning, no strip repeating them, no question for the lecturer;
     // one link to where the lecturer says whether the sitting happens.
     expect(text).toContain("Buka tugas · UTS MarkomCek pengumuman dosen");

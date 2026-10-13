@@ -96,11 +96,6 @@ export const searchStrings = {
     en: "{code}: {attended} of {held} · best case {best}% of the {target}% target",
   },
   "scan.attendance.none": { id: "{code}: jangan absen lagi", en: "{code}: don't miss another class" },
-  "scan.attendance.one": { id: "{code}: masih bisa absen 1× lagi", en: "{code}: you can miss 1 more class" },
-  "scan.attendance.below": {
-    id: "{code}: di bawah {target}%, kembali setelah {count}x hadir berturut-turut",
-    en: "{code}: below {target}%, back after {count} in a row",
-  },
 
   // Overlapping classes
   "scan.clash.one": {

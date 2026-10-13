@@ -148,7 +148,8 @@ function monthLines(day: ScheduleDay, t: Translate, f: Format, world: ReturnType
       key: `e${session.id}`,
       icon: <Tag>{session.activity}</Tag>,
       text: session.courseCode,
-      full: t("schedule.month.exam", { activity: session.activity, code: session.courseCode, time: time(session.start), room: session.room ?? "" }),
+      // The room only when SIX gives one: never "UTS DK4073 11:00 · " with nothing after it.
+      full: factsLabel(t("schedule.month.exam", { activity: session.activity, code: session.courseCode, time: time(session.start) }), session.room),
       tone: "font-semibold",
     });
   }

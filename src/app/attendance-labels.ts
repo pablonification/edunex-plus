@@ -8,19 +8,37 @@ import type { StringKey } from "../core/strings";
 import { type Translate, useT } from "./i18n";
 import type { MeterTone } from "./ui/meter";
 
-/** A state's text color: red when the target is out of reach, amber with no room left, green with room to spare. */
+/**
+ * A state's text color: red when the target is out of reach (or lectures
+ * ended below it), amber with no absence left, green while at least one still
+ * is (one left at 100% is no warning) and when lectures ended at the target.
+ */
 export const STATE_TONE: Record<AttendanceState, string> = {
   out: "text-danger-fg",
+  missed: "text-danger-fg",
   none: "text-warning-fg",
-  risk: "text-warning-fg",
+  risk: "text-success-fg",
   safe: "text-success-fg",
+  met: "text-success-fg",
   unknown: "text-faint",
 };
 
 /** A state's meter fill, in the same status colors. */
-export const METER_TONE: Record<AttendanceState, MeterTone> = { out: "danger", none: "warning", risk: "warning", safe: "success", unknown: "neutral" };
+export const METER_TONE: Record<AttendanceState, MeterTone> = {
+  out: "danger",
+  missed: "danger",
+  none: "warning",
+  risk: "success",
+  safe: "success",
+  met: "success",
+  unknown: "neutral",
+};
 
-/** What's left before the course's own target: "Masih bisa absen 2× lagi", "Jangan absen lagi", "Tak bisa lagi capai 80% · paling tinggi 71%". */
+/**
+ * What's left before the course's own target: "Masih bisa absen 2× lagi",
+ * "Jangan absen lagi", "Tak bisa lagi capai 80% · paling tinggi 71%"; once
+ * lectures are over, the final word: "Selesai, 80% tercapai".
+ */
 export function budgetLabel(t: Translate, health: AttendanceHealth): string {
   switch (health.state) {
     case "unknown":
@@ -29,6 +47,10 @@ export function budgetLabel(t: Translate, health: AttendanceHealth): string {
       return t("presence.budget.out", { target: health.target, best: percent(health.best ?? 0) });
     case "none":
       return t("presence.budget.none");
+    case "met":
+      return t("presence.budget.met", { target: health.target });
+    case "missed":
+      return t("presence.budget.missed", { target: health.target });
     default:
       return t("presence.budget.safe", { count: health.absencesLeft ?? 0 });
   }

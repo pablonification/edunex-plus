@@ -5,7 +5,7 @@
 // whole list). The rules (what matches, until when) live in core/snooze.ts.
 import { useSyncExternalStore } from "react";
 import type { SnoozeEntry } from "../core/models";
-import { attention, homeContext, nowCard, todayPlan } from "../core/needs";
+import { attention, dueItems, homeContext, nowCard, todayPlan } from "../core/needs";
 import { activeSnooze, attendanceKey, holding, pruneSnoozes, type SnoozeKey, snoozeKey } from "../core/snooze";
 import { useAttendance } from "./attendance";
 import { useHomeWorld } from "./home-world";
@@ -74,7 +74,7 @@ export function useSnoozes(): Snoozes {
 
 /**
  * The snoozes still hiding something now, on Beranda (its "Perlu perhatianmu",
- * as it shows it) or on a course page (the attendance banner): what Settings
+ * as it shows it, and the deadlines in "Hari ini") or on a course page (the attendance banner): what Settings
  * counts. One whose deadline moved, whose count changed or whose Task was
  * handed in hides nothing, so it isn't counted.
  */
@@ -85,7 +85,8 @@ export function useHeldBack(): readonly SnoozeEntry[] {
   const now = useNow();
   if (!world) return [];
   const context = homeContext(world);
-  const keys = attention(context, nowCard(context), todayPlan(context)).map(snoozeKey);
+  const plan = todayPlan(context);
+  const keys = [...attention(context, nowCard(context), plan), ...dueItems(context, plan)].map(snoozeKey);
   // A banner's key carries its course's state, so only a course still showing that banner matches.
   if (attendance) for (const { course, health } of attendance.courses) keys.push(attendanceKey(course.code, health));
   return holding(entries, keys, now);

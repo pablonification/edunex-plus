@@ -44,7 +44,7 @@ describe("after the first full sync of Edunex and SIX", () => {
     expect(dialog()?.querySelector("p")?.textContent).toBe("Edunex dan SIX terhubung · 5 mata kuliah, 10 tugas dibaca");
     expect(dialog()?.querySelector("h3")?.textContent).toBe("7 hal yang tidak disampaikan kedua sistem");
     expect(titles()).toEqual([
-      "Kehadiran 4 mata kuliah berisiko",
+      "Kehadiran 3 mata kuliah berisiko",
       "KU5014 dan PL3032 bentrok di 5 pertemuan",
       "Kehadiran 1 mata kuliah dihitung di SIX, bukan Edunex",
       "3 ujian akan datang",
@@ -52,10 +52,8 @@ describe("after the first full sync of Edunex and SIX", () => {
       "Dosen mengubah 6 tugas setelah diunggah",
       "IPK 3,26 · di bawah cum laude",
     ]);
-    // Calm and action-first: the facts, then what to do.
-    expect(detail("Kehadiran 4")).toBe(
-      "KU5014: hadir 2 dari 6 · paling tinggi 73% dari target 80%DK4073: jangan absen lagiPL3032: jangan absen lagidan 1 lainnya",
-    );
+    // Calm and action-first: the facts, then what to do. PL3002, with one absence still allowed, isn't at risk.
+    expect(detail("Kehadiran 3")).toBe("KU5014: hadir 2 dari 6 · paling tinggi 73% dari target 80%DK4073: jangan absen lagiPL3032: jangan absen lagi");
     expect(detail("KU5014 dan PL3032")).toBe("Berikutnya Hari ini, 16:00–16:30. Pilih yang akan kamu hadiri, atau tanyakan ke dosen.");
     expect(detail("Kehadiran 1")).toBe('PL3002: SIX mencatat hadir 6 dari 7; abaikan 5 "absen" di EdunexCukup hadir di kelas; Presensi Edunex tidak wajib.');
     // DK4073's UTS is one exam: SIX's sitting, with the take-home a week later said calmly as its second part.
@@ -66,7 +64,7 @@ describe("after the first full sync of Edunex and SIX", () => {
     expect(detail("Dosen mengubah")).toBe("2 di antaranya setelah kamu mengumpulkan. Cek lagi instruksinya; Edunex tidak mengabarkannya.");
     expect(detail("IPK")).toBe("Kurang 0,24 untuk cum laude (3,50).");
     // No source tags: a line is its title and its facts.
-    expect(line("Kehadiran 4").textContent).toBe(`Kehadiran 4 mata kuliah berisiko${detail("Kehadiran 4")}`);
+    expect(line("Kehadiran 3").textContent).toBe(`Kehadiran 3 mata kuliah berisiko${detail("Kehadiran 3")}`);
     // "Ke Beranda" is always in reach, however long the list.
     expect(screen.button("Ke Beranda").closest(".sticky")).not.toBeNull();
     // Shown once: remembered right away.
@@ -91,7 +89,7 @@ describe("after the first full sync of Edunex and SIX", () => {
     expect(document.querySelector("main")?.textContent).toContain("UTS");
 
     await again();
-    await screen.click(line("Kehadiran 4"));
+    await screen.click(line("Kehadiran 3"));
     expect(h1()).toBe("Presensi");
 
     await again();
@@ -203,12 +201,12 @@ describe("only with something to say", () => {
 });
 
 describe("a course with one absence left", () => {
-  it("says it as Beranda and Presensi do", async () => {
+  it("isn't at risk, as Beranda and Presensi (green) say: an absence is still allowed", async () => {
     const world = new PretendWorld();
-    // DK4073 safe: PL3002, with one absence left, is among the lines shown.
     world.six.setAttendance("DK4073", 7, 7);
     screen = await openApp({ world, firstScan: true, signedIn: true, six: true });
-    expect(detail("Kehadiran 3")).toBe("KU5014: hadir 2 dari 6 · paling tinggi 73% dari target 80%PL3032: jangan absen lagiPL3002: masih bisa absen 1× lagi");
+    expect(detail("Kehadiran 2")).toBe("KU5014: hadir 2 dari 6 · paling tinggi 73% dari target 80%PL3032: jangan absen lagi");
+    expect(detail("Kehadiran 2")).not.toContain("PL3002");
   });
 });
 
@@ -223,7 +221,7 @@ describe("in English", () => {
     expect(dialog()?.querySelector("p")?.textContent).toBe("Edunex and SIX connected · 5 courses, 10 Tasks read");
     expect(dialog()?.querySelector("h3")?.textContent).toBe("7 things neither system tells you");
     expect(titles()).toEqual([
-      "Attendance at risk in 4 courses",
+      "Attendance at risk in 3 courses",
       "KU5014 and PL3032 overlap in 5 meetings",
       "1 course counts attendance in SIX, not Edunex",
       "3 upcoming exams",
@@ -231,9 +229,7 @@ describe("in English", () => {
       "Lecturers edited 6 Tasks after posting them",
       "IPK 3.26 · below cum laude",
     ]);
-    expect(detail("Attendance")).toBe(
-      "KU5014: 2 of 6 · best case 73% of the 80% targetDK4073: don't miss another classPL3032: don't miss another classand 1 more",
-    );
+    expect(detail("Attendance")).toBe("KU5014: 2 of 6 · best case 73% of the 80% targetDK4073: don't miss another classPL3032: don't miss another class");
     expect(detail("IPK")).toBe("0.24 short of cum laude (3.50).");
     expect(screen.button("Go to Home")).toBeDefined();
   });

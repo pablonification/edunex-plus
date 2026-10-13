@@ -3,8 +3,10 @@
 // and the one thing to do; then two columns: "Hari ini" (today's classes, the
 // meetings outside SIX, what's due today and tomorrow) and "Perlu
 // perhatianmu" (the week ahead, never repeating today); then a short "Yang
-// berubah" (the bell has it all) and this term's courses. The reasoning lives
-// in src/core/needs.ts.
+// berubah" (the bell has it all) and this term's courses. A deadline (in either
+// column) and anything in "Perlu perhatianmu" can be put off ("Ingatkan
+// nanti"); what's put off is listed under "Perlu perhatianmu". The reasoning
+// lives in src/core/needs.ts.
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { rupiah } from "../../core/academic";
 import { type AttendanceHealth, type AttendanceState, percent } from "../../core/attendance";
@@ -14,16 +16,17 @@ import type { Alert, AlertKind, SnoozeEntry } from "../../core/models";
 import {
   attention,
   type ClassFacts,
+  dueItems,
   type HomeContext,
   homeContext,
-  type Need,
+  type NeedDraft,
   type NowCard,
   nowCard,
   recentChanges,
   type TodayPlan,
   todayPlan,
 } from "../../core/needs";
-import { partitionSnoozed, snoozable, snoozeKey } from "../../core/snooze";
+import { activeSnooze, partitionSnoozed, snoozable, snoozeKey } from "../../core/snooze";
 import { budgetLabel, useActionLabel, verdictLabel } from "../attendance-labels";
 import { AttendanceSummary } from "../attendance-parts";
 import { type TermCourse, useTerm, useTermCourses } from "../courses";
@@ -54,12 +57,14 @@ const SOON = 2 * 60 * MINUTE;
 /** "Yang berubah" shows this many; the bell has the rest. */
 const CHANGES_SHOWN = 5;
 
-/** Attendance state as a status color for text: quiet when safe. Never the course's color. */
+/** Attendance state as a status color for text: quiet while an absence is still allowed. Never the course's color. */
 const STATE_TEXT: Record<AttendanceState, string> = {
   out: "text-danger-fg",
+  missed: "text-danger-fg",
   none: "text-warning-fg",
-  risk: "text-warning-fg",
+  risk: "text-muted",
   safe: "text-muted",
+  met: "text-muted",
   unknown: "text-faint",
 };
 
@@ -117,6 +122,7 @@ function Answers({ context, courses }: { context: HomeContext; courses: readonly
   const card = useMemo(() => nowCard(context), [context]);
   const plan = useMemo(() => todayPlan(context), [context]);
   const needs = useMemo(() => attention(context, card, plan), [context, card, plan]);
+  const due = useMemo(() => dueItems(context, plan), [context, plan]);
   return (
     <>
       <NowSection card={card} courses={courses} hasSchedule={context.schedule !== null} />
@@ -124,9 +130,9 @@ function Answers({ context, courses }: { context: HomeContext; courses: readonly
         {/* The day on the left; what needs you and what changed beside it, so neither column runs on alone.
             Narrower, one column that can shrink: a long title with no spaces wraps instead of widening the page. */}
         <div className="grid grid-cols-1 items-start gap-x-8 gap-y-10 @min-[800px]:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
-          <Today context={context} plan={plan} courses={courses} onCard={cardKey(card)} />
+          <Today context={context} plan={plan} due={due} courses={courses} onCard={cardKey(card)} />
           <div className="grid grid-cols-[minmax(0,1fr)] gap-y-10">
-            <NeedsYou needs={needs} courses={courses} />
+            <NeedsYou needs={needs} due={due} courses={courses} />
             <Changes context={context} courses={courses} />
           </div>
         </div>
@@ -464,42 +470,72 @@ function NoSixToday() {
 type TodayItem =
   | { kind: "class"; at: number; facts: ClassFacts }
   | { kind: "meeting"; at: number; code: string; meeting: TodayPlan["announced"][number]["meeting"] }
-  | { kind: "due"; at: number; task: TodayPlan["due"][number] };
+  | { kind: "due"; at: number; task: TodayPlan["due"][number]; need: NeedDraft | null };
 
 /** The Hari ini row key of what the now card shows. */
 const cardKey = (card: NowCard | null) =>
   card?.class ? `class:${card.class.session.id}` : card?.meeting ? `meeting:${card.meeting.code}:${card.meeting.meeting.start}` : null;
 
-/** `onCard`: the row key of what the now card above already shows, so its row doesn't say the same again. */
-function Today({ context, plan, courses, onCard }: { context: HomeContext; plan: TodayPlan; courses: readonly TermCourse[]; onCard: string | null }) {
+/**
+ * `due`: the deadlines as Beranda's items, so each can be put off; one put off
+ * leaves the day and is listed under "Perlu perhatianmu" until it's back.
+ * `onCard`: the row key of what the now card above already shows, so its row doesn't say the same again.
+ */
+function Today({
+  context,
+  plan,
+  due,
+  courses,
+  onCard,
+}: {
+  context: HomeContext;
+  plan: TodayPlan;
+  due: readonly NeedDraft[];
+  courses: readonly TermCourse[];
+  onCard: string | null;
+}) {
   const t = useT();
+  const now = useNow();
+  const { entries } = useSnoozes();
   const day = wibDay(context.now);
+  const needOf = (task: TodayPlan["due"][number]) => due.find((need) => need.kind === "task" && need.task.id === task.id) ?? null;
   const items: TodayItem[] = [
     ...plan.classes.map((facts): TodayItem => ({ kind: "class", at: facts.session.start, facts })),
     ...plan.announced.map(({ code, meeting }): TodayItem => ({ kind: "meeting", at: meeting.start, code, meeting })),
-    ...plan.due.map((task): TodayItem => ({ kind: "due", at: task.dueAt!, task })),
+    ...plan.due.map((task): TodayItem => ({ kind: "due", at: task.dueAt!, task, need: needOf(task) })),
   ].sort((a, b) => a.at - b.at);
-  const today = items.filter((item) => wibDay(item.at) === day);
-  const tomorrow = items.filter((item) => wibDay(item.at) !== day);
+  const putOff = (item: TodayItem) => item.kind === "due" && item.need !== null && activeSnooze(snoozeKey(item.need), entries, now) !== undefined;
+  const shown = items.filter((item) => !putOff(item));
+  const today = shown.filter((item) => wibDay(item.at) === day);
+  const tomorrow = shown.filter((item) => wibDay(item.at) !== day);
+  // Never "no deadlines today" while today's are only put off.
+  const snoozedToday = items.some((item) => putOff(item) && wibDay(item.at) === day);
   return (
     <Section id="home-today" title={t("home.today")} className="mt-0">
       {!context.schedule && <NoSixToday />}
       {today.length > 0 ? (
         <List label={t("home.today")} className={cx(!context.schedule && "mt-3")}>
-          {today.map((item) => (
-            <TodayRow key={keyOf(item)} item={item} courses={courses} onCard={onCard} />
-          ))}
+          {/* A deadline put off fades out, and focus moves on to the next row. */}
+          <PresenceList>
+            {today.map((item) => (
+              <TodayRow key={keyOf(item)} item={item} courses={courses} onCard={onCard} />
+            ))}
+          </PresenceList>
         </List>
       ) : (
-        context.schedule && <p className="rounded-xl bg-sunken px-4 py-3.5 text-body text-muted">{t("home.today.none")}</p>
+        context.schedule && (
+          <p className="rounded-xl bg-sunken px-4 py-3.5 text-body text-muted">{t(snoozedToday ? "home.today.noneSnoozed" : "home.today.none")}</p>
+        )
       )}
       {tomorrow.length > 0 && (
         <>
           <h3 className="mt-5 mb-2 text-small font-semibold text-muted">{t("home.today.tomorrow")}</h3>
           <List label={t("home.today.tomorrow")}>
-            {tomorrow.map((item) => (
-              <TodayRow key={keyOf(item)} item={item} courses={courses} onCard={onCard} />
-            ))}
+            <PresenceList>
+              {tomorrow.map((item) => (
+                <TodayRow key={keyOf(item)} item={item} courses={courses} onCard={onCard} />
+              ))}
+            </PresenceList>
           </List>
         </>
       )}
@@ -531,10 +567,14 @@ function TodayRow({ item, courses, onCard }: { item: TodayItem; courses: readonl
   const shownAbove = keyOf(item) === onCard;
 
   if (item.kind === "due") {
-    const { task } = item;
+    const { task, need } = item;
     const close = task.dueAt! - now <= 6 * 60 * MINUTE;
+    // Put off as "Perlu perhatianmu" puts off a deadline: the moments that still fit, never past its last hours.
+    const later = need ? snoozable(need, now) : null;
     return (
       <Row
+        id={need ? needRowId(need.id) : undefined}
+        actions={later && canSnooze(later, now) ? <SnoozeMenu item={later} name={factsLabel(task.title, task.courseCode)} /> : undefined}
         leading={<When start={f.time(task.dueAt!)} tone={close ? "text-warning-fg" : undefined} />}
         title={task.title}
         meta={
@@ -660,7 +700,8 @@ function CourseMark({ code, courses, past = false }: { code: string; courses: re
 
 // ---------------------------------------------------------------- Perlu perhatianmu
 
-function NeedsYou({ needs, courses }: { needs: Need[]; courses: readonly TermCourse[] }) {
+/** `due`: "Hari ini"'s deadlines, as items: the ones put off are listed here with the rest. */
+function NeedsYou({ needs, due, courses }: { needs: readonly NeedDraft[]; due: readonly NeedDraft[]; courses: readonly TermCourse[] }) {
   const t = useT();
   const f = useFormat();
   const now = useNow();
@@ -670,7 +711,11 @@ function NeedsYou({ needs, courses }: { needs: Need[]; courses: readonly TermCou
   const loading = tasks === undefined && edunex.state !== "signed-out";
   // What the Student put off ("Ingatkan nanti") leaves the list until its time, or until it changes.
   const { entries } = useSnoozes();
-  const { shown, snoozed } = useMemo(() => partitionSnoozed(needs, snoozeKey, entries, now), [needs, entries, now]);
+  const { shown, snoozed } = useMemo(() => {
+    const own = partitionSnoozed(needs, snoozeKey, entries, now);
+    // "Hari ini"'s first, as the page reads: they're the soonest.
+    return { shown: own.shown, snoozed: [...partitionSnoozed(due, snoozeKey, entries, now).snoozed, ...own.snoozed] };
+  }, [needs, due, entries, now]);
   const [listOpen, setListOpen] = useState(false);
   // Closed once nothing is put off, so the next snooze doesn't find the list open.
   if (listOpen && !snoozed.length) setListOpen(false);
@@ -737,7 +782,7 @@ function SnoozedLine({ count, open, onToggle }: { count: number; open: boolean; 
 }
 
 /** Something put off: what it is, when it's back, and the way to bring it back now. */
-function SnoozedRow({ need, entry, courses }: { need: Need; entry: SnoozeEntry; courses: readonly TermCourse[] }) {
+function SnoozedRow({ need, entry, courses }: { need: NeedDraft; entry: SnoozeEntry; courses: readonly TermCourse[] }) {
   const t = useT();
   const f = useFormat();
   const { wake } = useSnoozes();
@@ -790,9 +835,9 @@ interface NeedView {
 }
 
 /** What an item is, said whole where its facts aren't beside it: a Task's name with its course ("Tugas 02 · II4091"), a window with its class. */
-const fullName = (need: Need, view: NeedView) => factsLabel(view.title, view.titleLacksCourse && need.course, view.which);
+const fullName = (need: NeedDraft, view: NeedView) => factsLabel(view.title, view.titleLacksCourse && need.course, view.which);
 
-function useNeedView(courses: readonly TermCourse[]): (need: Need) => NeedView {
+function useNeedView(courses: readonly TermCourse[]): (need: NeedDraft) => NeedView {
   const t = useT();
   const f = useFormat();
   const now = useNow();
@@ -963,7 +1008,7 @@ function useNeedView(courses: readonly TermCourse[]): (need: Need) => NeedView {
   };
 }
 
-function NeedRow({ need, courses }: { need: Need; courses: readonly TermCourse[] }) {
+function NeedRow({ need, courses }: { need: NeedDraft; courses: readonly TermCourse[] }) {
   const view = useNeedView(courses)(need);
   const now = useNow();
   const { go } = useNav();
@@ -1177,7 +1222,7 @@ function CourseCard({ course, nim, health }: { course: TermCourse; nim: string |
           <IconButton
             size="sm"
             label={`${external.label}: ${course.code}`}
-            // As a row's own actions: shown on hover and keyboard focus, always where there's no hover.
+            // A second way out, the card itself opening the course: shown on hover and keyboard focus, always where there's no hover.
             className="absolute top-2.5 right-2.5 z-10 transition-opacity duration-150 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-focus-within:opacity-100 [@media(hover:hover)]:group-hover:opacity-100"
             onClick={() => open(external.url)}
           >

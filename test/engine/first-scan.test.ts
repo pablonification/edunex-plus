@@ -30,14 +30,14 @@ describe("after the first full sync of Edunex and SIX", () => {
     expect(kinds(findings)).toEqual(["attendance", "clash", "unusedPresence", "exams", "notInSix", "edited", "ipk"]);
 
     // SIX's exact counts against 80%, to ITB's last lecture day (4 Dec): KU5014 can't make it, DK4073 and PL3032 have no
-    // absences left, PL3002 one (its 15 Oct lecture in UTS week may not run, so it isn't counted).
+    // absences left. PL3002 has one (its 15 Oct lecture in UTS week may not run, so it isn't counted): an absence still
+    // allowed is no risk.
     const attendance = of(findings, "attendance")!;
-    expect(attendance).toMatchObject({ count: 4, tone: "danger", sources: ["six", "itb"], routes: [{ screen: "presence" }] });
+    expect(attendance).toMatchObject({ count: 3, tone: "danger", sources: ["six", "itb"], routes: [{ screen: "presence" }] });
     expect(attendance.courses.map((c) => [c.code, c.state, c.attended, c.held])).toEqual([
       ["KU5014", "out", 2, 6],
       ["DK4073", "none", 4, 6],
       ["PL3032", "none", 4, 7],
-      ["PL3002", "risk", 6, 7],
     ]);
     expect(percent(attendance.courses[0].best!)).toBe(73);
 
@@ -125,17 +125,14 @@ describe("after the first full sync of Edunex and SIX", () => {
   it("the attendance target changes who is at risk", async () => {
     const h = await firstSync();
     const at = (target: number) => of(scan(h.saved(), h.statuses(), h.world.clock.now(), target), "attendance")?.courses.map((c) => [c.code, c.state]);
-    // At 60% KU5014 (2 of 6) and PL3032 (4 of 7) are below it now, though both can still recover.
-    expect(at(60)).toEqual([
-      ["KU5014", "risk"],
-      ["PL3032", "risk"],
-    ]);
+    // At 60% KU5014 (2 of 6) and PL3032 (4 of 7) are below it now, but both have absences to spare by the end: no risk.
+    expect(at(60)).toBeUndefined();
+    // At 90% II4091 still has one absence to spare: not listed.
     expect(at(90)).toEqual([
       ["DK4073", "out"],
       ["KU5014", "out"],
       ["PL3032", "out"],
       ["PL3002", "none"],
-      ["II4091", "risk"],
     ]);
   });
 });

@@ -461,43 +461,56 @@ export const classProvider: NeedProvider = {
 export const taskProvider: NeedProvider = {
   area: "task",
   needs(context) {
-    const { now } = context;
     const viaPresence = presenceTasks(context);
-    const out: NeedDraft[] = [];
-    for (const task of context.tasks) {
-      if (viaPresence.has(task.id)) continue;
-      const status = taskStatus(task, now);
-      const base = {
-        kind: "task",
-        course: task.courseCode,
-        at: task.dueAt,
-        sources: ["edunex"],
-        action: { kind: "go", route: { screen: "task", taskId: task.id } },
-        task,
-      } as const;
-      if (editedAfterSubmit(task) && task.editedAt! <= now && now - task.editedAt! < RECENT) {
-        const stillOpen = task.dueAt === null || task.dueAt > now || task.lateAllowed;
-        out.push({ ...base, id: `task:${task.id}:edited`, band: stillOpen && !task.closed ? "now" : "soon", reason: "edited", draft: false });
-        continue;
-      }
-      if (!isOpenStatus(status) || notOpenYet(task, now) || !takesAnswers(task, now)) continue;
-      const draft = status === "draft";
-      if (status === "overdue") {
-        out.push({ ...base, id: `task:${task.id}`, band: "now", reason: "overdue", draft });
-        continue;
-      }
-      if (task.dueAt === null) continue;
-      const left = task.dueAt - now;
-      if (shortWindow(task) !== null && left <= DUE_SOON) {
-        out.push({ ...base, id: `task:${task.id}`, band: "now", reason: "short", draft });
-        continue;
-      }
-      if (left > DUE_LATER) continue;
-      out.push({ ...base, id: `task:${task.id}`, band: left <= DUE_NOW ? "now" : left <= DUE_SOON ? "soon" : "later", reason: "due", draft });
-    }
-    return out;
+    return context.tasks.flatMap((task) => {
+      if (viaPresence.has(task.id)) return [];
+      const need = taskNeed(task, context.now);
+      return need ? [need] : [];
+    });
   },
 };
+
+/** A Task's own item, whatever else speaks for it (a Presence window it's handed in for); null when it needs nothing. */
+function taskNeed(task: Task, now: number): NeedDraft | null {
+  const status = taskStatus(task, now);
+  const base = {
+    kind: "task",
+    course: task.courseCode,
+    at: task.dueAt,
+    sources: ["edunex"],
+    action: { kind: "go", route: { screen: "task", taskId: task.id } },
+    task,
+  } as const;
+  if (editedAfterSubmit(task) && task.editedAt! <= now && now - task.editedAt! < RECENT) {
+    const stillOpen = task.dueAt === null || task.dueAt > now || task.lateAllowed;
+    return { ...base, id: `task:${task.id}:edited`, band: stillOpen && !task.closed ? "now" : "soon", reason: "edited", draft: false };
+  }
+  if (!isOpenStatus(status) || notOpenYet(task, now) || !takesAnswers(task, now)) return null;
+  const draft = status === "draft";
+  if (status === "overdue") return { ...base, id: `task:${task.id}`, band: "now", reason: "overdue", draft };
+  if (task.dueAt === null) return null;
+  const left = task.dueAt - now;
+  if (shortWindow(task) !== null && left <= DUE_SOON) return { ...base, id: `task:${task.id}`, band: "now", reason: "short", draft };
+  if (left > DUE_LATER) return null;
+  return { ...base, id: `task:${task.id}`, band: left <= DUE_NOW ? "now" : left <= DUE_SOON ? "soon" : "later", reason: "due", draft };
+}
+
+/**
+ * The deadlines "Hari ini" shows (today's and tomorrow's), as the items they
+ * are in "Perlu perhatianmu" before they move into "Hari ini": the same id and
+ * facts, so the Student can put one off from either place, and a deadline put
+ * off a few days ago stays put off when it reaches "Hari ini". A Task handed
+ * in for attendance has none: its Presence window is the item for it there,
+ * put off on its own.
+ */
+export function dueItems(context: HomeContext, plan: TodayPlan): NeedDraft[] {
+  const viaPresence = presenceTasks(context);
+  return plan.due.flatMap((task) => {
+    if (viaPresence.has(task.id)) return [];
+    const need = taskNeed(task, context.now);
+    return need ? [need] : [];
+  });
+}
 
 /** Meetings announced only in Edunex text, not on SIX's timetable, in the coming week. */
 export const meetingProvider: NeedProvider = {
