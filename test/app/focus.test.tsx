@@ -69,13 +69,13 @@ describe("focus when the focused control goes", () => {
     screen = await openApp({ signedIn: true, six: true });
     await screen.engineDoes(() => screen!.engine.updateSettings({ attendanceTarget: 75 }));
     await screen.click(/^Presensi/);
-    const opener = screen.button("Target kehadiran 75%");
+    const opener = screen.button("Target semua mata kuliah: 75%");
     opener.focus();
     await screen.click(opener);
     await screen.click("Kembali ke 80%");
     await tick();
     expect(document.querySelector("[role=dialog]")).toBeNull();
-    expect(document.activeElement?.textContent).toBe("Target kehadiran 80%");
+    expect(document.activeElement?.textContent).toBe("Target semua mata kuliah: 80%");
   });
 
   it("Presensi's rows hold still while a course's target is being changed, and sort again once it closes", async () => {

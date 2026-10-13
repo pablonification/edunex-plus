@@ -1,7 +1,8 @@
 // Presensi's answer, first thing on the screen (#85): "am I OK, and what do I
 // need to do?" in a line or two that name the courses and the action, worst
-// first: "Jangan absen lagi di DK4073 dan PL3032." / "KU5014 sudah tak bisa
-// capai 80%." When all is fine, it says so, and which course is closest.
+// first, in the order of the rows under it: "KU5014 sudah tak bisa capai
+// 80%." / "Jangan absen lagi di DK4073 dan PL3032." When all is fine, it says
+// so, and which course is closest.
 import type { AttendanceHealth } from "./attendance";
 import type { StringKey, Vars } from "./strings";
 
@@ -24,10 +25,6 @@ export function attendanceAnswer(
   const codes = (pick: (health: AttendanceHealth) => boolean) => courses.filter(pick).map((health) => health.code);
   const lines: AnswerLine[] = [];
 
-  // Every class from here on, said first: it's what the Student can still change.
-  const none = codes((h) => h.state === "none");
-  if (none.length) lines.push({ tone: "warning", text: t("presence.answer.none", { codes: list(none) }) });
-
   // Out of reach, then finished below the target: one line per target (courses may have their own).
   const byTarget = (state: "out" | "missed", key: "presence.answer.out" | "presence.answer.missed") => {
     const these = courses.filter((h) => h.state === state);
@@ -36,6 +33,10 @@ export function attendanceAnswer(
   };
   byTarget("out", "presence.answer.out");
   byTarget("missed", "presence.answer.missed");
+
+  // Then every class from here on.
+  const none = codes((h) => h.state === "none");
+  if (none.length) lines.push({ tone: "warning", text: t("presence.answer.none", { codes: list(none) }) });
 
   // An absence still allowed is no warning, even the last one.
   const oneLeft = codes((h) => h.state === "risk" && h.absencesLeft === 1);

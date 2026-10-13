@@ -59,7 +59,7 @@ export const attendanceStrings = {
 
   // The target
   "presence.target": { id: "Target {value}%", en: "Target {value}%" },
-  "presence.target.button": { id: "Target kehadiran {value}%", en: "Attendance target {value}%" },
+  "presence.target.button": { id: "Target semua mata kuliah: {value}%", en: "Target for all courses: {value}%" },
   "presence.target.global": {
     id: "Untuk mata kuliah yang tak punya target sendiri: di Presensi, Beranda, dan pengingat.",
     en: "For every course without its own target: on Presence, Home and in alerts.",
@@ -95,7 +95,7 @@ export const attendanceStrings = {
 
   // A course's row
   "presence.courses": { id: "Mata kuliah", en: "Courses" },
-  "presence.row.count": { id: "Hadir {attended} dari {held}", en: "Attended {attended} of {held}" },
+  "presence.row.count": { id: "Hadir {attended} dari {held} · {percent}%", en: "Attended {attended} of {held} · {percent}%" },
   "presence.row.left": {
     id: "{count} pertemuan lagi sampai {date}",
     en: { one: "{count} meeting left until {date}", other: "{count} meetings left until {date}" },

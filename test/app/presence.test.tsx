@@ -55,9 +55,9 @@ const answerText = () => document.querySelector("main h1")?.nextElementSibling?.
 const onTop = () => document.querySelector('main section[aria-label="Presensi yang dibuka sekarang"]')?.textContent ?? "";
 
 describe("the Presensi screen", () => {
-  it("answers first, by name: what to do in which course, worst first; the sidebar counts them", async () => {
+  it("answers first, by name: what to do in which course, worst first, in the rows' order; the sidebar counts them", async () => {
     const s = await openPresence(undefined, true);
-    expect(answer()).toEqual(["Jangan absen lagi di DK4073 dan PL3032.", "KU5014 sudah tak bisa capai 80%.", "Masih bisa absen 1× lagi di PL3002."]);
+    expect(answer()).toEqual(["KU5014 sudah tak bisa capai 80%.", "Jangan absen lagi di DK4073 dan PL3032.", "Masih bisa absen 1× lagi di PL3002."]);
     expect(rows().map((li) => li.textContent?.slice(0, 6))).toEqual(["KU5014", "DK4073", "PL3032", "PL3002", "II4091"]);
     // The courses with nothing to spare or out of reach: PL3002, one absence still allowed, isn't counted.
     expect(s.button(/^Presensi/).textContent).toBe("Presensi3");
@@ -70,7 +70,8 @@ describe("the Presensi screen", () => {
     await openPresence(undefined, true);
     const dk = card("DK4073");
     expect(dk).toContain("Jangan absen lagi");
-    expect(dk).toContain("Hadir 4 dari 6 · sekitar 8 pertemuan lagi sampai 4 Des");
+    // The share in words beside the count, as the course page says it: not only in the meter's name.
+    expect(dk).toContain("Hadir 4 dari 6 · 66% · sekitar 8 pertemuan lagi sampai 4 Des");
     expect(dk).toContain("Berikutnya: Hari ini, 11:00 · TVST C · cukup hadir di kelas");
     expect(row("DK4073")?.querySelector("[role=img]")?.getAttribute("aria-label")).toBe("Hadir 4 dari 6, 66%, target 80%");
     // No way back next to "Jangan absen lagi": every class from here on is the one instruction.
@@ -128,7 +129,7 @@ describe("the Presensi screen", () => {
     expect(pl).toContain("Kam 15 Okt masuk masa UTS, jadi kuliahnya mungkin tak ada. Kalau tetap ada, hadiri: tetap dihitung.");
     // Counted, it would say "2× lagi": one absence too many if the lecture doesn't run.
     expect(pl).toContain("Masih bisa absen 1× lagi");
-    expect(pl).toContain("Hadir 6 dari 7 · sekitar 7 pertemuan lagi sampai 4 Des");
+    expect(pl).toContain("Hadir 6 dari 7 · 85% · sekitar 7 pertemuan lagi sampai 4 Des");
     expect(s.text()).toContain(
       "Kuliah yang masih dijadwalkan SIX di minggu UTS, UAS atau hari libur belum pasti ada, jadi tidak dihitung sebagai jatah absen, tapi juga tak membuat target dianggap tak terkejar.",
     );
@@ -174,7 +175,7 @@ describe("the Presensi screen", () => {
     await six([course("KU5014", 2, 6)], withUts(weekly("KU5014", "2026-08-27T16:00:00", 10)));
     const ku = card("KU5014");
     expect(ku).toContain("Tak bisa lagi capai 80%");
-    expect(ku).toContain("Hadir 2 dari 6 · paling tinggi 71% di akhir kuliah");
+    expect(ku).toContain("Hadir 2 dari 6 · 33% · paling tinggi 71% di akhir kuliah");
     expect(ku).toContain("Ada pertemuan yang kamu hadiri tapi tak tercatat? Minta dosen membetulkannya di SIX.");
     await s.click("Cek di SIX");
     expect(s.calls.at(-1)).toEqual({
@@ -248,12 +249,13 @@ describe("the Presensi screen", () => {
     expect(card("DK4073")).toContain("Target 75%");
     expect(card("PL3002")).toContain("Target 80%");
     await s.key("Escape");
-    await s.click("Target kehadiran 80%");
+    // The page's own target says plainly it's for every course: not to be mixed up with a row's "Target 80%".
+    await s.click("Target semua mata kuliah: 80%");
     expect(document.querySelector("[role=dialog]")?.textContent).toContain("Untuk mata kuliah yang tak punya target sendiri");
     await s.click("Naikkan target umum");
     expect(s.calls.at(-1)).toEqual({ name: "settings.update", input: { attendanceTarget: 85 } });
     await s.click("Naikkan target umum");
-    expect(s.has("Target kehadiran 90%")).toBe(true);
+    expect(s.has("Target semua mata kuliah: 90%")).toBe(true);
     expect(card("PL3002")).toContain("Jangan absen lagi");
     expect(card("DK4073")).toContain("Masih bisa absen 1× lagi");
     await s.click("Kembali ke 80%");
@@ -280,8 +282,9 @@ describe("the Presensi screen", () => {
   it("in English", async () => {
     const s = await openPresence(undefined, true);
     await s.engineDoes(() => s.engine.updateSettings({ lang: "en" }));
-    expect(answer()).toEqual(["Don't miss another class in DK4073 and PL3032.", "KU5014 can't reach 80% anymore.", "You can miss 1 more class in PL3002."]);
-    expect(card("DK4073")).toContain("Attended 4 of 6 · about 8 meetings left until 4 Dec");
+    expect(answer()).toEqual(["KU5014 can't reach 80% anymore.", "Don't miss another class in DK4073 and PL3032.", "You can miss 1 more class in PL3002."]);
+    expect(card("DK4073")).toContain("Attended 4 of 6 · 66% · about 8 meetings left until 4 Dec");
+    expect(document.querySelector("main header")?.textContent).toContain("Target for all courses: 80%");
     expect(card("DK4073")).toContain("Next: Today, 11:00 · TVST C · just be in class");
     expect(card("PL3002")).toContain("You can miss 1 more class");
     expect(card("PL3002")).toContain("Edunex Presence is also open until 09:30; it's optional.");
@@ -302,7 +305,7 @@ describe("the Presensi screen", () => {
     await s.wait();
     expect(s.store.status("six").state).toBe("live");
     expect(answerText()).not.toContain("Jatah absen dihitung dari SIX");
-    expect(answer()[0]).toBe("Jangan absen lagi di DK4073 dan PL3032.");
+    expect(answer()[0]).toBe("KU5014 sudah tak bisa capai 80%.");
   });
 });
 

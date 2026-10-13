@@ -33,7 +33,7 @@ const answer = (courses: AttendanceHealth[], lang: Lang = "id") =>
   );
 
 describe("Presensi's answer", () => {
-  it("names the courses and what to do, worst first: no absences left, then out of reach, then one left", () => {
+  it("names the courses and what to do, worst first, as the rows are ordered: out of reach, then no absences left, then one left", () => {
     const courses = [
       course("PL3002", "risk", 1),
       course("KU5014", "out", -2),
@@ -42,13 +42,13 @@ describe("Presensi's answer", () => {
       course("PL3032", "none", 0),
     ];
     expect(answer(courses)).toEqual([
-      { tone: "warning", text: "Jangan absen lagi di DK4073 dan PL3032." },
       { tone: "danger", text: "KU5014 sudah tak bisa capai 80%." },
+      { tone: "warning", text: "Jangan absen lagi di DK4073 dan PL3032." },
       { tone: "success", text: "Masih bisa absen 1× lagi di PL3002." },
     ]);
     expect(answer(courses, "en").map((line) => line.text)).toEqual([
-      "Don't miss another class in DK4073 and PL3032.",
       "KU5014 can't reach 80% anymore.",
+      "Don't miss another class in DK4073 and PL3032.",
       "You can miss 1 more class in PL3002.",
     ]);
   });

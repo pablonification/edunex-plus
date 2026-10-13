@@ -146,7 +146,10 @@ function Answer({ courses, quiet }: { courses: CourseAttendance[]; quiet: boolea
   );
 }
 
-/** "Target kehadiran 80%": the default, for every course without its own (also in Settings). */
+/**
+ * "Target semua mata kuliah: 80%": the default, for every course without its
+ * own (also in Settings); a row's own "Target 80%" sets that course's alone.
+ */
 function TargetControl({ target }: { target: number }) {
   const t = useT();
   const [open, setOpen] = useState(false);
@@ -303,7 +306,7 @@ function CourseRow({
   );
 }
 
-/** "Hadir 4 dari 6 · sekitar 8 pertemuan lagi sampai 4 Des"; out of reach, the best still possible; without SIX, Edunex's own tally. */
+/** "Hadir 4 dari 6 · 66% · sekitar 8 pertemuan lagi sampai 4 Des", as the course page says it; out of reach, the best still possible; without SIX, Edunex's own tally. */
 function useFacts(health: AttendanceHealth, lastDay: string | null): ReactNode {
   const t = useT();
   const f = useFormat();
@@ -323,7 +326,7 @@ function useFacts(health: AttendanceHealth, lastDay: string | null): ReactNode {
           : t(left.estimated ? "presence.row.leftAbout" : "presence.row.left", { count, date: f.dayMonth(Date.parse(`${lastDay}T12:00:00+07:00`)) });
   return (
     <Meta>
-      {t("presence.row.count", { attended, held })}
+      {t("presence.row.count", { attended, held, percent: percent(attended, held) })}
       {rest}
     </Meta>
   );
