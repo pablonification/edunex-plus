@@ -1,6 +1,6 @@
 // Text for what lecturers write and upload, shown in the app: links that open
-// in the browser, pictures in notes, long notes folded, PDFs in the viewer,
-// files that can't be shown.
+// in the browser, pictures in notes, long notes folded, PDFs in the viewer
+// (and filled in there), files that can't be shown.
 import type { Entry } from "./entry";
 
 export const contentStrings = {
@@ -37,4 +37,38 @@ export const contentStrings = {
   },
   "pdf.broken": { id: "Berkasnya rusak atau bukan PDF yang bisa dibaca.", en: "The file is damaged or isn't a PDF that can be read." },
   "pdf.downloadHint": { id: "Simpan ke Unduhan, lalu buka di aplikasi PDF komputermu", en: "Save to Downloads, then open it in your computer's PDF app" },
+  "pdf.addText": { id: "Tambah teks", en: "Add text" },
+  "pdf.addTextHint": { id: "Lalu klik di halaman tempat teksnya", en: "Then click on the page where it goes" },
+  "pdf.radio": { id: "{field}: {option}", en: "{field}: {option}" },
+  "pdf.text": { id: "Teks tambahan", en: "Added text" },
+  "pdf.text.move": { id: "Geser teks", en: "Move the text" },
+  "pdf.text.moveHint": { id: "Seret, atau pakai tombol panah", en: "Drag it, or use the arrow keys" },
+  "pdf.text.smaller": { id: "Kecilkan teks", en: "Smaller text" },
+  "pdf.text.bigger": { id: "Besarkan teks", en: "Bigger text" },
+  "pdf.text.size": { id: "Ukuran teks", en: "Text size" },
+  "pdf.text.remove": { id: "Hapus teks", en: "Delete the text" },
+  "pdf.undo": { id: "Urungkan", en: "Undo" },
+  "pdf.unsaved": { id: "Isianmu belum disimpan", en: "What you filled in isn't saved yet" },
+  "pdf.copySaved": { id: "Salinan tersimpan", en: "Copy saved" },
+  "pdf.saveCopy": { id: "Simpan salinan", en: "Save a copy" },
+  "pdf.saveCopyHint": {
+    id: "Simpan PDF yang sudah diisi sebagai berkas baru; aslinya tetap",
+    en: "Save the filled-in PDF as a new file; the original stays as it was",
+  },
+  "pdf.savedAs": { id: "Tersimpan: {file}", en: "Saved: {file}" },
+  "pdf.attach": { id: "Lampirkan ke jawaban", en: "Attach to answer" },
+  "pdf.attachHint": {
+    id: "Jadi berkas di jawabanmu; terkirim saat kamu menyimpan draf atau mengumpulkan",
+    en: "Becomes a file in your answer; it's sent when you save the draft or submit",
+  },
+  "pdf.attached": { id: "{name} dilampirkan ke jawabanmu, belum disimpan", en: "{name} is attached to your answer, not saved yet" },
+  "pdf.filledName": { id: "{name} (diisi)", en: "{name} (filled)" },
+  "pdf.fillFailed": { id: "PDF yang diisi tidak bisa dibuat. Coba lagi.", en: "Couldn't make the filled-in PDF. Try again." },
+  "pdf.discard.title": { id: "Buang isianmu?", en: "Discard what you filled in?" },
+  "pdf.discard.body": {
+    id: "Yang kamu isi dan tambahkan di PDF ini belum disimpan dan akan hilang.",
+    en: "What you filled in and added to this PDF isn't saved and will be lost.",
+  },
+  "pdf.discard.confirm": { id: "Buang", en: "Discard" },
+  "pdf.discard.keep": { id: "Lanjut mengisi", en: "Keep filling" },
 } as const satisfies Record<string, Entry>;

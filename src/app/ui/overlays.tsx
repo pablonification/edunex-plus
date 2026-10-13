@@ -119,6 +119,7 @@ export function ConfirmDialog({
   title,
   body,
   confirmLabel,
+  cancelLabel,
   onConfirm,
   busy = false,
 }: {
@@ -127,6 +128,8 @@ export function ConfirmDialog({
   title: string;
   body: string;
   confirmLabel: string;
+  /** What staying means here, where "Batal" alone would be unclear ("Lanjut mengisi"). */
+  cancelLabel?: string;
   onConfirm: () => void;
   busy?: boolean;
 }) {
@@ -149,7 +152,7 @@ export function ConfirmDialog({
           <AlertDialogPrimitive.Description className="mt-1.5 text-body text-pretty text-muted">{body}</AlertDialogPrimitive.Description>
           <div className="mt-5 flex justify-end gap-2">
             <AlertDialogPrimitive.Cancel asChild>
-              <Button variant="secondary">{t("action.cancel")}</Button>
+              <Button variant="secondary">{cancelLabel ?? t("action.cancel")}</Button>
             </AlertDialogPrimitive.Cancel>
             <Button variant="danger" busy={busy} onClick={onConfirm}>
               {confirmLabel}

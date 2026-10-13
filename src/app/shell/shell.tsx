@@ -35,8 +35,11 @@ import { SettingsDialog } from "./settings";
 import { ProblemBanner, refreshNow, SyncStatus } from "./source-status";
 
 export function Shell() {
+  // No PDF from the last screen is left open over the next one (a search result, a notification, ⌘[); with
+  // filling not saved, the screen waits for the Student's answer.
+  const pdf = usePdfViewer();
   return (
-    <NavProvider>
+    <NavProvider leave={pdf.close}>
       <Layout />
     </NavProvider>
   );
@@ -48,7 +51,6 @@ function Layout() {
   const [scanOpen, setScanOpen] = useState(false);
   const bridge = useBridge();
   const { route, go } = useNav();
-  const pdf = usePdfViewer();
   const main = useRef<HTMLElement>(null);
   /** Search opens over anything else; the shortcut also closes it. */
   const openSearch = useCallback((toggle: boolean) => {
@@ -74,15 +76,13 @@ function Layout() {
       setSettingsOpen(false);
       setSearchOpen(false);
       setScanOpen(false);
-      pdf.close();
-    }, [pdf]),
+    }, []),
   );
-  // A new screen starts at its top, with no PDF from the last one left open over it (a search result, a notification, ⌘[).
+  // A new screen starts at its top.
   const key = JSON.stringify(route);
   // biome-ignore lint/correctness/useExhaustiveDependencies: key is the route; it changing is what scrolls back to the top
   useEffect(() => {
     if (main.current) main.current.scrollTop = 0;
-    pdf.close();
   }, [key]);
 
   return (

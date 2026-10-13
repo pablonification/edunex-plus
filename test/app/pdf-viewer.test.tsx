@@ -10,8 +10,8 @@ import type { Task } from "../../src/core/models";
 import { PretendWorld } from "../pretend/world";
 import { openApp } from "./harness";
 
-/** What the stand-in opened and freed; `hold` keeps the next PDF opening until it's let go. */
-const engine = vi.hoisted(() => ({ opened: 0, destroyed: 0, hold: null as Promise<void> | null }));
+/** What the stand-in opened and freed; `hold` keeps the next PDF opening until it's let go; `saved`: each fill it wrote. */
+const engine = vi.hoisted(() => ({ opened: 0, destroyed: 0, hold: null as Promise<void> | null, saved: [] as unknown[] }));
 
 vi.mock("../../src/app/ui/pdf-engine", () => {
   class PdfOpenError extends Error {
@@ -19,7 +19,32 @@ vi.mock("../../src/app/ui/pdf-engine", () => {
       super(reason);
     }
   }
-  const page = (number: number, broken: boolean) => ({
+  /** A made-up form ("Formulir" in the bytes) on its first page: a name, a check box and a drop-down. */
+  const field = (name: string, kind: string, top: number, extra: Record<string, unknown> = {}) => ({
+    id: `${name}R`,
+    name,
+    label: name,
+    kind,
+    left: 140,
+    top,
+    width: kind === "check" ? 14 : 200,
+    height: kind === "check" ? 14 : 20,
+    on: kind === "check" ? "Yes" : "",
+    multiline: false,
+    maxLength: null,
+    readOnly: false,
+    fontSize: 11,
+    options: [],
+    ...extra,
+  });
+  const FORM = [
+    field("Nama", "text", 98),
+    field("Setuju", "check", 138),
+    field("Kelas", "radio", 178, { id: "K01R", on: "K01", width: 14, height: 14 }),
+    field("Kelas", "radio", 178, { id: "K02R", on: "K02", left: 200, width: 14, height: 14 }),
+    field("Prodi", "choice", 218, { options: ["Teknik Sipil", "Arsitektur"].map((value) => ({ value, label: value })) }),
+  ];
+  const page = (number: number, broken: boolean, form = false) => ({
     size: number === 3 ? { width: 842, height: 595 } : { width: 595, height: 842 },
     render: () => ({ promise: Promise.resolve(), cancel: () => undefined }),
     text: (container: HTMLElement) => {
@@ -34,19 +59,29 @@ vi.mock("../../src/app/ui/pdf-engine", () => {
             { left: 10, top: 40, width: 80, height: 12, page: 3 },
           ]
         : [],
+    fields: async () => (form && number === 1 ? FORM : []),
     release: () => undefined,
   });
   return {
     PdfOpenError,
+    LINE_HEIGHT: 1.35,
+    OFF: "Off",
     openPdf: async (bytes: Uint8Array) => {
       const text = new TextDecoder().decode(bytes);
       if (text.includes("/Encrypt")) throw new PdfOpenError("locked");
       await engine.hold;
       engine.opened++;
       const pages = Number(/Pages: (\d+)/.exec(text)?.[1] ?? 1);
+      const form = text.includes("Formulir");
       return {
         pages,
-        page: async (n: number) => page(n, text.includes("Rusak")),
+        form: form ? { Nama: "", Setuju: "Off", Kelas: "Off", Prodi: "Teknik Sipil" } : null,
+        page: async (n: number) => page(n, text.includes("Rusak"), form),
+        // The copy: the same PDF with what was filled in, as text the test can read.
+        save: async (fill: unknown) => {
+          engine.saved.push(fill);
+          return new TextEncoder().encode(`%PDF-1.7 diisi ${JSON.stringify(fill)}`);
+        },
         destroy: () => {
           engine.destroyed++;
         },
@@ -400,5 +435,229 @@ describe("PDFs on a Task", () => {
     await s.click("Lihat Bab II.pdf");
     expect(s.calls.at(-1)).toEqual({ name: "files.read", input: { url: expect.stringContaining("/edunex/upload/"), as: "pdf" } });
     expect(viewer()?.textContent).toContain("dari 5");
+  });
+});
+
+describe("filling a PDF", () => {
+  /** A box on the page by its name (a form field, an added text). */
+  const box = <T extends HTMLElement = HTMLInputElement>(label: string) => viewer()!.querySelector<T>(`[aria-label='${label}']`)!;
+  /** Types into a box the way the Student does: what's in it becomes `value`. */
+  async function type(target: HTMLInputElement | HTMLTextAreaElement, value: string) {
+    await act(async () => {
+      target.focus();
+      const proto = target instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
+      Object.getOwnPropertyDescriptor(proto, "value")!.set!.call(target, value);
+      target.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+  }
+  async function choose(target: HTMLSelectElement, value: string) {
+    await act(async () => {
+      target.focus();
+      Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, "value")!.set!.call(target, value);
+      target.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+  }
+  /** A click with the pointer (the kind that says where), not a press from the keyboard. */
+  async function point(target: Element, at: { clientX?: number; clientY?: number } = {}) {
+    await act(async () => {
+      target.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, detail: 1, ...at }));
+    });
+  }
+  const asking = () => document.querySelector("[role=alertdialog]");
+  const NAME = "K1. SAP Ekonomi Infrastruktur dan Transportasi";
+
+  async function openCourseForm(content = "%PDF-1.7 Pages: 2 Formulir") {
+    const world = new PretendWorld();
+    world.putFile(BLOB, content);
+    const s = await openPl3032(world);
+    await s.click(`Lihat: ${NAME}`);
+    return s;
+  }
+
+  it("a form's fields are boxes on the page to fill in, and a saved copy holds what's in them", async () => {
+    const s = await openCourseForm();
+    const nama = box("Nama");
+    // Real boxes on the page itself, in the keyboard's order after the pages.
+    expect(nama.closest("[data-page]")?.getAttribute("data-page")).toBe("1");
+    expect(nama.tabIndex).toBe(0);
+    expect(box("Prodi").value).toBe("Teknik Sipil");
+    // Only reading so far: nothing to save.
+    expect(s.has("Simpan salinan")).toBe(false);
+
+    await type(nama, "Ana Contoh");
+    await s.click(box("Setuju"));
+    await choose(box<HTMLSelectElement>("Prodi"), "Arsitektur");
+    expect(viewer()?.textContent).toContain("Isianmu belum disimpan");
+    // A course's file has no answer to go into: a copy is the way to keep it.
+    expect(s.has("Lampirkan ke jawaban")).toBe(false);
+
+    // The save dialog closed without saving: still not saved.
+    s.closeSaveDialog();
+    await s.click("Simpan salinan");
+    expect(viewer()?.textContent).toContain("Isianmu belum disimpan");
+    expect(s.savedCopies).toEqual([]);
+
+    await s.click("Simpan salinan");
+    expect(engine.saved.at(-1)).toEqual({ fields: { Nama: "Ana Contoh", Setuju: "Yes", Prodi: "Arsitektur" }, texts: [] });
+    // A new file named for what it is; the course's own file is never written over.
+    expect(s.savedCopies).toEqual([{ name: `${NAME} (diisi).pdf`, text: expect.stringContaining('"Nama":"Ana Contoh"') }]);
+    expect(s.text()).toContain(`Tersimpan: ${NAME} (diisi).pdf`);
+    expect(viewer()?.textContent).toContain("Salinan tersimpan");
+
+    // Saved, so closing doesn't ask. (Escape in a box leaves the box; the next one closes.)
+    await key(document.activeElement!, "Escape");
+    expect(document.activeElement?.getAttribute("aria-label")).toBe(`${NAME}.pdf`);
+    await key(document.activeElement!, "Escape");
+    expect(asking()).toBeNull();
+    expect(viewer()).toBeNull();
+  });
+
+  it("closing with filling not saved asks first: keep filling, or discard it", async () => {
+    const s = await openCourseForm();
+    await type(box("Nama"), "Ana");
+    await key(document.activeElement!, "Escape");
+    await key(document.activeElement!, "Escape");
+    expect(asking()?.textContent).toContain("Buang isianmu?");
+    expect(viewer()).not.toBeNull();
+    await s.click("Lanjut mengisi");
+    expect(asking()).toBeNull();
+    expect(box("Nama").value).toBe("Ana");
+
+    // Closing with its button asks too; discarding closes, and the PDF opens fresh next time.
+    await s.click("Tutup");
+    expect(asking()).not.toBeNull();
+    await s.click("Buang");
+    expect(viewer()).toBeNull();
+    await s.click(`Lihat: ${NAME}`);
+    expect(box("Nama").value).toBe("");
+    expect(s.has("Simpan salinan")).toBe(false);
+  });
+
+  it("each radio button says which answer it is, and picking one lets go of the other", async () => {
+    const s = await openCourseForm();
+    const k01 = box("Kelas: K01");
+    const k02 = box("Kelas: K02");
+    expect([k01.type, k02.type]).toEqual(["radio", "radio"]);
+    expect(k01.name).toBe(k02.name);
+    await s.click(k02);
+    expect([k01.checked, k02.checked]).toEqual([false, true]);
+    await s.click(k01);
+    expect([k01.checked, k02.checked]).toEqual([true, false]);
+  });
+
+  it("going to another screen with filling not saved asks too, and the screen waits for the answer", async () => {
+    const s = await openCourseForm();
+    const course = document.querySelector("h1")?.textContent;
+    await type(box("Nama"), "Ana");
+    await key(document.activeElement!, "1", { metaKey: true });
+    expect(asking()?.textContent).toContain("Buang isianmu?");
+    // Still on the course behind the question; keeping on filling stays there.
+    expect(document.querySelector("h1")?.textContent).toBe(course);
+    await s.click("Lanjut mengisi");
+    expect(viewer()).not.toBeNull();
+    expect(box("Nama").value).toBe("Ana");
+    expect(document.querySelector("h1")?.textContent).toBe(course);
+    // Closing later doesn't go anywhere either: the earlier way out was dropped.
+    await s.click("Tutup");
+    await s.click("Buang");
+    expect(viewer()).toBeNull();
+    expect(document.querySelector("h1")?.textContent).toBe(course);
+    // Asked again on the way out, "Buang" goes on to where the Student was going.
+    await s.click(`Lihat: ${NAME}`);
+    await type(box("Nama"), "Ana");
+    await key(document.activeElement!, "1", { metaKey: true });
+    await s.click("Buang");
+    expect(viewer()).toBeNull();
+    expect(document.querySelector("h1")?.textContent).not.toBe(course);
+  });
+
+  it("⌘Z takes back the last change, typing in one box as one step; ⌘⇧Z brings it back", async () => {
+    const s = await openCourseForm();
+    await type(box("Nama"), "A");
+    await type(box("Nama"), "Ana");
+    await s.click(box("Setuju"));
+    expect(box("Setuju").checked).toBe(true);
+    await key(document.activeElement!, "z", { metaKey: true });
+    expect(box("Setuju").checked).toBe(false);
+    expect(box("Nama").value).toBe("Ana");
+    await key(document.activeElement!, "z", { metaKey: true });
+    expect(box("Nama").value).toBe("");
+    expect(s.has("Simpan salinan")).toBe(false);
+    await key(document.activeElement!, "z", { metaKey: true, shiftKey: true });
+    expect(box("Nama").value).toBe("Ana");
+    // The bar's own Undo does the same.
+    await s.click("Urungkan");
+    expect(box("Nama").value).toBe("");
+  });
+
+  it("text added from the keyboard goes in view at once, and can be moved, resized, deleted and brought back", async () => {
+    const s = await openCourseForm("%PDF-1.7 Pages: 2");
+    const add = s.button("Tambah teks");
+    add.focus();
+    // Enter on the button (a click with no pointer): the box is on the page, the cursor in it.
+    await s.click(add);
+    const text = document.activeElement as HTMLTextAreaElement;
+    expect(text.getAttribute("aria-label")).toBe("Teks tambahan");
+    expect(text.closest("[data-page]")?.getAttribute("data-page")).toBe("1");
+    await type(text, "Ana Contoh");
+    await s.click("Besarkan teks");
+    const move = s.button("Geser teks");
+    move.focus();
+    await key(move, "ArrowRight", { shiftKey: true });
+    await key(move, "ArrowDown");
+    await s.click("Simpan salinan");
+    expect(engine.saved.at(-1)).toEqual({ fields: {}, texts: [{ id: expect.any(String), page: 1, left: 58, top: 50, size: 14, text: "Ana Contoh" }] });
+
+    await s.click("Hapus teks");
+    expect(box("Teks tambahan")).toBeNull();
+    // Everything taken out again: nothing left to lose.
+    expect(s.has("Simpan salinan")).toBe(false);
+    await key(document.activeElement!, "z", { metaKey: true });
+    expect(box<HTMLTextAreaElement>("Teks tambahan").value).toBe("Ana Contoh");
+  });
+
+  it("a click puts text where it points; a box left empty goes, and Escape puts the tool down", async () => {
+    const s = await openCourseForm("%PDF-1.7 Pages: 2");
+    const add = s.button("Tambah teks");
+    await point(add);
+    expect(add.getAttribute("aria-pressed")).toBe("true");
+    // At 100% a PDF point is 4/3 of a pixel: 200, 400 on the page is 150, 300 in the PDF (the box's middle line there).
+    await point(viewer()!.querySelector("[data-page='2']")!, { clientX: 200, clientY: 400 });
+    const text = document.activeElement as HTMLTextAreaElement;
+    expect(text.closest("[data-page]")?.getAttribute("data-page")).toBe("2");
+    expect(text.closest<HTMLElement>("[data-added-text]")?.style.left).toBe("200px");
+    expect(add.getAttribute("aria-pressed")).toBe("false");
+    // Left empty: it was never there, and the viewer isn't left with something to save.
+    await key(text, "Escape");
+    expect(box("Teks tambahan")).toBeNull();
+    expect(s.has("Simpan salinan")).toBe(false);
+    expect(viewer()).not.toBeNull();
+
+    await point(add);
+    await key(document.activeElement!, "Escape");
+    expect(add.getAttribute("aria-pressed")).toBe("false");
+    expect(viewer()).not.toBeNull();
+  });
+
+  it("from a Task, a filled-in PDF is attached to the answer the way a picked file is, not saved until the Student saves", async () => {
+    const s = await openApp({ signedIn: true });
+    screen = s;
+    const tasks = s.engine.snapshot().datasets.find((d) => d.name === "edunex.tasks")?.value as Task[];
+    await s.apply({ type: "navigate", route: { screen: "task", taskId: tasks.find((t) => t.title === "Tugas 02 Bab II")!.id } });
+    s.willPick([{ name: "Formulir KP.pdf", content: "%PDF-1.4 Pages: 1 Formulir" }]);
+    await s.click(/^Lampirkan berkas/);
+    await s.click("Lihat Formulir KP.pdf");
+    await type(box("Nama"), "Ana Contoh");
+    await s.click("Lampirkan ke jawaban");
+    expect(viewer()).toBeNull();
+    const dropped = s.calls.find((call) => call.name === "tasks.dropFiles")?.input as { files: { name: string; type: string; bytes: Uint8Array }[] };
+    expect(dropped.files.map(({ name, type }) => ({ name, type }))).toEqual([{ name: "Formulir KP (diisi).pdf", type: "application/pdf" }]);
+    expect(new TextDecoder().decode(dropped.files[0].bytes)).toContain('"Nama":"Ana Contoh"');
+    const card = document.querySelector("main aside")?.textContent ?? "";
+    expect(card).toContain("Formulir KP (diisi).pdf");
+    expect(card).toContain("Belum disimpan");
+    expect(s.text()).toContain("Formulir KP (diisi).pdf dilampirkan ke jawabanmu, belum disimpan");
+    // Up to Edunex's storage like any attached file; nothing is in the answer until it's saved or handed in.
+    expect(s.world.edunex.writes.filter((w) => w.path.startsWith("/course/task/answers"))).toEqual([]);
   });
 });

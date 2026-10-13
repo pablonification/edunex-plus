@@ -39,7 +39,7 @@ export function download(contents: WebContents, url: string, name: string): Prom
 }
 
 /** A file name with no folders or characters the file system refuses. */
-function safeName(name: string): string {
+export function safeName(name: string): string {
   const clean = name
     .replace(/[/\\:*?"<>|\u0000-\u001f]/g, "_")
     .replace(/^\.+/, "")

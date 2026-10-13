@@ -4,7 +4,11 @@
 // "3 dari 12" with a box to jump, zoom (fit width, fit the page, − / +), the
 // keyboard (arrows, PgUp/PgDn, Space, Home/End, ⌘+ ⌘− ⌘0, Esc closes and
 // focus goes back), text that can be selected and copied, and links that go
-// where they point. pdf.js loads on first use (./pdf-engine.ts).
+// where they point. A form's fields can be filled in and text added on any
+// page (./pdf-fill.tsx), then saved as a copy or attached to a Task's answer;
+// closing with that unsaved asks first. pdf.js loads on first use
+// (./pdf-engine.ts).
+import { TextTIcon } from "@phosphor-icons/react/dist/csr/TextT";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import {
   type CSSProperties,
@@ -25,10 +29,24 @@ import { useT } from "../i18n";
 import { Button, IconButton } from "./controls";
 import { cx } from "./cx";
 import { Skeleton } from "./display";
-import { Icons } from "./icons";
-import { ignoreClosingClick, PANEL_MOTION_CLASS, SCRIM_CLASS, Tooltip, useReturnFocus } from "./overlays";
+import { Icons, icon } from "./icons";
+import { ConfirmDialog, ignoreClosingClick, PANEL_MOTION_CLASS, SCRIM_CLASS, Tooltip, toast, useReturnFocus } from "./overlays";
 import { PanelBoundary } from "./panel-boundary";
-import { openPdf, type PdfDocument, type PdfLink, PdfOpenError, type PdfPage, type PdfSize, type PdfTask } from "./pdf-engine";
+import {
+  LINE_HEIGHT,
+  openPdf,
+  type PdfDocument,
+  type PdfField,
+  type PdfLink,
+  PdfOpenError,
+  type PdfPage,
+  type PdfSize,
+  type PdfTask,
+  type PdfText,
+} from "./pdf-engine";
+import { FILL_AREA, FieldBox, type FillState, SaveBar, TEXT_SIZES, TextBox, useFill } from "./pdf-fill";
+
+const TextIcon = icon(TextTIcon);
 
 /** 100%: a page at its printed size (PDF points are 1/72 inch, the screen's CSS pixels 1/96). */
 const ACTUAL = 96 / 72;
@@ -54,16 +72,76 @@ export interface PdfViewerProps {
   /** The way forward when it can't be shown, for that reason (Open in Edunex, Download). Storage out of reach is the viewer's own "Try again". */
   fallback?: (problem: PdfProblem) => ReactNode;
   onOpenLink: (url: string) => void;
-  /** Leaves room at the top for macOS's window buttons. */
+  /** Writes the filled-in PDF to a file the Student picks; false when they didn't. */
+  onSaveCopy?: (bytes: Uint8Array) => Promise<boolean>;
+  /** Puts the filled-in PDF into a Task's answer; only where there's one that can still change. */
+  onAttach?: (bytes: Uint8Array) => Promise<boolean>;
+  /** Bumped to ask the viewer to close from outside (the screen behind changed): it asks first when there's unsaved filling. */
+  closeRequest?: number;
+  /** The Student chose to keep filling when asked about closing. */
+  onStay?: () => void;
+  /** Whether there's unsaved filling, as it changes. */
+  onDirtyChange?: (dirty: boolean) => void;
+  /** Leaves room at the top for macOS's window buttons, and names shortcuts with ⌘. */
   clearTitleBar?: boolean;
 }
 
-export function PdfViewer({ open, onOpenChange, name, load, actions, fallback, onOpenLink, clearTitleBar = false }: PdfViewerProps) {
+export function PdfViewer({
+  open,
+  onOpenChange,
+  name,
+  load,
+  actions,
+  fallback,
+  onOpenLink,
+  onSaveCopy,
+  onAttach,
+  closeRequest = 0,
+  onStay,
+  onDirtyChange,
+  clearTitleBar = false,
+}: PdfViewerProps) {
   const t = useT();
   const returnFocus = useReturnFocus();
   const scroller = useRef<HTMLElement>(null);
   const [attempt, setAttempt] = useState(0);
   const [view, setView] = useState<View>({ phase: "loading" });
+  const fill = useFill();
+  const { reset: resetFill, markSaved, dirty } = fill;
+  const [asking, setAsking] = useState(false);
+  const [busy, setBusy] = useState<"copy" | "attach" | null>(null);
+  /** Escape that belongs to filling (leaving a box, putting down "Tambah teks"); true when it was. */
+  const fillEscape = useRef<(target: HTMLElement) => boolean>(() => false);
+
+  const requestClose = () => (dirty ? setAsking(true) : onOpenChange(false));
+  const asked = useRef(closeRequest);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: only a new request from outside asks to close
+  useEffect(() => {
+    if (closeRequest === asked.current) return;
+    asked.current = closeRequest;
+    if (open) requestClose();
+  }, [closeRequest]);
+  useEffect(() => onDirtyChange?.(dirty), [dirty, onDirtyChange]);
+
+  /** The PDF with the filling written in, handed on; kept as saved when it went. */
+  const keep = async (kind: "copy" | "attach", send: (bytes: Uint8Array) => Promise<boolean>) => {
+    if (view.phase !== "ready" || busy) return;
+    setBusy(kind);
+    try {
+      let bytes: Uint8Array;
+      try {
+        bytes = await view.doc.save(fill.fill);
+      } catch {
+        toast(t("pdf.fillFailed"), "danger");
+        return;
+      }
+      if (!(await send(bytes))) return;
+      markSaved();
+      if (kind === "attach") onOpenChange(false);
+    } finally {
+      setBusy(null);
+    }
+  };
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: "Coba lagi" bumps attempt to read the file again
   useEffect(() => {
@@ -71,6 +149,7 @@ export function PdfViewer({ open, onOpenChange, name, load, actions, fallback, o
     let live = true;
     let doc: PdfDocument | null = null;
     setView({ phase: "loading" });
+    resetFill();
     void (async () => {
       try {
         const read = await load();
@@ -104,7 +183,7 @@ export function PdfViewer({ open, onOpenChange, name, load, actions, fallback, o
   }, [open, load, attempt]);
 
   return (
-    <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
+    <DialogPrimitive.Root open={open} onOpenChange={(next) => (next ? onOpenChange(true) : requestClose())}>
       <DialogPrimitive.Portal>
         <DialogPrimitive.Overlay className={cx(SCRIM_CLASS, "z-(--z-dialog)")} />
         <DialogPrimitive.Content
@@ -118,8 +197,9 @@ export function PdfViewer({ open, onOpenChange, name, load, actions, fallback, o
           onCloseAutoFocus={returnFocus.onCloseAutoFocus}
           onClickCapture={ignoreClosingClick}
           onEscapeKeyDown={(event) => {
-            // Escape while typing a page number only lets go of the number (the page box does that); the next one closes.
-            if (event.target instanceof HTMLElement && event.target.dataset.editing) event.preventDefault();
+            // Escape while typing a page number only lets go of the number (the page box does that), and in a box being
+            // filled in it leaves the box; the next one closes.
+            if (event.target instanceof HTMLElement && (event.target.dataset.editing || fillEscape.current(event.target))) event.preventDefault();
           }}
           className={cx(
             "fixed inset-x-3 bottom-3 z-(--z-dialog) flex flex-col overflow-hidden rounded-2xl bg-raised text-fg shadow-dialog ring-1 ring-black/10 focus:outline-none dark:ring-white/10",
@@ -130,7 +210,20 @@ export function PdfViewer({ open, onOpenChange, name, load, actions, fallback, o
           {/* Whatever in the viewer fails breaks the viewer, not the window; its title and Close stay. */}
           <PanelBoundary name="pdf viewer" compact header={<Toolbar name={name} />}>
             {view.phase === "ready" ? (
-              <Reader doc={view.doc} sizes={view.sizes} name={name} actions={actions} scroller={scroller} onOpenLink={onOpenLink} />
+              <Reader
+                doc={view.doc}
+                sizes={view.sizes}
+                name={name}
+                actions={actions}
+                scroller={scroller}
+                onOpenLink={onOpenLink}
+                fill={fill}
+                fillEscape={fillEscape}
+                mac={clearTitleBar}
+                busy={busy}
+                onSaveCopy={onSaveCopy && (() => void keep("copy", onSaveCopy))}
+                onAttach={onAttach && (() => void keep("attach", onAttach))}
+              />
             ) : (
               <>
                 <Toolbar name={name} actions={view.phase === "failed" ? undefined : actions} />
@@ -171,6 +264,22 @@ export function PdfViewer({ open, onOpenChange, name, load, actions, fallback, o
               </>
             )}
           </PanelBoundary>
+          <ConfirmDialog
+            open={asking}
+            onOpenChange={(next) => {
+              setAsking(next);
+              if (!next) onStay?.();
+            }}
+            title={t("pdf.discard.title")}
+            body={t("pdf.discard.body")}
+            confirmLabel={t("pdf.discard.confirm")}
+            cancelLabel={t("pdf.discard.keep")}
+            onConfirm={() => {
+              setAsking(false);
+              resetFill();
+              onOpenChange(false);
+            }}
+          />
         </DialogPrimitive.Content>
       </DialogPrimitive.Portal>
     </DialogPrimitive.Root>
@@ -208,6 +317,12 @@ function Reader({
   actions,
   scroller,
   onOpenLink,
+  fill,
+  fillEscape,
+  mac,
+  busy,
+  onSaveCopy,
+  onAttach,
 }: {
   doc: PdfDocument;
   sizes: PdfSize[];
@@ -215,9 +330,23 @@ function Reader({
   actions?: ReactNode;
   scroller: RefObject<HTMLElement | null>;
   onOpenLink: (url: string) => void;
+  fill: FillState;
+  fillEscape: RefObject<(target: HTMLElement) => boolean>;
+  mac: boolean;
+  busy: "copy" | "attach" | null;
+  onSaveCopy?: () => void;
+  onAttach?: () => void;
 }) {
   const t = useT();
   const total = useId();
+  const radios = useId();
+  /** "Tambah teks" is waiting for a click on a page. */
+  const [placing, setPlacing] = useState(false);
+  /** The text box just added, which takes the keyboard as it appears. */
+  const [fresh, setFresh] = useState<string | null>(null);
+  useEffect(() => {
+    if (fresh) setFresh(null);
+  }, [fresh]);
   const pages = useRef<(HTMLElement | null)[]>([]);
   // Slides (landscape) open whole; a document fills the width, as people read it.
   const [zoom, setZoom] = useState<Zoom>(() => ({ fit: sizes[0].width > sizes[0].height ? "page" : "width" }));
@@ -308,6 +437,38 @@ function Reader({
     [doc.pages, scroller],
   );
 
+  // The form as it is now: the file's values with the Student's on top.
+  const values = useMemo(() => ({ ...doc.form, ...fill.fill.fields }), [doc.form, fill.fill.fields]);
+  const { addText, setField, editText, removeText, undo, redo } = fill;
+  const toPages = useCallback(() => scroller.current?.focus(), [scroller]);
+
+  /** A new text box on a page, `top` to its middle line, and the cursor in it. */
+  const putText = (page: number, left: number, top: number) => {
+    const size = sizes[page - 1];
+    const id = addText(page, Math.min(Math.max(left, 0), size.width - 24), Math.min(Math.max(top, 0), size.height - 24));
+    setFresh(id);
+    setPlacing(false);
+  };
+  /** From the keyboard: near the top left of what's in view of the current page. */
+  const putTextInView = () => {
+    const root = scroller.current;
+    const page = pages.current[current - 1];
+    const seen = root && page ? Math.max(0, (root.scrollTop - page.offsetTop) / scale) : 0;
+    putText(current, 48, seen + 48);
+  };
+
+  useEffect(() => {
+    fillEscape.current = (target) => {
+      if (placing) {
+        setPlacing(false);
+        return true;
+      }
+      if (!target.closest(FILL_AREA)) return false;
+      toPages();
+      return true;
+    };
+  }, [fillEscape, placing, toPages]);
+
   const zoomBy = (direction: 1 | -1) => {
     const next = direction > 0 ? STEPS.find((step) => step > percent + 1) : STEPS.findLast((step) => step < percent - 1);
     if (next) setZoom({ percent: next });
@@ -319,7 +480,16 @@ function Reader({
     if (!root) return;
     const mod = event.metaKey || event.ctrlKey;
     const target = event.target as HTMLElement;
-    const typing = target instanceof HTMLInputElement;
+    // Undo and redo are the filling's, in a box too (typing in one box is one step).
+    if (mod && (event.key.toLowerCase() === "z" || event.key === "y")) {
+      event.preventDefault();
+      // An added box that undo takes away hands the keyboard to the pages first.
+      if (target.closest("[data-added-text]")) toPages();
+      if (event.key === "y" || event.shiftKey) redo();
+      else undo();
+      return;
+    }
+    const typing = target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement;
     const onControl = typing || Boolean(target.closest("button, a"));
     const wide = root.scrollWidth > root.clientWidth + 1;
     if (mod && (event.key === "=" || event.key === "+")) zoomBy(1);
@@ -396,6 +566,20 @@ function Reader({
             {fitted === "width" ? <Icons.FitPage className="size-4" /> : <Icons.FitWidth className="size-4" />}
           </IconButton>
         </Tooltip>
+        <Divider />
+        <Tooltip content={t("pdf.addTextHint")}>
+          <Button
+            size="sm"
+            variant="ghost"
+            aria-pressed={placing}
+            className={cx(placing && "bg-selected text-fg")}
+            icon={<TextIcon className="size-3.5" />}
+            // A click waits for the spot on a page; from the keyboard (no pointer to point with) it goes in view at once.
+            onClick={(event) => (event.detail === 0 ? putTextInView() : setPlacing((on) => !on))}
+          >
+            {t("pdf.addText")}
+          </Button>
+        </Tooltip>
         {actions && <Divider />}
       </Toolbar>
       <section
@@ -404,7 +588,11 @@ function Reader({
         tabIndex={0}
         aria-label={name}
         onScroll={track}
-        className="min-h-0 flex-1 overflow-auto bg-sunken outline-none focus-visible:shadow-[inset_0_0_0_2px_var(--focus)]"
+        className={cx(
+          "min-h-0 flex-1 overflow-auto bg-sunken outline-none focus-visible:shadow-[inset_0_0_0_2px_var(--focus)]",
+          // Waiting for the spot: a click on a page puts the text there instead of selecting the page's own.
+          placing && "cursor-crosshair [&_.pdf-text]:pointer-events-none",
+        )}
       >
         {/* A page that fails to draw breaks the pages, not the window; the toolbar and Close stay. */}
         <PanelBoundary name="pdf pages" compact>
@@ -424,11 +612,21 @@ function Reader({
                 near={near.has(index + 1)}
                 onOpenLink={onOpenLink}
                 onGoTo={go}
+                values={values}
+                radios={radios}
+                onField={(field, value) => setField(field, value, doc.form?.[field])}
+                texts={fill.fill.texts}
+                fresh={fresh}
+                onEditText={editText}
+                onRemoveText={removeText}
+                onLeaveText={toPages}
+                onPlace={placing ? (x, y) => putText(index + 1, x, y - (TEXT_SIZES[2] * LINE_HEIGHT) / 2) : undefined}
               />
             ))}
           </div>
         </PanelBoundary>
       </section>
+      {fill.changed && <SaveBar dirty={fill.dirty} canUndo={fill.canUndo} onUndo={undo} mac={mac} busy={busy} onSaveCopy={onSaveCopy} onAttach={onAttach} />}
     </div>
   );
 }
@@ -451,6 +649,15 @@ function PageView({
   near,
   onOpenLink,
   onGoTo,
+  values,
+  radios,
+  onField,
+  texts,
+  fresh,
+  onEditText,
+  onRemoveText,
+  onLeaveText,
+  onPlace,
 }: {
   ref: (element: HTMLDivElement | null) => void;
   doc: PdfDocument;
@@ -461,12 +668,25 @@ function PageView({
   near: boolean;
   onOpenLink: (url: string) => void;
   onGoTo: (page: number) => void;
+  /** The form's values by field name, as filled in so far. */
+  values: Readonly<Record<string, string>>;
+  radios: string;
+  onField: (name: string, value: string) => void;
+  /** Every page's added text; this page shows its own. */
+  texts: readonly PdfText[];
+  fresh: string | null;
+  onEditText: (id: string, patch: Partial<Omit<PdfText, "id">>, what: "text" | "move" | "size") => void;
+  onRemoveText: (id: string, quietly: boolean) => void;
+  onLeaveText: () => void;
+  /** "Tambah teks" is waiting: a click here puts it at that spot (at scale 1). */
+  onPlace?: (x: number, y: number) => void;
 }) {
   const t = useT();
   const paper = useRef<HTMLDivElement>(null);
   const text = useRef<HTMLDivElement>(null);
   const [page, setPage] = useState<PdfPage | null>(null);
   const [links, setLinks] = useState<PdfLink[]>([]);
+  const [fields, setFields] = useState<PdfField[]>([]);
   const drawn = useRef(false);
 
   useEffect(() => {
@@ -532,6 +752,10 @@ function PageView({
       (found) => live && setLinks(found),
       () => undefined,
     );
+    void page.fields().then(
+      (found) => live && setFields(found),
+      () => undefined,
+    );
     return () => {
       live = false;
     };
@@ -547,13 +771,23 @@ function PageView({
   const place = (link: PdfLink): CSSProperties => ({ left: link.left * scale, top: link.top * scale, width: link.width * scale, height: link.height * scale });
   return (
     // biome-ignore lint/a11y/useSemanticElements: a page of the PDF, not a set of form fields
+    // biome-ignore lint/a11y/useKeyWithClickEvents: placing text by a click; the keyboard's way is "Tambah teks" itself, which puts it in view
     <div
       ref={ref}
       role="group"
       data-page={number}
       aria-label={t("pdf.pageOf", { page: number, count })}
       style={style}
-      className="relative shrink-0 bg-white shadow-card ring-1 ring-black/5"
+      onClick={
+        onPlace &&
+        ((event) => {
+          if ((event.target as HTMLElement).closest(FILL_AREA)) return;
+          const box = event.currentTarget.getBoundingClientRect();
+          onPlace((event.clientX - box.left) / scale, (event.clientY - box.top) / scale);
+        })
+      }
+      // Paper in both themes: its boxes and controls are drawn light, like the page.
+      className="relative shrink-0 bg-white shadow-card ring-1 ring-black/5 [color-scheme:light]"
     >
       <div ref={paper} aria-hidden />
       <div ref={text} className="pdf-text" />
@@ -585,6 +819,31 @@ function PageView({
             />
           );
         })}
+      {near &&
+        fields.map((field) => (
+          <FieldBox
+            key={field.id}
+            field={field}
+            value={values[field.name] ?? ""}
+            scale={scale}
+            group={`${radios}:${field.name}`}
+            onChange={(value) => onField(field.name, value)}
+          />
+        ))}
+      {texts
+        .filter((added) => added.page === number)
+        .map((added) => (
+          <TextBox
+            key={added.id}
+            text={added}
+            scale={scale}
+            page={size}
+            focus={fresh === added.id}
+            onEdit={(patch, what) => onEditText(added.id, patch, what)}
+            onRemove={(quietly) => onRemoveText(added.id, quietly)}
+            onLeave={onLeaveText}
+          />
+        ))}
     </div>
   );
 }
