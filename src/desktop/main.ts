@@ -4,7 +4,7 @@
 
 import module from "node:module";
 import path from "node:path";
-import { app, type BrowserWindow, dialog, nativeTheme, powerMonitor, session } from "electron";
+import { app, type BrowserWindow, dialog, powerMonitor, session } from "electron";
 import { CHANNEL_EVENT } from "../core/channels";
 import type { Event } from "../core/contract";
 import type { Settings } from "../core/models";
@@ -33,7 +33,7 @@ import { FileStorage } from "./storage";
 import { electronTransport } from "./transport";
 import { type AppTray, createTray } from "./tray";
 import { openVault } from "./vault";
-import { BACKGROUND, createMainWindow, loadWindowState } from "./window";
+import { createMainWindow, currentPlatform, followTheme, loadWindowState } from "./window";
 
 // Later launches start faster: compiled code is cached between runs.
 module.enableCompileCache?.();
@@ -58,6 +58,7 @@ let engine: Engine | null = null;
 let quitting = false;
 let syncing = false;
 let tray: AppTray | null = null;
+let theme: ReturnType<typeof followTheme> | null = null;
 const notifier = createNotifier({ lang: () => engine?.snapshot().settings.lang ?? "id", open: openRoute });
 
 if (!app.requestSingleInstanceLock()) {
@@ -128,6 +129,7 @@ async function start(): Promise<void> {
     fetchFile: demo?.fetchFile ?? ((url, init) => engineSession.fetch(url, { ...init, bypassCustomProtocolHandlers: true })),
     fileCache,
     vaultMode: mode,
+    platform: demo?.platform ?? currentPlatform(),
     lang: () => current.snapshot().settings.lang,
     send,
     applySettings,
@@ -147,8 +149,8 @@ async function start(): Promise<void> {
     ...scheduleHandlers(context),
   };
   registerBridge({ window: () => window, isAppUrl, handlers });
+  theme = followTheme(() => window, currentPlatform());
   applySettings(current.snapshot().settings);
-  nativeTheme.on("updated", paintBackground);
 
   window = createMainWindow({
     preload: path.join(__dirname, "preload.cjs"),
@@ -199,14 +201,9 @@ function startSyncing(): void {
 }
 
 function applySettings(settings: Settings): void {
-  nativeTheme.themeSource = settings.theme;
-  paintBackground();
+  theme?.set(settings.theme);
   tray?.setLang(settings.lang);
   installMenu({ lang: settings.lang, devTools: !packaged, command: (command) => send({ type: "command", command }) });
-}
-
-function paintBackground(): void {
-  if (window && !window.isDestroyed()) window.setBackgroundColor(nativeTheme.shouldUseDarkColors ? BACKGROUND.dark : BACKGROUND.light);
 }
 
 function send(event: Event): void {
