@@ -24,6 +24,9 @@ const items = (label: string) => [...(section(label)?.querySelectorAll("button")
 const days = () => [...document.querySelectorAll("main section[aria-label]")].map((s) => s.getAttribute("aria-label"));
 /** The line under the title: the week ("Minggu ke-7 · 5–11 Okt") or the month. */
 const subtitle = () => document.querySelector("main h1")?.nextElementSibling?.textContent ?? "";
+/** A day's block by the start of its name. */
+const block = (label: string, name: string) =>
+  [...(section(label)?.querySelectorAll("button") ?? [])].find((b) => b.getAttribute("aria-label")?.startsWith(name)) as HTMLButtonElement;
 /** The open popover's text. */
 const popover = () => document.querySelector("[role=dialog]")?.textContent ?? "";
 
@@ -110,6 +113,8 @@ describe("Jadwal: the week as a timetable", () => {
     // Easy to miss, so amber, as Beranda says it.
     const mark = [...(section("Jumat, 9 Oktober")?.querySelectorAll("span") ?? [])].find((el) => el.textContent === "Tidak ada di SIX");
     expect(mark?.className).toContain("text-warning-fg");
+    // The Gabung button says it's online: the block doesn't say "Daring" again under it.
+    expect(block("Jumat, 9 Oktober", "II4091 · Pertemuan 3").textContent).not.toContain("Daring");
     const meeting = await details(s, /^II4091 · Pertemuan 3/);
     expect(meeting).toContain("Diumumkan dosen di Edunex; jadwal SIX tidak mencantumkannya.");
     await s.click("Gabung");
@@ -128,6 +133,14 @@ describe("Jadwal: the week as a timetable", () => {
       "PL3032 · 15:00–16:30 · R.SG PWK LT.6 · Belum pasti · Bentrok KU5014",
       "KU5014 · 16:00–17:50 · 9134 · Belum pasti · Bentrok PL3032",
     ]);
+    // Each lecture that may not run says so once, on its time line, in quiet grey: amber is for what needs the Student soon.
+    for (const code of ["PL3002", "PL3032", "KU5014"]) {
+      const lecture = block("Kamis, 15 Oktober", `${code} ·`);
+      expect(lecture.textContent?.match(/Belum pasti/g)).toHaveLength(1);
+      expect([...lecture.querySelectorAll(".text-warning-fg")].some((el) => el.textContent?.includes("Belum pasti"))).toBe(false);
+    }
+    // The exam is raised like any class, not an ink slab.
+    expect(block("Kamis, 15 Oktober", "UTS DK4073").className).not.toMatch(/\bbg-fg\b/);
     expect(await details(s, /^PL3002 · 08:00–09:30/)).toContain("Masa UTS: belum pasti ada kuliah. Cek pengumuman dosen.");
     const uts = await details(s, /^UTS DK4073/);
     expect(uts).toContain("TVST C");
@@ -166,6 +179,34 @@ describe("Jadwal: the week as a timetable", () => {
     await s.click("Minggu");
     await s.click("Minggu ini");
     expect(subtitle()).toBe("Minggu ke-7 · 5–11 Okt");
+  });
+
+  it("Minggu ini and Bulan ini bring the Student back and keep focus; on the current week or month they do nothing", async () => {
+    const s = await openSchedule();
+    const back = (name: string) => s.button(name);
+    expect(back("Minggu ini").getAttribute("aria-disabled")).toBe("true");
+    expect(back("Minggu ini").disabled).toBe(false);
+    await s.click("Minggu ini");
+    expect(subtitle()).toBe("Minggu ke-7 · 5–11 Okt");
+    await s.click("Minggu berikutnya");
+    expect(back("Minggu ini").hasAttribute("aria-disabled")).toBe(false);
+    await act(async () => back("Minggu ini").focus());
+    await s.click("Minggu ini");
+    expect(subtitle()).toBe("Minggu ke-7 · 5–11 Okt");
+    expect(document.activeElement).toBe(back("Minggu ini"));
+    expect(back("Minggu ini").getAttribute("aria-disabled")).toBe("true");
+    // Pressed again: it stays where it is.
+    await s.click("Minggu ini");
+    expect(subtitle()).toBe("Minggu ke-7 · 5–11 Okt");
+    expect(document.activeElement).toBe(back("Minggu ini"));
+
+    await s.click("Bulan");
+    await s.click("Bulan berikutnya");
+    await act(async () => back("Bulan ini").focus());
+    await s.click("Bulan ini");
+    expect(subtitle()).toBe("Oktober 2026");
+    expect(document.activeElement).toBe(back("Bulan ini"));
+    expect(back("Bulan ini").getAttribute("aria-disabled")).toBe("true");
   });
 
   it("month change: the week across October and November, and November itself", async () => {
@@ -246,7 +287,8 @@ describe("Jadwal: the week as a timetable", () => {
     expect(items("Kamis, 8 Oktober")).toEqual(["PL3002 · Economics and Innovation in Planning · 08:00–09:30 · Dari Edunex"]);
     expect(items("Jumat, 9 Oktober")[0]).toBe("II4091 · Pertemuan 3 · 15:00–17:00 · Daring · Dari Edunex");
     expect(s.text()).not.toContain("Kosong");
-    expect(s.text()).toContain("Pertemuan dan tenggat dari Edunex");
+    // Everything here is from Edunex: the blocks don't each say so (their names do).
+    expect(day("Kamis, 8 Oktober")).not.toContain("Dari Edunex");
     await s.click("Masuk ke SIX");
     await s.wait();
     expect(s.text()).not.toContain("Jadwal kuliah & ruang butuh SIX");

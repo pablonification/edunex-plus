@@ -109,13 +109,13 @@ function ExportDialog({ onClose }: { onClose: () => void }) {
 
           <fieldset className="mt-5">
             <legend className="mb-2 text-small font-semibold">{t("schedule.export.what")}</legend>
-            <ul className="overflow-hidden rounded-xl border border-edge [&>li+li]:border-t [&>li+li]:border-line">
+            <ul className="[&>li+li]:border-t [&>li+li]:border-line">
               {PHONE_KINDS.map((kind) => {
                 const n = count(kind);
                 const hint = kind === "classes" && six.state === "signed-out" && n === 0 ? t("schedule.export.needsSix") : t(`schedule.export.${kind}.hint`);
                 return (
                   <li key={kind}>
-                    <label className={cx("flex items-center gap-3 px-3.5 py-2.5 transition-colors duration-150 hover:bg-hover", n === 0 && "opacity-60")}>
+                    <label className={cx("flex items-center gap-3 py-2.5", n === 0 && "opacity-60")}>
                       <input
                         type="checkbox"
                         checked={include[kind] && n > 0}
