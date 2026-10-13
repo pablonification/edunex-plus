@@ -40,6 +40,8 @@ vi.mock("../../src/app/ui/pdf-engine", () => {
   const FORM = [
     field("Nama", "text", 98),
     field("Setuju", "check", 138),
+    field("Kelas", "radio", 178, { id: "K01R", on: "K01", width: 14, height: 14 }),
+    field("Kelas", "radio", 178, { id: "K02R", on: "K02", left: 200, width: 14, height: 14 }),
     field("Prodi", "choice", 218, { options: ["Teknik Sipil", "Arsitektur"].map((value) => ({ value, label: value })) }),
   ];
   const page = (number: number, broken: boolean, form = false) => ({
@@ -73,7 +75,7 @@ vi.mock("../../src/app/ui/pdf-engine", () => {
       const form = text.includes("Formulir");
       return {
         pages,
-        form: form ? { Nama: "", Setuju: "Off", Prodi: "Teknik Sipil" } : null,
+        form: form ? { Nama: "", Setuju: "Off", Kelas: "Off", Prodi: "Teknik Sipil" } : null,
         page: async (n: number) => page(n, text.includes("Rusak"), form),
         // The copy: the same PDF with what was filled in, as text the test can read.
         save: async (fill: unknown) => {
@@ -529,6 +531,18 @@ describe("filling a PDF", () => {
     await s.click(`Lihat: ${NAME}`);
     expect(box("Nama").value).toBe("");
     expect(s.has("Simpan salinan")).toBe(false);
+  });
+
+  it("each radio button says which answer it is, and picking one lets go of the other", async () => {
+    const s = await openCourseForm();
+    const k01 = box("Kelas: K01");
+    const k02 = box("Kelas: K02");
+    expect([k01.type, k02.type]).toEqual(["radio", "radio"]);
+    expect(k01.name).toBe(k02.name);
+    await s.click(k02);
+    expect([k01.checked, k02.checked]).toEqual([false, true]);
+    await s.click(k01);
+    expect([k01.checked, k02.checked]).toEqual([true, false]);
   });
 
   it("going to another screen with filling not saved asks too, and the screen waits for the answer", async () => {

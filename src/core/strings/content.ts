@@ -39,6 +39,7 @@ export const contentStrings = {
   "pdf.downloadHint": { id: "Simpan ke Unduhan, lalu buka di aplikasi PDF komputermu", en: "Save to Downloads, then open it in your computer's PDF app" },
   "pdf.addText": { id: "Tambah teks", en: "Add text" },
   "pdf.addTextHint": { id: "Lalu klik di halaman tempat teksnya", en: "Then click on the page where it goes" },
+  "pdf.radio": { id: "{field}: {option}", en: "{field}: {option}" },
   "pdf.text": { id: "Teks tambahan", en: "Added text" },
   "pdf.text.move": { id: "Geser teks", en: "Move the text" },
   "pdf.text.moveHint": { id: "Seret, atau pakai tombol panah", en: "Drag it, or use the arrow keys" },

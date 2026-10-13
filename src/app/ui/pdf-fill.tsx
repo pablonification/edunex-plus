@@ -124,6 +124,7 @@ export function FieldBox({
   group: string;
   onChange: (value: string) => void;
 }) {
+  const t = useT();
   const style: CSSProperties = {
     left: field.left * scale,
     top: field.top * scale,
@@ -138,7 +139,8 @@ export function FieldBox({
         data-fill
         type={field.kind === "check" ? "checkbox" : "radio"}
         name={field.kind === "radio" ? group : undefined}
-        aria-label={field.label}
+        // Radio buttons share their question's name; each says which answer it is.
+        aria-label={field.kind === "radio" && field.on ? t("pdf.radio", { field: field.label, option: field.on }) : field.label}
         checked={value === field.on}
         disabled={field.readOnly}
         onChange={(event) => onChange(event.target.checked ? field.on : OFF)}
