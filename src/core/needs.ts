@@ -499,11 +499,15 @@ function taskNeed(task: Task, now: number): NeedDraft | null {
  * The deadlines "Hari ini" shows (today's and tomorrow's), as the items they
  * are in "Perlu perhatianmu" before they move into "Hari ini": the same id and
  * facts, so the Student can put one off from either place, and a deadline put
- * off a few days ago stays put off when it reaches "Hari ini".
+ * off a few days ago stays put off when it reaches "Hari ini". A Task handed
+ * in for attendance has none: its Presence window is the item for it there,
+ * put off on its own.
  */
-export function dueItems(plan: TodayPlan, now: number): NeedDraft[] {
+export function dueItems(context: HomeContext, plan: TodayPlan): NeedDraft[] {
+  const viaPresence = presenceTasks(context);
   return plan.due.flatMap((task) => {
-    const need = taskNeed(task, now);
+    if (viaPresence.has(task.id)) return [];
+    const need = taskNeed(task, context.now);
     return need ? [need] : [];
   });
 }

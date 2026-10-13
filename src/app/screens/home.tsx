@@ -122,7 +122,7 @@ function Answers({ context, courses }: { context: HomeContext; courses: readonly
   const card = useMemo(() => nowCard(context), [context]);
   const plan = useMemo(() => todayPlan(context), [context]);
   const needs = useMemo(() => attention(context, card, plan), [context, card, plan]);
-  const due = useMemo(() => dueItems(plan, context.now), [plan, context.now]);
+  const due = useMemo(() => dueItems(context, plan), [context, plan]);
   return (
     <>
       <NowSection card={card} courses={courses} hasSchedule={context.schedule !== null} />

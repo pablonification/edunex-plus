@@ -4,7 +4,7 @@
 // shows, and the bell's history, which "Yang berubah" previews.
 import { describe, expect, it } from "vitest";
 import type { Alert, Bill, CalendarEvent, KrsPlan } from "../../src/core/models";
-import { alertFeed, attention, type HomeWorld, needsYou, nowCard, recentChanges, todayPlan } from "../../src/core/needs";
+import { alertFeed, attention, dueItems, type HomeWorld, homeContext, needsYou, nowCard, recentChanges, todayPlan } from "../../src/core/needs";
 import { PretendWorld } from "../pretend/world";
 import { startHome } from "./needs-harness";
 
@@ -184,6 +184,17 @@ describe("Perlu perhatianmu", () => {
     expect(todayPlan(world).due.map((t) => t.id)).toEqual([tonight]);
     expect(ids(world)).not.toContain(`task:${tonight}`);
     expect(ids(world)).toEqual(expect.arrayContaining([`task:${week}`, "task:117432:edited"]));
+  });
+
+  it("a deadline in Hari ini that's also attendance has no item of its own: its Presence window is the list's item for it", async () => {
+    // Tugas 02 Bab II is due tonight, handed in for II4091's attendance in the window opening at 15:00.
+    const h = await startHome({ now: "2026-10-16T09:00:00" });
+    const context = homeContext(h.home());
+    const plan = todayPlan(context);
+    expect(plan.due.map((t) => t.id)).toEqual([117003]);
+    expect(ids(h.home())).toContain("presence:2243740");
+    // A second one would be put off apart from the window's: "1 ditunda" with the same Task still listed above it.
+    expect(dueItems(context, plan)).toEqual([]);
   });
 
   it("KRS not sent while ITB's DRS window is open, and UKT due within the week", async () => {
