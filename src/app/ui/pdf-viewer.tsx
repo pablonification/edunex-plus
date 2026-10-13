@@ -82,8 +82,8 @@ export interface PdfViewerProps {
   onStay?: () => void;
   /** Whether there's unsaved filling, as it changes. */
   onDirtyChange?: (dirty: boolean) => void;
-  /** Leaves room at the top for macOS's window buttons, and names shortcuts with ⌘. */
-  clearTitleBar?: boolean;
+  /** The system whose window buttons it leaves room for at the top (macOS also names shortcuts with ⌘); none in tests. */
+  platform?: "darwin" | "win32" | "linux";
 }
 
 export function PdfViewer({
@@ -99,7 +99,7 @@ export function PdfViewer({
   closeRequest = 0,
   onStay,
   onDirtyChange,
-  clearTitleBar = false,
+  platform,
 }: PdfViewerProps) {
   const t = useT();
   const returnFocus = useReturnFocus();
@@ -204,7 +204,8 @@ export function PdfViewer({
           className={cx(
             "fixed inset-x-3 bottom-3 z-(--z-dialog) flex flex-col overflow-hidden rounded-2xl bg-raised text-fg shadow-dialog ring-1 ring-black/10 focus:outline-none dark:ring-white/10",
             PANEL_MOTION_CLASS,
-            clearTitleBar ? "top-10" : "top-3",
+            // Below macOS's traffic lights, and below the top bar where Windows and Linux draw their window buttons.
+            platform === "darwin" ? "top-10" : platform ? "top-[calc(var(--title-bar)+--spacing(2))]" : "top-3",
           )}
         >
           {/* Whatever in the viewer fails breaks the viewer, not the window; its title and Close stay. */}
@@ -219,7 +220,7 @@ export function PdfViewer({
                 onOpenLink={onOpenLink}
                 fill={fill}
                 fillEscape={fillEscape}
-                mac={clearTitleBar}
+                mac={platform === "darwin"}
                 busy={busy}
                 onSaveCopy={onSaveCopy && (() => void keep("copy", onSaveCopy))}
                 onAttach={onAttach && (() => void keep("attach", onAttach))}

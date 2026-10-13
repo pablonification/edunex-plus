@@ -391,6 +391,17 @@ describe("PDFs on a Task", () => {
     });
   });
 
+  it("on Windows the viewer starts below the top bar, so the window's own buttons never cover its Close", async () => {
+    const s = await openApp({ signedIn: true, platform: "win32" });
+    screen = s;
+    const task = tasks(s).find((t) => t.title === "UTS Markom")!;
+    s.world.putFile(task.files[0].url, "%PDF-1.4 Pages: 2");
+    await s.apply({ type: "navigate", route: { screen: "task", taskId: task.id } });
+    await s.click("Lihat UTS MARKOM SEM 1 2026 2027.pdf");
+    expect(viewer()?.className).toContain("top-[calc(var(--title-bar)+--spacing(2))]");
+    expect(viewer()?.className).not.toMatch(/\btop-(3|10)\b/);
+  });
+
   it("the Student's own PDF in the answer opens in the viewer, even while the answer can still change", async () => {
     const s = await openTask("Tugas 01 Bab I");
     const file = tasks(s).find((task) => task.title === "Tugas 01 Bab I")!.answer!.files[0];

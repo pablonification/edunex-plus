@@ -213,8 +213,8 @@ function Sidebar({ onSettings }: { onSettings: () => void }) {
   return (
     <aside className="flex h-full w-[248px] shrink-0 flex-col border-r border-line bg-sidebar select-none">
       {store.platform === "darwin" && <div className="drag h-10 shrink-0" />}
-      {/* The app's own name, under the window buttons on macOS. */}
-      <div className={cx("flex h-11 shrink-0 items-center gap-2.5 px-5", store.platform === "darwin" && "drag")}>
+      {/* The app's own name, under the traffic lights on macOS, level with the top bar elsewhere. It moves the window. */}
+      <div className={cx("drag flex shrink-0 items-center gap-2.5 px-5", store.platform === "darwin" ? "h-11" : "h-(--title-bar)")}>
         <AppMark className="size-5" />
         <span className="text-body font-semibold tracking-[-0.01em]">Edunex Plus</span>
       </div>
@@ -331,7 +331,8 @@ function TopBar({ onSearch }: { onSearch: () => void }) {
   const backLabel = useBackLabel(previous);
   const detail = route.screen === "task" || route.screen === "exam" || route.screen === "course";
   return (
-    <header className={cx("flex h-[52px] shrink-0 items-center gap-3 border-b border-line px-5 select-none", store.platform === "darwin" && "drag")}>
+    // It moves the window, and keeps clear of Windows' window buttons at its right end.
+    <header className="drag flex h-(--title-bar) shrink-0 items-center gap-3 border-b border-line pr-[calc(--spacing(5)+var(--window-controls))] pl-5 select-none">
       {detail && canGoBack && (
         <Tooltip content={factsLabel(t("action.back"), store.platform === "darwin" ? "⌘[" : "Ctrl+[")}>
           <Button

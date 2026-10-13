@@ -7,6 +7,7 @@ import type { Clock } from "../engine/clock";
 import type { Engine } from "../engine/engine";
 import type { Transport } from "../engine/http/transport";
 import type { FetchFile } from "./remote-files";
+import type { Platform } from "./window";
 
 export interface DemoHooks {
   transport: Transport;
@@ -21,6 +22,8 @@ export interface DemoHooks {
   clockOffset(): number;
   /** Files from the pretend storage, for the window to show (pictures in notes). */
   fetchFile?: FetchFile;
+  /** The system the page draws itself for, to picture Windows' title bar on a Mac; the window keeps the real system's. */
+  platform?: Platform;
 }
 
 declare global {

@@ -1,6 +1,6 @@
 // The window's root: providers, then either the welcome screen (nobody signed
 // in) or the signed-in shell.
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useEffect, useLayoutEffect, useState } from "react";
 import type { Bridge } from "./bridge";
 import { I18nProvider, type UiClock } from "./i18n";
 import { PdfViewerProvider } from "./pdf";
@@ -11,6 +11,10 @@ import { Toaster, TooltipProvider } from "./ui/overlays";
 import { PanelBoundary } from "./ui/panel-boundary";
 
 export function App({ store, bridge, clock }: { store: AppStore; bridge: Bridge; clock?: UiClock }) {
+  // The window chrome differs per system (styles.css: --title-bar, --window-controls), from the first frame.
+  useLayoutEffect(() => {
+    document.documentElement.dataset.platform = store.platform;
+  }, [store.platform]);
   return (
     <StoreProvider store={store} bridge={bridge}>
       <Localized clock={clock}>

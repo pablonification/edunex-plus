@@ -45,8 +45,11 @@ export function useReturnFocus() {
   };
 }
 
-/** The tint behind a dialog: a solid scrim (no blur to redraw), fading in and out. Add a layer: z-(--z-dialog). */
-export const SCRIM_CLASS = "fixed inset-0 bg-scrim motion-safe:data-[state=open]:animate-fade-in motion-safe:data-[state=closed]:animate-fade-out";
+/**
+ * The tint behind a dialog: a solid scrim (no blur to redraw), fading in and out. Add a layer: z-(--z-dialog).
+ * Over the top bar it takes the clicks the top bar would (moving the window), so a click there closes the dialog.
+ */
+export const SCRIM_CLASS = "no-drag fixed inset-0 bg-scrim motion-safe:data-[state=open]:animate-fade-in motion-safe:data-[state=closed]:animate-fade-out";
 /** A dialog panel arriving (from 98%) and leaving, a little quicker. Pair it with onClickCapture={ignoreClosingClick}. */
 export const PANEL_MOTION_CLASS = "motion-safe:data-[state=open]:animate-pop-in motion-safe:data-[state=closed]:animate-pop-out";
 
@@ -222,7 +225,7 @@ export function Popover({
           collisionPadding={12}
           // Grows from its control, so it shows which side it opened on, and fades as it closes.
           className={cx(
-            "z-(--z-popover) origin-(--radix-popover-content-transform-origin) rounded-xl border border-edge bg-raised text-fg shadow-pop focus:outline-none",
+            "no-drag z-(--z-popover) origin-(--radix-popover-content-transform-origin) rounded-xl border border-edge bg-raised text-fg shadow-pop focus:outline-none",
             "motion-safe:data-[state=open]:animate-popover-in motion-safe:data-[state=closed]:animate-popover-out",
             className,
           )}

@@ -75,6 +75,8 @@ export interface Options {
   checkForUpdates?: boolean;
   /** Let the first-run scan open by itself, as for a new Student (default: already seen, so it doesn't cover the screen under test). */
   firstScan?: boolean;
+  /** The system the window runs on (default macOS). */
+  platform?: AppSnapshot["platform"];
 }
 
 export async function openApp(options: Options = {}) {
@@ -128,7 +130,7 @@ export async function openApp(options: Options = {}) {
   let linksFail = false;
   const inFlight = new Set<Promise<unknown>>();
   const handlers: { [N in ActionName]: (input: never) => Promise<unknown> } = {
-    "app.snapshot": async () => ({ ...engine.snapshot(), platform: "darwin", vault: options.vaultMode ?? "encrypted" }),
+    "app.snapshot": async () => ({ ...engine.snapshot(), platform: options.platform ?? "darwin", vault: options.vaultMode ?? "encrypted" }),
     "app.ready": async () => ({}),
     "auth.signIn": async ({ source }: { source: SourceId }) => {
       if (options.signInWindow === "closes") return { signedIn: false };
