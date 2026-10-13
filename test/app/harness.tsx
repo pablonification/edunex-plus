@@ -266,6 +266,17 @@ export async function openApp(options: Options = {}) {
       await Promise.allSettled([...inFlight]);
     }
   };
+  /**
+   * After a click or a key: also what the window does on its next tick. A menu
+   * or dialog that closes hands focus back a tick later (Radix), and focus on a
+   * tab switches to it: on a slow machine that hand-back could land after the
+   * test's next step and undo it.
+   */
+  const settleStep = async () => {
+    await settle();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    await settle();
+  };
 
   const find = <T extends Element>(selector: string, name: string | RegExp): T | undefined =>
     [...document.body.querySelectorAll<T>(selector)].find((el) => {
@@ -302,14 +313,14 @@ export async function openApp(options: Options = {}) {
       const element = target instanceof HTMLElement ? target : screen.button(target);
       await act(async () => {
         element.click();
-        await settle();
+        await settleStep();
       });
       assertTidyFacts();
     },
     async key(key: string): Promise<void> {
       await act(async () => {
         (document.activeElement ?? document.body).dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true }));
-        await settle();
+        await settleStep();
       });
       assertTidyFacts();
     },
