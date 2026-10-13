@@ -87,10 +87,11 @@ describe("the exam page", () => {
     await s.click("Lihat pengumuman");
     expect(s.text()).toContain("Pengumuman");
     await s.apply({ type: "navigate", route: { screen: "exam", examId: "DK4073-UTS" } });
-    // Real material: the lecturer's file to download, and the modules before the exam.
+    // Real material: the lecturer's file to read in the app, and the modules before the exam.
     expect(s.text()).toContain("Bahan belajar");
-    await s.click("Unduh UTS MARKOM SEM 1 2026 2027.pdf");
-    expect(s.calls.at(-1)?.name).toBe("files.download");
+    await s.click("Lihat UTS MARKOM SEM 1 2026 2027.pdf");
+    expect(s.calls.at(-1)).toMatchObject({ name: "files.read", input: { as: "pdf" } });
+    await s.key("Escape");
     expect(s.text()).toContain("Kehadiran sebelum ujian · Hadir 4 dari 6");
 
     // One quiet line of official pages.

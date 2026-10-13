@@ -3,8 +3,8 @@
 // after the class's own), and the selected entry's Tasks and materials, drawn
 // the way Edunex draws them: notes and pictures right on the page, every other
 // kind with the one action that fits it (download, join, open, or Edunex
-// itself), all alike. It opens on the newest module with something in it;
-// empty modules take one quiet line.
+// itself; a PDF reads in the app's viewer), all alike. It opens on the newest
+// module with something in it; empty modules take one quiet line.
 import { type ReactNode, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import {
   contentCounts,
@@ -23,8 +23,9 @@ import type { Material, Task } from "../../../core/models";
 import { useOpenExternal, useOpenLink } from "../../hooks";
 import { type Translate, useFormat, useNow, useT } from "../../i18n";
 import { LecturerHtml, RemoteImage } from "../../lecturer-html";
+import { isPdfName, usePdfViewer } from "../../pdf";
 import { useBridge } from "../../store";
-import { Button } from "../../ui/controls";
+import { Button, IconButton } from "../../ui/controls";
 import { cx } from "../../ui/cx";
 import { EmptyState } from "../../ui/display";
 import { Icons } from "../../ui/icons";
@@ -269,6 +270,7 @@ export function MaterialRow({ material }: { material: Material }) {
   const bridge = useBridge();
   const openExternal = useOpenExternal();
   const openLink = useOpenLink();
+  const pdf = usePdfViewer();
   const [busy, setBusy] = useState(false);
   const kind = materialKind(material.type);
   const action = materialAction(material);
@@ -335,7 +337,24 @@ export function MaterialRow({ material }: { material: Material }) {
   let button: ReactNode;
   switch (action.kind) {
     case "download":
-      button = (
+      button = isPdfName(action.name) ? (
+        // A PDF reads right here; downloading stays one click away.
+        <span className="flex items-center gap-1">
+          <Tooltip content={named(t("material.download"))}>
+            <IconButton label={named(t("material.download"))} size="sm" disabled={busy} onClick={() => void download(action.url, action.name)}>
+              {busy ? <Icons.Loader className="size-4 animate-spin" /> : <Icons.Download className="size-4" />}
+            </IconButton>
+          </Tooltip>
+          <Button
+            size="sm"
+            icon={<Icons.Eye className="size-3.5" />}
+            aria-label={named(t("pdf.view"))}
+            onClick={() => pdf.open({ kind: "edunex", url: action.url, name: action.name, edunexUrl: edunexMaterialUrl(material) })}
+          >
+            {t("pdf.view")}
+          </Button>
+        </span>
+      ) : (
         <Button
           size="sm"
           busy={busy}

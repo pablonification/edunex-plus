@@ -12,6 +12,9 @@ import { EngineError } from "../../engine/errors";
 import { isDownloadable } from "../downloads";
 import type { HandlerGroup } from "./context";
 
+/** Where "Simpan untuk offline" saves unless the Student picks a folder. */
+export const offlineRoot = () => path.join(app.getPath("documents"), "Edunex Plus");
+
 export const coursePageHandlers: HandlerGroup<"course.saveOffline"> = (context) => ({
   "course.saveOffline": async ({ code, pick }) => {
     const window = context.window();
@@ -26,7 +29,7 @@ export const coursePageHandlers: HandlerGroup<"course.saveOffline"> = (context) 
       context.lang(),
     );
 
-    let root = path.join(app.getPath("documents"), "Edunex Plus");
+    let root = offlineRoot();
     if (pick) {
       const chosen = await dialog.showOpenDialog(window, { defaultPath: root, properties: ["openDirectory", "createDirectory"] });
       if (chosen.canceled || !chosen.filePaths[0]) return { folder: null, saved: 0, kept: 0, failed: 0 };

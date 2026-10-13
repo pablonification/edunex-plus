@@ -69,6 +69,17 @@ describe("reading a picture from Edunex's storage", () => {
     expect(await readRemoteFile(offline, URL_OK, "image")).toEqual({ problem: "unreachable" });
   });
 
+  it("a PDF is one when it starts like one (within its first kilobyte), up to 100 MB", async () => {
+    expect(await readRemoteFile(storage(() => new Response(ascii("%PDF-1.7\n…"))).fetch, URL_OK, "pdf")).toMatchObject({ type: "application/pdf" });
+    expect(await readRemoteFile(storage(() => new Response(ascii(`${" ".repeat(300)}%PDF-1.4`))).fetch, URL_OK, "pdf")).toMatchObject({
+      type: "application/pdf",
+    });
+    expect(await readRemoteFile(storage(() => new Response(PNG)).fetch, URL_OK, "pdf")).toEqual({ problem: "unreadable" });
+    expect(await readRemoteFile(storage(() => new Response(ascii("<html>%PDF-1.4"))).fetch, URL_OK, "image")).toEqual({ problem: "unreadable" });
+    const big = storage(() => new Response(ascii("%PDF-1.7"), { headers: { "content-length": String(101 * 1024 * 1024) } }));
+    expect(await readRemoteFile(big.fetch, URL_OK, "pdf")).toEqual({ problem: "too-big" });
+  });
+
   it("stops at the size cap, whatever the storage says the size is", async () => {
     const big = 21 * 1024 * 1024;
     const declared = storage(() => new Response(PNG, { headers: { "content-length": String(big) } }));

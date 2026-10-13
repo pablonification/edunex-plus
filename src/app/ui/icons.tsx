@@ -7,6 +7,8 @@ import type { Icon as PhosphorIcon } from "@phosphor-icons/react";
 import { AlarmIcon } from "@phosphor-icons/react/dist/csr/Alarm";
 import { ArrowRightIcon } from "@phosphor-icons/react/dist/csr/ArrowRight";
 import { ArrowsClockwiseIcon } from "@phosphor-icons/react/dist/csr/ArrowsClockwise";
+import { ArrowsInSimpleIcon } from "@phosphor-icons/react/dist/csr/ArrowsInSimple";
+import { ArrowsOutLineHorizontalIcon } from "@phosphor-icons/react/dist/csr/ArrowsOutLineHorizontal";
 import { ArrowUpRightIcon } from "@phosphor-icons/react/dist/csr/ArrowUpRight";
 import { BellIcon } from "@phosphor-icons/react/dist/csr/Bell";
 import { BookOpenIcon } from "@phosphor-icons/react/dist/csr/BookOpen";
@@ -153,6 +155,8 @@ export const Icons = {
   Snooze: icon(AlarmIcon),
   Image: icon(ImageIcon),
   ImageBroken: icon(ImageBrokenIcon),
+  FitWidth: icon(ArrowsOutLineHorizontalIcon),
+  FitPage: icon(ArrowsInSimpleIcon),
 };
 
 export type IconName = keyof typeof Icons;

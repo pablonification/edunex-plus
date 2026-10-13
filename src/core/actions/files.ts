@@ -1,7 +1,8 @@
 // Reading a file from Edunex's storage into the window, to show it in the app
-// (a picture in a lecturer's note). The main process fetches it: the window's
-// content policy never lets it reach the internet itself. A file that can't
-// be shown comes back as a problem to explain, not as an error.
+// (a picture in a lecturer's note, a PDF in the viewer). The main process
+// fetches it, or takes a copy already on this computer: the window's content
+// policy never lets it reach the internet itself. A file that can't be shown
+// comes back as a problem to explain, not as an error.
 import { z } from "zod";
 import { Bytes } from "./tasks";
 
@@ -10,9 +11,9 @@ export const FileProblem = z.enum(["expired", "missing", "too-big", "unreadable"
 export type FileProblem = z.infer<typeof FileProblem>;
 
 export const filesActions = {
-  /** A picture from Edunex's storage, checked to really be one (PNG, JPEG, GIF or WebP). */
+  /** A picture (PNG, JPEG, GIF or WebP, up to 20 MB) or a PDF (up to 100 MB) from Edunex's storage, checked to really be one. */
   "files.read": {
-    input: z.object({ url: z.string().url().max(4000), as: z.enum(["image"]) }),
+    input: z.object({ url: z.string().url().max(4000), as: z.enum(["image", "pdf"]) }),
     output: z.union([z.object({ bytes: Bytes, type: z.string() }), z.object({ problem: FileProblem })]),
   },
 } as const;

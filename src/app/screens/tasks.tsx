@@ -41,6 +41,7 @@ import { useOpenExternal } from "../hooks";
 import { type Format, type Translate, useFormat, useNow, useT } from "../i18n";
 import { LecturerHtml } from "../lecturer-html";
 import { useNav } from "../nav";
+import { isPdfName, usePdfViewer } from "../pdf";
 import { useExams } from "../schedule-data";
 import { useRefresh, useSignIn } from "../shell/source-status";
 import { useBridge, useDataset, useStatus } from "../store";
@@ -570,7 +571,7 @@ function TaskPage({ task }: { task: Task }) {
             <ul className="grid gap-2 sm:grid-cols-2">
               {task.files.map((file) => (
                 <li key={file.url}>
-                  <LecturerFile file={file} />
+                  <LecturerFile file={file} taskId={task.id} />
                 </li>
               ))}
             </ul>
@@ -711,21 +712,31 @@ function shortName(name: string): string {
   return name.slice(0, 200 - ext.length) + ext;
 }
 
-export function LecturerFile({ file }: { file: TaskFile }) {
+/** `taskId`: the Task it's on, whose page on Edunex is the way forward when the file's link stops working. */
+export function LecturerFile({ file, taskId }: { file: TaskFile; taskId: number }) {
   const t = useT();
   const { download, busy } = useDownload();
+  const pdf = usePdfViewer();
+  // A PDF reads in the app (its viewer can download it too); other files download and open.
+  const viewable = isPdfName(file.name);
   return (
     <button
       type="button"
-      aria-label={t("task.download", { name: file.name })}
-      onClick={() => void download(file)}
+      aria-label={t(viewable ? "pdf.viewFile" : "task.download", { name: file.name })}
+      onClick={() => (viewable ? pdf.open({ kind: "edunex", url: file.url, name: file.name, edunexUrl: edunexTaskUrl(taskId) }) : void download(file))}
       className="focus-ring flex w-full items-center gap-3 rounded-xl border border-edge bg-surface px-3 py-2.5 text-left shadow-card transition-colors duration-150 hover:bg-hover"
     >
       <FileBadge name={file.name} />
       <span className="line-clamp-2 min-w-0 flex-1 text-body font-medium [overflow-wrap:anywhere]" title={file.name}>
         {file.name}
       </span>
-      {busy ? <Icons.Loader className="size-4 animate-spin text-faint" /> : <Icons.Download className="size-4 text-faint" />}
+      {busy ? (
+        <Icons.Loader className="size-4 animate-spin text-faint" />
+      ) : viewable ? (
+        <Icons.Eye className="size-4 text-faint" />
+      ) : (
+        <Icons.Download className="size-4 text-faint" />
+      )}
     </button>
   );
 }
@@ -814,7 +825,7 @@ function useAnswerText(task: Task) {
 }
 
 /** The submission card: status, the Student's answer, attaching files, Save draft and Submit. */
-function HandIn({ task, status, onPreview }: Row & { onPreview?: (file: TaskFile) => void }) {
+function HandIn({ task, status }: Row) {
   const t = useT();
   const f = useFormat();
   const now = useNow();
@@ -826,6 +837,7 @@ function HandIn({ task, status, onPreview }: Row & { onPreview?: (file: TaskFile
   const { signIn, busy: signingIn } = useSignIn();
   const { refresh, busy: refreshing } = useRefresh();
   const { download, busy: downloading } = useDownload();
+  const pdf = usePdfViewer();
   const [attached, setAttached] = useState<Attached[]>([]);
   const [removed, setRemoved] = useState<string[]>([]);
   const [busy, setBusy] = useState<"draft" | "submit" | null>(null);
@@ -928,6 +940,19 @@ function HandIn({ task, status, onPreview }: Row & { onPreview?: (file: TaskFile
       }
     }
   };
+
+  // A PDF in the answer opens in the viewer: one on Edunex (saved, or uploaded a moment ago) by its link, with
+  // the Task's page as the way out; one still on its way up from its bytes, read by main by the id it gave.
+  const preview = (file: TaskFile) => () => pdf.open({ kind: "edunex", url: file.url, name: file.name, edunexUrl: edunexTaskUrl(task.id) });
+  const previewPicked = (item: Attached) => () =>
+    pdf.open({
+      kind: "bytes",
+      name: item.name,
+      load: async () => {
+        const read = await bridge.invoke("tasks.readPicked", { fileId: item.key });
+        return "problem" in read ? read : read.bytes;
+      },
+    });
 
   const removeSaved = (url: string) => setRemoved((list) => [...list, url]);
   const removeAttached = (key: string) => setAttached((list) => list.filter((item) => item.key !== key));
@@ -1136,7 +1161,7 @@ function HandIn({ task, status, onPreview }: Row & { onPreview?: (file: TaskFile
                   hint={editable ? fileHint(t, file.name, pattern, type) : null}
                   onRemove={editable ? () => removeSaved(file.url) : undefined}
                   onDownload={editable ? undefined : () => void download(file)}
-                  onPreview={onPreview && isPdf(file.name) ? () => onPreview(file) : undefined}
+                  onPreview={isPdfName(file.name) ? preview(file) : undefined}
                   downloading={downloading === file.url}
                 />
               ))}
@@ -1160,7 +1185,7 @@ function HandIn({ task, status, onPreview }: Row & { onPreview?: (file: TaskFile
                   hint={item.state === "uploaded" ? fileHint(t, item.name, pattern, type) : null}
                   onRetry={item.state === "failed" && !refused(item) ? () => retry(item) : undefined}
                   onRemove={editable ? () => removeAttached(item.key) : undefined}
-                  onPreview={onPreview && item.file && isPdf(item.name) ? () => item.file && onPreview(item.file) : undefined}
+                  onPreview={!isPdfName(item.name) || refused(item) ? undefined : item.file ? preview(item.file) : previewPicked(item)}
                 />
               ))}
             </ul>
@@ -1451,12 +1476,7 @@ function FileBadge({ name, state }: { name: string; state?: Attached["state"] })
   );
 }
 
-const isPdf = (name: string) => /\.pdf$/i.test(name);
-
-/**
- * One file of the answer. `onPreview` is the seam for an in-app viewer of the
- * Student's own files: given, the row offers to look at the file.
- */
+/** One file of the answer; with `onPreview`, the row offers to look at it in the app. */
 function FileRow({
   name,
   state,

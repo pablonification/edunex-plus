@@ -427,7 +427,7 @@ function Study({ exam }: { exam: Exam }) {
   const { go } = useNav();
   const outline = useDataset("edunex.outline")?.[exam.courseCode];
   const materials = useDataset("edunex.materials")?.[exam.courseCode] ?? [];
-  const files = exam.tasks.flatMap((task) => task.files);
+  const files = exam.tasks.flatMap((task) => task.files.map((file) => ({ file, taskId: task.id })));
   // Modules up to the exam's own (UTS: the first half; UAS: everything before it).
   const modules = outline?.modules ?? [];
   const examAt = modules.findIndex((m) => examKind(m.title) === exam.kind);
@@ -440,9 +440,9 @@ function Study({ exam }: { exam: Exam }) {
         <>
           <p className="mb-2 text-small font-medium text-muted">{t("examPage.lecturerFiles")}</p>
           <ul className="mb-6 grid gap-2 sm:grid-cols-2">
-            {files.map((file) => (
+            {files.map(({ file, taskId }) => (
               <li key={file.url}>
-                <LecturerFile file={file} />
+                <LecturerFile file={file} taskId={taskId} />
               </li>
             ))}
           </ul>

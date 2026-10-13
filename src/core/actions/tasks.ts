@@ -66,6 +66,15 @@ export const tasksActions = {
   "tasks.pickFiles": { input: z.object({}), output: z.object({ files: z.array(PickedFile) }) },
   /** Files dropped on the window, by content (a drop gives no path the app may use). */
   "tasks.dropFiles": { input: z.object({ files: z.array(DroppedFile).min(1).max(20) }), output: z.object({ files: z.array(PickedFile) }) },
+  /**
+   * A picked PDF's content, for the Student to look at before it's handed in.
+   * PDFs only, at most 100 MB; one that isn't really a PDF, or can't be read
+   * any more, comes back as the reason, not its bytes.
+   */
+  "tasks.readPicked": {
+    input: z.object({ fileId: z.string().min(1).max(64) }),
+    output: z.union([z.object({ bytes: Bytes }), z.object({ problem: z.enum(["too-big", "unreadable"]) })]),
+  },
   /** Uploads one picked file for a Task through Edunex's own flow: a temporary storage link, then the file. */
   "tasks.upload": {
     input: z.object({ fileId: z.string().min(1).max(64), taskId: z.number().int().positive() }),

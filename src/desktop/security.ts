@@ -16,6 +16,8 @@ export function contentSecurityPolicy(devServer?: string): string {
   return [
     "default-src 'none'",
     `script-src ${self}${dev ? " 'unsafe-inline'" : ""}`,
+    // The PDF viewer's worker, from the app's own files (it would fall back to script-src; said outright).
+    `worker-src ${self}`,
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob:",
     "font-src 'self' data:",

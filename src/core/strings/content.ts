@@ -1,5 +1,6 @@
 // Text for what lecturers write and upload, shown in the app: links that open
-// in the browser, pictures in notes, long notes folded, files that can't be shown.
+// in the browser, pictures in notes, long notes folded, PDFs in the viewer,
+// files that can't be shown.
 import type { Entry } from "./entry";
 
 export const contentStrings = {
@@ -20,4 +21,22 @@ export const contentStrings = {
   "note.posted": { id: "Diposting {when}", en: "Posted {when}" },
   "note.updated": { id: "Diperbarui {when}", en: "Updated {when}" },
   "note.empty": { id: "Catatan ini kosong", en: "This note is empty" },
+  "pdf.view": { id: "Lihat", en: "View" },
+  "pdf.viewFile": { id: "Lihat {name}", en: "View {name}" },
+  "pdf.loading": { id: "Memuat PDF…", en: "Loading the PDF…" },
+  "pdf.page": { id: "Halaman", en: "Page" },
+  "pdf.of": { id: "dari {count}", en: "of {count}" },
+  "pdf.pageOf": { id: "Halaman {page} dari {count}", en: "Page {page} of {count}" },
+  "pdf.zoomIn": { id: "Perbesar", en: "Zoom in" },
+  "pdf.zoomOut": { id: "Perkecil", en: "Zoom out" },
+  "pdf.fitWidth": { id: "Selebar jendela", en: "Fit to width" },
+  "pdf.fitPage": { id: "Satu halaman penuh", en: "Fit the whole page" },
+  "pdf.toPage": { id: "Ke halaman {page}", en: "Go to page {page}" },
+  "pdf.failed": { id: "PDF ini tidak bisa ditampilkan", en: "This PDF can't be shown" },
+  "pdf.locked": {
+    id: "PDF ini dikunci dengan kata sandi. Unduh untuk membukanya di aplikasi lain.",
+    en: "This PDF is locked with a password. Download it to open it in another app.",
+  },
+  "pdf.broken": { id: "Berkasnya rusak atau bukan PDF yang bisa dibaca.", en: "The file is damaged or isn't a PDF that can be read." },
+  "pdf.downloadHint": { id: "Simpan ke Unduhan, lalu buka di aplikasi PDF komputermu", en: "Save to Downloads, then open it in your computer's PDF app" },
 } as const satisfies Record<string, Entry>;

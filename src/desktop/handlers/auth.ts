@@ -59,6 +59,9 @@ export const authHandlers: HandlerGroup<"auth.signIn" | "auth.signOut"> = (conte
     },
     "auth.signOut": async ({ source }) => {
       await context.engine.signOut(source);
+      // Edunex's files go with the account they came from, even one still on its way in. Signing out of
+      // everything carries on if this fails: removeEveryTrace removes the folder too.
+      if (!source || source === "edunex") await context.fileCache.clear().catch(() => undefined);
       if (!source) await Promise.all([removeEveryTrace({ userData: context.userData, engineSession: context.engineSession }), forgetSignInSession()]);
       return {};
     },
