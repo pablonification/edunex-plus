@@ -304,15 +304,13 @@ describe("putting off a deadline in Hari ini", () => {
   it("a Task due tonight offers only what ends before its last hours; within them, nothing", async () => {
     const s = await open();
     s.world.edunex.postTask(95059, { name: "Ringkasan K6", end_at: "2026-10-12T23:59:00+07:00" });
+    // Due in two and a half hours: inside its last three, there's no putting it off.
+    s.world.edunex.postTask(95059, { name: "Ringkasan K7", end_at: "2026-10-12T10:37:00+07:00" });
     await s.engineDoes(() => s.engine.refresh("edunex"));
+    expect(todayRows().some((row) => row.includes("Ringkasan K7"))).toBe(true);
+    expect(controls(today())).toEqual(["Ingatkan nanti: Ringkasan K6 · PL3032"]);
     await s.click("Ingatkan nanti: Ringkasan K6 · PL3032");
     expect(menuItems()).toEqual(["3 jam lagiHari ini, 11:07"]);
-    await s.key("Escape");
-    // Three hours before it's due there's no putting it off.
-    await s.wait(Date.parse("2026-10-12T21:30:00+07:00") - s.world.clock.now());
-    await s.tick();
-    expect(todayRows().some((row) => row.includes("Ringkasan K6"))).toBe(true);
-    expect(controls(today())).toEqual([]);
   });
 
   it("with today's only deadline put off, Hari ini doesn't claim there's none; Settings counts it", async () => {
