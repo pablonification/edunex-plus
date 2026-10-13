@@ -163,7 +163,7 @@ export const scheduleStrings = {
   "exam.takeHome": { id: "Take-home", en: "Take-home" },
   "exam.onEdunex": { id: "Di Edunex", en: "On Edunex" },
   "exam.due": { id: "Tenggat {when}", en: "Due {when}" },
-  "exam.outlineOnly": { id: "Ada di daftar isi Edunex, belum ada tanggal", en: "In the Edunex outline, no date yet" },
+  "exam.outlineOnly": { id: "Ada di daftar isi Edunex", en: "In the Edunex outline" },
   "exam.week": { id: "{kind} {range}", en: "{kind} {range}" },
   "exam.disagree": { id: "Dua tanggal berbeda. Pastikan ke dosen.", en: "Two different dates. Check with your lecturer." },
   "exam.noDate": { id: "Belum ada tanggal", en: "No date yet" },
@@ -174,7 +174,6 @@ export const scheduleStrings = {
   "exam.when": { id: "Kapan dan di mana", en: "When and where" },
   "exam.length": { id: "{minutes} menit", en: "{minutes} min" },
   "exam.noRoom": { id: "Ruang belum ada", en: "No room yet" },
-  "exam.notScheduled": { id: "Belum dijadwalkan", en: "Not scheduled yet" },
   "exam.disagree.long": {
     id: "SIX dan Edunex memberi tanggal berbeda untuk ujian ini. Bisa jadi satu ujian dua bagian, atau salah satunya belum diperbarui. Tanyakan ke dosen.",
     en: "SIX and Edunex give different dates for this exam. It may be one exam in two parts, or one of them is out of date. Ask your lecturer.",

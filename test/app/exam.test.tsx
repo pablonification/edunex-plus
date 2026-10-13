@@ -40,18 +40,30 @@ describe("the exam list", () => {
     // The date leads; the kind is a quiet label; no source tags, the source only where it changes what to do.
     expect(row.startsWith("Kam15Okt")).toBe(true);
     expect(row).toContain("UTSKomunikasi Pemasaran");
-    // A take-home due a week after SIX's sitting is no conflict: SIX's sitting is said as the other part it may be.
-    expect(row).toContain("SIX juga mencantumkan ujian di kelas · 11:00–12:59 · TVST C");
+    // A take-home due a week after SIX's sitting is no conflict: the sitting is said plainly, the take-home on its own line.
+    expect(row).toContain("DK4073 · Di kelas · 11:00–12:59 · TVST C");
+    expect(row).not.toContain("SIX juga");
     expect(row).toContain("Take-home: UTS Markom · tenggat Kam, 22 Okt, 23:50");
     expect(row).not.toContain("Pastikan ke dosen");
     expect(examRow("DK4073")!.querySelector(".text-warning-fg")).toBeNull();
     expect(row).toContain("dalam 7 hari");
     expect(examSection()?.querySelector("h2")?.parentElement?.textContent).toContain("Masa UTS 12–16 Okt");
-    // A row with only ITB's exam week names the period on its date tile, never "Minggu" (it reads as Sunday).
-    const weekOnly = [...(examSection()?.querySelectorAll("li button") ?? [])].map((b) => b.textContent ?? "").find((t) => t.startsWith("UAS7–22Des"));
+    // A row with only ITB's exam week gives the week's range on its date tile, never "Minggu" (it reads as Sunday);
+    // the kind is said once, by the row's tag.
+    const weekOnly = [...(examSection()?.querySelectorAll("li button") ?? [])].map((b) => b.textContent ?? "").find((t) => t.startsWith("7–22DesUAS"));
     // The tile gives the week; the row says what's still missing instead of repeating it.
     expect(weekOnly).toContain("Hari dan jamnya belum diumumkan");
     expect(examSection()?.textContent).not.toMatch(/minggu/i);
+  });
+
+  it("a take-home due before SIX's sitting: the tile shows the deadline's day, and the class sitting names its own", async () => {
+    const world = new PretendWorld();
+    world.edunex.moveDeadline(117764, "2026-10-12T23:59:00+07:00");
+    await openTasks(world);
+    const row = examRow("DK4073")!.textContent ?? "";
+    expect(row.startsWith("Sen12Okt")).toBe(true);
+    expect(row).toContain("DK4073 · Di kelas · Kam 15 Okt · 11:00–12:59 · TVST C");
+    expect(row).toContain("Take-home: UTS Markom · tenggat Sen, 12 Okt, 23:59");
   });
 
   it("an exam that has passed moves to Selesai", async () => {
@@ -79,12 +91,14 @@ describe("the exam page", () => {
     // When and where first: the day, the time, the room.
     expect(text).toContain("Di kelasKam 15 Okt11:00–12:59 · 119 menitTVST C");
     expect(text).toContain("Take-homeKam 22 OktTenggat 23:50Buka tugas · UTS Markom");
-    // Two parts, said calmly: no warning, no question for the lecturer; the announcements say whether the sitting happens.
-    expect(text).toContain("SIX juga mencantumkan ujian di kelas pada Kam 15 Okt · take-home-nya tenggat Kam 22 Okt");
+    // Two parts, said calmly by the two cards: no warning, no strip repeating them, no question for the lecturer;
+    // one link to where the lecturer says whether the sitting happens.
+    expect(text).toContain("Buka tugas · UTS MarkomCek pengumuman dosen");
+    expect(text).not.toContain("SIX juga");
     expect(text).not.toContain("SIX dan Edunex memberi tanggal berbeda");
     expect(s.has("Salin pertanyaan untuk dosen")).toBe(false);
     expect(document.querySelector("main section[aria-labelledby=exam-when] .bg-warning-bg")).toBeNull();
-    await s.click("Lihat pengumuman");
+    await s.click("Cek pengumuman dosen");
     expect(s.text()).toContain("Pengumuman");
     await s.apply({ type: "navigate", route: { screen: "exam", examId: "DK4073-UTS" } });
     // Real material: the lecturer's file to read in the app, and the modules before the exam.
@@ -145,6 +159,31 @@ describe("the exam page", () => {
     expect(others).not.toContain("Belum ada tanggal");
   });
 
+  it("an exam known only by its week says, once and as its row does, that the day isn't announced", async () => {
+    const s = await openTasks();
+    await s.click(examRow("PL3032")!);
+    expect(document.querySelector("main header")?.textContent).toContain("Hari dan jamnya belum diumumkan");
+    const when = document.querySelector("main section[aria-labelledby=exam-when]")?.textContent ?? "";
+    // The week, and where it's known from; "no date" isn't said again in other words.
+    expect(when).toContain("Masa UTS 12–16 OktAda di daftar isi Edunex");
+    expect(s.text()).not.toContain("belum ada tanggal");
+    expect(s.text()).not.toContain("Belum ada tanggal");
+    expect(s.text()).not.toContain("Belum dijadwalkan");
+  });
+
+  it("an exam known only from the outline, with no exam week in ITB's calendar either, says it has no date once", async () => {
+    const world = new PretendWorld();
+    world.itb.fail(/Kalender/i, 500);
+    const s = await openTasks(world);
+    await s.apply({ type: "navigate", route: { screen: "exam", examId: "PL3032-UTS" } });
+    const header = document.querySelector("main header")?.textContent ?? "";
+    const when = document.querySelector("main section[aria-labelledby=exam-when]")?.textContent ?? "";
+    expect(header).toContain("Belum ada tanggal");
+    expect(when).toContain("Ada di daftar isi Edunex");
+    expect(when).not.toContain("Belum ada tanggal");
+    expect(when).not.toContain("Belum dijadwalkan");
+  });
+
   it("an exam no longer listed says so", async () => {
     const s = await openTasks();
     await s.apply({ type: "navigate", route: { screen: "exam", examId: "PL3002-UAS" } });
@@ -155,10 +194,10 @@ describe("the exam page", () => {
     const s = await openTasks();
     await s.engineDoes(() => s.engine.updateSettings({ lang: "en" }));
     const row = examRow("DK4073")!;
-    expect(row.textContent).toContain("SIX also lists a class sitting · 11:00–12:59 · TVST C");
+    expect(row.textContent).toContain("DK4073 · In class · 11:00–12:59 · TVST C");
     await s.click(row);
     expect(s.text()).toContain("When and where");
-    expect(s.text()).toContain("SIX also lists a class sitting on Thu 15 Oct · the take-home is due Thu 22 Oct");
+    expect(s.text()).toContain("Check your lecturer's announcements");
     s.close();
     const other = await openTasks(withEdunexSitting());
     await other.engineDoes(() => other.engine.updateSettings({ lang: "en" }));

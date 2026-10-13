@@ -45,7 +45,7 @@ import { isPdfName, usePdfViewer } from "../pdf";
 import { useExams } from "../schedule-data";
 import { useRefresh, useSignIn } from "../shell/source-status";
 import { useBridge, useDataset, useStatus } from "../store";
-import { Button, Segmented } from "../ui/controls";
+import { Button, Segmented, useRadioKeys } from "../ui/controls";
 import { cx } from "../ui/cx";
 import { Card, CourseDot, EmptyState, Skeleton, StatusChip, StatusGlyph } from "../ui/display";
 import { Icons } from "../ui/icons";
@@ -169,6 +169,8 @@ export function TasksScreen() {
   const withItems = (courses ?? []).filter(
     (c) => (rows ?? []).some((row) => row.task.courseCode === c.code) || (exams ?? []).some((exam) => exam.courseCode === c.code),
   );
+  // One radio group: "Semua" (null) first, then each course; arrows move the pick, a second click keeps it.
+  const radio = useRadioKeys([null, ...withItems.map((c) => c.code)], course, setCourse);
 
   let index = 0;
   return (
@@ -191,11 +193,9 @@ export function TasksScreen() {
 
       {withItems.length > 1 && (
         <div role="radiogroup" aria-label={t("tasks.filter.course")} className="mb-8 flex flex-wrap gap-1.5">
-          <FilterChip selected={course === null} onClick={() => setCourse(null)}>
-            {t("tasks.filter.all")}
-          </FilterChip>
-          {withItems.map((c) => (
-            <FilterChip key={c.code} selected={course === c.code} onClick={() => setCourse(course === c.code ? null : c.code)}>
+          <FilterChip radio={radio(0)}>{t("tasks.filter.all")}</FilterChip>
+          {withItems.map((c, i) => (
+            <FilterChip key={c.code} radio={radio(i + 1)}>
               <CourseDot color={c.color} className="size-2" />
               {c.code}
             </FilterChip>
@@ -254,17 +254,14 @@ export function TasksScreen() {
   );
 }
 
-function FilterChip({ selected, onClick, children }: { selected: boolean; onClick: () => void; children: ReactNode }) {
+function FilterChip({ radio, children }: { radio: ReturnType<ReturnType<typeof useRadioKeys>>; children: ReactNode }) {
   return (
-    // biome-ignore lint/a11y/useSemanticElements: filter chips are styled buttons; the radio role says only one is on
     <button
       type="button"
-      role="radio"
-      aria-checked={selected}
-      onClick={onClick}
+      {...radio}
       className={cx(
         "focus-ring inline-flex h-7 items-center gap-1.5 rounded-full border px-3 text-small font-medium transition-colors duration-150",
-        selected ? "border-transparent bg-fg text-canvas" : "border-edge bg-surface text-muted hover:bg-hover hover:text-fg",
+        radio["aria-checked"] ? "border-transparent bg-selected text-fg" : "border-edge text-muted hover:bg-hover hover:text-fg",
       )}
     >
       {children}
@@ -514,30 +511,24 @@ function TaskPage({ task }: { task: Task }) {
           <p className="flex max-w-full items-center gap-1.5 text-small font-medium text-muted">{place}</p>
         )}
         <h1 className="mt-2 text-display leading-tight font-semibold tracking-[-0.02em] text-balance">{task.title}</h1>
-        <p className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-body">
+        {/* One line of facts; once the Task is open, when it opened is history (Riwayat says it). */}
+        <Meta className="mt-2.5 text-body text-muted">
           {task.dueAt !== null ? (
-            <span className={cx("inline-flex items-center gap-1.5 font-medium", (late || soon) && "text-danger-fg")}>
+            <span className={cx("inline-flex items-center gap-1.5 font-medium", late || soon ? "text-danger-fg" : "text-fg")}>
               <Icons.Clock className="size-3.5 shrink-0" />
-              <Meta>
-                {t("task.due", { when: f.dueLabel(task.dueAt) })}
-                <span className={cx("font-normal", !(late || soon) && "text-muted")}>{f.fromNow(task.dueAt)}</span>
-              </Meta>
+              {t("task.due", { when: f.dueLabel(task.dueAt) })}
             </span>
           ) : (
-            <span className="text-muted">{t("task.noDeadline")}</span>
+            t("task.noDeadline")
           )}
+          {task.dueAt !== null && <span className={cx((late || soon) && "text-danger-fg")}>{f.fromNow(task.dueAt)}</span>}
           {isOpenStatus(status) && task.dueAt !== null && (
-            <span className={cx("text-small font-medium", !task.lateAllowed && soon ? "text-danger-fg" : "text-muted")}>
-              {task.lateAllowed ? t("handIn.lateAllowed") : t("handIn.lateNotAllowed")}
-            </span>
+            <span className={cx(!task.lateAllowed && soon && "text-danger-fg")}>{task.lateAllowed ? t("handIn.lateAllowed") : t("handIn.lateNotAllowed")}</span>
           )}
-          {task.opensAt !== null &&
-            (notOpenYet(task, now) ? (
-              <span className="font-medium text-warning-fg">{t("task.opens", { when: f.dueLabel(task.opensAt) })}</span>
-            ) : (
-              <span className="text-small text-faint">{t("task.opened", { date: f.dayMonth(task.opensAt) })}</span>
-            ))}
-        </p>
+          {task.opensAt !== null && notOpenYet(task, now) && (
+            <span className="font-medium text-warning-fg">{t("task.opens", { when: f.dueLabel(task.opensAt) })}</span>
+          )}
+        </Meta>
         {exam && (
           <button
             type="button"
@@ -727,7 +718,7 @@ export function LecturerFile({ file, taskId }: { file: TaskFile; taskId: number 
       className="focus-ring flex w-full items-center gap-3 rounded-xl border border-edge bg-surface px-3 py-2.5 text-left shadow-card transition-colors duration-150 hover:bg-hover"
     >
       <FileBadge name={file.name} />
-      <span className="line-clamp-2 min-w-0 flex-1 text-body font-medium [overflow-wrap:anywhere]" title={file.name}>
+      <span className="line-clamp-2 min-w-0 flex-1 text-body font-medium break-words" title={file.name}>
         {file.name}
       </span>
       {busy ? (
@@ -743,13 +734,13 @@ export function LecturerFile({ file, taskId }: { file: TaskFile; taskId: number 
 
 // ---------------------------------------------------------------- handing in
 
-const HEADER: Record<TaskStatus, string> = {
-  not_started: "bg-(--status-not-started-bg) [&_svg]:text-(--status-not-started-fg)",
-  draft: "bg-(--status-draft-bg) [&_svg]:text-(--status-draft-fg)",
-  submitted: "bg-(--status-submitted-bg) [&_svg]:text-(--status-submitted-fg)",
-  overdue: "bg-(--status-overdue-bg) [&_svg]:text-(--status-overdue-fg)",
-  closed: "bg-(--status-closed-bg) [&_svg]:text-(--status-closed-fg)",
-  in_review: "bg-(--status-review-bg) [&_svg]:text-(--status-review-fg)",
+const GLYPH_TONE: Record<TaskStatus, string> = {
+  not_started: "text-(--status-not-started-fg)",
+  draft: "text-(--status-draft-fg)",
+  submitted: "text-(--status-submitted-fg)",
+  overdue: "text-(--status-overdue-fg)",
+  closed: "text-(--status-closed-fg)",
+  in_review: "text-(--status-review-fg)",
 };
 
 /** A file the Student attached in this visit, before it's in Edunex's answer. */
@@ -1008,13 +999,11 @@ function HandIn({ task, status }: Row) {
   };
 
   const draftAt = task.answer?.updatedAt ?? task.answer?.createdAt ?? null;
+  // Only what the page's header doesn't already say: not started has nothing to add (the deadline and the
+  // opening are up there, and a Task not open yet says from when inside this card).
   const subtitle =
     status === "not_started"
-      ? task.opensAt !== null && notOpenYet(task, now)
-        ? t("task.opens", { when: f.dueLabel(task.opensAt) })
-        : task.dueAt !== null
-          ? t("handIn.dueIn", { when: f.fromNow(task.dueAt) })
-          : ""
+      ? ""
       : status === "draft"
         ? draftAt !== null
           ? factsLabel(t("handIn.draftSaved", { when: f.dueLabel(draftAt) }), t("handIn.draftStatus").toLowerCase())
@@ -1091,24 +1080,24 @@ function HandIn({ task, status }: Row) {
   );
 
   return (
-    <Card className="overflow-hidden">
-      <div className={cx("flex items-center gap-3 px-4 py-3.5 transition-colors duration-300", HEADER[status])}>
-        <span key={`${status}-${justDone}`} className={cx("shrink-0", justDone && "motion-safe:animate-pop-in")}>
-          <StatusGlyph status={status} className="size-5" />
-        </span>
-        <div className="min-w-0">
-          <p className="text-lead font-semibold">{t(`taskStatus.${status}`)}</p>
-          {subtitle && <Meta className="text-small text-muted">{subtitle}</Meta>}
-        </div>
-        {(task.score !== null || status === "in_review") && (
-          <span className="ml-auto text-right text-caption text-muted">
-            {t("task.score")}
-            <span className="block text-title font-semibold text-fg tabular-nums">{task.score !== null ? formatScore(task.score, f) : "—"}</span>
-          </span>
-        )}
-      </div>
-
+    <Card>
       <div className="space-y-4 p-4">
+        <div className="flex items-center gap-3">
+          <span key={`${status}-${justDone}`} className={cx("shrink-0", GLYPH_TONE[status], justDone && "motion-safe:animate-pop-in")}>
+            <StatusGlyph status={status} className="size-5" />
+          </span>
+          <div className="min-w-0">
+            <p className="text-lead font-semibold">{t(`taskStatus.${status}`)}</p>
+            {subtitle && <Meta className="text-small text-muted">{subtitle}</Meta>}
+          </div>
+          {(task.score !== null || status === "in_review") && (
+            <span className="ml-auto text-right text-caption text-muted">
+              {t("task.score")}
+              <span className="block text-title font-semibold text-fg tabular-nums">{task.score !== null ? formatScore(task.score, f) : "—"}</span>
+            </span>
+          )}
+        </div>
+
         <div>
           {/* A group's answer is written on Edunex: the label only heads the files already in it. */}
           {(!task.group || saved.length > 0) && <p className="mb-2 text-small font-semibold text-muted">{t("handIn.yourAnswer")}</p>}
@@ -1510,15 +1499,11 @@ function FileRow({
       <div className="flex items-center gap-2.5">
         <FileBadge name={name} state={state} />
         <span className="min-w-0 flex-1">
-          <span className="line-clamp-2 block text-body font-medium [overflow-wrap:anywhere]" title={name}>
+          <span className="line-clamp-2 block text-body font-medium break-words" title={name}>
             {name}
           </span>
-          {detail && !failed && (
-            <span className="flex items-center gap-1 text-caption text-muted">
-              {state === "uploaded" && <Icons.Check className="size-3 text-success-fg" weight="bold" />}
-              {detail}
-            </span>
-          )}
+          {/* No check mark here: a file on its way or "Belum disimpan" isn't done until the answer is saved. */}
+          {detail && !failed && <span className="flex items-center gap-1 text-caption text-muted">{detail}</span>}
         </span>
         {onPreview && !failed && (
           <button
@@ -1611,7 +1596,7 @@ function History({ task }: { task: Task }) {
   const open = useOpenExternal();
   const steps = taskHistory(task);
   return (
-    <Card className="p-4">
+    <div className="px-4">
       {steps.length >= 2 && (
         <>
           <p className="mb-3 text-small font-semibold text-muted">{t("history.title")}</p>
@@ -1621,13 +1606,13 @@ function History({ task }: { task: Task }) {
                 <span
                   aria-hidden
                   className={cx(
-                    "absolute top-1 -left-[21px] size-[9px] rounded-full ring-[3px] ring-surface",
+                    "absolute top-1 -left-[21px] size-[9px] rounded-full ring-[3px] ring-canvas",
                     step.kind === "submitted"
                       ? "bg-live"
                       : step.kind === "edited" && editedAfterSubmit(task)
                         ? "bg-warning-fg"
                         : step.at > now && step.kind !== "draft"
-                          ? "border border-faint bg-surface"
+                          ? "border border-faint bg-canvas"
                           : "bg-faint/60",
                   )}
                 />
@@ -1646,6 +1631,6 @@ function History({ task }: { task: Task }) {
         {t("task.openInEdunex")}
         <Icons.ArrowUpRight className="size-3.5" />
       </button>
-    </Card>
+    </div>
   );
 }

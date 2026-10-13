@@ -98,6 +98,26 @@ export function List({ label, className, children }: { label?: string; className
 }
 
 /**
+ * A name that may wrap after each "/" as well as between words: browsers never
+ * break after a slash, so "Penciptaan/Pengembangan" in a narrow column would be
+ * cut mid-word ("Pengembang an") instead of after the slash.
+ */
+export function breakAfterSlashes(text: string): ReactNode {
+  if (!text.includes("/")) return text;
+  return text.split("/").map((part, i) => (
+    // biome-ignore lint/suspicious/noArrayIndexKey: the pieces of one text, in their order; they have nothing else to be told apart by
+    <Fragment key={i}>
+      {i > 0 && (
+        <>
+          /<wbr />
+        </>
+      )}
+      {part}
+    </Fragment>
+  ));
+}
+
+/**
  * One thing in a list: what it is (title), when and where (meta, one line),
  * and at the end its state or its one action. A clickable row is one button:
  * the whole row is the target, and it says where it goes on hover. `actions`
@@ -147,7 +167,7 @@ export function Row({
       <span className="min-w-0 flex-1">
         {/* A long name wraps to a second line, then shows whole on hover: never cut with no way to read it. */}
         <span className="line-clamp-2 block text-body font-medium break-words" title={typeof title === "string" ? title : undefined}>
-          {title}
+          {typeof title === "string" ? breakAfterSlashes(title) : title}
         </span>
         {meta && <span className="mt-0.5 block text-small text-muted">{meta}</span>}
         {children}

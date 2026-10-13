@@ -45,6 +45,9 @@ describe("handing in", () => {
     await s.click(ATTACH);
     expect(card()).toContain("Bab II.pdf");
     expect(card()).toContain("Belum disimpan · 12 B");
+    // Not saved yet is no check mark: nothing is done until the answer is saved.
+    const fileRow = () => [...document.querySelectorAll("main aside li")].find((li) => li.textContent?.includes("Bab II.pdf"));
+    expect(fileRow()?.querySelector(".text-success-fg")).toBeNull();
     // Uploading goes to Edunex's storage; nothing is in the answer yet.
     expect(s.world.edunex.writes.map((w) => w.path)).toEqual(["/blob-storage/sas"]);
 
@@ -69,6 +72,16 @@ describe("handing in", () => {
     expect(card()).toContain("Sudah diserahkan. Pengumpulan bersifat final.");
     expect(s.has(ATTACH)).toBe(false);
     expect(s.world.edunex.task(117003).attributes.answers).toHaveLength(1);
+  });
+
+  it("a Task that asks for a file says, with words written and no file, that the file comes first for a draft too", async () => {
+    const s = await openTask("Tugas 02 Bab II");
+    await s.write(ANSWER);
+    expect(s.button("Simpan draf").disabled).toBe(true);
+    expect(s.button("Kumpulkan").disabled).toBe(true);
+    // The app's rule, said as the app's: never claimed as Edunex's.
+    expect(card()).toContain("Lampirkan berkas dulu untuk menyimpan draf atau mengumpulkan.");
+    expect(card()).not.toMatch(/Edunex (butuh|minta|mewajibkan) berkas/);
   });
 
   it("cancelling the confirmation sends nothing", async () => {

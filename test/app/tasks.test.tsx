@@ -86,6 +86,44 @@ describe("Tugas & Ujian", () => {
     expect(row("Tugas 02 Bab II")).toBeDefined();
   });
 
+  it('a long title may wrap after a "/" instead of mid-word, and shows whole on hover', async () => {
+    const s = await open();
+    await s.click(/^Tugas & Ujian\d*$/);
+    const title = row("Tugas Mandiri Individu")!.querySelector("[title]")!;
+    expect(title.getAttribute("title")).toBe("Tugas Mandiri Individu tentang Projek Penciptaan/Pengembangan Inovasi Kampus Ganesha");
+    expect(title.innerHTML).toContain("Penciptaan/<wbr>Pengembangan");
+  });
+
+  it("the course filter is one radio group: a single Tab stop, arrows move the pick, a second click keeps it", async () => {
+    const s = await open();
+    await s.click(/^Tugas & Ujian\d*$/);
+    const group = document.querySelector<HTMLElement>("[role=radiogroup][aria-label='Mata kuliah']")!;
+    const chips = () => [...group.querySelectorAll<HTMLButtonElement>("[role=radio]")];
+    const checked = () => chips().find((chip) => chip.getAttribute("aria-checked") === "true")?.textContent;
+    expect(checked()).toBe("Semua");
+    expect(
+      chips()
+        .filter((chip) => chip.tabIndex === 0)
+        .map((chip) => chip.textContent),
+    ).toEqual(["Semua"]);
+    chips()[0].focus();
+    await s.key("ArrowRight");
+    const first = chips()[1].textContent!;
+    expect(checked()).toBe(first);
+    expect(document.activeElement).toBe(chips()[1]);
+    expect(chips().filter((chip) => chip.tabIndex === 0)).toEqual([chips()[1]]);
+    await s.key("ArrowLeft");
+    expect(checked()).toBe("Semua");
+    // Wraps around from the first to the last.
+    await s.key("ArrowLeft");
+    expect(checked()).toBe(chips().at(-1)!.textContent);
+    // Clicking the picked course keeps it picked.
+    await s.click("PL3002");
+    await s.click("PL3002");
+    expect(checked()).toBe("PL3002");
+    expect(row("Tugas 02 Bab II")).toBeUndefined();
+  });
+
   it("shows what was handed in, loudly when the lecturer changed it afterwards, and a short window", async () => {
     const s = await open();
     await s.click(/^Tugas & Ujian\d*$/);
@@ -231,8 +269,12 @@ describe("the Task page", () => {
   it("not started: due when, the attach area, and nothing to submit yet", async () => {
     const s = await open();
     await goToTask(s, "Tugas 02 Bab II");
-    expect(card()).toContain("Belum dikerjakan");
-    expect(card()).toContain("dalam 8 hari");
+    // The status is the card's plain first line; the deadline is said once, in the header, as one line of facts.
+    expect(card()).toContain("Belum dikerjakanJawabanmu");
+    expect(card()).not.toContain("dalam 8 hari");
+    expect(document.querySelector("article")?.textContent).toContain("Tenggat Jum, 16 Okt, 23:59 · dalam 8 hari · Boleh terlambat");
+    // When it opened is history (Riwayat), not a fact for the header.
+    expect(document.querySelector("article")?.textContent).not.toContain("Dibuka");
     expect(s.has(/^Lampirkan berkas · Lepas berkas di sini/)).toBe(true);
     expect(card()).toContain("Wajib unggah berkas · Berkas PDF");
     expect(s.button("Simpan draf").disabled).toBe(true);
@@ -326,7 +368,11 @@ describe("the Task page", () => {
     await s.engineDoes(() => s.engine.refresh("edunex"));
     await goToTask(s, "Tugas Pekan Depan");
     expect(id).toBeGreaterThan(0);
-    expect(card()).toContain("Dibuka Sen, 12 Okt, 08:00");
+    // Said once in the header and once where the hand-in would be, not again as the card's subtitle.
+    expect(document.querySelector("article")?.textContent).toContain(
+      "Tenggat Sen, 19 Okt, 23:59 · dalam 11 hari · Tidak bisa terlambat · Dibuka Sen, 12 Okt, 08:00",
+    );
+    expect(card()).not.toContain("Dibuka");
     expect(card()).toContain("Bisa dikumpulkan mulai Sen, 12 Okt, 08:00.");
     expect(s.has(/^Lampirkan berkas/)).toBe(false);
   });

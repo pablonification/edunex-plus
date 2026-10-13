@@ -21,7 +21,7 @@ import { useExams } from "../schedule-data";
 import { useDataset } from "../store";
 import { Button } from "../ui/controls";
 import { cx } from "../ui/cx";
-import { Card, CourseDot, EmptyState, Skeleton, StatusChip } from "../ui/display";
+import { Card, CourseDot, EmptyState, Skeleton, StatusChip, Tag } from "../ui/display";
 import { Icons } from "../ui/icons";
 import { List, Meta, Notice, Page, PageHeader, Row, Section } from "../ui/layout";
 import { toast } from "../ui/overlays";
@@ -31,15 +31,9 @@ import { LecturerFile } from "./tasks";
 export const ready = true;
 
 /** UTS, UAS, Kuis: a quiet label; the date is what stands out. */
-function KindLabel({ exam, className }: { exam: Pick<Exam, "kind">; className?: string }) {
+function KindLabel({ exam }: { exam: Pick<Exam, "kind"> }) {
   const t = useT();
-  return (
-    <span
-      className={cx("inline-grid h-5 shrink-0 place-items-center rounded-[5px] bg-neutral-bg px-1.5 text-caption font-semibold text-neutral-fg", className)}
-    >
-      {t(`exam.kind.${exam.kind}`)}
-    </span>
-  );
+  return <Tag>{t(`exam.kind.${exam.kind}`)}</Tag>;
 }
 
 /** "Masa UTS 12–16 Okt". */
@@ -83,12 +77,14 @@ export function ExamRow({ exam, index }: { exam: Exam; index?: number }) {
   const [inClass] = exam.six;
   const online = exam.edunex.find((e) => e.start !== null);
   const days = sourceDays(f, exam);
+  // The tile shows the earliest date, which can be a take-home's deadline: a sitting on another day names its own.
+  const ownDay = (at: number) => (exam.at !== null && wibDay(at) !== wibDay(exam.at) ? dayLabel(f, at) : "");
   const when =
     inClass !== undefined
-      ? // With a take-home due another day, SIX's sitting is said as the second part it may be.
-        [t(exam.takeHomeApart !== null ? "exam.row.sixToo" : "exam.row.inClass", { time: f.timeRange(inClass.start, inClass.end) }), inClass.room]
+      ? // Said plainly, as the exam page's "Di kelas" card does; a take-home due another day is its own line below.
+        [t("exam.inClass"), ownDay(inClass.start), f.timeRange(inClass.start, inClass.end), inClass.room]
       : online?.start != null
-        ? [t("exam.onEdunex"), f.time(online.start)]
+        ? [t("exam.onEdunex"), ownDay(online.start), f.time(online.start)]
         : exam.at === null && exam.week && (exam.kind === "UTS" || exam.kind === "UAS")
           ? [t("exam.dayUnknown")]
           : exam.at === null
@@ -98,7 +94,7 @@ export function ExamRow({ exam, index }: { exam: Exam; index?: number }) {
     <Row
       index={index}
       onClick={() => go({ screen: "exam", examId: exam.id })}
-      leading={<DateTile at={exam.at} week={exam.week} kind={exam.kind} />}
+      leading={<DateTile at={exam.at} week={exam.week} />}
       title={
         <span className="flex min-w-0 items-center gap-2">
           <KindLabel exam={exam} />
@@ -144,16 +140,14 @@ function TakeHomeLine({ task }: { task: Task }) {
 }
 
 /** "KAM / 15 / Okt": the exam's day, the strongest thing in its row; without a day yet, its exam week ("12–16 / Okt"). */
-// An exam week leads with its own name ("UTS"), never "Minggu": that reads as Sunday next to "KAM 15".
-function DateTile({ at, week, kind }: { at: number | null; week?: Exam["week"]; kind: Exam["kind"] }) {
-  const t = useT();
+// An exam week is its range alone, never "Minggu" (that reads as Sunday next to "KAM 15"); the row's tag names the kind.
+function DateTile({ at, week }: { at: number | null; week?: Exam["week"] }) {
   const f = useFormat();
   return (
-    <span className="flex w-12 flex-col items-center rounded-lg border border-edge bg-surface py-1 leading-none tabular-nums">
+    <span className="flex min-h-12 w-12 flex-col items-center justify-center rounded-lg bg-fill py-1 leading-none tabular-nums">
       {at === null && week ? (
         <>
-          <span className="text-micro font-semibold text-muted uppercase">{t(`exam.kind.${kind}`)}</span>
-          <span className="mt-1 text-caption font-semibold">
+          <span className="text-caption font-semibold">
             {new Date(dayStart(week.firstDay)).getDate()}–{new Date(dayStart(week.lastDay)).getDate()}
           </span>
           <span className="mt-0.5 text-micro text-muted">{f.dayMonth(dayStart(week.lastDay)).replace(/^\d+\s*/, "")}</span>
@@ -252,6 +246,9 @@ function ExamPage({ exam, others, course, courses }: { exam: Exam; others: Exam[
               {f.dateLong(exam.at)}
               {exam.at > now ? f.fromNow(exam.at) : f.relativeDay(exam.at)}
             </Meta>
+          ) : exam.week && (exam.kind === "UTS" || exam.kind === "UAS") ? (
+            // As its row says: the week is known, the day and time aren't.
+            t("exam.dayUnknown")
           ) : (
             t("exam.noDate")
           )
@@ -286,14 +283,14 @@ function ExamPage({ exam, others, course, courses }: { exam: Exam; others: Exam[
           {exam.tasks.map((task) => (
             <TakeHomeCard key={task.id} task={task} />
           ))}
-          {!dated && (
+          {/* The header already says the day isn't known: here only what is, the exam week and where the exam is listed. */}
+          {!dated && exam.week && (exam.kind === "UTS" || exam.kind === "UAS") ? (
             <Card className="px-5 py-4">
-              <p className="text-small font-medium text-muted">{t("exam.notScheduled")}</p>
-              <p className="mt-1 text-heading font-semibold">
-                {exam.week && (exam.kind === "UTS" || exam.kind === "UAS") ? examWeekLabel(t, f, exam.kind, exam.week) : t("exam.noDate")}
-              </p>
+              <p className="text-heading font-semibold">{examWeekLabel(t, f, exam.kind, exam.week)}</p>
               {exam.inOutline && <p className="mt-1 text-small text-muted">{t("exam.outlineOnly")}</p>}
             </Card>
+          ) : (
+            !dated && exam.inOutline && <p className="text-body text-muted">{t("exam.outlineOnly")}</p>
           )}
         </div>
         {exam.disagree && (
@@ -319,21 +316,16 @@ function ExamPage({ exam, others, course, courses }: { exam: Exam; others: Exam[
             {t("examPage.disagreeBody", days)}
           </Notice>
         )}
-        {exam.takeHomeApart !== null && (
-          <Notice
-            tone="neutral"
-            className="mt-3"
-            title={<Meta>{t("examPage.takeHomeApart", days)}</Meta>}
-            action={
-              <button
-                type="button"
-                onClick={() => go({ screen: "course", code: exam.courseCode, tab: "announcements" })}
-                className="focus-ring rounded text-small font-medium text-accent-fg underline-offset-2 hover:underline"
-              >
-                {t("examPage.announcements")}
-              </button>
-            }
-          />
+        {/* The two cards say both parts; whether the class sitting happens is the lecturer's to announce. */}
+        {exam.takeHomeApart !== null && !exam.disagree && (
+          <button
+            type="button"
+            onClick={() => go({ screen: "course", code: exam.courseCode, tab: "announcements" })}
+            className="focus-ring mt-3 flex w-fit items-center gap-0.5 rounded text-small font-medium text-accent-fg hover:underline"
+          >
+            {t("examPage.checkAnnouncements")}
+            <Icons.ChevronRight className="size-3.5" />
+          </button>
         )}
         <BeforeExam code={exam.courseCode} />
       </Section>
@@ -488,7 +480,7 @@ function BeforeExam({ code }: { code: string }) {
   if (!entry || entry.health.attended === null) return null;
   const { health } = entry;
   return (
-    <div className="mt-3 flex items-center gap-3 rounded-xl border border-edge bg-surface px-4 py-3 shadow-card">
+    <div className="mt-3 flex items-center gap-3">
       <Icons.Hand className="size-4 shrink-0 text-muted" />
       <Meta className="flex-1 text-body">
         <span className="font-medium">{t("examPage.attendance")}</span>

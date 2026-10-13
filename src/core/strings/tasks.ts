@@ -32,7 +32,6 @@ export const tasksStrings = {
   "task.shortWindow": { id: "Waktu singkat", en: "Short window" },
   "task.opens": { id: "Dibuka {when}", en: "Opens {when}" },
   "task.attendance": { id: "Sekaligus Presensi · {date}, {time}", en: "Also your attendance · {date}, {time}" },
-  "task.opened": { id: "Dibuka {date}", en: "Opened {date}" },
   "task.due": { id: "Tenggat {when}", en: "Due {when}" },
   "task.noDeadline": { id: "Tanpa tenggat", en: "No deadline" },
   "task.submittedOn": { id: "Dikumpulkan", en: "Submitted" },
@@ -187,12 +186,9 @@ export const tasksStrings = {
   },
   "task.note.editedCheck": { id: "Lihat di Edunex", en: "View on Edunex" },
   "exam.row.takeHome": { id: "Take-home: {title} · tenggat {when}", en: "Take-home: {title} · due {when}" },
-  "exam.row.inClass": { id: "Di kelas · {time}", en: "In class · {time}" },
   "exam.row.disagree": { id: "SIX: {six} · Edunex: {edunex}. Pastikan ke dosen.", en: "SIX: {six} · Edunex: {edunex}. Check with your lecturer." },
-  "exam.row.sixToo": { id: "SIX juga mencantumkan ujian di kelas · {time}", en: "SIX also lists a class sitting · {time}" },
 
   // The hand-in panel, redesigned
-  "handIn.dueIn": { id: "Tenggat {when}", en: "Due {when}" },
   "handIn.draftSaved": { id: "Tersimpan {when}", en: "Saved {when}" },
   "handIn.recorded": { id: "Edunex mencatatnya {when}", en: "Edunex recorded it {when}" },
   "handIn.ruleType": { id: "Berkas {type}", en: "{type} file" },
@@ -201,7 +197,10 @@ export const tasksStrings = {
   "handIn.uploaded": { id: "Terunggah", en: "Uploaded" },
   "handIn.retryShort": { id: "Coba lagi", en: "Try again" },
   "handIn.removeShort": { id: "Hapus", en: "Remove" },
-  "handIn.why.noFile": { id: "Lampirkan berkas dulu untuk mengumpulkan.", en: "Attach a file first to hand it in." },
+  "handIn.why.noFile": {
+    id: "Lampirkan berkas dulu untuk menyimpan draf atau mengumpulkan.",
+    en: "Attach a file first to save a draft or hand it in.",
+  },
   "handIn.why.noText": {
     id: "Tulis jawabanmu dulu. Edunex butuh teks, meski kamu melampirkan berkas.",
     en: "Write your answer first. Edunex needs text, even when you attach a file.",
@@ -273,10 +272,6 @@ export const tasksStrings = {
     id: "SIX: {six} · Edunex: {edunex}. Bisa jadi satu ujian dua bagian, atau salah satunya belum diperbarui.",
     en: "SIX: {six} · Edunex: {edunex}. It may be one exam in two parts, or one of them isn't updated yet.",
   },
-  "examPage.takeHomeApart": {
-    id: "SIX juga mencantumkan ujian di kelas pada {six} · take-home-nya tenggat {due}",
-    en: "SIX also lists a class sitting on {six} · the take-home is due {due}",
-  },
   "examPage.copyQuestion": { id: "Salin pertanyaan untuk dosen", en: "Copy a question for your lecturer" },
   "examPage.copied": {
     id: "Pertanyaan tersalin. Tempel di chat atau email ke dosen.",
@@ -287,6 +282,7 @@ export const tasksStrings = {
     en: "Dear lecturer, for the {code} {name} {kind}, SIX lists {six} while Edunex lists {edunex}. Could you confirm the right date and format? Thank you.",
   },
   "examPage.announcements": { id: "Lihat pengumuman", en: "See announcements" },
+  "examPage.checkAnnouncements": { id: "Cek pengumuman dosen", en: "Check your lecturer's announcements" },
   "examPage.study": { id: "Bahan belajar", en: "What to study" },
   "examPage.lecturerFiles": { id: "Berkas dari dosen", en: "Files from your lecturer" },
   "examPage.modulesBefore": { id: "Modul sebelum {kind}", en: "Modules before the {kind}" },
