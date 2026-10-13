@@ -130,7 +130,8 @@ describe("Settings → Tentang", () => {
     expect(zod.getAttribute("aria-expanded")).toBe("false");
     await screen.click(zod);
     expect(zod.getAttribute("aria-expanded")).toBe("true");
-    expect(document.getElementById(zod.getAttribute("aria-controls")!)?.textContent).toBe("MIT License\n\nCopyright (c) Example Zod Authors");
+    const text = document.getElementById(zod.getAttribute("aria-controls")!);
+    expect([...(text?.querySelectorAll("p") ?? [])].map((p) => p.textContent)).toEqual(["MIT License", "Copyright (c) Example Zod Authors"]);
 
     const chromium = row("Chromium")!;
     await screen.click(chromium);

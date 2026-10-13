@@ -6,7 +6,7 @@ import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { isWebLink, linkHost } from "../../core/links";
 import { useOpenLink } from "../hooks";
 import { useT } from "../i18n";
-import { findLicences, type Licence, loadLicences } from "../licences";
+import { findLicences, type Licence, licenceParagraphs, loadLicences } from "../licences";
 import { Button, IconButton } from "../ui/controls";
 import { cx } from "../ui/cx";
 import { Skeleton } from "../ui/display";
@@ -138,13 +138,33 @@ function LicenceRow({ entry, open, onToggle }: { entry: Licence; open: boolean; 
       <DisclosurePanel open={open} id={id}>
         <div className="border-t border-line bg-sunken px-4 py-3">
           {entry.text !== undefined ? (
-            <pre className="max-w-[76ch] font-mono text-caption whitespace-pre-wrap break-words text-muted">{entry.text}</pre>
+            <LicenceText text={entry.text} />
           ) : (
             <p className="text-small text-muted">{t("licences.chromium", { file: entry.file ?? "" })}</p>
           )}
         </div>
       </DisclosurePanel>
     </li>
+  );
+}
+
+/** A licence's own words, in paragraphs that fit the column; a rule between the licences of one entry's files. */
+function LicenceText({ text }: { text: string }) {
+  const paragraphs = useMemo(() => licenceParagraphs(text), [text]);
+  return (
+    <div className="max-w-[72ch] space-y-2 text-caption break-words text-muted">
+      {paragraphs.map((paragraph, i) =>
+        paragraph === "---" ? (
+          // biome-ignore lint/suspicious/noArrayIndexKey: the paragraphs of one text, in their order; they have nothing else to be told apart by
+          <hr key={i} className="border-line" />
+        ) : (
+          // biome-ignore lint/suspicious/noArrayIndexKey: the paragraphs of one text, in their order; they have nothing else to be told apart by
+          <p key={i} className="whitespace-pre-line">
+            {paragraph}
+          </p>
+        ),
+      )}
+    </div>
   );
 }
 
