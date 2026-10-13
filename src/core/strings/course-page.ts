@@ -30,7 +30,9 @@ export const coursePageStrings = {
   "course.courseWide": { id: "Seluruh mata kuliah", en: "Course-wide" },
   "course.module": { id: "Modul {no}", en: "Module {no}" },
   "course.moduleEmpty": { id: "Belum ada isi", en: "Nothing here yet" },
-  "course.unopened": { id: "Belum dibuka dosen", en: "Not opened yet" },
+  // Heard after a greyed module's title; the eye gets course.unopenedNote once per list instead.
+  "course.unopened": { id: "belum dibuka dosen", en: "not opened yet" },
+  "course.unopenedNote": { id: "Yang abu-abu belum dibuka.", en: "Greyed ones aren't open yet." },
   "course.opensOn": { id: "Dibuka {when}", en: "Opens {when}" },
   "course.noMaterials": { id: "Belum ada materi di Edunex", en: "No materials on Edunex yet" },
   "course.materials": { id: "Materi", en: "Materials" },

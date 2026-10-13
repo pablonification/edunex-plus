@@ -83,14 +83,16 @@ describe("the course page", () => {
     expect(toc.indexOf("Tugas")).toBeLessThan(toc.indexOf("Penawaran Topik TA Dosen"));
   });
 
-  it("lists every module Edunex lists, by Edunex's own label; one not opened yet is greyed and says so, with nothing to pick", async () => {
+  it("lists every module Edunex lists, by Edunex's own label; one not opened yet is greyed, with nothing to pick, and says so only to a screen reader", async () => {
     await openCourse("II4091");
     const nav = document.querySelector("nav[aria-label='Daftar isi']")!;
     const items = [...nav.querySelectorAll(":scope > ol > li")];
     const item = (title: string) => items.find((li) => li.textContent?.includes(title))!;
     // As on Edunex: "Module 6" above its title, after the opened five and before the joint class's.
-    expect(item("Module 06").textContent).toBe("Modul 6 · Belum dibuka dosenModule 06");
-    expect(item("Finex/UAS").textContent).toBe("Modul 16 · Belum dibuka dosenFinex/UAS");
+    // No "Belum dibuka dosen" on every greyed row (11 in II4091); a screen reader hears it after the title.
+    expect(item("Module 06").textContent).toBe("Modul 6Module 06, belum dibuka dosen");
+    expect(item("Module 06").querySelector(".sr-only")?.textContent).toBe(", belum dibuka dosen");
+    expect(item("Finex/UAS").textContent).toBe("Modul 16Finex/UAS, belum dibuka dosen");
     const order = items.map((li) => li.textContent ?? "");
     expect(order.findIndex((t) => t.includes("Tugas"))).toBeLessThan(order.findIndex((t) => t.includes("Module 06")));
     expect(order.findIndex((t) => t.includes("Finex/UAS"))).toBeLessThan(order.findIndex((t) => t.includes("Penawaran Topik TA Dosen")));
@@ -110,9 +112,30 @@ describe("the course page", () => {
     const items = [...document.querySelectorAll("nav[aria-label='Daftar isi'] > ol > li")].map((li) => li.textContent ?? "");
     const joint = items.slice(items.findIndex((t) => t.startsWith("Kelas gabungan")));
     expect(joint.find((t) => t.includes("Template Proposal TA & Laporan TA"))).toBe(
-      "Modul 2 · Belum dibuka dosenTemplate Proposal TA & Laporan TA - Latex, Kelas gabungan",
+      "Modul 2Template Proposal TA & Laporan TA - Latex, belum dibuka dosen, Kelas gabungan",
     );
     expect(joint.find((t) => t.includes("01 Pengantar Proposal TA"))).toMatch(/^Modul 3 · /);
+  });
+
+  it("says once per list, under its heading, that the greyed modules aren't opened yet; a list with none says nothing", async () => {
+    await openCourse("II4091");
+    const nav = document.querySelector("nav[aria-label='Daftar isi']")!;
+    const notes = () => [...nav.querySelectorAll("p")].filter((p) => p.textContent === "Yang abu-abu belum dibuka.");
+    // The class's own list has closed modules, the joint class's has none.
+    expect(notes()).toHaveLength(1);
+    expect(notes()[0].previousElementSibling?.textContent).toBe("Daftar isi");
+    expect(notes()[0].getAttribute("aria-hidden")).toBe("true");
+  });
+
+  it("the joint class's list gets its own line when it has a module not opened yet", async () => {
+    const world = new PretendWorld();
+    const second = world.edunex.courseDetail
+      .get(97602)
+      .included.find((i: { type: string; attributes: { index: number } }) => i.type === "modules" && i.attributes.index === 2);
+    second.attributes.is_active = false;
+    await openCourse("II4091", { world });
+    const notes = [...document.querySelectorAll("nav[aria-label='Daftar isi'] p")].filter((p) => p.textContent === "Yang abu-abu belum dibuka.");
+    expect(notes.map((p) => p.previousElementSibling?.textContent)).toEqual(["Daftar isi", "Kelas gabungan"]);
   });
 
   it("numbers modules as Edunex does when one in the middle is closed, and says when one opens by itself", async () => {
@@ -125,10 +148,12 @@ describe("the course page", () => {
     Object.assign(byIndex(6), { is_active: false, is_date_restricted: 1, start_at: "2026-09-01T08:00:00+07:00" });
     await openCourse("PL3002", { world });
     const toc = [...document.querySelectorAll("nav[aria-label='Daftar isi'] > ol > li")].map((li) => li.textContent ?? "");
-    expect(toc.find((t) => t.includes("Product Innovation"))).toBe("Modul 3 · Belum dibuka dosenProduct Innovation");
+    expect(toc.find((t) => t.includes("Product Innovation"))).toBe("Modul 3Product Innovation, belum dibuka dosen");
     expect(toc.find((t) => t.includes("Production Process Innovation"))).toMatch(/^Modul 4/);
-    expect(toc.find((t) => t.includes("Inovasi Kelembagaan Pasar"))).toBe("Modul 5 · Dibuka 20\u00a0Okt\u00a008:00Inovasi Kelembagaan Pasar");
-    expect(toc.find((t) => t.includes("Inovasi Keuangan dan Pembayaran"))).toBe("Modul 6 · Belum dibuka dosenInovasi Keuangan dan Pembayaran");
+    expect(toc.find((t) => t.includes("Inovasi Kelembagaan Pasar"))).toBe(
+      "Modul 5 · Dibuka 20\u00a0Okt\u00a008:00Inovasi Kelembagaan Pasar, belum dibuka dosen",
+    );
+    expect(toc.find((t) => t.includes("Inovasi Keuangan dan Pembayaran"))).toBe("Modul 6Inovasi Keuangan dan Pembayaran, belum dibuka dosen");
     expect(toc.find((t) => t.includes("Inovasi Pelayanan Publik"))).toMatch(/^Modul 7/);
     await entry("Production Process Innovation");
     expect(document.querySelector("main section header")?.textContent).toBe("Modul 4Production Process Innovation");
@@ -140,7 +165,7 @@ describe("the course page", () => {
     world.edunex.tasks.set(95001, []);
     await openCourse("PL3002", { world });
     const nav = document.querySelector("nav[aria-label='Daftar isi']")!;
-    expect(nav.textContent).toContain("Modul 1 · Belum dibuka dosen");
+    expect(nav.textContent).toContain("Modul 1Info Awal Perkuliahan, Kontrak Belajar, belum dibuka dosen");
     expect(nav.querySelector("[aria-current]")).toBeNull();
     expect(document.querySelector("#course-entry")).toBeNull();
     expect(nav.parentElement!.textContent).toContain("Belum ada materi di Edunex");
@@ -157,7 +182,8 @@ describe("the course page", () => {
 
   it("the table of contents' headings read like the others, not in capitals, and no module is called the newest", async () => {
     const s = await openCourse("II4091");
-    const headings = [...document.querySelectorAll("nav[aria-label='Daftar isi'] p")];
+    // The one quiet line about greyed modules sits under a heading but isn't one.
+    const headings = [...document.querySelectorAll("nav[aria-label='Daftar isi'] p:not([aria-hidden])")];
     expect(headings.map((p) => p.textContent)).toEqual(["Daftar isi", "Kelas gabungan"]);
     expect(headings.every((p) => !p.className.includes("uppercase"))).toBe(true);
     // "Terbaru" beside a five-week-old module meant nothing next to the "Baru" of this week.

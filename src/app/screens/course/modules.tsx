@@ -171,14 +171,26 @@ export function ModulesTab({ page, module }: { page: CoursePage; module?: number
   if (!entries.length) return <EmptyState icon={<Icons.BookOpen className="size-5" />} title={t("course.noMaterials")} />;
   const firstParent = entries.findIndex((e) => e.parent);
   const anyContent = entries.some((e) => e.tasks.length || e.materials.length);
+  // Said once per list rather than on every greyed row, so grey isn't the only sign; each row says it to a screen reader.
+  const unopenedNote = (
+    <p aria-hidden className="mb-1 px-2 text-caption text-faint">
+      {t("course.unopenedNote")}
+    </p>
+  );
 
   return (
     <div ref={root} className="grid grid-cols-[260px_minmax(0,1fr)] gap-8 max-[1180px]:grid-cols-[220px_minmax(0,1fr)]">
       <nav aria-label={t("course.contents")} className="self-start">
         <p className="mb-2 px-2 text-small font-semibold text-muted">{t("course.contents")}</p>
+        {entries.some((e) => e.unopened && !e.parent) && unopenedNote}
         <ol className="space-y-0.5">
           {entries.map((entry, index) => {
-            const heading = index === firstParent && <p className="mt-4 mb-1 px-2 text-small font-semibold text-muted">{t("course.jointClass")}</p>;
+            const heading = index === firstParent && (
+              <>
+                <p className="mt-4 mb-1 px-2 text-small font-semibold text-muted">{t("course.jointClass")}</p>
+                {entries.some((e) => e.unopened && e.parent) && unopenedNote}
+              </>
+            );
             // Heard with the title: two "Pengantar" (or two same-named modules) are told apart without the heading above.
             const whose = entry.parent && <span className="sr-only">{`, ${t("course.jointClass")}`}</span>;
             // An Introduction is named by its title alone; a module by Edunex's label above it.
@@ -191,11 +203,12 @@ export function ModulesTab({ page, module }: { page: CoursePage; module?: number
                   <div className="px-2 py-1 text-faint">
                     <Meta truncate className="text-caption">
                       {label}
-                      {/* A date already past while it's still closed would read as "opened on" ("Dibuka"): then it's just not opened. */}
-                      {entry.opensAt !== null && entry.opensAt > now ? t("course.opensOn", { when: dayAndTime(f, entry.opensAt) }) : t("course.unopened")}
+                      {/* A date already past while it's still closed would read as "opened on" ("Dibuka"): then it's just greyed. */}
+                      {entry.opensAt !== null && entry.opensAt > now ? t("course.opensOn", { when: dayAndTime(f, entry.opensAt) }) : ""}
                     </Meta>
                     <span className="line-clamp-2 text-small">
                       {entry.title}
+                      <span className="sr-only">{`, ${t("course.unopened")}`}</span>
                       {whose}
                     </span>
                   </div>
