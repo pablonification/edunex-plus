@@ -69,8 +69,10 @@ export function signInToBoth(deps: {
       try {
         const session = await deps.windows.open(source, { quiet, onStep });
         if (!session || attempt.stopped) return false;
-        await deps.engine.signIn(source, source === "edunex" ? { token: session } : { cookie: session });
+        const connecting = deps.engine.signIn(source, source === "edunex" ? { token: session } : { cookie: session });
+        // The hidden window saw the system signed in: say so now, not after its first full read (SIX reads at human pace).
         if (attempt.quiet) deps.send({ type: "signIn.joined", source });
+        await connecting;
         after(source, attempt.quiet);
         return true;
       } catch (error) {
