@@ -26,6 +26,30 @@ export const PlannedTerm = z.object({
 });
 export type PlannedTerm = z.infer<typeof PlannedTerm>;
 
+/** A course added to this term as a what-if: kept with the plan, so it reads the same without the catalog. */
+export const WhatIfCourse = z.object({
+  code: z.string().min(1).max(20),
+  name: z.string().max(200),
+  sks: z.number().int().min(0).max(24),
+  /**
+   * Where it was planned before it was tried now (a course is taken once, so
+   * it left that semester): taking the what-if away puts it back. Optional:
+   * what-ifs saved before it existed keep loading.
+   */
+  from: z
+    .object({
+      term: z.string().regex(/^\d{4}-[123]$/),
+      grade: Letter,
+      retake: z.boolean(),
+    })
+    .optional(),
+});
+export type WhatIfCourse = z.infer<typeof WhatIfCourse>;
+
+/** Why the Student hid a rule's warning. */
+export const HideReason = z.enum(["not-continuing", "program-adds", "other"]);
+export type HideReason = z.infer<typeof HideReason>;
+
 export const StudyPlan = z.object({
   /** Terms after the current one, oldest first. */
   terms: z.array(PlannedTerm).max(20),
@@ -33,8 +57,22 @@ export const StudyPlan = z.object({
   expected: z.record(z.string(), Letter),
   /** The IPK the Student aims for; null until they pick one. */
   target: z.number().min(0).max(4).nullable(),
-  /** The minor the Student tracks: "<program> · <name>". */
+  /** The minor the Student plans: "<program> · <name>". */
   minor: z.string().nullable(),
+  /**
+   * What-ifs on this term's KRS, only in the plan (SIX's KRS never changes):
+   * courses added and the KRS courses left out. Ignored once SIX's term moves on.
+   * Optional: plans saved before it existed keep loading.
+   */
+  now: z
+    .object({
+      term: z.string().regex(/^\d{4}-[123]$/),
+      added: z.array(WhatIfCourse).max(20),
+      dropped: z.array(z.string().min(1).max(20)).max(20),
+    })
+    .optional(),
+  /** Rule warnings the Student hid, by the rule's key ("parity|II4090"), with why. Optional, like `now`. */
+  hidden: z.record(z.string().min(1).max(120), z.object({ reason: HideReason, at: z.number() })).optional(),
 });
 export type StudyPlan = z.infer<typeof StudyPlan>;
 

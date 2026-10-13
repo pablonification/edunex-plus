@@ -1,7 +1,8 @@
 // The study planner's logic (#78, #79): the Student's record read from SIX,
-// the IP/IPK projection Nilai and the planner share, the rules a plan is
-// checked against (Peraturan Akademik ITB and the program's curriculum), and
-// the plan edits. Pure: the screens and the tests call the same functions.
+// this term's what-ifs on top of it, the IP/IPK projection Nilai and the
+// planner share, the rules a plan is checked against (Peraturan Akademik ITB
+// and the program's curriculum) and the warnings the Student hid, and the
+// plan edits. Pure: the screens and the tests call the same functions.
 import { fillsSlot, type ProgressRow, type SlotStanding, slotStandings } from "./curriculum-slots";
 import { blockedBy, HONORS, type HonorLevel, honorFor, nearestLetter, type Path } from "./honors";
 import {
@@ -11,6 +12,7 @@ import {
   type CurriculumFix,
   cumulativeIndex,
   GRADE_POINTS,
+  type HideReason,
   type IndexSum,
   isLetterGrade,
   type LetterGrade,
@@ -21,6 +23,7 @@ import {
   type StudyPlan,
   type Transcript,
   termIndex,
+  type WhatIfCourse,
 } from "./models";
 
 /** Most SKS in a regular semester (with the academic advisor's approval), the normal load, and a short semester's limit. */
@@ -102,6 +105,9 @@ export interface StudentRecord {
   /** The program's code and name ("182", "Sistem dan Teknologi Informasi"). */
   program: { code: string; name: string } | null;
   thisTerm: TermCourseRecord[];
+  /** KRS courses the Student left out of this term as a what-if, and the codes of those they added (see `withWhatIf`); empty in SIX's own record. */
+  thisTermDropped: TermCourseRecord[];
+  thisTermAdded: string[];
   /** SKS passed, as SIX counts them (exempt courses included). */
   passedSks: number;
   /** This term's SKS still without a grade. */
@@ -148,6 +154,9 @@ export interface RecordInput {
 }
 
 const passedGrade = (grade: string | null): grade is LetterGrade => isLetterGrade(grade) && grade !== "E";
+/** This term's SKS still without a grade; retaking a course passed before adds none (as for a planned retake). */
+const newSks = (thisTerm: readonly TermCourseRecord[], graded: StudentRecord["graded"]) =>
+  thisTerm.filter((c) => c.grade === null && !passedGrade(graded.get(c.code)?.grade ?? null)).reduce((sum, c) => sum + c.sks, 0);
 const ELECTIVE = new Set(["program-elective", "outside-elective"]);
 
 export function studentRecord(input: RecordInput): StudentRecord {
@@ -248,8 +257,10 @@ export function studentRecord(input: RecordInput): StudentRecord {
     normalSemesters: curriculum?.semesters ?? DEFAULT_SEMESTERS,
     program: curriculum && programName ? { code: curriculum.program.code, name: programName } : null,
     thisTerm,
+    thisTermDropped: [],
+    thisTermAdded: [],
     passedSks: progress?.sksPassed ?? [...graded.values()].filter((g) => passedGrade(g.grade)).reduce((sum, g) => sum + g.sks, 0),
-    inProgressSks: thisTerm.filter((c) => c.grade === null).reduce((sum, c) => sum + c.sks, 0),
+    inProgressSks: newSks(thisTerm, graded),
     graded,
     exempt,
     retookBefore: rows.some((c) => c.attempt > 1 || c.standing === "replaced"),
@@ -286,9 +297,10 @@ export function courseState(record: StudentRecord, plan: StudyPlan, code: string
 
 export type CourseRole = "required" | "specialization" | "minor" | "program-elective" | "outside-elective";
 
-export function courseRole(record: StudentRecord, code: string, minor: MinorOption | null): CourseRole {
+/** A course's role for the Student; `specialization` is the one they still follow (see `activeSpecialization`). */
+export function courseRole(record: StudentRecord, code: string, minor: MinorOption | null, specialization = record.specialization): CourseRole {
   if (record.required.has(code) || record.requiredLeft.some((c) => c.code === code)) return "required";
-  if (record.specialization?.courses.some((c) => c.code === code)) return "specialization";
+  if (specialization?.courses.some((c) => c.code === code)) return "specialization";
   if (minor?.courses.includes(code)) return "minor";
   const owner = courseInfo(record, code).owner;
   return owner !== null && owner === record.program?.code ? "program-elective" : "outside-elective";
@@ -296,10 +308,202 @@ export function courseRole(record: StudentRecord, code: string, minor: MinorOpti
 
 // ------------------------------------------------------------ the plan
 
-/** The plan's terms that are still ahead (a plan made last term drops what has started). */
+/**
+ * The plan as it's kept: the terms still ahead (a plan made last term drops
+ * what has started), and this term's what-ifs only while it lasts. A term
+ * that has ended takes its what-ifs with it: a course only tried in it (not
+ * on SIX's transcript for it) goes back to the semester it was planned in.
+ */
+export function aheadPlan(plan: StudyPlan, record: StudentRecord): StudyPlan {
+  const ended = plan.now && plan.now.term !== record.term ? plan.now : null;
+  const took = (code: string) => (record.transcript?.terms ?? []).some((t) => t.term >= ended!.term && t.courses.some((c) => c.code === code));
+  const kept = ended ? ended.added.filter((c) => !took(c.code)).reduce((p, c) => placeBack(p, c, record.term ?? ended.term), plan) : plan;
+  const ahead = record.term ? kept.terms.filter((t) => t.term > record.term!) : kept.terms;
+  const { now, ...rest } = kept;
+  return { ...rest, ...(now && !ended ? { now } : {}), terms: [...ahead].sort((a, b) => a.term.localeCompare(b.term)) };
+}
+
+/**
+ * The plan as every figure reads it: `aheadPlan`, less what the Student has
+ * taken already. A course is taken once: one in this term (SIX's KRS, or a
+ * what-if a plan saved before `from` still holds later too), passed or
+ * credited isn't planned again, so a later copy (planned, then taken for
+ * real) neither shows nor counts its SKS twice. A retake planned for later stays.
+ */
 export function livePlan(plan: StudyPlan, record: StudentRecord): StudyPlan {
-  const ahead = record.term ? plan.terms.filter((t) => t.term > record.term!) : plan.terms;
-  return { ...plan, terms: [...ahead].sort((a, b) => a.term.localeCompare(b.term)) };
+  const ahead = aheadPlan(plan, record);
+  const now = new Set(record.thisTerm.map((c) => c.code));
+  const taken = (code: string) => now.has(code) || passedGrade(record.graded.get(code)?.grade ?? null) || record.exempt.has(code);
+  return { ...ahead, terms: ahead.terms.map((t) => ({ ...t, courses: t.courses.filter((c) => c.retake || !taken(c.code)) })) };
+}
+
+// ------------------------------------------------------------ this term's what-ifs
+
+/** Whether the plan's what-ifs still change this term (one SIX has caught up with changes nothing). Takes SIX's record or one with the what-ifs. */
+export function hasWhatIfs(plan: StudyPlan, record: StudentRecord): boolean {
+  const applied = withWhatIf(record, plan);
+  return applied.thisTermAdded.length > 0 || applied.thisTermDropped.length > 0;
+}
+
+/**
+ * The plan without what-ifs SIX's record has caught up with: a course since
+ * added to the KRS, or one left out that SIX graded or dropped. A course SIX
+ * added goes back to the semester it was planned in: `livePlan` hides it while
+ * it's in the KRS (or passed), and a drop on SIX later doesn't lose it.
+ */
+export function pruneWhatIfs(plan: StudyPlan, record: StudentRecord): StudyPlan {
+  const { now, ...rest } = plan;
+  if (!now) return plan;
+  const inKrs = (code: string) => record.thisTerm.some((t) => t.code === code);
+  const added = now.added.filter((c) => !inKrs(c.code));
+  const dropped = now.dropped.filter((code) => record.thisTerm.some((t) => t.code === code && t.grade === null));
+  if (added.length === now.added.length && dropped.length === now.dropped.length) return plan;
+  const kept = now.added.filter((c) => inKrs(c.code)).reduce<StudyPlan>((p, c) => placeBack(p, c, now.term), rest);
+  return added.length || dropped.length ? { ...kept, now: { ...now, added, dropped } } : kept;
+}
+
+/**
+ * This term as the Student's what-ifs make it, only in the plan: courses
+ * added, KRS courses left out (never one SIX already graded). Everything that
+ * reads the record (IP and IPK, SKS, the rules, the curriculum) then counts
+ * it without knowing; SIX's own record, as Nilai shows it, is left alone.
+ */
+export function withWhatIf(record: StudentRecord, plan: StudyPlan): StudentRecord {
+  const now = plan.now;
+  if (!now || !record.term || now.term !== record.term) return record;
+  const dropped = record.thisTerm.filter((c) => c.grade === null && now.dropped.includes(c.code));
+  const added = now.added.filter((c) => !record.thisTerm.some((t) => t.code === c.code)).map((c) => ({ ...c, grade: null }));
+  if (!dropped.length && !added.length) return record;
+  const gone = new Set(dropped.map((c) => c.code));
+  const thisTerm = [...record.thisTerm.filter((c) => !gone.has(c.code)), ...added];
+
+  const slotCodes = [...record.required.keys()];
+  /** The required course a course fills: its own code, or the one it stands in for. */
+  const slotOf = (code: string) => slotCodes.find((s) => fillsSlot(s, code)) ?? slotCodes.find((s) => record.slots.get(s)?.via?.code === code);
+  const slots = new Map(record.slots);
+  let requiredLeft = record.requiredLeft;
+  for (const c of dropped) {
+    const slot = slotOf(c.code);
+    const standing = slot === undefined ? undefined : slots.get(slot);
+    if (slot === undefined || !standing || (standing.status !== "in-progress" && standing.status !== "failed")) continue;
+    // Not retaking after all: a grade from before stands; without one, or with an E, it's left again.
+    const before = record.graded.get(c.code);
+    if (before && passedGrade(before.grade)) {
+      slots.set(slot, { ...standing, status: "passed", grade: before.grade, whatIf: "left-out" });
+      continue;
+    }
+    slots.set(
+      slot,
+      before
+        ? { ...standing, status: "failed", grade: before.grade, whatIf: "left-out" }
+        : { ...standing, status: "left", grade: null, via: null, whatIf: "left-out" },
+    );
+    if (!requiredLeft.some((r) => r.code === slot || r.code === c.code)) requiredLeft = [...requiredLeft, record.required.get(slot)!];
+  }
+  for (const c of added) {
+    requiredLeft = requiredLeft.filter((r) => r.code !== c.code && !fillsSlot(r.code, c.code));
+    const slot = slotOf(c.code);
+    const standing = slot === undefined ? undefined : slots.get(slot);
+    if (slot !== undefined && standing && ["left", "unlisted", "failed"].includes(standing.status))
+      slots.set(slot, { ...standing, status: "in-progress", grade: null, via: c.code === slot ? null : { code: c.code, name: c.name }, whatIf: "added" });
+  }
+
+  // Electives: SIX counts this term's in its progress; a what-if elective counts the same way.
+  const sixNow = new Set(
+    (record.progress?.stages ?? [])
+      .flatMap((stage) => stage.semesters.flatMap((sem) => sem.courses))
+      .filter((c) => ELECTIVE.has(c.kind) && (c.status === "in-progress" || (c.status === "graded" && !isLetterGrade(c.grade))))
+      .map((c) => c.code),
+  );
+  const isRequired = (code: string) => slotOf(code) !== undefined || record.requiredLeft.some((r) => r.code === code);
+  const sum = (list: { sks: number }[]) => list.reduce((total, c) => total + c.sks, 0);
+  const electiveInProgress =
+    record.electiveInProgress - sum(dropped.filter((c) => sixNow.has(c.code))) + sum(added.filter((c) => !isRequired(c.code) && !record.graded.has(c.code)));
+
+  const courses = new Map(record.courses);
+  for (const c of added) if (!courses.has(c.code)) courses.set(c.code, { code: c.code, name: c.name, sks: c.sks, owner: null });
+  return {
+    ...record,
+    thisTerm,
+    thisTermDropped: dropped,
+    thisTermAdded: added.map((c) => c.code),
+    inProgressSks: newSks(thisTerm, record.graded),
+    // Taking a graded course again this term is a retake: summa cum laude closes, as for a planned one.
+    retookBefore: record.retookBefore || added.some((c) => record.graded.has(c.code)),
+    slots,
+    requiredLeft,
+    electiveInProgress,
+    electiveHave: record.electivePassed + electiveInProgress,
+    courses,
+  };
+}
+
+const nowOf = (plan: StudyPlan, term: string) => (plan.now?.term === term ? plan.now : { term, added: [], dropped: [] });
+
+/**
+ * Adds a course to this term as a what-if; a KRS course left out comes back
+ * instead. A course is taken once: one planned for a later semester moves out
+ * of it, and the what-if remembers where it was (see `removeTried`).
+ */
+export function addToNow(plan: StudyPlan, term: string, course: WhatIfCourse): StudyPlan {
+  const now = nowOf(plan, term);
+  if (now.dropped.includes(course.code)) return { ...plan, now: { ...now, dropped: now.dropped.filter((c) => c !== course.code) } };
+  const at = plan.terms.find((t) => t.courses.some((c) => c.code === course.code));
+  const planned = at?.courses.find((c) => c.code === course.code);
+  const from = at && planned ? { term: at.term, grade: planned.grade, retake: planned.retake } : now.added.find((c) => c.code === course.code)?.from;
+  const tried: WhatIfCourse = { code: course.code, name: course.name, sks: course.sks, ...(from ? { from } : {}) };
+  return {
+    ...plan,
+    terms: plan.terms.map((t) => (t === at ? { ...t, courses: t.courses.filter((c) => c.code !== course.code) } : t)),
+    now: { ...now, added: [...now.added.filter((c) => c.code !== course.code), tried] },
+  };
+}
+
+/**
+ * Puts a course tried now back where it was planned: its semester, or, when
+ * that one is gone (or over), the last regular one planned after `after`, a
+ * new one when none is left. A course that wasn't planned goes nowhere.
+ */
+function placeBack(plan: StudyPlan, tried: WhatIfCourse, after: string): StudyPlan {
+  const { from } = tried;
+  if (!from || plan.terms.some((t) => t.courses.some((c) => c.code === tried.code))) return plan;
+  const later = plan.terms.filter((t) => t.term > after);
+  const back = later.some((t) => t.term === from.term) ? from.term : (later.filter((t) => termKind(t.term) !== "short").at(-1)?.term ?? nextTerm(after));
+  const terms = plan.terms.some((t) => t.term === back)
+    ? plan.terms
+    : [...plan.terms, { term: back, courses: [] }].sort((a, b) => a.term.localeCompare(b.term));
+  const course: PlannedCourse = { code: tried.code, name: tried.name, sks: tried.sks, grade: from.grade, retake: from.retake };
+  return { ...plan, terms: terms.map((t) => (t.term === back ? { ...t, courses: [...t.courses, course] } : t)) };
+}
+
+/** Removes a course the Student added to this term as a what-if; one that was planned for later goes back there (see `placeBack`). */
+export function removeTried(plan: StudyPlan, term: string, code: string): StudyPlan {
+  const now = nowOf(plan, term);
+  const tried = now.added.find((c) => c.code === code);
+  const rest: StudyPlan = { ...plan, now: { ...now, added: now.added.filter((c) => c.code !== code) } };
+  return tried ? placeBack(rest, tried, term) : rest;
+}
+
+/**
+ * The plan as SIX's own record reads it (Nilai, and what a reset compares):
+ * each course tried this term back in the semester it was planned in. The
+ * what-ifs stay, so a screen can still say it leaves them out.
+ */
+export function untried(plan: StudyPlan): StudyPlan {
+  const { now } = plan;
+  return now ? now.added.reduce((p, c) => placeBack(p, c, now.term), plan) : plan;
+}
+
+/** Leaves a KRS course out of this term as a what-if. */
+export function leaveOut(plan: StudyPlan, term: string, code: string): StudyPlan {
+  const now = nowOf(plan, term);
+  return { ...plan, now: { term, added: now.added.filter((c) => c.code !== code), dropped: [...now.dropped.filter((c) => c !== code), code] } };
+}
+
+/** Puts a KRS course that was left out back into this term. */
+export function putBack(plan: StudyPlan, term: string, code: string): StudyPlan {
+  const now = nowOf(plan, term);
+  return { ...plan, now: { ...now, dropped: now.dropped.filter((c) => c !== code) } };
 }
 
 /** Where each planned course sits: code → term. */
@@ -313,8 +517,9 @@ export function plannedCodes(plan: StudyPlan): Map<string, string> {
  * that has passed), and what the registered specialization still needs in the
  * first. Grades start at the Student's usual level.
  */
-export function defaultPlan(record: StudentRecord): StudyPlan {
-  const empty: StudyPlan = { terms: [], expected: {}, target: null, minor: record.registeredMinor };
+export function defaultPlan(record: StudentRecord, hidden?: StudyPlan["hidden"]): StudyPlan {
+  // Hidden warnings describe the Student, not the plan: a fresh plan keeps them.
+  const empty: StudyPlan = { terms: [], expected: {}, target: null, minor: record.registeredMinor, ...(hidden ? { hidden } : {}) };
   if (!record.term) return empty;
   const grade = nearestLetter(record.transcript?.ipk.computed ?? null);
   const terms: { term: string; semester: number }[] = [];
@@ -338,7 +543,7 @@ export function defaultPlan(record: StudentRecord): StudyPlan {
     passedGrade(record.graded.get(code)?.grade ?? null) ||
     record.thisTerm.some((c) => c.code === code) ||
     [...items.values()].some((list) => list.some((c) => c.code === code));
-  for (const course of record.specialization?.courses ?? []) {
+  for (const course of activeSpecialization(record, empty)?.courses ?? []) {
     if (taken(course.code)) continue;
     const at = terms.find((t) => (items.get(t.term) ?? []).reduce((sum, c) => sum + c.sks, 0) + course.sks <= NORMAL_SKS) ?? terms[terms.length - 1];
     place(course.code, at.term);
@@ -599,14 +804,72 @@ export interface Shortfall {
 
 /** SKS a minor's courses add up to for the Student: passed, this term or planned. */
 export function minorCoverage(record: StudentRecord, plan: StudyPlan, minor: MinorOption): { have: number; codes: string[] } {
-  const planned = plannedCodes(plan);
-  const codes = minor.courses.filter(
-    (code) => passedGrade(record.graded.get(code)?.grade ?? null) || record.thisTerm.some((c) => c.code === code) || planned.has(code),
-  );
-  return { have: codes.reduce((sum, code) => sum + courseInfo(record, code).sks, 0), codes };
+  const { passed, now, planned } = minorProgress(record, plan, minor);
+  const counted = new Set<CourseState>(["passed", "this-term", "planned"]);
+  return { have: passed + now + planned, codes: minor.courses.filter((code) => counted.has(courseState(record, plan, code))) };
+}
+
+/** A minor's SKS split the way the Student reads it: passed, this semester, planned. */
+export function minorProgress(record: StudentRecord, plan: StudyPlan, minor: MinorOption): { passed: number; now: number; planned: number; need: number } {
+  const sks = (state: CourseState) =>
+    minor.courses.filter((code) => courseState(record, plan, code) === state).reduce((sum, code) => sum + courseInfo(record, code).sks, 0);
+  return { passed: sks("passed"), now: sks("this-term"), planned: sks("planned"), need: minorNeed(record, minor) };
 }
 
 export const minorNeed = (record: StudentRecord, minor: MinorOption) => minor.sks ?? minor.courses.reduce((sum, code) => sum + courseInfo(record, code).sks, 0);
+
+// ------------------------------------------------------------ hiding a warning
+
+/**
+ * The key a hidden warning is kept under, stable while the plan changes
+ * (II4090's odd/even warning stays hidden wherever it's moved). Only warnings
+ * can be hidden: what decides graduating can't (correct the curriculum instead).
+ */
+export function ruleKey(rule: Rule): string | null {
+  if (rule.level !== "warn") return null;
+  switch (rule.id) {
+    case "specialization":
+    case "minor":
+      return `${rule.id}|${rule.name.toLowerCase()}`;
+    case "parity":
+    case "early":
+      return `${rule.id}|${rule.code}`;
+    case "load":
+      return `load|${rule.term}`;
+    case "finish":
+      return "finish|late";
+    default:
+      return null;
+  }
+}
+
+/** The reasons offered for hiding a warning, the likeliest first. */
+export function hideReasons(rule: Rule): HideReason[] {
+  if (rule.id === "specialization") return ["not-continuing", "other"];
+  if (rule.id === "parity" || rule.id === "early") return ["program-adds", "other"];
+  return ["other"];
+}
+
+export const isHidden = (rule: Rule, plan: StudyPlan) => {
+  const key = ruleKey(rule);
+  return key !== null && Boolean(plan.hidden?.[key]);
+};
+
+export const hideRule = (plan: StudyPlan, key: string, reason: HideReason, at: number): StudyPlan => ({
+  ...plan,
+  hidden: { ...plan.hidden, [key]: { reason, at } },
+});
+
+export function showRule(plan: StudyPlan, key: string): StudyPlan {
+  const { [key]: _shown, ...rest } = plan.hidden ?? {};
+  return { ...plan, hidden: rest };
+}
+
+/** The registered specialization, unless the Student said they aren't continuing it: then the planner stops offering and tagging its courses. */
+export function activeSpecialization(record: StudentRecord, plan: Pick<StudyPlan, "hidden">): CoursePackage | null {
+  const spec = record.specialization;
+  return spec && plan.hidden?.[`specialization|${spec.name.toLowerCase()}`]?.reason === "not-continuing" ? null : spec;
+}
 
 /** Every rule the plan is checked against, live. */
 export function checkPlan(record: StudentRecord, rawPlan: StudyPlan, projection: Projection): Rule[] {
@@ -649,8 +912,15 @@ export function checkPlan(record: StudentRecord, rawPlan: StudyPlan, projection:
     rules.push({ id: "minor", level: minorSks >= need ? "ok" : "warn", name: minor.name, have: minorSks, need });
   }
 
-  for (const t of plan.terms) {
-    const sks = t.courses.reduce((sum, c) => sum + c.sks, 0);
+  // This term counts too once the Student changed it: its load, and the courses they added.
+  const whatIf = record.term && hasWhatIfs(rawPlan, record) ? record.term : null;
+  const added = new Set(record.thisTermAdded);
+  const terms = [
+    ...(whatIf ? [{ term: whatIf, courses: record.thisTerm, sks: record.thisTerm.reduce((sum, c) => sum + c.sks, 0) }] : []),
+    ...plan.terms.map((t) => ({ term: t.term, courses: t.courses, sks: t.courses.reduce((sum, c) => sum + c.sks, 0) })),
+  ];
+  for (const t of terms) {
+    const sks = t.sks;
     const short = termKind(t.term) === "short";
     const limit = short ? SHORT_SKS : MAX_SKS;
     if (sks > limit) rules.push({ id: "load", level: "error", term: t.term, sks, limit });
@@ -658,6 +928,7 @@ export function checkPlan(record: StudentRecord, rawPlan: StudyPlan, projection:
     const semester = semesterOf(t.term, record.entryTerm);
     if (short) continue;
     for (const c of t.courses) {
+      if (t.term === whatIf && !added.has(c.code)) continue;
       const recommended = record.required.get(c.code)?.semester ?? record.requiredLeft.find((r) => r.code === c.code)?.semester;
       if (recommended === undefined) continue;
       if (recommended % 2 !== (termKind(t.term) === "odd" ? 1 : 0))

@@ -6,16 +6,21 @@
 // honors and what the one shared target needs. Graduating is one verdict
 // (the header and the rules never disagree), the SKS one count shared with
 // Kurikulum and Nilai, and every removal can be taken back. The plan stays
-// on this computer; the app never sends a KRS.
+// on this computer; the app never sends a KRS. This semester takes what-ifs
+// (a course added or left out, only in the plan), warnings can be hidden with
+// a reason, and a minor can be planned with its courses in view.
 import * as Tabs from "@radix-ui/react-tabs";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { nearestLetter } from "../../../core/honors";
-import type { LetterGrade, StudyPlan } from "../../../core/models";
+import type { LetterGrade, PlannedCourse, StudyPlan } from "../../../core/models";
 import {
+  activeSpecialization,
   addCourse,
   addShortTerm,
   addTerm,
+  addToNow,
   type CourseInfo,
+  type CourseState,
   canRemoveTerm,
   checkPlan,
   courseInfo,
@@ -23,17 +28,29 @@ import {
   courseState,
   defaultPlan,
   expectedGrade,
+  hasWhatIfs,
+  hideReasons,
+  hideRule,
+  isHidden,
+  leaveOut,
   livePlan,
+  MAX_SKS,
   type MinorOption,
+  minorProgress,
+  NORMAL_SKS,
   type ProjectedStep,
   plannedCodes,
   programElectives,
+  putBack,
   type Rule,
   type RuleLevel,
   rankedMinors,
   removeCourse,
   removeTerm,
+  removeTried,
   retakeCandidates,
+  ruleKey,
+  SHORT_SKS,
   type Shortfall,
   type SksModel,
   type StudentRecord,
@@ -41,10 +58,14 @@ import {
   semesterOf,
   setGrade,
   shortTermToAdd,
+  showRule,
   sksModel,
   targetOf,
   termKind,
+  untried,
+  withWhatIf,
 } from "../../../core/planner";
+import { useFocusNext } from "../../hooks";
 import { useFormat, useLang, useT } from "../../i18n";
 import { type PlanState, usePlan, useStudentRecord } from "../../study-plan";
 import { Button, IconButton } from "../../ui/controls";
@@ -52,6 +73,7 @@ import { cx } from "../../ui/cx";
 import { Card } from "../../ui/display";
 import { Icons } from "../../ui/icons";
 import { Meta } from "../../ui/layout";
+import { Menu } from "../../ui/menu";
 import { Flash } from "../../ui/motion";
 import { ConfirmDialog, Dialog, dismissToast, Tooltip, toast } from "../../ui/overlays";
 import { GradeSelect, HonorsList, IpkChart, NeedText, predicateFor, TargetControl, usePredicate, useTermLabel } from "./projection";
@@ -83,7 +105,7 @@ export function Tab({ onCalendar }: { onCalendar?: () => void }) {
         }
       />
     );
-  return <Planner record={record} state={state} />;
+  return <Planner real={record} record={state.record} state={state} />;
 }
 
 /** A plan change that can be taken back: an 8-second toast with "Urungkan", and ⌘Z. */
@@ -110,7 +132,7 @@ function useUndoable(state: PlanState) {
     return () => window.removeEventListener("keydown", onKey);
   });
   return (edit: (plan: StudyPlan) => StudyPlan, message: string) => {
-    const before = state.plan;
+    const before = state.base;
     state.update(edit);
     last.current = before;
     // Only the latest change can be taken back (an older undo would throw away what came after it), so its toast replaces the last one.
@@ -119,22 +141,32 @@ function useUndoable(state: PlanState) {
   };
 }
 
-/** What a reset would throw away, compared with the starting plan. */
-function resetLoss(record: StudentRecord, plan: StudyPlan): { grades: number; added: number; removed: number; terms: number; other: boolean } {
-  const start = livePlan(defaultPlan(record), record);
+/** How many of the plan's what-ifs still change this term. */
+function whatIfCount(record: StudentRecord, plan: StudyPlan): number {
+  const applied = withWhatIf(record, plan);
+  return applied.thisTermAdded.length + applied.thisTermDropped.length;
+}
+
+/** What a reset would throw away, compared with the starting plan (from SIX's own record: a reset ends this term's what-ifs). Hidden warnings stay. */
+function resetLoss(record: StudentRecord, plan: StudyPlan): { grades: number; added: number; removed: number; terms: number; whatIfs: number; other: boolean } {
+  const start = livePlan(defaultPlan(record, plan.hidden), record);
   const startCourses = new Map(start.terms.flatMap((term) => term.courses.map((c) => [c.code, c] as const)));
-  const now = plan.terms.flatMap((term) => term.courses);
+  // A course tried this semester still counts where it was planned: its what-if is counted on its own.
+  const live = livePlan(untried(plan), record);
+  const now = live.terms.flatMap((term) => term.courses);
   const startTerms = new Set(start.terms.map((term) => term.term));
   return {
     grades: Object.keys(plan.expected).length + now.filter((c) => startCourses.has(c.code) && startCourses.get(c.code)!.grade !== c.grade).length,
     added: now.filter((c) => !startCourses.has(c.code)).length,
     removed: [...startCourses.keys()].filter((code) => !now.some((c) => c.code === code)).length,
-    terms: plan.terms.filter((term) => !startTerms.has(term.term)).length,
+    terms: live.terms.filter((term) => !startTerms.has(term.term)).length,
+    whatIfs: whatIfCount(record, plan),
     other: plan.target !== null || plan.minor !== start.minor,
   };
 }
 
-function Planner({ record, state }: { record: StudentRecord; state: PlanState }) {
+/** `real`: SIX's own record; `record`: with this term's what-ifs, which every figure here counts. */
+function Planner({ real, record, state }: { real: StudentRecord; record: StudentRecord; state: PlanState }) {
   const t = useT();
   const lang = useLang();
   const termLabel = useTermLabel();
@@ -142,22 +174,31 @@ function Planner({ record, state }: { record: StudentRecord; state: PlanState })
   const [adding, setAdding] = useState<string | null>(null);
   const [confirmReset, setConfirmReset] = useState(false);
   const undoable = useUndoable(state);
+  const focusNext = useFocusNext();
   const rules = checkPlan(record, plan, projection);
   const minor = record.minors.find((m) => m.key === plan.minor) ?? null;
+  const spec = activeSpecialization(record, plan);
   const stepOf = new Map(projection.steps.map((s) => [s.term, s]));
   const short = shortTermToAdd(plan, record);
-  const loss = resetLoss(record, plan);
+  const loss = resetLoss(real, state.base);
   const lossParts = [
     loss.grades && t("planner.reset.grades", { n: loss.grades, count: loss.grades }),
     loss.added && t("planner.reset.added", { n: loss.added, count: loss.added }),
     loss.terms && t("planner.reset.terms", { n: loss.terms, count: loss.terms }),
     loss.removed && t("planner.reset.removed", { n: loss.removed, count: loss.removed }),
+    loss.whatIfs && t("planner.reset.whatIfs", { n: loss.whatIfs, count: loss.whatIfs }),
     loss.other && t("planner.reset.other"),
   ].filter((part): part is string => Boolean(part));
   const list = new Intl.ListFormat(lang, { type: "conjunction" });
-  // A course's own warning (odd/even, earlier than the curriculum), shown on its row.
+  // A course's own warning (odd/even, earlier than the curriculum), shown on its row unless the Student hid it.
   const flags = new Map<string, Extract<Rule, { id: "parity" | "early" }>>();
-  for (const rule of rules) if (rule.id === "parity" || rule.id === "early") flags.set(`${rule.term}|${rule.code}`, rule);
+  for (const rule of rules) if ((rule.id === "parity" || rule.id === "early") && !isHidden(rule, plan)) flags.set(`${rule.term}|${rule.code}`, rule);
+  const whatIf = hasWhatIfs(plan, record);
+  const added = new Set(record.thisTermAdded);
+  const leftOut = new Set(record.thisTermDropped.map((c) => c.code));
+  // This semester in SIX's KRS order, a course left out crossed out where it was, then the ones tried.
+  const nowCourses = [...real.thisTerm, ...record.thisTerm.filter((c) => added.has(c.code))];
+  const nowLabel = record.semesterNow ? t("planner.now", { n: record.semesterNow }) : t("planner.nowPlain");
 
   return (
     <div className="@container space-y-6">
@@ -165,27 +206,66 @@ function Planner({ record, state }: { record: StudentRecord; state: PlanState })
       <div className="grid grid-cols-1 items-start gap-6 @4xl:grid-cols-[minmax(0,1fr)_340px]">
         <div className="min-w-0 space-y-3">
           <Past record={record} steps={projection.steps.filter((s) => !s.projected && s.term !== record.term)} />
-          {record.term && record.thisTerm.length > 0 && (
+          {/* Shown while this term's KRS is still empty too: that's when trying courses matters most. */}
+          {record.term && (
             <TermBlock
-              title={record.semesterNow ? t("planner.now", { n: record.semesterNow }) : t("planner.nowPlain")}
-              subtitle={t("planner.nowSub")}
+              title={nowLabel}
+              subtitle={whatIf ? t("planner.nowWhatIf") : t("planner.nowSub")}
+              whatIf={whatIf}
               sks={record.thisTerm.reduce((sum, c) => sum + c.sks, 0)}
-              limit={null}
+              limit={whatIf ? (termKind(record.term) === "short" ? SHORT_SKS : MAX_SKS) : null}
               step={stepOf.get(record.term)}
+              onAdd={() => setAdding(record.term)}
+              addLabel={t("planner.addWhatIf")}
+              addKey="now-add"
             >
-              {record.thisTerm.map((course) => (
-                <CourseLine
-                  key={course.code}
-                  code={course.code}
-                  name={course.name}
-                  sks={course.sks}
-                  tag={<RoleTag record={record} code={course.code} minor={minor} />}
-                  grade={course.grade ?? expectedGrade(record, plan, course.code)}
-                  guess={plan.expected[course.code] === undefined}
-                  posted={course.grade !== null}
-                  onGrade={(grade) => update((p) => ({ ...p, expected: { ...p.expected, [course.code]: grade } }))}
-                />
-              ))}
+              {nowCourses.map((course) => {
+                const mine = added.has(course.code);
+                const term = record.term!;
+                if (leftOut.has(course.code))
+                  return (
+                    <DroppedLine
+                      key={course.code}
+                      code={course.code}
+                      name={course.name}
+                      sks={course.sks}
+                      onPutBack={() => {
+                        undoable((p) => putBack(p, term, course.code), t("planner.putBackDone", { code: course.code }));
+                        focusNext(`now-remove-${course.code}`);
+                      }}
+                    />
+                  );
+                return (
+                  <CourseLine
+                    key={course.code}
+                    code={course.code}
+                    name={course.name}
+                    sks={course.sks}
+                    tag={mine ? <Tag tone="what-if">{t("planner.whatIfTag")}</Tag> : <RoleTag record={record} code={course.code} minor={minor} spec={spec} />}
+                    flag={mine ? flags.get(`${term}|${course.code}`) : undefined}
+                    grade={course.grade ?? expectedGrade(record, plan, course.code)}
+                    guess={plan.expected[course.code] === undefined}
+                    posted={course.grade !== null}
+                    onGrade={(grade) => update((p) => ({ ...p, expected: { ...p.expected, [course.code]: grade } }))}
+                    // A course SIX already graded stays: there's nothing to try without it.
+                    onRemove={
+                      course.grade === null
+                        ? () => {
+                            undoable(
+                              (p) => (mine ? removeTried(p, term, course.code) : leaveOut(p, term, course.code)),
+                              t(mine ? "planner.removedNow" : "planner.leftOut", { code: course.code }),
+                            );
+                            // The row goes (or turns into its crossed-out self): focus follows to what's there now.
+                            focusNext(mine ? "now-add" : `now-putback-${course.code}`);
+                          }
+                        : undefined
+                    }
+                    removeLabel={t(mine ? "planner.removeCourse" : "planner.leaveOut", { code: course.code })}
+                    removeKey={`now-remove-${course.code}`}
+                  />
+                );
+              })}
+              {nowCourses.length === 0 && <li className="px-4 py-3 text-small text-faint">{t("planner.nowEmpty")}</li>}
             </TermBlock>
           )}
           {plan.terms.map((term) => {
@@ -201,7 +281,9 @@ function Planner({ record, state }: { record: StudentRecord; state: PlanState })
                 step={stepOf.get(term.term)}
                 onRemove={
                   canRemoveTerm(plan, term.term)
-                    ? () => undoable((p) => removeTerm(p, term.term), t("planner.removedTerm", { term: label, count: term.courses.length }))
+                    ? () =>
+                        // The courses the Student sees: a hidden copy of one taken already (in the KRS, passed) isn't lost with it.
+                        undoable((p) => removeTerm(p, term.term), t("planner.removedTerm", { term: label, count: term.courses.length }))
                     : undefined
                 }
                 removeLabel={t("planner.removeTerm", { term: label })}
@@ -217,7 +299,7 @@ function Planner({ record, state }: { record: StudentRecord; state: PlanState })
                       course.retake ? (
                         <Tag>{t("planner.role.retake", { grade: record.graded.get(course.code)?.grade ?? "—" })}</Tag>
                       ) : (
-                        <RoleTag record={record} code={course.code} minor={minor} />
+                        <RoleTag record={record} code={course.code} minor={minor} spec={spec} />
                       )
                     }
                     flag={flags.get(`${term.term}|${course.code}`)}
@@ -250,17 +332,26 @@ function Planner({ record, state }: { record: StudentRecord; state: PlanState })
           </p>
         </div>
         <aside className="space-y-4">
-          <Rules record={record} rules={rules} />
+          <Rules record={record} rules={rules} plan={plan} undoable={undoable} />
           <Outlook record={record} state={state} />
-          <Minors record={record} state={state} />
+          <Minors record={record} state={state} undoable={undoable} />
         </aside>
       </div>
       {adding && (
         <AddCourse
           record={record}
           state={state}
-          term={adding}
-          title={t("planner.addTo", { term: termLabel(adding, semesterOf(adding, record.entryTerm)) })}
+          now={adding === record.term}
+          title={
+            adding === record.term
+              ? t("planner.addToNow", { term: nowLabel })
+              : t("planner.addTo", { term: termLabel(adding, semesterOf(adding, record.entryTerm)) })
+          }
+          onAdd={(course) =>
+            adding === record.term
+              ? undoable((p) => addToNow(p, adding, course), t("planner.addedNow", { code: course.code }))
+              : update((p) => addCourse(p, adding, course))
+          }
           onClose={() => setAdding(null)}
         />
       )}
@@ -272,7 +363,7 @@ function Planner({ record, state }: { record: StudentRecord; state: PlanState })
         confirmLabel={t("planner.resetConfirm")}
         onConfirm={() => {
           setConfirmReset(false);
-          undoable(() => defaultPlan(record), t("planner.resetDone"));
+          undoable((p) => defaultPlan(real, p.hidden), t("planner.resetDone"));
         }}
       />
     </div>
@@ -305,7 +396,7 @@ function Summary({ record, state, rules }: { record: StudentRecord; state: PlanS
   const { plan, projection } = state;
   const sks = sksModel(record, plan);
   const finish = rules.find((r): r is Extract<Rule, { id: "finish" }> => r.id === "finish");
-  const warnings = rules.filter((r) => r.level === "warn").length;
+  const warnings = rules.filter((r) => r.level === "warn" && !isHidden(r, plan)).length;
   const word = predicate(predicateFor(projection.finalIpk, projection.path));
   return (
     <Card variant="raised" className="px-6 py-5">
@@ -444,20 +535,28 @@ function Past({ record, steps }: { record: StudentRecord; steps: ProjectedStep[]
 function TermBlock({
   title,
   subtitle,
+  whatIf = false,
   sks,
   limit,
   step,
   onAdd,
+  addLabel,
+  addKey,
   onRemove,
   removeLabel,
   children,
 }: {
   title: string;
   subtitle: string;
+  /** The semester holds what-ifs: the subtitle says they're only in the plan. */
+  whatIf?: boolean;
   sks: number;
   limit: number | null;
   step: ProjectedStep | undefined;
   onAdd?: () => void;
+  addLabel?: string;
+  /** Marks the add button for `useFocusNext`. */
+  addKey?: string;
   onRemove?: () => void;
   removeLabel?: string;
   children: ReactNode;
@@ -471,7 +570,14 @@ function TermBlock({
         <header className="flex items-center gap-3 border-b border-line px-4 py-2.5">
           <span className="min-w-0 flex-1">
             <h3 className="text-body font-semibold">{title}</h3>
-            <span className="block text-caption text-faint">{subtitle}</span>
+            {whatIf ? (
+              <span className="flex items-center gap-1 text-caption font-medium text-info-fg" role="status">
+                <Icons.Info className="size-3 shrink-0" weight="bold" />
+                <Meta>{subtitle}</Meta>
+              </span>
+            ) : (
+              <span className="block text-caption text-faint">{subtitle}</span>
+            )}
           </span>
           <span className={cx("text-small font-semibold tabular-nums", over ? "text-danger-fg" : "text-muted")}>
             {sks}
@@ -498,10 +604,11 @@ function TermBlock({
           <button
             type="button"
             onClick={onAdd}
+            data-focus={addKey}
             className="focus-ring flex w-full items-center gap-2 border-t border-line px-4 py-2.5 text-left text-small font-semibold text-accent-fg transition-colors duration-150 hover:bg-hover"
           >
             <Icons.Plus className="size-3.5" />
-            {t("planner.addCourse")}
+            {addLabel ?? t("planner.addCourse")}
           </button>
         )}
       </Card>
@@ -509,13 +616,17 @@ function TermBlock({
   );
 }
 
-/** A course's type: neutral, except "Wajib", the one that matters for graduating. */
-function Tag({ tone = "neutral", children }: { tone?: "neutral" | "required"; children: ReactNode }) {
+/** A course's type: neutral, except "Wajib", the one that matters for graduating, and a what-if, dashed because it isn't real. */
+export function Tag({ tone = "neutral", children }: { tone?: "neutral" | "required" | "what-if"; children: ReactNode }) {
   return (
     <span
       className={cx(
         "inline-flex h-[20px] items-center rounded-[5px] px-1.5 text-micro font-semibold whitespace-nowrap",
-        tone === "required" ? "bg-info-bg text-info-fg" : "border border-edge text-muted",
+        tone === "required"
+          ? "bg-info-bg text-info-fg"
+          : tone === "what-if"
+            ? "border border-dashed border-info-fg/60 text-info-fg"
+            : "border border-edge text-muted",
       )}
     >
       {children}
@@ -523,9 +634,9 @@ function Tag({ tone = "neutral", children }: { tone?: "neutral" | "required"; ch
   );
 }
 
-function RoleTag({ record, code, minor }: { record: StudentRecord; code: string; minor: MinorOption | null }) {
+function RoleTag({ record, code, minor, spec }: { record: StudentRecord; code: string; minor: MinorOption | null; spec: StudentRecord["specialization"] }) {
   const t = useT();
-  const role = courseRole(record, code, minor);
+  const role = courseRole(record, code, minor, spec);
   const semester = record.required.get(code)?.semester ?? record.requiredLeft.find((c) => c.code === code)?.semester;
   return role === "required" ? <Tag tone="required">{t("planner.role.required", { n: semester ?? "—" })}</Tag> : <Tag>{t(`planner.role.${role}`)}</Tag>;
 }
@@ -552,6 +663,8 @@ function CourseLine({
   posted,
   onGrade,
   onRemove,
+  removeLabel,
+  removeKey,
 }: {
   code: string;
   name: string;
@@ -563,6 +676,9 @@ function CourseLine({
   posted?: boolean;
   onGrade: (grade: LetterGrade) => void;
   onRemove?: () => void;
+  removeLabel?: string;
+  /** Marks the remove button for `useFocusNext`. */
+  removeKey?: string;
 }) {
   const t = useT();
   return (
@@ -596,14 +712,40 @@ function CourseLine({
         <GradeSelect label={t("grades.expectedOf", { code })} value={grade} guess={guess} onChange={onGrade} />
       )}
       {onRemove ? (
-        <Tooltip content={t("planner.removeCourse", { code })}>
-          <IconButton label={t("planner.removeCourse", { code })} size="sm" onClick={onRemove}>
+        <Tooltip content={removeLabel ?? t("planner.removeCourse", { code })}>
+          <IconButton label={removeLabel ?? t("planner.removeCourse", { code })} size="sm" onClick={onRemove} data-focus={removeKey}>
             <Icons.X className="size-3.5" />
           </IconButton>
         </Tooltip>
       ) : (
         <span />
       )}
+    </li>
+  );
+}
+
+/** A KRS course the Student left out as a what-if: crossed out where it was, in the columns of the rows around it, with the way back. */
+function DroppedLine({ code, name, sks, onPutBack }: { code: string; name: string; sks: number; onPutBack: () => void }) {
+  const t = useT();
+  return (
+    <li className="grid grid-cols-[64px_minmax(0,1fr)_auto_28px_62px_28px] items-center gap-3 border-b border-line px-4 py-2 text-body text-muted last:border-b-0">
+      <span className="text-small font-semibold tabular-nums line-through">{code}</span>
+      <span className="min-w-0">
+        <span className="block truncate line-through">{name}</span>
+        <span className="block text-caption text-info-fg">{t("planner.droppedTag")}</span>
+      </span>
+      <span />
+      <span className="text-right text-small tabular-nums line-through">{sks}</span>
+      <Button
+        size="sm"
+        variant="ghost"
+        className="col-span-2 justify-self-end text-accent-fg"
+        aria-label={t("planner.putBackCode", { code })}
+        data-focus={`now-putback-${code}`}
+        onClick={onPutBack}
+      >
+        {t("planner.putBack")}
+      </Button>
     </li>
   );
 }
@@ -698,36 +840,117 @@ function useRuleText(record: StudentRecord): (rule: Rule) => { title: string; de
   };
 }
 
-function Rules({ record, rules }: { record: StudentRecord; rules: Rule[] }) {
+type Undoable = (edit: (plan: StudyPlan) => StudyPlan, message: string) => void;
+
+/** The rules, each warning with "Hide" and a reason; hidden ones wait in a quiet list to be shown again. Errors decide graduating: they can't be hidden. */
+function Rules({ record, rules, plan, undoable }: { record: StudentRecord; rules: Rule[]; plan: StudyPlan; undoable: Undoable }) {
   const t = useT();
   const text = useRuleText(record);
+  const focusNext = useFocusNext();
+  const [showHidden, setShowHidden] = useState(false);
+  const hidden: { key: string; anchor: string; title: string }[] = rules
+    .filter((rule) => isHidden(rule, plan))
+    .map((rule) => ({ key: ruleKey(rule)!, anchor: ruleAnchor(rule), title: text(rule).title }));
+  // Not continuing the specialization still counts once its warning is gone (every course covered): it stays here to be taken back.
+  const spec = record.specialization;
+  const specKey = spec ? `specialization|${spec.name.toLowerCase()}` : null;
+  if (spec && specKey && !activeSpecialization(record, plan) && !hidden.some((h) => h.key === specKey))
+    hidden.push({ key: specKey, anchor: specKey, title: spec.name });
   return (
     <Card className="overflow-hidden">
-      <h3 className="px-4 pt-3.5 text-body font-semibold">{t("planner.rules")}</h3>
+      <h3 className="px-4 pt-3.5 text-body font-semibold" tabIndex={-1} data-focus="rules">
+        {t("planner.rules")}
+      </h3>
       <ul className="space-y-1 px-2 pt-2 pb-3" aria-label={t("planner.rules")}>
-        {rules.map((rule) => {
-          const { title, detail } = text(rule);
-          const mark = LEVEL_MARK[rule.level];
-          return (
-            <li
-              key={ruleAnchor(rule)}
-              id={ruleAnchor(rule)}
-              className="flex scroll-m-24 items-start gap-2.5 rounded-lg px-2 py-1.5 transition-colors duration-500"
-              data-rule={rule.id}
-              data-level={rule.level}
-            >
-              <span className={cx("mt-0.5 grid size-[18px] shrink-0 place-items-center rounded-full", mark.tone)} title={t(mark.label)}>
-                {rule.level === "ok" ? <Icons.Check className="size-3" weight="bold" /> : <span className="text-micro font-bold">!</span>}
-                <span className="sr-only">{t(mark.label)}</span>
-              </span>
-              <span className="min-w-0 flex-1 text-small">
-                <span className="block font-semibold">{title}</span>
-                <span className="text-muted">{detail}</span>
-              </span>
-            </li>
-          );
-        })}
+        {rules
+          .filter((rule) => !isHidden(rule, plan))
+          .map((rule) => {
+            const { title, detail } = text(rule);
+            const mark = LEVEL_MARK[rule.level];
+            const key = ruleKey(rule);
+            return (
+              <li
+                key={ruleAnchor(rule)}
+                id={ruleAnchor(rule)}
+                className="flex scroll-m-24 items-start gap-2.5 rounded-lg px-2 py-1.5 transition-colors duration-500"
+                data-rule={rule.id}
+                data-level={rule.level}
+              >
+                <span className={cx("mt-0.5 grid size-[18px] shrink-0 place-items-center rounded-full", mark.tone)} title={t(mark.label)}>
+                  {rule.level === "ok" ? <Icons.Check className="size-3" weight="bold" /> : <span className="text-micro font-bold">!</span>}
+                  <span className="sr-only">{t(mark.label)}</span>
+                </span>
+                <span className="min-w-0 flex-1 text-small">
+                  <span className="block font-semibold">{title}</span>
+                  <span className="text-muted">{detail}</span>
+                </span>
+                {key && (
+                  <span className="-mt-0.5 -mr-1 shrink-0" data-focus={`hide-${key}`}>
+                    <Menu
+                      trigger={{ icon: <Icons.EyeOff className="size-3.5" /> }}
+                      label={t("planner.hideRule", { title })}
+                      items={hideReasons(rule).map((reason) => ({
+                        label: t(`planner.hideReason.${reason}`),
+                        hint: reason === "not-continuing" ? t("planner.hideReason.not-continuingHint") : undefined,
+                        onSelect: () => {
+                          undoable((p) => hideRule(p, key, reason, Date.now()), t("planner.hiddenDone", { title }));
+                          // Its row goes: focus lands on the list it went to.
+                          focusNext("hidden-toggle");
+                        },
+                      }))}
+                    />
+                  </span>
+                )}
+              </li>
+            );
+          })}
       </ul>
+      {hidden.length > 0 && (
+        <div className="border-t border-line px-4 py-2">
+          <button
+            type="button"
+            aria-expanded={showHidden}
+            data-focus="hidden-toggle"
+            onClick={() => setShowHidden(!showHidden)}
+            className="focus-ring -mx-1 rounded px-1 py-0.5 text-caption text-muted hover:text-fg"
+          >
+            <Meta>
+              {t("planner.hidden", { count: hidden.length })}
+              <span className="font-medium text-accent-fg">{t(showHidden ? "planner.hiddenClose" : "planner.hiddenShow")}</span>
+            </Meta>
+          </button>
+          {showHidden && (
+            <ul className="mt-1 space-y-1 pb-1" aria-label={t("planner.hidden", { count: hidden.length })}>
+              {hidden.map(({ key, anchor, title }, index) => {
+                const reason = plan.hidden?.[key]?.reason ?? "other";
+                // Once shown, its line goes: focus moves to the next hidden one, or back to the warning when none is left.
+                const rest = hidden.filter((h) => h.key !== key);
+                const after = rest.length ? [`show-${rest[Math.min(index, rest.length - 1)].key}`, "hidden-toggle"] : [`hide-${key}`, "rules"];
+                return (
+                  <li key={anchor} className="flex items-center gap-2 text-small">
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-fg">{title}</span>
+                      <span className="block text-caption text-muted">{t(`planner.reasonShort.${reason}`)}</span>
+                    </span>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      aria-label={t("planner.showAgainRule", { title })}
+                      data-focus={`show-${key}`}
+                      onClick={() => {
+                        undoable((p) => showRule(p, key), t("planner.shownDone", { title }));
+                        focusNext(...after);
+                      }}
+                    >
+                      {t("planner.showAgain")}
+                    </Button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+      )}
     </Card>
   );
 }
@@ -758,28 +981,28 @@ function Outlook({ record, state }: { record: StudentRecord; state: PlanState })
 
 // ------------------------------------------------------------ minors
 
-function Minors({ record, state }: { record: StudentRecord; state: PlanState }) {
+function Minors({ record, state, undoable }: { record: StudentRecord; state: PlanState; undoable: Undoable }) {
   const t = useT();
-  const { plan, update } = state;
+  const { plan } = state;
+  const [open, setOpen] = useState<string | null>(null);
   const ranked = rankedMinors(record, plan);
-  const shown = [...ranked.filter((m) => m.key === plan.minor), ...ranked.filter((m) => m.key !== plan.minor && m.have > 0).slice(0, 4)];
+  const pinned = (key: string) => key === plan.minor || key === record.registeredMinor;
+  const shown = [...ranked.filter((m) => pinned(m.key)), ...ranked.filter((m) => !pinned(m.key) && m.have > 0).slice(0, 4)];
+  const opened = record.minors.find((m) => m.key === open);
   return (
     <Card className="overflow-hidden">
       <h3 className="px-4 pt-3.5 text-body font-semibold">{t("planner.minors")}</h3>
       <ul className="px-2 pt-2 pb-2">
         {shown.map((m) => {
           const on = plan.minor === m.key;
+          const registered = record.registeredMinor === m.key;
           return (
             <li key={m.key}>
               <button
                 type="button"
-                aria-pressed={on}
-                aria-label={t("planner.minorTrack", { name: m.name })}
-                onClick={() => update((p) => ({ ...p, minor: on ? null : m.key }))}
-                className={cx(
-                  "focus-ring flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left transition-colors duration-150",
-                  on ? "bg-selected" : "hover:bg-hover",
-                )}
+                aria-haspopup="dialog"
+                onClick={() => setOpen(m.key)}
+                className="focus-ring group flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left transition-colors duration-150 hover:bg-hover"
               >
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-small font-semibold">{m.name}</span>
@@ -787,18 +1010,139 @@ function Minors({ record, state }: { record: StudentRecord; state: PlanState }) 
                 </span>
                 <span className="shrink-0 text-right">
                   <span className="block text-caption font-semibold tabular-nums">{t("planner.minorSks", { have: m.have, need: m.need })}</span>
-                  <span className={cx("inline-flex items-center gap-1 text-caption", on ? "font-medium text-accent-fg" : "text-faint")}>
-                    {on ? <Icons.Check className="size-3" weight="bold" /> : <Icons.Target className="size-3" />}
-                    {on ? t("planner.minorWatching") : t("planner.minorTrackShort")}
-                  </span>
+                  {(on || registered) && (
+                    <span className="inline-flex items-center gap-1 text-caption font-medium text-accent-fg">
+                      <Icons.Check className="size-3" weight="bold" />
+                      {registered ? t("planner.minorRegistered") : t("planner.minorPlanned")}
+                    </span>
+                  )}
                 </span>
+                <Icons.ChevronRight className="size-3.5 shrink-0 text-faint opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100" />
               </button>
             </li>
           );
         })}
         {shown.length === 0 && <li className="px-2 py-1 text-small text-faint">{t("planner.minorNone")}</li>}
       </ul>
+      {opened && <MinorPanel record={record} state={state} minor={opened} undoable={undoable} onClose={() => setOpen(null)} />}
     </Card>
+  );
+}
+
+/** The first planned regular semester a course still fits in at the normal load, else the last one. */
+function termFor(plan: StudyPlan, sks: number): string | null {
+  const regular = plan.terms.filter((t) => termKind(t.term) !== "short");
+  return (regular.find((t) => t.courses.reduce((sum, c) => sum + c.sks, 0) + sks <= NORMAL_SKS) ?? regular.at(-1))?.term ?? null;
+}
+
+/** A minor up close: SIX's rules, each course with where it stands and a way to plan it, and planning the minor itself, said plainly. */
+function MinorPanel({
+  record,
+  state,
+  minor,
+  undoable,
+  onClose,
+}: {
+  record: StudentRecord;
+  state: PlanState;
+  minor: MinorOption;
+  undoable: Undoable;
+  onClose: () => void;
+}) {
+  const t = useT();
+  const termLabel = useTermLabel();
+  const focusNext = useFocusNext();
+  const { plan } = state;
+  const on = plan.minor === minor.key;
+  const progress = minorProgress(record, plan, minor);
+  const have = progress.passed + progress.now + progress.planned;
+  const grade = nearestLetter(record.transcript?.ipk.computed ?? null);
+  const label = (term: string) => termLabel(term, semesterOf(term, record.entryTerm));
+  const stateText = (code: string, st: CourseState) =>
+    st === "passed" ? t("planner.state.passed", { grade: record.graded.get(code)?.grade ?? "" }) : st ? t(`planner.state.${st}`) : null;
+  const termOf = (code: string) => (courseState(record, plan, code) ? null : termFor(plan, courseInfo(record, code).sks));
+  // The courses with an Add button, in order: once one is added, focus moves to the next (the button turns into its status).
+  const addable = minor.courses.filter((code) => termOf(code) !== null);
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()} title={t("rule.minor", { name: minor.name })}>
+      <p className="text-small text-muted">
+        <Meta>
+          {minor.program}
+          {record.registeredMinor === minor.key ? t("planner.minorRegistered") : ""}
+        </Meta>
+      </p>
+      <p className="mt-3 flex flex-wrap items-baseline gap-x-2">
+        <span className="text-title font-semibold tabular-nums">{t("planner.minorSks", { have, need: progress.need })}</span>
+        <Meta className="text-small text-muted tabular-nums">
+          {t("planner.minorSplit", { passed: progress.passed, now: progress.now, planned: progress.planned })}
+        </Meta>
+      </p>
+      {minor.note && (
+        <section className="mt-4">
+          <h3 className="text-caption font-medium text-muted">{t("planner.minorRules")}</h3>
+          <p className="mt-1 text-small whitespace-pre-line">{minor.note}</p>
+        </section>
+      )}
+      <section className="mt-4">
+        <h3 className="text-caption font-medium text-muted">{t("planner.minorCourses")}</h3>
+        <ul className="mt-1">
+          {minor.courses.map((code) => {
+            const info = courseInfo(record, code);
+            const st = courseState(record, plan, code);
+            const term = termOf(code);
+            return (
+              <li key={code} className="grid grid-cols-[64px_minmax(0,1fr)_auto] items-center gap-3 border-b border-line py-2 last:border-b-0">
+                <span className="text-small font-semibold tabular-nums">{code}</span>
+                <span className="min-w-0">
+                  <span className="block truncate text-body">{info.name}</span>
+                  <span className="block text-caption text-muted">{info.sks} SKS</span>
+                </span>
+                {st ? (
+                  <span className={cx("text-caption font-semibold whitespace-nowrap", st === "this-term" ? "text-info-fg" : "text-faint")}>
+                    {stateText(code, st)}
+                  </span>
+                ) : term ? (
+                  <Button
+                    size="sm"
+                    aria-label={t("planner.addCodeTo", { code, term: label(term) })}
+                    data-focus={`minor-add-${code}`}
+                    onClick={() => {
+                      undoable(
+                        (p) => addCourse(p, term, { code, name: info.name, sks: info.sks, grade, retake: false }),
+                        t("planner.addedTo", { code, term: label(term) }),
+                      );
+                      const next = addable[addable.indexOf(code) + 1];
+                      focusNext(...(next ? [`minor-add-${next}`] : []), "minor-plan");
+                    }}
+                  >
+                    {t("planner.add")}
+                  </Button>
+                ) : (
+                  <span className="text-caption text-faint">{t("planner.state.left")}</span>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      </section>
+      <p className="mt-4 text-caption text-muted">{t("planner.minorWhat")}</p>
+      <div className="mt-4 flex justify-end">
+        {on ? (
+          <Button data-focus="minor-plan" onClick={() => undoable((p) => ({ ...p, minor: null }), t("planner.minorStopped", { name: minor.name }))}>
+            {t("planner.minorStop")}
+          </Button>
+        ) : (
+          <Button
+            variant="primary"
+            data-focus="minor-plan"
+            icon={<Icons.Target className="size-3.5" />}
+            onClick={() => undoable((p) => ({ ...p, minor: minor.key }), t("planner.minorPlannedDone", { name: minor.name }))}
+          >
+            {t("planner.minorPlan")}
+          </Button>
+        )}
+      </div>
+    </Dialog>
   );
 }
 
@@ -806,26 +1150,43 @@ function Minors({ record, state }: { record: StudentRecord; state: PlanState }) 
 
 type AddTab = "needed" | "program" | "minors" | "all";
 
-function AddCourse({ record, state, term, title, onClose }: { record: StudentRecord; state: PlanState; term: string; title: string; onClose: () => void }) {
+/** `now`: adding to this semester, as a what-if; a course planned for later can move into it. */
+function AddCourse({
+  record,
+  state,
+  now,
+  title,
+  onAdd,
+  onClose,
+}: {
+  record: StudentRecord;
+  state: PlanState;
+  now: boolean;
+  title: string;
+  onAdd: (course: PlannedCourse) => void;
+  onClose: () => void;
+}) {
   const t = useT();
   const f = useFormat();
-  const { plan, update } = state;
+  const { plan } = state;
   const [tab, setTab] = useState<AddTab>("needed");
   const [query, setQuery] = useState("");
   const minor = record.minors.find((m) => m.key === plan.minor) ?? null;
+  const spec = activeSpecialization(record, plan);
   const grade = nearestLetter(record.transcript?.ipk.computed ?? null);
   const add = (code: string, retake: boolean) => {
     const info = courseInfo(record, code);
-    update((p) => addCourse(p, term, { code, name: info.name, sks: info.sks, grade, retake }));
+    onAdd({ code, name: info.name, sks: info.sks, grade, retake });
     onClose();
   };
   const planned = plannedCodes(plan);
+  const canAdd = (st: CourseState) => st === null || (now && st === "planned");
   const open = (code: string) => !planned.has(code) && courseState(record, plan, code) === null;
   const needed: { code: string; why: string }[] = [
     ...record.requiredLeft.map((c) => ({ code: c.code, why: t("planner.why.required") })),
-    ...(record.specialization?.courses ?? [])
+    ...(spec?.courses ?? [])
       .filter((c) => open(c.code) || planned.has(c.code))
-      .map((c) => ({ code: c.code, why: t("planner.why.specialization", { name: record.specialization!.name }) })),
+      .map((c) => ({ code: c.code, why: t("planner.why.specialization", { name: spec!.name }) })),
     ...(minor?.courses ?? []).filter((code) => open(code) || planned.has(code)).map((code) => ({ code, why: t("planner.why.minor", { name: minor!.name }) })),
   ].filter((x, i, all) => all.findIndex((y) => y.code === x.code) === i);
   const retakes = retakeCandidates(record);
@@ -835,7 +1196,13 @@ function AddCourse({ record, state, term, title, onClose }: { record: StudentRec
 
   const row = (code: string, why?: string, retake?: { from: string; now: number | null; after: number | null }) => {
     const info = courseInfo(record, code);
-    const st = retake ? (planned.has(code) ? "planned" : null) : courseState(record, plan, code);
+    const st: CourseState = retake
+      ? record.thisTerm.some((c) => c.code === code)
+        ? "this-term"
+        : planned.has(code)
+          ? "planned"
+          : null
+      : courseState(record, plan, code);
     const owner = info.owner ? (record.programNames.get(info.owner) ?? null) : null;
     return (
       <li key={code} className="flex items-center gap-3 border-b border-line px-5 py-2.5 last:border-b-0">
@@ -851,7 +1218,7 @@ function AddCourse({ record, state, term, title, onClose }: { record: StudentRec
               : null}
           </Meta>
         </span>
-        {st ? (
+        {!canAdd(st) && st ? (
           <span className="text-caption font-semibold whitespace-nowrap text-faint">
             {st === "passed" ? t("planner.state.passed", { grade: record.graded.get(code)?.grade ?? "" }) : t(`planner.state.${st}`)}
           </span>
@@ -882,6 +1249,7 @@ function AddCourse({ record, state, term, title, onClose }: { record: StudentRec
               className="h-full flex-1 bg-transparent text-body outline-none placeholder:text-faint"
             />
           </label>
+          {now && <p className="mt-2 text-caption text-info-fg">{t("planner.addToNowNote")}</p>}
           <Tabs.Root value={tab} onValueChange={(v) => setTab(v as AddTab)}>
             <Tabs.List aria-label={title} className="mt-2 flex gap-5">
               {(["needed", "program", "minors", "all"] as const).map((id) => (
@@ -934,21 +1302,22 @@ function AddCourse({ record, state, term, title, onClose }: { record: StudentRec
                     <ul className="mt-1.5 flex flex-wrap gap-1.5">
                       {m.courses.map((code) => {
                         const st = courseState(record, plan, code);
+                        const done = !canAdd(st);
                         return (
                           <li key={code}>
                             <button
                               type="button"
-                              disabled={st !== null}
+                              disabled={done}
                               title={courseInfo(record, code).name}
-                              aria-label={st ? undefined : t("planner.addCode", { code })}
+                              aria-label={done ? undefined : t("planner.addCode", { code })}
                               onClick={() => add(code, false)}
                               className={cx(
                                 "focus-ring inline-flex items-center gap-1 rounded-md px-2 py-1 text-caption font-semibold tabular-nums",
-                                st ? "bg-success-bg text-success-fg" : "border border-edge bg-surface hover:bg-hover",
+                                done ? "bg-success-bg text-success-fg" : "border border-edge bg-surface hover:bg-hover",
                               )}
                             >
                               {code}
-                              {st ? <Icons.Check className="size-3" /> : <span aria-hidden>+</span>}
+                              {done ? <Icons.Check className="size-3" /> : <span aria-hidden>+</span>}
                             </button>
                           </li>
                         );

@@ -10,7 +10,7 @@
 import { type ReactNode, type Ref, useEffect, useRef, useState } from "react";
 import { curriculumMap, type MapCourse, type PackageProgress, type SlotStatus, type StandIn, standIns } from "../../../core/curriculum-map";
 import type { CurriculumFix } from "../../../core/models";
-import { type SksModel, type StudentRecord, sksModel } from "../../../core/planner";
+import { hasWhatIfs, type SksModel, type StudentRecord, sksModel } from "../../../core/planner";
 import { useOpenExternal } from "../../hooks";
 import { useT } from "../../i18n";
 import { useCurriculumFix, usePlan, useStudentRecord } from "../../study-plan";
@@ -21,6 +21,7 @@ import { Icons } from "../../ui/icons";
 import { Meta } from "../../ui/layout";
 import { Menu, type MenuItem } from "../../ui/menu";
 import { Dialog, Tooltip, toast } from "../../ui/overlays";
+import { Tag } from "./planner";
 import { SixNeeded } from "./six-needed";
 
 export const ready = true;
@@ -73,8 +74,9 @@ function useFocusAfterCorrection(rows: MapCourse[]) {
 
 export function Tab({ onCalendar }: { onCalendar?: () => void }) {
   const t = useT();
-  const record = useStudentRecord();
-  const state = usePlan(record);
+  const state = usePlan(useStudentRecord());
+  // With this term's what-ifs, like the planner: the two tabs never disagree.
+  const record = state?.record;
   const setFix = useCurriculumFix();
   const [onlyLeft, setOnlyLeft] = useState(false);
   const [picking, setPicking] = useState<MapCourse | null>(null);
@@ -145,6 +147,7 @@ export function Tab({ onCalendar }: { onCalendar?: () => void }) {
   return (
     <div className="@container space-y-6">
       <Totals
+        whatIf={hasWhatIfs(state.plan, record)}
         name={record.curriculum.name}
         year={record.curriculum.year}
         startedOn={map.startedOn}
@@ -207,7 +210,22 @@ export function Tab({ onCalendar }: { onCalendar?: () => void }) {
 }
 
 /** The curriculum's three numbers, each with its label: the total, required left, electives. */
-function Totals({ name, year, startedOn, unlisted, sks }: { name: string; year: number; startedOn: number | null; unlisted: number; sks: SksModel }) {
+function Totals({
+  whatIf,
+  name,
+  year,
+  startedOn,
+  unlisted,
+  sks,
+}: {
+  /** This semester holds what-ifs: every count here includes them. */
+  whatIf: boolean;
+  name: string;
+  year: number;
+  startedOn: number | null;
+  unlisted: number;
+  sks: SksModel;
+}) {
   const t = useT();
   const figure = (label: string, value: ReactNode, hint?: ReactNode) => (
     <div className="min-w-0">
@@ -225,6 +243,12 @@ function Totals({ name, year, startedOn, unlisted, sks }: { name: string; year: 
           {[startedOn !== null && t("curriculum.startedOn", { from: startedOn, to: year }), unlisted > 0 && t("curriculum.unlistedNote", { count: unlisted })]
             .filter(Boolean)
             .join(" ")}
+        </p>
+      )}
+      {whatIf && (
+        <p className="mt-0.5 flex items-center gap-1 text-caption font-medium text-info-fg">
+          <Icons.Info className="size-3 shrink-0" weight="bold" />
+          {t("curriculum.withWhatIfs")}
         </p>
       )}
       <dl className="mt-3 grid grid-cols-1 gap-x-8 gap-y-3 @2xl:grid-cols-3">
@@ -368,7 +392,14 @@ function CourseRow({ course, menu, ref }: { course: MapCourse; menu?: MenuItem[]
           </Meta>
         )}
       </span>
-      <Status status={course.status} grade={course.grade} />
+      {course.whatIf === "added" ? (
+        // Tried this semester, not on SIX's KRS: never "This semester" as if it were.
+        <Tag tone="what-if">{t("planner.whatIfTag")}</Tag>
+      ) : course.whatIf === "left-out" ? (
+        <span className="text-small whitespace-nowrap text-info-fg">{t("planner.droppedTag")}</span>
+      ) : (
+        <Status status={course.status} grade={course.grade} />
+      )}
       <span className="text-right text-small text-muted tabular-nums">{course.sks}</span>
       {course.courseId ? (
         <Tooltip content={t("curriculum.syllabusOf", { code: course.code })}>
@@ -451,16 +482,20 @@ function Packages({ title, packages }: { title: string; packages: PackageProgres
         {packages.map((p) => (
           <Card key={`${p.program ?? ""}${p.name}`} className="px-4 py-3">
             <p className="flex items-start justify-between gap-3">
-              <span className="min-w-0">
+              <span className="min-w-0 flex-1">
                 <span className="block text-small font-semibold">{p.name}</span>
-                {p.program && <span className="block truncate text-caption text-muted">{p.program}</span>}
-              </span>
-              <span className="flex shrink-0 items-center gap-2">
-                {p.registered && (
-                  <span className="rounded-[5px] bg-info-bg px-1.5 text-micro leading-[18px] font-semibold text-info-fg">{t("curriculum.registered")}</span>
+                {(p.program || p.registered) && (
+                  <Meta className="text-caption text-muted">
+                    {p.program && <span className="truncate">{p.program}</span>}
+                    {p.registered && (
+                      <span className={p.notContinuing ? undefined : "font-medium text-info-fg"}>
+                        {t(p.notContinuing ? "curriculum.notContinuing" : "curriculum.registered")}
+                      </span>
+                    )}
+                  </Meta>
                 )}
-                <span className="text-small font-semibold tabular-nums">{t("curriculum.packageSks", { have: p.have, need: p.sks })}</span>
               </span>
+              <span className="shrink-0 text-small font-semibold tabular-nums">{t("curriculum.packageSks", { have: p.have, need: p.sks })}</span>
             </p>
             <Bar
               className="mt-2"
@@ -480,7 +515,7 @@ function Packages({ title, packages }: { title: string; packages: PackageProgres
                     {c.code}
                   </span>
                   <span className={cx("min-w-0 flex-1 truncate", isLeft(c.status) ? "text-muted" : "text-fg")}>{c.name}</span>
-                  <PackageMark status={c.status} />
+                  <PackageMark status={c.status} whatIf={c.whatIf} />
                 </li>
               ))}
             </ul>
@@ -492,8 +527,9 @@ function Packages({ title, packages }: { title: string; packages: PackageProgres
 }
 
 /** A package course: a check when done, a word when under way, nothing (just grey) when not taken. */
-function PackageMark({ status }: { status: SlotStatus }) {
+function PackageMark({ status, whatIf }: { status: SlotStatus; whatIf: MapCourse["whatIf"] }) {
   const t = useT();
+  if (whatIf) return <span className="shrink-0 font-medium text-info-fg">{t(whatIf === "added" ? "planner.whatIfTag" : "planner.droppedTag")}</span>;
   if (status === "passed" || status === "exempt")
     return (
       <span className="shrink-0">

@@ -20,11 +20,17 @@ async function inject(name: string, value: unknown) {
   await screen!.apply({ type: "dataset", dataset: { name: name as never, value: value as never, fetchedAt: 0, hash: `p${++hash}` } });
 }
 
-async function openPlan(options: { saved?: StudyPlan; lang?: "en"; noRecords?: boolean } = {}) {
+/** `emptyTerm`: SIX already on this term, its KRS without courses yet (DRS not done). */
+async function openPlan(options: { saved?: StudyPlan; lang?: "en"; noRecords?: boolean; emptyTerm?: boolean } = {}) {
   screen = await openApp({ world: new PretendWorld({ now: "2026-10-11T09:00:00+07:00" }), signedIn: true });
   if (options.lang) await screen.engineDoes(() => screen!.engine.updateSettings({ lang: options.lang }));
   if (!options.noRecords) {
     const data = await records();
+    if (options.emptyTerm) {
+      data.transcript.terms = data.transcript.terms.filter((t) => t.term !== "2026-1");
+      await inject("six.student", { nim: "18223901", name: "Mahasiswa Contoh", studentId: "2021000001", term: "2026-1", program: null, programCode: null });
+      await inject("six.courses", []);
+    }
     for (const [name, value] of [
       ["six.transcript", data.transcript],
       ["six.progress", data.progress],
@@ -53,6 +59,8 @@ const block = (title: RegExp) =>
 /** The "Add course" button of a semester. */
 const addIn = (title: RegExp) => [...block(title)!.querySelectorAll<HTMLButtonElement>("button")].find((b) => b.textContent === "Tambah mata kuliah")!;
 const rulesText = () => document.querySelector("ul[aria-label='Aturan, dicek langsung'], ul[aria-label='Rules, checked live']")?.textContent ?? "";
+/** The whole rules card, its hidden list included. */
+const rulesCard = () => document.querySelector("ul[aria-label='Aturan, dicek langsung']")?.parentElement?.textContent ?? "";
 const rule = (id: string) =>
   [...document.querySelectorAll<HTMLElement>(`[data-rule=${id}]`)].map((el) => `${el.dataset.level}: ${el.textContent?.replace(/^!/, "")}`);
 const saved = () => screen!.store.dataset("local.plan")?.value as StudyPlan | undefined;
@@ -228,12 +236,128 @@ describe("the study planner", () => {
     expect(s.button("Target IPK 3,00").getAttribute("aria-checked")).toBe("true");
   });
 
-  it("tracks a minor and checks its SKS", async () => {
+  it("'Plan this minor': its courses and where each stands, what planning it changes, and stopping again", async () => {
     const s = await openPlan();
-    await s.click("Pantau minor Branding Berbasis Digital");
+    await s.click(/^Branding Berbasis Digital/);
+    const dialog = () => document.querySelector("[role=dialog]")!.textContent!;
+    expect(dialog()).toContain("Minor Branding Berbasis Digital");
+    expect(dialog()).toContain("3 dari 12 SKS0 lulus · 3 semester ini · 0 direncanakan");
+    expect(dialog()).toContain("DK4073Komunikasi Pemasaran3 SKSSemester ini");
+    expect(dialog()).toContain("Daftar minornya tetap di SIX");
+    await s.click("Rencanakan minor ini");
     expect(rule("minor")).toEqual(["warn: Perlu dicekMinor Branding Berbasis Digital3 dari 12 SKS dari daftarnya."]);
+    expect(saved()?.minor).toBe("Desain Komunikasi Visual · Branding Berbasis Digital");
+    expect(toastText()).toContain("Minor Branding Berbasis Digital direncanakanUrungkan");
+    // A course from the panel goes to the first semester it fits in.
+    await s.click("Tambah DK3072 ke Semester 8 · 2026/2027 Genap");
+    expect(dialog()).toContain("DK3072Fotografi Fashion dan Produk3 SKSDirencanakan");
+    expect(rule("minor")[0]).toContain("6 dari 12 SKS");
+    await s.click("Berhenti merencanakan");
+    expect(rule("minor")).toEqual([]);
+    expect(saved()?.minor).toBeNull();
+    await s.click("Urungkan");
+    expect(saved()?.minor).toBe("Desain Komunikasi Visual · Branding Berbasis Digital");
+    await s.key("Escape");
+    // The card says it's planned; the Add dialog offers its courses.
+    expect(s.button(/^Branding Berbasis Digital/).textContent).toContain("Direncanakan");
     await s.click(addIn(/^Semester 8/));
     expect(document.querySelector("[role=dialog]")!.textContent).toContain("Minor Branding Berbasis Digital");
+  });
+
+  it("this semester takes what-ifs: leave a KRS course out, try one in; only in the plan, and Nilai keeps SIX's KRS", async () => {
+    const s = await openPlan();
+    const now = () => block(/^Semester 7 · sekarang/)!;
+    expect(now().textContent).toContain("Berlangsung · nilai perkiraanmu");
+    await s.click("Coba tanpa PL3032");
+    expect(now().textContent).toContain("Hanya di rencanamu · KRS-mu di SIX tidak berubah");
+    expect(now().textContent).toContain("PL3032Ekonomi Infrastruktur dan TransportasiTidak diambil di rencana3Kembalikan");
+    expect(now().textContent).toContain("11 / 24 SKS");
+    expect(summary()).toContain("125 lulus11 semester ini12 direncanakan");
+    expect(toastText()).toContain("PL3032 tidak diambil di rencanamuUrungkan");
+    expect(saved()?.now).toEqual({ term: "2026-1", added: [], dropped: ["PL3032"] });
+
+    // Kerja Praktik tried this semester: it moves out of semester 8, and its odd/even warning goes.
+    await s.click("Coba tambah mata kuliah");
+    expect(document.querySelector("[role=dialog]")!.textContent).toContain("Coba tambah ke Semester 7 · sekarang");
+    await s.click("Tambah II4090");
+    expect(now().textContent).toContain("II4090Kerja PraktikHanya di rencana2");
+    expect(block(/^Semester 8/)!.textContent).not.toContain("II4090");
+    expect(rule("parity")).toEqual([]);
+    expect(saved()?.now?.added.map((c) => c.code)).toEqual(["II4090"]);
+
+    // Nilai keeps to SIX's KRS, and says why its numbers differ.
+    await s.click("Nilai");
+    expect(s.text()).toContain("PL3032");
+    expect(s.text()).toContain("Dengan KRS-mu di SIX, tanpa perubahan semester ini yang hanya ada di rencanamu.");
+    // Kerja Praktik still counts in semester 8 there (it isn't in SIX's KRS): the same 26 SKS left as before any what-if.
+    expect(s.text()).toContain("jika semua A di 26 SKS tersisa");
+    await s.click("Rencana studi");
+
+    // A reset would end them, and says so (Kerja Praktik isn't counted as removed from semester 8 too).
+    await s.click("Atur ulang rencana");
+    expect(document.querySelector("[role=alertdialog]")!.textContent).toContain("Semua perubahanmu hilang: 2 perubahan di semester ini.");
+    await s.click("Batal");
+
+    // Taking the what-ifs back: Kerja Praktik returns to semester 8.
+    await s.click("Hapus II4090");
+    expect(block(/^Semester 8/)!.textContent).toContain("II4090");
+    await s.click("Kembalikan PL3032");
+    expect(now().textContent).toContain("14 SKS");
+    expect(now().textContent).toContain("Berlangsung · nilai perkiraanmu");
+  });
+
+  it("hides a warning with a reason: the summary, the row and the rules agree; shown again from the quiet list", async () => {
+    const s = await openPlan();
+    expect(summary()).toContain("1 hal perlu dicek");
+    await s.click("Sembunyikan peringatan: II4090 Kerja Praktik");
+    await s.click(/^Prodiku akan menambahkannya/);
+    expect(rule("parity")).toEqual([]);
+    expect(summary()).toContain("LulusSemester 8Tepat waktu");
+    expect(block(/^Semester 8/)!.textContent).not.toContain("Biasanya di semester ganjil");
+    expect(toastText()).toContain("Disembunyikan: II4090 Kerja PraktikUrungkan");
+    expect(saved()?.hidden).toMatchObject({ "parity|II4090": { reason: "program-adds" } });
+    // Errors decide graduating: they can't be hidden.
+    await s.click("Hapus II4092");
+    expect(s.has(/^Sembunyikan peringatan: Mata kuliah wajib/)).toBe(false);
+    await s.click("Urungkan");
+
+    // Kept through "Reset plan".
+    await s.click("Hapus II4010");
+    await s.click("Atur ulang rencana");
+    await s.click("Atur ulang");
+    expect(saved()?.hidden).toMatchObject({ "parity|II4090": { reason: "program-adds" } });
+
+    await s.click("Disembunyikan (1) · Tampilkan");
+    expect(rulesCard()).toContain("II4090 Kerja PraktikProdi akan menambahkannya");
+    await s.click("Tampilkan lagi: II4090 Kerja Praktik");
+    expect(rule("parity")[0]).toContain("warn: Perlu dicekII4090 Kerja Praktik");
+    expect(summary()).toContain("1 hal perlu dicek");
+  });
+
+  it("not continuing the registered specialization: hidden, its courses no longer offered, and a reset leaves them out", async () => {
+    const s = await openPlan();
+    await s.click("Hapus II4011");
+    await s.click("Sembunyikan peringatan: Sistem Informasi Cerdas");
+    await s.click(/^Aku tidak melanjutkan spesialisasi ini/);
+    expect(rule("specialization")).toEqual([]);
+    expect(block(/^Semester 8/)!.textContent).toContain("II4010Manajemen DataPilihan prodi3");
+    await s.click(addIn(/^Semester 8/));
+    expect(document.querySelector("[role=dialog]")!.textContent).not.toContain("Menuntaskan Sistem Informasi Cerdas");
+    // Planned anyway: the warning goes, the choice stays, and can still be taken back.
+    await search("II4011");
+    await s.click("Tambah II4011");
+    expect(rule("specialization")[0]).toContain("ok: Terpenuhi");
+    await s.click("Disembunyikan (1) · Tampilkan");
+    expect(rulesCard()).toContain("Sistem Informasi CerdasTidak dilanjutkan");
+    await s.click("Hapus II4011");
+    await s.click("Atur ulang rencana");
+    await s.click("Atur ulang");
+    expect(saved()?.terms[0].courses.map((c) => c.code)).toEqual(["II4090", "II4092"]);
+    await tab("Kurikulum");
+    expect(s.text()).toContain("Sistem Informasi CerdasTerdaftar · tidak dilanjutkan");
+    // Said under the name, not as a tag beside the SKS that squeezed the name to a few letters per line.
+    const card = [...document.querySelectorAll("aside p")].find((p) => p.textContent?.startsWith("Sistem Informasi Cerdas"))!;
+    expect([...card.children].map((c) => c.textContent)).toEqual(["Sistem Informasi CerdasTerdaftar · tidak dilanjutkan", "6 dari 12 SKS"]);
   });
 
   it("reset asks first, says what's lost, and can still be undone (bug: it used to wipe at once)", async () => {
@@ -255,6 +379,61 @@ describe("the study planner", () => {
     expect(saved()?.terms[0].courses.map((c) => c.code)).not.toContain("II4010");
   });
 
+  it("a course left out stays where it was in the KRS, crossed out, in the same columns", async () => {
+    const s = await openPlan();
+    const rows = () => [...block(/^Semester 7 · sekarang/)!.querySelectorAll("li")];
+    const first = rows()[0].textContent;
+    expect(first).toMatch(/^DK4073/);
+    await s.click("Coba tanpa DK4073");
+    expect(rows()[0].textContent).toBe("DK4073Komunikasi PemasaranTidak diambil di rencana3Kembalikan");
+    expect(rows()[0].className).toBe(rows()[1].className.replace(" text-body", " text-body text-muted"));
+  });
+
+  it("this semester's block is there while its KRS is still empty: a course can be tried, and its SKS count", async () => {
+    const s = await openPlan({ emptyTerm: true });
+    const now = () => block(/^Semester 7 · sekarang/)!;
+    expect(now().textContent).toContain("KRS-mu di SIX belum berisi mata kuliah.");
+    await s.click("Coba tambah mata kuliah");
+    await search("II4021");
+    await s.click("Tambah II4021");
+    expect(now().textContent).toContain("II4021");
+    expect(now().textContent).toContain("Hanya di rencanamu · KRS-mu di SIX tidak berubah");
+    expect(now().textContent).toContain("3 / 24 SKS");
+    expect(summary()).toContain("3 semester ini");
+  });
+
+  it("removing the semester a course tried now was planned in: the toast counts what goes, and the course isn't lost (bug)", async () => {
+    const s = await openPlan();
+    await s.click("Coba tambah mata kuliah");
+    await s.click("Tambah II4010");
+    await s.click("Hapus Semester 8 · 2026/2027 Genap");
+    expect(toastText()).toContain("Semester 8 · 2026/2027 Genap dihapus (3 mata kuliah)");
+    await s.click("Hapus II4010");
+    expect(block(/^Semester 8 · 2026\/2027 Genap/)!.textContent).toContain("II4010Manajemen Data");
+    expect(saved()?.terms.map((t) => [t.term, t.courses.map((c) => c.code)])).toEqual([["2026-2", ["II4010"]]]);
+  });
+
+  it("removing a semester counts only the courses it shows, not copies of ones taken already (bug)", async () => {
+    const planned = (code: string, name: string, sks: number) => ({ code, name, sks, grade: "AB" as const, retake: false });
+    // PL3032 is in this semester's KRS and II2100 is passed: both copies are hidden.
+    const s = await openPlan({
+      saved: {
+        terms: [
+          {
+            term: "2026-2",
+            courses: [planned("II4092", "Tugas Akhir", 4), planned("PL3032", "Mata Kuliah Contoh", 3), planned("II2100", "Mata Kuliah Lulus", 3)],
+          },
+        ],
+        expected: {},
+        target: null,
+        minor: null,
+      },
+    });
+    expect(block(/^Semester 8 · 2026\/2027 Genap/)!.querySelectorAll("li")).toHaveLength(1);
+    await s.click("Hapus Semester 8 · 2026/2027 Genap");
+    expect(toastText()).toContain("Semester 8 · 2026/2027 Genap dihapus (1 mata kuliah)");
+  });
+
   it("in English", async () => {
     const s = await openPlan({ lang: "en" });
     expect(summary()).toContain("144 SKS covered+7 to spare");
@@ -262,6 +441,10 @@ describe("the study planner", () => {
     expect(s.text()).toContain("Semester 8 · 2026/2027 Even");
     expect(rulesText()).toContain("Check it also runs in the even semester");
     expect(rulesText()).toContain("27 of 27 SKS covered (+10 more).");
+    expect(s.has("Hide the warning: II4090 Kerja Praktik")).toBe(true);
+    await s.click("Try without PL3032");
+    expect(block(/^Semester 7 · now/)!.textContent).toContain("Only in your plan · your KRS on SIX doesn't change");
+    expect(s.has("Put PL3032 back")).toBe(true);
   });
 });
 
@@ -353,6 +536,18 @@ describe("the curriculum map", () => {
     expect(toastText()).toContain("Koreksi II4090 dihapus");
   });
 
+  it("this semester's what-ifs count here too, each marked as only in the plan, never as if SIX had it", async () => {
+    const s = await openPlan();
+    await s.click("Coba tambah mata kuliah");
+    await s.click("Tambah II4090");
+    await s.click("Coba tanpa II4091");
+    await tab("Kurikulum");
+    expect(s.text()).toContain("Termasuk perubahan semester ini yang hanya ada di rencanamu.");
+    expect(row("II4090")).toBe("II4090Kerja PraktikHanya di rencana2");
+    expect(row("II4091")).toBe("II4091Proposal Tugas AkhirTidak diambil di rencana2");
+    expect(s.text()).not.toContain("Semester ini2");
+  });
+
   it("corrections are kept on this computer: there again after a restart", async () => {
     const s = await openPlan();
     await s.engineDoes(() => s.engine.setLocal("local.curriculum", { slots: { WI2002: { kind: "counted-as", code: "KU1102", at: 1 } } }));
@@ -379,7 +574,13 @@ describe("the curriculum map", () => {
 
 describe("the keyboard: focus stays where the Student is", () => {
   const tick = () => act(() => new Promise<void>((resolve) => setTimeout(resolve, 10)));
-  const focused = () => document.activeElement?.getAttribute("aria-label") ?? document.activeElement?.tagName;
+  const focused = () => document.activeElement?.getAttribute("aria-label") ?? document.activeElement?.textContent ?? document.activeElement?.tagName;
+  const press = async (name: string | RegExp) => {
+    const button = screen!.button(name);
+    button.focus();
+    await screen!.click(button);
+    await tick();
+  };
   /** Opens a menu from the keyboard and picks an item, as Enter on the focused item does. */
   async function choose(menu: string, item: RegExp) {
     const trigger = screen!.button(menu);
@@ -420,5 +621,38 @@ describe("the keyboard: focus stays where the Student is", () => {
     await choose("Koreksi II4092", /^Tidak ada di kurikulumku/);
     await tick();
     expect(focused()).toBe("Sisa saja");
+  });
+
+  it("'Try without', 'Put back' and removing a tried course: focus moves to what took the control's place", async () => {
+    const s = await openPlan();
+    await press("Coba tanpa PL3032");
+    expect(focused()).toBe("Kembalikan PL3032");
+    await press("Kembalikan PL3032");
+    expect(focused()).toBe("Coba tanpa PL3032");
+    await s.click("Coba tambah mata kuliah");
+    await s.click("Tambah II4090");
+    await press("Hapus II4090");
+    expect(focused()).toBe("Coba tambah mata kuliah");
+  });
+
+  it("hiding a warning moves focus to the hidden list; showing it again, back to the warning", async () => {
+    const s = await openPlan();
+    await choose("Sembunyikan peringatan: II4090 Kerja Praktik", /^Prodiku akan menambahkannya/);
+    expect(focused()).toBe("Disembunyikan (1) · Tampilkan");
+    await s.click("Disembunyikan (1) · Tampilkan");
+    await press("Tampilkan lagi: II4090 Kerja Praktik");
+    expect(focused()).toBe("Sembunyikan peringatan: II4090 Kerja Praktik");
+  });
+
+  it("adding a minor's course from its panel moves focus to the next course to add", async () => {
+    const s = await openPlan();
+    await s.click(/^Branding Berbasis Digital/);
+    const adds = () =>
+      [...document.querySelectorAll("[role=dialog] button")].map((b) => b.getAttribute("aria-label") ?? "").filter((l) => l.startsWith("Tambah"));
+    const [first, second] = adds();
+    await press(first);
+    expect(focused()).toBe(second);
+    for (const label of adds()) await press(label);
+    expect(focused()).toBe("Rencanakan minor ini");
   });
 });

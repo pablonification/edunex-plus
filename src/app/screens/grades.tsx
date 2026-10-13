@@ -8,7 +8,7 @@
 // their calculators, and what signing in to SIX unlocks.
 import { useState } from "react";
 import type { CalendarEvent, CheckedIndex, TranscriptTerm } from "../../core/models";
-import { checkPlan, expectedGrade, project, type StudentRecord, sksModel, targetOf } from "../../core/planner";
+import { checkPlan, expectedGrade, hasWhatIfs, project, type StudentRecord, sksModel, targetOf } from "../../core/planner";
 import { useTermCourses } from "../courses";
 import { useOpenExternal } from "../hooks";
 import { useFormat, useNow, useT } from "../i18n";
@@ -39,7 +39,8 @@ const shownIndex = (index: CheckedIndex) => index.six ?? index.computed;
 export function GradesScreen() {
   const t = useT();
   const record = useStudentRecord();
-  const state = usePlan(record);
+  // SIX's own record: the planner's what-ifs for this term stay in the planner.
+  const state = usePlan(record, false);
   if (!record || !state) return <WithoutSix />;
   return (
     <Page className="@container">
@@ -173,6 +174,7 @@ function Graduation({ record, state }: { record: StudentRecord; state: PlanState
           {finish.level === "error" ? t("grades.graduationBlocked") : lastTerm ? t("grades.graduationWhen", { term: termName(lastTerm) }) : null}
         </p>
       )}
+      {hasWhatIfs(plan, record) && <p className="mt-1 text-caption text-muted">{t("grades.withoutWhatIfs")}</p>}
       <HonorsSentence projection={projection} className="mt-3 border-t border-line pt-3" />
       <Button className="mt-4 self-start" onClick={() => nav.go({ screen: "plan", tab: "planner" })}>
         {t("grades.toPlanner")}

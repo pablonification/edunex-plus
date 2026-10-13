@@ -3,34 +3,50 @@
 // (Pasal 49), every rule a plan is checked against, the plan edits, the
 // catalog search and the curriculum map.
 import { beforeAll, describe, expect, it } from "vitest";
-import { curriculumMap, standIns } from "../../src/core/curriculum-map";
+import { curriculumMap, type MapCourse, standIns } from "../../src/core/curriculum-map";
 import { nameMatch } from "../../src/core/curriculum-slots";
 import { honorFor, letterForAverage, nearestLetter, predicateFor } from "../../src/core/honors";
 import type { CurriculumFix, PlannedCourse, StudyPlan } from "../../src/core/models";
 import {
+  activeSpecialization,
   addCourse,
   addShortTerm,
   addTerm,
+  addToNow,
+  aheadPlan,
   canRemoveTerm,
   checkPlan,
   courseInfo,
   defaultPlan,
+  hasWhatIfs,
+  hideReasons,
+  hideRule,
   honorsOutlook,
+  isHidden,
+  leaveOut,
   livePlan,
+  minorProgress,
   parseTarget,
   programElectives,
   project,
+  pruneWhatIfs,
+  putBack,
   type Rule,
   removeCourse,
   removeTerm,
+  removeTried,
   retakeCandidates,
+  ruleKey,
   type StudentRecord,
   searchCourses,
   semesterOf,
   shortTermToAdd,
+  showRule,
   sksModel,
   studentRecord,
   targetOf,
+  untried,
+  withWhatIf,
 } from "../../src/core/planner";
 import { type Records, records } from "./grades-records";
 
@@ -212,6 +228,12 @@ describe("rules, checked one by one", () => {
     expect(rule(rules(record, p), "specialization")[0]).toMatchObject({ level: "warn", name: "Sistem Informasi Cerdas", missing: [{ code: "II4011" }] });
   });
 
+  it("a minor's SKS split the way the Student reads it", () => {
+    const minor = record.minors.find((m) => m.name === "Branding Berbasis Digital")!;
+    expect(minorProgress(record, plan({}), minor)).toEqual({ passed: 0, now: 3, planned: 0, need: 12 });
+    expect(minorProgress(record, plan({ "2026-2": [course("DK3072")] }), minor)).toMatchObject({ now: 3, planned: 3 });
+  });
+
   it("a chosen minor: its SKS from the list", () => {
     const minor = record.minors.find((m) => m.name === "Branding Berbasis Digital")!;
     expect(rule(rules(record, plan({}, { minor: minor.key })), "minor")[0]).toMatchObject({ level: "warn", have: 3, need: 12 });
@@ -220,7 +242,8 @@ describe("rules, checked one by one", () => {
   });
 
   it("per-semester limits: above 20 needs the advisor, 24 at most, 9 in a short semester", () => {
-    const load = (codes: string[], term = "2026-2") => rule(rules(record, plan({ [term]: codes.map((c) => course(c)) })), "load");
+    // II4012 was passed with a C: it can only be taken again as a retake.
+    const load = (codes: string[], term = "2026-2") => rule(rules(record, plan({ [term]: codes.map((c) => course(c, "AB", c === "II4012")) })), "load");
     const seven = ["II4090", "II4092", "II4010", "II4011", "II4021", "II4022", "II4023"]; // 2+4+3+3+3+3+3 = 21
     expect(load(seven)).toEqual([{ id: "load", level: "warn", term: "2026-2", sks: 21, limit: 20 }]);
     expect(load([...seven, "II4024"])).toEqual([{ id: "load", level: "warn", term: "2026-2", sks: 24, limit: 20 }]);
@@ -338,6 +361,243 @@ describe("editing the plan", () => {
   it("a plan made last semester drops the semesters that have started", () => {
     const old = plan({ "2026-1": [course("II4021")], "2026-2": [course("II4022")] });
     expect(livePlan(old, record).terms.map((t) => t.term)).toEqual(["2026-2"]);
+  });
+});
+
+describe("this semester's what-ifs, only in the plan", () => {
+  const nowCourse = (code: string) => ({ code, name: courseInfo(record, code).name, sks: courseInfo(record, code).sks });
+
+  it("leaving out a KRS course: this semester's SKS, IP and electives follow; SIX's own record doesn't change", () => {
+    const p = leaveOut(defaultPlan(record), "2026-1", "PL3032");
+    expect(p.now).toEqual({ term: "2026-1", added: [], dropped: ["PL3032"] });
+    const r = withWhatIf(record, p);
+    expect(r.thisTerm.map((c) => c.code)).toEqual(["DK4073", "II4091", "KU5014", "PL3002"]);
+    expect(r.thisTermDropped.map((c) => c.code)).toEqual(["PL3032"]);
+    expect(r).toMatchObject({ inProgressSks: 11, electiveInProgress: 9, electiveHave: 28 });
+    expect(project(r, p).steps.find((s) => s.term === "2026-1")).toMatchObject({ sks: 11 });
+    expect(sksModel(r, p)).toMatchObject({ inProgress: 11, total: 148 });
+    expect(record.thisTerm).toHaveLength(5);
+    // And back.
+    expect(withWhatIf(record, putBack(p, "2026-1", "PL3032")).thisTerm).toHaveLength(5);
+  });
+
+  it("leaving out a required course puts it back among what's left, and the rules say it isn't planned", () => {
+    const p = leaveOut(defaultPlan(record), "2026-1", "II4091");
+    const r = withWhatIf(record, p);
+    expect(r.requiredLeft.map((c) => c.code)).toEqual(["II4090", "II4092", "II4091"]);
+    expect(r.slots.get("II4091")).toMatchObject({ status: "left" });
+    expect(rule(rules(r, p), "required")[0]).toMatchObject({ level: "error", missing: [{ code: "II4091", name: "Proposal Tugas Akhir" }] });
+  });
+
+  it("adding Kerja Praktik now: no longer left, no odd/even warning, and it leaves the semester it was planned in (until the what-if goes)", () => {
+    const start = defaultPlan(record);
+    const p = addToNow(start, "2026-1", nowCourse("II4090"));
+    const r = withWhatIf(record, p);
+    expect(r.requiredLeft.map((c) => c.code)).toEqual(["II4092"]);
+    expect(r.slots.get("II4090")).toMatchObject({ status: "in-progress" });
+    // It moved: out of 2026-2 in the plan as saved too, remembering where it was.
+    expect(p.terms[0].courses.map((c) => c.code)).toEqual(["II4092", "II4010", "II4011"]);
+    expect(p.now?.added).toEqual([{ ...nowCourse("II4090"), from: { term: "2026-2", grade: "AB", retake: false } }]);
+    expect(livePlan(p, r).terms[0].courses.map((c) => c.code)).toEqual(["II4092", "II4010", "II4011"]);
+    expect(rule(rules(r, p), "parity")).toEqual([]);
+    expect(rule(rules(r, p), "required")[0]).toMatchObject({ level: "ok" });
+    expect(sksModel(r, p)).toMatchObject({ inProgress: 16, planned: 10, total: 151 });
+    // Removing an added course takes the what-if away, and puts the course back where it was planned.
+    const back = removeTried(p, "2026-1", "II4090");
+    expect(back.now).toEqual({ term: "2026-1", added: [], dropped: [] });
+    expect(back.terms[0].courses.map((c) => c.code)).toEqual(["II4092", "II4010", "II4011", "II4090"]);
+    // A course that wasn't planned goes nowhere.
+    const tried = addToNow(start, "2026-1", nowCourse("II4021"));
+    expect(tried.now?.added[0].from).toBeUndefined();
+    expect(removeTried(tried, "2026-1", "II4021").terms).toEqual(start.terms);
+  });
+
+  it("a course tried now survives its later semester being removed: taking the what-if away puts it in the last one planned (bug)", () => {
+    const tried = addToNow(defaultPlan(record), "2026-1", nowCourse("II4010"));
+    const gone = removeTerm(tried, "2026-2");
+    expect(gone.terms).toEqual([]);
+    // Back in a semester of its own when none is left, at the grade it was planned at.
+    expect(removeTried(gone, "2026-1", "II4010").terms).toEqual([{ term: "2026-2", courses: [course("II4010")] }]);
+    // Into the last regular semester planned when its own is gone.
+    const later = addShortTerm(addTerm(addTerm(gone, record), record), record);
+    expect(later.terms.map((t) => t.term)).toEqual(["2026-2", "2026-3", "2027-1"]);
+    const moved = removeTried(removeTerm(later, "2027-1"), "2026-1", "II4010");
+    expect(moved.terms.map((t) => [t.term, t.courses.map((c) => c.code)])).toEqual([
+      ["2026-2", ["II4010"]],
+      ["2026-3", []],
+    ]);
+  });
+
+  it("a course planned for later and then taken for real (passed, credited, or in SIX's KRS) isn't counted twice", () => {
+    const p = plan({ "2026-2": [course("II2100"), course("II4092"), course("II2260", "A", true)] });
+    const live = livePlan(p, record);
+    // II2100 is passed: it doesn't show or count again; a retake (II2260) does.
+    expect(live.terms[0].courses.map((c) => c.code)).toEqual(["II4092", "II2260"]);
+    expect(sksModel(record, p).planned).toBe(4);
+  });
+
+  /** SIX's record with a course retaken this term (and, for a failed one, SIX's progress showing the E). */
+  const retaking = (code: string, before: "C" | "E") => {
+    const transcript = structuredClone(data.transcript);
+    const old = transcript.terms.flatMap((t) => t.courses).find((c) => c.code === code)!;
+    old.grade = before;
+    transcript.terms.at(-1)!.courses.push({ ...old, grade: null, standing: "pending", attempt: 2 });
+    const progress = structuredClone(data.progress);
+    const row = progress.stages.flatMap((st) => st.semesters.flatMap((sem) => sem.courses)).find((c) => c.code === code)!;
+    row.grade = before;
+    return studentRecord({ ...data, transcript, progress, term: "2026-1" });
+  };
+
+  it("a retake left out: a grade from before stands, an E puts the course back among what's left", () => {
+    const passed = retaking("II2100", "C");
+    // Retaking a passed course adds no SKS, now as for a planned retake.
+    expect(passed.inProgressSks).toBe(14);
+    const p = leaveOut(defaultPlan(passed), "2026-1", "II2100");
+    const r = withWhatIf(passed, p);
+    expect(r.slots.get("II2100")).toMatchObject({ status: "passed", grade: "C" });
+    expect(r.requiredLeft.map((c) => c.code)).toEqual(["II4090", "II4092"]);
+
+    const failed = retaking("II2100", "E");
+    expect(failed.requiredLeft.map((c) => c.code)).toEqual(["II4090", "II4092"]);
+    expect(failed.inProgressSks).toBe(16);
+    const q = leaveOut(defaultPlan(failed), "2026-1", "II2100");
+    const s2 = withWhatIf(failed, q);
+    expect(s2.slots.get("II2100")).toMatchObject({ status: "failed", grade: "E" });
+    expect(s2.requiredLeft.map((c) => c.code)).toEqual(["II4090", "II4092", "II2100"]);
+    expect(rule(rules(s2, q), "required")[0]).toMatchObject({ level: "error", missing: [{ code: "II2100" }] });
+  });
+
+  it("once SIX catches up (the course added for real), the what-if no longer counts and is dropped from the plan", () => {
+    const transcript = structuredClone(data.transcript);
+    transcript.terms.at(-1)!.courses.push({ ...transcript.terms.at(-1)!.courses[0]!, code: "II4090", name: "Kerja Praktik", sks: 2 });
+    const real = studentRecord({ ...data, transcript, term: "2026-1" });
+    const p = addToNow(leaveOut(plan({}), "2026-1", "PL3032"), "2026-1", nowCourse("II4090"));
+    expect(hasWhatIfs(p, real)).toBe(true);
+    expect(withWhatIf(real, p).thisTermAdded).toEqual([]);
+    expect(pruneWhatIfs(p, real).now).toEqual({ term: "2026-1", added: [], dropped: ["PL3032"] });
+    // Leaving out a course that's real now drops it, even with a stale entry for it.
+    expect(leaveOut(p, "2026-1", "II4090").now).toEqual({ term: "2026-1", added: [], dropped: ["PL3032", "II4090"] });
+    const caughtUp = putBack(p, "2026-1", "PL3032");
+    expect(hasWhatIfs(caughtUp, real)).toBe(false);
+    expect(pruneWhatIfs(caughtUp, real).now).toBeUndefined();
+  });
+
+  it("a course tried now, then registered on SIX and dropped there again, is still planned where it was (bug)", () => {
+    const start = defaultPlan(record);
+    const p = addToNow(start, "2026-1", nowCourse("II4010"));
+    const transcript = structuredClone(data.transcript);
+    transcript.terms.at(-1)!.courses.push({ ...transcript.terms.at(-1)!.courses[0]!, code: "II4010", name: "Manajemen Data", sks: 3 });
+    const registered = studentRecord({ ...data, transcript, term: "2026-1" });
+    // SIX caught up: the what-if goes, and the plan as saved holds the course where it was planned again.
+    const saved = pruneWhatIfs(p, registered);
+    expect(saved.now).toBeUndefined();
+    expect(saved.terms[0].courses.map((c) => c.code)).toContain("II4010");
+    // While it's in the KRS, that copy neither shows nor counts.
+    expect(livePlan(saved, registered).terms[0].courses.map((c) => c.code)).not.toContain("II4010");
+    expect(sksModel(registered, saved)).toEqual(sksModel(registered, start));
+    // Dropped on SIX during URS: it's planned again, as it was.
+    const codes = (q: StudyPlan) => livePlan(q, record).terms.map((t) => [t.term, t.courses.map((c) => `${c.code}:${c.grade}`).sort()]);
+    expect(codes(saved)).toEqual(codes(start));
+  });
+
+  it("Kurikulum follows the what-ifs too, and marks each as only in the plan", () => {
+    const p = addToNow(leaveOut(leaveOut(defaultPlan(record), "2026-1", "PL3032"), "2026-1", "II4091"), "2026-1", nowCourse("II4021"));
+    const tried = addToNow(p, "2026-1", nowCourse("II4090"));
+    const r = withWhatIf(record, tried);
+    const map = curriculumMap(r, livePlan(tried, r));
+    const mark = (c: MapCourse) => `${c.code}:${c.status}${c.whatIf ? `:${c.whatIf}` : ""}`;
+    const others = (n: number) => map.semesters.find((s) => s.semester === n)!.others.map(mark);
+    // A course left out stays listed, marked, and isn't counted (the totals come from the record).
+    expect(others(5)).toEqual(["DK3071:passed", "PL3002:in-progress", "PL3032:in-progress:left-out"]);
+    expect(others(7)).toEqual(["DK4073:in-progress", "II4021:in-progress:added"]);
+    const required = (code: string) => mark(map.semesters.flatMap((s) => s.required).find((c) => c.code === code)!);
+    expect(required("II4090")).toBe("II4090:in-progress:added");
+    expect(required("II4091")).toBe("II4091:left:left-out");
+    expect(required("II4092")).toBe("II4092:planned");
+    // SIX's own record has none of it.
+    expect(
+      curriculumMap(record, livePlan(tried, record))
+        .semesters.flatMap((s) => [...s.required, ...s.others])
+        .filter((c) => c.whatIf),
+    ).toEqual([]);
+  });
+
+  it("this semester's load is checked once it's changed; a course graded already can't be left out", () => {
+    let p = defaultPlan(record);
+    for (const code of ["II4021", "II4022", "II4023"]) p = addToNow(p, "2026-1", nowCourse(code));
+    expect(rule(rules(withWhatIf(record, p), p), "load")).toEqual([{ id: "load", level: "warn", term: "2026-1", sks: 23, limit: 20 }]);
+    expect(rule(rules(record, defaultPlan(record)), "load")).toEqual([]);
+
+    const transcript = structuredClone(data.transcript);
+    Object.assign(transcript.terms.at(-1)!.courses.find((c) => c.code === "PL3032")!, { grade: "A", standing: "counted" });
+    const graded = studentRecord({ ...data, transcript, term: "2026-1" });
+    expect(withWhatIf(graded, leaveOut(defaultPlan(graded), "2026-1", "PL3032")).thisTerm.map((c) => c.code)).toContain("PL3032");
+  });
+
+  it("taking a graded course again now is a retake: summa cum laude closes", () => {
+    const p = addToNow(plan({}), "2026-1", nowCourse("II2260"));
+    expect(project(withWhatIf(record, p), p).path.retakes).toBe(true);
+  });
+
+  it("last semester's what-ifs are dropped once SIX's term moves on", () => {
+    const old = { ...defaultPlan(record), now: { term: "2025-2", added: [nowCourse("II4021")], dropped: ["PL3032"] } };
+    expect(withWhatIf(record, old)).toBe(record);
+    expect(aheadPlan(old, record).now).toBeUndefined();
+  });
+
+  it("a course only tried in a term that has ended goes back to the semester it was planned in (bug)", () => {
+    const p = addToNow(plan({ "2026-2": [course("II4092")], "2027-1": [course("II4010")] }), "2026-1", nowCourse("II4010"));
+    expect(p.terms[1].courses).toEqual([]);
+    const shape = (q: StudyPlan) => q.terms.map((t) => [t.term, t.courses.map((c) => c.code)]);
+    const next = aheadPlan(p, studentRecord({ ...data, term: "2026-2" }));
+    expect(next.now).toBeUndefined();
+    expect(shape(next)).toEqual([["2027-1", ["II4010"]]]);
+    // Taken for real (SIX's transcript has it that term): not planned again.
+    const transcript = structuredClone(data.transcript);
+    transcript.terms.at(-1)!.courses.push({ ...transcript.terms.at(-1)!.courses[0]!, code: "II4010", name: "Manajemen Data", sks: 3 });
+    expect(shape(aheadPlan(p, studentRecord({ ...data, transcript, term: "2026-2" })))).toEqual([["2027-1", []]]);
+    // Its semester gone too: the next one after the new term.
+    expect(shape(aheadPlan(removeTerm(p, "2027-1"), studentRecord({ ...data, term: "2026-2" })))).toEqual([["2027-1", ["II4010"]]]);
+  });
+
+  it("without the what-ifs (Nilai), a course tried now counts in the semester it was planned in", () => {
+    const start = defaultPlan(record);
+    const p = addToNow(start, "2026-1", nowCourse("II4090"));
+    expect(untried(p).now).toEqual(p.now);
+    expect(untried(p).terms[0].courses.map((c) => c.code)).toEqual(["II4092", "II4010", "II4011", "II4090"]);
+    expect(sksModel(record, untried(p))).toEqual(sksModel(record, start));
+  });
+});
+
+describe("hiding a warning", () => {
+  it("only warnings can be hidden, under a key that survives moving the course", () => {
+    const list = rules(record, plan({ "2026-2": [course("II4090")] }));
+    expect(list.map((r) => [r.id, ruleKey(r)])).toEqual([
+      ["total", null],
+      ["required", null],
+      ["electives", null],
+      ["specialization", "specialization|sistem informasi cerdas"],
+      ["parity", "parity|II4090"],
+      ["finish", null],
+    ]);
+    expect(ruleKey(rule(rules(record, plan({ "2027-2": [course("II4090")] })), "parity")[0])).toBe("parity|II4090");
+    expect(hideReasons(rule(list, "specialization")[0])).toEqual(["not-continuing", "other"]);
+    expect(hideReasons(rule(list, "parity")[0])).toEqual(["program-adds", "other"]);
+  });
+
+  it("hidden, shown again; a fresh plan keeps what the Student hid", () => {
+    const parity = rule(rules(record, defaultPlan(record)), "parity")[0];
+    const p = hideRule(defaultPlan(record), "parity|II4090", "program-adds", 1);
+    expect(isHidden(parity, p)).toBe(true);
+    expect(isHidden(parity, showRule(p, "parity|II4090"))).toBe(false);
+    expect(defaultPlan(record, p.hidden).hidden).toEqual({ "parity|II4090": { reason: "program-adds", at: 1 } });
+  });
+
+  it("not continuing the specialization: the planner stops suggesting its courses", () => {
+    const hidden = { "specialization|sistem informasi cerdas": { reason: "not-continuing" as const, at: 1 } };
+    expect(activeSpecialization(record, { hidden })).toBeNull();
+    expect(activeSpecialization(record, { hidden: { "specialization|sistem informasi cerdas": { reason: "other", at: 1 } } })).toBe(record.specialization);
+    expect(defaultPlan(record, hidden).terms[0].courses.map((c) => c.code)).toEqual(["II4090", "II4092"]);
   });
 });
 

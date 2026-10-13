@@ -1,5 +1,5 @@
 // Small hooks every screen uses.
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { courseColors } from "../core/course-colors";
 import { linkHost } from "../core/links";
 import type { Course } from "../core/models";
@@ -36,4 +36,33 @@ export function useOpenLink(): (url: string) => void {
   const bridge = useBridge();
   const failed = useLinkFailed();
   return useCallback((url: string) => void bridge.invoke("shell.openLink", { url }).catch(() => failed(url)), [bridge, failed]);
+}
+
+/**
+ * Where focus goes when the control the Student just used goes away (a row
+ * that turns into another, a list that closes): `focusNext(...keys)` moves
+ * it, once the next render is on screen, to the first element marked
+ * `data-focus="<key>"` that's there (itself when it takes focus, else the
+ * first button in it). Without it focus falls to the page, and the next Tab
+ * starts over from the top of the window.
+ */
+export function useFocusNext(): (...keys: string[]) => void {
+  const next = useRef<string[] | null>(null);
+  useEffect(() => {
+    const keys = next.current;
+    if (!keys) return;
+    next.current = null;
+    const marked = [...document.querySelectorAll<HTMLElement>("[data-focus]")];
+    for (const key of keys) {
+      const el = marked.find((m) => m.dataset.focus === key);
+      const target = el?.matches("button, input, [tabindex]") ? el : el?.querySelector<HTMLElement>("button");
+      if (target) {
+        target.focus();
+        return;
+      }
+    }
+  });
+  return useCallback((...keys: string[]) => {
+    next.current = keys;
+  }, []);
 }

@@ -28,6 +28,8 @@ export interface SlotStanding {
   sixLeft: boolean;
   /** `via` is the app's guess by name, not SIX's placement, the table or the Student. */
   guessed: boolean;
+  /** A what-if of this term decided it (see `withWhatIf`): a course tried now, or a KRS course left out. Only in the plan. */
+  whatIf?: "added" | "left-out";
 }
 
 /** A row of SIX's graduation progress with the semester it sits in. */
