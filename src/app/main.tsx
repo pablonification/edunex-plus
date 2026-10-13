@@ -4,7 +4,7 @@
 // load after that, while the window is idle (./later.tsx).
 import { createRoot } from "react-dom/client";
 import type { Event } from "../core/contract";
-import { App } from "./app";
+import { App, firstScreenLoaded } from "./app";
 import { createBridge } from "./bridge";
 import { systemClock } from "./i18n";
 import { preloadWhenIdle } from "./later";
@@ -26,6 +26,7 @@ async function start(root: HTMLElement) {
   store = new AppStore(snapshot);
   for (const event of early) store.apply(event);
 
+  await firstScreenLoaded(store).catch(() => undefined);
   createRoot(root).render(<App store={store} bridge={bridge} clock={api.clockOffset ? systemClock(api.clockOffset) : undefined} />);
   // Two frames: React has committed and the browser has painted.
   requestAnimationFrame(() =>
