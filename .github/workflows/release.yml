@@ -125,6 +125,67 @@ jobs:
           if-no-files-found: error
           retention-days: ${{ startsWith(github.ref, 'refs/tags/') && 30 || 7 }}
           compression-level: 0
+      # Nobody on the team runs Windows, so this runner installs the new
+      # installer the way Students will: over the first alpha's step-by-step
+      # install ("only for me", as its guide said), where it must replace that
+      # copy in its folder; then uninstalls it, which must keep their data;
+      # then over the alpha installed for everyone, where it must stop (code 2)
+      # rather than add a second copy. Silent (/S), so no window waits for a click.
+      - name: Install over the first alpha, then uninstall (Windows)
+        if: matrix.target == 'win'
+        shell: pwsh
+        timeout-minutes: 10
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          function Install([string]$exe, [string[]]$switches) {
+            # -Wait also waits for what it starts, like an uninstaller's copy of itself.
+            (Start-Process -FilePath $exe -ArgumentList $switches -Wait -PassThru).ExitCode
+          }
+          function Gone([string]$path) {
+            for ($i = 0; $i -lt 60 -and (Test-Path $path); $i++) { Start-Sleep -Seconds 1 }
+            -not (Test-Path $path)
+          }
+          $new = (Get-ChildItem release -Filter '*Setup*.exe' | Select-Object -First 1).FullName
+          if (-not $new) { throw 'No installer in release/.' }
+          # A failed download doesn't stop the script by itself (gh is a program, not a PowerShell command).
+          # Without the first alpha there's nothing to install over: say so, and don't hold the release up.
+          gh release download v0.1.0-alpha.1 --repo $env:REPO --pattern '*.exe' --dir "$env:RUNNER_TEMP\alpha"
+          $alpha = if ($LASTEXITCODE -eq 0) { (Get-ChildItem "$env:RUNNER_TEMP\alpha" -Filter '*.exe' | Select-Object -First 1).FullName }
+          if (-not $alpha) {
+            Write-Output '::warning::The first alpha (v0.1.0-alpha.1) or its Windows installer is gone, so updating over it was not tried.'
+            exit 0
+          }
+          $programs = Join-Path $env:LOCALAPPDATA 'Programs'
+          $old = Join-Path $programs 'Edunex Plus'
+
+          Install $alpha '/S', '/currentuser' | Out-Null
+          if (-not (Test-Path "$old\Edunex Plus.exe")) { throw 'The first alpha did not install.' }
+          Set-Content "$old\left-by-the-test.txt" 'gone once the old copy is uninstalled'
+          $code = Install $new '/S'
+          if ($code -ne 0) { throw "The installer ended with code $code." }
+          if (-not (Test-Path "$old\Edunex Plus.exe") -or (Test-Path "$old\left-by-the-test.txt")) { throw "The new version did not replace the old one in $old." }
+          if (Test-Path (Join-Path $programs 'edunex-plus')) { throw 'It installed a second copy beside the old one.' }
+          $listed = @(Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*' | Where-Object { $_.DisplayName -like 'Edunex Plus*' })
+          if ($listed.Count -ne 1) { throw "Installed apps lists Edunex Plus $($listed.Count) times." }
+          if (-not (Test-Path "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Edunex Plus.lnk")) { throw 'No Start menu shortcut.' }
+
+          $data = Join-Path $env:APPDATA 'Edunex Plus'
+          New-Item -ItemType Directory -Force $data | Out-Null
+          Set-Content "$data\saved.txt" 'the Student''s data'
+          Install "$old\Uninstall Edunex Plus.exe" '/S' | Out-Null
+          if (-not (Gone "$old\Edunex Plus.exe")) { throw 'Uninstalling left the app in place.' }
+          if (-not (Test-Path "$data\saved.txt")) { throw 'Uninstalling deleted the Student''s data.' }
+
+          Install $alpha '/S', '/allusers' | Out-Null
+          if (-not (Test-Path "$env:ProgramFiles\Edunex Plus\Edunex Plus.exe")) { throw 'The first alpha did not install for everyone.' }
+          $code = Install $new '/S'
+          if ($code -ne 2) { throw "Over a copy installed for everyone, the installer ended with code $code instead of stopping (2)." }
+          if ((Test-Path "$old\Edunex Plus.exe") -or (Test-Path "$programs\edunex-plus\Edunex Plus.exe")) { throw 'It installed a second copy anyway.' }
+
+          "### Windows installer`n`nReplaced the first alpha in its folder, kept the Student's data when uninstalled, and stopped over a copy installed for everyone." | Add-Content $env:GITHUB_STEP_SUMMARY
 
   publish:
     name: publish

@@ -63,7 +63,8 @@ the app then opens normally until the next update.
 
 ### macOS
 
-1. Open the `.dmg` and drag **Edunex Plus** into **Applications**. Eject the disk image.
+1. Open the `.dmg`. In the window that opens, drag **Edunex Plus** onto **Applications**, then
+   eject the disk (⏏ beside **Edunex Plus \<version\>** in Finder's sidebar).
 2. Open **Edunex Plus** from Applications. macOS says it can't check the app: click **Done**
    (not "Move to Trash").
 3. Open **System Settings → Privacy & Security**, scroll down to the line about Edunex Plus, and
@@ -88,8 +89,9 @@ the app to Applications, then the same steps.
 1. Run `Edunex.Plus.Setup.<version>.exe`.
 2. If a blue **"Windows protected your PC"** window appears, click **More info**, then **Run
    anyway**.
-3. Follow the installer. **Only for me** needs no administrator password. Click **Finish**:
-   Edunex Plus is in the Start menu from then on.
+
+There's nothing to choose: it installs for your Windows account only (no administrator
+password), adds **Edunex Plus** to the Start menu and the desktop, and opens it.
 
 - If the browser holds the download back ("isn't commonly downloaded"), choose **Keep** (in
   Edge: **⋯ → Keep → Show more → Keep anyway**).
@@ -137,6 +139,10 @@ A full release only ever offers full releases.
 To update, download the new file and install it the same way: on macOS replace the app in
 Applications (and run the Terminal line again, if you used it), on Windows run the new installer,
 on Linux `sudo apt install` the new `.deb`. Your sign-in and saved data stay.
+
+Installed 0.1.0-alpha.1 on Windows for **Anyone who uses this computer**? The new installer can't
+replace that copy without an administrator, so it asks you to uninstall it first (Settings → Apps
+→ Installed apps); your data stays.
 
 ### Uninstall
 
@@ -207,7 +213,7 @@ Packaged builds (into `release/`):
 
 ```sh
 npm run package:mac     # dmg + zip, ad-hoc signed (needs macOS)
-npm run package:win     # NSIS installer, x64 and arm64
+npm run package:win     # one-click installer (NSIS), x64 and arm64
 npm run package:linux   # AppImage + deb
 ```
 

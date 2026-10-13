@@ -1,7 +1,7 @@
-// Packaged builds: macOS dmg + zip (ad-hoc signed), Windows NSIS installer,
-// Linux AppImage + deb. The app archive holds only the built window
-// (dist/app), the bundled main process and preload (dist/desktop) and the
-// tray icons (assets/tray*); everything they use is already bundled, so no node_modules.
+// Packaged builds: macOS dmg + zip (ad-hoc signed), a one-click Windows
+// installer (NSIS), Linux AppImage + deb. The app archive holds only the built
+// window (dist/app), the bundled main process and preload (dist/desktop) and
+// the tray icons (assets/tray*); everything they use is already bundled, so no node_modules.
 // The fuses are flipped and checked in scripts/package-fuses.mjs.
 import { afterPack } from "./scripts/package-fuses.mjs";
 
@@ -41,16 +41,42 @@ export default {
     hardenedRuntime: false,
     notarize: false,
   },
-  dmg: { writeUpdateInfo: false },
+  // The disk image's window: the app on the left, a link to Applications on the right, on a
+  // background that says what to do (assets/dmg-background.svg; its pictures are made by
+  // scripts/make-dmg-background.mjs). The window takes the picture's size, 640×432 with
+  // Finder's title bar, so the picture's bottom 32 px never show.
+  dmg: {
+    // biome-ignore lint/suspicious/noTemplateCurlyInString: electron-builder fills in its own ${…} names
+    title: "${productName} ${version}",
+    icon: "assets/icon.icns",
+    background: "assets/dmg-background.png",
+    iconSize: 120,
+    contents: [
+      { x: 170, y: 190, type: "file" },
+      { x: 470, y: 190, type: "link", path: "/Applications" },
+    ],
+    writeUpdateInfo: false,
+  },
   win: {
     target: [{ target: "nsis", arch: ["x64", "arm64"] }],
-    // Every size drawn on its own (scripts/make-icons.mjs), so the taskbar's and the title's small icons stay sharp.
+    // Every size Windows shows, each drawn for its size (scripts/make-icons.mjs). The installer
+    // and the uninstaller wear it too.
     icon: "assets/icon.ico",
   },
+  // One click, no questions: installs for this Windows user only (in %LOCALAPPDATA%\Programs,
+  // no administrator password), adds "Edunex Plus" to the Start menu and the desktop, and opens
+  // the app. A copy 0.1.0-alpha.1's step-by-step installer put there "only for me" is replaced
+  // where it is, so its shortcuts keep working (the installer finds it by appId: keep appId as
+  // it is); one it put there for everyone is handled in assets/installer.nsh.
   nsis: {
-    oneClick: false,
+    oneClick: true,
     perMachine: false,
-    allowToChangeInstallationDirectory: true,
+    runAfterFinish: true,
+    // Uninstalling keeps the Student's data; "Keluar & hapus data" in Settings is how to remove it.
+    deleteAppDataOnUninstall: false,
+    // The one-click window shows it above its progress bar.
+    installerHeaderIcon: "assets/icon.ico",
+    include: "assets/installer.nsh",
     differentialPackage: false,
   },
   linux: {
