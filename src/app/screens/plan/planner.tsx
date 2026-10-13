@@ -8,12 +8,16 @@
 // Kurikulum and Nilai, and every removal can be taken back. The plan stays
 // on this computer; the app never sends a KRS. This semester takes what-ifs
 // (a course added or left out, only in the plan), warnings can be hidden with
-// a reason, and a minor can be planned with its courses in view.
+// a reason, a registered specialization or minor can be left for good (its
+// courses with it, if the Student wants), a required course the program will
+// add can be settled right on its rule, and a minor can be planned with its
+// courses in view.
 import * as Tabs from "@radix-ui/react-tabs";
 import { type ReactNode, useEffect, useId, useRef, useState } from "react";
 import { nearestLetter } from "../../../core/honors";
-import type { LetterGrade, PlannedCourse, StudyPlan } from "../../../core/models";
+import type { HideReason, LetterGrade, PlannedCourse, StudyPlan } from "../../../core/models";
 import {
+  activeMinor,
   activeSpecialization,
   addCourse,
   addShortTerm,
@@ -38,7 +42,11 @@ import {
   type MinorOption,
   minorProgress,
   NORMAL_SKS,
+  notContinuing,
+  onlyFor,
   type ProjectedStep,
+  packageKey,
+  planMinor,
   plannedCodes,
   programElectives,
   putBack,
@@ -60,6 +68,7 @@ import {
   shortTermToAdd,
   showRule,
   sksModel,
+  stopFollowing,
   targetOf,
   termKind,
   untried,
@@ -67,13 +76,13 @@ import {
 } from "../../../core/planner";
 import { useFocusNext } from "../../hooks";
 import { useFormat, useLang, useT } from "../../i18n";
-import { type PlanState, usePlan, useStudentRecord } from "../../study-plan";
+import { type PlanState, useCurriculumFix, usePlan, useStudentRecord } from "../../study-plan";
 import { Button, IconButton } from "../../ui/controls";
 import { cx } from "../../ui/cx";
 import { Card, Tag } from "../../ui/display";
 import { Icons } from "../../ui/icons";
 import { Meta } from "../../ui/layout";
-import { Menu } from "../../ui/menu";
+import { Menu, type MenuItem } from "../../ui/menu";
 import { AnimatedNumber } from "../../ui/motion/animated-number";
 import { DisclosurePanel, disclosureTrigger } from "../../ui/motion/disclosure";
 import { PresenceItem, PresenceList } from "../../ui/motion/presence-list";
@@ -111,16 +120,16 @@ export function Tab({ onCalendar }: { onCalendar?: () => void }) {
   return <Planner real={record} record={state.record} state={state} />;
 }
 
-/** A plan change that can be taken back: an 8-second toast with "Urungkan", and ⌘Z. */
-function useUndoable(state: PlanState) {
+/**
+ * A plan change that can be taken back: an 8-second toast with "Urungkan",
+ * and ⌘Z. `offer` does the same for a change kept apart from the plan (a
+ * required course the program will add), so the newest change is always the
+ * one taken back, whatever kind it is.
+ */
+function useUndoable(state: PlanState): Undoable {
   const t = useT();
-  const last = useRef<StudyPlan | null>(null);
+  const last = useRef<(() => void) | null>(null);
   const shown = useRef<number | null>(null);
-  const restore = (before: StudyPlan) => {
-    state.update(() => before);
-    last.current = null;
-    if (shown.current !== null) dismissToast(shown.current);
-  };
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (!(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== "z" || event.shiftKey) return;
@@ -128,20 +137,30 @@ function useUndoable(state: PlanState) {
       if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)) return;
       if (!last.current) return;
       event.preventDefault();
-      restore(last.current);
+      last.current();
       toast(t("planner.undone"));
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   });
-  return (edit: (plan: StudyPlan) => StudyPlan, message: string) => {
-    const before = state.base;
-    state.update(edit);
-    last.current = before;
+  const offer = (undo: () => void, message: string) => {
+    const take = () => {
+      if (last.current !== take) return;
+      undo();
+      last.current = null;
+      if (shown.current !== null) dismissToast(shown.current);
+    };
+    last.current = take;
     // Only the latest change can be taken back (an older undo would throw away what came after it), so its toast replaces the last one.
     if (shown.current !== null) dismissToast(shown.current);
-    shown.current = toast(message, "neutral", { label: t("planner.undo"), onClick: () => last.current === before && restore(before) });
+    shown.current = toast(message, "neutral", { label: t("planner.undo"), onClick: take });
   };
+  const edit = (change: (plan: StudyPlan) => StudyPlan, message: string) => {
+    const before = state.base;
+    state.update(change);
+    offer(() => state.update(() => before), message);
+  };
+  return Object.assign(edit, { offer });
 }
 
 /** How many of the plan's what-ifs still change this term. */
@@ -179,7 +198,7 @@ function Planner({ real, record, state }: { real: StudentRecord; record: Student
   const undoable = useUndoable(state);
   const focusNext = useFocusNext();
   const rules = checkPlan(record, plan, projection);
-  const minor = record.minors.find((m) => m.key === plan.minor) ?? null;
+  const minor = activeMinor(record, plan);
   const spec = activeSpecialization(record, plan);
   const stepOf = new Map(projection.steps.map((s) => [s.term, s]));
   const short = shortTermToAdd(plan, record);
@@ -462,6 +481,8 @@ function SksBar({ sks }: { sks: SksModel }) {
     { n: sks.passed, label: t("planner.legend.passed", { n: sks.passed }), color: "bg-live" },
     { n: sks.inProgress, label: t("planner.legend.now", { n: sks.inProgress }), color: "bg-live/45" },
     { n: sks.planned, label: t("planner.legend.planned", { n: sks.planned }), color: "bg-info-fg/55" },
+    // Only once the Student said their program will add a required course.
+    ...(sks.byProgram ? [{ n: sks.byProgram, label: t("planner.legend.byProgram", { n: sks.byProgram }), color: "bg-info-fg/25" }] : []),
   ];
   return (
     <div className="mt-4">
@@ -783,7 +804,8 @@ function useRuleText(record: StudentRecord): (rule: Rule) => { title: string; de
             : t("rule.required.ok");
         // Honest about what the Student's own corrections decided.
         const corrected = rule.corrected.length ? t("rule.required.corrected", { list: list(rule.corrected), count: rule.corrected.length }) : null;
-        return { title: t("rule.required"), detail: corrected ? `${detail} ${corrected}` : detail };
+        const byProgram = rule.byProgram.length ? t("rule.required.byProgram", { list: list(rule.byProgram) }) : null;
+        return { title: t("rule.required"), detail: [detail, corrected, byProgram].filter(Boolean).join(" ") };
       }
       case "electives": {
         const extra = rule.have - rule.need;
@@ -838,22 +860,150 @@ function useRuleText(record: StudentRecord): (rule: Rule) => { title: string; de
   };
 }
 
-type Undoable = (edit: (plan: StudyPlan) => StudyPlan, message: string) => void;
+/** Changes the plan, offering to take it back; `offer` offers taking back a change made elsewhere. */
+type Undoable = ((edit: (plan: StudyPlan) => StudyPlan, message: string) => void) & { offer(undo: () => void, message: string): void };
 
-/** The rules, each warning with "Hide" and a reason; hidden ones wait in a quiet list to be shown again. Errors decide graduating: they can't be hidden. */
+/** What the Student set aside, in the quiet list under the rules: why, and how it comes back (`back`: where focus goes once it has). */
+interface SetAside {
+  key: string;
+  anchor: string;
+  title: string;
+  reason: HideReason;
+  back: string;
+  show: () => void;
+}
+
+/** A specialization's or minor's "not continuing", in the same step as its courses only it asks for leaving the plan, or staying. */
+function useNotContinuing(record: StudentRecord, plan: StudyPlan, undoable: Undoable) {
+  const t = useT();
+  const lang = useLang();
+  const list = new Intl.ListFormat(lang, { type: "conjunction" });
+  return ({
+    key,
+    title,
+    codes,
+    keep,
+    label,
+    after,
+  }: {
+    key: string;
+    title: string;
+    codes: readonly string[];
+    keep: readonly string[];
+    label: string;
+    after: () => void;
+  }): MenuItem[] => {
+    const drop = onlyFor(record, plan, codes, keep).map((c) => c.code);
+    const stop = (gone: string[]) => {
+      undoable(
+        (p) => stopFollowing(p, key, Date.now(), gone),
+        gone.length ? t("planner.notContinuingDropped", { title, count: gone.length }) : t("planner.notContinuingDone", { title }),
+      );
+      after();
+    };
+    return [
+      {
+        label,
+        hint: t(drop.length ? "planner.notContinuing.keepHint" : "planner.hideReason.not-continuingHint"),
+        onSelect: () => stop([]),
+      },
+      ...(drop.length
+        ? [{ label: t("planner.notContinuing.drop"), hint: t("planner.notContinuing.dropHint", { list: list.format(drop) }), onSelect: () => stop(drop) }]
+        : []),
+    ];
+  };
+}
+
+/**
+ * The rules, each warning with "Hide" and a reason; hidden ones wait in a
+ * quiet list to be shown again. Errors decide graduating: they can't be
+ * hidden, but a required course the Student's program will add can be
+ * settled right there (kept with the curriculum corrections, listed with the
+ * hidden warnings, and taken back from there).
+ */
 function Rules({ record, rules, plan, undoable }: { record: StudentRecord; rules: Rule[]; plan: StudyPlan; undoable: Undoable }) {
   const t = useT();
   const text = useRuleText(record);
   const focusNext = useFocusNext();
+  const setFix = useCurriculumFix();
+  const notContinuingItems = useNotContinuing(record, plan, undoable);
   const [showHidden, setShowHidden] = useState(false);
-  const hidden: { key: string; anchor: string; title: string }[] = rules
+  const minor = activeMinor(record, plan);
+  const spec = activeSpecialization(record, plan);
+  const shownAgain = (title: string, edit: (p: StudyPlan) => StudyPlan) => () => undoable(edit, t("planner.shownDone", { title }));
+  const hidden: SetAside[] = rules
     .filter((rule) => isHidden(rule, plan))
-    .map((rule) => ({ key: ruleKey(rule)!, anchor: ruleAnchor(rule), title: text(rule).title }));
-  // Not continuing the specialization still counts once its warning is gone (every course covered): it stays here to be taken back.
-  const spec = record.specialization;
-  const specKey = spec ? `specialization|${spec.name.toLowerCase()}` : null;
-  if (spec && specKey && !activeSpecialization(record, plan) && !hidden.some((h) => h.key === specKey))
-    hidden.push({ key: specKey, anchor: specKey, title: spec.name });
+    .map((rule) => {
+      const key = ruleKey(rule)!;
+      const { title } = text(rule);
+      return {
+        key,
+        anchor: ruleAnchor(rule),
+        title,
+        reason: plan.hidden?.[key]?.reason ?? "other",
+        back: `hide-${key}`,
+        show: shownAgain(title, (p) => showRule(p, key)),
+      };
+    });
+  // Not continuing still counts once the warning is gone (every course covered, or the minor no longer followed): it stays here to be taken back.
+  const registeredSpec = record.specialization;
+  const specKey = registeredSpec ? packageKey("specialization", registeredSpec.name) : null;
+  if (registeredSpec && specKey && !spec && !hidden.some((h) => h.key === specKey))
+    hidden.push({
+      key: specKey,
+      anchor: specKey,
+      title: registeredSpec.name,
+      reason: "not-continuing",
+      back: `hide-${specKey}`,
+      show: shownAgain(registeredSpec.name, (p) => showRule(p, specKey)),
+    });
+  const registeredMinor = record.minors.find((m) => m.key === record.registeredMinor);
+  if (registeredMinor && notContinuing(plan, "minor", registeredMinor.name)) {
+    const key = packageKey("minor", registeredMinor.name);
+    const title = t("rule.minor", { name: registeredMinor.name });
+    hidden.push({ key, anchor: key, title, reason: "not-continuing", back: `hide-${key}`, show: shownAgain(title, (p) => planMinor(p, registeredMinor)) });
+  }
+  for (const course of record.byProgram) {
+    const title = `${course.code} ${course.name}`;
+    hidden.push({
+      key: `program-adds|${course.code}`,
+      anchor: `program-adds-${course.code}`,
+      title,
+      reason: "program-adds",
+      back: "program-adds",
+      show: () => {
+        const before = setFix(course.code, null);
+        undoable.offer(() => setFix(course.code, before), t("planner.shownDone", { title }));
+      },
+    });
+  }
+  /** A required course the Student's program will add: covered from now on, with the curriculum corrections, until they take it back. */
+  const settle = (course: { code: string; name: string; slot: string }) => {
+    const before = setFix(course.slot, { kind: "program-adds", at: Date.now() });
+    undoable.offer(() => setFix(course.slot, before), t("planner.programAddsDone", { course: `${course.code} ${course.name}` }));
+    // Its line goes: focus lands on the list it went to.
+    focusNext("hidden-toggle");
+  };
+  const hideItems = (rule: Rule, key: string, title: string): MenuItem[] =>
+    hideReasons(rule).flatMap((reason) => {
+      if (reason === "not-continuing" && (rule.id === "specialization" || rule.id === "minor")) {
+        const codes = rule.id === "specialization" ? (record.specialization?.courses.map((c) => c.code) ?? []) : (minor?.courses ?? []);
+        // A course the other package still asks for stays.
+        const keep = rule.id === "specialization" ? (minor?.courses ?? []) : (spec?.courses.map((c) => c.code) ?? []);
+        const label = t(rule.id === "minor" ? "planner.hideReason.not-continuingMinor" : "planner.hideReason.not-continuing");
+        return notContinuingItems({ key, title, codes, keep, label, after: () => focusNext("hidden-toggle") });
+      }
+      return [
+        {
+          label: t(`planner.hideReason.${reason}`),
+          onSelect: () => {
+            undoable((p) => hideRule(p, key, reason, Date.now()), t("planner.hiddenDone", { title }));
+            // Its row goes: focus lands on the list it went to.
+            focusNext("hidden-toggle");
+          },
+        },
+      ];
+    });
   return (
     <Card className="overflow-hidden">
       <h3 className="px-4 pt-3.5 text-body font-semibold" tabIndex={-1} data-focus="rules">
@@ -868,6 +1018,7 @@ function Rules({ record, rules, plan, undoable }: { record: StudentRecord; rules
               const { title, detail } = text(rule);
               const mark = LEVEL_MARK[rule.level];
               const key = ruleKey(rule);
+              const settleable = rule.id === "required" ? rule.missing.filter((c): c is { code: string; name: string; slot: string } => c.slot !== null) : [];
               return (
                 <PresenceItem key={ruleAnchor(rule)}>
                   <div
@@ -894,16 +1045,36 @@ function Rules({ record, rules, plan, undoable }: { record: StudentRecord; rules
                               className: "text-muted hover:text-fg",
                             }}
                             label={t("planner.hideRule", { title })}
-                            items={hideReasons(rule).map((reason) => ({
-                              label: t(`planner.hideReason.${reason}`),
-                              hint: reason === "not-continuing" ? t("planner.hideReason.not-continuingHint") : undefined,
-                              onSelect: () => {
-                                undoable((p) => hideRule(p, key, reason, Date.now()), t("planner.hiddenDone", { title }));
-                                // Its row goes: focus lands on the list it went to.
-                                focusNext("hidden-toggle");
-                              },
-                            }))}
+                            items={hideItems(rule, key, title)}
                           />
+                        </span>
+                      )}
+                      {/* The one way an error is settled here: the program adds the course (Kerja Praktik, say), so it isn't the Student's to plan. */}
+                      {settleable.length > 0 && (
+                        <span className="-ml-2.5 block" data-focus="program-adds">
+                          {settleable.length === 1 ? (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              icon={<Icons.ClipboardCheck className="size-3.5" />}
+                              className="text-muted hover:text-fg"
+                              aria-label={t("planner.programAddsCode", { course: `${settleable[0].code} ${settleable[0].name}` })}
+                              onClick={() => settle(settleable[0])}
+                            >
+                              {t("planner.hideReason.program-adds")}
+                            </Button>
+                          ) : (
+                            <Menu
+                              trigger={{
+                                icon: <Icons.ClipboardCheck className="size-3.5" />,
+                                words: true,
+                                text: t("planner.programAddsWhich"),
+                                className: "text-muted hover:text-fg",
+                              }}
+                              label={t("planner.programAddsWhich")}
+                              items={settleable.map((c) => ({ label: `${c.code} ${c.name}`, onSelect: () => settle(c) }))}
+                            />
+                          )}
                         </span>
                       )}
                     </span>
@@ -929,11 +1100,10 @@ function Rules({ record, rules, plan, undoable }: { record: StudentRecord; rules
           </button>
           {showHidden && (
             <ul className="mt-1 space-y-1 pb-1" aria-label={t("planner.hidden", { count: hidden.length })}>
-              {hidden.map(({ key, anchor, title }, index) => {
-                const reason = plan.hidden?.[key]?.reason ?? "other";
-                // Once shown, its line goes: focus moves to the next hidden one, or back to the warning when none is left.
+              {hidden.map(({ key, anchor, title, reason, back, show }, index) => {
+                // Once shown, its line goes: focus moves to the next hidden one, or back to what came back when none is left.
                 const rest = hidden.filter((h) => h.key !== key);
-                const after = rest.length ? [`show-${rest[Math.min(index, rest.length - 1)].key}`, "hidden-toggle"] : [`hide-${key}`, "rules"];
+                const after = rest.length ? [`show-${rest[Math.min(index, rest.length - 1)].key}`, "hidden-toggle"] : [back, "rules"];
                 return (
                   <li key={anchor} className="flex items-center gap-2 text-small">
                     <span className="min-w-0 flex-1">
@@ -946,7 +1116,7 @@ function Rules({ record, rules, plan, undoable }: { record: StudentRecord; rules
                       aria-label={t("planner.showAgainRule", { title })}
                       data-focus={`show-${key}`}
                       onClick={() => {
-                        undoable((p) => showRule(p, key), t("planner.shownDone", { title }));
+                        show();
                         focusNext(...after);
                       }}
                     >
@@ -994,7 +1164,8 @@ function Minors({ record, state, undoable }: { record: StudentRecord; state: Pla
   const { plan } = state;
   const [open, setOpen] = useState<string | null>(null);
   const ranked = rankedMinors(record, plan);
-  const pinned = (key: string) => key === plan.minor || key === record.registeredMinor;
+  const active = activeMinor(record, plan)?.key ?? null;
+  const pinned = (key: string) => key === active || key === record.registeredMinor;
   const shown = [...ranked.filter((m) => pinned(m.key)), ...ranked.filter((m) => !pinned(m.key) && m.have > 0).slice(0, 4)];
   const opened = record.minors.find((m) => m.key === open);
   return (
@@ -1002,8 +1173,9 @@ function Minors({ record, state, undoable }: { record: StudentRecord; state: Pla
       <h3 className="px-4 pt-3.5 text-body font-semibold">{t("planner.minors")}</h3>
       <ul className="px-2 pt-2 pb-2">
         {shown.map((m) => {
-          const on = plan.minor === m.key;
+          const on = active === m.key;
           const registered = record.registeredMinor === m.key;
+          const stopped = registered && notContinuing(plan, "minor", m.name);
           return (
             <li key={m.key}>
               <button
@@ -1018,11 +1190,15 @@ function Minors({ record, state, undoable }: { record: StudentRecord; state: Pla
                 </span>
                 <span className="shrink-0 text-right">
                   <span className="block text-caption font-semibold tabular-nums">{t("planner.minorSks", { have: m.have, need: m.need })}</span>
-                  {(on || registered) && (
-                    <span className="inline-flex items-center gap-1 text-caption font-medium text-accent-fg">
-                      <Icons.Check className="size-3" weight="bold" />
-                      {registered ? t("planner.minorRegistered") : t("planner.minorPlanned")}
-                    </span>
+                  {stopped ? (
+                    <span className="block text-caption text-muted">{t("planner.reasonShort.not-continuing")}</span>
+                  ) : (
+                    (on || registered) && (
+                      <span className="inline-flex items-center gap-1 text-caption font-medium text-accent-fg">
+                        <Icons.Check className="size-3" weight="bold" />
+                        {registered ? t("planner.minorRegistered") : t("planner.minorPlanned")}
+                      </span>
+                    )
                   )}
                 </span>
                 <Icons.ChevronRight className="size-3.5 shrink-0 text-faint opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100" />
@@ -1060,8 +1236,11 @@ function MinorPanel({
   const t = useT();
   const termLabel = useTermLabel();
   const focusNext = useFocusNext();
+  const notContinuingItems = useNotContinuing(record, state.plan, undoable);
   const { plan } = state;
-  const on = plan.minor === minor.key;
+  const registered = record.registeredMinor === minor.key;
+  const on = activeMinor(record, plan)?.key === minor.key;
+  const stopped = registered && notContinuing(plan, "minor", minor.name);
   const progress = minorProgress(record, plan, minor);
   const have = progress.passed + progress.now + progress.planned;
   const grade = nearestLetter(record.transcript?.ipk.computed ?? null);
@@ -1076,7 +1255,7 @@ function MinorPanel({
       <p className="text-small text-muted">
         <Meta>
           {minor.program}
-          {record.registeredMinor === minor.key ? t("planner.minorRegistered") : ""}
+          {registered ? t(stopped ? "curriculum.notContinuing" : "planner.minorRegistered") : ""}
         </Meta>
       </p>
       <p className="mt-3 flex flex-wrap items-baseline gap-x-2">
@@ -1135,7 +1314,19 @@ function MinorPanel({
       </section>
       <p className="mt-4 text-caption text-muted">{t("planner.minorWhat")}</p>
       <div className="mt-4 flex justify-end">
-        {on ? (
+        {on && registered ? (
+          // Registered on SIX: not continuing it is for good (a reset doesn't plan it again), its courses only it asks for leaving the plan if the Student wants.
+          <NotContinuingMinor
+            items={notContinuingItems({
+              key: packageKey("minor", minor.name),
+              title: t("rule.minor", { name: minor.name }),
+              codes: minor.courses,
+              keep: activeSpecialization(record, plan)?.courses.map((c) => c.code) ?? [],
+              label: t("planner.hideReason.not-continuingMinor"),
+              after: () => focusNext("minor-plan"),
+            })}
+          />
+        ) : on ? (
           <Button data-focus="minor-plan" onClick={() => undoable((p) => ({ ...p, minor: null }), t("planner.minorStopped", { name: minor.name }))}>
             {t("planner.minorStop")}
           </Button>
@@ -1144,13 +1335,30 @@ function MinorPanel({
             variant="primary"
             data-focus="minor-plan"
             icon={<Icons.Target className="size-3.5" />}
-            onClick={() => undoable((p) => ({ ...p, minor: minor.key }), t("planner.minorPlannedDone", { name: minor.name }))}
+            onClick={() => undoable((p) => planMinor(p, minor), t("planner.minorPlannedDone", { name: minor.name }))}
           >
             {t("planner.minorPlan")}
           </Button>
         )}
       </div>
     </Dialog>
+  );
+}
+
+/** "I'm not continuing this minor": one button, or a choice of keeping or removing its planned courses when there are some. */
+function NotContinuingMinor({ items }: { items: MenuItem[] }) {
+  const t = useT();
+  const label = t("planner.hideReason.not-continuingMinor");
+  if (items.length === 1)
+    return (
+      <Button data-focus="minor-plan" onClick={items[0].onSelect}>
+        {label}
+      </Button>
+    );
+  return (
+    <span data-focus="minor-plan">
+      <Menu trigger={{ words: true, variant: "secondary", text: label }} label={label} items={items} />
+    </span>
   );
 }
 
@@ -1179,7 +1387,7 @@ function AddCourse({
   const { plan } = state;
   const [tab, setTab] = useState<AddTab>("needed");
   const [query, setQuery] = useState("");
-  const minor = record.minors.find((m) => m.key === plan.minor) ?? null;
+  const minor = activeMinor(record, plan);
   const spec = activeSpecialization(record, plan);
   const grade = nearestLetter(record.transcript?.ipk.computed ?? null);
   const add = (code: string, retake: boolean) => {

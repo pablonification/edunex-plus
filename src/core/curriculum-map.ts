@@ -5,7 +5,7 @@
 // specializations and minors with progress.
 import { fillsSlot, type ProgressRow, rowStatus, type StandingStatus } from "./curriculum-slots";
 import type { CurriculumFix, StudyPlan } from "./models";
-import { activeSpecialization, minorCoverage, minorNeed, plannedCodes, rankedMinors, type StudentRecord } from "./planner";
+import { activeMinor, activeSpecialization, minorCoverage, minorNeed, notContinuing, plannedCodes, rankedMinors, type StudentRecord } from "./planner";
 
 /** Where a course stands, and planned: in the Student's plan. */
 export type SlotStatus = StandingStatus | "planned";
@@ -158,7 +158,7 @@ export function curriculumMap(record: StudentRecord, plan: StudyPlan): Curriculu
   });
   specializations.sort((a, b) => Number(b.registered) - Number(a.registered));
 
-  const tracked = new Set([plan.minor, record.registeredMinor].filter((k): k is string => k !== null));
+  const tracked = new Set([activeMinor(record, plan)?.key ?? null, record.registeredMinor].filter((k): k is string => k !== null));
   const ranked = rankedMinors(record, plan);
   const minors = [...ranked.filter((m) => tracked.has(m.key)), ...ranked.filter((m) => !tracked.has(m.key) && m.have > 0).slice(0, 4)].map((m) => ({
     name: m.name,
@@ -166,7 +166,7 @@ export function curriculumMap(record: StudentRecord, plan: StudyPlan): Curriculu
     sks: minorNeed(record, m),
     have: minorCoverage(record, plan, m).have,
     registered: m.key === record.registeredMinor,
-    notContinuing: false,
+    notContinuing: m.key === record.registeredMinor && notContinuing(plan, "minor", m.name),
     courses: m.courses.map((code) => ({
       code,
       name: record.courses.get(code)?.name ?? code,

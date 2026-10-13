@@ -2,6 +2,8 @@
 // for opening a link: the app's own links go only to official pages; a link a
 // lecturer wrote (in a note, a Task, an announcement) may go to any web page,
 // in the system browser, as Edunex itself opens it.
+import type { AcademicCalendar } from "./models";
+
 export const EDUNEX_WEB = "https://edunex.itb.ac.id";
 
 export const edunexCourseUrl = (courseId: number) => `${EDUNEX_WEB}/courses/${courseId}`;
@@ -11,9 +13,27 @@ export const SIX_WEB = "https://six.itb.ac.id";
 /** SIX's student status page: this term's courses with SKS and attendance. */
 export const sixStatusUrl = (nim: string) => `${SIX_WEB}/app/mahasiswa:${nim}/statusmhs`;
 
+/** ITB's academic calendar as a feed, the short link on SIX's home page ("Kalender Pendidikan ITB (iCalendar)"); it redirects to the current file. */
+export const ITB_CALENDAR_FEED = "https://goitb.id/KalenderPendidikan-ics";
+
+/**
+ * ITB's academic calendar to read, as SIX's home page links it: the document
+ * of the term's academic year ("Kalender Pendidikan ITB 2026-2027", `year`
+ * 2026) once the calendar read has that year's exam weeks (ITB publishes the
+ * two together; a year not published yet has no document to open). Else
+ * SIX's home page, which lists every year's.
+ */
+export function itbCalendar(term: string | null, calendar: AcademicCalendar | undefined): { url: string; year: number | null } {
+  const year = term ? /^(\d{4})-[123]$/.exec(term)?.[1] : undefined;
+  const published = calendar?.events.some((e) => (e.kind === "uts" || e.kind === "uas") && e.term?.startsWith(`${year}-`));
+  return year && published ? { url: `https://goitb.id/Kalender-Pendidikan-${year}`, year: Number(year) } : { url: SIX_WEB, year: null };
+}
+
 /** Hosts the app's own links may open in the browser. */
 export const OFFICIAL_HOSTS = [
   /(^|\.)itb\.ac\.id$/,
+  // ITB's own short links, as SIX's home page uses them for the academic calendar.
+  /^goitb\.id$/,
   /^api-edunex\.cognisia\.id$/,
   /^teams\.microsoft\.com$/,
   /^teams\.live\.com$/,

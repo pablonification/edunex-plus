@@ -5,19 +5,20 @@
 // calendar. Each block opens its details in place; the week and view the
 // Student chose stay while the app is open. Without SIX, what Edunex knows.
 // The phone calendar export lives here too.
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo } from "react";
 import { wibDay } from "../../core/course-meetings";
 import { dayStart, monthGrid, shiftDay, termWeek, weekStart } from "../../core/schedule";
 import { useFormat, useLang, useNow, useT } from "../i18n";
 import { useScheduleInput } from "../schedule-data";
 import { useSignIn } from "../shell/source-status";
-import { type AppStore, useStatus, useStore } from "../store";
+import { useStatus } from "../store";
 import { Button, IconButton, Segmented } from "../ui/controls";
 import { cx } from "../ui/cx";
 import { Skeleton } from "../ui/display";
 import { Icons } from "../ui/icons";
 import { Meta, Page, PageHeader } from "../ui/layout";
 import { Tooltip } from "../ui/overlays";
+import { useViewChoice } from "../view-choice";
 import { ScheduleWorldProvider } from "./schedule/details";
 import { ExportButton } from "./schedule/export";
 import { MonthView } from "./schedule/month";
@@ -42,20 +43,9 @@ interface Place {
 }
 
 /** Jadwal's place, kept for as long as the app is open (going to a course and back keeps it). */
-const places = new WeakMap<AppStore, Place>();
-
 function usePlace(): [Place, (patch: Partial<Place>) => void] {
-  const store = useStore();
-  const [place, setPlace] = useState<Place>(() => places.get(store) ?? { view: "week", week: null, month: null });
-  const update = useCallback(
-    (patch: Partial<Place>) =>
-      setPlace((current) => {
-        const next = { ...current, ...patch };
-        places.set(store, next);
-        return next;
-      }),
-    [store],
-  );
+  const [place, setPlace] = useViewChoice<Place>("schedule.place", { view: "week", week: null, month: null });
+  const update = useCallback((patch: Partial<Place>) => setPlace((current) => ({ ...current, ...patch })), [setPlace]);
   return [place, update];
 }
 

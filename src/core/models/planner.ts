@@ -46,7 +46,7 @@ export const WhatIfCourse = z.object({
 });
 export type WhatIfCourse = z.infer<typeof WhatIfCourse>;
 
-/** Why the Student hid a rule's warning. */
+/** Why the Student hid a rule's warning. "not-continuing" on a registered specialization or minor lasts: the plan stops following it. */
 export const HideReason = z.enum(["not-continuing", "program-adds", "other"]);
 export type HideReason = z.infer<typeof HideReason>;
 
@@ -80,12 +80,17 @@ export type StudyPlan = z.infer<typeof StudyPlan>;
  * The Student's correction to one required course of the curriculum, when
  * SIX's record doesn't match theirs: not-mine (their cohort's curriculum
  * doesn't have it), counted-as (a course they passed stands in for it), done
- * (taken care of some other way).
+ * (taken care of some other way), mine (SIX's record leaves it out, but it is
+ * theirs to take), program-adds (their program will add it to their record).
+ * The last two only settle what SIX hasn't: once SIX lists the course as
+ * taken, SIX's word stands.
  */
 export const CurriculumFix = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("not-mine"), at: z.number() }),
   z.object({ kind: z.literal("counted-as"), code: z.string().min(1).max(20), at: z.number() }),
   z.object({ kind: z.literal("done"), at: z.number() }),
+  z.object({ kind: z.literal("mine"), at: z.number() }),
+  z.object({ kind: z.literal("program-adds"), at: z.number() }),
 ]);
 export type CurriculumFix = z.infer<typeof CurriculumFix>;
 

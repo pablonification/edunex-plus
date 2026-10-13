@@ -8,6 +8,7 @@ import { nameMatch } from "../../src/core/curriculum-slots";
 import { honorFor, letterForAverage, nearestLetter, predicateFor } from "../../src/core/honors";
 import type { CurriculumFix, PlannedCourse, StudyPlan } from "../../src/core/models";
 import {
+  activeMinor,
   activeSpecialization,
   addCourse,
   addShortTerm,
@@ -26,7 +27,9 @@ import {
   leaveOut,
   livePlan,
   minorProgress,
+  onlyFor,
   parseTarget,
+  planMinor,
   programElectives,
   project,
   pruneWhatIfs,
@@ -43,6 +46,7 @@ import {
   shortTermToAdd,
   showRule,
   sksModel,
+  stopFollowing,
   studentRecord,
   targetOf,
   untried,
@@ -69,6 +73,21 @@ const plan = (terms: Record<string, PlannedCourse[]>, extra: Partial<StudyPlan> 
   ...extra,
 });
 const rules = (r: StudentRecord, p: StudyPlan) => checkPlan(r, p, project(r, p));
+/** The curriculum with a minor registered on SIX too. */
+const registeredMinor = () => ({
+  ...data.curriculum,
+  registrations: [
+    ...data.curriculum.registrations,
+    {
+      kind: "minor" as const,
+      name: "Branding Berbasis Digital",
+      program: "Desain Komunikasi Visual",
+      advisorApprovedOn: null,
+      programApprovedOn: null,
+      status: "On Progress",
+    },
+  ],
+});
 const rule = <I extends Rule["id"]>(list: Rule[], id: I) => list.filter((r): r is Extract<Rule, { id: I }> => r.id === id);
 
 describe("the Student's record", () => {
@@ -599,6 +618,47 @@ describe("hiding a warning", () => {
     expect(activeSpecialization(record, { hidden: { "specialization|sistem informasi cerdas": { reason: "other", at: 1 } } })).toBe(record.specialization);
     expect(defaultPlan(record, hidden).terms[0].courses.map((c) => c.code)).toEqual(["II4090", "II4092"]);
   });
+
+  it("not continuing a registered minor lasts like a specialization's: a fresh plan doesn't follow it again, planning it does", () => {
+    const withMinor = studentRecord({ ...data, curriculum: registeredMinor(), term: "2026-1" });
+    const minor = withMinor.minors.find((m) => m.key === withMinor.registeredMinor)!;
+    expect(minor.name).toBe("Branding Berbasis Digital");
+    // The starting plan follows the registered minor, and its warning offers not continuing; a minor only picked doesn't.
+    const start = defaultPlan(withMinor);
+    const warning = rule(rules(withMinor, start), "minor")[0];
+    expect(warning).toMatchObject({ level: "warn", registered: true });
+    expect(hideReasons(warning)).toEqual(["not-continuing", "other"]);
+    expect(hideReasons(rule(rules(record, plan({}, { minor: minor.key })), "minor")[0])).toEqual(["other"]);
+
+    const stopped = stopFollowing(start, ruleKey(warning)!, 1);
+    expect(activeMinor(withMinor, stopped)).toBeNull();
+    expect(rule(rules(withMinor, stopped), "minor")).toEqual([]);
+    // "Reset plan" keeps it: the starting plan names the registered minor, but it isn't followed.
+    const reset = defaultPlan(withMinor, stopped.hidden);
+    expect(activeMinor(withMinor, reset)).toBeNull();
+    expect(rule(rules(withMinor, reset), "minor")).toEqual([]);
+    expect(curriculumMap(withMinor, reset).minors[0]).toMatchObject({ name: "Branding Berbasis Digital", registered: true, notContinuing: true });
+    // Planning it again follows it again.
+    const again = planMinor(reset, minor);
+    expect(activeMinor(withMinor, again)?.key).toBe(minor.key);
+    expect(again.hidden).toEqual({});
+    expect(curriculumMap(withMinor, again).minors[0]).toMatchObject({ notContinuing: false });
+  });
+
+  it("not continuing can take out the courses only that package asked for; required ones, retakes and the other package's stay", () => {
+    const start = defaultPlan(record);
+    const spec = record.specialization!.courses.map((c) => c.code);
+    expect(onlyFor(record, start, spec).map((c) => c.code)).toEqual(["II4010", "II4011"]);
+    const both = addCourse(start, "2026-2", course("II2260", "A", true));
+    // A course the followed minor also asks for stays; a retake is about the IPK, not the package.
+    expect(onlyFor(record, both, [...spec, "II2260"], ["II4011"]).map((c) => c.code)).toEqual(["II4010"]);
+    const key = "specialization|sistem informasi cerdas";
+    const dropped = stopFollowing(both, key, 1, ["II4010", "II4011", "II2260"]);
+    expect(dropped.terms[0].courses.map((c) => c.code)).toEqual(["II4090", "II4092", "II2260"]);
+    expect(dropped.hidden).toEqual({ [key]: { reason: "not-continuing", at: 1 } });
+    // Without the courses, the starting plan stays as it was.
+    expect(stopFollowing(start, key, 1).terms).toEqual(start.terms);
+  });
 });
 
 describe("the catalog and retakes", () => {
@@ -707,6 +767,57 @@ describe("the curriculum map", () => {
 
     // Marking a passed course not in the curriculum takes it out of the count of courses that apply.
     expect(rule(rules(fixed({ WI2003: { kind: "not-mine", at: 1 } }), defaultPlan(record)), "required")[0]).toMatchObject({ total: 41 });
+  });
+
+  it("'In my curriculum': a course SIX leaves off the record counts as left to take, in the rules and the map alike", () => {
+    const mine = studentRecord({ ...data, term: "2026-1", fixes: { WI1111: { kind: "mine", at: 1 } } });
+    expect(mine.requiredLeft.map((c) => c.code)).toEqual(["II4090", "II4092", "WI1111"]);
+    const p = defaultPlan(record);
+    expect(rule(rules(mine, p), "required")[0]).toMatchObject({
+      level: "error",
+      total: 43,
+      missing: [{ code: "WI1111", name: "Laboratorium Fisika Dasar", slot: "WI1111" }],
+    });
+    const row = curriculumMap(mine, p)
+      .semesters.flatMap((s) => s.required)
+      .find((c) => c.code === "WI1111");
+    expect(row).toMatchObject({ status: "left", fix: { kind: "mine" } });
+    expect(sksModel(mine, p).requiredLeft).toEqual({ count: 3, sks: 7 });
+    // A fresh plan places it.
+    expect(defaultPlan(mine).terms[0].courses.map((c) => c.code)).toContain("WI1111");
+    // Where SIX already has the course, SIX's word stands.
+    const passed = studentRecord({ ...data, term: "2026-1", fixes: { MA1101: { kind: "mine", at: 1 } } });
+    expect(passed.slots.get("MA1101")).toMatchObject({ status: "passed", fix: null });
+  });
+
+  it("'My program will add it': covered, its SKS counted as coming, said apart from corrections; SIX's word wins once it has it", () => {
+    const adds = studentRecord({ ...data, term: "2026-1", fixes: { II4090: { kind: "program-adds", at: 1 } } });
+    expect(adds.requiredLeft.map((c) => c.code)).toEqual(["II4092"]);
+    expect(adds.slots.get("II4090")).toMatchObject({ status: "program-adds", sixLeft: true });
+    expect(adds.byProgram.map((c) => c.code)).toEqual(["II4090"]);
+    const p = removeCourse(defaultPlan(record), "2026-2", "II4090");
+    expect(rule(rules(record, p), "required")[0]).toMatchObject({ level: "error", missing: [{ code: "II4090", slot: "II4090" }] });
+    expect(rule(rules(adds, p), "required")[0]).toMatchObject({
+      level: "ok",
+      missing: [],
+      corrected: [],
+      byProgram: [{ code: "II4090", name: "Kerja Praktik" }],
+    });
+    // Its 2 SKS count as coming, once: not while it's also planned.
+    expect(sksModel(adds, p)).toMatchObject({ planned: 10, byProgram: 2, total: 151, extra: 7 });
+    expect(sksModel(adds, defaultPlan(record))).toMatchObject({ planned: 12, byProgram: 0, total: 151 });
+    expect(
+      curriculumMap(adds, p)
+        .semesters.flatMap((s) => s.required)
+        .find((c) => c.code === "II4090"),
+    ).toMatchObject({ status: "program-adds" });
+    // SIX shows it graded: the fix rests.
+    const progress = structuredClone(data.progress);
+    const row = progress.stages.flatMap((stage) => stage.semesters.flatMap((sem) => sem.courses)).find((c) => c.code === "II4090")!;
+    Object.assign(row, { status: "graded", grade: "A", term: "2026-1" });
+    const added = studentRecord({ ...data, progress, term: "2026-1", fixes: { II4090: { kind: "program-adds", at: 1 } } });
+    expect(added.slots.get("II4090")).toMatchObject({ status: "passed", fix: null });
+    expect(added.byProgram).toEqual([]);
   });
 
   it("'Counted as…' offers passed courses: SIX's same-semester ones that fill nothing first", () => {

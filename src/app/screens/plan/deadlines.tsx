@@ -5,7 +5,9 @@
 // bold, each with one short line for this Student (KRS sent, UKT paid, SKS
 // against the progress check); past ones folded away. "Full calendar": every
 // event ITB lists, by month, ITB's own title first, with chips and a search,
-// so a dense calendar stays readable. Works without SIX.
+// so a dense calendar stays readable. The view picked stays while the app is
+// open; ITB's calendar is named and linked, with when it was last checked.
+// Works without SIX.
 import { Fragment, useRef, useState } from "react";
 import {
   academicDeadlines,
@@ -16,7 +18,10 @@ import {
   type Deadline,
   fullCalendar,
 } from "../../../core/academic";
+import { itbCalendar } from "../../../core/links";
+import type { AcademicCalendar } from "../../../core/models";
 import type { StringKey } from "../../../core/strings";
+import { useOpenExternal } from "../../hooks";
 import { useFormat, useLang, useNow, useT } from "../../i18n";
 import { useDataset } from "../../store";
 import { Button, Segmented } from "../../ui/controls";
@@ -24,6 +29,8 @@ import { cx } from "../../ui/cx";
 import { EmptyState } from "../../ui/display";
 import { Icons } from "../../ui/icons";
 import { List, Meta } from "../../ui/layout";
+import { WebLink } from "../../ui/rich-text";
+import { useViewChoice } from "../../view-choice";
 import { useThisTerm } from "./bills";
 import { useTermYears } from "./projection";
 
@@ -70,12 +77,15 @@ const GROUPS: Group[] = ["now", "week", "month", "term", "next"];
 export function Tab(_: { onCalendar?: () => void }) {
   const t = useT();
   const calendar = useDataset("itb.calendar");
-  const [view, setView] = useState<"mine" | "all">("mine");
+  const [view, setView] = useViewChoice<"mine" | "all">("deadlines.view", "mine");
   if (!calendar) return <EmptyState icon={<Icons.CalendarClock className="size-5" />} title={t("deadlines.empty")} />;
   return (
     <div>
       <div className="mb-5 flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
-        <p className="text-small text-muted">{t(view === "mine" ? "deadlines.intro" : "calendar.intro")}</p>
+        <div className="min-w-0">
+          <p className="text-small text-muted">{t(view === "mine" ? "deadlines.intro" : "calendar.intro")}</p>
+          <Source calendar={calendar} />
+        </div>
         <Segmented
           label={t("deadlines.view")}
           value={view}
@@ -88,6 +98,27 @@ export function Tab(_: { onCalendar?: () => void }) {
       </div>
       {view === "mine" ? <ForYou /> : <EveryEvent />}
     </div>
+  );
+}
+
+/** "Dari Kalender Pendidikan ITB 2026/2027 · diperiksa 2 jam yang lalu": where every date here comes from, to read for oneself, and how fresh it is. */
+function Source({ calendar }: { calendar: AcademicCalendar }) {
+  const t = useT();
+  const f = useFormat();
+  const open = useOpenExternal();
+  const { url, year } = itbCalendar(useThisTerm(), calendar);
+  return (
+    <p className="mt-0.5 text-caption text-muted">
+      <Meta>
+        <span>
+          {t("deadlines.from")}{" "}
+          <WebLink href={url} onOpen={open}>
+            {year ? t("deadlines.source", { years: `${year}/${year + 1}` }) : t("deadlines.sourcePlain")}
+          </WebLink>
+        </span>
+        {t("deadlines.checked", { when: f.fromNow(calendar.checkedAt) })}
+      </Meta>
+    </p>
   );
 }
 

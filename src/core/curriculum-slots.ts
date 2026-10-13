@@ -6,16 +6,18 @@
 // in for, so a slot is matched to such a course by semester and name, or by
 // the hand-checked equivalence table. A slot SIX's progress doesn't list at
 // all isn't asked of the Student (SIX lists every course still to take), so
-// it isn't counted as left. The Student's own corrections win over all of it.
+// it isn't counted as left. The Student's own corrections win over all of it,
+// except "mine" and "program-adds", which only settle what SIX hasn't.
 import { equivalentsOf } from "./curriculum-equivalence";
 import { type CurriculumFix, isLetterGrade, type ProgressCourse } from "./models";
 
 /**
  * passed: graded (not E). failed: graded E. in-progress: this term. exempt:
  * credited without a grade. left: still to take. unlisted: SIX's progress
- * doesn't list it for the Student. not-mine and done: the Student said so.
+ * doesn't list it for the Student. not-mine, done and program-adds (their
+ * program will add it to their record): the Student said so.
  */
-export type StandingStatus = "passed" | "failed" | "in-progress" | "exempt" | "left" | "unlisted" | "not-mine" | "done";
+export type StandingStatus = "passed" | "failed" | "in-progress" | "exempt" | "left" | "unlisted" | "not-mine" | "done" | "program-adds";
 
 export interface SlotStanding {
   status: StandingStatus;
@@ -93,7 +95,8 @@ export function slotStandings({ slots, rows, graded, thisTerm, fixes }: SlotInpu
   const settled = (slot: SlotInput["slots"][number]): SlotStanding | null => {
     const own = list.find((r) => fillsSlot(slot.code, r.code));
     const fix = fixes[slot.code];
-    if (fix) {
+    // "mine" and "program-adds" wait for the slot's own standing (see the end).
+    if (fix && fix.kind !== "mine" && fix.kind !== "program-adds") {
       const sixLeft = own !== undefined && (rowStatus(own) === "left" || rowStatus(own) === "failed");
       if (fix.kind !== "counted-as") return { status: fix.kind, grade: null, via: null, fix, sixLeft, guessed: false };
       claimed.add(fix.code);
@@ -137,5 +140,14 @@ export function slotStandings({ slots, rows, graded, thisTerm, fixes }: SlotInpu
   // What's certain first (SIX's own rows, the transcript, the table, the Student), then guesses by name for the rest.
   const standings = new Map<string, SlotStanding | null>(slots.map((slot) => [slot.code, settled(slot)]));
   for (const slot of slots) if (!standings.get(slot.code)) standings.set(slot.code, guess(slot));
+  // The Student's word where SIX's record has nothing better: a course left off it is theirs to take ("mine"); one SIX still
+  // lists as to take (or left off) their program will add. Once SIX shows it taken, SIX's word stands and the fix rests.
+  for (const slot of slots) {
+    const fix = fixes[slot.code];
+    const standing = standings.get(slot.code)!;
+    if (fix?.kind === "mine" && standing.status === "unlisted") standings.set(slot.code, { ...standing, status: "left", fix });
+    if (fix?.kind === "program-adds" && ["left", "failed", "unlisted"].includes(standing.status))
+      standings.set(slot.code, { ...standing, status: "program-adds", grade: null, via: null, fix, sixLeft: standing.status !== "unlisted", guessed: false });
+  }
   return standings as Map<string, SlotStanding>;
 }

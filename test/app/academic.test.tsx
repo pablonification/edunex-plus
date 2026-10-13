@@ -379,11 +379,44 @@ describe("the Kalender akademik tab", () => {
     expect(panel()).toContain("Pengisian Kuesioner Evaluasi Perkuliahan Semester I-2026/2027Berlangsung");
   });
 
+  it("names ITB's calendar, links it and says when it was checked; the view picked stays while the app is open", async () => {
+    const s = await openPlan("2026-10-11T09:00:00+07:00");
+    await s.click(/^Rencana studi/);
+    await tab("Kalender akademik");
+    expect(panel()).toContain("Tenggat semester ini dan semester depan, dengan artinya untukmu.Dari Kalender Pendidikan ITB 2026/2027 · diperiksa baru saja");
+    // The year's own document, as SIX's home page links it.
+    await s.click(document.querySelector<HTMLElement>("[role=tabpanel][data-state=active] a")!);
+    expect(s.calls.at(-1)).toEqual({ name: "shell.openExternal", input: { url: "https://goitb.id/Kalender-Pendidikan-2026" } });
+    await s.click("Kalender lengkap");
+    expect(panel()).toContain("Semua acara yang dicantumkan ITB, dengan judul dari ITB, termasuk semester pendek.Dari Kalender Pendidikan ITB 2026/2027");
+    // Another tab and back, another screen and back: still the full calendar.
+    await tab("KRS");
+    await tab("Kalender akademik");
+    expect(panel()).toContain("108 acara");
+    await s.click(/^Beranda/);
+    await s.click(/^Rencana studi/);
+    await tab("Kalender akademik");
+    expect(panel()).toContain("108 acara");
+    expect(s.button("Kalender lengkap").getAttribute("aria-checked")).toBe("true");
+  });
+
+  it("a year whose calendar ITB hasn't published isn't linked (its page doesn't exist yet): ITB's calendar is named plainly, and SIX's home page, which lists every year's, opens", async () => {
+    const s = await openPlan("2026-10-11T09:00:00+07:00");
+    // SIX already on next year; the calendar read has only a few of next year's first dates, not its exam weeks.
+    await inject("six.krs", { ...krs(), term: "2027-1" });
+    await s.click(/^Rencana studi/);
+    await tab("Kalender akademik");
+    expect(panel()).toContain("Dari Kalender Pendidikan ITB · diperiksa baru saja");
+    await s.click(document.querySelector<HTMLElement>("[role=tabpanel][data-state=active] a")!);
+    expect(s.calls.at(-1)).toEqual({ name: "shell.openExternal", input: { url: "https://six.itb.ac.id" } });
+  });
+
   it("in English", async () => {
     const s = await openPlan("2026-10-11T09:00:00+07:00");
     await s.engineDoes(() => s.engine.updateSettings({ lang: "en" }));
     await s.click(/^Study plan/);
     await tab("Academic calendar");
+    expect(panel()).toContain("From ITB's academic calendar 2026/2027 · checked just now");
     expect(panel()).toContain("Midterms (UTS)Midterm exam week.tomorrow");
     expect(panel()).toContain("Next semester · 2026/2027 Even");
     await s.click("Full calendar");

@@ -1,12 +1,12 @@
 // Rencana studi tab — The curriculum map (#79): the program's required
 // courses by recommended semester with where the Student stands on each
 // (courses passed under an older code matched the way SIX places them), in
-// plain words that say what to do; "Sisa saja" hides what's done, with a
-// summary of what's left that stays in view; the totals labelled and from the
-// same SKS count as the planner; specializations and minors with progress;
-// each course's syllabus on SIX's public pages; and the Student's own
-// corrections where SIX's record doesn't match their curriculum, each one
-// marked and reversible.
+// plain words that say what to do; "Sisa saja" hides what's done (kept while
+// the app is open), with a summary of what's left that stays in view; the
+// totals labelled and from the same SKS count as the planner; specializations
+// and minors with progress; each course's syllabus on SIX's public pages; and
+// the Student's own corrections where SIX's record doesn't match their
+// curriculum, each one marked and reversible.
 import { type ReactNode, type Ref, useEffect, useRef, useState } from "react";
 import { curriculumMap, type MapCourse, type PackageProgress, type SlotStatus, type StandIn, standIns } from "../../../core/curriculum-map";
 import type { CurriculumFix } from "../../../core/models";
@@ -21,6 +21,7 @@ import { Icons } from "../../ui/icons";
 import { Meta, Section } from "../../ui/layout";
 import { Menu, type MenuItem } from "../../ui/menu";
 import { Dialog, Tooltip, toast } from "../../ui/overlays";
+import { useViewChoice } from "../../view-choice";
 import { WhatIfTag } from "./planner";
 import { SixNeeded } from "./six-needed";
 
@@ -35,15 +36,17 @@ export function useBadge(): { value: number; tone: "neutral" | "warning" } | nul
 export const syllabusUrl = (courseId: string) => `https://six.itb.ac.id/pub/matakuliah/${courseId}`;
 
 /** Still to do: everything not passed, credited, or off the Student's list (SIX doesn't ask it of them, or they said so). */
-const isLeft = (status: SlotStatus) => !["passed", "exempt", "unlisted", "not-mine", "done"].includes(status);
+const isLeft = (status: SlotStatus) => !["passed", "exempt", "unlisted", "not-mine", "done", "program-adds"].includes(status);
 
 /**
- * With "Sisa saja" on, a course the Student corrects is no longer left, and
- * its row goes once the correction is saved: focus moves to the next row's
- * ⋯ (or the switch, after the last row) instead of falling to the page.
+ * With "Sisa saja" on, a course the Student corrects is no longer left (or,
+ * taking back "Ada di kurikulumku", off their list again), and its row goes
+ * once the change is saved: focus moves to the next row's ⋯ (or the switch,
+ * after the last row) instead of falling to the page. `at` is the saved
+ * correction's moment; null when it's taken back.
  */
 function useFocusAfterCorrection(rows: MapCourse[]) {
-  const pending = useRef<{ code: string; at: number; next: string | null } | null>(null);
+  const pending = useRef<{ code: string; at: number | null; next: string | null } | null>(null);
   const rowEls = useRef(new Map<string, HTMLElement>());
   const toggle = useRef<HTMLLabelElement>(null);
   useEffect(() => {
@@ -52,7 +55,7 @@ function useFocusAfterCorrection(rows: MapCourse[]) {
     const row = rows.find((c) => c.code === wait.code);
     // Still listed: not saved yet (keep waiting), or saved and still left (its ⋯ keeps focus).
     if (row) {
-      if (row.fix?.at === wait.at) pending.current = null;
+      if ((row.fix?.at ?? null) === wait.at) pending.current = null;
       return;
     }
     pending.current = null;
@@ -60,7 +63,7 @@ function useFocusAfterCorrection(rows: MapCourse[]) {
     (next ?? toggle.current?.querySelector<HTMLElement>("[role=switch]"))?.focus();
   });
   return {
-    corrected(course: MapCourse, at: number) {
+    corrected(course: MapCourse, at: number | null) {
       const index = rows.findIndex((c) => c.code === course.code);
       pending.current = { code: course.code, at, next: rows[index + 1]?.code ?? null };
     },
@@ -78,7 +81,7 @@ export function Tab({ onCalendar }: { onCalendar?: () => void }) {
   // With this term's what-ifs, like the planner: the two tabs never disagree.
   const record = state?.record;
   const setFix = useCurriculumFix();
-  const [onlyLeft, setOnlyLeft] = useState(false);
+  const [onlyLeft, setOnlyLeft] = useViewChoice("curriculum.onlyLeft", false);
   const [picking, setPicking] = useState<MapCourse | null>(null);
   const map = record?.curriculum && state ? curriculumMap(record, state.plan) : null;
   const semesters = (map?.semesters ?? [])
@@ -107,14 +110,21 @@ export function Tab({ onCalendar }: { onCalendar?: () => void }) {
   const sks = sksModel(record, state.plan);
   const hidden = map.semesters.length - semesters.length;
   const correct = (course: MapCourse, fix: CurriculumFix | null, message: string) => {
-    const before = course.fix;
-    if (onlyLeft && fix) focus.corrected(course, fix.at);
-    setFix(course.code, fix);
+    if (onlyLeft) focus.corrected(course, fix?.at ?? null);
+    const before = setFix(course.code, fix);
     toast(message, "neutral", { label: t("planner.undo"), onClick: () => setFix(course.code, before) });
   };
   const menuOf = (course: MapCourse): MenuItem[] => {
     const at = Date.now();
     const items: MenuItem[] = [];
+    // SIX's record leaves it out: the Student can say it's theirs to take after all, as the note above the list says.
+    if (course.status === "unlisted")
+      items.push({
+        label: t("curriculum.fix.mine"),
+        hint: t("curriculum.fix.mineHint"),
+        icon: <Icons.Plus className="size-4" />,
+        onSelect: () => correct(course, { kind: "mine", at }, t("curriculum.fixDone.mine", { code: course.code })),
+      });
     if (course.fix?.kind !== "not-mine")
       items.push({
         label: t("curriculum.fix.not-mine"),
@@ -340,6 +350,7 @@ function Status({ status, grade }: { status: SlotStatus; grade: string | null })
       );
     case "exempt":
     case "done":
+    case "program-adds":
       return (
         <span className="inline-flex items-center gap-1 text-small text-muted whitespace-nowrap">
           <Icons.Check className="size-3.5 text-success-fg" weight="bold" />

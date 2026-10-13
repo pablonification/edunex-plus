@@ -1,6 +1,7 @@
 // ITB's academic calendar (Kalender Pendidikan), from the public iCalendar
 // feed SIX's home page links to. Read once a day; each event gets a kind the
 // rest of the app reasons with (lecture period, exam weeks, registration…).
+import { ITB_CALENDAR_FEED } from "../../../core/links";
 import type { AcademicCalendar, CalendarEvent, CalendarKind } from "../../../core/models";
 import { EngineError } from "../../errors";
 import type { SourceContext } from "../source";
@@ -8,7 +9,7 @@ import { PublicClient } from "./client";
 import { IcsError, type IcsEvent, parseIcs } from "./ics";
 
 /** The short link on SIX's home page ("Kalender Pendidikan ITB (iCalendar)"); it redirects to the current file. */
-export const CALENDAR_URL = "https://goitb.id/KalenderPendidikan-ics";
+export const CALENDAR_URL = ITB_CALENDAR_FEED;
 
 const HOUR = 3_600_000;
 /** A copy younger than this is used as is. */

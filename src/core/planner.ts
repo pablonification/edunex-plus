@@ -122,8 +122,10 @@ export interface StudentRecord {
   required: Map<string, RequiredCourse>;
   /** Where each of them stands for the Student, the Student's corrections applied. */
   slots: Map<string, SlotStanding>;
-  /** Required courses still to take (SIX's graduation progress), failed ones included, less those the Student corrected. */
+  /** Required courses still to take (SIX's graduation progress), failed ones included, less those the Student corrected, plus those they said are theirs though SIX leaves them out. */
   requiredLeft: RequiredCourse[];
+  /** Required courses the Student said their program will add to their record: covered, and their SKS count as coming. */
+  byProgram: RequiredCourse[];
   /** Elective SKS the program needs (graduation SKS minus required), and those passed or in progress. */
   electiveNeed: number | null;
   electiveHave: number;
@@ -212,6 +214,9 @@ export function studentRecord(input: RecordInput): StudentRecord {
       const failed = row.status === "graded" && row.grade === "E" && !thisTermCodes.has(row.code);
       if (row.status === "not-taken" || failed) requiredLeft.push({ code: row.code, name: row.name, sks: row.sks, semester: row.semester });
     }
+    // Courses SIX leaves off the Student's record that they said are theirs: still to take.
+    for (const [code, standing] of slots)
+      if (standing.fix?.kind === "mine" && standing.status === "left" && !requiredLeft.some((c) => c.code === code)) requiredLeft.push(required.get(code)!);
   } else {
     for (const c of required.values()) {
       const status = slots.get(c.code)?.status;
@@ -267,6 +272,7 @@ export function studentRecord(input: RecordInput): StudentRecord {
     required,
     slots,
     requiredLeft,
+    byProgram: [...slots.entries()].filter(([, s]) => s.status === "program-adds").map(([code]) => required.get(code)!),
     electiveNeed: requiredSks === null ? null : Math.max(0, graduationSks - requiredSks),
     electiveHave,
     electivePassed,
@@ -782,13 +788,16 @@ export type Rule =
       level: RuleLevel;
       /** Required courses that apply to the Student (not those SIX doesn't ask of them or they marked not in their curriculum). */
       total: number | null;
-      missing: { code: string; name: string }[];
+      /** With the curriculum's course it is (`slot`), so the Student can say their program will add it; null when it isn't one. */
+      missing: { code: string; name: string; slot: string | null }[];
       /** Courses SIX still lists as to take that the Student corrected. */
       corrected: { code: string; name: string }[];
+      /** Courses the Student said their program will add. */
+      byProgram: { code: string; name: string }[];
     }
   | { id: "electives"; level: RuleLevel; have: number; need: number }
   | { id: "specialization"; level: RuleLevel; name: string; total: number; missing: { code: string; name: string }[] }
-  | { id: "minor"; level: RuleLevel; name: string; have: number; need: number }
+  | { id: "minor"; level: RuleLevel; name: string; have: number; need: number; registered: boolean }
   | { id: "load"; level: RuleLevel; term: string; sks: number; limit: number }
   | { id: "parity"; level: RuleLevel; term: string; code: string; name: string; semester: number }
   | { id: "early"; level: RuleLevel; term: string; code: string; name: string; semester: number }
@@ -820,17 +829,21 @@ export const minorNeed = (record: StudentRecord, minor: MinorOption) => minor.sk
 
 // ------------------------------------------------------------ hiding a warning
 
+/** The key a specialization's or minor's warning is hidden under, and the Student's "not continuing" kept. */
+export const packageKey = (kind: "specialization" | "minor", name: string) => `${kind}|${name.toLowerCase()}`;
+
 /**
  * The key a hidden warning is kept under, stable while the plan changes
  * (II4090's odd/even warning stays hidden wherever it's moved). Only warnings
- * can be hidden: what decides graduating can't (correct the curriculum instead).
+ * can be hidden: what decides graduating can't (correct the curriculum, or
+ * say the program will add a course, instead).
  */
 export function ruleKey(rule: Rule): string | null {
   if (rule.level !== "warn") return null;
   switch (rule.id) {
     case "specialization":
     case "minor":
-      return `${rule.id}|${rule.name.toLowerCase()}`;
+      return packageKey(rule.id, rule.name);
     case "parity":
     case "early":
       return `${rule.id}|${rule.code}`;
@@ -843,9 +856,9 @@ export function ruleKey(rule: Rule): string | null {
   }
 }
 
-/** The reasons offered for hiding a warning, the likeliest first. */
+/** The reasons offered for hiding a warning, the likeliest first. Not continuing is for what the Student registered for on SIX. */
 export function hideReasons(rule: Rule): HideReason[] {
-  if (rule.id === "specialization") return ["not-continuing", "other"];
+  if (rule.id === "specialization" || (rule.id === "minor" && rule.registered)) return ["not-continuing", "other"];
   if (rule.id === "parity" || rule.id === "early") return ["program-adds", "other"];
   return ["other"];
 }
@@ -865,10 +878,46 @@ export function showRule(plan: StudyPlan, key: string): StudyPlan {
   return { ...plan, hidden: rest };
 }
 
-/** The registered specialization, unless the Student said they aren't continuing it: then the planner stops offering and tagging its courses. */
+/** The Student said they aren't continuing a specialization or minor they registered for. Kept with the hidden warnings, so a fresh plan keeps it too. */
+export const notContinuing = (plan: Pick<StudyPlan, "hidden">, kind: "specialization" | "minor", name: string) =>
+  plan.hidden?.[packageKey(kind, name)]?.reason === "not-continuing";
+
+/** The registered specialization, unless the Student said they aren't continuing it: then the planner stops asking for and suggesting its courses. */
 export function activeSpecialization(record: StudentRecord, plan: Pick<StudyPlan, "hidden">): CoursePackage | null {
   const spec = record.specialization;
-  return spec && plan.hidden?.[`specialization|${spec.name.toLowerCase()}`]?.reason === "not-continuing" ? null : spec;
+  return spec && notContinuing(plan, "specialization", spec.name) ? null : spec;
+}
+
+/** The minor the plan follows: the one planned (at first the registered one), unless the Student said they aren't continuing it. */
+export function activeMinor(record: StudentRecord, plan: Pick<StudyPlan, "minor" | "hidden">): MinorOption | null {
+  const minor = record.minors.find((m) => m.key === plan.minor) ?? null;
+  return minor && notContinuing(plan, "minor", minor.name) ? null : minor;
+}
+
+/** Plans a minor; one the Student had stopped following is followed again. */
+export function planMinor(plan: StudyPlan, minor: MinorOption): StudyPlan {
+  const key = packageKey("minor", minor.name);
+  const next = { ...plan, minor: minor.key };
+  return notContinuing(plan, "minor", minor.name) ? showRule(next, key) : next;
+}
+
+/**
+ * Courses of a specialization or minor planned for later that only it asks
+ * for: not required, not a retake, not in the package the plan still follows
+ * (`keep`). What "not continuing, and take its courses out" removes.
+ */
+export function onlyFor(record: StudentRecord, plan: StudyPlan, codes: readonly string[], keep: readonly string[] = []): PlannedCourse[] {
+  const required = (code: string) => record.requiredLeft.some((c) => c.code === code) || [...record.required.keys()].some((slot) => fillsSlot(slot, code));
+  return livePlan(plan, record)
+    .terms.flatMap((t) => t.courses)
+    .filter((c) => codes.includes(c.code) && !c.retake && !required(c.code) && !keep.includes(c.code));
+}
+
+/** Not continuing a registered specialization or minor, kept through a reset; with `drop`, those courses leave the plan too (a retake stays). */
+export function stopFollowing(plan: StudyPlan, key: string, at: number, drop: readonly string[] = []): StudyPlan {
+  const hidden = hideRule(plan, key, "not-continuing", at);
+  if (!drop.length) return hidden;
+  return { ...hidden, terms: hidden.terms.map((t) => ({ ...t, courses: t.courses.filter((c) => c.retake || !drop.includes(c.code)) })) };
 }
 
 /** Every rule the plan is checked against, live. */
@@ -880,11 +929,16 @@ export function checkPlan(record: StudentRecord, rawPlan: StudyPlan, projection:
 
   rules.push({ id: "total", level: sks.short ? "error" : "ok", have: sks.total, need: sks.need });
 
-  const missing = record.requiredLeft.filter((c) => !planned.has(c.code)).map(({ code, name }) => ({ code, name }));
+  const slotCodes = [...record.required.keys()];
+  const missing = record.requiredLeft
+    .filter((c) => !planned.has(c.code))
+    .map(({ code, name }) => ({ code, name, slot: slotCodes.find((s) => fillsSlot(s, code)) ?? null }));
   const standings = [...record.slots.entries()];
   const applies = standings.filter(([, s]) => s.status !== "unlisted" && s.status !== "not-mine").length;
-  const corrected = standings.filter(([, s]) => s.sixLeft).map(([code]) => ({ code, name: record.required.get(code)?.name ?? code }));
-  rules.push({ id: "required", level: missing.length ? "error" : "ok", total: record.curriculum ? applies : null, missing, corrected });
+  const named = ([code]: [string, unknown]) => ({ code, name: record.required.get(code)?.name ?? code });
+  const corrected = standings.filter(([, s]) => s.sixLeft && s.status !== "program-adds").map(named);
+  const byProgram = standings.filter(([, s]) => s.status === "program-adds").map(named);
+  rules.push({ id: "required", level: missing.length ? "error" : "ok", total: record.curriculum ? applies : null, missing, corrected, byProgram });
 
   if (record.electiveNeed !== null) {
     rules.push({ id: "electives", level: sks.electives.short ? "error" : "ok", have: sks.electives.have, need: record.electiveNeed });
@@ -905,11 +959,18 @@ export function checkPlan(record: StudentRecord, rawPlan: StudyPlan, projection:
     });
   }
 
-  const minor = record.minors.find((m) => m.key === plan.minor);
+  const minor = activeMinor(record, plan);
   if (minor) {
     const need = minorNeed(record, minor);
     const { have: minorSks } = minorCoverage(record, plan, minor);
-    rules.push({ id: "minor", level: minorSks >= need ? "ok" : "warn", name: minor.name, have: minorSks, need });
+    rules.push({
+      id: "minor",
+      level: minorSks >= need ? "ok" : "warn",
+      name: minor.name,
+      have: minorSks,
+      need,
+      registered: minor.key === record.registeredMinor,
+    });
   }
 
   // This term counts too once the Student changed it: its load, and the courses they added.
@@ -969,7 +1030,8 @@ export function checkPlan(record: StudentRecord, rawPlan: StudyPlan, projection:
 /**
  * The SKS picture Rencana, Kurikulum and Nilai all show, from one count:
  * what graduating needs (all, required, electives), and what the Student has
- * passed, takes this term and has planned. Retakes add no SKS.
+ * passed, takes this term, has planned, and their program will add. Retakes
+ * add no SKS.
  */
 export interface SksModel {
   need: number;
@@ -978,7 +1040,9 @@ export interface SksModel {
   passed: number;
   inProgress: number;
   planned: number;
-  /** passed + inProgress + planned. */
+  /** Required courses the Student said their program will add (not also planned or taken now). */
+  byProgram: number;
+  /** passed + inProgress + planned + byProgram. */
   total: number;
   /** SKS still missing to graduate, and SKS beyond what's needed. */
   short: number;
@@ -995,7 +1059,8 @@ export function sksModel(record: StudentRecord, rawPlan: StudyPlan): SksModel {
   const fresh = plan.terms.flatMap((t) => t.courses.filter((c) => !c.retake));
   const sum = (list: { sks: number }[]) => list.reduce((total, c) => total + c.sks, 0);
   const plannedSks = sum(fresh);
-  const total = record.passedSks + record.inProgressSks + plannedSks;
+  const byProgram = sum(record.byProgram.filter((c) => !planned.has(c.code) && !record.thisTerm.some((t) => t.code === c.code)));
+  const total = record.passedSks + record.inProgressSks + plannedSks + byProgram;
   const left = new Set(record.requiredLeft.map((c) => c.code));
   const electivePlanned = sum(fresh.filter((c) => !left.has(c.code) && !record.required.has(c.code)));
   const electiveHave = record.electiveHave + electivePlanned;
@@ -1008,6 +1073,7 @@ export function sksModel(record: StudentRecord, rawPlan: StudyPlan): SksModel {
     passed: record.passedSks,
     inProgress: record.inProgressSks,
     planned: plannedSks,
+    byProgram,
     total,
     short: Math.max(0, record.graduationSks - total),
     extra: Math.max(0, total - record.graduationSks),
