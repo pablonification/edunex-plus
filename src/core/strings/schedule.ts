@@ -75,7 +75,7 @@ export const scheduleStrings = {
   "schedule.openExam": { id: "Buka ujian", en: "Open exam" },
   "schedule.openTask": { id: "Buka tugas", en: "Open Task" },
   "schedule.more": { id: "+{count} lagi", en: "+{count} more" },
-  "schedule.month.exam": { id: "{activity} {code} {time} · {room}", en: "{activity} {code} {time} · {room}" },
+  "schedule.month.exam": { id: "{activity} {code} {time}", en: "{activity} {code} {time}" },
   "schedule.month.overlap": { id: "Bentrok {pair} · {from}–{to}", en: "Clash {pair} · {from}–{to}" },
   "schedule.month.due": { id: "Tenggat {code} {time}: {title}", en: "Due {code} {time}: {title}" },
   "schedule.month.moved": { id: "{code} {time}: jadwal berubah", en: "{code} {time}: moved" },

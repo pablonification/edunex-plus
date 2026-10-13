@@ -135,6 +135,21 @@ describe("the check every screen test runs", () => {
     expect(() => assertTidyFacts()).toThrow(/dangling "·"/);
   });
 
+  it('fails on a tooltip that ends with a dot (an exam with no room: "UTS DK4073 11:00 · ")', () => {
+    draw(<span title="UTS DK4073 11:00 · ">UTS</span>);
+    expect(() => assertTidyFacts()).toThrow(/dangling "·" in the title/);
+  });
+
+  it("fails on a screen-reader name with a dot beside another separator: a fact gone between", () => {
+    draw(<button type="button" aria-label="Kam, 15 Okt: UTS DK4073 11:00 · , 2 kuliah" />);
+    expect(() => assertTidyFacts()).toThrow(/dangling "·" in the aria-label/);
+  });
+
+  it("passes tooltips and names whose dots each sit between two facts", () => {
+    draw(<button type="button" aria-label="UTS DK4073 11:00 · TVST C" title="Tugas 02 · II4091" />);
+    expect(() => assertTidyFacts()).not.toThrow();
+  });
+
   it("fails on a fact that renders nothing", () => {
     const Empty = () => null;
     draw(

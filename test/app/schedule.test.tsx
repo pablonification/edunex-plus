@@ -325,6 +325,21 @@ describe("Jadwal: the month", () => {
   });
 });
 
+describe("Jadwal: the month, an exam with no room yet", () => {
+  it("names the exam and its time without a dot left hanging where the room would be", async () => {
+    const s = await openSchedule();
+    const schedule = (s.store.dataset("six.schedule")?.value ?? []) as { courseCode: string; activity: string; room: string | null }[];
+    const noRoom = schedule.map((session) => (session.courseCode === "DK4073" && session.activity === "UTS" ? { ...session, room: null } : session));
+    await s.apply({ type: "dataset", dataset: { name: "six.schedule", value: noRoom, fetchedAt: 0, hash: "no-room" } });
+    await s.click("Bulan");
+    const label = s.button(/^Kamis, 15 Oktober/).getAttribute("aria-label") ?? "";
+    expect(label).toContain("UTS DK4073 11:00,");
+    expect(label).not.toMatch(/·\s*,/);
+    const line = [...document.querySelectorAll("main [title]")].find((el) => el.getAttribute("title")?.startsWith("UTS DK4073"));
+    expect(line?.getAttribute("title")).toBe("UTS DK4073 11:00");
+  });
+});
+
 describe("schedule and exam alerts in Settings", () => {
   it("say what they cover, once each, and switch off", async () => {
     screen = await openApp({ signedIn: true });
