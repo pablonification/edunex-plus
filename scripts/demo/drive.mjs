@@ -20,13 +20,15 @@ const electronBinary = createRequire(import.meta.url)("electron");
 
 /**
  * @param {{ scenario?: "signed-in" | "edunex-only" | "first-run", now?: string, size?: { width: number, height: number },
- *           theme?: "light" | "dark", lang?: "id" | "en", video?: string, shots?: string, devServer?: string }} options
+ *           theme?: "light" | "dark", lang?: "id" | "en", video?: string, shots?: string, devServer?: string,
+ *           platform?: "darwin" | "win32" | "linux" }} options  `platform`: the page drawn as on that system
  */
 export async function launchDemo(options = {}) {
   const size = options.size ?? { width: 1280, height: 800 };
   const env = { ...process.env, EDUNEX_DEMO: options.scenario ?? "signed-in" };
   delete env.ELECTRON_RUN_AS_NODE;
   if (options.now) env.EDUNEX_DEMO_NOW = options.now;
+  if (options.platform) env.EDUNEX_DEMO_PLATFORM = options.platform;
   if (options.devServer) env.ELECTRON_START_URL = options.devServer;
   const main = path.join(root, "dist", "desktop", "demo-main.cjs");
   if (!fs.existsSync(main)) throw new Error("No demo build: run `npm run demo:build` first");

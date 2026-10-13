@@ -1,7 +1,7 @@
-// Generates the tray icons, a monochrome rounded-square mark at 16 and 32 px:
-// assets/trayTemplate.png (+@2x), black, for the macOS menu bar (macOS picks
-// up the "Template" suffix and tints it itself) and light Windows/Linux
-// taskbars; assets/trayLight.png (+@2x), white, for dark taskbars.
+// Generates the macOS menu bar icon, a monochrome rounded-square mark at 16
+// and 32 px: assets/trayTemplate.png (+@2x), black (macOS picks up the
+// "Template" suffix and tints it itself). Windows and Linux show the app's
+// colour icon instead (scripts/make-icons.mjs).
 // Re-run after changing the drawing:
 //   node scripts/generate-tray-icon.mjs
 
@@ -78,8 +78,5 @@ const roundedSquare = (rgb) => (x, y, size) => {
 const outDir = path.resolve(import.meta.dirname, "..", "assets");
 mkdirSync(outDir, { recursive: true });
 const DARK = roundedSquare([0, 0, 0]);
-const LIGHT = roundedSquare([255, 255, 255]);
 writePng(path.join(outDir, "trayTemplate.png"), 16, DARK);
 writePng(path.join(outDir, "trayTemplate@2x.png"), 32, DARK);
-writePng(path.join(outDir, "trayLight.png"), 16, LIGHT);
-writePng(path.join(outDir, "trayLight@2x.png"), 32, LIGHT);

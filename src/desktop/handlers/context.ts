@@ -8,6 +8,7 @@ import type { Handlers } from "../ipc";
 import type { Notifier } from "../notifications";
 import type { FetchFile } from "../remote-files";
 import type { VaultMode } from "../vault";
+import type { Platform } from "../window";
 
 export interface DesktopContext {
   engine: Engine;
@@ -22,6 +23,8 @@ export interface DesktopContext {
   /** Files from Edunex the window showed, the signed-in Student's only; wiped at sign-out. */
   fileCache: FileCache;
   vaultMode: VaultMode;
+  /** The system the page draws its window chrome and shortcuts for (the demo can picture another). */
+  platform: Platform;
   lang(): Lang;
   send(event: Event): void;
   /** Applies settings that live outside the page: theme, menu language. */

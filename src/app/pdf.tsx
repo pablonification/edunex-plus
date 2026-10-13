@@ -69,7 +69,7 @@ export function useAnswerAttach(taskId: number, attach: AnswerAttach | null): vo
 export function PdfViewerProvider({ children }: { children: ReactNode }) {
   const t = useT();
   const bridge = useBridge();
-  const mac = useStore().platform === "darwin";
+  const { platform } = useStore();
   const openLink = useOpenLink();
   const openExternal = useOpenExternal();
   const [source, setSource] = useState<PdfSource | null>(null);
@@ -223,7 +223,7 @@ export function PdfViewerProvider({ children }: { children: ReactNode }) {
               leaving.current = null;
             }}
             onDirtyChange={onDirtyChange}
-            clearTitleBar={mac}
+            platform={platform}
           />
         </Suspense>
       )}

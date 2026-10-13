@@ -8,7 +8,7 @@ import type { HandlerGroup } from "./context";
 type Core = "app.snapshot" | "app.ready" | "sync.refresh" | "settings.update" | "shell.openExternal" | "shell.openLink" | "files.download" | "local.set";
 
 export const coreHandlers: HandlerGroup<Core> = (context) => ({
-  "app.snapshot": async () => ({ ...context.engine.snapshot(), platform: platform(), vault: context.vaultMode }),
+  "app.snapshot": async () => ({ ...context.engine.snapshot(), platform: context.platform, vault: context.vaultMode }),
   "app.ready": async () => {
     context.reveal();
     context.startSyncing();
@@ -45,7 +45,3 @@ export const coreHandlers: HandlerGroup<Core> = (context) => ({
     return {};
   },
 });
-
-function platform(): "darwin" | "win32" | "linux" {
-  return process.platform === "darwin" || process.platform === "win32" ? process.platform : "linux";
-}

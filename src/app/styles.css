@@ -93,6 +93,24 @@
   --duration-quick: 150ms;
   --duration-base: 200ms;
   --duration-slow: 400ms;
+
+  /* Window chrome: the top bar's height, and the room the system's window
+     buttons take at its right end (none on macOS: its traffic lights sit in
+     the sidebar). */
+  --title-bar: 52px;
+  --window-controls: 0px;
+  --window-controls-start: 0px;
+}
+
+/* Windows and Linux draw their window buttons over the top bar's right end
+   (src/desktop/window.ts), as tall as the top bar. The window tells the page
+   where they are (Window Controls Overlay); until it does, Windows 11's
+   138 px. Zoomed, the bar keeps the buttons' height. Some Linux desktops put
+   some or all of the buttons at the left end (--window-controls-start). */
+:root:is([data-platform="win32"], [data-platform="linux"]) {
+  --title-bar: max(40px, env(titlebar-area-height, 52px));
+  --window-controls: calc(100vw - env(titlebar-area-x, 0px) - env(titlebar-area-width, calc(100vw - 138px)));
+  --window-controls-start: env(titlebar-area-x, 0px);
 }
 
 @media (prefers-color-scheme: dark) {

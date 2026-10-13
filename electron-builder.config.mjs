@@ -1,7 +1,7 @@
 // Packaged builds: macOS dmg + zip (ad-hoc signed), Windows NSIS installer,
 // Linux AppImage + deb. The app archive holds only the built window
 // (dist/app), the bundled main process and preload (dist/desktop) and the
-// tray icons; everything they use is already bundled, so no node_modules.
+// tray icons (assets/tray*); everything they use is already bundled, so no node_modules.
 // The fuses are flipped and checked in scripts/package-fuses.mjs.
 import { afterPack } from "./scripts/package-fuses.mjs";
 
@@ -11,7 +11,7 @@ export default {
   productName: "Edunex Plus",
   copyright: "Copyright © 2026 Edunex Plus contributors",
   directories: { output: "release" },
-  files: ["package.json", "dist/desktop/*.cjs", "dist/app/**/*", "assets/tray*.png", "!node_modules/**/*"],
+  files: ["package.json", "dist/desktop/*.cjs", "dist/app/**/*", "assets/tray*", "!node_modules/**/*"],
   // Beside the app, where anyone can read them: its own licence, and the licences of the
   // open-source packages it includes (written by `npm run build`, scripts/third-party-notices.mjs).
   extraResources: [
@@ -44,7 +44,8 @@ export default {
   dmg: { writeUpdateInfo: false },
   win: {
     target: [{ target: "nsis", arch: ["x64", "arm64"] }],
-    icon: "assets/icon.png",
+    // Every size drawn on its own (scripts/make-icons.mjs), so the taskbar's and the title's small icons stay sharp.
+    icon: "assets/icon.ico",
   },
   nsis: {
     oneClick: false,

@@ -118,7 +118,7 @@ export function SearchButton({ onOpen }: { onOpen: () => void }) {
       aria-label={t("search.open")}
       aria-keyshortcuts={mac ? "Meta+K" : "Control+K"}
       onClick={onOpen}
-      className="focus-ring flex h-8 w-[208px] items-center gap-2 rounded-lg border border-edge bg-surface px-2.5 text-small text-muted transition-colors duration-150 hover:bg-hover hover:text-fg"
+      className="focus-ring flex h-8 w-[208px] min-w-[120px] shrink items-center gap-2 rounded-lg border border-edge bg-surface px-2.5 text-small text-muted transition-colors duration-150 hover:bg-hover hover:text-fg"
     >
       <Icons.Search className="size-3.5" />
       <span className="flex-1 text-left">{t("search.open")}</span>

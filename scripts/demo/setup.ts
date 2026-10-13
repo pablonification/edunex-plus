@@ -6,6 +6,7 @@
 //   EDUNEX_DEMO=edunex-only  Edunex connected, SIX not
 //   EDUNEX_DEMO=first-run    nobody signed in: the welcome screen
 //   EDUNEX_DEMO_NOW=<ISO>    the moment the demo starts (default: the recorded Thursday morning)
+//   EDUNEX_DEMO_PLATFORM=win32|linux  the window's page drawn as on that system (its title bar, Ctrl shortcuts)
 //
 // Every run starts from an empty profile (deleted again on quit), so each begins the same way.
 import fs from "node:fs";
@@ -22,6 +23,8 @@ import { PretendWorld } from "../../test/pretend/world";
 type Scenario = "signed-in" | "edunex-only" | "first-run";
 const scenario = (process.env.EDUNEX_DEMO ?? "signed-in") as Scenario;
 if (!["signed-in", "edunex-only", "first-run"].includes(scenario)) throw new Error(`Unknown EDUNEX_DEMO scenario "${scenario}"`);
+const platform = process.env.EDUNEX_DEMO_PLATFORM as DemoHooks["platform"];
+if (platform && !["darwin", "win32", "linux"].includes(platform)) throw new Error(`Unknown EDUNEX_DEMO_PLATFORM "${platform}"`);
 
 // Signed-in demos start a few minutes early: the first sync (SIX at a page every two seconds, ITB's catalog) is played fast before the window opens.
 const start = process.env.EDUNEX_DEMO_NOW ?? (scenario === "first-run" ? "2026-10-08T08:10:00+07:00" : "2026-10-08T08:07:00+07:00");
@@ -232,6 +235,7 @@ const hooks: DemoHooks = {
   },
   clockOffset: () => world.clock.now() - Date.now(),
   fetchFile: (url, init) => world.fetch(url, init),
+  platform,
 };
 
 globalThis.__edunexPlusDemo = hooks;

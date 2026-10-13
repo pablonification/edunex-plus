@@ -42,9 +42,9 @@ Linux it depends on the desktop's notification daemon.
   handle this via the installer; portable/dev builds may show the raw
   identity. The NSIS installer (`npm run package:win`) creates that shortcut;
   electron-builder's `appId` is the same `id.edunexplus.desktop`.
-- The tray icon follows the taskbar: `assets/trayLight.png` (white) when
-  Windows' system UI is dark (`nativeTheme.shouldUseDarkColorsForSystemIntegratedUI`),
-  the dark glyph otherwise, switching live when the setting changes.
+- The tray icon is the app's colour icon (`assets/tray.ico`, 16 to 48 px, so
+  Windows picks the size its display scaling needs), as Windows' other apps'
+  are: it reads on a light or a dark taskbar alike.
 
 ## Persistence and delivery
 

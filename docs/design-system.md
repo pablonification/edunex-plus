@@ -315,8 +315,18 @@ are decorative; the control around them carries the name.
 - **macOS**: hidden title bar; the traffic lights sit in the sidebar at
   16, 18, with the app's icon and name under them. The top of the sidebar
   and the top bar drag the window; controls inside them don't.
-- **Windows and Linux**: the standard system frame and title bar; the app's
-  menu bar shows on Alt.
+- **Windows and Linux**: no system title bar either; the system draws only
+  its minimise, maximise and close buttons over the right end of the top bar,
+  as tall as it (`--title-bar`), their symbols in the theme's text colour. The
+  top bar keeps that corner free (`--window-controls`, from the Window
+  Controls Overlay), and the sidebar's top the left corner, where some Linux
+  desktops put them (`--window-controls-start`). The top of the sidebar and the top bar drag the window
+  (double-click maximises); controls inside them don't. Dialog scrims and
+  popovers never drag, so a click on them is theirs. Panels that reach the top
+  of the window (the PDF viewer) start below the top bar. The sign-in windows
+  keep the system's own title bar.
+- **Tray**: macOS's menu bar takes a one-colour template glyph; Windows and
+  Linux show the colour app icon, drawn at each size (`scripts/make-icons.mjs`).
 - The window opens only once the page has drawn the saved data, on a
   background matching the theme, so there is no white flash.
 - Closing the window on macOS keeps the app running (Dock); elsewhere it

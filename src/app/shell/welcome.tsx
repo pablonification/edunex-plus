@@ -59,8 +59,9 @@ export function Welcome({ onDone }: { onDone: () => void }) {
 
   return (
     <div className="relative h-dvh overflow-y-auto bg-welcome text-fg">
-      {store.platform === "darwin" && <div className="drag absolute inset-x-0 top-0 h-[52px]" />}
-      <div className="no-drag absolute top-3 right-4 z-10">
+      {/* The window moves by its top band, which stays put when a short window scrolls; the language choice keeps clear of Windows' window buttons. */}
+      <div className="drag fixed inset-x-0 top-0 h-(--title-bar)" />
+      <div className="no-drag fixed top-3 right-[calc(--spacing(4)+var(--window-controls))] z-10">
         <Segmented
           label={t("settings.language")}
           value={settings.lang}
