@@ -59,7 +59,8 @@ describe("the Presensi screen", () => {
     const s = await openPresence(undefined, true);
     expect(answer()).toEqual(["Jangan absen lagi di DK4073 dan PL3032.", "KU5014 sudah tak bisa capai 80%.", "Masih bisa absen 1× lagi di PL3002."]);
     expect(rows().map((li) => li.textContent?.slice(0, 6))).toEqual(["KU5014", "DK4073", "PL3032", "PL3002", "II4091"]);
-    expect(s.button(/^Presensi/).textContent).toBe("Presensi4");
+    // The courses with nothing to spare or out of reach: PL3002, one absence still allowed, isn't counted.
+    expect(s.button(/^Presensi/).textContent).toBe("Presensi3");
     // What was cut: the tally tiles and their filter, and the meeting squares that read like a timeline.
     expect(s.text()).not.toMatch(/Masih aman|Hati-hati|Tampilkan semua/);
     expect(document.querySelectorAll("main [role=listitem]")).toHaveLength(0);
@@ -74,8 +75,14 @@ describe("the Presensi screen", () => {
     expect(row("DK4073")?.querySelector("[role=img]")?.getAttribute("aria-label")).toBe("Hadir 4 dari 6, 66%, target 80%");
     // No way back next to "Jangan absen lagi": every class from here on is the one instruction.
     expect(dk).not.toContain("untuk kembali ke");
-    // One absence left: said in words, not only in amber.
+    // One absence left: still allowed, so green, not a warning; amber only once none is left, red out of reach.
     expect(card("PL3002")).toContain("Masih bisa absen 1× lagi");
+    const tone = (code: string) => [...(row(code)?.querySelectorAll("p") ?? [])].find((p) => p.className.includes("text-title"))?.className ?? "";
+    expect(tone("PL3002")).toContain("text-success-fg");
+    expect(tone("DK4073")).toContain("text-warning-fg");
+    expect(tone("KU5014")).toContain("text-danger-fg");
+    expect(row("PL3002")?.querySelector("[role=img]")?.getAttribute("data-tone")).toBe("success");
+    expect(row("DK4073")?.querySelector("[role=img]")?.getAttribute("data-tone")).toBe("warning");
     // Recorded through Edunex too: be in class, then what that day's Presence asks for, said once with the class.
     expect(card("II4091")).toContain("Berikutnya: Jum, 16 Okt, 15:00 · hadir, lalu kumpulkan Tugas 02 Bab II sebelum 23:59");
     expect(card("II4091")).not.toContain("Presensi Edunex Jum");

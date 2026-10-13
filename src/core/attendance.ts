@@ -194,9 +194,11 @@ export function meetingsLeft(
 // ---------------------------------------------------------------- the budget
 
 /**
- * safe: room to spare. risk: one absence left, or below the target now.
- * none: no absences left (every remaining meeting needed). out: the target
- * can't be reached anymore. unknown: SIX has no count yet.
+ * safe: room to spare. risk: one absence left, or below the target now with
+ * absences still to spare by the end of term. none: no absences left (every
+ * remaining meeting needed). out: the target can't be reached anymore.
+ * unknown: SIX has no count yet. Only none and out are warnings: while an
+ * absence is still allowed (risk too), the course is fine.
  */
 export type AttendanceState = "safe" | "risk" | "none" | "out" | "unknown";
 
@@ -281,8 +283,8 @@ export function attendanceHealth({ code, six, sixConnected, presence, schedule, 
   return { ...base, attended, held, absencesLeft, best, toRecover, needsUncertain, state };
 }
 
-/** A state worth a word: not safe and known. */
-export const needsAttention = (state: AttendanceState) => state === "risk" || state === "none" || state === "out";
+/** A state that needs the Student: no absences left, or the target out of reach. */
+export const needsAttention = (state: AttendanceState) => state === "none" || state === "out";
 
 // ---------------------------------------------------------------- what counts in an Edunex window
 

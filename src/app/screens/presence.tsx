@@ -33,7 +33,7 @@ import { Popover } from "../ui/overlays";
 
 export const ready = true;
 
-/** Courses at risk: one absence left or fewer, or the target out of reach. */
+/** Courses that need the Student: no absences left, or the target out of reach. */
 export function useBadge(): { value: number; tone: "neutral" | "warning" } | null {
   const attendance = useAttendance();
   const value = attendance?.courses.filter((c) => needsAttention(c.health.state)).length ?? 0;

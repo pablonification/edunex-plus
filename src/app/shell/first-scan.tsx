@@ -250,10 +250,8 @@ function describe(finding: Finding, t: Translate, f: Format): { title: string; l
           finding.courses,
           (health) => {
             const vars = { code: health.code, attended: health.attended ?? 0, held: health.held ?? 0, target: health.target };
-            if (health.state === "out") return t("scan.attendance.out", { ...vars, best: percent(health.best ?? 0) });
-            if (health.state === "none") return t("scan.attendance.none", vars);
-            if (health.toRecover !== null) return t("scan.attendance.below", { ...vars, count: health.toRecover });
-            return t("scan.attendance.one", vars);
+            // Only these two are listed: an absence still allowed is no risk.
+            return health.state === "out" ? t("scan.attendance.out", { ...vars, best: percent(health.best ?? 0) }) : t("scan.attendance.none", vars);
           },
           t,
         ),

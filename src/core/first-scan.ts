@@ -128,7 +128,7 @@ export const notable = (findings: readonly Finding[]) => findings.filter((findin
 
 const STATE_ORDER = { out: 0, none: 1, risk: 2, safe: 3, unknown: 4 } as const;
 
-/** Courses with one absence left or fewer, or the target out of reach, from SIX's exact counts. */
+/** Courses with no absences left, or the target out of reach, from SIX's exact counts. */
 function attendanceAtRisk({ saved, targets, now }: ScanInput): Finding | null {
   const six = saved["six.courses"];
   const schedule = saved["six.schedule"];

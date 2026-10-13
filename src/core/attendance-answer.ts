@@ -33,8 +33,9 @@ export function attendanceAnswer(
   for (const target of [...new Set(out.map((h) => h.target))])
     lines.push({ tone: "danger", text: t("presence.answer.out", { codes: list(out.filter((h) => h.target === target).map((h) => h.code)), target }) });
 
+  // An absence still allowed is no warning, even the last one.
   const oneLeft = codes((h) => h.state === "risk" && h.absencesLeft === 1);
-  if (oneLeft.length) lines.push({ tone: "warning", text: t("presence.answer.one", { codes: list(oneLeft) }) });
+  if (oneLeft.length) lines.push({ tone: "success", text: t("presence.answer.one", { codes: list(oneLeft) }) });
   // Below the target now, with absences to spare by the end of term.
   const below = codes((h) => h.state === "risk" && h.absencesLeft !== 1);
   if (below.length) lines.push({ tone: "warning", text: t("presence.answer.below", { codes: list(below), count: below.length }) });
