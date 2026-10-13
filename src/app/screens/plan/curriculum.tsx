@@ -1,12 +1,12 @@
 // Rencana studi tab — The curriculum map (#79): the program's required
 // courses by recommended semester with where the Student stands on each
 // (courses passed under an older code matched the way SIX places them), in
-// plain words that say what to do; "Sisa saja" hides what's done, with a
-// summary of what's left that stays in view; the totals labelled and from the
-// same SKS count as the planner; specializations and minors with progress;
-// each course's syllabus on SIX's public pages; and the Student's own
-// corrections where SIX's record doesn't match their curriculum, each one
-// marked and reversible.
+// plain words that say what to do; "Sisa saja" hides what's done (kept while
+// the app is open), with a summary of what's left that stays in view; the
+// totals labelled and from the same SKS count as the planner; specializations
+// and minors with progress; each course's syllabus on SIX's public pages; and
+// the Student's own corrections where SIX's record doesn't match their
+// curriculum, each one marked and reversible.
 import { type ReactNode, type Ref, useEffect, useRef, useState } from "react";
 import { curriculumMap, type MapCourse, type PackageProgress, type SlotStatus, type StandIn, standIns } from "../../../core/curriculum-map";
 import type { CurriculumFix } from "../../../core/models";
@@ -21,6 +21,7 @@ import { Icons } from "../../ui/icons";
 import { Meta, Section } from "../../ui/layout";
 import { Menu, type MenuItem } from "../../ui/menu";
 import { Dialog, Tooltip, toast } from "../../ui/overlays";
+import { useViewChoice } from "../../view-choice";
 import { WhatIfTag } from "./planner";
 import { SixNeeded } from "./six-needed";
 
@@ -78,7 +79,7 @@ export function Tab({ onCalendar }: { onCalendar?: () => void }) {
   // With this term's what-ifs, like the planner: the two tabs never disagree.
   const record = state?.record;
   const setFix = useCurriculumFix();
-  const [onlyLeft, setOnlyLeft] = useState(false);
+  const [onlyLeft, setOnlyLeft] = useViewChoice("curriculum.onlyLeft", false);
   const [picking, setPicking] = useState<MapCourse | null>(null);
   const map = record?.curriculum && state ? curriculumMap(record, state.plan) : null;
   const semesters = (map?.semesters ?? [])

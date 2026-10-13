@@ -115,9 +115,13 @@ export const academicStrings = {
   // Kalender akademik tab
   "deadlines.empty": { id: "Kalender akademik ITB belum terbaca", en: "ITB's academic calendar isn't read yet" },
   "deadlines.intro": {
-    id: "Dari kalender akademik resmi ITB, dengan artinya untukmu.",
-    en: "From ITB's official academic calendar, with what each means for you.",
+    id: "Tenggat semester ini dan semester depan, dengan artinya untukmu.",
+    en: "This semester's and next semester's deadlines, with what each means for you.",
   },
+  "deadlines.from": { id: "Dari", en: "From" },
+  "deadlines.source": { id: "Kalender Pendidikan ITB {years}", en: "ITB's academic calendar {years}" },
+  "deadlines.sourcePlain": { id: "Kalender Pendidikan ITB", en: "ITB's academic calendar" },
+  "deadlines.checked": { id: "diperiksa {when}", en: "checked {when}" },
   "deadlines.todayAt": { id: "Sekarang · {date}", en: "Now · {date}" },
   "deadlines.group.now": { id: "Sedang berlangsung", en: "Happening now" },
   "deadlines.group.week": { id: "7 hari ke depan", en: "Next 7 days" },
@@ -130,8 +134,8 @@ export const academicStrings = {
   "deadlines.view.mine": { id: "Untukmu", en: "For you" },
   "deadlines.view.all": { id: "Kalender lengkap", en: "Full calendar" },
   "calendar.intro": {
-    id: "Semua acara di kalender akademik ITB, dengan judul dari ITB, termasuk semester pendek.",
-    en: "Every event in ITB's academic calendar, as ITB titles it, short semesters included.",
+    id: "Semua acara yang dicantumkan ITB, dengan judul dari ITB, termasuk semester pendek.",
+    en: "Every event ITB lists, as ITB titles it, short semesters included.",
   },
   "calendar.search": { id: "Cari, mis. cuti, wisuda, UTS", en: "Search, e.g. cuti, wisuda, UTS" },
   "calendar.chips": { id: "Saring menurut jenis", en: "Filter by kind" },

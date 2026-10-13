@@ -564,6 +564,22 @@ describe("the curriculum map", () => {
     expect(s.text()).not.toContain("Semester ini2");
   });
 
+  it("'What's left only' stays as the Student left it while the app is open", async () => {
+    const s = await openPlan();
+    await tab("Kurikulum");
+    expect(s.button("Sisa saja").getAttribute("aria-checked")).toBe("false");
+    await s.click("Sisa saja");
+    await tab("Rencana");
+    await tab("Kurikulum");
+    expect(s.button("Sisa saja").getAttribute("aria-checked")).toBe("true");
+    expect(row("MA1101")).toBeUndefined();
+    await s.click("Nilai");
+    await s.click("Rencana studi");
+    await tab("Kurikulum");
+    expect(s.button("Sisa saja").getAttribute("aria-checked")).toBe("true");
+    expect(row("MA1101")).toBeUndefined();
+  });
+
   it("corrections are kept on this computer: there again after a restart", async () => {
     const s = await openPlan();
     await s.engineDoes(() => s.engine.setLocal("local.curriculum", { slots: { WI2002: { kind: "counted-as", code: "KU1102", at: 1 } } }));
