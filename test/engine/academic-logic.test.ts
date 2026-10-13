@@ -4,7 +4,9 @@ import { describe, expect, it } from "vitest";
 import {
   academicDeadlines,
   billUrgency,
+  calendarGroup,
   currentTerm,
+  fullCalendar,
   krsNeedsStudent,
   krsOverlaps,
   krsStage,
@@ -191,5 +193,108 @@ describe("ITB's academic deadlines", () => {
   it("nothing without a calendar or a term", () => {
     expect(academicDeadlines({ calendar: undefined, term: "2026-1", now: 0 })).toEqual({ upcoming: [], past: [] });
     expect(academicDeadlines({ calendar, term: null, now: 0 })).toEqual({ upcoming: [], past: [] });
+  });
+});
+
+describe("the full calendar", () => {
+  const now = wib("2026-10-11T09:00:00");
+  const progress = { entryTerm: "2023-1", sksPassed: 125 } as Progress;
+  const all = (view: Parameters<typeof fullCalendar>[1] = {}) => fullCalendar({ calendar, now, krs: official(), progress }, view);
+  const titles = (view: Parameters<typeof fullCalendar>[1]) => all(view).months.flatMap((m) => m.entries.map((e) => e.title));
+
+  it("every event ITB lists, short semesters too, by month in time order; a revised copy replaces the old one", () => {
+    const view = all();
+    // 110 in the feed, two of them old copies of a revised event.
+    expect(view.total).toBe(108);
+    expect(view.months.map((m) => m.month)).toEqual([
+      "2026-07",
+      "2026-08",
+      "2026-09",
+      "2026-10",
+      "2026-11",
+      "2026-12",
+      "2027-01",
+      "2027-02",
+      "2027-03",
+      "2027-04",
+      "2027-05",
+      "2027-06",
+      "2027-07",
+      "2027-08",
+    ]);
+    const entries = view.months.flatMap((m) => m.entries);
+    const wisuda = entries.filter((e) => e.title === "Hari Wisuda Ketiga Tahun Akademik 2025/2026");
+    expect(wisuda).toHaveLength(1);
+    expect(wisuda[0]).toMatchObject({ revised: true, event: { title: "Hari Wisuda Ketiga Tahun Akademik 2025/2026 (Revisi)" } });
+    expect(entries.filter((e) => e.title.startsWith("Penerbitan Ijazah Yudisium Mei 2026"))).toHaveLength(1);
+    // A revision with no older copy left is still marked.
+    expect(entries.find((e) => e.title === "Batas Akhir Perubahan Nilai Mata Kuliah Semester II-2025/2026 Kategori Non TA/Tesis/Disertasi")).toMatchObject({
+      revised: true,
+    });
+    // The same title in another year isn't a copy.
+    expect(entries.filter((e) => e.title === "Pemantauan dan Evaluasi Akademik Mahasiswa")).toHaveLength(3);
+    // The short semester, which "For you" leaves out.
+    expect(entries.filter((e) => e.event.term === "2026-3").map((e) => e.event.kind)).toEqual([
+      "other",
+      "other",
+      "drs",
+      "lecture-start",
+      "urs",
+      "lecture-end",
+      "grade-deadline",
+    ]);
+    // With the app's meaning where it has one, and where the Student stands.
+    expect(entries.find((e) => e.event.kind === "drs" && e.event.term === "2026-1")).toMatchObject({ meaning: { key: "deadline.drs.sent" }, when: "past" });
+    expect(entries.find((e) => e.event.kind === "uts" && e.event.term === "2026-1")).toMatchObject({ meaning: { key: "deadline.uts" }, when: "next" });
+  });
+
+  it("chips: each a few kinds; several can be on; none means everything", () => {
+    // Exams & grades: 2 UTS, 2 UAS, 2 questionnaires, 4 grade-entry and 7 grade-change deadlines, 3 progress checks.
+    // KRS & registration: 3 DRS, 4 URS, 2 leave and 3 study-extension deadlines.
+    expect(all().counts).toEqual({ exams: 20, krs: 12, payment: 2, lectures: 13, holidays: 2, graduation: 33, other: 26 });
+    expect(titles({ groups: new Set(["holidays"]) })).toEqual([
+      "Libur Kuliah dalam rangka Hari Raya Natal",
+      "Libur Kuliah dalam rangka Hari Raya Idul Fitri*)",
+    ]);
+    expect(titles({ groups: new Set(["payment", "holidays"]) })).toHaveLength(4);
+    expect(calendarGroup(calendar.events.find((e) => e.title.startsWith("Hari Pertama Periode Pembukaan Kelas"))!)).toBe("lectures");
+    expect(calendarGroup(calendar.events.find((e) => e.title.startsWith("Batas Akhir Pengajuan Cuti"))!)).toBe("krs");
+  });
+
+  it("search: case and accents don't matter, every word must match, and the app's own words count too", () => {
+    expect(titles({ query: "cuti" })).toEqual(["Batas Akhir Pengajuan Cuti Semester I-2026/2027", "Batas Akhir Pengajuan Cuti Semester II-2026/2027"]);
+    expect(titles({ query: "WISÚDA ketiga 2025" })).toEqual(["Hari Wisuda Ketiga Tahun Akademik 2025/2026"]);
+    expect(titles({ query: "cuti", groups: new Set(["exams"]) })).toEqual([]);
+    // "UTS" isn't in ITB's title ("Masa Ujian Tengah Semester"): the screen passes the words it shows.
+    expect(titles({ query: "uts" })).toEqual([]);
+    expect(titles({ query: "uts", extra: (e) => (e.event.kind === "uts" ? "UTS" : "") })).toEqual([
+      "Masa Ujian Tengah Semester I-2026/2027",
+      "Masa Ujian Tengah Semester II-2026/2027",
+    ]);
+  });
+
+  it("search: a short word (UAS, KRS) starts a word; a longer one is found inside words too, as ITB's titles add to a root (bug)", () => {
+    // "uas" is inside "Evaluasi", but that's no final exam.
+    expect(titles({ query: "uas" })).toEqual([]);
+    expect(titles({ query: "uas", extra: (e) => (e.event.kind === "uas" ? "UAS" : "") })).toEqual([
+      "Ujian Akhir Semester I-2026/2027",
+      "Ujian Akhir Semester II-2026/2027",
+    ]);
+    // "daftar" finds "Pendaftaran", "ubah" finds "Perubahan", "lulus" finds "Kelulusan".
+    const drs = all()
+      .months.flatMap((m) => m.entries)
+      .filter((e) => e.event.kind === "drs")
+      .map((e) => e.title);
+    expect(drs).toHaveLength(3);
+    expect(titles({ query: "daftar" })).toEqual(expect.arrayContaining(drs));
+    expect(titles({ query: "ubah" })).toEqual(
+      expect.arrayContaining(["Batas Akhir Perubahan Nilai Mata Kuliah Semester II-2025/2026 Kategori Non TA/Tesis/Disertasi"]),
+    );
+    expect(titles({ query: "ubah rencana" }).length).toBeGreaterThan(0);
+    expect(titles({ query: "lulus" }).some((t) => /kelulusan/i.test(t))).toBe(true);
+  });
+
+  it("nothing without a calendar", () => {
+    expect(fullCalendar({ calendar: undefined, now })).toMatchObject({ months: [], total: 0 });
   });
 });

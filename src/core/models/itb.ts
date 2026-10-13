@@ -27,6 +27,12 @@ export const CalendarKind = z.enum([
   /** "Pemantauan dan Evaluasi Akademik": the progress check against 24/48/72/96/120 SKS. */
   "progress-check",
   "holiday",
+  /** Last day to apply for a semester's leave ("Pengajuan Cuti"). */
+  "leave",
+  /** Last day to apply for more study time ("Perpanjangan Waktu Studi"). */
+  "study-extension",
+  /** Graduation: a month's yudisium and its paperwork deadline, graduation days, diplomas. */
+  "graduation",
   "other",
 ]);
 export type CalendarKind = z.infer<typeof CalendarKind>;

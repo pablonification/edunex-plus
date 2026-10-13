@@ -349,3 +349,124 @@ export function academicDeadlines(facts: DeadlineFacts): { upcoming: Deadline[];
     past: all.filter((d) => d.when === "past").sort((a, b) => b.event.start - a.event.start),
   };
 }
+
+// ------------------------------------------------------------ the full calendar
+
+/** The filter chips of the full calendar, each a few kinds of event. */
+export type CalendarGroup = "exams" | "krs" | "payment" | "lectures" | "holidays" | "graduation" | "other";
+export const CALENDAR_GROUPS: readonly CalendarGroup[] = ["exams", "krs", "payment", "lectures", "holidays", "graduation", "other"];
+
+const GROUP_OF: Partial<Record<CalendarKind, CalendarGroup>> = {
+  uts: "exams",
+  uas: "exams",
+  questionnaire: "exams",
+  "grade-deadline": "exams",
+  "grade-change-deadline": "exams",
+  "progress-check": "exams",
+  drs: "krs",
+  urs: "krs",
+  leave: "krs",
+  "study-extension": "krs",
+  "ukt-deadline": "payment",
+  "lecture-start": "lectures",
+  "lecture-end": "lectures",
+  holiday: "holidays",
+  graduation: "graduation",
+};
+
+export function calendarGroup(event: CalendarEvent): CalendarGroup {
+  const group = GROUP_OF[event.kind];
+  if (group) return group;
+  // ITB opening its classes for the next term is part of the lecture calendar.
+  return /pembukaan kelas/i.test(event.title) ? "lectures" : "other";
+}
+
+/** ITB marks a corrected event "(Revisi)" or "(Revisi-02)" and often keeps the old one too. */
+const REVISION = /\s*\(\s*revisi(?:\s*-\s*(\d+))?\s*\)\s*$/i;
+
+export interface CalendarEntry {
+  event: CalendarEvent;
+  /** ITB's title without its "(Revisi…)" mark. */
+  title: string;
+  /** ITB corrected it: the copy shown is the latest revision. */
+  revised: boolean;
+  group: CalendarGroup;
+  /** What it means for this Student, when the app knows. */
+  meaning: Meaning | null;
+  when: "past" | "now" | "next";
+}
+
+export interface CalendarMonth {
+  /** "2026-10", by the event's first day in WIB. */
+  month: string;
+  entries: CalendarEntry[];
+}
+
+export interface FullCalendar {
+  months: CalendarMonth[];
+  /** Events after merging revisions, before the chips and the search. */
+  total: number;
+  /** How many of those each chip holds. */
+  counts: Record<CalendarGroup, number>;
+}
+
+const fold = (text: string) => text.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+/** A text's words, folded. */
+const wordsOf = (text: string) =>
+  fold(text)
+    .split(/[^\p{L}\p{N}]+/u)
+    .filter(Boolean);
+
+/** Two copies of one event: the same title once the revision mark is off, within two months of each other. */
+function mergeRevisions(events: readonly CalendarEvent[]): { event: CalendarEvent; title: string; revised: boolean }[] {
+  const read = events.map((event) => {
+    const mark = REVISION.exec(event.title);
+    return { event, title: event.title.replace(REVISION, "").trim(), revision: mark ? Number(mark[1] ?? 1) : 0 };
+  });
+  const near = (a: CalendarEvent, b: CalendarEvent) => Math.abs(a.start - b.start) <= 60 * DAY;
+  return read
+    .filter((x) => !read.some((y) => y !== x && y.title === x.title && near(x.event, y.event) && y.revision > x.revision))
+    .map((x) => ({ event: x.event, title: x.title, revised: x.revision > 0 }));
+}
+
+/**
+ * Every event of ITB's calendar, short semesters and all, each with ITB's
+ * own title and, when the app knows, what it means for the Student;
+ * "(Revisi)" copies merged into the latest. The chips (`groups`, empty for
+ * all) and the search narrow it: the search ignores case and accents,
+ * matches a short word only at the start of a word, and also looks in
+ * `extra` (the words the screen has for an event). Grouped by month, in
+ * time order.
+ */
+export function fullCalendar(
+  facts: Omit<DeadlineFacts, "term">,
+  view: { groups?: ReadonlySet<CalendarGroup>; query?: string; extra?: (entry: CalendarEntry) => string } = {},
+): FullCalendar {
+  const counts = Object.fromEntries(CALENDAR_GROUPS.map((g) => [g, 0])) as Record<CalendarGroup, number>;
+  const entries = mergeRevisions(facts.calendar?.events ?? []).map(
+    ({ event, title, revised }): CalendarEntry => ({
+      event,
+      title,
+      revised,
+      group: calendarGroup(event),
+      meaning: deadlineMeaning(event, facts),
+      when: event.end <= facts.now ? "past" : event.start <= facts.now ? "now" : "next",
+    }),
+  );
+  for (const entry of entries) counts[entry.group]++;
+  const words = wordsOf(view.query ?? "");
+  const shown = entries.filter((entry) => {
+    if (view.groups?.size && !view.groups.has(entry.group)) return false;
+    if (!words.length) return true;
+    const text = wordsOf(`${entry.title} ${view.extra?.(entry) ?? ""}`);
+    // A short word (UTS, UAS, KRS) has to start a word: "uas" isn't "evaluasi". A longer one is found inside words too,
+    // as ITB's titles add to a root ("daftar" in "Pendaftaran", "ubah" in "Perubahan").
+    return words.every((w) => text.some((x) => (w.length <= 3 ? x.startsWith(w) : x.includes(w))));
+  });
+  const months = new Map<string, CalendarEntry[]>();
+  for (const entry of shown.sort((a, b) => a.event.start - b.event.start || a.title.localeCompare(b.title))) {
+    const month = entry.event.firstDay.slice(0, 7);
+    months.set(month, [...(months.get(month) ?? []), entry]);
+  }
+  return { months: [...months].map(([month, list]) => ({ month, entries: list })), total: entries.length, counts };
+}
