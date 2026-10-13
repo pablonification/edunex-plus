@@ -1177,7 +1177,7 @@ function CourseCard({ course, nim, health }: { course: TermCourse; nim: string |
           <IconButton
             size="sm"
             label={`${external.label}: ${course.code}`}
-            // As a row's own actions: shown on hover and keyboard focus, always where there's no hover.
+            // A second way out, the card itself opening the course: shown on hover and keyboard focus, always where there's no hover.
             className="absolute top-2.5 right-2.5 z-10 transition-opacity duration-150 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-focus-within:opacity-100 [@media(hover:hover)]:group-hover:opacity-100"
             onClick={() => open(external.url)}
           >

@@ -48,6 +48,27 @@ describe("Row's focus frame", () => {
     expect(classes(button)).toContain("focus-visible:outline-none");
   });
 
+  it("with a control beside the button: it's always there, faint at rest, never hidden until the pointer finds it", () => {
+    const list = draw(
+      <List>
+        <Row title="Kumpulkan Tugas 02" onClick={() => undefined} actions={<button type="button">Ingatkan nanti</button>} />
+      </List>,
+    );
+    const control = list.querySelector("li > div");
+    expect(control?.textContent).toBe("Ingatkan nanti");
+    // Nothing on it, or on the line around it, hides it: no opacity at all, with or without hover.
+    for (const element of [control, control?.parentElement])
+      expect(classes(element).filter((name) => name.includes("opacity") || name.includes("invisible") || name === "hidden")).toEqual([]);
+    // Quiet until the row is hovered or focused: faint, then its full color.
+    expect(classes(control)).toEqual(
+      expect.arrayContaining([
+        "[&_button]:text-faint",
+        "group-focus-within/row:[&_button]:text-fg",
+        "[@media(hover:hover)]:group-hover/row:[&_button]:text-fg",
+      ]),
+    );
+  });
+
   it("without one: the button keeps its own ring", () => {
     const list = draw(
       <List>

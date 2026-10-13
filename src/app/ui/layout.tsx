@@ -144,8 +144,8 @@ export function Row({
   trailing?: ReactNode;
   /**
    * A quiet control of the row's own ("Ingatkan nanti"), beside a clickable row
-   * where its chevron would be: shown on hover and while the row has keyboard
-   * focus, always where there's no hover (touch).
+   * where its chevron would be: always there, so the Student can find it, in a
+   * faint grey until the row is hovered or focused.
    */
   actions?: ReactNode;
   onClick?: () => void;
@@ -210,7 +210,9 @@ export function Row({
         </div>
       )}
       {aside && (
-        <div className="flex shrink-0 items-center pr-2.5 transition-opacity duration-150 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-focus-within/row:opacity-100 [@media(hover:hover)]:group-hover/row:opacity-100 [@media(hover:hover)]:has-[[aria-expanded=true]]:opacity-100">
+        // Never hidden until hover: a control nobody sees is one nobody finds. Faint at rest, its full color while the row
+        // is hovered or focused, or its menu is open (the button's own hover still wins).
+        <div className="flex shrink-0 items-center pr-2.5 [&_button]:text-faint group-focus-within/row:[&_button]:text-fg has-[[aria-expanded=true]]:[&_button]:text-fg [@media(hover:hover)]:group-hover/row:[&_button]:text-fg">
           {actions}
         </div>
       )}
