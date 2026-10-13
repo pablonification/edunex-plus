@@ -15,7 +15,7 @@ export const homeStrings = {
   "home.now.live": { id: "Sedang berlangsung · sampai {time}", en: "On now · until {time}" },
   "home.now.next": { id: "Berikutnya · {when}", en: "Next · {when}" },
   "home.now.later": { id: "Kuliah berikutnya · {day}", en: "Next class · {day}" },
-  "home.now.presenceOnly": { id: "Presensi {course} sedang dibuka", en: "{course} Presence is open" },
+  "home.now.presenceOnly": { id: "Presensi sedang dibuka", en: "Presence is open" },
   "home.now.countSix": { id: "Kehadiran dihitung di SIX: cukup hadir di kelas.", en: "Attendance counts in SIX: just be in class." },
   "home.now.countSixOnline": { id: "Kehadiran dihitung di SIX: cukup ikut kelasnya.", en: "Attendance counts in SIX: just join the class." },
   "home.now.countEdunex": { id: "Kehadiran dihitung lewat Presensi Edunex.", en: "Attendance counts through Edunex Presence." },
@@ -32,8 +32,7 @@ export const homeStrings = {
   "home.now.presenceExtra": { id: "Presensi Edunex juga dibuka sampai {time}, tidak wajib.", en: "Edunex Presence is also open until {time}; it's optional." },
   "home.now.closesIn": { id: "tutup dalam {left}", en: "closes in {left}" },
   "home.now.closesWhen": { id: "tutup {when}", en: "closes {when}" },
-  "home.now.openPresence": { id: "Buka Presensi", en: "Open Presence" },
-  "home.now.openPresenceLabel": { id: "Buka Presensi {course} di Edunex", en: "Open {course} Presence in Edunex" },
+  "home.now.recordLabel": { id: "Catat di Edunex: Presensi {course}", en: "Record in Edunex: {course} Presence" },
   "home.now.openTask": { id: "Buka tugasnya", en: "Open the Task" },
   "home.now.after": { id: "Setelah ini {time} · {course}", en: "After this {time} · {course}" },
   "home.now.lastToday": { id: "Kuliah terakhir hari ini", en: "Last class today" },
@@ -57,7 +56,6 @@ export const homeStrings = {
   "home.today.meetingOnline": { id: "Pertemuan {number} · daring", en: "Meeting {number} · online" },
   "home.today.due": { id: "Tenggat", en: "Due" },
   "home.today.tomorrow": { id: "Besok", en: "Tomorrow" },
-  "home.today.footnote": { id: "Jadwal dari SIX, tenggat dari Edunex", en: "Classes from SIX, deadlines from Edunex" },
 
   // Perlu perhatianmu: the week ahead, without what Sekarang and Hari ini show
   "home.needs": { id: "Perlu perhatianmu", en: "Needs you" },
@@ -81,8 +79,8 @@ export const homeStrings = {
   "home.need.task.due": { id: "Tenggat {when}", en: "Due {when}" },
   "home.need.task.draft": { id: "Draf belum dikumpulkan", en: "Draft not handed in" },
   "home.need.task.edited": { id: "Diubah dosen setelah kamu kumpulkan · cek lagi", en: "Changed after you handed it in · check again" },
-  "home.need.attendance.none": { id: "{course}: tidak boleh absen lagi", en: "{course}: no absences left" },
-  "home.need.attendance.out": { id: "{course} tak bisa lagi capai {target}%", en: "{course} can't reach {target}% anymore" },
+  "home.need.attendance.none": { id: "{course}: jangan absen lagi", en: "{course}: don't miss another class" },
+  "home.need.attendance.out": { id: "{course}: tak bisa lagi capai {target}%", en: "{course}: can't reach {target}% anymore" },
   "home.need.attendance.outMeta": {
     id: "Paling tinggi {best}% · cek ke dosen kalau ada yang terlewat",
     en: "Best case {best}% · ask the lecturer if one was missed",

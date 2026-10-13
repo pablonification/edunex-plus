@@ -41,8 +41,10 @@ describe("Beranda on the recorded Thursday morning", () => {
     expect(now).toContain("Masih bisa absen 1× lagi");
     expect(now).toContain("Setelah ini 11:00 · DK4073 Komunikasi Pemasaran");
     // Optional means quiet: not the primary button.
-    expect(screen.button("Buka Presensi PL3002 di Edunex").className).not.toContain("bg-accent");
-    await screen.click("Buka Presensi PL3002 di Edunex");
+    // Named as the course page and Presensi name it, the visible words first in its name.
+    expect(screen.button("Catat di Edunex: Presensi PL3002").textContent).toBe("Catat di Edunex");
+    expect(screen.button("Catat di Edunex: Presensi PL3002").className).not.toContain("bg-accent");
+    await screen.click("Catat di Edunex: Presensi PL3002");
     expect(screen.calls.at(-1)).toEqual({ name: "shell.openExternal", input: { url: "https://edunex.itb.ac.id/courses/95001" } });
     // The exam week from ITB's calendar is a calm line under the greeting, not a tag.
     expect(document.querySelector("main header")?.textContent).toContain("Masa UTS mulai Senin, 12 Okt · 4 hari lagi");
@@ -52,21 +54,27 @@ describe("Beranda on the recorded Thursday morning", () => {
   it("Perlu perhatianmu doesn't repeat today: today's classes and their risk are in Hari ini; a target out of reach stays, one click from Presensi", async () => {
     screen = await openApp({ signedIn: true, six: true });
     expect(document.querySelector('main h2[id="home-needs"]')?.textContent).toBe("Perlu perhatianmu 1");
-    expect(rows("home-needs")).toEqual(["KU5014 tak bisa lagi capai 80%Paling tinggi 73% · cek ke dosen kalau ada yang terlewat"]);
-    await screen.click(/^KU5014 tak bisa lagi capai 80%/);
+    expect(rows("home-needs")).toEqual(["KU5014: tak bisa lagi capai 80%Paling tinggi 73% · cek ke dosen kalau ada yang terlewat"]);
+    await screen.click(/^KU5014: tak bisa lagi capai 80%/);
     expect(document.querySelector("h1")?.textContent).toBe("Presensi");
   });
 
   it("today: SIX's classes with time and room, absences left, the moved class, the overlap, and tomorrow's online meeting; rows open their course", async () => {
     screen = await openApp({ signedIn: true, six: true });
-    // The now card above says "Jam berubah · biasanya 08:00–09:30" for this class; the row doesn't say it again.
-    expect(row("home-today", "08:0010:00")).toBe("08:0010:00Ekonomi dan Inovasi dalam PerencanaanPL3002 · R.SG PWK LT.6Masih bisa absen 1× lagiSekarang");
+    // The now card above says "Jam berubah · biasanya 08:00–09:30" and "Masih bisa absen 1× lagi" for this class; the row doesn't say them again.
+    expect(row("home-today", "08:0010:00")).toBe("08:0010:00Ekonomi dan Inovasi dalam PerencanaanPL3002 · R.SG PWK LT.6Sekarang");
     expect(text("home-now")).toContain("Jam berubah · biasanya 08:00–09:30");
-    expect(row("home-today", "11:00")).toBe("11:0012:59Komunikasi PemasaranDK4073 · TVST CJangan absen lagidalam 3 jam");
-    expect(row("home-today", "16:00")).toContain("Tak bisa lagi capai 80% · paling tinggi 73%");
-    // PL3032 (15:00–16:30) and KU5014 (16:00–17:50) share half an hour: each row names the other.
-    expect(row("home-today", "15:00")).toContain("Bentrok dengan KU5014 16:00–16:30");
-    expect(row("home-today", "16:00")).toContain("Bentrok dengan PL3032 16:00–16:30");
+    expect(text("home-now")).toContain("Masih bisa absen 1× lagi");
+    // Three hours off: the time column says when, no "dalam 3 jam" beside it.
+    expect(row("home-today", "11:00")).toBe("11:0012:59Komunikasi PemasaranDK4073 · TVST CJangan absen lagi");
+    // Out of reach is said in Perlu perhatianmu and on the course card, not a third time here.
+    expect(text("home-today")).not.toContain("Tak bisa lagi capai");
+    // PL3032 (15:00–16:30) and KU5014 (16:00–17:50) share half an hour: each row names the other,
+    // beside "Jangan absen lagi" on one line, as that's what decides which class to sit in.
+    expect(row("home-today", "15:00")).toBe(
+      "15:0016:30Ekonomi Infrastruktur dan TransportasiPL3032 · R.SG PWK LT.6Jangan absen lagi · Bentrok dengan KU5014 16:00–16:30",
+    );
+    expect(row("home-today", "16:00")).toBe("16:0017:50Teknik Penyelesaian Masalah TerstrukturKU5014 · 9134Bentrok dengan PL3032 16:00–16:30");
     expect(row("home-today", "11:00")).not.toContain("Bentrok");
     expect(text("home-today")).toContain("Besok");
     expect(row("home-today", "15:0017:00")).toBe("15:0017:00Proposal Tugas AkhirII4091 · Pertemuan 3 · daringTidak ada di jadwal SIX");
@@ -99,12 +107,27 @@ describe("Beranda on the recorded Thursday morning", () => {
     expect(text("home-now")).toContain("On now · until 10:00");
     expect(text("home-now")).toContain("Attendance counts in SIX: just be in class.");
     expect(text("home-now")).toContain("Edunex Presence is also open until 09:30; it's optional.");
-    expect(row("home-today", "08:00")).toContain("You can miss 1 more classNow");
+    expect(row("home-today", "08:00")).toMatch(/Now$/);
+    expect(row("home-today", "15:00")).toContain("Don't miss another class · Clashes with KU5014 16:00–16:30");
     expect(text("home-now")).toContain("New time · usually 08:00–09:30");
-    expect(row("home-today", "15:00")).toContain("Clashes with KU5014 16:00–16:30");
-    expect(rows("home-needs")[0]).toContain("KU5014 can't reach 80% anymore");
+    expect(rows("home-needs")[0]).toContain("KU5014: can't reach 80% anymore");
     expect(text("home-changes")).toContain("PL3002 schedule changedThu, 8 Oct 08:00–10:00 · usually 08:00–09:30");
     expect(screen.text()).toContain("UTS period starts Monday, 12 Oct · in 4 days");
+  });
+});
+
+describe("later the same Thursday", () => {
+  it("only a class within two hours says how soon; a past one reads in quiet greys, not faded, and says Selesai", async () => {
+    screen = await openApp({ world: new PretendWorld({ now: "2026-10-08T10:15:00+07:00" }), signedIn: true, six: true });
+    // On the card as next, so its row leaves "Jangan absen lagi" to the card too.
+    expect(row("home-today", "11:00")).toMatch(/^11:0012:59Komunikasi PemasaranDK4073 · TVST Cdalam 4\d menit$/);
+    expect(row("home-today", "15:00")).not.toContain("dalam");
+    expect(row("home-today", "08:00")).toMatch(/Selesai$/);
+    const past = [...(section("home-today")?.querySelectorAll("li") ?? [])].find((li) => li.textContent?.startsWith("08:00"));
+    expect(past?.querySelector("button")?.className).toContain("text-muted");
+    expect(past?.querySelector("[class*='opacity-5'], [class*='opacity-6']")).toBeNull();
+    // Where each part comes from changes nothing the Student does: no footnote under the day.
+    expect(text("home-today")).not.toContain("Jadwal dari SIX");
   });
 });
 
@@ -117,6 +140,20 @@ describe("an open window that counts", () => {
     expect(now).toMatch(/tutup dalam 8 jam 5\d mnt/);
     expect(screen.button("Buka tugasnya").className).toContain("bg-accent");
     expect(document.querySelector('main [role="progressbar"]')).not.toBeNull();
+    await screen.click("Buka tugasnya");
+    expect(document.querySelector("main h1")?.textContent).toBe("Tugas 02 Bab II");
+  });
+});
+
+describe("an open window that doesn't count, recorded by handing in a Task", () => {
+  it("its quiet button opens the Task here, and says so instead of Edunex", async () => {
+    const world = new PretendWorld({ now: "2026-10-16T15:01:00+07:00" });
+    // SIX counts II4091 too: its Presence (hand in Tugas 02 Bab II) is optional.
+    world.six.setAttendance("II4091", 7, 8);
+    screen = await openApp({ world, signedIn: true, six: true });
+    expect(text("home-now")).toContain("Presensi Edunex juga dibuka sampai 23:59, tidak wajib.");
+    expect(screen.button("Buka tugasnya").className).not.toContain("bg-accent");
+    expect([...(section("home-now")?.querySelectorAll("button") ?? [])].map((b) => b.textContent)).not.toContain("Catat di Edunex");
     await screen.click("Buka tugasnya");
     expect(document.querySelector("main h1")?.textContent).toBe("Tugas 02 Bab II");
   });
@@ -156,7 +193,9 @@ describe("a Presence window still open after its class", () => {
     keepThursdayOpen(world, "2026-10-10T23:00:00+07:00");
     screen = await openApp({ world, signedIn: true });
     const now = text("home-now");
-    expect(now).toContain("Presensi PL3002 sedang dibuka");
+    // The course's code is the line under it: not said twice.
+    expect(now).toContain("Presensi sedang dibuka");
+    expect(now).not.toContain("Presensi PL3002 sedang dibuka");
     expect(now).toContain("PL3002 · Kemarin, 08:00–09:30");
     expect(now).toContain("Buka mata kuliahnya di Edunex sebelum besok, 23:00");
     // A day and a half away: its day, not "36 jam", said once: the bar beside it shows no second "tutup besok".
@@ -183,11 +222,13 @@ describe("with Edunex alone", () => {
   it("an open window leads, but where it counts isn't guessed before SIX is connected", async () => {
     screen = await openApp({ signedIn: true });
     const now = text("home-now");
-    expect(now).toContain("Presensi PL3002 sedang dibuka");
+    expect(now).toContain("Presensi sedang dibuka");
     // Without SIX nobody knows whether Edunex counts: said as a just-in-case, the button quiet.
     expect(now).toContain("Tanpa SIX, belum pasti ini dihitung: catat saja untuk berjaga-jaga.");
     expect(now).not.toContain("dihitung lewat Presensi Edunex");
-    const button = [...document.querySelectorAll<HTMLButtonElement>("section[aria-labelledby=home-now] button")].find((b) => b.textContent === "Buka Presensi");
+    const button = [...document.querySelectorAll<HTMLButtonElement>("section[aria-labelledby=home-now] button")].find(
+      (b) => b.textContent === "Catat di Edunex",
+    );
     expect(button?.className).not.toContain("bg-accent ");
     expect(text("home-today")).toContain("Jadwal dan ruang kuliah muncul setelah SIX terhubung.");
   });

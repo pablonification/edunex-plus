@@ -75,12 +75,13 @@ describe("putting off what needs you on Beranda", () => {
 
   it("the row's control sits beside its button, not inside it, and hands focus to the next row", async () => {
     const s = await open();
-    const control = s.button("Ingatkan nanti: DK4073: tidak boleh absen lagi");
+    const control = s.button("Ingatkan nanti: DK4073: jangan absen lagi");
     expect(control.closest("li")?.querySelector(":scope > button")?.contains(control)).toBe(false);
     expect(control.getAttribute("aria-haspopup")).toBe("menu");
-    const next = control.closest("li")?.nextElementSibling?.querySelector("button");
+    // The row fades out of the list (PresenceList), handing focus to the same control in the next row.
+    const next = control.closest("li")?.nextElementSibling?.querySelector<HTMLElement>("[aria-haspopup=menu]");
     expect(next).toBeTruthy();
-    await snooze("DK4073: tidak boleh absen lagi", "Besok pagi");
+    await snooze("DK4073: jangan absen lagi", "Besok pagi");
     await frame();
     expect(document.activeElement).toBe(next);
   });
@@ -122,7 +123,7 @@ describe("putting off what needs you on Beranda", () => {
 
   it("comes back when SIX records another meeting", async () => {
     const s = await open();
-    await snooze("KU5014 tak bisa lagi capai 80%", "Sampai ada perubahan");
+    await snooze("KU5014: tak bisa lagi capai 80%", "Sampai ada perubahan");
     expect(titles().some((t) => t.startsWith("KU5014"))).toBe(false);
     s.world.six.setAttendance("KU5014", 2, 7);
     await s.engineDoes(() => s.engine.refresh("six"));
@@ -132,17 +133,17 @@ describe("putting off what needs you on Beranda", () => {
   it("the list of what's put off says when each is back, and brings one back now", async () => {
     const s = await open();
     await snooze("UTS Komunikasi Pemasaran", "Besok pagi");
-    await snooze("KU5014 tak bisa lagi capai 80%", "Sampai ada perubahan");
+    await snooze("KU5014: tak bisa lagi capai 80%", "Sampai ada perubahan");
     expect(needs()?.textContent).toContain("2 ditunda");
     await s.click("Tampilkan");
     const list = [...document.querySelectorAll('ul[aria-label="Yang ditunda"] li')].map((li) => li.textContent);
     // In Beranda's order: the attendance that's out of reach before an exam three days away.
     expect(list).toEqual([
-      "KU5014 tak bisa lagi capai 80%Sampai ada perubahan, paling lambat Sen, 26 Okt, 07:00Ingatkan sekarang",
+      "KU5014: tak bisa lagi capai 80%Sampai ada perubahan, paling lambat Sen, 26 Okt, 07:00Ingatkan sekarang",
       "UTS Komunikasi PemasaranKembali Besok, 07:00Ingatkan sekarang",
     ]);
-    await press(s.button("Ingatkan sekarang: KU5014 tak bisa lagi capai 80%"));
-    expect(titles().some((t) => t.startsWith("KU5014 tak bisa lagi capai 80%"))).toBe(true);
+    await press(s.button("Ingatkan sekarang: KU5014: tak bisa lagi capai 80%"));
+    expect(titles().some((t) => t.startsWith("KU5014: tak bisa lagi capai 80%"))).toBe(true);
     expect(needs()?.textContent).toContain("1 ditunda");
     // Its row left with the button: focus goes on to the next thing put off…
     await frame();
@@ -198,7 +199,7 @@ describe("putting off what needs you on Beranda", () => {
     await snooze("UTS Komunikasi Pemasaran", "Besok pagi");
     await s.click("Tampilkan");
     await s.click("Ingatkan sekarang: UTS Komunikasi Pemasaran");
-    await snooze("KU5014 tak bisa lagi capai 80%", "Besok pagi");
+    await snooze("KU5014: tak bisa lagi capai 80%", "Besok pagi");
     expect(document.querySelector('ul[aria-label="Yang ditunda"]')).toBeNull();
     expect(needs()?.querySelector("[data-snoozed]")?.textContent).toBe("Tampilkan");
   });
@@ -206,7 +207,7 @@ describe("putting off what needs you on Beranda", () => {
   it("Undo takes back only its own snooze, not what the Student brought back since", async () => {
     const s = await open();
     await snooze("UTS Komunikasi Pemasaran", "Besok pagi");
-    await snooze("KU5014 tak bisa lagi capai 80%", "Besok pagi");
+    await snooze("KU5014: tak bisa lagi capai 80%", "Besok pagi");
     await s.click("Tampilkan");
     await s.click("Ingatkan sekarang: UTS Komunikasi Pemasaran");
     // The toast still offers to undo putting off KU5014.
@@ -302,7 +303,7 @@ describe("Settings", () => {
     const s = await open();
     expect(s.has(/^Tampilkan semua lagi/)).toBe(false);
     await snooze("UTS Komunikasi Pemasaran", "Besok pagi");
-    await snooze("KU5014 tak bisa lagi capai 80%", "Besok pagi");
+    await snooze("KU5014: tak bisa lagi capai 80%", "Besok pagi");
     await s.apply({ type: "command", command: "settings" });
     const dialog = () => document.querySelector("[role=dialog]")?.textContent ?? "";
     expect(dialog()).toContain("Pengingat yang ditunda (2)");

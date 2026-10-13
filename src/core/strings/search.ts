@@ -78,7 +78,10 @@ export const searchStrings = {
   "scan.read": { id: "{list} dibaca", en: "{list} read" },
   "scan.read.courses": { id: "{count} mata kuliah", en: { one: "{count} course", other: "{count} courses" } },
   "scan.read.tasks": { id: "{count} tugas", en: { one: "{count} Task", other: "{count} Tasks" } },
-  "scan.read.meetings": { id: "{count} pertemuan", en: { one: "{count} meeting", other: "{count} meetings" } },
+  // The reading step's figures: the count stands alone below its label.
+  "scan.count.courses": { id: "Mata kuliah", en: "Courses" },
+  "scan.count.tasks": { id: "Tugas", en: "Tasks" },
+  "scan.count.meetings": { id: "Pertemuan", en: "Meetings" },
   "scan.more": { id: "dan {count} lainnya", en: "and {count} more" },
   "scan.goHome": { id: "Ke Beranda", en: "Go to Home" },
   "scan.later": { id: "Bisa dibuka lagi dari Pengaturan › Akun", en: "Open it again from Settings › Accounts" },
@@ -92,8 +95,8 @@ export const searchStrings = {
     id: "{code}: hadir {attended} dari {held} · paling tinggi {best}% dari target {target}%",
     en: "{code}: {attended} of {held} · best case {best}% of the {target}% target",
   },
-  "scan.attendance.none": { id: "{code}: tidak boleh absen lagi", en: "{code}: no absences left" },
-  "scan.attendance.one": { id: "{code}: tinggal satu absen", en: "{code}: one absence left" },
+  "scan.attendance.none": { id: "{code}: jangan absen lagi", en: "{code}: don't miss another class" },
+  "scan.attendance.one": { id: "{code}: masih bisa absen 1× lagi", en: "{code}: you can miss 1 more class" },
   "scan.attendance.below": {
     id: "{code}: di bawah {target}%, kembali setelah {count}x hadir berturut-turut",
     en: "{code}: below {target}%, back after {count} in a row",

@@ -16,7 +16,7 @@ import { Button, Segmented } from "../ui/controls";
 import { cx } from "../ui/cx";
 import { Card } from "../ui/display";
 import { Icons } from "../ui/icons";
-import { Meta } from "../ui/layout";
+import { Meta, Stat, StatRow } from "../ui/layout";
 import { useSignIn } from "./source-status";
 
 /** What the reading step counts, and what decides it's done (src/core/first-scan.ts homeReady). */
@@ -73,12 +73,12 @@ export function Welcome({ onDone }: { onDone: () => void }) {
       </div>
       <main className="grid min-h-full place-items-center px-6 py-16">
         <div className="w-full max-w-[460px]">
-          <AppMark className="mx-auto block size-16 drop-shadow-[0_8px_18px_rgb(37_99_235/0.35)]" />
+          <AppMark className="mx-auto block size-16" />
           {reading ? (
             <Reading onDone={onDone} />
           ) : (
             <>
-              <h1 className="mt-5 text-center text-[24px] leading-8 font-semibold tracking-[-0.02em]">{t("welcome.title")}</h1>
+              <h1 className="mt-5 text-center text-display font-semibold tracking-[-0.02em]">{t("welcome.title")}</h1>
               <p className="mx-auto mt-2 max-w-[400px] text-center text-lead text-muted">{t("welcome.lead")}</p>
 
               <Card className="mt-7 divide-y divide-line overflow-hidden">
@@ -141,27 +141,21 @@ function Reading({ onDone }: { onDone: () => void }) {
 
   const both = summary.connected.length === 2;
   const parts = [
-    { key: "courses", count: summary.courses, label: t("scan.read.courses", { count: summary.courses }) },
-    { key: "tasks", count: summary.tasks, label: t("scan.read.tasks", { count: summary.tasks }) },
-    { key: "meetings", count: summary.meetings, label: t("scan.read.meetings", { count: summary.meetings }) },
+    { key: "courses", count: summary.courses, label: t("scan.count.courses") },
+    { key: "tasks", count: summary.tasks, label: t("scan.count.tasks") },
+    { key: "meetings", count: summary.meetings, label: t("scan.count.meetings") },
   ];
   return (
     <div className="mt-6 text-center" aria-live="polite" aria-busy="true">
-      <h1 className="text-[24px] leading-8 font-semibold tracking-[-0.02em]">
+      <h1 className="text-display font-semibold tracking-[-0.02em]">
         {both ? t("welcome.reading") : t("welcome.readingOne", { source: t(`source.${summary.connected[0] ?? "edunex"}`) })}
       </h1>
       <p className="mx-auto mt-2 max-w-[360px] text-lead text-muted">{t("welcome.readingHint")}</p>
-      <ul className="mx-auto mt-7 grid max-w-[380px] grid-cols-3 gap-2">
+      <StatRow className="mx-auto mt-7 max-w-[380px]">
         {parts.map((part) => (
-          <li
-            key={part.key}
-            className={cx("rounded-xl border border-edge bg-surface px-3 py-3 shadow-card transition-opacity duration-300", part.count === 0 && "opacity-60")}
-          >
-            <span className="block text-[22px] leading-7 font-semibold tabular-nums">{part.count}</span>
-            <span className="block text-small text-muted">{part.label.replace(/^\d+\s*/, "")}</span>
-          </li>
+          <Stat key={part.key} size="heading" label={part.label} value={part.count} />
         ))}
-      </ul>
+      </StatRow>
       <p className="mt-6 inline-flex items-center gap-2 text-small text-muted">
         <Icons.Loader className="size-3.5 animate-spin" />
         {t("welcome.readingWait")}

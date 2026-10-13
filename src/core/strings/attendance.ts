@@ -37,7 +37,7 @@ export const attendanceStrings = {
   // The Presensi screen: the answer on top
   "presence.answer.none": { id: "Jangan absen lagi di {codes}.", en: "Don't miss another class in {codes}." },
   "presence.answer.out": { id: "{codes} sudah tak bisa capai {target}%.", en: "{codes} can't reach {target}% anymore." },
-  "presence.answer.one": { id: "Jatah absen di {codes} tinggal 1×.", en: "Only one absence left in {codes}." },
+  "presence.answer.one": { id: "Masih bisa absen 1× lagi di {codes}.", en: "You can miss 1 more class in {codes}." },
   "presence.answer.below": {
     id: "{codes} di bawah target sekarang: hadir terus untuk naik lagi.",
     en: { one: "{codes} is below target for now: keep attending to get back.", other: "{codes} are below target for now: keep attending to get back." },

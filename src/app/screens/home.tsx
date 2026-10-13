@@ -43,11 +43,14 @@ import { Card, CourseDot, EmptyState, LiveDot, Skeleton } from "../ui/display";
 import { Icons } from "../ui/icons";
 import { factsLabel, List, Meta, Page, PageHeader, Row, Section } from "../ui/layout";
 import { CountdownBar } from "../ui/meter";
+import { PresenceList } from "../ui/motion/presence-list";
 import { NowCard as NowCardShell } from "../ui/now-card";
 import { Tooltip } from "../ui/overlays";
 
 const MINUTE = 60_000;
 const DAY = 86_400_000;
+/** A later class says "dalam …" only this close to its start; further off, the time column says enough. */
+const SOON = 2 * 60 * MINUTE;
 /** "Yang berubah" shows this many; the bell has the rest. */
 const CHANGES_SHOWN = 5;
 
@@ -213,7 +216,7 @@ function NowCardView({ card, courses }: { card: NowCard; courses: readonly TermC
         ? t("home.now.next", { when: f.fromNow(slot.start) })
         : card.state === "later" && slot
           ? t("home.now.later", { day: f.relativeDay(slot.start) })
-          : t("home.now.presenceOnly", { course: code });
+          : t("home.now.presenceOnly");
 
   const open = (): Route => (course?.edunex ? { screen: "course", code, tab: "meetings" } : { screen: "presence" });
 
@@ -306,9 +309,11 @@ function Attendance({ card }: { card: NowCard }) {
             ? t("home.now.countUnknown")
             : null;
 
+  // A Presence recorded by handing in a Task opens that Task here, so its button says so; any other opens Edunex.
+  const viaTask = presence?.activity === "assignment" && presence.task !== null;
   const openPresence = () => {
     if (!presence) return;
-    if (presence.activity === "assignment" && presence.task) go({ screen: "task", taskId: presence.task.id });
+    if (viaTask && presence.task) go({ screen: "task", taskId: presence.task.id });
     else external(presence.url);
   };
 
@@ -316,7 +321,6 @@ function Attendance({ card }: { card: NowCard }) {
   if (presence && presence.counts !== false) {
     const { session } = presence;
     const action = actionLabel({ action: { activity: presence.activity, task: presence.task, url: presence.url } });
-    const viaTask = presence.activity === "assignment" && presence.task !== null;
     // Without SIX nobody can say it counts: worth doing just in case, so said calmly, its button quiet.
     const quiet = presence.noSix;
     return (
@@ -339,9 +343,9 @@ function Attendance({ card }: { card: NowCard }) {
               variant={quiet ? "secondary" : "primary"}
               icon={viaTask ? undefined : <Icons.ArrowUpRight className="size-3.5" />}
               onClick={openPresence}
-              aria-label={viaTask ? t("home.now.openTask") : t("home.now.openPresenceLabel", { course: presence.code })}
+              aria-label={viaTask ? t("home.now.openTask") : t("home.now.recordLabel", { course: presence.code })}
             >
-              {viaTask ? t("home.now.openTask") : t("home.now.openPresence")}
+              {viaTask ? t("home.now.openTask") : t("presence.open.record")}
             </Button>
           </div>
         </div>
@@ -384,11 +388,11 @@ function Attendance({ card }: { card: NowCard }) {
         <Button
           variant="ghost"
           size="sm"
-          icon={<Icons.ArrowUpRight className="size-3.5" />}
+          icon={viaTask ? undefined : <Icons.ArrowUpRight className="size-3.5" />}
           onClick={openPresence}
-          aria-label={t("home.now.openPresenceLabel", { course: presence.code })}
+          aria-label={viaTask ? t("home.now.openTask") : t("home.now.recordLabel", { course: presence.code })}
         >
-          {t("home.now.openPresence")}
+          {viaTask ? t("home.now.openTask") : t("presence.open.record")}
         </Button>
       )}
     </div>
@@ -500,7 +504,6 @@ function Today({ context, plan, courses, onCard }: { context: HomeContext; plan:
           </List>
         </>
       )}
-      {context.schedule && <p className="mt-2.5 text-caption text-faint">{t("home.today.footnote")}</p>}
     </Section>
   );
 }
@@ -511,8 +514,8 @@ const keyOf = (item: TodayItem) =>
 /** The time column: start over end, or a deadline's one time. */
 function When({ start, end, past, tone }: { start: string; end?: string; past?: boolean; tone?: string }) {
   return (
-    <span className={cx("w-[46px] text-small tabular-nums", past && "opacity-50")}>
-      <span className={cx("block font-semibold text-fg", tone)}>{start}</span>
+    <span className="w-[46px] text-small tabular-nums">
+      <span className={cx("block font-semibold", past ? "text-faint" : (tone ?? "text-fg"))}>{start}</span>
       {end && <span className="block text-caption text-faint">{end}</span>}
     </span>
   );
@@ -591,22 +594,29 @@ function TodayRow({ item, courses, index, onCard }: { item: TodayItem; courses: 
   const past = session.end <= now;
   const course = courses.find((c) => c.code === session.courseCode);
   const exam = /\b(UTS|UAS)\b/i.test(session.activity);
-  const budget = facts.health && facts.state !== "unknown" && !past ? budgetLabel(t, facts.health) : null;
+  // Said once: the now card shows its class's budget, and "tak bisa lagi capai" is in Perlu perhatianmu and on the course card.
+  const budget = facts.health && facts.state !== "unknown" && facts.state !== "out" && !past && !shownAbove ? budgetLabel(t, facts.health) : null;
   // The now card says "Jam berubah · biasanya …" for its class; the row keeps only the amber time.
   const moved = facts.moved && !shownAbove;
+  const clash = facts.overlap ? t("home.today.overlap", { course: facts.overlap.code, time: f.timeRange(facts.overlap.from, facts.overlap.to) }) : null;
   return (
     <Row
       index={index}
-      className={cx(past && "[&>span:not(:first-child)]:opacity-60")}
+      // Past, quieter in token greys that still read at 4.5:1; never faded with opacity.
+      className={cx(past && "text-muted")}
       leading={
         <When start={f.time(session.start)} end={f.time(session.end)} past={past} tone={facts.moved?.usualStart != null ? "text-warning-fg" : undefined} />
       }
       title={course?.name ?? session.courseName}
       meta={
-        <Meta>
-          <CourseMark code={session.courseCode} courses={courses} />
+        <Meta className={cx(past && "text-faint")}>
+          <CourseMark code={session.courseCode} courses={courses} past={past} />
           {session.room ?? ""}
-          {exam || !/^kuliah$/i.test(session.activity) ? <span className={cx("font-semibold", exam && "text-danger-fg")}>{session.activity}</span> : ""}
+          {exam || !/^kuliah$/i.test(session.activity) ? (
+            <span className={cx("font-semibold", exam && !past && "text-danger-fg")}>{session.activity}</span>
+          ) : (
+            ""
+          )}
         </Meta>
       }
       trailing={
@@ -614,23 +624,20 @@ function TodayRow({ item, courses, index, onCard }: { item: TodayItem; courses: 
           <NowMark fresh={fresh} />
         ) : past ? (
           <span className="text-caption text-faint">{t("home.today.done")}</span>
-        ) : (
+        ) : session.start - now <= SOON ? (
           <span className="text-caption whitespace-nowrap text-muted tabular-nums">{f.fromNow(session.start)}</span>
-        )
+        ) : undefined
       }
       onClick={() => go(course?.edunex ? { screen: "course", code: session.courseCode, tab: "meetings" } : { screen: "presence" })}
     >
-      {!past && (budget || moved || facts.overlap) && (
-        <span className="mt-1 block text-small font-medium">
-          {budget && <Meta className={STATE_TEXT[facts.state]}>{budget}</Meta>}
-          {moved && <Meta className="text-warning-fg">{movedLabel(t, f, facts)}</Meta>}
-          {facts.overlap && (
-            <span className="block text-warning-fg">
-              {t("home.today.overlap", { course: facts.overlap.code, time: f.timeRange(facts.overlap.from, facts.overlap.to) })}
-            </span>
-          )}
-        </span>
+      {!past && (budget || clash) && (
+        // Kept beside a clash: choosing between two classes is when "Jangan absen lagi" matters most.
+        <Meta className="mt-1 text-small font-medium">
+          {budget ? <span className={STATE_TEXT[facts.state]}>{budget}</span> : ""}
+          {clash ? <span className="text-warning-fg">{clash}</span> : ""}
+        </Meta>
       )}
+      {!past && moved && <Meta className="mt-1 text-small font-medium text-warning-fg">{movedLabel(t, f, facts)}</Meta>}
     </Row>
   );
 }
@@ -639,16 +646,16 @@ function TodayRow({ item, courses, index, onCard }: { item: TodayItem; courses: 
 function NowMark({ fresh }: { fresh: boolean }) {
   const t = useT();
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full bg-success-bg px-2 py-0.5 text-caption font-semibold text-success-fg">
+    <span className="inline-flex items-center gap-1.5 text-caption font-semibold text-success-fg">
       {fresh && <LiveDot className="scale-75" />}
       {t("home.today.now")}
     </span>
   );
 }
 
-function CourseMark({ code, courses }: { code: string; courses: readonly TermCourse[] }) {
+function CourseMark({ code, courses, past = false }: { code: string; courses: readonly TermCourse[]; past?: boolean }) {
   return (
-    <span className="inline-flex items-center gap-1.5 font-medium text-fg/80 tabular-nums">
+    <span className={cx("inline-flex items-center gap-1.5 font-medium tabular-nums", past ? "text-faint" : "text-fg/80")}>
       <CourseDot color={colorOf(courses, code)} className="size-2" />
       {code}
     </span>
@@ -682,9 +689,12 @@ function NeedsYou({ needs, courses }: { needs: Need[]; courses: readonly TermCou
       ) : shown.length ? (
         <>
           <List label={t("home.needs")}>
-            {shown.map((need, i) => (
-              <NeedRow key={need.id} need={need} courses={courses} index={i} />
-            ))}
+            {/* A row put off fades out, and focus moves on to the next. */}
+            <PresenceList>
+              {shown.map((need, i) => (
+                <NeedRow key={need.id} need={need} courses={courses} index={i} />
+              ))}
+            </PresenceList>
           </List>
           {snoozedLine && <div className="mt-2.5 px-1">{snoozedLine}</div>}
         </>
@@ -1170,7 +1180,13 @@ function CourseCard({ course, nim, health }: { course: TermCourse; nim: string |
       {/* Last in the markup, so Tab reaches the course before its way out to Edunex or SIX. */}
       {external && (
         <Tooltip content={external.label}>
-          <IconButton size="sm" label={`${external.label}: ${course.code}`} className="absolute top-2.5 right-2.5 z-10" onClick={() => open(external.url)}>
+          <IconButton
+            size="sm"
+            label={`${external.label}: ${course.code}`}
+            // As a row's own actions: shown on hover and keyboard focus, always where there's no hover.
+            className="absolute top-2.5 right-2.5 z-10 transition-opacity duration-150 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-focus-within:opacity-100 [@media(hover:hover)]:group-hover:opacity-100"
+            onClick={() => open(external.url)}
+          >
             <Icons.ArrowUpRight className="size-3.5" />
           </IconButton>
         </Tooltip>

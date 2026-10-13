@@ -54,7 +54,7 @@ describe("after the first full sync of Edunex and SIX", () => {
     ]);
     // Calm and action-first: the facts, then what to do.
     expect(detail("Kehadiran 4")).toBe(
-      "KU5014: hadir 2 dari 6 · paling tinggi 73% dari target 80%DK4073: tidak boleh absen lagiPL3032: tidak boleh absen lagidan 1 lainnya",
+      "KU5014: hadir 2 dari 6 · paling tinggi 73% dari target 80%DK4073: jangan absen lagiPL3032: jangan absen lagidan 1 lainnya",
     );
     expect(detail("KU5014 dan PL3032")).toBe("Berikutnya Hari ini, 16:00–16:30. Pilih yang akan kamu hadiri, atau tanyakan ke dosen.");
     expect(detail("Kehadiran 1")).toBe('PL3002: SIX mencatat hadir 6 dari 7; abaikan 5 "absen" di EdunexCukup hadir di kelas; Presensi Edunex tidak wajib.');
@@ -202,6 +202,16 @@ describe("only with something to say", () => {
   });
 });
 
+describe("a course with one absence left", () => {
+  it("says it as Beranda and Presensi do", async () => {
+    const world = new PretendWorld();
+    // DK4073 safe: PL3002, with one absence left, is among the lines shown.
+    world.six.setAttendance("DK4073", 7, 7);
+    screen = await openApp({ world, firstScan: true, signedIn: true, six: true });
+    expect(detail("Kehadiran 3")).toBe("KU5014: hadir 2 dari 6 · paling tinggi 73% dari target 80%PL3032: jangan absen lagiPL3002: masih bisa absen 1× lagi");
+  });
+});
+
 describe("in English", () => {
   it("says the same", async () => {
     const world = new PretendWorld();
@@ -221,7 +231,9 @@ describe("in English", () => {
       "Lecturers edited 6 Tasks after posting them",
       "IPK 3.26 · below cum laude",
     ]);
-    expect(detail("Attendance")).toBe("KU5014: 2 of 6 · best case 73% of the 80% targetDK4073: no absences leftPL3032: no absences leftand 1 more");
+    expect(detail("Attendance")).toBe(
+      "KU5014: 2 of 6 · best case 73% of the 80% targetDK4073: don't miss another classPL3032: don't miss another classand 1 more",
+    );
     expect(detail("IPK")).toBe("0.24 short of cum laude (3.50).");
     expect(screen.button("Go to Home")).toBeDefined();
   });

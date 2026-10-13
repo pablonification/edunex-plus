@@ -57,7 +57,7 @@ const onTop = () => document.querySelector('main section[aria-label="Presensi ya
 describe("the Presensi screen", () => {
   it("answers first, by name: what to do in which course, worst first; the sidebar counts them", async () => {
     const s = await openPresence(undefined, true);
-    expect(answer()).toEqual(["Jangan absen lagi di DK4073 dan PL3032.", "KU5014 sudah tak bisa capai 80%.", "Jatah absen di PL3002 tinggal 1×."]);
+    expect(answer()).toEqual(["Jangan absen lagi di DK4073 dan PL3032.", "KU5014 sudah tak bisa capai 80%.", "Masih bisa absen 1× lagi di PL3002."]);
     expect(rows().map((li) => li.textContent?.slice(0, 6))).toEqual(["KU5014", "DK4073", "PL3032", "PL3002", "II4091"]);
     expect(s.button(/^Presensi/).textContent).toBe("Presensi4");
     // What was cut: the tally tiles and their filter, and the meeting squares that read like a timeline.
@@ -245,7 +245,7 @@ describe("the Presensi screen", () => {
   it("in English", async () => {
     const s = await openPresence(undefined, true);
     await s.engineDoes(() => s.engine.updateSettings({ lang: "en" }));
-    expect(answer()).toEqual(["Don't miss another class in DK4073 and PL3032.", "KU5014 can't reach 80% anymore.", "Only one absence left in PL3002."]);
+    expect(answer()).toEqual(["Don't miss another class in DK4073 and PL3032.", "KU5014 can't reach 80% anymore.", "You can miss 1 more class in PL3002."]);
     expect(card("DK4073")).toContain("Attended 4 of 6 · about 8 meetings left until 4 Dec");
     expect(card("DK4073")).toContain("Next: Today, 11:00 · TVST C · just be in class");
     expect(card("PL3002")).toContain("You can miss 1 more class");

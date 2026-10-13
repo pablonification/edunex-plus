@@ -44,12 +44,12 @@ describe("Presensi's answer", () => {
     expect(answer(courses)).toEqual([
       { tone: "warning", text: "Jangan absen lagi di DK4073 dan PL3032." },
       { tone: "danger", text: "KU5014 sudah tak bisa capai 80%." },
-      { tone: "warning", text: "Jatah absen di PL3002 tinggal 1×." },
+      { tone: "warning", text: "Masih bisa absen 1× lagi di PL3002." },
     ]);
     expect(answer(courses, "en").map((line) => line.text)).toEqual([
       "Don't miss another class in DK4073 and PL3032.",
       "KU5014 can't reach 80% anymore.",
-      "Only one absence left in PL3002.",
+      "You can miss 1 more class in PL3002.",
     ]);
   });
 

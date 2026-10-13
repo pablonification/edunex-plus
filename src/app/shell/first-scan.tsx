@@ -57,10 +57,10 @@ const ICON: Record<Finding["kind"], ComponentType<IconProps>> = {
 };
 
 const TONE: Record<Finding["tone"], string> = {
-  danger: "bg-danger-bg text-danger-fg",
-  warning: "bg-warning-bg text-warning-fg",
-  info: "bg-info-bg text-info-fg",
-  success: "bg-success-bg text-success-fg",
+  danger: "text-danger-fg",
+  warning: "text-warning-fg",
+  info: "text-info-fg",
+  success: "text-success-fg",
 };
 
 /**
@@ -152,7 +152,8 @@ function Findings({ onGo }: { onGo: (route: Route) => void }) {
       <Summary summary={summary} />
       {heading && <h3 className="mt-1.5 text-heading font-semibold tracking-[-0.01em]">{heading}</h3>}
       {findings.length ? (
-        <ol className="mt-4 overflow-hidden rounded-xl border border-edge">
+        // Rows on the dialog itself, split by hairlines and reaching its edges, so a hovered row fills the width.
+        <ol className="-mx-5 mt-4">
           {findings.map((finding, i) => (
             <li key={finding.kind} className={cx(i > 0 && "border-t border-line")}>
               <Line finding={finding} onGo={onGo} />
@@ -211,11 +212,9 @@ function Line({ finding, onGo }: { finding: Finding; onGo: (route: Route) => voi
       aria-labelledby={`${id}-title`}
       aria-describedby={lines.length || note ? `${id}-detail` : undefined}
       onClick={() => onGo(route)}
-      className="flex w-full items-start gap-3.5 px-4 py-3.5 text-left transition-colors duration-150 hover:bg-hover focus-visible:-outline-offset-2"
+      className="flex w-full items-start gap-3.5 px-5 py-3.5 text-left hover:bg-hover focus-visible:-outline-offset-2"
     >
-      <span aria-hidden className={cx("mt-0.5 grid size-7 shrink-0 place-items-center rounded-lg", TONE[finding.tone])}>
-        <Icon className="size-4" />
-      </span>
+      <Icon className={cx("mt-0.5 size-4 shrink-0", TONE[finding.tone])} />
       <span className="min-w-0 flex-1">
         <span id={`${id}-title`} className="block text-body font-semibold">
           {title}
@@ -227,7 +226,7 @@ function Line({ finding, onGo }: { finding: Finding; onGo: (route: Route) => voi
           {note && <span className="block">{note}</span>}
         </span>
       </span>
-      <Icons.ChevronRight className="mt-1 size-4 shrink-0 text-faint transition-opacity duration-150" />
+      <Icons.ChevronRight className="mt-1 size-4 shrink-0 text-faint" />
     </button>
   );
 }
