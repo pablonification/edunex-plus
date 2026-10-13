@@ -30,7 +30,7 @@ export const coursePageStrings = {
   "course.courseWide": { id: "Seluruh mata kuliah", en: "Course-wide" },
   "course.module": { id: "Modul {no}", en: "Module {no}" },
   "course.moduleEmpty": { id: "Belum ada isi", en: "Nothing here yet" },
-  "course.unopened": { id: "Belum dibuka dosen", en: "Not opened by the lecturer yet" },
+  "course.unopened": { id: "Belum dibuka dosen", en: "Not opened yet" },
   "course.opensOn": { id: "Dibuka {when}", en: "Opens {when}" },
   "course.noMaterials": { id: "Belum ada materi di Edunex", en: "No materials on Edunex yet" },
   "course.materials": { id: "Materi", en: "Materials" },
