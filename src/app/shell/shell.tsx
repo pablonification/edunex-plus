@@ -26,9 +26,7 @@ import { PanelBoundary } from "../ui/panel-boundary";
 import { AlertsBell } from "./alerts";
 import { type Badge as BadgeValue, usePlanBadge, usePresenceBadge, useTasksBadge } from "./badges";
 import { isBuilt } from "./built";
-import { FirstScan } from "./first-scan";
-import { SearchButton, SearchPalette, useSearchShortcut } from "./search";
-import { SettingsDialog } from "./settings";
+import { SearchButton, useSearchShortcut } from "./search-button";
 import { ProblemBanner, refreshNow, SyncStatus } from "./source-status";
 
 // In the sidebar's order, the order they load in.
@@ -40,6 +38,10 @@ const PlanScreen = later(() => import("../screens/plan").then((screen) => screen
 const CourseScreen = later(() => import("../screens/course").then((screen) => screen.CourseScreen));
 const TaskScreen = later(() => import("../screens/tasks").then((screen) => screen.TaskScreen));
 const ExamScreen = later(() => import("../screens/exam").then((screen) => screen.ExamScreen));
+// What opens over the screen: Settings, quick search and the first-run scan.
+const SettingsDialog = later(() => import("./settings").then((dialog) => dialog.SettingsDialog));
+const SearchPalette = later(() => import("./search").then((dialog) => dialog.SearchPalette));
+const FirstScan = later(() => import("./first-scan").then((dialog) => dialog.FirstScan));
 
 const SCREENS: Record<Route["screen"], { loaded(): boolean } | null> = {
   home: null,
@@ -74,6 +76,9 @@ function Layout() {
   const t = useT();
   const { route, go } = useNav();
   const main = useRef<HTMLElement>(null);
+  const settingsLoaded = SettingsDialog.useLoaded();
+  const searchLoaded = SearchPalette.useLoaded();
+  const scanLoaded = FirstScan.useLoaded();
   /** Search opens over anything else; the shortcut also closes it. */
   const openSearch = useCallback((toggle: boolean) => {
     setSettingsOpen(false);
@@ -128,16 +133,26 @@ function Layout() {
           </Suspense>
         </main>
       </div>
-      <SettingsDialog
-        open={settingsOpen}
-        onOpenChange={setSettingsOpen}
-        onShowFirstScan={() => {
-          setSettingsOpen(false);
-          setScanOpen(true);
-        }}
-      />
-      <SearchPalette open={searchOpen} onOpenChange={setSearchOpen} onSettings={() => setSettingsOpen(true)} />
-      <FirstScan open={scanOpen} onOpenChange={setScanOpen} blocked={settingsOpen || searchOpen} />
+      {/* Each waits for its code (in at once after the idle preload) or for the Student to open it, then opens. */}
+      <Suspense fallback={null}>
+        {(settingsOpen || settingsLoaded) && (
+          <SettingsDialog
+            open={settingsOpen}
+            onOpenChange={setSettingsOpen}
+            onShowFirstScan={() => {
+              setSettingsOpen(false);
+              setScanOpen(true);
+            }}
+          />
+        )}
+      </Suspense>
+      <Suspense fallback={null}>
+        {(searchOpen || searchLoaded) && <SearchPalette open={searchOpen} onOpenChange={setSearchOpen} onSettings={() => setSettingsOpen(true)} />}
+      </Suspense>
+      <Suspense fallback={null}>
+        {/* It also watches for the first full sync to open itself, so it stays drawn once in. */}
+        {(scanOpen || scanLoaded) && <FirstScan open={scanOpen} onOpenChange={setScanOpen} blocked={settingsOpen || searchOpen} />}
+      </Suspense>
     </div>
   );
 }

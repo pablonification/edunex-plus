@@ -2,7 +2,8 @@
 // Screens that load after the first one (src/app/later.tsx): going to one
 // whose code is still loading keeps the screen before it up (never a blank
 // frame) until it can draw; once loaded it draws at once; a failed load shows
-// in the screen's guard, and "Coba lagi" there loads it again.
+// in the screen's guard, and "Coba lagi" there loads it again. A closed dialog
+// loads nothing until it is opened or preloaded.
 import { act, Component, type ReactNode, Suspense } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, describe, expect, it } from "vitest";
@@ -120,5 +121,22 @@ describe("screens that load later", () => {
     expect(grades.loads()).toBe(2);
     await act(async () => grades.arrive());
     expect(app.textContent).toContain("Nilai kamu");
+  });
+
+  it("loads a closed dialog only once asked, and draws it as its code arrives", async () => {
+    const settings = slowScreen("Pengaturan");
+    function Host() {
+      const loaded = settings.Screen.useLoaded();
+      return <Suspense fallback={null}>{loaded && <settings.Screen />}</Suspense>;
+    }
+    const app = await mount(<Host />);
+    expect(settings.loads()).toBe(0);
+
+    const loaded = settings.Screen.preload();
+    await act(async () => {
+      settings.arrive();
+      await loaded;
+    });
+    expect(app.textContent).toBe("Pengaturan");
   });
 });
