@@ -2,7 +2,7 @@
 // real engine against a pretend GitHub: once a day at most, quiet on any
 // failure, never in development.
 import { describe, expect, it } from "vitest";
-import { isNewerRelease, releasePageUrl } from "../../src/core/updates";
+import { isNewerRelease, isPrerelease, newestTag, releasePageUrl } from "../../src/core/updates";
 import { MemoryStorage } from "../pretend/memory";
 import { PretendWorld } from "../pretend/world";
 import { startEngine } from "./harness";
@@ -32,6 +32,15 @@ describe("release versions", () => {
     ["v2.0.0", "not a version", false],
   ])("%s newer than %s: %s", (tag, current, newer) => {
     expect(isNewerRelease(tag, current)).toBe(newer);
+  });
+
+  it("knows a pre-release, and picks the newest of several tags", () => {
+    expect(isPrerelease("0.1.0-alpha.1")).toBe(true);
+    expect(isPrerelease("0.1.0")).toBe(false);
+    expect(isPrerelease("not a version")).toBe(false);
+    expect(newestTag(["v0.1.0-alpha.2", "v0.1.0", "latest", "v0.1.0-alpha.10"])).toBe("v0.1.0");
+    expect(newestTag(["v0.1.0-alpha.2", "v0.1.0-alpha.10"])).toBe("v0.1.0-alpha.10");
+    expect(newestTag(["latest"])).toBeNull();
   });
 
   it("links to the release's own page", () => {
@@ -117,6 +126,29 @@ describe("new version check", () => {
 
     const updated = await startEngine({ world, storage, checkForUpdates: true, version: "2.1.0" });
     expect(notice(updated)).toBeUndefined();
+  });
+
+  it("in an alpha, tells about the next alpha, never a draft, then about the full release", async () => {
+    const world = new PretendWorld();
+    world.github.preReleaseTags = ["v0.1.0-alpha.2", "v0.1.0-alpha.1"];
+    world.github.draftTags = ["v0.1.0-alpha.3"];
+    const h = await startEngine({ world, checkForUpdates: true, version: "0.1.0-alpha.1" });
+    await h.wait(2 * MINUTE);
+    expect(world.github.requests[0].path).toBe("/repos/pablonification/edunex-plus/releases");
+    expect(notice(h)).toEqual({ version: "0.1.0-alpha.2", url: "https://github.com/pablonification/edunex-plus/releases/tag/v0.1.0-alpha.2" });
+
+    world.github.latestTag = "v0.1.0";
+    await h.wait(DAY);
+    expect(notice(h)).toMatchObject({ version: "0.1.0" });
+  });
+
+  it("in a full release, never offers an alpha", async () => {
+    const world = new PretendWorld();
+    world.github.preReleaseTags = ["v0.2.0-alpha.1"];
+    const h = await startEngine({ world, checkForUpdates: true, version: "0.1.0" });
+    await h.wait(2 * MINUTE);
+    expect(world.github.requests[0].path).toBe("/repos/pablonification/edunex-plus/releases/latest");
+    expect(notice(h)).toBeUndefined();
   });
 
   it("never asks in development", async () => {

@@ -1,10 +1,12 @@
 // The "new version available" check (#82): asks GitHub for the latest release
 // at most once a day and publishes it when it is newer than the running
-// version. Quiet by design: offline, a refusal or an odd answer just means
+// version. A pre-release copy (an alpha) looks at every published release, so
+// it hears about the next alpha too; a full release only ever offers a full
+// release. Quiet by design: offline, a refusal or an odd answer just means
 // no notice. Never installs anything; the window links to the release page.
 import { z } from "zod";
 import type { UpdateNotice } from "../core/models";
-import { isNewerRelease, LATEST_RELEASE_API, releasePageUrl } from "../core/updates";
+import { isNewerRelease, isPrerelease, LATEST_RELEASE_API, newestTag, RELEASES_API, releasePageUrl } from "../core/updates";
 import type { Clock, TimerHandle } from "./clock";
 import type { Transport } from "./http/transport";
 import type { Storage } from "./store/storage";
@@ -17,6 +19,7 @@ const RETRY_OFFLINE_AFTER = 60 * 60_000;
 const STATE_KEY = "updates.json";
 
 const LatestRelease = z.object({ tag_name: z.string(), draft: z.boolean().optional(), prerelease: z.boolean().optional() });
+const Releases = z.array(LatestRelease);
 
 export interface UpdateCheckDeps {
   transport: Transport;
@@ -53,12 +56,25 @@ export function createUpdateCheck(deps: UpdateCheckDeps): UpdateCheck {
     }
   }
 
+  /** The tag to compare with, from GitHub's answer; undefined when the answer is odd. */
+  function offered(body: string, everyRelease: boolean): string | null | undefined {
+    if (everyRelease) {
+      const releases = Releases.safeParse(JSON.parse(body));
+      if (!releases.success) return undefined;
+      return newestTag(releases.data.filter((release) => !release.draft).map((release) => release.tag_name));
+    }
+    const release = LatestRelease.safeParse(JSON.parse(body));
+    if (!release.success || release.data.draft || release.data.prerelease) return undefined;
+    return release.data.tag_name;
+  }
+
   async function check(): Promise<void> {
     let answered = false;
+    const everyRelease = isPrerelease(deps.version);
     try {
       const response = await deps.transport.request({
         method: "GET",
-        url: LATEST_RELEASE_API,
+        url: everyRelease ? RELEASES_API : LATEST_RELEASE_API,
         headers: { "user-agent": deps.userAgent, accept: "application/vnd.github+json", "x-github-api-version": "2022-11-28" },
         timeoutMs: 15_000,
       });
@@ -67,10 +83,9 @@ export function createUpdateCheck(deps: UpdateCheckDeps): UpdateCheck {
       // 404: no release published yet.
       if (response.status === 404) return await deps.publish(null);
       if (response.status !== 200) return;
-      const release = LatestRelease.safeParse(JSON.parse(response.body));
-      if (!release.success || release.data.draft || release.data.prerelease) return;
-      const tag = release.data.tag_name;
-      await deps.publish(isNewerRelease(tag, deps.version) ? { version: tag.replace(/^v/, ""), url: releasePageUrl(tag) } : null);
+      const tag = offered(response.body, everyRelease);
+      if (tag === undefined) return;
+      await deps.publish(tag && isNewerRelease(tag, deps.version) ? { version: tag.replace(/^v/, ""), url: releasePageUrl(tag) } : null);
     } catch {
       // Offline, timed out, or an answer that isn't JSON: no notice this time.
     } finally {

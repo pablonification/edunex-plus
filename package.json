@@ -1,7 +1,7 @@
 {
   "name": "edunex-plus",
   "productName": "Edunex Plus",
-  "version": "0.1.0",
+  "version": "0.1.0-alpha.1",
   "private": true,
   "license": "MIT",
   "description": "Unofficial desktop app for ITB students: Edunex and SIX in one place",

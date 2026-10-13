@@ -39,8 +39,13 @@ Bahasa Indonesia and English, light and dark.
 
 ## Install
 
-Download the file for your computer from the
-[latest release](https://github.com/pablonification/edunex-plus/releases/latest).
+> **Alpha.** Edunex Plus is in early testing: expect rough edges, and check anything important
+> (a hand-in, an attendance count) on Edunex or SIX itself. Tell us what breaks in
+> [Issues](https://github.com/pablonification/edunex-plus/issues).
+
+Download the file for your computer from the newest
+[release](https://github.com/pablonification/edunex-plus/releases) (alphas are marked
+"Pre-release").
 
 ### macOS (Apple silicon)
 
@@ -74,6 +79,9 @@ the app still works but asks you to sign in again after each restart, and Settin
 Once a day the app asks GitHub whether a newer release exists. If so, a dot appears on the
 settings button and Settings shows the new version with **Unduh**, which opens the release page
 in your browser. The app never downloads or installs anything by itself.
+
+An alpha tells you about the newest release, whether that is the next alpha or the full release.
+A full release only ever offers full releases.
 
 ## Signing in
 

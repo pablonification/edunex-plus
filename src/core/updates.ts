@@ -4,6 +4,8 @@
 
 export const RELEASES_REPO = "pablonification/edunex-plus";
 export const LATEST_RELEASE_API = `https://api.github.com/repos/${RELEASES_REPO}/releases/latest`;
+/** Every release, pre-releases (alphas, betas) included, newest first. */
+export const RELEASES_API = `https://api.github.com/repos/${RELEASES_REPO}/releases?per_page=30`;
 
 /** The release page for a tag; the app opens only pages it built itself. */
 export function releasePageUrl(tag: string): string {
@@ -40,6 +42,21 @@ export function compareVersions(a: Version, b: Version): number {
     return x < y ? -1 : 1;
   }
   return 0;
+}
+
+/** "0.1.0-alpha.1" is a pre-release: such a copy also hears about newer alphas and betas. */
+export function isPrerelease(version: string): boolean {
+  return (parseVersion(version)?.pre.length ?? 0) > 0;
+}
+
+/** The newest tag of the ones given; tags that aren't versions are skipped. */
+export function newestTag(tags: string[]): string | null {
+  let newest: { tag: string; version: Version } | null = null;
+  for (const tag of tags) {
+    const version = parseVersion(tag);
+    if (version && (!newest || compareVersions(version, newest.version) > 0)) newest = { tag, version };
+  }
+  return newest?.tag ?? null;
 }
 
 /** Whether a release tag is newer than the running version. Tags that aren't versions never are. */

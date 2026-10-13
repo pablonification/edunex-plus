@@ -152,7 +152,8 @@ jobs:
             gh release upload "$TAG" --repo "$REPO" --clobber installers/*
           else
             flags=(--draft --generate-notes --verify-tag --title "Edunex Plus ${TAG#v}")
-            # v1.2.3-rc.1 and the like are test builds: installed apps never offer them.
+            # v0.1.0-alpha.1 and the like are pre-releases: only copies that are
+            # pre-releases themselves offer them (src/engine/updates.ts).
             if [[ "$TAG" == *-* ]]; then flags+=(--prerelease); fi
             gh release create "$TAG" --repo "$REPO" "${flags[@]}" installers/*
           fi
