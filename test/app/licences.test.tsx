@@ -48,9 +48,10 @@ afterEach(() => {
 const dialog = () => document.querySelector<HTMLElement>("[role=dialog]");
 const title = () => dialog()?.querySelector("h2")?.textContent;
 const search = () => dialog()?.querySelector<HTMLInputElement>("input");
-/** The list's rows, by what their button says ("zod4.6.5MIT"). */
-const rows = () => [...(dialog()?.querySelectorAll("ul > li") ?? [])].map((li) => li.querySelector("button")?.textContent ?? "");
-const row = (name: string) => [...(dialog()?.querySelectorAll<HTMLButtonElement>("ul > li > div > button") ?? [])].find((b) => b.textContent?.startsWith(name));
+/** The list's rows, by what their button says to a screen reader ("zod · 4.6.5 · MIT"). */
+const rows = () => [...(dialog()?.querySelectorAll("ul > li") ?? [])].map((li) => li.querySelector("button")?.getAttribute("aria-label") ?? "");
+const row = (name: string) =>
+  [...(dialog()?.querySelectorAll<HTMLButtonElement>("ul > li > div > button") ?? [])].find((b) => b.getAttribute("aria-label")?.startsWith(`${name} ·`));
 
 /** Waits until the window shows what `check` looks for (the list arrives after its file is read). */
 async function until(check: () => boolean) {
@@ -99,11 +100,11 @@ describe("Settings → Tentang", () => {
     expect(reads[0]).toMatch(/\/licences\.json$/);
     expect(dialog()?.textContent).toContain("Edunex Plus dibangun dengan 5 perangkat lunak sumber terbuka, masing-masing dengan lisensinya sendiri.");
     expect(rows()).toEqual([
-      "@radix-ui/react-dialog1.2.0MIT",
-      "ChromiumBSD-3-Clause",
-      "Liberation SansGPL-2.0 with font exception",
-      "pdfjs-dist6.4.299Apache-2.0",
-      "zod4.6.5MIT",
+      "@radix-ui/react-dialog · 1.2.0 · MIT",
+      "Chromium · BSD-3-Clause",
+      "Liberation Sans · GPL-2.0 with font exception",
+      "pdfjs-dist · 6.4.299 · Apache-2.0",
+      "zod · 4.6.5 · MIT",
     ]);
     expect(document.activeElement).toBe(search());
   });
@@ -112,10 +113,10 @@ describe("Settings → Tentang", () => {
     screen = await openApp({ signedIn: true });
     await openLicences();
     await type("mit");
-    expect(rows()).toEqual(["@radix-ui/react-dialog1.2.0MIT", "zod4.6.5MIT"]);
+    expect(rows()).toEqual(["@radix-ui/react-dialog · 1.2.0 · MIT", "zod · 4.6.5 · MIT"]);
     expect(dialog()?.textContent).toContain("2 hasil");
     await type("radix dialog");
-    expect(rows()).toEqual(["@radix-ui/react-dialog1.2.0MIT"]);
+    expect(rows()).toEqual(["@radix-ui/react-dialog · 1.2.0 · MIT"]);
     await type("tiptap");
     expect(rows()).toEqual([]);
     expect(dialog()?.textContent).toContain("Tidak ada yang cocok dengan “tiptap”");
@@ -171,6 +172,8 @@ describe("Settings → Tentang", () => {
     await screen.apply({ type: "command", command: "settings" });
     await screen.click("Lihat lisensi sumber terbuka");
     await until(() => (dialog()?.textContent ?? "").includes("Daftar lisensi belum bisa dimuat"));
+    // Said to a screen reader too, where the Student is.
+    expect(dialog()?.querySelector("[role=status]")?.textContent).toContain("Daftar lisensi belum bisa dimuat");
     file = "list";
     await screen.click("Coba lagi");
     await until(() => rows().length === 5);

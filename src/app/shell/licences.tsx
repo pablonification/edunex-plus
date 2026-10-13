@@ -11,7 +11,7 @@ import { Button, IconButton } from "../ui/controls";
 import { cx } from "../ui/cx";
 import { Skeleton } from "../ui/display";
 import { Icons } from "../ui/icons";
-import { List, Notice } from "../ui/layout";
+import { factsLabel, List, Notice } from "../ui/layout";
 import { DisclosurePanel, disclosureTrigger } from "../ui/motion/disclosure";
 import { Tooltip } from "../ui/overlays";
 
@@ -46,7 +46,7 @@ export default function Licences() {
   const searching = query.trim() !== "";
 
   return (
-    <div>
+    <div aria-busy={loaded === "loading" || undefined}>
       {list ? <p className="text-body text-pretty text-muted">{t("licences.intro", { count: list.length })}</p> : <Skeleton className="h-5 w-4/5" />}
       {/* The search stays in view over the rows scrolling under it. */}
       <div className="sticky -top-5 z-10 -mx-5 bg-raised px-5 py-3">
@@ -68,15 +68,18 @@ export default function Licences() {
         </label>
       </div>
       {loaded === "failed" ? (
-        <Notice
-          tone="warning"
-          title={t("licences.failed")}
-          action={
-            <Button size="sm" onClick={() => setAttempt((n) => n + 1)}>
-              {t("action.tryAgain")}
-            </Button>
-          }
-        />
+        // Said where the Student is, also to a screen reader: the list they asked for didn't come.
+        <div role="status">
+          <Notice
+            tone="warning"
+            title={t("licences.failed")}
+            action={
+              <Button size="sm" onClick={() => setAttempt((n) => n + 1)}>
+                {t("action.tryAgain")}
+              </Button>
+            }
+          />
+        </div>
       ) : !list ? (
         <Loading />
       ) : shown.length > 0 ? (
@@ -111,6 +114,8 @@ function LicenceRow({ entry, open, onToggle }: { entry: Licence; open: boolean; 
         <button
           type="button"
           onClick={onToggle}
+          // Read as "zod · 4.6.5 · MIT": the parts on screen have no spaces between them.
+          aria-label={factsLabel(entry.name, entry.version, entry.licence)}
           {...disclosureTrigger(open, id)}
           className="flex min-w-0 flex-1 items-center gap-2.5 py-2.5 pr-1 pl-3.5 text-left focus-visible:outline-none"
         >
@@ -152,7 +157,7 @@ function LicenceRow({ entry, open, onToggle }: { entry: Licence; open: boolean; 
 function LicenceText({ text }: { text: string }) {
   const paragraphs = useMemo(() => licenceParagraphs(text), [text]);
   return (
-    <div className="max-w-[72ch] space-y-2 text-caption break-words text-muted">
+    <div className="max-w-[72ch] space-y-2 text-caption text-pretty break-words text-muted">
       {paragraphs.map((paragraph, i) =>
         paragraph === "---" ? (
           // biome-ignore lint/suspicious/noArrayIndexKey: the paragraphs of one text, in their order; they have nothing else to be told apart by
