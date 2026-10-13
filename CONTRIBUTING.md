@@ -140,7 +140,10 @@ for changes to sessions, the window's protections, packaging or workflows.
 
 ## Releases (maintainers)
 
-1. `npm version patch` (or `minor`), then `git push --follow-tags`.
+1. `npm version patch` (or `minor`), then `git push --follow-tags`. For a test
+   build, use a pre-release version: `npm version 0.1.0-alpha.2`. Its release is
+   marked "Pre-release", and only copies that are pre-releases themselves are
+   told about it.
 2. The **Package and release** workflow checks that the tag matches the
    version, builds for macOS, Windows and Linux, and makes a draft release with
    notes grouped by label.
