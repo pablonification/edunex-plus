@@ -3,6 +3,7 @@
 // and child classes merged under one course code.
 import { describe, expect, it } from "vitest";
 import { PRETEND_TOKEN } from "../pretend/edunex";
+import { MemoryStorage } from "../pretend/memory";
 import { startEngine } from "./harness";
 
 const HOUR = 3_600_000;
@@ -15,7 +16,7 @@ const signedIn = async () => {
 };
 
 describe("course outline", () => {
-  it("lists the class's modules, then its parent class's, leaving out the ones the lecturer switched off", async () => {
+  it("lists the class's opened modules, then its parent class's, each by Edunex's own number", async () => {
     const h = await signedIn();
     const outline = h.dataset("edunex.outline")!.II4091;
     expect(outline.lecturer).toBe("Dr. Hadi Halim, S.T., M.T.");
@@ -32,8 +33,69 @@ describe("course outline", () => {
       ...outline.modules.slice(6).map((m) => [97602, m.title]),
     ]);
     expect(outline.modules).toHaveLength(9);
+    expect(outline.modules.map((m) => m.number)).toEqual([1, 2, 3, 4, 5, 1, 2, 3, 4]);
     expect(outline.modules.map((m) => m.title)).not.toContain("Module 06");
     expect(Object.keys(h.dataset("edunex.outline")!).sort()).toEqual(["DK4073", "II4091", "KU5014", "PL3002", "PL3032"]);
+  });
+
+  it("keeps the modules Edunex lists but the lecturer hasn't opened, by Edunex's number, and reads nothing from them", async () => {
+    const h = await signedIn();
+    const unopened = h.dataset("edunex.outline")!.II4091.unopened!;
+    expect(unopened.map((m) => [m.number, m.title])).toEqual([
+      [6, "Module 06"],
+      [7, "Module 07"],
+      [8, "Midex/UTS"],
+      [9, "Module 09"],
+      [10, "Module 10"],
+      [11, "Module 11"],
+      [12, "Quiz 2"],
+      [13, "Module 13"],
+      [14, "Module 14"],
+      [15, "Module 15"],
+      [16, "Finex/UAS"],
+    ]);
+    expect(unopened.every((m) => m.courseId === 95326 && m.opensAt === null)).toBe(true);
+    expect(h.dataset("edunex.outline")!.PL3002.unopened).toEqual([]);
+    // Edunex shows a Student nothing inside them: they aren't asked for.
+    expect(h.world.log.some((e) => decodeURIComponent(e.url).includes("contentable_id][is]=450223"))).toBe(false);
+  });
+
+  it("a module closed in the middle keeps the others' numbers as Edunex shows them, and one opening on a date says when", async () => {
+    const h = await signedIn();
+    const modules = h.world.edunex.courseDetail.get(95001).included.filter((i: { type: string }) => i.type === "modules");
+    const byIndex = (index: number) => modules.find((m: { attributes: { index: number } }) => m.attributes.index === index).attributes;
+    byIndex(3).is_active = false;
+    Object.assign(byIndex(5), { is_active: false, is_date_restricted: 1, start_at: "2026-10-20T08:00:00+07:00" });
+    await h.engine.refresh("edunex");
+    const outline = h.dataset("edunex.outline")!.PL3002;
+    expect(outline.modules.map((m) => m.number)).toEqual([1, 2, 4, 6, 7]);
+    expect(outline.unopened).toEqual([
+      { id: 470031, courseId: 95001, title: "Product Innovation", number: 3, opensAt: null },
+      { id: 477153, courseId: 95001, title: "Inovasi Kelembagaan Pasar", number: 5, opensAt: at("2026-10-20T08:00:00+07:00") },
+    ]);
+  });
+
+  it("an outline and materials saved before Edunex's numbers and names were kept still load", async () => {
+    const storage = new MemoryStorage();
+    const file = (name: string, value: unknown) => JSON.stringify({ format: 1, name, value, fetchedAt: 0, hash: "saved" });
+    // As the version before this one saved them: no number, no unopened modules, no names.
+    const outline = {
+      II4091: {
+        lecturer: "Dr. Hadi Halim, S.T., M.T.",
+        credits: 2,
+        program: null,
+        grade: null,
+        modules: [{ id: 1, courseId: 95326, title: "Pengantar", postedAt: 0 }],
+      },
+    };
+    const materials = {
+      II4091: [{ id: 2, courseId: 95326, moduleId: 1, title: "Slide", type: "pdf", content: null, sizeBytes: null, postedAt: 0, updatedAt: 0 }],
+    };
+    storage.files.set("datasets/edunex.outline.json", file("edunex.outline", outline));
+    storage.files.set("datasets/edunex.materials.json", file("edunex.materials", materials));
+    const h = await startEngine({ storage, start: false });
+    expect(h.dataset("edunex.outline")).toEqual(outline);
+    expect(h.dataset("edunex.materials")).toEqual(materials);
   });
 
   it("never takes Edunex's unpublished gradebook (0 · E) for a grade", async () => {
@@ -66,6 +128,9 @@ describe("materials", () => {
       sizeBytes: 1947726,
       postedAt: at("2026-09-01T11:40:00+07:00"),
       updatedAt: at("2026-09-01T11:40:00+07:00"),
+      // Who posted and last changed it, as Edunex names them under the item.
+      createdBy: "Dr. Utami Siregar, S.E, MM, M.Si.",
+      updatedBy: "Dr. Utami Siregar, S.E, MM, M.Si.",
     });
     // The online-class links exist only in the parent class.
     const teams = materials.II4091.filter((m) => m.type === "ms-teams");

@@ -16,8 +16,6 @@ export const contentStrings = {
   "file.problem.too-big": { id: "Berkas ini terlalu besar untuk ditampilkan di aplikasi.", en: "This file is too big to show in the app." },
   "file.problem.unreadable": { id: "Berkas ini tidak bisa ditampilkan di aplikasi.", en: "This file can't be shown in the app." },
   "file.problem.unreachable": { id: "Penyimpanan Edunex tidak terjangkau. Cek koneksimu.", en: "Couldn't reach Edunex's storage. Check your connection." },
-  "note.more": { id: "Tampilkan semua", en: "Show all" },
-  "note.less": { id: "Tampilkan lebih sedikit", en: "Show less" },
   "note.posted": { id: "Diposting {when}", en: "Posted {when}" },
   "note.updated": { id: "Diperbarui {when}", en: "Updated {when}" },
   "note.empty": { id: "Catatan ini kosong", en: "This note is empty" },

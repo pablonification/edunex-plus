@@ -122,6 +122,8 @@ export class PretendEdunex {
           size: item.size,
           created_at: item.at,
           updated_at: item.at,
+          created_by: item.by,
+          updated_by: item.by,
           course_id: item.courseId,
         },
         links: { self: `https://api-edunex.cognisia.id/course/contents/${880_001 + at}` },
