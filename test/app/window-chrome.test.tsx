@@ -50,7 +50,11 @@ describe("the window's top on Windows and Linux", () => {
     expect(screen.text()).toContain("Selamat datang di Edunex Plus");
     const language = screen.button("English").closest(".no-drag")!;
     expect(language.className).toContain("right-[calc(--spacing(4)+var(--window-controls))]");
-    expect([...document.querySelectorAll(".drag")].some((band) => band.className.includes("h-(--title-bar)"))).toBe(true);
+    const band = [...document.querySelectorAll(".drag")].find((element) => element.className.includes("h-(--title-bar)"));
+    expect(band).toBeDefined();
+    // At the window's smallest the welcome scrolls; the band and the language choice stay at the top rather than scroll away.
+    expect(band!.classList.contains("fixed")).toBe(true);
+    expect(language.classList.contains("fixed")).toBe(true);
   });
 
   it("a dialog's tint takes the clicks over the top bar, so a click there closes the dialog instead of moving the window", async () => {
