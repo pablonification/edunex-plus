@@ -109,6 +109,13 @@ describe("Settings → Tentang", () => {
     expect(document.activeElement).toBe(search());
   });
 
+  it("keeps the dialog at its full height, so the search stays where it is while the results change", async () => {
+    screen = await openApp({ signedIn: true });
+    await openLicences();
+    // Sized to the rows, it would shrink and re-centre with each narrower search, moving the box the Student types in.
+    expect(dialog()?.classList.contains("h-[min(720px,86vh)]")).toBe(true);
+  });
+
   it("a search narrows the list by name or licence, says how many, and says when nothing matches", async () => {
     screen = await openApp({ signedIn: true });
     await openLicences();
