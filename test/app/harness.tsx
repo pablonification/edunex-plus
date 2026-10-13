@@ -8,11 +8,11 @@ import { type BridgeApi, createBridge } from "../../src/app/bridge";
 import type { UiClock } from "../../src/app/i18n";
 import { AppStore } from "../../src/app/store";
 import { type ActionName, type ActionResult, Actions, type AppSnapshot, type Event } from "../../src/core/contract";
-import { handInHandlers, type LocalFile } from "../../src/desktop/hand-in";
-import type { SourceId } from "../../src/core/models";
-import { createEngine, type Engine } from "../../src/engine/engine";
 import { planOfflineFiles } from "../../src/core/course-materials";
+import type { SourceId } from "../../src/core/models";
 import { phoneCalendar } from "../../src/core/phone-calendar";
+import { handInHandlers, type LocalFile } from "../../src/desktop/hand-in";
+import { createEngine, type Engine } from "../../src/engine/engine";
 import { EngineError, isEngineError } from "../../src/engine/errors";
 import { PRETEND_TOKEN } from "../pretend/edunex";
 import { MemoryStorage, MemoryVault } from "../pretend/memory";
@@ -146,7 +146,12 @@ export async function openApp(options: Options = {}) {
     "app.openRelease": async () => ({}),
     // The calendar file main would write through the save dialog; tests read it from `exported`.
     "schedule.export": async (options: Parameters<typeof phoneCalendar>[3]) => {
-      const calendar = phoneCalendar((name) => engine.snapshot().datasets.find((d) => d.name === name)?.value as never, engine.snapshot().settings.lang, world.clock.now(), options);
+      const calendar = phoneCalendar(
+        (name) => engine.snapshot().datasets.find((d) => d.name === name)?.value as never,
+        engine.snapshot().settings.lang,
+        world.clock.now(),
+        options,
+      );
       exported.push(calendar.text);
       return { file: "Edunex Plus.ics", events: calendar.events };
     },

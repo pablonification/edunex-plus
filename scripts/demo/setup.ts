@@ -37,7 +37,8 @@ const scratch = path.join(os.tmpdir(), `edunex-plus-demo-${process.pid}`);
 fs.mkdirSync(path.join(scratch, "Downloads"), { recursive: true });
 app.on("quit", () => fs.rmSync(scratch, { recursive: true, force: true }));
 app.setPath("downloads", path.join(scratch, "Downloads"));
-const SAMPLE_PDF = "%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj 2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj 3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 595 842]>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF\n";
+const SAMPLE_PDF =
+  "%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj 2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj 3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 595 842]>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF\n";
 const answer = path.join(scratch, "Laporan Tugas - Dimas Pratama.pdf");
 fs.writeFileSync(answer, SAMPLE_PDF);
 const opened: string[] = [];

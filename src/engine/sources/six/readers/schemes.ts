@@ -9,7 +9,12 @@ const HEADER = [
   ["Dosen Wali", "Prodi Penyelenggara"],
 ];
 /** A panel's kind: from its "register" link (…&tab=minor), else its title. Outbound Mobility is another layout and isn't read. */
-const BY_TAB: Record<string, SchemeRegistration["kind"]> = { minor: "minor", spesialisasi: "specialization", multidisiplin: "multidisciplinary", doublemajor: "double-major" };
+const BY_TAB: Record<string, SchemeRegistration["kind"]> = {
+  minor: "minor",
+  spesialisasi: "specialization",
+  multidisiplin: "multidisciplinary",
+  doublemajor: "double-major",
+};
 const BY_TITLE: Record<string, SchemeRegistration["kind"]> = {
   minor: "minor",
   spesialisasi: "specialization",
@@ -40,7 +45,14 @@ export function readSchemes(html: string): SchemeRegistration[] {
       if (cells.length !== 5) changed(page, `a ${kind} row has ${cells.length} cells`);
       const [, scheme, advisor, program, status] = cells as Elem[];
       const [name, runBy] = textOf(scheme!).split(" · ").map(clean);
-      out.push({ kind, name: name!, program: runBy || null, advisorApprovedOn: approval(page, advisor!), programApprovedOn: approval(page, program!), status: textOf(status!) });
+      out.push({
+        kind,
+        name: name!,
+        program: runBy || null,
+        advisorApprovedOn: approval(page, advisor!),
+        programApprovedOn: approval(page, program!),
+        status: textOf(status!),
+      });
     }
   }
   if (seen.size === 0) changed(page, "no scheme panels");

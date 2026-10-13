@@ -2,7 +2,7 @@
 // a Monday-first grid of days, each with its meetings (SIX's meeting id,
 // time, course, activity and room). Times are WIB.
 import type { ClassSession } from "../../../core/models";
-import { changed, clean, COURSE_CODE, type Element, type Nodes, parse } from "./html";
+import { COURSE_CODE, changed, clean, type Element, type Nodes, parse } from "./html";
 
 export interface TimetablePage {
   /** The month shown, "202610". */
@@ -99,6 +99,7 @@ function readMeeting(link: Nodes, day: number): ClassSession {
   // The room follows the activity at the end of the line: "(Kuliah R.SG PWK LT.6)", or "(Kuliah)" without one.
   const opens = text.lastIndexOf(`(${activity}`);
   const after = text.slice(opens + activity.length + 1);
+  // biome-ignore lint/correctness/noEmptyCharacterClassInRegex: [^] is any character, line breaks included
   if (opens < 0 || !/^(\s[^]*)?\)$/.test(after)) throw changed(PAGE, "a meeting without its activity and room");
   const room = clean(after.slice(0, -1)) || null;
 

@@ -3,8 +3,9 @@
 // language. The icons come from scripts/generate-tray-icon.mjs: macOS tints
 // the "Template" image itself; Windows gets the dark or the light glyph to
 // match its taskbar, and switches when the Student changes it.
-import { app, Menu, type NativeImage, nativeImage, nativeTheme, Tray } from "electron";
+
 import path from "node:path";
+import { app, Menu, type NativeImage, nativeImage, nativeTheme, Tray } from "electron";
 import type { Lang } from "../core/models";
 import { translate } from "../core/strings";
 
@@ -53,7 +54,8 @@ export function createTray(options: { lang: Lang; open: () => void; quit: () => 
 function icon(): NativeImage {
   const assets = path.join(app.getAppPath(), "assets");
   // The taskbar's own theme, which can differ from the apps' (Windows' "custom" colors).
-  if (process.platform === "win32" && nativeTheme.shouldUseDarkColorsForSystemIntegratedUI) return nativeImage.createFromPath(path.join(assets, "trayLight.png"));
+  if (process.platform === "win32" && nativeTheme.shouldUseDarkColorsForSystemIntegratedUI)
+    return nativeImage.createFromPath(path.join(assets, "trayLight.png"));
   const image = nativeImage.createFromPath(path.join(assets, "trayTemplate.png"));
   image.setTemplateImage(true);
   return image;

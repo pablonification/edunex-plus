@@ -1,7 +1,7 @@
 // The crash guard. Each panel (sidebar, top bar, every screen, every dialog)
 // sits inside one, so a bad record breaks one panel with a visible error and
 // a way out, never the whole window.
-import { Component, useState, type ErrorInfo, type ReactNode } from "react";
+import { Component, type ErrorInfo, type ReactNode, useState } from "react";
 import { useT } from "../i18n";
 import { Button } from "./controls";
 import { cx } from "./cx";
@@ -37,7 +37,10 @@ function PanelError({ name, error, compact, onRetry }: { name: string; error: Er
   const [copied, setCopied] = useState(false);
   const copy = () => {
     const details = `Edunex Plus · ${name}\n${error.name}: ${error.message}\n${error.stack ?? ""}`;
-    void navigator.clipboard?.writeText(details).then(() => setCopied(true), () => undefined);
+    void navigator.clipboard?.writeText(details).then(
+      () => setCopied(true),
+      () => undefined,
+    );
   };
   return (
     <div role="alert" className={cx("flex flex-col items-start gap-3 text-body", compact ? "p-3" : "mx-auto max-w-[520px] px-6 py-16")}>

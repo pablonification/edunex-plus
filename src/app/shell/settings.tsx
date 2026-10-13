@@ -3,7 +3,7 @@
 // remove everything), then notifications and what closing the window does,
 // then appearance, then the rest (attendance target, version). A newer
 // release shows on top while there is one.
-import { useRef, useState, type ReactNode } from "react";
+import { type ReactNode, useRef, useState } from "react";
 import type { AlertGroup, Settings, SourceId } from "../../core/models";
 import type { StringKey } from "../../core/strings";
 import { ActionError } from "../bridge";
@@ -20,7 +20,15 @@ import { ConfirmDialog, Dialog, toast } from "../ui/overlays";
 import { PanelBoundary } from "../ui/panel-boundary";
 import { useSignIn } from "./source-status";
 
-export function SettingsDialog({ open, onOpenChange, onShowFirstScan }: { open: boolean; onOpenChange: (open: boolean) => void; onShowFirstScan?: () => void }) {
+export function SettingsDialog({
+  open,
+  onOpenChange,
+  onShowFirstScan,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onShowFirstScan?: () => void;
+}) {
   const t = useT();
   return (
     <Dialog open={open} onOpenChange={onOpenChange} title={t("nav.settings")}>
@@ -269,7 +277,9 @@ function AccountRow({ source, who }: { source: SourceId; who: string | null }) {
   };
   const needsSignIn = status.state === "signed-out" || status.state === "expired";
   // Each button says where it goes, both ways: "Masuk ke SIX", "Keluar dari SIX".
-  const label = needsSignIn ? t(status.state === "expired" ? "settings.signInAgainTo" : "settings.signInTo", { source: name }) : t("settings.signOutOf", { source: name });
+  const label = needsSignIn
+    ? t(status.state === "expired" ? "settings.signInAgainTo" : "settings.signInTo", { source: name })
+    : t("settings.signOutOf", { source: name });
   const checked = status.updatedAt !== null ? f.fromNow(status.updatedAt) : null;
   const state =
     status.state === "signed-out"

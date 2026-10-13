@@ -1,9 +1,10 @@
 // The window's files are served from app://edunex-plus/ (never file://), with
 // the content policy attached to every answer. Nothing outside the built
 // renderer folder can be read through it.
-import { net, protocol } from "electron";
+
 import path from "node:path";
 import { pathToFileURL } from "node:url";
+import { net, protocol } from "electron";
 import { APP_HOST, APP_SCHEME } from "./security";
 
 /** Must run before the app is ready. */

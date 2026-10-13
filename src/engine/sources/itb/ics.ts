@@ -29,7 +29,12 @@ export class IcsError extends Error {}
 
 /** Lines folded with a leading space or tab belong to the line before. */
 function unfold(text: string): string[] {
-  return text.replace(/\r\n/g, "\n").replace(/\r/g, "\n").replace(/\n[ \t]/g, "").split("\n").filter((line) => line.length > 0);
+  return text
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n")
+    .replace(/\n[ \t]/g, "")
+    .split("\n")
+    .filter((line) => line.length > 0);
 }
 
 function parseLine(line: string): Property {
@@ -118,7 +123,9 @@ function repeats(rule: string, first: number, allDay: boolean): number[] {
   if (!freq || !["DAILY", "WEEKLY", "MONTHLY", "YEARLY"].includes(freq) || Object.keys(parts).some((k) => k.startsWith("BY"))) return [first];
   const interval = Math.max(1, Number(parts.INTERVAL ?? 1));
   const count = parts.COUNT ? Math.min(Number(parts.COUNT), MAX_REPEATS) : MAX_REPEATS;
-  const until = parts.UNTIL ? parseTime({ name: "UNTIL", params: {}, value: parts.UNTIL }).at + (/T/.test(parts.UNTIL) ? 0 : DAY - 1) : Number.POSITIVE_INFINITY;
+  const until = parts.UNTIL
+    ? parseTime({ name: "UNTIL", params: {}, value: parts.UNTIL }).at + (/T/.test(parts.UNTIL) ? 0 : DAY - 1)
+    : Number.POSITIVE_INFINITY;
   // Step in WIB wall-clock time so all-day events stay on midnight.
   const offset = allDay ? zoneOffset(first, DEFAULT_ZONE) : 0;
   const base = new Date(first + offset);
@@ -180,9 +187,7 @@ function toEvents(properties: Property[]): IcsEvent[] {
   const summary = unescapeText(get("SUMMARY")?.value ?? "").trim();
   const rule = get("RRULE");
   if (!rule) return [{ uid, summary, start, end, allDay }];
-  const excluded = new Set(
-    properties.filter((p) => p.name === "EXDATE").flatMap((p) => p.value.split(",").map((value) => parseTime({ ...p, value }).at)),
-  );
+  const excluded = new Set(properties.filter((p) => p.name === "EXDATE").flatMap((p) => p.value.split(",").map((value) => parseTime({ ...p, value }).at)));
   return repeats(rule.value, start, allDay)
     .filter((at) => !excluded.has(at))
     .map((at, i) => ({ uid: i === 0 ? uid : `${uid}@${at}`, summary, start: at, end: at + (end - start), allDay }));

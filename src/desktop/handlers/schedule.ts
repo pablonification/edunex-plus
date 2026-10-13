@@ -2,10 +2,11 @@
 // Student chooses in the system save dialog, and shown in the file manager
 // afterwards. Only on the Student's click; reveal only ever shows the file
 // saved here last, never a path from the window.
-import { app, dialog, shell } from "electron";
+
 import { existsSync } from "node:fs";
 import { writeFile } from "node:fs/promises";
 import path from "node:path";
+import { app, dialog, shell } from "electron";
 import type { DatasetName, DatasetValue } from "../../core/models";
 import { phoneCalendar } from "../../core/phone-calendar";
 import { EngineError } from "../../engine/errors";

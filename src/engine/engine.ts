@@ -4,7 +4,7 @@
 import type { Event, Snapshot } from "../core/contract";
 import { type DatasetName, Datasets, DEFAULT_SETTINGS, Settings, SourceId, SourceStatus } from "../core/models";
 import { isNewerRelease } from "../core/updates";
-import { type AlertNotice, AlertCenter } from "./alerts/center";
+import { AlertCenter, type AlertNotice } from "./alerts/center";
 import type { Detector } from "./alerts/detector";
 import { DETECTORS } from "./alerts/detectors";
 import type { Clock } from "./clock";

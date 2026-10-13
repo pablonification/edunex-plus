@@ -15,16 +15,56 @@ const now = wib("2026-10-08T08:12:00");
 function datasets(overrides: Partial<{ [N in DatasetName]: DatasetValue<N> }> = {}) {
   const values: Partial<{ [N in DatasetName]: DatasetValue<N> }> = {
     "six.schedule": [
-      { id: "2194342", courseCode: "PL3002", courseName: "Ekonomi dan Inovasi dalam Perencanaan", start: wib("2026-10-08T08:00:00"), end: wib("2026-10-08T10:00:00"), activity: "Kuliah", room: "R.SG PWK LT.6" },
-      { id: "2179909", courseCode: "DK4073", courseName: "Komunikasi Pemasaran", start: wib("2026-10-15T11:00:00"), end: wib("2026-10-15T12:59:00"), activity: "UTS", room: "TVST C" },
-      { id: "2311195", courseCode: "II4091", courseName: "Proposal Tugas Akhir", start: wib("2026-10-16T15:00:00"), end: wib("2026-10-16T23:00:00"), activity: "Kuliah", room: null },
+      {
+        id: "2194342",
+        courseCode: "PL3002",
+        courseName: "Ekonomi dan Inovasi dalam Perencanaan",
+        start: wib("2026-10-08T08:00:00"),
+        end: wib("2026-10-08T10:00:00"),
+        activity: "Kuliah",
+        room: "R.SG PWK LT.6",
+      },
+      {
+        id: "2179909",
+        courseCode: "DK4073",
+        courseName: "Komunikasi Pemasaran",
+        start: wib("2026-10-15T11:00:00"),
+        end: wib("2026-10-15T12:59:00"),
+        activity: "UTS",
+        room: "TVST C",
+      },
+      {
+        id: "2311195",
+        courseCode: "II4091",
+        courseName: "Proposal Tugas Akhir",
+        start: wib("2026-10-16T15:00:00"),
+        end: wib("2026-10-16T23:00:00"),
+        activity: "Kuliah",
+        room: null,
+      },
     ],
     "six.scheduleMonths": ["2026-10", "2026-11"],
     "edunex.announcements": {
-      II4091: [{ id: 1, courseId: 95326, text: "Pertemuan 03: Jumat, 09 Oktober 2026 Pkl. 15:00 - 17:00 WIB (Online - Link meeting teams)", author: null, postedAt: wib("2026-10-01T10:00:00") }],
+      II4091: [
+        {
+          id: 1,
+          courseId: 95326,
+          text: "Pertemuan 03: Jumat, 09 Oktober 2026 Pkl. 15:00 - 17:00 WIB (Online - Link meeting teams)",
+          author: null,
+          postedAt: wib("2026-10-01T10:00:00"),
+        },
+      ],
     },
     "edunex.tasks": [
-      aTask({ id: 117764, courseCode: "DK4073", courseId: 93409, title: "UTS Markom; bagian 1, esai", status: "not_started", kind: "uts", dueAt: wib("2026-10-22T23:50:00") }),
+      aTask({
+        id: 117764,
+        courseCode: "DK4073",
+        courseId: 93409,
+        title: "UTS Markom; bagian 1, esai",
+        status: "not_started",
+        kind: "uts",
+        dueAt: wib("2026-10-22T23:50:00"),
+      }),
       aTask({ id: 117001, courseCode: "II4091", courseId: 95326, title: "Tugas 01 Bab I", status: "submitted", dueAt: wib("2026-09-25T23:59:00") }),
     ],
     ...overrides,
@@ -60,7 +100,9 @@ describe("the phone calendar file", () => {
     const stamps = (name: string) => [...text.matchAll(new RegExp(`^${name};TZID=Asia/Jakarta:(\\d{8}T\\d{6})`, "gm"))].map((m) => m[1]);
     const [starts, ends] = [stamps("DTSTART"), stamps("DTEND")];
     expect(starts).toHaveLength(7);
-    starts.forEach((start, i) => expect(ends[i] > start).toBe(true));
+    starts.forEach((start, i) => {
+      expect(ends[i] > start).toBe(true);
+    });
     const due = parseIcs(text).find((e) => e.uid === "edunex-task-117764@edunex-plus")!;
     expect([new Date(due.start).toISOString(), new Date(due.end).toISOString()]).toEqual(["2026-10-22T16:20:00.000Z", "2026-10-22T16:50:00.000Z"]);
     expect(text).toContain("DTSTART;TZID=Asia/Jakarta:20261022T232000\r\nDTEND;TZID=Asia/Jakarta:20261022T235000");
@@ -80,22 +122,39 @@ describe("the phone calendar file", () => {
     const quizzes = {
       "six.schedule": [
         ...datasets()("six.schedule")!,
-        { id: "2194370", courseCode: "PL3002", courseName: "Ekonomi dan Inovasi dalam Perencanaan", start: wib("2026-11-05T08:00:00"), end: wib("2026-11-05T09:00:00"), activity: "Kuis", room: "R.SG PWK LT.6" },
+        {
+          id: "2194370",
+          courseCode: "PL3002",
+          courseName: "Ekonomi dan Inovasi dalam Perencanaan",
+          start: wib("2026-11-05T08:00:00"),
+          end: wib("2026-11-05T09:00:00"),
+          activity: "Kuis",
+          room: "R.SG PWK LT.6",
+        },
       ],
       "edunex.exams": { PL3002: [{ id: "e2", courseId: 95001, title: "Kuis 3 (daring)", start: wib("2026-11-12T19:00:00"), end: wib("2026-11-12T20:00:00") }] },
     };
     const summaries = (lang: "id" | "en") => parseIcs(phoneCalendar(datasets(quizzes), lang, now).text).map((e) => e.summary);
-    expect(summaries("en")).toEqual(expect.arrayContaining(["Quiz PL3002 · Ekonomi dan Inovasi dalam Perencanaan", "Quiz PL3002 · Kuis 3 (daring)", "UTS DK4073 · Komunikasi Pemasaran"]));
-    expect(summaries("id")).toEqual(expect.arrayContaining(["Kuis PL3002 · Ekonomi dan Inovasi dalam Perencanaan", "Kuis PL3002 · Kuis 3 (daring)", "UTS DK4073 · Komunikasi Pemasaran"]));
+    expect(summaries("en")).toEqual(
+      expect.arrayContaining(["Quiz PL3002 · Ekonomi dan Inovasi dalam Perencanaan", "Quiz PL3002 · Kuis 3 (daring)", "UTS DK4073 · Komunikasi Pemasaran"]),
+    );
+    expect(summaries("id")).toEqual(
+      expect.arrayContaining(["Kuis PL3002 · Ekonomi dan Inovasi dalam Perencanaan", "Kuis PL3002 · Kuis 3 (daring)", "UTS DK4073 · Komunikasi Pemasaran"]),
+    );
   });
 
   it("re-imported later: the same UIDs, a higher SEQUENCE, newer LAST-MODIFIED, and the moved class at its new time", () => {
     const first = phoneCalendar(datasets(), "id", now).text;
     const moved = datasets({
-      "six.schedule": datasets()("six.schedule")!.map((s) => (s.id === "2194342" ? { ...s, start: wib("2026-10-08T09:00:00"), end: wib("2026-10-08T11:00:00"), room: "9009" } : s)),
+      "six.schedule": datasets()("six.schedule")!.map((s) =>
+        s.id === "2194342" ? { ...s, start: wib("2026-10-08T09:00:00"), end: wib("2026-10-08T11:00:00"), room: "9009" } : s,
+      ),
     });
     const second = phoneCalendar(moved, "id", now + 3_600_000).text;
-    const uids = (text: string) => parseIcs(text).map((e) => e.uid).sort();
+    const uids = (text: string) =>
+      parseIcs(text)
+        .map((e) => e.uid)
+        .sort();
     expect(uids(second)).toEqual(uids(first));
     expect(new Set(uids(first)).size).toBe(6);
     const field = (text: string, name: string) => [...text.matchAll(new RegExp(`^${name}:(.*)$`, "gm"))].map((m) => m[1].trim());
@@ -111,9 +170,39 @@ describe("what the Student puts on the phone", () => {
   const calendar = {
     checkedAt: 0,
     events: [
-      { id: "uts-1", title: "Masa Ujian Tengah Semester I-2026/2027", kind: "uts" as const, term: "2026-1", start: wib("2026-10-12T00:00:00"), end: wib("2026-10-17T00:00:00"), allDay: true, firstDay: "2026-10-12", lastDay: "2026-10-16" },
-      { id: "yud-1", title: "Yudisium ITB Bulan Oktober 2026", kind: "other" as const, term: null, start: wib("2026-10-20T00:00:00"), end: wib("2026-10-21T00:00:00"), allDay: true, firstDay: "2026-10-20", lastDay: "2026-10-20" },
-      { id: "end-1", title: "Hari Terakhir Masa Kuliah Semester I-2026/2027", kind: "lecture-end" as const, term: "2026-1", start: wib("2026-12-04T00:00:00"), end: wib("2026-12-05T00:00:00"), allDay: true, firstDay: "2026-12-04", lastDay: "2026-12-04" },
+      {
+        id: "uts-1",
+        title: "Masa Ujian Tengah Semester I-2026/2027",
+        kind: "uts" as const,
+        term: "2026-1",
+        start: wib("2026-10-12T00:00:00"),
+        end: wib("2026-10-17T00:00:00"),
+        allDay: true,
+        firstDay: "2026-10-12",
+        lastDay: "2026-10-16",
+      },
+      {
+        id: "yud-1",
+        title: "Yudisium ITB Bulan Oktober 2026",
+        kind: "other" as const,
+        term: null,
+        start: wib("2026-10-20T00:00:00"),
+        end: wib("2026-10-21T00:00:00"),
+        allDay: true,
+        firstDay: "2026-10-20",
+        lastDay: "2026-10-20",
+      },
+      {
+        id: "end-1",
+        title: "Hari Terakhir Masa Kuliah Semester I-2026/2027",
+        kind: "lecture-end" as const,
+        term: "2026-1",
+        start: wib("2026-12-04T00:00:00"),
+        end: wib("2026-12-05T00:00:00"),
+        allDay: true,
+        firstDay: "2026-12-04",
+        lastDay: "2026-12-04",
+      },
     ],
   };
 
@@ -130,13 +219,18 @@ describe("what the Student puts on the phone", () => {
   it("only the kinds chosen, from one day to another", () => {
     const get = datasets({ "itb.calendar": calendar });
     const summaries = (options: Parameters<typeof phoneCalendar>[3]) => parseIcs(phoneCalendar(get, "id", now, options).text).map((e) => e.summary);
-    expect(summaries({ include: { classes: false, exams: false, itb: false } })).toEqual(["Terkumpul II4091: Tugas 01 Bab I", "Tenggat DK4073: UTS Markom; bagian 1, esai"]);
+    expect(summaries({ include: { classes: false, exams: false, itb: false } })).toEqual([
+      "Terkumpul II4091: Tugas 01 Bab I",
+      "Tenggat DK4073: UTS Markom; bagian 1, esai",
+    ]);
     expect(summaries({ include: { deadlines: false, itb: false }, from: "2026-10-09", until: "2026-10-15" })).toEqual([
       "Pertemuan 3 II4091 · II4091",
       "UTS DK4073 · Komunikasi Pemasaran",
     ]);
     // A whole-day event still running on the first day goes in.
-    expect(summaries({ include: { classes: false, exams: false, deadlines: false }, from: "2026-10-14", until: "2026-10-31" })).toEqual(["Masa Ujian Tengah Semester I-2026/2027"]);
+    expect(summaries({ include: { classes: false, exams: false, deadlines: false }, from: "2026-10-14", until: "2026-10-31" })).toEqual([
+      "Masa Ujian Tengah Semester I-2026/2027",
+    ]);
   });
 
   it("a roomless SIX meeting that Edunex counts by a handed-in Task goes in as the window to hand it in, never an 8-hour class", () => {
@@ -158,7 +252,10 @@ describe("what the Student puts on the phone", () => {
         },
       ],
     };
-    const tasks = [...datasets()("edunex.tasks")!, aTask({ id: 117003, courseCode: "II4091", courseId: 95326, title: "Tugas 02 Bab II", status: "not_started", dueAt: wib("2026-10-16T23:59:00") })];
+    const tasks = [
+      ...datasets()("edunex.tasks")!,
+      aTask({ id: 117003, courseCode: "II4091", courseId: 95326, title: "Tugas 02 Bab II", status: "not_started", dueAt: wib("2026-10-16T23:59:00") }),
+    ];
     const text = phoneCalendar(datasets({ "edunex.presence": presence, "edunex.tasks": tasks }), "id", now).text;
     const event = parseIcs(text).find((e) => e.uid === "six-2311195@edunex-plus")!;
     expect(event.summary).toBe("Presensi II4091: kumpulkan Tugas 02 Bab II");

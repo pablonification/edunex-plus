@@ -2,7 +2,7 @@
 // disk, and announced to the screens only when its content really changed.
 import crypto from "node:crypto";
 import type { DatasetPayload, Event } from "../../core/contract";
-import { type DatasetName, type DatasetValue, Datasets } from "../../core/models";
+import { type DatasetName, Datasets, type DatasetValue } from "../../core/models";
 import type { Storage } from "./storage";
 
 const FORMAT = 1;
@@ -11,8 +11,19 @@ const keyOf = (name: string) => `datasets/${name}.json`;
 /** Same content, same hash: object keys are sorted first. */
 export function hashOf(value: unknown): string {
   const stable = (v: unknown): unknown =>
-    Array.isArray(v) ? v.map(stable) : v && typeof v === "object" ? Object.fromEntries(Object.keys(v).sort().map((k) => [k, stable((v as Record<string, unknown>)[k])])) : v;
-  return crypto.createHash("sha1").update(JSON.stringify(stable(value))).digest("hex");
+    Array.isArray(v)
+      ? v.map(stable)
+      : v && typeof v === "object"
+        ? Object.fromEntries(
+            Object.keys(v)
+              .sort()
+              .map((k) => [k, stable((v as Record<string, unknown>)[k])]),
+          )
+        : v;
+  return crypto
+    .createHash("sha1")
+    .update(JSON.stringify(stable(value)))
+    .digest("hex");
 }
 
 export class DatasetStore {

@@ -6,13 +6,13 @@
 import * as Tabs from "@radix-ui/react-tabs";
 import { useMemo, useState } from "react";
 import { percent } from "../../core/attendance";
-import { clashes, openPresence, pinnedMeeting } from "../../core/course-meetings";
 import { planOfflineFiles } from "../../core/course-materials";
+import { clashes, openPresence, pinnedMeeting } from "../../core/course-meetings";
 import { edunexCourseUrl } from "../../core/links";
 import { sixTimetableUrl } from "../../core/schedule";
 import { useAttendance } from "../attendance";
 import { useOpenExternal } from "../hooks";
-import { useFormat, useLang, useNow, useT, type StringKey } from "../i18n";
+import { type StringKey, useFormat, useLang, useNow, useT } from "../i18n";
 import { useNav } from "../nav";
 import { useRefresh } from "../shell/source-status";
 import { useBridge, useDataset, useStatus } from "../store";
@@ -20,14 +20,14 @@ import { Button } from "../ui/controls";
 import { cx } from "../ui/cx";
 import { Bar, CourseDot, EmptyState, LiveDot, Skeleton } from "../ui/display";
 import { Icons } from "../ui/icons";
-import { CountdownBar } from "../ui/meter";
 import { Meta, Notice, Page, PageHeader } from "../ui/layout";
 import { Menu } from "../ui/menu";
+import { CountdownBar } from "../ui/meter";
 import { toast } from "../ui/overlays";
 import { type CoursePage, useCoursePage } from "./course/data";
 import { GradesTab } from "./course/grades";
 import { AnnouncementsTab, TasksTab } from "./course/lists";
-import { meetingModuleTitle, MeetingsTab, pageModules } from "./course/meetings";
+import { MeetingsTab, meetingModuleTitle, pageModules } from "./course/meetings";
 import { ModulesTab } from "./course/modules";
 import { budgetLabel, STATE_TONE } from "./presence";
 
@@ -187,7 +187,10 @@ function MoreMenu({ page }: { page: CoursePage }) {
   const { course } = page;
   const [busy, setBusy] = useState(false);
   const plan = useMemo(
-    () => (course.edunex ? planOfflineFiles({ code: course.code, name: course.name, mainCourseId: course.edunex.courseId }, page.outline, page.materials ?? [], lang) : null),
+    () =>
+      course.edunex
+        ? planOfflineFiles({ code: course.code, name: course.name, mainCourseId: course.edunex.courseId }, page.outline, page.materials ?? [], lang)
+        : null,
     [course, page.outline, page.materials, lang],
   );
   const save = async (pick: boolean) => {
@@ -208,14 +211,31 @@ function MoreMenu({ page }: { page: CoursePage }) {
   const size = files.reduce((sum, file) => sum + (file.sizeBytes ?? 0), 0);
   const items = [];
   if (plan) {
-    const hint = files.length === 0 ? t("offline.noneYet") : size > 0 ? t("offline.files", { count: files.length, size: f.fileSize(size) }) : t("offline.filesNoSize", { count: files.length });
+    const hint =
+      files.length === 0
+        ? t("offline.noneYet")
+        : size > 0
+          ? t("offline.files", { count: files.length, size: f.fileSize(size) })
+          : t("offline.filesNoSize", { count: files.length });
     items.push(
-      { label: t("offline.save"), hint, icon: busy ? <Icons.Loader className="size-4 animate-spin" /> : <Icons.FolderDown className="size-4" />, disabled: busy || files.length === 0, onSelect: () => void save(false) },
+      {
+        label: t("offline.save"),
+        hint,
+        icon: busy ? <Icons.Loader className="size-4 animate-spin" /> : <Icons.FolderDown className="size-4" />,
+        disabled: busy || files.length === 0,
+        onSelect: () => void save(false),
+      },
       { label: t("offline.pick"), icon: <Icons.FolderDown className="size-4" />, disabled: busy || files.length === 0, onSelect: () => void save(true) },
     );
   }
-  if (course.edunex) items.push({ label: t("course.openEdunex"), icon: <Icons.ArrowUpRight className="size-4" />, onSelect: () => open(edunexCourseUrl(course.edunex!.courseId)) });
-  if (page.inSix && student) items.push({ label: t("course.openSix"), icon: <Icons.ArrowUpRight className="size-4" />, onSelect: () => open(sixTimetableUrl(student)) });
+  if (course.edunex)
+    items.push({
+      label: t("course.openEdunex"),
+      icon: <Icons.ArrowUpRight className="size-4" />,
+      onSelect: () => open(edunexCourseUrl(course.edunex!.courseId)),
+    });
+  if (page.inSix && student)
+    items.push({ label: t("course.openSix"), icon: <Icons.ArrowUpRight className="size-4" />, onSelect: () => open(sixTimetableUrl(student)) });
   if (!items.length) return null;
   return <Menu label={t("course.more")} items={items} />;
 }
@@ -252,10 +272,15 @@ function RiskStrip({ page }: { page: CoursePage }) {
       {[
         out ? t("course.risk.best", { best: percent(health.best ?? 0) }) : "",
         next && !nextShownBelow
-          ? t("course.risk.next", { when: `${f.relativeDay(next.start)}, ${f.timeRange(next.start, next.end)}`, room: next.six?.room ? t("course.risk.room", { room: next.six.room }) : "" })
+          ? t("course.risk.next", {
+              when: `${f.relativeDay(next.start)}, ${f.timeRange(next.start, next.end)}`,
+              room: next.six?.room ? t("course.risk.room", { room: next.six.room }) : "",
+            })
           : "",
         // The minutes the two classes share, as Beranda and Jadwal say it.
-        next && clash ? t("course.risk.clash", { code: clash.courseCode, time: f.timeRange(Math.max(next.start, clash.start), Math.min(next.end, clash.end)) }) : "",
+        next && clash
+          ? t("course.risk.clash", { code: clash.courseCode, time: f.timeRange(Math.max(next.start, clash.start), Math.min(next.end, clash.end)) })
+          : "",
       ]
         .filter(Boolean)
         .join(" ")}
@@ -289,7 +314,10 @@ function NowStrip({ page }: { page: CoursePage }) {
   const what = meeting ? (meetingModuleTitle(t, pageModules(page), meeting) ?? meeting.presence?.topic ?? meeting.six?.activity ?? null) : null;
 
   return (
-    <div className="flex flex-wrap items-center gap-x-6 gap-y-3 rounded-xl border border-edge bg-raised px-5 py-3.5 shadow-card" style={{ boxShadow: `inset 3px 0 0 ${page.course.color}` }}>
+    <div
+      className="flex flex-wrap items-center gap-x-6 gap-y-3 rounded-xl border border-edge bg-raised px-5 py-3.5 shadow-card"
+      style={{ boxShadow: `inset 3px 0 0 ${page.course.color}` }}
+    >
       <div className="min-w-0 flex-1">
         {meeting && (
           <p className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-body">
@@ -341,7 +369,9 @@ function NowStrip({ page }: { page: CoursePage }) {
         ) : (
           meeting?.presence?.note && <p className="mt-1 truncate text-small text-muted">{meeting.presence.note}</p>
         )}
-        {presence && !presenceCounts && <p className="mt-1 text-small text-muted">{t(countedIn === "noSix" ? "course.presenceNoSix" : "course.presenceCountsSix")}</p>}
+        {presence && !presenceCounts && (
+          <p className="mt-1 text-small text-muted">{t(countedIn === "noSix" ? "course.presenceNoSix" : "course.presenceCountsSix")}</p>
+        )}
       </div>
       <div className="flex shrink-0 items-center gap-2">
         {link && meeting && meeting.end > now && (

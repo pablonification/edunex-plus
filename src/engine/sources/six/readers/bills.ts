@@ -24,7 +24,7 @@ export function readBills(html: string): Bill[] {
       if (cells.length !== 1 || !years) changed(page, `year row "${textOf(row)}" isn't readable`);
       year = Number(years[1]);
     } else if (cells.length === 1) {
-      continue; // A note across the table.
+      // A note across the table: nothing to read.
     } else {
       if (year === null || cells.length !== HEADER.length) changed(page, "a bill row is out of place");
       bills.push(readBill(page, year, cells));

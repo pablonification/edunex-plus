@@ -8,13 +8,14 @@
 // Kurikulum and Nilai, and every removal can be taken back. The plan stays
 // on this computer; the app never sends a KRS.
 import * as Tabs from "@radix-ui/react-tabs";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import { nearestLetter } from "../../../core/honors";
 import type { LetterGrade, StudyPlan } from "../../../core/models";
 import {
   addCourse,
   addShortTerm,
   addTerm,
+  type CourseInfo,
   canRemoveTerm,
   checkPlan,
   courseInfo,
@@ -23,27 +24,26 @@ import {
   defaultPlan,
   expectedGrade,
   livePlan,
+  type MinorOption,
+  type ProjectedStep,
   plannedCodes,
   programElectives,
+  type Rule,
+  type RuleLevel,
   rankedMinors,
   removeCourse,
   removeTerm,
   retakeCandidates,
-  type Rule,
-  type RuleLevel,
-  searchCourses,
-  setGrade,
   type Shortfall,
-  shortTermToAdd,
-  sksModel,
   type SksModel,
   type StudentRecord,
+  searchCourses,
   semesterOf,
+  setGrade,
+  shortTermToAdd,
+  sksModel,
   targetOf,
   termKind,
-  type CourseInfo,
-  type MinorOption,
-  type ProjectedStep,
 } from "../../../core/planner";
 import { useFormat, useLang, useT } from "../../i18n";
 import { type PlanState, usePlan, useStudentRecord } from "../../study-plan";
@@ -52,7 +52,7 @@ import { cx } from "../../ui/cx";
 import { Card } from "../../ui/display";
 import { Icons } from "../../ui/icons";
 import { Flash } from "../../ui/motion";
-import { ConfirmDialog, Dialog, dismissToast, toast, Tooltip } from "../../ui/overlays";
+import { ConfirmDialog, Dialog, dismissToast, Tooltip, toast } from "../../ui/overlays";
 import { GradeSelect, HonorsList, IpkChart, NeedText, predicateFor, TargetControl, usePredicate, useTermLabel } from "./projection";
 import { SixNeeded } from "./six-needed";
 
@@ -379,7 +379,11 @@ function SksBar({ sks }: { sks: SksModel }) {
         className="relative flex h-2.5 gap-[2px] overflow-hidden rounded-full bg-black/[0.06] dark:bg-white/[0.08]"
       >
         {parts.map((part) => (
-          <span key={part.label} className={cx("h-full first:rounded-l-full last:rounded-r-full motion-safe:transition-[width] motion-safe:duration-500", part.color)} style={{ width: share(part.n) }} />
+          <span
+            key={part.label}
+            className={cx("h-full first:rounded-l-full last:rounded-r-full motion-safe:transition-[width] motion-safe:duration-500", part.color)}
+            style={{ width: share(part.n) }}
+          />
         ))}
         {sks.total > sks.need && <span aria-hidden className="absolute inset-y-0 w-[2px] bg-fg/70" style={{ left: share(sks.need) }} />}
       </div>
@@ -407,7 +411,12 @@ function Past({ record, steps }: { record: StudentRecord; steps: ProjectedStep[]
   const last = steps.at(-1)?.semester ?? steps.length;
   return (
     <Card className="overflow-hidden">
-      <button type="button" onClick={() => setOpen(!open)} aria-expanded={open} className="focus-ring flex w-full items-center gap-3 px-4 py-3 text-left transition-colors duration-150 hover:bg-hover">
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        aria-expanded={open}
+        className="focus-ring flex w-full items-center gap-3 px-4 py-3 text-left transition-colors duration-150 hover:bg-hover"
+      >
         <Icons.ChevronRight className={cx("size-4 text-faint transition-transform duration-150", open && "rotate-90")} />
         <span className="flex-1 text-body font-semibold">
           {t("planner.past", { n: last })}
@@ -469,7 +478,9 @@ function TermBlock({
           {step && (
             <span className="border-l border-line pl-3 text-right leading-tight">
               <span className="block text-small font-semibold tabular-nums">IP {step.ip === null ? "—" : f.number(step.ip, 2)}</span>
-              <span className="block text-caption text-faint tabular-nums">{t("planner.ipkAfter", { ipk: step.ipk === null ? "—" : f.number(step.ipk, 2) })}</span>
+              <span className="block text-caption text-faint tabular-nums">
+                {t("planner.ipkAfter", { ipk: step.ipk === null ? "—" : f.number(step.ipk, 2) })}
+              </span>
             </span>
           )}
           {onRemove && (
@@ -482,7 +493,11 @@ function TermBlock({
         </header>
         <ul>{children}</ul>
         {onAdd && (
-          <button type="button" onClick={onAdd} className="focus-ring flex w-full items-center gap-2 border-t border-line px-4 py-2.5 text-left text-small font-semibold text-accent-fg transition-colors duration-150 hover:bg-hover">
+          <button
+            type="button"
+            onClick={onAdd}
+            className="focus-ring flex w-full items-center gap-2 border-t border-line px-4 py-2.5 text-left text-small font-semibold text-accent-fg transition-colors duration-150 hover:bg-hover"
+          >
             <Icons.Plus className="size-3.5" />
             {t("planner.addCourse")}
           </button>
@@ -560,14 +575,19 @@ function CourseLine({
             className="focus-ring mt-0.5 inline-flex items-center gap-1 rounded text-caption font-medium text-warning-fg hover:underline"
           >
             <Icons.AlertTriangle className="size-3" />
-            {flag.id === "parity" ? t("planner.flag.parity", { kind: t(flag.semester % 2 === 1 ? "rule.parity.odd" : "rule.parity.even") }) : t("planner.flag.early")}
+            {flag.id === "parity"
+              ? t("planner.flag.parity", { kind: t(flag.semester % 2 === 1 ? "rule.parity.odd" : "rule.parity.even") })
+              : t("planner.flag.early")}
           </button>
         )}
       </span>
       {tag}
       <span className="text-right text-small text-muted tabular-nums">{sks}</span>
       {posted ? (
-        <span className="inline-flex h-7 items-center justify-center rounded-md bg-neutral-bg text-small font-bold text-neutral-fg" title={t("grades.sixGrade")}>
+        <span
+          className="inline-flex h-7 items-center justify-center rounded-md bg-neutral-bg text-small font-bold text-neutral-fg"
+          title={t("grades.sixGrade")}
+        >
           {grade}
         </span>
       ) : (
@@ -604,14 +624,23 @@ function useRuleText(record: StudentRecord): (rule: Rule) => { title: string; de
       case "total": {
         const extra = rule.have - rule.need;
         return {
-          title: extra > 0 ? t("rule.total.done", { need: rule.need, extra }) : extra === 0 ? t("rule.total.exact", { need: rule.need }) : t("rule.total", { have: rule.have, need: rule.need }),
+          title:
+            extra > 0
+              ? t("rule.total.done", { need: rule.need, extra })
+              : extra === 0
+                ? t("rule.total.exact", { need: rule.need })
+                : t("rule.total", { have: rule.have, need: rule.need }),
           detail: rule.level === "ok" ? t("rule.total.ok") : t("rule.total.short", { short: rule.need - rule.have }),
         };
       }
       case "required":
         return {
           title: t("rule.required"),
-          detail: rule.missing.length ? t("rule.missing", { list: list(rule.missing) }) : rule.total ? t("rule.required.okCount", { count: rule.total }) : t("rule.required.ok"),
+          detail: rule.missing.length
+            ? t("rule.missing", { list: list(rule.missing) })
+            : rule.total
+              ? t("rule.required.okCount", { count: rule.total })
+              : t("rule.required.ok"),
         };
       case "electives": {
         const extra = rule.have - rule.need;
@@ -626,19 +655,27 @@ function useRuleText(record: StudentRecord): (rule: Rule) => { title: string; de
         };
       }
       case "specialization":
-        return { title: rule.name, detail: rule.missing.length ? t("rule.missing", { list: list(rule.missing) }) : t("rule.specialization.ok", { count: rule.total }) };
+        return {
+          title: rule.name,
+          detail: rule.missing.length ? t("rule.missing", { list: list(rule.missing) }) : t("rule.specialization.ok", { count: rule.total }),
+        };
       case "minor":
         return { title: t("rule.minor", { name: rule.name }), detail: t("rule.minor.detail", { have: rule.have, need: rule.need }) };
       case "load":
         return {
           title: termLabel(rule.term, semesterOf(rule.term, record.entryTerm)),
-          detail: rule.level === "error" ? t("rule.load.over", { sks: rule.sks, limit: rule.limit }) : t("rule.load.advisor", { sks: rule.sks, limit: rule.limit }),
+          detail:
+            rule.level === "error" ? t("rule.load.over", { sks: rule.sks, limit: rule.limit }) : t("rule.load.advisor", { sks: rule.sks, limit: rule.limit }),
         };
       case "parity": {
         const odd = rule.semester % 2 === 1;
         return {
           title: `${rule.code} ${rule.name}`,
-          detail: t("rule.parity", { semester: rule.semester, parity: t(odd ? "rule.parity.odd" : "rule.parity.even"), kind: t(odd ? "rule.parity.even" : "rule.parity.odd") }),
+          detail: t("rule.parity", {
+            semester: rule.semester,
+            parity: t(odd ? "rule.parity.odd" : "rule.parity.even"),
+            kind: t(odd ? "rule.parity.even" : "rule.parity.odd"),
+          }),
         };
       }
       case "early":
@@ -647,7 +684,12 @@ function useRuleText(record: StudentRecord): (rule: Rule) => { title: string; de
         if (rule.blocked) return { title: t("rule.finish.blocked"), detail: t("rule.finish.blockedDetail", { list: shortfall(rule.blocked) }) };
         return {
           title: t("rule.finish", { n: rule.semester }),
-          detail: rule.level === "ok" ? t("rule.finish.ok", { normal: rule.normal }) : rule.semester <= 9 ? t("rule.finish.late", { normal: rule.normal }) : t("rule.finish.tooLate"),
+          detail:
+            rule.level === "ok"
+              ? t("rule.finish.ok", { normal: rule.normal })
+              : rule.semester <= 9
+                ? t("rule.finish.late", { normal: rule.normal })
+                : t("rule.finish.tooLate"),
         };
     }
   };
@@ -660,12 +702,12 @@ function Rules({ record, rules }: { record: StudentRecord; rules: Rule[] }) {
     <Card className="overflow-hidden">
       <h3 className="px-4 pt-3.5 text-body font-semibold">{t("planner.rules")}</h3>
       <ul className="space-y-1 px-2 pt-2 pb-3" aria-label={t("planner.rules")}>
-        {rules.map((rule, i) => {
+        {rules.map((rule) => {
           const { title, detail } = text(rule);
           const mark = LEVEL_MARK[rule.level];
           return (
             <li
-              key={`${rule.id}-${i}`}
+              key={ruleAnchor(rule)}
               id={ruleAnchor(rule)}
               className="flex scroll-m-24 items-start gap-2.5 rounded-lg px-2 py-1.5 transition-colors duration-500"
               data-rule={rule.id}
@@ -731,7 +773,10 @@ function Minors({ record, state }: { record: StudentRecord; state: PlanState }) 
                 aria-pressed={on}
                 aria-label={t("planner.minorTrack", { name: m.name })}
                 onClick={() => update((p) => ({ ...p, minor: on ? null : m.key }))}
-                className={cx("focus-ring flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left transition-colors duration-150", on ? "bg-selected" : "hover:bg-hover")}
+                className={cx(
+                  "focus-ring flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left transition-colors duration-150",
+                  on ? "bg-selected" : "hover:bg-hover",
+                )}
               >
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-small font-semibold">{m.name}</span>
@@ -775,7 +820,9 @@ function AddCourse({ record, state, term, title, onClose }: { record: StudentRec
   const open = (code: string) => !planned.has(code) && courseState(record, plan, code) === null;
   const needed: { code: string; why: string }[] = [
     ...record.requiredLeft.map((c) => ({ code: c.code, why: t("planner.why.required") })),
-    ...(record.specialization?.courses ?? []).filter((c) => open(c.code) || planned.has(c.code)).map((c) => ({ code: c.code, why: t("planner.why.specialization", { name: record.specialization!.name }) })),
+    ...(record.specialization?.courses ?? [])
+      .filter((c) => open(c.code) || planned.has(c.code))
+      .map((c) => ({ code: c.code, why: t("planner.why.specialization", { name: record.specialization!.name }) })),
     ...(minor?.courses ?? []).filter((code) => open(code) || planned.has(code)).map((code) => ({ code, why: t("planner.why.minor", { name: minor!.name }) })),
   ].filter((x, i, all) => all.findIndex((y) => y.code === x.code) === i);
   const retakes = retakeCandidates(record);
@@ -793,7 +840,14 @@ function AddCourse({ record, state, term, title, onClose }: { record: StudentRec
         <span className="min-w-0 flex-1">
           <span className="block truncate text-body font-medium">{info.name}</span>
           <span className="block truncate text-caption text-muted">
-            {[`${info.sks} SKS`, owner, why, retake && retake.now !== null && retake.after !== null ? t("planner.retakeGain", { now: f.number(retake.now, 2), after: f.number(retake.after, 2) }) : null]
+            {[
+              `${info.sks} SKS`,
+              owner,
+              why,
+              retake && retake.now !== null && retake.after !== null
+                ? t("planner.retakeGain", { now: f.number(retake.now, 2), after: f.number(retake.after, 2) })
+                : null,
+            ]
               .filter(Boolean)
               .join(" · ")}
           </span>
@@ -856,7 +910,13 @@ function AddCourse({ record, state, term, title, onClose }: { record: StudentRec
               )}
             </>
           )}
-          {tab === "program" && <ul>{programElectives(record).filter(matches).map((c) => row(c.code))}</ul>}
+          {tab === "program" && (
+            <ul>
+              {programElectives(record)
+                .filter(matches)
+                .map((c) => row(c.code))}
+            </ul>
+          )}
           {tab === "minors" && (
             <ul>
               {rankedMinors(record, plan)

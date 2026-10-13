@@ -17,8 +17,8 @@ import {
   minuteOfDay,
   type OutsideMeeting,
   SCHEDULE_EVENT_KINDS,
-  type ScheduledClass,
   type ScheduleDay,
+  type ScheduledClass,
   scheduleDays,
   sideBySide,
   type TaskWindow,
@@ -57,7 +57,10 @@ export function WeekView({ days, input }: { days: readonly string[]; input: Sche
   const grid: GridDay[] = plan.map((day, i) => {
     const at = dayStart(day.day);
     const size = busy[i] || (!anyBusy && i < 5) ? "wide" : i >= 5 ? "slim" : "narrow";
-    const lane = [...day.windows.map((w) => <WindowChip key={`w${w.presence.id}`} window={w} />), ...day.due.map((task) => <DueChip key={`t${task.id}`} task={task} />)];
+    const lane = [
+      ...day.windows.map((w) => <WindowChip key={`w${w.presence.id}`} window={w} />),
+      ...day.due.map((task) => <DueChip key={`t${task.id}`} task={task} />),
+    ];
     return {
       key: day.day,
       label: f.dateLong(at),
@@ -76,7 +79,12 @@ export function WeekView({ days, input }: { days: readonly string[]; input: Sche
     const to = days.indexOf(e.lastDay) < 0 ? 6 : days.indexOf(e.lastDay);
     // Over empty days only, the band is narrow: its name alone (the dates are on hover).
     const short = grid.slice(from, to + 1).every((d) => d.size !== "wide") && grid.slice(from, to + 1).length < 4;
-    return { key: e.id, from, to, label: <BandLabel event={e} f={f} short={short} uncertain={plan.some((day) => day.classes.some((c) => c.uncertain?.id === e.id))} /> };
+    return {
+      key: e.id,
+      from,
+      to,
+      label: <BandLabel event={e} f={f} short={short} uncertain={plan.some((day) => day.classes.some((c) => c.uncertain?.id === e.id))} />,
+    };
   });
 
   return <TimeGrid className="mt-2" days={grid} hours={hours} bands={bands} laneLabel={t("schedule.lane")} hourLabel={clockOf} hourHeight={HOUR_HEIGHT} />;
@@ -183,7 +191,11 @@ function ClassBlock({ item, minutes, narrow }: { item: ScheduledClass; minutes: 
   const roomLine = clashLine ? 4 : 3;
 
   const trigger = exam ? (
-    <button type="button" aria-label={label} className={cx(BLOCK, "bg-fg py-1 pr-1.5 pl-2.5 text-canvas shadow-raised hover:shadow-lift", past && "opacity-60")}>
+    <button
+      type="button"
+      aria-label={label}
+      className={cx(BLOCK, "bg-fg py-1 pr-1.5 pl-2.5 text-canvas shadow-raised hover:shadow-lift", past && "opacity-60")}
+    >
       <Stripe color={world.color(code)} />
       <span className="truncate font-bold tracking-[0.01em]">
         {session.activity} · {code}
@@ -273,8 +285,7 @@ function MarkWords({ item, max, narrow }: { item: ScheduledClass; max: number; n
   if (item.moved?.kinds.some((k) => k !== "room")) {
     const usual = `${clockOf(item.moved.usual.start)}–${clockOf(item.moved.usual.end)}`;
     words.push({ text: t(narrow ? "schedule.moved.short" : "schedule.moved.time", { usual }), tone: "text-warning-fg" });
-  }
-  else if (item.moved) words.push({ text: t("schedule.mark.room"), tone: "text-warning-fg" });
+  } else if (item.moved) words.push({ text: t("schedule.mark.room"), tone: "text-warning-fg" });
   if (item.extra) words.push({ text: t("schedule.mark.extra"), tone: "text-warning-fg" });
   // A narrow block names the clash beside the course code.
   if (!narrow) for (const o of item.overlaps) words.push({ text: t("schedule.mark.overlap", { code: o.code }), tone: "text-warning-fg" });
@@ -330,7 +341,11 @@ function MeetingBlock({ meeting, minutes, notInSix }: { meeting: OutsideMeeting 
       )}
       {lines >= 3 && where && <span className="truncate text-muted">{where}</span>}
       {/* Not on SIX's timetable: easy to miss, so amber, as on Beranda and the course page. */}
-      {lines >= (where ? 4 : 3) && <span className={cx("truncate", notInSix ? "font-semibold text-warning-fg" : "text-muted")}>{notInSix ? t("schedule.notInSix") : t("schedule.fromEdunex")}</span>}
+      {lines >= (where ? 4 : 3) && (
+        <span className={cx("truncate", notInSix ? "font-semibold text-warning-fg" : "text-muted")}>
+          {notInSix ? t("schedule.notInSix") : t("schedule.fromEdunex")}
+        </span>
+      )}
     </button>
   );
   return (
@@ -369,7 +384,11 @@ function WindowChip({ window }: { window: TaskWindow }) {
         done ? "border-success-fg/40 text-success-fg" : "border-accent-fg/50 bg-surface",
       )}
     >
-      {done ? <Icons.CheckCircle className="mt-0.5 size-3 shrink-0" weight="bold" /> : <Icons.Upload className="mt-0.5 size-3 shrink-0 text-accent-fg" weight="bold" />}
+      {done ? (
+        <Icons.CheckCircle className="mt-0.5 size-3 shrink-0" weight="bold" />
+      ) : (
+        <Icons.Upload className="mt-0.5 size-3 shrink-0 text-accent-fg" weight="bold" />
+      )}
       <span className="line-clamp-3 min-w-0">
         <span className="font-semibold tabular-nums">{window.code}</span> {text}
       </span>

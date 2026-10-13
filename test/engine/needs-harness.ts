@@ -29,7 +29,11 @@ export async function startHome(options: { now?: string; world?: PretendWorld } 
       now: world.clock.now(),
       target: h.engine.snapshot().settings.attendanceTarget,
       term: h.dataset("six.student")?.term ?? null,
-      courses: six.map((course) => ({ code: course.code, six: course.attendance, edunexId: edunex.find((e) => e.code === course.code)?.edunex.courseId ?? null })),
+      courses: six.map((course) => ({
+        code: course.code,
+        six: course.attendance,
+        edunexId: edunex.find((e) => e.code === course.code)?.edunex.courseId ?? null,
+      })),
       tasks: h.dataset("edunex.tasks") ?? [],
       presence: h.dataset("edunex.presence") ?? {},
       materials: h.dataset("edunex.materials") ?? {},

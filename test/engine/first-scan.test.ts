@@ -45,10 +45,17 @@ describe("after the first full sync of Edunex and SIX", () => {
       sources: ["six"],
       routes: [{ screen: "schedule" }, { screen: "plan", tab: "krs" }, { screen: "course", code: "KU5014", tab: "meetings" }],
     });
-    expect(clash.overlaps).toEqual([{ codes: ["KU5014", "PL3032"], count: 5, upcoming: true, start: wib("2026-10-08T16:00:00"), end: wib("2026-10-08T16:30:00") }]);
+    expect(clash.overlaps).toEqual([
+      { codes: ["KU5014", "PL3032"], count: 5, upcoming: true, start: wib("2026-10-08T16:00:00"), end: wib("2026-10-08T16:30:00") },
+    ]);
 
     // PL3002 is counted in SIX (6 of 7); Edunex recorded 1 of its 6 closed windows, so it would show 5 absences.
-    expect(of(findings, "unusedPresence")).toMatchObject({ count: 1, tone: "info", sources: ["edunex", "six"], courses: [{ code: "PL3002", absent: 5, attended: 6, held: 7 }] });
+    expect(of(findings, "unusedPresence")).toMatchObject({
+      count: 1,
+      tone: "info",
+      sources: ["edunex", "six"],
+      courses: [{ code: "PL3002", absent: 5, attended: 6, held: 7 }],
+    });
 
     // The exams as Tugas & Ujian lists them: DK4073's UTS (SIX's sitting with time and room, and Edunex's take-home
     // due a week later: one exam whose dates disagree), and PL3032's UTS and UAS, named only in its Edunex outline and
@@ -61,13 +68,21 @@ describe("after the first full sync of Edunex and SIX", () => {
       ["PL3032", "UAS"],
     ]);
     expect(exams.exams[0]).toMatchObject({ inOutline: true, at: null, week: { firstDay: "2026-10-12", lastDay: "2026-10-16" } });
-    expect(exams.exams[1]).toMatchObject({ at: wib("2026-10-15T11:00:00"), disagree: true, six: [{ room: "TVST C" }], tasks: [{ id: 117764, title: "UTS Markom" }] });
+    expect(exams.exams[1]).toMatchObject({
+      at: wib("2026-10-15T11:00:00"),
+      disagree: true,
+      six: [{ room: "TVST C" }],
+      tasks: [{ id: 117764, title: "UTS Markom" }],
+    });
     expect(exams.exams[2]).toMatchObject({ inOutline: true, at: null, week: { firstDay: "2026-12-07", lastDay: "2026-12-22" } });
 
     // "Pertemuan 03: Jumat, 09 Oktober 2026 Pkl. 15:00 - 17:00 WIB (Online …)" sits only in Edunex's parent class text.
     const outside = of(findings, "notInSix")!;
     expect(outside).toMatchObject({ count: 1, sources: ["edunex"], routes: [{ screen: "course", code: "II4091", tab: "meetings" }] });
-    expect(outside.meetings[0]).toMatchObject({ code: "II4091", meeting: { number: 3, start: wib("2026-10-09T15:00:00"), end: wib("2026-10-09T17:00:00"), online: true } });
+    expect(outside.meetings[0]).toMatchObject({
+      code: "II4091",
+      meeting: { number: 3, start: wib("2026-10-09T15:00:00"), end: wib("2026-10-09T17:00:00"), online: true },
+    });
 
     // Six Tasks edited after posting, two of them after the Student had handed in.
     const edited = of(findings, "edited")!;
@@ -75,7 +90,15 @@ describe("after the first full sync of Edunex and SIX", () => {
     expect(edited.tasks.map((t) => t.id)).toEqual([117764, 117001, 113986, 117003, 117010, 117023]);
 
     // SIX's IPK 3.26: no honors yet; cum laude starts at 3.50.
-    expect(of(findings, "ipk")).toMatchObject({ count: 3.26, ipk: 3.26, band: null, next: { level: "cum", min: 3.5 }, blocked: null, tone: "info", routes: [{ screen: "grades" }] });
+    expect(of(findings, "ipk")).toMatchObject({
+      count: 3.26,
+      ipk: 3.26,
+      band: null,
+      next: { level: "cum", min: 3.5 },
+      blocked: null,
+      tone: "info",
+      routes: [{ screen: "grades" }],
+    });
     // Everything but what couldn't be read counts as something neither system says.
     expect(notable(findings)).toBe(7);
   });
@@ -129,7 +152,11 @@ describe("when the scan is ready", () => {
     const steps: { six: string; ready: boolean; read: boolean }[] = [];
     for (let second = 0; second < 600 && !done; second++) {
       const saved = savedOf(h);
-      steps.push({ six: h.status("six").state, ready: scanReady(saved, statuses(h)), read: saved["six.schedule"] !== undefined && saved["six.transcript"] !== undefined });
+      steps.push({
+        six: h.status("six").state,
+        ready: scanReady(saved, statuses(h)),
+        read: saved["six.schedule"] !== undefined && saved["six.transcript"] !== undefined,
+      });
       await h.world.clock.advance(1_000);
     }
     await signingIn;
@@ -153,7 +180,11 @@ describe("when the scan is ready", () => {
     for (let second = 0; second < 600 && !done; second++) {
       const saved = savedOf(h);
       if (h.status("six").state !== "signed-out")
-        steps.push({ home: homeReady(saved, statuses(h)), scan: scanReady(saved, statuses(h)), timetable: saved["six.courses"] !== undefined && saved["six.schedule"] !== undefined });
+        steps.push({
+          home: homeReady(saved, statuses(h)),
+          scan: scanReady(saved, statuses(h)),
+          timetable: saved["six.courses"] !== undefined && saved["six.schedule"] !== undefined,
+        });
       await h.world.clock.advance(1_000);
     }
     await signingIn;
@@ -287,13 +318,17 @@ describe("each line's own rules", () => {
     ]);
     expect(of(scan(saved, statuses, wib("2026-10-29T16:31:00")), "clash")).toBeUndefined();
     // Without SIX's KRS the overlap shows on the course's meetings.
-    const { ["six.krs"]: _krs, ...withoutKrs } = saved;
+    const { "six.krs": _krs, ...withoutKrs } = saved;
     expect(of(scan(withoutKrs, statuses, now), "clash")?.routes).toEqual([{ screen: "schedule" }, { screen: "course", code: "KU5014", tab: "meetings" }]);
   });
 
   it("exams: a take-home UTS handed in, or an exam week already over, isn't upcoming", async () => {
     const { saved, statuses } = await base();
-    const tasks = saved["edunex.tasks"]!.map((t) => (t.id === 117764 ? { ...t, answer: { id: 1, sent: true, text: null, files: [], createdAt: null, updatedAt: null, sentAt: wib("2026-10-20T10:00:00"), reviewedAt: null } } : t));
+    const tasks = saved["edunex.tasks"]!.map((t) =>
+      t.id === 117764
+        ? { ...t, answer: { id: 1, sent: true, text: null, files: [], createdAt: null, updatedAt: null, sentAt: wib("2026-10-20T10:00:00"), reviewedAt: null } }
+        : t,
+    );
     const after = of(scan({ ...saved, "edunex.tasks": tasks }, statuses, wib("2026-10-17T08:00:00")), "exams");
     // DK4073's sitting is over and its take-home handed in; PL3032's UTS week is over.
     expect(after?.exams.map((e) => [e.courseCode, e.kind])).toEqual([["PL3032", "UAS"]]);
@@ -302,7 +337,12 @@ describe("each line's own rules", () => {
   it("one exam, or one edited Task, opens it directly", async () => {
     const { saved, statuses, now } = await base();
     const tasks = saved["edunex.tasks"]!.map((t) => (t.id === 117010 ? t : { ...t, editedAt: null }));
-    expect(of(scan({ ...saved, "edunex.tasks": tasks }, statuses, now), "edited")).toMatchObject({ count: 1, afterSubmit: 0, tone: "info", routes: [{ screen: "task", taskId: 117010 }] });
+    expect(of(scan({ ...saved, "edunex.tasks": tasks }, statuses, now), "edited")).toMatchObject({
+      count: 1,
+      afterSubmit: 0,
+      tone: "info",
+      routes: [{ screen: "task", taskId: 117010 }],
+    });
     const onlyTakeHome: Saved = { ...saved, "six.schedule": saved["six.schedule"]!.filter((s) => s.activity !== "UTS"), "edunex.outline": {} };
     // One exam opens its exam page, whichever system it comes from.
     expect(of(scan(onlyTakeHome, statuses, now), "exams")).toMatchObject({ count: 1, sources: ["edunex"], routes: [{ screen: "exam", examId: "DK4073-UTS" }] });
@@ -319,7 +359,7 @@ describe("each line's own rules", () => {
 
   it("a meeting announced only in Edunex needs SIX's timetable to be called that, and must still be to come", async () => {
     const { saved, statuses, now } = await base();
-    const { ["six.schedule"]: _schedule, ...withoutTimetable } = saved;
+    const { "six.schedule": _schedule, ...withoutTimetable } = saved;
     expect(of(scan(withoutTimetable, statuses, now), "notInSix")).toBeUndefined();
     expect(of(scan(saved, statuses, wib("2026-10-09T17:01:00")), "notInSix")).toBeUndefined();
   });

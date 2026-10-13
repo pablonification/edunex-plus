@@ -141,7 +141,10 @@ export function mergeExams(sources: ExamSources): Exam[] {
     exam.disagree = sixDays.size > 0 && edunexTimes.length > 0 && !edunexTimes.some((t) => sixDays.has(wibDay(t)));
   }
   return [...exams.values()].sort(
-    (a, b) => (a.at ?? Number.POSITIVE_INFINITY) - (b.at ?? Number.POSITIVE_INFINITY) || KIND_ORDER[a.kind] - KIND_ORDER[b.kind] || a.courseCode.localeCompare(b.courseCode),
+    (a, b) =>
+      (a.at ?? Number.POSITIVE_INFINITY) - (b.at ?? Number.POSITIVE_INFINITY) ||
+      KIND_ORDER[a.kind] - KIND_ORDER[b.kind] ||
+      a.courseCode.localeCompare(b.courseCode),
   );
 }
 

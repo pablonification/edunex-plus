@@ -5,8 +5,8 @@
 // an accessible name.
 import type { Icon as PhosphorIcon } from "@phosphor-icons/react";
 import { ArrowRightIcon } from "@phosphor-icons/react/dist/csr/ArrowRight";
-import { ArrowUpRightIcon } from "@phosphor-icons/react/dist/csr/ArrowUpRight";
 import { ArrowsClockwiseIcon } from "@phosphor-icons/react/dist/csr/ArrowsClockwise";
+import { ArrowUpRightIcon } from "@phosphor-icons/react/dist/csr/ArrowUpRight";
 import { BellIcon } from "@phosphor-icons/react/dist/csr/Bell";
 import { BookOpenIcon } from "@phosphor-icons/react/dist/csr/BookOpen";
 import { CalendarCheckIcon } from "@phosphor-icons/react/dist/csr/CalendarCheck";

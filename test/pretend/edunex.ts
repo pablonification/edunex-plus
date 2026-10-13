@@ -11,7 +11,7 @@ import type { FakeClock } from "./clock";
 export const EDUNEX_API = "https://api-edunex.cognisia.id";
 export const PRETEND_TOKEN = "pretend-edunex-token";
 
-/* eslint-disable @typescript-eslint/no-explicit-any -- vendor JSON is untyped on purpose: tests see exactly what Edunex sends */
+// biome-ignore lint/suspicious/noExplicitAny: vendor JSON is untyped on purpose: tests see exactly what Edunex sends
 type Json = any;
 
 export type Breakage =
@@ -132,7 +132,13 @@ export class PretendEdunex {
     const course = this.courseName(courseId);
     // Edunex's notification feed misses many Tasks: `announce: false` posts one it never mentions.
     if (options.announce !== false) {
-      this.notify({ type: "ASSIGNMENT", title: task.attributes.name, objectId: String(id), callbackUrl: `/assignment/take/${id}`, message: `${task.attributes.created_by ?? "Lecturer"} has been added new Assignment in ${course}` });
+      this.notify({
+        type: "ASSIGNMENT",
+        title: task.attributes.name,
+        objectId: String(id),
+        callbackUrl: `/assignment/take/${id}`,
+        message: `${task.attributes.created_by ?? "Lecturer"} has been added new Assignment in ${course}`,
+      });
     }
     return id;
   }
@@ -207,16 +213,30 @@ export class PretendEdunex {
     });
     const key = `${type}:${owner}`;
     this.contents.set(key, [...(this.contents.get(key) ?? []), item]);
-    this.notify({ type: "CONTENT", title: patch.name, objectId: String(courseId), callbackUrl: `/courses/${courseId}`, message: `Lecturer has been added new Content in ${this.courseName(courseId)}` });
+    this.notify({
+      type: "CONTENT",
+      title: patch.name,
+      objectId: String(courseId),
+      callbackUrl: `/courses/${courseId}`,
+      message: `Lecturer has been added new Content in ${this.courseName(courseId)}`,
+    });
     return id;
   }
 
   deleteMaterial(id: number): void {
-    for (const [key, list] of this.contents) this.contents.set(key, list.filter((c) => Number(c.id) !== id));
+    for (const [key, list] of this.contents)
+      this.contents.set(
+        key,
+        list.filter((c) => Number(c.id) !== id),
+      );
   }
 
   /** Opens a Presence session: a clone of a recorded one for that class, with a new window. */
-  schedulePresence(courseId: number, classId: number, window: { start: string; end: string; presenceStart?: string; presenceEnd?: string; patch?: Json }): number {
+  schedulePresence(
+    courseId: number,
+    classId: number,
+    window: { start: string; end: string; presenceStart?: string; presenceEnd?: string; patch?: Json },
+  ): number {
     const key = `${courseId}:${classId}`;
     const list = this.presences.get(key) ?? [];
     const template = list[0] ?? [...this.presences.values()].flat()[0];
@@ -234,7 +254,10 @@ export class PretendEdunex {
         ...window.patch,
       },
     });
-    this.presences.set(key, [...list, session].sort((a, b) => a.attributes.start_at.localeCompare(b.attributes.start_at)));
+    this.presences.set(
+      key,
+      [...list, session].sort((a, b) => a.attributes.start_at.localeCompare(b.attributes.start_at)),
+    );
     return id;
   }
 
@@ -242,7 +265,13 @@ export class PretendEdunex {
   markPresent(presenceId: number): void {
     for (const list of this.presences.values()) {
       const session = list.find((s) => Number(s.id) === presenceId);
-      if (session) session.attributes.attandance = { ...session.attributes.attandance, status: 1, type: "attend", presence_at: wib(this.clock.now()).replace("T", " ").slice(0, 19) };
+      if (session)
+        session.attributes.attandance = {
+          ...session.attributes.attandance,
+          status: 1,
+          type: "attend",
+          presence_at: wib(this.clock.now()).replace("T", " ").slice(0, 19),
+        };
     }
   }
 
@@ -323,7 +352,8 @@ export class PretendEdunex {
     if ((m = /^\/course\/lptks\/(\d+)$/.exec(path))) return this.lptk;
     if (path === "/course/presences/list") return this.pairs;
     if (path === "/course/courses") return this.myCourses;
-    if ((m = /^\/course\/courses\/(\d+)$/.exec(path))) return found((q.include ? this.courseDetail : this.coursePlain).get(Number(m[1])) ?? this.courseDetail.get(Number(m[1])));
+    if ((m = /^\/course\/courses\/(\d+)$/.exec(path)))
+      return found((q.include ? this.courseDetail : this.coursePlain).get(Number(m[1])) ?? this.courseDetail.get(Number(m[1])));
     if ((m = /^\/course\/courses\/(\d+)\/classes$/.exec(path))) return found(this.classes.get(Number(m[1])));
     if ((m = /^\/course\/modules\/(\d+)$/.exec(path))) return found(this.modules.get(Number(m[1])));
     if (path === "/course/tasks") return page(this.tasks.get(Number(q["filter[course_id][is]"])) ?? [], q, path);
@@ -332,7 +362,8 @@ export class PretendEdunex {
       return { data: { ...this.singleTaskTemplate.data, type: item.type, id: item.id, attributes: item.attributes, links: item.links } };
     }
     if (path === "/course/presences") return page(this.presences.get(`${q["filter[course_id][is]"]}:${q["filter[class_id][is]"]}`) ?? [], q, path);
-    if (path === "/course/contents" && q["filter[contentable_id][is]"]) return page(this.contents.get(`${q["filter[contentable_type][is]"]}:${q["filter[contentable_id][is]"]}`) ?? [], q, path);
+    if (path === "/course/contents" && q["filter[contentable_id][is]"])
+      return page(this.contents.get(`${q["filter[contentable_type][is]"]}:${q["filter[contentable_id][is]"]}`) ?? [], q, path);
     if (path === "/course/contents" && q["filter[type][in]"]) return page(this.vicon, q, path);
     if ((m = /^\/notifications\/(\d+)$/.exec(path))) {
       if (Number(m[1]) !== this.userId) throw new NotFound();
@@ -385,7 +416,11 @@ export class PretendEdunex {
       return {
         data: (body.files ?? []).map((f: Json, i: number) => {
           const name = `${this.clock.now()}_${i}_${String(f.fileName).replace(/[^\w.-]+/g, "-")}`;
-          return { fileName: f.fileName, uploadUrl: `https://edunexfixture.blob.core.windows.net/edunex/upload/${name}?sig=pretend`, readUrl: `https://edunexfixture.blob.core.windows.net/edunex/upload/${name}` };
+          return {
+            fileName: f.fileName,
+            uploadUrl: `https://edunexfixture.blob.core.windows.net/edunex/upload/${name}?sig=pretend`,
+            readUrl: `https://edunexfixture.blob.core.windows.net/edunex/upload/${name}`,
+          };
         }),
       };
     }
@@ -404,7 +439,10 @@ export class PretendEdunex {
 
   /** Files as Edunex returns them on an answer: the recorded file record, with this file's name and link. */
   private storedFiles(answerId: number, task: Json, files: Json[]): Json[] {
-    const template = [...this.tasks.values()].flat().flatMap((t) => t.attributes.answers).flatMap((a: Json) => a.files)[0];
+    const template = [...this.tasks.values()]
+      .flat()
+      .flatMap((t) => t.attributes.answers)
+      .flatMap((a: Json) => a.files)[0];
     const now = wib(this.clock.now()).replace("T", " ").slice(0, 19);
     return files.map((f: Json) => ({
       ...structuredClone(template),
@@ -487,7 +525,11 @@ function page(items: Json[], q: Record<string, string>, path: string): Json {
   return {
     meta: { count: data.length, total: items.length },
     data,
-    links: { first: link(0), last: link(limit > 0 ? Math.max(0, Math.floor((items.length - 1) / limit) * limit) : 0), next: link(offset + (limit || items.length)) },
+    links: {
+      first: link(0),
+      last: link(limit > 0 ? Math.max(0, Math.floor((items.length - 1) / limit) * limit) : 0),
+      next: link(offset + (limit || items.length)),
+    },
   };
 }
 

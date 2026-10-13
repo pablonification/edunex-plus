@@ -127,6 +127,7 @@ function PartName({ name, onRename }: { name: string; onRename: (name: string) =
     return (
       <input
         aria-label={t("grade.partName")}
+        // biome-ignore lint/a11y/noAutofocus: the field appears only when the Student asks to rename, so it takes focus
         autoFocus
         defaultValue={name}
         maxLength={80}
@@ -144,7 +145,12 @@ function PartName({ name, onRename }: { name: string; onRename: (name: string) =
   return (
     <span className="group flex items-center gap-1">
       <span className="truncate font-medium">{name}</span>
-      <IconButton label={t("grade.rename", { part: name })} size="sm" className="opacity-60 group-hover:opacity-100 focus-visible:opacity-100" onClick={() => setEditing(true)}>
+      <IconButton
+        label={t("grade.rename", { part: name })}
+        size="sm"
+        className="opacity-60 group-hover:opacity-100 focus-visible:opacity-100"
+        onClick={() => setEditing(true)}
+      >
         <Icons.PenLine className="size-3.5" />
       </IconButton>
     </span>
@@ -187,7 +193,9 @@ function Calculator({ page, onOpenModules }: { page: CoursePage; onOpenModules?:
     void bridge.invoke("local.set", { name: "local.courseWeights", value: all }).catch(() => undefined);
   };
   const setPart = (id: string, patch: Partial<ContractPart>) => save({ ...contract, parts: contract.parts.map((p) => (p.id === id ? { ...p, ...patch } : p)) });
-  const nameOf = (part: ContractPart) => part.name || ((EXAMPLE_PART_IDS as readonly string[]).includes(part.id) ? t(`grade.part.${part.id as (typeof EXAMPLE_PART_IDS)[number]}`) : t("grade.part.new"));
+  const nameOf = (part: ContractPart) =>
+    part.name ||
+    ((EXAMPLE_PART_IDS as readonly string[]).includes(part.id) ? t(`grade.part.${part.id as (typeof EXAMPLE_PART_IDS)[number]}`) : t("grade.part.new"));
 
   // The letter to answer for: the Student's pick, else the best one still open.
   const aim = target ?? result.needs.find((need) => !need.reached && need.need !== null)?.letter ?? "A";
@@ -236,10 +244,21 @@ function Calculator({ page, onOpenModules }: { page: CoursePage; onOpenModules?:
         {weightsOk && result.final === null && (
           <div className="mb-3 flex items-center gap-3">
             <span className="text-small font-medium text-muted">{t("grade.target")}</span>
-            <Segmented label={t("grade.target")} value={aim} onChange={setTarget} options={CONTRACT_LETTERS.slice(0, 5).map((letter) => ({ value: letter, label: letter }))} />
+            <Segmented
+              label={t("grade.target")}
+              value={aim}
+              onChange={setTarget}
+              options={CONTRACT_LETTERS.slice(0, 5).map((letter) => ({ value: letter, label: letter }))}
+            />
           </div>
         )}
-        <p className={cx("text-heading leading-snug font-semibold tracking-[-0.01em] text-balance", !weightsOk && "text-warning-fg", weightsOk && need.need === null && !need.reached && result.final === null && "text-danger-fg")}>
+        <p
+          className={cx(
+            "text-heading leading-snug font-semibold tracking-[-0.01em] text-balance",
+            !weightsOk && "text-warning-fg",
+            weightsOk && need.need === null && !need.reached && result.final === null && "text-danger-fg",
+          )}
+        >
           {answer}
         </p>
         {weightsOk && result.final === null && (
@@ -256,7 +275,6 @@ function Calculator({ page, onOpenModules }: { page: CoursePage; onOpenModules?:
           </p>
         )}
       </div>
-
 
       <div className="border-t border-line px-5 py-3">
         <table className="w-full text-body">
@@ -278,7 +296,15 @@ function Calculator({ page, onOpenModules }: { page: CoursePage; onOpenModules?:
                     <PartName name={name} onRename={(next) => setPart(part.id, { name: next })} />
                   </td>
                   <td className="py-2 pr-4 text-right whitespace-nowrap">
-                    <ScoreInput label={t("grade.weightOf", { part: name })} value={part.weight} required highlight={!fix && !sumOk} width="w-14" onProblem={mark(`w:${part.id}`)} onValue={(value) => setPart(part.id, { weight: value ?? 0 })} />
+                    <ScoreInput
+                      label={t("grade.weightOf", { part: name })}
+                      value={part.weight}
+                      required
+                      highlight={!fix && !sumOk}
+                      width="w-14"
+                      onProblem={mark(`w:${part.id}`)}
+                      onValue={(value) => setPart(part.id, { weight: value ?? 0 })}
+                    />
                     <span className="ml-1 inline-block pt-1.5 align-top text-faint">%</span>
                   </td>
                   <td className="py-2 text-right">
@@ -288,11 +314,21 @@ function Calculator({ page, onOpenModules }: { page: CoursePage; onOpenModules?:
                         <span className="text-caption text-faint">{t("grade.fromSixShort")}</span>
                       </span>
                     ) : (
-                      <ScoreInput label={t("grade.scoreOf", { part: name })} value={part.score} placeholder="—" onProblem={mark(`s:${part.id}`)} onValue={(value) => setPart(part.id, { score: value })} />
+                      <ScoreInput
+                        label={t("grade.scoreOf", { part: name })}
+                        value={part.score}
+                        placeholder="—"
+                        onProblem={mark(`s:${part.id}`)}
+                        onValue={(value) => setPart(part.id, { score: value })}
+                      />
                     )}
                   </td>
                   <td className="py-2 text-right">
-                    <IconButton label={t("grade.remove", { part: name })} size="sm" onClick={() => save({ ...contract, parts: contract.parts.filter((p) => p.id !== part.id) })}>
+                    <IconButton
+                      label={t("grade.remove", { part: name })}
+                      size="sm"
+                      onClick={() => save({ ...contract, parts: contract.parts.filter((p) => p.id !== part.id) })}
+                    >
                       <Icons.X className="size-3.5" />
                     </IconButton>
                   </td>
@@ -314,7 +350,9 @@ function Calculator({ page, onOpenModules }: { page: CoursePage; onOpenModules?:
                   {t("grade.add")}
                 </Button>
               </td>
-              <td className={cx("py-2 pr-4 text-right font-semibold tabular-nums", fix || sumOk ? "text-muted" : "text-warning-fg")}>{f.number(result.totalWeight, 0)}%</td>
+              <td className={cx("py-2 pr-4 text-right font-semibold tabular-nums", fix || sumOk ? "text-muted" : "text-warning-fg")}>
+                {f.number(result.totalWeight, 0)}%
+              </td>
               <td colSpan={2} />
             </tr>
           </tfoot>
@@ -329,7 +367,14 @@ function Calculator({ page, onOpenModules }: { page: CoursePage; onOpenModules?:
             {CONTRACT_LETTERS.map((letter) => (
               <label key={letter} className="inline-flex items-start gap-1.5">
                 <span className="pt-1.5 font-semibold text-fg">{letter} ≥</span>
-                <ScoreInput label={t("grade.cutoffOf", { letter })} value={contract.cutoffs[letter]} required width="w-12" onProblem={mark(`c:${letter}`)} onValue={(value) => save({ ...contract, cutoffs: { ...contract.cutoffs, [letter]: value ?? 0 } })} />
+                <ScoreInput
+                  label={t("grade.cutoffOf", { letter })}
+                  value={contract.cutoffs[letter]}
+                  required
+                  width="w-12"
+                  onProblem={mark(`c:${letter}`)}
+                  onValue={(value) => save({ ...contract, cutoffs: { ...contract.cutoffs, [letter]: value ?? 0 } })}
+                />
               </label>
             ))}
           </div>

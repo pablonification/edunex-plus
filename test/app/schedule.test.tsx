@@ -48,7 +48,15 @@ describe("Jadwal: the week as a timetable", () => {
     const s = await openSchedule();
     expect(subtitle()).toBe("Minggu ke-7 · 5–11 Okt");
     // Weekends are always there.
-    expect(days()).toEqual(["Senin, 5 Oktober", "Selasa, 6 Oktober", "Rabu, 7 Oktober", "Kamis, 8 Oktober", "Jumat, 9 Oktober", "Sabtu, 10 Oktober", "Minggu, 11 Oktober"]);
+    expect(days()).toEqual([
+      "Senin, 5 Oktober",
+      "Selasa, 6 Oktober",
+      "Rabu, 7 Oktober",
+      "Kamis, 8 Oktober",
+      "Jumat, 9 Oktober",
+      "Sabtu, 10 Oktober",
+      "Minggu, 11 Oktober",
+    ]);
     const thursday = items("Kamis, 8 Oktober");
     expect(thursday).toEqual([
       "PL3002 · 08:00–10:00 · R.SG PWK LT.6 · Berubah",
@@ -106,7 +114,7 @@ describe("Jadwal: the week as a timetable", () => {
     expect(meeting).toContain("Diumumkan dosen di Edunex; jadwal SIX tidak mencantumkannya.");
     await s.click("Gabung");
     expect(s.calls.at(-1)?.name).toBe("shell.openExternal");
-    expect(String((s.calls.at(-1)?.input as { url: string }).url)).toMatch(/^https:\/\/teams\.microsoft\.com\//);
+    expect(String((s.calls.at(-1)!.input as { url: string }).url)).toMatch(/^https:\/\/teams\.microsoft\.com\//);
   });
 
   it("next week: ITB's UTS week, the UTS as an exam, lectures that may not run, and Presence by handing in a Task", async () => {
@@ -343,9 +351,13 @@ describe("the phone calendar", () => {
   it("only what the Student picks, as far ahead as they pick", async () => {
     const s = await openSchedule();
     await s.click("Tambahkan ke kalender HP");
-    const deadlines = [...document.querySelectorAll<HTMLInputElement>("[role=dialog] input[type=checkbox]")].find((box) => box.closest("label")?.textContent?.startsWith("Tenggat tugas"))!;
+    const deadlines = [...document.querySelectorAll<HTMLInputElement>("[role=dialog] input[type=checkbox]")].find((box) =>
+      box.closest("label")?.textContent?.startsWith("Tenggat tugas"),
+    )!;
     await s.click(deadlines);
-    const fourWeeks = [...document.querySelectorAll<HTMLInputElement>("[role=dialog] input[type=radio]")].find((radio) => radio.closest("label")?.textContent?.startsWith("4 minggu ke depan"))!;
+    const fourWeeks = [...document.querySelectorAll<HTMLInputElement>("[role=dialog] input[type=radio]")].find((radio) =>
+      radio.closest("label")?.textContent?.startsWith("4 minggu ke depan"),
+    )!;
     await s.click(fourWeeks);
     await s.click(/^Simpan \d+ acara$/);
     expect(s.calls.at(-1)?.input).toEqual({ include: { classes: true, exams: true, deadlines: false, itb: true }, from: "2026-10-08", until: "2026-11-04" });

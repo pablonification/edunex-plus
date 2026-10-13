@@ -138,7 +138,11 @@ export function attendanceSession(task: Task, sessions: readonly PresenceSession
  * Edunex recorded the Student or the hand-in fell inside the window; outside
  * when it fell outside; null when the Task isn't attendance or isn't handed in.
  */
-export function attendanceResult(task: Task, sessions: readonly PresenceSession[], now: number): { outcome: "counted" | "outside"; session: PresenceSession } | null {
+export function attendanceResult(
+  task: Task,
+  sessions: readonly PresenceSession[],
+  now: number,
+): { outcome: "counted" | "outside"; session: PresenceSession } | null {
   const sentAt = submittedAt(task);
   const session = attendanceSession(task, sessions, now);
   if (sentAt === null || !session) return null;
@@ -165,7 +169,12 @@ const PLACEHOLDER = /^(nim|nama|name|namalengkap|lengkap|kelas|class|kelompok|gr
 export function matchesNaming(pattern: string, fileName: string): boolean {
   const ext = (name: string) => /\.([a-z0-9]+)$/i.exec(name)?.[1]?.toLowerCase() ?? "";
   if (ext(pattern) !== ext(fileName)) return false;
-  const words = (name: string) => name.replace(/\.[a-z0-9]+$/i, "").toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+  const words = (name: string) =>
+    name
+      .replace(/\.[a-z0-9]+$/i, "")
+      .toLowerCase()
+      .split(/[^a-z0-9]+/)
+      .filter(Boolean);
   const have = new Set(words(fileName));
   return words(pattern)
     .filter((word) => !PLACEHOLDER.test(word))

@@ -48,7 +48,14 @@ export const deadlineReminders: Detector = {
       const common = { kind: "deadline", source: "edunex", target: { screen: "task", taskId: task.id } } as const;
       const body = { key: "alert.due.body", vars: { title: task.title } } as const;
       const reminders: PlannedAlert[] = [
-        { ...common, id: `task.due24:${task.id}:${due}`, at: due - 24 * HOUR, until: due - 3 * HOUR, title: { key: "alert.due24", vars: { course: task.courseCode } }, body },
+        {
+          ...common,
+          id: `task.due24:${task.id}:${due}`,
+          at: due - 24 * HOUR,
+          until: due - 3 * HOUR,
+          title: { key: "alert.due24", vars: { course: task.courseCode } },
+          body,
+        },
         { ...common, id: `task.due3:${task.id}:${due}`, at: due - 3 * HOUR, until: due, title: { key: "alert.due3", vars: { course: task.courseCode } }, body },
       ];
       // A reminder from before the Task opened says nothing the new-Task alert didn't (a 2-hour quiz).

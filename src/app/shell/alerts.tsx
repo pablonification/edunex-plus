@@ -5,7 +5,7 @@
 // Kemarin / Minggu ini / Sebelumnya; each row opens its screen. Opening it
 // clears the badge; the dots stay until "Tandai semua dibaca". Nothing is
 // ever marked in Edunex.
-import { useMemo, useState, useSyncExternalStore, type ComponentType } from "react";
+import { type ComponentType, useMemo, useState, useSyncExternalStore } from "react";
 import type { Alert, AlertKind } from "../../core/models";
 import { alertFeed } from "../../core/needs";
 import { useTermCourses } from "../courses";
@@ -150,7 +150,9 @@ function AlertsPanel({ readAt, onRead, onClose }: { readAt: number; onRead: (at:
             onClick={() => {
               onRead(now);
               void bridge.invoke("alerts.markRead", {}).catch(() => undefined);
-            }} className="focus-ring rounded px-1 text-small font-medium text-accent-fg hover:underline">
+            }}
+            className="focus-ring rounded px-1 text-small font-medium text-accent-fg hover:underline"
+          >
             {t("alerts.markAllRead")}
           </button>
         )}
@@ -193,7 +195,9 @@ function AlertsPanel({ readAt, onRead, onClose }: { readAt: number; onRead: (at:
                         {item.body && <span className="mt-0.5 line-clamp-2 text-caption text-muted">{t(item.body.key, item.body.vars)}</span>}
                       </span>
                       <span className="flex shrink-0 items-center gap-2 pt-0.5">
-                        <span className="text-caption text-faint tabular-nums">{period === "today" || period === "yesterday" ? f.time(item.at) : `${f.weekdayShort(item.at)} ${f.dayMonth(item.at)}`}</span>
+                        <span className="text-caption text-faint tabular-nums">
+                          {period === "today" || period === "yesterday" ? f.time(item.at) : `${f.weekdayShort(item.at)} ${f.dayMonth(item.at)}`}
+                        </span>
                         <span aria-hidden className={cx("size-2 rounded-full", unread ? "bg-accent" : "bg-transparent")} />
                         {unread && <span className="sr-only">{t("alerts.unread")}</span>}
                       </span>

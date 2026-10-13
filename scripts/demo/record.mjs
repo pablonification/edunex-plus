@@ -18,9 +18,30 @@ export async function startRecording(page, file, { width = 1920, height = 1200 }
   fs.mkdirSync(path.dirname(path.resolve(file)), { recursive: true });
   const ffmpeg = spawn(
     "ffmpeg",
-    ["-y", "-loglevel", "error", "-f", "image2pipe", "-framerate", String(FPS), "-c:v", "mjpeg", "-i", "-",
-      "-vf", `scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2:color=white,format=yuv420p`,
-      "-c:v", "libx264", "-preset", "medium", "-crf", "18", "-movflags", "+faststart", path.resolve(file)],
+    [
+      "-y",
+      "-loglevel",
+      "error",
+      "-f",
+      "image2pipe",
+      "-framerate",
+      String(FPS),
+      "-c:v",
+      "mjpeg",
+      "-i",
+      "-",
+      "-vf",
+      `scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2:color=white,format=yuv420p`,
+      "-c:v",
+      "libx264",
+      "-preset",
+      "medium",
+      "-crf",
+      "18",
+      "-movflags",
+      "+faststart",
+      path.resolve(file),
+    ],
     { stdio: ["pipe", "inherit", "inherit"] },
   );
   const cdp = await page.context().newCDPSession(page);
@@ -171,20 +192,26 @@ export async function pointAndClick(page, locator, { pause = 650, hover = 0 } = 
   if (!box) throw new Error("pointAndClick: target not visible");
   const x = box.x + Math.min(box.width / 2, 60);
   const y = box.y + box.height / 2;
-  await page.evaluate(([px, py]) => {
-    document.getElementById("demo-pointer").style.transform = `translate(${px - 4}px, ${py - 2}px)`;
-  }, [x, y]);
+  await page.evaluate(
+    ([px, py]) => {
+      document.getElementById("demo-pointer").style.transform = `translate(${px - 4}px, ${py - 2}px)`;
+    },
+    [x, y],
+  );
   await page.waitForTimeout(pause);
   await page.mouse.move(x, y);
   if (hover) await page.waitForTimeout(hover);
-  await page.evaluate(([px, py]) => {
-    const ripple = document.getElementById("demo-ripple");
-    ripple.style.left = `${px}px`;
-    ripple.style.top = `${py}px`;
-    ripple.classList.remove("on");
-    void ripple.offsetWidth;
-    ripple.classList.add("on");
-  }, [x, y]);
+  await page.evaluate(
+    ([px, py]) => {
+      const ripple = document.getElementById("demo-ripple");
+      ripple.style.left = `${px}px`;
+      ripple.style.top = `${py}px`;
+      ripple.classList.remove("on");
+      void ripple.offsetWidth;
+      ripple.classList.add("on");
+    },
+    [x, y],
+  );
   await locator.click();
 }
 
@@ -193,9 +220,12 @@ export async function pointAt(page, locator, pause = 700) {
   await overlay(page);
   const box = await locator.boundingBox();
   if (!box) return;
-  await page.evaluate(([px, py]) => {
-    document.getElementById("demo-pointer").style.transform = `translate(${px - 4}px, ${py - 2}px)`;
-  }, [box.x + Math.min(box.width / 2, 60), box.y + box.height / 2]);
+  await page.evaluate(
+    ([px, py]) => {
+      document.getElementById("demo-pointer").style.transform = `translate(${px - 4}px, ${py - 2}px)`;
+    },
+    [box.x + Math.min(box.width / 2, 60), box.y + box.height / 2],
+  );
   await page.mouse.move(box.x + Math.min(box.width / 2, 60), box.y + box.height / 2);
   await page.waitForTimeout(pause);
 }
@@ -218,10 +248,33 @@ export async function joinClips(clips, out, fade = 0.4) {
     filter += `${last}[${i}:v]xfade=transition=fade:duration=${fade}:offset=${offset.toFixed(3)}${label};`;
     last = label;
   }
-  const args = clips.length > 1
-    ? ["-y", "-loglevel", "error", ...inputs, "-filter_complex", filter.slice(0, -1), "-map", "[v]", "-c:v", "libx264", "-preset", "medium", "-crf", "19", "-pix_fmt", "yuv420p", "-movflags", "+faststart", out]
-    : ["-y", "-loglevel", "error", "-i", clips[0], "-c", "copy", out];
-  await new Promise((resolve, reject) => spawn("ffmpeg", args, { stdio: "inherit" }).on("close", (code) => (code === 0 ? resolve() : reject(new Error(`ffmpeg exited ${code}`)))));
+  const args =
+    clips.length > 1
+      ? [
+          "-y",
+          "-loglevel",
+          "error",
+          ...inputs,
+          "-filter_complex",
+          filter.slice(0, -1),
+          "-map",
+          "[v]",
+          "-c:v",
+          "libx264",
+          "-preset",
+          "medium",
+          "-crf",
+          "19",
+          "-pix_fmt",
+          "yuv420p",
+          "-movflags",
+          "+faststart",
+          out,
+        ]
+      : ["-y", "-loglevel", "error", "-i", clips[0], "-c", "copy", out];
+  await new Promise((resolve, reject) =>
+    spawn("ffmpeg", args, { stdio: "inherit" }).on("close", (code) => (code === 0 ? resolve() : reject(new Error(`ffmpeg exited ${code}`)))),
+  );
   return out;
 }
 

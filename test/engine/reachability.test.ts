@@ -12,7 +12,8 @@ const signedIn = async () => {
   await h.engine.signIn("edunex", { token: PRETEND_TOKEN });
   return h;
 };
-const upload = (h: Harness) => h.engine.act("edunex", "uploadFile", { name: "jawaban.pdf", contentType: "application/pdf", bytes: new TextEncoder().encode("%PDF jawaban") });
+const upload = (h: Harness) =>
+  h.engine.act("edunex", "uploadFile", { name: "jawaban.pdf", contentType: "application/pdf", bytes: new TextEncoder().encode("%PDF jawaban") });
 const failure = async (work: Promise<unknown>) => {
   try {
     await work;

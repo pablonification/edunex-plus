@@ -5,8 +5,9 @@
 // It lives only in memory, has no access to the app, and is wiped as soon as
 // nothing needs it: when the other system needs no sign-in, when the Student
 // moves on, a few minutes after the last sign-in window closed, and on quit.
-import { app, BrowserWindow, type Session, session as sessions } from "electron";
+
 import { randomUUID } from "node:crypto";
+import { app, BrowserWindow, type Session, session as sessions } from "electron";
 import { denyPermissions } from "./security";
 
 /** How long Microsoft's session is kept after the last sign-in window closed. */

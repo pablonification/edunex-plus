@@ -14,7 +14,12 @@ export class PretendGithub {
 
   handle(request: HttpRequest, url: URL): HttpResponse {
     this.requests.push({ at: this.now(), userAgent: request.headers?.["user-agent"] });
-    const answer = (status: number, body: unknown) => ({ status, headers: { "content-type": "application/json" }, body: JSON.stringify(body), url: url.toString() });
+    const answer = (status: number, body: unknown) => ({
+      status,
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+      url: url.toString(),
+    });
     if (url.pathname !== "/repos/pablonification/edunex-plus/releases/latest") return answer(404, { message: "Not Found" });
     if (this.failWith) return answer(this.failWith, { message: "API rate limit exceeded" });
     if (this.latestTag === null) return answer(404, { message: "Not Found" });

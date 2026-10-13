@@ -31,7 +31,11 @@ async function session(scenario, fn, options = {}) {
 }
 
 const nav = async (demo, label) => {
-  await demo.page.locator("aside nav button").filter({ hasText: new RegExp(`^${label}`) }).first().click();
+  await demo.page
+    .locator("aside nav button")
+    .filter({ hasText: new RegExp(`^${label}`) })
+    .first()
+    .click();
   await settle(demo.page, 500);
 };
 const top = (demo) => demo.page.evaluate(() => document.querySelector("main")?.scrollTo(0, 0));
@@ -54,9 +58,15 @@ await session("signed-in", async (demo) => {
     await page.locator("main li button", { hasText: "Tugas 02 Bab II" }).first().click();
     await settle(page, 500);
     await demo.shot("04-tugas");
-    await page.getByRole("button", { name: /Lampirkan berkas/ }).first().click();
+    await page
+      .getByRole("button", { name: /Lampirkan berkas/ })
+      .first()
+      .click();
     await page.waitForTimeout(1500);
-    await page.getByRole("button", { name: /^Kumpulkan$/ }).first().click();
+    await page
+      .getByRole("button", { name: /^Kumpulkan$/ })
+      .first()
+      .click();
     await settle(page, 500);
     await demo.shot("05-kumpulkan-di-luar-jendela-presensi");
     await page.keyboard.press("Escape");
@@ -70,20 +80,34 @@ await session("signed-in", async (demo) => {
   await attempt("jadwal", async () => {
     await nav(demo, "Jadwal");
     await demo.shot("07-jadwal-minggu");
-    await page.locator("main button").filter({ hasText: /KU5014/ }).first().click();
+    await page
+      .locator("main button")
+      .filter({ hasText: /KU5014/ })
+      .first()
+      .click();
     await settle(page, 400);
     await demo.shot("08-jadwal-detail");
     await page.keyboard.press("Escape");
-    await page.getByRole("button", { name: /Minggu berikutnya|Berikutnya/ }).first().click();
+    await page
+      .getByRole("button", { name: /Minggu berikutnya|Berikutnya/ })
+      .first()
+      .click();
     await settle(page, 400);
     await demo.shot("09-jadwal-masa-uts");
     await page.getByRole("radio", { name: "Bulan" }).first().click();
     await settle(page, 400);
     await demo.shot("10-jadwal-bulan");
-    await page.getByRole("button", { name: /Tambahkan ke kalender HP/ }).first().click();
+    await page
+      .getByRole("button", { name: /Tambahkan ke kalender HP/ })
+      .first()
+      .click();
     await settle(page, 400);
     await demo.shot("11-ekspor-kalender");
-    await page.locator("[role=dialog] button").filter({ hasText: /^Simpan/ }).first().click();
+    await page
+      .locator("[role=dialog] button")
+      .filter({ hasText: /^Simpan/ })
+      .first()
+      .click();
     await settle(page, 800);
     await demo.shot("12-ekspor-kalender-selesai");
     await page.keyboard.press("Escape");
@@ -110,7 +134,10 @@ await session("signed-in", async (demo) => {
     await page.locator("aside button", { hasText: "PL3002" }).first().click();
     await settle(page, 500);
     await demo.shot("20-mata-kuliah");
-    for (const [tab, name] of [[/^Pertemuan/, "21-pertemuan"], [/^Nilai/, "22-kalkulator-nilai"]]) {
+    for (const [tab, name] of [
+      [/^Pertemuan/, "21-pertemuan"],
+      [/^Nilai/, "22-kalkulator-nilai"],
+    ]) {
       await page.getByRole("tab", { name: tab }).first().click();
       await settle(page, 400);
       await demo.shot(name);
@@ -125,13 +152,25 @@ await session("signed-in", async (demo) => {
     await page.keyboard.press("Escape");
   });
   await attempt("notifikasi", async () => {
-    await demo.world((world) => world.edunex.postTask(95001, { name: "Kuis Kilat Bab 5", description: "<p>Kerjakan 5 soal tentang inovasi proses di Bab 5. Unggah jawaban dalam satu PDF.</p>", end_at: "2026-10-15T23:59:00+07:00", file_required: true, is_lateable: false }));
+    await demo.world((world) =>
+      world.edunex.postTask(95001, {
+        name: "Kuis Kilat Bab 5",
+        description: "<p>Kerjakan 5 soal tentang inovasi proses di Bab 5. Unggah jawaban dalam satu PDF.</p>",
+        end_at: "2026-10-15T23:59:00+07:00",
+        file_required: true,
+        is_lateable: false,
+      }),
+    );
     await page.locator("header button[aria-label^='Status data']").first().click();
     await page.getByRole("button", { name: "Perbarui sekarang" }).click();
     await page.waitForTimeout(2500);
     await demo.shot("24-status-data-memperbarui");
     await page.keyboard.press("Escape");
-    await page.waitForFunction(() => /Diperbarui baru saja/.test(document.querySelector("header button[aria-label^='Status data']")?.getAttribute("aria-label") ?? ""), null, { timeout: 60_000 });
+    await page.waitForFunction(
+      () => /Diperbarui baru saja/.test(document.querySelector("header button[aria-label^='Status data']")?.getAttribute("aria-label") ?? ""),
+      null,
+      { timeout: 60_000 },
+    );
     await page.locator("header button[aria-label^='Notifikasi']").first().click();
     await settle(page, 400);
     await demo.shot("25-notifikasi");
@@ -152,8 +191,15 @@ await session("signed-in", async (demo) => {
     await top(demo);
     await demo.shot("27-offline");
     await demo.world((world) => world.setOffline(false));
-    await page.getByRole("button", { name: /^Coba lagi$/ }).first().click();
-    await page.waitForFunction(() => /Diperbarui baru saja/.test(document.querySelector("header button[aria-label^='Status data']")?.getAttribute("aria-label") ?? ""), null, { timeout: 60_000 });
+    await page
+      .getByRole("button", { name: /^Coba lagi$/ })
+      .first()
+      .click();
+    await page.waitForFunction(
+      () => /Diperbarui baru saja/.test(document.querySelector("header button[aria-label^='Status data']")?.getAttribute("aria-label") ?? ""),
+      null,
+      { timeout: 60_000 },
+    );
   });
   await attempt("dark", async () => {
     await demo.settings({ theme: "dark" });

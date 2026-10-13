@@ -17,7 +17,8 @@ const text = (id: string) => section(id)?.textContent ?? "";
 const rows = (id: string) => [...(section(id)?.querySelectorAll("li") ?? [])].map((li) => li.textContent ?? "");
 const row = (id: string, start: string) => rows(id).find((text) => text.startsWith(start)) ?? "";
 /** Source tags are gone from rows: the source shows only inside a sentence. */
-const tags = () => [...document.querySelectorAll("main li span")].filter((el) => /^(Edunex|SIX|Kalender ITB)$/.test(el.textContent ?? "") && el.children.length === 0);
+const tags = () =>
+  [...document.querySelectorAll("main li span")].filter((el) => /^(Edunex|SIX|Kalender ITB)$/.test(el.textContent ?? "") && el.children.length === 0);
 
 describe("Beranda on the recorded Thursday morning", () => {
   it("answers first: the class going on, where attendance counts and what to do, without contradicting itself", async () => {
@@ -164,9 +165,22 @@ describe("a class moved to another day", () => {
     screen = await openApp({ world: new PretendWorld({ now: "2026-10-16T07:00:00+07:00" }), signedIn: true });
     const meeting = (id: string, start: string) => {
       const at = Date.parse(`${start}+07:00`);
-      return { id, courseCode: "PL3002", courseName: "Ekonomi dan Inovasi dalam Perencanaan", start: at, end: at + 90 * 60_000, activity: "Kuliah", room: "R.SG PWK LT.6" };
+      return {
+        id,
+        courseCode: "PL3002",
+        courseName: "Ekonomi dan Inovasi dalam Perencanaan",
+        start: at,
+        end: at + 90 * 60_000,
+        activity: "Kuliah",
+        room: "R.SG PWK LT.6",
+      };
     };
-    const schedule = [meeting("1", "2026-10-01T08:00:00"), meeting("2", "2026-10-08T08:00:00"), meeting("3", "2026-10-16T10:00:00"), meeting("4", "2026-10-22T08:00:00")];
+    const schedule = [
+      meeting("1", "2026-10-01T08:00:00"),
+      meeting("2", "2026-10-08T08:00:00"),
+      meeting("3", "2026-10-16T10:00:00"),
+      meeting("4", "2026-10-22T08:00:00"),
+    ];
     await screen.apply({ type: "dataset", dataset: { name: "six.schedule", value: schedule, fetchedAt: 0, hash: "s1" } });
     await screen.apply({ type: "dataset", dataset: { name: "six.scheduleMonths", value: ["2026-10"], fetchedAt: 0, hash: "s2" } });
     expect(text("home-now")).toContain("Jam berubah · biasanya Kamis 08:00–09:30");

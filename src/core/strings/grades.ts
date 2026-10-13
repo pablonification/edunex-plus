@@ -5,7 +5,10 @@ import type { Entry } from "./entry";
 export const gradesStrings = {
   // ------------------------------------------------ Nilai
   "grades.answer": { id: "IPK-mu {ipk}.", en: "Your IPK is {ipk}." },
-  "grades.answerFinal": { id: "Dengan perkiraan nilaimu, lulus dengan sekitar {final} ({predicate}).", en: "With the grades you expect, you'd graduate with about {final} ({predicate})." },
+  "grades.answerFinal": {
+    id: "Dengan perkiraan nilaimu, lulus dengan sekitar {final} ({predicate}).",
+    en: "With the grades you expect, you'd graduate with about {final} ({predicate}).",
+  },
   "grades.ipk": { id: "IPK", en: "IPK" },
   "grades.sksPassed": { id: "SKS lulus", en: "SKS passed" },
   "grades.sksPassedHint": { id: "dari {need} SKS untuk lulus", en: "of the {need} SKS to graduate" },
@@ -40,7 +43,10 @@ export const gradesStrings = {
   "grades.graduationEstimate": { id: "Perkiraan, dari nilai perkiraanmu", en: "An estimate, from the grades you expect" },
   "grades.graduationWhen": { id: "Lulus {term}", en: "Graduate {term}" },
   "grades.graduationBlocked": { id: "Rencanamu belum cukup untuk lulus", en: "Your plan isn't enough to graduate yet" },
-  "grades.honorsNeeds": { id: "{level} butuh rata-rata {avg} di {sks} SKS tersisa: {effort}.", en: "{level} needs a {avg} average over the {sks} SKS left: {effort}." },
+  "grades.honorsNeeds": {
+    id: "{level} butuh rata-rata {avg} di {sks} SKS tersisa: {effort}.",
+    en: "{level} needs a {avg} average over the {sks} SKS left: {effort}.",
+  },
   "grades.honorsSecured": { id: "{level} sudah pasti.", en: "{level} is secured." },
   "grades.honorsOut": {
     id: "Cum laude (≥ {min}) sudah di luar jangkauan. Tiap nilai bagus tetap menaikkan IPK-mu.",
@@ -54,7 +60,7 @@ export const gradesStrings = {
   "grades.thisTerm": { id: "Semester ini", en: "This semester" },
   "grades.whatIf": { id: "Perkiraan nilaimu · ubah untuk mencoba", en: "The grades you expect · change them to try" },
   "grades.edunexNote": {
-    id: "Nilai Edunex belum dirilis. \"0.00 · E\" di Edunex bukan nilaimu.",
+    id: 'Nilai Edunex belum dirilis. "0.00 · E" di Edunex bukan nilaimu.',
     en: "Edunex grades aren't published yet. \"0.00 · E\" on Edunex isn't your grade.",
   },
   "grades.expectedOf": { id: "Perkiraan nilai {code}", en: "Expected grade for {code}" },
@@ -67,7 +73,10 @@ export const gradesStrings = {
   "grades.targetOther": { id: "Target IPK lainnya", en: "Another IPK target" },
   "grades.targetOtherShort": { id: "Lainnya", en: "Other" },
   "grades.targetRange": { id: "Isi target antara 2,00 dan 4,00.", en: "Enter a target from 2.00 to 4.00." },
-  "grades.targetNeed": { id: "Untuk IPK {target}: rata-rata {avg} (sekitar {letter}) di {sks} SKS semester ini.", en: "For {target}: a {avg} average (about {letter}) over this semester's {sks} SKS." },
+  "grades.targetNeed": {
+    id: "Untuk IPK {target}: rata-rata {avg} (sekitar {letter}) di {sks} SKS semester ini.",
+    en: "For {target}: a {avg} average (about {letter}) over this semester's {sks} SKS.",
+  },
   "grades.targetOut": {
     id: "IPK {target} belum terkejar semester ini, walau semua A. Rencana studi menunjukkan semester berikutnya.",
     en: "{target} can't be reached this semester, even with straight A's. Study plan shows the semesters after.",
@@ -95,10 +104,19 @@ export const gradesStrings = {
   "grades.standing.no-points": { id: "Tanpa bobot", en: "No grade points" },
   "grades.retaken": { id: "Mengulang", en: "Retake" },
   "grades.needSix": { id: "Transkrip & IPK butuh SIX", en: "Transcript & IPK need SIX" },
-  "grades.needSixBody": { id: "Masuk ke SIX untuk melihat IPK, transkrip, dan perkiraan IPK saat lulus.", en: "Sign in to SIX to see your IPK, transcript and your IPK at graduation." },
+  "grades.needSixBody": {
+    id: "Masuk ke SIX untuk melihat IPK, transkrip, dan perkiraan IPK saat lulus.",
+    en: "Sign in to SIX to see your IPK, transcript and your IPK at graduation.",
+  },
   "grades.edunexTerm": { id: "Mata kuliah semester ini", en: "This semester's courses" },
-  "grades.edunexTermHint": { id: "Dari Edunex. Hitung nilai yang kamu butuhkan di tiap mata kuliah.", en: "From Edunex. Work out the scores you need in each course." },
-  "grades.edunexTermNoneHint": { id: "Dari Edunex. Belum ada nilai yang dirilis; hitung nilai yang kamu butuhkan di tiap mata kuliah.", en: "From Edunex. No grades published yet; work out the scores you need in each course." },
+  "grades.edunexTermHint": {
+    id: "Dari Edunex. Hitung nilai yang kamu butuhkan di tiap mata kuliah.",
+    en: "From Edunex. Work out the scores you need in each course.",
+  },
+  "grades.edunexTermNoneHint": {
+    id: "Dari Edunex. Belum ada nilai yang dirilis; hitung nilai yang kamu butuhkan di tiap mata kuliah.",
+    en: "From Edunex. No grades published yet; work out the scores you need in each course.",
+  },
   "grades.edunexNone": { id: "Nilai belum dirilis di Edunex", en: "No grade published on Edunex yet" },
 
   // ------------------------------------------------ the predicate (Peraturan Akademik ITB)
@@ -165,19 +183,28 @@ export const gradesStrings = {
   "planner.resetNothing": { id: "Rencana kembali ke awal.", en: "The plan goes back to the start." },
   "planner.reset.grades": { id: "{n} nilai perkiraan yang kamu ubah", en: { one: "{n} expected grade you changed", other: "{n} expected grades you changed" } },
   "planner.reset.added": { id: "{n} mata kuliah yang kamu tambahkan", en: { one: "{n} course you added", other: "{n} courses you added" } },
-  "planner.reset.removed": { id: "{n} mata kuliah yang kamu hapus (akan kembali)", en: { one: "{n} course you removed (it comes back)", other: "{n} courses you removed (they come back)" } },
+  "planner.reset.removed": {
+    id: "{n} mata kuliah yang kamu hapus (akan kembali)",
+    en: { one: "{n} course you removed (it comes back)", other: "{n} courses you removed (they come back)" },
+  },
   "planner.reset.terms": { id: "{n} semester yang kamu tambahkan", en: { one: "{n} semester you added", other: "{n} semesters you added" } },
   "planner.reset.other": { id: "target dan minor yang kamu pilih", en: "the target and minor you picked" },
   "planner.resetConfirm": { id: "Atur ulang", en: "Reset" },
   "planner.resetDone": { id: "Rencana diatur ulang", en: "Plan reset" },
-  "planner.removedTerm": { id: "{term} dihapus ({count} mata kuliah)", en: { one: "{term} removed ({count} course)", other: "{term} removed ({count} courses)" } },
+  "planner.removedTerm": {
+    id: "{term} dihapus ({count} mata kuliah)",
+    en: { one: "{term} removed ({count} course)", other: "{term} removed ({count} courses)" },
+  },
   "planner.removedCourse": { id: "{code} dihapus dari rencana", en: "{code} removed from the plan" },
   "planner.undo": { id: "Urungkan", en: "Undo" },
   "planner.undone": { id: "Diurungkan", en: "Undone" },
   "planner.removeTerm": { id: "Hapus {term}", en: "Remove {term}" },
   "planner.removeCourse": { id: "Hapus {code}", en: "Remove {code}" },
   "planner.nothing": { id: "Belum ada rencana.", en: "Nothing planned yet." },
-  "planner.local": { id: "Rencana ini tersimpan di komputer ini. Aplikasi tidak pernah mengirim KRS.", en: "This plan stays on this computer. The app never sends a KRS." },
+  "planner.local": {
+    id: "Rencana ini tersimpan di komputer ini. Aplikasi tidak pernah mengirim KRS.",
+    en: "This plan stays on this computer. The app never sends a KRS.",
+  },
   "planner.empty": {
     id: "Perencana terisi setelah transkrip dan kurikulummu terbaca dari SIX.",
     en: "The planner fills in once your transcript and curriculum are read from SIX.",
@@ -217,7 +244,10 @@ export const gradesStrings = {
   "rule.minor": { id: "Minor {name}", en: "Minor {name}" },
   "rule.minor.detail": { id: "{have} dari {need} SKS dari daftarnya.", en: "{have} of {need} SKS from its list." },
   "rule.load.over": { id: "{sks} SKS melebihi batas {limit} SKS.", en: "{sks} SKS is over the {limit}-SKS limit." },
-  "rule.load.advisor": { id: "{sks} SKS: di atas {limit} perlu persetujuan dosen wali.", en: "{sks} SKS: above {limit} needs your academic advisor's approval." },
+  "rule.load.advisor": {
+    id: "{sks} SKS: di atas {limit} perlu persetujuan dosen wali.",
+    en: "{sks} SKS: above {limit} needs your academic advisor's approval.",
+  },
   "rule.parity": {
     id: "Kurikulum menaruhnya di semester {semester} ({parity}). Pastikan dibuka di semester {kind}, atau rencanakan di semester pendek.",
     en: "The curriculum puts it in semester {semester} ({parity}). Check it also runs in the {kind} semester, or plan it for a short semester.",
@@ -227,12 +257,18 @@ export const gradesStrings = {
   "rule.early": { id: "Kurikulum menaruhnya di semester {semester}; ini lebih awal.", en: "The curriculum puts it in semester {semester}; this is earlier." },
   "rule.finish": { id: "Lulus di semester {n}", en: "Graduate in semester {n}" },
   "rule.finish.ok": { id: "Tepat waktu ({normal} semester).", en: "On time ({normal} semesters)." },
-  "rule.finish.late": { id: "Lewat {normal} semester; predikat pujian masih mungkin (maks. 9).", en: "Past {normal} semesters; honors are still possible (up to 9)." },
+  "rule.finish.late": {
+    id: "Lewat {normal} semester; predikat pujian masih mungkin (maks. 9).",
+    en: "Past {normal} semesters; honors are still possible (up to 9).",
+  },
   "rule.finish.tooLate": { id: "Predikat pujian mensyaratkan lulus dalam 9 semester.", en: "Honors need graduating within 9 semesters." },
   "rule.finish.blocked": { id: "Belum bisa lulus", en: "Can't graduate yet" },
   "rule.finish.blockedDetail": { id: "Masih kurang {list}.", en: "Still missing {list}." },
   "planner.target": { id: "Target IPK", en: "IPK target" },
-  "planner.targetNeed": { id: "Untuk IPK {target}: rata-rata {avg} (sekitar {letter}) di {sks} SKS tersisa.", en: "For {target}: a {avg} average (about {letter}) over the {sks} SKS left." },
+  "planner.targetNeed": {
+    id: "Untuk IPK {target}: rata-rata {avg} (sekitar {letter}) di {sks} SKS tersisa.",
+    en: "For {target}: a {avg} average (about {letter}) over the {sks} SKS left.",
+  },
   "planner.targetOut": {
     id: "IPK {target} di luar jangkauan dengan mata kuliah tersisa, walau semua A. Mengulang nilai rendah bisa membantu: hanya nilai terbaru yang dihitung.",
     en: "{target} is out of reach with the courses left, even with straight A's. Retaking a low grade can help: only the newest grade counts.",
@@ -279,7 +315,10 @@ export const gradesStrings = {
   "curriculum.requiredLeftHint": { id: "semua sudah direncanakan", en: "all planned" },
   "curriculum.electives": { id: "Pilihan", en: "Electives" },
   "curriculum.electivesValue": { id: "{have} dari {need} SKS", en: "{have} of {need} SKS" },
-  "curriculum.electivesDetail": { id: "{passed} lulus · {now} semester ini · {planned} direncanakan", en: "{passed} passed · {now} this semester · {planned} planned" },
+  "curriculum.electivesDetail": {
+    id: "{passed} lulus · {now} semester ini · {planned} direncanakan",
+    en: "{passed} passed · {now} this semester · {planned} planned",
+  },
   "curriculum.sks": { id: "{sks} SKS", en: "{sks} SKS" },
   "curriculum.status.passed": { id: "Lulus", en: "Passed" },
   "curriculum.status.failed": { id: "Tidak lulus: ulangi", en: "Failed: retake it" },
@@ -303,11 +342,20 @@ export const gradesStrings = {
   "curriculum.left.electives": { id: "pilihan {sks} SKS", en: "electives {sks} SKS" },
   "curriculum.left.electivesNone": { id: "pilihan terpenuhi", en: "electives covered" },
   "curriculum.left.check": { id: "{count} perlu dicek ke prodi", en: "{count} to check with your program" },
-  "curriculum.hiddenDone": { id: "{count} semester yang sudah tuntas disembunyikan.", en: { one: "{count} finished semester hidden.", other: "{count} finished semesters hidden." } },
-  "curriculum.allDone": { id: "Tidak ada yang tersisa di sini: semua sudah lulus, diambil, atau direncanakan.", en: "Nothing left here: everything is passed, in progress or planned." },
+  "curriculum.hiddenDone": {
+    id: "{count} semester yang sudah tuntas disembunyikan.",
+    en: { one: "{count} finished semester hidden.", other: "{count} finished semesters hidden." },
+  },
+  "curriculum.allDone": {
+    id: "Tidak ada yang tersisa di sini: semua sudah lulus, diambil, atau direncanakan.",
+    en: "Nothing left here: everything is passed, in progress or planned.",
+  },
   "curriculum.empty": { id: "Kurikulum muncul setelah SIX tersambung.", en: "Your curriculum appears once SIX is connected." },
   "curriculum.needSix": { id: "Kurikulum butuh SIX", en: "The curriculum needs SIX" },
-  "curriculum.needSixBody": { id: "Masuk ke SIX untuk melihat mata kuliah wajib yang sudah dan belum kamu ambil.", en: "Sign in to SIX to see which required courses you've taken and which are left." },
+  "curriculum.needSixBody": {
+    id: "Masuk ke SIX untuk melihat mata kuliah wajib yang sudah dan belum kamu ambil.",
+    en: "Sign in to SIX to see which required courses you've taken and which are left.",
+  },
 
   // ------------------------------------------------ alerts
   "alert.grade.new": { id: "Nilai baru · {course}: {grade}", en: "New grade · {course}: {grade}" },
@@ -318,7 +366,10 @@ export const gradesStrings = {
   "alert.questionnaire.closing": { id: "Kuesioner ditutup 2 hari lagi", en: "Questionnaires close in 2 days" },
   "alert.questionnaire.body": {
     id: "SIX menyembunyikan nilai {count} mata kuliah sampai kuesionernya diisi.",
-    en: { one: "SIX hides the grade of {count} course until its questionnaire is filled.", other: "SIX hides the grades of {count} courses until their questionnaires are filled." },
+    en: {
+      one: "SIX hides the grade of {count} course until its questionnaire is filled.",
+      other: "SIX hides the grades of {count} courses until their questionnaires are filled.",
+    },
   },
   "settings.alerts.grade": { id: "Nilai", en: "Grades" },
   "settings.alerts.gradeHint": { id: "Nilai baru atau berubah, dan pengingat kuesioner", en: "New or changed grades, and the questionnaire reminder" },

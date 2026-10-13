@@ -26,7 +26,17 @@ const wib = (iso: string) => Date.parse(`${iso}+07:00`);
 const calendar = readCalendar(calendarFixture(), 0);
 const KRS = /\/registrasi\/rencanastudi\/\d+$/;
 const official = (): KrsPlan => readKrs(new PretendSix(() => 0).page(KRS));
-const bill = (patch: Partial<Bill>): Bill => ({ term: "2026-2", amount: 5_400_000, paid: null, status: "unpaid", dueDate: "2027-01-31", dueAt: wib("2027-01-31T23:59:59.999"), instalments: [], nextDueAt: wib("2027-01-31T23:59:59.999"), ...patch });
+const bill = (patch: Partial<Bill>): Bill => ({
+  term: "2026-2",
+  amount: 5_400_000,
+  paid: null,
+  status: "unpaid",
+  dueDate: "2027-01-31",
+  dueAt: wib("2027-01-31T23:59:59.999"),
+  instalments: [],
+  nextDueAt: wib("2027-01-31T23:59:59.999"),
+  ...patch,
+});
 
 describe("terms", () => {
   it("the next regular term, and this term from the calendar when SIX hasn't said", () => {
@@ -75,7 +85,15 @@ describe("KRS", () => {
   });
 
   it("overlapping classes between KRS courses, by pair, the next collision first", () => {
-    const at = (id: string, code: string, start: string, hours: number): ClassSession => ({ id, courseCode: code, courseName: code, start: wib(start), end: wib(start) + hours * HOUR, activity: "Kuliah", room: null });
+    const at = (id: string, code: string, start: string, hours: number): ClassSession => ({
+      id,
+      courseCode: code,
+      courseName: code,
+      start: wib(start),
+      end: wib(start) + hours * HOUR,
+      activity: "Kuliah",
+      room: null,
+    });
     const schedule = [
       at("a1", "PL3002", "2026-10-08T08:00:00", 2),
       at("b1", "KU5014", "2026-10-08T09:00:00", 2),
@@ -140,16 +158,25 @@ describe("ITB's academic deadlines", () => {
 
   it("what each one means for this Student", () => {
     const { upcoming, past } = academicDeadlines({ calendar, term: "2026-1", now: wib("2026-10-11T09:00:00"), krs: official(), bills: [bill({})], progress });
-    const meaning = (kind: string, firstDay?: string) => [...upcoming, ...past].find((d) => d.event.kind === kind && (!firstDay || d.event.firstDay === firstDay))?.meaning;
+    const meaning = (kind: string, firstDay?: string) =>
+      [...upcoming, ...past].find((d) => d.event.kind === kind && (!firstDay || d.event.firstDay === firstDay))?.meaning;
     expect(meaning("drs", "2026-08-12")).toEqual({ key: "deadline.drs.sent", done: true });
     expect(meaning("drs", "2027-01-20")).toEqual({ key: "deadline.drs" });
     expect(meaning("urs", "2026-09-15")).toEqual({ key: "deadline.urs.changed", done: true });
     expect(meaning("ukt-deadline", "2027-01-31")).toEqual({ key: "deadline.ukt.left", vars: { amount: "Rp5.400.000" }, warn: true });
     expect(meaning("questionnaire")).toEqual({ key: "deadline.questionnaire" });
     // Jan 2027 is in year 4 (from 2023-1): the end of year 3 expects 72 SKS.
-    expect(meaning("progress-check", "2027-01-18")).toEqual({ key: "deadline.progress.ok", vars: { target: 72, year: 3, passed: 125, missing: -53 }, done: true });
+    expect(meaning("progress-check", "2027-01-18")).toEqual({
+      key: "deadline.progress.ok",
+      vars: { target: 72, year: 3, passed: 125, missing: -53 },
+      done: true,
+    });
     const behind = academicDeadlines({ calendar, term: "2026-1", now: 0, progress: { entryTerm: "2023-1", sksPassed: 90 } as Progress });
-    expect(behind.upcoming.find((d) => d.event.firstDay === "2027-08-02")?.meaning).toEqual({ key: "deadline.progress.short", vars: { target: 96, year: 4, passed: 90, missing: 6 }, warn: true });
+    expect(behind.upcoming.find((d) => d.event.firstDay === "2027-08-02")?.meaning).toEqual({
+      key: "deadline.progress.short",
+      vars: { target: 96, year: 4, passed: 90, missing: 6 },
+      warn: true,
+    });
   });
 
   it("the progress yardstick: 24 SKS a year for five years", () => {

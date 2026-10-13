@@ -14,7 +14,7 @@ import { useBridge, useDataset, useStatus, useStore } from "../../store";
 import { Button } from "../../ui/controls";
 import { cx } from "../../ui/cx";
 import { Icons } from "../../ui/icons";
-import { Dialog, toast, Tooltip } from "../../ui/overlays";
+import { Dialog, Tooltip, toast } from "../../ui/overlays";
 
 type Range = "term" | "weeks";
 type Step = { step: "choose" } | { step: "saving" } | { step: "done"; file: string; events: number };
@@ -46,6 +46,7 @@ export function ExportButton({ className }: { className?: string }) {
         button
       ) : (
         <Tooltip content={t("schedule.export.disabled")}>
+          {/* biome-ignore lint/a11y/noNoninteractiveTabindex: a disabled button can't take focus; its wrapper does, so the keyboard reaches the reason */}
           <span tabIndex={0} className={cx("focus-ring inline-flex rounded-lg", className)}>
             {button}
           </span>
@@ -72,7 +73,8 @@ function ExportDialog({ onClose }: { onClose: () => void }) {
 
   const today = wibDay(now);
   // The end of the term: its UAS's last day, from ITB's calendar.
-  const termEnd = calendar?.events.filter((e) => e.kind === "uas" && e.lastDay >= today).sort((a, b) => a.firstDay.localeCompare(b.firstDay))[0]?.lastDay ?? null;
+  const termEnd =
+    calendar?.events.filter((e) => e.kind === "uas" && e.lastDay >= today).sort((a, b) => a.firstDay.localeCompare(b.firstDay))[0]?.lastDay ?? null;
   const until = range === "term" && termEnd ? termEnd : shiftDay(today, 27);
   const items = useMemo(
     () => phoneItems((name) => store.dataset(name)?.value as never, lang, now, { from: today, until }),
@@ -144,10 +146,18 @@ function ExportDialog({ onClose }: { onClose: () => void }) {
                     range === value ? "border-accent bg-info-bg/50" : "border-edge hover:bg-hover",
                   )}
                 >
-                  <input type="radio" name="range" checked={range === value} onChange={() => setRange(value)} className="mt-1 size-4 shrink-0 accent-(--accent)" />
+                  <input
+                    type="radio"
+                    name="range"
+                    checked={range === value}
+                    onChange={() => setRange(value)}
+                    className="mt-1 size-4 shrink-0 accent-(--accent)"
+                  />
                   <span className="min-w-0">
                     <span className="block text-body font-medium">{t(`schedule.export.range.${value}`)}</span>
-                    <span className="block text-small text-muted tabular-nums">{t("schedule.export.range.until", { date: day(value === "term" && termEnd ? termEnd : shiftDay(today, 27)) })}</span>
+                    <span className="block text-small text-muted tabular-nums">
+                      {t("schedule.export.range.until", { date: day(value === "term" && termEnd ? termEnd : shiftDay(today, 27)) })}
+                    </span>
                   </span>
                 </label>
               ))}
@@ -182,7 +192,9 @@ function Saved({ file, events, onDone }: { file: string; events: number; onDone:
   const store = useStore();
   const bridge = useBridge();
   const reveal = () =>
-    void bridge.invoke("schedule.reveal", {}).catch((error: unknown) => toast(error instanceof ActionError ? t("error.action", { message: error.message }) : t("schedule.exportFailed"), "danger"));
+    void bridge
+      .invoke("schedule.reveal", {})
+      .catch((error: unknown) => toast(error instanceof ActionError ? t("error.action", { message: error.message }) : t("schedule.exportFailed"), "danger"));
   const place = store.platform === "darwin" ? "mac" : store.platform === "win32" ? "win" : "linux";
   return (
     <div>
@@ -215,7 +227,9 @@ function Saved({ file, events, onDone }: { file: string; events: number; onDone:
             <ol className="mt-2 space-y-1 text-small text-muted">
               {([1, 2, 3] as const).map((n) => (
                 <li key={n} className="flex gap-2">
-                  <span className="grid size-[18px] shrink-0 place-items-center rounded-full bg-surface text-micro font-semibold text-fg shadow-card tabular-nums">{n}</span>
+                  <span className="grid size-[18px] shrink-0 place-items-center rounded-full bg-surface text-micro font-semibold text-fg shadow-card tabular-nums">
+                    {n}
+                  </span>
                   <span>{t(`schedule.export.${phone}.${n}`)}</span>
                 </li>
               ))}

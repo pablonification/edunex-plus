@@ -27,8 +27,7 @@ export function termCourses(saved: Saved): TermCourseNames[] {
   const edunex = saved["edunex.courses"] ?? [];
   const six = saved["six.courses"];
   const term = saved["six.student"]?.term;
-  if (!six || !term)
-    return edunex.map((c) => ({ code: c.code, classNo: c.classNo, six: null, edunex: c.name, edunexCourseId: c.edunex.courseId, sks: null }));
+  if (!six || !term) return edunex.map((c) => ({ code: c.code, classNo: c.classNo, six: null, edunex: c.name, edunexCourseId: c.edunex.courseId, sks: null }));
   const sameTerm = edunex.filter((c) => c.term === term);
   return six.map((c) => {
     const match = sameTerm.find((e) => e.code === c.code && e.classNo === c.classNo) ?? sameTerm.find((e) => e.code === c.code);

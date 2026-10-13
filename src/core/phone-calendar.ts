@@ -23,7 +23,17 @@ export type PhoneKind = "classes" | "exams" | "deadlines" | "itb";
 export const PHONE_KINDS: readonly PhoneKind[] = ["classes", "exams", "deadlines", "itb"];
 
 /** ITB's calendar events worth having on a phone: exam weeks, holidays, the term's edges and its deadlines. */
-const ITB_KINDS: ReadonlySet<CalendarEvent["kind"]> = new Set(["uts", "uas", "holiday", "lecture-start", "lecture-end", "questionnaire", "drs", "urs", "ukt-deadline"]);
+const ITB_KINDS: ReadonlySet<CalendarEvent["kind"]> = new Set([
+  "uts",
+  "uas",
+  "holiday",
+  "lecture-start",
+  "lecture-end",
+  "questionnaire",
+  "drs",
+  "urs",
+  "ukt-deadline",
+]);
 
 export interface PhoneCalendarOptions {
   /** Which kinds go in; a kind left out goes in. */
@@ -48,12 +58,15 @@ type Get = <N extends DatasetName>(name: N) => DatasetValue<N> | undefined;
 export function phoneItems(get: Get, lang: Lang, now: number, options: PhoneCalendarOptions = {}): PhoneItem[] {
   const schedule = get("six.schedule") ?? [];
   const courses = get("six.courses") ?? [];
-  const nameOf = (code: string, fallback?: string) => courses.find((c) => c.code === code)?.name ?? get("edunex.courses")?.find((c) => c.code === code)?.name ?? fallback ?? code;
+  const nameOf = (code: string, fallback?: string) =>
+    courses.find((c) => c.code === code)?.name ?? get("edunex.courses")?.find((c) => c.code === code)?.name ?? fallback ?? code;
   /** An exam's kind in the Student's language ("Kuis", "Quiz"), whatever word SIX or Edunex uses. */
   const kindOf = (text: string | null) => translate(lang, `exam.kind.${examKind(text) ?? "UJIAN"}`);
   const items: PhoneItem[] = [];
   // A roomless SIX meeting whose Edunex Presence counts a handed-in Task is a window to hand in, not a class to sit in.
-  const handIn = new Map(taskWindows(get("edunex.presence"), schedule, get("edunex.tasks") ?? []).flatMap((w) => (w.six && !w.six.room ? [[w.six.id, w] as const] : [])));
+  const handIn = new Map(
+    taskWindows(get("edunex.presence"), schedule, get("edunex.tasks") ?? []).flatMap((w) => (w.six && !w.six.room ? [[w.six.id, w] as const] : [])),
+  );
 
   for (const session of schedule) {
     const code = session.courseCode;
@@ -76,7 +89,9 @@ export function phoneItems(get: Get, lang: Lang, now: number, options: PhoneCale
     items.push({
       kind: exam ? "exams" : "classes",
       uid: `six-${session.id}@${UID_HOST}`,
-      summary: exam ? translate(lang, "ics.exam", { kind: kindOf(session.activity), code, title: name }) : translate(lang, "ics.class", { activity: session.activity, code, name }),
+      summary: exam
+        ? translate(lang, "ics.exam", { kind: kindOf(session.activity), code, title: name })
+        : translate(lang, "ics.class", { activity: session.activity, code, name }),
       start: session.start,
       end: session.end,
       location: session.room,

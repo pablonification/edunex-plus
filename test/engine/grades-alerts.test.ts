@@ -61,7 +61,8 @@ async function start(options: { world?: PretendWorld; storage?: MemoryStorage; v
     await engine.refresh("six");
     await world.clock.advance(30_000);
   };
-  const history = () => (engine.snapshot().datasets.find((d) => d.name === "app.alerts")?.value as { items: { id: string; kind: string }[] } | undefined)?.items ?? [];
+  const history = () =>
+    (engine.snapshot().datasets.find((d) => d.name === "app.alerts")?.value as { items: { id: string; kind: string }[] } | undefined)?.items ?? [];
   return { world, engine, storage, vault, shown, sixAgain, history, grades: () => shown.filter((n) => n.kind === "grade") };
 }
 
@@ -76,7 +77,9 @@ describe("new and changed grades", () => {
     const app = await start();
     app.world.six.gradeCourse("2026-1", "II4091", "A");
     await app.sixAgain();
-    expect(app.grades().map((n) => [n.text, n.target, n.source])).toEqual([["Nilai baru · II4091: A — Proposal Tugas Akhir · IPK sekarang 3.26", { screen: "grades" }, "six"]]);
+    expect(app.grades().map((n) => [n.text, n.target, n.source])).toEqual([
+      ["Nilai baru · II4091: A — Proposal Tugas Akhir · IPK sekarang 3.26", { screen: "grades" }, "six"],
+    ]);
     await app.sixAgain();
     expect(app.grades()).toHaveLength(1);
 
@@ -150,7 +153,9 @@ describe("the questionnaire reminder", () => {
     await world.clock.advanceTo("2026-11-30T07:59:00+07:00");
     expect(app.grades()).toEqual([]);
     await world.clock.advanceTo("2026-11-30T08:01:00+07:00");
-    expect(app.grades().map((n) => [n.text, n.source])).toEqual([["Kuesioner perkuliahan dibuka — SIX menyembunyikan nilai 5 mata kuliah sampai kuesionernya diisi.", "itb"]]);
+    expect(app.grades().map((n) => [n.text, n.source])).toEqual([
+      ["Kuesioner perkuliahan dibuka — SIX menyembunyikan nilai 5 mata kuliah sampai kuesionernya diisi.", "itb"],
+    ]);
     expect(app.grades()[0].shownAt).toBeLessThanOrEqual(wib("2026-11-30T08:00:30"));
     await world.clock.advanceTo("2026-12-09T08:01:00+07:00");
     expect(app.grades().map((n) => n.title.key)).toEqual(["alert.questionnaire.open", "alert.questionnaire.closing"]);

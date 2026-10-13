@@ -110,7 +110,11 @@ export function krsWindows(calendar: AcademicCalendar | undefined, term: string)
  * The next ITB window for this KRS that hasn't closed: the DRS while the plan
  * isn't sent, then the URS (changing it). `open`: it's running now.
  */
-export function nextKrsWindow(plan: KrsPlan, calendar: AcademicCalendar | undefined, now: number): { kind: "drs" | "urs"; event: CalendarEvent; open: boolean } | null {
+export function nextKrsWindow(
+  plan: KrsPlan,
+  calendar: AcademicCalendar | undefined,
+  now: number,
+): { kind: "drs" | "urs"; event: CalendarEvent; open: boolean } | null {
   const { drs, urs } = krsWindows(calendar, plan.term);
   for (const [kind, event] of [
     ["drs", plan.state === "not-sent" ? drs : null],
@@ -123,7 +127,7 @@ export function nextKrsWindow(plan: KrsPlan, calendar: AcademicCalendar | undefi
 
 /** The Student has a KRS step to take now: nothing sent while the DRS window hasn't closed. */
 export function krsNeedsStudent(plan: KrsPlan | undefined, calendar: AcademicCalendar | undefined, now: number): boolean {
-  if (!plan || plan.state !== "not-sent") return false;
+  if (plan?.state !== "not-sent") return false;
   const { drs } = krsWindows(calendar, plan.term);
   return drs === null || drs.end > now;
 }
@@ -275,7 +279,8 @@ export function deadlineMeaning(event: CalendarEvent, facts: Omit<DeadlineFacts,
     case "ukt-deadline": {
       const bill = facts.bills?.find((b) => b.term === event.term);
       if (bill?.status === "paid") return { key: "deadline.ukt.paid", done: true };
-      if (bill && (bill.status === "unpaid" || bill.status === "partly-paid")) return { key: "deadline.ukt.left", vars: { amount: rupiah(billLeft(bill)) }, warn: true };
+      if (bill && (bill.status === "unpaid" || bill.status === "partly-paid"))
+        return { key: "deadline.ukt.left", vars: { amount: rupiah(billLeft(bill)) }, warn: true };
       return { key: "deadline.ukt" };
     }
     case "questionnaire":
@@ -331,12 +336,14 @@ export function academicDeadlines(facts: DeadlineFacts): { upcoming: Deadline[];
     if (cohort && intake && cohort !== intake) return false;
     return e.term === null ? e.kind === "progress-check" && e.start >= from && e.end <= to : terms.has(e.term);
   });
-  const all = events.map((event): Deadline => ({
-    event,
-    variant: variantOf(event),
-    meaning: deadlineMeaning(event, facts),
-    when: event.end <= now ? "past" : event.start <= now ? "now" : "next",
-  }));
+  const all = events.map(
+    (event): Deadline => ({
+      event,
+      variant: variantOf(event),
+      meaning: deadlineMeaning(event, facts),
+      when: event.end <= now ? "past" : event.start <= now ? "now" : "next",
+    }),
+  );
   return {
     upcoming: all.filter((d) => d.when !== "past").sort((a, b) => a.event.start - b.event.start),
     past: all.filter((d) => d.when === "past").sort((a, b) => b.event.start - a.event.start),

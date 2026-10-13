@@ -8,7 +8,10 @@ export const searchStrings = {
   "search.results": { id: "Hasil pencarian", en: "Search results" },
   "search.count": { id: "{count} hasil", en: { one: "{count} result", other: "{count} results" } },
   "search.noResults": { id: "Tidak ada yang cocok dengan “{query}”", en: "Nothing matches “{query}”" },
-  "search.noResultsHint": { id: "Coba kode mata kuliah (mis. {code}), judul tugas, atau nama halaman.", en: "Try a course code (like {code}), a Task title, or a page name." },
+  "search.noResultsHint": {
+    id: "Coba kode mata kuliah (mis. {code}), judul tugas, atau nama halaman.",
+    en: "Try a course code (like {code}), a Task title, or a page name.",
+  },
   "search.action.refresh": { id: "Muat ulang data", en: "Refresh data" },
   "search.action.theme": { id: "Ganti tema", en: "Switch theme" },
   "search.action.themeTo": { id: "Ke tema {theme}", en: "To {theme} theme" },
@@ -56,9 +59,18 @@ export const searchStrings = {
   "search.alias.settings": { id: "tema bahasa notifikasi akun keluar", en: "theme language notifications accounts sign out" },
 
   // The first-run scan: the dialog
-  "scan.title": { id: "{count} hal yang tidak disampaikan kedua sistem", en: { one: "{count} thing neither system tells you", other: "{count} things neither system tells you" } },
-  "scan.title.edunex": { id: "{count} hal yang tidak disampaikan Edunex", en: { one: "{count} thing Edunex doesn't tell you", other: "{count} things Edunex doesn't tell you" } },
-  "scan.title.six": { id: "{count} hal yang tidak disampaikan SIX", en: { one: "{count} thing SIX doesn't tell you", other: "{count} things SIX doesn't tell you" } },
+  "scan.title": {
+    id: "{count} hal yang tidak disampaikan kedua sistem",
+    en: { one: "{count} thing neither system tells you", other: "{count} things neither system tells you" },
+  },
+  "scan.title.edunex": {
+    id: "{count} hal yang tidak disampaikan Edunex",
+    en: { one: "{count} thing Edunex doesn't tell you", other: "{count} things Edunex doesn't tell you" },
+  },
+  "scan.title.six": {
+    id: "{count} hal yang tidak disampaikan SIX",
+    en: { one: "{count} thing SIX doesn't tell you", other: "{count} things SIX doesn't tell you" },
+  },
   "scan.heading": { id: "Ringkasan saat pertama terhubung", en: "Your first-connection summary" },
   "scan.empty": { id: "Tidak ada yang perlu kamu perhatikan", en: "Nothing needs your attention" },
   "scan.connected": { id: "{sources} terhubung", en: "{sources} connected" },
@@ -72,7 +84,10 @@ export const searchStrings = {
   "scan.later": { id: "Bisa dibuka lagi dari Pengaturan › Akun", en: "Open it again from Settings › Accounts" },
 
   // Attendance at risk
-  "scan.attendance.title": { id: "Kehadiran {count} mata kuliah berisiko", en: { one: "Attendance at risk in {count} course", other: "Attendance at risk in {count} courses" } },
+  "scan.attendance.title": {
+    id: "Kehadiran {count} mata kuliah berisiko",
+    en: { one: "Attendance at risk in {count} course", other: "Attendance at risk in {count} courses" },
+  },
   "scan.attendance.out": {
     id: "{code}: hadir {attended} dari {held} · paling tinggi {best}% dari target {target}%",
     en: "{code}: {attended} of {held} · best case {best}% of the {target}% target",
@@ -103,8 +118,11 @@ export const searchStrings = {
     en: { one: "{count} course counts attendance in SIX, not Edunex", other: "{count} courses count attendance in SIX, not Edunex" },
   },
   "scan.unused.course": {
-    id: "{code}: SIX mencatat hadir {attended} dari {held}; abaikan {count} \"absen\" di Edunex",
-    en: { one: "{code}: SIX has {attended} of {held}; ignore the {count} \"absence\" Edunex shows", other: "{code}: SIX has {attended} of {held}; ignore the {count} \"absences\" Edunex shows" },
+    id: '{code}: SIX mencatat hadir {attended} dari {held}; abaikan {count} "absen" di Edunex',
+    en: {
+      one: '{code}: SIX has {attended} of {held}; ignore the {count} "absence" Edunex shows',
+      other: '{code}: SIX has {attended} of {held}; ignore the {count} "absences" Edunex shows',
+    },
   },
   "scan.unused.note": { id: "Cukup hadir di kelas; Presensi Edunex tidak wajib.", en: "Just be in class; Edunex Presence is optional." },
 

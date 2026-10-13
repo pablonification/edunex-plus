@@ -87,7 +87,10 @@ export function Section({
 /** Rows that belong together, on one card, divided by hairlines. */
 export function List({ label, className, children }: { label?: string; className?: string; children: ReactNode }) {
   return (
-    <ul aria-label={label} className={cx("overflow-hidden rounded-xl border border-edge bg-surface shadow-card [&>li+li]:border-t [&>li+li]:border-line", className)}>
+    <ul
+      aria-label={label}
+      className={cx("overflow-hidden rounded-xl border border-edge bg-surface shadow-card [&>li+li]:border-t [&>li+li]:border-line", className)}
+    >
       {children}
     </ul>
   );
@@ -171,6 +174,7 @@ export function Meta({ className, children }: { className?: string; children: Re
   return (
     <span className={cx("inline-flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5", className)}>
       {parts.map((part, i) => (
+        // biome-ignore lint/suspicious/noArrayIndexKey: the parts are positional children; Children.toArray gives text no key
         <Fragment key={i}>
           {i > 0 && (
             <span aria-hidden className="text-faint">

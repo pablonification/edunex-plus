@@ -2,7 +2,7 @@
 // changes (the IPK after picking another grade, absences left after a new
 // count), it glows for a moment so the eye finds what moved. The value
 // itself changes at once; only the glow animates, and not with reduced motion.
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import { cx } from "./cx";
 
 /** Wraps a figure; glows briefly whenever `value` changes (not on first show). */

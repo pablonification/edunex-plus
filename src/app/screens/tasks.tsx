@@ -6,20 +6,20 @@
 // hand-in counts for, the deadline, the connection, the file asked for.
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { type DragEvent, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
-import { MAX_UPLOAD_BYTES, type HandInResult, type PickedFile } from "../../core/actions/tasks";
+import { type HandInResult, MAX_UPLOAD_BYTES, type PickedFile } from "../../core/actions/tasks";
 import { attendanceWindow } from "../../core/attendance";
 import { examPassed } from "../../core/exams";
 import type { Task, TaskFile, TaskModule, TaskStatus } from "../../core/models";
 import type { StringKey } from "../../core/strings";
 import {
-  type DueGroup,
-  type HandInCheck,
   attendanceResult,
   attendanceSession,
   byDeadline,
+  type DueGroup,
   dueGroup,
-  edunexTaskUrl,
   editedAfterSubmit,
+  edunexTaskUrl,
+  type HandInCheck,
   handInChecks,
   isOpenStatus,
   matchesNaming,
@@ -29,8 +29,8 @@ import {
   requiredFileType,
   shortWindow,
   submittedAt,
-  taskHistory,
   takesAnswers,
+  taskHistory,
   taskStatus,
 } from "../../core/tasks";
 import { ActionError } from "../bridge";
@@ -42,12 +42,12 @@ import { useExams } from "../schedule-data";
 import { useRefresh, useSignIn } from "../shell/source-status";
 import { useBridge, useDataset, useStatus } from "../store";
 import { Button, Segmented } from "../ui/controls";
-import { Card, CourseDot, EmptyState, Skeleton, StatusChip, StatusGlyph } from "../ui/display";
 import { cx } from "../ui/cx";
+import { Card, CourseDot, EmptyState, Skeleton, StatusChip, StatusGlyph } from "../ui/display";
 import { Icons } from "../ui/icons";
-import { List, Page, PageHeader, Row as ListRow, Section } from "../ui/layout";
+import { List, Row as ListRow, Page, PageHeader, Section } from "../ui/layout";
 import { toast, useReturnFocus } from "../ui/overlays";
-import { RichText, plainText } from "../ui/rich-text";
+import { plainText, RichText } from "../ui/rich-text";
 import { ready as courseReady } from "./course";
 import { ExamRow, examWeekLabel } from "./exam";
 
@@ -146,13 +146,19 @@ export function TasksScreen() {
           { title: "tasks.group.closed" as const, rows: lists.missed.filter(listed) },
         ];
   const shownExams = (exams ?? []).filter((exam) => examPassed(exam, now) === (show === "done") && mine(exam.courseCode));
-  const week = show === "open" ? (exams ?? []).find((exam) => exam.week && exam.week.end > now && exam.kind === "UTS")?.week ?? (exams ?? []).find((exam) => exam.week && exam.week.end > now)?.week : undefined;
+  const week =
+    show === "open"
+      ? ((exams ?? []).find((exam) => exam.week && exam.week.end > now && exam.kind === "UTS")?.week ??
+        (exams ?? []).find((exam) => exam.week && exam.week.end > now)?.week)
+      : undefined;
   const weekExam = week ? (exams ?? []).find((exam) => exam.week === week) : undefined;
   const nothing = shownExams.length === 0 && sections.every((section) => section.rows.length === 0);
   // Signed out of SIX, only Edunex's exams are known: said once, under them, with the way to SIX's timetable.
   const examsNoSix = useStatus("six").state === "signed-out" && show === "open" && course === null;
   // Courses with something in either segment, for the filter.
-  const withItems = (courses ?? []).filter((c) => (rows ?? []).some((row) => row.task.courseCode === c.code) || (exams ?? []).some((exam) => exam.courseCode === c.code));
+  const withItems = (courses ?? []).filter(
+    (c) => (rows ?? []).some((row) => row.task.courseCode === c.code) || (exams ?? []).some((exam) => exam.courseCode === c.code),
+  );
 
   let index = 0;
   return (
@@ -240,6 +246,7 @@ export function TasksScreen() {
 
 function FilterChip({ selected, onClick, children }: { selected: boolean; onClick: () => void; children: ReactNode }) {
   return (
+    // biome-ignore lint/a11y/useSemanticElements: filter chips are styled buttons; the radio role says only one is on
     <button
       type="button"
       role="radio"
@@ -348,7 +355,9 @@ export function TaskDate({ task, status }: Row) {
     <span className="w-[136px] text-right text-small whitespace-nowrap tabular-nums">
       {sentAt !== null ? (
         <>
-          <span className="block font-medium">{task.score !== null ? t("task.scoreValue", { score: formatScore(task.score, f) }) : t("task.submittedOnDate", { date: f.dayMonth(sentAt) })}</span>
+          <span className="block font-medium">
+            {task.score !== null ? t("task.scoreValue", { score: formatScore(task.score, f) }) : t("task.submittedOnDate", { date: f.dayMonth(sentAt) })}
+          </span>
           {task.score !== null && <span className="block text-faint">{t("task.submittedOnDate", { date: f.dayMonth(sentAt) })}</span>}
         </>
       ) : task.dueAt !== null ? (
@@ -580,13 +589,29 @@ function Notes({ task }: { task: Task }) {
   if (result)
     notes.push(
       result.outcome === "counted"
-        ? { tone: "success", icon: <Icons.CheckCircle className="mt-0.5 size-4 shrink-0" />, text: t("task.note.attendanceCounted", { when: range(result.session.opensAt, result.session.closesAt) }) }
-        : { tone: "danger", icon: <Icons.Hand className="mt-0.5 size-4 shrink-0" />, text: t("task.note.attendanceOutside", { when: range(result.session.opensAt, result.session.closesAt) }) },
+        ? {
+            tone: "success",
+            icon: <Icons.CheckCircle className="mt-0.5 size-4 shrink-0" />,
+            text: t("task.note.attendanceCounted", { when: range(result.session.opensAt, result.session.closesAt) }),
+          }
+        : {
+            tone: "danger",
+            icon: <Icons.Hand className="mt-0.5 size-4 shrink-0" />,
+            text: t("task.note.attendanceOutside", { when: range(result.session.opensAt, result.session.closesAt) }),
+          },
     );
   else if (session && session.closesAt > now)
-    notes.push({ tone: "warning", icon: <Icons.Hand className="mt-0.5 size-4 shrink-0" />, text: t("task.note.attendance", { date: f.relativeDay(session.opensAt), time: f.timeRange(session.opensAt, session.closesAt) }) });
+    notes.push({
+      tone: "warning",
+      icon: <Icons.Hand className="mt-0.5 size-4 shrink-0" />,
+      text: t("task.note.attendance", { date: f.relativeDay(session.opensAt), time: f.timeRange(session.opensAt, session.closesAt) }),
+    });
   else if (session && !session.recorded?.present)
-    notes.push({ tone: "neutral", icon: <Icons.Hand className="mt-0.5 size-4 shrink-0" />, text: t("task.note.attendanceMissed", { when: range(session.opensAt, session.closesAt) }) });
+    notes.push({
+      tone: "neutral",
+      icon: <Icons.Hand className="mt-0.5 size-4 shrink-0" />,
+      text: t("task.note.attendanceMissed", { when: range(session.opensAt, session.closesAt) }),
+    });
   const sentAt = submittedAt(task);
   if (task.editedAt !== null && sentAt !== null && editedAfterSubmit(task))
     notes.push({
@@ -605,12 +630,18 @@ function Notes({ task }: { task: Task }) {
       tone: "neutral",
       icon: <Icons.Zap className="mt-0.5 size-4 shrink-0" />,
       text: t("task.note.shortWindow", {
-        duration: window >= HOUR ? t("task.duration.hours", { count: Math.round(window / HOUR) }) : t("task.duration.minutes", { count: Math.round(window / MINUTE) }),
+        duration:
+          window >= HOUR ? t("task.duration.hours", { count: Math.round(window / HOUR) }) : t("task.duration.minutes", { count: Math.round(window / MINUTE) }),
         range: f.timeRange(task.opensAt, task.dueAt),
       }),
     });
   if (!notes.length) return null;
-  const TONE = { warning: "bg-warning-bg text-warning-fg", neutral: "bg-fill text-muted", success: "bg-success-bg text-success-fg", danger: "bg-danger-bg text-danger-fg" };
+  const TONE = {
+    warning: "bg-warning-bg text-warning-fg",
+    neutral: "bg-fill text-muted",
+    success: "bg-success-bg text-success-fg",
+    danger: "bg-danger-bg text-danger-fg",
+  };
   return (
     <ul className="mt-5 space-y-2">
       {notes.map((note) => (
@@ -909,7 +940,13 @@ function HandIn({ task, status }: Row) {
               : null;
 
   const draftButton = (
-    <Button variant={wait && canSave ? "primary" : "secondary"} className="h-9 flex-1" disabled={!canSave} busy={busy === "draft"} onClick={() => void run("draft")}>
+    <Button
+      variant={wait && canSave ? "primary" : "secondary"}
+      className="h-9 flex-1"
+      disabled={!canSave}
+      busy={busy === "draft"}
+      onClick={() => void run("draft")}
+    >
       {t("handIn.saveDraft")}
     </Button>
   );
@@ -1001,7 +1038,9 @@ function HandIn({ task, status }: Row) {
               </span>
               {(task.fileRequired || type) && (
                 <span className="text-caption text-faint">
-                  {[task.fileRequired ? t("handIn.fileRequired") : null, type ? t("handIn.ruleType", { type: type.toUpperCase() }) : null].filter(Boolean).join(" · ")}
+                  {[task.fileRequired ? t("handIn.fileRequired") : null, type ? t("handIn.ruleType", { type: type.toUpperCase() }) : null]
+                    .filter(Boolean)
+                    .join(" · ")}
                 </span>
               )}
             </button>
@@ -1168,7 +1207,9 @@ function HandInDialog({
         >
           <DialogPrimitive.Title className="text-title font-semibold">{t("handIn.confirmTitle")}</DialogPrimitive.Title>
           <DialogPrimitive.Description className="mt-1.5 text-body text-muted">
-            {t("handIn.confirmBody", { files: files.length === 1 ? files[0].name : files.length ? t("handIn.fileCount", { count: files.length }) : t("handIn.yourAnswer") })}
+            {t("handIn.confirmBody", {
+              files: files.length === 1 ? files[0].name : files.length ? t("handIn.fileCount", { count: files.length }) : t("handIn.yourAnswer"),
+            })}
           </DialogPrimitive.Description>
           {checks.length > 0 && (
             <ul className="mt-4 space-y-2 border-t border-line pt-4">
@@ -1219,7 +1260,10 @@ function ProgressBar({ value, label, indeterminate = false }: { value: number; l
       className="relative block h-1 overflow-hidden rounded-full bg-black/[0.06] dark:bg-white/[0.08]"
     >
       <span
-        className={cx("absolute inset-y-0 left-0 rounded-full bg-accent motion-safe:transition-[width] motion-safe:duration-300", indeterminate && "w-1/3 motion-safe:animate-shimmer")}
+        className={cx(
+          "absolute inset-y-0 left-0 rounded-full bg-accent motion-safe:transition-[width] motion-safe:duration-300",
+          indeterminate && "w-1/3 motion-safe:animate-shimmer",
+        )}
         style={indeterminate ? undefined : { width: `${Math.max(0, Math.min(1, value)) * 100}%` }}
       />
     </span>
@@ -1402,4 +1446,3 @@ function History({ task }: { task: Task }) {
     </Card>
   );
 }
-

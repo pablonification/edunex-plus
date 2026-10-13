@@ -3,7 +3,7 @@
 // closes. Every window, even in a course whose attendance counts in SIX: a
 // lecturer may use both systems, and the action takes seconds. A window the
 // Student was already recorded in, or that closed, never alerts.
-import { presenceAction, type PresenceActivity } from "../../core/attendance";
+import { type PresenceActivity, presenceAction } from "../../core/attendance";
 import type { StringKey } from "../../core/strings";
 import { clockTime, type Detector, type PlannedAlert } from "./detector";
 
@@ -29,7 +29,12 @@ export const presenceOpening: Detector = {
         if (session.recorded?.present) continue;
         const action = presenceAction(session, tasks);
         // Without the Task in hand, the lecturer's note ("Presensi dengan submit Tugas 02 Bab II") says it best.
-        const key = action.activity === "assignment" && !action.task ? (session.note ? "alert.presence.note" : "alert.presence.assignmentUnknown") : BODY[action.activity];
+        const key =
+          action.activity === "assignment" && !action.task
+            ? session.note
+              ? "alert.presence.note"
+              : "alert.presence.assignmentUnknown"
+            : BODY[action.activity];
         planned.push({
           id: `presence.open:${session.id}:${session.opensAt}`,
           kind: "presenceOpen",

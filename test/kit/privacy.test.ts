@@ -3,7 +3,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { FIXTURES_DIR, allFixtureFiles } from "./fixtures";
+import { allFixtureFiles, FIXTURES_DIR } from "./fixtures";
 
 const files = allFixtureFiles().filter((file) => !file.includes(`${path.sep}pub${path.sep}`));
 const texts = files.map((file) => ({ file: path.relative(FIXTURES_DIR, file), text: fs.readFileSync(file, "utf8") }));

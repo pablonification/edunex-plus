@@ -69,9 +69,20 @@ describe("SIX sign-in → this term's courses", () => {
       activity: "Kuliah",
       room: "R.SG PWK LT.6",
     });
-    expect(meeting(h, "2179909")).toMatchObject({ courseCode: "DK4073", activity: "UTS", room: "TVST C", start: at("2026-10-15T11:00:00+07:00"), end: at("2026-10-15T12:59:00+07:00") });
+    expect(meeting(h, "2179909")).toMatchObject({
+      courseCode: "DK4073",
+      activity: "UTS",
+      room: "TVST C",
+      start: at("2026-10-15T11:00:00+07:00"),
+      end: at("2026-10-15T12:59:00+07:00"),
+    });
     // A meeting SIX lists without a room.
-    expect(meeting(h, "2311195")).toMatchObject({ courseCode: "II4091", room: null, start: at("2026-10-16T15:00:00+07:00"), end: at("2026-10-16T23:00:00+07:00") });
+    expect(meeting(h, "2311195")).toMatchObject({
+      courseCode: "II4091",
+      room: null,
+      start: at("2026-10-16T15:00:00+07:00"),
+      end: at("2026-10-16T23:00:00+07:00"),
+    });
   });
 
   it("reads this month and the next one the term has", async () => {
@@ -86,7 +97,15 @@ describe("SIX sign-in → this term's courses", () => {
   it("a month counts as read only from its own page, not from the edge of another month's grid", async () => {
     const h = await startEngine();
     // November's page also shows 1–4 December: PL3002's class on Thursday 3 December is listed there.
-    h.world.six.addMeeting({ id: "2194354", code: "PL3002", name: "Ekonomi dan Inovasi dalam Perencanaan", day: "2026-12-03", start: "08:00", end: "09:30", room: "R.SG PWK LT.6" });
+    h.world.six.addMeeting({
+      id: "2194354",
+      code: "PL3002",
+      name: "Ekonomi dan Inovasi dalam Perencanaan",
+      day: "2026-12-03",
+      start: "08:00",
+      end: "09:30",
+      room: "R.SG PWK LT.6",
+    });
     await until(h, h.engine.signIn("six", SIX));
     expect(meeting(h, "2194354")).toMatchObject({ start: at("2026-12-03T08:00:00+07:00"), room: "R.SG PWK LT.6" });
     expect(h.dataset("six.scheduleMonths")).toEqual(["2026-10", "2026-11"]);
@@ -346,11 +365,14 @@ describe("SIX pages for other readers", () => {
     const { SixClient } = await import("../../src/engine/sources/six/client");
     const h = await startEngine({ start: false });
     const pages = new SixClient(h.world, h.world.clock, PRETEND_SIX_COOKIE, "EdunexPlus/test");
-    await expect(until(h, pages.page("/app/mahasiswa:18223901/nothing-here"))).rejects.toMatchObject({ kind: "Failed", message: "SIX answered 404 for /nothing-here" });
+    await expect(until(h, pages.page("/app/mahasiswa:18223901/nothing-here"))).rejects.toMatchObject({
+      kind: "Failed",
+      message: "SIX answered 404 for /nothing-here",
+    });
     h.world.six.expireSession();
     await expect(until(h, pages.page("/app/mahasiswa:18223901/keuangan"))).rejects.toMatchObject({ kind: "Unauthorized" });
   });
 });
 
-// Keeps the ClassSession import honest if the schedule's shape changes.
+// biome-ignore lint/suspicious/noExportsInTest: keeps the ClassSession import honest if the schedule's shape changes
 export type { ClassSession };

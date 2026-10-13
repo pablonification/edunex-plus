@@ -16,7 +16,10 @@ export const tasksStrings = {
   "tasks.group.closed": { id: "Ditutup, tidak dikumpulkan", en: "Closed, not handed in" },
   "tasks.allHandedIn": { id: "Semua sudah dikumpulkan", en: "All handed in" },
   "tasks.noneDone": { id: "Belum ada tugas yang selesai", en: "Nothing handed in yet" },
-  "tasks.examsNoSix": { id: "Ujian dari jadwal SIX (tanggal dan ruangnya) muncul setelah SIX terhubung.", en: "Exams from SIX's timetable (their dates and rooms) show once SIX is connected." },
+  "tasks.examsNoSix": {
+    id: "Ujian dari jadwal SIX (tanggal dan ruangnya) muncul setelah SIX terhubung.",
+    en: "Exams from SIX's timetable (their dates and rooms) show once SIX is connected.",
+  },
   "tasks.none": { id: "Belum ada tugas semester ini", en: "No Tasks this semester yet" },
   "tasks.unavailable": { id: "Tugas belum bisa dimuat", en: "Your Tasks couldn't be loaded yet" },
   "tasks.dueNext": { id: "Tenggat berikutnya", en: "Due next" },
@@ -79,11 +82,23 @@ export const tasksStrings = {
   "handIn.uploading": { id: "Mengunggah…", en: "Uploading…" },
   "handIn.progress": { id: "{done} dari {count} berkas terunggah", en: { one: "Uploaded {done} of {count} file", other: "Uploaded {done} of {count} files" } },
   "handIn.notSaved": { id: "Belum disimpan", en: "Not saved yet" },
-  "handIn.uploadFailed": { id: "Edunex tidak menerima unggahan ini (galat di server Edunex). Berkasmu tetap di sini.", en: "Edunex didn't take this upload (an error on Edunex's side). Your file stays here." },
-  "handIn.uploadOffline": { id: "Tidak ada koneksi, jadi belum terunggah. Berkasmu tetap di sini.", en: "No connection, so it isn't uploaded yet. Your file stays here." },
-  "handIn.uploadExpired": { id: "Sesi Edunex berakhir, jadi belum terunggah. Masuk lagi, lalu coba lagi.", en: "Your Edunex session ended, so it isn't uploaded yet. Sign in again, then try again." },
+  "handIn.uploadFailed": {
+    id: "Edunex tidak menerima unggahan ini (galat di server Edunex). Berkasmu tetap di sini.",
+    en: "Edunex didn't take this upload (an error on Edunex's side). Your file stays here.",
+  },
+  "handIn.uploadOffline": {
+    id: "Tidak ada koneksi, jadi belum terunggah. Berkasmu tetap di sini.",
+    en: "No connection, so it isn't uploaded yet. Your file stays here.",
+  },
+  "handIn.uploadExpired": {
+    id: "Sesi Edunex berakhir, jadi belum terunggah. Masuk lagi, lalu coba lagi.",
+    en: "Your Edunex session ended, so it isn't uploaded yet. Sign in again, then try again.",
+  },
   "handIn.tooBig": { id: "Lebih dari 100 MB: Edunex tidak menerima berkas sebesar ini", en: "Over 100 MB: Edunex doesn't take files this big" },
-  "handIn.unreadable": { id: "Berkas ini tidak bisa dibaca. Coba simpan ulang lalu lampirkan lagi.", en: "This file can't be read. Save it again, then attach it again." },
+  "handIn.unreadable": {
+    id: "Berkas ini tidak bisa dibaca. Coba simpan ulang lalu lampirkan lagi.",
+    en: "This file can't be read. Save it again, then attach it again.",
+  },
   "handIn.saveDraft": { id: "Simpan draf", en: "Save draft" },
   "handIn.submit": { id: "Kumpulkan", en: "Submit" },
   "handIn.submitLate": { id: "Kumpulkan terlambat", en: "Submit late" },
@@ -115,7 +130,10 @@ export const tasksStrings = {
   "handIn.closed": { id: "Edunex sudah menutup pengumpulan tugas ini. Jawabanmu tidak terkirim.", en: "Edunex has closed this Task. Your answer wasn't sent." },
   "handIn.notOpen": { id: "Tugas ini belum dibuka di Edunex.", en: "This Task isn't open on Edunex yet." },
   "handIn.gone": { id: "Tugas ini sudah tidak ada di Edunex.", en: "This Task is no longer on Edunex." },
-  "handIn.error.offline": { id: "Edunex tidak bisa dihubungi. Berkasmu tetap terlampir, coba lagi.", en: "Edunex can't be reached. Your files stay attached; try again." },
+  "handIn.error.offline": {
+    id: "Edunex tidak bisa dihubungi. Berkasmu tetap terlampir, coba lagi.",
+    en: "Edunex can't be reached. Your files stay attached; try again.",
+  },
   "handIn.error.expired": {
     id: "Sesi Edunex berakhir. Masuk lagi, lalu coba lagi. Berkasmu tetap terlampir.",
     en: "Your Edunex session ended. Sign in again, then try again. Your files stay attached.",
@@ -167,7 +185,10 @@ export const tasksStrings = {
   "handIn.why.noFile": { id: "Lampirkan berkas dulu untuk mengumpulkan.", en: "Attach a file first to hand it in." },
   "handIn.why.uploading": { id: "Tunggu sampai semua berkas terunggah.", en: "Wait until every file is uploaded." },
   "handIn.why.failed": { id: "Coba lagi atau hapus berkas yang gagal terunggah.", en: "Try again or remove the file that didn't upload." },
-  "handIn.why.offline": { id: "Tidak terhubung ke Edunex. Berkasmu tetap di sini; kumpulkan setelah tersambung lagi.", en: "Not connected to Edunex. Your files stay here; hand in once you're back online." },
+  "handIn.why.offline": {
+    id: "Tidak terhubung ke Edunex. Berkasmu tetap di sini; kumpulkan setelah tersambung lagi.",
+    en: "Not connected to Edunex. Your files stay here; hand in once you're back online.",
+  },
   "handIn.why.expired": { id: "Sesi Edunex berakhir. Masuk lagi untuk mengumpulkan.", en: "Your Edunex session ended. Sign in again to hand in." },
   "handIn.why.early": {
     id: "Belum masuk jendela presensi. Simpan draf sekarang, lalu kumpulkan {when} agar terhitung hadir.",
@@ -204,7 +225,10 @@ export const tasksStrings = {
     en: "SIX: {six} · Edunex: {edunex}. It may be one exam in two parts, or one of them isn't updated yet.",
   },
   "examPage.copyQuestion": { id: "Salin pertanyaan untuk dosen", en: "Copy a question for your lecturer" },
-  "examPage.copied": { id: "Pertanyaan tersalin. Tempel di chat atau email ke dosen.", en: "Question copied. Paste it into a chat or an email to your lecturer." },
+  "examPage.copied": {
+    id: "Pertanyaan tersalin. Tempel di chat atau email ke dosen.",
+    en: "Question copied. Paste it into a chat or an email to your lecturer.",
+  },
   "examPage.question": {
     id: "{greeting} Bapak/Ibu, mohon maaf mengganggu. Untuk {kind} {code} {name}, SIX mencantumkan {six}, sedangkan Edunex {edunex}. Mohon konfirmasi tanggal dan bentuk ujian yang benar. Terima kasih.",
     en: "Dear lecturer, for the {code} {name} {kind}, SIX lists {six} while Edunex lists {edunex}. Could you confirm the right date and format? Thank you.",

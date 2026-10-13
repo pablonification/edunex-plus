@@ -2,7 +2,7 @@
 // Student is, this term, and the term's courses with class, SKS and the exact
 // attendance count. Also the NIM, from SIX's home page.
 import type { SixCourse, SixStudent } from "../../../core/models";
-import { changed, clean, COURSE_CODE, links, type Nodes, type Page, parse } from "./html";
+import { COURSE_CODE, changed, clean, links, type Nodes, type Page, parse } from "./html";
 
 export interface StatusPage {
   student: SixStudent;
@@ -21,7 +21,11 @@ const COLUMNS = 7;
 export function readNim(html: string): string {
   const $ = parse(html);
   const brand = /[?&]context=mahasiswa:(\d+)/.exec($("a.navbar-brand").attr("href") ?? "")?.[1];
-  const nim = brand ?? links($).map((href) => /(?:\/app\/|[?&]context=)mahasiswa:(\d+)/.exec(href)?.[1]).find(Boolean);
+  const nim =
+    brand ??
+    links($)
+      .map((href) => /(?:\/app\/|[?&]context=)mahasiswa:(\d+)/.exec(href)?.[1])
+      .find(Boolean);
   if (!nim) throw changed("home", "no student pages are linked");
   return nim;
 }
@@ -52,7 +56,12 @@ export function readStatusPage(html: string, nim: string): StatusPage {
 /** "182 / Sistem dan Teknologi Informasi" in the Student's details table. */
 function readProgram($: Page, nim: string): { code: string; name: string } | null {
   const details = $("table")
-    .filter((_, table) => $(table).find("td").toArray().some((td) => clean($(td).text()) === nim))
+    .filter((_, table) =>
+      $(table)
+        .find("td")
+        .toArray()
+        .some((td) => clean($(td).text()) === nim),
+    )
     .first();
   for (const td of details.find("td").toArray()) {
     const match = /^(\d{3})\s*\/\s*(\S.*)$/.exec(clean($(td).text()));
@@ -113,7 +122,7 @@ function readAttendance($: Page, cell: Nodes, at: string): SixCourse["attendance
     return null;
   }
   const numbers = titles.length === 1 ? titles[0].match(/\d+/g) : null;
-  if (!numbers || numbers.length !== 2) throw changed(PAGE, `${at}: attendance without its count`);
+  if (numbers?.length !== 2) throw changed(PAGE, `${at}: attendance without its count`);
   const [attended, held] = numbers.map(Number);
   if (attended > held) throw changed(PAGE, `${at}: attended more meetings than were held`);
   if (held === 0) return { attended, held };

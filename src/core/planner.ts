@@ -17,8 +17,8 @@ import {
   projectIpk,
   roundIndex,
   type StudyPlan,
-  termIndex,
   type Transcript,
+  termIndex,
 } from "./models";
 
 /** Most SKS in a regular semester (with the academic advisor's approval), the normal load, and a short semester's limit. */
@@ -157,7 +157,9 @@ export function studentRecord(input: RecordInput): StudentRecord {
     : (input.termCourses ?? []).map((c) => ({ ...c, grade: null }));
 
   const graded = new Map<string, { name: string; sks: number; grade: LetterGrade; term: string }>();
-  for (const t of terms) for (const c of t.courses) if (c.standing === "counted" && isLetterGrade(c.grade)) graded.set(c.code, { name: c.name, sks: c.sks, grade: c.grade, term: t.term });
+  for (const t of terms)
+    for (const c of t.courses)
+      if (c.standing === "counted" && isLetterGrade(c.grade)) graded.set(c.code, { name: c.name, sks: c.sks, grade: c.grade, term: t.term });
   const rows = terms.flatMap((t) => t.courses);
 
   const progressRows = (progress?.stages ?? []).flatMap((stage) => stage.semesters.flatMap((s) => s.courses.map((c) => ({ ...c, semester: s.semester }))));
@@ -171,7 +173,8 @@ export function studentRecord(input: RecordInput): StudentRecord {
   const programCode = curriculum?.program.code ?? null;
   for (const c of curriculum?.catalog ?? []) know(c.code, c.name, c.sks, programCode);
   for (const c of curriculum?.required ?? []) know(c.code, c.name, c.sks, courses.get(c.code)?.owner ?? null);
-  for (const pkg of [...(curriculum?.specializations ?? []), ...(curriculum?.minors ?? [])]) for (const c of pkg.courses) know(c.code, c.name, c.sks, null, false);
+  for (const pkg of [...(curriculum?.specializations ?? []), ...(curriculum?.minors ?? [])])
+    for (const c of pkg.courses) know(c.code, c.name, c.sks, null, false);
   for (const c of [...rows, ...progressRows, ...thisTerm]) know(c.code, c.name, c.sks, null, false);
 
   const required = new Map((curriculum?.required ?? []).map((c) => [c.code, { code: c.code, name: c.name, sks: c.sks, semester: c.semester }]));
@@ -184,7 +187,8 @@ export function studentRecord(input: RecordInput): StudentRecord {
       if (row.status === "not-taken" || failed) requiredLeft.push({ code: row.code, name: row.name, sks: row.sks, semester: row.semester });
     }
   } else {
-    for (const c of required.values()) if (!passedGrade(graded.get(c.code)?.grade ?? null) && !thisTermCodes.has(c.code) && !exempt.has(c.code)) requiredLeft.push(c);
+    for (const c of required.values())
+      if (!passedGrade(graded.get(c.code)?.grade ?? null) && !thisTermCodes.has(c.code) && !exempt.has(c.code)) requiredLeft.push(c);
   }
 
   const requiredSks = curriculum ? curriculum.required.reduce((sum, c) => sum + c.sks, 0) : null;
@@ -202,7 +206,14 @@ export function studentRecord(input: RecordInput): StudentRecord {
   const specName = registration("specialization");
   const specialization = curriculum?.specializations.find((s) => s.name.toLowerCase() === specName) ?? null;
   const minors: MinorOption[] = curriculum?.minors.length
-    ? curriculum.minors.map((m) => ({ key: `${m.program} · ${m.name}`, name: m.name, program: m.program, sks: m.sks, note: m.note, courses: m.courses.map((c) => c.code) }))
+    ? curriculum.minors.map((m) => ({
+        key: `${m.program} · ${m.name}`,
+        name: m.name,
+        program: m.program,
+        sks: m.sks,
+        note: m.note,
+        courses: m.courses.map((c) => c.code),
+      }))
     : (catalog?.minors ?? []).map((m) => ({ key: `${m.program} · ${m.name}`, name: m.name, program: m.program, sks: m.sks, note: null, courses: m.courses }));
   const minorName = registration("minor");
   const programName = curriculum ? curriculum.program.name.replace(/^S1\s+/i, "") : null;
@@ -233,7 +244,10 @@ export function studentRecord(input: RecordInput): StudentRecord {
     minors,
     registeredMinor: minors.find((m) => m.name.toLowerCase() === minorName)?.key ?? null,
     courses,
-    programNames: new Map([...(catalog?.programs ?? []).map((p) => [p.id, p.name] as const), ...(curriculum && programName ? [[curriculum.program.code, programName] as const] : [])]),
+    programNames: new Map([
+      ...(catalog?.programs ?? []).map((p) => [p.id, p.name] as const),
+      ...(curriculum && programName ? [[curriculum.program.code, programName] as const] : []),
+    ]),
   };
 }
 
@@ -300,7 +314,10 @@ export function defaultPlan(record: StudentRecord): StudyPlan {
     const at = terms.find((t) => t.semester >= course.semester) ?? terms[terms.length - 1];
     place(course.code, at.term);
   }
-  const taken = (code: string) => passedGrade(record.graded.get(code)?.grade ?? null) || record.thisTerm.some((c) => c.code === code) || [...items.values()].some((list) => list.some((c) => c.code === code));
+  const taken = (code: string) =>
+    passedGrade(record.graded.get(code)?.grade ?? null) ||
+    record.thisTerm.some((c) => c.code === code) ||
+    [...items.values()].some((list) => list.some((c) => c.code === code));
   for (const course of record.specialization?.courses ?? []) {
     if (taken(course.code)) continue;
     const at = terms.find((t) => (items.get(t.term) ?? []).reduce((sum, c) => sum + c.sks, 0) + course.sks <= NORMAL_SKS) ?? terms[terms.length - 1];
@@ -323,7 +340,8 @@ export function addCourse(plan: StudyPlan, term: string, course: PlannedCourse):
 
 export const removeCourse = (plan: StudyPlan, term: string, code: string) => setTermCourses(plan, term, (courses) => courses.filter((c) => c.code !== code));
 
-export const setGrade = (plan: StudyPlan, term: string, code: string, grade: LetterGrade) => setTermCourses(plan, term, (courses) => courses.map((c) => (c.code === code ? { ...c, grade } : c)));
+export const setGrade = (plan: StudyPlan, term: string, code: string, grade: LetterGrade) =>
+  setTermCourses(plan, term, (courses) => courses.map((c) => (c.code === code ? { ...c, grade } : c)));
 
 /** The next regular semester after the plan's last one. */
 export function addTerm(plan: StudyPlan, record: StudentRecord): StudyPlan {
@@ -409,7 +427,8 @@ export function expectedGrade(record: StudentRecord, plan: StudyPlan, code: stri
 export function project(record: StudentRecord, rawPlan: StudyPlan): Projection {
   const plan = livePlan(rawPlan, record);
   const { transcript } = record;
-  const ipkWith = (targets: { code: string; sks: number; grade: LetterGrade }[]): IndexSum => (transcript ? projectIpk(transcript, targets) : cumulativeIndex(targets));
+  const ipkWith = (targets: { code: string; sks: number; grade: LetterGrade }[]): IndexSum =>
+    transcript ? projectIpk(transcript, targets) : cumulativeIndex(targets);
   const steps: ProjectedStep[] = [];
 
   // Past terms: SIX's IP, and the IPK the rows make after each.
@@ -449,7 +468,11 @@ export function project(record: StudentRecord, rawPlan: StudyPlan): Projection {
 
   const finalIpk = targets.length ? ipkWith(targets).value : (transcript?.ipk.computed ?? null);
   const lastPlanned = [...plan.terms].reverse().find((t) => termKind(t.term) !== "short" && t.courses.length);
-  const finishSemester = lastPlanned ? semesterOf(lastPlanned.term, record.entryTerm) : record.thisTerm.length ? record.semesterNow : (steps.at(-1)?.semester ?? null);
+  const finishSemester = lastPlanned
+    ? semesterOf(lastPlanned.term, record.entryTerm)
+    : record.thisTerm.length
+      ? record.semesterNow
+      : (steps.at(-1)?.semester ?? null);
   const path: Path = { retakes: record.retookBefore || plan.terms.some((t) => t.courses.some((c) => c.retake)), semesters: finishSemester };
 
   // Fixed: what's graded and stays (a planned retake takes its course out). Variable: still to be graded.
@@ -549,7 +572,9 @@ export interface Shortfall {
 /** SKS a minor's courses add up to for the Student: passed, this term or planned. */
 export function minorCoverage(record: StudentRecord, plan: StudyPlan, minor: MinorOption): { have: number; codes: string[] } {
   const planned = plannedCodes(plan);
-  const codes = minor.courses.filter((code) => passedGrade(record.graded.get(code)?.grade ?? null) || record.thisTerm.some((c) => c.code === code) || planned.has(code));
+  const codes = minor.courses.filter(
+    (code) => passedGrade(record.graded.get(code)?.grade ?? null) || record.thisTerm.some((c) => c.code === code) || planned.has(code),
+  );
   return { have: codes.reduce((sum, code) => sum + courseInfo(record, code).sks, 0), codes };
 }
 
@@ -577,7 +602,13 @@ export function checkPlan(record: StudentRecord, rawPlan: StudyPlan, projection:
     const gaps = spec.courses.filter((c) => !covered(c.code));
     const coveredSks = spec.courses.filter((c) => covered(c.code)).reduce((sum, c) => sum + c.sks, 0);
     const done = !gaps.length || (spec.sks !== null && coveredSks >= spec.sks);
-    rules.push({ id: "specialization", level: done ? "ok" : "warn", name: spec.name, total: spec.courses.length, missing: done ? [] : gaps.map(({ code, name }) => ({ code, name })) });
+    rules.push({
+      id: "specialization",
+      level: done ? "ok" : "warn",
+      name: spec.name,
+      total: spec.courses.length,
+      missing: done ? [] : gaps.map(({ code, name }) => ({ code, name })),
+    });
   }
 
   const minor = record.minors.find((m) => m.key === plan.minor);
@@ -598,8 +629,10 @@ export function checkPlan(record: StudentRecord, rawPlan: StudyPlan, projection:
     for (const c of t.courses) {
       const recommended = record.required.get(c.code)?.semester ?? record.requiredLeft.find((r) => r.code === c.code)?.semester;
       if (recommended === undefined) continue;
-      if (recommended % 2 !== (termKind(t.term) === "odd" ? 1 : 0)) rules.push({ id: "parity", level: "warn", term: t.term, code: c.code, name: c.name, semester: recommended });
-      else if (semester !== null && semester < recommended) rules.push({ id: "early", level: "warn", term: t.term, code: c.code, name: c.name, semester: recommended });
+      if (recommended % 2 !== (termKind(t.term) === "odd" ? 1 : 0))
+        rules.push({ id: "parity", level: "warn", term: t.term, code: c.code, name: c.name, semester: recommended });
+      else if (semester !== null && semester < recommended)
+        rules.push({ id: "early", level: "warn", term: t.term, code: c.code, name: c.name, semester: recommended });
     }
   }
 
@@ -618,7 +651,13 @@ export function checkPlan(record: StudentRecord, rawPlan: StudyPlan, projection:
           other: errors.filter((r) => r.id !== "total" && r.id !== "required" && r.id !== "electives").length,
         }
       : null;
-    rules.push({ id: "finish", level: blocked ? "error" : semester <= record.normalSemesters ? "ok" : "warn", semester, normal: record.normalSemesters, blocked });
+    rules.push({
+      id: "finish",
+      level: blocked ? "error" : semester <= record.normalSemesters ? "ok" : "warn",
+      semester,
+      normal: record.normalSemesters,
+      blocked,
+    });
   }
   return rules;
 }

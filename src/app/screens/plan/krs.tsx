@@ -9,8 +9,8 @@ import { useTermCourses } from "../../courses";
 import { useFormat, useNow, useT } from "../../i18n";
 import { useNav } from "../../nav";
 import { useDataset } from "../../store";
-import { cx } from "../../ui/cx";
 import { Button } from "../../ui/controls";
+import { cx } from "../../ui/cx";
 import { Bar, Card, CourseCode, SectionTitle } from "../../ui/display";
 import { Icons } from "../../ui/icons";
 import { List, Meta, Row } from "../../ui/layout";
@@ -208,7 +208,12 @@ function Courses({ plan, overlaps }: { plan: KrsPlan; overlaps: Overlap[] }) {
       </SectionTitle>
       {plan.maxSks !== null && (
         <>
-          <Bar className="mb-3" value={plan.sks / plan.maxSks} color={over ? "var(--danger-fg)" : "var(--live)"} label={t("krs.sksOfMax", { sks: plan.sks, max: plan.maxSks })} />
+          <Bar
+            className="mb-3"
+            value={plan.sks / plan.maxSks}
+            color={over ? "var(--danger-fg)" : "var(--live)"}
+            label={t("krs.sksOfMax", { sks: plan.sks, max: plan.maxSks })}
+          />
           {over && <p className="mb-3 text-small font-medium text-danger-fg">{t("krs.overMax", { max: plan.maxSks })}</p>}
         </>
       )}

@@ -17,8 +17,8 @@ import { wibDay } from "../../core/course-meetings";
 import { dateVars, sameLocalDay } from "../../core/dates";
 import { type ExamKind, mergeExams } from "../../core/exams";
 import type { AlertText, ClassSession } from "../../core/models";
-import { translate } from "../../core/strings";
 import { dayStart, meetingsOutsideSix, overlaps, pairKey, REMINDER_ALERTS, sessionChanges, slotMarks, weekStart } from "../../core/schedule";
+import { translate } from "../../core/strings";
 import { type AlertDraft, clockTime, type Detector, type PlannedAlert } from "./detector";
 
 const MINUTE = 60_000;
@@ -102,17 +102,19 @@ export const scheduleOverlaps: Detector = {
       if (entry) entry.until = Math.max(entry.until, to);
       else byWeek.set(key, { pair, codes: pair.split("+"), first: { from: overlap.from, to: overlap.to }, until: to });
     }
-    return [...byWeek.entries()].map(([key, { codes, first, until }]): PlannedAlert => ({
-      id: `${REMINDER_ALERTS.overlap}${key}`,
-      kind: "scheduleChanged",
-      source: "six",
-      // Monday 06:00 WIB of that week.
-      at: dayStart(key.split(":")[1]) + 6 * HOUR,
-      until,
-      title: { key: "alert.overlap", vars: { a: codes[0], b: codes[1], course: `${codes[0]} · ${codes[1]}` } },
-      body: { key: "alert.overlap.body", vars: { ...dateVars(first.from), from: clockTime(first.from), to: clockTime(first.to) } },
-      target: { screen: "schedule" },
-    }));
+    return [...byWeek.entries()].map(
+      ([key, { codes, first, until }]): PlannedAlert => ({
+        id: `${REMINDER_ALERTS.overlap}${key}`,
+        kind: "scheduleChanged",
+        source: "six",
+        // Monday 06:00 WIB of that week.
+        at: dayStart(key.split(":")[1]) + 6 * HOUR,
+        until,
+        title: { key: "alert.overlap", vars: { a: codes[0], b: codes[1], course: `${codes[0]} · ${codes[1]}` } },
+        body: { key: "alert.overlap.body", vars: { ...dateVars(first.from), from: clockTime(first.from), to: clockTime(first.to) } },
+        target: { screen: "schedule" },
+      }),
+    );
   },
 };
 
@@ -131,7 +133,10 @@ export const meetingsOutside: Detector = {
         kind: "meeting",
         source: "edunex",
         title: { key: "alert.meetingOutside", vars: { course: meeting.code } },
-        body: { key: "alert.meetingOutside.body", vars: { n: meeting.number, ...dateVars(meeting.start), time: `${clockTime(meeting.start)}–${clockTime(meeting.end)}` } },
+        body: {
+          key: "alert.meetingOutside.body",
+          vars: { n: meeting.number, ...dateVars(meeting.start), time: `${clockTime(meeting.start)}–${clockTime(meeting.end)}` },
+        },
         target: { screen: "schedule" },
       }));
   },

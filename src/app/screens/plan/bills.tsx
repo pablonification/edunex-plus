@@ -55,7 +55,16 @@ function StatusChip({ bill }: { bill: Bill }) {
   );
 }
 
-const notBilled = (term: string): Bill => ({ term, amount: null, paid: null, status: "not-billed", dueDate: null, dueAt: null, instalments: [], nextDueAt: null });
+const notBilled = (term: string): Bill => ({
+  term,
+  amount: null,
+  paid: null,
+  status: "not-billed",
+  dueDate: null,
+  dueAt: null,
+  instalments: [],
+  nextDueAt: null,
+});
 
 const dayMs = (iso: string) => Date.parse(`${iso}T12:00:00+07:00`);
 
@@ -93,9 +102,13 @@ export function Tab(_: { onCalendar?: () => void }) {
               <span className="font-medium">{termYears(bill.term)}</span>
               <span className="text-right tabular-nums">
                 {bill.amount !== null ? rupiah(bill.amount) : "—"}
-                {bill.instalments.length > 0 && <span className="ml-2 text-caption text-faint">{t("bills.inInstalments", { count: bill.instalments.length })}</span>}
+                {bill.instalments.length > 0 && (
+                  <span className="ml-2 text-caption text-faint">{t("bills.inInstalments", { count: bill.instalments.length })}</span>
+                )}
               </span>
-              <span className="text-right text-small text-muted tabular-nums">{bill.dueDate ? f.dayMonth(dayMs(bill.dueDate)) + ` ${bill.dueDate.slice(0, 4)}` : "—"}</span>
+              <span className="text-right text-small text-muted tabular-nums">
+                {bill.dueDate ? `${f.dayMonth(dayMs(bill.dueDate))} ${bill.dueDate.slice(0, 4)}` : "—"}
+              </span>
               <span className="text-right">
                 <StatusChip bill={bill} />
               </span>
@@ -159,7 +172,9 @@ function BillCard({ label, bill }: { label: string; bill: Bill }) {
       ) : (
         <>
           <p className="mt-1 text-title font-medium text-muted">{t("bills.notBilled")}</p>
-          <p className="mt-0.5 text-small text-muted">{deadline ? t("bills.expect", { date: f.dayMonth(dayMs(deadline.day)).replace(" ", "\u00a0") }) : t("bills.expectNoDate")}</p>
+          <p className="mt-0.5 text-small text-muted">
+            {deadline ? t("bills.expect", { date: f.dayMonth(dayMs(deadline.day)).replace(" ", "\u00a0") }) : t("bills.expectNoDate")}
+          </p>
         </>
       )}
       {billedNow && deadline && (

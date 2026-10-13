@@ -184,6 +184,7 @@ function GridSkeleton() {
     <div aria-busy="true" className="mt-2 grid grid-cols-[48px_repeat(5,minmax(0,1fr))_36px_36px] gap-x-px">
       <span />
       {Array.from({ length: 7 }, (_, i) => (
+        // biome-ignore lint/suspicious/noArrayIndexKey: placeholder columns have no identity and never move
         <div key={i} className="space-y-2 border-l border-line px-1.5 pt-1">
           <Skeleton className="h-3 w-8" />
           <Skeleton className="h-6 w-6 rounded-full" />
@@ -194,4 +195,3 @@ function GridSkeleton() {
     </div>
   );
 }
-

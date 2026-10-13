@@ -5,7 +5,7 @@ import type { AcademicCalendar, CalendarEvent, CalendarKind } from "../../../cor
 import { EngineError } from "../../errors";
 import type { SourceContext } from "../source";
 import { PublicClient } from "./client";
-import { IcsError, parseIcs } from "./ics";
+import { IcsError, type IcsEvent, parseIcs } from "./ics";
 
 /** The short link on SIX's home page ("Kalender Pendidikan ITB (iCalendar)"); it redirects to the current file. */
 export const CALENDAR_URL = "https://goitb.id/KalenderPendidikan-ics";
@@ -48,7 +48,7 @@ const dayOf = (ms: number) => new Date(ms + WIB).toISOString().slice(0, 10);
 
 /** Reads the feed's text into the app's calendar; anything that isn't a calendar is a vendor change. */
 export function readCalendar(text: string, checkedAt: number): AcademicCalendar {
-  let raw;
+  let raw: IcsEvent[];
   try {
     raw = parseIcs(text);
   } catch (error) {

@@ -2,7 +2,7 @@
 // its own crash guard. Settings opens over it (sidebar footer, or ⌘,), quick
 // search too (the top bar, or ⌘K), and once, after the first full sync, the
 // first-run scan. A screen shows in the sidebar once it's built (its `ready` flag).
-import { useCallback, useEffect, useRef, useState, type ComponentType } from "react";
+import { type ComponentType, useCallback, useEffect, useRef, useState } from "react";
 import { edunexCourseUrl, sixStatusUrl } from "../../core/links";
 import type { StringKey } from "../../core/strings";
 import { type TermCourse, useTermCourses } from "../courses";
@@ -21,8 +21,8 @@ import { TaskScreen, TasksScreen, ready as tasksReady, useBadge as useTasksBadge
 import { useBridge, useCommand, useDataset, useNavigateRequests, useStore } from "../store";
 import { AppMark } from "../ui/brand";
 import { Button } from "../ui/controls";
-import { Badge, CourseDot } from "../ui/display";
 import { cx } from "../ui/cx";
+import { Badge, CourseDot } from "../ui/display";
 import { type IconProps, Icons } from "../ui/icons";
 import { Tooltip } from "../ui/overlays";
 import { PanelBoundary } from "../ui/panel-boundary";
@@ -75,6 +75,7 @@ function Layout() {
   );
   // A new screen starts at its top.
   const key = JSON.stringify(route);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: key is the route; it changing is what scrolls back to the top
   useEffect(() => {
     if (main.current) main.current.scrollTop = 0;
   }, [key]);

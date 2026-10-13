@@ -34,7 +34,13 @@ export async function loadWindowState(storage: FileStorage): Promise<WindowState
   }
 }
 
-export function createMainWindow(options: { preload: string; state: WindowState | null; devTools: boolean; storage: FileStorage; clockOffset?: number }): BrowserWindow {
+export function createMainWindow(options: {
+  preload: string;
+  state: WindowState | null;
+  devTools: boolean;
+  storage: FileStorage;
+  clockOffset?: number;
+}): BrowserWindow {
   const mac = process.platform === "darwin";
   const { state } = options;
   const window = new BrowserWindow({

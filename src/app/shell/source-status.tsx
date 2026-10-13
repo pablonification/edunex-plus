@@ -1,15 +1,15 @@
 // How each source is doing: one quiet status control in the top bar (it opens
 // each source in words, with its fix), and a banner under the top bar, on
 // every screen, when something needs the Student.
-import { useCallback, useState, useSyncExternalStore, type ReactNode } from "react";
+import { type ReactNode, useCallback, useState, useSyncExternalStore } from "react";
 import type { SourceId, SourceState } from "../../core/models";
 import { ActionError, type Bridge } from "../bridge";
 import { useFormat, useT } from "../i18n";
 import { useBridge, useDataset, useStatus } from "../store";
 import { SourceLogo } from "../ui/brand";
 import { Button, IconButton } from "../ui/controls";
-import { EmptyState } from "../ui/display";
 import { cx } from "../ui/cx";
+import { EmptyState } from "../ui/display";
 import { Icons } from "../ui/icons";
 import { Popover, toast } from "../ui/overlays";
 
@@ -143,9 +143,13 @@ export function SyncStatus() {
   const unreachable = signedIn.filter((status) => status.state === "offline");
   const updatedAt = Math.max(0, ...signedIn.map((status) => status.updatedAt ?? 0)) || null;
   let text: string;
-  if (state === "connecting") text = going.length === 1 && signedIn.length > 1 ? t("sync.checkingOne", { source: t(`source.${going[0]!.source}`) }) : t("sync.checking");
-  else if (troubled) text = state === "expired" ? t("sync.expired", { source: t(`source.${troubled.source}`) }) : t("status.changed", { source: t(`source.${troubled.source}`) });
-  else if (state === "offline") text = unreachable.length < signedIn.length ? t("sync.offlineOne", { source: t(`source.${unreachable[0]!.source}`) }) : t("status.offline");
+  if (state === "connecting")
+    text = going.length === 1 && signedIn.length > 1 ? t("sync.checkingOne", { source: t(`source.${going[0]!.source}`) }) : t("sync.checking");
+  else if (troubled)
+    text =
+      state === "expired" ? t("sync.expired", { source: t(`source.${troubled.source}`) }) : t("status.changed", { source: t(`source.${troubled.source}`) });
+  else if (state === "offline")
+    text = unreachable.length < signedIn.length ? t("sync.offlineOne", { source: t(`source.${unreachable[0]!.source}`) }) : t("status.offline");
   else text = updatedAt ? t("status.updated", { when: f.fromNow(updatedAt) }) : t("status.neverUpdated");
 
   return (
@@ -158,7 +162,11 @@ export function SyncStatus() {
           aria-label={`${t("sync.title")}: ${text}`}
           className={cx(
             "focus-ring no-drag inline-flex h-8 items-center gap-2 rounded-lg px-2.5 text-small font-medium transition-colors duration-150",
-            state === "changed" ? "bg-danger-bg text-danger-fg" : state === "expired" ? "bg-warning-bg text-warning-fg" : "text-muted hover:bg-hover hover:text-fg",
+            state === "changed"
+              ? "bg-danger-bg text-danger-fg"
+              : state === "expired"
+                ? "bg-warning-bg text-warning-fg"
+                : "text-muted hover:bg-hover hover:text-fg",
           )}
         >
           <StateMark state={state === "signed-out" ? "signed-out" : state} busy={state === "connecting"} />
@@ -173,7 +181,13 @@ export function SyncStatus() {
         ))}
       </ul>
       <div className="mt-1 border-t border-line p-1.5 pt-2.5">
-        <Button className="w-full" busy={busy} disabled={!signedIn.length} icon={<Icons.RefreshCw className="size-3.5" />} onClick={() => void refreshNow(bridge)}>
+        <Button
+          className="w-full"
+          busy={busy}
+          disabled={!signedIn.length}
+          icon={<Icons.RefreshCw className="size-3.5" />}
+          onClick={() => void refreshNow(bridge)}
+        >
           {busy ? t("sync.checking") : t("sync.refreshNow")}
         </Button>
       </div>
@@ -204,9 +218,14 @@ function SourceRow({ source }: { source: SourceId }) {
       </span>
       <div className="min-w-0 flex-1">
         <p className="text-body font-medium">
-          {name} <span className={cx("font-normal", status.state === "expired" ? "text-warning-fg" : status.state === "changed" ? "text-danger-fg" : "text-muted")}>· {word}</span>
+          {name}{" "}
+          <span className={cx("font-normal", status.state === "expired" ? "text-warning-fg" : status.state === "changed" ? "text-danger-fg" : "text-muted")}>
+            · {word}
+          </span>
         </p>
-        <p className="text-small text-muted">{hint ?? (status.updatedAt ? t("status.updated", { when: f.fromNow(status.updatedAt) }) : t("status.neverUpdated"))}</p>
+        <p className="text-small text-muted">
+          {hint ?? (status.updatedAt ? t("status.updated", { when: f.fromNow(status.updatedAt) }) : t("status.neverUpdated"))}
+        </p>
       </div>
       {needsSignIn ? (
         <Button size="sm" variant={status.state === "expired" ? "primary" : "secondary"} busy={signingIn} onClick={() => void signIn(source)}>
@@ -247,7 +266,8 @@ export function ProblemBanner() {
   const problem =
     [edunex, six].find((status) => status.state === "changed") ??
     [edunex, six].find((status) => status.state === "expired" || (status.state === "signed-out" && has[status.source as "edunex" | "six"])) ??
-    ([edunex, six].filter((status) => status.state !== "signed-out").every((status) => status.state === "offline") && [edunex, six].some((status) => status.state === "offline")
+    ([edunex, six].filter((status) => status.state !== "signed-out").every((status) => status.state === "offline") &&
+    [edunex, six].some((status) => status.state === "offline")
       ? [edunex, six].find((status) => status.state === "offline")
       : undefined);
   if (!problem) return null;
@@ -276,10 +296,20 @@ export function ProblemBanner() {
       role="status"
       className={cx(
         "flex shrink-0 items-center gap-3 border-b px-6 py-2 text-small motion-safe:animate-slide-down",
-        problem.state === "changed" ? "border-danger-fg/15 bg-danger-bg text-danger-fg" : offline ? "border-line bg-fill text-fg" : "border-warning-fg/15 bg-warning-bg text-warning-fg",
+        problem.state === "changed"
+          ? "border-danger-fg/15 bg-danger-bg text-danger-fg"
+          : offline
+            ? "border-line bg-fill text-fg"
+            : "border-warning-fg/15 bg-warning-bg text-warning-fg",
       )}
     >
-      {offline ? <Icons.WifiOff className="size-4 shrink-0" /> : needsSignIn ? <Icons.Lock className="size-4 shrink-0" /> : <Icons.AlertTriangle className="size-4 shrink-0" />}
+      {offline ? (
+        <Icons.WifiOff className="size-4 shrink-0" />
+      ) : needsSignIn ? (
+        <Icons.Lock className="size-4 shrink-0" />
+      ) : (
+        <Icons.AlertTriangle className="size-4 shrink-0" />
+      )}
       <p className="min-w-0 flex-1 truncate">
         <span className="font-semibold">{title}</span>
         {detail && <span className="opacity-85"> {detail}</span>}

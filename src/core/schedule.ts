@@ -74,7 +74,9 @@ export const shiftDay = (day: string, n: number) => addDays(day, n);
 export function termWeek(events: readonly CalendarEvent[], day: string): number | null {
   const [start] = events.filter((e) => e.kind === "lecture-start" && e.firstDay <= day).sort((a, b) => b.firstDay.localeCompare(a.firstDay));
   if (!start) return null;
-  const ends = events.filter((e) => (e.kind === "uas" || e.kind === "lecture-end") && e.lastDay >= start.firstDay && (start.term === null || e.term === start.term));
+  const ends = events.filter(
+    (e) => (e.kind === "uas" || e.kind === "lecture-end") && e.lastDay >= start.firstDay && (start.term === null || e.term === start.term),
+  );
   const last = ends.map((e) => e.lastDay).sort()[ends.length - 1];
   if (!last || day > last) return null;
   return Math.round((dayStart(weekStart(day)) - dayStart(weekStart(start.firstDay))) / (7 * DAY)) + 1;
@@ -308,7 +310,11 @@ export function meetingsOutsideSix(
   codes: readonly string[],
   schedule: readonly ClassSession[] | undefined,
   months: readonly string[] | undefined,
-  edunex: { materials?: Record<string, readonly Material[]>; announcements?: Record<string, readonly Announcement[]>; presence?: Record<string, readonly PresenceSession[]> },
+  edunex: {
+    materials?: Record<string, readonly Material[]>;
+    announcements?: Record<string, readonly Announcement[]>;
+    presence?: Record<string, readonly PresenceSession[]>;
+  },
 ): OutsideMeeting[] {
   if (!schedule || !months?.length) return [];
   const out: OutsideMeeting[] = [];
@@ -386,14 +392,25 @@ export interface EdunexMeeting {
  */
 export function edunexMeetings(
   codes: readonly string[],
-  edunex: { materials?: Record<string, readonly Material[]>; announcements?: Record<string, readonly Announcement[]>; presence?: Record<string, readonly PresenceSession[]> },
+  edunex: {
+    materials?: Record<string, readonly Material[]>;
+    announcements?: Record<string, readonly Announcement[]>;
+    presence?: Record<string, readonly PresenceSession[]>;
+  },
 ): EdunexMeeting[] {
   const out: EdunexMeeting[] = [];
   for (const code of codes) {
     const announced = announcedMeetings(edunex.materials?.[code] ?? [], edunex.announcements?.[code] ?? []);
     const windows = (edunex.presence?.[code] ?? []).filter((p) => !isTaskWindow(p));
     for (const meeting of courseMeetings(code, windows, null, announced)) {
-      out.push({ code, start: meeting.start, end: meeting.end, number: meeting.announced?.number ?? null, online: meeting.announced?.online ?? false, link: meeting.announced?.link ?? null });
+      out.push({
+        code,
+        start: meeting.start,
+        end: meeting.end,
+        number: meeting.announced?.number ?? null,
+        online: meeting.announced?.online ?? false,
+        link: meeting.announced?.link ?? null,
+      });
     }
   }
   return out.sort((a, b) => a.start - b.start || a.code.localeCompare(b.code));

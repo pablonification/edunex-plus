@@ -5,7 +5,7 @@
 // names a period ("Masa UTS · 12–16 Okt"); a lane under the day headers
 // holds what isn't a place to be (deadlines); a red line marks now. Screens
 // put their own blocks in with GridBlock.
-import { createContext, type CSSProperties, type ReactNode, useContext } from "react";
+import { type CSSProperties, createContext, type ReactNode, useContext } from "react";
 import { cx } from "./cx";
 
 /** Minutes after midnight. */
@@ -185,10 +185,7 @@ export function GridBlock({
   const height = Math.max(minHeight, y(end) - top);
   const width = 100 / columns;
   return (
-    <div
-      className={cx("absolute z-10 px-[3px] pt-px", className)}
-      style={{ top, height, left: `${column * width}%`, width: `${width}%` }}
-    >
+    <div className={cx("absolute z-10 px-[3px] pt-px", className)} style={{ top, height, left: `${column * width}%`, width: `${width}%` }}>
       {children}
     </div>
   );
@@ -198,7 +195,21 @@ export function GridBlock({
  * A part of the day's time drawn over the blocks, unclickable (the shared
  * minutes of a clash): from column `from` through `to` of `columns`.
  */
-export function GridMark({ start, end, from = 0, to, columns = 1, className }: { start: number; end: number; from?: number; to?: number; columns?: number; className?: string }) {
+export function GridMark({
+  start,
+  end,
+  from = 0,
+  to,
+  columns = 1,
+  className,
+}: {
+  start: number;
+  end: number;
+  from?: number;
+  to?: number;
+  columns?: number;
+  className?: string;
+}) {
   const y = useY();
   const top = y(start);
   const width = 100 / columns;
@@ -206,7 +217,12 @@ export function GridMark({ start, end, from = 0, to, columns = 1, className }: {
     <div
       aria-hidden
       className={cx("pointer-events-none absolute z-[15]", className)}
-      style={{ top, height: Math.max(4, y(end) - top), left: `calc(${from * width}% + 2px)`, width: `calc(${((to ?? columns - 1) - from + 1) * width}% - 4px)` }}
+      style={{
+        top,
+        height: Math.max(4, y(end) - top),
+        left: `calc(${from * width}% + 2px)`,
+        width: `calc(${((to ?? columns - 1) - from + 1) * width}% - 4px)`,
+      }}
     />
   );
 }

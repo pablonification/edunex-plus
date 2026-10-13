@@ -1,9 +1,10 @@
 // Edunex Plus, main process. Loads saved data before anything else, opens the
 // window hidden and shows it once the page has drawn that data, starts
 // syncing only then, and answers the window through the typed bridge.
-import { app, type BrowserWindow, dialog, nativeTheme, powerMonitor, session } from "electron";
+
 import module from "node:module";
 import path from "node:path";
+import { app, type BrowserWindow, dialog, nativeTheme, powerMonitor, session } from "electron";
 import { CHANNEL_EVENT } from "../core/channels";
 import type { Event } from "../core/contract";
 import type { Settings } from "../core/models";
@@ -11,12 +12,12 @@ import type { Route } from "../core/route";
 import { translate } from "../core/strings";
 import { systemClock } from "../engine/clock";
 import { createEngine, type Engine } from "../engine/engine";
+import { demo } from "./demo";
 import { alertsHandlers } from "./handlers/alerts";
 import { authHandlers } from "./handlers/auth";
 import type { DesktopContext } from "./handlers/context";
 import { coreHandlers } from "./handlers/core";
 import { coursePageHandlers } from "./handlers/course-page";
-import { demo } from "./demo";
 import { scheduleHandlers } from "./handlers/schedule";
 import { sixHandlers } from "./handlers/six";
 import { tasksHandlers } from "./handlers/tasks";
@@ -138,7 +139,13 @@ async function start(): Promise<void> {
   applySettings(current.snapshot().settings);
   nativeTheme.on("updated", paintBackground);
 
-  window = createMainWindow({ preload: path.join(__dirname, "preload.cjs"), state: await loadWindowState(storage), devTools: !packaged, storage, clockOffset: demo?.clockOffset() });
+  window = createMainWindow({
+    preload: path.join(__dirname, "preload.cjs"),
+    state: await loadWindowState(storage),
+    devTools: !packaged,
+    storage,
+    clockOffset: demo?.clockOffset(),
+  });
   guardAppWindow(window, isAppUrl);
   const shown = window;
   // If the page never says it's ready (it failed to load), show the window anyway so it can be closed or reloaded.

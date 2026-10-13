@@ -8,7 +8,7 @@ import { Bytes, HandIn, type HandInResult, MAX_UPLOAD_BYTES } from "../../../cor
 import type { Task, TaskFile } from "../../../core/models";
 import { takesAnswers } from "../../../core/tasks";
 import { EngineError, isEngineError } from "../../errors";
-import { NetworkError, type Transport } from "../../http/transport";
+import { type HttpResponse, NetworkError, type Transport } from "../../http/transport";
 import type { SourceAction, SourceContext } from "../source";
 import { EDUNEX_API, EdunexClient, TIMEOUT_MS } from "./client";
 import type { EdunexSession } from "./session";
@@ -60,11 +60,14 @@ export const taskActions: Record<string, SourceAction<EdunexSession>> = {
   async uploadFile(context, session, input) {
     const { name, contentType, bytes } = parse(UploadInput, input);
     if (bytes.byteLength > MAX_UPLOAD_BYTES) throw new EngineError("Rejected", `${name} is too big to hand in from the app`);
-    const reply = UploadLinks.safeParse(await write(context, session, "POST", "/blob-storage/sas", answerBodies.uploadLink(name, contentType, bytes.byteLength)));
+    const reply = UploadLinks.safeParse(
+      await write(context, session, "POST", "/blob-storage/sas", answerBodies.uploadLink(name, contentType, bytes.byteLength)),
+    );
     if (!reply.success) throw new EngineError("VendorChanged", "/blob-storage/sas: no upload link in the answer");
     const data = reply.data;
     const link = Array.isArray(data) ? data[0] : "data" in data ? (Array.isArray(data.data) ? data.data[0] : data.data) : data;
-    if (!isStorageUrl(link.uploadUrl) || !isStorageUrl(link.readUrl)) throw new EngineError("VendorChanged", "/blob-storage/sas: the upload link isn't Edunex's storage");
+    if (!isStorageUrl(link.uploadUrl) || !isStorageUrl(link.readUrl))
+      throw new EngineError("VendorChanged", "/blob-storage/sas: the upload link isn't Edunex's storage");
     await put(context.transport, context.userAgent, link.uploadUrl, contentType, bytes);
     return { name, url: link.readUrl, size: bytes.byteLength };
   },
@@ -158,7 +161,13 @@ async function refusedMidway<T>(context: SourceContext, client: EdunexClient, fr
  * without files), then puts exactly these files in it. `kept`: Edunex, read
  * back, holds exactly these files in a draft.
  */
-async function saveAnswer(context: SourceContext, session: EdunexSession, client: EdunexClient, fresh: Task, handIn: HandIn): Promise<{ task: Task | null; kept: boolean }> {
+async function saveAnswer(
+  context: SourceContext,
+  session: EdunexSession,
+  client: EdunexClient,
+  fresh: Task,
+  handIn: HandIn,
+): Promise<{ task: Task | null; kept: boolean }> {
   for (const file of handIn.files) {
     const already = fresh.answer?.files.some((existing) => sameFile(existing, file));
     if (!already && !isStorageUrl(file.url)) throw new EngineError("Rejected", `${file.name} isn't on Edunex's storage`);
@@ -219,7 +228,7 @@ function parse<S extends z.ZodType>(schema: S, input: unknown): z.infer<S> {
 
 /** A write to Edunex's API. A refusal is "Rejected"; an ended session "Unauthorized". */
 async function write(context: SourceContext, session: EdunexSession, method: "POST" | "PATCH", path: string, body: unknown): Promise<unknown> {
-  let response;
+  let response: HttpResponse;
   try {
     response = await context.transport.request({
       method,
@@ -234,7 +243,8 @@ async function write(context: SourceContext, session: EdunexSession, method: "PO
       timeoutMs: TIMEOUT_MS,
     });
   } catch (error) {
-    if (error instanceof NetworkError) throw new EngineError("Offline", error.reason === "timeout" ? "Edunex didn't answer in time" : "Edunex is unreachable", true);
+    if (error instanceof NetworkError)
+      throw new EngineError("Offline", error.reason === "timeout" ? "Edunex didn't answer in time" : "Edunex is unreachable", true);
     throw error;
   }
   if (response.status === 401) throw new EngineError("Unauthorized", `Edunex refused ${path}`);
@@ -251,11 +261,18 @@ async function write(context: SourceContext, session: EdunexSession, method: "PO
 async function put(transport: Transport, userAgent: string, url: string, contentType: string, bytes: Uint8Array): Promise<void> {
   // Room for a slow connection: a minute, plus a second for every 50 KB.
   const timeoutMs = Math.min(30 * 60_000, 60_000 + Math.ceil(bytes.byteLength / 50));
-  let response;
+  let response: HttpResponse;
   try {
-    response = await transport.request({ method: "PUT", url, headers: { "x-ms-blob-type": "BlockBlob", "content-type": contentType, "user-agent": userAgent }, body: bytes, timeoutMs });
+    response = await transport.request({
+      method: "PUT",
+      url,
+      headers: { "x-ms-blob-type": "BlockBlob", "content-type": contentType, "user-agent": userAgent },
+      body: bytes,
+      timeoutMs,
+    });
   } catch (error) {
-    if (error instanceof NetworkError) throw new EngineError("Offline", error.reason === "timeout" ? "The upload took too long" : "Edunex's storage is unreachable", true);
+    if (error instanceof NetworkError)
+      throw new EngineError("Offline", error.reason === "timeout" ? "The upload took too long" : "Edunex's storage is unreachable", true);
     throw error;
   }
   if (response.status < 200 || response.status >= 300) throw new EngineError("Failed", `Edunex's storage refused the file (${response.status})`);

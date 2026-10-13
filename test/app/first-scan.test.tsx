@@ -17,11 +17,15 @@ afterEach(() => {
 
 const TIMETABLE = /\/kelas\/jadwal\/mahasiswa\/\d+$/;
 
-const dialog = () => [...document.querySelectorAll<HTMLElement>("[role=dialog]")].find((d) => d.querySelector("h2")?.textContent === "Ringkasan saat pertama terhubung" || d.querySelector("h2")?.textContent === "Your first-connection summary");
+const dialog = () =>
+  [...document.querySelectorAll<HTMLElement>("[role=dialog]")].find(
+    (d) => d.querySelector("h2")?.textContent === "Ringkasan saat pertama terhubung" || d.querySelector("h2")?.textContent === "Your first-connection summary",
+  );
 const lines = () => [...(dialog()?.querySelectorAll<HTMLButtonElement>("ol > li > button") ?? [])];
 /** Each line's title (its accessible name). */
 const titles = () => lines().map((line) => document.getElementById(line.getAttribute("aria-labelledby") ?? "")?.textContent);
-const line = (title: string) => lines().find((button) => document.getElementById(button.getAttribute("aria-labelledby") ?? "")?.textContent?.startsWith(title))!;
+const line = (title: string) =>
+  lines().find((button) => document.getElementById(button.getAttribute("aria-labelledby") ?? "")?.textContent?.startsWith(title))!;
 /** What a line says under its title. */
 const detail = (title: string) => document.getElementById(line(title).getAttribute("aria-describedby") ?? "")?.textContent;
 const h1 = () => document.querySelector("main h1")?.textContent;
@@ -49,11 +53,15 @@ describe("after the first full sync of Edunex and SIX", () => {
       "IPK 3,26 · di bawah cum laude",
     ]);
     // Calm and action-first: the facts, then what to do.
-    expect(detail("Kehadiran 3")).toBe("KU5014: hadir 2 dari 6 · paling tinggi 73% dari target 80%DK4073: tidak boleh absen lagiPL3032: tidak boleh absen lagi");
+    expect(detail("Kehadiran 3")).toBe(
+      "KU5014: hadir 2 dari 6 · paling tinggi 73% dari target 80%DK4073: tidak boleh absen lagiPL3032: tidak boleh absen lagi",
+    );
     expect(detail("KU5014 dan PL3032")).toBe("Berikutnya Hari ini, 16:00–16:30. Pilih yang akan kamu hadiri, atau tanyakan ke dosen.");
     expect(detail("Kehadiran 1")).toBe('PL3002: SIX mencatat hadir 6 dari 7; abaikan 5 "absen" di EdunexCukup hadir di kelas; Presensi Edunex tidak wajib.');
     // DK4073's UTS is one exam: SIX's sitting, with the take-home a week later flagged as a second date.
-    expect(detail("3 ujian")).toBe("UTS PL3032, minggu UTS 12–16 OktUTS DK4073: Kam 15 Okt, 11:00 · TVST C · Dua tanggal berbeda. Pastikan ke dosen.UAS PL3032, minggu UAS 7–22 Des");
+    expect(detail("3 ujian")).toBe(
+      "UTS PL3032, minggu UTS 12–16 OktUTS DK4073: Kam 15 Okt, 11:00 · TVST C · Dua tanggal berbeda. Pastikan ke dosen.UAS PL3032, minggu UAS 7–22 Des",
+    );
     expect(detail("1 pertemuan")).toBe("II4091 pertemuan 3: Besok, 15:00–17:00 · daringTidak ada di jadwal SIX; sudah ada di Beranda.");
     expect(detail("Dosen mengubah")).toBe("2 di antaranya setelah kamu mengumpulkan. Cek lagi instruksinya; Edunex tidak mengabarkannya.");
     expect(detail("IPK")).toBe("Kurang 0,24 untuk cum laude (3,50).");
@@ -179,7 +187,13 @@ describe("only with something to say", () => {
     screen = await openApp({ world, firstScan: true, signedIn: true, six: true });
     expect(screen.store.status("six").state).toBe("offline");
     // Without SIX's timetable: no attendance budget, no overlaps, no meetings outside it, no SIX exam session.
-    expect(titles()).toEqual(["Kehadiran 1 mata kuliah dihitung di SIX, bukan Edunex", "3 ujian akan datang", "Dosen mengubah 6 tugas setelah diunggah", "IPK 3,26 · di bawah cum laude", "1 bagian tidak terbaca"]);
+    expect(titles()).toEqual([
+      "Kehadiran 1 mata kuliah dihitung di SIX, bukan Edunex",
+      "3 ujian akan datang",
+      "Dosen mengubah 6 tugas setelah diunggah",
+      "IPK 3,26 · di bawah cum laude",
+      "1 bagian tidak terbaca",
+    ]);
     expect(detail("1 bagian")).toBe("SIX tidak bisa dihubungi: Jadwal");
     // What couldn't be read isn't counted as something neither system says.
     expect(dialog()?.querySelector("h3")?.textContent).toBe("4 hal yang tidak disampaikan kedua sistem");

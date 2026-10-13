@@ -46,7 +46,8 @@ function toNotification(item: { type: string; title: string; objectId: string | 
   const objectId = Number(item.objectId);
   // Notification dates are real UTC ("2026-09-15T03:54:44.000Z").
   const at = Date.parse(item.date);
-  if (!Number.isInteger(objectId) || Number.isNaN(at)) throw new EngineError("VendorChanged", `/notifications: ${item.type} item with objectId ${item.objectId}, date ${item.date}`);
+  if (!Number.isInteger(objectId) || Number.isNaN(at))
+    throw new EngineError("VendorChanged", `/notifications: ${item.type} item with objectId ${item.objectId}, date ${item.date}`);
   return [
     {
       key: `${item.type}:${objectId}:${item.date}`,

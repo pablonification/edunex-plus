@@ -14,7 +14,8 @@ afterEach(() => {
 });
 
 const examSection = () => document.querySelector("main section[aria-labelledby=tasks-exams]");
-const examRow = (code: string) => [...(examSection()?.querySelectorAll("li button") ?? [])].find((b) => b.textContent?.includes(code)) as HTMLButtonElement | undefined;
+const examRow = (code: string) =>
+  [...(examSection()?.querySelectorAll("li button") ?? [])].find((b) => b.textContent?.includes(code)) as HTMLButtonElement | undefined;
 
 async function openTasks() {
   screen = await openApp({ signedIn: true, six: true });
@@ -80,7 +81,10 @@ describe("the exam page", () => {
 
     // One quiet line of official pages.
     await s.click("Lihat di SIX");
-    expect(s.calls.at(-1)).toEqual({ name: "shell.openExternal", input: { url: "https://six.itb.ac.id/app/mahasiswa:18223901+2026-1/kelas/jadwal/mahasiswa/2021000001" } });
+    expect(s.calls.at(-1)).toEqual({
+      name: "shell.openExternal",
+      input: { url: "https://six.itb.ac.id/app/mahasiswa:18223901+2026-1/kelas/jadwal/mahasiswa/2021000001" },
+    });
     await s.click("Lihat tugas di Edunex");
     expect(s.calls.at(-1)).toEqual({ name: "shell.openExternal", input: { url: "https://edunex.itb.ac.id/assignment/take/117764" } });
 

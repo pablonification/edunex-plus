@@ -8,11 +8,11 @@ import { GRADE_POINTS, LETTER_GRADES, type LetterGrade } from "../../../core/mod
 import {
   honorsOutlook,
   type Need,
-  parseTarget,
-  type Projection,
   type ProjectedStep,
-  semesterOf,
+  type Projection,
+  parseTarget,
   type StudentRecord,
+  semesterOf,
   TARGET_PICKS,
   targetOf,
   termKind,
@@ -75,7 +75,19 @@ export { predicateFor };
  * An expected grade. Until the Student picks one (`guess`), it's drawn as a
  * dashed, quiet control: an assumption, not a fact.
  */
-export function GradeSelect({ value, onChange, label, guess = false, className }: { value: LetterGrade; onChange: (grade: LetterGrade) => void; label: string; guess?: boolean; className?: string }) {
+export function GradeSelect({
+  value,
+  onChange,
+  label,
+  guess = false,
+  className,
+}: {
+  value: LetterGrade;
+  onChange: (grade: LetterGrade) => void;
+  label: string;
+  guess?: boolean;
+  className?: string;
+}) {
   return (
     <select
       value={value}
@@ -136,6 +148,7 @@ export function TargetControl({ record, state, className }: { record: StudentRec
           // While a value is being typed, the pick still counted stays marked until the typed one is valid.
           const on = Math.abs(value - target) < 1e-9 && (typing === null || parsed?.kind !== "ok");
           return (
+            // biome-ignore lint/a11y/useSemanticElements: the picks are styled buttons beside a typed value; the radio role says only one counts
             <button
               key={value}
               type="button"
@@ -193,7 +206,8 @@ export function NeedText({ need, target, sks, scope }: { need: Need; target: num
   const goal = f.number(target, 2);
   if (need.kind === "none") return <>{t(scope === "term" ? "grades.targetNone" : "planner.targetNone")}</>;
   if (need.kind === "secured") return <span className="font-medium text-success-fg">{t("grades.targetSecured", { target: goal })}</span>;
-  if (need.kind === "out") return <span className="font-medium text-fg">{t(scope === "term" ? "grades.targetOut" : "planner.targetOut", { target: goal })}</span>;
+  if (need.kind === "out")
+    return <span className="font-medium text-fg">{t(scope === "term" ? "grades.targetOut" : "planner.targetOut", { target: goal })}</span>;
   // Below a D average the target is safe: say so, never "you need a D".
   if (need.average <= GRADE_POINTS.D + 1e-9) return <span className="font-medium text-success-fg">{t("grades.targetSafe", { target: goal })}</span>;
   return (

@@ -1,7 +1,7 @@
 // The window's only way to talk to the engine: actions (ask, get an answer or
 // a typed error) and events (the engine tells). Both directions are checked
 // against the shared contract.
-import { Actions, Event, type ActionInput, type ActionName, type ActionOutput, type ActionResult, type ErrorKind } from "../core/contract";
+import { type ActionInput, type ActionName, type ActionOutput, type ActionResult, Actions, type ErrorKind, Event } from "../core/contract";
 
 /** What the preload exposes on window.edunexPlus. */
 export interface BridgeApi {

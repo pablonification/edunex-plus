@@ -129,7 +129,15 @@ describe("schedule alerts", () => {
   it("a month counts as read only from its own page: early December on November's page doesn't make December's meetings 'outside SIX'", async () => {
     const app = await start();
     // SIX's November page also shows 1–4 December, here with PL3002's class on Thursday 3 December.
-    app.world.six.addMeeting({ id: "2194354", code: "PL3002", name: "Ekonomi dan Inovasi dalam Perencanaan", day: "2026-12-03", start: "08:00", end: "09:30", room: "R.SG PWK LT.6" });
+    app.world.six.addMeeting({
+      id: "2194354",
+      code: "PL3002",
+      name: "Ekonomi dan Inovasi dalam Perencanaan",
+      day: "2026-12-03",
+      start: "08:00",
+      end: "09:30",
+      room: "R.SG PWK LT.6",
+    });
     await app.refresh("six");
     // Announced only in Edunex text: one in December (SIX's December page isn't read yet), one in November (it is).
     app.world.edunex.postAnnouncement(95326, { announcement: "Pertemuan 09: Jumat, 11 Desember 2026 Pkl. 15:00 - 17:00 WIB" });
@@ -143,7 +151,9 @@ describe("schedule alerts", () => {
   it("an exam newly in SIX, and the evening before each exam", async () => {
     const app = await start("2026-10-14T12:00:00+07:00");
     // KU5014's class on 22 October becomes its UTS.
-    app.world.six.editPage(/\/kelas\/jadwal\/mahasiswa\/\d+$/, (html) => html.replace(/(<div title="[^"]*\()Kuliah(\)"><a [^>]*?pertemuan\/2185660\/[\s\S]*?\()Kuliah 9134\)/, "$1UTS$2UTS 9134)"));
+    app.world.six.editPage(/\/kelas\/jadwal\/mahasiswa\/\d+$/, (html) =>
+      html.replace(/(<div title="[^"]*\()Kuliah(\)"><a [^>]*?pertemuan\/2185660\/[\s\S]*?\()Kuliah 9134\)/, "$1UTS$2UTS 9134)"),
+    );
     await app.refresh("six");
     const scheduled = app.shown.filter((n) => n.kind === "exam");
     expect(scheduled.map((n) => n.text)).toEqual(["UTS dijadwalkan · KU5014 — Kam, 22 Okt 16:00 · 9134"]);
@@ -163,7 +173,7 @@ describe("schedule alerts", () => {
     app.world.six.addMeeting({ ...pl, id: "2194370", day: "2026-11-05", start: "08:00", end: "09:00" });
     app.world.six.addMeeting({ ...pl, id: "2194371", day: "2026-11-19", start: "08:00", end: "09:00" });
     await app.refresh("six");
-    const history = (app.engine.snapshot().datasets.find((d) => d.name === "app.alerts")?.value as AlertHistory).items.filter((a) => a.kind === "exam");
+    const history = (app.engine.snapshot().datasets.find((d) => d.name === "app.alerts")!.value as AlertHistory).items.filter((a) => a.kind === "exam");
     const targets = history.map((a) => (a.target.screen === "exam" ? a.target.examId : null));
     expect(new Set(targets).size).toBe(2);
     // Each target is an exam of the merged list, so the page finds it.

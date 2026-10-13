@@ -63,7 +63,9 @@ export function MonthView({ month, input, onShowWeek }: { month: MonthGrid; inpu
           const lines = inMonth ? monthLines(day, t, f, world) : [];
           const routine = inMonth ? routineCount(day, t) : null;
           const clashes = inMonth ? clashesOf(day, t, f) : [];
-          const summary = [...lines.map((l) => l.full), ...clashes.map((c) => c.full), routine, period ? periodName(t, period) : null].filter(Boolean).join(", ");
+          const summary = [...lines.map((l) => l.full), ...clashes.map((c) => c.full), routine, period ? periodName(t, period) : null]
+            .filter(Boolean)
+            .join(", ");
           const label = summary ? `${f.dateLong(noon(day.day))}: ${summary}` : f.dateLong(noon(day.day));
           const cell = (
             <button
@@ -71,7 +73,11 @@ export function MonthView({ month, input, onShowWeek }: { month: MonthGrid; inpu
               aria-label={label}
               className={cx(
                 "focus-ring flex min-h-[104px] min-w-0 flex-col items-stretch gap-[3px] rounded-lg border p-1.5 text-left transition-colors duration-150",
-                period ? "border-transparent bg-(--source-itb-bg)/70 hover:bg-(--source-itb-bg)" : inMonth ? "border-edge bg-surface hover:bg-hover" : "border-transparent bg-sunken",
+                period
+                  ? "border-transparent bg-(--source-itb-bg)/70 hover:bg-(--source-itb-bg)"
+                  : inMonth
+                    ? "border-edge bg-surface hover:bg-hover"
+                    : "border-transparent bg-sunken",
                 !inMonth && "opacity-60",
               )}
             >
@@ -100,7 +106,11 @@ export function MonthView({ month, input, onShowWeek }: { month: MonthGrid; inpu
                   {clashes.length > 0 && (
                     <span title={clashes.map((c) => c.full).join(", ")} className="flex min-w-0 items-center gap-1 font-semibold text-warning-fg">
                       <Icons.Overlap className="size-3 shrink-0" weight="bold" />
-                      <span className="truncate">{clashes.length === 1 ? t("schedule.month.clashAt", { time: clashes[0]!.from }) : t("schedule.month.clashes", { count: clashes.length })}</span>
+                      <span className="truncate">
+                        {clashes.length === 1
+                          ? t("schedule.month.clashAt", { time: clashes[0]!.from })
+                          : t("schedule.month.clashes", { count: clashes.length })}
+                      </span>
                     </span>
                   )}
                 </span>
@@ -123,7 +133,13 @@ function monthLines(day: ScheduleDay, t: Translate, f: Format, world: ReturnType
   const lines: Line[] = [];
   const time = (ms: number) => f.time(ms);
   for (const event of day.events.filter((e) => MARKED.has(e.kind))) {
-    lines.push({ key: `c${event.id}`, icon: <Icons.Flag className="size-3 shrink-0" weight="bold" />, text: periodName(t, event), full: event.title, tone: "font-semibold text-(--source-itb-fg)" });
+    lines.push({
+      key: `c${event.id}`,
+      icon: <Icons.Flag className="size-3 shrink-0" weight="bold" />,
+      text: periodName(t, event),
+      full: event.title,
+      tone: "font-semibold text-(--source-itb-fg)",
+    });
   }
   for (const { session, exam } of day.classes) {
     if (!exam) continue;
@@ -174,7 +190,11 @@ function monthLines(day: ScheduleDay, t: Translate, f: Format, world: ReturnType
   for (const meeting of day.outside) {
     lines.push({
       key: `a${meeting.code}${meeting.start}`,
-      icon: meeting.online ? <Icons.Video className="size-3 shrink-0" weight="bold" /> : <span aria-hidden className="size-2 shrink-0 rounded-full border border-dashed border-current" />,
+      icon: meeting.online ? (
+        <Icons.Video className="size-3 shrink-0" weight="bold" />
+      ) : (
+        <span aria-hidden className="size-2 shrink-0 rounded-full border border-dashed border-current" />
+      ),
       text: `${meeting.code} ${time(meeting.start)}`,
       full: t("schedule.month.outside", { code: meeting.code, time: time(meeting.start) }),
       tone: "font-semibold text-warning-fg",
@@ -210,8 +230,34 @@ function DayDetails({ day, period, onShowWeek }: { day: ScheduleDay; period: Cal
   const world = useWorld();
   const noon = dayStart(day.day) + 12 * 3_600_000;
   const timed = [
-    ...day.classes.map((c) => ({ key: c.session.id, start: c.session.start, end: c.session.end, code: c.session.courseCode, title: c.exam ? `${c.session.activity} · ${world.name(c.session.courseCode, c.session.courseName)}` : world.name(c.session.courseCode, c.session.courseName), where: c.session.room, exam: c.exam, note: c.overlaps.length ? t("schedule.mark.overlap", { code: c.overlaps[0].code }) : c.moved ? t("schedule.mark.moved") : c.extra ? t("schedule.mark.extra") : null })),
-    ...[...day.outside, ...day.edunex].map((m) => ({ key: `${m.code}${m.start}`, start: m.start, end: m.end, code: m.code, title: m.number !== null ? t("schedule.meeting", { n: m.number }) : t("schedule.meetingEdunex"), where: m.online ? t("schedule.online") : null, exam: false, note: null as string | null })),
+    ...day.classes.map((c) => ({
+      key: c.session.id,
+      start: c.session.start,
+      end: c.session.end,
+      code: c.session.courseCode,
+      title: c.exam
+        ? `${c.session.activity} · ${world.name(c.session.courseCode, c.session.courseName)}`
+        : world.name(c.session.courseCode, c.session.courseName),
+      where: c.session.room,
+      exam: c.exam,
+      note: c.overlaps.length
+        ? t("schedule.mark.overlap", { code: c.overlaps[0].code })
+        : c.moved
+          ? t("schedule.mark.moved")
+          : c.extra
+            ? t("schedule.mark.extra")
+            : null,
+    })),
+    ...[...day.outside, ...day.edunex].map((m) => ({
+      key: `${m.code}${m.start}`,
+      start: m.start,
+      end: m.end,
+      code: m.code,
+      title: m.number !== null ? t("schedule.meeting", { n: m.number }) : t("schedule.meetingEdunex"),
+      where: m.online ? t("schedule.online") : null,
+      exam: false,
+      note: null as string | null,
+    })),
   ].sort((a, b) => a.start - b.start);
   const empty = !timed.length && !day.windows.length && !day.due.length;
   return (
@@ -230,9 +276,7 @@ function DayDetails({ day, period, onShowWeek }: { day: ScheduleDay; period: Cal
                   <CourseDot color={world.color(item.code)} className="mr-1.5 mb-px size-2 align-middle" />
                   <span className="font-semibold tabular-nums">{item.code}</span> {item.title}
                 </span>
-                <span className="block text-caption text-muted">
-                  {[item.where, item.note].filter(Boolean).join(" · ") || " "}
-                </span>
+                <span className="block text-caption text-muted">{[item.where, item.note].filter(Boolean).join(" · ") || " "}</span>
               </span>
             </li>
           ))}
@@ -265,4 +309,3 @@ function DayDetails({ day, period, onShowWeek }: { day: ScheduleDay; period: Cal
     </>
   );
 }
-

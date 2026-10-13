@@ -79,7 +79,9 @@ export function makeFormat(lang: Lang, now: number): Format {
     dayRange: (first, last) => {
       const noon = (day: string) => Date.parse(`${day}T12:00:00+07:00`);
       if (first === last) return dayMonth(noon(first));
-      return first.slice(0, 7) === last.slice(0, 7) ? `${Number(first.slice(8, 10))}–${dayMonth(noon(last))}` : `${dayMonth(noon(first))} – ${dayMonth(noon(last))}`;
+      return first.slice(0, 7) === last.slice(0, 7)
+        ? `${Number(first.slice(8, 10))}–${dayMonth(noon(last))}`
+        : `${dayMonth(noon(first))} – ${dayMonth(noon(last))}`;
     },
     dateLong: (when) => dateLongFmt.format(ms(when)),
     relativeDay,

@@ -1,7 +1,7 @@
 // The window's memory: the snapshot it started with, kept current by engine
 // events. Screens read it through hooks that subscribe to one dataset or one
 // source each, so an update redraws only what uses it.
-import { createContext, useContext, useEffect, useSyncExternalStore, type ReactNode } from "react";
+import { createContext, type ReactNode, useContext, useEffect, useSyncExternalStore } from "react";
 import type { AppSnapshot, DatasetPayload, Event } from "../core/contract";
 import type { DatasetName, DatasetValue, Settings, SourceId, SourceStatus } from "../core/models";
 import type { Route } from "../core/route";
@@ -35,17 +35,21 @@ export class AppStore {
         const current = this.datasets.get(event.dataset.name);
         if (current?.hash === event.dataset.hash) return;
         this.datasets.set(event.dataset.name, event.dataset);
-        return this.notify(`dataset:${event.dataset.name}`);
+        this.notify(`dataset:${event.dataset.name}`);
+        return;
       }
       case "dataset.removed":
         if (!this.datasets.delete(event.name)) return;
-        return this.notify(`dataset:${event.name}`);
+        this.notify(`dataset:${event.name}`);
+        return;
       case "status":
         this.statuses.set(event.status.source, event.status);
-        return this.notify(`status:${event.status.source}`);
+        this.notify(`status:${event.status.source}`);
+        return;
       case "settings":
         this.settings = event.settings;
-        return this.notify("settings");
+        this.notify("settings");
+        return;
       case "command":
         for (const listener of this.commandListeners) listener(event.command);
         return;

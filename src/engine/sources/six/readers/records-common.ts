@@ -94,7 +94,25 @@ export function indexValue(page: Page, value: string, what: string): number | nu
 }
 
 // Months by their first three letters, in Indonesian and English ("Agu", "Agustus", "Aug").
-const MONTHS: Record<string, number> = { jan: 1, feb: 2, mar: 3, apr: 4, mei: 5, may: 5, jun: 6, jul: 7, agu: 8, agt: 8, aug: 8, sep: 9, okt: 10, oct: 10, nov: 11, des: 12, dec: 12 };
+const MONTHS: Record<string, number> = {
+  jan: 1,
+  feb: 2,
+  mar: 3,
+  apr: 4,
+  mei: 5,
+  may: 5,
+  jun: 6,
+  jul: 7,
+  agu: 8,
+  agt: 8,
+  aug: 8,
+  sep: 9,
+  okt: 10,
+  oct: 10,
+  nov: 11,
+  des: 12,
+  dec: 12,
+};
 const DATE = /^(\d{1,2})\s+([A-Za-z]{3,})\.?\s+(\d{4})(?:,?\s+(\d{1,2})[.:](\d{2})(?:[.:](\d{2}))?)?$/;
 const pad = (n: number) => String(n).padStart(2, "0");
 

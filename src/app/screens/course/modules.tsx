@@ -3,13 +3,13 @@
 // Tasks and materials. It opens on the newest module with something in it;
 // empty modules take one quiet line. Each material type gets the one action
 // that fits it: download, join, read here, open, or Edunex itself, all alike.
-import { useEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import {
   contentCounts,
   htmlText,
+  type MaterialKind,
   materialAction,
   materialKind,
-  type MaterialKind,
   newestWithContent,
   outlineEntries,
   uploadExtension,
@@ -24,7 +24,7 @@ import { cx } from "../../ui/cx";
 import { EmptyState } from "../../ui/display";
 import { Icons } from "../../ui/icons";
 import { List } from "../../ui/layout";
-import { toast, Tooltip } from "../../ui/overlays";
+import { Tooltip, toast } from "../../ui/overlays";
 import { RichText } from "../../ui/rich-text";
 import { TaskRows } from "../tasks";
 import { type CoursePage, isOpenTask } from "./data";
@@ -42,7 +42,8 @@ interface Entry {
   materials: Material[];
 }
 
-const latest = (entry: Pick<Entry, "postedAt" | "materials">) => Math.max(entry.postedAt ?? 0, ...entry.materials.map((m) => m.postedAt ?? m.updatedAt ?? 0)) || null;
+const latest = (entry: Pick<Entry, "postedAt" | "materials">) =>
+  Math.max(entry.postedAt ?? 0, ...entry.materials.map((m) => m.postedAt ?? m.updatedAt ?? 0)) || null;
 
 /** "2 PDF · 4 tugas": what's in it; how many Tasks are still open shows as its own chip. */
 const countLine = (t: Translate, entry: Entry) =>
@@ -63,7 +64,9 @@ export function ModulesTab({ page, module }: { page: CoursePage; module?: number
     materials: materials.filter((m) => m.moduleId === null),
   };
   const entries: Entry[] = [
-    ...(courseWide.tasks.length || courseWide.materials.length ? [{ id: INTRO, label: null, title: t("course.intro"), parent: false, postedAt: null, ...courseWide }] : []),
+    ...(courseWide.tasks.length || courseWide.materials.length
+      ? [{ id: INTRO, label: null, title: t("course.intro"), parent: false, postedAt: null, ...courseWide }]
+      : []),
     ...(outline ? outlineEntries(outline, main) : []).map((entry) => ({
       id: String(entry.module.id),
       label: String(entry.number),
@@ -108,7 +111,9 @@ export function ModulesTab({ page, module }: { page: CoursePage; module?: number
             const fresh = !empty && (latest(entry) ?? 0) > now - WEEK;
             return (
               <li key={entry.id}>
-                {index === firstParent && <p className="mt-4 mb-1 px-2 text-caption font-semibold tracking-[0.04em] text-faint uppercase">{t("course.jointClass")}</p>}
+                {index === firstParent && (
+                  <p className="mt-4 mb-1 px-2 text-caption font-semibold tracking-[0.04em] text-faint uppercase">{t("course.jointClass")}</p>
+                )}
                 <button
                   type="button"
                   aria-current={isActive ? "true" : undefined}
@@ -129,7 +134,13 @@ export function ModulesTab({ page, module }: { page: CoursePage; module?: number
                     {entry.label ?? <Icons.BookOpen className="size-3" />}
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className={cx("line-clamp-2 leading-[1.35]", empty ? "text-small text-muted" : "text-body", !empty && (isActive ? "font-semibold" : "font-medium"))}>
+                    <span
+                      className={cx(
+                        "line-clamp-2 leading-[1.35]",
+                        empty ? "text-small text-muted" : "text-body",
+                        !empty && (isActive ? "font-semibold" : "font-medium"),
+                      )}
+                    >
                       {entry.title}
                     </span>
                     {!empty && countLine(t, entry) && <span className="mt-0.5 block truncate text-caption text-faint">{countLine(t, entry)}</span>}
@@ -138,12 +149,16 @@ export function ModulesTab({ page, module }: { page: CoursePage; module?: number
                     <span className="mt-0.5 flex shrink-0 flex-col items-end gap-1">
                       {open > 0 && (
                         <Tooltip content={t("course.openTasksHint")}>
-                          <span className="inline-flex h-[18px] items-center rounded-full bg-warning-bg px-1.5 text-micro font-semibold text-warning-fg">{t("course.openTasks", { count: open })}</span>
+                          <span className="inline-flex h-[18px] items-center rounded-full bg-warning-bg px-1.5 text-micro font-semibold text-warning-fg">
+                            {t("course.openTasks", { count: open })}
+                          </span>
                         </Tooltip>
                       )}
                       {fresh && (
                         <Tooltip content={t("course.newHint")}>
-                          <span className="inline-flex h-[18px] items-center rounded-full bg-info-bg px-1.5 text-micro font-semibold text-info-fg">{t("course.new")}</span>
+                          <span className="inline-flex h-[18px] items-center rounded-full bg-info-bg px-1.5 text-micro font-semibold text-info-fg">
+                            {t("course.new")}
+                          </span>
                         </Tooltip>
                       )}
                     </span>
@@ -226,7 +241,8 @@ export function MaterialRow({ material }: { material: Material }) {
   const upload = uploadExtension(material.type);
   if (kind === "pdf") meta = `${t("material.pdf")}${size}`;
   else if (upload) meta = `${upload.slice(1).toUpperCase()}${size}`;
-  else if (kind === "vicon") meta = VICON_PROVIDERS[material.type] ? t("material.vicon", { service: VICON_PROVIDERS[material.type] }) : t("material.viconUnknown");
+  else if (kind === "vicon")
+    meta = VICON_PROVIDERS[material.type] ? t("material.vicon", { service: VICON_PROVIDERS[material.type] }) : t("material.viconUnknown");
   else if (kind === "note") meta = htmlText(material.content ?? "").slice(0, 120) || t("material.note");
   else meta = `${t(`material.${kind}`)}${size}`;
 
@@ -243,11 +259,17 @@ export function MaterialRow({ material }: { material: Material }) {
   };
 
   const named = (label: string) => `${label}: ${material.title}`;
-  let button;
+  let button: ReactNode;
   switch (action.kind) {
     case "download":
       button = (
-        <Button size="sm" busy={busy} icon={<Icons.Download className="size-3.5" />} aria-label={named(t("material.download"))} onClick={() => void download(action.url, action.name)}>
+        <Button
+          size="sm"
+          busy={busy}
+          icon={<Icons.Download className="size-3.5" />}
+          aria-label={named(t("material.download"))}
+          onClick={() => void download(action.url, action.name)}
+        >
           {t("material.download")}
         </Button>
       );
@@ -276,7 +298,12 @@ export function MaterialRow({ material }: { material: Material }) {
       break;
     default:
       button = (
-        <Button size="sm" icon={<Icons.ArrowUpRight className="size-3.5" />} aria-label={named(t("action.openInEdunex"))} onClick={() => openExternal(action.url)}>
+        <Button
+          size="sm"
+          icon={<Icons.ArrowUpRight className="size-3.5" />}
+          aria-label={named(t("action.openInEdunex"))}
+          onClick={() => openExternal(action.url)}
+        >
           {t("action.openInEdunex")}
         </Button>
       );

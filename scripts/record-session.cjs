@@ -31,24 +31,20 @@ const os = require("node:os");
 const path = require("node:path");
 
 const STAMP = new Date().toISOString().replace(/[:.]/g, "-");
-const OUT_DIR =
-  process.env.RECORDER_OUT ||
-  path.resolve(__dirname, "..", ".scratch", "recordings", STAMP);
+const OUT_DIR = process.env.RECORDER_OUT || path.resolve(__dirname, "..", ".scratch", "recordings", STAMP);
 const BODY_DIR = path.join(OUT_DIR, "bodies");
 const PARTITION = "edunex-plus-recorder"; // no "persist:" prefix → memory only
 const SMOKE = process.env.RECORDER_SMOKE === "1";
 /** "edunex", "six" or "edunex,six": drive the sites automatically instead of by hand. */
 const AUTO = new Set(
-  (process.env.RECORDER_AUTO || "").split(",").map((part) => part.trim()).filter(Boolean),
+  (process.env.RECORDER_AUTO || "")
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean),
 );
 /** Read-only by default: change requests to the guarded hosts are blocked and logged. */
 const ALLOW_WRITES = process.env.RECORDER_ALLOW_WRITES === "1";
-const GUARDED_HOSTS = [
-  /^api-edunex\.cognisia\.id$/,
-  /^edunex\.itb\.ac\.id$/,
-  /^six\.itb\.ac\.id$/,
-  /\.blob\.core\.windows\.net$/,
-];
+const GUARDED_HOSTS = [/^api-edunex\.cognisia\.id$/, /^edunex\.itb\.ac\.id$/, /^six\.itb\.ac\.id$/, /\.blob\.core\.windows\.net$/];
 
 const SITES = {
   edunex: { label: "Edunex", url: "https://sso-edunex.itb.ac.id/", side: "left" },
@@ -77,8 +73,7 @@ const MAX_BODY_BYTES = 8 * 1024 * 1024;
 
 const SECRET_KEY =
   /^(access_?token|refresh_?token|id_?token|token|_token|csrf_?token|password|passwd|secret|client_secret|authorization|cookie|otp|code_verifier|api_?key)$/i;
-const SECRET_QUERY =
-  /^(code|state|token|access_token|id_token|session_state|client_info|sig|signature|se|sp|sv|x-amz-[a-z-]+|x-goog-[a-z-]+)$/i;
+const SECRET_QUERY = /^(code|state|token|access_token|id_token|session_state|client_info|sig|signature|se|sp|sv|x-amz-[a-z-]+|x-goog-[a-z-]+)$/i;
 const JWT = /eyJ[A-Za-z0-9_-]{8,}\.eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]+/g;
 
 let seq = 0;
@@ -129,18 +124,9 @@ function redactJson(value) {
 
 function redactHtml(html) {
   return html
-    .replace(
-      /(<input\b[^>]*\bname=["'][^"']*token[^"']*["'][^>]*\bvalue=["'])[^"']*(["'])/gi,
-      "$1[redacted]$2",
-    )
-    .replace(
-      /(<input\b[^>]*\bvalue=["'])[^"']*(["'][^>]*\bname=["'][^"']*token[^"']*["'])/gi,
-      "$1[redacted]$2",
-    )
-    .replace(
-      /(<meta\b[^>]*\bname=["']csrf[^"']*["'][^>]*\bcontent=["'])[^"']*(["'])/gi,
-      "$1[redacted]$2",
-    )
+    .replace(/(<input\b[^>]*\bname=["'][^"']*token[^"']*["'][^>]*\bvalue=["'])[^"']*(["'])/gi, "$1[redacted]$2")
+    .replace(/(<input\b[^>]*\bvalue=["'])[^"']*(["'][^>]*\bname=["'][^"']*token[^"']*["'])/gi, "$1[redacted]$2")
+    .replace(/(<meta\b[^>]*\bname=["']csrf[^"']*["'][^>]*\bcontent=["'])[^"']*(["'])/gi, "$1[redacted]$2")
     .replace(JWT, "[redacted-jwt]");
 }
 
@@ -160,9 +146,7 @@ function describeUrl(raw) {
       query[key] = SECRET_QUERY.test(key) ? "[redacted]" : value.replace(JWT, "[redacted-jwt]");
     }
   }
-  const search = keepQuery && url.search
-    ? `?${new URLSearchParams(query).toString()}`
-    : "";
+  const search = keepQuery && url.search ? `?${new URLSearchParams(query).toString()}` : "";
   return {
     host,
     path: url.pathname,
@@ -218,7 +202,12 @@ function summarizeRequestBody(contentType, postData) {
 }
 
 function slug(text) {
-  return text.replace(/[^A-Za-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 80) || "root";
+  return (
+    text
+      .replace(/[^A-Za-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "")
+      .slice(0, 80) || "root"
+  );
 }
 
 /** Same endpoint, different ids → one summary row. */
@@ -243,8 +232,7 @@ function attachRecorder(contents, windowName) {
   const pending = new Map();
   let lastActivity = Date.now();
   recorderState.set(windowName, {
-    inflight: () =>
-      [...pending.values()].filter((entry) => entry.type !== "Document" && !entry.loginHost).length,
+    inflight: () => [...pending.values()].filter((entry) => entry.type !== "Document" && !entry.loginHost).length,
     lastActivity: () => lastActivity,
   });
 
@@ -372,9 +360,7 @@ function attachRecorder(contents, windowName) {
         const location = headerValue(params.redirectResponse.headers, "location");
         if (location) {
           const target = describeUrl(new URL(location, params.redirectResponse.url).toString());
-          previous.redirectTo = isLoginHost(target.host)
-            ? `https://${target.host}${target.path}`
-            : target.url;
+          previous.redirectTo = isLoginHost(target.host) ? `https://${target.host}${target.path}` : target.url;
         }
         finalize(previous);
       }
@@ -389,9 +375,7 @@ function attachRecorder(contents, windowName) {
       entry.status = params.response.status;
       entry.mimeType = params.response.mimeType;
       entry.contentLength = headerValue(params.response.headers, "content-length");
-      entry.contentDisposition = entry.loginHost
-        ? null
-        : headerValue(params.response.headers, "content-disposition");
+      entry.contentDisposition = entry.loginHost ? null : headerValue(params.response.headers, "content-disposition");
       // The first page after a site switch never reports loadingFinished to
       // this session; its body was already read while paused, so finish now.
       if (entry.pausedBody != null) {
@@ -428,9 +412,7 @@ function attachRecorder(contents, windowName) {
   });
 
   void dbg.sendCommand("Fetch.enable", {
-    patterns: [
-      { urlPattern: "https://six.itb.ac.id/*", resourceType: "Document", requestStage: "Response" },
-    ],
+    patterns: [{ urlPattern: "https://six.itb.ac.id/*", resourceType: "Document", requestStage: "Response" }],
   });
 
   const timeline = (event, url, extra = {}) => {
@@ -510,9 +492,7 @@ async function readEdunexAuthShape(contents) {
 
 async function snapshotCookies() {
   const all = await session.fromPartition(PARTITION).cookies.get({});
-  const interesting = all.filter((cookie) =>
-    /(^|\.)itb\.ac\.id$|cognisia\.id$/.test(cookie.domain.replace(/^\./, "")),
-  );
+  const interesting = all.filter((cookie) => /(^|\.)itb\.ac\.id$|cognisia\.id$/.test(cookie.domain.replace(/^\./, "")));
   notes.cookies = interesting.map((cookie) => ({
     domain: cookie.domain,
     name: cookie.name,
@@ -528,7 +508,12 @@ async function snapshotCookies() {
 function writeSummary() {
   const indexFile = path.join(OUT_DIR, "index.jsonl");
   const rows = fs.existsSync(indexFile)
-    ? fs.readFileSync(indexFile, "utf8").trim().split("\n").filter(Boolean).map((line) => JSON.parse(line))
+    ? fs
+        .readFileSync(indexFile, "utf8")
+        .trim()
+        .split("\n")
+        .filter(Boolean)
+        .map((line) => JSON.parse(line))
     : [];
   const endpoints = {};
   for (const row of rows) {
@@ -547,13 +532,16 @@ function writeSummary() {
     endpoints: Object.fromEntries(
       Object.entries(endpoints)
         .sort(([a], [b]) => a.localeCompare(b))
-        .map(([key, bucket]) => [key, {
-          count: bucket.count,
-          statuses: bucket.statuses,
-          types: [...bucket.types],
-          queryKeys: [...bucket.queryKeys],
-          sample: bucket.sample,
-        }]),
+        .map(([key, bucket]) => [
+          key,
+          {
+            count: bucket.count,
+            statuses: bucket.statuses,
+            types: [...bucket.types],
+            queryKeys: [...bucket.queryKeys],
+            sample: bucket.sample,
+          },
+        ]),
     ),
   };
   writeJson("summary.json", summary);
@@ -723,8 +711,7 @@ async function autoTourEdunex() {
     return links;
   }
 
-  const pick = (links, pattern, limit) =>
-    [...new Set(links.filter((link) => pattern.test(link) && allowed(link)))].slice(0, limit);
+  const pick = (links, pattern, limit) => [...new Set(links.filter((link) => pattern.test(link) && allowed(link)))].slice(0, limit);
 
   // Second pass: explicit routes built from the first pass's recorded IDs.
   const extraFile = process.env.RECORDER_EDUNEX_ROUTES;
@@ -900,9 +887,7 @@ function buildMenu() {
     },
     {
       label: "Recording",
-      submenu: [
-        { label: "Finish and save", accelerator: "CmdOrCtrl+Shift+S", click: () => void finish("menu") },
-      ],
+      submenu: [{ label: "Finish and save", accelerator: "CmdOrCtrl+Shift+S", click: () => void finish("menu") }],
     },
   ]);
 }

@@ -5,9 +5,18 @@ export const academicStrings = {
   // KRS tab
   "krs.empty": { id: "Belum ada KRS dari SIX", en: "No KRS from SIX yet" },
   "krs.needSix": { id: "KRS butuh SIX", en: "Your KRS needs SIX" },
-  "krs.needSixBody": { id: "Masuk ke SIX untuk melihat status KRS-mu, persetujuan dosen wali, dan kelas yang bentrok.", en: "Sign in to SIX to see your KRS status, your advisor's approval and clashing classes." },
-  "krs.stage.clash": { id: "KRS sah, tapi ada {count} bentrok", en: { one: "KRS is official, but {count} class clashes", other: "KRS is official, but {count} classes clash" } },
-  "krs.stage.clashApproved": { id: "KRS disetujui, tapi ada {count} bentrok", en: { one: "KRS approved, but {count} class clashes", other: "KRS approved, but {count} classes clash" } },
+  "krs.needSixBody": {
+    id: "Masuk ke SIX untuk melihat status KRS-mu, persetujuan dosen wali, dan kelas yang bentrok.",
+    en: "Sign in to SIX to see your KRS status, your advisor's approval and clashing classes.",
+  },
+  "krs.stage.clash": {
+    id: "KRS sah, tapi ada {count} bentrok",
+    en: { one: "KRS is official, but {count} class clashes", other: "KRS is official, but {count} classes clash" },
+  },
+  "krs.stage.clashApproved": {
+    id: "KRS disetujui, tapi ada {count} bentrok",
+    en: { one: "KRS approved, but {count} class clashes", other: "KRS approved, but {count} classes clash" },
+  },
   "krs.clash.next": { id: "Tanyakan ke dosen {a} dan {b} jam mana yang dipakai.", en: "Ask the lecturers of {a} and {b} which time counts." },
   "krs.clash.nextUrs": {
     id: "Tanyakan ke dosen {a} dan {b} jam mana yang dipakai, atau ubah KRS di masa URS {range}.",
@@ -20,13 +29,19 @@ export const academicStrings = {
   "krs.from": { id: "Dari SIX", en: "From SIX" },
   "krs.advisor": { id: "Dosen wali: {name}", en: "Academic advisor: {name}" },
   "krs.stage.send": { id: "KRS belum dikirim", en: "KRS not sent yet" },
-  "krs.stage.send.hint": { id: "Isi dan kirim KRS di SIX, lalu minta persetujuan dosen wali.", en: "Fill in and send your KRS in SIX, then ask your advisor to approve it." },
+  "krs.stage.send.hint": {
+    id: "Isi dan kirim KRS di SIX, lalu minta persetujuan dosen wali.",
+    en: "Fill in and send your KRS in SIX, then ask your advisor to approve it.",
+  },
   "krs.stage.advisor": { id: "Menunggu dosen wali", en: "Waiting for your advisor" },
   "krs.stage.advisor.hint": { id: "KRS sudah dikirim. Dosen wali belum menyetujuinya.", en: "Your KRS is sent. Your advisor hasn't approved it yet." },
   "krs.stage.ukt": { id: "Disetujui, UKT belum lunas", en: "Approved, UKT not paid" },
   "krs.stage.ukt.hint": { id: "KRS baru bisa disahkan setelah UKT lunas.", en: "Your KRS can only be made official once UKT is paid." },
   "krs.stage.official": { id: "Disetujui dosen wali", en: "Approved by your advisor" },
-  "krs.stage.official.hint": { id: "Tinggal disahkan SIX. Tidak ada yang perlu kamu lakukan.", en: "SIX still has to make it official. Nothing for you to do." },
+  "krs.stage.official.hint": {
+    id: "Tinggal disahkan SIX. Tidak ada yang perlu kamu lakukan.",
+    en: "SIX still has to make it official. Nothing for you to do.",
+  },
   "krs.stage.done": { id: "KRS sudah sah", en: "KRS is official" },
   "krs.stage.done.hint": { id: "Tidak ada yang perlu kamu lakukan.", en: "Nothing for you to do." },
   "krs.window.drs.open": { id: "Pengisian KRS (DRS) dibuka sampai {date}", en: "KRS registration (DRS) open until {date}" },
@@ -63,11 +78,17 @@ export const academicStrings = {
   // UKT tab
   "bills.empty": { id: "Belum ada tagihan dari SIX", en: "No bills from SIX yet" },
   "bills.needSix": { id: "UKT butuh SIX", en: "UKT needs SIX" },
-  "bills.needSixBody": { id: "Masuk ke SIX untuk melihat tagihan UKT, cicilan, dan batas bayarnya.", en: "Sign in to SIX to see your UKT bills, instalments and their deadlines." },
+  "bills.needSixBody": {
+    id: "Masuk ke SIX untuk melihat tagihan UKT, cicilan, dan batas bayarnya.",
+    en: "Sign in to SIX to see your UKT bills, instalments and their deadlines.",
+  },
   "bills.deadline": { id: "Batas bayar", en: "Pay by" },
   "bills.otherSix": { id: "SIX menulis {date}; ikuti yang lebih awal.", en: "SIX says {date}; go by the earlier date." },
   "bills.otherItb": { id: "Kalender ITB menulis {date}; ikuti yang lebih awal.", en: "ITB's calendar says {date}; go by the earlier date." },
-  "bills.expect": { id: "Tagihan biasanya muncul beberapa minggu sebelum batas bayar, {date}.", en: "The bill usually shows up a few weeks before the deadline, {date}." },
+  "bills.expect": {
+    id: "Tagihan biasanya muncul beberapa minggu sebelum batas bayar, {date}.",
+    en: "The bill usually shows up a few weeks before the deadline, {date}.",
+  },
   "bills.expectNoDate": { id: "Tagihan biasanya muncul menjelang semester dimulai.", en: "The bill usually shows up shortly before the semester starts." },
   "bills.from": { id: "Dari SIX", en: "From SIX" },
   "bills.thisTerm": { id: "Semester ini", en: "This semester" },
@@ -92,8 +113,10 @@ export const academicStrings = {
 
   // Kalender akademik tab
   "deadlines.empty": { id: "Kalender akademik ITB belum terbaca", en: "ITB's academic calendar isn't read yet" },
-  "deadlines.intro": { id: "Dari kalender akademik resmi ITB, dengan artinya untukmu.", en: "From ITB's official academic calendar, with what each means for you." },
-  "deadlines.today": { id: "Sekarang", en: "Now" },
+  "deadlines.intro": {
+    id: "Dari kalender akademik resmi ITB, dengan artinya untukmu.",
+    en: "From ITB's official academic calendar, with what each means for you.",
+  },
   "deadlines.todayAt": { id: "Sekarang · {date}", en: "Now · {date}" },
   "deadlines.group.now": { id: "Sedang berlangsung", en: "Happening now" },
   "deadlines.group.week": { id: "7 hari ke depan", en: "Next 7 days" },
@@ -122,13 +145,19 @@ export const academicStrings = {
   "deadline.ukt": { id: "Bayar UKT, atau KRS tidak bisa disahkan.", en: "Pay UKT, or your KRS can't be made official." },
   "deadline.ukt.paid": { id: "UKT-mu sudah lunas.", en: "Your UKT is paid." },
   "deadline.ukt.left": { id: "Masih {amount} yang harus dibayar.", en: "{amount} still to pay." },
-  "deadline.questionnaire": { id: "Isi kuesioner tiap mata kuliah, atau SIX menyembunyikan nilainya.", en: "Fill it in for every course, or SIX hides that grade." },
+  "deadline.questionnaire": {
+    id: "Isi kuesioner tiap mata kuliah, atau SIX menyembunyikan nilainya.",
+    en: "Fill it in for every course, or SIX hides that grade.",
+  },
   "deadline.uts": { id: "Minggu ujian tengah semester.", en: "Midterm exam week." },
   "deadline.uas": { id: "Minggu ujian akhir semester. Cek kehadiranmu sebelumnya.", en: "Final exam weeks. Check your attendance before." },
   "deadline.lectureStart": { id: "Pertemuan pertama semester.", en: "The semester's first meetings." },
   "deadline.lectureEnd": { id: "Jatah absenmu dihitung sampai hari ini.", en: "Your absences left count up to this day." },
   "deadline.grades": { id: "Batas dosen memasukkan nilai akhir.", en: "Lecturers' deadline for final grades." },
-  "deadline.gradeChange": { id: "Setelah ini nilai tidak bisa diubah. Laporkan yang keliru sebelumnya.", en: "Grades can't change after this. Report a wrong one before." },
+  "deadline.gradeChange": {
+    id: "Setelah ini nilai tidak bisa diubah. Laporkan yang keliru sebelumnya.",
+    en: "Grades can't change after this. Report a wrong one before.",
+  },
   "deadline.progress": { id: "ITB memeriksa SKS lulus tiap mahasiswa.", en: "ITB checks every student's passed SKS." },
   "deadline.progress.ok": {
     id: "Target {target} SKS di akhir tahun ke-{year}; kamu sudah lulus {passed} SKS.",

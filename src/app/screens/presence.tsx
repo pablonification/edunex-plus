@@ -7,7 +7,7 @@
 // or what to do. The summary tiles filter the list. The target is the
 // Student's, for every course.
 import { type CSSProperties, type KeyboardEvent, type ReactNode, useRef, useState } from "react";
-import { type AttendanceHealth, type AttendanceState, needsAttention, percent, type PresenceActivity, type UpcomingMeeting } from "../../core/attendance";
+import { type AttendanceHealth, type AttendanceState, needsAttention, type PresenceActivity, percent, type UpcomingMeeting } from "../../core/attendance";
 import { clashes } from "../../core/course-meetings";
 import type { PresenceSession } from "../../core/models";
 import { sixTimetableUrl } from "../../core/schedule";
@@ -25,7 +25,7 @@ import { CourseCode, EmptyState, LiveDot, Skeleton } from "../ui/display";
 import { Icons } from "../ui/icons";
 import { Page, PageHeader } from "../ui/layout";
 import { CountdownBar, type MeterTone, ShareMeter } from "../ui/meter";
-import { Popover, toast, Tooltip } from "../ui/overlays";
+import { Popover, Tooltip, toast } from "../ui/overlays";
 
 export const ready = true;
 
@@ -78,9 +78,17 @@ export function PresenceScreen() {
       ) : (
         <>
           {known ? (
+            // biome-ignore lint/a11y/useSemanticElements: a grid of toggle tiles, not form fields; a fieldset would also size the grid differently
             <div role="group" aria-label={t("presence.filter")} className="mb-4 grid grid-cols-4 gap-3">
               {FILTERS.map((state) => (
-                <SummaryTile key={state} state={state} value={count(state)} target={target} selected={filter === state} onToggle={() => setFilter(filter === state ? null : state)} />
+                <SummaryTile
+                  key={state}
+                  state={state}
+                  value={count(state)}
+                  target={target}
+                  selected={filter === state}
+                  onToggle={() => setFilter(filter === state ? null : state)}
+                />
               ))}
             </div>
           ) : (
@@ -94,7 +102,10 @@ export function PresenceScreen() {
               </Button>
             </p>
           )}
-          <ul aria-label={t("presence.courses")} className="overflow-hidden rounded-xl border border-edge bg-surface shadow-card [&>li+li]:border-t [&>li+li]:border-line">
+          <ul
+            aria-label={t("presence.courses")}
+            className="overflow-hidden rounded-xl border border-edge bg-surface shadow-card [&>li+li]:border-t [&>li+li]:border-line"
+          >
             {shown.map((item, index) => (
               <CourseRow key={item.course.code} item={item} target={target} lastDay={attendance.lastDay} index={index} />
             ))}
@@ -153,7 +164,9 @@ export function TargetStepper() {
   const bridge = useBridge();
   const { attendanceTarget: target } = useSettings();
   const set = (value: number) =>
-    void bridge.invoke("settings.update", { attendanceTarget: Math.max(50, Math.min(100, value)) }).catch((error: unknown) => toast(t("error.action", { message: String(error) }), "danger"));
+    void bridge
+      .invoke("settings.update", { attendanceTarget: Math.max(50, Math.min(100, value)) })
+      .catch((error: unknown) => toast(t("error.action", { message: String(error) }), "danger"));
   return (
     <div className="inline-flex h-8 shrink-0 items-center rounded-lg border border-edge bg-surface">
       <IconButton size="sm" label={t("presence.target.lower")} disabled={target <= 50} onClick={() => set(target - 5)} className="rounded-r-none">
@@ -178,11 +191,7 @@ function TargetControl({ target }: { target: number }) {
       label={t("settings.attendance.target")}
       align="end"
       className="w-[300px] p-4"
-      trigger={
-        <Button icon={<Icons.Target className="size-3.5" />}>
-          {t("presence.target.button", { value: target })}
-        </Button>
-      }
+      trigger={<Button icon={<Icons.Target className="size-3.5" />}>{t("presence.target.button", { value: target })}</Button>}
     >
       <p className="text-title font-semibold">{t("settings.attendance.target")}</p>
       <p className="mt-1 text-small text-muted">{t("presence.target.global")}</p>
@@ -216,7 +225,9 @@ const ACTION_KEY: Record<PresenceActivity, StringKey> = {
 export function useActionLabel(): (window: Pick<OpenWindow, "action">) => string {
   const t = useT();
   return ({ action }) =>
-    action.activity === "assignment" && !action.task ? t("presence.action.assignmentUnknown") : t(ACTION_KEY[action.activity], { task: action.task?.title ?? "" });
+    action.activity === "assignment" && !action.task
+      ? t("presence.action.assignmentUnknown")
+      : t(ACTION_KEY[action.activity], { task: action.task?.title ?? "" });
 }
 
 const DO_KEY: Record<PresenceActivity, StringKey> = {
@@ -244,13 +255,14 @@ function OpenPresence({ window }: { window: OpenWindow }) {
   // Quiet where SIX counts (optional) and without SIX (worth doing just in case, but nobody can say it counts).
   // A Task to hand in keeps its own words: it's worth doing anyway.
   const optional = health?.countedIn === "six" || noSix;
-  const what = noSix && !task
-    ? t("presence.open.noSix")
-    : optional && !noSix
-    ? t("presence.open.optional")
-    : action.activity === "assignment" && !task
-      ? t("presence.do.assignmentUnknown")
-      : t(DO_KEY[action.activity], { task: task?.title ?? "" });
+  const what =
+    noSix && !task
+      ? t("presence.open.noSix")
+      : optional && !noSix
+        ? t("presence.open.optional")
+        : action.activity === "assignment" && !task
+          ? t("presence.do.assignmentUnknown")
+          : t(DO_KEY[action.activity], { task: task?.title ?? "" });
   return (
     <div className="rounded-2xl border border-edge bg-raised px-5 py-4 shadow-raised">
       <div className="flex flex-wrap items-start gap-x-6 gap-y-3">
@@ -259,9 +271,7 @@ function OpenPresence({ window }: { window: OpenWindow }) {
             <LiveDot />
             {t("presence.open.headline", { code, time: f.time(session.closesAt) })}
           </p>
-          <p className="mt-1 text-body text-muted">
-            {what}
-          </p>
+          <p className="mt-1 text-body text-muted">{what}</p>
         </div>
         {task ? (
           <Button variant={optional ? "secondary" : "primary"} onClick={() => go({ screen: "task", taskId: task.id })}>
@@ -274,7 +284,13 @@ function OpenPresence({ window }: { window: OpenWindow }) {
           </Button>
         )}
       </div>
-      <CountdownBar className="mt-3" opensAt={session.opensAt} closesAt={session.closesAt} now={now} label={t("presence.open.left", { time: f.countdown(session.closesAt) })} />
+      <CountdownBar
+        className="mt-3"
+        opensAt={session.opensAt}
+        closesAt={session.closesAt}
+        now={now}
+        label={t("presence.open.left", { time: f.countdown(session.closesAt) })}
+      />
     </div>
   );
 }
@@ -374,7 +390,12 @@ function CourseRow({ item, target, lastDay, index }: { item: CourseAttendance; t
   return (
     <li className="group relative motion-safe:stagger has-[>button:hover]:bg-hover" style={{ "--i": index } as CSSProperties}>
       {/* The whole row opens the course's meetings; the meeting squares sit above it. */}
-      <button type="button" aria-label={label} onClick={() => go({ screen: "course", code: course.code, tab: "meetings" })} className="absolute inset-0 z-0 outline-none focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-[-2px] focus-visible:outline-focus" />
+      <button
+        type="button"
+        aria-label={label}
+        onClick={() => go({ screen: "course", code: course.code, tab: "meetings" })}
+        className="absolute inset-0 z-0 outline-none focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-[-2px] focus-visible:outline-focus"
+      />
       <div className="pointer-events-none relative grid grid-cols-[minmax(0,1fr)_auto_220px] items-center gap-x-6 px-5 py-4">
         <div className="min-w-0">
           <CourseCode code={course.code} color={course.color} className="text-small" />
@@ -386,16 +407,17 @@ function CourseRow({ item, target, lastDay, index }: { item: CourseAttendance; t
         </div>
 
         <div className="pointer-events-auto min-w-0">
-          {attended !== null && held !== null && held > 0 ? (
-            <MeetingStrip health={health} />
-          ) : presence.length > 0 ? (
-            <EdunexStrip presence={presence} />
-          ) : null}
+          {attended !== null && held !== null && held > 0 ? <MeetingStrip health={health} /> : presence.length > 0 ? <EdunexStrip presence={presence} /> : null}
         </div>
 
         <div className="min-w-0 text-right">
           {sentence && (
-            <p className={cx(health.state === "unknown" ? "text-small font-medium" : "text-title leading-snug font-semibold text-balance", STATE_TONE[health.state])}>
+            <p
+              className={cx(
+                health.state === "unknown" ? "text-small font-medium" : "text-title leading-snug font-semibold text-balance",
+                STATE_TONE[health.state],
+              )}
+            >
               {sentence}
             </p>
           )}
@@ -418,14 +440,24 @@ function CourseRow({ item, target, lastDay, index }: { item: CourseAttendance; t
               />
             </>
           ) : health.countedIn === "edunex" || (health.countedIn === "noSix" && health.edunexClosed > 0) ? (
-            <p className="mt-0.5 text-small text-muted tabular-nums">{t("presence.edunexTally", { recorded: health.edunexRecorded, closed: health.edunexClosed })}</p>
+            <p className="mt-0.5 text-small text-muted tabular-nums">
+              {t("presence.edunexTally", { recorded: health.edunexRecorded, closed: health.edunexClosed })}
+            </p>
           ) : null}
         </div>
       </div>
       {(notes.length > 0 || exams.length > 0) && (
         <ul className="pointer-events-none relative space-y-1 px-5 pb-3.5 pl-[42px] text-small leading-[1.5] text-muted">
           {notes.map((note) => (
-            <li key={note.key} className={cx("flex items-start gap-2", note.tone === "bad" && "text-danger-fg", note.tone === "way" && "text-fg", note.tone === "clash" && "font-medium text-warning-fg")}>
+            <li
+              key={note.key}
+              className={cx(
+                "flex items-start gap-2",
+                note.tone === "bad" && "text-danger-fg",
+                note.tone === "way" && "text-fg",
+                note.tone === "clash" && "font-medium text-warning-fg",
+              )}
+            >
               <span className="mt-[3px] shrink-0">{note.icon}</span>
               <span className="min-w-0">{note.text}</span>
               {note.action && <span className="pointer-events-auto ml-auto shrink-0">{note.action}</span>}
@@ -491,7 +523,8 @@ function useNotes(item: CourseAttendance, target: number): Note[] {
       icon: dot("way"),
       text: t("schedule.overlapWith", { code: clash.courseCode, from: f.time(Math.max(next.start, clash.start)), to: f.time(Math.min(next.end, clash.end)) }),
     });
-  if (health.toRecover !== null && health.toRecover > 0) notes.push({ key: "recover", tone: "way", icon: dot("way"), text: t("presence.recover", { target, count: health.toRecover }) });
+  if (health.toRecover !== null && health.toRecover > 0)
+    notes.push({ key: "recover", tone: "way", icon: dot("way"), text: t("presence.recover", { target, count: health.toRecover }) });
   if (health.state === "out")
     notes.push({
       key: "out",
@@ -499,15 +532,31 @@ function useNotes(item: CourseAttendance, target: number): Note[] {
       icon: dot("bad"),
       text: t("presence.note.out", { target }),
       action: student ? (
-        <Button size="sm" variant="ghost" className="-my-1 h-6 px-2 text-danger-fg" icon={<Icons.ArrowUpRight className="size-3.5" />} onClick={() => open(sixTimetableUrl(student))}>
+        <Button
+          size="sm"
+          variant="ghost"
+          className="-my-1 h-6 px-2 text-danger-fg"
+          icon={<Icons.ArrowUpRight className="size-3.5" />}
+          onClick={() => open(sixTimetableUrl(student))}
+        >
           {t("presence.checkSix")}
         </Button>
       ) : null,
     });
   if (health.countedIn === "six" && health.edunexClosed > 0 && attended !== null && held !== null)
-    notes.push({ key: "edunex", icon: dot("info"), text: t("presence.note.edunexUnused", { recorded: health.edunexRecorded, closed: health.edunexClosed, attended, held }) });
-  if (presence.some((p) => p.countsBy.some((c) => c.kind === "assignment"))) notes.push({ key: "assignment", icon: dot("info"), text: t("presence.note.assignment") });
-  for (const exam of exams) notes.push({ key: `exam${exam.id}`, icon: dot("info"), text: t("presence.note.exam", { activity: exam.activity, date: `${f.weekdayShort(exam.start)} ${f.dayMonth(exam.start)}` }) });
+    notes.push({
+      key: "edunex",
+      icon: dot("info"),
+      text: t("presence.note.edunexUnused", { recorded: health.edunexRecorded, closed: health.edunexClosed, attended, held }),
+    });
+  if (presence.some((p) => p.countsBy.some((c) => c.kind === "assignment")))
+    notes.push({ key: "assignment", icon: dot("info"), text: t("presence.note.assignment") });
+  for (const exam of exams)
+    notes.push({
+      key: `exam${exam.id}`,
+      icon: dot("info"),
+      text: t("presence.note.exam", { activity: exam.activity, date: `${f.weekdayShort(exam.start)} ${f.dayMonth(exam.start)}` }),
+    });
   return notes;
 }
 
@@ -529,7 +578,11 @@ function MeetingStrip({ health }: { health: AttendanceHealth }) {
   const squares: Square[] = [
     ...Array.from({ length: attended }, (_, i) => ({ key: `a${i}`, kind: "attended" as const, tip: t("presence.square.attended", { attended, held }) })),
     ...Array.from({ length: missed }, (_, i) => ({ key: `m${i}`, kind: "missed" as const, tip: t("presence.square.missed", { missed, held }) })),
-    ...upcoming.map((m, i) => ({ key: `u${i}`, kind: m.uncertain ? ("uncertain" as const) : m.estimated ? ("estimated" as const) : ("coming" as const), tip: upcomingTip(t, f, m) })),
+    ...upcoming.map((m, i) => ({
+      key: `u${i}`,
+      kind: m.uncertain ? ("uncertain" as const) : m.estimated ? ("estimated" as const) : ("coming" as const),
+      tip: upcomingTip(t, f, m),
+    })),
   ];
   const label = t(health.left.estimated ? "presence.strip.about" : "presence.strip", { attended, missed, left: upcoming.length });
   return <Strip squares={squares} label={label} gapAfter={[attended - 1, held - 1]} />;
@@ -549,7 +602,13 @@ function EdunexStrip({ presence }: { presence: readonly PresenceSession[] }) {
     return { key: String(p.id), kind: "coming", tip: t("presence.square.edunexComing", { when }) };
   });
   const past = sorted.filter((p) => p.closesAt <= now).length;
-  return <Strip squares={squares} label={t("presence.strip.edunex", { recorded: sorted.filter((p) => p.recorded?.present).length, closed: past, left: sorted.length - past })} gapAfter={[past - 1]} />;
+  return (
+    <Strip
+      squares={squares}
+      label={t("presence.strip.edunex", { recorded: sorted.filter((p) => p.recorded?.present).length, closed: past, left: sorted.length - past })}
+      gapAfter={[past - 1]}
+    />
+  );
 }
 
 function upcomingTip(t: Translate, f: Format, meeting: UpcomingMeeting): string {
@@ -580,7 +639,8 @@ function Strip({ squares, label, gapAfter }: { squares: Square[]; label: string;
   const refs = useRef<(HTMLSpanElement | null)[]>([]);
   const [focus, setFocus] = useState(0);
   const move = (event: KeyboardEvent, index: number) => {
-    const step = event.key === "ArrowRight" ? 1 : event.key === "ArrowLeft" ? -1 : event.key === "Home" ? -index : event.key === "End" ? squares.length - 1 - index : 0;
+    const step =
+      event.key === "ArrowRight" ? 1 : event.key === "ArrowLeft" ? -1 : event.key === "Home" ? -index : event.key === "End" ? squares.length - 1 - index : 0;
     if (!step) return;
     event.preventDefault();
     const next = Math.max(0, Math.min(squares.length - 1, index + step));
@@ -588,9 +648,11 @@ function Strip({ squares, label, gapAfter }: { squares: Square[]; label: string;
     refs.current[next]?.focus();
   };
   return (
+    // biome-ignore lint/a11y/useSemanticElements: a strip of small marks in a flex row; the list roles describe it without list markup
     <div role="list" aria-label={label} className="flex max-w-[260px] flex-wrap gap-y-1">
       {squares.map((square, i) => (
         <Tooltip key={square.key} content={square.tip} side="top">
+          {/* biome-ignore lint/a11y/useSemanticElements: each mark is a span (a tooltip trigger) inside the strip's list role */}
           <span
             ref={(el) => {
               refs.current[i] = el;
@@ -600,7 +662,11 @@ function Strip({ squares, label, gapAfter }: { squares: Square[]; label: string;
             tabIndex={i === focus ? 0 : -1}
             onFocus={() => setFocus(i)}
             onKeyDown={(event) => move(event, i)}
-            className={cx("focus-ring mr-[3px] h-3.5 w-3 shrink-0 rounded-[3px] transition-transform duration-150 hover:scale-125", SQUARE[square.kind], gapAfter.includes(i) && i < squares.length - 1 && "mr-2")}
+            className={cx(
+              "focus-ring mr-[3px] h-3.5 w-3 shrink-0 rounded-[3px] transition-transform duration-150 hover:scale-125",
+              SQUARE[square.kind],
+              gapAfter.includes(i) && i < squares.length - 1 && "mr-2",
+            )}
           />
         </Tooltip>
       ))}
@@ -636,4 +702,3 @@ function HowCounted({ lastDay }: { lastDay: string | null }) {
     </section>
   );
 }
-

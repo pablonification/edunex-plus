@@ -34,7 +34,14 @@ function helpers(demo) {
     beat: (ms = 1600) => page.waitForTimeout(ms),
     click: (locator, options) => pointAndClick(page, locator, options).then(() => settle(page, 350)),
     point: (locator, ms) => pointAt(page, locator, ms),
-    nav: (label) => pointAndClick(page, page.locator("aside nav button").filter({ hasText: new RegExp(`^${label}`) }).first()).then(() => settle(page, 600)),
+    nav: (label) =>
+      pointAndClick(
+        page,
+        page
+          .locator("aside nav button")
+          .filter({ hasText: new RegExp(`^${label}`) })
+          .first(),
+      ).then(() => settle(page, 600)),
     button: (name) => page.getByRole("button", { name }).first(),
     scrollMain: (y) => page.evaluate((top) => document.querySelector("main")?.scrollTo({ top, behavior: "smooth" }), y).then(() => page.waitForTimeout(700)),
     /** Waits (paused out of the video) until `predicate` holds in the page. */
@@ -78,9 +85,21 @@ const firstRun = [
       await h.waitPaused(rec, () => Boolean(document.querySelector("[role=dialog]")), 120_000);
       await h.say("The first check: what neither system tells you on its own.", "Attendance at risk, a clash SIX accepted, exams, lecturer edits…");
       await h.beat(4200);
-      await attempt("scroll the findings", () => h.page.locator("[role=dialog] [class*=overflow]").first().evaluate((el) => el.scrollBy({ top: 320, behavior: "smooth" })));
+      await attempt("scroll the findings", () =>
+        h.page
+          .locator("[role=dialog] [class*=overflow]")
+          .first()
+          .evaluate((el) => el.scrollBy({ top: 320, behavior: "smooth" })),
+      );
       await h.beat(2400);
-      await attempt("to Beranda", () => h.click(h.page.locator("[role=dialog] button").filter({ hasText: /Ke Beranda/ }).first()));
+      await attempt("to Beranda", () =>
+        h.click(
+          h.page
+            .locator("[role=dialog] button")
+            .filter({ hasText: /Ke Beranda/ })
+            .first(),
+        ),
+      );
       await h.say("");
       await h.beat(1500);
     },
@@ -132,28 +151,59 @@ const signedIn = [
       await h.nav("Tugas & Ujian");
       await h.say("Everything to hand in, by when; exams on top, filter by course.");
       await h.beat(2600);
-      await attempt("filter II4091", () => h.click(h.page.locator("main button").filter({ hasText: /^II4091$/ }).first()));
+      await attempt("filter II4091", () =>
+        h.click(
+          h.page
+            .locator("main button")
+            .filter({ hasText: /^II4091$/ })
+            .first(),
+        ),
+      );
       await attempt("open Tugas 02", () => h.click(h.page.locator("main li button", { hasText: "Tugas 02 Bab II" }).first()));
       await h.say("This Task is also the class's attendance: it only counts inside its window, Friday 15:00–23:59.");
       await h.beat(3400);
       await attempt("attach", () => h.click(h.button(/Lampirkan berkas/)));
       await h.beat(1400);
       await attempt("hand in", () => h.click(h.button(/^Kumpulkan$/)));
-      await h.say("Before a final hand-in, the app checks: it's Thursday, outside the window.", "Handed in now, it would not count as attendance. The safe choice is the default.");
+      await h.say(
+        "Before a final hand-in, the app checks: it's Thursday, outside the window.",
+        "Handed in now, it would not count as attendance. The safe choice is the default.",
+      );
       await h.beat(4800);
-      await attempt("keep draft", () => h.click(h.page.locator("[role=alertdialog] button, [role=dialog] button").filter({ hasText: /Simpan sebagai draf|Nanti saja/ }).first()));
+      await attempt("keep draft", () =>
+        h.click(
+          h.page
+            .locator("[role=alertdialog] button, [role=dialog] button")
+            .filter({ hasText: /Simpan sebagai draf|Nanti saja/ })
+            .first(),
+        ),
+      );
       await h.say("Kept as a draft, with when to hand it in.");
       await h.beat(2800);
       await h.say("Now an ordinary Task, with no attendance attached.");
       await attempt("back to list", () => h.nav("Tugas & Ujian"));
-      await attempt("all courses", () => h.click(h.page.locator("main button").filter({ hasText: /^Semua$/ }).first()));
+      await attempt("all courses", () =>
+        h.click(
+          h.page
+            .locator("main button")
+            .filter({ hasText: /^Semua$/ })
+            .first(),
+        ),
+      );
       await attempt("open a plain Task", () => h.click(h.page.locator("main li button", { hasText: "Tugas Mandiri Individu" }).first()));
       await attempt("attach 2", () => h.click(h.button(/Lampirkan berkas/)));
       await h.beat(1200);
       await attempt("hand in 2", () => h.click(h.button(/^Kumpulkan$/)));
       await h.say("A normal hand-in: one clear confirmation.");
       await h.beat(2200);
-      await attempt("confirm", () => h.click(h.page.locator("[role=alertdialog] button, [role=dialog] button").filter({ hasText: /Kumpulkan sekarang/ }).first()));
+      await attempt("confirm", () =>
+        h.click(
+          h.page
+            .locator("[role=alertdialog] button, [role=dialog] button")
+            .filter({ hasText: /Kumpulkan sekarang/ })
+            .first(),
+        ),
+      );
       await h.beat(2400);
       await h.say("Handed in, read back from Edunex, and in the history.");
       await h.beat(3000);
@@ -208,7 +258,14 @@ const signedIn = [
       await h.nav("Jadwal");
       await h.say("Rooms on every class, the class going on now, and clashes side by side.");
       await h.beat(3200);
-      await attempt("open a class", () => h.click(h.page.locator("main button").filter({ hasText: /KU5014/ }).first()));
+      await attempt("open a class", () =>
+        h.click(
+          h.page
+            .locator("main button")
+            .filter({ hasText: /KU5014/ })
+            .first(),
+        ),
+      );
       await h.say("Details in place: room, where attendance counts, and the clash.");
       await h.beat(3600);
       await h.page.keyboard.press("Escape");
@@ -221,7 +278,14 @@ const signedIn = [
       await attempt("export", () => h.click(h.button(/Tambahkan ke kalender HP/)));
       await h.say("Put it on your phone: choose what to include…");
       await h.beat(2600);
-      await attempt("save", () => h.click(h.page.locator("[role=dialog] button").filter({ hasText: /^Simpan/ }).first()));
+      await attempt("save", () =>
+        h.click(
+          h.page
+            .locator("[role=dialog] button")
+            .filter({ hasText: /^Simpan/ })
+            .first(),
+        ),
+      );
       await h.say("…then the file and the steps for iPhone and Android.");
       await h.beat(3800);
       await h.page.keyboard.press("Escape");
@@ -335,20 +399,42 @@ const signedIn = [
       const h = helpers(demo);
       await titleCard(h.page, "12 · Being told", "Only what matters, in one place", "", 2200);
       await h.nav("Beranda");
-      await demo.world((world) => world.edunex.postTask(95001, { name: "Kuis Kilat Bab 5", description: "<p>Kerjakan 5 soal tentang inovasi proses di Bab 5. Unggah jawaban dalam satu PDF.</p>", end_at: "2026-10-15T23:59:00+07:00", file_required: true, is_lateable: false }));
+      await demo.world((world) =>
+        world.edunex.postTask(95001, {
+          name: "Kuis Kilat Bab 5",
+          description: "<p>Kerjakan 5 soal tentang inovasi proses di Bab 5. Unggah jawaban dalam satu PDF.</p>",
+          end_at: "2026-10-15T23:59:00+07:00",
+          file_required: true,
+          is_lateable: false,
+        }),
+      );
       await attempt("refresh", async () => {
         await h.click(h.page.locator("header button[aria-label^='Status data']").first());
         await h.click(h.button("Perbarui sekarang"));
       });
-      await h.say("Perbarui sekarang reads both systems again, and says which one it's still reading.", "SIX is read slowly on purpose, a page every two seconds, to be polite to it.");
+      await h.say(
+        "Perbarui sekarang reads both systems again, and says which one it's still reading.",
+        "SIX is read slowly on purpose, a page every two seconds, to be polite to it.",
+      );
       await h.beat(3600);
       await h.page.keyboard.press("Escape");
-      await h.waitPaused(rec, () => /Diperbarui baru saja/.test(document.querySelector("header button[aria-label^='Status data']")?.getAttribute("aria-label") ?? ""), 60_000);
+      await h.waitPaused(
+        rec,
+        () => /Diperbarui baru saja/.test(document.querySelector("header button[aria-label^='Status data']")?.getAttribute("aria-label") ?? ""),
+        60_000,
+      );
       await h.say("A lecturer posted a Task: the bell shows it (and your computer notifies you).");
       await h.beat(1600);
       await attempt("bell", () => h.click(h.page.locator("header button[aria-label^='Notifikasi']").first()));
       await h.beat(3000);
-      await attempt("open it", () => h.click(h.page.locator("[role=dialog] button").filter({ hasText: /Kuis Kilat/ }).first()));
+      await attempt("open it", () =>
+        h.click(
+          h.page
+            .locator("[role=dialog] button")
+            .filter({ hasText: /Kuis Kilat/ })
+            .first(),
+        ),
+      );
       await h.say("One click to the Task.");
       await h.beat(3000);
       await h.say("");
@@ -376,7 +462,11 @@ const signedIn = [
       await h.beat(1400);
       await h.say("Connected again at once; the top bar says which part is still updating.");
       await attempt("point at status", () => h.point(status(), 2600));
-      await h.waitPaused(rec, () => /Diperbarui baru saja/.test(document.querySelector("header button[aria-label^='Status data']")?.getAttribute("aria-label") ?? ""), 60_000);
+      await h.waitPaused(
+        rec,
+        () => /Diperbarui baru saja/.test(document.querySelector("header button[aria-label^='Status data']")?.getAttribute("aria-label") ?? ""),
+        60_000,
+      );
       await demo.world((world) => world.six.expireSession());
       await attempt("refresh SIX", async () => {
         await h.click(status());

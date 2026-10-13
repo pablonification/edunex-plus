@@ -77,19 +77,74 @@ const FAKE_STUDENT = {
   email: "dimas.pratama@mahasiswa.itb.ac.id",
   phone: "080000000000",
 };
-const FIRST = ["Andi", "Budi", "Citra", "Dewi", "Eko", "Fajar", "Gita", "Hadi", "Indra", "Joko", "Kartika", "Laras", "Maya", "Nanda", "Oki", "Putri", "Rizki", "Sari", "Tegar", "Utami", "Wahyu", "Yudi", "Bayu", "Nisa", "Reza", "Tari"];
-const LAST = ["Wijaya", "Santoso", "Kusuma", "Hidayat", "Saputra", "Lestari", "Nugroho", "Rahman", "Setiadi", "Halim", "Gunawan", "Firmansyah", "Permana", "Siregar", "Wibowo", "Yuliana", "Hartono", "Purnama", "Susanto", "Utomo"];
+const FIRST = [
+  "Andi",
+  "Budi",
+  "Citra",
+  "Dewi",
+  "Eko",
+  "Fajar",
+  "Gita",
+  "Hadi",
+  "Indra",
+  "Joko",
+  "Kartika",
+  "Laras",
+  "Maya",
+  "Nanda",
+  "Oki",
+  "Putri",
+  "Rizki",
+  "Sari",
+  "Tegar",
+  "Utami",
+  "Wahyu",
+  "Yudi",
+  "Bayu",
+  "Nisa",
+  "Reza",
+  "Tari",
+];
+const LAST = [
+  "Wijaya",
+  "Santoso",
+  "Kusuma",
+  "Hidayat",
+  "Saputra",
+  "Lestari",
+  "Nugroho",
+  "Rahman",
+  "Setiadi",
+  "Halim",
+  "Gunawan",
+  "Firmansyah",
+  "Permana",
+  "Siregar",
+  "Wibowo",
+  "Yuliana",
+  "Hartono",
+  "Purnama",
+  "Susanto",
+  "Utomo",
+];
 
 const hash = (text) => crypto.createHash("sha256").update(`edunex-plus-fixtures:${text}`).digest();
 const escapeRe = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 // ---------------------------------------------------------------- read the recordings
 
-const dirs = (process.argv.slice(2).filter((a) => !a.startsWith("--")).length
-  ? process.argv.slice(2).filter((a) => !a.startsWith("--")).map((d) => path.resolve(d))
-  : fs.existsSync(recordingsDir)
-    ? fs.readdirSync(recordingsDir).sort().map((d) => path.join(recordingsDir, d))
-    : []
+const dirs = (
+  process.argv.slice(2).filter((a) => !a.startsWith("--")).length
+    ? process.argv
+        .slice(2)
+        .filter((a) => !a.startsWith("--"))
+        .map((d) => path.resolve(d))
+    : fs.existsSync(recordingsDir)
+      ? fs
+          .readdirSync(recordingsDir)
+          .sort()
+          .map((d) => path.join(recordingsDir, d))
+      : []
 ).filter((d) => fs.existsSync(path.join(d, "index.jsonl")));
 if (!dirs.length) {
   console.error("No recordings found. Record a session first: npm run record (see docs/test-data.md).");
@@ -126,7 +181,13 @@ const jsonOf = (pathRe) => {
 };
 const htmlOf = (pathRe) => sixBodies.filter((e) => pathRe.test(e.path)).pop()?.body ?? "";
 const stripTags = (html) =>
-  html.replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ").replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(Number(n))).replace(/&amp;/g, "&").replace(/\s+/g, " ").trim();
+  html
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(Number(n)))
+    .replace(/&amp;/g, "&")
+    .replace(/\s+/g, " ")
+    .trim();
 
 // ---------------------------------------------------------------- discover the identity
 
@@ -165,10 +226,11 @@ const addPerson = (value) => {
 const PERSON_FIELDS = new Set(["lecturer", "created_by", "updated_by", "sent_by", "verified_by"]);
 const isPersonObject = (o) => ["user_id", "nidn", "front_degree", "back_degree", "last_online", "place_of_birth"].some((k) => k in o);
 const walk = (value, visit) => {
-  if (Array.isArray(value)) value.forEach((v) => walk(v, visit));
-  else if (value && typeof value === "object") {
+  if (Array.isArray(value)) {
+    for (const v of value) walk(v, visit);
+  } else if (value && typeof value === "object") {
     visit(value);
-    Object.values(value).forEach((v) => walk(v, visit));
+    for (const v of Object.values(value)) walk(v, visit);
   }
 };
 for (const ex of edunexBodies) {
@@ -200,13 +262,19 @@ add(student.phone, FAKE_STUDENT.phone);
 add(student.address, "Jl. Contoh No. 1, Bandung");
 add(student.birthPlace, "Bandung");
 const fakeNims = new Map();
-[...nims].sort((a, b) => (a === student.nim ? -1 : b === student.nim ? 1 : a.localeCompare(b))).forEach((nim, i) => {
-  fakeNims.set(nim, `${nim.slice(0, 5)}${String(901 + i).padStart(3, "0")}`);
-  add(nim, fakeNims.get(nim));
-});
+[...nims]
+  .sort((a, b) => (a === student.nim ? -1 : b === student.nim ? 1 : a.localeCompare(b)))
+  .forEach((nim, i) => {
+    fakeNims.set(nim, `${nim.slice(0, 5)}${String(901 + i).padStart(3, "0")}`);
+    add(nim, fakeNims.get(nim));
+  });
 if (student.username && !fakeNims.has(student.username)) add(student.username, "dimas.pratama");
-[...sixIds].sort().forEach((id, i) => add(id, String(2021000001 + i)));
-[...edunexIds].sort().forEach((id, i) => add(id, String(900001 + i)));
+[...sixIds].sort().forEach((id, i) => {
+  add(id, String(2021000001 + i));
+});
+[...edunexIds].sort().forEach((id, i) => {
+  add(id, String(900001 + i));
+});
 const usedFakes = new Set();
 [...people].sort().forEach((core, i) => {
   let fake = `${FIRST[i % FIRST.length]} ${LAST[(i * 7 + Math.floor(i / FIRST.length)) % LAST.length]}`;
@@ -251,7 +319,8 @@ const scrubPatterns = (text) =>
 const scrubJson = (value) => {
   walk(value, (o) => {
     if (isPersonObject(o)) {
-      for (const k of ["address", "place_of_birth", "phone_number", "religion", "ms_account", "zoom_email", "notification_email"]) if (k in o && o[k]) o[k] = "-";
+      for (const k of ["address", "place_of_birth", "phone_number", "religion", "ms_account", "zoom_email", "notification_email"])
+        if (k in o && o[k]) o[k] = "-";
       if ("date_of_birth" in o && o.date_of_birth) o.date_of_birth = "2000-01-01T00:00:00.000Z";
       if ("nidn" in o && o.nidn) o.nidn = "0000000000";
       if ("thumbnail" in o && typeof o.thumbnail === "string" && o.thumbnail) o.thumbnail = null;
@@ -331,7 +400,9 @@ const scrubSix = (html, pagePath) => {
       .map((part) => {
         let pts = 0;
         let sks = 0;
-        for (const m of part.matchAll(/<td>([A-Z]{2}\d{4})<span[^>]*>-\d+<\/span><\/td><td>[^<]*<\/td><td>[^<]*<\/td><td>(\d+)<\/td><td>\s*([A-Z]{1,2})\s*<\/td>/g)) {
+        for (const m of part.matchAll(
+          /<td>([A-Z]{2}\d{4})<span[^>]*>-\d+<\/span><\/td><td>[^<]*<\/td><td>[^<]*<\/td><td>(\d+)<\/td><td>\s*([A-Z]{1,2})\s*<\/td>/g,
+        )) {
           if (m[3] in POINTS) {
             pts += POINTS[m[3]] * Number(m[2]);
             sks += Number(m[2]);
@@ -367,7 +438,12 @@ const scrubSix = (html, pagePath) => {
 
 // ---------------------------------------------------------------- write the fixtures
 
-const slug = (text) => text.replace(/[^a-zA-Z0-9]+/g, "-").replace(/^-|-$/g, "").toLowerCase().slice(0, 80);
+const slug = (text) =>
+  text
+    .replace(/[^a-zA-Z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")
+    .toLowerCase()
+    .slice(0, 80);
 const queryLabel = (query) => {
   const parts = Object.entries(query)
     .filter(([k]) => /course_id|class_id|contentable|page\[offset\]|date|type\]\[in|^include$/.test(k))
@@ -411,7 +487,10 @@ for (const file of PUBLIC_CATALOG) {
 
 // The real values, for the privacy test on this machine only (git-ignored).
 const privateValues = [...new Set(replacements.map(([real]) => real).filter((v) => v.length >= 4))];
-fs.writeFileSync(identityFile, `${JSON.stringify({ note: "Real identity values replaced in test/fixtures. Never commit.", values: privateValues }, null, 2)}\n`);
+fs.writeFileSync(
+  identityFile,
+  `${JSON.stringify({ note: "Real identity values replaced in test/fixtures. Never commit.", values: privateValues }, null, 2)}\n`,
+);
 
 console.log(
   `fixtures → test/fixtures: ${index.edunex.length} Edunex responses, ${index.six.length} SIX pages; ` +

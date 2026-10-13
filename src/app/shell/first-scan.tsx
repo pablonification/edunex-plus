@@ -140,7 +140,12 @@ function Findings({ onGo }: { onGo: (route: Route) => void }) {
   const { saved, statuses, findings } = useScan(true);
   const summary = scanSummary(saved, statuses);
   const count = notable(findings);
-  const heading = count === 0 ? null : summary.read.length === 1 ? t(summary.read[0] === "edunex" ? "scan.title.edunex" : "scan.title.six", { count }) : t("scan.title", { count });
+  const heading =
+    count === 0
+      ? null
+      : summary.read.length === 1
+        ? t(summary.read[0] === "edunex" ? "scan.title.edunex" : "scan.title.six", { count })
+        : t("scan.title", { count });
   return (
     <>
       <Summary summary={summary} />
@@ -179,10 +184,7 @@ function Summary({ summary }: { summary: ReturnType<typeof scanSummary> }) {
   if (!summary.read.length) return null;
   const names = summary.connected.map((source) => t(`source.${source}`));
   const connected = names.length ? t("scan.connected", { sources: names.length === 2 ? t("scan.and", { a: names[0], b: names[1] }) : names[0] }) : null;
-  const read = [
-    t("scan.read.courses", { count: summary.courses }),
-    summary.tasks ? t("scan.read.tasks", { count: summary.tasks }) : null,
-  ].filter(Boolean);
+  const read = [t("scan.read.courses", { count: summary.courses }), summary.tasks ? t("scan.read.tasks", { count: summary.tasks }) : null].filter(Boolean);
   return (
     <p className="flex items-center gap-2 text-small font-medium text-muted">
       <Icons.CheckCircle className="size-4 shrink-0 text-success-fg" weight="bold" />
@@ -288,7 +290,8 @@ function describe(finding: Finding, t: Translate, f: Format, target: number): { 
             const kind = t(`exam.kind.${exam.kind}`);
             const disagree = exam.disagree ? ` · ${t("exam.disagree")}` : "";
             const session = exam.six[0];
-            if (session) return `${t("scan.exams.at", { name: kind, code, when: `${day(f, session.start)}, ${f.time(session.start)}` })}${session.room ? ` · ${session.room}` : ""}${disagree}`;
+            if (session)
+              return `${t("scan.exams.at", { name: kind, code, when: `${day(f, session.start)}, ${f.time(session.start)}` })}${session.room ? ` · ${session.room}` : ""}${disagree}`;
             if (exam.at !== null) {
               if (takeHomeOnly(exam)) return t("scan.exams.takeHome", { code, when: `${day(f, exam.at)}, ${f.time(exam.at)}` });
               return `${t("scan.exams.at", { name: exam.edunex[0]?.title ?? kind, code, when: `${day(f, exam.at)}, ${f.time(exam.at)}` })}${disagree}`;
@@ -335,7 +338,8 @@ function describe(finding: Finding, t: Translate, f: Format, target: number): { 
       return {
         title: t("scan.unread.title", { count: finding.count }),
         lines: finding.parts.map(
-          (part) => `${t(`scan.unread.${part.state as "offline" | "changed" | "expired"}`, { source: part.catalog ? t("scan.unread.catalog") : t(`source.${part.source}`) })}${part.missing.length ? `: ${part.missing.map((name) => t(`scan.part.${name}`)).join(", ")}` : ""}`,
+          (part) =>
+            `${t(`scan.unread.${part.state as "offline" | "changed" | "expired"}`, { source: part.catalog ? t("scan.unread.catalog") : t(`source.${part.source}`) })}${part.missing.length ? `: ${part.missing.map((name) => t(`scan.part.${name}`)).join(", ")}` : ""}`,
         ),
         note: null,
       };

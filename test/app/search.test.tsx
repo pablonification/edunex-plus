@@ -115,7 +115,9 @@ describe("quick search", () => {
     screen = await openApp({ signedIn: true, six: true });
     await commandK();
     await type("02 penyusunan proposal");
-    const rows = [...document.querySelectorAll("[role=listbox] [role=option]")].map((o) => o.textContent ?? "").filter((r) => r.startsWith("02 Penyusunan Proposal TA"));
+    const rows = [...document.querySelectorAll("[role=listbox] [role=option]")]
+      .map((o) => o.textContent ?? "")
+      .filter((r) => r.startsWith("02 Penyusunan Proposal TA"));
     expect(rows).toHaveLength(2);
     expect(rows.filter((r) => r.includes("Kelas gabungan"))).toHaveLength(1);
   });
@@ -214,7 +216,11 @@ describe("quick search", () => {
     expect(screen.store.status("edunex").state).toBe("offline");
     await commandK();
     await type("markom");
-    expect(groups().map((group) => group[1]).sort()).toEqual(["UTS Komunikasi Pemasaran", "UTS Markom"]);
+    expect(
+      groups()
+        .map((group) => group[1])
+        .sort(),
+    ).toEqual(["UTS Komunikasi Pemasaran", "UTS Markom"]);
     if (groups()[0][1] !== "UTS Komunikasi Pemasaran") await press("ArrowDown");
     await press("Enter");
     expect(h1()).toBe("Komunikasi Pemasaran");

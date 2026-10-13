@@ -31,7 +31,9 @@ export const ready = true;
 function KindLabel({ exam, className }: { exam: Pick<Exam, "kind">; className?: string }) {
   const t = useT();
   return (
-    <span className={cx("inline-grid h-5 shrink-0 place-items-center rounded-[5px] bg-neutral-bg px-1.5 text-caption font-semibold text-neutral-fg", className)}>
+    <span
+      className={cx("inline-grid h-5 shrink-0 place-items-center rounded-[5px] bg-neutral-bg px-1.5 text-caption font-semibold text-neutral-fg", className)}
+    >
       {t(`exam.kind.${exam.kind}`)}
     </span>
   );
@@ -44,7 +46,10 @@ const dayLabel = (f: Format, at: number) => `${f.weekdayShort(at)} ${f.dayMonth(
 
 /** The day each source gives: "Kam 15 Okt" (SIX) and "Kam 22 Okt" (Edunex). */
 function sourceDays(f: Format, exam: Exam): { six: string; edunex: string } {
-  const edunex = [...exam.edunex.flatMap((e) => (e.start !== null ? [e.start] : [])), ...exam.tasks.flatMap((task) => (task.dueAt !== null ? [task.dueAt] : []))];
+  const edunex = [
+    ...exam.edunex.flatMap((e) => (e.start !== null ? [e.start] : [])),
+    ...exam.tasks.flatMap((task) => (task.dueAt !== null ? [task.dueAt] : [])),
+  ];
   return {
     six: [...new Set(exam.six.map((s) => dayLabel(f, s.start)))].join(", "),
     edunex: [...new Set(edunex.sort((a, b) => a - b).map((at) => dayLabel(f, at)))].join(", "),
@@ -103,11 +108,7 @@ export function ExamRow({ exam, index }: { exam: Exam; index?: number }) {
           {when && <span className="truncate">· {when}</span>}
         </span>
       }
-      trailing={
-        exam.at !== null && !examPassed(exam, now) ? (
-          <span className="text-small text-muted tabular-nums">{f.fromNow(exam.at)}</span>
-        ) : undefined
-      }
+      trailing={exam.at !== null && !examPassed(exam, now) ? <span className="text-small text-muted tabular-nums">{f.fromNow(exam.at)}</span> : undefined}
     >
       {exam.tasks.map((task) => (
         <TakeHomeLine key={task.id} task={task} />
@@ -213,7 +214,8 @@ function ExamPage({ exam, others, course, courses }: { exam: Exam; others: Exam[
 
   const links: { label: string; url: string }[] = [];
   if (exam.six.length > 0 && student) links.push({ label: t("examPage.seeSix"), url: sixTimetableUrl(student) });
-  for (const task of exam.tasks) links.push({ label: exam.tasks.length > 1 ? `${t("examPage.seeTask")} · ${task.title}` : t("examPage.seeTask"), url: edunexTaskUrl(task.id) });
+  for (const task of exam.tasks)
+    links.push({ label: exam.tasks.length > 1 ? `${t("examPage.seeTask")} · ${task.title}` : t("examPage.seeTask"), url: edunexTaskUrl(task.id) });
   if (!exam.tasks.length && course?.edunex) links.push({ label: t("examPage.seeCourse"), url: edunexCourseUrl(course.edunex.courseId) });
 
   return (
@@ -238,7 +240,8 @@ function ExamPage({ exam, others, course, courses }: { exam: Exam; others: Exam[
               <p className="text-small font-medium text-muted">{t("exam.inClass")}</p>
               <p className="mt-1 text-heading font-semibold tabular-nums">{dayLabel(f, session.start)}</p>
               <p className="mt-0.5 text-lead tabular-nums">
-                {f.timeRange(session.start, session.end)} <span className="text-muted">· {t("exam.length", { minutes: Math.round((session.end - session.start) / 60_000) })}</span>
+                {f.timeRange(session.start, session.end)}{" "}
+                <span className="text-muted">· {t("exam.length", { minutes: Math.round((session.end - session.start) / 60_000) })}</span>
               </p>
               <p className="mt-3 flex items-center gap-1.5 text-lead font-semibold">
                 <Icons.MapPin className="size-4 shrink-0 text-muted" />
@@ -300,8 +303,16 @@ function ExamPage({ exam, others, course, courses }: { exam: Exam; others: Exam[
           <span>{t("examPage.official")}:</span>
           {links.map((link, i) => (
             <span key={link.url} className="inline-flex items-center gap-2">
-              {i > 0 && <span aria-hidden className="text-faint">·</span>}
-              <button type="button" onClick={() => open(link.url)} className="focus-ring inline-flex items-center gap-0.5 rounded font-medium text-accent-fg hover:underline">
+              {i > 0 && (
+                <span aria-hidden className="text-faint">
+                  ·
+                </span>
+              )}
+              <button
+                type="button"
+                onClick={() => open(link.url)}
+                className="focus-ring inline-flex items-center gap-0.5 rounded font-medium text-accent-fg hover:underline"
+              >
                 {link.label}
                 <Icons.ArrowUpRight className="size-3.5" />
               </button>
@@ -419,7 +430,9 @@ function Study({ exam }: { exam: Exam }) {
                 onClick={() => go({ screen: "course", code: exam.courseCode, tab: "modules" })}
                 leading={<span className="grid size-6 place-items-center rounded-md bg-fill text-caption font-semibold text-muted tabular-nums">{i + 1}</span>}
                 title={module.title}
-                trailing={<span className="text-small text-faint">{count(module.id) ? t("examPage.items", { count: count(module.id) }) : t("examPage.noItems")}</span>}
+                trailing={
+                  <span className="text-small text-faint">{count(module.id) ? t("examPage.items", { count: count(module.id) }) : t("examPage.noItems")}</span>
+                }
               />
             ))}
           </List>
@@ -444,10 +457,13 @@ function BeforeExam({ code }: { code: string }) {
         <span className="text-muted"> · {t("examPage.attendanceLine", { attended: health.attended ?? 0, held: health.held ?? 0 })} · </span>
         <span className={cx("font-semibold", STATE_TONE[health.state])}>{budgetLabel(t, health, attendance!.target)}</span>
       </p>
-      <button type="button" onClick={() => go({ screen: "presence" })} className="focus-ring shrink-0 rounded text-small font-medium text-accent-fg hover:underline">
+      <button
+        type="button"
+        onClick={() => go({ screen: "presence" })}
+        className="focus-ring shrink-0 rounded text-small font-medium text-accent-fg hover:underline"
+      >
         {t("examPage.seePresence")}
       </button>
     </div>
   );
 }
-

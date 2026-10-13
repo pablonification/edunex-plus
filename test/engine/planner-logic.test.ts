@@ -19,10 +19,10 @@ import {
   parseTarget,
   programElectives,
   project,
+  type Rule,
   removeCourse,
   removeTerm,
   retakeCandidates,
-  type Rule,
   type StudentRecord,
   searchCourses,
   semesterOf,
@@ -56,7 +56,18 @@ const rule = <I extends Rule["id"]>(list: Rule[], id: I) => list.filter((r): r i
 
 describe("the Student's record", () => {
   it("reads where the Student stands from SIX", () => {
-    expect(record).toMatchObject({ term: "2026-1", entryTerm: "2023-1", semesterNow: 7, passedSks: 125, inProgressSks: 14, graduationSks: 144, normalSemesters: 8, electiveNeed: 27, electiveHave: 31, retookBefore: false });
+    expect(record).toMatchObject({
+      term: "2026-1",
+      entryTerm: "2023-1",
+      semesterNow: 7,
+      passedSks: 125,
+      inProgressSks: 14,
+      graduationSks: 144,
+      normalSemesters: 8,
+      electiveNeed: 27,
+      electiveHave: 31,
+      retookBefore: false,
+    });
     expect(record.requiredLeft.map((c) => [c.code, c.semester])).toEqual([
       ["II4090", 7],
       ["II4092", 8],
@@ -296,7 +307,9 @@ describe("the IPK target, one setting", () => {
 describe("editing the plan", () => {
   it("starts with what's left: Kerja Praktik, Tugas Akhir and the specialization", () => {
     const p = defaultPlan(record);
-    expect(p.terms.map((t) => [t.term, t.courses.map((c) => `${c.code}:${c.grade}`)])).toEqual([["2026-2", ["II4090:AB", "II4092:AB", "II4010:AB", "II4011:AB"]]]);
+    expect(p.terms.map((t) => [t.term, t.courses.map((c) => `${c.code}:${c.grade}`)])).toEqual([
+      ["2026-2", ["II4090:AB", "II4092:AB", "II4010:AB", "II4011:AB"]],
+    ]);
   });
 
   it("adds semesters and short semesters, and removes only the last regular one or a short one", () => {

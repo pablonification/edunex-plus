@@ -16,8 +16,7 @@ const open = async (now?: string) => {
   return screen;
 };
 // The Task lists; the exam list above them has its own tests (exam.test.tsx).
-const sections = () =>
-  [...document.querySelectorAll("main section:not([aria-labelledby=tasks-exams]) h2")].map((h) => h.textContent!);
+const sections = () => [...document.querySelectorAll("main section:not([aria-labelledby=tasks-exams]) h2")].map((h) => h.textContent!);
 const row = (title: string) => [...document.querySelectorAll<HTMLButtonElement>("main li button")].find((b) => b.textContent?.startsWith(title));
 // An exam's row: its take-home Task is folded into it.
 const examRow = (text: string) => [...document.querySelectorAll<HTMLButtonElement>("main li button")].find((b) => b.textContent?.includes(text));
@@ -173,7 +172,10 @@ describe("the Task page", () => {
     expect(s.text()).toContain("Soal lihat .pdf");
     expect(s.text()).toContain("Berkas dari dosen");
     await s.click("Unduh UTS MARKOM SEM 1 2026 2027.pdf");
-    expect(s.calls.at(-1)).toEqual({ name: "files.download", input: { url: "https://edunexfixture.blob.core.windows.net/edunex/fixture-8", name: "UTS MARKOM SEM 1 2026 2027.pdf" } });
+    expect(s.calls.at(-1)).toEqual({
+      name: "files.download",
+      input: { url: "https://edunexfixture.blob.core.windows.net/edunex/fixture-8", name: "UTS MARKOM SEM 1 2026 2027.pdf" },
+    });
     // The rules sit where they matter: the file rule in the drop zone, the late rule by the deadline.
     expect(card()).toContain("Wajib unggah berkas");
     expect(document.querySelector("article")?.textContent).toContain("Tidak bisa terlambat");
@@ -188,7 +190,10 @@ describe("the Task page", () => {
 
   it("formats the lecturer's instructions safely: no script or markup of Edunex's reaches the page", async () => {
     const s = await open();
-    s.world.edunex.editTask(117003, { description: '<p>Kerjakan <strong>Bab II</strong>.</p><script>window.hacked = true</script><img src=x onerror="window.hacked = true"><a href="javascript:alert(1)">tautan</a>' });
+    s.world.edunex.editTask(117003, {
+      description:
+        '<p>Kerjakan <strong>Bab II</strong>.</p><script>window.hacked = true</script><img src=x onerror="window.hacked = true"><a href="javascript:alert(1)">tautan</a>',
+    });
     await s.engineDoes(() => s.engine.refresh("edunex"));
     await goToTask(s, "Tugas 02 Bab II");
     const article = document.querySelector("article")!;
@@ -304,7 +309,10 @@ describe("the Task page", () => {
   it("a Task removed from Edunex says so, with the way back", async () => {
     const s = await open();
     await goToTask(s, "Tugas 03 Bab III");
-    s.world.edunex.tasks.set(95326, s.world.edunex.tasks.get(95326)!.filter((t) => Number(t.id) !== 117010));
+    s.world.edunex.tasks.set(
+      95326,
+      s.world.edunex.tasks.get(95326)!.filter((t) => Number(t.id) !== 117010),
+    );
     await s.engineDoes(() => s.engine.refresh("edunex"));
     expect(s.text()).toContain("Tugas ini tidak ditemukan");
     await s.click("Ke Tugas & Ujian");

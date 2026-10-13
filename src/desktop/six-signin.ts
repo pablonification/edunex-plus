@@ -42,12 +42,16 @@ export function signInToSix(options: { parent: BrowserWindow | null; title: stri
       if (done || reading || window.isDestroyed() || !isSixAfterSignIn(contents.getURL())) return;
       reading = true;
       try {
-        const signedIn = await Promise.race([contents.executeJavaScript(SIGNED_IN), new Promise((resolveLater) => setTimeout(() => resolveLater(false), 3_000))]);
+        const signedIn = await Promise.race([
+          contents.executeJavaScript(SIGNED_IN),
+          new Promise((resolveLater) => setTimeout(() => resolveLater(false), 3_000)),
+        ]);
         if (signedIn !== true) return;
         const found = readSixSession(await signInSession.cookies.get({ url: "https://six.itb.ac.id/" }));
         if (found) return finish(() => resolve(found));
         signedInAt ||= Date.now();
-        if (Date.now() - signedInAt > COOKIE_GRACE_MS) finish(() => reject(new EngineError("VendorChanged", "SIX's session cookie wasn't there after sign-in")));
+        if (Date.now() - signedInAt > COOKIE_GRACE_MS)
+          finish(() => reject(new EngineError("VendorChanged", "SIX's session cookie wasn't there after sign-in")));
       } catch {
         // The page is between loads; try on the next tick.
       } finally {

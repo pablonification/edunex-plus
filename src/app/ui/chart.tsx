@@ -43,7 +43,22 @@ export interface LineChartProps {
 
 const PAD = { top: 12, right: 12, bottom: 26, left: 34 };
 
-export function LineChart({ label, columns, shortColumns, series, estimateFrom, min, max, gridlines, reference, endLabel, estimateWord, format, height = 168, className }: LineChartProps) {
+export function LineChart({
+  label,
+  columns,
+  shortColumns,
+  series,
+  estimateFrom,
+  min,
+  max,
+  gridlines,
+  reference,
+  endLabel,
+  estimateWord,
+  format,
+  height = 168,
+  className,
+}: LineChartProps) {
   const box = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
   const [hover, setHover] = useState<number | null>(null);
@@ -92,6 +107,7 @@ export function LineChart({ label, columns, shortColumns, series, estimateFrom, 
   const split = estimateFrom === undefined ? n : Math.max(0, estimateFrom);
 
   return (
+    // biome-ignore lint/a11y/noStaticElementInteractions: mouse hover only clears the tooltip; the same numbers are in the table for screen readers
     <div ref={box} className={cx("relative w-full", className)} onMouseLeave={() => setHover(null)}>
       {width > 0 && (
         <svg width={width} height={height} aria-hidden className="block overflow-visible">
@@ -104,14 +120,31 @@ export function LineChart({ label, columns, shortColumns, series, estimateFrom, 
             </g>
           ))}
           {columns.map((c, i) => (
-            <text key={c + i} x={x(i)} y={height - 8} textAnchor="middle" fontSize={11} fill={estimate(i) ? "var(--muted)" : "var(--faint)"} fontWeight={hover === i ? 600 : 400}>
+            <text
+              // biome-ignore lint/suspicious/noArrayIndexKey: a column is its place on the axis; labels can repeat
+              key={c + i}
+              x={x(i)}
+              y={height - 8}
+              textAnchor="middle"
+              fontSize={11}
+              fill={estimate(i) ? "var(--muted)" : "var(--faint)"}
+              fontWeight={hover === i ? 600 : 400}
+            >
               {ticks[i]}
             </text>
           ))}
           {hover !== null && <line x1={x(hover)} x2={x(hover)} y1={PAD.top} y2={PAD.top + plotH} stroke="var(--edge)" strokeWidth={1} />}
           {reference && (
             <g>
-              <line x1={PAD.left} x2={PAD.left + plotW} y1={y(reference.value)} y2={y(reference.value)} stroke="var(--muted)" strokeWidth={1.25} strokeDasharray="5 4" />
+              <line
+                x1={PAD.left}
+                x2={PAD.left + plotW}
+                y1={y(reference.value)}
+                y2={y(reference.value)}
+                stroke="var(--muted)"
+                strokeWidth={1.25}
+                strokeDasharray="5 4"
+              />
               <text x={PAD.left + plotW + 10} y={refLabelY} dy="0.32em" fontSize={11} fontWeight={600} fill="var(--muted)">
                 {reference.label}
               </text>
@@ -130,6 +163,7 @@ export function LineChart({ label, columns, shortColumns, series, estimateFrom, 
               {s.values.map((v, i) =>
                 v === null ? null : (
                   <circle
+                    // biome-ignore lint/suspicious/noArrayIndexKey: a point is its column's place on the axis
                     key={i}
                     cx={x(i)}
                     cy={y(v)}
@@ -149,7 +183,9 @@ export function LineChart({ label, columns, shortColumns, series, estimateFrom, 
           )}
           {/* Hit areas: a column each, wider than the marks. */}
           {columns.map((c, i) => (
+            // biome-ignore lint/a11y/noStaticElementInteractions: the hover area is for the mouse; the same numbers are in the table for screen readers
             <rect
+              // biome-ignore lint/suspicious/noArrayIndexKey: a column is its place on the axis; labels can repeat
               key={`hit-${c}-${i}`}
               x={x(i) - Math.max(step, 24) / 2}
               y={PAD.top - 6}
@@ -197,6 +233,7 @@ export function LineChart({ label, columns, shortColumns, series, estimateFrom, 
         </thead>
         <tbody>
           {columns.map((c, i) => (
+            // biome-ignore lint/suspicious/noArrayIndexKey: a row is its column's place on the axis; labels can repeat
             <tr key={c + i}>
               <th scope="row">
                 {c}
@@ -224,7 +261,15 @@ export function Key({ series, dashed }: { series: Pick<ChartSeries, "kind" | "co
 }
 
 /** The chart's legend: each series' mark and name, then what dashed means. */
-export function ChartLegend({ series, estimate, reference }: { series: Pick<ChartSeries, "kind" | "color" | "name">[]; estimate?: string; reference?: string }) {
+export function ChartLegend({
+  series,
+  estimate,
+  reference,
+}: {
+  series: Pick<ChartSeries, "kind" | "color" | "name">[];
+  estimate?: string;
+  reference?: string;
+}) {
   return (
     <ul className="flex flex-wrap items-center gap-x-4 gap-y-1 text-caption text-muted">
       {series.map((s) => (

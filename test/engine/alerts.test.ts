@@ -44,7 +44,8 @@ describe("a full simulated day", () => {
 
     // A burst of eight new Tasks across courses: one notification.
     const before = app.shown.length;
-    for (const courseId of [95001, 95059, 93409, 92948, 95326, 95001, 95059, 93409]) edunex.postTask(courseId, { end_at: wib(world.clock.now() + 5 * 24 * HOUR) });
+    for (const courseId of [95001, 95059, 93409, 92948, 95326, 95001, 95059, 93409])
+      edunex.postTask(courseId, { end_at: wib(world.clock.now() + 5 * 24 * HOUR) });
     await app.until("2026-10-08T13:30:00+07:00");
     const burst = app.shown.slice(before);
     expect(burst).toHaveLength(1);
@@ -199,17 +200,17 @@ describe("time-based alerts", () => {
       get("edunex.courses") === undefined
         ? []
         : [
-      {
-        id: `presence.open:test:${start}`,
-        kind: "presenceOpen",
-        source: "edunex",
-        urgent: true,
-        at: Date.parse(start),
-        until: Date.parse(end),
-        title: { key: "alert.plain", vars: { title: "Presensi dibuka" } },
-        body: null,
-        target: { screen: "presence" },
-      },
+            {
+              id: `presence.open:test:${start}`,
+              kind: "presenceOpen",
+              source: "edunex",
+              urgent: true,
+              at: Date.parse(start),
+              until: Date.parse(end),
+              title: { key: "alert.plain", vars: { title: "Presensi dibuka" } },
+              body: null,
+              target: { screen: "presence" },
+            },
           ],
   });
 

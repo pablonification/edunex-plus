@@ -39,9 +39,23 @@ async function signedIn(options: { world?: PretendWorld; storage?: MemoryStorage
   const world = options.world ?? new PretendWorld({ now: "2026-10-11T09:00:00+07:00" });
   const storage = options.storage ?? new MemoryStorage();
   const pages = pagesOver(world);
-  const six: Source<{ cookie: string }> = { id: "six", session: z.object({ cookie: z.string() }), liveness: null, start: (context) => registerSixRecordFeeds(context, pages) };
+  const six: Source<{ cookie: string }> = {
+    id: "six",
+    session: z.object({ cookie: z.string() }),
+    liveness: null,
+    start: (context) => registerSixRecordFeeds(context, pages),
+  };
   const events: Event[] = [];
-  const engine = createEngine({ transport: world, clock: world.clock, storage, vault: new MemoryVault(), version: "2.0.0-test", emit: (e) => events.push(e), random: () => 0.5, sources: [six] });
+  const engine = createEngine({
+    transport: world,
+    clock: world.clock,
+    storage,
+    vault: new MemoryVault(),
+    version: "2.0.0-test",
+    emit: (e) => events.push(e),
+    random: () => 0.5,
+    sources: [six],
+  });
   await engine.load();
   engine.start();
   if (options.signIn !== false) await engine.signIn("six", { cookie: PRETEND_SIX_COOKIE });
@@ -133,7 +147,11 @@ describe("SIX records: grades (#78)", () => {
     // On the page but not on the transcript yet: the IPK still agrees with SIX's.
     expect(after.terms.at(-1)!.courses.find((c) => c.code === "II4091")).toMatchObject({ grade: "A", standing: "off-transcript" });
     expect(after.ipk).toMatchObject({ computed: 3.26, agrees: true });
-    expect(h.dataset("six.progress")!.stages[1]!.semesters.find((s) => s.semester === 7)!.courses[0]).toMatchObject({ code: "II4091", status: "graded", grade: "A" });
+    expect(h.dataset("six.progress")!.stages[1]!.semesters.find((s) => s.semester === 7)!.courses[0]).toMatchObject({
+      code: "II4091",
+      status: "graded",
+      grade: "A",
+    });
   });
 
   it("a grade changed: the new grade, and SIX's old IP and IPK shown as not matching until SIX recomputes them", async () => {
@@ -188,7 +206,10 @@ describe("SIX records: grades (#78)", () => {
     h.world.six.changeLayout(TRANSCRIPT, "Masuk Transkrip", "Status");
     h.world.six.gradeCourse("2026-1", "II4091", "A");
     await h.engine.refresh("six");
-    expect(h.status()).toMatchObject({ state: "changed", detail: 'SIX transcript page: the course header reads " | Kode | Mata Kuliah | SKS | Nilai | Semester Kurikulum | Status"' });
+    expect(h.status()).toMatchObject({
+      state: "changed",
+      detail: 'SIX transcript page: the course header reads " | Kode | Mata Kuliah | SKS | Nilai | Semester Kurikulum | Status"',
+    });
     expect(h.dataset("six.transcript")).toEqual(before);
     expect(h.dataset("six.krs")).toBeDefined();
 
@@ -202,7 +223,9 @@ describe("SIX records: grades (#78)", () => {
 describe("SIX records: curriculum (#79)", () => {
   it("no curriculum in force is a change on SIX's side, not an empty planner", async () => {
     const world = new PretendWorld({ now: "2026-10-11T09:00:00+07:00" });
-    world.six.editPage(LIST, (html) => html.replace('<span class="text-success"><i class="fa fa-fw fa-check"></i></span>', '<span class="text-danger"><i class="fa fa-fw fa-times"></i></span>'));
+    world.six.editPage(LIST, (html) =>
+      html.replace('<span class="text-success"><i class="fa fa-fw fa-check"></i></span>', '<span class="text-danger"><i class="fa fa-fw fa-times"></i></span>'),
+    );
     const h = await signedIn({ world });
     expect(h.status()).toMatchObject({ state: "changed", detail: "SIX curriculum list page: no curriculum is in force" });
     expect(h.dataset("six.curriculum")).toBeUndefined();

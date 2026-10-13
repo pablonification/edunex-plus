@@ -96,7 +96,9 @@ function withoutFollowing(session: Session, request: HttpRequest): Promise<HttpR
       const chunks: Buffer[] = [];
       response.on("data", (chunk: Buffer) => chunks.push(chunk));
       response.on("end", () =>
-        settle(() => resolve({ status: response.statusCode, headers: flatten(response.headers), body: Buffer.concat(chunks).toString("utf8"), url: request.url })),
+        settle(() =>
+          resolve({ status: response.statusCode, headers: flatten(response.headers), body: Buffer.concat(chunks).toString("utf8"), url: request.url }),
+        ),
       );
       response.on("error", (error: Error) => settle(() => reject(failure(error))));
     });

@@ -31,7 +31,9 @@ describe("the bell", () => {
     screen = await openApp({ signedIn: true });
     await screen.wait(5 * MINUTE);
     expect(screen.has("Notifikasi")).toBe(true);
-    const changes = [...document.querySelectorAll('main section[aria-labelledby="home-changes"] li')].map((li) => li.querySelector("button span span")?.textContent);
+    const changes = [...document.querySelectorAll('main section[aria-labelledby="home-changes"] li')].map(
+      (li) => li.querySelector("button span span")?.textContent,
+    );
     expect(changes.length).toBeGreaterThan(0);
     await screen.click("Notifikasi");
     for (const title of changes) expect(panel()?.textContent).toContain(title);
@@ -53,7 +55,9 @@ describe("the bell", () => {
     screen = await openApp({ world, signedIn: true });
     await screen.click("Notifikasi");
     expect(panel()?.textContent).toContain("Belum ada yang berubah");
-    expect(panel()?.textContent).toContain("Tugas baru, materi, dan tenggat yang mendekat muncul di sini. Edunex diperiksa sendiri secara berkala; jadwal dan kehadiran menyusul setelah SIX terhubung.");
+    expect(panel()?.textContent).toContain(
+      "Tugas baru, materi, dan tenggat yang mendekat muncul di sini. Edunex diperiksa sendiri secara berkala; jadwal dan kehadiran menyusul setelah SIX terhubung.",
+    );
     // It never claims SIX is checked while SIX isn't connected.
     expect(panel()?.textContent).not.toContain("Edunex dan SIX diperiksa");
   });

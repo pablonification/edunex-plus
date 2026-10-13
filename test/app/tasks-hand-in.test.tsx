@@ -18,7 +18,8 @@ const card = () => document.querySelector("main aside")?.textContent ?? "";
 const answerWrites = (s: NonNullable<typeof screen>) =>
   s.world.edunex.writes.filter((w) => w.path.startsWith("/course/task/answers")).map((w) => `${w.method} ${w.path.replace(/\d+$/, ":id")}`);
 /** The confirm's submitting button ("Kumpulkan sekarang", "Kumpulkan tetap …", "Kumpulkan terlambat"). */
-const confirmButton = () => [...(document.querySelector("[role=alertdialog]")?.querySelectorAll("button") ?? [])].find((b) => b.textContent?.startsWith("Kumpulkan"));
+const confirmButton = () =>
+  [...(document.querySelector("[role=alertdialog]")?.querySelectorAll("button") ?? [])].find((b) => b.textContent?.startsWith("Kumpulkan"));
 
 const openTask = async (title: string, now?: string) => {
   const s = await openApp({ signedIn: true, world: new PretendWorld({ now }) });
@@ -249,7 +250,9 @@ describe("handing in can't cost the Student their attendance", () => {
     expect(s.button("Kumpulkan").className).not.toContain("bg-accent");
     expect(card()).toContain("Belum masuk jendela presensi. Simpan draf sekarang, lalu kumpulkan Jum, 16 Okt, 15:00–23:59 agar terhitung hadir.");
     await s.click("Kumpulkan");
-    expect(dialogText()).toContain("Belum masuk jendela presensi (Jum, 16 Okt, 15:00–23:59). Kalau dikumpulkan sekarang, tugas terkumpul tapi tidak dihitung hadir.");
+    expect(dialogText()).toContain(
+      "Belum masuk jendela presensi (Jum, 16 Okt, 15:00–23:59). Kalau dikumpulkan sekarang, tugas terkumpul tapi tidak dihitung hadir.",
+    );
     const save = s.button("Simpan sebagai draf");
     expect(save.className).toContain("bg-accent");
     expect(save.className).not.toContain("danger");

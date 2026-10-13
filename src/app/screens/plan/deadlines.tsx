@@ -13,8 +13,8 @@ import { cx } from "../../ui/cx";
 import { EmptyState } from "../../ui/display";
 import { Icons } from "../../ui/icons";
 import { List } from "../../ui/layout";
-import { useTermYears } from "./projection";
 import { useThisTerm } from "./bills";
+import { useTermYears } from "./projection";
 
 export const ready = true;
 
@@ -82,7 +82,7 @@ export function Tab(_: { onCalendar?: () => void }) {
           return (
             <Fragment key={group}>
               {group !== "now" && group === GROUPS.find((g) => g !== "now" && grouped.get(g)?.length) && (
-                <p aria-label={t("deadlines.today")} className="flex items-center gap-2 text-caption font-semibold text-accent-fg">
+                <p className="flex items-center gap-2 text-caption font-semibold text-accent-fg">
                   <span className="size-2 rounded-full bg-accent" />
                   {t("deadlines.todayAt", { date: `${f.weekdayShort(now)}, ${f.dayMonth(now)}` })}
                   <span className="h-px flex-1 bg-accent/40" />
@@ -91,7 +91,12 @@ export function Tab(_: { onCalendar?: () => void }) {
               <section aria-labelledby={`deadlines-${group}`}>
                 <h3 id={`deadlines-${group}`} className="mb-2 flex items-center gap-2 text-small font-semibold">
                   {group === "next" ? (
-                    <button type="button" aria-expanded={!collapsed} onClick={() => setNextOpen(!nextOpen)} className="focus-ring -mx-1 inline-flex items-center gap-1.5 rounded-md px-1 hover:text-fg">
+                    <button
+                      type="button"
+                      aria-expanded={!collapsed}
+                      onClick={() => setNextOpen(!nextOpen)}
+                      className="focus-ring -mx-1 inline-flex items-center gap-1.5 rounded-md px-1 hover:text-fg"
+                    >
                       <Icons.ChevronRight className={cx("size-3.5 text-faint transition-transform duration-150", !collapsed && "rotate-90")} />
                       {t(`deadlines.group.${group}`)}
                     </button>
@@ -141,13 +146,20 @@ function DeadlineRow({ deadline, index }: { deadline: Deadline; index?: number }
   const last = at(event.lastDay);
   const single = event.firstDay === event.lastDay;
   const sameMonth = event.firstDay.slice(0, 7) === event.lastDay.slice(0, 7);
-  const dates = single ? f.dayMonth(first) : sameMonth ? `${event.firstDay.slice(8).replace(/^0/, "")}–${f.dayMonth(last)}` : `${f.dayMonth(first)} – ${f.dayMonth(last)}`;
+  const dates = single
+    ? f.dayMonth(first)
+    : sameMonth
+      ? `${event.firstDay.slice(8).replace(/^0/, "")}–${f.dayMonth(last)}`
+      : `${f.dayMonth(first)} – ${f.dayMonth(last)}`;
   const days = single ? f.weekdayShort(first) : `${f.weekdayShort(first)}–${f.weekdayShort(last)}`;
   const offset = f.dayOffset(event.start);
   const near = when === "next" && offset < 14;
   const warn = meaning?.warn && when !== "past";
   return (
-    <li className={cx(index !== undefined && index < 10 && "motion-safe:stagger")} style={index !== undefined ? ({ "--i": index } as CSSProperties) : undefined}>
+    <li
+      className={cx(index !== undefined && index < 10 && "motion-safe:stagger")}
+      style={index !== undefined ? ({ "--i": index } as CSSProperties) : undefined}
+    >
       <div className={cx("grid grid-cols-[112px_minmax(0,1fr)_auto] items-start gap-4 px-4 py-3", when === "past" && "text-muted")}>
         <span className="text-body font-semibold tabular-nums">
           {dates}
@@ -160,7 +172,12 @@ function DeadlineRow({ deadline, index }: { deadline: Deadline; index?: number }
             {event.term && <span className="font-normal text-faint"> · {termYears(event.term)}</span>}
           </span>
           {meaning && (
-            <span className={cx("mt-0.5 flex items-start gap-1.5 text-small", warn ? "font-medium text-warning-fg" : meaning.done ? "text-success-fg" : "text-muted")}>
+            <span
+              className={cx(
+                "mt-0.5 flex items-start gap-1.5 text-small",
+                warn ? "font-medium text-warning-fg" : meaning.done ? "text-success-fg" : "text-muted",
+              )}
+            >
               {meaning.done && <Icons.Check className="mt-[3px] size-3 shrink-0" weight="bold" />}
               {warn && <Icons.AlertTriangle className="mt-[3px] size-3 shrink-0" />}
               {t(meaning.key, meaning.vars)}

@@ -126,12 +126,27 @@ describe("the KRS tab", () => {
   it("overlapping classes on SIX's timetable are flagged", async () => {
     const s = await openPlan("2026-10-11T09:00:00+07:00");
     await inject("six.krs", krs());
-    const meet = (id: string, code: string, iso: string): ClassSession => ({ id, courseCode: code, courseName: code, start: wib(iso), end: wib(iso) + 2 * HOUR, activity: "Kuliah", room: "9134" });
-    await inject("six.schedule", [meet("1", "PL3002", "2026-10-15T08:00:00"), meet("2", "KU5014", "2026-10-15T09:00:00"), meet("3", "PL3002", "2026-10-22T08:00:00"), meet("4", "KU5014", "2026-10-22T09:00:00")]);
+    const meet = (id: string, code: string, iso: string): ClassSession => ({
+      id,
+      courseCode: code,
+      courseName: code,
+      start: wib(iso),
+      end: wib(iso) + 2 * HOUR,
+      activity: "Kuliah",
+      room: "9134",
+    });
+    await inject("six.schedule", [
+      meet("1", "PL3002", "2026-10-15T08:00:00"),
+      meet("2", "KU5014", "2026-10-15T09:00:00"),
+      meet("3", "PL3002", "2026-10-22T08:00:00"),
+      meet("4", "KU5014", "2026-10-22T09:00:00"),
+    ]);
     await s.click(/^Rencana studi/);
     await tab("KRS");
     // One honest status: official, but a clash to sort out, with the next step and the way to see it (never "nothing to do").
-    expect(panel()).toContain("KRS sah, tapi ada 1 bentrokKU5014 dan PL3002 bentrok di 2 pertemuan, berikutnya Kam 15 Okt, 09:00–10:00. SIX menerima KRS ini tanpa peringatan.");
+    expect(panel()).toContain(
+      "KRS sah, tapi ada 1 bentrokKU5014 dan PL3002 bentrok di 2 pertemuan, berikutnya Kam 15 Okt, 09:00–10:00. SIX menerima KRS ini tanpa peringatan.",
+    );
     expect(panel()).toContain("Tanyakan ke dosen KU5014 dan PL3002 jam mana yang dipakai.");
     expect(panel()).not.toContain("Tidak ada yang perlu kamu lakukan");
     expect(panel()).toContain("Bentrok dengan PL3002");
@@ -171,7 +186,10 @@ describe("the UKT tab", () => {
     expect(text).toContain("Rp10.500.000dicicil 2x");
     expect(s.button(/^Rencana studi/).textContent).toBe("Rencana studi");
 
-    await inject("six.bills", bills((six) => six.setBill("2026-2", { amount: "5.400.000", paid: "5.400.000", due: "31 Jan 2027" })));
+    await inject(
+      "six.bills",
+      bills((six) => six.setBill("2026-2", { amount: "5.400.000", paid: "5.400.000", due: "31 Jan 2027" })),
+    );
     text = panel();
     expect(text).toContain("Rp5.400.000Lunas");
     expect(text).not.toContain("Bayar paling lambat");
@@ -205,7 +223,8 @@ describe("the Kalender akademik tab", () => {
     await inject("six.progress", { entryTerm: "2023-1", ipk: 3.26, sksPassed: 125, sksIncomplete: 0, sksByKind: [], stages: [] } satisfies Progress);
     await s.click(/^Rencana studi/);
     await tab("Kalender akademik");
-    const group = (name: string) => [...document.querySelectorAll("[role=tabpanel][data-state=active] section")].find((el) => el.querySelector("h3")?.textContent?.startsWith(name));
+    const group = (name: string) =>
+      [...document.querySelectorAll("[role=tabpanel][data-state=active] section")].find((el) => el.querySelector("h3")?.textContent?.startsWith(name));
     const rows = (name: string) => [...(group(name)?.querySelectorAll("li") ?? [])].map((li) => li.textContent ?? "");
     expect(panel()).toContain("Sekarang · Min, 11 Okt");
     // A range says its days ("Sen–Jum"), not just the first.
@@ -213,12 +232,16 @@ describe("the Kalender akademik tab", () => {
     expect(rows("7 hari ke depan")).toEqual(["12–16 OktSen–JumUTS · 2026/2027 GanjilMinggu ujian tengah semester.besok"]);
     expect(rows("Minggu ini")).toEqual([]);
     expect(group("7 hari ke depan")!.querySelector("li .text-warning-fg")?.textContent).toBe("besok");
-    expect(rows("Semester ini")[0]).toContain("Kuesioner evaluasi perkuliahan · 2026/2027 GanjilIsi kuesioner tiap mata kuliah, atau SIX menyembunyikan nilainya.");
+    expect(rows("Semester ini")[0]).toContain(
+      "Kuesioner evaluasi perkuliahan · 2026/2027 GanjilIsi kuesioner tiap mata kuliah, atau SIX menyembunyikan nilainya.",
+    );
     expect(rows("Semester ini").find((r) => r.includes("Evaluasi kemajuan studi"))).toContain("Target 72 SKS di akhir tahun ke-3; kamu sudah lulus 125 SKS.");
     // Next semester is folded until opened.
     expect(rows("Semester depan")).toEqual([]);
     await s.click(/^Semester depan/);
-    expect(rows("Semester depan").find((r) => r.startsWith("20–28 Jan"))).toContain("Pengisian KRS (DRS) · 2026/2027 GenapIsi KRS di SIX, lalu minta persetujuan dosen wali.");
+    expect(rows("Semester depan").find((r) => r.startsWith("20–28 Jan"))).toContain(
+      "Pengisian KRS (DRS) · 2026/2027 GenapIsi KRS di SIX, lalu minta persetujuan dosen wali.",
+    );
     // Past ones: folded, then opened.
     const past = document.querySelector("details")!;
     expect(past.open).toBe(false);

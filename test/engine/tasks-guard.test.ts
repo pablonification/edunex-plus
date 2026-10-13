@@ -82,7 +82,10 @@ describe("before handing in", () => {
   });
 
   it("late, the wrong file type and a name unlike the asked one are warned about", () => {
-    const result = handInChecks(task({ dueAt: at("2026-10-07T23:59:00+07:00") }), facts("2026-10-08T08:12:00+07:00", { sessions: [], files: [{ name: "Laporan Tugas - Dimas Pratama.docx" }] }));
+    const result = handInChecks(
+      task({ dueAt: at("2026-10-07T23:59:00+07:00") }),
+      facts("2026-10-08T08:12:00+07:00", { sessions: [], files: [{ name: "Laporan Tugas - Dimas Pratama.docx" }] }),
+    );
     expect(kinds(result)).toEqual(["late", "fileType", "naming"]);
   });
 });

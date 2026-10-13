@@ -3,11 +3,12 @@
 // keeps its text in its own file under ./strings. "{name}" placeholders are
 // filled by translate(). Academic terms follow the glossary in
 // docs/design-system.md: SKS, IPK, IP, KRS and UKT stay as they are.
-import type { Entry } from "./strings/entry";
+
 import { academicStrings } from "./strings/academic";
 import { alertsStrings } from "./strings/alerts";
 import { attendanceStrings } from "./strings/attendance";
 import { coursePageStrings } from "./strings/course-page";
+import type { Entry } from "./strings/entry";
 import { gradesStrings } from "./strings/grades";
 import { homeStrings } from "./strings/home";
 import { itbStrings } from "./strings/itb";
@@ -39,7 +40,6 @@ export const STRINGS = {
   ...searchStrings,
   ...updatesStrings,
 } as const satisfies Record<string, Entry>;
-
 
 export type StringKey = keyof typeof STRINGS;
 export type Lang = "id" | "en";

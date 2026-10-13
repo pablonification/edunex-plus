@@ -12,7 +12,7 @@ import { registerSixRecordFeeds } from "../../src/engine/sources/six/records";
 import type { Source } from "../../src/engine/sources/source";
 import { MemoryStorage, MemoryVault } from "../pretend/memory";
 import { PRETEND_SIX_COOKIE, SIX_ORIGIN } from "../pretend/six";
-import { PretendWorld } from "../pretend/world";
+import type { PretendWorld } from "../pretend/world";
 import type { Shown } from "./alerts-harness";
 
 const IDENTITY = { nim: "18223901", studentId: "2021000001", term: "2026-1" };
@@ -35,7 +35,12 @@ export async function startAcademic(options: { world: PretendWorld; storage?: Me
   const storage = options.storage ?? new MemoryStorage();
   const vault = options.vault ?? new MemoryVault();
   const shown: Shown[] = [];
-  const six: Source<{ cookie: string }> = { id: "six", session: z.object({ cookie: z.string() }), liveness: null, start: (context) => registerSixRecordFeeds(context, pagesOver(world)) };
+  const six: Source<{ cookie: string }> = {
+    id: "six",
+    session: z.object({ cookie: z.string() }),
+    liveness: null,
+    start: (context) => registerSixRecordFeeds(context, pagesOver(world)),
+  };
   const calendar: Source<null> = { id: "itb", session: null, liveness: null, start: registerCalendarFeed };
   const engine: Engine = createEngine({
     transport: world,
@@ -64,7 +69,9 @@ export async function startAcademic(options: { world: PretendWorld; storage?: Me
     shown,
     of: (kind: string) => shown.filter((n) => n.kind === kind),
     texts: (kind: string) => shown.filter((n) => n.kind === kind).map((n) => n.text),
-    history: () => (engine.snapshot().datasets.find((d) => d.name === "app.alerts")?.value as { items: { id: string; kind: string; title: { key: string } }[] } | undefined)?.items ?? [],
+    history: () =>
+      (engine.snapshot().datasets.find((d) => d.name === "app.alerts")?.value as { items: { id: string; kind: string; title: { key: string } }[] } | undefined)
+        ?.items ?? [],
     until: (iso: string) => world.clock.advanceTo(iso),
     /** SIX is read again now (as after the Student's refresh), and the alert center has time to group. */
     sixRefresh: async () => {

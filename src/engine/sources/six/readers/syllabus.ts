@@ -23,10 +23,18 @@ const WEEK_HEADER = ["Minggu", "Topik", "Subtopik", "Capaian Belajar", "Sumber M
 
 export function readSyllabus(html: string, courseId: string): Syllabus {
   const page = openPage(html, "syllabus");
-  const [main, weeks] = page.$("table").toArray().map((table) => page.$(table));
+  const [main, weeks] = page
+    .$("table")
+    .toArray()
+    .map((table) => page.$(table));
   if (!main || !weeks) changed(page, "its tables moved");
   const rows = rowsOf(page, main).map((row) => cellsOf(page, row));
-  expectLabels(page, rows.map((cells) => (cells[0] ? textOf(cells[0]) : "")), ROWS, "the syllabus rows");
+  expectLabels(
+    page,
+    rows.map((cells) => (cells[0] ? textOf(cells[0]) : "")),
+    ROWS,
+    "the syllabus rows",
+  );
 
   // "II1200 - 2024"
   const heading = /^([A-Z]{2}\d{4})\s*-\s*(\d{4})$/.exec(textOf(page.$(".page-header h1 small").first()));

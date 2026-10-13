@@ -86,9 +86,32 @@ describe("Perlu perhatianmu", () => {
   it("KRS not sent while ITB's DRS window is open, and UKT due within the week", async () => {
     const h = await startHome();
     const base = h.home();
-    const drs = { kind: "drs", term: "2030-1", title: "DRS", start: at("2026-10-07T00:00:00"), end: at("2026-10-09T00:00:00"), firstDay: "2026-10-07", lastDay: "2026-10-08" } as CalendarEvent;
-    const krs = { term: "2030-1", state: "not-sent", courses: [], plan: { sentAt: null, approvedAt: null, legalizedAt: null }, change: null } as unknown as KrsPlan;
-    const bill = { term: "2026-1", amount: 5_000_000, paid: 0, status: "unpaid", dueDate: "2026-10-12", dueAt: at("2026-10-12T23:59:59"), instalments: [], nextDueAt: at("2026-10-12T23:59:59") } as Bill;
+    const drs = {
+      kind: "drs",
+      term: "2030-1",
+      title: "DRS",
+      start: at("2026-10-07T00:00:00"),
+      end: at("2026-10-09T00:00:00"),
+      firstDay: "2026-10-07",
+      lastDay: "2026-10-08",
+    } as CalendarEvent;
+    const krs = {
+      term: "2030-1",
+      state: "not-sent",
+      courses: [],
+      plan: { sentAt: null, approvedAt: null, legalizedAt: null },
+      change: null,
+    } as unknown as KrsPlan;
+    const bill = {
+      term: "2026-1",
+      amount: 5_000_000,
+      paid: 0,
+      status: "unpaid",
+      dueDate: "2026-10-12",
+      dueAt: at("2026-10-12T23:59:59"),
+      instalments: [],
+      nextDueAt: at("2026-10-12T23:59:59"),
+    } as Bill;
     const world: HomeWorld = { ...base, krs, bills: [bill], calendar: { ...base.calendar!, events: [...base.calendar!.events, drs] } };
     const found = needsYou(world).filter((n) => n.kind === "krs" || n.kind === "bill");
     expect(found).toMatchObject([
@@ -96,7 +119,11 @@ describe("Perlu perhatianmu", () => {
       { id: "bill:2026-1", band: "soon", overdue: false, action: { kind: "go", route: { screen: "plan", tab: "bills" } } },
     ]);
     // Sent: nothing to do.
-    expect(needsYou({ ...world, krs: { ...krs, state: "sent" } as KrsPlan, bills: [{ ...bill, status: "paid", nextDueAt: null }] }).some((n) => n.kind === "krs" || n.kind === "bill")).toBe(false);
+    expect(
+      needsYou({ ...world, krs: { ...krs, state: "sent" } as KrsPlan, bills: [{ ...bill, status: "paid", nextDueAt: null }] }).some(
+        (n) => n.kind === "krs" || n.kind === "bill",
+      ),
+    ).toBe(false);
   });
 });
 
@@ -114,7 +141,15 @@ describe("the bell and Yang berubah", () => {
   it("every alert raised lands in the bell too (reminders included), once, newest first", async () => {
     const h = await startHome();
     const world = h.home();
-    const reminder: Alert = { id: "deadline:1", kind: "deadline", source: "edunex", at: world.now - 60_000, title: { key: "alert.due3", vars: { course: "PL3002" } }, body: null, target: { screen: "tasks" } };
+    const reminder: Alert = {
+      id: "deadline:1",
+      kind: "deadline",
+      source: "edunex",
+      at: world.now - 60_000,
+      title: { key: "alert.due3", vars: { course: "PL3002" } },
+      body: null,
+      target: { screen: "tasks" },
+    };
     const feed = alertFeed(world, [reminder, reminder]);
     expect(feed.filter((a) => a.id === "deadline:1")).toHaveLength(1);
     expect(feed.map((a) => a.at)).toEqual([...feed.map((a) => a.at)].sort((a, b) => b - a));
@@ -126,7 +161,15 @@ describe("the bell and Yang berubah", () => {
     const h = await startHome();
     const world = h.home();
     // The engine raised it 20 s past the screen's last tick: the badge counts it, so the panel lists it.
-    const fresh: Alert = { id: "task.new:9", kind: "newTask", source: "edunex", at: world.now + 20_000, title: { key: "alert.newTask", vars: { course: "PL3002" } }, body: null, target: { screen: "tasks" } };
+    const fresh: Alert = {
+      id: "task.new:9",
+      kind: "newTask",
+      source: "edunex",
+      at: world.now + 20_000,
+      title: { key: "alert.newTask", vars: { course: "PL3002" } },
+      body: null,
+      target: { screen: "tasks" },
+    };
     expect(alertFeed(world, [fresh]).map((a) => a.id)).toContain("task.new:9");
   });
 });

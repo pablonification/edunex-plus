@@ -41,7 +41,7 @@ async function entry(title: string) {
   await screen!.click(button);
 }
 
-/* eslint-disable-next-line @typescript-eslint/no-explicit-any -- a dataset as the engine holds it */
+// biome-ignore lint/suspicious/noExplicitAny: a dataset as the engine holds it
 const data = (name: string): any => screen!.engine.snapshot().datasets.find((d) => d.name === name)?.value;
 
 /** Types into the input with this name, as the Student does. */
@@ -129,11 +129,14 @@ describe("materials", () => {
     const card = [...document.querySelectorAll<HTMLButtonElement>("main ul li button")].find((b) => b.textContent?.startsWith("PL3002"));
     await screen.click(card!);
     await entry("Pengantar");
-    for (const name of ["Unduh: Rekaman kuliah", "Unduh: Podcast", "Unduh: Data", "Buka: Berita ITB", "Gabung: Zoom", "Gabung: Meet", "Gabung: Webex"]) expect(screen.has(name)).toBe(true);
+    for (const name of ["Unduh: Rekaman kuliah", "Unduh: Podcast", "Unduh: Data", "Buka: Berita ITB", "Gabung: Zoom", "Gabung: Meet", "Gabung: Webex"])
+      expect(screen.has(name)).toBe(true);
     for (const name of ["Situs luar", "Kuis interaktif", "CloudX", "Baru"]) expect(screen.has(`Buka di Edunex: ${name}`)).toBe(true);
     expect(screen.text()).toContain("Kelas online · Google Meet");
     // Every action looks alike and takes the same width, so the dates beside them line up.
-    const actions = [...document.querySelectorAll<HTMLButtonElement>("main section li button[aria-label]")].filter((b) => /^(Unduh|Buka|Gabung|Baca)/.test(b.getAttribute("aria-label")!));
+    const actions = [...document.querySelectorAll<HTMLButtonElement>("main section li button[aria-label]")].filter((b) =>
+      /^(Unduh|Buka|Gabung|Baca)/.test(b.getAttribute("aria-label")!),
+    );
     expect(actions.length).toBeGreaterThan(8);
     expect(new Set(actions.map((b) => b.className)).size).toBe(1);
     expect(new Set(actions.map((b) => b.parentElement!.className)).size).toBe(1);
@@ -172,7 +175,15 @@ describe("Tasks in modules", () => {
   it("shows a module's Tasks and opens one", async () => {
     const s = await openCourse("PL3002");
     const module = data("edunex.outline").PL3002.modules[3];
-    const task: Task = aTask({ id: 117500, courseCode: "PL3002", courseId: 95001, moduleId: module.id, title: "Tugas Mandiri Inovasi", status: "not_started", dueAt: Date.parse("2026-10-20T23:59:00+07:00") });
+    const task: Task = aTask({
+      id: 117500,
+      courseCode: "PL3002",
+      courseId: 95001,
+      moduleId: module.id,
+      title: "Tugas Mandiri Inovasi",
+      status: "not_started",
+      dueAt: Date.parse("2026-10-20T23:59:00+07:00"),
+    });
     await s.apply({ type: "dataset", dataset: { name: "edunex.tasks", value: [task], fetchedAt: 0, hash: "t1" } });
     // The module with an open Task says so in words in the table of contents.
     const toc = document.querySelector("nav[aria-label='Daftar isi']")!;
@@ -180,7 +191,15 @@ describe("Tasks in modules", () => {
     expect(tocEntry()).toContain("1 tugas");
     expect(tocEntry()).toContain("1 terbuka");
     // With one handed in beside it, the count is all of them and the chip only the open one: never "1 tugas" next to "1 tugas".
-    const handedIn: Task = aTask({ id: 117501, courseCode: "PL3002", courseId: 95001, moduleId: module.id, title: "Tugas Lama", status: "submitted", dueAt: Date.parse("2026-09-20T23:59:00+07:00") });
+    const handedIn: Task = aTask({
+      id: 117501,
+      courseCode: "PL3002",
+      courseId: 95001,
+      moduleId: module.id,
+      title: "Tugas Lama",
+      status: "submitted",
+      dueAt: Date.parse("2026-09-20T23:59:00+07:00"),
+    });
     await s.apply({ type: "dataset", dataset: { name: "edunex.tasks", value: [task, handedIn], fetchedAt: 0, hash: "t2" } });
     expect(tocEntry()).toContain("2 tugas");
     expect(tocEntry()).toContain("1 terbuka");

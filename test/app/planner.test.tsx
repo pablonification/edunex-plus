@@ -48,11 +48,13 @@ async function tab(name: string) {
   });
 }
 
-const block = (title: RegExp) => [...document.querySelectorAll<HTMLElement>("section[aria-label]")].find((el) => title.test(el.getAttribute("aria-label") ?? ""));
+const block = (title: RegExp) =>
+  [...document.querySelectorAll<HTMLElement>("section[aria-label]")].find((el) => title.test(el.getAttribute("aria-label") ?? ""));
 /** The "Add course" button of a semester. */
 const addIn = (title: RegExp) => [...block(title)!.querySelectorAll<HTMLButtonElement>("button")].find((b) => b.textContent === "Tambah mata kuliah")!;
 const rulesText = () => document.querySelector("ul[aria-label='Aturan, dicek langsung'], ul[aria-label='Rules, checked live']")?.textContent ?? "";
-const rule = (id: string) => [...document.querySelectorAll<HTMLElement>(`[data-rule=${id}]`)].map((el) => `${el.dataset.level}: ${el.textContent?.replace(/^!/, "")}`);
+const rule = (id: string) =>
+  [...document.querySelectorAll<HTMLElement>(`[data-rule=${id}]`)].map((el) => `${el.dataset.level}: ${el.textContent?.replace(/^!/, "")}`);
 const saved = () => screen!.store.dataset("local.plan")?.value as StudyPlan | undefined;
 
 async function search(query: string) {
@@ -159,7 +161,9 @@ describe("the study planner", () => {
     expect(summary()).toContain("139 dari 144 SKSkurang 5");
     expect(rule("total")).toEqual(["error: Belum terpenuhi139 dari 144 SKSKurang 5 SKS. Tambah mata kuliah."]);
     expect(rule("required")[0]).toContain("Belum direncanakan: II4090 Kerja Praktik, II4092 Tugas Akhir.");
-    expect(rule("specialization")[0]).toContain("warn: Perlu dicekSistem Informasi CerdasBelum direncanakan: II4010 Manajemen Data, II4011 Transformasi Digital.");
+    expect(rule("specialization")[0]).toContain(
+      "warn: Perlu dicekSistem Informasi CerdasBelum direncanakan: II4010 Manajemen Data, II4011 Transformasi Digital.",
+    );
     expect(s.text()).toContain("Belum bisa lulus");
   });
 

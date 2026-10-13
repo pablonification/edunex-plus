@@ -26,7 +26,8 @@ function weekly(code: string, firstIso: string, weeks: number, room = "9134"): C
 }
 const course = (code: string, attended: number, held: number): SixCourse => ({ code, name: code, classNo: "01", sks: 3, attendance: { attended, held } });
 /** SIX puts the UTS in the course's slot in UTS week (12–16 Oct). */
-const withUts = (sessions: ClassSession[]) => sessions.map((s) => (s.start >= wib("2026-10-12T00:00:00") && s.start < wib("2026-10-17T00:00:00") ? { ...s, activity: "UTS" } : s));
+const withUts = (sessions: ClassSession[]) =>
+  sessions.map((s) => (s.start >= wib("2026-10-12T00:00:00") && s.start < wib("2026-10-17T00:00:00") ? { ...s, activity: "UTS" } : s));
 
 let hash = 0;
 async function six(courses: SixCourse[], schedule: ClassSession[]) {
@@ -42,7 +43,8 @@ async function openPresence(now?: string) {
 }
 
 /** A course's row on the screen. */
-const row = (code: string) => [...document.querySelectorAll('main ul[aria-label="Mata kuliah"] > li, main ul[aria-label="Courses"] > li')].find((li) => li.textContent?.startsWith(code));
+const row = (code: string) =>
+  [...document.querySelectorAll('main ul[aria-label="Mata kuliah"] > li, main ul[aria-label="Courses"] > li')].find((li) => li.textContent?.startsWith(code));
 const card = (code: string) => row(code)?.textContent ?? "";
 /** A course's meetings, as a screen reader hears the strip, and each square's own words. */
 const strip = (code: string) => row(code)?.querySelector("[role=list]")?.getAttribute("aria-label") ?? "";
@@ -81,7 +83,10 @@ describe("the Presensi screen", () => {
     const student = { nim: "18223901", name: "Dimas Pratama", studentId: "2021000001", term: "2026-1", program: null, programCode: null };
     await s.apply({ type: "dataset", dataset: { name: "six.student", value: student, fetchedAt: 0, hash: "st1" } });
     await s.click("Buka jadwal di SIX");
-    expect(s.calls.at(-1)).toEqual({ name: "shell.openExternal", input: { url: "https://six.itb.ac.id/app/mahasiswa:18223901+2026-1/kelas/jadwal/mahasiswa/2021000001" } });
+    expect(s.calls.at(-1)).toEqual({
+      name: "shell.openExternal",
+      input: { url: "https://six.itb.ac.id/app/mahasiswa:18223901+2026-1/kelas/jadwal/mahasiswa/2021000001" },
+    });
   });
 
   it("the next meeting inside Masa UTS is said to be uncertain, and counted (missing it would cost an absence)", async () => {
@@ -96,7 +101,10 @@ describe("the Presensi screen", () => {
   it("a next meeting that overlaps another course's class says so, in Jadwal's words", async () => {
     await openPresence("2026-10-08T09:00:00+07:00");
     // PL3032 15:00–17:00 and KU5014 16:00–18:00 every Thursday.
-    await six([course("PL3032", 5, 6), course("KU5014", 5, 6)], [...weekly("PL3032", "2026-08-27T15:00:00", 10), ...weekly("KU5014", "2026-08-27T16:00:00", 10)]);
+    await six(
+      [course("PL3032", 5, 6), course("KU5014", 5, 6)],
+      [...weekly("PL3032", "2026-08-27T15:00:00", 10), ...weekly("KU5014", "2026-08-27T16:00:00", 10)],
+    );
     expect(card("PL3032")).toContain("Bentrok dengan KU5014 · 16:00–17:00");
     expect(card("KU5014")).toContain("Bentrok dengan PL3032 · 16:00–17:00");
     const note = [...(row("PL3032")?.querySelectorAll("li") ?? [])].find((li) => li.textContent?.includes("Bentrok"));
@@ -157,11 +165,14 @@ describe("the Presensi screen", () => {
 
   it("the summary filters the list; an empty kind can't be picked", async () => {
     const s = await openPresence();
-    await six([course("KU5014", 2, 6), course("DK4073", 4, 6), course("PL3002", 7, 7)], [
-      ...withUts(weekly("KU5014", "2026-08-27T16:00:00", 10)),
-      ...withUts(weekly("DK4073", "2026-08-24T11:00:00", 10)),
-      ...withUts(weekly("PL3002", "2026-08-27T08:00:00", 10)),
-    ]);
+    await six(
+      [course("KU5014", 2, 6), course("DK4073", 4, 6), course("PL3002", 7, 7)],
+      [
+        ...withUts(weekly("KU5014", "2026-08-27T16:00:00", 10)),
+        ...withUts(weekly("DK4073", "2026-08-24T11:00:00", 10)),
+        ...withUts(weekly("PL3002", "2026-08-27T08:00:00", 10)),
+      ],
+    );
     expect(s.button("0 · Hati-hati").disabled).toBe(true);
     await s.click("1 · 80% tak terkejar");
     expect(s.button("1 · 80% tak terkejar").getAttribute("aria-pressed")).toBe("true");
@@ -179,7 +190,9 @@ describe("the Presensi screen", () => {
     await six([course("KU5014", 5, 6)], regular);
     expect(card("KU5014")).toContain("16:00 · 9134");
     // SIX moves today's class to tomorrow 13:00 in another room.
-    const moved = regular.map((x) => (x.start === wib("2026-10-08T16:00:00") ? { ...x, start: wib("2026-10-09T13:00:00"), end: wib("2026-10-09T15:00:00"), room: "7602" } : x));
+    const moved = regular.map((x) =>
+      x.start === wib("2026-10-08T16:00:00") ? { ...x, start: wib("2026-10-09T13:00:00"), end: wib("2026-10-09T15:00:00"), room: "7602" } : x,
+    );
     await six([course("KU5014", 5, 6)], moved);
     expect(card("KU5014")).toContain("13:00 · 7602");
     expect(s.text()).not.toContain("16:00 · 9134");

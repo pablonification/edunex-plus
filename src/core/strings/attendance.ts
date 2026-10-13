@@ -35,12 +35,18 @@ export const attendanceStrings = {
   },
 
   // The Presensi screen
-  "presence.answer.attention": { id: "{count} mata kuliah perlu perhatianmu", en: { one: "{count} course needs your attention", other: "{count} courses need your attention" } },
+  "presence.answer.attention": {
+    id: "{count} mata kuliah perlu perhatianmu",
+    en: { one: "{count} course needs your attention", other: "{count} courses need your attention" },
+  },
   "presence.answer.fine": { id: "Semua aman", en: "All good" },
   "presence.answer.noSix": { id: "Hitungan resmi kehadiran ada di SIX", en: "Your official attendance count is in SIX" },
   "presence.target": { id: "Target {value}%", en: "Target {value}%" },
   "presence.target.button": { id: "Target kehadiran {value}%", en: "Attendance target {value}%" },
-  "presence.target.global": { id: "Berlaku untuk semua mata kuliah: di Presensi, Beranda, dan pengingat.", en: "It applies to every course: on Presence, Home and in alerts." },
+  "presence.target.global": {
+    id: "Berlaku untuk semua mata kuliah: di Presensi, Beranda, dan pengingat.",
+    en: "It applies to every course: on Presence, Home and in alerts.",
+  },
   "presence.target.reset": { id: "Kembali ke 80%", en: "Back to 80%" },
   "presence.target.lower": { id: "Turunkan target", en: "Lower the target" },
   "presence.target.raise": { id: "Naikkan target", en: "Raise the target" },
@@ -68,8 +74,14 @@ export const attendanceStrings = {
   "presence.meter": { id: "Kehadiran {share}%, target {target}%, paling tinggi {best}%", en: "Attendance {share}%, target {target}%, at best {best}%" },
   "presence.edunexTally": { id: "Edunex: hadir {recorded} dari {closed} Presensi", en: "Edunex: present in {recorded} of {closed}" },
   "presence.strip": { id: "Pertemuan: {attended} hadir, {missed} absen, {left} lagi", en: "Meetings: {attended} attended, {missed} missed, {left} to go" },
-  "presence.strip.about": { id: "Pertemuan: {attended} hadir, {missed} absen, sekitar {left} lagi", en: "Meetings: {attended} attended, {missed} missed, about {left} to go" },
-  "presence.strip.edunex": { id: "Presensi Edunex: hadir {recorded} dari {closed}, {left} lagi", en: "Edunex Presence: present in {recorded} of {closed}, {left} to go" },
+  "presence.strip.about": {
+    id: "Pertemuan: {attended} hadir, {missed} absen, sekitar {left} lagi",
+    en: "Meetings: {attended} attended, {missed} missed, about {left} to go",
+  },
+  "presence.strip.edunex": {
+    id: "Presensi Edunex: hadir {recorded} dari {closed}, {left} lagi",
+    en: "Edunex Presence: present in {recorded} of {closed}, {left} to go",
+  },
   "presence.square.attended": { id: "Hadir · {attended} dari {held} pertemuan, hitungan SIX", en: "Attended · {attended} of {held} meetings, by SIX's count" },
   "presence.square.missed": {
     id: "Absen · {missed} dari {held}, hitungan SIX. SIX tidak menyebut pertemuan mana: cek di SIX.",
@@ -107,8 +119,14 @@ export const attendanceStrings = {
   },
   "presence.open.title": { id: "Presensi yang dibuka sekarang", en: "Presence open now" },
   "presence.open.headline": { id: "Presensi {code} dibuka sampai {time}", en: "{code} Presence is open until {time}" },
-  "presence.open.optional": { id: "Kehadiran dihitung di SIX: cukup hadir di kelas. Mencatat di Edunex tidak wajib.", en: "SIX counts your attendance: just be in class. Recording in Edunex is optional." },
-  "presence.open.noSix": { id: "Tanpa SIX, belum pasti ini dihitung: catat saja untuk berjaga-jaga.", en: "Without SIX it's not certain this counts: record it just in case." },
+  "presence.open.optional": {
+    id: "Kehadiran dihitung di SIX: cukup hadir di kelas. Mencatat di Edunex tidak wajib.",
+    en: "SIX counts your attendance: just be in class. Recording in Edunex is optional.",
+  },
+  "presence.open.noSix": {
+    id: "Tanpa SIX, belum pasti ini dihitung: catat saja untuk berjaga-jaga.",
+    en: "Without SIX it's not certain this counts: record it just in case.",
+  },
   "presence.open.left": { id: "{time} lagi", en: "{time} left" },
   "presence.open.record": { id: "Catat di Edunex", en: "Record in Edunex" },
   "presence.open.task": { id: "Buka tugasnya", en: "Open the Task" },

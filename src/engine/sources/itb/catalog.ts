@@ -6,7 +6,7 @@
 import type { CatalogCourse, CatalogProgram, CourseCatalog } from "../../../core/models";
 import { EngineError, isEngineError } from "../../errors";
 import type { SourceContext } from "../source";
-import { readProgramList, readProgramPage, type ListedProgram, type ProgramPage } from "./catalog-pages";
+import { type ListedProgram, type ProgramPage, readProgramList, readProgramPage } from "./catalog-pages";
 import { PageError, PublicClient } from "./client";
 
 export const CATALOG_URL = "https://six.itb.ac.id/pub/kur2024";
@@ -113,7 +113,11 @@ function tidy(catalog: CourseCatalog): CourseCatalog {
   const minorIds = new Set(catalog.programs.flatMap((p) => p.minors));
   const minors = catalog.minors.filter((m) => minorIds.has(m.id)).sort((a, b) => a.id.localeCompare(b.id));
   const mentioned = new Set([
-    ...catalog.programs.flatMap((p) => [...p.catalog, ...p.required.map((r) => r.code), ...[...p.specializations, ...p.multidisciplinary].flatMap((t) => t.courses)]),
+    ...catalog.programs.flatMap((p) => [
+      ...p.catalog,
+      ...p.required.map((r) => r.code),
+      ...[...p.specializations, ...p.multidisciplinary].flatMap((t) => t.courses),
+    ]),
     ...minors.flatMap((m) => m.courses),
   ]);
   const courses: CatalogCourse[] = catalog.courses
@@ -123,8 +127,7 @@ function tidy(catalog: CourseCatalog): CourseCatalog {
   return { ...catalog, minors, courses };
 }
 
-const due = (p: CatalogProgram, now: number) =>
-  p.checkedAt === null || p.state === "pending" || now - p.checkedAt >= (p.state === "ready" ? FRESH : RETRY);
+const due = (p: CatalogProgram, now: number) => p.checkedAt === null || p.state === "pending" || now - p.checkedAt >= (p.state === "ready" ? FRESH : RETRY);
 
 const normal = (name: string) => name.toLowerCase().replace(/\s+/g, " ").trim();
 

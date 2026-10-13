@@ -8,7 +8,16 @@
 // - a group turned off in Settings sends no OS notification but still lands
 //   in the history ("app.alerts", newest first).
 import type { Event } from "../../core/contract";
-import { ALERT_GROUP, type Alert, type AlertHistory, type AlertKind, type AlertText, type DatasetName, type DatasetValue, type Settings } from "../../core/models";
+import {
+  ALERT_GROUP,
+  type Alert,
+  type AlertHistory,
+  type AlertKind,
+  type AlertText,
+  type DatasetName,
+  type DatasetValue,
+  type Settings,
+} from "../../core/models";
 import type { StringKey } from "../../core/strings";
 import type { Clock, TimerHandle } from "../clock";
 import type { Storage } from "../store/storage";
@@ -234,7 +243,8 @@ export class AlertCenter {
 
   private planOf(detector: Detector, context: DetectorContext): PlannedAlert[] {
     const cached = this.plans.get(detector);
-    if (cached && cached.settings === context.settings && context.now - cached.at < PLAN_TTL && wibDayIndex(cached.at) === wibDayIndex(context.now)) return cached.items;
+    if (cached && cached.settings === context.settings && context.now - cached.at < PLAN_TTL && wibDayIndex(cached.at) === wibDayIndex(context.now))
+      return cached.items;
     const items = detector.plan!(context);
     this.plans.set(detector, { items, at: context.now, settings: context.settings });
     return items;
@@ -266,9 +276,14 @@ const GROUP_TITLE: Partial<Record<AlertKind, StringKey>> = {
 /** One notification for a burst of one kind: "8 new Tasks", naming the first few. */
 function grouped(alerts: readonly Alert[], now: number): AlertNotice {
   const kind = alerts[0].kind;
-  const names = alerts.map((alert) => alert.body?.vars?.title ?? alert.title.vars?.course).filter((name) => name !== undefined).map(String);
+  const names = alerts
+    .map((alert) => alert.body?.vars?.title ?? alert.title.vars?.course)
+    .filter((name) => name !== undefined)
+    .map(String);
   const body: AlertText =
-    names.length > 3 ? { key: "alert.group.more", vars: { list: names.slice(0, 3).join(", "), count: names.length - 3 } } : { key: "alert.plain", vars: { title: names.join(", ") } };
+    names.length > 3
+      ? { key: "alert.group.more", vars: { list: names.slice(0, 3).join(", "), count: names.length - 3 } }
+      : { key: "alert.plain", vars: { title: names.join(", ") } };
   const targets = new Set(alerts.map((alert) => JSON.stringify(alert.target)));
   const target =
     targets.size === 1 ? alerts[0].target : kind === "newTask" || kind === "deadline" ? ({ screen: "tasks" } as const) : ({ screen: "home" } as const);
