@@ -55,7 +55,10 @@ export async function launchDemo(options = {}) {
       await page.waitForFunction(() => (document.getElementById("root")?.children.length ?? 0) > 0, null, { timeout: wait });
       return { app, page };
     } catch (error) {
-      await app.close().catch(() => {});
+      // An app that failed to start waits behind its "couldn't start" box, which nobody closes on a virtual
+      // screen: give it a few seconds to quit, then stop it, so the second start (or the error) comes, not a hang.
+      await Promise.race([app.close().catch(() => {}), new Promise((resolve) => setTimeout(resolve, 5_000))]);
+      app.process().kill("SIGKILL");
       throw error;
     }
   };
