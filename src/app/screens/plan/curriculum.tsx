@@ -39,12 +39,14 @@ export const syllabusUrl = (courseId: string) => `https://six.itb.ac.id/pub/mata
 const isLeft = (status: SlotStatus) => !["passed", "exempt", "unlisted", "not-mine", "done", "program-adds"].includes(status);
 
 /**
- * With "Sisa saja" on, a course the Student corrects is no longer left, and
- * its row goes once the correction is saved: focus moves to the next row's
- * ⋯ (or the switch, after the last row) instead of falling to the page.
+ * With "Sisa saja" on, a course the Student corrects is no longer left (or,
+ * taking back "Ada di kurikulumku", off their list again), and its row goes
+ * once the change is saved: focus moves to the next row's ⋯ (or the switch,
+ * after the last row) instead of falling to the page. `at` is the saved
+ * correction's moment; null when it's taken back.
  */
 function useFocusAfterCorrection(rows: MapCourse[]) {
-  const pending = useRef<{ code: string; at: number; next: string | null } | null>(null);
+  const pending = useRef<{ code: string; at: number | null; next: string | null } | null>(null);
   const rowEls = useRef(new Map<string, HTMLElement>());
   const toggle = useRef<HTMLLabelElement>(null);
   useEffect(() => {
@@ -53,7 +55,7 @@ function useFocusAfterCorrection(rows: MapCourse[]) {
     const row = rows.find((c) => c.code === wait.code);
     // Still listed: not saved yet (keep waiting), or saved and still left (its ⋯ keeps focus).
     if (row) {
-      if (row.fix?.at === wait.at) pending.current = null;
+      if ((row.fix?.at ?? null) === wait.at) pending.current = null;
       return;
     }
     pending.current = null;
@@ -61,7 +63,7 @@ function useFocusAfterCorrection(rows: MapCourse[]) {
     (next ?? toggle.current?.querySelector<HTMLElement>("[role=switch]"))?.focus();
   });
   return {
-    corrected(course: MapCourse, at: number) {
+    corrected(course: MapCourse, at: number | null) {
       const index = rows.findIndex((c) => c.code === course.code);
       pending.current = { code: course.code, at, next: rows[index + 1]?.code ?? null };
     },
@@ -108,7 +110,7 @@ export function Tab({ onCalendar }: { onCalendar?: () => void }) {
   const sks = sksModel(record, state.plan);
   const hidden = map.semesters.length - semesters.length;
   const correct = (course: MapCourse, fix: CurriculumFix | null, message: string) => {
-    if (onlyLeft && fix) focus.corrected(course, fix.at);
+    if (onlyLeft) focus.corrected(course, fix?.at ?? null);
     const before = setFix(course.code, fix);
     toast(message, "neutral", { label: t("planner.undo"), onClick: () => setFix(course.code, before) });
   };

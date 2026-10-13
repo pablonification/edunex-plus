@@ -822,6 +822,19 @@ describe("the keyboard: focus stays where the Student is", () => {
     expect(focused()).toBe("Sisa saja");
   });
 
+  it("with 'What's left only' on, taking back 'In my curriculum' makes the row go: focus moves on as for any correction", async () => {
+    const s = await openPlan();
+    await tab("Kurikulum");
+    await choose("Koreksi WI1111", /^Ada di kurikulumku/);
+    await s.click("Sisa saja");
+    const menus = () => [...document.querySelectorAll("main [aria-haspopup=menu]")].map((el) => el.getAttribute("aria-label"));
+    expect(menus()).toEqual(["Koreksi WI1111", "Koreksi II4091", "Koreksi II4090", "Koreksi II4092"]);
+    await choose("Koreksi WI1111", /^Kembalikan/);
+    await tick();
+    expect(menus()).toEqual(["Koreksi II4091", "Koreksi II4090", "Koreksi II4092"]);
+    expect(focused()).toBe("Koreksi II4091");
+  });
+
   it("'Try without', 'Put back' and removing a tried course: focus moves to what took the control's place", async () => {
     const s = await openPlan();
     await press("Coba tanpa PL3032");
