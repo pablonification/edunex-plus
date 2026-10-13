@@ -14,10 +14,18 @@ import { byDeadline, isOpenStatus, taskStatus } from "./tasks";
 
 // ---------------------------------------------------------------- items
 
-export type SearchKind = "course" | "task" | "exam" | "material" | "module" | "announcement" | "screen";
+export type SearchKind = "course" | "task" | "exam" | "material" | "module" | "announcement" | "screen" | "action";
+/** How results are grouped: open Tasks and done ones apart; recently opened first while nothing is typed. */
+export type SearchGroupKind = SearchKind | "doneTask" | "recent";
 
-/** Where a result goes: a screen, or the Settings dialog. */
-export type SearchTarget = Route | "settings";
+/** Things the palette does rather than opens. */
+export type SearchAction = "refresh" | "theme";
+
+/** Where a result goes: a screen, the Settings dialog, or something the window does. */
+export type SearchTarget = Route | "settings" | { action: SearchAction };
+
+/** The verbs, each found by its name and the words in "search.alias.action.<id>". */
+export const ACTIONS: Record<SearchAction, StringKey> = { refresh: "search.action.refresh", theme: "search.action.theme" };
 
 /** The screens and tabs the palette opens by name. Each is also found by the words in "search.alias.<id>". */
 export const SCREENS = {
@@ -40,7 +48,7 @@ export type ScreenId = keyof typeof SCREENS;
 export interface ModulePlace {
   id: number;
   title: string;
-  /** From 1, within its own EduNex course. */
+  /** From 1, within its own Edunex course. */
   number: number;
   /** It sits in the class's parent course. */
   parent: boolean;
@@ -63,10 +71,11 @@ export type SearchItem =
   | (ItemBase & { kind: "material"; material: Material; module: ModulePlace | null })
   | (ItemBase & { kind: "module"; module: ModulePlace })
   | (ItemBase & { kind: "announcement"; announcement: Announcement })
-  | (ItemBase & { kind: "screen"; screen: ScreenId; within: string | null });
+  | (ItemBase & { kind: "screen"; screen: ScreenId; within: string | null })
+  | (ItemBase & { kind: "action"; action: SearchAction });
 
 export interface SearchGroup {
-  kind: SearchKind;
+  kind: SearchGroupKind;
   items: SearchItem[];
 }
 
@@ -111,8 +120,15 @@ const TITLE = 1;
 const ALIAS = 0.8;
 const CONTEXT = 0.5;
 
-/** Ties go to the kinds a Student most often jumps to. */
-const KIND_BIAS: Record<SearchKind, number> = { course: 6, screen: 5, task: 4, exam: 4, module: 3, material: 2, announcement: 1 };
+/**
+ * Ties go to the kinds a Student most often jumps to. How well the words match
+ * decides first (a course's own name beats an exam named after it); a Task
+ * already done sinks below everything still to do (see search()), and among
+ * Tasks to do that match about as well, the one due first leads.
+ */
+const KIND_BIAS: Record<SearchKind, number> = { course: 6, screen: 5, task: 5, exam: 4, action: 4, module: 3, material: 2, announcement: 1 };
+/** A Task handed in or closed: still findable, after what needs the Student. */
+const DONE_TASK = -400;
 
 interface Entry {
   item: SearchItem;
@@ -123,6 +139,8 @@ interface Entry {
   /** Words it's found by, as places in the index's vocabulary, each with how much it counts. */
   words: number[];
   weights: number[];
+  /** A Task that no longer needs the Student. */
+  done: boolean;
 }
 
 export interface SearchIndex {
@@ -183,7 +201,8 @@ export function searchIndex(saved: Saved, { lang, screens, now }: IndexOptions):
         } else if (weights[known] < weight) weights[known] = weight;
       }
     }
-    entries.push({ item, title: folded(item.title), code: ownCode ? folded(ownCode).replace(/ /g, "") : null, words, weights });
+    const done = item.kind === "task" && !isOpenStatus(taskStatus(item.task, now));
+    entries.push({ item, title: folded(item.title), code: ownCode ? folded(ownCode).replace(/ /g, "") : null, words, weights, done });
   };
 
   const courses = termCourses(saved);
@@ -195,13 +214,15 @@ export function searchIndex(saved: Saved, { lang, screens, now }: IndexOptions):
     const course = byCode.get(code);
     return [code, course?.six, course?.edunex, catalog.get(code)].filter(Boolean).join(" ");
   };
+  // Indonesian: the official name, SIX's or else ITB's catalog (as everywhere in the app without SIX), never Edunex's English one.
+  const nameOf = (course: (typeof courses)[number]) => (lang === "id" ? (course.six ?? catalog.get(course.code) ?? courseName(course, lang)) : courseName(course, lang));
   const displayName = (code: string) => {
     const course = byCode.get(code);
-    return course ? courseName(course, lang) : code;
+    return course ? nameOf(course) : code;
   };
 
   for (const course of courses) {
-    const title = courseName(course, lang);
+    const title = nameOf(course);
     add(
       { kind: "course", key: `course:${course.code}`, title, code: course.code, target: { screen: "course", code: course.code }, classNo: course.classNo, sks: course.sks },
       [
@@ -228,14 +249,14 @@ export function searchIndex(saved: Saved, { lang, screens, now }: IndexOptions):
     const kind = translate(lang, `exam.kind.${exam.kind}`);
     const title = takeHomeOnly(exam) ? exam.tasks[0]!.title : (exam.edunex[0]?.title ?? `${kind} ${displayName(exam.courseCode)}`.trim());
     const session = exam.six[0];
-    // Every name the systems give it: SIX's sitting and room, EduNex's exam and take-home titles, the outline module ("Finex/UAS").
+    // Every name the systems give it: SIX's sitting and room, Edunex's exam and take-home titles, the outline module ("Finex/UAS").
     const modules = exam.inOutline ? (saved["edunex.outline"]?.[exam.courseCode]?.modules ?? []).filter((m) => examKind(m.title) === exam.kind).map((m) => m.title) : [];
     const own = [session ? `${session.activity} ${session.courseName} ${session.room ?? ""}` : null, ...exam.tasks.map((task) => task.title), ...exam.edunex.map((e) => e.title), ...modules, kind]
       .filter(Boolean)
       .join(" ");
     add({ kind: "exam", key: `exam:${exam.id}`, title, code: exam.courseCode, target: examRoute(exam), exam }, [
       [title, TITLE],
-      // A take-home's or EduNex exam's own title ("UTS Markom") names the exam as much as its shown title.
+      // A take-home's or Edunex exam's own title ("UTS Markom") names the exam as much as its shown title.
       ...[...exam.tasks.map((task) => task.title), ...exam.edunex.map((e) => e.title)].filter((name) => name && name !== title).map((name) => [name, TITLE] as [string, number]),
       [own, CONTEXT],
       [courseWords(exam.courseCode), CONTEXT],
@@ -250,7 +271,7 @@ export function searchIndex(saved: Saved, { lang, screens, now }: IndexOptions):
     for (const entry of outlineEntries(outline, main)) {
       const module: ModulePlace = { id: entry.module.id, title: entry.module.title, number: entry.number, parent: entry.parent };
       places.set(module.id, module);
-      add({ kind: "module", key: `module:${module.id}`, title: module.title, code, target: { screen: "course", code, tab: "modules" }, module }, [
+      add({ kind: "module", key: `module:${module.id}`, title: module.title, code, target: { screen: "course", code, tab: "modules", module: module.id }, module }, [
         [module.title, TITLE],
         [courseWords(code), CONTEXT],
       ]);
@@ -265,7 +286,7 @@ export function searchIndex(saved: Saved, { lang, screens, now }: IndexOptions):
       // A material in a module the outline no longer shows has no place to open.
       if (material.moduleId !== null && !module) continue;
       add(
-        { kind: "material", key: `material:${material.id}`, title: material.title, code, target: { screen: "course", code, tab: "modules" }, material, module },
+        { kind: "material", key: `material:${material.id}`, title: material.title, code, target: { screen: "course", code, tab: "modules", ...(module && { module: module.id }) }, material, module },
         [
           [material.title, TITLE],
           [module?.title, CONTEXT],
@@ -296,6 +317,15 @@ export function searchIndex(saved: Saved, { lang, screens, now }: IndexOptions):
       [title, TITLE],
       [`${translate(other, spec.label)} ${translate("id", alias)} ${translate("en", alias)}`, ALIAS],
       [spec.within && `${translate("id", spec.within)} ${translate("en", spec.within)}`, CONTEXT],
+    ]);
+  }
+
+  for (const action of Object.keys(ACTIONS) as SearchAction[]) {
+    const title = translate(lang, ACTIONS[action]);
+    const alias = `search.alias.action.${action}` as StringKey;
+    add({ kind: "action", key: `action:${action}`, title, code: null, target: { action }, action }, [
+      [title, TITLE],
+      [`${translate(other, ACTIONS[action])} ${translate("id", alias)} ${translate("en", alias)}`, ALIAS],
     ]);
   }
 
@@ -407,30 +437,51 @@ export function search(index: SearchIndex, query: string, perGroup = 6): SearchG
     }
     if (entry.title.startsWith(folded)) score += 300;
     else if (entry.title.includes(` ${folded}`)) score += 120;
-    hits.push({ entry, score: score + KIND_BIAS[entry.item.kind], order });
+    hits.push({ entry, score: score + KIND_BIAS[entry.item.kind] + (entry.done ? DONE_TASK : 0), order });
   });
   hits.sort((a, b) => b.score - a.score || a.order - b.order);
 
-  const groups = new Map<SearchKind, SearchItem[]>();
-  for (const { entry } of hits) {
-    const items = groups.get(entry.item.kind) ?? [];
-    if (items.length < perGroup) items.push(entry.item);
-    groups.set(entry.item.kind, items);
+  const groups = new Map<SearchGroupKind, { entry: Entry; score: number }[]>();
+  for (const hit of hits) {
+    const kind: SearchGroupKind = hit.entry.done ? "doneTask" : hit.entry.item.kind;
+    const items = groups.get(kind) ?? [];
+    items.push(hit);
+    groups.set(kind, items);
   }
-  return [...groups].map(([kind, items]) => ({ kind, items }));
+  return [...groups].map(([kind, found]) => {
+    // Tasks still to hand in: the one due first leads, among those that match about as well as the best.
+    if (kind === "task") {
+      const best = found[0].score;
+      const close = found.filter((hit) => best - hit.score < 100).sort((a, b) => byDeadlineItem(a.entry.item as TaskItem, b.entry.item as TaskItem));
+      found = [...close, ...found.filter((hit) => best - hit.score >= 100)];
+    }
+    return { kind, items: found.slice(0, perGroup).map((hit) => hit.entry.item) };
+  });
 }
 
-/** Before anything is typed: the next Tasks to hand in, this term's courses, and the screens (not their tabs). */
-export function suggestions(index: SearchIndex, now: number): SearchGroup[] {
+type TaskItem = Extract<SearchItem, { kind: "task" }>;
+const byDeadlineItem = (a: TaskItem, b: TaskItem) => byDeadline(a.task, b.task);
+
+/**
+ * Before anything is typed: what the Student opened lately (newest first,
+ * `recent` as item keys), the next three Tasks still to hand in, this term's
+ * courses, the screens (not their tabs), and the verbs.
+ */
+export function suggestions(index: SearchIndex, now: number, recent: readonly string[] = []): SearchGroup[] {
   const items = index.entries.map((entry) => entry.item);
+  const byKey = new Map(items.map((item) => [item.key, item]));
+  const lately = recent.flatMap((key) => byKey.get(key) ?? []).slice(0, 4);
+  const shown = new Set(lately.map((item) => item.key));
   const tasks = items
-    .filter((item): item is Extract<SearchItem, { kind: "task" }> => item.kind === "task" && isOpenStatus(taskStatus(item.task, now)))
-    .sort((a, b) => byDeadline(a.task, b.task))
+    .filter((item): item is TaskItem => item.kind === "task" && isOpenStatus(taskStatus(item.task, now)) && !shown.has(item.key))
+    .sort(byDeadlineItem)
     .slice(0, 3);
   const groups: SearchGroup[] = [
+    { kind: "recent", items: lately },
     { kind: "task", items: tasks },
-    { kind: "course", items: items.filter((item) => item.kind === "course") },
+    { kind: "course", items: items.filter((item) => item.kind === "course" && !shown.has(item.key)) },
     { kind: "screen", items: items.filter((item) => item.kind === "screen" && item.within === null) },
+    { kind: "action", items: items.filter((item) => item.kind === "action") },
   ];
   return groups.filter((group) => group.items.length > 0);
 }

@@ -1,5 +1,5 @@
 // v2-07 (#75), seam 1: what the Student is alerted about, by the real engine
-// against the pretend EduNex on a fake clock. Assertions are on the OS
+// against the pretend Edunex on a fake clock. Assertions are on the OS
 // notifications the engine asks for and the in-app history.
 import { describe, expect, it } from "vitest";
 import type { Detector } from "../../src/engine/alerts/detector";
@@ -72,7 +72,7 @@ describe("a full simulated day", () => {
     await again.until("2026-10-09T16:00:00+07:00");
     expect(again.shown.filter((n) => n.kind === "deadline")).toEqual([]);
 
-    // The history kept every alert, newest first, and the app never marked anything in EduNex.
+    // The history kept every alert, newest first, and the app never marked anything in Edunex.
     const ids = again.history()!.items.map((item) => item.id);
     expect(ids.at(-1)).toBe(`task.new:${essay}`);
     expect(ids).toContain(`task.due24:${report}:${Date.parse("2026-10-09T18:00:00+07:00")}`);
@@ -84,7 +84,7 @@ describe("a full simulated day", () => {
 });
 
 describe("new Tasks and materials", () => {
-  it("announces a material from EduNex's feed with its course, opening the course page", async () => {
+  it("announces a material from Edunex's feed with its course, opening the course page", async () => {
     const app = await startAlerts();
     await app.wait(5 * MINUTE);
     app.world.edunex.postMaterial(95059, { name: "K5. Pembiayaan infrastruktur" });
@@ -94,7 +94,7 @@ describe("new Tasks and materials", () => {
     expect(app.shown[0].target).toEqual({ screen: "course", code: "PL3032", tab: "modules" });
   });
 
-  it("runs the Tasks feed as soon as EduNex signals a new Task", async () => {
+  it("runs the Tasks feed as soon as Edunex signals a new Task", async () => {
     const app = await startAlerts();
     await app.wait(5 * MINUTE);
     const tasksCalls = () => app.world.log.filter((r) => r.url.includes("/course/tasks?")).length;
@@ -167,7 +167,7 @@ describe("the history and signing out", () => {
   });
 });
 
-describe("EduNex's notification feed", () => {
+describe("Edunex's notification feed", () => {
   it("is read every two to three minutes, and only read", async () => {
     const app = await startAlerts();
     const start = app.world.clock.now();
@@ -178,7 +178,7 @@ describe("EduNex's notification feed", () => {
     expect(reads.every((r) => r.method === "GET" && r.url.endsWith(`/notifications/${app.world.edunex.userId}`))).toBe(true);
   });
 
-  it("a shape the app doesn't know shows as 'EduNex changed something', not as silence", async () => {
+  it("a shape the app doesn't know shows as 'Edunex changed something', not as silence", async () => {
     const app = await startAlerts();
     await app.wait(5 * MINUTE);
     app.world.edunex.mangle(/^\/notifications\//, { kind: "missing-field", field: "notifications" });

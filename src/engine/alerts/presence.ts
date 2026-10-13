@@ -1,4 +1,4 @@
-// The Presence-opening alert (#85): the minute an EduNex Presence window
+// The Presence-opening alert (#85): the minute an Edunex Presence window
 // opens, one urgent alert naming the action that counts there and when it
 // closes. Every window, even in a course whose attendance counts in SIX: a
 // lecturer may use both systems, and the action takes seconds. A window the

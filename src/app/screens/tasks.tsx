@@ -1,21 +1,32 @@
 // Tugas & Ujian: every Task of the term with its true status (#72), and the
-// Task page with handing in (#73). A Task's status is worked out from EduNex's
+// Task page with handing in (#73). A Task's status is worked out from Edunex's
 // own facts at this moment (a deadline passing changes it), never from a
-// draft's timestamps. Handing in writes only on the Student's clicks.
+// draft's timestamps. Handing in writes only on the Student's clicks, and
+// before it the page checks what it could cost: the attendance window the
+// hand-in counts for, the deadline, the connection, the file asked for.
+import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { type DragEvent, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { MAX_UPLOAD_BYTES, type HandInResult, type PickedFile } from "../../core/actions/tasks";
 import { attendanceWindow } from "../../core/attendance";
+import { examPassed } from "../../core/exams";
 import type { Task, TaskFile, TaskModule, TaskStatus } from "../../core/models";
 import type { StringKey } from "../../core/strings";
 import {
   type DueGroup,
+  type HandInCheck,
+  attendanceResult,
+  attendanceSession,
   byDeadline,
   dueGroup,
   edunexTaskUrl,
   editedAfterSubmit,
+  handInChecks,
   isOpenStatus,
+  matchesNaming,
   moduleName,
+  namingPattern,
   notOpenYet,
+  requiredFileType,
   shortWindow,
   submittedAt,
   taskHistory,
@@ -23,19 +34,22 @@ import {
   taskStatus,
 } from "../../core/tasks";
 import { ActionError } from "../bridge";
-import { useCourseColors, useOpenExternal } from "../hooks";
-import { type Translate, useFormat, useNow, useT } from "../i18n";
+import { type TermCourse, useTermCourses } from "../courses";
+import { useOpenExternal } from "../hooks";
+import { type Format, type Translate, useFormat, useNow, useT } from "../i18n";
 import { useNav } from "../nav";
-import { SourceNotice, useRefresh, useSignIn } from "../shell/source-status";
+import { useExams } from "../schedule-data";
+import { useRefresh, useSignIn } from "../shell/source-status";
 import { useBridge, useDataset, useStatus } from "../store";
-import { Button, IconButton, Segmented } from "../ui/controls";
-import { Bar, Card, CourseDot, EmptyState, SectionTitle, Skeleton, SourceTag, StatusChip, StatusGlyph } from "../ui/display";
+import { Button, Segmented } from "../ui/controls";
+import { Card, CourseDot, EmptyState, Skeleton, StatusChip, StatusGlyph } from "../ui/display";
 import { cx } from "../ui/cx";
 import { Icons } from "../ui/icons";
-import { ConfirmDialog, toast } from "../ui/overlays";
+import { List, Page, PageHeader, Row as ListRow, Section } from "../ui/layout";
+import { toast, useReturnFocus } from "../ui/overlays";
 import { RichText, plainText } from "../ui/rich-text";
 import { ready as courseReady } from "./course";
-import { ExamList } from "./exam";
+import { ExamRow, examWeekLabel } from "./exam";
 
 export const ready = true;
 
@@ -73,6 +87,11 @@ export function useBadge(): { value: number; tone: "neutral" | "warning" } | nul
   }, [tasks, now]);
 }
 
+/** A course's name and color, for a row's "course · module" line. */
+function useCourse(code: string): TermCourse | undefined {
+  return useTermCourses()?.find((course) => course.code === code);
+}
+
 // ---------------------------------------------------------------- Tugas & Ujian
 
 const GROUPS: { group: DueGroup; title: StringKey }[] = [
@@ -82,11 +101,26 @@ const GROUPS: { group: DueGroup; title: StringKey }[] = [
   { group: "later", title: "tasks.group.later" },
 ];
 
+// The course filter the Student last chose, kept while the app runs (per window).
+const lastCourse = new WeakMap<object, string | null>();
+
 export function TasksScreen() {
   const t = useT();
+  const f = useFormat();
   const now = useNow();
   const rows = useRows();
+  const exams = useExams();
+  const courses = useTermCourses();
+  const bridge = useBridge();
   const [show, setShow] = useState<"open" | "done">("open");
+  const [course, setCourseState] = useState<string | null>(lastCourse.get(bridge) ?? null);
+  const setCourse = (value: string | null) => {
+    lastCourse.set(bridge, value);
+    setCourseState(value);
+  };
+
+  // A take-home exam is one thing with its exam: its Task shows inside the exam row.
+  const folded = useMemo(() => new Set((exams ?? []).flatMap((exam) => exam.tasks.map((task) => task.id))), [exams]);
   const lists = useMemo(() => {
     const open: Row[] = [];
     const submitted: Row[] = [];
@@ -102,64 +136,140 @@ export function TasksScreen() {
     return { open, submitted, missed };
   }, [rows]);
 
+  const mine = (code: string) => course === null || code === course;
+  const listed = (row: Row) => mine(row.task.courseCode) && !(show === "open" && folded.has(row.task.id));
   const sections =
     show === "open"
-      ? GROUPS.map(({ group, title }) => ({ title, rows: lists.open.filter((row) => dueGroup(row.task, row.status, now) === group) }))
+      ? GROUPS.map(({ group, title }) => ({ title, rows: lists.open.filter((row) => listed(row) && dueGroup(row.task, row.status, now) === group) }))
       : [
-          { title: "tasks.group.submitted" as const, rows: lists.submitted },
-          { title: "tasks.group.closed" as const, rows: lists.missed },
+          { title: "tasks.group.submitted" as const, rows: lists.submitted.filter(listed) },
+          { title: "tasks.group.closed" as const, rows: lists.missed.filter(listed) },
         ];
-  const summary = [t("tasks.summary", { open: lists.open.length, done: lists.submitted.length })];
-  if (lists.missed.length) summary.push(t("tasks.summaryMissed", { count: lists.missed.length }));
+  const shownExams = (exams ?? []).filter((exam) => examPassed(exam, now) === (show === "done") && mine(exam.courseCode));
+  const week = show === "open" ? (exams ?? []).find((exam) => exam.week && exam.week.end > now && exam.kind === "UTS")?.week ?? (exams ?? []).find((exam) => exam.week && exam.week.end > now)?.week : undefined;
+  const weekExam = week ? (exams ?? []).find((exam) => exam.week === week) : undefined;
+  const nothing = shownExams.length === 0 && sections.every((section) => section.rows.length === 0);
+  // Signed out of SIX, only Edunex's exams are known: said once, under them, with the way to SIX's timetable.
+  const examsNoSix = useStatus("six").state === "signed-out" && show === "open" && course === null;
+  // Courses with something in either segment, for the filter.
+  const withItems = (courses ?? []).filter((c) => (rows ?? []).some((row) => row.task.courseCode === c.code) || (exams ?? []).some((exam) => exam.courseCode === c.code));
 
+  let index = 0;
   return (
-    <div className="mx-auto max-w-[920px] px-10 pt-7 pb-20">
-      <header className="flex items-end justify-between gap-6">
-        <div>
-          <h1 className="text-display font-semibold tracking-[-0.02em]">{t("nav.tasks")}</h1>
-          {rows && <p className="mt-1 text-body text-muted">{summary.join(" · ")}</p>}
+    <Page>
+      <PageHeader
+        title={t("nav.tasks")}
+        actions={
+          <Segmented
+            label={t("tasks.show")}
+            value={show}
+            onChange={setShow}
+            options={[
+              { value: "open", label: rows ? `${t("tasks.filter.open")} ${lists.open.length}` : t("tasks.filter.open") },
+              { value: "done", label: rows ? `${t("tasks.filter.done")} ${lists.submitted.length + lists.missed.length}` : t("tasks.filter.done") },
+            ]}
+          />
+        }
+        className="mb-5"
+      />
+
+      {withItems.length > 1 && (
+        <div role="radiogroup" aria-label={t("tasks.filter.course")} className="mb-8 flex flex-wrap gap-1.5">
+          <FilterChip selected={course === null} onClick={() => setCourse(null)}>
+            {t("tasks.filter.all")}
+          </FilterChip>
+          {withItems.map((c) => (
+            <FilterChip key={c.code} selected={course === c.code} onClick={() => setCourse(course === c.code ? null : c.code)}>
+              <CourseDot color={c.color} className="size-2" />
+              {c.code}
+            </FilterChip>
+          ))}
         </div>
-        <Segmented
-          label={t("tasks.show")}
-          value={show}
-          onChange={setShow}
-          options={[
-            { value: "open", label: t("tasks.filter.open") },
-            { value: "done", label: t("tasks.filter.done") },
-          ]}
+      )}
+
+      {!rows ? (
+        <NoTasksYet />
+      ) : nothing ? (
+        <EmptyState
+          icon={<Icons.CheckCircle className="size-5" />}
+          title={
+            course !== null && show === "open"
+              ? t("tasks.noneForCourse", { code: course })
+              : rows.length === 0
+                ? t("tasks.none")
+                : show === "open"
+                  ? t("tasks.allHandedIn")
+                  : t("tasks.noneDone")
+          }
         />
-      </header>
-
-      <SourceNotice source="edunex" hasData={rows !== undefined} />
-
-      <ExamList past={show === "done"} />
-
-      <div className="mt-8 space-y-7">
-        {!rows ? (
-          <NoTasksYet />
-        ) : sections.some((section) => section.rows.length > 0) ? (
-          sections
+      ) : (
+        <>
+          {(shownExams.length > 0 || examsNoSix) && (
+            <Section
+              id="tasks-exams"
+              title={t("exams.title")}
+              count={shownExams.length || undefined}
+              description={week && weekExam && (weekExam.kind === "UTS" || weekExam.kind === "UAS") ? examWeekLabel(t, f, weekExam.kind, week) : undefined}
+            >
+              {shownExams.length > 0 && (
+                <List label={t("exams.title")}>
+                  {shownExams.map((exam) => (
+                    <ExamRow key={exam.id} exam={exam} index={index++} />
+                  ))}
+                </List>
+              )}
+              {examsNoSix && <ExamsNoSix />}
+            </Section>
+          )}
+          {sections
             .filter((section) => section.rows.length > 0)
             .map((section) => (
-              <section key={section.title} aria-label={t(section.title)}>
-                <h2 className="mb-2 text-small font-semibold text-muted">
-                  {t(section.title)} <span className="text-faint tabular-nums">{section.rows.length}</span>
-                </h2>
-                <TaskList rows={section.rows} />
-              </section>
-            ))
-        ) : (
-          <EmptyState
-            icon={<Icons.CheckCircle className="size-5" />}
-            title={rows.length === 0 ? t("tasks.none") : show === "open" ? t("tasks.allHandedIn") : t("tasks.noneDone")}
-          />
-        )}
-      </div>
-    </div>
+              <Section key={section.title} id={`tasks-${section.title}`} title={t(section.title)} count={section.rows.length}>
+                <List label={t(section.title)}>
+                  {section.rows.map((row) => (
+                    <TaskRow key={row.task.id} {...row} index={index++} />
+                  ))}
+                </List>
+              </Section>
+            ))}
+        </>
+      )}
+    </Page>
+  );
+}
+
+function FilterChip({ selected, onClick, children }: { selected: boolean; onClick: () => void; children: ReactNode }) {
+  return (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={selected}
+      onClick={onClick}
+      className={cx(
+        "focus-ring inline-flex h-7 items-center gap-1.5 rounded-full border px-3 text-small font-medium transition-colors duration-150",
+        selected ? "border-transparent bg-fg text-canvas" : "border-edge bg-surface text-muted hover:bg-hover hover:text-fg",
+      )}
+    >
+      {children}
+    </button>
   );
 }
 
 /** Before the first Task list has arrived: placeholders while it's on its way, else why it isn't. */
+/** Under the exams, without SIX: SIX's exam timetable is missing, and the one way to get it. */
+function ExamsNoSix() {
+  const t = useT();
+  const { signIn, busy } = useSignIn();
+  return (
+    <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
+      <p className="text-small text-muted">{t("tasks.examsNoSix")}</p>
+      <Button size="sm" busy={busy} onClick={() => void signIn("six")}>
+        {t("action.signInTo", { source: "SIX" })}
+      </Button>
+    </div>
+  );
+}
+
 function NoTasksYet() {
   const t = useT();
   const status = useStatus("edunex");
@@ -168,9 +278,12 @@ function NoTasksYet() {
     return (
       <Card aria-busy="true">
         {[0, 1, 2].map((i) => (
-          <div key={i} className={cx("px-4 py-3.5", i > 0 && "border-t border-line")}>
-            <Skeleton className="h-4 w-3/5" />
-            <Skeleton className="mt-2 h-3 w-2/5" />
+          <div key={i} className={cx("flex items-center gap-4 px-4 py-3.5", i > 0 && "border-t border-line")}>
+            <div className="flex-1">
+              <Skeleton className="h-4 w-3/5" />
+              <Skeleton className="mt-2 h-3 w-2/5" />
+            </div>
+            <Skeleton className="h-8 w-24" />
           </div>
         ))}
       </Card>
@@ -186,70 +299,79 @@ function NoTasksYet() {
   );
 }
 
-function TaskList({ rows }: { rows: Row[] }) {
-  const colors = useCourseColors(useDataset("edunex.courses"));
+/** Statuses worth a chip in a list: the rest are said by the segment and the date. */
+const LOUD: readonly TaskStatus[] = ["draft", "overdue", "in_review"];
+
+/** Tasks as rows, each opening its page; on a course page the course itself goes without saying. */
+export function TaskRows({ tasks, meta = "course", label }: { tasks: readonly Task[]; meta?: "course" | "module" | "none"; label?: string }) {
+  const now = useNow();
   return (
-    <Card>
-      <ul>
-        {rows.map((row, i) => (
-          <TaskRow key={row.task.id} {...row} color={colors.get(row.task.courseCode) ?? "#888"} first={i === 0} last={i === rows.length - 1} />
-        ))}
-      </ul>
-    </Card>
+    <List label={label}>
+      {tasks.map((task, index) => (
+        <TaskRow key={task.id} task={task} status={taskStatus(task, now)} index={index} meta={meta} />
+      ))}
+    </List>
   );
 }
 
-function TaskRow({ task, status, color, first, last }: Row & { color: string; first: boolean; last: boolean }) {
+function TaskRow({ task, status, index, meta = "course" }: Row & { index: number; meta?: "course" | "module" | "none" }) {
+  const t = useT();
+  const { go } = useNav();
+  const module = moduleLabel(t, task.module);
+  return (
+    <ListRow
+      index={index}
+      onClick={() => go({ screen: "task", taskId: task.id })}
+      title={task.title}
+      meta={meta === "course" ? <Place task={task} /> : meta === "module" ? (module ?? undefined) : undefined}
+      trailing={
+        <span className="flex items-center gap-4">
+          {LOUD.includes(status) && <StatusChip status={status} />}
+          <TaskDate task={task} status={status} />
+        </span>
+      }
+    >
+      <Signal task={task} status={status} />
+      <span className="sr-only">{!LOUD.includes(status) && t(`taskStatus.${status}`)}</span>
+    </ListRow>
+  );
+}
+
+/** "Jum, 16 Okt, 23:59 / dalam 8 hari": red within a day or past it; "Dikumpulkan 24 Sep" once handed in. */
+export function TaskDate({ task, status }: Row) {
   const t = useT();
   const f = useFormat();
-  const { go } = useNav();
+  const now = useNow();
   const sentAt = submittedAt(task);
+  const soon = task.dueAt !== null && (status === "overdue" || status === "closed" || (isOpenStatus(status) && task.dueAt - now < DAY));
   return (
-    <li className={cx(!first && "border-t border-line")}>
-      <button
-        type="button"
-        onClick={() => go({ screen: "task", taskId: task.id })}
-        className={cx(
-          "focus-ring grid w-full grid-cols-[minmax(0,1fr)_auto_128px] items-center gap-4 px-4 py-3.5 text-left transition-colors duration-150 hover:bg-hover",
-          first && "rounded-t-xl",
-          last && "rounded-b-xl",
-        )}
-      >
-        <span className="min-w-0">
-          <span className="block truncate text-lead font-medium">{task.title}</span>
-          <Place task={task} color={color} className="mt-1" />
-          <RowSignals task={task} status={status} />
-        </span>
-        <StatusChip status={status} />
-        <span className="text-right text-caption whitespace-nowrap tabular-nums">
-          {sentAt !== null ? (
-            <>
-              <span className="block font-medium">{task.score !== null ? t("task.scoreValue", { score: formatScore(task.score, f) }) : f.relativeDay(sentAt)}</span>
-              <span className="block text-faint">{task.score !== null ? f.relativeDay(sentAt) : t("task.submittedOn")}</span>
-            </>
-          ) : task.dueAt !== null ? (
-            <>
-              <span className={cx("block font-medium", (status === "overdue" || status === "closed") && "text-danger-fg")}>{f.dueLabel(task.dueAt)}</span>
-              <span className="block text-faint">{status === "closed" ? t("task.notHandedIn") : f.fromNow(task.dueAt)}</span>
-            </>
-          ) : (
-            <span className="block text-faint">{t("task.noDeadline")}</span>
-          )}
-        </span>
-      </button>
-    </li>
+    <span className="w-[136px] text-right text-small whitespace-nowrap tabular-nums">
+      {sentAt !== null ? (
+        <>
+          <span className="block font-medium">{task.score !== null ? t("task.scoreValue", { score: formatScore(task.score, f) }) : t("task.submittedOnDate", { date: f.dayMonth(sentAt) })}</span>
+          {task.score !== null && <span className="block text-faint">{t("task.submittedOnDate", { date: f.dayMonth(sentAt) })}</span>}
+        </>
+      ) : task.dueAt !== null ? (
+        <>
+          <span className={cx("block font-medium", soon && "text-danger-fg")}>{f.dueLabel(task.dueAt)}</span>
+          <span className={cx("block", soon ? "text-danger-fg" : "text-faint")}>{status === "closed" ? t("task.notHandedIn") : f.fromNow(task.dueAt)}</span>
+        </>
+      ) : (
+        <span className="block text-faint">{t("task.noDeadline")}</span>
+      )}
+    </span>
   );
 }
 
-/** "PL3002 · Modul 4 · Production Process Innovation": the course and module, as EduNex lays the course out. */
-function Place({ task, color, className }: { task: Task; color: string; className?: string }) {
+/** "● II4091 · Modul 5 · Tugas": the course and module, as Edunex lays the course out. */
+function Place({ task }: { task: Task }) {
   const t = useT();
-  const courses = useDataset("edunex.courses");
-  const where = moduleLabel(t, task.module) ?? courses?.find((course) => course.code === task.courseCode)?.name ?? null;
+  const course = useCourse(task.courseCode);
+  const where = moduleLabel(t, task.module) ?? course?.name ?? null;
   return (
-    <span className={cx("flex min-w-0 items-center gap-1.5 text-small text-muted", className)}>
-      <CourseDot color={color} className="size-2" />
-      <span className="shrink-0 font-semibold">{task.courseCode}</span>
+    <span className="flex min-w-0 items-center gap-1.5">
+      <CourseDot color={course?.color ?? "#888"} className="size-2" />
+      <span className="shrink-0 font-medium text-fg/80">{task.courseCode}</span>
       {where && <span className="truncate">· {where}</span>}
     </span>
   );
@@ -261,118 +383,46 @@ function moduleLabel(t: Translate, module: TaskModule | null): string | null {
   return name ? `${t("task.module", { n: module.index })} · ${name}` : t("task.module", { n: module.index });
 }
 
-/** What EduNex doesn't say in its list: a take-home UTS, attendance taken by handing in, an edit, a short window, the late rule. */
-function RowSignals({ task, status }: Row) {
+/**
+ * At most one thing Edunex's list doesn't say, the one that changes what to
+ * do: changed after the Student handed in, attendance taken by handing in, a
+ * short window, not open yet.
+ */
+function Signal({ task, status }: Row) {
   const t = useT();
   const f = useFormat();
   const now = useNow();
   const presence = useDataset("edunex.presence");
-  const signals: ReactNode[] = [];
-  if (task.kind === "uts") signals.push(<span className="text-danger-fg">{t("task.uts")}</span>);
+  let signal: ReactNode = null;
   const window = isOpenStatus(status) ? attendanceWindow(task, presence, now) : null;
-  if (window)
-    signals.push(
-      <span className="inline-flex items-center gap-1 text-info-fg">
-        <Icons.Hand className="size-3" />
-        {t("task.attendance", { date: f.relativeDay(window.opensAt), time: f.timeRange(window.opensAt, window.closesAt) })}
-      </span>,
+  if (editedAfterSubmit(task) && task.editedAt !== null)
+    signal = (
+      <span className="font-medium text-warning-fg">
+        <Icons.PenLine className="size-3.5" />
+        {t("task.editedAfterSubmitLine", { date: f.dayMonth(task.editedAt) })}
+      </span>
     );
-  if (task.editedAt !== null) {
-    const loud = editedAfterSubmit(task);
-    signals.push(
-      <span className={cx("inline-flex items-center gap-1", loud ? "text-warning-fg" : "text-muted")}>
-        <Icons.PenLine className="size-3" />
-        {t(loud ? "task.editedAfterSubmit" : "task.edited", { date: f.dayMonth(task.editedAt) })}
-      </span>,
+  else if (window)
+    signal = (
+      <span>
+        <Icons.Hand className="size-3.5" />
+        {t("task.attendanceLine", { when: `${f.relativeDay(window.opensAt)} ${f.timeRange(window.opensAt, window.closesAt)}` })}
+      </span>
     );
-  }
-  if (shortWindow(task) !== null && task.opensAt !== null && task.dueAt !== null)
-    signals.push(
-      <span className="inline-flex items-center gap-1 text-muted">
-        <Icons.Zap className="size-3" />
+  else if (task.opensAt !== null && notOpenYet(task, now)) signal = <span>{t("task.opens", { when: f.dueLabel(task.opensAt) })}</span>;
+  else if (shortWindow(task) !== null && task.opensAt !== null && task.dueAt !== null)
+    signal = (
+      <span>
+        <Icons.Zap className="size-3.5" />
         {t("task.shortWindow")} · {f.timeRange(task.opensAt, task.dueAt)}
-      </span>,
+      </span>
     );
-  if (task.opensAt !== null && notOpenYet(task, now)) signals.push(<span className="text-muted">{t("task.opens", { when: f.dueLabel(task.opensAt) })}</span>);
-  if (isOpenStatus(status) && task.lateAllowed)
-    signals.push(
-      <span className="inline-flex items-center gap-1 text-muted">
-        <Icons.Clock className="size-3" />
-        {t("handIn.lateAllowed")}
-      </span>,
-    );
-  if (!signals.length) return null;
-  return (
-    <span className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-caption font-semibold">
-      {signals.map((signal, i) => (
-        <span key={i}>{signal}</span>
-      ))}
-    </span>
-  );
+  if (!signal) return null;
+  return <span className="mt-1 flex text-small text-muted [&>span]:inline-flex [&>span]:items-center [&>span]:gap-1.5">{signal}</span>;
 }
 
-function formatScore(score: number, f: ReturnType<typeof useFormat>): string {
+function formatScore(score: number, f: Format): string {
   return Number.isInteger(score) ? String(score) : f.number(score, 2).replace(/[.,]?0+$/, "");
-}
-
-// ---------------------------------------------------------------- Home: due next
-
-/** Home's "Due next": the soonest Tasks still to hand in. */
-export function DueNext() {
-  const t = useT();
-  const f = useFormat();
-  const { go } = useNav();
-  const rows = useRows();
-  const colors = useCourseColors(useDataset("edunex.courses"));
-  if (!rows) return null;
-  const due = rows.filter((row) => isOpenStatus(row.status)).sort((a, b) => byDeadline(a.task, b.task)).slice(0, 4);
-  return (
-    <section className="mt-9" aria-labelledby="home-due-next">
-      <SectionTitle
-        aside={
-          <button type="button" onClick={() => go({ screen: "tasks" })} className="focus-ring rounded text-small font-medium text-accent-fg">
-            {t("nav.tasks")}
-          </button>
-        }
-      >
-        <span id="home-due-next">{t("tasks.dueNext")}</span>
-      </SectionTitle>
-      {due.length ? (
-        <ol className="-mx-2">
-          {due.map(({ task, status }) => (
-            <li key={task.id}>
-              <button
-                type="button"
-                onClick={() => go({ screen: "task", taskId: task.id })}
-                className="focus-ring flex w-full items-start gap-3 rounded-lg px-2 py-2 text-left transition-colors duration-150 hover:bg-hover"
-              >
-                <span className={cx("mt-0.5", status === "overdue" ? "text-danger-fg" : "text-faint")}>
-                  <StatusGlyph status={status} className="size-4" />
-                  <span className="sr-only">{t(`taskStatus.${status}`)}</span>
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-body font-medium">{task.title}</span>
-                  <span className="mt-0.5 flex items-center gap-1.5 text-caption text-muted">
-                    <CourseDot color={colors.get(task.courseCode) ?? "#888"} className="size-2" />
-                    {task.courseCode}
-                    {task.kind === "uts" && <span className="font-semibold text-danger-fg">· {t("task.uts")}</span>}
-                  </span>
-                </span>
-                {task.dueAt !== null && (
-                  <span className="text-right text-caption whitespace-nowrap tabular-nums">
-                    <span className={cx("block font-medium", status === "overdue" && "text-danger-fg")}>{f.dueLabel(task.dueAt)}</span>
-                    <span className="block text-faint">{f.fromNow(task.dueAt)}</span>
-                  </span>
-                )}
-              </button>
-            </li>
-          ))}
-        </ol>
-      ) : (
-        <p className="text-body text-muted">{rows.length ? t("tasks.allHandedIn") : t("tasks.none")}</p>
-      )}
-    </section>
-  );
 }
 
 // ---------------------------------------------------------------- the Task page
@@ -384,7 +434,7 @@ export function TaskScreen({ taskId }: { taskId: number }) {
   const task = tasks?.find((item) => item.id === taskId);
   if (task) return <TaskPage task={task} />;
   return (
-    <div className="mx-auto max-w-[1080px] px-10 pt-7 pb-20">
+    <Page>
       {tasks ? (
         <EmptyState icon={<Icons.ListChecks className="size-5" />} title={t("task.notFound")}>
           <Button size="sm" onClick={() => go({ screen: "tasks" })}>
@@ -394,7 +444,7 @@ export function TaskScreen({ taskId }: { taskId: number }) {
       ) : (
         <NoTasksYet />
       )}
-    </div>
+    </Page>
   );
 }
 
@@ -404,13 +454,15 @@ function TaskPage({ task }: { task: Task }) {
   const now = useNow();
   const { go } = useNav();
   const open = useOpenExternal();
-  const colors = useCourseColors(useDataset("edunex.courses"));
+  const course = useCourse(task.courseCode);
+  const exam = useExams()?.find((e) => e.tasks.some((item) => item.id === task.id));
   const status = taskStatus(task, now);
   const late = status === "overdue" || status === "closed";
+  const soon = !late && isOpenStatus(status) && task.dueAt !== null && task.dueAt - now < DAY;
   const where = moduleLabel(t, task.module);
   const place = (
     <>
-      <CourseDot color={colors.get(task.courseCode) ?? "#888"} className="size-2" />
+      <CourseDot color={course?.color ?? "#888"} className="size-2" />
       <span className="font-semibold">{task.courseCode}</span>
       {where && (
         <>
@@ -422,7 +474,7 @@ function TaskPage({ task }: { task: Task }) {
   );
 
   return (
-    <div className="mx-auto grid max-w-[1080px] gap-10 px-10 pt-7 pb-20 min-[1100px]:grid-cols-[minmax(0,1fr)_340px]">
+    <Page width="wide" className="grid gap-10 min-[1100px]:grid-cols-[minmax(0,1fr)_340px]">
       <article className="min-w-0">
         {courseReady ? (
           <button
@@ -435,30 +487,45 @@ function TaskPage({ task }: { task: Task }) {
         ) : (
           <p className="flex max-w-full items-center gap-1.5 text-small font-medium text-muted">{place}</p>
         )}
-        <h1 className="mt-2 text-display leading-tight font-semibold tracking-[-0.02em]">{task.title}</h1>
+        <h1 className="mt-2 text-display leading-tight font-semibold tracking-[-0.02em] text-balance">{task.title}</h1>
         <p className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-body">
           {task.dueAt !== null ? (
-            <span className={cx("inline-flex items-center gap-1.5 font-medium", late && "text-danger-fg")}>
+            <span className={cx("inline-flex items-center gap-1.5 font-medium", (late || soon) && "text-danger-fg")}>
               <Icons.Clock className="size-3.5" />
               {t("task.due", { when: f.dueLabel(task.dueAt) })}
-              <span className={cx("font-normal", !late && "text-muted")}>· {f.fromNow(task.dueAt)}</span>
+              <span className={cx("font-normal", !(late || soon) && "text-muted")}>· {f.fromNow(task.dueAt)}</span>
             </span>
           ) : (
             <span className="text-muted">{t("task.noDeadline")}</span>
+          )}
+          {isOpenStatus(status) && task.dueAt !== null && (
+            <span className={cx("text-small font-medium", !task.lateAllowed && soon ? "text-danger-fg" : "text-muted")}>
+              {task.lateAllowed ? t("handIn.lateAllowed") : t("handIn.lateNotAllowed")}
+            </span>
           )}
           {task.opensAt !== null &&
             (notOpenYet(task, now) ? (
               <span className="font-medium text-warning-fg">{t("task.opens", { when: f.dueLabel(task.opensAt) })}</span>
             ) : (
-              <span className="text-faint">{t("task.opened", { date: f.dayMonth(task.opensAt) })}</span>
+              <span className="text-small text-faint">{t("task.opened", { date: f.dayMonth(task.opensAt) })}</span>
             ))}
-          {task.kind === "uts" && <span className="font-semibold text-danger-fg">{t("task.uts")}</span>}
         </p>
+        {exam && (
+          <button
+            type="button"
+            onClick={() => go({ screen: "exam", examId: exam.id })}
+            className="focus-ring mt-3 inline-flex items-center gap-1.5 rounded-md text-small font-medium text-accent-fg hover:underline"
+          >
+            <Icons.GraduationCap className="size-3.5" />
+            {t("task.partOfExam", { kind: t(`exam.kind.${exam.kind}`), code: exam.courseCode })}
+            <Icons.ChevronRight className="size-3.5" />
+          </button>
+        )}
 
         <Notes task={task} />
 
         <section className="mt-8" aria-labelledby="task-instructions">
-          <h2 id="task-instructions" className="mb-2.5 text-small font-semibold text-muted">
+          <h2 id="task-instructions" className="mb-2.5 text-title font-semibold">
             {t("task.instructions")}
           </h2>
           {plainText(task.instructions) ? (
@@ -470,7 +537,7 @@ function TaskPage({ task }: { task: Task }) {
 
         {task.files.length > 0 && (
           <section className="mt-8" aria-labelledby="task-files">
-            <h2 id="task-files" className="mb-2.5 text-small font-semibold text-muted">
+            <h2 id="task-files" className="mb-2.5 text-title font-semibold">
               {t("task.lecturerFiles")}
             </h2>
             <ul className="grid gap-2 sm:grid-cols-2">
@@ -488,36 +555,49 @@ function TaskPage({ task }: { task: Task }) {
         <HandIn key={task.id} task={task} status={status} />
         <History task={task} />
       </aside>
-    </div>
+    </Page>
   );
 }
 
-/** What EduNex doesn't say on its Task page: attendance taken by handing it in, an edit (loudly after the Student submitted), a short window. */
+/**
+ * What Edunex doesn't say on its Task page: attendance taken by handing it in
+ * (and, once handed in, whether it counted), a change after the Student
+ * handed in (loud, with the way to check), a short window. An edit before the
+ * Student handed in is only history.
+ */
 function Notes({ task }: { task: Task }) {
   const t = useT();
   const f = useFormat();
   const now = useNow();
+  const open = useOpenExternal();
   const presence = useDataset("edunex.presence");
-  const notes: { tone: "warning" | "neutral"; icon: ReactNode; text: string }[] = [];
-  const attendance = attendanceWindow(task, presence, now);
-  if (attendance)
-    notes.push({
-      tone: "warning",
-      icon: <Icons.Hand className="mt-0.5 size-4 shrink-0" />,
-      text: t("task.note.attendance", { date: f.relativeDay(attendance.opensAt), time: f.timeRange(attendance.opensAt, attendance.closesAt) }),
-    });
+  const sessions = presence?.[task.courseCode] ?? [];
+  const notes: { tone: "warning" | "neutral" | "success" | "danger"; icon: ReactNode; text: string; action?: ReactNode }[] = [];
+  const range = (opensAt: number, closesAt: number) => `${f.relativeDay(opensAt)}, ${f.timeRange(opensAt, closesAt)}`;
+  const result = attendanceResult(task, sessions, now);
+  const status = taskStatus(task, now);
+  const session = isOpenStatus(status) ? attendanceSession(task, sessions, now) : null;
+  if (result)
+    notes.push(
+      result.outcome === "counted"
+        ? { tone: "success", icon: <Icons.CheckCircle className="mt-0.5 size-4 shrink-0" />, text: t("task.note.attendanceCounted", { when: range(result.session.opensAt, result.session.closesAt) }) }
+        : { tone: "danger", icon: <Icons.Hand className="mt-0.5 size-4 shrink-0" />, text: t("task.note.attendanceOutside", { when: range(result.session.opensAt, result.session.closesAt) }) },
+    );
+  else if (session && session.closesAt > now)
+    notes.push({ tone: "warning", icon: <Icons.Hand className="mt-0.5 size-4 shrink-0" />, text: t("task.note.attendance", { date: f.relativeDay(session.opensAt), time: f.timeRange(session.opensAt, session.closesAt) }) });
+  else if (session && !session.recorded?.present)
+    notes.push({ tone: "neutral", icon: <Icons.Hand className="mt-0.5 size-4 shrink-0" />, text: t("task.note.attendanceMissed", { when: range(session.opensAt, session.closesAt) }) });
   const sentAt = submittedAt(task);
   if (task.editedAt !== null && sentAt !== null && editedAfterSubmit(task))
     notes.push({
       tone: "warning",
       icon: <Icons.PenLine className="mt-0.5 size-4 shrink-0" />,
       text: t("task.note.editedAfterSubmit", { edited: f.dayMonth(task.editedAt), sent: f.dayMonth(sentAt) }),
-    });
-  else if (task.editedAt !== null)
-    notes.push({
-      tone: "neutral",
-      icon: <Icons.PenLine className="mt-0.5 size-4 shrink-0" />,
-      text: t("task.note.edited", { when: `${f.dayMonth(task.editedAt)}, ${f.time(task.editedAt)}` }),
+      action: (
+        <Button size="sm" icon={<Icons.ArrowUpRight className="size-3.5" />} onClick={() => open(edunexTaskUrl(task.id))}>
+          {t("task.note.editedCheck")}
+        </Button>
+      ),
     });
   const window = shortWindow(task);
   if (window !== null && task.opensAt !== null && task.dueAt !== null)
@@ -530,22 +610,21 @@ function Notes({ task }: { task: Task }) {
       }),
     });
   if (!notes.length) return null;
+  const TONE = { warning: "bg-warning-bg text-warning-fg", neutral: "bg-fill text-muted", success: "bg-success-bg text-success-fg", danger: "bg-danger-bg text-danger-fg" };
   return (
     <ul className="mt-5 space-y-2">
       {notes.map((note) => (
-        <li
-          key={note.text}
-          className={cx("flex items-start gap-2.5 rounded-lg px-3.5 py-2.5 text-body", note.tone === "warning" ? "bg-warning-bg text-warning-fg" : "bg-fill text-muted")}
-        >
+        <li key={note.text} className={cx("flex items-start gap-2.5 rounded-lg px-3.5 py-2.5 text-body", TONE[note.tone])}>
           {note.icon}
-          <span>{note.text}</span>
+          <span className="min-w-0 flex-1">{note.text}</span>
+          {note.action && <span className="shrink-0 self-center">{note.action}</span>}
         </li>
       ))}
     </ul>
   );
 }
 
-/** Downloads a file from EduNex through the browser's download manager (Downloads, then it opens). */
+/** Downloads a file from Edunex through the browser's download manager (Downloads, then it opens). */
 function useDownload() {
   const bridge = useBridge();
   const t = useT();
@@ -570,7 +649,7 @@ function shortName(name: string): string {
   return name.slice(0, 200 - ext.length) + ext;
 }
 
-function LecturerFile({ file }: { file: TaskFile }) {
+export function LecturerFile({ file }: { file: TaskFile }) {
   const t = useT();
   const { download, busy } = useDownload();
   return (
@@ -578,10 +657,12 @@ function LecturerFile({ file }: { file: TaskFile }) {
       type="button"
       aria-label={t("task.download", { name: file.name })}
       onClick={() => void download(file)}
-      className="focus-ring flex w-full items-center gap-3 rounded-xl border border-edge bg-surface px-3 py-2.5 text-left transition-colors duration-150 hover:bg-hover"
+      className="focus-ring flex w-full items-center gap-3 rounded-xl border border-edge bg-surface px-3 py-2.5 text-left shadow-card transition-colors duration-150 hover:bg-hover"
     >
-      <Icons.FileText className="size-4 shrink-0 text-muted" />
-      <span className="min-w-0 flex-1 truncate text-body font-medium">{file.name}</span>
+      <FileBadge name={file.name} />
+      <span className="line-clamp-2 min-w-0 flex-1 text-body font-medium [overflow-wrap:anywhere]" title={file.name}>
+        {file.name}
+      </span>
       {busy ? <Icons.Loader className="size-4 animate-spin text-faint" /> : <Icons.Download className="size-4 text-faint" />}
     </button>
   );
@@ -598,7 +679,7 @@ const HEADER: Record<TaskStatus, string> = {
   in_review: "bg-(--status-review-bg) [&_svg]:text-(--status-review-fg)",
 };
 
-/** A file the Student attached in this visit, before it's in EduNex's answer. */
+/** A file the Student attached in this visit, before it's in Edunex's answer. */
 interface Attached {
   /** The id main issued for it (or a local one for a file too big to send). */
   key: string;
@@ -625,7 +706,9 @@ function HandIn({ task, status }: Row) {
   const bridge = useBridge();
   const open = useOpenExternal();
   const edunex = useStatus("edunex");
+  const presence = useDataset("edunex.presence");
   const { signIn, busy: signingIn } = useSignIn();
+  const { refresh, busy: refreshing } = useRefresh();
   const { download, busy: downloading } = useDownload();
   const [attached, setAttached] = useState<Attached[]>([]);
   const [removed, setRemoved] = useState<string[]>([]);
@@ -633,6 +716,8 @@ function HandIn({ task, status }: Row) {
   const [notice, setNotice] = useState<Notice | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [dragging, setDragging] = useState(false);
+  /** Saved or handed in during this visit: the header says so with a little check. */
+  const [justDone, setJustDone] = useState(false);
   const uploads = useRef<Promise<void>>(Promise.resolve());
 
   // Signed in again after the session ended: the way is clear.
@@ -648,9 +733,19 @@ function HandIn({ task, status }: Row) {
   const files = [...saved, ...uploaded];
   const uploading = attached.some((item) => item.state === "waiting" || item.state === "uploading");
   const failed = attached.some((item) => item.state === "failed");
+  const hasAnswer = files.length > 0 || (!task.fileRequired && Boolean(task.answer?.text));
+  const changed = uploaded.length > 0 || removed.length > 0;
+  const guard = handInChecks(task, { now, sessions: presence?.[task.courseCode] ?? [], edunex: edunex.state, files });
+  // Waiting for the attendance window is the default only once there is something to keep as a draft.
+  const wait = guard.waitForWindow && hasAnswer;
+  // The one primary button: Kumpulkan, or, when waiting is better, Simpan draf (once there is something new to save).
   const idle = editable && !uploading && !failed && busy === null;
-  const canSave = idle && (uploaded.length > 0 || removed.length > 0);
-  const canSubmit = idle && (files.length > 0 || (!task.fileRequired && Boolean(task.answer?.text)));
+  const canSave = idle && changed && !guard.blocked;
+  const canSubmit = idle && hasAnswer && !guard.blocked;
+  const pattern = namingPattern(task.instructions);
+  const type = requiredFileType(task.instructions);
+  const early = guard.checks.find((check) => check.kind === "attendanceEarly");
+  const whenWindow = early ? `${f.relativeDay(early.opensAt)}, ${f.timeRange(early.opensAt, early.closesAt)}` : "";
 
   const change = (key: string, patch: Partial<Attached>) => setAttached((list) => list.map((item) => (item.key === key ? { ...item, ...patch } : item)));
 
@@ -663,8 +758,8 @@ function HandIn({ task, status }: Row) {
           const file = await bridge.invoke("tasks.upload", { fileId: item.key });
           change(item.key, { state: "uploaded", file: { name: file.name, url: file.url } });
         } catch (error) {
+          // The chip says why; an ended session also shows next to Kumpulkan, with "Masuk lagi".
           change(item.key, { state: "failed", problem: uploadProblem(error) });
-          if (error instanceof ActionError && error.kind === "Unauthorized") setNotice(noticeFor(error));
         }
       });
     }
@@ -733,13 +828,13 @@ function HandIn({ task, status }: Row) {
       case "saved":
         setAttached([]);
         setRemoved([]);
-        toast(t("handIn.saved"));
+        setJustDone(true);
         return;
       case "submitted": {
         setAttached([]);
         setRemoved([]);
         const at = result.task ? submittedAt(result.task) : null;
-        if (kind === "submit" && at !== null) toast(t("handIn.submitted", { when: f.dueLabel(at) }));
+        if (kind === "submit" && at !== null) setJustDone(true);
         else setNotice({ tone: "neutral", text: "handIn.alreadySubmitted" });
         return;
       }
@@ -757,33 +852,88 @@ function HandIn({ task, status }: Row) {
     }
   };
 
+  const draftAt = task.answer?.updatedAt ?? task.answer?.createdAt ?? null;
   const subtitle =
     status === "not_started"
       ? task.opensAt !== null && notOpenYet(task, now)
         ? t("task.opens", { when: f.dueLabel(task.opensAt) })
         : task.dueAt !== null
-          ? f.fromNow(task.dueAt)
+          ? t("handIn.dueIn", { when: f.fromNow(task.dueAt) })
           : ""
       : status === "draft"
-        ? t("handIn.draftStatus")
+        ? draftAt !== null
+          ? `${t("handIn.draftSaved", { when: f.dueLabel(draftAt) })} · ${t("handIn.draftStatus").toLowerCase()}`
+          : t("handIn.draftStatus")
         : status === "overdue"
           ? t("handIn.lateStill")
           : status === "closed"
             ? t("handIn.closedStatus")
             : sentAt !== null
-              ? f.dueLabel(sentAt)
+              ? t("handIn.recorded", { when: f.dueLabel(sentAt) })
               : "";
   const submitLabel = status === "overdue" ? t("handIn.submitLate") : t("handIn.submit");
   const inFlight = attached.filter((item) => item.state !== "failed");
   const done = inFlight.filter((item) => item.state === "uploaded").length;
 
+  // Why Kumpulkan can't be pressed, or what pressing it now would cost; with the fix next to it.
+  const why: { tone: "warning" | "neutral" | "danger"; text: string; fix?: ReactNode } | null = !editable
+    ? null
+    : guard.blocked
+      ? guard.checks[0].kind === "offline"
+        ? {
+            tone: "danger",
+            text: t("handIn.why.offline"),
+            fix: (
+              <Button size="sm" busy={refreshing} onClick={() => void refresh("edunex")}>
+                {t("action.tryAgain")}
+              </Button>
+            ),
+          }
+        : {
+            tone: "warning",
+            text: t("handIn.why.expired"),
+            fix: (
+              <Button size="sm" variant="primary" busy={signingIn} onClick={() => void signIn("edunex")}>
+                {t("action.signInAgain")}
+              </Button>
+            ),
+          }
+      : failed
+        ? { tone: "danger", text: t("handIn.why.failed") }
+        : uploading
+          ? { tone: "neutral", text: t("handIn.why.uploading") }
+          : !hasAnswer
+            ? { tone: "neutral", text: t("handIn.why.noFile") }
+            : early
+              ? { tone: "warning", text: t(changed || status === "not_started" ? "handIn.why.early" : "handIn.why.earlySaved", { when: whenWindow }) }
+              : null;
+
+  const draftButton = (
+    <Button variant={wait && canSave ? "primary" : "secondary"} className="h-9 flex-1" disabled={!canSave} busy={busy === "draft"} onClick={() => void run("draft")}>
+      {t("handIn.saveDraft")}
+    </Button>
+  );
+  const submitButton = (
+    <Button
+      variant={wait ? "secondary" : "primary"}
+      className="h-9 flex-[1.4]"
+      disabled={!canSubmit}
+      busy={busy === "submit"}
+      onClick={() => setConfirming(true)}
+    >
+      {submitLabel}
+    </Button>
+  );
+
   return (
     <Card className="overflow-hidden">
-      <div className={cx("flex items-center gap-3 px-4 py-3.5", HEADER[status])}>
-        <StatusGlyph status={status} className="size-5 shrink-0" />
+      <div className={cx("flex items-center gap-3 px-4 py-3.5 transition-colors duration-300", HEADER[status])}>
+        <span key={`${status}-${justDone}`} className={cx("shrink-0", justDone && "motion-safe:animate-pop-in")}>
+          <StatusGlyph status={status} className="size-5" />
+        </span>
         <div className="min-w-0">
           <p className="text-lead font-semibold">{t(`taskStatus.${status}`)}</p>
-          {subtitle && <p className="text-caption text-muted">{subtitle}</p>}
+          {subtitle && <p className="text-small text-muted">{subtitle}</p>}
         </div>
         {(task.score !== null || status === "in_review") && (
           <span className="ml-auto text-right text-caption text-muted">
@@ -802,7 +952,7 @@ function HandIn({ task, status }: Row) {
                 <FileRow
                   key={file.url}
                   name={file.name}
-                  detail={null}
+                  hint={editable ? fileHint(t, file.name, pattern, type) : null}
                   onRemove={editable ? () => removeSaved(file.url) : undefined}
                   onDownload={editable ? undefined : () => void download(file)}
                   downloading={downloading === file.url}
@@ -814,16 +964,15 @@ function HandIn({ task, status }: Row) {
                   name={item.name}
                   state={item.state}
                   detail={
-                    item.state === "failed" ? (
-                      <span className="text-danger-fg">{t(item.problem ?? "handIn.uploadFailed")}</span>
-                    ) : item.state === "uploaded" ? (
-                      `${t("handIn.notSaved")} · ${f.fileSize(item.size)}`
-                    ) : item.state === "uploading" ? (
-                      t("handIn.uploading")
-                    ) : (
-                      t("handIn.waiting")
-                    )
+                    item.state === "failed"
+                      ? t(item.problem ?? "handIn.uploadFailed")
+                      : item.state === "uploaded"
+                        ? `${t("handIn.notSaved")} · ${f.fileSize(item.size)}`
+                        : item.state === "uploading"
+                          ? `${t("handIn.uploading")} · ${f.fileSize(item.size)}`
+                          : t("handIn.waiting")
                   }
+                  hint={item.state === "uploaded" ? fileHint(t, item.name, pattern, type) : null}
                   onRetry={item.state === "failed" && item.problem !== "handIn.tooBig" ? () => retry(item) : undefined}
                   onRemove={editable ? () => removeAttached(item.key) : undefined}
                 />
@@ -842,7 +991,7 @@ function HandIn({ task, status }: Row) {
               onDrop={(event) => void drop(event)}
               className={cx(
                 "focus-ring flex w-full flex-col items-center gap-1 rounded-lg border border-dashed px-3 py-4 text-center transition-colors duration-150 [&>*]:pointer-events-none",
-                dragging ? "border-accent bg-info-bg" : "border-track hover:border-accent",
+                dragging ? "border-accent bg-info-bg" : "border-track hover:border-accent hover:bg-hover",
               )}
             >
               <Icons.Upload className="size-4 text-muted" />
@@ -850,6 +999,11 @@ function HandIn({ task, status }: Row) {
                 <span className="font-semibold text-accent-fg">{t("handIn.attach")}</span>
                 <span className="text-muted"> · {t("handIn.drop")}</span>
               </span>
+              {(task.fileRequired || type) && (
+                <span className="text-caption text-faint">
+                  {[task.fileRequired ? t("handIn.fileRequired") : null, type ? t("handIn.ruleType", { type: type.toUpperCase() }) : null].filter(Boolean).join(" · ")}
+                </span>
+              )}
             </button>
           )}
           {!editable && !sent && status !== "closed" && task.opensAt !== null && (
@@ -860,10 +1014,10 @@ function HandIn({ task, status }: Row) {
           )}
         </div>
 
-        {uploading && (
+        {uploading && inFlight.length > 1 && (
           <div className="space-y-1.5">
             <p className="text-caption text-muted">{t("handIn.progress", { done, count: inFlight.length })}</p>
-            <Bar value={inFlight.length ? done / inFlight.length : 0} color="var(--accent)" label={t("handIn.progress", { done, count: inFlight.length })} />
+            <ProgressBar value={done / inFlight.length} label={t("handIn.progress", { done, count: inFlight.length })} />
           </div>
         )}
 
@@ -895,13 +1049,22 @@ function HandIn({ task, status }: Row) {
         {editable && (
           <>
             <div className="flex items-center gap-2">
-              <Button className="h-9 flex-1" disabled={!canSave} busy={busy === "draft"} onClick={() => void run("draft")}>
-                {t("handIn.saveDraft")}
-              </Button>
-              <Button variant="primary" className="h-9 flex-[1.4]" disabled={!canSubmit} busy={busy === "submit"} onClick={() => setConfirming(true)}>
-                {submitLabel}
-              </Button>
+              {draftButton}
+              {submitButton}
             </div>
+            {why && !(notice?.action === "signIn" && guard.blocked) && (
+              <div
+                role="status"
+                className={cx(
+                  "flex items-start gap-2 text-small",
+                  why.tone === "danger" ? "text-danger-fg" : why.tone === "warning" ? "text-warning-fg" : "text-muted",
+                )}
+              >
+                <Icons.Info className="mt-0.5 size-3.5 shrink-0" />
+                <span className="min-w-0 flex-1">{why.text}</span>
+                {why.fix && <span className="-my-0.5 shrink-0">{why.fix}</span>}
+              </div>
+            )}
             <p className="flex items-start gap-2 text-caption text-muted">
               <Icons.Lock className="mt-px size-3.5 shrink-0" />
               {t("handIn.explainer")}
@@ -914,31 +1077,173 @@ function HandIn({ task, status }: Row) {
             {status === "in_review" ? t("handIn.inReview") : t("handIn.final")}
           </p>
         )}
-
-        <ul className="space-y-1.5 border-t border-line pt-3.5 text-caption text-muted">
-          {task.fileRequired && (
-            <li className="flex items-center gap-2">
-              <Icons.Paperclip className="size-3.5" />
-              {t("handIn.fileRequired")}
-            </li>
-          )}
-          <li className="flex items-center gap-2">
-            <Icons.Clock className="size-3.5" />
-            {task.lateAllowed ? t("handIn.lateAllowed") : t("handIn.lateNotAllowed")}
-          </li>
-        </ul>
       </div>
 
-      <ConfirmDialog
+      <HandInDialog
         open={confirming}
         onOpenChange={setConfirming}
-        title={t("handIn.confirmTitle")}
-        body={t("handIn.confirmBody", { files: files.length === 1 ? files[0].name : files.length ? t("handIn.fileCount", { count: files.length }) : t("handIn.yourAnswer") })}
-        confirmLabel={submitLabel}
-        busy={busy === "submit"}
-        onConfirm={() => void run("submit")}
+        files={files}
+        checks={guard.checks}
+        waitForWindow={guard.waitForWindow}
+        canSave={changed}
+        submitLabel={status === "overdue" ? submitLabel : t("handIn.submitNow")}
+        busy={busy}
+        onSubmit={() => void run("submit")}
+        onSaveDraft={() => (changed ? void run("draft") : setConfirming(false))}
       />
     </Card>
+  );
+}
+
+/** A soft hint under a file that isn't what the lecturer asked for (type, name). */
+function fileHint(t: Translate, name: string, pattern: string | null, type: string | null): string | null {
+  if (type && !name.toLowerCase().endsWith(`.${type}`)) return t("handIn.typeHint", { type: type.toUpperCase() });
+  if (pattern && !matchesNaming(pattern, name)) return t("handIn.namingHint", { pattern });
+  return null;
+}
+
+const CHECK_TONE: Record<HandInCheck["tone"], string> = { block: "text-danger-fg", warn: "text-warning-fg", ok: "text-success-fg" };
+
+/**
+ * Before the final hand-in: the files, then each thing that matters as one
+ * honest sentence, and the right default. Outside the attendance window the
+ * main button keeps the work as a draft; handing in anyway stays one click away.
+ */
+function HandInDialog({
+  open,
+  onOpenChange,
+  files,
+  checks,
+  waitForWindow,
+  canSave,
+  submitLabel,
+  busy,
+  onSubmit,
+  onSaveDraft,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  files: TaskFile[];
+  checks: HandInCheck[];
+  waitForWindow: boolean;
+  canSave: boolean;
+  submitLabel: string;
+  busy: "draft" | "submit" | null;
+  onSubmit: () => void;
+  onSaveDraft: () => void;
+}) {
+  const t = useT();
+  const f = useFormat();
+  const range = (opensAt: number, closesAt: number) => `${f.relativeDay(opensAt)}, ${f.timeRange(opensAt, closesAt)}`;
+  const sentence = (check: HandInCheck): string => {
+    switch (check.kind) {
+      case "attendanceEarly":
+        return t("handIn.check.attendanceEarly", { when: range(check.opensAt, check.closesAt) });
+      case "attendanceMissed":
+        return t("handIn.check.attendanceMissed", { when: range(check.opensAt, check.closesAt) });
+      case "attendanceIn":
+        return t("handIn.check.attendanceIn");
+      case "late":
+        return t("handIn.check.late", { when: f.dueLabel(check.dueAt) });
+      case "fileType":
+        return t("handIn.check.fileType", { type: check.type.toUpperCase(), files: check.files.join(", ") });
+      case "naming":
+        return t("handIn.check.naming", { pattern: check.pattern });
+      case "offline":
+        return t("handIn.why.offline");
+      case "expired":
+        return t("handIn.why.expired");
+    }
+  };
+  const { onOpenAutoFocus, onCloseAutoFocus } = useReturnFocus();
+  return (
+    <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
+      <DialogPrimitive.Portal>
+        <DialogPrimitive.Overlay className="fixed inset-0 z-[55] bg-scrim motion-safe:animate-fade-in" />
+        <DialogPrimitive.Content
+          role="alertdialog"
+          onOpenAutoFocus={onOpenAutoFocus}
+          onCloseAutoFocus={onCloseAutoFocus}
+          className="fixed top-1/2 left-1/2 z-[55] w-[min(460px,calc(100vw-48px))] -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-raised p-5 text-fg shadow-dialog ring-1 ring-black/10 focus:outline-none motion-safe:animate-pop-in dark:ring-white/10"
+        >
+          <DialogPrimitive.Title className="text-title font-semibold">{t("handIn.confirmTitle")}</DialogPrimitive.Title>
+          <DialogPrimitive.Description className="mt-1.5 text-body text-muted">
+            {t("handIn.confirmBody", { files: files.length === 1 ? files[0].name : files.length ? t("handIn.fileCount", { count: files.length }) : t("handIn.yourAnswer") })}
+          </DialogPrimitive.Description>
+          {checks.length > 0 && (
+            <ul className="mt-4 space-y-2 border-t border-line pt-4">
+              {checks.map((check) => (
+                <li key={check.kind} className={cx("flex items-start gap-2.5 text-body", CHECK_TONE[check.tone])}>
+                  {check.tone === "ok" ? <Icons.CheckCircle className="mt-0.5 size-4 shrink-0" /> : <Icons.AlertTriangle className="mt-0.5 size-4 shrink-0" />}
+                  <span>{sentence(check)}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+          {/* Two real choices, one of them costly: stacked full width, the safe one first. */}
+          <div className={cx("mt-5 gap-2", waitForWindow ? "grid" : "flex flex-wrap justify-end")}>
+            {waitForWindow ? (
+              <>
+                <Button variant="primary" className="w-full" busy={busy === "draft"} disabled={busy === "submit"} onClick={onSaveDraft}>
+                  {canSave ? t("handIn.saveInstead") : t("handIn.notNow")}
+                </Button>
+                <Button variant="secondary" className="w-full" busy={busy === "submit"} disabled={busy === "draft"} onClick={onSubmit}>
+                  {t("handIn.submitAnyway")}
+                </Button>
+              </>
+            ) : (
+              <>
+                <DialogPrimitive.Close asChild>
+                  <Button variant="secondary">{t("action.cancel")}</Button>
+                </DialogPrimitive.Close>
+                <Button variant="primary" busy={busy === "submit"} onClick={onSubmit}>
+                  {submitLabel}
+                </Button>
+              </>
+            )}
+          </div>
+        </DialogPrimitive.Content>
+      </DialogPrimitive.Portal>
+    </DialogPrimitive.Root>
+  );
+}
+
+function ProgressBar({ value, label, indeterminate = false }: { value: number; label: string; indeterminate?: boolean }) {
+  return (
+    <span
+      role="progressbar"
+      aria-label={label}
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-valuenow={indeterminate ? undefined : Math.round(value * 100)}
+      className="relative block h-1 overflow-hidden rounded-full bg-black/[0.06] dark:bg-white/[0.08]"
+    >
+      <span
+        className={cx("absolute inset-y-0 left-0 rounded-full bg-accent motion-safe:transition-[width] motion-safe:duration-300", indeterminate && "w-1/3 motion-safe:animate-shimmer")}
+        style={indeterminate ? undefined : { width: `${Math.max(0, Math.min(1, value)) * 100}%` }}
+      />
+    </span>
+  );
+}
+
+function FileBadge({ name, state }: { name: string; state?: Attached["state"] }) {
+  const ext = /\.([a-z0-9]{1,4})$/i.exec(name)?.[1]?.toUpperCase() ?? "";
+  return (
+    <span
+      aria-hidden
+      className={cx(
+        "grid size-8 shrink-0 place-items-center rounded-md text-micro font-bold",
+        state === "failed" ? "bg-danger-bg text-danger-fg" : ext === "PDF" ? "bg-danger-bg/70 text-danger-fg" : "bg-neutral-bg text-neutral-fg",
+      )}
+    >
+      {state === "uploading" || state === "waiting" ? (
+        <Icons.Loader className={cx("size-3.5", state === "uploading" && "animate-spin")} />
+      ) : state === "failed" ? (
+        <Icons.AlertTriangle className="size-3.5" />
+      ) : (
+        ext || <Icons.FileText className="size-3.5" />
+      )}
+    </span>
   );
 }
 
@@ -946,6 +1251,7 @@ function FileRow({
   name,
   state,
   detail,
+  hint,
   onRemove,
   onRetry,
   onDownload,
@@ -953,43 +1259,74 @@ function FileRow({
 }: {
   name: string;
   state?: Attached["state"];
-  detail: ReactNode;
+  detail?: ReactNode;
+  hint?: string | null;
   onRemove?: () => void;
   onRetry?: () => void;
   onDownload?: () => void;
   downloading?: boolean;
 }) {
   const t = useT();
-  const ext = /\.([a-z0-9]{1,4})$/i.exec(name)?.[1]?.toUpperCase() ?? "";
+  const failed = state === "failed";
   return (
-    <li className="flex items-center gap-2.5 rounded-lg bg-fill px-2.5 py-2">
-      <span
-        aria-hidden
-        className={cx(
-          "grid size-7 shrink-0 place-items-center rounded-md text-micro font-bold",
-          ext === "PDF" ? "bg-danger-bg text-danger-fg" : "bg-neutral-bg text-neutral-fg",
+    <li className={cx("rounded-lg px-2.5 py-2", failed ? "bg-danger-bg/50 ring-1 ring-danger-fg/30 ring-inset" : "bg-fill")}>
+      <div className="flex items-center gap-2.5">
+        <FileBadge name={name} state={state} />
+        <span className="min-w-0 flex-1">
+          <span className="line-clamp-2 block text-body font-medium [overflow-wrap:anywhere]" title={name}>
+            {name}
+          </span>
+          {detail && !failed && (
+            <span className="flex items-center gap-1 text-caption text-muted">
+              {state === "uploaded" && <Icons.Check className="size-3 text-success-fg" weight="bold" />}
+              {detail}
+            </span>
+          )}
+        </span>
+        {onRemove && !failed && (
+          <button
+            type="button"
+            aria-label={t("handIn.remove", { name })}
+            onClick={onRemove}
+            className="focus-ring grid size-7 shrink-0 place-items-center rounded-md text-muted transition-colors duration-150 hover:bg-hover hover:text-fg"
+          >
+            <Icons.X className="size-3.5" />
+          </button>
         )}
-      >
-        {state === "uploading" || state === "waiting" ? <Icons.Loader className={cx("size-3.5", state === "uploading" && "animate-spin")} /> : ext || <Icons.FileText className="size-3.5" />}
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="block truncate text-body font-medium">{name}</span>
-        {detail && <span className="block truncate text-caption text-muted">{detail}</span>}
-      </span>
-      {onRetry && (
-        <IconButton label={t("handIn.retry", { name })} size="sm" onClick={onRetry}>
-          <Icons.RefreshCw className="size-3.5" />
-        </IconButton>
+        {onDownload && (
+          <button
+            type="button"
+            aria-label={t("task.download", { name })}
+            onClick={onDownload}
+            className="focus-ring grid size-7 shrink-0 place-items-center rounded-md text-muted transition-colors duration-150 hover:bg-hover hover:text-fg"
+          >
+            {downloading ? <Icons.Loader className="size-3.5 animate-spin" /> : <Icons.Download className="size-3.5" />}
+          </button>
+        )}
+      </div>
+      {state === "uploading" && <ProgressBar value={0} indeterminate label={t("handIn.uploading")} />}
+      {failed && (
+        <div className="mt-1.5 pl-[42px]">
+          <p className="text-small text-danger-fg">{detail}</p>
+          <div className="mt-1.5 flex gap-1.5">
+            {onRetry && (
+              <Button size="sm" icon={<Icons.RefreshCw className="size-3.5" />} aria-label={t("handIn.retry", { name })} onClick={onRetry}>
+                {t("handIn.retryShort")}
+              </Button>
+            )}
+            {onRemove && (
+              <Button size="sm" variant="ghost" aria-label={t("handIn.remove", { name })} onClick={onRemove}>
+                {t("handIn.removeShort")}
+              </Button>
+            )}
+          </div>
+        </div>
       )}
-      {onRemove && (
-        <IconButton label={t("handIn.remove", { name })} size="sm" onClick={onRemove}>
-          <Icons.X className="size-3.5" />
-        </IconButton>
-      )}
-      {onDownload && (
-        <IconButton label={t("task.download", { name })} size="sm" onClick={onDownload}>
-          {downloading ? <Icons.Loader className="size-3.5 animate-spin" /> : <Icons.Download className="size-3.5" />}
-        </IconButton>
+      {hint && (
+        <p className="mt-1 flex items-start gap-1.5 pl-[42px] text-caption text-warning-fg">
+          <Icons.Info className="mt-px size-3 shrink-0" />
+          {hint}
+        </p>
       )}
     </li>
   );
@@ -997,6 +1334,7 @@ function FileRow({
 
 function uploadProblem(error: unknown): StringKey {
   if (error instanceof ActionError && error.kind === "Offline") return "handIn.uploadOffline";
+  if (error instanceof ActionError && error.kind === "Unauthorized") return "handIn.uploadExpired";
   if (error instanceof ActionError && error.kind === "Rejected") return "handIn.unreadable";
   return "handIn.uploadFailed";
 }
@@ -1023,37 +1361,45 @@ function History({ task }: { task: Task }) {
   const t = useT();
   const f = useFormat();
   const now = useNow();
+  const open = useOpenExternal();
   const steps = taskHistory(task);
-  if (steps.length < 2) return null;
   return (
     <Card className="p-4">
-      <p className="mb-3 flex items-center justify-between text-small font-semibold text-muted">
-        {t("history.title")}
-        <SourceTag source="edunex" />
-      </p>
-      <ol className="relative ml-1.5 space-y-3 border-l border-line pl-4">
-        {steps.map((step) => (
-          <li key={step.kind} className="relative text-small">
-            <span
-              aria-hidden
-              className={cx(
-                "absolute top-1 -left-[21px] size-[9px] rounded-full ring-[3px] ring-surface",
-                step.kind === "submitted"
-                  ? "bg-live"
-                  : step.kind === "edited" && editedAfterSubmit(task)
-                    ? "bg-warning-fg"
-                    : step.at > now
-                      ? "border border-faint bg-surface"
-                      : "bg-faint/60",
-              )}
-            />
-            <span className="block font-medium">{t(`history.${step.kind}`)}</span>
-            <span className="block text-faint tabular-nums">
-              {f.weekdayShort(step.at)} {f.dayMonth(step.at)}, {f.time(step.at)}
-            </span>
-          </li>
-        ))}
-      </ol>
+      {steps.length >= 2 && (
+        <>
+          <p className="mb-3 text-small font-semibold text-muted">{t("history.title")}</p>
+          <ol className="relative ml-1.5 space-y-3 border-l border-line pl-4">
+            {steps.map((step) => (
+              <li key={step.kind} className="relative text-small">
+                <span
+                  aria-hidden
+                  className={cx(
+                    "absolute top-1 -left-[21px] size-[9px] rounded-full ring-[3px] ring-surface",
+                    step.kind === "submitted"
+                      ? "bg-live"
+                      : step.kind === "edited" && editedAfterSubmit(task)
+                        ? "bg-warning-fg"
+                        : step.at > now && step.kind !== "draft"
+                          ? "border border-faint bg-surface"
+                          : "bg-faint/60",
+                  )}
+                />
+                <span className="block font-medium">{t(`history.${step.kind}`)}</span>
+                <span className="block text-faint tabular-nums">{f.dueLabel(step.at)}</span>
+              </li>
+            ))}
+          </ol>
+        </>
+      )}
+      <button
+        type="button"
+        onClick={() => open(edunexTaskUrl(task.id))}
+        className={cx("focus-ring inline-flex items-center gap-1 rounded text-small font-medium text-accent-fg hover:underline", steps.length >= 2 && "mt-4")}
+      >
+        {t("task.openInEdunex")}
+        <Icons.ArrowUpRight className="size-3.5" />
+      </button>
     </Card>
   );
 }
+

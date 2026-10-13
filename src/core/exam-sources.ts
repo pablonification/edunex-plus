@@ -24,7 +24,7 @@ export function examsFound(saved: Saved, now: number): Exam[] {
 
 /**
  * Still ahead of the Student while some part of it is: a SIX sitting not over
- * yet, an EduNex exam not over, a take-home not handed in and not past due.
+ * yet, an Edunex exam not over, a take-home not handed in and not past due.
  * An exam no system dates is ahead until ITB's exam week for it is over.
  */
 export function examAhead(exam: Exam, now: number): boolean {
@@ -37,7 +37,7 @@ export function examAhead(exam: Exam, now: number): boolean {
   );
 }
 
-/** Only a take-home exam (an EduNex Task), with no sitting in SIX or EduNex. */
+/** Only a take-home exam (an Edunex Task), with no sitting in SIX or Edunex. */
 export const takeHomeOnly = (exam: Exam) => exam.six.length === 0 && exam.edunex.length === 0 && exam.tasks.length > 0;
 
 export function examRoute(exam: Exam): Route {

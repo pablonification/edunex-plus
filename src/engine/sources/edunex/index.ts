@@ -1,4 +1,4 @@
-// EduNex as a source: a Bearer-token session, /login/me as the liveness
+// Edunex as a source: a Bearer-token session, /login/me as the liveness
 // check, and each area's feeds and actions.
 import type { Source } from "../source";
 import { EdunexClient } from "./client";

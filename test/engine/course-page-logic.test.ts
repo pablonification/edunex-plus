@@ -1,10 +1,10 @@
 // v2-06 (#74): what the course page makes of the engine's data. Meetings
-// merged from SIX, EduNex Presence and EduNex text; the course-contract
+// merged from SIX, Edunex Presence and Edunex text; the course-contract
 // calculator; and how a course's files are laid out for offline reading.
 import { describe, expect, it } from "vitest";
 import { EXAMPLE_CONTRACT, standing } from "../../src/core/course-contract";
 import { materialAction, planOfflineFiles } from "../../src/core/course-materials";
-import { announcedMeetings, courseMeetings, meetingState, openPresence, pinnedMeeting } from "../../src/core/course-meetings";
+import { announcedMeetings, courseMeetings, type Meeting, meetingModules, meetingState, openPresence, pinnedMeeting } from "../../src/core/course-meetings";
 import type { ClassSession, CourseContract } from "../../src/core/models";
 import { PRETEND_TOKEN } from "../pretend/edunex";
 import { startEngine } from "./harness";
@@ -52,11 +52,11 @@ describe("meetings", () => {
     ]);
   });
 
-  it("SIX gives the time and room; a meeting only EduNex text announces is marked not in SIX", async () => {
+  it("SIX gives the time and room; a meeting only Edunex text announces is marked not in SIX", async () => {
     const h = await signedIn();
     const presence = h.dataset("edunex.presence")!.II4091;
     const announced = announcedMeetings(h.dataset("edunex.materials")!.II4091, h.dataset("edunex.announcements")!.II4091);
-    // SIX lists October's Friday meeting at 15:00–17:00 in room 7602 (EduNex's Presence runs to 23:59).
+    // SIX lists October's Friday meeting at 15:00–17:00 in room 7602 (Edunex's Presence runs to 23:59).
     const six = [sixSession("2026-10-16T15:00:00+07:00", "2026-10-16T17:00:00+07:00")];
     const meetings = courseMeetings("II4091", presence, six, announced, ["2026-10"]);
     const oct16 = meetings.find((m) => m.presence?.start === at("2026-10-16T15:00:00+07:00"))!;
@@ -70,7 +70,7 @@ describe("meetings", () => {
     expect(courseMeetings("II4091", presence, null, announced, ["2026-10"]).some((m) => m.notInSix)).toBe(false);
   });
 
-  it("never calls a meeting missed: an unmarked one stays 'not marked in EduNex', a future one 'upcoming'", async () => {
+  it("never calls a meeting missed: an unmarked one stays 'not marked in Edunex', a future one 'upcoming'", async () => {
     const h = await signedIn();
     const now = h.world.clock.now(); // Thursday 8 October, 08:12
     const meetings = courseMeetings("PL3002", h.dataset("edunex.presence")!.PL3002, null, []);
@@ -82,6 +82,27 @@ describe("meetings", () => {
     expect(states.slice(7).every((s) => s === "upcoming")).toBe(true);
     expect(pinnedMeeting(meetings, now)).toMatchObject({ current: true, meeting: { start: at("2026-10-08T08:00:00+07:00") } });
     expect(openPresence(h.dataset("edunex.presence")!.PL3002, now)?.start).toBe(at("2026-10-08T08:00:00+07:00"));
+  });
+});
+
+describe("a meeting's module", () => {
+  const meeting = (day: string): Meeting => ({ key: day, start: at(`${day}T08:00:00+07:00`), end: at(`${day}T09:30:00+07:00`), six: null, presence: null, announced: null, notInSix: false });
+  const entry = (number: number, title: string, posted: string) => ({ module: { id: number, courseId: 1, title, postedAt: at(`${posted}+07:00`) }, number, parent: false });
+  const meetings = ["2026-09-10", "2026-09-17", "2026-09-24", "2026-10-01"].map(meeting);
+
+  it("is the one module posted in the week before it; a batch or two in one week names nothing", () => {
+    const modules = meetingModules(meetings, [
+      entry(1, "Info Awal", "2026-09-09T22:40:00"),
+      entry(2, "Impact of Innovation", "2026-09-09T22:45:00"),
+      entry(4, "Production Process Innovation", "2026-09-16T20:25:00"),
+      entry(5, "Inovasi Kelembagaan Pasar", "2026-09-29T19:55:00"),
+      entry(6, "Inovasi Keuangan", "2026-10-01T00:25:00"),
+    ]);
+    expect([...modules].map(([key, e]) => [key, e.number])).toEqual([["2026-09-17", 4]]);
+  });
+
+  it("never from a numbered placeholder, or a module posted long before", () => {
+    expect(meetingModules(meetings, [entry(6, "Module 06", "2026-09-16T20:25:00"), entry(1, "Pengantar", "2026-08-01T10:00:00")]).size).toBe(0);
   });
 });
 
@@ -116,7 +137,7 @@ describe("course-contract calculator", () => {
 });
 
 describe("materials and offline files", () => {
-  it("each material type gets its action; unknown or unsafe ones fall back to EduNex", async () => {
+  it("each material type gets its action; unknown or unsafe ones fall back to Edunex", async () => {
     const base = { id: 1, courseId: 95001, moduleId: 470019, title: "Slide 1", content: "", sizeBytes: null, postedAt: null, updatedAt: null };
     const blob = "https://edunexfixture.blob.core.windows.net/edunex/fixture-1";
     expect(materialAction({ ...base, type: "pdf", content: blob })).toEqual({ kind: "download", url: blob, name: "Slide 1.pdf" });

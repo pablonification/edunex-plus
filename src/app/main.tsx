@@ -5,6 +5,7 @@ import { createRoot } from "react-dom/client";
 import type { Event } from "../core/contract";
 import { App } from "./app";
 import { createBridge } from "./bridge";
+import { systemClock } from "./i18n";
 import { AppStore } from "./store";
 import "./styles.css";
 
@@ -23,7 +24,7 @@ async function start(root: HTMLElement) {
   store = new AppStore(snapshot);
   for (const event of early) store.apply(event);
 
-  createRoot(root).render(<App store={store} bridge={bridge} />);
+  createRoot(root).render(<App store={store} bridge={bridge} clock={api.clockOffset ? systemClock(api.clockOffset) : undefined} />);
   // Two frames: React has committed and the browser has painted.
   requestAnimationFrame(() => requestAnimationFrame(() => void bridge.invoke("app.ready", {}).catch(() => undefined)));
 }

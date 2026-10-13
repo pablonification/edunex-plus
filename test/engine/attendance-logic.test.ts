@@ -1,6 +1,6 @@
 // v2-16 (#85): the attendance guard's reasoning, on its own: where a course's
 // attendance counts, what SIX's exact count leaves before the target, meetings
-// left to ITB's last lecture day, and the action each EduNex Presence window
+// left to ITB's last lecture day, and the action each Edunex Presence window
 // counts.
 import { describe, expect, it } from "vitest";
 import {
@@ -56,27 +56,32 @@ function presence(id: number, startIso: string, minutes: number, patch: Partial<
 
 describe("where attendance counts", () => {
   const now = wib("2026-10-08T12:00:00");
-  // The View Course default nobody uses: EduNex recorded the Student once in 7 closed windows.
+  // The View Course default nobody uses: Edunex recorded the Student once in 7 closed windows.
   const viewCourse = Array.from({ length: 7 }, (_, i) =>
     presence(i + 1, new Date(wib("2026-08-27T08:00:00") + i * 7 * DAY + 7 * HOUR).toISOString().slice(0, 19), 90, i === 0 ? { recorded: { present: true, at: null } } : {}),
   );
 
-  it("in SIX when SIX counted far more than EduNex recorded (EduNex's unused windows aren't absences)", () => {
+  it("in SIX when SIX counted far more than Edunex recorded (Edunex's unused windows aren't absences)", () => {
     expect(countedIn({ attended: 6, held: 7 }, viewCourse, now)).toBe("six");
   });
 
-  it("in both when EduNex's record keeps up with SIX's count", () => {
+  it("in both when Edunex's record keeps up with SIX's count", () => {
     const kept = viewCourse.map((p, i) => (i < 5 ? { ...p, recorded: { present: true, at: null } } : p));
     expect(countedIn({ attended: 6, held: 7 }, kept, now)).toBe("both");
   });
 
-  it("in EduNex when only EduNex has a record, in SIX when EduNex has no windows, else unknown", () => {
+  it("in Edunex when only Edunex has a record, in SIX when Edunex has no windows, else unknown", () => {
     expect(countedIn(null, viewCourse, now)).toBe("edunex");
     expect(countedIn({ attended: 0, held: 0 }, viewCourse, now)).toBe("edunex");
     expect(countedIn({ attended: 3, held: 4 }, [], now)).toBe("six");
     expect(countedIn(null, [], now)).toBe("unknown");
     // Windows still to come say nothing yet.
     expect(countedIn({ attended: 3, held: 4 }, [presence(1, "2026-10-15T08:00:00", 90)], now)).toBe("six");
+  });
+
+  it("signed out of SIX: not known where it counts, so Edunex's record never claims to be the count", () => {
+    expect(countedIn(null, viewCourse, now, false)).toBe("noSix");
+    expect(countedIn(null, [], now, false)).toBe("unknown");
   });
 });
 
@@ -116,6 +121,36 @@ describe("meetings left to the last lecture day", () => {
   it("a one-off extra class is no weekly slot", () => {
     const sessions = [...weekly("KU5014", "2026-09-03T16:00:00", 5), session("KU5014", "2026-09-26T09:00:00")];
     expect(usualSlots(sessions)).toEqual([{ weekday: 4, start: 16 * 60, length: 2 * HOUR }]);
+  });
+
+  it("a lecture SIX still lists inside the UTS week counts, marked uncertain, each meeting with its date", () => {
+    // SIX keeps the Thursday lecture in the 15 Oct slot of Masa UTS; it may not happen.
+    const schedule = weekly("PL3002", "2026-08-27T08:00:00", 10);
+    const left = meetingsLeft("PL3002", schedule, period, wib("2026-10-08T12:00:00"));
+    expect(left.count).toBe(8);
+    expect(left.upcoming).toHaveLength(8);
+    expect(left.upcoming.map((m) => [wibDate(m.start), m.estimated, m.uncertain])).toEqual([
+      ["2026-10-15", false, true],
+      ["2026-10-22", false, false],
+      ["2026-10-29", false, false],
+      ["2026-11-05", true, false],
+      ["2026-11-12", true, false],
+      ["2026-11-19", true, false],
+      ["2026-11-26", true, false],
+      ["2026-12-03", true, false],
+    ]);
+    // The next meeting is SIX's next, uncertain or not: a Student with no absences left must not skip it.
+    expect(wibDate(left.next!.start)).toBe("2026-10-15");
+    expect(left.upcoming[0].session?.id).toBe(left.next!.id);
+  });
+
+  it("a meeting in an exam week with a hand-in for attendance that day isn't uncertain: the lecturer set it", () => {
+    const schedule = [session("II4091", "2026-10-16T15:00:00", 8), session("II4091", "2026-10-30T15:00:00", 8)];
+    const handIn = presence(2243740, "2026-10-16T15:00:00", 539, { courseId: 95326, countsBy: [{ kind: "assignment", id: "117003" }] });
+    const viewCourse = presence(2243741, "2026-10-15T15:00:00", 90, { courseId: 95326 });
+    expect(meetingsLeft("II4091", schedule, period, wib("2026-10-08T12:00:00")).upcoming[0].uncertain).toBe(true);
+    expect(meetingsLeft("II4091", schedule, period, wib("2026-10-08T12:00:00"), [viewCourse]).upcoming[0].uncertain).toBe(true);
+    expect(meetingsLeft("II4091", schedule, period, wib("2026-10-08T12:00:00"), [handIn]).upcoming[0].uncertain).toBe(false);
   });
 
   it("without the calendar, only SIX's listed sessions count, and not as an estimate", () => {
@@ -163,14 +198,14 @@ describe("the absence budget", () => {
   });
 });
 
-describe("what counts in an EduNex Presence window", () => {
+describe("what counts in an Edunex Presence window", () => {
   const task: Task = aTask({ id: 117003, courseCode: "II4091", courseId: 95326, moduleId: 450222, title: "Tugas 02 Bab II", status: "not_started" });
 
   it("View Course by default: the course page", () => {
     expect(presenceAction(presence(1, "2026-10-15T08:00:00", 90), [])).toEqual({ activity: "course", task: null, url: "https://edunex.itb.ac.id/courses/95001" });
   });
 
-  it("Answer Assignment: the Task, on the page EduNex gives, else the Task's module", () => {
+  it("Answer Assignment: the Task, on the page Edunex gives, else the Task's module", () => {
     const window = presence(2, "2026-10-16T15:00:00", 539, {
       courseId: 95326,
       countsBy: [{ kind: "assignment", id: "117003" }],

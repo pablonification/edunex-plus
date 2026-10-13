@@ -1,11 +1,11 @@
 // Attendance guard (#85): where each course's attendance counts, what SIX's
-// exact count leaves the Student before their target, and, for each EduNex
+// exact count leaves the Student before their target, and, for each Edunex
 // Presence window, the one action that counts there. Pure: the Presensi
 // screen, the course page and the alert detectors all reason with this.
 //
-// Nothing here ever calls a meeting an absence on EduNex's word: SIX's count
+// Nothing here ever calls a meeting an absence on Edunex's word: SIX's count
 // ("Hadir X dari Y pertemuan") is the official record, and a Presence window
-// EduNex didn't record may still have been counted in SIX.
+// Edunex didn't record may still have been counted in SIX.
 import { wibDay } from "./course-meetings";
 import { EDUNEX_WEB, edunexCourseUrl } from "./links";
 import type { AcademicCalendar, ClassSession, PresenceSession, SixCourse, Task } from "./models";
@@ -20,23 +20,26 @@ export const DEFAULT_TARGET = 80;
 // ---------------------------------------------------------------- where it counts
 
 /**
- * six: the lecturer records attendance in SIX; EduNex's Presence windows (if
- * any) go unused, so their "Absent" means nothing. edunex: only EduNex has a
- * record (SIX shows no count). both: EduNex records keep up with SIX's count,
- * so the lecturer uses both. unknown: neither has a record yet.
+ * six: the lecturer records attendance in SIX; Edunex's Presence windows (if
+ * any) go unused, so their "Absent" means nothing. edunex: only Edunex has a
+ * record (SIX shows no count). both: Edunex records keep up with SIX's count,
+ * so the lecturer uses both. unknown: neither has a record yet. noSix: SIX
+ * isn't connected, so which one counts can't be known; what Edunex recorded
+ * is only a fact, never an absence.
  */
-export type CountedIn = "six" | "edunex" | "both" | "unknown";
+export type CountedIn = "six" | "edunex" | "both" | "unknown" | "noSix";
 
 /**
  * The rule. SIX's count is official, so wherever SIX has one, SIX counts.
- * EduNex counts too when what it recorded keeps up with SIX: at least SIX's
+ * Edunex counts too when what it recorded keeps up with SIX: at least SIX's
  * attended count minus one (one meeting of slack for a window the Student
- * missed or a lecturer who records late). A course whose EduNex windows
+ * missed or a lecturer who records late). A course whose Edunex windows
  * recorded far fewer than SIX counted (the default View Course rule nobody
- * uses: 1 of 15 in EduNex against 6 of 7 in SIX) counts in SIX only.
+ * uses: 1 of 15 in Edunex against 6 of 7 in SIX) counts in SIX only.
  */
-export function countedIn(six: SixCourse["attendance"], presence: readonly PresenceSession[], now: number): CountedIn {
+export function countedIn(six: SixCourse["attendance"], presence: readonly PresenceSession[], now: number, sixConnected = true): CountedIn {
   const closed = presence.filter((p) => p.closesAt <= now);
+  if (!sixConnected) return closed.length > 0 ? "noSix" : "unknown";
   const recorded = closed.filter((p) => p.recorded?.present).length;
   const sixCounts = six !== null && six.held > 0;
   if (!sixCounts) return closed.length > 0 ? "edunex" : "unknown";
@@ -100,12 +103,25 @@ export function lecturePeriod(calendar: AcademicCalendar | undefined, term: stri
   return { lastDay: end.lastDay, offDays };
 }
 
+/** One meeting still to come, as counted. */
+export interface UpcomingMeeting {
+  start: number;
+  /** SIX's session; null for the weekly slot carried on past SIX's timetable. */
+  session: ClassSession | null;
+  /** The weekly slot carried on: the date is the app's estimate. */
+  estimated: boolean;
+  /** Listed by SIX inside an exam week or a holiday on ITB's calendar: it may not happen. */
+  uncertain: boolean;
+}
+
 export interface MeetingsLeft {
   count: number;
   /** Part of it is the usual weekly slot carried on past SIX's timetable: say "about". */
   estimated: boolean;
-  /** The next meeting on SIX's timetable. */
+  /** The next meeting on SIX's timetable (it may be uncertain: see `upcoming`). */
   next: ClassSession | null;
+  /** Each meeting counted, in time order (`count` of them). */
+  upcoming: UpcomingMeeting[];
 }
 
 /**
@@ -113,14 +129,25 @@ export interface MeetingsLeft {
  * on SIX's timetable that haven't started, then, past the last day the
  * timetable covers (`schedule` is SIX's whole timetable, every course), the
  * usual weekly slot(s) carried on to the last lecture day, skipping UTS and
- * UAS weeks and holidays.
+ * UAS weeks and holidays. A session SIX lists inside those still counts
+ * (SIX may hold it, and missing it would cost an absence) but is marked
+ * uncertain, so screens can say "check first", unless the lecturer set an
+ * Edunex hand-in for attendance that day (`presence`).
  */
-export function meetingsLeft(code: string, schedule: readonly ClassSession[], period: ReturnType<typeof lecturePeriod>, now: number): MeetingsLeft {
+export function meetingsLeft(
+  code: string,
+  schedule: readonly ClassSession[],
+  period: ReturnType<typeof lecturePeriod>,
+  now: number,
+  presence: readonly PresenceSession[] = [],
+): MeetingsLeft {
   const mine = schedule.filter((s) => s.courseCode === code);
   const before = (s: ClassSession) => !period || wibDay(s.start) <= period.lastDay;
   const coming = mine.filter((s) => s.start > now && !isExamActivity(s.activity) && before(s)).sort((a, b) => a.start - b.start);
-  let count = coming.length;
-  let estimated = false;
+  // A day the lecturer set a hand-in for attendance (Edunex's Answer Assignment) is a meeting that happens, exam week or not.
+  const handIn = new Set(presence.filter((p) => p.countsBy[0]?.kind === "assignment").map((p) => wibDay(p.opensAt)));
+  const uncertain = (day: string) => (period?.offDays.has(day) ?? false) && !handIn.has(day);
+  const upcoming: UpcomingMeeting[] = coming.map((session) => ({ start: session.start, session, estimated: false, uncertain: uncertain(wibDay(session.start)) }));
   if (period && schedule.length) {
     // SIX's timetable comes a month at a time: it covers through the end of its last month.
     const lastMonth = wibDay(Math.max(...schedule.map((s) => s.start))).slice(0, 7);
@@ -133,14 +160,12 @@ export function meetingsLeft(code: string, schedule: readonly ClassSession[], pe
       if (period.offDays.has(date)) continue;
       for (const slot of slots) {
         const at = day + slot.start * MINUTE;
-        if (slot.weekday === wibWeekday(day) && at >= from && at > now) {
-          count += 1;
-          estimated = true;
-        }
+        if (slot.weekday === wibWeekday(day) && at >= from && at > now) upcoming.push({ start: at, session: null, estimated: true, uncertain: false });
       }
     }
   }
-  return { count, estimated, next: coming[0] ?? null };
+  upcoming.sort((a, b) => a.start - b.start);
+  return { count: upcoming.length, estimated: upcoming.some((m) => m.estimated), next: coming[0] ?? null, upcoming };
 }
 
 // ---------------------------------------------------------------- the budget
@@ -166,7 +191,7 @@ export interface AttendanceHealth {
   /** Meetings in a row that bring the Student back to the target, when below it now and it can be done this term. */
   toRecover: number | null;
   state: AttendanceState;
-  /** EduNex Presence: windows that closed, and how many recorded the Student present. */
+  /** Edunex Presence: windows that closed, and how many recorded the Student present. */
   edunexClosed: number;
   edunexRecorded: number;
 }
@@ -174,6 +199,8 @@ export interface AttendanceHealth {
 export interface AttendanceInput {
   code: string;
   six: SixCourse["attendance"];
+  /** false: the Student isn't signed in to SIX (default true). */
+  sixConnected?: boolean;
   presence: readonly PresenceSession[];
   /** SIX's whole timetable (every course). */
   schedule: readonly ClassSession[];
@@ -185,12 +212,12 @@ export interface AttendanceInput {
 
 const EPS = 1e-9;
 
-export function attendanceHealth({ code, six, presence, schedule, period, target, now }: AttendanceInput): AttendanceHealth {
+export function attendanceHealth({ code, six, sixConnected, presence, schedule, period, target, now }: AttendanceInput): AttendanceHealth {
   const closed = presence.filter((p) => p.closesAt <= now);
   const base = {
     code,
-    countedIn: countedIn(six, presence, now),
-    left: meetingsLeft(code, schedule, period, now),
+    countedIn: countedIn(six, presence, now, sixConnected),
+    left: meetingsLeft(code, schedule, period, now, presence),
     edunexClosed: closed.length,
     edunexRecorded: closed.filter((p) => p.recorded?.present).length,
   };
@@ -213,10 +240,10 @@ export function attendanceHealth({ code, six, presence, schedule, period, target
 /** A state worth a word: not safe and known. */
 export const needsAttention = (state: AttendanceState) => state === "risk" || state === "none" || state === "out";
 
-// ---------------------------------------------------------------- what counts in an EduNex window
+// ---------------------------------------------------------------- what counts in an Edunex window
 
 /**
- * EduNex's `presence_categories`: View Course (the default, no `presentable`),
+ * Edunex's `presence_categories`: View Course (the default, no `presentable`),
  * Read Module, Join Discussion, Answer Assignment, Do Exam, Join Vicon, and
  * the CRS actions. "other" is a category the app doesn't know yet.
  */
@@ -234,17 +261,25 @@ const ACTIVITIES: Readonly<Record<string, PresenceActivity>> = {
   crs_vote: "crs",
 };
 
+/**
+ * A share as a whole percent, rounded down, the same on every screen: 79.6 %
+ * must never read as the 80 % target. `whole` omitted: `part` is a fraction.
+ */
+export function percent(part: number, whole = 1): number {
+  return whole > 0 ? Math.floor((part / whole) * 100 + 1e-9) : 0;
+}
+
 export interface PresenceAction {
   activity: PresenceActivity;
   /** The Task to hand in, for Answer Assignment, when the app knows it. */
   task: Task | null;
-  /** The EduNex page where the Student does it. */
+  /** The Edunex page where the Student does it. */
   url: string;
 }
 
 /**
- * The activity that counts in a Presence window and the EduNex page to do it
- * on: the session's own link when EduNex gives one, else the Task's or
+ * The activity that counts in a Presence window and the Edunex page to do it
+ * on: the session's own link when Edunex gives one, else the Task's or
  * module's page, else the course. The app only opens the page; the Student acts.
  */
 export function presenceAction(session: PresenceSession, tasks: readonly Task[]): PresenceAction {

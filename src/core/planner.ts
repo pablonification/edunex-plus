@@ -15,6 +15,7 @@ import {
   type PlannedCourse,
   type Progress,
   projectIpk,
+  roundIndex,
   type StudyPlan,
   termIndex,
   type Transcript,
@@ -116,6 +117,9 @@ export interface StudentRecord {
   /** Elective SKS the program needs (graduation SKS minus required), and those passed or in progress. */
   electiveNeed: number | null;
   electiveHave: number;
+  /** Of `electiveHave`: passed (or credited) and this term's. */
+  electivePassed: number;
+  electiveInProgress: number;
   /** The specialization the Student registered for, as the curriculum lists it. */
   specialization: CoursePackage | null;
   minors: MinorOption[];
@@ -185,9 +189,14 @@ export function studentRecord(input: RecordInput): StudentRecord {
 
   const requiredSks = curriculum ? curriculum.required.reduce((sum, c) => sum + c.sks, 0) : null;
   const graduationSks = curriculum?.graduationSks ?? DEFAULT_GRADUATION_SKS;
-  const electiveHave = progress
-    ? progressRows.filter((c) => ELECTIVE.has(c.kind) && (c.status === "in-progress" || c.status === "exempt" || (c.status === "graded" && passedGrade(c.grade)))).reduce((sum, c) => sum + c.sks, 0)
-    : [...graded.entries()].filter(([code, g]) => !required.has(code) && passedGrade(g.grade)).reduce((sum, [, g]) => sum + g.sks, 0);
+  const electiveRows = progressRows.filter((c) => ELECTIVE.has(c.kind));
+  const sksOf = (list: { sks: number }[]) => list.reduce((sum, c) => sum + c.sks, 0);
+  // A graded elective without a letter yet is this term's, as SIX lists it.
+  const electivePassed = progress
+    ? sksOf(electiveRows.filter((c) => c.status === "exempt" || (c.status === "graded" && passedGrade(c.grade))))
+    : sksOf([...graded.entries()].filter(([code, g]) => !required.has(code) && passedGrade(g.grade)).map(([, g]) => g));
+  const electiveInProgress = progress ? sksOf(electiveRows.filter((c) => c.status === "in-progress" || (c.status === "graded" && !isLetterGrade(c.grade)))) : 0;
+  const electiveHave = electivePassed + electiveInProgress;
 
   const registration = (kind: "specialization" | "minor") => curriculum?.registrations.find((r) => r.kind === kind)?.name.toLowerCase() ?? null;
   const specName = registration("specialization");
@@ -218,6 +227,8 @@ export function studentRecord(input: RecordInput): StudentRecord {
     requiredLeft,
     electiveNeed: requiredSks === null ? null : Math.max(0, graduationSks - requiredSks),
     electiveHave,
+    electivePassed,
+    electiveInProgress,
     specialization,
     minors,
     registeredMinor: minors.find((m) => m.name.toLowerCase() === minorName)?.key ?? null,
@@ -379,6 +390,8 @@ export interface Projection {
   honor: HonorLevel | null;
   /** SKS still to be graded: this term's courses without a grade and every planned one. */
   variableSks: number;
+  /** The highest IPK still possible: an A in everything still to be graded. */
+  bestIpk: number | null;
   /** The average the rest needs for an IPK. */
   need(target: number): Need;
 }
@@ -462,6 +475,7 @@ export function project(record: StudentRecord, rawPlan: StudyPlan): Projection {
     path,
     honor: honorFor(finalIpk, path),
     variableSks,
+    bestIpk: variableSks ? roundIndex(points + GRADE_POINTS.A * variableSks, sks + variableSks) : finalIpk,
     need(target) {
       if (variableSks === 0) return { kind: "none" };
       const average = (target * (sks + variableSks) - points) / variableSks;
@@ -522,7 +536,15 @@ export type Rule =
   | { id: "load"; level: RuleLevel; term: string; sks: number; limit: number }
   | { id: "parity"; level: RuleLevel; term: string; code: string; name: string; semester: number }
   | { id: "early"; level: RuleLevel; term: string; code: string; name: string; semester: number }
-  | { id: "finish"; level: RuleLevel; semester: number; normal: number };
+  | { id: "finish"; level: RuleLevel; semester: number; normal: number; blocked: Shortfall | null };
+
+/** What still stands between the plan and graduating: SKS, required courses, elective SKS, other rules not met. */
+export interface Shortfall {
+  sks: number;
+  required: number;
+  electives: number;
+  other: number;
+}
 
 /** SKS a minor's courses add up to for the Student: passed, this term or planned. */
 export function minorCoverage(record: StudentRecord, plan: StudyPlan, minor: MinorOption): { have: number; codes: string[] } {
@@ -537,19 +559,16 @@ export const minorNeed = (record: StudentRecord, minor: MinorOption) => minor.sk
 export function checkPlan(record: StudentRecord, rawPlan: StudyPlan, projection: Projection): Rule[] {
   const plan = livePlan(rawPlan, record);
   const planned = plannedCodes(plan);
-  const fresh = plan.terms.flatMap((t) => t.courses.filter((c) => !c.retake));
+  const sks = sksModel(record, plan);
   const rules: Rule[] = [];
 
-  const have = record.passedSks + record.inProgressSks + fresh.reduce((sum, c) => sum + c.sks, 0);
-  rules.push({ id: "total", level: have >= record.graduationSks ? "ok" : "error", have, need: record.graduationSks });
+  rules.push({ id: "total", level: sks.short ? "error" : "ok", have: sks.total, need: sks.need });
 
   const missing = record.requiredLeft.filter((c) => !planned.has(c.code)).map(({ code, name }) => ({ code, name }));
   rules.push({ id: "required", level: missing.length ? "error" : "ok", total: record.curriculum ? record.required.size : null, missing });
 
   if (record.electiveNeed !== null) {
-    const left = new Set(record.requiredLeft.map((c) => c.code));
-    const electives = record.electiveHave + fresh.filter((c) => !left.has(c.code) && !record.required.has(c.code)).reduce((sum, c) => sum + c.sks, 0);
-    rules.push({ id: "electives", level: electives >= record.electiveNeed ? "ok" : "error", have: electives, need: record.electiveNeed });
+    rules.push({ id: "electives", level: sks.electives.short ? "error" : "ok", have: sks.electives.have, need: record.electiveNeed });
   }
 
   if (record.specialization) {
@@ -584,11 +603,108 @@ export function checkPlan(record: StudentRecord, rawPlan: StudyPlan, projection:
     }
   }
 
+  // Graduating is one verdict: while any rule above is not met, there is no graduation semester to promise.
   if (projection.finishSemester !== null) {
     const semester = projection.finishSemester;
-    rules.push({ id: "finish", level: semester <= record.normalSemesters ? "ok" : "warn", semester, normal: record.normalSemesters });
+    const errors = rules.filter((r) => r.level === "error");
+    const of = <I extends Rule["id"]>(id: I) => errors.find((r): r is Extract<Rule, { id: I }> => r.id === id);
+    const total = of("total");
+    const electives = of("electives");
+    const blocked: Shortfall | null = errors.length
+      ? {
+          sks: total ? total.need - total.have : 0,
+          required: of("required")?.missing.length ?? 0,
+          electives: electives ? electives.need - electives.have : 0,
+          other: errors.filter((r) => r.id !== "total" && r.id !== "required" && r.id !== "electives").length,
+        }
+      : null;
+    rules.push({ id: "finish", level: blocked ? "error" : semester <= record.normalSemesters ? "ok" : "warn", semester, normal: record.normalSemesters, blocked });
   }
   return rules;
+}
+
+// ------------------------------------------------------------ SKS, one count for every screen
+
+/**
+ * The SKS picture Rencana, Kurikulum and Nilai all show, from one count:
+ * what graduating needs (all, required, electives), and what the Student has
+ * passed, takes this term and has planned. Retakes add no SKS.
+ */
+export interface SksModel {
+  need: number;
+  requiredNeed: number | null;
+  electiveNeed: number | null;
+  passed: number;
+  inProgress: number;
+  planned: number;
+  /** passed + inProgress + planned. */
+  total: number;
+  /** SKS still missing to graduate, and SKS beyond what's needed. */
+  short: number;
+  extra: number;
+  /** Required courses still to take, and those of them not in the plan. */
+  requiredLeft: { count: number; sks: number };
+  requiredUnplanned: { count: number; sks: number };
+  electives: { passed: number; inProgress: number; planned: number; have: number; short: number; extra: number };
+}
+
+export function sksModel(record: StudentRecord, rawPlan: StudyPlan): SksModel {
+  const plan = livePlan(rawPlan, record);
+  const planned = plannedCodes(plan);
+  const fresh = plan.terms.flatMap((t) => t.courses.filter((c) => !c.retake));
+  const sum = (list: { sks: number }[]) => list.reduce((total, c) => total + c.sks, 0);
+  const plannedSks = sum(fresh);
+  const total = record.passedSks + record.inProgressSks + plannedSks;
+  const left = new Set(record.requiredLeft.map((c) => c.code));
+  const electivePlanned = sum(fresh.filter((c) => !left.has(c.code) && !record.required.has(c.code)));
+  const electiveHave = record.electiveHave + electivePlanned;
+  const unplanned = record.requiredLeft.filter((c) => !planned.has(c.code));
+  const need = record.electiveNeed ?? 0;
+  return {
+    need: record.graduationSks,
+    requiredNeed: record.electiveNeed === null ? null : record.graduationSks - record.electiveNeed,
+    electiveNeed: record.electiveNeed,
+    passed: record.passedSks,
+    inProgress: record.inProgressSks,
+    planned: plannedSks,
+    total,
+    short: Math.max(0, record.graduationSks - total),
+    extra: Math.max(0, total - record.graduationSks),
+    requiredLeft: { count: record.requiredLeft.length, sks: sum(record.requiredLeft) },
+    requiredUnplanned: { count: unplanned.length, sks: sum(unplanned) },
+    electives: {
+      passed: record.electivePassed,
+      inProgress: record.electiveInProgress,
+      planned: electivePlanned,
+      have: electiveHave,
+      short: record.electiveNeed === null ? 0 : Math.max(0, need - electiveHave),
+      extra: record.electiveNeed === null ? 0 : Math.max(0, electiveHave - need),
+    },
+  };
+}
+
+// ------------------------------------------------------------ the IPK target
+
+/** A target the planner and Nilai accept: an IPK from 2,00 to 4,00. */
+export const TARGET_MIN = 2;
+export const TARGET_MAX = 4;
+/** The quick picks; any other value can be typed. */
+export const TARGET_PICKS = [3, 3.5, 3.75] as const;
+
+/** What the Student typed as a target ("3,5" or "3.5"): a value, nothing yet, or out of range. */
+export function parseTarget(text: string): { kind: "ok"; value: number } | { kind: "empty" } | { kind: "invalid" } {
+  const clean = text.trim().replace(",", ".");
+  if (!clean) return { kind: "empty" };
+  const value = Number(clean);
+  if (!Number.isFinite(value) || value < TARGET_MIN - 1e-9 || value > TARGET_MAX + 1e-9) return { kind: "invalid" };
+  return { kind: "ok", value: Math.round(value * 100) / 100 };
+}
+
+/** The Student's target, one setting for Nilai and the planner: theirs, else the next honors line above the IPK. */
+export function targetOf(record: StudentRecord, plan: StudyPlan): number {
+  if (plan.target !== null && plan.target >= TARGET_MIN && plan.target <= TARGET_MAX) return plan.target;
+  const ipk = record.transcript?.ipk.computed ?? 0;
+  return [3, 3.5, 3.75, 3.85, 4].find((v) => v > ipk + 1e-9) ?? 4;
 }
 
 // ------------------------------------------------------------ the catalog

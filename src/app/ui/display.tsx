@@ -5,8 +5,17 @@ import { useT } from "../i18n";
 import { cx } from "./cx";
 import { Icons } from "./icons";
 
-export function Card({ className, children }: { className?: string; children: ReactNode }) {
-  return <div className={cx("rounded-xl border border-edge bg-surface", className)}>{children}</div>;
+const CARD = {
+  /** Content that sits on the page. */
+  plain: "rounded-xl border border-edge bg-surface shadow-card",
+  /** What matters most on a screen (what's happening now): lifted a little. */
+  raised: "rounded-2xl border border-edge bg-raised shadow-raised",
+  /** A quiet area inside a card or a page (an empty state, a side note). */
+  sunken: "rounded-xl bg-sunken",
+} as const;
+
+export function Card({ variant = "plain", className, children }: { variant?: keyof typeof CARD; className?: string; children: ReactNode }) {
+  return <div className={cx(CARD[variant], className)}>{children}</div>;
 }
 
 export function SectionTitle({ children, aside, count }: { children: ReactNode; aside?: ReactNode; count?: number }) {
@@ -21,11 +30,15 @@ export function SectionTitle({ children, aside, count }: { children: ReactNode; 
   );
 }
 
-export function EmptyState({ icon, title, children }: { icon: ReactNode; title: string; children?: ReactNode }) {
+/** Nothing here yet: what would be here, why it's empty, and the way forward when there is one. */
+export function EmptyState({ icon, title, description, children }: { icon: ReactNode; title: string; description?: ReactNode; children?: ReactNode }) {
   return (
-    <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-line px-6 py-10 text-center text-muted">
-      <span className="text-faint">{icon}</span>
-      <p className="text-body font-medium">{title}</p>
+    <div className="flex flex-col items-center gap-3 rounded-xl bg-sunken px-6 py-11 text-center">
+      <span className="grid size-10 place-items-center rounded-full bg-surface text-muted shadow-card">{icon}</span>
+      <div>
+        <p className="text-body font-semibold text-fg">{title}</p>
+        {description && <p className="mx-auto mt-1 max-w-[46ch] text-small text-muted">{description}</p>}
+      </div>
       {children}
     </div>
   );
@@ -87,17 +100,14 @@ export function Badge({ tone = "neutral", children, className }: { tone?: Tone; 
 /** The official systems a fact can come from. */
 export type Source = "edunex" | "six" | "itb";
 
-const SOURCE_TONE: Record<Source, string> = {
-  edunex: "bg-(--source-edunex-bg) text-(--source-edunex-fg)",
-  six: "bg-(--source-six-bg) text-(--source-six-fg)",
-  itb: "bg-(--source-itb-bg) text-(--source-itb-fg)",
-};
-
-/** Which official system a fact comes from. Every merged screen shows it. */
+/**
+ * Which official system a fact comes from, said quietly. Only where it changes
+ * what the Student does: where to act, or when two systems disagree.
+ */
 export function SourceTag({ source, className }: { source: Source; className?: string }) {
   const t = useT();
   return (
-    <span className={cx("inline-flex h-[18px] items-center rounded px-1.5 text-micro font-semibold tracking-[0.01em]", SOURCE_TONE[source], className)}>
+    <span className={cx("inline-flex h-[18px] shrink-0 items-center rounded-[5px] border border-edge px-1.5 text-micro font-semibold tracking-[0.01em] text-muted", className)}>
       {t(`source.${source}`)}
     </span>
   );
@@ -117,13 +127,13 @@ const STATUS_TONE: Record<TaskStatus, string> = {
 export function StatusGlyph({ status, className = "size-3.5" }: { status: TaskStatus; className?: string }) {
   switch (status) {
     case "submitted":
-      return <Icons.CheckCircle className={className} strokeWidth={2} />;
+      return <Icons.CheckCircle className={className} weight="bold" />;
     case "overdue":
-      return <Icons.AlertTriangle className={className} strokeWidth={2} />;
+      return <Icons.AlertTriangle className={className} weight="bold" />;
     case "closed":
-      return <Icons.Lock className={className} strokeWidth={2} />;
+      return <Icons.Lock className={className} weight="bold" />;
     case "in_review":
-      return <Icons.Clock className={className} strokeWidth={2} />;
+      return <Icons.Clock className={className} weight="bold" />;
     case "draft":
       return (
         <svg viewBox="0 0 24 24" className={className} aria-hidden focusable="false">
@@ -132,7 +142,7 @@ export function StatusGlyph({ status, className = "size-3.5" }: { status: TaskSt
         </svg>
       );
     default:
-      return <Icons.Circle className={className} strokeWidth={2} />;
+      return <Icons.Circle className={className} weight="bold" />;
   }
 }
 

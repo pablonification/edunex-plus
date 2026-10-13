@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 // v2-12 (#80), seam 2: the KRS, UKT and Kalender akademik tabs of Rencana
-// studi as the Student sees them, with the real engine, the pretend EduNex and
+// studi as the Student sees them, with the real engine, the pretend Edunex and
 // ITB calendar behind the bridge, and SIX's records injected (read from the
 // recorded pages by the real readers).
 import { act } from "react";
@@ -74,7 +74,10 @@ describe("the KRS tab", () => {
     expect(text).toContain("Disetujui dosen waliBelum");
     expect(text).toContain("Perubahan KRS (URS): 15 Sep – 18 Sep");
     expect(text).toContain("14 dari maks. 24 SKS");
-    expect(text).toContain("PL3032Ekonomi Infrastruktur dan TransportasiKelas 013 SKSDisetujui");
+    // What every row shares is said once; no chip repeated on every row.
+    expect(text).toContain("PL3032Ekonomi Infrastruktur dan Transportasi3 SKS");
+    expect(text).toContain("Semua di kelas 01·semua disetujui dosen wali");
+    expect(text).not.toContain("Disetujui3");
     expect(text).not.toContain("Perubahan rencana studi (URS)");
 
     await inject(
@@ -88,7 +91,9 @@ describe("the KRS tab", () => {
     text = panel();
     expect(text).toContain("Disetujui dosen waliTinggal disahkan SIX");
     expect(text).toContain("Disetujui dosen waliSel, 18 Agu · 14:39");
-    expect(text).toContain("KU5014Teknik Penyelesaian Masalah TerstrukturKelas 013 SKSBelum disetujui");
+    // Only the row that differs gets a chip.
+    expect(text).toContain("KU5014Teknik Penyelesaian Masalah TerstrukturBelum disetujui3 SKS");
+    expect(text).not.toContain("semua disetujui dosen wali");
   });
 
   it("the official plan with its change round; nothing sent during DRS is a step to do", async () => {
@@ -96,7 +101,7 @@ describe("the KRS tab", () => {
     await inject("six.krs", krs());
     await s.click(/^Rencana studi/);
     await tab("KRS");
-    expect(panel()).toContain("KRS sudah sah");
+    expect(panel()).toContain("KRS sudah sahTidak ada yang perlu kamu lakukan.2026/2027 Ganjil");
     expect(panel()).toContain("Perubahan rencana studi (URS)");
     expect(panel()).toContain("Disahkan (KSM)Rab, 16 Sep · 11:02");
     expect(s.button(/^Rencana studi/).textContent).toBe("Rencana studi");
@@ -115,6 +120,7 @@ describe("the KRS tab", () => {
     expect(panel()).toContain("KRS belum dikirim");
     expect(panel()).toContain("Pengisian KRS (DRS) dibuka sampai 20 Agu");
     expect(early.button(/^Rencana studi/).textContent).toBe("Rencana studi1");
+    expect(early.button(/^Rencana studi/).innerHTML).toContain("warning");
   });
 
   it("overlapping classes on SIX's timetable are flagged", async () => {
@@ -124,15 +130,24 @@ describe("the KRS tab", () => {
     await inject("six.schedule", [meet("1", "PL3002", "2026-10-15T08:00:00"), meet("2", "KU5014", "2026-10-15T09:00:00"), meet("3", "PL3002", "2026-10-22T08:00:00"), meet("4", "KU5014", "2026-10-22T09:00:00")]);
     await s.click(/^Rencana studi/);
     await tab("KRS");
-    expect(panel()).toContain("KU5014 dan PL3002 bentrok Kam 15 Okt, 09:00–10:00, 2 pertemuan. SIX menerima KRS ini tanpa peringatan.");
-    expect(s.button(/^Rencana studi/).textContent).toBe("Rencana studi1");
+    // One honest status: official, but a clash to sort out, with the next step and the way to see it (never "nothing to do").
+    expect(panel()).toContain("KRS sah, tapi ada 1 bentrokKU5014 dan PL3002 bentrok di 2 pertemuan, berikutnya Kam 15 Okt, 09:00–10:00. SIX menerima KRS ini tanpa peringatan.");
+    expect(panel()).toContain("Tanyakan ke dosen KU5014 dan PL3002 jam mana yang dipakai.");
+    expect(panel()).not.toContain("Tidak ada yang perlu kamu lakukan");
+    expect(panel()).toContain("Bentrok dengan PL3002");
+    await s.click("Lihat di Jadwal");
+    expect(s.text()).not.toContain("KRS sah, tapi ada 1 bentrok");
+    // Counted in the sidebar, but not amber: amber is for what needs the Student today.
+    const badge = s.button(/^Rencana studi/);
+    expect(badge.textContent).toBe("Rencana studi1");
+    expect(badge.innerHTML).not.toContain("warning");
   });
 
   it("before SIX is read", async () => {
     const s = await openPlan("2026-10-11T09:00:00+07:00");
     await s.click(/^Rencana studi/);
     await tab("KRS");
-    expect(panel()).toContain("Belum ada KRS dari SIX");
+    expect(panel()).toContain("KRS butuh SIX");
   });
 });
 
@@ -146,12 +161,13 @@ describe("the UKT tab", () => {
     await s.click(/^Rencana studi/);
     await tab("UKT");
     let text = panel();
-    expect(text).toContain("Semester ini · Semester 2 2026/2027Rp5.400.000Belum dibayarBayar paling lambat 31 Jan");
-    expect(text).toContain("SIX Batas bayar di SIX31 Jan");
-    expect(text).toContain("Kalender ITB Batas di kalender ITB31 Jan");
-    expect(text).toContain("Semester depan · Semester 1 2027/2028Belum ditagih");
+    expect(text).toContain("Semester ini · 2026/2027 GenapRp5.400.000Belum dibayarBayar paling lambat 31 Jan");
+    // SIX and ITB agree here: one deadline, nothing to explain.
+    expect(text).toContain("Batas bayar31 Jan");
+    expect(text).not.toContain("ikuti yang lebih awal");
+    expect(text).toContain("Semester depan · 2027/2028 GanjilBelum ditagihTagihan biasanya muncul menjelang semester dimulai.");
     // History: newest first, instalments said.
-    expect(text).toMatch(/Semester 2 2026\/2027Rp5\.400\.00031 Jan 2027Belum dibayarSemester 1 2026\/2027Rp5\.400\.00024 Agu 2026Lunas/);
+    expect(text).toMatch(/2026\/2027 GenapRp5\.400\.00031 Jan 2027Belum dibayar2026\/2027 GanjilRp5\.400\.00024 Agu 2026Lunas/);
     expect(text).toContain("Rp10.500.000dicicil 2x");
     expect(s.button(/^Rencana studi/).textContent).toBe("Rencana studi");
 
@@ -175,31 +191,40 @@ describe("the UKT tab", () => {
     await inject("six.bills", bills(unpaid));
     await late.click(/^Rencana studi/);
     await tab("UKT");
-    expect(panel()).toContain("UKT Semester 2 2026/2027 lewat batas bayar sejak 31 Jan. Sisa Rp5.400.000.");
+    expect(panel()).toContain("UKT 2026/2027 Genap lewat batas bayar sejak 31 Jan. Sisa Rp5.400.000.");
     expect(panel()).toContain("Lewat batas bayar");
     expect(document.querySelector("[role=alert]")).not.toBeNull();
   });
 });
 
 describe("the Kalender akademik tab", () => {
-  it("this term and the next, next ones first, each with what it means; past ones folded", async () => {
+  it("grouped by how soon, today marked, near countdowns bold, each with what it means; past ones folded", async () => {
     const s = await openPlan("2026-10-11T09:00:00+07:00");
     await inject("six.krs", krs());
     await inject("six.bills", bills());
     await inject("six.progress", { entryTerm: "2023-1", ipk: 3.26, sksPassed: 125, sksIncomplete: 0, sksByKind: [], stages: [] } satisfies Progress);
     await s.click(/^Rencana studi/);
     await tab("Kalender akademik");
-    const rows = [...document.querySelectorAll("[role=tabpanel][data-state=active] ol > li")].map((li) => li.textContent ?? "");
-    expect(rows[0]).toBe("12 Okt – 16 OktSenUTS · Semester 1 2026/2027Minggu ujian tengah semester.besok");
-    expect(rows[1]).toContain("Kuesioner evaluasi perkuliahan · Semester 1 2026/2027Isi kuesioner tiap mata kuliah, atau SIX menyembunyikan nilainya.");
-    expect(rows.find((r) => r.includes("Evaluasi kemajuan studi"))).toContain("Target 72 SKS di akhir tahun ke-3; kamu sudah lulus 125 SKS.");
-    expect(rows.find((r) => r.startsWith("20 Jan – 28 Jan"))).toContain("Pengisian KRS (DRS) · Semester 2 2026/2027Isi KRS di SIX, lalu minta persetujuan dosen wali.");
+    const group = (name: string) => [...document.querySelectorAll("[role=tabpanel][data-state=active] section")].find((el) => el.querySelector("h3")?.textContent?.startsWith(name));
+    const rows = (name: string) => [...(group(name)?.querySelectorAll("li") ?? [])].map((li) => li.textContent ?? "");
+    expect(panel()).toContain("Sekarang · Min, 11 Okt");
+    // A range says its days ("Sen–Jum"), not just the first.
+    // The coming seven days are named as such: next week's exam is never filed under "Minggu ini".
+    expect(rows("7 hari ke depan")).toEqual(["12–16 OktSen–JumUTS · 2026/2027 GanjilMinggu ujian tengah semester.besok"]);
+    expect(rows("Minggu ini")).toEqual([]);
+    expect(group("7 hari ke depan")!.querySelector("li .text-warning-fg")?.textContent).toBe("besok");
+    expect(rows("Semester ini")[0]).toContain("Kuesioner evaluasi perkuliahan · 2026/2027 GanjilIsi kuesioner tiap mata kuliah, atau SIX menyembunyikan nilainya.");
+    expect(rows("Semester ini").find((r) => r.includes("Evaluasi kemajuan studi"))).toContain("Target 72 SKS di akhir tahun ke-3; kamu sudah lulus 125 SKS.");
+    // Next semester is folded until opened.
+    expect(rows("Semester depan")).toEqual([]);
+    await s.click(/^Semester depan/);
+    expect(rows("Semester depan").find((r) => r.startsWith("20–28 Jan"))).toContain("Pengisian KRS (DRS) · 2026/2027 GenapIsi KRS di SIX, lalu minta persetujuan dosen wali.");
     // Past ones: folded, then opened.
     const past = document.querySelector("details")!;
     expect(past.open).toBe(false);
     expect(past.querySelector("summary")?.textContent).toBe("Sudah lewat4");
-    expect(past.textContent).toContain("Pengisian KRS (DRS) · Semester 1 2026/2027KRS-mu sudah dikirim.");
-    expect(past.textContent).toContain("Batas bayar UKT · Semester 1 2026/2027UKT-mu sudah lunas.");
+    expect(past.textContent).toContain("Pengisian KRS (DRS) · 2026/2027 GanjilKRS-mu sudah dikirim.");
+    expect(past.textContent).toContain("Batas bayar UKT · 2026/2027 GanjilUKT-mu sudah lunas.");
   });
 
   it("in English", async () => {
@@ -207,6 +232,6 @@ describe("the Kalender akademik tab", () => {
     await s.engineDoes(() => s.engine.updateSettings({ lang: "en" }));
     await s.click(/^Study plan/);
     await tab("Academic calendar");
-    expect(panel()).toContain("Midterms (UTS) · Semester 1, 2026/2027Midterm exam week.tomorrow");
+    expect(panel()).toContain("Midterms (UTS) · 2026/2027 OddMidterm exam week.tomorrow");
   });
 });

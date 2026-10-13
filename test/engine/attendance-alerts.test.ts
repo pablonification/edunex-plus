@@ -1,5 +1,5 @@
 // v2-16 (#85), seam 1: the attendance alerts, by the real engine against the
-// pretend EduNex and ITB calendar and a stand-in SIX, on a fake clock.
+// pretend Edunex and ITB calendar and a stand-in SIX, on a fake clock.
 // Assertions are on the OS notifications the engine asks for and the history.
 import { describe, expect, it } from "vitest";
 import type { ClassSession, SixCourse } from "../../src/core/models";
@@ -19,7 +19,7 @@ function weekly(code: string, firstIso: string, weeks: number): ClassSession[] {
 
 const course = (code: string, attended: number, held: number): SixCourse => ({ code, name: code, classNo: "01", sks: 3, attendance: { attended, held } });
 
-/** PL3002 meets Thursdays 08:00 in SIX (counted 6 of 7); its EduNex windows use the View Course default. */
+/** PL3002 meets Thursdays 08:00 in SIX (counted 6 of 7); its Edunex windows use the View Course default. */
 function sixState(): PretendSixState {
   return { student: STUDENT, courses: [course("PL3002", 6, 7), course("II4091", 2, 2)], schedule: weekly("PL3002", "2026-08-27T08:00:00", 10) };
 }
@@ -36,13 +36,13 @@ describe("Presence opening", () => {
     const world = new PretendWorld({ now: "2026-10-14T20:00:00+07:00" });
     const app = await startAttendance({ world, six: sixState() });
 
-    // PL3002, View Course (EduNex's default), 08:00–09:30.
+    // PL3002, View Course (Edunex's default), 08:00–09:30.
     await app.until("2026-10-15T07:59:00+07:00");
     expect(app.of("presenceOpen")).toEqual([]);
     await app.until("2026-10-15T08:01:00+07:00");
     const [pl] = app.of("presenceOpen");
     expect(pl).toMatchObject({ count: 1, source: "edunex", target: { screen: "course", code: "PL3002", tab: "meetings" } });
-    expect(pl.text).toBe("Presensi dibuka · PL3002 — Buka mata kuliahnya di EduNex · tutup 09:30");
+    expect(pl.text).toBe("Presensi dibuka · PL3002 — Buka mata kuliahnya di Edunex · tutup 09:30");
     expect(pl.shownAt).toBe(wib("2026-10-15T08:00:00"));
 
     // II4091, Answer Assignment: hand in Tugas 02 inside the window (Friday 15:00–23:59).
@@ -72,7 +72,7 @@ describe("Presence opening", () => {
     const app = await startAttendance({ world, six: sixState() });
     await app.until("2026-10-15T18:00:00+07:00");
     const texts = app.of("presenceOpen").map((n) => n.text);
-    expect(texts).toEqual(["Presensi dibuka · PL3002 — Buka mata kuliahnya di EduNex · tutup 09:30", "Presensi dibuka · PL3002 — Buka modulnya di EduNex · tutup 15:00"]);
+    expect(texts).toEqual(["Presensi dibuka · PL3002 — Buka mata kuliahnya di Edunex · tutup 09:30", "Presensi dibuka · PL3002 — Buka modulnya di Edunex · tutup 15:00"]);
     expect(app.of("presenceOpen")[1].id).toBe(`presence.open:${module}:${wib("2026-10-15T13:00:00")}`);
   });
 
@@ -169,7 +169,7 @@ describe("no absences left, target out of reach", () => {
     await app.sixRefresh();
     await app.until("2026-10-21T21:30:00+07:00");
     expect(app.of("attendanceRisk").map((n) => n.text)).toEqual([
-      "Tidak boleh absen lagi · DK4073 — Hadir 7 dari 10 di SIX: hadiri setiap pertemuan tersisa untuk tetap 80%.",
+      "Jangan absen lagi · DK4073 — Hadir 7 dari 10 di SIX: hadiri setiap pertemuan tersisa untuk tetap 80%.",
     ]);
 
     six.courses = [course("DK4073", 7, 11)];

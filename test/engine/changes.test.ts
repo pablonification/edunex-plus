@@ -1,5 +1,5 @@
-// v2-09 (#77), seam 1: the change alerts EduNex never sends, by the real
-// engine against the pretend EduNex and a stand-in SIX on a fake clock: a
+// v2-09 (#77), seam 1: the change alerts Edunex never sends, by the real
+// engine against the pretend Edunex and a stand-in SIX on a fake clock: a
 // Task edited (loud when edited after the Student handed it in) and material
 // posted for a class that meets today.
 import { describe, expect, it } from "vitest";
@@ -27,7 +27,7 @@ async function start() {
 }
 
 describe("a Task edited", () => {
-  it("first sync silent: edits EduNex already had aren't announced", async () => {
+  it("first sync silent: edits Edunex already had aren't announced", async () => {
     const app = await start();
     expect(app.of("taskEdited")).toEqual([]);
   });
@@ -80,13 +80,13 @@ describe("material posted for today's class", () => {
     const shown = app.of("newMaterial");
     expect(shown.map((n) => n.text)).toEqual(["Materi untuk kuliah hari ini · PL3002 — Slide pertemuan 7 · kuliah 13:00"]);
     expect(shown[0]).toMatchObject({ source: "edunex", count: 1, target: { screen: "course", code: "PL3002", tab: "modules" } });
-    // Well before the materials' hourly rhythm: EduNex's feed signalled it.
+    // Well before the materials' hourly rhythm: Edunex's feed signalled it.
     expect(shown[0].shownAt - wib("2026-10-08T08:40:00")).toBeLessThan(5 * MINUTE);
     await app.until("2026-10-08T11:00:00+07:00");
     expect(app.of("newMaterial")).toHaveLength(1);
   });
 
-  it("a course that doesn't meet today: EduNex's own feed announces it, as before", async () => {
+  it("a course that doesn't meet today: Edunex's own feed announces it, as before", async () => {
     const app = await start();
     app.world.edunex.postMaterial(95059, { name: "K6. Pembiayaan" });
     await app.until("2026-10-08T09:00:00+07:00");

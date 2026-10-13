@@ -63,32 +63,49 @@ async function search(query: string) {
   });
 }
 
+/** The planner's toast ("… · Urungkan"), and pressing ⌘Z. */
+const toastText = () => [...document.querySelectorAll("[role=status]")].map((el) => el.textContent).join(" | ");
+async function commandZ() {
+  await act(async () => {
+    document.body.dispatchEvent(new KeyboardEvent("keydown", { key: "z", metaKey: true, bubbles: true }));
+  });
+}
+const summary = () => document.querySelector("main .shadow-raised")?.textContent ?? "";
+
 describe("the study planner", () => {
-  it("before SIX is read: one plain line", async () => {
+  it("before SIX is read: what SIX unlocks, and the calendar that still works", async () => {
     const s = await openPlan({ noRecords: true });
-    expect(s.text()).toContain("Perencana terisi setelah transkrip dan kurikulummu terbaca dari SIX.");
+    expect(s.text()).toContain("Rencana studi butuh SIX");
+    await s.click("Buka Kalender akademik");
+    expect(document.querySelector("[role=tab][data-state=active]")?.textContent).toBe("Kalender akademik");
   });
 
-  it("starts from where the Student stands: SKS to graduation, the semester, IPK and honors, rules", async () => {
+  it("starts from where the Student stands: SKS labelled, the semester, IPK and the predicate, rules", async () => {
     const s = await openPlan();
-    expect(s.text()).toContain("Sarjana Sistem dan Teknologi Informasi151 / 144 SKS125 lulus · 14 semester ini · 12 direncanakan");
-    expect(s.text()).toContain("LulusSemester 81 hal perlu dicek");
-    expect(s.text()).toContain("IPK saat lulus3,30Tanpa predikat pujian");
+    expect(summary()).toContain("Sarjana Sistem dan Teknologi Informasi144 SKS terpenuhi+7 cadangan");
+    expect(summary()).toContain("125 lulus14 semester ini12 direncanakan");
+    expect(summary()).toContain("LulusSemester 81 hal perlu dicek");
+    expect(summary()).toContain("IPK saat lulus3,30Sangat memuaskan");
+    expect(s.text()).not.toContain("Tanpa predikat pujian");
     expect(block(/^Semester 7 · sekarang/)?.textContent).toContain("14 SKSIP 3,50IPK jadi 3,29");
     const next = block(/^Semester 8 · 2026\/2027 Genap/)!;
     expect(next.textContent).toContain("12 / 24 SKSIP 3,50IPK jadi 3,30");
     expect([...next.querySelectorAll("li")].map((li) => li.textContent?.replace(/AABBBCCDE$/, ""))).toEqual([
-      "II4090Kerja PraktikWajib · smt 72",
+      // The Kerja Praktik risk sits on its own row, not only in the rules.
+      "II4090Kerja PraktikBiasanya di semester ganjilWajib · smt 72",
       "II4092Tugas AkhirWajib · smt 84",
       "II4010Manajemen DataSpesialisasi3",
       "II4011Transformasi DigitalSpesialisasi3",
     ]);
     expect(rule("parity")).toEqual([
-      "warn: Perlu dicekII4090 Kerja PraktikSIXKurikulum menaruhnya di semester 7 (ganjil). Pastikan dibuka di semester genap, atau rencanakan di semester pendek.",
+      "warn: Perlu dicekII4090 Kerja PraktikKurikulum menaruhnya di semester 7 (ganjil). Pastikan dibuka di semester genap, atau rencanakan di semester pendek.",
     ]);
-    expect(rule("total")[0]).toContain("ok: Terpenuhi151 dari 144 SKS");
-    expect(rule("required")[0]).toContain("Ke-45 sudah diambil, sedang diambil, atau direncanakan.");
+    expect(rule("total")[0]).toContain("ok: Terpenuhi144 SKS terpenuhi (+7 cadangan)");
+    expect(rule("required")[0]).toContain("Semua 45 sudah diambil, sedang diambil, atau direncanakan.");
+    expect(rule("electives")[0]).toContain("27 dari 27 SKS terpenuhi (+10 lebih).");
     expect(rule("finish")[0]).toContain("Lulus di semester 8");
+    // No source tags on rules.
+    expect(rulesText()).not.toMatch(/SIX|Kalender ITB/);
   });
 
   it("adds any ITB course by searching the catalog, and checks the semester's load live", async () => {
@@ -100,28 +117,50 @@ describe("the study planner", () => {
       await s.click(`Tambah ${code}`);
     }
     expect(block(/^Semester 8/)!.textContent).toContain("21 / 24 SKS");
-    expect(rule("load")).toEqual(["warn: Perlu dicekSemester 8 · 2026/2027 GenapKalender ITB21 SKS: di atas 20 perlu persetujuan dosen wali."]);
+    expect(rule("load")).toEqual(["warn: Perlu dicekSemester 8 · 2026/2027 Genap21 SKS: di atas 20 perlu persetujuan dosen wali."]);
     expect(saved()?.terms[0].courses.map((c) => c.code)).toEqual(["II4090", "II4092", "II4010", "II4011", "II4021", "II4022", "II4023"]);
     expect(s.calls.some((c) => c.name === "local.set")).toBe(true);
     // Never a KRS: the only thing written is the plan on this computer.
     expect(s.calls.filter((c) => c.name !== "local.set" && c.name !== "app.snapshot" && c.name !== "app.ready").map((c) => c.name)).toEqual([]);
   });
 
-  it("removing a required course: the rule says what's missing", async () => {
+  it("removing a required course: the rule says what's missing, the header agrees, and it can be undone", async () => {
     const s = await openPlan();
     await s.click("Hapus II4092");
-    expect(rule("required")).toEqual(["error: Belum terpenuhiMata kuliah wajibSIXBelum direncanakan: II4092 Tugas Akhir."]);
-    expect(rule("total")[0]).toContain("ok: Terpenuhi147 dari 144 SKS");
-    expect(s.text()).toContain("1 aturan belum terpenuhi");
+    expect(rule("required")).toEqual(["error: Belum terpenuhiMata kuliah wajibBelum direncanakan: II4092 Tugas Akhir."]);
+    expect(rule("total")[0]).toContain("ok: Terpenuhi144 SKS terpenuhi (+3 cadangan)");
+    expect(summary()).toContain("Belum bisa lulusKurang 1 mata kuliah wajib");
+    expect(toastText()).toContain("II4092 dihapus dari rencanaUrungkan");
+    await s.click("Urungkan");
+    expect(saved()?.terms[0].courses.map((c) => c.code)).toContain("II4092");
+    expect(rule("required")[0]).toContain("ok:");
+  });
+
+  it("removing a semester: one verdict (never 'graduate in 7' with rules unmet), and undo brings it back (bug)", async () => {
+    const s = await openPlan();
+    await s.click("Hapus Semester 8 · 2026/2027 Genap");
+    expect(toastText()).toContain("Semester 8 · 2026/2027 Genap dihapus (4 mata kuliah)Urungkan");
+    expect(summary()).toContain("Belum bisa lulusKurang 5 SKS dan 2 mata kuliah wajib");
+    expect(summary()).not.toContain("Semester 7");
+    expect(rule("finish")).toEqual(["error: Belum terpenuhiBelum bisa lulusMasih kurang 5 SKS dan 2 mata kuliah wajib."]);
+    expect(rulesText()).not.toContain("Lulus di semester 7");
+    await s.click("Urungkan");
+    expect(block(/^Semester 8 · 2026\/2027 Genap/)!.querySelectorAll("li")).toHaveLength(4);
+    // ⌘Z takes back the last removal too.
+    await s.click("Hapus Semester 8 · 2026/2027 Genap");
+    expect(block(/^Semester 8/)).toBeUndefined();
+    await commandZ();
+    expect(block(/^Semester 8/)).toBeDefined();
   });
 
   it("an empty plan: SKS short, required courses and the specialization missing", async () => {
     const s = await openPlan({ saved: { terms: [{ term: "2026-2", courses: [] }], expected: {}, target: null, minor: null } });
     expect(block(/^Semester 8/)!.textContent).toContain("Belum ada rencana.");
-    expect(rule("total")).toEqual(["error: Belum terpenuhi139 dari 144 SKSSIXKurang 5 SKS. Tambah mata kuliah."]);
+    expect(summary()).toContain("139 dari 144 SKSkurang 5");
+    expect(rule("total")).toEqual(["error: Belum terpenuhi139 dari 144 SKSKurang 5 SKS. Tambah mata kuliah."]);
     expect(rule("required")[0]).toContain("Belum direncanakan: II4090 Kerja Praktik, II4092 Tugas Akhir.");
-    expect(rule("specialization")[0]).toContain("warn: Perlu dicekSistem Informasi CerdasSIXBelum direncanakan: II4010 Manajemen Data, II4011 Transformasi Digital.");
-    expect(s.text()).toContain("LulusSemester 7");
+    expect(rule("specialization")[0]).toContain("warn: Perlu dicekSistem Informasi CerdasBelum direncanakan: II4010 Manajemen Data, II4011 Transformasi Digital.");
+    expect(s.text()).toContain("Belum bisa lulus");
   });
 
   it("adds and removes semesters, short ones too, with their own limits", async () => {
@@ -147,7 +186,7 @@ describe("the study planner", () => {
     await s.click(addIn(/^Semester 9/));
     await search("II4024");
     await s.click("Tambah II4024");
-    expect(rule("finish")).toEqual(["warn: Perlu dicekLulus di semester 9Kalender ITBLewat 8 semester; predikat pujian masih mungkin (maks. 9)."]);
+    expect(rule("finish")).toEqual(["warn: Perlu dicekLulus di semester 9Lewat 8 semester; predikat pujian masih mungkin (maks. 9)."]);
     await act(async () => {
       const select = document.querySelector<HTMLSelectElement>("select[aria-label='Perkiraan nilai II4092']")!;
       select.value = "A";
@@ -171,63 +210,96 @@ describe("the study planner", () => {
     expect(saved()?.terms[0].courses.at(-1)).toMatchObject({ code: "II2260", retake: true });
   });
 
-  it("an IPK target: the average the rest needs", async () => {
+  it("an IPK target: the average the rest needs, one setting with Nilai", async () => {
     const s = await openPlan();
-    expect(s.text()).toContain("Tidak tercapai dengan mata kuliah tersisa, walau semua A.");
+    expect(s.text()).toContain("IPK 3,50 di luar jangkauan dengan mata kuliah tersisa, walau semua A.");
+    // Every honors level out of reach: said once, kindly, not three "di luar jangkauan" rows.
+    expect(s.text()).toContain("Cum laude (≥ 3,50) sudah di luar jangkauan. Tiap nilai bagus tetap menaikkan IPK-mu.");
+    expect(s.text()).not.toContain("Summa cum laude ≥ 3,85di luar jangkauan");
     await s.click("Target IPK 3,00");
-    expect(s.text()).toContain("Rata-rata 1,74 (sekitar C) di 26 SKS terakhirmu.");
+    expect(s.text()).toContain("Untuk IPK 3,00: rata-rata 1,74 (sekitar C) di 26 SKS tersisa.");
     expect(saved()?.target).toBe(3);
+    await s.click("Nilai");
+    expect(s.button("Target IPK 3,00").getAttribute("aria-checked")).toBe("true");
   });
 
   it("tracks a minor and checks its SKS", async () => {
     const s = await openPlan();
     await s.click("Pantau minor Branding Berbasis Digital");
-    expect(rule("minor")).toEqual(["warn: Perlu dicekMinor Branding Berbasis DigitalSIX3 dari 12 SKS dari daftarnya."]);
+    expect(rule("minor")).toEqual(["warn: Perlu dicekMinor Branding Berbasis Digital3 dari 12 SKS dari daftarnya."]);
     await s.click(addIn(/^Semester 8/));
     expect(document.querySelector("[role=dialog]")!.textContent).toContain("Minor Branding Berbasis Digital");
   });
 
-  it("reset puts the starting plan back", async () => {
+  it("reset asks first, says what's lost, and can still be undone (bug: it used to wipe at once)", async () => {
     const s = await openPlan();
+    expect(s.button("Atur ulang rencana").disabled).toBe(true);
     await s.click("Hapus II4010");
     await s.click("Atur ulang rencana");
+    const dialog = document.querySelector("[role=alertdialog]")!;
+    expect(dialog.textContent).toContain("Atur ulang rencana?Semua perubahanmu hilang: 1 mata kuliah yang kamu hapus (akan kembali).");
+    await s.click("Batal");
+    expect(saved()?.terms[0].courses.map((c) => c.code)).not.toContain("II4010");
+    await s.click("Atur ulang rencana");
+    await s.click("Atur ulang");
     expect(saved()?.terms[0].courses.map((c) => c.code)).toEqual(["II4090", "II4092", "II4010", "II4011"]);
+    expect(toastText()).toContain("Rencana diatur ulangUrungkan");
+    // Only the newest change can be undone: its toast replaces the removal's.
+    expect(toastText()).not.toContain("II4010 dihapus");
+    await s.click("Urungkan");
+    expect(saved()?.terms[0].courses.map((c) => c.code)).not.toContain("II4010");
   });
 
   it("in English", async () => {
     const s = await openPlan({ lang: "en" });
-    expect(s.text()).toContain("125 passed · 14 this semester · 12 planned");
+    expect(summary()).toContain("144 SKS covered+7 to spare");
+    expect(summary()).toContain("125 passed14 this semester12 planned");
     expect(s.text()).toContain("Semester 8 · 2026/2027 Even");
     expect(rulesText()).toContain("Check it also runs in the even semester");
+    expect(rulesText()).toContain("27 of 27 SKS covered (+10 more).");
   });
 });
 
 describe("the curriculum map", () => {
-  it("the program by semester, passed courses marked, courses passed under another code matched", async () => {
+  const row = (code: string) => [...document.querySelectorAll("main li")].find((li) => li.textContent?.startsWith(code))?.textContent;
+
+  it("labelled totals from the planner's own count: no more '0 SKS' against '37 of 27'", async () => {
     const s = await openPlan();
     await tab("Kurikulum");
-    expect(s.text()).toContain("Kurikulum 2024 - Sarjana Sistem dan Teknologi Informasi SIX117 SKSWajib tersisa6 SKSPilihan0 SKS19 lulus · 12 semester ini · butuh 27");
-    const row = (code: string) => [...document.querySelectorAll("main li")].find((li) => li.textContent?.startsWith(code))?.textContent;
+    expect(s.text()).toContain(
+      "Total kurikulum144 SKSwajib 117 · pilihan 27Wajib tersisa2 mata kuliah · 6 SKSsemua sudah direncanakanPilihan27 dari 27 SKS+1019 lulus · 12 semester ini · 6 direncanakan",
+    );
+  });
+
+  it("late in the studies it opens on what's left, with a summary; the switch shows everything", async () => {
+    const s = await openPlan();
+    await tab("Kurikulum");
+    expect(s.text()).toContain("Sisa: 2 wajib (6 SKS) · pilihan terpenuhi · 4 perlu dicek ke prodi");
+    expect(row("MA1101")).toBeUndefined();
+    expect(row("WI2005")).toBe("WI2005Bahasa IndonesiaBelum ada nilai di SIX: cek ke prodi2");
+    expect(row("II4090")).toBe("II4090Kerja PraktikDirencanakan2");
+    await s.click("Sisa saja");
     expect(row("MA1101")).toBe("MA1101Matematika ILulus· AB4");
     expect(row("KI1101")).toBe("KI1101Kimia Dasar Ilewat KI1002 Kimia Dasar BLulus· A3");
     expect(row("WI2003")).toBe("WI2003Olah Ragalewat KU1001 Olah RagaLulus· BC1");
-    expect(row("WI2005")).toBe("WI2005Bahasa IndonesiaTidak tercantum di SIX2");
     expect(row("II4091")).toBe("II4091Proposal Tugas AkhirSemester ini2");
-    expect(row("II4090")).toBe("II4090Kerja PraktikDirencanakan2");
+    expect(s.text()).toContain("Mata kuliah lain yang ikut dihitung");
   });
 
   it("opens a course's syllabus on SIX's public pages", async () => {
     const s = await openPlan();
     await tab("Kurikulum");
+    await s.click("Sisa saja");
     await s.click("Silabus MA1101 di SIX");
     expect(s.calls.at(-1)).toEqual({ name: "shell.openExternal", input: { url: "https://six.itb.ac.id/pub/matakuliah/47455" } });
   });
 
-  it("specializations and minors with progress, the registered one first", async () => {
+  it("specializations and minors with progress, the registered one first; untaken courses stay quiet", async () => {
     const s = await openPlan();
     await tab("Kurikulum");
-    expect(s.text()).toContain("SpesialisasiSistem Informasi CerdasTerdaftar6/12 SKS");
-    expect(s.text()).toContain("Keamanan dan Privasi Siber0/12 SKS");
-    expect(s.text()).toContain("MinorBranding Berbasis DigitalDesain Komunikasi Visual3/12 SKS");
+    expect(s.text()).toContain("SpesialisasiSistem Informasi CerdasTerdaftar6 dari 12 SKS");
+    expect(s.text()).toContain("Keamanan dan Privasi Siber0 dari 12 SKS");
+    expect(s.text()).toContain("MinorBranding Berbasis DigitalDesain Komunikasi Visual3 dari 12 SKS");
+    expect(document.querySelectorAll("aside .bg-warning-bg")).toHaveLength(0);
   });
 });

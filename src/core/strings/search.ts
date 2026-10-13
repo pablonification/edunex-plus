@@ -8,19 +8,39 @@ export const searchStrings = {
   "search.results": { id: "Hasil pencarian", en: "Search results" },
   "search.count": { id: "{count} hasil", en: { one: "{count} result", other: "{count} results" } },
   "search.noResults": { id: "Tidak ada yang cocok dengan “{query}”", en: "Nothing matches “{query}”" },
+  "search.noResultsHint": { id: "Coba kode mata kuliah (mis. {code}), judul tugas, atau nama halaman.", en: "Try a course code (like {code}), a Task title, or a page name." },
+  "search.action.refresh": { id: "Muat ulang data", en: "Refresh data" },
+  "search.action.theme": { id: "Ganti tema", en: "Switch theme" },
+  "search.action.themeTo": { id: "Ke tema {theme}", en: "To {theme} theme" },
+  "search.alias.action.refresh": { id: "muat ulang perbarui sinkron segarkan", en: "refresh reload sync update" },
+  "search.alias.action.theme": { id: "tema gelap terang mode malam", en: "theme dark light mode night" },
+  "search.type.course": { id: "Mata kuliah", en: "Course" },
+  "search.type.task": { id: "Tugas", en: "Task" },
+  "search.type.exam": { id: "Ujian", en: "Exam" },
+  "search.type.material": { id: "Materi", en: "Material" },
+  "search.type.module": { id: "Modul", en: "Module" },
+  "search.type.announcement": { id: "Pengumuman", en: "Announcement" },
+  "search.type.screen": { id: "Halaman", en: "Page" },
+  "search.type.action": { id: "Perintah", en: "Command" },
+  "search.open.inApp": { id: "Buka", en: "Open" },
+  "search.footer.move": { id: "pilih", en: "move" },
+  "search.footer.open": { id: "buka", en: "open" },
+  "search.footer.close": { id: "tutup", en: "close" },
   "search.class": { id: "Kelas {classNo}", en: "Class {classNo}" },
   "search.sks": { id: "{sks} SKS", en: "{sks} SKS" },
   "search.due": { id: "tenggat {when}", en: "due {when}" },
-  "search.examWeek": { id: "Minggu {kind} {range}", en: "{kind} week {range}" },
+  "search.examWeek": { id: "Masa {kind} {range}", en: "{kind} period {range}" },
   "search.noDate": { id: "Tanggal belum ada", en: "No date yet" },
-  "search.parentClass": { id: "Kelas induk", en: "Parent class" },
   "search.group.course": { id: "Mata kuliah", en: "Courses" },
-  "search.group.task": { id: "Tugas", en: "Tasks" },
+  "search.group.task": { id: "Tugas belum selesai", en: "Tasks to do" },
   "search.group.exam": { id: "Ujian", en: "Exams" },
   "search.group.material": { id: "Materi", en: "Materials" },
   "search.group.module": { id: "Modul", en: "Modules" },
   "search.group.announcement": { id: "Pengumuman", en: "Announcements" },
-  "search.group.screen": { id: "Buka", en: "Go to" },
+  "search.group.screen": { id: "Halaman", en: "Pages" },
+  "search.group.action": { id: "Perintah", en: "Commands" },
+  "search.group.doneTask": { id: "Tugas selesai", en: "Done Tasks" },
+  "search.group.recent": { id: "Terakhir dibuka", en: "Recently opened" },
   // More words a screen or tab is found by; never shown. Both languages are searched.
   "search.alias.home": { id: "hari ini ringkasan", en: "today overview" },
   "search.alias.tasks": { id: "tugas ujian tenggat uts uas", en: "tasks exams deadlines assignments" },
@@ -37,9 +57,9 @@ export const searchStrings = {
 
   // The first-run scan: the dialog
   "scan.title": { id: "{count} hal yang tidak disampaikan kedua sistem", en: { one: "{count} thing neither system tells you", other: "{count} things neither system tells you" } },
-  "scan.title.edunex": { id: "{count} hal yang tidak disampaikan EduNex", en: { one: "{count} thing EduNex doesn't tell you", other: "{count} things EduNex doesn't tell you" } },
+  "scan.title.edunex": { id: "{count} hal yang tidak disampaikan Edunex", en: { one: "{count} thing Edunex doesn't tell you", other: "{count} things Edunex doesn't tell you" } },
   "scan.title.six": { id: "{count} hal yang tidak disampaikan SIX", en: { one: "{count} thing SIX doesn't tell you", other: "{count} things SIX doesn't tell you" } },
-  "scan.heading": { id: "Hasil pemeriksaan pertama", en: "What the first check found" },
+  "scan.heading": { id: "Ringkasan saat pertama terhubung", en: "Your first-connection summary" },
   "scan.empty": { id: "Tidak ada yang perlu kamu perhatikan", en: "Nothing needs your attention" },
   "scan.connected": { id: "{sources} terhubung", en: "{sources} connected" },
   "scan.and": { id: "{a} dan {b}", en: "{a} and {b}" },
@@ -49,12 +69,13 @@ export const searchStrings = {
   "scan.read.meetings": { id: "{count} pertemuan", en: { one: "{count} meeting", other: "{count} meetings" } },
   "scan.more": { id: "dan {count} lainnya", en: "and {count} more" },
   "scan.goHome": { id: "Ke Beranda", en: "Go to Home" },
+  "scan.later": { id: "Bisa dibuka lagi dari Pengaturan › Akun", en: "Open it again from Settings › Accounts" },
 
   // Attendance at risk
   "scan.attendance.title": { id: "Kehadiran {count} mata kuliah berisiko", en: { one: "Attendance at risk in {count} course", other: "Attendance at risk in {count} courses" } },
   "scan.attendance.out": {
-    id: "{code}: hadir {attended} dari {held}, paling tinggi {best}%, jadi {target}% tak tercapai lagi",
-    en: "{code}: {attended} of {held}, best case {best}%, so {target}% is out of reach",
+    id: "{code}: hadir {attended} dari {held} · paling tinggi {best}% dari target {target}%",
+    en: "{code}: {attended} of {held} · best case {best}% of the {target}% target",
   },
   "scan.attendance.none": { id: "{code}: tidak boleh absen lagi", en: "{code}: no absences left" },
   "scan.attendance.one": { id: "{code}: tinggal satu absen", en: "{code}: one absence left" },
@@ -74,18 +95,18 @@ export const searchStrings = {
     id: "{a} dan {b}: {count} pertemuan, berikutnya {when}",
     en: { one: "{a} and {b}: {count} meeting, next {when}", other: "{a} and {b}: {count} meetings, next {when}" },
   },
-  "scan.clash.krs": { id: "SIX menerimanya di KRS-mu tanpa peringatan.", en: "SIX accepted this in your KRS without a warning." },
+  "scan.clash.krs": { id: "Pilih yang akan kamu hadiri, atau tanyakan ke dosen.", en: "Pick the one you'll attend, or ask the lecturers." },
 
-  // Counted in SIX while EduNex shows its unused windows as absent
+  // Counted in SIX while Edunex shows its unused windows as absent
   "scan.unused.title": {
-    id: "Kehadiran {count} mata kuliah dihitung di SIX, bukan EduNex",
-    en: { one: "{count} course counts attendance in SIX, not EduNex", other: "{count} courses count attendance in SIX, not EduNex" },
+    id: "Kehadiran {count} mata kuliah dihitung di SIX, bukan Edunex",
+    en: { one: "{count} course counts attendance in SIX, not Edunex", other: "{count} courses count attendance in SIX, not Edunex" },
   },
   "scan.unused.course": {
-    id: "{code}: EduNex akan menampilkan {count}x absen, SIX mencatat hadir {attended} dari {held}",
-    en: { one: "{code}: EduNex would show {count} absence; SIX has {attended} of {held}", other: "{code}: EduNex would show {count} absences; SIX has {attended} of {held}" },
+    id: "{code}: SIX mencatat hadir {attended} dari {held}; abaikan {count} \"absen\" di Edunex",
+    en: { one: "{code}: SIX has {attended} of {held}; ignore the {count} \"absence\" Edunex shows", other: "{code}: SIX has {attended} of {held}; ignore the {count} \"absences\" Edunex shows" },
   },
-  "scan.unused.note": { id: "Presensi EduNex yang tak tercatat bukan absen.", en: "An unrecorded EduNex window isn't an absence." },
+  "scan.unused.note": { id: "Cukup hadir di kelas; Presensi Edunex tidak wajib.", en: "Just be in class; Edunex Presence is optional." },
 
   // Exams
   "scan.exams.title": { id: "{count} ujian akan datang", en: { one: "{count} upcoming exam", other: "{count} upcoming exams" } },
@@ -94,14 +115,14 @@ export const searchStrings = {
   "scan.exams.week": { id: "{kind} {code}, minggu {kind} {range}", en: "{kind} {code}, {kind} week {range}" },
   "scan.exams.noDate": { id: "{name} {code}, tanggal belum ada", en: "{name} {code}, no date yet" },
 
-  // Meetings announced only in EduNex
+  // Meetings announced only in Edunex
   "scan.notInSix.title": {
-    id: "{count} pertemuan hanya diumumkan di EduNex",
-    en: { one: "{count} meeting announced only in EduNex", other: "{count} meetings announced only in EduNex" },
+    id: "{count} pertemuan hanya diumumkan di Edunex",
+    en: { one: "{count} meeting announced only in Edunex", other: "{count} meetings announced only in Edunex" },
   },
   "scan.notInSix.meeting": { id: "{code} pertemuan {number}: {when}", en: "{code} meeting {number}: {when}" },
   "scan.notInSix.online": { id: "daring", en: "online" },
-  "scan.notInSix.note": { id: "Tidak ada di jadwal SIX.", en: "Not in SIX's timetable." },
+  "scan.notInSix.note": { id: "Tidak ada di jadwal SIX; sudah ada di Beranda.", en: "Not on SIX's timetable; it's on Home." },
 
   // Tasks edited after posting
   "scan.edited.title": {
@@ -109,7 +130,7 @@ export const searchStrings = {
     en: { one: "Lecturers edited {count} Task after posting it", other: "Lecturers edited {count} Tasks after posting them" },
   },
   "scan.edited.afterSubmit": { id: "{count} di antaranya setelah kamu mengumpulkan.", en: "{count} after you'd already submitted." },
-  "scan.edited.silent": { id: "EduNex tidak memberi notifikasi.", en: "EduNex sent no notification." },
+  "scan.edited.silent": { id: "Cek lagi instruksinya; Edunex tidak mengabarkannya.", en: "Check the instructions again; Edunex didn't say." },
 
   // The IPK and its honors level (Peraturan Akademik ITB)
   "scan.ipk.title": { id: "IPK {ipk} · {band}", en: "IPK {ipk} · {band}" },
@@ -140,6 +161,7 @@ export const searchStrings = {
   "scan.part.itb.calendar": { id: "Kalender akademik", en: "Academic calendar" },
 
   // Settings
-  "settings.firstScan": { id: "Hasil pemeriksaan pertama", en: "What the first check found" },
+  "settings.firstScan": { id: "Ringkasan saat pertama terhubung", en: "Your first-connection summary" },
+  "settings.firstScan.hint": { id: "Apa yang ditemukan saat Edunex dan SIX pertama dibaca", en: "What turned up when Edunex and SIX were first read" },
   "settings.firstScan.show": { id: "Lihat", en: "Show" },
 } as const satisfies Record<string, Entry>;

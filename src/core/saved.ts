@@ -11,17 +11,17 @@ export interface TermCourseNames {
   classNo: string | null;
   /** SIX's (Indonesian) name, once SIX is connected. */
   six: string | null;
-  /** EduNex's name (often English), when the course is on EduNex. */
+  /** Edunex's name (often English), when the course is on Edunex. */
   edunex: string | null;
-  /** The class's own EduNex course, when it has one. */
+  /** The class's own Edunex course, when it has one. */
   edunexCourseId: number | null;
   sks: number | null;
 }
 
 /**
  * This term's courses as the screens list them: SIX is the truth for
- * enrollment once connected (EduNex's courses of the same term join by code
- * and class), else EduNex's list.
+ * enrollment once connected (Edunex's courses of the same term join by code
+ * and class), else Edunex's list.
  */
 export function termCourses(saved: Saved): TermCourseNames[] {
   const edunex = saved["edunex.courses"] ?? [];
@@ -36,7 +36,7 @@ export function termCourses(saved: Saved): TermCourseNames[] {
   });
 }
 
-/** The course's name in the Student's language: SIX's in Indonesian, EduNex's in English when it has one. */
+/** The course's name in the Student's language: SIX's in Indonesian, Edunex's in English when it has one. */
 export function courseName(course: TermCourseNames, lang: Lang): string {
   return (lang === "en" ? (course.edunex ?? course.six) : (course.six ?? course.edunex)) ?? course.code;
 }

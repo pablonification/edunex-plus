@@ -1,4 +1,4 @@
-// Alerts from EduNex's own notification feed: ASSIGNMENT is a new Task,
+// Alerts from Edunex's own notification feed: ASSIGNMENT is a new Task,
 // CONTENT a new material. The feed misses many Tasks, so the Tasks dataset
 // raises them too; both use the same id, so a Task alerts once. When the
 // Tasks dataset knows the Task better (a short window), that version wins.
@@ -9,7 +9,7 @@ import { classesToday } from "./changes";
 import type { AlertDraft, Detector } from "./detector";
 import { newTaskAlert } from "./tasks";
 
-/** Older items showing up (EduNex backfilling its list) are history, not news. */
+/** Older items showing up (Edunex backfilling its list) are history, not news. */
 const FRESH = 3 * 86_400_000;
 
 const courseOf = (courses: readonly Course[], courseId: number) =>
@@ -36,7 +36,7 @@ export const edunexNotifications: Detector = {
           id: `material.new:${item.key}`,
           kind: "newMaterial",
           source: "edunex",
-          title: { key: "alert.newMaterial", vars: { course: course?.code ?? item.courseName ?? "EduNex" } },
+          title: { key: "alert.newMaterial", vars: { course: course?.code ?? item.courseName ?? "Edunex" } },
           body: { key: "alert.plain", vars: { title: item.title } },
           target: course ? { screen: "course", code: course.code, tab: "modules" } : { screen: "home" },
         });
@@ -52,7 +52,7 @@ function taskFromFeed(item: EdunexNotification, courses: readonly Course[]): Ale
     id: `task.new:${item.objectId}`,
     kind: "newTask",
     source: "edunex",
-    title: { key: "alert.newTask", vars: { course: course?.code ?? item.courseName ?? "EduNex" } },
+    title: { key: "alert.newTask", vars: { course: course?.code ?? item.courseName ?? "Edunex" } },
     body: { key: "alert.plain", vars: { title: item.title } },
     target: { screen: "task", taskId: item.objectId },
   };

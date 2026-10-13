@@ -1,11 +1,11 @@
 // A course's meetings, merged as the approved prototype does it (#74): SIX's
-// timetable gives the official time and room, EduNex Presence the window and
-// what EduNex recorded, and meetings announced only in EduNex text ("Pertemuan
+// timetable gives the official time and room, Edunex Presence the window and
+// what Edunex recorded, and meetings announced only in Edunex text ("Pertemuan
 // 03: Jumat, 09 Oktober 2026 Pkl. 15:00 - 17:00 WIB") join in, marked when
 // SIX's timetable for that month, read from its own page, doesn't list them.
-// Nothing here ever calls a meeting an absence: SIX may count what EduNex
+// Nothing here ever calls a meeting an absence: SIX may count what Edunex
 // didn't record.
-import { htmlText, materialKind } from "./course-materials";
+import { htmlText, materialKind, type OutlineEntry } from "./course-materials";
 import type { Announcement, ClassSession, Material, PresenceSession } from "./models";
 
 const HOUR = 3_600_000;
@@ -79,19 +79,40 @@ export function announcedMeetings(materials: readonly Material[], announcements:
     }
   }
   const vicons = materials.filter((m) => materialKind(m.type) === "vicon" && m.content).sort((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0));
+  const classLink = classMeetingLink(announcements);
   return [...found.values()]
     .map(({ at: _at, ...meeting }) => {
-      const link = vicons.find((m) => new RegExp(`\\bPertemuan\\s*0*${meeting.number}\\b`, "i").test(m.title))?.content ?? null;
+      // The meeting's own online-class link, else the class's standing one ("Link teams untuk kuliah online").
+      const own = vicons.find((m) => new RegExp(`\\bPertemuan\\s*0*${meeting.number}\\b`, "i").test(m.title))?.content ?? null;
+      const link = own ?? (meeting.online ? classLink : null);
       return { ...meeting, link, online: meeting.online || link !== null };
     })
     .sort((a, b) => a.start - b.start);
+}
+
+// Online-class services whose links a lecturer posts for a meeting.
+const MEETING_LINK = /https:\/\/(?:teams\.microsoft\.com|teams\.live\.com|[\w-]+\.zoom\.us|zoom\.us|meet\.google\.com|[\w-]+\.webex\.com)\/[^\s<>"')\]]+/gi;
+
+/** The online-meeting links (Teams, Zoom, Meet, Webex) in a text, in order. */
+export function meetingLinks(text: string): string[] {
+  return [...text.matchAll(MEETING_LINK)].map((hit) => hit[0].replace(/[.,;:]+$/, ""));
+}
+
+/** The class's standing online-meeting link: the newest announcement that posts one. */
+export function classMeetingLink(announcements: readonly Announcement[]): string | null {
+  const newest = [...announcements].sort((a, b) => (b.postedAt ?? 0) - (a.postedAt ?? 0));
+  for (const item of newest) {
+    const [link] = meetingLinks(item.text);
+    if (link) return link;
+  }
+  return null;
 }
 
 // ---------------------------------------------------------------- merged meetings
 
 export interface Meeting {
   key: string;
-  /** SIX's time when SIX lists it, else EduNex's (ms). */
+  /** SIX's time when SIX lists it, else Edunex's (ms). */
   start: number;
   end: number;
   /** SIX's session: the official time and room. */
@@ -103,12 +124,33 @@ export interface Meeting {
 }
 
 /**
- * present / recorded: what EduNex recorded. open: the Presence window is open
+ * present / recorded: what Edunex recorded. open: the Presence window is open
  * now. upcoming: not happened yet. unmarked: the window closed with nothing
- * recorded in EduNex (SIX may still count it). held: past, with no EduNex
+ * recorded in Edunex (SIX may still count it). held: past, with no Edunex
  * Presence to tell.
  */
 export type MeetingState = "present" | "recorded" | "open" | "upcoming" | "unmarked" | "held";
+
+const WEEK = 7 * 24 * HOUR;
+
+/**
+ * The Edunex module that goes with a meeting, for a meeting nothing else names.
+ * Edunex's modules carry no date or week, only when the lecturer posted them, so
+ * a module goes with a meeting only when it is the one module posted in the week
+ * before it (after the meeting before it ended). A whole outline posted at once,
+ * or two modules in one week, say nothing about which meeting is which: no guess.
+ * Numbered placeholders ("Module 06") say nothing either.
+ */
+export function meetingModules(meetings: readonly Meeting[], entries: readonly OutlineEntry[]): Map<string, OutlineEntry> {
+  const named = entries.filter((e) => e.module.postedAt !== null && !/^(modul|module|pertemuan|minggu|week|sesi|session)\s*\d+$/i.test(e.module.title.trim()));
+  const out = new Map<string, OutlineEntry>();
+  meetings.forEach((meeting, index) => {
+    const from = Math.max(meeting.start - WEEK, index > 0 ? meetings[index - 1].end : -Infinity);
+    const posted = named.filter((e) => e.module.postedAt! > from && e.module.postedAt! <= meeting.end);
+    if (posted.length === 1) out.set(meeting.key, posted[0]);
+  });
+  return out;
+}
 
 export function meetingState(meeting: Meeting, now: number): MeetingState {
   const presence = meeting.presence;
@@ -121,7 +163,7 @@ export function meetingState(meeting: Meeting, now: number): MeetingState {
 }
 
 /**
- * One course's meetings in time order. SIX's sessions join EduNex's Presence
+ * One course's meetings in time order. SIX's sessions join Edunex's Presence
  * sessions of the same day (the most overlapping one); `sixSessions` is SIX's
  * whole timetable (every course), or null while SIX isn't connected.
  * `sixMonths` are the months whose own timetable page was read ("2026-10"):
@@ -160,7 +202,17 @@ export function pinnedMeeting(meetings: readonly Meeting[], now: number): { meet
   return next ? { meeting: next, current: false } : null;
 }
 
-/** An EduNex Presence window of the course that is open now and hasn't recorded the Student yet. */
+/** An Edunex Presence window of the course that is open now and hasn't recorded the Student yet. */
 export function openPresence(presence: readonly PresenceSession[], now: number): PresenceSession | null {
   return presence.find((p) => p.opensAt <= now && now < p.closesAt && !p.recorded?.present) ?? null;
+}
+
+/** The next meeting still to start (its index), for the "Berikutnya" mark. */
+export function nextMeetingIndex(meetings: readonly Meeting[], now: number): number {
+  return meetings.findIndex((m) => m.start > now);
+}
+
+/** Other courses' SIX sessions that overlap a meeting: a clash the Student has to choose in. */
+export function clashes(meeting: Pick<Meeting, "start" | "end">, code: string, schedule: readonly ClassSession[]): ClassSession[] {
+  return schedule.filter((s) => s.courseCode !== code && s.start < meeting.end && meeting.start < s.end).sort((a, b) => a.start - b.start);
 }

@@ -42,7 +42,7 @@ describe("fake clock", () => {
   });
 });
 
-describe("pretend EduNex", () => {
+describe("pretend Edunex", () => {
   it("answers recorded calls with the recorded shapes", async () => {
     const world = new PretendWorld();
     const me = await edunexGet(world, "/login/me");

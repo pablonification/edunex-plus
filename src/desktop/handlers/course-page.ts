@@ -1,4 +1,4 @@
-// Bridge handlers for the course page (#74): saving a course's EduNex files
+// Bridge handlers for the course page (#74): saving a course's Edunex files
 // for offline reading, by course and module. Only on the Student's click. The
 // files go through Chromium's download manager like single downloads, so the
 // OS marks them as downloaded from the internet.
@@ -35,7 +35,7 @@ export const coursePageHandlers: HandlerGroup<"course.saveOffline"> = (context) 
     let saved = 0;
     let kept = 0;
     let failed = 0;
-    // One file at a time: polite to EduNex, and each download is told apart by its address.
+    // One file at a time: polite to Edunex, and each download is told apart by its address.
     for (const file of plan.files) {
       const target = path.join(folder, ...file.folders, file.name);
       if (!target.startsWith(folder + path.sep) || !isDownloadable(file.url)) {

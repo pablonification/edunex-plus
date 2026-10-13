@@ -1,11 +1,11 @@
-# API.md — how Edunex Plus uses the EduNex API
+# API.md — how Edunex Plus uses the Edunex API
 
-The EduNex API (`https://api-edunex.cognisia.id`) is **undocumented and vendor-hosted** by
-Cognisia. Edunex Plus is not an official client: it talks to the same API the EduNex website
+The Edunex API (`https://api-edunex.cognisia.id`) is **undocumented and vendor-hosted** by
+Cognisia. Edunex Plus is not an official client: it talks to the same API the Edunex website
 uses, with the Student's own session, under the guardrails below.
 
-This file is the project's API-usage stance and the record of every EduNex call v2 makes. Any
-PR that adds or changes an EduNex call must update this file and keep the guardrails true. SIX
+This file is the project's API-usage stance and the record of every Edunex call v2 makes. Any
+PR that adds or changes an Edunex call must update this file and keep the guardrails true. SIX
 is covered in [SIX.md](SIX.md); ITB's public pages are summed up [at the end](#other-sites).
 
 Everything below comes from the v2 code (`src/engine/sources/edunex/`) and the scrubbed real
@@ -16,7 +16,7 @@ responses in `test/fixtures/edunex/` (file names mirror the request path and que
 
 1. **Unofficial.** Edunex Plus is an independent, community-built client. It is not an ITB or
    Cognisia product, and the lowercase-n "Edunex Plus" mark is deliberately distinct from
-   Cognisia's EduNex trademark.
+   Cognisia's Edunex trademark.
 2. **Bring-your-own-session.** The app uses the Student's own session. The Student signs in on
    the real ITB/Microsoft pages in a window the app owns; the password and 2FA code only ever
    reach Microsoft's page and never touch Edunex Plus.
@@ -26,7 +26,7 @@ responses in `test/fixtures/edunex/` (file names mirror the request path and que
    its own cadence and random jitter (table below), so the app never calls on the dot. The
    fastest regular feed runs every 2–3 minutes. A failing feed backs off on its own (30 s, 1,
    2, 4, 8, then 15 min at most) and never slows the others. Presence alerts are clock math on
-   the windows already read, never extra calls. The screens never call EduNex.
+   the windows already read, never extra calls. The screens never call Edunex.
 5. **Explicit-only writes.** A write fires only on a deliberate click (attach a file, Save
    draft, Submit). Nothing in a feed or any background path ever writes.
 6. **On-device-only storage.** The access token is kept only through the OS keychain (Electron
@@ -38,11 +38,11 @@ responses in `test/fixtures/edunex/` (file names mirror the request path and que
    `EdunexPlus/<version> (+https://github.com/pablonification/edunex-plus)`
    (`src/engine/engine.ts`). The API client never pretends to be a browser, so Cognisia can
    recognise — and allowlist or rate-limit — this traffic. (Only the sign-in window, which
-   shows the real ITB, Microsoft and EduNex web pages, uses a plain Chrome identity, because
+   shows the real ITB, Microsoft and Edunex web pages, uses a plain Chrome identity, because
    some sign-in pages turn away browsers they don't know.)
-8. **No presence or read signals.** The app never sends EduNex "online", "viewed", presence or
+8. **No presence or read signals.** The app never sends Edunex "online", "viewed", presence or
    "mark read" signals, never calls `PATCH /notifications`, and never marks attendance. When
-   something must count as attendance, it opens EduNex itself and the Student acts.
+   something must count as attendance, it opens Edunex itself and the Student acts.
 9. **Courtesy notice, shipped regardless.** Shipping does not wait for permission or a reply:
    the owner sends Cognisia/ITB a courtesy email describing the project and these guardrails,
    and offering to coordinate.
@@ -80,7 +80,7 @@ responses in `test/fixtures/edunex/` (file names mirror the request path and que
 | --- | --- | --- |
 | `edunex.account` (liveness) | 10 min ± 1 min | `/login/me` |
 | `edunex.notifications` | 2.5 min ± 30 s | `/login/me` once per session (for the user id), then `/notifications/{userId}` |
-| `edunex.tasks` | 15 min ± 2 min, and at once on a new `ASSIGNMENT` notification | `/course/tasks` per EduNex course; `/course/courses/{id}` for module names (once per session, again at most hourly) |
+| `edunex.tasks` | 15 min ± 2 min, and at once on a new `ASSIGNMENT` notification | `/course/tasks` per Edunex course; `/course/courses/{id}` for module names (once per session, again at most hourly) |
 | `edunex.courses` | 30 min ± 3 min | `/course/presences/list` |
 | `edunex.presence` | 30 min ± 3 min | `/course/presences` per course, paged |
 | `edunex.materials` (also the course outline) | 1 h ± 6 min | `/course/courses/{id}`, `/gradebook` (only once published), `/course/contents/` per course and per module |
@@ -90,8 +90,8 @@ responses in `test/fixtures/edunex/` (file names mirror the request path and que
 Source: `feeds.ts`, `notifications.ts`, `tasks.ts`, `course-page.ts`; scheduling in
 `src/engine/sync/scheduler.ts`. Feeds start 0.5 s apart; sign-in and the manual refresh run
 them at once (a feed already running is not started twice). Within a feed, calls go one after
-another, except a course's `/course/contents/` calls, which go four at a time, as the EduNex
-website does. "Per course" always means the class's own EduNex course and its parent course.
+another, except a course's `/course/contents/` calls, which go four at a time, as the Edunex
+website does. "Per course" always means the class's own Edunex course and its parent course.
 
 ## Endpoints
 
@@ -122,13 +122,13 @@ Notes:
 - **`/course/tasks`**: `page[limit]=0` means "all". If fewer Tasks arrive than `meta.total`
   says, that's a vendor change, never a silently short list. One course failing keeps that
   course's last known Tasks and reports the error; going offline or a `401` stops the whole run.
-- **`/course/presences`** is paged 10 at a time (the website's page size). EduNex's "next" link
+- **`/course/presences`** is paged 10 at a time (the website's page size). Edunex's "next" link
   never ends on its own, so paging stops at `meta.total` or an empty page. `presence_start`/
   `presence_end` are the real window (falling back to `start_at`/`end_at`); `presentable` and
   `url` say which action counts; `attandance.status` `1` means present.
 - **`/course/contents/`** is the materials list (`type` such as `pdf`, Vicon links, `text`). A
   `size` of 0 or missing is shown as unknown. Downloading a file is an ordinary browser download
-  of its link (`src/desktop/downloads.ts`, allowed only for EduNex's Azure storage, the API host
+  of its link (`src/desktop/downloads.ts`, allowed only for Edunex's Azure storage, the API host
   and `itb.ac.id`), on an explicit click; no token is attached.
 - **`/exam/exams`**: no exam was ever recorded (the account had none), so only the envelope and
   `id` are required; the other field names are a guess.
@@ -140,7 +140,7 @@ Notes:
 
 ## Timestamps
 
-EduNex sends times in four formats. Two functions read them, both called `edunexTime`:
+Edunex sends times in four formats. Two functions read them, both called `edunexTime`:
 `task-records.ts` (Tasks and answers; strict, an unreadable time is a vendor change) and
 `course-page.ts` (everything on the course pages; lenient, an unreadable time is "unknown",
 except Presence `start_at`/`end_at`, which must be readable).
@@ -164,7 +164,7 @@ except Presence `start_at`/`end_at`, which must be readable).
 - **Parent and child classes.** `/course/presences/list` lists a class's parent course
   ("… [Parent Class]") as a separate pair with the same course code and class. Both are kept
   on one course (child first) and every per-course call reads both (`feeds.ts`).
-- **Tasks edited after posting.** EduNex moves only `updated_at`. A change more than an hour
+- **Tasks edited after posting.** Edunex moves only `updated_at`. A change more than an hour
   after posting, or any change after the Student handed in, counts as an edit
   (`editedAt` in `task-records.ts`). The notification feed misses many Tasks, so the Tasks feed
   also runs on its own cadence.
@@ -189,7 +189,7 @@ per Task (a second click waits, then re-reads).
    The reply must hold an `uploadUrl` and a `readUrl` (accepted as a bare object, an array, or
    wrapped in `data`), both `https://…blob.core.windows.net`.
 2. `PUT {uploadUrl}` with the file bytes, `x-ms-blob-type: BlockBlob`, `Content-Type` and the
-   User-Agent. EduNex's token is never sent to storage. Time limit: 1 min plus 1 s per 50 KB,
+   User-Agent. Edunex's token is never sent to storage. Time limit: 1 min plus 1 s per 50 KB,
    30 min at most.
 
 **Save draft:**
@@ -200,8 +200,8 @@ per Task (a second click waits, then re-reads).
    `{ "data": { "attributes": { "task_id", "answer": "", "is_sent": 0 } } }`, then read back.
 3. `PATCH /course/task/answers/{answerId}` with
    `{ "data": { "attributes": { "task_id", "answer", "files": [{ "name", "file": readUrl }], "is_sent": 0 } } }`.
-   `files` is the full list the draft should hold; only links on EduNex's storage are allowed.
-4. Read back. "Saved" only if EduNex now holds exactly those files in an unsent answer;
+   `files` is the full list the draft should hold; only links on Edunex's storage are allowed.
+4. Read back. "Saved" only if Edunex now holds exactly those files in an unsent answer;
    otherwise "unconfirmed".
 
 **Submit:**
@@ -214,31 +214,31 @@ per Task (a second click waits, then re-reads).
 
 All write requests send `Content-Type: application/json`. Replies are not parsed beyond the
 status: every write is confirmed by reading the Task back. There are no other `POST`, `PATCH`,
-`PUT` or `DELETE` calls to EduNex.
+`PUT` or `DELETE` calls to Edunex.
 
 What's confirmed: the submit body (captured live in v1, issue #12) and creating an answer without
 files (checked live in v1). What isn't: the recorder blocks writes, so the upload-link reply's
 envelope, the `files` field in a draft update, and the write replies were never recorded. They
-are modelled on the spec and on the `files` EduNex sends back on an answer, and kept in one place
+are modelled on the spec and on the `files` Edunex sends back on an answer, and kept in one place
 so one real submission can confirm or correct them.
 
 ## Errors
 
-Every EduNex reply maps to one error kind (`client.ts` for reads, `write` in `hand-in.ts`):
+Every Edunex reply maps to one error kind (`client.ts` for reads, `write` in `hand-in.ts`):
 
 | What happened | Kind | Effect |
 | --- | --- | --- |
 | No answer, timeout, connection failure | `Offline` | Source shows offline; the feed backs off |
 | `401` | `Unauthorized` | On `/login/me` (liveness feed): session expires. Elsewhere: runs the liveness check |
-| `429` or `5xx` | `Offline` | Same back-off; no `Retry-After` handling for EduNex |
+| `429` or `5xx` | `Offline` | Same back-off; no `Retry-After` handling for Edunex |
 | Other `4xx` on a read | `Failed` | Source shows "changed" with the detail |
 | Other `4xx` on a write | `Rejected` | The click fails; if the Task closed meanwhile, the app says so instead |
-| Not JSON, or a shape the schema rejects | `VendorChanged` | Source shows "EduNex changed something"; never an empty screen |
+| Not JSON, or a shape the schema rejects | `VendorChanged` | Source shows "Edunex changed something"; never an empty screen |
 | Storage `PUT` not `2xx` | `Failed` | The upload fails |
 
 A source's status is the worst of its feeds' latest outcomes. Back-off is per feed
 (`scheduler.ts`): 30 s after the first failure, doubling to 15 min at most, plus a little jitter;
-one success resets it. EduNex has no shared pace line (SIX and ITB's catalog do; see SIX.md).
+one success resets it. Edunex has no shared pace line (SIX and ITB's catalog do; see SIX.md).
 
 ## Unconfirmed / not yet recorded
 
@@ -248,10 +248,10 @@ one success resets it. EduNex has no shared pace line (SIX and ITB's catalog do;
   either way by re-reading first).
 - What `/gradebook` looks like once a lecturer publishes.
 - Exam records: none recorded, so their field names are a guess.
-- Whether signing in on the EduNex website ends the app's token, and how long tokens live
+- Whether signing in on the Edunex website ends the app's token, and how long tokens live
   (a month-old token was still valid).
 - Announcement times: only one was recorded (naive WIB); the reader accepts an offset too.
-- EduNex's rate limits: no `429` has been seen.
+- Edunex's rate limits: no `429` has been seen.
 
 ## Other sites
 

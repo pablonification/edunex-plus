@@ -1,5 +1,5 @@
 // v2-09 (#77), seam 1: "Needs you" from the real engine's datasets against the
-// pretend EduNex, SIX and ITB calendar on a fake clock: what each provider
+// pretend Edunex, SIX and ITB calendar on a fake clock: what each provider
 // raises, in which band, with which action and sources, and the ranking.
 import { describe, expect, it } from "vitest";
 import { type HomeWorld, type Need, type NeedProvider, needsYou, PROVIDERS, recentChanges, slotChange } from "../../src/core/needs";
@@ -13,7 +13,14 @@ const summary = (needs: Need[]) => needs.map((n) => `${n.band} ${n.id}`);
 const find = (needs: Need[], id: string) => needs.find((n) => n.id === id);
 
 describe("the recorded Thursday morning (8 Oct, 08:12)", () => {
-  it("ranks the open Presence first, then today's classes that can't be missed, the meeting only in EduNex, and attendance out of reach", async () => {
+  it("signed out of SIX, the open Presence can't be said to count: not a must-do, and the card doesn't claim it counts", async () => {
+    const h = await startHome();
+    const world = { ...h.home(), sixConnected: false };
+    const presence = find(needsYou(world), "presence:2194342");
+    expect(presence).toMatchObject({ kind: "presence", countedIn: "noSix" });
+  });
+
+  it("ranks the open Presence first, then today's classes that can't be missed, the meeting only in Edunex, and attendance out of reach", async () => {
     const h = await startHome();
     const needs = needsYou(h.home());
     expect(summary(needs)).toEqual([
@@ -25,7 +32,7 @@ describe("the recorded Thursday morning (8 Oct, 08:12)", () => {
     ]);
     expect(needs.map((n) => n.rank)).toEqual([1, 2, 3, 4, 5]);
 
-    // PL3002: EduNex's window is open while SIX's class runs (moved: until 10:00, usually 09:30); SIX counts.
+    // PL3002: Edunex's window is open while SIX's class runs (moved: until 10:00, usually 09:30); SIX counts.
     const presence = needs[0];
     expect(presence).toMatchObject({ kind: "presence", course: "PL3002", open: true, activity: "course", countedIn: "six", sources: ["edunex", "six"], at: at("2026-10-08T09:30:00") });
     expect(presence.action).toEqual({ kind: "open", url: "https://edunex.itb.ac.id/courses/95001", via: "edunex" });
@@ -36,7 +43,7 @@ describe("the recorded Thursday morning (8 Oct, 08:12)", () => {
     // DK4073 4/6 and PL3032 4/7: no absences left before 80%, and both meet later today.
     expect(find(needs, "class:2153983")).toMatchObject({ course: "DK4073", state: "none", absencesLeft: 0, countedIn: "six", sources: ["six"], action: { kind: "go", route: { screen: "course", code: "DK4073", tab: "meetings" } } });
 
-    // II4091's meeting 3 is announced only in an EduNex text, with its Teams link.
+    // II4091's meeting 3 is announced only in an Edunex text, with its Teams link.
     expect(find(needs, `meeting:II4091:${at("2026-10-09T15:00:00")}`)).toMatchObject({ sources: ["edunex"], action: { kind: "open", via: "link", url: expect.stringContaining("teams.microsoft.com") } });
 
     // KU5014 2/6 can't reach 80% anymore; the meetings left come from SIX's timetable and ITB's last lecture day.
@@ -122,8 +129,8 @@ describe("a class moved", () => {
 });
 
 describe("exams", () => {
-  it("an exam within the week, with when and where; SIX and EduNex disagreeing on its date makes it soon", async () => {
-    // Friday 9 October: DK4073's UTS is in class on Thursday 15 October (SIX), its take-home part due 22 October (EduNex).
+  it("an exam within the week, with when and where; SIX and Edunex disagreeing on its date makes it soon", async () => {
+    // Friday 9 October: DK4073's UTS is in class on Thursday 15 October (SIX), its take-home part due 22 October (Edunex).
     const h = await startHome({ now: "2026-10-09T10:00:00+07:00" });
     const uts = find(needsYou(h.home()), "exam:DK4073-UTS");
     expect(uts).toMatchObject({ kind: "exam", band: "soon", course: "DK4073", at: at("2026-10-15T11:00:00"), disagree: true, sources: ["six", "edunex"] });
@@ -140,7 +147,7 @@ describe("exams", () => {
     expect(find(needsYou(h.home()), "exam:DK4073-UTS")).toBeUndefined();
   });
 
-  it("an exam only EduNex dates (an online quiz) is one too, on EduNex", async () => {
+  it("an exam only Edunex dates (an online quiz) is one too, on Edunex", async () => {
     const h = await startHome({ now: "2026-10-19T09:00:00+07:00" });
     const quiz = { id: "9001", courseId: 95001, title: "Kuis 2", start: at("2026-10-20T19:00:00"), end: at("2026-10-20T20:00:00") };
     expect(find(needsYou({ ...h.home(), exams: { PL3002: [quiz] } }), "exam:PL3002-KUIS-e9001")).toMatchObject({
@@ -151,7 +158,7 @@ describe("exams", () => {
     });
   });
 
-  it("an exam SIX and EduNex agree on is coming up within the week, and not before", async () => {
+  it("an exam SIX and Edunex agree on is coming up within the week, and not before", async () => {
     // KU5014's class on Thursday 22 October becomes its UTS.
     const world = new PretendWorld({ now: "2026-10-14T12:00:00+07:00" });
     world.six.editPage(/\/kelas\/jadwal\/mahasiswa\/\d+$/, (html) => html.replace(/(<div title="[^"]*\()Kuliah(\)"><a [^>]*?pertemuan\/2185660\/[\s\S]*?\()Kuliah 9134\)/, "$1UTS$2UTS 9134)"));
@@ -208,7 +215,7 @@ describe("what changed", () => {
 });
 
 describe("an edit after submitting", () => {
-  it("a handed-in Task the lecturer changed is now while EduNex still takes answers, soon once it doesn't, and gone after a week", async () => {
+  it("a handed-in Task the lecturer changed is now while Edunex still takes answers, soon once it doesn't, and gone after a week", async () => {
     const h = await startHome();
     // PL3002's Task was handed in on 16 Sep and is due tonight; KU5014's TUGAS 1 closed on 17 Sep.
     h.world.edunex.editTask(117432, { description: "<p>Tambahkan referensi.</p>" });

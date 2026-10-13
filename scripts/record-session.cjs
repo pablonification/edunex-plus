@@ -3,14 +3,14 @@
 /**
  * Session recorder — a dev tool for building against real data.
  *
- * Opens EduNex and SIX ITB in two plain windows on a throwaway in-memory
+ * Opens Edunex and SIX ITB in two plain windows on a throwaway in-memory
  * session. The student signs in themselves and browses normally; the recorder
  * saves what the real sites request and receive, so the engine is built
  * against real responses instead of guessed ones.
  *
  * Never recorded: Microsoft / ITB SSO pages (only method + host + path),
  * Authorization / Cookie / Set-Cookie headers, CSRF form tokens, JWT-looking
- * strings, upload file contents. The EduNex login token never leaves the page:
+ * strings, upload file contents. The Edunex login token never leaves the page:
  * only its shape (keys, expiry) is read. Nothing persists after quit — the
  * session is in-memory and the profile directory is deleted.
  *
@@ -51,7 +51,7 @@ const GUARDED_HOSTS = [
 ];
 
 const SITES = {
-  edunex: { label: "EduNex", url: "https://sso-edunex.itb.ac.id/", side: "left" },
+  edunex: { label: "Edunex", url: "https://sso-edunex.itb.ac.id/", side: "left" },
   six: {
     label: "SIX ITB",
     url: SMOKE ? "https://six.itb.ac.id/pub/kur2024" : "https://six.itb.ac.id/login",
@@ -467,7 +467,7 @@ function attachRecorder(contents, windowName) {
 
 const notes = { startedAt: new Date().toISOString(), edunexAuth: null, cookies: null };
 
-/** Runs inside the EduNex page: returns the token's shape, never the token. */
+/** Runs inside the Edunex page: returns the token's shape, never the token. */
 const AUTH_SHAPE_SCRIPT = `(() => {
   const raw = localStorage.getItem("auth");
   if (!raw) return null;
@@ -587,7 +587,7 @@ async function finish(reason) {
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-/** Blocks every change request to EduNex, SIX and file storage; logs what was attempted. */
+/** Blocks every change request to Edunex, SIX and file storage; logs what was attempted. */
 function installReadOnlyGuard() {
   if (ALLOW_WRITES) return;
   session.fromPartition(PARTITION).webRequest.onBeforeRequest((details, callback) => {
@@ -661,7 +661,7 @@ async function pageLinks(contents, host) {
 const UNSAFE_ROUTE =
   /(edit|create|\/new\b|delete|remove|take|start|attempt|safe|logout|signout|settings|enrol|leave|kick|print|download|export|import|token|reader|hapus|batal|kirim|ambil|hadir|drop|withdraw|send|save|cetak|unduh|locale|kuesioner|\/aD\/)/i;
 
-// ---- EduNex
+// ---- Edunex
 
 const EDUNEX = "https://edunex.itb.ac.id";
 
@@ -892,7 +892,7 @@ function buildMenu() {
         { label: "Forward", accelerator: "CmdOrCtrl+]", click: () => focused()?.navigationHistory.goForward() },
         { label: "Reload", accelerator: "CmdOrCtrl+R", click: () => focused()?.reload() },
         { type: "separator" },
-        { label: "Open EduNex window", click: () => openSite("edunex") },
+        { label: "Open Edunex window", click: () => openSite("edunex") },
         { label: "Open SIX ITB window", click: () => openSite("six") },
         { type: "separator" },
         { role: "toggleDevTools" },

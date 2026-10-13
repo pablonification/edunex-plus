@@ -1,7 +1,7 @@
 // Lecturers' formatted text (Task instructions, text materials, announcements)
 // shown safely: the HTML is parsed, and only plain formatting tags are
 // rebuilt as React elements. No markup, script, style or event handler from
-// EduNex ever reaches the page; links open in the browser through the bridge.
+// Edunex ever reaches the page; links open in the browser through the bridge.
 import { createElement, type ReactNode } from "react";
 import { cx } from "./cx";
 

@@ -1,4 +1,4 @@
-// v2-03 (#71): the engine signs in to EduNex, shows saved data first, and
+// v2-03 (#71): the engine signs in to Edunex, shows saved data first, and
 // keeps an honest status through restarts, outages and vendor changes.
 import { describe, expect, it } from "vitest";
 import { PRETEND_TOKEN } from "../pretend/edunex";
@@ -11,7 +11,7 @@ const signedIn = async () => {
   return h;
 };
 
-describe("EduNex sign-in → your courses", () => {
+describe("Edunex sign-in → your courses", () => {
   it("first sign-in loads the account and this term's courses", async () => {
     const h = await startEngine();
     expect(h.status("edunex").state).toBe("signed-out");
@@ -44,7 +44,7 @@ describe("EduNex sign-in → your courses", () => {
     again.engine.start();
     await again.wait();
     expect(first.world.log.length).toBeGreaterThan(requestsBefore);
-    expect(again.status("edunex")).toMatchObject({ state: "offline", detail: "EduNex is unreachable" });
+    expect(again.status("edunex")).toMatchObject({ state: "offline", detail: "Edunex is unreachable" });
     expect(again.dataset("edunex.courses")).toHaveLength(5);
     // Back online: the next attempt recovers on its own.
     first.world.setOffline(false);
@@ -52,7 +52,7 @@ describe("EduNex sign-in → your courses", () => {
     expect(again.status("edunex").state).toBe("live");
   });
 
-  it("an ended session expires EduNex only, and keeps the data readable", async () => {
+  it("an ended session expires Edunex only, and keeps the data readable", async () => {
     const h = await signedIn();
     h.world.edunex.expireSession();
     await h.engine.refresh("edunex");
@@ -73,18 +73,18 @@ describe("EduNex sign-in → your courses", () => {
     expect(h.vault.secrets.has("edunex.session")).toBe(true);
   });
 
-  it("EduNex down for maintenance: offline with the reason, data kept", async () => {
+  it("Edunex down for maintenance: offline with the reason, data kept", async () => {
     const h = await signedIn();
     h.world.edunex.maintenance();
     await h.engine.refresh("edunex");
-    expect(h.status("edunex")).toMatchObject({ state: "offline", detail: "EduNex answered 503" });
+    expect(h.status("edunex")).toMatchObject({ state: "offline", detail: "Edunex answered 503" });
     expect(h.dataset("edunex.courses")).toHaveLength(5);
     h.world.edunex.maintenance(false);
     await h.wait(60_000);
     expect(h.status("edunex").state).toBe("live");
   });
 
-  it("EduNex changed a field: says so, keeps the last good data", async () => {
+  it("Edunex changed a field: says so, keeps the last good data", async () => {
     const h = await signedIn();
     h.world.edunex.mangle(/^\/course\/presences\/list$/, { kind: "missing-field", field: "course_code" });
     await h.engine.refresh("edunex");
@@ -121,11 +121,11 @@ describe("EduNex sign-in → your courses", () => {
     expect(h.dataset("edunex.courses")).toHaveLength(5);
   });
 
-  it.each([403, 404])("EduNex refusing the course list (%i) says it changed something, without signing out", async (status) => {
+  it.each([403, 404])("Edunex refusing the course list (%i) says it changed something, without signing out", async (status) => {
     const h = await signedIn();
     h.world.edunex.fail(/^\/course\/presences\/list$/, status);
     await h.engine.refresh("edunex");
-    expect(h.status("edunex")).toMatchObject({ state: "changed", detail: `EduNex answered ${status} for /course/presences/list` });
+    expect(h.status("edunex")).toMatchObject({ state: "changed", detail: `Edunex answered ${status} for /course/presences/list` });
     expect(h.vault.secrets.has("edunex.session")).toBe(true);
   });
 
@@ -133,7 +133,7 @@ describe("EduNex sign-in → your courses", () => {
     const h = await signedIn();
     h.world.edunex.fail(/^\/login\/me$/, 429, 1);
     await h.engine.refresh("edunex");
-    expect(h.status("edunex")).toMatchObject({ state: "offline", detail: "EduNex answered 429" });
+    expect(h.status("edunex")).toMatchObject({ state: "offline", detail: "Edunex answered 429" });
     await h.wait(60_000);
     expect(h.status("edunex").state).toBe("live");
   });
@@ -144,7 +144,7 @@ describe("EduNex sign-in → your courses", () => {
     const refresh = h.engine.refresh("edunex");
     await h.wait(16_000);
     await refresh;
-    expect(h.status("edunex")).toMatchObject({ state: "offline", detail: "EduNex didn't answer in time" });
+    expect(h.status("edunex")).toMatchObject({ state: "offline", detail: "Edunex didn't answer in time" });
     h.world.setLatency(2_000);
     await h.wait(120_000);
     expect(h.status("edunex").state).toBe("live");

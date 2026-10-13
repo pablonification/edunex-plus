@@ -4,6 +4,7 @@
 import type { SourceId } from "../../core/models";
 import { translate } from "../../core/strings";
 import { EngineError } from "../../engine/errors";
+import { demo } from "../demo";
 import { signInToEdunex } from "../signin";
 import { forgetSignInSession } from "../signin-session";
 import { signInToSix } from "../six-signin";
@@ -26,7 +27,7 @@ export const authHandlers: HandlerGroup<"auth.signIn" | "auth.signOut"> = (conte
   const signInToEdunexOnce = () =>
     (edunex ??= (async () => {
       try {
-        const token = await signInToEdunex(windowOptions("signIn.edunexTitle"));
+        const token = demo ? await demo.signIn("edunex") : await signInToEdunex(windowOptions("signIn.edunexTitle"));
         if (!token) return false;
         await context.engine.signIn("edunex", { token });
         afterSignIn("six");
@@ -40,7 +41,7 @@ export const authHandlers: HandlerGroup<"auth.signIn" | "auth.signOut"> = (conte
   const signInToSixOnce = () =>
     (six ??= (async () => {
       try {
-        const cookie = await signInToSix(windowOptions("signIn.sixTitle"));
+        const cookie = demo ? await demo.signIn("six") : await signInToSix(windowOptions("signIn.sixTitle"));
         if (!cookie) return false;
         await context.engine.signIn("six", { cookie });
         afterSignIn("edunex");

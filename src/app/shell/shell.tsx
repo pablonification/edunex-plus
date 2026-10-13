@@ -7,7 +7,7 @@ import { edunexCourseUrl, sixStatusUrl } from "../../core/links";
 import type { StringKey } from "../../core/strings";
 import { type TermCourse, useTermCourses } from "../courses";
 import { useOpenExternal } from "../hooks";
-import { useFormat, useT } from "../i18n";
+import { useT } from "../i18n";
 import { displayName, initials } from "../names";
 import { NavProvider, type Route, useNav } from "../nav";
 import { CourseScreen, ready as courseReady } from "../screens/course";
@@ -18,8 +18,9 @@ import { PlanScreen, ready as planReady, useBadge as usePlanBadge } from "../scr
 import { PresenceScreen, ready as presenceReady, useBadge as usePresenceBadge } from "../screens/presence";
 import { ScheduleScreen, ready as scheduleReady, useBadge as useScheduleBadge } from "../screens/schedule";
 import { TaskScreen, TasksScreen, ready as tasksReady, useBadge as useTasksBadge } from "../screens/tasks";
-import { useBridge, useCommand, useDataset, useNavigateRequests, useStatus, useStore } from "../store";
-import { IconButton } from "../ui/controls";
+import { useBridge, useCommand, useDataset, useNavigateRequests, useStore } from "../store";
+import { AppMark } from "../ui/brand";
+import { Button } from "../ui/controls";
 import { Badge, CourseDot } from "../ui/display";
 import { cx } from "../ui/cx";
 import { type IconProps, Icons } from "../ui/icons";
@@ -29,7 +30,7 @@ import { AlertsBell } from "./alerts";
 import { FirstScan } from "./first-scan";
 import { SearchButton, SearchPalette, useSearchShortcut } from "./search";
 import { SettingsDialog } from "./settings";
-import { SourceStatusChip, useRefresh } from "./source-status";
+import { ProblemBanner, refreshNow, SyncStatus } from "./source-status";
 
 export function Shell() {
   return (
@@ -58,13 +59,20 @@ function Layout() {
     useCallback(
       (command) => {
         if (command === "settings") setSettingsOpen(true);
-        if (command === "refresh") void bridge.invoke("sync.refresh", {}).catch(() => undefined);
+        if (command === "refresh") void refreshNow(bridge);
         if (command === "search") openSearch(false);
       },
       [bridge, openSearch],
     ),
   );
   useRefreshWhenBackOnline();
+  useNavShortcuts(
+    useCallback(() => {
+      setSettingsOpen(false);
+      setSearchOpen(false);
+      setScanOpen(false);
+    }, []),
+  );
   // A new screen starts at its top.
   const key = JSON.stringify(route);
   useEffect(() => {
@@ -79,10 +87,14 @@ function Layout() {
       <div className="flex min-w-0 flex-1 flex-col">
         <PanelBoundary name="top bar" compact>
           <TopBar onSearch={() => openSearch(false)} />
+          <ProblemBanner />
         </PanelBoundary>
         <main ref={main} className="min-h-0 flex-1 overflow-y-auto">
           <PanelBoundary key={key} name={route.screen}>
-            <CurrentScreen route={route} />
+            {/* Every screen arrives the same soft way. */}
+            <div className="motion-safe:animate-enter">
+              <CurrentScreen route={route} />
+            </div>
           </PanelBoundary>
         </main>
       </div>
@@ -111,7 +123,7 @@ function CurrentScreen({ route }: { route: Route }) {
     case "exam":
       return <ExamScreen examId={route.examId} />;
     case "course":
-      return <CourseScreen code={route.code} tab={route.tab} />;
+      return <CourseScreen code={route.code} tab={route.tab} module={route.module} />;
     case "schedule":
       return <ScheduleScreen />;
     case "presence":
@@ -123,11 +135,38 @@ function CurrentScreen({ route }: { route: Route }) {
   }
 }
 
+const NAV_ORDER = ["home", "tasks", "schedule", "presence", "grades", "plan"] as const;
+
+/** ⌘1 to ⌘6 open the six places in the sidebar (Ctrl elsewhere); ⌘[ goes back. Either closes what's open over the screen first. */
+function useNavShortcuts(closeOverlays: () => void) {
+  const store = useStore();
+  const { go, back } = useNav();
+  useEffect(() => {
+    const mac = store.platform === "darwin";
+    const onKey = (event: globalThis.KeyboardEvent) => {
+      if (event.altKey || event.shiftKey || !(mac ? event.metaKey : event.ctrlKey)) return;
+      if (event.key === "[") {
+        event.preventDefault();
+        closeOverlays();
+        back();
+        return;
+      }
+      const index = Number(event.key) - 1;
+      if (!Number.isInteger(index) || index < 0 || index >= NAV_ORDER.length) return;
+      event.preventDefault();
+      closeOverlays();
+      go({ screen: NAV_ORDER[index] } as Route);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [store, go, back, closeOverlays]);
+}
+
 /** Coming back online is the best moment to check again; the engine's own rhythm handles the rest. */
 function useRefreshWhenBackOnline() {
   const bridge = useBridge();
   useEffect(() => {
-    const refresh = () => void bridge.invoke("sync.refresh", {}).catch(() => undefined);
+    const refresh = () => void refreshNow(bridge);
     window.addEventListener("online", refresh);
     return () => window.removeEventListener("online", refresh);
   }, [bridge]);
@@ -146,15 +185,13 @@ interface NavItem {
 function Sidebar({ onSettings }: { onSettings: () => void }) {
   const store = useStore();
   const t = useT();
-  const f = useFormat();
   const { route, go } = useNav();
   const account = useDataset("edunex.account");
   const student = useDataset("six.student");
   const update = useDataset("app.update");
   const courses = useTermCourses();
-  const status = useStatus("edunex");
   const open = useOpenExternal();
-  /** Until the course page exists, a course opens on its official site: EduNex's page, else SIX's list. */
+  /** Until the course page exists, a course opens on its official site: Edunex's page, else SIX's list. */
   const outside = (course: TermCourse) =>
     course.edunex
       ? { url: edunexCourseUrl(course.edunex.courseId), label: t("action.openInEdunex") }
@@ -172,28 +209,34 @@ function Sidebar({ onSettings }: { onSettings: () => void }) {
 
   return (
     <aside className="flex h-full w-[248px] shrink-0 flex-col border-r border-line bg-sidebar select-none">
-      <div className={cx("shrink-0", store.platform === "darwin" ? "drag h-[52px]" : "h-3")} />
+      {store.platform === "darwin" && <div className="drag h-10 shrink-0" />}
+      {/* The app's own name, under the window buttons on macOS. */}
+      <div className={cx("flex h-11 shrink-0 items-center gap-2.5 px-5", store.platform === "darwin" && "drag")}>
+        <AppMark className="size-5" />
+        <span className="text-body font-semibold tracking-[-0.01em]">Edunex Plus</span>
+      </div>
 
-      <nav aria-label={t("nav.home")} className="space-y-px px-3">
+      <nav aria-label={t("nav.menu")} className="space-y-0.5 px-3">
         {items
           .filter((item) => item.ready)
-          .map(({ screen, label, Icon, badge, owns }) => {
+          .map(({ screen, label, Icon, badge, owns }, index) => {
             const active = route.screen === screen || (owns ?? []).includes(route.screen);
             return (
-              <button
-                key={screen}
-                type="button"
-                aria-current={active ? "page" : undefined}
-                onClick={() => go({ screen } as Route)}
-                className={cx(
-                  "focus-ring flex h-8 w-full items-center gap-2.5 rounded-lg px-2.5 text-body transition-colors duration-150",
-                  active ? "bg-selected font-semibold" : "font-medium hover:bg-hover",
-                )}
-              >
-                <Icon className={cx("size-4", !active && "text-muted")} strokeWidth={active ? 2 : 1.75} />
-                <span className="flex-1 truncate text-left">{t(label)}</span>
-                {badge && <Badge tone={badge.tone === "warning" ? "warning" : "neutral"}>{badge.value}</Badge>}
-              </button>
+              <Tooltip key={screen} side="right" content={`${t(label)} · ${store.platform === "darwin" ? "⌘" : "Ctrl+"}${index + 1}`}>
+                <button
+                  type="button"
+                  aria-current={active ? "page" : undefined}
+                  onClick={() => go({ screen } as Route)}
+                  className={cx(
+                    "focus-ring flex h-[34px] w-full items-center gap-2.5 rounded-lg px-2.5 text-body transition-colors duration-150",
+                    active ? "bg-selected font-semibold" : "font-medium text-fg/90 hover:bg-hover",
+                  )}
+                >
+                  <Icon className={cx("size-[17px] shrink-0", active ? "text-accent-fg" : "text-muted")} weight={active ? "fill" : "regular"} />
+                  <span className="flex-1 truncate text-left">{t(label)}</span>
+                  {badge && <Badge tone={badge.tone === "warning" ? "warning" : "neutral"}>{badge.value}</Badge>}
+                </button>
+              </Tooltip>
             );
           })}
       </nav>
@@ -201,8 +244,8 @@ function Sidebar({ onSettings }: { onSettings: () => void }) {
       <div className="mt-6 min-h-0 flex-1 overflow-y-auto px-3">
         {courses && courses.length > 0 && (
           <>
-            <p className="mb-1 px-2.5 text-caption font-semibold tracking-[0.04em] text-faint uppercase">{t("nav.courses")}</p>
-            <ul className="space-y-px">
+            <p className="mb-1.5 px-2.5 text-caption font-semibold text-faint">{t("nav.courses")}</p>
+            <ul className="space-y-0.5">
               {courses.map((course) => {
                 const active = route.screen === "course" && route.code === course.code;
                 const site = courseReady ? null : outside(course);
@@ -211,14 +254,15 @@ function Sidebar({ onSettings }: { onSettings: () => void }) {
                     type="button"
                     aria-current={active ? "page" : undefined}
                     onClick={() => (courseReady ? go({ screen: "course", code: course.code }) : site && open(site.url))}
+                    title={course.name}
                     className={cx(
-                      "focus-ring flex h-8 w-full items-center gap-2.5 rounded-lg px-2.5 text-left text-body transition-colors duration-150",
+                      "focus-ring flex h-[34px] w-full items-center gap-2.5 rounded-lg px-2.5 text-left text-body transition-colors duration-150",
                       active ? "bg-selected" : "hover:bg-hover",
                     )}
                   >
                     <CourseDot color={course.color} />
-                    <span className="shrink-0 font-semibold tabular-nums">{course.code}</span>
-                    <span className="truncate text-muted">{course.name}</span>
+                    <span className={cx("shrink-0 tabular-nums", active ? "font-semibold" : "font-medium")}>{course.code}</span>
+                    <span className="truncate text-small text-muted">{course.name}</span>
                   </button>
                 );
                 return (
@@ -249,9 +293,7 @@ function Sidebar({ onSettings }: { onSettings: () => void }) {
           </span>
           <span className="min-w-0">
             <span className="block truncate text-small font-semibold">{account ? displayName(account.name) : t("nav.settings")}</span>
-            <span className="flex items-center gap-1.5 truncate text-caption text-faint">
-              {t("source.edunex")} · {status.updatedAt ? f.time(status.updatedAt) : t(`status.${status.state}`)}
-            </span>
+            <span className="block truncate text-caption text-faint">{account ? t("nav.settings") : (student?.nim ?? "")}</span>
           </span>
           <span className="relative ml-auto shrink-0">
             <Icons.Settings className="size-4 text-faint" />
@@ -267,34 +309,48 @@ function Sidebar({ onSettings }: { onSettings: () => void }) {
   );
 }
 
+/** What the back button says: where it goes. (No saved data here: the top bar must not break with a screen's data.) */
+function useBackLabel(previous: Route | null): string {
+  const t = useT();
+  if (!previous) return t("action.back");
+  switch (previous.screen) {
+    case "course":
+      return previous.code;
+    case "task":
+      return t("nav.task");
+    case "exam":
+      return t("nav.exam");
+    default:
+      return t(`nav.${previous.screen}`);
+  }
+}
+
 function TopBar({ onSearch }: { onSearch: () => void }) {
   const store = useStore();
   const t = useT();
-  const { route, back, canGoBack } = useNav();
-  const edunex = useStatus("edunex");
-  const six = useStatus("six");
-  const { refresh, busy } = useRefresh();
-  const signedIn = [edunex, six].some((status) => status.state !== "signed-out" && status.state !== "expired");
+  const { route, back, canGoBack, previous } = useNav();
+  const backLabel = useBackLabel(previous);
   const detail = route.screen === "task" || route.screen === "exam" || route.screen === "course";
   return (
-    <header className={cx("flex h-[52px] shrink-0 items-center gap-3 border-b border-line px-6 select-none", store.platform === "darwin" && "drag")}>
+    <header className={cx("flex h-[52px] shrink-0 items-center gap-3 border-b border-line px-5 select-none", store.platform === "darwin" && "drag")}>
       {detail && canGoBack && (
-        <Tooltip content={t("action.back")}>
-          <IconButton label={t("action.back")} className="no-drag -ml-2" onClick={back}>
-            <Icons.ChevronLeft className="size-4" />
-          </IconButton>
+        <Tooltip content={`${t("action.back")} · ${store.platform === "darwin" ? "⌘[" : "Ctrl+["}`}>
+          <Button
+            variant="ghost"
+            size="sm"
+            aria-label={t("action.backTo", { place: backLabel })}
+            className="no-drag -ml-1.5 max-w-[280px] text-small"
+            icon={<Icons.ChevronLeft className="size-4 shrink-0" />}
+            onClick={back}
+          >
+            <span className="truncate">{backLabel}</span>
+          </Button>
         </Tooltip>
       )}
-      <div className="no-drag ml-auto flex items-center gap-1.5">
+      <div className="no-drag ml-auto flex items-center gap-1">
         <SearchButton onOpen={onSearch} />
         <AlertsBell />
-        <SourceStatusChip source="edunex" />
-        <SourceStatusChip source="six" />
-        <Tooltip content={t("action.refresh")}>
-          <IconButton label={t("action.refresh")} disabled={busy || !signedIn} onClick={() => void refresh()}>
-            <Icons.RefreshCw className={cx("size-4", busy && "animate-spin")} />
-          </IconButton>
-        </Tooltip>
+        <SyncStatus />
       </div>
     </header>
   );

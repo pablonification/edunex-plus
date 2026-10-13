@@ -1,5 +1,5 @@
 // The real engine with every source against the pretend world, signed in to
-// EduNex and SIX, and Beranda's view of its datasets at the fake clock's
+// Edunex and SIX, and Beranda's view of its datasets at the fake clock's
 // moment: what src/app/screens/home.tsx passes to src/core/needs.ts.
 import type { HomeWorld } from "../../src/core/needs";
 import { PRETEND_TOKEN } from "../pretend/edunex";
@@ -43,7 +43,7 @@ export async function startHome(options: { now?: string; world?: PretendWorld } 
   return {
     ...h,
     home,
-    /** EduNex and SIX are read again now, as after the Student's refresh. */
+    /** Edunex and SIX are read again now, as after the Student's refresh. */
     refresh: () => meanwhile(h.engine.refresh()),
     until: (iso: string) => world.clock.advanceTo(iso),
   };

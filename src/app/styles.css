@@ -9,15 +9,16 @@
 
   /* Surfaces */
   --canvas: #ffffff;
-  --sidebar: #f7f7f8;
+  --sidebar: #f5f5f7;
   --surface: #ffffff;
   --raised: #ffffff;
   --welcome: #f5f5f7;
-  --edge: #e6e6ea;
-  --line: #ececef;
+  --edge: #e4e4e9;
+  --line: #ededf0;
   --fill: #f4f4f6;
   --hover: #f1f1f4;
-  --selected: rgb(0 0 0 / 0.06);
+  --selected: rgb(0 0 0 / 0.065);
+  --sunken: #f7f7f9;
   --scrim: rgb(0 0 0 / 0.25);
   --track: #d4d4da;
   --segment: #ffffff;
@@ -65,10 +66,6 @@
   --status-review-fg: #5a33c8;
 
   /* Sources */
-  --source-six-bg: #e3f4f1;
-  --source-six-fg: #0f6b63;
-  --source-edunex-bg: #e6eefe;
-  --source-edunex-fg: #2a58b8;
   --source-itb-bg: #f3ecfd;
   --source-itb-fg: #6338b8;
 }
@@ -87,6 +84,7 @@
     --fill: #232327;
     --hover: #222226;
     --selected: rgb(255 255 255 / 0.08);
+    --sunken: #19191c;
     --scrim: rgb(0 0 0 / 0.45);
     --track: #3a3a40;
     --segment: #34343a;
@@ -126,11 +124,6 @@
     --status-closed-fg: #c6c6ce;
     --status-review-bg: #272042;
     --status-review-fg: #c4b5ff;
-
-    --source-six-bg: #11302c;
-    --source-six-fg: #6fd6c6;
-    --source-edunex-bg: #1b2742;
-    --source-edunex-fg: #9ab8ff;
     --source-itb-bg: #271d3a;
     --source-itb-fg: #c4b0f5;
   }
@@ -147,6 +140,7 @@
   --color-fill: var(--fill);
   --color-hover: var(--hover);
   --color-selected: var(--selected);
+  --color-sunken: var(--sunken);
   --color-scrim: var(--scrim);
   --color-track: var(--track);
   --color-segment: var(--segment);
@@ -181,32 +175,38 @@
   /* Type scale */
   --text-micro: 11px;
   --text-micro--line-height: 14px;
-  --text-caption: 11.5px;
+  --text-caption: 12px;
   --text-caption--line-height: 16px;
-  --text-small: 12.5px;
+  --text-small: 13px;
   --text-small--line-height: 18px;
-  --text-body: 13.5px;
+  --text-body: 14px;
   --text-body--line-height: 20px;
-  --text-lead: 14.5px;
-  --text-lead--line-height: 21px;
-  --text-title: 15px;
-  --text-title--line-height: 20px;
+  --text-lead: 15px;
+  --text-lead--line-height: 22px;
+  --text-title: 16px;
+  --text-title--line-height: 22px;
   --text-heading: 20px;
   --text-heading--line-height: 26px;
-  --text-display: 26px;
-  --text-display--line-height: 32px;
+  --text-display: 28px;
+  --text-display--line-height: 34px;
 
   /* Elevation */
   --shadow-button: inset 0 1px 0 rgb(255 255 255 / 0.18), 0 1px 2px rgb(16 24 40 / 0.12);
   --shadow-thumb: 0 1px 2px rgb(16 24 40 / 0.2);
+  --shadow-card: 0 1px 2px rgb(16 24 40 / 0.04);
+  --shadow-raised: 0 1px 2px rgb(16 24 40 / 0.05), 0 8px 24px -10px rgb(16 24 40 / 0.14);
   --shadow-lift: 0 6px 20px -8px rgb(16 24 40 / 0.18);
   --shadow-pop: 0 20px 60px -12px rgb(0 0 0 / 0.3);
   --shadow-dialog: 0 24px 80px -12px rgb(0 0 0 / 0.35);
 
   /* Motion */
   --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --animate-fade-in: fade-in 160ms var(--ease-standard);
   --animate-pop-in: pop-in 180ms var(--ease-standard);
+  --animate-enter: enter 280ms var(--ease-out) both;
+  --animate-rise: rise 360ms var(--ease-out) both;
+  --animate-slide-down: slide-down 220ms var(--ease-out) both;
   --animate-shimmer: shimmer 1.4s ease-in-out infinite;
 
   @keyframes fade-in {
@@ -218,6 +218,27 @@
     from {
       opacity: 0;
       transform: translateY(4px) scale(0.985);
+    }
+  }
+  /* A screen opening. */
+  @keyframes enter {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+  }
+  /* Rows of a list arriving one after another (style --i: the row's place). */
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+  }
+  /* A banner or a panel opening below its anchor. */
+  @keyframes slide-down {
+    from {
+      opacity: 0;
+      transform: translateY(-6px);
     }
   }
   @keyframes shimmer {
@@ -233,6 +254,12 @@
 }
 @utility no-drag {
   -webkit-app-region: no-drag;
+}
+
+/* List rows arrive one after another: style={{ "--i": index }} with this class. Capped so long lists don't drag. */
+@utility stagger {
+  animation: var(--animate-rise);
+  animation-delay: calc(min(var(--i, 0), 10) * 28ms);
 }
 
 /* One visible focus style everywhere, keyboard only. */

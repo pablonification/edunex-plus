@@ -182,12 +182,13 @@ describe("SIX public course catalog", () => {
     expect(catalog.courses.find((c) => c.code === "II2210")?.owner).toBe("182");
   });
 
-  it("dropping offline halfway keeps the programs already read", async () => {
+  it("dropping offline halfway keeps the programs already read, and tries again quietly", async () => {
     const h = await startEngine();
     while (!catalogRequests(h).some((r) => r.path === "/pub/kur2024/182")) await h.wait(1_000);
     h.world.setOffline(true);
     await h.wait(FULL_READ);
-    expect(h.status("itb").state).toBe("offline");
+    // A background read: nothing the Student can act on, and the calendar they see is fine.
+    expect(h.status("itb").state).toBe("live");
     // Sistem dan Teknologi Informasi comes before Perencanaan Wilayah dan Kota in SIX's list.
     expect(program(h, "182").state).toBe("ready");
     expect(program(h, "154").state).toBe("pending");
@@ -201,5 +202,18 @@ describe("SIX public course catalog", () => {
     await h.wait(10_000);
     expect(catalogRequests(h).map((r) => r.path).slice(0, 2)).toEqual(["/pub/kur2024", "/pub/kur2024/154"]);
     expect(program(h, "154").state).toBe("ready");
+  });
+
+  it("without SIX, reads first the programs offering the Student's Edunex courses (a campus copy's under the main campus too)", async () => {
+    const storage = new MemoryStorage();
+    const outline = (program: string) => ({ lecturer: null, credits: null, program, modules: [], grade: null });
+    const value = { DK4073: outline("S1 - Desain Komunikasi Visual"), PL3002: outline("S1 - Perencanaan Wilayah dan Kota (Kampus Cirebon)"), KU5014: outline("Mata Kuliah Umum (MKU)") };
+    await storage.write("datasets/edunex.outline.json", JSON.stringify({ format: 1, name: "edunex.outline", value, fetchedAt: 0, hash: "x" }));
+    const h = await startEngine({ storage });
+    await h.wait(20_000);
+    // In SIX's list order: Perencanaan Wilayah dan Kota (and its Cirebon copy), then Desain Komunikasi Visual, before any other.
+    expect(catalogRequests(h).map((r) => r.path).slice(0, 4)).toEqual(["/pub/kur2024", "/pub/kur2024/154", "/pub/kur2024/156", "/pub/kur2024/174"]);
+    expect(course(h, "DK4073")?.name).toBe("Komunikasi Pemasaran");
+    expect(course(h, "PL3002")?.name).toBe("Ekonomi dan Inovasi dalam Perencanaan");
   });
 });

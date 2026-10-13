@@ -1,6 +1,6 @@
-// EduNex Tasks: every Task of the term with the Student's answers (#72), and
+// Edunex Tasks: every Task of the term with the Student's answers (#72), and
 // handing one in (#73, ./hand-in.ts). The Tasks come from each course's Task
-// list (the parent class can hold Tasks too). EduNex's To Do feed is never
+// list (the parent class can hold Tasks too). Edunex's To Do feed is never
 // read: it has no submit status, and its times are WIB wrongly marked as UTC.
 // This feed only reads; nothing in the background ever writes.
 import { z } from "zod";
@@ -50,7 +50,7 @@ export function registerTaskFeeds(context: SourceContext, client: EdunexClient):
       }
       const named = await nameModules(client, fetched, outlines, previous, context.clock.now(), current);
       if (!current()) return;
-      // A Task the Student changed while this ran is already stored as EduNex read it back afterwards.
+      // A Task the Student changed while this ran is already stored as Edunex read it back afterwards.
       const latest = context.get("edunex.tasks") ?? [];
       const tasks = named.flatMap((task) => ((log.tasks.get(task.id) ?? 0) > begun ? latest.filter((kept) => kept.id === task.id) : [task]));
       await context.set("edunex.tasks", sortTasks(tasks));

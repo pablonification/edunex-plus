@@ -1,7 +1,7 @@
 // The course-contract calculator (#74, the approved prototype's grade
 // standing): the Student enters each part's weight from the course contract
 // and the score they have or expect, and sees their final score, or the
-// average they need on what's left for each letter. EduNex's gradebook can't
+// average they need on what's left for each letter. Edunex's gradebook can't
 // answer this: it shows 0 · E until the lecturer publishes it.
 import { CONTRACT_LETTERS, type ContractLetter, type ContractPart, type CourseContract } from "./models";
 

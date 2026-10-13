@@ -1,9 +1,10 @@
-// The first-run scan (#81, spec story 68): once the first full sync of EduNex
+// The first-run scan (#81, spec story 68): once the first full sync of Edunex
 // (and SIX when connected) is done, a short dialog of what the app found,
 // each line with its number and the screen that shows it. It opens by itself
 // once (a setting remembers) and only with something to say; Settings opens
 // it again. The findings come from src/core/first-scan.ts.
 import { Component, type ComponentType, type ReactNode, useEffect, useId, useMemo, useRef } from "react";
+import { percent } from "../../core/attendance";
 import { takeHomeOnly } from "../../core/exam-sources";
 import { type Finding, firstScan, notable, scanReady, scanSummary } from "../../core/first-scan";
 import type { DatasetName } from "../../core/models";
@@ -14,12 +15,11 @@ import { useSaved } from "../saved";
 import { useBridge, useSettings, useStatus } from "../store";
 import { Button } from "../ui/controls";
 import { cx } from "../ui/cx";
-import { EmptyState, SourceTag } from "../ui/display";
+import { EmptyState } from "../ui/display";
 import { type IconProps, Icons } from "../ui/icons";
 import { Dialog } from "../ui/overlays";
 import { PanelBoundary } from "../ui/panel-boundary";
 import { isBuilt } from "./built";
-import { dayRange } from "./search";
 
 /** What the scan reads. */
 const SCANNED: readonly DatasetName[] = [
@@ -144,7 +144,7 @@ function Findings({ onGo }: { onGo: (route: Route) => void }) {
   return (
     <>
       <Summary summary={summary} />
-      {heading && <h3 className="mt-2 text-heading font-semibold tracking-[-0.01em]">{heading}</h3>}
+      {heading && <h3 className="mt-1.5 text-heading font-semibold tracking-[-0.01em]">{heading}</h3>}
       {findings.length ? (
         <ol className="mt-4 overflow-hidden rounded-xl border border-edge">
           {findings.map((finding, i) => (
@@ -158,7 +158,9 @@ function Findings({ onGo }: { onGo: (route: Route) => void }) {
           <EmptyState icon={<Icons.CheckCircle className="size-5" />} title={t("scan.empty")} />
         </div>
       )}
-      <div className="mt-5 flex justify-end">
+      {/* Always in reach, however long the list. */}
+      <div className="sticky -bottom-5 -mx-5 mt-5 -mb-5 flex items-center justify-between gap-3 border-t border-line bg-raised px-5 py-3">
+        <span className="text-small text-muted">{t("scan.later")}</span>
         <Button variant="primary" onClick={() => onGo({ screen: "home" })}>
           {t("scan.goHome")}
         </Button>
@@ -167,7 +169,11 @@ function Findings({ onGo }: { onGo: (route: Route) => void }) {
   );
 }
 
-/** "EduNex dan SIX terhubung · 5 mata kuliah, 10 tugas, 40 pertemuan dibaca" */
+/**
+ * "Edunex dan SIX terhubung · 5 mata kuliah, 10 tugas dibaca". No meeting count:
+ * the reading step hands over before SIX's timetable is in, so its running count
+ * ("25 pertemuan") would look contradicted by a final one here.
+ */
 function Summary({ summary }: { summary: ReturnType<typeof scanSummary> }) {
   const t = useT();
   if (!summary.read.length) return null;
@@ -176,11 +182,10 @@ function Summary({ summary }: { summary: ReturnType<typeof scanSummary> }) {
   const read = [
     t("scan.read.courses", { count: summary.courses }),
     summary.tasks ? t("scan.read.tasks", { count: summary.tasks }) : null,
-    summary.meetings ? t("scan.read.meetings", { count: summary.meetings }) : null,
   ].filter(Boolean);
   return (
-    <p className="flex items-center gap-2 text-small font-semibold text-success-fg">
-      <Icons.CheckCircle className="size-4 shrink-0" />
+    <p className="flex items-center gap-2 text-small font-medium text-muted">
+      <Icons.CheckCircle className="size-4 shrink-0 text-success-fg" weight="bold" />
       {[connected, t("scan.read", { list: read.join(", ") })].filter(Boolean).join(" · ")}
     </p>
   );
@@ -203,11 +208,11 @@ function Line({ finding, onGo }: { finding: Finding; onGo: (route: Route) => voi
       onClick={() => onGo(route)}
       className="flex w-full items-start gap-3.5 px-4 py-3.5 text-left transition-colors duration-150 hover:bg-hover focus-visible:-outline-offset-2"
     >
-      <span aria-hidden className={cx("mt-0.5 grid size-8 shrink-0 place-items-center rounded-lg", TONE[finding.tone])}>
+      <span aria-hidden className={cx("mt-0.5 grid size-7 shrink-0 place-items-center rounded-lg", TONE[finding.tone])}>
         <Icon className="size-4" />
       </span>
       <span className="min-w-0 flex-1">
-        <span id={`${id}-title`} className="block text-lead font-semibold">
+        <span id={`${id}-title`} className="block text-body font-semibold">
           {title}
         </span>
         <span id={`${id}-detail`} className="mt-1 block text-small text-muted">
@@ -219,18 +224,13 @@ function Line({ finding, onGo }: { finding: Finding; onGo: (route: Route) => voi
           {note && <span className="block">{note}</span>}
         </span>
       </span>
-      <span className="flex shrink-0 items-center gap-1 pt-0.5">
-        {finding.sources.map((source) => (
-          <SourceTag key={source} source={source} />
-        ))}
-        <Icons.ChevronRight className="size-4 text-faint" />
-      </span>
+      <Icons.ChevronRight className="mt-1 size-4 shrink-0 text-faint transition-opacity duration-150" />
     </button>
   );
 }
 
 /** "Kam 15 Okt, 11:00" */
-const day = (f: Format, at: number) => `${f.weekdayShort(at)} ${f.dayMonth(at)}`;
+const day = (f: Format, at: number) => (Math.abs(f.dayOffset(at)) <= 1 ? f.relativeDay(at) : `${f.weekdayShort(at)} ${f.dayMonth(at)}`);
 
 /** The first few, then "and N more". */
 function few<T>(items: readonly T[], line: (item: T) => string, t: Translate): string[] {
@@ -248,7 +248,7 @@ function describe(finding: Finding, t: Translate, f: Format, target: number): { 
           finding.courses,
           (health) => {
             const vars = { code: health.code, attended: health.attended ?? 0, held: health.held ?? 0, target };
-            if (health.state === "out") return t("scan.attendance.out", { ...vars, best: Math.round((health.best ?? 0) * 100) });
+            if (health.state === "out") return t("scan.attendance.out", { ...vars, best: percent(health.best ?? 0) });
             if (health.state === "none") return t("scan.attendance.none", vars);
             if (health.toRecover !== null) return t("scan.attendance.below", { ...vars, count: health.toRecover });
             return t("scan.attendance.one", vars);
@@ -293,7 +293,7 @@ function describe(finding: Finding, t: Translate, f: Format, target: number): { 
               if (takeHomeOnly(exam)) return t("scan.exams.takeHome", { code, when: `${day(f, exam.at)}, ${f.time(exam.at)}` });
               return `${t("scan.exams.at", { name: exam.edunex[0]?.title ?? kind, code, when: `${day(f, exam.at)}, ${f.time(exam.at)}` })}${disagree}`;
             }
-            if (exam.week) return t("scan.exams.week", { kind, code, range: dayRange(f, exam.week.firstDay, exam.week.lastDay) });
+            if (exam.week) return t("scan.exams.week", { kind, code, range: f.dayRange(exam.week.firstDay, exam.week.lastDay) });
             return t("scan.exams.noDate", { name: kind, code });
           },
           t,

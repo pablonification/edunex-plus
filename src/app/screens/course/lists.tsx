@@ -1,92 +1,99 @@
-// The course page's simple lists: its Tasks (each opens the Task page), its
-// exams (each opens the exam page) and its announcements.
+// The course page's simple lists: its Tasks (to do, then handed in; each
+// opens the Task page), its exams (each opens the exam page) and its
+// announcements, with online-meeting links as a button.
 import { Fragment, type ReactNode } from "react";
 import { opensInBrowser } from "../../../core/course-materials";
+import { meetingLinks } from "../../../core/course-meetings";
 import type { Exam } from "../../../core/exams";
 import type { Announcement, Task } from "../../../core/models";
+import { byDeadline, isOpenStatus, submittedAt, taskStatus } from "../../../core/tasks";
 import { useOpenExternal } from "../../hooks";
 import { useFormat, useNow, useT } from "../../i18n";
-import { useNav } from "../../nav";
-import { cx } from "../../ui/cx";
-import { Card, EmptyState, SectionTitle, StatusChip } from "../../ui/display";
+import { useSignIn } from "../../shell/source-status";
+import { useStatus } from "../../store";
+import { Button } from "../../ui/controls";
+import { Card } from "../../ui/display";
 import { Icons } from "../../ui/icons";
+import { Section } from "../../ui/layout";
 import { ExamRows } from "../exam";
-import { isOpenTask } from "./data";
+import { TaskRows } from "../tasks";
 
-export function TaskRows({ tasks }: { tasks: Task[] }) {
+/** No exam known. Signed out of SIX, only Edunex was asked: said so, with the way to SIX's exam timetable. */
+function NoExams() {
   const t = useT();
-  const f = useFormat();
-  const now = useNow();
-  const { go } = useNav();
-  if (!tasks.length) return <EmptyState icon={<Icons.ListChecks className="size-5" />} title={t("course.noTasks")} />;
-  // Open Tasks first, by deadline.
-  const sorted = [...tasks].sort(
-    (a, b) => Number(!isOpenTask(a, now)) - Number(!isOpenTask(b, now)) || (a.dueAt ?? Infinity) - (b.dueAt ?? Infinity),
-  );
+  const sixOut = useStatus("six").state === "signed-out";
+  const { signIn, busy } = useSignIn();
+  if (!sixOut) return <p className="text-body text-muted">{t("course.noExams")}</p>;
   return (
-    <Card className="overflow-hidden">
-      <ul>
-        {sorted.map((task, index) => (
-          <li key={task.id} className={cx(index > 0 && "border-t border-line")}>
-            <button
-              type="button"
-              onClick={() => go({ screen: "task", taskId: task.id })}
-              className="focus-ring grid w-full grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-4 px-4 py-3 text-left transition-colors duration-150 hover:bg-hover"
-            >
-              <span className="truncate text-body font-medium">{task.title}</span>
-              <StatusChip status={task.status} />
-              <span className="w-[130px] text-right text-small whitespace-nowrap tabular-nums">
-                {task.dueAt !== null && (
-                  <>
-                    <span className="block font-medium">{f.dueLabel(task.dueAt)}</span>
-                    <span className="block text-faint">{f.fromNow(task.dueAt)}</span>
-                  </>
-                )}
-              </span>
-            </button>
-          </li>
-        ))}
-      </ul>
-    </Card>
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+      <p className="text-body text-muted">{t("course.noExamsNoSix")}</p>
+      <Button size="sm" busy={busy} onClick={() => void signIn("six")}>
+        {t("action.signInTo", { source: "SIX" })}
+      </Button>
+    </div>
   );
 }
 
 export function TasksTab({ tasks, exams }: { tasks: Task[]; exams: Exam[] }) {
   const t = useT();
+  const now = useNow();
+  const todo = tasks.filter((task) => isOpenStatus(taskStatus(task, now))).sort(byDeadline);
+  const done = tasks.filter((task) => !isOpenStatus(taskStatus(task, now))).sort((a, b) => (submittedAt(b) ?? b.dueAt ?? 0) - (submittedAt(a) ?? a.dueAt ?? 0));
   return (
-    <div className="space-y-9">
-      <section>
-        <SectionTitle count={tasks.length}>{t("course.tasks")}</SectionTitle>
-        <TaskRows tasks={tasks} />
-      </section>
-      <section>
-        <SectionTitle count={exams.length}>{t("course.exams")}</SectionTitle>
-        {exams.length ? <ExamRows exams={exams} /> : <EmptyState icon={<Icons.ClipboardCheck className="size-5" />} title={t("course.noExams")} />}
-      </section>
+    <div>
+      <Section id="course-todo" title={t("course.todo")} count={todo.length}>
+        {todo.length ? <TaskRows tasks={todo} meta="module" label={t("course.todo")} /> : <p className="text-body text-muted">{t("course.nothingTodo")}</p>}
+      </Section>
+      {/* Always under its own heading, so "no exam yet" never floats between the Task lists. */}
+      <Section id="course-exams" title={t("course.exams")} count={exams.length || undefined}>
+        {exams.length > 0 ? <ExamRows exams={exams} /> : <NoExams />}
+      </Section>
+      {done.length > 0 && (
+        <Section id="course-done" title={t("course.handedIn")} count={done.length}>
+          <TaskRows tasks={done} meta="module" label={t("course.handedIn")} />
+        </Section>
+      )}
     </div>
   );
 }
 
-export function AnnouncementsTab({ announcements, mainCourseId }: { announcements: Announcement[] | undefined; mainCourseId: number | null }) {
+export function AnnouncementsTab({ announcements, mainCourseId, code }: { announcements: Announcement[] | undefined; mainCourseId: number | null; code: string }) {
   const t = useT();
   const f = useFormat();
-  if (!announcements?.length) return <EmptyState icon={<Icons.Megaphone className="size-5" />} title={t("course.noAnnouncements")} />;
+  const open = useOpenExternal();
+  if (!announcements?.length)
+    return (
+      <p className="flex items-center gap-2 text-body text-muted">
+        <Icons.Megaphone className="size-4" />
+        {t("course.noAnnouncements")}
+      </p>
+    );
   return (
-    <ul className="space-y-3">
-      {announcements.map((item) => (
-        <li key={`${item.courseId}:${item.id}`}>
-          <Card className="px-4 py-3.5">
-            <p className="flex flex-wrap items-center gap-x-2 text-small text-muted">
-              {item.author && <span className="font-semibold text-fg">{item.author}</span>}
-              {item.postedAt !== null && <span>{f.dueLabel(item.postedAt)}</span>}
-              {item.courseId !== mainCourseId && <span className="text-faint">· {t("course.parentClass")}</span>}
-            </p>
-            <p className="mt-2 text-body leading-relaxed break-words whitespace-pre-line">
-              <Linked text={item.text} />
-            </p>
-          </Card>
-        </li>
-      ))}
+    <ul className="max-w-[760px] space-y-3">
+      {announcements.map((item) => {
+        const [link] = meetingLinks(item.text).filter(opensInBrowser);
+        return (
+          <li key={`${item.courseId}:${item.id}`}>
+            <Card className="px-5 py-4">
+              <div className="flex items-start justify-between gap-4">
+                <p className="min-w-0 text-small text-muted">
+                  {item.author && <span className="font-semibold text-fg">{item.author}</span>}
+                  {item.postedAt !== null && <span className="ml-2">{f.dueLabel(item.postedAt)}</span>}
+                  {item.courseId !== mainCourseId && <span className="mt-0.5 block text-faint">{t("course.fromJointClass", { code })}</span>}
+                </p>
+                {link && (
+                  <Button size="sm" variant="primary" icon={<Icons.Video className="size-3.5" />} onClick={() => open(link)}>
+                    {t("material.joinMeeting")}
+                  </Button>
+                )}
+              </div>
+              <p className="mt-2.5 text-body leading-relaxed break-words whitespace-pre-line">
+                <Linked text={item.text} />
+              </p>
+            </Card>
+          </li>
+        );
+      })}
     </ul>
   );
 }

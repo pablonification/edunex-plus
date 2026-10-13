@@ -13,10 +13,10 @@ export const coreActions = {
   "auth.signOut": { input: z.object({ source: SourceId.optional() }), output: z.object({}) },
   "sync.refresh": { input: z.object({ source: SourceId.optional() }), output: z.object({}) },
   "settings.update": { input: Settings.partial(), output: Settings },
-  /** Opens an official page (EduNex, SIX, ITB, online-class links) in the system browser. Other hosts are refused. */
+  /** Opens an official page (Edunex, SIX, ITB, online-class links) in the system browser. Other hosts are refused. */
   "shell.openExternal": { input: z.object({ url: z.string().url() }), output: z.object({}) },
   /**
-   * Downloads a file from EduNex (a material, a lecturer's file) through the browser's own download
+   * Downloads a file from Edunex (a material, a lecturer's file) through the browser's own download
    * manager, so the OS marks it as downloaded, into Downloads, and opens it.
    */
   "files.download": { input: z.object({ url: z.string().url(), name: z.string().min(1).max(200) }), output: z.object({ path: z.string() }) },

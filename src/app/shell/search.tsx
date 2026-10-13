@@ -1,7 +1,10 @@
 // Quick search (⌘K, Ctrl+K elsewhere): a palette over everything the app has
-// saved, so it works offline. Results come grouped by kind with each
-// course's color and code; arrows move, Enter opens, Escape closes. The
-// index (src/core/search.ts) is built when the palette opens.
+// saved, so it works offline. Results come grouped by kind (what's pressing
+// first), each with its course's color and a type word; the places carry
+// their ⌘1–⌘6. With nothing typed: what was opened lately, the next Tasks,
+// the courses, the places and the verbs (refresh, theme). Arrows move, Enter
+// opens (everything opens inside the app), Escape closes. The index
+// (src/core/search.ts) is built when the palette opens.
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { type ComponentType, type KeyboardEvent, useEffect, useId, useMemo, useState } from "react";
 import { materialKind } from "../../core/course-materials";
@@ -14,11 +17,13 @@ import { useTermCourses } from "../courses";
 import { type Format, type Translate, useFormat, useLang, useNow, useT } from "../i18n";
 import { useNav } from "../nav";
 import { useSaved } from "../saved";
-import { useStore } from "../store";
+import { useBridge, useSettings, useStore } from "../store";
 import { cx } from "../ui/cx";
 import { Kbd } from "../ui/display";
 import { type IconProps, Icons } from "../ui/icons";
+import { useReturnFocus } from "../ui/overlays";
 import { isBuilt } from "./built";
+import { refreshNow } from "./source-status";
 
 /** The screens and tabs that are built, in the sidebar's order. */
 const BUILT = (Object.keys(SCREENS) as ScreenId[]).filter((screen) => {
@@ -63,6 +68,28 @@ const MATERIAL_ICON: Partial<Record<ReturnType<typeof materialKind>, ComponentTy
   link: Icons.Link,
 };
 
+/** The places of the sidebar, as ⌘1–⌘6 open them. */
+const SHORTCUT: Partial<Record<ScreenId, string>> = { home: "1", tasks: "2", schedule: "3", presence: "4", grades: "5", plan: "6" };
+
+/** What the Student opened from the palette lately, newest first (kept on this computer only). */
+const RECENT_KEY = "edunex-plus.search.recent";
+function readRecent(): string[] {
+  try {
+    const saved: unknown = JSON.parse(localStorage.getItem(RECENT_KEY) ?? "[]");
+    return Array.isArray(saved) ? saved.filter((key): key is string => typeof key === "string") : [];
+  } catch {
+    return [];
+  }
+}
+function remember(key: string): void {
+  if (key.startsWith("action:")) return;
+  try {
+    localStorage.setItem(RECENT_KEY, JSON.stringify([key, ...readRecent().filter((k) => k !== key)].slice(0, 8)));
+  } catch {
+    // Not kept: the palette still works.
+  }
+}
+
 /** ⌘K on macOS, Ctrl+K elsewhere, from anywhere in the window. */
 export function useSearchShortcut(toggle: () => void): void {
   const store = useStore();
@@ -103,12 +130,15 @@ export function SearchButton({ onOpen }: { onOpen: () => void }) {
 
 export function SearchPalette({ open, onOpenChange, onSettings }: { open: boolean; onOpenChange: (open: boolean) => void; onSettings: () => void }) {
   const t = useT();
+  const { onOpenAutoFocus, onCloseAutoFocus } = useReturnFocus();
   return (
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
       <DialogPrimitive.Portal>
         <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-scrim backdrop-blur-[2px] motion-safe:animate-fade-in" />
         <DialogPrimitive.Content
           aria-describedby={undefined}
+          onOpenAutoFocus={onOpenAutoFocus}
+          onCloseAutoFocus={onCloseAutoFocus}
           className={cx(
             "fixed top-[12vh] left-1/2 z-50 flex w-[min(620px,calc(100vw-48px))] -translate-x-1/2 flex-col overflow-hidden",
             "rounded-2xl bg-raised text-fg shadow-dialog ring-1 ring-black/10 focus:outline-none motion-safe:animate-pop-in dark:ring-white/10",
@@ -134,12 +164,19 @@ function Palette({ onClose, onSettings }: { onClose: () => void; onSettings: () 
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
 
+  const bridge = useBridge();
+  const store = useStore();
+  const settings = useSettings();
+  const mac = store.platform === "darwin";
+  const [recent] = useState(readRecent);
   const index = useMemo(() => searchIndex(saved, { lang, screens: BUILT, now }), [saved, lang, now]);
-  const groups = useMemo(() => (query.trim() ? search(index, query) : suggestions(index, now)), [index, query, now]);
+  const groups = useMemo(() => (query.trim() ? search(index, query) : suggestions(index, now, recent)), [index, query, now, recent]);
   const items = groups.flatMap((group) => group.items);
   const colors = useMemo(() => new Map((courses ?? []).map((course) => [course.code, course.color])), [courses]);
   const optionId = (at: number) => `${id}-option-${at}`;
   const current = Math.min(active, items.length - 1);
+  const dark = settings.theme === "dark" || (settings.theme === "system" && typeof matchMedia === "function" && matchMedia("(prefers-color-scheme: dark)").matches);
+  const nextTheme = dark ? "light" : "dark";
 
   useEffect(() => {
     document.getElementById(optionId(current))?.scrollIntoView?.({ block: "nearest" });
@@ -147,8 +184,13 @@ function Palette({ onClose, onSettings }: { onClose: () => void; onSettings: () 
 
   const open = (item: SearchItem) => {
     onClose();
-    if (item.target === "settings") onSettings();
-    else go(item.target);
+    remember(item.key);
+    const target = item.target;
+    if (target === "settings") onSettings();
+    else if ("action" in target) {
+      if (target.action === "refresh") void refreshNow(bridge);
+      else void bridge.invoke("settings.update", { theme: nextTheme }).catch(() => undefined);
+    } else go(target);
   };
 
   const onKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
@@ -168,8 +210,8 @@ function Palette({ onClose, onSettings }: { onClose: () => void; onSettings: () 
     <>
       <div className="flex shrink-0 items-center gap-3 border-b border-line px-4">
         <Icons.Search className="size-4 text-muted" />
+        {/* No autoFocus: the dialog puts focus here itself, after noting what to return it to. */}
         <input
-          autoFocus
           value={query}
           role="combobox"
           aria-label={t("search.open")}
@@ -197,7 +239,8 @@ function Palette({ onClose, onSettings }: { onClose: () => void; onSettings: () 
             {group.items.map((item) => {
               const mine = at++;
               const selected = mine === current;
-              const detail = detailOf(item, t, f, now);
+              const detail = item.kind === "action" && item.action === "theme" ? t("search.action.themeTo", { theme: t(`settings.theme.${nextTheme}`) }) : detailOf(item, t, f, now);
+              const key = item.kind === "screen" ? SHORTCUT[item.screen] : undefined;
               return (
                 <div
                   key={item.key}
@@ -208,11 +251,11 @@ function Palette({ onClose, onSettings }: { onClose: () => void; onSettings: () 
                   aria-describedby={detail ? `${optionId(mine)}-detail` : undefined}
                   onMouseMove={() => mine !== current && setActive(mine)}
                   onClick={() => open(item)}
-                  className={cx("flex items-center gap-3 rounded-lg px-3 py-2", selected && "bg-info-bg")}
+                  className={cx("flex cursor-default items-center gap-3 rounded-lg px-3 py-2", selected && "bg-selected")}
                 >
                   <ItemMark item={item} color={item.code ? colors.get(item.code) : undefined} />
                   <span className="min-w-0 flex-1">
-                    <span id={`${optionId(mine)}-title`} className="block truncate text-body font-medium">
+                    <span id={`${optionId(mine)}-title`} className="line-clamp-2 text-body font-medium">
                       {item.title}
                     </span>
                     {detail && (
@@ -221,13 +264,42 @@ function Palette({ onClose, onSettings }: { onClose: () => void; onSettings: () 
                       </span>
                     )}
                   </span>
-                  {selected && <Icons.ArrowUpRight className="size-3.5 shrink-0 text-faint" />}
+                  <span className="flex shrink-0 items-center gap-2">
+                    {key ? (
+                      <span aria-hidden className="flex gap-0.5">
+                        <Kbd>{mac ? "⌘" : "Ctrl"}</Kbd>
+                        <Kbd>{key}</Kbd>
+                      </span>
+                    ) : (
+                      <span className="text-caption text-faint">{t(`search.type.${item.kind}`)}</span>
+                    )}
+                    <span aria-hidden className={cx("w-3.5 text-center text-small text-faint", !selected && "invisible")}>
+                      ↵
+                    </span>
+                  </span>
                 </div>
               );
             })}
           </div>
         ))}
-        {query.trim() && !items.length && <p className="px-3 py-8 text-center text-body text-muted">{t("search.noResults", { query: query.trim() })}</p>}
+        {query.trim() && !items.length && (
+          <div className="px-3 py-8 text-center">
+            <p className="text-body font-medium">{t("search.noResults", { query: query.trim() })}</p>
+            <p className="mt-1 text-small text-muted">{t("search.noResultsHint", { code: courses?.[0]?.code ?? "PL3002" })}</p>
+          </div>
+        )}
+      </div>
+      <div aria-hidden className="flex shrink-0 items-center gap-4 border-t border-line px-4 py-2 text-caption text-faint">
+        <span className="inline-flex items-center gap-1">
+          <Kbd>↑</Kbd>
+          <Kbd>↓</Kbd> {t("search.footer.move")}
+        </span>
+        <span className="inline-flex items-center gap-1">
+          <Kbd>↵</Kbd> {t("search.footer.open")}
+        </span>
+        <span className="inline-flex items-center gap-1">
+          <Kbd>esc</Kbd> {t("search.footer.close")}
+        </span>
       </div>
       <p className="sr-only" aria-live="polite">
         {query.trim() ? t("search.count", { count: items.length }) : ""}
@@ -243,7 +315,11 @@ function ItemMark({ item, color }: { item: SearchItem; color: string | undefined
       ? SCREEN_ICON[item.screen]
       : item.kind === "material"
         ? (MATERIAL_ICON[materialKind(item.material.type)] ?? Icons.FileText)
-        : { course: Icons.BookOpen, task: Icons.ListChecks, exam: Icons.GraduationCap, module: Icons.LayoutGrid, announcement: Icons.Megaphone }[item.kind];
+        : item.kind === "action"
+          ? item.action === "refresh"
+            ? Icons.RefreshCw
+            : Icons.Moon
+          : { course: Icons.BookOpen, task: Icons.ListChecks, exam: Icons.GraduationCap, module: Icons.LayoutGrid, announcement: Icons.Megaphone }[item.kind];
   return (
     <span className="relative grid size-7 shrink-0 place-items-center rounded-md bg-fill">
       <Icon className="size-3.5 text-muted" />
@@ -253,19 +329,12 @@ function ItemMark({ item, color }: { item: SearchItem; color: string | undefined
 }
 
 /** "12–16 Okt" from ITB's first and last day ("2026-10-12"), whatever the computer's time zone. */
-export function dayRange(f: Format, firstDay: string, lastDay: string): string {
-  const local = (day: string) => new Date(Number(day.slice(0, 4)), Number(day.slice(5, 7)) - 1, Number(day.slice(8, 10)), 12);
-  const [first, last] = [local(firstDay), local(lastDay)];
-  if (firstDay === lastDay) return f.dayMonth(first);
-  return first.getMonth() === last.getMonth() ? `${first.getDate()}–${f.dayMonth(last)}` : `${f.dayMonth(first)}–${f.dayMonth(last)}`;
-}
-
 /** When an exam is, as its row says it. */
 function examWhen(exam: Exam, t: Translate, f: Format): string {
   const session = exam.six[0];
   if (session) return `${f.relativeDay(session.start)}, ${f.timeRange(session.start, session.end)}${session.room ? ` · ${session.room}` : ""}`;
   if (exam.at !== null) return f.dueLabel(exam.at);
-  if (exam.week) return t("search.examWeek", { kind: t(`exam.kind.${exam.kind}`), range: dayRange(f, exam.week.firstDay, exam.week.lastDay) });
+  if (exam.week) return t("search.examWeek", { kind: t(`exam.kind.${exam.kind}`), range: f.dayRange(exam.week.firstDay, exam.week.lastDay) });
   return t("search.noDate");
 }
 
@@ -278,17 +347,19 @@ function detailOf(item: SearchItem, t: Translate, f: Format, now: number): strin
       break;
     case "task": {
       const status = taskStatus(item.task, now);
-      parts.push(t(`taskStatus.${status}`), isOpenStatus(status) && item.task.dueAt !== null ? t("search.due", { when: f.dueLabel(item.task.dueAt) }) : null);
+      // A status only where it says something: not "not started" on every Task to do.
+      parts.push(status === "not_started" ? null : t(`taskStatus.${status}`), isOpenStatus(status) && item.task.dueAt !== null ? t("search.due", { when: f.dueLabel(item.task.dueAt) }) : null);
       break;
     }
     case "exam":
       parts.push(takeHomeOnly(item.exam) ? t("task.uts") : null, examWhen(item.exam, t, f));
       break;
+    // The joint class's copy of a module says so, or the two rows read the same.
     case "material":
-      if (item.module) parts.push(t("course.module", { no: item.module.number }), item.module.title);
+      if (item.module) parts.push(item.module.parent ? t("course.jointClass") : null, t("course.module", { no: item.module.number }), item.module.title);
       break;
     case "module":
-      parts.push(t("course.module", { no: item.module.number }), item.module.parent ? t("search.parentClass") : null);
+      parts.push(item.module.parent ? t("course.jointClass") : null, t("course.module", { no: item.module.number }));
       break;
     case "announcement":
       parts.push(item.announcement.postedAt !== null ? f.relativeDay(item.announcement.postedAt) : null);

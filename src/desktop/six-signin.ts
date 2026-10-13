@@ -1,7 +1,7 @@
 // SIX sign-in in a window the app owns, on the throwaway sign-in session
 // (signin-session.ts): SIX's "Login dengan ITB Account" → Microsoft, where the
 // Student types their password and 2FA code (or nothing at all, right after
-// signing in to EduNex) → back to SIX. Once SIX shows a signed-in page, the app
+// signing in to Edunex) → back to SIX. Once SIX shows a signed-in page, the app
 // reads SIX's session cookie and closes the window. There's no time limit.
 import type { BrowserWindow } from "electron";
 import { EngineError } from "../engine/errors";

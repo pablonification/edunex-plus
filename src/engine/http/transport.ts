@@ -1,5 +1,5 @@
 // The engine's only door to the network. Production plugs in Electron's
-// network stack; tests plug in the pretend EduNex and SIX (test/pretend), so
+// network stack; tests plug in the pretend Edunex and SIX (test/pretend), so
 // the whole engine runs against real recorded responses.
 
 export type HttpMethod = "GET" | "HEAD" | "POST" | "PUT" | "PATCH" | "DELETE";

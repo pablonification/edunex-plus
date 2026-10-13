@@ -1,5 +1,5 @@
 // Each term course's attendance as the screens show it (#85): SIX's count,
-// what's left before the Student's target, where it counts, and the EduNex
+// what's left before the Student's target, where it counts, and the Edunex
 // Presence windows open now with the action that counts in each. The
 // Presensi screen, its sidebar badge and the course header read it.
 import { useMemo } from "react";
@@ -7,7 +7,7 @@ import { type AttendanceHealth, attendanceHealth, lecturePeriod, openWindows, ty
 import type { ClassSession, PresenceSession } from "../core/models";
 import { type TermCourse, useTermCourses } from "./courses";
 import { useNow } from "./i18n";
-import { useDataset, useSettings } from "./store";
+import { useDataset, useSettings, useStatus } from "./store";
 
 export interface CourseAttendance {
   course: TermCourse;
@@ -42,6 +42,8 @@ export function useAttendance(): Attendance | undefined {
   const schedule = useDataset("six.schedule");
   const student = useDataset("six.student");
   const { attendanceTarget: target } = useSettings();
+  // Signed out of SIX: which system counts can't be known, so nothing reads as counting.
+  const sixConnected = useStatus("six").state !== "signed-out" || sixCourses !== undefined;
   // Minute precision is plenty, and keeps the math from rerunning every tick.
   const now = Math.floor(useNow() / 60_000) * 60_000;
   return useMemo(() => {
@@ -50,7 +52,7 @@ export function useAttendance(): Attendance | undefined {
     const list = courses.map((course) => {
       const six = course.attendance ?? sixCourses?.find((c) => c.code === course.code)?.attendance ?? null;
       const mine = presence?.[course.code] ?? [];
-      const health = attendanceHealth({ code: course.code, six, presence: mine, schedule: schedule ?? [], period, target, now });
+      const health = attendanceHealth({ code: course.code, six, sixConnected, presence: mine, schedule: schedule ?? [], period, target, now });
       const exams = (schedule ?? []).filter((s) => s.courseCode === course.code && s.start > now && /\b(UTS|UAS)\b/i.test(s.activity));
       return { course, health, presence: mine, exams };
     });
@@ -62,5 +64,5 @@ export function useAttendance(): Attendance | undefined {
       health: list.find((c) => c.course.code === code)?.health,
     }));
     return { courses: list, open, target, lastDay: period?.lastDay ?? null };
-  }, [courses, presence, tasks, calendar, sixCourses, schedule, student, target, now]);
+  }, [courses, presence, tasks, calendar, sixCourses, schedule, student, target, sixConnected, now]);
 }

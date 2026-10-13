@@ -8,11 +8,14 @@ import type { ClassSession, KrsPlan } from "../../../core/models";
 import { useTermCourses } from "../../courses";
 import { useFormat, useNow, useT } from "../../i18n";
 import { useNav } from "../../nav";
-import { SixEmptyState } from "../../shell/source-status";
 import { useDataset } from "../../store";
 import { cx } from "../../ui/cx";
-import { Bar, Card, CourseCode, SectionTitle, SourceTag } from "../../ui/display";
+import { Button } from "../../ui/controls";
+import { Bar, Card, CourseCode, SectionTitle } from "../../ui/display";
 import { Icons } from "../../ui/icons";
+import { List, Meta, Row } from "../../ui/layout";
+import { useTermYears } from "./projection";
+import { SixNeeded } from "./six-needed";
 
 export const ready = true;
 
@@ -21,84 +24,125 @@ function useSchedule(): ClassSession[] {
 }
 
 /** A KRS step to take now, plus every pair of overlapping classes still to come. */
+/**
+ * Amber only for a step the Student must take today (send the KRS). A clash
+ * still to come counts in a neutral badge: worth a question to the lecturer,
+ * not a deadline.
+ */
 export function useBadge(): { value: number; tone: "neutral" | "warning" } | null {
   const plan = useDataset("six.krs");
   const calendar = useDataset("itb.calendar");
   const schedule = useSchedule();
   const now = useNow();
   if (!plan) return null;
-  const value =
-    (krsNeedsStudent(plan, calendar, now) ? 1 : 0) +
-    krsOverlaps(
-      plan.courses.map((c) => c.code),
-      schedule,
-      now,
-    ).filter((o) => o.upcoming).length;
-  return value > 0 ? { value, tone: "warning" } : null;
+  if (krsNeedsStudent(plan, calendar, now)) return { value: 1, tone: "warning" };
+  const value = krsOverlaps(
+    plan.courses.map((c) => c.code),
+    schedule,
+    now,
+  ).filter((o) => o.upcoming).length;
+  return value > 0 ? { value, tone: "neutral" } : null;
 }
 
-const STAGE_TONE: Record<KrsStage, { box: string; icon: typeof Icons.Clock }> = {
+const STAGE_TONE: Record<KrsStage | "clash", { box: string; icon: typeof Icons.Clock }> = {
   send: { box: "bg-warning-bg text-warning-fg", icon: Icons.AlertTriangle },
   advisor: { box: "bg-fill text-muted", icon: Icons.Clock },
   ukt: { box: "bg-warning-bg text-warning-fg", icon: Icons.Wallet },
   official: { box: "bg-info-bg text-info-fg", icon: Icons.Clock },
   done: { box: "bg-success-bg text-success-fg", icon: Icons.ShieldCheck },
+  clash: { box: "bg-warning-bg text-warning-fg", icon: Icons.Overlap },
 };
 
-export function Tab() {
+export function Tab(_: { onCalendar?: () => void }) {
   const t = useT();
   const plan = useDataset("six.krs");
-  if (!plan) return <SixEmptyState icon={<Icons.ClipboardCheck className="size-5" />} title={t("krs.empty")} />;
+  const schedule = useSchedule();
+  const now = useNow();
+  if (!plan) return <SixNeeded icon={<Icons.ClipboardCheck className="size-5" />} title={t("krs.needSix")} body={t("krs.needSixBody")} />;
   const { plan: steps, change } = krsTimeline(plan);
+  const overlaps = krsOverlaps(
+    plan.courses.map((c) => c.code),
+    schedule,
+    now,
+  );
   return (
-    <div className="grid grid-cols-[320px_minmax(0,1fr)] gap-8">
-      <section>
-        <Stage plan={plan} />
-        <Timeline title={t("krs.round.plan")} steps={steps} />
-        {change && <Timeline title={t("krs.round.change")} steps={change} />}
-      </section>
-      <Courses plan={plan} />
+    <div className="@container space-y-8">
+      <Stage plan={plan} overlaps={overlaps.filter((o) => o.upcoming)} />
+      <div className="grid grid-cols-1 items-start gap-8 @4xl:grid-cols-[minmax(0,1fr)_300px]">
+        <Courses plan={plan} overlaps={overlaps} />
+        <section>
+          <Timeline title={t("krs.round.plan")} steps={steps} />
+          {change && <Timeline title={t("krs.round.change")} steps={change} />}
+        </section>
+      </div>
     </div>
   );
 }
 
-function Stage({ plan }: { plan: KrsPlan }) {
+/**
+ * The plan's one honest status, and the next step. An official KRS with a
+ * clash still to come is not "nothing to do": it says so in amber, what to
+ * do about it, and where to see it.
+ */
+function Stage({ plan, overlaps }: { plan: KrsPlan; overlaps: Overlap[] }) {
   const t = useT();
   const f = useFormat();
   const now = useNow();
+  const nav = useNav();
+  const termYears = useTermYears();
   const calendar = useDataset("itb.calendar");
   const stage = krsStage(plan);
-  const { box, icon: Icon } = STAGE_TONE[stage];
+  const clash = overlaps.length > 0 && (stage === "done" || stage === "official");
+  const { box, icon: Icon } = STAGE_TONE[clash ? "clash" : stage];
   const window = nextKrsWindow(plan, calendar, now);
   const day = (iso: string) => f.dayMonth(Date.parse(`${iso}T12:00:00+07:00`));
+  const first = overlaps[0];
+  const when = first ? `${f.weekdayShort(first.start)} ${f.dayMonth(first.start)}, ${f.timeRange(first.start, first.end)}` : "";
   return (
-    <div>
-      <div className="flex items-start gap-3 rounded-xl border border-edge bg-surface px-4 py-3.5">
-        <span className={cx("grid size-8 shrink-0 place-items-center rounded-lg", box)}>
-          <Icon className="size-4" />
+    <Card variant="raised" className="px-5 py-4">
+      <div className="flex items-start gap-3.5">
+        <span className={cx("grid size-9 shrink-0 place-items-center rounded-lg", box)}>
+          <Icon className="size-[18px]" />
         </span>
-        <div className="min-w-0">
-          <p className="text-lead font-semibold">{t(`krs.stage.${stage}`)}</p>
-          <p className="text-small text-muted">{t(`krs.stage.${stage}.hint`)}</p>
-          <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-caption text-muted">
-            <SourceTag source="six" />
-            <span>{f.term(plan.term)}</span>
-            {plan.advisor && <span>· {t("krs.advisor", { name: plan.advisor })}</span>}
+        <div className="min-w-0 flex-1">
+          <p className={cx("text-title font-semibold", clash && "text-warning-fg")}>
+            {clash ? t(stage === "done" ? "krs.stage.clash" : "krs.stage.clashApproved", { count: overlaps.length }) : t(`krs.stage.${stage}`)}
+          </p>
+          {clash && first ? (
+            <>
+              <p className="mt-0.5 text-body">{t("krs.overlap", { a: first.codes[0], b: first.codes[1], when, count: first.count })}</p>
+              <p className="mt-1 text-small text-muted">
+                {window?.kind === "urs"
+                  ? t("krs.clash.nextUrs", { a: first.codes[0], b: first.codes[1], range: `${day(window.event.firstDay)}–${day(window.event.lastDay)}` })
+                  : t("krs.clash.next", { a: first.codes[0], b: first.codes[1] })}
+              </p>
+            </>
+          ) : (
+            <p className="mt-0.5 text-small text-muted">{t(`krs.stage.${stage}.hint`)}</p>
+          )}
+          <p className="mt-2 text-caption text-muted">
+            <Meta>
+              {termYears(plan.term)}
+              {plan.advisor ? t("krs.advisor", { name: plan.advisor }) : ""}
+            </Meta>
           </p>
         </div>
+        {clash && (
+          <Button variant="secondary" onClick={() => nav.go({ screen: "schedule" })}>
+            {t("krs.toSchedule")}
+            <Icons.ChevronRight className="size-4" />
+          </Button>
+        )}
       </div>
       {window && (
-        <p className={cx("mt-3 flex items-center gap-2 text-small", window.open ? "font-medium text-fg" : "text-muted")}>
+        <p className={cx("mt-3 flex items-center gap-2 border-t border-line pt-3 text-small", window.open ? "font-medium text-fg" : "text-muted")}>
           <Icons.CalendarClock className="size-3.5 shrink-0" />
-          <span className="min-w-0 flex-1">
-            {window.open
-              ? t(`krs.window.${window.kind}.open`, { date: day(window.event.lastDay) })
-              : t(`krs.window.${window.kind}.next`, { range: `${day(window.event.firstDay)} – ${day(window.event.lastDay)}` })}
-          </span>
-          <SourceTag source="itb" />
+          {window.open
+            ? t(`krs.window.${window.kind}.open`, { date: day(window.event.lastDay) })
+            : t(`krs.window.${window.kind}.next`, { range: `${day(window.event.firstDay)} – ${day(window.event.lastDay)}` })}
         </p>
       )}
-    </div>
+    </Card>
   );
 }
 
@@ -106,8 +150,8 @@ function Timeline({ title, steps }: { title: string; steps: KrsStep[] }) {
   const t = useT();
   const f = useFormat();
   return (
-    <div className="mt-6">
-      <h3 className="mb-3 text-caption font-semibold tracking-[0.04em] text-muted uppercase">{title}</h3>
+    <div className="mb-7 last:mb-0">
+      <h3 className="mb-3 text-small font-semibold">{title}</h3>
       <ol className="relative ml-2 space-y-4 border-l border-line pl-5">
         {steps.map((step) => (
           <li key={step.key} className="relative">
@@ -118,7 +162,7 @@ function Timeline({ title, steps }: { title: string; steps: KrsStep[] }) {
                 step.done ? "bg-live text-white" : "border border-track bg-surface",
               )}
             >
-              {step.done && <Icons.Check className="size-2.5" strokeWidth={3.5} />}
+              {step.done && <Icons.Check className="size-2.5" weight="bold" />}
             </span>
             <p className={cx("text-body font-medium", !step.done && "text-muted")}>{t(`krs.step.${step.key}`)}</p>
             <p className="text-caption text-muted tabular-nums">
@@ -139,27 +183,20 @@ function Timeline({ title, steps }: { title: string; steps: KrsStep[] }) {
   );
 }
 
-function Courses({ plan }: { plan: KrsPlan }) {
+function Courses({ plan, overlaps }: { plan: KrsPlan; overlaps: Overlap[] }) {
   const t = useT();
-  const now = useNow();
+  const f = useFormat();
   const { go } = useNav();
   const term = useTermCourses();
-  const schedule = useSchedule();
-  const overlaps = krsOverlaps(
-    plan.courses.map((c) => c.code),
-    schedule,
-    now,
-  );
   const over = plan.maxSks !== null && plan.sks > plan.maxSks;
+  // Say once what every row shares; chips only where a row differs.
+  const classes = new Set(plan.courses.map((c) => c.classNo));
+  const sameClass = classes.size === 1 ? [...classes][0] : null;
+  const allApproved = plan.courses.every((c) => c.approved);
+  const clashWith = (code: string) => overlaps.filter((o) => o.upcoming && o.codes.includes(code)).map((o) => o.codes.find((c) => c !== code)!);
+  const past = overlaps.filter((o) => !o.upcoming);
   return (
     <section className="min-w-0">
-      {overlaps.length > 0 && (
-        <ul className="mb-5 space-y-2">
-          {overlaps.map((overlap) => (
-            <OverlapNote key={overlap.codes.join()} overlap={overlap} />
-          ))}
-        </ul>
-      )}
       <SectionTitle
         aside={
           <span className={cx("text-small font-medium tabular-nums", over ? "text-danger-fg" : "text-muted")}>
@@ -175,55 +212,65 @@ function Courses({ plan }: { plan: KrsPlan }) {
           {over && <p className="mb-3 text-small font-medium text-danger-fg">{t("krs.overMax", { max: plan.maxSks })}</p>}
         </>
       )}
-      <Card className="overflow-hidden">
-        <ul className="divide-y divide-line">
-          {plan.courses.map((course) => {
-            const known = term?.find((c) => c.code === course.code);
-            const row = (
-              <>
-                <CourseCode code={course.code} color={known?.color ?? "var(--faint)"} className="text-small" />
-                <span className="truncate text-body">{course.name}</span>
-                <span className="text-small text-muted tabular-nums">{t("krs.class", { classNo: course.classNo })}</span>
-                <span className="text-right text-small font-medium tabular-nums">{t("krs.sks", { sks: course.sks })}</span>
-                <span className={cx("inline-flex items-center justify-end gap-1 text-caption font-semibold", course.approved ? "text-success-fg" : "text-warning-fg")}>
-                  {course.approved ? <Icons.CheckCircle className="size-3.5" /> : <Icons.Clock className="size-3.5" />}
-                  {course.approved ? t("krs.approved") : t("krs.notApproved")}
+      <List label={t("krs.courses")}>
+        {plan.courses.map((course, i) => {
+          const known = term?.find((c) => c.code === course.code);
+          const clashes = clashWith(course.code);
+          return (
+            <Row
+              key={course.code}
+              index={i}
+              leading={<CourseCode code={course.code} color={known?.color ?? "var(--faint)"} className="w-[76px] text-small" />}
+              title={course.name}
+              meta={
+                clashes.length || !sameClass ? (
+                  <Meta>
+                    {sameClass ? "" : t("krs.class", { classNo: course.classNo })}
+                    {clashes.length ? (
+                      <span className="inline-flex items-center gap-1 font-medium text-warning-fg">
+                        <Icons.Overlap className="size-3" />
+                        {t("krs.clashWith", { code: clashes.join(", ") })}
+                      </span>
+                    ) : (
+                      ""
+                    )}
+                  </Meta>
+                ) : undefined
+              }
+              trailing={
+                <span className="flex items-center gap-3">
+                  {!course.approved && (
+                    <span className="inline-flex items-center gap-1 text-caption font-semibold text-warning-fg">
+                      <Icons.Clock className="size-3.5" />
+                      {t("krs.notApproved")}
+                    </span>
+                  )}
+                  <span className="w-[52px] text-right text-small font-medium tabular-nums">{t("krs.sks", { sks: course.sks })}</span>
                 </span>
-              </>
-            );
-            const grid = "grid w-full grid-cols-[92px_minmax(0,1fr)_72px_56px_120px] items-center gap-3 px-4 py-3 text-left";
-            return (
-              <li key={course.code}>
-                {known ? (
-                  <button
-                    type="button"
-                    onClick={() => go({ screen: "course", code: course.code })}
-                    className={cx(grid, "focus-ring transition-colors duration-150 hover:bg-hover")}
-                  >
-                    {row}
-                  </button>
-                ) : (
-                  <div className={grid}>{row}</div>
-                )}
-              </li>
-            );
+              }
+              onClick={known ? () => go({ screen: "course", code: course.code }) : undefined}
+            />
+          );
+        })}
+      </List>
+      <p className="mt-2 text-caption text-faint">
+        <Meta>
+          {sameClass ? t("krs.sameClass", { classNo: sameClass }) : ""}
+          {allApproved ? t("krs.allApproved") : ""}
+          {t("krs.from")}
+        </Meta>
+      </p>
+      {past.map((overlap) => (
+        <p key={overlap.codes.join()} className="mt-2 flex items-start gap-2 text-small text-muted">
+          <Icons.Overlap className="mt-0.5 size-3.5 shrink-0" />
+          {t("krs.overlap.past", {
+            a: overlap.codes[0],
+            b: overlap.codes[1],
+            when: `${f.weekdayShort(overlap.start)} ${f.dayMonth(overlap.start)}, ${f.timeRange(overlap.start, overlap.end)}`,
+            count: overlap.count,
           })}
-        </ul>
-      </Card>
+        </p>
+      ))}
     </section>
-  );
-}
-
-function OverlapNote({ overlap }: { overlap: Overlap }) {
-  const t = useT();
-  const f = useFormat();
-  const when = `${f.weekdayShort(overlap.start)} ${f.dayMonth(overlap.start)}, ${f.timeRange(overlap.start, overlap.end)}`;
-  const vars = { a: overlap.codes[0], b: overlap.codes[1], when, count: overlap.count };
-  return (
-    <li className={cx("flex items-start gap-2.5 rounded-lg px-3.5 py-2.5 text-small leading-[1.5]", overlap.upcoming ? "bg-danger-bg text-danger-fg" : "bg-fill text-muted")}>
-      <Icons.Overlap className="mt-0.5 size-4 shrink-0" />
-      <span className="min-w-0 flex-1">{t(overlap.upcoming ? "krs.overlap" : "krs.overlap.past", vars)}</span>
-      <SourceTag source="six" />
-    </li>
   );
 }

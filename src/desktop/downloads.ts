@@ -1,4 +1,4 @@
-// Files from EduNex go through Chromium's own download manager, so the OS
+// Files from Edunex go through Chromium's own download manager, so the OS
 // marks them as downloaded from the internet (quarantine / Mark of the Web).
 // They land in Downloads under their own name and open when done.
 import { app, shell, type WebContents } from "electron";
@@ -6,7 +6,7 @@ import { existsSync } from "node:fs";
 import path from "node:path";
 import { EngineError } from "../engine/errors";
 
-/** Where EduNex keeps files: its storage on Azure, its API, ITB's own sites. */
+/** Where Edunex keeps files: its storage on Azure, its API, ITB's own sites. */
 const FILE_HOSTS = [/\.blob\.core\.windows\.net$/, /^api-edunex\.cognisia\.id$/, /(^|\.)itb\.ac\.id$/];
 
 export function isDownloadable(url: string): boolean {

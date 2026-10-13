@@ -1,7 +1,7 @@
 // Handing a Task in (#73), only ever because the Student clicked: a file goes
-// up through EduNex's own upload flow (a temporary storage link, then the
-// file), a draft is saved (EduNex's answers are re-read first, so a new answer
-// is created only when there is none), and a submit counts only once EduNex
+// up through Edunex's own upload flow (a temporary storage link, then the
+// file), a draft is saved (Edunex's answers are re-read first, so a new answer
+// is created only when there is none), and a submit counts only once Edunex
 // says the answer is sent when the Task is read back.
 import { z } from "zod";
 import { Bytes, HandIn, type HandInResult, MAX_UPLOAD_BYTES } from "../../../core/actions/tasks";
@@ -14,12 +14,12 @@ import { EDUNEX_API, EdunexClient, TIMEOUT_MS } from "./client";
 import type { EdunexSession } from "./session";
 import { readTask, remember } from "./task-records";
 
-// ---------------------------------------------------------------- EduNex's write calls
+// ---------------------------------------------------------------- Edunex's write calls
 //
 // NOT RECORDED: the recorder blocks every write, so the website's own requests
 // to these endpoints were never captured. The bodies follow v1's JSON:API
 // envelope, which v1 checked live for a draft without files and for the
-// submit (API.md, "The only writes"), plus the fields EduNex sends back on an
+// submit (API.md, "The only writes"), plus the fields Edunex sends back on an
 // answer (answer, files[{ name, file }], is_sent). The `files` field and the
 // upload-link reply are modelled, not seen. They all live here so one real
 // submission can confirm or correct them. The replies' shapes are unknown
@@ -41,7 +41,7 @@ const stored = (file: TaskFile) => ({ name: file.name, file: file.url });
 const UploadLink = z.object({ uploadUrl: z.string().url(), readUrl: z.string().url() });
 const UploadLinks = z.union([z.object({ data: z.array(UploadLink).min(1) }), z.array(UploadLink).min(1), z.object({ data: UploadLink }), UploadLink]);
 
-/** Where EduNex keeps files: its storage on Azure. Nothing else is uploaded to or attached. */
+/** Where Edunex keeps files: its storage on Azure. Nothing else is uploaded to or attached. */
 function isStorageUrl(url: string): boolean {
   try {
     const parsed = new URL(url);
@@ -64,7 +64,7 @@ export const taskActions: Record<string, SourceAction<EdunexSession>> = {
     if (!reply.success) throw new EngineError("VendorChanged", "/blob-storage/sas: no upload link in the answer");
     const data = reply.data;
     const link = Array.isArray(data) ? data[0] : "data" in data ? (Array.isArray(data.data) ? data.data[0] : data.data) : data;
-    if (!isStorageUrl(link.uploadUrl) || !isStorageUrl(link.readUrl)) throw new EngineError("VendorChanged", "/blob-storage/sas: the upload link isn't EduNex's storage");
+    if (!isStorageUrl(link.uploadUrl) || !isStorageUrl(link.readUrl)) throw new EngineError("VendorChanged", "/blob-storage/sas: the upload link isn't Edunex's storage");
     await put(context.transport, context.userAgent, link.uploadUrl, contentType, bytes);
     return { name, url: link.readUrl, size: bytes.byteLength };
   },
@@ -104,9 +104,9 @@ export const taskActions: Record<string, SourceAction<EdunexSession>> = {
           }
         }
         const answerId = draft.answer?.id;
-        if (answerId === undefined) throw new EngineError("Failed", "EduNex lost the answer");
+        if (answerId === undefined) throw new EngineError("Failed", "Edunex lost the answer");
         await write(context, session, "PATCH", `/course/task/answers/${answerId}`, answerBodies.submit());
-        // The receipt is only what EduNex says when the Task is read back.
+        // The receipt is only what Edunex says when the Task is read back.
         const after = await readBack(context, client, draft);
         await remember(context, handIn.taskId, after);
         return { outcome: !after ? "gone" : after.answer?.sent ? "submitted" : "unconfirmed", task: after };
@@ -128,18 +128,18 @@ function readBack(context: SourceContext, client: EdunexClient, task: Task): Pro
   return readTask(client, task, context.clock.now());
 }
 
-/** Why EduNex won't take an answer now (read back just before writing), or null when it will. */
+/** Why Edunex won't take an answer now (read back just before writing), or null when it will. */
 async function refusal(context: SourceContext, taskId: number, fresh: Task | null): Promise<HandInResult | null> {
   const now = context.clock.now();
   if (fresh && !fresh.answer?.sent && takesAnswers(fresh, now)) return null;
   await remember(context, taskId, fresh);
   if (!fresh) return GONE;
-  // Handed in already (on the website, or by an earlier click): the receipt is what EduNex says.
+  // Handed in already (on the website, or by an earlier click): the receipt is what Edunex says.
   if (fresh.answer?.sent) return { outcome: "submitted", task: fresh };
   return { outcome: fresh.opensAt !== null && now < fresh.opensAt ? "not-open" : "closed", task: fresh };
 }
 
-/** EduNex refused a write: if the Task stopped taking answers meanwhile (closed midway), say that; else pass the refusal on. */
+/** Edunex refused a write: if the Task stopped taking answers meanwhile (closed midway), say that; else pass the refusal on. */
 async function refusedMidway<T>(context: SourceContext, client: EdunexClient, fresh: Task, work: () => Promise<T>): Promise<T | HandInResult> {
   try {
     return await work();
@@ -154,14 +154,14 @@ async function refusedMidway<T>(context: SourceContext, client: EdunexClient, fr
 }
 
 /**
- * Writes the draft: creates the answer when EduNex has none (as checked live,
- * without files), then puts exactly these files in it. `kept`: EduNex, read
+ * Writes the draft: creates the answer when Edunex has none (as checked live,
+ * without files), then puts exactly these files in it. `kept`: Edunex, read
  * back, holds exactly these files in a draft.
  */
 async function saveAnswer(context: SourceContext, session: EdunexSession, client: EdunexClient, fresh: Task, handIn: HandIn): Promise<{ task: Task | null; kept: boolean }> {
   for (const file of handIn.files) {
     const already = fresh.answer?.files.some((existing) => sameFile(existing, file));
-    if (!already && !isStorageUrl(file.url)) throw new EngineError("Rejected", `${file.name} isn't on EduNex's storage`);
+    if (!already && !isStorageUrl(file.url)) throw new EngineError("Rejected", `${file.name} isn't on Edunex's storage`);
   }
   const kept = (task: Task | null) => Boolean(task?.answer && !task.answer.sent && holdsFiles(task.answer.files, handIn.files));
   let answer = fresh.answer;
@@ -176,7 +176,7 @@ async function saveAnswer(context: SourceContext, session: EdunexSession, client
   return { task: after, kept: kept(after) };
 }
 
-/** A file's place on the storage, however EduNex writes the link (query and encoding aside). */
+/** A file's place on the storage, however Edunex writes the link (query and encoding aside). */
 function place(url: string): string {
   try {
     const parsed = new URL(url);
@@ -188,7 +188,7 @@ function place(url: string): string {
 
 const sameFile = (a: TaskFile, b: TaskFile) => place(a.url) === place(b.url);
 
-/** The answer holds exactly these files: each one by its link, or by its name if EduNex moved it. */
+/** The answer holds exactly these files: each one by its link, or by its name if Edunex moved it. */
 function holdsFiles(files: TaskFile[], wanted: TaskFile[]): boolean {
   return files.length === wanted.length && wanted.every((want) => files.some((have) => sameFile(have, want) || have.name === want.name));
 }
@@ -217,7 +217,7 @@ function parse<S extends z.ZodType>(schema: S, input: unknown): z.infer<S> {
 
 // ---------------------------------------------------------------- requests
 
-/** A write to EduNex's API. A refusal is "Rejected"; an ended session "Unauthorized". */
+/** A write to Edunex's API. A refusal is "Rejected"; an ended session "Unauthorized". */
 async function write(context: SourceContext, session: EdunexSession, method: "POST" | "PATCH", path: string, body: unknown): Promise<unknown> {
   let response;
   try {
@@ -234,12 +234,12 @@ async function write(context: SourceContext, session: EdunexSession, method: "PO
       timeoutMs: TIMEOUT_MS,
     });
   } catch (error) {
-    if (error instanceof NetworkError) throw new EngineError("Offline", error.reason === "timeout" ? "EduNex didn't answer in time" : "EduNex is unreachable");
+    if (error instanceof NetworkError) throw new EngineError("Offline", error.reason === "timeout" ? "Edunex didn't answer in time" : "Edunex is unreachable", true);
     throw error;
   }
-  if (response.status === 401) throw new EngineError("Unauthorized", `EduNex refused ${path}`);
-  if (response.status === 429 || response.status >= 500) throw new EngineError("Offline", `EduNex answered ${response.status}`);
-  if (response.status >= 400) throw new EngineError("Rejected", `EduNex refused ${method} ${path} (${response.status})`);
+  if (response.status === 401) throw new EngineError("Unauthorized", `Edunex refused ${path}`);
+  if (response.status === 429 || response.status >= 500) throw new EngineError("Offline", `Edunex answered ${response.status}`);
+  if (response.status >= 400) throw new EngineError("Rejected", `Edunex refused ${method} ${path} (${response.status})`);
   try {
     return response.body ? JSON.parse(response.body) : null;
   } catch {
@@ -247,7 +247,7 @@ async function write(context: SourceContext, session: EdunexSession, method: "PO
   }
 }
 
-/** The file itself goes straight to EduNex's storage, as the website sends it; EduNex's sign-in never goes there. */
+/** The file itself goes straight to Edunex's storage, as the website sends it; Edunex's sign-in never goes there. */
 async function put(transport: Transport, userAgent: string, url: string, contentType: string, bytes: Uint8Array): Promise<void> {
   // Room for a slow connection: a minute, plus a second for every 50 KB.
   const timeoutMs = Math.min(30 * 60_000, 60_000 + Math.ceil(bytes.byteLength / 50));
@@ -255,8 +255,8 @@ async function put(transport: Transport, userAgent: string, url: string, content
   try {
     response = await transport.request({ method: "PUT", url, headers: { "x-ms-blob-type": "BlockBlob", "content-type": contentType, "user-agent": userAgent }, body: bytes, timeoutMs });
   } catch (error) {
-    if (error instanceof NetworkError) throw new EngineError("Offline", error.reason === "timeout" ? "The upload took too long" : "EduNex's storage is unreachable");
+    if (error instanceof NetworkError) throw new EngineError("Offline", error.reason === "timeout" ? "The upload took too long" : "Edunex's storage is unreachable", true);
     throw error;
   }
-  if (response.status < 200 || response.status >= 300) throw new EngineError("Failed", `EduNex's storage refused the file (${response.status})`);
+  if (response.status < 200 || response.status >= 300) throw new EngineError("Failed", `Edunex's storage refused the file (${response.status})`);
 }

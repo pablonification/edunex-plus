@@ -1,6 +1,6 @@
-// EduNex course pages (#74): each course's outline (modules, lecturer, the
+// Edunex course pages (#74): each course's outline (modules, lecturer, the
 // published grade) and materials, its Presence sessions, announcements and
-// exams. A class's parent and child EduNex courses are read together and kept
+// exams. A class's parent and child Edunex courses are read together and kept
 // under the course code. Calls go one after another, except a course's
 // module contents, a few at a time.
 import { z } from "zod";
@@ -13,7 +13,7 @@ import { fetchCourses } from "./feeds";
 const MINUTE = 60_000;
 const HOUR = 60 * MINUTE;
 const WIB_OFFSET = 7 * HOUR;
-/** The page size EduNex's own website asks for. */
+/** The page size Edunex's own website asks for. */
 const PRESENCE_PAGE = 10;
 
 // ---------------------------------------------------------------- vendor shapes
@@ -33,6 +33,7 @@ export const CourseDetail = z.object({
     attributes: z.object({
       lecturer: z.string().nullable().optional(),
       credit: z.union([z.string(), z.number()]).nullable().optional(),
+      major: z.string().nullable().optional(),
       gradebook_publish: z.boolean().nullable().optional(),
     }),
   }),
@@ -148,29 +149,30 @@ export function registerCoursePageFeeds(context: SourceContext, client: EdunexCl
   perCourse("edunex.exams", 3 * HOUR, (course) => fetchExams(client, course), (value) => context.set("edunex.exams", value));
 }
 
-/** The class's own EduNex course first, then its parent's. */
+/** The class's own Edunex course first, then its parent's. */
 const courseIds = (course: Course) => [course.edunex.courseId, ...course.edunex.relatedCourseIds];
 
 export async function fetchOutline(client: EdunexClient, course: Course, nim: string | null): Promise<CourseOutline> {
-  const outline: CourseOutline = { lecturer: null, credits: null, modules: [], grade: null };
+  const outline: CourseOutline = { lecturer: null, credits: null, program: null, modules: [], grade: null };
   for (const id of courseIds(course)) {
     const detail = await client.get(`/course/courses/${id}`, { include: "modules,modules.activities,lecturer,lecturer.user,assistant,class" }, CourseDetail);
     const { attributes } = detail.data;
     outline.lecturer ??= attributes.lecturer?.trim() || null;
     const credits = Number(attributes.credit);
     outline.credits ??= attributes.credit != null && Number.isFinite(credits) ? credits : null;
+    outline.program ??= attributes.major?.trim() || null;
     const modules: (CourseModule & { index: number })[] = [];
     for (const item of detail.included ?? []) {
       if (item.type !== "modules") continue;
       const parsed = ModuleRecord.safeParse(item);
       if (!parsed.success) throw vendorChanged(`/course/courses/${id}: a module`);
       const m = parsed.data.attributes;
-      // Modules the lecturer switched off are hidden from Students on EduNex too.
+      // Modules the lecturer switched off are hidden from Students on Edunex too.
       if (!m.is_active) continue;
       modules.push({ id: Number(parsed.data.id), courseId: m.course_id, title: m.name.trim(), postedAt: edunexTime(m.created_at), index: m.index });
     }
     outline.modules.push(...modules.sort((a, b) => a.index - b.index).map(({ index: _index, ...m }) => m));
-    // Before the lecturer publishes, EduNex's gradebook says 0 · E for everyone: never a grade.
+    // Before the lecturer publishes, Edunex's gradebook says 0 · E for everyone: never a grade.
     if (!outline.grade && attributes.gradebook_publish) outline.grade = await fetchGrade(client, id, course.edunex.classId, nim);
   }
   return outline;
@@ -189,7 +191,7 @@ export async function fetchMaterials(client: EdunexClient, course: Course, modul
     ...courseIds(course).map((id) => ({ type: "App\\Models\\Courses", id, courseId: id })),
     ...modules.map((m) => ({ type: "App\\Models\\Modules", id: m.id, courseId: m.courseId })),
   ];
-  // A few at a time, as EduNex's website loads a course's modules: a course can have 20 of them.
+  // A few at a time, as Edunex's website loads a course's modules: a course can have 20 of them.
   const docs = await inGroups(owners, 4, (owner) =>
     client.get(
       "/course/contents/",
@@ -218,7 +220,7 @@ export async function fetchMaterials(client: EdunexClient, course: Course, modul
   return out;
 }
 
-/** Every Presence session of the class, page by page (EduNex's "next" link never ends on its own). */
+/** Every Presence session of the class, page by page (Edunex's "next" link never ends on its own). */
 export async function fetchPresence(client: EdunexClient, course: Course): Promise<PresenceSession[]> {
   const out: PresenceSession[] = [];
   for (const courseId of courseIds(course)) {
@@ -295,7 +297,7 @@ async function inGroups<T, R>(items: readonly T[], size: number, run: (item: T) 
 // ---------------------------------------------------------------- time
 
 /**
- * EduNex's times in ms. With an offset or Z they are taken as written (the
+ * Edunex's times in ms. With an offset or Z they are taken as written (the
  * course records are right); without one ("2026-08-27 08:00:00") they are WIB.
  */
 export function edunexTime(value: string | null | undefined): number | null {
@@ -316,4 +318,4 @@ function required(value: string): number {
   return ms;
 }
 
-const vendorChanged = (what: string) => new EngineError("VendorChanged", `${what} isn't what EduNex used to send`);
+const vendorChanged = (what: string) => new EngineError("VendorChanged", `${what} isn't what Edunex used to send`);

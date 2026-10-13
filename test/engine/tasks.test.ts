@@ -1,5 +1,5 @@
 // v2-04 (#72), seam 1: every Task of the term with its true status, read from
-// each course's Task list (answers included) against the pretend EduNex.
+// each course's Task list (answers included) against the pretend Edunex.
 import { describe, expect, it } from "vitest";
 import type { Task } from "../../src/core/models";
 import { editedAfterSubmit, shortWindow, taskHistory } from "../../src/core/tasks";
@@ -43,13 +43,13 @@ describe("Tasks with their true status", () => {
     expect(h.status("edunex").state).toBe("live");
   });
 
-  it("never reads EduNex's To Do feed, which has no submit status", async () => {
+  it("never reads Edunex's To Do feed, which has no submit status", async () => {
     const h = await signedIn();
     await h.wait(2 * 60 * MINUTE);
     expect(h.world.log.some((r) => new URL(r.url).pathname === "/todo")).toBe(false);
   });
 
-  it("deadlines are exact instants, including EduNex's answer times that carry no time zone", async () => {
+  it("deadlines are exact instants, including Edunex's answer times that carry no time zone", async () => {
     const h = await signedIn();
     // The To Do feed says "2026-10-22T23:50:00.000Z" for this one: WIB wrongly marked UTC, 7 hours off.
     expect(task(h, 117764).dueAt).toBe(at("2026-10-22T23:50:00+07:00"));
@@ -78,7 +78,7 @@ describe("Tasks with their true status", () => {
     expect(task(h, 117764).module).toEqual({ index: 1, name: "UTS Markom" });
   });
 
-  it("says what EduNex doesn't: edited after posting, edited after the Student submitted, a short answer window", async () => {
+  it("says what Edunex doesn't: edited after posting, edited after the Student submitted, a short answer window", async () => {
     const h = await signedIn();
     // Edited a week after posting, nobody had submitted yet.
     expect(task(h, 117764).editedAt).toBe(at("2026-09-24T11:11:59+07:00"));
@@ -93,7 +93,7 @@ describe("Tasks with their true status", () => {
     expect(shortWindow(task(h, 117003))).toBeNull();
   });
 
-  it("builds the Task's history from EduNex's timestamps", async () => {
+  it("builds the Task's history from Edunex's timestamps", async () => {
     const h = await signedIn();
     expect(taskHistory(task(h, 117001))).toEqual([
       { kind: "posted", at: at("2026-09-11T09:59:59+07:00") },
@@ -113,13 +113,13 @@ describe("Tasks with their true status", () => {
     await h.engine.refresh("edunex");
     const draft = task(h, 117873);
     expect(draft.status).toBe("draft");
-    // EduNex stamped sent_at on the draft too.
+    // Edunex stamped sent_at on the draft too.
     expect(h.world.edunex.task(117873).attributes.answers[0].sent_at).not.toBeNull();
     expect(draft.answer).toMatchObject({ sent: false, sentAt: null });
     expect(draft.answer?.files.map((f) => f.name)).toEqual(["draf.pdf"]);
   });
 
-  it("a Task EduNex never announces shows up on the next check, about every 15 minutes", async () => {
+  it("a Task Edunex never announces shows up on the next check, about every 15 minutes", async () => {
     const h = await signedIn();
     const id = h.world.edunex.postTask(95059, { name: "Tugas 1 Infrastruktur" }, { announce: false });
     await h.wait(10 * MINUTE);
@@ -128,7 +128,7 @@ describe("Tasks with their true status", () => {
     expect(task(h, id)).toMatchObject({ title: "Tugas 1 Infrastruktur", courseCode: "PL3032", status: "not_started" });
   });
 
-  it("a Task EduNex announces shows up within minutes", async () => {
+  it("a Task Edunex announces shows up within minutes", async () => {
     const h = await signedIn();
     const id = h.world.edunex.postTask(95059, { name: "Tugas 2 Infrastruktur" });
     await h.wait(4 * MINUTE);
@@ -153,7 +153,7 @@ describe("Tasks with their true status", () => {
 
   it("past its deadline: overdue while late submission is allowed, closed when it isn't", async () => {
     const h = await signedIn("2026-10-17T08:00:00+07:00");
-    // Tugas 02 Bab II was due 16 Oct and allows late submission; EduNex keeps it open.
+    // Tugas 02 Bab II was due 16 Oct and allows late submission; Edunex keeps it open.
     expect(task(h, 117003).status).toBe("overdue");
     // A short in-class Task that allowed no late answers, past its end.
     const id = h.world.edunex.postTask(92948, { end_at: wib(h.world.clock.now() + 60 * MINUTE), is_lateable: false });
@@ -174,7 +174,7 @@ describe("Tasks with their true status", () => {
     expect(task(h, 117001)).toMatchObject({ status: "submitted", score: 88 });
   });
 
-  it("EduNex's placeholder 0 is never shown as a score", async () => {
+  it("Edunex's placeholder 0 is never shown as a score", async () => {
     const h = await signedIn();
     h.world.edunex.publishScore(117044, 0);
     await h.engine.refresh("edunex");
@@ -193,7 +193,7 @@ describe("Tasks with their true status", () => {
     expect(task(h, 117873).answer?.sentAt).toBe(h.world.clock.now() - (h.world.clock.now() % 1000));
   });
 
-  it("two answers on EduNex for one Task: the handed-in one counts", async () => {
+  it("two answers on Edunex for one Task: the handed-in one counts", async () => {
     const h = await signedIn();
     h.world.edunex.draftOnWebsite(117432, "later-draft.pdf");
     await h.engine.refresh("edunex");
@@ -222,7 +222,7 @@ describe("Tasks with their true status", () => {
     expect(h.world.log.every((r) => r.method === "GET")).toBe(true);
   });
 
-  it("EduNex changing the Task list says so and keeps the last Tasks", async () => {
+  it("Edunex changing the Task list says so and keeps the last Tasks", async () => {
     const h = await signedIn();
     h.world.edunex.mangle(/^\/course\/tasks$/, { kind: "missing-field", field: "end_at" });
     await h.engine.refresh("edunex");

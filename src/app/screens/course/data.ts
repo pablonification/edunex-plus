@@ -1,4 +1,4 @@
-// Everything the course page reads for one course, from the store: EduNex's
+// Everything the course page reads for one course, from the store: Edunex's
 // outline, materials, Presence, announcements and Tasks, SIX's timetable, the
 // meetings merged from them, and the course's exams from every source.
 import { useMemo } from "react";
@@ -13,12 +13,12 @@ import { useDataset } from "../../store";
 
 export interface CoursePage {
   course: TermCourse;
-  /** undefined while EduNex hasn't been read yet. */
+  /** undefined while Edunex hasn't been read yet. */
   outline: CourseOutline | undefined;
   materials: Material[] | undefined;
   presence: PresenceSession[] | undefined;
   announcements: Announcement[] | undefined;
-  /** The same exams as in Tugas & Ujian: SIX's sessions, EduNex's exams and take-homes, the outline. */
+  /** The same exams as in Tugas & Ujian: SIX's sessions, Edunex's exams and take-homes, the outline. */
   exams: Exam[];
   tasks: Task[];
   meetings: Meeting[];

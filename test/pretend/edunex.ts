@@ -1,4 +1,4 @@
-// A pretend EduNex for tests. It starts from the recorded responses
+// A pretend Edunex for tests. It starts from the recorded responses
 // (test/fixtures/edunex) and answers the same calls the same way, with
 // pagination and real error statuses. A test can act as the lecturer or the
 // admin, which nobody can do on the real system, by cloning recorded records
@@ -11,7 +11,7 @@ import type { FakeClock } from "./clock";
 export const EDUNEX_API = "https://api-edunex.cognisia.id";
 export const PRETEND_TOKEN = "pretend-edunex-token";
 
-/* eslint-disable @typescript-eslint/no-explicit-any -- vendor JSON is untyped on purpose: tests see exactly what EduNex sends */
+/* eslint-disable @typescript-eslint/no-explicit-any -- vendor JSON is untyped on purpose: tests see exactly what Edunex sends */
 type Json = any;
 
 export type Breakage =
@@ -31,7 +31,7 @@ interface Fault {
 const MAINTENANCE_HTML = "<!DOCTYPE html><html><head><title>Maintenance</title></head><body><h1>Edunex sedang dalam pemeliharaan</h1></body></html>";
 const WEEK = 7 * 86_400_000;
 
-/** EduNex writes WIB times with an offset on most records: "2026-10-16T23:59:00+07:00". */
+/** Edunex writes WIB times with an offset on most records: "2026-10-16T23:59:00+07:00". */
 export function wib(ms: number): string {
   const d = new Date(ms + 7 * 3_600_000);
   return `${d.toISOString().slice(0, 19)}+07:00`;
@@ -65,7 +65,7 @@ export class PretendEdunex {
 
   // ------------------------------------------------ the outside world
   sessionValid = true;
-  /** Every change request the app sent, in order, with the fields EduNex reads from it. */
+  /** Every change request the app sent, in order, with the fields Edunex reads from it. */
   readonly writes: { method: string; path: string; body: Json }[] = [];
   private faults: Fault[] = [];
   private nextId = 9_000_000;
@@ -130,7 +130,7 @@ export class PretendEdunex {
     task.attributes = { ...task.attributes, ...patch };
     this.tasks.set(courseId, [...list, task]);
     const course = this.courseName(courseId);
-    // EduNex's notification feed misses many Tasks: `announce: false` posts one it never mentions.
+    // Edunex's notification feed misses many Tasks: `announce: false` posts one it never mentions.
     if (options.announce !== false) {
       this.notify({ type: "ASSIGNMENT", title: task.attributes.name, objectId: String(id), callbackUrl: `/assignment/take/${id}`, message: `${task.attributes.created_by ?? "Lecturer"} has been added new Assignment in ${course}` });
     }
@@ -160,7 +160,7 @@ export class PretendEdunex {
   /**
    * The lecturer takes the handed-in answer up for grading. Needs a recording:
    * modelled on the answer's `verified_at` / `verified_by`, the only review
-   * fields EduNex sends.
+   * fields Edunex sends.
    */
   reviewAnswer(taskId: number): void {
     const task = this.task(taskId);
@@ -168,7 +168,7 @@ export class PretendEdunex {
     task.attributes.answers = task.attributes.answers.map((a: Json) => (a.is_sent ? { ...a, verified_at: now, verified_by: 900002 } : a));
   }
 
-  /** The Student saves a draft on the EduNex website (outside the app): an answer that isn't sent. */
+  /** The Student saves a draft on the Edunex website (outside the app): an answer that isn't sent. */
   draftOnWebsite(taskId: number, fileName = "draf.pdf"): void {
     const task = this.task(taskId);
     const answer = this.newAnswer(taskId, { is_sent: 0 });
@@ -176,7 +176,7 @@ export class PretendEdunex {
     task.attributes.answers = [...task.attributes.answers, answer];
   }
 
-  /** The Student hands the Task in on the EduNex website (outside the app). */
+  /** The Student hands the Task in on the Edunex website (outside the app). */
   submitOnWebsite(taskId: number): void {
     const task = this.task(taskId);
     const now = wib(this.clock.now()).replace("T", " ").slice(0, 19);
@@ -346,7 +346,7 @@ export class PretendEdunex {
   }
 
   // Shapes of these replies were never recorded (no real hand-in yet); the app must re-read the Task to confirm.
-  // The app sends EduNex's JSON:API envelope ({ data: { attributes } }); a bare body is read the same way.
+  // The app sends Edunex's JSON:API envelope ({ data: { attributes } }); a bare body is read the same way.
   private write(request: HttpRequest, path: string): Json {
     const raw = typeof request.body === "string" && request.body ? JSON.parse(request.body) : {};
     const body = raw?.data?.attributes ?? raw;
@@ -372,7 +372,7 @@ export class PretendEdunex {
           const fields = { ...body };
           delete fields.task_id;
           delete fields.files;
-          // EduNex stamps sent_at on drafts too (API.md): only is_sent says it was handed in.
+          // Edunex stamps sent_at on drafts too (API.md): only is_sent says it was handed in.
           const next = { ...current, ...fields, sent_at: now, updated_at: now };
           if (body.files) next.files = this.storedFiles(id, task, body.files);
           task.attributes.answers[at] = next;
@@ -402,7 +402,7 @@ export class PretendEdunex {
     throw new NotFound();
   }
 
-  /** Files as EduNex returns them on an answer: the recorded file record, with this file's name and link. */
+  /** Files as Edunex returns them on an answer: the recorded file record, with this file's name and link. */
   private storedFiles(answerId: number, task: Json, files: Json[]): Json[] {
     const template = [...this.tasks.values()].flat().flatMap((t) => t.attributes.answers).flatMap((a: Json) => a.files)[0];
     const now = wib(this.clock.now()).replace("T", " ").slice(0, 19);
@@ -429,7 +429,7 @@ export class PretendEdunex {
       answer: fields.answer ?? null,
       files: fields.files ?? [],
       is_sent: fields.is_sent ?? 0,
-      // EduNex stamps sent_at on drafts too (API.md).
+      // Edunex stamps sent_at on drafts too (API.md).
       sent_at: fields.sent_at ?? now,
       verified_at: null,
       verified_by: null,
@@ -455,7 +455,7 @@ export class PretendEdunex {
 // ---------------------------------------------------------------- responses
 
 class NotFound extends Error {}
-/** EduNex refusing a change (the Task stopped taking answers); the real reply was never recorded. */
+/** Edunex refusing a change (the Task stopped taking answers); the real reply was never recorded. */
 class Refused extends Error {}
 
 /** A Task takes answers while it's open, and past its deadline only when late submission is allowed. */
@@ -478,7 +478,7 @@ function html(status: number, body: string, url: URL): HttpResponse {
   return { status, headers: { "content-type": "text/html; charset=UTF-8" }, body, url: url.toString() };
 }
 
-/** EduNex's list envelope: { meta: { count, total }, data, links }. A limit of 0 means "everything". */
+/** Edunex's list envelope: { meta: { count, total }, data, links }. A limit of 0 means "everything". */
 function page(items: Json[], q: Record<string, string>, path: string): Json {
   const limit = Number(q["page[limit]"] ?? 0);
   const offset = Number(q["page[offset]"] ?? 0);

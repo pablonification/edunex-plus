@@ -1,4 +1,4 @@
-// EduNex's Task records (GET /course/tasks with the Student's answers), read
+// Edunex's Task records (GET /course/tasks with the Student's answers), read
 // into the app's Tasks. Shapes verified against test/fixtures/edunex/course-tasks.*.json.
 import { z } from "zod";
 import type { Task, TaskAnswer, TaskFile, TaskModule } from "../../../core/models";
@@ -11,7 +11,7 @@ import type { EdunexClient } from "./client";
 const HOUR = 3_600_000;
 
 const Id = z.union([z.number().int(), z.string().regex(/^\d+$/)]).transform(Number);
-/** EduNex writes its flags as booleans or as 0/1. */
+/** Edunex writes its flags as booleans or as 0/1. */
 const Flag = z.union([z.boolean(), z.literal(0), z.literal(1)]).transform((value) => value === true || value === 1);
 /** The submit bit. Any other value is a vendor change, never a guess. */
 const SubmitBit = z.union([z.literal(0), z.literal(1), z.literal("0"), z.literal("1"), z.boolean()]).transform((v) => v === 1 || v === "1" || v === true);
@@ -56,15 +56,15 @@ export type EdunexTask = z.infer<typeof EdunexTask>;
 
 const CourseTasks = z.object({ meta: z.object({ total: z.number() }), data: z.array(EdunexTask) });
 
-/** Every Task of one EduNex course, the Student's answers included. */
+/** Every Task of one Edunex course, the Student's answers included. */
 export async function fetchCourseTasks(client: EdunexClient, courseId: number): Promise<EdunexTask[]> {
   const list = await client.get("/course/tasks", { "filter[course_id][is]": courseId, "page[limit]": 0 }, CourseTasks);
-  // "page[limit]=0" means everything; fewer than EduNex counts would silently hide Tasks.
+  // "page[limit]=0" means everything; fewer than Edunex counts would silently hide Tasks.
   if (list.data.length < list.meta.total) throw new EngineError("VendorChanged", `/course/tasks: ${list.data.length} of ${list.meta.total} Tasks for course ${courseId}`);
   return list.data;
 }
 
-/** One Task read back from EduNex (through its course's list, the shape verified with answers). Null when it's gone. */
+/** One Task read back from Edunex (through its course's list, the shape verified with answers). Null when it's gone. */
 export async function readTask(client: EdunexClient, known: Pick<Task, "id" | "courseId" | "courseCode" | "module">, now: number): Promise<Task | null> {
   const item = (await fetchCourseTasks(client, known.courseId)).find((task) => task.id === known.id);
   return item ? toTask(item, known, known.module, now) : null;
@@ -75,7 +75,7 @@ export async function readTask(client: EdunexClient, known: Pick<Task, "id" | "c
 const TIME = /^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?)(Z|[+-]\d{2}:?\d{2})?$/i;
 
 /**
- * EduNex's Task times carry an offset ("2026-10-16T23:59:00+07:00"); its
+ * Edunex's Task times carry an offset ("2026-10-16T23:59:00+07:00"); its
  * answer times carry none ("2026-09-16 16:15:33") and are WIB (UTC+7).
  */
 export function edunexTime(value: string | null): number | null {
@@ -91,7 +91,7 @@ export function edunexTime(value: string | null): number | null {
 
 // ---------------------------------------------------------------- the app's Task
 
-/** EduNex's `open_status` values that mean it takes no more answers. */
+/** Edunex's `open_status` values that mean it takes no more answers. */
 const CLOSED = new Set(["overdue", "closed"]);
 
 export function toTask(item: EdunexTask, place: Pick<Task, "courseCode" | "courseId">, module: TaskModule | null, now: number): Task {
@@ -104,7 +104,7 @@ export function toTask(item: EdunexTask, place: Pick<Task, "courseCode" | "cours
     files: raw.files.map(fileOf),
     createdAt: edunexTime(raw.created_at),
     updatedAt: edunexTime(raw.updated_at),
-    // EduNex stamps sent_at on drafts too: only the submit bit makes it a submission time.
+    // Edunex stamps sent_at on drafts too: only the submit bit makes it a submission time.
     sentAt: raw.is_sent ? (edunexTime(raw.sent_at) ?? edunexTime(raw.updated_at)) : null,
     reviewedAt: edunexTime(raw.verified_at),
   };
@@ -143,7 +143,7 @@ export function toTask(item: EdunexTask, place: Pick<Task, "courseCode" | "cours
 const fileOf = (file: z.infer<typeof StoredFile>): TaskFile => ({ name: file.name.trim() || "file", url: file.file });
 
 /**
- * The score of a handed-in answer once the lecturer shows scores. EduNex
+ * The score of a handed-in answer once the lecturer shows scores. Edunex
  * keeps 0 on every answer until it's graded, so a 0 counts only once the
  * answer was verified: a placeholder is never shown as a score.
  */
@@ -159,7 +159,7 @@ function studentAnswer(answers: EdunexAnswer[]): EdunexAnswer | null {
 }
 
 /**
- * EduNex moves only `updated_at` when the lecturer edits a Task. A touch in
+ * Edunex moves only `updated_at` when the lecturer edits a Task. A touch in
  * the first hour after posting is part of posting it, unless the Student had
  * already handed it in by then.
  */
@@ -190,7 +190,7 @@ export function writeLog(context: SourceContext): WriteLog {
   return log;
 }
 
-/** Stores a Task as just read back from EduNex after the Student changed it (null: it's gone). */
+/** Stores a Task as just read back from Edunex after the Student changed it (null: it's gone). */
 export async function remember(context: SourceContext, taskId: number, task: Task | null): Promise<void> {
   const log = writeLog(context);
   log.tasks.set(taskId, ++log.count);

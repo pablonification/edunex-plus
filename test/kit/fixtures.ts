@@ -1,4 +1,4 @@
-// Real EduNex responses and SIX pages from a recorded session, with every
+// Real Edunex responses and SIX pages from a recorded session, with every
 // personal detail replaced (scripts/scrub-recording.mjs). Tests read them
 // through these helpers instead of hand-written samples, so they always see
 // the shapes the real systems send.
@@ -44,7 +44,7 @@ export function bodyText(system: System, file: string): string {
   return fs.readFileSync(path.join(FIXTURES_DIR, system, file), "utf8");
 }
 
-/** A recorded EduNex JSON response, freshly parsed (safe to change). */
+/** A recorded Edunex JSON response, freshly parsed (safe to change). */
 export function edunexJson<T = unknown>(pathname: string | RegExp, query?: Record<string, string>): T {
   return JSON.parse(bodyText("edunex", exchange("edunex", pathname, query).file)) as T;
 }

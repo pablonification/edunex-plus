@@ -4,6 +4,20 @@ import type { Entry } from "./entry";
 export const academicStrings = {
   // KRS tab
   "krs.empty": { id: "Belum ada KRS dari SIX", en: "No KRS from SIX yet" },
+  "krs.needSix": { id: "KRS butuh SIX", en: "Your KRS needs SIX" },
+  "krs.needSixBody": { id: "Masuk ke SIX untuk melihat status KRS-mu, persetujuan dosen wali, dan kelas yang bentrok.", en: "Sign in to SIX to see your KRS status, your advisor's approval and clashing classes." },
+  "krs.stage.clash": { id: "KRS sah, tapi ada {count} bentrok", en: { one: "KRS is official, but {count} class clashes", other: "KRS is official, but {count} classes clash" } },
+  "krs.stage.clashApproved": { id: "KRS disetujui, tapi ada {count} bentrok", en: { one: "KRS approved, but {count} class clashes", other: "KRS approved, but {count} classes clash" } },
+  "krs.clash.next": { id: "Tanyakan ke dosen {a} dan {b} jam mana yang dipakai.", en: "Ask the lecturers of {a} and {b} which time counts." },
+  "krs.clash.nextUrs": {
+    id: "Tanyakan ke dosen {a} dan {b} jam mana yang dipakai, atau ubah KRS di masa URS {range}.",
+    en: "Ask the lecturers of {a} and {b} which time counts, or change your KRS in the URS window, {range}.",
+  },
+  "krs.toSchedule": { id: "Lihat di Jadwal", en: "See it in Schedule" },
+  "krs.clashWith": { id: "Bentrok dengan {code}", en: "Clashes with {code}" },
+  "krs.sameClass": { id: "Semua di kelas {classNo}", en: "All in class {classNo}" },
+  "krs.allApproved": { id: "semua disetujui dosen wali", en: "all approved by your advisor" },
+  "krs.from": { id: "Dari SIX", en: "From SIX" },
   "krs.advisor": { id: "Dosen wali: {name}", en: "Academic advisor: {name}" },
   "krs.stage.send": { id: "KRS belum dikirim", en: "KRS not sent yet" },
   "krs.stage.send.hint": { id: "Isi dan kirim KRS di SIX, lalu minta persetujuan dosen wali.", en: "Fill in and send your KRS in SIX, then ask your advisor to approve it." },
@@ -35,10 +49,10 @@ export const academicStrings = {
   "krs.approved": { id: "Disetujui", en: "Approved" },
   "krs.notApproved": { id: "Belum disetujui", en: "Not approved" },
   "krs.overlap": {
-    id: "{a} dan {b} bentrok {when}, {count} pertemuan. SIX menerima KRS ini tanpa peringatan.",
+    id: "{a} dan {b} bentrok di {count} pertemuan, berikutnya {when}. SIX menerima KRS ini tanpa peringatan.",
     en: {
-      one: "{a} and {b} overlap {when}, {count} meeting. SIX accepted this KRS without a warning.",
-      other: "{a} and {b} overlap {when}, {count} meetings. SIX accepted this KRS without a warning.",
+      one: "{a} and {b} overlap at {count} meeting, next {when}. SIX accepted this KRS without a warning.",
+      other: "{a} and {b} overlap at {count} meetings, next {when}. SIX accepted this KRS without a warning.",
     },
   },
   "krs.overlap.past": {
@@ -48,6 +62,14 @@ export const academicStrings = {
 
   // UKT tab
   "bills.empty": { id: "Belum ada tagihan dari SIX", en: "No bills from SIX yet" },
+  "bills.needSix": { id: "UKT butuh SIX", en: "UKT needs SIX" },
+  "bills.needSixBody": { id: "Masuk ke SIX untuk melihat tagihan UKT, cicilan, dan batas bayarnya.", en: "Sign in to SIX to see your UKT bills, instalments and their deadlines." },
+  "bills.deadline": { id: "Batas bayar", en: "Pay by" },
+  "bills.otherSix": { id: "SIX menulis {date}; ikuti yang lebih awal.", en: "SIX says {date}; go by the earlier date." },
+  "bills.otherItb": { id: "Kalender ITB menulis {date}; ikuti yang lebih awal.", en: "ITB's calendar says {date}; go by the earlier date." },
+  "bills.expect": { id: "Tagihan biasanya muncul beberapa minggu sebelum batas bayar, {date}.", en: "The bill usually shows up a few weeks before the deadline, {date}." },
+  "bills.expectNoDate": { id: "Tagihan biasanya muncul menjelang semester dimulai.", en: "The bill usually shows up shortly before the semester starts." },
+  "bills.from": { id: "Dari SIX", en: "From SIX" },
   "bills.thisTerm": { id: "Semester ini", en: "This semester" },
   "bills.nextTerm": { id: "Semester depan", en: "Next semester" },
   "bills.notBilled": { id: "Belum ditagih", en: "Not billed yet" },
@@ -70,7 +92,14 @@ export const academicStrings = {
 
   // Kalender akademik tab
   "deadlines.empty": { id: "Kalender akademik ITB belum terbaca", en: "ITB's academic calendar isn't read yet" },
-  "deadlines.intro": { id: "Tenggat dari kalender akademik resmi, dengan artinya untukmu.", en: "Deadlines from the official academic calendar, with what each means for you." },
+  "deadlines.intro": { id: "Dari kalender akademik resmi ITB, dengan artinya untukmu.", en: "From ITB's official academic calendar, with what each means for you." },
+  "deadlines.today": { id: "Sekarang", en: "Now" },
+  "deadlines.todayAt": { id: "Sekarang · {date}", en: "Now · {date}" },
+  "deadlines.group.now": { id: "Sedang berlangsung", en: "Happening now" },
+  "deadlines.group.week": { id: "7 hari ke depan", en: "Next 7 days" },
+  "deadlines.group.month": { id: "Bulan ini", en: "This month" },
+  "deadlines.group.term": { id: "Semester ini", en: "This semester" },
+  "deadlines.group.next": { id: "Semester depan", en: "Next semester" },
   "deadlines.now": { id: "Berlangsung", en: "Now" },
   "deadlines.past": { id: "Sudah lewat", en: "Past" },
   "deadline.kind.drs": { id: "Pengisian KRS (DRS)", en: "KRS registration (DRS)" },

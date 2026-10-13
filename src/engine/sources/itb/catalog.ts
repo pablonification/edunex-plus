@@ -140,6 +140,24 @@ function ownProgram(context: SourceContext, catalog: CourseCatalog): string | nu
   return catalog.programs.find((p) => normal(p.name) === normal(program))?.id ?? null;
 }
 
+/**
+ * The programs offering this term's Edunex courses ("S1 - Desain Komunikasi
+ * Visual" on a course's Edunex page): their pages hold those courses'
+ * official names, so a Student without SIX gets them in seconds, not after
+ * every program page. A campus copy's course is looked for under the main
+ * campus's program too.
+ */
+function coursePrograms(context: SourceContext, catalog: CourseCatalog): Set<string> {
+  const base = (name: string) => normal(name.replace(/^[A-Z]\d\s*-\s*/, "").replace(/\(kampus [^)]*\)/i, ""));
+  const named = new Set(
+    Object.values(context.get("edunex.outline") ?? {})
+      .map((outline) => outline.program)
+      .filter((name): name is string => !!name)
+      .map(base),
+  );
+  return new Set(catalog.programs.filter((p) => named.has(base(p.name))).map((p) => p.id));
+}
+
 export function registerCatalogFeed(context: SourceContext): void {
   // In SIX's own line: the signed-in SIX source reads the same site.
   const client = new PublicClient(context.transport, context.clock, context.userAgent, "SIX", CATALOG_GAP_MS, context.pace(new URL(CATALOG_URL).host));
@@ -150,6 +168,7 @@ export function registerCatalogFeed(context: SourceContext): void {
     name: "itb.catalog",
     every: 6 * HOUR,
     jitter: 30 * MINUTE,
+    background: true,
     async run(current) {
       let catalog = context.get("itb.catalog");
       if (!catalog || context.clock.now() - catalog.checkedAt >= FRESH) {
@@ -171,7 +190,8 @@ export function registerCatalogFeed(context: SourceContext): void {
         const waiting = catalog.programs.filter((p) => !tried.has(p.id) && (due(p, now) || (retryChanged && p.state === "changed")));
         if (waiting.length === 0) break;
         const own = ownProgram(context, catalog);
-        const next = waiting.find((p) => p.id === own) ?? waiting[0]!;
+        const courses = coursePrograms(context, catalog);
+        const next = waiting.find((p) => p.id === own) ?? waiting.find((p) => courses.has(p.id)) ?? waiting[0]!;
         tried.add(next.id);
         try {
           const page = readProgramPage(await client.text(`${CATALOG_URL}/${next.id}`));
@@ -186,7 +206,7 @@ export function registerCatalogFeed(context: SourceContext): void {
           }
         }
         unsaved++;
-        if (next.id === own || unsaved >= SAVE_EVERY) await save();
+        if (next.id === own || courses.has(next.id) || unsaved >= SAVE_EVERY) await save();
       }
       await save();
       retryChanged = false;

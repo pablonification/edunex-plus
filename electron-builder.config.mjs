@@ -50,7 +50,7 @@ export default {
     syncDesktopName: true,
     icon: "assets/icon.png",
     category: "Education",
-    synopsis: "EduNex and SIX in one calm desktop app",
+    synopsis: "Edunex and SIX in one calm desktop app",
     maintainer: "Edunex Plus contributors <https://github.com/pablonification/edunex-plus>",
   },
   deb: {

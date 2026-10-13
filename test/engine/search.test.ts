@@ -1,5 +1,5 @@
 // #81: quick search over what the app saved after the first full sync of the
-// pretend EduNex and SIX (real recorded shapes): what each query finds, in
+// pretend Edunex and SIX (real recorded shapes): what each query finds, in
 // which order, and where picking it goes. Also that a full term stays instant.
 import { beforeAll, describe, expect, it } from "vitest";
 import { htmlText } from "../../src/core/course-materials";
@@ -81,6 +81,17 @@ describe("courses", () => {
     expect(first("ekonomi inovasi", english)?.key).toBe("course:PL3002");
   });
 
+  it("without SIX, still the Indonesian name, from ITB's catalog, like the rest of the app", () => {
+    const edunexOnly: Saved = {
+      ...saved,
+      "six.courses": undefined,
+      "six.student": undefined,
+      "itb.catalog": { courses: [{ code: "PL3002", name: "Ekonomi dan Inovasi dalam Perencanaan" }] },
+    } as Saved;
+    const noSix = searchIndex(edunexOnly, { lang: "id", screens: [], now });
+    expect(first("PL3002", noSix)?.title).toBe("Ekonomi dan Inovasi dalam Perencanaan");
+  });
+
   it("isn't so forgiving that unrelated words match", () => {
     expect(search(index, "zzzz")).toEqual([]);
     expect(search(index, "kuis")).toEqual([]);
@@ -98,15 +109,25 @@ describe("Tasks", () => {
   });
 
   it("by the module it's in, and by its course", () => {
-    const viaModule = search(index, "pengantar proposal").find((group) => group.kind === "task");
-    expect(viaModule?.items.map((item) => item.key)).toContain("task:113986");
-    const viaCourse = search(index, "kampus ganesha pl3002").find((group) => group.kind === "task");
-    expect(viaCourse?.items.map((item) => item.key).sort()).toEqual(["task:117432", "task:117873"]);
+    const tasks = (query: string) => search(index, query).flatMap((group) => (group.kind === "task" || group.kind === "doneTask" ? group.items : []));
+    expect(tasks("pengantar proposal").map((item) => item.key)).toContain("task:113986");
+    expect(tasks("kampus ganesha pl3002").map((item) => item.key).sort()).toEqual(["task:117432", "task:117873"]);
   });
 
-  it("before anything is typed: the next three Tasks still to hand in, then the courses and the screens", () => {
+  it("Tasks still to hand in come first, the one due first on top; done ones after everything else", () => {
+    const groups = search(index, "tugas");
+    expect(groups[0].kind).toBe("task");
+    expect(groups.at(-1)?.kind).toBe("doneTask");
+    const open = groups[0].items.map((item) => (item.kind === "task" ? item.task.dueAt : null));
+    expect(open).toEqual([...open].sort((a, b) => (a ?? Infinity) - (b ?? Infinity)));
+    expect(groups[0].items[0].key).toBe("task:117003");
+  });
+
+  it("before anything is typed: what was opened lately, the next three Tasks still to hand in, the courses, the screens and the verbs", () => {
     const groups = suggestions(index, now);
-    expect(kinds(groups)).toEqual(["task", "course", "screen"]);
+    expect(kinds(groups)).toEqual(["task", "course", "screen", "action"]);
+    expect(kinds(suggestions(index, now, ["course:KU5014", "gone:1"]))).toEqual(["recent", "task", "course", "screen", "action"]);
+    expect(suggestions(index, now, ["course:KU5014"])[0].items.map((item) => item.key)).toEqual(["course:KU5014"]);
     expect(groups[0].items.map((item) => item.key)).toEqual(["task:117003", "task:117010", "task:117023"]);
     expect(groups[1].items).toHaveLength(5);
     expect(groups[2].items.map((item) => item.title)).toEqual(["Beranda", "Tugas & Ujian", "Jadwal", "Presensi", "Nilai", "Rencana studi", "Pengaturan"]);
@@ -119,11 +140,11 @@ describe("exams", () => {
     expect(exams?.items.map((item) => [item.title, item.target])).toEqual([
       // PL3032's outline has "Midex/UTS" and SIX lists no UTS for it: ITB's UTS week (12–16 Oct) dates it.
       ["UTS Ekonomi Infrastruktur dan Transportasi", { screen: "exam", examId: "PL3032-UTS" }],
-      // SIX's sitting and EduNex's take-home "UTS Markom" are one exam.
+      // SIX's sitting and Edunex's take-home "UTS Markom" are one exam.
       ["UTS Komunikasi Pemasaran", { screen: "exam", examId: "DK4073-UTS" }],
     ]);
-    // The take-home's title finds its exam, not one more Task; the module named "UTS Markom" itself comes first.
-    expect(keys(search(index, "markom"))).toEqual(["module:473251", "exam:DK4073-UTS"]);
+    // The take-home's title finds its exam, not one more Task.
+    expect(keys(search(index, "markom")).sort()).toEqual(["exam:DK4073-UTS", "module:473251"]);
   });
 
   it("by its room, or the final exam by its outline module's name", () => {
@@ -151,7 +172,8 @@ describe("materials, modules and announcements", () => {
     const material: Material = { id: 990001, courseId: module.courseId, moduleId: module.id, title: "Slide kuliah minggu 3", type: "pdf", content: null, sizeBytes: null, postedAt: null, updatedAt: null };
     const withMaterial = searchIndex({ ...saved, "edunex.materials": { ...saved["edunex.materials"], PL3002: [material] } }, { lang: "id", screens: [], now });
     const found = search(withMaterial, "product innovation slide").find((group) => group.kind === "material")?.items[0];
-    expect(found).toMatchObject({ key: "material:990001", target: { screen: "course", code: "PL3002", tab: "modules" } });
+    // It opens on its module.
+    expect(found).toMatchObject({ key: "material:990001", target: { screen: "course", code: "PL3002", tab: "modules", module: module.id } });
     expect(found?.kind === "material" && found.module).toMatchObject({ title: "Product Innovation", number: 3, parent: false });
   });
 
@@ -159,7 +181,7 @@ describe("materials, modules and announcements", () => {
     const midex = first("midex");
     expect(midex).toMatchObject({ kind: "module", title: "Midex/UTS", code: "PL3032" });
     expect(midex?.kind === "module" && midex.module.number).toBe(8);
-    expect(midex?.target).toMatchObject({ screen: "course", code: "PL3032", tab: "modules" });
+    expect(midex?.kind === "module" && midex.target).toEqual({ screen: "course", code: "PL3032", tab: "modules", module: midex?.kind === "module" && midex.module.id });
     // "Module 06" is found as module 6 too.
     expect(first("module 6")?.title).toBe("Module 06");
   });
@@ -174,6 +196,13 @@ describe("materials, modules and announcements", () => {
 });
 
 describe("screens, their tabs, and Settings", () => {
+  it("verbs: refresh and switch theme, by their words in either language", () => {
+    expect(first("muat ulang")).toMatchObject({ kind: "action", target: { action: "refresh" } });
+    expect(first("refresh")).toMatchObject({ kind: "action", target: { action: "refresh" } });
+    expect(first("tema gelap")).toMatchObject({ kind: "action", target: { action: "theme" } });
+    expect(first("dark mode")).toMatchObject({ kind: "action", target: { action: "theme" } });
+  });
+
   it("by name in either language, or by what they hold", () => {
     expect(first("jadwal")).toMatchObject({ kind: "screen", target: { screen: "schedule" } });
     expect(first("schedule")).toMatchObject({ kind: "screen", target: { screen: "schedule" } });
@@ -204,7 +233,7 @@ describe("screens, their tabs, and Settings", () => {
 });
 
 describe("only this term's courses", () => {
-  it("EduNex data of a course SIX doesn't list is left out", () => {
+  it("Edunex data of a course SIX doesn't list is left out", () => {
     const withoutPl3002: Saved = { ...saved, "six.courses": saved["six.courses"]!.filter((c) => c.code !== "PL3002") };
     const term = searchIndex(withoutPl3002, { lang: "id", screens: [], now });
     expect(keys(search(term, "PL3002")).filter((key) => key.includes("PL3002") || key.startsWith("task:1174") || key.startsWith("task:1178"))).toEqual([]);

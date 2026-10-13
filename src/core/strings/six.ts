@@ -18,6 +18,6 @@ export const sixStrings = {
     en: { one: "Attended {attended} of {count} meeting", other: "Attended {attended} of {count} meetings" },
   },
   "course.noMeetingsYet": { id: "Belum ada pertemuan", en: "No meetings yet" },
-  "course.notOnEdunex": { id: "Tidak ada di EduNex", en: "Not on EduNex" },
+  "course.notOnEdunex": { id: "Tidak ada di Edunex", en: "Not on Edunex" },
   "action.openInSix": { id: "Buka di SIX", en: "Open in SIX" },
 } as const satisfies Record<string, Entry>;

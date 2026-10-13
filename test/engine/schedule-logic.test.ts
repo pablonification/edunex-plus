@@ -1,10 +1,11 @@
 // v2-09 (#77): Jadwal's logic. Weeks and months in WIB, a class moved off its
-// usual slot, overlapping classes, meetings announced only in EduNex text,
+// usual slot, overlapping classes, meetings announced only in Edunex text,
 // Task deadlines and ITB's calendar on the right days, and what changed
 // between two reads of SIX's timetable.
 import { describe, expect, it } from "vitest";
-import type { Announcement, CalendarEvent, ClassSession, Task } from "../../src/core/models";
+import type { Announcement, CalendarEvent, ClassSession, Material, PresenceSession, Task } from "../../src/core/models";
 import {
+  edunexMeetings,
   isEmptyDay,
   meetingsOutsideSix,
   monthGrid,
@@ -12,7 +13,11 @@ import {
   pairKey,
   scheduleDays,
   sessionChanges,
+  sideBySide,
   slotMarks,
+  taskWindows,
+  termWeek,
+  timeAxis,
   weekDays,
   weekOffset,
 } from "../../src/core/schedule";
@@ -189,7 +194,7 @@ describe("overlaps", () => {
   });
 });
 
-describe("meetings announced only in EduNex text", () => {
+describe("meetings announced only in Edunex text", () => {
   const announcement = (text: string): Announcement => ({ id: 1, courseId: 95326, text, author: null, postedAt: wib("2026-10-01T10:00:00") });
   const schedule = [session("II4091", "2026-10-16T15:00:00", 480), session("II4091", "2026-10-30T15:00:00", 539)];
   const months = ["2026-10", "2026-11"];
@@ -229,6 +234,141 @@ describe("what changed between two reads of SIX's timetable", () => {
     expect(sessionChanges(before, after).map((c) => [c.after.id, c.kinds])).toEqual([
       ["a", ["time"]],
       ["b", ["room"]],
+    ]);
+  });
+});
+
+describe("the term's week", () => {
+  const calendar = [
+    event("lecture-start", "Hari Pertama Masa Kuliah Semester I-2026/2027", "2026-08-24", "2026-08-24"),
+    event("uts", "Masa Ujian Tengah Semester I-2026/2027", "2026-10-12", "2026-10-16"),
+    event("lecture-end", "Hari Terakhir Masa Kuliah Semester I-2026/2027", "2026-12-04", "2026-12-04"),
+    event("uas", "Ujian Akhir Semester I-2026/2027", "2026-12-07", "2026-12-22"),
+  ];
+
+  it("counts weeks from the first lecture day's week, through the UAS", () => {
+    expect(termWeek(calendar, "2026-08-24")).toBe(1);
+    expect(termWeek(calendar, "2026-08-30")).toBe(1);
+    expect(termWeek(calendar, "2026-10-05")).toBe(7);
+    expect(termWeek(calendar, "2026-10-15")).toBe(8);
+    expect(termWeek(calendar, "2026-12-21")).toBe(18);
+  });
+
+  it("says nothing before the term, after its UAS, or without ITB's calendar", () => {
+    expect(termWeek(calendar, "2026-08-20")).toBeNull();
+    expect(termWeek(calendar, "2026-12-28")).toBeNull();
+    expect(termWeek([], "2026-10-05")).toBeNull();
+  });
+});
+
+describe("the week as a time grid", () => {
+  it("shows 07:00–18:00, widened to whole hours around what falls outside", () => {
+    expect(timeAxis([])).toEqual({ from: 420, to: 1080 });
+    expect(timeAxis([session("PL3002", "2026-10-08T08:00:00", 120), session("KU5014", "2026-10-08T16:00:00", 110)])).toEqual({ from: 420, to: 1080 });
+    expect(timeAxis([session("X", "2026-10-08T06:30:00", 60), session("Y", "2026-10-08T19:00:00", 90)])).toEqual({ from: 360, to: 21 * 60 });
+    // Never past midnight.
+    expect(timeAxis([session("Z", "2026-10-08T22:00:00", 240)]).to).toBe(1440);
+  });
+
+  it("puts classes that share time side by side, and the rest full width", () => {
+    const pl3032 = session("PL3032", "2026-10-08T15:00:00", 90);
+    const ku5014 = session("KU5014", "2026-10-08T16:00:00", 110);
+    const pl3002 = session("PL3002", "2026-10-08T08:00:00", 120);
+    // Starts as KU5014 ends: touching isn't sharing time.
+    const after = session("DK4073", "2026-10-08T17:50:00", 60);
+    const placed = sideBySide([ku5014, after, pl3002, pl3032]);
+    const where = (s: ClassSession) => [placed.find((p) => p.item === s)!.column, placed.find((p) => p.item === s)!.columns];
+    expect(where(pl3002)).toEqual([0, 1]);
+    expect(where(pl3032)).toEqual([0, 2]);
+    expect(where(ku5014)).toEqual([1, 2]);
+    expect(where(after)).toEqual([0, 1]);
+  });
+
+  it("a class overlapping only the second of a pair joins their columns, in the first one free", () => {
+    const a = session("A", "2026-10-08T15:00:00", 90);
+    const b = session("B", "2026-10-08T16:00:00", 110);
+    const c = session("C", "2026-10-08T16:45:00", 45);
+    const placed = sideBySide([a, b, c]);
+    expect(placed.map((p) => [p.item.courseCode, p.column, p.columns])).toEqual([
+      ["A", 0, 2],
+      ["B", 1, 2],
+      ["C", 0, 2],
+    ]);
+  });
+});
+
+describe("Presence by handing in a Task", () => {
+  const window = (id: number, openIso: string, closeIso: string, taskId: string): PresenceSession => ({
+    id,
+    courseId: 95326,
+    classId: 87103,
+    start: wib(openIso),
+    end: wib(closeIso),
+    opensAt: wib(openIso),
+    closesAt: wib(closeIso),
+    topic: "Tugas",
+    note: `Presensi dengan submit Tugas ${taskId}`,
+    countsBy: [{ kind: "assignment", id: taskId }],
+    url: null,
+    recorded: null,
+  });
+  const viewCourse: PresenceSession = { ...window(9, "2026-10-08T08:00:00", "2026-10-08T09:30:00", "x"), courseId: 95001, countsBy: [] };
+  const tugas02 = aTask({ id: 117003, courseCode: "II4091", courseId: 95326, title: "Tugas 02 Bab II", status: "not_started", dueAt: wib("2026-10-16T23:59:00") });
+  // SIX lists the window as a roomless meeting 15:00–23:00.
+  const six = session("II4091", "2026-10-16T15:00:00", 480, { room: null });
+
+  it("joins the window to SIX's meeting that day and to its Task", () => {
+    const found = taskWindows({ II4091: [window(1, "2026-10-16T15:00:00", "2026-10-16T23:59:00", "117003")], PL3002: [viewCourse] }, [six], [tugas02]);
+    expect(found).toHaveLength(1);
+    expect(found[0]).toMatchObject({ code: "II4091", task: { id: 117003 }, six: { id: six.id } });
+  });
+
+  it("on the day: a time to hand in, not a place to be; its Task's deadline isn't said twice", () => {
+    const windows = taskWindows({ II4091: [window(1, "2026-10-16T15:00:00", "2026-10-16T23:59:00", "117003")] }, [six], [tugas02]);
+    const [day] = scheduleDays(["2026-10-16"], { ...empty, schedule: [six], tasks: [tugas02], windows });
+    expect(day.classes).toEqual([]);
+    expect(day.windows.map((w) => w.task?.title)).toEqual(["Tugas 02 Bab II"]);
+    expect(day.due).toEqual([]);
+    expect(isEmptyDay(day)).toBe(false);
+  });
+
+  it("a meeting with a room stays on the grid, with its window beside it", () => {
+    const inRoom = session("II4091", "2026-10-16T15:00:00", 120, { room: "7602" });
+    const windows = taskWindows({ II4091: [window(1, "2026-10-16T15:00:00", "2026-10-16T23:59:00", "117003")] }, [inRoom], []);
+    const [day] = scheduleDays(["2026-10-16"], { ...empty, schedule: [inRoom], windows });
+    expect(day.classes.map((c) => c.session.id)).toEqual([inRoom.id]);
+    expect(day.windows[0].task).toBeNull();
+  });
+});
+
+describe("lectures in an exam week or on a holiday", () => {
+  it("are marked uncertain; exam sessions aren't", () => {
+    const events = [event("uts", "Masa Ujian Tengah Semester I-2026/2027", "2026-10-12", "2026-10-16")];
+    const schedule = [session("PL3002", "2026-10-15T08:00:00", 90), session("DK4073", "2026-10-15T11:00:00", 119, { activity: "UTS" }), session("PL3002", "2026-10-22T08:00:00", 90)];
+    const days = scheduleDays(["2026-10-15", "2026-10-22"], { ...empty, schedule, events });
+    expect(days[0].classes.map((c) => [c.session.courseCode, c.uncertain?.kind ?? null])).toEqual([
+      ["PL3002", "uts"],
+      ["DK4073", null],
+    ]);
+    expect(days[1].classes[0].uncertain).toBeNull();
+  });
+});
+
+describe("what Edunex knows without SIX", () => {
+  it("its Presence windows and announced meetings, one per day, without Task windows", () => {
+    const presence: Record<string, PresenceSession[]> = {
+      PL3002: [
+        { id: 1, courseId: 95001, classId: 86778, start: wib("2026-10-08T08:00:00"), end: wib("2026-10-08T09:30:00"), opensAt: wib("2026-10-08T08:00:00"), closesAt: wib("2026-10-08T09:30:00"), topic: null, note: null, countsBy: [], url: null, recorded: null },
+      ],
+      II4091: [
+        { id: 2, courseId: 95326, classId: 87103, start: wib("2026-10-16T15:00:00"), end: wib("2026-10-16T23:59:00"), opensAt: wib("2026-10-16T15:00:00"), closesAt: wib("2026-10-16T23:59:00"), topic: "Tugas", note: null, countsBy: [{ kind: "assignment", id: "117003" }], url: null, recorded: null },
+      ],
+    };
+    const announcements = { II4091: [{ id: 1, courseId: 95326, text: "Pertemuan 03: Jumat, 09 Oktober 2026 Pkl. 15:00 - 17:00 WIB (Online - Link meeting teams)", author: null, postedAt: wib("2026-10-01T10:00:00") }] };
+    const link: Material = { id: 7, courseId: 95326, moduleId: null, title: "Link Teams Pertemuan 03", type: "ms-teams", content: "https://teams.microsoft.com/meet/1", sizeBytes: null, postedAt: null, updatedAt: null };
+    expect(edunexMeetings(["PL3002", "II4091"], { presence, announcements, materials: { II4091: [link] } })).toEqual([
+      { code: "PL3002", start: wib("2026-10-08T08:00:00"), end: wib("2026-10-08T09:30:00"), number: null, online: false, link: null },
+      { code: "II4091", start: wib("2026-10-09T15:00:00"), end: wib("2026-10-09T17:00:00"), number: 3, online: true, link: "https://teams.microsoft.com/meet/1" },
     ]);
   });
 });

@@ -1,6 +1,6 @@
 // What every source gives the engine: how its saved session looks, which feed
 // proves the session is alive, its feeds, and its explicit actions (writes
-// the Student asks for). EduNex and SIX need a session; ITB's public pages
+// the Student asks for). Edunex and SIX need a session; ITB's public pages
 // (academic calendar, course catalog) don't.
 import type { z } from "zod";
 import type { DatasetName, DatasetValue, Settings, SourceId } from "../../core/models";
@@ -15,6 +15,13 @@ export interface FeedSpec {
   every: number;
   /** Up to this much is added or removed at random each time (ms). */
   jitter: number;
+  /**
+   * Runs only on its own schedule, never on "Perbarui sekarang": public
+   * reference data that changes a few times a year and takes minutes to read
+   * (ITB's catalog), which a refresh would otherwise wait on. Getting no
+   * answer doesn't mark the source offline: it just tries again later.
+   */
+  background?: boolean;
   /** `current()` turns false once the session this run started under has ended; store nothing then. */
   run(current: () => boolean): Promise<void>;
 }

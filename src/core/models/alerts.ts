@@ -1,5 +1,5 @@
 // Alerts: what the Student is told about, as OS notifications and in the
-// in-app history (#75), and EduNex's own notification feed they partly come
+// in-app history (#75), and Edunex's own notification feed they partly come
 // from. An alert carries its text as catalog keys, so it shows in the
 // Student's current language wherever it appears.
 import { z } from "zod";
@@ -76,12 +76,12 @@ export type Alert = z.infer<typeof Alert>;
 /** The in-app history: newest first, the last ~200. */
 export const AlertHistory = z.object({
   items: z.array(Alert),
-  /** Everything raised up to this moment counts as read (opening the history). Nothing is marked in EduNex. */
+  /** Everything raised up to this moment counts as read (opening the history). Nothing is marked in Edunex. */
   readAt: z.number(),
 });
 export type AlertHistory = z.infer<typeof AlertHistory>;
 
-/** One item of EduNex's notification feed the app understands (types ASSIGNMENT and CONTENT). */
+/** One item of Edunex's notification feed the app understands (types ASSIGNMENT and CONTENT). */
 export const EdunexNotification = z.object({
   /** Stable key: type, object and date. */
   key: z.string(),
@@ -89,7 +89,7 @@ export const EdunexNotification = z.object({
   /** ASSIGNMENT: the Task id. CONTENT: the course id. */
   objectId: z.number(),
   title: z.string(),
-  /** The course name at the end of EduNex's message ("… new Content in <course>"), when there. */
+  /** The course name at the end of Edunex's message ("… new Content in <course>"), when there. */
   courseName: z.string().nullable(),
   at: z.number(),
 });

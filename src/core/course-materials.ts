@@ -1,6 +1,6 @@
-// How each EduNex material is offered on the course page (#74): a file to
+// How each Edunex material is offered on the course page (#74): a file to
 // download, an online class to join, a text note to read in the app, a page
-// to open, or EduNex itself when the app can't do better. Also how a
+// to open, or Edunex itself when the app can't do better. Also how a
 // course's files are laid out when the Student saves them for offline
 // reading: Edunex Plus/<course>/<module>/<file>.
 import { OFFICIAL_HOSTS } from "./contract";
@@ -10,7 +10,7 @@ import { type Lang, translate } from "./strings";
 
 export type MaterialKind = "pdf" | "vicon" | "note" | "video" | "audio" | "link" | "file" | "interactive" | "other";
 
-/** EduNex's online-class (Vicon) types and the service each one is. */
+/** Edunex's online-class (Vicon) types and the service each one is. */
 export const VICON_PROVIDERS: Readonly<Record<string, string>> = {
   "ms-teams": "Microsoft Teams",
   zoom: "Zoom",
@@ -20,7 +20,7 @@ export const VICON_PROVIDERS: Readonly<Record<string, string>> = {
 };
 
 const KINDS: Readonly<Record<string, MaterialKind>> = { pdf: "pdf", text: "note", video: "video", audio: "audio", url: "link", file: "file", h5p: "interactive" };
-/** EduNex labels other uploads by their extension: "zip", "ppt", "docx"… */
+/** Edunex labels other uploads by their extension: "zip", "ppt", "docx"… */
 const UPLOAD_TYPE = /^[a-z0-9]{2,5}$/;
 
 export function materialKind(type: string): MaterialKind {
@@ -29,12 +29,12 @@ export function materialKind(type: string): MaterialKind {
   return UPLOAD_TYPE.test(type) ? "file" : "other";
 }
 
-/** An upload's extension as EduNex's type names it (".zip"); null for EduNex's own kinds. */
+/** An upload's extension as Edunex's type names it (".zip"); null for Edunex's own kinds. */
 export function uploadExtension(type: string): string | null {
   return materialKind(type) === "file" && type !== "file" ? `.${type}` : null;
 }
 
-/** Where EduNex keeps files: its storage on Azure, its API, ITB's own sites (as the desktop's download guard). */
+/** Where Edunex keeps files: its storage on Azure, its API, ITB's own sites (as the desktop's download guard). */
 const FILE_HOSTS = [/\.blob\.core\.windows\.net$/, /^api-edunex\.cognisia\.id$/, /(^|\.)itb\.ac\.id$/];
 
 function httpsHost(url: string): string | null {
@@ -57,7 +57,7 @@ export function opensInBrowser(url: string): boolean {
   return host !== null && OFFICIAL_HOSTS.some((pattern) => pattern.test(host));
 }
 
-/** A material's own place on EduNex's website: its module's page, or the course's. */
+/** A material's own place on Edunex's website: its module's page, or the course's. */
 export function edunexMaterialUrl(material: Pick<Material, "courseId" | "moduleId">): string {
   return material.moduleId === null ? edunexCourseUrl(material.courseId) : `${EDUNEX_WEB}/courses/${material.courseId}/preview/${material.moduleId}`;
 }
@@ -141,13 +141,13 @@ export function fileName(material: Pick<Material, "title" | "type" | "content">)
 
 export interface OutlineEntry {
   module: CourseModule;
-  /** Its place in its own EduNex course, from 1. */
+  /** Its place in its own Edunex course, from 1. */
   number: number;
   /** It sits in the class's parent course. */
   parent: boolean;
 }
 
-/** The course's modules as EduNex numbers them: the class's own course first, then its parent's. */
+/** The course's modules as Edunex numbers them: the class's own course first, then its parent's. */
 export function outlineEntries(outline: CourseOutline, mainCourseId: number): OutlineEntry[] {
   const counts = new Map<number, number>();
   return outline.modules.map((module) => {
@@ -173,7 +173,7 @@ export interface OfflinePlan {
   files: OfflineFile[];
 }
 
-/** Every file of a course from EduNex, by module, with names that don't collide. */
+/** Every file of a course from Edunex, by module, with names that don't collide. */
 export function planOfflineFiles(
   course: { code: string; name: string; mainCourseId: number },
   outline: CourseOutline | undefined,
@@ -214,4 +214,45 @@ function uniqueName(name: string, isTaken: (candidate: string) => boolean): stri
     const candidate = `${base} (${n})${ext}`;
     if (!isTaken(candidate)) return candidate;
   }
+}
+
+// ---------------------------------------------------------------- the Modul tab
+
+/** What a module holds, by the kinds a Student tells apart: "2 PDF · 1 tugas". */
+export type ContentKind = "task" | "pdf" | "vicon" | "note" | "video" | "link" | "file";
+
+export function contentCounts(materials: readonly Material[], tasks: number): { kind: ContentKind; count: number }[] {
+  const counts = new Map<ContentKind, number>();
+  if (tasks) counts.set("task", tasks);
+  for (const material of materials) {
+    const kind = materialKind(material.type);
+    const shown: ContentKind = kind === "pdf" || kind === "vicon" || kind === "note" || kind === "video" || kind === "link" ? kind : "file";
+    counts.set(shown, (counts.get(shown) ?? 0) + 1);
+  }
+  const order: ContentKind[] = ["task", "pdf", "video", "vicon", "note", "link", "file"];
+  return order.flatMap((kind) => (counts.has(kind) ? [{ kind, count: counts.get(kind)! }] : []));
+}
+
+/**
+ * The entry the Modul tab opens on: the newest one with something in it (by
+ * when it or its newest material was posted; the later in the outline on a
+ * tie), the class's own before the joint class's; never an empty one when
+ * any has content.
+ */
+export function newestWithContent(entries: readonly { hasContent: boolean; at: number | null; parent: boolean }[]): number {
+  let best = -1;
+  for (const [index, entry] of entries.entries()) {
+    if (!entry.hasContent) continue;
+    if (best === -1) {
+      best = index;
+      continue;
+    }
+    const current = entries[best];
+    if (entry.parent !== current.parent) {
+      if (!entry.parent) best = index;
+      continue;
+    }
+    if ((entry.at ?? 0) >= (current.at ?? 0)) best = index;
+  }
+  return best === -1 ? 0 : best;
 }

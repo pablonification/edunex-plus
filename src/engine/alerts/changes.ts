@@ -1,4 +1,4 @@
-// Alerts for changes EduNex never announces (#77): a Task the lecturer edited
+// Alerts for changes Edunex never announces (#77): a Task the lecturer edited
 // after posting it (urgent when it was edited after the Student handed it in:
 // they may need to hand it in again), and material posted for a class that
 // meets today per SIX's timetable (urgent while that class is still to come
@@ -48,7 +48,7 @@ export const materialForToday: Detector = {
     const alerts: AlertDraft[] = [];
     for (const [code, materials] of Object.entries(change.next)) {
       const today = classesToday(schedule, code, now);
-      // Only for today's class: other new materials come from EduNex's own feed.
+      // Only for today's class: other new materials come from Edunex's own feed.
       if (!today.length) continue;
       const known = new Set((change.previous[code] ?? []).map((m) => m.id));
       const coming = today.find((s) => s.end > now);
@@ -61,7 +61,7 @@ export const materialForToday: Detector = {
           urgent: coming !== undefined,
           title: { key: "alert.materialToday", vars: { course: code } },
           body: { key: "alert.materialToday.body", vars: { title: material.title, time: clockTime((coming ?? today[0]).start) } },
-          target: { screen: "course", code, tab: "modules" },
+          target: { screen: "course", code, tab: "modules", ...(material.moduleId !== null && { module: material.moduleId }) },
         });
       }
     }

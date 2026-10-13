@@ -1,5 +1,5 @@
-// Talks to EduNex's API (api-edunex.cognisia.id). Every answer is checked
-// against a schema: a shape the app doesn't know is "EduNex changed
+// Talks to Edunex's API (api-edunex.cognisia.id). Every answer is checked
+// against a schema: a shape the app doesn't know is "Edunex changed
 // something", never an empty screen.
 import type { z } from "zod";
 import { EngineError } from "../../errors";
@@ -27,17 +27,17 @@ export class EdunexClient {
         timeoutMs: TIMEOUT_MS,
       });
     } catch (error) {
-      if (error instanceof NetworkError) throw new EngineError("Offline", error.reason === "timeout" ? "EduNex didn't answer in time" : "EduNex is unreachable");
+      if (error instanceof NetworkError) throw new EngineError("Offline", error.reason === "timeout" ? "Edunex didn't answer in time" : "Edunex is unreachable", true);
       throw error;
     }
-    if (response.status === 401) throw new EngineError("Unauthorized", `EduNex refused ${path}`);
-    if (response.status === 429 || response.status >= 500) throw new EngineError("Offline", `EduNex answered ${response.status}`);
-    if (response.status >= 400) throw new EngineError("Failed", `EduNex answered ${response.status} for ${path}`);
+    if (response.status === 401) throw new EngineError("Unauthorized", `Edunex refused ${path}`);
+    if (response.status === 429 || response.status >= 500) throw new EngineError("Offline", `Edunex answered ${response.status}`);
+    if (response.status >= 400) throw new EngineError("Failed", `Edunex answered ${response.status} for ${path}`);
     let body: unknown;
     try {
       body = JSON.parse(response.body);
     } catch {
-      throw new EngineError("VendorChanged", `EduNex sent something other than data for ${path}`);
+      throw new EngineError("VendorChanged", `Edunex sent something other than data for ${path}`);
     }
     const parsed = schema.safeParse(body);
     if (!parsed.success) {

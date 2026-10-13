@@ -1,4 +1,4 @@
-// The real engine with its alert center, the pretend EduNex and ITB, and a
+// The real engine with its alert center, the pretend Edunex and ITB, and a
 // stand-in SIX the test controls (until #76 lands its source): its count of
 // each course ("Hadir X dari Y pertemuan") and its timetable, stored under
 // the shared SIX dataset names every 15 minutes, like a real feed.

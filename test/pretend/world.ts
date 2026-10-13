@@ -1,5 +1,5 @@
-// The pretend world the engine talks to in tests: EduNex, SIX, ITB's public
-// pages, EduNex's file storage and GitHub's releases behind one Transport, on a fake clock, with
+// The pretend world the engine talks to in tests: Edunex, SIX, ITB's public
+// pages, Edunex's file storage and GitHub's releases behind one Transport, on a fake clock, with
 // a network that can drop or slow down.
 import { type Clock, sleep } from "../../src/engine/clock";
 import { type HttpRequest, type HttpResponse, NetworkError, type Transport } from "../../src/engine/http/transport";
@@ -15,7 +15,7 @@ export class PretendWorld implements Transport {
   readonly six: PretendSix;
   readonly itb: PretendItb;
   readonly github: PretendGithub;
-  /** Files uploaded to EduNex's storage, by path. */
+  /** Files uploaded to Edunex's storage, by path. */
   readonly blobs = new Map<string, Uint8Array | string>();
   /** Every request that reached the world, for assertions about politeness. */
   readonly log: { at: number; method: string; url: string; status: number | "network-error" }[] = [];
@@ -41,7 +41,7 @@ export class PretendWorld implements Transport {
     this.offline = offline;
   }
 
-  /** The next `times` uploads to EduNex's storage fail with `status`, or drop the connection. */
+  /** The next `times` uploads to Edunex's storage fail with `status`, or drop the connection. */
   failUploads(status: number | "network", times = 1): void {
     this.uploadFaults.push(...Array.from({ length: times }, () => status));
   }

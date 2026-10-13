@@ -1,34 +1,57 @@
-// The Modul tab: EduNex's table of contents (course-wide items, then each
-// module, the parent class's after the class's own), and the selected
-// entry's Tasks and materials. Each material type gets the one action that
-// fits it: download, join, read here, open, or EduNex itself.
-import { useState } from "react";
-import { htmlText, materialAction, materialKind, type MaterialKind, outlineEntries, uploadExtension, VICON_PROVIDERS } from "../../../core/course-materials";
+// The Modul tab: Edunex's table of contents (course-wide items, then each
+// module, the joint class's after the class's own), and the selected entry's
+// Tasks and materials. It opens on the newest module with something in it;
+// empty modules take one quiet line. Each material type gets the one action
+// that fits it: download, join, read here, open, or Edunex itself, all alike.
+import { useEffect, useRef, useState } from "react";
+import {
+  contentCounts,
+  htmlText,
+  materialAction,
+  materialKind,
+  type MaterialKind,
+  newestWithContent,
+  outlineEntries,
+  uploadExtension,
+  VICON_PROVIDERS,
+} from "../../../core/course-materials";
 import type { Material, Task } from "../../../core/models";
 import { useOpenExternal } from "../../hooks";
-import { useFormat, useNow, useT } from "../../i18n";
+import { type Translate, useFormat, useNow, useT } from "../../i18n";
 import { useBridge } from "../../store";
 import { Button } from "../../ui/controls";
 import { cx } from "../../ui/cx";
-import { Card, EmptyState } from "../../ui/display";
+import { EmptyState } from "../../ui/display";
 import { Icons } from "../../ui/icons";
-import { toast } from "../../ui/overlays";
+import { List } from "../../ui/layout";
+import { toast, Tooltip } from "../../ui/overlays";
 import { RichText } from "../../ui/rich-text";
+import { TaskRows } from "../tasks";
 import { type CoursePage, isOpenTask } from "./data";
-import { TaskRows } from "./lists";
 
 const INTRO = "intro";
+const WEEK = 7 * 24 * 3_600_000;
 
 interface Entry {
   id: string;
-  label: string;
+  label: string | null;
   title: string;
   parent: boolean;
+  postedAt: number | null;
   tasks: Task[];
   materials: Material[];
 }
 
-export function ModulesTab({ page }: { page: CoursePage }) {
+const latest = (entry: Pick<Entry, "postedAt" | "materials">) => Math.max(entry.postedAt ?? 0, ...entry.materials.map((m) => m.postedAt ?? m.updatedAt ?? 0)) || null;
+
+/** "2 PDF · 4 tugas": what's in it; how many Tasks are still open shows as its own chip. */
+const countLine = (t: Translate, entry: Entry) =>
+  contentCounts(entry.materials, entry.tasks.length)
+    .map(({ kind, count }) => t(`course.kind.${kind}`, { count }))
+    .join(" · ");
+
+/** `module`: the Edunex module asked for (from search or an alert); it opens selected and in view. */
+export function ModulesTab({ page, module }: { page: CoursePage; module?: number }) {
   const t = useT();
   const now = useNow();
   const { course, outline } = page;
@@ -40,57 +63,90 @@ export function ModulesTab({ page }: { page: CoursePage }) {
     materials: materials.filter((m) => m.moduleId === null),
   };
   const entries: Entry[] = [
-    ...(courseWide.tasks.length || courseWide.materials.length
-      ? [{ id: INTRO, label: "·", title: t("course.intro"), parent: false, ...courseWide }]
-      : []),
+    ...(courseWide.tasks.length || courseWide.materials.length ? [{ id: INTRO, label: null, title: t("course.intro"), parent: false, postedAt: null, ...courseWide }] : []),
     ...(outline ? outlineEntries(outline, main) : []).map((entry) => ({
       id: String(entry.module.id),
       label: String(entry.number),
       title: entry.module.title,
       parent: entry.parent,
+      postedAt: entry.module.postedAt,
       tasks: page.tasks.filter((task) => task.moduleId === entry.module.id),
       materials: materials.filter((m) => m.moduleId === entry.module.id),
     })),
   ];
-  const first = entries.find((e) => e.tasks.some((task) => isOpenTask(task, now))) ?? entries[0];
-  const [selected, setSelected] = useState<string | null>(null);
+  const first = entries[newestWithContent(entries.map((e) => ({ hasContent: e.tasks.length + e.materials.length > 0, at: latest(e), parent: e.parent })))];
+  const [selected, setSelected] = useState<string | null>(module === undefined ? null : String(module));
   const active = entries.find((e) => e.id === selected) ?? first;
+  const asked = module !== undefined && active?.id === String(module);
+  const root = useRef<HTMLDivElement>(null);
+  const shown = useRef(false);
+  useEffect(() => {
+    // Once, on arrival: the module asked for comes into view if it's below the fold; picking another later doesn't move the page.
+    if (!asked || shown.current) return;
+    // After the window puts a newly opened screen at its top.
+    const frame = requestAnimationFrame(() => {
+      shown.current = true;
+      root.current?.querySelector("[aria-current=true]")?.scrollIntoView?.({ block: "nearest" });
+      root.current?.querySelector("#course-entry")?.scrollIntoView?.({ block: "nearest" });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [asked]);
 
   if (!active) return <EmptyState icon={<Icons.BookOpen className="size-5" />} title={t("course.noMaterials")} />;
   const firstParent = entries.findIndex((e) => e.parent);
+  const anyContent = entries.some((e) => e.tasks.length || e.materials.length);
 
   return (
-    <div className="grid grid-cols-[248px_minmax(0,1fr)] gap-8">
+    <div ref={root} className="grid grid-cols-[260px_minmax(0,1fr)] gap-8 max-[1180px]:grid-cols-[220px_minmax(0,1fr)]">
       <nav aria-label={t("course.contents")} className="self-start">
         <p className="mb-2 px-2 text-caption font-semibold tracking-[0.04em] text-faint uppercase">{t("course.contents")}</p>
         <ol className="space-y-0.5">
           {entries.map((entry, index) => {
             const isActive = entry.id === active.id;
-            const open = entry.tasks.some((task) => isOpenTask(task, now));
-            const count = entry.tasks.length + entry.materials.length;
+            const open = entry.tasks.filter((task) => isOpenTask(task, now)).length;
+            const empty = entry.tasks.length + entry.materials.length === 0;
+            const fresh = !empty && (latest(entry) ?? 0) > now - WEEK;
             return (
               <li key={entry.id}>
-                {index === firstParent && <p className="mt-4 mb-1 px-2 text-caption font-semibold tracking-[0.04em] text-faint uppercase">{t("course.parentClass")}</p>}
+                {index === firstParent && <p className="mt-4 mb-1 px-2 text-caption font-semibold tracking-[0.04em] text-faint uppercase">{t("course.jointClass")}</p>}
                 <button
                   type="button"
                   aria-current={isActive ? "true" : undefined}
                   onClick={() => setSelected(entry.id)}
-                  className={cx("focus-ring flex w-full items-start gap-2.5 rounded-lg px-2 py-2 text-left transition-colors duration-150", isActive ? "bg-selected" : "hover:bg-hover")}
+                  className={cx(
+                    "focus-ring flex w-full scroll-my-6 items-start gap-2.5 rounded-lg px-2 text-left transition-colors duration-150",
+                    empty ? "py-1" : "py-2",
+                    isActive ? "bg-selected" : "hover:bg-hover",
+                  )}
                 >
                   <span
                     className={cx(
-                      "mt-px grid size-5 shrink-0 place-items-center rounded-md text-micro font-semibold tabular-nums",
-                      isActive ? "bg-accent text-on-accent" : "bg-fill text-muted",
+                      "grid shrink-0 place-items-center rounded-md font-semibold tabular-nums",
+                      empty ? "mt-px size-5 text-micro text-faint" : "mt-px size-5 text-micro",
+                      isActive ? "bg-accent text-on-accent" : empty ? "" : "bg-fill text-muted",
                     )}
                   >
-                    {entry.label}
+                    {entry.label ?? <Icons.BookOpen className="size-3" />}
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className={cx("line-clamp-2 text-body leading-[1.35]", isActive ? "font-semibold" : "font-medium")}>{entry.title}</span>
-                    <span className="mt-0.5 block text-caption text-faint">{count ? t("course.itemCount", { count }) : t("course.empty")}</span>
+                    <span className={cx("line-clamp-2 leading-[1.35]", empty ? "text-small text-muted" : "text-body", !empty && (isActive ? "font-semibold" : "font-medium"))}>
+                      {entry.title}
+                    </span>
+                    {!empty && countLine(t, entry) && <span className="mt-0.5 block truncate text-caption text-faint">{countLine(t, entry)}</span>}
                   </span>
-                  {open && (
-                    <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-danger-fg" role="img" aria-label={t("course.openTask")} />
+                  {(open > 0 || fresh) && (
+                    <span className="mt-0.5 flex shrink-0 flex-col items-end gap-1">
+                      {open > 0 && (
+                        <Tooltip content={t("course.openTasksHint")}>
+                          <span className="inline-flex h-[18px] items-center rounded-full bg-warning-bg px-1.5 text-micro font-semibold text-warning-fg">{t("course.openTasks", { count: open })}</span>
+                        </Tooltip>
+                      )}
+                      {fresh && (
+                        <Tooltip content={t("course.newHint")}>
+                          <span className="inline-flex h-[18px] items-center rounded-full bg-info-bg px-1.5 text-micro font-semibold text-info-fg">{t("course.new")}</span>
+                        </Tooltip>
+                      )}
+                    </span>
                   )}
                 </button>
               </li>
@@ -101,37 +157,38 @@ export function ModulesTab({ page }: { page: CoursePage }) {
 
       <section className="min-w-0" aria-labelledby="course-entry">
         <header className="mb-5">
-          <p className="text-small font-semibold text-muted">
-            {active.id === INTRO ? t("course.courseWide") : t("course.module", { no: active.label })}
-            {active.parent && <span className="text-faint"> · {t("course.parentClass")}</span>}
+          <p className="flex items-center gap-2 text-small font-semibold text-muted">
+            {active.id === INTRO ? t("course.courseWide") : t("course.module", { no: active.label ?? "" })}
+            {active.parent && <span className="font-normal text-faint">· {t("course.jointClass")}</span>}
+            {active === first && anyContent && entries.length > 1 && (
+              <span className="inline-flex h-[18px] items-center rounded-full bg-fill px-1.5 text-micro font-semibold text-muted">{t("course.newest")}</span>
+            )}
           </p>
           <h2 id="course-entry" className="mt-1 text-heading font-semibold tracking-[-0.015em]">
             {active.title}
           </h2>
         </header>
         {active.tasks.length === 0 && active.materials.length === 0 ? (
-          <EmptyState
-            icon={<Icons.Inbox className="size-5" />}
-            title={t(entries.some((e) => e.tasks.length || e.materials.length) ? "course.moduleEmpty" : "course.noMaterials")}
-          />
+          <p className="flex items-center gap-2 text-body text-muted">
+            <Icons.Inbox className="size-4" />
+            {t(anyContent ? "course.moduleEmpty" : "course.noMaterials")}
+          </p>
         ) : (
           <div className="space-y-6">
             {active.tasks.length > 0 && (
               <div>
                 <p className="mb-2 text-small font-semibold text-muted">{t("course.tasks")}</p>
-                <TaskRows tasks={active.tasks} />
+                <TaskRows tasks={active.tasks} meta="none" label={t("course.tasks")} />
               </div>
             )}
             {active.materials.length > 0 && (
               <div>
                 <p className="mb-2 text-small font-semibold text-muted">{t("course.materials")}</p>
-                <Card className="overflow-hidden">
-                  <ul>
-                    {active.materials.map((material, index) => (
-                      <MaterialRow key={material.id} material={material} first={index === 0} />
-                    ))}
-                  </ul>
-                </Card>
+                <List label={t("course.materials")}>
+                  {active.materials.map((material) => (
+                    <MaterialRow key={material.id} material={material} />
+                  ))}
+                </List>
               </div>
             )}
           </div>
@@ -153,7 +210,7 @@ const KIND_ICON: Record<MaterialKind, (typeof Icons)[keyof typeof Icons]> = {
   other: Icons.BookOpen,
 };
 
-export function MaterialRow({ material, first }: { material: Material; first: boolean }) {
+export function MaterialRow({ material }: { material: Material }) {
   const t = useT();
   const f = useFormat();
   const bridge = useBridge();
@@ -219,14 +276,14 @@ export function MaterialRow({ material, first }: { material: Material; first: bo
       break;
     default:
       button = (
-        <Button variant="ghost" size="sm" icon={<Icons.ArrowUpRight className="size-3.5" />} aria-label={named(t("action.openInEdunex"))} onClick={() => openExternal(action.url)}>
+        <Button size="sm" icon={<Icons.ArrowUpRight className="size-3.5" />} aria-label={named(t("action.openInEdunex"))} onClick={() => openExternal(action.url)}>
           {t("action.openInEdunex")}
         </Button>
       );
   }
 
   return (
-    <li className={cx(!first && "border-t border-line")}>
+    <li>
       <div className="flex items-center gap-3 px-4 py-3">
         <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-fill text-muted">
           <Icon className="size-4" />
@@ -236,7 +293,8 @@ export function MaterialRow({ material, first }: { material: Material; first: bo
           <p className="mt-0.5 truncate text-small text-muted">{meta}</p>
         </div>
         {material.updatedAt !== null && <span className="text-small whitespace-nowrap text-faint">{f.fromNow(material.updatedAt)}</span>}
-        {button}
+        {/* One width for every action, so the dates beside them line up. */}
+        <span className="flex w-[9.5rem] shrink-0 justify-end">{button}</span>
       </div>
       {reading && action.kind === "read" && (
         <div className="border-t border-line bg-fill/50 px-4 py-3.5">

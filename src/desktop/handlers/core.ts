@@ -29,7 +29,7 @@ export const coreHandlers: HandlerGroup<Core> = (context) => ({
     return {};
   },
   "files.download": async ({ url, name }) => {
-    if (!isDownloadable(url)) throw new EngineError("Rejected", "Only EduNex's files download from the app");
+    if (!isDownloadable(url)) throw new EngineError("Rejected", "Only Edunex's files download from the app");
     const window = context.window();
     if (!window) throw new EngineError("Failed", "The window is closed");
     return { path: await download(window.webContents, url, name) };

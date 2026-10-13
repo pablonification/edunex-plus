@@ -26,7 +26,7 @@ export interface EngineDeps {
   version: string;
   emit(event: Event): void;
   random?: () => number;
-  /** Defaults to every source (EduNex, SIX, ITB's public pages). */
+  /** Defaults to every source (Edunex, SIX, ITB's public pages). */
   sources?: readonly AnySource[];
   /** Shows an alert to the Student (an OS notification). Its text is catalog keys, in no language yet. */
   alert?(notice: AlertNotice): void;
@@ -43,10 +43,11 @@ export interface Engine {
   start(): void;
   stop(): void;
   snapshot(): Snapshot;
-  /** Starts a session from what the source's sign-in captured (EduNex: { token }, SIX: { cookie }). */
+  /** Starts a session from what the source's sign-in captured (Edunex: { token }, SIX: { cookie }). */
   signIn(source: SourceId, session: unknown): Promise<void>;
   /** Without a source: sign out of everything. */
   signOut(source?: SourceId): Promise<void>;
+  /** Reads again now ("Perbarui sekarang", waking from sleep): every feed but the background ones (FeedSpec.background). */
   refresh(source?: SourceId): Promise<void>;
   /** Runs a write the Student asked for (save a draft, submit) with the source's current session. */
   act(source: SourceId, action: string, input: unknown): Promise<unknown>;
@@ -82,6 +83,14 @@ export function createEngine(deps: EngineDeps): Engine {
   });
   /** The latest outcome of every feed: null when it worked. */
   const outcomes = new Map<string, EngineError | null>();
+  /** Orders requests leaving and lost connections landing, so an answer only speaks for what came before it. */
+  let tick = 0;
+  /** When each feed's current "no answer at all" outcome landed (a `tick`). */
+  const unreachableAt = new Map<string, number>();
+  /** Per source: when the request behind its latest answer left (a `tick`). */
+  const answered = new Map<SourceId, number>();
+  /** Feeds a manual refresh leaves to their own schedule (FeedSpec.background). */
+  const background = new Set<string>();
   /** Each source's current session number. Work started under an earlier one lands nowhere. */
   const generations = new Map<SourceId, number>(SourceId.options.map((source) => [source, 0]));
   /** The session each source runs with now (for actions). */
@@ -118,7 +127,12 @@ export function createEngine(deps: EngineDeps): Engine {
     void saveState();
   }
 
-  /** A feed finished. The source's status is the worst of its feeds' latest outcomes. */
+  /**
+   * A feed finished. The source's status is the worst of its feeds' latest
+   * outcomes, except that an answer to a request sent after a feed got no
+   * answer at all ends that outcome: one answer is enough to know the source
+   * is reachable again, without waiting minutes for every feed's next turn.
+   */
   async function settle(feed: string, error: unknown): Promise<void> {
     const source = sourceOf(feed);
     if (error && !isEngineError(error)) error = new EngineError("Failed", String(error));
@@ -130,7 +144,17 @@ export function createEngine(deps: EngineDeps): Engine {
       void checkLiveness(source);
       return;
     }
-    outcomes.set(feed, failure);
+    // A background feed that got no answer just tries again on its own: nothing the Student can act on.
+    const quiet = failure?.kind === "Offline" && failure.unreachable && background.has(feed);
+    outcomes.set(feed, quiet ? null : failure);
+    if (failure?.kind === "Offline" && failure.unreachable && !quiet) unreachableAt.set(feed, ++tick);
+    else unreachableAt.delete(feed);
+    const reached = answered.get(source) ?? 0;
+    for (const [name, at] of unreachableAt) {
+      if (sourceOf(name) !== source || at > reached) continue;
+      outcomes.set(name, null);
+      unreachableAt.delete(name);
+    }
     if (statuses.get(source)?.state === "expired" || statuses.get(source)?.state === "signed-out") return;
 
     const mine = [...outcomes.entries()].filter(([name]) => sourceOf(name) === source).map(([, outcome]) => outcome);
@@ -153,6 +177,7 @@ export function createEngine(deps: EngineDeps): Engine {
     for (const name of [...outcomes.keys()].filter((feed) => sourceOf(feed) === source)) {
       scheduler.remove(name);
       outcomes.delete(name);
+      unreachableAt.delete(name);
     }
   }
 
@@ -169,6 +194,9 @@ export function createEngine(deps: EngineDeps): Engine {
   function addFeed(source: SourceId, spec: FeedSpec): void {
     if (sourceOf(spec.name) !== source) throw new Error(`Feed ${spec.name} doesn't belong to ${source}`);
     outcomes.set(spec.name, null);
+    unreachableAt.delete(spec.name);
+    if (spec.background) background.add(spec.name);
+    else background.delete(spec.name);
     scheduler.add({
       name: spec.name,
       every: spec.every,
@@ -195,12 +223,35 @@ export function createEngine(deps: EngineDeps): Engine {
     return line;
   };
 
+  /**
+   * A source's door to the network. Any answer that isn't "unreachable" (a
+   * 5xx or 429, as the clients read it) proves the source can be reached.
+   * A feed that reads nothing (its data still fresh) proves nothing. One per
+   * source for the engine's life: writes queue per transport (hand-in.ts).
+   */
+  const transports = new Map<SourceId, Transport>();
+  function transportFor(source: SourceId): Transport {
+    let transport = transports.get(source);
+    if (!transport) {
+      transport = {
+        async request(request) {
+          const sent = ++tick;
+          const response = await deps.transport.request(request);
+          if (response.status < 500 && response.status !== 429) answered.set(source, Math.max(answered.get(source) ?? 0, sent));
+          return response;
+        },
+      };
+      transports.set(source, transport);
+    }
+    return transport;
+  }
+
   /** What a source reaches during one session. Writes from an ended session are dropped. */
   function contextFor(source: SourceId): SourceContext {
     const session = generation(source);
     const current = () => generation(source) === session;
     return {
-      transport: deps.transport,
+      transport: transportFor(source),
       clock,
       userAgent,
       settings: () => settings,
@@ -335,7 +386,7 @@ export function createEngine(deps: EngineDeps): Engine {
     },
 
     async refresh(source) {
-      await scheduler.runNow((name) => !source || sourceOf(name) === source);
+      await scheduler.runNow((name) => (!source || sourceOf(name) === source) && !background.has(name));
     },
 
     async act(id, name, input) {
@@ -346,8 +397,10 @@ export function createEngine(deps: EngineDeps): Engine {
       try {
         return await action(contextFor(id), sessions.get(id), input);
       } catch (error) {
-        // A refusal asks the liveness check, which alone may end the session.
+        // A refusal asks the liveness check, which alone may end the session. No answer at all asks every
+        // signed-in source, so the status says what's reachable within seconds, not at the next sync.
         if (isEngineError(error, "Unauthorized")) void checkLiveness(id);
+        else if (isEngineError(error, "Offline") && error.unreachable) for (const signedIn of sessions.keys()) void checkLiveness(signedIn);
         throw error;
       }
     },

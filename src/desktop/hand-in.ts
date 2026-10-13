@@ -1,6 +1,6 @@
 // Handing in from the window (#73): the files the Student picked (system file
 // picker) or dropped, known to the window only by ids issued here, and the
-// uploads, draft saves and submits, which run as the EduNex source's actions
+// uploads, draft saves and submits, which run as the Edunex source's actions
 // on the Student's click. No Electron here, so tests run it as it is; the
 // handlers in ./handlers/tasks.ts plug in the real file picker.
 import { randomUUID } from "node:crypto";

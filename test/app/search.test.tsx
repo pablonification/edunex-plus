@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 // #81, seam 2: quick search in the window, by keyboard alone (⌘K, type,
 // arrows, Enter, Escape), over what the real engine saved from the pretend
-// EduNex, SIX and ITB calendar.
+// Edunex, SIX and ITB calendar.
 import { act } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 import { openApp } from "./harness";
@@ -10,6 +10,7 @@ let screen: Awaited<ReturnType<typeof openApp>> | null = null;
 afterEach(() => {
   screen?.close();
   screen = null;
+  localStorage.clear();
 });
 
 const palette = () => document.querySelector<HTMLElement>("[role=dialog]");
@@ -44,7 +45,7 @@ async function type(text: string) {
 }
 
 describe("quick search", () => {
-  it("⌘K opens it from anywhere with the cursor in the field; before typing: the next Tasks, the courses and the screens", async () => {
+  it("⌘K opens it from anywhere with the cursor in the field; before typing: the next Tasks, the courses, the places and the verbs", async () => {
     screen = await openApp({ signedIn: true, six: true });
     expect(palette()).toBeNull();
     await commandK();
@@ -52,7 +53,7 @@ describe("quick search", () => {
     expect(document.activeElement).toBe(input());
     expect(input()?.placeholder).toBe("Cari mata kuliah, tugas, modul, materi…");
     expect(groups()).toEqual([
-      ["Tugas", "Tugas 02 Bab II", "Tugas 03 Bab III", "Tugas 04 Bab IV & V"],
+      ["Tugas belum selesai", "Tugas 02 Bab II", "Tugas 03 Bab III", "Tugas 04 Bab IV & V"],
       [
         "Mata kuliah",
         "Komunikasi Pemasaran",
@@ -61,11 +62,14 @@ describe("quick search", () => {
         "Ekonomi dan Inovasi dalam Perencanaan",
         "Ekonomi Infrastruktur dan Transportasi",
       ],
-      // Jadwal isn't built yet, so it isn't offered.
-      ["Buka", "Beranda", "Tugas & Ujian", "Jadwal", "Presensi", "Nilai", "Rencana studi", "Pengaturan"],
+      ["Halaman", "Beranda", "Tugas & Ujian", "Jadwal", "Presensi", "Nilai", "Rencana studi", "Pengaturan"],
+      ["Perintah", "Muat ulang data", "Ganti tema"],
     ]);
-    // Each row says its course by code (its color is the mark beside it) and what it is.
-    expect(activeRow()).toBe("Tugas 02 Bab IIII4091 · Belum dikerjakan · tenggat Jum, 16 Okt, 23:59");
+    // Each row says its course by code (its color is the mark beside it), when, and what it is; "↵": it opens in the app.
+    // "Belum dikerjakan" says nothing on a Task to do: it's left out.
+    expect(activeRow()).toBe("Tugas 02 Bab IIII4091 · tenggat Jum, 16 Okt, 23:59Tugas↵");
+    // The places show their shortcut.
+    expect(palette()?.textContent).toContain("Beranda⌘1");
   });
 
   it("a course code typed exactly comes first; Enter opens the course and closes search", async () => {
@@ -73,7 +77,7 @@ describe("quick search", () => {
     await commandK();
     await type("pl3002");
     expect(groups()[0]).toEqual(["Mata kuliah", "Ekonomi dan Inovasi dalam Perencanaan"]);
-    expect(activeRow()).toBe("Ekonomi dan Inovasi dalam PerencanaanPL3002 · Kelas 01 · 3 SKS");
+    expect(activeRow()).toBe("Ekonomi dan Inovasi dalam PerencanaanPL3002 · Kelas 01 · 3 SKSMata kuliah↵");
     await press("Enter");
     expect(palette()).toBeNull();
     expect(h1()).toBe("Ekonomi dan Inovasi dalam Perencanaan");
@@ -83,10 +87,13 @@ describe("quick search", () => {
     screen = await openApp({ signedIn: true, six: true });
     await commandK();
     await type("bab");
-    expect(groups()).toEqual([["Tugas", "Tugas 01 Bab I", "Tugas 02 Bab II", "Tugas 03 Bab III", "Tugas 04 Bab IV & V"]]);
+    // Still to do first, the one due first on top; the one handed in last.
+    expect(groups()).toEqual([
+      ["Tugas belum selesai", "Tugas 02 Bab II", "Tugas 03 Bab III", "Tugas 04 Bab IV & V"],
+      ["Tugas selesai", "Tugas 01 Bab I"],
+    ]);
     await press("ArrowUp");
-    expect(activeRow()).toMatch(/^Tugas 04 Bab IV & V/);
-    await press("ArrowDown");
+    expect(activeRow()).toMatch(/^Tugas 01 Bab I/);
     await press("ArrowDown");
     await press("ArrowDown");
     expect(activeRow()).toMatch(/^Tugas 03 Bab III/);
@@ -98,18 +105,41 @@ describe("quick search", () => {
     screen = await openApp({ signedIn: true, six: true });
     await commandK();
     await type("ekonomi infrastruktr sap");
-    expect(activeRow()).toBe("K1. SAP Ekonomi Infrastruktur dan TransportasiPL3032");
+    expect(activeRow()).toBe("K1. SAP Ekonomi Infrastruktur dan TransportasiPL3032Materi↵");
     await press("Enter");
     expect(h1()).toBe("Ekonomi Infrastruktur dan Transportasi");
     expect(document.querySelector("[role=tab][data-state=active]")?.textContent).toMatch(/^Modul/);
   });
 
-  it("an exam opens its exam page: SIX's sitting and EduNex's take-home are one UTS", async () => {
+  it("a module in both the class and its joint class reads as two different rows", async () => {
+    screen = await openApp({ signedIn: true, six: true });
+    await commandK();
+    await type("02 penyusunan proposal");
+    const rows = [...document.querySelectorAll("[role=listbox] [role=option]")].map((o) => o.textContent ?? "").filter((r) => r.startsWith("02 Penyusunan Proposal TA"));
+    expect(rows).toHaveLength(2);
+    expect(rows.filter((r) => r.includes("Kelas gabungan"))).toHaveLength(1);
+  });
+
+  it("a module opens its course on that module, selected, and ⌘[ goes back", async () => {
+    screen = await openApp({ signedIn: true, six: true });
+    await commandK();
+    await type("02 penyusunan proposal");
+    expect(activeRow()).toMatch(/^02 Penyusunan Proposal TA/);
+    await press("Enter");
+    expect(h1()).toBe("Proposal Tugas Akhir");
+    expect(document.querySelector("[role=tab][data-state=active]")?.textContent).toMatch(/^Modul/);
+    expect(document.querySelector("#course-entry")?.textContent).toBe("02 Penyusunan Proposal TA");
+    expect(document.querySelector("nav [aria-current=true]")?.textContent).toContain("02 Penyusunan Proposal TA");
+    await press("[", { metaKey: true });
+    expect(document.querySelector("#course-entry")).toBeNull();
+  });
+
+  it("an exam opens its exam page: SIX's sitting and Edunex's take-home are one UTS", async () => {
     screen = await openApp({ signedIn: true, six: true });
     await commandK();
     await type("uts komunikasi");
     expect(groups()[0]).toEqual(["Ujian", "UTS Komunikasi Pemasaran"]);
-    expect(activeRow()).toBe("UTS Komunikasi PemasaranDK4073 · Kam, 15 Okt, 11:00–12:59 · TVST C");
+    expect(activeRow()).toBe("UTS Komunikasi PemasaranDK4073 · Kam, 15 Okt, 11:00–12:59 · TVST CUjian↵");
     await press("Enter");
     expect(h1()).toBe("Komunikasi Pemasaran");
     expect(document.querySelector("main")?.textContent).toContain("TVST C");
@@ -119,7 +149,7 @@ describe("quick search", () => {
     screen = await openApp({ signedIn: true, six: true });
     await commandK();
     await type("ukt");
-    expect(activeRow()).toBe("UKTRencana studi");
+    expect(activeRow()).toBe("UKTRencana studiHalaman↵");
     await press("Enter");
     expect(h1()).toBe("Rencana studi");
     expect(document.querySelector("[role=tab][data-state=active]")?.textContent).toBe("UKT");
@@ -150,8 +180,31 @@ describe("quick search", () => {
     await type("zzzz");
     expect(groups()).toEqual([]);
     expect(palette()?.textContent).toContain("Tidak ada yang cocok dengan “zzzz”");
+    expect(palette()?.textContent).toContain("Coba kode mata kuliah (mis. DK4073), judul tugas, atau nama halaman.");
     await press("Enter");
     expect(palette()).not.toBeNull();
+  });
+
+  it("remembers what was opened, and offers it first next time", async () => {
+    screen = await openApp({ signedIn: true, six: true });
+    await commandK();
+    await type("ku5014");
+    await press("Enter");
+    await commandK();
+    expect(groups()[0]).toEqual(["Terakhir dibuka", "Teknik Penyelesaian Masalah Terstruktur"]);
+  });
+
+  it("does things too: refresh, and switch the theme", async () => {
+    screen = await openApp({ signedIn: true, six: true });
+    await commandK();
+    await type("muat ulang");
+    await press("Enter");
+    expect(screen.calls.some((call) => call.name === "sync.refresh")).toBe(true);
+    await commandK();
+    await type("ganti tema");
+    expect(activeRow()).toBe("Ganti temaKe tema GelapPerintah↵");
+    await press("Enter");
+    expect(screen.engine.snapshot().settings.theme).toBe("dark");
   });
 
   it("works offline, from what was saved", async () => {
@@ -161,10 +214,8 @@ describe("quick search", () => {
     expect(screen.store.status("edunex").state).toBe("offline");
     await commandK();
     await type("markom");
-    expect(groups()).toEqual([
-      ["Modul", "UTS Markom"],
-      ["Ujian", "UTS Komunikasi Pemasaran"],
-    ]);
+    expect(groups().map((group) => group[1]).sort()).toEqual(["UTS Komunikasi Pemasaran", "UTS Markom"]);
+    if (groups()[0][1] !== "UTS Komunikasi Pemasaran") await press("ArrowDown");
     await press("Enter");
     expect(h1()).toBe("Komunikasi Pemasaran");
   });
@@ -174,10 +225,10 @@ describe("quick search", () => {
     await screen.engineDoes(() => screen!.engine.updateSettings({ lang: "en" }));
     await commandK();
     expect(input()?.placeholder).toBe("Search courses, Tasks, modules, materials…");
-    expect(groups().map((group) => group[0])).toEqual(["Tasks", "Courses", "Go to"]);
+    expect(groups().map((group) => group[0])).toEqual(["Tasks to do", "Courses", "Pages", "Commands"]);
     await type("economics");
-    expect(activeRow()).toBe("Economics and Innovation in PlanningPL3002 · Class 01 · 3 SKS");
+    expect(activeRow()).toBe("Economics and Innovation in PlanningPL3002 · Class 01 · 3 SKSCourse↵");
     await type("bills");
-    expect(activeRow()).toBe("UKTStudy plan");
+    expect(activeRow()).toBe("UKTStudy planPage↵");
   });
 });

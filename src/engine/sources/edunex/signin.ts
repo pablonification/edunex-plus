@@ -1,4 +1,4 @@
-// How an EduNex session is picked up after the Student signs in. EduNex's
+// How an Edunex session is picked up after the Student signs in. Edunex's
 // sign-in goes sso-edunex.itb.ac.id → Microsoft → back to edunex.itb.ac.id,
 // whose website then keeps `localStorage.auth` =
 // { accessToken, refreshToken, expirationDate, verified, accounts }.

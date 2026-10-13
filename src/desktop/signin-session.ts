@@ -1,6 +1,6 @@
 // The throwaway browser session every sign-in window runs on, shared so one
 // Microsoft sign-in can cover both systems: right after the Student signs in
-// to EduNex, SIX's "Login dengan ITB Account" finds Microsoft's session and
+// to Edunex, SIX's "Login dengan ITB Account" finds Microsoft's session and
 // comes straight back (no second password or 2FA), and the other way round.
 // It lives only in memory, has no access to the app, and is wiped as soon as
 // nothing needs it: when the other system needs no sign-in, when the Student

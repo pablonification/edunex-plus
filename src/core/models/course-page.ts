@@ -1,15 +1,15 @@
-// The course page (#74): each course's EduNex outline (modules, lecturer, the
+// The course page (#74): each course's Edunex outline (modules, lecturer, the
 // published grade), materials, Presence sessions, announcements and exams.
-// Every dataset is kept per course code, the class's parent and child EduNex
+// Every dataset is kept per course code, the class's parent and child Edunex
 // courses merged under it; a code that is there means the course was read,
 // even when it holds nothing. Also what the Student types into the
 // course-contract calculator, kept on this computer.
 import { z } from "zod";
 
-/** A module of a course's EduNex outline. */
+/** A module of a course's Edunex outline. */
 export const CourseModule = z.object({
   id: z.number(),
-  /** The EduNex course it belongs to: the class's own course or its parent. */
+  /** The Edunex course it belongs to: the class's own course or its parent. */
   courseId: z.number(),
   title: z.string(),
   /** When the lecturer posted it (ms). */
@@ -22,11 +22,13 @@ export type GradebookGrade = z.infer<typeof GradebookGrade>;
 
 export const CourseOutline = z.object({
   lecturer: z.string().nullable(),
-  /** SKS as EduNex has it; SIX's count wins once SIX is connected. */
+  /** SKS as Edunex has it; SIX's count wins once SIX is connected. */
   credits: z.number().nullable(),
-  /** In EduNex's order, the class's own course first, then its parent's. Modules the lecturer switched off are left out. */
+  /** The study program offering the course, as Edunex names it ("S1 - Desain Komunikasi Visual"): its catalog page has the course's official name. */
+  program: z.string().nullable().optional(),
+  /** In Edunex's order, the class's own course first, then its parent's. Modules the lecturer switched off are left out. */
   modules: z.array(CourseModule),
-  /** From EduNex's gradebook once the lecturer publishes it. Before that EduNex shows 0 · E, which is never a grade. */
+  /** From Edunex's gradebook once the lecturer publishes it. Before that Edunex shows 0 · E, which is never a grade. */
   grade: GradebookGrade.nullable(),
 });
 export type CourseOutline = z.infer<typeof CourseOutline>;
@@ -37,9 +39,9 @@ export const Material = z.object({
   /** null: course-wide, in no module. */
   moduleId: z.number().nullable(),
   title: z.string(),
-  /** EduNex's own type: pdf, text, ms-teams, zoom, google-meet, cloudx, webex, video, audio, url, file, h5p, or one the app doesn't know yet. */
+  /** Edunex's own type: pdf, text, ms-teams, zoom, google-meet, cloudx, webex, video, audio, url, file, h5p, or one the app doesn't know yet. */
   type: z.string(),
-  /** What EduNex holds for it: a link (a file, an online class, a page) or, for text, HTML. */
+  /** What Edunex holds for it: a link (a file, an online class, a page) or, for text, HTML. */
   content: z.string().nullable(),
   sizeBytes: z.number().nullable(),
   postedAt: z.number().nullable(),
@@ -47,25 +49,25 @@ export const Material = z.object({
 });
 export type Material = z.infer<typeof Material>;
 
-/** One EduNex Presence session of the Student's class. */
+/** One Edunex Presence session of the Student's class. */
 export const PresenceSession = z.object({
   id: z.number(),
   courseId: z.number(),
   classId: z.number(),
-  /** The meeting as EduNex has it (ms). SIX's timetable is the official time. */
+  /** The meeting as Edunex has it (ms). SIX's timetable is the official time. */
   start: z.number(),
   end: z.number(),
-  /** The window in which EduNex records presence (ms). */
+  /** The window in which Edunex records presence (ms). */
   opensAt: z.number(),
   closesAt: z.number(),
   topic: z.string().nullable(),
   /** The lecturer's note, e.g. "Presensi dengan submit Tugas 01 Bab I". */
   note: z.string().nullable(),
-  /** The activity that counts as presence when the lecturer chose one (EduNex `presentable`, e.g. an assignment and its id); empty: viewing the course. */
+  /** The activity that counts as presence when the lecturer chose one (Edunex `presentable`, e.g. an assignment and its id); empty: viewing the course. */
   countsBy: z.array(z.object({ kind: z.string(), id: z.string() })),
-  /** The EduNex page to act on, when EduNex gives one. */
+  /** The Edunex page to act on, when Edunex gives one. */
   url: z.string().nullable(),
-  /** What EduNex recorded for the Student; null when it recorded nothing. */
+  /** What Edunex recorded for the Student; null when it recorded nothing. */
   recorded: z.object({ present: z.boolean(), at: z.number().nullable() }).nullable(),
 });
 export type PresenceSession = z.infer<typeof PresenceSession>;
@@ -81,8 +83,8 @@ export const Announcement = z.object({
 export type Announcement = z.infer<typeof Announcement>;
 
 /**
- * An exam on EduNex. No exam record has been recorded yet (none on the
- * account), so only its id is relied on; a name and time show when EduNex
+ * An exam on Edunex. No exam record has been recorded yet (none on the
+ * account), so only its id is relied on; a name and time show when Edunex
  * sends them the way its other records do.
  */
 export const EdunexExam = z.object({

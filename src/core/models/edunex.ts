@@ -1,4 +1,4 @@
-// EduNex: the Student's account and this term's courses (#71).
+// Edunex: the Student's account and this term's courses (#71).
 import { z } from "zod";
 
 export const Account = z.object({
@@ -8,18 +8,18 @@ export const Account = z.object({
 });
 export type Account = z.infer<typeof Account>;
 
-/** A course the Student takes this term, as EduNex knows it. SIX details join in later. */
+/** A course the Student takes this term, as Edunex knows it. SIX details join in later. */
 export const Course = z.object({
   code: z.string(),
   name: z.string(),
-  /** "01" from EduNex's "II4091-01". */
+  /** "01" from Edunex's "II4091-01". */
   classNo: z.string().nullable(),
   /** SIX term code: "2026-1". */
   term: z.string(),
   edunex: z.object({
     courseId: z.number(),
     classId: z.number(),
-    /** Parent and child EduNex courses for the same class; information can sit in either. */
+    /** Parent and child Edunex courses for the same class; information can sit in either. */
     relatedCourseIds: z.array(z.number()),
   }),
 });

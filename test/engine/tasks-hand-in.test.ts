@@ -1,6 +1,6 @@
-// v2-05 (#73), seam 1: handing a Task in against the pretend EduNex. Files go
-// up through EduNex's own upload flow, a draft never makes a second answer,
-// and a submit counts only once EduNex says so when the Task is read back.
+// v2-05 (#73), seam 1: handing a Task in against the pretend Edunex. Files go
+// up through Edunex's own upload flow, a draft never makes a second answer,
+// and a submit counts only once Edunex says so when the Task is read back.
 import { describe, expect, it } from "vitest";
 import type { HandInResult } from "../../src/core/actions/tasks";
 import type { Task, TaskFile } from "../../src/core/models";
@@ -44,7 +44,7 @@ const OPEN = 117003;
 const UTS = 117764;
 
 describe("uploading a file", () => {
-  it("goes through EduNex's own flow: an upload link, then the file to EduNex's storage", async () => {
+  it("goes through Edunex's own flow: an upload link, then the file to Edunex's storage", async () => {
     const h = await signedIn();
     const file = await upload(h, "Bab II.pdf", "%PDF bab dua");
     expect(h.world.edunex.writes).toEqual([{ method: "POST", path: "/blob-storage/sas", body: { files: [{ fileName: "Bab II.pdf", contentType: "application/pdf", sizeInBytes: 12 }] } }]);
@@ -57,7 +57,7 @@ describe("uploading a file", () => {
   it("a failed upload is a clear error and attaches nothing", async () => {
     const h = await signedIn();
     h.world.failUploads(503);
-    expect(await failure(upload(h))).toMatchObject({ kind: "Failed", message: "EduNex's storage refused the file (503)" });
+    expect(await failure(upload(h))).toMatchObject({ kind: "Failed", message: "Edunex's storage refused the file (503)" });
     h.world.failUploads("network");
     expect((await failure(upload(h))).kind).toBe("Offline");
     expect(answerWrites(h)).toEqual([]);
@@ -98,7 +98,7 @@ describe("saving a draft", () => {
     expect(task(h, OPEN).answer?.files.map((f) => f.name)).toEqual(["bab2-v2.pdf"]);
   });
 
-  it("re-reads EduNex first: a draft saved on the website since the last check is updated, not duplicated", async () => {
+  it("re-reads Edunex first: a draft saved on the website since the last check is updated, not duplicated", async () => {
     const h = await signedIn();
     h.world.edunex.draftOnWebsite(OPEN);
     expect(task(h, OPEN).answer).toBeNull();
@@ -117,7 +117,7 @@ describe("saving a draft", () => {
     expect(answerWrites(h)).toEqual(["POST /course/task/answers", "PATCH /course/task/answers/:id", "PATCH /course/task/answers/:id"]);
   });
 
-  it("only files on EduNex's storage are ever attached", async () => {
+  it("only files on Edunex's storage are ever attached", async () => {
     const h = await signedIn();
     const error = await failure(saveDraft(h, OPEN, [{ name: "x.pdf", url: "https://files.example.com/x.pdf" }]));
     expect(error.kind).toBe("Rejected");
@@ -136,7 +136,7 @@ describe("saving a draft", () => {
 });
 
 describe("submitting", () => {
-  it("sends the answer and counts it only once EduNex says it's submitted", async () => {
+  it("sends the answer and counts it only once Edunex says it's submitted", async () => {
     const h = await signedIn();
     const file = await upload(h);
     const result = await submit(h, OPEN, [file]);
@@ -157,11 +157,11 @@ describe("submitting", () => {
     expect(h.world.edunex.writes.at(-1)?.body).toEqual({ is_sent: 1 });
   });
 
-  it("when EduNex takes the request but doesn't show it sent, it's unconfirmed, never submitted", async () => {
+  it("when Edunex takes the request but doesn't show it sent, it's unconfirmed, never submitted", async () => {
     const h = await signedIn();
     const file = await upload(h);
     await saveDraft(h, OPEN, [file]);
-    // EduNex answers 200 and changes nothing.
+    // Edunex answers 200 and changes nothing.
     h.world.edunex.fail(/^\/course\/task\/answers\/\d+$/, 200, 1);
     const result = await submit(h, OPEN, [file]);
     expect(result.outcome).toBe("unconfirmed");
@@ -178,7 +178,7 @@ describe("submitting", () => {
     expect(task(h, OPEN).status).toBe("closed");
   });
 
-  it("EduNex refusing the write because the Task closed at that moment says closed", async () => {
+  it("Edunex refusing the write because the Task closed at that moment says closed", async () => {
     const h = await signedIn();
     const file = await upload(h);
     await saveDraft(h, OPEN, [file]);
@@ -193,7 +193,7 @@ describe("submitting", () => {
     expect(task(h, OPEN).status).toBe("closed");
   });
 
-  it("EduNex refusing a write for another reason is a clear refusal, the draft untouched", async () => {
+  it("Edunex refusing a write for another reason is a clear refusal, the draft untouched", async () => {
     const h = await signedIn();
     const file = await upload(h);
     await saveDraft(h, OPEN, [file]);

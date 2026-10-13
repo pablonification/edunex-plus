@@ -1,4 +1,4 @@
-// v2-06 (#74), seam 1: the engine reads each course's EduNex outline,
+// v2-06 (#74), seam 1: the engine reads each course's Edunex outline,
 // materials, Presence, announcements, exams and published grade, the parent
 // and child classes merged under one course code.
 import { describe, expect, it } from "vitest";
@@ -20,6 +20,8 @@ describe("course outline", () => {
     const outline = h.dataset("edunex.outline")!.II4091;
     expect(outline.lecturer).toBe("Dr. Hadi Halim, S.T., M.T.");
     expect(outline.credits).toBe(2);
+    // The program offering it: where ITB's catalog has its official name.
+    expect(outline.program).toBe("S1 - Sistem dan Teknologi Informasi");
     expect(outline.modules.map((m) => [m.courseId, m.title])).toEqual([
       [95326, "List Penawaran Topik TA"],
       [95326, "Template Proposal dan Laporan TA - Latex"],
@@ -34,7 +36,7 @@ describe("course outline", () => {
     expect(Object.keys(h.dataset("edunex.outline")!).sort()).toEqual(["DK4073", "II4091", "KU5014", "PL3002", "PL3032"]);
   });
 
-  it("never takes EduNex's unpublished gradebook (0 · E) for a grade", async () => {
+  it("never takes Edunex's unpublished gradebook (0 · E) for a grade", async () => {
     const h = await signedIn();
     for (const outline of Object.values(h.dataset("edunex.outline")!)) expect(outline.grade).toBeNull();
     expect(h.world.log.some((e) => e.url.includes("/gradebook"))).toBe(false);
@@ -89,7 +91,7 @@ describe("materials", () => {
     expect(h.dataset("edunex.materials")!.PL3002.some((m) => m.id === id)).toBe(false);
   });
 
-  it("keeps every material type as EduNex names it", async () => {
+  it("keeps every material type as Edunex names it", async () => {
     const h = await signedIn();
     const types = ["video", "audio", "url", "file", "h5p", "zoom", "google-meet", "webex", "cloudx", "quiz-of-the-future"];
     for (const type of types) h.world.edunex.postMaterial(95001, { name: `A ${type}`, type, content: `https://example.org/${type}` });
@@ -97,7 +99,7 @@ describe("materials", () => {
     expect(h.dataset("edunex.materials")!.PL3002.map((m) => m.type)).toEqual(types);
   });
 
-  it("a content shape EduNex never sent says EduNex changed something, and keeps the last materials", async () => {
+  it("a content shape Edunex never sent says Edunex changed something, and keeps the last materials", async () => {
     const h = await signedIn();
     h.world.edunex.mangle(/^\/course\/contents$/, { kind: "missing-field", field: "type" });
     await h.engine.refresh("edunex");
@@ -107,7 +109,7 @@ describe("materials", () => {
 });
 
 describe("Presence", () => {
-  it("fetches every page of a class's sessions, with the window and what EduNex recorded", async () => {
+  it("fetches every page of a class's sessions, with the window and what Edunex recorded", async () => {
     const h = await signedIn();
     const sessions = h.dataset("edunex.presence")!.PL3002;
     expect(sessions).toHaveLength(15);
@@ -132,12 +134,12 @@ describe("Presence", () => {
       closesAt: at("2026-09-18T23:59:00+07:00"),
       countsBy: [{ kind: "assignment", id: "117001" }],
       url: "https://edunex.itb.ac.id/courses/95326/preview/450222",
-      // EduNex writes this time without a zone: it is WIB.
+      // Edunex writes this time without a zone: it is WIB.
       recorded: { present: true, at: at("2026-09-18T17:16:13+07:00") },
     });
   });
 
-  it("a class without EduNex Presence has none, and a new session shows after the next check", async () => {
+  it("a class without Edunex Presence has none, and a new session shows after the next check", async () => {
     const h = await signedIn();
     expect(h.dataset("edunex.presence")!.KU5014).toEqual([]);
     h.world.edunex.schedulePresence(92948, 84725, { start: "2026-10-08T13:00:00+07:00", end: "2026-10-08T15:00:00+07:00" });
@@ -157,7 +159,7 @@ describe("announcements and exams", () => {
     expect(h.dataset("edunex.announcements")!.PL3002).toEqual([expect.objectContaining({ text: "Kuliah minggu depan daring", courseId: 95001 })]);
   });
 
-  it("every course is checked for EduNex exams, none on this account", async () => {
+  it("every course is checked for Edunex exams, none on this account", async () => {
     const h = await signedIn();
     expect(h.dataset("edunex.exams")).toEqual({ DK4073: [], II4091: [], KU5014: [], PL3002: [], PL3032: [] });
   });

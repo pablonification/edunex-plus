@@ -1,8 +1,10 @@
-// Each course gets a color as its identity (dots, bars, the sidebar). The
-// color comes from the course code, so it stays the same across launches;
+// Each course gets a color as its identity: its dot and its stripe, never a
+// status. So the palette leaves out the hues status speaks in (red, amber,
+// orange, green): a course must never look "in danger" because of its color.
+// The color comes from the course code, so it stays the same across launches;
 // two courses of the same term never share one while the palette lasts.
 
-export const COURSE_COLORS = ["#2F7CF6", "#7C5CFC", "#1FA971", "#F2884B", "#E0559A", "#14A3B8", "#D7A20F", "#E5484D"] as const;
+export const COURSE_COLORS = ["#3366F0", "#7C5CFC", "#0FA3B1", "#D6409F", "#64748B", "#9D4EDD", "#0284C7", "#8D6E63"] as const;
 
 function hash(text: string): number {
   let h = 0x811c9dc5;

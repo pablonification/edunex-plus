@@ -2,10 +2,13 @@
 // approved prototype marks on it: a class moved off its usual slot (time,
 // day or room) and an extra meeting on top of it, classes that overlap (SIX
 // accepts a KRS whose classes clash and never says so), exam sessions,
-// meetings announced only in EduNex text, Task deadlines and ITB's calendar.
-// Pure: the Jadwal screen, Beranda, the calendar export and the alert
-// detectors all reason with this. Days are WIB days, ITB's own, so a class
-// lands on the same day on any computer.
+// lectures SIX lists inside an exam week or a holiday (they may not happen),
+// meetings announced only in Edunex text, Presence windows counted by
+// handing in a Task, Task deadlines and ITB's calendar. Also the week as a
+// time grid: its hours, classes that share time side by side, and the
+// term's week number. Pure: the Jadwal screen, Beranda, the calendar export
+// and the alert detectors all reason with this. Days are WIB days, ITB's
+// own, so a class lands on the same day on any computer.
 import { isExamActivity, usualSlots } from "./attendance";
 import { announcedMeetings, courseMeetings, wibDay } from "./course-meetings";
 import { SIX_WEB } from "./links";
@@ -58,6 +61,91 @@ export function monthGrid(now: number, offset = 0): MonthGrid {
 
 /** Whole weeks between the week holding `now` and the one holding `day`. */
 export const weekOffset = (now: number, day: string) => Math.round((dayStart(weekStart(day)) - dayStart(weekStart(wibDay(now)))) / (7 * DAY));
+
+/** The day `n` days after `day` ("2026-10-08", 7 → "2026-10-15"). */
+export const shiftDay = (day: string, n: number) => addDays(day, n);
+
+/**
+ * The term's week holding `day`, as students count it ("Minggu ke-7"): the
+ * week of the term's first lecture day is week 1, and the count runs through
+ * the term's UAS (else its last lecture day). null outside a term, or
+ * without ITB's calendar.
+ */
+export function termWeek(events: readonly CalendarEvent[], day: string): number | null {
+  const [start] = events.filter((e) => e.kind === "lecture-start" && e.firstDay <= day).sort((a, b) => b.firstDay.localeCompare(a.firstDay));
+  if (!start) return null;
+  const ends = events.filter((e) => (e.kind === "uas" || e.kind === "lecture-end") && e.lastDay >= start.firstDay && (start.term === null || e.term === start.term));
+  const last = ends.map((e) => e.lastDay).sort()[ends.length - 1];
+  if (!last || day > last) return null;
+  return Math.round((dayStart(weekStart(day)) - dayStart(weekStart(start.firstDay))) / (7 * DAY)) + 1;
+}
+
+// ---------------------------------------------------------------- the week as a time grid
+
+/** Minutes after midnight (WIB) a moment falls at. */
+export const minuteOfDay = (ms: number) => minutesOf(ms);
+
+/** The hours a week's grid shows, in minutes after midnight. */
+export interface TimeAxis {
+  from: number;
+  to: number;
+}
+
+/** The usual teaching day: 07:00–18:00. */
+export const USUAL_HOURS: TimeAxis = { from: 7 * 60, to: 18 * 60 };
+
+/** 07:00–18:00, widened to whole hours around anything that starts earlier or ends later (never past midnight). */
+export function timeAxis(items: readonly { start: number; end: number }[]): TimeAxis {
+  let { from, to } = USUAL_HOURS;
+  for (const item of items) {
+    const start = minutesOf(item.start);
+    const end = Math.min(24 * 60, start + Math.max(0, (item.end - item.start) / MINUTE));
+    from = Math.min(from, Math.floor(start / 60) * 60);
+    to = Math.max(to, Math.ceil(end / 60) * 60);
+  }
+  return { from, to };
+}
+
+export interface Placed<T> {
+  item: T;
+  /** Its column among the items it shares time with (0 first). */
+  column: number;
+  /** How many columns those items need. */
+  columns: number;
+}
+
+/**
+ * Items whose times overlap sit side by side: items that overlap, directly or
+ * through another, share the width, each in the first column free when it
+ * starts. Touching (one ends as the next starts) isn't overlapping.
+ */
+export function sideBySide<T extends { start: number; end: number }>(items: readonly T[]): Placed<T>[] {
+  const sorted = [...items].sort((a, b) => a.start - b.start || b.end - a.end);
+  const placed: Placed<T>[] = [];
+  let group: Placed<T>[] = [];
+  let ends: number[] = [];
+  let groupEnd = Number.NEGATIVE_INFINITY;
+  const close = () => {
+    for (const p of group) p.columns = ends.length;
+    group = [];
+    ends = [];
+  };
+  for (const item of sorted) {
+    if (item.start >= groupEnd) {
+      close();
+      groupEnd = Number.NEGATIVE_INFINITY;
+    }
+    let column = ends.findIndex((end) => end <= item.start);
+    if (column < 0) column = ends.push(item.end) - 1;
+    else ends[column] = item.end;
+    const p: Placed<T> = { item, column, columns: 1 };
+    group.push(p);
+    placed.push(p);
+    groupEnd = Math.max(groupEnd, item.end);
+  }
+  close();
+  return placed;
+}
 
 // ---------------------------------------------------------------- moved classes and extra meetings
 
@@ -211,7 +299,7 @@ export interface OutsideMeeting {
 }
 
 /**
- * Meetings a lecturer announced only in EduNex text ("Pertemuan 03: Jumat,
+ * Meetings a lecturer announced only in Edunex text ("Pertemuan 03: Jumat,
  * 09 Oktober 2026 Pkl. 15:00 - 17:00 WIB") in a month whose own SIX
  * timetable page was read (`months`, "2026-10"), on a day SIX doesn't list
  * for that course. Nothing while SIX's timetable isn't known.
@@ -236,10 +324,88 @@ export function meetingsOutsideSix(
   return out.sort((a, b) => a.start - b.start);
 }
 
+// ---------------------------------------------------------------- Presence by handing in a Task
+
+/**
+ * An Edunex Presence window counted by handing in a Task (Edunex's Answer
+ * Assignment): "Presensi dengan submit Tugas 02 Bab II". It isn't a place to
+ * be but a time to hand something in. SIX often lists it as a meeting with
+ * no room.
+ */
+export interface TaskWindow {
+  code: string;
+  presence: PresenceSession;
+  /** The Task to hand in, when the app knows it. */
+  task: Task | null;
+  /** SIX's meeting it stands for that day, when SIX lists one. */
+  six: ClassSession | null;
+}
+
+/** A Presence window Edunex counts by a handed-in Task. */
+export const isTaskWindow = (presence: PresenceSession) => presence.countsBy[0]?.kind === "assignment";
+
+const overlapOf = (a: { start: number; end: number }, b: { start: number; end: number }) => Math.min(a.end, b.end) - Math.max(a.start, b.start);
+
+/** Each course's Task windows, with SIX's meeting of that day (the most overlapping) and the Task when known. */
+export function taskWindows(
+  presence: Readonly<Record<string, readonly PresenceSession[]>> | undefined,
+  schedule: readonly ClassSession[],
+  tasks: readonly Task[],
+): TaskWindow[] {
+  const windows: TaskWindow[] = [];
+  for (const [code, sessions] of Object.entries(presence ?? {})) {
+    for (const p of sessions) {
+      if (!isTaskWindow(p)) continue;
+      const span = { start: p.opensAt, end: p.closesAt };
+      const [six] = schedule
+        .filter((s) => s.courseCode === code && !isExamActivity(s.activity) && wibDay(s.start) === wibDay(p.opensAt) && overlapOf(s, span) > 0)
+        .sort((a, b) => overlapOf(b, span) - overlapOf(a, span));
+      windows.push({ code, presence: p, task: tasks.find((t) => String(t.id) === p.countsBy[0].id) ?? null, six: six ?? null });
+    }
+  }
+  return windows.sort((a, b) => a.presence.opensAt - b.presence.opensAt);
+}
+
+// ---------------------------------------------------------------- what Edunex knows without SIX
+
+/** A meeting as Edunex knows it: from its Presence windows and the lecturer's announced schedule. No room: that's SIX's. */
+export interface EdunexMeeting {
+  code: string;
+  start: number;
+  end: number;
+  /** "Pertemuan 03" → 3, when the lecturer's text names it. */
+  number: number | null;
+  online: boolean;
+  link: string | null;
+}
+
+/**
+ * Every meeting Edunex knows for these courses, for a Student not signed in
+ * to SIX: its Presence windows (except Task windows) and meetings announced
+ * in its text, one per day.
+ */
+export function edunexMeetings(
+  codes: readonly string[],
+  edunex: { materials?: Record<string, readonly Material[]>; announcements?: Record<string, readonly Announcement[]>; presence?: Record<string, readonly PresenceSession[]> },
+): EdunexMeeting[] {
+  const out: EdunexMeeting[] = [];
+  for (const code of codes) {
+    const announced = announcedMeetings(edunex.materials?.[code] ?? [], edunex.announcements?.[code] ?? []);
+    const windows = (edunex.presence?.[code] ?? []).filter((p) => !isTaskWindow(p));
+    for (const meeting of courseMeetings(code, windows, null, announced)) {
+      out.push({ code, start: meeting.start, end: meeting.end, number: meeting.announced?.number ?? null, online: meeting.announced?.online ?? false, link: meeting.announced?.link ?? null });
+    }
+  }
+  return out.sort((a, b) => a.start - b.start || a.code.localeCompare(b.code));
+}
+
 // ---------------------------------------------------------------- days of the schedule
 
 /** ITB calendar events worth marking on a schedule. */
-export const SCHEDULE_EVENT_KINDS: ReadonlySet<CalendarEvent["kind"]> = new Set(["uts", "uas", "holiday", "lecture-start", "lecture-end"]);
+export const SCHEDULE_EVENT_KINDS: ReadonlySet<CalendarEvent["kind"]> = new Set(["uts", "uas", "holiday", "lecture-start", "lecture-end", "drs", "urs"]);
+
+/** Periods with no regular lectures: a lecture SIX still lists then may not happen. */
+const NO_LECTURES: ReadonlySet<CalendarEvent["kind"]> = new Set(["uts", "uas", "holiday"]);
 
 export interface ScheduledClass {
   session: ClassSession;
@@ -249,13 +415,19 @@ export interface ScheduledClass {
   extra: boolean;
   /** Other courses it overlaps that day, with the overlapping part. */
   overlaps: { code: string; from: number; to: number }[];
+  /** A lecture inside an exam week or a holiday on ITB's calendar (that event): it may not happen. */
+  uncertain: CalendarEvent | null;
 }
 
 export interface ScheduleDay {
   day: string;
   classes: ScheduledClass[];
   outside: OutsideMeeting[];
-  /** Tasks due that day, by deadline. */
+  /** Without SIX: the meetings Edunex knows that day. */
+  edunex: EdunexMeeting[];
+  /** Presence windows opening that day that count by a handed-in Task. */
+  windows: TaskWindow[];
+  /** Tasks due that day, by deadline (a Task window's own Task left out: the window speaks for it). */
   due: Task[];
   /** ITB calendar events covering that day. */
   events: CalendarEvent[];
@@ -268,6 +440,10 @@ export interface ScheduleInput {
   outside: readonly OutsideMeeting[];
   tasks: readonly Task[];
   events: readonly CalendarEvent[];
+  /** Task windows (see taskWindows): SIX's roomless meeting they stand for leaves the grid. */
+  windows?: readonly TaskWindow[];
+  /** Without SIX: what Edunex knows. */
+  edunex?: readonly EdunexMeeting[];
 }
 
 /** What each day holds. `tasks` are the ones to show (the caller picks open ones). */
@@ -275,25 +451,37 @@ export function scheduleDays(days: readonly string[], input: ScheduleInput): Sch
   const { moved, extra } = slotMarks(input.schedule);
   const clashes = overlaps(input.schedule);
   const events = input.events.filter((e) => SCHEDULE_EVENT_KINDS.has(e.kind));
+  const windows = input.windows ?? [];
+  // A roomless SIX meeting that is a Task window is a time to hand in, not a place to be.
+  const handIn = new Set(windows.flatMap((w) => (w.six && !w.six.room ? [w.six.id] : [])));
   return days.map((day) => {
-    const classes = input.schedule
-      .filter((s) => wibDay(s.start) === day)
-      .sort((a, b) => a.start - b.start || a.courseCode.localeCompare(b.courseCode))
-      .map((session) => ({
-        session,
-        exam: isExamActivity(session.activity),
-        moved: moved.get(session.id) ?? null,
-        extra: extra.has(session.id),
-        overlaps: clashes
-          .filter((o) => o.a.id === session.id || o.b.id === session.id)
-          .map((o) => ({ code: o.a.id === session.id ? o.b.courseCode : o.a.courseCode, from: o.from, to: o.to })),
-      }));
     const covering = events.filter((e) => e.firstDay <= day && day <= e.lastDay);
+    const noLectures = covering.find((e) => NO_LECTURES.has(e.kind)) ?? null;
+    const classes = input.schedule
+      .filter((s) => wibDay(s.start) === day && !handIn.has(s.id))
+      .sort((a, b) => a.start - b.start || a.courseCode.localeCompare(b.courseCode))
+      .map((session) => {
+        const exam = isExamActivity(session.activity);
+        return {
+          session,
+          exam,
+          moved: moved.get(session.id) ?? null,
+          extra: extra.has(session.id),
+          overlaps: clashes
+            .filter((o) => o.a.id === session.id || o.b.id === session.id)
+            .map((o) => ({ code: o.a.id === session.id ? o.b.courseCode : o.a.courseCode, from: o.from, to: o.to })),
+          uncertain: exam ? null : noLectures,
+        };
+      });
+    const dayWindows = windows.filter((w) => wibDay(w.presence.opensAt) === day);
+    const windowTasks = new Set(dayWindows.flatMap((w) => (w.task ? [w.task.id] : [])));
     return {
       day,
       classes,
       outside: input.outside.filter((m) => wibDay(m.start) === day),
-      due: input.tasks.filter((t) => t.dueAt !== null && wibDay(t.dueAt) === day).sort((a, b) => (a.dueAt ?? 0) - (b.dueAt ?? 0)),
+      edunex: (input.edunex ?? []).filter((m) => wibDay(m.start) === day),
+      windows: dayWindows,
+      due: input.tasks.filter((t) => t.dueAt !== null && wibDay(t.dueAt) === day && !windowTasks.has(t.id)).sort((a, b) => (a.dueAt ?? 0) - (b.dueAt ?? 0)),
       events: covering,
       holiday: covering.find((e) => e.kind === "holiday") ?? null,
     };
@@ -301,7 +489,7 @@ export function scheduleDays(days: readonly string[], input: ScheduleInput): Sch
 }
 
 /** A day with nothing on it. */
-export const isEmptyDay = (day: ScheduleDay) => !day.classes.length && !day.outside.length && !day.due.length;
+export const isEmptyDay = (day: ScheduleDay) => !day.classes.length && !day.outside.length && !day.edunex.length && !day.windows.length && !day.due.length;
 
 // ---------------------------------------------------------------- what changed (alerts)
 
