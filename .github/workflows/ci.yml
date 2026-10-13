@@ -282,10 +282,12 @@ jobs:
         # About 8 minutes each, side by side: the first-run scenario waits in real time for the first sync.
         timeout-minutes: 25
         run: |
-          screen=(xvfb-run --auto-servernum --server-args="-screen 0 1600x1000x24")
-          "${screen[@]}" node scripts/demo/capture.mjs "$RUNNER_TEMP/screens" > "$RUNNER_TEMP/capture.log" 2>&1 &
+          # Each tour gets its own virtual screen: two "--auto-servernum" starting together can pick the same one and hang.
+          # And each stops after 20 minutes, so one stuck tour can't take the other's pictures with it.
+          tour() { timeout 1200 xvfb-run --server-num="$1" --server-args="-screen 0 1600x1000x24" node scripts/demo/capture.mjs "$2"; }
+          tour 91 "$RUNNER_TEMP/screens" > "$RUNNER_TEMP/capture.log" 2>&1 &
           after=$!
-          (cd .base && "${screen[@]}" node scripts/demo/capture.mjs "$RUNNER_TEMP/screens-before" > "$RUNNER_TEMP/capture-before.log" 2>&1) &
+          (cd .base && tour 92 "$RUNNER_TEMP/screens-before" > "$RUNNER_TEMP/capture-before.log" 2>&1) &
           before=$!
           status=0
           wait "$after" || status=$?
@@ -295,7 +297,8 @@ jobs:
       - name: Find the screens that changed
         if: ${{ !cancelled() }}
         run: |
-          if [ -d "$RUNNER_TEMP/screens-before" ] && [ -d "$RUNNER_TEMP/screens" ]; then
+          # Only when the base's tour finished ("saved N pictures"): half a tour would make every other screen look new.
+          if grep -q "^saved " "$RUNNER_TEMP/capture-before.log" 2>/dev/null && [ -d "$RUNNER_TEMP/screens" ]; then
             node scripts/ci/screens-compare.mjs "$RUNNER_TEMP/screens-before" "$RUNNER_TEMP/screens" "$RUNNER_TEMP/changed"
           fi
       - name: Upload the pictures
