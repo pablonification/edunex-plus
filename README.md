@@ -63,23 +63,30 @@ the app then opens normally until the next update.
 
 ### macOS
 
-1. Open the `.dmg`. In the window that opens, drag **Edunex Plus** onto **Applications**, then
-   eject the disk (⏏ beside **Edunex Plus \<version\>** in Finder's sidebar).
-2. Open **Edunex Plus** from Applications. macOS says it can't check the app: click **Done**
-   (not "Move to Trash").
-3. Open **System Settings → Privacy & Security**, scroll down to the line about Edunex Plus, and
-   click **Open Anyway**. Confirm with your password or Touch ID, then **Open**.
+1. Open the `.dmg`. In the window that opens, drag **Edunex Plus** onto **Applications**.
+2. Open **Terminal**: double-click it in that same window (or press ⌘ Space, type `Terminal`,
+   press Return). Paste this line and press Return:
 
-From then on it opens like any other app.
+   ```sh
+   xattr -cr "/Applications/Edunex Plus.app"
+   ```
 
-**Faster, if you're comfortable with Terminal:** after step 1, run this once, then open the app
-normally:
+   Nothing is printed when it works. It removes the "downloaded from the internet" mark that
+   makes macOS block the app, for this app only.
+3. Open **Edunex Plus** from Applications, and eject the disk (⏏ beside
+   **Edunex Plus \<version\>** in Finder's sidebar).
 
-```sh
-xattr -dr com.apple.quarantine "/Applications/Edunex Plus.app"
-```
+From then on it opens like any other app. After each update, run the line again once.
 
-It removes the "downloaded from the internet" mark that makes macOS ask, for this app only.
+<details>
+<summary>Rather not use Terminal?</summary>
+
+Open the app once and click **Done** when macOS says it can't check it (not "Move to Trash").
+Then go to **System Settings → Privacy & Security**, scroll down to the line about Edunex Plus and
+click **Open Anyway**, confirm with your password or Touch ID, then **Open**. The button only shows
+for a while after you try to open the app: if it's gone, open the app again first.
+
+</details>
 
 A `.zip` (`…-arm64-mac.zip`) is there too, if you prefer it to the disk image: unzip it and move
 the app to Applications, then the same steps.
@@ -137,7 +144,7 @@ An alpha tells you about the newest release, whether that is the next alpha or t
 A full release only ever offers full releases.
 
 To update, download the new file and install it the same way: on macOS replace the app in
-Applications (and run the Terminal line again, if you used it), on Windows run the new installer,
+Applications and run the Terminal line again, on Windows run the new installer,
 on Linux `sudo apt install` the new `.deb`. Your sign-in and saved data stay.
 
 Installed 0.1.0-alpha.1 on Windows for **Anyone who uses this computer**? The new installer can't

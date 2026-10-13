@@ -1,5 +1,6 @@
 // The installers, the first thing someone who downloads Edunex Plus sees. macOS: the disk
-// image's window says what to do, with the app and Applications side by side. Windows: one
+// image's window says what to do, with the app and Applications side by side, and Terminal
+// beside the one line that lets macOS open the app. Windows: one
 // click installs for the Student's own account, opens the app and keeps their data when it's
 // uninstalled, with the app's icon sharp at every size. Read from electron-builder's config
 // and the files it ships, since a test can't open Finder or run the Windows installer.
@@ -8,7 +9,7 @@ import { createRequire } from "node:module";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import config from "../../electron-builder.config.mjs";
-import { HASH_KEY, PICTURES, sourceHash } from "../../scripts/make-dmg-background.mjs";
+import { HASH_KEY, PICTURES, SIZE, sourceHash } from "../../scripts/make-dmg-background.mjs";
 
 const root = path.resolve(import.meta.dirname, "../..");
 const read = (file: string) => fs.readFileSync(path.join(root, file));
@@ -51,15 +52,15 @@ function drawnIn(picture: Picture, scale: number, box: { x: number; y: number; w
 
 describe("the macOS disk image", () => {
   const dmg = config.dmg ?? {};
-  const [app, applications] = dmg.contents ?? [];
+  const [app, applications, terminal] = dmg.contents ?? [];
   const pictures = PICTURES.map(({ file, scale }) => ({ file, scale, picture: PNG.sync.read(read(file)) }));
 
-  it("opens a 640×432 window on its own background, sharp on Retina screens too", () => {
+  it("opens a 640×480 window on its own background, sharp on Retina screens too", () => {
     expect(dmg.background).toBe("assets/dmg-background.png");
     // electron-builder pairs x.png with x@2x.png, and the window takes x.png's size.
     expect(pictures.map(({ file, picture }) => [file, picture.width, picture.height])).toEqual([
-      ["assets/dmg-background.png", 640, 432],
-      ["assets/dmg-background@2x.png", 1280, 864],
+      ["assets/dmg-background.png", 640, 480],
+      ["assets/dmg-background@2x.png", 1280, 960],
     ]);
   });
 
@@ -69,7 +70,13 @@ describe("the macOS disk image", () => {
     expect(app.y).toBe(applications.y);
     expect(app.x).toBeLessThan(320);
     expect(applications.x).toBeGreaterThan(320);
-    expect(dmg.iconSize).toBe(120);
+    expect(dmg.iconSize).toBe(100);
+  });
+
+  it("has Terminal under them, to type the line that lets macOS open the app", () => {
+    expect(terminal).toMatchObject({ type: "link", path: "/System/Applications/Utilities/Terminal.app", name: "Terminal" });
+    expect(terminal.y).toBeGreaterThan(app.y);
+    expect(fs.readFileSync(path.join(root, "assets/dmg-background.svg"), "utf8")).toContain('xattr -cr "/Applications/Edunex Plus.app"');
   });
 
   it("names the disk after the app and its version, and gives it the app's icon", () => {
@@ -78,12 +85,12 @@ describe("the macOS disk image", () => {
     expect(dmg.icon).toBe(config.mac?.icon);
   });
 
-  it("draws nothing where Finder draws: its title bar, the two icons and their names", () => {
+  it("draws nothing where Finder draws: its title bar, the three icons and their names", () => {
     const iconSize = dmg.iconSize ?? 0;
     for (const { scale, picture } of pictures) {
-      // The window is 432 high with Finder's 32 px title bar: the picture's bottom 32 px never show.
-      expect(drawnIn(picture, scale, { x: 0, y: 400, width: 640, height: 32 })).toBeNull();
-      for (const icon of [app, applications]) {
+      // The window is the picture's height with Finder's 32 px title bar: the picture's bottom 32 px never show.
+      expect(drawnIn(picture, scale, { x: 0, y: SIZE.height - 32, width: SIZE.width, height: 32 })).toBeNull();
+      for (const icon of [app, applications, terminal]) {
         // The icon, a little room for its selection, and its name under it.
         const box = { x: icon.x - iconSize / 2 - 8, y: icon.y - iconSize / 2 - 8, width: iconSize + 16, height: iconSize + 40 };
         expect(drawnIn(picture, scale, box)).toBeNull();

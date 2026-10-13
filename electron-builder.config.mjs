@@ -41,19 +41,22 @@ export default {
     hardenedRuntime: false,
     notarize: false,
   },
-  // The disk image's window: the app on the left, a link to Applications on the right, on a
+  // The disk image's window: the app on the left, a link to Applications on the right, and
+  // under them a link to Terminal beside the one line that lets macOS open the app, on a
   // background that says what to do (assets/dmg-background.svg; its pictures are made by
-  // scripts/make-dmg-background.mjs). The window takes the picture's size, 640×432 with
+  // scripts/make-dmg-background.mjs). The window takes the picture's size, 640×480 with
   // Finder's title bar, so the picture's bottom 32 px never show.
   dmg: {
     // biome-ignore lint/suspicious/noTemplateCurlyInString: electron-builder fills in its own ${…} names
     title: "${productName} ${version}",
     icon: "assets/icon.icns",
     background: "assets/dmg-background.png",
-    iconSize: 120,
+    iconSize: 100,
     contents: [
-      { x: 170, y: 190, type: "file" },
-      { x: 470, y: 190, type: "link", path: "/Applications" },
+      { x: 170, y: 150, type: "file" },
+      { x: 470, y: 150, type: "link", path: "/Applications" },
+      // Where Terminal is on every Mac with Apple silicon (macOS 11 and later).
+      { x: 118, y: 350, type: "link", path: "/System/Applications/Utilities/Terminal.app", name: "Terminal" },
     ],
     writeUpdateInfo: false,
   },
