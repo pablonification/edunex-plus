@@ -151,10 +151,13 @@ jobs:
           $new = (Get-ChildItem release -Filter '*Setup*.exe' | Select-Object -First 1).FullName
           if (-not $new) { throw 'No installer in release/.' }
           # A failed download doesn't stop the script by itself (gh is a program, not a PowerShell command).
+          # Without the first alpha there's nothing to install over: say so, and don't hold the release up.
           gh release download v0.1.0-alpha.1 --repo $env:REPO --pattern '*.exe' --dir "$env:RUNNER_TEMP\alpha"
-          if ($LASTEXITCODE -ne 0) { throw 'Could not download the first alpha (v0.1.0-alpha.1).' }
-          $alpha = (Get-ChildItem "$env:RUNNER_TEMP\alpha" -Filter '*.exe' | Select-Object -First 1).FullName
-          if (-not $alpha) { throw 'The first alpha (v0.1.0-alpha.1) has no Windows installer.' }
+          $alpha = if ($LASTEXITCODE -eq 0) { (Get-ChildItem "$env:RUNNER_TEMP\alpha" -Filter '*.exe' | Select-Object -First 1).FullName }
+          if (-not $alpha) {
+            Write-Output '::warning::The first alpha (v0.1.0-alpha.1) or its Windows installer is gone, so updating over it was not tried.'
+            exit 0
+          }
           $programs = Join-Path $env:LOCALAPPDATA 'Programs'
           $old = Join-Path $programs 'Edunex Plus'
 
