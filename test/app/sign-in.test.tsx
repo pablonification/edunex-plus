@@ -78,9 +78,14 @@ describe("signing in again later", () => {
     screen.world.edunex.sessionValid = true;
     screen.world.six.sessionValid = true;
 
+    // The note is a toast that leaves after a few seconds: keep everything that showed while SIX was read.
+    const shown: string[] = [];
+    const watch = new MutationObserver(() => shown.push(screen!.text()));
+    watch.observe(document.body, { subtree: true, childList: true, characterData: true });
     await screen.click("Masuk lagi");
+    watch.disconnect();
     expect(signInCalls()).toEqual([{ source: "edunex" }]);
-    expect(screen.text()).toContain("SIX ikut terhubung, tanpa masuk lagi");
+    expect(shown.some((text) => text.includes("SIX ikut terhubung, tanpa masuk lagi"))).toBe(true);
     expect(screen.text()).not.toContain("Sesi SIX berakhir");
     expect(await screen.sourceState("Edunex")).toBe("Terhubung");
     expect(await screen.sourceState("SIX")).toBe("Terhubung");
