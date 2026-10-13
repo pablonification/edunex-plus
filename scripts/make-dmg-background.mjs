@@ -1,7 +1,7 @@
 // Draws the window people see when they open the macOS disk image (.dmg):
 //   assets/dmg-background.svg       the drawing (edit this, then run this script)
-//   assets/dmg-background.png       640×432, which electron-builder.config.mjs's dmg points to
-//   assets/dmg-background@2x.png    1280×864 for Retina screens (electron-builder joins the two)
+//   assets/dmg-background.png       640×480, which electron-builder.config.mjs's dmg points to
+//   assets/dmg-background@2x.png    1280×960 for Retina screens (electron-builder joins the two)
 //
 // Electron's Chromium draws it, so the words are set in the Mac's own font, like Finder's
 // names under the two icons. Each picture records a hash of the drawing and of the icon it
@@ -18,6 +18,8 @@ import { crc32 } from "node:zlib";
 
 const root = path.resolve(import.meta.dirname, "..");
 export const SOURCES = ["assets/dmg-background.svg", "assets/icon.svg"];
+/** The picture's size, which is the window's: the SVG's own width and height. */
+export const SIZE = { width: 640, height: 480 };
 export const PICTURES = [
   { file: "assets/dmg-background.png", scale: 1 },
   { file: "assets/dmg-background@2x.png", scale: 2 },
@@ -51,14 +53,14 @@ async function render(source, scale, out, profile) {
   app.setPath("userData", profile);
   app.dock?.hide();
   await app.whenReady();
-  const window = new BrowserWindow({ width: 640, height: 432, show: false, useContentSize: true, webPreferences: { offscreen: { deviceScaleFactor: scale } } });
+  const window = new BrowserWindow({ ...SIZE, show: false, useContentSize: true, webPreferences: { offscreen: { deviceScaleFactor: scale } } });
   await window.loadFile(source);
   // Everything has loaded (the icon too): the next whole frame at this scale is the picture.
   const frame = await new Promise((resolve, reject) => {
     const timer = setTimeout(() => reject(new Error(`no ${scale}x frame within 20 s`)), 20_000);
     window.webContents.on("paint", (_event, _dirty, image) => {
       const { width, height } = image.getSize();
-      if (width !== 640 * scale || height !== 432 * scale) return;
+      if (width !== SIZE.width * scale || height !== SIZE.height * scale) return;
       clearTimeout(timer);
       resolve(image);
     });
