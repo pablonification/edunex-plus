@@ -37,6 +37,11 @@ export const attendanceStrings = {
   // The Presensi screen: the answer on top
   "presence.answer.none": { id: "Jangan absen lagi di {codes}.", en: "Don't miss another class in {codes}." },
   "presence.answer.out": { id: "{codes} sudah tak bisa capai {target}%.", en: "{codes} can't reach {target}% anymore." },
+  "presence.answer.missed": { id: "{codes} selesai di bawah {target}%.", en: "{codes} finished below {target}%." },
+  "presence.answer.met": {
+    id: "Kuliah sudah selesai: target kehadiran tercapai di {count} mata kuliah.",
+    en: { one: "Lectures are over: attendance target reached in {count} course.", other: "Lectures are over: attendance target reached in {count} courses." },
+  },
   "presence.answer.one": { id: "Masih bisa absen 1× lagi di {codes}.", en: "You can miss 1 more class in {codes}." },
   "presence.answer.below": {
     id: "{codes} di bawah target sekarang: hadir terus untuk naik lagi.",
@@ -83,6 +88,9 @@ export const attendanceStrings = {
   "presence.budget.none": { id: "Jangan absen lagi", en: "Don't miss another class" },
   "presence.budget.out": { id: "Tak bisa lagi capai {target}% · paling tinggi {best}%", en: "Can't reach {target}% anymore · at best {best}%" },
   "presence.budget.unknown": { id: "Belum ada hitungan SIX", en: "No SIX count yet" },
+  // Lectures are over: the final word, calm
+  "presence.budget.met": { id: "Selesai: target {target}% tercapai", en: "Finished: {target}% target reached" },
+  "presence.budget.missed": { id: "Selesai di bawah target {target}%", en: "Finished below the {target}% target" },
   "presence.status.out": { id: "Tak bisa lagi capai {target}%", en: "Can't reach {target}% anymore" },
 
   // A course's row

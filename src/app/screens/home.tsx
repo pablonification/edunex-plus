@@ -60,9 +60,11 @@ const CHANGES_SHOWN = 5;
 /** Attendance state as a status color for text: quiet while an absence is still allowed. Never the course's color. */
 const STATE_TEXT: Record<AttendanceState, string> = {
   out: "text-danger-fg",
+  missed: "text-danger-fg",
   none: "text-warning-fg",
   risk: "text-muted",
   safe: "text-muted",
+  met: "text-muted",
   unknown: "text-faint",
 };
 

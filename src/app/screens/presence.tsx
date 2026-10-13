@@ -40,7 +40,8 @@ export function useBadge(): { value: number; tone: "neutral" | "warning" } | nul
   return value > 0 ? { value, tone: "warning" } : null;
 }
 
-const ORDER: Record<AttendanceState, number> = { out: 0, none: 1, risk: 2, safe: 3, unknown: 4 };
+/** Worst first, as the answer on top says it; a course whose lectures are over after the ones still going. */
+const ORDER: Record<AttendanceState, number> = { out: 0, missed: 1, none: 2, risk: 3, safe: 4, met: 5, unknown: 6 };
 
 export function PresenceScreen() {
   const t = useT();
@@ -448,7 +449,7 @@ function useWarning(health: AttendanceHealth): ReactNode {
     );
   const first = health.left.upcoming[0];
   if (next && first?.uncertain && first.session?.id === next.id) return <Warning tone="warning">{uncertainText(t, f, next.start, calendar?.events)}</Warning>;
-  if (health.state === "out")
+  if (health.state === "out" || health.state === "missed")
     return (
       <Warning
         tone="danger"

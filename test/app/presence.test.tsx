@@ -183,6 +183,34 @@ describe("the Presensi screen", () => {
     });
   });
 
+  it("once a course's lectures are over, its verdict is final and calm: no 'don't miss', no banner, nothing on Beranda", async () => {
+    // Thursday 3 December, 14:00: both courses' last Thursday class of the term is behind (lectures end Friday 4 December).
+    const s = await openPresence("2026-12-03T14:00:00+07:00");
+    await six(
+      [course("DK4073", 4, 4), course("PL3032", 9, 12)],
+      [...weekly("DK4073", "2026-08-27T11:00:00", 15), ...weekly("PL3032", "2026-08-27T08:00:00", 15)],
+    );
+    const dk = card("DK4073");
+    expect(dk).toContain("Selesai: target 80% tercapai");
+    expect(dk).toContain("tak ada pertemuan lagi");
+    expect(dk).not.toMatch(/Jangan absen|Masih bisa absen/);
+    expect(card("PL3032")).toContain("Selesai di bawah target 80%");
+    expect(card("PL3032")).not.toContain("Tak bisa lagi capai");
+    expect(answer()).toEqual(["PL3032 selesai di bawah 80%."]);
+    // Nothing needs the Student: no count on the sidebar.
+    expect(s.button(/^Presensi/).textContent).toBe("Presensi");
+
+    // The course page: no banner, the header says it once.
+    await s.click([...document.querySelectorAll<HTMLButtonElement>("aside button")].find((b) => b.textContent?.startsWith("DK4073"))!);
+    expect(document.querySelector("main .bg-warning-bg, main .bg-danger-bg")).toBeNull();
+    expect(document.querySelector("main header")?.textContent).toContain("Selesai: target 80% tercapai");
+
+    // Beranda: no attendance item.
+    await s.click([...document.querySelectorAll<HTMLButtonElement>("aside nav button")].find((b) => b.textContent?.startsWith("Beranda"))!);
+    const needs = document.querySelector('main section[aria-labelledby="home-needs"]')?.textContent ?? "";
+    expect(needs).not.toMatch(/DK4073|PL3032/);
+  });
+
   it("a row opens the course's meetings, where each one has its date", async () => {
     const s = await openPresence(undefined, true);
     await s.click(/^PL3002 · /);
