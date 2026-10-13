@@ -1,9 +1,11 @@
 // A "⋯" menu for a screen's rare actions (save for offline, open in Edunex):
 // a named icon button that opens a short list. Arrow keys move between the
 // items, Escape or a click outside closes it. An item that can't run stays in
-// the list, dimmed, with the reason under it.
+// the list, dimmed, with the reason under it. A quieter trigger (an icon, with
+// its words where there's room) serves a row's or a notice's own small menu,
+// such as "Ingatkan nanti".
 import { type KeyboardEvent, type ReactNode, useState } from "react";
-import { IconButton } from "./controls";
+import { Button, IconButton } from "./controls";
 import { cx } from "./cx";
 import { Icons } from "./icons";
 import { Meta } from "./layout";
@@ -18,7 +20,16 @@ export interface MenuItem {
   onSelect: () => void;
 }
 
-export function Menu({ label, items, className }: { label: string; items: MenuItem[]; className?: string }) {
+export interface MenuTrigger {
+  icon: ReactNode;
+  /** Its short name: the tooltip, or the words beside the icon with `words`. */
+  text: string;
+  words?: boolean;
+  className?: string;
+}
+
+/** `label` names the menu and its button for screen readers ("Ingatkan nanti: Tugas 02 Bab II"). */
+export function Menu({ label, items, trigger, className }: { label: string; items: MenuItem[]; trigger?: MenuTrigger; className?: string }) {
   const [open, setOpen] = useState(false);
   const move = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.key !== "ArrowDown" && event.key !== "ArrowUp" && event.key !== "Home" && event.key !== "End") return;
@@ -37,11 +48,23 @@ export function Menu({ label, items, className }: { label: string; items: MenuIt
       className={cx("w-[280px] p-1.5", className)}
       trigger={
         <span className="inline-flex">
-          <Tooltip content={label}>
-            <IconButton label={label} aria-haspopup="menu" aria-expanded={open} className="border border-edge bg-surface">
-              <Icons.MoreHorizontal className="size-4" />
-            </IconButton>
-          </Tooltip>
+          {trigger?.words ? (
+            <Button variant="ghost" size="sm" icon={trigger.icon} aria-label={label} aria-haspopup="menu" aria-expanded={open} className={trigger.className}>
+              {trigger.text}
+            </Button>
+          ) : (
+            <Tooltip content={trigger?.text ?? label}>
+              <IconButton
+                label={label}
+                aria-haspopup="menu"
+                aria-expanded={open}
+                size={trigger ? "sm" : "md"}
+                className={trigger ? trigger.className : "border border-edge bg-surface"}
+              >
+                {trigger?.icon ?? <Icons.MoreHorizontal className="size-4" />}
+              </IconButton>
+            </Tooltip>
+          )}
         </span>
       }
     >

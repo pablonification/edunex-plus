@@ -60,6 +60,12 @@ _Avoid_: assignment in code identifiers (collides with programming terms); use T
 Edunex's aggregated list of pending items (tasks, exams) for the logged-in account.
 _Avoid_: todo list in UI copy without the Edunex meaning
 
+### In the app
+
+**Snooze**:
+"Ingatkan nanti" (Remind me later): the Student puts a Beranda item or a course's attendance banner off until a moment that fits it ("Besok pagi", "Sehari sebelum tenggat", "Saat dibuka"). It always ends: at that moment, at the item's last useful moment, or when the item changes (a moved deadline, a new count, turning urgent), two weeks at most. Kept on this computer; OS notifications and the bell are not affected.
+_Avoid_: dismiss, mute, "don't remind me again" (nothing is hidden for good)
+
 ### SIX and ITB's rules
 
 **SIX**:

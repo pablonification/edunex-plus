@@ -99,15 +99,18 @@ export function List({ label, className, children }: { label?: string; className
 /**
  * One thing in a list: what it is (title), when and where (meta, one line),
  * and at the end its state or its one action. A clickable row is one button:
- * the whole row is the target, and it says where it goes on hover.
+ * the whole row is the target, and it says where it goes on hover. `actions`
+ * sit beside that button, never inside it.
  */
 export function Row({
   leading,
   title,
   meta,
   trailing,
+  actions,
   onClick,
   label,
+  id,
   current,
   index,
   className,
@@ -119,9 +122,17 @@ export function Row({
   meta?: ReactNode;
   /** Right-aligned: a date, a chip, a button (not inside a clickable row). */
   trailing?: ReactNode;
+  /**
+   * A quiet control of the row's own ("Ingatkan nanti"), beside a clickable row
+   * where its chevron would be: shown on hover and while the row has keyboard
+   * focus, always where there's no hover (touch).
+   */
+  actions?: ReactNode;
   onClick?: () => void;
   /** The row's accessible name when its text alone isn't clear. */
   label?: string;
+  /** On the row's button (or body), so focus can be sent to it. */
+  id?: string;
   current?: boolean;
   /** The row's place, for the staggered arrival. */
   index?: number;
@@ -144,25 +155,48 @@ export function Row({
     </>
   );
   const style = index === undefined ? undefined : ({ "--i": index } as CSSProperties);
+  const aside = actions !== undefined && actions !== null && actions !== false;
   return (
-    <li className={cx(index !== undefined && "motion-safe:stagger")} style={style}>
+    <li
+      className={cx(
+        index !== undefined && "motion-safe:stagger",
+        // With actions the row's hover belongs to the whole line, the control beside the button included,
+        // and so does the button's focus ring: drawn inside the line, around both, never cut by the list's edges.
+        aside && "group/row flex items-center transition-colors duration-150 hover:bg-hover has-[>button:active]:bg-selected",
+        aside &&
+          "has-[>button:focus-visible]:outline-2 has-[>button:focus-visible]:outline-offset-[-2px] has-[>button:focus-visible]:outline-focus has-[>button:focus-visible]:outline-solid",
+        aside && current && "bg-selected",
+      )}
+      style={style}
+    >
       {onClick ? (
         <button
           type="button"
+          id={id}
           onClick={onClick}
           aria-label={label}
           aria-current={current || undefined}
           className={cx(
-            "focus-ring group flex w-full items-center gap-3.5 px-4 py-3 text-left transition-colors duration-150 hover:bg-hover active:bg-selected",
-            current && "bg-selected",
+            "group flex w-full items-center gap-3.5 px-4 py-3 text-left transition-colors duration-150",
+            aside ? "min-w-0 flex-1 pr-1 focus-visible:outline-none" : "focus-ring hover:bg-hover active:bg-selected",
+            current && !aside && "bg-selected",
             className,
           )}
         >
           {body}
-          <Icons.ChevronRight className="-mr-1 size-4 shrink-0 text-faint opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100" />
+          {!aside && (
+            <Icons.ChevronRight className="-mr-1 size-4 shrink-0 text-faint opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100" />
+          )}
         </button>
       ) : (
-        <div className={cx("flex items-center gap-3.5 px-4 py-3", className)}>{body}</div>
+        <div id={id} className={cx("flex items-center gap-3.5 px-4 py-3", aside && "min-w-0 flex-1 pr-1", className)}>
+          {body}
+        </div>
+      )}
+      {aside && (
+        <div className="flex shrink-0 items-center pr-2.5 transition-opacity duration-150 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-focus-within/row:opacity-100 [@media(hover:hover)]:group-hover/row:opacity-100 [@media(hover:hover)]:has-[[aria-expanded=true]]:opacity-100">
+          {actions}
+        </div>
       )}
     </li>
   );
@@ -275,6 +309,7 @@ export function Notice({
   icon,
   title,
   action,
+  snooze,
   className,
   children,
 }: {
@@ -282,6 +317,8 @@ export function Notice({
   icon?: ReactNode;
   title: ReactNode;
   action?: ReactNode;
+  /** A quiet "Ingatkan nanti" after the action: put this notice off for a while. */
+  snooze?: ReactNode;
   className?: string;
   children?: ReactNode;
 }) {
@@ -293,7 +330,12 @@ export function Notice({
         <div className="text-body font-semibold">{title}</div>
         {children && <div className="mt-0.5 text-small opacity-90">{children}</div>}
       </div>
-      {action && <div className="shrink-0 self-center">{action}</div>}
+      {(action || snooze) && (
+        <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5 self-center">
+          {action}
+          {snooze}
+        </div>
+      )}
     </div>
   );
 }

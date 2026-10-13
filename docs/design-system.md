@@ -238,9 +238,9 @@ Screens are composed, not styled one by one:
 | `Page` | Every screen's frame: width and padding. |
 | `PageHeader` | Eyebrow (the date, a course code), title, one description line, actions on the right. |
 | `Section` | A titled part of a screen with an optional count, description and a link-like action. |
-| `List` + `Row` | Rows on one card divided by hairlines. `Row`: leading indicator, title, one meta line, trailing state or action. A clickable row is one button: the whole row is the target, a chevron appears on hover. |
+| `List` + `Row` | Rows on one card divided by hairlines. `Row`: leading indicator, title, one meta line, trailing state or action. A clickable row is one button: the whole row is the target, a chevron appears on hover. `actions` (such as "Ingatkan nanti") sit beside that button where the chevron would be, never inside it: shown on hover and keyboard focus, always without hover (touch). |
 | `Meta` | Facts on one line, quietly separated ("11:00–12:59 · TVST C"); empty parts drop out and text holding " · " splits into facts. The only place a "·" between facts is drawn: no line ever starts or ends with one (`align="end"` for a right-aligned column, `truncate` for one line). Labels and tooltips join facts with `factsLabel()`; a test fails on a "·" written by hand. |
-| `Notice` | Something to know right here (info, warning, danger, success, neutral) with the one thing to do. |
+| `Notice` | Something to know right here (info, warning, danger, success, neutral) with the one thing to do, and optionally a quiet "Ingatkan nanti" (`snooze`) after it. |
 | `Stat` | A figure read at a glance (IPK, SKS, absences left). |
 | `Card` | `plain`, `raised` (what matters most now), `sunken` (quiet areas). |
 | `EmptyState` | What would be here, why it is empty, and the way forward. Small and kind; hide empty groups instead where nothing is lost. |
@@ -254,7 +254,8 @@ Screens are composed, not styled one by one:
 | `SourceLogo`, `AppMark` (`ui/brand.tsx`) | The real Edunex and SIX logos where the app stands for one of them (connecting, the data status, the accounts in Settings); Edunex Plus's own icon (`assets/icon.png`) in the sidebar, on the welcome screen and in Settings. |
 | `Badge` | Sidebar counts: neutral = how many; amber = something needs the Student today. |
 | `Skeleton` | Placeholders in the shape of what's coming; never a blank area or a lone spinner. |
-| `Menu` (`ui/menu.tsx`) | A "⋯" button for a screen's rare actions; an item that can't run stays, dimmed, with the reason under it. |
+| `Menu` (`ui/menu.tsx`) | A "⋯" button for a screen's rare actions; an item that can't run stays, dimmed, with the reason under it. A `trigger` makes it a quiet icon (with its words where there's room) for a row's or a notice's own small menu. |
+| `SnoozeMenu` (`app/snooze-menu.tsx`) | "Ingatkan nanti" on a row or notice: the moments that fit the item, each with until when; then a toast saying when it's back, with Urungkan. A row or notice that leaves hands keyboard focus on (the next row, what follows the notice), never to the page. What's put off is listed quietly ("2 ditunda · Tampilkan") where it was, and in Settings. |
 | `LineChart` (`ui/chart.tsx`) | The one chart spec: a clean value range with hairline gridlines, estimates dashed, a labelled target line, a direct end label, a tooltip per column, a table for screen readers. |
 | `ShareMeter`, `CountdownBar` (`ui/meter.tsx`) | Status-colored meters: attendance against the course's target, a tick (the best still reachable as an optional ghost), always under a label that says what it measures; time left in a window, shrinking, amber in its last 15 minutes. |
 | `Stepper` (`ui/controls.tsx`) | A number stepped between bounds (an attendance target, 50–100% by 5): − and + with names, the value read out when it changes. |

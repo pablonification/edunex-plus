@@ -12,6 +12,7 @@ import { ActionError } from "../bridge";
 import { useFormat, useT } from "../i18n";
 import { displayName } from "../names";
 import { useCourseNames } from "../schedule-data";
+import { useHeldBack, useSnoozes } from "../snoozes";
 import { useBridge, useDataset, useSettings, useStatus, useStore } from "../store";
 import { AppMark, SourceLogo } from "../ui/brand";
 import { Button, Segmented, Switch } from "../ui/controls";
@@ -250,6 +251,7 @@ function AlertSettings({ settings, update, report }: { settings: Settings; updat
           {t("settings.alerts.testSent")}
         </p>
       )}
+      <SnoozedReminders report={report} />
       <Row label={t("settings.closeWindow")} hint={t("settings.closeWindow.hint")} stacked>
         <Segmented
           label={t("settings.closeWindow")}
@@ -289,6 +291,21 @@ function UpdateNotice({ report }: { report: (error: unknown) => void }) {
 function useReport() {
   const t = useT();
   return (error: unknown) => toast(t("error.action", { message: error instanceof ActionError ? error.message : String(error) }), "danger");
+}
+
+/** What's put off with "Ingatkan nanti" on Beranda and course pages, and the way to bring it all back; only while there is some. */
+function SnoozedReminders({ report }: { report: (error: unknown) => void }) {
+  const t = useT();
+  const { wakeAll } = useSnoozes();
+  const held = useHeldBack();
+  if (!held.length) return null;
+  return (
+    <Row label={t("settings.snoozed", { count: held.length })} hint={t("settings.snoozed.hint")}>
+      <Button size="sm" onClick={() => wakeAll().then(() => toast(t("settings.snoozed.woken"), "success"), report)}>
+        {t("settings.snoozed.wakeAll")}
+      </Button>
+    </Row>
+  );
 }
 
 /** One system's account: who, its state and last check, and Sign in (again) or Sign out of just that system. */

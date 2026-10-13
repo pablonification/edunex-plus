@@ -49,7 +49,7 @@ const DAY = 24 * HOUR;
 /** A class starting this soon is "now": time to go. */
 export const STARTING_SOON = HOUR;
 /** Tasks due within these are now / soon / coming up. */
-const DUE_NOW = DAY;
+export const DUE_NOW = DAY;
 const DUE_SOON = 3 * DAY;
 const DUE_LATER = 7 * DAY;
 /** How far ahead "coming up" looks, and how far back "What changed" does. */

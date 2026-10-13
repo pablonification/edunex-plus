@@ -10,7 +10,7 @@ import { rupiah } from "../../core/academic";
 import { type AttendanceHealth, type AttendanceState, percent } from "../../core/attendance";
 import { wibDay } from "../../core/course-meetings";
 import { edunexCourseUrl, sixStatusUrl } from "../../core/links";
-import type { Alert, AlertKind, ClassSession } from "../../core/models";
+import type { Alert, AlertKind, ClassSession, SnoozeEntry } from "../../core/models";
 import {
   attention,
   type ClassFacts,
@@ -23,6 +23,7 @@ import {
   type TodayPlan,
   todayPlan,
 } from "../../core/needs";
+import { partitionSnoozed, snoozable, snoozeKey } from "../../core/snooze";
 import { budgetLabel, useActionLabel, verdictLabel } from "../attendance-labels";
 import { AttendanceSummary } from "../attendance-parts";
 import { type TermCourse, useTerm, useTermCourses } from "../courses";
@@ -33,12 +34,14 @@ import { firstName } from "../names";
 import { type Route, useNav } from "../nav";
 import { openAlerts } from "../shell/alerts";
 import { useRefresh, useSignIn } from "../shell/source-status";
+import { canSnooze, refocus, SnoozeMenu } from "../snooze-menu";
+import { useSnoozes } from "../snoozes";
 import { useDataset, useStatus } from "../store";
 import { Button, IconButton } from "../ui/controls";
 import { cx } from "../ui/cx";
 import { Card, CourseDot, EmptyState, LiveDot, Skeleton } from "../ui/display";
 import { Icons } from "../ui/icons";
-import { List, Meta, Page, PageHeader, Row, Section } from "../ui/layout";
+import { factsLabel, List, Meta, Page, PageHeader, Row, Section } from "../ui/layout";
 import { CountdownBar } from "../ui/meter";
 import { Tooltip } from "../ui/overlays";
 
@@ -602,31 +605,105 @@ function NeedsYou({ needs, courses }: { needs: Need[]; courses: readonly TermCou
   // Until Edunex's Tasks arrive, an empty list would claim more than the app knows.
   const edunex = useStatus("edunex");
   const loading = tasks === undefined && edunex.state !== "signed-out";
+  // What the Student put off ("Ingatkan nanti") leaves the list until its time, or until it changes.
+  const { entries } = useSnoozes();
+  const { shown, snoozed } = useMemo(() => partitionSnoozed(needs, snoozeKey, entries, now), [needs, entries, now]);
+  const [listOpen, setListOpen] = useState(false);
+  // Closed once nothing is put off, so the next snooze doesn't find the list open.
+  if (listOpen && !snoozed.length) setListOpen(false);
+  const snoozedLine = snoozed.length > 0 && <SnoozedLine count={snoozed.length} open={listOpen} onToggle={() => setListOpen(!listOpen)} />;
   return (
-    <Section id="home-needs" title={t("home.needs")} count={loading || needs.length === 0 ? undefined : needs.length} className="mt-0">
+    <Section id="home-needs" title={t("home.needs")} count={loading || shown.length === 0 ? undefined : shown.length} className="mt-0">
       {loading ? (
         <Card className="p-4" aria-busy="true">
           <Skeleton className="h-4 w-1/3" />
           <Skeleton className="mt-3 h-3 w-2/3" />
         </Card>
-      ) : needs.length ? (
-        <List label={t("home.needs")}>
-          {needs.map((need, i) => (
-            <NeedRow key={need.id} need={need} courses={courses} index={i} />
-          ))}
-        </List>
+      ) : shown.length ? (
+        <>
+          <List label={t("home.needs")}>
+            {shown.map((need, i) => (
+              <NeedRow key={need.id} need={need} courses={courses} index={i} />
+            ))}
+          </List>
+          {snoozedLine && <div className="mt-2.5 px-1">{snoozedLine}</div>}
+        </>
       ) : (
+        // Everything left is put off: say so, never "nothing due".
         <div className="rounded-xl bg-sunken px-4 py-3.5">
           <p className="flex items-center gap-2 text-body font-medium">
-            <Icons.CheckCircle className="size-4 text-success-fg" weight="bold" />
-            {t("home.needs.none", { day: `${f.weekday(now + 7 * DAY)}, ${f.dayMonth(now + 7 * DAY)}` })}
+            {/* Green says "all clear": not while things are only put off. */}
+            {snoozed.length ? (
+              <Icons.Snooze className="size-4 shrink-0 text-faint" />
+            ) : (
+              <Icons.CheckCircle className="size-4 shrink-0 text-success-fg" weight="bold" />
+            )}
+            {snoozed.length ? t("home.needs.allSnoozed") : t("home.needs.none", { day: `${f.weekday(now + 7 * DAY)}, ${f.dayMonth(now + 7 * DAY)}` })}
           </p>
-          <p className="mt-0.5 pl-6 text-small text-muted">{t("home.needs.noneHint")}</p>
+          <div className="mt-0.5 pl-6 text-small text-muted">{snoozedLine || t("home.needs.noneHint")}</div>
         </div>
+      )}
+      {!loading && listOpen && snoozed.length > 0 && (
+        <List label={t("snooze.list")} className="mt-2.5">
+          {snoozed.map(({ item, entry }) => (
+            <SnoozedRow key={item.id} need={item} entry={entry} courses={courses} />
+          ))}
+        </List>
       )}
     </Section>
   );
 }
+
+/** "2 ditunda · Tampilkan": quiet, at the end of the list, opening what's put off. */
+function SnoozedLine({ count, open, onToggle }: { count: number; open: boolean; onToggle: () => void }) {
+  const t = useT();
+  return (
+    <Meta className="text-small text-muted">
+      <span className="inline-flex items-center gap-1.5">
+        <Icons.Snooze className="size-3.5 shrink-0 text-faint" />
+        {t("snooze.count", { count })}
+      </span>
+      <button type="button" data-snoozed="" aria-expanded={open} onClick={onToggle} className="focus-ring rounded font-medium text-accent-fg hover:underline">
+        {open ? t("snooze.hideList") : t("snooze.showList")}
+      </button>
+    </Meta>
+  );
+}
+
+/** Something put off: what it is, when it's back, and the way to bring it back now. */
+function SnoozedRow({ need, entry, courses }: { need: Need; entry: SnoozeEntry; courses: readonly TermCourse[] }) {
+  const t = useT();
+  const f = useFormat();
+  const { wake } = useSnoozes();
+  const view = useNeedView(courses)(need);
+  const when = f.dueLabel(entry.until);
+  const wakeNow = (button: HTMLElement) => {
+    const row = button.closest("li");
+    const sibling = (row?.nextElementSibling ?? row?.previousElementSibling)?.querySelector<HTMLElement>("button");
+    void wake(entry.id).catch(() => undefined);
+    // Its row leaves with the button: on to the next thing put off, else to the item itself, back in the list.
+    refocus(() => sibling ?? document.getElementById(needRowId(need.id)));
+  };
+  return (
+    <Row
+      title={view.title}
+      meta={
+        <Meta>
+          {view.titleLacksCourse && need.course ? <CourseMark code={need.course} courses={courses} /> : null}
+          {entry.reason === "change" ? t("snooze.untilChange", { when }) : t("snooze.until", { when })}
+        </Meta>
+      }
+      trailing={
+        <Button size="sm" variant="ghost" aria-label={t("snooze.wakeFor", { title: fullName(need, view) })} onClick={(event) => wakeNow(event.currentTarget)}>
+          {t("snooze.wake")}
+        </Button>
+      }
+    />
+  );
+}
+
+/** A Needs-you row's id, so focus can be sent back to it. */
+const needRowId = (id: string) => `need-${id}`;
 
 interface NeedView {
   title: string;
@@ -639,7 +716,12 @@ interface NeedView {
   tone: "danger" | "warning" | null;
   /** What the row's click does, for screen readers. */
   label?: string;
+  /** The title is a Task's own name ("Tugas 02"), which doesn't say which course. */
+  titleLacksCourse?: boolean;
 }
+
+/** What an item is, said whole where its facts aren't beside it: a Task's name with its course ("Tugas 02 · II4091"). */
+const fullName = (need: Need, view: NeedView) => (view.titleLacksCourse && need.course ? factsLabel(view.title, need.course) : view.title);
 
 function useNeedView(courses: readonly TermCourse[]): (need: Need) => NeedView {
   const t = useT();
@@ -676,6 +758,7 @@ function useNeedView(courses: readonly TermCourse[]): (need: Need) => NeedView {
                 };
         return {
           title: need.task ? t("home.need.presenceAhead.assignment", { task: need.task.title }) : t("home.need.presenceAhead", { course: need.course ?? "" }),
+          titleLacksCourse: need.task !== null,
           meta: [course],
           note: {
             text: t("home.need.presenceAhead.when", {
@@ -690,7 +773,14 @@ function useNeedView(courses: readonly TermCourse[]): (need: Need) => NeedView {
       case "task": {
         const { task } = need;
         if (need.reason === "edited")
-          return { title: task.title, meta: [course], note: { text: t("home.need.task.edited"), tone: "warning" }, when: null, tone: "warning" };
+          return {
+            title: task.title,
+            titleLacksCourse: true,
+            meta: [course],
+            note: { text: t("home.need.task.edited"), tone: "warning" },
+            when: null,
+            tone: "warning",
+          };
         const meta =
           need.reason === "overdue"
             ? t("home.need.task.overdue")
@@ -699,6 +789,7 @@ function useNeedView(courses: readonly TermCourse[]): (need: Need) => NeedView {
               : t("home.need.task.due", { when: f.dueLabel(task.dueAt!) });
         return {
           title: task.title,
+          titleLacksCourse: true,
           meta: [
             course,
             <span key="m" className={cx(need.reason === "overdue" && "text-danger-fg")}>
@@ -783,15 +874,19 @@ function useNeedView(courses: readonly TermCourse[]): (need: Need) => NeedView {
 
 function NeedRow({ need, courses, index }: { need: Need; courses: readonly TermCourse[]; index: number }) {
   const view = useNeedView(courses)(need);
+  const now = useNow();
   const { go } = useNav();
   const open = useOpenExternal();
   const act = () => (need.action.kind === "go" ? go(need.action.route) : open(need.action.url));
+  const later = snoozable(need, now);
   return (
     <Row
+      id={needRowId(need.id)}
       index={index}
       title={view.title}
       label={view.label}
       meta={<Meta>{view.meta}</Meta>}
+      actions={canSnooze(later, now) ? <SnoozeMenu item={later} name={fullName(need, view)} /> : undefined}
       trailing={
         view.when ? (
           <span
