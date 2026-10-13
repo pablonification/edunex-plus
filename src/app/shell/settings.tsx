@@ -18,7 +18,7 @@ import { Button, Segmented, Switch } from "../ui/controls";
 import { cx } from "../ui/cx";
 import { Card } from "../ui/display";
 import { Icons } from "../ui/icons";
-import { Notice } from "../ui/layout";
+import { Meta, Notice } from "../ui/layout";
 import { ConfirmDialog, Dialog, toast } from "../ui/overlays";
 import { PanelBoundary } from "../ui/panel-boundary";
 import { useSignIn } from "./source-status";
@@ -72,8 +72,8 @@ function SettingsBody({ onSignedOutOfEverything, onShowFirstScan }: { onSignedOu
       <UpdateNotice report={report} />
 
       <Group title={t("settings.accounts")} note={t("settings.accounts.note")}>
-        <AccountRow source="edunex" who={account ? `${displayName(account.name)} · ${account.nim}` : null} />
-        <AccountRow source="six" who={student ? `${displayName(student.name)} · ${student.program ?? student.nim}` : null} />
+        <AccountRow source="edunex" who={account ? [displayName(account.name), account.nim] : null} />
+        <AccountRow source="six" who={student ? [displayName(student.name), student.program ?? student.nim] : null} />
         {onShowFirstScan && (
           <Row label={t("settings.firstScan")} hint={t("settings.firstScan.hint")}>
             <Button size="sm" aria-label={`${t("settings.firstScan.show")}: ${t("settings.firstScan")}`} onClick={onShowFirstScan}>
@@ -160,7 +160,7 @@ function AttendanceTargets() {
         </span>
       </Row>
       {codes.map((code) => (
-        <Row key={code} label={name(code)} hint={t("settings.attendance.own", { code })}>
+        <Row key={code} label={name(code)} hint={<Meta>{t("settings.attendance.own", { code })}</Meta>}>
           {/* The steppers line up in one column with the default's. */}
           <span className="flex shrink-0 items-center gap-1.5">
             <Button
@@ -222,7 +222,20 @@ function AlertSettings({ settings, update, report }: { settings: Settings; updat
     <Group title={t("settings.alerts")}>
       {ALERT_ROWS.map(({ group, label, hint, six }) => (
         // Signed out of SIX, an alert only SIX can raise says so, rather than seeming to work.
-        <Row key={group} label={t(label)} hint={six && sixOut ? `${t(hint)} · ${t("settings.alerts.needsSix")}` : t(hint)}>
+        <Row
+          key={group}
+          label={t(label)}
+          hint={
+            six && sixOut ? (
+              <Meta>
+                {t(hint)}
+                {t("settings.alerts.needsSix")}
+              </Meta>
+            ) : (
+              t(hint)
+            )
+          }
+        >
           <Switch checked={!settings.mutedAlerts.includes(group)} onCheckedChange={(on) => setOn(group, on)} label={t(label)} />
         </Row>
       ))}
@@ -279,7 +292,8 @@ function useReport() {
 }
 
 /** One system's account: who, its state and last check, and Sign in (again) or Sign out of just that system. */
-function AccountRow({ source, who }: { source: SourceId; who: string | null }) {
+/** `who`: their name, then their NIM or program. */
+function AccountRow({ source, who }: { source: SourceId; who: readonly string[] | null }) {
   const t = useT();
   const f = useFormat();
   const bridge = useBridge();
@@ -325,10 +339,14 @@ function AccountRow({ source, who }: { source: SourceId; who: string | null }) {
       <SourceLogo source={source} className="size-9" />
       <span className="min-w-0 flex-1">
         <span className="block text-body font-medium">{name}</span>
-        {who && <span className="block truncate text-small text-muted">{who}</span>}
+        {who && (
+          <Meta truncate className="text-small text-muted">
+            {who}
+          </Meta>
+        )}
         <span className={cx("mt-0.5 flex items-center gap-1.5 text-caption font-medium", state.tone)}>
-          {status.state === "live" && <span aria-hidden className="size-1.5 rounded-full bg-live" />}
-          {state.text}
+          {status.state === "live" && <span aria-hidden className="size-1.5 shrink-0 rounded-full bg-live" />}
+          <Meta>{state.text}</Meta>
         </span>
       </span>
       <Button
@@ -368,7 +386,7 @@ function Group({ title, note, children }: { title?: string; note?: string; child
 }
 
 /** A setting: what it is, when it applies, and its control (beside it, or under it when the choices are long). */
-function Row({ label, hint, stacked = false, children }: { label: string; hint?: string; stacked?: boolean; children?: ReactNode }) {
+function Row({ label, hint, stacked = false, children }: { label: string; hint?: ReactNode; stacked?: boolean; children?: ReactNode }) {
   return (
     <div className={cx("flex gap-4 px-4 py-2.5", stacked ? "flex-col items-start gap-2.5 py-3" : "items-center justify-between")}>
       <span className="min-w-0">

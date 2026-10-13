@@ -15,6 +15,7 @@ import { IconButton, Switch } from "../../ui/controls";
 import { cx } from "../../ui/cx";
 import { Bar, Card, SectionTitle } from "../../ui/display";
 import { Icons } from "../../ui/icons";
+import { Meta } from "../../ui/layout";
 import { Tooltip } from "../../ui/overlays";
 import { SixNeeded } from "./six-needed";
 
@@ -163,8 +164,8 @@ function LeftBar({ map, sks, onlyLeft, onToggle }: { map: CurriculumMap; sks: Sk
   ].filter((part): part is string => part !== null);
   return (
     <div className="sticky top-0 z-10 -mx-1 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-xl bg-canvas/90 px-1 py-2 backdrop-blur-sm">
-      <p className="text-small text-muted" role="status">
-        <span className="font-semibold text-fg">{t("curriculum.left")}:</span> {parts.join(" · ")}
+      <p className="flex min-w-0 items-start gap-1.5 text-small text-muted" role="status">
+        <span className="shrink-0 font-semibold text-fg">{t("curriculum.left")}:</span> <Meta>{parts}</Meta>
       </p>
       <label className="flex items-center gap-2 text-small font-medium">
         <Switch checked={onlyLeft} onCheckedChange={onToggle} label={t("curriculum.onlyLeft")} />
@@ -184,8 +185,10 @@ function Status({ status, grade }: { status: SlotStatus; grade: string | null })
       return (
         <span className="inline-flex items-center gap-1 text-small text-muted whitespace-nowrap">
           <Icons.Check className="size-3.5 text-success-fg" weight="bold" />
-          {label}
-          {grade && status === "passed" && <span className="font-semibold text-fg tabular-nums">· {grade}</span>}
+          <Meta>
+            {label}
+            {grade && status === "passed" ? <span className="font-semibold text-fg tabular-nums">{grade}</span> : null}
+          </Meta>
         </span>
       );
     case "failed":

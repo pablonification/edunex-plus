@@ -17,6 +17,7 @@ import { Button } from "../ui/controls";
 import { cx } from "../ui/cx";
 import { EmptyState } from "../ui/display";
 import { type IconProps, Icons } from "../ui/icons";
+import { factsLabel, Meta } from "../ui/layout";
 import { Dialog } from "../ui/overlays";
 import { PanelBoundary } from "../ui/panel-boundary";
 import { isBuilt } from "./built";
@@ -188,7 +189,10 @@ function Summary({ summary }: { summary: ReturnType<typeof scanSummary> }) {
   return (
     <p className="flex items-center gap-2 text-small font-medium text-muted">
       <Icons.CheckCircle className="size-4 shrink-0 text-success-fg" weight="bold" />
-      {[connected, t("scan.read", { list: read.join(", ") })].filter(Boolean).join(" · ")}
+      <Meta>
+        {connected}
+        {t("scan.read", { list: read.join(", ") })}
+      </Meta>
     </p>
   );
 }
@@ -218,9 +222,7 @@ function Line({ finding, onGo }: { finding: Finding; onGo: (route: Route) => voi
         </span>
         <span id={`${id}-detail`} className="mt-1 block text-small text-muted">
           {lines.map((line) => (
-            <span key={line} className="block">
-              {line}
-            </span>
+            <Meta key={line}>{line}</Meta>
           ))}
           {note && <span className="block">{note}</span>}
         </span>
@@ -287,13 +289,13 @@ function describe(finding: Finding, t: Translate, f: Format): { title: string; l
           (exam) => {
             const code = exam.courseCode;
             const kind = t(`exam.kind.${exam.kind}`);
-            const disagree = exam.disagree ? ` · ${t("exam.disagree")}` : "";
+            const disagree = exam.disagree && t("exam.disagree");
             const session = exam.six[0];
             if (session)
-              return `${t("scan.exams.at", { name: kind, code, when: `${day(f, session.start)}, ${f.time(session.start)}` })}${session.room ? ` · ${session.room}` : ""}${disagree}`;
+              return factsLabel(t("scan.exams.at", { name: kind, code, when: `${day(f, session.start)}, ${f.time(session.start)}` }), session.room, disagree);
             if (exam.at !== null) {
               if (takeHomeOnly(exam)) return t("scan.exams.takeHome", { code, when: `${day(f, exam.at)}, ${f.time(exam.at)}` });
-              return `${t("scan.exams.at", { name: exam.edunex[0]?.title ?? kind, code, when: `${day(f, exam.at)}, ${f.time(exam.at)}` })}${disagree}`;
+              return factsLabel(t("scan.exams.at", { name: exam.edunex[0]?.title ?? kind, code, when: `${day(f, exam.at)}, ${f.time(exam.at)}` }), disagree);
             }
             if (exam.week) return t("scan.exams.week", { kind, code, range: f.dayRange(exam.week.firstDay, exam.week.lastDay) });
             return t("scan.exams.noDate", { name: kind, code });
@@ -308,7 +310,10 @@ function describe(finding: Finding, t: Translate, f: Format): { title: string; l
         lines: few(
           finding.meetings,
           ({ code, meeting }) =>
-            `${t("scan.notInSix.meeting", { code, number: meeting.number, when: `${day(f, meeting.start)}, ${f.timeRange(meeting.start, meeting.end)}` })}${meeting.online ? ` · ${t("scan.notInSix.online")}` : ""}`,
+            factsLabel(
+              t("scan.notInSix.meeting", { code, number: meeting.number, when: `${day(f, meeting.start)}, ${f.timeRange(meeting.start, meeting.end)}` }),
+              meeting.online && t("scan.notInSix.online"),
+            ),
           t,
         ),
         note: t("scan.notInSix.note"),

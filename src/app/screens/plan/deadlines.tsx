@@ -12,7 +12,7 @@ import { useDataset } from "../../store";
 import { cx } from "../../ui/cx";
 import { EmptyState } from "../../ui/display";
 import { Icons } from "../../ui/icons";
-import { List } from "../../ui/layout";
+import { List, Meta } from "../../ui/layout";
 import { useThisTerm } from "./bills";
 import { useTermYears } from "./projection";
 
@@ -167,9 +167,11 @@ function DeadlineRow({ deadline, index }: { deadline: Deadline; index?: number }
         </span>
         <span className="min-w-0">
           <span className="block text-body font-medium" title={event.title}>
-            {t(`deadline.kind.${event.kind}` as StringKey)}
-            {variant && <span className="font-normal text-muted"> · {t(`deadline.variant.${variant}`)}</span>}
-            {event.term && <span className="font-normal text-faint"> · {termYears(event.term)}</span>}
+            <Meta>
+              {t(`deadline.kind.${event.kind}` as StringKey)}
+              {variant ? <span className="font-normal text-muted">{t(`deadline.variant.${variant}`)}</span> : null}
+              {event.term ? <span className="font-normal text-faint">{termYears(event.term)}</span> : null}
+            </Meta>
           </span>
           {meaning && (
             <span

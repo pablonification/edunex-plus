@@ -4,7 +4,7 @@
 // "reading" step that stays until the first full read is in (counts ticking
 // up), so Beranda never flashes half-read; then the shell takes over. Moving
 // on also wipes the sign-in windows' Microsoft session.
-import { useEffect, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { homeReady, scanSummary } from "../../core/first-scan";
 import type { DatasetName, SourceId } from "../../core/models";
 import { useT } from "../i18n";
@@ -16,6 +16,7 @@ import { Button, Segmented } from "../ui/controls";
 import { cx } from "../ui/cx";
 import { Card } from "../ui/display";
 import { Icons } from "../ui/icons";
+import { Meta } from "../ui/layout";
 import { useSignIn } from "./source-status";
 
 /** What the reading step counts, and what decides it's done (src/core/first-scan.ts homeReady). */
@@ -84,13 +85,13 @@ export function Welcome({ onDone }: { onDone: () => void }) {
                 <SourceRow
                   source="edunex"
                   detail={t("welcome.edunexDetail")}
-                  who={account ? `${displayName(account.name)} · ${account.nim}` : null}
+                  who={account ? [displayName(account.name), account.nim] : null}
                   primary={!edunex && !six}
                 />
                 <SourceRow
                   source="six"
                   detail={t("welcome.sixDetail")}
-                  who={student ? `${displayName(student.name)} · ${student.program ?? student.nim}` : null}
+                  who={student ? [displayName(student.name), student.program ?? student.nim] : null}
                   primary={false}
                 />
               </Card>
@@ -176,16 +177,27 @@ function Reading({ onDone }: { onDone: () => void }) {
   );
 }
 
-function SourceRow({ source, detail, who, primary }: { source: Extract<SourceId, "edunex" | "six">; detail: string; who: string | null; primary: boolean }) {
+function SourceRow({
+  source,
+  detail,
+  who,
+  primary,
+}: {
+  source: Extract<SourceId, "edunex" | "six">;
+  detail: string;
+  /** Who is signed in: their name, then their NIM or program. */
+  who: readonly string[] | null;
+  primary: boolean;
+}) {
   const t = useT();
   const status = useStatus(source);
   const { signIn, busy } = useSignIn();
   const name = t(`source.${source}`);
   const connected = isConnected(status.state);
   // Connected first: the sign-in call can still be finishing while the name is already in.
-  let line = detail;
+  let line: ReactNode = detail;
   let waiting = false;
-  if (connected && who) line = who;
+  if (connected && who) line = <Meta>{who}</Meta>;
   else if (connected) line = t("welcome.readingName");
   else if (status.state === "connecting") line = t("status.connecting");
   else if (busy) {

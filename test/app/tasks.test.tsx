@@ -47,7 +47,7 @@ describe("Tugas & Ujian", () => {
     expect(s.button(/^Selesai/).textContent).toBe("Selesai 5");
     expect(sections()).toEqual(["Minggu depan 1", "Nanti 3"]);
     const bab2 = row("Tugas 02 Bab II")!.textContent;
-    expect(bab2).toContain("II4091· Modul 5 · Tugas");
+    expect(bab2).toContain("II4091 · Modul 5 · Tugas");
     expect(bab2).toContain("Belum dikerjakan");
     expect(bab2).toContain("Jum, 16 Okt, 23:59");
     // The late rule and edits before handing in belong on the Task page, not on every row.

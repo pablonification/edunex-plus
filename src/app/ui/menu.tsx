@@ -6,6 +6,7 @@ import { type KeyboardEvent, type ReactNode, useState } from "react";
 import { IconButton } from "./controls";
 import { cx } from "./cx";
 import { Icons } from "./icons";
+import { Meta } from "./layout";
 import { Popover, Tooltip } from "./overlays";
 
 export interface MenuItem {
@@ -60,7 +61,7 @@ export function Menu({ label, items, className }: { label: string; items: MenuIt
             {item.icon && <span className={cx("mt-0.5 shrink-0 text-muted", item.disabled && "opacity-50")}>{item.icon}</span>}
             <span className="min-w-0 flex-1">
               <span className={cx("block text-body font-medium", item.disabled && "text-faint")}>{item.label}</span>
-              {item.hint && <span className="mt-0.5 block text-small text-muted">{item.hint}</span>}
+              {item.hint && <Meta className="mt-0.5 text-small text-muted">{item.hint}</Meta>}
             </span>
           </button>
         ))}

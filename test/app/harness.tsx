@@ -18,6 +18,7 @@ import { PRETEND_TOKEN } from "../pretend/edunex";
 import { MemoryStorage, MemoryVault } from "../pretend/memory";
 import { PRETEND_SIX_COOKIE } from "../pretend/six";
 import { PretendWorld } from "../pretend/world";
+import { assertTidyFacts } from "./tidy-facts";
 
 // Popovers place themselves with floating-ui, which asks every ancestor whether it
 // matches ":popover-open" or ":modal". jsdom's selector engine doesn't know those and
@@ -201,6 +202,8 @@ export async function openApp(options: Options = {}) {
   const root = createRoot(container);
   const clock: UiClock = { now: () => world.clock.now(), subscribe: () => () => undefined };
   await act(async () => root.render(<App store={store} bridge={bridge} clock={clock} />));
+  // Every screen, after every step a test takes: no empty fact, no dangling "·".
+  assertTidyFacts();
 
   /** Lets every request the window made finish, and the screen catch up. */
   const settle = async () => {
@@ -247,12 +250,14 @@ export async function openApp(options: Options = {}) {
         element.click();
         await settle();
       });
+      assertTidyFacts();
     },
     async key(key: string): Promise<void> {
       await act(async () => {
         (document.activeElement ?? document.body).dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true }));
         await settle();
       });
+      assertTidyFacts();
     },
     /** The files the Student will choose the next time the system file picker opens. */
     willPick(files: { name: string; content?: string; size?: number; type?: string; unreadable?: boolean }[]): void {
@@ -275,6 +280,7 @@ export async function openApp(options: Options = {}) {
         await world.clock.advance(ms);
         await settle();
       });
+      assertTidyFacts();
     },
     /** Runs engine work (a refresh, a sign-out) as if it came from elsewhere. */
     async engineDoes(work: () => Promise<unknown>): Promise<void> {
@@ -282,10 +288,12 @@ export async function openApp(options: Options = {}) {
         await meanwhile(work());
         await settle();
       });
+      assertTidyFacts();
     },
     /** An engine event arriving at the window (for what the engine itself never sends). */
     async apply(event: Event): Promise<void> {
       await act(async () => store.apply(event));
+      assertTidyFacts();
     },
     close(): void {
       act(() => root.unmount());

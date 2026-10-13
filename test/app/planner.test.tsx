@@ -283,9 +283,9 @@ describe("the curriculum map", () => {
     expect(row("WI2005")).toBe("WI2005Bahasa IndonesiaBelum ada nilai di SIX: cek ke prodi2");
     expect(row("II4090")).toBe("II4090Kerja PraktikDirencanakan2");
     await s.click("Sisa saja");
-    expect(row("MA1101")).toBe("MA1101Matematika ILulus· AB4");
-    expect(row("KI1101")).toBe("KI1101Kimia Dasar Ilewat KI1002 Kimia Dasar BLulus· A3");
-    expect(row("WI2003")).toBe("WI2003Olah Ragalewat KU1001 Olah RagaLulus· BC1");
+    expect(row("MA1101")).toBe("MA1101Matematika ILulus · AB4");
+    expect(row("KI1101")).toBe("KI1101Kimia Dasar Ilewat KI1002 Kimia Dasar BLulus · A3");
+    expect(row("WI2003")).toBe("WI2003Olah Ragalewat KU1001 Olah RagaLulus · BC1");
     expect(row("II4091")).toBe("II4091Proposal Tugas AkhirSemester ini2");
     expect(s.text()).toContain("Mata kuliah lain yang ikut dihitung");
   });

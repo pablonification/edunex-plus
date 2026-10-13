@@ -165,7 +165,7 @@ function Timeline({ title, steps }: { title: string; steps: KrsStep[] }) {
               {step.done && <Icons.Check className="size-2.5" weight="bold" />}
             </span>
             <p className={cx("text-body font-medium", !step.done && "text-muted")}>{t(`krs.step.${step.key}`)}</p>
-            <p className="text-caption text-muted tabular-nums">
+            <Meta className="text-caption text-muted tabular-nums">
               {step.key === "ukt"
                 ? step.done
                   ? step.amount != null
@@ -173,9 +173,9 @@ function Timeline({ title, steps }: { title: string; steps: KrsStep[] }) {
                     : t("bills.status.paid")
                   : t("krs.step.uktUnpaid")
                 : step.at !== null
-                  ? `${f.weekdayShort(step.at)}, ${f.dayMonth(step.at)} · ${f.time(step.at)}`
+                  ? [`${f.weekdayShort(step.at)}, ${f.dayMonth(step.at)}`, f.time(step.at)]
                   : t("krs.step.notYet")}
-            </p>
+            </Meta>
           </li>
         ))}
       </ol>

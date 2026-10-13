@@ -27,7 +27,7 @@ import { Button } from "../ui/controls";
 import { cx } from "../ui/cx";
 import { CourseCode, EmptyState, LiveDot, Skeleton } from "../ui/display";
 import { Icons } from "../ui/icons";
-import { List, Meta, Page, PageHeader } from "../ui/layout";
+import { factsLabel, List, Meta, Page, PageHeader } from "../ui/layout";
 import { CountdownBar, ShareMeter } from "../ui/meter";
 import { Popover } from "../ui/overlays";
 
@@ -193,7 +193,7 @@ function OpenPresence({ window }: { window: OpenWindow }) {
             <LiveDot />
             {t("presence.open.do", { action: actionLabel(window), time: f.time(session.closesAt) })}
           </p>
-          <p className="mt-1 text-small text-muted">{t(where, { code })}</p>
+          <Meta className="mt-1 text-small text-muted">{t(where, { code })}</Meta>
         </div>
         {task ? (
           <Button variant={noSix ? "secondary" : "primary"} onClick={() => go({ screen: "task", taskId: task.id })}>
@@ -254,7 +254,7 @@ function CourseRow({
       {/* The whole row opens the course's meetings; its controls sit above it. */}
       <button
         type="button"
-        aria-label={[course.code, name(course.code, course.name), verdict].filter(Boolean).join(" · ")}
+        aria-label={factsLabel(course.code, name(course.code, course.name), verdict)}
         onClick={() => go({ screen: "course", code: course.code, tab: "meetings" })}
         className="absolute inset-0 z-0 outline-none focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-[-2px] focus-visible:outline-focus"
       />

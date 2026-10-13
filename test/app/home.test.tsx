@@ -26,7 +26,7 @@ describe("Beranda on the recorded Thursday morning", () => {
     const now = text("home-now");
     expect(now).toContain("Sedang berlangsung · sampai 10:00");
     expect(now).toContain("Ekonomi dan Inovasi dalam Perencanaan");
-    expect(now).toContain("PL3002·08:00–10:00·R.SG PWK LT.6");
+    expect(now).toContain("PL3002 · 08:00–10:00 · R.SG PWK LT.6");
     expect(now).toContain("Jam berubah · biasanya 08:00–09:30");
     // SIX counts PL3002: being in class is what counts, Edunex's window is optional (the audit's "Catat kehadiran" + "Buka di Edunex" + "dihitung di SIX").
     expect(now).toContain("Kehadiran dihitung di SIX: cukup hadir di kelas.");
@@ -55,16 +55,16 @@ describe("Beranda on the recorded Thursday morning", () => {
   it("today: SIX's classes with time and room, absences left, the moved class, the overlap, and tomorrow's online meeting; rows open their course", async () => {
     screen = await openApp({ signedIn: true, six: true });
     // The now card above says "Jam berubah · biasanya 08:00–09:30" for this class; the row doesn't say it again.
-    expect(row("home-today", "08:0010:00")).toBe("08:0010:00Ekonomi dan Inovasi dalam PerencanaanPL3002·R.SG PWK LT.6Masih bisa absen 1× lagiSekarang");
+    expect(row("home-today", "08:0010:00")).toBe("08:0010:00Ekonomi dan Inovasi dalam PerencanaanPL3002 · R.SG PWK LT.6Masih bisa absen 1× lagiSekarang");
     expect(text("home-now")).toContain("Jam berubah · biasanya 08:00–09:30");
-    expect(row("home-today", "11:00")).toBe("11:0012:59Komunikasi PemasaranDK4073·TVST CJangan absen lagidalam 3 jam");
+    expect(row("home-today", "11:00")).toBe("11:0012:59Komunikasi PemasaranDK4073 · TVST CJangan absen lagidalam 3 jam");
     expect(row("home-today", "16:00")).toContain("Tak bisa lagi capai 80% · paling tinggi 73%");
     // PL3032 (15:00–16:30) and KU5014 (16:00–17:50) share half an hour: each row names the other.
     expect(row("home-today", "15:00")).toContain("Bentrok dengan KU5014 16:00–16:30");
     expect(row("home-today", "16:00")).toContain("Bentrok dengan PL3032 16:00–16:30");
     expect(row("home-today", "11:00")).not.toContain("Bentrok");
     expect(text("home-today")).toContain("Besok");
-    expect(row("home-today", "15:0017:00")).toBe("15:0017:00Proposal Tugas AkhirII4091·Pertemuan 3 · daringTidak ada di jadwal SIX");
+    expect(row("home-today", "15:0017:00")).toBe("15:0017:00Proposal Tugas AkhirII4091 · Pertemuan 3 · daringTidak ada di jadwal SIX");
     await screen.click("Gabung kelas daring: II4091");
     expect(screen.calls.at(-1)).toMatchObject({ name: "shell.openExternal", input: { url: expect.stringContaining("teams.microsoft.com") } });
     await screen.click(/^11:0012:59Komunikasi Pemasaran/);
@@ -134,7 +134,7 @@ describe("an exam on Beranda", () => {
   it("within the week: what, when and where, that SIX and Edunex disagree, and its page one click away", async () => {
     screen = await openApp({ world: new PretendWorld({ now: "2026-10-13T09:00:00+07:00" }), signedIn: true, six: true });
     const exam = row("home-needs", "UTS Komunikasi Pemasaran");
-    expect(exam).toBe("UTS Komunikasi PemasaranDK4073·Kam, 15 Okt, 11:00–12:59·TVST C·SIX dan Edunex beda tanggallusa");
+    expect(exam).toBe("UTS Komunikasi PemasaranDK4073 · Kam, 15 Okt, 11:00–12:59 · TVST CSIX dan Edunex beda tanggallusa");
     await screen.click(/^UTS Komunikasi Pemasaran/);
     expect(document.querySelector("main h1")?.textContent).toBe("Komunikasi Pemasaran");
     expect(screen.text()).toContain("Kapan dan di mana");
@@ -154,7 +154,8 @@ describe("a Presence window ahead", () => {
     screen = await openApp({ signedIn: true, world: new PretendWorld({ now: "2026-10-11T21:00:00+07:00" }) });
     await screen.wait();
     const ahead = row("home-needs", "Kumpulkan Tugas 02 Bab II");
-    expect(ahead).toContain("Juga presensi: Jum, 16 Okt, 15:00–23:59");
+    // The sentence is its own line under the course, not a fact after a dot ("II4091 ·" at a line's end).
+    expect(ahead).toContain("II4091Juga presensi: Jum, 16 Okt, 15:00–23:59");
     expect(ahead.match(/Tugas 02 Bab II/g)).toHaveLength(1);
     await screen.click(/^Kumpulkan Tugas 02 Bab II/);
     expect(document.querySelector("main h1")?.textContent).toBe("Tugas 02 Bab II");
@@ -196,7 +197,7 @@ describe("Tasks on Beranda", () => {
     screen.world.edunex.postTask(95059, { name: "Ringkasan K5", end_at: "2026-10-08T23:59:00+07:00" });
     screen.world.edunex.editTask(117432, { description: "<p>Tambahkan referensi.</p>" });
     await screen.engineDoes(() => screen!.engine.refresh("edunex"));
-    expect(row("home-today", "23:59")).toMatch(/^23:59Ringkasan K5PL3032·Tenggatdalam 1\d jam$/);
+    expect(row("home-today", "23:59")).toMatch(/^23:59Ringkasan K5PL3032 · Tenggatdalam 1\d jam$/);
     expect(rows("home-needs").some((r) => r.includes("Ringkasan K5"))).toBe(false);
     expect(row("home-needs", "Tugas tentang Imfact")).toContain("Diubah dosen setelah kamu kumpulkan · cek lagi");
     expect(text("home-changes")).toContain("Tugas baru · PL3032Ringkasan K5");

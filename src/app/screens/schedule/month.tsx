@@ -15,6 +15,7 @@ import { Button } from "../../ui/controls";
 import { cx } from "../../ui/cx";
 import { CourseDot } from "../../ui/display";
 import { Icons } from "../../ui/icons";
+import { factsLabel, Meta } from "../../ui/layout";
 import { Popover } from "../../ui/overlays";
 import { handInLabel, periodName, timeRange, useWorld } from "./details";
 
@@ -157,7 +158,12 @@ function monthLines(day: ScheduleDay, t: Translate, f: Format, world: ReturnType
       key: `w${window.presence.id}`,
       icon: done ? <Icons.CheckCircle className="size-3 shrink-0" weight="bold" /> : <Icons.Upload className="size-3 shrink-0" weight="bold" />,
       text: window.task?.title ?? window.code,
-      full: `${window.code} · ${done ? t("schedule.window.done", { task: window.task?.title ?? window.code }) : t("schedule.handIn", { task: window.task?.title ?? window.code, time: time(window.presence.closesAt) })}`,
+      full: factsLabel(
+        window.code,
+        done
+          ? t("schedule.window.done", { task: window.task?.title ?? window.code })
+          : t("schedule.handIn", { task: window.task?.title ?? window.code, time: time(window.presence.closesAt) }),
+      ),
       tone: done ? "text-success-fg" : "font-semibold text-accent-fg",
     });
   }
@@ -208,7 +214,7 @@ function clashesOf(day: ScheduleDay, t: Translate, f: Format): { full: string; f
   const seen = new Map<string, { full: string; from: string }>();
   for (const { session, overlaps } of day.classes) {
     for (const o of overlaps) {
-      const pair = [session.courseCode, o.code].sort().join(" · ");
+      const pair = factsLabel(...[session.courseCode, o.code].sort());
       if (!seen.has(pair)) seen.set(pair, { full: t("schedule.month.overlap", { pair, from: f.time(o.from), to: f.time(o.to) }), from: f.time(o.from) });
     }
   }
@@ -236,7 +242,7 @@ function DayDetails({ day, period, onShowWeek }: { day: ScheduleDay; period: Cal
       end: c.session.end,
       code: c.session.courseCode,
       title: c.exam
-        ? `${c.session.activity} · ${world.name(c.session.courseCode, c.session.courseName)}`
+        ? `${c.session.activity} ${world.name(c.session.courseCode, c.session.courseName)}`
         : world.name(c.session.courseCode, c.session.courseName),
       where: c.session.room,
       exam: c.exam,
@@ -276,7 +282,14 @@ function DayDetails({ day, period, onShowWeek }: { day: ScheduleDay; period: Cal
                   <CourseDot color={world.color(item.code)} className="mr-1.5 mb-px size-2 align-middle" />
                   <span className="font-semibold tabular-nums">{item.code}</span> {item.title}
                 </span>
-                <span className="block text-caption text-muted">{[item.where, item.note].filter(Boolean).join(" · ") || " "}</span>
+                {item.where || item.note ? (
+                  <Meta className="text-caption text-muted">
+                    {item.where}
+                    {item.note}
+                  </Meta>
+                ) : (
+                  <span className="block text-caption">{"\u00a0"}</span>
+                )}
               </span>
             </li>
           ))}

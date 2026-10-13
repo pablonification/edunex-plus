@@ -129,11 +129,13 @@ function Standing({ record, state }: { record: StudentRecord; state: PlanState }
         label={t("grades.lastIp")}
         value={num(lastIp)}
         hint={
-          last
-            ? delta === null
-              ? termName(last.term)
-              : t("grades.lastIpHint", { term: termName(last.term).split(" · ")[0], delta: signed(delta) })
-            : undefined
+          last ? (
+            delta === null ? (
+              termName(last.term)
+            ) : (
+              <Meta>{t("grades.lastIpHint", { term: termName(last.term).split(" · ")[0], delta: signed(delta) })}</Meta>
+            )
+          ) : undefined
         }
       />
       <Stat
