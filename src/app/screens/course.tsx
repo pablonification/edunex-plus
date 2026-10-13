@@ -4,18 +4,19 @@
 // today); then tabs: Modul (Edunex's table of contents with each module's
 // Tasks and materials), Pertemuan, Tugas & Ujian, Nilai and Pengumuman.
 import * as Tabs from "@radix-ui/react-tabs";
-import { useMemo, useState } from "react";
+import { type ReactNode, useMemo, useState } from "react";
 import { type AttendanceHealth, percent } from "../../core/attendance";
 import { planOfflineFiles } from "../../core/course-materials";
-import { clashes, openPresence, pinnedMeeting } from "../../core/course-meetings";
+import { clashes, type Meeting, openPresences, pinnedMeeting } from "../../core/course-meetings";
 import { edunexCourseUrl } from "../../core/links";
+import type { PresenceSession } from "../../core/models";
 import { sixTimetableUrl } from "../../core/schedule";
 import { attendanceKey, attendanceSnoozable } from "../../core/snooze";
 import { useAttendance } from "../attendance";
 import { verdictLabel } from "../attendance-labels";
 import { AttendanceSummary, CourseTarget } from "../attendance-parts";
 import { useOpenExternal } from "../hooks";
-import { type StringKey, useFormat, useLang, useNow, useT } from "../i18n";
+import { type Format, type StringKey, type Translate, useFormat, useLang, useNow, useT } from "../i18n";
 import { useNav } from "../nav";
 import { useRefresh } from "../shell/source-status";
 import { SnoozeMenu } from "../snooze-menu";
@@ -28,11 +29,12 @@ import { Icons } from "../ui/icons";
 import { Meta, Notice, Page, PageHeader } from "../ui/layout";
 import { Menu } from "../ui/menu";
 import { CountdownBar } from "../ui/meter";
+import { NowCard, NowLine, NowZone } from "../ui/now-card";
 import { toast } from "../ui/overlays";
 import { type CoursePage, useCoursePage } from "./course/data";
 import { GradesTab } from "./course/grades";
 import { AnnouncementsTab, TasksTab } from "./course/lists";
-import { MeetingsTab, meetingModuleTitle, pageModules } from "./course/meetings";
+import { MeetingsTab, meetingModuleTitle, meetingTitle, pageModules } from "./course/meetings";
 import { ModulesTab } from "./course/modules";
 
 export const ready = true;
@@ -65,7 +67,7 @@ export function CourseScreen({ code, tab, module }: { code: string; tab?: string
     <Page width="wide">
       <Header page={page} />
       <RiskStrip page={page} />
-      <NowStrip page={page} />
+      <MeetingNow page={page} />
       <Tabs.Root value={current} onValueChange={(value) => setCurrent(value as Tab)}>
         <Tabs.List aria-label={page.course.code} className="mt-8 flex gap-6 border-b border-line">
           {TABS.map((key) => (
@@ -260,7 +262,7 @@ function RiskStrip({ page }: { page: CoursePage }) {
   const later = attendanceSnoozable(page.course.code, health);
   const next = page.meetings.find((m) => m.end > now && !m.notInSix);
   const clash = next ? clashes(next, page.course.code, schedule ?? [])[0] : undefined;
-  // The strip right below already shows the next meeting; say it here only when it doesn't.
+  // The meeting right below already shows the next one; say it here only when it doesn't.
   const nextShownBelow = next !== undefined && pinnedMeeting(page.meetings, now)?.meeting.key === next.key;
   const out = health.state === "out";
   const title = verdictLabel(t, health);
@@ -306,104 +308,213 @@ function noneLeft(t: ReturnType<typeof useT>, f: ReturnType<typeof useFormat>, h
   return t(estimated ? "course.risk.noneAbout" : "course.risk.none", { count, date, target: health.target });
 }
 
+const DAY = 86_400_000;
+
 /**
- * What's happening now, or next, in two fixed lines: the class and its room;
- * then the one thing to do (record attendance while Presence is open, join an
- * online meeting).
+ * When a Presence window closes, as the Student reads it: "tutup 23:00 (1 jam
+ * 5 mnt lagi)" today; a window can stay open for days, so with its day when
+ * it isn't today ("tutup besok, 23:00", "tutup Sen, 12 Okt, 23:00"), and how
+ * long is left only while that's under a day.
  */
-function NowStrip({ page }: { page: CoursePage }) {
+function closesLabel(t: Translate, f: Format, closesAt: number, now: number): string {
+  const offset = f.dayOffset(closesAt);
+  // Mid-sentence, so "besok", not "Besok".
+  const day = offset === 1 ? t("home.tomorrowWord") : f.relativeDay(closesAt);
+  const time = offset === 0 ? f.time(closesAt) : `${day}, ${f.time(closesAt)}`;
+  return closesAt - now < DAY ? t("course.closesAt", { time, left: f.countdown(closesAt) }) : t("course.closesOn", { time });
+}
+
+/**
+ * What's on now or next. While a class is on or a Presence window is open, a
+ * raised card: its time, what it is, where, and the one thing to do (record
+ * attendance, join online), with the window's countdown under it. A window can
+ * stay open long after its class, for days: with no class on, the card is then
+ * about that class, and the next one keeps its quiet line under it. The class
+ * going on shows only its own window; one still open from an earlier class is
+ * a quiet line of its own under the card. Otherwise, the next meeting in one
+ * quiet line under the header.
+ */
+function MeetingNow({ page }: { page: CoursePage }) {
   const t = useT();
   const f = useFormat();
   const now = useNow();
   const open = useOpenExternal();
   const attendance = useAttendance();
   const live = useStatus("edunex").state === "live";
+  const modules = pageModules(page);
   const pinned = pinnedMeeting(page.meetings, now);
-  const presence = openPresence(page.presence ?? [], now);
-  if (!pinned && !presence) return null;
-  const meeting = pinned?.meeting;
+  const windows = openPresences(page.presence ?? [], now);
+  const current = pinned?.current ? pinned.meeting : null;
+  // The card's window: the class going on has only its own, never an earlier class's still open; with no class on, the one closing first.
+  const presence = current ? (windows.find((p) => p.id === current.presence?.id) ?? null) : (windows[0] ?? null);
+  const meetingOf = (p: PresenceSession) => page.meetings.find((m) => m.presence?.id === p.id) ?? null;
+  // The card's class: the one going on, else the one the open window is for (not next week's, under its window).
+  const meeting = current ?? (presence ? meetingOf(presence) : null);
+  const next = pinned && !pinned.current && pinned.meeting !== meeting ? pinned.meeting : null;
   const countedIn = attendance?.courses.find((c) => c.course.code === page.course.code)?.health.countedIn;
-  const url = presence?.url ?? (page.course.edunex ? edunexCourseUrl(page.course.edunex.courseId) : null);
-  const link = meeting?.announced?.link ?? null;
-  const online = meeting?.announced?.online ?? false;
+  const courseUrl = page.course.edunex ? edunexCourseUrl(page.course.edunex.courseId) : null;
+  const url = presence?.url ?? courseUrl;
   // Edunex's window is the thing to do only where it may be what counts: not where SIX counts, and
   // not loudly without SIX (nobody can say; it's worth doing just in case).
   const presenceCounts = countedIn !== "six" && countedIn !== "noSix";
-  const what = meeting ? (meetingModuleTitle(t, pageModules(page), meeting) ?? meeting.presence?.topic ?? meeting.six?.activity ?? null) : null;
 
-  return (
-    <div
-      className="flex flex-wrap items-center gap-x-6 gap-y-3 rounded-xl border border-edge bg-raised px-5 py-3.5 shadow-card"
-      style={{ boxShadow: `inset 3px 0 0 ${page.course.color}` }}
-    >
-      <div className="min-w-0 flex-1">
-        {meeting && (
-          <p className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-body">
-            {pinned.current ? (
-              <span className="inline-flex items-center gap-2 font-semibold text-success-fg">
-                {live && <LiveDot />}
-                {t("course.now")}
-              </span>
-            ) : (
-              <span className="font-semibold text-muted">{t("course.next")}</span>
+  const linkOf = (m: Meeting) => (m.end > now ? (m.announced?.link ?? null) : null);
+  const placeOf = (m: Meeting) => [
+    m.six?.room ? (
+      <span key="room" className="inline-flex items-center gap-1">
+        <Icons.MapPin className="size-3.5" />
+        {m.six.room}
+      </span>
+    ) : (
+      ""
+    ),
+    m.announced?.online ? (
+      <span key="online" className="inline-flex items-center gap-1">
+        <Icons.Video className="size-3.5" />
+        {t("course.online")}
+      </span>
+    ) : (
+      ""
+    ),
+  ];
+  const notInSixOf = (m: Meeting) => (m.notInSix ? <span className="text-warning-fg">{t("meeting.notInSix")}</span> : "");
+
+  // Windows still open from earlier classes, each with its own class and close, under the card.
+  const lines: ReactNode[] = windows
+    .filter((p) => p !== presence)
+    .map((p) => {
+      const of = meetingOf(p);
+      const href = p.url ?? courseUrl;
+      return (
+        <NowLine
+          key={`p${p.id}`}
+          icon={<Icons.Hand className="size-4" />}
+          action={
+            href ? (
+              <Button size="sm" variant="ghost" icon={<Icons.ArrowUpRight className="size-3.5" />} onClick={() => open(href)}>
+                {t("course.recordInEdunex")}
+              </Button>
+            ) : undefined
+          }
+        >
+          <Meta>
+            <span className="font-medium text-fg">{t("course.presenceStillOpen")}</span>
+            <span className="tabular-nums">
+              {f.relativeDay(of?.start ?? p.start)}, {f.timeRange(of?.start ?? p.start, of?.end ?? p.end)}
+            </span>
+            <span className="tabular-nums">{closesLabel(t, f, p.closesAt, now)}</span>
+          </Meta>
+        </NowLine>
+      );
+    });
+  if (next) {
+    const link = linkOf(next);
+    const what = meetingModuleTitle(t, modules, next) ?? next.presence?.topic ?? next.six?.activity ?? null;
+    lines.push(
+      <NowLine
+        key="next"
+        icon={<Icons.CalendarClock className="size-4" />}
+        action={
+          link && f.dayOffset(next.start) === 0 ? (
+            <Button size="sm" variant="ghost" icon={<Icons.Video className="size-3.5" />} onClick={() => open(link)}>
+              {t("course.join")}
+            </Button>
+          ) : undefined
+        }
+      >
+        <Meta>
+          <span className="font-medium text-fg">{t("course.next")}</span>
+          <span className="tabular-nums">
+            {f.relativeDay(next.start)}, {f.timeRange(next.start, next.end)}
+          </span>
+          {placeOf(next)}
+          {/* "Kuliah" is every class: only a topic says something. */}
+          {what && !/^kuliah$/i.test(what) ? what : ""}
+          {notInSixOf(next)}
+        </Meta>
+      </NowLine>,
+    );
+  }
+  // Nothing on and no window open: at most the next meeting's line.
+  if (!current && !presence) return lines[0] ?? null;
+
+  const start = meeting?.start ?? presence!.start;
+  const end = meeting?.end ?? presence!.end;
+  const link = meeting ? linkOf(meeting) : null;
+  const upcoming = meeting !== null && meeting.start > now;
+  // A class that's over, on an earlier day: its day, so the time beside it isn't read as today's.
+  const day = meeting && !current && !upcoming && f.dayOffset(meeting.start) !== 0 ? <span className="tabular-nums">{f.relativeDay(meeting.start)}</span> : "";
+  const facts = meeting ? [day, ...placeOf(meeting), notInSixOf(meeting)] : [];
+  const card = (
+    <NowCard
+      raised
+      time={{ start: f.time(start), end: f.time(end) }}
+      eyebrow={
+        current ? (
+          <span className="inline-flex items-center gap-2 text-success-fg">
+            {live && <LiveDot />}
+            <Meta>{t("course.nowUntil", { time: f.time(end) })}</Meta>
+          </span>
+        ) : upcoming ? (
+          <Meta className="text-muted">
+            {t("course.next")}
+            {f.relativeDay(meeting.start)}
+          </Meta>
+        ) : (
+          <span className="text-muted">{t("course.presenceOpen")}</span>
+        )
+      }
+      // Named as its row on the Pertemuan tab names it ("Pertemuan 3"), never just "Kuliah" when there's more to say.
+      title={
+        <p className="text-title font-semibold">
+          {meeting ? meetingTitle(t, meeting, meetingModuleTitle(t, modules, meeting)) : (presence?.topic ?? t("meeting.untitled"))}
+        </p>
+      }
+      meta={facts.some(Boolean) ? <Meta>{facts}</Meta> : undefined}
+      note={!presence && meeting?.presence?.note ? <p className="mt-1 truncate text-small text-muted">{meeting.presence.note}</p> : undefined}
+      action={
+        link || (presence && url) ? (
+          <>
+            {link && (
+              <Button variant={presence ? "secondary" : "primary"} icon={<Icons.Video className="size-3.5" />} onClick={() => open(link)}>
+                {t("course.join")}
+              </Button>
             )}
-            <Meta className="font-medium">
-              <span className="tabular-nums">
-                {f.relativeDay(meeting.start)}, {f.timeRange(meeting.start, meeting.end)}
-              </span>
-              {meeting.six?.room ? (
-                <span className="inline-flex items-center gap-1">
-                  <Icons.MapPin className="size-3.5 text-muted" />
-                  {meeting.six.room}
-                </span>
-              ) : (
-                ""
-              )}
-              {online ? (
-                <span className="inline-flex items-center gap-1 text-muted">
-                  <Icons.Video className="size-3.5" />
-                  {t("course.online")}
-                </span>
-              ) : (
-                ""
-              )}
-              {what ? <span className="font-normal text-muted">{what}</span> : ""}
-              {meeting.notInSix ? <span className="text-small text-warning-fg">{t("meeting.notInSix")}</span> : ""}
-            </Meta>
-          </p>
-        )}
-        {presence ? (
-          <div className="mt-1.5 flex max-w-[520px] items-center gap-3 text-small">
-            <span className="shrink-0 font-semibold">{t("course.presenceOpen")}</span>
+            {presence && url && (
+              <Button variant={presenceCounts ? "primary" : "secondary"} icon={<Icons.ArrowUpRight className="size-3.5" />} onClick={() => open(url)}>
+                {t("course.recordInEdunex")}
+              </Button>
+            )}
+          </>
+        ) : undefined
+      }
+    >
+      {presence && (
+        <NowZone>
+          <div className="flex max-w-[560px] items-center gap-3 text-small">
+            {/* Said here unless the line above already says it. */}
+            {(current || upcoming) && <span className="shrink-0 font-semibold">{t("course.presenceOpen")}</span>}
             {/* The same shrinking countdown as on Presensi and Beranda. */}
             <CountdownBar
               className="min-w-16 flex-1"
               opensAt={presence.opensAt}
               closesAt={presence.closesAt}
               now={now}
-              label={t("course.closesAt", { time: f.time(presence.closesAt), left: f.countdown(presence.closesAt) })}
+              label={closesLabel(t, f, presence.closesAt, now)}
             />
           </div>
-        ) : (
-          meeting?.presence?.note && <p className="mt-1 truncate text-small text-muted">{meeting.presence.note}</p>
-        )}
-        {presence && !presenceCounts && (
-          <p className="mt-1 text-small text-muted">{t(countedIn === "noSix" ? "course.presenceNoSix" : "course.presenceCountsSix")}</p>
-        )}
-      </div>
-      <div className="flex shrink-0 items-center gap-2">
-        {link && meeting && meeting.end > now && (
-          <Button variant={presence ? "secondary" : "primary"} icon={<Icons.Video className="size-3.5" />} onClick={() => open(link)}>
-            {t("course.join")}
-          </Button>
-        )}
-        {presence && url && (
-          <Button variant={presenceCounts ? "primary" : "secondary"} icon={<Icons.ArrowUpRight className="size-3.5" />} onClick={() => open(url)}>
-            {t("course.recordInEdunex")}
-          </Button>
-        )}
-      </div>
-    </div>
+          {!presenceCounts && <p className="mt-1.5 text-small text-muted">{t(countedIn === "noSix" ? "course.presenceNoSix" : "course.presenceCountsSix")}</p>}
+        </NowZone>
+      )}
+    </NowCard>
+  );
+  return lines.length ? (
+    <>
+      {card}
+      <div className="mt-3">{lines}</div>
+    </>
+  ) : (
+    card
   );
 }
 

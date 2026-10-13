@@ -108,6 +108,14 @@ export function meetingModuleTitle(t: ReturnType<typeof useT>, modules: Readonly
   return entry ? t("meeting.module", { no: entry.number, title: entry.module.title.trim() }) : null;
 }
 
+/** What a meeting is called, the same on its row and on the card above the tabs: its module, its name, "Pertemuan 3", or "Kuliah". */
+export function meetingTitle(t: ReturnType<typeof useT>, meeting: Meeting, moduleTitle: string | null): string {
+  const named = meeting.presence?.topic?.trim() || meeting.six?.activity?.trim() || null;
+  // SIX calls nearly every class "Kuliah": Edunex's number for it says more.
+  const telling = named && !/^kuliah$/i.test(named) ? named : null;
+  return moduleTitle ?? telling ?? (meeting.announced ? t("meeting.number", { no: meeting.announced.number }) : (named ?? t("meeting.untitled")));
+}
+
 /** Signed out of SIX: Edunex's own tally as a fact, and why it may not be the count that matters. */
 function NoSixIntro({ recorded, closed }: { recorded: number; closed: number }) {
   const t = useT();
@@ -166,7 +174,7 @@ function MeetingRow({
   const named = presence?.topic ?? six?.activity ?? null;
   // Unnamed, only numbered ("Pertemuan 3") or just "Kuliah", with no module to name it: said in a quieter color.
   const placeholder = !moduleTitle && (!named || /^((pertemuan|meeting)\s*\d+|kuliah)$/i.test(named.trim()));
-  const title = moduleTitle ?? named ?? (announced ? t("meeting.number", { no: announced.number }) : six?.activity || t("meeting.untitled"));
+  const title = meetingTitle(t, meeting, moduleTitle);
   // Edunex's Presence window, when it isn't simply the meeting's time.
   const window =
     presence && (presence.opensAt !== meeting.start || presence.closesAt !== meeting.end) ? f.timeRange(presence.opensAt, presence.closesAt) : null;

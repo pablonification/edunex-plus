@@ -4,7 +4,16 @@
 import { describe, expect, it } from "vitest";
 import { EXAMPLE_CONTRACT, standing } from "../../src/core/course-contract";
 import { materialAction, planOfflineFiles } from "../../src/core/course-materials";
-import { announcedMeetings, courseMeetings, type Meeting, meetingModules, meetingState, openPresence, pinnedMeeting } from "../../src/core/course-meetings";
+import {
+  announcedMeetings,
+  courseMeetings,
+  type Meeting,
+  meetingModules,
+  meetingState,
+  openPresence,
+  openPresences,
+  pinnedMeeting,
+} from "../../src/core/course-meetings";
 import type { ClassSession, CourseContract } from "../../src/core/models";
 import { PRETEND_TOKEN } from "../pretend/edunex";
 import { startEngine } from "./harness";
@@ -98,6 +107,17 @@ describe("meetings", () => {
     expect(states.slice(7).every((s) => s === "upcoming")).toBe(true);
     expect(pinnedMeeting(meetings, now)).toMatchObject({ current: true, meeting: { start: at("2026-10-08T08:00:00+07:00") } });
     expect(openPresence(h.dataset("edunex.presence")!.PL3002, now)?.start).toBe(at("2026-10-08T08:00:00+07:00"));
+  });
+
+  it("lists every Presence window still open and not recorded, the one closing first first", async () => {
+    const h = await signedIn();
+    const now = h.world.clock.now(); // Thursday 8 October, 08:12
+    const all = h.dataset("edunex.presence")!.PL3002;
+    // Last week's window kept open until Monday; today's closes at 09:30.
+    const windows = all.map((p) => (p.start === at("2026-10-01T08:00:00+07:00") ? { ...p, closesAt: at("2026-10-12T23:00:00+07:00") } : p));
+    expect(openPresences(windows, now).map((p) => p.start)).toEqual([at("2026-10-08T08:00:00+07:00"), at("2026-10-01T08:00:00+07:00")]);
+    const recorded = windows.map((p) => (p.start === at("2026-10-08T08:00:00+07:00") ? { ...p, recorded: { present: true, at: now } } : p));
+    expect(openPresences(recorded, now).map((p) => p.start)).toEqual([at("2026-10-01T08:00:00+07:00")]);
   });
 });
 

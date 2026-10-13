@@ -26,7 +26,12 @@ describe("Beranda on the recorded Thursday morning", () => {
     const now = text("home-now");
     expect(now).toContain("Sedang berlangsung · sampai 10:00");
     expect(now).toContain("Ekonomi dan Inovasi dalam Perencanaan");
-    expect(now).toContain("PL3002 · 08:00–10:00 · R.SG PWK LT.6");
+    // The time stands in its own block, where a colored stripe used to be; the course's color is its dot.
+    expect(now).toContain("08:0010:00");
+    expect(now).toContain("PL3002 · R.SG PWK LT.6");
+    const colored = [...(section("home-now")?.querySelectorAll<HTMLElement>("[style*='background']") ?? [])];
+    expect(colored.length).toBeGreaterThan(0);
+    expect(colored.every((el) => el.classList.contains("size-2"))).toBe(true);
     expect(now).toContain("Jam berubah · biasanya 08:00–09:30");
     // SIX counts PL3002: being in class is what counts, Edunex's window is optional (the audit's "Catat kehadiran" + "Buka di Edunex" + "dihitung di SIX").
     expect(now).toContain("Kehadiran dihitung di SIX: cukup hadir di kelas.");

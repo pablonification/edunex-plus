@@ -14,8 +14,8 @@ export const homeStrings = {
   // Sekarang: the class going on or next, where attendance counts, the open Presence
   "home.now": { id: "Sekarang", en: "Now" },
   "home.now.live": { id: "Sedang berlangsung · sampai {time}", en: "On now · until {time}" },
-  "home.now.next": { id: "Berikutnya · {time}, {when}", en: "Next · {time}, {when}" },
-  "home.now.later": { id: "Kuliah berikutnya · {day}, {time}", en: "Next class · {day}, {time}" },
+  "home.now.next": { id: "Berikutnya · {when}", en: "Next · {when}" },
+  "home.now.later": { id: "Kuliah berikutnya · {day}", en: "Next class · {day}" },
   "home.now.presenceOnly": { id: "Presensi {course} sedang dibuka", en: "{course} Presence is open" },
   "home.now.countSix": { id: "Kehadiran dihitung di SIX: cukup hadir di kelas.", en: "Attendance counts in SIX: just be in class." },
   "home.now.countSixOnline": { id: "Kehadiran dihitung di SIX: cukup ikut kelasnya.", en: "Attendance counts in SIX: just join the class." },

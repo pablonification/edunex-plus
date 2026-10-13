@@ -414,6 +414,109 @@ describe("meetings", () => {
     expect(s.calls.at(-1)).toEqual({ name: "shell.openExternal", input: { url: "https://edunex.itb.ac.id/courses/95001" } });
   });
 
+  it("the class going on is a raised card with its time and no colored stripe; the next one is a quiet line", async () => {
+    const s = await openCourse("PL3002", { six: true });
+    const tabs = document.querySelector("main [role=tablist]")!;
+    const above = () => [...document.querySelectorAll("main *")].filter((el) => el.compareDocumentPosition(tabs) & Node.DOCUMENT_POSITION_FOLLOWING);
+    const card = above().find((el) => el.classList.contains("shadow-raised"))!;
+    expect(card.textContent).toContain("08:0010:00");
+    expect(card.textContent).toContain("Sedang berlangsung · sampai 10:00");
+    expect(card.textContent).toContain("R.SG PWK LT.6");
+    expect(above().some((el) => (el as HTMLElement).style?.boxShadow)).toBe(false);
+
+    // KU5014 meets later today: no card, one line with when, where and that it's next.
+    await s.click([...document.querySelectorAll<HTMLButtonElement>("aside button")].find((b) => b.textContent?.startsWith("KU5014"))!);
+    expect(above().some((el) => el.classList.contains("shadow-raised"))).toBe(false);
+    const line = above().find((el) => el.textContent?.startsWith("Pertemuan berikutnya · Hari ini, 16:00–17:50"));
+    expect(line).toBeDefined();
+  });
+
+  it('the card names the class going on as its row on the Pertemuan tab does, not just "Kuliah"', async () => {
+    await openCourse("II4091", { world: new PretendWorld({ now: "2026-10-09T15:30:00+07:00" }) });
+    const tabs = document.querySelector("main [role=tablist]")!;
+    const card = [...document.querySelectorAll("main .shadow-raised")].find((el) => el.compareDocumentPosition(tabs) & Node.DOCUMENT_POSITION_FOLLOWING)!;
+    expect(card.textContent).toContain("Sedang berlangsung");
+    expect(card.querySelector("p.text-title")?.textContent).toBe("Pertemuan 3");
+  });
+
+  /** PL3002's Presence window of Thursday 8 October, kept open until `end` (a window tied to handing in a Task does that). */
+  const keepThursdayOpen = (world: PretendWorld, end: string) => {
+    const key = "95001:86778";
+    world.edunex.presences.set(
+      key,
+      world.edunex.presences
+        .get(key)!
+        .map((s) => (s.attributes.start_at.startsWith("2026-10-08") ? { ...s, attributes: { ...s.attributes, presence_end: end } } : s)),
+    );
+  };
+  /** The window's countdown on the card above the tabs, as a screen reader reads it. */
+  const countdowns = () => [...document.querySelectorAll("main .shadow-raised [role=progressbar]")].map((el) => el.getAttribute("aria-label"));
+
+  it("a Presence window still open after its class is about that class, with the next one still a quiet line", async () => {
+    const world = new PretendWorld({ now: "2026-10-09T11:00:00+07:00" });
+    keepThursdayOpen(world, "2026-10-10T23:00:00+07:00");
+    await openCourse("PL3002", { world, six: true });
+    const tabs = document.querySelector("main [role=tablist]")!;
+    const above = () => [...document.querySelectorAll("main *")].filter((el) => el.compareDocumentPosition(tabs) & Node.DOCUMENT_POSITION_FOLLOWING);
+    const card = above().find((el) => el.classList.contains("shadow-raised"))!;
+    // Yesterday's class, by its own time, day and name; the window said once.
+    expect(card.textContent).toContain("08:0010:00");
+    expect(card.textContent).toContain("Kemarin");
+    expect(card.textContent).toContain("Modul 7 · Inovasi Pelayanan Publik");
+    expect(card.textContent?.match(/Presensi Edunex dibuka/g)).toHaveLength(1);
+    expect(card.textContent).not.toContain("Pertemuan berikutnya");
+    // It closes tomorrow night, a day and a half away: its day, not "23:00" alone or "36 jam".
+    expect(countdowns()).toEqual(["tutup besok, 23:00"]);
+    // Next week's class keeps its own quiet line.
+    expect(above().find((el) => el.textContent?.startsWith("Pertemuan berikutnya · Kam, 15 Okt, 08:00"))).toBeDefined();
+  });
+
+  it("the class going on shows its own Presence window, never an earlier class's still open; that one is a quiet line under it", async () => {
+    // Thursday 15 October, in class; last Thursday's window stays open until tomorrow night.
+    const world = new PretendWorld({ now: "2026-10-15T08:30:00+07:00" });
+    keepThursdayOpen(world, "2026-10-16T23:00:00+07:00");
+    await openCourse("PL3002", { world, six: true });
+    const tabs = document.querySelector("main [role=tablist]")!;
+    const above = () => [...document.querySelectorAll("main *")].filter((el) => el.compareDocumentPosition(tabs) & Node.DOCUMENT_POSITION_FOLLOWING);
+    const card = above().find((el) => el.classList.contains("shadow-raised"))!;
+    expect(card.textContent).toContain("Sedang berlangsung · sampai 09:30");
+    // Today's window, closing at 09:30, not last week's at 23:00 tomorrow.
+    expect(countdowns()).toEqual([expect.stringMatching(/^tutup 09:30 \(\d+ mnt lagi\)$/)]);
+    expect(card.textContent).not.toContain("23:00");
+    // Last week's window keeps its own class and close, quietly, with the way to record it.
+    const line = above().find((el) => el.textContent?.startsWith("Presensi Edunex masih dibuka · Kam, 8 Okt, 08:00–10:00 · tutup besok, 23:00"));
+    expect(line).toBeDefined();
+    expect(line!.closest(".shadow-raised")).toBeNull();
+    expect(line!.querySelector("button")?.textContent).toBe("Catat di Edunex");
+  });
+
+  it("a class going on whose own Presence is done shows no countdown, while an earlier class's window still open stays a quiet line", async () => {
+    const world = new PretendWorld({ now: "2026-10-15T08:30:00+07:00" });
+    keepThursdayOpen(world, "2026-10-16T23:00:00+07:00");
+    world.edunex.markPresent(2194343);
+    await openCourse("PL3002", { world, six: true });
+    expect(document.querySelector("main .shadow-raised")?.textContent).toContain("Sedang berlangsung · sampai 09:30");
+    expect(countdowns()).toEqual([]);
+    expect(document.querySelector("main .shadow-raised")?.textContent).not.toContain("Presensi Edunex");
+    expect(screen!.text()).toContain("Presensi Edunex masih dibuka · Kam, 8 Okt, 08:00–10:00 · tutup besok, 23:00");
+  });
+
+  it("a Presence window closing on another day says which day, and how long is left only while that's under a day", async () => {
+    const world = new PretendWorld({ now: "2026-10-09T11:00:00+07:00" });
+    keepThursdayOpen(world, "2026-10-12T23:00:00+07:00");
+    const s = await openCourse("PL3002", { world, six: true });
+    expect(countdowns()).toEqual(["tutup Sen, 12 Okt, 23:00"]);
+    await s.engineDoes(() => s.engine.updateSettings({ lang: "en" }));
+    expect(countdowns()).toEqual(["closes Mon, 12 Oct, 23:00"]);
+    screen!.close();
+
+    const early = new PretendWorld({ now: "2026-10-09T11:00:00+07:00" });
+    keepThursdayOpen(early, "2026-10-10T08:00:00+07:00");
+    await openCourse("PL3002", { world: early, six: true });
+    // Reading SIX at its pace takes a minute or so of the fake clock.
+    expect(countdowns()).toEqual([expect.stringMatching(/^tutup besok, 08:00 \(2\d jam \d+ mnt lagi\)$/)]);
+  });
+
   it("a course past saving says it once, with what's still possible, the shared minutes of a clash and no second copy of the next meeting", async () => {
     screen = await openApp({ signedIn: true, six: true });
     const s = screen;
