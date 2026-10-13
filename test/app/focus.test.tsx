@@ -2,13 +2,15 @@
 // Keyboard use: a dialog or panel closed with Escape puts focus back on what
 // opened it, so the next Tab carries on from there instead of the top of the page;
 // a button that goes once pressed hands focus on instead of dropping it.
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { finishLeaving, playCssAnimations } from "./fake-animations";
 import { openApp } from "./harness";
 
 let screen: Awaited<ReturnType<typeof openApp>> | null = null;
 afterEach(() => {
   screen?.close();
   screen = null;
+  vi.restoreAllMocks();
 });
 
 const tick = () => new Promise((resolve) => setTimeout(resolve, 10));
@@ -133,5 +135,29 @@ describe("a question before something final", () => {
     expect(document.querySelector("[role=dialog]")).not.toBeNull();
     expect(document.activeElement).toBe(asker);
     expect(screen.vault.secrets.size).toBe(1);
+  });
+});
+
+describe("a question that leaves the way it came", () => {
+  it("hands a Task in once, however fast the second click on Kumpulkan", async () => {
+    playCssAnimations();
+    screen = await openApp({ signedIn: true });
+    await screen.click(/^Tugas & Ujian\d*$/);
+    await screen.click(/^Tugas 02 Bab II/);
+    await screen.write("<p>Berikut jawaban saya.</p>");
+    screen.willPick([{ name: "Bab II.pdf" }]);
+    await screen.click(/^Lampirkan berkas/);
+    await screen.click("Kumpulkan");
+    const question = document.querySelector<HTMLElement>("[role=alertdialog]")!;
+    const yes = [...question.querySelectorAll("button")].find((button) => button.textContent?.startsWith("Kumpulkan"))!;
+
+    await screen.click(yes);
+    // Handed in: the question is on its way out, still on screen, and the second click lands on it.
+    expect(question.isConnected && question.dataset.state).toBe("closed");
+    await screen.click(yes);
+    expect(screen.calls.filter((call) => call.name === "tasks.submit")).toHaveLength(1);
+
+    await finishLeaving(question);
+    expect(document.querySelector("[role=alertdialog]")).toBeNull();
   });
 });

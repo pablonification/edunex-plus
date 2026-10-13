@@ -11,6 +11,7 @@ import { act, type ReactNode, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { I18nProvider } from "../../src/app/i18n";
+import { LiveDot, Skeleton } from "../../src/app/ui/display";
 import { Menu } from "../../src/app/ui/menu";
 import { skipAnimations } from "../../src/app/ui/motion/animate";
 import { AnimatedNumber } from "../../src/app/ui/motion/animated-number";
@@ -20,7 +21,7 @@ import { SlidingHighlight } from "../../src/app/ui/motion/sliding-highlight";
 import { DURATION, EASE } from "../../src/app/ui/motion/tokens";
 import { ConfirmDialog, dismissToast, Toaster, Tooltip, TooltipProvider, toast } from "../../src/app/ui/overlays";
 import { PdfViewer } from "../../src/app/ui/pdf-viewer";
-import { playAnimations } from "./fake-animations";
+import { finishLeaving, playAnimations, playCssAnimations } from "./fake-animations";
 import { openApp } from "./harness";
 
 const css = readFileSync(path.resolve(import.meta.dirname, "../../src/app/styles.css"), "utf8");
@@ -137,31 +138,77 @@ describe("toasts", () => {
   });
 });
 
-describe("a dialog or menu on its way out", () => {
-  // jsdom runs no CSS, so Radix drops a closing panel at once. Here every panel reports the
-  // animation its classes give its state (data-[state=closed]:animate-pop-out → "pop-out"), as
-  // Chromium does, so a closing one stays on screen until its animation ends, as in the window.
-  function playCssAnimations() {
-    const real = window.getComputedStyle.bind(window);
-    const animationName = (element: HTMLElement) =>
-      element.getAttribute("class")?.match(new RegExp(`data-\\[state=${element.dataset.state}\\]:animate-([\\w-]+)`))?.[1] ?? "none";
-    vi.spyOn(window, "getComputedStyle").mockImplementation((element, pseudo) => {
-      const style = real(element, pseudo);
-      if (!(element instanceof HTMLElement) || !element.dataset.state) return style;
-      return new Proxy(style, {
-        get: (target, key) => {
-          if (key === "animationName") return animationName(element);
-          const value = Reflect.get(target, key, target);
-          return typeof value === "function" ? value.bind(target) : value;
-        },
-      });
-    });
-    globalThis.CSS ??= { escape: (text: string) => text } as typeof CSS;
-  }
-  const finishLeaving = (element: Element) =>
+describe("a toast being read", () => {
+  afterEach(() => vi.useRealTimers());
+  const card = () => document.querySelector<HTMLElement>("[aria-live] [role=status]");
+  // React hears the pointer arriving and leaving through pointerover and pointerout.
+  const point = (element: HTMLElement, at: boolean) =>
     act(async () => {
-      element.dispatchEvent(Object.assign(new Event("animationend"), { animationName: "pop-out" }));
+      element.dispatchEvent(new MouseEvent(at ? "pointerover" : "pointerout", { bubbles: true, relatedTarget: document.body }));
     });
+  const wait = (ms: number) => act(async () => vi.advanceTimersByTime(ms));
+
+  it("stays while the pointer is on it, and goes when the time it had left runs out after", async () => {
+    vi.useFakeTimers();
+    await mount(<Toaster />);
+    await act(async () => {
+      toast("Diingatkan lagi besok", "neutral", { label: "Urungkan", onClick: () => {} });
+    });
+    await wait(3_000);
+    await point(card()!, true);
+    await wait(20_000);
+    expect(card()?.textContent).toContain("Diingatkan lagi besok");
+
+    await point(card()!, false);
+    await wait(4_900);
+    expect(card()).not.toBeNull();
+    await wait(200);
+    expect(card()).toBeNull();
+  });
+
+  it("stays while focus is on its action, and goes once focus leaves and its time runs out", async () => {
+    vi.useFakeTimers();
+    await mount(<Toaster />);
+    await act(async () => {
+      toast("Diingatkan lagi besok", "neutral", { label: "Urungkan", onClick: () => {} });
+    });
+    const undo = card()!.querySelector("button")!;
+    await act(async () => undo.focus());
+    await wait(20_000);
+    expect(card()).not.toBeNull();
+
+    await act(async () => undo.blur());
+    await wait(8_000);
+    expect(card()).toBeNull();
+  });
+
+  it("one that goes with focus in it gives focus back where it came from, even by way of a toast that went first", async () => {
+    await mount(
+      <>
+        <button type="button">Simpan</button>
+        <Toaster />
+      </>,
+    );
+    const page = document.querySelector("button")!;
+    let first = 0;
+    let second = 0;
+    await act(async () => {
+      first = toast("Diingatkan lagi besok", "neutral", { label: "Urungkan", onClick: () => {} });
+      second = toast("Disembunyikan sampai ada perubahan", "neutral", { label: "Urungkan", onClick: () => {} });
+    });
+    const [one, two] = document.querySelectorAll<HTMLElement>("[aria-live] [role=status] button");
+    await act(async () => page.focus());
+    await act(async () => one.focus());
+    await act(async () => two.focus());
+
+    await act(async () => dismissToast(first));
+    expect(document.activeElement).toBe(two);
+    await act(async () => dismissToast(second));
+    expect(document.activeElement).toBe(page);
+  });
+});
+
+describe("a dialog or menu on its way out", () => {
   afterEach(() => vi.restoreAllMocks());
 
   it("a confirm takes the second click of a double-click as nothing, while it fades", async () => {
@@ -267,6 +314,62 @@ describe("a dialog or menu on its way out", () => {
     await act(async () => item.click());
     await act(async () => item.click());
     expect(opened).toHaveBeenCalledOnce();
+  });
+});
+
+describe("loops", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    Object.defineProperty(document, "hidden", { configurable: true, value: false });
+    document.dispatchEvent(new Event("visibilitychange"));
+  });
+
+  it("rest while the window is hidden", async () => {
+    const { container } = await mount(
+      <>
+        <Skeleton />
+        <LiveDot />
+      </>,
+    );
+    const loops = container.querySelectorAll("[data-loop]");
+    expect(loops).toHaveLength(2);
+    // The rule that pauses them, for a hidden window and for one off-screen.
+    expect(css).toMatch(/html\[data-hidden\] \[data-loop\][^{]*\{\s*animation-play-state: paused;/);
+    expect(css).toMatch(/\[data-loop\]\[data-offscreen\],/);
+
+    Object.defineProperty(document, "hidden", { configurable: true, value: true });
+    await act(async () => document.dispatchEvent(new Event("visibilitychange")));
+    expect(document.documentElement.hasAttribute("data-hidden")).toBe(true);
+    Object.defineProperty(document, "hidden", { configurable: true, value: false });
+    await act(async () => document.dispatchEvent(new Event("visibilitychange")));
+    expect(document.documentElement.hasAttribute("data-hidden")).toBe(false);
+  });
+
+  it("rest while scrolled out of sight, and are no longer watched once gone", async () => {
+    let report: IntersectionObserverCallback = () => undefined;
+    const watched = new Set<Element>();
+    vi.stubGlobal(
+      "IntersectionObserver",
+      class {
+        constructor(callback: IntersectionObserverCallback) {
+          report = callback;
+        }
+        observe = (element: Element) => watched.add(element);
+        unobserve = (element: Element) => watched.delete(element);
+      },
+    );
+    const view = await mount(<Skeleton />);
+    const loop = view.container.querySelector("[data-loop]")!;
+    expect(watched.has(loop)).toBe(true);
+    const seen = (isIntersecting: boolean) => report([{ target: loop, isIntersecting } as IntersectionObserverEntry], {} as IntersectionObserver);
+    seen(false);
+    expect(loop.hasAttribute("data-offscreen")).toBe(true);
+    seen(true);
+    expect(loop.hasAttribute("data-offscreen")).toBe(false);
+
+    await view.unmount();
+    unmount = null;
+    expect(watched.size).toBe(0);
   });
 });
 

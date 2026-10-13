@@ -243,17 +243,60 @@ const publish = () => {
   for (const listener of toastListeners) listener();
 };
 
+/**
+ * Each toast's time left. It waits while the Student reads it (the pointer on
+ * it, or focus on its action) and goes on with what was left after.
+ */
+interface ToastClock {
+  left: number;
+  since: number;
+  timer: ReturnType<typeof setTimeout> | null;
+  held: Set<"pointer" | "focus">;
+}
+const clocks = new Map<number, ToastClock>();
+
+function stopClock(id: number) {
+  const timer = clocks.get(id)?.timer;
+  if (timer) clearTimeout(timer);
+  clocks.delete(id);
+}
+
 const dismiss = (id: number) => {
+  stopClock(id);
   toasts = toasts.filter((item) => item.id !== id);
   publish();
 };
 
+function runClock(id: number) {
+  const clock = clocks.get(id);
+  if (!clock || clock.timer || clock.held.size) return;
+  clock.since = Date.now();
+  clock.timer = setTimeout(() => dismiss(id), clock.left);
+}
+
+function holdClock(id: number, by: "pointer" | "focus") {
+  const clock = clocks.get(id);
+  if (!clock) return;
+  clock.held.add(by);
+  if (!clock.timer) return;
+  clearTimeout(clock.timer);
+  clock.timer = null;
+  clock.left = Math.max(0, clock.left - (Date.now() - clock.since));
+}
+
+function releaseClock(id: number, by: "pointer" | "focus") {
+  clocks.get(id)?.held.delete(by);
+  runClock(id);
+}
+
 /** A short message at the bottom of the window that goes away by itself; with an action, a little later. Returns its id. */
 export function toast(text: string, tone: ToastItem["tone"] = "neutral", action?: ToastItem["action"]): number {
   const id = nextId++;
+  for (const pushedOut of toasts.slice(0, -2)) stopClock(pushedOut.id);
   toasts = [...toasts.slice(-2), { id, text, tone, action }];
   publish();
-  setTimeout(() => dismiss(id), action ? 8_000 : 5_000);
+  clocks.set(id, { left: action ? 8_000 : 5_000, since: 0, timer: null, held: new Set() });
+  runClock(id);
   return id;
 }
 
@@ -264,6 +307,7 @@ export function Toaster() {
   // Toasts belong to the window that shows them: when it goes, so do they (and their actions).
   useEffect(
     () => () => {
+      for (const id of [...clocks.keys()]) stopClock(id);
       toasts = [];
     },
     [],
@@ -288,19 +332,43 @@ export function Toaster() {
   );
 }
 
+/** Where focus was before it came into each toast (its card): it goes back there when the toast goes. */
+const focusCameFrom = new WeakMap<Element, HTMLElement>();
+
 function Toast({ item }: { item: ToastItem }) {
   const ref = useRef<HTMLDivElement>(null);
+  const card = useRef<HTMLDivElement>(null);
   const exit = usePresence()?.exit;
   const leaving = exit !== undefined;
-  useLayoutEffect(() => (exit && ref.current ? exit(ref.current) : undefined), [exit]);
+  useLayoutEffect(() => {
+    if (!exit || !ref.current || !card.current) return;
+    // Focus in a leaving toast (Undo pressed from the keyboard) goes back where it came from, or where
+    // that has gone with its row, before the card turns inert: as a prop, React would make it inert
+    // first and drop the focus on the page.
+    const back = focusCameFrom.get(card.current);
+    if (back && card.current.contains(document.activeElement) && !focusInsteadOf(back) && back.isConnected) back.focus();
+    card.current.setAttribute("inert", "");
+    return exit(ref.current);
+  }, [exit]);
   return (
     // Rises in with CSS (none with Reduce motion); leaves with the kit's fade and closing gap, clipped
     // meanwhile. A leaving toast takes no more clicks, so a second click on Undo can't run it twice:
     // its card is inert, and the box around it catches the click so it doesn't land on the page behind.
     <div ref={ref} className={cx("flex justify-center pt-2 motion-safe:animate-toast-in", leaving && "pointer-events-auto overflow-clip")}>
       <div
+        ref={card}
         role="status"
-        inert={leaving}
+        onPointerEnter={() => holdClock(item.id, "pointer")}
+        onPointerLeave={() => releaseClock(item.id, "pointer")}
+        onFocus={(event) => {
+          holdClock(item.id, "focus");
+          const from = event.relatedTarget;
+          if (!(from instanceof HTMLElement) || event.currentTarget.contains(from)) return;
+          // From another toast: where that one's focus came from, which outlasts it.
+          const toastBefore = from.closest("[role=status]");
+          focusCameFrom.set(event.currentTarget, (toastBefore && focusCameFrom.get(toastBefore)) || from);
+        }}
+        onBlur={(event) => !event.currentTarget.contains(event.relatedTarget) && releaseClock(item.id, "focus")}
         className={cx(
           "pointer-events-auto flex items-center gap-2.5 rounded-xl py-2.5 pr-2.5 pl-3.5 text-small font-medium shadow-pop",
           item.tone === "danger" ? "bg-danger-bg text-danger-fg" : "bg-tooltip-bg text-tooltip-fg",

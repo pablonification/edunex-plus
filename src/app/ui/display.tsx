@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { useT } from "../i18n";
 import { cx } from "./cx";
 import { Icons } from "./icons";
+import { pauseUnseen } from "./motion/visible";
 
 const CARD = {
   /** Content that sits on the page. */
@@ -46,7 +47,7 @@ export function EmptyState({ icon, title, description, children }: { icon: React
 
 /** A placeholder block while the first data loads. */
 export function Skeleton({ className }: { className?: string }) {
-  return <span aria-hidden className={cx("block rounded-md bg-fill motion-safe:animate-shimmer", className)} />;
+  return <span ref={pauseUnseen} data-loop aria-hidden className={cx("block rounded-md bg-fill motion-safe:animate-shimmer", className)} />;
 }
 
 export function Kbd({ children }: { children: ReactNode }) {
@@ -59,7 +60,7 @@ export function Kbd({ children }: { children: ReactNode }) {
 
 export function LiveDot({ className }: { className?: string }) {
   return (
-    <span aria-hidden className={cx("relative inline-flex size-2", className)}>
+    <span ref={pauseUnseen} data-loop aria-hidden className={cx("relative inline-flex size-2", className)}>
       <span className="absolute inset-0 rounded-full bg-live opacity-60 motion-safe:animate-ping" />
       <span className="relative inline-flex size-2 rounded-full bg-live" />
     </span>

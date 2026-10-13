@@ -29,4 +29,12 @@ async function start(root: HTMLElement) {
   requestAnimationFrame(() => requestAnimationFrame(() => void bridge.invoke("app.ready", {}).catch(() => undefined)));
 }
 
+// Light and dark switch at once: without this, every color on screen would fade over 150 ms.
+const scheme = window.matchMedia?.("(prefers-color-scheme: dark)");
+scheme?.addEventListener("change", () => {
+  const html = document.documentElement;
+  html.classList.add("no-transitions");
+  requestAnimationFrame(() => requestAnimationFrame(() => html.classList.remove("no-transitions")));
+});
+
 void start(document.getElementById("root")!);

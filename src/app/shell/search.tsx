@@ -1,8 +1,9 @@
 // Quick search (⌘K, Ctrl+K elsewhere): a palette over everything the app has
 // saved, so it works offline. Results come grouped by kind (what's pressing
-// first), each with its course's color and a type word; the places carry
-// their ⌘1–⌘6. With nothing typed: what was opened lately, the next Tasks,
-// the courses, the places and the verbs (refresh, theme). Arrows move, Enter
+// first), each with its course's color; only what was opened lately mixes
+// kinds, so only there does a row say its kind. The places carry their
+// ⌘1–⌘6. With nothing typed: what was opened lately, the next Tasks, the
+// courses, the places and the verbs (refresh, theme). Arrows move, Enter
 // opens (everything opens inside the app), Escape closes. The index
 // (src/core/search.ts) is built when the palette opens.
 import * as DialogPrimitive from "@radix-ui/react-dialog";
@@ -22,7 +23,7 @@ import { cx } from "../ui/cx";
 import { Kbd } from "../ui/display";
 import { type IconProps, Icons } from "../ui/icons";
 import { factsLabel, Meta } from "../ui/layout";
-import { useReturnFocus } from "../ui/overlays";
+import { ignoreClosingClick, PANEL_MOTION_CLASS, SCRIM_CLASS, useReturnFocus } from "../ui/overlays";
 import { isBuilt } from "./built";
 import { refreshNow } from "./source-status";
 
@@ -135,25 +136,28 @@ export function SearchPalette({ open, onOpenChange, onSettings }: { open: boolea
   return (
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
       <DialogPrimitive.Portal>
-        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-scrim backdrop-blur-[2px] motion-safe:animate-fade-in" />
+        <DialogPrimitive.Overlay className={cx(SCRIM_CLASS, "z-(--z-dialog)")} />
         <DialogPrimitive.Content
           aria-describedby={undefined}
           onOpenAutoFocus={onOpenAutoFocus}
           onCloseAutoFocus={onCloseAutoFocus}
+          onClickCapture={ignoreClosingClick}
+          // It hangs from the top, so it grows from there and leaves the same way, its results still in it.
           className={cx(
-            "fixed top-[12vh] left-1/2 z-50 flex w-[min(620px,calc(100vw-48px))] -translate-x-1/2 flex-col overflow-hidden",
-            "rounded-2xl bg-raised text-fg shadow-dialog ring-1 ring-black/10 focus:outline-none motion-safe:animate-pop-in dark:ring-white/10",
+            "fixed top-[12vh] left-1/2 z-(--z-dialog) flex w-[min(620px,calc(100vw-48px))] origin-top -translate-x-1/2 flex-col overflow-hidden",
+            "rounded-2xl bg-raised text-fg shadow-dialog ring-1 ring-black/10 focus:outline-none dark:ring-white/10",
+            PANEL_MOTION_CLASS,
           )}
         >
           <DialogPrimitive.Title className="sr-only">{t("search.open")}</DialogPrimitive.Title>
-          {open && <Palette onClose={() => onOpenChange(false)} onSettings={onSettings} />}
+          <Palette shown={open} onClose={() => onOpenChange(false)} onSettings={onSettings} />
         </DialogPrimitive.Content>
       </DialogPrimitive.Portal>
     </DialogPrimitive.Root>
   );
 }
 
-function Palette({ onClose, onSettings }: { onClose: () => void; onSettings: () => void }) {
+function Palette({ shown, onClose, onSettings }: { shown: boolean; onClose: () => void; onSettings: () => void }) {
   const t = useT();
   const f = useFormat();
   const lang = useLang();
@@ -169,7 +173,17 @@ function Palette({ onClose, onSettings }: { onClose: () => void; onSettings: () 
   const store = useStore();
   const settings = useSettings();
   const mac = store.platform === "darwin";
-  const [recent] = useState(readRecent);
+  const [recent, setRecent] = useState(readRecent);
+  // Opened again while still leaving, it starts afresh (and keeps the focus it has).
+  const [wasShown, setWasShown] = useState(shown);
+  if (shown !== wasShown) {
+    setWasShown(shown);
+    if (shown) {
+      setQuery("");
+      setActive(0);
+      setRecent(readRecent());
+    }
+  }
   const index = useMemo(() => searchIndex(saved, { lang, screens: BUILT, now }), [saved, lang, now]);
   const groups = useMemo(() => (query.trim() ? search(index, query) : suggestions(index, now, recent)), [index, query, now, recent]);
   const items = groups.flatMap((group) => group.items);
@@ -185,6 +199,8 @@ function Palette({ onClose, onSettings }: { onClose: () => void; onSettings: () 
   });
 
   const open = (item: SearchItem) => {
+    // It stays on screen while it leaves: a second Enter or click then opens nothing more.
+    if (!shown) return;
     onClose();
     remember(item.key);
     const target = item.target;
@@ -278,7 +294,8 @@ function Palette({ onClose, onSettings }: { onClose: () => void; onSettings: () 
                         <Kbd>{key}</Kbd>
                       </span>
                     ) : (
-                      <span className="text-caption text-faint">{t(`search.type.${item.kind}`)}</span>
+                      // Only where kinds mix: elsewhere the group's name already says what each row is.
+                      group.kind === "recent" && <span className="text-caption text-faint">{t(`search.type.${item.kind}`)}</span>
                     )}
                     <span aria-hidden className={cx("w-3.5 text-center text-small text-faint", !selected && "invisible")}>
                       ↵

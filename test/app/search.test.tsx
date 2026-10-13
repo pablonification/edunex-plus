@@ -3,7 +3,8 @@
 // arrows, Enter, Escape), over what the real engine saved from the pretend
 // Edunex, SIX and ITB calendar.
 import { act } from "react";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { finishLeaving, playCssAnimations } from "./fake-animations";
 import { openApp } from "./harness";
 
 let screen: Awaited<ReturnType<typeof openApp>> | null = null;
@@ -11,6 +12,7 @@ afterEach(() => {
   screen?.close();
   screen = null;
   localStorage.clear();
+  vi.restoreAllMocks();
 });
 
 const palette = () => document.querySelector<HTMLElement>("[role=dialog]");
@@ -65,9 +67,9 @@ describe("quick search", () => {
       ["Halaman", "Beranda", "Tugas & Ujian", "Jadwal", "Presensi", "Nilai", "Rencana studi", "Pengaturan"],
       ["Perintah", "Muat ulang data", "Ganti tema"],
     ]);
-    // Each row says its course by code (its color is the mark beside it), when, and what it is; "↵": it opens in the app.
-    // "Belum dikerjakan" says nothing on a Task to do: it's left out.
-    expect(activeRow()).toBe("Tugas 02 Bab IIII4091 · tenggat Jum, 16 Okt, 23:59Tugas↵");
+    // Each row says its course by code (its color is the mark beside it) and when; "↵": it opens in the app.
+    // Not what it is: its group's name says that. "Belum dikerjakan" says nothing on a Task to do: it's left out.
+    expect(activeRow()).toBe("Tugas 02 Bab IIII4091 · tenggat Jum, 16 Okt, 23:59↵");
     // The places show their shortcut.
     expect(palette()?.textContent).toContain("Beranda⌘1");
   });
@@ -77,7 +79,7 @@ describe("quick search", () => {
     await commandK();
     await type("pl3002");
     expect(groups()[0]).toEqual(["Mata kuliah", "Ekonomi dan Inovasi dalam Perencanaan"]);
-    expect(activeRow()).toBe("Ekonomi dan Inovasi dalam PerencanaanPL3002 · Kelas 01 · 3 SKSMata kuliah↵");
+    expect(activeRow()).toBe("Ekonomi dan Inovasi dalam PerencanaanPL3002 · Kelas 01 · 3 SKS↵");
     await press("Enter");
     expect(palette()).toBeNull();
     expect(h1()).toBe("Ekonomi dan Inovasi dalam Perencanaan");
@@ -105,7 +107,7 @@ describe("quick search", () => {
     screen = await openApp({ signedIn: true, six: true });
     await commandK();
     await type("ekonomi infrastruktr sap");
-    expect(activeRow()).toBe("K1. SAP Ekonomi Infrastruktur dan TransportasiPL3032 · PengantarMateri↵");
+    expect(activeRow()).toBe("K1. SAP Ekonomi Infrastruktur dan TransportasiPL3032 · Pengantar↵");
     await press("Enter");
     expect(h1()).toBe("Ekonomi Infrastruktur dan Transportasi");
     expect(document.querySelector("[role=tab][data-state=active]")?.textContent).toMatch(/^Modul/);
@@ -142,7 +144,7 @@ describe("quick search", () => {
     await commandK();
     await type("uts komunikasi");
     expect(groups()[0]).toEqual(["Ujian", "UTS Komunikasi Pemasaran"]);
-    expect(activeRow()).toBe("UTS Komunikasi PemasaranDK4073 · Kam, 15 Okt, 11:00–12:59 · TVST CUjian↵");
+    expect(activeRow()).toBe("UTS Komunikasi PemasaranDK4073 · Kam, 15 Okt, 11:00–12:59 · TVST C↵");
     await press("Enter");
     expect(h1()).toBe("Komunikasi Pemasaran");
     expect(document.querySelector("main")?.textContent).toContain("TVST C");
@@ -152,7 +154,7 @@ describe("quick search", () => {
     screen = await openApp({ signedIn: true, six: true });
     await commandK();
     await type("ukt");
-    expect(activeRow()).toBe("UKTRencana studiHalaman↵");
+    expect(activeRow()).toBe("UKTRencana studi↵");
     await press("Enter");
     expect(h1()).toBe("Rencana studi");
     expect(document.querySelector("[role=tab][data-state=active]")?.textContent).toBe("UKT");
@@ -195,6 +197,37 @@ describe("quick search", () => {
     await press("Enter");
     await commandK();
     expect(groups()[0]).toEqual(["Terakhir dibuka", "Teknik Penyelesaian Masalah Terstruktur"]);
+    // Kinds mix here, so the row says what it is.
+    expect(activeRow()).toMatch(/Mata kuliah↵$/);
+  });
+
+  it("opens one thing, however fast the second Enter or click while it leaves", async () => {
+    playCssAnimations();
+    screen = await openApp({ signedIn: true, six: true });
+    await commandK();
+    await type("muat ulang");
+    const leaving = palette()!;
+    const result = leaving.querySelector<HTMLElement>("[role=option]")!;
+    const refreshes = () => screen!.calls.filter((call) => call.name === "sync.refresh").length;
+    await press("Enter");
+    const once = refreshes();
+    expect(once).toBeGreaterThan(0);
+    expect(leaving.isConnected && leaving.dataset.state).toBe("closed");
+    expect(document.activeElement).toBe(input());
+    await press("Enter");
+    await act(async () => result.click());
+    expect(refreshes()).toBe(once);
+
+    // Opened again before it has gone, it starts afresh, and Enter opens again.
+    await commandK();
+    expect(palette()).toBe(leaving);
+    expect(leaving.dataset.state).toBe("open");
+    expect(input()?.value).toBe("");
+    await type("muat ulang");
+    await press("Enter");
+    expect(refreshes()).toBe(2 * once);
+    await finishLeaving(leaving);
+    expect(palette()).toBeNull();
   });
 
   it("does things too: refresh, and switch the theme", async () => {
@@ -205,7 +238,7 @@ describe("quick search", () => {
     expect(screen.calls.some((call) => call.name === "sync.refresh")).toBe(true);
     await commandK();
     await type("ganti tema");
-    expect(activeRow()).toBe("Ganti temaKe tema GelapPerintah↵");
+    expect(activeRow()).toBe("Ganti temaKe tema Gelap↵");
     await press("Enter");
     expect(screen.engine.snapshot().settings.theme).toBe("dark");
   });
@@ -234,8 +267,8 @@ describe("quick search", () => {
     expect(input()?.placeholder).toBe("Search courses, Tasks, modules, materials…");
     expect(groups().map((group) => group[0])).toEqual(["Tasks to do", "Courses", "Pages", "Commands"]);
     await type("economics");
-    expect(activeRow()).toBe("Economics and Innovation in PlanningPL3002 · Class 01 · 3 SKSCourse↵");
+    expect(activeRow()).toBe("Economics and Innovation in PlanningPL3002 · Class 01 · 3 SKS↵");
     await type("bills");
-    expect(activeRow()).toBe("UKTStudy planPage↵");
+    expect(activeRow()).toBe("UKTStudy plan↵");
   });
 });

@@ -50,7 +50,7 @@ import { cx } from "../ui/cx";
 import { Card, CourseDot, EmptyState, Skeleton, StatusChip, StatusGlyph } from "../ui/display";
 import { Icons } from "../ui/icons";
 import { factsLabel, List, Row as ListRow, Meta, Page, PageHeader, Section } from "../ui/layout";
-import { toast, useReturnFocus } from "../ui/overlays";
+import { ignoreClosingClick, PANEL_MOTION_CLASS, SCRIM_CLASS, toast, useReturnFocus } from "../ui/overlays";
 import type { RichEditorHandle } from "../ui/rich-editor";
 import { plainText } from "../ui/rich-text";
 import { ready as courseReady } from "./course";
@@ -1383,12 +1383,17 @@ function HandInDialog({
   return (
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
       <DialogPrimitive.Portal>
-        <DialogPrimitive.Overlay className="fixed inset-0 z-[55] bg-scrim motion-safe:animate-fade-in" />
+        <DialogPrimitive.Overlay className={cx(SCRIM_CLASS, "z-(--z-confirm)")} />
         <DialogPrimitive.Content
           role="alertdialog"
           onOpenAutoFocus={onOpenAutoFocus}
           onCloseAutoFocus={onCloseAutoFocus}
-          className="fixed top-1/2 left-1/2 z-[55] w-[min(460px,calc(100vw-48px))] -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-raised p-5 text-fg shadow-dialog ring-1 ring-black/10 focus:outline-none motion-safe:animate-pop-in dark:ring-white/10"
+          // While it leaves, a second click on "Kumpulkan" (a double-click) must not hand in twice.
+          onClickCapture={ignoreClosingClick}
+          className={cx(
+            "fixed top-1/2 left-1/2 z-(--z-confirm) w-[min(460px,calc(100vw-48px))] -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-raised p-5 text-fg shadow-dialog ring-1 ring-black/10 focus:outline-none dark:ring-white/10",
+            PANEL_MOTION_CLASS,
+          )}
         >
           <DialogPrimitive.Title className="text-title font-semibold">{t("handIn.confirmTitle")}</DialogPrimitive.Title>
           <DialogPrimitive.Description className="mt-1.5 text-body text-muted">

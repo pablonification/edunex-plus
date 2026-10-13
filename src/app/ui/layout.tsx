@@ -145,7 +145,7 @@ export function Row({
       {leading !== undefined && <span className="flex shrink-0 self-start pt-px">{leading}</span>}
       <span className="min-w-0 flex-1">
         {/* A long name wraps to a second line, then shows whole on hover: never cut with no way to read it. */}
-        <span className="line-clamp-2 block text-body font-medium [overflow-wrap:anywhere]" title={typeof title === "string" ? title : undefined}>
+        <span className="line-clamp-2 block text-body font-medium break-words" title={typeof title === "string" ? title : undefined}>
           {title}
         </span>
         {meta && <span className="mt-0.5 block text-small text-muted">{meta}</span>}
@@ -162,7 +162,7 @@ export function Row({
         index !== undefined && "motion-safe:stagger",
         // With actions the row's hover belongs to the whole line, the control beside the button included,
         // and so does the button's focus ring: drawn inside the line, around both, never cut by the list's edges.
-        aside && "group/row flex items-center transition-colors duration-150 hover:bg-hover has-[>button:active]:bg-selected",
+        aside && "group/row flex items-center hover:bg-hover has-[>button:active]:bg-selected",
         aside &&
           "has-[>button:focus-visible]:outline-2 has-[>button:focus-visible]:outline-offset-[-2px] has-[>button:focus-visible]:outline-focus has-[>button:focus-visible]:outline-solid",
         aside && current && "bg-selected",
@@ -177,7 +177,7 @@ export function Row({
           aria-label={label}
           aria-current={current || undefined}
           className={cx(
-            "group flex w-full items-center gap-3.5 px-4 py-3 text-left transition-colors duration-150",
+            "group flex w-full items-center gap-3.5 px-4 py-3 text-left",
             aside ? "min-w-0 flex-1 pr-1 focus-visible:outline-none" : "focus-ring hover:bg-hover active:bg-selected",
             current && !aside && "bg-selected",
             className,

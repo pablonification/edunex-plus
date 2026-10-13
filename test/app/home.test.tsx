@@ -326,6 +326,19 @@ describe("Tasks on Beranda", () => {
     await screen.click(/^23:59Ringkasan K5/);
     expect(document.querySelector("h1")?.textContent).toBe("Ringkasan K5");
   });
+
+  it("a long name with no spaces wraps in Hari ini instead of pushing Beranda past the window", async () => {
+    screen = await openApp({ signedIn: true, six: true });
+    const name = "Laporan_Akhir_Studio_Perencanaan_Wilayah_dan_Kota_Revisi_Ketiga_Setelah_Asistensi_Dosen_Pembimbing";
+    screen.world.edunex.postTask(95059, { name, end_at: "2026-10-08T23:59:00+07:00" });
+    await screen.engineDoes(() => screen!.engine.refresh("edunex"));
+    const title = [...(section("home-today")?.querySelectorAll("li span[title]") ?? [])].find((el) => el.textContent === name);
+    expect(title?.className).toContain("break-words");
+    // Below 800 px the day and what needs you stack in one column, which must be able to be narrower than
+    // the longest word: a column that fits its content (no template) would widen the whole page instead.
+    const grid = section("home-today")?.parentElement;
+    expect(grid?.className).toMatch(/(^| )grid-cols-1( |$)/);
+  });
 });
 
 describe("nothing to do", () => {

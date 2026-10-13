@@ -21,6 +21,13 @@ const SIZE: Record<Size, string> = {
   lg: "h-10 gap-2 rounded-lg px-5 text-body font-semibold",
 };
 
+/**
+ * A button answers a press by sinking to 97%. Not a menu or popover trigger (Radix gives those
+ * aria-haspopup; Tailwind has no variant for it), and not one that is aria-disabled.
+ */
+const PRESS =
+  "transition-[color,background-color,border-color,box-shadow,scale] duration-150 [&:active:not([aria-haspopup]):not([aria-disabled=true])]:scale-[0.97]";
+
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: Variant;
   size?: Size;
@@ -37,7 +44,8 @@ export function Button({ variant = "secondary", size = "md", busy = false, icon,
       disabled={disabled || busy}
       aria-busy={busy || undefined}
       className={cx(
-        "focus-ring inline-flex shrink-0 items-center justify-center whitespace-nowrap transition-colors duration-150 select-none disabled:pointer-events-none disabled:opacity-50",
+        "focus-ring inline-flex shrink-0 items-center justify-center whitespace-nowrap select-none disabled:pointer-events-none disabled:opacity-50",
+        PRESS,
         VARIANT[variant],
         SIZE[size],
         className,
@@ -63,7 +71,8 @@ export function IconButton({ label, size = "md", className, children, type = "bu
       type={type}
       aria-label={label}
       className={cx(
-        "focus-ring grid shrink-0 place-items-center rounded-lg text-muted transition-colors duration-150 hover:bg-hover hover:text-fg disabled:pointer-events-none disabled:opacity-50",
+        "focus-ring grid shrink-0 place-items-center rounded-lg text-muted hover:bg-hover hover:text-fg disabled:pointer-events-none disabled:opacity-50",
+        PRESS,
         size === "sm" ? "size-7" : "size-8",
         className,
       )}

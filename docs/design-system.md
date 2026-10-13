@@ -202,6 +202,10 @@ most three styles: its title, one supporting line, one meta line.
 - **Spacing** on a 4 px grid. One page container for every screen
   (`Page`): 40 px side padding, 1040 px wide (Jadwal goes wider), the same
   left edge everywhere. Sections 40 px apart; inside a section 12 px.
+  A grid that holds rows gives every column a size that can shrink
+  (`grid-cols-1`, `minmax(0,…)`), at every width: a column that fits its
+  content would grow to a long title with no spaces and push the page past
+  the window.
 - **Radius**: 5 px keys and tags (`rounded-tag`), 6–8 px buttons and inputs
   (`rounded-md`, `rounded-lg`), 12 px cards and lists (`rounded-xl`), 16 px
   raised cards and dialogs (`rounded-2xl`), full for chips and switches. No
@@ -239,7 +243,8 @@ keeps them equal).
 
 | What | How |
 |---|---|
-| Hover, press, color changes | 150 ms color change |
+| Hover, press, color changes | Hover backgrounds: instant. Buttons press to 97% in 150 ms (not menu or popover triggers, not rows; a row's press is its darker background). Other color changes: 150 ms |
+| Switching light and dark | At once: nothing fades its color (`.no-transitions` on `<html>` for two frames) |
 | Screens and their rows | Nothing: switching screens or going further in is instant, and rows don't rise in |
 | Dialogs (`animate-pop-in`, `animate-pop-out`; the scrim `animate-fade-in`, `animate-fade-out`) | In 200 ms from 98%, out 150 ms |
 | Popovers and tooltips (`animate-popover-in`, `animate-popover-out`) | 150 ms, growing from their control (`origin-(--radix-popover-content-transform-origin)`), so the side they open on shows. A tooltip grows in only after the wait; moving on to the next control shows its tooltip at once, and a tooltip goes at once |
@@ -251,7 +256,7 @@ keeps them equal).
 | A segmented control's or tab list's highlight (`SlidingHighlight`) | Sits on the new pick at once and glides there from the old one as a transform (translate and scale), 150 ms ease-out |
 | A figure the Student just changed (`AnimatedNumber`) | Counts 400 ms ease-out with no overshoot, while the page's text is already the true value. A figure that changes on its own just changes |
 | Bars filling | 300–500 ms |
-| Loading placeholders | 1.4 s pulse |
+| Loading placeholders | 1.4 s pulse in four held steps, not every frame |
 
 **Rules.**
 - Only transform and opacity move, except a few small, isolated heights (a
@@ -262,7 +267,9 @@ keeps them equal).
 - Screens and rows never animate in; a row moves only when the Student's own
   action removes it.
 - No decoration: no glow, spotlight, tilt or parallax, and nothing loops except
-  loading placeholders, spinners and live dots.
+  loading placeholders, spinners and live dots. A loop (`data-loop`, with
+  `ref={pauseUnseen}` from `ui/motion/visible.ts`) rests while it is
+  off-screen or the window is hidden.
 - No animation library. JS animation only through the kit's
   `src/app/ui/motion/` pieces and the toasts, with `element.animate` (via
   `animate()` and `leave()` in `ui/motion/animate.ts`); a number counting is
@@ -320,7 +327,7 @@ Screens are composed, not styled one by one:
 | `IconButton` | Square, always with a name and a tooltip. |
 | `Popover` | A panel from a control (alerts, data status); Escape and a click outside close it. |
 | `Dialog`, `ConfirmDialog` | Focus stays inside; Escape closes; both leave the way they came, taking no second click while they go (other dialog shells reuse `SCRIM_CLASS`, `PANEL_MOTION_CLASS` and `onClickCapture={ignoreClosingClick}`). Confirm only before what can't be undone: it is an alert dialog, so a click beside it isn't an answer and Cancel has focus first. |
-| `toast(text, tone, action?)` | Neutral, success or danger; with an action ("Urungkan", "Lihat") it stays 8 s. Never the only place an error is said. |
+| `toast(text, tone, action?)` | Neutral, success or danger; with an action ("Urungkan", "Lihat") it stays 8 s. It waits while the pointer is on it or focus is in it, then goes on with the time it had left. When it goes (Urungkan pressed from the keyboard), focus goes back where it came from, never to the page. Never the only place an error is said. |
 | `StatusChip` | A Task's true status: each its own color, glyph and word. Shown only where the status says something (not "Belum dikerjakan" on every to-do row). |
 | `SourceTag` | Quiet outline tag, only where the source changes what to do. |
 | `SourceLogo`, `AppMark` (`ui/brand.tsx`) | The real Edunex and SIX logos where the app stands for one of them (connecting, the data status, the accounts in Settings); Edunex Plus's own icon (`assets/icon.png`) in the sidebar, on the welcome screen and in Settings. |
