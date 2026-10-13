@@ -61,6 +61,8 @@ async function tab(name: string) {
   await act(async () => {
     trigger.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, button: 0 }));
   });
+  // Like every other step: let what the tab asked for finish, so a slow machine reads the drawn tab.
+  await screen!.wait(0);
 }
 
 const block = (title: RegExp) =>
