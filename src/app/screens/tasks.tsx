@@ -172,7 +172,6 @@ export function TasksScreen() {
   // One radio group: "Semua" (null) first, then each course; arrows move the pick, a second click keeps it.
   const radio = useRadioKeys([null, ...withItems.map((c) => c.code)], course, setCourse);
 
-  let index = 0;
   return (
     <Page>
       <PageHeader
@@ -230,7 +229,7 @@ export function TasksScreen() {
               {shownExams.length > 0 && (
                 <List label={t("exams.title")}>
                   {shownExams.map((exam) => (
-                    <ExamRow key={exam.id} exam={exam} index={index++} />
+                    <ExamRow key={exam.id} exam={exam} />
                   ))}
                 </List>
               )}
@@ -243,7 +242,7 @@ export function TasksScreen() {
               <Section key={section.title} id={`tasks-${section.title}`} title={t(section.title)} count={section.rows.length}>
                 <List label={t(section.title)}>
                   {section.rows.map((row) => (
-                    <TaskRow key={row.task.id} {...row} index={index++} />
+                    <TaskRow key={row.task.id} {...row} />
                   ))}
                 </List>
               </Section>
@@ -321,20 +320,19 @@ export function TaskRows({ tasks, meta = "course", label }: { tasks: readonly Ta
   const now = useNow();
   return (
     <List label={label}>
-      {tasks.map((task, index) => (
-        <TaskRow key={task.id} task={task} status={taskStatus(task, now)} index={index} meta={meta} />
+      {tasks.map((task) => (
+        <TaskRow key={task.id} task={task} status={taskStatus(task, now)} meta={meta} />
       ))}
     </List>
   );
 }
 
-function TaskRow({ task, status, index, meta = "course" }: Row & { index: number; meta?: "course" | "module" | "none" }) {
+function TaskRow({ task, status, meta = "course" }: Row & { meta?: "course" | "module" | "none" }) {
   const t = useT();
   const { go } = useNav();
   const module = moduleLabel(t, task.module);
   return (
     <ListRow
-      index={index}
       onClick={() => go({ screen: "task", taskId: task.id })}
       title={task.title}
       meta={meta === "course" ? <Place task={task} /> : meta === "module" && module ? <Meta>{module}</Meta> : undefined}

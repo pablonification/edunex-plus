@@ -6,7 +6,7 @@
 // against the progress check); past ones folded away. "Full calendar": every
 // event ITB lists, by month, ITB's own title first, with chips and a search,
 // so a dense calendar stays readable. Works without SIX.
-import { type CSSProperties, Fragment, useRef, useState } from "react";
+import { Fragment, useRef, useState } from "react";
 import {
   academicDeadlines,
   CALENDAR_GROUPS,
@@ -105,7 +105,6 @@ function ForYou() {
     const g = groupOf(d, now, term, termEnd);
     grouped.set(g, [...(grouped.get(g) ?? []), d]);
   }
-  let index = 0;
   return (
     <div>
       <div className="space-y-6">
@@ -152,12 +151,7 @@ function ForYou() {
                 {!collapsed && (
                   <List>
                     {items.map((deadline) => (
-                      <DeadlineRow
-                        key={deadline.event.id}
-                        deadline={deadline}
-                        index={index++}
-                        showTerm={deadline.event.term !== term && deadline.event.term !== named}
-                      />
+                      <DeadlineRow key={deadline.event.id} deadline={deadline} showTerm={deadline.event.term !== term && deadline.event.term !== named} />
                     ))}
                   </List>
                 )}
@@ -185,7 +179,7 @@ function ForYou() {
 }
 
 /** `showTerm`: the event's term, only where it isn't the one the Student is reading about (this term, or the group's). */
-function DeadlineRow({ deadline, index, showTerm }: { deadline: Deadline; index?: number; showTerm: boolean }) {
+function DeadlineRow({ deadline, showTerm }: { deadline: Deadline; showTerm: boolean }) {
   const t = useT();
   const lang = useLang();
   const f = useFormat();
@@ -206,10 +200,7 @@ function DeadlineRow({ deadline, index, showTerm }: { deadline: Deadline; index?
   const near = when === "next" && offset < 14;
   const warn = meaning?.warn && when !== "past";
   return (
-    <li
-      className={cx(index !== undefined && index < 10 && "motion-safe:stagger")}
-      style={index !== undefined ? ({ "--i": index } as CSSProperties) : undefined}
-    >
+    <li>
       <div className={cx("grid grid-cols-[112px_minmax(0,1fr)_auto] items-start gap-4 px-4 py-3", when === "past" && "text-muted")}>
         <span className="text-body font-semibold tabular-nums">
           {dates}

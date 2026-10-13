@@ -14,6 +14,10 @@ Nielsen's ten usability heuristics
 The code is the source of truth: tokens live in `src/app/styles.css`, the
 components in `src/app/ui/` (screens are built from `src/app/ui/layout.tsx`),
 and every word in `src/core/strings/`. This page explains them.
+`test/app/ui-rules.test.ts` reads the window's classes and fails on a
+hand-typed size, corner or layer (`text-[…px]`, `rounded-[…]`, `z-[…]`), a
+blur, a glow, spaced-out capitals, `h-screen` or a dropped arrival animation;
+a real exception goes on its allowed list with the reason.
 
 Agents doing polish work have ibelick's ui-skills installed (`baseline-ui`,
 `fixing-accessibility`, `fixing-motion-performance`, `improve-ui`). Where one

@@ -187,12 +187,11 @@ function ThisTerm({ record, state }: { record: StudentRecord; state: PlanState }
       <div className="grid grid-cols-1 items-start gap-6 @3xl:grid-cols-[minmax(0,1fr)_288px]">
         <div className="min-w-0">
           <List label={t("grades.thisTerm")}>
-            {record.thisTerm.map((course, i) => {
+            {record.thisTerm.map((course) => {
               const published = outline?.[course.code]?.grade ?? null;
               return (
                 <Row
                   key={course.code}
-                  index={i}
                   leading={<span className="w-[60px] text-small font-semibold tabular-nums">{course.code}</span>}
                   title={course.name}
                   meta={
@@ -395,12 +394,11 @@ function WithoutSix() {
         // With no grade published anywhere, that's said once above the list, not on every row.
         <Section id="edunex-term" title={t("grades.edunexTerm")} description={t(anyGrade ? "grades.edunexTermHint" : "grades.edunexTermNoneHint")}>
           <List label={t("grades.edunexTerm")}>
-            {courses.map((course, i) => {
+            {courses.map((course) => {
               const grade = outline?.[course.code]?.grade ?? null;
               return (
                 <Row
                   key={course.code}
-                  index={i}
                   leading={<CourseCode code={course.code} color={course.color} className="w-[76px] text-small" />}
                   title={course.name}
                   meta={

@@ -95,7 +95,7 @@ export function AlertsBell() {
           {unread > 0 && (
             <span
               aria-hidden
-              className="absolute top-0.5 right-0.5 grid h-[15px] min-w-[15px] place-items-center rounded-full bg-accent px-1 text-[10px] leading-none font-semibold text-on-accent tabular-nums"
+              className="absolute top-0.5 right-0.5 grid h-[15px] min-w-[15px] place-items-center rounded-full bg-accent px-1 text-micro leading-none font-semibold text-on-accent tabular-nums"
             >
               {unread > 99 ? "99+" : unread}
             </span>

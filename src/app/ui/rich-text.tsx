@@ -35,7 +35,7 @@ const INLINE: Record<string, string> = {
   s: "line-through",
   code: "rounded bg-fill px-1 font-mono text-small",
   // CKEditor's highlighter.
-  mark: "rounded-[3px] bg-warning-bg px-0.5 text-fg",
+  mark: "rounded-sm bg-warning-bg px-0.5 text-fg",
   span: "",
   sub: "",
   sup: "",

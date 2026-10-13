@@ -60,15 +60,15 @@ export function ExamRows({ exams }: { exams: readonly Exam[] }) {
   const t = useT();
   return (
     <List label={t("exams.title")}>
-      {exams.map((exam, index) => (
-        <ExamRow key={exam.id} exam={exam} index={index} />
+      {exams.map((exam) => (
+        <ExamRow key={exam.id} exam={exam} />
       ))}
     </List>
   );
 }
 
 /** One exam: the date first, then the course, where, and its take-home folded in. */
-export function ExamRow({ exam, index }: { exam: Exam; index?: number }) {
+export function ExamRow({ exam }: { exam: Exam }) {
   const t = useT();
   const f = useFormat();
   const now = useNow();
@@ -92,7 +92,6 @@ export function ExamRow({ exam, index }: { exam: Exam; index?: number }) {
             : [];
   return (
     <Row
-      index={index}
       onClick={() => go({ screen: "exam", examId: exam.id })}
       leading={<DateTile at={exam.at} week={exam.week} />}
       title={

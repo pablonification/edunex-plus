@@ -217,13 +217,12 @@ function Courses({ plan, overlaps }: { plan: KrsPlan; overlaps: Overlap[] }) {
         </>
       )}
       <List label={t("krs.courses")}>
-        {plan.courses.map((course, i) => {
+        {plan.courses.map((course) => {
           const known = term?.find((c) => c.code === course.code);
           const clashes = clashWith(course.code);
           return (
             <Row
               key={course.code}
-              index={i}
               leading={<CourseCode code={course.code} color={known?.color ?? "var(--faint)"} className="w-[76px] text-small" />}
               title={course.name}
               meta={
