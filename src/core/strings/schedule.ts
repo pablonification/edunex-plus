@@ -153,6 +153,13 @@ export const scheduleStrings = {
   "exam.kind.UJIAN": { id: "Ujian", en: "Exam" },
   "exam.inClass": { id: "Di kelas", en: "In class" },
   "exam.takeHome": { id: "Take-home", en: "Take-home" },
+  // How a Task is known to be an exam's take-home
+  "exam.takeHomeBy.edunex": { id: "Edunex menandainya {kind}", en: "Edunex files it under {kind}" },
+  "exam.takeHomeBy.name": { id: "Namanya diawali “{start}”", en: "Its name starts with “{start}”" },
+  "exams.takeHomeRule": {
+    id: "Take-home: tugas Edunex yang ditandai UTS atau UAS, atau yang namanya diawali UTS, UAS, Midex atau Finex.",
+    en: "Take-home: an Edunex Task filed under UTS or UAS, or whose name starts with UTS, UAS, Midex or Finex.",
+  },
   "exam.onEdunex": { id: "Di Edunex", en: "On Edunex" },
   "exam.due": { id: "Tenggat {when}", en: "Due {when}" },
   "exam.outlineOnly": { id: "Ada di daftar isi Edunex", en: "In the Edunex outline" },

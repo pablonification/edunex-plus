@@ -54,7 +54,7 @@ import { ignoreClosingClick, PANEL_MOTION_CLASS, SCRIM_CLASS, toast, useReturnFo
 import type { RichEditorHandle } from "../ui/rich-editor";
 import { plainText } from "../ui/rich-text";
 import { ready as courseReady } from "./course";
-import { ExamRow, examWeekLabel } from "./exam";
+import { ExamRow, examWeekLabel, takeHomeWhy } from "./exam";
 
 export const ready = true;
 
@@ -233,6 +233,8 @@ export function TasksScreen() {
                   ))}
                 </List>
               )}
+              {/* Under a take-home, how the app tells one from a Task: said once for the list. */}
+              {shownExams.some((exam) => exam.tasks.length > 0) && <p className="mt-2.5 px-1 text-small text-muted">{t("exams.takeHomeRule")}</p>}
               {examsNoSix && <ExamsNoSix />}
             </Section>
           )}
@@ -528,15 +530,19 @@ function TaskPage({ task }: { task: Task }) {
           )}
         </Meta>
         {exam && (
-          <button
-            type="button"
-            onClick={() => go({ screen: "exam", examId: exam.id })}
-            className="focus-ring mt-3 inline-flex items-center gap-1.5 rounded-md text-small font-medium text-accent-fg hover:underline"
-          >
-            <Icons.GraduationCap className="size-3.5" />
-            {t("task.partOfExam", { kind: t(`exam.kind.${exam.kind}`), code: exam.courseCode })}
-            <Icons.ChevronRight className="size-3.5" />
-          </button>
+          // The exam it's part of, and how the app knows: Edunex files it there, or its name says so.
+          <Meta className="mt-3 text-small text-muted">
+            <button
+              type="button"
+              onClick={() => go({ screen: "exam", examId: exam.id })}
+              className="focus-ring inline-flex items-center gap-1.5 rounded-md font-medium text-accent-fg hover:underline"
+            >
+              <Icons.GraduationCap className="size-3.5" />
+              {t("task.partOfExam", { kind: t(`exam.kind.${exam.kind}`), code: exam.courseCode })}
+              <Icons.ChevronRight className="size-3.5" />
+            </button>
+            {takeHomeWhy(t, task) ?? ""}
+          </Meta>
         )}
 
         <Notes task={task} />

@@ -3,7 +3,7 @@
 // and exam; a warning when two sittings disagree, and a calm note when a
 // take-home is due on another day than SIX's sitting.
 import { describe, expect, it } from "vitest";
-import { examKind, examPassed, mergeExams, takeHomeKind } from "../../src/core/exams";
+import { examKind, examPassed, mergeExams, takeHomeKind, takeHomeOf } from "../../src/core/exams";
 import type { AcademicCalendar, ClassSession, CourseOutline } from "../../src/core/models";
 import { aTask } from "../kit/tasks";
 
@@ -170,6 +170,14 @@ describe("the merged exam list", () => {
 });
 
 describe("which Tasks are take-home exams", () => {
+  it("says why, so the screen can: Edunex files it under the exam, or its name starts with the exam's word", () => {
+    expect(takeHomeOf({ title: "Soal", kind: "uts" })).toEqual({ kind: "UTS", by: "edunex" });
+    expect(takeHomeOf({ title: "UTS Markom", kind: "task" })).toEqual({ kind: "UTS", by: "name", start: "UTS" });
+    expect(takeHomeOf({ title: "[Take-home UAS] Studi Kasus", kind: "task" })).toEqual({ kind: "UAS", by: "name", start: "Take-home UAS" });
+    expect(takeHomeOf({ title: "Midex DK4073", kind: "task" })).toEqual({ kind: "UTS", by: "name", start: "Midex" });
+    expect(takeHomeOf({ title: "Tugas Pra-UTS", kind: "task" })).toBeNull();
+  });
+
   const kindOf = (title: string, kind: "task" | "uts" | "uas" = "task") => takeHomeKind({ title, kind });
 
   it("Edunex's own category first, whatever the title: the lecturer picks UTS or UAS", () => {
