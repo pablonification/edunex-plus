@@ -14,6 +14,12 @@ afterEach(() => {
 /** Beranda's course cards (the other lists on Beranda are rows). */
 const cards = () => [...document.querySelectorAll('main section[aria-labelledby="home-courses"] ul > li')].map((li) => li.textContent ?? "");
 const card = (code: string) => cards().find((text) => text.startsWith(code)) ?? "";
+/** A course card's attendance meter: what a screen reader hears, and its status color. */
+const meter = (code: string) => {
+  const li = [...document.querySelectorAll('main section[aria-labelledby="home-courses"] ul > li')].find((el) => el.textContent?.startsWith(code));
+  const el = li?.querySelector("[role=img]");
+  return { label: el?.getAttribute("aria-label"), tone: el?.getAttribute("data-tone") };
+};
 const sidebar = () => document.querySelector("aside")?.textContent ?? "";
 /** What the top bar's status panel says about each system. */
 const edunexLive = async () => expect(await screen!.sourceState("Edunex")).toBe("Terhubung");
@@ -78,26 +84,29 @@ describe("first run", () => {
 });
 
 describe("Home with both systems", () => {
-  it("each course shows its class, SKS and SIX's attendance count and share, with a meter in the status colors", async () => {
+  it("each course shows its class, SKS and SIX's attendance, labelled, against the target, in words when it isn't safe", async () => {
     screen = await openApp({ signedIn: true, six: true });
     expect(cards().map((text) => text.slice(0, 6))).toEqual(["DK4073", "II4091", "KU5014", "PL3002", "PL3032"]);
+    // The bar says what it is ("Kehadiran"), then SIX's count and share; with no room to spare, what that means.
     const expected = {
-      DK4073: ["Kelas 01 · 3 SKS", "4/6", "66%"],
-      II4091: ["Kelas 01 · 2 SKS", "3/3", "100%"],
-      KU5014: ["Kelas 01 · 3 SKS", "2/6", "33%"],
-      PL3002: ["Kelas 01 · 3 SKS", "6/7", "85%"],
-      PL3032: ["Kelas 01 · 3 SKS", "4/7", "57%"],
+      DK4073: ["Kelas 01 · 3 SKS", "Kehadiran4/6 · 66%Jangan absen lagi"],
+      II4091: ["Kelas 01 · 2 SKS", "Kehadiran3/3 · 100%"],
+      KU5014: ["Kelas 01 · 3 SKS", "Kehadiran2/6 · 33%80% tak terkejar"],
+      PL3002: ["Kelas 01 · 3 SKS", "Kehadiran6/7 · 85%Boleh absen 1× lagi"],
+      PL3032: ["Kelas 01 · 3 SKS", "Kehadiran4/7 · 57%Jangan absen lagi"],
     };
     for (const [code, facts] of Object.entries(expected)) for (const fact of facts) expect(card(code)).toContain(fact);
+    // A course with room to spare stays quiet.
+    expect(card("II4091").endsWith("3/3 · 100%")).toBe(true);
     // SIX's (Indonesian) names, and Edunex's course page for each.
     expect(card("PL3032")).toContain("Ekonomi Infrastruktur dan Transportasi");
     expect(screen.has("Buka di Edunex: PL3032")).toBe(true);
-    expect(document.querySelector('[role="progressbar"][aria-label="Hadir 2 dari 6 pertemuan"]')).not.toBeNull();
+    // The meter marks the course's target; screen readers hear it.
+    expect(meter("KU5014").label).toBe("Hadir 2 dari 6, 33%, target 80%");
     // Meters speak in status colors, never the course's: KU5014 can't reach 80% (red), DK4073 has no absences left (amber), II4091 is safe (green).
-    const fill = (label: string) => document.querySelector<HTMLElement>(`[role="progressbar"][aria-label="${label}"] > span`)?.style.background;
-    expect(fill("Hadir 2 dari 6 pertemuan")).toBe("var(--danger-fg)");
-    expect(fill("Hadir 4 dari 6 pertemuan")).toBe("var(--warning-fg)");
-    expect(fill("Hadir 3 dari 3 pertemuan")).toBe("var(--live)");
+    expect(meter("KU5014").tone).toBe("danger");
+    expect(meter("DK4073").tone).toBe("warning");
+    expect(meter("II4091").tone).toBe("success");
     await edunexLive();
     await sixLive();
   });
@@ -117,8 +126,8 @@ describe("Home with both systems", () => {
     expect(card("PL3032")).toContain("Ekonomi Infrastruktur dan Transportasi");
     expect(card("PL3032")).not.toContain("Infrastructure and Transportation Economics");
     expect(card("PL3032")).toContain("Class 01 · 3 SKS");
-    expect(card("PL3032")).toContain("4/757%");
-    expect(document.querySelector('[role="progressbar"][aria-label="Attended 4 of 7 meetings"]')).not.toBeNull();
+    expect(card("PL3032")).toContain("Attendance4/7 · 57%Don't miss any more");
+    expect(meter("PL3032").label).toBe("Attended 4 of 7, 57%, target 80%");
     expect(await screen.sourceState("SIX")).toBe("Connected");
   });
 

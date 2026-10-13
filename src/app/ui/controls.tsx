@@ -1,4 +1,4 @@
-// Interactive controls: buttons, the switch, the segmented control. Every
+// Interactive controls: buttons, the switch, the stepper, the segmented control. Every
 // control has a visible keyboard focus and a name screen readers can read.
 import * as SwitchPrimitive from "@radix-ui/react-switch";
 import { type ButtonHTMLAttributes, type ReactNode, type Ref, useRef } from "react";
@@ -96,6 +96,43 @@ export function Switch({
     >
       <SwitchPrimitive.Thumb className="block size-4 translate-x-[2px] rounded-full bg-white shadow-thumb transition-transform duration-150 ease-standard data-[state=checked]:translate-x-4 data-[state=checked]:bg-surface" />
     </SwitchPrimitive.Root>
+  );
+}
+
+/** "− 80% +": a number stepped between bounds; the value is read out when it changes. */
+export function Stepper({
+  value,
+  onChange,
+  min,
+  max,
+  step = 1,
+  format = String,
+  lowerLabel,
+  raiseLabel,
+}: {
+  value: number;
+  onChange: (value: number) => void;
+  min: number;
+  max: number;
+  step?: number;
+  format?: (value: number) => string;
+  /** What − and + do, for screen readers ("Lower the target"). */
+  lowerLabel: string;
+  raiseLabel: string;
+}) {
+  const set = (next: number) => onChange(Math.max(min, Math.min(max, next)));
+  return (
+    <div className="inline-flex h-8 shrink-0 items-center rounded-lg border border-edge bg-surface">
+      <IconButton size="sm" label={lowerLabel} disabled={value <= min} onClick={() => set(value - step)} className="rounded-r-none">
+        <Icons.Minus className="size-3.5" />
+      </IconButton>
+      <span className="min-w-12 px-1 text-center text-small font-semibold tabular-nums" aria-live="polite">
+        {format(value)}
+      </span>
+      <IconButton size="sm" label={raiseLabel} disabled={value >= max} onClick={() => set(value + step)} className="rounded-l-none">
+        <Icons.Plus className="size-3.5" />
+      </IconButton>
+    </div>
   );
 }
 

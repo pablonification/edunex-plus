@@ -32,7 +32,8 @@ describe("Beranda on the recorded Thursday morning", () => {
     expect(now).toContain("Kehadiran dihitung di SIX: cukup hadir di kelas.");
     expect(now).toContain("Presensi Edunex juga dibuka sampai 09:30, tidak wajib.");
     expect(now).not.toContain("Catat kehadiran");
-    expect(now).toContain("Boleh absen 2× lagi");
+    // 6 of 7: the UTS-week lecture on 15 Oct may not run, so it buys no absence (#85: never one too many).
+    expect(now).toContain("Boleh absen 1× lagi");
     expect(now).toContain("Setelah ini 11:00 · DK4073 Komunikasi Pemasaran");
     // Optional means quiet: not the primary button.
     expect(screen.button("Buka Presensi PL3002 di Edunex").className).not.toContain("bg-accent");
@@ -54,7 +55,7 @@ describe("Beranda on the recorded Thursday morning", () => {
   it("today: SIX's classes with time and room, absences left, the moved class, the overlap, and tomorrow's online meeting; rows open their course", async () => {
     screen = await openApp({ signedIn: true, six: true });
     // The now card above says "Jam berubah · biasanya 08:00–09:30" for this class; the row doesn't say it again.
-    expect(row("home-today", "08:0010:00")).toBe("08:0010:00Ekonomi dan Inovasi dalam PerencanaanPL3002·R.SG PWK LT.6Boleh absen 2× lagiSekarang");
+    expect(row("home-today", "08:0010:00")).toBe("08:0010:00Ekonomi dan Inovasi dalam PerencanaanPL3002·R.SG PWK LT.6Boleh absen 1× lagiSekarang");
     expect(text("home-now")).toContain("Jam berubah · biasanya 08:00–09:30");
     expect(row("home-today", "11:00")).toBe("11:0012:59Komunikasi PemasaranDK4073·TVST CJangan absen lagidalam 3 jam");
     expect(row("home-today", "16:00")).toContain("80% tak terkejar · paling tinggi 73%");
@@ -92,7 +93,7 @@ describe("Beranda on the recorded Thursday morning", () => {
     expect(text("home-now")).toContain("On now · until 10:00");
     expect(text("home-now")).toContain("Attendance counts in SIX: just be in class.");
     expect(text("home-now")).toContain("Edunex Presence is also open until 09:30; it's optional.");
-    expect(row("home-today", "08:00")).toContain("You can miss 2 moreNow");
+    expect(row("home-today", "08:00")).toContain("You can miss 1 moreNow");
     expect(text("home-now")).toContain("New time · usually 08:00–09:30");
     expect(row("home-today", "15:00")).toContain("Clashes with KU5014 16:00–16:30");
     expect(rows("home-needs")[0]).toContain("KU5014 can't reach 80% anymore");

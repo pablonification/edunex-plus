@@ -7,7 +7,7 @@
 // in src/core/needs.ts.
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { rupiah } from "../../core/academic";
-import { type AttendanceState, percent } from "../../core/attendance";
+import { type AttendanceHealth, type AttendanceState, percent } from "../../core/attendance";
 import { wibDay } from "../../core/course-meetings";
 import { edunexCourseUrl, sixStatusUrl } from "../../core/links";
 import type { Alert, AlertKind, ClassSession } from "../../core/models";
@@ -23,6 +23,8 @@ import {
   type TodayPlan,
   todayPlan,
 } from "../../core/needs";
+import { budgetLabel, useActionLabel, verdictLabel } from "../attendance-labels";
+import { AttendanceSummary } from "../attendance-parts";
 import { type TermCourse, useTerm, useTermCourses } from "../courses";
 import { useHomeWorld } from "../home-world";
 import { useOpenExternal } from "../hooks";
@@ -31,35 +33,27 @@ import { firstName } from "../names";
 import { type Route, useNav } from "../nav";
 import { openAlerts } from "../shell/alerts";
 import { useRefresh, useSignIn } from "../shell/source-status";
-import { useDataset, useSettings, useStatus } from "../store";
+import { useDataset, useStatus } from "../store";
 import { Button, IconButton } from "../ui/controls";
 import { cx } from "../ui/cx";
-import { Bar, Card, CourseDot, EmptyState, LiveDot, Skeleton } from "../ui/display";
+import { Card, CourseDot, EmptyState, LiveDot, Skeleton } from "../ui/display";
 import { Icons } from "../ui/icons";
 import { List, Meta, Page, PageHeader, Row, Section } from "../ui/layout";
 import { CountdownBar } from "../ui/meter";
 import { Tooltip } from "../ui/overlays";
-import { budgetLabel, useActionLabel } from "./presence";
 
 const MINUTE = 60_000;
 const DAY = 86_400_000;
 /** "Yang berubah" shows this many; the bell has the rest. */
 const CHANGES_SHOWN = 5;
 
-/** Attendance state as a status color: text, and a meter's fill. Never the course's color. */
+/** Attendance state as a status color for text: quiet when safe. Never the course's color. */
 const STATE_TEXT: Record<AttendanceState, string> = {
   out: "text-danger-fg",
   none: "text-warning-fg",
   risk: "text-warning-fg",
   safe: "text-muted",
   unknown: "text-faint",
-};
-const STATE_FILL: Record<AttendanceState, string> = {
-  out: "var(--danger-fg)",
-  none: "var(--warning-fg)",
-  risk: "var(--warning-fg)",
-  safe: "var(--live)",
-  unknown: "var(--faint)",
 };
 
 export function Home() {
@@ -258,14 +252,13 @@ function Attendance({ card }: { card: NowCard }) {
   const now = useNow();
   const { go } = useNav();
   const external = useOpenExternal();
-  const { attendanceTarget } = useSettings();
   const actionLabel = useActionLabel();
   const facts = card.class;
   const presence = card.presence;
   const counted = facts?.countedIn ?? "unknown";
   const online = facts?.link !== null && facts?.link !== undefined;
 
-  const budget = facts?.health && facts.state !== "unknown" ? budgetLabel(t, facts.health, attendanceTarget) : null;
+  const budget = facts?.health && facts.state !== "unknown" ? budgetLabel(t, facts.health) : null;
   const where = presence?.counts
     ? t("home.now.countEdunex")
     : presence?.noSix
@@ -484,7 +477,6 @@ function TodayRow({ item, courses, index, onCard }: { item: TodayItem; courses: 
   const now = useNow();
   const { go } = useNav();
   const open = useOpenExternal();
-  const { attendanceTarget } = useSettings();
   const fresh = useStatus("six").state === "live";
 
   if (item.kind === "due") {
@@ -538,7 +530,7 @@ function TodayRow({ item, courses, index, onCard }: { item: TodayItem; courses: 
   const past = session.end <= now;
   const course = courses.find((c) => c.code === session.courseCode);
   const exam = /\b(UTS|UAS)\b/i.test(session.activity);
-  const budget = facts.health && facts.state !== "unknown" && !past ? budgetLabel(t, facts.health, attendanceTarget) : null;
+  const budget = facts.health && facts.state !== "unknown" && !past ? budgetLabel(t, facts.health) : null;
   // The now card says "Jam berubah · biasanya …" for its class; the row keeps only the amber time.
   const moved = facts.moved && session.id !== onCard;
   return (
@@ -644,7 +636,6 @@ function useNeedView(courses: readonly TermCourse[]): (need: Need) => NeedView {
   const t = useT();
   const f = useFormat();
   const now = useNow();
-  const { attendanceTarget } = useSettings();
   const near = (at: number | null) => (at !== null && at - now <= DAY ? "warning" : null);
   return (need) => {
     const course = need.course ? <CourseMark key="course" code={need.course} courses={courses} /> : null;
@@ -729,7 +720,7 @@ function useNeedView(courses: readonly TermCourse[]): (need: Need) => NeedView {
         const vars = {
           attended: health.attended ?? 0,
           held: health.held ?? 0,
-          target: attendanceTarget,
+          target: health.target,
           best: percent(health.best ?? 0),
           course: need.course ?? "",
         };
@@ -940,14 +931,14 @@ function CourseGrid({ courses, nim, context }: { courses: TermCourse[]; nim: str
     >
       {courses.map((course) => (
         <li key={course.code}>
-          <CourseCard course={course} nim={nim} state={context?.health.get(course.code)?.state ?? "unknown"} />
+          <CourseCard course={course} nim={nim} health={context?.health.get(course.code)} />
         </li>
       ))}
     </ul>
   );
 }
 
-function CourseCard({ course, nim, state }: { course: TermCourse; nim: string | undefined; state: AttendanceState }) {
+function CourseCard({ course, nim, health }: { course: TermCourse; nim: string | undefined; health: AttendanceHealth | undefined }) {
   const t = useT();
   const open = useOpenExternal();
   const { go } = useNav();
@@ -976,8 +967,9 @@ function CourseCard({ course, nim, state }: { course: TermCourse; nim: string | 
         </div>
       )}
       {facts && <span className="mt-0.5 block text-small text-muted">{facts}</span>}
-      <div className="mt-auto pt-3">
-        {course.inSix && <CourseAttendance course={course} state={state} />}
+      {/* From the top, so the meters of a row of cards line up (the name always takes two lines). */}
+      <div className="pt-3">
+        {course.inSix && <CourseAttendance health={health} />}
         {!course.edunex && <span className="mt-1 block text-caption text-faint">{t("course.notOnEdunex")}</span>}
       </div>
       {/* Last in the markup, so Tab reaches the course before its way out to Edunex or SIX. */}
@@ -1004,30 +996,13 @@ function CardHead({ course }: { course: TermCourse }) {
   );
 }
 
-/** SIX's exact count ("4/6") and its share, rounded down so it never looks better than it is; the meter speaks in status colors. */
-function CourseAttendance({ course, state }: { course: TermCourse; state: AttendanceState }) {
+/**
+ * "Kehadiran 4/6 · 66%" over a meter with the course's target as a tick; the
+ * share rounds down so it never looks better than it is. With no room to
+ * spare, the state in words under it; a course with room stays quiet.
+ */
+function CourseAttendance({ health }: { health: AttendanceHealth | undefined }) {
   const t = useT();
-  const count = course.attendance;
-  if (!count || count.held === 0) return <span className="text-caption text-faint">{t("course.noMeetingsYet")}</span>;
-  return (
-    <div className="flex items-center gap-2.5 text-small">
-      <Bar
-        className="flex-1"
-        value={count.attended / count.held}
-        color={STATE_FILL[state]}
-        label={t("course.attendanceCount", { attended: count.attended, count: count.held })}
-      />
-      <span className="text-muted tabular-nums">
-        {count.attended}/{count.held}
-      </span>
-      <span
-        className={cx(
-          "min-w-9 text-right font-semibold tabular-nums",
-          state === "out" ? "text-danger-fg" : state === "none" || state === "risk" ? "text-warning-fg" : "",
-        )}
-      >
-        {percent(count.attended, count.held)}%
-      </span>
-    </div>
-  );
+  if (!health?.held) return <span className="text-caption text-faint">{t("course.noMeetingsYet")}</span>;
+  return <AttendanceSummary health={health} words={health.state === "safe" ? null : verdictLabel(t, health)} />;
 }

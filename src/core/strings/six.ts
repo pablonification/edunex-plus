@@ -12,11 +12,6 @@ export const sixStrings = {
 
   // This term's courses
   "course.sks": { id: "{count} SKS", en: "{count} SKS" },
-  "course.attendance": { id: "Kehadiran", en: "Attendance" },
-  "course.attendanceCount": {
-    id: "Hadir {attended} dari {count} pertemuan",
-    en: { one: "Attended {attended} of {count} meeting", other: "Attended {attended} of {count} meetings" },
-  },
   "course.noMeetingsYet": { id: "Belum ada pertemuan", en: "No meetings yet" },
   "course.notOnEdunex": { id: "Tidak ada di Edunex", en: "Not on Edunex" },
   "action.openInSix": { id: "Buka di SIX", en: "Open in SIX" },

@@ -10,7 +10,9 @@ import {
   countedIn,
   lecturePeriod,
   meetingsLeft,
+  percent,
   presenceAction,
+  targetFor,
   usualSlots,
 } from "../../src/core/attendance";
 import type { AcademicCalendar, CalendarEvent, ClassSession, PresenceSession, Task } from "../../src/core/models";
@@ -140,8 +142,9 @@ describe("meetings left to the last lecture day", () => {
     const after = weekly("II3120", "2026-10-07T13:00:00", 4);
     expect(usualSlots([...before, ...after])).toEqual([{ weekday: 3, start: 13 * 60, length: 2 * HOUR }]);
     const left = meetingsLeft("II3120", [...before, ...after], period, wib("2026-10-08T12:00:00"));
-    // 14 (listed by SIX, so it counts), 21, 28 Oct, then Wednesdays 4 Nov – 2 Dec.
-    expect(left.count).toBe(8);
+    // 14 Oct (listed by SIX in UTS week: it may not run, so not counted), 21, 28 Oct, then Wednesdays 4 Nov – 2 Dec.
+    expect(left.count).toBe(7);
+    expect(left.upcoming).toHaveLength(8);
     // SIX moves one class: the next meeting follows.
     const moved = after.map((s, i) => (i === 1 ? { ...s, start: s.start + DAY, end: s.end + DAY } : s));
     expect(wibDate(meetingsLeft("II3120", [...before, ...moved], period, wib("2026-10-08T12:00:00")).next!.start)).toBe("2026-10-15");
@@ -152,11 +155,11 @@ describe("meetings left to the last lecture day", () => {
     expect(usualSlots(sessions)).toEqual([{ weekday: 4, start: 16 * 60, length: 2 * HOUR }]);
   });
 
-  it("a lecture SIX still lists inside the UTS week counts, marked uncertain, each meeting with its date", () => {
+  it("a lecture SIX still lists inside the UTS week is uncertain and not counted, yet listed with its date", () => {
     // SIX keeps the Thursday lecture in the 15 Oct slot of Masa UTS; it may not happen.
     const schedule = weekly("PL3002", "2026-08-27T08:00:00", 10);
     const left = meetingsLeft("PL3002", schedule, period, wib("2026-10-08T12:00:00"));
-    expect(left.count).toBe(8);
+    expect(left.count).toBe(7);
     expect(left.upcoming).toHaveLength(8);
     expect(left.upcoming.map((m) => [wibDate(m.start), m.estimated, m.uncertain])).toEqual([
       ["2026-10-15", false, true],
@@ -180,6 +183,10 @@ describe("meetings left to the last lecture day", () => {
     expect(meetingsLeft("II4091", schedule, period, wib("2026-10-08T12:00:00")).upcoming[0].uncertain).toBe(true);
     expect(meetingsLeft("II4091", schedule, period, wib("2026-10-08T12:00:00"), [viewCourse]).upcoming[0].uncertain).toBe(true);
     expect(meetingsLeft("II4091", schedule, period, wib("2026-10-08T12:00:00"), [handIn]).upcoming[0].uncertain).toBe(false);
+    // So it counts: one more meeting than without the hand-in.
+    expect(meetingsLeft("II4091", schedule, period, wib("2026-10-08T12:00:00"), [handIn]).count).toBe(
+      meetingsLeft("II4091", schedule, period, wib("2026-10-08T12:00:00")).count + 1,
+    );
   });
 
   it("without the calendar, only SIX's listed sessions count, and not as an estimate", () => {
@@ -223,7 +230,72 @@ describe("the absence budget", () => {
 
   it("is unknown until SIX shows a count", () => {
     const input: AttendanceInput = { code: "X", six: null, presence: [], schedule: [], period: null, target: 80, now };
-    expect(attendanceHealth(input)).toMatchObject({ state: "unknown", absencesLeft: null, best: null });
+    expect(attendanceHealth(input)).toMatchObject({ state: "unknown", absencesLeft: null, best: null, target: 80 });
+  });
+
+  it("a UTS-week lecture SIX still lists is no absence to spare: 6 of 7 leaves one, not two", () => {
+    // PL3002 on Thursdays; SIX lists 15 Oct (UTS week) as a lecture. Counting it would say "2× lagi".
+    const period = lecturePeriod(CALENDAR, "2026-1", now)!;
+    const input: AttendanceInput = {
+      code: "PL3002",
+      six: { attended: 6, held: 7 },
+      presence: [],
+      schedule: weekly("PL3002", "2026-08-27T08:00:00", 10),
+      period,
+      target: 80,
+      now,
+    };
+    expect(attendanceHealth(input)).toMatchObject({ state: "risk", absencesLeft: 1, needsUncertain: false });
+    expect(attendanceHealth(input).left.upcoming.filter((m) => m.uncertain)).toHaveLength(1);
+  });
+
+  it("nor does it take the target away: 4 of 7 can still finish at 80% if the UTS-week lecture runs, so it's no absences left, not out of reach", () => {
+    const period = lecturePeriod(CALENDAR, "2026-1", now)!;
+    const input: AttendanceInput = {
+      code: "PL3002",
+      six: { attended: 4, held: 7 },
+      presence: [],
+      schedule: weekly("PL3002", "2026-08-27T08:00:00", 10),
+      period,
+      target: 80,
+      now,
+    };
+    // 15 Oct (may not run), 22 and 29 Oct, then Thursdays to 3 Dec: 12 of 15 if every one runs and is attended.
+    const health = attendanceHealth(input);
+    expect(health).toMatchObject({ state: "none", absencesLeft: 0, needsUncertain: true });
+    expect(percent(health.best!)).toBe(80);
+    // Without that lecture on SIX's timetable, 80% is out of reach.
+    const without = attendanceHealth({ ...input, schedule: input.schedule.filter((s) => wibDate(s.start) !== "2026-10-15") });
+    expect(without).toMatchObject({ state: "out", needsUncertain: false });
+    expect(percent(without.best!)).toBe(78);
+  });
+});
+
+describe("each course's own target", () => {
+  const now = wib("2026-10-08T12:00:00");
+  const settings = { attendanceTarget: 80, attendanceTargets: { DK4073: 75 } };
+
+  it("is the course contract's when the Student set one, else the default", () => {
+    expect(targetFor(settings, "DK4073")).toBe(75);
+    expect(targetFor(settings, "PL3002")).toBe(80);
+    // Not a property every object has.
+    expect(targetFor(settings, "constructor")).toBe(80);
+  });
+
+  it("is what the course is judged against, and says so: 4 of 6 with 7 to go has no absences left at 80%, one at 75%", () => {
+    const schedule = Array.from({ length: 7 }, (_, i) => ({ ...session("DK4073", "2026-10-09T08:00:00"), start: wib("2026-10-09T08:00:00") + i * DAY }));
+    const health = (code: string) =>
+      attendanceHealth({
+        code,
+        six: { attended: 4, held: 6 },
+        presence: [],
+        schedule: schedule.map((s) => ({ ...s, courseCode: code })),
+        period: null,
+        target: targetFor(settings, code),
+        now,
+      });
+    expect(health("PL3002")).toMatchObject({ state: "none", absencesLeft: 0, target: 80 });
+    expect(health("DK4073")).toMatchObject({ state: "risk", absencesLeft: 1, target: 75 });
   });
 });
 

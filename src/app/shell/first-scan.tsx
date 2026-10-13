@@ -92,7 +92,7 @@ export function FirstScan({ open, onOpenChange, blocked }: { open: boolean; onOp
 
 /** What the scan reasons from, as the window has it now. */
 function useScan(computing: boolean) {
-  const { attendanceTarget } = useSettings();
+  const { attendanceTarget, attendanceTargets } = useSettings();
   const now = useNow();
   const saved = useSaved(SCANNED);
   const edunex = useStatus("edunex");
@@ -101,8 +101,8 @@ function useScan(computing: boolean) {
   const statuses = useMemo(() => [edunex, six, itb], [edunex, six, itb]);
   const ready = scanReady(saved, statuses);
   const findings = useMemo(
-    () => (computing || ready ? firstScan({ saved, statuses, target: attendanceTarget, now }) : []),
-    [computing, ready, saved, statuses, attendanceTarget, now],
+    () => (computing || ready ? firstScan({ saved, statuses, targets: { attendanceTarget, attendanceTargets }, now }) : []),
+    [computing, ready, saved, statuses, attendanceTarget, attendanceTargets, now],
   );
   return { saved, statuses, ready, findings };
 }
@@ -198,9 +198,8 @@ function Line({ finding, onGo }: { finding: Finding; onGo: (route: Route) => voi
   const t = useT();
   const f = useFormat();
   const id = useId();
-  const { attendanceTarget } = useSettings();
   const Icon = ICON[finding.kind];
-  const { title, lines, note } = describe(finding, t, f, attendanceTarget);
+  const { title, lines, note } = describe(finding, t, f);
   const route = finding.routes.find(isBuilt) ?? { screen: "home" };
   return (
     <button
@@ -240,8 +239,8 @@ function few<T>(items: readonly T[], line: (item: T) => string, t: Translate): s
   return items.length > SHOWN ? [...shown, t("scan.more", { count: items.length - SHOWN })] : shown;
 }
 
-/** A finding in words. `target`: the Student's attendance target (percent). */
-function describe(finding: Finding, t: Translate, f: Format, target: number): { title: string; lines: string[]; note: string | null } {
+/** A finding in words. */
+function describe(finding: Finding, t: Translate, f: Format): { title: string; lines: string[]; note: string | null } {
   switch (finding.kind) {
     case "attendance":
       return {
@@ -249,7 +248,7 @@ function describe(finding: Finding, t: Translate, f: Format, target: number): { 
         lines: few(
           finding.courses,
           (health) => {
-            const vars = { code: health.code, attended: health.attended ?? 0, held: health.held ?? 0, target };
+            const vars = { code: health.code, attended: health.attended ?? 0, held: health.held ?? 0, target: health.target };
             if (health.state === "out") return t("scan.attendance.out", { ...vars, best: percent(health.best ?? 0) });
             if (health.state === "none") return t("scan.attendance.none", vars);
             if (health.toRecover !== null) return t("scan.attendance.below", { ...vars, count: health.toRecover });

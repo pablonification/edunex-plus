@@ -37,7 +37,7 @@ export function ShareMeter({
   const clamp = (value: number) => Math.max(0, Math.min(100, value));
   const fill = FILL[tone];
   return (
-    <span role="img" aria-label={label} className={cx("relative block h-1.5 rounded-full bg-black/[0.07] dark:bg-white/[0.09]", className)}>
+    <span role="img" aria-label={label} data-tone={tone} className={cx("relative block h-1.5 rounded-full bg-black/[0.07] dark:bg-white/[0.09]", className)}>
       {best != null && best > share && (
         <span
           aria-hidden

@@ -1,17 +1,20 @@
 // Settings, in the order people look for things: the accounts first (who is
 // signed in, when each was last checked, sign out of one, or sign out and
 // remove everything), then notifications and what closing the window does,
-// then appearance, then the rest (attendance target, version). A newer
+// then appearance, then the rest (attendance targets: the default and each
+// course's own, version). A newer
 // release shows on top while there is one.
 import { type ReactNode, useRef, useState } from "react";
 import type { AlertGroup, Settings, SourceId } from "../../core/models";
 import type { StringKey } from "../../core/strings";
+import { TargetStepper, useTargets } from "../attendance-parts";
 import { ActionError } from "../bridge";
 import { useFormat, useT } from "../i18n";
 import { displayName } from "../names";
+import { useCourseNames } from "../schedule-data";
 import { useBridge, useDataset, useSettings, useStatus, useStore } from "../store";
 import { AppMark, SourceLogo } from "../ui/brand";
-import { Button, IconButton, Segmented, Switch } from "../ui/controls";
+import { Button, Segmented, Switch } from "../ui/controls";
 import { cx } from "../ui/cx";
 import { Card } from "../ui/display";
 import { Icons } from "../ui/icons";
@@ -115,9 +118,7 @@ function SettingsBody({ onSignedOutOfEverything, onShowFirstScan }: { onSignedOu
       </Group>
 
       <Group title={t("settings.other")}>
-        <Row label={t("settings.attendance.target")} hint={t("settings.attendance.targetHint")}>
-          <Target value={settings.attendanceTarget} onChange={(attendanceTarget) => update({ attendanceTarget })} />
-        </Row>
+        <AttendanceTargets />
       </Group>
 
       <About version={store.version} />
@@ -135,22 +136,50 @@ function SettingsBody({ onSignedOutOfEverything, onShowFirstScan }: { onSignedOu
   );
 }
 
-/** "− 80% +": the target, stepped by 5 between 50 and 100. */
-function Target({ value, onChange }: { value: number; onChange: (value: number) => void }) {
+/** The default target, then each course with its own (from its course contract), which can go back to the default. */
+function AttendanceTargets() {
   const t = useT();
-  const set = (next: number) => onChange(Math.max(50, Math.min(100, next)));
+  const name = useCourseNames();
+  const { target, own, setDefault, setOwn } = useTargets();
+  const codes = Object.keys(own).sort();
+  const resets = useRef(new Map<string, HTMLButtonElement>());
+  const general = useRef<HTMLSpanElement>(null);
+  const followDefault = (code: string) => {
+    // Its row goes: focus moves to the next course's, else the one before, else the default's stepper, never back to the top of Settings.
+    const at = codes.indexOf(code);
+    const neighbour = codes[at + 1] ?? codes[at - 1];
+    const next = neighbour ? resets.current.get(neighbour) : general.current?.querySelector<HTMLButtonElement>("button:enabled");
+    next?.focus();
+    setOwn(code, null);
+  };
   return (
-    <div className="inline-flex h-8 shrink-0 items-center rounded-lg border border-edge bg-surface">
-      <IconButton size="sm" label={t("presence.target.lower")} disabled={value <= 50} onClick={() => set(value - 5)} className="rounded-r-none">
-        <Icons.Minus className="size-3.5" />
-      </IconButton>
-      <span className="min-w-11 px-1 text-center text-small font-semibold tabular-nums" aria-live="polite">
-        {value}%
-      </span>
-      <IconButton size="sm" label={t("presence.target.raise")} disabled={value >= 100} onClick={() => set(value + 5)} className="rounded-l-none">
-        <Icons.Plus className="size-3.5" />
-      </IconButton>
-    </div>
+    <>
+      <Row label={t("settings.attendance.target")} hint={t(codes.length ? "settings.attendance.targetHintOwn" : "settings.attendance.targetHint")}>
+        <span ref={general} className="flex shrink-0">
+          <TargetStepper value={target} onChange={setDefault} />
+        </span>
+      </Row>
+      {codes.map((code) => (
+        <Row key={code} label={name(code)} hint={t("settings.attendance.own", { code })}>
+          {/* The steppers line up in one column with the default's. */}
+          <span className="flex shrink-0 items-center gap-1.5">
+            <Button
+              ref={(button) => {
+                if (button) resets.current.set(code, button);
+                else resets.current.delete(code);
+              }}
+              size="sm"
+              variant="ghost"
+              aria-label={t("settings.attendance.useDefaultFor", { code })}
+              onClick={() => followDefault(code)}
+            >
+              {t("settings.attendance.useDefault")}
+            </Button>
+            <TargetStepper value={own[code]} onChange={(value) => setOwn(code, value)} code={code} />
+          </span>
+        </Row>
+      ))}
+    </>
   );
 }
 

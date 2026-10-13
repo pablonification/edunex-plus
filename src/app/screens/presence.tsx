@@ -4,8 +4,8 @@
 // first: its meetings (SIX's tally, and each meeting to come with its date),
 // one big status sentence ("Boleh absen 2× lagi", "Jangan absen lagi", "80%
 // tak terkejar") with the share small under it, and a note with the way back
-// or what to do. The summary tiles filter the list. The target is the
-// Student's, for every course.
+// or what to do. The summary tiles filter the list. Each course has a
+// target: the Student's default (set on top), or its own (set on its row).
 import { type CSSProperties, type KeyboardEvent, type ReactNode, useRef, useState } from "react";
 import { type AttendanceHealth, type AttendanceState, needsAttention, type PresenceActivity, percent, type UpcomingMeeting } from "../../core/attendance";
 import { clashes } from "../../core/course-meetings";
@@ -13,19 +13,21 @@ import type { PresenceSession } from "../../core/models";
 import { sixTimetableUrl } from "../../core/schedule";
 import type { StringKey } from "../../core/strings";
 import { type CourseAttendance, type OpenWindow, useAttendance } from "../attendance";
+import { METER_TONE, STATE_TONE } from "../attendance-labels";
+import { CourseTarget, DefaultTarget } from "../attendance-parts";
 import { useOpenExternal } from "../hooks";
 import { type Format, type Translate, useFormat, useNow, useT } from "../i18n";
 import { useNav } from "../nav";
 import { useCourseNames } from "../schedule-data";
 import { useSignIn } from "../shell/source-status";
-import { useBridge, useDataset, useSettings, useStatus } from "../store";
-import { Button, IconButton } from "../ui/controls";
+import { useDataset, useStatus } from "../store";
+import { Button } from "../ui/controls";
 import { cx } from "../ui/cx";
 import { CourseCode, EmptyState, LiveDot, Skeleton } from "../ui/display";
 import { Icons } from "../ui/icons";
 import { Page, PageHeader } from "../ui/layout";
-import { CountdownBar, type MeterTone, ShareMeter } from "../ui/meter";
-import { Popover, Tooltip, toast } from "../ui/overlays";
+import { CountdownBar, ShareMeter } from "../ui/meter";
+import { Popover, Tooltip } from "../ui/overlays";
 
 export const ready = true;
 
@@ -38,16 +40,6 @@ export function useBadge(): { value: number; tone: "neutral" | "warning" } | nul
 
 const ORDER: Record<AttendanceState, number> = { out: 0, none: 1, risk: 2, safe: 3, unknown: 4 };
 
-export const STATE_TONE: Record<AttendanceState, string> = {
-  out: "text-danger-fg",
-  none: "text-warning-fg",
-  risk: "text-warning-fg",
-  safe: "text-success-fg",
-  unknown: "text-faint",
-};
-
-const METER_TONE: Record<AttendanceState, MeterTone> = { out: "danger", none: "warning", risk: "warning", safe: "success", unknown: "neutral" };
-
 type Filter = Exclude<AttendanceState, "unknown">;
 const FILTERS: readonly Filter[] = ["out", "none", "risk", "safe"];
 
@@ -55,11 +47,15 @@ export function PresenceScreen() {
   const t = useT();
   const attendance = useAttendance();
   const [filter, setFilter] = useState<Filter | null>(null);
+  // While a row's target is being changed the rows hold still, so the one being changed doesn't move under the pointer.
+  const [still, setStill] = useState<string[] | null>(null);
   if (!attendance) return <Loading />;
   const { courses, open, target } = attendance;
   const known = courses.some((c) => c.health.state !== "unknown");
   const count = (state: AttendanceState) => courses.filter((c) => c.health.state === state).length;
-  const shown = [...courses].filter((c) => !filter || c.health.state === filter).sort((a, b) => ORDER[a.health.state] - ORDER[b.health.state]);
+  const rank = (c: CourseAttendance) => (still ? still.indexOf(c.course.code) : ORDER[c.health.state]);
+  const shown = [...courses].filter((c) => !filter || c.health.state === filter).sort((a, b) => rank(a) - rank(b));
+  const hold = (open: boolean) => setStill(open ? shown.map((c) => c.course.code) : null);
 
   return (
     <Page>
@@ -85,7 +81,6 @@ export function PresenceScreen() {
                   key={state}
                   state={state}
                   value={count(state)}
-                  target={target}
                   selected={filter === state}
                   onToggle={() => setFilter(filter === state ? null : state)}
                 />
@@ -96,7 +91,7 @@ export function PresenceScreen() {
           )}
           {filter && (
             <p className="mb-2 flex items-center justify-between text-small text-muted">
-              <span>{t("presence.filtered", { count: shown.length, label: t(`presence.summary.${filter}`, { target }) })}</span>
+              <span>{t("presence.filtered", { count: shown.length, label: t(`presence.summary.${filter}`) })}</span>
               <Button size="sm" variant="ghost" onClick={() => setFilter(null)}>
                 {t("presence.showAll", { count: courses.length })}
               </Button>
@@ -107,7 +102,7 @@ export function PresenceScreen() {
             className="overflow-hidden rounded-xl border border-edge bg-surface shadow-card [&>li+li]:border-t [&>li+li]:border-line"
           >
             {shown.map((item, index) => (
-              <CourseRow key={item.course.code} item={item} target={target} lastDay={attendance.lastDay} index={index} />
+              <CourseRow key={item.course.code} item={item} lastDay={attendance.lastDay} index={index} onTargetOpen={hold} />
             ))}
           </ul>
         </>
@@ -158,36 +153,14 @@ function Answer({ courses, known }: { courses: CourseAttendance[]; known: boolea
 
 // ---------------------------------------------------------------- the target
 
-/** The Student's attendance target, 50–100% in steps of 5 (also in Settings). */
-export function TargetStepper() {
-  const t = useT();
-  const bridge = useBridge();
-  const { attendanceTarget: target } = useSettings();
-  const set = (value: number) =>
-    void bridge
-      .invoke("settings.update", { attendanceTarget: Math.max(50, Math.min(100, value)) })
-      .catch((error: unknown) => toast(t("error.action", { message: String(error) }), "danger"));
-  return (
-    <div className="inline-flex h-8 shrink-0 items-center rounded-lg border border-edge bg-surface">
-      <IconButton size="sm" label={t("presence.target.lower")} disabled={target <= 50} onClick={() => set(target - 5)} className="rounded-r-none">
-        <Icons.Minus className="size-3.5" />
-      </IconButton>
-      <span className="min-w-12 px-1 text-center text-small font-semibold tabular-nums" aria-live="polite">
-        {target}%
-      </span>
-      <IconButton size="sm" label={t("presence.target.raise")} disabled={target >= 100} onClick={() => set(target + 5)} className="rounded-l-none">
-        <Icons.Plus className="size-3.5" />
-      </IconButton>
-    </div>
-  );
-}
-
-/** "Target kehadiran 80%": one target for every course, set here or in Settings, said to be global. */
+/** "Target kehadiran 80%": the default, for every course without its own (also in Settings). */
 function TargetControl({ target }: { target: number }) {
   const t = useT();
-  const bridge = useBridge();
+  const [open, setOpen] = useState(false);
   return (
     <Popover
+      open={open}
+      onOpenChange={setOpen}
       label={t("settings.attendance.target")}
       align="end"
       className="w-[300px] p-4"
@@ -195,40 +168,14 @@ function TargetControl({ target }: { target: number }) {
     >
       <p className="text-title font-semibold">{t("settings.attendance.target")}</p>
       <p className="mt-1 text-small text-muted">{t("presence.target.global")}</p>
-      <div className="mt-3 flex items-center justify-between gap-3">
-        <TargetStepper />
-        {target !== 80 && (
-          <Button size="sm" variant="ghost" onClick={() => void bridge.invoke("settings.update", { attendanceTarget: 80 }).catch(() => undefined)}>
-            {t("presence.target.reset")}
-          </Button>
-        )}
+      <div className="mt-3">
+        <DefaultTarget onReset={() => setOpen(false)} />
       </div>
-      <p className="mt-3 text-caption text-faint">{t("settings.attendance.targetHint")}</p>
     </Popover>
   );
 }
 
 // ---------------------------------------------------------------- a Presence window open now
-
-const ACTION_KEY: Record<PresenceActivity, StringKey> = {
-  course: "presence.action.course",
-  module: "presence.action.module",
-  thread: "presence.action.thread",
-  assignment: "presence.action.assignment",
-  exam: "presence.action.exam",
-  vicon: "presence.action.vicon",
-  crs: "presence.action.crs",
-  other: "presence.action.other",
-};
-
-/** The action that counts in a Presence window, as a short instruction. */
-export function useActionLabel(): (window: Pick<OpenWindow, "action">) => string {
-  const t = useT();
-  return ({ action }) =>
-    action.activity === "assignment" && !action.task
-      ? t("presence.action.assignmentUnknown")
-      : t(ACTION_KEY[action.activity], { task: action.task?.title ?? "" });
-}
 
 const DO_KEY: Record<PresenceActivity, StringKey> = {
   course: "presence.do.course",
@@ -297,12 +244,12 @@ function OpenPresence({ window }: { window: OpenWindow }) {
 
 // ---------------------------------------------------------------- the summary
 
-function SummaryTile({ state, value, target, selected, onToggle }: { state: Filter; value: number; target: number; selected: boolean; onToggle: () => void }) {
+function SummaryTile({ state, value, selected, onToggle }: { state: Filter; value: number; selected: boolean; onToggle: () => void }) {
   const t = useT();
   return (
     <button
       type="button"
-      aria-label={`${value} · ${t(`presence.summary.${state}`, { target })}`}
+      aria-label={`${value} · ${t(`presence.summary.${state}`)}`}
       aria-pressed={selected}
       disabled={value === 0}
       onClick={onToggle}
@@ -313,7 +260,7 @@ function SummaryTile({ state, value, target, selected, onToggle }: { state: Filt
       )}
     >
       <span className={cx("block text-[24px] leading-8 font-semibold tabular-nums", value > 0 ? STATE_TONE[state] : "text-faint")}>{value}</span>
-      <span className={cx("block text-small font-medium", value > 0 ? "text-muted" : "text-faint")}>{t(`presence.summary.${state}`, { target })}</span>
+      <span className={cx("block text-small font-medium", value > 0 ? "text-muted" : "text-faint")}>{t(`presence.summary.${state}`)}</span>
     </button>
   );
 }
@@ -342,25 +289,11 @@ function NoSixCount({ primary }: { primary: boolean }) {
 
 // ---------------------------------------------------------------- a course
 
-export function budgetLabel(t: ReturnType<typeof useT>, health: AttendanceHealth, target: number): string {
-  const best = percent(health.best ?? 0);
-  switch (health.state) {
-    case "unknown":
-      return t("presence.budget.unknown");
-    case "out":
-      return t("presence.budget.out", { target, best });
-    case "none":
-      return t("presence.budget.none");
-    default:
-      return t("presence.budget.safe", { count: health.absencesLeft ?? 0 });
-  }
-}
-
 /** The one big sentence: "Boleh absen 2× lagi", "Jangan absen lagi", "80% tak terkejar". */
-function statusSentence(t: Translate, health: AttendanceHealth, target: number): string {
+function statusSentence(t: Translate, health: AttendanceHealth): string {
   switch (health.state) {
     case "out":
-      return t("presence.status.out", { target });
+      return t("presence.status.out", { target: health.target });
     case "none":
       return t("presence.status.none");
     case "unknown":
@@ -370,7 +303,17 @@ function statusSentence(t: Translate, health: AttendanceHealth, target: number):
   }
 }
 
-function CourseRow({ item, target, lastDay, index }: { item: CourseAttendance; target: number; lastDay: string | null; index: number }) {
+function CourseRow({
+  item,
+  lastDay,
+  index,
+  onTargetOpen,
+}: {
+  item: CourseAttendance;
+  lastDay: string | null;
+  index: number;
+  onTargetOpen: (open: boolean) => void;
+}) {
   const t = useT();
   const f = useFormat();
   const { go } = useNav();
@@ -380,11 +323,11 @@ function CourseRow({ item, target, lastDay, index }: { item: CourseAttendance; t
   const share = attended !== null && held ? percent(attended, held) : null;
   const best = health.best !== null ? percent(health.best) : null;
   const until = lastDay && (health.state === "safe" || health.state === "risk") ? f.dayMonth(Date.parse(`${lastDay}T12:00:00+07:00`)) : null;
-  const notes = useNotes(item, target);
+  const notes = useNotes(item);
   // Signed out of SIX, with nothing of SIX's kept: the card above says once that the count is in SIX; no row
   // claims SIX has none ("Belum ada hitungan SIX") or repeats where it counts.
   const sixOut = useStatus("six").state === "signed-out" && held === null;
-  const sentence = sixOut ? null : statusSentence(t, health, target);
+  const sentence = sixOut ? null : statusSentence(t, health);
   const label = [course.code, name(course.code, course.name), sentence].filter(Boolean).join(" · ");
 
   return (
@@ -434,10 +377,11 @@ function CourseRow({ item, target, lastDay, index }: { item: CourseAttendance; t
                 className="mt-2 ml-auto w-[150px]"
                 share={share}
                 best={best}
-                target={target}
+                target={health.target}
                 tone={METER_TONE[health.state]}
-                label={t("presence.meter", { share, target, best: best ?? share })}
+                label={t("presence.meter", { share, target: health.target, best: best ?? share })}
               />
+              <CourseTarget code={course.code} className="pointer-events-auto relative mt-1.5" onOpenChange={onTargetOpen} />
             </>
           ) : health.countedIn === "edunex" || (health.countedIn === "noSix" && health.edunexClosed > 0) ? (
             <p className="mt-0.5 text-small text-muted tabular-nums">
@@ -501,14 +445,14 @@ interface Note {
 }
 
 /** What to know under a course: the way back to the target, what to do when it's out of reach, how Edunex's record relates to SIX's. */
-function useNotes(item: CourseAttendance, target: number): Note[] {
+function useNotes(item: CourseAttendance): Note[] {
   const t = useT();
   const f = useFormat();
   const open = useOpenExternal();
   const student = useDataset("six.student");
   const schedule = useDataset("six.schedule");
   const { health, presence, exams } = item;
-  const { attended, held } = health;
+  const { attended, held, target } = health;
   const notes: Note[] = [];
   const dot = (tone: "bad" | "info" | "way") => (
     <span aria-hidden className={cx("mt-[5px] block size-1.5 rounded-full", tone === "bad" ? "bg-danger-fg" : tone === "way" ? "bg-warning-fg" : "bg-faint")} />
@@ -691,6 +635,7 @@ function HowCounted({ lastDay }: { lastDay: string | null }) {
         <li>{t("presence.how.six")}</li>
         <li>{t("presence.how.which")}</li>
         <li>{t("presence.how.left", { date })}</li>
+        <li>{t("presence.how.uncertain")}</li>
         <li>{t("presence.how.target")}</li>
         <li>{t("presence.how.check")}</li>
       </ul>

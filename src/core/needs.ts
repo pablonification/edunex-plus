@@ -64,13 +64,13 @@ export interface TermCourseFacts {
   six: SixCourse["attendance"];
   /** The Edunex course id, when the course is on Edunex. */
   edunexId: number | null;
+  /** The course's attendance target, percent: its own, or the Student's default. */
+  target: number;
 }
 
 /** Everything Beranda reasons from. Missing datasets are empty (or null for SIX's timetable). */
 export interface HomeWorld {
   now: number;
-  /** Attendance target, percent. */
-  target: number;
   term: string | null;
   courses: readonly TermCourseFacts[];
   tasks: readonly Task[];
@@ -111,7 +111,7 @@ export function homeContext(world: HomeWorld): HomeContext {
         presence: world.presence[course.code] ?? [],
         schedule,
         period,
-        target: world.target,
+        target: course.target,
         now: world.now,
       }),
     ]),
@@ -173,7 +173,7 @@ export type NeedFacts =
     }
   | ({ kind: "class" } & ClassFacts)
   | { kind: "task"; task: Task; reason: "overdue" | "short" | "due" | "edited"; draft: boolean }
-  | { kind: "attendance"; health: AttendanceHealth; target: number }
+  | { kind: "attendance"; health: AttendanceHealth }
   | { kind: "meeting"; meeting: AnnouncedMeeting }
   | { kind: "exam"; exam: Exam; sitting: ExamSitting; disagree: boolean }
   | { kind: "krs"; closesAt: number; open: boolean; window: "drs" }
@@ -524,7 +524,6 @@ export const attendanceProvider: NeedProvider = {
         sources: context.usesCalendar ? ["six", "itb"] : ["six"],
         action: { kind: "go", route: { screen: "presence" } },
         health,
-        target: context.target,
       });
     }
     return out;

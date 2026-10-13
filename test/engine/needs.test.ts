@@ -157,7 +157,8 @@ describe("a class moved", () => {
     expect(moved).toMatchObject({
       band: "soon",
       course: "PL3002",
-      state: "safe",
+      // 6 of 7, and today's class is in UTS week: it may not run, so it isn't counted, and one absence is left.
+      state: "risk",
       moved: { usualStart: at("2026-10-15T08:00:00"), usualEnd: at("2026-10-15T09:30:00"), usualRoom: "R.SG PWK LT.6" },
     });
     // An exam later today isn't a class to attend: DK4073's UTS (no absences left) isn't raised here.
@@ -282,7 +283,6 @@ describe("the ranking", () => {
     ({ id, kind, band, at, course: null, sources: [], action: { kind: "go", route: { screen: "home" } } }) as never;
   const world = {
     now: 0,
-    target: 80,
     term: null,
     courses: [],
     tasks: [],

@@ -8,14 +8,21 @@
 // Edunex didn't record may still have been counted in SIX.
 import { wibDay } from "./course-meetings";
 import { EDUNEX_WEB, edunexCourseUrl } from "./links";
-import type { AcademicCalendar, ClassSession, PresenceSession, SixCourse, Task } from "./models";
+import type { AcademicCalendar, ClassSession, PresenceSession, Settings, SixCourse, Task } from "./models";
 
 const MINUTE = 60_000;
 const HOUR = 60 * MINUTE;
 const DAY = 24 * HOUR;
 const WIB = 7 * HOUR;
 
-export const DEFAULT_TARGET = 80;
+// ---------------------------------------------------------------- the target
+
+export type TargetSettings = Pick<Settings, "attendanceTarget" | "attendanceTargets">;
+
+/** The course's own target when the Student set one (its course contract), else the default. Percent. */
+export function targetFor(settings: TargetSettings, code: string): number {
+  return Object.hasOwn(settings.attendanceTargets, code) ? settings.attendanceTargets[code] : settings.attendanceTarget;
+}
 
 // ---------------------------------------------------------------- where it counts
 
@@ -103,24 +110,25 @@ export function lecturePeriod(calendar: AcademicCalendar | undefined, term: stri
   return { lastDay: end.lastDay, offDays };
 }
 
-/** One meeting still to come, as counted. */
+/** One meeting still to come. */
 export interface UpcomingMeeting {
   start: number;
   /** SIX's session; null for the weekly slot carried on past SIX's timetable. */
   session: ClassSession | null;
   /** The weekly slot carried on: the date is the app's estimate. */
   estimated: boolean;
-  /** Listed by SIX inside an exam week or a holiday on ITB's calendar: it may not happen. */
+  /** Listed by SIX inside an exam week or a holiday on ITB's calendar: it may not happen, so it isn't counted. */
   uncertain: boolean;
 }
 
 export interface MeetingsLeft {
+  /** Meetings sure enough to count on: every one in `upcoming` but the uncertain ones. */
   count: number;
   /** Part of it is the usual weekly slot carried on past SIX's timetable: say "about". */
   estimated: boolean;
   /** The next meeting on SIX's timetable (it may be uncertain: see `upcoming`). */
   next: ClassSession | null;
-  /** Each meeting counted, in time order (`count` of them). */
+  /** Each meeting to come, in time order, the uncertain ones too (they aren't in `count`). */
   upcoming: UpcomingMeeting[];
 }
 
@@ -129,10 +137,12 @@ export interface MeetingsLeft {
  * on SIX's timetable that haven't started, then, past the last day the
  * timetable covers (`schedule` is SIX's whole timetable, every course), the
  * usual weekly slot(s) carried on to the last lecture day, skipping UTS and
- * UAS weeks and holidays. A session SIX lists inside those still counts
- * (SIX may hold it, and missing it would cost an absence) but is marked
- * uncertain, so screens can say "check first", unless the lecturer set an
- * Edunex hand-in for attendance that day (`presence`).
+ * UAS weeks and holidays. A session SIX lists inside those may not happen,
+ * so it's uncertain and left out of the count: more meetings to come means
+ * more absences allowed, and the Student must never be told they have one
+ * to spare that isn't there. (Missing it if it does happen still costs one:
+ * screens say "attend if it runs".) Unless the lecturer set an Edunex hand-in
+ * for attendance that day (`presence`): then it happens.
  */
 export function meetingsLeft(
   code: string,
@@ -170,7 +180,12 @@ export function meetingsLeft(
     }
   }
   upcoming.sort((a, b) => a.start - b.start);
-  return { count: upcoming.length, estimated: upcoming.some((m) => m.estimated), next: coming[0] ?? null, upcoming };
+  return {
+    count: upcoming.filter((m) => !m.uncertain).length,
+    estimated: upcoming.some((m) => m.estimated),
+    next: coming[0] ?? null,
+    upcoming,
+  };
 }
 
 // ---------------------------------------------------------------- the budget
@@ -189,13 +204,17 @@ export interface AttendanceHealth {
   attended: number | null;
   held: number | null;
   left: MeetingsLeft;
-  /** Absences still allowed while finishing at the target; negative when out of reach. */
+  /** Absences still allowed while finishing at the target, counting only meetings sure to happen; negative when out of reach. */
   absencesLeft: number | null;
-  /** The share if every remaining meeting is attended (0–1). */
+  /** The share if every remaining meeting is attended, the ones that may not run too (0–1). */
   best: number | null;
+  /** No absences left, and the target is in reach only if a class that may not run (exam week, holiday) runs and the Student attends it. */
+  needsUncertain: boolean;
   /** Meetings in a row that bring the Student back to the target, when below it now and it can be done this term. */
   toRecover: number | null;
   state: AttendanceState;
+  /** The target this course is judged against (percent): its own, or the default. */
+  target: number;
   /** Edunex Presence: windows that closed, and how many recorded the Student present. */
   edunexClosed: number;
   edunexRecorded: number;
@@ -221,26 +240,42 @@ export function attendanceHealth({ code, six, sixConnected, presence, schedule, 
   const closed = presence.filter((p) => p.closesAt <= now);
   const base = {
     code,
+    target,
     countedIn: countedIn(six, presence, now, sixConnected),
     left: meetingsLeft(code, schedule, period, now, presence),
     edunexClosed: closed.length,
     edunexRecorded: closed.filter((p) => p.recorded?.present).length,
   };
   if (!six || six.held === 0)
-    return { ...base, attended: six?.attended ?? null, held: six?.held ?? null, absencesLeft: null, best: null, toRecover: null, state: "unknown" };
+    return {
+      ...base,
+      attended: six?.attended ?? null,
+      held: six?.held ?? null,
+      absencesLeft: null,
+      best: null,
+      toRecover: null,
+      needsUncertain: false,
+      state: "unknown",
+    };
   const { attended, held } = six;
   const t = target / 100;
-  const remaining = base.left.count;
-  const planned = held + remaining;
   // a + r − (allowed) ≥ t·(h + r)  →  allowed = ⌊a + r − t·(h + r)⌋
-  const absencesLeft = Math.floor(attended + remaining - t * planned + EPS);
-  const best = (attended + remaining) / planned;
+  const allowed = (remaining: number) => Math.floor(attended + remaining - t * (held + remaining) + EPS);
+  // Absences to spare count only the meetings sure to happen; out of reach
+  // counts every one that may still run: a class that may not run never
+  // takes an absence away from the count, nor the target from the Student.
+  const sure = base.left.count;
+  const all = base.left.upcoming.length;
+  const atBest = allowed(all);
+  const absencesLeft = atBest < 0 ? atBest : Math.max(0, allowed(sure));
+  const needsUncertain = atBest >= 0 && allowed(sure) < 0;
+  const best = (attended + all) / (held + all);
   // (a + k) / (h + k) ≥ t  →  k = ⌈(t·h − a) / (1 − t)⌉
   const below = attended / held < t - EPS;
   const k = !below ? 0 : t >= 1 ? Number.POSITIVE_INFINITY : Math.ceil((t * held - attended) / (1 - t) - EPS);
-  const toRecover = below && k <= remaining ? k : null;
+  const toRecover = below && k <= sure ? k : null;
   const state: AttendanceState = absencesLeft < 0 ? "out" : absencesLeft === 0 ? "none" : absencesLeft === 1 || below ? "risk" : "safe";
-  return { ...base, attended, held, absencesLeft, best, toRecover, state };
+  return { ...base, attended, held, absencesLeft, best, toRecover, needsUncertain, state };
 }
 
 /** A state worth a word: not safe and known. */

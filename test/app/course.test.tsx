@@ -274,6 +274,18 @@ describe("meetings", () => {
     expect(s.text()).not.toContain("Pertemuan berikutnya Hari ini");
   });
 
+  it("a target in reach only if the UTS-week lecture runs: no absences left, not out of reach, and the banner says that lecture is needed", async () => {
+    const world = new PretendWorld();
+    // 4 of 7: the sure meetings alone reach 78%; with 15 Oct (UTS week, may not run) 12 of 15 is 80%.
+    world.six.setAttendance("PL3002", 4, 7);
+    screen = await openApp({ signedIn: true, six: true, world });
+    await screen.click([...document.querySelectorAll<HTMLButtonElement>("aside button")].find((b) => b.textContent?.startsWith("PL3002"))!);
+    const text = screen.text();
+    expect(text).not.toContain("tak terkejar");
+    expect(text).toContain("Jangan absen lagi");
+    expect(text).toContain("80% hanya masih bisa kalau kuliah di masa ujian atau libur tetap ada. Hadiri semua pertemuan, termasuk yang itu.");
+  });
+
   it("without SIX, Edunex's tally is a fact: it doesn't claim to count, nothing is amber, and SIX is a click away", async () => {
     const s = await openCourse("PL3002");
     await tab(/^Pertemuan/);
