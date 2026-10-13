@@ -173,7 +173,9 @@ export function runSignIn<T>(system: SignInSystem<T>, options: SignInOptions): S
   });
   contents.on("did-stop-loading", () => {
     // A quiet try on a page that doesn't move on is waiting for the Student: it isn't theirs to see.
-    if (quiet && phase === "student") still = setTimeout(giveUp, QUIET_STILL_MS);
+    if (!quiet || phase !== "student") return;
+    clear(still);
+    still = setTimeout(giveUp, QUIET_STILL_MS);
   });
   window.on("closed", giveUp);
   if (quiet) limit = setTimeout(giveUp, QUIET_LIMIT_MS);
