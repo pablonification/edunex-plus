@@ -144,8 +144,14 @@ on Linux `sudo apt install` the new `.deb`. Your sign-in and saved data stay.
 - **Windows:** Settings → Apps → Installed apps → Edunex Plus → **Uninstall**.
 - **Linux:** `sudo apt remove edunex-plus`, or delete the AppImage.
 
-Removing the app keeps its saved data. To remove that too, first choose **Settings → Sign out &
-remove data** (Keluar & hapus data), then uninstall.
+Removing the app keeps its saved data. To remove your data too, first choose **Settings → Sign
+out & remove data** (Keluar & hapus data): it signs you out and deletes your courses, grades,
+plans and notes. Your theme and language and ITB's public calendar and course catalog stay; to
+remove absolutely everything, delete the app's folder after uninstalling:
+
+- **macOS:** `~/Library/Application Support/Edunex Plus`
+- **Windows:** `%APPDATA%\Edunex Plus`
+- **Linux:** `~/.config/Edunex Plus`
 
 ## Signing in
 
