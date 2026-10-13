@@ -245,5 +245,7 @@ a security problem? Report it privately ([SECURITY.md](SECURITY.md)). Everyone h
 
 ## License
 
-[MIT](LICENSE). The installed app carries the same licence and the licences of the open-source
-libraries it includes (`third-party-notices.txt`, beside the app; `npm run build` writes it).
+[MIT](LICENSE). The app lists the open-source software it's built with, each with its licence, in
+**Settings → Tentang → Lisensi sumber terbuka**. The installed app also carries that list beside
+it (`third-party-notices.txt`; `npm run build` writes it), with its own licence and Electron's and
+Chromium's.

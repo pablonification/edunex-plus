@@ -141,6 +141,12 @@ export const shellStrings = {
     en: "This computer has no secure storage, so your session isn't saved. You'll sign in again each time you open the app.",
   },
   "settings.version": { id: "Versi {version}", en: "Version {version}" },
+  "settings.about": { id: "Tentang", en: "About" },
+  "settings.openSource": { id: "Sumber terbuka, dengan lisensi MIT", en: "Open source, under the MIT licence" },
+  "settings.unofficial": {
+    id: "Edunex Plus bukan aplikasi resmi ITB atau Cognisia, pembuat Edunex.",
+    en: "Edunex Plus isn't an official app of ITB or of Cognisia, the maker of Edunex.",
+  },
 
   // Desktop: menus and windows
   "menu.settings": { id: "Pengaturan…", en: "Settings…" },

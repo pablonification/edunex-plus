@@ -69,12 +69,19 @@ export function Dialog({
   open,
   onOpenChange,
   title,
+  back,
   children,
   className,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   title: string;
+  /**
+   * On a page one level down (Settings' open-source licences): the way back,
+   * named for where it goes. Each of the two pages starts at its own top, and
+   * the page below keeps the dialog at its full height.
+   */
+  back?: { label: string; onBack: () => void };
   children: ReactNode;
   className?: string;
 }) {
@@ -91,20 +98,32 @@ export function Dialog({
           onClickCapture={ignoreClosingClick}
           className={cx(
             "fixed top-1/2 left-1/2 z-(--z-dialog) flex max-h-[min(720px,86vh)] w-[min(600px,calc(100vw-48px))] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden",
+            // Sized to what it shows, the dialog would shrink and re-centre as a search on the page narrows it,
+            // moving the box the Student types in (the search palette hangs from the top for the same reason).
+            back && "h-[min(720px,86vh)]",
             "rounded-2xl bg-raised text-fg shadow-dialog ring-1 ring-black/10 focus:outline-none dark:ring-white/10",
             PANEL_MOTION_CLASS,
             className,
           )}
         >
-          <div className="flex shrink-0 items-center justify-between border-b border-line px-5 py-3.5">
-            <DialogPrimitive.Title className="text-title font-semibold">{title}</DialogPrimitive.Title>
+          <div className="flex shrink-0 items-center gap-1.5 border-b border-line px-5 py-3.5">
+            {back && (
+              <Tooltip content={back.label}>
+                <IconButton label={back.label} size="sm" onClick={back.onBack} className="-ml-2">
+                  <Icons.ChevronLeft className="size-4" />
+                </IconButton>
+              </Tooltip>
+            )}
+            <DialogPrimitive.Title className="min-w-0 flex-1 text-title font-semibold">{title}</DialogPrimitive.Title>
             <DialogPrimitive.Close asChild>
               <IconButton label={t("action.close")} size="sm">
                 <Icons.X className="size-4" />
               </IconButton>
             </DialogPrimitive.Close>
           </div>
-          <div className="min-h-0 overflow-y-auto px-5 py-5">{children}</div>
+          <div key={back ? "below" : "top"} className="min-h-0 overflow-y-auto px-5 py-5">
+            {children}
+          </div>
         </DialogPrimitive.Content>
       </DialogPrimitive.Portal>
     </DialogPrimitive.Root>

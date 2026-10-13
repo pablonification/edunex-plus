@@ -183,6 +183,13 @@ await session("signed-in", async (demo) => {
     await page.locator("aside > div:last-child button").first().click();
     await settle(page, 400);
     await demo.shot("26-pengaturan");
+    await page.locator("[role=dialog] .overflow-y-auto").evaluate((body) => body.scrollTo(0, body.scrollHeight));
+    await settle(page, 300);
+    await demo.shot("26-pengaturan-tentang");
+    await page.getByRole("button", { name: "Lihat lisensi sumber terbuka" }).click();
+    await page.locator("[role=dialog] ul > li").first().waitFor();
+    await settle(page, 400);
+    await demo.shot("26-pengaturan-lisensi");
     await page.keyboard.press("Escape");
   });
   await attempt("offline", async () => {

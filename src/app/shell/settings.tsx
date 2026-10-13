@@ -2,13 +2,15 @@
 // signed in, when each was last checked, sign out of one, or sign out and
 // remove everything), then notifications and what closing the window does,
 // then appearance, then the rest (attendance targets: the default and each
-// course's own, version). A newer
-// release shows on top while there is one.
-import { type ReactNode, useRef, useState } from "react";
+// course's own), then what the app is (version, licence, the open-source
+// software it uses, opened as a page of its own). A newer release shows on
+// top while there is one.
+import { lazy, type ReactNode, Suspense, useRef, useState } from "react";
 import type { AlertGroup, Settings, SourceId } from "../../core/models";
 import type { StringKey } from "../../core/strings";
 import { TargetStepper, useTargets } from "../attendance-parts";
 import { ActionError } from "../bridge";
+import { useFocusNext } from "../hooks";
 import { useFormat, useT } from "../i18n";
 import { displayName } from "../names";
 import { useCourseNames } from "../schedule-data";
@@ -17,12 +19,15 @@ import { useBridge, useDataset, useSettings, useStatus, useStore } from "../stor
 import { AppMark, SourceLogo } from "../ui/brand";
 import { Button, Segmented, Switch } from "../ui/controls";
 import { cx } from "../ui/cx";
-import { Card } from "../ui/display";
+import { Card, Skeleton } from "../ui/display";
 import { Icons } from "../ui/icons";
 import { Meta, Notice } from "../ui/layout";
 import { ConfirmDialog, Dialog, toast } from "../ui/overlays";
 import { PanelBoundary } from "../ui/panel-boundary";
 import { useSignIn, useSignInNote } from "./source-status";
+
+// The list of licences, and the code that shows it, load only when the Student opens it.
+const Licences = lazy(() => import("./licences"));
 
 export function SettingsDialog({
   open,
@@ -34,16 +39,49 @@ export function SettingsDialog({
   onShowFirstScan?: () => void;
 }) {
   const t = useT();
+  const focusNext = useFocusNext();
+  const [page, setPage] = useState<"settings" | "licences">("settings");
+  // Opened again, Settings starts on its own page (closing leaves the last one on screen while it goes).
+  const [wasOpen, setWasOpen] = useState(open);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (open) setPage("settings");
+  }
+  const licences = page === "licences";
+  const back = () => {
+    // Back where the Student left: on the button that opened the list.
+    focusNext("licences");
+    setPage("settings");
+  };
   return (
-    <Dialog open={open} onOpenChange={onOpenChange} title={t("nav.settings")}>
-      <PanelBoundary name="settings" compact>
-        <SettingsBody onSignedOutOfEverything={() => onOpenChange(false)} onShowFirstScan={onShowFirstScan} />
+    <Dialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title={t(licences ? "licences.title" : "nav.settings")}
+      back={licences ? { label: t("action.backTo", { place: t("nav.settings") }), onBack: back } : undefined}
+    >
+      <PanelBoundary name={page} compact>
+        {licences ? (
+          <Suspense fallback={<Skeleton className="h-64 rounded-xl" />}>
+            <Licences />
+          </Suspense>
+        ) : (
+          <SettingsBody onSignedOutOfEverything={() => onOpenChange(false)} onShowFirstScan={onShowFirstScan} onShowLicences={() => setPage("licences")} />
+        )}
       </PanelBoundary>
     </Dialog>
   );
 }
 
-function SettingsBody({ onSignedOutOfEverything, onShowFirstScan }: { onSignedOutOfEverything: () => void; onShowFirstScan?: () => void }) {
+function SettingsBody({
+  onSignedOutOfEverything,
+  onShowFirstScan,
+  onShowLicences,
+}: {
+  onSignedOutOfEverything: () => void;
+  onShowFirstScan?: () => void;
+  onShowLicences: () => void;
+}) {
   const t = useT();
   const bridge = useBridge();
   const store = useStore();
@@ -122,7 +160,14 @@ function SettingsBody({ onSignedOutOfEverything, onShowFirstScan }: { onSignedOu
         <AttendanceTargets />
       </Group>
 
-      <About version={store.version} />
+      <Group title={t("settings.about")} note={t("settings.unofficial")}>
+        <About version={store.version} />
+        <Row label={t("licences.title")} hint={t("licences.hint")}>
+          <Button size="sm" data-focus="licences" aria-label={t("licences.viewAll")} onClick={onShowLicences}>
+            {t("licences.view")}
+          </Button>
+        </Row>
+      </Group>
 
       <ConfirmDialog
         open={confirming}
@@ -381,15 +426,16 @@ function AccountRow({ source, who }: { source: SourceId; who: readonly string[] 
   );
 }
 
-/** Which app this is, and which version. */
+/** Which app this is, which version, and its own licence. */
 function About({ version }: { version: string }) {
   const t = useT();
   return (
-    <div className="flex items-center gap-3 px-1">
+    <div className="flex items-center gap-3.5 px-4 py-3">
       <AppMark className="size-9" />
       <span className="min-w-0">
         <span className="block text-body font-semibold">Edunex Plus</span>
         <span className="block text-small text-muted">{t("settings.version", { version })}</span>
+        <span className="block text-small text-muted">{t("settings.openSource")}</span>
       </span>
     </div>
   );
