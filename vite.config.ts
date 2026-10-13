@@ -65,5 +65,6 @@ export default defineConfig({
   base: "./",
   plugins: [react(), tailwindcss(), pdfjsAssets(), licencesFile()],
   server: { host: "127.0.0.1", port: 5173, strictPort: true },
-  build: { outDir, emptyOutDir: true, target: "chrome140", sourcemap: false },
+  // Electron's Chromium preloads modules itself: Vite's polyfill for browsers that don't would only add to the window's start-up.
+  build: { outDir, emptyOutDir: true, target: "chrome140", sourcemap: false, modulePreload: { polyfill: false } },
 });
