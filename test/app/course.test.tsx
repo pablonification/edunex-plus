@@ -121,11 +121,14 @@ describe("the course page", () => {
     const byIndex = (index: number) => modules.find((m: { attributes: { index: number } }) => m.attributes.index === index).attributes;
     byIndex(3).is_active = false;
     Object.assign(byIndex(5), { is_active: false, is_date_restricted: 1, start_at: "2026-10-20T08:00:00+07:00" });
+    // Its date passed but Edunex still has it closed: never "Dibuka <a past day>", which reads as "opened on".
+    Object.assign(byIndex(6), { is_active: false, is_date_restricted: 1, start_at: "2026-09-01T08:00:00+07:00" });
     await openCourse("PL3002", { world });
     const toc = [...document.querySelectorAll("nav[aria-label='Daftar isi'] > ol > li")].map((li) => li.textContent ?? "");
     expect(toc.find((t) => t.includes("Product Innovation"))).toBe("Modul 3 · Belum dibuka dosenProduct Innovation");
     expect(toc.find((t) => t.includes("Production Process Innovation"))).toMatch(/^Modul 4/);
     expect(toc.find((t) => t.includes("Inovasi Kelembagaan Pasar"))).toBe("Modul 5 · Dibuka 20\u00a0Okt\u00a008:00Inovasi Kelembagaan Pasar");
+    expect(toc.find((t) => t.includes("Inovasi Keuangan dan Pembayaran"))).toBe("Modul 6 · Belum dibuka dosenInovasi Keuangan dan Pembayaran");
     expect(toc.find((t) => t.includes("Inovasi Pelayanan Publik"))).toMatch(/^Modul 7/);
     await entry("Production Process Innovation");
     expect(document.querySelector("main section header")?.textContent).toBe("Modul 4Production Process Innovation");

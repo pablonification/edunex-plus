@@ -191,7 +191,8 @@ export function ModulesTab({ page, module }: { page: CoursePage; module?: number
                   <div className="px-2 py-1 text-faint">
                     <Meta truncate className="text-caption">
                       {label}
-                      {entry.opensAt !== null ? t("course.opensOn", { when: dayAndTime(f, entry.opensAt) }) : t("course.unopened")}
+                      {/* A date already past while it's still closed would read as "opened on" ("Dibuka"): then it's just not opened. */}
+                      {entry.opensAt !== null && entry.opensAt > now ? t("course.opensOn", { when: dayAndTime(f, entry.opensAt) }) : t("course.unopened")}
                     </Meta>
                     <span className="line-clamp-2 text-small">
                       {entry.title}
