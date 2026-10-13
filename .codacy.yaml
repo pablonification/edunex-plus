@@ -1,8 +1,10 @@
 ---
 # Codacy is an outside reviewer on this repo. Biome (biome.json) is the one linter and
 # formatter, and its rules win: Codacy's own ESLint rules disagree with it on style, so
-# ESLint is pointed at nothing. Semgrep still checks the app's code; build scripts and
-# tests build file paths on purpose and only ever run on a developer's or CI's machine.
+# ESLint is pointed at nothing. Its pattern scanner (Opengrep) still checks the app's code;
+# build scripts, tests and the build config build file paths on purpose and only ever run on
+# a developer's or CI's machine, so they're left out for every tool (an engine-level list
+# doesn't reach Opengrep).
 engines:
   eslint:
     exclude_paths:
@@ -13,11 +15,10 @@ engines:
   eslint-9:
     exclude_paths:
       - "**"
-  semgrep:
-    exclude_paths:
-      - "scripts/**"
-      - "test/**"
 exclude_paths:
   - "docs/**"
   - "**/*.md"
   - "package-lock.json"
+  - "scripts/**"
+  - "test/**"
+  - "vite.config.ts"

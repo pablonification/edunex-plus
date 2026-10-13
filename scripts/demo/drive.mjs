@@ -31,20 +31,33 @@ export async function launchDemo(options = {}) {
   const main = path.join(root, "dist", "desktop", "demo-main.cjs");
   if (!fs.existsSync(main)) throw new Error("No demo build: run `npm run demo:build` first");
 
-  const app = await _electron.launch({
-    executablePath: electronBinary,
-    args: [main],
-    env,
-    recordVideo: options.video ? { dir: options.video, size } : undefined,
-  });
-  const page = await app.firstWindow();
-  await app.evaluate(({ BrowserWindow }, { width, height }) => {
-    const window = BrowserWindow.getAllWindows()[0];
-    window.setContentSize(width, height);
-    window.center();
-  }, size);
-  // The page is up once its root has drawn the saved data.
-  await page.waitForFunction(() => (document.getElementById("root")?.children.length ?? 0) > 0, null, { timeout: 30_000 });
+  // A cold start on a busy CI machine now and then takes longer than usual: wait up to a minute
+  // there, and start once more before giving up, so one slow start doesn't lose every picture.
+  const wait = process.env.CI ? 60_000 : 30_000;
+  const start = async () => {
+    const app = await _electron.launch({
+      executablePath: electronBinary,
+      args: [main],
+      env,
+      timeout: wait,
+      recordVideo: options.video ? { dir: options.video, size } : undefined,
+    });
+    try {
+      const page = await app.firstWindow({ timeout: wait });
+      await app.evaluate(({ BrowserWindow }, { width, height }) => {
+        const window = BrowserWindow.getAllWindows()[0];
+        window.setContentSize(width, height);
+        window.center();
+      }, size);
+      // The page is up once its root has drawn the saved data.
+      await page.waitForFunction(() => (document.getElementById("root")?.children.length ?? 0) > 0, null, { timeout: wait });
+      return { app, page };
+    } catch (error) {
+      await app.close().catch(() => {});
+      throw error;
+    }
+  };
+  const { app, page } = await start().catch(() => start());
 
   const shotsDir = options.shots ? path.resolve(options.shots) : path.join(root, ".scratch", "demo-shots");
   fs.mkdirSync(shotsDir, { recursive: true });
