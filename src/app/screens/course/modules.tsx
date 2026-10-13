@@ -148,9 +148,11 @@ export function ModulesTab({ page, module }: { page: CoursePage; module?: number
   const f = useFormat();
   const now = useNow();
   const entries = contentsOf(page, t);
-  const first = entries[newestWithContent(entries.map((e) => ({ hasContent: e.tasks.length + e.materials.length > 0, at: latest(e), parent: e.parent })))];
+  // A module not opened yet is never the one shown, even when nothing has content yet (the start of a term).
+  const opened = entries.filter((e) => !e.unopened);
+  const first = opened[newestWithContent(opened.map((e) => ({ hasContent: e.tasks.length + e.materials.length > 0, at: latest(e), parent: e.parent })))];
   const [selected, setSelected] = useState<string | null>(module === undefined ? null : String(module));
-  const active = entries.find((e) => e.id === selected && !e.unopened) ?? first;
+  const active: Entry | undefined = opened.find((e) => e.id === selected) ?? first;
   const asked = module !== undefined && active?.id === String(module);
   const root = useRef<HTMLDivElement>(null);
   const shown = useRef(false);
@@ -166,7 +168,7 @@ export function ModulesTab({ page, module }: { page: CoursePage; module?: number
     return () => cancelAnimationFrame(frame);
   }, [asked]);
 
-  if (!active) return <EmptyState icon={<Icons.BookOpen className="size-5" />} title={t("course.noMaterials")} />;
+  if (!entries.length) return <EmptyState icon={<Icons.BookOpen className="size-5" />} title={t("course.noMaterials")} />;
   const firstParent = entries.findIndex((e) => e.parent);
   const anyContent = entries.some((e) => e.tasks.length || e.materials.length);
 
@@ -198,7 +200,7 @@ export function ModulesTab({ page, module }: { page: CoursePage; module?: number
                   </div>
                 </li>
               );
-            const isActive = entry.id === active.id;
+            const isActive = entry.id === active?.id;
             const open = entry.tasks.filter((task) => isOpenTask(task, now)).length;
             const empty = entry.tasks.length + entry.materials.length === 0;
             const fresh = !empty && (latest(entry) ?? 0) > now - WEEK;
@@ -251,42 +253,49 @@ export function ModulesTab({ page, module }: { page: CoursePage; module?: number
         </ol>
       </nav>
 
-      <section className="min-w-0" aria-labelledby="course-entry">
-        <header className="mb-5">
-          <Meta className="text-small font-semibold text-muted">
-            {active.intro ? t("course.courseWide") : t("course.module", { no: active.label ?? "" })}
-            {active.parent ? <span className="font-normal text-faint">{t("course.jointClass")}</span> : null}
-          </Meta>
-          <h2 id="course-entry" className="mt-1 text-heading font-semibold tracking-[-0.015em]">
-            {active.title}
-          </h2>
-        </header>
-        {active.tasks.length === 0 && active.materials.length === 0 ? (
-          <p className="flex items-center gap-2 text-body text-muted">
-            <Icons.Inbox className="size-4" />
-            {t(anyContent ? "course.moduleEmpty" : "course.noMaterials")}
-          </p>
-        ) : (
-          <div className="space-y-6">
-            {active.tasks.length > 0 && (
-              <div>
-                <p className="mb-2 text-small font-semibold text-muted">{t("course.tasks")}</p>
-                <TaskRows tasks={active.tasks} meta="none" label={t("course.tasks")} />
-              </div>
-            )}
-            {active.materials.length > 0 && (
-              <div>
-                <p className="mb-2 text-small font-semibold text-muted">{t("course.materials")}</p>
-                <List label={t("course.materials")}>
-                  {active.materials.map((material) => (
-                    <MaterialRow key={material.id} material={material} />
-                  ))}
-                </List>
-              </div>
-            )}
-          </div>
-        )}
-      </section>
+      {!active ? (
+        <p className="flex items-center gap-2 self-start text-body text-muted">
+          <Icons.Inbox className="size-4" />
+          {t("course.noMaterials")}
+        </p>
+      ) : (
+        <section className="min-w-0" aria-labelledby="course-entry">
+          <header className="mb-5">
+            <Meta className="text-small font-semibold text-muted">
+              {active.intro ? t("course.courseWide") : t("course.module", { no: active.label ?? "" })}
+              {active.parent ? <span className="font-normal text-faint">{t("course.jointClass")}</span> : null}
+            </Meta>
+            <h2 id="course-entry" className="mt-1 text-heading font-semibold tracking-[-0.015em]">
+              {active.title}
+            </h2>
+          </header>
+          {active.tasks.length === 0 && active.materials.length === 0 ? (
+            <p className="flex items-center gap-2 text-body text-muted">
+              <Icons.Inbox className="size-4" />
+              {t(anyContent ? "course.moduleEmpty" : "course.noMaterials")}
+            </p>
+          ) : (
+            <div className="space-y-6">
+              {active.tasks.length > 0 && (
+                <div>
+                  <p className="mb-2 text-small font-semibold text-muted">{t("course.tasks")}</p>
+                  <TaskRows tasks={active.tasks} meta="none" label={t("course.tasks")} />
+                </div>
+              )}
+              {active.materials.length > 0 && (
+                <div>
+                  <p className="mb-2 text-small font-semibold text-muted">{t("course.materials")}</p>
+                  <List label={t("course.materials")}>
+                    {active.materials.map((material) => (
+                      <MaterialRow key={material.id} material={material} />
+                    ))}
+                  </List>
+                </div>
+              )}
+            </div>
+          )}
+        </section>
+      )}
     </div>
   );
 }

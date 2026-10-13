@@ -131,6 +131,18 @@ describe("the course page", () => {
     expect(document.querySelector("main section header")?.textContent).toBe("Modul 4Production Process Innovation");
   });
 
+  it("with no module opened yet, none is shown as if picked: the contents list them greyed, beside one plain line", async () => {
+    const world = new PretendWorld();
+    for (const m of world.edunex.courseDetail.get(95001).included.filter((i: { type: string }) => i.type === "modules")) m.attributes.is_active = false;
+    world.edunex.tasks.set(95001, []);
+    await openCourse("PL3002", { world });
+    const nav = document.querySelector("nav[aria-label='Daftar isi']")!;
+    expect(nav.textContent).toContain("Modul 1 · Belum dibuka dosen");
+    expect(nav.querySelector("[aria-current]")).toBeNull();
+    expect(document.querySelector("#course-entry")).toBeNull();
+    expect(nav.parentElement!.textContent).toContain("Belum ada materi di Edunex");
+  });
+
   it("the ⋯ menu stays beside the header, never among what wraps under the title in a narrow window", async () => {
     await openCourse("PL3002", { six: true });
     const header = document.querySelector("main header")!;
