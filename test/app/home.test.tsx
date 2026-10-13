@@ -70,7 +70,8 @@ describe("Beranda on the recorded Thursday morning", () => {
     expect(row("home-today", "11:00")).not.toContain("Bentrok");
     expect(text("home-today")).toContain("Besok");
     expect(row("home-today", "15:0017:00")).toBe("15:0017:00Proposal Tugas AkhirII4091 · Pertemuan 3 · daringTidak ada di jadwal SIX");
-    await screen.click("Gabung kelas daring: II4091");
+    // The row is one button: its name says what the row shows, as a screen reader reads only the name.
+    await screen.click("Gabung kelas daring: II4091 · 15:00–17:00 · Tidak ada di jadwal SIX");
     expect(screen.calls.at(-1)).toMatchObject({ name: "shell.openExternal", input: { url: expect.stringContaining("teams.microsoft.com") } });
     await screen.click(/^11:0012:59Komunikasi Pemasaran/);
     expect(document.querySelector("main h1")?.textContent).toBe("Komunikasi Pemasaran");
@@ -264,6 +265,51 @@ describe("a class moved to another day", () => {
     expect(text("home-now")).toContain("Jam berubah · biasanya Kamis 08:00–09:30");
     // Said once: the now card shows this class, so its row in Hari ini doesn't repeat it.
     expect(row("home-today", "10:00")).not.toContain("biasanya");
+  });
+});
+
+describe("an online meeting only Edunex announced", () => {
+  it("going on: the card shows it with its Join button and where it came from; its row says Sekarang, not that again", async () => {
+    screen = await openApp({ world: new PretendWorld({ now: "2026-10-09T15:10:00+07:00" }), signedIn: true, six: true });
+    const now = text("home-now");
+    expect(now).toContain("Sedang berlangsung · sampai 17:00");
+    expect(now).toContain("Proposal Tugas Akhir");
+    expect(now).toContain("15:0017:00");
+    expect(now).toContain("II4091 · Pertemuan 3 · daring");
+    expect(now).toContain("Tidak ada di jadwal SIX");
+    // Not next week's class.
+    expect(now).not.toContain("Kuliah berikutnya");
+    const join = section("home-now")!.querySelector<HTMLButtonElement>('button[aria-label="Gabung kelas daring: II4091"]')!;
+    expect(join.className).toContain("bg-accent");
+    await screen.click(join);
+    expect(screen.calls.at(-1)).toMatchObject({ name: "shell.openExternal", input: { url: expect.stringContaining("teams.microsoft.com") } });
+    expect(row("home-today", "15:0017:00")).toBe("15:0017:00Proposal Tugas AkhirII4091 · Pertemuan 3 · daringSekarang");
+    // A screen reader hears the row's name, not its text: the name says when and that it's on now, so it isn't the card's Gabung again.
+    expect(section("home-today")!.querySelector("button[aria-label^='Gabung']")?.getAttribute("aria-label")).toBe(
+      "Gabung kelas daring: II4091 · 15:00–17:00 · Sekarang",
+    );
+  });
+
+  it("the evening before: the card says it's tomorrow, without a Join button yet", async () => {
+    screen = await openApp({ world: new PretendWorld({ now: "2026-10-08T20:00:00+07:00" }), signedIn: true, six: true });
+    const now = text("home-now");
+    expect(now).toContain("Kuliah berikutnya · Besok");
+    expect(now).toContain("Proposal Tugas Akhir");
+    expect(now).toContain("Tidak ada di jadwal SIX");
+    expect(section("home-now")!.querySelector("button[aria-label^='Gabung']")).toBeNull();
+    // Its row under Besok keeps the video mark: it isn't on yet.
+    expect(row("home-today", "15:0017:00")).toBe("15:0017:00Proposal Tugas AkhirII4091 · Pertemuan 3 · daring");
+  });
+
+  it("speaks English", async () => {
+    screen = await openApp({ world: new PretendWorld({ now: "2026-10-09T15:10:00+07:00" }), signedIn: true, six: true });
+    await screen.engineDoes(() => screen!.engine.updateSettings({ lang: "en" }));
+    expect(text("home-now")).toContain("On now · until 17:00");
+    expect(text("home-now")).toContain("Not on SIX's timetable");
+    expect(row("home-today", "15:00")).toContain("Now");
+    expect(section("home-today")!.querySelector("button[aria-label^='Join']")?.getAttribute("aria-label")).toBe(
+      "Join online class: II4091 · 15:00–17:00 · Now",
+    );
   });
 });
 

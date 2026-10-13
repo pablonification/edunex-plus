@@ -10,7 +10,7 @@ import { rupiah } from "../../core/academic";
 import { type AttendanceHealth, type AttendanceState, percent } from "../../core/attendance";
 import { wibDay } from "../../core/course-meetings";
 import { edunexCourseUrl, sixStatusUrl } from "../../core/links";
-import type { Alert, AlertKind, ClassSession, SnoozeEntry } from "../../core/models";
+import type { Alert, AlertKind, SnoozeEntry } from "../../core/models";
 import {
   attention,
   type ClassFacts,
@@ -120,7 +120,7 @@ function Answers({ context, courses }: { context: HomeContext; courses: readonly
       <div className="@container mt-10">
         {/* The day on the left; what needs you and what changed beside it, so neither column runs on alone. */}
         <div className="grid items-start gap-x-8 gap-y-10 @min-[800px]:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
-          <Today context={context} plan={plan} courses={courses} onCard={card?.class?.session.id ?? null} />
+          <Today context={context} plan={plan} courses={courses} onCard={cardKey(card)} />
           <div className="grid grid-cols-[minmax(0,1fr)] gap-y-10">
             <NeedsYou needs={needs} courses={courses} />
             <Changes context={context} courses={courses} />
@@ -192,22 +192,26 @@ function NowCardView({ card, courses }: { card: NowCard; courses: readonly TermC
   const f = useFormat();
   const now = useNow();
   const { go } = useNav();
-  const fresh = useStatus("six").state === "live";
   const facts = card.class;
   const session = facts?.session ?? null;
-  const code = session?.courseCode ?? card.presence!.code;
+  const meeting = card.meeting?.meeting ?? null;
+  // A meeting only Edunex announced stands where a class would: its time, its link.
+  const slot = session ?? meeting;
+  const link = facts?.link ?? meeting?.link ?? null;
+  const fresh = useStatus(meeting ? "edunex" : "six").state === "live";
+  const code = session?.courseCode ?? card.meeting?.code ?? card.presence!.code;
   const color = colorOf(courses, code);
   const course = courses.find((c) => c.code === code);
   // A window alone on the card: the class it's for, as a window can stay open for days, into the next one.
   const windowFor = !session && card.presence ? (card.presence.class ?? card.presence.session) : null;
 
   const eyebrow =
-    card.state === "live" && session
-      ? t("home.now.live", { time: f.time(session.end) })
-      : card.state === "next" && session
-        ? t("home.now.next", { when: f.fromNow(session.start) })
-        : card.state === "later" && session
-          ? t("home.now.later", { day: f.relativeDay(session.start) })
+    card.state === "live" && slot
+      ? t("home.now.live", { time: f.time(slot.end) })
+      : card.state === "next" && slot
+        ? t("home.now.next", { when: f.fromNow(slot.start) })
+        : card.state === "later" && slot
+          ? t("home.now.later", { day: f.relativeDay(slot.start) })
           : t("home.now.presenceOnly", { course: code });
 
   const open = (): Route => (course?.edunex ? { screen: "course", code, tab: "meetings" } : { screen: "presence" });
@@ -216,7 +220,7 @@ function NowCardView({ card, courses }: { card: NowCard; courses: readonly TermC
     <NowCardShell
       // Lifted while it matters now: a class on, or a Presence window to do.
       raised={card.state === "live" || Boolean(card.presence && card.presence.counts !== false)}
-      time={session ? { start: f.time(session.start), end: f.time(session.end) } : null}
+      time={slot ? { start: f.time(slot.start), end: f.time(slot.end) } : null}
       eyebrow={
         <span className={cx("flex items-center gap-2", card.state === "live" ? "text-success-fg" : "text-muted")}>
           {card.state === "live" && (fresh ? <LiveDot /> : <span aria-hidden className="size-2 shrink-0 rounded-full bg-faint" />)}
@@ -252,12 +256,20 @@ function NowCardView({ card, courses }: { card: NowCard; courses: readonly TermC
           ) : (
             ""
           )}
+          {meeting ? t(meeting.online ? "home.today.meetingOnline" : "home.today.meeting", { number: meeting.number }) : ""}
         </Meta>
       }
-      note={facts?.moved ? <Meta className="mt-1 text-small font-medium text-warning-fg">{movedLabel(t, f, facts)}</Meta> : undefined}
+      note={
+        facts?.moved ? (
+          <Meta className="mt-1 text-small font-medium text-warning-fg">{movedLabel(t, f, facts)}</Meta>
+        ) : meeting ? (
+          // Read from the lecturer's text, not SIX: said where the Student decides to go.
+          <span className="mt-1 block text-small font-medium text-warning-fg">{t("home.today.notInSix")}</span>
+        ) : undefined
+      }
       action={
-        facts?.link && card.state !== "later" && !card.presence?.counts ? (
-          <JoinButton link={facts.link} code={code} primary={card.state === "live" || (session !== null && session.start - now < 15 * MINUTE)} />
+        link && card.state !== "later" && !card.presence?.counts ? (
+          <JoinButton link={link} code={code} primary={card.state === "live" || (slot !== null && slot.start - now < 15 * MINUTE)} />
         ) : undefined
       }
     >
@@ -382,7 +394,7 @@ function Attendance({ card }: { card: NowCard }) {
   );
 }
 
-function AfterThis({ session, courses }: { session: ClassSession; courses: readonly TermCourse[] }) {
+function AfterThis({ session, courses }: { session: NonNullable<NowCard["after"]>; courses: readonly TermCourse[] }) {
   const t = useT();
   const f = useFormat();
   return (
@@ -449,7 +461,11 @@ type TodayItem =
   | { kind: "meeting"; at: number; code: string; meeting: TodayPlan["announced"][number]["meeting"] }
   | { kind: "due"; at: number; task: TodayPlan["due"][number] };
 
-/** `onCard`: the class the now card above already shows, so its row doesn't say the same change again. */
+/** The Hari ini row key of what the now card shows. */
+const cardKey = (card: NowCard | null) =>
+  card?.class ? `class:${card.class.session.id}` : card?.meeting ? `meeting:${card.meeting.code}:${card.meeting.meeting.start}` : null;
+
+/** `onCard`: the row key of what the now card above already shows, so its row doesn't say the same again. */
 function Today({ context, plan, courses, onCard }: { context: HomeContext; plan: TodayPlan; courses: readonly TermCourse[]; onCard: string | null }) {
   const t = useT();
   const day = wibDay(context.now);
@@ -508,6 +524,8 @@ function TodayRow({ item, courses, index, onCard }: { item: TodayItem; courses: 
   const { go } = useNav();
   const open = useOpenExternal();
   const fresh = useStatus("six").state === "live";
+  const edunexFresh = useStatus("edunex").state === "live";
+  const shownAbove = keyOf(item) === onCard;
 
   if (item.kind === "due") {
     const { task } = item;
@@ -535,6 +553,7 @@ function TodayRow({ item, courses, index, onCard }: { item: TodayItem; courses: 
 
   if (item.kind === "meeting") {
     const { meeting, code } = item;
+    const live = meeting.start <= now && now < meeting.end;
     return (
       <Row
         index={index}
@@ -546,11 +565,22 @@ function TodayRow({ item, courses, index, onCard }: { item: TodayItem; courses: 
             {t(meeting.online ? "home.today.meetingOnline" : "home.today.meeting", { number: meeting.number })}
           </Meta>
         }
-        trailing={meeting.link ? <Icons.Video className="size-4 text-faint" /> : undefined}
-        label={meeting.link ? t("home.today.joinLabel", { course: code }) : undefined}
+        trailing={live ? <NowMark fresh={edunexFresh} /> : meeting.link ? <Icons.Video className="size-4 text-faint" /> : undefined}
+        // The name replaces the row's text, so it carries what the row shows: when, "Sekarang", where it came from.
+        label={
+          meeting.link
+            ? factsLabel(
+                t("home.today.joinLabel", { course: code }),
+                f.timeRange(meeting.start, meeting.end),
+                live && t("home.today.now"),
+                !shownAbove && t("home.today.notInSix"),
+              )
+            : undefined
+        }
         onClick={() => (meeting.link ? open(meeting.link) : go({ screen: "course", code, tab: "meetings" }))}
       >
-        <span className="mt-1 block text-small font-medium text-warning-fg">{t("home.today.notInSix")}</span>
+        {/* The now card says it for the meeting it shows. */}
+        {!shownAbove && <span className="mt-1 block text-small font-medium text-warning-fg">{t("home.today.notInSix")}</span>}
       </Row>
     );
   }
@@ -562,7 +592,7 @@ function TodayRow({ item, courses, index, onCard }: { item: TodayItem; courses: 
   const exam = /\b(UTS|UAS)\b/i.test(session.activity);
   const budget = facts.health && facts.state !== "unknown" && !past ? budgetLabel(t, facts.health) : null;
   // The now card says "Jam berubah · biasanya …" for its class; the row keeps only the amber time.
-  const moved = facts.moved && session.id !== onCard;
+  const moved = facts.moved && !shownAbove;
   return (
     <Row
       index={index}
@@ -580,10 +610,7 @@ function TodayRow({ item, courses, index, onCard }: { item: TodayItem; courses: 
       }
       trailing={
         facts.live ? (
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-success-bg px-2 py-0.5 text-caption font-semibold text-success-fg">
-            {fresh && <LiveDot className="scale-75" />}
-            {t("home.today.now")}
-          </span>
+          <NowMark fresh={fresh} />
         ) : past ? (
           <span className="text-caption text-faint">{t("home.today.done")}</span>
         ) : (
@@ -604,6 +631,17 @@ function TodayRow({ item, courses, index, onCard }: { item: TodayItem; courses: 
         </span>
       )}
     </Row>
+  );
+}
+
+/** "Sekarang" on the row of a class or meeting going on. */
+function NowMark({ fresh }: { fresh: boolean }) {
+  const t = useT();
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-success-bg px-2 py-0.5 text-caption font-semibold text-success-fg">
+      {fresh && <LiveDot className="scale-75" />}
+      {t("home.today.now")}
+    </span>
   );
 }
 
