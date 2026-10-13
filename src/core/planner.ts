@@ -788,7 +788,7 @@ export type Rule =
     }
   | { id: "electives"; level: RuleLevel; have: number; need: number }
   | { id: "specialization"; level: RuleLevel; name: string; total: number; missing: { code: string; name: string }[] }
-  | { id: "minor"; level: RuleLevel; name: string; have: number; need: number }
+  | { id: "minor"; level: RuleLevel; name: string; have: number; need: number; registered: boolean }
   | { id: "load"; level: RuleLevel; term: string; sks: number; limit: number }
   | { id: "parity"; level: RuleLevel; term: string; code: string; name: string; semester: number }
   | { id: "early"; level: RuleLevel; term: string; code: string; name: string; semester: number }
@@ -820,6 +820,9 @@ export const minorNeed = (record: StudentRecord, minor: MinorOption) => minor.sk
 
 // ------------------------------------------------------------ hiding a warning
 
+/** The key a specialization's or minor's warning is hidden under, and the Student's "not continuing" kept. */
+export const packageKey = (kind: "specialization" | "minor", name: string) => `${kind}|${name.toLowerCase()}`;
+
 /**
  * The key a hidden warning is kept under, stable while the plan changes
  * (II4090's odd/even warning stays hidden wherever it's moved). Only warnings
@@ -830,7 +833,7 @@ export function ruleKey(rule: Rule): string | null {
   switch (rule.id) {
     case "specialization":
     case "minor":
-      return `${rule.id}|${rule.name.toLowerCase()}`;
+      return packageKey(rule.id, rule.name);
     case "parity":
     case "early":
       return `${rule.id}|${rule.code}`;
@@ -843,9 +846,9 @@ export function ruleKey(rule: Rule): string | null {
   }
 }
 
-/** The reasons offered for hiding a warning, the likeliest first. */
+/** The reasons offered for hiding a warning, the likeliest first. Not continuing is for what the Student registered for on SIX. */
 export function hideReasons(rule: Rule): HideReason[] {
-  if (rule.id === "specialization") return ["not-continuing", "other"];
+  if (rule.id === "specialization" || (rule.id === "minor" && rule.registered)) return ["not-continuing", "other"];
   if (rule.id === "parity" || rule.id === "early") return ["program-adds", "other"];
   return ["other"];
 }
@@ -865,10 +868,46 @@ export function showRule(plan: StudyPlan, key: string): StudyPlan {
   return { ...plan, hidden: rest };
 }
 
-/** The registered specialization, unless the Student said they aren't continuing it: then the planner stops offering and tagging its courses. */
+/** The Student said they aren't continuing a specialization or minor they registered for. Kept with the hidden warnings, so a fresh plan keeps it too. */
+export const notContinuing = (plan: Pick<StudyPlan, "hidden">, kind: "specialization" | "minor", name: string) =>
+  plan.hidden?.[packageKey(kind, name)]?.reason === "not-continuing";
+
+/** The registered specialization, unless the Student said they aren't continuing it: then the planner stops asking for and suggesting its courses. */
 export function activeSpecialization(record: StudentRecord, plan: Pick<StudyPlan, "hidden">): CoursePackage | null {
   const spec = record.specialization;
-  return spec && plan.hidden?.[`specialization|${spec.name.toLowerCase()}`]?.reason === "not-continuing" ? null : spec;
+  return spec && notContinuing(plan, "specialization", spec.name) ? null : spec;
+}
+
+/** The minor the plan follows: the one planned (at first the registered one), unless the Student said they aren't continuing it. */
+export function activeMinor(record: StudentRecord, plan: Pick<StudyPlan, "minor" | "hidden">): MinorOption | null {
+  const minor = record.minors.find((m) => m.key === plan.minor) ?? null;
+  return minor && notContinuing(plan, "minor", minor.name) ? null : minor;
+}
+
+/** Plans a minor; one the Student had stopped following is followed again. */
+export function planMinor(plan: StudyPlan, minor: MinorOption): StudyPlan {
+  const key = packageKey("minor", minor.name);
+  const next = { ...plan, minor: minor.key };
+  return notContinuing(plan, "minor", minor.name) ? showRule(next, key) : next;
+}
+
+/**
+ * Courses of a specialization or minor planned for later that only it asks
+ * for: not required, not a retake, not in the package the plan still follows
+ * (`keep`). What "not continuing, and take its courses out" removes.
+ */
+export function onlyFor(record: StudentRecord, plan: StudyPlan, codes: readonly string[], keep: readonly string[] = []): PlannedCourse[] {
+  const required = (code: string) => record.requiredLeft.some((c) => c.code === code) || [...record.required.keys()].some((slot) => fillsSlot(slot, code));
+  return livePlan(plan, record)
+    .terms.flatMap((t) => t.courses)
+    .filter((c) => codes.includes(c.code) && !c.retake && !required(c.code) && !keep.includes(c.code));
+}
+
+/** Not continuing a registered specialization or minor, kept through a reset; with `drop`, those courses leave the plan too (a retake stays). */
+export function stopFollowing(plan: StudyPlan, key: string, at: number, drop: readonly string[] = []): StudyPlan {
+  const hidden = hideRule(plan, key, "not-continuing", at);
+  if (!drop.length) return hidden;
+  return { ...hidden, terms: hidden.terms.map((t) => ({ ...t, courses: t.courses.filter((c) => c.retake || !drop.includes(c.code)) })) };
 }
 
 /** Every rule the plan is checked against, live. */
@@ -905,11 +944,18 @@ export function checkPlan(record: StudentRecord, rawPlan: StudyPlan, projection:
     });
   }
 
-  const minor = record.minors.find((m) => m.key === plan.minor);
+  const minor = activeMinor(record, plan);
   if (minor) {
     const need = minorNeed(record, minor);
     const { have: minorSks } = minorCoverage(record, plan, minor);
-    rules.push({ id: "minor", level: minorSks >= need ? "ok" : "warn", name: minor.name, have: minorSks, need });
+    rules.push({
+      id: "minor",
+      level: minorSks >= need ? "ok" : "warn",
+      name: minor.name,
+      have: minorSks,
+      need,
+      registered: minor.key === record.registeredMinor,
+    });
   }
 
   // This term counts too once the Student changed it: its load, and the courses they added.

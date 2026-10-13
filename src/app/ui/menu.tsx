@@ -31,6 +31,8 @@ export interface MenuTrigger {
   /** Its short name: the tooltip, or the words beside the icon with `words`. The menu's `label` when left out. */
   text?: string;
   words?: boolean;
+  /** With `words`: a quiet ghost button (the default), or an outlined one where it stands beside other buttons. */
+  variant?: "ghost" | "secondary";
   className?: string;
 }
 
@@ -58,8 +60,8 @@ export function Menu({ label, items, trigger, className }: { label: string; item
           {trigger?.words ? (
             <Button
               ref={button}
-              variant="ghost"
-              size="sm"
+              variant={trigger.variant ?? "ghost"}
+              size={trigger.variant === "secondary" ? "md" : "sm"}
               icon={trigger.icon}
               aria-label={label}
               aria-haspopup="menu"

@@ -8,6 +8,7 @@ import { nameMatch } from "../../src/core/curriculum-slots";
 import { honorFor, letterForAverage, nearestLetter, predicateFor } from "../../src/core/honors";
 import type { CurriculumFix, PlannedCourse, StudyPlan } from "../../src/core/models";
 import {
+  activeMinor,
   activeSpecialization,
   addCourse,
   addShortTerm,
@@ -26,7 +27,9 @@ import {
   leaveOut,
   livePlan,
   minorProgress,
+  onlyFor,
   parseTarget,
+  planMinor,
   programElectives,
   project,
   pruneWhatIfs,
@@ -43,6 +46,7 @@ import {
   shortTermToAdd,
   showRule,
   sksModel,
+  stopFollowing,
   studentRecord,
   targetOf,
   untried,
@@ -69,6 +73,21 @@ const plan = (terms: Record<string, PlannedCourse[]>, extra: Partial<StudyPlan> 
   ...extra,
 });
 const rules = (r: StudentRecord, p: StudyPlan) => checkPlan(r, p, project(r, p));
+/** The curriculum with a minor registered on SIX too. */
+const registeredMinor = () => ({
+  ...data.curriculum,
+  registrations: [
+    ...data.curriculum.registrations,
+    {
+      kind: "minor" as const,
+      name: "Branding Berbasis Digital",
+      program: "Desain Komunikasi Visual",
+      advisorApprovedOn: null,
+      programApprovedOn: null,
+      status: "On Progress",
+    },
+  ],
+});
 const rule = <I extends Rule["id"]>(list: Rule[], id: I) => list.filter((r): r is Extract<Rule, { id: I }> => r.id === id);
 
 describe("the Student's record", () => {
@@ -598,6 +617,47 @@ describe("hiding a warning", () => {
     expect(activeSpecialization(record, { hidden })).toBeNull();
     expect(activeSpecialization(record, { hidden: { "specialization|sistem informasi cerdas": { reason: "other", at: 1 } } })).toBe(record.specialization);
     expect(defaultPlan(record, hidden).terms[0].courses.map((c) => c.code)).toEqual(["II4090", "II4092"]);
+  });
+
+  it("not continuing a registered minor lasts like a specialization's: a fresh plan doesn't follow it again, planning it does", () => {
+    const withMinor = studentRecord({ ...data, curriculum: registeredMinor(), term: "2026-1" });
+    const minor = withMinor.minors.find((m) => m.key === withMinor.registeredMinor)!;
+    expect(minor.name).toBe("Branding Berbasis Digital");
+    // The starting plan follows the registered minor, and its warning offers not continuing; a minor only picked doesn't.
+    const start = defaultPlan(withMinor);
+    const warning = rule(rules(withMinor, start), "minor")[0];
+    expect(warning).toMatchObject({ level: "warn", registered: true });
+    expect(hideReasons(warning)).toEqual(["not-continuing", "other"]);
+    expect(hideReasons(rule(rules(record, plan({}, { minor: minor.key })), "minor")[0])).toEqual(["other"]);
+
+    const stopped = stopFollowing(start, ruleKey(warning)!, 1);
+    expect(activeMinor(withMinor, stopped)).toBeNull();
+    expect(rule(rules(withMinor, stopped), "minor")).toEqual([]);
+    // "Reset plan" keeps it: the starting plan names the registered minor, but it isn't followed.
+    const reset = defaultPlan(withMinor, stopped.hidden);
+    expect(activeMinor(withMinor, reset)).toBeNull();
+    expect(rule(rules(withMinor, reset), "minor")).toEqual([]);
+    expect(curriculumMap(withMinor, reset).minors[0]).toMatchObject({ name: "Branding Berbasis Digital", registered: true, notContinuing: true });
+    // Planning it again follows it again.
+    const again = planMinor(reset, minor);
+    expect(activeMinor(withMinor, again)?.key).toBe(minor.key);
+    expect(again.hidden).toEqual({});
+    expect(curriculumMap(withMinor, again).minors[0]).toMatchObject({ notContinuing: false });
+  });
+
+  it("not continuing can take out the courses only that package asked for; required ones, retakes and the other package's stay", () => {
+    const start = defaultPlan(record);
+    const spec = record.specialization!.courses.map((c) => c.code);
+    expect(onlyFor(record, start, spec).map((c) => c.code)).toEqual(["II4010", "II4011"]);
+    const both = addCourse(start, "2026-2", course("II2260", "A", true));
+    // A course the followed minor also asks for stays; a retake is about the IPK, not the package.
+    expect(onlyFor(record, both, [...spec, "II2260"], ["II4011"]).map((c) => c.code)).toEqual(["II4010"]);
+    const key = "specialization|sistem informasi cerdas";
+    const dropped = stopFollowing(both, key, 1, ["II4010", "II4011", "II2260"]);
+    expect(dropped.terms[0].courses.map((c) => c.code)).toEqual(["II4090", "II4092", "II2260"]);
+    expect(dropped.hidden).toEqual({ [key]: { reason: "not-continuing", at: 1 } });
+    // Without the courses, the starting plan stays as it was.
+    expect(stopFollowing(start, key, 1).terms).toEqual(start.terms);
   });
 });
 

@@ -46,7 +46,7 @@ export const WhatIfCourse = z.object({
 });
 export type WhatIfCourse = z.infer<typeof WhatIfCourse>;
 
-/** Why the Student hid a rule's warning. */
+/** Why the Student hid a rule's warning. "not-continuing" on a registered specialization or minor lasts: the plan stops following it. */
 export const HideReason = z.enum(["not-continuing", "program-adds", "other"]);
 export type HideReason = z.infer<typeof HideReason>;
 

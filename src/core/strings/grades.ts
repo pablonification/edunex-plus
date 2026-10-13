@@ -247,9 +247,15 @@ export const gradesStrings = {
   "planner.hide": { id: "Sembunyikan", en: "Hide" },
   "planner.hideRule": { id: "Sembunyikan peringatan: {title}", en: "Hide the warning: {title}" },
   "planner.hideReason.not-continuing": { id: "Aku tidak melanjutkan spesialisasi ini", en: "I'm not continuing this specialization" },
-  "planner.hideReason.not-continuingHint": {
-    id: "Rencanamu berhenti menyarankan dan menandai mata kuliahnya",
-    en: "Your plan stops suggesting and tagging its courses",
+  "planner.hideReason.not-continuingMinor": { id: "Aku tidak melanjutkan minor ini", en: "I'm not continuing this minor" },
+  "planner.hideReason.not-continuingHint": { id: "Rencanamu berhenti menyarankan mata kuliahnya", en: "Your plan stops suggesting its courses" },
+  "planner.notContinuing.keepHint": { id: "Mata kuliahnya yang sudah ada di rencana tetap di sana", en: "Its courses already in your plan stay there" },
+  "planner.notContinuing.drop": { id: "Tidak melanjutkan, dan hapus mata kuliahnya", en: "Not continuing, and remove its courses" },
+  "planner.notContinuing.dropHint": { id: "{list} keluar dari rencanamu", en: "{list} leave your plan" },
+  "planner.notContinuingDone": { id: "Tidak dilanjutkan: {title}", en: "Not continuing: {title}" },
+  "planner.notContinuingDropped": {
+    id: "Tidak dilanjutkan: {title}. {count} mata kuliahnya dihapus dari rencana",
+    en: { one: "Not continuing: {title}. {count} of its courses left the plan", other: "Not continuing: {title}. {count} of its courses left the plan" },
   },
   "planner.hideReason.program-adds": { id: "Prodiku akan menambahkannya", en: "My program will add it" },
   "planner.hideReason.other": { id: "Alasan lain", en: "Something else" },
