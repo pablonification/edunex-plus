@@ -31,7 +31,7 @@ export function useOpenExternal(): (url: string) => void {
   return useCallback((url: string) => void bridge.invoke("shell.openExternal", { url }).catch(() => failed(url)), [bridge, failed]);
 }
 
-/** Opens a link a lecturer wrote (any web page) in the browser, as Edunex does. */
+/** Opens a link a lecturer wrote (any web page) in the browser, as Edunex does; also an open-source project's page from Settings' licences. */
 export function useOpenLink(): (url: string) => void {
   const bridge = useBridge();
   const failed = useLinkFailed();

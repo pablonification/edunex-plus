@@ -15,7 +15,7 @@ export const coreActions = {
   "settings.update": { input: Settings.partial(), output: Settings },
   /** Opens an official page (Edunex, SIX, ITB, online-class links) in the system browser. Other hosts are refused. */
   "shell.openExternal": { input: z.object({ url: z.string().url() }), output: z.object({}) },
-  /** Opens a link a lecturer wrote (a note, a Task, an announcement, a link material) in the system browser: any http or https page, as Edunex opens it. */
+  /** Opens a link a lecturer wrote (a note, a Task, an announcement, a link material) in the system browser: any http or https page, as Edunex opens it. Settings' licences open each project's source page this way too. */
   "shell.openLink": { input: z.object({ url: z.string().url().max(4000) }), output: z.object({}) },
   /**
    * Downloads a file from Edunex (a material, a lecturer's file) through the browser's own download

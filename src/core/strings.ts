@@ -13,6 +13,7 @@ import type { Entry } from "./strings/entry";
 import { gradesStrings } from "./strings/grades";
 import { homeStrings } from "./strings/home";
 import { itbStrings } from "./strings/itb";
+import { licencesStrings } from "./strings/licences";
 import { planStrings } from "./strings/plan";
 import { scheduleStrings } from "./strings/schedule";
 import { searchStrings } from "./strings/search";
@@ -43,6 +44,7 @@ export const STRINGS = {
   ...searchStrings,
   ...updatesStrings,
   ...snoozeStrings,
+  ...licencesStrings,
 } as const satisfies Record<string, Entry>;
 
 export type StringKey = keyof typeof STRINGS;

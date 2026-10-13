@@ -66,12 +66,18 @@ export function Dialog({
   open,
   onOpenChange,
   title,
+  back,
   children,
   className,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   title: string;
+  /**
+   * On a page one level down (Settings' open-source licences): the way back,
+   * named for where it goes. Each of the two pages starts at its own top.
+   */
+  back?: { label: string; onBack: () => void };
   children: ReactNode;
   className?: string;
 }) {
@@ -93,15 +99,24 @@ export function Dialog({
             className,
           )}
         >
-          <div className="flex shrink-0 items-center justify-between border-b border-line px-5 py-3.5">
-            <DialogPrimitive.Title className="text-title font-semibold">{title}</DialogPrimitive.Title>
+          <div className="flex shrink-0 items-center gap-1.5 border-b border-line px-5 py-3.5">
+            {back && (
+              <Tooltip content={back.label}>
+                <IconButton label={back.label} size="sm" onClick={back.onBack} className="-ml-2">
+                  <Icons.ChevronLeft className="size-4" />
+                </IconButton>
+              </Tooltip>
+            )}
+            <DialogPrimitive.Title className="min-w-0 flex-1 text-title font-semibold">{title}</DialogPrimitive.Title>
             <DialogPrimitive.Close asChild>
               <IconButton label={t("action.close")} size="sm">
                 <Icons.X className="size-4" />
               </IconButton>
             </DialogPrimitive.Close>
           </div>
-          <div className="min-h-0 overflow-y-auto px-5 py-5">{children}</div>
+          <div key={back ? "below" : "top"} className="min-h-0 overflow-y-auto px-5 py-5">
+            {children}
+          </div>
         </DialogPrimitive.Content>
       </DialogPrimitive.Portal>
     </DialogPrimitive.Root>
