@@ -4,6 +4,7 @@
 import { Children, type CSSProperties, cloneElement, Fragment, isValidElement, type ReactNode } from "react";
 import { cx } from "./cx";
 import { Icons } from "./icons";
+import { PresenceItem } from "./motion/presence-list";
 
 const WIDTH = {
   narrow: "max-w-[760px]",
@@ -157,7 +158,8 @@ export function Row({
   const style = index === undefined ? undefined : ({ "--i": index } as CSSProperties);
   const aside = actions !== undefined && actions !== null && actions !== false;
   return (
-    <li
+    // A plain <li> outside a PresenceList; inside one, a row the Student removes fades out of it.
+    <PresenceItem
       className={cx(
         index !== undefined && "motion-safe:stagger",
         // With actions the row's hover belongs to the whole line, the control beside the button included,
@@ -198,7 +200,7 @@ export function Row({
           {actions}
         </div>
       )}
-    </li>
+    </PresenceItem>
   );
 }
 
@@ -341,26 +343,50 @@ export function Notice({
 }
 
 const STAT_TONE = { neutral: "", success: "text-success-fg", warning: "text-warning-fg", danger: "text-danger-fg" } as const;
+const STAT_SIZE = { figure: "text-figure", heading: "text-heading" } as const;
 
-/** A figure read at a glance: IPK, SKS, absences left. */
+/**
+ * Figures read at a glance, side by side on the page with no box, split by
+ * hairlines. Labels, figures and hints each share a line across the row, so a
+ * label that wraps never pushes its figure lower than the others'. They stack
+ * only in a container narrower than 320 px, so three short counts still sit in
+ * one row in a narrow column (the first run's, about 380 px).
+ */
+export function StatRow({ label, className, children }: { label?: string; className?: string; children: ReactNode }) {
+  return (
+    <div className={cx("@container", className)}>
+      <dl
+        aria-label={label}
+        className="grid grid-cols-1 gap-y-1 divide-y divide-line @xs:auto-cols-fr @xs:grid-flow-col @xs:grid-cols-none @xs:grid-rows-[repeat(3,auto)] @xs:divide-x @xs:divide-y-0"
+      >
+        {children}
+      </dl>
+    </div>
+  );
+}
+
+/** One figure in a `StatRow`: IPK, SKS, absences left. */
 export function Stat({
   label,
   value,
   hint,
   tone = "neutral",
+  size = "figure",
   className,
 }: {
   label: ReactNode;
   value: ReactNode;
   hint?: ReactNode;
   tone?: keyof typeof STAT_TONE;
+  /** `heading`: smaller, for a few counts beside other content (the first run's courses, tasks, meetings). */
+  size?: keyof typeof STAT_SIZE;
   className?: string;
 }) {
   return (
-    <div className={cx("rounded-xl border border-edge bg-surface px-4 py-3.5 shadow-card", className)}>
-      <div className="text-small font-medium text-muted">{label}</div>
-      <div className={cx("mt-1 text-[26px] leading-8 font-semibold tracking-[-0.02em] tabular-nums", STAT_TONE[tone])}>{value}</div>
-      {hint && <div className="mt-0.5 text-small text-muted">{hint}</div>}
+    <div className={cx("row-span-3 grid grid-rows-subgrid py-3 first:pt-0 last:pb-0 @xs:px-6 @xs:py-0 @xs:first:pl-0 @xs:last:pr-0", className)}>
+      <dt className="self-end text-small font-medium text-muted">{label}</dt>
+      <dd className={cx("font-semibold tabular-nums", STAT_SIZE[size], STAT_TONE[tone])}>{value}</dd>
+      <dd className="text-small text-muted">{hint}</dd>
     </div>
   );
 }

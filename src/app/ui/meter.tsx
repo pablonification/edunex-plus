@@ -6,9 +6,10 @@ import { cx } from "./cx";
 
 export type MeterTone = "success" | "warning" | "danger" | "neutral";
 
+// The meter colors, not the tones' text colors (amber text is brown); each reads 3:1 on the track.
 const FILL: Record<MeterTone, string> = {
-  success: "var(--live)",
-  warning: "var(--warning-fg)",
+  success: "var(--meter-success)",
+  warning: "var(--meter-warning)",
   danger: "var(--danger-fg)",
   neutral: "var(--faint)",
 };
@@ -37,7 +38,7 @@ export function ShareMeter({
   const clamp = (value: number) => Math.max(0, Math.min(100, value));
   const fill = FILL[tone];
   return (
-    <span role="img" aria-label={label} data-tone={tone} className={cx("relative block h-1.5 rounded-full bg-black/[0.07] dark:bg-white/[0.09]", className)}>
+    <span role="img" aria-label={label} data-tone={tone} className={cx("relative block h-1.5 rounded-full bg-meter-track", className)}>
       {best != null && best > share && (
         <span
           aria-hidden
@@ -82,11 +83,16 @@ export function CountdownBar({
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={Math.round(left * 100)}
-        className="block h-1.5 min-w-16 flex-1 overflow-hidden rounded-full bg-black/[0.07] dark:bg-white/[0.09]"
+        className="block h-1.5 min-w-16 flex-1 overflow-hidden rounded-full bg-meter-track"
       >
+        {/* It moves every minute, so it slides (a transform) instead of changing width: full width, pushed
+            left by the time gone. Sliding keeps its moving end round; the clipped track rounds the other. */}
         <span
-          className={cx("block h-full rounded-full motion-safe:transition-[width] motion-safe:duration-500", soon ? "bg-warning-fg" : "bg-accent")}
-          style={{ width: `${left * 100}%` }}
+          className={cx(
+            "block h-full rounded-full motion-safe:transition-[translate] motion-safe:duration-(--duration-slow) motion-safe:ease-out",
+            soon ? "bg-meter-warning" : "bg-accent",
+          )}
+          style={{ translate: `${(left - 1) * 100}% 0` }}
         />
       </span>
       {showLabel && <span className={cx("shrink-0 text-small font-semibold tabular-nums", soon ? "text-warning-fg" : "text-muted")}>{label}</span>}

@@ -81,6 +81,8 @@ const pairs: [string, string, number][] = [
   ["--tooltip-fg", "--tooltip-bg", 4.5],
   ["--focus", "--canvas", 3],
   ["--focus", "--raised", 3],
+  // A meter's fill on its track (attendance, a window's time left): 3:1, like any mark that carries meaning.
+  ...["--meter-warning", "--meter-success", "--danger-fg", "--accent"].map((fill) => [fill, "--meter-track", 3] as [string, string, number]),
 ];
 
 describe.each([

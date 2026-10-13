@@ -77,7 +77,7 @@ export function Bar({ value, color, label, className }: { value: number; color: 
       aria-valuemin={0}
       aria-valuemax={100}
       aria-valuenow={Math.round(clamped * 100)}
-      className={cx("block h-1.5 overflow-hidden rounded-full bg-black/[0.06] dark:bg-white/[0.08]", className)}
+      className={cx("block h-1.5 overflow-hidden rounded-full bg-meter-track", className)}
     >
       <span
         className="block h-full rounded-full motion-safe:transition-[width] motion-safe:duration-500"
@@ -103,23 +103,26 @@ export function Badge({ tone = "neutral", children, className }: { tone?: Tone; 
   );
 }
 
-/** The official systems a fact can come from. */
-export type Source = "edunex" | "six" | "itb";
+const TAG_SIZE = {
+  sm: "h-4.5 gap-1 px-1.5 text-micro",
+  md: "h-5.5 gap-1.5 px-2 text-caption",
+} as const;
 
-/**
- * Which official system a fact comes from, said quietly. Only where it changes
- * what the Student does: where to act, or when two systems disagree.
- */
-export function SourceTag({ source, className }: { source: Source; className?: string }) {
-  const t = useT();
+/** A word marking one row as the exception ("Baru", "Hadir", "UTS"), in a tone; never on every row. */
+export function Tag({
+  tone = "neutral",
+  size = "sm",
+  className,
+  children,
+}: {
+  tone?: Tone;
+  size?: keyof typeof TAG_SIZE;
+  className?: string;
+  children: ReactNode;
+}) {
   return (
-    <span
-      className={cx(
-        "inline-flex h-[18px] shrink-0 items-center rounded-[5px] border border-edge px-1.5 text-micro font-semibold tracking-[0.01em] text-muted",
-        className,
-      )}
-    >
-      {t(`source.${source}`)}
+    <span className={cx("inline-flex shrink-0 items-center rounded-tag font-semibold whitespace-nowrap", TAG_SIZE[size], TONE[tone], className)}>
+      {children}
     </span>
   );
 }

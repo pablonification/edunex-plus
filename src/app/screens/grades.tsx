@@ -1,6 +1,6 @@
 // Nilai (#78): where the Student stands, answered first. The IPK and where
-// the grades they expect would take them, in one sentence; four equal
-// figures (IPK, SKS passed, last IP, the highest IPK still possible); IP and
+// the grades they expect would take them, in one sentence; three figures
+// beside it (SKS passed, last IP, the highest IPK still possible); IP and
 // IPK per semester on one chart with the target; the IPK at graduation with
 // honors in one positive sentence (the ladder lives in the planner); this
 // term's grades as a clearly marked what-if with the one shared target; and
@@ -19,8 +19,8 @@ import { Button } from "../ui/controls";
 import { cx } from "../ui/cx";
 import { Card, CourseCode } from "../ui/display";
 import { Icons } from "../ui/icons";
-import { List, Meta, Notice, Page, PageHeader, Row, Section, Stat } from "../ui/layout";
-import { Flash } from "../ui/motion";
+import { List, Meta, Notice, Page, PageHeader, Row, Section, Stat, StatRow } from "../ui/layout";
+import { AnimatedNumber } from "../ui/motion/animated-number";
 import { GradeBadge, GradeSelect, HonorsSentence, IpkChart, NeedText, predicateFor, TargetControl, usePredicate, useTermName } from "./plan/projection";
 import { SixNeeded } from "./plan/six-needed";
 
@@ -103,7 +103,6 @@ function Standing({ record, state }: { record: StudentRecord; state: PlanState }
   const t = useT();
   const f = useFormat();
   const termName = useTermName(record);
-  const predicate = usePredicate();
   const transcript = record.transcript!;
   const num = (value: number | null) => (value === null ? "—" : f.number(value, 2));
   const graded = transcript.terms.filter((term) => term.term !== record.term && shownIndex(term.ip) !== null);
@@ -114,19 +113,11 @@ function Standing({ record, state }: { record: StudentRecord; state: PlanState }
   const signed = (value: number) => `${value > 0.004 ? "+" : value < -0.004 ? "−" : "±"}${f.number(Math.abs(value), 2)}`;
   const sks = sksModel(record, state.plan);
   const { bestIpk, variableSks } = state.projection;
-  // Honors are a graduation word; today's IPK gets the plain predicate.
-  const nowWord = predicate(predicateFor(shownIndex(transcript.ipk), { retakes: true, semesters: 99 }));
+  // The IPK itself is the header's answer; these are the figures around it.
   return (
-    <div className="grid grid-cols-2 gap-3 @4xl:grid-cols-4">
-      <Stat className="flex flex-col [&>div:first-child]:flex-1" label={t("grades.ipk")} value={num(shownIndex(transcript.ipk))} hint={nowWord ?? undefined} />
+    <StatRow>
+      <Stat label={t("grades.sksPassed")} value={String(record.passedSks)} hint={t("grades.sksPassedHint", { need: sks.need })} />
       <Stat
-        className="flex flex-col [&>div:first-child]:flex-1"
-        label={t("grades.sksPassed")}
-        value={String(record.passedSks)}
-        hint={t("grades.sksPassedHint", { need: sks.need })}
-      />
-      <Stat
-        className="flex flex-col [&>div:first-child]:flex-1"
         label={t("grades.lastIp")}
         value={num(lastIp)}
         hint={
@@ -139,13 +130,8 @@ function Standing({ record, state }: { record: StudentRecord; state: PlanState }
           ) : undefined
         }
       />
-      <Stat
-        className="flex flex-col [&>div:first-child]:flex-1"
-        label={t("grades.best")}
-        value={num(bestIpk)}
-        hint={variableSks ? t("grades.bestHint", { sks: variableSks }) : t("grades.bestNone")}
-      />
-    </div>
+      <Stat label={t("grades.best")} value={num(bestIpk)} hint={variableSks ? t("grades.bestHint", { sks: variableSks }) : t("grades.bestNone")} />
+    </StatRow>
   );
 }
 
@@ -164,9 +150,7 @@ function Graduation({ record, state }: { record: StudentRecord; state: PlanState
     <Card className="flex flex-col px-5 py-4">
       <h2 className="text-title font-semibold tracking-[-0.01em]">{t("grades.graduation")}</h2>
       <p className="text-caption text-muted">{t("grades.graduationEstimate")}</p>
-      <p className="mt-3 text-[34px] leading-10 font-semibold tracking-[-0.02em]">
-        <Flash value={final}>{final === null ? "—" : f.number(final, 2)}</Flash>
-      </p>
+      <p className="mt-3 text-display font-semibold">{final === null ? "—" : <AnimatedNumber value={final} format={(value) => f.number(value, 2)} />}</p>
       {word && <p className={cx("text-small font-semibold", projection.honor ? "text-success-fg" : "text-fg")}>{word}</p>}
       {finish && (
         <p className={cx("mt-1 flex items-center gap-1.5 text-small", finish.level === "error" ? "text-warning-fg" : "text-muted")}>

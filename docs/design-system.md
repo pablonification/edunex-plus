@@ -135,6 +135,16 @@ the focus ring.
 | `--neutral-fg` | `#4f4f56` | `#bdbdc5` |
 | `--live` | `#22a35a` | `#2fbf6c` |
 
+**Meters (fill on track).** A meter's fill reads 3:1 on its own track. Amber
+and green have meter colors of their own: the tones' `-fg` colors are for
+text, and amber text is brown. Red uses `--danger-fg`, blue `--accent`.
+
+| Token | Light | Dark |
+|---|---|---|
+| `--meter-track` | `#ececef` | `#2c2c30` |
+| `--meter-warning` | `#b26b00` | `#f2c862` |
+| `--meter-success` | `#1e8f4f` | `#2fbf6c` (`--live`) |
+
 **Task statuses (background / text)**
 
 | Token | Light | Dark |
@@ -174,7 +184,8 @@ target, destructive. Amber (`warning`): needs the Student soon (no absences
 left, due within a day, a session ended). Green (`success`, `live`): done,
 safe, connected, happening now. Blue (`accent`, `info`): actions, links,
 neutral information. Grey (`neutral`): not yet, not applicable. Bars and
-meters take their color from status, never from the course.
+meters take their color from status (the meter colors above), never from the
+course.
 
 **Color is never the only signal.** Task statuses have their own glyph and
 word, source states their own mark and word.
@@ -193,7 +204,7 @@ most three styles: its title, one supporting line, one meta line.
 | `text-body` | 14 / 20 | Default text, row titles (medium) |
 | `text-lead` | 15 / 22 | A page's description line, card leads |
 | `text-title` | 16 / 22 | Section and dialog titles (semibold, −0.01em) |
-| `text-heading` | 20 / 26 | Big answers inside a card |
+| `text-heading` | 20 / 26 | Big answers inside a card; a few small counts (`Stat size="heading"`) |
 | `text-figure` | 26 / 32 | A figure read at a glance (`Stat`: IPK, SKS, absences left) |
 | `text-display` | 28 / 34 | Page titles (semibold, −0.02em) |
 
@@ -255,7 +266,7 @@ keeps them equal).
 | A tab's content | Swaps at once; only the tab's highlight moves |
 | A segmented control's or tab list's highlight (`SlidingHighlight`) | Sits on the new pick at once and glides there from the old one as a transform (translate and scale), 150 ms ease-out |
 | A figure the Student just changed (`AnimatedNumber`) | Counts 400 ms ease-out with no overshoot, while the page's text is already the true value. A figure that changes on its own just changes |
-| Bars filling | 300–500 ms |
+| Bars filling | 500 ms, when new data arrives. A window's time left (`CountdownBar`), which shrinks every minute, slides as a transform in 400 ms ease-out |
 | Loading placeholders | 1.4 s pulse in four held steps, not every frame |
 
 **Rules.**
@@ -320,7 +331,7 @@ Screens are composed, not styled one by one:
 | `Meta` | Facts on one line, quietly separated ("11:00–12:59 · TVST C"); empty parts drop out and text holding " · " splits into facts. The only place a "·" between facts is drawn: no line ever starts or ends with one (`align="end"` for a right-aligned column, `truncate` for one line). Labels and tooltips join facts with `factsLabel()`; a test fails on a "·" written by hand. |
 | `NowCard`, `NowZone`, `NowLine` (`ui/now-card.tsx`) | What's on now or next, the same on Beranda and a course page: a time block on the left (never a colored stripe; the course's color is its dot), what it is, one line of facts, the one thing to do, and zones under it split by hairlines. Raised while it matters now (a class on, a Presence window open), plain otherwise; a course page says what's next in one quiet line instead, and a Presence window still open from an earlier class in one of its own under the card. |
 | `Notice` | Something to know right here (info, warning, danger, success, neutral) with the one thing to do, and optionally a quiet "Ingatkan nanti" (`snooze`) after it. |
-| `Stat` | A figure read at a glance (IPK, SKS, absences left). |
+| `StatRow` + `Stat` | Figures read at a glance (SKS, an IP, absences left), side by side with no box, split by hairlines; labels, figures and hints each line up across the row, stacking only in a container under 320 px. Figures in `text-figure`, or `size="heading"` for a few small counts beside other content. Never a figure the page's answer just said. |
 | `Card` | `plain`, `raised` (what matters most now), `sunken` (quiet areas). |
 | `EmptyState` | What would be here, why it is empty, and the way forward. Small and kind; hide empty groups instead where nothing is lost. |
 | `Button` | `primary` (one per view: the main action), `secondary`, `ghost`, `danger` (destructive only, never for a final but safe action like handing in). Shows a spinner while working. |
@@ -329,7 +340,7 @@ Screens are composed, not styled one by one:
 | `Dialog`, `ConfirmDialog` | Focus stays inside; Escape closes; both leave the way they came, taking no second click while they go (other dialog shells reuse `SCRIM_CLASS`, `PANEL_MOTION_CLASS` and `onClickCapture={ignoreClosingClick}`). Confirm only before what can't be undone: it is an alert dialog, so a click beside it isn't an answer and Cancel has focus first. |
 | `toast(text, tone, action?)` | Neutral, success or danger; with an action ("Urungkan", "Lihat") it stays 8 s. It waits while the pointer is on it or focus is in it, then goes on with the time it had left. When it goes (Urungkan pressed from the keyboard), focus goes back where it came from, never to the page. Never the only place an error is said. |
 | `StatusChip` | A Task's true status: each its own color, glyph and word. Shown only where the status says something (not "Belum dikerjakan" on every to-do row). |
-| `SourceTag` | Quiet outline tag, only where the source changes what to do. |
+| `Tag` | A word marking one row as the exception ("Baru", "Hadir", "UTS"): `sm` 18 px or `md` 22 px, in a tone (neutral, info, warning, success, danger). Never on every row. |
 | `SourceLogo`, `AppMark` (`ui/brand.tsx`) | The real Edunex and SIX logos where the app stands for one of them (connecting, the data status, the accounts in Settings); Edunex Plus's own icon (`assets/icon.png`) in the sidebar, on the welcome screen and in Settings. |
 | `Badge` | Sidebar counts: neutral = how many; amber = something needs the Student today. |
 | `Skeleton` | Placeholders in the shape of what's coming; never a blank area or a lone spinner. |
@@ -344,11 +355,10 @@ Screens are composed, not styled one by one:
 | `RichEditor` (`ui/rich-editor.tsx`) | A box for writing formatted text (a Task's answer): bold, italic, lists, a link, a quote, undo and redo; pasting keeps only simple formatting. Loaded lazily with the screen that uses it (TipTap underneath); it holds only what Edunex's own editor writes, never pictures, tables or embeds. |
 | `RichText`, `WebLink` (`ui/rich-text.tsx`) | What a lecturer wrote (notes, Task instructions), rebuilt safely from its HTML as Edunex shows it: formatting, lists, tables, figures; a link says where it goes on hover and focus and opens in the browser; pictures from Edunex's storage come in through the app (`LecturerHtml`, `RemoteImage`), with a placeholder while loading and the reason when one can't show. A long note folds with "Tampilkan semua". |
 | `PdfViewer` (`ui/pdf-viewer.tsx`), `usePdfViewer()` (`pdf.tsx`) | A PDF read in the app, over the current screen: pages one under another, white in both themes, sharp at any zoom; "3 dari 12" with a box to jump; − / + and fit width or the whole page (slides open whole); the keyboard (arrows, PgUp/PgDn, Space, Home/End, ⌘+ ⌘− ⌘0, Esc); selectable text; Download in the toolbar; when it can't show, why, with Download, Open in Edunex and Try again. |
-| `Flash` (`ui/motion.tsx`) | Being retired (no glow): don't use it in new places. |
 | `AnimatedNumber` (`ui/motion/`) | A figure the Student just changed counts to its new value, in the app's number format; screen readers and copies only ever get the true value. |
 | `SlidingHighlight` (`ui/motion/`) | The highlight of a segmented control or tab list, gliding to the new pick. The group keeps its own buttons; items carry `data-highlight`. A rounded fill stretches a little while it glides between items of different widths. |
 | `DisclosurePanel`, `disclosureTrigger` (`ui/motion/`) | A panel opening smoothly under the screen's own button, which says what it controls. |
-| `PresenceList`, `PresenceItem` (`ui/motion/`) | Rows the Student can remove (snoozed, handed in) without the list jumping or focus getting lost. Built on `Presence` (`ui/motion/presence.tsx`), which keeps a leaving child on screen until it has played its way out; the toasts use it too. |
+| `PresenceList`, `PresenceItem` (`ui/motion/`) | Rows the Student can remove (snoozed, handed in) without the list jumping or focus getting lost. A kit `Row` is a `PresenceItem` (a plain `<li>` outside a list that opts in), so a list opts in by wrapping its rows in `PresenceList`. Built on `Presence` (`ui/motion/presence.tsx`), which keeps a leaving child on screen until it has played its way out; the toasts use it too. |
 
 The shell: a sidebar (the app's icon and name, ⌘1–⌘6, courses with their dot, the Student's name
 opening Settings), a top bar (back button naming where it goes, ⌘K search,

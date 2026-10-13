@@ -56,7 +56,7 @@ async function type(label: string, value: string) {
 }
 const text = (selector: string) => document.querySelector(selector)?.textContent ?? "";
 
-const stats = () => [...document.querySelectorAll("main .grid-cols-2 > div")].map((el) => el.textContent);
+const stats = () => [...document.querySelectorAll("main dl > div")].map((el) => el.textContent);
 const chartRows = () =>
   [...document.querySelectorAll("table")]
     .find((table) => table.querySelector("caption")?.textContent?.startsWith("IP dan IPK per semester"))
@@ -79,15 +79,14 @@ describe("Nilai", () => {
     expect(screen.text()).toContain("3,26");
   });
 
-  it("answers first: the IPK and where the expected grades lead, then four equal figures", async () => {
+  it("answers first: the IPK and where the expected grades lead, then the figures around it, the IPK not again", async () => {
     const s = await openGrades();
     expect(text("main header")).toContain("IPK-mu 3,26. Dengan perkiraan nilaimu, lulus dengan sekitar 3,30 (sangat memuaskan).");
     expect(stats()).toEqual([
-      "IPK3,26Sangat memuaskan",
       "SKS lulus125dari 144 SKS untuk lulus",
       "IP semester lalu3,27Smt 6 · +0,17 dari sebelumnya",
       // (408 + 4 × 26) / 151
-      "IPK tertinggi yang masih mungkin3,39jika semua A di 26 SKS tersisa",
+      "IPK tertinggi yang mungkin3,39jika semua A di 26 SKS tersisa",
     ]);
     expect(s.text()).not.toContain("SIX menampilkan IPK");
     expect(s.text()).not.toContain("Tahap Sarjana");
@@ -226,7 +225,7 @@ describe("Nilai", () => {
       },
     });
     expect(s.text()).toContain("SIX menampilkan IPK 3,30, sedangkan nilai di transkripmu menghasilkan 3,26. Yang ditampilkan angka SIX.");
-    expect(stats()[0]).toBe("IPK3,30Sangat memuaskan");
+    expect(text("main header")).toContain("IPK-mu 3,30.");
     expect(termRow(/^Smt 1 · 2023\/2024 Ganjil/).textContent).toContain("SIX 3,70 · dari baris 3,69");
   });
 
@@ -236,6 +235,6 @@ describe("Nilai", () => {
     expect(s.text()).toContain("IPK at graduation");
     expect(s.text()).toContain("Very satisfactory");
     expect(s.text()).toContain("Sem 6 · 2025/2026 Even");
-    expect(s.text()).toContain("Highest IPK still possible3.39");
+    expect(s.text()).toContain("Highest possible IPK3.39");
   });
 });
