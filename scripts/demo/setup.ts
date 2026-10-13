@@ -14,6 +14,7 @@ import path from "node:path";
 import zlib from "node:zlib";
 import { app, dialog, net, session, shell } from "electron";
 import type { DemoHooks } from "../../src/desktop/demo";
+import { fillablePdf } from "../../test/kit/fillable-pdf";
 import { PRETEND_TOKEN } from "../../test/pretend/edunex";
 import { PRETEND_SIX_COOKIE } from "../../test/pretend/six";
 import { PretendWorld } from "../../test/pretend/world";
@@ -38,8 +39,8 @@ const scratch = path.join(os.tmpdir(), `edunex-plus-demo-${process.pid}`);
 fs.mkdirSync(path.join(scratch, "Downloads"), { recursive: true });
 app.on("quit", () => fs.rmSync(scratch, { recursive: true, force: true }));
 app.setPath("downloads", path.join(scratch, "Downloads"));
-const SAMPLE_PDF =
-  "%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj 2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj 3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 595 842]>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF\n";
+// Any other file on Edunex's storage (a lecturer's file on a Task) and the file the picker gives: a made-up form to fill in.
+const SAMPLE_PDF = fillablePdf();
 const answer = path.join(scratch, "Laporan Tugas - Dimas Pratama.pdf");
 fs.writeFileSync(answer, SAMPLE_PDF);
 const opened: string[] = [];

@@ -41,7 +41,7 @@ import { useOpenExternal } from "../hooks";
 import { type Format, type Translate, useFormat, useNow, useT } from "../i18n";
 import { LecturerHtml } from "../lecturer-html";
 import { useNav } from "../nav";
-import { isPdfName, usePdfViewer } from "../pdf";
+import { isPdfName, useAnswerAttach, usePdfViewer } from "../pdf";
 import { useExams } from "../schedule-data";
 import { useRefresh, useSignIn } from "../shell/source-status";
 import { useBridge, useDataset, useStatus } from "../store";
@@ -718,7 +718,7 @@ export function LecturerFile({ file, taskId }: { file: TaskFile; taskId: number 
     <button
       type="button"
       aria-label={t(viewable ? "pdf.viewFile" : "task.download", { name: file.name })}
-      onClick={() => (viewable ? pdf.open({ kind: "edunex", url: file.url, name: file.name, edunexUrl: edunexTaskUrl(taskId) }) : void download(file))}
+      onClick={() => (viewable ? pdf.open({ kind: "edunex", url: file.url, name: file.name, edunexUrl: edunexTaskUrl(taskId), taskId }) : void download(file))}
       className="focus-ring flex w-full items-center gap-3 rounded-xl border border-edge bg-surface px-3 py-2.5 text-left shadow-card transition-colors duration-150 hover:bg-hover"
     >
       <FileBadge name={file.name} />
@@ -938,16 +938,23 @@ function HandIn({ task, status }: Row) {
 
   // A PDF in the answer opens in the viewer: one on Edunex (saved, or uploaded a moment ago) by its link, with
   // the Task's page as the way out; one still on its way up from its bytes, read by main by the id it gave.
-  const preview = (file: TaskFile) => () => pdf.open({ kind: "edunex", url: file.url, name: file.name, edunexUrl: edunexTaskUrl(task.id) });
+  const preview = (file: TaskFile) => () => pdf.open({ kind: "edunex", url: file.url, name: file.name, edunexUrl: edunexTaskUrl(task.id), taskId: task.id });
   const previewPicked = (item: Attached) => () =>
     pdf.open({
       kind: "bytes",
       name: item.name,
+      taskId: task.id,
       load: async () => {
         const read = await bridge.invoke("tasks.readPicked", { fileId: item.key });
         return "problem" in read ? read : read.bytes;
       },
     });
+
+  // A PDF from this Task filled in in the viewer joins the answer as a file, just as one picked from the computer.
+  useAnswerAttach(
+    task.id,
+    editable ? async ({ name, bytes }) => attach((await bridge.invoke("tasks.dropFiles", { files: [{ name, type: "application/pdf", bytes }] })).files) : null,
+  );
 
   const removeSaved = (url: string) => setRemoved((list) => [...list, url]);
   const removeAttached = (key: string) => setAttached((list) => list.filter((item) => item.key !== key));
