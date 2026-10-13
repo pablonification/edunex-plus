@@ -131,8 +131,8 @@ export const shellStrings = {
   "settings.signOutAll": { id: "Keluar & hapus data", en: "Sign out & remove data" },
   "settings.signOutAll.label": { id: "Keluar dari semua akun", en: "Sign out of everything" },
   "settings.signOutAllHint": {
-    id: "Keluar dari Edunex dan SIX, lalu menghapus semua data tersimpan dari komputer ini.",
-    en: "Signs out of Edunex and SIX, then removes all saved data from this computer.",
+    id: "Keluar dari Edunex dan SIX, lalu menghapus semua datamu dari komputer ini.",
+    en: "Signs out of Edunex and SIX, then removes all your data from this computer.",
   },
   "settings.signOutAllConfirm": { id: "Keluar dan hapus semua data?", en: "Sign out and remove all data?" },
   "settings.other": { id: "Lainnya", en: "Other" },
