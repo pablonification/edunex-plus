@@ -17,7 +17,7 @@
   --line: #ededf0;
   --fill: #f4f4f6;
   --hover: #f1f1f4;
-  --selected: rgb(0 0 0 / 0.065);
+  --selected: rgb(0 0 0 / 0.055);
   --sunken: #f7f7f9;
   --scrim: rgb(0 0 0 / 0.25);
   --track: #d4d4da;
@@ -25,10 +25,10 @@
   --tooltip-bg: #1d1d1f;
   --tooltip-fg: #ffffff;
 
-  /* Text (all AA on canvas, sidebar and fill) */
+  /* Text (all AA on every surface, and on hover, selected and sunken: test/app/contrast.test.ts) */
   --fg: #1d1d1f;
   --muted: #5b5b61;
-  --faint: #6f6f75;
+  --faint: #68686e;
 
   /* Accent */
   --accent: #2f6feb;
@@ -68,6 +68,25 @@
   /* Sources */
   --source-itb-bg: #f3ecfd;
   --source-itb-fg: #6338b8;
+
+  /* Layers, lowest to highest: z-(--z-dialog). Inside one panel, Tailwind's
+     plain z-10 / z-20 are fine; these are for things that float over the window. */
+  --z-sticky: 10;
+  --z-dialog: 50;
+  --z-confirm: 55; /* a question asked over a dialog */
+  --z-popover: 60;
+  --z-tooltip: 70;
+  --z-toast: 80;
+
+  /* Motion durations: duration-(--duration-quick). JS animation (element.animate)
+     reads the same values from src/app/ui/motion/tokens.ts (a test keeps them equal).
+     quick: press, colors, tooltips, popovers, anything leaving, a highlight sliding.
+     base: dialogs, a panel opening, the gap closing after a row or toast leaves.
+     slow: a number changing, a bar filling.
+     Screens and their rows never animate in: switching is instant. */
+  --duration-quick: 150ms;
+  --duration-base: 200ms;
+  --duration-slow: 400ms;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -83,7 +102,7 @@
     --line: #26262b;
     --fill: #232327;
     --hover: #222226;
-    --selected: rgb(255 255 255 / 0.08);
+    --selected: rgb(255 255 255 / 0.07);
     --sunken: #19191c;
     --scrim: rgb(0 0 0 / 0.45);
     --track: #3a3a40;
@@ -93,7 +112,7 @@
 
     --fg: #ececef;
     --muted: #a8a8b0;
-    --faint: #8c8c93;
+    --faint: #97979d;
 
     --accent: #2f6feb;
     --accent-hover: #2a66df;
@@ -187,8 +206,15 @@
   --text-title--line-height: 22px;
   --text-heading: 20px;
   --text-heading--line-height: 26px;
+  /* A figure read at a glance (Stat: IPK, SKS, absences left). */
+  --text-figure: 26px;
+  --text-figure--line-height: 32px;
   --text-display: 28px;
   --text-display--line-height: 34px;
+
+  /* Radius: Tailwind's scale (md 6px buttons, lg 8px inputs and buttons, xl 12px
+     cards and lists, 2xl 16px raised cards and dialogs, full chips), plus tags. */
+  --radius-tag: 5px;
 
   /* Elevation */
   --shadow-button: inset 0 1px 0 rgb(255 255 255 / 0.18), 0 1px 2px rgb(16 24 40 / 0.12);
@@ -199,14 +225,18 @@
   --shadow-pop: 0 20px 60px -12px rgb(0 0 0 / 0.3);
   --shadow-dialog: 0 24px 80px -12px rgb(0 0 0 / 0.35);
 
-  /* Motion */
+  /* Motion (durations in :root above). Enter with ease-out, leave with
+     ease-standard; leaving is quicker than arriving. */
   --ease-standard: cubic-bezier(0.2, 0, 0, 1);
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
-  --animate-fade-in: fade-in 160ms var(--ease-standard);
-  --animate-pop-in: pop-in 180ms var(--ease-standard);
-  --animate-enter: enter 280ms var(--ease-out) both;
-  --animate-rise: rise 360ms var(--ease-out) both;
-  --animate-slide-down: slide-down 220ms var(--ease-out) both;
+  --animate-fade-in: fade-in var(--duration-quick) var(--ease-standard);
+  --animate-fade-out: fade-out var(--duration-quick) var(--ease-standard) both;
+  --animate-pop-in: pop-in var(--duration-base) var(--ease-out);
+  --animate-pop-out: pop-out var(--duration-quick) var(--ease-standard) both;
+  --animate-popover-in: pop-in var(--duration-quick) var(--ease-out);
+  --animate-popover-out: pop-out var(--duration-quick) var(--ease-standard) both;
+  --animate-slide-down: slide-down var(--duration-base) var(--ease-out) both;
+  --animate-toast-in: toast-in var(--duration-base) var(--ease-out);
   --animate-shimmer: shimmer 1.4s ease-in-out infinite;
 
   @keyframes fade-in {
@@ -214,24 +244,31 @@
       opacity: 0;
     }
   }
+  @keyframes fade-out {
+    to {
+      opacity: 0;
+    }
+  }
+  /* A dialog, a popover or a toast arriving; popovers grow from their trigger
+     (origin-(--radix-popover-content-transform-origin)), so the side they open
+     on shows. Never from nothing: 98%. */
   @keyframes pop-in {
     from {
       opacity: 0;
-      transform: translateY(4px) scale(0.985);
+      transform: scale(0.98);
     }
   }
-  /* A screen opening. */
-  @keyframes enter {
-    from {
+  @keyframes pop-out {
+    to {
       opacity: 0;
-      transform: translateY(6px);
+      transform: scale(0.98);
     }
   }
-  /* Rows of a list arriving one after another (style --i: the row's place). */
-  @keyframes rise {
+  /* A toast rising in at the bottom of the window. */
+  @keyframes toast-in {
     from {
       opacity: 0;
-      transform: translateY(8px);
+      transform: translateY(8px) scale(0.98);
     }
   }
   /* A banner or a panel opening below its anchor. */
@@ -254,12 +291,6 @@
 }
 @utility no-drag {
   -webkit-app-region: no-drag;
-}
-
-/* List rows arrive one after another: style={{ "--i": index }} with this class. Capped so long lists don't drag. */
-@utility stagger {
-  animation: var(--animate-rise);
-  animation-delay: calc(min(var(--i, 0), 10) * 28ms);
 }
 
 /* One visible focus style everywhere, keyboard only. */
@@ -312,6 +343,27 @@
   }
 }
 
+/* A native disclosure (<details>) opens and closes smoothly instead of jumping. */
+@media (prefers-reduced-motion: no-preference) {
+  :root {
+    interpolate-size: allow-keywords;
+  }
+  details::details-content {
+    height: 0;
+    overflow: clip;
+    transition:
+      height var(--duration-base) var(--ease-out),
+      content-visibility var(--duration-base) allow-discrete;
+  }
+  details[open]::details-content {
+    height: auto;
+  }
+}
+
+/* Reduced motion: every CSS animation and transition becomes instant. This
+   doesn't reach element.animate: the kit's JS animation asks the same setting
+   before it starts (src/app/ui/motion/animate.ts). A spinner still says
+   "working": it turns slowly instead of freezing mid-turn. */
 @media (prefers-reduced-motion: reduce) {
   *,
   ::before,
@@ -320,6 +372,10 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+  .animate-spin {
+    animation-duration: 1.5s !important;
+    animation-iteration-count: infinite !important;
   }
 }
 

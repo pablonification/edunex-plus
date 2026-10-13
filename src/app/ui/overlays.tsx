@@ -1,20 +1,26 @@
 // Things that float above the window: dialogs, the confirm dialog, tooltips
 // and toasts. Radix handles focus trapping, Escape and screen-reader roles.
+// Each one leaves the way it came (Radix waits for the closing animation).
+import * as AlertDialogPrimitive from "@radix-ui/react-alert-dialog";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import * as PopoverPrimitive from "@radix-ui/react-popover";
 import * as TooltipPrimitive from "@radix-ui/react-tooltip";
-import { type ReactNode, useEffect, useRef, useSyncExternalStore } from "react";
+import { type MouseEvent, type ReactNode, useEffect, useLayoutEffect, useRef, useSyncExternalStore } from "react";
 import { useT } from "../i18n";
 import { Button, IconButton } from "./controls";
 import { cx } from "./cx";
 import { Icons } from "./icons";
+import { Presence, usePresence } from "./motion/presence";
+import { focusInsteadOf } from "./motion/presence-list";
 
 /**
  * Focus goes back to what opened a dialog or panel when it closes, by Escape
  * or its close button. Radix only does that through its own Trigger, which a
  * dialog opened from state (Settings, ⌘K) or a trigger wrapped for its
  * tooltip doesn't have: focus fell to the page and the next Tab started over.
- * A click elsewhere in a panel leaves focus where the click put it.
+ * A click elsewhere in a panel leaves focus where the click put it. If what
+ * opened it has gone meanwhile with its row (a menu item that snoozed its own
+ * row), focus goes where the leaving row sent it (PresenceList).
  */
 export function useReturnFocus() {
   const opener = useRef<HTMLElement | null>(null);
@@ -29,9 +35,27 @@ export function useReturnFocus() {
     },
     onCloseAutoFocus: (event: Event) => {
       event.preventDefault();
-      if (!clickedAway.current && opener.current?.isConnected) opener.current.focus();
+      if (clickedAway.current || !opener.current) return;
+      if (!focusInsteadOf(opener.current) && opener.current.isConnected) opener.current.focus();
     },
   };
+}
+
+/** The tint behind a dialog: a solid scrim (no blur to redraw), fading in and out. Add a layer: z-(--z-dialog). */
+export const SCRIM_CLASS = "fixed inset-0 bg-scrim motion-safe:data-[state=open]:animate-fade-in motion-safe:data-[state=closed]:animate-fade-out";
+/** A dialog panel arriving (from 98%) and leaving, a little quicker. Pair it with onClickCapture={ignoreClosingClick}. */
+export const PANEL_MOTION_CLASS = "motion-safe:data-[state=open]:animate-pop-in motion-safe:data-[state=closed]:animate-pop-out";
+
+/**
+ * A panel that is leaving (Radix keeps it on screen for its closing animation)
+ * takes no more clicks, so the second click of a double-click, or a second
+ * Enter, can't run its action again. It still catches them, so they don't land
+ * on the page under it either.
+ */
+export function ignoreClosingClick(event: MouseEvent<HTMLElement>) {
+  if (event.currentTarget.dataset.state !== "closed") return;
+  event.preventDefault();
+  event.stopPropagation();
 }
 
 export function Dialog({
@@ -52,14 +76,16 @@ export function Dialog({
   return (
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
       <DialogPrimitive.Portal>
-        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-scrim backdrop-blur-[2px] motion-safe:animate-fade-in" />
+        <DialogPrimitive.Overlay className={cx(SCRIM_CLASS, "z-(--z-dialog)")} />
         <DialogPrimitive.Content
           aria-describedby={undefined}
           onOpenAutoFocus={onOpenAutoFocus}
           onCloseAutoFocus={onCloseAutoFocus}
+          onClickCapture={ignoreClosingClick}
           className={cx(
-            "fixed top-1/2 left-1/2 z-50 flex max-h-[min(720px,86vh)] w-[min(600px,calc(100vw-48px))] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden",
-            "rounded-2xl bg-raised text-fg shadow-dialog ring-1 ring-black/10 focus:outline-none motion-safe:animate-pop-in dark:ring-white/10",
+            "fixed top-1/2 left-1/2 z-(--z-dialog) flex max-h-[min(720px,86vh)] w-[min(600px,calc(100vw-48px))] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden",
+            "rounded-2xl bg-raised text-fg shadow-dialog ring-1 ring-black/10 focus:outline-none dark:ring-white/10",
+            PANEL_MOTION_CLASS,
             className,
           )}
         >
@@ -78,7 +104,11 @@ export function Dialog({
   );
 }
 
-/** Asks before something that can't be undone from inside the app. */
+/**
+ * Asks before something that can't be undone from inside the app. A real alert
+ * dialog: a click beside it doesn't count as an answer, and Cancel has focus
+ * first, so Enter never confirms by accident.
+ */
 export function ConfirmDialog({
   open,
   onOpenChange,
@@ -99,28 +129,31 @@ export function ConfirmDialog({
   const t = useT();
   const { onOpenAutoFocus, onCloseAutoFocus } = useReturnFocus();
   return (
-    <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
-      <DialogPrimitive.Portal>
-        <DialogPrimitive.Overlay className="fixed inset-0 z-[55] bg-scrim motion-safe:animate-fade-in" />
-        <DialogPrimitive.Content
-          role="alertdialog"
+    <AlertDialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
+      <AlertDialogPrimitive.Portal>
+        <AlertDialogPrimitive.Overlay className={cx(SCRIM_CLASS, "z-(--z-confirm)")} />
+        <AlertDialogPrimitive.Content
           onOpenAutoFocus={onOpenAutoFocus}
           onCloseAutoFocus={onCloseAutoFocus}
-          className="fixed top-1/2 left-1/2 z-[55] w-[min(420px,calc(100vw-48px))] -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-raised p-5 text-fg shadow-dialog ring-1 ring-black/10 focus:outline-none motion-safe:animate-pop-in dark:ring-white/10"
+          onClickCapture={ignoreClosingClick}
+          className={cx(
+            "fixed top-1/2 left-1/2 z-(--z-confirm) w-[min(420px,calc(100vw-48px))] -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-raised p-5 text-fg shadow-dialog ring-1 ring-black/10 focus:outline-none dark:ring-white/10",
+            PANEL_MOTION_CLASS,
+          )}
         >
-          <DialogPrimitive.Title className="text-title font-semibold">{title}</DialogPrimitive.Title>
-          <DialogPrimitive.Description className="mt-1.5 text-body text-muted">{body}</DialogPrimitive.Description>
+          <AlertDialogPrimitive.Title className="text-title font-semibold">{title}</AlertDialogPrimitive.Title>
+          <AlertDialogPrimitive.Description className="mt-1.5 text-body text-pretty text-muted">{body}</AlertDialogPrimitive.Description>
           <div className="mt-5 flex justify-end gap-2">
-            <DialogPrimitive.Close asChild>
+            <AlertDialogPrimitive.Cancel asChild>
               <Button variant="secondary">{t("action.cancel")}</Button>
-            </DialogPrimitive.Close>
+            </AlertDialogPrimitive.Cancel>
             <Button variant="danger" busy={busy} onClick={onConfirm}>
               {confirmLabel}
             </Button>
           </div>
-        </DialogPrimitive.Content>
-      </DialogPrimitive.Portal>
-    </DialogPrimitive.Root>
+        </AlertDialogPrimitive.Content>
+      </AlertDialogPrimitive.Portal>
+    </AlertDialogPrimitive.Root>
   );
 }
 
@@ -138,7 +171,9 @@ export function Tooltip({ content, children, side = "bottom" }: { content: React
         <TooltipPrimitive.Content
           side={side}
           sideOffset={6}
-          className="z-[70] max-w-[300px] rounded-md bg-tooltip-bg px-2 py-1 text-caption text-tooltip-fg shadow-pop motion-safe:animate-fade-in"
+          // Grows from its control after the wait; moving on to the next control shows its tooltip at
+          // once (instant-open), and the one before goes at once, so two never show together.
+          className="z-(--z-tooltip) max-w-[300px] origin-(--radix-tooltip-content-transform-origin) rounded-md bg-tooltip-bg px-2 py-1 text-caption text-tooltip-fg shadow-pop motion-safe:data-[state=delayed-open]:animate-popover-in"
         >
           {content}
         </TooltipPrimitive.Content>
@@ -174,10 +209,16 @@ export function Popover({
         <PopoverPrimitive.Content
           aria-label={label}
           {...returnFocus}
+          onClickCapture={ignoreClosingClick}
           align={align}
           sideOffset={8}
           collisionPadding={12}
-          className={cx("z-[60] rounded-xl border border-edge bg-raised text-fg shadow-pop focus:outline-none motion-safe:animate-slide-down", className)}
+          // Grows from its control, so it shows which side it opened on, and fades as it closes.
+          className={cx(
+            "z-(--z-popover) origin-(--radix-popover-content-transform-origin) rounded-xl border border-edge bg-raised text-fg shadow-pop focus:outline-none",
+            "motion-safe:data-[state=open]:animate-popover-in motion-safe:data-[state=closed]:animate-popover-out",
+            className,
+          )}
         >
           {children}
         </PopoverPrimitive.Content>
@@ -235,33 +276,52 @@ export function Toaster() {
     () => toasts,
   );
   return (
-    <div aria-live="polite" className="pointer-events-none fixed bottom-5 left-1/2 z-[80] flex -translate-x-1/2 flex-col items-center gap-2">
-      {items.map((item) => (
-        <div
-          key={item.id}
-          role="status"
-          className={cx(
-            "pointer-events-auto flex items-center gap-2.5 rounded-xl py-2.5 pr-2.5 pl-3.5 text-small font-medium shadow-pop motion-safe:animate-pop-in",
-            item.tone === "danger" ? "bg-danger-bg text-danger-fg" : "bg-tooltip-bg text-tooltip-fg",
-          )}
-        >
-          {item.tone === "danger" && <Icons.AlertTriangle className="size-4 shrink-0" />}
-          {item.tone === "success" && <Icons.CheckCircle className="size-4 shrink-0 text-live" weight="bold" />}
-          <span className="pr-1">{item.text}</span>
-          {item.action && (
-            <button
-              type="button"
-              onClick={() => {
-                item.action?.onClick();
-                dismiss(item.id);
-              }}
-              className="focus-ring -my-1 rounded-md px-2 py-1 font-semibold underline-offset-2 hover:underline"
-            >
-              {item.action.label}
-            </button>
-          )}
-        </div>
-      ))}
+    // Newest at the bottom. A toast rises in; when one goes, it fades first, then the gap closes,
+    // so the others slide into place instead of jumping. The live region itself never leaves.
+    <div aria-live="polite" className="pointer-events-none fixed bottom-5 left-1/2 z-(--z-toast) flex -translate-x-1/2 flex-col items-center">
+      <Presence>
+        {items.map((item) => (
+          <Toast key={item.id} item={item} />
+        ))}
+      </Presence>
+    </div>
+  );
+}
+
+function Toast({ item }: { item: ToastItem }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const exit = usePresence()?.exit;
+  const leaving = exit !== undefined;
+  useLayoutEffect(() => (exit && ref.current ? exit(ref.current) : undefined), [exit]);
+  return (
+    // Rises in with CSS (none with Reduce motion); leaves with the kit's fade and closing gap, clipped
+    // meanwhile. A leaving toast takes no more clicks, so a second click on Undo can't run it twice:
+    // its card is inert, and the box around it catches the click so it doesn't land on the page behind.
+    <div ref={ref} className={cx("flex justify-center pt-2 motion-safe:animate-toast-in", leaving && "pointer-events-auto overflow-clip")}>
+      <div
+        role="status"
+        inert={leaving}
+        className={cx(
+          "pointer-events-auto flex items-center gap-2.5 rounded-xl py-2.5 pr-2.5 pl-3.5 text-small font-medium shadow-pop",
+          item.tone === "danger" ? "bg-danger-bg text-danger-fg" : "bg-tooltip-bg text-tooltip-fg",
+        )}
+      >
+        {item.tone === "danger" && <Icons.AlertTriangle className="size-4 shrink-0" />}
+        {item.tone === "success" && <Icons.CheckCircle className="size-4 shrink-0 text-live" weight="bold" />}
+        <span className="pr-1">{item.text}</span>
+        {item.action && (
+          <button
+            type="button"
+            onClick={() => {
+              item.action?.onClick();
+              dismiss(item.id);
+            }}
+            className="focus-ring -my-1 rounded-md px-2 py-1 font-semibold underline-offset-2 hover:underline"
+          >
+            {item.action.label}
+          </button>
+        )}
+      </div>
     </div>
   );
 }

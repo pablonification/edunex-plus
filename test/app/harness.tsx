@@ -7,6 +7,7 @@ import { App } from "../../src/app/app";
 import { type BridgeApi, createBridge } from "../../src/app/bridge";
 import type { UiClock } from "../../src/app/i18n";
 import { AppStore } from "../../src/app/store";
+import { skipAnimations } from "../../src/app/ui/motion/animate";
 import { type ActionName, type ActionResult, Actions, type AppSnapshot, type Event } from "../../src/core/contract";
 import { planOfflineFiles } from "../../src/core/course-materials";
 import { isOfficialUrl, isWebLink } from "../../src/core/links";
@@ -36,6 +37,9 @@ if (typeof Element !== "undefined") {
 }
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+// JS animation finishes at once: a toast or a row that leaves is gone when the test looks, as
+// Radix overlays already are (jsdom never runs their CSS animations).
+skipAnimations(true);
 // Radix positions tooltips with ResizeObserver, which jsdom lacks.
 globalThis.ResizeObserver ??= class {
   observe() {}

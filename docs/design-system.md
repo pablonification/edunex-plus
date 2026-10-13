@@ -15,6 +15,13 @@ The code is the source of truth: tokens live in `src/app/styles.css`, the
 components in `src/app/ui/` (screens are built from `src/app/ui/layout.tsx`),
 and every word in `src/core/strings/`. This page explains them.
 
+Agents doing polish work have ibelick's ui-skills installed (`baseline-ui`,
+`fixing-accessibility`, `fixing-motion-performance`, `improve-ui`). Where one
+of their rules disagrees with this page, this page wins: Radix (not Base UI),
+`cx()` (not `cn`/clsx), the app's own easings, shadows and title tracking,
+`element.animate` (not `motion/react`) for JS animation, and motion wherever
+the Motion section below allows it.
+
 ## Principles
 
 1. **Answer first.** Each screen answers one question before anything else
@@ -42,9 +49,11 @@ and every word in `src/core/strings/`. This page explains them.
    are working; success is confirmed where the Student is looking; anything
    destructive can be undone (an undo toast) or asks first. Final actions
    (handing in) say plainly what they will and won't count for.
-8. **Motion explains change.** Screens arrive softly, rows rise in, numbers
-   that change get noticed, panels slide from where they open. Nothing moves
-   for decoration.
+8. **Motion explains change.** Panels grow from where they open and leave the
+   way they came, a row the Student removes fades out of its list, a highlight
+   glides to the new pick, and a figure the Student just changed counts to its
+   new value. Screens and rows don't animate in: switching is instant. It is
+   quick and quiet; nothing moves for decoration.
 
 ## Foundation
 
@@ -52,7 +61,13 @@ and every word in `src/core/strings/`. This page explains them.
   read them (`bg-surface`, `text-muted`, `bg-(--status-draft-bg)`).
 - Accessible headless primitives from Radix (dialog, switch, tooltip; tabs and
   menus as screens need them), styled in a small shadcn-style kit in
-  `src/app/ui/`. Class names merge with `cx()` so a later class wins.
+  `src/app/ui/`. Class names merge with `cx()` so a later class wins; every
+  token the app adds is registered there.
+- **Motion** needs no library, as in T3 Code: CSS transitions and keyframes
+  (tokens in `styles.css`) for everything that can be CSS, and the browser's
+  Web Animations API (`element.animate`) for the rest, only inside the kit
+  (the `src/app/ui/motion/` pieces and the toasts in `overlays.tsx`), all
+  through `ui/motion/animate.ts`.
 - **Theme** follows the system, with a manual override in Settings. The main
   process applies the choice to the whole window (`nativeTheme`), so CSS only
   ever asks `prefers-color-scheme`, and native parts (scrollbars, title bar,
@@ -65,22 +80,25 @@ and every word in `src/core/strings/`. This page explains them.
 
 Each token has a light and a dark value; the theme switches them all at
 once. Text colors are tested against every background they sit on
-(`test/app/contrast.test.ts`): 4.5:1 or more for text, 3:1 for the focus ring.
+(`test/app/contrast.test.ts`), including a hovered, picked (`--selected`,
+blended over what it tints) and sunken row: 4.5:1 or more for text, 3:1 for
+the focus ring.
 
 **Surfaces**
 
 | Token | Light | Dark |
 |---|---|---|
 | `--canvas` | `#ffffff` | `#161618` |
-| `--sidebar` | `#f7f7f8` | `#1b1b1e` |
+| `--sidebar` | `#f5f5f7` | `#1b1b1e` |
 | `--surface` | `#ffffff` | `#1c1c1f` |
 | `--raised` | `#ffffff` | `#1f1f23` |
 | `--welcome` | `#f5f5f7` | `#121214` |
-| `--edge` | `#e6e6ea` | `#2a2a2f` |
-| `--line` | `#ececef` | `#26262b` |
+| `--edge` | `#e4e4e9` | `#2a2a2f` |
+| `--line` | `#ededf0` | `#26262b` |
 | `--fill` | `#f4f4f6` | `#232327` |
 | `--hover` | `#f1f1f4` | `#222226` |
-| `--selected` | `rgb(0 0 0 / 0.06)` | `rgb(255 255 255 / 0.08)` |
+| `--selected` | `rgb(0 0 0 / 0.055)` | `rgb(255 255 255 / 0.07)` |
+| `--sunken` | `#f7f7f9` | `#19191c` |
 | `--scrim` | `rgb(0 0 0 / 0.25)` | `rgb(0 0 0 / 0.45)` |
 | `--track` | `#d4d4da` | `#3a3a40` |
 | `--segment` | `#ffffff` | `#34343a` |
@@ -91,7 +109,7 @@ once. Text colors are tested against every background they sit on
 |---|---|---|
 | `--fg` | `#1d1d1f` | `#ececef` |
 | `--muted` | `#5b5b61` | `#a8a8b0` |
-| `--faint` | `#6f6f75` | `#8c8c93` |
+| `--faint` | `#68686e` | `#97979d` |
 | `--accent` | `#2f6feb` | `#2f6feb` |
 | `--accent-hover` | `#2763d8` | `#2a66df` |
 | `--accent-active` | `#2258c4` | `#2763d8` |
@@ -176,6 +194,7 @@ most three styles: its title, one supporting line, one meta line.
 | `text-lead` | 15 / 22 | A page's description line, card leads |
 | `text-title` | 16 / 22 | Section and dialog titles (semibold, −0.01em) |
 | `text-heading` | 20 / 26 | Big answers inside a card |
+| `text-figure` | 26 / 32 | A figure read at a glance (`Stat`: IPK, SKS, absences left) |
 | `text-display` | 28 / 34 | Page titles (semibold, −0.02em) |
 
 ## Space, shape, depth
@@ -183,8 +202,14 @@ most three styles: its title, one supporting line, one meta line.
 - **Spacing** on a 4 px grid. One page container for every screen
   (`Page`): 40 px side padding, 1040 px wide (Jadwal goes wider), the same
   left edge everywhere. Sections 40 px apart; inside a section 12 px.
-- **Radius**: 5 px keys and tags, 6–8 px buttons and inputs, 12 px cards and
-  lists, 16 px raised cards and dialogs, full for chips and switches.
+- **Radius**: 5 px keys and tags (`rounded-tag`), 6–8 px buttons and inputs
+  (`rounded-md`, `rounded-lg`), 12 px cards and lists (`rounded-xl`), 16 px
+  raised cards and dialogs (`rounded-2xl`), full for chips and switches. No
+  `rounded-[…]`.
+- **Layers** for what floats over the window, lowest to highest:
+  `z-(--z-dialog)` 50, `z-(--z-confirm)` 55 (a question asked over a dialog),
+  `z-(--z-popover)` 60, `z-(--z-tooltip)` 70, `z-(--z-toast)` 80. Inside one
+  panel, plain `z-10` and `z-20`. No `z-[…]`.
 - **Depth**: one surface level per region; no card inside a card. Lists and
   cards sit on the page with a 1 px edge and a faint shadow (`shadow-card`);
   the one thing that matters most right now is raised (`shadow-raised`);
@@ -193,20 +218,66 @@ most three styles: its title, one supporting line, one meta line.
 
 ## Motion
 
-Quick and purposeful: it shows where something came from, or what changed.
+Quick, quiet and purposeful: it shows where something came from or what
+changed, then gets out of the way. The feel to match is T3 Code's: most motion
+takes 150 to 200 ms, only transform and opacity move, and routine actions don't
+replay entrances.
 
-| What | Duration | Easing |
+**Timings.** Tokens in `styles.css`; JS animation reads the same numbers from
+`src/app/ui/motion/tokens.ts`, in milliseconds and CSS easing strings (a test
+keeps them equal).
+
+| Token | Value | For |
 |---|---|---|
-| Hover, press, color changes | 150 ms | ease |
-| A screen opening (`animate-enter`, done by the shell) | 280 ms | `ease-out` (0.16, 1, 0.3, 1) |
-| List rows arriving (`stagger` with `--i`, first 10 rows) | 360 ms, 28 ms apart | `ease-out` |
-| Popovers, banners (`animate-slide-down`), dialogs and toasts (`animate-pop-in`) | 180–220 ms | `ease-standard` / `ease-out` |
-| Bars filling, numbers changing | 300–500 ms | ease |
-| Loading placeholders | 1.4 s pulse | ease-in-out |
+| `--duration-quick` | 150 ms | Press, color changes, tooltips, popovers, anything leaving, a highlight sliding |
+| `--duration-base` | 200 ms | Dialogs, a panel opening, the gap closing after a row or toast leaves |
+| `--duration-slow` | 400 ms | A number counting, a bar filling |
+| `--ease-out` | (0.16, 1, 0.3, 1) | Arriving: a fast start, a soft landing |
+| `--ease-standard` | (0.2, 0, 0, 1) | Leaving and moving |
 
-Rows stagger only when a list first appears, never on every update. With
-reduced motion turned on in the OS, every animation and transition is cut to
-an instant and live dots stop pulsing.
+**What moves.**
+
+| What | How |
+|---|---|
+| Hover, press, color changes | 150 ms color change |
+| Screens and their rows | Nothing: switching screens or going further in is instant, and rows don't rise in |
+| Dialogs (`animate-pop-in`, `animate-pop-out`; the scrim `animate-fade-in`, `animate-fade-out`) | In 200 ms from 98%, out 150 ms |
+| Popovers and tooltips (`animate-popover-in`, `animate-popover-out`) | 150 ms, growing from their control (`origin-(--radix-popover-content-transform-origin)`), so the side they open on shows. A tooltip grows in only after the wait; moving on to the next control shows its tooltip at once, and a tooltip goes at once |
+| Banners (`animate-slide-down`) | 200 ms from 6 px above |
+| Toasts (`animate-toast-in`; leaving with the kit's `leave`) | Rise in 200 ms from 8 px below and 98%; leave by fading 150 ms, then the gap closes in 200 ms (starting 90 ms in) so the others slide into place; a leaving toast takes no clicks |
+| A row the Student removes (`PresenceList`) | Fades 150 ms, then the gap closes in 200 ms (starting 90 ms in); focus moves on to the same control in the next row. Rows that join, and a change of the whole list, appear at once |
+| A panel under its button (`DisclosurePanel`, a native `<details>`) | Height and opacity, 200 ms open (ease-out), 150 ms closed (ease-standard); clipped only while it moves |
+| A tab's content | Swaps at once; only the tab's highlight moves |
+| A segmented control's or tab list's highlight (`SlidingHighlight`) | Sits on the new pick at once and glides there from the old one as a transform (translate and scale), 150 ms ease-out |
+| A figure the Student just changed (`AnimatedNumber`) | Counts 400 ms ease-out with no overshoot, while the page's text is already the true value. A figure that changes on its own just changes |
+| Bars filling | 300–500 ms |
+| Loading placeholders | 1.4 s pulse |
+
+**Rules.**
+- Only transform and opacity move, except a few small, isolated heights (a
+  disclosure, a leaving row, a toast's gap), as T3 Code's `AnimatedHeight`:
+  one element each, clipped only while it moves.
+- Things leave the way they came, a little quicker, and never grow from
+  nothing: 98%, not 0.
+- Screens and rows never animate in; a row moves only when the Student's own
+  action removes it.
+- No decoration: no glow, spotlight, tilt or parallax, and nothing loops except
+  loading placeholders, spinners and live dots.
+- No animation library. JS animation only through the kit's
+  `src/app/ui/motion/` pieces and the toasts, with `element.animate` (via
+  `animate()` and `leave()` in `ui/motion/animate.ts`); a number counting is
+  the one thing drawn frame by frame. Everything else is CSS. A piece stops
+  what it started when it goes, so nothing keeps running on a removed
+  element.
+- **Reduced motion**, turned on in the OS: every CSS animation and transition
+  is cut to an instant; the CSS rule doesn't reach `element.animate`, so the
+  kit asks the same setting before each JS animation and jumps to the end
+  instead (nothing fades or counts either); live dots stop pulsing, and
+  spinners turn slowly instead of freezing mid-turn.
+- **Tests**: the harness calls `skipAnimations(true)`, so whatever leaves is
+  gone when the test looks (jsdom has no `element.animate` anyway). A test
+  that watches an animation uses `test/app/fake-animations.ts` and ends it
+  when it chooses, never by waiting.
 
 ## Icons
 
@@ -248,7 +319,7 @@ Screens are composed, not styled one by one:
 | `Button` | `primary` (one per view: the main action), `secondary`, `ghost`, `danger` (destructive only, never for a final but safe action like handing in). Shows a spinner while working. |
 | `IconButton` | Square, always with a name and a tooltip. |
 | `Popover` | A panel from a control (alerts, data status); Escape and a click outside close it. |
-| `Dialog`, `ConfirmDialog` | Focus stays inside; Escape closes. Confirm only before what can't be undone. |
+| `Dialog`, `ConfirmDialog` | Focus stays inside; Escape closes; both leave the way they came, taking no second click while they go (other dialog shells reuse `SCRIM_CLASS`, `PANEL_MOTION_CLASS` and `onClickCapture={ignoreClosingClick}`). Confirm only before what can't be undone: it is an alert dialog, so a click beside it isn't an answer and Cancel has focus first. |
 | `toast(text, tone, action?)` | Neutral, success or danger; with an action ("Urungkan", "Lihat") it stays 8 s. Never the only place an error is said. |
 | `StatusChip` | A Task's true status: each its own color, glyph and word. Shown only where the status says something (not "Belum dikerjakan" on every to-do row). |
 | `SourceTag` | Quiet outline tag, only where the source changes what to do. |
@@ -264,7 +335,11 @@ Screens are composed, not styled one by one:
 | `RichEditor` (`ui/rich-editor.tsx`) | A box for writing formatted text (a Task's answer): bold, italic, lists, a link, a quote, undo and redo; pasting keeps only simple formatting. Loaded lazily with the screen that uses it (TipTap underneath); it holds only what Edunex's own editor writes, never pictures, tables or embeds. |
 | `RichText`, `WebLink` (`ui/rich-text.tsx`) | What a lecturer wrote (notes, Task instructions), rebuilt safely from its HTML as Edunex shows it: formatting, lists, tables, figures; a link says where it goes on hover and focus and opens in the browser; pictures from Edunex's storage come in through the app (`LecturerHtml`, `RemoteImage`), with a placeholder while loading and the reason when one can't show. A long note folds with "Tampilkan semua". |
 | `PdfViewer` (`ui/pdf-viewer.tsx`), `usePdfViewer()` (`pdf.tsx`) | A PDF read in the app, over the current screen: pages one under another, white in both themes, sharp at any zoom; "3 dari 12" with a box to jump; − / + and fit width or the whole page (slides open whole); the keyboard (arrows, PgUp/PgDn, Space, Home/End, ⌘+ ⌘− ⌘0, Esc); selectable text; Download in the toolbar; when it can't show, why, with Download, Open in Edunex and Try again. |
-| `Flash` (`ui/motion.tsx`) | A figure the Student is watching glows briefly when it changes; the value itself changes at once. |
+| `Flash` (`ui/motion.tsx`) | Being retired (no glow): don't use it in new places. |
+| `AnimatedNumber` (`ui/motion/`) | A figure the Student just changed counts to its new value, in the app's number format; screen readers and copies only ever get the true value. |
+| `SlidingHighlight` (`ui/motion/`) | The highlight of a segmented control or tab list, gliding to the new pick. The group keeps its own buttons; items carry `data-highlight`. A rounded fill stretches a little while it glides between items of different widths. |
+| `DisclosurePanel`, `disclosureTrigger` (`ui/motion/`) | A panel opening smoothly under the screen's own button, which says what it controls. |
+| `PresenceList`, `PresenceItem` (`ui/motion/`) | Rows the Student can remove (snoozed, handed in) without the list jumping or focus getting lost. Built on `Presence` (`ui/motion/presence.tsx`), which keeps a leaving child on screen until it has played its way out; the toasts use it too. |
 
 The shell: a sidebar (the app's icon and name, ⌘1–⌘6, courses with their dot, the Student's name
 opening Settings), a top bar (back button naming where it goes, ⌘K search,
