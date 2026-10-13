@@ -318,6 +318,22 @@ describe("once lectures are over", () => {
     expect(health.state).toBe("met");
   });
 
+  it("isn't over while a Presence window of the course is still open: marking it there still counts", () => {
+    const during = (closesIn: number) =>
+      attendanceHealth({
+        code: "PL3002",
+        six: { attended: 11, held: 15 },
+        // The last class (3 Dec 08:00–10:00) ran, and its window closes at 13:00, or already closed.
+        presence: [presence(1, "2026-12-03T08:00:00", 300 + closesIn)],
+        schedule: weekly("PL3002", "2026-08-27T08:00:00", 15),
+        period: lecturePeriod(CALENDAR, "2026-1", wib("2026-12-03T12:00:00")),
+        target: 80,
+        now: wib("2026-12-03T12:00:00"),
+      }).state;
+    expect(during(0)).not.toMatch(/met|missed/);
+    expect(during(-180)).toBe("missed");
+  });
+
   it("isn't over while a class may still run, nor without ITB's calendar to say when lectures end", () => {
     // Only a class SIX still lists on a holiday is left (3 Dec made a holiday): it may run, so nothing is final yet.
     const holiday = { ...CALENDAR, events: [...CALENDAR.events, event("holiday", "2026-12-03", "2026-12-03")] };

@@ -271,10 +271,12 @@ export function attendanceHealth({ code, six, sixConnected, presence, schedule, 
   // Nothing left to attend, by ITB's calendar: past the last lecture day, or no
   // meeting of the course's own still to come before it (not even one that may
   // not run). Without the calendar, or the course's own classes on SIX's
-  // timetable, that can't be told from a timetable that hasn't come yet.
+  // timetable, that can't be told from a timetable that hasn't come yet. Nor
+  // while a Presence window is still open: marking it there still counts.
   const over =
     period !== null &&
     base.left.upcoming.length === 0 &&
+    !presence.some((p) => p.closesAt > now) &&
     (wibDay(now) > period.lastDay || schedule.some((s) => s.courseCode === code && !isExamActivity(s.activity)));
   if (over) {
     const final = allowed(0);
