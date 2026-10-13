@@ -1,6 +1,7 @@
 // v2-05 (#73), seam 1: handing a Task in against the pretend Edunex. Files go
 // up through Edunex's own upload flow, a draft never makes a second answer,
 // and a submit counts only once Edunex says so when the Task is read back.
+// Every request is what Edunex's own website sends (its public code).
 import { describe, expect, it } from "vitest";
 import type { HandInResult } from "../../src/core/actions/tasks";
 import type { Task, TaskFile } from "../../src/core/models";
@@ -20,10 +21,13 @@ const task = (h: Harness, id: number): Task => {
   if (!found) throw new Error(`Task ${id} isn't in the list`);
   return found;
 };
-const upload = async (h: Harness, name = "jawaban.pdf", content = "%PDF-1.7 jawaban"): Promise<TaskFile> => {
-  const { url } = (await h.engine.act("edunex", "uploadFile", { name, contentType: "application/pdf", bytes: new TextEncoder().encode(content) })) as TaskFile;
+const upload = async (h: Harness, name = "jawaban.pdf", content = "%PDF-1.7 jawaban", taskId = OPEN): Promise<TaskFile> => {
+  const bytes = new TextEncoder().encode(content);
+  const { url } = (await h.engine.act("edunex", "uploadFile", { taskId, name, contentType: "application/pdf", bytes })) as TaskFile;
   return { name, url };
 };
+/** The last change request of a kind ("PATCH /course/task/answers"), with the fields Edunex reads. */
+const lastWrite = (h: Harness, method: string, path: RegExp) => h.world.edunex.writes.filter((w) => w.method === method && path.test(w.path)).at(-1)?.body;
 const saveDraft = (h: Harness, taskId: number, files: TaskFile[]) => h.engine.act("edunex", "saveDraft", { taskId, files }) as Promise<HandInResult>;
 const submit = (h: Harness, taskId: number, files: TaskFile[]) => h.engine.act("edunex", "submit", { taskId, files }) as Promise<HandInResult>;
 const answerWrites = (h: Harness) =>
@@ -39,22 +43,51 @@ const failure = async (work: Promise<unknown>) => {
   throw new Error("expected the action to fail");
 };
 
-// Tugas 02 Bab II (II4091): open, file required, late allowed, no answer yet.
+// Tugas 02 Bab II (II4091, course 95326 "Final Project Proposal", module 450222 "Tugas"): open, file required, late allowed, no answer yet.
 const OPEN = 117003;
 // UTS Markom (DK4073): open, file required, no late answers.
 const UTS = 117764;
 
 describe("uploading a file", () => {
-  it("goes through Edunex's own flow: an upload link, then the file to Edunex's storage", async () => {
+  it("goes through Edunex's own flow: an upload link for the website's storage path, then the file with the website's headers", async () => {
     const h = await signedIn();
+    const now = h.world.clock.now();
     const file = await upload(h, "Bab II.pdf", "%PDF bab dua");
+    // {year}/{course id}-{course}/{module id}-{module}/task/{user id}/{ms}_{name without extension}, spaces as "-".
+    const path = `2026/95326-Final-Project-Proposal/450222-Tugas/task/${h.world.edunex.userId}/${now}_Bab-II`;
     expect(h.world.edunex.writes).toEqual([
-      { method: "POST", path: "/blob-storage/sas", body: { files: [{ fileName: "Bab II.pdf", contentType: "application/pdf", sizeInBytes: 12 }] } },
+      { method: "POST", path: "/blob-storage/sas", body: { files: [{ fileName: path, contentType: "application/pdf", sizeInBytes: 12 }] } },
     ]);
-    expect(new URL(file.url).hostname).toBe("edunexfixture.blob.core.windows.net");
+    // The link Edunex gave for that path.
+    expect(file.url).toBe(`https://edunexfixture.blob.core.windows.net/edunex/upload/${path}`);
     expect(Buffer.from(h.world.blobs.get(new URL(file.url).pathname) as Uint8Array).toString()).toBe("%PDF bab dua");
+    expect(h.world.blobHeaders.get(new URL(file.url).pathname)).toMatchObject({
+      "x-ms-blob-type": "BlockBlob",
+      "content-type": "application/pdf",
+      "content-disposition": "inline",
+    });
+    // The module's name and the Student's id are read as the website reads them; Edunex's token never goes to the storage.
+    expect(h.world.log.map((r) => new URL(r.url).pathname)).toEqual(expect.arrayContaining(["/course/modules/450222", "/login/me"]));
+    expect(h.world.blobHeaders.get(new URL(file.url).pathname)?.authorization).toBeUndefined();
     // Uploading attaches nothing yet.
     expect(answersOn(h, OPEN)).toEqual([]);
+  });
+
+  it("a Task gone from Edunex takes no upload, and the file isn't blamed for it", async () => {
+    const h = await signedIn();
+    h.world.edunex.tasks.set(
+      95326,
+      (h.world.edunex.tasks.get(95326) ?? []).filter((t) => Number(t.id) !== OPEN),
+    );
+    expect(await failure(upload(h))).toMatchObject({ kind: "Failed", message: `Task ${OPEN} is no longer on Edunex` });
+    expect(h.world.edunex.writes).toEqual([]);
+  });
+
+  it("an upload link Edunex didn't give is a vendor change, never a guess", async () => {
+    const h = await signedIn();
+    h.world.edunex.mangle(/^\/blob-storage\/sas$/, { kind: "missing-field", field: "files" }, 1);
+    expect(await failure(upload(h))).toMatchObject({ kind: "VendorChanged", message: "/blob-storage/sas: no upload link in the answer" });
+    expect(h.world.blobs.size).toBe(0);
   });
 
   it("a failed upload is a clear error and attaches nothing", async () => {
@@ -68,27 +101,46 @@ describe("uploading a file", () => {
     await upload(h);
   });
 
-  it("a file over 100 MB is refused before anything is sent", async () => {
+  it("a file over 100 MB, or of a kind Edunex doesn't take, is refused before anything is sent", async () => {
     const h = await signedIn();
     const big = new Uint8Array(100 * 1024 * 1024 + 1);
-    expect((await failure(h.engine.act("edunex", "uploadFile", { name: "video.mp4", contentType: "video/mp4", bytes: big }))).kind).toBe("Rejected");
+    expect((await failure(h.engine.act("edunex", "uploadFile", { taskId: OPEN, name: "rekaman.zip", contentType: "application/zip", bytes: big }))).kind).toBe(
+      "Rejected",
+    );
+    const video = { taskId: OPEN, name: "presentasi.mp4", contentType: "video/mp4", bytes: new Uint8Array(10) };
+    expect((await failure(h.engine.act("edunex", "uploadFile", video))).kind).toBe("Rejected");
     expect(h.world.edunex.writes).toEqual([]);
   });
 });
 
+describe("a group Task", () => {
+  it("is never written to: the group hands it in on Edunex", async () => {
+    const h = await signedIn();
+    const id = h.world.edunex.postTask(95326, { name: "Tugas Kelompok 1", type: "GROUP" });
+    await h.engine.refresh("edunex");
+    expect(task(h, id).group).toBe(true);
+    expect(task(h, OPEN).group).toBe(false);
+    expect((await failure(upload(h, "kelompok.pdf", "%PDF", id))).kind).toBe("Rejected");
+    const file = await upload(h);
+    expect((await failure(saveDraft(h, id, [file]))).kind).toBe("Rejected");
+    expect((await failure(submit(h, id, [file]))).kind).toBe("Rejected");
+    expect(answerWrites(h)).toEqual([]);
+  });
+});
+
 describe("saving a draft", () => {
-  it("the first draft creates one answer, as checked live without files, then puts the files in it", async () => {
+  it("the first draft creates one answer with its files in one request, as the website does", async () => {
     const h = await signedIn();
     const file = await upload(h);
     const result = await saveDraft(h, OPEN, [file]);
     expect(result.outcome).toBe("saved");
-    expect(answerWrites(h)).toEqual(["POST /course/task/answers", "PATCH /course/task/answers/:id"]);
-    expect(h.world.edunex.writes.find((w) => w.method === "POST" && w.path === "/course/task/answers")?.body).toEqual({
+    expect(answerWrites(h)).toEqual(["POST /course/task/answers"]);
+    expect(lastWrite(h, "POST", /^\/course\/task\/answers$/)).toEqual({
       task_id: OPEN,
+      files: [{ file: file.url, name: "jawaban.pdf" }],
       answer: "",
       is_sent: 0,
     });
-    expect(h.world.edunex.writes.at(-1)?.body).toMatchObject({ files: [{ name: "jawaban.pdf", file: file.url }], is_sent: 0 });
     expect(task(h, OPEN).status).toBe("draft");
     expect(task(h, OPEN).answer?.files).toEqual([file]);
     expect(task(h, OPEN).answer?.sentAt).toBeNull();
@@ -100,9 +152,30 @@ describe("saving a draft", () => {
     await saveDraft(h, OPEN, [first]);
     const second = await upload(h, "bab2-v2.pdf");
     expect((await saveDraft(h, OPEN, [second])).outcome).toBe("saved");
-    expect(answerWrites(h)).toEqual(["POST /course/task/answers", "PATCH /course/task/answers/:id", "PATCH /course/task/answers/:id"]);
+    expect(answerWrites(h)).toEqual(["POST /course/task/answers", "PATCH /course/task/answers/:id"]);
     expect(answersOn(h, OPEN)).toHaveLength(1);
     expect(task(h, OPEN).answer?.files.map((f) => f.name)).toEqual(["bab2-v2.pdf"]);
+  });
+
+  it("a file kept goes back as Edunex's own record of it, a new one as its link and name, as the website sends them", async () => {
+    const h = await signedIn();
+    const first = await upload(h, "bab2.pdf");
+    await saveDraft(h, OPEN, [first]);
+    const record = structuredClone(answersOn(h, OPEN)[0].files[0]);
+    const second = await upload(h, "lampiran.pdf");
+    expect((await saveDraft(h, OPEN, [first, second])).outcome).toBe("saved");
+    expect(lastWrite(h, "PATCH", /^\/course\/task\/answers\/\d+$/)?.files).toEqual([record, { file: second.url, name: "lampiran.pdf" }]);
+    // Edunex still holds the same file, not a copy of it.
+    expect(answersOn(h, OPEN)[0].files[0].id).toBe(record.id);
+  });
+
+  it("an answer's text from the website is sent back as it is", async () => {
+    const h = await signedIn();
+    h.world.edunex.draftOnWebsite(OPEN, "draf.pdf", "<p>Berikut <strong>Bab II</strong>.</p>");
+    await h.engine.refresh("edunex");
+    const file = await upload(h);
+    await saveDraft(h, OPEN, [file]);
+    expect(lastWrite(h, "PATCH", /^\/course\/task\/answers\/\d+$/)).toMatchObject({ answer: "<p>Berikut <strong>Bab II</strong>.</p>", is_sent: 0 });
   });
 
   it("re-reads Edunex first: a draft saved on the website since the last check is updated, not duplicated", async () => {
@@ -121,7 +194,7 @@ describe("saving a draft", () => {
     const [a, b] = await Promise.all([saveDraft(h, OPEN, [file]), saveDraft(h, OPEN, [file])]);
     expect([a.outcome, b.outcome]).toEqual(["saved", "saved"]);
     expect(answersOn(h, OPEN)).toHaveLength(1);
-    expect(answerWrites(h)).toEqual(["POST /course/task/answers", "PATCH /course/task/answers/:id", "PATCH /course/task/answers/:id"]);
+    expect(answerWrites(h)).toEqual(["POST /course/task/answers", "PATCH /course/task/answers/:id"]);
   });
 
   it("only files on Edunex's storage are ever attached", async () => {
@@ -148,8 +221,11 @@ describe("submitting", () => {
     const file = await upload(h);
     const result = await submit(h, OPEN, [file]);
     expect(result.outcome).toBe("submitted");
-    expect(answerWrites(h)).toEqual(["POST /course/task/answers", "PATCH /course/task/answers/:id", "PATCH /course/task/answers/:id"]);
-    expect(h.world.edunex.writes.at(-1)?.body).toEqual({ is_sent: 1 });
+    expect(answerWrites(h)).toEqual(["POST /course/task/answers", "PATCH /course/task/answers/:id"]);
+    expect(lastWrite(h, "PATCH", /^\/course\/task\/answers\/\d+$/)).toEqual({ is_sent: 1 });
+    // Then, as the website does, the lecturer's cached "download all answers" file is cleared so it includes this one.
+    expect(h.world.edunex.writes.at(-1)).toEqual({ method: "DELETE", path: `/blob-storage//task/${OPEN}/export`, body: {} });
+    expect(h.world.edunex.exportsCleared).toEqual([OPEN]);
     expect(task(h, OPEN)).toMatchObject({ status: "submitted" });
     expect(task(h, OPEN).answer).toMatchObject({ sent: true, sentAt: h.world.clock.now(), files: [file] });
     expect(answersOn(h, OPEN)).toHaveLength(1);
@@ -160,8 +236,17 @@ describe("submitting", () => {
     const file = await upload(h);
     await saveDraft(h, OPEN, [file]);
     expect((await submit(h, OPEN, [file])).outcome).toBe("submitted");
-    expect(answerWrites(h)).toEqual(["POST /course/task/answers", "PATCH /course/task/answers/:id", "PATCH /course/task/answers/:id"]);
-    expect(h.world.edunex.writes.at(-1)?.body).toEqual({ is_sent: 1 });
+    expect(answerWrites(h)).toEqual(["POST /course/task/answers", "PATCH /course/task/answers/:id"]);
+    expect(lastWrite(h, "PATCH", /^\/course\/task\/answers\/\d+$/)).toEqual({ is_sent: 1 });
+  });
+
+  it("clearing the lecturer's cached download failing never fails the submit", async () => {
+    const h = await signedIn();
+    const file = await upload(h);
+    h.world.edunex.fail(/\/export$/, 500, 1);
+    expect((await submit(h, OPEN, [file])).outcome).toBe("submitted");
+    expect(task(h, OPEN).status).toBe("submitted");
+    expect(h.world.edunex.exportsCleared).toEqual([]);
   });
 
   it("when Edunex takes the request but doesn't show it sent, it's unconfirmed, never submitted", async () => {

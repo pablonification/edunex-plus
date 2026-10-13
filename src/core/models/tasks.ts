@@ -68,6 +68,8 @@ export const Task = z.object({
   postedAt: z.number().nullable(),
   /** When the lecturer changed it after posting; Edunex never announces edits. */
   editedAt: z.number().nullable(),
+  /** A group Task: the group hands it in on Edunex, through pages the app doesn't copy. Missing in data saved before it was read. */
+  group: z.boolean().optional(),
 });
 export type Task = z.infer<typeof Task>;
 

@@ -47,17 +47,19 @@ describe("handing in", () => {
     // Saved, said inline in the panel (not a toast that follows the Student to the next screen).
     expect(card()).toContain("DrafTersimpan Hari ini, 08:12 · belum diserahkan");
     expect(card()).not.toContain("Belum disimpan");
-    expect(answerWrites(s)).toEqual(["POST /course/task/answers", "PATCH /course/task/answers/:id"]);
+    // One request with the files in it, as the website's "Save Answer".
+    expect(answerWrites(s)).toEqual(["POST /course/task/answers"]);
 
     await s.click("Kumpulkan");
     const dialog = document.querySelector("[role=alertdialog]");
     expect(dialog?.textContent).toContain("Kumpulkan tugas ini?");
     expect(dialog?.textContent).toContain("Bab II.pdf akan diserahkan ke dosen. Setelah dikumpulkan, jawabanmu final.");
     // Nothing is sent before the Student confirms.
-    expect(answerWrites(s)).toHaveLength(2);
+    expect(answerWrites(s)).toHaveLength(1);
     await s.click(confirmButton()!);
-    expect(answerWrites(s)).toHaveLength(3);
-    expect(s.world.edunex.writes.at(-1)?.body).toEqual({ is_sent: 1 });
+    expect(answerWrites(s)).toHaveLength(2);
+    expect(s.world.edunex.writes.filter((w) => w.method === "PATCH").at(-1)?.body).toEqual({ is_sent: 1 });
+    expect(s.world.edunex.exportsCleared).toEqual([117003]);
     expect(card()).toContain("TerkumpulEdunex mencatatnya Hari ini, 08:12");
     expect(card()).toContain("Sudah diserahkan. Pengumpulan bersifat final.");
     expect(s.has(ATTACH)).toBe(false);
@@ -103,21 +105,71 @@ describe("handing in", () => {
     const s = await openTask("Tugas 02 Bab II");
     s.willPick([{ name: "Bab II.pdf" }, { name: "Lampiran.zip", type: "application/zip" }]);
     await s.click(ATTACH);
-    expect(s.world.edunex.writes.filter((w) => w.path === "/blob-storage/sas").map((w) => w.body.files[0].fileName)).toEqual(["Bab II.pdf", "Lampiran.zip"]);
+    // Each to its own place on the storage, named as the website names it.
+    expect(s.world.edunex.writes.filter((w) => w.path === "/blob-storage/sas").map((w) => w.body.files[0].fileName.split("_").at(-1))).toEqual([
+      "Bab-II",
+      "Lampiran",
+    ]);
     expect(s.world.edunex.writes[1].body.files[0].contentType).toBe("application/zip");
     await s.click("Simpan draf");
     expect(s.world.edunex.task(117003).attributes.answers[0].files.map((f: { name: string }) => f.name)).toEqual(["Bab II.pdf", "Lampiran.zip"]);
   });
 
-  it("a file over 100 MB is refused at once, without uploading", async () => {
+  it("a file over 100 MB, or of a kind Edunex doesn't take, is refused at once, without uploading", async () => {
     const s = await openTask("Tugas 02 Bab II");
-    s.willPick([{ name: "rekaman.mp4", size: 200 * 1024 * 1024 }]);
+    s.willPick([{ name: "rekaman.zip", size: 200 * 1024 * 1024 }, { name: "rekaman.mp4" }]);
     await s.click(ATTACH);
     expect(card()).toContain("Lebih dari 100 MB: Edunex tidak menerima berkas sebesar ini");
+    expect(card()).toContain("Edunex tidak menerima berkas jenis ini. Gunakan PDF, Word, Excel, PowerPoint, ZIP, RAR, JPG, atau PNG.");
     expect(s.has(/^Unggah ulang/)).toBe(false);
     expect(s.world.edunex.writes).toEqual([]);
+    // Nothing failed to upload, so there's no "try again": only removing them.
+    expect(s.button("Kumpulkan").disabled).toBe(true);
+    expect(card()).toContain("Hapus dulu berkas yang tidak diterima Edunex.");
+    expect(card()).not.toContain("Coba lagi");
+    await s.click("Hapus rekaman.zip");
     await s.click("Hapus rekaman.mp4");
-    expect(card()).not.toContain("rekaman.mp4");
+    expect(card()).not.toContain("rekaman");
+    expect(card()).not.toContain("Hapus dulu berkas");
+  });
+
+  it("a group Task: no answer form, the way to hand it in with the group on Edunex", async () => {
+    const world = new PretendWorld();
+    world.edunex.postTask(95326, { name: "Tugas Kelompok 1", type: "GROUP" });
+    screen = await openApp({ signedIn: true, world });
+    const s = screen;
+    await s.click(/^Tugas & Ujian\d*$/);
+    await s.click([...document.querySelectorAll<HTMLButtonElement>("main li button")].find((b) => b.textContent?.startsWith("Tugas Kelompok 1"))!);
+    expect(card()).toContain("Ini tugas kelompok. Kumpulkan bersama kelompokmu di Edunex.");
+    // Nothing of the Student's own to show, so no "Jawabanmu" over it.
+    expect(card()).not.toContain("Jawabanmu");
+    expect(s.has(ATTACH)).toBe(false);
+    expect(s.has("Kumpulkan")).toBe(false);
+    await s.click("Buka di Edunex");
+    expect(s.calls.at(-1)).toEqual({
+      name: "shell.openExternal",
+      input: { url: expect.stringMatching(/^https:\/\/edunex\.itb\.ac\.id\/assignment\/take\/\d+$/) },
+    });
+  });
+
+  it("a dropped file of a kind Edunex doesn't take is said so, and never read or sent", async () => {
+    const s = await openTask("Tugas 02 Bab II");
+    let read = false;
+    const arrayBuffer = async () => {
+      read = true;
+      return new ArrayBuffer(10);
+    };
+    const dropped = { name: "catatan.txt", size: 10, type: "text/plain", arrayBuffer };
+    await act(async () => {
+      const event = new Event("drop", { bubbles: true, cancelable: true });
+      Object.defineProperty(event, "dataTransfer", { value: { files: [dropped] } });
+      s.button(ATTACH).dispatchEvent(event);
+    });
+    expect(card()).toContain("catatan.txt");
+    expect(card()).toContain("Edunex tidak menerima berkas jenis ini.");
+    expect(card()).toContain("Hapus dulu berkas yang tidak diterima Edunex.");
+    expect(read).toBe(false);
+    expect(s.world.edunex.writes).toEqual([]);
   });
 
   it("a file dropped on the window is attached and uploaded", async () => {
@@ -229,7 +281,8 @@ describe("handing in", () => {
     expect(s.has(/^Attach files · Drop files here/)).toBe(true);
     expect(s.has("Save draft")).toBe(true);
     expect(s.has("Submit")).toBe(true);
-    expect(card()).toContain("A draft is only visible to you. Submit to hand it in.");
+    // A lecturer sees a saved draft on Edunex (as "Answered"): the app never says it's private.
+    expect(card()).toContain("Your lecturer can see a saved draft, but only Submit hands it in.");
     expect(card()).toContain("File required · PDF file");
     expect(card()).toContain("Attach a file first to hand it in.");
     expect(s.text()).toContain("Late submission allowed");
@@ -258,7 +311,7 @@ describe("handing in can't cost the Student their attendance", () => {
     expect(save.className).not.toContain("danger");
     await s.click(save);
     // Kept as a draft: nothing handed in.
-    expect(answerWrites(s)).toEqual(["POST /course/task/answers", "PATCH /course/task/answers/:id"]);
+    expect(answerWrites(s)).toEqual(["POST /course/task/answers"]);
     expect(s.world.edunex.writes.some((w) => w.body?.is_sent === 1)).toBe(false);
     expect(card()).toContain("DrafTersimpan");
     expect(card()).toContain("Drafmu aman. Kumpulkan Jum, 16 Okt, 15:00–23:59 agar terhitung hadir.");

@@ -78,6 +78,7 @@ export const tasksStrings = {
   // Handing in
   "handIn.yourAnswer": { id: "Jawabanmu", en: "Your answer" },
   "handIn.pickTitle": { id: "Pilih berkas untuk dikumpulkan", en: "Choose files to hand in" },
+  "handIn.pickKinds": { id: "Berkas yang diterima Edunex", en: "Files Edunex takes" },
   "handIn.attach": { id: "Lampirkan berkas", en: "Attach files" },
   "handIn.drop": { id: "Lepas berkas di sini", en: "Drop files here" },
   "handIn.remove": { id: "Hapus {name}", en: "Remove {name}" },
@@ -99,6 +100,11 @@ export const tasksStrings = {
     en: "Your Edunex session ended, so it isn't uploaded yet. Sign in again, then try again.",
   },
   "handIn.tooBig": { id: "Lebih dari 100 MB: Edunex tidak menerima berkas sebesar ini", en: "Over 100 MB: Edunex doesn't take files this big" },
+  "handIn.wrongType": {
+    id: "Edunex tidak menerima berkas jenis ini. Gunakan PDF, Word, Excel, PowerPoint, ZIP, RAR, JPG, atau PNG.",
+    en: "Edunex doesn't take this kind of file. Use PDF, Word, Excel, PowerPoint, ZIP, RAR, JPG or PNG.",
+  },
+  "handIn.group": { id: "Ini tugas kelompok. Kumpulkan bersama kelompokmu di Edunex.", en: "This is a group task. Hand it in with your group on Edunex." },
   "handIn.unreadable": {
     id: "Berkas ini tidak bisa dibaca. Coba simpan ulang lalu lampirkan lagi.",
     en: "This file can't be read. Save it again, then attach it again.",
@@ -106,7 +112,10 @@ export const tasksStrings = {
   "handIn.saveDraft": { id: "Simpan draf", en: "Save draft" },
   "handIn.submit": { id: "Kumpulkan", en: "Submit" },
   "handIn.submitLate": { id: "Kumpulkan terlambat", en: "Submit late" },
-  "handIn.explainer": { id: "Draf hanya terlihat olehmu. Kumpulkan untuk menyerahkan.", en: "A draft is only visible to you. Submit to hand it in." },
+  "handIn.explainer": {
+    id: "Dosen bisa melihat draf yang tersimpan, tapi hanya Kumpulkan yang menyerahkannya.",
+    en: "Your lecturer can see a saved draft, but only Submit hands it in.",
+  },
   "handIn.final": { id: "Sudah diserahkan. Pengumpulan bersifat final.", en: "Handed in. Submissions are final." },
   "handIn.inReview": { id: "Dosen sedang menilai tugas ini.", en: "Your lecturer is grading this." },
   "handIn.draftStatus": { id: "Belum diserahkan", en: "Not handed in yet" },
@@ -191,6 +200,7 @@ export const tasksStrings = {
   "handIn.why.noFile": { id: "Lampirkan berkas dulu untuk mengumpulkan.", en: "Attach a file first to hand it in." },
   "handIn.why.uploading": { id: "Tunggu sampai semua berkas terunggah.", en: "Wait until every file is uploaded." },
   "handIn.why.failed": { id: "Coba lagi atau hapus berkas yang gagal terunggah.", en: "Try again or remove the file that didn't upload." },
+  "handIn.why.refused": { id: "Hapus dulu berkas yang tidak diterima Edunex.", en: "Remove the file Edunex doesn't take first." },
   "handIn.why.offline": {
     id: "Tidak terhubung ke Edunex. Berkasmu tetap di sini; kumpulkan setelah tersambung lagi.",
     en: "Not connected to Edunex. Your files stay here; hand in once you're back online.",

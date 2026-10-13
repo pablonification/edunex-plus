@@ -6,7 +6,7 @@
 // hand-in counts for, the deadline, the connection, the file asked for.
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { type DragEvent, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
-import { type HandInResult, MAX_UPLOAD_BYTES, type PickedFile } from "../../core/actions/tasks";
+import { answerFileProblem, type HandInResult, type PickedFile } from "../../core/actions/tasks";
 import { attendanceWindow, type CountedIn, presenceOptional } from "../../core/attendance";
 import { examPassed } from "../../core/exams";
 import type { Task, TaskFile, TaskModule, TaskStatus } from "../../core/models";
@@ -750,6 +750,9 @@ interface Attached {
   problem?: StringKey;
 }
 
+/** A file Edunex wouldn't take (its kind or size): never sent, so there's nothing to try again, only to remove. */
+const refused = (item: Attached) => item.problem === "handIn.tooBig" || item.problem === "handIn.wrongType";
+
 interface Notice {
   tone: "danger" | "warning" | "neutral";
   text: StringKey;
@@ -787,7 +790,8 @@ function HandIn({ task, status }: Row) {
   }, [edunex.state]);
 
   const sent = status === "submitted" || status === "in_review";
-  const editable = takesAnswers(task, now);
+  // A group Task is handed in by the group on Edunex's own pages.
+  const editable = !task.group && takesAnswers(task, now);
   const sentAt = submittedAt(task);
   const saved = (task.answer?.files ?? []).filter((file) => !removed.includes(file.url));
   const uploaded = attached.flatMap((item) => (item.state === "uploaded" && item.file ? [item.file] : []));
@@ -816,7 +820,7 @@ function HandIn({ task, status }: Row) {
       uploads.current = uploads.current.then(async () => {
         change(item.key, { state: "uploading", problem: undefined });
         try {
-          const file = await bridge.invoke("tasks.upload", { fileId: item.key });
+          const file = await bridge.invoke("tasks.upload", { fileId: item.key, taskId: task.id });
           change(item.key, { state: "uploaded", file: { name: file.name, url: file.url } });
         } catch (error) {
           // The chip says why; an ended session also shows next to Kumpulkan, with "Masuk lagi".
@@ -827,11 +831,13 @@ function HandIn({ task, status }: Row) {
   };
 
   const attach = (picked: PickedFile[]) => {
-    const items: Attached[] = picked.map((file) =>
-      file.size > MAX_UPLOAD_BYTES
-        ? { key: file.id, name: file.name, size: file.size, state: "failed", problem: "handIn.tooBig" }
-        : { key: file.id, name: file.name, size: file.size, state: "waiting" },
-    );
+    const items: Attached[] = picked.map((file) => {
+      // What Edunex wouldn't take never goes up: said on its row, with no "try again".
+      const problem = answerFileProblem(file.name, file.size);
+      return problem
+        ? { key: file.id, name: file.name, size: file.size, state: "failed", problem: problem === "size" ? "handIn.tooBig" : "handIn.wrongType" }
+        : { key: file.id, name: file.name, size: file.size, state: "waiting" };
+    });
     setAttached((list) => [...list, ...items]);
     upload(items.filter((item) => item.state === "waiting"));
   };
@@ -849,7 +855,7 @@ function HandIn({ task, status }: Row) {
     setDragging(false);
     if (!editable) return;
     for (const file of [...event.dataTransfer.files]) {
-      if (file.size > MAX_UPLOAD_BYTES) {
+      if (answerFileProblem(file.name, file.size)) {
         attach([{ id: `local-${++localKeys}`, name: file.name, size: file.size, type: file.type }]);
         continue;
       }
@@ -960,7 +966,9 @@ function HandIn({ task, status }: Row) {
             ),
           }
       : failed
-        ? { tone: "danger", text: t("handIn.why.failed") }
+        ? attached.some((item) => item.state === "failed" && !refused(item))
+          ? { tone: "danger", text: t("handIn.why.failed") }
+          : { tone: "neutral", text: t("handIn.why.refused") }
         : uploading
           ? { tone: "neutral", text: t("handIn.why.uploading") }
           : !hasAnswer
@@ -1012,7 +1020,8 @@ function HandIn({ task, status }: Row) {
 
       <div className="space-y-4 p-4">
         <div>
-          <p className="mb-2 text-small font-semibold text-muted">{t("handIn.yourAnswer")}</p>
+          {/* A group's answer is written on Edunex: the label only heads the files already in it. */}
+          {(!task.group || saved.length > 0) && <p className="mb-2 text-small font-semibold text-muted">{t("handIn.yourAnswer")}</p>}
           {(saved.length > 0 || attached.length > 0) && (
             <ul className="mb-2 space-y-1.5">
               {saved.map((file) => (
@@ -1043,7 +1052,7 @@ function HandIn({ task, status }: Row) {
                     )
                   }
                   hint={item.state === "uploaded" ? fileHint(t, item.name, pattern, type) : null}
-                  onRetry={item.state === "failed" && item.problem !== "handIn.tooBig" ? () => retry(item) : undefined}
+                  onRetry={item.state === "failed" && !refused(item) ? () => retry(item) : undefined}
                   onRemove={editable ? () => removeAttached(item.key) : undefined}
                 />
               ))}
@@ -1080,7 +1089,15 @@ function HandIn({ task, status }: Row) {
               </span>
             </button>
           )}
-          {!editable && !sent && status !== "closed" && task.opensAt !== null && (
+          {task.group && !sent && status !== "closed" && (
+            <div className="space-y-2">
+              <p className="text-small text-muted">{t("handIn.group")}</p>
+              <Button size="sm" icon={<Icons.ArrowUpRight className="size-3.5" />} onClick={() => open(edunexTaskUrl(task.id))}>
+                {t("action.openInEdunex")}
+              </Button>
+            </div>
+          )}
+          {!task.group && !editable && !sent && status !== "closed" && task.opensAt !== null && (
             <p className="rounded-lg bg-fill px-3 py-2.5 text-small text-muted">{t("handIn.notOpenYet", { when: f.dueLabel(task.opensAt) })}</p>
           )}
           {status === "closed" && (

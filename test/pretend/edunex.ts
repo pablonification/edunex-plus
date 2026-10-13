@@ -67,6 +67,8 @@ export class PretendEdunex {
   sessionValid = true;
   /** Every change request the app sent, in order, with the fields Edunex reads from it. */
   readonly writes: { method: string; path: string; body: Json }[] = [];
+  /** Tasks whose cached "download all answers" file was cleared. */
+  readonly exportsCleared: number[] = [];
   private faults: Fault[] = [];
   private nextId = 9_000_000;
 
@@ -176,10 +178,10 @@ export class PretendEdunex {
     task.attributes.answers = task.attributes.answers.map((a: Json) => (a.is_sent ? { ...a, verified_at: now, verified_by: 900002 } : a));
   }
 
-  /** The Student saves a draft on the Edunex website (outside the app): an answer that isn't sent. */
-  draftOnWebsite(taskId: number, fileName = "draf.pdf"): void {
+  /** The Student saves a draft on the Edunex website (outside the app): an answer that isn't sent, with text as its editor writes it. */
+  draftOnWebsite(taskId: number, fileName = "draf.pdf", text = "<p>Jawaban.</p>"): void {
     const task = this.task(taskId);
-    const answer = this.newAnswer(taskId, { is_sent: 0 });
+    const answer = this.newAnswer(taskId, { is_sent: 0, answer: text });
     answer.files = this.storedFiles(answer.id, task, [{ name: fileName, file: `https://edunexfixture.blob.core.windows.net/edunex/website-${answer.id}` }]);
     task.attributes.answers = [...task.attributes.answers, answer];
   }
@@ -357,7 +359,7 @@ export class PretendEdunex {
     if ((m = /^\/course\/courses\/(\d+)$/.exec(path)))
       return found((q.include ? this.courseDetail : this.coursePlain).get(Number(m[1])) ?? this.courseDetail.get(Number(m[1])));
     if ((m = /^\/course\/courses\/(\d+)\/classes$/.exec(path))) return found(this.classes.get(Number(m[1])));
-    if ((m = /^\/course\/modules\/(\d+)$/.exec(path))) return found(this.modules.get(Number(m[1])));
+    if ((m = /^\/course\/modules\/(\d+)$/.exec(path))) return found(this.modules.get(Number(m[1])) ?? this.moduleFromOutline(Number(m[1])));
     if (path === "/course/tasks")
       return page(
         (this.tasks.get(Number(q["filter[course_id][is]"])) ?? []).map((task) => this.asOfNow(task)),
@@ -383,8 +385,9 @@ export class PretendEdunex {
     throw new NotFound();
   }
 
-  // Shapes of these replies were never recorded (no real hand-in yet); the app must re-read the Task to confirm.
-  // The app sends Edunex's JSON:API envelope ({ data: { attributes } }); a bare body is read the same way.
+  // The requests are the website's (its public code: task-reader.2eb63cbd.js, app.79bf84f4.js); the replies beyond
+  // the upload links were never recorded, so the app re-reads the Task to confirm. The app sends Edunex's JSON:API
+  // envelope ({ data: { attributes } }); a bare body is read the same way.
   private write(request: HttpRequest, path: string): Json {
     const raw = typeof request.body === "string" && request.body ? JSON.parse(request.body) : {};
     const body = raw?.data?.attributes ?? raw;
@@ -412,24 +415,32 @@ export class PretendEdunex {
           delete fields.files;
           // Edunex stamps sent_at on drafts too (API.md): only is_sent says it was handed in.
           const next = { ...current, ...fields, sent_at: now, updated_at: now };
-          if (body.files) next.files = this.storedFiles(id, task, body.files);
+          // A file sent back as Edunex's own record (with its id) stays that file; one sent as { file, name } is new.
+          if (body.files)
+            next.files = body.files.flatMap((f: Json) => {
+              const had = f.id !== undefined ? current.files.find((file: Json) => file.id === f.id) : undefined;
+              return had ? [had] : this.storedFiles(id, task, [f]);
+            });
           task.attributes.answers[at] = next;
           return { data: next };
         }
       }
       throw new NotFound();
     }
+    // A link pair per storage path the website sent, keyed by that path (its onFilesAdded reads `files[fileName]`).
+    // Under "upload/", so the repository's privacy check can tell this made-up storage from a real link.
     if (request.method === "POST" && path === "/blob-storage/sas") {
-      return {
-        data: (body.files ?? []).map((f: Json, i: number) => {
-          const name = `${this.clock.now()}_${i}_${String(f.fileName).replace(/[^\w.-]+/g, "-")}`;
-          return {
-            fileName: f.fileName,
-            uploadUrl: `https://edunexfixture.blob.core.windows.net/edunex/upload/${name}?sig=pretend`,
-            readUrl: `https://edunexfixture.blob.core.windows.net/edunex/upload/${name}`,
-          };
-        }),
-      };
+      const files: Json = {};
+      for (const f of body.files ?? []) {
+        const at = `https://edunexfixture.blob.core.windows.net/edunex/upload/${encodeURI(String(f.fileName))}`;
+        files[f.fileName] = { uploadUrl: `${at}?sv=pretend&sp=cw&sig=pretend`, readUrl: at };
+      }
+      return { files };
+    }
+    // After a send the website clears the lecturer's cached "download all answers" file.
+    if (request.method === "DELETE" && (m = /^\/blob-storage\/\/task\/(\d+)\/export$/.exec(path))) {
+      this.exportsCleared.push(Number(m[1]));
+      return { message: "ok" };
     }
     throw new NotFound();
   }
@@ -445,6 +456,15 @@ export class PretendEdunex {
     const a = task.attributes;
     const opened = (a.open_status === "closed" || a.open_status === "close") && a.start_at && Date.parse(a.start_at) <= this.clock.now();
     return opened ? { ...task, attributes: { ...a, open_status: "open" } } : task;
+  }
+
+  /** A module as GET /course/modules/{id} answers: its record in its course's outline (one module was recorded). */
+  private moduleFromOutline(moduleId: number): Json | undefined {
+    for (const detail of this.courseDetail.values()) {
+      const item = (detail?.included ?? []).find((i: Json) => i.type === "modules" && Number(i.id) === moduleId);
+      if (item) return { data: { type: "modules", id: String(item.id), attributes: item.attributes, links: item.links } };
+    }
+    return undefined;
   }
 
   task(taskId: number): Json {

@@ -3,7 +3,9 @@
 import { describe, expect, it } from "vitest";
 import type { Task } from "../../src/core/models";
 import { editedAfterSubmit, shortWindow, taskHistory } from "../../src/core/tasks";
+import { aTask } from "../kit/tasks";
 import { PRETEND_TOKEN, wib } from "../pretend/edunex";
+import { MemoryStorage } from "../pretend/memory";
 import { type Harness, startEngine } from "./harness";
 
 const MINUTE = 60_000;
@@ -161,6 +163,16 @@ describe("Tasks with their true status", () => {
     await h.world.clock.advance(2 * 60 * MINUTE + MINUTE);
     await h.engine.refresh("edunex");
     expect(task(h, id)).toMatchObject({ status: "not_started", closed: false });
+  });
+
+  it("Tasks saved before group Tasks were read still load, and count as the Student's own", async () => {
+    const storage = new MemoryStorage();
+    // As the app saved it until now: no `group` field.
+    const value = [aTask({ id: 117003, courseCode: "II4091", courseId: 95326, title: "Tugas 02 Bab II", status: "not_started" })];
+    await storage.write("datasets/edunex.tasks.json", JSON.stringify({ format: 1, name: "edunex.tasks", value, fetchedAt: 0, hash: "x" }));
+    const h = await startEngine({ storage, start: false });
+    expect(h.dataset("edunex.tasks")).toEqual(value);
+    expect(h.dataset("edunex.tasks")?.[0].group).toBeUndefined();
   });
 
   it('reads Edunex\'s category in any case: the lecturer\'s form stores "uts" and "UAS"', async () => {

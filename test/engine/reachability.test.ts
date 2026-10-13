@@ -13,7 +13,12 @@ const signedIn = async () => {
   return h;
 };
 const upload = (h: Harness) =>
-  h.engine.act("edunex", "uploadFile", { name: "jawaban.pdf", contentType: "application/pdf", bytes: new TextEncoder().encode("%PDF jawaban") });
+  h.engine.act("edunex", "uploadFile", {
+    taskId: 117003,
+    name: "jawaban.pdf",
+    contentType: "application/pdf",
+    bytes: new TextEncoder().encode("%PDF jawaban"),
+  });
 const failure = async (work: Promise<unknown>) => {
   try {
     await work;
@@ -51,10 +56,11 @@ describe("reaching the sources", () => {
     h.world.setOffline(false);
     const since = h.world.log.length;
     // Only the account check runs (asked by the upload's hiccup); the Tasks feed waits for its own retry.
+    // The one Task list read is the upload's own, of its Task's course, as the website reads it first.
     h.world.failUploads("network");
     await failure(upload(h));
     await h.wait(1_000);
-    expect(requestsTo(h, /^\/course\/tasks/, since)).toEqual([]);
+    expect(requestsTo(h, /^\/course\/tasks/, since).map((r) => new URL(r.url).searchParams.get("filter[course_id][is]"))).toEqual(["95326"]);
     expect(h.status("edunex")).toMatchObject({ state: "live", detail: null });
   });
 

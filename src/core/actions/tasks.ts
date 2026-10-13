@@ -5,8 +5,21 @@
 import { z } from "zod";
 import { Task, TaskFile } from "../models";
 
-/** The biggest file the app hands in. */
+/** The biggest file the app hands in: 100 MB, as Edunex's uploader says. */
 export const MAX_UPLOAD_BYTES = 100 * 1024 * 1024;
+
+/**
+ * The files Edunex's website takes in an answer (its uploader's `acceptedFiles`
+ * in task-reader.2eb63cbd.js): Word, Excel, PowerPoint, ZIP, RAR, PDF, JPG and PNG.
+ */
+export const ANSWER_FILE_TYPES = ["pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "zip", "rar", "jpg", "jpeg", "png"] as const;
+
+/** Why Edunex wouldn't take a file in an answer: its kind or its size; null when it would. */
+export function answerFileProblem(name: string, size: number): "type" | "size" | null {
+  const ext = /\.([a-z0-9]+)$/i.exec(name)?.[1]?.toLowerCase() ?? "";
+  if (!(ANSWER_FILE_TYPES as readonly string[]).includes(ext)) return "type";
+  return size > MAX_UPLOAD_BYTES ? "size" : null;
+}
 
 /** A file the Student picked or dropped, as the window knows it. */
 export const PickedFile = z.object({ id: z.string(), name: z.string(), size: z.number(), type: z.string() });
@@ -47,8 +60,11 @@ export const tasksActions = {
   "tasks.pickFiles": { input: z.object({}), output: z.object({ files: z.array(PickedFile) }) },
   /** Files dropped on the window, by content (a drop gives no path the app may use). */
   "tasks.dropFiles": { input: z.object({ files: z.array(DroppedFile).min(1).max(20) }), output: z.object({ files: z.array(PickedFile) }) },
-  /** Uploads one picked file through Edunex's own flow: a temporary storage link, then the file. */
-  "tasks.upload": { input: z.object({ fileId: z.string().min(1).max(64) }), output: TaskFile.extend({ size: z.number() }) },
+  /** Uploads one picked file for a Task through Edunex's own flow: a temporary storage link, then the file. */
+  "tasks.upload": {
+    input: z.object({ fileId: z.string().min(1).max(64), taskId: z.number().int().positive() }),
+    output: TaskFile.extend({ size: z.number() }),
+  },
   /** Saves the answer as a draft. Edunex's answers are re-read first: a new answer only when there is none. */
   "tasks.saveDraft": { input: HandIn, output: HandInResult },
   /** Hands the answer in; "submitted" only once Edunex confirms it when the Task is read back. */

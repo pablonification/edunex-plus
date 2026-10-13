@@ -164,9 +164,10 @@ describe("pretend Edunex", () => {
       method: "POST",
       url: `${EDUNEX_API}/blob-storage/sas`,
       headers: auth,
-      body: JSON.stringify({ files: [{ fileName: "jawaban.pdf", contentType: "application/pdf", sizeInBytes: 3 }] }),
+      body: JSON.stringify({ files: [{ fileName: "2026/95326-Final-Project-Proposal/task/1/1_jawaban", contentType: "application/pdf", sizeInBytes: 3 }] }),
     });
-    const { uploadUrl, readUrl } = JSON.parse(sas.body).data[0];
+    // As the website reads it: the links keyed by the storage path sent.
+    const { uploadUrl, readUrl } = JSON.parse(sas.body).files["2026/95326-Final-Project-Proposal/task/1/1_jawaban"];
     expect((await world.request({ method: "PUT", url: uploadUrl, headers: { "x-ms-blob-type": "BlockBlob" }, body: "pdf" })).status).toBe(201);
     expect((await world.request({ method: "GET", url: readUrl })).body).toBe("pdf");
   });

@@ -6,7 +6,7 @@
 import { randomUUID } from "node:crypto";
 import path from "node:path";
 import type { z } from "zod";
-import { MAX_UPLOAD_BYTES, type PickedFile } from "../core/actions/tasks";
+import { answerFileProblem, type PickedFile } from "../core/actions/tasks";
 import { type ActionOutput, Actions } from "../core/contract";
 import type { Engine } from "../engine/engine";
 import { EngineError, isEngineError } from "../engine/errors";
@@ -47,10 +47,11 @@ export function handInHandlers(engine: Engine, pick: () => Promise<LocalFile[]>)
         return keep({ name: path.basename(file.name), size: bytes.byteLength, type: file.type || contentType(file.name), read: async () => bytes });
       }),
     }),
-    "tasks.upload": async ({ fileId }) => {
+    "tasks.upload": async ({ fileId, taskId }) => {
       const file = picked.get(fileId);
       if (!file) throw new EngineError("Rejected", "That file isn't attached any more");
-      if (file.size > MAX_UPLOAD_BYTES) throw new EngineError("Rejected", `${file.name} is too big to hand in from the app`);
+      const problem = answerFileProblem(file.name, file.size);
+      if (problem) throw new EngineError("Rejected", problem === "size" ? `${file.name} is over 100 MB` : `Edunex doesn't take ${file.name} in an answer`);
       let bytes: Uint8Array;
       try {
         bytes = await file.read();
@@ -58,7 +59,7 @@ export function handInHandlers(engine: Engine, pick: () => Promise<LocalFile[]>)
         if (isEngineError(error)) throw error;
         throw new EngineError("Rejected", `${file.name} can't be read any more`);
       }
-      const uploaded = await engine.act("edunex", "uploadFile", { name: file.name, contentType: file.type || contentType(file.name), bytes });
+      const uploaded = await engine.act("edunex", "uploadFile", { taskId, name: file.name, contentType: file.type || contentType(file.name), bytes });
       return Actions["tasks.upload"].output.parse(uploaded);
     },
     "tasks.saveDraft": async (input) => Actions["tasks.saveDraft"].output.parse(await engine.act("edunex", "saveDraft", input)),
@@ -66,6 +67,7 @@ export function handInHandlers(engine: Engine, pick: () => Promise<LocalFile[]>)
   };
 }
 
+// The content types Edunex's uploader lists for the files it takes (ANSWER_FILE_TYPES).
 const TYPES: Record<string, string> = {
   ".pdf": "application/pdf",
   ".doc": "application/msword",
@@ -74,17 +76,11 @@ const TYPES: Record<string, string> = {
   ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   ".ppt": "application/vnd.ms-powerpoint",
   ".pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-  ".txt": "text/plain",
-  ".csv": "text/csv",
   ".zip": "application/zip",
   ".rar": "application/vnd.rar",
-  ".7z": "application/x-7z-compressed",
   ".png": "image/png",
   ".jpg": "image/jpeg",
   ".jpeg": "image/jpeg",
-  ".gif": "image/gif",
-  ".mp4": "video/mp4",
-  ".mp3": "audio/mpeg",
 };
 
 /** A file's content type from its extension, as the website's upload would send it. */

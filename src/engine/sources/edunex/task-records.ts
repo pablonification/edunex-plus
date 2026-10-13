@@ -26,11 +26,14 @@ const Score = z
   .nullable();
 const Time = z.string().nullable();
 const StoredFile = z.object({ name: z.string(), file: z.string() });
+/** A file in the Student's answer, kept whole: saving a draft sends Edunex's own record back for each file kept, as the website does. */
+const AnswerFile = z.looseObject({ name: z.string(), file: z.string() });
+export type AnswerFile = z.infer<typeof AnswerFile>;
 
 const EdunexAnswer = z.object({
   id: Id,
   answer: z.string().nullable(),
-  files: z.array(StoredFile),
+  files: z.array(AnswerFile),
   score: Score,
   is_sent: SubmitBit,
   sent_at: Time,
@@ -38,13 +41,18 @@ const EdunexAnswer = z.object({
   updated_at: Time,
   verified_at: Time,
 });
-type EdunexAnswer = z.infer<typeof EdunexAnswer>;
+export type EdunexAnswer = z.infer<typeof EdunexAnswer>;
 
 const EdunexTask = z.object({
   id: Id,
   attributes: z.object({
     taskable_type: z.string().nullable(),
     taskable_id: z.number().nullable(),
+    /** The course's own name, which the website puts in an upload's storage path. */
+    course_name: z.string().nullable().optional(),
+    /** "PERSONAL" on every recorded Task; the website hands in `tasks_type: "GROUP"` through its group pages. */
+    type: z.string().nullable().optional(),
+    tasks_type: z.string().nullable().optional(),
     name: z.string(),
     description: z.string().nullable(),
     files: z.array(StoredFile),
@@ -73,10 +81,21 @@ export async function fetchCourseTasks(client: EdunexClient, courseId: number): 
   return list.data;
 }
 
+/** A Task read back with Edunex's own records of it and of the Student's answer, which handing in sends parts of back. */
+export interface TaskRecord {
+  task: Task;
+  record: EdunexTask;
+  answer: EdunexAnswer | null;
+}
+
 /** One Task read back from Edunex (through its course's list, the shape verified with answers). Null when it's gone. */
-export async function readTask(client: EdunexClient, known: Pick<Task, "id" | "courseId" | "courseCode" | "module">, now: number): Promise<Task | null> {
-  const item = (await fetchCourseTasks(client, known.courseId)).find((task) => task.id === known.id);
-  return item ? toTask(item, known, known.module, now) : null;
+export async function readTaskRecord(
+  client: EdunexClient,
+  known: Pick<Task, "id" | "courseId" | "courseCode" | "module">,
+  now: number,
+): Promise<TaskRecord | null> {
+  const record = (await fetchCourseTasks(client, known.courseId)).find((task) => task.id === known.id);
+  return record ? { task: toTask(record, known, known.module, now), record, answer: studentAnswer(record.attributes.answers) } : null;
 }
 
 // ---------------------------------------------------------------- times
@@ -157,10 +176,16 @@ export function toTask(item: EdunexTask, place: Pick<Task, "courseCode" | "cours
     answer,
     postedAt,
     editedAt: editedAt(postedAt, edunexTime(a.updated_at), answer?.sentAt ?? null),
+    group: isGroup(a),
   };
 }
 
-const fileOf = (file: z.infer<typeof StoredFile>): TaskFile => ({ name: file.name.trim() || "file", url: file.file });
+/** Anything but a personal Task (the website's `tasks_type: "GROUP"`, or a `type` other than "PERSONAL") is the group's to hand in. */
+function isGroup(a: EdunexTask["attributes"]): boolean {
+  return [a.type, a.tasks_type].some((kind) => typeof kind === "string" && kind.trim() !== "" && kind.trim().toUpperCase() !== "PERSONAL");
+}
+
+const fileOf = (file: { name: string; file: string }): TaskFile => ({ name: file.name.trim() || "file", url: file.file });
 
 /**
  * The score of a handed-in answer once the lecturer shows scores. Edunex
