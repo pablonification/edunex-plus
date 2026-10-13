@@ -35,6 +35,8 @@ export function signInToBoth(deps: {
   background?(work: Promise<unknown>): void;
 }) {
   const running = new Map<SignInSource, { result: Promise<boolean>; quiet: boolean; stopped: boolean }>();
+  /** Sign-outs so far: one during a sign-in undoes what comes after it. */
+  let signOuts = 0;
 
   const state = (source: SignInSource) => deps.engine.snapshot().statuses.find((status) => status.source === source)?.state ?? "signed-out";
   const needsSignIn = (source: SignInSource) => ["signed-out", "expired"].includes(state(source));
@@ -65,6 +67,7 @@ export function signInToBoth(deps: {
       return now.result;
     }
     const attempt = { quiet, stopped: false, result: Promise.resolve(false) };
+    const since = signOuts;
     attempt.result = (async () => {
       try {
         const session = await deps.windows.open(source, { quiet, onStep });
@@ -73,7 +76,8 @@ export function signInToBoth(deps: {
         // The hidden window saw the system signed in: say so now, not after its first full read (SIX reads at human pace).
         if (attempt.quiet) deps.send({ type: "signIn.joined", source });
         await connecting;
-        after(source, attempt.quiet);
+        // Signed out while it was connecting (the wrong account, say): the other system isn't tried on it.
+        if (signOuts === since) after(source, attempt.quiet);
         return true;
       } catch (error) {
         if (attempt.quiet) return false;
@@ -90,8 +94,9 @@ export function signInToBoth(deps: {
   return {
     /** The Student's sign-in: true once the system is connected, false when they closed the window. */
     signIn: (source: SignInSource) => signIn(source, false),
-    /** The Student signed out: the app's own tries stop, and nothing they find is kept. */
+    /** The Student signed out: the app's own tries stop, nothing they find is kept, and none starts on a sign-in from before. */
     stopQuiet(): void {
+      signOuts += 1;
       for (const [source, attempt] of running) {
         if (!attempt.quiet) continue;
         attempt.stopped = true;

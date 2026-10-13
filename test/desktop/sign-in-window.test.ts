@@ -156,7 +156,7 @@ describe("the SIX sign-in window", () => {
 });
 
 /** The real sign-in handlers, on an engine that only keeps who is signed in. */
-function app(start: { six?: SourceState; sixData?: boolean; firstRun?: boolean } = {}) {
+function app(start: { six?: SourceState; sixData?: boolean; firstRun?: boolean; firstRead?: Promise<void> } = {}) {
   const states: Record<string, SourceState> = { edunex: "signed-out", six: start.six ?? "signed-out", itb: "live" };
   const signedIn: { source: string; session: unknown }[] = [];
   const events: Event[] = [];
@@ -169,6 +169,9 @@ function app(start: { six?: SourceState; sixData?: boolean; firstRun?: boolean }
     }),
     signIn: async (source: string, session: unknown) => {
       signedIn.push({ source, session });
+      states[source] = "connecting";
+      // The engine's first read of the system, before the sign-in call returns.
+      if (source === "edunex") await start.firstRead;
       states[source] = "live";
     },
     signOut: async (source?: string) => {
@@ -310,6 +313,22 @@ describe("SIX by itself, right after Edunex", () => {
     await handlers["auth.signOut"]({ source: "edunex" });
     expect(browser.windows[1]!.isDestroyed()).toBe(true);
     await wait(5_000);
+    expect(signedIn.map((one) => one.source)).toEqual(["edunex"]);
+  });
+
+  it("isn't tried once the Student signs out while Edunex's first read is still going", async () => {
+    let read: () => void = () => undefined;
+    const { connect, handlers, signedIn } = app({ firstRead: new Promise<void>((resolve) => (read = resolve)) });
+    const edunex = connect("edunex");
+    await wait(1_000);
+    await studentSignsIn(browser.windows[0]!);
+    await wait(2_000);
+    // The wrong account, say: the Student signs out of Edunex before its first read is done.
+    await handlers["auth.signOut"]({ source: "edunex" });
+    read();
+    await edunex;
+    await wait(5_000);
+    expect(browser.windows).toHaveLength(1);
     expect(signedIn.map((one) => one.source)).toEqual(["edunex"]);
   });
 
