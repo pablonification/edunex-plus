@@ -13,7 +13,7 @@ vi.mock("pdfjs-dist", () => {
     getViewport: () => ({ width: 600, height: 800, convertToViewportPoint: (x: number, y: number) => [x, 800 - y] }),
     getAnnotations: async () => annotations,
   };
-  const doc = { numPages: 9, getPage: async () => page, getDestination: async () => null, getPageIndex: async () => 4 };
+  const doc = { numPages: 9, getPage: async () => page, getDestination: async () => null, getPageIndex: async () => 4, getFieldObjects: async () => null };
   return {
     GlobalWorkerOptions: {},
     Util: { normalizeRect: ([a, b, c, d]: number[]) => [Math.min(a, c), Math.min(b, d), Math.max(a, c), Math.max(b, d)] },
