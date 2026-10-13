@@ -1,0 +1,37 @@
+name: An idea
+description: Something the app could do, or do better.
+labels: [enhancement, needs-triage]
+body:
+  - type: markdown
+    attributes:
+      value: This page is public, so leave out names, NIMs, grades and other personal details.
+
+  - type: textarea
+    id: need
+    attributes:
+      label: What would help you?
+      description: The situation you're in, what you do today, and what's hard about it.
+    validations:
+      required: true
+
+  - type: textarea
+    id: idea
+    attributes:
+      label: How could it work?
+      description: Optional. A rough idea is fine.
+
+  - type: dropdown
+    id: where
+    attributes:
+      label: Which part of the app?
+      multiple: true
+      options:
+        - Beranda
+        - Tugas & Ujian
+        - Jadwal
+        - Presensi
+        - Nilai
+        - Rencana studi
+        - Course pages
+        - Notifications or alerts
+        - Something new

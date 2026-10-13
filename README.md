@@ -1,5 +1,7 @@
 # Edunex Plus
 
+[![CI](https://github.com/pablonification/edunex-plus/actions/workflows/ci.yml/badge.svg)](https://github.com/pablonification/edunex-plus/actions/workflows/ci.yml)
+
 **An unofficial desktop app for ITB students** that puts Edunex and SIX in one calm window, for
 macOS, Windows and Linux.
 
@@ -138,6 +140,11 @@ Electron + TypeScript. The engine (sign-in sessions, syncing, alerts) runs in th
 the window is React 19 with Tailwind v4 and only reads what the engine publishes. Tests run the
 real engine against a pretend Edunex, SIX and ITB built from scrubbed real responses, and the
 real screens against that engine.
+
+Start with [CONTRIBUTING.md](CONTRIBUTING.md): setting up, the privacy rules (the repository is
+public: never paste real student data), and how to read the checks every pull request gets. Found
+a security problem? Report it privately ([SECURITY.md](SECURITY.md)). Everyone here follows the
+[code of conduct](CODE_OF_CONDUCT.md).
 
 - [CONTEXT.md](CONTEXT.md) — the words the project uses (Task, Presence, KRS, Kehadiran…).
 - [docs/adr/0001-v2-engine-and-shell.md](docs/adr/0001-v2-engine-and-shell.md) — how it's built.

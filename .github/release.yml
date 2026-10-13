@@ -1,0 +1,20 @@
+# How GitHub groups the notes of a release (the draft the release workflow
+# makes). Labels come from .github/labeler.yml; bug and enhancement are set by hand.
+changelog:
+  categories:
+    - title: New
+      labels: [enhancement]
+    - title: Fixed
+      labels: [bug]
+    - title: Screens and words
+      labels: ["area:app"]
+    - title: Reading Edunex, SIX and ITB; alerts
+      labels: ["area:engine"]
+    - title: Desktop, sign-in and installers
+      labels: ["area:desktop"]
+    - title: Package updates
+      labels: [dependencies]
+    - title: Behind the scenes
+      labels: ["area:ci", tests, documentation]
+    - title: Other changes
+      labels: ["*"]
