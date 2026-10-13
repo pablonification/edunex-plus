@@ -75,11 +75,16 @@ and stays in the history.
 
 - **Small pull requests, one idea each.** Each gets a size label, `size/XS` to
   `size/XL`; from `size/L` (500 changed lines) on, consider splitting it.
-- **Commit messages** follow the history: `feat(ui): …`, `fix(engine): …`,
-  `test: …`, `docs: …`, `ci: …`, and say in plain words what changes for the
-  student.
-- **Fill in the pull request template**: what changes for the student,
-  screenshots, how it was tested, what to try on a real account, the risk.
+- **Titles and commit messages** are Conventional Commits in plain words that
+  say why the change matters for the student: `fix(presence): say the day an
+  attendance window closes`, not `fix: update needs.ts`. Pull requests are
+  squash-merged, so the title becomes the commit on `main`.
+- **Fill in the pull request template**: the outcome, why (the problem, then the
+  fix), before and after for anything on screen (the same state, light and
+  dark, from the demo), how it was verified, the risk.
+- **Tools aren't authors.** No `Co-authored-by`, "Generated with" or similar
+  line naming an AI tool, in commits or pull requests: the person who opens the
+  pull request is its author.
 - Every word on screen lives in `src/core/strings/`, in Indonesian and English.
 - A new field in saved data or Settings must be optional with a default:
   the app drops saved data that doesn't fit, and one bad Settings field resets

@@ -1,29 +1,30 @@
-<!-- Write for someone who uses the app but doesn't read code: plain words, no jargon. -->
+<!-- Title: Conventional Commits in plain words that say why it matters for the student, like
+     "fix(presence): say the day an attendance window closes" (not "fix: update needs.ts").
+     Pull requests are squash-merged, so the title becomes the commit on main. -->
 
-## What changes for the student
+## Outcome
 
-<!-- What they'll see or notice, in a few sentences. If nothing visible changes, say so and say what it's for. -->
+<!-- What's true for the student after this, in 1–3 sentences. -->
 
-## Screenshots
+## Why
 
-<!-- Before and after, for anything on screen. Take them from the demo (`npm run demo`), never from a real account.
-     When a pull request touches the screens, CI also attaches pictures of every screen. -->
+<!-- The problem in 1–2 sentences, then how you fixed it: the why and the how, not a list of every file. -->
 
-## How it was tested
+## Before and after
 
-<!-- Tests added or changed, and what you tried in the app. -->
+<!-- Anything on screen: the same state before and after, light and dark, from the demo (`npm run demo`),
+     never from a real account. Say which usability heuristics it serves. CI also posts the screens it
+     sees changing. Nothing on screen changes? Write "No visible change." -->
 
-## What to try on a real account
+## Verification
 
-<!-- What only a real Edunex or SIX account can show, step by step. Leave it empty if nothing. -->
+<!-- What the tests now prove, and what you tried by hand (on a real account, if only one can show it). -->
 
 ## Risk
 
-<!-- Low, medium or high, and why, in one sentence. -->
+<!-- Low, medium or high: what could go wrong for a student, in one line. -->
 
-## Checklist
-
-- [ ] Nothing personal in this change: no real names, student numbers, emails, grades, meeting links, tokens or course content, screenshots included.
+- [ ] Nothing personal: no real names, student numbers, emails, grades, meeting links, tokens or course content, pictures included.
 - [ ] New test data is made up, or comes from `npm run fixtures:scrub` and I read its diff.
 - [ ] Every new word on screen is in `src/core/strings/`, in Indonesian and English.
 - [ ] Any new saved field (in saved data or Settings) is optional with a default, so data saved by older versions still loads.
