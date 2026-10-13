@@ -339,7 +339,7 @@ function TopBar({ onSearch }: { onSearch: () => void }) {
             variant="ghost"
             size="sm"
             aria-label={t("action.backTo", { place: backLabel })}
-            className="no-drag -ml-1.5 max-w-[280px] text-small"
+            className="no-drag -ml-1.5 max-w-[280px] min-w-0 shrink text-small"
             icon={<Icons.ChevronLeft className="size-4 shrink-0" />}
             onClick={back}
           >
@@ -347,7 +347,8 @@ function TopBar({ onSearch }: { onSearch: () => void }) {
           </Button>
         </Tooltip>
       )}
-      <div className="no-drag ml-auto flex items-center gap-1">
+      {/* In a narrow window the search field gives up room first, then the back button's label. */}
+      <div className="no-drag ml-auto flex min-w-0 shrink-[8] items-center gap-1">
         <SearchButton onOpen={onSearch} />
         <AlertsBell />
         <SyncStatus />
