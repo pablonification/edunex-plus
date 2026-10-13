@@ -18,9 +18,9 @@ and every word in `src/core/strings/`. This page explains them.
 ## Principles
 
 1. **Answer first.** Each screen answers one question before anything else
-   (Beranda: what do I do now; Presensi: am I in trouble; Nilai: where is my
-   IPK). The answer is the first thing at the top left, in a sentence; the
-   detail follows.
+   (Beranda: what do I do now; Presensi: am I OK, and what do I do; Nilai:
+   where is my IPK). The answer is the first thing at the top left, in a
+   sentence; the detail follows.
 2. **Nothing to relearn.** Same names and places as Edunex and SIX: Beranda,
    Tugas & Ujian, Jadwal, Presensi, Nilai, Rencana studi, and the term's
    courses in the sidebar.

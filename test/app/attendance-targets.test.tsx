@@ -49,18 +49,18 @@ describe("a course's own attendance target", () => {
     expect(dialog()).toContain("Target khusus mata kuliah ini.");
     await s.key("Escape");
     // One absence left now: the header meter says it; a banner is only for no room at all.
-    expect(s.text()).toContain("Kehadiran4/6 · 66%Boleh absen 1× lagiTarget 75%");
+    expect(s.text()).toContain("Kehadiran4/6 · 66%Masih bisa absen 1× lagiTarget 75%");
     expect(banner()).toBe("");
 
     await s.click(/^Beranda/);
-    expect(card("DK4073")).toContain("Boleh absen 1× lagi");
-    expect(todayRow("11:00")).toContain("Boleh absen 1× lagi");
+    expect(card("DK4073")).toContain("Masih bisa absen 1× lagi");
+    expect(todayRow("11:00")).toContain("Masih bisa absen 1× lagi");
     // Every other course keeps the default.
     expect(card("PL3032")).toContain("Jangan absen lagi");
 
     await s.click(/^Presensi/);
     expect(presenceRow("DK4073")).toContain("Target 75%");
-    expect(presenceRow("DK4073")).toContain("Boleh absen 1× lagi");
+    expect(presenceRow("DK4073")).toContain("Masih bisa absen 1× lagi");
     expect(presenceRow("PL3032")).toContain("Target 80%");
 
     await s.apply({ type: "command", command: "settings" });
@@ -80,7 +80,7 @@ describe("a course's own attendance target", () => {
     screen = await openApp({ signedIn: true, six: true });
     await screen.engineDoes(() => screen!.engine.updateSettings({ lang: "en", attendanceTargets: { DK4073: 75 } }));
     await openCourse("DK4073");
-    expect(screen.text()).toContain("Attendance4/6 · 66%You can miss 1 moreTarget 75%");
+    expect(screen.text()).toContain("Attendance4/6 · 66%You can miss 1 more classTarget 75%");
     await screen.click("Target 75% for DK4073");
     expect(dialog()).toContain("DK4073 attendance target");
     expect(dialog()).toContain("Use the default (80%)");

@@ -1,22 +1,24 @@
-// Presensi (#85): am I in trouble anywhere? The header answers in one line
-// ("3 mata kuliah perlu perhatianmu", "Semua aman"). Then any Edunex Presence
-// window open now, action first, with a countdown. Then every course, worst
-// first: its meetings (SIX's tally, and each meeting to come with its date),
-// one big status sentence ("Boleh absen 2× lagi", "Jangan absen lagi", "80%
-// tak terkejar") with the share small under it, and a note with the way back
-// or what to do. The summary tiles filter the list. Each course has a
-// target: the Student's default (set on top), or its own (set on its row).
-import { type CSSProperties, type KeyboardEvent, type ReactNode, useRef, useState } from "react";
-import { type AttendanceHealth, type AttendanceState, needsAttention, type PresenceActivity, percent, type UpcomingMeeting } from "../../core/attendance";
-import { clashes } from "../../core/course-meetings";
-import type { PresenceSession } from "../../core/models";
+// Presensi (#85): am I OK, and what do I need to do? The answer comes first,
+// naming the courses and the action ("Jangan absen lagi di DK4073 dan
+// PL3032."). Then an Edunex Presence window open now, only where filling it
+// in counts, with its one action and the time left. Then every course, worst
+// first, in at most three lines: the verdict ("Masih bisa absen 2× lagi"),
+// the count and what's left ("Hadir 4 dari 6 · 8 pertemuan lagi sampai 4
+// Des") with one meter against the course's target, and the next class with
+// where it's recorded ("cukup hadir di kelas"); then one warning at most, and
+// a window that's optional as a quiet line. How it's counted is a closed
+// disclosure at the bottom. Nothing here is hidden by a snooze elsewhere.
+import { type CSSProperties, type ReactNode, useState } from "react";
+import { type AttendanceHealth, type AttendanceState, isExamActivity, needsAttention, percent } from "../../core/attendance";
+import { attendanceAnswer } from "../../core/attendance-answer";
+import { clashes, wibDay } from "../../core/course-meetings";
+import type { ClassSession } from "../../core/models";
 import { sixTimetableUrl } from "../../core/schedule";
-import type { StringKey } from "../../core/strings";
 import { type CourseAttendance, type OpenWindow, useAttendance } from "../attendance";
-import { METER_TONE, STATE_TONE } from "../attendance-labels";
+import { METER_TONE, STATE_TONE, useActionLabel, verdictLabel } from "../attendance-labels";
 import { CourseTarget, DefaultTarget } from "../attendance-parts";
 import { useOpenExternal } from "../hooks";
-import { type Format, type Translate, useFormat, useNow, useT } from "../i18n";
+import { type Format, type Translate, useFormat, useLang, useNow, useT } from "../i18n";
 import { useNav } from "../nav";
 import { useCourseNames } from "../schedule-data";
 import { useSignIn } from "../shell/source-status";
@@ -25,9 +27,9 @@ import { Button } from "../ui/controls";
 import { cx } from "../ui/cx";
 import { CourseCode, EmptyState, LiveDot, Skeleton } from "../ui/display";
 import { Icons } from "../ui/icons";
-import { Page, PageHeader } from "../ui/layout";
+import { List, Meta, Page, PageHeader } from "../ui/layout";
 import { CountdownBar, ShareMeter } from "../ui/meter";
-import { Popover, Tooltip } from "../ui/overlays";
+import { Popover } from "../ui/overlays";
 
 export const ready = true;
 
@@ -40,30 +42,34 @@ export function useBadge(): { value: number; tone: "neutral" | "warning" } | nul
 
 const ORDER: Record<AttendanceState, number> = { out: 0, none: 1, risk: 2, safe: 3, unknown: 4 };
 
-type Filter = Exclude<AttendanceState, "unknown">;
-const FILTERS: readonly Filter[] = ["out", "none", "risk", "safe"];
-
 export function PresenceScreen() {
   const t = useT();
   const attendance = useAttendance();
-  const [filter, setFilter] = useState<Filter | null>(null);
   // While a row's target is being changed the rows hold still, so the one being changed doesn't move under the pointer.
   const [still, setStill] = useState<string[] | null>(null);
   if (!attendance) return <Loading />;
-  const { courses, open, target } = attendance;
-  const known = courses.some((c) => c.health.state !== "unknown");
-  const count = (state: AttendanceState) => courses.filter((c) => c.health.state === state).length;
+  const { courses, open, target, lastDay } = attendance;
+  // A target judges SIX's count: before there is one, it's only in Settings.
+  const counted = courses.some((c) => c.health.held);
   const rank = (c: CourseAttendance) => (still ? still.indexOf(c.course.code) : ORDER[c.health.state]);
-  const shown = [...courses].filter((c) => !filter || c.health.state === filter).sort((a, b) => rank(a) - rank(b));
-  const hold = (open: boolean) => setStill(open ? shown.map((c) => c.course.code) : null);
+  const sorted = [...courses].sort((a, b) => rank(a) - rank(b));
+  const hold = (open: boolean) => setStill(open ? sorted.map((c) => c.course.code) : null);
+  const counting = open.filter((window) => window.counts);
+  // Where only SIX counts, the window is optional: a quiet line in its course's row, never on top.
+  const optional = new Map(open.filter((window) => !window.counts).map((window) => [window.code, window]));
 
   return (
     <Page>
-      <PageHeader title={t("nav.presence")} description={<Answer courses={courses} known={known} />} actions={<TargetControl target={target} />} />
+      <PageHeader
+        className="items-start"
+        title={t("nav.presence")}
+        description={<Answer courses={courses} quiet={counting.length > 0} />}
+        actions={counted ? <TargetControl target={target} /> : undefined}
+      />
 
-      {open.length > 0 && (
+      {counting.length > 0 && (
         <section aria-label={t("presence.open.title")} className="mb-8 space-y-3">
-          {open.map((window) => (
+          {counting.map((window) => (
             <OpenPresence key={window.session.id} window={window} />
           ))}
         </section>
@@ -72,43 +78,14 @@ export function PresenceScreen() {
       {courses.length === 0 ? (
         <EmptyState icon={<Icons.Hand className="size-5" />} title={t("presence.empty")} />
       ) : (
-        <>
-          {known ? (
-            // biome-ignore lint/a11y/useSemanticElements: a grid of toggle tiles, not form fields; a fieldset would also size the grid differently
-            <div role="group" aria-label={t("presence.filter")} className="mb-4 grid grid-cols-4 gap-3">
-              {FILTERS.map((state) => (
-                <SummaryTile
-                  key={state}
-                  state={state}
-                  value={count(state)}
-                  selected={filter === state}
-                  onToggle={() => setFilter(filter === state ? null : state)}
-                />
-              ))}
-            </div>
-          ) : (
-            <NoSixCount primary={open.length === 0} />
-          )}
-          {filter && (
-            <p className="mb-2 flex items-center justify-between text-small text-muted">
-              <span>{t("presence.filtered", { count: shown.length, label: t(`presence.summary.${filter}`) })}</span>
-              <Button size="sm" variant="ghost" onClick={() => setFilter(null)}>
-                {t("presence.showAll", { count: courses.length })}
-              </Button>
-            </p>
-          )}
-          <ul
-            aria-label={t("presence.courses")}
-            className="overflow-hidden rounded-xl border border-edge bg-surface shadow-card [&>li+li]:border-t [&>li+li]:border-line"
-          >
-            {shown.map((item, index) => (
-              <CourseRow key={item.course.code} item={item} lastDay={attendance.lastDay} index={index} onTargetOpen={hold} />
-            ))}
-          </ul>
-        </>
+        <List label={t("presence.courses")} className="@container">
+          {sorted.map((item, index) => (
+            <CourseRow key={item.course.code} item={item} optional={optional.get(item.course.code)} lastDay={lastDay} index={index} onTargetOpen={hold} />
+          ))}
+        </List>
       )}
 
-      <HowCounted lastDay={attendance.lastDay} />
+      <HowCounted lastDay={lastDay} />
     </Page>
   );
 }
@@ -118,40 +95,55 @@ function Loading() {
     <Page>
       <div aria-busy="true">
         <Skeleton className="h-8 w-40" />
-        <Skeleton className="mt-2 h-5 w-64" />
-        <div className="mt-8 grid grid-cols-4 gap-3">
-          {[0, 1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-20" />
-          ))}
-        </div>
-        <Skeleton className="mt-4 h-80 w-full rounded-xl" />
+        <Skeleton className="mt-3 h-5 w-96" />
+        <Skeleton className="mt-8 h-96 w-full rounded-xl" />
       </div>
     </Page>
   );
 }
 
-/** The answer, first: how many courses need the Student, or that all is well. */
-function Answer({ courses, known }: { courses: CourseAttendance[]; known: boolean }) {
+// ---------------------------------------------------------------- the answer
+
+const ANSWER_ICON = {
+  danger: <Icons.AlertTriangle className="size-4 text-danger-fg" weight="bold" />,
+  warning: <Icons.AlertTriangle className="size-4 text-warning-fg" weight="bold" />,
+  success: <Icons.CheckCircle className="size-4 text-success-fg" weight="bold" />,
+} as const;
+
+/** The courses and the action, a line each, worst first; without SIX's count, where it comes from and the way in. */
+function Answer({ courses, quiet }: { courses: CourseAttendance[]; quiet: boolean }) {
   const t = useT();
-  if (!known) return <span>{t("presence.answer.noSix")}</span>;
-  const attention = courses.filter((c) => needsAttention(c.health.state)).length;
-  const out = courses.some((c) => c.health.state === "out");
-  if (!attention)
+  const lang = useLang();
+  const six = useStatus("six");
+  const { signIn, busy } = useSignIn();
+  const list = (items: string[]) => new Intl.ListFormat(lang, { type: "conjunction" }).format(items);
+  const lines = attendanceAnswer(
+    courses.map((c) => c.health),
+    t,
+    list,
+  );
+  if (!lines.length && six.state === "signed-out")
     return (
-      <span className="inline-flex items-center gap-1.5 font-medium text-success-fg">
-        <Icons.CheckCircle className="size-4" weight="bold" />
-        {t("presence.answer.fine")}
+      <span className="block">
+        <span className="block font-medium text-fg">{t("presence.answer.noSix")}</span>
+        <span className="block text-small">{t("presence.noSix.hint")}</span>
+        <Button className="mt-3" variant={quiet ? "secondary" : "primary"} busy={busy} onClick={() => void signIn("six")}>
+          {t("presence.signInSix")}
+        </Button>
       </span>
     );
+  if (!lines.length) return <span>{t("presence.answer.noCount")}</span>;
   return (
-    <span className={cx("inline-flex items-center gap-1.5 font-medium", out ? "text-danger-fg" : "text-warning-fg")}>
-      <Icons.AlertTriangle className="size-4" weight="bold" />
-      {t("presence.answer.attention", { count: attention })}
+    <span className="block space-y-1">
+      {lines.map((line) => (
+        <span key={line.text} className="flex items-start gap-2 font-medium text-fg">
+          <span className="mt-[3px] shrink-0">{ANSWER_ICON[line.tone]}</span>
+          {line.text}
+        </span>
+      ))}
     </span>
   );
 }
-
-// ---------------------------------------------------------------- the target
 
 /** "Target kehadiran 80%": the default, for every course without its own (also in Settings). */
 function TargetControl({ target }: { target: number }) {
@@ -175,58 +167,41 @@ function TargetControl({ target }: { target: number }) {
   );
 }
 
-// ---------------------------------------------------------------- a Presence window open now
+// ---------------------------------------------------------------- a window open now that counts
 
-const DO_KEY: Record<PresenceActivity, StringKey> = {
-  course: "presence.do.course",
-  module: "presence.do.module",
-  thread: "presence.do.thread",
-  assignment: "presence.do.assignment",
-  exam: "presence.do.exam",
-  vicon: "presence.do.vicon",
-  crs: "presence.do.crs",
-  other: "presence.do.other",
-};
-
-/** "Presensi PL3002 dibuka sampai 09:30" / what to do, and the way to do it, with the time left. Where only SIX counts,
- *  the same story as Beranda: being in class is enough, so the window is optional and its button quiet. */
+/**
+ * "Kumpulkan Tugas 02 Bab II sebelum 23:59", with the way to do it and the
+ * time left. Without SIX nobody can say it counts: worth doing just in case,
+ * so said calmly, its button quiet.
+ */
 function OpenPresence({ window }: { window: OpenWindow }) {
   const t = useT();
   const f = useFormat();
   const now = useNow();
   const open = useOpenExternal();
   const { go } = useNav();
+  const actionLabel = useActionLabel();
   const { session, code, health, action } = window;
   const task = action.activity === "assignment" ? action.task : null;
   const noSix = health?.countedIn === "noSix";
-  // Quiet where SIX counts (optional) and without SIX (worth doing just in case, but nobody can say it counts).
-  // A Task to hand in keeps its own words: it's worth doing anyway.
-  const optional = health?.countedIn === "six" || noSix;
-  const what =
-    noSix && !task
-      ? t("presence.open.noSix")
-      : optional && !noSix
-        ? t("presence.open.optional")
-        : action.activity === "assignment" && !task
-          ? t("presence.do.assignmentUnknown")
-          : t(DO_KEY[action.activity], { task: task?.title ?? "" });
+  const where = noSix ? "presence.open.noSix" : health?.countedIn === "unknown" ? "presence.open.notKnown" : "presence.open.counts";
   return (
     <div className="rounded-2xl border border-edge bg-raised px-5 py-4 shadow-raised">
-      <div className="flex flex-wrap items-start gap-x-6 gap-y-3">
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
         <div className="min-w-0 flex-1">
           <p className="flex items-center gap-2 text-title font-semibold">
             <LiveDot />
-            {t("presence.open.headline", { code, time: f.time(session.closesAt) })}
+            {t("presence.open.do", { action: actionLabel(window), time: f.time(session.closesAt) })}
           </p>
-          <p className="mt-1 text-body text-muted">{what}</p>
+          <p className="mt-1 text-small text-muted">{t(where, { code })}</p>
         </div>
         {task ? (
-          <Button variant={optional ? "secondary" : "primary"} onClick={() => go({ screen: "task", taskId: task.id })}>
+          <Button variant={noSix ? "secondary" : "primary"} onClick={() => go({ screen: "task", taskId: task.id })}>
             {t("presence.open.task")}
             <Icons.ArrowRight className="size-3.5" />
           </Button>
         ) : (
-          <Button variant={optional ? "secondary" : "primary"} icon={<Icons.ArrowUpRight className="size-3.5" />} onClick={() => open(action.url)}>
+          <Button variant={noSix ? "secondary" : "primary"} icon={<Icons.ArrowUpRight className="size-3.5" />} onClick={() => open(action.url)}>
             {t("presence.open.record")}
           </Button>
         )}
@@ -242,379 +217,291 @@ function OpenPresence({ window }: { window: OpenWindow }) {
   );
 }
 
-// ---------------------------------------------------------------- the summary
-
-function SummaryTile({ state, value, selected, onToggle }: { state: Filter; value: number; selected: boolean; onToggle: () => void }) {
-  const t = useT();
-  return (
-    <button
-      type="button"
-      aria-label={`${value} · ${t(`presence.summary.${state}`)}`}
-      aria-pressed={selected}
-      disabled={value === 0}
-      onClick={onToggle}
-      className={cx(
-        "focus-ring rounded-xl border px-4 py-3 text-left transition-colors duration-150 disabled:pointer-events-none",
-        selected ? "border-accent bg-info-bg/50 shadow-card" : "border-edge bg-surface shadow-card hover:bg-hover",
-        value === 0 && "border-dashed bg-transparent shadow-none",
-      )}
-    >
-      <span className={cx("block text-[24px] leading-8 font-semibold tabular-nums", value > 0 ? STATE_TONE[state] : "text-faint")}>{value}</span>
-      <span className={cx("block text-small font-medium", value > 0 ? "text-muted" : "text-faint")}>{t(`presence.summary.${state}`)}</span>
-    </button>
-  );
-}
-
-/** Before SIX's count: no tallies to add up, so what SIX unlocks instead of four zeros. */
-function NoSixCount({ primary }: { primary: boolean }) {
-  const t = useT();
-  const status = useStatus("six");
-  const { signIn, busy } = useSignIn();
-  if (status.state !== "signed-out") return null;
-  return (
-    <div className="mb-4 flex items-center gap-3.5 rounded-xl border border-edge bg-surface px-4 py-3.5 shadow-card">
-      <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-fill text-muted">
-        <Icons.Lock className="size-4" />
-      </span>
-      <div className="min-w-0 flex-1">
-        <p className="text-body font-semibold">{t("presence.noSix")}</p>
-        <p className="mt-0.5 text-small text-muted">{t("presence.noSix.hint")}</p>
-      </div>
-      <Button variant={primary ? "primary" : "secondary"} busy={busy} onClick={() => void signIn("six")}>
-        {t("presence.signInSix")}
-      </Button>
-    </div>
-  );
-}
-
 // ---------------------------------------------------------------- a course
-
-/** The one big sentence: "Boleh absen 2× lagi", "Jangan absen lagi", "80% tak terkejar". */
-function statusSentence(t: Translate, health: AttendanceHealth): string {
-  switch (health.state) {
-    case "out":
-      return t("presence.status.out", { target: health.target });
-    case "none":
-      return t("presence.status.none");
-    case "unknown":
-      return t("presence.budget.unknown");
-    default:
-      return t("presence.status.left", { count: health.absencesLeft ?? 0 });
-  }
-}
 
 function CourseRow({
   item,
+  optional,
   lastDay,
   index,
   onTargetOpen,
 }: {
   item: CourseAttendance;
+  optional?: OpenWindow;
   lastDay: string | null;
   index: number;
   onTargetOpen: (open: boolean) => void;
 }) {
   const t = useT();
-  const f = useFormat();
   const { go } = useNav();
   const name = useCourseNames();
-  const { course, health, presence, exams } = item;
-  const { attended, held } = health;
-  const share = attended !== null && held ? percent(attended, held) : null;
-  const best = health.best !== null ? percent(health.best) : null;
-  const until = lastDay && (health.state === "safe" || health.state === "risk") ? f.dayMonth(Date.parse(`${lastDay}T12:00:00+07:00`)) : null;
-  const notes = useNotes(item);
-  // Signed out of SIX, with nothing of SIX's kept: the card above says once that the count is in SIX; no row
-  // claims SIX has none ("Belum ada hitungan SIX") or repeats where it counts.
-  const sixOut = useStatus("six").state === "signed-out" && held === null;
-  const sentence = sixOut ? null : statusSentence(t, health);
-  const label = [course.code, name(course.code, course.name), sentence].filter(Boolean).join(" · ");
+  const { course, health } = item;
+  const counted = health.held !== null && health.held > 0;
+  // Signed out of SIX with nothing of SIX's kept: the answer on top says once where the count is; no row repeats it.
+  const sixOut = useStatus("six").state === "signed-out" && health.held === null;
+  const verdict = sixOut ? null : verdictLabel(t, health);
+  const facts = useFacts(health, lastDay);
+  const upcoming = useNextClass(health);
+  // The next Edunex window on the next class's day is said with that class, not on a line of its own.
+  const withClass = Boolean(upcoming && item.nextWindow && quietWindow(item) && wibDay(item.nextWindow.session.opensAt) === wibDay(upcoming.session.start));
+  const next = useNextLine(item, upcoming, withClass);
+  const warning = useWarning(health);
+  const quiet = useQuietLine(item, optional, withClass);
+  const share = counted ? percent(health.attended ?? 0, health.held ?? 0) : 0;
 
   return (
     <li className="group relative motion-safe:stagger has-[>button:hover]:bg-hover" style={{ "--i": index } as CSSProperties}>
-      {/* The whole row opens the course's meetings; the meeting squares sit above it. */}
+      {/* The whole row opens the course's meetings; its controls sit above it. */}
       <button
         type="button"
-        aria-label={label}
+        aria-label={[course.code, name(course.code, course.name), verdict].filter(Boolean).join(" · ")}
         onClick={() => go({ screen: "course", code: course.code, tab: "meetings" })}
         className="absolute inset-0 z-0 outline-none focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-[-2px] focus-visible:outline-focus"
       />
-      <div className="pointer-events-none relative grid grid-cols-[minmax(0,1fr)_auto_220px] items-center gap-x-6 px-5 py-4">
-        <div className="min-w-0">
-          <CourseCode code={course.code} color={course.color} className="text-small" />
-          <p className="mt-0.5 line-clamp-2 text-body font-semibold">{name(course.code, course.name)}</p>
-          <p className="mt-1 text-small text-muted">
-            {!(sixOut && health.countedIn === "noSix") && <Where health={health} />}
-            <Next health={health} />
-          </p>
-        </div>
-
-        <div className="pointer-events-auto min-w-0">
-          {attended !== null && held !== null && held > 0 ? <MeetingStrip health={health} /> : presence.length > 0 ? <EdunexStrip presence={presence} /> : null}
-        </div>
-
-        <div className="min-w-0 text-right">
-          {sentence && (
-            <p
-              className={cx(
-                health.state === "unknown" ? "text-small font-medium" : "text-title leading-snug font-semibold text-balance",
-                STATE_TONE[health.state],
-              )}
-            >
-              {sentence}
-            </p>
-          )}
-          {share !== null ? (
-            <>
-              <p className="mt-0.5 text-small text-muted tabular-nums">
-                {health.state === "out"
-                  ? t("presence.share.out", { share, best: best ?? 0 })
-                  : until
-                    ? t("presence.share.until", { share, attended: attended!, held: held!, date: until })
-                    : t("presence.share", { share, attended: attended!, held: held! })}
+      {/*
+        Wide: the facts on the left, the verdict with its meter and target on the right. Narrow: the verdict, meter and target
+        on one line under the name, so each fact keeps a line of its own. The markup is in reading order either way; the last
+        row takes up what the verdict's column needs, so the facts stay close together.
+      */}
+      <div className="pointer-events-none relative grid grid-cols-1 px-5 py-4 @3xl:grid-cols-[minmax(0,1fr)_236px] @3xl:grid-rows-[auto_auto_auto_1fr] @3xl:gap-x-6">
+        <p className="flex min-w-0 items-baseline gap-2 @3xl:col-start-1 @3xl:row-start-1">
+          <CourseCode code={course.code} color={course.color} className="shrink-0 text-small" />
+          <span className="line-clamp-2 min-w-0 text-body font-semibold">{name(course.code, course.name)}</span>
+        </p>
+        {(verdict || counted) && (
+          <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 @3xl:col-start-2 @3xl:row-[1/span_4] @3xl:mt-0 @3xl:flex-col @3xl:flex-nowrap @3xl:items-end @3xl:gap-y-0 @3xl:self-start @3xl:text-right">
+            {verdict && (
+              <p
+                className={cx(
+                  "min-w-0 grow @3xl:grow-0",
+                  counted ? "text-title leading-snug font-semibold text-balance" : "text-small font-medium",
+                  STATE_TONE[health.state],
+                )}
+              >
+                {verdict}
               </p>
-              <ShareMeter
-                className="mt-2 ml-auto w-[150px]"
-                share={share}
-                best={best}
-                target={health.target}
-                tone={METER_TONE[health.state]}
-                label={t("presence.meter", { share, target: health.target, best: best ?? share })}
-              />
-              <CourseTarget code={course.code} className="pointer-events-auto relative mt-1.5" onOpenChange={onTargetOpen} />
-            </>
-          ) : health.countedIn === "edunex" || (health.countedIn === "noSix" && health.edunexClosed > 0) ? (
-            <p className="mt-0.5 text-small text-muted tabular-nums">
-              {t("presence.edunexTally", { recorded: health.edunexRecorded, closed: health.edunexClosed })}
-            </p>
-          ) : null}
-        </div>
+            )}
+            {counted && (
+              <>
+                <ShareMeter
+                  className="w-[120px] @3xl:mt-2 @3xl:w-full @3xl:max-w-[160px]"
+                  share={share}
+                  target={health.target}
+                  tone={METER_TONE[health.state]}
+                  label={t("presence.meter.target", { attended: health.attended ?? 0, held: health.held ?? 0, share, target: health.target })}
+                />
+                <CourseTarget code={course.code} className="pointer-events-auto relative @3xl:mt-1.5" onOpenChange={onTargetOpen} />
+              </>
+            )}
+          </div>
+        )}
+        {facts && <p className="mt-1 text-small text-muted tabular-nums @3xl:col-start-1 @3xl:row-start-2">{facts}</p>}
+        {next && <p className="mt-0.5 text-small text-muted @3xl:col-start-1 @3xl:row-start-3">{next}</p>}
+        {quiet && <div className="@3xl:col-start-1 @3xl:row-start-4">{quiet}</div>}
       </div>
-      {(notes.length > 0 || exams.length > 0) && (
-        <ul className="pointer-events-none relative space-y-1 px-5 pb-3.5 pl-[42px] text-small leading-[1.5] text-muted">
-          {notes.map((note) => (
-            <li
-              key={note.key}
-              className={cx(
-                "flex items-start gap-2",
-                note.tone === "bad" && "text-danger-fg",
-                note.tone === "way" && "text-fg",
-                note.tone === "clash" && "font-medium text-warning-fg",
-              )}
-            >
-              <span className="mt-[3px] shrink-0">{note.icon}</span>
-              <span className="min-w-0">{note.text}</span>
-              {note.action && <span className="pointer-events-auto ml-auto shrink-0">{note.action}</span>}
-            </li>
-          ))}
-        </ul>
-      )}
+      {warning && <div className="pointer-events-none relative -mt-1.5 px-5 pb-3.5">{warning}</div>}
     </li>
   );
 }
 
-/** "Dihitung di SIX": where the course's attendance counts, in words. */
-function Where({ health }: { health: AttendanceHealth }) {
-  const t = useT();
-  return <span>{t(`presence.where.${health.countedIn}`)}</span>;
-}
-
-/** "· Berikutnya Kam, 15 Okt, 08:00 · R.SG PWK LT.6", saying so when SIX's next meeting falls in an exam week. */
-function Next({ health }: { health: AttendanceHealth }) {
+/** "Hadir 4 dari 6 · sekitar 8 pertemuan lagi sampai 4 Des"; out of reach, the best still possible; without SIX, Edunex's own tally. */
+function useFacts(health: AttendanceHealth, lastDay: string | null): ReactNode {
   const t = useT();
   const f = useFormat();
-  const next = health.left.next;
-  if (!next) return null;
-  const uncertain = health.left.upcoming[0]?.uncertain && health.left.upcoming[0].session?.id === next.id;
+  const { attended, held, left } = health;
+  if (attended === null || !held)
+    return health.edunexClosed > 0 && (health.countedIn === "edunex" || health.countedIn === "noSix")
+      ? t("presence.edunexTally", { recorded: health.edunexRecorded, closed: health.edunexClosed })
+      : null;
+  const count = left.count;
+  const rest =
+    health.state === "out"
+      ? t("presence.row.best", { best: percent(health.best ?? 0) })
+      : count === 0
+        ? t("presence.row.leftNone")
+        : !lastDay
+          ? t("presence.row.leftNoDate", { count })
+          : t(left.estimated ? "presence.row.leftAbout" : "presence.row.left", { count, date: f.dayMonth(Date.parse(`${lastDay}T12:00:00+07:00`)) });
   return (
-    <>
-      {" · "}
-      {t("presence.next", { when: `${f.relativeDay(next.start)}, ${f.time(next.start)}` })}
-      {next.room ? ` · ${next.room}` : ""}
-      {uncertain && <span className="font-medium text-warning-fg"> · {t("presence.next.uncertain")}</span>}
-    </>
+    <Meta>
+      {t("presence.row.count", { attended, held })}
+      {rest}
+    </Meta>
   );
 }
 
-interface Note {
-  key: string;
-  text: ReactNode;
-  icon: ReactNode;
-  tone?: "bad" | "way" | "clash";
-  action?: ReactNode;
+const RECORD = {
+  six: "presence.record.six",
+  both: "presence.record.both",
+  edunex: "presence.record.edunex",
+  // Nothing recorded anywhere yet: the verdict already says SIX has no count.
+  unknown: null,
+  noSix: null,
+} as const;
+
+/** The class going on now, else the next one on SIX's timetable. */
+function useNextClass(health: AttendanceHealth): { session: ClassSession; live: boolean } | null {
+  const now = useNow();
+  const schedule = useDataset("six.schedule");
+  const live = schedule?.find((s) => s.courseCode === health.code && s.start <= now && now < s.end && !isExamActivity(s.activity));
+  if (live) return { session: live, live: true };
+  return health.left.next ? { session: health.left.next, live: false } : null;
 }
 
-/** What to know under a course: the way back to the target, what to do when it's out of reach, how Edunex's record relates to SIX's. */
-function useNotes(item: CourseAttendance): Note[] {
+/** The next Edunex window, when it counts and asks for something particular (not just opening the course). */
+const quietWindow = ({ health, nextWindow }: CourseAttendance) => nextWindow !== null && health.countedIn !== "six" && nextWindow.action.activity !== "course";
+
+/**
+ * "Berikutnya Hari ini, 16:00 · 9134 · cukup hadir di kelas", or the class
+ * going on now: when, where, and what records it; with that day's Edunex
+ * window when it asks for something ("hadir, lalu kumpulkan Tugas 02 Bab II
+ * sebelum 23:59").
+ */
+function useNextLine(item: CourseAttendance, upcoming: { session: ClassSession; live: boolean } | null, withClass: boolean): ReactNode {
+  const t = useT();
+  const f = useFormat();
+  const actionLabel = useActionLabel();
+  if (!upcoming) return null;
+  const { session, live } = upcoming;
+  const { health, nextWindow } = item;
+  const record = RECORD[health.countedIn];
+  const label = nextWindow ? actionLabel(nextWindow) : "";
+  // Mid-sentence, the action starts small: "hadir, lalu kumpulkan …".
+  const action = label.charAt(0).toLowerCase() + label.slice(1);
+  const what =
+    withClass && nextWindow
+      ? t(health.countedIn === "both" ? "presence.record.bothDo" : "presence.record.edunexDo", { action, time: f.time(nextWindow.session.closesAt) })
+      : record
+        ? t(record)
+        : "";
+  return (
+    <Meta>
+      {live
+        ? t("presence.row.now", { time: f.time(session.end) })
+        : t("presence.row.next", { when: `${f.relativeDay(session.start)}, ${f.time(session.start)}` })}
+      {session.room ?? ""}
+      {what}
+    </Meta>
+  );
+}
+
+/**
+ * A quiet line: the Edunex window open now where only SIX counts (optional,
+ * with the way to it anyway), else the next window that counts when it asks
+ * for something particular and isn't on the next class's day ("Presensi
+ * Edunex Jum, 16 Okt, 15:00–23:59: Kumpulkan Tugas 02 Bab II").
+ */
+function useQuietLine(item: CourseAttendance, optional: OpenWindow | undefined, withClass: boolean): ReactNode {
   const t = useT();
   const f = useFormat();
   const open = useOpenExternal();
-  const student = useDataset("six.student");
-  const schedule = useDataset("six.schedule");
-  const { health, presence, exams } = item;
-  const { attended, held, target } = health;
-  const notes: Note[] = [];
-  const dot = (tone: "bad" | "info" | "way") => (
-    <span aria-hidden className={cx("mt-[5px] block size-1.5 rounded-full", tone === "bad" ? "bg-danger-fg" : tone === "way" ? "bg-warning-fg" : "bg-faint")} />
-  );
-  // The next meeting overlaps another course's class: said first (it's a choice to make soon), in Jadwal's words, amber.
-  const next = health.left.next;
-  const clash = next ? clashes(next, next.courseCode, schedule ?? [])[0] : undefined;
-  if (next && clash)
-    notes.push({
-      key: "clash",
-      tone: "clash",
-      icon: dot("way"),
-      text: t("schedule.overlapWith", { code: clash.courseCode, from: f.time(Math.max(next.start, clash.start)), to: f.time(Math.min(next.end, clash.end)) }),
-    });
-  if (health.toRecover !== null && health.toRecover > 0)
-    notes.push({ key: "recover", tone: "way", icon: dot("way"), text: t("presence.recover", { target, count: health.toRecover }) });
-  if (health.state === "out")
-    notes.push({
-      key: "out",
-      tone: "bad",
-      icon: dot("bad"),
-      text: t("presence.note.out", { target }),
-      action: student ? (
+  const actionLabel = useActionLabel();
+  if (optional)
+    return (
+      <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-small text-muted">
+        <span>{t("presence.row.optional", { time: f.time(optional.session.closesAt) })}</span>
         <Button
           size="sm"
           variant="ghost"
-          className="-my-1 h-6 px-2 text-danger-fg"
+          className="pointer-events-auto relative -my-1 h-6 px-1.5"
           icon={<Icons.ArrowUpRight className="size-3.5" />}
-          onClick={() => open(sixTimetableUrl(student))}
+          onClick={() => open(optional.action.url)}
         >
-          {t("presence.checkSix")}
+          {t("presence.open.record")}
         </Button>
-      ) : null,
-    });
-  if (health.countedIn === "six" && health.edunexClosed > 0 && attended !== null && held !== null)
-    notes.push({
-      key: "edunex",
-      icon: dot("info"),
-      text: t("presence.note.edunexUnused", { recorded: health.edunexRecorded, closed: health.edunexClosed, attended, held }),
-    });
-  if (presence.some((p) => p.countsBy.some((c) => c.kind === "assignment")))
-    notes.push({ key: "assignment", icon: dot("info"), text: t("presence.note.assignment") });
-  for (const exam of exams)
-    notes.push({
-      key: `exam${exam.id}`,
-      icon: dot("info"),
-      text: t("presence.note.exam", { activity: exam.activity, date: `${f.weekdayShort(exam.start)} ${f.dayMonth(exam.start)}` }),
-    });
-  return notes;
-}
-
-// ---------------------------------------------------------------- the meetings strip
-
-/**
- * One square per meeting of the term. Past meetings carry SIX's tally,
- * attended then missed (SIX gives only the totals, never which meeting), so
- * they're grouped, not dated; each meeting to come shows its date, dashed
- * when it's the weekly slot carried on, hatched when it falls in an exam week.
- */
-function MeetingStrip({ health }: { health: AttendanceHealth }) {
-  const t = useT();
-  const f = useFormat();
-  const attended = health.attended ?? 0;
-  const held = health.held ?? 0;
-  const missed = held - attended;
-  const upcoming = health.left.upcoming;
-  const squares: Square[] = [
-    ...Array.from({ length: attended }, (_, i) => ({ key: `a${i}`, kind: "attended" as const, tip: t("presence.square.attended", { attended, held }) })),
-    ...Array.from({ length: missed }, (_, i) => ({ key: `m${i}`, kind: "missed" as const, tip: t("presence.square.missed", { missed, held }) })),
-    ...upcoming.map((m, i) => ({
-      key: `u${i}`,
-      kind: m.uncertain ? ("uncertain" as const) : m.estimated ? ("estimated" as const) : ("coming" as const),
-      tip: upcomingTip(t, f, m),
-    })),
-  ];
-  const label = t(health.left.estimated ? "presence.strip.about" : "presence.strip", { attended, missed, left: upcoming.length });
-  return <Strip squares={squares} label={label} gapAfter={[attended - 1, held - 1]} />;
-}
-
-/** Without SIX's count: Edunex's Presence windows, each with its date and what Edunex recorded. */
-function EdunexStrip({ presence }: { presence: readonly PresenceSession[] }) {
-  const t = useT();
-  const f = useFormat();
-  const now = useNow();
-  const sorted = [...presence].sort((a, b) => a.opensAt - b.opensAt);
-  const squares: Square[] = sorted.map((p) => {
-    const when = `${f.weekdayShort(p.opensAt)} ${f.dayMonth(p.opensAt)}`;
-    if (p.recorded?.present) return { key: String(p.id), kind: "attended", tip: t("presence.square.edunexPresent", { when }) };
-    if (p.closesAt <= now) return { key: String(p.id), kind: "unmarked", tip: t("presence.square.edunexUnmarked", { when }) };
-    if (p.opensAt <= now) return { key: String(p.id), kind: "open", tip: t("presence.square.edunexOpen", { when, time: f.time(p.closesAt) }) };
-    return { key: String(p.id), kind: "coming", tip: t("presence.square.edunexComing", { when }) };
-  });
-  const past = sorted.filter((p) => p.closesAt <= now).length;
+      </p>
+    );
+  const { nextWindow } = item;
+  if (!nextWindow || !quietWindow(item) || withClass) return null;
+  const { session } = nextWindow;
   return (
-    <Strip
-      squares={squares}
-      label={t("presence.strip.edunex", { recorded: sorted.filter((p) => p.recorded?.present).length, closed: past, left: sorted.length - past })}
-      gapAfter={[past - 1]}
-    />
+    <p className="mt-0.5 text-small text-muted">
+      {t("presence.row.window", {
+        when: `${f.relativeDay(session.opensAt)}, ${f.timeRange(session.opensAt, session.closesAt)}`,
+        action: actionLabel(nextWindow),
+      })}
+    </p>
   );
 }
 
-function upcomingTip(t: Translate, f: Format, meeting: UpcomingMeeting): string {
-  const when = `${f.weekdayShort(meeting.start)} ${f.dayMonth(meeting.start)}, ${f.time(meeting.start)}`;
-  if (meeting.uncertain) return t("presence.square.uncertain", { when });
-  if (meeting.estimated) return t("presence.square.estimated", { when });
-  return meeting.session?.room ? t("presence.square.comingRoom", { when, room: meeting.session.room }) : t("presence.square.coming", { when });
+/**
+ * One warning at most, the most pressing: the target hangs on a class that
+ * may not run; the next class clashes with another; it may not run (exam
+ * week, holiday); the target is out of reach (a meeting SIX missed is the one
+ * thing left to fix); below the target now, the way back. Never "the way
+ * back" next to "Jangan absen lagi".
+ */
+function useWarning(health: AttendanceHealth): ReactNode {
+  const t = useT();
+  const f = useFormat();
+  const open = useOpenExternal();
+  const schedule = useDataset("six.schedule");
+  const calendar = useDataset("itb.calendar");
+  const student = useDataset("six.student");
+  const next = health.left.next;
+  const needed = health.needsUncertain ? health.left.upcoming.find((m) => m.uncertain) : undefined;
+  if (needed) return <Warning tone="warning">{uncertainText(t, f, needed.start, calendar?.events, health.target)}</Warning>;
+  const clash = next ? clashes(next, next.courseCode, schedule ?? [])[0] : undefined;
+  if (next && clash)
+    return (
+      <Warning tone="warning">
+        {t("home.today.overlap", { course: clash.courseCode, time: f.timeRange(Math.max(next.start, clash.start), Math.min(next.end, clash.end)) })}
+      </Warning>
+    );
+  const first = health.left.upcoming[0];
+  if (next && first?.uncertain && first.session?.id === next.id) return <Warning tone="warning">{uncertainText(t, f, next.start, calendar?.events)}</Warning>;
+  if (health.state === "out")
+    return (
+      <Warning
+        tone="danger"
+        action={
+          student ? (
+            <Button
+              size="sm"
+              variant="ghost"
+              className="pointer-events-auto relative -my-1 h-6 px-1.5 text-danger-fg"
+              icon={<Icons.ArrowUpRight className="size-3.5" />}
+              onClick={() => open(sixTimetableUrl(student))}
+            >
+              {t("presence.checkSix")}
+            </Button>
+          ) : null
+        }
+      >
+        {t("presence.warn.out")}
+      </Warning>
+    );
+  if (health.state === "risk" && health.toRecover)
+    return <Warning tone="warning">{t("presence.recover", { count: health.toRecover, target: health.target })}</Warning>;
+  return null;
 }
 
-interface Square {
-  key: string;
-  kind: "attended" | "missed" | "coming" | "estimated" | "uncertain" | "unmarked" | "open";
-  tip: string;
+/**
+ * "Kam 15 Okt masuk masa UTS, …", naming the period from ITB's calendar.
+ * `target`: the course's target hangs on that class running.
+ */
+function uncertainText(
+  t: Translate,
+  f: Format,
+  start: number,
+  events: readonly { kind: string; firstDay: string; lastDay: string }[] = [],
+  target?: number,
+): string {
+  const day = wibDay(start);
+  const date = `${f.weekdayShort(start)} ${f.dayMonth(start)}`;
+  const event = events.find((e) => (e.kind === "uts" || e.kind === "uas" || e.kind === "holiday") && e.firstDay <= day && day <= e.lastDay);
+  if (event?.kind === "holiday") return target ? t("presence.warn.neededHoliday", { date, target }) : t("presence.warn.uncertainHoliday", { date });
+  const period = t(event?.kind === "uts" ? "presence.period.uts" : event?.kind === "uas" ? "presence.period.uas" : "presence.period.off");
+  return target ? t("presence.warn.needed", { date, period, target }) : t("presence.warn.uncertain", { date, period });
 }
 
-const SQUARE: Record<Square["kind"], string> = {
-  attended: "bg-live",
-  missed: "bg-danger-fg",
-  coming: "border border-track bg-surface",
-  estimated: "border border-dashed border-track bg-surface",
-  uncertain: "border border-dashed border-warning-fg/70 bg-warning-bg",
-  unmarked: "bg-track",
-  open: "bg-accent",
-};
-
-/** Squares with their own tooltip each, one tab stop: the arrow keys move along. */
-function Strip({ squares, label, gapAfter }: { squares: Square[]; label: string; gapAfter: number[] }) {
-  const refs = useRef<(HTMLSpanElement | null)[]>([]);
-  const [focus, setFocus] = useState(0);
-  const move = (event: KeyboardEvent, index: number) => {
-    const step =
-      event.key === "ArrowRight" ? 1 : event.key === "ArrowLeft" ? -1 : event.key === "Home" ? -index : event.key === "End" ? squares.length - 1 - index : 0;
-    if (!step) return;
-    event.preventDefault();
-    const next = Math.max(0, Math.min(squares.length - 1, index + step));
-    setFocus(next);
-    refs.current[next]?.focus();
-  };
+function Warning({ tone, action, children }: { tone: "warning" | "danger"; action?: ReactNode; children: ReactNode }) {
   return (
-    // biome-ignore lint/a11y/useSemanticElements: a strip of small marks in a flex row; the list roles describe it without list markup
-    <div role="list" aria-label={label} className="flex max-w-[260px] flex-wrap gap-y-1">
-      {squares.map((square, i) => (
-        <Tooltip key={square.key} content={square.tip} side="top">
-          {/* biome-ignore lint/a11y/useSemanticElements: each mark is a span (a tooltip trigger) inside the strip's list role */}
-          <span
-            ref={(el) => {
-              refs.current[i] = el;
-            }}
-            role="listitem"
-            aria-label={square.tip}
-            tabIndex={i === focus ? 0 : -1}
-            onFocus={() => setFocus(i)}
-            onKeyDown={(event) => move(event, i)}
-            className={cx(
-              "focus-ring mr-[3px] h-3.5 w-3 shrink-0 rounded-[3px] transition-transform duration-150 hover:scale-125",
-              SQUARE[square.kind],
-              gapAfter.includes(i) && i < squares.length - 1 && "mr-2",
-            )}
-          />
-        </Tooltip>
-      ))}
-    </div>
+    <p className={cx("flex flex-wrap items-start gap-x-2 text-small font-medium", tone === "danger" ? "text-danger-fg" : "text-warning-fg")}>
+      <Icons.AlertTriangle className="mt-0.5 size-3.5 shrink-0" weight="bold" />
+      <span className="min-w-0 flex-1">{children}</span>
+      {action}
+    </p>
   );
 }
 
@@ -627,23 +514,27 @@ function HowCounted({ lastDay }: { lastDay: string | null }) {
   const student = useDataset("six.student");
   const date = lastDay ? f.dayMonth(Date.parse(`${lastDay}T12:00:00+07:00`)) : "—";
   return (
-    <section aria-labelledby="presence-how" className="mt-10 rounded-xl bg-sunken px-5 py-4 text-small leading-[1.6] text-muted">
-      <h2 id="presence-how" className="text-body font-semibold text-fg">
+    <details className="group mt-8">
+      <summary className="focus-ring inline-flex cursor-pointer list-none items-center gap-1.5 rounded text-small font-medium text-muted transition-colors duration-150 select-none hover:text-fg [&::-webkit-details-marker]:hidden">
+        <Icons.ChevronRight className="size-3.5 transition-transform duration-150 group-open:rotate-90" />
         {t("presence.how")}
-      </h2>
-      <ul className="mt-1.5 list-disc space-y-1 pl-4">
-        <li>{t("presence.how.six")}</li>
-        <li>{t("presence.how.which")}</li>
-        <li>{t("presence.how.left", { date })}</li>
-        <li>{t("presence.how.uncertain")}</li>
-        <li>{t("presence.how.target")}</li>
-        <li>{t("presence.how.check")}</li>
-      </ul>
-      {student && (
-        <Button size="sm" className="mt-3" icon={<Icons.ArrowUpRight className="size-3.5" />} onClick={() => open(sixTimetableUrl(student))}>
-          {t("presence.openSix")}
-        </Button>
-      )}
-    </section>
+      </summary>
+      <div className="mt-3 max-w-[72ch] pl-5 text-small leading-[1.6] text-muted">
+        <ul className="list-disc space-y-1 pl-4">
+          <li>{t("presence.how.six")}</li>
+          <li>{t("presence.how.which")}</li>
+          <li>{t("presence.how.left", { date })}</li>
+          <li>{t("presence.how.uncertain")}</li>
+          <li>{t("presence.how.edunex")}</li>
+          <li>{t("presence.how.target")}</li>
+          <li>{t("presence.how.check")}</li>
+        </ul>
+        {student && (
+          <Button size="sm" className="mt-3" icon={<Icons.ArrowUpRight className="size-3.5" />} onClick={() => open(sixTimetableUrl(student))}>
+            {t("presence.openSix")}
+          </Button>
+        )}
+      </div>
+    </details>
   );
 }

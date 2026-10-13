@@ -112,7 +112,7 @@ function Actions({ children }: { children: ReactNode }) {
   return <div className="mt-4 flex flex-wrap items-center justify-end gap-2">{children}</div>;
 }
 
-/** Where the course's attendance counts, and what's left: "Kehadiran dihitung di SIX · Boleh absen 2× lagi". */
+/** Where the course's attendance counts, and what's left: "Kehadiran dihitung di SIX · Masih bisa absen 2× lagi". */
 function AttendanceFact({ code, world }: { code: string; world: ScheduleWorld }) {
   const t = useT();
   const health = world.health(code);

@@ -265,7 +265,7 @@ describe("meetings", () => {
     await s.click([...document.querySelectorAll<HTMLButtonElement>("aside button")].find((b) => b.textContent?.startsWith("KU5014"))!);
     expect(document.querySelector("h1")?.textContent).toContain("Teknik Penyelesaian Masalah Terstruktur");
     const text = s.text();
-    expect(text).toContain("80% tak terkejar");
+    expect(text).toContain("Tak bisa lagi capai 80%");
     expect(text).toContain("Paling tinggi 73% kalau kamu hadir di semua sisa pertemuan.");
     // Beranda and Jadwal name the overlap (16:00–16:30), not the other class's whole slot.
     expect(text).toContain("Bentrok dengan PL3032 16:00–16:30.");
@@ -281,7 +281,7 @@ describe("meetings", () => {
     screen = await openApp({ signedIn: true, six: true, world });
     await screen.click([...document.querySelectorAll<HTMLButtonElement>("aside button")].find((b) => b.textContent?.startsWith("PL3002"))!);
     const text = screen.text();
-    expect(text).not.toContain("tak terkejar");
+    expect(text).not.toContain("Tak bisa lagi capai");
     expect(text).toContain("Jangan absen lagi");
     expect(text).toContain("80% hanya masih bisa kalau kuliah di masa ujian atau libur tetap ada. Hadiri semua pertemuan, termasuk yang itu.");
   });

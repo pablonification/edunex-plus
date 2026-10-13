@@ -91,8 +91,8 @@ describe("Home with both systems", () => {
     const expected = {
       DK4073: ["Kelas 01 · 3 SKS", "Kehadiran4/6 · 66%Jangan absen lagi"],
       II4091: ["Kelas 01 · 2 SKS", "Kehadiran3/3 · 100%"],
-      KU5014: ["Kelas 01 · 3 SKS", "Kehadiran2/6 · 33%80% tak terkejar"],
-      PL3002: ["Kelas 01 · 3 SKS", "Kehadiran6/7 · 85%Boleh absen 1× lagi"],
+      KU5014: ["Kelas 01 · 3 SKS", "Kehadiran2/6 · 33%Tak bisa lagi capai 80%"],
+      PL3002: ["Kelas 01 · 3 SKS", "Kehadiran6/7 · 85%Masih bisa absen 1× lagi"],
       PL3032: ["Kelas 01 · 3 SKS", "Kehadiran4/7 · 57%Jangan absen lagi"],
     };
     for (const [code, facts] of Object.entries(expected)) for (const fact of facts) expect(card(code)).toContain(fact);
@@ -126,7 +126,7 @@ describe("Home with both systems", () => {
     expect(card("PL3032")).toContain("Ekonomi Infrastruktur dan Transportasi");
     expect(card("PL3032")).not.toContain("Infrastructure and Transportation Economics");
     expect(card("PL3032")).toContain("Class 01 · 3 SKS");
-    expect(card("PL3032")).toContain("Attendance4/7 · 57%Don't miss any more");
+    expect(card("PL3032")).toContain("Attendance4/7 · 57%Don't miss another class");
     expect(meter("PL3032").label).toBe("Attended 4 of 7, 57%, target 80%");
     expect(await screen.sourceState("SIX")).toBe("Connected");
   });
