@@ -1,9 +1,10 @@
 // Interactive controls: buttons, the switch, the stepper, the segmented control. Every
 // control has a visible keyboard focus and a name screen readers can read.
 import * as SwitchPrimitive from "@radix-ui/react-switch";
-import { type ButtonHTMLAttributes, type ReactNode, type Ref, useRef } from "react";
+import { type ButtonHTMLAttributes, type KeyboardEvent, type ReactNode, type Ref, useRef } from "react";
 import { cx } from "./cx";
 import { Icons } from "./icons";
+import { SlidingHighlight } from "./motion/sliding-highlight";
 
 type Variant = "primary" | "secondary" | "ghost" | "danger";
 type Size = "sm" | "md" | "lg";
@@ -145,58 +146,81 @@ export function Stepper({
   );
 }
 
-/** A small set of mutually exclusive choices (theme, language). Arrow keys move the choice. */
+/**
+ * A radio group of the screen's own buttons, as the keyboard expects one: only
+ * the checked choice is a Tab stop (the first when none is, so the group stays
+ * reachable), the arrow keys move the choice and the focus with it, and
+ * clicking the checked choice keeps it. Spread `radio(index)` on each button.
+ */
+export function useRadioKeys<T>(values: readonly T[], value: T | null, onChange: (value: T) => void) {
+  const buttons = useRef<(HTMLButtonElement | null)[]>([]);
+  // A null value is a choice where the group has one (the Tasks filter's "Semua"), else nothing picked.
+  const checked = values.indexOf(value as T);
+  const move = (from: number, step: number) => {
+    const index = (from + step + values.length) % values.length;
+    onChange(values[index]);
+    buttons.current[index]?.focus();
+  };
+  return (index: number) => ({
+    ref: (el: HTMLButtonElement | null) => {
+      buttons.current[index] = el;
+    },
+    role: "radio" as const,
+    "aria-checked": index === checked,
+    tabIndex: index === Math.max(checked, 0) ? 0 : -1,
+    onClick: () => onChange(values[index]),
+    onKeyDown: (event: KeyboardEvent) => {
+      if (event.key === "ArrowRight" || event.key === "ArrowDown") {
+        event.preventDefault();
+        move(index, 1);
+      } else if (event.key === "ArrowLeft" || event.key === "ArrowUp") {
+        event.preventDefault();
+        move(index, -1);
+      }
+    },
+  });
+}
+
+/**
+ * A small set of mutually exclusive choices (theme, language, an IPK target).
+ * Arrow keys move the choice; the highlight glides to it. `value` null: none
+ * picked. An option's `name` is its button's name where the label alone is
+ * too short ("3,50" read as "Target IPK 3,50").
+ */
 export function Segmented<T extends string>({
   value,
   options,
   onChange,
   label,
 }: {
-  value: T;
-  options: readonly { value: T; label: string }[];
+  value: T | null;
+  options: readonly { value: T; label: string; name?: string }[];
   onChange: (value: T) => void;
   label: string;
 }) {
-  const buttons = useRef<(HTMLButtonElement | null)[]>([]);
-  const move = (from: number, step: number) => {
-    const index = (from + step + options.length) % options.length;
-    onChange(options[index].value);
-    buttons.current[index]?.focus();
-  };
+  const radio = useRadioKeys(
+    options.map((option) => option.value),
+    value,
+    onChange,
+  );
   return (
-    <div role="radiogroup" aria-label={label} className="flex rounded-lg bg-fill p-0.5 ring-1 ring-black/[0.05] ring-inset dark:ring-white/[0.06]">
-      {options.map((option, index) => {
-        const selected = option.value === value;
-        return (
-          // biome-ignore lint/a11y/useSemanticElements: a segmented control of styled buttons; the radio role and arrow keys are handled here
-          <button
-            key={option.value}
-            ref={(el) => {
-              buttons.current[index] = el;
-            }}
-            type="button"
-            role="radio"
-            aria-checked={selected}
-            tabIndex={selected ? 0 : -1}
-            onClick={() => onChange(option.value)}
-            onKeyDown={(event) => {
-              if (event.key === "ArrowRight" || event.key === "ArrowDown") {
-                event.preventDefault();
-                move(index, 1);
-              } else if (event.key === "ArrowLeft" || event.key === "ArrowUp") {
-                event.preventDefault();
-                move(index, -1);
-              }
-            }}
-            className={cx(
-              "focus-ring h-7 rounded-md px-3 text-small font-medium transition-colors duration-150",
-              selected ? "bg-segment text-fg shadow-thumb" : "text-muted hover:text-fg",
-            )}
-          >
-            {option.label}
-          </button>
-        );
-      })}
+    <div role="radiogroup" aria-label={label} className="relative flex rounded-lg bg-fill p-0.5 ring-1 ring-black/[0.05] ring-inset dark:ring-white/[0.06]">
+      <SlidingHighlight active={value} className="rounded-md bg-segment shadow-thumb" />
+      {options.map((option, index) => (
+        <button
+          key={option.value}
+          type="button"
+          {...radio(index)}
+          aria-label={option.name}
+          data-highlight={option.value}
+          className={cx(
+            "focus-ring relative h-7 rounded-md px-3 text-small font-medium transition-colors duration-150",
+            option.value === value ? "text-fg" : "text-muted hover:text-fg",
+          )}
+        >
+          {option.label}
+        </button>
+      ))}
     </div>
   );
 }

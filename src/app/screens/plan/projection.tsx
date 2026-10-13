@@ -20,6 +20,7 @@ import {
 import { useFormat, useT } from "../../i18n";
 import type { PlanState } from "../../study-plan";
 import { ChartLegend, LineChart } from "../../ui/chart";
+import { Segmented } from "../../ui/controls";
 import { cx } from "../../ui/cx";
 
 const yearsOf = (term: string) => {
@@ -138,36 +139,21 @@ export function TargetControl({ record, state, className }: { record: StudentRec
   const [typing, setTyping] = useState<string | null>(null);
   const parsed = typing === null ? null : parseTarget(typing);
   const set = (value: number) => state.update((p) => ({ ...p, target: value }));
+  // While a value is being typed, the pick still counted stays marked until the typed one is valid.
+  const picked = typing === null || parsed?.kind !== "ok" ? TARGET_PICKS.find((pick) => Math.abs(pick - target) < 1e-9) : undefined;
   return (
     <div className={cx("flex flex-wrap items-center gap-x-3 gap-y-2", className)}>
-      <span className="text-small font-medium text-muted" id="target-label">
-        {t("grades.target")}
-      </span>
-      <span role="radiogroup" aria-labelledby="target-label" className="flex items-center gap-1">
-        {TARGET_PICKS.map((value) => {
-          // While a value is being typed, the pick still counted stays marked until the typed one is valid.
-          const on = Math.abs(value - target) < 1e-9 && (typing === null || parsed?.kind !== "ok");
-          return (
-            // biome-ignore lint/a11y/useSemanticElements: the picks are styled buttons beside a typed value; the radio role says only one counts
-            <button
-              key={value}
-              type="button"
-              role="radio"
-              aria-checked={on}
-              aria-label={t("grades.targetOf", { value: f.number(value, 2) })}
-              onClick={() => {
-                setTyping(null);
-                set(value);
-              }}
-              className={cx(
-                "focus-ring h-7 rounded-md px-2.5 text-small font-semibold tabular-nums transition-colors duration-150",
-                on ? "bg-accent text-on-accent" : "bg-fill text-muted hover:text-fg",
-              )}
-            >
-              {f.number(value, 2)}
-            </button>
-          );
-        })}
+      <span className="text-small font-medium text-muted">{t("grades.target")}</span>
+      <span className="flex items-center gap-2">
+        <Segmented
+          label={t("grades.target")}
+          value={picked?.toString() ?? null}
+          options={TARGET_PICKS.map((pick) => ({ value: pick.toString(), label: f.number(pick, 2), name: t("grades.targetOf", { value: f.number(pick, 2) }) }))}
+          onChange={(pick) => {
+            setTyping(null);
+            set(Number(pick));
+          }}
+        />
         <input
           inputMode="decimal"
           aria-label={t("grades.targetOther")}
@@ -182,8 +168,8 @@ export function TargetControl({ record, state, className }: { record: StudentRec
           }}
           onBlur={() => setTyping(null)}
           className={cx(
-            "focus-ring h-7 w-[76px] rounded-md border bg-surface px-2 text-right text-small font-semibold text-fg tabular-nums placeholder:font-normal placeholder:text-faint",
-            parsed?.kind === "invalid" ? "border-danger-fg" : custom && typing === null ? "border-accent" : "border-edge",
+            "focus-ring h-8 w-[76px] rounded-lg border bg-surface px-2 text-right text-small font-semibold text-fg tabular-nums placeholder:font-normal placeholder:text-faint",
+            parsed?.kind === "invalid" ? "border-danger-fg" : "border-edge",
           )}
         />
       </span>

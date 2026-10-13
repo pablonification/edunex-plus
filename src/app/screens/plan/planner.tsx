@@ -76,6 +76,7 @@ import { Meta } from "../../ui/layout";
 import { Menu } from "../../ui/menu";
 import { Flash } from "../../ui/motion";
 import { ConfirmDialog, Dialog, dismissToast, Tooltip, toast } from "../../ui/overlays";
+import { TabBar } from "../../ui/tabs";
 import { GradeSelect, HonorsList, IpkChart, NeedText, predicateFor, TargetControl, usePredicate, useTermLabel } from "./projection";
 import { SixNeeded } from "./six-needed";
 
@@ -1233,7 +1234,7 @@ function AddCourse({
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()} title={title} className="w-[min(680px,calc(100vw-48px))]">
-      <div className="-mx-5 -my-5">
+      <Tabs.Root value={tab} onValueChange={(v) => setTab(v as AddTab)} className="-mx-5 -my-5">
         <div className="border-b border-line px-5 pt-3">
           <label className="flex h-9 items-center gap-2 rounded-lg bg-fill px-3">
             <Icons.Search className="size-4 text-faint" />
@@ -1250,41 +1251,34 @@ function AddCourse({
             />
           </label>
           {now && <p className="mt-2 text-caption text-info-fg">{t("planner.addToNowNote")}</p>}
-          <Tabs.Root value={tab} onValueChange={(v) => setTab(v as AddTab)}>
-            <Tabs.List aria-label={title} className="mt-2 flex gap-5">
-              {(["needed", "program", "minors", "all"] as const).map((id) => (
-                <Tabs.Trigger
-                  key={id}
-                  value={id}
-                  className="focus-ring -mb-px h-9 border-b-2 border-transparent text-small font-medium text-muted data-[state=active]:border-fg data-[state=active]:text-fg"
-                >
-                  {t(`planner.tab.${id}`)}
-                </Tabs.Trigger>
-              ))}
-            </Tabs.List>
-          </Tabs.Root>
+          <TabBar
+            value={tab}
+            label={title}
+            size="sm"
+            tabs={(["needed", "program", "minors", "all"] as const).map((id) => ({ value: id, label: t(`planner.tab.${id}`) }))}
+            className="mt-2 gap-5"
+          />
         </div>
+        {/* The lists aren't Tab stops of their own (Radix makes a panel one): Tab goes from the tab to the first course's button, and the search and tabs stay in view. */}
         <div className="min-h-[300px]">
-          {tab === "needed" && (
-            <>
-              <ul>{needed.map((x) => row(x.code, x.why))}</ul>
-              {retakes.length > 0 && (
-                <>
-                  <p className="px-5 pt-4 pb-1 text-caption font-semibold tracking-[0.04em] text-faint uppercase">{t("planner.retakes")}</p>
-                  <p className="px-5 pb-1 text-caption text-faint">{t("planner.retakeSumma")}</p>
-                  <ul>{retakes.map((r) => row(r.code, t("planner.why.grade", { grade: r.grade }), { from: r.grade, now: r.ipkNow, after: r.ipkWithA }))}</ul>
-                </>
-              )}
-            </>
-          )}
-          {tab === "program" && (
+          <Tabs.Content value="needed" tabIndex={-1}>
+            <ul>{needed.map((x) => row(x.code, x.why))}</ul>
+            {retakes.length > 0 && (
+              <>
+                <p className="px-5 pt-4 pb-1 text-caption font-semibold tracking-[0.04em] text-faint uppercase">{t("planner.retakes")}</p>
+                <p className="px-5 pb-1 text-caption text-faint">{t("planner.retakeSumma")}</p>
+                <ul>{retakes.map((r) => row(r.code, t("planner.why.grade", { grade: r.grade }), { from: r.grade, now: r.ipkNow, after: r.ipkWithA }))}</ul>
+              </>
+            )}
+          </Tabs.Content>
+          <Tabs.Content value="program" tabIndex={-1}>
             <ul>
               {programElectives(record)
                 .filter(matches)
                 .map((c) => row(c.code))}
             </ul>
-          )}
-          {tab === "minors" && (
+          </Tabs.Content>
+          <Tabs.Content value="minors" tabIndex={-1}>
             <ul>
               {rankedMinors(record, plan)
                 .filter((m) => !q || m.name.toLowerCase().includes(q) || m.program.toLowerCase().includes(q))
@@ -1326,19 +1320,20 @@ function AddCourse({
                   </li>
                 ))}
             </ul>
-          )}
-          {tab === "all" &&
-            (q.length < 2 ? (
+          </Tabs.Content>
+          <Tabs.Content value="all" tabIndex={-1}>
+            {q.length < 2 ? (
               <p className="px-5 py-6 text-center text-body text-muted">{t("planner.typeMore", { count: record.courses.size })}</p>
             ) : (
               <ul>
                 {found.map((c) => row(c.code))}
                 {found.length === 0 && <li className="px-5 py-6 text-center text-body text-muted">{t("planner.noMatch")}</li>}
               </ul>
-            ))}
+            )}
+          </Tabs.Content>
         </div>
         <p className="border-t border-line px-5 py-2 text-caption text-faint">{t("planner.catalogSource")}</p>
-      </div>
+      </Tabs.Root>
     </Dialog>
   );
 }
