@@ -227,8 +227,11 @@ export async function openPdf(bytes: Uint8Array): Promise<PdfDocument> {
             canvas,
             canvasContext: context,
             viewport,
-            // A form's fields are the viewer's own boxes over the page, not drawn into it.
+            // A form's fields are the viewer's own boxes over the page, not drawn into it. pdf.js still draws a check
+            // box's ticked and unticked looks, and a read-only field's text, unless they get canvases of their own,
+            // which pdf.js's own viewer would show and this one drops (with them, a push button that would do nothing).
             annotationMode: form ? lib.AnnotationMode.ENABLE_FORMS : lib.AnnotationMode.ENABLE,
+            annotationCanvasMap: form ? new Map() : undefined,
             transform: ratio === 1 ? undefined : [ratio, 0, 0, ratio, 0, 0],
           });
           return {
