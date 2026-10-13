@@ -1,0 +1,5 @@
+// Types for electron-builder.config.mjs, so the tests can read it.
+import type { Configuration } from "electron-builder";
+
+declare const config: Configuration;
+export default config;

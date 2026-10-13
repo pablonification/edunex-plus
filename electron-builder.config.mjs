@@ -41,7 +41,22 @@ export default {
     hardenedRuntime: false,
     notarize: false,
   },
-  dmg: { writeUpdateInfo: false },
+  // The disk image's window: the app on the left, a link to Applications on the right, on a
+  // background that says what to do (assets/dmg-background.svg; its pictures are made by
+  // scripts/make-dmg-background.mjs). The window takes the picture's size, 640×432 with
+  // Finder's title bar, so the picture's bottom 32 px never show.
+  dmg: {
+    // biome-ignore lint/suspicious/noTemplateCurlyInString: electron-builder fills in its own ${…} names
+    title: "${productName} ${version}",
+    icon: "assets/icon.icns",
+    background: "assets/dmg-background.png",
+    iconSize: 120,
+    contents: [
+      { x: 170, y: 190, type: "file" },
+      { x: 470, y: 190, type: "link", path: "/Applications" },
+    ],
+    writeUpdateInfo: false,
+  },
   win: {
     target: [{ target: "nsis", arch: ["x64", "arm64"] }],
     // Every size drawn on its own (scripts/make-icons.mjs), so the taskbar's and the title's small icons stay sharp.
