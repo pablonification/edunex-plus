@@ -72,6 +72,19 @@ describe("a licence's text, in paragraphs for the page", () => {
     expect(licenceParagraphs(cmaps)).toEqual(["Copyright 1990-2009 Example Systems Incorporated. All rights reserved."]);
   });
 
+  it("keeps a centred title on its own line, even straight after a full line of the licence before it", () => {
+    // pdf.js's PDFium licence: a BSD licence, then an Apache licence with no empty line between them.
+    const text = [
+      "// THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT",
+      "// OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.",
+      "                                 Apache License",
+      "                           Version 2.0, January 2004",
+    ].join("\n");
+    expect(licenceParagraphs(text)).toEqual([
+      "THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.\nApache License\nVersion 2.0, January 2004",
+    ]);
+  });
+
   it("leaves a paragraph that was never broken whole, and keeps the rule between two files' licences", () => {
     const long = `This agreement governs the use of the Software. ${"It goes on in one line. ".repeat(30).trim()}`;
     expect(licenceParagraphs(`${long}\n\n---\n\nlib/web/fetch/LICENSE:\n\nMIT License`)).toEqual([long, "---", "lib/web/fetch/LICENSE:", "MIT License"]);

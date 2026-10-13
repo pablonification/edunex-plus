@@ -32,15 +32,18 @@ const COMMENT = /^(?:\/\/ ?|%%Copyright: ?| \*(?: |$)|\/\*+\s*$|\s*\*+\/\s*$)/;
 /** A line that starts something of its own: a list item or clause ("* ", "1. ", "(a) "), or another copyright line. */
 const ITEM = /^\s*(?:[-*•]\s|\(?\d+[.)]\s|\([a-z]\)\s)/i;
 const COPYRIGHT = /^\s*(?:Copyright\b|\(c\)|©)/;
+/** How far a line is set in: a centred title (the next licence's "Apache License") is set in far more than the line before it. */
+const indent = (line: string) => line.length - line.trimStart().length;
 
 /**
  * A licence text as paragraphs for the page's narrow column. Licence files
  * break their lines at 60 to 80 characters, wider than the column, which
  * would break them again and leave one word on a line: within a paragraph,
  * a line that reaches near the paragraph's width runs on into the next, and
- * the column wraps it. A short line (a title, the end of a clause) and one
- * that starts something of its own keep their break. Comment marks in front
- * of the lines are left out. The words themselves never change.
+ * the column wraps it. A short line (a title, the end of a clause), one
+ * that starts something of its own, and one set far in from the line before
+ * it (a centred title) keep their break. Comment marks in front of the lines
+ * are left out. The words themselves never change.
  */
 export function licenceParagraphs(text: string): string[] {
   const paragraphs: string[][] = [[]];
@@ -57,7 +60,8 @@ export function licenceParagraphs(text: string): string[] {
       return lines
         .map((line, i) => {
           if (i === 0) return line.trim();
-          const runsOn = lines[i - 1].trim().length >= Math.max(45, width - 15) && !ITEM.test(line) && !COPYRIGHT.test(line);
+          const runsOn =
+            lines[i - 1].trim().length >= Math.max(45, width - 15) && indent(line) - indent(lines[i - 1]) < 8 && !ITEM.test(line) && !COPYRIGHT.test(line);
           return `${runsOn ? " " : "\n"}${line.trim()}`;
         })
         .join("");
