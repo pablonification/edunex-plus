@@ -7,9 +7,9 @@ import type { Bill } from "../../../core/models";
 import { useFormat, useNow, useT } from "../../i18n";
 import { useDataset } from "../../store";
 import { cx } from "../../ui/cx";
-import { Card, SectionTitle } from "../../ui/display";
+import { Card } from "../../ui/display";
 import { Icons } from "../../ui/icons";
-import { List, Meta, Notice } from "../../ui/layout";
+import { List, Meta, Notice, Section } from "../../ui/layout";
 import { useTermYears } from "./projection";
 import { SixNeeded } from "./six-needed";
 
@@ -81,6 +81,9 @@ export function Tab(_: { onCalendar?: () => void }) {
   // SIX lists a term's row only once the term is set up: until then it isn't billed either.
   const next = current && (bills.find((b) => b.term === nextTerm(current.term)) ?? notBilled(nextTerm(current.term)));
   const overdue = bills.filter((b) => billUrgency(b, now) === "overdue");
+  const allPaid = billed.length > 0 && billed.every((b) => b.status === "paid");
+  // The status column only where a row has a chip in it: all paid, the date ends the row instead of an empty strip.
+  const statusColumn = billed.some((b) => b.status !== "paid");
   return (
     <div className="@container space-y-8">
       {overdue.map((bill) => (
@@ -94,11 +97,17 @@ export function Tab(_: { onCalendar?: () => void }) {
           {next && <BillCard label={t("bills.nextTerm")} bill={next} />}
         </div>
       )}
-      <section>
-        <SectionTitle>{t("bills.history")}</SectionTitle>
+      {/* "Lunas" on every row would bury the one that isn't: a paid row stays quiet, and all paid is said once. */}
+      <Section id="bills-history" title={t("bills.history")} description={allPaid ? t("bills.allPaid") : undefined} className="mt-0">
         <List label={t("bills.history")}>
           {[...billed].reverse().map((bill) => (
-            <li key={bill.term} className="grid grid-cols-[minmax(0,1fr)_auto_110px_130px] items-center gap-4 px-4 py-3 text-body">
+            <li
+              key={bill.term}
+              className={cx(
+                "grid items-center gap-4 px-4 py-3 text-body",
+                statusColumn ? "grid-cols-[minmax(0,1fr)_auto_110px_130px]" : "grid-cols-[minmax(0,1fr)_auto_110px]",
+              )}
+            >
               <span className="font-medium">{termYears(bill.term)}</span>
               <span className="text-right tabular-nums">
                 {bill.amount !== null ? rupiah(bill.amount) : "—"}
@@ -109,9 +118,7 @@ export function Tab(_: { onCalendar?: () => void }) {
               <span className="text-right text-small text-muted tabular-nums">
                 {bill.dueDate ? `${f.dayMonth(dayMs(bill.dueDate))} ${bill.dueDate.slice(0, 4)}` : "—"}
               </span>
-              <span className="text-right">
-                <StatusChip bill={bill} />
-              </span>
+              {statusColumn && <span className="text-right">{bill.status !== "paid" && <StatusChip bill={bill} />}</span>}
             </li>
           ))}
         </List>
@@ -121,7 +128,7 @@ export function Tab(_: { onCalendar?: () => void }) {
             {t("bills.viewOnly")}
           </Meta>
         </p>
-      </section>
+      </Section>
     </div>
   );
 }
@@ -159,7 +166,7 @@ function BillCard({ label, bill }: { label: string; bill: Bill }) {
       </Meta>
       {billedNow ? (
         <>
-          <p className="mt-1 text-[24px] leading-8 font-semibold tabular-nums">{bill.amount !== null ? rupiah(bill.amount) : "—"}</p>
+          <p className="mt-1 text-figure font-semibold tabular-nums">{bill.amount !== null ? rupiah(bill.amount) : "—"}</p>
           <div className="mt-1.5 flex flex-wrap items-center gap-2">
             <StatusChip bill={bill} />
             {bill.status === "partly-paid" && bill.paid !== null && (

@@ -6,7 +6,7 @@
 // term's grades as a clearly marked what-if with the one shared target; and
 // the transcript by term. Without SIX, this term's courses from Edunex with
 // their calculators, and what signing in to SIX unlocks.
-import { useState } from "react";
+import { useId, useState } from "react";
 import type { CalendarEvent, CheckedIndex, TranscriptTerm } from "../../core/models";
 import { checkPlan, expectedGrade, hasWhatIfs, project, type StudentRecord, sksModel, targetOf } from "../../core/planner";
 import { useTermCourses } from "../courses";
@@ -17,10 +17,11 @@ import { useDataset } from "../store";
 import { type PlanState, usePlan, useStudentRecord } from "../study-plan";
 import { Button } from "../ui/controls";
 import { cx } from "../ui/cx";
-import { Card, CourseCode } from "../ui/display";
+import { Card, CourseCode, Tag } from "../ui/display";
 import { Icons } from "../ui/icons";
 import { List, Meta, Notice, Page, PageHeader, Row, Section, Stat, StatRow } from "../ui/layout";
 import { AnimatedNumber } from "../ui/motion/animated-number";
+import { DisclosurePanel, disclosureTrigger } from "../ui/motion/disclosure";
 import { GradeBadge, GradeSelect, HonorsSentence, IpkChart, NeedText, predicateFor, TargetControl, usePredicate, useTermName } from "./plan/projection";
 import { SixNeeded } from "./plan/six-needed";
 
@@ -202,10 +203,11 @@ function ThisTerm({ record, state }: { record: StudentRecord; state: PlanState }
                   }
                   trailing={
                     <span className="flex items-center gap-2">
+                      {/* Quiet: one per course, so a column of blue links doesn't outshout the grades beside it. */}
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="text-accent-fg"
+                        className="text-muted hover:text-fg"
                         aria-label={`${t("grades.whatNeed")} ${course.code}`}
                         onClick={() => nav.go({ screen: "course", code: course.code, tab: "grades" })}
                       >
@@ -329,13 +331,14 @@ function TermRow({ record, term, open, onToggle }: { record: StudentRecord; term
   const ip = shownIndex(term.ip);
   const num = (value: number | null) => (value === null ? "—" : f.number(value, 2));
   const now = term.term === record.term && ip === null;
+  const id = useId();
   return (
     <li>
       <button
         type="button"
         onClick={onToggle}
-        aria-expanded={open}
-        className="focus-ring flex w-full items-center gap-3 px-4 py-3 text-left transition-colors duration-150 hover:bg-hover"
+        {...disclosureTrigger(open, id)}
+        className="focus-ring flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-hover"
       >
         <Icons.ChevronRight className={cx("size-4 text-faint transition-transform duration-150", open && "rotate-90")} />
         <span className="flex-1 text-body font-medium">{termName(term.term)}</span>
@@ -350,7 +353,7 @@ function TermRow({ record, term, open, onToggle }: { record: StudentRecord; term
           {now ? t("grades.inProgress") : `IP ${num(ip)}`}
         </span>
       </button>
-      {open && (
+      <DisclosurePanel open={open} id={id}>
         <ul className="border-t border-line bg-sunken px-4 py-2">
           {term.courses.map((course) => (
             <li key={`${course.code}-${course.attempt}`} className="grid grid-cols-[84px_minmax(0,1fr)_auto_56px_40px] items-center gap-3 py-1.5 text-body">
@@ -369,21 +372,8 @@ function TermRow({ record, term, open, onToggle }: { record: StudentRecord; term
             </li>
           ))}
         </ul>
-      )}
+      </DisclosurePanel>
     </li>
-  );
-}
-
-function Tag({ tone = "neutral", children }: { tone?: "neutral" | "warning"; children: string }) {
-  return (
-    <span
-      className={cx(
-        "inline-flex h-[18px] items-center rounded-[5px] px-1.5 text-micro font-semibold whitespace-nowrap",
-        tone === "warning" ? "bg-warning-bg text-warning-fg" : "bg-neutral-bg text-neutral-fg",
-      )}
-    >
-      {children}
-    </span>
   );
 }
 
@@ -416,7 +406,7 @@ function WithoutSix() {
                   meta={
                     grade ? t("grades.edunexGrade", { total: f.number(grade.total, 1), letter: grade.letter }) : anyGrade ? t("grades.edunexNone") : undefined
                   }
-                  trailing={<span className="text-small font-medium text-accent-fg">{t("grades.whatNeed")}</span>}
+                  trailing={<span className="text-small font-medium text-muted">{t("grades.whatNeed")}</span>}
                   onClick={() => nav.go({ screen: "course", code: course.code, tab: "grades" })}
                 />
               );

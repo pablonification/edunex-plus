@@ -97,6 +97,12 @@ describe("the study planner", () => {
     expect(summary()).toContain("LulusSemester 81 hal perlu dicek");
     expect(summary()).toContain("IPK saat lulus3,30Sangat memuaskan");
     expect(s.text()).not.toContain("Tanpa predikat pujian");
+    // Semesters 1–6 fold under one line, and open into the panel the button names.
+    const past = s.button(/^Semester 1–6/);
+    expect(past.getAttribute("aria-expanded")).toBe("false");
+    await s.click(past);
+    expect(past.getAttribute("aria-expanded")).toBe("true");
+    expect(document.getElementById(past.getAttribute("aria-controls")!)?.textContent).toContain("Semester 6 · 2025/2026 GenapIP 3,27 · 22 SKS");
     expect(block(/^Semester 7 · sekarang/)?.textContent).toContain("14 SKSIP 3,50IPK jadi 3,29");
     const next = block(/^Semester 8 · 2026\/2027 Genap/)!;
     expect(next.textContent).toContain("12 / 24 SKSIP 3,50IPK jadi 3,30");
@@ -104,11 +110,13 @@ describe("the study planner", () => {
       // The Kerja Praktik risk sits on its own row, not only in the rules.
       "II4090Kerja PraktikBiasanya di semester ganjilWajib · smt 72",
       "II4092Tugas AkhirWajib · smt 84",
-      "II4010Manajemen DataSpesialisasi3",
-      "II4011Transformasi DigitalSpesialisasi3",
+      // Only "Wajib" is tagged: electives and specialization courses are most rows, and the rules count them.
+      "II4010Manajemen Data3",
+      "II4011Transformasi Digital3",
     ]);
+    // A warning that can be hidden says "Sembunyikan" in words, not with a bare crossed-out eye.
     expect(rule("parity")).toEqual([
-      "warn: Perlu dicekII4090 Kerja PraktikKurikulum menaruhnya di semester 7 (ganjil). Pastikan dibuka di semester genap, atau rencanakan di semester pendek.",
+      "warn: Perlu dicekII4090 Kerja PraktikKurikulum menaruhnya di semester 7 (ganjil). Pastikan dibuka di semester genap, atau rencanakan di semester pendek.Sembunyikan",
     ]);
     expect(rule("total")[0]).toContain("ok: Terpenuhi144 SKS terpenuhi (+7 cadangan)");
     // The 45 required courses less the 3 SIX doesn't ask of this Student: the same count Kurikulum shows.
@@ -128,7 +136,7 @@ describe("the study planner", () => {
       await s.click(`Tambah ${code}`);
     }
     expect(block(/^Semester 8/)!.textContent).toContain("21 / 24 SKS");
-    expect(rule("load")).toEqual(["warn: Perlu dicekSemester 8 · 2026/2027 Genap21 SKS: di atas 20 perlu persetujuan dosen wali."]);
+    expect(rule("load")).toEqual(["warn: Perlu dicekSemester 8 · 2026/2027 Genap21 SKS: di atas 20 perlu persetujuan dosen wali.Sembunyikan"]);
     expect(saved()?.terms[0].courses.map((c) => c.code)).toEqual(["II4090", "II4092", "II4010", "II4011", "II4021", "II4022", "II4023"]);
     expect(s.calls.some((c) => c.name === "local.set")).toBe(true);
     // Never a KRS: the only thing written is the plan on this computer.
@@ -199,7 +207,7 @@ describe("the study planner", () => {
     await s.click(addIn(/^Semester 9/));
     await search("II4024");
     await s.click("Tambah II4024");
-    expect(rule("finish")).toEqual(["warn: Perlu dicekLulus di semester 9Lewat 8 semester; predikat pujian masih mungkin (maks. 9)."]);
+    expect(rule("finish")).toEqual(["warn: Perlu dicekLulus di semester 9Lewat 8 semester; predikat pujian masih mungkin (maks. 9).Sembunyikan"]);
     await act(async () => {
       const select = document.querySelector<HTMLSelectElement>("select[aria-label='Perkiraan nilai II4092']")!;
       select.value = "A";
@@ -214,7 +222,7 @@ describe("the study planner", () => {
     await s.click(addIn(/^Semester 8/));
     const dialog = document.querySelector("[role=dialog]")!.textContent!;
     expect(dialog).toContain("Ulang untuk menaikkan IPK");
-    expect(dialog).toContain("Internet of Things3 SKS · Sistem dan Teknologi Informasi · Nilaimu: C · IPK 3,26 → 3,31 dengan A");
+    expect(dialog).toContain("Internet of Things3 SKS · Nilaimu: C · IPK 3,26 → 3,31 dengan A");
     // Fisika Dasar IIA was 4 SKS (BC) in the old curriculum; taken again it is today's 3-SKS course: (408 − 10 + 12) / 124.
     expect(dialog).toContain("Fisika Dasar IIA3 SKS · Nilaimu: BC · IPK 3,26 → 3,31 dengan A");
     await s.click("Ulang II2260");
@@ -245,7 +253,7 @@ describe("the study planner", () => {
     expect(dialog()).toContain("DK4073Komunikasi Pemasaran3 SKSSemester ini");
     expect(dialog()).toContain("Daftar minornya tetap di SIX");
     await s.click("Rencanakan minor ini");
-    expect(rule("minor")).toEqual(["warn: Perlu dicekMinor Branding Berbasis Digital3 dari 12 SKS dari daftarnya."]);
+    expect(rule("minor")).toEqual(["warn: Perlu dicekMinor Branding Berbasis Digital3 dari 12 SKS dari daftarnya.Sembunyikan"]);
     expect(saved()?.minor).toBe("Desain Komunikasi Visual · Branding Berbasis Digital");
     expect(toastText()).toContain("Minor Branding Berbasis Digital direncanakanUrungkan");
     // A course from the panel goes to the first semester it fits in.
@@ -340,7 +348,8 @@ describe("the study planner", () => {
     await s.click("Sembunyikan peringatan: Sistem Informasi Cerdas");
     await s.click(/^Aku tidak melanjutkan spesialisasi ini/);
     expect(rule("specialization")).toEqual([]);
-    expect(block(/^Semester 8/)!.textContent).toContain("II4010Manajemen DataPilihan prodi3");
+    // II4010 stays planned, untagged; it's no longer asked for as the specialization's.
+    expect(block(/^Semester 8/)!.textContent).toContain("II4010Manajemen Data3");
     await s.click(addIn(/^Semester 8/));
     expect(document.querySelector("[role=dialog]")!.textContent).not.toContain("Menuntaskan Sistem Informasi Cerdas");
     // Planned anyway: the warning goes, the choice stays, and can still be taken back.
@@ -457,15 +466,22 @@ describe("the curriculum map", () => {
     expect(s.text()).toContain(
       "Total kurikulum144 SKSwajib 117 · pilihan 27Wajib tersisa2 mata kuliah · 6 SKSsemua sudah direncanakanPilihan27 dari 27 SKS+1019 lulus · 12 semester ini · 6 direncanakan",
     );
+    // Three side by side are narrow: a hint wraps between its facts, never between "6" and "direncanakan".
+    const facts = (label: string) =>
+      [...([...document.querySelectorAll("main dt")].find((dt) => dt.textContent === label)?.parentElement?.querySelectorAll("[data-fact]") ?? [])].map(
+        (fact) => fact.textContent?.replace(" · ", "").trim(),
+      );
+    expect(facts("Total kurikulum")).toEqual(["wajib 117", "pilihan 27"]);
+    expect(facts("Pilihan")).toEqual(["19 lulus", "12 semester ini", "6 direncanakan"]);
   });
 
   it("opens on everything; 'What's left only' hides what's done and keeps a summary in view", async () => {
     const s = await openPlan();
     await tab("Kurikulum");
     expect(s.text()).toContain("Sisa: 2 wajib (6 SKS) · pilihan terpenuhi");
-    expect(row("MA1101")).toBe("MA1101Matematika ILulus · AB4");
-    expect(row("KI1101")).toBe("KI1101Kimia Dasar Ilewat KI1002 Kimia Dasar BLulus · A3");
-    expect(row("WI2003")).toBe("WI2003Olah Ragalewat KU1001 Olah RagaLulus · BC1");
+    expect(row("MA1101")).toBe("MA1101Matematika ILulus AB4");
+    expect(row("KI1101")).toBe("KI1101Kimia Dasar Ilewat KI1002 Kimia Dasar BLulus A3");
+    expect(row("WI2003")).toBe("WI2003Olah Ragalewat KU1001 Olah RagaLulus BC1");
     expect(row("II4091")).toBe("II4091Proposal Tugas AkhirSemester ini2");
     expect(row("II4090")).toBe("II4090Kerja PraktikDirencanakan2");
     expect(s.text()).toContain("Mata kuliah lain yang ikut dihitung");
@@ -477,7 +493,7 @@ describe("the curriculum map", () => {
   it("Tata Tulis Karya Ilmiah counts as Bahasa Indonesia; courses SIX doesn't ask of the Student are said quietly, not counted as left", async () => {
     const s = await openPlan();
     await tab("Kurikulum");
-    expect(row("WI2005")).toBe("WI2005Bahasa Indonesialewat KU1011 Tata Tulis Karya IlmiahLulus · AB2");
+    expect(row("WI2005")).toBe("WI2005Bahasa Indonesialewat KU1011 Tata Tulis Karya IlmiahLulus AB2");
     expect(row("KU1011")).toBeUndefined();
     expect(row("WI1111")).toBe("WI1111Laboratorium Fisika DasarTidak ada di catatan SIX-mu1");
     expect(s.text()).toContain(
@@ -510,7 +526,7 @@ describe("the curriculum map", () => {
     expect(dialog).toContain("Yang dihitung sebagai WI1111 Laboratorium Fisika Dasar");
     expect(dialog).toMatch(/SIX menaruhnya di semester 1II1101Komputasi dan MasyarakatA · 2 SKS/);
     await s.click(/^FI1201Fisika Dasar IIA/);
-    expect(row("WI1111")).toBe("WI1111Laboratorium Fisika Dasarlewat FI1201 Fisika Dasar IIA · Dikoreksi olehmuLulus · BC1");
+    expect(row("WI1111")).toBe("WI1111Laboratorium Fisika Dasarlewat FI1201 Fisika Dasar IIA · Dikoreksi olehmuLulus BC1");
     expect(row("FI1201")).toBeUndefined();
     expect(toastText()).toContain("FI1201 sekarang dihitung sebagai WI1111");
 
@@ -552,7 +568,7 @@ describe("the curriculum map", () => {
     const s = await openPlan();
     await s.engineDoes(() => s.engine.setLocal("local.curriculum", { slots: { WI2002: { kind: "counted-as", code: "KU1102", at: 1 } } }));
     await tab("Kurikulum");
-    expect(row("WI2002")).toBe("WI2002Literasi Data dan Inteligensi Artifisiallewat KU1102 Pengenalan Komputasi · Dikoreksi olehmuLulus · AB2");
+    expect(row("WI2002")).toBe("WI2002Literasi Data dan Inteligensi Artifisiallewat KU1102 Pengenalan Komputasi · Dikoreksi olehmuLulus AB2");
   });
 
   it("opens a course's syllabus on SIX's public pages", async () => {

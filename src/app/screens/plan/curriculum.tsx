@@ -16,12 +16,12 @@ import { useT } from "../../i18n";
 import { useCurriculumFix, usePlan, useStudentRecord } from "../../study-plan";
 import { IconButton, Switch } from "../../ui/controls";
 import { cx } from "../../ui/cx";
-import { Bar, Card, SectionTitle } from "../../ui/display";
+import { Bar, Card } from "../../ui/display";
 import { Icons } from "../../ui/icons";
-import { Meta } from "../../ui/layout";
+import { Meta, Section } from "../../ui/layout";
 import { Menu, type MenuItem } from "../../ui/menu";
 import { Dialog, Tooltip, toast } from "../../ui/overlays";
-import { Tag } from "./planner";
+import { WhatIfTag } from "./planner";
 import { SixNeeded } from "./six-needed";
 
 export const ready = true;
@@ -190,8 +190,10 @@ export function Tab({ onCalendar }: { onCalendar?: () => void }) {
           {onlyLeft && hidden > 0 && semesters.length > 0 && <p className="text-caption text-faint">{t("curriculum.hiddenDone", { count: hidden })}</p>}
         </div>
         <aside className="space-y-6">
-          {map.specializations.length > 0 && <Packages title={t("curriculum.specializations")} packages={map.specializations} />}
-          {map.minors.length > 0 && <Packages title={t("curriculum.minors")} packages={map.minors} />}
+          {map.specializations.length > 0 && (
+            <Packages id="curriculum-specializations" title={t("curriculum.specializations")} packages={map.specializations} />
+          )}
+          {map.minors.length > 0 && <Packages id="curriculum-minors" title={t("curriculum.minors")} packages={map.minors} />}
         </aside>
       </div>
       {picking && (
@@ -231,7 +233,12 @@ function Totals({
     <div className="min-w-0">
       <dt className="text-caption font-medium text-muted">{label}</dt>
       <dd className="mt-0.5 text-title font-semibold tabular-nums">{value}</dd>
-      {hint && <dd className="text-caption text-muted tabular-nums">{hint}</dd>}
+      {hint && (
+        // Fact by fact, so a narrow column wraps between "12 semester ini" and "6 direncanakan", never inside one.
+        <dd className="text-caption text-muted tabular-nums">
+          <Meta>{hint}</Meta>
+        </dd>
+      )}
     </div>
   );
   const e = sks.electives;
@@ -251,7 +258,7 @@ function Totals({
           {t("curriculum.withWhatIfs")}
         </p>
       )}
-      <dl className="mt-3 grid grid-cols-1 gap-x-8 gap-y-3 @2xl:grid-cols-3">
+      <dl className="mt-3 grid grid-cols-1 gap-x-8 gap-y-3 @xl:grid-cols-3">
         {figure(
           t("curriculum.total"),
           t("curriculum.sks", { sks: sks.need }),
@@ -298,7 +305,7 @@ function LeftBar({
     sks.electiveNeed === null ? null : sks.electives.short ? t("curriculum.left.electives", { sks: sks.electives.short }) : t("curriculum.left.electivesNone"),
   ].filter((part): part is string => part !== null);
   return (
-    <div className="sticky top-0 z-10 -mx-1 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-xl bg-canvas/90 px-1 py-2 backdrop-blur-sm">
+    <div className="sticky top-0 z-10 -mx-1 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-xl bg-canvas px-1 py-2">
       <p className="flex min-w-0 items-start gap-1.5 text-small text-muted" role="status">
         <span className="shrink-0 font-semibold text-fg">{t("curriculum.left")}:</span> <Meta>{parts}</Meta>
       </p>
@@ -316,15 +323,27 @@ function Status({ status, grade }: { status: SlotStatus; grade: string | null })
   const label = t(`curriculum.status.${status}`);
   switch (status) {
     case "passed":
+      // Most rows: the check and the grade say it, so the rows that need the Student stand out. The word stays for screen readers.
+      if (grade)
+        return (
+          <span className="inline-flex items-center gap-1 text-small whitespace-nowrap">
+            <Icons.Check className="size-3.5 text-success-fg" weight="bold" />
+            <span className="sr-only">{label} </span>
+            <span className="font-semibold text-fg tabular-nums">{grade}</span>
+          </span>
+        );
+      return (
+        <span className="inline-flex items-center gap-1 text-small text-muted whitespace-nowrap">
+          <Icons.Check className="size-3.5 text-success-fg" weight="bold" />
+          {label}
+        </span>
+      );
     case "exempt":
     case "done":
       return (
         <span className="inline-flex items-center gap-1 text-small text-muted whitespace-nowrap">
           <Icons.Check className="size-3.5 text-success-fg" weight="bold" />
-          <Meta>
-            {label}
-            {grade && status === "passed" ? <span className="font-semibold text-fg tabular-nums">{grade}</span> : null}
-          </Meta>
+          {label}
         </span>
       );
     case "failed":
@@ -394,7 +413,7 @@ function CourseRow({ course, menu, ref }: { course: MapCourse; menu?: MenuItem[]
       </span>
       {course.whatIf === "added" ? (
         // Tried this semester, not on SIX's KRS: never "This semester" as if it were.
-        <Tag tone="what-if">{t("planner.whatIfTag")}</Tag>
+        <WhatIfTag />
       ) : course.whatIf === "left-out" ? (
         <span className="text-small whitespace-nowrap text-info-fg">{t("planner.droppedTag")}</span>
       ) : (
@@ -446,7 +465,7 @@ function PickStandIn({ record, course, onPick, onClose }: { record: StudentRecor
               <button
                 type="button"
                 onClick={() => onPick(c.code)}
-                className="focus-ring grid w-full grid-cols-[64px_minmax(0,1fr)_auto] items-center gap-3 rounded-lg px-1 py-2 text-left transition-colors duration-150 hover:bg-hover"
+                className="focus-ring grid w-full grid-cols-[64px_minmax(0,1fr)_auto] items-center gap-3 rounded-lg px-1 py-2 text-left hover:bg-hover"
               >
                 <span className="text-small font-semibold tabular-nums">{c.code}</span>
                 <span className="min-w-0">
@@ -473,11 +492,10 @@ function PickStandIn({ record, course, onPick, onClose }: { record: StudentRecor
   );
 }
 
-function Packages({ title, packages }: { title: string; packages: PackageProgress[] }) {
+function Packages({ id, title, packages }: { id: string; title: string; packages: PackageProgress[] }) {
   const t = useT();
   return (
-    <section>
-      <SectionTitle>{title}</SectionTitle>
+    <Section id={id} title={title} className="mt-0">
       <div className="space-y-3">
         {packages.map((p) => (
           <Card key={`${p.program ?? ""}${p.name}`} className="px-4 py-3">
@@ -500,7 +518,7 @@ function Packages({ title, packages }: { title: string; packages: PackageProgres
             <Bar
               className="mt-2"
               value={p.sks ? p.have / p.sks : 0}
-              color="var(--live)"
+              color="var(--meter-success)"
               label={`${p.name}: ${t("curriculum.packageSks", { have: p.have, need: p.sks })}`}
             />
             <ul className="mt-2 space-y-1">
@@ -522,7 +540,7 @@ function Packages({ title, packages }: { title: string; packages: PackageProgres
           </Card>
         ))}
       </div>
-    </section>
+    </Section>
   );
 }
 

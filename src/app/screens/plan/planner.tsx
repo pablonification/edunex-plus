@@ -10,7 +10,7 @@
 // (a course added or left out, only in the plan), warnings can be hidden with
 // a reason, and a minor can be planned with its courses in view.
 import * as Tabs from "@radix-ui/react-tabs";
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useId, useRef, useState } from "react";
 import { nearestLetter } from "../../../core/honors";
 import type { LetterGrade, PlannedCourse, StudyPlan } from "../../../core/models";
 import {
@@ -70,11 +70,13 @@ import { useFormat, useLang, useT } from "../../i18n";
 import { type PlanState, usePlan, useStudentRecord } from "../../study-plan";
 import { Button, IconButton } from "../../ui/controls";
 import { cx } from "../../ui/cx";
-import { Card } from "../../ui/display";
+import { Card, Tag } from "../../ui/display";
 import { Icons } from "../../ui/icons";
 import { Meta } from "../../ui/layout";
 import { Menu } from "../../ui/menu";
 import { AnimatedNumber } from "../../ui/motion/animated-number";
+import { DisclosurePanel, disclosureTrigger } from "../../ui/motion/disclosure";
+import { PresenceItem, PresenceList } from "../../ui/motion/presence-list";
 import { ConfirmDialog, Dialog, dismissToast, Tooltip, toast } from "../../ui/overlays";
 import { TabBar } from "../../ui/tabs";
 import { GradeSelect, HonorsList, IpkChart, NeedText, predicateFor, TargetControl, usePredicate, useTermLabel } from "./projection";
@@ -242,7 +244,7 @@ function Planner({ real, record, state }: { real: StudentRecord; record: Student
                     code={course.code}
                     name={course.name}
                     sks={course.sks}
-                    tag={mine ? <Tag tone="what-if">{t("planner.whatIfTag")}</Tag> : <RoleTag record={record} code={course.code} minor={minor} spec={spec} />}
+                    tag={mine ? <WhatIfTag /> : <RoleTag record={record} code={course.code} minor={minor} spec={spec} />}
                     flag={mine ? flags.get(`${term}|${course.code}`) : undefined}
                     grade={course.grade ?? expectedGrade(record, plan, course.code)}
                     guess={plan.expected[course.code] === undefined}
@@ -499,6 +501,7 @@ function Past({ record, steps }: { record: StudentRecord; steps: ProjectedStep[]
   const f = useFormat();
   const termLabel = useTermLabel();
   const [open, setOpen] = useState(false);
+  const id = useId();
   if (!steps.length) return null;
   const ipk = record.transcript ? (record.transcript.ipk.six ?? record.transcript.ipk.computed) : null;
   const last = steps.at(-1)?.semester ?? steps.length;
@@ -507,8 +510,8 @@ function Past({ record, steps }: { record: StudentRecord; steps: ProjectedStep[]
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        aria-expanded={open}
-        className="focus-ring flex w-full items-center gap-3 px-4 py-3 text-left transition-colors duration-150 hover:bg-hover"
+        {...disclosureTrigger(open, id)}
+        className="focus-ring flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-hover"
       >
         <Icons.ChevronRight className={cx("size-4 text-faint transition-transform duration-150", open && "rotate-90")} />
         <Meta className="flex-1 text-body font-semibold">
@@ -516,7 +519,7 @@ function Past({ record, steps }: { record: StudentRecord; steps: ProjectedStep[]
           <span className="font-normal text-muted">{t("planner.pastMeta", { sks: record.passedSks, ipk: ipk === null ? "—" : f.number(ipk, 2) })}</span>
         </Meta>
       </button>
-      {open && (
+      <DisclosurePanel open={open} id={id}>
         <ul className="grid grid-cols-2 gap-2 border-t border-line bg-sunken px-4 py-3 @2xl:grid-cols-3">
           {steps.map((s) => (
             <li key={s.term} className="text-small">
@@ -528,7 +531,7 @@ function Past({ record, steps }: { record: StudentRecord; steps: ProjectedStep[]
             </li>
           ))}
         </ul>
-      )}
+      </DisclosurePanel>
     </Card>
   );
 }
@@ -606,7 +609,7 @@ function TermBlock({
             type="button"
             onClick={onAdd}
             data-focus={addKey}
-            className="focus-ring flex w-full items-center gap-2 border-t border-line px-4 py-2.5 text-left text-small font-semibold text-accent-fg transition-colors duration-150 hover:bg-hover"
+            className="focus-ring flex w-full items-center gap-2 border-t border-line px-4 py-2.5 text-left text-small font-semibold text-accent-fg hover:bg-hover"
           >
             <Icons.Plus className="size-3.5" />
             {addLabel ?? t("planner.addCourse")}
@@ -617,29 +620,23 @@ function TermBlock({
   );
 }
 
-/** A course's type: neutral, except "Wajib", the one that matters for graduating, and a what-if, dashed because it isn't real. */
-export function Tag({ tone = "neutral", children }: { tone?: "neutral" | "required" | "what-if"; children: ReactNode }) {
+/** "Hanya di rencana": a course tried in the plan, dashed because it isn't real. */
+export function WhatIfTag() {
+  const t = useT();
   return (
-    <span
-      className={cx(
-        "inline-flex h-[20px] items-center rounded-[5px] px-1.5 text-micro font-semibold whitespace-nowrap",
-        tone === "required"
-          ? "bg-info-bg text-info-fg"
-          : tone === "what-if"
-            ? "border border-dashed border-info-fg/60 text-info-fg"
-            : "border border-edge text-muted",
-      )}
-    >
-      {children}
-    </span>
+    <Tag tone="info" className="border border-dashed border-info-fg/60 bg-transparent">
+      {t("planner.whatIfTag")}
+    </Tag>
   );
 }
 
+/** Only "Wajib" earns a tag: the other kinds (electives, specialization, minor) are most rows, and the rules already count them. */
 function RoleTag({ record, code, minor, spec }: { record: StudentRecord; code: string; minor: MinorOption | null; spec: StudentRecord["specialization"] }) {
   const t = useT();
-  const role = courseRole(record, code, minor, spec);
+  // An empty cell keeps the row's columns.
+  if (courseRole(record, code, minor, spec) !== "required") return <span />;
   const semester = record.required.get(code)?.semester ?? record.requiredLeft.find((c) => c.code === code)?.semester;
-  return role === "required" ? <Tag tone="required">{t("planner.role.required", { n: semester ?? "—" })}</Tag> : <Tag>{t(`planner.role.${role}`)}</Tag>;
+  return <Tag tone="info">{t("planner.role.required", { n: semester ?? "—" })}</Tag>;
 }
 
 const ruleAnchor = (rule: Rule) => `rule-${rule.id}${"code" in rule ? `-${rule.code}` : ""}${"term" in rule ? `-${rule.term}` : ""}`;
@@ -863,48 +860,58 @@ function Rules({ record, rules, plan, undoable }: { record: StudentRecord; rules
         {t("planner.rules")}
       </h3>
       <ul className="space-y-1 px-2 pt-2 pb-3" aria-label={t("planner.rules")}>
-        {rules
-          .filter((rule) => !isHidden(rule, plan))
-          .map((rule) => {
-            const { title, detail } = text(rule);
-            const mark = LEVEL_MARK[rule.level];
-            const key = ruleKey(rule);
-            return (
-              <li
-                key={ruleAnchor(rule)}
-                id={ruleAnchor(rule)}
-                className="flex scroll-m-24 items-start gap-2.5 rounded-lg px-2 py-1.5 transition-colors duration-500"
-                data-rule={rule.id}
-                data-level={rule.level}
-              >
-                <span className={cx("mt-0.5 grid size-[18px] shrink-0 place-items-center rounded-full", mark.tone)} title={t(mark.label)}>
-                  {rule.level === "ok" ? <Icons.Check className="size-3" weight="bold" /> : <span className="text-micro font-bold">!</span>}
-                  <span className="sr-only">{t(mark.label)}</span>
-                </span>
-                <span className="min-w-0 flex-1 text-small">
-                  <span className="block font-semibold">{title}</span>
-                  <span className="text-muted">{detail}</span>
-                </span>
-                {key && (
-                  <span className="-mt-0.5 -mr-1 shrink-0" data-focus={`hide-${key}`}>
-                    <Menu
-                      trigger={{ icon: <Icons.EyeOff className="size-3.5" /> }}
-                      label={t("planner.hideRule", { title })}
-                      items={hideReasons(rule).map((reason) => ({
-                        label: t(`planner.hideReason.${reason}`),
-                        hint: reason === "not-continuing" ? t("planner.hideReason.not-continuingHint") : undefined,
-                        onSelect: () => {
-                          undoable((p) => hideRule(p, key, reason, Date.now()), t("planner.hiddenDone", { title }));
-                          // Its row goes: focus lands on the list it went to.
-                          focusNext("hidden-toggle");
-                        },
-                      }))}
-                    />
-                  </span>
-                )}
-              </li>
-            );
-          })}
+        {/* A warning the Student hides fades out, then the ones below close the gap. */}
+        <PresenceList>
+          {rules
+            .filter((rule) => !isHidden(rule, plan))
+            .map((rule) => {
+              const { title, detail } = text(rule);
+              const mark = LEVEL_MARK[rule.level];
+              const key = ruleKey(rule);
+              return (
+                <PresenceItem key={ruleAnchor(rule)}>
+                  <div
+                    id={ruleAnchor(rule)}
+                    className="flex scroll-m-24 items-start gap-2.5 rounded-lg px-2 py-1.5 transition-colors duration-500"
+                    data-rule={rule.id}
+                    data-level={rule.level}
+                  >
+                    <span className={cx("mt-0.5 grid size-[18px] shrink-0 place-items-center rounded-full", mark.tone)} title={t(mark.label)}>
+                      {rule.level === "ok" ? <Icons.Check className="size-3" weight="bold" /> : <span className="text-micro font-bold">!</span>}
+                      <span className="sr-only">{t(mark.label)}</span>
+                    </span>
+                    <span className="min-w-0 flex-1 text-small">
+                      <span className="block font-semibold">{title}</span>
+                      <span className="text-muted">{detail}</span>
+                      {/* Under the words, so a narrow column keeps the warning readable. */}
+                      {key && (
+                        <span className="-ml-2.5 block" data-focus={`hide-${key}`}>
+                          <Menu
+                            trigger={{
+                              icon: <Icons.EyeOff className="size-3.5" />,
+                              words: true,
+                              text: t("planner.hide"),
+                              className: "text-muted hover:text-fg",
+                            }}
+                            label={t("planner.hideRule", { title })}
+                            items={hideReasons(rule).map((reason) => ({
+                              label: t(`planner.hideReason.${reason}`),
+                              hint: reason === "not-continuing" ? t("planner.hideReason.not-continuingHint") : undefined,
+                              onSelect: () => {
+                                undoable((p) => hideRule(p, key, reason, Date.now()), t("planner.hiddenDone", { title }));
+                                // Its row goes: focus lands on the list it went to.
+                                focusNext("hidden-toggle");
+                              },
+                            }))}
+                          />
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                </PresenceItem>
+              );
+            })}
+        </PresenceList>
       </ul>
       {hidden.length > 0 && (
         <div className="border-t border-line px-4 py-2">
@@ -1003,7 +1010,7 @@ function Minors({ record, state, undoable }: { record: StudentRecord; state: Pla
                 type="button"
                 aria-haspopup="dialog"
                 onClick={() => setOpen(m.key)}
-                className="focus-ring group flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left transition-colors duration-150 hover:bg-hover"
+                className="focus-ring group flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left hover:bg-hover"
               >
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-small font-semibold">{m.name}</span>
@@ -1204,7 +1211,8 @@ function AddCourse({
           ? "planned"
           : null
       : courseState(record, plan, code);
-    const owner = info.owner ? (record.programNames.get(info.owner) ?? null) : null;
+    // The Student's own program goes without saying.
+    const owner = info.owner && info.owner !== record.program?.code ? (record.programNames.get(info.owner) ?? null) : null;
     return (
       <li key={code} className="flex items-center gap-3 border-b border-line px-5 py-2.5 last:border-b-0">
         <span className="w-[64px] shrink-0 text-small font-semibold tabular-nums">{code}</span>
@@ -1265,7 +1273,7 @@ function AddCourse({
             <ul>{needed.map((x) => row(x.code, x.why))}</ul>
             {retakes.length > 0 && (
               <>
-                <p className="px-5 pt-4 pb-1 text-caption font-semibold tracking-[0.04em] text-faint uppercase">{t("planner.retakes")}</p>
+                <p className="px-5 pt-4 pb-1 text-small font-semibold text-muted">{t("planner.retakes")}</p>
                 <p className="px-5 pb-1 text-caption text-faint">{t("planner.retakeSumma")}</p>
                 <ul>{retakes.map((r) => row(r.code, t("planner.why.grade", { grade: r.grade }), { from: r.grade, now: r.ipkNow, after: r.ipkWithA }))}</ul>
               </>

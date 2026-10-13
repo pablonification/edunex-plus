@@ -207,6 +207,8 @@ describe("Nilai", () => {
     });
     const row = termRow(/^Smt 6 · 2025\/2026 Genap/);
     expect(row.getAttribute("aria-expanded")).toBe("true");
+    // The row says which panel it opens.
+    expect(document.getElementById(row.getAttribute("aria-controls")!)?.textContent).toContain("FK3057Sains Sepak Bola");
     expect(row.textContent).toContain("8 mata kuliahIP 3,27");
     const rows = [...row.parentElement!.querySelectorAll("ul li")].map((li) => li.textContent);
     expect(rows).toContain("FK3057Sains Sepak BolaBelum masuk transkrip2 SKSB");

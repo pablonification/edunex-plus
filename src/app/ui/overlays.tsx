@@ -36,6 +36,10 @@ export function useReturnFocus() {
     onCloseAutoFocus: (event: Event) => {
       event.preventDefault();
       if (clickedAway.current || !opener.current) return;
+      // Its row has gone and the screen has already put focus where it belongs (the planner's hidden list): it stays there.
+      const gone = !opener.current.isConnected || opener.current.closest("[data-leaving]") !== null;
+      const at = document.activeElement;
+      if (gone && at instanceof HTMLElement && at !== document.body && at.isConnected && !at.closest("[data-leaving]")) return;
       if (!focusInsteadOf(opener.current) && opener.current.isConnected) opener.current.focus();
     },
   };

@@ -73,7 +73,7 @@ export function Tab(_: { onCalendar?: () => void }) {
   const [view, setView] = useState<"mine" | "all">("mine");
   if (!calendar) return <EmptyState icon={<Icons.CalendarClock className="size-5" />} title={t("deadlines.empty")} />;
   return (
-    <div className="max-w-[820px]">
+    <div>
       <div className="mb-5 flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
         <p className="text-small text-muted">{t(view === "mine" ? "deadlines.intro" : "calendar.intro")}</p>
         <Segmented
@@ -96,6 +96,7 @@ function ForYou() {
   const f = useFormat();
   const now = useNow();
   const term = useThisTerm();
+  const termYears = useTermYears();
   const { upcoming, past } = useDeadlines();
   const [nextOpen, setNextOpen] = useState(false);
   const grouped = new Map<Group, Deadline[]>();
@@ -112,6 +113,9 @@ function ForYou() {
           const items = grouped.get(group);
           if (!items?.length) return null;
           const collapsed = group === "next" && !nextOpen;
+          // "Semester depan" names its term once, when its events share one, instead of on every row.
+          const terms = new Set(items.flatMap((d) => (d.event.term ? [d.event.term] : [])));
+          const named = group === "next" && terms.size === 1 ? [...terms][0] : null;
           return (
             <Fragment key={group}>
               {group !== "now" && group === GROUPS.find((g) => g !== "now" && grouped.get(g)?.length) && (
@@ -131,7 +135,14 @@ function ForYou() {
                       className="focus-ring -mx-1 inline-flex items-center gap-1.5 rounded-md px-1 hover:text-fg"
                     >
                       <Icons.ChevronRight className={cx("size-3.5 text-faint transition-transform duration-150", !collapsed && "rotate-90")} />
-                      {t(`deadlines.group.${group}`)}
+                      {named ? (
+                        <Meta>
+                          {t(`deadlines.group.${group}`)}
+                          <span className="font-medium text-muted">{termYears(named)}</span>
+                        </Meta>
+                      ) : (
+                        t(`deadlines.group.${group}`)
+                      )}
                     </button>
                   ) : (
                     t(`deadlines.group.${group}`)
@@ -141,7 +152,12 @@ function ForYou() {
                 {!collapsed && (
                   <List>
                     {items.map((deadline) => (
-                      <DeadlineRow key={deadline.event.id} deadline={deadline} index={index++} />
+                      <DeadlineRow
+                        key={deadline.event.id}
+                        deadline={deadline}
+                        index={index++}
+                        showTerm={deadline.event.term !== term && deadline.event.term !== named}
+                      />
                     ))}
                   </List>
                 )}
@@ -159,7 +175,7 @@ function ForYou() {
           </summary>
           <List className="mt-3">
             {past.map((deadline) => (
-              <DeadlineRow key={deadline.event.id} deadline={deadline} />
+              <DeadlineRow key={deadline.event.id} deadline={deadline} showTerm={deadline.event.term !== term} />
             ))}
           </List>
         </details>
@@ -168,7 +184,8 @@ function ForYou() {
   );
 }
 
-function DeadlineRow({ deadline, index }: { deadline: Deadline; index?: number }) {
+/** `showTerm`: the event's term, only where it isn't the one the Student is reading about (this term, or the group's). */
+function DeadlineRow({ deadline, index, showTerm }: { deadline: Deadline; index?: number; showTerm: boolean }) {
   const t = useT();
   const lang = useLang();
   const f = useFormat();
@@ -203,7 +220,7 @@ function DeadlineRow({ deadline, index }: { deadline: Deadline; index?: number }
             <Meta>
               {t(`deadline.kind.${event.kind}` as StringKey)}
               {variant ? <span className="font-normal text-muted">{t(`deadline.variant.${variant}`)}</span> : null}
-              {event.term ? <span className="font-normal text-faint">{termYears(event.term)}</span> : null}
+              {showTerm && event.term ? <span className="font-normal text-faint">{termYears(event.term)}</span> : null}
             </Meta>
           </span>
           {meaning && (

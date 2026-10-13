@@ -236,10 +236,6 @@ export const gradesStrings = {
     en: "Sign in to SIX to plan your semesters to graduation, with the IPK and rules checked live.",
   },
   "planner.role.required": { id: "Wajib · smt {n}", en: "Required · sem {n}" },
-  "planner.role.specialization": { id: "Spesialisasi", en: "Specialization" },
-  "planner.role.minor": { id: "Minor", en: "Minor" },
-  "planner.role.program-elective": { id: "Pilihan prodi", en: "Program elective" },
-  "planner.role.outside-elective": { id: "Pilihan luar prodi", en: "Outside elective" },
   "planner.role.retake": { id: "Ulang · dulu {grade}", en: "Retake · was {grade}" },
   "planner.flag.parity": { id: "Biasanya di semester {kind}", en: "Usually in {kind} semesters" },
   "planner.flag.early": { id: "Lebih awal dari kurikulum", en: "Earlier than the curriculum" },
@@ -248,6 +244,7 @@ export const gradesStrings = {
   "planner.ruleOk": { id: "Terpenuhi", en: "Met" },
   "planner.ruleWarn": { id: "Perlu dicek", en: "To check" },
   "planner.ruleError": { id: "Belum terpenuhi", en: "Not met" },
+  "planner.hide": { id: "Sembunyikan", en: "Hide" },
   "planner.hideRule": { id: "Sembunyikan peringatan: {title}", en: "Hide the warning: {title}" },
   "planner.hideReason.not-continuing": { id: "Aku tidak melanjutkan spesialisasi ini", en: "I'm not continuing this specialization" },
   "planner.hideReason.not-continuingHint": {
