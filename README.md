@@ -58,7 +58,8 @@ Not sure which Mac you have? Apple menu → **About This Mac**: "Chip Apple M…
 silicon. Intel Macs aren't supported yet.
 
 The installers aren't signed with paid certificates yet, so macOS and Windows warn you the first
-time. That's expected for this alpha; the steps below get past it once, and never again.
+time you open each new version. That's expected for this alpha; the steps below get past it, and
+the app then opens normally until the next update.
 
 ### macOS
 
@@ -106,7 +107,8 @@ the app to Applications, then the same steps.
 sudo apt install ./edunex-plus_<version>_amd64.deb
 ```
 
-then open **Edunex Plus** from your apps menu. (`./` matters: it tells apt to use the file.)
+(on ARM: `./edunex-plus_<version>_arm64.deb`), then open **Edunex Plus** from your apps menu.
+The `./` matters: it tells apt to use the file.
 
 **AppImage (any distribution):**
 
@@ -114,6 +116,8 @@ then open **Edunex Plus** from your apps menu. (`./` matters: it tells apt to us
 chmod +x Edunex.Plus-<version>.AppImage
 ./Edunex.Plus-<version>.AppImage
 ```
+
+On ARM the file is `Edunex.Plus-<version>-arm64.AppImage`.
 
 On Ubuntu 24.04 and newer an AppImage can't set up Chromium's sandbox, so the app closes right
 away: use the `.deb` there (it sets the sandbox up), or start the AppImage with `--no-sandbox`.
