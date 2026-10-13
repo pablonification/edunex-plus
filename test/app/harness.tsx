@@ -39,6 +39,13 @@ globalThis.ResizeObserver ??= class {
   disconnect() {}
 } as unknown as typeof ResizeObserver;
 
+// The writing box (ProseMirror) measures text to keep the cursor in view; jsdom measures nothing.
+if (typeof Range !== "undefined" && !Range.prototype.getClientRects) {
+  const none = { top: 0, left: 0, right: 0, bottom: 0, width: 0, height: 0, x: 0, y: 0, toJSON: () => ({}) };
+  Range.prototype.getClientRects = () => Object.assign([], { item: () => null }) as unknown as DOMRectList;
+  Range.prototype.getBoundingClientRect = () => none as DOMRect;
+}
+
 export interface Options {
   world?: PretendWorld;
   storage?: MemoryStorage;
@@ -280,6 +287,39 @@ export async function openApp(options: Options = {}) {
             return bytes;
           },
         };
+      });
+    },
+    /** The writing box named `label` (it loads on its own, shortly after its screen), once it's there. */
+    async editor(label: string | RegExp = /^(Jawabanmu|Your answer)$/): Promise<HTMLElement> {
+      for (let round = 0; round < 200; round++) {
+        const found = find<HTMLElement>("[role=textbox][contenteditable]", label);
+        if (found) return found;
+        await act(async () => {
+          await new Promise((resolve) => setTimeout(resolve, 5));
+        });
+      }
+      throw new Error(`No writing box named ${String(label)}`);
+    },
+    /**
+     * Writes in a writing box the way a Student pastes into it: everything in it
+     * is replaced by `html` (plain text pastes as itself).
+     */
+    async write(html: string, label?: string | RegExp): Promise<void> {
+      const box = await screen.editor(label);
+      await act(async () => {
+        box.focus();
+        box.dispatchEvent(new KeyboardEvent("keydown", { key: "a", ctrlKey: true, bubbles: true, cancelable: true }));
+        const paste = new window.Event("paste", { bubbles: true, cancelable: true });
+        const text = new DOMParser().parseFromString(html, "text/html").body.textContent ?? "";
+        Object.defineProperty(paste, "clipboardData", {
+          value: {
+            types: ["text/html", "text/plain"],
+            files: [],
+            getData: (type: string) => (type === "text/html" ? html : type === "text/plain" ? text : ""),
+          },
+        });
+        box.dispatchEvent(paste);
+        await settle();
       });
     },
     /** Lets engine time pass (its rhythm, back-off) and the screen catch up. */

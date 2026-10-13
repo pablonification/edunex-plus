@@ -396,7 +396,7 @@ export class PretendEdunex {
     let m: RegExpExecArray | null;
     if (request.method === "POST" && path === "/course/task/answers") {
       const task = this.task(Number(body.task_id));
-      if (!takesAnswers(this.asOfNow(task), this.clock.now())) throw new Refused();
+      if (!takesAnswers(this.asOfNow(task), this.clock.now()) || !hasText(body)) throw new Refused();
       const answer = this.newAnswer(Number(body.task_id), { ...body, files: [] });
       answer.files = this.storedFiles(answer.id, task, body.files ?? []);
       task.attributes.answers = [...task.attributes.answers, answer];
@@ -408,7 +408,7 @@ export class PretendEdunex {
         for (const task of list) {
           const at = task.attributes.answers.findIndex((a: Json) => Number(a.id) === id);
           if (at < 0) continue;
-          if (!takesAnswers(this.asOfNow(task), this.clock.now())) throw new Refused();
+          if (!takesAnswers(this.asOfNow(task), this.clock.now()) || ("answer" in body && !hasText(body))) throw new Refused();
           const current = task.attributes.answers[at];
           const fields = { ...body };
           delete fields.task_id;
@@ -539,6 +539,18 @@ function takesAnswers(task: Json, now: number): boolean {
   const a = task.attributes;
   if (a.open_status !== "open") return false;
   return !(Date.parse(a.end_at) < now && !a.is_lateable);
+}
+
+/**
+ * Whether an answer has text. Edunex's website never sends one without ("Text is required"); whether its API
+ * refuses one is unknown, so the pretend refuses it, to catch the app ever sending one.
+ */
+function hasText(body: Json): boolean {
+  return (
+    String(body.answer ?? "")
+      .replace(/<[^>]*>|&nbsp;|&#160;/g, " ")
+      .trim().length > 0
+  );
 }
 
 function found<T>(value: T | undefined): T {

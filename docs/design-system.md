@@ -260,6 +260,7 @@ Screens are composed, not styled one by one:
 | `ShareMeter`, `CountdownBar` (`ui/meter.tsx`) | Status-colored meters: attendance against the course's target, a tick (the best still reachable as an optional ghost), always under a label that says what it measures; time left in a window, shrinking, amber in its last 15 minutes. |
 | `Stepper` (`ui/controls.tsx`) | A number stepped between bounds (an attendance target, 50–100% by 5): − and + with names, the value read out when it changes. |
 | `TimeGrid`, `GridBlock` (`ui/time-grid.tsx`) | A week as a time grid: height is duration, shared time side by side, empty days narrow, periods tinted and named, a now line. |
+| `RichEditor` (`ui/rich-editor.tsx`) | A box for writing formatted text (a Task's answer): bold, italic, lists, a link, a quote, undo and redo; pasting keeps only simple formatting. Loaded lazily with the screen that uses it (TipTap underneath); it holds only what Edunex's own editor writes, never pictures, tables or embeds. |
 | `Flash` (`ui/motion.tsx`) | A figure the Student is watching glows briefly when it changes; the value itself changes at once. |
 
 The shell: a sidebar (the app's icon and name, ⌘1–⌘6, courses with their dot, the Student's name

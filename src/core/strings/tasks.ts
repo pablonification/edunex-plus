@@ -129,8 +129,12 @@ export const tasksStrings = {
   "handIn.lateNotAllowed": { id: "Tidak bisa terlambat", en: "No late submission" },
   "handIn.confirmTitle": { id: "Kumpulkan tugas ini?", en: "Submit this Task?" },
   "handIn.confirmBody": {
-    id: "{files} akan diserahkan ke dosen. Setelah dikumpulkan, jawabanmu final.",
-    en: "{files} will be handed in to your lecturer. Once submitted, your answer is final.",
+    id: "Jawabanmu dan {files} akan diserahkan ke dosen. Setelah dikumpulkan, jawabanmu final.",
+    en: "Your answer and {files} will be handed in to your lecturer. Once submitted, your answer is final.",
+  },
+  "handIn.confirmBodyText": {
+    id: "Jawabanmu akan diserahkan ke dosen. Setelah dikumpulkan, jawabanmu final.",
+    en: "Your answer will be handed in to your lecturer. Once submitted, your answer is final.",
   },
   "handIn.fileCount": { id: "{count} berkas", en: { one: "{count} file", other: "{count} files" } },
   "handIn.saved": { id: "Draf tersimpan", en: "Draft saved" },
@@ -198,6 +202,10 @@ export const tasksStrings = {
   "handIn.retryShort": { id: "Coba lagi", en: "Try again" },
   "handIn.removeShort": { id: "Hapus", en: "Remove" },
   "handIn.why.noFile": { id: "Lampirkan berkas dulu untuk mengumpulkan.", en: "Attach a file first to hand it in." },
+  "handIn.why.noText": {
+    id: "Tulis jawabanmu dulu. Edunex butuh teks, meski kamu melampirkan berkas.",
+    en: "Write your answer first. Edunex needs text, even when you attach a file.",
+  },
   "handIn.why.uploading": { id: "Tunggu sampai semua berkas terunggah.", en: "Wait until every file is uploaded." },
   "handIn.why.failed": { id: "Coba lagi atau hapus berkas yang gagal terunggah.", en: "Try again or remove the file that didn't upload." },
   "handIn.why.refused": { id: "Hapus dulu berkas yang tidak diterima Edunex.", en: "Remove the file Edunex doesn't take first." },
@@ -231,6 +239,31 @@ export const tasksStrings = {
   "handIn.saveInstead": { id: "Simpan sebagai draf", en: "Save as draft" },
   "handIn.notNow": { id: "Nanti saja", en: "Not now" },
   "handIn.submitAnyway": { id: "Kumpulkan tetap (tidak dihitung hadir)", en: "Submit anyway (not counted present)" },
+
+  // The written answer
+  "handIn.textPlaceholder": { id: "Tulis jawabanmu di sini…", en: "Write your answer here…" },
+  "handIn.textUnsaved": { id: "Jawaban belum disimpan", en: "Answer not saved yet" },
+  "handIn.textDiscard": { id: "Buang perubahan", en: "Discard changes" },
+  "handIn.textRich": {
+    id: "Jawaban ini berisi gambar, tabel, rumus, atau gaya teks yang tidak bisa diubah di sini. Ubah teksnya di Edunex; berkasnya tetap bisa diatur di sini.",
+    en: "This answer has pictures, tables, formulas or text styling the app can't edit. Change the text on Edunex; you can still manage the files here.",
+  },
+  "handIn.editOnEdunex": { id: "Ubah di Edunex", en: "Edit on Edunex" },
+  "handIn.preview": { id: "Lihat {name}", en: "Preview {name}" },
+
+  // The writing box
+  "editor.toolbar": { id: "Format teks", en: "Text formatting" },
+  "editor.bold": { id: "Tebal", en: "Bold" },
+  "editor.italic": { id: "Miring", en: "Italic" },
+  "editor.bullets": { id: "Daftar berbutir", en: "Bulleted list" },
+  "editor.numbers": { id: "Daftar bernomor", en: "Numbered list" },
+  "editor.quote": { id: "Kutipan", en: "Quote" },
+  "editor.link": { id: "Tautan", en: "Link" },
+  "editor.undo": { id: "Urungkan", en: "Undo" },
+  "editor.redo": { id: "Ulangi", en: "Redo" },
+  "editor.linkAddress": { id: "Alamat tautan", en: "Link address" },
+  "editor.linkApply": { id: "Pasang tautan", en: "Add link" },
+  "editor.linkRemove": { id: "Hapus tautan", en: "Remove link" },
 
   // The exam page, redesigned
   "examPage.room": { id: "Ruang {room}", en: "Room {room}" },

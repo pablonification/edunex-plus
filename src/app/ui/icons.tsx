@@ -26,6 +26,7 @@ import { ClockCounterClockwiseIcon } from "@phosphor-icons/react/dist/csr/ClockC
 import { DeviceMobileIcon } from "@phosphor-icons/react/dist/csr/DeviceMobile";
 import { DotsThreeIcon } from "@phosphor-icons/react/dist/csr/DotsThree";
 import { DownloadSimpleIcon } from "@phosphor-icons/react/dist/csr/DownloadSimple";
+import { EyeIcon } from "@phosphor-icons/react/dist/csr/Eye";
 import { EyeSlashIcon } from "@phosphor-icons/react/dist/csr/EyeSlash";
 import { FileTextIcon } from "@phosphor-icons/react/dist/csr/FileText";
 import { FlagIcon } from "@phosphor-icons/react/dist/csr/Flag";
@@ -75,7 +76,8 @@ export interface IconProps {
   weight?: IconWeight;
 }
 
-function icon(Glyph: PhosphorIcon) {
+/** One of Phosphor's icons the app's way. A lazily loaded screen makes its own rare icons with it, so they load with it. */
+export function icon(Glyph: PhosphorIcon) {
   return function Icon({ className = "size-4", weight = "regular" }: IconProps) {
     return <Glyph className={className} weight={weight} aria-hidden focusable="false" />;
   };
@@ -132,6 +134,7 @@ export const Icons = {
   Wallet: icon(WalletIcon),
   ClipboardCheck: icon(ClipboardTextIcon),
   Smartphone: icon(DeviceMobileIcon),
+  Eye: icon(EyeIcon),
   EyeOff: icon(EyeSlashIcon),
   Route: icon(PathIcon),
   Receipt: icon(ReceiptIcon),

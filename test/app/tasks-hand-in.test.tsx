@@ -14,6 +14,8 @@ afterEach(() => {
 });
 
 const ATTACH = /^Lampirkan berkas · Lepas berkas di sini/;
+/** What the Student writes in the answer box: Edunex needs text in every answer. */
+const ANSWER = "<p>Berikut jawaban saya.</p>";
 const card = () => document.querySelector("main aside")?.textContent ?? "";
 const answerWrites = (s: NonNullable<typeof screen>) =>
   s.world.edunex.writes.filter((w) => w.path.startsWith("/course/task/answers")).map((w) => `${w.method} ${w.path.replace(/\d+$/, ":id")}`);
@@ -36,6 +38,7 @@ const openTask = async (title: string, now?: string) => {
 describe("handing in", () => {
   it("attach, save a draft quietly, then submit with a confirmation and a receipt from Edunex", async () => {
     const s = await openTask("Tugas 02 Bab II");
+    await s.write("<p>Berikut <strong>Bab II</strong> saya.</p>");
     s.willPick([{ name: "Bab II.pdf", content: "%PDF bab dua" }]);
     await s.click(ATTACH);
     expect(card()).toContain("Bab II.pdf");
@@ -68,6 +71,7 @@ describe("handing in", () => {
 
   it("cancelling the confirmation sends nothing", async () => {
     const s = await openTask("Tugas 02 Bab II", "2026-10-16T16:00:00+07:00");
+    await s.write(ANSWER);
     s.willPick([{ name: "Bab II.pdf" }]);
     await s.click(ATTACH);
     await s.click("Kumpulkan");
@@ -78,6 +82,7 @@ describe("handing in", () => {
 
   it("a failed upload keeps the file attached with a clear error, and trying again sends it", async () => {
     const s = await openTask("Tugas 02 Bab II");
+    await s.write(ANSWER);
     s.world.failUploads(503);
     s.willPick([{ name: "Bab II.pdf" }]);
     await s.click(ATTACH);
@@ -103,6 +108,7 @@ describe("handing in", () => {
 
   it("several files go up one by one, then all are in the answer", async () => {
     const s = await openTask("Tugas 02 Bab II");
+    await s.write(ANSWER);
     s.willPick([{ name: "Bab II.pdf" }, { name: "Lampiran.zip", type: "application/zip" }]);
     await s.click(ATTACH);
     // Each to its own place on the storage, named as the website names it.
@@ -193,6 +199,7 @@ describe("handing in", () => {
     const s = await openTask("Tugas 02 Bab II");
     s.world.edunex.draftOnWebsite(117003, "draf-web.pdf");
     // The app hasn't seen that draft yet: saving re-reads Edunex first.
+    await s.write(ANSWER);
     s.willPick([{ name: "Bab II.pdf" }]);
     await s.click(ATTACH);
     await s.click("Simpan draf");
@@ -214,6 +221,7 @@ describe("handing in", () => {
 
   it("the session ending during a submit says so, keeps the files, and works after signing in again", async () => {
     const s = await openTask("Tugas 02 Bab II");
+    await s.write(ANSWER);
     s.willPick([{ name: "Bab II.pdf" }]);
     await s.click(ATTACH);
     s.world.edunex.expireSession();
@@ -231,6 +239,7 @@ describe("handing in", () => {
 
   it("a Task closed meanwhile: Edunex is asked first, and the page says the answer wasn't sent", async () => {
     const s = await openTask("Tugas 02 Bab II");
+    await s.write(ANSWER);
     s.willPick([{ name: "Bab II.pdf" }]);
     await s.click(ATTACH);
     s.world.edunex.closeTask(117003);
@@ -243,6 +252,7 @@ describe("handing in", () => {
 
   it("Edunex taking a submit without showing it sent: no receipt, a way to check on Edunex", async () => {
     const s = await openTask("Tugas 02 Bab II");
+    await s.write(ANSWER);
     s.willPick([{ name: "Bab II.pdf" }]);
     await s.click(ATTACH);
     await s.click("Simpan draf");
@@ -257,6 +267,7 @@ describe("handing in", () => {
 
   it("late allowed: Submit late works past the deadline", async () => {
     const s = await openTask("Tugas 02 Bab II", "2026-10-20T09:00:00+07:00");
+    await s.write(ANSWER);
     s.willPick([{ name: "Bab II.pdf" }]);
     await s.click(ATTACH);
     await s.click("Kumpulkan terlambat");
@@ -284,8 +295,193 @@ describe("handing in", () => {
     // A lecturer sees a saved draft on Edunex (as "Answered"): the app never says it's private.
     expect(card()).toContain("Your lecturer can see a saved draft, but only Submit hands it in.");
     expect(card()).toContain("File required · PDF file");
-    expect(card()).toContain("Attach a file first to hand it in.");
+    expect(card()).toContain("Write your answer first. Edunex needs text, even when you attach a file.");
     expect(s.text()).toContain("Late submission allowed");
+  });
+});
+
+describe("the written answer", () => {
+  const box = () => document.querySelector<HTMLElement>("main aside [role=textbox][contenteditable]");
+  const sentAnswer = (s: NonNullable<typeof screen>) =>
+    s.world.edunex.writes.filter((w) => w.path.startsWith("/course/task/answers") && "answer" in w.body).at(-1)?.body.answer;
+  const goTo = async (s: NonNullable<typeof screen>, route: Parameters<typeof s.apply>[0]) => s.apply(route);
+
+  it("is required, as on Edunex: Save draft and Submit wait for text, and say why", async () => {
+    const s = await openTask("Tugas 02 Bab II", "2026-10-16T16:00:00+07:00");
+    s.willPick([{ name: "Bab II.pdf" }]);
+    await s.click(ATTACH);
+    expect(s.button("Kumpulkan").disabled).toBe(true);
+    expect(s.button("Simpan draf").disabled).toBe(true);
+    expect(card()).toContain("Tulis jawabanmu dulu. Edunex butuh teks, meski kamu melampirkan berkas.");
+    // The hint is read with the box.
+    expect(document.getElementById((await s.editor()).getAttribute("aria-describedby") ?? "")?.textContent).toContain("Tulis jawabanmu dulu");
+    expect((await s.editor()).querySelector("[data-placeholder]")?.getAttribute("data-placeholder")).toBe("Tulis jawabanmu di sini…");
+    await s.write("<p>Berikut Bab II.</p>");
+    expect(s.button("Kumpulkan").disabled).toBe(false);
+    expect(card()).not.toContain("Tulis jawabanmu dulu");
+    expect(answerWrites(s)).toEqual([]);
+  });
+
+  it("a draft keeps the text with simple formatting, as Edunex's editor writes it; what it can't hold is left out", async () => {
+    const s = await openTask("Tugas 02 Bab II");
+    // Pasted from a word processor: bold, a list, a link, a picture, a table, styles.
+    await s.write(
+      '<p style="font-family:Calibri"><b>Ringkasan</b> Bab II, lihat <a href="https://drive.google.com/x">draf lengkap</a>.</p><ul><li>Latar belakang</li><li>Tujuan</li></ul><img src="https://example.com/a.png"><table><tr><td>Tabel</td></tr></table>',
+    );
+    s.willPick([{ name: "Bab II.pdf" }]);
+    await s.click(ATTACH);
+    await s.click("Simpan draf");
+    expect(answerWrites(s)).toEqual(["POST /course/task/answers"]);
+    expect(sentAnswer(s)).toBe(
+      '<p><strong>Ringkasan</strong> Bab II, lihat <a href="https://drive.google.com/x">draf lengkap</a>.</p><ul><li>Latar belakang</li><li>Tujuan</li></ul><p>Tabel</p>',
+    );
+    expect(card()).toContain("DrafTersimpan");
+    expect(card()).not.toContain("Jawaban belum disimpan");
+  });
+
+  it("the toolbar formats the text, and says which formatting is on", async () => {
+    const s = await openTask("Tugas 02 Bab II");
+    await s.write("<p>Penting</p>");
+    const editor = await s.editor();
+    await act(async () => void editor.dispatchEvent(new KeyboardEvent("keydown", { key: "a", ctrlKey: true, bubbles: true, cancelable: true })));
+    await s.click("Tebal");
+    expect(s.button("Tebal").getAttribute("aria-pressed")).toBe("true");
+    await s.click("Daftar berbutir");
+    // Arrow keys move along the toolbar.
+    s.button("Daftar berbutir").focus();
+    await s.key("ArrowRight");
+    expect(document.activeElement?.getAttribute("aria-label")).toBe("Daftar bernomor");
+    s.willPick([{ name: "Bab II.pdf" }]);
+    await s.click(ATTACH);
+    await s.click("Simpan draf");
+    expect(sentAnswer(s)).toBe("<ul><li><strong>Penting</strong></li></ul>");
+  });
+
+  it("⌘K in the box opens its link field, not the app's search", async () => {
+    const s = await openTask("Tugas 02 Bab II");
+    await s.write("<p>Lihat sumbernya</p>");
+    const editor = await s.editor();
+    await act(async () => void editor.dispatchEvent(new KeyboardEvent("keydown", { key: "k", metaKey: true, bubbles: true, cancelable: true })));
+    expect(document.activeElement?.getAttribute("type")).toBe("url");
+    expect(document.querySelector("[role=dialog]")).toBeNull();
+  });
+
+  it("submitted with text and a file, the text is then shown as handed in", async () => {
+    const s = await openTask("Tugas 02 Bab II", "2026-10-16T16:00:00+07:00");
+    await s.write("<p>Berikut <em>Bab II</em>.</p>");
+    s.willPick([{ name: "Bab II.pdf" }]);
+    await s.click(ATTACH);
+    await s.click("Kumpulkan");
+    expect(document.querySelector("[role=alertdialog]")?.textContent).toContain("Jawabanmu dan Bab II.pdf akan diserahkan ke dosen.");
+    await s.click(confirmButton()!);
+    expect(s.world.edunex.task(117003).attributes.answers[0]).toMatchObject({ is_sent: 1, answer: "<p>Berikut <em>Bab II</em>.</p>" });
+    expect(card()).toContain("Terkumpul");
+    expect(box()).toBeNull();
+    expect(card()).toContain("Berikut Bab II.");
+  });
+
+  it("a draft from Edunex's website shows its text, ready to edit; left as it is, it's submitted untouched", async () => {
+    const s = await openTask("Tugas 02 Bab II", "2026-10-16T16:00:00+07:00");
+    s.world.edunex.draftOnWebsite(117003, "Bab II.pdf", "<p>Draf dari <i>Edunex</i>.</p>");
+    await s.engineDoes(() => s.engine.refresh("edunex"));
+    expect((await s.editor()).textContent).toBe("Draf dari Edunex.");
+    expect(card()).not.toContain("Jawaban belum disimpan");
+    await s.click("Kumpulkan");
+    await s.click(confirmButton()!);
+    // Nothing to save first: only the send.
+    expect(answerWrites(s)).toEqual(["PATCH /course/task/answers/:id"]);
+    expect(s.world.edunex.task(117003).attributes.answers[0]).toMatchObject({ is_sent: 1, answer: "<p>Draf dari <i>Edunex</i>.</p>" });
+  });
+
+  it("a website draft with a picture or a table stays as it is, with the way to change it on Edunex", async () => {
+    const s = await openTask("Tugas 02 Bab II");
+    const website = '<p>Lihat grafik:</p><figure class="image"><img src="https://edunexfixture.blob.core.windows.net/edunex/website-grafik.png"></figure>';
+    s.world.edunex.draftOnWebsite(117003, "Bab II.pdf", website);
+    await s.engineDoes(() => s.engine.refresh("edunex"));
+    await s.wait(0);
+    expect(box()).toBeNull();
+    expect(card()).toContain("Lihat grafik:");
+    expect(card()).toContain("Jawaban ini berisi gambar, tabel, rumus, atau gaya teks yang tidak bisa diubah di sini.");
+    await s.click("Ubah di Edunex");
+    expect(s.calls.at(-1)).toEqual({ name: "shell.openExternal", input: { url: "https://edunex.itb.ac.id/assignment/take/117003" } });
+    // The files can still change; the text goes back exactly as Edunex has it.
+    s.willPick([{ name: "Lampiran.pdf" }]);
+    await s.click(ATTACH);
+    await s.click("Simpan draf");
+    expect(sentAnswer(s)).toBe(website);
+  });
+
+  it("a website draft with colours, sizes or centring stays as it is too: the box would drop them", async () => {
+    const s = await openTask("Tugas 02 Bab II");
+    const website = '<p style="text-align:center">Judul</p><p>Kata <span style="color:#e74c3c">merah</span> dan <span class="text-big">besar</span>.</p>';
+    s.world.edunex.draftOnWebsite(117003, "Bab II.pdf", website);
+    await s.engineDoes(() => s.engine.refresh("edunex"));
+    await s.wait(0);
+    expect(box()).toBeNull();
+    expect(card()).toContain("Kata merah dan besar.");
+    expect(s.has("Ubah di Edunex")).toBe(true);
+    // Saving file changes sends the text back exactly as Edunex has it.
+    s.willPick([{ name: "Lampiran.pdf" }]);
+    await s.click(ATTACH);
+    await s.click("Simpan draf");
+    expect(sentAnswer(s)).toBe(website);
+  });
+
+  it("a website draft pasted from a document, with styles that show nothing, is ready to edit", async () => {
+    const s = await openTask("Tugas 02 Bab II");
+    s.world.edunex.draftOnWebsite(117003, "Bab II.pdf", '<p><span style="background-color:transparent;color:#000000;">Dari dokumen</span></p>');
+    await s.engineDoes(() => s.engine.refresh("edunex"));
+    expect((await s.editor()).textContent).toBe("Dari dokumen");
+  });
+
+  it("text not saved yet is kept when the page closes, until it's saved or thrown away", async () => {
+    const s = await openTask("Tugas 02 Bab II");
+    await s.write("<p>Separuh jalan</p>");
+    expect(card()).toContain("Jawaban belum disimpan");
+    await goTo(s, { type: "navigate", route: { screen: "home" } });
+    expect(box()).toBeNull();
+    await goTo(s, { type: "navigate", route: { screen: "task", taskId: 117003 } });
+    expect((await s.editor()).textContent).toBe("Separuh jalan");
+    expect(card()).toContain("Jawaban belum disimpan");
+    // Nothing went to Edunex on its own.
+    expect(answerWrites(s)).toEqual([]);
+    await s.click("Buang perubahan");
+    expect((await s.editor()).textContent).toBe("");
+    expect(card()).not.toContain("Jawaban belum disimpan");
+    // The cursor stays in the box, and Undo brings the text back.
+    await act(async () => void (await new Promise((resolve) => setTimeout(resolve, 50))));
+    expect(document.activeElement).toBe(await s.editor());
+    await s.click("Urungkan");
+    expect((await s.editor()).textContent).toBe("Separuh jalan");
+    expect(card()).toContain("Jawaban belum disimpan");
+    await s.click("Buang perubahan");
+    await goTo(s, { type: "navigate", route: { screen: "home" } });
+    await goTo(s, { type: "navigate", route: { screen: "task", taskId: 117003 } });
+    expect((await s.editor()).textContent).toBe("");
+  });
+
+  it("text typed and thrown away in the same visit comes back with Undo", async () => {
+    const s = await openTask("Tugas 02 Bab II");
+    await s.write("<p>Baru saja</p>");
+    await s.click("Buang perubahan");
+    expect((await s.editor()).textContent).toBe("");
+    await s.click("Urungkan");
+    expect((await s.editor()).textContent).toBe("Baru saja");
+    expect(answerWrites(s)).toEqual([]);
+    // Unsaved text outlives the page while the app runs: leave none for the next test.
+    await s.click("Buang perubahan");
+  });
+
+  it("speaks English, switched to with the page open", async () => {
+    const s = await openApp({ signedIn: true });
+    screen = s;
+    await s.apply({ type: "navigate", route: { screen: "task", taskId: 117003 } });
+    await s.editor();
+    await s.engineDoes(() => s.engine.updateSettings({ lang: "en" }));
+    const editor = await s.editor(/^Your answer$/);
+    expect(editor.querySelector("[data-placeholder]")?.getAttribute("data-placeholder")).toBe("Write your answer here…");
+    expect(s.has("Bold")).toBe(true);
+    expect(card()).toContain("Write your answer first. Edunex needs text, even when you attach a file.");
   });
 });
 
@@ -296,6 +492,7 @@ describe("handing in can't cost the Student their attendance", () => {
   it("outside the attendance window the confirm says it won't count, and keeping a draft is the default", async () => {
     // Thu 8 Oct: Tugas 02 counts as attendance only if handed in Fri 16 Oct 15:00–23:59.
     const s = await openTask("Tugas 02 Bab II");
+    await s.write(ANSWER);
     s.willPick([{ name: "18222001 Dimas - Tugas 02.pdf" }]);
     await s.click(ATTACH);
     // Waiting is the right default: Simpan draf is the main button, and the line under it says why.
@@ -319,6 +516,7 @@ describe("handing in can't cost the Student their attendance", () => {
 
   it("handing in anyway outside the window: done, and the page says it didn't count", async () => {
     const s = await openTask("Tugas 02 Bab II");
+    await s.write(ANSWER);
     s.willPick([{ name: "18222001 Dimas - Tugas 02.pdf" }]);
     await s.click(ATTACH);
     await s.click("Kumpulkan");
@@ -330,6 +528,7 @@ describe("handing in can't cost the Student their attendance", () => {
 
   it("inside the window: the confirm says it counts, the primary button is a blue Kumpulkan sekarang, and the page then says counted", async () => {
     const s = await openTask("Tugas 02 Bab II", "2026-10-16T16:00:00+07:00");
+    await s.write(ANSWER);
     s.willPick([{ name: "18222001 Dimas - Tugas 02.pdf" }]);
     await s.click(ATTACH);
     expect(s.button("Kumpulkan").className).toContain("bg-accent");
@@ -343,6 +542,7 @@ describe("handing in can't cost the Student their attendance", () => {
 
   it("a file unlike what the lecturer asked for gets a soft hint, and the confirm names it", async () => {
     const s = await openTask("Tugas 02 Bab II", "2026-10-16T16:00:00+07:00");
+    await s.write(ANSWER);
     s.willPick([{ name: "Laporan Tugas - Dimas Pratama.pdf" }]);
     await s.click(ATTACH);
     expect(card()).toContain("Dosen minta nama \u2018NIM Nama - Tugas 02.pdf\u2019");
@@ -356,6 +556,7 @@ describe("handing in can't cost the Student their attendance", () => {
 
   it("no connection: Kumpulkan waits, says why, and offers to try again", async () => {
     const s = await openTask("Tugas 02 Bab II", "2026-10-16T16:00:00+07:00");
+    await s.write(ANSWER);
     s.willPick([{ name: "18222001 Dimas - Tugas 02.pdf" }]);
     await s.click(ATTACH);
     s.world.setOffline(true);
@@ -370,6 +571,7 @@ describe("handing in can't cost the Student their attendance", () => {
 
   it("a session that ended: Kumpulkan waits, with Masuk lagi next to the reason", async () => {
     const s = await openTask("Tugas 02 Bab II", "2026-10-16T16:00:00+07:00");
+    await s.write(ANSWER);
     s.willPick([{ name: "18222001 Dimas - Tugas 02.pdf" }]);
     await s.click(ATTACH);
     s.world.edunex.expireSession();

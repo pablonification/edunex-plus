@@ -28,8 +28,13 @@ const upload = async (h: Harness, name = "jawaban.pdf", content = "%PDF-1.7 jawa
 };
 /** The last change request of a kind ("PATCH /course/task/answers"), with the fields Edunex reads. */
 const lastWrite = (h: Harness, method: string, path: RegExp) => h.world.edunex.writes.filter((w) => w.method === method && path.test(w.path)).at(-1)?.body;
-const saveDraft = (h: Harness, taskId: number, files: TaskFile[]) => h.engine.act("edunex", "saveDraft", { taskId, files }) as Promise<HandInResult>;
-const submit = (h: Harness, taskId: number, files: TaskFile[]) => h.engine.act("edunex", "submit", { taskId, files }) as Promise<HandInResult>;
+/** The Student's written answer; `null` keeps the text Edunex has. */
+const ANSWER = "<p>Berikut jawaban saya.</p>";
+const handIn = (taskId: number, files: TaskFile[], text: string | null) => ({ taskId, files, ...(text === null ? {} : { text }) });
+const saveDraft = (h: Harness, taskId: number, files: TaskFile[], text: string | null = ANSWER) =>
+  h.engine.act("edunex", "saveDraft", handIn(taskId, files, text)) as Promise<HandInResult>;
+const submit = (h: Harness, taskId: number, files: TaskFile[], text: string | null = ANSWER) =>
+  h.engine.act("edunex", "submit", handIn(taskId, files, text)) as Promise<HandInResult>;
 const answerWrites = (h: Harness) =>
   h.world.edunex.writes.filter((w) => w.path.startsWith("/course/task/answers")).map((w) => `${w.method} ${w.path.replace(/\d+$/, ":id")}`);
 const answersOn = (h: Harness, taskId: number) => h.world.edunex.task(taskId).attributes.answers;
@@ -138,9 +143,10 @@ describe("saving a draft", () => {
     expect(lastWrite(h, "POST", /^\/course\/task\/answers$/)).toEqual({
       task_id: OPEN,
       files: [{ file: file.url, name: "jawaban.pdf" }],
-      answer: "",
+      answer: ANSWER,
       is_sent: 0,
     });
+    expect(task(h, OPEN).answer?.text).toBe(ANSWER);
     expect(task(h, OPEN).status).toBe("draft");
     expect(task(h, OPEN).answer?.files).toEqual([file]);
     expect(task(h, OPEN).answer?.sentAt).toBeNull();
@@ -169,13 +175,54 @@ describe("saving a draft", () => {
     expect(answersOn(h, OPEN)[0].files[0].id).toBe(record.id);
   });
 
-  it("an answer's text from the website is sent back as it is", async () => {
+  it("an answer's text from the website, left as it is, is sent back exactly, pictures and all", async () => {
     const h = await signedIn();
-    h.world.edunex.draftOnWebsite(OPEN, "draf.pdf", "<p>Berikut <strong>Bab II</strong>.</p>");
+    const website =
+      '<p>Berikut <strong>Bab II</strong>.</p><figure class="image"><img src="https://edunexfixture.blob.core.windows.net/edunex/website-x.png"></figure>';
+    h.world.edunex.draftOnWebsite(OPEN, "draf.pdf", website);
     await h.engine.refresh("edunex");
     const file = await upload(h);
-    await saveDraft(h, OPEN, [file]);
-    expect(lastWrite(h, "PATCH", /^\/course\/task\/answers\/\d+$/)).toMatchObject({ answer: "<p>Berikut <strong>Bab II</strong>.</p>", is_sent: 0 });
+    await saveDraft(h, OPEN, [file], null);
+    expect(lastWrite(h, "PATCH", /^\/course\/task\/answers\/\d+$/)).toMatchObject({ answer: website, is_sent: 0 });
+  });
+
+  it("the Student's text goes as Edunex's editor writes it: plain formatting, nothing that could run", async () => {
+    const h = await signedIn();
+    const file = await upload(h);
+    await saveDraft(h, OPEN, [file], '<p onclick="x()">Lihat <b>lampiran</b><script>alert(1)</script></p><ul><li><p>Bab II</p></li></ul>');
+    expect(lastWrite(h, "POST", /^\/course\/task\/answers$/)?.answer).toBe("<p>Lihat <strong>lampiran</strong></p><ul><li>Bab II</li></ul>");
+  });
+
+  it("an answer without text is refused before anything is sent, as on Edunex's website", async () => {
+    const h = await signedIn();
+    const file = await upload(h);
+    for (const text of ["", "<p></p>", "<p>&nbsp;</p><p><br></p>"]) {
+      expect(await failure(saveDraft(h, OPEN, [file], text))).toMatchObject({ kind: "Rejected", message: "Write your answer first: Edunex needs text" });
+      expect((await failure(submit(h, OPEN, [file], text))).kind).toBe("Rejected");
+    }
+    // No text on Edunex yet, and none given.
+    expect((await failure(saveDraft(h, OPEN, [file], null))).kind).toBe("Rejected");
+    expect(answerWrites(h)).toEqual([]);
+  });
+
+  it("text the website wrote counts as the website counts it: a picture alone too", async () => {
+    const h = await signedIn();
+    h.world.edunex.draftOnWebsite(
+      OPEN,
+      "draf.pdf",
+      '<figure class="image"><img src="https://edunexfixture.blob.core.windows.net/edunex/website-foto.png"></figure>',
+    );
+    await h.engine.refresh("edunex");
+    const [file] = task(h, OPEN).answer!.files;
+    expect((await submit(h, OPEN, [file], null)).outcome).toBe("submitted");
+  });
+
+  it("a Task that needs no file is handed in with text alone", async () => {
+    const h = await signedIn();
+    const id = h.world.edunex.postTask(95326, { name: "Refleksi", file_required: 0 });
+    await h.engine.refresh("edunex");
+    expect((await submit(h, id, [])).outcome).toBe("submitted");
+    expect(task(h, id).answer).toMatchObject({ sent: true, text: ANSWER, files: [] });
   });
 
   it("re-reads Edunex first: a draft saved on the website since the last check is updated, not duplicated", async () => {
@@ -238,6 +285,25 @@ describe("submitting", () => {
     expect((await submit(h, OPEN, [file])).outcome).toBe("submitted");
     expect(answerWrites(h)).toEqual(["POST /course/task/answers", "PATCH /course/task/answers/:id"]);
     expect(lastWrite(h, "PATCH", /^\/course\/task\/answers\/\d+$/)).toEqual({ is_sent: 1 });
+  });
+
+  it("a change to the text alone is saved before the answer is sent", async () => {
+    const h = await signedIn();
+    const file = await upload(h);
+    await saveDraft(h, OPEN, [file]);
+    expect((await submit(h, OPEN, [file], "<p>Jawaban yang sudah diperbaiki.</p>")).outcome).toBe("submitted");
+    expect(answerWrites(h)).toEqual(["POST /course/task/answers", "PATCH /course/task/answers/:id", "PATCH /course/task/answers/:id"]);
+    expect(task(h, OPEN).answer).toMatchObject({ sent: true, text: "<p>Jawaban yang sudah diperbaiki.</p>" });
+  });
+
+  it("a draft with text on the website is submitted with it, the text untouched", async () => {
+    const h = await signedIn();
+    h.world.edunex.draftOnWebsite(OPEN, "draf.pdf", "<p>Dari situs Edunex.</p>");
+    await h.engine.refresh("edunex");
+    const [file] = task(h, OPEN).answer!.files;
+    expect((await submit(h, OPEN, [file], null)).outcome).toBe("submitted");
+    expect(answerWrites(h)).toEqual(["PATCH /course/task/answers/:id"]);
+    expect(task(h, OPEN).answer?.text).toBe("<p>Dari situs Edunex.</p>");
   });
 
   it("clearing the lecturer's cached download failing never fails the submit", async () => {

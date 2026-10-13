@@ -5,7 +5,7 @@
 // before it the page checks what it could cost: the attendance window the
 // hand-in counts for, the deadline, the connection, the file asked for.
 import * as DialogPrimitive from "@radix-ui/react-dialog";
-import { type DragEvent, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { type DragEvent, lazy, type ReactNode, Suspense, useEffect, useId, useMemo, useRef, useState } from "react";
 import { answerFileProblem, type HandInResult, type PickedFile } from "../../core/actions/tasks";
 import { attendanceWindow, type CountedIn, presenceOptional } from "../../core/attendance";
 import { examPassed } from "../../core/exams";
@@ -33,6 +33,7 @@ import {
   taskHistory,
   taskStatus,
 } from "../../core/tasks";
+import { answerShape, editableInApp } from "../answer-html";
 import { useAttendance } from "../attendance";
 import { ActionError } from "../bridge";
 import { type TermCourse, useTermCourses } from "../courses";
@@ -48,6 +49,7 @@ import { Card, CourseDot, EmptyState, Skeleton, StatusChip, StatusGlyph } from "
 import { Icons } from "../ui/icons";
 import { factsLabel, List, Row as ListRow, Meta, Page, PageHeader, Section } from "../ui/layout";
 import { toast, useReturnFocus } from "../ui/overlays";
+import type { RichEditorHandle } from "../ui/rich-editor";
 import { plainText, RichText } from "../ui/rich-text";
 import { ready as courseReady } from "./course";
 import { ExamRow, examWeekLabel } from "./exam";
@@ -761,8 +763,58 @@ interface Notice {
 
 let localKeys = 0;
 
+// The writing box carries an editor the rest of the app never needs: it loads with the hand-in card.
+const RichEditor = lazy(() => import("../ui/rich-editor"));
+
+/** Answers the Student changed and hasn't saved, by Student and Task: kept while the app runs, so leaving the page loses nothing. */
+const unsavedText = new Map<string, string>();
+
+/**
+ * The Student's written answer: what Edunex has (`base`), what's in the box
+ * (`text`), and whether they differ. A change on Edunex replaces the box's
+ * text only when the Student hasn't changed it; their own change is kept
+ * (across leaving the page too) until they save it or discard it.
+ */
+function useAnswerText(task: Task) {
+  const account = useDataset("edunex.account");
+  const key = `${account?.nim ?? ""}:${task.id}`;
+  const saved = task.answer?.text ?? "";
+  const [base, setBase] = useState(saved);
+  const [text, setText] = useState(() => unsavedText.get(key) ?? saved);
+  // Bumped to load new text into the box (its content isn't controlled).
+  const [version, setVersion] = useState(0);
+  const textShape = useMemo(() => answerShape(text), [text]);
+  const baseShape = useMemo(() => answerShape(base), [base]);
+  const dirty = textShape !== baseShape;
+
+  useEffect(() => {
+    if (saved === base) return;
+    const savedShape = answerShape(saved);
+    if (dirty && textShape !== savedShape) return;
+    setBase(saved);
+    if (textShape !== savedShape) {
+      setText(saved);
+      setVersion((v) => v + 1);
+    }
+  }, [saved, base, dirty, textShape]);
+
+  useEffect(() => {
+    if (dirty) unsavedText.set(key, text);
+    else unsavedText.delete(key);
+  }, [dirty, key, text]);
+
+  /** Back to Edunex's text: through the box when it's open, so the cursor stays in it and Undo brings the text back. */
+  const discard = (box: RichEditorHandle | null) => {
+    unsavedText.delete(key);
+    if (box) box.reset(base);
+    else setVersion((v) => v + 1);
+    setText(base);
+  };
+  return { text, setText, saved, dirty, discard, version };
+}
+
 /** The submission card: status, the Student's answer, attaching files, Save draft and Submit. */
-function HandIn({ task, status }: Row) {
+function HandIn({ task, status, onPreview }: Row & { onPreview?: (file: TaskFile) => void }) {
   const t = useT();
   const f = useFormat();
   const now = useNow();
@@ -792,20 +844,29 @@ function HandIn({ task, status }: Row) {
   const sent = status === "submitted" || status === "in_review";
   // A group Task is handed in by the group on Edunex's own pages.
   const editable = !task.group && takesAnswers(task, now);
+  const answer = useAnswerText(task);
+  const box = useRef<RichEditorHandle>(null);
+  // A draft written on Edunex with pictures, tables, formulas or text styling (colours, sizes, centring) stays as it is: the box would lose them.
+  const textLocked = useMemo(() => Boolean(answer.saved) && !editableInApp(answer.saved), [answer.saved]);
+  // Edunex's website takes any text it wrote itself (a picture alone included); what's typed here needs words.
+  const hasText = textLocked ? Boolean(answer.saved.trim()) : Boolean(plainText(answer.text));
+  const whyId = useId();
   const sentAt = submittedAt(task);
   const saved = (task.answer?.files ?? []).filter((file) => !removed.includes(file.url));
   const uploaded = attached.flatMap((item) => (item.state === "uploaded" && item.file ? [item.file] : []));
   const files = [...saved, ...uploaded];
   const uploading = attached.some((item) => item.state === "waiting" || item.state === "uploading");
   const failed = attached.some((item) => item.state === "failed");
-  const hasAnswer = files.length > 0 || (!task.fileRequired && Boolean(task.answer?.text));
-  const changed = uploaded.length > 0 || removed.length > 0;
+  // As on Edunex's website: text always, and a file when the Task asks for one.
+  const hasAnswer = hasText && (files.length > 0 || !task.fileRequired);
+  const textChanged = !textLocked && answer.dirty;
+  const changed = uploaded.length > 0 || removed.length > 0 || textChanged;
   const guard = handInChecks(task, { now, sessions: presence?.[task.courseCode] ?? [], edunex: edunex.state, files, countedIn });
   // Waiting for the attendance window is the default only once there is something to keep as a draft.
   const wait = guard.waitForWindow && hasAnswer;
   // The one primary button: Kumpulkan, or, when waiting is better, Simpan draf (once there is something new to save).
   const idle = editable && !uploading && !failed && busy === null;
-  const canSave = idle && changed && !guard.blocked;
+  const canSave = idle && changed && hasAnswer && !guard.blocked;
   const canSubmit = idle && hasAnswer && !guard.blocked;
   const pattern = namingPattern(task.instructions);
   const type = requiredFileType(task.instructions);
@@ -880,7 +941,9 @@ function HandIn({ task, status }: Row) {
     setBusy(kind);
     setNotice(null);
     try {
-      const result = await bridge.invoke(kind === "draft" ? "tasks.saveDraft" : "tasks.submit", { taskId: task.id, files });
+      // The text goes only when the Student changed it; otherwise Edunex keeps its own, exactly.
+      const input = { taskId: task.id, files, ...(textChanged ? { text: answer.text } : {}) };
+      const result = await bridge.invoke(kind === "draft" ? "tasks.saveDraft" : "tasks.submit", input);
       settle(kind, result);
     } catch (error) {
       setNotice(noticeFor(error));
@@ -971,11 +1034,13 @@ function HandIn({ task, status }: Row) {
           : { tone: "neutral", text: t("handIn.why.refused") }
         : uploading
           ? { tone: "neutral", text: t("handIn.why.uploading") }
-          : !hasAnswer
-            ? { tone: "neutral", text: t("handIn.why.noFile") }
-            : early
-              ? { tone: "warning", text: t(changed || status === "not_started" ? "handIn.why.early" : "handIn.why.earlySaved", { when: whenWindow }) }
-              : null;
+          : !hasText
+            ? { tone: "neutral", text: t("handIn.why.noText") }
+            : !hasAnswer
+              ? { tone: "neutral", text: t("handIn.why.noFile") }
+              : early
+                ? { tone: "warning", text: t(changed || status === "not_started" ? "handIn.why.early" : "handIn.why.earlySaved", { when: whenWindow }) }
+                : null;
 
   const draftButton = (
     <Button
@@ -1022,6 +1087,46 @@ function HandIn({ task, status }: Row) {
         <div>
           {/* A group's answer is written on Edunex: the label only heads the files already in it. */}
           {(!task.group || saved.length > 0) && <p className="mb-2 text-small font-semibold text-muted">{t("handIn.yourAnswer")}</p>}
+          {editable && !textLocked ? (
+            <div className="mb-3">
+              <Suspense fallback={<Skeleton className="h-[170px] w-full rounded-lg" />}>
+                <RichEditor
+                  ref={box}
+                  key={answer.version}
+                  initial={answer.text}
+                  onChange={answer.setText}
+                  label={t("handIn.yourAnswer")}
+                  placeholder={t("handIn.textPlaceholder")}
+                  describedBy={whyId}
+                />
+              </Suspense>
+              {textChanged && (
+                <p className="mt-1.5 flex flex-wrap items-center justify-between gap-x-3 text-caption text-muted">
+                  {t("handIn.textUnsaved")}
+                  <button type="button" onClick={() => answer.discard(box.current)} className="focus-ring rounded font-medium text-accent-fg hover:underline">
+                    {t("handIn.textDiscard")}
+                  </button>
+                </p>
+              )}
+            </div>
+          ) : (
+            !task.group &&
+            (textLocked || plainText(answer.saved)) && (
+              <div className="mb-3 space-y-2">
+                <div className="rounded-lg bg-fill px-3 py-2.5">
+                  <RichText html={answer.saved} onOpenLink={open} />
+                </div>
+                {editable && textLocked && (
+                  <div className="space-y-2">
+                    <p className="text-caption text-muted">{t("handIn.textRich")}</p>
+                    <Button size="sm" icon={<Icons.ArrowUpRight className="size-3.5" />} onClick={() => open(edunexTaskUrl(task.id))}>
+                      {t("handIn.editOnEdunex")}
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )
+          )}
           {(saved.length > 0 || attached.length > 0) && (
             <ul className="mb-2 space-y-1.5">
               {saved.map((file) => (
@@ -1031,6 +1136,7 @@ function HandIn({ task, status }: Row) {
                   hint={editable ? fileHint(t, file.name, pattern, type) : null}
                   onRemove={editable ? () => removeSaved(file.url) : undefined}
                   onDownload={editable ? undefined : () => void download(file)}
+                  onPreview={onPreview && isPdf(file.name) ? () => onPreview(file) : undefined}
                   downloading={downloading === file.url}
                 />
               ))}
@@ -1054,6 +1160,7 @@ function HandIn({ task, status }: Row) {
                   hint={item.state === "uploaded" ? fileHint(t, item.name, pattern, type) : null}
                   onRetry={item.state === "failed" && !refused(item) ? () => retry(item) : undefined}
                   onRemove={editable ? () => removeAttached(item.key) : undefined}
+                  onPreview={onPreview && item.file && isPdf(item.name) ? () => item.file && onPreview(item.file) : undefined}
                 />
               ))}
             </ul>
@@ -1145,6 +1252,7 @@ function HandIn({ task, status }: Row) {
             </div>
             {why && !(notice?.action === "signIn" && guard.blocked) && (
               <div
+                id={whyId}
                 role="status"
                 className={cx(
                   "flex items-start gap-2 text-small",
@@ -1259,9 +1367,9 @@ function HandInDialog({
         >
           <DialogPrimitive.Title className="text-title font-semibold">{t("handIn.confirmTitle")}</DialogPrimitive.Title>
           <DialogPrimitive.Description className="mt-1.5 text-body text-muted">
-            {t("handIn.confirmBody", {
-              files: files.length === 1 ? files[0].name : files.length ? t("handIn.fileCount", { count: files.length }) : t("handIn.yourAnswer"),
-            })}
+            {files.length
+              ? t("handIn.confirmBody", { files: files.length === 1 ? files[0].name : t("handIn.fileCount", { count: files.length }) })
+              : t("handIn.confirmBodyText")}
           </DialogPrimitive.Description>
           {checks.length > 0 && (
             <ul className="mt-4 space-y-2 border-t border-line pt-4">
@@ -1343,6 +1451,12 @@ function FileBadge({ name, state }: { name: string; state?: Attached["state"] })
   );
 }
 
+const isPdf = (name: string) => /\.pdf$/i.test(name);
+
+/**
+ * One file of the answer. `onPreview` is the seam for an in-app viewer of the
+ * Student's own files: given, the row offers to look at the file.
+ */
 function FileRow({
   name,
   state,
@@ -1351,6 +1465,7 @@ function FileRow({
   onRemove,
   onRetry,
   onDownload,
+  onPreview,
   downloading = false,
 }: {
   name: string;
@@ -1360,6 +1475,7 @@ function FileRow({
   onRemove?: () => void;
   onRetry?: () => void;
   onDownload?: () => void;
+  onPreview?: () => void;
   downloading?: boolean;
 }) {
   const t = useT();
@@ -1379,6 +1495,16 @@ function FileRow({
             </span>
           )}
         </span>
+        {onPreview && !failed && (
+          <button
+            type="button"
+            aria-label={t("handIn.preview", { name })}
+            onClick={onPreview}
+            className="focus-ring grid size-7 shrink-0 place-items-center rounded-md text-muted transition-colors duration-150 hover:bg-hover hover:text-fg"
+          >
+            <Icons.Eye className="size-3.5" />
+          </button>
+        )}
         {onRemove && !failed && (
           <button
             type="button"

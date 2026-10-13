@@ -10,6 +10,7 @@ import { takesAnswers } from "../../../core/tasks";
 import { EngineError, isEngineError } from "../../errors";
 import { type HttpResponse, NetworkError, type Transport } from "../../http/transport";
 import type { SourceAction, SourceContext } from "../source";
+import { answerWords, cleanAnswer } from "./answer-html";
 import { EDUNEX_API, EdunexClient, TIMEOUT_MS } from "./client";
 import { LoginMe } from "./schemas";
 import type { EdunexSession } from "./session";
@@ -22,8 +23,10 @@ import { type AnswerFile, readTaskRecord, remember, type TaskRecord } from "./ta
 // the answer form `ContentTaskAnswer` (getFilePath, onFilesAdded, onProcessing,
 // onSuccess, saveData) in js/components/content/reader/task-reader.2eb63cbd.js,
 // and the task store's answerCreate, answerUpdate and answerSend in
-// js/app.79bf84f4.js. The replies' shapes beyond the upload links are unknown,
-// so only their status counts: every write is confirmed by reading the Task back.
+// js/app.79bf84f4.js. Like the website, an answer is never saved without text
+// ("Text is required"). The replies' shapes beyond the upload links are
+// unknown, so only their status counts: every write is confirmed by reading
+// the Task back.
 
 /** A file in an answer as the website sends it: Edunex's own record for a file kept, `{ file, name }` for a new one. */
 type SentFile = AnswerFile | { file: string; name: string };
@@ -128,6 +131,7 @@ export const taskActions: Record<string, SourceAction<EdunexSession>> = {
       const fresh = await readBack(context, client, known(context, handIn.taskId));
       const refused = await refusal(context, handIn.taskId, fresh);
       if (refused || !fresh) return refused ?? GONE;
+      needsText(answerText(fresh, handIn), handIn);
       const saved = await refusedMidway(context, client, fresh, () => saveAnswer(context, session, client, fresh, handIn));
       if ("outcome" in saved) return saved;
       await remember(context, handIn.taskId, saved.task);
@@ -143,10 +147,13 @@ export const taskActions: Record<string, SourceAction<EdunexSession>> = {
       const fresh = await readBack(context, client, known(context, handIn.taskId));
       const refused = await refusal(context, handIn.taskId, fresh);
       if (refused || !fresh) return refused ?? GONE;
+      const text = answerText(fresh, handIn);
+      needsText(text, handIn);
       if (fresh.task.fileRequired && handIn.files.length === 0) throw new EngineError("Rejected", "This Task needs a file");
       return refusedMidway(context, client, fresh, async () => {
         let draft: TaskRecord | null = fresh;
-        if (!fresh.task.answer || !holdsFiles(fresh.task.answer.files, handIn.files)) {
+        // Saved first when Edunex's draft doesn't hold exactly this text and these files.
+        if (!fresh.task.answer || !holdsFiles(fresh.task.answer.files, handIn.files) || text !== (fresh.answer?.answer ?? "")) {
           const saved = await saveAnswer(context, session, client, fresh, handIn);
           draft = saved.kept ? saved.record : null;
           if (!draft) {
@@ -178,6 +185,20 @@ function known(context: SourceContext, taskId: number): Task {
 
 function readBack(context: SourceContext, client: EdunexClient, task: Task): Promise<TaskRecord | null> {
   return readTaskRecord(client, task, context.clock.now());
+}
+
+/** The text the answer will hold: the Student's, cleaned, when they wrote it; else Edunex's own, unchanged. */
+function answerText(fresh: TaskRecord, handIn: HandIn): string {
+  return handIn.text !== undefined ? cleanAnswer(handIn.text) : (fresh.answer?.answer ?? "");
+}
+
+/**
+ * Edunex's website never saves an answer without text: neither does the app.
+ * What the Student writes needs words; text the website wrote itself counts
+ * as the website counts it (a picture alone too).
+ */
+function needsText(text: string, handIn: HandIn): void {
+  if (handIn.text !== undefined ? !answerWords(text) : !text.trim()) throw new EngineError("Rejected", "Write your answer first: Edunex needs text");
 }
 
 /** A group Task goes through the website's group pages (`/course/task/answer/groups`): the app never writes a personal answer to it. */
@@ -216,8 +237,8 @@ async function refusedMidway<T>(context: SourceContext, client: EdunexClient, fr
  * Writes the draft as the website's "Save Answer" does: one request with the
  * text and every file, creating the answer when Edunex has none, else
  * updating it. Each file the Student kept goes back as Edunex's own record of
- * it; a new one as its link and name. `kept`: Edunex, read back, holds exactly
- * these files in a draft.
+ * it; a new one as its link and name. `kept`: Edunex, read back, holds this
+ * text and exactly these files in a draft.
  */
 async function saveAnswer(
   context: SourceContext,
@@ -232,13 +253,19 @@ async function saveAnswer(
     if (!isStorageUrl(file.url)) throw new EngineError("Rejected", `${file.name} isn't on Edunex's storage`);
     return { file: file.url, name: file.name };
   });
-  // The answer's own text as Edunex has it, unchanged.
-  const text = fresh.answer?.answer ?? "";
+  const text = answerText(fresh, handIn);
+  needsText(text, handIn);
   const answer = fresh.task.answer;
   if (answer) await write(context, session, "PATCH", `/course/task/answers/${answer.id}`, answerBodies.update(fresh.task.id, text, files));
   else await write(context, session, "POST", "/course/task/answers", answerBodies.create(fresh.task.id, text, files));
   const after = await readBack(context, client, fresh.task);
-  const kept = Boolean(after?.task.answer && !after.task.answer.sent && holdsFiles(after.task.answer.files, handIn.files));
+  // The words are what must have arrived; Edunex may tidy the markup around them.
+  const kept = Boolean(
+    after?.answer &&
+      !after.task.answer?.sent &&
+      holdsFiles(after.task.answer?.files ?? [], handIn.files) &&
+      answerWords(after.answer.answer ?? "") === answerWords(text),
+  );
   return { task: after?.task ?? null, record: after, kept };
 }
 

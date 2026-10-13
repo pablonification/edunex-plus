@@ -232,7 +232,12 @@ other than `PERSONAL`) is handed in through the website's group pages
    both with `{ "data": { "attributes": { "task_id", "files", "answer", "is_sent": 0 } } }`.
    `files` is the full list the draft should hold, as the website sends it: Edunex's own record
    (as read, with its `id`) for each file kept, `{ "file": readUrl, "name" }` for a new one; only
-   links on Edunex's storage. `answer` is the answer's text (HTML).
+   links on Edunex's storage. `answer` is the answer's text (HTML). Text the Student wrote in the
+   app is cleaned to the plain formatting CKEditor writes (`p br strong em u s a[href] ul ol li
+   blockquote h2–h4 code pre`, no other attribute), because Edunex shows answers to lecturers
+   without cleaning them. Text the Student didn't change goes back exactly as Edunex has it (a
+   website draft with pictures or tables stays whole). As on the website ("Text is required"),
+   an answer without text is refused before anything is sent.
 3. Read back. "Saved" only if Edunex now holds exactly those files in an unsent answer;
    otherwise "unconfirmed".
 
