@@ -214,9 +214,15 @@ const hooks: DemoHooks = {
   transport: world,
   clock: world.clock,
   profile,
-  async signIn(source) {
-    // About as long as a sign-in window that remembers the Microsoft account.
-    await new Promise((resolve) => setTimeout(resolve, 900));
+  async signIn(source, { quiet, onStep }) {
+    const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+    // About as long as a sign-in window that remembers the Microsoft account, then the website
+    // reading its session out of sight. A quiet try for the other system finds Microsoft's session.
+    await wait(900);
+    if (!quiet) {
+      onStep("finishing");
+      await wait(1_500);
+    }
     return source === "edunex" ? PRETEND_TOKEN : PRETEND_SIX_COOKIE;
   },
   async prepare(engine) {

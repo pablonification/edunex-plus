@@ -15,6 +15,7 @@ import type { SourceId } from "../../src/core/models";
 import { phoneCalendar } from "../../src/core/phone-calendar";
 import { handInHandlers, type LocalFile } from "../../src/desktop/hand-in";
 import { readFile } from "../../src/desktop/remote-files";
+import { signInToBoth } from "../../src/desktop/signin-both";
 import { createEngine, type Engine } from "../../src/engine/engine";
 import { EngineError, isEngineError } from "../../src/engine/errors";
 import { PRETEND_TOKEN } from "../pretend/edunex";
@@ -70,6 +71,12 @@ export interface Options {
   start?: boolean;
   /** What the Student does in the sign-in window. */
   signInWindow?: "completes" | "closes";
+  /**
+   * What the app's own quiet try for the other system finds, right after the Student signs in to one:
+   * Microsoft's session, so it connects by itself, or Microsoft asking for the Student, so it gives up
+   * (the default, so each test connects what it means to).
+   */
+  microsoft?: "remembers" | "asks";
   vaultMode?: AppSnapshot["vault"];
   /** Run the packaged app's "new version available" check against the pretend GitHub. */
   checkForUpdates?: boolean;
@@ -129,13 +136,36 @@ export async function openApp(options: Options = {}) {
   /** The system can't open links (no browser set, the OS refused). */
   let linksFail = false;
   const inFlight = new Set<Promise<unknown>>();
+  const track = (work: Promise<unknown>) => {
+    inFlight.add(work);
+    void work.catch(() => undefined).finally(() => inFlight.delete(work));
+  };
+  // Main's real sign-in logic (one Microsoft sign-in for both systems), on pretend sign-in windows.
+  const signIns = signInToBoth({
+    engine: { snapshot: () => engine.snapshot(), signIn: (source, session) => meanwhile(engine.signIn(source, session)) },
+    send: (event) => {
+      for (const listener of listeners) listener(event);
+    },
+    windows: {
+      open: async (source, { quiet, onStep }) => {
+        const session = source === "edunex" ? PRETEND_TOKEN : PRETEND_SIX_COOKIE;
+        if (quiet) return options.microsoft === "remembers" ? session : null;
+        if (options.signInWindow === "closes") return null;
+        // Microsoft hands back; the window hides while the website's session is read.
+        onStep("finishing");
+        return session;
+      },
+      stopQuiet: () => undefined,
+      forget: async () => undefined,
+    },
+    background: track,
+  });
   const handlers: { [N in ActionName]: (input: never) => Promise<unknown> } = {
     "app.snapshot": async () => ({ ...engine.snapshot(), platform: options.platform ?? "darwin", vault: options.vaultMode ?? "encrypted" }),
     "app.ready": async () => ({}),
     "auth.signIn": async ({ source }: { source: SourceId }) => {
-      if (options.signInWindow === "closes") return { signedIn: false };
-      await meanwhile(engine.signIn(source, sessionFor(source)));
-      return { signedIn: true };
+      if (source === "itb") throw new EngineError("Rejected", "itb has no sign-in");
+      return { signedIn: await signIns.signIn(source) };
     },
     "auth.signOut": async ({ source }: { source?: SourceId }) => {
       await engine.signOut(source);
@@ -226,8 +256,7 @@ export async function openApp(options: Options = {}) {
           throw error;
         }
       })();
-      inFlight.add(work);
-      void work.finally(() => inFlight.delete(work));
+      track(work);
       return work;
     },
     onEvent(listener) {

@@ -166,8 +166,11 @@ Course files you saved for offline reading are your own copies and stay where yo
 ## Signing in
 
 You sign in with your own **INA account** on ITB's real Microsoft sign-in page, inside a
-sign-in window the app opens: once for Edunex, once for SIX. Your password only ever reaches
-Microsoft; Edunex Plus never sees it. The app keeps the session those pages hand back.
+sign-in window the app opens. Your password only ever reaches Microsoft; Edunex Plus never sees
+it. The app keeps the session those pages hand back, and closes the window as soon as Microsoft
+is done with you. Sign in to one of Edunex and SIX and the app connects the other on the same
+sign-in by itself, out of sight; if Microsoft wants something from you for that one, it simply
+stays one "Hubungkan" away.
 
 ## Privacy
 

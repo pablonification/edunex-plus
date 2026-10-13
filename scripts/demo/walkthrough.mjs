@@ -72,11 +72,9 @@ const firstRun = [
       await h.beat(2400);
       await attempt("connect Edunex", () => h.click(h.button("Hubungkan Edunex")));
       await h.waitPaused(rec, () => /\d{8}/.test(document.body.innerText), 30_000);
-      await h.say("Connected: your name appears right away.", "SIX next: the same Microsoft sign-in covers it.");
-      await h.beat(2200);
-      await attempt("connect SIX", () => h.click(h.button("Hubungkan SIX")));
-      await h.beat(1200);
+      await h.say("Connected: your name appears right away.", "SIX comes along by itself: the same Microsoft sign-in covers it.");
       await h.waitPaused(rec, () => !document.querySelector("button[aria-busy=true]") && /Teknologi Informasi/.test(document.body.innerText), 90_000);
+      await h.beat(1200);
       await h.say("Both connected.", "The app only reads: nothing is handed in or marked unless you press the button.");
       await h.beat(2400);
       await attempt("continue", () => h.click(h.button(/^Lanjut/)));

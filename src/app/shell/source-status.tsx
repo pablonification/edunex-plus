@@ -5,7 +5,7 @@ import { type ReactNode, useCallback, useState, useSyncExternalStore } from "rea
 import type { SourceId, SourceState } from "../../core/models";
 import { ActionError, type Bridge } from "../bridge";
 import { useFormat, useT } from "../i18n";
-import { useBridge, useDataset, useStatus } from "../store";
+import { useBridge, useDataset, useSignInStep, useStatus } from "../store";
 import { SourceLogo } from "../ui/brand";
 import { Button, IconButton } from "../ui/controls";
 import { cx } from "../ui/cx";
@@ -33,6 +33,20 @@ export function useSignIn() {
     [bridge, t],
   );
   return { signIn, busy };
+}
+
+/**
+ * What a sign-in says once the Student's part in its window is over: it's
+ * finishing out of sight, or it's slow and its window is shown again.
+ */
+export function useSignInNote(source: SourceId): { text: string; hint: string | null; slow: boolean } | null {
+  const t = useT();
+  const step = useSignInStep(source === "six" ? "six" : "edunex");
+  if (source === "itb" || !step) return null;
+  const name = t(`source.${source}`);
+  return step === "slow"
+    ? { text: t("signIn.slow", { source: name }), hint: t("signIn.slowHint"), slow: true }
+    : { text: t("signIn.finishing", { source: name }), hint: null, slow: false };
 }
 
 // The sources a refresh is reading right now, whoever asked (the panel, ⌘R,
@@ -206,7 +220,8 @@ function SourceRow({ source }: { source: SourceId }) {
   const refreshing = useReading().includes(source);
   const name = t(`source.${source}`);
   const needsSignIn = source !== "itb" && (status.state === "expired" || status.state === "signed-out");
-  const hint = refreshing ? t("sync.checking") : hintFor(status.state, name, t);
+  const note = useSignInNote(source);
+  const hint = needsSignIn && note ? note.text : refreshing ? t("sync.checking") : hintFor(status.state, name, t);
   const word = status.state === "changed" ? t("status.changedShort") : t(`status.${status.state}`);
   return (
     <li className="flex items-start gap-3 rounded-lg px-2.5 py-2">
@@ -265,6 +280,8 @@ export function ProblemBanner() {
   const { signIn, busy: signingIn } = useSignIn();
   const { refresh, busy: refreshing } = useRefresh();
   const [dismissed, setDismissed] = useState<string | null>(null);
+  const edunexNote = useSignInNote("edunex");
+  const sixNote = useSignInNote("six");
   const has = { edunex: account !== undefined, six: student !== undefined };
   const problem =
     [edunex, six].find((status) => status.state === "changed") ??
@@ -287,13 +304,16 @@ export function ProblemBanner() {
       : problem.state === "signed-out"
         ? t("banner.signedOut", { source: name })
         : t("banner.changed", { source: name });
-  const detail = offline
-    ? lastUpdate
-      ? t("banner.offlineHint", { time: f.time(lastUpdate) })
-      : null
-    : problem.state === "changed"
-      ? t("status.changedHint", { source: name })
-      : t("banner.keptHint");
+  const note = needsSignIn ? (problem.source === "six" ? sixNote : edunexNote) : null;
+  const detail = note
+    ? note.text
+    : offline
+      ? lastUpdate
+        ? t("banner.offlineHint", { time: f.time(lastUpdate) })
+        : null
+      : problem.state === "changed"
+        ? t("status.changedHint", { source: name })
+        : t("banner.keptHint");
   return (
     <div
       role="status"

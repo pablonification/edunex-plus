@@ -148,6 +148,13 @@ export const shellStrings = {
   "menu.file": { id: "Berkas", en: "File" },
   "menu.view": { id: "Tampilan", en: "View" },
   "signIn.edunexTitle": { id: "Masuk ke Edunex", en: "Sign in to Edunex" },
+  "signIn.finishing": { id: "Menyelesaikan masuk ke {source}…", en: "Finishing signing in to {source}…" },
+  "signIn.slow": { id: "{source} lambat menyelesaikan masuk", en: "{source} is slow to finish signing in" },
+  "signIn.slowHint": {
+    id: "Jendela masuknya terbuka lagi: tunggu di sana, atau tutup lalu coba lagi.",
+    en: "Its sign-in window is open again: wait there, or close it and try again.",
+  },
+  "signIn.joined": { id: "{source} ikut terhubung, tanpa masuk lagi", en: "{source} connected too, without signing in again" },
   "app.startFailed": { id: "Edunex Plus tidak bisa dibuka", en: "Edunex Plus couldn't start" },
 
   // Crash guard

@@ -2,12 +2,13 @@
 // events. Screens read it through hooks that subscribe to one dataset or one
 // source each, so an update redraws only what uses it.
 import { createContext, type ReactNode, useContext, useEffect, useSyncExternalStore } from "react";
-import type { AppSnapshot, DatasetPayload, Event } from "../core/contract";
+import type { AppSnapshot, DatasetPayload, Event, SignInStep } from "../core/contract";
 import type { DatasetName, DatasetValue, Settings, SourceId, SourceStatus } from "../core/models";
 import type { Route } from "../core/route";
 import type { Bridge } from "./bridge";
 
 type Command = Extract<Event, { type: "command" }>["command"];
+type SignInSource = Extract<Event, { type: "signIn" }>["source"];
 
 export class AppStore {
   private readonly datasets = new Map<string, DatasetPayload>();
@@ -16,6 +17,8 @@ export class AppStore {
   private readonly listeners = new Map<string, Set<() => void>>();
   private readonly commandListeners = new Set<(command: Command) => void>();
   private readonly navigateListeners = new Set<(route: Route) => void>();
+  private readonly signInSteps = new Map<SignInSource, SignInStep>();
+  private readonly joinedListeners = new Set<(source: SignInSource) => void>();
   readonly version: string;
   readonly platform: AppSnapshot["platform"];
   readonly vault: AppSnapshot["vault"];
@@ -55,6 +58,14 @@ export class AppStore {
         return;
       case "navigate":
         for (const listener of this.navigateListeners) listener(event.route);
+        return;
+      case "signIn":
+        if (event.step) this.signInSteps.set(event.source, event.step);
+        else if (!this.signInSteps.delete(event.source)) return;
+        this.notify(`signIn:${event.source}`);
+        return;
+      case "signIn.joined":
+        for (const listener of this.joinedListeners) listener(event.source);
     }
   }
 
@@ -73,6 +84,16 @@ export class AppStore {
   onNavigate(listener: (route: Route) => void): () => void {
     this.navigateListeners.add(listener);
     return () => this.navigateListeners.delete(listener);
+  }
+
+  onJoined(listener: (source: SignInSource) => void): () => void {
+    this.joinedListeners.add(listener);
+    return () => this.joinedListeners.delete(listener);
+  }
+
+  /** Where a sign-in stands past the Student's part, if it is past it. */
+  signInStep(source: SignInSource): SignInStep | null {
+    return this.signInSteps.get(source) ?? null;
   }
 
   dataset<N extends DatasetName>(name: N): DatasetPayload | undefined {
@@ -146,6 +167,21 @@ export function useSettings(): Settings {
     (listener) => store.subscribe("settings", listener),
     () => store.currentSettings(),
   );
+}
+
+/** Where a sign-in stands once the Student's part is over: finishing out of sight, slow; null otherwise. */
+export function useSignInStep(source: SignInSource): SignInStep | null {
+  const store = useStore();
+  return useSyncExternalStore(
+    (listener) => store.subscribe(`signIn:${source}`, listener),
+    () => store.signInStep(source),
+  );
+}
+
+/** Runs `handler` when a system connected by itself on the Student's sign-in to the other. */
+export function useJoined(handler: (source: SignInSource) => void): void {
+  const store = useStore();
+  useEffect(() => store.onJoined(handler), [store, handler]);
 }
 
 /** Runs `handler` when the menu (or its shortcut) asks for something. */

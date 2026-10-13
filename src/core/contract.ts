@@ -37,6 +37,11 @@ export type ActionName = keyof typeof Actions;
 export type ActionInput<N extends ActionName> = z.input<(typeof Actions)[N]["input"]>;
 export type ActionOutput<N extends ActionName> = z.infer<(typeof Actions)[N]["output"]>;
 
+/** Where a sign-in stands once the Student's part in its window is over: finishing out of sight, or slow and shown again. */
+export const SignInStep = z.enum(["finishing", "slow"]);
+export type SignInStep = z.infer<typeof SignInStep>;
+const SignInSource = z.enum(["edunex", "six"]);
+
 export const Event = z.discriminatedUnion("type", [
   z.object({ type: z.literal("dataset"), dataset: DatasetPayload }),
   z.object({ type: z.literal("dataset.removed"), name: z.string() }),
@@ -46,6 +51,10 @@ export const Event = z.discriminatedUnion("type", [
   z.object({ type: z.literal("command"), command: z.enum(["settings", "refresh", "search"]) }),
   /** Open a screen: the Student clicked an OS notification. */
   z.object({ type: z.literal("navigate"), route: Route }),
+  /** A sign-in's step past the Student's part (null: with the Student again, or over). */
+  z.object({ type: z.literal("signIn"), source: SignInSource, step: SignInStep.nullable() }),
+  /** A system connected by itself, on the Microsoft sign-in the Student just did for the other one. */
+  z.object({ type: z.literal("signIn.joined"), source: SignInSource }),
 ]);
 export type Event = z.infer<typeof Event>;
 

@@ -17,7 +17,7 @@ import { cx } from "../ui/cx";
 import { Card } from "../ui/display";
 import { Icons } from "../ui/icons";
 import { Meta, Stat, StatRow } from "../ui/layout";
-import { useSignIn } from "./source-status";
+import { useSignIn, useSignInNote } from "./source-status";
 
 /** What the reading step counts, and what decides it's done (src/core/first-scan.ts homeReady). */
 const READ: readonly DatasetName[] = [
@@ -187,17 +187,22 @@ function SourceRow({
   const t = useT();
   const status = useStatus(source);
   const { signIn, busy } = useSignIn();
+  const note = useSignInNote(source);
   const name = t(`source.${source}`);
   const connected = isConnected(status.state);
   // Connected first: the sign-in call can still be finishing while the name is already in.
   let line: ReactNode = detail;
-  let waiting = false;
+  let hint: string | null = null;
   if (connected && who) line = <Meta>{who}</Meta>;
   else if (connected) line = t("welcome.readingName");
   else if (status.state === "connecting") line = t("status.connecting");
-  else if (busy) {
+  else if (note) {
+    // Microsoft handed back: the sign-in window is out of sight while the app reads the session.
+    line = note.text;
+    hint = note.hint;
+  } else if (busy) {
     line = t("welcome.waiting");
-    waiting = true;
+    hint = t("welcome.waitingHint");
   }
 
   return (
@@ -205,8 +210,8 @@ function SourceRow({
       <SourceLogo source={source} className="size-10" />
       <span className="min-w-0 flex-1">
         <span className="block text-lead font-semibold">{name}</span>
-        <span className={cx("line-clamp-2 block text-small", connected && who ? "text-fg/80" : "text-muted")}>{line}</span>
-        {waiting && <span className="block text-caption text-faint">{t("welcome.waitingHint")}</span>}
+        <span className={cx("line-clamp-2 block text-small", connected && who ? "text-fg/80" : note?.slow ? "text-warning-fg" : "text-muted")}>{line}</span>
+        {hint && <span className="block text-caption text-faint">{hint}</span>}
       </span>
       {connected ? (
         <span className="inline-flex shrink-0 items-center gap-1.5 text-small font-semibold text-success-fg">
