@@ -45,6 +45,12 @@ describe("the window's top on Windows and Linux", () => {
     expect(topBar().className).not.toMatch(/\bpx-/);
   });
 
+  it("the sidebar's top keeps its left end free for window buttons a Linux desktop puts there", async () => {
+    screen = await openApp({ signedIn: true, platform: "linux" });
+    expect(sidebarTop().className).toContain("pl-[calc(--spacing(5)+var(--window-controls-start))]");
+    expect(sidebarTop().className).not.toMatch(/\bpx-/);
+  });
+
   it("the welcome screen moves the window by its top, and its language choice keeps clear of the window buttons", async () => {
     screen = await openApp({ platform: "win32" });
     expect(screen.text()).toContain("Selamat datang di Edunex Plus");

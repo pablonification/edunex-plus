@@ -319,7 +319,8 @@ are decorative; the control around them carries the name.
   its minimise, maximise and close buttons over the right end of the top bar,
   as tall as it (`--title-bar`), their symbols in the theme's text colour. The
   top bar keeps that corner free (`--window-controls`, from the Window
-  Controls Overlay). The top of the sidebar and the top bar drag the window
+  Controls Overlay), and the sidebar's top the left corner, where some Linux
+  desktops put them (`--window-controls-start`). The top of the sidebar and the top bar drag the window
   (double-click maximises); controls inside them don't. Dialog scrims and
   popovers never drag, so a click on them is theirs. Panels that reach the top
   of the window (the PDF viewer) start below the top bar. The sign-in windows

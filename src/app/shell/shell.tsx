@@ -213,8 +213,13 @@ function Sidebar({ onSettings }: { onSettings: () => void }) {
   return (
     <aside className="flex h-full w-[248px] shrink-0 flex-col border-r border-line bg-sidebar select-none">
       {store.platform === "darwin" && <div className="drag h-10 shrink-0" />}
-      {/* The app's own name, under the traffic lights on macOS, level with the top bar elsewhere. It moves the window. */}
-      <div className={cx("drag flex shrink-0 items-center gap-2.5 px-5", store.platform === "darwin" ? "h-11" : "h-(--title-bar)")}>
+      {/* The app's own name, under the traffic lights on macOS, level with the top bar elsewhere (clear of window buttons some Linux desktops put at the left). It moves the window. */}
+      <div
+        className={cx(
+          "drag flex shrink-0 items-center gap-2.5 pr-5",
+          store.platform === "darwin" ? "h-11 pl-5" : "h-(--title-bar) pl-[calc(--spacing(5)+var(--window-controls-start))]",
+        )}
+      >
         <AppMark className="size-5" />
         <span className="text-body font-semibold tracking-[-0.01em]">Edunex Plus</span>
       </div>
