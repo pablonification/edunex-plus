@@ -231,7 +231,7 @@ await session("first-run", async (demo) => {
     await page.getByText("Menyelesaikan masuk ke Edunex…").waitFor({ timeout: 30_000 });
     await demo.shot("32a-pertama-menyelesaikan");
     await page.waitForFunction(() => /\d{8}/.test(document.body.innerText), null, { timeout: 30_000 });
-    await page.getByRole("button", { name: "Hubungkan SIX" }).click();
+    // SIX comes along by itself on the same Microsoft sign-in.
     await page.waitForFunction(() => /Teknik Informasi|Teknologi Informasi/.test(document.body.innerText), null, { timeout: 90_000 });
     await settle(page, 400);
     await demo.shot("33-pertama-terhubung");

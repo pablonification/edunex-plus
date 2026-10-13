@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 // Seam 2: signing in, as the app's window tells it. Once Microsoft hands back,
 // the sign-in window is out of sight and the app says it's finishing (or that
-// it's slow, with the window back).
+// it's slow, with the window back). Right after Edunex, SIX comes along by
+// itself on the same Microsoft sign-in, or stays one click away as before.
 import { afterEach, describe, expect, it } from "vitest";
 import { openApp } from "./harness";
 
@@ -10,6 +11,8 @@ afterEach(() => {
   screen?.close();
   screen = null;
 });
+
+const signInCalls = () => screen!.calls.filter((call) => call.name === "auth.signIn").map((call) => call.input);
 
 describe("first run", () => {
   it("says the sign-in is finishing while its window is out of sight, and what to do when it's slow", async () => {
@@ -27,6 +30,33 @@ describe("first run", () => {
     expect(screen.text()).toContain("Tugas, materi, presensi, unggahan dosen");
   });
 
+  it("connects SIX by itself right after Edunex when Microsoft remembers the Student", async () => {
+    screen = await openApp({ firstScan: true, microsoft: "remembers" });
+    await screen.click("Hubungkan Edunex");
+    expect(screen.text()).toContain("Dimas Pratama · 18223901");
+    expect(screen.text()).toContain("Dimas Pratama · Sistem dan Teknologi Informasi");
+    expect(screen.has("Hubungkan SIX")).toBe(false);
+    // The Student pressed one button: SIX's sign-in never asked them for anything.
+    expect(signInCalls()).toEqual([{ source: "edunex" }]);
+    expect(screen.text()).not.toContain("SIX bisa dihubungkan nanti");
+    await screen.click("Lanjut");
+    await screen.wait(60_000);
+    expect(await screen.sourceState("SIX")).toBe("Terhubung");
+  });
+
+  it("leaves SIX's own Hubungkan as it was when Microsoft wants the Student again", async () => {
+    screen = await openApp({ firstScan: true, microsoft: "asks" });
+    await screen.click("Hubungkan Edunex");
+    expect(screen.text()).toContain("Dimas Pratama · 18223901");
+    expect(screen.has("Hubungkan SIX")).toBe(true);
+    expect(screen.text()).toContain("SIX bisa dihubungkan nanti dari Pengaturan");
+    expect(screen.text()).not.toContain("ikut terhubung");
+
+    await screen.click("Hubungkan SIX");
+    expect(signInCalls()).toEqual([{ source: "edunex" }, { source: "six" }]);
+    expect(screen.text()).toContain("Dimas Pratama · Sistem dan Teknologi Informasi");
+  });
+
   it("reads the same in English", async () => {
     screen = await openApp({ firstScan: true });
     await screen.engineDoes(() => screen!.engine.updateSettings({ lang: "en" }));
@@ -39,6 +69,34 @@ describe("first run", () => {
 });
 
 describe("signing in again later", () => {
+  it("brings SIX back too, and says so in a word", async () => {
+    screen = await openApp({ signedIn: true, six: true, microsoft: "remembers" });
+    screen.world.edunex.expireSession();
+    screen.world.six.expireSession();
+    await screen.engineDoes(() => screen!.engine.refresh());
+    expect(screen.text()).toContain("Sesi Edunex berakhir.");
+    screen.world.edunex.sessionValid = true;
+    screen.world.six.sessionValid = true;
+
+    await screen.click("Masuk lagi");
+    expect(signInCalls()).toEqual([{ source: "edunex" }]);
+    expect(screen.text()).toContain("SIX ikut terhubung, tanpa masuk lagi");
+    expect(screen.text()).not.toContain("Sesi SIX berakhir");
+    expect(await screen.sourceState("Edunex")).toBe("Terhubung");
+    expect(await screen.sourceState("SIX")).toBe("Terhubung");
+  });
+
+  it("doesn't bring back a SIX the Student signed out of", async () => {
+    screen = await openApp({ signedIn: true, six: true, microsoft: "remembers" });
+    await screen.engineDoes(() => screen!.engine.signOut("six"));
+    screen.world.edunex.expireSession();
+    await screen.engineDoes(() => screen!.engine.refresh("edunex"));
+    screen.world.edunex.sessionValid = true;
+    await screen.click("Masuk lagi");
+    expect(await screen.sourceState("SIX")).toBe("Belum masuk");
+    expect(screen.text()).not.toContain("ikut terhubung");
+  });
+
   it("Settings says the sign-in is finishing, then slow", async () => {
     screen = await openApp({ signedIn: true, six: true });
     screen.world.edunex.expireSession();

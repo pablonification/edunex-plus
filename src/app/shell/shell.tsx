@@ -19,14 +19,14 @@ import { PlanScreen, ready as planReady, useBadge as usePlanBadge } from "../scr
 import { PresenceScreen, ready as presenceReady, useBadge as usePresenceBadge } from "../screens/presence";
 import { ScheduleScreen, ready as scheduleReady, useBadge as useScheduleBadge } from "../screens/schedule";
 import { TaskScreen, TasksScreen, ready as tasksReady, useBadge as useTasksBadge } from "../screens/tasks";
-import { useBridge, useCommand, useDataset, useNavigateRequests, useStore } from "../store";
+import { useBridge, useCommand, useDataset, useJoined, useNavigateRequests, useStore } from "../store";
 import { AppMark } from "../ui/brand";
 import { Button } from "../ui/controls";
 import { cx } from "../ui/cx";
 import { Badge, CourseDot } from "../ui/display";
 import { type IconProps, Icons } from "../ui/icons";
 import { factsLabel } from "../ui/layout";
-import { Tooltip } from "../ui/overlays";
+import { Tooltip, toast } from "../ui/overlays";
 import { PanelBoundary } from "../ui/panel-boundary";
 import { AlertsBell } from "./alerts";
 import { FirstScan } from "./first-scan";
@@ -50,6 +50,7 @@ function Layout() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [scanOpen, setScanOpen] = useState(false);
   const bridge = useBridge();
+  const t = useT();
   const { route, go } = useNav();
   const main = useRef<HTMLElement>(null);
   /** Search opens over anything else; the shortcut also closes it. */
@@ -59,6 +60,8 @@ function Layout() {
     setSearchOpen((open) => !(toggle && open));
   }, []);
   useNavigateRequests(go);
+  // The other system came along on the Student's sign-in: worth a word, not a dialog.
+  useJoined(useCallback((source) => toast(t("signIn.joined", { source: t(`source.${source}`) }), "success"), [t]));
   useSearchShortcut(useCallback(() => openSearch(true), [openSearch]));
   useCommand(
     useCallback(
