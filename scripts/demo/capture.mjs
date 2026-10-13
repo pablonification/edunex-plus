@@ -4,7 +4,7 @@
 //   npm run demo:build && node scripts/demo/capture.mjs [out-dir]
 import fs from "node:fs";
 import path from "node:path";
-import { launchDemo, settle } from "./drive.mjs";
+import { launchDemo, settle, trace } from "./drive.mjs";
 
 const out = path.resolve(process.argv[2] ?? ".scratch/ui/captures");
 fs.rmSync(out, { recursive: true, force: true });
@@ -12,21 +12,27 @@ fs.mkdirSync(out, { recursive: true });
 
 const log = (...args) => console.log(...args);
 async function attempt(what, fn) {
+  trace("attempt:", what);
   try {
     await fn();
+    trace("attempt done:", what);
   } catch (error) {
     log(`! ${what}: ${String(error).split("\n")[0]}`);
   }
 }
 
 async function session(scenario, fn, options = {}) {
+  trace("session:", scenario);
   const demo = await launchDemo({ scenario, shots: out, ...options });
+  trace("session launched:", scenario);
   demo.page.setDefaultTimeout(8_000);
   try {
     await demo.page.waitForTimeout(1500);
     await fn(demo);
   } finally {
+    trace("session closing:", scenario);
     await demo.close();
+    trace("session closed:", scenario);
   }
 }
 

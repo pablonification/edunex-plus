@@ -246,6 +246,10 @@ jobs:
     if: github.event_name == 'pull_request' && needs.changes.outputs.screens == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        copy: [1, 2, 3, 4, 5, 6]
     # Advisory: Electron on a virtual screen can be flaky. A failure shows but doesn't block merging.
     continue-on-error: true
     permissions:
@@ -280,11 +284,24 @@ jobs:
           (cd .base && npm run demo:build)
       - name: Take the pictures, before and after
         # About 8 minutes each, side by side: the first-run scenario waits in real time for the first sync.
-        timeout-minutes: 25
+        timeout-minutes: 14
+        env:
+          DEBUG: pw:api
         run: |
+          cp scripts/demo/capture.mjs scripts/demo/drive.mjs .base/scripts/demo/
+          (
+            sleep 240
+            dump="$RUNNER_TEMP/dump-240s.txt"
+            {
+              date -u; ps -eo pid,ppid,etime,stat,pcpu,rss,wchan:24,args --forest | grep -vE '\[.*\]$' | cut -c1-400
+              for d in 91 92; do echo "== :$d"; DISPLAY=:$d xwininfo -root -tree 2>&1 | head -40; done
+              tail -5 "$RUNNER_TEMP/capture.log" "$RUNNER_TEMP/capture-before.log"
+            } > "$dump" 2>&1
+            for d in 91 92; do DISPLAY=:$d import -window root "$RUNNER_TEMP/display-$d.png" 2>>"$dump" || true; done
+          ) > /dev/null 2>&1 &
           # Each tour gets its own virtual screen: two "--auto-servernum" starting together can pick the same one and hang.
           # And each stops after 20 minutes, so one stuck tour can't take the other's pictures with it.
-          tour() { timeout 1200 xvfb-run --server-num="$1" --server-args="-screen 0 1600x1000x24" node scripts/demo/capture.mjs "$2"; }
+          tour() { timeout 600 xvfb-run --server-num="$1" --server-args="-screen 0 1600x1000x24" node scripts/demo/capture.mjs "$2"; }
           tour 91 "$RUNNER_TEMP/screens" > "$RUNNER_TEMP/capture.log" 2>&1 &
           after=$!
           (cd .base && tour 92 "$RUNNER_TEMP/screens-before" > "$RUNNER_TEMP/capture-before.log" 2>&1) &
@@ -293,6 +310,8 @@ jobs:
           wait "$after" || status=$?
           wait "$before" || echo "The base's pictures couldn't all be taken (see capture-before.log in the artifact)."
           cat "$RUNNER_TEMP/capture.log"
+          echo "===== before"; cat "$RUNNER_TEMP/capture-before.log"
+          echo "===== dump"; cat "$RUNNER_TEMP/dump-240s.txt" 2>/dev/null || true
           exit "$status"
       - name: Find the screens that changed
         if: ${{ !cancelled() }}
@@ -306,30 +325,15 @@ jobs:
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: screens-pr${{ github.event.pull_request.number }}
+          name: screens-pr${{ github.event.pull_request.number }}-copy${{ matrix.copy }}
           path: |
             ${{ runner.temp }}/screens
             ${{ runner.temp }}/capture.log
             ${{ runner.temp }}/capture-before.log
+            ${{ runner.temp }}/dump-240s.txt
+            ${{ runner.temp }}/display-*.png
           if-no-files-found: ignore
           retention-days: 14
-      - name: Write the comment
-        if: ${{ !cancelled() }}
-        env:
-          ARTIFACT_URL: ${{ steps.upload.outputs.artifact-url }}
-          COMMIT: ${{ github.event.pull_request.head.sha }}
-          BASE: ${{ github.event.pull_request.base.ref }}
-        run: |
-          node scripts/ci/screens-comment.mjs "$RUNNER_TEMP/screens" "$RUNNER_TEMP/capture.log" "$RUNNER_TEMP/changed" \
-            "$ARTIFACT_URL" "$COMMIT" "$BASE" "$RUNNER_TEMP/changed/comment.md"
-      - name: Hand the changed screens and the comment to screens-post
-        if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: screens-changed-pr${{ github.event.pull_request.number }}
-          path: ${{ runner.temp }}/changed
-          if-no-files-found: ignore
-          retention-days: 1
 
   # Puts the changed screens' pictures where the comment can show them (the
   # pr-assets branch, which only holds pictures), then posts the comment. A job
@@ -338,7 +342,7 @@ jobs:
   screens-post:
     name: screens-post
     needs: screens
-    if: ${{ !cancelled() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && needs.screens.result != 'skipped' }}
+    if: false
     runs-on: ubuntu-latest
     timeout-minutes: 10
     continue-on-error: true

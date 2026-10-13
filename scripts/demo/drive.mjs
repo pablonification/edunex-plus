@@ -16,6 +16,8 @@ import path from "node:path";
 import { _electron } from "playwright-core";
 
 const root = path.resolve(import.meta.dirname, "..", "..");
+const t0 = Date.now();
+export const trace = (...args) => console.log(`[${((Date.now() - t0) / 1000).toFixed(1)}s]`, ...args);
 const electronBinary = createRequire(import.meta.url)("electron");
 
 /**
@@ -37,6 +39,7 @@ export async function launchDemo(options = {}) {
   // there, and start once more before giving up, so one slow start doesn't lose every picture.
   const wait = process.env.CI ? 60_000 : 30_000;
   const start = async () => {
+    trace("launch: starting electron", env.EDUNEX_DEMO);
     const app = await _electron.launch({
       executablePath: electronBinary,
       args: [main],
@@ -44,17 +47,28 @@ export async function launchDemo(options = {}) {
       timeout: wait,
       recordVideo: options.video ? { dir: options.video, size } : undefined,
     });
+    trace("launch: electron up, pid", app.process().pid);
+    app.process().stdout?.on("data", (d) => trace("[electron out]", String(d).trimEnd()));
+    app.process().stderr?.on("data", (d) => trace("[electron err]", String(d).trimEnd()));
+    app.process().on("exit", (code, signal) => trace("[electron exit]", code, signal));
     try {
       const page = await app.firstWindow({ timeout: wait });
+      trace("launch: first window", page.url());
+      page.on("console", (m) => trace("[page console]", m.type(), m.text()));
+      page.on("pageerror", (e) => trace("[page error]", String(e)));
+      page.on("crash", () => trace("[page crash]"));
       await app.evaluate(({ BrowserWindow }, { width, height }) => {
         const window = BrowserWindow.getAllWindows()[0];
         window.setContentSize(width, height);
         window.center();
       }, size);
+      trace("launch: sized the window");
       // The page is up once its root has drawn the saved data.
       await page.waitForFunction(() => (document.getElementById("root")?.children.length ?? 0) > 0, null, { timeout: wait });
+      trace("launch: root drawn");
       return { app, page };
     } catch (error) {
+      trace("launch: failed", String(error).split("\n")[0]);
       await app.close().catch(() => {});
       throw error;
     }
@@ -69,9 +83,12 @@ export async function launchDemo(options = {}) {
     page,
     /** Saves a picture of the window as <shots>/<name>.png. */
     async shot(name, { fullPage = false } = {}) {
+      trace("shot:", name, "settling");
       await settle(page);
       const file = path.join(shotsDir, `${name}.png`);
+      trace("shot:", name, "screenshot");
       await page.screenshot({ path: file, fullPage });
+      trace("shot:", name, "saved");
       return file;
     },
     /** Changes settings the way the Settings screen does. */
@@ -95,7 +112,9 @@ export async function launchDemo(options = {}) {
     text: () => page.evaluate(() => document.body.innerText),
     async close() {
       const video = page.video();
+      trace("close: closing app");
       await app.close();
+      trace("close: closed");
       return video ? await video.path() : null;
     },
   };
@@ -106,7 +125,10 @@ export async function launchDemo(options = {}) {
 
 /** Waits until fonts are in and two frames have been painted. */
 export async function settle(page, ms = 250) {
+  trace("settle: fonts");
   await page.evaluate(() => document.fonts?.ready).catch(() => undefined);
+  trace("settle: frames", await page.evaluate(() => `${document.visibilityState} focus=${document.hasFocus()}`).catch((e) => String(e)));
   await page.evaluate(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
+  trace("settle: wait", ms);
   await page.waitForTimeout(ms);
 }
