@@ -108,6 +108,8 @@ export interface PptxSlide {
   table?: string[][];
   /** Two text boxes in a group, moved and shrunk to half on the slide. */
   group?: [string, string];
+  /** Shapes of its own, as the slide's XML (prefixes p: and a:). */
+  shapes?: string[];
   hidden?: boolean;
 }
 
@@ -191,6 +193,7 @@ export function aPptx(slides: PptxSlide[]): Promise<Uint8Array> {
       shapes.push(
         `<p:grpSp><p:nvGrpSpPr><p:cNvPr id="30" name="Grup"/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr><a:xfrm><a:off x="6000000" y="3000000"/><a:ext cx="2000000" cy="1000000"/><a:chOff x="1000000" y="1000000"/><a:chExt cx="4000000" cy="2000000"/></a:xfrm></p:grpSpPr>${textBox(31, slide.group[0], box(1000000, 1000000, 2000000, 2000000))}${textBox(32, slide.group[1], box(3000000, 1000000, 2000000, 2000000))}</p:grpSp>`,
       );
+    shapes.push(...(slide.shapes ?? []));
     parts[`ppt/slides/slide${n}.xml`] =
       `<?xml version="1.0" encoding="UTF-8"?><p:sld xmlns:a="${A}" xmlns:r="${R}" xmlns:p="${P}"${slide.hidden ? ' show="0"' : ""}><p:cSld><p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr/>${shapes.join("")}</p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sld>`;
     parts[`ppt/slides/_rels/slide${n}.xml.rels`] = relations(rels);

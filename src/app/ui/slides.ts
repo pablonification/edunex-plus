@@ -6,8 +6,9 @@
 // are colours, pictures only in formats a page shows without running anything
 // (as data: addresses), and only links to web pages. A slide's look comes from
 // its layout and master too (where text sits, its size and colour, bullets,
-// the theme's colours), as far as that's simple. Charts, SmartArt, video,
-// sound and animations aren't drawn.
+// the theme's colours), as far as that's simple. Freeform shapes become SVG
+// path data built from their numbers. Charts, SmartArt, video, sound and
+// animations aren't drawn.
 import type JSZip from "jszip";
 import { isWebLink } from "../../core/links";
 
@@ -20,8 +21,24 @@ export interface Deck {
 
 /** A slide: what's behind it (null for white), then what's on it, back to front. */
 export interface Slide {
-  background: { color: string } | { picture: string } | null;
+  background: { color: string } | { gradient: Gradient } | { picture: string } | null;
   items: Item[];
+}
+
+/** A straight gradient: its colours ("rrggbb") and where each is, from 0 to 1, along its direction (`angle` degrees clockwise from left to right). */
+export interface Gradient {
+  angle: number;
+  stops: { color: string; at: number }[];
+}
+
+/** How a shape is filled: one colour ("rrggbb") or a gradient. */
+export type Fill = string | Gradient;
+
+/** One outline of a freeform shape: SVG path data in EMU from the shape's top left corner, and whether it's filled and drawn round. */
+export interface FreeformPath {
+  d: string;
+  fill: boolean;
+  stroke: boolean;
 }
 
 /** Where something sits on the slide; turned by `rotation` degrees clockwise. */
@@ -41,7 +58,18 @@ export interface Stroke {
 
 /** What's on a slide: a shape or text box, a straight line, a picture or a table. */
 export type Item =
-  | { kind: "shape"; box: Box; geometry: "rect" | "roundRect" | "ellipse"; fill: string | null; outline: Stroke | null; text: TextBody | null }
+  | {
+      kind: "shape";
+      box: Box;
+      /** A freeform shape has its `paths`; any other shape but these is drawn as a rectangle. */
+      geometry: "rect" | "roundRect" | "ellipse" | "freeform";
+      paths: FreeformPath[];
+      /** A rounded rectangle's corners: their radius, as a share of its shorter side. */
+      corner: number;
+      fill: Fill | null;
+      outline: Stroke | null;
+      text: TextBody | null;
+    }
   | { kind: "line"; from: { x: number; y: number }; to: { x: number; y: number }; stroke: Stroke }
   | {
       kind: "picture";
@@ -104,6 +132,9 @@ const MAX_SLIDES = 2000;
 const MAX_THINGS = 500_000;
 const MAX_DEPTH = 32;
 const MAX_PICTURE = 20 * 1024 * 1024;
+/** The most colours a gradient keeps (evenly picked), of the most it reads. */
+const MAX_STOPS = 32;
+const MAX_STOPS_READ = 1000;
 /** The most kept of all the pictures together (as data: addresses); past it, the rest are left out. */
 const MAX_PICTURES = 150 * 1024 * 1024;
 /** PowerPoint's own defaults: 18 pt text, and text 0.1" in from a box's sides and 0.05" from its top and bottom. */
@@ -330,17 +361,23 @@ export async function readPresentation(bytes: Uint8Array): Promise<Deck> {
     const geometry = child(spPr, "prstGeom")?.getAttribute("prst") ?? "rect";
     const outline = readOutline(spPr, style, context);
     const placed = moved(box, transform);
+    const xfrm = child(spPr, "xfrm");
+    const flip = { x: flag(xfrm, "flipH"), y: flag(xfrm, "flipV") };
     if (sp.localName === "cxnSp" || geometry === "line" || geometry.startsWith("straightConnector")) {
       if (!outline) return null;
       // From corner to corner (the other two when flipped), turned about its middle.
-      const xfrm = child(spPr, "xfrm");
       const [cx, cy] = [placed.x + placed.width / 2, placed.y + placed.height / 2];
-      const [dx, dy] = [(flag(xfrm, "flipH") ? -1 : 1) * (placed.width / 2), (flag(xfrm, "flipV") ? -1 : 1) * (placed.height / 2)];
+      const [dx, dy] = [(flip.x ? -1 : 1) * (placed.width / 2), (flip.y ? -1 : 1) * (placed.height / 2)];
       const [cos, sin] = [Math.cos((placed.rotation * Math.PI) / 180), Math.sin((placed.rotation * Math.PI) / 180)];
       const end = (sign: number) => ({ x: cx + sign * (dx * cos - dy * sin), y: cy + sign * (dx * sin + dy * cos) });
       return { kind: "line", from: end(-1), to: end(1), stroke: outline };
     }
-    let fill = readFill(spPr, context.color);
+    let fill = readPaint(spPr, context.color);
+    // A flipped shape's gradient flips with it.
+    if (typeof fill === "object" && fill && (flip.x || flip.y)) {
+      const angle = flip.x ? 180 - fill.angle : fill.angle;
+      fill = { ...fill, angle: (((flip.y ? -angle : angle) % 360) + 360) % 360 };
+    }
     if (fill === undefined) {
       const ref = child(style, "fillRef");
       fill = (num(ref, "idx") ?? 0) > 0 ? readColor(ref, context.color) : null;
@@ -348,7 +385,111 @@ export async function readPresentation(bytes: Uint8Array): Promise<Deck> {
     const type = ph ? placeholderType(ph, inherited) : null;
     const text = readText(child(sp, "txBody"), context, inherited, type, readColor(child(style, "fontRef"), context.color));
     if (!fill && !outline && !text) return null;
-    return { kind: "shape", box: placed, geometry: geometry === "ellipse" || geometry === "roundRect" ? geometry : "rect", fill, outline, text };
+    const custom = child(spPr, "custGeom");
+    const paths = custom ? readFreeform(custom, box, placed, flip) : [];
+    const shape = paths.length ? "freeform" : geometry === "ellipse" || geometry === "roundRect" ? geometry : "rect";
+    // Only a plain number for the corner (PowerPoint's own is a sixth of the shorter side).
+    const adjust = /^val (\d+)$/.exec(child(spPr, "prstGeom", "avLst", "gd")?.getAttribute("fmla") ?? "")?.[1];
+    const corner = Math.min(adjust ? Number(adjust) / 100000 : 16667 / 100000, 0.5);
+    return { kind: "shape", box: placed, geometry: shape, paths, corner: shape === "roundRect" ? corner : 0, fill, outline, text };
+  }
+
+  /**
+   * A freeform shape's paths, mapped from each one's own space onto the shape's
+   * box. Only plain numbers are read: a path that uses the shape's formulas
+   * (guides) is left out, as is one that comes out as no number.
+   */
+  function readFreeform(custGeom: Element, own: Box, placed: Box, flip: { x: boolean; y: boolean }): FreeformPath[] {
+    const paths: FreeformPath[] = [];
+    for (const path of children(child(custGeom, "pathLst"), "path")) {
+      count();
+      // A path without its own size is in the shape's.
+      const [width, height] = [num(path, "w") || own.width || 1, num(path, "h") || own.height || 1];
+      const d = pathData(path, { width, height, sx: placed.width / width, sy: placed.height / height, flip });
+      const stroke = path.getAttribute("stroke");
+      if (d) paths.push({ d, fill: path.getAttribute("fill") !== "none", stroke: stroke !== "0" && stroke !== "false" });
+    }
+    return paths;
+  }
+
+  /** A path's commands as SVG path data, from its own space (`width` by `height`, mirrored as the shape is) scaled by sx and sy; null when it uses anything but numbers. */
+  function pathData(
+    path: Element,
+    { width, height, sx, sy, flip }: { width: number; height: number; sx: number; sy: number; flip: { x: boolean; y: boolean } },
+  ): string | null {
+    const out: string[] = [];
+    // Where the pen is, and where the outline it's drawing began, in the path's own space.
+    let [x, y] = [0, 0];
+    let [startX, startY] = [0, 0];
+    const at = (px: number, py: number) => `${Math.round((flip.x ? width - px : px) * sx)} ${Math.round((flip.y ? height - py : py) * sy)}`;
+    for (const command of path.children) {
+      count();
+      const points = children(command, "pt").map((pt) => [num(pt, "x"), num(pt, "y")]);
+      if (points.some(([px, py]) => px === null || py === null)) return null;
+      const pts = points as [number, number][];
+      const needs = { moveTo: 1, lnTo: 1, cubicBezTo: 3, quadBezTo: 2 }[command.localName as "moveTo"] ?? 0;
+      if (pts.length < needs) return null;
+      // A path that doesn't start by moving starts from its corner.
+      if (!out.length && command.localName !== "moveTo") out.push(`M${at(0, 0)}`);
+      switch (command.localName) {
+        case "moveTo":
+          [x, y] = [startX, startY] = pts[0];
+          out.push(`M${at(x, y)}`);
+          break;
+        case "lnTo":
+          [x, y] = pts[0];
+          out.push(`L${at(x, y)}`);
+          break;
+        case "cubicBezTo":
+          [x, y] = pts[2];
+          out.push(
+            `C${pts
+              .slice(0, 3)
+              .map(([px, py]) => at(px, py))
+              .join(" ")}`,
+          );
+          break;
+        case "quadBezTo":
+          [x, y] = pts[1];
+          out.push(
+            `Q${pts
+              .slice(0, 2)
+              .map(([px, py]) => at(px, py))
+              .join(" ")}`,
+          );
+          break;
+        case "close":
+          [x, y] = [startX, startY];
+          out.push("Z");
+          break;
+        case "arcTo": {
+          const [wR, hR, stAng, swAng] = ["wR", "hR", "stAng", "swAng"].map((name) => num(command, name));
+          if (wR === null || hR === null || stAng === null || swAng === null) return null;
+          const [rx, ry] = [Math.abs(wR), Math.abs(hR)];
+          // The angles are where on the ellipse it is as seen from its centre; drawing needs the ellipse's own (parametric) angle.
+          const own = (degrees: number) => Math.atan2(rx * Math.sin((degrees * Math.PI) / 180), ry * Math.cos((degrees * Math.PI) / 180));
+          const [start, sweep] = [stAng / 60000, swAng / 60000];
+          const from = own(start);
+          let turn = own(start + sweep) - from;
+          // Keep its direction and size: a whole turn stays one, a sweep one way never goes the other.
+          if (Math.abs(sweep) >= 360) turn = Math.sign(sweep) * 2 * Math.PI;
+          else if (sweep > 0 && turn <= 0) turn += 2 * Math.PI;
+          else if (sweep < 0 && turn >= 0) turn -= 2 * Math.PI;
+          else if (sweep === 0) turn = 0;
+          const [cx, cy] = [x - rx * Math.cos(from), y - ry * Math.sin(from)];
+          const point = (angle: number) => [cx + rx * Math.cos(angle), cy + ry * Math.sin(angle)] as const;
+          // In two halves, so a whole circle draws too (an SVG arc can't end where it starts).
+          for (const angle of [from + turn / 2, from + turn]) {
+            [x, y] = point(angle);
+            // Mirrored once, it turns the other way.
+            out.push(`A${Math.round(rx * sx)} ${Math.round(ry * sy)} 0 0 ${turn > 0 !== (flip.x !== flip.y) ? 1 : 0} ${at(x, y)}`);
+          }
+          break;
+        }
+      }
+    }
+    const d = out.join("");
+    return out.length && !/NaN|Infinity/.test(d) ? d : null;
   }
 
   async function readPictureShape(pic: Element, context: Context, transform: Transform): Promise<Item | null> {
@@ -520,8 +661,8 @@ export async function readPresentation(bytes: Uint8Array): Promise<Deck> {
       const url = path ? await picture(path) : null;
       return url ? { picture: url } : null;
     }
-    const found = properties ? readFill(properties, color) : readColor(child(bg, "bgRef"), color);
-    return found ? { color: found } : null;
+    const found = properties ? readPaint(properties, color) : readColor(child(bg, "bgRef"), color);
+    return typeof found === "string" ? { color: found } : found ? { gradient: found } : null;
   }
 
   /** A shape's outline: its own, else the one its style refers to in the theme. */
@@ -646,7 +787,25 @@ function colorScheme(master: Master | null, overrides: (Element | undefined)[]):
   return (name) => master?.theme.colors.get(map?.getAttribute(name) ?? name) ?? null;
 }
 
-/** A fill's colour: a solid one, a gradient's first, a pattern's; null for none, undefined when it isn't said. */
+/** A fill as it's drawn: a straight gradient as one, any other fill as its colour (see readFill). */
+function readPaint(node: Element | null, color: (name: string) => string | null): Fill | null | undefined {
+  const fill = [...(node?.children ?? [])].find((c) => ["noFill", "solidFill", "gradFill", "pattFill", "blipFill"].includes(c.localName));
+  // One along a path (round, or from a corner) stays its first colour.
+  if (fill?.localName === "gradFill" && !child(fill, "path")) {
+    const read = children(child(fill, "gsLst"), "gs")
+      .slice(0, MAX_STOPS_READ)
+      .map((gs) => ({ color: readColor(gs, color), at: Math.min(Math.max((num(gs, "pos") ?? 0) / 100000, 0), 1) }))
+      .filter((stop): stop is { color: string; at: number } => stop.color !== null)
+      .sort((a, b) => a.at - b.at);
+    // Many stops (LibreOffice writes a gradient as a hundred steps): some from all along it, the first and last kept.
+    const step = Math.max(1, (read.length - 1) / (MAX_STOPS - 1));
+    const stops = read.length > MAX_STOPS ? Array.from({ length: MAX_STOPS }, (_, i) => read[Math.round(i * step)]) : read;
+    if (stops.length > 1) return { angle: ((((num(child(fill, "lin"), "ang") ?? 0) / 60000) % 360) + 360) % 360, stops };
+  }
+  return readFill(node, color);
+}
+
+/** A fill's colour: a solid one, the colour a gradient starts with, a pattern's; null for none, undefined when it isn't said. */
 function readFill(node: Element | null, color: (name: string) => string | null): string | null | undefined {
   for (const fill of node?.children ?? [])
     switch (fill.localName) {
@@ -655,7 +814,14 @@ function readFill(node: Element | null, color: (name: string) => string | null):
       case "solidFill":
         return readColor(fill, color);
       case "gradFill":
-        return readColor(child(fill, "gsLst", "gs"), color);
+        // The colour it starts with.
+        return readColor(
+          children(child(fill, "gsLst"), "gs").reduce<Element | null>(
+            (first, gs) => (first && (num(first, "pos") ?? 0) <= (num(gs, "pos") ?? 0) ? first : gs),
+            null,
+          ),
+          color,
+        );
       case "pattFill":
         return readColor(child(fill, "fgClr"), color);
       case "blipFill":

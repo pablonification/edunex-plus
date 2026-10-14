@@ -88,6 +88,46 @@ describe("reading a presentation", () => {
     ]);
   });
 
+  it("draws a freeform shape from its paths' plain numbers, and a straight gradient as one", async () => {
+    const shape = (id: number, spPr: string) =>
+      `<p:sp><p:nvSpPr><p:cNvPr id="${id}" name="Bentuk ${id}"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr><p:spPr><a:xfrm${id === 42 ? ' flipH="1"' : ""}><a:off x="0" y="0"/><a:ext cx="1000000" cy="500000"/></a:xfrm>${spPr}</p:spPr></p:sp>`;
+    const stops =
+      '<a:gsLst><a:gs pos="100000"><a:srgbClr val="0000FF"/></a:gs><a:gs pos="0"><a:srgbClr val="FF0000"/></a:gs><a:gs pos="50000"><a:srgbClr val="url(x)"/></a:gs></a:gsLst>';
+    const deck = await readPresentation(
+      await aPptx([
+        {
+          shapes: [
+            // Half an ellipse and its diameter; a line and a curve, neither filled nor drawn round; one that uses a formula (left out).
+            shape(
+              41,
+              `<a:custGeom><a:avLst/><a:gdLst/><a:pathLst><a:path w="100" h="100"><a:moveTo><a:pt x="100" y="50"/></a:moveTo><a:arcTo wR="50" hR="50" stAng="0" swAng="10800000"/><a:close/></a:path><a:path w="100" h="100" fill="none" stroke="0"><a:moveTo><a:pt x="0" y="0"/></a:moveTo><a:lnTo><a:pt x="100" y="100"/></a:lnTo><a:cubicBezTo><a:pt x="0" y="0"/><a:pt x="10" y="10"/><a:pt x="20" y="0"/></a:cubicBezTo></a:path><a:path w="100" h="100"><a:moveTo><a:pt x="r" y="0"/></a:moveTo></a:path></a:pathLst></a:custGeom><a:gradFill>${stops}<a:lin ang="5400000"/></a:gradFill>`,
+            ),
+            // Flipped left to right, its gradient too; round corners of its own size.
+            shape(
+              42,
+              `<a:prstGeom prst="roundRect"><a:avLst><a:gd name="adj" fmla="val 50000"/></a:avLst></a:prstGeom><a:gradFill>${stops}<a:lin ang="0"/></a:gradFill>`,
+            ),
+            // A round gradient stays its first colour.
+            shape(43, `<a:prstGeom prst="rect"><a:avLst/></a:prstGeom><a:gradFill>${stops}<a:path path="circle"/></a:gradFill>`),
+          ],
+        },
+      ]),
+    );
+    const [freeform, rounded, round] = deck.slides[0].items as Shape[];
+    expect(freeform.geometry).toBe("freeform");
+    expect(freeform.paths).toEqual([
+      { d: "M1000000 250000A500000 250000 0 0 1 500000 500000A500000 250000 0 0 1 0 250000Z", fill: true, stroke: true },
+      { d: "M0 0L1000000 500000C0 0 100000 50000 200000 0", fill: false, stroke: false },
+    ]);
+    const gradient = [
+      { color: "ff0000", at: 0 },
+      { color: "0000ff", at: 1 },
+    ];
+    expect(freeform.fill).toEqual({ angle: 90, stops: gradient });
+    expect(rounded).toMatchObject({ geometry: "roundRect", corner: 0.5, fill: { angle: 180, stops: gradient } });
+    expect(round.fill).toBe("ff0000");
+  });
+
   it("keeps only links to web pages", async () => {
     const link = async (url: string) => {
       const deck = await readPresentation(await aPptx([{ note: { text: "Formulir kehadiran", link: url } }]));
