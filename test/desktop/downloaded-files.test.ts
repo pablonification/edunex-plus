@@ -120,6 +120,13 @@ describe("downloading a file again", () => {
     expect(system.downloads).toBe(1);
   });
 
+  it("never opens another Student's download", async () => {
+    await app(notes(CONTENT.length), "10000001").unduh();
+    // Their records not emptied yet (another Student signed in while the app was closed).
+    expect(await app(notes(CONTENT.length), "10000002").unduh()).toEqual({ path: inDownloads("Notes (2).docx"), existing: false });
+    expect(await app(notes(CONTENT.length), "10000001").unduh()).toMatchObject({ existing: false });
+  });
+
   it("remembers nothing while nobody is signed in", async () => {
     const { unduh } = app(null, null);
     await unduh();
