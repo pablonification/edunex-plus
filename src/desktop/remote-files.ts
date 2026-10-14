@@ -1,10 +1,11 @@
 // Files from Edunex's storage read into memory for the window to show (a
-// picture in a lecturer's note, a PDF in the viewer). No Electron here, so
-// tests run it as it is; the handler plugs in the engine session's fetch, the
-// file cache and the Student's offline copies. Only Edunex's storage, no
-// cookies, a size cap, and the bytes must really be the kind asked for: the
-// window gets them as data and never loads anything remote itself.
-import type { FileProblem } from "../core/actions/files";
+// picture in a lecturer's note; a PDF, Word document, spreadsheet or text file
+// in the viewer). No Electron here, so tests run it as it is; the handler
+// plugs in the engine session's fetch, the file cache and the Student's
+// offline copies. Only Edunex's storage, no cookies, a size cap for each kind,
+// and the bytes must really be the kind asked for: the window gets them as
+// data and never loads anything remote itself.
+import type { FileProblem, ReadAs } from "../core/actions/files";
 import { isStorageFile } from "../core/links";
 import { EngineError } from "../engine/errors";
 import type { FileCache } from "./file-cache";
@@ -12,7 +13,6 @@ import type { FileCache } from "./file-cache";
 /** The part of the Fetch API this needs: Electron's session.fetch in the app, the pretend storage in tests. */
 export type FetchFile = (url: string, init: { signal: AbortSignal; credentials: "omit"; redirect: "error" }) => Promise<Response>;
 
-export type ReadAs = "image" | "pdf";
 export type ReadResult = { bytes: Uint8Array; type: string } | { problem: FileProblem };
 
 const MB = 1024 * 1024;
@@ -20,7 +20,12 @@ const MB = 1024 * 1024;
 export const LIMITS: Record<ReadAs, { bytes: number; quietMs: number }> = {
   image: { bytes: 20 * MB, quietMs: 30_000 },
   pdf: { bytes: 100 * MB, quietMs: 30_000 },
+  docx: { bytes: 50 * MB, quietMs: 30_000 },
+  xlsx: { bytes: 20 * MB, quietMs: 30_000 },
+  text: { bytes: 5 * MB, quietMs: 30_000 },
 };
+/** The most a Word document or workbook may unpack to: the window unpacks it whole to show it. */
+export const UNPACKED_MAX = 200 * MB;
 
 /** Where a file can come from besides the storage: copies already on this computer. */
 export interface FileSources {
@@ -117,10 +122,19 @@ const startsWith = (bytes: Uint8Array, signature: readonly number[], offset = 0)
 const ascii = (text: string) => [...text].map((c) => c.charCodeAt(0));
 const PDF_HEADER = ascii("%PDF-");
 
+/** A Word document and an Excel workbook are ZIPs holding these parts. */
+const OFFICE_PARTS = {
+  docx: { part: "word/document.xml", type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" },
+  xlsx: { part: "xl/workbook.xml", type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" },
+} as const;
+
 /**
- * What the bytes are by their first bytes, never by what the server says:
- * for pictures, only formats a page shows without running anything; for a
- * PDF, its header (within the first kilobyte, where readers accept it).
+ * What the bytes are, never by what the server says: for pictures, by their
+ * first bytes, and only formats a page shows without running anything; for a
+ * PDF, its header (within the first kilobyte, where readers accept it); a Word
+ * document or workbook is a whole ZIP with its main part inside, unpacking to
+ * no more than UNPACKED_MAX; text is valid UTF-8 with no control characters
+ * but tabs and line breaks (which binary files have).
  */
 export function sniff(bytes: Uint8Array, as: ReadAs): string | null {
   if (as === "image") {
@@ -130,6 +144,51 @@ export function sniff(bytes: Uint8Array, as: ReadAs): string | null {
     if (startsWith(bytes, ascii("RIFF")) && startsWith(bytes, ascii("WEBP"), 8)) return "image/webp";
     return null;
   }
+  if (as === "docx" || as === "xlsx") {
+    const zip = zipContents(bytes);
+    const { part, type } = OFFICE_PARTS[as];
+    return zip?.names.has("[Content_Types].xml") && zip.names.has(part) && zip.unpacked <= UNPACKED_MAX ? type : null;
+  }
+  if (as === "text") return isText(bytes) ? "text/plain" : null;
   for (let at = 0; at <= Math.min(1024, bytes.length - PDF_HEADER.length); at++) if (startsWith(bytes, PDF_HEADER, at)) return "application/pdf";
+  return null;
+}
+
+/** Anything below a space but tab, line feed, form feed and carriage return, and DEL. */
+const CONTROL = /[\u0000-\u0008\u000b\u000e-\u001f\u007f]/;
+
+function isText(bytes: Uint8Array): boolean {
+  try {
+    return !CONTROL.test(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * The names of the files in a ZIP and what they unpack to together, from its
+ * central directory (the list at its end); null when it isn't a ZIP, is cut
+ * short, or is a ZIP64 (over 4 GB, far past any limit here).
+ */
+export function zipContents(bytes: Uint8Array): { names: Set<string>; unpacked: number } | null {
+  if (!startsWith(bytes, [0x50, 0x4b, 0x03, 0x04]) || bytes.length < 22) return null;
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  // The record that ends it is its last 22 bytes, or up to 64 kB earlier when the ZIP has a comment.
+  for (let end = bytes.length - 22; end >= Math.max(0, bytes.length - 22 - 0xffff); end--) {
+    if (view.getUint32(end, true) !== 0x06054b50) continue;
+    const count = view.getUint16(end + 10, true);
+    let at = view.getUint32(end + 16, true);
+    const names = new Set<string>();
+    let unpacked = 0;
+    for (let i = 0; i < count; i++) {
+      if (at + 46 > bytes.length || view.getUint32(at, true) !== 0x02014b50) return null;
+      const nameLength = view.getUint16(at + 28, true);
+      if (at + 46 + nameLength > bytes.length) return null;
+      unpacked += view.getUint32(at + 24, true);
+      names.add(new TextDecoder().decode(bytes.subarray(at + 46, at + 46 + nameLength)));
+      at += 46 + nameLength + view.getUint16(at + 30, true) + view.getUint16(at + 32, true);
+    }
+    return { names, unpacked };
+  }
   return null;
 }

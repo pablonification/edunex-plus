@@ -28,7 +28,6 @@ import { linkHost } from "../../core/links";
 import { useT } from "../i18n";
 import { Button, IconButton } from "./controls";
 import { cx } from "./cx";
-import { Skeleton } from "./display";
 import { Icons, icon } from "./icons";
 import { ConfirmDialog, ignoreClosingClick, PANEL_MOTION_CLASS, SCRIM_CLASS, Tooltip, toast, useReturnFocus } from "./overlays";
 import { PanelBoundary } from "./panel-boundary";
@@ -45,6 +44,7 @@ import {
   type PdfText,
 } from "./pdf-engine";
 import { FILL_AREA, FieldBox, type FillState, SaveBar, TEXT_SIZES, TextBox, useFill } from "./pdf-fill";
+import { Failed, Loading, Toolbar } from "./viewer-frame";
 
 const TextIcon = icon(TextTIcon);
 
@@ -235,31 +235,20 @@ export function PdfViewer({
                   className="grid min-h-0 flex-1 place-items-center overflow-auto bg-sunken p-6 outline-none"
                 >
                   {view.phase === "loading" ? (
-                    <div role="status" className="flex w-full flex-col items-center gap-3">
-                      <Skeleton className="aspect-[1/1.414] w-full max-w-[520px] rounded-sm" />
-                      <span className="text-small text-muted">{t("pdf.loading")}</span>
-                    </div>
+                    <Loading label={t("pdf.loading")} />
                   ) : (
-                    <div role="alert" className="flex max-w-[44ch] flex-col items-center gap-3 text-center">
-                      <span className="grid size-10 place-items-center rounded-full bg-surface text-muted shadow-card">
-                        <Icons.FileText className="size-5" />
-                      </span>
-                      <div>
-                        <p className="text-body font-semibold">{t("pdf.failed")}</p>
-                        <p className="mt-1 text-small text-muted">
-                          {view.problem === "locked" ? t("pdf.locked") : view.problem === "broken" ? t("pdf.broken") : t(`file.problem.${view.problem}`)}
-                        </p>
-                      </div>
-                      <div className="flex flex-wrap justify-center gap-2">
-                        {view.problem === "unreachable" ? (
-                          <Button variant="primary" icon={<Icons.RefreshCw className="size-3.5" />} onClick={() => setAttempt((n) => n + 1)}>
-                            {t("action.tryAgain")}
-                          </Button>
-                        ) : (
-                          fallback?.(view.problem)
-                        )}
-                      </div>
-                    </div>
+                    <Failed
+                      title={t("pdf.failed")}
+                      detail={view.problem === "locked" ? t("pdf.locked") : view.problem === "broken" ? t("pdf.broken") : t(`file.problem.${view.problem}`)}
+                    >
+                      {view.problem === "unreachable" ? (
+                        <Button variant="primary" icon={<Icons.RefreshCw className="size-3.5" />} onClick={() => setAttempt((n) => n + 1)}>
+                          {t("action.tryAgain")}
+                        </Button>
+                      ) : (
+                        fallback?.(view.problem)
+                      )}
+                    </Failed>
                   )}
                 </section>
               </>
@@ -284,25 +273,6 @@ export function PdfViewer({
         </DialogPrimitive.Content>
       </DialogPrimitive.Portal>
     </DialogPrimitive.Root>
-  );
-}
-
-function Toolbar({ name, actions, children }: { name: string; actions?: ReactNode; children?: ReactNode }) {
-  const t = useT();
-  return (
-    <div className="flex h-12 shrink-0 items-center gap-1 border-b border-line pr-2 pl-4">
-      <Icons.FileText className="mr-1.5 size-4 shrink-0 text-muted" />
-      <DialogPrimitive.Title className="min-w-0 flex-1 truncate text-body font-semibold" title={name}>
-        {name}
-      </DialogPrimitive.Title>
-      {children}
-      {actions}
-      <DialogPrimitive.Close asChild>
-        <IconButton label={t("action.close")} size="sm">
-          <Icons.X className="size-4" />
-        </IconButton>
-      </DialogPrimitive.Close>
-    </div>
   );
 }
 

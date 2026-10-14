@@ -350,7 +350,7 @@ describe("materials", () => {
     e.postMaterial(95001, { name: "Rekaman kuliah", type: "video", content: BLOB });
     e.postMaterial(95001, { name: "Video YouTube", type: "video", content: "https://www.youtube.com/watch?v=fixture" });
     e.postMaterial(95001, { name: "Podcast", type: "audio", content: BLOB });
-    e.postMaterial(95001, { name: "Data", type: "file", content: `${BLOB}.xlsx` });
+    e.postMaterial(95001, { name: "Data", type: "file", content: `${BLOB}.zip` });
     e.postMaterial(95001, { name: "Slide", type: "ppt", content: BLOB });
     e.postMaterial(95001, { name: "Berita ITB", type: "url", content: "https://www.itb.ac.id/berita" });
     e.postMaterial(95001, { name: "Situs luar", type: "url", content: "https://example.org/" });
@@ -398,7 +398,7 @@ describe("materials", () => {
     expect(new Set(actions.map((b) => b.className)).size).toBe(1);
     expect(new Set(actions.map((b) => b.parentElement!.className)).size).toBe(1);
     await screen.click("Unduh: Data");
-    expect(screen.calls.at(-1)).toMatchObject({ name: "files.download", input: { name: "Data.xlsx" } });
+    expect(screen.calls.at(-1)).toMatchObject({ name: "files.download", input: { name: "Data.zip" } });
     await screen.click(link);
     expect(screen.calls.at(-1)).toEqual({ name: "shell.openLink", input: { url: "https://example.org/" } });
     await screen.click("Buka di Edunex: Baru");

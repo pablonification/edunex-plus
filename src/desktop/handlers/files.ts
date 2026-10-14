@@ -1,10 +1,11 @@
 // Bridge handler for reading a file from Edunex into the window (pictures in
-// lecturers' notes, PDFs in the viewer). The rules live in ../remote-files.ts;
-// here are where copies on this computer live: the app's file cache (the
-// signed-in Student's, wiped at sign-out), the Student's own offline copies
-// under Documents and the files the app downloaded for them, which "Unduh"
-// opens again instead of downloading twice. And saving a PDF filled in the
-// app, only where the Student chooses in the save dialog.
+// lecturers' notes; PDFs, Word documents, spreadsheets and text in the
+// viewer). The rules live in ../remote-files.ts; here are where copies on this
+// computer live: the app's file cache (the signed-in Student's, wiped at
+// sign-out), the Student's own offline copies under Documents, for every kind,
+// and the files the app downloaded for them, which "Unduh" opens again instead
+// of downloading twice. And saving a PDF filled in the app, only where the
+// Student chooses in the save dialog.
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { app, dialog } from "electron";
@@ -22,7 +23,7 @@ import { offlineRoot } from "./course-page";
 
 export const filesHandlers: HandlerGroup<"files.read" | "files.saveCopy"> = (context) => ({
   "files.read": ({ url, as }) =>
-    readFile({ fetch: context.fetchFile, cache: context.fileCache, offline: as === "pdf" ? (address) => offlineCopy(context, address) : undefined }, url, as),
+    readFile({ fetch: context.fetchFile, cache: context.fileCache, offline: (address) => offlineCopy(context, address, LIMITS[as].bytes) }, url, as),
   "files.saveCopy": async ({ name, bytes }) => {
     if (!sniff(bytes, "pdf")) throw new EngineError("Rejected", "Only a PDF is saved from the viewer");
     const window = context.window();
@@ -85,10 +86,10 @@ export async function copyOnThisComputer(context: DesktopContext, url: string): 
   return context.downloadedFiles.find(url, material?.sizeBytes);
 }
 
-/** The offline copy's bytes, for the viewer to read instead of Edunex's storage. */
-async function offlineCopy(context: DesktopContext, url: string): Promise<Uint8Array | null> {
+/** The offline copy's bytes, for the viewer to read instead of Edunex's storage; `max`: the most its kind may be. */
+async function offlineCopy(context: DesktopContext, url: string, max: number): Promise<Uint8Array | null> {
   const copy = await offlineFile(context, url);
-  return copy && copy.size <= LIMITS.pdf.bytes ? new Uint8Array(await fs.readFile(copy.file)) : null;
+  return copy && copy.size <= max ? new Uint8Array(await fs.readFile(copy.file)) : null;
 }
 
 /**

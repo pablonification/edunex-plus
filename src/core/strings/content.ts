@@ -1,6 +1,6 @@
 // Text for what lecturers write and upload, shown in the app: links that open
 // in the browser, pictures in notes, long notes folded, PDFs in the viewer
-// (and filled in there), files that can't be shown.
+// (and filled in there), other files in theirs, files that can't be shown.
 import type { Entry } from "./entry";
 
 export const contentStrings = {
@@ -71,4 +71,17 @@ export const contentStrings = {
   },
   "pdf.discard.confirm": { id: "Buang", en: "Discard" },
   "pdf.discard.keep": { id: "Lanjut mengisi", en: "Keep filling" },
+  "viewer.loading": { id: "Memuat berkas…", en: "Loading the file…" },
+  "viewer.failed": { id: "Berkas ini tidak bisa ditampilkan", en: "This file can't be shown" },
+  "viewer.broken": {
+    id: "Berkasnya rusak atau bukan jenis yang bisa dibaca di aplikasi. Unduh untuk membukanya di aplikasi komputermu.",
+    en: "The file is damaged or isn't a kind the app can read. Download it to open it in an app on your computer.",
+  },
+  "viewer.downloadHint": { id: "Simpan ke Unduhan, lalu buka di aplikasi komputermu", en: "Save to Downloads, then open it in an app on your computer" },
+  "sheet.sheets": { id: "Lembar kerja", en: "Sheets" },
+  "sheet.untitled": { id: "Lembar {number}", en: "Sheet {number}" },
+  "sheet.cut": {
+    id: "Yang tampil hanya {rows} baris dan {columns} kolom pertama. Unduh untuk melihat semuanya.",
+    en: "Only the first {rows} rows and {columns} columns are shown. Download it to see them all.",
+  },
 } as const satisfies Record<string, Entry>;
