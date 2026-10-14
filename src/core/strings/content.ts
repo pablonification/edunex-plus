@@ -84,4 +84,5 @@ export const contentStrings = {
     id: "Yang tampil hanya {rows} baris dan {columns} kolom pertama. Unduh untuk melihat semuanya.",
     en: "Only the first {rows} rows and {columns} columns are shown. Download it to see them all.",
   },
+  "slides.slide": { id: "Slide {number} dari {total}", en: "Slide {number} of {total}" },
 } as const satisfies Record<string, Entry>;

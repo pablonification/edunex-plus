@@ -1,10 +1,10 @@
 // Files from Edunex's storage read into memory for the window to show (a
-// picture in a lecturer's note; a PDF, Word document, spreadsheet or text file
-// in the viewer). No Electron here, so tests run it as it is; the handler
-// plugs in the engine session's fetch, the file cache and the Student's
-// offline copies. Only Edunex's storage, no cookies, a size cap for each kind,
-// and the bytes must really be the kind asked for: the window gets them as
-// data and never loads anything remote itself.
+// picture in a lecturer's note; a PDF, Word document, spreadsheet, PowerPoint
+// slides or text file in the viewer). No Electron here, so tests run it as it
+// is; the handler plugs in the engine session's fetch, the file cache and the
+// Student's offline copies. Only Edunex's storage, no cookies, a size cap for
+// each kind, and the bytes must really be the kind asked for: the window gets
+// them as data and never loads anything remote itself.
 import type { FileProblem, ReadAs } from "../core/actions/files";
 import { isStorageFile } from "../core/links";
 import { EngineError } from "../engine/errors";
@@ -22,9 +22,10 @@ export const LIMITS: Record<ReadAs, { bytes: number; quietMs: number }> = {
   pdf: { bytes: 100 * MB, quietMs: 30_000 },
   docx: { bytes: 50 * MB, quietMs: 30_000 },
   xlsx: { bytes: 20 * MB, quietMs: 30_000 },
+  pptx: { bytes: 100 * MB, quietMs: 30_000 },
   text: { bytes: 5 * MB, quietMs: 30_000 },
 };
-/** The most a Word document or workbook may unpack to: the window unpacks it whole to show it. */
+/** The most a Word document, workbook or presentation may unpack to: the window unpacks it whole to show it. */
 export const UNPACKED_MAX = 200 * MB;
 
 /** Where a file can come from besides the storage: copies already on this computer. */
@@ -122,19 +123,20 @@ const startsWith = (bytes: Uint8Array, signature: readonly number[], offset = 0)
 const ascii = (text: string) => [...text].map((c) => c.charCodeAt(0));
 const PDF_HEADER = ascii("%PDF-");
 
-/** A Word document and an Excel workbook are ZIPs holding these parts. */
+/** A Word document, an Excel workbook and a PowerPoint presentation are ZIPs holding these parts. */
 const OFFICE_PARTS = {
   docx: { part: "word/document.xml", type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" },
   xlsx: { part: "xl/workbook.xml", type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" },
+  pptx: { part: "ppt/presentation.xml", type: "application/vnd.openxmlformats-officedocument.presentationml.presentation" },
 } as const;
 
 /**
  * What the bytes are, never by what the server says: for pictures, by their
  * first bytes, and only formats a page shows without running anything; for a
  * PDF, its header (within the first kilobyte, where readers accept it); a Word
- * document or workbook is a whole ZIP with its main part inside, unpacking to
- * no more than UNPACKED_MAX; text is valid UTF-8 with no control characters
- * but tabs and line breaks (which binary files have).
+ * document, workbook or presentation is a whole ZIP with its main part
+ * inside, unpacking to no more than UNPACKED_MAX; text is valid UTF-8 with no
+ * control characters but tabs and line breaks (which binary files have).
  */
 export function sniff(bytes: Uint8Array, as: ReadAs): string | null {
   if (as === "image") {
@@ -144,7 +146,7 @@ export function sniff(bytes: Uint8Array, as: ReadAs): string | null {
     if (startsWith(bytes, ascii("RIFF")) && startsWith(bytes, ascii("WEBP"), 8)) return "image/webp";
     return null;
   }
-  if (as === "docx" || as === "xlsx") {
+  if (as === "docx" || as === "xlsx" || as === "pptx") {
     const zip = zipContents(bytes);
     const { part, type } = OFFICE_PARTS[as];
     return zip?.names.has("[Content_Types].xml") && zip.names.has(part) && zip.unpacked <= UNPACKED_MAX ? type : null;

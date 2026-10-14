@@ -692,7 +692,7 @@ export function LecturerFile({ file, taskId }: { file: TaskFile; taskId: number 
   const t = useT();
   const { download, busy } = useDownload();
   const pdf = usePdfViewer();
-  // A PDF, Word document, spreadsheet, text or picture reads in the app (its viewer can download it too); other files download and open.
+  // A PDF, Word document, spreadsheet, slides, text or picture reads in the app (its viewer can download it too); other files download and open.
   const viewable = canView(file.name);
   return (
     <button
