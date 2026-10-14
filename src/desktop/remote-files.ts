@@ -1,11 +1,13 @@
 // Files from Edunex's storage read into memory for the window to show (a
 // picture in a lecturer's note; a PDF, Word document, spreadsheet, PowerPoint
-// slides or text file in the viewer). No Electron here, so tests run it as it
-// is; the handler plugs in the engine session's fetch, the file cache and the
-// Student's offline copies. Only Edunex's storage, no cookies, a size cap for
-// each kind, and the bytes must really be the kind asked for: the window gets
-// them as data and never loads anything remote itself.
+// slides, text file or old Office file in the viewer). No Electron here, so
+// tests run it as it is; the handler plugs in the engine session's fetch, the
+// file cache and the Student's offline copies. Only Edunex's storage, no
+// cookies, a size cap for each kind, and the bytes must really be the kind
+// asked for: the window gets them as data and never loads anything remote
+// itself.
 import type { FileProblem, ReadAs } from "../core/actions/files";
+import { readCompoundFile } from "../core/compound-file";
 import { isStorageFile } from "../core/links";
 import { EngineError } from "../engine/errors";
 import type { FileCache } from "./file-cache";
@@ -24,6 +26,9 @@ export const LIMITS: Record<ReadAs, { bytes: number; quietMs: number }> = {
   xlsx: { bytes: 20 * MB, quietMs: 30_000 },
   pptx: { bytes: 100 * MB, quietMs: 30_000 },
   text: { bytes: 5 * MB, quietMs: 30_000 },
+  doc: { bytes: 50 * MB, quietMs: 30_000 },
+  xls: { bytes: 20 * MB, quietMs: 30_000 },
+  ppt: { bytes: 100 * MB, quietMs: 30_000 },
 };
 /** The most a Word document, workbook or presentation may unpack to: the window unpacks it whole to show it. */
 export const UNPACKED_MAX = 200 * MB;
@@ -130,13 +135,22 @@ const OFFICE_PARTS = {
   pptx: { part: "ppt/presentation.xml", type: "application/vnd.openxmlformats-officedocument.presentationml.presentation" },
 } as const;
 
+/** An old Word, Excel (97 and later, not 95's "Book") or PowerPoint file is a compound file holding this stream. */
+const COMPOUND_STREAMS = {
+  doc: { stream: "WordDocument", type: "application/msword" },
+  xls: { stream: "Workbook", type: "application/vnd.ms-excel" },
+  ppt: { stream: "PowerPoint Document", type: "application/vnd.ms-powerpoint" },
+} as const;
+
 /**
  * What the bytes are, never by what the server says: for pictures, by their
  * first bytes, and only formats a page shows without running anything; for a
  * PDF, its header (within the first kilobyte, where readers accept it); a Word
  * document, workbook or presentation is a whole ZIP with its main part
- * inside, unpacking to no more than UNPACKED_MAX; text is valid UTF-8 with no
- * control characters but tabs and line breaks (which binary files have).
+ * inside, unpacking to no more than UNPACKED_MAX; an old Word, Excel or
+ * PowerPoint file is a compound file with its main stream at its root; text is
+ * valid UTF-8 with no control characters but tabs and line breaks (which
+ * binary files have).
  */
 export function sniff(bytes: Uint8Array, as: ReadAs): string | null {
   if (as === "image") {
@@ -151,9 +165,19 @@ export function sniff(bytes: Uint8Array, as: ReadAs): string | null {
     const { part, type } = OFFICE_PARTS[as];
     return zip?.names.has("[Content_Types].xml") && zip.names.has(part) && zip.unpacked <= UNPACKED_MAX ? type : null;
   }
+  if (as === "doc" || as === "xls" || as === "ppt") return hasStream(bytes, COMPOUND_STREAMS[as].stream) ? COMPOUND_STREAMS[as].type : null;
   if (as === "text") return isText(bytes) ? "text/plain" : null;
   for (let at = 0; at <= Math.min(1024, bytes.length - PDF_HEADER.length); at++) if (startsWith(bytes, PDF_HEADER, at)) return "application/pdf";
   return null;
+}
+
+/** Whether the bytes are a compound file with this stream at its root; a broken or hostile one isn't. */
+function hasStream(bytes: Uint8Array, name: string): boolean {
+  try {
+    return readCompoundFile(bytes).has(name);
+  } catch {
+    return false;
+  }
 }
 
 /** Anything below a space but tab, line feed, form feed and carriage return, and DEL. */

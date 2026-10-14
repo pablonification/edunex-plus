@@ -2,7 +2,12 @@
 // would show, row by row. An Excel workbook (.xlsx) is unpacked with JSZip
 // (loaded on first use, its own chunk) and its XML read with the browser's own
 // parser; nothing in it runs, and only the values are kept, not formulas or
-// styles. A CSV is split here by hand.
+// styles. A CSV is split here by hand. An old workbook (.xls) has its own
+// reader (./xls.ts), which shows dates and numbers by the rules here.
+
+/** The most rows and columns a sheet shows (./file-viewer.tsx); the rest is in the file, downloaded. */
+export const MAX_ROWS = 2000;
+export const MAX_COLUMNS = 100;
 
 export interface Sheet {
   /** Its tab's name; empty for a CSV, which has one. */
@@ -67,11 +72,15 @@ function dateStyles(styles: Document | null): Set<number> {
   if (!cellXfs) return found;
   [...cellXfs.children].forEach((xf, index) => {
     const id = Number(xf.getAttribute("numFmtId") ?? 0);
-    // Quoted text and [colours] aside, a format with d, m or y in it is a date.
-    const code = (custom.get(id) ?? "").replace(/"[^"]*"|\[[^\]]*\]|\\./g, "");
-    if (DATE_FORMATS.has(id) || /[dmy]/i.test(code)) found.add(index);
+    if (isDateFormat(id, custom.get(id))) found.add(index);
   });
   return found;
+}
+
+/** Whether a number format shows a date: one of Excel's own, or one the workbook writes with days, months or years (an old .xls's too). */
+export function isDateFormat(id: number, code = ""): boolean {
+  // Quoted text and [colours] aside, a format with d, m or y in it is a date.
+  return DATE_FORMATS.has(id) || /[dmy]/i.test(code.replace(/"[^"]*"|\[[^\]]*\]|\\./g, ""));
 }
 
 /** "BC12" → 54 (from 0). */
@@ -83,11 +92,14 @@ function columnIndex(ref: string): number {
 
 function readRows(doc: Document, shared: readonly string[], dates: ReadonlySet<number>, since1904: boolean): string[][] {
   const rows: string[][] = [];
+  let last = -1;
   for (const row of all(doc, "row")) {
-    const number = Number(row.getAttribute("r")) || rows.length + 1;
-    const cells: string[] = [];
+    const index = (Number(row.getAttribute("r")) || last + 2) - 1;
+    last = index;
+    let next = 0;
     for (const cell of all(row, "c")) {
-      const at = cell.getAttribute("r") ? columnIndex(cell.getAttribute("r")!) : cells.length;
+      const at = cell.getAttribute("r") ? columnIndex(cell.getAttribute("r")!) : next;
+      next = at + 1;
       const value = all(cell, "v")[0]?.textContent ?? "";
       const type = cell.getAttribute("t");
       let text: string;
@@ -96,17 +108,33 @@ function readRows(doc: Document, shared: readonly string[], dates: ReadonlySet<n
       else if (type === "b") text = value === "1" ? "TRUE" : "FALSE";
       else if (type === "str" || type === "e" || value === "") text = value;
       else if (dates.has(Number(cell.getAttribute("s") ?? 0))) text = excelDate(Number(value), since1904);
-      // Excel shows 15 significant digits; the file may hold the float's last few.
-      else text = String(Number(Number(value).toPrecision(15)));
-      if (at >= 0 && text !== "") cells[at] = text;
+      else text = excelNumber(Number(value));
+      putCell(rows, index, at, text);
     }
-    rows[number - 1] = Array.from(cells, (text) => text ?? "");
   }
-  return Array.from(rows, (row) => row ?? []);
+  return filled(rows);
 }
 
+/**
+ * Puts a cell's text in a sheet's rows. One row and one column past what the
+ * viewer shows are kept, so it knows there's more; a cell further out lands
+ * there too, unshown. A file may say a cell is a billion rows down: the rows
+ * never grow past that.
+ */
+export function putCell(rows: string[][], row: number, column: number, text: string): void {
+  if (text === "" || !Number.isInteger(row) || !Number.isInteger(column) || row < 0 || column < 0) return;
+  (rows[Math.min(row, MAX_ROWS)] ??= [])[Math.min(column, MAX_COLUMNS)] = text;
+}
+
+/** A sheet's rows with their gaps as empty cells. */
+export const filled = (rows: readonly (readonly string[] | undefined)[]): string[][] =>
+  Array.from(rows, (cells) => Array.from(cells ?? [], (text) => text ?? ""));
+
+/** A number as Excel shows it: 15 significant digits (the file may hold the float's last few). */
+export const excelNumber = (value: number) => String(Number(value.toPrecision(15)));
+
 /** Excel's day number as "2026-10-14", with the time when it has one ("2026-10-14 13:30"). */
-function excelDate(serial: number, since1904: boolean): string {
+export function excelDate(serial: number, since1904: boolean): string {
   if (!Number.isFinite(serial)) return "";
   // Day 25569 is 1 January 1970 in Excel's count from 1900; 1462 days fewer from 1904.
   const date = new Date(Math.round((serial - (since1904 ? 24107 : 25569)) * 86_400_000));

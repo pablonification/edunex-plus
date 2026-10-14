@@ -1,11 +1,12 @@
 // Bridge handler for reading a file from Edunex into the window (pictures in
-// lecturers' notes; PDFs, Word documents, spreadsheets, PowerPoint slides and
-// text in the viewer). The rules live in ../remote-files.ts; here are where
-// copies on this computer live: the app's file cache (the signed-in Student's,
-// wiped at sign-out), the Student's own offline copies under Documents, for
-// every kind, and the files the app downloaded for them, which "Unduh" opens
-// again instead of downloading twice. And saving a PDF filled in the app, only
-// where the Student chooses in the save dialog.
+// lecturers' notes; PDFs, Word documents, spreadsheets, PowerPoint slides,
+// text and old Office files in the viewer). The rules live in
+// ../remote-files.ts; here are where copies on this computer live: the app's
+// file cache (the signed-in Student's, wiped at sign-out), the Student's own
+// offline copies under Documents, for every kind, and the files the app
+// downloaded for them, which "Unduh" opens again instead of downloading twice.
+// And saving a PDF filled in the app, only where the Student chooses in the
+// save dialog.
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { app, dialog } from "electron";

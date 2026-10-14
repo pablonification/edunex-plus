@@ -1,13 +1,13 @@
 // The in-app viewer for files that aren't PDFs (those have ./pdf-viewer.tsx):
-// a Word document as its pages, a spreadsheet (Excel, CSV) as a table per
-// sheet, PowerPoint slides as pages (./slide-deck.tsx), text and code as they
-// are, a picture whole. The same panel over the current screen as the PDF
-// viewer, with the file's name, Download and Close; Esc closes and focus goes
-// back. What reads each kind loads on first use, in a chunk of its own.
-// Nothing in a file runs: a Word document is drawn in a shadow root (its
-// styles stay inside), slides are built as elements from plain data, links go
-// through the app's own link rules or nowhere, and text is only ever shown as
-// text.
+// a Word document as its pages, a spreadsheet (Excel, old Excel, CSV) as a
+// table per sheet, PowerPoint slides as pages (./slide-deck.tsx), text and code
+// as they are, a picture whole, an old Word document or PowerPoint as its text
+// (./text-only.tsx). The same panel over the current screen as the PDF viewer,
+// with the file's name, Download and Close; Esc closes and focus goes back.
+// What reads each kind loads on first use, in a chunk of its own. Nothing in a
+// file runs: a Word document is drawn in a shadow root (its styles stay
+// inside), slides are built as elements from plain data, links go through the
+// app's own link rules or nowhere, and text is only ever shown as text.
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import * as Tabs from "@radix-ui/react-tabs";
 import { type ReactNode, type RefObject, useEffect, useLayoutEffect, useRef, useState } from "react";
@@ -16,33 +16,34 @@ import { isWebLink } from "../../core/links";
 import { useT } from "../i18n";
 import { Button } from "./controls";
 import { cx } from "./cx";
+import type { Block } from "./doc";
 import { Icons } from "./icons";
 import { ignoreClosingClick, PANEL_MOTION_CLASS, SCRIM_CLASS, useReturnFocus } from "./overlays";
 import { PanelBoundary } from "./panel-boundary";
-import { readCsv, type Sheet } from "./sheets";
+import type { Slide } from "./ppt";
+import { MAX_COLUMNS, MAX_ROWS, readCsv, type Sheet } from "./sheets";
 import { SlideDeck } from "./slide-deck";
 import type { Deck } from "./slides";
 import { TabBar } from "./tabs";
+import { DocPages, SlideCards } from "./text-only";
 import { Failed, Loading, Toolbar } from "./viewer-frame";
 
-/** What the viewer shows a file as: a Word document, an Excel workbook, PowerPoint slides, a CSV (or TSV) table, text, a picture. */
-export type FileKind = "docx" | "xlsx" | "pptx" | "csv" | "tsv" | "text" | "image";
+/** What the viewer shows a file as: a Word document, an Excel workbook, PowerPoint slides, a CSV (or TSV) table, text, a picture; an old Word, Excel or PowerPoint file. */
+export type FileKind = "docx" | "xlsx" | "pptx" | "csv" | "tsv" | "text" | "image" | "doc" | "xls" | "ppt";
 /** Why a file isn't shown: it couldn't be read, or it isn't one the viewer can read. */
 export type FileViewProblem = FileProblem | "broken";
-
-/** The most rows and columns a sheet shows; the rest is in the file, downloaded. */
-const MAX_ROWS = 2000;
-const MAX_COLUMNS = 100;
 
 type Shown =
   | { kind: "docx"; nodes: Node[] }
   | { kind: "sheets"; sheets: Sheet[] }
   | { kind: "slides"; deck: Deck }
   | { kind: "text"; text: string }
-  | { kind: "image"; url: string };
+  | { kind: "image"; url: string }
+  | { kind: "doc"; pages: Block[][] }
+  | { kind: "ppt"; slides: Slide[] };
 type View = { phase: "loading" } | { phase: "ready"; shown: Shown } | { phase: "failed"; problem: FileViewProblem };
 
-/** The file's bytes as what it shows: the Word, Excel and PowerPoint readers load here, the first time one opens. */
+/** The file's bytes as what it shows: the readers of Word, Excel and PowerPoint files, old and new, load here, the first time one opens. */
 async function show(kind: FileKind, bytes: Uint8Array): Promise<Shown> {
   switch (kind) {
     case "docx":
@@ -58,6 +59,12 @@ async function show(kind: FileKind, bytes: Uint8Array): Promise<Shown> {
       return { kind, text: new TextDecoder().decode(bytes) };
     case "image":
       return { kind, url: URL.createObjectURL(new Blob([bytes as Uint8Array<ArrayBuffer>])) };
+    case "doc":
+      return { kind, pages: (await import("./doc")).readDoc(bytes) };
+    case "xls":
+      return { kind: "sheets", sheets: (await import("./xls")).readXls(bytes) };
+    case "ppt":
+      return { kind, slides: (await import("./ppt")).readPpt(bytes) };
   }
 }
 
@@ -178,6 +185,10 @@ export function FileViewer({ open, onOpenChange, name, kind, load, actions, fall
                   <pre className="m-6 min-h-[calc(100%-3rem)] rounded-lg bg-surface p-5 font-mono text-small break-words whitespace-pre-wrap text-fg shadow-card select-text">
                     {view.shown.text}
                   </pre>
+                ) : view.shown.kind === "doc" ? (
+                  <DocPages pages={view.shown.pages} />
+                ) : view.shown.kind === "ppt" ? (
+                  <SlideCards slides={view.shown.slides} />
                 ) : view.shown.kind === "image" ? (
                   <div className="grid min-h-full place-items-center p-6">
                     <img src={view.shown.url} alt={name} className="h-auto max-w-full rounded-sm shadow-card" />

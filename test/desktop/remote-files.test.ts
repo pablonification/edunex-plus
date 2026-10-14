@@ -1,12 +1,13 @@
 // Main reads a picture from Edunex's storage for the window: only from
 // Edunex's storage, never with cookies, never more than it should, and only
 // when the bytes really are a picture. And the same for a PDF, a Word
-// document, an Excel workbook, a PowerPoint presentation and text, each
-// checked for what it claims to be.
+// document, an Excel workbook, a PowerPoint presentation, text, and old Word,
+// Excel and PowerPoint files, each checked for what it claims to be.
 import { describe, expect, it } from "vitest";
 import { type FetchFile, readRemoteFile, sniff, UNPACKED_MAX, zipContents } from "../../src/desktop/remote-files";
 import { isEngineError } from "../../src/engine/errors";
 import { aDocx, anXlsx, aPptx, aZip } from "../kit/office-files";
+import { aCompoundFile, aDoc, anXls, aPpt, setFatEntry } from "../kit/old-office-files";
 
 const URL_OK = "https://edunexfixture.blob.core.windows.net/edunex/fixture-2?sv=2024&sig=pretend";
 const PNG = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 13]);
@@ -174,5 +175,45 @@ describe("reading a Word document, a workbook or text", () => {
     expect(await readRemoteFile(sized(21), URL_OK, "xlsx")).toEqual({ problem: "too-big" });
     expect(await readRemoteFile(sized(6), URL_OK, "text")).toEqual({ problem: "too-big" });
     expect(await readRemoteFile(sized(4), URL_OK, "text")).toMatchObject({ type: "text/plain" });
+  });
+});
+
+describe("reading an old Word, Excel or PowerPoint file", () => {
+  const read = (bytes: Uint8Array, as: Parameters<typeof readRemoteFile>[2]) =>
+    readRemoteFile(storage(() => new Response(new Uint8Array(bytes))).fetch, URL_OK, as);
+
+  it("is a compound file with its own main stream inside", async () => {
+    const doc = aDoc(["Notulen"]);
+    const xls = anXls({ Lembar1: [["a"]] });
+    const ppt = aPpt([{ title: "Pengantar" }]);
+    expect(await read(doc, "doc")).toMatchObject({ type: "application/msword" });
+    expect(await read(xls, "xls")).toMatchObject({ type: "application/vnd.ms-excel" });
+    expect(await read(ppt, "ppt")).toMatchObject({ type: "application/vnd.ms-powerpoint" });
+    // Each is only what it is: a Word document named .xls isn't a workbook, nor the other way round.
+    expect(await read(doc, "xls")).toEqual({ problem: "unreadable" });
+    expect(await read(xls, "ppt")).toEqual({ problem: "unreadable" });
+    expect(await read(ppt, "doc")).toEqual({ problem: "unreadable" });
+    // A .docx, a page passed off as one, and an Excel 95 workbook (whose stream is "Book").
+    expect(await read(await aDocx({ lines: ["Notulen"] }), "doc")).toEqual({ problem: "unreadable" });
+    expect(await read(ascii("\u00d0\u00cf<html><script>alert(1)</script>"), "doc")).toEqual({ problem: "unreadable" });
+    expect(await read(aCompoundFile({ Book: new Uint8Array(100) }), "xls")).toEqual({ problem: "unreadable" });
+  });
+
+  it("one whose sector chains loop or point outside it isn't read in, and checking it doesn't hang", () => {
+    const doc = aDoc(["Notulen"]);
+    const directory = new DataView(doc.buffer).getUint32(48, true);
+    expect(sniff(doc, "doc")).toBe("application/msword");
+    expect(sniff(setFatEntry(doc, directory, directory), "doc")).toBeNull();
+    expect(sniff(setFatEntry(doc, directory, 0x00ffffff), "doc")).toBeNull();
+    expect(sniff(doc.subarray(0, 1024), "doc")).toBeNull();
+  });
+
+  it("each kind has its own size cap: Word 50 MB, Excel 20 MB, PowerPoint 100 MB", async () => {
+    const sized = (mb: number) => storage(() => new Response(ascii("a"), { headers: { "content-length": String(mb * 1024 * 1024) } })).fetch;
+    expect(await readRemoteFile(sized(51), URL_OK, "doc")).toEqual({ problem: "too-big" });
+    expect(await readRemoteFile(sized(21), URL_OK, "xls")).toEqual({ problem: "too-big" });
+    expect(await readRemoteFile(sized(101), URL_OK, "ppt")).toEqual({ problem: "too-big" });
+    // Under its cap, a presentation is read in and checked (this one isn't one).
+    expect(await readRemoteFile(sized(60), URL_OK, "ppt")).toEqual({ problem: "unreadable" });
   });
 });
