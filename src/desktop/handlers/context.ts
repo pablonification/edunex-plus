@@ -3,6 +3,7 @@ import type { BrowserWindow, Session } from "electron";
 import type { Event } from "../../core/contract";
 import type { Lang, Settings } from "../../core/models";
 import type { Engine } from "../../engine/engine";
+import type { DownloadedFiles } from "../downloaded-files";
 import type { FileCache } from "../file-cache";
 import type { Handlers } from "../ipc";
 import type { Notifier } from "../notifications";
@@ -22,6 +23,8 @@ export interface DesktopContext {
   fetchFile: FetchFile;
   /** Files from Edunex the window showed, the signed-in Student's only; wiped at sign-out. */
   fileCache: FileCache;
+  /** Where the files "Unduh" saved went, the signed-in Student's only; wiped at sign-out. */
+  downloadedFiles: DownloadedFiles;
   vaultMode: VaultMode;
   /** The system the page draws its window chrome and shortcuts for (the demo can picture another). */
   platform: Platform;

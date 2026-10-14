@@ -19,9 +19,13 @@ export const coreActions = {
   "shell.openLink": { input: z.object({ url: z.string().url().max(4000) }), output: z.object({}) },
   /**
    * Downloads a file from Edunex (a material, a lecturer's file) through the browser's own download
-   * manager, so the OS marks it as downloaded, into Downloads, and opens it.
+   * manager, so the OS marks it as downloaded, into Downloads, and opens it. A copy already on this
+   * computer (saved for offline, or downloaded before and unchanged since) opens instead: `existing`.
    */
-  "files.download": { input: z.object({ url: z.string().url(), name: z.string().min(1).max(200) }), output: z.object({ path: z.string() }) },
+  "files.download": {
+    input: z.object({ url: z.string().url(), name: z.string().min(1).max(200) }),
+    output: z.object({ path: z.string(), existing: z.boolean() }),
+  },
   /** Keeps something the Student entered (course weights, a study plan) on this computer, as a "local.*" dataset. */
   "local.set": { input: z.object({ name: z.string().startsWith("local."), value: z.unknown() }), output: z.object({}) },
 } as const;

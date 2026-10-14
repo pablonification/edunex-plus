@@ -58,6 +58,7 @@ export const coursePageStrings = {
   "material.createdBy": { id: "Dibuat oleh {name} pada {when}", en: "Created by {name} on {when}" },
   "material.updatedBy": { id: "Diperbarui oleh {name} pada {when}", en: "Updated by {name} on {when}" },
   "material.downloaded": { id: "Tersimpan di Unduhan", en: "Saved to Downloads" },
+  "material.openedCopy": { id: "Sudah ada di komputer ini, dibuka tanpa mengunduh lagi", en: "Already on this computer, opened without downloading again" },
   "offline.save": { id: "Simpan untuk offline", en: "Save for offline" },
   "offline.pick": { id: "Simpan ke folder lain…", en: "Save to another folder…" },
   "offline.done": {

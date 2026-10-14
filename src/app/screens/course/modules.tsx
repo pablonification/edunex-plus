@@ -382,8 +382,8 @@ export function MaterialRow({ material }: { material: Material }) {
   const download = async (url: string, name: string) => {
     setBusy(true);
     try {
-      await bridge.invoke("files.download", { url, name });
-      toast(t("material.downloaded"));
+      const { existing } = await bridge.invoke("files.download", { url, name });
+      toast(t(existing ? "material.openedCopy" : "material.downloaded"));
     } catch (error) {
       toast(t("error.action", { message: error instanceof Error ? error.message : String(error) }), "danger");
     } finally {

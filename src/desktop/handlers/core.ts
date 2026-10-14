@@ -4,6 +4,7 @@ import { isOfficialUrl, isWebLink } from "../../core/links";
 import { EngineError } from "../../engine/errors";
 import { download, isDownloadable } from "../downloads";
 import type { HandlerGroup } from "./context";
+import { copyOnThisComputer } from "./files";
 
 type Core = "app.snapshot" | "app.ready" | "sync.refresh" | "settings.update" | "shell.openExternal" | "shell.openLink" | "files.download" | "local.set";
 
@@ -36,9 +37,17 @@ export const coreHandlers: HandlerGroup<Core> = (context) => ({
   },
   "files.download": async ({ url, name }) => {
     if (!isDownloadable(url)) throw new EngineError("Rejected", "Only Edunex's files download from the app");
+    // Already on this computer: that copy opens, rather than another "Notes (2).docx" next to it. One
+    // that won't open downloads afresh.
+    const existing = await copyOnThisComputer(context, url);
+    if (existing && (await shell.openPath(existing)) === "") return { path: existing, existing: true };
     const window = context.window();
     if (!window) throw new EngineError("Failed", "The window is closed");
-    return { path: await download(window.webContents, url, name) };
+    // A sign-out while it downloads: where it went isn't remembered.
+    const since = context.downloadedFiles.generation();
+    const file = await download(window.webContents, url, name);
+    await context.downloadedFiles.record(url, file, since).catch(() => undefined);
+    return { path: file, existing: false };
   },
   "local.set": async ({ name, value }) => {
     await context.engine.setLocal(name, value);

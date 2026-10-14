@@ -185,6 +185,7 @@ function app(start: { six?: SourceState; sixData?: boolean; firstRun?: boolean; 
     lang: () => "id",
     send: (event: Event) => events.push(event),
     fileCache: { clear: async () => undefined },
+    downloadedFiles: { clear: async () => undefined },
     userData: "/nowhere",
     engineSession: {},
   } as unknown as Context;

@@ -134,6 +134,8 @@ export async function openApp(options: Options = {}) {
   /** PDFs the Student filled in and saved a copy of, in order (their content as text). */
   const savedCopies: { name: string; text: string }[] = [];
   let saveDialogCloses = false;
+  /** Files downloaded so far: main opens the copy it downloaded before instead of downloading again. */
+  const downloaded = new Set<string>();
   /** The system can't open links (no browser set, the OS refused). */
   let linksFail = false;
   const inFlight = new Set<Promise<unknown>>();
@@ -191,7 +193,11 @@ export async function openApp(options: Options = {}) {
     },
     // Main's real reader, on the pretend storage.
     "files.read": async ({ url, as }: { url: string; as: "image" | "pdf" }) => readFile({ fetch: (address, init) => world.fetch(address, init) }, url, as),
-    "files.download": async ({ name }: { name: string }) => ({ path: `/Downloads/${name}` }),
+    "files.download": async ({ url, name }: { url: string; name: string }) => {
+      const existing = downloaded.has(url);
+      downloaded.add(url);
+      return { path: `/Downloads/${name}`, existing };
+    },
     // The save dialog: the Student keeps the name offered, or closes it once (`closeSaveDialog`). Tests read `savedCopies`.
     "files.saveCopy": async ({ name, bytes }: { name: string; bytes: Uint8Array }) => {
       if (saveDialogCloses) {

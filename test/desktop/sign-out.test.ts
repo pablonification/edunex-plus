@@ -1,8 +1,9 @@
 // Signing out leaves Edunex's files behind nowhere on this computer: signing
 // out of Edunex removes the files the window showed, even one still on its
-// way in; "sign out of everything" also clears the app's browser storage and
-// what the first version kept. Another Student signing in without a sign-out
-// between finds none of them either. Runs the real handlers on a throwaway folder.
+// way in, and forgets where its downloads went; "sign out of everything" also
+// clears the app's browser storage and what the first version kept. Another
+// Student signing in without a sign-out between finds none of them either.
+// Runs the real handlers on a throwaway folder.
 import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -21,6 +22,7 @@ vi.mock("../../src/desktop/signin-session", () => ({ forgetSignInSession: async 
 
 const { authHandlers } = await import("../../src/desktop/handlers/auth");
 const { createFileCache, FILE_CACHE_FOLDER } = await import("../../src/desktop/file-cache");
+const { createDownloadedFiles, DOWNLOADED_FILES_FOLDER } = await import("../../src/desktop/downloaded-files");
 const { readFile } = await import("../../src/desktop/remote-files");
 const { forgetOtherStudentsFiles } = await import("../../src/desktop/handlers/files");
 type Context = Parameters<typeof authHandlers>[0];
@@ -38,13 +40,23 @@ afterEach(async () => {
   await fs.rm(root, { recursive: true, force: true });
 });
 
-const signOutWith = (cache: ReturnType<typeof createFileCache>) => {
+/** A file "Unduh" saved in Downloads, remembered in the app's data folder. */
+async function downloaded(url: string) {
+  const downloads = path.join(root, "Downloads");
+  await fs.mkdir(downloads, { recursive: true });
+  await fs.writeFile(path.join(downloads, "Notes.docx"), "fixture");
+  const files = createDownloadedFiles(path.join(root, DOWNLOADED_FILES_FOLDER));
+  await files.record(url, path.join(downloads, "Notes.docx"));
+  return files;
+}
+
+const signOutWith = (cache: ReturnType<typeof createFileCache>, downloadedFiles = createDownloadedFiles(path.join(root, DOWNLOADED_FILES_FOLDER))) => {
   const engineSession = {
     clearStorageData: async () => void cleared.push("engine storage"),
     clearCache: async () => undefined,
     clearAuthCache: async () => undefined,
   };
-  const context = { engine: { signOut: async () => undefined }, fileCache: cache, userData: root, engineSession } as unknown as Context;
+  const context = { engine: { signOut: async () => undefined }, fileCache: cache, downloadedFiles, userData: root, engineSession } as unknown as Context;
   return authHandlers(context)["auth.signOut"];
 };
 
@@ -69,8 +81,12 @@ describe("signing out", () => {
       URL_B,
       "pdf",
     );
-    await signOutWith(cache)({ source: "edunex" });
+    const files = await downloaded(URL_A);
+    await signOutWith(cache, files)({ source: "edunex" });
     expect(await fs.readdir(folder).catch(() => [])).toEqual([]);
+    // The download stays in Downloads; the app just no longer knows it's there.
+    expect(await files.find(URL_A)).toBeNull();
+    expect(await fs.readdir(path.join(root, "Downloads"))).toEqual(["Notes.docx"]);
     arrive();
     await reading;
     expect(await fs.readdir(folder).catch(() => [])).toEqual([]);
@@ -81,8 +97,10 @@ describe("signing out", () => {
   it("of SIX alone keeps Edunex's files", async () => {
     const cache = createFileCache(path.join(root, FILE_CACHE_FOLDER));
     await cache.put(URL_A, pdf());
-    await signOutWith(cache)({ source: "six" });
+    const files = await downloaded(URL_A);
+    await signOutWith(cache, files)({ source: "six" });
     expect(await cache.get(URL_A)).toEqual(pdf());
+    expect(await files.find(URL_A)).toBe(path.join(root, "Downloads", "Notes.docx"));
   });
 
   it("of everything removes the files, the browser storage and what the first version kept", async () => {
@@ -90,8 +108,8 @@ describe("signing out", () => {
     await cache.put(URL_A, pdf());
     await fs.writeFile(path.join(root, "auth-session.enc"), "fixture");
     await fs.mkdir(path.join(root, "feed-snapshots"));
-    await signOutWith(cache)({});
-    expect(await fs.readdir(root)).toEqual([]);
+    await signOutWith(cache, await downloaded(URL_A))({});
+    expect(await fs.readdir(root)).toEqual(["Downloads"]);
     expect(cleared).toEqual(expect.arrayContaining(["window storage", "window cache", "engine storage", "v1 storage", "sign-in window"]));
   });
 
@@ -111,14 +129,17 @@ describe("another Student signing in", () => {
   it("finds none of the last one's files, though nobody signed out", async () => {
     const cache = createFileCache(path.join(root, FILE_CACHE_FOLDER));
     await cache.put(URL_A, pdf());
-    const follow = forgetOtherStudentsFiles(cache, "10000001");
+    const files = await downloaded(URL_A);
+    const follow = forgetOtherStudentsFiles([cache, files], "10000001");
     const account = (nim: string) => ({ type: "dataset", dataset: { name: "edunex.account", value: { nim }, fetchedAt: 0, hash: "" } }) as never;
     // The same Student's account read again keeps them.
     await follow(account("10000001"));
     expect(await cache.get(URL_A)).toEqual(pdf());
+    expect(await files.find(URL_A)).not.toBeNull();
     // Their session ran out and someone else signed in: the engine drops the last account, then sets the new one.
     await follow({ type: "dataset.removed", name: "edunex.account" });
     await follow(account("10000002"));
     expect(await fs.readdir(path.join(root, FILE_CACHE_FOLDER)).catch(() => [])).toEqual([]);
+    expect(await fs.readdir(path.join(root, DOWNLOADED_FILES_FOLDER)).catch(() => [])).toEqual([]);
   });
 });
