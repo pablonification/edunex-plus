@@ -8,7 +8,7 @@
 // chunk. Nothing in it runs, and every length is checked against the bytes: a
 // broken or hostile file throws, and the viewer offers Download instead.
 import { readCompoundFile } from "../../core/compound-file";
-import { excelDate, excelNumber, isDateFormat, type Sheet } from "./sheets";
+import { excelDate, excelNumber, filled, isDateFormat, putCell, type Sheet } from "./sheets";
 
 const BOF = 0x0809;
 const EOF = 0x000a;
@@ -63,21 +63,29 @@ export function readXls(bytes: Uint8Array): Sheet[] {
   const dates = styles.map((format) => isDateFormat(format, formats.get(format)));
   const number = (style: number, value: number) => (dates[style] ? excelDate(value, since1904) : excelNumber(value));
 
-  const read = sheets.map(({ at, name }) => ({ name, rows: readCells(stream, at, shared, number) }));
+  // Sheets each have their own stretch of the stream, so reading them all reads it about once. A file whose sheets all point at
+  // the same big one would be read again and again: past twice over, it's broken.
+  const budget = { records: stream.length / 2 };
+  const read = sheets.map(({ at, name }) => ({ name, rows: readCells(stream, at, shared, number, budget) }));
   if (!read.length) throw new Error("No sheet to show");
   return read;
 }
 
 /** A sheet's cells as text, row by row, from its records at `at` to its EOF (a chart inside it has a BOF and EOF of its own). */
-function readCells(stream: Uint8Array, at: number, shared: readonly string[], number: (style: number, value: number) => string): string[][] {
+function readCells(
+  stream: Uint8Array,
+  at: number,
+  shared: readonly string[],
+  number: (style: number, value: number) => string,
+  budget: { records: number },
+): string[][] {
   const rows: string[][] = [];
-  const set = (row: number, column: number, text: string) => {
-    if (text !== "") (rows[row] ??= [])[column] = text;
-  };
+  const set = (row: number, column: number, text: string) => putCell(rows, row, column, text);
   /** A formula whose text result comes in the STRING record after it. */
   let pending: { row: number; column: number } | null = null;
   let depth = 0;
   for (const record of records(stream, at)) {
+    if (--budget.records < 0) throw new Error("A broken workbook");
     const { type, data, view } = record;
     if (depth === 0 && (type !== BOF || data.length < 4 || view.getUint16(0, true) !== BIFF8)) throw new Error("A broken workbook");
     if (type === BOF) {
@@ -109,7 +117,7 @@ function readCells(stream: Uint8Array, at: number, shared: readonly string[], nu
       pending = null;
     }
   }
-  return Array.from(rows, (cells) => Array.from(cells ?? [], (text) => text ?? ""));
+  return filled(rows);
 }
 
 /** An RK number: a whole number or the top of a float, perhaps ×100. */

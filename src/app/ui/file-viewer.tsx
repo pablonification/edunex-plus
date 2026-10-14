@@ -21,7 +21,7 @@ import { Icons } from "./icons";
 import { ignoreClosingClick, PANEL_MOTION_CLASS, SCRIM_CLASS, useReturnFocus } from "./overlays";
 import { PanelBoundary } from "./panel-boundary";
 import type { Slide } from "./ppt";
-import { readCsv, type Sheet } from "./sheets";
+import { MAX_COLUMNS, MAX_ROWS, readCsv, type Sheet } from "./sheets";
 import { SlideDeck } from "./slide-deck";
 import type { Deck } from "./slides";
 import { TabBar } from "./tabs";
@@ -32,10 +32,6 @@ import { Failed, Loading, Toolbar } from "./viewer-frame";
 export type FileKind = "docx" | "xlsx" | "pptx" | "csv" | "tsv" | "text" | "image" | "doc" | "xls" | "ppt";
 /** Why a file isn't shown: it couldn't be read, or it isn't one the viewer can read. */
 export type FileViewProblem = FileProblem | "broken";
-
-/** The most rows and columns a sheet shows; the rest is in the file, downloaded. */
-const MAX_ROWS = 2000;
-const MAX_COLUMNS = 100;
 
 type Shown =
   | { kind: "docx"; nodes: Node[] }

@@ -5,7 +5,7 @@
 // made-up ones (../kit/office-files.ts).
 import { describe, expect, it } from "vitest";
 import { canView, isPdfName, viewerKind } from "../../src/app/pdf";
-import { readCsv, readWorkbook } from "../../src/app/ui/sheets";
+import { MAX_COLUMNS, MAX_ROWS, readCsv, readWorkbook } from "../../src/app/ui/sheets";
 import { anXlsx, aZip } from "../kit/office-files";
 
 describe("which files the viewer shows", () => {
@@ -61,6 +61,19 @@ describe("reading a workbook", () => {
   it("keeps empty cells and rows in their places", async () => {
     const sheets = await readWorkbook(await anXlsx({ Lembar1: [["A1", "", "C1"], [], ["", "B3"]] }));
     expect(sheets[0].rows).toEqual([["A1", "", "C1"], [], ["", "B3"]]);
+  });
+
+  it("never grows a sheet past a row and a column more than it shows, wherever its cells say they are", async () => {
+    const S = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
+    const bytes = await aZip({
+      "xl/workbook.xml": `<workbook xmlns="${S}" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Jauh" sheetId="1" r:id="rId1"/></sheets></workbook>`,
+      "xl/_rels/workbook.xml.rels": `<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Target="worksheets/sheet1.xml"/></Relationships>`,
+      "xl/worksheets/sheet1.xml": `<worksheet xmlns="${S}"><sheetData><row r="1"><c r="A1" t="inlineStr"><is><t>Atas</t></is></c><c r="XFD1" t="inlineStr"><is><t>Kanan</t></is></c></row><row r="1000000000"><c r="A1000000000"><v>1</v></c></row></sheetData></worksheet>`,
+    });
+    const [sheet] = await readWorkbook(bytes);
+    expect(sheet.rows).toHaveLength(MAX_ROWS + 1);
+    expect(sheet.rows[0]).toHaveLength(MAX_COLUMNS + 1);
+    expect(sheet.rows[0][0]).toBe("Atas");
   });
 
   it("refuses what isn't a workbook", async () => {

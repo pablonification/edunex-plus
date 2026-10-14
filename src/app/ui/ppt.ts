@@ -116,7 +116,8 @@ function streamOrder(records: Records): Text[][] {
   let document: Rec | null = null;
   const slides: Rec[] = [];
   try {
-    for (let at = 0; at + 8 <= records.length; ) {
+    // One past the most shown is enough to know there are too many.
+    for (let at = 0; at + 8 <= records.length && slides.length <= MAX_SLIDES; ) {
       const record = records.at(at);
       if (record.type === DOCUMENT) document = record;
       else if (record.type === SLIDE) slides.push(record);
@@ -138,8 +139,9 @@ function slideList(records: Records, document: Rec): { ref: number; texts: Text[
   const slides: { ref: number; texts: Text[] }[] = [];
   let type = OTHER;
   for (const child of records.children(list)) {
-    if (child.type === SLIDE_PERSIST && child.end - child.start >= 4) slides.push({ ref: records.u32(child.start), texts: [] });
-    else if (child.type === TEXT_HEADER && child.end - child.start >= 4) type = records.u32(child.start);
+    if (child.type === SLIDE_PERSIST && child.end - child.start >= 4) {
+      if (slides.push({ ref: records.u32(child.start), texts: [] }) > MAX_SLIDES) throw new Error("Too many slides");
+    } else if (child.type === TEXT_HEADER && child.end - child.start >= 4) type = records.u32(child.start);
     else if ((child.type === TEXT_CHARS || child.type === TEXT_BYTES) && slides.length)
       slides[slides.length - 1].texts.push({ type, text: records.text(child) });
   }
