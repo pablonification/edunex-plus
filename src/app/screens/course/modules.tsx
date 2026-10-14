@@ -25,7 +25,7 @@ import type { Material, Task } from "../../../core/models";
 import { useOpenExternal, useOpenLink } from "../../hooks";
 import { type Format, type Translate, useFormat, useNow, useT } from "../../i18n";
 import { LecturerHtml, RemoteImage } from "../../lecturer-html";
-import { isPdfName, usePdfViewer } from "../../pdf";
+import { canView, usePdfViewer } from "../../pdf";
 import { useBridge } from "../../store";
 import { Button, IconButton } from "../../ui/controls";
 import { cx } from "../../ui/cx";
@@ -398,8 +398,8 @@ export function MaterialRow({ material }: { material: Material }) {
   let button: ReactNode = null;
   switch (action.kind) {
     case "download":
-      button = isPdfName(action.name) ? (
-        // A PDF reads right here; downloading stays one click away.
+      button = canView(action.name) ? (
+        // A PDF, Word document, spreadsheet, text or picture reads right here; downloading stays one click away.
         <span className="flex items-center gap-1">
           <Tooltip content={named(t("material.download"))}>
             <IconButton label={named(t("material.download"))} size="sm" disabled={busy} onClick={() => void download(action.url, action.name)}>

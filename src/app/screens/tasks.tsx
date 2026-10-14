@@ -41,7 +41,7 @@ import { useOpenExternal } from "../hooks";
 import { type Format, type Translate, useFormat, useNow, useT } from "../i18n";
 import { LecturerHtml } from "../lecturer-html";
 import { useNav } from "../nav";
-import { isPdfName, useAnswerAttach, usePdfViewer } from "../pdf";
+import { canView, isPdfName, useAnswerAttach, usePdfViewer } from "../pdf";
 import { useExams } from "../schedule-data";
 import { isBuilt } from "../shell/built";
 import { useRefresh, useSignIn } from "../shell/source-status";
@@ -692,8 +692,8 @@ export function LecturerFile({ file, taskId }: { file: TaskFile; taskId: number 
   const t = useT();
   const { download, busy } = useDownload();
   const pdf = usePdfViewer();
-  // A PDF reads in the app (its viewer can download it too); other files download and open.
-  const viewable = isPdfName(file.name);
+  // A PDF, Word document, spreadsheet, text or picture reads in the app (its viewer can download it too); other files download and open.
+  const viewable = canView(file.name);
   return (
     <button
       type="button"
@@ -916,8 +916,8 @@ function HandIn({ task, status }: Row) {
     }
   };
 
-  // A PDF in the answer opens in the viewer: one on Edunex (saved, or uploaded a moment ago) by its link, with
-  // the Task's page as the way out; one still on its way up from its bytes, read by main by the id it gave.
+  // A file in the answer opens in the viewer: one on Edunex (saved, or uploaded a moment ago) by its link, with
+  // the Task's page as the way out; a PDF still on its way up from its bytes, read by main by the id it gave.
   const preview = (file: TaskFile) => () => pdf.open({ kind: "edunex", url: file.url, name: file.name, edunexUrl: edunexTaskUrl(task.id), taskId: task.id });
   const previewPicked = (item: Attached) => () =>
     pdf.open({
@@ -1141,7 +1141,7 @@ function HandIn({ task, status }: Row) {
                   hint={editable ? fileHint(t, file.name, pattern, type) : null}
                   onRemove={editable ? () => removeSaved(file.url) : undefined}
                   onDownload={editable ? undefined : () => void download(file)}
-                  onPreview={isPdfName(file.name) ? preview(file) : undefined}
+                  onPreview={canView(file.name) ? preview(file) : undefined}
                   downloading={downloading === file.url}
                 />
               ))}

@@ -1,28 +1,33 @@
-// Opening a PDF in the app from anywhere: usePdfViewer().open(...) shows the
-// viewer over the current screen. A file on Edunex is read in by the main
-// process (or taken from a copy on this computer) and can be downloaded from
-// the viewer; any other file (one the Student is about to hand in) comes as
-// bytes the caller reads. The viewer itself loads on first use, like pdf.js.
+// Opening a file in the app from anywhere: usePdfViewer().open(...) shows the
+// viewer over the current screen. A PDF opens in the PDF viewer; a Word
+// document, a spreadsheet, text or code, or a picture in the viewer for other
+// files (viewerKind says which, by the name); anything else isn't opened here
+// but downloaded and opened in the computer's own app. A file on Edunex is
+// read in by the main process (or taken from a copy on this computer) and can
+// be downloaded from the viewer; any other PDF (one the Student is about to
+// hand in) comes as bytes the caller reads. Each viewer loads on first use.
 // What the Student fills in there is saved as a copy where they choose, or,
 // opened from a Task whose answer can still change, attached to that answer
 // (the Task's hand-in card offers itself with useAnswerAttach).
 import { createContext, lazy, type ReactNode, Suspense, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import type { FileProblem } from "../core/actions/files";
+import type { FileProblem, ReadAs } from "../core/actions/files";
 import { ActionError } from "./bridge";
 import { useOpenExternal, useOpenLink } from "./hooks";
 import { useT } from "./i18n";
 import { useBridge, useStore } from "./store";
 import { Button } from "./ui/controls";
+import type { FileKind } from "./ui/file-viewer";
 import { Icons } from "./ui/icons";
 import { Tooltip, toast } from "./ui/overlays";
 import type { PdfProblem } from "./ui/pdf-viewer";
 
 const PdfViewer = lazy(() => import("./ui/pdf-viewer").then((module) => ({ default: module.PdfViewer })));
+const FileViewer = lazy(() => import("./ui/file-viewer").then((module) => ({ default: module.FileViewer })));
 
 export type PdfSource = (
   | /** A file on Edunex's storage; `edunexUrl`: its page on Edunex, offered when it can't be shown. */
   { kind: "edunex"; url: string; name: string; edunexUrl?: string }
-  /** Any other file (one the Student is about to hand in): its bytes, or why they can't be shown. */
+  /** Any other PDF (one the Student is about to hand in): its bytes, or why they can't be shown. */
   | { kind: "bytes"; name: string; load: () => Promise<Uint8Array | { problem: FileProblem }> }
 ) & {
   /** The Task it's on, whose answer a filled-in copy can go into. */
@@ -32,8 +37,37 @@ export type PdfSource = (
 /** Puts a filled-in PDF into the answer: as a file attached there, the way one picked from the computer is. */
 export type AnswerAttach = (file: { name: string; bytes: Uint8Array }) => Promise<void>;
 
+export type ViewerKind = "pdf" | FileKind;
+
+/** By extension, what the viewer shows a file as. Old Word and Excel files (.doc, .xls), PowerPoint, archives and videos aren't here. */
+const KINDS: Readonly<Record<string, ViewerKind>> = {
+  pdf: "pdf",
+  docx: "docx",
+  xlsx: "xlsx",
+  csv: "csv",
+  tsv: "tsv",
+  ...Object.fromEntries(["png", "jpg", "jpeg", "gif", "webp"].map((ext) => [ext, "image" as const])),
+  // Text and code, shown as they are.
+  ...Object.fromEntries(
+    "txt md markdown log py java c h cpp cc cxx hpp cs js mjs cjs ts tsx jsx json xml yaml yml toml ini cfg sql sh bat ps1 r m go rs kt swift php rb lua scala dart hs asm s v vhd vhdl sv tex bib css scss"
+      .split(" ")
+      .map((ext) => [ext, "text" as const]),
+  ),
+};
+
+/** How a file is read in for each kind (a CSV is text, checked as text). */
+const READ_AS: Readonly<Record<ViewerKind, ReadAs>> = { pdf: "pdf", docx: "docx", xlsx: "xlsx", csv: "text", tsv: "text", text: "text", image: "image" };
+
+/** What the viewer shows a file as, by its name; null when it can't, and the file downloads and opens in the computer's own app. */
+export function viewerKind(name: string): ViewerKind | null {
+  const ext = /\.([a-z0-9]+)$/i.exec(name.trim())?.[1].toLowerCase();
+  return ext && Object.hasOwn(KINDS, ext) ? KINDS[ext] : null;
+}
+
 /** A file the viewer can show, by its name. */
-export const isPdfName = (name: string) => /\.pdf$/i.test(name.trim());
+export const canView = (name: string) => viewerKind(name) !== null;
+/** A PDF, by its name: only PDFs can be filled in, and the Student's own files waiting to go up only open if they're one. */
+export const isPdfName = (name: string) => viewerKind(name) === "pdf";
 
 interface PdfViewerControl {
   open(source: PdfSource): void;
@@ -82,18 +116,21 @@ export function PdfViewerProvider({ children }: { children: ReactNode }) {
   /** What waits for the viewer to shut (going to another screen) while it asks about unsaved filling. */
   const leaving = useRef<(() => void) | null>(null);
 
+  // Bytes handed in are always a PDF; a name the viewer doesn't know (a caller's mistake) is tried as one.
+  const kind: ViewerKind = source?.kind === "edunex" ? (viewerKind(source.name) ?? "pdf") : "pdf";
   const load = useMemo(() => {
     if (!source) return async () => new Uint8Array();
     if (source.kind === "bytes") return source.load;
+    const as = READ_AS[kind];
     return async (): Promise<Uint8Array | { problem: FileProblem }> => {
       try {
-        const result = await bridge.invoke("files.read", { url: source.url, as: "pdf" });
+        const result = await bridge.invoke("files.read", { url: source.url, as });
         return "problem" in result ? result : result.bytes;
       } catch (error) {
         return { problem: error instanceof ActionError && error.kind === "Rejected" ? "unreadable" : "unreachable" };
       }
     };
-  }, [source, bridge]);
+  }, [source, kind, bridge]);
 
   const download = useCallback(async () => {
     if (source?.kind !== "edunex") return;
@@ -110,14 +147,14 @@ export function PdfViewerProvider({ children }: { children: ReactNode }) {
 
   const downloadButton =
     source?.kind === "edunex" ? (
-      <Tooltip content={t("pdf.downloadHint")}>
+      <Tooltip content={t(kind === "pdf" ? "pdf.downloadHint" : "viewer.downloadHint")}>
         <Button size="sm" variant="ghost" busy={busy} icon={<Icons.Download className="size-3.5" />} onClick={() => void download()}>
           {t("material.download")}
         </Button>
       </Tooltip>
     ) : null;
   // One way forward that can work: a link that stopped working or a file that's gone is only on Edunex's page now;
-  // one the app can't draw (too big, locked, not a PDF it reads) still opens in the computer's PDF app.
+  // one the app can't draw (too big, locked, not one it reads) still opens in the computer's own app.
   const fallback = (problem: PdfProblem) => {
     if (source?.kind !== "edunex") return null;
     if (problem === "expired" || problem === "missing")
@@ -206,7 +243,22 @@ export function PdfViewerProvider({ children }: { children: ReactNode }) {
   return (
     <Context value={viewer}>
       {children}
-      {source && (
+      {source && kind !== "pdf" && (
+        <Suspense fallback={null}>
+          <FileViewer
+            open={open}
+            onOpenChange={onOpenChange}
+            name={source.name}
+            kind={kind}
+            load={load}
+            actions={downloadButton}
+            fallback={fallback}
+            onOpenLink={openLink}
+            platform={platform}
+          />
+        </Suspense>
+      )}
+      {source && kind === "pdf" && (
         <Suspense fallback={null}>
           <PdfViewer
             open={open}
