@@ -513,31 +513,37 @@ export async function readPresentation(bytes: Uint8Array): Promise<Deck> {
     const table = child(frame, "graphic", "graphicData", "tbl");
     const box = readBox(child(frame, "xfrm"));
     if (!table || !box) return null;
-    const columns = children(child(table, "tblGrid"), "gridCol").map((c) => Math.max(0, num(c, "w") ?? 0));
+    // Every row, column and cell counts, empty ones too: a table of millions of empty rows is no table to draw.
+    const grid = children(child(table, "tblGrid"), "gridCol");
+    count(grid.length);
+    const columns = grid.map((c) => Math.max(0, num(c, "w") ?? 0));
     const sized = all(table, "rPr").find((r) => r.hasAttribute("sz")) ?? null;
-    const rows: TableRow[] = children(table, "tr").map((tr) => ({
-      height: Math.max(0, num(tr, "h") ?? 0),
-      cells: children(tr, "tc")
-        .filter((tc) => !flag(tc, "hMerge") && !flag(tc, "vMerge"))
-        .map((tc) => {
-          count();
-          const paragraphs = children(child(tc, "txBody"), "p");
-          count(paragraphs.length);
-          const fill = readFill(child(tc, "tcPr"), context.color);
-          return {
-            text: paragraphs
-              .map((p) =>
-                all(p, "t")
-                  .map((t) => t.textContent ?? "")
-                  .join(""),
-              )
-              .join("\n"),
-            columns: Math.min(Math.max(1, num(tc, "gridSpan") ?? 1), 1000),
-            rows: Math.min(Math.max(1, num(tc, "rowSpan") ?? 1), 1000),
-            fill: fill ?? null,
-          };
-        }),
-    }));
+    const rows: TableRow[] = children(table, "tr").map((tr) => {
+      const cells = children(tr, "tc");
+      count(1 + cells.length);
+      return {
+        height: Math.max(0, num(tr, "h") ?? 0),
+        cells: cells
+          .filter((tc) => !flag(tc, "hMerge") && !flag(tc, "vMerge"))
+          .map((tc) => {
+            const paragraphs = children(child(tc, "txBody"), "p");
+            count(paragraphs.length);
+            const fill = readFill(child(tc, "tcPr"), context.color);
+            return {
+              text: paragraphs
+                .map((p) =>
+                  all(p, "t")
+                    .map((t) => t.textContent ?? "")
+                    .join(""),
+                )
+                .join("\n"),
+              columns: Math.min(Math.max(1, num(tc, "gridSpan") ?? 1), 1000),
+              rows: Math.min(Math.max(1, num(tc, "rowSpan") ?? 1), 1000),
+              fill: fill ?? null,
+            };
+          }),
+      };
+    });
     const header = flag(child(table, "tblPr"), "firstRow");
     return { kind: "table", box: moved(box, transform), columns, rows, size: (num(sized, "sz") ?? DEFAULT_SIZE * 100) / 100, header };
   }
