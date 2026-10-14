@@ -191,7 +191,9 @@ Everything stays on your computer:
   `~/Library/Application Support/Edunex Plus` on macOS, `%APPDATA%\Edunex Plus` on Windows,
   `~/.config/Edunex Plus` on Linux.
 - **Files you save** go where you put them: downloads to your Downloads folder, offline course
-  files to `Documents/Edunex Plus` unless you pick another folder.
+  files to `Documents/Edunex Plus` unless you pick another folder. The app remembers where each
+  download went, so downloading it again opens the copy you already have; signing out of Edunex
+  forgets that.
 
 **Settings → Keluar** (sign out of everything) removes every session and every saved trace
 from this computer.

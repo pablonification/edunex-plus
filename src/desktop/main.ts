@@ -13,6 +13,7 @@ import { translate } from "../core/strings";
 import { systemClock } from "../engine/clock";
 import { createEngine, type Engine } from "../engine/engine";
 import { demo } from "./demo";
+import { createDownloadedFiles, DOWNLOADED_FILES_FOLDER } from "./downloaded-files";
 import { createFileCache, FILE_CACHE_FOLDER } from "./file-cache";
 import { alertsHandlers } from "./handlers/alerts";
 import { authHandlers } from "./handlers/auth";
@@ -81,6 +82,7 @@ async function start(): Promise<void> {
   denyPermissions(session.defaultSession);
 
   const fileCache = createFileCache(path.join(userData, FILE_CACHE_FOLDER), { owner: () => edunexNim(current) });
+  const downloadedFiles = createDownloadedFiles(path.join(userData, DOWNLOADED_FILES_FOLDER), { owner: () => edunexNim(current) });
   let followAccount: (event: Event) => Promise<void> = async () => undefined;
   const current = createEngine({
     transport: demo?.transport ?? electronTransport(engineSession),
@@ -98,7 +100,7 @@ async function start(): Promise<void> {
   });
   engine = current;
   await current.load();
-  followAccount = forgetOtherStudentsFiles(fileCache, edunexNim(current));
+  followAccount = forgetOtherStudentsFiles([fileCache, downloadedFiles], edunexNim(current));
   if (demo && (await demo.prepare(current))) syncing = true;
 
   const csp = contentSecurityPolicy(devServer);
@@ -128,6 +130,7 @@ async function start(): Promise<void> {
     engineSession,
     fetchFile: demo?.fetchFile ?? ((url, init) => engineSession.fetch(url, { ...init, bypassCustomProtocolHandlers: true })),
     fileCache,
+    downloadedFiles,
     vaultMode: mode,
     platform: demo?.platform ?? currentPlatform(),
     lang: () => current.snapshot().settings.lang,

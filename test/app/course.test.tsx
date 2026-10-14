@@ -206,12 +206,14 @@ describe("the course page", () => {
 });
 
 describe("materials", () => {
-  it("a PDF downloads through the browser's download manager", async () => {
+  it("a PDF downloads through the browser's download manager, and again opens the copy already there", async () => {
     const s = await openCourse("PL3032");
     expect(s.text()).toContain("PDF · 1,9 MB");
     await s.click("Unduh: K1. SAP Ekonomi Infrastruktur dan Transportasi");
     expect(s.calls.at(-1)).toEqual({ name: "files.download", input: { url: BLOB, name: "K1. SAP Ekonomi Infrastruktur dan Transportasi.pdf" } });
     expect(s.text()).toContain("Tersimpan di Unduhan");
+    await s.click("Unduh: K1. SAP Ekonomi Infrastruktur dan Transportasi");
+    expect(s.text()).toContain("Sudah ada di komputer ini, dibuka tanpa mengunduh lagi");
   });
 
   it("each Edunex course has its own Introduction, as on Edunex: the class's, then the joint class's", async () => {

@@ -99,8 +99,8 @@ export function PdfViewerProvider({ children }: { children: ReactNode }) {
     if (source?.kind !== "edunex") return;
     setBusy(true);
     try {
-      await bridge.invoke("files.download", { url: source.url, name: source.name.slice(0, 200) });
-      toast(t("material.downloaded"));
+      const { existing } = await bridge.invoke("files.download", { url: source.url, name: source.name.slice(0, 200) });
+      toast(t(existing ? "material.openedCopy" : "material.downloaded"));
     } catch (error) {
       toast(t("error.action", { message: error instanceof Error ? error.message : String(error) }), "danger");
     } finally {
