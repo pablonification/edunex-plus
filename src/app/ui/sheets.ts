@@ -2,7 +2,8 @@
 // would show, row by row. An Excel workbook (.xlsx) is unpacked with JSZip
 // (loaded on first use, its own chunk) and its XML read with the browser's own
 // parser; nothing in it runs, and only the values are kept, not formulas or
-// styles. A CSV is split here by hand.
+// styles. A CSV is split here by hand. An old workbook (.xls) has its own
+// reader (./xls.ts), which shows dates and numbers by the rules here.
 
 export interface Sheet {
   /** Its tab's name; empty for a CSV, which has one. */
@@ -67,11 +68,15 @@ function dateStyles(styles: Document | null): Set<number> {
   if (!cellXfs) return found;
   [...cellXfs.children].forEach((xf, index) => {
     const id = Number(xf.getAttribute("numFmtId") ?? 0);
-    // Quoted text and [colours] aside, a format with d, m or y in it is a date.
-    const code = (custom.get(id) ?? "").replace(/"[^"]*"|\[[^\]]*\]|\\./g, "");
-    if (DATE_FORMATS.has(id) || /[dmy]/i.test(code)) found.add(index);
+    if (isDateFormat(id, custom.get(id))) found.add(index);
   });
   return found;
+}
+
+/** Whether a number format shows a date: one of Excel's own, or one the workbook writes with days, months or years (an old .xls's too). */
+export function isDateFormat(id: number, code = ""): boolean {
+  // Quoted text and [colours] aside, a format with d, m or y in it is a date.
+  return DATE_FORMATS.has(id) || /[dmy]/i.test(code.replace(/"[^"]*"|\[[^\]]*\]|\\./g, ""));
 }
 
 /** "BC12" → 54 (from 0). */
@@ -96,8 +101,7 @@ function readRows(doc: Document, shared: readonly string[], dates: ReadonlySet<n
       else if (type === "b") text = value === "1" ? "TRUE" : "FALSE";
       else if (type === "str" || type === "e" || value === "") text = value;
       else if (dates.has(Number(cell.getAttribute("s") ?? 0))) text = excelDate(Number(value), since1904);
-      // Excel shows 15 significant digits; the file may hold the float's last few.
-      else text = String(Number(Number(value).toPrecision(15)));
+      else text = excelNumber(Number(value));
       if (at >= 0 && text !== "") cells[at] = text;
     }
     rows[number - 1] = Array.from(cells, (text) => text ?? "");
@@ -105,8 +109,11 @@ function readRows(doc: Document, shared: readonly string[], dates: ReadonlySet<n
   return Array.from(rows, (row) => row ?? []);
 }
 
+/** A number as Excel shows it: 15 significant digits (the file may hold the float's last few). */
+export const excelNumber = (value: number) => String(Number(value.toPrecision(15)));
+
 /** Excel's day number as "2026-10-14", with the time when it has one ("2026-10-14 13:30"). */
-function excelDate(serial: number, since1904: boolean): string {
+export function excelDate(serial: number, since1904: boolean): string {
   if (!Number.isFinite(serial)) return "";
   // Day 25569 is 1 January 1970 in Excel's count from 1900; 1462 days fewer from 1904.
   const date = new Date(Math.round((serial - (since1904 ? 24107 : 25569)) * 86_400_000));

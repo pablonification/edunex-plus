@@ -351,7 +351,7 @@ describe("materials", () => {
     e.postMaterial(95001, { name: "Video YouTube", type: "video", content: "https://www.youtube.com/watch?v=fixture" });
     e.postMaterial(95001, { name: "Podcast", type: "audio", content: BLOB });
     e.postMaterial(95001, { name: "Data", type: "file", content: `${BLOB}.zip` });
-    e.postMaterial(95001, { name: "Slide", type: "ppt", content: BLOB });
+    e.postMaterial(95001, { name: "Arsip", type: "rar", content: BLOB });
     e.postMaterial(95001, { name: "Berita ITB", type: "url", content: "https://www.itb.ac.id/berita" });
     e.postMaterial(95001, { name: "Situs luar", type: "url", content: "https://example.org/" });
     e.postMaterial(95001, { name: "Papan tulis", type: "board", content: BLOB });
@@ -372,7 +372,7 @@ describe("materials", () => {
       "Buka: Video YouTube",
       "Unduh: Podcast",
       "Unduh: Data",
-      "Unduh: Slide",
+      "Unduh: Arsip",
       "Gabung: Zoom",
       "Gabung: Meet",
       "Gabung: Webex",

@@ -17,15 +17,18 @@ describe("which files the viewer shows", () => {
     expect(viewerKind("Kuliah.PPSX")).toBe("pptx");
     expect(viewerKind("data.csv")).toBe("csv");
     expect(viewerKind("data.tsv")).toBe("tsv");
+    expect(viewerKind("Modul lama.doc")).toBe("doc");
+    expect(viewerKind("Nilai.XLS")).toBe("xls");
+    expect(viewerKind("Slide.ppt")).toBe("ppt");
+    expect(viewerKind("Slide.pps")).toBe("ppt");
     for (const name of ["catatan.txt", "README.md", "main.py", "Main.java", "tugas.c", "tugas.cpp", "app.js", "data.json", "query.sql"])
       expect(viewerKind(name), name).toBe("text");
     for (const name of ["papan.png", "foto.JPG", "foto.jpeg", "anim.gif", "gambar.webp"]) expect(viewerKind(name), name).toBe("image");
     expect(viewerKind(" Modul 1.pdf ")).toBe("pdf");
   });
 
-  it("leaves what it can't show to the computer's own app: old Word, Excel and PowerPoint files, archives, videos, no extension", () => {
-    for (const name of ["Modul.doc", "Nilai.xls", "Slide.ppt", "Template.zip", "Rekaman.mp4", "Gambar.svg", "Halaman.html", "README", "pdf"])
-      expect(canView(name), name).toBe(false);
+  it("leaves what it can't show to the computer's own app: archives, videos, Office templates, no extension", () => {
+    for (const name of ["Template.zip", "Rekaman.mp4", "Gambar.svg", "Halaman.html", "Modul.dot", "README", "pdf"]) expect(canView(name), name).toBe(false);
     expect(isPdfName("Modul.pdf")).toBe(true);
     expect(isPdfName("Modul.docx")).toBe(false);
   });

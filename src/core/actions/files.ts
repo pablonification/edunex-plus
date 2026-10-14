@@ -1,10 +1,10 @@
 // Reading a file from Edunex's storage into the window, to show it in the app
 // (a picture in a lecturer's note; a PDF, Word document, spreadsheet,
-// PowerPoint slides or text file in the viewer). The main process fetches it,
-// or takes a copy already on this computer: the window's content policy never
-// lets it reach the internet itself. A file that can't be shown comes back as a
-// problem to explain, not as an error. And writing a PDF the Student filled in
-// the app to a file they choose.
+// PowerPoint slides, text file or old Office file in the viewer). The main
+// process fetches it, or takes a copy already on this computer: the window's
+// content policy never lets it reach the internet itself. A file that can't be
+// shown comes back as a problem to explain, not as an error. And writing a PDF
+// the Student filled in the app to a file they choose.
 import { z } from "zod";
 import { Bytes, MAX_UPLOAD_BYTES } from "./tasks";
 
@@ -13,14 +13,15 @@ export const FileProblem = z.enum(["expired", "missing", "too-big", "unreadable"
 export type FileProblem = z.infer<typeof FileProblem>;
 
 /** What a file is read in as: each kind is checked for and capped on its own (desktop/remote-files.ts). A CSV is text. */
-export const ReadAs = z.enum(["image", "pdf", "docx", "xlsx", "pptx", "text"]);
+export const ReadAs = z.enum(["image", "pdf", "docx", "xlsx", "pptx", "text", "doc", "xls", "ppt"]);
 export type ReadAs = z.infer<typeof ReadAs>;
 
 export const filesActions = {
   /**
    * A picture (PNG, JPEG, GIF or WebP, up to 20 MB), a PDF (up to 100 MB), a
    * Word document (.docx, 50 MB), an Excel workbook (.xlsx, 20 MB), PowerPoint
-   * slides (.pptx or .ppsx, 100 MB) or text (UTF-8, 5 MB) from Edunex's
+   * slides (.pptx or .ppsx, 100 MB), text (UTF-8, 5 MB), or an old Word, Excel
+   * or PowerPoint file (.doc 50 MB, .xls 20 MB, .ppt 100 MB) from Edunex's
    * storage, checked to really be one.
    */
   "files.read": {

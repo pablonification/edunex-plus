@@ -1,6 +1,7 @@
 // Text for what lecturers write and upload, shown in the app: links that open
 // in the browser, pictures in notes, long notes folded, PDFs in the viewer
-// (and filled in there), other files in theirs, files that can't be shown.
+// (and filled in there), other files in theirs (old Word and PowerPoint files
+// as their text), files that can't be shown.
 import type { Entry } from "./entry";
 
 export const contentStrings = {
@@ -78,6 +79,10 @@ export const contentStrings = {
     en: "The file is damaged or isn't a kind the app can read. Download it to open it in an app on your computer.",
   },
   "viewer.downloadHint": { id: "Simpan ke Unduhan, lalu buka di aplikasi komputermu", en: "Save to Downloads, then open it in an app on your computer" },
+  "viewer.textOnly": {
+    id: "Hanya teksnya yang tampil di sini. Unduh untuk melihat tampilan aslinya.",
+    en: "Only the text is shown here. Download it to see the original layout.",
+  },
   "sheet.sheets": { id: "Lembar kerja", en: "Sheets" },
   "sheet.untitled": { id: "Lembar {number}", en: "Sheet {number}" },
   "sheet.cut": {

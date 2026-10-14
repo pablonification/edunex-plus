@@ -1,14 +1,15 @@
 // Opening a file in the app from anywhere: usePdfViewer().open(...) shows the
 // viewer over the current screen. A PDF opens in the PDF viewer; a Word
-// document, a spreadsheet, PowerPoint slides, text or code, or a picture in the
-// viewer for other files (viewerKind says which, by the name); anything else
-// isn't opened here but downloaded and opened in the computer's own app. A file
-// on Edunex is read in by the main process (or taken from a copy on this
-// computer) and can be downloaded from the viewer; any other PDF (one the
-// Student is about to hand in) comes as bytes the caller reads. Each viewer
-// loads on first use. What the Student fills in there is saved as a copy where
-// they choose, or, opened from a Task whose answer can still change, attached
-// to that answer (the Task's hand-in card offers itself with useAnswerAttach).
+// document, a spreadsheet, PowerPoint slides, text or code, a picture, or an
+// old Word, Excel or PowerPoint file in the viewer for other files (viewerKind
+// says which, by the name); anything else isn't opened here but downloaded and
+// opened in the computer's own app. A file on Edunex is read in by the main
+// process (or taken from a copy on this computer) and can be downloaded from
+// the viewer; any other PDF (one the Student is about to hand in) comes as
+// bytes the caller reads. Each viewer loads on first use. What the Student
+// fills in there is saved as a copy where they choose, or, opened from a Task
+// whose answer can still change, attached to that answer (the Task's hand-in
+// card offers itself with useAnswerAttach).
 import { createContext, lazy, type ReactNode, Suspense, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { FileProblem, ReadAs } from "../core/actions/files";
 import { ActionError } from "./bridge";
@@ -39,7 +40,7 @@ export type AnswerAttach = (file: { name: string; bytes: Uint8Array }) => Promis
 
 export type ViewerKind = "pdf" | FileKind;
 
-/** By extension, what the viewer shows a file as. Old Word, Excel and PowerPoint files (.doc, .xls, .ppt), archives and videos aren't here. */
+/** By extension, what the viewer shows a file as. Archives, videos and Office templates (.dot, .xlt, .pot) aren't here. */
 const KINDS: Readonly<Record<string, ViewerKind>> = {
   pdf: "pdf",
   docx: "docx",
@@ -47,6 +48,10 @@ const KINDS: Readonly<Record<string, ViewerKind>> = {
   ...Object.fromEntries(["pptx", "ppsx"].map((ext) => [ext, "pptx" as const])),
   csv: "csv",
   tsv: "tsv",
+  doc: "doc",
+  xls: "xls",
+  ppt: "ppt",
+  pps: "ppt",
   ...Object.fromEntries(["png", "jpg", "jpeg", "gif", "webp"].map((ext) => [ext, "image" as const])),
   // Text and code, shown as they are.
   ...Object.fromEntries(
@@ -66,6 +71,9 @@ const READ_AS: Readonly<Record<ViewerKind, ReadAs>> = {
   tsv: "text",
   text: "text",
   image: "image",
+  doc: "doc",
+  xls: "xls",
+  ppt: "ppt",
 };
 
 /** What the viewer shows a file as, by its name; null when it can't, and the file downloads and opens in the computer's own app. */

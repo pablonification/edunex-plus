@@ -1,13 +1,14 @@
 // @vitest-environment jsdom
 // Course files that aren't PDFs read in the app too: a Word document as its
 // pages, a workbook as a table per sheet, PowerPoint slides as pages, a CSV,
-// text and code, a picture.
+// text and code, a picture, an old Word document or PowerPoint as its text.
 // Each is read in by main's real reader from the pretend storage, as tiny
-// made-up files (../kit/office-files.ts); what can't be shown keeps
-// downloading and opening in the computer's own app.
+// made-up files (../kit/office-files.ts, ../kit/old-office-files.ts); what
+// can't be shown keeps downloading and opening in the computer's own app.
 import { act } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 import { aDocx, anXlsx, aPptx } from "../kit/office-files";
+import { aDoc, anXls, aPpt } from "../kit/old-office-files";
 import { openApp } from "./harness";
 
 let screen: Awaited<ReturnType<typeof openApp>> | null = null;
@@ -155,13 +156,86 @@ describe("files other than PDFs in the viewer", () => {
     expect(s.calls.at(-1)).toEqual({ name: "files.download", input: { url: `${BLOB}-rusak.docx`, name: "Rusak.docx" } });
   });
 
-  it("what the viewer can't show keeps downloading: archives, old Word files", async () => {
+  it("an old Word document opens as its text on pages, its tables as tables, saying only the text is shown", async () => {
+    const doc = aDoc([
+      "Notulen rapat kelompok",
+      [
+        ["Nama", "Tugas"],
+        ["Ani", ""],
+      ],
+      "<b>Pembagian</b> tugas",
+    ]);
+    const s = await openWith([{ name: "Notulen lama", ext: "doc", bytes: doc }]);
+    await s.click("Lihat: Notulen lama");
+    await settle();
+    expect(s.calls).toContainEqual({ name: "files.read", input: { url: `${BLOB}-notulen-lama.doc`, as: "doc" } });
+    expect(viewer()?.textContent).toContain("Hanya teksnya yang tampil di sini. Unduh untuk melihat tampilan aslinya.");
+    const page = viewer()!.querySelector("article")!;
+    expect([...page.querySelectorAll("p")].map((p) => p.textContent)).toEqual(["Notulen rapat kelompok", "<b>Pembagian</b> tugas"]);
+    expect([...page.querySelectorAll("tr")].map((tr) => [...tr.children].map((td) => td.textContent))).toEqual([
+      ["Nama", "Tugas"],
+      ["Ani", ""],
+    ]);
+    // Text is only ever text: markup in it is shown, never made into elements.
+    expect(page.querySelector("b")).toBeNull();
+    await s.click("Unduh");
+    expect(s.calls.at(-1)).toEqual({ name: "files.download", input: { url: `${BLOB}-notulen-lama.doc`, name: "Notulen lama.doc" } });
+  });
+
+  it("an old workbook opens as a table per sheet, and an old presentation as a card per slide", async () => {
+    const s = await openWith([
+      {
+        name: "Nilai lama",
+        ext: "xls",
+        bytes: anXls({
+          Kuis: [
+            ["NIM", "Nilai"],
+            ["10000001", 87.5],
+          ],
+          Rekap: [["Rata-rata", { rk: 43 }]],
+        }),
+      },
+      { name: "Kuliah 1", ext: "ppt", bytes: aPpt([{ title: "Pengantar", body: ["Tujuan", "Aturan kelas"] }, { boxes: ["Tanpa judul"] }]) },
+    ]);
+    await s.click("Lihat: Nilai lama");
+    await settle();
+    expect(s.calls).toContainEqual({ name: "files.read", input: { url: `${BLOB}-nilai-lama.xls`, as: "xls" } });
+    expect([...viewer()!.querySelectorAll("tbody tr")].map((tr) => [...tr.children].map((cell) => cell.textContent))).toEqual([
+      ["1", "NIM", "Nilai"],
+      ["2", "10000001", "87.5"],
+    ]);
+    expect([...viewer()!.querySelectorAll("[role=tab]")].map((tab) => tab.textContent)).toEqual(["Kuis", "Rekap"]);
+    await s.click("Tutup");
+
+    await s.click("Lihat: Kuliah 1");
+    await settle();
+    expect(s.calls).toContainEqual({ name: "files.read", input: { url: `${BLOB}-kuliah-1.ppt`, as: "ppt" } });
+    expect(viewer()?.textContent).toContain("Hanya teksnya yang tampil di sini.");
+    const slides = [...viewer()!.querySelectorAll("article")];
+    expect(slides.map((slide) => slide.getAttribute("aria-label"))).toEqual(["Slide 1 dari 2", "Slide 2 dari 2"]);
+    expect(slides[0].querySelector("h3")?.textContent).toBe("Pengantar");
+    expect([...slides[0].querySelectorAll(":scope > div > p")].map((p) => p.textContent)).toEqual(["Tujuan", "Aturan kelas"]);
+    expect(slides[1].querySelector("h3")).toBeNull();
+    expect(slides[1].textContent).toContain("Tanpa judul");
+  });
+
+  it("an old Word document that's locked can't be shown, and downloading it is the way forward", async () => {
+    const s = await openWith([{ name: "Terkunci", ext: "doc", bytes: aDoc(["Rahasia"], { locked: true }) }]);
+    await s.click("Lihat: Terkunci");
+    await settle();
+    expect(viewer()?.textContent).toContain("Berkas ini tidak bisa ditampilkan");
+    expect(viewer()?.textContent).not.toContain("Rahasia");
+    await s.click("Unduh");
+    expect(s.calls.at(-1)).toEqual({ name: "files.download", input: { url: `${BLOB}-terkunci.doc`, name: "Terkunci.doc" } });
+  });
+
+  it("what the viewer can't show keeps downloading: archives, videos", async () => {
     const s = await openWith([
       { name: "Arsip", ext: "zip", bytes: "PK" },
-      { name: "Modul lama", ext: "doc", bytes: "x" },
+      { name: "Rekaman", ext: "mp4", bytes: "x" },
     ]);
     expect(s.has("Lihat: Arsip")).toBe(false);
-    expect(s.has("Lihat: Modul lama")).toBe(false);
+    expect(s.has("Lihat: Rekaman")).toBe(false);
     await s.click("Unduh: Arsip");
     expect(s.calls.at(-1)).toMatchObject({ name: "files.download", input: { name: "Arsip.zip" } });
   });
