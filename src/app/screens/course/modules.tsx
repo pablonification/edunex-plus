@@ -399,7 +399,7 @@ export function MaterialRow({ material }: { material: Material }) {
   switch (action.kind) {
     case "download":
       button = canView(action.name) ? (
-        // A PDF, Word document, spreadsheet, text or picture reads right here; downloading stays one click away.
+        // A PDF, Word document, spreadsheet, slides, text or picture reads right here; downloading stays one click away.
         <span className="flex items-center gap-1">
           <Tooltip content={named(t("material.download"))}>
             <IconButton label={named(t("material.download"))} size="sm" disabled={busy} onClick={() => void download(action.url, action.name)}>

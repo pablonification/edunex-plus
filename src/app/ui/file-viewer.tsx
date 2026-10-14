@@ -1,11 +1,13 @@
 // The in-app viewer for files that aren't PDFs (those have ./pdf-viewer.tsx):
 // a Word document as its pages, a spreadsheet (Excel, CSV) as a table per
-// sheet, text and code as they are, a picture whole. The same panel over the
-// current screen as the PDF viewer, with the file's name, Download and Close;
-// Esc closes and focus goes back. What reads each kind loads on first use, in
-// a chunk of its own. Nothing in a file runs: a Word document is drawn in a
-// shadow root (its styles stay inside), its links go through the app's own
-// link rules or nowhere, and text is only ever shown as text.
+// sheet, PowerPoint slides as pages (./slide-deck.tsx), text and code as they
+// are, a picture whole. The same panel over the current screen as the PDF
+// viewer, with the file's name, Download and Close; Esc closes and focus goes
+// back. What reads each kind loads on first use, in a chunk of its own.
+// Nothing in a file runs: a Word document is drawn in a shadow root (its
+// styles stay inside), slides are built as elements from plain data, links go
+// through the app's own link rules or nowhere, and text is only ever shown as
+// text.
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import * as Tabs from "@radix-ui/react-tabs";
 import { type ReactNode, type RefObject, useEffect, useLayoutEffect, useRef, useState } from "react";
@@ -18,11 +20,13 @@ import { Icons } from "./icons";
 import { ignoreClosingClick, PANEL_MOTION_CLASS, SCRIM_CLASS, useReturnFocus } from "./overlays";
 import { PanelBoundary } from "./panel-boundary";
 import { readCsv, type Sheet } from "./sheets";
+import { SlideDeck } from "./slide-deck";
+import type { Deck } from "./slides";
 import { TabBar } from "./tabs";
 import { Failed, Loading, Toolbar } from "./viewer-frame";
 
-/** What the viewer shows a file as: a Word document, an Excel workbook, a CSV (or TSV) table, text, a picture. */
-export type FileKind = "docx" | "xlsx" | "csv" | "tsv" | "text" | "image";
+/** What the viewer shows a file as: a Word document, an Excel workbook, PowerPoint slides, a CSV (or TSV) table, text, a picture. */
+export type FileKind = "docx" | "xlsx" | "pptx" | "csv" | "tsv" | "text" | "image";
 /** Why a file isn't shown: it couldn't be read, or it isn't one the viewer can read. */
 export type FileViewProblem = FileProblem | "broken";
 
@@ -30,16 +34,23 @@ export type FileViewProblem = FileProblem | "broken";
 const MAX_ROWS = 2000;
 const MAX_COLUMNS = 100;
 
-type Shown = { kind: "docx"; nodes: Node[] } | { kind: "sheets"; sheets: Sheet[] } | { kind: "text"; text: string } | { kind: "image"; url: string };
+type Shown =
+  | { kind: "docx"; nodes: Node[] }
+  | { kind: "sheets"; sheets: Sheet[] }
+  | { kind: "slides"; deck: Deck }
+  | { kind: "text"; text: string }
+  | { kind: "image"; url: string };
 type View = { phase: "loading" } | { phase: "ready"; shown: Shown } | { phase: "failed"; problem: FileViewProblem };
 
-/** The file's bytes as what it shows: the Word and Excel readers load here, the first time one opens. */
+/** The file's bytes as what it shows: the Word, Excel and PowerPoint readers load here, the first time one opens. */
 async function show(kind: FileKind, bytes: Uint8Array): Promise<Shown> {
   switch (kind) {
     case "docx":
       return { kind, nodes: await (await import("./docx")).drawDocx(bytes) };
     case "xlsx":
       return { kind: "sheets", sheets: await (await import("./sheets")).readWorkbook(bytes) };
+    case "pptx":
+      return { kind: "slides", deck: await (await import("./slides")).readPresentation(bytes) };
     case "csv":
     case "tsv":
       return { kind: "sheets", sheets: [{ name: "", rows: readCsv(new TextDecoder().decode(bytes), kind === "tsv") }] };
@@ -161,6 +172,8 @@ export function FileViewer({ open, onOpenChange, name, kind, load, actions, fall
                   </Failed>
                 ) : view.shown.kind === "docx" ? (
                   <WordPages nodes={view.shown.nodes} onOpenLink={onOpenLink} />
+                ) : view.shown.kind === "slides" ? (
+                  <SlideDeck deck={view.shown.deck} onOpenLink={onOpenLink} />
                 ) : view.shown.kind === "text" ? (
                   <pre className="m-6 min-h-[calc(100%-3rem)] rounded-lg bg-surface p-5 font-mono text-small break-words whitespace-pre-wrap text-fg shadow-card select-text">
                     {view.shown.text}

@@ -1,11 +1,12 @@
 // Main reads a picture from Edunex's storage for the window: only from
 // Edunex's storage, never with cookies, never more than it should, and only
 // when the bytes really are a picture. And the same for a PDF, a Word
-// document, an Excel workbook and text, each checked for what it claims to be.
+// document, an Excel workbook, a PowerPoint presentation and text, each
+// checked for what it claims to be.
 import { describe, expect, it } from "vitest";
 import { type FetchFile, readRemoteFile, sniff, UNPACKED_MAX, zipContents } from "../../src/desktop/remote-files";
 import { isEngineError } from "../../src/engine/errors";
-import { aDocx, anXlsx, aZip } from "../kit/office-files";
+import { aDocx, anXlsx, aPptx, aZip } from "../kit/office-files";
 
 const URL_OK = "https://edunexfixture.blob.core.windows.net/edunex/fixture-2?sv=2024&sig=pretend";
 const PNG = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 13]);
@@ -130,6 +131,27 @@ describe("reading a Word document, a workbook or text", () => {
       }
     expect(zipContents(bomb)?.unpacked).toBeGreaterThan(UNPACKED_MAX);
     expect(sniff(bomb, "docx")).toBeNull();
+  });
+
+  it("a presentation is a whole ZIP with its own main part inside, unpacking to no more than the cap, up to 100 MB", async () => {
+    const pptx = await aPptx([{ title: "Pertemuan 1" }]);
+    expect(await read(pptx, "pptx")).toMatchObject({ type: "application/vnd.openxmlformats-officedocument.presentationml.presentation" });
+    // Only what it is: not a Word document, and a Word document isn't one.
+    expect(await read(pptx, "docx")).toEqual({ problem: "unreadable" });
+    expect(await read(await aDocx({ lines: ["Notulen"] }), "pptx")).toEqual({ problem: "unreadable" });
+    // Slides without the presentation that lists them, and one cut short.
+    expect(await read(await aZip({ "[Content_Types].xml": "<Types/>", "ppt/slides/slide1.xml": "<p:sld/>" }), "pptx")).toEqual({ problem: "unreadable" });
+    expect(await read(pptx.subarray(0, pptx.length - 30), "pptx")).toEqual({ problem: "unreadable" });
+    const bomb = pptx.slice();
+    const view = new DataView(bomb.buffer);
+    for (let at = 0; at < bomb.length - 4; at++)
+      if (view.getUint32(at, true) === 0x02014b50) {
+        view.setUint32(at + 24, UNPACKED_MAX + 1, true);
+        break;
+      }
+    expect(sniff(bomb, "pptx")).toBeNull();
+    const sized = (mb: number) => storage(() => new Response(ascii("a"), { headers: { "content-length": String(mb * 1024 * 1024) } })).fetch;
+    expect(await readRemoteFile(sized(101), URL_OK, "pptx")).toEqual({ problem: "too-big" });
   });
 
   it("text is UTF-8 with no control characters but tabs and line breaks", async () => {

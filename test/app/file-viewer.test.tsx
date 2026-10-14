@@ -1,12 +1,13 @@
 // @vitest-environment jsdom
 // Course files that aren't PDFs read in the app too: a Word document as its
-// pages, a workbook as a table per sheet, a CSV, text and code, a picture.
+// pages, a workbook as a table per sheet, PowerPoint slides as pages, a CSV,
+// text and code, a picture.
 // Each is read in by main's real reader from the pretend storage, as tiny
 // made-up files (../kit/office-files.ts); what can't be shown keeps
 // downloading and opening in the computer's own app.
 import { act } from "react";
 import { afterEach, describe, expect, it } from "vitest";
-import { aDocx, anXlsx } from "../kit/office-files";
+import { aDocx, anXlsx, aPptx } from "../kit/office-files";
 import { openApp } from "./harness";
 
 let screen: Awaited<ReturnType<typeof openApp>> | null = null;
@@ -95,6 +96,30 @@ describe("files other than PDFs in the viewer", () => {
     expect(cells()).toEqual([["1", "Rata-rata", "43.9"]]);
   });
 
+  it("PowerPoint slides open as pages, their links go through the app's link rules, and they can still be downloaded", async () => {
+    const pptx = await aPptx([
+      { title: "Pertemuan 3: Graf", bullets: ["Simpul dan sisi"], note: { text: "Kuis daring", link: "https://forms.gle/fixture" } },
+      { title: "Catatan dosen", hidden: true },
+      { title: "Latihan" },
+    ]);
+    const s = await openWith([{ name: "Slide pertemuan 3", ext: "pptx", bytes: pptx }]);
+    await s.click("Lihat: Slide pertemuan 3");
+    await settle();
+    expect(s.calls).toContainEqual({ name: "files.read", input: { url: `${BLOB}-slide-pertemuan-3.pptx`, as: "pptx" } });
+    const slides = [...viewer()!.querySelectorAll("article")];
+    expect(slides.map((slide) => slide.getAttribute("aria-label"))).toEqual(["Slide 1 dari 2", "Slide 2 dari 2"]);
+    expect(slides[0].textContent).toContain("Pertemuan 3: Graf");
+    expect(slides[0].textContent).toContain("Simpul dan sisi");
+    expect(slides[1].textContent).toBe("Latihan");
+    const link = [...slides[0].querySelectorAll("a")].find((a) => a.textContent === "Kuis daring")!;
+    await act(async () => {
+      link.click();
+    });
+    expect(s.calls.at(-1)).toEqual({ name: "shell.openLink", input: { url: "https://forms.gle/fixture" } });
+    await s.click("Unduh");
+    expect(s.calls.at(-1)).toEqual({ name: "files.download", input: { url: `${BLOB}-slide-pertemuan-3.pptx`, name: "Slide pertemuan 3.pptx" } });
+  });
+
   it("a CSV is a table, code and text are shown as they are, and a picture whole", async () => {
     const s = await openWith([
       { name: "Presensi", ext: "csv", bytes: 'Nama,Hadir\nAni,"Ya, terlambat"' },
@@ -130,14 +155,14 @@ describe("files other than PDFs in the viewer", () => {
     expect(s.calls.at(-1)).toEqual({ name: "files.download", input: { url: `${BLOB}-rusak.docx`, name: "Rusak.docx" } });
   });
 
-  it("what the viewer can't show keeps downloading: PowerPoint, old Word files", async () => {
+  it("what the viewer can't show keeps downloading: archives, old Word files", async () => {
     const s = await openWith([
-      { name: "Slide", ext: "pptx", bytes: "PK" },
+      { name: "Arsip", ext: "zip", bytes: "PK" },
       { name: "Modul lama", ext: "doc", bytes: "x" },
     ]);
-    expect(s.has("Lihat: Slide")).toBe(false);
+    expect(s.has("Lihat: Arsip")).toBe(false);
     expect(s.has("Lihat: Modul lama")).toBe(false);
-    await s.click("Unduh: Slide");
-    expect(s.calls.at(-1)).toMatchObject({ name: "files.download", input: { name: "Slide.pptx" } });
+    await s.click("Unduh: Arsip");
+    expect(s.calls.at(-1)).toMatchObject({ name: "files.download", input: { name: "Arsip.zip" } });
   });
 });
