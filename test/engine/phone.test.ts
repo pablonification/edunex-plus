@@ -72,16 +72,22 @@ describe("booking ahead", () => {
 
   it("posts only what changed: nothing while the plan stays, everything again under the same IDs when the language changes", async () => {
     const app = await linked();
-    await app.taskDue(2 * DAY);
+    // Past 2 days, so its 2-day reminder is still to come and is booked too.
+    await app.taskDue(2 * DAY + 6 * HOUR);
     const before = app.posts().length;
     const ids = app.booked();
     await app.wait(2 * HOUR);
     expect(app.posts()).toHaveLength(before);
+    // What came due meanwhile (another reminder of the term) was delivered: it isn't posted again.
+    const waiting = app.ntfy
+      .booked(app.topic)
+      .filter((message) => message.sequence_id !== "ep-watchdog" && Number(message.delay) * 1000 > app.world.clock.now())
+      .map((message) => message.sequence_id);
 
     await app.engine.updateSettings({ lang: "en" });
     await app.wait(6 * MINUTE);
     const again = app.posts().slice(before);
-    expect(again.map((message) => message.sequence_id).sort()).toEqual([...ids].sort());
+    expect(again.map((message) => message.sequence_id).sort()).toEqual([...waiting].sort());
     expect(app.ntfy.deletes()).toEqual([]);
     expect(app.booked().sort()).toEqual([...ids].sort());
     expect(again.find((message) => message.title?.startsWith("Due in 24 hours"))?.message).toMatch(/Ignore this if you've already handed it in\.$/);
@@ -158,7 +164,7 @@ describe("booking ahead", () => {
   it("never stops the OS notification when ntfy fails", async () => {
     const app = await linked();
     app.ntfy.answer = "offline";
-    await app.taskDue(2 * DAY, "Esai kebijakan");
+    await app.taskDue(2 * DAY + 6 * HOUR, "Esai kebijakan");
     expect(app.shown.map((notice) => notice.text)).toEqual(["Tugas baru · II4091 — Esai kebijakan"]);
   });
 });
