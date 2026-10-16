@@ -223,10 +223,10 @@ export const attendanceStrings = {
   "settings.attendance.own": { id: "{code} · target sendiri", en: "{code} · its own target" },
   "settings.attendance.useDefault": { id: "Pakai target umum", en: "Use the default" },
   "settings.attendance.useDefaultFor": { id: "Pakai target umum untuk {code}", en: "Use the default for {code}" },
-  "settings.alerts.presence": { id: "Presensi dibuka", en: "Presence opens" },
+  "settings.alerts.presence": { id: "Presensi", en: "Presence" },
   "settings.alerts.presenceHint": {
-    id: "Langsung, dengan apa yang perlu kamu lakukan, dan 15 menit sebelum tutup jika belum tercatat",
-    en: "Right away, with what you need to do, and 15 minutes before it closes if you're not recorded",
+    id: "Saat dibuka, dengan apa yang perlu kamu lakukan, dan 15 menit sebelum tutup jika belum tercatat (presensi lebih dari 30 menit)",
+    en: "When it opens, with what you need to do, and 15 minutes before it closes if you're not recorded (windows over 30 minutes)",
   },
   "settings.alerts.needsSix": { id: "butuh SIX", en: "needs SIX" },
   "settings.alerts.attendanceRisk": { id: "Kehadiran", en: "Attendance" },

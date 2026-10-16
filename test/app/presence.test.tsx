@@ -315,7 +315,8 @@ describe("attendance in Settings", () => {
   it("the Presence and attendance alerts switch off, and the target is set there too", async () => {
     screen = await openApp({ signedIn: true });
     await screen.apply({ type: "command", command: "settings" });
-    await screen.click("Presensi dibuka");
+    // The sidebar has a "Presensi" too: the switch in Settings.
+    await screen.click(document.querySelector<HTMLElement>("[role=dialog] [role=switch][aria-label=Presensi]")!);
     await screen.click("Kehadiran");
     expect(screen.engine.snapshot().settings.mutedAlerts).toEqual(["presence", "attendanceRisk"]);
     expect(screen.text()).toContain("Target kehadiran");

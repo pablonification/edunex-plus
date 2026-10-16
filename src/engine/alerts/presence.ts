@@ -47,7 +47,8 @@ function unrecorded(get: Parameters<NonNullable<Detector["plan"]>>[0]["get"]) {
 
 export const presenceOpening: Detector = {
   name: "presence.open",
-  watches: ["edunex.presence"],
+  // The Tasks too: what counts in a window can be one of them.
+  watches: ["edunex.presence", "edunex.tasks"],
   plan({ get }) {
     const tasks = get("edunex.tasks") ?? [];
     return unrecorded(get).map(
@@ -68,7 +69,8 @@ export const presenceOpening: Detector = {
 
 export const presenceClosing: Detector = {
   name: "presence.closing",
-  watches: ["edunex.presence"],
+  // The Tasks too: what counts in a window can be one of them.
+  watches: ["edunex.presence", "edunex.tasks"],
   plan({ get }) {
     const tasks = get("edunex.tasks") ?? [];
     return unrecorded(get)
