@@ -63,3 +63,26 @@ history ("app.alerts") still has it. "Sign out of everything" removes both.
   StatusNotifier host the tray icon may not show while the window still
   hides on close. Launching the app again brings the window back (single
   instance), and Settings → "Saat jendela ditutup: Keluar" makes closing quit.
+
+## On the phone (ntfy)
+
+Settings → Notifikasi di HP sends alerts to the Student's phone through
+[ntfy](https://ntfy.sh)'s free public server, with no server of ours
+(`src/engine/alerts/phone.ts`, sent by `src/desktop/ntfy.ts`).
+
+- Android: the ntfy app subscribes from the QR code (an
+  `ntfy://ntfy.sh/<topic>?display=Edunex%20Plus` link).
+- iPhone: the ntfy app doesn't open `ntfy://` links, so the Student taps +
+  and pastes the topic from Settings ("Salin").
+- Planned alerts are booked ahead with ntfy's scheduled delivery (at most 3
+  days on ntfy.sh, so the app books up to 70 hours ahead), so they arrive
+  with the laptop closed. A booking the plan drops is cancelled; one for
+  something the Student does from the phone can't be, so it ends with
+  "Abaikan kalau sudah dikumpulkan." (deadlines) or the Presence equivalent.
+- One more booking warns 24 hours after the last good read of Edunex.
+- ntfy.sh limits: 250 messages a day per IP address (a campus Wi-Fi shares
+  one), bursts of 60 requests, messages up to 4096 bytes. Only what changed
+  is posted; a 429 waits longer each time.
+- No end-to-end encryption: the topic is the only secret, kept in the vault
+  beside the sessions. ntfy's operator can read the messages; Settings says so.
+- The demo never sends anything: its phone links under a made-up topic.

@@ -7,6 +7,7 @@ import { isNewerRelease } from "../core/updates";
 import { AlertCenter, type AlertNotice } from "./alerts/center";
 import type { Detector } from "./alerts/detector";
 import { DETECTORS } from "./alerts/detectors";
+import { type Ntfy, PhoneChannel } from "./alerts/phone";
 import type { Clock } from "./clock";
 import { EngineError, isEngineError } from "./errors";
 import { Pace } from "./http/pace";
@@ -30,6 +31,8 @@ export interface EngineDeps {
   sources?: readonly AnySource[];
   /** Shows an alert to the Student (an OS notification). Its text is catalog keys, in no language yet. */
   alert?(notice: AlertNotice): void;
+  /** Alerts on the Student's phone through ntfy (src/desktop/ntfy.ts). Without it, no phone can be linked. */
+  phone?: { ntfy: Ntfy; newTopic?: () => string };
   /** Defaults to every alert detector. */
   detectors?: readonly Detector[];
   /** Asks GitHub once a day for a newer release (packaged builds only). */
@@ -56,6 +59,8 @@ export interface Engine {
   updateSettings(patch: Partial<Settings>): Promise<Settings>;
   /** The Student opened the alert history. */
   markAlertsRead(): Promise<void>;
+  /** The Student's phone, through ntfy: link it, a test, unlink it. */
+  readonly phone: Pick<PhoneChannel, "link" | "connect" | "test" | "disconnect" | "idle">;
 }
 
 const sessionKey = (source: SourceId) => `${source}.session`;
@@ -86,6 +91,14 @@ export function createEngine(deps: EngineDeps): Engine {
   });
   const statuses = new Map<SourceId, SourceStatus>(SourceId.options.map((source) => [source, { source, state: "signed-out", updatedAt: null, detail: null }]));
   let settings: Settings = DEFAULT_SETTINGS;
+  const phone = new PhoneChannel({
+    ntfy: deps.phone?.ntfy,
+    newTopic: deps.phone?.newTopic,
+    clock,
+    vault,
+    lang: () => settings.lang,
+    courses: () => store.get("edunex.courses") ?? [],
+  });
   const alerts = new AlertCenter({
     clock,
     storage,
@@ -95,7 +108,16 @@ export function createEngine(deps: EngineDeps): Engine {
     set: (name, value) => store.set(name, value, clock.now()),
     remove: (prefix) => store.remove(prefix),
     settings: () => settings,
-    deliver: (notice) => deps.alert?.(notice),
+    deliver: (notice) => {
+      // The OS notification first; the phone's copy goes even if that one fails.
+      try {
+        deps.alert?.(notice);
+      } finally {
+        phone.deliver(notice);
+      }
+    },
+    upcoming: (planned) => phone.upcoming(planned),
+    forget: async () => void (await phone.disconnect()),
   });
   /** The latest outcome of every feed: null when it worked. */
   const outcomes = new Map<string, EngineError | null>();
@@ -178,7 +200,11 @@ export function createEngine(deps: EngineDeps): Engine {
     const offline = mine.find((o) => o?.kind === "Offline");
     if (changed) setStatus(source, { state: "changed", detail: changed.message });
     else if (offline) setStatus(source, { state: "offline", detail: offline.message });
-    else setStatus(source, { state: "live", detail: null, updatedAt: clock.now() });
+    else {
+      setStatus(source, { state: "live", detail: null, updatedAt: clock.now() });
+      // A good read of Edunex: the phone's "laptop hasn't checked" warning moves on.
+      if (source === "edunex") phone.checked(clock.now());
+    }
   }
 
   function checkLiveness(source: SourceId): Promise<void> {
@@ -309,6 +335,7 @@ export function createEngine(deps: EngineDeps): Engine {
     async load() {
       await store.load();
       await alerts.load();
+      await phone.load();
       // A notice saved before this version was installed.
       const notice = store.get("app.update");
       if (notice && !isNewerRelease(notice.version, deps.version)) await store.remove("app.update");
@@ -379,6 +406,8 @@ export function createEngine(deps: EngineDeps): Engine {
         await vault.delete(sessionKey(source.id));
         await store.remove(`${source.id}.`);
         setStatus(source.id, { state: "signed-out", updatedAt: null, detail: null });
+        // Nothing reads Edunex any more: no warning that it hasn't.
+        if (source.id === "edunex") phone.checked(null);
       }
       // Signing out of everything also forgets what the Student entered (their
       // courses' own attendance targets too), and the next Student on this
@@ -431,5 +460,7 @@ export function createEngine(deps: EngineDeps): Engine {
     markAlertsRead() {
       return alerts.markRead();
     },
+
+    phone,
   };
 }

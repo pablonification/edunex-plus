@@ -7,6 +7,7 @@ import { alertsActions } from "./actions/alerts";
 import { coreActions } from "./actions/core";
 import { coursePageActions } from "./actions/course-page";
 import { filesActions } from "./actions/files";
+import { phoneActions } from "./actions/phone";
 import { scheduleActions } from "./actions/schedule";
 import { sixActions } from "./actions/six";
 import { tasksActions } from "./actions/tasks";
@@ -32,6 +33,7 @@ export const Actions = {
   ...alertsActions,
   ...updatesActions,
   ...scheduleActions,
+  ...phoneActions,
 } as const satisfies Record<string, { input: z.ZodType; output: z.ZodType }>;
 export type ActionName = keyof typeof Actions;
 export type ActionInput<N extends ActionName> = z.input<(typeof Actions)[N]["input"]>;

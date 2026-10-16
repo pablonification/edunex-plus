@@ -6,7 +6,9 @@
 // - a burst is grouped into one notification per kind ("8 new Tasks");
 //   urgent alerts (Presence opening, short-window Tasks) go out at once, alone;
 // - a group turned off in Settings sends no OS notification but still lands
-//   in the history ("app.alerts", newest first).
+//   in the history ("app.alerts", newest first);
+// - planned alerts still to come are handed on at every replan, so the phone
+//   can book them ahead (./phone.ts).
 import type { Event } from "../../core/contract";
 import {
   ALERT_GROUP,
@@ -27,6 +29,10 @@ import { SeenLedger } from "./ledger";
 /** What goes out as one OS notification: a single alert, or a burst of one kind (`count` > 1). */
 export interface AlertNotice extends Omit<Alert, "at"> {
   count: number;
+  /** The alerts it covers: its own id, or every one in the burst (the phone skips what it was sent ahead). */
+  ids: string[];
+  /** Went out the moment it was raised, alone (Presence opening, short-window Tasks). */
+  urgent?: true;
 }
 
 /** Alerts that aren't urgent wait this long for others to group with. */
@@ -58,6 +64,10 @@ export interface AlertCenterDeps {
   remove(prefix: string): Promise<void>;
   settings(): Settings;
   deliver(notice: AlertNotice): void;
+  /** At every replan: the planned alerts still to come (not raised, not muted, `at` ahead), for the phone to book. */
+  upcoming?(planned: readonly PlannedAlert[]): void;
+  /** Signing out of everything, or another Student: what was booked ahead goes too. */
+  forget?(): Promise<void>;
 }
 
 export class AlertCenter {
@@ -146,7 +156,7 @@ export class AlertCenter {
       await this.ledger.clear();
       await this.deps.remove("app.alerts");
     });
-    await this.writes;
+    await Promise.all([this.writes, this.deps.forget?.().catch((error) => console.error("[alerts] forgetting the phone failed:", error))]);
   }
 
   private context(): DetectorContext {
@@ -170,7 +180,7 @@ export class AlertCenter {
         raised.push(alert);
         if (urgent) {
           this.pending.splice(waiting, 1);
-          this.deliver([alert]);
+          this.deliver([alert], true);
         } else this.pending[waiting] = alert;
         continue;
       }
@@ -178,7 +188,7 @@ export class AlertCenter {
       if (silent) continue;
       raised.push(alert);
       if (this.muted(alert.kind)) continue;
-      if (urgent) this.deliver([alert]);
+      if (urgent) this.deliver([alert], true);
       else this.pending.push(alert);
     }
     if (this.pending.length && !this.flushTimer) this.flushTimer = this.deps.clock.setTimeout(() => this.flush(), GROUP_WINDOW);
@@ -206,12 +216,13 @@ export class AlertCenter {
     for (const kind of kinds) this.deliver(waiting.filter((alert) => alert.kind === kind));
   }
 
-  private deliver(alerts: readonly Alert[]): void {
+  private deliver(alerts: readonly Alert[], urgent = false): void {
     const [first] = alerts;
     if (!first) return;
     const { at: _at, ...single } = first;
     try {
-      this.deps.deliver(alerts.length === 1 ? { ...single, count: 1 } : grouped(alerts, this.deps.clock.now()));
+      const notice: AlertNotice = alerts.length === 1 ? { ...single, count: 1, ids: [single.id] } : grouped(alerts, this.deps.clock.now());
+      this.deps.deliver(urgent ? { ...notice, urgent } : notice);
     } catch (error) {
       // An OS notification that fails must never stop syncing; the history still has it.
       console.error("[alerts] delivery failed:", error);
@@ -225,20 +236,31 @@ export class AlertCenter {
     const { clock } = this.deps;
     const context = this.context();
     const now = context.now;
+    const upcoming: PlannedAlert[] = [];
     for (const detector of this.deps.detectors) {
       if (!detector.plan) continue;
       const due: AlertDraft[] = [];
       for (const planned of this.planOf(detector, context)) {
         if (this.ledger.has(planned.id) || now >= planned.until) continue;
         const { at, until: _until, ...draft } = planned;
-        if (at <= now) due.push(draft);
-        else if (at - now <= HEARTBEAT) this.planTimers.push(clock.setTimeout(() => this.replan(), at - now));
+        if (at <= now) {
+          due.push(draft);
+          continue;
+        }
+        if (at - now <= HEARTBEAT) this.planTimers.push(clock.setTimeout(() => this.replan(), at - now));
+        if (!this.muted(planned.kind)) upcoming.push(planned);
       }
       // A watched dataset already stored but not yet announced (its write is still finishing) is a first sync too.
       const unseen = detector.watches.some((name) => !this.last.has(name) && this.deps.get(name) !== undefined);
       if (due.length) this.accept(due, unseen || (silentFor?.has(detector) ?? false));
     }
     this.planTimers.push(clock.setTimeout(() => this.replan(), HEARTBEAT));
+    try {
+      this.deps.upcoming?.(upcoming);
+    } catch (error) {
+      // Booking ahead that fails must never stop the alerts on this computer.
+      console.error("[alerts] booking ahead failed:", error);
+    }
   }
 
   private planOf(detector: Detector, context: DetectorContext): PlannedAlert[] {
@@ -295,5 +317,6 @@ function grouped(alerts: readonly Alert[], now: number): AlertNotice {
     body,
     target,
     count: alerts.length,
+    ids: alerts.map((alert) => alert.id),
   };
 }

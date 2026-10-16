@@ -244,6 +244,8 @@ const hooks: DemoHooks = {
     // ITB's calendar, the public catalog's pages (one every 3.5 s), and the first alerts settle.
     await world.clock.advance(200_000);
     await engine.updateSettings({ firstScanDone: true });
+    // Settings shows a linked phone, under the demo's made-up topic (it sends nothing anywhere).
+    if (scenario === "signed-in") await engine.phone.connect();
     runInRealTime();
     return true;
   },

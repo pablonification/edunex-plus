@@ -12,7 +12,7 @@ import type { Route } from "../core/route";
 import { translate } from "../core/strings";
 import { systemClock } from "../engine/clock";
 import { createEngine, type Engine } from "../engine/engine";
-import { demo } from "./demo";
+import { demo, demoPhone } from "./demo";
 import { createDownloadedFiles, DOWNLOADED_FILES_FOLDER } from "./downloaded-files";
 import { createFileCache, FILE_CACHE_FOLDER } from "./file-cache";
 import { alertsHandlers } from "./handlers/alerts";
@@ -21,6 +21,7 @@ import type { DesktopContext } from "./handlers/context";
 import { coreHandlers } from "./handlers/core";
 import { coursePageHandlers } from "./handlers/course-page";
 import { edunexNim, filesHandlers, forgetOtherStudentsFiles } from "./handlers/files";
+import { phoneHandlers } from "./handlers/phone";
 import { scheduleHandlers } from "./handlers/schedule";
 import { sixHandlers } from "./handlers/six";
 import { tasksHandlers } from "./handlers/tasks";
@@ -28,6 +29,7 @@ import { updatesHandlers } from "./handlers/updates";
 import { type Handlers, registerBridge } from "./ipc";
 import { installMenu } from "./menu";
 import { createNotifier } from "./notifications";
+import { ntfyClient } from "./ntfy";
 import { registerAppScheme, serveApp } from "./protocol";
 import { APP_HOST, APP_ORIGIN, APP_SCHEME, contentSecurityPolicy, denyPermissions, guardAppWindow, hardenAllContents } from "./security";
 import { FileStorage } from "./storage";
@@ -80,6 +82,9 @@ async function start(): Promise<void> {
   const engineSession = session.fromPartition("engine", { cache: false });
   denyPermissions(engineSession);
   denyPermissions(session.defaultSession);
+  // The phone's messages go out on a session of their own, apart from Edunex's.
+  const ntfySession = session.fromPartition("ntfy", { cache: false });
+  denyPermissions(ntfySession);
 
   const fileCache = createFileCache(path.join(userData, FILE_CACHE_FOLDER), { owner: () => edunexNim(current) });
   const downloadedFiles = createDownloadedFiles(path.join(userData, DOWNLOADED_FILES_FOLDER), { owner: () => edunexNim(current) });
@@ -95,8 +100,9 @@ async function start(): Promise<void> {
       send(event);
       void followAccount(event);
     },
-    // The demo's made-up alerts stay in the app: no OS notifications.
+    // The demo's made-up alerts stay in the app: no OS notifications, nothing to a phone.
     alert: (notice) => void (demo ? undefined : notifier.show(notice)),
+    phone: demo ? demoPhone : { ntfy: ntfyClient(ntfySession) },
   });
   engine = current;
   await current.load();
@@ -150,6 +156,7 @@ async function start(): Promise<void> {
     ...alertsHandlers(context),
     ...updatesHandlers(context),
     ...scheduleHandlers(context),
+    ...phoneHandlers(context),
   };
   registerBridge({ window: () => window, isAppUrl, handlers });
   theme = followTheme(() => window, currentPlatform());
