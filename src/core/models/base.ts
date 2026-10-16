@@ -27,6 +27,11 @@ export type SourceStatus = z.infer<typeof SourceStatus>;
 /** An attendance target: a whole percent, 50–100. */
 export const AttendanceTarget = z.number().int().min(50).max(100);
 
+/** How long before a Task's deadline a reminder can come, in hours: 2 days, 1 day, 3 hours, 1 hour. */
+export const DEADLINE_REMINDERS = [48, 24, 3, 1] as const;
+export const DeadlineReminder = z.literal(DEADLINE_REMINDERS);
+export type DeadlineReminder = z.infer<typeof DeadlineReminder>;
+
 export const Theme = z.enum(["system", "light", "dark"]);
 export const Lang = z.enum(["id", "en"]);
 export type Lang = z.infer<typeof Lang>;
@@ -47,6 +52,13 @@ export const Settings = z.object({
   closeToTray: z.boolean(),
   /** The one-time "still running in the tray" explainer was shown. */
   trayExplained: z.boolean(),
+  /** When to remind the Student before a deadline they haven't handed in (hours before). None chosen: no deadline reminders at all. */
+  deadlineReminders: z.array(DeadlineReminder),
+  /**
+   * "Class in 15 minutes", off until the Student turns it on. Its own switch:
+   * a group missing from `mutedAlerts` is on, even for settings saved before it existed.
+   */
+  classSoonAlerts: z.boolean(),
 
   // Attendance (#85)
   /** The share of meetings (percent) the Student aims to attend, for every course without its own target. */
@@ -68,6 +80,8 @@ export const DEFAULT_SETTINGS: Settings = {
   mutedAlerts: [],
   closeToTray: true,
   trayExplained: false,
+  deadlineReminders: [48, 24, 3],
+  classSoonAlerts: false,
 
   // Attendance (#85)
   attendanceTarget: 80,

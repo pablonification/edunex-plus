@@ -83,10 +83,10 @@ describe("the bell", () => {
     await screen.click("Notifikasi");
     await screen.click("Atur notifikasi");
     expect(document.querySelector("[role=dialog]")?.textContent).toContain("Pengaturan");
-    expect(screen.text()).toContain("24 jam dan 3 jam sebelumnya, hanya jika belum dikumpulkan");
+    expect(screen.text()).toContain("Sebelum tenggat, hanya jika belum dikumpulkan");
     // Without SIX, the alerts only SIX can raise say so.
     expect(screen.text()).toContain("SIX tidak mencatat kuliah, jatah absen habis · butuh SIX");
-    expect(screen.text()).not.toContain("sebelumnya, hanya jika belum dikumpulkan · butuh SIX");
+    expect(screen.text()).not.toContain("hanya jika belum dikumpulkan · butuh SIX");
   });
 
   it("an item opens its screen", async () => {
@@ -117,9 +117,10 @@ describe("the bell", () => {
 
 describe("alert settings", () => {
   it("turns a kind of alert off and chooses what closing the window does", async () => {
-    screen = await openApp({ signedIn: true });
+    const s = await openApp({ signedIn: true });
+    screen = s;
     await screen.apply({ type: "command", command: "settings" });
-    expect(screen.text()).toContain("24 jam dan 3 jam sebelumnya, hanya jika belum dikumpulkan");
+    expect(screen.text()).toContain("Sebelum tenggat, hanya jika belum dikumpulkan");
     const materials = screen.button("Materi baru");
     expect(materials.getAttribute("aria-checked")).toBe("true");
     await screen.click(materials);
@@ -129,6 +130,19 @@ describe("alert settings", () => {
     expect(screen.button("Tetap berjalan di latar").getAttribute("aria-checked")).toBe("true");
     await screen.click("Tutup aplikasi");
     expect(screen.engine.snapshot().settings.closeToTray).toBe(false);
+
+    // Deadline reminder times: 2 days, 1 day and 3 hours by default, 1 hour too if wanted; none, and the row says what that means.
+    expect(["2 hari", "1 hari", "3 jam", "1 jam"].map((name) => s.button(name).getAttribute("aria-pressed"))).toEqual(["true", "true", "true", "false"]);
+    await screen.click("1 jam");
+    expect(screen.engine.snapshot().settings.deadlineReminders).toEqual([48, 24, 3, 1]);
+    for (const name of ["2 hari", "1 hari", "3 jam", "1 jam"]) await screen.click(name);
+    expect(screen.engine.snapshot().settings.deadlineReminders).toEqual([]);
+    expect(screen.text()).toContain("Tidak ada waktu dipilih: tidak ada pengingat tenggat");
+
+    // A class in 15 minutes: off until turned on.
+    expect(screen.button("Kuliah sebentar lagi").getAttribute("aria-checked")).toBe("false");
+    await screen.click("Kuliah sebentar lagi");
+    expect(screen.engine.snapshot().settings.classSoonAlerts).toBe(true);
 
     await screen.click("Kirim");
     expect(screen.calls.some((call) => call.name === "alerts.test")).toBe(true);

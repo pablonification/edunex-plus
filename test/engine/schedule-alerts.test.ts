@@ -167,6 +167,22 @@ describe("schedule alerts", () => {
     expect(tomorrow[0].target).toEqual({ screen: "exam", examId: "DK4073-UTS" });
   });
 
+  it("an exam a week before and on its morning, naming the day, time and room", async () => {
+    const app = await start("2026-10-07T20:00:00+07:00");
+    const dk = () => app.history("exam").filter((text) => text.includes("DK4073"));
+    await app.until("2026-10-08T06:59:00+07:00");
+    expect(dk()).toEqual([]);
+    await app.until("2026-10-08T07:01:00+07:00");
+    expect(dk()).toEqual(["UTS seminggu lagi · DK4073 — Kam, 15 Okt 11:00 · TVST C"]);
+    await app.until("2026-10-15T07:01:00+07:00");
+    // Newest first.
+    expect(dk()).toEqual([
+      "UTS hari ini · DK4073 — Kam, 15 Okt 11:00 · TVST C",
+      "UTS besok · DK4073 — Kam, 15 Okt 11:00 · TVST C",
+      "UTS seminggu lagi · DK4073 — Kam, 15 Okt 11:00 · TVST C",
+    ]);
+  });
+
   it("two quizzes newly in SIX are two exams, each alert opening its own", async () => {
     const app = await start();
     const pl = { code: "PL3002", name: "Ekonomi dan Inovasi dalam Perencanaan", room: "R.SG PWK LT.6", activity: "Kuis" };
@@ -180,6 +196,26 @@ describe("schedule alerts", () => {
     const exams = mergeExams({ schedule: app.engine.snapshot().datasets.find((d) => d.name === "six.schedule")?.value as never, now: app.world.clock.now() });
     expect(targets.every((id) => exams.some((e) => e.id === id && e.kind === "KUIS"))).toBe(true);
     expect(history.map((a) => translate("en", a.title.key, a.title.vars))).toEqual(["Quiz scheduled · PL3002", "Quiz scheduled · PL3002"]);
+  });
+
+  it("class in 15 minutes: off unless the Student turns it on", async () => {
+    const app = await start("2026-10-14T20:00:00+07:00");
+    await app.until("2026-10-15T17:00:00+07:00");
+    expect(app.history("classSoon")).toEqual([]);
+  });
+
+  it("class in 15 minutes: turned on, a moved class at its new time and room", async () => {
+    const app = await start("2026-10-14T20:00:00+07:00");
+    await app.engine.updateSettings({ classSoonAlerts: true });
+    app.world.six.moveMeeting("2194343", "10:00", "11:30", "9009");
+    await app.refresh("six");
+    const pl = () => app.shown.filter((n) => n.kind === "classSoon" && n.title.vars?.course === "PL3002");
+    await app.until("2026-10-15T09:44:00+07:00");
+    expect(pl()).toEqual([]);
+    await app.until("2026-10-15T09:46:00+07:00");
+    expect(pl().map((n) => n.text)).toEqual(["Kuliah 15 menit lagi · PL3002 — 10:00–11:30 · 9009"]);
+    expect(translate("en", pl()[0].title.key, pl()[0].title.vars)).toBe("Class in 15 minutes · PL3002");
+    expect(pl()[0].target).toEqual({ screen: "schedule" });
   });
 
   it("turned off in Settings: no notification, still in the history", async () => {

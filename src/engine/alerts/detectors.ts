@@ -9,8 +9,8 @@ import { materialForToday, taskEdits } from "./changes";
 import type { Detector } from "./detector";
 import { edunexNotifications } from "./edunex-feed";
 import { newGrades, questionnaireReminder } from "./grades";
-import { presenceOpening } from "./presence";
-import { examAlerts, meetingsOutside, scheduleMoves, scheduleOverlaps } from "./schedule";
+import { presenceClosing, presenceOpening } from "./presence";
+import { classSoon, examAlerts, meetingsOutside, scheduleMoves, scheduleOverlaps } from "./schedule";
 import { deadlineReminders, newTasks } from "./tasks";
 
 export const DETECTORS: readonly Detector[] = [
@@ -20,12 +20,14 @@ export const DETECTORS: readonly Detector[] = [
   taskEdits,
   materialForToday,
   presenceOpening,
+  presenceClosing,
   sixNotCounting(),
   attendanceBudget,
   scheduleMoves,
   scheduleOverlaps,
   meetingsOutside,
   examAlerts,
+  classSoon,
   newGrades,
   questionnaireReminder,
   krsChanged,

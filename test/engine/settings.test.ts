@@ -22,6 +22,21 @@ describe("saved settings", () => {
     expect(h.engine.snapshot().settings.attendanceTargets).toEqual({});
   });
 
+  it("from before reminder times and class alerts: deadlines 2 days, 1 day and 3 hours before; class alerts off", async () => {
+    const h = await startEngine({ storage: saved({ theme: "dark", lang: "en", mutedAlerts: [], closeToTray: false }), start: false });
+    expect(h.engine.snapshot().settings).toEqual({ ...DEFAULT_SETTINGS, theme: "dark", lang: "en", closeToTray: false });
+    expect(h.engine.snapshot().settings).toMatchObject({ deadlineReminders: [48, 24, 3], classSoonAlerts: false });
+  });
+
+  it("chosen reminder times load as saved, none too; a time the app doesn't offer falls back alone", async () => {
+    const chosen = await startEngine({ storage: saved({ deadlineReminders: [24, 1], classSoonAlerts: true }), start: false });
+    expect(chosen.engine.snapshot().settings).toMatchObject({ deadlineReminders: [24, 1], classSoonAlerts: true });
+    const none = await startEngine({ storage: saved({ deadlineReminders: [] }), start: false });
+    expect(none.engine.snapshot().settings.deadlineReminders).toEqual([]);
+    const odd = await startEngine({ storage: saved({ theme: "dark", deadlineReminders: [5] }), start: false });
+    expect(odd.engine.snapshot().settings).toMatchObject({ theme: "dark", deadlineReminders: [48, 24, 3] });
+  });
+
   it("with this version's per-course targets, they load as saved", async () => {
     const h = await startEngine({ storage: saved({ attendanceTarget: 80, attendanceTargets: { DK4073: 75, KU5014: 90 } }), start: false });
     expect(h.engine.snapshot().settings.attendanceTargets).toEqual({ DK4073: 75, KU5014: 90 });

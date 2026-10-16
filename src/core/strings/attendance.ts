@@ -5,6 +5,7 @@ import type { Entry } from "./entry";
 export const attendanceStrings = {
   // Alerts: a Presence window opened, naming the action Edunex counts there
   "alert.presenceOpen": { id: "Presensi dibuka · {course}", en: "Presence open · {course}" },
+  "alert.presenceClosing": { id: "Presensi tutup 15 menit lagi · {course}", en: "Presence closes in 15 minutes · {course}" },
   "alert.presence.course": { id: "Buka mata kuliahnya di Edunex · tutup {time}", en: "Open the course in Edunex · closes {time}" },
   "alert.presence.module": { id: "Buka modulnya di Edunex · tutup {time}", en: "Open the module in Edunex · closes {time}" },
   "alert.presence.thread": { id: "Ikut diskusinya di Edunex · tutup {time}", en: "Join the discussion in Edunex · closes {time}" },
@@ -222,8 +223,11 @@ export const attendanceStrings = {
   "settings.attendance.own": { id: "{code} · target sendiri", en: "{code} · its own target" },
   "settings.attendance.useDefault": { id: "Pakai target umum", en: "Use the default" },
   "settings.attendance.useDefaultFor": { id: "Pakai target umum untuk {code}", en: "Use the default for {code}" },
-  "settings.alerts.presence": { id: "Presensi dibuka", en: "Presence opens" },
-  "settings.alerts.presenceHint": { id: "Langsung, dengan apa yang perlu kamu lakukan", en: "Right away, with what you need to do" },
+  "settings.alerts.presence": { id: "Presensi", en: "Presence" },
+  "settings.alerts.presenceHint": {
+    id: "Saat dibuka, dengan apa yang perlu kamu lakukan, dan 15 menit sebelum tutup jika belum tercatat (presensi lebih dari 30 menit)",
+    en: "When it opens, with what you need to do, and 15 minutes before it closes if you're not recorded (windows over 30 minutes)",
+  },
   "settings.alerts.needsSix": { id: "butuh SIX", en: "needs SIX" },
   "settings.alerts.attendanceRisk": { id: "Kehadiran", en: "Attendance" },
   "settings.alerts.attendanceRiskHint": {
