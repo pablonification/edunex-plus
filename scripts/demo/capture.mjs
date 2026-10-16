@@ -183,6 +183,9 @@ await session("signed-in", async (demo) => {
     await page.locator("aside > div:last-child button").first().click();
     await settle(page, 400);
     await demo.shot("26-pengaturan");
+    await page.getByRole("heading", { name: "Notifikasi di HP" }).scrollIntoViewIfNeeded();
+    await settle(page, 300);
+    await demo.shot("26-pengaturan-hp");
     await page.locator("[role=dialog] .overflow-y-auto").evaluate((body) => body.scrollTo(0, body.scrollHeight));
     await settle(page, 300);
     await demo.shot("26-pengaturan-tentang");

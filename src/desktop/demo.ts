@@ -4,6 +4,7 @@
 // packaged app never has them.
 import { app } from "electron";
 import type { SignInStep } from "../core/contract";
+import type { Ntfy } from "../engine/alerts/phone";
 import type { Clock } from "../engine/clock";
 import type { Engine } from "../engine/engine";
 import type { Transport } from "../engine/http/transport";
@@ -32,3 +33,6 @@ declare global {
 }
 
 export const demo: DemoHooks | undefined = app.isPackaged ? undefined : globalThis.__edunexPlusDemo;
+
+/** The demo's phone: it links under a made-up topic and sends nothing anywhere. */
+export const demoPhone: { ntfy: Ntfy; newTopic: () => string } = { ntfy: async () => 200, newTopic: () => "edunex-demo-bukan-topik-asli" };

@@ -1,10 +1,10 @@
 // Settings, in the order people look for things: the accounts first (who is
 // signed in, when each was last checked, sign out of one, or sign out and
 // remove everything), then notifications and what closing the window does,
-// then appearance, then the rest (attendance targets: the default and each
-// course's own), then what the app is (version, licence, the open-source
-// software it uses, opened as a page of its own). A newer release shows on
-// top while there is one.
+// then notifications on the phone (./phone.tsx), then appearance, then the
+// rest (attendance targets: the default and each course's own), then what the
+// app is (version, licence, the open-source software it uses, opened as a
+// page of its own). A newer release shows on top while there is one.
 import { lazy, type ReactNode, Suspense, useRef, useState } from "react";
 import { type AlertGroup, DEADLINE_REMINDERS, type DeadlineReminder, type Settings, type SourceId } from "../../core/models";
 import type { StringKey } from "../../core/strings";
@@ -24,6 +24,7 @@ import { Icons } from "../ui/icons";
 import { Meta, Notice } from "../ui/layout";
 import { ConfirmDialog, Dialog, toast } from "../ui/overlays";
 import { PanelBoundary } from "../ui/panel-boundary";
+import { PhoneSettings } from "./phone";
 import { useSignIn, useSignInNote } from "./source-status";
 
 // The list of licences, and the code that shows it, load only when the Student opens it.
@@ -129,6 +130,10 @@ function SettingsBody({
       {store.vault === "memory" && <Notice tone="warning" title={t("settings.sessionNotSaved")} />}
 
       <AlertSettings settings={settings} update={update} report={report} />
+
+      <Group title={t("phone.title")} note={t("phone.privacy")}>
+        <PhoneSettings report={report} />
+      </Group>
 
       <Group title={t("settings.appearance")}>
         <Row label={t("settings.theme")}>

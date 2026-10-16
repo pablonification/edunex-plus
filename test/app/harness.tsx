@@ -23,6 +23,7 @@ import { PRETEND_TOKEN } from "../pretend/edunex";
 // The PDF viewer loads on first use; here it's loaded already, so opening one settles within a click.
 import "../../src/app/ui/pdf-viewer";
 import { MemoryStorage, MemoryVault } from "../pretend/memory";
+import { PretendNtfy } from "../pretend/ntfy";
 import { PRETEND_SIX_COOKIE } from "../pretend/six";
 import { PretendWorld } from "../pretend/world";
 import { assertTidyFacts } from "./tidy-facts";
@@ -85,12 +86,15 @@ export interface Options {
   firstScan?: boolean;
   /** The system the window runs on (default macOS). */
   platform?: AppSnapshot["platform"];
+  /** Where the phone's messages go (default: a pretend ntfy of its own). */
+  ntfy?: PretendNtfy;
 }
 
 export async function openApp(options: Options = {}) {
   const world = options.world ?? new PretendWorld();
   const storage = options.storage ?? new MemoryStorage();
   const vault = options.vault ?? new MemoryVault();
+  const ntfy = options.ntfy ?? new PretendNtfy();
   const listeners = new Set<(event: unknown) => void>();
   const engine: Engine = createEngine({
     transport: world,
@@ -99,6 +103,7 @@ export async function openApp(options: Options = {}) {
     vault,
     version: "2.0.0-test",
     checkForUpdates: options.checkForUpdates,
+    phone: { ntfy: ntfy.send, newTopic: ntfy.newTopic },
     random: () => 0.5,
     emit: (event: Event) => {
       for (const listener of listeners) listener(event);
@@ -134,6 +139,8 @@ export async function openApp(options: Options = {}) {
   /** PDFs the Student filled in and saved a copy of, in order (their content as text). */
   const savedCopies: { name: string; text: string }[] = [];
   let saveDialogCloses = false;
+  /** What the Student put on the clipboard, in order. */
+  const copied: string[] = [];
   /** Files downloaded so far: main opens the copy it downloaded before instead of downloading again. */
   const downloaded = new Set<string>();
   /** The system can't open links (no browser set, the OS refused). */
@@ -229,6 +236,16 @@ export async function openApp(options: Options = {}) {
     },
     "alerts.test": async () => ({ shown: true }),
     "app.openRelease": async () => ({}),
+    // Main's handlers, on the pretend ntfy; the clipboard is `copied`.
+    "phone.link": async () => engine.phone.link(),
+    "phone.connect": () => engine.phone.connect(),
+    "phone.test": () => engine.phone.test(),
+    "phone.copy": async () => {
+      const link = engine.phone.link();
+      if (link.connected) copied.push(link.topic);
+      return {};
+    },
+    "phone.disconnect": () => engine.phone.disconnect(),
     // The calendar file main would write through the save dialog; tests read it from `exported`.
     "schedule.export": async (options: Parameters<typeof phoneCalendar>[3]) => {
       const calendar = phoneCalendar(
@@ -333,6 +350,8 @@ export async function openApp(options: Options = {}) {
     calls,
     exported,
     savedCopies,
+    ntfy,
+    copied,
     text: () => document.body.textContent ?? "",
     /** A button (or radio, or switch) by its accessible name. */
     button(name: string | RegExp): HTMLButtonElement {
