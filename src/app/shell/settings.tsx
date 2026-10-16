@@ -132,7 +132,7 @@ function SettingsBody({
       <AlertSettings settings={settings} update={update} report={report} />
 
       <Group title={t("phone.title")} note={t("phone.privacy")}>
-        <PhoneSettings report={report} />
+        <PhoneSettings settings={settings} update={update} report={report} />
       </Group>
 
       <Group title={t("settings.appearance")}>

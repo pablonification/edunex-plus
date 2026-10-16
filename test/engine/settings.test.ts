@@ -1,7 +1,7 @@
 // Settings on disk (#85): what an older version saved still loads, a value
 // that no longer fits falls back alone (never the Student's theme or language
-// with it), and each course's own attendance target belongs to the Student
-// who set it.
+// with it), each course's own attendance target belongs to the Student who
+// set it, and quiet hours on the phone are on for settings saved before them.
 import { describe, expect, it } from "vitest";
 import { DEFAULT_SETTINGS } from "../../src/core/models";
 import { PRETEND_TOKEN } from "../pretend/edunex";
@@ -62,6 +62,16 @@ describe("saved settings", () => {
     // And it stays forgotten after a restart.
     const again = await startEngine({ storage: h.storage, start: false });
     expect(again.engine.snapshot().settings.attendanceTargets).toEqual({});
+  });
+
+  it("from before quiet hours on the phone: they're on, 22:00 to 06:00; turned off, or a pair that doesn't fit, as expected", async () => {
+    const before = await startEngine({ storage: saved({ theme: "dark", mutedAlerts: ["grade"] }), start: false });
+    expect(before.engine.snapshot().settings).toMatchObject({ theme: "dark", phoneQuietHours: { start: 22, end: 6 } });
+    const off = await startEngine({ storage: saved({ phoneQuietHours: null }), start: false });
+    expect(off.engine.snapshot().settings.phoneQuietHours).toBeNull();
+    const odd = await startEngine({ storage: saved({ theme: "dark", phoneQuietHours: { start: 7, end: 7 } }), start: false });
+    expect(odd.engine.snapshot().settings).toMatchObject({ theme: "dark", phoneQuietHours: { start: 22, end: 6 } });
+    await expect(odd.engine.updateSettings({ phoneQuietHours: { start: 24, end: 6 } })).rejects.toThrow();
   });
 
   it("a target out of range is refused, not saved", async () => {

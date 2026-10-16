@@ -97,6 +97,7 @@ export function createEngine(deps: EngineDeps): Engine {
     clock,
     vault,
     lang: () => settings.lang,
+    quiet: () => settings.phoneQuietHours,
     courses: () => store.get("edunex.courses") ?? [],
   });
   const alerts = new AlertCenter({

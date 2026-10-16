@@ -13,6 +13,10 @@
 //   ("Abaikan kalau sudah dikumpulkan."): handed in from the phone while the
 //   laptop is off, it can't be cancelled;
 // - one more booking warns when the laptop hasn't read Edunex for a day;
+// - during the Student's quiet hours (22:00 to 06:00 unless changed), what can
+//   wait is held until they end: sent now, it's booked for then; booked ahead,
+//   it's booked for then if it still matters then (before its `until`).
+//   Presence, a class about to start and other urgent alerts always come at their time;
 // - nothing here blocks or throws into the alert center: what fails waits
 //   (longer each time) and goes on a later replan.
 import { createHash, randomBytes } from "node:crypto";
@@ -20,7 +24,7 @@ import { z } from "zod";
 import type { PhoneLink, PhoneProblem } from "../../core/actions/phone";
 import { dateVars } from "../../core/dates";
 import { edunexCourseUrl } from "../../core/links";
-import { ALERT_GROUP, type AlertGroup, type AlertText, type Course, type Lang } from "../../core/models";
+import { ALERT_GROUP, type AlertGroup, type AlertKind, type AlertText, type Course, type Lang, type QuietHours } from "../../core/models";
 import type { Route } from "../../core/route";
 import { type StringKey, translate } from "../../core/strings";
 import { edunexTaskUrl } from "../../core/tasks";
@@ -61,6 +65,8 @@ export interface PhoneDeps {
   clock: Clock;
   vault: Vault;
   lang(): Lang;
+  /** The Student's quiet hours on the phone, or null: off. */
+  quiet(): QuietHours | null;
   /** This term's courses, for the Edunex page a tap on a course's alert opens. */
   courses(): readonly Course[];
 }
@@ -101,7 +107,15 @@ const FOOTNOTE: Partial<Record<AlertGroup, StringKey>> = {
 /** ntfy's topics and sequence IDs: letters, digits, "-" and "_", up to 64. */
 const Name = z.string().regex(/^[-_A-Za-z0-9]{1,64}$/);
 
-const Booking = z.object({ seq: Name, at: z.number(), until: z.number(), hash: z.string().max(64) });
+const Booking = z.object({
+  seq: Name,
+  /** When it reaches the phone. */
+  at: z.number(),
+  until: z.number(),
+  hash: z.string().max(64),
+  /** When the laptop raises it, when quiet hours moved `at` later. */
+  raisedAt: z.number().optional(),
+});
 
 // Kept in the vault, beside the sign-in sessions: the topic is the only thing
 // keeping the Student's messages from anyone else, so it's a secret like a
@@ -125,6 +139,36 @@ type Outcome = "ok" | "refused" | "later";
 
 /** What a phone message is made from: a notice, or a planned alert. */
 type PhoneAlert = Pick<AlertNotice, "id" | "kind" | "title" | "body" | "target"> & { urgent?: boolean };
+
+/**
+ * When the quiet hours `at` falls in end, on this computer's clock (so where
+ * clocks change for summer, they still end at the same hour); null when `at`
+ * isn't in them or they're off. From 22 to 6 they cross midnight.
+ */
+export function quietUntil(at: number, quiet: QuietHours | null): number | null {
+  if (!quiet || quiet.start === quiet.end) return null;
+  const hour = new Date(at).getHours();
+  const inside = quiet.start < quiet.end ? hour >= quiet.start && hour < quiet.end : hour >= quiet.start || hour < quiet.end;
+  if (!inside) return null;
+  const end = new Date(at);
+  end.setHours(quiet.end, 0, 0, 0);
+  // In the evening part of hours across midnight: they end tomorrow.
+  if (end.getTime() <= at) {
+    end.setDate(end.getDate() + 1);
+    end.setHours(quiet.end, 0, 0, 0);
+  }
+  return end.getTime();
+}
+
+/** Presence opening or closing, a class about to start, and other urgent alerts never wait for quiet hours to end. */
+const ON_TIME: ReadonlySet<AlertKind> = new Set(["presenceOpen", "presenceClosing", "classSoon"]);
+const canWait = (alert: Pick<PhoneAlert, "kind" | "urgent">) => !alert.urgent && !ON_TIME.has(alert.kind);
+
+/** When a planned alert reaches the phone: when quiet hours end if it can wait and still matters then, else at its time. */
+export function phoneTime(planned: Pick<PlannedAlert, "kind" | "urgent" | "at" | "until">, quiet: QuietHours | null): number {
+  const end = canWait(planned) ? quietUntil(planned.at, quiet) : null;
+  return end !== null && end < planned.until ? end : planned.at;
+}
 
 /** A new topic: 128 random bits after a prefix the Student can recognise in the ntfy app. */
 export const newTopic = () => `edunex-${randomBytes(16).toString("base64url")}`;
@@ -195,8 +239,8 @@ export class PhoneChannel {
   private problem: PhoneProblem | null = null;
   private failures = 0;
   private retryAt = 0;
-  /** Messages the laptop sent now that didn't get through, tried again with the bookings. Only in memory. */
-  private outbox: { message: Message; until: number }[] = [];
+  /** Messages the laptop sends now, tried again with the bookings when they don't get through. Only in memory. */
+  private outbox: { id: string; message: Message; until: number; holdUntil: number | null }[] = [];
   /** Bookings ntfy turned down (not for being busy), by alert id: not asked again until they change. */
   private readonly refused = new Map<string, string>();
   private running: Promise<void> | null = null;
@@ -283,13 +327,20 @@ export class PhoneChannel {
     this.kick();
   }
 
-  /** An alert reached the Student on this computer: on the phone too, unless every alert in it was booked ahead. */
+  /**
+   * An alert reached the Student on this computer: on the phone too, unless
+   * every alert in it was booked ahead. In quiet hours, what can wait is
+   * booked for when they end. Not a deadline reminder: without its deadline
+   * at hand, it might come after it (booked ahead, phoneTime has it).
+   */
   deliver(notice: AlertNotice): void {
     const saved = this.saved;
     if (!saved) return;
     if (notice.ids.length > 0 && notice.ids.every((id) => Object.hasOwn(saved.booked, id))) return;
+    const now = this.deps.clock.now();
+    const holdUntil = canWait(notice) && notice.kind !== "deadline" ? quietUntil(now, this.deps.quiet()) : null;
     const message = phoneMessage(notice, this.deps.lang(), { ahead: false, courses: this.deps.courses() });
-    this.outbox = [...this.outbox, { message, until: this.deps.clock.now() + OUTBOX_TTL }].slice(-OUTBOX_LIMIT);
+    this.outbox = [...this.outbox, { id: notice.id, message, until: now + OUTBOX_TTL, holdUntil }].slice(-OUTBOX_LIMIT);
     this.kick();
   }
 
@@ -339,8 +390,17 @@ export class PhoneChannel {
     try {
       this.outbox = this.outbox.filter((item) => item.until > now);
       while (this.outbox.length) {
-        if (!(await send({ method: "POST", message: { ...this.outbox[0].message, topic: saved.topic } }))) return;
+        const { id, message, holdUntil } = this.outbox[0];
+        // Held until quiet hours end, unless they ended while it waited to get through.
+        const held = holdUntil !== null && holdUntil - now >= LEAD ? holdUntil : null;
+        const outcome = await send({ method: "POST", message: { ...message, ...(held ? { delay: delay(held) } : {}), topic: saved.topic } });
+        if (!outcome) return;
         this.outbox.shift();
+        // Kept with the bookings, so unlinking cancels it too.
+        if (held && outcome === "ok" && Object.keys(saved.booked).length < BOOKED_LIMIT) {
+          saved.booked[id] = { seq: message.sequence_id, at: held, until: held, hash: "", raisedAt: now };
+          changed = true;
+        }
       }
       if (this.upcomingAlerts && (await this.book(saved, this.upcomingAlerts, now, send))) changed = true;
       if (await this.keepWatch(saved, now, send)) changed = true;
@@ -353,10 +413,13 @@ export class PhoneChannel {
   private async book(saved: Saved, plan: readonly PlannedAlert[], now: number, send: Send): Promise<boolean> {
     const lang = this.deps.lang();
     const courses = this.deps.courses();
-    const wanted = new Map<string, { planned: PlannedAlert; message: Message; hash: string }>();
+    const quiet = this.deps.quiet();
+    // `at`: when it reaches the phone. Its delay is in the hash, so new quiet hours book it again.
+    const wanted = new Map<string, { planned: PlannedAlert; at: number; message: Message; hash: string }>();
     for (const planned of plan) {
-      const message = { ...phoneMessage(planned, lang, { ahead: true, courses }), delay: delay(planned.at) };
-      wanted.set(planned.id, { planned, message, hash: digest(JSON.stringify({ lang, message })) });
+      const at = phoneTime(planned, quiet);
+      const message = { ...phoneMessage(planned, lang, { ahead: true, courses }), delay: delay(at) };
+      wanted.set(planned.id, { planned, at, message, hash: digest(JSON.stringify({ lang, message })) });
     }
     const bookable = (at: number) => at - now >= LEAD && at - now <= HORIZON;
     let changed = false;
@@ -368,17 +431,18 @@ export class PhoneChannel {
         changed = true;
         continue;
       }
-      if (booking.at <= now) continue;
+      // Raised on the laptop already, held for the end of quiet hours: kept too.
+      if (booking.at <= now || (booking.raisedAt !== undefined && booking.raisedAt <= now)) continue;
       const next = wanted.get(id);
-      if (next && (next.hash === booking.hash || bookable(next.planned.at))) continue;
+      if (next && (next.hash === booking.hash || bookable(next.at))) continue;
       // Gone from the plan (handed in, moved, muted), or changed too close to its time to book again.
       if (!(await send({ method: "DELETE", topic: saved.topic, sequenceId: booking.seq }))) return changed;
       delete saved.booked[id];
       changed = true;
     }
 
-    const due = [...wanted.values()].filter(({ planned }) => bookable(planned.at)).sort((a, b) => a.planned.at - b.planned.at);
-    for (const { planned, message, hash } of due) {
+    const due = [...wanted.values()].filter(({ at }) => bookable(at)).sort((a, b) => a.at - b.at);
+    for (const { planned, at, message, hash } of due) {
       const booked = saved.booked[planned.id];
       if (booked?.hash === hash || this.refused.get(planned.id) === hash) continue;
       if (!booked && Object.keys(saved.booked).length >= BOOKED_LIMIT) break;
@@ -387,14 +451,18 @@ export class PhoneChannel {
       if (!outcome) return changed;
       if (outcome === "refused") this.refused.set(planned.id, hash);
       else {
-        saved.booked[planned.id] = { seq: message.sequence_id, at: planned.at, until: planned.until, hash };
+        saved.booked[planned.id] = { seq: message.sequence_id, at, until: planned.until, hash, ...(at !== planned.at ? { raisedAt: planned.at } : {}) };
         changed = true;
       }
     }
     return changed;
   }
 
-  /** Books the "laptop hasn't checked" warning a day after the last good read; cancels it once signed out of Edunex. True when it changed. */
+  /**
+   * Books the "laptop hasn't checked" warning a day after the last good read
+   * (or when quiet hours end, if that's in them); cancels it once signed out
+   * of Edunex. True when it changed.
+   */
   private async keepWatch(saved: Saved, now: number, send: Send): Promise<boolean> {
     const check = this.lastCheck;
     const booked = saved.watchdog;
@@ -405,7 +473,7 @@ export class PhoneChannel {
       saved.watchdog = null;
       return true;
     }
-    const at = check + WATCHDOG_AFTER;
+    const at = quietUntil(check + WATCHDOG_AFTER, this.deps.quiet()) ?? check + WATCHDOG_AFTER;
     if (at - now < LEAD || booked?.at === at) return false;
     // Edunex is read every few minutes: the warning moves at most once an hour, unless it already went off.
     if (booked && booked.at > now && now - booked.bookedAt < WATCHDOG_EVERY) return false;

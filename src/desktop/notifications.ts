@@ -25,8 +25,8 @@ export function createNotifier(options: { lang: () => Lang; open: (route: Route)
       const notification = new Notification({
         title: text(notice.title),
         body: notice.body ? text(notice.body) : undefined,
-        // Presence opening is time-critical; everything else is a normal notification.
-        urgency: notice.kind === "presenceOpen" ? "critical" : "normal",
+        // Presence opening or about to close is time-critical; everything else is a normal notification.
+        urgency: notice.kind === "presenceOpen" || notice.kind === "presenceClosing" ? "critical" : "normal",
       });
       const forget = () => live.delete(notification);
       live.add(notification);

@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 // Settings' "Notifikasi di HP" in the window, with the real engine behind the
 // bridge and a pretend ntfy behind the engine: connect, the QR code and the
-// code to paste, a test, what a failure says, and disconnecting.
+// code to paste, a test, what a failure says, quiet hours, and disconnecting.
+import { act } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 import { openApp } from "./harness";
 
@@ -12,6 +13,15 @@ afterEach(() => {
   screen?.close();
   screen = null;
 });
+
+const hour = (label: string) => document.querySelector<HTMLSelectElement>(`select[aria-label='${label}']`);
+async function choose(label: string, value: string) {
+  await act(async () => {
+    const select = hour(label)!;
+    select.value = value;
+    select.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+}
 
 const qr = () => document.querySelector("svg[role=img][aria-label='Kode QR untuk Android']");
 
@@ -63,5 +73,28 @@ describe("phone notifications in Settings", () => {
     expect(qr()).toBeNull();
     expect(s.has("Hubungkan HP")).toBe(true);
     expect(s.engine.phone.link()).toEqual({ connected: false });
+  });
+
+  it("holds alerts that can wait during quiet hours, 22:00 to 06:00 until the Student changes them or turns them off", async () => {
+    const s = await settings();
+    expect(s.has("Jam tenang")).toBe(false);
+    await s.click("Hubungkan HP");
+    expect(s.text()).toContain("Notifikasi yang tidak mendesak ditahan sampai jam tenang selesai. Presensi dan tenggat dekat tetap masuk.");
+    expect(s.button("Jam tenang").getAttribute("aria-checked")).toBe("true");
+    expect(hour("Jam tenang mulai")?.selectedOptions[0].textContent).toBe("22:00");
+    expect(hour("Jam tenang selesai")?.selectedOptions[0].textContent).toBe("06:00");
+    // An end can't be its own start.
+    expect([...hour("Jam tenang selesai")!.options].map((option) => option.textContent)).not.toContain("22:00");
+
+    await choose("Jam tenang mulai", "23");
+    await choose("Jam tenang selesai", "7");
+    expect(s.engine.snapshot().settings.phoneQuietHours).toEqual({ start: 23, end: 7 });
+    expect(hour("Jam tenang mulai")?.value).toBe("23");
+
+    await s.click("Jam tenang");
+    expect(s.engine.snapshot().settings.phoneQuietHours).toBeNull();
+    expect(hour("Jam tenang mulai")).toBeNull();
+    await s.click("Jam tenang");
+    expect(s.engine.snapshot().settings.phoneQuietHours).toEqual({ start: 22, end: 6 });
   });
 });

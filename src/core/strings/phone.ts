@@ -30,6 +30,13 @@ export const phoneStrings = {
     id: "Terkirim. Tidak sampai? Pastikan kode di aplikasi ntfy sama dengan kode di atas.",
     en: "Sent. Nothing came? Check that the code in the ntfy app matches the one above.",
   },
+  "phone.quiet": { id: "Jam tenang", en: "Quiet hours" },
+  "phone.quietHint": {
+    id: "Notifikasi yang tidak mendesak ditahan sampai jam tenang selesai. Presensi dan tenggat dekat tetap masuk.",
+    en: "Notifications that can wait are held until quiet hours end. Presence and close deadlines still come through.",
+  },
+  "phone.quietStart": { id: "Jam tenang mulai", en: "Quiet hours start" },
+  "phone.quietEnd": { id: "Jam tenang selesai", en: "Quiet hours end" },
   "phone.disconnect": { id: "Putuskan HP", en: "Disconnect phone" },
   "phone.disconnectHint": { id: "Pengingat yang sudah dijadwalkan ikut dibatalkan", en: "Reminders already booked are cancelled too" },
   "phone.disconnectAction": { id: "Putuskan", en: "Disconnect" },
