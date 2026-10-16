@@ -1,27 +1,37 @@
 // Settings' "Notifikasi di HP": alerts on the Student's phone through the ntfy
 // app (src/engine/alerts/phone.ts). Off until the Student connects; then a QR
 // code of the subscribe link for Android, the code to paste for iPhone (its
-// ntfy app doesn't open ntfy:// links), the steps, a test and a way out. The
-// window only asks: main makes the code and does the sending.
+// ntfy app doesn't open ntfy:// links), the steps, a test, quiet hours and a
+// way out. The window only asks: main makes the code and does the sending.
 import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { encode } from "uqr";
 import type { PhoneLink } from "../../core/actions/phone";
+import { DEFAULT_SETTINGS, type QuietHours, type Settings } from "../../core/models";
 import type { StringKey } from "../../core/strings";
 import { useT } from "../i18n";
 import { useBridge, useDataset } from "../store";
-import { Button } from "../ui/controls";
+import { Button, Switch } from "../ui/controls";
 import { Icons } from "../ui/icons";
 import { toast } from "../ui/overlays";
 
 const STEPS: StringKey[] = ["phone.step.install", "phone.step.android", "phone.step.iphone"];
+/** Turned on again: 22:00 to 06:00. */
+const QUIET_HOURS: QuietHours = DEFAULT_SETTINGS.phoneQuietHours ?? { start: 22, end: 6 };
+const HOURS = Array.from({ length: 24 }, (_, hour) => hour);
 
-/** The rows inside Settings' phone group, read afresh when another Student signs in: their phone isn't the last one's. */
-export function PhoneSettings({ report }: { report: (error: unknown) => void }) {
-  const nim = useDataset("edunex.account")?.nim;
-  return <PhoneRows key={nim ?? ""} report={report} />;
+interface PhoneSettingsProps {
+  settings: Settings;
+  update: (patch: Partial<Settings>) => void;
+  report: (error: unknown) => void;
 }
 
-function PhoneRows({ report }: { report: (error: unknown) => void }) {
+/** The rows inside Settings' phone group, read afresh when another Student signs in: their phone isn't the last one's. */
+export function PhoneSettings(props: PhoneSettingsProps) {
+  const nim = useDataset("edunex.account")?.nim;
+  return <PhoneRows key={nim ?? ""} {...props} />;
+}
+
+function PhoneRows({ settings, update, report }: PhoneSettingsProps) {
   const t = useT();
   const bridge = useBridge();
   const [link, setLink] = useState<PhoneLink | null>(null);
@@ -108,12 +118,54 @@ function PhoneRows({ report }: { report: (error: unknown) => void }) {
       ) : (
         sent && <Status tone="success">{t("phone.testSent")}</Status>
       )}
+      <QuietHoursRow quiet={settings.phoneQuietHours} onChange={(phoneQuietHours) => update({ phoneQuietHours })} />
       <Line label={t("phone.disconnect")} hint={t("phone.disconnectHint")}>
         <Button size="sm" variant="danger" busy={busy === "disconnect"} onClick={() => void disconnect()}>
           {t("phone.disconnectAction")}
         </Button>
       </Line>
     </>
+  );
+}
+
+/** Quiet hours on the phone: on or off, and when on, from which hour to which. */
+function QuietHoursRow({ quiet, onChange }: { quiet: QuietHours | null; onChange: (quiet: QuietHours | null) => void }) {
+  const t = useT();
+  return (
+    <Line label={t("phone.quiet")} hint={t("phone.quietHint")}>
+      <span className="flex shrink-0 items-center gap-1.5">
+        {quiet && (
+          <>
+            <HourSelect label={t("phone.quietStart")} value={quiet.start} not={quiet.end} onChange={(start) => onChange({ ...quiet, start })} />
+            <span aria-hidden className="text-small text-muted">
+              –
+            </span>
+            <HourSelect label={t("phone.quietEnd")} value={quiet.end} not={quiet.start} onChange={(end) => onChange({ ...quiet, end })} />
+          </>
+        )}
+        <span className="ml-1.5 inline-flex">
+          <Switch checked={quiet !== null} onCheckedChange={(on) => onChange(on ? QUIET_HOURS : null)} label={t("phone.quiet")} />
+        </span>
+      </span>
+    </Line>
+  );
+}
+
+/** An hour on the hour ("22:00"), never the one the other end of the quiet hours has. */
+function HourSelect({ label, value, not, onChange }: { label: string; value: number; not: number; onChange: (hour: number) => void }) {
+  return (
+    <select
+      value={value}
+      aria-label={label}
+      onChange={(event) => onChange(Number(event.target.value))}
+      className="focus-ring h-7 rounded-md border border-edge bg-surface px-1.5 text-small font-semibold text-fg tabular-nums transition-colors duration-150 hover:bg-hover"
+    >
+      {HOURS.filter((hour) => hour !== not).map((hour) => (
+        <option key={hour} value={hour}>
+          {`${String(hour).padStart(2, "0")}:00`}
+        </option>
+      ))}
+    </select>
   );
 }
 

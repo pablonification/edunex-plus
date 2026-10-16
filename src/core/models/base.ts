@@ -32,6 +32,12 @@ export const DEADLINE_REMINDERS = [48, 24, 3, 1] as const;
 export const DeadlineReminder = z.literal(DEADLINE_REMINDERS);
 export type DeadlineReminder = z.infer<typeof DeadlineReminder>;
 
+/** Hours on this computer's clock when the phone holds alerts that can wait (start to end, across midnight when end is earlier). */
+export const QuietHours = z
+  .object({ start: z.number().int().min(0).max(23), end: z.number().int().min(0).max(23) })
+  .refine((quiet) => quiet.start !== quiet.end, "Quiet hours must start and end at different hours");
+export type QuietHours = z.infer<typeof QuietHours>;
+
 export const Theme = z.enum(["system", "light", "dark"]);
 export const Lang = z.enum(["id", "en"]);
 export type Lang = z.infer<typeof Lang>;
@@ -59,6 +65,8 @@ export const Settings = z.object({
    * a group missing from `mutedAlerts` is on, even for settings saved before it existed.
    */
   classSoonAlerts: z.boolean(),
+  /** On the phone only: alerts that aren't urgent wait until these hours end. Null: off. */
+  phoneQuietHours: QuietHours.nullable(),
 
   // Attendance (#85)
   /** The share of meetings (percent) the Student aims to attend, for every course without its own target. */
@@ -82,6 +90,7 @@ export const DEFAULT_SETTINGS: Settings = {
   trayExplained: false,
   deadlineReminders: [48, 24, 3],
   classSoonAlerts: false,
+  phoneQuietHours: { start: 22, end: 6 },
 
   // Attendance (#85)
   attendanceTarget: 80,

@@ -1,11 +1,12 @@
 // Alerts on the Student's phone through ntfy, by the real engine against the
 // pretend Edunex and a pretend ntfy on a fake clock: what's sent now, what's
-// booked ahead (and cancelled), the "laptop hasn't checked" warning, unlinking,
-// and that the topic stays out of everything the app writes or says.
+// booked ahead (and cancelled), quiet hours, the "laptop hasn't checked"
+// warning, unlinking, and that the topic stays out of everything the app writes
+// or says. Times are Bandung's (vitest.config.ts).
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { edunexCourseUrl } from "../../src/core/links";
 import { edunexTaskUrl } from "../../src/core/tasks";
-import { phoneMessage, sequenceId } from "../../src/engine/alerts/phone";
+import { phoneMessage, phoneTime, quietUntil, sequenceId } from "../../src/engine/alerts/phone";
 import { PRETEND_TOKEN, wib } from "../pretend/edunex";
 import { startAlerts } from "./alerts-harness";
 
@@ -16,6 +17,8 @@ const COURSE = 95326;
 
 const due24 = (task: number, due: number) => sequenceId(`task.due24:${task}:${due}`);
 const due3 = (task: number, due: number) => sequenceId(`task.due3:${task}:${due}`);
+/** ntfy's delay for a moment in Bandung. */
+const delayAt = (iso: string) => String(Date.parse(iso) / 1000);
 
 /** Signed in, past the first sync, with the phone linked. */
 async function linked() {
@@ -166,6 +169,102 @@ describe("booking ahead", () => {
     app.ntfy.answer = "offline";
     await app.taskDue(2 * DAY + 6 * HOUR, "Esai kebijakan");
     expect(app.shown.map((notice) => notice.text)).toEqual(["Tugas baru · II4091 — Esai kebijakan"]);
+  });
+});
+
+describe("quiet hours on the phone", () => {
+  const T = (iso: string) => Date.parse(`${iso}+07:00`);
+  const night = { start: 22, end: 6 };
+
+  it("ends them at the next end hour, across midnight or inside a day, and not outside them", () => {
+    expect(quietUntil(T("2026-10-08T23:00:00"), night)).toBe(T("2026-10-09T06:00:00"));
+    expect(quietUntil(T("2026-10-08T22:00:00"), night)).toBe(T("2026-10-09T06:00:00"));
+    expect(quietUntil(T("2026-10-09T03:30:00"), night)).toBe(T("2026-10-09T06:00:00"));
+    expect(quietUntil(T("2026-10-09T06:00:00"), night)).toBeNull();
+    expect(quietUntil(T("2026-10-08T21:59:00"), night)).toBeNull();
+    const lunch = { start: 13, end: 15 };
+    expect(quietUntil(T("2026-10-08T13:00:00"), lunch)).toBe(T("2026-10-08T15:00:00"));
+    expect(quietUntil(T("2026-10-08T14:59:00"), lunch)).toBe(T("2026-10-08T15:00:00"));
+    expect(quietUntil(T("2026-10-08T15:00:00"), lunch)).toBeNull();
+    expect(quietUntil(T("2026-10-08T23:00:00"), lunch)).toBeNull();
+    expect(quietUntil(T("2026-10-08T23:00:00"), null)).toBeNull();
+  });
+
+  it("moves a planned alert that can wait to their end, unless it's urgent or over by then", () => {
+    const at = T("2026-10-08T23:00:00");
+    const until = T("2026-10-09T20:00:00");
+    expect(phoneTime({ kind: "deadline", at, until }, night)).toBe(T("2026-10-09T06:00:00"));
+    expect(phoneTime({ kind: "deadline", at, until: T("2026-10-09T02:00:00") }, night)).toBe(at);
+    expect(phoneTime({ kind: "presenceOpen", at, until }, night)).toBe(at);
+    expect(phoneTime({ kind: "presenceClosing", at, until }, night)).toBe(at);
+    expect(phoneTime({ kind: "classSoon", at, until }, night)).toBe(at);
+    expect(phoneTime({ kind: "exam", urgent: true, at, until }, night)).toBe(at);
+    expect(phoneTime({ kind: "deadline", at, until }, null)).toBe(at);
+  });
+
+  it("books what can wait for 06:00 instead of sending it at 23:00; urgent alerts and the laptop's own notification come at once", async () => {
+    const app = await linked();
+    await app.until("2026-10-08T23:00:00+07:00");
+    const later = await app.taskDue(3 * DAY, "Esai malam");
+    expect(app.shown.map((notice) => notice.text)).toContain("Tugas baru · II4091 — Esai malam");
+    expect(app.ntfy.sent).toEqual([]);
+    expect(app.ntfy.booked(app.topic).find((message) => message.sequence_id === sequenceId(`task.new:${later.id}`))).toMatchObject({
+      title: "Tugas baru · II4091",
+      delay: delayAt("2026-10-09T06:00:00+07:00"),
+    });
+
+    const soon = await app.taskDue(5 * HOUR, "Kuis kilat");
+    expect(app.ntfy.sent).toEqual([expect.objectContaining({ sequence_id: sequenceId(`task.new:${soon.id}`), title: "Tugas singkat · II4091" })]);
+    expect(app.ntfy.sent[0].delay).toBeUndefined();
+
+    // Unlinking cancels what's held too (what was delivered earlier in the day is past cancelling).
+    await app.engine.phone.disconnect();
+    expect(app.ntfy.booked(app.topic).filter((message) => Number(message.delay) * 1000 > app.world.clock.now())).toEqual([]);
+  });
+
+  it("books a reminder at 02:00 for 06:00, keeps one at 23:00 whose deadline comes first, and doesn't cancel it when the laptop raises it", async () => {
+    const app = await linked();
+    const due = Date.parse("2026-10-10T02:00:00+07:00");
+    const id = app.world.edunex.postTask(COURSE, { end_at: wib(due) });
+    await app.wait(5 * MINUTE);
+    const delays = () => Object.fromEntries(app.ntfy.booked(app.topic).map((message) => [message.sequence_id, message.delay]));
+    expect(delays()).toMatchObject({ [due24(id, due)]: delayAt("2026-10-09T06:00:00+07:00"), [due3(id, due)]: delayAt("2026-10-09T23:00:00+07:00") });
+
+    await app.until("2026-10-09T02:30:00+07:00");
+    expect(app.shown.filter((notice) => notice.kind === "deadline")).toHaveLength(1);
+    expect(app.ntfy.sent.map((message) => message.sequence_id)).not.toContain(due24(id, due));
+    expect(app.ntfy.deletes()).not.toContain(due24(id, due));
+    expect(delays()[due24(id, due)]).toBe(delayAt("2026-10-09T06:00:00+07:00"));
+  });
+
+  it("books everything again when the Student changes them, and at the alerts' own times when turned off", async () => {
+    const app = await linked();
+    const due = Date.parse("2026-10-10T02:00:00+07:00");
+    const id = app.world.edunex.postTask(COURSE, { end_at: wib(due) });
+    await app.wait(5 * MINUTE);
+    const reminder = () => app.ntfy.booked(app.topic).find((message) => message.sequence_id === due24(id, due))?.delay;
+    expect(reminder()).toBe(delayAt("2026-10-09T06:00:00+07:00"));
+
+    await app.engine.updateSettings({ phoneQuietHours: { start: 1, end: 5 } });
+    await app.wait(6 * MINUTE);
+    expect(reminder()).toBe(delayAt("2026-10-09T05:00:00+07:00"));
+    await app.engine.updateSettings({ phoneQuietHours: null });
+    await app.wait(6 * MINUTE);
+    expect(reminder()).toBe(delayAt("2026-10-09T02:00:00+07:00"));
+    expect(app.ntfy.deletes()).toEqual([]);
+
+    // Off: what's raised at 23:00 goes now.
+    await app.until("2026-10-08T23:00:00+07:00");
+    const task = await app.taskDue(3 * DAY, "Esai malam");
+    expect(app.ntfy.sent.at(-1)).toMatchObject({ sequence_id: sequenceId(`task.new:${task.id}`), message: "Esai malam" });
+    expect(app.ntfy.sent.at(-1)?.delay).toBeUndefined();
+  });
+
+  it("moves the 'laptop hasn't checked' warning out of them", async () => {
+    const app = await linked();
+    await app.until("2026-10-08T23:00:00+07:00");
+    const warning = app.ntfy.booked(app.topic).find((message) => message.sequence_id === "ep-watchdog");
+    expect(warning?.delay).toBe(delayAt("2026-10-10T06:00:00+07:00"));
   });
 });
 

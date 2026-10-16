@@ -80,6 +80,12 @@ Settings → Notifikasi di HP sends alerts to the Student's phone through
   something the Student does from the phone can't be, so it ends with
   "Abaikan kalau sudah dikumpulkan." (deadlines) or the Presence equivalent.
 - One more booking warns 24 hours after the last good read of Edunex.
+- Quiet hours (on by default, 22:00 to 06:00 on this computer's clock; the
+  laptop's own notifications aren't affected): what can wait is booked for
+  when they end instead of sent now, and a booked reminder in them moves to
+  their end if it still matters then (before its `until`). Presence opening,
+  other urgent alerts and the test message come at their time; the
+  "laptop hasn't checked" warning moves to their end too.
 - ntfy.sh limits: 250 messages a day per IP address (a campus Wi-Fi shares
   one), bursts of 60 requests, messages up to 4096 bytes. Only what changed
   is posted; a 429 waits longer each time.
