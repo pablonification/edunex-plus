@@ -3,6 +3,7 @@
 // Assertions are on the OS notifications the engine asks for and the history.
 import { describe, expect, it } from "vitest";
 import type { ClassSession, SixCourse } from "../../src/core/models";
+import { translate } from "../../src/core/strings";
 import { PretendWorld } from "../pretend/world";
 import { type PretendSixState, STUDENT, startAttendance } from "./attendance-harness";
 
@@ -87,6 +88,35 @@ describe("Presence opening", () => {
     expect(app.of("presenceOpen")).toEqual([]);
     const history = app.engine.snapshot().datasets.find((d) => d.name === "app.alerts")?.value as { items: { kind: string }[] };
     expect(history.items.map((item) => item.kind)).toContain("presenceOpen");
+  });
+});
+
+describe("Presence closing", () => {
+  it("15 minutes before a window closes while the Student isn't recorded: alone, naming the action, once", async () => {
+    const world = new PretendWorld({ now: "2026-10-14T20:00:00+07:00" });
+    const app = await startAttendance({ world, six: sixState() });
+    // PL3002, View Course, 08:00–09:30.
+    await app.until("2026-10-15T09:14:00+07:00");
+    expect(app.of("presenceClosing")).toEqual([]);
+    await app.until("2026-10-15T09:20:00+07:00");
+    const closing = app.of("presenceClosing");
+    expect(closing.map((n) => n.text)).toEqual(["Presensi tutup 15 menit lagi · PL3002 — Buka mata kuliahnya di Edunex · tutup 09:30"]);
+    expect(closing[0]).toMatchObject({ count: 1, target: { screen: "course", code: "PL3002", tab: "meetings" } });
+    expect(closing[0].id).toMatch(new RegExp(`^presence\\.closing:\\d+:${wib("2026-10-15T09:30:00")}$`));
+    expect(closing[0].shownAt).toBe(wib("2026-10-15T09:15:00"));
+    expect(translate("en", closing[0].title.key, closing[0].title.vars)).toBe("Presence closes in 15 minutes · PL3002");
+  });
+
+  it("not for a window the Student is recorded in, nor one of 30 minutes or less (the opening alert already said when it closes)", async () => {
+    const world = new PretendWorld({ now: "2026-10-14T20:00:00+07:00" });
+    const short = world.edunex.schedulePresence(95001, 86778, { start: "2026-10-15T13:00:00+07:00", end: "2026-10-15T13:30:00+07:00" });
+    const done = world.edunex.schedulePresence(95001, 86778, { start: "2026-10-15T16:00:00+07:00", end: "2026-10-15T17:00:00+07:00" });
+    world.edunex.markPresent(done);
+    const app = await startAttendance({ world, six: sixState() });
+    await app.until("2026-10-15T18:00:00+07:00");
+    // The short one still opened with its closing time; only the 08:00–09:30 window got a closing reminder.
+    expect(app.of("presenceOpen").map((n) => n.id)).toContain(`presence.open:${short}:${wib("2026-10-15T13:00:00")}`);
+    expect(app.of("presenceClosing").map((n) => n.text)).toEqual(["Presensi tutup 15 menit lagi · PL3002 — Buka mata kuliahnya di Edunex · tutup 09:30"]);
   });
 });
 

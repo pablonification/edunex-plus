@@ -25,6 +25,7 @@ const KIND_ICON: Record<AlertKind, ComponentType<IconProps>> = {
   newMaterial: Icons.FileText,
   deadline: Icons.Clock,
   presenceOpen: Icons.Hand,
+  presenceClosing: Icons.Hand,
   taskEdited: Icons.PenLine,
   scheduleChanged: Icons.CalendarClock,
   meeting: Icons.Megaphone,
@@ -34,10 +35,11 @@ const KIND_ICON: Record<AlertKind, ComponentType<IconProps>> = {
   krs: Icons.ShieldCheck,
   bill: Icons.Wallet,
   academic: Icons.CalendarClock,
+  classSoon: Icons.MapPin,
 };
 
 /** Kinds that are about time running out. */
-const PRESSING = new Set<AlertKind>(["deadline", "presenceOpen", "attendanceRisk"]);
+const PRESSING = new Set<AlertKind>(["deadline", "presenceOpen", "presenceClosing", "attendanceRisk"]);
 
 // The bell opens from elsewhere too (Beranda's "Lihat semua").
 let wantOpen = 0;

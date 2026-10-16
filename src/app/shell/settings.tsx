@@ -6,7 +6,7 @@
 // software it uses, opened as a page of its own). A newer release shows on
 // top while there is one.
 import { lazy, type ReactNode, Suspense, useRef, useState } from "react";
-import type { AlertGroup, Settings, SourceId } from "../../core/models";
+import { type AlertGroup, DEADLINE_REMINDERS, type DeadlineReminder, type Settings, type SourceId } from "../../core/models";
 import type { StringKey } from "../../core/strings";
 import { TargetStepper, useTargets } from "../attendance-parts";
 import { ActionError } from "../bridge";
@@ -266,25 +266,54 @@ function AlertSettings({ settings, update, report }: { settings: Settings; updat
   };
   return (
     <Group title={t("settings.alerts")}>
-      {ALERT_ROWS.map(({ group, label, hint, six }) => (
+      {ALERT_ROWS.map(({ group, label, hint, six }) => {
         // Signed out of SIX, an alert only SIX can raise says so, rather than seeming to work.
-        <Row
-          key={group}
-          label={t(label)}
-          hint={
-            six && sixOut ? (
-              <Meta>
-                {t(hint)}
-                {t("settings.alerts.needsSix")}
-              </Meta>
-            ) : (
-              t(hint)
-            )
-          }
-        >
-          <Switch checked={!settings.mutedAlerts.includes(group)} onCheckedChange={(on) => setOn(group, on)} label={t(label)} />
-        </Row>
-      ))}
+        const row = (
+          <Row
+            key={group}
+            label={t(label)}
+            hint={
+              six && sixOut ? (
+                <Meta>
+                  {t(hint)}
+                  {t("settings.alerts.needsSix")}
+                </Meta>
+              ) : group === "deadline" && !settings.deadlineReminders.length ? (
+                t("settings.alerts.deadlineNone")
+              ) : (
+                t(hint)
+              )
+            }
+          >
+            <Switch checked={!settings.mutedAlerts.includes(group)} onCheckedChange={(on) => setOn(group, on)} label={t(label)} />
+          </Row>
+        );
+        // The deadline row picks its reminder times under it, on the same card row.
+        return group === "deadline" ? (
+          <div key={group}>
+            {row}
+            <DeadlineTimes chosen={settings.deadlineReminders} onChange={(deadlineReminders) => update({ deadlineReminders })} />
+          </div>
+        ) : (
+          row
+        );
+      })}
+      {/* Off until the Student turns it on: its own setting, not a muted group. It reads SIX's timetable. */}
+      <Row
+        label={t("settings.alerts.classSoon")}
+        hint={
+          sixOut ? (
+            <Meta>
+              {t("settings.alerts.classSoonHint")}
+              {t("settings.alerts.needsSix")}
+            </Meta>
+          ) : (
+            t("settings.alerts.classSoonHint")
+          )
+        }
+      >
+        <Switch checked={settings.classSoonAlerts} onCheckedChange={(classSoonAlerts) => update({ classSoonAlerts })} label={t("settings.alerts.classSoon")} />
+      </Row>
       <Row label={t("settings.alerts.test")} hint={t("settings.alerts.testHint")}>
         <Button size="sm" busy={testing} onClick={() => void test()}>
           {t("settings.alerts.testAction")}
@@ -309,6 +338,48 @@ function AlertSettings({ settings, update, report }: { settings: Settings; updat
         />
       </Row>
     </Group>
+  );
+}
+
+const DUE_LABEL: Record<DeadlineReminder, StringKey> = {
+  48: "settings.alerts.due48",
+  24: "settings.alerts.due24",
+  3: "settings.alerts.due3",
+  1: "settings.alerts.due1",
+};
+
+/**
+ * How long before a deadline the reminders come, any number of them. None
+ * picked means no deadline reminders at all (the row's hint then says so);
+ * the switch above only stops the notifications, the bell still keeps them.
+ */
+function DeadlineTimes({ chosen, onChange }: { chosen: readonly DeadlineReminder[]; onChange: (chosen: DeadlineReminder[]) => void }) {
+  const t = useT();
+  const toggle = (hours: DeadlineReminder) => onChange(DEADLINE_REMINDERS.filter((h) => (h === hours ? !chosen.includes(h) : chosen.includes(h))));
+  return (
+    <fieldset className="px-4 pb-3">
+      <legend className="sr-only">{t("settings.alerts.deadlineTimes")}</legend>
+      <div className="flex flex-wrap gap-1.5">
+        {DEADLINE_REMINDERS.map((hours) => {
+          const on = chosen.includes(hours);
+          return (
+            <button
+              key={hours}
+              type="button"
+              aria-pressed={on}
+              onClick={() => toggle(hours)}
+              className={cx(
+                "focus-ring inline-flex h-7 items-center gap-1.5 rounded-full border px-3 text-small transition-colors duration-150",
+                on ? "border-fg/60 bg-selected font-semibold text-fg" : "border-edge text-muted hover:bg-hover hover:text-fg",
+              )}
+            >
+              {on && <Icons.Check className="size-3" weight="bold" />}
+              {t(DUE_LABEL[hours])}
+            </button>
+          );
+        })}
+      </div>
+    </fieldset>
   );
 }
 

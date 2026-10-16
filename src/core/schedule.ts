@@ -282,10 +282,10 @@ export const pairKey = (o: Overlap) => [o.a.courseCode, o.b.courseCode].sort().j
 
 /**
  * The schedule's reminders, by alert id: an overlap each week it happens and
- * an exam the evening before. They tell of what SIX already listed, so
+ * an exam a week before, the evening before and that morning. They tell of what SIX already listed, so
  * Beranda's "what changed" leaves them out.
  */
-export const REMINDER_ALERTS = { overlap: "schedule.overlap:", examTomorrow: "exam.tomorrow:" } as const;
+export const REMINDER_ALERTS = { overlap: "schedule.overlap:", examWeek: "exam.week:", examTomorrow: "exam.tomorrow:", examToday: "exam.today:" } as const;
 export const isScheduleReminder = (alertId: string) => Object.values(REMINDER_ALERTS).some((prefix) => alertId.startsWith(prefix));
 
 // ---------------------------------------------------------------- meetings outside SIX

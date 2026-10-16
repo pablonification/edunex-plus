@@ -346,7 +346,7 @@ describe("schedule and exam alerts in Settings", () => {
     await screen.apply({ type: "command", command: "settings" });
     const text = screen.text();
     expect(text).toContain("Ada perubahanRuang/jam pindah, tugas diubah, pertemuan baru");
-    expect(text).toContain("UjianSaat dijadwalkan, dan sehari sebelumnya");
+    expect(text).toContain("UjianSaat dijadwalkan, seminggu sebelumnya, malam sebelumnya, dan paginya");
     expect(text.match(/Ada perubahan/g)).toHaveLength(1);
     await screen.click("Ada perubahan");
     await screen.click("Ujian");

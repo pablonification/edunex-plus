@@ -9,9 +9,23 @@ import { SourceId } from "./base";
 
 /**
  * The groups the Student can turn on or off in Settings (the approved
- * design's list). Every alert kind belongs to one.
+ * design's list). Every alert kind belongs to one. "classSoon" is off until
+ * the Student turns it on, with its own setting (`classSoonAlerts`).
  */
-export const AlertGroup = z.enum(["presence", "attendanceRisk", "changes", "exams", "deadline", "newTask", "newMaterial", "grade", "krs", "bill", "academic"]);
+export const AlertGroup = z.enum([
+  "presence",
+  "attendanceRisk",
+  "changes",
+  "exams",
+  "deadline",
+  "newTask",
+  "newMaterial",
+  "grade",
+  "krs",
+  "bill",
+  "academic",
+  "classSoon",
+]);
 export type AlertGroup = z.infer<typeof AlertGroup>;
 
 /**
@@ -23,6 +37,8 @@ export const AlertKind = z.enum([
   "newMaterial",
   "deadline",
   "presenceOpen",
+  /** A Presence window closes in 15 minutes and the Student isn't recorded present. */
+  "presenceClosing",
   "taskEdited",
   "scheduleChanged",
   "meeting",
@@ -33,6 +49,8 @@ export const AlertKind = z.enum([
   "bill",
   /** An ITB academic calendar date coming up (DRS, URS, UKT deadline, questionnaire). */
   "academic",
+  /** A class starts in 15 minutes. */
+  "classSoon",
 ]);
 export type AlertKind = z.infer<typeof AlertKind>;
 
@@ -41,6 +59,7 @@ export const ALERT_GROUP: Record<AlertKind, AlertGroup> = {
   newMaterial: "newMaterial",
   deadline: "deadline",
   presenceOpen: "presence",
+  presenceClosing: "presence",
   taskEdited: "changes",
   scheduleChanged: "changes",
   meeting: "changes",
@@ -50,6 +69,7 @@ export const ALERT_GROUP: Record<AlertKind, AlertGroup> = {
   krs: "krs",
   bill: "bill",
   academic: "academic",
+  classSoon: "classSoon",
 };
 
 /** A piece of alert text: a catalog key and what fills its placeholders. */

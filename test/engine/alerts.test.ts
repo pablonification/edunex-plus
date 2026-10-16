@@ -30,7 +30,11 @@ describe("a full simulated day", () => {
     expect(app.shown).toEqual([]);
     world.setOffline(false);
     await app.until("2026-10-08T09:30:00+07:00");
-    expect(app.shown.map((n) => n.text)).toEqual(["Tugas baru · PL3002 — Esai kebijakan inovasi"]);
+    // And PL3002's Presence window, open since before the first sync and still not recorded, is about to close.
+    expect(app.shown.map((n) => n.text)).toEqual([
+      "Tugas baru · PL3002 — Esai kebijakan inovasi",
+      "Presensi tutup 15 menit lagi · PL3002 — Buka mata kuliahnya di Edunex · tutup 09:30",
+    ]);
     expect(app.shown[0]).toMatchObject({ kind: "newTask", source: "edunex", count: 1, target: { screen: "task", taskId: essay } });
 
     // A Task due tomorrow at noon; its deadline then moves to 18:00, so the 24-hour reminder moves too.
@@ -60,18 +64,18 @@ describe("a full simulated day", () => {
     expect(reminders.map((n) => n.text)).toEqual(["Tenggat 24 jam lagi · II4091 — Laporan kemajuan · belum dikumpulkan"]);
     expect(reminders[0].target).toEqual({ screen: "task", taskId: report });
 
-    // Quit and start again: nothing already shown comes back.
+    // Quit and start again: nothing already shown comes back, only what came due meanwhile (the essay, two days before its deadline).
     app.engine.stop();
     const shownBeforeRestart = app.shown.length;
     const again = await startAlerts({ world, storage: app.storage, vault: app.vault, signIn: false });
     await again.until("2026-10-09T09:00:00+07:00");
-    expect(again.shown).toEqual([]);
+    expect(again.shown.map((n) => n.text)).toEqual(["Tenggat 2 hari lagi · PL3002 — Esai kebijakan inovasi · belum dikumpulkan"]);
     expect(app.shown).toHaveLength(shownBeforeRestart);
 
     // Handed in on the website: the 3-hour reminder (15:00) never comes.
     edunex.submitOnWebsite(report);
     await again.until("2026-10-09T16:00:00+07:00");
-    expect(again.shown.filter((n) => n.kind === "deadline")).toEqual([]);
+    expect(again.shown.filter((n) => n.kind === "deadline").map((n) => n.target)).toEqual([{ screen: "task", taskId: essay }]);
 
     // The history kept every alert, newest first, and the app never marked anything in Edunex.
     const ids = again.history()!.items.map((item) => item.id);
@@ -216,11 +220,12 @@ describe("time-based alerts", () => {
 
   it("raises a Presence-open alert at the window's start, never delayed or grouped", async () => {
     const app = await startAlerts({ detectors: [...DETECTORS, presence("2026-10-08T10:00:00+07:00", "2026-10-08T10:30:00+07:00")] });
+    const opened = () => app.shown.filter((n) => n.kind === "presenceOpen");
     await app.until("2026-10-08T09:59:59+07:00");
-    expect(app.shown).toEqual([]);
+    expect(opened()).toEqual([]);
     await app.until("2026-10-08T10:00:00+07:00");
-    expect(app.shown).toHaveLength(1);
-    expect(app.shown[0]).toMatchObject({ kind: "presenceOpen", count: 1, shownAt: Date.parse("2026-10-08T10:00:00+07:00"), target: { screen: "presence" } });
+    expect(opened()).toHaveLength(1);
+    expect(opened()[0]).toMatchObject({ kind: "presenceOpen", count: 1, shownAt: Date.parse("2026-10-08T10:00:00+07:00"), target: { screen: "presence" } });
   });
 
   it("a window already open at the first sync is part of the silent baseline", async () => {

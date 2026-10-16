@@ -213,10 +213,21 @@ export const scheduleStrings = {
   "alert.meetingOutside": { id: "Pertemuan di luar jadwal SIX · {course}", en: "Meeting outside SIX's timetable · {course}" },
   "alert.meetingOutside.body": { id: "Pertemuan {n} · {dateId} {time}", en: "Meeting {n} · {dateEn} {time}" },
   "alert.examScheduled": { id: "{kindId} dijadwalkan · {course}", en: "{kindEn} scheduled · {course}" },
+  "alert.examWeek": { id: "{kindId} seminggu lagi · {course}", en: "{kindEn} in a week · {course}" },
   "alert.examTomorrow": { id: "{kindId} besok · {course}", en: "{kindEn} tomorrow · {course}" },
+  "alert.examToday": { id: "{kindId} hari ini · {course}", en: "{kindEn} today · {course}" },
   "alert.exam.when": { id: "{dateId} {time}", en: "{dateEn} {time}" },
   "alert.exam.whenRoom": { id: "{dateId} {time} · {room}", en: "{dateEn} {time} · {room}" },
+  "alert.classSoon": { id: "Kuliah 15 menit lagi · {course}", en: "Class in 15 minutes · {course}" },
+  "alert.classSoon.time": { id: "{time}", en: "{time}" },
+  "alert.classSoon.room": { id: "{time} · {room}", en: "{time} · {room}" },
+  "alert.classSoon.online": { id: "{time} · daring", en: "{time} · online" },
   // The "changes" group's row is in ./home.ts: it covers Task edits too.
   "settings.alerts.exams": { id: "Ujian", en: "Exams" },
-  "settings.alerts.examsHint": { id: "Saat dijadwalkan, dan sehari sebelumnya", en: "When one is scheduled, and the day before" },
+  "settings.alerts.examsHint": {
+    id: "Saat dijadwalkan, seminggu sebelumnya, malam sebelumnya, dan paginya",
+    en: "When one is scheduled, a week before, the evening before and that morning",
+  },
+  "settings.alerts.classSoon": { id: "Kuliah sebentar lagi", en: "Class soon" },
+  "settings.alerts.classSoonHint": { id: "15 menit sebelum kuliah, dengan ruangannya", en: "15 minutes before a class, with its room" },
 } as const satisfies Record<string, Entry>;
