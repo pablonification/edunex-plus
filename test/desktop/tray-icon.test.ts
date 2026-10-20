@@ -3,11 +3,13 @@
 // as their other apps do, with every size Windows' display scaling asks for.
 // And the app's own icon on Windows carries each size, drawn, not shrunk.
 import fs from "node:fs";
+import { createRequire } from "node:module";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const root = path.resolve(import.meta.dirname, "..", "..");
+const { PNG } = createRequire(import.meta.url)("pngjs") as { PNG: { sync: { read(png: Buffer): { width: number; data: Buffer } } } };
 const loaded = vi.hoisted(() => [] as { file: string; template: boolean }[]);
 vi.mock("electron", () => ({
   app: { getAppPath: () => "/app" },
@@ -58,6 +60,20 @@ describe("the tray icon", () => {
     runOn(platform);
     createTray({ lang: "id", open: () => undefined, quit: () => undefined });
     expect(loaded).toEqual([{ file, template }]);
+  });
+
+  it("macOS's is the app's tile with its \"e+\" cut out, in black on nothing, 16 pt and its Retina double", () => {
+    const read = (file: string) => PNG.sync.read(fs.readFileSync(path.join(root, file)));
+    expect([read("assets/trayTemplate.png").width, read("assets/trayTemplate@2x.png").width]).toEqual([16, 32]);
+    const icon = read("assets/trayTemplate@2x.png");
+    const alpha = (x: number, y: number) => icon.data[(y * icon.width + x) * 4 + 3];
+    // Only its shape counts (macOS tints it): every pixel drawn is black.
+    for (let i = 0; i < icon.data.length; i += 4) if (icon.data[i + 3] > 0) expect([...icon.data.subarray(i, i + 3)]).toEqual([0, 0, 0]);
+    // The tile is drawn; the e's ring (right of its centre) and the +'s middle are cut out of it, and so is the outside.
+    expect(alpha(4, 16)).toBe(255);
+    expect(alpha(20, 18)).toBeLessThan(64);
+    expect(alpha(23, 9)).toBeLessThan(64);
+    expect(alpha(0, 0)).toBe(0);
   });
 
   it("Windows' carries 16 to 48 px, for display scaling from 100% to 300%; Linux's a sharp 24 px and its double", () => {
