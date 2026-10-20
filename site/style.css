@@ -272,32 +272,9 @@ section {
   position: relative;
   text-align: center;
 }
-.hero-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 32px;
-  padding: 6px 14px;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--bg) 70%, transparent);
-  font-size: 13px;
-  color: var(--fg-muted);
-  transition:
-    border-color 0.18s,
-    color 0.18s;
-}
-.hero-badge:hover {
-  border-color: var(--border-strong);
-  color: var(--fg);
-}
-.hero-badge strong {
-  font-weight: 500;
-  color: var(--fg);
-}
 .hero-title {
   max-width: 18ch;
-  margin: 22px auto;
+  margin: 56px auto 22px;
   font-size: clamp(40px, 5.6vw, 76px);
   text-wrap: balance;
 }
