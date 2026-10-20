@@ -1,9 +1,20 @@
-// Packaged builds: macOS dmg + zip for Apple silicon and Intel (ad-hoc signed), a one-click Windows
-// installer (NSIS), Linux AppImage + deb. The app archive holds only the built
+// Packaged builds: macOS dmg + zip for Apple silicon and Intel (ad-hoc signed), one-click Windows
+// installers (NSIS) for x64 and ARM PCs, Linux AppImage + deb. The app archive holds only the built
 // window (dist/app), the bundled main process and preload (dist/desktop) and
 // the tray icons (assets/tray*); everything they use is already bundled, so no node_modules.
-// The fuses are flipped and checked in scripts/package-fuses.mjs.
+// The fuses are flipped and checked in scripts/package-fuses.mjs; the disk image is packed
+// smaller in scripts/package-dmg.mjs.
+import { artifactBuildCompleted } from "./scripts/package-dmg.mjs";
 import { afterPack } from "./scripts/package-fuses.mjs";
+
+// The Windows installer for ARM PCs (Snapdragon and the like). Each kind of PC has its own, half
+// the size of one carrying both; scripts/package-win.mjs builds this one, then the x64 one under
+// nsis.artifactName. Not "Setup" in its name: 0.1.0-alpha.5 updates itself to any file of that
+// name, and an ARM build doesn't start on an Intel or AMD PC (the x64 one runs on ARM, emulated).
+// biome-ignore lint/suspicious/noTemplateCurlyInString: electron-builder fills in its own ${…} names
+export const WINDOWS_ARM_INSTALLER = "Edunex-Plus-${version}-arm64.${ext}";
+/** The ARM installer's update info: electron-builder names it latest.yml too, so it's renamed. */
+export const WINDOWS_ARM_UPDATE_INFO = "latest-win-arm64.yml";
 
 export default {
   // Matches app.setAppUserModelId in src/desktop/main.ts (Windows notifications).
@@ -22,6 +33,11 @@ export default {
   // Nothing native to rebuild: the main process is one bundled file.
   npmRebuild: false,
   afterPack,
+  artifactBuildCompleted,
+  // Chromium's own words (its few menus and messages) only in the two languages the app speaks,
+  // not the 55 it ships: about 10 MB less to download. A computer set to another language gets
+  // Chromium's English; the app's own words are its own (src/core/strings).
+  electronLanguages: ["en-US", "id"],
   mac: {
     // One download per kind of Mac (not one "universal" app twice the size): arm64 for
     // Apple silicon, x64 for Intel.
@@ -72,7 +88,8 @@ export default {
     writeUpdateInfo: false,
   },
   win: {
-    target: [{ target: "nsis", arch: ["x64", "arm64"] }],
+    // Intel and AMD PCs; the ARM installer is built beside it (WINDOWS_ARM_INSTALLER above).
+    target: [{ target: "nsis", arch: ["x64"] }],
     // Every size Windows shows, each drawn for its size (scripts/make-icons.mjs). The installer
     // and the uninstaller wear it too.
     icon: "assets/icon.ico",
@@ -83,7 +100,7 @@ export default {
   // where it is, so its shortcuts keep working (the installer finds it by appId: keep appId as
   // it is); one it put there for everyone is handled in assets/installer.nsh.
   nsis: {
-    // One installer for both kinds of Windows PC.
+    // Intel and AMD PCs, under the name 0.1.0-alpha.5 looks for when it updates itself.
     // biome-ignore lint/suspicious/noTemplateCurlyInString: electron-builder fills in its own ${…} names
     artifactName: "Edunex-Plus-Setup-${version}.${ext}",
     oneClick: true,

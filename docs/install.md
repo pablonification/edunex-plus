@@ -15,13 +15,16 @@ marked "Pre-release"), and under **Assets** download the one file for your compu
 | --- | --- |
 | Mac with Apple silicon (M1 or newer) | `Edunex-Plus-<version>-arm64.dmg` |
 | Mac with Intel | `Edunex-Plus-<version>-x64.dmg` |
-| Windows 10 or 11 (Intel, AMD or ARM) | `Edunex-Plus-Setup-<version>.exe` |
+| Windows 10 or 11 (Intel or AMD, most PCs) | `Edunex-Plus-Setup-<version>.exe` |
+| Windows 10 or 11 on ARM (Snapdragon) | `Edunex-Plus-<version>-arm64.exe` |
 | Ubuntu, Debian, Linux Mint (most PCs) | `edunex-plus_<version>_amd64.deb` |
 | Ubuntu, Debian on ARM | `edunex-plus_<version>_arm64.deb` |
 | Any other Linux | `Edunex-Plus-<version>-x86_64.AppImage` (ARM: `…-arm64.AppImage`) |
 
 Not sure which Mac you have? Apple menu → **About This Mac**: "Chip Apple M…" means Apple
 silicon, "Processor … Intel" means an Intel Mac. The app needs macOS 12 Monterey or newer.
+Not sure which Windows PC? Settings → System → About: "ARM-based processor" means ARM; anything
+else (x64) means Intel or AMD. On Windows 11 the Intel and AMD installer runs on ARM too, just slower.
 
 The installers aren't signed with paid certificates yet, so macOS and Windows warn you the first
 time you open each new version. That's expected for this alpha; the steps below get past it, and
@@ -59,7 +62,7 @@ the app to Applications, then the same steps.
 
 ## Windows
 
-1. Run `Edunex-Plus-Setup-<version>.exe`.
+1. Run `Edunex-Plus-Setup-<version>.exe` (on an ARM PC: `Edunex-Plus-<version>-arm64.exe`).
 2. If a blue **"Windows protected your PC"** window appears, click **More info**, then **Run
    anyway**.
 

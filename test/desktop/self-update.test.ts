@@ -37,6 +37,8 @@ const release = [
   file("latest.yml"),
   file("latest-linux.yml"),
   file("latest-linux-arm64.yml"),
+  file("Edunex-Plus-1.2.0-arm64.exe"),
+  file("latest-win-arm64.yml"),
 ];
 
 describe("this computer's file in a release", () => {
@@ -52,8 +54,9 @@ describe("this computer's file in a release", () => {
     expect(isPlainFileName("Edunex-Plus-1.2.0-arm64-mac.zip")).toBe(true);
   });
 
-  it("is the one installer on Windows, for either kind of PC, with latest.yml", () => {
-    for (const arch of ["x64", "arm64"] as const) expect(pickReleaseFile(release, "windows", arch)).toEqual({ file: release[4], info: release[9] });
+  it("is the installer for this kind of Windows PC: Setup with latest.yml, or the ARM one with its own", () => {
+    expect(pickReleaseFile(release, "windows", "x64")).toEqual({ file: release[4], info: release[9] });
+    expect(pickReleaseFile(release, "windows", "arm64")).toEqual({ file: release[12], info: release[13] });
   });
 
   it("is the AppImage for this kind of PC, with its own latest-linux*.yml", () => {

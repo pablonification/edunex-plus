@@ -8,8 +8,10 @@ import fs from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import config from "../../electron-builder.config.mjs";
+import config, { WINDOWS_ARM_INSTALLER, WINDOWS_ARM_UPDATE_INFO } from "../../electron-builder.config.mjs";
 import { HASH_KEY, PICTURES, SIZE, sourceHash } from "../../scripts/make-dmg-background.mjs";
+import { artifactBuildCompleted, convertArgs } from "../../scripts/package-dmg.mjs";
+import { pickReleaseFile } from "../../src/desktop/self-update";
 
 const root = path.resolve(import.meta.dirname, "../..");
 const read = (file: string) => fs.readFileSync(path.join(root, file));
@@ -69,9 +71,16 @@ describe("the macOS downloads", () => {
   });
 });
 
+describe("every download", () => {
+  it("carries Chromium's words only in the app's two languages, not all 55", () => {
+    // electron-builder keeps a file whose name starts a wanted language: en-US.pak, and en.lproj on a Mac.
+    expect(config.electronLanguages).toEqual(["en-US", "id"]);
+  });
+});
+
 describe("the files a release publishes for updating from inside the app", () => {
   it("are named without spaces, so the names in latest*.yml are the names on GitHub", () => {
-    const names = [config.mac?.artifactName, config.dmg?.artifactName, config.nsis?.artifactName, config.appImage?.artifactName];
+    const names = [config.mac?.artifactName, config.dmg?.artifactName, config.nsis?.artifactName, WINDOWS_ARM_INSTALLER, config.appImage?.artifactName];
     for (const name of names) expect(name).toMatch(/^Edunex-Plus-[^ ]+$/);
   });
 
@@ -113,6 +122,15 @@ describe("the macOS disk image", () => {
     expect(fs.readFileSync(path.join(root, "assets/dmg-background.svg"), "utf8")).toContain('xattr -cr "/Applications/Edunex Plus.app"');
   });
 
+  it("is packed with LZMA once it's made, which macOS 10.15 and later open (Electron needs 12)", async () => {
+    expect(config.artifactBuildCompleted).toBe(artifactBuildCompleted);
+    expect(convertArgs("a.dmg", "b.dmg")).toEqual(["convert", "a.dmg", "-format", "ULMO", "-o", "b.dmg", "-ov", "-quiet"]);
+    // The zip, the installers and the update info files are left as they are.
+    await expect(artifactBuildCompleted({ file: "release/Edunex-Plus-1.2.3-arm64-mac.zip" })).resolves.toBeUndefined();
+    // The app updates itself from the zip, so nothing lists the disk image's sha512.
+    expect(dmg.writeUpdateInfo).toBe(false);
+  });
+
   it("names the disk after the app and its version, and gives it the app's icon", () => {
     // biome-ignore lint/suspicious/noTemplateCurlyInString: electron-builder fills in its own ${…} names
     expect(dmg.title).toBe("${productName} ${version}");
@@ -139,6 +157,24 @@ describe("the macOS disk image", () => {
 
 describe("the Windows installer", () => {
   const nsis = config.nsis ?? {};
+
+  it("comes one per kind of PC, each found by the update for its own kind, the ARM one never by 0.1.0-alpha.5", () => {
+    expect(config.win?.target).toEqual([{ target: "nsis", arch: ["x64"] }]);
+    expect(read("package.json").toString()).toContain('"package:win": "npm run build && node scripts/package-win.mjs"');
+    // As a release names them.
+    // biome-ignore lint/suspicious/noTemplateCurlyInString: electron-builder fills in its own ${…} names
+    const named = (pattern?: string | null) => (pattern ?? "").replace("${version}", "1.2.3").replace("${ext}", "exe");
+    const RELEASE = "https://github.com/pablonification/edunex-plus/releases/download/v1.2.3";
+    const files = [named(nsis.artifactName), named(WINDOWS_ARM_INSTALLER), "latest.yml", WINDOWS_ARM_UPDATE_INFO].map((name) => ({
+      name,
+      url: `${RELEASE}/${name}`,
+      size: 10,
+    }));
+    expect(pickReleaseFile(files, "windows", "x64")).toEqual({ file: files[0], info: files[2] });
+    expect(pickReleaseFile(files, "windows", "arm64")).toEqual({ file: files[1], info: files[3] });
+    // 0.1.0-alpha.5 takes the first Setup…exe on any PC, and an ARM build doesn't start on an Intel or AMD one.
+    expect(files.filter(({ name }) => /Setup.*\.exe$/i.test(name))).toEqual([files[0]]);
+  });
 
   it("installs in one click, for this Windows user only, and opens the app", () => {
     expect(nsis).toMatchObject({ oneClick: true, perMachine: false, runAfterFinish: true });
