@@ -1,7 +1,5 @@
 # Edunex Plus
 
-[![CI](https://github.com/pablonification/edunex-plus/actions/workflows/ci.yml/badge.svg)](https://github.com/pablonification/edunex-plus/actions/workflows/ci.yml)
-
 **An unofficial desktop app for ITB students** that puts Edunex and SIX in one calm window, for
 macOS, Windows and Linux.
 
