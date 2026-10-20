@@ -32,7 +32,7 @@ The app and this repository:
   `src/desktop/protocol.ts`, `src/desktop/window.ts`): the sandbox, the content
   policy, which pages may load or open, and content from Edunex (course pages,
   Task descriptions) running as code in the window.
-- **Requests going anywhere** other than the hosts the README's Privacy section
+- **Requests going anywhere** other than the hosts [docs/privacy.md](docs/privacy.md)
   lists, or sending more than it says.
 - **Packaging:** Electron's security switches (`scripts/package-fuses.mjs`) and
   the update check (it only links to GitHub Releases).
@@ -42,7 +42,7 @@ The app and this repository:
 Not in scope:
 
 - Edunex, SIX or ITB's Microsoft sign-in themselves: report those to ITB.
-- The installers not being signed by Apple or Microsoft (the README explains
+- The installers not being signed by Apple or Microsoft ([docs/install.md](docs/install.md) explains
   the warnings this causes).
 - Someone who already controls your unlocked computer or user account.
 
