@@ -9,7 +9,12 @@ import { copyOnThisComputer } from "./files";
 type Core = "app.snapshot" | "app.ready" | "sync.refresh" | "settings.update" | "shell.openExternal" | "shell.openLink" | "files.download" | "local.set";
 
 export const coreHandlers: HandlerGroup<Core> = (context) => ({
-  "app.snapshot": async () => ({ ...context.engine.snapshot(), platform: context.platform, vault: context.vaultMode }),
+  "app.snapshot": async () => ({
+    ...context.engine.snapshot(),
+    platform: context.platform,
+    vault: context.vaultMode,
+    update: await context.updater.state(),
+  }),
   "app.ready": async () => {
     context.reveal();
     context.startSyncing();

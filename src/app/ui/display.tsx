@@ -173,3 +173,25 @@ export function CourseCode({ code, color, className }: { code: string; color: st
     </span>
   );
 }
+
+/** A thin bar for work under way (a hand-in, a download), in the accent color; `indeterminate` while how far is unknown. */
+export function ProgressBar({ value, label, indeterminate = false }: { value: number; label: string; indeterminate?: boolean }) {
+  return (
+    <span
+      role="progressbar"
+      aria-label={label}
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-valuenow={indeterminate ? undefined : Math.round(value * 100)}
+      className="relative block h-1 overflow-hidden rounded-full bg-black/[0.06] dark:bg-white/[0.08]"
+    >
+      <span
+        className={cx(
+          "absolute inset-y-0 left-0 rounded-full bg-accent motion-safe:transition-[width] motion-safe:duration-300",
+          indeterminate && "w-1/3 motion-safe:animate-shimmer",
+        )}
+        style={indeterminate ? undefined : { width: `${Math.max(0, Math.min(1, value)) * 100}%` }}
+      />
+    </span>
+  );
+}

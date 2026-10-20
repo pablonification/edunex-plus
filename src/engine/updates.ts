@@ -3,7 +3,9 @@
 // version. A pre-release copy (an alpha) looks at every published release, so
 // it hears about the next alpha too; a full release only ever offers a full
 // release. Quiet by design: offline, a refusal or an odd answer just means
-// no notice. Never installs anything; the window links to the release page.
+// no notice. Never downloads or installs anything itself: the window links to
+// the release page, and main downloads and installs only when the Student
+// asks (src/desktop/self-update.ts).
 import { z } from "zod";
 import type { UpdateNotice } from "../core/models";
 import { isNewerRelease, isPrerelease, LATEST_RELEASE_API, newestTag, RELEASES_API, releasePageUrl } from "../core/updates";

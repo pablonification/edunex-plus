@@ -8,6 +8,7 @@ import { app, type BrowserWindow, dialog, powerMonitor, session } from "electron
 import { CHANNEL_EVENT } from "../core/channels";
 import type { Event } from "../core/contract";
 import type { Settings } from "../core/models";
+import { UpdateNotice } from "../core/models";
 import type { Route } from "../core/route";
 import { translate } from "../core/strings";
 import { systemClock } from "../engine/clock";
@@ -35,6 +36,7 @@ import { APP_HOST, APP_ORIGIN, APP_SCHEME, contentSecurityPolicy, denyPermission
 import { FileStorage } from "./storage";
 import { electronTransport } from "./transport";
 import { type AppTray, createTray } from "./tray";
+import { electronUpdater } from "./updater";
 import { openVault } from "./vault";
 import { createMainWindow, currentPlatform, followTheme, loadWindowState } from "./window";
 
@@ -107,6 +109,18 @@ async function start(): Promise<void> {
   engine = current;
   await current.load();
   followAccount = forgetOtherStudentsFiles([fileCache, downloadedFiles], edunexNim(current));
+  // A new version downloads on a session of its own too, and only when the Student asks; the demo never updates.
+  const updater = electronUpdater({
+    packaged: packaged && !demo,
+    userAgent: `EdunexPlus/${__APP_VERSION__} (+https://github.com/pablonification/edunex-plus)`,
+    session: session.fromPartition("updates", { cache: false }),
+    notice: () => {
+      const dataset = current.snapshot().datasets.find((entry) => entry.name === "app.update");
+      const notice = dataset && UpdateNotice.safeParse(dataset.value);
+      return notice?.success ? notice.data : null;
+    },
+    send: (update) => send({ type: "update", update }),
+  });
   if (demo && (await demo.prepare(current))) syncing = true;
 
   const csp = contentSecurityPolicy(devServer);
@@ -145,6 +159,7 @@ async function start(): Promise<void> {
     reveal,
     startSyncing,
     notifier,
+    updater,
   };
   const handlers: Handlers = {
     ...coreHandlers(context),

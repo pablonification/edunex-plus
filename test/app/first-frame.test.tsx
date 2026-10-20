@@ -21,7 +21,15 @@ afterEach(() => {
 
 it("shows the welcome screen in the first frame on first run", async () => {
   // Nobody signed in, nothing saved.
-  const store = new AppStore({ version: "0.0.0", datasets: [], statuses: [], settings: DEFAULT_SETTINGS, platform: "darwin", vault: "encrypted" });
+  const store = new AppStore({
+    version: "0.0.0",
+    datasets: [],
+    statuses: [],
+    settings: DEFAULT_SETTINGS,
+    platform: "darwin",
+    vault: "encrypted",
+    update: { blocked: null, step: "idle", version: null, progress: null, problem: null },
+  });
   const bridge = createBridge({ invoke: () => new Promise(() => {}), onEvent: () => () => {} });
 
   await firstScreenLoaded(store);

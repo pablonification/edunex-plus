@@ -46,10 +46,11 @@ under **Assets** (Linux on ARM: see the [install guide](docs/install.md#which-fi
 
 | Your computer | File |
 | --- | --- |
-| Mac with Apple silicon (M1 or newer) | `Edunex.Plus-<version>-arm64.dmg` |
-| Windows 10 or 11 | `Edunex.Plus.Setup.<version>.exe` |
+| Mac with Apple silicon (M1 or newer) | `Edunex-Plus-<version>-arm64.dmg` |
+| Mac with Intel | `Edunex-Plus-<version>-x64.dmg` |
+| Windows 10 or 11 | `Edunex-Plus-Setup-<version>.exe` |
 | Ubuntu, Debian, Mint | `edunex-plus_<version>_amd64.deb` |
-| Other Linux | `Edunex.Plus-<version>.AppImage` |
+| Other Linux | `Edunex-Plus-<version>-x86_64.AppImage` |
 
 The app isn't signed yet, so macOS and Windows warn you the first time you open it. The
 [install guide](docs/install.md) shows the one step to get past that, plus updating and

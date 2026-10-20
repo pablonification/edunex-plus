@@ -50,6 +50,40 @@ function drawnIn(picture: Picture, scale: number, box: { x: number; y: number; w
   return null;
 }
 
+describe("the macOS downloads", () => {
+  const targets = (config.mac?.target ?? []) as { target: string; arch: string[] }[];
+
+  it("come for Apple silicon and for Intel Macs, a disk image and a zip each", () => {
+    expect(targets.map(({ target, arch }) => [target, [...arch].sort()])).toEqual([
+      ["dmg", ["arm64", "x64"]],
+      ["zip", ["arm64", "x64"]],
+    ]);
+  });
+
+  it("say in their names which Mac they're for, Intel too", () => {
+    // Forced names keep ${arch} even for x64, which electron-builder's own names leave out.
+    // biome-ignore lint/suspicious/noTemplateCurlyInString: electron-builder fills in its own ${…} names
+    expect(config.dmg?.artifactName).toContain("-${arch}.${ext}");
+    // biome-ignore lint/suspicious/noTemplateCurlyInString: electron-builder fills in its own ${…} names
+    expect(config.mac?.artifactName).toContain("-${arch}-mac.${ext}");
+  });
+});
+
+describe("the files a release publishes for updating from inside the app", () => {
+  it("are named without spaces, so the names in latest*.yml are the names on GitHub", () => {
+    const names = [config.mac?.artifactName, config.dmg?.artifactName, config.nsis?.artifactName, config.appImage?.artifactName];
+    for (const name of names) expect(name).toMatch(/^Edunex-Plus-[^ ]+$/);
+  });
+
+  it("come with the update info files, always named latest*.yml, and nothing is uploaded by the build", () => {
+    expect(config.publish).toMatchObject({ provider: "github", owner: "pablonification", repo: "edunex-plus" });
+    expect(config.detectUpdateChannel).toBe(false);
+    const workflow = read(".github/workflows/release.yml").toString();
+    expect(workflow).toContain("release/latest*.yml");
+    expect(workflow).toContain("--publish never");
+  });
+});
+
 describe("the macOS disk image", () => {
   const dmg = config.dmg ?? {};
   const [app, applications, terminal] = dmg.contents ?? [];

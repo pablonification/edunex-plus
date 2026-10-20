@@ -1,6 +1,8 @@
 // Seam 2: the real window code (src/app) on a fake bridge. Behind the bridge
 // runs the real engine against the pretend Edunex, so screens get real app
 // models and events, exactly as they would through Electron's IPC.
+
+import { createHash } from "node:crypto";
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "../../src/app/app";
@@ -12,10 +14,11 @@ import { skipAnimations } from "../../src/app/ui/motion/animate";
 import { type ActionName, type ActionResult, Actions, type AppSnapshot, type Event } from "../../src/core/contract";
 import { planOfflineFiles } from "../../src/core/course-materials";
 import { isOfficialUrl, isWebLink } from "../../src/core/links";
-import type { SourceId } from "../../src/core/models";
+import { type SourceId, type UpdateBlock, UpdateNotice } from "../../src/core/models";
 import { phoneCalendar } from "../../src/core/phone-calendar";
 import { handInHandlers, type LocalFile } from "../../src/desktop/hand-in";
 import { readFile } from "../../src/desktop/remote-files";
+import { createUpdater, type UpdateKind } from "../../src/desktop/self-update";
 import { signInToBoth } from "../../src/desktop/signin-both";
 import { createEngine, type Engine } from "../../src/engine/engine";
 import { EngineError, isEngineError } from "../../src/engine/errors";
@@ -88,6 +91,8 @@ export interface Options {
   platform?: AppSnapshot["platform"];
   /** Where the phone's messages go (default: a pretend ntfy of its own). */
   ntfy?: PretendNtfy;
+  /** Why this copy can't update itself (default: it can, as an Apple-silicon Mac app in Applications). */
+  updateBlocked?: UpdateBlock;
 }
 
 export async function openApp(options: Options = {}) {
@@ -147,6 +152,39 @@ export async function openApp(options: Options = {}) {
   const downloadedNames = new Map<string, string>();
   /** The system can't open links (no browser set, the OS refused). */
   let linksFail = false;
+  /** Release pages main opened in the browser for an update, in order. */
+  const openedPages: string[] = [];
+  /** Updates main put in place (and restarted for), in order. */
+  const installed: { kind: UpdateKind; staged: string }[] = [];
+  /** The update download under way: it has reached 40% and waits for the test to finish it. */
+  let downloading: { finish: () => void; fail: (message: string) => void } | null = null;
+  // Main's real update plan, on the pretend GitHub; only downloading, unpacking and restarting are pretend.
+  const updater = createUpdater({
+    way: async () => (options.updateBlocked ? { blocked: options.updateBlocked } : { kind: "mac", arch: "arm64" }),
+    notice: () => {
+      const notice = UpdateNotice.safeParse(engine.snapshot().datasets.find((d) => d.name === "app.update")?.value);
+      return notice.success ? notice.data : null;
+    },
+    api: async (url) => JSON.parse((await world.request({ method: "GET", url })).body),
+    text: async (url) => world.github.download(url)?.toString("utf8") ?? "",
+    download: (file, progress) =>
+      new Promise((resolve, reject) => {
+        progress(0.4);
+        downloading = {
+          finish: () => {
+            const content = world.github.download(file.url) ?? Buffer.alloc(0);
+            resolve({ path: `/tmp/${file.name}`, sha512: createHash("sha512").update(content).digest("base64"), size: content.byteLength });
+          },
+          fail: (message) => reject(new Error(message)),
+        };
+      }),
+    unpack: async () => "/tmp/update/Edunex Plus.app",
+    install: async (kind, staged) => void installed.push({ kind, staged }),
+    openPage: async (url) => void openedPages.push(url),
+    send: (update) => {
+      for (const listener of listeners) listener({ type: "update", update });
+    },
+  });
   const inFlight = new Set<Promise<unknown>>();
   const track = (work: Promise<unknown>) => {
     inFlight.add(work);
@@ -173,7 +211,12 @@ export async function openApp(options: Options = {}) {
     background: track,
   });
   const handlers: { [N in ActionName]: (input: never) => Promise<unknown> } = {
-    "app.snapshot": async () => ({ ...engine.snapshot(), platform: options.platform ?? "darwin", vault: options.vaultMode ?? "encrypted" }),
+    "app.snapshot": async () => ({
+      ...engine.snapshot(),
+      platform: options.platform ?? "darwin",
+      vault: options.vaultMode ?? "encrypted",
+      update: await updater.state(),
+    }),
     "app.ready": async () => ({}),
     "auth.signIn": async ({ source }: { source: SourceId }) => {
       if (source === "itb") throw new EngineError("Rejected", "itb has no sign-in");
@@ -261,6 +304,11 @@ export async function openApp(options: Options = {}) {
     },
     "alerts.test": async () => ({ shown: true }),
     "app.openRelease": async () => ({}),
+    "app.downloadUpdate": () => updater.download(),
+    "app.installUpdate": async () => {
+      await updater.install();
+      return {};
+    },
     // Main's handlers, on the pretend ntfy; the clipboard is `copied`.
     "phone.link": async () => engine.phone.link(),
     "phone.connect": () => engine.phone.connect(),
@@ -378,6 +426,20 @@ export async function openApp(options: Options = {}) {
     savedCopies,
     ntfy,
     copied,
+    openedPages,
+    installed,
+    /** The update download under way finishes (with the file GitHub has), or fails with Chromium's `message`. */
+    async finishUpdateDownload(failure?: string): Promise<void> {
+      const download = downloading;
+      if (!download) throw new Error("No update is downloading");
+      downloading = null;
+      await act(async () => {
+        if (failure) download.fail(failure);
+        else download.finish();
+        await settle();
+      });
+      assertTidyFacts();
+    },
     text: () => document.body.textContent ?? "",
     /** A button (or radio, or switch) by its accessible name. */
     button(name: string | RegExp): HTMLButtonElement {

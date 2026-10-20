@@ -12,7 +12,7 @@ import { scheduleActions } from "./actions/schedule";
 import { sixActions } from "./actions/six";
 import { tasksActions } from "./actions/tasks";
 import { updatesActions } from "./actions/updates";
-import { Settings, SourceStatus } from "./models";
+import { Settings, SourceStatus, UpdateInstall } from "./models";
 import { Route } from "./route";
 import { DatasetPayload } from "./snapshot";
 
@@ -57,6 +57,8 @@ export const Event = z.discriminatedUnion("type", [
   z.object({ type: z.literal("signIn"), source: SignInSource, step: SignInStep.nullable() }),
   /** A system connected by itself, on the Microsoft sign-in the Student just did for the other one. */
   z.object({ type: z.literal("signIn.joined"), source: SignInSource }),
+  /** Updating from inside the app: how far the download got, ready to restart, or what went wrong. */
+  z.object({ type: z.literal("update"), update: UpdateInstall }),
 ]);
 export type Event = z.infer<typeof Event>;
 

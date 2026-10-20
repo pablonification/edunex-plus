@@ -4,7 +4,8 @@
 // then notifications on the phone (./phone.tsx), then appearance, then the
 // rest (attendance targets: the default and each course's own), then what the
 // app is (version, licence, the open-source software it uses, opened as a
-// page of its own). A newer release shows on top while there is one.
+// page of its own). A newer release shows on top while there is one, with the
+// way to download and install it.
 import { lazy, type ReactNode, Suspense, useRef, useState } from "react";
 import { type AlertGroup, DEADLINE_REMINDERS, type DeadlineReminder, type Settings, type SourceId } from "../../core/models";
 import type { StringKey } from "../../core/strings";
@@ -15,11 +16,11 @@ import { useFormat, useT } from "../i18n";
 import { displayName } from "../names";
 import { useCourseNames } from "../schedule-data";
 import { useHeldBack, useSnoozes } from "../snoozes";
-import { useBridge, useDataset, useSettings, useStatus, useStore } from "../store";
+import { useBridge, useDataset, useSettings, useStatus, useStore, useUpdateInstall } from "../store";
 import { AppMark, SourceLogo } from "../ui/brand";
 import { Button, Segmented, Switch } from "../ui/controls";
 import { cx } from "../ui/cx";
-import { Card, Skeleton } from "../ui/display";
+import { Card, ProgressBar, Skeleton } from "../ui/display";
 import { Icons } from "../ui/icons";
 import { Meta, Notice } from "../ui/layout";
 import { ConfirmDialog, Dialog, toast } from "../ui/overlays";
@@ -388,23 +389,69 @@ function DeadlineTimes({ chosen, onChange }: { chosen: readonly DeadlineReminder
   );
 }
 
-/** A newer release on GitHub: shown only while there is one. The app never installs it itself. */
+/**
+ * A newer release on GitHub: shown only while there is one. "Unduh & pasang" downloads it (with
+ * its progress) and "Mulai ulang untuk memperbarui" installs it; nothing is installed before the
+ * Student presses that. A copy that can't replace itself says why and opens the release page.
+ */
 function UpdateNotice({ report }: { report: (error: unknown) => void }) {
   const t = useT();
   const bridge = useBridge();
   const update = useDataset("app.update");
+  const install = useUpdateInstall();
   if (!update) return null;
+  const openPage = () => void bridge.invoke("app.openRelease", {}).catch(report);
+  const download = () => void bridge.invoke("app.downloadUpdate", {}).catch(report);
+  // A download of an older notice's version doesn't count for this one.
+  const step = install.version === update.version ? install.step : "idle";
+  const whatsNew = (
+    <Button size="sm" variant="ghost" onClick={openPage}>
+      {t("update.whatsNew")}
+    </Button>
+  );
+  const percent = Math.round((install.progress ?? 0) * 100);
+  const blockedHint = install.blocked && install.blocked !== "notPackaged" ? t(`update.blocked.${install.blocked}`) : null;
+  const action = install.blocked ? (
+    <Button size="sm" variant="primary" onClick={openPage}>
+      {t("update.download")}
+    </Button>
+  ) : step === "downloading" ? (
+    whatsNew
+  ) : step === "ready" ? (
+    <>
+      {whatsNew}
+      <Button size="sm" variant="primary" onClick={() => void bridge.invoke("app.installUpdate", {}).catch(report)}>
+        {t("update.restart")}
+      </Button>
+    </>
+  ) : (
+    <>
+      {whatsNew}
+      <Button size="sm" variant="primary" onClick={download}>
+        {step === "failed" ? t("update.retry") : t("update.install")}
+      </Button>
+    </>
+  );
   return (
-    <Notice
-      tone="info"
-      title={t("update.available")}
-      action={
-        <Button size="sm" variant="primary" onClick={() => void bridge.invoke("app.openRelease", {}).catch(report)}>
-          {t("update.download")}
-        </Button>
-      }
-    >
-      {t("update.version", { version: update.version })}
+    <Notice tone="info" title={t("update.available")} action={action}>
+      {step === "downloading" ? (
+        <span className="block space-y-1.5">
+          <span className="block">{t("update.downloading", { version: update.version })}</span>
+          <ProgressBar
+            value={install.progress ?? 0}
+            indeterminate={install.progress === null}
+            label={install.progress === null ? t("update.downloading", { version: update.version }) : t("update.progress", { percent })}
+          />
+        </span>
+      ) : step === "ready" ? (
+        t("update.ready", { version: update.version })
+      ) : (
+        <>
+          {t("update.version", { version: update.version })}
+          {step === "failed" && install.problem && <span className="block">{t(`update.problem.${install.problem}`)}</span>}
+          {blockedHint && <span className="block">{blockedHint}</span>}
+        </>
+      )}
     </Notice>
   );
 }

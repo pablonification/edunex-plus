@@ -3,7 +3,7 @@
 // the packaged Electron binary, reads them back and fails the build if any is
 // wrong. Also a check for a finished build:
 //
-//   node scripts/package-fuses.mjs "release/mac-arm64/Edunex Plus.app"
+//   node scripts/package-fuses.mjs "release/mac-arm64/Edunex Plus.app"   (Intel: release/mac)
 //   node scripts/package-fuses.mjs "release/win-unpacked/Edunex Plus.exe"
 //   node scripts/package-fuses.mjs release/linux-unpacked/edunex-plus
 import path from "node:path";
