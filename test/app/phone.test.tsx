@@ -47,7 +47,7 @@ describe("phone notifications in Settings", () => {
     // Drawn from the code's modules, as SVG elements.
     expect(qr()?.querySelector("path")?.getAttribute("d")).toMatch(/^M\d+ \d+h1v1h-1z/);
     expect(s.text()).toContain(link.topic);
-    expect(s.text()).toContain("iPhone: di ntfy, ketuk +, lalu tempel kode di bawah.");
+    expect(s.text()).toContain("iPhone: di ntfy, ketuk +, lalu ketik kode di bawah.");
 
     await s.click("Salin kode");
     expect(s.copied).toEqual([link.topic]);

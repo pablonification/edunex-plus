@@ -17,7 +17,7 @@ export const phoneStrings = {
   "phone.connect": { id: "Hubungkan HP", en: "Connect phone" },
   "phone.step.install": { id: "Pasang aplikasi ntfy dari Play Store atau App Store.", en: "Install the ntfy app from the Play Store or App Store." },
   "phone.step.android": { id: "Android: pindai kode QR ini dengan kamera HP.", en: "Android: scan this QR code with your phone's camera." },
-  "phone.step.iphone": { id: "iPhone: di ntfy, ketuk +, lalu tempel kode di bawah.", en: "iPhone: in ntfy, tap +, then paste the code below." },
+  "phone.step.iphone": { id: "iPhone: di ntfy, ketuk +, lalu ketik kode di bawah.", en: "iPhone: in ntfy, tap +, then type the code below." },
   "phone.qr": { id: "Kode QR untuk Android", en: "QR code for Android" },
   "phone.topic": { id: "Kode untuk iPhone", en: "Code for iPhone" },
   "phone.copy": { id: "Salin", en: "Copy" },
