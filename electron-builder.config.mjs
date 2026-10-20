@@ -2,7 +2,9 @@
 // installer (NSIS), Linux AppImage + deb. The app archive holds only the built
 // window (dist/app), the bundled main process and preload (dist/desktop) and
 // the tray icons (assets/tray*); everything they use is already bundled, so no node_modules.
-// The fuses are flipped and checked in scripts/package-fuses.mjs.
+// The fuses are flipped and checked in scripts/package-fuses.mjs; the disk image is packed
+// smaller in scripts/package-dmg.mjs.
+import { artifactBuildCompleted } from "./scripts/package-dmg.mjs";
 import { afterPack } from "./scripts/package-fuses.mjs";
 
 export default {
@@ -22,6 +24,11 @@ export default {
   // Nothing native to rebuild: the main process is one bundled file.
   npmRebuild: false,
   afterPack,
+  artifactBuildCompleted,
+  // Chromium's own words (its few menus and messages) only in the two languages the app speaks,
+  // not the 55 it ships: about 10 MB less to download. A computer set to another language gets
+  // Chromium's English; the app's own words are its own (src/core/strings).
+  electronLanguages: ["en-US", "id"],
   mac: {
     // One download per kind of Mac (not one "universal" app twice the size): arm64 for
     // Apple silicon, x64 for Intel.
