@@ -229,6 +229,21 @@ describe("materials", () => {
     expect(s.calls.at(-1)).toEqual({ name: "files.reveal", input: { url: BLOB } });
   });
 
+  it("while another app starts on the file, the button already names it, with its spinner", async () => {
+    const s = await openCourse("PL3032");
+    const name = "K1. SAP Ekonomi Infrastruktur dan Transportasi.pdf";
+    await s.click("Unduh: K1. SAP Ekonomi Infrastruktur dan Transportasi");
+    const starts = s.holdOpening();
+    await s.click(`Buka di aplikasi lain: ${name}`);
+    await s.click("Zed");
+    const button = (label: string) => document.querySelector(`button[aria-label="${label}: ${name}"]`);
+    expect(button("Buka di Zed")?.getAttribute("aria-busy")).toBe("true");
+    expect(button("Buka di Preview")).toBeNull();
+    await s.engineDoes(async () => starts());
+    expect(button("Buka di Zed")?.getAttribute("aria-busy")).toBeNull();
+    expect(button("Buka di Preview")).toBeNull();
+  });
+
   it("each Edunex course has its own Introduction, as on Edunex: the class's, then the joint class's", async () => {
     const s = await openCourse("II4091");
     await entry("Pengantar");

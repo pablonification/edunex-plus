@@ -63,15 +63,22 @@ export function OpenFile({ url, copy, onChange }: { url: string; copy: LocalCopy
   const bridge = useBridge();
   const reveal = useRevealLabel();
   const [busy, setBusy] = useState(false);
-  const preferred = copy.apps.find((found) => found.id === copy.preferred) ?? null;
+  // The app just picked from the menu, over the one the button offered: the button names it while
+  // it starts (on Windows, a few seconds), until "files.local" says which one it offers now.
+  const [picked, setPicked] = useState<{ app: string; over: string | null } | null>(null);
+  const offered = picked && picked.over === copy.preferred ? picked.app : copy.preferred;
+  const preferred = copy.apps.find((found) => found.id === offered) ?? null;
 
   const run = async (input: { app?: string; choose?: boolean } = {}) => {
-    setBusy(true);
+    if (input.app) setPicked({ app: input.app, over: copy.preferred });
+    // The system's "Open with" window is all the sign it needs: no spinner behind it.
+    if (!input.choose) setBusy(true);
     try {
       await bridge.invoke("files.open", { url, ...input });
       // Another app picked: the button offers it from now on.
       if (input.app && input.app !== copy.preferred) onChange?.();
     } catch {
+      setPicked(null);
       toast(t("file.openFailed", { name: copy.name }), "danger");
       // Moved or deleted since: it's no longer here.
       onChange?.();
