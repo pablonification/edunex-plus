@@ -1,0 +1,414 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Edunex Plus: Edunex and SIX in one app for ITB students</title>
+  <meta name="description" content="A free desktop app for ITB students. It reads Edunex and SIX and tells you what needs you today, what changed, and where you stand. For macOS, Windows and Linux.">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#09090b">
+  <link rel="canonical" href="https://edunex-plus.arqilasp.com/">
+
+  <!-- How the link looks when shared (WhatsApp, LINE, X, Discord...) -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Edunex Plus">
+  <meta property="og:locale" content="en_US">
+  <meta property="og:url" content="https://edunex-plus.arqilasp.com/">
+  <meta property="og:title" content="Edunex Plus: Edunex and SIX in one calm window">
+  <meta property="og:description" content="A free desktop app for ITB students: what needs you today, what changed, and where you stand.">
+  <meta property="og:image" content="https://edunex-plus.arqilasp.com/assets/social-card.jpg">
+  <meta property="og:image:type" content="image/jpeg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Edunex Plus: Edunex and SIX, in one calm window, above the app's Home screen">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Edunex Plus: Edunex and SIX in one calm window">
+  <meta name="twitter:description" content="A free desktop app for ITB students: what needs you today, what changed, and where you stand.">
+  <meta name="twitter:image" content="https://edunex-plus.arqilasp.com/assets/social-card.jpg">
+  <meta name="twitter:image:alt" content="Edunex Plus: Edunex and SIX, in one calm window, above the app's Home screen">
+
+  <!-- What the app is, for search engines -->
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "Edunex Plus",
+      "description": "A free desktop app for ITB students that reads Edunex and SIX and tells you what needs you today, what changed, and where you stand.",
+      "url": "https://edunex-plus.arqilasp.com/",
+      "image": "https://edunex-plus.arqilasp.com/assets/social-card.jpg",
+      "screenshot": "https://edunex-plus.arqilasp.com/assets/home-1440.webp",
+      "applicationCategory": "EducationalApplication",
+      "operatingSystem": "macOS, Windows, Linux",
+      "downloadUrl": "https://github.com/pablonification/edunex-plus/releases/latest",
+      "inLanguage": ["id", "en"],
+      "isAccessibleForFree": true,
+      "license": "https://opensource.org/licenses/MIT",
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "IDR" },
+      "sameAs": ["https://github.com/pablonification/edunex-plus"]
+    }
+  </script>
+
+  <link rel="icon" href="favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/icon-32.png">
+  <link rel="apple-touch-icon" href="assets/icon-180.png">
+  <link rel="preload" href="fonts/dm-sans-latin-500-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" as="image" href="assets/home.webp" imagesrcset="assets/home-1440.webp 1440w, assets/home.webp 2880w" imagesizes="(max-width: 1240px) calc(100vw - 40px), 1180px" fetchpriority="high">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="arrow" viewBox="0 0 24 24"><path d="M5 12h14m-6-6 6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="download" viewBox="0 0 24 24"><path d="M12 4v11m0 0 4.5-4.5M12 15l-4.5-4.5M5 20h14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  </svg>
+
+  <nav class="nav" id="nav">
+    <div class="nav-inner">
+      <a class="brand" href="./" aria-label="Edunex Plus home">
+        <img src="assets/icon-128.png" alt="" width="24" height="24">
+        Edunex Plus
+      </a>
+      <div class="nav-right">
+        <a class="nav-link" href="#inside">What's inside</a>
+        <a class="nav-link" href="#privacy">Privacy</a>
+        <a class="btn btn-ghost nav-cta" href="#start">Get it free</a>
+      </div>
+    </div>
+  </nav>
+
+  <main>
+    <section class="hero">
+      <div class="hero-glow" aria-hidden="true"></div>
+      <div class="container hero-inner">
+        <a class="hero-badge" href="https://github.com/pablonification/edunex-plus/releases/tag/v0.1.0-alpha.5" target="_blank" rel="noopener noreferrer" data-rise>
+          <strong>New</strong> Updates now install from inside the app
+          <svg width="12" height="12" aria-hidden="true"><use href="#arrow"/></svg>
+        </a>
+        <h1 class="hero-title display">
+          <span data-rise style="--d:90ms">Edunex and SIX,</span>
+          <span data-rise style="--d:180ms">in one calm window.</span>
+        </h1>
+        <p class="hero-sub" data-rise style="--d:300ms">A free desktop app for ITB students. It reads both and tells you what needs you today, what changed, and where you stand.</p>
+        <div class="hero-actions" data-rise style="--d:400ms">
+          <a class="btn btn-primary btn-lg" href="https://github.com/pablonification/edunex-plus/releases/latest" data-download>
+            <svg width="16" height="16" aria-hidden="true"><use href="#download"/></svg>
+            <span data-download-label>Download for macOS</span>
+          </a>
+          <p class="download-meta" data-download-meta>Free for macOS, Windows and Linux</p>
+          <a class="text-link" href="#privacy">
+            Your password never reaches the app
+            <svg class="arrow" width="12" height="12" aria-hidden="true"><use href="#arrow"/></svg>
+          </a>
+        </div>
+        <div data-rise style="--d:520ms">
+          <figure class="hero-preview">
+            <div class="shot">
+              <img src="assets/home.webp" srcset="assets/home-1440.webp 1440w, assets/home.webp 2880w" sizes="(max-width: 1240px) calc(100vw - 40px), 1180px" width="2880" height="1606" alt="Home: the class on now with its room, that attendance counts in SIX, today's classes, and what changed" fetchpriority="high" decoding="async">
+            </div>
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="container">
+        <div class="section-head">
+          <span class="label">One sign-in</span>
+          <h2>Four places to check. One app that reads them.</h2>
+          <p>Sign in once with your INA account. The app reads Edunex and SIX with your own sign-in, plus ITB's public calendar and course catalog.</p>
+        </div>
+        <div class="sources">
+          <div class="source"><div class="source-name">Edunex</div><p>Tasks, materials, exams and when Presence opens</p></div>
+          <div class="source"><div class="source-name">SIX</div><p>Timetable and rooms, attendance count, grades, KRS and bills</p></div>
+          <div class="source"><div class="source-name">Academic calendar</div><p>UTS and UAS weeks, KRS dates, holidays</p></div>
+          <div class="source"><div class="source-name">Course catalog</div><p>Your curriculum and the SKS left to graduate</p></div>
+        </div>
+        <div class="promises">
+          <span><svg class="check" width="14" height="14" aria-hidden="true"><use href="#check"/></svg>Never marks attendance for you</span>
+          <span><svg class="check" width="14" height="14" aria-hidden="true"><use href="#check"/></svg>Never changes your KRS</span>
+          <span><svg class="check" width="14" height="14" aria-hidden="true"><use href="#check"/></svg>Works offline with what it last read</span>
+        </div>
+      </div>
+    </section>
+
+    <section id="inside">
+      <div class="container">
+        <div class="section-head">
+          <span class="label">What's inside</span>
+          <h2>The places you already know, with the answer on top.</h2>
+          <p>Same names as Edunex and SIX, so there's nothing to learn. Each screen answers one question first, and the details come after.</p>
+        </div>
+        <div class="screens">
+          <div class="screen">
+            <div class="screen-name"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M4 10.5 12 4l8 6.5V20h-5.5v-6h-5v6H4z"/></svg>Home</div>
+            <div class="screen-q">What do I do now?</div>
+            <p>The class on now and where it is, today's classes, and anything urgent from both systems.</p>
+          </div>
+          <div class="screen">
+            <div class="screen-name"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 6 1.5 1.5L8 5M4 12l1.5 1.5L8 11M4 18l1.5 1.5L8 17M11 6.5h9M11 12.5h9M11 18.5h9"/></svg>Tasks &amp; Exams</div>
+            <div class="screen-q">What's due?</div>
+            <p>Every Task and exam with its real status. Save a draft or submit right from the app.</p>
+          </div>
+          <div class="screen">
+            <div class="screen-name"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8.5 13V5.5a1.5 1.5 0 0 1 3 0V12m0-7.5a1.5 1.5 0 0 1 3 0V12m0-5.5a1.5 1.5 0 0 1 3 0V15a6 6 0 0 1-6 6h-.5a6 6 0 0 1-4.8-2.4L4 15.5a1.6 1.6 0 0 1 2.5-2L8.5 15"/></svg>Presence</div>
+            <div class="screen-q">Am I OK?</div>
+            <p>Your attendance count per course and how many classes you can still miss.</p>
+          </div>
+          <div class="screen">
+            <div class="screen-name"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></svg>Schedule</div>
+            <div class="screen-q">Where do I go?</div>
+            <p>Your week with rooms, plus the meetings lecturers only announce on Edunex.</p>
+          </div>
+          <div class="screen">
+            <div class="screen-name"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 9.5 12 5l9.5 4.5L12 14z"/><path d="M6.5 11.5V16c0 1.4 2.5 3 5.5 3s5.5-1.6 5.5-3v-4.5M21.5 9.5V15"/></svg>Grades</div>
+            <div class="screen-q">Where do I stand?</div>
+            <p>Your IPK, and what it'd be at graduation with the grades you expect.</p>
+          </div>
+          <div class="screen">
+            <div class="screen-name"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 6.5C10 5 7 4.5 3.5 5v13c3.5-.5 6.5 0 8.5 1.5 2-1.5 5-2 8.5-1.5V5C17 4.5 14 5 12 6.5zM12 6.5v13"/></svg>Study plan</div>
+            <div class="screen-q">What's coming?</div>
+            <p>Your KRS, UKT bills and ITB's academic deadlines in one place.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="container split">
+        <div class="split-visual">
+          <div class="shot"><img src="assets/presence.webp" width="2016" height="1486" alt="Presence: each course's attendance count, how many classes you can still miss before the 80% target, and clashes" loading="lazy" decoding="async"></div>
+        </div>
+        <div class="section-head">
+          <span class="label">Presence</span>
+          <h2>Know how many classes you can still miss.</h2>
+          <p>SIX says "Hadir 4 dari 6". Edunex Plus tells you what that means for your target, before it's too late to fix.</p>
+          <ul class="checklist">
+            <li><svg class="check" width="14" height="14" aria-hidden="true"><use href="#check"/></svg>Says if attendance counts in SIX or Edunex</li>
+            <li><svg class="check" width="14" height="14" aria-hidden="true"><use href="#check"/></svg>Your own target, for all courses or just one</li>
+            <li><svg class="check" width="14" height="14" aria-hidden="true"><use href="#check"/></svg>Warns you when two classes clash</li>
+            <li><svg class="check" width="14" height="14" aria-hidden="true"><use href="#check"/></svg>Tells you the same day if SIX marked you absent</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="container split flip">
+        <div class="split-visual">
+          <div class="shot"><img src="assets/tasks.webp" width="2016" height="1300" alt="Tasks and Exams: the UTS exams with their days and rooms, then next week's Task and its deadline" loading="lazy" decoding="async"></div>
+        </div>
+        <div class="section-head">
+          <span class="label">Tasks &amp; Exams</span>
+          <h2>Every deadline, with its real status.</h2>
+          <p>Not started, draft, submitted or late, across all your courses. Take-home UTS and UAS sit with the exams, so none hides in a module.</p>
+          <ul class="checklist">
+            <li><svg class="check" width="14" height="14" aria-hidden="true"><use href="#check"/></svg>Save a draft or submit, and get a clear receipt</li>
+            <li><svg class="check" width="14" height="14" aria-hidden="true"><use href="#check"/></svg>Shows when a Task also counts as attendance</li>
+            <li><svg class="check" width="14" height="14" aria-hidden="true"><use href="#check"/></svg>Word, PowerPoint and PDF materials open in the app</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="container split">
+        <div class="alerts" role="img" aria-label="Three alerts from Edunex Plus: Presence open for II4091, due in 3 hours for PL3002, and a new Task for DK4073, also sent to your phone">
+          <div class="note older">
+            <img src="assets/icon-128.png" alt="" width="36" height="36">
+            <span class="note-app">Edunex Plus</span><span class="note-time">09:12</span>
+            <span class="note-title">New Task · DK4073</span>
+            <span class="note-body">Kuis Kilat Bab 5</span>
+          </div>
+          <div class="note">
+            <img src="assets/icon-128.png" alt="" width="36" height="36">
+            <span class="note-app">Edunex Plus</span><span class="note-time">12:00</span>
+            <span class="note-title">Due in 3 hours · PL3002</span>
+            <span class="note-body">Tugas 03 · still a draft, not submitted yet</span>
+          </div>
+          <div class="note">
+            <img src="assets/icon-128.png" alt="" width="36" height="36">
+            <span class="note-app">Edunex Plus</span><span class="note-time">now</span>
+            <span class="note-title">Presence open · II4091</span>
+            <span class="note-body">Hand in Tugas 02 Bab II · closes 23:59</span>
+          </div>
+          <div class="trail" aria-hidden="true"><i></i><b></b><i></i></div>
+          <span class="phone-pill">On your phone too <span>even with the laptop closed</span></span>
+        </div>
+        <div class="section-head">
+          <span class="label">Alerts</span>
+          <h2>Hear about it while there's still time.</h2>
+          <p>New Tasks and materials, deadlines coming up, Presence opening, KRS changes and bills. Close the window and the app keeps watching from the menu bar or tray.</p>
+          <ul class="checklist">
+            <li><svg class="check" width="14" height="14" aria-hidden="true"><use href="#check"/></svg>Says the one thing to do, not just that something changed</li>
+            <li><svg class="check" width="14" height="14" aria-hidden="true"><use href="#check"/></svg>Phone alerts that can wait hold until morning</li>
+            <li><svg class="check" width="14" height="14" aria-hidden="true"><use href="#check"/></svg>"Remind me later" for anything that isn't for now</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="start">
+      <div class="container">
+        <div class="section-head center">
+          <span class="label">Get started</span>
+          <h2>Three steps, about two minutes.</h2>
+          <p>Free for every ITB student, on macOS, Windows and Linux.</p>
+        </div>
+        <div class="start-grid">
+          <ol class="tile steps">
+            <li class="step">
+              <span class="step-n">1</span>
+              <div>
+                <h3>Download the file for your computer</h3>
+                <p>From the newest release, under Assets.</p>
+                <div class="files"><span class="file">Mac (Apple silicon or Intel)</span><span class="file">Windows 10 or 11</span><span class="file">Ubuntu, Debian, other Linux</span></div>
+              </div>
+            </li>
+            <li class="step">
+              <span class="step-n">2</span>
+              <div>
+                <h3>Open it</h3>
+                <p>The app isn't signed yet, so macOS and Windows warn you the first time. <a href="https://github.com/pablonification/edunex-plus/blob/main/docs/install.md" target="_blank" rel="noopener noreferrer">The install guide</a> shows the one step past that.</p>
+              </div>
+            </li>
+            <li class="step">
+              <span class="step-n">3</span>
+              <div>
+                <h3>Sign in with your INA account</h3>
+                <p>Once, on ITB's real Microsoft page. Edunex and SIX both connect from that one sign-in.</p>
+              </div>
+            </li>
+          </ol>
+          <div class="tile pitch" id="privacy">
+            <h3>Your data stays on your computer.</h3>
+            <ul>
+              <li><span class="pitch-mark" aria-hidden="true"><svg width="12" height="12" aria-hidden="true"><use href="#check"/></svg></span><span><strong>Your password never reaches the app.</strong> Only Microsoft sees it.</span></li>
+              <li><span class="pitch-mark" aria-hidden="true"><svg width="12" height="12" aria-hidden="true"><use href="#check"/></svg></span><span><strong>Locked in your keychain.</strong> What it reads is saved only on this computer.</span></li>
+              <li><span class="pitch-mark" aria-hidden="true"><svg width="12" height="12" aria-hidden="true"><use href="#check"/></svg></span><span><strong>No analytics, no tracking.</strong> "Sign out &amp; remove data" in Settings deletes everything it saved.</span></li>
+            </ul>
+            <a class="text-link" href="https://github.com/pablonification/edunex-plus/blob/main/docs/privacy.md" target="_blank" rel="noopener noreferrer">Read exactly what it talks to<svg class="arrow" width="12" height="12" aria-hidden="true"><use href="#arrow"/></svg></a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="cta">
+      <div class="container">
+        <h2 class="display cta-title">Stop checking two sites.</h2>
+        <p class="cta-sub">Download it, sign in once, and see what needs you today. Free for every ITB student.</p>
+        <div class="cta-actions">
+          <a class="btn btn-primary btn-lg" href="https://github.com/pablonification/edunex-plus/releases/latest" data-download>
+            <svg width="16" height="16" aria-hidden="true"><use href="#download"/></svg>
+            <span data-download-label>Download for macOS</span>
+          </a>
+          <a class="btn btn-ghost btn-lg" href="https://github.com/pablonification/edunex-plus/blob/main/docs/install.md">Install guide</a>
+        </div>
+        <p class="download-meta" data-download-meta>Free for macOS, Windows and Linux</p>
+        <a class="backer" href="https://ganesaspace.com" target="_blank" rel="noopener noreferrer">
+          Supported by
+          <img src="assets/ganesa-space.png" alt="" width="20" height="20">
+          <strong>Ganesa Space</strong>
+        </a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+      <div class="footer-brand"><img src="assets/icon-128.png" alt="" width="20" height="20"><span>Made by ITB students · supported by <a href="https://ganesaspace.com" target="_blank" rel="noopener noreferrer">Ganesa Space</a></span></div>
+      <div class="footer-links">
+        <a href="https://github.com/pablonification/edunex-plus/blob/main/docs/install.md" target="_blank" rel="noopener noreferrer">Install guide</a>
+        <a href="https://github.com/pablonification/edunex-plus/blob/main/docs/privacy.md" target="_blank" rel="noopener noreferrer">Privacy</a>
+        <a href="https://github.com/pablonification/edunex-plus/issues" target="_blank" rel="noopener noreferrer">Report a problem</a>
+        <a href="https://github.com/pablonification/edunex-plus" target="_blank" rel="noopener noreferrer">GitHub</a>
+      </div>
+      <p class="disclaimer">Unofficial. Built by students; not made by, endorsed by or connected to ITB or Cognisia (the company behind Edunex). It uses your own Edunex and SIX sign-in, so your account stays your responsibility. Still an alpha: double-check anything important on Edunex or SIX itself. Pictures show the demo's made-up student.</p>
+    </div>
+  </footer>
+
+  <script>
+    // The download buttons fetch the newest release's file for this computer, straight away. Until GitHub
+    // answers (or if it can't), they open the newest release's page, which lists every file.
+    const repo = "pablonification/edunex-plus";
+    const releasePage = `https://github.com/${repo}/releases/latest`;
+    const ua = navigator.userAgent;
+    const phone = /iPhone|iPad|iPod|Android/.test(ua);
+    const os = /Windows/.test(ua) ? "windows" : /Linux|X11|CrOS/.test(ua) ? "linux" : "mac";
+    const osName = { mac: "macOS", windows: "Windows", linux: "Linux" }[os];
+    const buttons = document.querySelectorAll("[data-download]");
+    const labels = document.querySelectorAll("[data-download-label]");
+    const metas = document.querySelectorAll("[data-download-meta]");
+
+    for (const label of labels) label.textContent = phone ? "Get it for your laptop" : `Download for ${osName}`;
+    // It's a desktop app: on a phone, the button goes to the steps instead of a file.
+    if (phone) for (const button of buttons) button.href = "#start";
+
+    // ARM or not: Apple silicon or Intel, a Snapdragon Windows PC or not, ARM Linux or not. Chrome and
+    // Edge say it outright; otherwise the graphics chip gives it away (an Intel Mac's isn't Apple's, an
+    // ARM PC's is Qualcomm's). Unsure means the common case: Apple silicon, and x64 Windows and Linux.
+    async function arm() {
+      try {
+        const hints = await navigator.userAgentData?.getHighEntropyValues(["architecture"]);
+        if (hints?.architecture) return hints.architecture === "arm";
+      } catch {}
+      if (os === "linux") return /aarch64|arm/i.test(ua);
+      try {
+        const gl = document.createElement("canvas").getContext("webgl");
+        const info = gl?.getExtension("WEBGL_debug_renderer_info");
+        const gpu = info ? gl.getParameter(info.UNMASKED_RENDERER_WEBGL) : "";
+        return os === "windows" ? /Qualcomm|Adreno/i.test(gpu) : !/Intel|AMD|Radeon|NVIDIA/i.test(gpu);
+      } catch {
+        return os === "mac";
+      }
+    }
+
+    // The file each computer needs, as named on the release.
+    const pick = (assets, isArm) => {
+      const find = (pattern) => assets.find((asset) => pattern.test(asset.name));
+      // ARM PCs have their own installer from 0.1.0-alpha.6; before that, one installer served both.
+      if (os === "windows")
+        return isArm && find(/-arm64\.exe$/)
+          ? { asset: find(/-arm64\.exe$/), name: "Windows on ARM" }
+          : { asset: find(/Setup.*\.exe$/), name: "Windows" };
+      if (os === "linux")
+        return isArm
+          ? { asset: find(/_arm64\.deb$/), name: "Ubuntu or Debian on ARM" }
+          : { asset: find(/_amd64\.deb$/), name: "Ubuntu or Debian" };
+      return isArm
+        ? { asset: find(/arm64\.dmg$/), name: "Mac with Apple silicon" }
+        : { asset: find(/x64\.dmg$/), name: "Mac with Intel" };
+    };
+
+    async function latest() {
+      const saved = sessionStorage.getItem("latest-release");
+      if (saved) return JSON.parse(saved);
+      const response = await fetch(`https://api.github.com/repos/${repo}/releases/latest`, { headers: { Accept: "application/vnd.github+json" } });
+      if (!response.ok) throw new Error(`GitHub said ${response.status}`);
+      const { tag_name, assets } = await response.json();
+      const release = { version: tag_name.replace(/^v/, ""), assets: assets.map(({ name, browser_download_url }) => ({ name, url: browser_download_url })) };
+      sessionStorage.setItem("latest-release", JSON.stringify(release));
+      return release;
+    }
+
+    if (!phone)
+      Promise.all([latest(), arm()])
+        .then(([release, isArm]) => {
+          const { asset, name } = pick(release.assets, isArm);
+          if (!asset) return;
+          for (const button of buttons) {
+            button.href = asset.url;
+            button.removeAttribute("target");
+          }
+          for (const meta of metas) {
+            meta.innerHTML = `Version ${release.version} for ${name} · <a href="${releasePage}">other computers</a>`;
+          }
+        })
+        .catch(() => {});
+
+    const nav = document.getElementById("nav");
+    const onScroll = () => nav.classList.toggle("is-scrolled", window.scrollY > 8);
+    addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+  </script>
+</body>
+</html>
