@@ -69,6 +69,21 @@ describe("the macOS downloads", () => {
   });
 });
 
+describe("the files a release publishes for updating from inside the app", () => {
+  it("are named without spaces, so the names in latest*.yml are the names on GitHub", () => {
+    const names = [config.mac?.artifactName, config.dmg?.artifactName, config.nsis?.artifactName, config.appImage?.artifactName];
+    for (const name of names) expect(name).toMatch(/^Edunex-Plus-[^ ]+$/);
+  });
+
+  it("come with the update info files, always named latest*.yml, and nothing is uploaded by the build", () => {
+    expect(config.publish).toMatchObject({ provider: "github", owner: "pablonification", repo: "edunex-plus" });
+    expect(config.detectUpdateChannel).toBe(false);
+    const workflow = read(".github/workflows/release.yml").toString();
+    expect(workflow).toContain("release/latest*.yml");
+    expect(workflow).toContain("--publish never");
+  });
+});
+
 describe("the macOS disk image", () => {
   const dmg = config.dmg ?? {};
   const [app, applications, terminal] = dmg.contents ?? [];

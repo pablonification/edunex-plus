@@ -112,6 +112,9 @@ jobs:
             exit 1
           fi
           echo "The packaged app opened and stayed open."
+      # With them, the update info files (latest-mac.yml, latest.yml, latest-linux*.yml): the
+      # sha512 of each file the app downloads when it updates itself, which it checks before
+      # installing (src/desktop/self-update.ts).
       - name: Keep the installers
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -122,6 +125,7 @@ jobs:
             release/*.exe
             release/*.AppImage
             release/*.deb
+            release/latest*.yml
           if-no-files-found: error
           retention-days: ${{ startsWith(github.ref, 'refs/tags/') && 30 || 7 }}
           compression-level: 0

@@ -8,6 +8,7 @@ import type { FileCache } from "../file-cache";
 import type { Handlers } from "../ipc";
 import type { Notifier } from "../notifications";
 import type { FetchFile } from "../remote-files";
+import type { Updater } from "../self-update";
 import type { VaultMode } from "../vault";
 import type { Platform } from "../window";
 
@@ -36,6 +37,8 @@ export interface DesktopContext {
   startSyncing(): void;
   /** OS notifications (alerts, the test notification). */
   notifier: Notifier;
+  /** Updating from inside the app. */
+  updater: Updater;
 }
 
 /** A group of handlers for some of the bridge's actions. */

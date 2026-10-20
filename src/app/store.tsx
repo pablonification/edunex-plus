@@ -3,7 +3,7 @@
 // source each, so an update redraws only what uses it.
 import { createContext, type ReactNode, useContext, useEffect, useSyncExternalStore } from "react";
 import type { AppSnapshot, DatasetPayload, Event, SignInStep } from "../core/contract";
-import type { DatasetName, DatasetValue, Settings, SourceId, SourceStatus } from "../core/models";
+import type { DatasetName, DatasetValue, Settings, SourceId, SourceStatus, UpdateInstall } from "../core/models";
 import type { Route } from "../core/route";
 import type { Bridge } from "./bridge";
 
@@ -14,6 +14,7 @@ export class AppStore {
   private readonly datasets = new Map<string, DatasetPayload>();
   private readonly statuses = new Map<SourceId, SourceStatus>();
   private settings: Settings;
+  private update: UpdateInstall;
   private readonly listeners = new Map<string, Set<() => void>>();
   private readonly commandListeners = new Set<(command: Command) => void>();
   private readonly navigateListeners = new Set<(route: Route) => void>();
@@ -27,6 +28,7 @@ export class AppStore {
     for (const dataset of snapshot.datasets) this.datasets.set(dataset.name, dataset);
     for (const status of snapshot.statuses) this.statuses.set(status.source, status);
     this.settings = snapshot.settings;
+    this.update = snapshot.update;
     this.version = snapshot.version;
     this.platform = snapshot.platform;
     this.vault = snapshot.vault;
@@ -66,6 +68,10 @@ export class AppStore {
         return;
       case "signIn.joined":
         for (const listener of this.joinedListeners) listener(event.source);
+        return;
+      case "update":
+        this.update = event.update;
+        this.notify("update");
     }
   }
 
@@ -109,6 +115,10 @@ export class AppStore {
 
   currentSettings(): Settings {
     return this.settings;
+  }
+
+  updateInstall(): UpdateInstall {
+    return this.update;
   }
 
   private notify(topic: string): void {
@@ -166,6 +176,15 @@ export function useSettings(): Settings {
   return useSyncExternalStore(
     (listener) => store.subscribe("settings", listener),
     () => store.currentSettings(),
+  );
+}
+
+/** Whether this copy can update itself, and how far an update got. */
+export function useUpdateInstall(): UpdateInstall {
+  const store = useStore();
+  return useSyncExternalStore(
+    (listener) => store.subscribe("update", listener),
+    () => store.updateInstall(),
   );
 }
 
