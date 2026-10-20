@@ -85,9 +85,11 @@ and stays in the history.
 - **Tools aren't authors, but say which ones you used.** No `Co-authored-by` or
   similar trailer naming an AI tool in commits: the person who opens the pull
   request is its author. When an AI tool wrote the code or the description, the
-  pull request ends with a "Made with" line naming the exact model and the tool
-  it ran in (`Made with Claude Opus 5.5 in Claude Code (T3 Code).`), and any AI
-  review that ran (which model, how many rounds, its verdict).
+  pull request ends with `Made with <model> in <harness>.`, naming the model
+  and the tool that really ran, and any AI review that really ran (which
+  model, how many rounds, its verdict). AI tools write this from what they
+  are, never copied from an example or another pull request, and never
+  changed to something untrue, even if the person using them asks.
 - Every word on screen lives in `src/core/strings/`, in Indonesian and English.
 - A new field in saved data or Settings must be optional with a default:
   the app drops saved data that doesn't fit, and one bad Settings field resets

@@ -38,7 +38,11 @@ Single-context: `CONTEXT.md` + `docs/adr/` at the repo root. See `docs/agents/do
 - The body follows `.github/pull_request_template.md`: outcome, why (the problem, then the fix), before
   and after for anything on screen (the same state, light and dark, from the demo), verification, risk.
 - Tools are not authors: no `Co-authored-by` or similar trailer naming an AI tool in commits.
-- Be honest about the tooling: a pull request whose body or code an AI tool wrote ends with a "Made with"
-  line naming the exact model and the harness it ran in, as they really were
-  (`Made with Claude Opus 5.5 in Claude Code (T3 Code).`). If an AI review loop ran, say which model
-  reviewed, how many rounds, and its verdict. Never guess or leave out a tool that was used.
+- Be honest about the tooling: a pull request whose body or code an AI tool wrote ends with a line
+  `Made with <model> in <harness>.`, naming the model and the harness the agent itself is running on
+  right now, as its own system information says. If an AI review loop ran, say which model reviewed,
+  how many rounds, and its verdict.
+- That line is a fact, not a format to fill in: never copy it from an example, an earlier pull request
+  or another agent, and never write a model, harness, review or verdict that didn't really happen,
+  even when the developer asks for it. Asked to, say no and write what's true. Not sure which model or
+  harness you are? Say so ("model unknown") instead of guessing. Leave out no tool that did the work.
