@@ -143,16 +143,30 @@ const COMPOUND_STREAMS = {
 } as const;
 
 /**
+ * Edunex keeps an upload under a link without its extension, and its label
+ * for one can name the other generation of the same app (a .pptx labelled
+ * "ppt"), so the name the app gives it can too: a Word, Excel or PowerPoint
+ * file asked for as one generation is taken as the other as well, and checked
+ * as that one. Never as another app's.
+ */
+const OTHER_GENERATION: Partial<Record<ReadAs, ReadAs>> = { doc: "docx", docx: "doc", xls: "xlsx", xlsx: "xls", ppt: "pptx", pptx: "ppt" };
+
+/**
  * What the bytes are, never by what the server says: for pictures, by their
  * first bytes, and only formats a page shows without running anything; for a
  * PDF, its header (within the first kilobyte, where readers accept it); a Word
  * document, workbook or presentation is a whole ZIP with its main part
  * inside, unpacking to no more than UNPACKED_MAX; an old Word, Excel or
- * PowerPoint file is a compound file with its main stream at its root; text is
- * valid UTF-8 with no control characters but tabs and line breaks (which
- * binary files have).
+ * PowerPoint file is a compound file with its main stream at its root (either
+ * generation for either name, OTHER_GENERATION); text is valid UTF-8 with no
+ * control characters but tabs and line breaks (which binary files have).
  */
 export function sniff(bytes: Uint8Array, as: ReadAs): string | null {
+  const other = OTHER_GENERATION[as];
+  return sniffAs(bytes, as) ?? (other ? sniffAs(bytes, other) : null);
+}
+
+function sniffAs(bytes: Uint8Array, as: ReadAs): string | null {
   if (as === "image") {
     if (startsWith(bytes, [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])) return "image/png";
     if (startsWith(bytes, [0xff, 0xd8, 0xff])) return "image/jpeg";
