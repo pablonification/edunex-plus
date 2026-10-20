@@ -47,6 +47,7 @@ under **Assets** (Linux on ARM: see the [install guide](docs/install.md#which-fi
 | Your computer | File |
 | --- | --- |
 | Mac with Apple silicon (M1 or newer) | `Edunex.Plus-<version>-arm64.dmg` |
+| Mac with Intel | `Edunex.Plus-<version>-x64.dmg` |
 | Windows 10 or 11 | `Edunex.Plus.Setup.<version>.exe` |
 | Ubuntu, Debian, Mint | `edunex-plus_<version>_amd64.deb` |
 | Other Linux | `Edunex.Plus-<version>.AppImage` |

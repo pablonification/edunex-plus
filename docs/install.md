@@ -14,13 +14,14 @@ marked "Pre-release"), and under **Assets** download the one file for your compu
 | Your computer | Download |
 | --- | --- |
 | Mac with Apple silicon (M1 or newer) | `Edunex.Plus-<version>-arm64.dmg` |
+| Mac with Intel | `Edunex.Plus-<version>-x64.dmg` |
 | Windows 10 or 11 (Intel, AMD or ARM) | `Edunex.Plus.Setup.<version>.exe` |
 | Ubuntu, Debian, Linux Mint (most PCs) | `edunex-plus_<version>_amd64.deb` |
 | Ubuntu, Debian on ARM | `edunex-plus_<version>_arm64.deb` |
 | Any other Linux | `Edunex.Plus-<version>.AppImage` (ARM: `…-arm64.AppImage`) |
 
 Not sure which Mac you have? Apple menu → **About This Mac**: "Chip Apple M…" means Apple
-silicon. Intel Macs aren't supported yet.
+silicon, "Processor … Intel" means an Intel Mac. The app needs macOS 12 Monterey or newer.
 
 The installers aren't signed with paid certificates yet, so macOS and Windows warn you the first
 time you open each new version. That's expected for this alpha; the steps below get past it, and
@@ -53,7 +54,7 @@ for a while after you try to open the app: if it's gone, open the app again firs
 
 </details>
 
-A `.zip` (`…-arm64-mac.zip`) is there too, if you prefer it to the disk image: unzip it and move
+A `.zip` (`…-arm64-mac.zip`, on Intel `…-x64-mac.zip`) is there too, if you prefer it to the disk image: unzip it and move
 the app to Applications, then the same steps.
 
 ## Windows

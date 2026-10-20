@@ -1,4 +1,4 @@
-// Packaged builds: macOS dmg + zip (ad-hoc signed), a one-click Windows
+// Packaged builds: macOS dmg + zip for Apple silicon and Intel (ad-hoc signed), a one-click Windows
 // installer (NSIS), Linux AppImage + deb. The app archive holds only the built
 // window (dist/app), the bundled main process and preload (dist/desktop) and
 // the tray icons (assets/tray*); everything they use is already bundled, so no node_modules.
@@ -23,11 +23,15 @@ export default {
   npmRebuild: false,
   afterPack,
   mac: {
-    // Apple silicon only for now; add "x64" here for Intel Macs.
+    // One download per kind of Mac (not one "universal" app twice the size): arm64 for
+    // Apple silicon, x64 for Intel.
     target: [
-      { target: "dmg", arch: ["arm64"] },
-      { target: "zip", arch: ["arm64"] },
+      { target: "dmg", arch: ["arm64", "x64"] },
+      { target: "zip", arch: ["arm64", "x64"] },
     ],
+    // The zip's name says which Mac it's for too (the disk image's own name is under dmg).
+    // biome-ignore lint/suspicious/noTemplateCurlyInString: electron-builder fills in its own ${…} names
+    artifactName: "${productName}-${version}-${arch}-mac.${ext}",
     icon: "assets/icon.icns",
     category: "public.app-category.education",
     // Windows and Linux builds carry Electron's and Chromium's licences beside the app; macOS gets them here.
@@ -55,9 +59,13 @@ export default {
     contents: [
       { x: 170, y: 150, type: "file" },
       { x: 470, y: 150, type: "link", path: "/Applications" },
-      // Where Terminal is on every Mac with Apple silicon (macOS 11 and later).
+      // Where Terminal is on every Mac the app runs on, Intel or Apple silicon (macOS 10.15 and
+      // later; Electron needs macOS 12).
       { x: 118, y: 350, type: "link", path: "/System/Applications/Utilities/Terminal.app", name: "Terminal" },
     ],
+    // Every disk image's name says which Mac it's for, Intel too (electron-builder leaves x64 out).
+    // biome-ignore lint/suspicious/noTemplateCurlyInString: electron-builder fills in its own ${…} names
+    artifactName: "${productName}-${version}-${arch}.${ext}",
     writeUpdateInfo: false,
   },
   win: {

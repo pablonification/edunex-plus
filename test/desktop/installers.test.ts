@@ -50,6 +50,25 @@ function drawnIn(picture: Picture, scale: number, box: { x: number; y: number; w
   return null;
 }
 
+describe("the macOS downloads", () => {
+  const targets = (config.mac?.target ?? []) as { target: string; arch: string[] }[];
+
+  it("come for Apple silicon and for Intel Macs, a disk image and a zip each", () => {
+    expect(targets.map(({ target, arch }) => [target, [...arch].sort()])).toEqual([
+      ["dmg", ["arm64", "x64"]],
+      ["zip", ["arm64", "x64"]],
+    ]);
+  });
+
+  it("say in their names which Mac they're for, Intel too", () => {
+    // Forced names keep ${arch} even for x64, which electron-builder's own names leave out.
+    // biome-ignore lint/suspicious/noTemplateCurlyInString: electron-builder fills in its own ${…} names
+    expect(config.dmg?.artifactName).toContain("-${arch}.${ext}");
+    // biome-ignore lint/suspicious/noTemplateCurlyInString: electron-builder fills in its own ${…} names
+    expect(config.mac?.artifactName).toContain("-${arch}-mac.${ext}");
+  });
+});
+
 describe("the macOS disk image", () => {
   const dmg = config.dmg ?? {};
   const [app, applications, terminal] = dmg.contents ?? [];
