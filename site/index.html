@@ -343,8 +343,9 @@
     // It's a desktop app: on a phone, the button goes to the steps instead of a file.
     if (phone) for (const button of buttons) button.href = "#start";
 
-    // Apple silicon or Intel, and ARM or not on Linux. Chrome and Edge say it outright; otherwise the
-    // graphics chip gives Intel Macs away. Unsure means the common case: Apple silicon, and x64 Linux.
+    // ARM or not: Apple silicon or Intel, a Snapdragon Windows PC or not, ARM Linux or not. Chrome and
+    // Edge say it outright; otherwise the graphics chip gives it away (an Intel Mac's isn't Apple's, an
+    // ARM PC's is Qualcomm's). Unsure means the common case: Apple silicon, and x64 Windows and Linux.
     async function arm() {
       try {
         const hints = await navigator.userAgentData?.getHighEntropyValues(["architecture"]);
@@ -355,16 +356,20 @@
         const gl = document.createElement("canvas").getContext("webgl");
         const info = gl?.getExtension("WEBGL_debug_renderer_info");
         const gpu = info ? gl.getParameter(info.UNMASKED_RENDERER_WEBGL) : "";
-        return !/Intel|AMD|Radeon|NVIDIA/i.test(gpu);
+        return os === "windows" ? /Qualcomm|Adreno/i.test(gpu) : !/Intel|AMD|Radeon|NVIDIA/i.test(gpu);
       } catch {
-        return true;
+        return os === "mac";
       }
     }
 
     // The file each computer needs, as named on the release.
     const pick = (assets, isArm) => {
       const find = (pattern) => assets.find((asset) => pattern.test(asset.name));
-      if (os === "windows") return { asset: find(/Setup.*\.exe$/), name: "Windows" };
+      // ARM PCs have their own installer from 0.1.0-alpha.6; before that, one installer served both.
+      if (os === "windows")
+        return isArm && find(/-arm64\.exe$/)
+          ? { asset: find(/-arm64\.exe$/), name: "Windows on ARM" }
+          : { asset: find(/Setup.*\.exe$/), name: "Windows" };
       if (os === "linux")
         return isArm
           ? { asset: find(/_arm64\.deb$/), name: "Ubuntu or Debian on ARM" }
