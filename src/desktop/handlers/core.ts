@@ -37,10 +37,9 @@ export const coreHandlers: HandlerGroup<Core> = (context) => ({
   },
   "files.download": async ({ url, name }) => {
     if (!isDownloadable(url)) throw new EngineError("Rejected", "Only Edunex's files download from the app");
-    // Already on this computer: that copy opens, rather than another "Notes (2).docx" next to it. One
-    // that won't open downloads afresh.
+    // Already on this computer: that copy is the one, rather than another "Notes (2).docx" next to it.
     const existing = await copyOnThisComputer(context, url);
-    if (existing && (await shell.openPath(existing)) === "") return { path: existing, existing: true };
+    if (existing) return { path: existing, existing: true };
     const window = context.window();
     if (!window) throw new EngineError("Failed", "The window is closed");
     // A sign-out while it downloads: where it went isn't remembered.

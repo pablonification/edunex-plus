@@ -74,6 +74,10 @@ export const Settings = z.object({
   /** A course's own target (percent) by course code, from its course contract; see `targetFor`. */
   attendanceTargets: z.record(z.string().min(1).max(32), AttendanceTarget),
 
+  // Files
+  /** The app the Student last opened each kind of file in, by extension (".pdf"): its place on this computer. */
+  openWith: z.record(z.string().max(16), z.string().max(1000)),
+
   // First-run scan (#81)
   /** The first full sync's findings were shown (or there were none): the scan doesn't open by itself again. */
   firstScanDone: z.boolean(),
@@ -95,6 +99,9 @@ export const DEFAULT_SETTINGS: Settings = {
   // Attendance (#85)
   attendanceTarget: 80,
   attendanceTargets: {},
+
+  // Files
+  openWith: {},
 
   // First-run scan (#81)
   firstScanDone: false,

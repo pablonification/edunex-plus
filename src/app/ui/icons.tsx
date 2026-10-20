@@ -5,6 +5,7 @@
 // an accessible name.
 import type { Icon as PhosphorIcon } from "@phosphor-icons/react";
 import { AlarmIcon } from "@phosphor-icons/react/dist/csr/Alarm";
+import { AppWindowIcon } from "@phosphor-icons/react/dist/csr/AppWindow";
 import { ArrowRightIcon } from "@phosphor-icons/react/dist/csr/ArrowRight";
 import { ArrowsClockwiseIcon } from "@phosphor-icons/react/dist/csr/ArrowsClockwise";
 import { ArrowsInSimpleIcon } from "@phosphor-icons/react/dist/csr/ArrowsInSimple";
@@ -129,6 +130,7 @@ export const Icons = {
   Overlap: icon(IntersectSquareIcon),
   History: icon(ClockCounterClockwiseIcon),
   FolderDown: icon(FolderOpenIcon),
+  AppWindow: icon(AppWindowIcon),
   Target: icon(TargetIcon),
   Flag: icon(FlagIcon),
   PenLine: icon(PencilSimpleLineIcon),

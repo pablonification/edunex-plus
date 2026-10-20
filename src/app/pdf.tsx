@@ -15,6 +15,7 @@ import type { FileProblem, ReadAs } from "../core/actions/files";
 import { ActionError } from "./bridge";
 import { useOpenExternal, useOpenLink } from "./hooks";
 import { useT } from "./i18n";
+import { OpenFile, useDownloadedToast, useLocalCopy } from "./open-file";
 import { useBridge, useStore } from "./store";
 import { Button } from "./ui/controls";
 import type { FileKind } from "./ui/file-viewer";
@@ -128,6 +129,8 @@ export function PdfViewerProvider({ children }: { children: ReactNode }) {
   // Closing keeps the last file's viewer mounted but shut, so focus goes back to what opened it.
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const local = useLocalCopy(source?.kind === "edunex" ? source.url : null);
+  const downloaded = useDownloadedToast();
   const [answers, setAnswers] = useState<ReadonlyMap<number, AnswerAttach>>(new Map());
   const [closeRequest, setCloseRequest] = useState(0);
   const dirty = useRef(false);
@@ -155,16 +158,20 @@ export function PdfViewerProvider({ children }: { children: ReactNode }) {
     setBusy(true);
     try {
       const { existing } = await bridge.invoke("files.download", { url: source.url, name: source.name.slice(0, 200) });
-      toast(t(existing ? "material.openedCopy" : "material.downloaded"));
+      downloaded(source.url, existing);
+      await local.refresh();
     } catch (error) {
       toast(t("error.action", { message: error instanceof Error ? error.message : String(error) }), "danger");
     } finally {
       setBusy(false);
     }
-  }, [source, bridge, t]);
+  }, [source, bridge, t, downloaded, local.refresh]);
 
+  // Once it's on this computer: open it in another app, or see it in its folder.
   const downloadButton =
-    source?.kind === "edunex" ? (
+    source?.kind === "edunex" && local.copy ? (
+      <OpenFile url={source.url} copy={local.copy} onChange={() => void local.refresh()} />
+    ) : source?.kind === "edunex" ? (
       <Tooltip content={t(kind === "pdf" ? "pdf.downloadHint" : "viewer.downloadHint")}>
         <Button size="sm" variant="ghost" busy={busy} icon={<Icons.Download className="size-3.5" />} onClick={() => void download()}>
           {t("material.download")}
@@ -181,6 +188,7 @@ export function PdfViewerProvider({ children }: { children: ReactNode }) {
           {t("action.openInEdunex")}
         </Button>
       ) : null;
+    if (local.copy) return <OpenFile url={source.url} copy={local.copy} onChange={() => void local.refresh()} />;
     return (
       <Button variant="primary" icon={<Icons.Download className="size-3.5" />} busy={busy} onClick={() => void download()}>
         {t("material.download")}

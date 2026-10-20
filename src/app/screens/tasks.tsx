@@ -41,6 +41,7 @@ import { useOpenExternal } from "../hooks";
 import { type Format, type Translate, useFormat, useNow, useT } from "../i18n";
 import { LecturerHtml } from "../lecturer-html";
 import { useNav } from "../nav";
+import { OpenFile, useDownloadedToast, useLocalCopy } from "../open-file";
 import { canView, isPdfName, useAnswerAttach, usePdfViewer } from "../pdf";
 import { useExams } from "../schedule-data";
 import { isBuilt } from "../shell/built";
@@ -662,15 +663,18 @@ function Notes({ task }: { task: Task }) {
   );
 }
 
-/** Downloads a file from Edunex through the browser's download manager (Downloads, then it opens). */
-function useDownload() {
+/** Downloads a file from Edunex through the browser's download manager, into Downloads; `done`: it's there now. */
+function useDownload(done?: () => Promise<void>) {
   const bridge = useBridge();
   const t = useT();
+  const downloaded = useDownloadedToast();
   const [busy, setBusy] = useState<string | null>(null);
   const download = async (file: TaskFile) => {
     setBusy(file.url);
     try {
-      await bridge.invoke("files.download", { url: file.url, name: shortName(file.name) });
+      const { existing } = await bridge.invoke("files.download", { url: file.url, name: shortName(file.name) });
+      downloaded(file.url, existing);
+      await done?.();
     } catch {
       toast(t("task.downloadFailed", { name: file.name }), "danger");
     } finally {
@@ -690,11 +694,13 @@ function shortName(name: string): string {
 /** `taskId`: the Task it's on, whose page on Edunex is the way forward when the file's link stops working. */
 export function LecturerFile({ file, taskId }: { file: TaskFile; taskId: number }) {
   const t = useT();
-  const { download, busy } = useDownload();
+  const local = useLocalCopy(file.url);
+  const { download, busy } = useDownload(local.refresh);
   const pdf = usePdfViewer();
-  // A PDF, Word document, spreadsheet, slides, text or picture reads in the app (its viewer can download it too); other files download and open.
+  // A PDF, Word document, spreadsheet, slides, text or picture reads in the app (its viewer can download it too); other
+  // files download. Once one is on this computer, it opens in an app or shows in its folder from beside it.
   const viewable = canView(file.name);
-  return (
+  const row = (
     <button
       type="button"
       aria-label={t(viewable ? "pdf.viewFile" : "task.download", { name: file.name })}
@@ -713,6 +719,13 @@ export function LecturerFile({ file, taskId }: { file: TaskFile; taskId: number 
         <Icons.Download className="size-4 text-faint" />
       )}
     </button>
+  );
+  if (!local.copy) return row;
+  return (
+    <div className="flex items-center gap-2">
+      <div className="min-w-0 flex-1">{row}</div>
+      <OpenFile url={file.url} copy={local.copy} onChange={() => void local.refresh()} />
+    </div>
   );
 }
 

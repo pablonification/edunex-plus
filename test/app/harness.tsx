@@ -143,6 +143,8 @@ export async function openApp(options: Options = {}) {
   const copied: string[] = [];
   /** Files downloaded so far: main opens the copy it downloaded before instead of downloading again. */
   const downloaded = new Set<string>();
+  /** What "Unduh" saved, by address: on this computer from then on. */
+  const downloadedNames = new Map<string, string>();
   /** The system can't open links (no browser set, the OS refused). */
   let linksFail = false;
   const inFlight = new Set<Promise<unknown>>();
@@ -203,7 +205,30 @@ export async function openApp(options: Options = {}) {
     "files.download": async ({ url, name }: { url: string; name: string }) => {
       const existing = downloaded.has(url);
       downloaded.add(url);
+      downloadedNames.set(url, name);
       return { path: `/Downloads/${name}`, existing };
+    },
+    // Main's apps for a file on a Mac: the system's own (Preview), then another; the one opened last is the one offered first.
+    "files.local": async ({ url }: { url: string }) => {
+      const name = downloadedNames.get(url);
+      if (!name) return null;
+      const apps = [
+        { id: "/System/Applications/Preview.app", name: "Preview", icon: null },
+        { id: "/Applications/Zed.app", name: "Zed", icon: null },
+      ];
+      const last = engine.snapshot().settings.openWith[name.slice(name.lastIndexOf(".")).toLowerCase()];
+      return { name, apps, preferred: last ?? apps[0].id, chooser: false };
+    },
+    "files.open": async ({ url, app }: { url: string; app?: string }) => {
+      const name = downloadedNames.get(url);
+      if (!name) throw new EngineError("Rejected", "That file isn't on this computer");
+      const kind = name.slice(name.lastIndexOf(".")).toLowerCase();
+      if (app) await engine.updateSettings({ openWith: { ...engine.snapshot().settings.openWith, [kind]: app } });
+      return {};
+    },
+    "files.reveal": async ({ url }: { url: string }) => {
+      if (!downloadedNames.has(url)) throw new EngineError("Rejected", "That file isn't on this computer");
+      return {};
     },
     // The save dialog: the Student keeps the name offered, or closes it once (`closeSaveDialog`). Tests read `savedCopies`.
     "files.saveCopy": async ({ name, bytes }: { name: string; bytes: Uint8Array }) => {
@@ -269,7 +294,8 @@ export async function openApp(options: Options = {}) {
   const api: BridgeApi = {
     invoke(name, input) {
       const action = name as ActionName;
-      calls.push({ name: action, input });
+      // Whether a file is on this computer is asked by every file the window lists: not something the Student did.
+      if (action !== "files.local") calls.push({ name: action, input });
       const work = (async (): Promise<ActionResult<unknown>> => {
         const parsed = Actions[action].input.safeParse(input ?? {});
         if (!parsed.success) return { ok: false, error: { kind: "Rejected", message: `Bad input for ${action}` } };

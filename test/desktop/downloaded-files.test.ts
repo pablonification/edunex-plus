@@ -10,7 +10,7 @@ import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Material } from "../../src/core/models";
 
-const system = vi.hoisted(() => ({ root: "", opened: [] as string[], downloads: 0 }));
+const system = vi.hoisted(() => ({ root: "", opened: [] as string[], shown: [] as string[], downloads: 0 }));
 vi.mock("electron", () => ({
   app: { getPath: () => system.root, isPackaged: true },
   dialog: {},
@@ -19,6 +19,7 @@ vi.mock("electron", () => ({
       system.opened.push(file);
       return "";
     },
+    showItemInFolder: (file: string) => void system.shown.push(file),
   },
 }));
 // The browser's download manager: saves under a free name in Downloads, as the real one does.
@@ -37,6 +38,7 @@ vi.mock("../../src/desktop/downloads", async (original) => ({
 }));
 
 const { coreHandlers } = await import("../../src/desktop/handlers/core");
+const { filesHandlers } = await import("../../src/desktop/handlers/files");
 const { createDownloadedFiles, DOWNLOADED_FILES_FOLDER } = await import("../../src/desktop/downloaded-files");
 const { planOfflineFiles } = await import("../../src/core/course-materials");
 type Context = Parameters<typeof coreHandlers>[0];
@@ -59,6 +61,7 @@ const notes = (sizeBytes: number | null): Material => ({
 beforeEach(async () => {
   system.root = await fs.mkdtemp(path.join(os.tmpdir(), "edunex-downloaded-"));
   system.opened = [];
+  system.shown = [];
   system.downloads = 0;
 });
 afterEach(async () => {
@@ -76,18 +79,34 @@ function app(material: Material | null, nim: string | null = "10000001") {
     : [];
   const context = { engine: { snapshot: () => ({ datasets }) }, window: () => ({ webContents: {} }), downloadedFiles } as unknown as Context;
   const unduh = () => coreHandlers(context)["files.download"]({ url: URL, name: "Notes.docx" });
-  return { unduh, downloadedFiles };
+  const files = filesHandlers(context);
+  return { unduh, downloadedFiles, open: (url = URL) => files["files.open"]({ url }), reveal: (url = URL) => files["files.reveal"]({ url }) };
 }
 
 const inDownloads = (name: string) => path.join(system.root, "Downloads", name);
 
+describe("opening a downloaded file", () => {
+  it("opens it or shows it in its folder once it's on this computer, and refuses before", async () => {
+    const { unduh, open, reveal } = app(notes(CONTENT.length));
+    await expect(open()).rejects.toThrow("isn't on this computer");
+    await expect(reveal()).rejects.toThrow("isn't on this computer");
+    await unduh();
+    await open();
+    await reveal();
+    expect(system.opened).toEqual([inDownloads("Notes.docx")]);
+    expect(system.shown).toEqual([inDownloads("Notes.docx")]);
+    // Never a file outside Edunex's storage, whatever the window asks.
+    await expect(open("https://example.com/notes.docx")).rejects.toThrow("isn't on this computer");
+  });
+});
+
 describe("downloading a file again", () => {
-  it("opens the copy downloaded before instead of saving another", async () => {
+  it("keeps the copy downloaded before instead of saving another, and opens neither by itself", async () => {
     const { unduh } = app(notes(CONTENT.length));
     expect(await unduh()).toEqual({ path: inDownloads("Notes.docx"), existing: false });
     expect(await unduh()).toEqual({ path: inDownloads("Notes.docx"), existing: true });
     expect(system.downloads).toBe(1);
-    expect(system.opened).toEqual([inDownloads("Notes.docx")]);
+    expect(system.opened).toEqual([]);
     expect(await fs.readdir(path.join(system.root, "Downloads"))).toEqual(["Notes.docx"]);
   });
 
@@ -107,14 +126,14 @@ describe("downloading a file again", () => {
     expect(await app(notes(CONTENT.length + 100)).unduh()).toEqual({ path: inDownloads("Notes (2).docx"), existing: false });
   });
 
-  it("opens the copy saved for offline first, when it's this very file", async () => {
+  it("takes the copy saved for offline first, when it's this very file", async () => {
     const material = notes(CONTENT.length);
     const plan = planOfflineFiles({ code: course.code, name: course.name, mainCourseId: 1 }, undefined, [material], "id");
     const saved = path.join(system.root, "Edunex Plus", plan.folder, ...plan.files[0].folders, plan.files[0].name);
     await fs.mkdir(path.dirname(saved), { recursive: true });
     await fs.writeFile(saved, CONTENT);
     expect(await app(material).unduh()).toEqual({ path: saved, existing: true });
-    expect(system.opened).toEqual([saved]);
+    expect(system.opened).toEqual([]);
     // Edunex's file is another size now: the offline copy is the old one.
     expect(await app(notes(CONTENT.length + 100)).unduh()).toMatchObject({ existing: false });
     expect(system.downloads).toBe(1);

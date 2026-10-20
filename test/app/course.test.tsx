@@ -206,14 +206,25 @@ describe("the course page", () => {
 });
 
 describe("materials", () => {
-  it("a PDF downloads through the browser's download manager, and again opens the copy already there", async () => {
+  it("a PDF downloads through the browser's download manager without opening, then opens in the app the Student picks or shows in its folder", async () => {
     const s = await openCourse("PL3032");
+    const name = "K1. SAP Ekonomi Infrastruktur dan Transportasi.pdf";
     expect(s.text()).toContain("PDF · 1,9 MB");
     await s.click("Unduh: K1. SAP Ekonomi Infrastruktur dan Transportasi");
-    expect(s.calls.at(-1)).toEqual({ name: "files.download", input: { url: BLOB, name: "K1. SAP Ekonomi Infrastruktur dan Transportasi.pdf" } });
+    expect(s.calls.at(-1)).toEqual({ name: "files.download", input: { url: BLOB, name } });
     expect(s.text()).toContain("Tersimpan di Unduhan");
-    await s.click("Unduh: K1. SAP Ekonomi Infrastruktur dan Transportasi");
-    expect(s.text()).toContain("Sudah ada di komputer ini, dibuka tanpa mengunduh lagi");
+    // Downloaded: nothing opened. Opening it is the Student's choice, in the system's own app first.
+    expect(s.calls.some((call) => call.name === "files.open")).toBe(false);
+    await s.click(`Buka di Preview: ${name}`);
+    expect(s.calls.at(-1)).toEqual({ name: "files.open", input: { url: BLOB, app: "/System/Applications/Preview.app" } });
+    // Another app from the arrow's list, offered first from then on.
+    await s.click(`Buka di aplikasi lain: ${name}`);
+    await s.click("Zed");
+    expect(s.calls.at(-1)).toEqual({ name: "files.open", input: { url: BLOB, app: "/Applications/Zed.app" } });
+    expect(s.engine.snapshot().settings.openWith).toEqual({ ".pdf": "/Applications/Zed.app" });
+    await s.click(`Buka di Zed: ${name}`);
+    await s.click(`Tampilkan di Finder: ${name}`);
+    expect(s.calls.at(-1)).toEqual({ name: "files.reveal", input: { url: BLOB } });
   });
 
   it("each Edunex course has its own Introduction, as on Edunex: the class's, then the joint class's", async () => {
