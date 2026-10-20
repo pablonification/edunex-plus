@@ -152,6 +152,8 @@ export async function openApp(options: Options = {}) {
   const downloadedNames = new Map<string, string>();
   /** The system can't open links (no browser set, the OS refused). */
   let linksFail = false;
+  /** The app a file opens in is still starting, until the test lets it (`holdOpening`). */
+  let opening: Promise<void> | null = null;
   /** Release pages main opened in the browser for an update, in order. */
   const openedPages: string[] = [];
   /** Updates main put in place (and restarted for), in order. */
@@ -265,6 +267,7 @@ export async function openApp(options: Options = {}) {
     "files.open": async ({ url, app }: { url: string; app?: string }) => {
       const name = downloadedNames.get(url);
       if (!name) throw new EngineError("Rejected", "That file isn't on this computer");
+      await opening;
       const kind = name.slice(name.lastIndexOf(".")).toLowerCase();
       if (app) await engine.updateSettings({ openWith: { ...engine.snapshot().settings.openWith, [kind]: app } });
       return {};
@@ -354,7 +357,8 @@ export async function openApp(options: Options = {}) {
           throw error;
         }
       })();
-      track(work);
+      // Held (`holdOpening`), an app starting isn't waited for: the test looks at the window meanwhile.
+      if (!(action === "files.open" && opening)) track(work);
       return work;
     },
     onEvent(listener) {
@@ -474,6 +478,17 @@ export async function openApp(options: Options = {}) {
     /** The next save dialog is closed without saving. */
     closeSaveDialog(): void {
       saveDialogCloses = true;
+    },
+    /** The next apps to open a file take their time starting, until the function this returns is called. */
+    holdOpening(): () => void {
+      let done = () => {};
+      opening = new Promise((resolve) => {
+        done = resolve;
+      });
+      return () => {
+        opening = null;
+        done();
+      };
     },
     /** From now on the system fails to open links in the browser. */
     failLinks(): void {

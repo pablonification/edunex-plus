@@ -1,17 +1,17 @@
 // A file from Edunex that's on this computer (downloaded, or saved for
 // offline) opens from where it's listed, like an editor's "Open in" button:
-// "Buka di Preview", its arrow listing the other apps that open it (on
-// Windows, the system's own "Open with" window), and a folder button that
-// shows it in Finder or File Explorer. The app the Student picks is
+// "Buka di Preview", joined to an arrow whose menu lists the other apps that
+// open it (on Windows, then the system's own "Open with" window) and, last,
+// showing it in Finder or File Explorer. The app the Student picks is
 // remembered for files of its kind. Downloading never opens anything itself.
 import { useCallback, useEffect, useState } from "react";
 import type { LocalCopy } from "../core/actions/files";
 import { useT } from "./i18n";
 import { useBridge, useStore } from "./store";
-import { Button, IconButton } from "./ui/controls";
+import { Button } from "./ui/controls";
 import { Icons } from "./ui/icons";
 import { Menu, type MenuItem } from "./ui/menu";
-import { Tooltip, toast } from "./ui/overlays";
+import { toast } from "./ui/overlays";
 
 /** The copy of `url` on this computer (null: none, or not asked yet); `refresh` asks again, after a download. */
 export function useLocalCopy(url: string | null): { copy: LocalCopy | null; refresh: () => Promise<void> } {
@@ -56,22 +56,29 @@ export function useDownloadedToast(): (url: string, existing: boolean) => void {
   );
 }
 
-/** The open button, its menu of other apps, and the folder button, for a file `copy` says is here. */
+/** The open button and its menu (the other apps, then the file's folder), for a file `copy` says is here. */
 /** `onChange`: ask "files.local" again (another app picked, or the copy gone). */
 export function OpenFile({ url, copy, onChange }: { url: string; copy: LocalCopy; onChange?: () => void }) {
   const t = useT();
   const bridge = useBridge();
   const reveal = useRevealLabel();
   const [busy, setBusy] = useState(false);
-  const preferred = copy.apps.find((found) => found.id === copy.preferred) ?? null;
+  // The app just picked from the menu, over the one the button offered: the button names it while
+  // it starts (on Windows, a few seconds), until "files.local" says which one it offers now.
+  const [picked, setPicked] = useState<{ app: string; over: string | null } | null>(null);
+  const offered = picked && picked.over === copy.preferred ? picked.app : copy.preferred;
+  const preferred = copy.apps.find((found) => found.id === offered) ?? null;
 
   const run = async (input: { app?: string; choose?: boolean } = {}) => {
-    setBusy(true);
+    if (input.app) setPicked({ app: input.app, over: copy.preferred });
+    // The system's "Open with" window is all the sign it needs: no spinner behind it.
+    if (!input.choose) setBusy(true);
     try {
       await bridge.invoke("files.open", { url, ...input });
       // Another app picked: the button offers it from now on.
       if (input.app && input.app !== copy.preferred) onChange?.();
     } catch {
+      setPicked(null);
       toast(t("file.openFailed", { name: copy.name }), "danger");
       // Moved or deleted since: it's no longer here.
       onChange?.();
@@ -88,40 +95,33 @@ export function OpenFile({ url, copy, onChange }: { url: string; copy: LocalCopy
   const items: MenuItem[] = [
     ...copy.apps.map((found) => ({ label: found.name, icon: <AppIcon icon={found.icon} />, onSelect: () => void run({ app: found.id }) })),
     ...(copy.chooser ? [{ label: t("file.chooseApp"), icon: <Icons.AppWindow className="size-4" />, onSelect: () => void run({ choose: true }) }] : []),
+    { label: reveal, icon: <Icons.FolderDown className="size-4" />, onSelect: show },
   ];
   const label = preferred ? t("file.openIn", { app: preferred.name }) : t("file.open");
 
   return (
-    <span className="flex shrink-0 items-center gap-1">
-      <span className="inline-flex">
-        <Button
-          size="sm"
-          busy={busy}
-          icon={preferred ? <AppIcon icon={preferred.icon} /> : <Icons.ArrowUpRight className="size-3.5" />}
-          aria-label={`${label}: ${copy.name}`}
-          onClick={() => void run(preferred ? { app: preferred.id } : {})}
-          className={items.length > 0 ? "rounded-r-none" : undefined}
-        >
-          {label}
-        </Button>
-        {items.length > 0 && (
-          <Menu
-            label={`${t("file.otherApps")}: ${copy.name}`}
-            items={items}
-            trigger={{
-              icon: <Icons.ChevronDown className="size-3" weight="bold" />,
-              text: t("file.otherApps"),
-              className: "rounded-l-none border border-l-0 border-edge bg-surface",
-            }}
-            className="w-[240px]"
-          />
-        )}
-      </span>
-      <Tooltip content={reveal}>
-        <IconButton label={`${reveal}: ${copy.name}`} size="sm" onClick={show}>
-          <Icons.FolderDown className="size-4" />
-        </IconButton>
-      </Tooltip>
+    <span className="inline-flex shrink-0">
+      <Button
+        size="sm"
+        busy={busy}
+        icon={preferred ? <AppIcon icon={preferred.icon} /> : <Icons.ArrowUpRight className="size-3.5" />}
+        aria-label={`${label}: ${copy.name}`}
+        onClick={() => void run(preferred ? { app: preferred.id } : {})}
+        className="rounded-r-none"
+      >
+        {label}
+      </Button>
+      <Menu
+        label={`${t("file.otherApps")}: ${copy.name}`}
+        items={items}
+        trigger={{
+          icon: <Icons.ChevronDown className="size-3" weight="bold" />,
+          text: t("file.otherApps"),
+          // The open button's own outline and corners, its left edge shared with it.
+          className: "rounded-md rounded-l-none border border-l-0 border-edge bg-surface",
+        }}
+        className="w-[240px]"
+      />
     </span>
   );
 }

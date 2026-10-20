@@ -46,12 +46,14 @@ export const filesHandlers: HandlerGroup<"files.read" | "files.saveCopy" | "file
     if (!file) return null;
     const { apps, own, chooser } = await appsFor(file);
     const last = context.engine.snapshot().settings.openWith[kindOf(file)];
-    const preferred = apps.some((found) => found.id === last) ? last : (own ?? apps[0]?.id ?? null);
+    // Not knowing the system's own app, the button opens in it all the same, without naming it.
+    const preferred = apps.some((found) => found.id === last) ? last : own;
     return { name: path.basename(file), apps, preferred, chooser };
   },
   "files.open": async ({ url, app: appId, choose }) => {
     const file = await localCopy(context, url);
-    await openFile(file, { appId, choose });
+    // The system's "Open with" window opens over the app's.
+    await openFile(file, { appId, choose, owner: choose ? context.window()?.getNativeWindowHandle() : undefined });
     // The next file of its kind opens there too.
     const settings = context.engine.snapshot().settings;
     const kind = kindOf(file);

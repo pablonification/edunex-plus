@@ -99,6 +99,10 @@ jobs:
           # Ad-hoc signing on macOS (electron-builder.config.mjs); don't look for certificates.
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
         run: npm run "package:$TARGET" -- --publish never
+      # The helper that lists and opens the apps for a file runs for real only on Windows.
+      - name: List the apps that open a file (Windows)
+        if: matrix.target == 'win'
+        run: npx vitest run test/desktop/open-with.test.ts
       - name: Start the packaged app (Linux)
         if: matrix.target == 'linux'
         run: |
