@@ -19,7 +19,7 @@ afterEach(() => {
   document.body.replaceChildren();
 });
 
-it("shows the welcome screen in the first frame on first run", async () => {
+it("shows the welcome screen in the first frame on first run, in English until the Student picks Bahasa Indonesia", async () => {
   // Nobody signed in, nothing saved.
   const store = new AppStore({
     version: "0.0.0",
@@ -38,5 +38,5 @@ it("shows the welcome screen in the first frame on first run", async () => {
   // Not awaited: the first frame, before anything else could load.
   act(() => root.render(<App store={store} bridge={bridge} />));
   unmount = () => act(() => root.unmount());
-  expect(container.textContent).toContain("Selamat datang di Edunex Plus");
+  expect(container.textContent).toContain("Welcome to Edunex Plus");
 });
