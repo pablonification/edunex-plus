@@ -150,6 +150,18 @@ package:win` (one-click installers, one for x64 and one for arm64) and `npm run 
 (AppImage and deb) build installers into `release/`. Windows builds are best
 made on Windows or in CI, Linux builds on Linux.
 
+**The Mac app's signature.** Release builds sign the Mac app with the project's own certificate
+(`scripts/package-sign.mjs`), so every version is the same app to macOS and the keychain doesn't
+ask students for their password after each update. It isn't Apple's, so the first install still
+needs the Terminal line ([docs/install.md](docs/install.md)). Builds without it (yours, forks)
+stay ad-hoc. To set it up once, a maintainer runs `node scripts/make-signing-cert.mjs` (needs
+`openssl`) and puts what it prints into two repository secrets, `MAC_SIGNING_P12` and
+`MAC_SIGNING_PASSWORD`; the release workflow does the rest. Keep its folder somewhere safe and out
+of the repository: a new certificate makes every student type their password once more, and
+whoever holds it can sign an app macOS takes for Edunex Plus. Check a build with
+`codesign -d -r- "release/mac-arm64/Edunex Plus.app"`: signed, it names `id.edunexplus.desktop`
+and the certificate; ad-hoc, only a `cdhash`.
+
 Each build sets Electron's security switches (fuses) and stops if any came out
 wrong. Check a finished build with
 `npm run check:fuses -- "release/mac-arm64/Edunex Plus.app"` (or `release/mac` for the Intel

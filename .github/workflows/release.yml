@@ -19,6 +19,7 @@ on:
     paths:
       - "electron-builder.config.mjs"
       - "scripts/package-fuses.mjs"
+      - "scripts/package-sign.mjs"
       - "scripts/build-desktop.mjs"
       - "scripts/desktop-bundle.mjs"
       - "scripts/adhoc-sign-electron.mjs"
@@ -93,12 +94,53 @@ jobs:
         with:
           # Release builds start from a clean download, never from a shared cache.
           cache: "false"
+      # The project's own certificate for the Mac app, from the repository's secrets, in a keychain
+      # of its own that lasts this job: signed with it, every release is the same app to macOS, so
+      # updating doesn't make the keychain ask the Student for their password
+      # (scripts/package-sign.mjs; scripts/make-signing-cert.mjs makes one). Without the secrets
+      # (forks, or before they're set) the app is signed ad-hoc, as it always was.
+      - name: Get the signing certificate ready (macOS)
+        id: signing
+        if: matrix.target == 'mac'
+        env:
+          MAC_SIGNING_P12: ${{ secrets.MAC_SIGNING_P12 }}
+          MAC_SIGNING_PASSWORD: ${{ secrets.MAC_SIGNING_PASSWORD }}
+        run: |
+          if [ -z "$MAC_SIGNING_P12" ] || [ -z "$MAC_SIGNING_PASSWORD" ]; then
+            echo "No MAC_SIGNING_P12 and MAC_SIGNING_PASSWORD secrets: the Mac app is signed ad-hoc."
+            if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+              echo "::warning::This release's Mac app is signed ad-hoc: after updating to it, macOS asks Students for their password again. Set the signing secrets (CONTRIBUTING.md, Packaged builds)."
+            fi
+            exit 0
+          fi
+          keychain="$RUNNER_TEMP/signing.keychain-db"
+          p12="$RUNNER_TEMP/signing.p12"
+          trap 'rm -f "$p12"' EXIT
+          password=$(openssl rand -base64 32)
+          echo "::add-mask::$password"
+          security create-keychain -p "$password" "$keychain"
+          # From here on "Remove the signing certificate" deletes it, even if this step fails.
+          echo "keychain=$keychain" >> "$GITHUB_OUTPUT"
+          # Never locks by itself while the job runs.
+          security set-keychain-settings "$keychain"
+          security unlock-keychain -p "$password" "$keychain"
+          printf '%s' "$MAC_SIGNING_P12" | base64 --decode > "$p12"
+          security import "$p12" -k "$keychain" -f pkcs12 -P "$MAC_SIGNING_PASSWORD" -T /usr/bin/codesign
+          # Lets codesign use the key without a dialog nobody could click.
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$password" "$keychain" > /dev/null
       - name: Build and package
         env:
           TARGET: ${{ matrix.target }}
-          # Ad-hoc signing on macOS (electron-builder.config.mjs); don't look for certificates.
+          # electron-builder signs the Mac app ad-hoc (electron-builder.config.mjs) and doesn't
+          # look for certificates; with this keychain, scripts/package-sign.mjs signs it again.
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
+          MAC_SIGNING_KEYCHAIN: ${{ steps.signing.outputs.keychain }}
         run: npm run "package:$TARGET" -- --publish never
+      - name: Remove the signing certificate (macOS)
+        if: always() && steps.signing.outputs.keychain != ''
+        env:
+          KEYCHAIN: ${{ steps.signing.outputs.keychain }}
+        run: security delete-keychain "$KEYCHAIN"
       # The helper that lists and opens the apps for a file runs for real only on Windows.
       - name: List the apps that open a file (Windows)
         if: matrix.target == 'win'
