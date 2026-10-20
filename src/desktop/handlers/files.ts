@@ -6,23 +6,25 @@
 // offline copies under Documents, for every kind, and the files the app
 // downloaded for them, which "Unduh" opens again instead of downloading twice.
 // And saving a PDF filled in the app, only where the Student chooses in the
-// save dialog.
+// save dialog; and opening a copy on this computer in the app they pick, or
+// showing it in its folder.
 import { promises as fs } from "node:fs";
 import path from "node:path";
-import { app, dialog } from "electron";
+import { app, dialog, shell } from "electron";
 import type { Event } from "../../core/contract";
 import { planOfflineFiles } from "../../core/course-materials";
 import type { DatasetName, DatasetValue } from "../../core/models";
 import type { Engine } from "../../engine/engine";
 import { EngineError } from "../../engine/errors";
 import type { DownloadedFiles } from "../downloaded-files";
-import { safeName } from "../downloads";
+import { isDownloadable, safeName } from "../downloads";
 import type { FileCache } from "../file-cache";
+import { appsFor, openFile } from "../open-with";
 import { LIMITS, readFile, sniff } from "../remote-files";
 import type { DesktopContext, HandlerGroup } from "./context";
 import { offlineRoot } from "./course-page";
 
-export const filesHandlers: HandlerGroup<"files.read" | "files.saveCopy"> = (context) => ({
+export const filesHandlers: HandlerGroup<"files.read" | "files.saveCopy" | "files.local" | "files.open" | "files.reveal"> = (context) => ({
   "files.read": ({ url, as }) =>
     readFile({ fetch: context.fetchFile, cache: context.fileCache, offline: (address) => offlineCopy(context, address, LIMITS[as].bytes) }, url, as),
   "files.saveCopy": async ({ name, bytes }) => {
@@ -39,7 +41,38 @@ export const filesHandlers: HandlerGroup<"files.read" | "files.saveCopy"> = (con
     await fs.writeFile(file, bytes);
     return { file: path.basename(file) };
   },
+  "files.local": async ({ url }) => {
+    const file = isDownloadable(url) ? await copyOnThisComputer(context, url) : null;
+    if (!file) return null;
+    const { apps, own, chooser } = await appsFor(file);
+    const last = context.engine.snapshot().settings.openWith[kindOf(file)];
+    const preferred = apps.some((found) => found.id === last) ? last : (own ?? apps[0]?.id ?? null);
+    return { name: path.basename(file), apps, preferred, chooser };
+  },
+  "files.open": async ({ url, app: appId, choose }) => {
+    const file = await localCopy(context, url);
+    await openFile(file, { appId, choose });
+    // The next file of its kind opens there too.
+    const settings = context.engine.snapshot().settings;
+    const kind = kindOf(file);
+    if (appId && kind && settings.openWith[kind] !== appId) await context.engine.updateSettings({ openWith: { ...settings.openWith, [kind]: appId } });
+    return {};
+  },
+  "files.reveal": async ({ url }) => {
+    shell.showItemInFolder(await localCopy(context, url));
+    return {};
+  },
 });
+
+/** The copy of an Edunex file on this computer, or a refusal: the window never names a place itself. */
+async function localCopy(context: DesktopContext, url: string): Promise<string> {
+  const file = isDownloadable(url) ? await copyOnThisComputer(context, url) : null;
+  if (!file) throw new EngineError("Rejected", "That file isn't on this computer");
+  return file;
+}
+
+/** What `openWith` remembers an app by: the file's extension, lowercase (".pdf"); "" without one. */
+const kindOf = (file: string) => path.extname(file).toLowerCase().slice(0, 16);
 
 /** A file name that ends in ".pdf", whatever the Student typed. */
 export const pdfName = (name: string) => (/\.pdf$/i.test(name) ? name : `${name}.pdf`);

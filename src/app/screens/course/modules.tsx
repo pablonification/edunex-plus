@@ -25,6 +25,7 @@ import type { Material, Task } from "../../../core/models";
 import { useOpenExternal, useOpenLink } from "../../hooks";
 import { type Format, type Translate, useFormat, useNow, useT } from "../../i18n";
 import { LecturerHtml, RemoteImage } from "../../lecturer-html";
+import { OpenFile, useDownloadedToast, useLocalCopy } from "../../open-file";
 import { canView, usePdfViewer } from "../../pdf";
 import { useBridge } from "../../store";
 import { Button, IconButton } from "../../ui/controls";
@@ -338,6 +339,8 @@ export function MaterialRow({ material }: { material: Material }) {
   const [busy, setBusy] = useState(false);
   const kind = materialKind(material.type);
   const action = materialAction(material);
+  const local = useLocalCopy(action.kind === "download" ? action.url : null);
+  const downloaded = useDownloadedToast();
   const Icon = KIND_ICON[kind];
   const icon = (
     <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-fill text-muted">
@@ -383,7 +386,8 @@ export function MaterialRow({ material }: { material: Material }) {
     setBusy(true);
     try {
       const { existing } = await bridge.invoke("files.download", { url, name });
-      toast(t(existing ? "material.openedCopy" : "material.downloaded"));
+      downloaded(url, existing);
+      await local.refresh();
     } catch (error) {
       toast(t("error.action", { message: error instanceof Error ? error.message : String(error) }), "danger");
     } finally {
@@ -399,13 +403,18 @@ export function MaterialRow({ material }: { material: Material }) {
   switch (action.kind) {
     case "download":
       button = canView(action.name) ? (
-        // A PDF, Word document, spreadsheet, slides, text or picture reads right here; downloading stays one click away.
+        // A PDF, Word document, spreadsheet, slides, text or picture reads right here; downloading stays one click away,
+        // and once it's on this computer, opening it in another app or seeing it in its folder.
         <span className="flex items-center gap-1">
-          <Tooltip content={named(t("material.download"))}>
-            <IconButton label={named(t("material.download"))} size="sm" disabled={busy} onClick={() => void download(action.url, action.name)}>
-              {busy ? <Icons.Loader className="size-4 animate-spin" /> : <Icons.Download className="size-4" />}
-            </IconButton>
-          </Tooltip>
+          {local.copy ? (
+            <OpenFile url={action.url} copy={local.copy} onChange={() => void local.refresh()} />
+          ) : (
+            <Tooltip content={named(t("material.download"))}>
+              <IconButton label={named(t("material.download"))} size="sm" disabled={busy} onClick={() => void download(action.url, action.name)}>
+                {busy ? <Icons.Loader className="size-4 animate-spin" /> : <Icons.Download className="size-4" />}
+              </IconButton>
+            </Tooltip>
+          )}
           <Button
             size="sm"
             icon={<Icons.Eye className="size-3.5" />}
@@ -415,6 +424,8 @@ export function MaterialRow({ material }: { material: Material }) {
             {t("pdf.view")}
           </Button>
         </span>
+      ) : local.copy ? (
+        <OpenFile url={action.url} copy={local.copy} onChange={() => void local.refresh()} />
       ) : (
         <Button
           size="sm"

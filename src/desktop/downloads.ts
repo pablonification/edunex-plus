@@ -1,10 +1,11 @@
 // Files from Edunex go through Chromium's own download manager, so the OS
 // marks them as downloaded from the internet (quarantine / Mark of the Web).
-// They land in Downloads under their own name and open when done.
+// They land in Downloads under their own name; nothing opens by itself
+// (open-with.ts opens one when the Student asks).
 
 import { existsSync } from "node:fs";
 import path from "node:path";
-import { app, shell, type WebContents } from "electron";
+import { app, type WebContents } from "electron";
 import { EngineError } from "../engine/errors";
 
 /** Where Edunex keeps files: its storage on Azure, its API, ITB's own sites. */
@@ -29,7 +30,6 @@ export function download(contents: WebContents, url: string, name: string): Prom
       item.setSavePath(target);
       item.once("done", (_done, state) => {
         if (state !== "completed") return reject(new EngineError("Failed", `The download was ${state}`));
-        void shell.openPath(target);
         resolve(target);
       });
     };

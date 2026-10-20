@@ -16,6 +16,20 @@ export type FileProblem = z.infer<typeof FileProblem>;
 export const ReadAs = z.enum(["image", "pdf", "docx", "xlsx", "pptx", "text", "doc", "xls", "ppt"]);
 export type ReadAs = z.infer<typeof ReadAs>;
 
+/** An app on this computer that opens a file: `id` names it to "files.open" (its place, on macOS). `icon`: a data: URL. */
+export const OpenApp = z.object({ id: z.string().max(1000), name: z.string().max(200), icon: z.string().nullable() });
+export type OpenApp = z.infer<typeof OpenApp>;
+
+/**
+ * A file from Edunex that's on this computer (downloaded, or saved for
+ * offline): its name, the apps that open it (the system's own first; none
+ * where the system can't list them), the one the Student opened it in last
+ * time (else the system's own), and whether the system has its own window to
+ * choose another (Windows).
+ */
+export const LocalCopy = z.object({ name: z.string(), apps: z.array(OpenApp), preferred: z.string().nullable(), chooser: z.boolean() });
+export type LocalCopy = z.infer<typeof LocalCopy>;
+
 export const filesActions = {
   /**
    * A picture (PNG, JPEG, GIF or WebP, up to 20 MB), a PDF (up to 100 MB), a
@@ -37,4 +51,17 @@ export const filesActions = {
     input: z.object({ name: z.string().min(1).max(200), bytes: Bytes.refine((bytes) => bytes.byteLength <= MAX_UPLOAD_BYTES) }),
     output: z.object({ file: z.string().nullable() }),
   },
+  /** The copy of this file on this computer, if there is one. Only copies the app made itself, never a place the window names. */
+  "files.local": { input: z.object({ url: z.string().url().max(4000) }), output: LocalCopy.nullable() },
+  /**
+   * Opens the copy on this computer: in `app` (one of the apps "files.local"
+   * listed, remembered for files of its kind), else in the system's own app.
+   * `choose`: the system's "Open with" window instead.
+   */
+  "files.open": {
+    input: z.object({ url: z.string().url().max(4000), app: z.string().max(1000).optional(), choose: z.boolean().optional() }),
+    output: z.object({}),
+  },
+  /** Shows the copy on this computer in its folder (Finder, File Explorer, the file manager). */
+  "files.reveal": { input: z.object({ url: z.string().url().max(4000) }), output: z.object({}) },
 } as const;

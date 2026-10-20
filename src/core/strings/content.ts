@@ -37,7 +37,10 @@ export const contentStrings = {
     en: "This PDF is locked with a password. Download it to open it in another app.",
   },
   "pdf.broken": { id: "Berkasnya rusak atau bukan PDF yang bisa dibaca.", en: "The file is damaged or isn't a PDF that can be read." },
-  "pdf.downloadHint": { id: "Simpan ke Unduhan, lalu buka di aplikasi PDF komputermu", en: "Save to Downloads, then open it in your computer's PDF app" },
+  "pdf.downloadHint": {
+    id: "Simpan salinannya ke Unduhan, untuk dibuka di aplikasi PDF komputermu",
+    en: "Save a copy to Downloads, to open in your computer's PDF app",
+  },
   "pdf.addText": { id: "Tambah teks", en: "Add text" },
   "pdf.addTextHint": { id: "Lalu klik di halaman tempat teksnya", en: "Then click on the page where it goes" },
   "pdf.radio": { id: "{field}: {option}", en: "{field}: {option}" },
@@ -78,7 +81,10 @@ export const contentStrings = {
     id: "Berkasnya rusak atau bukan jenis yang bisa dibaca di aplikasi. Unduh untuk membukanya di aplikasi komputermu.",
     en: "The file is damaged or isn't a kind the app can read. Download it to open it in an app on your computer.",
   },
-  "viewer.downloadHint": { id: "Simpan ke Unduhan, lalu buka di aplikasi komputermu", en: "Save to Downloads, then open it in an app on your computer" },
+  "viewer.downloadHint": {
+    id: "Simpan salinannya ke Unduhan, untuk dibuka di aplikasi komputermu",
+    en: "Save a copy to Downloads, to open in an app on your computer",
+  },
   "viewer.textOnly": {
     id: "Hanya teksnya yang tampil di sini. Unduh untuk melihat tampilan aslinya.",
     en: "Only the text is shown here. Download it to see the original layout.",
