@@ -8,7 +8,7 @@ import { app, type BrowserWindow, dialog, powerMonitor, session } from "electron
 import { CHANNEL_EVENT } from "../core/channels";
 import type { Event } from "../core/contract";
 import type { Settings } from "../core/models";
-import { UpdateNotice } from "../core/models";
+import { DEFAULT_SETTINGS, UpdateNotice } from "../core/models";
 import type { Route } from "../core/route";
 import { translate } from "../core/strings";
 import { systemClock } from "../engine/clock";
@@ -64,7 +64,7 @@ let quitting = false;
 let syncing = false;
 let tray: AppTray | null = null;
 let theme: ReturnType<typeof followTheme> | null = null;
-const notifier = createNotifier({ lang: () => engine?.snapshot().settings.lang ?? "id", open: openRoute });
+const notifier = createNotifier({ lang: () => engine?.snapshot().settings.lang ?? DEFAULT_SETTINGS.lang, open: openRoute });
 
 if (!app.requestSingleInstanceLock()) {
   app.quit();
@@ -266,7 +266,10 @@ async function explainTray(current: Engine): Promise<void> {
 
 function fail(error: unknown): void {
   console.error("[main] start failed:", error);
-  dialog.showErrorBox(translate("id", "app.startFailed"), error instanceof Error ? error.message : String(error));
+  dialog.showErrorBox(
+    translate(engine?.snapshot().settings.lang ?? DEFAULT_SETTINGS.lang, "app.startFailed"),
+    error instanceof Error ? error.message : String(error),
+  );
   app.exit(1);
 }
 
