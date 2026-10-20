@@ -138,6 +138,20 @@ Labels are added for you: `area:app`, `area:engine`, `area:desktop`,
 `area:ci`, `tests`, `documentation`, `dependencies`, and `security-sensitive`
 for changes to sessions, the window's protections, packaging or workflows.
 
+## Packaged builds
+
+`npm run package:mac` (dmg and zip, ad-hoc signed, needs macOS), `npm run
+package:win` (one-click installer, x64 and arm64) and `npm run package:linux`
+(AppImage and deb) build installers into `release/`. Windows builds are best
+made on Windows or in CI, Linux builds on Linux.
+
+Each build sets Electron's security switches (fuses) and stops if any came out
+wrong. Check a finished build with
+`npm run check:fuses -- "release/mac-arm64/Edunex Plus.app"` (or the `.exe` in
+`release/win-unpacked`, or `release/linux-unpacked/edunex-plus`). The
+installed app carries `third-party-notices.txt` beside it (`npm run build`
+writes it), with its own licence and Electron's and Chromium's.
+
 ## Releases (maintainers)
 
 1. `npm version patch` (or `minor`), then `git push --follow-tags`. For a test
