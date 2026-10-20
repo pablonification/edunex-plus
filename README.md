@@ -224,9 +224,10 @@ Nothing leaves your computer except the app's own requests to:
   session;
 - **GitHub**, once a day, to check for a newer release (no personal data is sent);
 - **ntfy** (`ntfy.sh`), only if you turn on phone notifications: the alert's text (for example
-  a Task's name and deadline), sent under a private code only your phone knows. ntfy's
-  operator can read these messages, and Settings says so. Turning it off cancels the reminders
-  already booked there.
+  a Task's name and deadline), sent under a private code that only this app and your phone
+  use. ntfy's operator can read these messages, and Settings says so. Turning it off cancels
+  the reminders already booked there; if ntfy can't be reached then, the app tells you some
+  may still arrive.
 
 No other servers, no analytics, no telemetry. Every request says it comes from Edunex Plus
 (its User-Agent), and the app reads at a human pace. How it uses each system is written down in
