@@ -223,7 +223,9 @@ describe("materials", () => {
     expect(s.calls.at(-1)).toEqual({ name: "files.open", input: { url: BLOB, app: "/Applications/Zed.app" } });
     expect(s.engine.snapshot().settings.openWith).toEqual({ ".pdf": "/Applications/Zed.app" });
     await s.click(`Buka di Zed: ${name}`);
-    await s.click(`Tampilkan di Finder: ${name}`);
+    // Its folder is the arrow's last item, after the apps.
+    await s.click(`Buka di aplikasi lain: ${name}`);
+    await s.click("Tampilkan di Finder");
     expect(s.calls.at(-1)).toEqual({ name: "files.reveal", input: { url: BLOB } });
   });
 
