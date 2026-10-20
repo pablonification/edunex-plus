@@ -23,7 +23,10 @@ Linux it depends on the desktop's notification daemon.
 - Packaged builds (`npm run package:mac`) are signed ad-hoc by electron-builder
   (`identity: "-"`, no hardened runtime, which would refuse Electron's own
   frameworks under an ad-hoc signature). Check with `codesign -dv`:
-  `Signature=adhoc`.
+  `Signature=adhoc`. Release builds are then signed again with the project's
+  own certificate (`scripts/package-sign.mjs`, still no hardened runtime), so
+  the keychain knows each update is the same app: `codesign -dvv` shows
+  `Authority=Edunex Plus`.
 - Known residue: downloaded ad-hoc packaged builds hit Gatekeeper on first
   launch (right-click → Open). Accepted and documented, not solved.
 - Test notification appeared in Notification Center on 2026-09-05

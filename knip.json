@@ -2,6 +2,6 @@
   "$schema": "https://unpkg.com/knip@6/schema.json",
   "entry": ["src/desktop/main.ts", "src/desktop/preload.ts", "scripts/**/*.{mjs,cjs,ts}", "test/**/*.test.{ts,tsx}"],
   "project": ["src/**/*.{ts,tsx,css}", "scripts/**/*.{mjs,cjs,ts}", "test/**/*.{ts,tsx}"],
-  "ignoreBinaries": ["ffmpeg", "ffprobe"],
+  "ignoreBinaries": ["ffmpeg", "ffprobe", "openssl"],
   "ignoreExportsUsedInFile": true
 }

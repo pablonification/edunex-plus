@@ -122,7 +122,9 @@ in your browser.
 
 - **macOS:** works when the app is in Applications (or another folder you can change). Opened
   from the disk image, or from Downloads before you moved it, the app says so and opens the
-  release page instead. No Terminal line is needed after an update from inside the app.
+  release page instead. No Terminal line is needed after an update from inside the app. If macOS
+  asks for your password so Edunex Plus can use "Edunex Plus Safe Storage" in your keychain (the
+  lock on your sign-in), type your Mac's login password and choose **Always Allow**.
 - **Windows:** the new installer runs by itself, without any window, and opens the app when you restarted for it.
 - **Linux AppImage:** the new AppImage replaces the one you started.
 - **Linux `.deb`:** the release page opens; install the new `.deb` with apt as below.

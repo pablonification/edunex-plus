@@ -1,11 +1,13 @@
-// Packaged builds: macOS dmg + zip for Apple silicon and Intel (ad-hoc signed), one-click Windows
-// installers (NSIS) for x64 and ARM PCs, Linux AppImage + deb. The app archive holds only the built
-// window (dist/app), the bundled main process and preload (dist/desktop) and
-// the tray icons (assets/tray*); everything they use is already bundled, so no node_modules.
-// The fuses are flipped and checked in scripts/package-fuses.mjs; the disk image is packed
-// smaller in scripts/package-dmg.mjs.
+// Packaged builds: macOS dmg + zip for Apple silicon and Intel (signed with the project's own
+// certificate in releases, ad-hoc elsewhere), one-click Windows installers (NSIS) for x64 and ARM
+// PCs, Linux AppImage + deb. The app archive holds only the built window (dist/app), the bundled
+// main process and preload (dist/desktop) and the tray icons (assets/tray*); everything they use is
+// already bundled, so no node_modules. The fuses are flipped and checked in
+// scripts/package-fuses.mjs; the Mac app is signed with the certificate in scripts/package-sign.mjs;
+// the disk image is packed smaller in scripts/package-dmg.mjs.
 import { artifactBuildCompleted } from "./scripts/package-dmg.mjs";
 import { afterPack } from "./scripts/package-fuses.mjs";
+import { afterSign } from "./scripts/package-sign.mjs";
 
 // The Windows installer for ARM PCs (Snapdragon and the like). Each kind of PC has its own, half
 // the size of one carrying both; scripts/package-win.mjs builds this one, then the x64 one under
@@ -33,6 +35,7 @@ export default {
   // Nothing native to rebuild: the main process is one bundled file.
   npmRebuild: false,
   afterPack,
+  afterSign,
   artifactBuildCompleted,
   // Chromium's own words (its few menus and messages) only in the two languages the app speaks,
   // not the 55 it ships: about 10 MB less to download. A computer set to another language gets
@@ -57,7 +60,11 @@ export default {
       { from: "node_modules/electron/dist/LICENSE", to: "LICENSE.electron.txt" },
       { from: "node_modules/electron/dist/LICENSES.chromium.html", to: "LICENSES.chromium.html" },
     ],
-    // Ad-hoc: no Apple certificate, but signed, so macOS delivers notifications.
+    // Ad-hoc: no Apple certificate, but signed, so macOS delivers notifications. Release builds
+    // are then signed again with the project's own certificate (afterSign,
+    // scripts/package-sign.mjs), so every version is the same app to macOS and the keychain
+    // doesn't ask the Student for their password after each update; electron-builder's own
+    // search for a certificate finds only ones macOS trusts, which that one isn't.
     // Hardened runtime would refuse Electron's own frameworks under an ad-hoc signature.
     identity: "-",
     hardenedRuntime: false,

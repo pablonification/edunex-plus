@@ -19,6 +19,8 @@
           - "scripts/build-desktop.mjs"
           - "scripts/desktop-bundle.mjs"
           - "scripts/package-fuses.*"
+          - "scripts/package-sign.*"
+          - "scripts/make-signing-cert.*"
           - "scripts/adhoc-sign-electron.mjs"
           - "assets/**"
 
@@ -45,7 +47,8 @@ dependencies:
       - any-glob-to-any-file: ["package.json", "package-lock.json"]
 
 # Sessions, tokens, the window's locks and the bridge to it, packaging switches,
-# and the workflows that hold the repository's keys: worth a careful look.
+# the Mac app's signature, and the workflows that hold the repository's keys:
+# worth a careful look.
 security-sensitive:
   - changed-files:
       - any-glob-to-any-file:
@@ -53,4 +56,6 @@ security-sensitive:
           - "src/core/actions/**"
           - "electron-builder.config.mjs"
           - "scripts/package-fuses.*"
+          - "scripts/package-sign.*"
+          - "scripts/make-signing-cert.*"
           - ".github/workflows/**"
