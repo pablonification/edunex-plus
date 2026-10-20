@@ -114,7 +114,10 @@ export async function openApp(options: Options = {}) {
       for (const listener of listeners) listener(event);
     },
   });
+  // A first start: the tests read the screens in Bahasa Indonesia, which a Student picks in Settings.
+  const firstStart = (await storage.read("state.json")) === null;
   await engine.load();
+  if (firstStart) await engine.updateSettings({ lang: "id" });
   if (!options.firstScan) await engine.updateSettings({ firstScanDone: true });
   if (options.start !== false) engine.start();
 

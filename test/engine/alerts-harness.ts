@@ -44,7 +44,10 @@ export async function startAlerts(
     },
     phone: { ntfy: ntfy.send, newTopic: ntfy.newTopic },
   });
+  // A first start: the tests read alerts in Bahasa Indonesia, which a Student picks in Settings.
+  const firstStart = (await storage.read("state.json")) === null;
   await engine.load();
+  if (firstStart) await engine.updateSettings({ lang: "id" });
   engine.start();
   if (options.signIn !== false) await engine.signIn("edunex", { token: PRETEND_TOKEN });
   return {

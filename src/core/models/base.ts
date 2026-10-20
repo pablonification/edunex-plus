@@ -86,7 +86,8 @@ export type Settings = z.infer<typeof Settings>;
 
 export const DEFAULT_SETTINGS: Settings = {
   theme: "system",
-  lang: "id",
+  // A first start is in English; a Student who picked Bahasa Indonesia keeps it (it's saved).
+  lang: "en",
 
   // Alerts (#75)
   mutedAlerts: [],

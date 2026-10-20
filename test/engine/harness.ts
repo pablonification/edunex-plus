@@ -42,7 +42,10 @@ export async function startEngine(
     emit: (e) => events.push(e),
     random: () => 0.5,
   });
+  // A first start: the tests read alerts in Bahasa Indonesia, which a Student picks in Settings.
+  const firstStart = (await storage.read("state.json")) === null;
   await engine.load();
+  if (firstStart) await engine.updateSettings({ lang: "id" });
   if (options.start !== false) engine.start();
   return {
     world,

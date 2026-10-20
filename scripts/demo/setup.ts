@@ -250,6 +250,9 @@ const hooks: DemoHooks = {
     return source === "edunex" ? PRETEND_TOKEN : PRETEND_SIX_COOKIE;
   },
   async prepare(engine) {
+    // The demo's pictures and the scripts that drive it read the screens in Bahasa Indonesia; the
+    // app itself starts in English (DEFAULT_SETTINGS), and `demo.settings({ lang: "en" })` switches.
+    await engine.updateSettings({ lang: "id" });
     if (scenario === "first-run") {
       runInRealTime();
       return false;
