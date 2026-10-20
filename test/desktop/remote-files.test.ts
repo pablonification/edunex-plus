@@ -193,10 +193,26 @@ describe("reading an old Word, Excel or PowerPoint file", () => {
     expect(await read(doc, "xls")).toEqual({ problem: "unreadable" });
     expect(await read(xls, "ppt")).toEqual({ problem: "unreadable" });
     expect(await read(ppt, "doc")).toEqual({ problem: "unreadable" });
-    // A .docx, a page passed off as one, and an Excel 95 workbook (whose stream is "Book").
-    expect(await read(await aDocx({ lines: ["Notulen"] }), "doc")).toEqual({ problem: "unreadable" });
+    // A page passed off as one, and an Excel 95 workbook (whose stream is "Book").
     expect(await read(ascii("\u00d0\u00cf<html><script>alert(1)</script>"), "doc")).toEqual({ problem: "unreadable" });
     expect(await read(aCompoundFile({ Book: new Uint8Array(100) }), "xls")).toEqual({ problem: "unreadable" });
+  });
+
+  it("one named as the other generation of its app is read in as what it is, never as another app's", async () => {
+    // Edunex's label for an upload can say "ppt" for a .pptx, and its link has no extension to say otherwise.
+    const pptx = await aPptx([{ title: "Pertemuan 1" }]);
+    const docx = await aDocx({ lines: ["Notulen"] });
+    const xlsx = await anXlsx({ Lembar1: [["a"]] });
+    expect(await read(pptx, "ppt")).toMatchObject({ type: "application/vnd.openxmlformats-officedocument.presentationml.presentation" });
+    expect(await read(docx, "doc")).toMatchObject({ type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
+    expect(await read(xlsx, "xls")).toMatchObject({ type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+    expect(await read(aPpt([{ title: "Pengantar" }]), "pptx")).toMatchObject({ type: "application/vnd.ms-powerpoint" });
+    expect(await read(aDoc(["Notulen"]), "docx")).toMatchObject({ type: "application/msword" });
+    expect(await read(anXls({ Lembar1: [["a"]] }), "xlsx")).toMatchObject({ type: "application/vnd.ms-excel" });
+    // Another app's file stays refused, either generation.
+    expect(await read(docx, "ppt")).toEqual({ problem: "unreadable" });
+    expect(await read(aDoc(["Notulen"]), "pptx")).toEqual({ problem: "unreadable" });
+    expect(await read(pptx, "xls")).toEqual({ problem: "unreadable" });
   });
 
   it("one whose sector chains loop or point outside it isn't read in, and checking it doesn't hang", () => {

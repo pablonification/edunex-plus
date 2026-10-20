@@ -219,6 +219,33 @@ describe("files other than PDFs in the viewer", () => {
     expect(slides[1].textContent).toContain("Tanpa judul");
   });
 
+  it('a file whose name says the other generation of its app shows all the same: Edunex labels a .pptx "ppt" under a link without its extension', async () => {
+    const s = await openApp({ signedIn: true });
+    screen = s;
+    s.world.edunex.postMaterial(95001, { name: "Managing the problem process", type: "ppt", content: `${BLOB}-managing` });
+    s.world.putFile(`${BLOB}-managing`, await aPptx([{ title: "Problem solving", bullets: ["Define the problem"] }]));
+    s.world.edunex.postMaterial(95001, { name: "Notulen lama", type: "docx", content: `${BLOB}-notulen` });
+    s.world.putFile(`${BLOB}-notulen`, aDoc(["Notulen rapat"]));
+    await s.engineDoes(() => s.engine.refresh("edunex"));
+    const card = [...document.querySelectorAll<HTMLButtonElement>("main ul li button")].find((b) => b.textContent?.startsWith("PL3002"));
+    await s.click(card!);
+    await s.click([...document.querySelector("nav[aria-label='Daftar isi']")!.querySelectorAll("button")].find((b) => b.textContent?.includes("Pengantar"))!);
+
+    await s.click("Lihat: Managing the problem process");
+    await settle();
+    expect(s.calls).toContainEqual({ name: "files.read", input: { url: `${BLOB}-managing`, as: "ppt" } });
+    expect(viewer()?.textContent).toContain("Managing the problem process.ppt");
+    // Its slides as a .pptx's, not only their text.
+    expect(viewer()?.textContent).not.toContain("Hanya teksnya yang tampil di sini.");
+    expect(viewer()!.querySelector("article")?.textContent).toContain("Define the problem");
+    await s.click("Tutup");
+
+    await s.click("Lihat: Notulen lama");
+    await settle();
+    expect(viewer()?.textContent).toContain("Hanya teksnya yang tampil di sini.");
+    expect(viewer()?.textContent).toContain("Notulen rapat");
+  });
+
   it("an old Word document that's locked can't be shown, and downloading it is the way forward", async () => {
     const s = await openWith([{ name: "Terkunci", ext: "doc", bytes: aDoc(["Rahasia"], { locked: true }) }]);
     await s.click("Lihat: Terkunci");

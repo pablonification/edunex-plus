@@ -43,8 +43,25 @@ type Shown =
   | { kind: "ppt"; slides: Slide[] };
 type View = { phase: "loading" } | { phase: "ready"; shown: Shown } | { phase: "failed"; problem: FileViewProblem };
 
+/** A Word, Excel or PowerPoint file's generations: the new is a ZIP, the old a compound file. */
+const NEWER = { doc: "docx", xls: "xlsx", ppt: "pptx" } as const;
+const OLDER = { docx: "doc", xlsx: "xls", pptx: "ppt" } as const;
+
+/**
+ * Which reader the bytes need: a name can say the other generation of the
+ * same app (a .pptx under Edunex's label "ppt"), and main took either, each
+ * checked as itself.
+ */
+function readerFor(kind: FileKind, bytes: Uint8Array): FileKind {
+  const zip = bytes[0] === 0x50 && bytes[1] === 0x4b && bytes[2] === 0x03 && bytes[3] === 0x04;
+  if (zip && Object.hasOwn(NEWER, kind)) return NEWER[kind as keyof typeof NEWER];
+  if (!zip && Object.hasOwn(OLDER, kind)) return OLDER[kind as keyof typeof OLDER];
+  return kind;
+}
+
 /** The file's bytes as what it shows: the readers of Word, Excel and PowerPoint files, old and new, load here, the first time one opens. */
-async function show(kind: FileKind, bytes: Uint8Array): Promise<Shown> {
+async function show(named: FileKind, bytes: Uint8Array): Promise<Shown> {
+  const kind = readerFor(named, bytes);
   switch (kind) {
     case "docx":
       return { kind, nodes: await (await import("./docx")).drawDocx(bytes) };
