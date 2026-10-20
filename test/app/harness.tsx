@@ -309,6 +309,7 @@ export async function openApp(options: Options = {}) {
       return {};
     },
     "alerts.test": async () => ({ shown: true }),
+    "app.checkUpdate": async () => ({ found: await engine.checkForUpdates() }),
     "app.openRelease": async () => ({}),
     "app.downloadUpdate": () => updater.download(),
     "app.installUpdate": async () => {

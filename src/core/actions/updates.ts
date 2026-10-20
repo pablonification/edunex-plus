@@ -1,8 +1,10 @@
 // "New version available" (#82), and updating from inside the app.
 import { z } from "zod";
-import { UpdateInstall } from "../models";
+import { UpdateCheckResult, UpdateInstall } from "../models";
 
 export const updatesActions = {
+  /** Asks GitHub for a newer release now ("Periksa pembaruan"); a newer one comes as "app.update", as from the daily check. */
+  "app.checkUpdate": { input: z.object({}), output: z.object({ found: UpdateCheckResult }) },
   /** Opens the newer release's GitHub page in the system browser. */
   "app.openRelease": { input: z.object({}), output: z.object({}) },
   /**

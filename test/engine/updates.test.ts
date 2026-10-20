@@ -75,6 +75,40 @@ describe("new version check", () => {
     expect(notice(h)).toBeUndefined();
   });
 
+  it('asks at once when the Student presses "Periksa pembaruan", and the day\'s check counts from then', async () => {
+    const world = new PretendWorld();
+    world.github.latestTag = "v2.0.0-test";
+    const h = await startEngine({ world, checkForUpdates: true, version: "2.0.0-test" });
+    expect(await h.engine.checkForUpdates()).toBe("latest");
+    expect(world.github.requests).toHaveLength(1);
+    // The check a minute after start is now the one a day after the Student's.
+    await h.wait(2 * MINUTE);
+    expect(world.github.requests).toHaveLength(1);
+
+    world.github.latestTag = "v2.1.0";
+    expect(await h.engine.checkForUpdates()).toBe("newer");
+    expect(notice(h)).toMatchObject({ version: "2.1.0" });
+    // Pressed twice before GitHub answers: asked once.
+    expect(await Promise.all([h.engine.checkForUpdates(), h.engine.checkForUpdates()])).toEqual(["newer", "newer"]);
+    expect(world.github.requests).toHaveLength(3);
+
+    // Offline: no answer to go by, and the notice already out stays.
+    world.setOffline(true);
+    expect(await h.engine.checkForUpdates()).toBe("unknown");
+    expect(notice(h)).toMatchObject({ version: "2.1.0" });
+    world.setOffline(false);
+    world.github.failWith = 403;
+    expect(await h.engine.checkForUpdates()).toBe("unknown");
+  });
+
+  it('never asks in development or the demo, even when the Student presses "Periksa pembaruan"', async () => {
+    const world = new PretendWorld();
+    world.github.latestTag = "v2.1.0";
+    const h = await startEngine({ world });
+    expect(await h.engine.checkForUpdates()).toBe("off");
+    expect(world.github.requests).toHaveLength(0);
+  });
+
   it("asks at most once a day, also across restarts", async () => {
     const world = new PretendWorld();
     world.github.latestTag = "v1.0.0";

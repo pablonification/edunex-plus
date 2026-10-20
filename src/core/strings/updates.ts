@@ -15,6 +15,14 @@ export const updatesStrings = {
   },
   "update.restart": { id: "Mulai ulang untuk memperbarui", en: "Restart to update" },
   "update.retry": { id: "Coba lagi", en: "Try again" },
+  "update.check": { id: "Periksa pembaruan", en: "Check for updates" },
+  "update.checked.newer": { id: "Edunex Plus {version} sudah keluar.", en: "Edunex Plus {version} is out." },
+  "update.checked.latest": { id: "Ini versi terbaru.", en: "This is the latest version." },
+  "update.checked.unknown": {
+    id: "Tidak bisa memeriksa sekarang. Coba lagi saat sudah terhubung.",
+    en: "Couldn't check just now. Try again once you're online.",
+  },
+  "update.checked.off": { id: "Hanya aplikasi yang terpasang yang memeriksa pembaruan.", en: "Only the installed app checks for updates." },
   "update.problem.offline": { id: "Tidak ada koneksi. Coba lagi saat sudah terhubung.", en: "No connection. Try again once you're online." },
   "update.problem.mismatch": {
     id: "File yang terunduh tidak sama dengan yang ada di rilis, jadi tidak dipasang.",

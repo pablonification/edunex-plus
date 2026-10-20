@@ -26,6 +26,51 @@ async function newerRelease(options: { updateBlocked?: UpdateBlock; world?: Pret
   return opened;
 }
 
+describe("checking for a newer version now", () => {
+  const check = async (s: Awaited<ReturnType<typeof openApp>>) => {
+    await s.apply({ type: "command", command: "settings" });
+    await s.click("Periksa pembaruan");
+  };
+
+  it('"Periksa pembaruan" asks GitHub at once: the latest version says so, a newer one shows on top of Settings', async () => {
+    const world = new PretendWorld();
+    world.github.latestTag = "v2.0.0-test";
+    screen = await openApp({ world, signedIn: true, checkForUpdates: true });
+    await check(screen);
+    expect(screen.calls.at(-1)).toEqual({ name: "app.checkUpdate", input: {} });
+    expect(screen.text()).toContain("Ini versi terbaru.");
+    expect(screen.text()).not.toContain("Versi baru tersedia");
+
+    world.github.latestTag = "v2.1.0";
+    await screen.click("Periksa pembaruan");
+    expect(screen.text()).toContain("Edunex Plus 2.1.0 sudah keluar.");
+    expect(screen.text()).toContain("Versi baru tersedia");
+    expect(screen.button("Unduh & pasang")).toBeTruthy();
+    // Both checks were the Student's: the one a minute after start now waits a day.
+    await screen.wait(2 * 60_000);
+    expect(world.github.requests).toHaveLength(2);
+  });
+
+  it("offline, says to try again once online", async () => {
+    const world = new PretendWorld();
+    world.github.latestTag = "v2.1.0";
+    screen = await openApp({ world, signedIn: true, checkForUpdates: true });
+    world.setOffline(true);
+    await check(screen);
+    expect(screen.text()).toContain("Tidak bisa memeriksa sekarang. Coba lagi saat sudah terhubung.");
+    expect(screen.text()).not.toContain("Versi baru tersedia");
+  });
+
+  it("in development or the demo, says only the installed app checks", async () => {
+    const world = new PretendWorld();
+    world.github.latestTag = "v2.1.0";
+    screen = await openApp({ world, signedIn: true });
+    await check(screen);
+    expect(screen.text()).toContain("Hanya aplikasi yang terpasang yang memeriksa pembaruan.");
+    expect(world.github.requests).toHaveLength(0);
+  });
+});
+
 describe("new version available", () => {
   it("shows the newer version in Settings, with the dot on the settings button", async () => {
     const world = new PretendWorld();

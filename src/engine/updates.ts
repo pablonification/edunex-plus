@@ -1,13 +1,13 @@
 // The "new version available" check (#82): asks GitHub for the latest release
-// at most once a day and publishes it when it is newer than the running
-// version. A pre-release copy (an alpha) looks at every published release, so
+// at most once a day, or right away when the Student asks ("Periksa
+// pembaruan"), and publishes it when it is newer than the running version. A pre-release copy (an alpha) looks at every published release, so
 // it hears about the next alpha too; a full release only ever offers a full
 // release. Quiet by design: offline, a refusal or an odd answer just means
 // no notice. Never downloads or installs anything itself: the window links to
 // the release page, and main downloads and installs only when the Student
 // asks (src/desktop/self-update.ts).
 import { z } from "zod";
-import type { UpdateNotice } from "../core/models";
+import type { UpdateCheckResult, UpdateNotice } from "../core/models";
 import { isNewerRelease, isPrerelease, LATEST_RELEASE_API, newestTag, RELEASES_API, releasePageUrl } from "../core/updates";
 import type { Clock, TimerHandle } from "./clock";
 import type { Transport } from "./http/transport";
@@ -36,17 +36,20 @@ export interface UpdateCheckDeps {
 export interface UpdateCheck {
   start(): void;
   stop(): void;
+  /** Asks now (the Student pressed "Periksa pembaruan"), and the daily check counts from now. A check already asking is the one answered. */
+  checkNow(): Promise<Exclude<UpdateCheckResult, "off">>;
 }
 
 export function createUpdateCheck(deps: UpdateCheckDeps): UpdateCheck {
   const { clock, storage } = deps;
   let timer: TimerHandle | null = null;
   let running = false;
+  let asking: Promise<Exclude<UpdateCheckResult, "off">> | null = null;
 
   const schedule = (ms: number) => {
     if (!running) return;
     if (timer) clock.clearTimeout(timer);
-    timer = clock.setTimeout(() => void check(), ms);
+    timer = clock.setTimeout(() => void ask(), ms);
   };
 
   async function lastChecked(): Promise<number | null> {
@@ -70,7 +73,14 @@ export function createUpdateCheck(deps: UpdateCheckDeps): UpdateCheck {
     return release.data.tag_name;
   }
 
-  async function check(): Promise<void> {
+  function ask(): Promise<Exclude<UpdateCheckResult, "off">> {
+    asking ??= check().finally(() => {
+      asking = null;
+    });
+    return asking;
+  }
+
+  async function check(): Promise<Exclude<UpdateCheckResult, "off">> {
     let answered = false;
     const everyRelease = isPrerelease(deps.version);
     try {
@@ -83,13 +93,19 @@ export function createUpdateCheck(deps: UpdateCheckDeps): UpdateCheck {
       answered = true;
       await storage.write(STATE_KEY, JSON.stringify({ checkedAt: clock.now() }));
       // 404: no release published yet.
-      if (response.status === 404) return await deps.publish(null);
-      if (response.status !== 200) return;
+      if (response.status === 404) {
+        await deps.publish(null);
+        return "latest";
+      }
+      if (response.status !== 200) return "unknown";
       const tag = offered(response.body, everyRelease);
-      if (tag === undefined) return;
-      await deps.publish(tag && isNewerRelease(tag, deps.version) ? { version: tag.replace(/^v/, ""), url: releasePageUrl(tag) } : null);
+      if (tag === undefined) return "unknown";
+      const newer = tag !== null && isNewerRelease(tag, deps.version);
+      await deps.publish(newer ? { version: tag.replace(/^v/, ""), url: releasePageUrl(tag) } : null);
+      return newer ? "newer" : "latest";
     } catch {
       // Offline, timed out, or an answer that isn't JSON: no notice this time.
+      return "unknown";
     } finally {
       schedule(answered ? DAY : RETRY_OFFLINE_AFTER);
     }
@@ -106,5 +122,6 @@ export function createUpdateCheck(deps: UpdateCheckDeps): UpdateCheck {
       if (timer) clock.clearTimeout(timer);
       timer = null;
     },
+    checkNow: ask,
   };
 }

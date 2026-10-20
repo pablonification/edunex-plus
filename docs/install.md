@@ -105,8 +105,10 @@ the app still works but asks you to sign in again after each restart, and Settin
 
 ## Updates
 
-Once a day the app asks GitHub whether a newer release exists. If so, a dot appears on the
-settings button and Settings shows the new version with **Unduh & pasang** (Download & install).
+Once a day the app asks GitHub whether a newer release exists. To ask right away, open Settings
+and press **Periksa pembaruan** (Check for updates) under **Tentang** (About). If there is one, a
+dot appears on the settings button and Settings shows the new version with **Unduh & pasang**
+(Download & install).
 Press it and the app downloads the new version from GitHub, shows how far it got, and checks the
 file against the list the release publishes. When it's ready, press **Mulai ulang untuk
 memperbarui** (Restart to update): the app closes, puts the new version in place and opens

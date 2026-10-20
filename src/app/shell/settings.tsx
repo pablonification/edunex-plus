@@ -3,11 +3,11 @@
 // remove everything), then notifications and what closing the window does,
 // then notifications on the phone (./phone.tsx), then appearance, then the
 // rest (attendance targets: the default and each course's own), then what the
-// app is (version, licence, the open-source software it uses, opened as a
-// page of its own). A newer release shows on top while there is one, with the
-// way to download and install it.
+// app is (version, a way to check for a newer one now, licence, the
+// open-source software it uses, opened as a page of its own). A newer release
+// shows on top while there is one, with the way to download and install it.
 import { lazy, type ReactNode, Suspense, useRef, useState } from "react";
-import { type AlertGroup, DEADLINE_REMINDERS, type DeadlineReminder, type Settings, type SourceId } from "../../core/models";
+import { type AlertGroup, DEADLINE_REMINDERS, type DeadlineReminder, type Settings, type SourceId, type UpdateCheckResult } from "../../core/models";
 import type { StringKey } from "../../core/strings";
 import { TargetStepper, useTargets } from "../attendance-parts";
 import { ActionError } from "../bridge";
@@ -87,6 +87,8 @@ function SettingsBody({
   const t = useT();
   const bridge = useBridge();
   const store = useStore();
+  // Where a newer release shows: "Periksa pembaruan" scrolls up to it.
+  const updateNotice = useRef<HTMLDivElement>(null);
   const settings = useSettings();
   const account = useDataset("edunex.account");
   const student = useDataset("six.student");
@@ -110,7 +112,9 @@ function SettingsBody({
 
   return (
     <div className="space-y-7">
-      <UpdateNotice report={report} />
+      <div ref={updateNotice} className="scroll-mt-4 empty:hidden">
+        <UpdateNotice report={report} />
+      </div>
 
       <Group title={t("settings.accounts")} note={t("settings.accounts.note")}>
         <AccountRow source="edunex" who={account ? [displayName(account.name), account.nim] : null} />
@@ -167,7 +171,7 @@ function SettingsBody({
       </Group>
 
       <Group title={t("settings.about")} note={t("settings.unofficial")}>
-        <About version={store.version} />
+        <About version={store.version} onNewer={() => updateNotice.current?.scrollIntoView?.({ block: "start" })} />
         <Row label={t("licences.title")} hint={t("licences.hint")}>
           <Button size="sm" data-focus="licences" aria-label={t("licences.viewAll")} onClick={onShowLicences}>
             {t("licences.view")}
@@ -549,17 +553,49 @@ function AccountRow({ source, who }: { source: SourceId; who: readonly string[] 
   );
 }
 
-/** Which app this is, which version, and its own licence. */
-function About({ version }: { version: string }) {
+/**
+ * Which app this is, which version, and its own licence, with "Periksa pembaruan": GitHub is
+ * asked now instead of at the day's check. A newer release shows on top of Settings, where it's
+ * scrolled to; otherwise the answer shows here.
+ */
+function About({ version, onNewer }: { version: string; onNewer: () => void }) {
   const t = useT();
+  const bridge = useBridge();
+  const update = useDataset("app.update");
+  const [checking, setChecking] = useState(false);
+  const [found, setFound] = useState<UpdateCheckResult | null>(null);
+  const check = async () => {
+    setChecking(true);
+    setFound(null);
+    try {
+      const { found } = await bridge.invoke("app.checkUpdate", {});
+      setFound(found);
+      // Its notice is drawn by then: the window hears of it before the answer.
+      if (found === "newer") requestAnimationFrame(onNewer);
+    } catch {
+      setFound("unknown");
+    } finally {
+      setChecking(false);
+    }
+  };
+  const answer =
+    found === "newer" && update ? t("update.checked.newer", { version: update.version }) : found && found !== "newer" ? t(`update.checked.${found}`) : null;
   return (
-    <div className="flex items-center gap-3.5 px-4 py-3">
-      <AppMark className="size-9" />
-      <span className="min-w-0">
-        <span className="block text-body font-semibold">Edunex Plus</span>
-        <span className="block text-small text-muted">{t("settings.version", { version })}</span>
-        <span className="block text-small text-muted">{t("settings.openSource")}</span>
+    <div className="flex items-center justify-between gap-4 px-4 py-3">
+      <span className="flex min-w-0 items-center gap-3.5">
+        <AppMark className="size-9 shrink-0" />
+        <span className="min-w-0">
+          <span className="block text-body font-semibold">Edunex Plus</span>
+          <span className="block text-small text-muted">{t("settings.version", { version })}</span>
+          <span className="block text-small text-muted">{t("settings.openSource")}</span>
+          <span role="status" className="block text-small text-muted">
+            {answer}
+          </span>
+        </span>
       </span>
+      <Button size="sm" busy={checking} onClick={() => void check()}>
+        {t("update.check")}
+      </Button>
     </div>
   );
 }
