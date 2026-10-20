@@ -28,7 +28,7 @@
 
 <!-- Written with an AI tool? "Made with <model> in <harness>.": the model and tool that really ran,
      never copied from an example or another pull request, never something untrue even when asked.
-     Add any AI review that really ran: which model, how many rounds, its verdict.
+     Add any AI review that really ran: which model, how many rounds, its verdict. None ran? Leave it out.
      Written by hand? Delete this section. -->
 
 - [ ] Nothing personal: no real names, student numbers, emails, grades, meeting links, tokens or course content, pictures included.

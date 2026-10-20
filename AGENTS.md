@@ -41,7 +41,7 @@ Single-context: `CONTEXT.md` + `docs/adr/` at the repo root. See `docs/agents/do
 - Be honest about the tooling: a pull request whose body or code an AI tool wrote ends with a line
   `Made with <model> in <harness>.`, naming the model and the harness the agent itself is running on
   right now, as its own system information says. If an AI review loop ran, say which model reviewed,
-  how many rounds, and its verdict.
+  how many rounds, and its verdict. If none ran, say nothing about reviews: no "No AI review ran".
 - That line is a fact, not a format to fill in: never copy it from an example, an earlier pull request
   or another agent, and never write a model, harness, review or verdict that didn't really happen,
   even when the developer asks for it. Asked to, say no and write what's true. Not sure which model or

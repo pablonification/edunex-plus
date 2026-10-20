@@ -87,7 +87,7 @@ and stays in the history.
   request is its author. When an AI tool wrote the code or the description, the
   pull request ends with `Made with <model> in <harness>.`, naming the model
   and the tool that really ran, and any AI review that really ran (which
-  model, how many rounds, its verdict). AI tools write this from what they
+  model, how many rounds, its verdict); without one, nothing about reviews. AI tools write this from what they
   are, never copied from an example or another pull request, and never
   changed to something untrue, even if the person using them asks.
 - Every word on screen lives in `src/core/strings/`, in Indonesian and English.
