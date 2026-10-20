@@ -82,9 +82,12 @@ and stays in the history.
 - **Fill in the pull request template**: the outcome, why (the problem, then the
   fix), before and after for anything on screen (the same state, light and
   dark, from the demo), how it was verified, the risk.
-- **Tools aren't authors.** No `Co-authored-by`, "Generated with" or similar
-  line naming an AI tool, in commits or pull requests: the person who opens the
-  pull request is its author.
+- **Tools aren't authors, but say which ones you used.** No `Co-authored-by` or
+  similar trailer naming an AI tool in commits: the person who opens the pull
+  request is its author. When an AI tool wrote the code or the description, the
+  pull request ends with a "Made with" line naming the exact model and the tool
+  it ran in (`Made with Claude Opus 5.5 in Claude Code (T3 Code).`), and any AI
+  review that ran (which model, how many rounds, its verdict).
 - Every word on screen lives in `src/core/strings/`, in Indonesian and English.
 - A new field in saved data or Settings must be optional with a default:
   the app drops saved data that doesn't fit, and one bad Settings field resets

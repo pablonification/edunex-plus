@@ -37,5 +37,8 @@ Single-context: `CONTEXT.md` + `docs/adr/` at the repo root. See `docs/agents/do
   title becomes the commit on `main`.
 - The body follows `.github/pull_request_template.md`: outcome, why (the problem, then the fix), before
   and after for anything on screen (the same state, light and dark, from the demo), verification, risk.
-- Tools are not authors: no `Co-authored-by`, "Generated with" or similar line naming an AI tool, in
-  commits or pull requests.
+- Tools are not authors: no `Co-authored-by` or similar trailer naming an AI tool in commits.
+- Be honest about the tooling: a pull request whose body or code an AI tool wrote ends with a "Made with"
+  line naming the exact model and the harness it ran in, as they really were
+  (`Made with Claude Opus 5.5 in Claude Code (T3 Code).`). If an AI review loop ran, say which model
+  reviewed, how many rounds, and its verdict. Never guess or leave out a tool that was used.

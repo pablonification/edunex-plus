@@ -24,6 +24,12 @@
 
 <!-- Low, medium or high: what could go wrong for a student, in one line. -->
 
+## Made with
+
+<!-- Written with an AI tool? Name the exact model and the tool it ran in, as they really were:
+     "Made with Claude Opus 5.5 in Claude Code (T3 Code)." Add any AI review that ran: which model,
+     how many rounds, its verdict. Written by hand? Delete this section. -->
+
 - [ ] Nothing personal: no real names, student numbers, emails, grades, meeting links, tokens or course content, pictures included.
 - [ ] New test data is made up, or comes from `npm run fixtures:scrub` and I read its diff.
 - [ ] Every new word on screen is in `src/core/strings/`, in Indonesian and English.
