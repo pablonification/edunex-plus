@@ -6,6 +6,8 @@
 //   assets/icon.ico              the app's icon on Windows (window, taskbar, Start, the installer), 16 to 256 px
 //   assets/tray.ico              the tray icon on Windows, 16 to 48 px (display scaling 100% to 300%)
 //   assets/tray.png (+ @2x)      the tray icon on Linux, 24 px
+//   assets/trayTemplate.png (+ @2x)  the menu bar icon on macOS, 16 pt: the tile in black with the
+//                                    mark cut out of it, a "Template" image macOS tints itself
 // Windows' and Linux's are the tile alone, edge to edge as their icons are, each size drawn
 // from the drawing itself rather than shrunk from 1024 px, so the small ones stay sharp.
 // Then re-run scripts/make-dmg-background.mjs: the disk image's window shows the icon too.
@@ -40,6 +42,16 @@ const e = { x: 460, y: 566, radius: 170, stroke: 96, bar: 82, opening: 48 };
 // The raised "+".
 const plus = { x: 708, y: 338, arm: 68, stroke: 64 };
 
+/** The "e" and its "+", in `colour`. */
+function mark(colour) {
+  return `  <g fill="${colour}">
+    <path d="M${e.x + e.radius},${e.y} A${e.radius},${e.radius} 0 1 0 ${n(end.x)},${n(end.y)}" fill="none" stroke="${colour}" stroke-width="${e.stroke}"/>
+    <circle cx="${n(end.x)}" cy="${n(end.y)}" r="${e.stroke / 2}"/>
+    <rect x="${e.x - outer}" y="${e.y - e.bar / 2}" width="${2 * outer}" height="${e.bar}" clip-path="url(#e-outline)"/>
+    <path d="M${plus.x - plus.arm},${plus.y} H${plus.x + plus.arm} M${plus.x},${plus.y - plus.arm} V${plus.y + plus.arm}" fill="none" stroke="${colour}" stroke-width="${plus.stroke}" stroke-linecap="round"/>
+  </g>`;
+}
+
 const gap = (e.opening * Math.PI) / 180;
 const end = { x: e.x + e.radius * Math.cos(gap), y: e.y + e.radius * Math.sin(gap) };
 const outer = e.radius + e.stroke / 2;
@@ -69,12 +81,7 @@ const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" 
   <path id="tile" d="${tile()}" fill="url(#blue)" filter="url(#shadow)"/>
   <path d="${tile()}" fill="url(#sheen)"/>
   <path d="${tile(410.5)}" fill="none" stroke="url(#rim)" stroke-width="3"/>
-  <g fill="#ffffff">
-    <path d="M${e.x + e.radius},${e.y} A${e.radius},${e.radius} 0 1 0 ${n(end.x)},${n(end.y)}" fill="none" stroke="#ffffff" stroke-width="${e.stroke}"/>
-    <circle cx="${n(end.x)}" cy="${n(end.y)}" r="${e.stroke / 2}"/>
-    <rect x="${e.x - outer}" y="${e.y - e.bar / 2}" width="${2 * outer}" height="${e.bar}" clip-path="url(#e-outline)"/>
-    <path d="M${plus.x - plus.arm},${plus.y} H${plus.x + plus.arm} M${plus.x},${plus.y - plus.arm} V${plus.y + plus.arm}" fill="none" stroke="#ffffff" stroke-width="${plus.stroke}" stroke-linecap="round"/>
-  </g>
+${mark("#ffffff")}
 </svg>
 `;
 
@@ -114,8 +121,32 @@ fs.writeFileSync(out("assets/tray.ico"), ico([16, 20, 24, 32, 40, 48].map(drawn)
 fs.writeFileSync(out("assets/tray.png"), drawn(24).png);
 fs.writeFileSync(out("assets/tray@2x.png"), drawn(48).png);
 
+// macOS's menu bar: the tile in black with the mark cut out of it, edge to edge like the others.
+// Only its shape counts: macOS draws it in the menu bar's own colour (the "Template" name).
+const template = path.join(tmp, "template.svg");
+fs.writeFileSync(
+  template,
+  `<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="88 88 848 848">
+  <defs>
+    <clipPath id="e-outline"><circle cx="${e.x}" cy="${e.y}" r="${outer}"/></clipPath>
+    <mask id="cut"><path d="${tile()}" fill="#ffffff"/>
+${mark("#000000")}
+    </mask>
+  </defs>
+  <rect x="0" y="0" width="1024" height="1024" fill="#000000" mask="url(#cut)"/>
+</svg>
+`,
+);
+for (const [file, size] of [
+  ["assets/trayTemplate.png", 16],
+  ["assets/trayTemplate@2x.png", 32],
+])
+  run("rsvg-convert", ["-w", `${size}`, "-h", `${size}`, template, "-o", out(file)]);
+
 fs.rmSync(tmp, { recursive: true, force: true });
-console.log("wrote assets/icon.svg, assets/icon.png, assets/icon.icns, assets/icon.ico, assets/tray.ico, assets/tray.png, src/app/assets/edunex-plus.png");
+console.log(
+  "wrote assets/icon.svg, assets/icon.png, assets/icon.icns, assets/icon.ico, assets/tray.ico, assets/tray.png, assets/trayTemplate.png, src/app/assets/edunex-plus.png",
+);
 
 /**
  * A Windows .ico holding every size: the 256 px one as PNG, the smaller ones as

@@ -1,8 +1,8 @@
 // The tray (menu bar on macOS) icon that keeps the app reachable while its
 // window is closed and it keeps alerting: Open and Quit, in the Student's
-// language. macOS's menu bar gets a one-colour "Template" glyph it tints itself
-// (scripts/generate-tray-icon.mjs); Windows and Linux the app's own colour
-// icon, as their other apps do, drawn at each size (scripts/make-icons.mjs).
+// language. macOS's menu bar gets a one-colour "Template" glyph it tints itself,
+// the app's tile with its "e+" cut out; Windows and Linux the app's own colour
+// icon, as their other apps do; each drawn at its sizes (scripts/make-icons.mjs).
 
 import path from "node:path";
 import { app, Menu, type NativeImage, nativeImage, Tray } from "electron";
