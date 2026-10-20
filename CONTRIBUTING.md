@@ -146,7 +146,7 @@ for changes to sessions, the window's protections, packaging or workflows.
 ## Packaged builds
 
 `npm run package:mac` (dmg and zip for Apple silicon and Intel, ad-hoc signed, needs macOS), `npm run
-package:win` (one-click installer, x64 and arm64) and `npm run package:linux`
+package:win` (one-click installers, one for x64 and one for arm64) and `npm run package:linux`
 (AppImage and deb) build installers into `release/`. Windows builds are best
 made on Windows or in CI, Linux builds on Linux.
 

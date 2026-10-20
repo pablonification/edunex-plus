@@ -9,7 +9,7 @@
 // - macOS: the zip for this Mac (arm64 or x64), unpacked beside the running app
 //   and swapped in by a small script once the app has quit. Not Squirrel.Mac:
 //   it refuses apps signed ad-hoc, as these are.
-// - Windows: the one-click installer, run silently as an update.
+// - Windows: the one-click installer for this PC (x64 or ARM), run silently as an update.
 // - Linux AppImage: the new AppImage, put where the running one is.
 // - A .deb, a development or demo build, or an app it can't replace where it
 //   is: the release page opens instead, and the window says why.
@@ -71,8 +71,9 @@ export function releaseApiUrl(notice: UpdateNotice): string {
 /**
  * This computer's file in a release, and the latest*.yml that lists its sha512 (null when
  * the release has none). Names are electron-builder's (electron-builder.config.mjs):
- * Edunex-Plus-1.2.3-arm64-mac.zip, Edunex-Plus-Setup-1.2.3.exe (both Windows kinds in one),
- * Edunex-Plus-1.2.3-x86_64.AppImage. Only files at this app's own release addresses count, and only
+ * Edunex-Plus-1.2.3-arm64-mac.zip, Edunex-Plus-Setup-1.2.3.exe (Intel and AMD PCs; up to
+ * 0.1.0-alpha.5 both kinds in one) or Edunex-Plus-1.2.3-arm64.exe (ARM PCs, with its own
+ * latest-win-arm64.yml), Edunex-Plus-1.2.3-x86_64.AppImage. Only files at this app's own release addresses count, and only
  * plain file names: the download is saved under its name, so one naming a folder ("..", "a/b") never is.
  */
 export function pickReleaseFile(files: ReleaseFile[], kind: UpdateKind, arch: Arch): { file: ReleaseFile; info: ReleaseFile | null } | null {
@@ -80,7 +81,10 @@ export function pickReleaseFile(files: ReleaseFile[], kind: UpdateKind, arch: Ar
   const named = (test: (name: string) => boolean) => ours.find((file) => test(file.name)) ?? null;
   const pick = {
     mac: { file: (name: string) => name.endsWith(`-${arch}-mac.zip`), info: "latest-mac.yml" },
-    windows: { file: (name: string) => /Setup.*\.exe$/i.test(name), info: "latest.yml" },
+    windows:
+      arch === "arm64"
+        ? { file: (name: string) => name.endsWith("-arm64.exe"), info: "latest-win-arm64.yml" }
+        : { file: (name: string) => /Setup.*\.exe$/i.test(name), info: "latest.yml" },
     appImage: {
       file: (name: string) => name.endsWith(`-${arch === "x64" ? "x86_64" : "arm64"}.AppImage`),
       info: arch === "x64" ? "latest-linux.yml" : "latest-linux-arm64.yml",

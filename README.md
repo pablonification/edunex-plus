@@ -42,7 +42,7 @@ light and dark.
 ## Download
 
 Get the newest version from [Releases](https://github.com/pablonification/edunex-plus/releases),
-under **Assets** (Linux on ARM: see the [install guide](docs/install.md#which-file-to-download)):
+under **Assets** (Windows or Linux on ARM: see the [install guide](docs/install.md#which-file-to-download)):
 
 | Your computer | File |
 | --- | --- |
