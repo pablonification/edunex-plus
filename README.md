@@ -5,6 +5,16 @@
 **An unofficial desktop app for ITB students** that puts Edunex and SIX in one calm window, for
 macOS, Windows and Linux.
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/home-dark.png">
+  <img alt="Beranda: the class happening now, whether attendance counts in SIX or Edunex, today's classes, and what changed" src="docs/screenshots/home-light.png">
+</picture>
+
+<sub>Every picture here is from the demo's made-up student, never a real account.</sub>
+
+[Install](#install) · [Signing in](#signing-in) · [Privacy](#privacy) ·
+[Build from source](#build-from-source) · [Contributing](CONTRIBUTING.md)
+
 > ⚠️ **Unofficial — not an ITB or Cognisia product.**
 > Edunex Plus is an independent open-source project built by students. It is not affiliated
 > with, endorsed by, or connected to Institut Teknologi Bandung (ITB) or to Cognisia, the
@@ -25,12 +35,20 @@ shows what needs you now, what changed, and where you stand:
 - **Presensi** — whether each course counts attendance in SIX or Edunex, which action an
   Edunex Presence window wants, your exact SIX count ("Hadir X dari Y"), and how many absences
   you have left before your target.
-- **Courses** — each course's modules, materials (saved by course and module, readable
-  offline), meetings and rooms.
+- **Courses** — each course's modules, materials (opened right in the app, Word, Excel and
+  PowerPoint files included, and saved by course and module to read offline), meetings and
+  rooms.
 - **Rencana studi** — your KRS, UKT bills and ITB's academic deadlines.
-- **Alerts** — new Tasks and materials, deadline reminders, Presence windows opening, KRS
-  changes and bills, as OS notifications. Closing the window keeps the app alerting from the
-  tray (or menu bar); you can choose to quit instead.
+- **Alerts** — new Tasks and materials, Presence windows opening, KRS changes and bills, and
+  reminders when you choose them before a deadline, an attendance window closing, an exam or a
+  class. They come as OS notifications; closing the window keeps the app alerting from the tray
+  (or menu bar), and you can choose to quit instead. If you like, they also reach your phone
+  through the free [ntfy](https://ntfy.sh) app, even with the laptop closed, and stay quiet at
+  night.
+
+| Tugas & Ujian | Presensi |
+| --- | --- |
+| ![Tugas & Ujian: exams in the midterm week and Tasks due next week, each with its course and deadline](docs/screenshots/tasks-light.png) | ![Presensi: each course's attendance count, how many absences are left before the 80% target, and clashes](docs/screenshots/presence-light.png) |
 
 The app never marks attendance, never sends Edunex "viewed" or "online" signals, and never
 changes your KRS. When something has to be done on the official site, it opens that page.
@@ -204,7 +222,12 @@ Nothing leaves your computer except the app's own requests to:
   with your session, to read your data and to hand in what you choose to submit;
 - **ITB's public pages** (the academic calendar and SIX's public course catalog), without any
   session;
-- **GitHub**, once a day, to check for a newer release (no personal data is sent).
+- **GitHub**, once a day, to check for a newer release (no personal data is sent);
+- **ntfy** (`ntfy.sh`), only if you turn on phone notifications: the alert's text (for example
+  a Task's name and deadline), sent under a private code that only this app and your phone
+  use. ntfy's operator can read these messages, and Settings says so. Turning it off cancels
+  the reminders already booked there; if ntfy can't be reached then, the app tells you some
+  may still arrive.
 
 No other servers, no analytics, no telemetry. Every request says it comes from Edunex Plus
 (its User-Agent), and the app reads at a human pace. How it uses each system is written down in
