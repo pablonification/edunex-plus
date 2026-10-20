@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://edunex-plus.arqilasp.com/sitemap.xml
