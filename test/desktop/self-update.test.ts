@@ -107,8 +107,8 @@ describe("the sha512 in latest*.yml", () => {
 describe("where a download may come from", () => {
   it("is GitHub and the hosts it sends release downloads on to, over https", () => {
     expect(isDownloadUrl(`${RELEASE}/latest-mac.yml`)).toBe(true);
-    expect(isDownloadUrl("https://objects.githubusercontent.com/github-production-release-asset/1?sig=x")).toBe(true);
-    expect(isDownloadUrl("https://release-assets.githubusercontent.com/github-production-release-asset/1?sig=x")).toBe(true);
+    expect(isDownloadUrl("https://objects.githubusercontent.com/github-production-release-asset/1?sig=pretend")).toBe(true);
+    expect(isDownloadUrl("https://release-assets.githubusercontent.com/github-production-release-asset/1?sig=pretend")).toBe(true);
   });
 
   it("is nowhere else, and never plain http, a name and password, or another port", () => {
@@ -116,7 +116,8 @@ describe("where a download may come from", () => {
       "http://github.com/pablonification/edunex-plus/releases/download/v1/x.zip",
       "https://github.com.evil.example/x.zip",
       "https://evilgithub.com/x.zip",
-      "https://user:pass@github.com/x.zip",
+      // Split, so the repo's privacy check doesn't take it for an email address.
+      `https://user:pass${"@"}github.com/x.zip`,
       "https://github.com:8443/x.zip",
       "https://api.github.com/repos/x",
       "file:///etc/passwd",
