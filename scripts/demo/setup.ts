@@ -199,14 +199,29 @@ const week = (n: number, topic: string) => ({
   ],
 });
 
+/**
+ * A PDF at the size Edunex lists for its material, so a download of it is
+ * "already on this computer" afterwards, as a real one is. What comes after a
+ * PDF's end is never read.
+ */
+function sizedAs(bytes: Uint8Array, size: number): Uint8Array {
+  if (bytes.length >= size) return bytes;
+  const padded = new Uint8Array(size).fill(0x0a);
+  padded.set(bytes);
+  return padded;
+}
+
 // The picture in II4091's "Course Tokens" note, and PDFs to read in the viewer (all made up).
 world.putFile("https://edunexfixture.blob.core.windows.net/edunex/fixture-2", samplePicture());
 world.putFile(
   "https://edunexfixture.blob.core.windows.net/edunex/fixture-1",
-  samplePdf(
-    ["Pengantar", "Permintaan Transportasi", "Penawaran dan Kapasitas", "Biaya dan Tarif", "Evaluasi Proyek", "Ringkasan"].map((topic, i) =>
-      week(i + 1, topic),
+  sizedAs(
+    samplePdf(
+      ["Pengantar", "Permintaan Transportasi", "Penawaran dan Kapasitas", "Biaya dan Tarif", "Evaluasi Proyek", "Ringkasan"].map((topic, i) =>
+        week(i + 1, topic),
+      ),
     ),
+    1_947_726,
   ),
 );
 const slides = samplePdf(
@@ -216,7 +231,8 @@ const slides = samplePdf(
   })),
   [842, 595],
 );
-for (const name of ["slide-pengantar", "slide-pengantar-gabungan"]) world.putFile(`https://edunexfixture.blob.core.windows.net/edunex/fixture-${name}`, slides);
+for (const name of ["slide-pengantar", "slide-pengantar-gabungan"])
+  world.putFile(`https://edunexfixture.blob.core.windows.net/edunex/fixture-${name}`, sizedAs(slides, 2_310_544));
 
 const hooks: DemoHooks = {
   transport: world,
