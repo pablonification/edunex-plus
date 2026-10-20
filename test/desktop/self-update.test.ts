@@ -7,6 +7,7 @@ import type { UpdateInstall, UpdateNotice } from "../../src/core/models";
 import {
   createUpdater,
   isDownloadUrl,
+  isPlainFileName,
   isReleaseFileUrl,
   MAC_SWAP_SCRIPT,
   macBundleOf,
@@ -42,6 +43,13 @@ describe("this computer's file in a release", () => {
   it("is the zip for this kind of Mac, with latest-mac.yml", () => {
     expect(pickReleaseFile(release, "mac", "arm64")).toEqual({ file: release[2], info: release[8] });
     expect(pickReleaseFile(release, "mac", "x64")).toEqual({ file: release[3], info: release[8] });
+  });
+
+  it("is never a name that points at a folder, since the download is saved under it", () => {
+    const sneaky = [file("../Edunex-Plus-1.2.0-arm64-mac.zip"), file("a/Edunex-Plus-1.2.0-arm64-mac.zip"), file(".Edunex-Plus-1.2.0-arm64-mac.zip")];
+    expect(pickReleaseFile(sneaky, "mac", "arm64")).toBeNull();
+    for (const name of ["..", ".", "", "a\\b.zip", "a/b.zip"]) expect(isPlainFileName(name)).toBe(false);
+    expect(isPlainFileName("Edunex-Plus-1.2.0-arm64-mac.zip")).toBe(true);
   });
 
   it("is the one installer on Windows, for either kind of PC, with latest.yml", () => {

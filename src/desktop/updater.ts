@@ -15,6 +15,7 @@ import {
   type Arch,
   createUpdater,
   isDownloadUrl,
+  isPlainFileName,
   MAC_SWAP_SCRIPT,
   MismatchError,
   macBundleOf,
@@ -141,7 +142,9 @@ export function electronUpdater(options: ElectronUpdaterOptions): Updater {
     download: async (file: ReleaseFile, progress) => {
       await fsp.rm(folder, { recursive: true, force: true });
       await fsp.mkdir(folder, { recursive: true });
-      const target = path.join(folder, path.basename(file.name));
+      // pickReleaseFile only takes plain names; checked again here, where the name becomes a place on disk.
+      if (!isPlainFileName(file.name)) throw new MismatchError(`${file.name} isn't a plain file name`);
+      const target = path.join(folder, file.name);
       const hash = createHash("sha512");
       let size = 0;
       await get(

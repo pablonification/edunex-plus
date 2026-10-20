@@ -34,6 +34,9 @@ const parseUrl = (url: string) => {
   }
 };
 
+/** A file name and nothing more: letters, digits, ".", "-" and "_", not starting with a dot. */
+export const isPlainFileName = (name: string) => /^[\w-][\w.-]{0,199}$/.test(name);
+
 /** A download, or a step a download is sent on to: https on GitHub's own hosts, no name, password or odd port in it. */
 export function isDownloadUrl(url: string): boolean {
   const parsed = parseUrl(url);
@@ -69,10 +72,11 @@ export function releaseApiUrl(notice: UpdateNotice): string {
  * This computer's file in a release, and the latest*.yml that lists its sha512 (null when
  * the release has none). Names are electron-builder's (electron-builder.config.mjs):
  * Edunex-Plus-1.2.3-arm64-mac.zip, Edunex-Plus-Setup-1.2.3.exe (both Windows kinds in one),
- * Edunex-Plus-1.2.3-x86_64.AppImage. Only files at this app's own release addresses count.
+ * Edunex-Plus-1.2.3-x86_64.AppImage. Only files at this app's own release addresses count, and only
+ * plain file names: the download is saved under its name, so one naming a folder ("..", "a/b") never is.
  */
 export function pickReleaseFile(files: ReleaseFile[], kind: UpdateKind, arch: Arch): { file: ReleaseFile; info: ReleaseFile | null } | null {
-  const ours = files.filter((file) => isReleaseFileUrl(file.url));
+  const ours = files.filter((file) => isReleaseFileUrl(file.url) && isPlainFileName(file.name));
   const named = (test: (name: string) => boolean) => ours.find((file) => test(file.name)) ?? null;
   const pick = {
     mac: { file: (name: string) => name.endsWith(`-${arch}-mac.zip`), info: "latest-mac.yml" },
