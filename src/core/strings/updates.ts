@@ -15,7 +15,17 @@ export const updatesStrings = {
   },
   "update.restart": { id: "Mulai ulang untuk memperbarui", en: "Restart to update" },
   "update.retry": { id: "Coba lagi", en: "Try again" },
+  "update.auto": { id: "Perbarui otomatis", en: "Update automatically" },
+  "update.autoHint": {
+    id: "Versi baru terunduh sendiri dan terpasang saat kamu menutup aplikasi.",
+    en: "New versions download by themselves and install when you quit the app.",
+  },
+  "update.readyAuto": {
+    id: "Edunex Plus {version} siap. Terpasang saat kamu menutup aplikasi, atau mulai ulang sekarang.",
+    en: "Edunex Plus {version} is ready. It installs when you quit the app, or restart now.",
+  },
   "update.check": { id: "Periksa pembaruan", en: "Check for updates" },
+  "update.checkHint": { id: "Diperiksa sendiri sekali sehari.", en: "Checked by itself once a day." },
   "update.checked.newer": { id: "Edunex Plus {version} sudah keluar.", en: "Edunex Plus {version} is out." },
   "update.checked.latest": { id: "Ini versi terbaru.", en: "This is the latest version." },
   "update.checked.unknown": {

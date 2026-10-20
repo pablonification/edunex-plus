@@ -78,6 +78,10 @@ export const Settings = z.object({
   /** The app the Student last opened each kind of file in, by extension (".pdf"): its place on this computer. */
   openWith: z.record(z.string().max(16), z.string().max(1000)),
 
+  // Updates
+  /** "Perbarui otomatis": a newer version downloads by itself and is put in place when the Student quits the app. */
+  autoUpdate: z.boolean(),
+
   // First-run scan (#81)
   /** The first full sync's findings were shown (or there were none): the scan doesn't open by itself again. */
   firstScanDone: z.boolean(),
@@ -103,6 +107,9 @@ export const DEFAULT_SETTINGS: Settings = {
 
   // Files
   openWith: {},
+
+  // Updates
+  autoUpdate: true,
 
   // First-run scan (#81)
   firstScanDone: false,

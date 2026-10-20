@@ -1,11 +1,13 @@
-// Settings, in the order people look for things: the accounts first (who is
+// Settings, in the order people look for things: updates first (a newer
+// release with the way to download and install it, "Perbarui otomatis" and a
+// way to check now, together, so a check's answer shows where it was asked),
+// then the accounts (who is
 // signed in, when each was last checked, sign out of one, or sign out and
 // remove everything), then notifications and what closing the window does,
 // then notifications on the phone (./phone.tsx), then appearance, then the
 // rest (attendance targets: the default and each course's own), then what the
-// app is (version, a way to check for a newer one now, licence, the
-// open-source software it uses, opened as a page of its own). A newer release
-// shows on top while there is one, with the way to download and install it.
+// app is (licence, the open-source software it uses, opened as a page of its
+// own).
 import { lazy, type ReactNode, Suspense, useRef, useState } from "react";
 import { type AlertGroup, DEADLINE_REMINDERS, type DeadlineReminder, type Settings, type SourceId, type UpdateCheckResult } from "../../core/models";
 import type { StringKey } from "../../core/strings";
@@ -87,8 +89,6 @@ function SettingsBody({
   const t = useT();
   const bridge = useBridge();
   const store = useStore();
-  // Where a newer release shows: "Periksa pembaruan" scrolls up to it.
-  const updateNotice = useRef<HTMLDivElement>(null);
   const settings = useSettings();
   const account = useDataset("edunex.account");
   const student = useDataset("six.student");
@@ -112,9 +112,12 @@ function SettingsBody({
 
   return (
     <div className="space-y-7">
-      <div ref={updateNotice} className="scroll-mt-4 empty:hidden">
-        <UpdateNotice report={report} />
-      </div>
+      <Group title={t("settings.updates")} lead={<UpdateNotice report={report} />}>
+        <Row label={t("update.auto")} hint={t("update.autoHint")}>
+          <Switch checked={settings.autoUpdate} onCheckedChange={(autoUpdate) => update({ autoUpdate })} label={t("update.auto")} />
+        </Row>
+        <CheckForUpdates version={store.version} />
+      </Group>
 
       <Group title={t("settings.accounts")} note={t("settings.accounts.note")}>
         <AccountRow source="edunex" who={account ? [displayName(account.name), account.nim] : null} />
@@ -171,7 +174,7 @@ function SettingsBody({
       </Group>
 
       <Group title={t("settings.about")} note={t("settings.unofficial")}>
-        <About version={store.version} onNewer={() => updateNotice.current?.scrollIntoView?.({ block: "start" })} />
+        <About />
         <Row label={t("licences.title")} hint={t("licences.hint")}>
           <Button size="sm" data-focus="licences" aria-label={t("licences.viewAll")} onClick={onShowLicences}>
             {t("licences.view")}
@@ -403,6 +406,7 @@ function UpdateNotice({ report }: { report: (error: unknown) => void }) {
   const bridge = useBridge();
   const update = useDataset("app.update");
   const install = useUpdateInstall();
+  const { autoUpdate } = useSettings();
   if (!update) return null;
   const openPage = () => void bridge.invoke("app.openRelease", {}).catch(report);
   const download = () => void bridge.invoke("app.downloadUpdate", {}).catch(report);
@@ -448,7 +452,7 @@ function UpdateNotice({ report }: { report: (error: unknown) => void }) {
           />
         </span>
       ) : step === "ready" ? (
-        t("update.ready", { version: update.version })
+        t(autoUpdate ? "update.readyAuto" : "update.ready", { version: update.version })
       ) : (
         <>
           {t("update.version", { version: update.version })}
@@ -554,11 +558,10 @@ function AccountRow({ source, who }: { source: SourceId; who: readonly string[] 
 }
 
 /**
- * Which app this is, which version, and its own licence, with "Periksa pembaruan": GitHub is
- * asked now instead of at the day's check. A newer release shows on top of Settings, where it's
- * scrolled to; otherwise the answer shows here.
+ * "Periksa pembaruan": GitHub is asked now instead of at the day's check. A newer release shows
+ * just above, in the update notice; otherwise the answer shows here.
  */
-function About({ version, onNewer }: { version: string; onNewer: () => void }) {
+function CheckForUpdates({ version }: { version: string }) {
   const t = useT();
   const bridge = useBridge();
   const update = useDataset("app.update");
@@ -568,10 +571,7 @@ function About({ version, onNewer }: { version: string; onNewer: () => void }) {
     setChecking(true);
     setFound(null);
     try {
-      const { found } = await bridge.invoke("app.checkUpdate", {});
-      setFound(found);
-      // Its notice is drawn by then: the window hears of it before the answer.
-      if (found === "newer") requestAnimationFrame(onNewer);
+      setFound((await bridge.invoke("app.checkUpdate", {})).found);
     } catch {
       setFound("unknown");
     } finally {
@@ -581,29 +581,34 @@ function About({ version, onNewer }: { version: string; onNewer: () => void }) {
   const answer =
     found === "newer" && update ? t("update.checked.newer", { version: update.version }) : found && found !== "newer" ? t(`update.checked.${found}`) : null;
   return (
-    <div className="flex items-center justify-between gap-4 px-4 py-3">
-      <span className="flex min-w-0 items-center gap-3.5">
-        <AppMark className="size-9 shrink-0" />
-        <span className="min-w-0">
-          <span className="block text-body font-semibold">Edunex Plus</span>
-          <span className="block text-small text-muted">{t("settings.version", { version })}</span>
-          <span className="block text-small text-muted">{t("settings.openSource")}</span>
-          <span role="status" className="block text-small text-muted">
-            {answer}
-          </span>
-        </span>
-      </span>
+    <Row label={t("settings.version", { version })} hint={<span role="status">{answer ?? t("update.checkHint")}</span>}>
       <Button size="sm" busy={checking} onClick={() => void check()}>
         {t("update.check")}
       </Button>
+    </Row>
+  );
+}
+
+/** Which app this is, and its own licence (its version is under Pembaruan). */
+function About() {
+  const t = useT();
+  return (
+    <div className="flex items-center gap-3.5 px-4 py-3">
+      <AppMark className="size-9" />
+      <span className="min-w-0">
+        <span className="block text-body font-semibold">Edunex Plus</span>
+        <span className="block text-small text-muted">{t("settings.openSource")}</span>
+      </span>
     </div>
   );
 }
 
-function Group({ title, note, children }: { title?: string; note?: string; children: ReactNode }) {
+/** `lead`: shown between the title and the rows (an update notice), while it draws anything. */
+function Group({ title, note, lead, children }: { title?: string; note?: string; lead?: ReactNode; children: ReactNode }) {
   return (
     <section>
       {title && <h3 className="mb-2 px-1 text-small font-semibold text-muted">{title}</h3>}
+      {lead && <div className="mb-2 empty:hidden">{lead}</div>}
       <Card className="divide-y divide-line overflow-hidden">{children}</Card>
       {note && <p className="mt-1.5 px-1 text-caption text-faint">{note}</p>}
     </section>

@@ -192,16 +192,16 @@ export function electronUpdater(options: ElectronUpdaterOptions): Updater {
       await run("/usr/bin/xattr", ["-dr", "com.apple.quarantine", unpacked]).catch(() => undefined);
       return unpacked;
     },
-    install: async (kind: UpdateKind, staged) => {
+    install: async (kind: UpdateKind, staged, reopen) => {
       if (kind === "mac") {
         const bundle = macBundleOf(app.getPath("exe"));
         if (!bundle) throw new Error("Not in an app bundle");
         const script = path.join(folder, "swap.sh");
         await fsp.writeFile(script, MAC_SWAP_SCRIPT, { mode: 0o700 });
-        startDetached("/bin/sh", [script, String(process.pid), staged, bundle]);
+        startDetached("/bin/sh", [script, String(process.pid), staged, bundle, reopen ? "1" : "0"]);
       } else if (kind === "windows") {
-        // As electron-updater runs it: an update (keeps the shortcuts), silent, then opens the app.
-        startDetached(staged, ["--updated", "/S", "--force-run"]);
+        // As electron-updater runs it: an update (keeps the shortcuts), silent, then opens the app (only with --force-run).
+        startDetached(staged, reopen ? ["--updated", "/S", "--force-run"] : ["--updated", "/S"]);
       } else {
         const appImage = process.env.APPIMAGE;
         if (!appImage) throw new Error("Not an AppImage");
@@ -210,11 +210,14 @@ export function electronUpdater(options: ElectronUpdaterOptions): Updater {
         await fsp.copyFile(staged, next);
         await fsp.chmod(next, 0o755);
         await fsp.rename(next, appImage);
-        const script = path.join(folder, "start.sh");
-        await fsp.writeFile(script, START_AFTER_QUIT_SCRIPT, { mode: 0o700 });
-        startDetached("/bin/sh", [script, String(process.pid), appImage]);
+        if (reopen) {
+          const script = path.join(folder, "start.sh");
+          await fsp.writeFile(script, START_AFTER_QUIT_SCRIPT, { mode: 0o700 });
+          startDetached("/bin/sh", [script, String(process.pid), appImage]);
+        }
       }
-      app.quit();
+      // Quitting already, it's put in place once this copy has.
+      if (reopen) app.quit();
     },
     openPage: (url) => shell.openExternal(url),
     send: options.send,

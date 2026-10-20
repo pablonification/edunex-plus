@@ -3,7 +3,10 @@
 // file from GitHub's answer (never an address from the window), downloads it
 // only from GitHub, checks it against the sha512 the release's latest*.yml
 // lists, and waits. Nothing is installed until the Student presses "Mulai ulang
-// untuk memperbarui". This file is the plan and its rules; the Electron side
+// untuk memperbarui", or, with "Perbarui otomatis" on (the default), until they
+// quit the app: then the new version is put in place without opening again,
+// and it downloads by itself as soon as the update check finds it
+// (followAutoUpdates). This file is the plan and its rules; the Electron side
 // (downloading, unpacking, starting the new version) is ./updater.ts.
 //
 // - macOS: the zip for this Mac (arm64 or x64), unpacked beside the running app
@@ -15,6 +18,7 @@
 //   is: the release page opens instead, and the window says why.
 import path from "node:path";
 import { z } from "zod";
+import type { Event } from "../core/contract";
 import type { UpdateBlock, UpdateInstall, UpdateNotice, UpdateProblem } from "../core/models";
 import { RELEASES_REPO } from "../core/updates";
 import { EngineError } from "../engine/errors";
@@ -142,7 +146,7 @@ export function macPlaceProblem(bundle: string, writable: boolean): UpdateBlock 
  * app goes back where it was and opens again.
  */
 export const MAC_SWAP_SCRIPT = `#!/bin/sh
-pid="$1"; new="$2"; app="$3"
+pid="$1"; new="$2"; app="$3"; reopen="$4"
 waited=0
 while kill -0 "$pid" 2>/dev/null; do
   waited=$((waited + 1))
@@ -155,7 +159,7 @@ if mv "$app" "$old"; then
   if mv "$new" "$app"; then rm -rf "$old"; else mv "$old" "$app"; fi
 fi
 xattr -dr com.apple.quarantine "$app" 2>/dev/null
-open "$app"
+if [ "$reopen" = "1" ]; then open "$app"; fi
 `;
 
 /** Starts a program once this process has quit (a second copy started earlier would close itself: one copy at a time). */
@@ -184,8 +188,8 @@ export interface UpdaterDeps {
   download(file: ReleaseFile, progress: (share: number) => void): Promise<{ path: string; sha512: string; size: number }>;
   /** Mac: unpacks the zip and checks the app in it is this app at `version`; the new app's path. */
   unpack(zip: string, version: string): Promise<string>;
-  /** Puts the downloaded version in place once this copy quits, and quits. */
-  install(kind: UpdateKind, staged: string): Promise<void>;
+  /** Puts the downloaded version in place once this copy quits, and opens it then (`reopen`) and quits now, or not (already quitting). */
+  install(kind: UpdateKind, staged: string, reopen: boolean): Promise<void>;
   openPage(url: string): Promise<void>;
   send(state: UpdateInstall): void;
 }
@@ -194,8 +198,12 @@ export interface Updater {
   state(): Promise<UpdateInstall>;
   /** Starts the download (or opens the release page when this copy can't update itself). */
   download(): Promise<UpdateInstall>;
+  /** "Perbarui otomatis": starts the download when there's a newer release this copy can put in place itself; never opens a page. */
+  fetch(): Promise<void>;
   /** Only once a download is ready: puts it in place and restarts. */
   install(): Promise<void>;
+  /** The app is quitting: puts a download that's ready in place once it has, without opening it. False when there's none. */
+  installOnQuit(): Promise<boolean>;
 }
 
 /** No connection (Chromium's net errors for it), as opposed to anything else going wrong. */
@@ -209,6 +217,8 @@ export function createUpdater(deps: UpdaterDeps): Updater {
   let state: UpdateInstall | null = null;
   let way: Awaited<ReturnType<UpdaterDeps["way"]>> | null = null;
   let staged: string | null = null;
+  /** Put in place already (restart or quit): once is enough. */
+  let installing = false;
 
   async function current(): Promise<UpdateInstall> {
     if (!state) {
@@ -224,7 +234,8 @@ export function createUpdater(deps: UpdaterDeps): Updater {
     return state;
   }
 
-  async function run(notice: UpdateNotice, kind: UpdateKind, arch: Arch): Promise<void> {
+  /** `quiet`: started by itself ("Perbarui otomatis"), so a release without this computer's file opens no page. */
+  async function run(notice: UpdateNotice, kind: UpdateKind, arch: Arch, quiet: boolean): Promise<void> {
     try {
       const release = ReleaseAnswer.parse(await deps.api(releaseApiUrl(notice)));
       const picked = pickReleaseFile(
@@ -234,7 +245,7 @@ export function createUpdater(deps: UpdaterDeps): Updater {
       );
       if (!picked) {
         set({ blocked: "noFile", step: "idle", progress: null });
-        await deps.openPage(notice.url);
+        if (!quiet) await deps.openPage(notice.url);
         return;
       }
       // A release that publishes its update info must list this file in it.
@@ -256,6 +267,15 @@ export function createUpdater(deps: UpdaterDeps): Updater {
     }
   }
 
+  /** Starts downloading `notice`'s release, unless it's on its way or there already. */
+  function start(now: UpdateInstall, notice: UpdateNotice, kind: UpdateKind, arch: Arch, quiet: boolean): UpdateInstall {
+    if ((now.step === "downloading" || now.step === "ready") && now.version === notice.version) return now;
+    staged = null;
+    const started = set({ step: "downloading", version: notice.version, progress: null, problem: null });
+    void run(notice, kind, arch, quiet);
+    return started;
+  }
+
   return {
     state: current,
     async download() {
@@ -266,17 +286,55 @@ export function createUpdater(deps: UpdaterDeps): Updater {
         await deps.openPage(notice.url);
         return now;
       }
-      // Already on its way, or there: nothing to start again.
-      if ((now.step === "downloading" || now.step === "ready") && now.version === notice.version) return now;
-      staged = null;
-      const started = set({ step: "downloading", version: notice.version, progress: null, problem: null });
-      void run(notice, way.kind, way.arch);
-      return started;
+      return start(now, notice, way.kind, way.arch, false);
+    },
+    async fetch() {
+      const now = await current();
+      const notice = deps.notice();
+      // Nothing newer, or nothing this copy can put in place itself: the notice offers the release page, as before.
+      if (!notice || now.blocked || !way || "blocked" in way) return;
+      // A download that failed waits for "Coba lagi": by itself, it isn't tried again for the same version.
+      if (now.step === "failed" && now.version === notice.version) return;
+      start(now, notice, way.kind, way.arch, true);
     },
     async install() {
       const now = await current();
       if (now.step !== "ready" || !staged || !way || "blocked" in way) throw new EngineError("Rejected", "No update is ready to install");
-      await deps.install(way.kind, staged);
+      installing = true;
+      await deps.install(way.kind, staged, true);
+    },
+    async installOnQuit() {
+      const now = await current();
+      if (installing || now.step !== "ready" || !staged || !way || "blocked" in way) return false;
+      installing = true;
+      await deps.install(way.kind, staged, false);
+      return true;
+    },
+  };
+}
+
+/**
+ * "Perbarui otomatis" (on unless the Student turns it off): a newer release the update check
+ * finds downloads by itself, and one that's ready is put in place once the Student quits the app.
+ * Main passes it the engine's events and asks it before quitting.
+ */
+export function followAutoUpdates(updater: Pick<Updater, "fetch" | "installOnQuit">, autoUpdate: () => boolean) {
+  const fetch = () => void updater.fetch().catch(() => undefined);
+  return {
+    /** A newer release found, or the switch turned on with one already found. */
+    onEvent(event: Event): void {
+      const found = event.type === "dataset" && event.dataset.name === "app.update";
+      const turnedOn = event.type === "settings" && event.settings.autoUpdate;
+      if ((found || turnedOn) && autoUpdate()) fetch();
+    },
+    /** At start: a release found before the app last quit. */
+    resume(): void {
+      if (autoUpdate()) fetch();
+    },
+    /** The app is quitting: whether a ready update is put in place (the caller quits once it has). */
+    async beforeQuit(): Promise<boolean> {
+      if (!autoUpdate()) return false;
+      return updater.installOnQuit().catch(() => false);
     },
   };
 }
