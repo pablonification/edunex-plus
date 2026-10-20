@@ -34,5 +34,5 @@ declare global {
 
 export const demo: DemoHooks | undefined = app.isPackaged ? undefined : globalThis.__edunexPlusDemo;
 
-/** The demo's phone: it links under a made-up topic and sends nothing anywhere. */
-export const demoPhone: { ntfy: Ntfy; newTopic: () => string } = { ntfy: async () => 200, newTopic: () => "edunex-demo-bukan-topik-asli" };
+/** The demo's phone: it links under a made-up topic, shaped like a real one ("demo" and zeros, which a real one never has), and sends nothing anywhere. */
+export const demoPhone: { ntfy: Ntfy; newTopic: () => string } = { ntfy: async () => 200, newTopic: () => "ep-demo-0000-0000" };
