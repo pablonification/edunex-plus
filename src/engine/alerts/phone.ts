@@ -170,8 +170,21 @@ export function phoneTime(planned: Pick<PlannedAlert, "kind" | "urgent" | "at" |
   return end !== null && end < planned.until ? end : planned.at;
 }
 
-/** A new topic: 128 random bits after a prefix the Student can recognise in the ntfy app. */
-export const newTopic = () => `edunex-${randomBytes(16).toString("base64url")}`;
+/** Letters and digits that can't be read as one another (no 0/o, 1/l/i), all lowercase: typed on an iPhone, nothing gets capitalised or misread. */
+const TOPIC_LETTERS = "23456789abcdefghjkmnpqrstuvwxyz";
+
+/**
+ * A new topic, short enough to type on an iPhone: "ep-" and three groups of
+ * four, 12 random characters (about 59 bits). Nobody can guess that by trying
+ * topics on ntfy.sh, which limits how fast one address asks.
+ */
+export function newTopic(): string {
+  const chars = [...randomBytes(24)].filter((byte) => byte < 248).slice(0, 12);
+  // 248 is a multiple of 31: every letter as likely. 24 bytes leave fewer than 12 almost never; then draw again.
+  if (chars.length < 12) return newTopic();
+  const code = chars.map((byte) => TOPIC_LETTERS[byte % TOPIC_LETTERS.length]).join("");
+  return `ep-${code.slice(0, 4)}-${code.slice(4, 8)}-${code.slice(8)}`;
+}
 
 /** The link the Android app subscribes from. */
 export const subscribeLink = (topic: string) => `ntfy://${NTFY_HOST}/${topic}?display=${encodeURIComponent("Edunex Plus")}`;

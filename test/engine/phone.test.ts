@@ -6,7 +6,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { edunexCourseUrl } from "../../src/core/links";
 import { edunexTaskUrl } from "../../src/core/tasks";
-import { phoneMessage, phoneTime, quietUntil, sequenceId } from "../../src/engine/alerts/phone";
+import { newTopic, phoneMessage, phoneTime, quietUntil, sequenceId } from "../../src/engine/alerts/phone";
 import { PRETEND_TOKEN, wib } from "../pretend/edunex";
 import { startAlerts } from "./alerts-harness";
 
@@ -386,6 +386,12 @@ describe("the message", () => {
 });
 
 describe("the topic", () => {
+  it("is short and easy to type on an iPhone: lowercase, no look-alike characters, and new every time", () => {
+    const topics = Array.from({ length: 200 }, () => newTopic());
+    for (const topic of topics) expect(topic).toMatch(/^ep-[2-9a-hjkmnp-z]{4}-[2-9a-hjkmnp-z]{4}-[2-9a-hjkmnp-z]{4}$/);
+    expect(new Set(topics).size).toBe(topics.length);
+  });
+
   it("never appears in what the app writes in the clear, its events, its logs or its errors, and is gone after signing out of everything", async () => {
     const said: unknown[] = [];
     for (const method of ["log", "info", "warn", "error"] as const) vi.spyOn(console, method).mockImplementation((...args) => void said.push(...args));
