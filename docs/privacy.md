@@ -36,8 +36,9 @@ Nothing leaves your computer except the app's own requests to:
   with your session, to read your data and to hand in what you choose to submit;
 - **ITB's public pages** (the academic calendar and SIX's public course catalog), without any
   session;
-- **GitHub**, once a day, to check for a newer release (no personal data is sent), and, only
-  when you press **Unduh & pasang**, to download it;
+- **GitHub**, once a day and when you press **Check for updates**, to check for a newer release
+  (no personal data is sent), and to download it: by itself with **Update automatically** on
+  (the default), otherwise only when you press **Download & install**;
 - **ntfy** (`ntfy.sh`), only if you turn on phone notifications: the alert's text (for example
   a Task's name and deadline), sent under a private code that only this app and your phone
   use. ntfy's operator can read these messages, and Settings says so. Turning it off cancels

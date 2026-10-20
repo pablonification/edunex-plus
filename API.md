@@ -33,7 +33,8 @@ responses in `test/fixtures/edunex/` (file names mirror the request path and que
    safeStorage); where there is no real secure storage it lives in memory until the app quits.
    Datasets and the alert history stay on this computer. What leaves the device is only what
    the calls themselves carry. No app servers, no data sync, no telemetry. (Packaged builds
-   also ask GitHub once a day whether a newer release exists.)
+   also ask GitHub once a day whether a newer release exists, and when the Student presses
+   "Periksa pembaruan".)
 7. **Distinctive User-Agent.** Every API call carries
    `EdunexPlus/<version> (+https://github.com/pablonification/edunex-plus)`
    (`src/engine/engine.ts`). The API client never pretends to be a browser, so Cognisia can

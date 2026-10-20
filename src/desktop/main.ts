@@ -33,6 +33,7 @@ import { createNotifier } from "./notifications";
 import { ntfyClient } from "./ntfy";
 import { registerAppScheme, serveApp } from "./protocol";
 import { APP_HOST, APP_ORIGIN, APP_SCHEME, contentSecurityPolicy, denyPermissions, guardAppWindow, hardenAllContents } from "./security";
+import { followAutoUpdates } from "./self-update";
 import { FileStorage } from "./storage";
 import { electronTransport } from "./transport";
 import { type AppTray, createTray } from "./tray";
@@ -64,6 +65,10 @@ let quitting = false;
 let syncing = false;
 let tray: AppTray | null = null;
 let theme: ReturnType<typeof followTheme> | null = null;
+/** "Perbarui otomatis", once the updater is there. */
+let autoUpdates: ReturnType<typeof followAutoUpdates> | null = null;
+/** Quitting for good: a ready update has been put in place, or there was none. */
+let readyToQuit = false;
 const notifier = createNotifier({ lang: () => engine?.snapshot().settings.lang ?? DEFAULT_SETTINGS.lang, open: openRoute });
 
 if (!app.requestSingleInstanceLock()) {
@@ -101,6 +106,7 @@ async function start(): Promise<void> {
     emit: (event) => {
       send(event);
       void followAccount(event);
+      autoUpdates?.onEvent(event);
     },
     // The demo's made-up alerts stay in the app: no OS notifications, nothing to a phone.
     alert: (notice) => void (demo ? undefined : notifier.show(notice)),
@@ -121,6 +127,8 @@ async function start(): Promise<void> {
     },
     send: (update) => send({ type: "update", update }),
   });
+  autoUpdates = followAutoUpdates(updater, () => current.snapshot().settings.autoUpdate);
+  autoUpdates.resume();
   if (demo && (await demo.prepare(current))) syncing = true;
 
   const csp = contentSecurityPolicy(devServer);
@@ -274,9 +282,14 @@ function fail(error: unknown): void {
 }
 
 app.on("activate", reveal);
-app.on("before-quit", () => {
+app.on("before-quit", (event) => {
   quitting = true;
   engine?.stop();
+  // "Perbarui otomatis": a downloaded version goes in place first (it waits for this copy to quit), then the app quits.
+  if (readyToQuit || !autoUpdates) return;
+  event.preventDefault();
+  readyToQuit = true;
+  void autoUpdates.beforeQuit().finally(() => app.quit());
 });
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();

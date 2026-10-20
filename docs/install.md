@@ -105,18 +105,25 @@ the app still works but asks you to sign in again after each restart, and Settin
 
 ## Updates
 
-Once a day the app asks GitHub whether a newer release exists. If so, a dot appears on the
-settings button and Settings shows the new version with **Unduh & pasang** (Download & install).
-Press it and the app downloads the new version from GitHub, shows how far it got, and checks the
-file against the list the release publishes. When it's ready, press **Mulai ulang untuk
-memperbarui** (Restart to update): the app closes, puts the new version in place and opens
-again. Nothing is downloaded or installed until you press these. **Lihat yang baru** opens the
-release page in your browser.
+Once a day the app asks GitHub whether a newer release exists. To ask right away, open Settings:
+**Updates** comes first, with **Check for updates** (Periksa pembaruan). If there is one, a dot
+appears on the settings button and the new version shows at the top of Settings.
+
+**Update automatically** (Perbarui otomatis) is on unless you turn it off, in the same place.
+Then the app downloads the new version from GitHub by itself, shows how far it got, and checks
+the file against the list the release publishes. When it's ready, it's put in place the next time
+you quit the app, and the next start is the new version. To have it now, press **Restart to
+update** (Mulai ulang untuk memperbarui): the app closes, puts the new version in place and opens
+again.
+
+With it off, nothing is downloaded or installed until you press **Download & install** (Unduh &
+pasang), then **Restart to update**. **See what's new** (Lihat yang baru) opens the release page
+in your browser.
 
 - **macOS:** works when the app is in Applications (or another folder you can change). Opened
   from the disk image, or from Downloads before you moved it, the app says so and opens the
   release page instead. No Terminal line is needed after an update from inside the app.
-- **Windows:** the new installer runs by itself, without any window, and opens the app.
+- **Windows:** the new installer runs by itself, without any window, and opens the app when you restarted for it.
 - **Linux AppImage:** the new AppImage replaces the one you started.
 - **Linux `.deb`:** the release page opens; install the new `.deb` with apt as below.
 

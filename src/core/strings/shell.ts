@@ -141,6 +141,7 @@ export const shellStrings = {
     en: "This computer has no secure storage, so your session isn't saved. You'll sign in again each time you open the app.",
   },
   "settings.version": { id: "Versi {version}", en: "Version {version}" },
+  "settings.updates": { id: "Pembaruan", en: "Updates" },
   "settings.about": { id: "Tentang", en: "About" },
   "settings.openSource": { id: "Sumber terbuka, dengan lisensi MIT", en: "Open source, under the MIT licence" },
   "settings.unofficial": {

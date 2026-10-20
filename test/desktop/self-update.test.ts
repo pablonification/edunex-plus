@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest";
 import type { UpdateInstall, UpdateNotice } from "../../src/core/models";
 import {
   createUpdater,
+  followAutoUpdates,
   isDownloadUrl,
   isPlainFileName,
   isReleaseFileUrl,
@@ -166,7 +167,8 @@ describe("where a Mac app can be replaced", () => {
   it("is swapped only once the app has quit, with the old one put back if the swap fails", () => {
     expect(MAC_SWAP_SCRIPT).toContain('while kill -0 "$pid"');
     expect(MAC_SWAP_SCRIPT).toContain('if mv "$new" "$app"; then rm -rf "$old"; else mv "$old" "$app"; fi');
-    expect(MAC_SWAP_SCRIPT).toContain('open "$app"');
+    // Opened again only when restarting for it; as the app quits ("Perbarui otomatis") it stays closed.
+    expect(MAC_SWAP_SCRIPT).toContain('if [ "$reopen" = "1" ]; then open "$app"; fi');
   });
 });
 
@@ -180,6 +182,7 @@ describe("the update plan", () => {
     const sent: UpdateInstall[] = [];
     const opened: string[] = [];
     const installed: string[] = [];
+    const reopened: boolean[] = [];
     const updater = createUpdater({
       way: async () => ({ kind: "mac", arch: "arm64" }),
       notice: () => notice,
@@ -190,7 +193,10 @@ describe("the update plan", () => {
         return { path: "/tmp/x.zip", sha512: SHA, size: 100 };
       },
       unpack: async () => "/tmp/app/Edunex Plus.app",
-      install: async (_kind, staged) => void installed.push(staged),
+      install: async (_kind, staged, reopen) => {
+        installed.push(staged);
+        reopened.push(reopen);
+      },
       openPage: async (url) => void opened.push(url),
       send: (state) => void sent.push(state),
       ...overrides,
@@ -198,7 +204,7 @@ describe("the update plan", () => {
     const settled = async () => {
       for (let i = 0; i < 20; i++) await new Promise((resolve) => setImmediate(resolve));
     };
-    return { updater, sent, opened, installed, settled };
+    return { updater, sent, opened, installed, reopened, settled };
   }
 
   it("downloads, checks the file, and waits for the Student before installing", async () => {
@@ -213,6 +219,60 @@ describe("the update plan", () => {
     expect(installed).toEqual([]);
     await updater.install();
     expect(installed).toEqual(["/tmp/app/Edunex Plus.app"]);
+  });
+
+  it('by itself ("Perbarui otomatis"), downloads the same way and puts it in place as the app quits, without opening it', async () => {
+    const { updater, sent, installed, reopened, settled } = setUp();
+    expect(await updater.installOnQuit()).toBe(false);
+    await updater.fetch();
+    await settled();
+    expect(sent.at(-1)).toMatchObject({ step: "ready", version: "1.2.0" });
+    // Asked again while it's there: nothing starts over.
+    await updater.fetch();
+    expect(sent.at(-1)).toMatchObject({ step: "ready" });
+    expect(await updater.installOnQuit()).toBe(true);
+    expect([installed, reopened]).toEqual([["/tmp/app/Edunex Plus.app"], [false]]);
+    // Once is enough, whichever way it went in.
+    expect(await updater.installOnQuit()).toBe(false);
+    await expect(updater.install()).resolves.toBeUndefined();
+  });
+
+  it("by itself, never opens a page, and doesn't try a failed download again until the Student does", async () => {
+    const blocked = setUp({ way: async () => ({ blocked: "deb" }) });
+    await blocked.updater.fetch();
+    expect([blocked.opened, blocked.sent]).toEqual([[], []]);
+
+    const noFile = setUp({ api: async () => ({ tag_name: "v1.2.0", assets: [] }) });
+    await noFile.updater.fetch();
+    await noFile.settled();
+    expect(noFile.sent.at(-1)).toMatchObject({ blocked: "noFile" });
+    expect(noFile.opened).toEqual([]);
+
+    let tries = 0;
+    const failing = setUp({
+      api: async () => {
+        tries++;
+        throw new Error("net::ERR_INTERNET_DISCONNECTED");
+      },
+    });
+    await failing.updater.fetch();
+    await failing.settled();
+    await failing.updater.fetch();
+    await failing.settled();
+    expect(tries).toBe(1);
+    expect(failing.sent.at(-1)).toMatchObject({ step: "failed" });
+    await failing.updater.download();
+    await failing.settled();
+    expect(tries).toBe(2);
+  });
+
+  it("restarting for it puts it in place once, opened again", async () => {
+    const { updater, reopened, settled } = setUp();
+    await updater.download();
+    await settled();
+    await updater.install();
+    expect(await updater.installOnQuit()).toBe(false);
+    expect(reopened).toEqual([true]);
   });
 
   it("never installs before a download is ready", async () => {
@@ -253,5 +313,45 @@ describe("the update plan", () => {
     await settled();
     expect(sent.at(-1)).toMatchObject({ blocked: "noFile", step: "idle" });
     expect(opened).toEqual([notice.url]);
+  });
+});
+
+describe('"Perbarui otomatis"', () => {
+  const fake = () => {
+    const done: string[] = [];
+    return {
+      done,
+      updater: {
+        fetch: async () => void done.push("fetch"),
+        installOnQuit: async () => {
+          done.push("installOnQuit");
+          return true;
+        },
+      },
+    };
+  };
+  const found = { type: "dataset", dataset: { name: "app.update", value: {}, fetchedAt: 0, hash: "h" } } as const;
+
+  it("downloads a newer release as soon as it's found, at start too, and puts it in place before the app quits", async () => {
+    const { updater, done } = fake();
+    const auto = followAutoUpdates(updater, () => true);
+    auto.resume();
+    auto.onEvent(found as never);
+    auto.onEvent({ type: "dataset", dataset: { name: "edunex.tasks", value: [], fetchedAt: 0, hash: "h" } } as never);
+    expect(await auto.beforeQuit()).toBe(true);
+    expect(done).toEqual(["fetch", "fetch", "installOnQuit"]);
+  });
+
+  it("turned off, does nothing by itself; turned on, starts at once", async () => {
+    const { updater, done } = fake();
+    let on = false;
+    const auto = followAutoUpdates(updater, () => on);
+    auto.resume();
+    auto.onEvent(found as never);
+    expect(await auto.beforeQuit()).toBe(false);
+    expect(done).toEqual([]);
+    on = true;
+    auto.onEvent({ type: "settings", settings: { autoUpdate: true } } as never);
+    expect(done).toEqual(["fetch"]);
   });
 });

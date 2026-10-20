@@ -2,7 +2,7 @@
 // the network, time, disk and keychain injected. The desktop shell runs it in
 // Electron's main process; tests run it whole against the pretend world.
 import type { Event, Snapshot } from "../core/contract";
-import { type DatasetName, Datasets, DEFAULT_SETTINGS, Settings, SourceId, SourceStatus } from "../core/models";
+import { type DatasetName, Datasets, DEFAULT_SETTINGS, Settings, SourceId, SourceStatus, type UpdateCheckResult } from "../core/models";
 import { isNewerRelease } from "../core/updates";
 import { AlertCenter, type AlertNotice } from "./alerts/center";
 import type { Detector } from "./alerts/detector";
@@ -59,6 +59,8 @@ export interface Engine {
   updateSettings(patch: Partial<Settings>): Promise<Settings>;
   /** The Student opened the alert history. */
   markAlertsRead(): Promise<void>;
+  /** Asks GitHub for a newer release now ("Periksa pembaruan"); "off" where the app never asks (development, the demo). */
+  checkForUpdates(): Promise<UpdateCheckResult>;
   /** The Student's phone, through ntfy: link it, a test, unlink it. */
   readonly phone: Pick<PhoneChannel, "link" | "connect" | "test" | "disconnect" | "idle">;
 }
@@ -460,6 +462,10 @@ export function createEngine(deps: EngineDeps): Engine {
 
     markAlertsRead() {
       return alerts.markRead();
+    },
+
+    async checkForUpdates() {
+      return updates ? updates.checkNow() : "off";
     },
 
     phone,

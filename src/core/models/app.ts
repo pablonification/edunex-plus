@@ -9,6 +9,14 @@ export const UpdateNotice = z.object({
 });
 export type UpdateNotice = z.infer<typeof UpdateNotice>;
 
+/**
+ * What asking GitHub right away found ("Periksa pembaruan"): a newer release (its notice is out
+ * as "app.update"), this version is the latest, no answer to go by (offline, a refusal, an odd
+ * answer), or a copy that never asks (development, the demo).
+ */
+export const UpdateCheckResult = z.enum(["newer", "latest", "unknown", "off"]);
+export type UpdateCheckResult = z.infer<typeof UpdateCheckResult>;
+
 export const appDatasets = {
   /** Present only while a newer release exists. */
   "app.update": UpdateNotice,

@@ -18,7 +18,7 @@ import { type SourceId, type UpdateBlock, UpdateNotice } from "../../src/core/mo
 import { phoneCalendar } from "../../src/core/phone-calendar";
 import { handInHandlers, type LocalFile } from "../../src/desktop/hand-in";
 import { readFile } from "../../src/desktop/remote-files";
-import { createUpdater, type UpdateKind } from "../../src/desktop/self-update";
+import { createUpdater, followAutoUpdates, type UpdateKind } from "../../src/desktop/self-update";
 import { signInToBoth } from "../../src/desktop/signin-both";
 import { createEngine, type Engine } from "../../src/engine/engine";
 import { EngineError, isEngineError } from "../../src/engine/errors";
@@ -93,6 +93,8 @@ export interface Options {
   ntfy?: PretendNtfy;
   /** Why this copy can't update itself (default: it can, as an Apple-silicon Mac app in Applications). */
   updateBlocked?: UpdateBlock;
+  /** "Perbarui otomatis" (default: on, as on a first start). */
+  autoUpdate?: boolean;
 }
 
 export async function openApp(options: Options = {}) {
@@ -101,6 +103,8 @@ export async function openApp(options: Options = {}) {
   const vault = options.vault ?? new MemoryVault();
   const ntfy = options.ntfy ?? new PretendNtfy();
   const listeners = new Set<(event: unknown) => void>();
+  /** Main's "Perbarui otomatis", once the updater is there. */
+  let autoUpdates: ReturnType<typeof followAutoUpdates> | null = null;
   const engine: Engine = createEngine({
     transport: world,
     clock: world.clock,
@@ -111,6 +115,7 @@ export async function openApp(options: Options = {}) {
     phone: { ntfy: ntfy.send, newTopic: ntfy.newTopic },
     random: () => 0.5,
     emit: (event: Event) => {
+      autoUpdates?.onEvent(event);
       for (const listener of listeners) listener(event);
     },
   });
@@ -118,6 +123,7 @@ export async function openApp(options: Options = {}) {
   const firstStart = (await storage.read("state.json")) === null;
   await engine.load();
   if (firstStart) await engine.updateSettings({ lang: "id" });
+  if (options.autoUpdate !== undefined) await engine.updateSettings({ autoUpdate: options.autoUpdate });
   if (!options.firstScan) await engine.updateSettings({ firstScanDone: true });
   if (options.start !== false) engine.start();
 
@@ -159,8 +165,8 @@ export async function openApp(options: Options = {}) {
   let opening: Promise<void> | null = null;
   /** Release pages main opened in the browser for an update, in order. */
   const openedPages: string[] = [];
-  /** Updates main put in place (and restarted for), in order. */
-  const installed: { kind: UpdateKind; staged: string }[] = [];
+  /** Updates main put in place, in order: restarted for (`reopen`), or as the app quit. */
+  const installed: { kind: UpdateKind; staged: string; reopen: boolean }[] = [];
   /** The update download under way: it has reached 40% and waits for the test to finish it. */
   let downloading: { finish: () => void; fail: (message: string) => void } | null = null;
   // Main's real update plan, on the pretend GitHub; only downloading, unpacking and restarting are pretend.
@@ -184,12 +190,14 @@ export async function openApp(options: Options = {}) {
         };
       }),
     unpack: async () => "/tmp/update/Edunex Plus.app",
-    install: async (kind, staged) => void installed.push({ kind, staged }),
+    install: async (kind, staged, reopen) => void installed.push({ kind, staged, reopen }),
     openPage: async (url) => void openedPages.push(url),
     send: (update) => {
       for (const listener of listeners) listener({ type: "update", update });
     },
   });
+  autoUpdates = followAutoUpdates(updater, () => engine.snapshot().settings.autoUpdate);
+  autoUpdates.resume();
   const inFlight = new Set<Promise<unknown>>();
   const track = (work: Promise<unknown>) => {
     inFlight.add(work);
@@ -309,6 +317,7 @@ export async function openApp(options: Options = {}) {
       return {};
     },
     "alerts.test": async () => ({ shown: true }),
+    "app.checkUpdate": async () => ({ found: await engine.checkForUpdates() }),
     "app.openRelease": async () => ({}),
     "app.downloadUpdate": () => updater.download(),
     "app.installUpdate": async () => {
@@ -435,6 +444,13 @@ export async function openApp(options: Options = {}) {
     copied,
     openedPages,
     installed,
+    /** The Student quits the app, as main handles it: a ready update is put in place first, with "Perbarui otomatis" on. */
+    async quit(): Promise<void> {
+      await act(async () => {
+        await autoUpdates?.beforeQuit();
+        await settle();
+      });
+    },
     /** The update download under way finishes (with the file GitHub has), or fails with Chromium's `message`. */
     async finishUpdateDownload(failure?: string): Promise<void> {
       const download = downloading;

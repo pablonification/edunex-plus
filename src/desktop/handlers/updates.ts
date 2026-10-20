@@ -6,7 +6,8 @@ import { UpdateNotice } from "../../core/models";
 import { EngineError } from "../../engine/errors";
 import type { HandlerGroup } from "./context";
 
-export const updatesHandlers: HandlerGroup<"app.openRelease" | "app.downloadUpdate" | "app.installUpdate"> = (context) => ({
+export const updatesHandlers: HandlerGroup<"app.checkUpdate" | "app.openRelease" | "app.downloadUpdate" | "app.installUpdate"> = (context) => ({
+  "app.checkUpdate": async () => ({ found: await context.engine.checkForUpdates() }),
   "app.openRelease": async () => {
     // Only the page the update check built from GitHub's answer, never a URL from the window.
     const notice = context.engine.snapshot().datasets.find((dataset) => dataset.name === "app.update");
