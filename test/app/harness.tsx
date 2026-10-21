@@ -240,6 +240,12 @@ export async function openApp(options: Options = {}) {
       return {};
     },
     "auth.signInDone": async () => ({}),
+    // Main opens SIX's window on a class of the timetable the app read (src/desktop/handlers/six.ts).
+    "six.openCheckIn": async ({ meetingId }: { meetingId: string }) => {
+      const schedule = engine.snapshot().datasets.find((d) => d.name === "six.schedule")?.value as { id: string }[] | undefined;
+      if (!schedule?.some((s) => s.id === meetingId)) throw new EngineError("Rejected", "That class isn't on SIX's timetable");
+      return {};
+    },
     "sync.refresh": async ({ source }: { source?: SourceId }) => {
       await meanwhile(engine.refresh(source));
       return {};

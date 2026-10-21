@@ -37,8 +37,8 @@ export class SixClient implements SixPages {
     private readonly pace: Pace = new Pace(clock),
   ) {}
 
-  page(path: string): Promise<string> {
-    return this.pace.turn(() => this.fetch(path, 0));
+  page(path: string, options: { popup?: boolean } = {}): Promise<string> {
+    return this.pace.turn(() => this.fetch(path, 0, options.popup ?? false));
   }
 
   async who(): Promise<SixIdentity> {
@@ -65,7 +65,7 @@ export class SixClient implements SixPages {
     return this.reading;
   }
 
-  private async fetch(path: string, redirects: number): Promise<string> {
+  private async fetch(path: string, redirects: number, popup: boolean): Promise<string> {
     if (this.pace.paused) throw new EngineError("Offline", "SIX answered 429");
     await this.pace.gap(PAGE_GAP_MS);
 
@@ -80,6 +80,8 @@ export class SixClient implements SixPages {
           accept: "text/html,application/xhtml+xml",
           // The pages the readers were checked against; English ones read the same.
           "accept-language": "id-ID,id;q=0.9",
+          // SIX's timetable loads a class's popup with jQuery, which says so; asked otherwise, SIX may answer with another page.
+          ...(popup ? { "x-requested-with": "XMLHttpRequest" } : {}),
         },
         redirect: "manual",
         timeoutMs: TIMEOUT_MS,
@@ -96,7 +98,7 @@ export class SixClient implements SixPages {
       // To /login, or off SIX to Microsoft's sign-in: the session is over.
       if (!next) throw new EngineError("Unauthorized", "SIX ended the session");
       if (redirects >= MAX_REDIRECTS) throw new EngineError("Failed", `SIX kept redirecting ${label(path)}`);
-      return this.fetch(next, redirects + 1);
+      return this.fetch(next, redirects + 1, popup);
     }
     if (status === 429) {
       this.pace.pause(this.clock.now() + pauseFor(response.headers["retry-after"]));

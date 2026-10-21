@@ -63,6 +63,11 @@ export interface Engine {
   checkForUpdates(): Promise<UpdateCheckResult>;
   /** The Student's phone, through ntfy: link it, a test, unlink it. */
   readonly phone: Pick<PhoneChannel, "link" | "connect" | "test" | "disconnect" | "idle">;
+  /**
+   * The session a source is signed in with now (Edunex: { token }, SIX: { cookie }), or null.
+   * For the desktop's SIX window ("Tandai Hadir"), which shows SIX signed in; never for the page.
+   */
+  session(source: SourceId): unknown;
 }
 
 const sessionKey = (source: SourceId) => `${source}.session`;
@@ -382,6 +387,10 @@ export function createEngine(deps: EngineDeps): Engine {
       scheduler.stop();
       alerts.stop();
       updates?.stop();
+    },
+
+    session(source) {
+      return sessions.get(source) ?? null;
     },
 
     snapshot() {

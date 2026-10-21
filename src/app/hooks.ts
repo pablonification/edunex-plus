@@ -31,6 +31,17 @@ export function useOpenExternal(): (url: string) => void {
   return useCallback((url: string) => void bridge.invoke("shell.openExternal", { url }).catch(() => failed(url)), [bridge, failed]);
 }
 
+/**
+ * "Tandai Hadir": opens SIX in the app's SIX window, on the class's popup, for
+ * the Student to press SIX's button. Should that window not open, SIX's
+ * timetable (`url`) opens in the browser instead.
+ */
+export function useOpenCheckIn(): (meetingId: string, url: string) => void {
+  const bridge = useBridge();
+  const external = useOpenExternal();
+  return useCallback((meetingId: string, url: string) => void bridge.invoke("six.openCheckIn", { meetingId }).catch(() => external(url)), [bridge, external]);
+}
+
 /** Opens a link a lecturer wrote (any web page) in the browser, as Edunex does; also an open-source project's page from Settings' licences. */
 export function useOpenLink(): (url: string) => void {
   const bridge = useBridge();

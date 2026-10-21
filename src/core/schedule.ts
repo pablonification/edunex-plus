@@ -11,17 +11,12 @@
 // own, so a class lands on the same day on any computer.
 import { isExamActivity, presenceAction, usualSlots } from "./attendance";
 import { announcedMeetings, courseMeetings, wibDay } from "./course-meetings";
-import { SIX_WEB } from "./links";
-import type { Announcement, CalendarEvent, ClassSession, Material, PresenceSession, SixStudent, Task } from "./models";
+import type { Announcement, CalendarEvent, ClassSession, Material, PresenceSession, Task } from "./models";
 
 const MINUTE = 60_000;
 const HOUR = 60 * MINUTE;
 const DAY = 24 * HOUR;
 const WIB = 7 * HOUR;
-
-/** SIX's month timetable page, where the Student checks a meeting. */
-export const sixTimetableUrl = (student: Pick<SixStudent, "nim" | "term" | "studentId">) =>
-  `${SIX_WEB}/app/mahasiswa:${student.nim}+${student.term}/kelas/jadwal/mahasiswa/${student.studentId}`;
 
 // ---------------------------------------------------------------- days, weeks, months
 

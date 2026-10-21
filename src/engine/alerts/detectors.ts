@@ -6,6 +6,7 @@
 import { academicCalendar, billReminders, krsChanged, newBill } from "./academic";
 import { attendanceBudget, sixNotCounting } from "./attendance";
 import { materialForToday, taskEdits } from "./changes";
+import { sixCheckIn } from "./check-in";
 import type { Detector } from "./detector";
 import { edunexNotifications } from "./edunex-feed";
 import { newGrades, questionnaireReminder } from "./grades";
@@ -19,6 +20,7 @@ export const DETECTORS: readonly Detector[] = [
   edunexNotifications,
   taskEdits,
   materialForToday,
+  sixCheckIn,
   presenceOpening,
   presenceClosing,
   sixNotCounting(),

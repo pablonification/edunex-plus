@@ -24,7 +24,7 @@ import { coursePageHandlers } from "./handlers/course-page";
 import { edunexNim, filesHandlers, forgetOtherStudentsFiles } from "./handlers/files";
 import { phoneHandlers } from "./handlers/phone";
 import { scheduleHandlers } from "./handlers/schedule";
-import { sixHandlers } from "./handlers/six";
+import { openCheckIn, sixHandlers } from "./handlers/six";
 import { tasksHandlers } from "./handlers/tasks";
 import { updatesHandlers } from "./handlers/updates";
 import { type Handlers, registerBridge } from "./ipc";
@@ -69,7 +69,17 @@ let theme: ReturnType<typeof followTheme> | null = null;
 let autoUpdates: ReturnType<typeof followAutoUpdates> | null = null;
 /** Quitting for good: a ready update has been put in place, or there was none. */
 let readyToQuit = false;
-const notifier = createNotifier({ lang: () => engine?.snapshot().settings.lang ?? DEFAULT_SETTINGS.lang, open: openRoute });
+const notifier = createNotifier({
+  lang: () => engine?.snapshot().settings.lang ?? DEFAULT_SETTINGS.lang,
+  open: openRoute,
+  openCheckIn: (meetingId) => {
+    if (!engine) return;
+    // The class went off SIX's timetable meanwhile: Beranda, where its attendance is.
+    openCheckIn({ engine, lang: () => engine?.snapshot().settings.lang ?? DEFAULT_SETTINGS.lang, packaged }, meetingId).catch(() =>
+      openRoute({ screen: "home" }),
+    );
+  },
+});
 
 if (!app.requestSingleInstanceLock()) {
   app.quit();

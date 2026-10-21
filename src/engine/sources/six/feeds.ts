@@ -35,6 +35,8 @@ export function registerSixFeeds(context: SourceContext, client: SixClient): voi
       // counted as read before its meetings arrive would call them all missing from SIX).
       await context.set("six.schedule", sessions);
       await context.set("six.scheduleMonths", months);
+      // A class on now gets its first look for "Tandai Hadir" at once (after a sign-in, the timetable comes after that feed's first run).
+      void context.runNow((feed) => feed === "six.checkIn");
     },
   });
 }

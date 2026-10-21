@@ -72,7 +72,7 @@ describe("the Presensi screen", () => {
     expect(dk).toContain("Jangan absen lagi");
     // The share in words beside the count, as the course page says it: not only in the meter's name.
     expect(dk).toContain("Hadir 4 dari 6 · 66% · sekitar 8 pertemuan lagi sampai 4 Des");
-    expect(dk).toContain("Berikutnya: Hari ini, 11:00 · TVST C · cukup hadir di kelas");
+    expect(dk).toContain("Berikutnya: Hari ini, 11:00 · TVST C · Tandai Hadir di SIX saat tombolnya muncul");
     expect(row("DK4073")?.querySelector("[role=img]")?.getAttribute("aria-label")).toBe("Hadir 4 dari 6, 66%, target 80%");
     // No way back next to "Jangan absen lagi": every class from here on is the one instruction.
     expect(dk).not.toContain("untuk kembali ke");
@@ -84,8 +84,8 @@ describe("the Presensi screen", () => {
     expect(tone("KU5014")).toContain("text-danger-fg");
     expect(row("PL3002")?.querySelector("[role=img]")?.getAttribute("data-tone")).toBe("success");
     expect(row("DK4073")?.querySelector("[role=img]")?.getAttribute("data-tone")).toBe("warning");
-    // Recorded through Edunex too: be in class, then what that day's Presence asks for, said once with the class.
-    expect(card("II4091")).toContain("Berikutnya: Jum, 16 Okt, 15:00 · hadir, lalu kumpulkan Tugas 02 Bab II sebelum 23:59");
+    // Recorded through Edunex too: Tandai Hadir in SIX, then what that day's Presence asks for, said once with the class.
+    expect(card("II4091")).toContain("Berikutnya: Jum, 16 Okt, 15:00 · Tandai Hadir di SIX, lalu kumpulkan Tugas 02 Bab II sebelum 23:59");
     expect(card("II4091")).not.toContain("Presensi Edunex Jum");
     // Never an absence on Edunex's word.
     expect(document.body.textContent).not.toMatch(/\bAbsent\b|Tidak hadir/);
@@ -95,7 +95,7 @@ describe("the Presensi screen", () => {
     const s = await openPresence(undefined, true);
     expect(onTop()).toBe("");
     const pl = card("PL3002");
-    expect(pl).toContain("Sedang berlangsung sampai 10:00 · R.SG PWK LT.6 · cukup hadir di kelas");
+    expect(pl).toContain("Sedang berlangsung sampai 10:00 · R.SG PWK LT.6 · Tandai Hadir di SIX saat tombolnya muncul");
     expect(pl).toContain("Presensi Edunex juga dibuka sampai 09:30, tidak wajib.");
     await s.click("Catat di Edunex");
     expect(s.calls.at(-1)).toEqual({ name: "shell.openExternal", input: { url: "https://edunex.itb.ac.id/courses/95001" } });
@@ -124,7 +124,7 @@ describe("the Presensi screen", () => {
     // SIX still lists the Thursday lecture in UTS week.
     await six([course("PL3002", 6, 7)], weekly("PL3002", "2026-08-27T08:00:00", 10));
     const pl = card("PL3002");
-    expect(pl).toContain("Berikutnya: Kam, 15 Okt, 08:00 · 9134 · cukup hadir di kelas");
+    expect(pl).toContain("Berikutnya: Kam, 15 Okt, 08:00 · 9134 · Tandai Hadir di SIX saat tombolnya muncul");
     // It may not run; if it does, attending it still counts.
     expect(pl).toContain("Kam 15 Okt masuk masa UTS, jadi kuliahnya mungkin tak ada. Kalau tetap ada, hadiri: tetap dihitung.");
     // Counted, it would say "2× lagi": one absence too many if the lecture doesn't run.
@@ -287,7 +287,7 @@ describe("the Presensi screen", () => {
     expect(answer()).toEqual(["KU5014 can't reach 80% anymore.", "Don't miss another class in DK4073 and PL3032.", "You can miss 1 more class in PL3002."]);
     expect(card("DK4073")).toContain("Attended 4 of 6 · 66% · about 8 meetings left until 4 Dec");
     expect(document.querySelector("main header")?.textContent).toContain("Target for all courses: 80%");
-    expect(card("DK4073")).toContain("Next: Today, 11:00 · TVST C · just be in class");
+    expect(card("DK4073")).toContain("Next: Today, 11:00 · TVST C · press Tandai Hadir in SIX when it shows");
     expect(card("PL3002")).toContain("You can miss 1 more class");
     expect(card("PL3002")).toContain("Edunex Presence is also open until 09:30; it's optional.");
     expect(card("II4091")).toContain("You can miss 2 more classes");

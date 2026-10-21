@@ -27,7 +27,8 @@ interface Shared {
 
 let shared: Shared | null = null;
 
-function chromeUserAgent(): string {
+/** A plain Chrome identity, for windows that show a website to the Student (sign-in, SIX). */
+export function chromeUserAgent(): string {
   const platform =
     process.platform === "darwin" ? "Macintosh; Intel Mac OS X 10_15_7" : process.platform === "win32" ? "Windows NT 10.0; Win64; x64" : "X11; Linux x86_64";
   return `Mozilla/5.0 (${platform}) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${process.versions.chrome} Safari/537.36`;

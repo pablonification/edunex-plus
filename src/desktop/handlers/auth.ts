@@ -9,6 +9,7 @@ import { signInToEdunex, stopQuietEdunexSignIn } from "../signin";
 import { type SignInWindows, signInToBoth } from "../signin-both";
 import { forgetSignInSession } from "../signin-session";
 import { signInToSix, stopQuietSixSignIn } from "../six-signin";
+import { closeSixWindow } from "../six-window";
 import { removeEveryTrace } from "../traces";
 import type { HandlerGroup } from "./context";
 
@@ -42,6 +43,8 @@ export const authHandlers: HandlerGroup<"auth.signIn" | "auth.signOut"> = (conte
       // removeEveryTrace removes the folders too.
       if (!source || source === "edunex")
         await Promise.all([context.fileCache.clear().catch(() => undefined), context.downloadedFiles.clear().catch(() => undefined)]);
+      // SIX's window holds SIX's cookie: it goes with the session.
+      if (!source || source === "six") closeSixWindow();
       if (!source) await Promise.all([removeEveryTrace({ userData: context.userData, engineSession: context.engineSession }), forgetSignInSession()]);
       return {};
     },

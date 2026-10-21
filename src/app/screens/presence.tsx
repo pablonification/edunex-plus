@@ -1,23 +1,25 @@
 // Presensi (#85): am I OK, and what do I need to do? The answer comes first,
 // naming the courses and the action ("Jangan absen lagi di DK4073 dan
-// PL3032."). Then an Edunex Presence window open now, only where filling it
-// in counts, with its one action and the time left. Then every course, worst
+// PL3032."). Then SIX's "Tandai Hadir" open now in a class, the way to press
+// it; then an Edunex Presence window open now, only where filling it in
+// counts, with its one action and the time left. Then every course, worst
 // first, in at most three lines: the verdict ("Masih bisa absen 2× lagi"),
 // the count and what's left ("Hadir 4 dari 6 · 8 pertemuan lagi sampai 4
 // Des") with one meter against the course's target, and the next class with
-// where it's recorded ("cukup hadir di kelas"); then one warning at most, and
+// where it's recorded ("Tandai Hadir di SIX"); then one warning at most, and
 // a window that's optional as a quiet line. How it's counted is a closed
 // disclosure at the bottom. Nothing here is hidden by a snooze elsewhere.
 import { type ReactNode, useState } from "react";
 import { type AttendanceHealth, type AttendanceState, isExamActivity, percent } from "../../core/attendance";
 import { attendanceAnswer } from "../../core/attendance-answer";
+import { checkingIn } from "../../core/check-in";
 import { clashes, wibDay } from "../../core/course-meetings";
+import { sixTimetableUrl } from "../../core/links";
 import type { ClassSession } from "../../core/models";
-import { sixTimetableUrl } from "../../core/schedule";
 import { type CourseAttendance, type OpenWindow, useAttendance } from "../attendance";
 import { METER_TONE, STATE_TONE, useActionLabel, verdictLabel } from "../attendance-labels";
 import { CourseTarget, DefaultTarget } from "../attendance-parts";
-import { useOpenExternal } from "../hooks";
+import { useOpenCheckIn, useOpenExternal } from "../hooks";
 import { type Format, type Translate, useFormat, useLang, useNow, useT } from "../i18n";
 import { useNav } from "../nav";
 import { useCourseNames } from "../schedule-data";
@@ -58,6 +60,8 @@ export function PresenceScreen() {
         description={<Answer courses={courses} quiet={counting.length > 0} />}
         actions={counted ? <TargetControl target={target} /> : undefined}
       />
+
+      <OpenCheckIns />
 
       {counting.length > 0 && (
         <section aria-label={t("presence.open.title")} className="mb-8 space-y-3">
@@ -169,6 +173,44 @@ function TargetControl({ target }: { target: number }) {
  * time left. Without SIX nobody can say it counts: worth doing just in case,
  * so said calmly, its button quiet.
  */
+/** Classes where SIX shows "Tandai Hadir" now (as the app last read their popup), each with the way to press it. */
+function OpenCheckIns() {
+  const t = useT();
+  const f = useFormat();
+  const now = useNow();
+  const openCheckIn = useOpenCheckIn();
+  const student = useDataset("six.student");
+  const schedule = useDataset("six.schedule");
+  const checkIns = useDataset("six.checkIn");
+  const open = student ? (schedule ?? []).filter((s) => checkIns?.[s.id]?.state === "open" && checkingIn(s, now)) : [];
+  if (!student || !open.length) return null;
+  return (
+    <section aria-label={t("presence.checkIn.title")} className="mb-8 space-y-3">
+      {open.map((session) => (
+        <div key={session.id} className="rounded-2xl border border-edge bg-raised px-5 py-4 shadow-raised">
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+            <div className="min-w-0 flex-1">
+              <p className="flex items-center gap-2 text-title font-semibold">
+                <LiveDot />
+                {t("home.now.checkInOpen")}
+              </p>
+              <Meta className="mt-1 text-small text-muted">{t("presence.checkIn.class", { code: session.courseCode, time: f.time(session.end) })}</Meta>
+            </div>
+            <Button
+              variant="primary"
+              icon={<Icons.ArrowUpRight className="size-3.5" />}
+              onClick={() => openCheckIn(session.id, sixTimetableUrl(student, session.start))}
+              aria-label={t("home.now.openSixLabel", { course: session.courseCode })}
+            >
+              {t("home.now.openSix")}
+            </Button>
+          </div>
+        </div>
+      ))}
+    </section>
+  );
+}
+
 function OpenPresence({ window }: { window: OpenWindow }) {
   const t = useT();
   const f = useFormat();
@@ -516,6 +558,7 @@ function HowCounted({ lastDay }: { lastDay: string | null }) {
       <div className="mt-3 max-w-[72ch] pl-5 text-small leading-[1.6] text-muted">
         <ul className="list-disc space-y-1 pl-4">
           <li>{t("presence.how.six")}</li>
+          <li>{t("presence.how.checkIn")}</li>
           <li>{t("presence.how.which")}</li>
           <li>{t("presence.how.left", { date })}</li>
           <li>{t("presence.how.uncertain")}</li>

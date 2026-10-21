@@ -13,6 +13,27 @@ export const SIX_WEB = "https://six.itb.ac.id";
 /** SIX's student status page: this term's courses with SKS and attendance. */
 export const sixStatusUrl = (nim: string) => `${SIX_WEB}/app/mahasiswa:${nim}/statusmhs`;
 
+/** Who SIX's own page addresses name: the NIM, SIX's id for the Student, the term ("2026-1"). */
+export type SixAddress = { nim: string; studentId: string; term: string };
+
+/** SIX's timetable, as a path. */
+const timetablePath = (who: SixAddress) => `/app/mahasiswa:${who.nim}+${who.term}/kelas/jadwal/mahasiswa/${who.studentId}`;
+
+/**
+ * SIX's month timetable page, where the Student checks a meeting: this month,
+ * or the month (WIB) of `at`. Each class on it opens a popup, with its "Tandai
+ * Hadir" button while the class is on.
+ */
+export function sixTimetableUrl(who: SixAddress, at?: number): string {
+  if (at === undefined) return `${SIX_WEB}${timetablePath(who)}`;
+  const month = new Date(at + 7 * 3_600_000).toISOString().slice(0, 7).replace("-", "");
+  return `${SIX_WEB}${timetablePath(who)}?bulan=${month}`;
+}
+
+/** The popup of one class meeting, as SIX's timetable loads it when the class is clicked (its `data-url`). */
+export const sixMeetingPath = (who: SixAddress, meetingId: string) =>
+  `/app/mahasiswa:${who.nim}+${who.term}/kelas/pertemuan/${meetingId}/mhs/${who.studentId}?returnTo=${timetablePath(who).replace("+", "%2B")}`;
+
 /** ITB's academic calendar as a feed, the short link on SIX's home page ("Kalender Pendidikan ITB (iCalendar)"); it redirects to the current file. */
 export const ITB_CALENDAR_FEED = "https://goitb.id/KalenderPendidikan-ics";
 

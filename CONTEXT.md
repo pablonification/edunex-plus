@@ -107,6 +107,10 @@ _Avoid_: GPA in Indonesian copy
 SIX's attendance percentage per Class, with the exact count in a tooltip: "Hadir X dari Y pertemuan" (present at X of Y Class sessions). ITB has no institute-wide minimum; each course contract sets one. The app's default target is 80%, editable, and a course can have its own target (from its contract). "Absences left" counts only meetings sure to come: a class SIX still lists in a UTS or UAS week or on a holiday may not run, so it isn't counted.
 _Avoid_: Presence (that's the Edunex feature)
 
+**Tandai Hadir**:
+SIX's own "mark present" button. During a class, the class's popup on SIX's timetable (Jadwal, then click the class) can show it; the Student presses it to be counted present in SIX's Kehadiran. While a class is on, the app reads that popup every 2 minutes and tells the Student when the button shows, and opens SIX on it; it never presses it. Kept as SIX's words in English copy too: it's what the Student looks for in SIX.
+_Avoid_: check-in, self-attendance
+
 **UKT**:
 Uang Kuliah Tunggal, the single tuition fee paid each term.
 

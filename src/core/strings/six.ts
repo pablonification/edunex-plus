@@ -9,6 +9,8 @@ export const sixStrings = {
   "account.signInTo": { id: "Masuk ke {source}", en: "Sign in to {source}" },
   "account.signOutOf": { id: "Keluar dari {source}", en: "Sign out of {source}" },
   "signIn.sixTitle": { id: "Masuk ke SIX", en: "Sign in to SIX" },
+  // The window SIX opens in for "Tandai Hadir" (SIX's own button keeps its name)
+  "six.checkInTitle": { id: "SIX · Tandai Hadir", en: "SIX · Tandai Hadir" },
 
   // This term's courses
   "course.sks": { id: "{count} SKS", en: "{count} SKS" },

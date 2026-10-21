@@ -2,6 +2,8 @@
 // redirects to /login when the session has ended, rate-limits like SIX's
 // firewall, and lets a test change a page the way staff would: attendance
 // counts, a moved meeting, a released grade, a retake, the study plan, a bill.
+// A class's popup on the timetable (with "Tandai Hadir" while a lecturer has
+// it open) was never recorded: it's modelled (meetingPopup below).
 import { type CheerioAPI, load } from "cheerio/slim";
 import type { HttpRequest, HttpResponse } from "../../src/engine/http/transport";
 import { bodyText, exchanges } from "../kit/fixtures";
@@ -21,10 +23,12 @@ export class PretendSix {
   sessionValid = true;
   private rateLimited = 0;
   private faults: { path: RegExp; status: number; times: number }[] = [];
-  /** Paths requested, in order (SIX must be read at human pace). */
-  readonly requests: { at: number; path: string }[] = [];
+  /** Paths requested, in order (SIX must be read at human pace); `xhr`: asked the way SIX's own page loads a popup. */
+  readonly requests: { at: number; path: string; xhr: boolean }[] = [];
   /** Meetings tests added to months other than the recorded one. */
   private readonly addedMeetings: AddedMeeting[] = [];
+  /** Classes whose popup shows "Tandai Hadir" now, by meeting id. */
+  private readonly checkInOpen = new Set<string>();
 
   constructor(private readonly now: () => number) {
     for (const ex of exchanges("six")) this.pages.set(canonical(ex.path), bodyText("six", ex.file));
@@ -216,6 +220,16 @@ export class PretendSix {
     });
   }
 
+  /** "Tandai Hadir" shows in the class's popup (the lecturer opened it). */
+  openCheckIn(meetingId: string): void {
+    this.checkInOpen.add(meetingId);
+  }
+
+  /** It doesn't any more: the Student pressed it, or it closed. */
+  closeCheckIn(meetingId: string): void {
+    this.checkInOpen.delete(meetingId);
+  }
+
   // ------------------------------------------------ the outside world
 
   expireSession(): void {
@@ -244,7 +258,7 @@ export class PretendSix {
   // ------------------------------------------------ answering requests
 
   handle(request: HttpRequest, url: URL): HttpResponse {
-    this.requests.push({ at: this.now(), path: url.pathname });
+    this.requests.push({ at: this.now(), path: url.pathname, xhr: request.headers?.["x-requested-with"] === "XMLHttpRequest" });
     if (this.rateLimited > 0) {
       this.rateLimited -= 1;
       return { status: 429, headers: { "content-type": "text/html", "retry-after": "900" }, body: "Too Many Requests", url: url.toString() };
@@ -259,6 +273,14 @@ export class PretendSix {
     }
     const cookie = request.headers?.cookie ?? request.headers?.Cookie ?? "";
     if (!this.sessionValid || !cookie.includes(PRETEND_SIX_COOKIE)) return this.toLogin(request, url);
+    const popup = MEETING_POPUP.exec(url.pathname);
+    if (popup)
+      return {
+        status: 200,
+        headers: { "content-type": "text/html; charset=UTF-8" },
+        body: meetingPopup(popup[1], this.checkInOpen.has(popup[1])),
+        url: url.toString(),
+      };
     let page = this.pages.get(canonical(url.pathname));
     if (!page) return { status: 404, headers: { "content-type": "text/html" }, body: "<h1>Not Found</h1>", url: url.toString() };
     const month = url.searchParams.get("bulan");
@@ -271,6 +293,19 @@ export class PretendSix {
     if (request.redirect === "manual") return { status: 302, headers: { location: login }, body: "", url: url.toString() };
     return { status: 200, headers: { "content-type": "text/html" }, body: LOGIN_HTML, url: login };
   }
+}
+
+const MEETING_POPUP = /\/kelas\/pertemuan\/(\d+)\/mhs\/\d+$/;
+
+/**
+ * A class's popup, as the timetable loads it (modelled, not recorded): a few
+ * facts, and while it's open, SIX's blue "Tandai Hadir" button in a form.
+ */
+function meetingPopup(meetingId: string, open: boolean): string {
+  const button = open
+    ? `<form method="post" action="/app/mahasiswa:18223901+2026-1/kelas/pertemuan/${meetingId}/mhs/2021000001/hadir"><button type="submit" class="btn btn-primary">Tandai Hadir</button></form>`
+    : "";
+  return `<table class="table table-condensed"><tr><th>Pertemuan</th><td>${meetingId}</td></tr><tr><th>Kehadiran</th><td>-</td></tr></table>${button}`;
 }
 
 const TRANSCRIPT = /\/transkrip\/historis\/\d+$/;

@@ -138,7 +138,7 @@ type Message = Omit<NtfyMessage, "topic">;
 type Outcome = "ok" | "refused" | "later";
 
 /** What a phone message is made from: a notice, or a planned alert. */
-type PhoneAlert = Pick<AlertNotice, "id" | "kind" | "title" | "body" | "target"> & { urgent?: boolean };
+type PhoneAlert = Pick<AlertNotice, "id" | "kind" | "title" | "body" | "target" | "checkIn"> & { urgent?: boolean };
 
 /**
  * When the quiet hours `at` falls in end, on this computer's clock (so where
@@ -227,7 +227,8 @@ export function phoneMessage(alert: PhoneAlert, lang: Lang, options: { ahead: bo
   const text = (part: AlertText) => translate(lang, part.key, part.vars);
   const footnote = options.ahead ? FOOTNOTE[ALERT_GROUP[alert.kind]] : undefined;
   const lines = [alert.body ? text(alert.body) : null, footnote ? translate(lang, footnote) : null].filter((line) => line !== null);
-  const click = clickUrl(alert.target, options.courses);
+  // "Tandai Hadir": SIX's timetable, where the class's popup has the button (the phone's browser can't open the popup itself).
+  const click = alert.checkIn?.url ?? clickUrl(alert.target, options.courses);
   return {
     sequence_id: sequenceId(alert.id),
     ...(lines.length ? { title: clip(text(alert.title), TITLE_BYTES) } : {}),

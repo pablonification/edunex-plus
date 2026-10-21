@@ -7,9 +7,9 @@
 import type { ReactNode } from "react";
 import { wibDay } from "../../core/course-meetings";
 import { dueOn, type Exam, examKind, examPassed, takeHomeOf } from "../../core/exams";
-import { edunexCourseUrl } from "../../core/links";
+import { edunexCourseUrl, sixTimetableUrl } from "../../core/links";
 import type { CalendarEvent, Task } from "../../core/models";
-import { dayStart, sixTimetableUrl } from "../../core/schedule";
+import { dayStart } from "../../core/schedule";
 import { edunexTaskUrl, isOpenStatus, taskStatus } from "../../core/tasks";
 import { useAttendance } from "../attendance";
 import { budgetLabel, STATE_TONE } from "../attendance-labels";
