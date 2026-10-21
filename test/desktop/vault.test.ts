@@ -71,6 +71,15 @@ describe("on a Mac, sealed with the keychain helper's key", () => {
     expect(safe.decrypts).toBe(3);
   });
 
+  it("counts a folder it can't read through as still holding one: that start keeps safeStorage's entry within reach", () => {
+    expect(holdsSafeStorage(path.join(folder, "never-made"))).toBe(false);
+    fs.writeFileSync(path.join(folder, "edunex.session.bin"), "k1:sealed");
+    expect(holdsSafeStorage(folder)).toBe(false);
+    // A folder where a sign-in should be: it can't be read as one.
+    fs.mkdirSync(path.join(folder, "six.session.bin"));
+    expect(holdsSafeStorage(folder)).toBe(true);
+  });
+
   it("drops a sign-in safeStorage can't open (the Student said no to macOS): as good as none, and never asked for again", async () => {
     lockedBefore("edunex.session", "E");
     safe.refuse = true;

@@ -47,14 +47,26 @@ export function unseal(key: Buffer, name: string, stored: string): string | null
 
 /**
  * Whether the vault folder still holds a sign-in safeStorage locked (before the helper). It's
- * sealed again on this start, the one time the app still opens safeStorage's keychain entry.
+ * sealed again on this start, the one time the app still opens safeStorage's keychain entry. When
+ * the folder can't be read through, yes: that start keeps safeStorage's entry within reach rather
+ * than lose a sign-in it couldn't open.
  */
 export function holdsSafeStorage(folder: string): boolean {
+  const gone = (error: unknown) => (error as NodeJS.ErrnoException).code === "ENOENT";
+  let files: string[];
   try {
-    return readdirSync(folder).some((file) => file.endsWith(".bin") && !readFileSync(path.join(folder, file), "utf8").startsWith(SEALED));
-  } catch {
-    return false;
+    files = readdirSync(folder).filter((file) => file.endsWith(".bin"));
+  } catch (error) {
+    return !gone(error);
   }
+  return files.some((file) => {
+    try {
+      return !readFileSync(path.join(folder, file), "utf8").startsWith(SEALED);
+    } catch (error) {
+      // Removed meanwhile (a sign-out): nothing there.
+      return !gone(error);
+    }
+  });
 }
 
 /** Opens the vault: sealed with `key` (the helper's, macOS) when there is one, else with safeStorage. */

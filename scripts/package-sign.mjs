@@ -162,11 +162,14 @@ export async function checkKeychainHelper(app) {
   const file = path.join(app, "Contents", KEYCHAIN_HELPER.inApp);
   const expected = JSON.parse(await readFile(new URL(`../${KEYCHAIN_HELPER.manifest}`, import.meta.url), "utf8")).cdhash;
   const found = {};
+  const said = [];
   for (const arch of Object.keys(expected)) {
-    const printed = await run("/usr/bin/codesign", ["-d", "-vvv", "--arch", arch, file]).catch((error) => ({ stderr: String(error.stderr ?? "") }));
+    const printed = await run("/usr/bin/codesign", ["-d", "-vvv", "--arch", arch, file]).catch((error) => ({ stderr: String(error.stderr || error.message) }));
     found[arch] = cdhashIn(printed.stderr);
+    // No cdhash: what codesign said instead (no such file, not signed, …).
+    if (!found[arch]) said.push(`codesign (${arch}): ${printed.stderr.trim()}`);
   }
-  const problems = helperProblems(found, expected);
+  const problems = [...helperProblems(found, expected), ...said];
   if (problems.length) throw new Error(`The keychain helper in ${app} isn't the committed build (${KEYCHAIN_HELPER.manifest}):\n  ${problems.join("\n  ")}`);
   console.log(
     `  • keychain helper checked  ${Object.entries(found)
