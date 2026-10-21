@@ -152,6 +152,27 @@ describe("the Tandai Hadir alerts", () => {
     expect(app.shown.filter((n) => n.id === `six.checkIn:${PL3002}`)).toHaveLength(1);
   });
 
+  it("one class's popup failing doesn't keep the other class on from being read", async () => {
+    const world = new PretendWorld({ now: "2026-10-08T07:30:00+07:00" });
+    // A lab running into the lecture, whose popup SIX fails to load.
+    world.six.addMeetingBeside(PL3002, {
+      id: "2194391",
+      code: "PL3002",
+      name: "Ekonomi dan Inovasi dalam Perencanaan",
+      start: "07:00",
+      end: "08:30",
+      activity: "Praktikum",
+    });
+    world.six.fail(/\/kelas\/pertemuan\/2194391\//, 404);
+    world.six.openCheckIn(PL3002);
+    const app = await startAlerts({ world, sources: [edunex, six] });
+    const signedIn = app.engine.signIn("six", { cookie: PRETEND_SIX_COOKIE });
+    await app.wait(MINUTE);
+    await signedIn;
+    await app.until("2026-10-08T08:05:00+07:00");
+    expect(app.shown.filter((n) => n.id === `six.checkIn:${PL3002}`)).toHaveLength(1);
+  });
+
   it("turned off in Settings (Presensi): no notification, still in the history", async () => {
     const app = await inClass("2026-10-08T07:30:00");
     await app.engine.updateSettings({ mutedAlerts: ["presence"] });

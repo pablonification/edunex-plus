@@ -20,6 +20,7 @@ export const homeStrings = {
     id: "Kehadiran dihitung di SIX: tekan Tandai Hadir di SIX saat tombolnya muncul.",
     en: "Attendance counts in SIX: press Tandai Hadir in SIX when it shows.",
   },
+  "home.now.checkInWatch": { id: "Tekan Tandai Hadir di SIX saat tombolnya muncul.", en: "Press Tandai Hadir in SIX when it shows." },
   // SIX's "Tandai Hadir" for the class on now, as the app last saw it in the class's popup
   "home.now.checkInOpen": { id: "Tandai Hadir sudah dibuka di SIX", en: "Tandai Hadir is open in SIX" },
   "home.now.checkInOpenHint": { id: "Belum kamu tekan. Kuliah sampai {time}.", en: "You haven't pressed it yet. Class until {time}." },

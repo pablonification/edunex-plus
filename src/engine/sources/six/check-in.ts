@@ -9,6 +9,7 @@
 import { CHECK_IN_EVERY, checkingIn } from "../../../core/check-in";
 import { sixMeetingPath } from "../../../core/links";
 import type { SixCheckIn } from "../../../core/models";
+import { isEngineError } from "../../errors";
 import type { SourceContext } from "../source";
 import { clean, parse } from "./html";
 import type { SixPages } from "./pages";
@@ -61,12 +62,22 @@ export function registerSixCheckInFeed(context: SourceContext, pages: SixPages):
       if (saved === undefined) await context.set("six.checkIn", {});
       const who = await pages.who();
       const next = { ...kept };
+      let failed: unknown = null;
       for (const session of due) {
-        const shows = showsCheckIn(await pages.page(sixMeetingPath(who, session.id), { popup: true }));
+        let html: string;
+        try {
+          html = await pages.page(sixMeetingPath(who, session.id), { popup: true });
+        } catch (error) {
+          // Offline or signed out is all of SIX: no use reading on. Anything else is this class's popup; the next class is still read.
+          if (isEngineError(error, "Offline") || isEngineError(error, "Unauthorized")) throw error;
+          failed ??= error;
+          continue;
+        }
         if (!current()) return;
-        next[session.id] = nextCheckIn(next[session.id], shows, context.clock.now());
+        next[session.id] = nextCheckIn(next[session.id], showsCheckIn(html), context.clock.now());
       }
       await context.set("six.checkIn", next);
+      if (failed) throw failed;
     },
   });
 }

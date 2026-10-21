@@ -338,13 +338,15 @@ function Attendance({ card }: { card: NowCard }) {
         <CheckIn
           session={session}
           check={check}
+          countsInSix={counted === "six" || counted === "both"}
           url={sixTimetableUrl(student, session.start)}
           budget={budget ? <span className={STATE_TEXT[facts!.state]}>{budget}</span> : null}
         >
           {presence && (
             <div className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-line pt-3">
               <p className="min-w-0 flex-1 text-small text-muted">
-                {presence.counts
+                {/* Optional only where it's known not to count; not known yet, it's simply there to do. */}
+                {presence.counts !== false
                   ? t("presence.record.edunexDo", {
                       action: actionLabel({ action: { activity: presence.activity, task: presence.task, url: presence.url } }),
                       time: f.dayTime(presence.session.closesAt),
@@ -452,12 +454,15 @@ function Attendance({ card }: { card: NowCard }) {
 function CheckIn({
   session,
   check,
+  countsInSix,
   url,
   budget,
   children,
 }: {
   session: ClassSession;
   check: SixCheckIn | undefined;
+  /** SIX's count says attendance counts there; else nobody can say yet (early in the term), and it isn't claimed. */
+  countsInSix: boolean;
   url: string;
   budget: ReactNode;
   children: ReactNode;
@@ -472,7 +477,13 @@ function CheckIn({
         <div className="min-w-0 flex-1">
           <p className={cx("flex items-center gap-2 text-body", state === "open" ? "font-semibold" : "font-medium")}>
             <Icons.Hand className={cx("size-4 shrink-0", state === "open" ? "text-accent-fg" : "text-muted")} />
-            {state === "open" ? t("home.now.checkInOpen") : state === "gone" ? t("home.now.checkInGone") : t("home.now.countSix")}
+            {state === "open"
+              ? t("home.now.checkInOpen")
+              : state === "gone"
+                ? t("home.now.checkInGone")
+                : countsInSix
+                  ? t("home.now.countSix")
+                  : t("home.now.checkInWatch")}
           </p>
           <p className="mt-0.5 pl-6 text-small text-muted">
             <Meta>

@@ -179,6 +179,17 @@ describe("SIX's Tandai Hadir in class", () => {
     expect(text("home-now")).toContain("Tandai Hadir sudah tidak tampil di SIX: sudah kamu tekan, atau sudah ditutup.");
     expect(screen.button("Buka PL3002 di SIX untuk Tandai Hadir").className).not.toContain("bg-accent");
   });
+
+  it("early in the term, with no count in SIX yet: it doesn't claim where attendance counts, nor call the Edunex Presence optional", async () => {
+    const world = new PretendWorld({ now: "2026-10-08T08:12:00+07:00" });
+    world.six.setAttendance("PL3002", 0, 0);
+    screen = await openApp({ world, signedIn: true, six: true });
+    const now = text("home-now");
+    expect(now).toContain("Tekan Tandai Hadir di SIX saat tombolnya muncul.");
+    expect(now).not.toContain("Kehadiran dihitung di SIX");
+    expect(now).toContain("Presensi Edunex: Buka mata kuliahnya di Edunex sebelum 09:30");
+    expect(now).not.toContain("tidak wajib");
+  });
 });
 
 describe("an open window that doesn't count, recorded by handing in a Task", () => {
