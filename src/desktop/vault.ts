@@ -25,7 +25,7 @@ const fileOf = (name: string) => `${name}.bin`;
 /** `value` sealed with `key`, bound to `name` (a value moved to another name doesn't open). */
 function seal(key: Buffer, name: string, value: string): string {
   const iv = randomBytes(IV);
-  const cipher = createCipheriv("aes-256-gcm", key, iv);
+  const cipher = createCipheriv("aes-256-gcm", key, iv, { authTagLength: TAG });
   cipher.setAAD(Buffer.from(name, "utf8"));
   const sealed = Buffer.concat([cipher.update(value, "utf8"), cipher.final()]);
   return SEALED + Buffer.concat([iv, cipher.getAuthTag(), sealed]).toString("base64");
@@ -36,7 +36,7 @@ export function unseal(key: Buffer, name: string, stored: string): string | null
   const bytes = Buffer.from(stored.slice(SEALED.length), "base64");
   if (bytes.length < IV + TAG) return null;
   try {
-    const decipher = createDecipheriv("aes-256-gcm", key, bytes.subarray(0, IV));
+    const decipher = createDecipheriv("aes-256-gcm", key, bytes.subarray(0, IV), { authTagLength: TAG });
     decipher.setAAD(Buffer.from(name, "utf8"));
     decipher.setAuthTag(bytes.subarray(IV, IV + TAG));
     return Buffer.concat([decipher.update(bytes.subarray(IV + TAG)), decipher.final()]).toString("utf8");

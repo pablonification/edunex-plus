@@ -50,8 +50,11 @@ describe("on a Mac, sealed with the keychain helper's key", () => {
     expect(stored("edunex.session")).not.toContain("pretend-token");
     expect(await vault.get("edunex.session")).toBe('{"token":"pretend-token"}');
     expect(unseal(Buffer.alloc(32, 8), "edunex.session", stored("edunex.session"))).toBeNull();
-    // Copied under another name, it doesn't open.
+    // Copied under another name, it doesn't open; nor with its tag cut short.
     expect(unseal(KEY, "six.session", stored("edunex.session"))).toBeNull();
+    const bytes = Buffer.from(stored("edunex.session").slice("k1:".length), "base64");
+    const shortTag = Buffer.concat([bytes.subarray(0, 12 + 4), bytes.subarray(12 + 16)]);
+    expect(unseal(KEY, "edunex.session", `k1:${shortTag.toString("base64")}`)).toBeNull();
     expect(safe.decrypts).toBe(0);
     expect(holdsSafeStorage(folder)).toBe(false);
   });
