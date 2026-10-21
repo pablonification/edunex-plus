@@ -151,16 +151,25 @@ package:win` (one-click installers, one for x64 and one for arm64) and `npm run 
 made on Windows or in CI, Linux builds on Linux.
 
 **The Mac app's signature.** Release builds sign the Mac app with the project's own certificate
-(`scripts/package-sign.mjs`), so every version is the same app to macOS and the keychain doesn't
-ask students for their password after each update. It isn't Apple's, so the first install still
-needs the Terminal line ([docs/install.md](docs/install.md)). Builds without it (yours, forks)
-stay ad-hoc. To set it up once, a maintainer runs `node scripts/make-signing-cert.mjs` (needs
+(`scripts/package-sign.mjs`), so every version is the same app to macOS. It isn't Apple's, so the
+first install still needs the Terminal line ([docs/install.md](docs/install.md)), and the keychain
+still tells one build from the next. That's why the key the sign-ins are locked with is kept by the
+keychain helper (`native/mac-keychain`, [ADR 0003](docs/adr/0003-mac-keychain-helper.md)): the same
+build in every release, so macOS doesn't ask students for their password after an update. Builds
+without the certificate (yours, forks) stay ad-hoc, and the helper doesn't answer them: their vault
+uses Electron's safeStorage. To set it up once, a maintainer runs `node scripts/make-signing-cert.mjs` (needs
 `openssl`) and puts what it prints into two repository secrets, `MAC_SIGNING_P12` and
 `MAC_SIGNING_PASSWORD`; the release workflow does the rest. Keep its folder somewhere safe and out
-of the repository: a new certificate makes every student type their password once more, and
-whoever holds it can sign an app macOS takes for Edunex Plus. Check a build with
-`codesign -d -r- "release/mac-arm64/Edunex Plus.app"`: signed, it names `id.edunexplus.desktop`
-and the certificate; ad-hoc, only a `cdhash`.
+of the repository: a new certificate means a new helper, which makes every student type their
+password once more, and whoever holds it can sign an app macOS takes for Edunex Plus. Check a
+build with `codesign -d -r- "release/mac-arm64/Edunex Plus.app"`: signed, it names
+`id.edunexplus.desktop` and the certificate; ad-hoc, only a `cdhash`.
+
+**The keychain helper** is committed built and signed, and every Mac build checks it carries
+that exact build. Build it again (`npm run build:keychain-helper`, on a Mac, with
+`MAC_SIGNING_KEYCHAIN` naming a keychain that holds the certificate, made as the release workflow
+makes it) only when it must change: any new build of it, even from the same source, makes every
+student type their password once more after that update. Say so in the release notes.
 
 Each build sets Electron's security switches (fuses) and stops if any came out
 wrong. Check a finished build with

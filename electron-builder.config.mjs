@@ -7,7 +7,7 @@
 // the disk image is packed smaller in scripts/package-dmg.mjs.
 import { artifactBuildCompleted } from "./scripts/package-dmg.mjs";
 import { afterPack } from "./scripts/package-fuses.mjs";
-import { afterSign } from "./scripts/package-sign.mjs";
+import { afterSign, KEYCHAIN_HELPER } from "./scripts/package-sign.mjs";
 
 // The Windows installer for ARM PCs (Snapdragon and the like). Each kind of PC has its own, half
 // the size of one carrying both; scripts/package-win.mjs builds this one, then the x64 one under
@@ -60,11 +60,16 @@ export default {
       { from: "node_modules/electron/dist/LICENSE", to: "LICENSE.electron.txt" },
       { from: "node_modules/electron/dist/LICENSES.chromium.html", to: "LICENSES.chromium.html" },
     ],
+    // The keychain helper (native/mac-keychain, docs/adr/0003-mac-keychain-helper.md), into
+    // Contents/Helpers, with the signature it was committed with: signed again, it would be another
+    // build to the keychain, and macOS would ask the Student for their password after updating.
+    extraFiles: [{ from: KEYCHAIN_HELPER.file, to: KEYCHAIN_HELPER.inApp }],
+    signIgnore: [`/Contents/${KEYCHAIN_HELPER.inApp}$`],
     // Ad-hoc: no Apple certificate, but signed, so macOS delivers notifications. Release builds
     // are then signed again with the project's own certificate (afterSign,
-    // scripts/package-sign.mjs), so every version is the same app to macOS and the keychain
-    // doesn't ask the Student for their password after each update; electron-builder's own
-    // search for a certificate finds only ones macOS trusts, which that one isn't.
+    // scripts/package-sign.mjs), so every version is the same app to macOS, and the keychain
+    // helper answers it; electron-builder's own search for a certificate finds only ones macOS
+    // trusts, which that one isn't.
     // Hardened runtime would refuse Electron's own frameworks under an ad-hoc signature.
     identity: "-",
     hardenedRuntime: false,

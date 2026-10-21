@@ -15,8 +15,10 @@ stays one "Hubungkan" away.
 
 Everything stays on your computer:
 
-- **Your sessions** (Edunex token, SIX cookie) are encrypted with your system's keychain
-  (Keychain on macOS, DPAPI on Windows, the keyring on Linux). If there is no secure storage,
+- **Your sessions** (Edunex token, SIX cookie) are encrypted with a key your system's keychain
+  keeps (Keychain on macOS, DPAPI on Windows, the keyring on Linux). On macOS the key is in
+  "Edunex Plus Vault", and only Edunex Plus can get it: its small keychain helper hands it to the
+  app signed with the project's certificate, and to nothing else. If there is no secure storage,
   they are kept only in memory until you quit.
 - **What the app has read** (Tasks, courses, timetable, grades, alerts, settings) is saved as
   files in the app's data folder, so it opens instantly and works offline:

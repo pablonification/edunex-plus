@@ -28,6 +28,7 @@ import { openCheckIn, sixHandlers } from "./handlers/six";
 import { tasksHandlers } from "./handlers/tasks";
 import { updatesHandlers } from "./handlers/updates";
 import { type Handlers, registerBridge } from "./ipc";
+import { helperPath, readVaultKey } from "./keychain-helper";
 import { installMenu } from "./menu";
 import { createNotifier } from "./notifications";
 import { ntfyClient } from "./ntfy";
@@ -38,7 +39,7 @@ import { FileStorage } from "./storage";
 import { electronTransport } from "./transport";
 import { type AppTray, createTray } from "./tray";
 import { electronUpdater } from "./updater";
-import { openVault } from "./vault";
+import { holdsSafeStorage, openVault } from "./vault";
 import { createMainWindow, currentPlatform, followTheme, loadWindowState } from "./window";
 
 // Later launches start faster: compiled code is cached between runs.
@@ -69,6 +70,8 @@ let theme: ReturnType<typeof followTheme> | null = null;
 let autoUpdates: ReturnType<typeof followAutoUpdates> | null = null;
 /** Quitting for good: a ready update has been put in place, or there was none. */
 let readyToQuit = false;
+/** macOS: the key the saved sign-ins are locked with, from the keychain helper (src/desktop/keychain-helper.ts); null elsewhere. */
+let vaultKey: Buffer | null = null;
 const notifier = createNotifier({
   lang: () => engine?.snapshot().settings.lang ?? DEFAULT_SETTINGS.lang,
   open: openRoute,
@@ -85,7 +88,20 @@ if (!app.requestSingleInstanceLock()) {
   app.quit();
 } else {
   app.on("second-instance", reveal);
+  if (packaged && process.platform === "darwin") {
+    vaultKey = readVaultKey(helperPath(process.resourcesPath));
+    // Before Chromium starts: with the helper's key, Chromium is told to leave the real keychain
+    // alone (it would open "Edunex Plus Safe Storage" to clear its storage on a sign-out), so
+    // nothing in the app opens it and macOS has nothing to ask after an update. Not while a sign-in
+    // safeStorage locked is still there: this start reads it, the last time macOS asks.
+    if (vaultKey && !holdsSafeStorage(vaultFolder(app.getPath("userData")))) app.commandLine.appendSwitch("use-mock-keychain");
+  }
   app.whenReady().then(start).catch(fail);
+}
+
+/** Where the saved sign-ins are, locked (src/desktop/vault.ts). */
+function vaultFolder(userData: string): string {
+  return path.join(userData, "v2", "vault");
 }
 
 async function start(): Promise<void> {
@@ -93,7 +109,7 @@ async function start(): Promise<void> {
   const root = path.join(userData, "v2");
   const storage = new FileStorage(path.join(root, "data"));
   void storage.sweep();
-  const { vault, mode } = await openVault(new FileStorage(path.join(root, "vault")));
+  const { vault, mode } = await openVault(new FileStorage(vaultFolder(userData)), vaultKey);
 
   // The engine talks to the sources on its own in-memory session; the page gets no permissions at all.
   const engineSession = session.fromPartition("engine", { cache: false });

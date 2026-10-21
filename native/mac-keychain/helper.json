@@ -1,0 +1,10 @@
+{
+  "source": "eea26368ab7f95cb1d7dfbc37a0096e652b36ce23b6af4079d4cd0f87bb386d8",
+  "file": "86be5fb41147f7aadff46e2fdf10f6eb32503ef3c591715b0b7b164bed9ad5a8",
+  "cdhash": {
+    "arm64": "965786119e774010af65ec2d27623bd3291c5610",
+    "x86_64": "f68776c2e377d1e780c0b072cd3630fd4210f019"
+  },
+  "builtWith": "Apple clang version 17.0.0 (clang-1700.3.19.1)",
+  "signedBy": "Edunex Plus"
+}

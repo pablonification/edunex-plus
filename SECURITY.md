@@ -22,7 +22,8 @@ see the report, and you can talk it through with them there.
 The app and this repository:
 
 - **Sessions and tokens:** the Edunex token and the SIX cookie. How they're
-  stored (only through the system keychain, `src/desktop/vault.ts`), whether
+  stored (only locked with a key the system keychain keeps, `src/desktop/vault.ts`, on macOS
+  through the keychain helper, `native/mac-keychain`), whether
   they can end up in logs, files, screenshots or requests to other hosts, and
   whether **Settings → Keluar** really removes them (`src/desktop/traces.ts`).
 - **The bridge between the window and the app** (`src/desktop/ipc.ts`,

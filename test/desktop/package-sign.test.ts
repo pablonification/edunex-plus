@@ -1,17 +1,29 @@
 // The Mac app's signature (scripts/package-sign.mjs). Signed ad-hoc, each version is another app
-// to macOS, so after every update the keychain asks the Student for their password before the app
-// may open "Edunex Plus Safe Storage", the key their sign-in is locked with. Release builds are
-// signed again with the project's own certificate, so every version is "id.edunexplus.desktop,
-// signed by it" and the keychain lets it in. A test can't sign or open a keychain: these check
-// the parts that decide what gets signed and how, and a real build checks what it signed itself.
+// to macOS. Release builds are signed again with the project's own certificate, so every version
+// is "id.edunexplus.desktop, signed by it". The keychain goes by the exact build all the same, so
+// the keychain helper (native/mac-keychain) ships as it was committed, never signed again, and
+// every Mac build checks it's that build. A test can't sign or open a keychain: these check the
+// parts that decide what gets signed and how, and a real build checks what it signed itself.
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import config from "../../electron-builder.config.mjs";
+import { CLANG_ARGS, HELPER_SOURCE, helperCodesignArgs, sha256 } from "../../scripts/build-keychain-helper.mjs";
 import { CERTIFICATE, DAYS, makeSigningCertificate } from "../../scripts/make-signing-cert.mjs";
-import { afterSign, codesignArgs, keychainList, namesCertificate, signingIdentity, signingKeychain, signingOrder } from "../../scripts/package-sign.mjs";
+import {
+  afterSign,
+  cdhashIn,
+  codesignArgs,
+  helperProblems,
+  KEYCHAIN_HELPER,
+  keychainList,
+  namesCertificate,
+  signingIdentity,
+  signingKeychain,
+  signingOrder,
+} from "../../scripts/package-sign.mjs";
 
 // A made-up certificate's SHA-1.
 const SHA1 = "C0FFEEC0FFEEC0FFEEC0FFEEC0FFEEC0FFEEC0FF";
@@ -27,7 +39,8 @@ describe("the Mac app's signature", () => {
     vi.stubEnv("MAC_SIGNING_KEYCHAIN", "");
     const log = vi.spyOn(console, "log").mockImplementation(() => {});
     const context = { electronPlatformName: "darwin", appOutDir: "/nowhere", packager: { appInfo: { productFilename: "Edunex Plus", id: config.appId } } };
-    await expect(afterSign(context)).resolves.toBeUndefined();
+    // Signed or not, the build is checked to carry the keychain helper as committed: there's none here.
+    await expect(afterSign(context)).rejects.toThrow("The keychain helper in /nowhere/Edunex Plus.app isn't the committed build");
     expect(log).toHaveBeenCalledWith(expect.stringContaining("kept the ad-hoc signature"));
     log.mockRestore();
     vi.unstubAllEnvs();
@@ -101,6 +114,66 @@ Policy: Code Signing
   it("puts the keychain where codesign looks only while signing, reading the list back as macOS prints it", () => {
     const listed = '    "/Users/runner/Library/Keychains/login.keychain-db"\n    "/Users/runner/Library/Keychains/My Keys.keychain-db"\n';
     expect(keychainList(listed)).toEqual(["/Users/runner/Library/Keychains/login.keychain-db", "/Users/runner/Library/Keychains/My Keys.keychain-db"]);
+  });
+});
+
+const manifest = JSON.parse(fs.readFileSync(KEYCHAIN_HELPER.manifest, "utf8")) as { source: string; file: string; cdhash: Record<string, string> };
+
+describe("the keychain helper (native/mac-keychain)", () => {
+  it("goes into the app as it was committed: electron-builder doesn't sign it, nor does the certificate step", () => {
+    expect(config.mac?.extraFiles).toEqual([{ from: KEYCHAIN_HELPER.file, to: "Helpers/Edunex Plus Keychain" }]);
+    const ignored = ((config.mac?.signIgnore ?? []) as string[]).map((pattern) => new RegExp(pattern));
+    expect(ignored.some((re) => re.test("/release/mac-arm64/Edunex Plus.app/Contents/Helpers/Edunex Plus Keychain"))).toBe(true);
+    expect(ignored.some((re) => re.test("/release/mac-arm64/Edunex Plus.app/Contents/MacOS/Edunex Plus"))).toBe(false);
+  });
+
+  it("is the build the manifest names, from the source it names: changing either means building it again, on purpose", () => {
+    expect(sha256(fs.readFileSync(HELPER_SOURCE))).toBe(manifest.source);
+    const file = fs.readFileSync(KEYCHAIN_HELPER.file);
+    expect(sha256(file)).toBe(manifest.file);
+    // One file for both kinds of Mac (a fat Mach-O), executable.
+    expect(file.readUInt32BE(0)).toBe(0xcafebabe);
+    expect(fs.statSync(KEYCHAIN_HELPER.file).mode & 0o111).not.toBe(0);
+    expect(Object.keys(manifest.cdhash).sort()).toEqual(["arm64", "x86_64"]);
+  });
+
+  it("answers only the app signed with the project's certificate, and keeps its key under its own name", () => {
+    const source = fs.readFileSync(HELPER_SOURCE, "utf8");
+    expect(source).toContain('"identifier \\"id.edunexplus.desktop\\" and certificate root = H\\"e49f5771b5ab0e7f802be8c19bddbc2e56c1d816\\""');
+    expect(source).toContain('#define VAULT_SERVICE "Edunex Plus Vault"');
+    expect(CLANG_ARGS).toEqual(expect.arrayContaining(["-arch", "arm64", "x86_64", "-mmacosx-version-min=12.0", "-Werror"]));
+  });
+
+  it("is signed with its own name and nothing else, so the same file always signs the same", () => {
+    expect(helperCodesignArgs(SHA1, KEYCHAIN, "/tmp/helper")).toEqual([
+      "--sign",
+      SHA1,
+      "--keychain",
+      KEYCHAIN,
+      "--force",
+      "--timestamp=none",
+      "--identifier",
+      "id.edunexplus.keychain",
+      "/tmp/helper",
+    ]);
+  });
+
+  it("isn't signed again with the certificate: the rest of the app is", () => {
+    const app = "/release/mac-arm64/Edunex Plus.app";
+    const helper = `${app}/Contents/Helpers/Edunex Plus Keychain`;
+    const main = `${app}/Contents/MacOS/Edunex Plus`;
+    expect(signingOrder(app, [helper, main])).toEqual([main, app]);
+  });
+
+  it("is checked in every Mac build by its cdhash, each kind of Mac", () => {
+    const printed = `Executable=/x\nIdentifier=id.edunexplus.keychain\nCDHash=${manifest.cdhash.arm64}\nSignature size=1234\n`;
+    expect(cdhashIn(printed)).toBe(manifest.cdhash.arm64);
+    expect(cdhashIn("code object is not signed at all")).toBeNull();
+    expect(helperProblems({ ...manifest.cdhash }, manifest.cdhash)).toEqual([]);
+    expect(helperProblems({ arm64: "0f".repeat(20), x86_64: null }, manifest.cdhash)).toEqual([
+      `arm64: ${"0f".repeat(20)}, should be ${manifest.cdhash.arm64}`,
+      `x86_64: no signature, should be ${manifest.cdhash.x86_64}`,
+    ]);
   });
 });
 

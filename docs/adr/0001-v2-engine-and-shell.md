@@ -48,7 +48,8 @@ and sends and draws as little as possible.
 - **Sessions** are captured in a sign-in window on a throwaway in-memory
   session (the Student types their password only on Microsoft's page),
   stored only through the OS keychain (`safeStorage`, no plaintext
-  fallback), and wiped on sign-out.
+  fallback; on macOS a key the keychain helper keeps, [0003](0003-mac-keychain-helper.md)),
+  and wiped on sign-out.
 - **Security baseline:** context isolation and sandbox on, no `<webview>`,
   a content policy, navigation and new-window guards, IPC sender checks.
 - **Writes** happen only on an explicit click (Task draft, upload, submit).
