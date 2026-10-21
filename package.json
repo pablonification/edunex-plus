@@ -46,7 +46,8 @@
     "package:mac": "npm run build && electron-builder --config electron-builder.config.mjs --mac",
     "package:win": "npm run build && node scripts/package-win.mjs",
     "package:linux": "npm run build && electron-builder --config electron-builder.config.mjs --linux",
-    "check:fuses": "node scripts/package-fuses.mjs"
+    "check:fuses": "node scripts/package-fuses.mjs",
+    "build:keychain-helper": "node scripts/build-keychain-helper.mjs"
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",

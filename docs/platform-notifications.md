@@ -25,8 +25,9 @@ Linux it depends on the desktop's notification daemon.
   frameworks under an ad-hoc signature). Check with `codesign -dv`:
   `Signature=adhoc`. Release builds are then signed again with the project's
   own certificate (`scripts/package-sign.mjs`, still no hardened runtime), so
-  the keychain knows each update is the same app: `codesign -dvv` shows
-  `Authority=Edunex Plus`.
+  macOS knows each update is the same app: `codesign -dvv` shows
+  `Authority=Edunex Plus`. (The keychain still tells one build from the next;
+  the sign-in key is kept by the keychain helper, ADR 0003.)
 - Known residue: downloaded ad-hoc packaged builds hit Gatekeeper on first
   launch (right-click → Open). Accepted and documented, not solved.
 - Test notification appeared in Notification Center on 2026-09-05
