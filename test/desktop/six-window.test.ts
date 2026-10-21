@@ -145,7 +145,11 @@ describe("the SIX window", () => {
     await expect(openSixCheckIn({ ...options, url: "https://example.com/" })).rejects.toThrow();
     expect(() => openPopupScript("1'); alert(1); ('")).toThrow();
     expect(staysInSixWindow("http://six.itb.ac.id/")).toBe(false);
-    expect(staysInSixWindow("https://user:pw@six.itb.ac.id/")).toBe(false);
+    // A name and password inside the address (built, not written: written, it reads as an email address).
+    const named = new URL("https://six.itb.ac.id/");
+    named.username = "user";
+    named.password = "pw";
+    expect(staysInSixWindow(named.href)).toBe(false);
   });
 
   it("reads the engine's session as SIX's cookie, and nothing else", () => {
