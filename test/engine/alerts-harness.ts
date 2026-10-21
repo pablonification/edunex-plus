@@ -20,7 +20,16 @@ export interface Shown extends AlertNotice {
 }
 
 export async function startAlerts(
-  options: { world?: PretendWorld; storage?: MemoryStorage; vault?: MemoryVault; ntfy?: PretendNtfy; signIn?: boolean; detectors?: readonly Detector[] } = {},
+  options: {
+    world?: PretendWorld;
+    storage?: MemoryStorage;
+    vault?: MemoryVault;
+    ntfy?: PretendNtfy;
+    signIn?: boolean;
+    detectors?: readonly Detector[];
+    /** Defaults to Edunex alone. */
+    sources?: Parameters<typeof createEngine>[0]["sources"];
+  } = {},
 ) {
   const world = options.world ?? new PretendWorld();
   const storage = options.storage ?? new MemoryStorage();
@@ -36,7 +45,7 @@ export async function startAlerts(
     version: "2.0.0-test",
     emit: (event) => events.push(event),
     random: () => 0.5,
-    sources: [edunex],
+    sources: options.sources ?? [edunex],
     detectors: options.detectors ?? DETECTORS,
     alert: (notice) => {
       const text = [notice.title, notice.body].flatMap((part) => (part ? [translate("id", part.key, part.vars)] : [])).join(" — ");

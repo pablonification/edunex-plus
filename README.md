@@ -25,7 +25,8 @@ you what needs you now:
 - **Beranda:** today's classes, deadlines and anything urgent, most important first.
 - **Tugas & Ujian:** every Task and exam with its real status. Save a draft or submit from the
   app.
-- **Presensi:** your attendance count per course and how many absences you have left.
+- **Presensi:** your attendance count per course and how many absences you have left. In class,
+  it tells you the moment SIX's **Tandai Hadir** opens and takes you straight to it.
 - **Courses:** modules, materials (Word, Excel, PowerPoint and PDF open in the app, and work
   offline), meetings and rooms.
 - **Rencana studi:** your KRS, UKT bills and ITB's academic deadlines.

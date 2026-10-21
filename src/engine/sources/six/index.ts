@@ -1,8 +1,9 @@
 // SIX as a source (#76): the `khongguan` cookie as the session; a redirect to
 // /login ends it. Pages are read at human pace, one at a time, through one
-// client (SixPages) that every SIX reader shares.
+// client (SixPages) that every SIX reader shares, "Tandai Hadir" during class too.
 import { z } from "zod";
 import type { Source } from "../source";
+import { registerSixCheckInFeed } from "./check-in";
 import { SIX_ORIGIN, SixClient } from "./client";
 import { registerSixFeeds } from "./feeds";
 import { registerSixRecordFeeds } from "./records";
@@ -20,5 +21,6 @@ export const six: Source<SixSession> = {
     // One client, so every SIX page (status, timetable, records) waits in the same line.
     registerSixFeeds(context, client);
     registerSixRecordFeeds(context, client);
+    registerSixCheckInFeed(context, client);
   },
 };

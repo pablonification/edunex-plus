@@ -122,7 +122,7 @@ export const searchStrings = {
       other: '{code}: SIX has {attended} of {held}; ignore the {count} "absences" Edunex shows',
     },
   },
-  "scan.unused.note": { id: "Cukup hadir di kelas; Presensi Edunex tidak wajib.", en: "Just be in class; Edunex Presence is optional." },
+  "scan.unused.note": { id: "Tandai Hadir di SIX; Presensi Edunex tidak wajib.", en: "Press Tandai Hadir in SIX; Edunex Presence is optional." },
 
   // Exams
   "scan.exams.title": { id: "{count} ujian akan datang", en: { one: "{count} upcoming exam", other: "{count} upcoming exams" } },

@@ -43,6 +43,20 @@ export const ClassSession = z.object({
 });
 export type ClassSession = z.infer<typeof ClassSession>;
 
+/**
+ * SIX's "Tandai Hadir" button for one class meeting, as the app last saw it in
+ * the meeting's popup on SIX's timetable, read while the class is on. SIX
+ * counts a Student present when they press it there. waiting: read, no button
+ * yet; open: the button shows; gone: it showed and doesn't any more (pressed,
+ * or SIX closed it).
+ */
+export const SixCheckIn = z.object({
+  state: z.enum(["waiting", "open", "gone"]),
+  /** When the app first saw it in this state (ms). Read again unchanged, it stays as it is: nothing new to say. */
+  since: z.number(),
+});
+export type SixCheckIn = z.infer<typeof SixCheckIn>;
+
 export const sixDatasets = {
   "six.student": SixStudent,
   /** This term's courses, in SIX's order. */
@@ -55,4 +69,6 @@ export const sixDatasets = {
    * their month read, so nothing there is called missing from SIX.
    */
   "six.scheduleMonths": z.array(z.string()),
+  /** "Tandai Hadir" in each class meeting read while it was on, by SIX's meeting id (the last two days). */
+  "six.checkIn": z.record(z.string(), SixCheckIn),
 } as const;

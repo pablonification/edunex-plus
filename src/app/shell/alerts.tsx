@@ -10,6 +10,7 @@ import type { Alert, AlertKind } from "../../core/models";
 import { alertFeed } from "../../core/needs";
 import { useTermCourses } from "../courses";
 import { useHomeWorld } from "../home-world";
+import { useOpenCheckIn } from "../hooks";
 import { type Format, useFormat, useNow, useT } from "../i18n";
 import { useNav } from "../nav";
 import { useBridge, useDataset, useStatus, useStore } from "../store";
@@ -124,6 +125,7 @@ function AlertsPanel({ readAt, onRead, onClose }: { readAt: number; onRead: (at:
   const store = useStore();
   const bridge = useBridge();
   const { go } = useNav();
+  const openCheckIn = useOpenCheckIn();
   const history = useDataset("app.alerts");
   // Signed out of SIX, nothing here came from SIX: the footnote doesn't say it did.
   const sixOut = useStatus("six").state === "signed-out";
@@ -185,7 +187,8 @@ function AlertsPanel({ readAt, onRead, onClose }: { readAt: number; onRead: (at:
                       type="button"
                       onClick={() => {
                         onClose();
-                        go(item.target);
+                        if (item.checkIn) openCheckIn(item.checkIn.meetingId, item.checkIn.url);
+                        else go(item.target);
                       }}
                       className="focus-ring flex w-full items-start gap-3 px-4 py-2.5 text-left transition-colors duration-150 hover:bg-hover"
                     >

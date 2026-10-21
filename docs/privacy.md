@@ -33,7 +33,11 @@ from this computer.
 Nothing leaves your computer except the app's own requests to:
 
 - **Edunex** (`api-edunex.cognisia.id` and its file storage) and **SIX** (`six.itb.ac.id`),
-  with your session, to read your data and to hand in what you choose to submit;
+  with your session, to read your data and to hand in what you choose to submit. During a class
+  that includes the class's popup on SIX's timetable, every 2 minutes, to see whether **Tandai
+  Hadir** is open. Opening SIX for it from the app shows SIX in a window of the app, signed in
+  with your SIX session; that window keeps nothing after it closes, and the app never presses
+  the button for you;
 - **ITB's public pages** (the academic calendar and SIX's public course catalog), without any
   session;
 - **GitHub**, once a day and when you press **Check for updates**, to check for a newer release

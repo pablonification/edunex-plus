@@ -33,8 +33,13 @@ describe("Beranda on the recorded Thursday morning", () => {
     expect(colored.length).toBeGreaterThan(0);
     expect(colored.every((el) => el.classList.contains("size-2"))).toBe(true);
     expect(now).toContain("Jam berubah · biasanya 08:00–09:30");
-    // SIX counts PL3002: being in class is what counts, Edunex's window is optional (the audit's "Catat kehadiran" + "Buka di Edunex" + "dihitung di SIX").
-    expect(now).toContain("Kehadiran dihitung di SIX: cukup hadir di kelas.");
+    // SIX counts PL3002: SIX's "Tandai Hadir" is what counts, and the app is watching for it; Edunex's window is optional.
+    expect(now).toContain("Kehadiran dihitung di SIX: tekan Tandai Hadir di SIX saat tombolnya muncul.");
+    expect(now).toContain("Aplikasi memeriksa SIX tiap 2 menit selama kuliah dan memberi tahu saat Tandai Hadir muncul.");
+    // Not a tick: nothing says the Student is marked present yet.
+    expect(section("home-now")?.textContent).not.toMatch(/tercatat hadir|sudah hadir/);
+    expect(screen.button("Buka PL3002 di SIX untuk Tandai Hadir").textContent).toBe("Buka di SIX");
+    expect(screen.button("Buka PL3002 di SIX untuk Tandai Hadir").className).not.toContain("bg-accent");
     expect(now).toContain("Presensi Edunex juga dibuka sampai 09:30, tidak wajib.");
     expect(now).not.toContain("Catat kehadiran");
     // 6 of 7: the UTS-week lecture on 15 Oct may not run, so it buys no absence (#85: never one too many).
@@ -105,7 +110,7 @@ describe("Beranda on the recorded Thursday morning", () => {
     screen = await openApp({ signedIn: true, six: true });
     await screen.engineDoes(() => screen!.engine.updateSettings({ lang: "en" }));
     expect(text("home-now")).toContain("On now · until 10:00");
-    expect(text("home-now")).toContain("Attendance counts in SIX: just be in class.");
+    expect(text("home-now")).toContain("Attendance counts in SIX: press Tandai Hadir in SIX when it shows.");
     expect(text("home-now")).toContain("Edunex Presence is also open until 09:30; it's optional.");
     expect(row("home-today", "08:00")).toMatch(/Now$/);
     expect(row("home-today", "15:00")).toContain("Don't miss another class · Clashes with KU5014 16:00–16:30");
@@ -132,16 +137,58 @@ describe("later the same Thursday", () => {
 });
 
 describe("an open window that counts", () => {
-  it("the Presence is the one thing to do: the primary action opens it, with the time left", async () => {
+  it("in class, SIX's Tandai Hadir comes first and the Presence that counts too is under it, one click from its Task", async () => {
     screen = await openApp({ world: new PretendWorld({ now: "2026-10-16T15:01:00+07:00" }), signedIn: true, six: true });
+    const now = text("home-now");
+    expect(now.indexOf("Kehadiran dihitung di SIX: tekan Tandai Hadir")).toBeGreaterThan(-1);
+    expect(now.indexOf("Presensi Edunex: Kumpulkan Tugas 02 Bab II sebelum 23:59")).toBeGreaterThan(now.indexOf("Tandai Hadir"));
+    await screen.click("Buka tugasnya");
+    expect(document.querySelector("main h1")?.textContent).toBe("Tugas 02 Bab II");
+  });
+
+  it("with no class on, the Presence is the one thing to do: the primary action opens it, with the time left", async () => {
+    // Friday evening, II4091's class over: its window, open until 23:59, is all there is.
+    screen = await openApp({ world: new PretendWorld({ now: "2026-10-16T23:20:00+07:00" }), signedIn: true, six: true });
     const now = text("home-now");
     expect(now).toContain("Kumpulkan Tugas 02 Bab II sebelum 23:59");
     expect(now).toContain("Kehadiran dihitung lewat Presensi Edunex.");
-    expect(now).toMatch(/tutup dalam 8 jam 5\d mnt/);
+    expect(now).toMatch(/tutup dalam 3\d mnt/);
     expect(screen.button("Buka tugasnya").className).toContain("bg-accent");
     expect(document.querySelector('main [role="progressbar"]')).not.toBeNull();
-    await screen.click("Buka tugasnya");
-    expect(document.querySelector("main h1")?.textContent).toBe("Tugas 02 Bab II");
+  });
+});
+
+describe("SIX's Tandai Hadir in class", () => {
+  it("shows the moment SIX does: the primary action opens SIX on the class, and once pressed it says so without claiming a tick", async () => {
+    const world = new PretendWorld({ now: "2026-10-08T08:12:00+07:00" });
+    screen = await openApp({ world, signedIn: true, six: true });
+    expect(text("home-now")).toContain("Kehadiran dihitung di SIX: tekan Tandai Hadir");
+
+    // The lecturer opens it in PL3002's class (meeting 2194342): within one look, Beranda says so.
+    world.six.openCheckIn("2194342");
+    await screen.engineDoes(() => world.clock.advance(2.5 * 60_000));
+    expect(text("home-now")).toContain("Tandai Hadir sudah dibuka di SIXBelum kamu tekan. Kuliah sampai 10:00.");
+    const open = screen.button("Buka PL3002 di SIX untuk Tandai Hadir");
+    expect(open.className).toContain("bg-accent");
+    await screen.click("Buka PL3002 di SIX untuk Tandai Hadir");
+    expect(screen.calls.at(-1)).toEqual({ name: "six.openCheckIn", input: { meetingId: "2194342" } });
+
+    // Pressed in SIX: the button goes, and Beranda says only what it saw.
+    world.six.closeCheckIn("2194342");
+    await screen.engineDoes(() => world.clock.advance(2.5 * 60_000));
+    expect(text("home-now")).toContain("Tandai Hadir sudah tidak tampil di SIX: sudah kamu tekan, atau sudah ditutup.");
+    expect(screen.button("Buka PL3002 di SIX untuk Tandai Hadir").className).not.toContain("bg-accent");
+  });
+
+  it("early in the term, with no count in SIX yet: it doesn't claim where attendance counts, nor call the Edunex Presence optional", async () => {
+    const world = new PretendWorld({ now: "2026-10-08T08:12:00+07:00" });
+    world.six.setAttendance("PL3002", 0, 0);
+    screen = await openApp({ world, signedIn: true, six: true });
+    const now = text("home-now");
+    expect(now).toContain("Tekan Tandai Hadir di SIX saat tombolnya muncul.");
+    expect(now).not.toContain("Kehadiran dihitung di SIX");
+    expect(now).toContain("Presensi Edunex: Buka mata kuliahnya di Edunex sebelum 09:30");
+    expect(now).not.toContain("tidak wajib");
   });
 });
 

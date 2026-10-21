@@ -16,8 +16,24 @@ export const homeStrings = {
   "home.now.next": { id: "Berikutnya · {when}", en: "Next · {when}" },
   "home.now.later": { id: "Kuliah berikutnya · {day}", en: "Next class · {day}" },
   "home.now.presenceOnly": { id: "Presensi sedang dibuka", en: "Presence is open" },
-  "home.now.countSix": { id: "Kehadiran dihitung di SIX: cukup hadir di kelas.", en: "Attendance counts in SIX: just be in class." },
-  "home.now.countSixOnline": { id: "Kehadiran dihitung di SIX: cukup ikut kelasnya.", en: "Attendance counts in SIX: just join the class." },
+  "home.now.countSix": {
+    id: "Kehadiran dihitung di SIX: tekan Tandai Hadir di SIX saat tombolnya muncul.",
+    en: "Attendance counts in SIX: press Tandai Hadir in SIX when it shows.",
+  },
+  "home.now.checkInWatch": { id: "Tekan Tandai Hadir di SIX saat tombolnya muncul.", en: "Press Tandai Hadir in SIX when it shows." },
+  // SIX's "Tandai Hadir" for the class on now, as the app last saw it in the class's popup
+  "home.now.checkInOpen": { id: "Tandai Hadir sudah dibuka di SIX", en: "Tandai Hadir is open in SIX" },
+  "home.now.checkInOpenHint": { id: "Belum kamu tekan. Kuliah sampai {time}.", en: "You haven't pressed it yet. Class until {time}." },
+  "home.now.checkInWaiting": {
+    id: "Aplikasi memeriksa SIX tiap 2 menit selama kuliah dan memberi tahu saat Tandai Hadir muncul.",
+    en: "During class the app checks SIX every 2 minutes and tells you when Tandai Hadir shows.",
+  },
+  "home.now.checkInGone": {
+    id: "Tandai Hadir sudah tidak tampil di SIX: sudah kamu tekan, atau sudah ditutup.",
+    en: "Tandai Hadir no longer shows in SIX: you pressed it, or it closed.",
+  },
+  "home.now.openSix": { id: "Buka di SIX", en: "Open in SIX" },
+  "home.now.openSixLabel": { id: "Buka {course} di SIX untuk Tandai Hadir", en: "Open {course} in SIX to press Tandai Hadir" },
   "home.now.countEdunex": { id: "Kehadiran dihitung lewat Presensi Edunex.", en: "Attendance counts through Edunex Presence." },
   "home.now.countNotKnown": {
     id: "Belum tahu kehadiran dihitung di mana sampai SIX terhubung; mengisinya tidak ada ruginya.",

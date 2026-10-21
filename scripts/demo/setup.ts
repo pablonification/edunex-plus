@@ -7,6 +7,7 @@
 //   EDUNEX_DEMO=first-run    nobody signed in: the welcome screen
 //   EDUNEX_DEMO_NOW=<ISO>    the moment the demo starts (default: the recorded Thursday morning)
 //   EDUNEX_DEMO_PLATFORM=win32|linux  the window's page drawn as on that system (its title bar, Ctrl shortcuts)
+//   EDUNEX_DEMO_CHECK_IN=open  SIX's "Tandai Hadir" shows in the morning's PL3002 class (meeting 2194342)
 //
 // Every run starts from an empty profile (deleted again on quit), so each begins the same way.
 import fs from "node:fs";
@@ -29,6 +30,7 @@ if (platform && !["darwin", "win32", "linux"].includes(platform)) throw new Erro
 // Signed-in demos start a few minutes early: the first sync (SIX at a page every two seconds, ITB's catalog) is played fast before the window opens.
 const start = process.env.EDUNEX_DEMO_NOW ?? (scenario === "first-run" ? "2026-10-08T08:10:00+07:00" : "2026-10-08T08:07:00+07:00");
 const world = new PretendWorld({ now: start });
+if (process.env.EDUNEX_DEMO_CHECK_IN === "open") world.six.openCheckIn("2194342");
 // Each run gets its own throwaway profile, so several demos can run side by side.
 const profile = `Edunex Plus Demo/${scenario}-${process.pid}`;
 const profileDir = path.join(app.getPath("appData"), profile);

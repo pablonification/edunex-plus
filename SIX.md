@@ -17,7 +17,9 @@ adds or changes a SIX or ITB request must update this file and keep the guardrai
 3. **Read-only.** Every request to SIX and ITB's public pages is a `GET`. There are no SIX
    writes: the app never marks attendance, never fills the questionnaire, and takes no KRS
    action (no adding or dropping classes, no sending a plan, no seat grabbing). It never pays
-   bills. It shows the facts and links to the official page; the Student acts.
+   bills. It shows the facts and links to the official page; the Student acts. For "Tandai
+   Hadir" it opens SIX's own timetable in a window of the app (see below), where the Student
+   presses SIX's button themselves.
 4. **Human pace.** One request at a time per website, at least 2 s apart (3.5 s for catalog
    pages), with long cadences per feed and a 15-minute-or-longer pause when SIX says "too many
    requests". SIX sits behind rate limiting; the app must never trip it.
@@ -26,10 +28,10 @@ adds or changes a SIX or ITB request must update this file and keep the guardrai
    datasets on this computer. Nothing is sent anywhere but SIX and ITB.
 6. **Same distinctive User-Agent as Edunex.** Every engine request carries
    `EdunexPlus/<version> (+https://github.com/pablonification/edunex-plus)`
-   (`src/engine/engine.ts`). Never a spoofed browser identity. The one exception is the sign-in
-   window itself, which is a real browser the Student uses and presents a plain Chrome
-   User-Agent because some sign-in pages turn away browsers they don't know
-   (`src/desktop/signin-session.ts`).
+   (`src/engine/engine.ts`). Never a spoofed browser identity. The exceptions are the windows
+   that show a website to the Student, the sign-in window and the SIX window: they're a real
+   browser the Student uses and present a plain Chrome User-Agent because some sign-in pages
+   turn away browsers they don't know (`src/desktop/signin-session.ts`).
 
 ## Sign-in and the session
 
@@ -90,13 +92,36 @@ sign-in, liveness first), then repeat every `every` ± `jitter`.
 | `/app/mahasiswa:{nim}/statusmhs/program-integrasi/riwayat/{sid}` | `six.curriculum` | Registered specialization, minor, multidisciplinary program or double major, with advisor and program approval days | `readers/schemes.ts` |
 | `/app/mahasiswa:{nim}+{term}/registrasi/rencanastudi/{sid}` | `six.krs` (24 h ± 1 h) | The KRS: term, advisor name, max SKS, sent / advisor-approved / official stamps, the change round (URS), UKT paid and amount, courses with class, SKS and per-course approval. The advisor chat on the page is never read | `readers/krs.ts` |
 | `/app/mahasiswa:{nim}/keuangan` | `six.bills` (24 h ± 1 h) | UKT bills per term: billed, paid, last day to pay, instalments | `readers/bills.ts` |
+| `/app/mahasiswa:{nim}+{term}/kelas/pertemuan/{meetingId}/mhs/{sid}?returnTo=…` (a class's popup on the timetable, its `data-url`), with `X-Requested-With: XMLHttpRequest` as SIX's own page asks for it | `six.checkIn` (2 min ± 20 s), only from 5 minutes before a class on the timetable starts to 10 minutes after it ends; outside class it requests nothing. A class whose button came and went isn't read again | Whether SIX's "Tandai Hadir" button shows and can be pressed (not disabled) | `six/check-in.ts` `showsCheckIn` |
 
-A full refresh is about 10 SIX pages. The student profile the app keeps is only what the
+A full refresh is about 10 SIX pages, and one popup per class on now. A class is about one
+popup every 2 minutes: about 70 small requests for a 2-hour class. The student profile the app keeps is only what the
 status page shows (name, NIM, program, term); it never reads SIX's profile or master-data pages.
 
 **Written but not wired:** `/app/mahasiswa:{nim}/kurikulum/silabus/{courseId}/view` has a
 reader (`readers/syllabus.ts`) and `fetchSyllabus` in `six/records.ts`, meant to be read on
 demand, one page at a time. Nothing in the app calls it yet, so the app does not request it today.
+
+## The SIX window ("Tandai Hadir")
+
+SIX counts a Student present when they press **Tandai Hadir** in the class's popup on the
+timetable. When the button shows, the app says so (an urgent alert, on the phone too; again 15
+minutes before the class ends if it still shows), and Beranda and Presensi offer **Buka di
+SIX**. That opens `src/desktop/six-window.ts`:
+
+- SIX's own timetable on the class's month (`…/kelas/jadwal/mahasiswa/{sid}?bulan=YYYYMM`), in a
+  window of the app on its own in-memory session, signed in by setting the engine's `khongguan`
+  cookie for `https://six.itb.ac.id/` (secure, HTTP-only). Once the page has loaded, the app
+  clicks the class's link (`a.linkpertemuan` whose `data-url` has the meeting id), which opens
+  its popup the way a click does. That's all it does on the page: the Student presses the
+  button, and the window is theirs.
+- It may go to SIX and Microsoft's sign-in only (SIX sends a Student whose session ended
+  there); other official links open in the system browser, everything else nowhere. Every
+  permission is refused; it can't reach the app. One window at a time; closing it, or signing
+  out of SIX, wipes its session.
+- On the phone, a tap on the alert opens SIX's timetable for the month in the phone's browser:
+  the Student taps the class there, then Tandai Hadir.
+- The demo never opens it: its SIX is pretend.
 
 ## Human pace
 
@@ -177,9 +202,18 @@ Rejected) over offline over live.
 - **Recorded, not read:** `/home?context=mahasiswa:{nim}+{year}`, `/keuangan?mahasiswa_id={sid}`,
   `/app/mahasiswa:{nim}+{term}/evaluasi/kuesioner`, `/tugasakhir`, `/wisuda`
   (`test/fixtures/six/index.json`).
-- **Not recorded, not read:** a meeting's detail page (the timetable links one per meeting,
-  `…/pertemuan/{id}/…`); how SIX shows an open attendance window there is an open question.
-  Control panel, master data, student ID card and PDDikti pages are never exported or read.
+- **Read, not yet recorded:** a class's popup (`…/pertemuan/{id}/mhs/{sid}`), for "Tandai
+  Hadir". This is the one page the app requests before a recording of it landed here: SIX's
+  popup with the button showing, and after it was pressed, still need recording during a
+  class (`npm run record`: open Jadwal, click the class while the button shows; press it
+  elsewhere, as the recorder blocks it, then click the class again). Until then the reader
+  finds the button by its words (a button, link or submit input reading "Tandai Hadir", or
+  "Mark (as) present / attendance" on an English page, a guess), and a disabled one doesn't
+  count. Whether SIX answers differently without `X-Requested-With`, and when the button shows
+  (the whole class, or once a lecturer opens it), are not known. The pretend SIX models the
+  popup (`test/pretend/six.ts`).
+- **Not recorded, not read:** control panel, master data, student ID card and PDDikti pages
+  are never exported or read.
 - **Timetable:** only one month was recorded; other months in tests are generated.
 - **KRS:** SIX's look for a step not taken yet and for a course not yet approved was not
   recorded (tests use an empty cell).
@@ -200,4 +234,5 @@ Rejected) over offline over live.
 - The whole engine runs in tests against pretend servers (`test/pretend/six.ts`,
   `test/pretend/itb.ts`) that serve those pages, redirect to `/login` when the session ends,
   answer `429` and `5xx` on demand, change layouts and switch to English.
-- Any new SIX or ITB page must land here first, recorded, before the app requests it.
+- Any new SIX or ITB page must land here first, recorded, before the app requests it. The
+  class popup above is the exception, until its recording lands.

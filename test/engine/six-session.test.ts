@@ -342,7 +342,8 @@ describe("SIX changed something", () => {
     h.world.six.changeLayout(/\/statusmhs$/, ">Kehadiran</th>", ">Presensi</th>");
     await until(h, h.engine.refresh("six"));
     expect(h.status("six").state).toBe("live");
-    expect(h.events.slice(before).filter((e) => e.type === "dataset")).toEqual([]);
+    // The recorded morning has a class on: its first look at "Tandai Hadir" is news of its own.
+    expect(h.events.slice(before).filter((e) => e.type === "dataset" && e.dataset.name !== "six.checkIn")).toEqual([]);
   });
 });
 

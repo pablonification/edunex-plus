@@ -10,9 +10,10 @@
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { rupiah } from "../../core/academic";
 import { type AttendanceHealth, type AttendanceState, percent } from "../../core/attendance";
+import { checkingIn } from "../../core/check-in";
 import { wibDay } from "../../core/course-meetings";
-import { edunexCourseUrl, sixStatusUrl } from "../../core/links";
-import type { Alert, AlertKind, SnoozeEntry } from "../../core/models";
+import { edunexCourseUrl, sixStatusUrl, sixTimetableUrl } from "../../core/links";
+import type { Alert, AlertKind, ClassSession, SixCheckIn, SnoozeEntry } from "../../core/models";
 import {
   attention,
   type ClassFacts,
@@ -31,7 +32,7 @@ import { budgetLabel, useActionLabel, verdictLabel } from "../attendance-labels"
 import { AttendanceSummary } from "../attendance-parts";
 import { type TermCourse, useTerm, useTermCourses } from "../courses";
 import { useHomeWorld } from "../home-world";
-import { useOpenExternal } from "../hooks";
+import { useOpenCheckIn, useOpenExternal } from "../hooks";
 import { type Format, type Translate, useFormat, useNow, useT } from "../i18n";
 import { firstName } from "../names";
 import { type Route, useNav } from "../nav";
@@ -289,7 +290,11 @@ function NowCardView({ card, courses }: { card: NowCard; courses: readonly TermC
   );
 }
 
-/** Where attendance counts, and the one thing to do: sit in class (SIX), or the Edunex Presence before it closes. */
+/**
+ * Where attendance counts, and the one thing to do: "Tandai Hadir" in SIX
+ * (while the class is on, what the app last saw of SIX's button, and the way
+ * to it), or the Edunex Presence before it closes. With both, SIX comes first.
+ */
 function Attendance({ card }: { card: NowCard }) {
   const t = useT();
   const f = useFormat();
@@ -297,10 +302,11 @@ function Attendance({ card }: { card: NowCard }) {
   const { go } = useNav();
   const external = useOpenExternal();
   const actionLabel = useActionLabel();
+  const student = useDataset("six.student");
+  const checkIns = useDataset("six.checkIn");
   const facts = card.class;
   const presence = card.presence;
   const counted = facts?.countedIn ?? "unknown";
-  const online = facts?.link !== null && facts?.link !== undefined;
 
   const budget = facts?.health && facts.state !== "unknown" ? budgetLabel(t, facts.health) : null;
   const where = presence?.counts
@@ -310,7 +316,7 @@ function Attendance({ card }: { card: NowCard }) {
       : presence && presence.counts === null
         ? t("home.now.countNotKnown")
         : counted === "six" || counted === "both"
-          ? t(online ? "home.now.countSixOnline" : "home.now.countSix")
+          ? t("home.now.countSix")
           : facts
             ? t("home.now.countUnknown")
             : null;
@@ -322,6 +328,45 @@ function Attendance({ card }: { card: NowCard }) {
     if (viaTask && presence.task) go({ screen: "task", taskId: presence.task.id });
     else external(presence.url);
   };
+
+  // The class on now (or about to start) while the app reads its popup on SIX: where SIX counts, or once SIX showed its button.
+  const session = facts?.session ?? null;
+  const check = session ? checkIns?.[session.id] : undefined;
+  if (session && student && (card.state === "live" || card.state === "next") && checkingIn(session, now)) {
+    if (check || counted === "six" || counted === "both" || counted === "unknown")
+      return (
+        <CheckIn
+          session={session}
+          check={check}
+          countsInSix={counted === "six" || counted === "both"}
+          url={sixTimetableUrl(student, session.start)}
+          budget={budget ? <span className={STATE_TEXT[facts!.state]}>{budget}</span> : null}
+        >
+          {presence && (
+            <div className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-line pt-3">
+              <p className="min-w-0 flex-1 text-small text-muted">
+                {/* Optional only where it's known not to count; not known yet, it's simply there to do. */}
+                {presence.counts !== false
+                  ? t("presence.record.edunexDo", {
+                      action: actionLabel({ action: { activity: presence.activity, task: presence.task, url: presence.url } }),
+                      time: f.dayTime(presence.session.closesAt),
+                    })
+                  : t("home.now.presenceExtra", { time: f.dayTime(presence.session.closesAt) })}
+              </p>
+              <Button
+                variant="ghost"
+                size="sm"
+                icon={viaTask ? undefined : <Icons.ArrowUpRight className="size-3.5" />}
+                onClick={openPresence}
+                aria-label={viaTask ? t("home.now.openTask") : t("home.now.recordLabel", { course: presence.code })}
+              >
+                {viaTask ? t("home.now.openTask") : t("presence.open.record")}
+              </Button>
+            </div>
+          )}
+        </CheckIn>
+      );
+  }
 
   // Doing it counts, or nobody can say yet (doing it costs nothing): the Presence is the action.
   if (presence && presence.counts !== false) {
@@ -401,6 +446,62 @@ function Attendance({ card }: { card: NowCard }) {
           {viaTask ? t("home.now.openTask") : t("presence.open.record")}
         </Button>
       )}
+    </div>
+  );
+}
+
+/** SIX's "Tandai Hadir" for the class on now: open (the button shows), gone (it showed, and doesn't now), or still to come. */
+function CheckIn({
+  session,
+  check,
+  countsInSix,
+  url,
+  budget,
+  children,
+}: {
+  session: ClassSession;
+  check: SixCheckIn | undefined;
+  /** SIX's count says attendance counts there; else nobody can say yet (early in the term), and it isn't claimed. */
+  countsInSix: boolean;
+  url: string;
+  budget: ReactNode;
+  children: ReactNode;
+}) {
+  const t = useT();
+  const f = useFormat();
+  const openCheckIn = useOpenCheckIn();
+  const state = check?.state ?? "waiting";
+  return (
+    <div className="border-t border-line bg-sunken/60 px-5 py-4">
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+        <div className="min-w-0 flex-1">
+          <p className={cx("flex items-center gap-2 text-body", state === "open" ? "font-semibold" : "font-medium")}>
+            <Icons.Hand className={cx("size-4 shrink-0", state === "open" ? "text-accent-fg" : "text-muted")} />
+            {state === "open"
+              ? t("home.now.checkInOpen")
+              : state === "gone"
+                ? t("home.now.checkInGone")
+                : countsInSix
+                  ? t("home.now.countSix")
+                  : t("home.now.checkInWatch")}
+          </p>
+          <p className="mt-0.5 pl-6 text-small text-muted">
+            <Meta>
+              {state === "open" ? t("home.now.checkInOpenHint", { time: f.time(session.end) }) : state === "waiting" ? t("home.now.checkInWaiting") : ""}
+              {budget ?? ""}
+            </Meta>
+          </p>
+        </div>
+        <Button
+          variant={state === "open" ? "primary" : state === "waiting" ? "secondary" : "ghost"}
+          icon={<Icons.ArrowUpRight className="size-3.5" />}
+          onClick={() => openCheckIn(session.id, url)}
+          aria-label={t("home.now.openSixLabel", { course: session.courseCode })}
+        >
+          {t("home.now.openSix")}
+        </Button>
+      </div>
+      {children}
     </div>
   );
 }

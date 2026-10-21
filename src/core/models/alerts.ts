@@ -90,6 +90,12 @@ export const Alert = z.object({
   body: AlertText.nullable(),
   /** The screen that opens when it's clicked. */
   target: Route,
+  /**
+   * "Tandai Hadir" is open in SIX for this class meeting: a click opens SIX
+   * there instead, with the class's popup up (on the phone: SIX's timetable,
+   * `url`), for the Student to press it.
+   */
+  checkIn: z.object({ meetingId: z.string().min(1).max(40), url: z.string().url() }).optional(),
 });
 export type Alert = z.infer<typeof Alert>;
 

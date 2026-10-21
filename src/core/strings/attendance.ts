@@ -1,8 +1,17 @@
 // Text for the attendance guard (#85): the Presensi screen, its alerts and
-// the attendance target in Settings.
+// the attendance target in Settings. SIX's own button keeps its name in both
+// languages, "Tandai Hadir": that's what the Student looks for in SIX.
 import type { Entry } from "./entry";
 
 export const attendanceStrings = {
+  // Alerts: SIX's "Tandai Hadir" button showed in a class's popup
+  "alert.checkIn": { id: "Tandai Hadir sudah dibuka · {course}", en: "Tandai Hadir is open in SIX · {course}" },
+  "alert.checkInClosing": { id: "Belum Tandai Hadir · {course}", en: "Not marked present yet · {course}" },
+  "alert.checkIn.body": {
+    id: "Buka kelasnya di SIX, lalu tekan Tandai Hadir · kuliah sampai {time}",
+    en: "Open the class in SIX and press Tandai Hadir · class until {time}",
+  },
+
   // Alerts: a Presence window opened, naming the action Edunex counts there
   "alert.presenceOpen": { id: "Presensi dibuka · {course}", en: "Presence open · {course}" },
   "alert.presenceClosing": { id: "Presensi tutup 15 menit lagi · {course}", en: "Presence closes in 15 minutes · {course}" },
@@ -114,10 +123,10 @@ export const attendanceStrings = {
   "presence.edunexTally": { id: "Edunex: hadir {recorded} dari {closed} Presensi", en: "Edunex: present in {recorded} of {closed}" },
   "presence.row.next": { id: "Berikutnya: {when}", en: "Next: {when}" },
   "presence.row.now": { id: "Sedang berlangsung sampai {time}", en: "On now until {time}" },
-  "presence.record.six": { id: "cukup hadir di kelas", en: "just be in class" },
-  "presence.record.both": { id: "hadir, lalu isi Presensi Edunex", en: "be in class, then check in on Edunex" },
+  "presence.record.six": { id: "Tandai Hadir di SIX saat tombolnya muncul", en: "press Tandai Hadir in SIX when it shows" },
+  "presence.record.both": { id: "Tandai Hadir di SIX, lalu isi Presensi Edunex", en: "press Tandai Hadir in SIX, then check in on Edunex" },
   "presence.record.edunex": { id: "isi Presensi Edunex tiap pertemuan", en: "check in on Edunex every meeting" },
-  "presence.record.bothDo": { id: "hadir, lalu {action} sebelum {time}", en: "be in class, then {action} before {time}" },
+  "presence.record.bothDo": { id: "Tandai Hadir di SIX, lalu {action} sebelum {time}", en: "press Tandai Hadir in SIX, then {action} before {time}" },
   "presence.record.edunexDo": { id: "Presensi Edunex: {action} sebelum {time}", en: "Edunex Presence: {action} before {time}" },
   "presence.row.window": { id: "Presensi Edunex {when}: {action}", en: "Edunex Presence {when}: {action}" },
   "presence.row.optional": { id: "Presensi Edunex juga dibuka sampai {time}, tidak wajib.", en: "Edunex Presence is also open until {time}; it's optional." },
@@ -150,6 +159,10 @@ export const attendanceStrings = {
   },
   "presence.checkSix": { id: "Cek di SIX", en: "Check in SIX" },
 
+  // SIX's "Tandai Hadir" open now in a class
+  "presence.checkIn.title": { id: "Tandai Hadir yang dibuka sekarang", en: "Tandai Hadir open now" },
+  "presence.checkIn.class": { id: "{code} · belum kamu tekan · kuliah sampai {time}", en: "{code} · not pressed yet · class until {time}" },
+
   // An Edunex Presence window open now that counts
   "presence.open.title": { id: "Presensi yang dibuka sekarang", en: "Presence open now" },
   "presence.open.do": { id: "{action} sebelum {time}", en: "{action} before {time}" },
@@ -180,6 +193,10 @@ export const attendanceStrings = {
   "presence.how.six": {
     id: "Jumlah hadir dan pertemuan diambil dari SIX (“Hadir X dari Y pertemuan”), catatan resminya.",
     en: "Attended and held meetings come from SIX (“Hadir X dari Y pertemuan”), the official record.",
+  },
+  "presence.how.checkIn": {
+    id: "Di SIX, kamu tercatat hadir dengan menekan Tandai Hadir di jendela kelasnya (Jadwal, lalu klik kelasnya). Selama kuliah, aplikasi memeriksa jendela itu tiap 2 menit dan memberi tahu saat tombolnya muncul. Aplikasi tidak pernah menekannya untukmu.",
+    en: "In SIX you're counted present by pressing Tandai Hadir in the class's popup (Jadwal, then click the class). During class the app checks that popup every 2 minutes and tells you when the button shows. It never presses it for you.",
   },
   "presence.how.which": {
     id: "SIX hanya memberi jumlahnya, bukan pertemuan mana yang absen. Untuk tahu yang mana, buka jadwalmu di SIX.",
@@ -225,8 +242,8 @@ export const attendanceStrings = {
   "settings.attendance.useDefaultFor": { id: "Pakai target umum untuk {code}", en: "Use the default for {code}" },
   "settings.alerts.presence": { id: "Presensi", en: "Presence" },
   "settings.alerts.presenceHint": {
-    id: "Saat dibuka, dengan apa yang perlu kamu lakukan, dan 15 menit sebelum tutup jika belum tercatat (presensi lebih dari 30 menit)",
-    en: "When it opens, with what you need to do, and 15 minutes before it closes if you're not recorded (windows over 30 minutes)",
+    id: "Saat Tandai Hadir muncul di SIX atau Presensi Edunex dibuka, dan 15 menit sebelum tutup jika belum tercatat",
+    en: "When Tandai Hadir shows in SIX or an Edunex Presence opens, and 15 minutes before it closes if you're not recorded",
   },
   "settings.alerts.needsSix": { id: "butuh SIX", en: "needs SIX" },
   "settings.alerts.attendanceRisk": { id: "Kehadiran", en: "Attendance" },

@@ -12,6 +12,10 @@ export interface SixIdentity {
 export interface SixPages {
   /** Who is signed in, found from SIX's first pages (cached for the session). */
   who(): Promise<SixIdentity>;
-  /** The HTML of a SIX page, by path ("/app/mahasiswa:18223901/statusmhs"). */
-  page(path: string): Promise<string>;
+  /**
+   * The HTML of a SIX page, by path ("/app/mahasiswa:18223901/statusmhs").
+   * `popup`: a piece SIX's own page loads into a popup (a class meeting on the
+   * timetable), asked for the way that page asks.
+   */
+  page(path: string, options?: { popup?: boolean }): Promise<string>;
 }

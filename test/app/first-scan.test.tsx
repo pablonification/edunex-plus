@@ -55,7 +55,7 @@ describe("after the first full sync of Edunex and SIX", () => {
     // Calm and action-first: the facts, then what to do. PL3002, with one absence still allowed, isn't at risk.
     expect(detail("Kehadiran 3")).toBe("KU5014: hadir 2 dari 6 · paling tinggi 73% dari target 80%DK4073: jangan absen lagiPL3032: jangan absen lagi");
     expect(detail("KU5014 dan PL3032")).toBe("Berikutnya Hari ini, 16:00–16:30. Pilih yang akan kamu hadiri, atau tanyakan ke dosen.");
-    expect(detail("Kehadiran 1")).toBe('PL3002: SIX mencatat hadir 6 dari 7; abaikan 5 "absen" di EdunexCukup hadir di kelas; Presensi Edunex tidak wajib.');
+    expect(detail("Kehadiran 1")).toBe('PL3002: SIX mencatat hadir 6 dari 7; abaikan 5 "absen" di EdunexTandai Hadir di SIX; Presensi Edunex tidak wajib.');
     // DK4073's UTS is one exam: SIX's sitting, with the take-home a week later said calmly as its second part.
     expect(detail("3 ujian")).toBe(
       "UTS PL3032, minggu UTS 12–16 OktUTS DK4073: Kam 15 Okt, 11:00 · TVST C · Take-home tenggat Kam 22 OktUAS PL3032, minggu UAS 7–22 Des",
