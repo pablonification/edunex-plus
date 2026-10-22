@@ -242,6 +242,8 @@ function NowCardView({ card, courses }: { card: NowCard; courses: readonly TermC
         <button
           type="button"
           onClick={() => go(open())}
+          // One line, cut short when the name is long: whole on hover.
+          title={nameOf(courses, code, session?.courseName)}
           className="focus-ring block max-w-full truncate rounded text-left text-heading font-semibold tracking-[-0.01em] hover:underline hover:decoration-faint hover:underline-offset-4"
         >
           {nameOf(courses, code, session?.courseName)}

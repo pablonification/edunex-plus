@@ -514,7 +514,11 @@ function Packages({ id, title, packages }: { id: string; title: string; packages
                 <span className="block text-small font-semibold">{p.name}</span>
                 {(p.program || p.registered) && (
                   <Meta className="text-caption text-muted">
-                    {p.program && <span className="truncate">{p.program}</span>}
+                    {p.program && (
+                      <span className="truncate" title={p.program}>
+                        {p.program}
+                      </span>
+                    )}
                     {p.registered && (
                       <span className={p.notContinuing ? undefined : "font-medium text-info-fg"}>
                         {t(p.notContinuing ? "curriculum.notContinuing" : "curriculum.registered")}

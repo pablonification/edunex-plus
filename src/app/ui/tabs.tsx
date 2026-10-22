@@ -44,8 +44,13 @@ export function TabBar<T extends string>({
         // The list itself never scrolls (its frame does), so the underline can cover the list's own hairline.
         className={cx("relative flex w-max min-w-full gap-6", className, "overflow-visible")}
       >
-        {/* One pixel lower than the list, so it covers the hairline under the tabs (the list's own, or its frame's). */}
-        <SlidingHighlight active={value} shape="underline" className="-bottom-px h-0.5 rounded-full bg-fg" />
+        {/* One pixel lower than the list, so it covers the hairline under the tabs (the list's own, or its frame's).
+            High contrast drops backgrounds: there it keeps its own, in the system's text color, so the pick still shows. */}
+        <SlidingHighlight
+          active={value}
+          shape="underline"
+          className="-bottom-px h-0.5 rounded-full bg-fg forced-color-adjust-none forced-colors:bg-[CanvasText]"
+        />
         {tabs.map((tab) => (
           <Tabs.Trigger
             key={tab.value}

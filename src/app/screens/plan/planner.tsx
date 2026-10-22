@@ -1215,8 +1215,12 @@ function Minors({ record, state, undoable }: { record: StudentRecord; state: Pla
                 className="focus-ring group flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left hover:bg-hover"
               >
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-small font-semibold">{m.name}</span>
-                  <span className="block truncate text-caption text-muted">{m.program}</span>
+                  <span className="block truncate text-small font-semibold" title={m.name}>
+                    {m.name}
+                  </span>
+                  <span className="block truncate text-caption text-muted" title={m.program}>
+                    {m.program}
+                  </span>
                 </span>
                 <span className="shrink-0 text-right">
                   <span className="block text-caption font-semibold tabular-nums">{t("planner.minorSks", { have: m.have, need: m.need })}</span>
