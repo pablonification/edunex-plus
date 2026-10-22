@@ -46,10 +46,12 @@ export function useReturnFocus() {
 }
 
 /**
- * The tint behind a dialog: a solid scrim (no blur to redraw), fading in and out. Add a layer: z-(--z-dialog).
- * Over the top bar it takes the clicks the top bar would (moving the window), so a click there closes the dialog.
+ * The tint behind a dialog: a solid scrim (no blur to redraw). Add a layer: z-(--z-dialog). Over the top bar it
+ * takes the clicks the top bar would (moving the window), so a click there closes the dialog. SCRIM_STILL is
+ * there and gone at once (the ⌘K search); SCRIM_CLASS fades in and out with its dialog.
  */
-export const SCRIM_CLASS = "no-drag fixed inset-0 bg-scrim motion-safe:data-[state=open]:animate-fade-in motion-safe:data-[state=closed]:animate-fade-out";
+export const SCRIM_STILL = "no-drag fixed inset-0 bg-scrim";
+export const SCRIM_CLASS = `${SCRIM_STILL} motion-safe:data-[state=open]:animate-fade-in motion-safe:data-[state=closed]:animate-fade-out`;
 /** A dialog panel arriving (from 98%) and leaving, a little quicker. Pair it with onClickCapture={ignoreClosingClick}. */
 export const PANEL_MOTION_CLASS = "motion-safe:data-[state=open]:animate-pop-in motion-safe:data-[state=closed]:animate-pop-out";
 

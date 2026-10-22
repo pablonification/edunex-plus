@@ -1,6 +1,7 @@
 // The window's look comes from the design system's tokens (docs/design-system.md),
 // so a hand-typed size, corner or layer, a blur, a glow, spaced-out capitals or
 // an arrival animation the app dropped can't creep back in one line at a time.
+// The first run's own arrival stays in its kit piece and the first run.
 // This reads the classes in the window's source (every string, grouped per
 // className or cx() call) and fails on each, saying what to use instead.
 // Comments are fine.
@@ -40,8 +41,9 @@ const RULES: { name: string; matches: (token: string) => boolean; instead: strin
   },
   {
     name: "arrival animation",
-    matches: (token) => /^(stagger|animate-rise|animate-enter)(-|$)/.test(token) || token === "--i",
-    instead: "nothing: rows and screens appear at once; motion only explains a change (see Motion in the design system)",
+    matches: (token) => /^(stagger|animate-rise|animate-enter|animate-arrive|animate-line-in|animate-grow-in)(-|$)/.test(token) || token === "--i",
+    instead:
+      "nothing: rows and screens appear at once; motion only explains a change (see Motion in the design system). The first run's arrival is ARRIVE from ui/motion/arrival.ts, in the first run only",
   },
   {
     name: "screen height",
@@ -57,7 +59,17 @@ const ALLOWED: { file: string; token: string }[] = [
   // The app icons' corners grow with their size, like the platform's own icons; no fixed radius does that.
   { file: "src/app/ui/brand.tsx", token: "rounded-[22%]" },
   { file: "src/app/ui/brand.tsx", token: "rounded-[24%]" },
+  // The first run is seen once, so its parts arrive (Motion in the design system); the classes are named only here.
+  { file: "src/app/ui/motion/arrival.ts", token: "motion-safe:animate-arrive" },
+  { file: "src/app/ui/motion/arrival.ts", token: "motion-safe:animate-arrive-mark" },
+  { file: "src/app/ui/motion/arrival.ts", token: "motion-safe:animate-arrive-app" },
+  // The welcome screen's answers as they change: a source connected, "Beranda siap".
+  { file: "src/app/shell/welcome.tsx", token: "motion-safe:animate-line-in" },
+  { file: "src/app/shell/welcome.tsx", token: "motion-safe:animate-grow-in" },
 ];
+
+/** The first run, the only place things arrive: the welcome screen, the first-run scan, and the app's first look after the welcome screen. */
+const FIRST_RUN = ["src/app/shell/first-scan.tsx", "src/app/shell/shell.tsx", "src/app/shell/welcome.tsx"];
 
 function sources(dir: string): string[] {
   return readdirSync(path.join(root, dir), { withFileTypes: true }).flatMap((entry) => {
@@ -113,6 +125,11 @@ describe("the window's classes", () => {
     expect(sources("src/app").flatMap((file) => broken(file))).toEqual([]);
   });
 
+  it("let things arrive only in the first run, which is seen once", () => {
+    const users = sources("src/app").filter((file) => /from "[^"]*\barrival"/.test(readFileSync(path.join(root, file), "utf8")));
+    expect(users.sort()).toEqual(FIRST_RUN);
+  });
+
   it("the check sees what it's meant to see", () => {
     const sample = [
       "// A comment may say text-[10px], z-[5] or h-screen.",
@@ -122,6 +139,7 @@ describe("the window's classes", () => {
       'const d = <li className="motion-safe:stagger" style={{ "--i": index } as CSSProperties} />;',
       'const e = <div className="h-screen backdrop-blur-md drop-shadow-[0_0_8px_var(--accent)]" />;',
       'const f = <div className="rounded-tag text-micro z-10 rounded-[22%] uppercase tracking-normal" />;',
+      'const g = <h1 className="motion-safe:animate-arrive" />;',
     ].join("\n");
     expect(broken("sample.tsx", sample).map((found) => found.replace(/ \(.*$/, ""))).toEqual([
       "sample.tsx:2 text-[10px]",
@@ -134,6 +152,7 @@ describe("the window's classes", () => {
       "sample.tsx:6 backdrop-blur-md",
       "sample.tsx:6 drop-shadow-[0_0_8px_var(--accent)]",
       "sample.tsx:7 rounded-[22%]",
+      "sample.tsx:8 motion-safe:animate-arrive",
     ]);
   });
 });

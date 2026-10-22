@@ -94,6 +94,7 @@ export const shellStrings = {
   "welcome.readingOne": { id: "Membaca {source}…", en: "Reading {source}…" },
   "welcome.readingHint": { id: "Sekali ini saja, biasanya kurang dari semenit.", en: "Just this once; it usually takes under a minute." },
   "welcome.readingWait": { id: "Menyiapkan Beranda", en: "Getting Home ready" },
+  "welcome.readingDone": { id: "Beranda siap", en: "Home is ready" },
   "welcome.readingSkip": { id: "Ke Beranda sekarang", en: "Go to Home now" },
   "welcome.passwordNote": { id: "Kata sandi hanya kamu ketik di halaman Microsoft.", en: "You type your password only on Microsoft's page." },
   "welcome.readOnly": {
