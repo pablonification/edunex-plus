@@ -388,10 +388,11 @@ version and sha512, so it keeps working. Worth doing with 1.0, or as soon as the
   in the installers and uninstallers. The configurations expect the strings (parameters `version`
   and `windowsVersion`); if a sample shows SignPath reads the fixed one, the installer and
   uninstaller sets need `${windowsVersion}`, and the second request that parameter too.
-- Will electron-builder make the uninstaller byte for byte the same in the second pass? It hands the
-  uninstaller's build the app archive's size and hash, which change once the program is signed;
-  Sync-in sees it differ and puts the signed one in anyway [49]. The hook does the same and says
-  which in the log; the stand-in builds will show it.
+- ~~Will electron-builder make the uninstaller byte for byte the same in the second pass?~~ Yes, in
+  the first stand-in build (run 39834797816, 2026-10-22): both uninstallers came out identical after
+  the app's program was signed, so the signed copy put in is exactly the uninstaller that was
+  signed. Sync-in reports it differing [49]; the hook puts the signed one in either way and says
+  which in the log.
 - Does Smart App Control let Electron's unsigned DLLs and the NSIS plugins through because they're
   common? Microsoft doesn't say, says not to count on the cloud [9], and the one log found shows the
   plugins blocked [63]. Test the first signed release on a PC with Smart App Control on (Code
