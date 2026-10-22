@@ -1,33 +1,34 @@
-// The course page's simple lists: its Tasks (to do, then handed in; each
-// opens the Task page), its exams (each opens the exam page) and its
+// The course page's simple lists: its Tasks and exams (what's still ahead in
+// one list, as Tugas & Ujian has it, then Done; each opens its page) and its
 // announcements, with online-meeting links as a button and every other link
 // opening in the browser.
 import { Fragment, type ReactNode } from "react";
 import { meetingLinks } from "../../../core/course-meetings";
 import type { Exam } from "../../../core/exams";
 import { isOfficialUrl, isWebLink } from "../../../core/links";
-import type { Announcement, Task } from "../../../core/models";
-import { byDeadline, isOpenStatus, submittedAt, taskStatus } from "../../../core/tasks";
+import type { Announcement } from "../../../core/models";
+import { todoCount, todoForCourse } from "../../../core/todo";
 import { useOpenExternal, useOpenLink } from "../../hooks";
-import { useFormat, useNow, useT } from "../../i18n";
+import { useFormat, useT } from "../../i18n";
+import { useTodo } from "../../schedule-data";
 import { useSignIn } from "../../shell/source-status";
 import { useStatus } from "../../store";
 import { Button } from "../../ui/controls";
 import { Card } from "../../ui/display";
 import { Icons } from "../../ui/icons";
-import { Section } from "../../ui/layout";
+import { List, Section } from "../../ui/layout";
+import { PresenceList } from "../../ui/motion/presence-list";
 import { WebLink } from "../../ui/rich-text";
-import { ExamRows } from "../exam";
-import { TaskRows } from "../tasks";
+import { DoneGroups, TodoRow } from "../tasks";
 
 /** No exam known. Signed out of SIX, only Edunex was asked: said so, with the way to SIX's exam timetable. */
 function NoExams() {
   const t = useT();
   const sixOut = useStatus("six").state === "signed-out";
   const { signIn, busy } = useSignIn();
-  if (!sixOut) return <p className="text-body text-muted">{t("course.noExams")}</p>;
+  if (!sixOut) return <p className="mt-3 text-body text-muted">{t("course.noExams")}</p>;
   return (
-    <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+    <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
       <p className="text-body text-muted">{t("course.noExamsNoSix")}</p>
       <Button size="sm" busy={busy} onClick={() => void signIn("six")}>
         {t("action.signInTo", { source: "SIX" })}
@@ -36,25 +37,39 @@ function NoExams() {
   );
 }
 
-export function TasksTab({ tasks, exams }: { tasks: Task[]; exams: Exam[] }) {
+/**
+ * The course's part of Tugas & Ujian, by the same rules: what's still ahead
+ * in one list in order (its Tasks, its exams' parts, its exam periods with no
+ * day yet), then Done's groups.
+ */
+export function TasksTab({ code, exams }: { code: string; exams: Exam[] }) {
   const t = useT();
-  const now = useNow();
-  const todo = tasks.filter((task) => isOpenStatus(taskStatus(task, now))).sort(byDeadline);
-  const done = tasks.filter((task) => !isOpenStatus(taskStatus(task, now))).sort((a, b) => (submittedAt(b) ?? b.dueAt ?? 0) - (submittedAt(a) ?? a.dueAt ?? 0));
+  const todo = useTodo();
+  if (!todo) return null;
+  const items = todoForCourse(todo.items, code);
+  const done = {
+    handedIn: todo.done.handedIn.filter((task) => task.courseCode === code),
+    pastExams: todo.done.pastExams.filter((past) => past.exam.courseCode === code),
+    closed: todo.done.closed.filter((task) => task.courseCode === code),
+  };
   return (
     <div>
-      <Section id="course-todo" title={t("course.todo")} count={todo.length}>
-        {todo.length ? <TaskRows tasks={todo} meta="module" label={t("course.todo")} /> : <p className="text-body text-muted">{t("course.nothingTodo")}</p>}
+      <Section id="course-todo" title={t("course.todo")} count={todoCount(items)}>
+        {items.length ? (
+          <List label={t("course.todo")}>
+            <PresenceList>
+              {items.map((item) => (
+                <TodoRow key={item.key} item={item} inCourse />
+              ))}
+            </PresenceList>
+          </List>
+        ) : (
+          <p className="text-body text-muted">{t("course.nothingTodo")}</p>
+        )}
+        {/* With no exam anywhere, said under the list, never floating between the Task lists. */}
+        {exams.length === 0 && <NoExams />}
       </Section>
-      {/* Always under its own heading, so "no exam yet" never floats between the Task lists. */}
-      <Section id="course-exams" title={t("course.exams")} count={exams.length || undefined}>
-        {exams.length > 0 ? <ExamRows exams={exams} /> : <NoExams />}
-      </Section>
-      {done.length > 0 && (
-        <Section id="course-done" title={t("course.handedIn")} count={done.length}>
-          <TaskRows tasks={done} meta="module" label={t("course.handedIn")} />
-        </Section>
-      )}
+      <DoneGroups done={done} exams={todo.exams} inCourse />
     </div>
   );
 }

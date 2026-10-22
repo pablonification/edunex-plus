@@ -7,7 +7,9 @@ import { useCallback, useMemo } from "react";
 import { type Exam, mergeExams } from "../core/exams";
 import { edunexMeetings, meetingsOutsideSix, type ScheduleInput, taskWindows } from "../core/schedule";
 import { isOpenStatus, taskStatus } from "../core/tasks";
-import { useTermCourses } from "./courses";
+import { doneList, type TodoItem, todoList } from "../core/todo";
+import { useTerm, useTermCourses } from "./courses";
+import { useExamMarkList } from "./exam-marks";
 import { useNow } from "./i18n";
 import { useDataset } from "./store";
 
@@ -56,13 +58,39 @@ export function useExams(): Exam[] | undefined {
   const tasks = useDataset("edunex.tasks");
   const outline = useDataset("edunex.outline");
   const calendar = useDataset("itb.calendar");
-  const student = useDataset("six.student");
+  // SIX's term, else Edunex's, as quick search and the first-run scan read it: signed out of SIX, still this term's exam weeks.
+  const term = useTerm();
   const courses = useTermCourses();
   const now = useMinute();
   return useMemo(() => {
     if (!schedule && !tasks && !edunexExams) return undefined;
-    return mergeExams({ schedule, edunexExams, tasks, outline, calendar, term: student?.term, courses: courses?.map((c) => c.code), now });
-  }, [schedule, edunexExams, tasks, outline, calendar, student, courses, now]);
+    return mergeExams({ schedule, edunexExams, tasks, outline, calendar, term, courses: courses?.map((c) => c.code), now });
+  }, [schedule, edunexExams, tasks, outline, calendar, term, courses, now]);
+}
+
+export interface Todo {
+  /** Everything still ahead, in order (core/todo.ts). */
+  items: TodoItem[];
+  done: ReturnType<typeof doneList>;
+  exams: Exam[];
+  now: number;
+}
+
+/**
+ * Tugas & Ujian's one list and its Done, for every screen that shows or
+ * counts them (the screen, a course's tab, the sidebar); undefined until
+ * Edunex's Tasks have arrived. Worked out once a minute.
+ */
+export function useTodo(): Todo | undefined {
+  const tasks = useDataset("edunex.tasks");
+  const exams = useExams();
+  const marks = useExamMarkList();
+  const now = useMinute();
+  return useMemo(() => {
+    if (!Array.isArray(tasks)) return undefined;
+    const input = { tasks, exams: exams ?? [], marks, now };
+    return { items: todoList(input), done: doneList(input), exams: exams ?? [], now };
+  }, [tasks, exams, marks, now]);
 }
 
 /** The exam each SIX exam session belongs to, by SIX meeting id: the id of the exam page it opens. */

@@ -3,7 +3,7 @@
 // and exam; a warning when two sittings disagree, and a calm note when a
 // take-home is due on another day than SIX's sitting.
 import { describe, expect, it } from "vitest";
-import { examKind, examPassed, mergeExams, takeHomeKind, takeHomeOf } from "../../src/core/exams";
+import { examAhead, examKind, mergeExams, takeHomeKind, takeHomeOf } from "../../src/core/exams";
 import type { AcademicCalendar, ClassSession, CourseOutline } from "../../src/core/models";
 import { aTask } from "../kit/tasks";
 
@@ -160,12 +160,23 @@ describe("the merged exam list", () => {
     expect(mergeExams({ tasks: [takeHome], courses: ["PL3002"], now })).toEqual([]);
   });
 
-  it("an exam is behind the Student once every date has passed; an undated one never is", () => {
+  it("an exam is behind the Student once every part is; a week-only one when its week ends, and one with no week never", () => {
     const [exam] = mergeExams({ schedule: [sixSession("1", "DK4073", "2026-10-15T11:00:00", "UTS")], tasks: [takeHome], now });
-    expect(examPassed(exam, wib("2026-10-16T08:00:00"))).toBe(false);
-    expect(examPassed(exam, wib("2026-10-22T23:50:00") + DAY)).toBe(true);
+    expect(examAhead(exam, wib("2026-10-16T08:00:00"))).toBe(true);
+    expect(examAhead(exam, wib("2026-10-22T23:50:00") + DAY)).toBe(false);
+    const [weekOnly] = mergeExams({ outline: { PL3032: outline("UTS") }, calendar, term: "2026-1", now });
+    expect(examAhead(weekOnly, wib("2026-10-16T23:00:00"))).toBe(true);
+    expect(examAhead(weekOnly, wib("2026-10-17T00:00:00"))).toBe(false);
     const [undated] = mergeExams({ outline: { PL3032: outline("UAS") }, now });
-    expect(examPassed(undated, now + 400 * DAY)).toBe(false);
+    expect(examAhead(undated, now + 400 * DAY)).toBe(true);
+  });
+
+  it("an Edunex exam with only its start is behind the Student once its day is over, not the moment it starts", () => {
+    const online = { id: "e1", courseId: 95001, title: "UTS daring", start: wib("2026-10-14T09:00:00"), end: null };
+    const [exam] = mergeExams({ edunexExams: { PL3002: [online] }, now });
+    expect(exam.last).toBe(wib("2026-10-15T00:00:00"));
+    expect(examAhead(exam, wib("2026-10-14T10:00:00"))).toBe(true);
+    expect(examAhead(exam, wib("2026-10-15T00:00:00"))).toBe(false);
   });
 });
 

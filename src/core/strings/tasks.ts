@@ -14,6 +14,14 @@ export const tasksStrings = {
   "tasks.group.later": { id: "Nanti", en: "Later" },
   "tasks.group.submitted": { id: "Terkumpul", en: "Submitted" },
   "tasks.group.closed": { id: "Ditutup, tidak dikumpulkan", en: "Closed, not handed in" },
+  "tasks.group.undated": { id: "Belum ada tanggal", en: "No date yet" },
+  "tasks.group.pastExams": { id: "Ujian yang sudah lewat", en: "Past exams" },
+  "tasks.empty.title": { id: "Tidak ada yang perlu dikerjakan", en: "Nothing left to do" },
+  "tasks.empty.hint": {
+    id: "Tugas baru dan hari ujian muncul di sini begitu Edunex atau SIX mencantumkannya.",
+    en: "New Tasks and exam days show up here as soon as Edunex or SIX lists them.",
+  },
+  "tasks.showAll": { id: "Tampilkan semua", en: "Show all" },
   "tasks.allHandedIn": { id: "Semua sudah dikumpulkan", en: "All handed in" },
   "tasks.noneDone": { id: "Belum ada tugas yang selesai", en: "Nothing handed in yet" },
   "tasks.examsNoSix": {
@@ -187,7 +195,6 @@ export const tasksStrings = {
     id: "Jendela presensi tugas ini sudah lewat ({when}). Kalau dikumpulkan sekarang, tugas terkumpul tapi tidak dihitung hadir.",
     en: "This Task's attendance window has passed ({when}). Handed in now, it counts as handed in, not as present.",
   },
-  "exam.row.takeHome": { id: "Take-home: {title} · tenggat {when}", en: "Take-home: {title} · due {when}" },
   "exam.row.disagree": { id: "SIX: {six} · Edunex: {edunex}. Pastikan ke dosen.", en: "SIX: {six} · Edunex: {edunex}. Check with your lecturer." },
 
   // The hand-in panel, redesigned
