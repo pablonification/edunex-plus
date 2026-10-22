@@ -129,6 +129,26 @@ describe("focus when the screen changes", () => {
     expect(title?.tabIndex).toBe(-1);
   });
 
+  it("Back between two detail screens: it stays in the top bar, and focus goes to the title it returns to", async () => {
+    screen = await openApp({ signedIn: true, six: true });
+    await screen.click(/^Tugas & Ujian/);
+    const exam = [...document.querySelectorAll<HTMLButtonElement>("main li button")].find((b) => b.textContent?.includes("Komunikasi Pemasaran"));
+    await screen.click(exam!);
+    await frames();
+    const examTitle = document.querySelector("main h1")?.textContent;
+    await screen.click(screen.button(/Buka tugas/));
+    await frames();
+    expect(document.querySelector("main h1")?.textContent).not.toBe(examTitle);
+    const back = screen.button(/^Kembali ke/);
+    back.focus();
+    await screen.click(back);
+    await frames();
+    const title = document.querySelector<HTMLElement>("main h1");
+    expect(title?.textContent).toBe(examTitle);
+    expect(screen.has(/^Kembali ke/)).toBe(true);
+    expect(document.activeElement).toBe(title);
+  });
+
   it("a screen picked in the sidebar leaves focus in the sidebar", async () => {
     screen = await openApp({ signedIn: true });
     const nav = screen.button(/^Jadwal/);

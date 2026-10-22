@@ -122,6 +122,10 @@ describe("toasts", () => {
       });
       await act(async () => vi.advanceTimersByTime(1_000));
       expect(container.textContent?.match(/Berkas gagal diunduh/g)).toHaveLength(1);
+      // Errors that pile up scroll inside the window rather than running off its top.
+      const stack = container.querySelector("[aria-live=polite]");
+      expect(stack?.className).toContain("max-h-dvh");
+      expect(stack?.className).toContain("overflow-y-auto");
     } finally {
       vi.useRealTimers();
     }

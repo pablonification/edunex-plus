@@ -14,7 +14,6 @@ import { displayName, initials } from "../names";
 import { NavProvider, type Route, useNav } from "../nav";
 import { usePdfViewer } from "../pdf";
 import { Home } from "../screens/home";
-import { refocus } from "../snooze-menu";
 import { useBridge, useCommand, useDataset, useJoined, useNavigateRequests, useStore } from "../store";
 import { AppMark } from "../ui/brand";
 import { Button } from "../ui/controls";
@@ -174,16 +173,22 @@ function Layout({ arriving }: { arriving: boolean }) {
 /**
  * When the screen that left took focus with it (the row that opened this one, Back, a ⌘ shortcut from
  * the page), the new screen's title takes it, so the keyboard and a screen reader carry on from the top
- * of what's shown instead of from the window's start. Focus the Student put somewhere still there stays.
+ * of what's shown instead of from the window's start. So does Back, even where it stays in the top bar.
+ * Focus the Student put somewhere else that's still there (the sidebar) stays.
  * Inside the screen's own guard, so it runs once the screen has drawn, not while its code still loads.
  */
 function TitleTakesFocus({ main }: { main: RefObject<HTMLElement | null> }) {
   useEffect(() => {
-    refocus(() => {
+    const frame = requestAnimationFrame(() => {
+      const at = document.activeElement;
+      // Back stays in the top bar between two detail screens, and pressing it still hands focus to the screen it opened.
+      if (at && at !== document.body && !(at instanceof HTMLElement && at.dataset.back !== undefined)) return;
       const title = main.current?.querySelector<HTMLElement>("h1");
-      if (title) title.tabIndex = -1;
-      return title;
+      if (!title) return;
+      title.tabIndex = -1;
+      title.focus();
     });
+    return () => cancelAnimationFrame(frame);
   }, [main]);
   return null;
 }
@@ -438,6 +443,7 @@ function TopBar({ onSearch }: { onSearch: () => void }) {
             variant="ghost"
             size="sm"
             aria-label={t("action.backTo", { place: backLabel })}
+            data-back=""
             className="no-drag -ml-1.5 max-w-[280px] min-w-0 shrink text-small"
             icon={<Icons.ChevronLeft className="size-4 shrink-0" />}
             onClick={back}

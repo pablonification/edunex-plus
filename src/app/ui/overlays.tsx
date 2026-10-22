@@ -365,10 +365,22 @@ export function Toaster() {
     },
     () => toasts,
   );
+  const stack = useRef<HTMLDivElement>(null);
+  // Errors stay until they're closed, so several can outgrow a small or zoomed window. The stack then
+  // scrolls inside the window, and a new one is brought into view at the bottom.
+  useLayoutEffect(() => {
+    const box = stack.current;
+    if (box && items.length) box.scrollTop = box.scrollHeight;
+  }, [items]);
   return (
     // Newest at the bottom. A toast rises in; when one goes, it fades first, then the gap closes,
     // so the others slide into place instead of jumping. The live region itself never leaves.
-    <div aria-live="polite" className="pointer-events-none fixed bottom-5 left-1/2 z-(--z-toast) flex -translate-x-1/2 flex-col items-center">
+    <div
+      ref={stack}
+      aria-live="polite"
+      // As wide as the window with room at the sides, so a scrolling stack doesn't cut the toasts' shadows; it takes no clicks itself.
+      className="pointer-events-none fixed inset-x-0 bottom-0 z-(--z-toast) flex max-h-dvh flex-col items-center overflow-y-auto overscroll-contain px-16 pb-5"
+    >
       <Presence>
         {items.map((item) => (
           <Toast key={item.id} item={item} />
@@ -417,7 +429,7 @@ function Toast({ item }: { item: ToastItem }) {
         }}
         onBlur={(event) => !event.currentTarget.contains(event.relatedTarget) && releaseClock(item.id, "focus")}
         className={cx(
-          "pointer-events-auto flex items-center gap-2.5 rounded-xl py-2.5 pr-2.5 pl-3.5 text-small font-medium shadow-pop",
+          "pointer-events-auto flex max-w-xl items-center gap-2.5 rounded-xl py-2.5 pr-2.5 pl-3.5 text-small font-medium shadow-pop",
           // The neutral toast is the theme turned over, so its focus ring is the light theme's blue in dark too (3:1 on it).
           item.tone === "danger" ? "bg-danger-bg text-danger-fg" : "bg-tooltip-bg text-tooltip-fg [--focus:var(--accent)]",
         )}
