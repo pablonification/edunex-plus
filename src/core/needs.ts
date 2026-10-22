@@ -13,7 +13,9 @@ import {
   type AttendanceHealth,
   type AttendanceState,
   attendanceHealth,
+  type ClassResults,
   type CountedIn,
+  type CountLog,
   isExamActivity,
   lecturePeriod,
   openWindows,
@@ -90,6 +92,9 @@ export interface HomeWorld {
   bills?: readonly Bill[];
   /** False while signed out of SIX: then which system counts can't be known. */
   sixConnected?: boolean;
+  /** SIX's attendance count per course over time, and what it did after each class the app watched (by SIX's meeting id). */
+  countLog?: CountLog;
+  classResults?: ClassResults;
 }
 
 /** What every provider shares, worked out once. */

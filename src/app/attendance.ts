@@ -1,12 +1,28 @@
 // Each term course's attendance as the screens show it (#85): SIX's count,
 // what's left before the course's target (its own, or the Student's
-// default), where it counts, the next Edunex Presence window, and the
-// windows open now with the action that counts in each and whether doing it
-// counts at all. The Presensi screen, its sidebar badge and the course
-// header read it.
+// default), where it counts, the next Edunex Presence window, the windows
+// open now with the action that counts in each and whether doing it counts
+// at all, what SIX's count did after today's class, and the answer when its
+// next class clashes with another course's. The Presensi screen, its sidebar
+// badge and the course header read it.
 import { useMemo } from "react";
-import { type AttendanceHealth, attendanceHealth, lecturePeriod, openWindows, type PresenceAction, presenceAction, targetFor } from "../core/attendance";
-import type { PresenceSession } from "../core/models";
+import {
+  type AttendanceHealth,
+  attendanceHealth,
+  type ClashPick,
+  type ClassResult,
+  type ClassResults,
+  type CountLog,
+  clashPick,
+  isExamActivity,
+  lecturePeriod,
+  openWindows,
+  type PresenceAction,
+  presenceAction,
+  targetFor,
+} from "../core/attendance";
+import { clashes, wibDay } from "../core/course-meetings";
+import type { ClassSession, PresenceSession } from "../core/models";
 import { type TermCourse, useTermCourses } from "./courses";
 import { useNow } from "./i18n";
 import { useDataset, useSettings, useStatus } from "./store";
@@ -17,6 +33,10 @@ export interface CourseAttendance {
   presence: PresenceSession[];
   /** The next Edunex Presence window that hasn't opened yet, and what counts in it. */
   nextWindow: { session: PresenceSession; action: PresenceAction } | null;
+  /** What SIX's count did after the course's class today (the latest), when the app saw. */
+  today: ClassResult | null;
+  /** Its next class shares time with another course's: which, when, and which to go to. */
+  clash: { other: string; from: number; to: number; pick: ClashPick; session: ClassSession; with: ClassSession } | null;
 }
 
 export interface OpenWindow {
@@ -36,6 +56,14 @@ export interface Attendance {
   target: number;
   /** ITB's last lecture day ("2026-12-04"), when the calendar has it. */
   lastDay: string | null;
+  period: ReturnType<typeof lecturePeriod>;
+  /** False while signed out of SIX with nothing of it kept: then no count can be said. */
+  sixConnected: boolean;
+  /** SIX's timetable, every course. */
+  schedule: readonly ClassSession[];
+  /** SIX's count over time, and what it did after each class the app watched. */
+  countLog: CountLog;
+  results: ClassResults;
 }
 
 export function useAttendance(): Attendance | undefined {
@@ -46,6 +74,8 @@ export function useAttendance(): Attendance | undefined {
   const sixCourses = useDataset("six.courses");
   const schedule = useDataset("six.schedule");
   const student = useDataset("six.student");
+  const countLog = useDataset("six.countLog");
+  const results = useDataset("six.classResults");
   const { attendanceTarget: target, attendanceTargets } = useSettings();
   // Signed out of SIX: which system counts can't be known, so nothing reads as counting.
   const sixConnected = useStatus("six").state !== "signed-out" || sixCourses !== undefined;
@@ -54,7 +84,9 @@ export function useAttendance(): Attendance | undefined {
   return useMemo(() => {
     if (!courses) return undefined;
     const period = lecturePeriod(calendar, student?.term ?? null, now);
-    const list = courses.map((course) => {
+    const timetable = schedule ?? [];
+    const healthOf = new Map<string, AttendanceHealth>();
+    const base = courses.map((course) => {
       const six = course.attendance ?? sixCourses?.find((c) => c.code === course.code)?.attendance ?? null;
       const mine = presence?.[course.code] ?? [];
       const health = attendanceHealth({
@@ -62,17 +94,41 @@ export function useAttendance(): Attendance | undefined {
         six,
         sixConnected,
         presence: mine,
-        schedule: schedule ?? [],
+        schedule: timetable,
         period,
         target: targetFor({ attendanceTarget: target, attendanceTargets }, course.code),
         now,
       });
+      healthOf.set(course.code, health);
       const coming = mine.filter((p) => p.opensAt > now && !p.recorded?.present).sort((a, b) => a.opensAt - b.opensAt)[0];
       const nextWindow = coming ? { session: coming, action: presenceAction(coming, tasks ?? []) } : null;
       return { course, health, presence: mine, nextWindow };
     });
+    const day = wibDay(now);
+    const list = base.map((item): CourseAttendance => {
+      const today =
+        Object.values(results ?? {})
+          .filter((r) => r.courseCode === item.course.code && wibDay(r.start) === day)
+          .sort((a, b) => b.start - a.start)[0] ?? null;
+      // The class on now, else the next: a clash said on its row is about the class the Student decides on.
+      const next =
+        timetable.find((s) => s.courseCode === item.course.code && s.start <= now && now < s.end && !isExamActivity(s.activity)) ?? item.health.left.next;
+      const other = next ? clashes(next, item.course.code, timetable).find((s) => !isExamActivity(s.activity) && healthOf.has(s.courseCode)) : undefined;
+      const clash =
+        next && other
+          ? {
+              other: other.courseCode,
+              from: Math.max(next.start, other.start),
+              to: Math.min(next.end, other.end),
+              pick: clashPick(item.health, healthOf.get(other.courseCode)!),
+              session: next,
+              with: other,
+            }
+          : null;
+      return { ...item, today, clash };
+    });
     const open = openWindows(presence ?? {}, now).map(({ code, session }) => {
-      const health = list.find((c) => c.course.code === code)?.health;
+      const health = healthOf.get(code);
       return {
         code,
         session,
@@ -82,6 +138,16 @@ export function useAttendance(): Attendance | undefined {
         counts: health?.countedIn !== "six",
       };
     });
-    return { courses: list, open, target, lastDay: period?.lastDay ?? null };
-  }, [courses, presence, tasks, calendar, sixCourses, schedule, student, target, attendanceTargets, sixConnected, now]);
+    return {
+      courses: list,
+      open,
+      target,
+      lastDay: period?.lastDay ?? null,
+      period,
+      sixConnected,
+      schedule: timetable,
+      countLog: countLog ?? {},
+      results: results ?? {},
+    };
+  }, [courses, presence, tasks, calendar, sixCourses, schedule, student, target, attendanceTargets, sixConnected, countLog, results, now]);
 }

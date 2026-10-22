@@ -26,6 +26,8 @@ export function useHomeWorld(): HomeWorld | undefined {
   const krs = useDataset("six.krs");
   const bills = useDataset("six.bills");
   const sixCourses = useDataset("six.courses");
+  const countLog = useDataset("six.countLog");
+  const classResults = useDataset("six.classResults");
   // The same test as Presensi's: signed out of SIX, nothing reads as counting.
   const sixConnected = useStatus("six").state !== "signed-out" || sixCourses !== undefined;
   const term = useTerm();
@@ -53,6 +55,8 @@ export function useHomeWorld(): HomeWorld | undefined {
       krs,
       bills,
       sixConnected,
+      countLog: countLog ?? {},
+      classResults: classResults ?? {},
     };
   }, [
     courses,
@@ -67,6 +71,8 @@ export function useHomeWorld(): HomeWorld | undefined {
     krs,
     bills,
     sixConnected,
+    countLog,
+    classResults,
     term,
     attendanceTarget,
     attendanceTargets,

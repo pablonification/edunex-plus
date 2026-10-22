@@ -2,7 +2,8 @@
 // sidebar can count before a screen's own code has loaded.
 import { useMemo } from "react";
 import { billNeedsStudent, krsNeedsStudent, krsOverlaps } from "../../core/academic";
-import { needsAttention } from "../../core/attendance";
+import { resultNeedsStudent } from "../../core/attendance";
+import { checkingIn } from "../../core/check-in";
 import { isOpenStatus, taskStatus } from "../../core/tasks";
 import { useAttendance } from "../attendance";
 import { useDeadlines } from "../deadlines";
@@ -32,10 +33,23 @@ export function useTasksBadge(): Badge {
   }, [tasks, now]);
 }
 
-/** Presensi: courses that need the Student (no absences left, or the target out of reach). */
+/**
+ * Presensi: what needs the Student now: Tandai Hadir open in SIX, an Edunex
+ * window open that may count, a class SIX's count didn't go up after. A
+ * course standing with no absences left (or out of reach) is said on the
+ * screen and on the day, not counted here for the rest of the term.
+ */
 export function usePresenceBadge(): Badge {
   const attendance = useAttendance();
-  const value = attendance?.courses.filter((c) => needsAttention(c.health.state)).length ?? 0;
+  const student = useDataset("six.student");
+  const checkIns = useDataset("six.checkIn");
+  const now = useNow();
+  if (!attendance) return null;
+  const codes = new Set(attendance.courses.map((c) => c.course.code));
+  const open = student ? attendance.schedule.filter((s) => checkIns?.[s.id]?.state === "open" && checkingIn(s, now)).length : 0;
+  const windows = attendance.open.filter((w) => w.counts).length;
+  const results = Object.values(attendance.results).filter((r) => codes.has(r.courseCode) && resultNeedsStudent(r, attendance.countLog, now)).length;
+  const value = open + windows + results;
   return value > 0 ? { value, tone: "warning" } : null;
 }
 

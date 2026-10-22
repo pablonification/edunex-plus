@@ -98,6 +98,10 @@ export function usualSlots(sessions: readonly ClassSession[]): Slot[] {
   return recurring.filter((e) => latest - e.last < 7 * DAY).map((e) => e.slot);
 }
 
+/** The session is on one of its course's usual weekly slots: a clash there comes back every week. */
+export const onUsualSlot = (session: ClassSession, sessions: readonly ClassSession[]) =>
+  usualSlots(sessions).some((slot) => slotKey(slot) === slotKey(slotOf(session)));
+
 /** The term's last lecture day ("2026-12-04"), and the days with no lectures (UTS, UAS, holidays), from ITB's calendar. */
 export function lecturePeriod(calendar: AcademicCalendar | undefined, term: string | null, now: number): { lastDay: string; offDays: Set<string> } | null {
   if (!calendar) return null;
@@ -243,6 +247,15 @@ export interface AttendanceInput {
 
 const EPS = 1e-9;
 
+/**
+ * Absences the target still allows by the end of term with `remaining`
+ * meetings to come: a + r − allowed ≥ t·(h + r), so ⌊a + r − t·(h + r)⌋.
+ * Negative: that many too many already.
+ */
+export function allowedAbsences(attended: number, held: number, remaining: number, target: number): number {
+  return Math.floor(attended + remaining - (target / 100) * (held + remaining) + EPS);
+}
+
 export function attendanceHealth({ code, six, sixConnected, presence, schedule, period, target, now }: AttendanceInput): AttendanceHealth {
   const closed = presence.filter((p) => p.closesAt <= now);
   const base = {
@@ -266,8 +279,7 @@ export function attendanceHealth({ code, six, sixConnected, presence, schedule, 
     };
   const { attended, held } = six;
   const t = target / 100;
-  // a + r − (allowed) ≥ t·(h + r)  →  allowed = ⌊a + r − t·(h + r)⌋
-  const allowed = (remaining: number) => Math.floor(attended + remaining - t * (held + remaining) + EPS);
+  const allowed = (remaining: number) => allowedAbsences(attended, held, remaining, target);
   // Nothing left to attend, by ITB's calendar: past the last lecture day, or no
   // meeting of the course's own still to come before it (not even one that may
   // not run). Without the calendar, or the course's own classes on SIX's
@@ -310,6 +322,173 @@ export function attendanceHealth({ code, six, sixConnected, presence, schedule, 
 
 /** A state that needs the Student: no absences left, or the target out of reach. */
 export const needsAttention = (state: AttendanceState) => state === "none" || state === "out";
+
+// ---------------------------------------------------------------- absences left, as a budget
+
+/**
+ * The absences a course's target allows this term, as the Student spends
+ * them: `left` still theirs, `used` (missed, within the budget), `over`
+ * (missed past it: the target is out of reach). `allowed` = left + used.
+ */
+export interface AbsenceBudget {
+  allowed: number;
+  left: number;
+  used: number;
+  over: number;
+}
+
+/**
+ * The budget a Presence row draws. With m missed so far, s meetings sure to
+ * come and A that may still run: in reach, ⌊(1−t)(h+s)⌋ = m + absences left;
+ * out of reach, ⌊(1−t)(h+A)⌋, every one used and the rest over. Null where
+ * there's nothing to spend: no SIX count yet, or lectures over (the result says it).
+ */
+export function absenceBudget(health: AttendanceHealth): AbsenceBudget | null {
+  const { attended, held, absencesLeft, state } = health;
+  if (attended === null || held === null || absencesLeft === null) return null;
+  if (state !== "safe" && state !== "risk" && state !== "none" && state !== "out") return null;
+  const missed = held - attended;
+  if (state === "out") {
+    const allowed = Math.max(0, allowedAbsences(attended, held, health.left.upcoming.length, health.target) + missed);
+    return { allowed, left: 0, used: Math.min(allowed, missed), over: Math.max(0, missed - allowed) };
+  }
+  return { allowed: missed + absencesLeft, left: absencesLeft, used: missed, over: 0 };
+}
+
+/**
+ * Before SIX has a count (early in the term): the absences the timetable
+ * alone allows, ⌊(1−t)·r⌋ over the meetings sure to come. Null with none to come.
+ */
+export function estimatedBudget(health: Pick<AttendanceHealth, "left" | "target">): number | null {
+  return health.left.count > 0 ? allowedAbsences(0, 0, health.left.count, health.target) : null;
+}
+
+/**
+ * Presensi's groups, by what each course asks of the Student, in the order on
+ * the page: out of reach, no absences left, recorded only in Edunex, absences
+ * to spare, no SIX count yet, finished below, reached. `courses`: signed out
+ * of SIX with nothing of it kept, where no state can be said.
+ */
+export type PresenceGroup = "out" | "none" | "edunex" | "spare" | "unknown" | "missed" | "met" | "courses";
+
+export const GROUP_ORDER: readonly PresenceGroup[] = ["out", "none", "edunex", "spare", "unknown", "missed", "met", "courses"];
+
+export function presenceGroup(health: AttendanceHealth, signedOut = false): PresenceGroup {
+  if (signedOut && health.held === null) return "courses";
+  switch (health.state) {
+    case "safe":
+    case "risk":
+      return "spare";
+    case "unknown":
+      return health.countedIn === "edunex" ? "edunex" : "unknown";
+    default:
+      return health.state;
+  }
+}
+
+/** The next meeting to come, sure or not; for ordering. */
+const nextStart = (health: AttendanceHealth) => health.left.upcoming[0]?.start ?? health.left.next?.start ?? Number.MAX_SAFE_INTEGER;
+
+/**
+ * The rows of one group in their order: out of reach by the best still
+ * possible (lowest first), no absences left by the next class, absences to
+ * spare by how few are left then the next class, finished below by the
+ * share; otherwise (and on ties) by course code. `windowAt`: the next Edunex
+ * window of a course recorded there.
+ */
+export function sortGroup<T>(
+  group: PresenceGroup,
+  items: readonly T[],
+  health: (item: T) => AttendanceHealth,
+  windowAt: (item: T) => number | null = () => null,
+): T[] {
+  const share = (h: AttendanceHealth) => (h.held ? (h.attended ?? 0) / h.held : 0);
+  const by: (a: AttendanceHealth, b: AttendanceHealth, x: T, y: T) => number =
+    group === "out"
+      ? (a, b) => (a.best ?? 0) - (b.best ?? 0)
+      : group === "none"
+        ? (a, b) => nextStart(a) - nextStart(b)
+        : group === "spare"
+          ? (a, b) => (a.absencesLeft ?? 0) - (b.absencesLeft ?? 0) || nextStart(a) - nextStart(b)
+          : group === "missed"
+            ? (a, b) => share(a) - share(b)
+            : group === "edunex"
+              ? (_a, _b, x, y) => (windowAt(x) ?? Number.MAX_SAFE_INTEGER) - (windowAt(y) ?? Number.MAX_SAFE_INTEGER)
+              : () => 0;
+  return [...items].sort((x, y) => by(health(x), health(y), x, y) || health(x).code.localeCompare(health(y).code));
+}
+
+// ---------------------------------------------------------------- two classes at once
+
+/**
+ * Which class to go to when two clash and the Student can make only one:
+ * the one still in reach of its target that has fewer absences left. Going
+ * to a course already out of reach changes nothing, so one in reach needs the
+ * Student more. `why` names the facts the answer gives; null when the app
+ * can't say (no SIX count, lectures over, both out of reach).
+ */
+export type ClashWhy = "none" | "fewer" | "noneOut" | "spareOut" | "bothNone" | "even";
+
+export interface ClashPick {
+  pick: string | null;
+  why: ClashWhy | null;
+}
+
+const inReach = (state: AttendanceState) => state === "safe" || state === "risk" || state === "none";
+
+export function clashPick(a: AttendanceHealth, b: AttendanceHealth): ClashPick {
+  const known = (h: AttendanceHealth) => inReach(h.state) || h.state === "out";
+  if (!known(a) || !known(b) || (a.state === "out" && b.state === "out")) return { pick: null, why: null };
+  if (a.state === "out" || b.state === "out") {
+    const pick = a.state === "out" ? b : a;
+    return { pick: pick.code, why: pick.state === "none" ? "noneOut" : "spareOut" };
+  }
+  if (a.state === "none" && b.state === "none") return { pick: null, why: "bothNone" };
+  const left = (h: AttendanceHealth) => h.absencesLeft ?? 0;
+  if (left(a) === left(b)) return { pick: null, why: "even" };
+  const pick = left(a) < left(b) ? a : b;
+  return { pick: pick.code, why: pick.state === "none" ? "none" : "fewer" };
+}
+
+// ---------------------------------------------------------------- the next class day
+
+/**
+ * Presensi's first line: the next class day and which of its courses still
+ * have an absence to spare ("4 classes today. Only PL3002 has an absence to
+ * spare."). The day is today while a class of today hasn't ended, else
+ * tomorrow; with neither, the next class at all (SIX's, else the weekly slot
+ * carried on). Exams aren't classes. After ITB's last lecture day, the day
+ * lectures ended. `spare`: the day's courses with an absence to spare, of
+ * those with a SIX count (null when none has one yet).
+ */
+export type DayAnswer =
+  | { kind: "day"; day: "today" | "tomorrow"; count: number; spare: { codes: string[]; of: number } | null }
+  | { kind: "next"; at: number }
+  | { kind: "ended"; lastDay: string };
+
+export function dayAnswer(
+  courses: readonly AttendanceHealth[],
+  schedule: readonly ClassSession[],
+  period: ReturnType<typeof lecturePeriod>,
+  now: number,
+): DayAnswer | null {
+  if (period && wibDay(now) > period.lastDay) return { kind: "ended", lastDay: period.lastDay };
+  const mine = new Map(courses.map((h) => [h.code, h]));
+  const classes = schedule.filter((s) => mine.has(s.courseCode) && !isExamActivity(s.activity) && (!period || wibDay(s.start) <= period.lastDay));
+  const today = classes.filter((s) => wibDay(s.start) === wibDay(now) && s.end > now);
+  const tomorrow = classes.filter((s) => wibDay(s.start) === wibDay(now + DAY));
+  const day = today.length ? "today" : tomorrow.length ? "tomorrow" : null;
+  if (day) {
+    const sessions = day === "today" ? today : tomorrow;
+    const codes = [...new Set(sessions.map((s) => s.courseCode))];
+    const counted = codes.map((code) => mine.get(code)!).filter((h) => h.state !== "unknown");
+    const spare = counted.filter((h) => h.state === "safe" || h.state === "risk").map((h) => h.code);
+    return { kind: "day", day, count: sessions.length, spare: counted.length ? { codes: spare, of: counted.length } : null };
+  }
+  const coming = courses.flatMap((h) => h.left.upcoming).sort((a, b) => a.start - b.start);
+  const next = coming.find((m) => !m.uncertain) ?? coming[0];
+  return next ? { kind: "next", at: next.start } : null;
+}
 
 // ---------------------------------------------------------------- what counts in an Edunex window
 
@@ -400,4 +579,105 @@ export type AfterClass = "counted" | "absent" | "missing";
 export function afterClass(before: CountAt, now: Pick<CountAt, "attended" | "held">): AfterClass {
   if (now.held > before.held) return now.attended > before.attended ? "counted" : "absent";
   return now.attended > before.attended ? "counted" : "missing";
+}
+
+/**
+ * When the app may say SIX didn't count a class: a few hours after it ends
+ * (lecturers fill SIX in after class), and still the same day (`until`, the
+ * day's end), while the lecturer still remembers. The alert, the saved
+ * results, Presensi and its badge share it.
+ */
+export function resultGate(session: Pick<ClassSession, "start" | "end">): { at: number; until: number } {
+  const dayEnd = dayStart(wibDay(session.start)) + DAY;
+  return { at: Math.max(session.end + 30 * MINUTE, Math.min(session.end + 3 * HOUR, dayEnd - HOUR)), until: dayEnd };
+}
+
+/** SIX's count per course over time: the changes only, the last 30 per course. */
+export type CountLog = Readonly<Record<string, readonly CountAt[]>>;
+
+const LOG_KEEP = 30;
+
+/** The log with each course's count as read at `at`, appended only where it changed (the same object when nothing did). */
+export function appendCount(log: CountLog, courses: readonly Pick<SixCourse, "code" | "attendance">[], at: number): CountLog {
+  let next: Record<string, readonly CountAt[]> | null = null;
+  for (const course of courses) {
+    if (!course.attendance) continue;
+    const list = (next ?? log)[course.code] ?? [];
+    const last = list.at(-1);
+    if (last && last.attended === course.attendance.attended && last.held === course.attendance.held) continue;
+    next ??= { ...log };
+    next[course.code] = [...list, { at, ...course.attendance }].slice(-LOG_KEEP);
+  }
+  return next ?? log;
+}
+
+/** What SIX's count did after one class. */
+export interface ClassResult {
+  courseCode: string;
+  start: number;
+  end: number;
+  result: AfterClass;
+  /** When the app judged it. */
+  at: number;
+  /** It was absent or missing first (judged then), and SIX counted it later, at `at`. */
+  wasAt?: number;
+}
+
+export type ClassResults = Readonly<Record<string, ClassResult>>;
+
+/** Results are kept this long after their class. */
+const RESULTS_KEEP = 14 * DAY;
+
+/**
+ * What SIX's count did after each class, by SIX's meeting id. SIX gives
+ * totals only, so a class is judged only where its count can be told apart:
+ * - from the count before it started; never a class from before the app watched;
+ * - only by what changed before the course's next class, and never when the
+ *   course's class before it was still uncounted (one change could be either's);
+ * - counted as soon as both numbers went up; absent (held up, attended not)
+ *   or missing (neither) only once SIX was read after `resultGate`, the same day.
+ * A result missing or absent first that SIX later counted keeps when it was
+ * first judged (`wasAt`). `readAt`: when SIX's count was last read.
+ */
+export function classResults(previous: ClassResults, log: CountLog, schedule: readonly ClassSession[], now: number, readAt: number): ClassResults {
+  const kept = Object.entries(previous).filter(([, r]) => r.start >= now - RESULTS_KEEP);
+  const next: Record<string, ClassResult> = Object.fromEntries(kept);
+  const classes = schedule.filter((s) => !isExamActivity(s.activity)).sort((a, b) => a.start - b.start);
+  for (const session of classes) {
+    if (session.start > now || session.start < now - RESULTS_KEEP) continue;
+    const old = next[session.id];
+    if (old?.result === "counted") continue;
+    const counts = log[session.courseCode] ?? [];
+    const before = counts.filter((c) => c.at <= session.start).at(-1);
+    if (!before) continue;
+    const siblings = classes.filter((s) => s.courseCode === session.courseCode && s.id !== session.id);
+    const prev = siblings.filter((s) => s.start < session.start).at(-1);
+    if (prev && prev.end > before.at && next[prev.id]?.result !== "counted") continue;
+    const horizon = siblings.find((s) => s.start > session.start)?.start ?? Number.POSITIVE_INFINITY;
+    const after = counts.filter((c) => c.at > session.start && c.at <= Math.min(horizon, now)).at(-1) ?? before;
+    const result = afterClass(before, after);
+    const base = { courseCode: session.courseCode, start: session.start, end: session.end };
+    if (result === "counted") {
+      next[session.id] = { ...base, result, at: after.at, ...(old ? { wasAt: old.at } : {}) };
+      continue;
+    }
+    // Missing, then SIX held the class without counting the Student: it says more now, from when SIX showed it.
+    if (old) {
+      if (old.result === "missing" && result === "absent") next[session.id] = { ...base, result, at: after.at };
+      continue;
+    }
+    const gate = resultGate(session);
+    if (now < gate.at || now >= gate.until || readAt < gate.at || horizon <= gate.at) continue;
+    next[session.id] = { ...base, result, at: now };
+  }
+  return next;
+}
+
+/**
+ * A result that still needs the Student: absent or missing, judged within
+ * the last two days, while SIX's count for the course hasn't moved since.
+ */
+export function resultNeedsStudent(result: ClassResult, log: CountLog, now: number): boolean {
+  if (result.result === "counted" || now - result.at > 2 * DAY) return false;
+  return !(log[result.courseCode] ?? []).some((c) => c.at > result.at);
 }

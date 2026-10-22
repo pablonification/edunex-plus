@@ -175,7 +175,7 @@ describe("the course page", () => {
     await openCourse("PL3002", { six: true });
     const header = document.querySelector("main header")!;
     const more = document.querySelector("main button[aria-label='Lainnya']")!;
-    expect(header.textContent).toContain("Kehadiran");
+    expect(header.textContent).toContain("Jatah absen");
     expect(header.contains(more)).toBe(false);
     expect(header.parentElement!.contains(more)).toBe(true);
   });
@@ -530,9 +530,9 @@ describe("meetings", () => {
     expect(meetings.find((m) => m.includes("8 Okt"))).toContain("R.SG PWK LT.6 · Presensi 08:00–09:30");
     // SIX is the official record; the intro says once that Edunex's gaps can still count, and the rows stay quiet.
     expect(s.text()).toContain("yang tidak dicatat Edunex tetap bisa terhitung di SIX");
-    // The count and what's left are the header meter's: the tab doesn't say them a second time.
-    expect(s.text().match(/6\/7|hadir 6 dari 7/g)).toHaveLength(1);
-    expect(s.text().match(/Masih bisa absen 1× lagi/g)).toHaveLength(1);
+    // The count and what's left are the header's: the tab doesn't say them a second time.
+    expect(s.text().match(/\(6 dari 7\)|hadir 6 dari 7/gi)).toHaveLength(1);
+    expect(s.text().match(/Terpakai 1× · sisa 1×/g)).toHaveLength(1);
     expect(meetings[1]).toMatch(/Selesai$/);
     expect(s.text()).not.toContain("Tidak tercatat di Edunex");
     expect(meetings.find((m) => m.includes("Berikutnya"))).toContain("15 Okt");
@@ -564,7 +564,7 @@ describe("meetings", () => {
     expect(s.text()).toMatch(/tutup 09:30 \(1 jam 1\d mnt lagi\)/);
     // PL3002 counts in SIX: recording on Edunex is offered, but quietly, and the page says why.
     // "Dibuka" is said once, beside the countdown; the line under it says the window is optional.
-    expect(s.text()).toContain("Kehadiranmu dihitung di SIX; Presensi ini tidak wajib.");
+    expect(s.text()).toContain("Kehadiranmu dihitung di SIX. Presensi ini tidak wajib.");
     expect(s.text()).not.toContain("juga dibuka");
     // The meeting is named as on the Pertemuan tab: by the module posted for it, not "Kuliah".
     expect(s.text()).toContain("Modul 7 · Inovasi Pelayanan Publik");
@@ -693,7 +693,15 @@ describe("meetings", () => {
     expect(document.querySelector("h1")?.textContent).toContain("Teknik Penyelesaian Masalah Terstruktur");
     const text = s.text();
     expect(text).toContain("Tak bisa lagi capai 80%");
-    expect(text).toContain("Paling tinggi 73% kalau kamu hadir di semua sisa pertemuan.");
+    // One share at a time, in words: where attending every class left would end.
+    expect(text).toContain("Kalaupun hadir di semua sisa pertemuan, kehadiranmu berakhir di 73%.");
+    // The bar stays under the banner, with what's past its limit; the header says the share once, labeled.
+    const header = document.querySelector("main header")?.textContent ?? "";
+    expect(header).toContain("Jatah absenTerpakai 4× · lebih 1× untuk 80%Kehadiran 33% sejauh ini (2 dari 6)");
+    expect(document.querySelector("main header [role=img] [data-state=over]")).not.toBeNull();
+    // The banner's button is the fix: a class SIX may have missed.
+    await s.click("Buka jadwal di SIX");
+    expect(s.calls.at(-1)).toMatchObject({ name: "shell.openExternal", input: { url: expect.stringContaining("/kelas/jadwal/") } });
     // Beranda and Jadwal name the overlap (16:00–16:30), not the other class's whole slot.
     expect(text).toContain("Bentrok dengan PL3032 16:00–16:30.");
     expect(text).not.toContain("Bentrok dengan PL3032 15:00–16:30");
@@ -709,7 +717,7 @@ describe("meetings", () => {
     await screen.click([...document.querySelectorAll<HTMLButtonElement>("aside button")].find((b) => b.textContent?.startsWith("PL3002"))!);
     const text = screen.text();
     expect(text).not.toContain("Tak bisa lagi capai");
-    expect(text).toContain("Jangan absen lagi");
+    expect(text).toContain("Jatah absen habis");
     expect(text).toContain("80% hanya masih bisa kalau kuliah di masa ujian atau libur tetap ada. Hadiri semua pertemuan, termasuk yang itu.");
   });
 
@@ -725,7 +733,7 @@ describe("meetings", () => {
     await s.click("Masuk ke SIX");
     await s.wait();
     expect(s.store.status("six").state).toBe("live");
-    expect(s.text()).toContain("6/7 · 85%");
+    expect(s.text()).toContain("Kehadiran 85% sejauh ini (6 dari 7)");
     expect(s.text()).toContain("SIX hanya memberi jumlahnya.");
   });
 

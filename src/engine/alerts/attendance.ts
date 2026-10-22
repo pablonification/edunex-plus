@@ -7,66 +7,35 @@
 // - No absences left, or the target out of reach: once each time a course's
 //   SIX count moves it into that state, against the course's own target.
 //   Changing a target never alerts: the Student is looking right at it.
-import { afterClass, attendanceHealth, type CountAt, isExamActivity, lecturePeriod, percent, targetFor } from "../../core/attendance";
+import { afterClass, attendanceHealth, isExamActivity, lecturePeriod, percent, resultGate, targetFor } from "../../core/attendance";
 import { wibDay } from "../../core/course-meetings";
-import type { ClassSession, SixCourse } from "../../core/models";
+import type { SixCourse } from "../../core/models";
 import type { AlertDraft, Detector, DetectorContext, PlannedAlert } from "./detector";
-
-const MINUTE = 60_000;
-const HOUR = 60 * MINUTE;
 
 type Read = Pick<DetectorContext, "get">;
 const sixCourses = ({ get }: Read) => get("six.courses");
 const sixSchedule = ({ get }: Read) => get("six.schedule") ?? [];
 const sixTerm = ({ get }: Read) => get("six.student")?.term ?? null;
 
-/** Lecturers fill SIX in after class: give it this long. */
-const GRACE = 3 * HOUR;
-
-/** When to check a class: a few hours after it ends, and still the same day. */
-function checkTime(session: ClassSession): { at: number; until: number } {
-  const dayEnd = Date.parse(`${wibDay(session.start)}T00:00:00+07:00`) + 24 * HOUR;
-  return { at: Math.max(session.end + 30 * MINUTE, Math.min(session.end + GRACE, dayEnd - HOUR)), until: dayEnd };
-}
-
 /**
- * The detector keeps what SIX's count was over time (it only hears about
- * changes), so it can tell whether a class moved it. A fresh sign-in starts
- * the memory over.
+ * SIX's count over time comes from the saved log (`six.countLog`, written by
+ * the status feed before each new count lands), so a class is judged the same
+ * after a restart, the same day only. Signing out of SIX, or another Student,
+ * starts the log over.
  */
 export function sixNotCounting(): Detector {
-  const seen = new Map<string, CountAt[]>();
-  const remember = (code: string, count: CountAt) => {
-    const list = seen.get(code) ?? [];
-    const last = list.at(-1);
-    if (last && last.attended === count.attended && last.held === count.held) return;
-    seen.set(code, [...list, count].slice(-30));
-  };
-  const rememberAll = (courses: readonly SixCourse[], at: number) => {
-    for (const course of courses) if (course.attendance) remember(course.code, { at, ...course.attendance });
-  };
   return {
     name: "attendance.sixNotCounting",
-    watches: ["six.courses", "six.schedule"],
-    changed(change, { now }) {
-      if (change.name !== "six.courses") return [];
-      if (change.previous === undefined) seen.clear();
-      rememberAll(change.next, now);
-      return [];
-    },
+    watches: ["six.courses", "six.schedule", "six.countLog"],
     plan(context) {
       const courses = sixCourses(context) ?? [];
-      // Counts known since before now (after a restart, from here on).
-      for (const course of courses) if (course.attendance && !seen.has(course.code)) remember(course.code, { at: context.now, ...course.attendance });
+      const log = context.get("six.countLog") ?? {};
       const planned: PlannedAlert[] = [];
       const today = wibDay(context.now);
       for (const session of sixSchedule(context)) {
         if (isExamActivity(session.activity) || wibDay(session.start) !== today) continue;
         const count = courses.find((c) => c.code === session.courseCode)?.attendance;
-        const before = seen
-          .get(session.courseCode)
-          ?.filter((c) => c.at <= session.start)
-          .at(-1);
+        const before = log[session.courseCode]?.filter((c) => c.at <= session.start).at(-1);
         if (!count || !before) continue;
         // Only a count read after the class says anything: SIX offline or signed out isn't SIX not counting.
         const read = context.fetchedAt("six.courses");
@@ -77,7 +46,7 @@ export function sixNotCounting(): Detector {
           id: `six.notCounted:${session.id}`,
           kind: "attendanceRisk",
           source: "six",
-          ...checkTime(session),
+          ...resultGate(session),
           title: { key: result === "absent" ? "alert.six.absent" : "alert.six.missing", vars: { course: session.courseCode } },
           body: { key: "alert.six.body", vars: { attended: count.attended, held: count.held } },
           target: { screen: "presence" },

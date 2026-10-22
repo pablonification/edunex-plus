@@ -52,12 +52,14 @@ describe("focus after closing", () => {
 });
 
 describe("focus when the focused control goes", () => {
-  const rows = () => [...document.querySelectorAll('main ul[aria-label="Mata kuliah"] > li')].map((li) => li.textContent?.slice(0, 6));
+  /** Presensi's groups as headings and course codes, top to bottom. */
+  const rows = () =>
+    [...document.querySelectorAll("main section[aria-labelledby^=presence-] ul > li")].map((li) => li.querySelector("p")?.textContent?.slice(0, 6));
 
-  it("a course's target, back to the default from its panel: the panel closes and focus is on its button again", async () => {
+  it("a course's target, back to the default from its panel on the course page: the panel closes and focus is on its button again", async () => {
     screen = await openApp({ signedIn: true, six: true });
     await screen.engineDoes(() => screen!.engine.updateSettings({ attendanceTargets: { DK4073: 75 } }));
-    await screen.click(/^Presensi/);
+    await screen.click([...document.querySelectorAll<HTMLButtonElement>("aside button")].find((b) => b.textContent?.startsWith("DK4073"))!);
     const opener = screen.button("Target 75% untuk DK4073");
     opener.focus();
     await screen.click(opener);
@@ -68,34 +70,37 @@ describe("focus when the focused control goes", () => {
     expect(document.activeElement?.getAttribute("aria-label")).toBe("Target 80% untuk DK4073");
   });
 
-  it("the default target, back to 80% from Presensi's panel: the panel closes and focus is on its button again", async () => {
+  it("Presensi's Targets panel: Tab past its last control closes it, and focus is on its button again", async () => {
     screen = await openApp({ signedIn: true, six: true });
-    await screen.engineDoes(() => screen!.engine.updateSettings({ attendanceTarget: 75 }));
     await screen.click(/^Presensi/);
-    const opener = screen.button("Target semua mata kuliah: 75%");
+    const opener = screen.button(/^Target80%$/);
     opener.focus();
     await screen.click(opener);
-    await screen.click("Kembali ke 80%");
+    expect(document.querySelector("[role=dialog]")).not.toBeNull();
+    const buttons = [...document.querySelectorAll<HTMLButtonElement>("[role=dialog] button")];
+    buttons.at(-1)!.focus();
+    await screen.key("Tab");
     await tick();
     expect(document.querySelector("[role=dialog]")).toBeNull();
-    expect(document.activeElement?.textContent).toBe("Target semua mata kuliah: 80%");
+    expect(document.activeElement).toBe(opener);
   });
 
-  it("Presensi's rows hold still while a course's target is being changed, and sort again once it closes", async () => {
+  it("Presensi's rows hold still while a target is being changed, and sort again once the panel closes", async () => {
     screen = await openApp({ signedIn: true, six: true });
     await screen.click(/^Presensi/);
     const before = rows();
     expect(before.indexOf("DK4073")).toBeLessThan(before.indexOf("PL3032"));
-    const opener = screen.button("Target 80% untuk DK4073");
+    const opener = screen.button(/^Target80%$/);
     opener.focus();
     await screen.click(opener);
-    // 75%: one absence left, so DK4073 would sort below PL3032 (none left).
+    // 75%: one absence left, so DK4073 would move to "Masih ada jatah absen", below PL3032 (none left).
     await screen.click("Turunkan target DK4073");
     expect(rows()).toEqual(before);
     await screen.key("Escape");
     await tick();
     const after = rows();
     expect(after.indexOf("DK4073")).toBeGreaterThan(after.indexOf("PL3032"));
+    expect(document.activeElement).toBe(opener);
   });
 
   it("Settings: a course back to the default gives focus to the next course's, then to the default's stepper", async () => {

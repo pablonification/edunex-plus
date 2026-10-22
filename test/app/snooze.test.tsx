@@ -378,7 +378,7 @@ describe("Settings", () => {
     // DK4073 keeps 80% as its own target while the default moves to 75%: still no absence to spare.
     await s.engineDoes(() => s.engine.updateSettings({ attendanceTarget: 75, attendanceTargets: { DK4073: 80 } }));
     await s.click([...document.querySelectorAll<HTMLButtonElement>("aside button")].find((b) => b.textContent?.startsWith("DK4073"))!);
-    await snooze("DK4073: Jangan absen lagi", "Besok pagi");
+    await snooze("DK4073: Jatah absen habis", "Besok pagi");
     await s.apply({ type: "command", command: "settings" });
     expect(document.querySelector("[role=dialog]")?.textContent).toContain("Pengingat yang ditunda (1)");
   });

@@ -2,7 +2,9 @@
 // v2-16 (#85), feedback 6, seam 2: the Presensi screen as the Student reads
 // it, with the real engine and the pretend Edunex, SIX and ITB calendar
 // behind the bridge (some tests put SIX's count and timetable in directly).
-// The screen answers "am I OK, and what do I need to do?" first.
+// "Absences left": the answer for the next class day first, then only what
+// needs the Student now, then the courses grouped by what they ask, each with
+// its absences as a bar and words, and one exception at most.
 import { afterEach, describe, expect, it } from "vitest";
 import type { ClassSession, SixCourse, Task } from "../../src/core/models";
 import { aTask } from "../kit/tasks";
@@ -31,9 +33,12 @@ const withUts = (sessions: ClassSession[]) =>
   sessions.map((s) => (s.start >= wib("2026-10-12T00:00:00") && s.start < wib("2026-10-17T00:00:00") ? { ...s, activity: "UTS" } : s));
 
 let hash = 0;
+async function put(name: string, value: unknown) {
+  await screen!.apply({ type: "dataset", dataset: { name, value, fetchedAt: 0, hash: `${name}${++hash}` } as never });
+}
 async function six(courses: SixCourse[], schedule: ClassSession[]) {
-  await screen!.apply({ type: "dataset", dataset: { name: "six.courses", value: courses, fetchedAt: 0, hash: `c${++hash}` } });
-  await screen!.apply({ type: "dataset", dataset: { name: "six.schedule", value: schedule, fetchedAt: 0, hash: `s${++hash}` } });
+  await put("six.courses", courses);
+  await put("six.schedule", schedule);
 }
 const STUDENT = { nim: "18223901", name: "Dimas Pratama", studentId: "2021000001", term: "2026-1", program: null, programCode: null };
 
@@ -45,138 +50,174 @@ async function openPresence(now?: string, sixToo = false) {
   return screen;
 }
 
-const rows = () => [...document.querySelectorAll('main ul[aria-label="Mata kuliah"] > li, main ul[aria-label="Courses"] > li')];
-const row = (code: string) => rows().find((li) => li.textContent?.startsWith(code));
+/** The groups, by heading, each with its rows' course codes. */
+const groups = () =>
+  [...document.querySelectorAll("main section[aria-labelledby^=presence-]")].map((section) => [
+    section.querySelector("h2")?.textContent,
+    [...section.querySelectorAll("ul > li")].map((li) => li.querySelector("p")?.textContent?.slice(0, 6)),
+  ]);
+const rows = () => [...document.querySelectorAll("main section[aria-labelledby^=presence-] ul > li")];
+const row = (code: string) => rows().find((li) => li.querySelector("p")?.textContent?.startsWith(code));
 const card = (code: string) => row(code)?.textContent ?? "";
-/** The answer under the title, a line each. */
-const answer = () => [...(document.querySelector("main h1")?.nextElementSibling?.querySelectorAll(":scope > span > span") ?? [])].map((s) => s.textContent);
-const answerText = () => document.querySelector("main h1")?.nextElementSibling?.textContent ?? "";
-/** The Edunex windows open now that count, on top. */
-const onTop = () => document.querySelector('main section[aria-label="Presensi yang dibuka sekarang"]')?.textContent ?? "";
+/** The answer for the next class day, under the title. */
+const dayLine = () => document.querySelector("main h1")?.nextElementSibling?.textContent ?? "";
+/** What needs the Student now, above the groups. */
+const now = () => document.querySelector('main section[aria-label="Perlu perhatianmu sekarang"], main section[aria-label="Needs you now"]')?.textContent ?? "";
+/** A row's absence bar: its segments and its name. */
+const bar = (code: string) => {
+  const img = row(code)?.querySelector<HTMLElement>("[role=img]");
+  return img
+    ? {
+        label: img.getAttribute("aria-label"),
+        tone: img.dataset.tone,
+        segments: [...img.querySelectorAll<HTMLElement>("[data-state]")].map((s) => s.dataset.state),
+      }
+    : null;
+};
+/** The words under a row's bar. */
+const words = (code: string) => row(code)?.querySelector("[role=img]")?.parentElement?.nextElementSibling?.textContent ?? "";
+const rowName = (code: string) => row(code)?.querySelector(":scope > button")?.getAttribute("aria-label") ?? "";
 
 describe("the Presensi screen", () => {
-  it("answers first, by name: what to do in which course, worst first, in the rows' order; the sidebar counts them", async () => {
+  it("answers for the next class day, groups the courses by what they ask, and the badge counts only what needs action now", async () => {
     const s = await openPresence(undefined, true);
-    expect(answer()).toEqual(["KU5014 sudah tak bisa capai 80%.", "Jangan absen lagi di DK4073 dan PL3032.", "Masih bisa absen 1× lagi di PL3002."]);
-    expect(rows().map((li) => li.textContent?.slice(0, 6))).toEqual(["KU5014", "DK4073", "PL3032", "PL3002", "II4091"]);
-    // The courses with nothing to spare or out of reach: PL3002, one absence still allowed, isn't counted.
-    expect(s.button(/^Presensi/).textContent).toBe("Presensi3, Perlu perhatianmu");
-    // What was cut: the tally tiles and their filter, and the meeting squares that read like a timeline.
-    expect(s.text()).not.toMatch(/Masih aman|Hati-hati|Tampilkan semua/);
-    expect(document.querySelectorAll("main [role=listitem]")).toHaveLength(0);
+    expect(dayLine()).toBe("Hari ini ada 4 kuliah. Hanya PL3002 yang masih ada jatah absen.");
+    expect(groups()).toEqual([
+      ["Tak bisa lagi capai 80% 1", ["KU5014"]],
+      ["Jatah absen habis 2", ["DK4073", "PL3032"]],
+      ["Masih ada jatah absen 2", ["PL3002", "II4091"]],
+    ]);
+    // Courses standing with no absences left, or out of reach, are said here and on the day: the badge waits for a thing to do now.
+    expect(s.button(/^Presensi/).textContent).toBe("Presensi");
+    // The answer lines, the percent bar and its tick are gone; nothing repeats the headings.
+    expect(s.text()).not.toMatch(/Jangan absen lagi|Masih bisa absen|Semua aman/);
   });
 
-  it("a row: the verdict, the count with what's left and one meter against the target, then the next class and what records it", async () => {
+  it("a row: the course first, its next class, and its absences as a bar with words; never a percent", async () => {
     await openPresence(undefined, true);
-    const dk = card("DK4073");
-    expect(dk).toContain("Jangan absen lagi");
-    // The share in words beside the count, as the course page says it: not only in the meter's name.
-    expect(dk).toContain("Hadir 4 dari 6 · 66% · sekitar 8 pertemuan lagi sampai 4 Des");
-    expect(dk).toContain("Berikutnya: Hari ini, 11:00 · TVST C · Tandai Hadir di SIX saat tombolnya muncul");
-    expect(row("DK4073")?.querySelector("[role=img]")?.getAttribute("aria-label")).toBe("Hadir 4 dari 6, 66%, target 80%");
-    // No way back next to "Jangan absen lagi": every class from here on is the one instruction.
-    expect(dk).not.toContain("untuk kembali ke");
-    // One absence left: still allowed, so green, not a warning; amber only once none is left, red out of reach.
-    expect(card("PL3002")).toContain("Masih bisa absen 1× lagi");
-    const tone = (code: string) => [...(row(code)?.querySelectorAll("p") ?? [])].find((p) => p.className.includes("text-title"))?.className ?? "";
-    expect(tone("PL3002")).toContain("text-success-fg");
-    expect(tone("DK4073")).toContain("text-warning-fg");
-    expect(tone("KU5014")).toContain("text-danger-fg");
-    expect(row("PL3002")?.querySelector("[role=img]")?.getAttribute("data-tone")).toBe("success");
-    expect(row("DK4073")?.querySelector("[role=img]")?.getAttribute("data-tone")).toBe("warning");
-    // Recorded through Edunex too: Tandai Hadir in SIX, then what that day's Presence asks for, said once with the class.
-    expect(card("II4091")).toContain("Berikutnya: Jum, 16 Okt, 15:00 · Tandai Hadir di SIX, lalu kumpulkan Tugas 02 Bab II sebelum 23:59");
-    expect(card("II4091")).not.toContain("Presensi Edunex Jum");
-    // Never an absence on Edunex's word.
-    expect(document.body.textContent).not.toMatch(/\bAbsent\b|Tidak hadir/);
+    expect(card("DK4073")).toContain("Berikutnya hari ini, 11:00–12:59 · TVST C");
+    expect(bar("DK4073")).toEqual({ label: "Jatah absen semester ini 2×. Semua sudah terpakai.", tone: "warning", segments: ["used", "used"] });
+    expect(words("DK4073")).toBe("Terpakai 2× · habis");
+    expect(bar("PL3002")).toMatchObject({ tone: "neutral", segments: ["used", "left"] });
+    expect(words("PL3002")).toBe("Terpakai 1× · sisa 1×");
+    expect(words("II4091")).toBe("Belum terpakai · sisa 2×");
+    // Past the limit: a limit line, then what's over, in red with a ×; the words name the target.
+    expect(bar("KU5014")).toMatchObject({ tone: "danger", segments: ["used", "used", "used", "limit", "over"] });
+    expect(words("KU5014")).toBe("Terpakai 4× · lebih 1× untuk 80%");
+    // The bold part answers, in its tone.
+    expect(row("DK4073")?.querySelector(".text-warning-fg")?.textContent).toBe("habis");
+    expect(row("KU5014")?.querySelector(".text-danger-fg.font-semibold")?.textContent).toBe("lebih 1× untuk 80%");
+    // No share on a row: nothing that could seem to disagree with the bar.
+    for (const li of rows()) {
+      expect(li.textContent).not.toMatch(/\d+ dari \d+/);
+      // The only percent a row may name is the target.
+      expect([...(li.textContent ?? "").matchAll(/(\d+)%/g)].every((m) => m[1] === "80")).toBe(true);
+    }
+    // The row's name reads as the Student sees it.
+    expect(rowName("PL3002")).toBe(
+      "PL3002 Ekonomi dan Inovasi dalam Perencanaan, Jatah absen, Terpakai 1×, sisa 1×, Sedang berlangsung sampai 10:00, R.SG PWK LT.6",
+    );
+    expect(rowName("DK4073")).toMatch(/^DK4073 Komunikasi Pemasaran, Jatah absen, Terpakai 2×, habis, Berikutnya hari ini/);
+    expect(rowName("KU5014")).toMatch(/^KU5014 .*, Jatah absen, Terpakai 4×, lebih 1× untuk 80%, Berikutnya hari ini, 16:00/);
   });
 
-  it("a window where only SIX counts is a quiet line in its row, never on top; the app never records presence itself", async () => {
+  it("one exception per row: Tandai Hadir watched in class; out of reach, the fix and the target a click away", async () => {
     const s = await openPresence(undefined, true);
-    expect(onTop()).toBe("");
-    const pl = card("PL3002");
-    expect(pl).toContain("Sedang berlangsung sampai 10:00 · R.SG PWK LT.6 · Tandai Hadir di SIX saat tombolnya muncul");
-    expect(pl).toContain("Presensi Edunex juga dibuka sampai 09:30, tidak wajib.");
-    await s.click("Catat di Edunex");
-    expect(s.calls.at(-1)).toEqual({ name: "shell.openExternal", input: { url: "https://edunex.itb.ac.id/courses/95001" } });
-    expect(s.world.log.every((request) => request.method === "GET")).toBe(true);
+    expect(card("PL3002")).toContain("Sedang berlangsung sampai 10:00 · R.SG PWK LT.6");
+    expect(card("PL3002")).toContain("Tandai Hadir belum muncul. Aplikasi memeriksa SIX tiap 2 menit.");
+    // The Edunex window open where only SIX counts isn't mentioned at all here.
+    expect(card("PL3002")).not.toContain("Presensi Edunex");
+    expect(now()).not.toContain("Catat di Edunex");
+    const ku = card("KU5014");
+    expect(ku).toContain("Ada pertemuan yang kamu hadiri tapi tak tercatat? Minta dosen membetulkannya di SIX.");
+    // One exception only: KU5014's clash is said by today's clash card.
+    expect(ku).not.toContain("Bentrok");
+    // Recorded through Edunex too: Tandai Hadir, then what that day's Presence asks for, by when.
+    expect(card("II4091")).toContain("Tandai Hadir di SIX, lalu kumpulkan Tugas 02 Bab II sebelum 23:59.");
+    const change = s.button("Ubah target: KU5014");
+    change.focus();
+    await s.click(change);
+    const panel = document.querySelector("[role=dialog]")!;
+    expect(panel.textContent).toContain("Target kehadiran");
+    // Focus is on KU5014's own stepper.
+    expect(document.activeElement?.getAttribute("aria-label")).toBe("Turunkan target KU5014");
+    await s.key("Escape");
+    expect(document.activeElement?.getAttribute("aria-label")).toBe("Ubah target: KU5014");
   });
 
-  it("a window that counts is on top: its one action, until when, and the time left", async () => {
+  it("a clash today: which to go to if the Student can make only one, and why, said once", async () => {
+    await openPresence(undefined, true);
+    expect(now()).toContain("PL3032 dan KU5014 bentrok hari ini, 16:00–16:30");
+    expect(now()).toContain("Kalau hanya bisa hadir di salah satunya, pilih PL3032. Jatah absennya sudah habis, dan KU5014 sudah tak bisa capai 80%.");
+    expect(card("PL3032")).not.toContain("Bentrok");
+  });
+
+  it("a clash on another day is said on the row, with the pick: every week when it's both courses' usual slot", async () => {
+    await openPresence("2026-10-07T09:00:00+07:00");
+    // PL3032 15:00–17:00 and KU5014 16:00–18:00 every Thursday; PL3032 has no absences left, KU5014 one.
+    await six(
+      [course("PL3032", 4, 6), course("KU5014", 5, 6)],
+      [...weekly("PL3032", "2026-08-27T15:00:00", 10), ...weekly("KU5014", "2026-08-27T16:00:00", 10)],
+    );
+    expect(card("PL3032")).toContain("Bentrok dengan KU5014 tiap Kamis, 16:00–17:00. Pilih ini kalau hanya bisa hadir di salah satunya.");
+    expect(card("KU5014")).toContain("Bentrok dengan PL3032 tiap Kamis, 16:00–17:00. Kalau hanya bisa hadir di salah satunya, pilih PL3032.");
+    expect(now()).toBe("");
+  });
+
+  it("a window that counts is on top: its one action, until when, and the time left; the badge counts it", async () => {
     const s = await openPresence("2026-10-16T15:30:00+07:00");
     const task: Task = aTask({ id: 117003, courseCode: "II4091", courseId: 95326, moduleId: 450222, title: "Tugas 02 Bab II", status: "not_started" });
-    await s.apply({ type: "dataset", dataset: { name: "edunex.tasks", value: [task], fetchedAt: 0, hash: "t1" } });
+    await put("edunex.tasks", [task]);
     await six([course("II4091", 3, 3)], [...weekly("II4091", "2026-09-04T15:00:00", 8)]);
-    expect(onTop()).toContain("Kumpulkan Tugas 02 Bab II sebelum 23:59");
-    expect(onTop()).toContain("II4091 · dicatat lewat Presensi Edunex");
-    // Two facts on Meta's line, so the dot between them can't end a line when it wraps.
-    expect([...document.querySelectorAll("main section [data-fact] > :last-child")].map((fact) => fact.textContent)).toEqual([
-      "II4091",
-      "dicatat lewat Presensi Edunex",
-    ]);
-    expect(onTop()).toMatch(/8 jam \d+ mnt lagi/);
+    expect(now()).toContain("Kumpulkan Tugas 02 Bab II sebelum 23:59");
+    expect(now()).toContain("II4091 · dicatat lewat Presensi Edunex");
+    expect(now()).toMatch(/8 jam \d+ mnt lagi/);
+    expect(s.button(/^Presensi/).textContent).toBe("Presensi1, Perlu perhatianmu");
     await s.click("Buka tugasnya");
     expect(document.querySelector("main h1")?.textContent).toBe("Tugas 02 Bab II");
   });
 
-  it("a next class inside UTS week is said to be uncertain, and buys no absence", async () => {
-    const s = await openPresence("2026-10-09T09:00:00+07:00");
-    // SIX still lists the Thursday lecture in UTS week.
-    await six([course("PL3002", 6, 7)], weekly("PL3002", "2026-08-27T08:00:00", 10));
-    const pl = card("PL3002");
-    expect(pl).toContain("Berikutnya: Kam, 15 Okt, 08:00 · 9134 · Tandai Hadir di SIX saat tombolnya muncul");
-    // It may not run; if it does, attending it still counts.
-    expect(pl).toContain("Kam 15 Okt masuk masa UTS, jadi kuliahnya mungkin tak ada. Kalau tetap ada, hadiri: tetap dihitung.");
-    // Counted, it would say "2× lagi": one absence too many if the lecture doesn't run.
-    expect(pl).toContain("Masih bisa absen 1× lagi");
-    expect(pl).toContain("Hadir 6 dari 7 · 85% · sekitar 7 pertemuan lagi sampai 4 Des");
-    expect(s.text()).toContain(
-      "Kuliah yang masih dijadwalkan SIX di minggu UTS, UAS atau hari libur belum pasti ada, jadi tidak dihitung sebagai jatah absen, tapi juga tak membuat target dianggap tak terkejar.",
-    );
+  it("recorded only in Edunex: its own group, Edunex's tally, and a hand-in window said as a deadline, not a class time", async () => {
+    await openPresence("2026-10-14T09:00:00+07:00");
+    await put("six.student", STUDENT);
+    // SIX shows no count for II4091 yet; its Edunex windows recorded the Student.
+    await six([{ ...course("II4091", 0, 0), attendance: null }], weekly("II4091", "2026-08-28T08:00:00", 12));
+    expect(groups()[0]).toEqual(["Dicatat di Edunex 1", ["II4091"]]);
+    expect(card("II4091")).toContain("Hadir 2 dari 2 di Edunex");
+    expect(card("II4091")).toContain("Presensi Edunex Jum 16 Okt. Kumpulkan Tugas 02 Bab II sebelum 23:59.");
+    expect(card("II4091")).not.toContain("15:00–23:59");
   });
 
-  it("one warning at most: a clash with another class comes before the way back to the target", async () => {
-    await openPresence("2026-10-08T09:00:00+07:00");
-    // PL3032 15:00–17:00 and KU5014 16:00–18:00 every Thursday; DK4073 on Mondays, below 80% for now with one absence left.
+  it("a next class inside UTS week is said to be uncertain, and buys no absence; two such rows share one note on top", async () => {
+    await openPresence("2026-10-09T09:00:00+07:00");
+    // SIX still lists the Thursday lecture in UTS week.
+    await six([course("PL3002", 6, 7)], weekly("PL3002", "2026-08-27T08:00:00", 10));
+    expect(card("PL3002")).toContain("Berikutnya Kam 15 Okt, 08:00–10:00 · 9134");
+    expect(card("PL3002")).toContain("Kam 15 Okt masuk masa UTS, jadi kuliahnya mungkin tak ada. Kalau tetap ada, hadiri. Tetap dihitung.");
+    // Counted, it would be two left: one absence too many if the lecture doesn't run.
+    expect(words("PL3002")).toBe("Terpakai 1× · sisa 1×");
     await six(
-      [course("PL3032", 5, 6), course("KU5014", 5, 6), course("DK4073", 3, 4)],
-      [...weekly("PL3032", "2026-08-27T15:00:00", 10), ...weekly("KU5014", "2026-08-27T16:00:00", 10), ...withUts(weekly("DK4073", "2026-08-24T11:00:00", 10))],
+      [course("PL3002", 6, 7), course("PL3032", 6, 7)],
+      [...weekly("PL3002", "2026-08-27T08:00:00", 10), ...weekly("PL3032", "2026-08-27T13:00:00", 10)],
     );
-    expect(card("PL3032")).toContain("Bentrok dengan KU5014 16:00–17:00");
-    expect(card("KU5014")).toContain("Bentrok dengan PL3032 16:00–17:00");
-    expect(card("PL3032")).not.toContain("untuk kembali ke");
-    expect(card("DK4073")).toContain("Hadiri 1 pertemuan berikutnya untuk kembali ke 80%");
-    // The warning is the row's last part, a single line.
-    expect(row("PL3032")?.querySelectorAll(":scope > div:last-child > p")).toHaveLength(1);
+    expect(now()).toBe("Kuliah di masa UTS (12–16 Okt) mungkin tak ada. Kalau tetap ada, hadiri. Tetap dihitung.");
+    expect(card("PL3002")).not.toContain("masuk masa UTS");
+    expect(card("PL3032")).not.toContain("masuk masa UTS");
   });
 
   it("a target that hangs on a UTS-week lecture: no absences left, not out of reach, and the row says that lecture is needed", async () => {
     await openPresence("2026-10-09T09:00:00+07:00");
     // 4 of 7: the sure meetings alone reach 78%; with 15 Oct, 12 of 15 is 80%.
     await six([course("PL3002", 4, 7)], weekly("PL3002", "2026-08-27T08:00:00", 10));
-    const pl = card("PL3002");
-    expect(pl).toContain("Jangan absen lagi");
-    expect(pl).not.toContain("Tak bisa lagi capai");
-    expect(pl).toContain("Kam 15 Okt masuk masa UTS: 80% hanya masih bisa kalau kuliahnya tetap ada dan kamu hadir.");
+    expect(groups()[0]).toEqual(["Jatah absen habis 1", ["PL3002"]]);
+    expect(card("PL3002")).toContain("Kam 15 Okt masuk masa UTS. 80% hanya masih bisa kalau kuliah itu tetap ada dan kamu hadir.");
   });
 
-  it("an Edunex window on another day than the next class keeps a quiet line of its own", async () => {
-    await openPresence(undefined, true);
-    // II4091 meets on Mondays here: its next class isn't on the day of its window (Fri 16 Oct).
-    await six([course("II4091", 3, 3)], weekly("II4091", "2026-08-24T08:00:00", 10));
-    const ii = card("II4091");
-    expect(ii).toContain("Presensi Edunex Jum, 16 Okt, 15:00–23:59: Kumpulkan Tugas 02 Bab II");
-    expect(ii).not.toContain("lalu kumpulkan");
-  });
-
-  it("out of reach: the best still possible, and the one thing left to do, a click from SIX", async () => {
+  it("out of reach: the one thing left to do, a click from SIX", async () => {
     const s = await openPresence();
-    await s.apply({ type: "dataset", dataset: { name: "six.student", value: STUDENT, fetchedAt: 0, hash: "st1" } });
+    await put("six.student", STUDENT);
     await six([course("KU5014", 2, 6)], withUts(weekly("KU5014", "2026-08-27T16:00:00", 10)));
-    const ku = card("KU5014");
-    expect(ku).toContain("Tak bisa lagi capai 80%");
-    expect(ku).toContain("Hadir 2 dari 6 · 33% · paling tinggi 71% di akhir kuliah");
-    expect(ku).toContain("Ada pertemuan yang kamu hadiri tapi tak tercatat? Minta dosen membetulkannya di SIX.");
+    expect(card("KU5014")).toContain("Ada pertemuan yang kamu hadiri tapi tak tercatat? Minta dosen membetulkannya di SIX.");
     await s.click("Buka jadwal di SIX");
     expect(s.calls.at(-1)).toEqual({
       name: "shell.openExternal",
@@ -184,39 +225,34 @@ describe("the Presensi screen", () => {
     });
   });
 
-  it("once a course's lectures are over, its verdict is final and calm: no 'don't miss', no banner, nothing on Beranda", async () => {
-    // Thursday 3 December, 14:00: both courses' last Thursday class of the term is behind (lectures end Friday 4 December).
-    const s = await openPresence("2026-12-03T14:00:00+07:00");
+  it("once a course's lectures are over, its result is final and calm: no bar, no 'final' on the day, nothing on Beranda", async () => {
+    // Monday 7 December: lectures ended Friday 4 December.
+    const s = await openPresence("2026-12-07T09:00:00+07:00");
+    await put("six.student", STUDENT);
     await six(
-      [course("DK4073", 4, 4), course("PL3032", 9, 12)],
+      [course("DK4073", 13, 15), course("PL3032", 9, 12)],
       [...weekly("DK4073", "2026-08-27T11:00:00", 15), ...weekly("PL3032", "2026-08-27T08:00:00", 15)],
     );
-    const dk = card("DK4073");
-    expect(dk).toContain("Selesai, 80% tercapai");
-    expect(dk).toContain("tak ada pertemuan lagi");
-    expect(dk).not.toMatch(/Jangan absen|Masih bisa absen/);
-    expect(card("PL3032")).toContain("Selesai di bawah 80%");
-    expect(card("PL3032")).not.toContain("Tak bisa lagi capai");
-    // Final and calm: the red verdict, no warning line under it.
-    expect(card("PL3032")).not.toContain("Ada pertemuan yang kamu hadiri");
-    expect(answer()).toEqual(["PL3032 selesai di bawah 80%."]);
-    // Nothing needs the Student: no count on the sidebar.
+    expect(dayLine()).toBe("Kuliah berakhir Jum 4 Des.");
+    expect(groups().filter(([heading]) => /80%/.test(String(heading)))).toEqual([
+      ["Selesai di bawah 80% 1", ["PL3032"]],
+      ["80% tercapai 1", ["DK4073"]],
+    ]);
+    expect(card("DK4073")).toContain("Selesai dengan kehadiran 86%");
+    expect(row("DK4073")?.querySelector("[role=img]")).toBeNull();
+    // Nothing says it's final: a lecturer can still fix SIX.
+    expect(s.text()).not.toMatch(/\bfinal\b|hasil akhir/i);
     expect(s.button(/^Presensi/).textContent).toBe("Presensi");
 
-    // The course page: no banner, the header says it once.
+    // The course page: no banner, the header says how it finished.
     await s.click([...document.querySelectorAll<HTMLButtonElement>("aside button")].find((b) => b.textContent?.startsWith("DK4073"))!);
     expect(document.querySelector("main .bg-warning-bg, main .bg-danger-bg")).toBeNull();
     expect(document.querySelector("main header")?.textContent).toContain("Selesai, 80% tercapai");
-
-    // Beranda: no attendance item.
-    await s.click([...document.querySelectorAll<HTMLButtonElement>("aside nav button")].find((b) => b.textContent?.startsWith("Beranda"))!);
-    const needs = document.querySelector('main section[aria-labelledby="home-needs"]')?.textContent ?? "";
-    expect(needs).not.toMatch(/DK4073|PL3032/);
   });
 
   it("a row opens the course's meetings, where each one has its date", async () => {
     const s = await openPresence(undefined, true);
-    await s.click(/^PL3002 · /);
+    await s.click(/^PL3002 Ekonomi/);
     expect(document.querySelector("main h1")?.textContent).toBe("Ekonomi dan Inovasi dalam Perencanaan");
     expect(s.text()).toContain("Kam, 27 Agu08:00–09:30");
   });
@@ -225,89 +261,167 @@ describe("the Presensi screen", () => {
     const s = await openPresence();
     const regular = weekly("KU5014", "2026-08-27T16:00:00", 10);
     await six([course("KU5014", 5, 6)], regular);
-    expect(card("KU5014")).toContain("Hari ini, 16:00 · 9134");
+    expect(card("KU5014")).toContain("Berikutnya hari ini, 16:00–18:00 · 9134");
     // SIX moves today's class to tomorrow 13:00 in another room.
     const moved = regular.map((x) =>
       x.start === wib("2026-10-08T16:00:00") ? { ...x, start: wib("2026-10-09T13:00:00"), end: wib("2026-10-09T15:00:00"), room: "7602" } : x,
     );
     await six([course("KU5014", 5, 6)], moved);
-    expect(card("KU5014")).toContain("Besok, 13:00 · 7602");
-    expect(s.text()).not.toContain("16:00 · 9134");
+    expect(card("KU5014")).toContain("Berikutnya besok, 13:00–15:00 · 7602");
+    expect(s.text()).not.toContain("16:00–18:00 · 9134");
   });
 
-  it("each course's own target, set on its row; the default is for every other course", async () => {
+  it("the Targets panel: the default and each course's own, the rows holding still while it's open", async () => {
     const s = await openPresence();
     await six(
       [course("PL3002", 6, 7), course("DK4073", 4, 6)],
       [...withUts(weekly("PL3002", "2026-08-27T08:00:00", 10)), ...withUts(weekly("DK4073", "2026-08-24T11:00:00", 10))],
     );
-    expect(card("DK4073")).toContain("Jangan absen lagi");
+    /** The two courses with a count: which group each is in. */
+    const placed = () => groups().filter(([heading]) => /^(Jatah absen habis|Masih ada jatah absen)/.test(String(heading)));
+    expect(placed()).toEqual([
+      ["Jatah absen habis 1", ["DK4073"]],
+      ["Masih ada jatah absen 1", ["PL3002"]],
+    ]);
+    const before = groups();
+    await s.click(/^Target80%$/);
+    const panel = () => document.querySelector("[role=dialog]")?.textContent ?? "";
+    expect(panel()).toContain("Samakan tiap mata kuliah dengan batas minimal di kontrak kuliahnya.");
+    expect(panel()).toContain("Target umum");
     // DK4073's course contract asks for 75%.
-    await s.click("Target 80% untuk DK4073");
-    expect(document.querySelector("[role=dialog]")?.textContent).toContain("Target kehadiran DK4073");
     await s.click("Turunkan target DK4073");
     expect(s.calls.at(-1)).toEqual({ name: "settings.update", input: { attendanceTargets: { DK4073: 75 } } });
-    expect(card("DK4073")).toContain("Masih bisa absen 1× lagi");
-    expect(card("DK4073")).toContain("Target 75%");
-    expect(card("PL3002")).toContain("Target 80%");
-    await s.key("Escape");
-    // The page's own target says plainly it's for every course: not to be mixed up with a row's "Target 80%".
-    await s.click("Target semua mata kuliah: 80%");
-    expect(document.querySelector("[role=dialog]")?.textContent).toContain("Dipakai untuk mata kuliah yang tak punya target sendiri");
+    expect(panel()).toContain("Target sendiri");
+    // The rows hold still while the panel is open; the bar and words already say 75%.
+    expect(groups()).toEqual(before);
+    expect(words("DK4073")).toBe("Terpakai 2× · sisa 1× · target 75%");
     await s.click("Naikkan target umum");
     expect(s.calls.at(-1)).toEqual({ name: "settings.update", input: { attendanceTarget: 85 } });
     await s.click("Naikkan target umum");
-    expect(s.has("Target semua mata kuliah: 90%")).toBe(true);
-    expect(card("PL3002")).toContain("Jangan absen lagi");
-    expect(card("DK4073")).toContain("Masih bisa absen 1× lagi");
-    await s.click("Kembali ke 80%");
-    expect(s.calls.at(-1)).toEqual({ name: "settings.update", input: { attendanceTarget: 80 } });
-    // The button is gone once pressed: the panel closes with it.
-    expect(document.querySelector("[role=dialog]")).toBeNull();
-    // Back to the default for DK4073.
-    await s.click("Target 75% untuk DK4073");
-    await s.click("Pakai target umum (80%)");
+    await s.key("Escape");
+    expect(placed()).toEqual([
+      ["Jatah absen habis 1", ["PL3002"]],
+      ["Masih ada jatah absen 1", ["DK4073"]],
+    ]);
+    expect(s.button(/^Target75–90%$/)).toBeTruthy();
+    // Back to the default for DK4073: its row stays, its stepper now the default's, focus on it.
+    await s.click(/^Target75–90%$/);
+    await s.click("Pakai target umum untuk DK4073 (90%)");
     expect(s.calls.at(-1)).toEqual({ name: "settings.update", input: { attendanceTargets: {} } });
-    expect(card("DK4073")).toContain("Jangan absen lagi");
+    expect(document.activeElement?.getAttribute("aria-label")).toBe("Turunkan target DK4073");
   });
 
-  it("how it's counted is closed until the Student opens it", async () => {
+  it("how it's counted is closed until the Student opens it; the footer says once how attendance is recorded and what's estimated", async () => {
     const s = await openPresence(undefined, true);
     const how = document.querySelector<HTMLDetailsElement>("main details")!;
     expect(how.open).toBe(false);
     expect(how.querySelector("summary")?.textContent).toBe("Cara menghitungnya");
-    expect(how.textContent).toContain("SIX hanya memberi jumlahnya, bukan pertemuan mana yang absen.");
+    expect(how.textContent).toContain("SIX hanya memberi totalnya, bukan pertemuan mana yang kamu lewatkan.");
+    expect(s.text()).toContain("Kehadiran dihitung di SIX. Tekan Tandai Hadir di SIX saat tombolnya muncul. Aplikasi akan memberi tahu.");
+    expect(s.text()).toContain("Kuliah berakhir Jum 4 Des. Pertemuan setelah 31 Okt diperkirakan dari jadwal mingguan tiap mata kuliah.");
+    // Said once, and no row repeats it.
+    expect(s.text().match(/Tekan Tandai Hadir di SIX saat tombolnya muncul/g)).toHaveLength(1);
     await s.click("Buka jadwal di SIX");
     expect(s.calls.at(-1)).toMatchObject({ name: "shell.openExternal", input: { url: expect.stringContaining("six.itb.ac.id") } });
+  });
+
+  it("after class: SIX's count that didn't go up is on top until it moves, and today's receipt says what SIX counted", async () => {
+    const s = await openPresence("2026-10-08T16:10:00+07:00");
+    await put("six.student", STUDENT);
+    await six(
+      [course("DK4073", 4, 7), course("PL3002", 7, 8), course("PL3032", 4, 6)],
+      [...weekly("DK4073", "2026-09-03T11:00:00", 10), ...weekly("PL3002", "2026-09-03T08:00:00", 10), ...weekly("PL3032", "2026-09-03T13:00:00", 10)],
+    );
+    const at = wib("2026-10-08T07:00:00");
+    await put("six.countLog", {
+      DK4073: [
+        { at, attended: 4, held: 6 },
+        { at: wib("2026-10-08T14:00:00"), attended: 4, held: 7 },
+      ],
+      PL3002: [
+        { at, attended: 6, held: 7 },
+        { at: wib("2026-10-08T10:30:00"), attended: 7, held: 8 },
+      ],
+      PL3032: [{ at, attended: 4, held: 6 }],
+    });
+    const two = (hour: number) => String(hour).padStart(2, "0");
+    const day = (code: string, hour: number) => ({
+      courseCode: code,
+      start: wib(`2026-10-08T${two(hour)}:00:00`),
+      end: wib(`2026-10-08T${two(hour + 2)}:00:00`),
+    });
+    await put("six.classResults", {
+      "DK4073-5": { ...day("DK4073", 11), result: "absent", at: wib("2026-10-08T16:00:00") },
+      "PL3002-5": { ...day("PL3002", 8), result: "counted", at: wib("2026-10-08T10:30:00") },
+      "PL3032-5": { ...day("PL3032", 13), result: "missing", at: wib("2026-10-08T16:00:00") },
+    });
+    expect(now()).toContain("SIX mencatatmu tidak hadir di DK4073 hari ini");
+    expect(now()).toContain("SIX belum menghitung kuliah PL3032 hari ini");
+    expect(now()).toContain("Hadir 4 dari 6 di SIX. Jika kamu hadir, minta dosen membetulkannya hari ini.");
+    expect(now()).toContain("PL3002 sudah dihitung di SIX hari ini.");
+    // Red for absent, amber for not counted yet.
+    expect(document.querySelectorAll("main section .bg-danger-bg")).toHaveLength(1);
+    expect(document.querySelectorAll("main section .bg-warning-bg")).toHaveLength(1);
+    expect(s.button(/^Presensi/).textContent).toBe("Presensi2, Perlu perhatianmu");
+    // The lecturer fixes PL3032: the count moves, and the notice goes.
+    await put("six.countLog", {
+      DK4073: [
+        { at, attended: 4, held: 6 },
+        { at: wib("2026-10-08T14:00:00"), attended: 4, held: 7 },
+      ],
+      PL3002: [
+        { at, attended: 6, held: 7 },
+        { at: wib("2026-10-08T10:30:00"), attended: 7, held: 8 },
+      ],
+      PL3032: [
+        { at, attended: 4, held: 6 },
+        { at: wib("2026-10-08T16:05:00"), attended: 5, held: 7 },
+      ],
+    });
+    expect(now()).not.toContain("PL3032");
+    expect(s.button(/^Presensi/).textContent).toBe("Presensi1, Perlu perhatianmu");
+  });
+
+  it("the first week, before SIX counts: an estimate from the timetable, hatched", async () => {
+    await openPresence("2026-08-26T07:30:00+07:00");
+    await put("six.student", STUDENT);
+    await six([{ ...course("PL3002", 0, 0), attendance: null }], weekly("PL3002", "2026-08-27T08:00:00", 15));
+    expect(groups()).toEqual([["Belum ada hitungan SIX 1", ["PL3002"]]]);
+    expect(words("PL3002")).toMatch(/^Sekitar \d× semester ini$/);
+    expect(new Set(bar("PL3002")?.segments)).toEqual(new Set(["estimate"]));
   });
 
   it("in English", async () => {
     const s = await openPresence(undefined, true);
     await s.engineDoes(() => s.engine.updateSettings({ lang: "en" }));
-    expect(answer()).toEqual(["KU5014 can't reach 80% anymore.", "Don't miss another class in DK4073 and PL3032.", "You can miss 1 more class in PL3002."]);
-    expect(card("DK4073")).toContain("Attended 4 of 6 · 66% · about 8 meetings left until 4 Dec");
-    expect(document.querySelector("main header")?.textContent).toContain("Target for all courses: 80%");
-    expect(card("DK4073")).toContain("Next: Today, 11:00 · TVST C · press Tandai Hadir in SIX when it shows");
-    expect(card("PL3002")).toContain("You can miss 1 more class");
-    expect(card("PL3002")).toContain("Edunex Presence is also open until 09:30; it's optional.");
-    expect(card("II4091")).toContain("You can miss 2 more classes");
+    expect(dayLine()).toBe("4 classes today. Only PL3002 has an absence to spare.");
+    expect(groups().map(([heading]) => heading)).toEqual(["Can't reach 80% anymore 1", "No absences left 2", "Absences to spare 2"]);
+    expect(words("DK4073")).toBe("2 used · none left");
+    expect(words("PL3002")).toBe("1 used · 1 left");
+    expect(words("II4091")).toBe("None used · 2 left");
+    expect(words("KU5014")).toBe("4 used · 1 too many for 80%");
+    expect(card("DK4073")).toContain("Next class today, 11:00–12:59 · TVST C");
+    expect(card("PL3002")).toContain("Tandai Hadir hasn't shown yet. The app checks SIX every 2 minutes.");
+    expect(now()).toContain("If you can make only one, go to PL3032. It has no absences left, and KU5014 can't reach 80% anymore.");
+    expect(bar("PL3002")?.label).toBe("Absences this term. 1 of 2 used, 1 left.");
+    expect(document.querySelector("main header")?.textContent).toContain("Targets80%");
   });
 
-  it("before SIX is connected: where the count comes from and the way in, nothing guessed", async () => {
+  it("before SIX is connected: the way in on top, the courses without a count, nothing guessed", async () => {
     const s = await openPresence();
-    expect(answerText()).toContain("Jatah absen dihitung dari SIX");
-    expect(s.text()).not.toContain("Belum ada hitungan SIX");
-    // Edunex's own record is a fact, never an absence.
-    expect(card("PL3002")).toContain("Edunex: hadir 1 dari 6 Presensi");
-    expect(s.text()).not.toMatch(/\bAbsent\b|Tidak hadir/);
+    expect(now()).toContain("Jatah absen dihitung dari SIX");
+    expect(now()).toContain("Sebelum itu, aplikasi tak bisa memberi tahu saat Tandai Hadir muncul.");
+    expect(dayLine()).toBe("");
+    expect(groups()[0][0]).toBe("Mata kuliah 5");
+    expect(document.querySelector("main [role=img]")).toBeNull();
+    expect(s.text()).not.toMatch(/\bAbsent\b|Tidak hadir|Belum ada hitungan SIX/);
     // Nobody can say the open window counts: worth recording just in case, said calmly, its button quiet.
-    expect(onTop()).toContain("tanpa SIX, belum pasti ini dihitung: catat saja untuk berjaga-jaga");
-    expect([...document.querySelectorAll("main section button")].find((b) => b.textContent === "Catat di Edunex")!.className).not.toContain("bg-accent ");
+    expect(now()).toContain("tanpa SIX, belum pasti ini dihitung. Catat saja untuk berjaga-jaga.");
     await s.click("Masuk ke SIX");
     await s.wait();
     expect(s.store.status("six").state).toBe("live");
-    expect(answerText()).not.toContain("Jatah absen dihitung dari SIX");
-    expect(answer()[0]).toBe("KU5014 sudah tak bisa capai 80%.");
+    expect(now()).not.toContain("Jatah absen dihitung dari SIX");
+    expect(dayLine()).toBe("Hari ini ada 4 kuliah. Hanya PL3002 yang masih ada jatah absen.");
   });
 });
 
