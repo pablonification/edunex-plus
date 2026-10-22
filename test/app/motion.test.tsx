@@ -97,6 +97,36 @@ describe("toasts", () => {
     }
   });
 
+  it("an error isn't pushed out by newer toasts, and the same error said again shows once", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date"] });
+    try {
+      const { container } = await mount(
+        <I18nProvider lang="id">
+          <Toaster />
+        </I18nProvider>,
+      );
+      await act(async () => {
+        toast("Berkas gagal diunduh. Cek koneksimu, lalu coba lagi.", "danger");
+        toast("Draf tersimpan", "success");
+        toast("Tugas terkumpul");
+        toast("Ditunda sampai besok");
+      });
+      await act(async () => vi.advanceTimersByTime(1_000));
+      // Three at most: the oldest that goes by itself made room, not the error.
+      expect(container.textContent).toContain("Berkas gagal diunduh");
+      expect(container.textContent).not.toContain("Draf tersimpan");
+      expect(container.textContent).toContain("Ditunda sampai besok");
+
+      await act(async () => {
+        toast("Berkas gagal diunduh. Cek koneksimu, lalu coba lagi.", "danger");
+      });
+      await act(async () => vi.advanceTimersByTime(1_000));
+      expect(container.textContent?.match(/Berkas gagal diunduh/g)).toHaveLength(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("one that's taken away is gone, and the others and the live region stay", async () => {
     screen = await openApp({ signedIn: true });
     let first = 0;

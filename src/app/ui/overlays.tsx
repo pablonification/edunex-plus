@@ -326,8 +326,16 @@ function releaseClock(id: number, by: "pointer" | "focus") {
  */
 export function toast(text: string, tone: ToastItem["tone"] = "neutral", action?: ToastItem["action"]): number {
   const id = nextId++;
-  for (const pushedOut of toasts.slice(0, -2)) stopClock(pushedOut.id);
-  toasts = [...toasts.slice(-2), { id, text, tone, action }];
+  // The same error said again (a retry that failed again) takes the place of the one before it.
+  let kept = toasts.filter((item) => !(tone === "danger" && item.tone === "danger" && item.text === text));
+  // Three at most: the oldest of those that would go by themselves makes room; an error is never pushed out.
+  while (kept.length > 2) {
+    const oldest = kept.findIndex((item) => item.tone !== "danger");
+    if (oldest === -1) break;
+    kept = kept.filter((_, i) => i !== oldest);
+  }
+  for (const pushedOut of toasts) if (!kept.includes(pushedOut)) stopClock(pushedOut.id);
+  toasts = [...kept, { id, text, tone, action }];
   publish();
   if (tone !== "danger") {
     clocks.set(id, { left: action ? 8_000 : 5_000, since: 0, timer: null, held: new Set() });

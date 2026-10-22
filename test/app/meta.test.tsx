@@ -121,6 +121,19 @@ describe("Meta", () => {
     expect(draw(<Meta>{"II4091 · Modul 5"}</Meta>).hasAttribute("title")).toBe(false);
   });
 
+  it("truncated: words split across nested elements keep their space in the hover title", () => {
+    const meta = draw(
+      <Meta truncate>
+        <span>
+          <strong>Modul </strong>
+          <span>5</span>
+        </span>
+        {"Tugas"}
+      </Meta>,
+    );
+    expect(meta.title).toBe("Modul 5 · Tugas");
+  });
+
   it("truncated: an earlier fact as wide as the line ends in '…' at its edge, not cut mid-letter", () => {
     const meta = draw(<Meta truncate>{"Ringkasan bab dua dengan judul yang sangat panjang sekali · cek apakah perlu dikumpulkan ulang"}</Meta>);
     const [long] = facts(meta);

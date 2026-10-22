@@ -305,14 +305,18 @@ function factParts(children: ReactNode): ReactNode[] {
   return parts;
 }
 
-/** A fact's words: its text, or the text inside an element (an icon beside it has none). */
+/** A fact's words: its text, or the text inside an element (an icon beside it has none), spaced as on screen. */
 function factText(part: ReactNode): string {
+  return rawText(part).replace(/\s+/g, " ").trim();
+}
+
+/** The text under a node as it is, spaces between nested elements kept ("<b>Modul </b>5" stays "Modul 5"). */
+function rawText(part: ReactNode): string {
   if (typeof part === "string" || typeof part === "number") return String(part);
   if (isValidElement<{ children?: unknown }>(part) && typeof part.props.children !== "function")
     return Children.toArray(part.props.children as ReactNode)
-      .map(factText)
-      .join("")
-      .trim();
+      .map(rawText)
+      .join("");
   return "";
 }
 
