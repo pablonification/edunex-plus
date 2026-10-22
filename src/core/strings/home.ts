@@ -34,7 +34,7 @@ export const homeStrings = {
   },
   "home.now.openSix": { id: "Buka di SIX", en: "Open in SIX" },
   // Starts with what the button shows (home.now.openSix), so a voice command for it works.
-  "home.now.openSixLabel": { id: "Buka di SIX: {course}, untuk Tandai Hadir", en: "Open in SIX: {course}, to press Tandai Hadir" },
+  "home.now.openSixLabel": { id: "Buka di SIX untuk Tandai Hadir di {course}", en: "Open in SIX to press Tandai Hadir for {course}" },
   "home.now.countEdunex": { id: "Kehadiran dihitung lewat Presensi Edunex.", en: "Attendance counts through Edunex Presence." },
   "home.now.countNotKnown": {
     id: "Belum tahu kehadiran dihitung di mana sampai SIX terhubung; mengisinya tidak ada ruginya.",

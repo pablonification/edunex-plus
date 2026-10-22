@@ -253,7 +253,7 @@ describe("the Presensi screen", () => {
     await s.key("Escape");
     // The page's own target says plainly it's for every course: not to be mixed up with a row's "Target 80%".
     await s.click("Target semua mata kuliah: 80%");
-    expect(document.querySelector("[role=dialog]")?.textContent).toContain("Untuk mata kuliah yang tak punya target sendiri");
+    expect(document.querySelector("[role=dialog]")?.textContent).toContain("Dipakai untuk mata kuliah yang tak punya target sendiri");
     await s.click("Naikkan target umum");
     expect(s.calls.at(-1)).toEqual({ name: "settings.update", input: { attendanceTarget: 85 } });
     await s.click("Naikkan target umum");

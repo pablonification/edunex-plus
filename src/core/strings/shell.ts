@@ -138,8 +138,8 @@ export const shellStrings = {
   "settings.signOutAllConfirm": { id: "Keluar dan hapus semua data?", en: "Sign out and remove all data?" },
   // What goes for good (the engine's signOut): what was read, and what only the Student entered.
   "settings.signOutAllBody": {
-    id: "Kamu keluar dari Edunex dan SIX, dan semua yang disimpan aplikasi di komputer ini dihapus, termasuk yang kamu isi sendiri: rencana studi, koreksi kurikulum, bobot dan nilai mata kuliah, target kehadiran per mata kuliah, pengingat yang ditunda, dan HP yang terhubung. Ini tidak bisa dibatalkan.",
-    en: "You're signed out of Edunex and SIX, and everything the app keeps on this computer is removed, including what you entered yourself: your study plan, curriculum corrections, course weights and scores, each course's attendance target, snoozed reminders and the connected phone. You can't undo this.",
+    id: "Kamu keluar dari Edunex dan SIX, dan semua yang disimpan aplikasi di komputer ini dihapus. Itu termasuk yang kamu isi sendiri, seperti rencana studi, koreksi kurikulum, bobot dan nilai mata kuliah, target kehadiran per mata kuliah, pengingat yang ditunda, dan HP yang terhubung. Ini tidak bisa dibatalkan.",
+    en: "You're signed out of Edunex and SIX, and everything the app keeps on this computer is removed. That includes what you entered yourself, like your study plan, curriculum corrections, course weights and scores, each course's attendance target, snoozed reminders and the connected phone. You can't undo this.",
   },
   "settings.other": { id: "Lainnya", en: "Other" },
   "settings.sessionNotSaved": {

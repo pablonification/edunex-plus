@@ -71,8 +71,8 @@ export const attendanceStrings = {
   "presence.target": { id: "Target {value}%", en: "Target {value}%" },
   "presence.target.button": { id: "Target semua mata kuliah: {value}%", en: "Target for all courses: {value}%" },
   "presence.target.global": {
-    id: "Untuk mata kuliah yang tak punya target sendiri: di Presensi, Beranda, dan pengingat.",
-    en: "For every course without its own target: on Presence, Home and in notifications.",
+    id: "Dipakai untuk mata kuliah yang tak punya target sendiri, di Presensi, Beranda, dan pengingat.",
+    en: "Used for every course without its own target, on Presence, Home and in notifications.",
   },
   "presence.target.reset": { id: "Kembali ke {value}%", en: "Back to {value}%" },
   "presence.target.lower": { id: "Turunkan target umum", en: "Lower the default target" },

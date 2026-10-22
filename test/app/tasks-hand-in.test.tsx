@@ -290,7 +290,7 @@ describe("handing in", () => {
     await s.click("Kumpulkan");
     await s.click(confirmButton()!);
     const notice = document.querySelector("main aside [role=alert]");
-    expect(notice?.textContent).toContain("Edunex menolak ini. Berkasmu tetap terlampir; periksa tugas ini di Edunex.");
+    expect(notice?.textContent).toContain("Edunex menolak ini. Berkasmu tetap terlampir. Periksa tugas ini di Edunex.");
     expect(card()).toContain("Bab II.pdf");
     // Never the engine's own words.
     expect(card()).not.toContain("422");

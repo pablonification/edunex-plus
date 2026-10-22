@@ -115,13 +115,13 @@ export const searchStrings = {
     en: { one: "{count} course counts attendance in SIX, not Edunex", other: "{count} courses count attendance in SIX, not Edunex" },
   },
   "scan.unused.course": {
-    id: "{code}: SIX mencatat hadir {attended} dari {held}; abaikan {count} “absen” di Edunex",
+    id: "SIX mencatat {code} hadir {attended} dari {held}, jadi abaikan {count} “absen” di Edunex",
     en: {
-      one: "{code}: SIX has {attended} of {held}; ignore the {count} “absence” Edunex shows",
-      other: "{code}: SIX has {attended} of {held}; ignore the {count} “absences” Edunex shows",
+      one: "SIX has {code} at {attended} of {held}, so ignore the {count} “absence” Edunex shows",
+      other: "SIX has {code} at {attended} of {held}, so ignore the {count} “absences” Edunex shows",
     },
   },
-  "scan.unused.note": { id: "Tandai Hadir di SIX; Presensi Edunex tidak wajib.", en: "Press Tandai Hadir in SIX; Edunex Presence is optional." },
+  "scan.unused.note": { id: "Tandai Hadir di SIX. Presensi Edunex tidak wajib.", en: "Press Tandai Hadir in SIX. Edunex Presence is optional." },
 
   // Exams
   "scan.exams.title": { id: "{count} ujian akan datang", en: { one: "{count} upcoming exam", other: "{count} upcoming exams" } },

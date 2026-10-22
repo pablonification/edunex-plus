@@ -146,8 +146,8 @@ export const tasksStrings = {
   "handIn.notOpen": { id: "Tugas ini belum dibuka di Edunex.", en: "This Task isn't open on Edunex yet." },
   "handIn.gone": { id: "Tugas ini sudah tidak ada di Edunex.", en: "This Task is no longer on Edunex." },
   "handIn.error.offline": {
-    id: "Edunex tidak bisa dihubungi. Berkasmu tetap terlampir, coba lagi.",
-    en: "Edunex can't be reached. Your files stay attached; try again.",
+    id: "Edunex tidak bisa dihubungi. Berkasmu tetap terlampir. Coba lagi.",
+    en: "Edunex can't be reached. Your files stay attached. Try again.",
   },
   "handIn.error.expired": {
     id: "Sesi Edunex berakhir. Masuk lagi, lalu coba lagi. Berkasmu tetap terlampir.",
@@ -158,12 +158,12 @@ export const tasksStrings = {
     en: "Edunex answered in a way the app doesn't recognise. Check this Task on Edunex.",
   },
   "handIn.error.rejected": {
-    id: "Edunex menolak ini. Berkasmu tetap terlampir; periksa tugas ini di Edunex.",
-    en: "Edunex refused this. Your files stay attached; check this Task on Edunex.",
+    id: "Edunex menolak ini. Berkasmu tetap terlampir. Periksa tugas ini di Edunex.",
+    en: "Edunex refused this. Your files stay attached. Check this Task on Edunex.",
   },
   "handIn.error.failed": {
-    id: "Edunex belum menerimanya. Berkasmu tetap terlampir; coba lagi.",
-    en: "Edunex didn't get it. Your files stay attached; try again.",
+    id: "Edunex belum menerimanya. Berkasmu tetap terlampir. Coba lagi.",
+    en: "Edunex didn't get it. Your files stay attached. Try again.",
   },
 
   // Tugas & Ujian, redesigned
@@ -234,8 +234,8 @@ export const tasksStrings = {
   "handIn.check.attendanceIn": { id: "Di dalam jendela presensi: terhitung hadir.", en: "Inside the attendance window: you'll be counted present." },
   "handIn.check.late": { id: "Tenggat sudah lewat ({when}). Tugasmu tercatat terlambat.", en: "The deadline has passed ({when}). It's recorded as late." },
   "handIn.check.fileType": {
-    id: "Dosen minta berkas {type}; {files} bukan {type}.",
-    en: { one: "Your lecturer asks for a {type} file; {files} isn't one.", other: "Your lecturer asks for a {type} file; {files} aren't {type} files." },
+    id: "Dosen minta berkas {type}, tapi {files} bukan {type}.",
+    en: { one: "Your lecturer asks for a {type} file, but {files} isn't one.", other: "Your lecturer asks for {type} files, but {files} aren't." },
   },
   "handIn.check.naming": { id: "Dosen minta nama berkas \u2018{pattern}\u2019.", en: "Your lecturer asks for the file name \u2018{pattern}\u2019." },
   "handIn.check.final": { id: "Setelah dikumpulkan, jawabanmu final.", en: "Once handed in, your answer is final." },
