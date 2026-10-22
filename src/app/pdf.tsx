@@ -12,7 +12,7 @@
 // card offers itself with useAnswerAttach).
 import { createContext, lazy, type ReactNode, Suspense, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { FileProblem, ReadAs } from "../core/actions/files";
-import { ActionError } from "./bridge";
+import { ActionError, errorKey } from "./bridge";
 import { useOpenExternal, useOpenLink } from "./hooks";
 import { useT } from "./i18n";
 import { OpenFile, useDownloadedToast, useLocalCopy } from "./open-file";
@@ -160,8 +160,8 @@ export function PdfViewerProvider({ children }: { children: ReactNode }) {
       const { existing } = await bridge.invoke("files.download", { url: source.url, name: source.name.slice(0, 200) });
       downloaded(source.url, existing);
       await local.refresh();
-    } catch (error) {
-      toast(t("error.action", { message: error instanceof Error ? error.message : String(error) }), "danger");
+    } catch {
+      toast(t("file.downloadFailed", { name: source.name }), "danger");
     } finally {
       setBusy(false);
     }
@@ -209,7 +209,7 @@ export function PdfViewerProvider({ children }: { children: ReactNode }) {
       if (file) toast(t("pdf.savedAs", { file }), "success");
       return file !== null;
     } catch (error) {
-      toast(t("error.action", { message: error instanceof Error ? error.message : String(error) }), "danger");
+      toast(t(errorKey(error, "pdf.saveCopyFailed")), "danger");
       return false;
     }
   };
@@ -223,7 +223,7 @@ export function PdfViewerProvider({ children }: { children: ReactNode }) {
           toast(t("pdf.attached", { name }), "success");
           return true;
         } catch (error) {
-          toast(t("error.action", { message: error instanceof Error ? error.message : String(error) }), "danger");
+          toast(t(errorKey(error)), "danger");
           return false;
         }
       }

@@ -60,6 +60,10 @@ export const contentStrings = {
     en: "Save the filled-in PDF as a new file; the original stays as it was",
   },
   "pdf.savedAs": { id: "Tersimpan: {file}", en: "Saved: {file}" },
+  "pdf.saveCopyFailed": {
+    id: "Salinannya tidak bisa disimpan. Coba lagi, atau simpan ke folder lain.",
+    en: "The copy couldn't be saved. Try again, or save it to another folder.",
+  },
   "pdf.attach": { id: "Lampirkan ke jawaban", en: "Attach to answer" },
   "pdf.attachHint": {
     id: "Jadi berkas di jawabanmu; terkirim saat kamu menyimpan draf atau mengumpulkan",
@@ -73,7 +77,7 @@ export const contentStrings = {
     id: "Yang kamu isi dan tambahkan di PDF ini belum disimpan dan akan hilang.",
     en: "What you filled in and added to this PDF isn't saved and will be lost.",
   },
-  "pdf.discard.confirm": { id: "Buang", en: "Discard" },
+  "pdf.discard.confirm": { id: "Buang isian", en: "Discard entries" },
   "pdf.discard.keep": { id: "Lanjut mengisi", en: "Keep filling" },
   "viewer.loading": { id: "Memuat berkas…", en: "Loading the file…" },
   "viewer.failed": { id: "Berkas ini tidak bisa ditampilkan", en: "This file can't be shown" },

@@ -193,6 +193,9 @@ describe("Settings", () => {
     await screen.click(row!.querySelector("button")!);
     const confirm = document.querySelector("[role=alertdialog]");
     expect(confirm?.textContent).toContain("Keluar dan hapus semua data?");
+    // What goes for good, what the Student entered too, and that it can't be undone.
+    expect(confirm?.textContent).toContain("termasuk yang kamu isi sendiri: rencana studi, koreksi kurikulum,");
+    expect(confirm?.textContent).toContain("Ini tidak bisa dibatalkan.");
     expect(screen.vault.secrets.size).toBe(1);
     await screen.click([...confirm!.querySelectorAll("button")].find((b) => b.textContent === "Keluar & hapus data")!);
     expect(screen.text()).toContain("Selamat datang di Edunex Plus");

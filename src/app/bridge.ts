@@ -2,6 +2,7 @@
 // a typed error) and events (the engine tells). Both directions are checked
 // against the shared contract.
 import { type ActionInput, type ActionName, type ActionOutput, type ActionResult, Actions, type ErrorKind, Event } from "../core/contract";
+import type { StringKey } from "../core/strings";
 
 /** What the preload exposes on window.edunexPlus. */
 export interface BridgeApi {
@@ -25,6 +26,20 @@ export class ActionError extends Error {
     super(message);
     this.name = "ActionError";
   }
+}
+
+/**
+ * What the screens say when an action didn't work, picked by its kind: what
+ * happened, then what to do. Never the error's own message, which is for the
+ * log and names no way forward. `failed`: the action's own words for a plain
+ * failure or a refusal ("Kalender tidak bisa disimpan…").
+ */
+export function errorKey(error: unknown, failed: StringKey = "error.failed"): StringKey {
+  const kind = error instanceof ActionError ? error.kind : "Failed";
+  if (kind === "Offline") return "error.offline";
+  if (kind === "Unauthorized") return "error.expired";
+  if (kind === "VendorChanged") return "error.changed";
+  return failed;
 }
 
 export interface Bridge {

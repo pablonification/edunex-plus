@@ -388,8 +388,8 @@ export function MaterialRow({ material }: { material: Material }) {
       const { existing } = await bridge.invoke("files.download", { url, name });
       downloaded(url, existing);
       await local.refresh();
-    } catch (error) {
-      toast(t("error.action", { message: error instanceof Error ? error.message : String(error) }), "danger");
+    } catch {
+      toast(t("file.downloadFailed", { name }), "danger");
     } finally {
       setBusy(false);
     }

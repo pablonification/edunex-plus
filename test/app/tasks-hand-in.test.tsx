@@ -280,6 +280,24 @@ describe("handing in", () => {
     expect(s.calls.at(-1)).toEqual({ name: "shell.openExternal", input: { url: "https://edunex.itb.ac.id/assignment/take/117003" } });
   });
 
+  it("Edunex refusing a submit: the files stay, and the notice offers the Task on Edunex", async () => {
+    const s = await openTask("Tugas 02 Bab II");
+    await s.write(ANSWER);
+    s.willPick([{ name: "Bab II.pdf" }]);
+    await s.click(ATTACH);
+    await s.click("Simpan draf");
+    s.world.edunex.fail(/^\/course\/task\/answers\/\d+$/, 422, 1);
+    await s.click("Kumpulkan");
+    await s.click(confirmButton()!);
+    const notice = document.querySelector("main aside [role=alert]");
+    expect(notice?.textContent).toContain("Edunex menolak ini. Berkasmu tetap terlampir; periksa tugas ini di Edunex.");
+    expect(card()).toContain("Bab II.pdf");
+    // Never the engine's own words.
+    expect(card()).not.toContain("422");
+    await s.click([...notice!.querySelectorAll("button")].find((b) => b.textContent === "Buka di Edunex")!);
+    expect(s.calls.at(-1)).toEqual({ name: "shell.openExternal", input: { url: "https://edunex.itb.ac.id/assignment/take/117003" } });
+  });
+
   it("late allowed: Submit late works past the deadline", async () => {
     const s = await openTask("Tugas 02 Bab II", "2026-10-20T09:00:00+07:00");
     await s.write(ANSWER);

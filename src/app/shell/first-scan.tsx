@@ -183,9 +183,10 @@ function Findings({ onGo }: { onGo: (route: Route) => void }) {
  */
 function Summary({ summary }: { summary: ReturnType<typeof scanSummary> }) {
   const t = useT();
+  const f = useFormat();
   if (!summary.read.length) return null;
   const names = summary.connected.map((source) => t(`source.${source}`));
-  const connected = names.length ? t("scan.connected", { sources: names.length === 2 ? t("scan.and", { a: names[0], b: names[1] }) : names[0] }) : null;
+  const connected = names.length ? t("scan.connected", { sources: f.list(names) }) : null;
   const read = [t("scan.read.courses", { count: summary.courses }), summary.tasks ? t("scan.read.tasks", { count: summary.tasks }) : null].filter(Boolean);
   return (
     <p className="flex items-center gap-2 text-small font-medium text-muted">

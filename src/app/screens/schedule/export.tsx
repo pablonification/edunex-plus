@@ -8,7 +8,7 @@ import { useMemo, useState } from "react";
 import { wibDay } from "../../../core/course-meetings";
 import { PHONE_KINDS, type PhoneKind, phoneItems } from "../../../core/phone-calendar";
 import { dayStart, shiftDay } from "../../../core/schedule";
-import { ActionError } from "../../bridge";
+import { ActionError, errorKey } from "../../bridge";
 import { useFormat, useLang, useNow, useT } from "../../i18n";
 import { useBridge, useDataset, useStatus, useStore } from "../../store";
 import { Button } from "../../ui/controls";
@@ -95,7 +95,7 @@ function ExportDialog({ onClose }: { onClose: () => void }) {
       setStep(result.file ? { step: "done", file: result.file, events: result.events } : { step: "choose" });
     } catch (error) {
       setStep({ step: "choose" });
-      toast(error instanceof ActionError && error.kind !== "Failed" ? t("error.action", { message: error.message }) : t("schedule.exportFailed"), "danger");
+      toast(t(errorKey(error, "schedule.exportFailed")), "danger");
     }
   };
 
@@ -194,7 +194,10 @@ function Saved({ file, events, onDone }: { file: string; events: number; onDone:
   const reveal = () =>
     void bridge
       .invoke("schedule.reveal", {})
-      .catch((error: unknown) => toast(error instanceof ActionError ? t("error.action", { message: error.message }) : t("schedule.exportFailed"), "danger"));
+      // Refused: the file isn't where it was saved any more. Otherwise it's still there; only the folder didn't open.
+      .catch((error: unknown) =>
+        toast(t(error instanceof ActionError && error.kind === "Rejected" ? "schedule.revealGone" : "schedule.revealFailed", { file }), "danger"),
+      );
   const place = store.platform === "darwin" ? "mac" : store.platform === "win32" ? "win" : "linux";
   return (
     <div>

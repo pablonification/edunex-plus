@@ -3,7 +3,7 @@
 // every screen, when something needs the Student.
 import { type ReactNode, useCallback, useState, useSyncExternalStore } from "react";
 import type { SourceId, SourceState } from "../../core/models";
-import { ActionError, type Bridge } from "../bridge";
+import { type Bridge, errorKey } from "../bridge";
 import { useFormat, useT } from "../i18n";
 import { useBridge, useDataset, useSignInStep, useStatus } from "../store";
 import { SourceLogo } from "../ui/brand";
@@ -25,7 +25,7 @@ export function useSignIn() {
       try {
         await bridge.invoke("auth.signIn", { source });
       } catch (error) {
-        toast(error instanceof ActionError && error.kind !== "Failed" ? t("error.action", { message: error.message }) : t("welcome.signInFailed"), "danger");
+        toast(t(errorKey(error, "welcome.signInFailed")), "danger");
       } finally {
         setBusy(false);
       }

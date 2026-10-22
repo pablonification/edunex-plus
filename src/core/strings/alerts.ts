@@ -19,7 +19,7 @@ export const alertsStrings = {
   "alert.group.newTask": { id: "{count} tugas baru", en: { one: "{count} new Task", other: "{count} new Tasks" } },
   "alert.group.newMaterial": { id: "{count} materi baru", en: { one: "{count} new material", other: "{count} new materials" } },
   "alert.group.deadline": { id: "{count} tenggat mendekat", en: { one: "{count} deadline coming up", other: "{count} deadlines coming up" } },
-  "alert.group.other": { id: "{count} notifikasi baru", en: { one: "{count} new alert", other: "{count} new alerts" } },
+  "alert.group.other": { id: "{count} notifikasi baru", en: { one: "{count} new notification", other: "{count} new notifications" } },
   "alert.group.more": { id: "{list} dan {count} lainnya", en: "{list} and {count} more" },
 
   // The history panel

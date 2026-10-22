@@ -38,8 +38,17 @@ export const phoneStrings = {
   "phone.quietStart": { id: "Jam tenang mulai", en: "Quiet hours start" },
   "phone.quietEnd": { id: "Jam tenang selesai", en: "Quiet hours end" },
   "phone.disconnect": { id: "Putuskan HP", en: "Disconnect phone" },
-  "phone.disconnectHint": { id: "Pengingat yang sudah dijadwalkan ikut dibatalkan", en: "Reminders already booked are cancelled too" },
+  "phone.disconnectHint": {
+    id: "Pengingat yang sudah dijadwalkan ikut dibatalkan. Menghubungkan lagi butuh kode baru di HP.",
+    en: "Reminders already booked are cancelled too. Connecting again needs a new code on your phone.",
+  },
   "phone.disconnectAction": { id: "Putuskan", en: "Disconnect" },
+  // Asked first: the code is forgotten, so connecting again means setting up a new one on the phone. Confirmed with phone.disconnect.
+  "phone.disconnectTitle": { id: "Putuskan HP?", en: "Disconnect your phone?" },
+  "phone.disconnectBody": {
+    id: "HP-mu berhenti menerima notifikasi, dan pengingat yang sudah dijadwalkan dibatalkan. Untuk menghubungkan lagi, HP-mu perlu kode baru.",
+    en: "Your phone stops getting notifications, and reminders already booked are cancelled. To connect again, your phone needs a new code.",
+  },
   "phone.notCancelled": {
     id: "ntfy tidak terjangkau, jadi pengingat yang sudah dijadwalkan mungkin tetap sampai di HP.",
     en: "Couldn't reach ntfy, so reminders already booked may still reach your phone.",

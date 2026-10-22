@@ -133,7 +133,20 @@ export const scheduleStrings = {
   "schedule.export.android.3": { id: "Ketuk Impor", en: "Tap Import" },
   "schedule.export.done": { id: "Selesai", en: "Done" },
   "schedule.export.disabled": { id: "Belum ada jadwal untuk ditambahkan", en: "Nothing to add yet" },
-  "schedule.exportFailed": { id: "Kalender tidak bisa disimpan", en: "The calendar couldn't be saved" },
+  "schedule.exportFailed": {
+    id: "Kalender tidak bisa disimpan. Coba lagi, atau simpan ke folder lain.",
+    en: "The calendar couldn't be saved. Try again, or save it to another folder.",
+  },
+  // Showing the saved file in its folder didn't work: the file is there all the same ({file}: its name).
+  "schedule.revealFailed": {
+    id: "Foldernya tidak bisa dibuka. Kalendermu tetap tersimpan sebagai {file}.",
+    en: "Couldn't open the folder. Your calendar is still saved as {file}.",
+  },
+  // …because it was moved or deleted since.
+  "schedule.revealGone": {
+    id: "{file} sudah tidak ada di tempatnya. Simpan kalendernya lagi.",
+    en: "{file} isn't where it was saved any more. Save the calendar again.",
+  },
 
   // ITB calendar events on the schedule
   "calendar.kind.uts": { id: "Masa UTS", en: "UTS period" },

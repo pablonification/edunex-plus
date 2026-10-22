@@ -112,12 +112,12 @@ describe("the exam page", () => {
     expect(s.text()).toContain("Kehadiran sebelum ujian · Hadir 4 dari 6");
 
     // One quiet line of official pages.
-    await s.click("Lihat di SIX");
+    await s.click("Buka jadwal di SIX");
     expect(s.calls.at(-1)).toEqual({
       name: "shell.openExternal",
       input: { url: "https://six.itb.ac.id/app/mahasiswa:18223901+2026-1/kelas/jadwal/mahasiswa/2021000001" },
     });
-    await s.click("Lihat tugas di Edunex");
+    await s.click("Buka tugasnya di Edunex");
     expect(s.calls.at(-1)).toEqual({ name: "shell.openExternal", input: { url: "https://edunex.itb.ac.id/assignment/take/117764" } });
 
     // The take-home card opens the Task page.

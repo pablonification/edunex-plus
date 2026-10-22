@@ -221,7 +221,7 @@ function Calculator({ page, onOpenModules }: { page: CoursePage; onOpenModules?:
   const aim = target ?? result.needs.find((need) => !need.reached && need.need !== null)?.letter ?? "A";
   const need = result.needs.find((n) => n.letter === aim)!;
   const open = contract.parts.filter((part) => partScore(part, attendance) === null && part.weight > 0).map(nameOf);
-  const listed = open.length > 1 ? `${open.slice(0, -1).join(", ")} ${t("grade.and")} ${open.at(-1)}` : (open[0] ?? "");
+  const listed = f.list(open);
   const best = result.secured + result.openWeight;
 
   let answer: string;

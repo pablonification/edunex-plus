@@ -177,7 +177,7 @@ describe("the Presensi screen", () => {
     expect(ku).toContain("Tak bisa lagi capai 80%");
     expect(ku).toContain("Hadir 2 dari 6 · 33% · paling tinggi 71% di akhir kuliah");
     expect(ku).toContain("Ada pertemuan yang kamu hadiri tapi tak tercatat? Minta dosen membetulkannya di SIX.");
-    await s.click("Cek di SIX");
+    await s.click("Buka jadwal di SIX");
     expect(s.calls.at(-1)).toEqual({
       name: "shell.openExternal",
       input: { url: "https://six.itb.ac.id/app/mahasiswa:18223901+2026-1/kelas/jadwal/mahasiswa/2021000001" },
