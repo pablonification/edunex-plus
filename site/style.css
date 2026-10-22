@@ -367,21 +367,6 @@ section {
   font-size: 13px;
   color: var(--fg-dim);
 }
-.promises {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 24px;
-  margin-top: 28px;
-  padding-top: 24px;
-  border-top: 1px dashed var(--border);
-  font-size: 13px;
-  color: var(--fg-muted);
-}
-.promises span {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
 
 /* The screens */
 .screens {
@@ -540,30 +525,11 @@ section {
   color: #52525b;
 }
 
-/* Getting started */
-.start-grid {
-  display: grid;
-  grid-template-columns: 1.25fr 1fr;
-  gap: 20px;
-}
-.steps {
-  display: flex;
-  flex-direction: column;
-  padding: 8px 0;
-  list-style: none;
-}
-.step {
-  display: grid;
-  grid-template-columns: 32px 1fr;
-  gap: 16px;
-  padding: 20px 28px;
-}
-.step + .step {
-  border-top: 1px solid var(--border);
-}
+/* Install: one computer at a time, with the windows it shows drawn as they look */
 .step-n {
   display: grid;
   place-items: center;
+  flex: none;
   width: 32px;
   height: 32px;
   border: 1px solid var(--border-strong);
@@ -572,34 +538,362 @@ section {
   font-weight: 500;
   color: var(--fg-muted);
 }
-.step h3 {
-  margin-bottom: 4px;
-  font-size: 16px;
+.os-tabs {
+  display: none;
+  width: fit-content;
+  margin: 0 auto 20px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: #ffffff05;
+}
+.js .os-tabs {
+  display: flex;
+}
+.os-tab {
+  min-width: 112px;
+  padding: 9px 20px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: var(--fg-muted);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background 0.18s,
+    color 0.18s;
+}
+.os-tab:hover {
+  color: var(--fg);
+}
+.os-tab[aria-selected="true"] {
+  background: var(--fg);
+  color: #09090b;
+}
+.os-panel {
+  padding: 8px 0;
+}
+.os-panel + .os-panel {
+  margin-top: 20px;
+}
+.js .os-panel + .os-panel {
+  margin-top: 0;
+}
+.os-panel[hidden] {
+  display: none;
+}
+.os-heading {
+  padding: 20px 28px 4px;
+  font-size: 20px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+.js .os-heading {
+  display: none;
+}
+.guide {
+  list-style: none;
+}
+.guide-step {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) minmax(0, 1fr);
+  align-items: start;
+  gap: 16px 24px;
+  padding: 28px;
+}
+.guide-step + .guide-step {
+  border-top: 1px solid var(--border);
+}
+.guide-text {
+  grid-column: 2;
+}
+.guide-step > :last-child:not(.guide-text) {
+  grid-column: 3;
+}
+.guide-step:not(:has(> :nth-child(3))) .guide-text {
+  grid-column: 2 / 4;
+  max-width: 640px;
+}
+.guide h4 {
+  margin: 4px 0 6px;
+  font-size: 17px;
   font-weight: 500;
   letter-spacing: -0.01em;
 }
-.step p {
-  font-size: 14px;
+.guide p {
+  font-size: 15px;
   color: var(--fg-muted);
 }
-.step a {
-  color: var(--accent);
+.guide .guide-hint {
+  font-size: 13.5px;
+  color: var(--fg-dim);
 }
-.step a:hover {
-  text-decoration: underline;
-  text-underline-offset: 3px;
+.guide p + .guide-hint {
+  margin-top: 10px;
 }
-.files {
+.guide-files {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-top: 12px;
+  margin: 16px 0 14px;
 }
-.file {
-  padding: 4px 10px;
-  border: 1px solid var(--border);
-  border-radius: 999px;
+.guide-files .btn {
+  color: var(--fg);
+}
+code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.88em;
+}
+.guide-alt {
+  margin-top: 14px;
+  font-size: 14px;
+}
+.guide-alt summary {
+  width: fit-content;
+  color: var(--accent);
+  cursor: pointer;
+}
+.guide-alt summary:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.guide-alt p {
+  margin-top: 10px;
+  padding: 14px 16px;
+  border-left: 2px solid var(--border-strong);
+  font-size: 14px;
+}
+
+/* A Mac window's title bar, for the disk image and Terminal */
+.win-bar {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 12px;
+}
+.win-bar i {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: #ff5f57;
+}
+.win-bar i:nth-child(2) {
+  background: #febc2e;
+}
+.win-bar i:nth-child(3) {
+  background: #28c840;
+}
+.win-bar span {
+  flex: 1;
+  margin-right: 46px;
   font-size: 12px;
+  font-weight: 500;
+  text-align: center;
+}
+
+/* The disk image's window: its real background (a copy of assets/dmg-background@2x.png), with
+   the three icons where Finder puts them (electron-builder.config.mjs's dmg contents, in the
+   640 × 448 points under the title bar). */
+.dmg {
+  overflow: hidden;
+  border-radius: 12px;
+  background: #f4f4f6;
+  box-shadow: 0 24px 48px -24px #000000d9;
+}
+.dmg .win-bar {
+  background: #e8e8ec;
+  border-bottom: 1px solid #d6d6db;
+  color: #4b4b52;
+}
+.dmg-body {
+  position: relative;
+  aspect-ratio: 640 / 448;
+  container-type: inline-size;
+}
+.dmg-bg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top;
+}
+.dmg-icon {
+  position: absolute;
+  left: calc(var(--x) / 640 * 100%);
+  top: calc(var(--y) / 448 * 100%);
+  display: grid;
+  place-items: center;
+  width: 15.625cqw;
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+}
+.dmg-icon > img,
+.dmg-icon > svg {
+  width: 100%;
+  height: 100%;
+}
+.dmg-icon > span:last-child {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  color: #1d1d1f;
+  font-size: max(9px, 2cqw);
+  white-space: nowrap;
+}
+.term-icon {
+  display: grid;
+  place-items: center;
+  width: 82%;
+  aspect-ratio: 1;
+  border-radius: 22%;
+  background: #1d1d1f;
+  color: #e8e8ec;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 4.5cqw;
+  font-weight: 600;
+}
+
+.term {
+  overflow: hidden;
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
+  background: #141416;
+  box-shadow: 0 24px 48px -24px #000000d9;
+}
+.term .win-bar {
+  background: #1f1f22;
+  border-bottom: 1px solid var(--border);
+  color: var(--fg-dim);
+}
+.term-body {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 18px 16px;
+}
+.term-line {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--fg);
+  user-select: all;
+}
+.term-prompt {
+  color: var(--fg-dim);
+  user-select: none;
+}
+.copy {
+  display: none;
+  flex: none;
+  min-width: 72px;
+  padding: 7px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  background: #ffffff0a;
+  color: var(--fg);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background 0.18s,
+    border-color 0.18s;
+}
+.js .copy {
+  display: block;
+}
+.copy:hover {
+  border-color: var(--fg-dim);
+  background: #ffffff14;
+}
+
+/* Windows' blue "Windows protected your PC", before and after "More info" */
+.smartscreen {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.ss {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 210px;
+  padding: 18px 16px 14px;
+  border-radius: 6px;
+  background: #0f5ead;
+  color: #fff;
+  box-shadow: 0 24px 48px -24px #000000d9;
+}
+.ss-title {
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+.ss-text {
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: #ffffffd9;
+}
+.ss-link {
+  width: fit-content;
+  font-size: 12px;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.ss-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-top: auto;
+}
+.ss-btn {
+  padding: 5px 10px;
+  border: 1px solid #ffffffb3;
+  font-size: 11.5px;
+  white-space: nowrap;
+}
+.ss-target {
+  border-radius: 3px;
+  outline: 2px solid var(--warn);
+  outline-offset: 3px;
+}
+.ss-badge {
+  position: absolute;
+  top: -10px;
+  left: -10px;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--warn);
+  color: #09090b;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.install-last {
+  display: grid;
+  grid-template-columns: 32px 1fr auto;
+  align-items: center;
+  gap: 16px 24px;
+  margin-top: 20px;
+  padding: 22px 28px;
+}
+.install-last h4 {
+  margin-bottom: 4px;
+  font-size: 17px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+.install-last p {
+  font-size: 14px;
   color: var(--fg-muted);
 }
 
@@ -645,6 +939,17 @@ section {
   border-radius: 7px;
   background: var(--accent-dim);
   color: var(--accent);
+}
+
+/* Privacy, beside its heading */
+.privacy {
+  display: grid;
+  grid-template-columns: 1fr 1.15fr;
+  align-items: center;
+  gap: 64px;
+}
+.privacy .section-head {
+  margin-bottom: 0;
 }
 
 /* The backer, credited where "free" is said */
@@ -820,8 +1125,16 @@ section {
   .split.flip .split-visual {
     order: 0;
   }
-  .start-grid {
+  .privacy {
     grid-template-columns: 1fr;
+    gap: 40px;
+  }
+  .guide-step {
+    grid-template-columns: 32px minmax(0, 1fr);
+  }
+  .guide-step > :last-child:not(.guide-text),
+  .guide-step:not(:has(> :nth-child(3))) .guide-text {
+    grid-column: 2;
   }
 }
 @media (width <= 820px) {
@@ -843,8 +1156,17 @@ section {
   .hero-preview {
     transform: none;
   }
-  .step {
-    padding: 18px 20px;
+  .guide-step {
+    gap: 14px 16px;
+    padding: 22px 20px;
+  }
+  .install-last {
+    grid-template-columns: 32px 1fr;
+    align-items: start;
+    padding: 22px 20px;
+  }
+  .install-last .text-link {
+    grid-column: 2;
   }
   .footer-inner {
     flex-direction: column;
@@ -875,6 +1197,19 @@ section {
   }
   .nav-link {
     display: none;
+  }
+  .guide-step > :last-child:not(.guide-text) {
+    grid-column: 1 / -1;
+  }
+  .smartscreen {
+    grid-template-columns: 1fr;
+  }
+  .ss {
+    min-height: 0;
+  }
+  .os-tab {
+    min-width: 0;
+    padding: 9px 18px;
   }
 }
 

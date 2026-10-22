@@ -119,11 +119,6 @@
           <div class="source"><div class="source-name">Academic calendar</div><p>UTS and UAS weeks, KRS dates, holidays</p></div>
           <div class="source"><div class="source-name">Course catalog</div><p>Your curriculum and the SKS left to graduate</p></div>
         </div>
-        <div class="promises">
-          <span><svg class="check" width="14" height="14" aria-hidden="true"><use href="#check"/></svg>Never marks attendance for you</span>
-          <span><svg class="check" width="14" height="14" aria-hidden="true"><use href="#check"/></svg>Never changes your KRS</span>
-          <span><svg class="check" width="14" height="14" aria-hidden="true"><use href="#check"/></svg>Works offline with what it last read</span>
-        </div>
       </div>
     </section>
 
@@ -180,6 +175,7 @@
           <p>SIX says "Hadir 4 dari 6". Edunex Plus tells you what that means for your target, before it's too late to fix.</p>
           <ul class="checklist">
             <li><svg class="check" width="14" height="14" aria-hidden="true"><use href="#check"/></svg>Says if attendance counts in SIX or Edunex</li>
+            <li><svg class="check" width="14" height="14" aria-hidden="true"><use href="#check"/></svg>Tells you when Tandai Hadir opens in SIX</li>
             <li><svg class="check" width="14" height="14" aria-hidden="true"><use href="#check"/></svg>Your own target, for all courses or just one</li>
             <li><svg class="check" width="14" height="14" aria-hidden="true"><use href="#check"/></svg>Warns you when two classes clash</li>
             <li><svg class="check" width="14" height="14" aria-hidden="true"><use href="#check"/></svg>Tells you the same day if SIX marked you absent</li>
@@ -250,40 +246,153 @@
           <h2>Three steps, about two minutes.</h2>
           <p>Free for every ITB student, on macOS, Windows and Linux.</p>
         </div>
-        <div class="start-grid">
-          <ol class="tile steps">
-            <li class="step">
+
+        <div class="os-tabs" role="tablist" aria-label="Your computer">
+          <button class="os-tab" type="button" role="tab" id="tab-mac" aria-controls="panel-mac" aria-selected="true" data-os="mac">Mac</button>
+          <button class="os-tab" type="button" role="tab" id="tab-windows" aria-controls="panel-windows" aria-selected="false" tabindex="-1" data-os="windows">Windows</button>
+          <button class="os-tab" type="button" role="tab" id="tab-linux" aria-controls="panel-linux" aria-selected="false" tabindex="-1" data-os="linux">Linux</button>
+        </div>
+
+        <div class="os-panel tile" id="panel-mac" role="tabpanel" aria-labelledby="tab-mac">
+          <h3 class="os-heading">Mac</h3>
+          <ol class="guide">
+            <li class="guide-step">
               <span class="step-n">1</span>
-              <div>
-                <h3>Download the file for your computer</h3>
-                <p>From the newest release, under Assets.</p>
-                <div class="files"><span class="file">Mac (Apple silicon or Intel)</span><span class="file">Windows 10 or 11</span><span class="file">Ubuntu, Debian, other Linux</span></div>
+              <div class="guide-text">
+                <h4>Download the file for your Mac</h4>
+                <p>Open it, then drag Edunex Plus into Applications.</p>
+                <div class="guide-files">
+                  <a class="btn btn-ghost" href="https://github.com/pablonification/edunex-plus/releases/latest" data-asset="mac-arm"><svg width="14" height="14" aria-hidden="true"><use href="#download"/></svg>Apple silicon (M1 or newer)</a>
+                  <a class="btn btn-ghost" href="https://github.com/pablonification/edunex-plus/releases/latest" data-asset="mac-intel"><svg width="14" height="14" aria-hidden="true"><use href="#download"/></svg>Intel</a>
+                </div>
+                <p class="guide-hint">Not sure which? Apple menu, then About This Mac.</p>
+              </div>
+              <div class="dmg" role="img" aria-label="The window that opens. Drag Edunex Plus into Applications, then open Terminal from the same window.">
+                <div class="win-bar"><i></i><i></i><i></i><span>Edunex Plus</span></div>
+                <div class="dmg-body">
+                  <img class="dmg-bg" src="assets/mac-installer.png" width="1280" height="960" alt="" loading="lazy" decoding="async">
+                  <span class="dmg-icon" style="--x: 170; --y: 150"><img src="assets/icon-128.png" alt="" width="128" height="128"><span>Edunex Plus</span></span>
+                  <span class="dmg-icon" style="--x: 470; --y: 150"><svg viewBox="0 0 52 52" aria-hidden="true"><path d="M5 13a4 4 0 0 1 4-4h11l4 5h19a4 4 0 0 1 4 4v23a4 4 0 0 1-4 4H9a4 4 0 0 1-4-4z" fill="#3d9bf5"/><path d="M5 19h42v22a4 4 0 0 1-4 4H9a4 4 0 0 1-4-4z" fill="#62b2ff"/><path d="M19 37h14M22 26l4-4 4 4M26 22v11" fill="none" stroke="#1f6fc4" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" opacity=".7"/></svg><span>Applications</span></span>
+                  <span class="dmg-icon" style="--x: 118; --y: 350"><span class="term-icon">&gt;_</span><span>Terminal</span></span>
+                </div>
               </div>
             </li>
-            <li class="step">
+            <li class="guide-step">
               <span class="step-n">2</span>
-              <div>
-                <h3>Open it</h3>
-                <p>The app isn't signed yet, so macOS and Windows warn you the first time. <a href="https://github.com/pablonification/edunex-plus/blob/main/docs/install.md" target="_blank" rel="noopener noreferrer">The install guide</a> shows the one step past that.</p>
+              <div class="guide-text">
+                <h4>Open it</h4>
+                <p>The app isn't signed yet, so macOS blocks it the first time. In the same window, open Terminal, paste this line and press Return. Then open Edunex Plus from Applications.</p>
+                <details class="guide-alt">
+                  <summary>Rather not use Terminal?</summary>
+                  <p>Open the app once and click Done. Then go to System Settings → Privacy &amp; Security and click Open Anyway.</p>
+                </details>
               </div>
-            </li>
-            <li class="step">
-              <span class="step-n">3</span>
-              <div>
-                <h3>Sign in with your INA account</h3>
-                <p>Once, on ITB's real Microsoft page. Edunex and SIX both connect from that one sign-in.</p>
+              <div class="term">
+                <div class="win-bar"><i></i><i></i><i></i><span>Terminal</span></div>
+                <div class="term-body">
+                  <code class="term-line"><span class="term-prompt" aria-hidden="true">% </span><span id="mac-command">xattr -cr "/Applications/Edunex Plus.app"</span></code>
+                  <button class="copy" type="button" data-copy="xattr -cr &quot;/Applications/Edunex Plus.app&quot;" aria-describedby="mac-command">Copy</button>
+                </div>
               </div>
             </li>
           </ol>
-          <div class="tile pitch" id="privacy">
-            <h3>Your data stays on your computer.</h3>
-            <ul>
-              <li><span class="pitch-mark" aria-hidden="true"><svg width="12" height="12" aria-hidden="true"><use href="#check"/></svg></span><span><strong>Your password never reaches the app.</strong> Only Microsoft sees it.</span></li>
-              <li><span class="pitch-mark" aria-hidden="true"><svg width="12" height="12" aria-hidden="true"><use href="#check"/></svg></span><span><strong>Locked in your keychain.</strong> What it reads is saved only on this computer.</span></li>
-              <li><span class="pitch-mark" aria-hidden="true"><svg width="12" height="12" aria-hidden="true"><use href="#check"/></svg></span><span><strong>No analytics, no tracking.</strong> "Sign out &amp; remove data" in Settings deletes everything it saved.</span></li>
-            </ul>
-            <a class="text-link" href="https://github.com/pablonification/edunex-plus/blob/main/docs/privacy.md" target="_blank" rel="noopener noreferrer">Read exactly what it talks to<svg class="arrow" width="12" height="12" aria-hidden="true"><use href="#arrow"/></svg></a>
+        </div>
+
+        <div class="os-panel tile" id="panel-windows" role="tabpanel" aria-labelledby="tab-windows">
+          <h3 class="os-heading">Windows</h3>
+          <ol class="guide">
+            <li class="guide-step">
+              <span class="step-n">1</span>
+              <div class="guide-text">
+                <h4>Download the installer</h4>
+                <p>For Windows 10 or 11. If your browser holds it back, choose Keep.</p>
+                <div class="guide-files">
+                  <a class="btn btn-ghost" href="https://github.com/pablonification/edunex-plus/releases/latest" data-asset="win-x64"><svg width="14" height="14" aria-hidden="true"><use href="#download"/></svg>Intel or AMD (most PCs)</a>
+                  <a class="btn btn-ghost" href="https://github.com/pablonification/edunex-plus/releases/latest" data-asset="win-arm"><svg width="14" height="14" aria-hidden="true"><use href="#download"/></svg>ARM (Snapdragon)</a>
+                </div>
+              </div>
+            </li>
+            <li class="guide-step">
+              <span class="step-n">2</span>
+              <div class="guide-text">
+                <h4>Open it</h4>
+                <p>The app isn't signed yet, so Windows warns you the first time. Click More info, then Run anyway. It installs and opens by itself.</p>
+              </div>
+              <div class="smartscreen" role="img" aria-label="Windows protected your PC. First click More info, then click Run anyway.">
+                <div class="ss">
+                  <span class="ss-badge">1</span>
+                  <span class="ss-title">Windows protected your PC</span>
+                  <span class="ss-text">Microsoft Defender SmartScreen prevented an unrecognized app from starting. Running this app might put your PC at risk.</span>
+                  <span class="ss-link ss-target">More info</span>
+                  <span class="ss-actions"><span class="ss-btn">Don't run</span></span>
+                </div>
+                <div class="ss">
+                  <span class="ss-badge">2</span>
+                  <span class="ss-title">Windows protected your PC</span>
+                  <span class="ss-text">Microsoft Defender SmartScreen prevented an unrecognized app from starting. Running this app might put your PC at risk.</span>
+                  <span class="ss-text">App: Edunex-Plus-Setup-….exe<br>Publisher: Unknown publisher</span>
+                  <span class="ss-actions"><span class="ss-btn ss-target">Run anyway</span><span class="ss-btn">Don't run</span></span>
+                </div>
+              </div>
+            </li>
+          </ol>
+        </div>
+
+        <div class="os-panel tile" id="panel-linux" role="tabpanel" aria-labelledby="tab-linux">
+          <h3 class="os-heading">Linux</h3>
+          <ol class="guide">
+            <li class="guide-step">
+              <span class="step-n">1</span>
+              <div class="guide-text">
+                <h4>Download the file for your system</h4>
+                <p>The .deb for Ubuntu, Debian and Mint, or the AppImage for other Linux.</p>
+                <div class="guide-files">
+                  <a class="btn btn-ghost" href="https://github.com/pablonification/edunex-plus/releases/latest" data-asset="linux-deb"><svg width="14" height="14" aria-hidden="true"><use href="#download"/></svg>Ubuntu, Debian, Mint</a>
+                  <a class="btn btn-ghost" href="https://github.com/pablonification/edunex-plus/releases/latest" data-asset="linux-appimage"><svg width="14" height="14" aria-hidden="true"><use href="#download"/></svg>Other Linux</a>
+                </div>
+              </div>
+            </li>
+            <li class="guide-step">
+              <span class="step-n">2</span>
+              <div class="guide-text">
+                <h4>Install it</h4>
+                <p>In the folder you downloaded to, run this line. Then open Edunex Plus from your apps menu.</p>
+              </div>
+              <div class="term">
+                <div class="win-bar"><i></i><i></i><i></i><span>Terminal</span></div>
+                <div class="term-body">
+                  <code class="term-line"><span class="term-prompt" aria-hidden="true">$ </span><span id="linux-command" data-deb-command>sudo apt install ./edunex-plus_&lt;version&gt;_amd64.deb</span></code>
+                  <button class="copy" type="button" data-copy="sudo apt install ./edunex-plus_&lt;version&gt;_amd64.deb" aria-describedby="linux-command">Copy</button>
+                </div>
+              </div>
+            </li>
+          </ol>
+        </div>
+
+        <div class="tile install-last">
+          <span class="step-n">3</span>
+          <div>
+            <h4>Sign in with your INA account</h4>
+            <p>Once, on ITB's real Microsoft page. Edunex and SIX both connect from that one sign-in.</p>
           </div>
+          <a class="text-link" href="https://github.com/pablonification/edunex-plus/blob/main/docs/install.md" target="_blank" rel="noopener noreferrer">Full install guide<svg class="arrow" width="12" height="12" aria-hidden="true"><use href="#arrow"/></svg></a>
+        </div>
+      </div>
+    </section>
+
+    <section id="privacy">
+      <div class="container privacy">
+        <div class="section-head">
+          <span class="label">Privacy</span>
+          <h2>Your data stays on your computer.</h2>
+        </div>
+        <div class="tile pitch">
+          <ul>
+            <li><span class="pitch-mark" aria-hidden="true"><svg width="12" height="12" aria-hidden="true"><use href="#check"/></svg></span><span><strong>Your password never reaches the app.</strong> Only Microsoft sees it.</span></li>
+            <li><span class="pitch-mark" aria-hidden="true"><svg width="12" height="12" aria-hidden="true"><use href="#check"/></svg></span><span><strong>Locked in your keychain.</strong> What it reads is saved only on this computer.</span></li>
+            <li><span class="pitch-mark" aria-hidden="true"><svg width="12" height="12" aria-hidden="true"><use href="#check"/></svg></span><span><strong>No analytics, no tracking.</strong> "Sign out &amp; remove data" in Settings deletes everything it saved.</span></li>
+          </ul>
+          <a class="text-link" href="https://github.com/pablonification/edunex-plus/blob/main/docs/privacy.md" target="_blank" rel="noopener noreferrer">Read exactly what it talks to<svg class="arrow" width="12" height="12" aria-hidden="true"><use href="#arrow"/></svg></a>
         </div>
       </div>
     </section>
@@ -326,7 +435,6 @@
     // The download buttons fetch the newest release's file for this computer, straight away. Until GitHub
     // answers (or if it can't), they open the newest release's page, which lists every file.
     const repo = "pablonification/edunex-plus";
-    const releasePage = `https://github.com/${repo}/releases/latest`;
     const ua = navigator.userAgent;
     const phone = /iPhone|iPad|iPod|Android/.test(ua);
     const os = /Windows/.test(ua) ? "windows" : /Linux|X11|CrOS/.test(ua) ? "linux" : "mac";
@@ -336,7 +444,7 @@
     const metas = document.querySelectorAll("[data-download-meta]");
 
     for (const label of labels) label.textContent = phone ? "Get it for your laptop" : `Download for ${osName}`;
-    // It's a desktop app: on a phone, the button goes to the steps instead of a file.
+    // It's a desktop app: on a phone, the button goes to the install steps instead of a file.
     if (phone) for (const button of buttons) button.href = "#start";
 
     // ARM or not: Apple silicon or Intel, a Snapdragon Windows PC or not, ARM Linux or not. Chrome and
@@ -358,21 +466,34 @@
       }
     }
 
-    // The file each computer needs, as named on the release.
+    // Each file on the release, by the name it has there. ARM PCs have their own installer from
+    // 0.1.0-alpha.6; before that, one installer served both.
+    const files = {
+      "mac-arm": { pattern: /arm64\.dmg$/, name: "Mac with Apple silicon" },
+      "mac-intel": { pattern: /x64\.dmg$/, name: "Mac with Intel" },
+      "win-x64": { pattern: /Setup.*\.exe$/, name: "Windows" },
+      "win-arm": { pattern: /-arm64\.exe$/, name: "Windows on ARM" },
+      "linux-deb": { pattern: /_amd64\.deb$/, name: "Ubuntu or Debian" },
+      "linux-deb-arm": { pattern: /_arm64\.deb$/, name: "Ubuntu or Debian on ARM" },
+      "linux-appimage": { pattern: /x86_64\.AppImage$/, name: "Linux" },
+    };
+    const find = (assets, key) => assets.find((asset) => files[key].pattern.test(asset.name));
+
+    // The file this computer needs.
     const pick = (assets, isArm) => {
-      const find = (pattern) => assets.find((asset) => pattern.test(asset.name));
-      // ARM PCs have their own installer from 0.1.0-alpha.6; before that, one installer served both.
-      if (os === "windows")
-        return isArm && find(/-arm64\.exe$/)
-          ? { asset: find(/-arm64\.exe$/), name: "Windows on ARM" }
-          : { asset: find(/Setup.*\.exe$/), name: "Windows" };
-      if (os === "linux")
-        return isArm
-          ? { asset: find(/_arm64\.deb$/), name: "Ubuntu or Debian on ARM" }
-          : { asset: find(/_amd64\.deb$/), name: "Ubuntu or Debian" };
-      return isArm
-        ? { asset: find(/arm64\.dmg$/), name: "Mac with Apple silicon" }
-        : { asset: find(/x64\.dmg$/), name: "Mac with Intel" };
+      const key =
+        os === "windows"
+          ? isArm && find(assets, "win-arm")
+            ? "win-arm"
+            : "win-x64"
+          : os === "linux"
+            ? isArm
+              ? "linux-deb-arm"
+              : "linux-deb"
+            : isArm
+              ? "mac-arm"
+              : "mac-intel";
+      return { asset: find(assets, key), name: files[key].name };
     };
 
     async function latest() {
@@ -386,20 +507,68 @@
       return release;
     }
 
+    const release = latest();
+
+    // The install steps' own buttons, one per file, and the apt line with the real file name.
+    release
+      .then(({ version, assets }) => {
+        for (const link of document.querySelectorAll("[data-asset]")) {
+          const asset = find(assets, link.dataset.asset);
+          if (asset) link.href = asset.url;
+        }
+        const deb = `sudo apt install ./edunex-plus_${version}_amd64.deb`;
+        for (const line of document.querySelectorAll("[data-deb-command]")) line.textContent = deb;
+        for (const copy of document.querySelectorAll("#panel-linux [data-copy]")) copy.dataset.copy = deb;
+      })
+      .catch(() => {});
+
     if (!phone)
-      Promise.all([latest(), arm()])
-        .then(([release, isArm]) => {
-          const { asset, name } = pick(release.assets, isArm);
+      Promise.all([release, arm()])
+        .then(([{ version, assets }, isArm]) => {
+          const { asset, name } = pick(assets, isArm);
           if (!asset) return;
-          for (const button of buttons) {
-            button.href = asset.url;
-            button.removeAttribute("target");
-          }
-          for (const meta of metas) {
-            meta.innerHTML = `Version ${release.version} for ${name} · <a href="${releasePage}">other computers</a>`;
-          }
+          for (const button of buttons) button.href = asset.url;
+          for (const meta of metas) meta.innerHTML = `Version ${version} for ${name} · <a href="#start">other computers</a>`;
         })
         .catch(() => {});
+
+    // The install steps: one computer at a time, starting with this one. Without this script all
+    // three show, one under the other.
+    document.documentElement.classList.add("js");
+    const tabs = [...document.querySelectorAll(".os-tab")];
+    const show = (tab, focus) => {
+      for (const other of tabs) {
+        const selected = other === tab;
+        other.setAttribute("aria-selected", String(selected));
+        other.tabIndex = selected ? 0 : -1;
+        document.getElementById(other.getAttribute("aria-controls")).hidden = !selected;
+      }
+      if (focus) tab.focus();
+    };
+    for (const tab of tabs) {
+      tab.addEventListener("click", () => show(tab));
+      tab.addEventListener("keydown", (event) => {
+        const step = { ArrowRight: 1, ArrowLeft: -1 }[event.key];
+        if (!step) return;
+        event.preventDefault();
+        show(tabs[(tabs.indexOf(tab) + step + tabs.length) % tabs.length], true);
+      });
+    }
+    show(tabs.find((tab) => tab.dataset.os === os) ?? tabs[0]);
+
+    // Copy buttons: the line goes to the clipboard, and the button says so for a moment.
+    for (const copy of document.querySelectorAll("[data-copy]")) {
+      copy.addEventListener("click", async () => {
+        try {
+          await navigator.clipboard.writeText(copy.dataset.copy);
+          copy.textContent = "Copied";
+        } catch {
+          getSelection().selectAllChildren(document.getElementById(copy.getAttribute("aria-describedby")));
+          copy.textContent = os === "mac" ? "Press ⌘C" : "Press Ctrl+C";
+        }
+        setTimeout(() => (copy.textContent = "Copy"), 2000);
+      });
+    }
 
     const nav = document.getElementById("nav");
     const onScroll = () => nav.classList.toggle("is-scrolled", window.scrollY > 8);
