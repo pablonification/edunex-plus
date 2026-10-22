@@ -2,7 +2,10 @@
 // reminders before the deadline while it isn't submitted, at the times the
 // Student chose in Settings (2 days, 1 day and 3 hours by default), saying so
 // when it's only a draft. A reminder's id carries the deadline, so a moved
-// deadline gets new reminders at the new times, and a submitted Task has none.
+// deadline gets new reminders at the new times, and a submitted Task has none;
+// nor does one the Student told the app about (handed in another way, not
+// handing it in, handed in by the group: core/done.ts), until it changes.
+import { taskPutAway } from "../../core/done";
 import { DEADLINE_REMINDERS, type DeadlineReminder, type Task } from "../../core/models";
 import type { StringKey } from "../../core/strings";
 import { type AlertDraft, clockTime, type Detector, type PlannedAlert } from "./detector";
@@ -49,13 +52,14 @@ const REMINDER: Record<DeadlineReminder, { id: string; title: StringKey }> = {
 
 export const deadlineReminders: Detector = {
   name: "tasks.deadline",
-  watches: ["edunex.tasks"],
+  watches: ["edunex.tasks", "local.done"],
   plan({ get, settings }) {
     // Earliest first: each reminder lasts until the next one is due, the last until the deadline.
     const chosen = DEADLINE_REMINDERS.filter((hours) => settings.deadlineReminders.includes(hours));
+    const done = get("local.done") ?? [];
     const planned: PlannedAlert[] = [];
     for (const task of get("edunex.tasks") ?? []) {
-      if (task.dueAt === null || !notSubmitted(task)) continue;
+      if (task.dueAt === null || !notSubmitted(task) || taskPutAway(task, done)) continue;
       const due = task.dueAt;
       const common = { kind: "deadline", source: "edunex", target: { screen: "task", taskId: task.id } } as const;
       // Saved but not handed in: a draft the Student may think is in.

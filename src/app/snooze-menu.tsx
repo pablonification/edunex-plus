@@ -1,18 +1,27 @@
 // "Ingatkan nanti" (Remind me later) on a row or a notice: a quiet menu of
 // moments that fit the item, each saying until when, then a toast saying when
-// it's back, with Undo. A row or notice that leaves hands keyboard focus on
-// (the next row, or what follows the notice), so nobody is left focused on nothing.
-import { useRef } from "react";
-import { type Snoozable, snoozeChoices } from "../core/snooze";
+// it's back, with Undo. Beside it, on the rows only the Student can know are
+// dealt with, the ✓ that puts one away for good ("Sudah kucek"), with Undo too.
+// A row or notice that leaves hands keyboard focus on (the next row, or what
+// follows the notice), so nobody is left focused on nothing.
+import { type ReactNode, useRef } from "react";
+import type { DoneHow } from "../core/models";
+import { type Snoozable, type SnoozeKey, snoozeChoices } from "../core/snooze";
 import { errorKey } from "./bridge";
 import { useFormat, useNow, useT } from "./i18n";
-import { useSnoozes } from "./snoozes";
+import { useDone, useSnoozes } from "./snoozes";
+import { Button, IconButton } from "./ui/controls";
 import { Icons } from "./ui/icons";
 import { Menu } from "./ui/menu";
-import { dismissToast, toast } from "./ui/overlays";
+import { dismissToast, Tooltip, toast } from "./ui/overlays";
 
 /** The last "Diingatkan lagi …" toast: a new snooze replaces it rather than stacking up. */
 let shown: number | null = null;
+/** The last "Ditandai …" toast: likewise for what's put away. */
+let shownDone: number | null = null;
+
+/** A quiet button on a colored notice: the notice's own color, a faint wash on hover. */
+const ON_TONE = "text-current opacity-90 hover:bg-black/5 hover:text-current hover:opacity-100 dark:hover:bg-white/10";
 
 /** Whether the item can be put off at all right now (too close to its moment, it can't). */
 export const canSnooze = (item: Snoozable, now: number) => snoozeChoices(item, now).length > 0;
@@ -55,7 +64,7 @@ export function SnoozeMenu({ item, name, words = false, onTone = false }: { item
           icon: <Icons.Snooze className="size-4" />,
           text: t("snooze.action"),
           words,
-          className: onTone ? "text-current opacity-90 hover:bg-black/5 hover:text-current hover:opacity-100 dark:hover:bg-white/10" : undefined,
+          className: onTone ? ON_TONE : undefined,
         }}
         className="w-[260px]"
         items={choices.map((choice) => ({
@@ -64,6 +73,86 @@ export function SnoozeMenu({ item, name, words = false, onTone = false }: { item
           onSelect: () => put(choice),
         }))}
       />
+    </span>
+  );
+}
+
+/** The ✓ kinds a row offers; the Task page's own choices ("handed in another way") live in its menu. */
+export type RowDone = Extract<DoneHow, "checked" | "groupDone" | "gotIt" | "paid">;
+
+/**
+ * The ✓ on a row whose "done" only the Student can know: one click puts it
+ * away for good, `said` says until what (a toast with Undo), and focus moves
+ * on to the next row's ✓. `name`: the item, for screen readers ("Sudah kucek:
+ * Tugas 01 Bab I · II4091").
+ */
+export function DoneButton({
+  item,
+  how,
+  name,
+  said,
+  words = false,
+  onTone = false,
+}: {
+  item: SnoozeKey;
+  how: RowDone;
+  name: string;
+  said: string;
+  /** Its words beside the ✓ (on a notice); on a row it's the ✓ alone. */
+  words?: boolean;
+  /** It sits on a colored notice and takes its color. */
+  onTone?: boolean;
+}) {
+  const t = useT();
+  const { mark, unmark } = useDone();
+  const anchor = useRef<HTMLSpanElement>(null);
+  const put = () => {
+    const next = focusAfter(anchor.current);
+    mark(item, how).then(
+      () => {
+        if (shownDone !== null) dismissToast(shownDone);
+        shownDone = toast(said, "neutral", { label: t("action.undo"), onClick: () => void unmark(item.id).catch(() => undefined) });
+      },
+      (error: unknown) => toast(t(errorKey(error)), "danger"),
+    );
+    refocus(next);
+  };
+  return (
+    <span ref={anchor} className="inline-flex">
+      {words ? (
+        <Button
+          size="sm"
+          variant="ghost"
+          icon={<Icons.Check className="size-4" weight="bold" />}
+          aria-label={t(`done.${how}For`, { title: name })}
+          data-done=""
+          onClick={put}
+          className={onTone ? ON_TONE : undefined}
+        >
+          {t(`done.${how}`)}
+        </Button>
+      ) : (
+        <Tooltip content={t(`done.${how}`)}>
+          <IconButton size="sm" label={t(`done.${how}For`, { title: name })} data-done="" onClick={put}>
+            <Icons.Check className="size-4" weight="bold" />
+          </IconButton>
+        </Tooltip>
+      )}
+    </span>
+  );
+}
+
+/**
+ * A row's two controls in fixed columns, the ✓ then the alarm: one missing
+ * leaves its 28px empty, so a list scans straight. Neither: nothing (the row
+ * keeps its chevron).
+ */
+export function rowControls(done: ReactNode, snooze: ReactNode): ReactNode {
+  if (!done && !snooze) return undefined;
+  return (
+    <span className="flex items-center gap-0.5">
+      {done || <span aria-hidden className="size-7 shrink-0" />}
+      {snooze || <span aria-hidden className="size-7 shrink-0" />}
     </span>
   );
 }
@@ -80,15 +169,17 @@ export function refocus(target: () => HTMLElement | null | undefined) {
 
 /**
  * Where focus goes when the row or notice holding `from` leaves, noted before
- * it does: the next row, else the one before, else the "ditunda" line (looked
- * up after the redraw, which draws it anew): its own list's, or, for a
- * deadline in "Hari ini", the one in "Perlu perhatianmu" that lists it; after a
- * notice, what a Tab would have reached next.
+ * it does: the same control in the next row (its ✓ from a ✓, else its first
+ * button), else the one before, else the "ditunda" line (looked up after the
+ * redraw, which draws it anew): its own list's, or, for a deadline in "Hari
+ * ini", the one in "Perlu perhatianmu" that lists it; after a notice, what a
+ * Tab would have reached next.
  */
 function focusAfter(from: HTMLElement | null): () => HTMLElement | null | undefined {
   const row = from?.closest("li");
   if (row) {
-    const sibling = (row.nextElementSibling ?? row.previousElementSibling)?.querySelector<HTMLElement>("button");
+    const near = row.nextElementSibling ?? row.previousElementSibling;
+    const sibling = (from?.querySelector("[data-done]") && near?.querySelector<HTMLElement>("[data-done]")) || near?.querySelector<HTMLElement>("button");
     const section = row.closest("section");
     return () => sibling ?? section?.querySelector<HTMLElement>("[data-snoozed]") ?? document.querySelector<HTMLElement>("[data-snoozed]");
   }

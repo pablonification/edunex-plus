@@ -22,6 +22,7 @@ export const tasksStrings = {
     en: "New Tasks and exam days show up here as soon as Edunex or SIX lists them.",
   },
   "tasks.showAll": { id: "Tampilkan semua", en: "Show all" },
+  "tasks.group.notHandingIn": { id: "Tidak kamu kumpulkan", en: "Not handing in" },
   "tasks.noneDone": { id: "Belum ada tugas yang selesai", en: "Nothing handed in yet" },
   "tasks.examsNoSix": {
     id: "Ujian dari jadwal SIX (tanggal dan ruangnya) muncul setelah SIX terhubung.",
@@ -178,6 +179,10 @@ export const tasksStrings = {
   "tasks.noneForCourse": { id: "Tidak ada yang perlu dikerjakan di {code}", en: "Nothing to do in {code}" },
   "task.attendanceLine": { id: "Juga presensi: {when}", en: "Also your attendance: {when}" },
   "task.attendanceLineOptional": { id: "Juga Presensi Edunex, tidak wajib: {when}", en: "Also Edunex Presence, optional: {when}" },
+  // What the Student marked on the Task page, said where the Task is listed and on its page
+  "task.marked.handedElsewhere": { id: "Kamu kumpulkan dengan cara lain", en: "You handed it in another way" },
+  "task.marked.notHandingIn": { id: "Kamu memilih tidak mengumpulkan", en: "You chose not to hand it in" },
+  "task.marked.groupDone": { id: "Kamu tandai sudah dikumpulkan kelompok", en: "You marked it handed in by your group" },
   "task.editedAfterSubmitLine": { id: "Diubah setelah kamu kumpulkan ({date}) · cek lagi", en: "Changed after you submitted ({date}) · check again" },
   "task.submittedOnDate": { id: "Dikumpulkan {date}", en: "Submitted {date}" },
   "task.partOfExam": { id: "Bagian dari {kind} {code}", en: "Part of {code} {kind}" },

@@ -4,7 +4,9 @@
 // warning, unlinking, and that the topic stays out of everything the app writes
 // or says. Times are Bandung's (vitest.config.ts).
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { putAway, taskDoneKey } from "../../src/core/done";
 import { edunexCourseUrl } from "../../src/core/links";
+import type { Task } from "../../src/core/models";
 import { edunexTaskUrl } from "../../src/core/tasks";
 import { newTopic, phoneMessage, phoneTime, quietUntil, sequenceId } from "../../src/engine/alerts/phone";
 import { PRETEND_TOKEN, wib } from "../pretend/edunex";
@@ -112,6 +114,25 @@ describe("booking ahead", () => {
     expect(app.booked()).not.toContain(due24(handedIn.id, handedIn.due));
     expect(app.booked()).not.toContain(due24(moved.id, moved.due));
     expect(app.booked()).toContain(due24(moved.id, later));
+  });
+
+  it("cancels the reminders of a Task the Student marks handed in another way, and books them again when its deadline moves", async () => {
+    const app = await linked();
+    const task = await app.taskDue(2 * DAY);
+    expect(app.booked()).toContain(due24(task.id, task.due));
+    const tasks = () => app.engine.snapshot().datasets.find((d) => d.name === "edunex.tasks")?.value as Task[];
+    const read = tasks().find((t) => t.id === task.id)!;
+    // What the Task page writes on "Sudah kukumpulkan dengan cara lain".
+    await app.engine.setLocal("local.done", putAway([], taskDoneKey(read, "due"), "handedElsewhere", app.world.clock.now()));
+    await app.wait(MINUTE);
+    expect(app.ntfy.deletes()).toEqual(expect.arrayContaining([due24(task.id, task.due), due3(task.id, task.due)]));
+    expect(app.booked()).not.toContain(due24(task.id, task.due));
+
+    // The lecturer moves the deadline: a new fact, so the reminders are back at the new times.
+    const later = task.due + 6 * HOUR;
+    app.world.edunex.moveDeadline(task.id, wib(later));
+    await app.wait(20 * MINUTE);
+    expect(app.booked()).toContain(due24(task.id, later));
   });
 
   it("cancels a group the Student turns off", async () => {

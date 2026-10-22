@@ -331,6 +331,87 @@ describe("an edit after submitting", () => {
   });
 });
 
+describe("no absences left, said the day before each class", () => {
+  const ids = (world: HomeWorld) =>
+    needsYou(world)
+      .filter((n) => n.kind === "attendance")
+      .map((n) => n.id);
+
+  it("shows on the WIB day before the class, from 07:00 until midnight; on the day, the class row says it", async () => {
+    // Monday of the UTS week: PL3032 has no absence to spare and meets Thursday 15 Oct, 15:00 (in UTS week, so it
+    // may not run: missing it if it does still costs one). DK4073's next class is the week after.
+    const h = await startHome({ now: "2026-10-12T08:07:00+07:00" });
+    expect(ids(h.home())).toEqual(["attendance:KU5014:out"]);
+    const on = (iso: string) => ids({ ...h.home(), now: at(iso) });
+    expect(on("2026-10-14T06:59:00")).toEqual(["attendance:KU5014:out"]);
+    expect(on("2026-10-14T07:00:00")).toEqual(["attendance:PL3032:none", "attendance:KU5014:out"]);
+    expect(on("2026-10-14T23:59:00")).toContain("attendance:PL3032:none");
+    expect(on("2026-10-15T00:00:00")).not.toContain("attendance:PL3032:none");
+    expect(find(needsYou({ ...h.home(), now: at("2026-10-14T07:00:00") }), "attendance:PL3032:none")).toMatchObject({
+      at: at("2026-10-15T15:00:00"),
+      band: "soon",
+      action: { kind: "go", route: { screen: "presence" } },
+    });
+    // DK4073 on the eve of its next class, a week on.
+    expect(on("2026-10-21T19:00:00")).toContain("attendance:DK4073:none");
+  });
+
+  it("a target out of reach shows every day, as before", async () => {
+    const h = await startHome({ now: "2026-10-12T08:07:00+07:00" });
+    for (const iso of ["2026-10-12T08:07:00", "2026-10-13T10:00:00", "2026-10-14T21:00:00"])
+      expect(ids({ ...h.home(), now: at(iso) })).toContain("attendance:KU5014:out");
+  });
+
+  // A made-up course alone: SIX's timetable has its Thursday classes through October, ITB's calendar ends lectures on 12 Nov.
+  const thursdays = ["2026-10-01", "2026-10-08", "2026-10-15", "2026-10-22", "2026-10-29"].map((day, i) => ({
+    id: `x${i}`,
+    courseCode: "XX1000",
+    courseName: "Kuliah Contoh",
+    start: at(`${day}T08:00:00`),
+    end: at(`${day}T10:00:00`),
+    activity: "Kuliah",
+    room: "9009",
+  }));
+  const lectureEnd = {
+    id: "end",
+    title: "Akhir Perkuliahan",
+    kind: "lecture-end" as const,
+    term: "2026-1",
+    start: at("2026-11-12T00:00:00"),
+    end: at("2026-11-13T00:00:00"),
+    allDay: true,
+    firstDay: "2026-11-12",
+    lastDay: "2026-11-12",
+  };
+  // 6 of 8 attended, two classes left (5 and 12 Nov): both needed for 80%.
+  const world = (now: string, schedule: HomeWorld["schedule"] = thursdays, withCalendar = true): HomeWorld => ({
+    now: at(now),
+    term: "2026-1",
+    courses: [{ code: "XX1000", six: { attended: 6, held: 8 }, edunexId: null, target: 80 }],
+    tasks: [],
+    presence: {},
+    materials: {},
+    announcements: {},
+    schedule,
+    calendar: withCalendar ? { checkedAt: 0, events: [lectureEnd] } : undefined,
+  });
+
+  it("past SIX's timetable, the usual weekly slot decides the day", () => {
+    expect(ids(world("2026-11-03T09:00:00"))).toEqual([]);
+    expect(find(needsYou(world("2026-11-04T09:00:00")), "attendance:XX1000:none")).toMatchObject({ at: at("2026-11-05T08:00:00") });
+  });
+
+  it("with no class known at all, it shows every day, so the warning is never lost", () => {
+    // No calendar and no class of its own on SIX's timetable: nothing says when it meets. 8 of 10 is 80% exactly.
+    const unknown = (now: string): HomeWorld => ({
+      ...world(now, [], false),
+      courses: [{ code: "XX1000", six: { attended: 8, held: 10 }, edunexId: null, target: 80 }],
+    });
+    for (const iso of ["2026-11-03T09:00:00", "2026-11-04T09:00:00"])
+      expect(find(needsYou(unknown(iso)), "attendance:XX1000:none")).toMatchObject({ at: null });
+  });
+});
+
 describe("the ranking", () => {
   const item = (id: string, kind: Need["kind"], band: Need["band"], at: number | null) =>
     ({ id, kind, band, at, course: null, sources: [], action: { kind: "go", route: { screen: "home" } } }) as never;

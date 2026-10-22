@@ -9,8 +9,9 @@ import { type DragEvent, lazy, type ReactNode, Suspense, useEffect, useId, useMe
 import { answerFileProblem, type HandInResult, type PickedFile } from "../../core/actions/tasks";
 import { attendanceWindow, type CountedIn, presenceOptional } from "../../core/attendance";
 import { introModule } from "../../core/course-materials";
+import { taskDoneKey, taskPutAway } from "../../core/done";
 import type { Exam } from "../../core/exams";
-import type { Task, TaskFile, TaskModule, TaskStatus } from "../../core/models";
+import type { DoneHow, Task, TaskFile, TaskModule, TaskStatus } from "../../core/models";
 import type { StringKey } from "../../core/strings";
 import {
   attendanceResult,
@@ -46,13 +47,14 @@ import { type Todo, useExams, useTodo } from "../schedule-data";
 import { isBuilt } from "../shell/built";
 import { useRefresh, useSignIn } from "../shell/source-status";
 import { canSnooze, refocus, SnoozeMenu } from "../snooze-menu";
-import { useSnoozes } from "../snoozes";
+import { useDone, useSnoozes } from "../snoozes";
 import { useBridge, useDataset, useStatus } from "../store";
 import { Button, Segmented, useRadioKeys } from "../ui/controls";
 import { cx } from "../ui/cx";
 import { Card, CourseDot, EmptyState, ProgressBar, Skeleton, StatusChip, StatusGlyph, Tag } from "../ui/display";
 import { Icons } from "../ui/icons";
 import { factsLabel, List, Row as ListRow, Meta, Page, PageHeader, Section } from "../ui/layout";
+import { Menu } from "../ui/menu";
 import { PresenceList } from "../ui/motion/presence-list";
 import { ignoreClosingClick, PANEL_MOTION_CLASS, SCRIM_CLASS, toast, useReturnFocus } from "../ui/overlays";
 import type { RichEditorHandle } from "../ui/rich-editor";
@@ -121,8 +123,9 @@ export function TasksScreen({ show: shown }: { show?: "done" }) {
     handedIn: (todo?.done.handedIn ?? []).filter((task) => mine(task.courseCode)),
     pastExams: (todo?.done.pastExams ?? []).filter((past) => mine(past.exam.courseCode)),
     closed: (todo?.done.closed ?? []).filter((task) => mine(task.courseCode)),
+    notHandingIn: (todo?.done.notHandingIn ?? []).filter((task) => mine(task.courseCode)),
   };
-  const doneCount = done.handedIn.length + done.pastExams.length + done.closed.length;
+  const doneCount = done.handedIn.length + done.pastExams.length + done.closed.length + done.notHandingIn.length;
   // An exam period going on sits on top: everything this week happens inside it.
   const during = items.filter((item) => item.kind === "period" && item.state === "during");
   const rest = items.filter((item) => !during.includes(item));
@@ -139,7 +142,7 @@ export function TasksScreen({ show: shown }: { show?: "done" }) {
   const codes = new Set([
     ...(todo?.items ?? []).map((item) => item.course),
     ...(todo?.exams ?? []).map((exam) => exam.courseCode),
-    ...[...(todo?.done.handedIn ?? []), ...(todo?.done.closed ?? [])].map((task) => task.courseCode),
+    ...[...(todo?.done.handedIn ?? []), ...(todo?.done.closed ?? []), ...(todo?.done.notHandingIn ?? [])].map((task) => task.courseCode),
   ]);
   const withItems = (courses ?? []).filter((c) => codes.has(c.code));
   // One radio group: "Semua" (null) first, then each course; arrows move the pick, a second click keeps it.
@@ -338,6 +341,8 @@ export function DoneGroups({ done, exams, inCourse = false }: { done: Todo["done
   const meta = inCourse ? "module" : "course";
   const sections = [
     { id: "submitted", title: "tasks.group.submitted" as const, count: done.handedIn.length },
+    // The Student said they won't hand it in (on its page): no longer to do, though Edunex still takes it.
+    { id: "notHandingIn", title: "tasks.group.notHandingIn" as const, count: done.notHandingIn.length },
     { id: "pastExams", title: "tasks.group.pastExams" as const, count: done.pastExams.length },
     { id: "closed", title: "tasks.group.closed" as const, count: done.closed.length },
   ].filter((section) => section.count > 0);
@@ -349,7 +354,7 @@ export function DoneGroups({ done, exams, inCourse = false }: { done: Todo["done
             <PresenceList>
               {section.id === "pastExams"
                 ? done.pastExams.map((past) => <PastExamRow key={past.exam.id} past={past} inCourse={inCourse} />)
-                : (section.id === "submitted" ? done.handedIn : done.closed).map((task) => (
+                : (section.id === "submitted" ? done.handedIn : section.id === "notHandingIn" ? done.notHandingIn : done.closed).map((task) => (
                     <TaskRow key={task.id} task={task} status={taskStatus(task, now)} meta={meta} exam={examOf(task)} />
                   ))}
             </PresenceList>
@@ -575,10 +580,20 @@ function Signal({ task, status }: Row) {
   const f = useFormat();
   const now = useNow();
   const presence = useDataset("edunex.presence");
+  const { entries: handled } = useDone();
   const optional = presenceOptional(useCountedIn(task.courseCode));
   let signal: ReactNode = null;
   const window = isOpenStatus(status) ? attendanceWindow(task, presence, now) : null;
-  if (editedAfterSubmit(task) && task.editedAt !== null)
+  // What the Student marked on its page: Edunex still says it's to do, so the list says why it isn't.
+  const marked = isOpenStatus(status) ? taskPutAway(task, handled) : undefined;
+  if (marked)
+    signal = (
+      <span>
+        <Icons.Check className="size-3.5 shrink-0" weight="bold" />
+        {t(`task.marked.${marked.how as MarkedHow}`)}
+      </span>
+    );
+  else if (editedAfterSubmit(task) && task.editedAt !== null)
     signal = (
       <span className="font-medium text-warning-fg">
         <Icons.PenLine className="size-3.5 shrink-0" />
@@ -1413,6 +1428,7 @@ function HandIn({ task, status }: Row) {
               <Button size="sm" icon={<Icons.ArrowUpRight className="size-3.5" />} onClick={() => open(edunexTaskUrl(task.id))}>
                 {t("action.openInEdunex")}
               </Button>
+              {isOpenStatus(status) && <MarkHandedIn task={task} />}
             </div>
           )}
           {!task.group && !editable && !sent && status !== "closed" && task.opensAt !== null && (
@@ -1479,6 +1495,7 @@ function HandIn({ task, status }: Row) {
               <Icons.Lock className="mt-px size-3.5 shrink-0" />
               {t("handIn.explainer")}
             </p>
+            <MarkHandedIn task={task} />
           </>
         )}
         {sent && (
@@ -1762,6 +1779,80 @@ function noticeFor(error: unknown): Notice {
     default:
       return { tone: "danger", text: "handIn.error.failed" };
   }
+}
+
+// ---------------------------------------------------------------- handed in where Edunex can't see
+
+type MarkedHow = Extract<DoneHow, "handedElsewhere" | "notHandingIn" | "groupDone">;
+
+/**
+ * For a Task Edunex won't see handed in: the Student's own word for it, kept
+ * on this computer. A Task of their own: "Tidak mengumpulkan lewat Edunex?
+ * Tandai" (handed in another way, or not at all); a group Task: "Kelompokku
+ * sudah kumpul". Once marked, one quiet line says what was chosen, with Undo.
+ * The status above stays Edunex's own: the app never claims Edunex has it.
+ */
+function MarkHandedIn({ task }: { task: Task }) {
+  const t = useT();
+  const f = useFormat();
+  const { done, mark, unmark } = useDone();
+  const key = taskDoneKey(task, "due");
+  const entry = done(key);
+  const undo = useRef<HTMLButtonElement>(null);
+  const [justMarked, setJustMarked] = useState(false);
+  // The menu or the button that was pressed has gone with the line: focus goes to its Undo, once the menu has closed.
+  useEffect(() => {
+    if (!justMarked || !entry) return;
+    setJustMarked(false);
+    requestAnimationFrame(() => undo.current?.focus());
+  }, [justMarked, entry]);
+  const put = (how: MarkedHow) => {
+    setJustMarked(true);
+    mark(key, how).catch((error: unknown) => toast(t(errorKey(error)), "danger"));
+  };
+  if (entry)
+    return (
+      <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-caption text-muted">
+        <Icons.Check className="size-3.5 shrink-0 text-success-fg" weight="bold" />
+        <Meta>
+          {t(`task.marked.${entry.how as MarkedHow}`)}
+          {f.dayTimeWord(entry.at)}
+        </Meta>
+        <button
+          ref={undo}
+          type="button"
+          // The answer box has an "Urungkan" of its own: this one says what it takes back.
+          aria-label={t("done.undoFor", { what: t(`task.marked.${entry.how as MarkedHow}`) })}
+          onClick={() => void unmark(key.id).catch(() => undefined)}
+          className="focus-ring rounded font-medium text-accent-fg hover:underline"
+        >
+          {t("action.undo")}
+        </button>
+      </p>
+    );
+  if (task.group)
+    return (
+      <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-caption text-muted">
+        {t("done.groupAsk")}
+        <button type="button" onClick={() => put("groupDone")} className="focus-ring rounded font-medium text-accent-fg hover:underline">
+          {t("done.groupDone")}
+        </button>
+      </p>
+    );
+  return (
+    <div className="flex flex-wrap items-center gap-x-1 text-caption text-muted">
+      {t("done.otherWay")}
+      <Menu
+        label={t("done.otherWay.menuFor")}
+        trigger={{ icon: <Icons.ChevronDown className="size-3.5" />, text: t("done.otherWay.menu"), words: true, className: "h-6 px-1.5 text-caption" }}
+        items={(["handedElsewhere", "notHandingIn"] as const).map((how) => ({
+          label: t(`done.${how}`),
+          hint: t(`done.${how}.hint`),
+          onSelect: () => put(how),
+        }))}
+      />
+    </div>
+  );
 }
 
 // ---------------------------------------------------------------- history

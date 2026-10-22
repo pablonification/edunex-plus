@@ -3,7 +3,9 @@
 // identifies an item, the facts that bring it back when they change, the
 // moments it can be put off until, and which items a list still shows. Every snooze ends: at the moment chosen, at the item's own
 // last useful moment (a deadline's last hours, a class about to start), and
-// never later than two weeks out. Nothing here is "don't remind me again".
+// never later than two weeks out. Nothing here is "don't remind me again":
+// that's "handled" (core/done.ts), where only the Student can know. Where an
+// item has that ✓, "until something changes" isn't offered: the ✓ says it better.
 // OS notifications and the bell don't look at snoozes: they stay the safety net.
 import type { AttendanceHealth } from "./attendance";
 import { wibDay } from "./course-meetings";
@@ -140,10 +142,11 @@ function ownTerms(need: NeedDraft, now: number): Snoozable {
     }
     case "task": {
       const { task } = need;
-      // Checked the lecturer's edit: hidden until another edit, or until it leaves the list a week on.
-      if (need.reason === "edited") return { key, cap: (task.editedAt ?? now) + 7 * DAY, moment: null, untilChange: true };
+      // The lecturer's edit leaves the list a week on; checked, it's "handled" (✓), not snoozed until it changes.
+      if (need.reason === "edited") return { key, cap: (task.editedAt ?? now) + 7 * DAY, moment: null, untilChange: false };
       if (need.reason === "overdue" || task.dueAt === null) return { key, cap: null, moment: null, untilChange: false };
-      return { key, cap: task.dueAt - 3 * HOUR, moment: { kind: "dayBeforeDue", at: dayBefore(task.dueAt) }, untilChange: later };
+      // A group Task handed in by the group is "handled" (✓).
+      return { key, cap: task.dueAt - 3 * HOUR, moment: { kind: "dayBeforeDue", at: dayBefore(task.dueAt) }, untilChange: later && !task.group };
     }
     case "exam": {
       const { start } = need.sitting;
@@ -163,7 +166,8 @@ function ownTerms(need: NeedDraft, now: number): Snoozable {
     case "bill": {
       const due = need.bill.nextDueAt;
       if (need.overdue || due === null) return { key, cap: null, moment: null, untilChange: false };
-      return { key, cap: dayStart(wibDay(due - 1)) + MORNING, moment: { kind: "dayBeforeDue", at: dayBefore(due - 1) }, untilChange: later };
+      // Paid where SIX doesn't show it yet is "handled" (✓).
+      return { key, cap: dayStart(wibDay(due - 1)) + MORNING, moment: { kind: "dayBeforeDue", at: dayBefore(due - 1) }, untilChange: false };
     }
     case "class":
       return { key, cap: need.session.start - 30 * MINUTE, moment: null, untilChange: false };
