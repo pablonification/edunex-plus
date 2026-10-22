@@ -206,6 +206,21 @@ describe("Back to a course", () => {
     expect(s.has(/^Kembali ke/)).toBe(false);
   });
 
+  it("a link to the Task already open (its deadline reminder) leaves it as it is: a file being attached stays", async () => {
+    screen = await openApp({ signedIn: true });
+    const s = screen;
+    await s.click(/^Tugas & Ujian/);
+    await s.click(row("Tugas 02 Bab II"));
+    const task: Task = data("edunex.tasks").find((t: Task) => t.title === "Tugas 02 Bab II");
+    s.willPick([{ name: "Bab II.pdf", content: "%PDF bab dua" }]);
+    await s.click(/^Lampirkan berkas · Lepas berkas di sini/);
+    const card = () => document.querySelector("main aside")?.textContent ?? "";
+    expect(card()).toContain("Belum disimpan");
+    await s.apply({ type: "navigate", route: { screen: "task", taskId: task.id } });
+    expect(card()).toContain("Bab II.pdf");
+    expect(card()).toContain("Belum disimpan");
+  });
+
   it("Back is named after where it goes: on a course opened from the sidebar after another, that course", async () => {
     screen = await openApp({ signedIn: true });
     const s = screen;

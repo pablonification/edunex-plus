@@ -1,9 +1,10 @@
 // Where the Student is in the app, with a back history (mouse back button,
 // ⌘[ via the menu later). Screens move with go(); nothing reads the URL.
 // Back comes back to a screen as the Student left it: what other screens link
-// to (a course's tab and module, a study-plan tab) is recorded in its route with
-// replace(), which adds no step to Back; a choice nothing links to (a list's
-// "Selesai", the semester open) is kept beside it with usePlaceState().
+// to (a course's tab and module, a study-plan tab, Tugas & Ujian's "Selesai")
+// is recorded in its route with replace(), which adds no step to Back; a choice
+// nothing links to (the semester open on Nilai, a fold) is kept beside it with
+// usePlaceState().
 // Before the screen changes, `leave` may hold it (a PDF with unsaved filling
 // asks the Student first) and lets it go on only if they say so. Moving to a
 // screen whose code is still loading (later.tsx) is a transition: the one
@@ -21,8 +22,9 @@ interface Nav {
   /** The place was come back to with Back, not opened: it shows as the Student left it. */
   returned: boolean;
   /**
-   * Opens `route`, unless it's the one shown. `keep`: a place picked as a whole (the sidebar, ⌘1–6) is
-   * already there when its screen shows it in any tab, and stays as it is; any other link opens exactly what it names.
+   * Opens exactly what `route` names. Already shown, a course page opens afresh, and any other screen stays as
+   * it is. `keep`: a place picked as a whole (the sidebar, ⌘1–6) is already there when its screen shows it in
+   * any tab, and stays as it is.
    */
   go(route: Route, options?: { keep?: boolean }): void;
   /** What this place shows now (its tab, the module picked), kept in its place in history: Back comes back to it, and it adds no step. */
@@ -96,8 +98,9 @@ export function NavProvider({
       move((stack) => {
         const shown = stack.at(-1)!.route;
         if (keep && shows(shown, route)) return null;
-        // A link to exactly what's shown opens it afresh (at its top, the module it names in view), with no step for Back.
-        if (same(shown, route)) return [...stack.slice(0, -1), { route, id }];
+        // A link to exactly the course page shown opens it afresh, with no step for Back: what it's about (the class on
+        // now, the module it names) may be scrolled out of sight. Any other screen stays: a Task keeps the files being attached.
+        if (same(shown, route)) return route.screen === "course" ? [...stack.slice(0, -1), { route, id }] : null;
         return [...stack.slice(-49), { route, id }];
       });
     },
@@ -153,7 +156,7 @@ export function useNav(): Nav {
 }
 
 /**
- * Like `useState`, for a choice the screen's route doesn't carry (a list's "Selesai", the semester open):
+ * Like `useState`, for a choice the screen's route doesn't carry (the semester open on Nilai, a fold opened):
  * kept in its place in history, so Back finds it as the Student left it; a new visit starts from `initial`.
  */
 export function usePlaceState<T>(key: string, initial: T): [T, (next: T) => void] {
