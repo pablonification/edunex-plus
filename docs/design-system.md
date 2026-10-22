@@ -41,7 +41,8 @@ the Motion section below allows it.
 4. **Color means something.** Neutral by default. Blue is for actions and
    links; red for what is lost, overdue, failing or destructive; amber for
    what needs the Student soon; green for done, safe and live. Course colors
-   only mark identity, on a dot or a stripe, never a bar or a word.
+   only mark identity, on a dot or a stripe, never a bar or a word, and
+   always beside the course's code.
 5. **The source only where it changes what to do.** Where to act ("Catat di
    Edunex"), which date to trust when SIX and Edunex disagree, what is missing
    ("Tidak ada di SIX"). Never a tag on every row.
@@ -181,13 +182,26 @@ its own colors (background / text) stands for it, and tints exam periods.
 | `--source-itb-bg` | `#f3ecfd` | `#271d3a` |
 | `--source-itb-fg` | `#6338b8` | `#c4b0f5` |
 
-**Course colors.** Each course has an identity color for its dot and stripe:
-`#3366F0 #7C5CFC #0FA3B1 #D6409F #64748B #9D4EDD #0284C7 #8D6E63`. The
-palette leaves out the hues status speaks in (red, amber, orange, green), so a
-course never looks "in danger" because of its color. The color comes from the
-course code (`src/core/course-colors.ts`), so it stays the same across
-launches, and courses of one term don't share one. Course colors mark
-identity only: never a bar's fill, a status, or text.
+**Course colors.** Each course has an identity color for its dot and stripe,
+one of ten named colors (`src/core/course-colors.ts`), each a pair of tones,
+`--course-<id>` for light and for dark: cyan, indigo, berry, blue, orchid,
+magenta, purple, pink, plum, lavender (the automatic order, most distinct
+first). Saved data holds the name, never a hex, so a tone can be tuned
+without touching it. The palette keeps to OKLCH hues 208°–354°. It has no
+red, rose, orange, amber, yellow or brown (status), no green or teal (teal
+reads as green), and no grey (an unknown course, "not yet"), so a course never
+looks in danger, done or switched off because of its color. Every tone reaches 3:1
+on every surface it sits on in its theme, hovered and picked rows included
+(`test/app/contrast.test.ts`), and stays clear of the accent and focus blues.
+A course's automatic color is remembered the first time it shows (the first
+free one in the order), so it never moves by itself, not when SIX connects
+and not when a course is added or dropped. A course the app doesn't know is an
+outlined square (1 px `--faint`), never a grey one. The code is always beside
+the mark. A week block too short for two lines reads "08:00 PL3002", and the
+rail shows the code under the dot. A meeting only Edunex announced gets a
+dashed stripe. In high contrast the marks stay, edged in the system's text
+color. Course colors mark identity only: never a bar's fill, a status, or
+text.
 
 **Status colors.** Red (`danger`): lost, overdue, failed, can't reach the
 target, destructive. Amber (`warning`): needs the Student soon (no absences
@@ -401,8 +415,8 @@ opening Settings), a top bar (back button naming where it goes, ⌘K search,
 the alerts bell, the data-status control) and the problem banner under it.
 Zoomed in until the window is under 52rem wide (from 120% on the smallest
 window; never at 100%), the sidebar folds to a rail of icons, course dots
-and counts that scrolls: the words stay as the controls' names and in their
-tooltips. The data status gives up its words, down to its mark, before
+(each with its code under it, in micro type) and counts that scrolls: the
+words stay as the controls' names and in their tooltips. The data status gives up its words, down to its mark, before
 anything runs past the window. Every screen sits in its own crash guard.
 
 ## Copy

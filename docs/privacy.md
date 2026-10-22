@@ -24,6 +24,8 @@ Everything stays on your computer:
   files in the app's data folder, so it opens instantly and works offline:
   `~/Library/Application Support/Edunex Plus` on macOS, `%APPDATA%\Edunex Plus` on Windows,
   `~/.config/Edunex Plus` on Linux.
+- **What you enter yourself** (your study plan, course weights and scores, attendance targets,
+  snoozed reminders, your courses' colors) is saved in the same folder.
 - **Files you save** go where you put them: downloads to your Downloads folder, offline course
   files to `Documents/Edunex Plus` unless you pick another folder. The app remembers where each
   download went, so downloading it again opens the copy you already have; signing out of Edunex

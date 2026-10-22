@@ -5,7 +5,7 @@
 // timetable (SIX accepts those and never says so). View only.
 import { type KrsStage, type KrsStep, krsOverlaps, krsStage, krsTimeline, nextKrsWindow, type Overlap, rupiah } from "../../../core/academic";
 import type { ClassSession, KrsPlan } from "../../../core/models";
-import { useTermCourses } from "../../courses";
+import { useCourseColor, useTermCourses } from "../../courses";
 import { useFormat, useNow, useT } from "../../i18n";
 import { useNav } from "../../nav";
 import { useDataset } from "../../store";
@@ -164,6 +164,7 @@ function Courses({ plan, overlaps }: { plan: KrsPlan; overlaps: Overlap[] }) {
   const f = useFormat();
   const { go } = useNav();
   const term = useTermCourses();
+  const colorOf = useCourseColor();
   const over = plan.maxSks !== null && plan.sks > plan.maxSks;
   // Say once what every row shares; chips only where a row differs.
   const classes = new Set(plan.courses.map((c) => c.classNo));
@@ -200,7 +201,7 @@ function Courses({ plan, overlaps }: { plan: KrsPlan; overlaps: Overlap[] }) {
           return (
             <Row
               key={course.code}
-              leading={<CourseCode code={course.code} color={known?.color ?? "var(--faint)"} className="w-[76px] text-small" />}
+              leading={<CourseCode code={course.code} color={colorOf(course.code)} className="w-[76px] text-small" />}
               title={course.name}
               meta={
                 clashes.length || !sameClass ? (

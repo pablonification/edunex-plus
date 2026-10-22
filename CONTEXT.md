@@ -66,6 +66,10 @@ _Avoid_: todo list in UI copy without the Edunex meaning
 "Ingatkan nanti" (Remind me later): the Student puts a Beranda item or a course's attendance banner off until a moment that fits it ("Besok pagi", "Sehari sebelum tenggat", "Saat dibuka"). It always ends: at that moment, at the item's last useful moment, or when the item changes (a moved deadline, a new count, turning urgent), two weeks at most. Kept on this computer; OS notifications and the bell are not affected.
 _Avoid_: dismiss, mute, "don't remind me again" (nothing is hidden for good)
 
+**Course color**:
+"Warna mata kuliah": a course's identity mark, its dot and its stripe, the same on every screen. One of ten named colors ("Biru", "Nila"), each with a tone for light and one for dark; none is a status hue or grey. A course's automatic color is remembered the first time it shows, so it never moves by itself; a color the Student picks stays with the course code, next term too. Kept on this computer.
+_Avoid_: course status, tag color, theme
+
 ### SIX and ITB's rules
 
 **SIX**:

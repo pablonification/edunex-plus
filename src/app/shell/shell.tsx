@@ -6,6 +6,7 @@
 import { type ComponentType, type RefObject, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { edunexCourseUrl, sixStatusUrl } from "../../core/links";
 import type { StringKey } from "../../core/strings";
+import { useRememberCourseColors } from "../course-colors";
 import { type TermCourse, useTermCourses } from "../courses";
 import { useOpenExternal } from "../hooks";
 import { useT } from "../i18n";
@@ -270,6 +271,8 @@ function Sidebar({ onSettings }: { onSettings: () => void }) {
   const student = useDataset("six.student");
   const update = useDataset("app.update");
   const courses = useTermCourses();
+  // Each course's automatic color, remembered the first time it shows, so it never moves by itself.
+  useRememberCourseColors(courses?.map((course) => course.code));
   const open = useOpenExternal();
   /** Until the course page exists, a course opens on its official site: Edunex's page, else SIX's list. */
   const outside = (course: TermCourse) =>
@@ -349,12 +352,13 @@ function Sidebar({ onSettings }: { onSettings: () => void }) {
                         aria-current={active ? "page" : undefined}
                         onClick={() => (courseReady ? go({ screen: "course", code: course.code }) : site && open(site.url))}
                         className={cx(
-                          "focus-ring flex h-[34px] w-full items-center gap-2.5 rounded-lg px-2.5 text-left text-body max-[52rem]:justify-center max-[52rem]:px-0",
+                          "focus-ring flex h-[34px] w-full items-center gap-2.5 rounded-lg px-2.5 text-left text-body max-[52rem]:h-[42px] max-[52rem]:flex-col max-[52rem]:justify-center max-[52rem]:gap-1 max-[52rem]:px-0",
                           active ? "bg-selected" : "hover:bg-hover",
                         )}
                       >
                         <CourseDot color={course.color} />
-                        <span className={cx("shrink-0 tabular-nums max-[52rem]:sr-only", active ? "font-semibold" : "font-medium")}>{course.code}</span>
+                        {/* In the rail, the code under the dot: the color is never the only way to tell the courses apart. */}
+                        <span className={cx("shrink-0 tabular-nums max-[52rem]:text-micro", active ? "font-semibold" : "font-medium")}>{course.code}</span>
                         <span className="truncate text-small text-muted max-[52rem]:sr-only">{course.name}</span>
                       </button>
                     </Tooltip>

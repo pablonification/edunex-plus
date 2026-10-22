@@ -13,7 +13,7 @@ import { dayStart } from "../../core/schedule";
 import { edunexTaskUrl, isOpenStatus, taskStatus } from "../../core/tasks";
 import { useAttendance } from "../attendance";
 import { budgetLabel, STATE_TONE } from "../attendance-labels";
-import { type TermCourse, useTermCourses } from "../courses";
+import { type TermCourse, useCourseColor, useTermCourses } from "../courses";
 import { useOpenExternal } from "../hooks";
 import { type Format, type Translate, useFormat, useNow, useT } from "../i18n";
 import { useNav } from "../nav";
@@ -79,6 +79,7 @@ export function ExamRow({ exam }: { exam: Exam }) {
   const now = useNow();
   const { go } = useNav();
   const course = useTermCourses()?.find((c) => c.code === exam.courseCode);
+  const color = useCourseColor()(exam.courseCode);
   const [inClass] = exam.six;
   const online = exam.edunex.find((e) => e.start !== null);
   const days = sourceDays(f, exam);
@@ -108,7 +109,7 @@ export function ExamRow({ exam }: { exam: Exam }) {
       meta={
         <Meta truncate>
           <span className="inline-flex items-center gap-1.5 font-medium text-fg/80">
-            <CourseDot color={course?.color ?? "var(--faint)"} className="size-2" />
+            <CourseDot color={color} className="size-2" />
             {exam.courseCode}
           </span>
           {when}
@@ -191,10 +192,11 @@ export function ExamScreen({ examId }: { examId: string }) {
       </Page>
     );
   const course = courses?.find((c) => c.code === exam.courseCode);
-  return <ExamPage exam={exam} others={exams.filter((e) => e !== exam)} course={course} courses={courses ?? []} />;
+  return <ExamPage exam={exam} others={exams.filter((e) => e !== exam)} course={course} />;
 }
 
-function ExamPage({ exam, others, course, courses }: { exam: Exam; others: Exam[]; course: TermCourse | undefined; courses: TermCourse[] }) {
+function ExamPage({ exam, others, course }: { exam: Exam; others: Exam[]; course: TermCourse | undefined }) {
+  const colorOf = useCourseColor();
   const t = useT();
   const f = useFormat();
   const now = useNow();
@@ -239,7 +241,7 @@ function ExamPage({ exam, others, course, courses }: { exam: Exam; others: Exam[
         eyebrow={
           <span className="flex items-center gap-2">
             <KindLabel exam={exam} />
-            <CourseDot color={course?.color ?? "var(--faint)"} className="size-2" />
+            <CourseDot color={colorOf(exam.courseCode)} className="size-2" />
             <span className="font-semibold text-fg/80">{exam.courseCode}</span>
           </span>
         }
@@ -366,7 +368,7 @@ function ExamPage({ exam, others, course, courses }: { exam: Exam; others: Exam[
                   className="focus-ring inline-flex h-8 items-center gap-2 rounded-lg border border-edge bg-surface px-3 text-small font-medium shadow-card transition-colors duration-150 hover:bg-hover"
                 >
                   <KindLabel exam={other} />
-                  <CourseDot color={courses.find((c) => c.code === other.courseCode)?.color ?? "var(--faint)"} className="size-2" />
+                  <CourseDot color={colorOf(other.courseCode)} className="size-2" />
                   {other.courseCode}
                   <span className="text-faint">
                     {other.at !== null
