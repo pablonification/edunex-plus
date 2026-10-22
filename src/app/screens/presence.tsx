@@ -20,7 +20,7 @@ import { type CourseAttendance, type OpenWindow, useAttendance } from "../attend
 import { METER_TONE, STATE_TONE, useActionLabel, verdictLabel } from "../attendance-labels";
 import { CourseTarget, DefaultTarget } from "../attendance-parts";
 import { useOpenCheckIn, useOpenExternal } from "../hooks";
-import { type Format, type Translate, useFormat, useLang, useNow, useT } from "../i18n";
+import { type Format, type Translate, useFormat, useNow, useT } from "../i18n";
 import { useNav } from "../nav";
 import { useCourseNames } from "../schedule-data";
 import { useSignIn } from "../shell/source-status";
@@ -109,14 +109,14 @@ const ANSWER_ICON = {
 /** The courses and the action, a line each, worst first; without SIX's count, where it comes from and the way in. */
 function Answer({ courses, quiet }: { courses: CourseAttendance[]; quiet: boolean }) {
   const t = useT();
-  const lang = useLang();
+  const f = useFormat();
   const six = useStatus("six");
   const { signIn, busy } = useSignIn();
-  const list = (items: string[]) => new Intl.ListFormat(lang, { type: "conjunction" }).format(items);
+  // The app's one list format, as every other "A, B dan C" on screen.
   const lines = attendanceAnswer(
     courses.map((c) => c.health),
     t,
-    list,
+    f.list,
   );
   if (!lines.length && six.state === "signed-out")
     return (
