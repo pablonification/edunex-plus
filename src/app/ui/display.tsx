@@ -183,7 +183,7 @@ export function ProgressBar({ value, label, indeterminate = false }: { value: nu
       aria-valuemin={0}
       aria-valuemax={100}
       aria-valuenow={indeterminate ? undefined : Math.round(value * 100)}
-      className="relative block h-1 overflow-hidden rounded-full bg-black/[0.06] dark:bg-white/[0.08]"
+      className="relative block h-1 overflow-hidden rounded-full bg-meter-track"
     >
       <span
         className={cx(

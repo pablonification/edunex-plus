@@ -208,7 +208,7 @@ function Courses({ plan, overlaps }: { plan: KrsPlan; overlaps: Overlap[] }) {
                     {sameClass ? "" : t("krs.class", { classNo: course.classNo })}
                     {clashes.length ? (
                       <span className="inline-flex items-center gap-1 font-medium text-warning-fg">
-                        <Icons.Overlap className="size-3" />
+                        <Icons.Overlap className="size-3" weight="bold" />
                         {t("krs.clashWith", { code: clashes.join(", ") })}
                       </span>
                     ) : (

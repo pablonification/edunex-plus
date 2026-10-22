@@ -3,7 +3,7 @@
 // search too (the top bar, or ⌘K), and once, after the first full sync, the
 // first-run scan. A screen shows in the sidebar once it's built (./built.ts).
 // Beranda comes with the window; every other screen loads after it (../later.tsx).
-import { type ComponentType, Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { type ComponentType, type RefObject, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { edunexCourseUrl, sixStatusUrl } from "../../core/links";
 import type { StringKey } from "../../core/strings";
 import { type TermCourse, useTermCourses } from "../courses";
@@ -14,6 +14,7 @@ import { displayName, initials } from "../names";
 import { NavProvider, type Route, useNav } from "../nav";
 import { usePdfViewer } from "../pdf";
 import { Home } from "../screens/home";
+import { refocus } from "../snooze-menu";
 import { useBridge, useCommand, useDataset, useJoined, useNavigateRequests, useStore } from "../store";
 import { AppMark } from "../ui/brand";
 import { Button } from "../ui/controls";
@@ -122,13 +123,17 @@ function Layout() {
       <div className="flex min-w-0 flex-1 flex-col">
         <PanelBoundary name="top bar" compact>
           <TopBar onSearch={() => openSearch(false)} />
-          <ProblemBanner />
+          {/* A live region that is always there, so a banner arriving in it is read out. */}
+          <div role="status" className="shrink-0">
+            <ProblemBanner />
+          </div>
         </PanelBoundary>
         <main ref={main} className="min-h-0 flex-1 overflow-y-auto">
           {/* Outside the screen's own guard, so the screen before stays while the next one's code loads. */}
           <Suspense fallback={null}>
             <PanelBoundary key={key} name={route.screen}>
               <CurrentScreen route={route} />
+              <TitleTakesFocus main={main} />
             </PanelBoundary>
           </Suspense>
         </main>
@@ -162,6 +167,23 @@ function Layout() {
       </PanelBoundary>
     </div>
   );
+}
+
+/**
+ * When the screen that left took focus with it (the row that opened this one, Back, a ⌘ shortcut from
+ * the page), the new screen's title takes it, so the keyboard and a screen reader carry on from the top
+ * of what's shown instead of from the window's start. Focus the Student put somewhere still there stays.
+ * Inside the screen's own guard, so it runs once the screen has drawn, not while its code still loads.
+ */
+function TitleTakesFocus({ main }: { main: RefObject<HTMLElement | null> }) {
+  useEffect(() => {
+    refocus(() => {
+      const title = main.current?.querySelector<HTMLElement>("h1");
+      if (title) title.tabIndex = -1;
+      return title;
+    });
+  }, [main]);
+  return null;
 }
 
 function CurrentScreen({ route }: { route: Route }) {

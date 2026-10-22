@@ -330,13 +330,13 @@ function TermRow({ record, term, open, onToggle }: { record: StudentRecord; term
         type="button"
         onClick={onToggle}
         {...disclosureTrigger(open, id)}
-        className="focus-ring flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-hover"
+        className="focus-ring flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-hover focus-visible:-outline-offset-2"
       >
         <Icons.ChevronRight className={cx("size-4 text-faint transition-transform duration-150", open && "rotate-90")} />
         <span className="flex-1 text-body font-medium">{termName(term.term)}</span>
         {!term.ip.agrees && (
           <span className="inline-flex items-center gap-1 text-caption font-medium text-warning-fg">
-            <Icons.AlertTriangle className="size-3" />
+            <Icons.AlertTriangle className="size-3" weight="bold" />
             {t("grades.termDisagree", { six: num(term.ip.six), computed: num(term.ip.computed) })}
           </span>
         )}

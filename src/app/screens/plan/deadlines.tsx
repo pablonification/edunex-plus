@@ -226,7 +226,7 @@ function DeadlineRow({ deadline, showTerm }: { deadline: Deadline; showTerm: boo
               )}
             >
               {meaning.done && <Icons.Check className="mt-[3px] size-3 shrink-0" weight="bold" />}
-              {warn && <Icons.AlertTriangle className="mt-[3px] size-3 shrink-0" />}
+              {warn && <Icons.AlertTriangle className="mt-[3px] size-3 shrink-0" weight="bold" />}
               {t(meaning.key, meaning.vars)}
             </span>
           )}

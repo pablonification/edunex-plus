@@ -126,7 +126,13 @@ function PictureLink({ src, hooks }: { src: string; hooks: Hooks }) {
 /** A picture written right into the HTML; most have no description of their own. */
 function InlinePicture({ src, alt, fallback }: RichTextImage & { fallback?: string }) {
   const t = useT();
-  return <img src={src} alt={alt || fallback || t("image.alt")} className="h-auto max-w-full rounded-lg" />;
+  return (
+    <img
+      src={src}
+      alt={alt || fallback || t("image.alt")}
+      className="h-auto max-w-full rounded-lg outline -outline-offset-1 outline-black/10 dark:outline-white/10"
+    />
+  );
 }
 
 const STRUCTURAL = new Set(["table", "thead", "tbody", "tr", "ul", "ol"]);

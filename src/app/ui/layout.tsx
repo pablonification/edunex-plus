@@ -194,7 +194,7 @@ export function Row({
           aria-current={current || undefined}
           className={cx(
             "group flex w-full items-center gap-3.5 px-4 py-3 text-left",
-            aside ? "min-w-0 flex-1 pr-1 focus-visible:outline-none" : "focus-ring hover:bg-hover active:bg-selected",
+            aside ? "min-w-0 flex-1 pr-1 focus-visible:outline-none" : "focus-ring hover:bg-hover focus-visible:-outline-offset-2 active:bg-selected",
             current && !aside && "bg-selected",
             className,
           )}

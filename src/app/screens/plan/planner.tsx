@@ -83,6 +83,7 @@ import { Card, Tag } from "../../ui/display";
 import { Icons } from "../../ui/icons";
 import { Meta } from "../../ui/layout";
 import { Menu, type MenuItem } from "../../ui/menu";
+import { stillMotion } from "../../ui/motion/animate";
 import { AnimatedNumber } from "../../ui/motion/animated-number";
 import { DisclosurePanel, disclosureTrigger } from "../../ui/motion/disclosure";
 import { PresenceItem, PresenceList } from "../../ui/motion/presence-list";
@@ -471,8 +472,8 @@ function SksBar({ sks }: { sks: SksModel }) {
   const scale = Math.max(sks.need, sks.total);
   const share = (n: number) => `${(n / scale) * 100}%`;
   const parts = [
-    { n: sks.passed, label: t("planner.legend.passed", { n: sks.passed }), color: "bg-live" },
-    { n: sks.inProgress, label: t("planner.legend.now", { n: sks.inProgress }), color: "bg-live/45" },
+    { n: sks.passed, label: t("planner.legend.passed", { n: sks.passed }), color: "bg-meter-success" },
+    { n: sks.inProgress, label: t("planner.legend.now", { n: sks.inProgress }), color: "bg-meter-success/45" },
     { n: sks.planned, label: t("planner.legend.planned", { n: sks.planned }), color: "bg-info-fg/55" },
     // Only once the Student said their program will add a required course.
     ...(sks.byProgram ? [{ n: sks.byProgram, label: t("planner.legend.byProgram", { n: sks.byProgram }), color: "bg-info-fg/25" }] : []),
@@ -485,7 +486,8 @@ function SksBar({ sks }: { sks: SksModel }) {
         aria-valuemin={0}
         aria-valuemax={sks.need}
         aria-valuenow={Math.min(sks.total, sks.need)}
-        className="relative flex h-2.5 gap-[2px] overflow-hidden rounded-full bg-black/[0.06] dark:bg-white/[0.08]"
+        // The meters' own track and green, so what has passed reads 3:1 on it in both themes.
+        className="relative flex h-2.5 gap-[2px] overflow-hidden rounded-full bg-meter-track"
       >
         {parts.map((part) => (
           <span
@@ -494,7 +496,7 @@ function SksBar({ sks }: { sks: SksModel }) {
             style={{ width: share(part.n) }}
           />
         ))}
-        {sks.total > sks.need && <span aria-hidden className="absolute inset-y-0 w-[2px] bg-fg/70" style={{ left: share(sks.need) }} />}
+        {sks.total > sks.need && <span aria-hidden className="absolute inset-y-0 w-[2px] bg-fg" style={{ left: share(sks.need) }} />}
       </div>
       <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-caption text-muted tabular-nums">
         {parts.map((part) => (
@@ -525,7 +527,7 @@ function Past({ record, steps }: { record: StudentRecord; steps: ProjectedStep[]
         type="button"
         onClick={() => setOpen(!open)}
         {...disclosureTrigger(open, id)}
-        className="focus-ring flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-hover"
+        className="focus-ring flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-hover focus-visible:-outline-offset-2"
       >
         <Icons.ChevronRight className={cx("size-4 text-faint transition-transform duration-150", open && "rotate-90")} />
         <Meta className="flex-1 text-body font-semibold">
@@ -623,7 +625,7 @@ function TermBlock({
             type="button"
             onClick={onAdd}
             data-focus={addKey}
-            className="focus-ring flex w-full items-center gap-2 border-t border-line px-4 py-2.5 text-left text-small font-semibold text-accent-fg hover:bg-hover"
+            className="focus-ring flex w-full items-center gap-2 border-t border-line px-4 py-2.5 text-left text-small font-semibold text-accent-fg hover:bg-hover focus-visible:-outline-offset-2"
           >
             <Icons.Plus className="size-3.5" />
             {addLabel ?? t("planner.addCourse")}
@@ -655,11 +657,15 @@ function RoleTag({ record, code, minor, spec }: { record: StudentRecord; code: s
 
 const ruleAnchor = (rule: Rule) => `rule-${rule.id}${"code" in rule ? `-${rule.code}` : ""}${"term" in rule ? `-${rule.term}` : ""}`;
 
-/** Shows a rule in the list and draws the eye to it. */
+/**
+ * Shows a rule in the list and draws the eye to it. Focus goes with it, so the keyboard and a screen
+ * reader carry on from the rule; it glides there only when the OS allows motion.
+ */
 function goToRule(rule: Rule) {
   const el = document.getElementById(ruleAnchor(rule));
   if (!el) return;
-  el.scrollIntoView?.({ behavior: "smooth", block: "center" });
+  el.scrollIntoView?.({ behavior: stillMotion() ? "auto" : "smooth", block: "center" });
+  el.focus({ preventScroll: true });
   el.classList.add("bg-warning-bg");
   setTimeout(() => el.classList.remove("bg-warning-bg"), 1200);
 }
@@ -704,7 +710,7 @@ function CourseLine({
             onClick={() => goToRule(flag)}
             className="focus-ring mt-0.5 inline-flex items-center gap-1 rounded text-caption font-medium text-warning-fg hover:underline"
           >
-            <Icons.AlertTriangle className="size-3" />
+            <Icons.AlertTriangle className="size-3" weight="bold" />
             {flag.id === "parity"
               ? t("planner.flag.parity", { kind: t(flag.semester % 2 === 1 ? "rule.parity.odd" : "rule.parity.even") })
               : t("planner.flag.early")}
@@ -1016,6 +1022,7 @@ function Rules({ record, rules, plan, undoable }: { record: StudentRecord; rules
                 <PresenceItem key={ruleAnchor(rule)}>
                   <div
                     id={ruleAnchor(rule)}
+                    tabIndex={-1}
                     className="flex scroll-m-24 items-start gap-2.5 rounded-lg px-2 py-1.5 transition-colors duration-500"
                     data-rule={rule.id}
                     data-level={rule.level}
@@ -1445,7 +1452,8 @@ function AddCourse({
     <Dialog open onOpenChange={(o) => !o && onClose()} title={title} className="w-[min(680px,calc(100vw-48px))]">
       <Tabs.Root value={tab} onValueChange={(v) => setTab(v as AddTab)} className="-mx-5 -my-5">
         <div className="border-b border-line px-5 pt-3">
-          <label className="flex h-9 items-center gap-2 rounded-lg bg-fill px-3">
+          {/* The box shows the focus ring: the input itself is borderless inside it. */}
+          <label className="flex h-9 items-center gap-2 rounded-lg bg-fill px-3 has-[input:focus-visible]:outline-2 has-[input:focus-visible]:outline-offset-2 has-[input:focus-visible]:outline-focus">
             <Icons.Search className="size-4 text-faint" />
             <input
               autoFocus
@@ -1520,7 +1528,7 @@ function AddCourse({
                               )}
                             >
                               {code}
-                              {done ? <Icons.Check className="size-3" /> : <span aria-hidden>+</span>}
+                              {done ? <Icons.Check className="size-3" weight="bold" /> : <span aria-hidden>+</span>}
                             </button>
                           </li>
                         );

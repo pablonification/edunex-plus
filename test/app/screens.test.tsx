@@ -135,7 +135,8 @@ describe("Home", () => {
     await act(async () => screen!.button("Perbarui sekarang").click());
     for (let i = 0; i < 20; i++) await act(async () => new Promise((resolve) => setImmediate(resolve)));
     expect(screen.button(/^Status data:/).textContent).toBe("Memperbarui SIX…");
-    expect(screen.button("Memperbarui…").disabled).toBe(true);
+    // Busy, it takes no clicks but keeps focus (a disabled button would drop it to the page).
+    expect(screen.button("Memperbarui…").getAttribute("aria-disabled")).toBe("true");
     await act(async () => screen!.world.clock.advance(120_000));
     expect(screen.button(/^Status data:/).textContent).toBe("Diperbarui baru saja");
   });

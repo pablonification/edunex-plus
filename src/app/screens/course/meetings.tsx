@@ -220,7 +220,7 @@ function MeetingRow({
         <LiveDot className="scale-75" />
         <Meta truncate>
           {t("meeting.state.open")}
-          {presence ? <span className="font-medium opacity-80">{f.countdown(presence.closesAt)}</span> : null}
+          {presence ? <span className="font-normal tabular-nums">{f.countdown(presence.closesAt)}</span> : null}
         </Meta>
       </Tag>
     );

@@ -100,7 +100,7 @@ export function Menu({ label, items, trigger, className }: { label: string; item
               setOpen(false);
               item.onSelect();
             }}
-            className="focus-ring flex w-full items-start gap-2.5 rounded-lg px-2.5 py-2 text-left transition-colors duration-150 hover:bg-hover disabled:cursor-default disabled:hover:bg-transparent"
+            className="focus-ring flex w-full items-start gap-2.5 rounded-md px-2.5 py-2 text-left hover:bg-hover disabled:cursor-default disabled:hover:bg-transparent"
           >
             {item.icon && <span className={cx("mt-0.5 shrink-0 text-muted", item.disabled && "opacity-50")}>{item.icon}</span>}
             <span className="min-w-0 flex-1">

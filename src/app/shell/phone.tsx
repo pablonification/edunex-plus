@@ -158,7 +158,7 @@ function HourSelect({ label, value, not, onChange }: { label: string; value: num
       value={value}
       aria-label={label}
       onChange={(event) => onChange(Number(event.target.value))}
-      className="focus-ring h-7 rounded-md border border-edge bg-surface px-1.5 text-small font-semibold text-fg tabular-nums transition-colors duration-150 hover:bg-hover"
+      className="focus-ring h-7 rounded-md border border-field-edge bg-surface px-1.5 text-small font-semibold text-fg tabular-nums transition-colors duration-150 hover:bg-hover"
     >
       {HOURS.filter((hour) => hour !== not).map((hour) => (
         <option key={hour} value={hour}>

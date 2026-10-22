@@ -119,7 +119,7 @@ function StateMark({ state, busy }: { state: SourceState; busy: boolean }) {
     case "offline":
       return <Icons.WifiOff className="size-3.5 text-faint" />;
     case "expired":
-      return <span aria-hidden className="size-2 rounded-full bg-warning-fg" />;
+      return <span aria-hidden className="size-2 rounded-full bg-meter-warning" />;
     case "changed":
       return <Icons.AlertTriangle className="size-3.5 text-danger-fg" />;
     default:
@@ -314,11 +314,11 @@ export function ProblemBanner() {
       : problem.state === "changed"
         ? t("status.changedHint", { source: name })
         : t("banner.keptHint");
+  // Announced through the live region the shell keeps around it (shell.tsx): one mounted already holding its text isn't read reliably.
   return (
     <div
-      role="status"
       className={cx(
-        "flex shrink-0 items-center gap-3 border-b px-6 py-2 text-small motion-safe:animate-slide-down",
+        "flex items-center gap-3 border-b px-6 py-2 text-small motion-safe:animate-slide-down",
         problem.state === "changed"
           ? "border-danger-fg/15 bg-danger-bg text-danger-fg"
           : offline
@@ -333,9 +333,10 @@ export function ProblemBanner() {
       ) : (
         <Icons.AlertTriangle className="size-4 shrink-0" />
       )}
-      <p className="min-w-0 flex-1 truncate">
+      {/* Wraps rather than cuts: the detail is when the data was last fresh, or the one thing to do. */}
+      <p className="min-w-0 flex-1 text-pretty">
         <span className="font-semibold">{title}</span>
-        {detail && <span className="opacity-85"> {detail}</span>}
+        {detail && <span> {detail}</span>}
       </p>
       {needsSignIn ? (
         <Button size="sm" variant="primary" busy={signingIn} onClick={() => void signIn(problem.source)}>

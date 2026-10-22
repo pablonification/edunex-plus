@@ -29,23 +29,49 @@ const SIZE: Record<Size, string> = {
 const PRESS =
   "transition-[color,background-color,border-color,box-shadow,scale] duration-150 [&:active:not([aria-haspopup]):not([aria-disabled=true])]:scale-[0.97]";
 
+/**
+ * Dimmed while it can't run (aria-disabled): unlike `disabled`, it keeps focus, so a keyboard user who
+ * pressed it, or stepped to its limit, isn't dropped to the page. A click there does nothing.
+ */
+const LIMIT = "aria-disabled:pointer-events-none aria-disabled:opacity-50";
+/** The same for an icon button, which keeps its tooltip at a limit (a zoom or stepper button). */
+const ICON_LIMIT = "aria-disabled:opacity-50 aria-disabled:hover:bg-transparent aria-disabled:hover:text-muted";
+
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: Variant;
   size?: Size;
-  /** Shows a spinner and blocks clicks while an action runs. */
+  /** Shows a spinner and takes no clicks while an action runs; focus stays on it. */
   busy?: boolean;
   icon?: ReactNode;
   ref?: Ref<HTMLButtonElement>;
 }
 
-export function Button({ variant = "secondary", size = "md", busy = false, icon, className, children, disabled, type = "button", ...rest }: ButtonProps) {
+export function Button({
+  variant = "secondary",
+  size = "md",
+  busy = false,
+  icon,
+  className,
+  children,
+  disabled,
+  type = "button",
+  onClick,
+  ...rest
+}: ButtonProps) {
   return (
     <button
       type={type}
-      disabled={disabled || busy}
+      disabled={disabled}
+      aria-disabled={busy || undefined}
       aria-busy={busy || undefined}
+      onClick={(event) => {
+        // A second press (Enter held, a double click) while it works does nothing, a form's submit included.
+        if (busy) event.preventDefault();
+        else onClick?.(event);
+      }}
       className={cx(
         "focus-ring inline-flex shrink-0 items-center justify-center whitespace-nowrap select-none disabled:pointer-events-none disabled:opacity-50",
+        LIMIT,
         PRESS,
         VARIANT[variant],
         SIZE[size],
@@ -73,6 +99,7 @@ export function IconButton({ label, size = "md", className, children, type = "bu
       aria-label={label}
       className={cx(
         "focus-ring grid shrink-0 place-items-center rounded-lg text-muted hover:bg-hover hover:text-fg disabled:pointer-events-none disabled:opacity-50",
+        ICON_LIMIT,
         PRESS,
         size === "sm" ? "size-7" : "size-8",
         className,
@@ -102,7 +129,7 @@ export function Switch({
       aria-label={label}
       disabled={disabled}
       // Calm when on (ink, not accent): a settings list of ten switches must not shout.
-      className="focus-ring relative inline-flex h-5 w-[34px] shrink-0 items-center rounded-full bg-track transition-colors duration-150 disabled:opacity-50 data-[state=checked]:bg-fg"
+      className="focus-ring relative inline-flex h-5 w-[34px] shrink-0 items-center rounded-full bg-field-edge transition-colors duration-150 disabled:opacity-50 data-[state=checked]:bg-fg"
     >
       <SwitchPrimitive.Thumb className="block size-4 translate-x-[2px] rounded-full bg-white shadow-thumb transition-transform duration-150 ease-standard data-[state=checked]:translate-x-4 data-[state=checked]:bg-surface" />
     </SwitchPrimitive.Root>
@@ -133,13 +160,13 @@ export function Stepper({
   const set = (next: number) => onChange(Math.max(min, Math.min(max, next)));
   return (
     <div className="inline-flex h-8 shrink-0 items-center rounded-lg border border-edge bg-surface">
-      <IconButton size="sm" label={lowerLabel} disabled={value <= min} onClick={() => set(value - step)} className="rounded-r-none">
+      <IconButton size="sm" label={lowerLabel} aria-disabled={value <= min || undefined} onClick={() => set(value - step)} className="rounded-r-none">
         <Icons.Minus className="size-3.5" />
       </IconButton>
       <span className="min-w-12 px-1 text-center text-small font-semibold tabular-nums" aria-live="polite">
         {format(value)}
       </span>
-      <IconButton size="sm" label={raiseLabel} disabled={value >= max} onClick={() => set(value + step)} className="rounded-l-none">
+      <IconButton size="sm" label={raiseLabel} aria-disabled={value >= max || undefined} onClick={() => set(value + step)} className="rounded-l-none">
         <Icons.Plus className="size-3.5" />
       </IconButton>
     </div>
@@ -205,7 +232,8 @@ export function Segmented<T extends string>({
   );
   return (
     <div role="radiogroup" aria-label={label} className="relative flex rounded-lg bg-fill p-0.5 ring-1 ring-black/[0.05] ring-inset dark:ring-white/[0.06]">
-      <SlidingHighlight active={value} className="rounded-md bg-segment shadow-thumb" />
+      {/* High contrast drops fills and shadows: an edge keeps the pick visible there. */}
+      <SlidingHighlight active={value} className="rounded-md bg-segment shadow-thumb forced-colors:border-2" />
       {options.map((option, index) => (
         <button
           key={option.value}

@@ -102,5 +102,12 @@ export function RemoteImage({ src, alt, className }: { src: string; alt: string;
       </span>
     );
   // A tall picture (a scanned page) stays within a screenful; its shape is kept.
-  return <img src={picture.src} alt={alt || t("image.alt")} decoding="async" className={cx("h-auto max-h-[28rem] w-auto max-w-full rounded-lg", className)} />;
+  return (
+    <img
+      src={picture.src}
+      alt={alt || t("image.alt")}
+      decoding="async"
+      className={cx("h-auto max-h-[28rem] w-auto max-w-full rounded-lg outline -outline-offset-1 outline-black/10 dark:outline-white/10", className)}
+    />
+  );
 }

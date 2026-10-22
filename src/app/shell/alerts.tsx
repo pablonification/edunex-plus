@@ -162,7 +162,7 @@ function AlertsPanel({ readAt, onRead, onClose }: { readAt: number; onRead: (at:
           </button>
         )}
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto py-1">
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain py-1">
         {items.length === 0 && (
           <div className="px-6 py-9 text-center">
             <span className="mx-auto grid size-9 place-items-center rounded-full bg-fill text-muted">
@@ -190,7 +190,7 @@ function AlertsPanel({ readAt, onRead, onClose }: { readAt: number; onRead: (at:
                         if (item.checkIn) openCheckIn(item.checkIn.meetingId, item.checkIn.url);
                         else go(item.target);
                       }}
-                      className="focus-ring flex w-full items-start gap-3 px-4 py-2.5 text-left transition-colors duration-150 hover:bg-hover"
+                      className="focus-ring flex w-full items-start gap-3 px-4 py-2.5 text-left hover:bg-hover focus-visible:-outline-offset-2"
                     >
                       <span className={cx("relative mt-0.5 shrink-0", PRESSING.has(item.kind) ? "text-warning-fg" : "text-faint")}>
                         <Icon className="size-4" />

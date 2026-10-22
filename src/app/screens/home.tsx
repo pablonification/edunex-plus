@@ -263,7 +263,8 @@ function NowCardView({ card, courses }: { card: NowCard; courses: readonly TermC
           )}
           {windowFor ? <span className="tabular-nums">{classDayTime(f, windowFor.start, windowFor.end)}</span> : ""}
           {session && !/^kuliah$/i.test(session.activity) ? (
-            <span className={cx("font-semibold", /\b(UTS|UAS)\b/i.test(session.activity) && "text-danger-fg")}>{session.activity}</span>
+            // An exam reads by its word and weight; red is for what is lost, overdue or failing (docs/design-system.md).
+            <span className="font-semibold">{session.activity}</span>
           ) : (
             ""
           )}
@@ -749,11 +750,7 @@ function TodayRow({ item, courses, onCard }: { item: TodayItem; courses: readonl
         <Meta className={cx(past && "text-faint")}>
           <CourseMark code={session.courseCode} courses={courses} past={past} />
           {session.room ?? ""}
-          {exam || !/^kuliah$/i.test(session.activity) ? (
-            <span className={cx("font-semibold", exam && !past && "text-danger-fg")}>{session.activity}</span>
-          ) : (
-            ""
-          )}
+          {exam || !/^kuliah$/i.test(session.activity) ? <span className="font-semibold">{session.activity}</span> : ""}
         </Meta>
       }
       trailing={

@@ -202,7 +202,7 @@ export function PdfViewer({
             if (event.target instanceof HTMLElement && (event.target.dataset.editing || fillEscape.current(event.target))) event.preventDefault();
           }}
           className={cx(
-            "fixed inset-x-3 bottom-3 z-(--z-dialog) flex flex-col overflow-hidden rounded-2xl bg-raised text-fg shadow-dialog ring-1 ring-black/10 focus:outline-none dark:ring-white/10",
+            "fixed inset-x-3 bottom-3 z-(--z-dialog) flex flex-col overflow-hidden rounded-2xl bg-raised text-fg border border-transparent shadow-dialog ring-1 ring-black/10 focus:outline-none dark:ring-white/10",
             PANEL_MOTION_CLASS,
             // Below macOS's traffic lights, and below the top bar where Windows and Linux draw their window buttons.
             platform === "darwin" ? "top-10" : platform ? "top-[calc(var(--title-bar)+--spacing(2))]" : "top-3",
@@ -232,7 +232,7 @@ export function PdfViewer({
                   ref={scroller}
                   tabIndex={-1}
                   aria-label={name}
-                  className="grid min-h-0 flex-1 place-items-center overflow-auto bg-sunken p-6 outline-none"
+                  className="grid min-h-0 flex-1 place-items-center overflow-auto overscroll-contain bg-sunken p-6 outline-none"
                 >
                   {view.phase === "loading" ? (
                     <Loading label={t("pdf.loading")} />
@@ -275,9 +275,6 @@ export function PdfViewer({
     </DialogPrimitive.Root>
   );
 }
-
-/** A zoom button at its limit: dimmed, still focusable; a click there changes nothing (zoomBy has no step further). */
-const LIMIT = "aria-disabled:opacity-50 aria-disabled:hover:bg-transparent aria-disabled:hover:text-muted";
 
 const Divider = () => <span aria-hidden className="mx-1.5 h-5 w-px shrink-0 bg-line" />;
 
@@ -503,7 +500,7 @@ function Reader({
                 setDraft(null);
               }
             }}
-            className="h-7 w-11 rounded-md border border-edge bg-surface text-center text-small text-fg tabular-nums focus:border-focus focus:outline-none"
+            className="h-7 w-11 rounded-md border border-field-edge bg-surface text-center text-small text-fg tabular-nums focus:border-focus focus:outline-none"
           />
           <span id={total} className="tabular-nums">
             {t("pdf.of", { count: doc.pages })}
@@ -512,7 +509,7 @@ function Reader({
         <Divider />
         <Tooltip content={t("pdf.zoomOut")}>
           {/* At a limit the button says so but keeps the keyboard: a disabled button would drop focus out of the viewer. */}
-          <IconButton label={t("pdf.zoomOut")} size="sm" aria-disabled={percent <= STEPS[0]} className={LIMIT} onClick={() => zoomBy(-1)}>
+          <IconButton label={t("pdf.zoomOut")} size="sm" aria-disabled={percent <= STEPS[0]} onClick={() => zoomBy(-1)}>
             <Icons.Minus className="size-4" />
           </IconButton>
         </Tooltip>
@@ -520,7 +517,7 @@ function Reader({
           {percent}%
         </span>
         <Tooltip content={t("pdf.zoomIn")}>
-          <IconButton label={t("pdf.zoomIn")} size="sm" aria-disabled={percent >= STEPS.at(-1)!} className={LIMIT} onClick={() => zoomBy(1)}>
+          <IconButton label={t("pdf.zoomIn")} size="sm" aria-disabled={percent >= STEPS.at(-1)!} onClick={() => zoomBy(1)}>
             <Icons.Plus className="size-4" />
           </IconButton>
         </Tooltip>
@@ -560,7 +557,7 @@ function Reader({
         aria-label={name}
         onScroll={track}
         className={cx(
-          "min-h-0 flex-1 overflow-auto bg-sunken outline-none focus-visible:shadow-[inset_0_0_0_2px_var(--focus)]",
+          "min-h-0 flex-1 overflow-auto overscroll-contain bg-sunken outline-none focus-visible:shadow-[inset_0_0_0_2px_var(--focus)]",
           // Waiting for the spot: a click on a page puts the text there instead of selecting the page's own.
           placing && "cursor-crosshair [&_.pdf-text]:pointer-events-none",
         )}
@@ -757,14 +754,14 @@ function PageView({
           onPlace((event.clientX - box.left) / scale, (event.clientY - box.top) / scale);
         })
       }
-      // Paper in both themes: its boxes and controls are drawn light, like the page.
-      className="relative shrink-0 bg-white shadow-card ring-1 ring-black/5 [color-scheme:light]"
+      // Paper in both themes: its boxes and controls are drawn light, like the page, and so is the focus ring on its links and fields.
+      className="relative shrink-0 bg-white shadow-card ring-1 ring-black/5 [--focus:var(--accent)] [color-scheme:light]"
     >
       <div ref={paper} aria-hidden />
       <div ref={text} className="pdf-text" />
       {near &&
         links.map((link) => {
-          const className = "focus-ring absolute rounded-xs hover:bg-[rgb(47_111_235/0.12)]";
+          const className = "focus-ring absolute rounded-xs hover:bg-accent/12";
           return link.url ? (
             <a
               key={`${link.left}:${link.top}`}

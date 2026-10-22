@@ -72,6 +72,31 @@ describe("motion timings", () => {
 });
 
 describe("toasts", () => {
+  it("an error stays until it's closed: what went wrong and what to do don't leave on a timer", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date"] });
+    try {
+      const { container } = await mount(
+        <I18nProvider lang="id">
+          <Toaster />
+        </I18nProvider>,
+      );
+      await act(async () => {
+        toast("Kalender tidak bisa disimpan. Coba lagi.", "danger");
+        toast("Draf tersimpan", "success");
+      });
+      await act(async () => vi.advanceTimersByTime(60_000));
+      expect(container.textContent).toContain("Kalender tidak bisa disimpan");
+      expect(container.textContent).not.toContain("Draf tersimpan");
+      const close = container.querySelector<HTMLButtonElement>("button[aria-label=Tutup]");
+      expect(close).not.toBeNull();
+      await act(async () => close?.click());
+      await act(async () => vi.advanceTimersByTime(1_000));
+      expect(container.textContent).not.toContain("Kalender tidak bisa disimpan");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("one that's taken away is gone, and the others and the live region stay", async () => {
     screen = await openApp({ signedIn: true });
     let first = 0;

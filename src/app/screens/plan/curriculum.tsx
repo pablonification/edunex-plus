@@ -353,7 +353,7 @@ function Status({ status, grade }: { status: SlotStatus; grade: string | null })
     case "failed":
       return (
         <span className="inline-flex h-[20px] items-center gap-1 rounded-full bg-danger-bg px-2 text-micro font-semibold whitespace-nowrap text-danger-fg">
-          <Icons.AlertTriangle className="size-3" />
+          <Icons.AlertTriangle className="size-3" weight="bold" />
           {label}
         </span>
       );

@@ -105,6 +105,7 @@ the focus ring.
 | `--sunken` | `#f7f7f9` | `#19191c` |
 | `--scrim` | `rgb(0 0 0 / 0.25)` | `rgb(0 0 0 / 0.45)` |
 | `--track` | `#d4d4da` | `#3a3a40` |
+| `--field-edge` | `#8d8d92` | `#6c6c72` |
 | `--segment` | `#ffffff` | `#34343a` |
 
 **Text and accent**
@@ -138,6 +139,10 @@ the focus ring.
 | `--neutral-bg` | `#f0f0f2` | `#27272b` |
 | `--neutral-fg` | `#4f4f56` | `#bdbdc5` |
 | `--live` | `#22a35a` | `#2fbf6c` |
+
+**Field edges.** A field's edge (a grade, a score, the answer box, a link
+box) and a switch that's off use `--field-edge`, 3:1 on every surface, so the
+control shows where it is; cards and lists keep the quieter `--edge`.
 
 **Meters (fill on track).** A meter's fill reads 3:1 on its own track. Amber
 and green have meter colors of their own: the tones' `-fg` colors are for
@@ -258,7 +263,7 @@ keeps them equal).
 
 | What | How |
 |---|---|
-| Hover, press, color changes | Hover backgrounds: instant. Buttons press to 97% in 150 ms (not menu or popover triggers, not rows; a row's press is its darker background). Other color changes: 150 ms |
+| Hover, press, color changes | Hover backgrounds: instant (rows, menu items, notifications). Buttons press to 97% in 150 ms (not menu or popover triggers, not rows; a row's press is its darker background). Other color changes: 150 ms. A transition that names no curve runs on `--ease-out` (`--default-transition-timing-function`), never Tailwind's own |
 | Switching light and dark | At once: nothing fades its color (`.no-transitions` on `<html>` for two frames) |
 | Screens and their rows | Nothing: switching screens or going further in is instant, and rows don't rise in |
 | Dialogs (`animate-pop-in`, `animate-pop-out`; the scrim `animate-fade-in`, `animate-fade-out`) | In 200 ms from 98%, out 150 ms |
@@ -348,11 +353,11 @@ Screens are composed, not styled one by one:
 | `StatRow` + `Stat` | Figures read at a glance (SKS, an IP, absences left), side by side with no box, split by hairlines; labels, figures and hints each line up across the row, stacking only in a container under 320 px. Figures in `text-figure`, or `size="heading"` for a few small counts beside other content. Never a figure the page's answer just said. |
 | `Card` | `plain`, `raised` (what matters most now), `sunken` (quiet areas). |
 | `EmptyState` | What would be here, why it is empty, and the way forward. Small and kind; hide empty groups instead where nothing is lost. |
-| `Button` | `primary` (one per view: the main action), `secondary`, `ghost`, `danger` (destructive only, never for a final but safe action like handing in). Shows a spinner while working. |
+| `Button` | `primary` (one per view: the main action), `secondary`, `ghost`, `danger` (destructive only, never for a final but safe action like handing in). Shows a spinner while working, and takes no second press then; it stays focused (`aria-disabled`, not `disabled`, which would drop a keyboard user's focus on the page). So does a stepper's − or + at its limit. |
 | `IconButton` | Square, always with a name and a tooltip. |
 | `Popover` | A panel from a control (alerts, data status); Escape and a click outside close it. |
 | `Dialog`, `ConfirmDialog` | Focus stays inside; Escape closes; both leave the way they came, taking no second click while they go (other dialog shells reuse `SCRIM_CLASS`, `PANEL_MOTION_CLASS` and `onClickCapture={ignoreClosingClick}`). Confirm only before what can't be undone: it is an alert dialog, so a click beside it isn't an answer and Cancel has focus first. A page one level down (Settings' open-source licences) swaps in at once with a back button naming where it goes (`back`), keeps the dialog at its full height (so a search on it stays put while its results change), starts at its own top, and going back puts focus on the button that opened it. |
-| `toast(text, tone, action?)` | Neutral, success or danger; with an action ("Urungkan", "Lihat") it stays 8 s. It waits while the pointer is on it or focus is in it, then goes on with the time it had left. When it goes (Urungkan pressed from the keyboard), focus goes back where it came from, never to the page. Never the only place an error is said. |
+| `toast(text, tone, action?)` | Neutral, success or danger; with an action ("Urungkan", "Lihat") it stays 8 s; an error (`danger`) stays until the Student closes it, with its own close button. It waits while the pointer is on it or focus is in it, then goes on with the time it had left. When it goes (Urungkan pressed from the keyboard), focus goes back where it came from, never to the page. Never the only place an error is said. |
 | `StatusChip` | A Task's true status: each its own color, glyph and word. Shown only where the status says something (not "Belum dikerjakan" on every to-do row). |
 | `Tag` | A word marking one row as the exception ("Baru", "Hadir", "UTS"): `sm` 18 px or `md` 22 px, in a tone (neutral, info, warning, success, danger). Never on every row. |
 | `SourceLogo`, `AppMark` (`ui/brand.tsx`) | The real Edunex and SIX logos where the app stands for one of them (connecting, the data status, the accounts in Settings); Edunex Plus's own icon (`assets/icon.png`) in the sidebar, on the welcome screen and in Settings. |
@@ -365,7 +370,7 @@ Screens are composed, not styled one by one:
 | `Stepper` (`ui/controls.tsx`) | A number stepped between bounds (an attendance target, 50–100% by 5): − and + with names, the value read out when it changes. |
 | `Segmented`, `useRadioKeys` (`ui/controls.tsx`) | A few choices, one picked (the theme, Minggu/Bulan, the IPK target): a radio group whose highlight glides to the pick. Arrow keys move the choice; only the picked one is a Tab stop (the first while none is). An option takes a longer `name` where its label is too short to read alone ("Target IPK 3,50"). Other radio groups of the screen's own buttons (filter chips) get the same keys from `useRadioKeys`. |
 | `TabBar` (`ui/tabs.tsx`) | The tabs of a screen or dialog, inside the screen's own `Tabs.Root` with its panels in `Tabs.Content`, so each tab names its panel: names, an optional quiet count, one underline that glides to the picked tab. The panel swaps at once. `sm` inside a dialog. |
-| `TimeGrid`, `GridBlock` (`ui/time-grid.tsx`) | A week as a time grid: height is duration, shared time side by side, empty days narrow, periods tinted and named, a now line. |
+| `TimeGrid`, `GridBlock` (`ui/time-grid.tsx`) | A week as a time grid: height is duration, shared time side by side, empty days narrow, periods tinted and named, a now line (blue, as today's date). A block that has ended is quieter in token greys on `bg-sunken`, never faded with opacity. |
 | `RichEditor` (`ui/rich-editor.tsx`) | A box for writing formatted text (a Task's answer): bold, italic, lists, a link, a quote, undo and redo; pasting keeps only simple formatting. Loaded lazily with the screen that uses it (TipTap underneath); it holds only what Edunex's own editor writes, never pictures, tables or embeds. |
 | `RichText`, `WebLink` (`ui/rich-text.tsx`) | What a lecturer wrote (notes, Task instructions), rebuilt safely from its HTML as Edunex shows it: formatting, lists, tables, figures; a link says where it goes on hover and focus and opens in the browser; pictures from Edunex's storage come in through the app (`LecturerHtml`, `RemoteImage`), with a placeholder while loading and the reason when one can't show. A long note folds with "Tampilkan semua". |
 | `PdfViewer` (`ui/pdf-viewer.tsx`), `usePdfViewer()` (`pdf.tsx`) | A PDF read in the app, over the current screen: pages one under another, white in both themes, sharp at any zoom; "3 dari 12" with a box to jump; − / + and fit width or the whole page (slides open whole); the keyboard (arrows, PgUp/PgDn, Space, Home/End, ⌘+ ⌘− ⌘0, Esc); selectable text; Download in the toolbar; when it can't show, why, with Download, Open in Edunex and Try again. |
@@ -430,10 +435,17 @@ URS stay as they are in both languages.
 ## Accessibility
 
 - Text contrast meets WCAG AA in both themes, checked by a test.
-- Keyboard: every control is reachable with Tab, shows a visible focus ring,
+- Keyboard: every control is reachable with Tab, shows a visible focus ring
+  (drawn inside a row whose list clips its edges, `focus-visible:-outline-offset-2`),
   and works with Enter or Space; segmented controls use the arrow keys;
   dialogs trap focus and close on Escape. ⌘, opens Settings and ⌘R refreshes
   (Ctrl on Windows and Linux).
-- Reduced motion is respected everywhere.
+- A new screen opened from inside the last one (a row, Back) puts focus on
+  its title, so the keyboard and a screen reader carry on from its top; a
+  screen picked in the sidebar leaves focus there. A jump within a screen (a
+  study-plan rule) moves focus with it.
+- Reduced motion is respected everywhere, a scroll the app starts included.
+- The problem banner arrives in a live region that is always there, so it is
+  read out; it wraps rather than cuts its text.
 - Status is never color alone; icons are hidden from screen readers and
   controls carry names.

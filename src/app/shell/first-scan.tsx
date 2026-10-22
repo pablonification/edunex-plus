@@ -138,6 +138,7 @@ class Quiet extends Component<{ children: ReactNode }, { broken: boolean }> {
 
 function Findings({ onGo }: { onGo: (route: Route) => void }) {
   const t = useT();
+  const answerId = useId();
   const { saved, statuses, findings } = useScan(true);
   const summary = scanSummary(saved, statuses);
   const count = notable(findings);
@@ -150,10 +151,15 @@ function Findings({ onGo }: { onGo: (route: Route) => void }) {
   return (
     <>
       <Summary summary={summary} />
-      {heading && <h3 className="mt-1.5 text-heading font-semibold tracking-[-0.01em]">{heading}</h3>}
+      {/* The dialog's answer, big as one in a card, but no heading bigger than the dialog's own title: it names the list instead. */}
+      {heading && (
+        <p id={answerId} className="mt-1.5 text-heading font-semibold tracking-[-0.01em]">
+          {heading}
+        </p>
+      )}
       {findings.length ? (
         // Rows on the dialog itself, split by hairlines and reaching its edges, so a hovered row fills the width.
-        <ol className="-mx-5 mt-4">
+        <ol aria-labelledby={heading ? answerId : undefined} className="-mx-5 mt-4">
           {findings.map((finding, i) => (
             <li key={finding.kind} className={cx(i > 0 && "border-t border-line")}>
               <Line finding={finding} onGo={onGo} />

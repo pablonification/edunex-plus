@@ -76,6 +76,8 @@ describe("Row's focus frame", () => {
       </List>,
     );
     expect(classes(list.querySelector("li > button"))).toContain("focus-ring");
+    // Drawn 2px inside the button, so the list's clipped edges can't cut it.
+    expect(classes(list.querySelector("li > button"))).toContain("focus-visible:-outline-offset-2");
     expect(classes(list.querySelector("li")).some((name) => name.startsWith("has-[>button:focus-visible]"))).toBe(false);
   });
 });

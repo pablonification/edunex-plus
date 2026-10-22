@@ -142,7 +142,7 @@ function OpenPresence({ code, start, world }: { code: string; start: number; wor
         {t("schedule.presenceOpen", { time: f.time(window.closesAt) })}
       </p>
       <div className="mt-2 flex items-center justify-between gap-3">
-        <span className="text-caption opacity-90">{t("schedule.presenceOpen.closes", { time: f.countdown(window.closesAt) })}</span>
+        <span className="text-caption tabular-nums">{t("schedule.presenceOpen.closes", { time: f.countdown(window.closesAt) })}</span>
         <Button size="sm" variant="primary" icon={<Icons.ArrowUpRight className="size-3.5" />} onClick={() => open(action.url)}>
           {t("schedule.record")}
         </Button>
