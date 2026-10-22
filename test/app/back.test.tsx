@@ -193,6 +193,19 @@ describe("Back to a course", () => {
     expect(shownModule()).toBe(title);
   });
 
+  it("a link to exactly what's open (an alert for the tab shown) opens it afresh, at its top, with no step for Back", async () => {
+    const s = await openCourse("PL3002");
+    await tab(/^Pertemuan/);
+    await scrollTo(500);
+    const heading = document.querySelector("main h1");
+    await s.apply({ type: "navigate", route: { screen: "course", code: "PL3002", tab: "meetings" } });
+    expect(document.querySelector("main h1")).not.toBe(heading);
+    expect(main().scrollTop).toBe(0);
+    expect(pickedTab()).toMatch(/^Pertemuan/);
+    await back();
+    expect(s.has(/^Kembali ke/)).toBe(false);
+  });
+
   it("Back is named after where it goes: on a course opened from the sidebar after another, that course", async () => {
     screen = await openApp({ signedIn: true });
     const s = screen;
@@ -238,6 +251,30 @@ describe("Back to a course", () => {
     await frame();
     expect(shownModule()).toBe(title);
     expect(scrolls).not.toHaveBeenCalled();
+  });
+});
+
+describe("pictures", () => {
+  it("a lecturer's picture already seen is there at once when Back comes back, never a placeholder that grows under the scroll", async () => {
+    const world = new PretendWorld();
+    world.putFile(
+      "https://edunexfixture.blob.core.windows.net/edunex/fixture-2",
+      new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 13]),
+    );
+    const s = await openCourse("II4091", { world });
+    await s.click(entry("Pengantar"));
+    expect(document.querySelector("main section ul img")?.getAttribute("src")).toMatch(/^blob:/);
+    await s.click(/^Tugas & Ujian/);
+    const placeholders: string[] = [];
+    const watch = new MutationObserver(() => {
+      if (document.querySelector("[aria-label='Memuat gambar…']")) placeholders.push("shown");
+    });
+    watch.observe(document.body, { childList: true, subtree: true });
+    await act(async () => window.dispatchEvent(new KeyboardEvent("keydown", { key: "[", metaKey: true })));
+    watch.disconnect();
+    expect(shownModule()).toBe("Pengantar");
+    expect(document.querySelector("main section ul img")?.getAttribute("src")).toMatch(/^blob:/);
+    expect(placeholders).toEqual([]);
   });
 });
 

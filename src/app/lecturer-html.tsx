@@ -44,6 +44,11 @@ type Picture = { state: "loading" } | { state: "ready"; src: string } | { state:
 const KEEP = 40;
 /** Per window (its bridge): a new window starts with none. */
 const read = new WeakMap<Bridge, Map<string, Promise<Picture>>>();
+/**
+ * The ones already in, at hand at once: a screen drawn again (Back) shows them in its first frame, at their
+ * own size, so it comes back scrolled where it was instead of on placeholders that grow after.
+ */
+const inHand = new WeakMap<Bridge, Map<string, Picture>>();
 
 function readPicture(bridge: Bridge, url: string): Promise<Picture> {
   let pictures = read.get(bridge);
@@ -62,13 +67,17 @@ function readPicture(bridge: Bridge, url: string): Promise<Picture> {
     (): Picture => ({ state: "failed", problem: "unreachable" }),
   );
   pictures.set(url, reading);
+  let ready = inHand.get(bridge);
+  if (!ready) inHand.set(bridge, (ready = new Map()));
   // A failure isn't kept: the next look tries again.
   void reading.then((picture) => {
     if (picture.state === "failed") pictures.delete(url);
+    else if (pictures.get(url) === reading) ready.set(url, picture);
   });
   for (const [oldest, picture] of pictures) {
     if (pictures.size <= KEEP) break;
     pictures.delete(oldest);
+    ready.delete(oldest);
     void picture.then((p) => p.state === "ready" && URL.revokeObjectURL(p.src));
   }
   return reading;
@@ -78,10 +87,10 @@ function readPicture(bridge: Bridge, url: string): Promise<Picture> {
 export function RemoteImage({ src, alt, className }: { src: string; alt: string; className?: string }) {
   const t = useT();
   const bridge = useBridge();
-  const [picture, setPicture] = useState<Picture>({ state: "loading" });
+  const [picture, setPicture] = useState<Picture>(() => inHand.get(bridge)?.get(src) ?? { state: "loading" });
   useEffect(() => {
     let live = true;
-    setPicture({ state: "loading" });
+    setPicture(inHand.get(bridge)?.get(src) ?? { state: "loading" });
     void readPicture(bridge, src).then((next) => live && setPicture(next));
     return () => {
       live = false;

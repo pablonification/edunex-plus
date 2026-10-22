@@ -51,12 +51,20 @@ class Guard extends Component<{ children: ReactNode }, { failed: boolean }> {
 
 /** The shell's shape: a fallback that must never show, around the screen's own guard, keyed by its place in history. */
 function Window({ later: Later }: { later: Later<object> }) {
-  const { route, place, go } = useNav();
+  const { route, place, go, back, canGoBack } = useNav();
   return (
     <>
       <button type="button" onClick={() => go({ screen: "grades" })}>
         Nilai
       </button>
+      <button type="button" onClick={() => go({ screen: "home" }, { keep: true })}>
+        ⌘1
+      </button>
+      {canGoBack && (
+        <button type="button" onClick={back}>
+          Kembali
+        </button>
+      )}
       <Suspense fallback={<p>Blank</p>}>
         <Guard key={place}>{route.screen === "home" ? <p>Beranda</p> : <Later />}</Guard>
       </Suspense>
@@ -90,6 +98,23 @@ describe("screens that load later", () => {
     await act(async () => grades.arrive());
     expect(app.textContent).toContain("Nilai kamu");
     expect(app.textContent).not.toContain("Beranda");
+  });
+
+  it("the place on screen, picked again while the next one's code loads, adds no step: Back goes where the Student was", async () => {
+    const grades = slowScreen("Nilai kamu");
+    const app = await mount(
+      <NavProvider drawsAtOnce={(route) => route.screen === "home" || grades.Screen.loaded()}>
+        <Window later={grades.Screen} />
+      </NavProvider>,
+    );
+    await press(app, "Nilai");
+    // Beranda is still on screen: picking it is staying there, whatever is on its way.
+    await press(app, "⌘1");
+    await act(async () => grades.arrive());
+    expect(app.querySelector("p")?.textContent).toBe("Nilai kamu");
+    await press(app, "Kembali");
+    expect(app.querySelector("p")?.textContent).toBe("Beranda");
+    expect(app.textContent).not.toContain("Kembali");
   });
 
   it("draws at once once its code is in", async () => {

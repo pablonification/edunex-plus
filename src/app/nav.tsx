@@ -9,7 +9,7 @@
 // screen whose code is still loading (later.tsx) is a transition: the one
 // before it stays on screen until it can draw, never a blank frame. Any other
 // move draws at once, as a transition would draw it a little later.
-import { createContext, type ReactNode, startTransition, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { createContext, type ReactNode, startTransition, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { Route } from "../core/route";
 
 export type { Route } from "../core/route";
@@ -65,13 +65,18 @@ export function NavProvider({
   }));
   const ids = useRef(0);
   const kept = useRef(new Map<number, Map<string, unknown>>());
-  const latest = useRef({ leave, drawsAtOnce, history });
-  latest.current = { leave, drawsAtOnce, history };
-  /** `update` gives the new history, or null to stay. */
+  const latest = useRef({ leave, drawsAtOnce });
+  latest.current = { leave, drawsAtOnce };
+  // The history on screen: not one still being drawn (a move waiting for its screen's code).
+  const shown = useRef(history);
+  useLayoutEffect(() => {
+    shown.current = history;
+  }, [history]);
+  /** `update` gives the new history from the one on screen, or null to stay. */
   const move = useCallback((update: (stack: Place[]) => Place[] | null, returned = false) => {
     const next = () => {
-      const { drawsAtOnce, history } = latest.current;
-      const to = update(history.stack)?.at(-1);
+      const { drawsAtOnce } = latest.current;
+      const to = update(shown.current.stack)?.at(-1);
       if (!to) return;
       const apply = () =>
         setHistory((history) => {
@@ -88,7 +93,13 @@ export function NavProvider({
   const go = useCallback(
     (route: Route, { keep = false } = {}) => {
       const id = ++ids.current;
-      move((stack) => ((keep ? shows : same)(stack.at(-1)!.route, route) ? null : [...stack.slice(-49), { route, id }]));
+      move((stack) => {
+        const shown = stack.at(-1)!.route;
+        if (keep && shows(shown, route)) return null;
+        // A link to exactly what's shown opens it afresh (at its top, the module it names in view), with no step for Back.
+        if (same(shown, route)) return [...stack.slice(0, -1), { route, id }];
+        return [...stack.slice(-49), { route, id }];
+      });
     },
     [move],
   );
