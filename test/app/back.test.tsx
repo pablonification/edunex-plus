@@ -216,6 +216,15 @@ describe("Back to a course", () => {
     expect(s.button(/^Kembali ke/).getAttribute("aria-label")).toBe("Kembali ke Beranda");
   });
 
+  it("a search for the course open, back on its Modul tab, opens it afresh with no step for Back", async () => {
+    const s = await openCourse("PL3002");
+    await tab(/^Pertemuan/);
+    await tab(/^Modul/);
+    await s.apply({ type: "navigate", route: { screen: "course", code: "PL3002" } });
+    expect(pickedTab()).toMatch(/^Modul/);
+    expect(s.button(/^Kembali ke/).getAttribute("aria-label")).toBe("Kembali ke Beranda");
+  });
+
   it("a link to the Task already open (its deadline reminder) leaves it as it is: a file being attached stays", async () => {
     screen = await openApp({ signedIn: true });
     const s = screen;

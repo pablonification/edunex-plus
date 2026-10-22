@@ -45,11 +45,15 @@ interface Place {
 /** Every part `route` names is `place`'s (a course's code, with any tab). */
 const shows = (place: Route, route: Route) => Object.entries(route).every(([key, value]) => (place as Record<string, unknown>)[key] === value);
 const same = (a: Route, b: Route) => shows(a, b) && shows(b, a);
-/** What a route puts on screen: a course's module shows only on its Modul tab (on another, it's kept for coming back to it). */
+/**
+ * What a route puts on screen: a course with no tab named is on Modul, and its module shows only there (on
+ * another tab, it's kept for coming back to it).
+ */
 function onScreen(route: Route): Route {
-  if (route.screen !== "course" || (route.tab ?? "modules") === "modules") return route;
-  const { module: _kept, ...rest } = route;
-  return rest;
+  if (route.screen !== "course") return route;
+  const { tab, module, ...course } = route;
+  if ((tab ?? "modules") !== "modules") return { ...course, tab };
+  return module === undefined ? course : { ...course, module };
 }
 
 const NavContext = createContext<Nav | null>(null);
