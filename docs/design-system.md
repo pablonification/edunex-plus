@@ -57,7 +57,8 @@ the Motion section below allows it.
    way they came, a row the Student removes fades out of its list, a highlight
    glides to the new pick, and a figure the Student just changed counts to its
    new value. Screens and rows don't animate in: switching is instant. It is
-   quick and quiet; nothing moves for decoration.
+   quick and quiet; nothing moves for decoration. The first run is the one
+   exception: seen once, it is where the app's delight goes.
 
 ## Foundation
 
@@ -261,6 +262,7 @@ keeps them equal).
 | Hover, press, color changes | Hover backgrounds: instant. Buttons press to 97% in 150 ms (not menu or popover triggers, not rows; a row's press is its darker background). Other color changes: 150 ms |
 | Switching light and dark | At once: nothing fades its color (`.no-transitions` on `<html>` for two frames) |
 | Screens and their rows | Nothing: switching screens or going further in is instant, and rows don't rise in |
+| Search (⌘K) | Nothing: there and gone at once, scrim included. It's opened from the keyboard many times a day, and a command palette that animates makes every one of those wait |
 | Dialogs (`animate-pop-in`, `animate-pop-out`; the scrim `animate-fade-in`, `animate-fade-out`) | In 200 ms from 98%, out 150 ms |
 | Popovers and tooltips (`animate-popover-in`, `animate-popover-out`) | 150 ms, growing from their control (`origin-(--radix-popover-content-transform-origin)`), so the side they open on shows. A tooltip grows in only after the wait; moving on to the next control shows its tooltip at once, and a tooltip goes at once |
 | Banners (`animate-slide-down`) | 200 ms from 6 px above |
@@ -270,7 +272,8 @@ keeps them equal).
 | A tab's content | Swaps at once; only the tab's highlight moves |
 | A segmented control's or tab list's highlight (`SlidingHighlight`) | Sits on the new pick at once and glides there from the old one as a transform (translate and scale), 150 ms ease-out |
 | A figure the Student just changed (`AnimatedNumber`) | Counts 400 ms ease-out with no overshoot, while the page's text is already the true value. A figure that changes on its own just changes |
-| Bars filling | 500 ms, when new data arrives. A window's time left (`CountdownBar`), which shrinks every minute, slides as a transform in 400 ms ease-out |
+| Bars filling | 500 ms, when new data arrives. A window's time left (`CountdownBar`), which shrinks every minute, slides as a transform in 400 ms ease-out. Work under way (`ProgressBar`: a hand-in, a download) slides as a transform too, 400 ms linear (progress doesn't ease), picking up from wherever it is when the next share comes in |
+| The first run (`ui/motion/arrival.ts`): the welcome screen, its reading step, the app's first look after them, the first-run scan | Seen once, so its parts arrive one after another (`ARRIVE`, `arriveAt`): 400 ms ease-out, rising 8 px, 60 ms apart in reading order, the app's mark first, growing in from 90%. A source that connects: the line under its name rises 4 px in 200 ms, and "Terhubung" grows in from 90% where its button was (only on a change, never on the first draw). "Lanjut": the mark glides to its place on the reading step (`useGlide`, a FLIP transform, 400 ms ease-standard) while the step's parts arrive 100 ms in; the counts tick up in whole numbers (`AnimatedNumber`); once Beranda's parts and the step's own are in, "Beranda siap" holds 600 ms, then the app eases in from 98% in 400 ms (`ARRIVE_APP`), that once. The first-run scan's lines arrive the same way, 100 ms into the dialog's own opening (also when it's opened again from Settings: still rare). With Reduce motion everything is there at once, and the reading step goes straight in |
 | Loading placeholders | 1.4 s pulse in four held steps, not every frame |
 
 **Rules.**
@@ -280,7 +283,10 @@ keeps them equal).
 - Things leave the way they came, a little quicker, and never grow from
   nothing: 98%, not 0.
 - Screens and rows never animate in; a row moves only when the Student's own
-  action removes it.
+  action removes it. The first run is the exception (above):
+  `test/app/ui-rules.test.ts` keeps its arrival classes in
+  `ui/motion/arrival.ts` (and the welcome screen's `animate-line-in` and
+  `animate-grow-in` in `welcome.tsx`), and that file to the first run.
 - No decoration: no glow, spotlight, tilt or parallax, and nothing loops except
   loading placeholders, spinners and live dots. A loop (`data-loop`, with
   `ref={pauseUnseen}` from `ui/motion/visible.ts`) rests while it is
@@ -373,6 +379,8 @@ Screens are composed, not styled one by one:
 | `AnimatedNumber` (`ui/motion/`) | A figure the Student just changed counts to its new value, in the app's number format; screen readers and copies only ever get the true value. |
 | `SlidingHighlight` (`ui/motion/`) | The highlight of a segmented control or tab list, gliding to the new pick. The group keeps its own buttons; items carry `data-highlight`. A rounded fill stretches a little while it glides between items of different widths. |
 | `DisclosurePanel`, `disclosureTrigger` (`ui/motion/`) | A panel opening smoothly under the screen's own button, which says what it controls. |
+| `useGlide` (`ui/motion/`) | Something that stays on screen while the page changes around it glides to its new place instead of jumping (the app's mark on the welcome screen): `before()` right before the change, then a FLIP transform. |
+| `ARRIVE`, `arriveAt` (`ui/motion/arrival.ts`) | The first run's parts arriving one after another. The first run only. |
 | `PresenceList`, `PresenceItem` (`ui/motion/`) | Rows the Student can remove (snoozed, handed in) without the list jumping or focus getting lost. A kit `Row` is a `PresenceItem` (a plain `<li>` outside a list that opts in), so a list opts in by wrapping its rows in `PresenceList`. Built on `Presence` (`ui/motion/presence.tsx`), which keeps a leaving child on screen until it has played its way out; the toasts use it too. |
 
 The shell: a sidebar (the app's icon and name, ⌘1–⌘6, courses with their dot, the Student's name

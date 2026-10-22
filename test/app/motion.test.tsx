@@ -603,6 +603,151 @@ describe("AnimatedNumber", () => {
   });
 });
 
+describe("the first run", () => {
+  /** The parts of the first run that arrive, in page order, with when each starts. */
+  const arrivals = () =>
+    [...document.querySelectorAll<HTMLElement>("[class*='animate-arrive']")].map((el) => Number.parseInt(el.style.animationDelay || "0", 10));
+  const span = (text: string) => [...document.querySelectorAll("span")].find((el) => el.textContent === text);
+  const shell = () => document.querySelector<HTMLElement>(".h-dvh.bg-canvas");
+
+  it("arrives a part at a time, in reading order, 60 ms apart, the app's mark first", async () => {
+    screen = await openApp({ firstScan: true });
+    expect(arrivals()).toEqual([0, 60, 120, 180, 240, 300]);
+    expect(document.querySelector("main img")?.className).toContain("motion-safe:animate-arrive-mark");
+  });
+
+  it("says a source connected with its new line rising in and Terhubung growing in where the button was", async () => {
+    screen = await openApp({ firstScan: true });
+    // Nothing more moves on the first draw: it arrives with the screen.
+    expect(document.querySelector("[class*='animate-line-in'], [class*='animate-grow-in']")).toBeNull();
+    await screen.click("Hubungkan Edunex");
+    expect(span("Dimas Pratama · 18223901")?.className).toContain("motion-safe:animate-line-in");
+    expect(span("Terhubung")?.className).toContain("motion-safe:animate-grow-in");
+    expect(span("Terhubung")?.className).toContain("origin-right");
+  });
+
+  /**
+   * The window's own longer timers (the reading step's), on a clock the test moves, so what it sees never
+   * depends on how fast this machine is; the harness's quick steps (0–5 ms) still run as usual.
+   */
+  function heldTimers() {
+    let now = 0;
+    let ids = 1_000_000;
+    const held = new Map<number, { at: number; run: () => void }>();
+    const set = globalThis.setTimeout;
+    const clear = globalThis.clearTimeout;
+    vi.spyOn(globalThis, "setTimeout").mockImplementation(((run: () => void, ms = 0, ...args: unknown[]) => {
+      if (ms < 100) return set(run, ms, ...args);
+      held.set(++ids, { at: now + ms, run });
+      return ids;
+    }) as typeof setTimeout);
+    vi.spyOn(globalThis, "clearTimeout").mockImplementation(((id: number) => {
+      if (!held.delete(id)) clear(id);
+    }) as typeof clearTimeout);
+    return {
+      /** Moves the clock on, running what falls due in order (and what those start, if it falls due too). */
+      advance: (ms: number) =>
+        act(async () => {
+          now += ms;
+          for (;;) {
+            const next = [...held].filter(([, timer]) => timer.at <= now).sort(([, a], [, b]) => a.at - b.at)[0];
+            if (!next) break;
+            held.delete(next[0]);
+            next[1].run();
+          }
+        }),
+    };
+  }
+
+  it("glides the app's mark down to the reading step instead of jumping, and keeps it gliding while the page redraws", async () => {
+    const motion = animating();
+    heldTimers();
+    screen = await openApp({ firstScan: true });
+    await screen.click("Hubungkan Edunex");
+    // jsdom lays nothing out: here the mark sits higher on the welcome form than on the shorter reading step.
+    const measure = HTMLElement.prototype.getBoundingClientRect;
+    vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (this: HTMLElement) {
+      if (this.firstElementChild?.tagName !== "IMG") return measure.call(this);
+      const top = document.querySelector("main h1")?.textContent?.startsWith("Membaca") ? 300 : 120;
+      return { top, left: 40, right: 104, bottom: top + 64, width: 64, height: 64, x: 40, y: top, toJSON: () => ({}) };
+    });
+    try {
+      await screen.click("Lanjut");
+      const mark = document.querySelector("main img")!.parentElement!;
+      const [glide] = motion.on(mark);
+      expect(glide.keyframes).toEqual([{ transform: "translate(0px, -180px)" }, { transform: "none" }]);
+      expect(glide.options).toMatchObject({ duration: DURATION.slow, easing: EASE.standard });
+      // Edunex says something new: the welcome screen around the mark redraws.
+      await screen.apply({ type: "status", status: { ...screen.store.status("edunex"), updatedAt: Date.now() } });
+      expect(glide.playState).toBe("running");
+      expect(motion.on(mark)).toHaveLength(1);
+    } finally {
+      vi.restoreAllMocks();
+    }
+  });
+
+  it("ticks the reading step's counts up in whole numbers", async () => {
+    const frames: FrameRequestCallback[] = [];
+    vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => frames.push(callback));
+    vi.stubGlobal("cancelAnimationFrame", () => undefined);
+    vi.spyOn(performance, "now").mockReturnValue(1000);
+    animating();
+    heldTimers();
+    try {
+      screen = await openApp({ firstScan: true });
+      await screen.click("Hubungkan Edunex");
+      await screen.click("Lanjut");
+      // One more Task comes in while the step shows: its count moves from 10 to 11. Look at it halfway.
+      const tasks = screen.store.dataset("edunex.tasks")!;
+      const value = tasks.value as unknown[];
+      await screen.apply({ type: "dataset", dataset: { ...tasks, value: [...value, value[0]], hash: `${tasks.hash}+1` } });
+      await act(async () => {
+        for (const callback of frames.splice(0)) callback(1000 + DURATION.slow / 2);
+      });
+      const counting = [...document.querySelectorAll("dd [aria-hidden]")].map((el) => el.textContent);
+      expect(counting).toHaveLength(1);
+      expect(counting[0]).toMatch(/^\d+$/);
+    } finally {
+      vi.unstubAllGlobals();
+      vi.restoreAllMocks();
+    }
+  });
+
+  it("says Beranda siap once its own parts are in, holds it a moment, then the app eases in that once", async () => {
+    animating();
+    const timers = heldTimers();
+    try {
+      screen = await openApp({ firstScan: true });
+      await screen.click("Hubungkan Edunex");
+      // Everything is read already; the step still arrives in full first, so "Beranda siap" is seen coming, and heard.
+      await screen.click("Lanjut");
+      expect(screen.text()).toContain("Menyiapkan Beranda");
+      await timers.advance(100 + 3 * 60 + DURATION.slow);
+      expect(screen.text()).toContain("Beranda siap");
+      expect(shell()).toBeNull();
+      await timers.advance(599);
+      expect(shell()).toBeNull();
+      await timers.advance(1);
+      expect(shell()?.className).toContain("motion-safe:animate-arrive-app");
+    } finally {
+      vi.restoreAllMocks();
+    }
+  });
+
+  it("with motion off, goes from reading straight to the app; a window that opens signed in shows it at once", async () => {
+    screen = await openApp({ firstScan: true });
+    await screen.click("Hubungkan Edunex");
+    await screen.click("Lanjut");
+    await screen.wait();
+    expect(screen.text()).not.toContain("Beranda siap");
+    expect(shell()).not.toBeNull();
+    screen.close();
+
+    screen = await openApp({ signedIn: true });
+    expect(shell()?.className).not.toContain("animate-");
+  });
+});
+
 describe("PresenceList", () => {
   const rows = (ids: string[]) => (
     <ul aria-label="Perlu kamu">

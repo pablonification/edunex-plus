@@ -3,7 +3,7 @@
 // Web Animations API's units (milliseconds, CSS easing strings).
 // test/app/motion.test.tsx keeps them equal.
 
-/** quick: press, tooltips, popovers, anything leaving, a highlight sliding. base: dialogs, panels opening, a gap closing. slow: numbers changing. */
+/** quick: press, tooltips, popovers, anything leaving, a highlight sliding. base: dialogs, panels opening, a gap closing. slow: numbers changing, the welcome screen's mark gliding. */
 export const DURATION = { quick: 150, base: 200, slow: 400 } as const;
 
 /** The easing curves' control points, for code that eases by hand (a counting number). */

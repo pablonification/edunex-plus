@@ -88,8 +88,8 @@
      reads the same values from src/app/ui/motion/tokens.ts (a test keeps them equal).
      quick: press, colors, tooltips, popovers, anything leaving, a highlight sliding.
      base: dialogs, a panel opening, the gap closing after a row or toast leaves.
-     slow: a number changing, a bar filling.
-     Screens and their rows never animate in: switching is instant. */
+     slow: a number changing, a bar filling, the first run arriving.
+     Screens and their rows never animate in: switching is instant (the first run aside). */
   --duration-quick: 150ms;
   --duration-base: 200ms;
   --duration-slow: 400ms;
@@ -267,6 +267,15 @@
   --animate-popover-out: pop-out var(--duration-quick) var(--ease-standard) both;
   --animate-slide-down: slide-down var(--duration-base) var(--ease-out) both;
   --animate-toast-in: toast-in var(--duration-base) var(--ease-out);
+  /* The first run only (welcome.tsx, the app's first look after it, the first-run scan): seen once, so
+     its parts arrive one after another instead of all at once. Each waits its turn (animation-delay)
+     already hidden, then holds nothing once in, so a later change never replays it. */
+  --animate-arrive: arrive var(--duration-slow) var(--ease-out) backwards;
+  --animate-arrive-mark: grow-in var(--duration-slow) var(--ease-out) backwards;
+  --animate-arrive-app: pop-in var(--duration-slow) var(--ease-out);
+  /* On the welcome screen: a source just connected (its "Terhubung", the line under its name), and "Beranda siap". */
+  --animate-grow-in: grow-in var(--duration-base) var(--ease-out);
+  --animate-line-in: line-in var(--duration-base) var(--ease-out);
   /* Stepped, as T3 Code's loops: a few held frames per cycle instead of one every frame. */
   --animate-shimmer: shimmer 1.4s steps(4, jump-none) infinite;
 
@@ -307,6 +316,26 @@
     from {
       opacity: 0;
       transform: translateY(-6px);
+    }
+  }
+  /* The first run: a part rising into place; the app's mark and a "Terhubung" growing in (from 90%,
+     never from nothing); a row's line saying something new. */
+  @keyframes arrive {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+  }
+  @keyframes grow-in {
+    from {
+      opacity: 0;
+      transform: scale(0.9);
+    }
+  }
+  @keyframes line-in {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
     }
   }
   @keyframes shimmer {

@@ -21,6 +21,7 @@ import { cx } from "../ui/cx";
 import { Badge, CourseDot } from "../ui/display";
 import { type IconProps, Icons } from "../ui/icons";
 import { factsLabel } from "../ui/layout";
+import { ARRIVE_APP } from "../ui/motion/arrival";
 import { Tooltip, toast } from "../ui/overlays";
 import { PanelBoundary } from "../ui/panel-boundary";
 import { AlertsBell } from "./alerts";
@@ -57,18 +58,19 @@ const SCREENS: Record<Route["screen"], { loaded(): boolean } | null> = {
 /** Beranda comes with the window; any other screen once its code is in. */
 const drawsAtOnce = (route: Route) => SCREENS[route.screen]?.loaded() ?? true;
 
-export function Shell() {
+/** `arriving`: it comes in from the welcome screen, so it eases in that once (the first run, docs/design-system.md). */
+export function Shell({ arriving = false }: { arriving?: boolean }) {
   // No PDF from the last screen is left open over the next one (a search result, a notification, ⌘[); with
   // filling not saved, the screen waits for the Student's answer.
   const pdf = usePdfViewer();
   return (
     <NavProvider leave={pdf.close} drawsAtOnce={drawsAtOnce}>
-      <Layout />
+      <Layout arriving={arriving} />
     </NavProvider>
   );
 }
 
-function Layout() {
+function Layout({ arriving }: { arriving: boolean }) {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [scanOpen, setScanOpen] = useState(false);
@@ -115,7 +117,7 @@ function Layout() {
   }, [key]);
 
   return (
-    <div className="flex h-dvh overflow-hidden bg-canvas text-fg">
+    <div className={cx("flex h-dvh overflow-hidden bg-canvas text-fg", arriving && ARRIVE_APP)}>
       <PanelBoundary name="sidebar" compact>
         <Sidebar onSettings={() => setSettingsOpen(true)} />
       </PanelBoundary>

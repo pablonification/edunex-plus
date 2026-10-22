@@ -266,6 +266,47 @@ describe("the update plan", () => {
     expect(tries).toBe(2);
   });
 
+  it("downloads once when asked twice at the same moment (at start, and the release just found), so its bar only goes forward", async () => {
+    let downloads = 0;
+    const { updater, sent, settled } = setUp({
+      download: async (_file, progress) => {
+        downloads++;
+        progress(0.5);
+        await new Promise((resolve) => setImmediate(resolve));
+        progress(0.9);
+        return { path: "/tmp/x.zip", sha512: SHA, size: 100 };
+      },
+    });
+    // The window asks how far it got while both are still working out how this copy updates.
+    await Promise.all([updater.fetch(), updater.fetch(), updater.state(), updater.download()]);
+    await settled();
+    expect(downloads).toBe(1);
+    expect(sent.map((s) => [s.step, s.progress])).toEqual([
+      ["downloading", null],
+      ["downloading", 0.5],
+      ["downloading", 0.9],
+      ["ready", 1],
+    ]);
+  });
+
+  it("asks again how this copy updates when the first answer failed, everyone waiting on it told so", async () => {
+    let asked = 0;
+    const { updater, settled, sent } = setUp({
+      way: async () => {
+        asked++;
+        if (asked === 1) throw new Error("EACCES");
+        return { kind: "mac", arch: "arm64" };
+      },
+    });
+    const first = await Promise.allSettled([updater.state(), updater.fetch()]);
+    expect(first.map((result) => result.status)).toEqual(["rejected", "rejected"]);
+    expect(asked).toBe(1);
+    await updater.fetch();
+    await settled();
+    expect(asked).toBe(2);
+    expect(sent.at(-1)).toMatchObject({ step: "ready", version: "1.2.0" });
+  });
+
   it("restarting for it puts it in place once, opened again", async () => {
     const { updater, reopened, settled } = setUp();
     await updater.download();

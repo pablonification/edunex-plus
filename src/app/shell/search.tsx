@@ -23,7 +23,7 @@ import { cx } from "../ui/cx";
 import { Kbd } from "../ui/display";
 import { type IconProps, Icons } from "../ui/icons";
 import { factsLabel, Meta } from "../ui/layout";
-import { ignoreClosingClick, PANEL_MOTION_CLASS, SCRIM_CLASS, useReturnFocus } from "../ui/overlays";
+import { SCRIM_STILL, useReturnFocus } from "../ui/overlays";
 import { isBuilt } from "./built";
 import { refreshNow } from "./source-status";
 
@@ -98,17 +98,16 @@ export function SearchPalette({ open, onOpenChange, onSettings }: { open: boolea
   return (
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
       <DialogPrimitive.Portal>
-        <DialogPrimitive.Overlay className={cx(SCRIM_CLASS, "z-(--z-dialog)")} />
+        {/* Opened from the keyboard many times a day, so it is there and gone at once, as a command palette
+            should be: no growing in or fading out to wait through (docs/design-system.md, Motion). */}
+        <DialogPrimitive.Overlay className={cx(SCRIM_STILL, "z-(--z-dialog)")} />
         <DialogPrimitive.Content
           aria-describedby={undefined}
           onOpenAutoFocus={onOpenAutoFocus}
           onCloseAutoFocus={onCloseAutoFocus}
-          onClickCapture={ignoreClosingClick}
-          // It hangs from the top, so it grows from there and leaves the same way, its results still in it.
           className={cx(
-            "fixed top-[12vh] left-1/2 z-(--z-dialog) flex w-[min(620px,calc(100vw-48px))] origin-top -translate-x-1/2 flex-col overflow-hidden",
+            "fixed top-[12vh] left-1/2 z-(--z-dialog) flex w-[min(620px,calc(100vw-48px))] -translate-x-1/2 flex-col overflow-hidden",
             "rounded-2xl bg-raised text-fg shadow-dialog ring-1 ring-black/10 focus:outline-none dark:ring-white/10",
-            PANEL_MOTION_CLASS,
           )}
         >
           <DialogPrimitive.Title className="sr-only">{t("search.open")}</DialogPrimitive.Title>

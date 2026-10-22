@@ -4,7 +4,7 @@
 // Edunex, SIX and ITB calendar.
 import { act } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { finishLeaving, playCssAnimations } from "./fake-animations";
+import { playCssAnimations } from "./fake-animations";
 import { openApp } from "./harness";
 
 let screen: Awaited<ReturnType<typeof openApp>> | null = null;
@@ -201,32 +201,32 @@ describe("quick search", () => {
     expect(activeRow()).toMatch(/Mata kuliah↵$/);
   });
 
-  it("opens one thing, however fast the second Enter or click while it leaves", async () => {
+  it("is there and gone at once, as a command palette should be, and opens one thing however fast the second Enter or click", async () => {
+    // Panels play their CSS animations here, as in the window: the palette has none to wait for.
     playCssAnimations();
     screen = await openApp({ signedIn: true, six: true });
     await commandK();
+    const opened = palette()!;
+    const scrim = opened.previousElementSibling as HTMLElement;
+    expect(scrim.className).toContain("bg-scrim");
+    expect([opened.className, scrim.className].join(" ")).not.toMatch(/animate-/);
     await type("muat ulang");
-    const leaving = palette()!;
-    const result = leaving.querySelector<HTMLElement>("[role=option]")!;
+    const result = opened.querySelector<HTMLElement>("[role=option]")!;
     const refreshes = () => screen!.calls.filter((call) => call.name === "sync.refresh").length;
     await press("Enter");
     const once = refreshes();
     expect(once).toBeGreaterThan(0);
-    expect(leaving.isConnected && leaving.dataset.state).toBe("closed");
-    expect(document.activeElement).toBe(input());
+    expect(palette()).toBeNull();
     await press("Enter");
     await act(async () => result.click());
     expect(refreshes()).toBe(once);
 
-    // Opened again before it has gone, it starts afresh, and Enter opens again.
+    // Opened again, it starts afresh, and Enter opens again.
     await commandK();
-    expect(palette()).toBe(leaving);
-    expect(leaving.dataset.state).toBe("open");
     expect(input()?.value).toBe("");
     await type("muat ulang");
     await press("Enter");
     expect(refreshes()).toBe(2 * once);
-    await finishLeaving(leaving);
     expect(palette()).toBeNull();
   });
 
