@@ -444,6 +444,16 @@ jobs:
           pattern: app-*
           path: installers
           merge-multiple: true
+      - name: Write each file's SHA-256 checksum
+        # SHA256SUMS.txt goes on the release beside the installers, so a student can check that
+        # a download is the file this workflow built (docs/install.md, "Check a download").
+        working-directory: installers
+        run: |
+          shopt -s nullglob
+          files=(*.dmg *.zip *.exe *.deb *.AppImage)
+          if (( ${#files[@]} == 0 )); then echo "No installers to sum" >&2; exit 1; fi
+          sha256sum -- "${files[@]}" > SHA256SUMS.txt
+          cat SHA256SUMS.txt
       - name: Put them in a draft release
         env:
           GH_TOKEN: ${{ github.token }}

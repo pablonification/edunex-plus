@@ -114,6 +114,19 @@ away: use the `.deb` there (it sets the sandbox up), or start the AppImage with 
 Saving your sign-in between launches needs a keyring (GNOME Keyring or KWallet). Without one,
 the app still works but asks you to sign in again after each restart, and Settings says so.
 
+## Check a download (optional)
+
+Every release also lists `SHA256SUMS.txt`: one fingerprint per file, written by the same GitHub
+workflow that built them. To check that the file you downloaded is that file, print its
+fingerprint and find the same line in `SHA256SUMS.txt`:
+
+- **Windows** (PowerShell, in your Downloads folder): `Get-FileHash .\Edunex-Plus-Setup-<version>.exe`.
+  Windows prints it in capitals. It's the same fingerprint.
+- **macOS** (Terminal): `shasum -a 256 ~/Downloads/Edunex-Plus-<version>-arm64.dmg`
+- **Linux**: `sha256sum ~/Downloads/edunex-plus_<version>_amd64.deb`
+
+If they don't match, don't open the file. Download it again from the release page.
+
 ## Updates
 
 Once a day the app asks GitHub whether a newer release exists. To ask right away, open Settings:
