@@ -5,12 +5,14 @@
 // and ITB's calendar.
 import { useCallback, useMemo } from "react";
 import { type Exam, mergeExams } from "../core/exams";
+import type { SnoozeEntry } from "../core/models";
 import { edunexMeetings, meetingsOutsideSix, type ScheduleInput, taskWindows } from "../core/schedule";
 import { isOpenStatus, taskStatus } from "../core/tasks";
-import { doneList, type TodoItem, todoList } from "../core/todo";
+import { doneList, putOffLate, type TodoItem, todoList } from "../core/todo";
 import { useTerm, useTermCourses } from "./courses";
 import { useExamMarkList } from "./exam-marks";
 import { useNow } from "./i18n";
+import { useSnoozeEntries } from "./snoozes";
 import { useDataset } from "./store";
 
 /** A course's name by its code, the one name it has everywhere (see ./courses), else the given fallback. */
@@ -69,8 +71,10 @@ export function useExams(): Exam[] | undefined {
 }
 
 export interface Todo {
-  /** Everything still ahead, in order (core/todo.ts). */
+  /** Everything still ahead, in order (core/todo.ts), but the late rows the Student put off. */
   items: TodoItem[];
+  /** Late rows put off ("Ingatkan nanti"), with until when: out of the list and its count until then, or until the Task changes. */
+  putOff: { item: TodoItem; entry: SnoozeEntry }[];
   done: ReturnType<typeof doneList>;
   exams: Exam[];
   now: number;
@@ -85,12 +89,14 @@ export function useTodo(): Todo | undefined {
   const tasks = useDataset("edunex.tasks");
   const exams = useExams();
   const marks = useExamMarkList();
+  const snoozes = useSnoozeEntries();
   const now = useMinute();
   return useMemo(() => {
     if (!Array.isArray(tasks)) return undefined;
     const input = { tasks, exams: exams ?? [], marks, now };
-    return { items: todoList(input), done: doneList(input), exams: exams ?? [], now };
-  }, [tasks, exams, marks, now]);
+    const { shown, putOff } = putOffLate(todoList(input), snoozes, now);
+    return { items: shown, putOff, done: doneList(input), exams: exams ?? [], now };
+  }, [tasks, exams, marks, snoozes, now]);
 }
 
 /** The exam each SIX exam session belongs to, by SIX meeting id: the id of the exam page it opens. */

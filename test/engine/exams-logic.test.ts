@@ -72,7 +72,6 @@ describe("the merged exam list", () => {
       disagree: false,
       takeHomeApart: wib("2026-10-22T23:50:00"),
       at: wib("2026-10-15T11:00:00"),
-      last: wib("2026-10-22T23:50:00"),
     });
     expect(exam.six.map((s) => s.room)).toEqual(["TVST C"]);
     expect(exam.tasks.map((t) => t.title)).toEqual(["UTS Markom"]);
@@ -174,7 +173,6 @@ describe("the merged exam list", () => {
   it("an Edunex exam with only its start is behind the Student once its day is over, not the moment it starts", () => {
     const online = { id: "e1", courseId: 95001, title: "UTS daring", start: wib("2026-10-14T09:00:00"), end: null };
     const [exam] = mergeExams({ edunexExams: { PL3002: [online] }, now });
-    expect(exam.last).toBe(wib("2026-10-15T00:00:00"));
     expect(examAhead(exam, wib("2026-10-14T10:00:00"))).toBe(true);
     expect(examAhead(exam, wib("2026-10-15T00:00:00"))).toBe(false);
   });

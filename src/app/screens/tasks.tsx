@@ -30,10 +30,10 @@ import {
   taskHistory,
   taskStatus,
 } from "../../core/tasks";
-import { type TodoGroup, type TodoItem, todoCount, todoCounted, todoForCourse, todoGroup } from "../../core/todo";
+import { lateSnoozable, type TodoGroup, type TodoItem, todoCount, todoCounted, todoForCourse, todoGroup } from "../../core/todo";
 import { answerShape, editableInApp } from "../answer-html";
 import { useAttendance } from "../attendance";
-import { ActionError } from "../bridge";
+import { ActionError, errorKey } from "../bridge";
 import { type TermCourse, useTermCourses } from "../courses";
 import { useOpenExternal } from "../hooks";
 import { type Format, type Translate, useFormat, useNow, useT } from "../i18n";
@@ -44,6 +44,8 @@ import { canView, isPdfName, useAnswerAttach, usePdfViewer } from "../pdf";
 import { type Todo, useExams, useTodo } from "../schedule-data";
 import { isBuilt } from "../shell/built";
 import { useRefresh, useSignIn } from "../shell/source-status";
+import { canSnooze, refocus, SnoozeMenu } from "../snooze-menu";
+import { useSnoozes } from "../snoozes";
 import { useBridge, useDataset, useStatus } from "../store";
 import { Button, Segmented, useRadioKeys } from "../ui/controls";
 import { cx } from "../ui/cx";
@@ -119,10 +121,13 @@ export function TasksScreen() {
   // An exam period going on sits on top: everything this week happens inside it.
   const during = items.filter((item) => item.kind === "period" && item.state === "during");
   const rest = items.filter((item) => !during.includes(item));
+  // Late rows put off ("Ingatkan nanti") are out of the list and its counts; Terlambat says how many, and shows them.
+  const putOff = (todo?.putOff ?? []).filter(({ item }) => mine(item.course ?? ""));
   const groups = GROUPS.map(({ group, title }) => ({ group, title, items: rest.filter((item) => todoGroup(item, now) === group) })).filter(
-    (group) => group.items.length > 0,
+    (group) => group.items.length > 0 || (group.group === "overdue" && putOff.length > 0),
   );
-  const nothingToDo = !rest.some(todoCounted);
+  // Never "nothing to do" while something is only put off.
+  const nothingToDo = !rest.some(todoCounted) && putOff.length === 0;
   // Signed out of SIX, only Edunex's exams are known: said once, at the end of the list, with the way to SIX's timetable.
   const examsNoSix = useStatus("six").state === "signed-out" && show === "open" && course === null;
   // Courses with something in either segment, for the filter.
@@ -207,13 +212,17 @@ export function TasksScreen() {
           ) : (
             groups.map((group) => (
               <Section key={group.group} id={`tasks-${group.group}`} title={t(group.title)} count={todoCount(group.items) || undefined}>
-                <List label={t(group.title)}>
-                  <PresenceList>
-                    {group.items.map((item) => (
-                      <TodoRow key={item.key} item={item} />
-                    ))}
-                  </PresenceList>
-                </List>
+                {group.items.length > 0 && (
+                  <List label={t(group.title)}>
+                    {/* A row put off fades out, and focus moves on to the next (or to "ditunda" under them). */}
+                    <PresenceList>
+                      {group.items.map((item) => (
+                        <TodoRow key={item.key} item={item} />
+                      ))}
+                    </PresenceList>
+                  </List>
+                )}
+                {group.group === "overdue" && <PutOff putOff={putOff} />}
               </Section>
             ))
           )}
@@ -224,11 +233,96 @@ export function TasksScreen() {
   );
 }
 
-/** A row of the one list, whatever it is: a Task, an exam's part, an exam period. */
+/** A row's id, so focus can come back to it (a late Task brought back from what's put off). */
+const todoRowId = (key: string) => `todo-${key}`;
+
+/** The Task a late row is about, for its name: a Task, or an exam's take-home. */
+const lateTitle = (item: TodoItem) =>
+  item.kind === "task" ? item.task.title : item.kind === "exam" && item.part?.kind === "takehome" ? item.part.task.title : "";
+
+/**
+ * A row of the one list, whatever it is: a Task, an exam's part, an exam
+ * period. A late one can be put off ("Ingatkan nanti") as on Beranda, the
+ * same snooze for the same Task.
+ */
 export function TodoRow({ item, inCourse = false }: { item: TodoItem; inCourse?: boolean }) {
-  if (item.kind === "task") return <TaskRow task={item.task} status={item.status} meta={inCourse ? "module" : "course"} late={item.late} />;
+  const now = useNow();
+  const late = lateSnoozable(item, now);
+  const snooze = late && canSnooze(late, now) ? <SnoozeMenu item={late} name={lateTitle(item)} /> : undefined;
+  const id = todoRowId(item.key);
+  if (item.kind === "task")
+    return <TaskRow task={item.task} status={item.status} meta={inCourse ? "module" : "course"} late={item.late} id={id} actions={snooze} />;
   if (item.kind === "period") return <PeriodRow item={item} inCourse={inCourse} />;
-  return <ExamPartRow item={item} inCourse={inCourse} />;
+  return <ExamPartRow item={item} inCourse={inCourse} id={id} actions={snooze} />;
+}
+
+/** "1 ditunda · Tampilkan" under the late rows, as on Beranda: quiet, opening what's put off, each with Ingatkan sekarang. */
+export function PutOff({ putOff }: { putOff: Todo["putOff"] }) {
+  const t = useT();
+  const [open, setOpen] = useState(false);
+  // Closed once nothing is put off, so the next snooze doesn't find the list open.
+  if (open && !putOff.length) setOpen(false);
+  if (!putOff.length) return null;
+  return (
+    <>
+      <div className="mt-2.5 px-1">
+        <Meta className="text-small text-muted">
+          <span className="inline-flex items-center gap-1.5">
+            <Icons.Snooze className="size-3.5 shrink-0 text-faint" />
+            {t("snooze.count", { count: putOff.length })}
+          </span>
+          <button
+            type="button"
+            data-snoozed=""
+            aria-expanded={open}
+            onClick={() => setOpen(!open)}
+            className="focus-ring rounded font-medium text-accent-fg hover:underline"
+          >
+            {open ? t("snooze.hideList") : t("snooze.showList")}
+          </button>
+        </Meta>
+      </div>
+      {open && (
+        <List label={t("snooze.list")} className="mt-2.5">
+          {putOff.map(({ item, entry }) => (
+            <PutOffRow key={item.key} item={item} entry={entry} />
+          ))}
+        </List>
+      )}
+    </>
+  );
+}
+
+/** A late Task put off: what it is, when it's back, and the way to bring it back now. */
+function PutOffRow({ item, entry }: Todo["putOff"][number]) {
+  const t = useT();
+  const f = useFormat();
+  const { wake } = useSnoozes();
+  const title = lateTitle(item);
+  const when = f.dueLabel(entry.until);
+  const wakeNow = (button: HTMLElement) => {
+    const row = button.closest("li");
+    const sibling = (row?.nextElementSibling ?? row?.previousElementSibling)?.querySelector<HTMLElement>("button");
+    void wake(entry.id).catch((error: unknown) => toast(t(errorKey(error)), "danger"));
+    // Its row leaves with the button: on to the next thing put off, else to the Task, back in the list.
+    refocus(() => sibling ?? document.getElementById(todoRowId(item.key)));
+  };
+  return (
+    <ListRow
+      title={title}
+      meta={
+        <Meta>
+          {item.course ?? ""}
+          {entry.reason === "change" ? t("snooze.untilChange", { when }) : t("snooze.until", { when })}
+        </Meta>
+      }
+      trailing={
+        <Button size="sm" variant="ghost" aria-label={t("snooze.wakeFor", { title })} onClick={(event) => wakeNow(event.currentTarget)}>
+          {t("snooze.wake")}
+        </Button>
+      }
+    />
+  );
 }
 
 /** Done: handed in, past exams, closed; each newest first. A take-home keeps its exam's look. */
@@ -276,13 +370,12 @@ function FilterChip({ radio, children }: { radio: ReturnType<ReturnType<typeof u
   );
 }
 
-/** Before the first Task list has arrived: placeholders while it's on its way, else why it isn't. */
-/** Under the exams, without SIX: SIX's exam timetable is missing, and the one way to get it. */
+/** At the end of the list, without SIX: SIX's exam timetable is missing, and the one way to get it. */
 function ExamsNoSix() {
   const t = useT();
   const { signIn, busy } = useSignIn();
   return (
-    <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
+    <div className="mt-8 flex flex-wrap items-center gap-x-4 gap-y-2">
       <p className="text-small text-muted">{t("tasks.examsNoSix")}</p>
       <Button size="sm" busy={busy} onClick={() => void signIn("six")}>
         {t("action.signInTo", { source: "SIX" })}
@@ -291,6 +384,7 @@ function ExamsNoSix() {
   );
 }
 
+/** Before the first Task list has arrived: placeholders while it's on its way, else why it isn't. */
 function NoTasksYet() {
   const t = useT();
   const status = useStatus("edunex");
@@ -340,7 +434,15 @@ export function TaskRows({ tasks, meta = "course", label }: { tasks: readonly Ta
  * late (no chip on every row), and the row says it's still taken. A take-home
  * in Done keeps its exam's look: the tag, the course, "Take-home".
  */
-function TaskRow({ task, status, meta = "course", late = false, exam }: Row & { meta?: "course" | "module" | "none"; late?: boolean; exam?: Exam }) {
+function TaskRow({
+  task,
+  status,
+  meta = "course",
+  late = false,
+  exam,
+  id,
+  actions,
+}: Row & { meta?: "course" | "module" | "none"; late?: boolean; exam?: Exam; id?: string; actions?: ReactNode }) {
   const t = useT();
   const { go } = useNav();
   const course = useCourse(task.courseCode);
@@ -348,7 +450,9 @@ function TaskRow({ task, status, meta = "course", late = false, exam }: Row & { 
   const chip = LOUD.includes(status) && !(late && status === "overdue");
   return (
     <ListRow
+      id={id}
       onClick={() => go({ screen: "task", taskId: task.id })}
+      actions={actions}
       title={
         exam ? (
           <span className="flex min-w-0 items-center gap-2">

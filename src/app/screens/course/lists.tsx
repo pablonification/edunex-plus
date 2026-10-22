@@ -19,7 +19,7 @@ import { Icons } from "../../ui/icons";
 import { List, Section } from "../../ui/layout";
 import { PresenceList } from "../../ui/motion/presence-list";
 import { WebLink } from "../../ui/rich-text";
-import { DoneGroups, TodoRow } from "../tasks";
+import { DoneGroups, PutOff, TodoRow } from "../tasks";
 
 /** No exam known. Signed out of SIX, only Edunex was asked: said so, with the way to SIX's exam timetable. */
 function NoExams() {
@@ -47,6 +47,7 @@ export function TasksTab({ code, exams }: { code: string; exams: Exam[] }) {
   const todo = useTodo();
   if (!todo) return null;
   const items = todoForCourse(todo.items, code);
+  const putOff = todo.putOff.filter(({ item }) => item.course === code);
   const done = {
     handedIn: todo.done.handedIn.filter((task) => task.courseCode === code),
     pastExams: todo.done.pastExams.filter((past) => past.exam.courseCode === code),
@@ -66,6 +67,7 @@ export function TasksTab({ code, exams }: { code: string; exams: Exam[] }) {
         ) : (
           <p className="text-body text-muted">{t("course.nothingTodo")}</p>
         )}
+        <PutOff putOff={putOff} />
         {/* With no exam anywhere, said under the list, never floating between the Task lists. */}
         {exams.length === 0 && <NoExams />}
       </Section>

@@ -82,8 +82,6 @@ export interface Exam {
   week: CalendarEvent | null;
   /** The earliest date any system gives (ms); null when none does yet. */
   at: number | null;
-  /** The latest date any system gives: past it, the exam is behind the Student. */
-  last: number | null;
   /** SIX and Edunex both give a sitting, on no common day. */
   disagree: boolean;
   /** When SIX also lists a class sitting and a take-home is due on another day: that deadline (the soonest). Two parts, not a conflict. */
@@ -139,7 +137,6 @@ export function mergeExams(sources: ExamSources): Exam[] {
         inOutline: false,
         week: null,
         at: null,
-        last: null,
         disagree: false,
         takeHomeApart: null,
       };
@@ -192,8 +189,6 @@ export function mergeExams(sources: ExamSources): Exam[] {
     const dues = exam.tasks.flatMap((t) => (t.dueAt !== null ? [t.dueAt] : []));
     const times = [...exam.six.map((s) => s.start), ...sittings, ...dues];
     exam.at = times.length ? Math.min(...times) : null;
-    const ends = exam.edunex.flatMap((e) => (e.start !== null ? [edunexEnd(e)] : []));
-    exam.last = times.length ? Math.max(...[...exam.six.map((s) => s.end), ...ends, ...dues]) : null;
     // A sitting is compared with sittings only: a take-home's deadline isn't the day of an exam.
     exam.disagree = sixDays.size > 0 && sittings.length > 0 && !sittings.some((t) => sixDays.has(wibDay(t)));
     exam.takeHomeApart = sixDays.size ? (dues.filter((t) => !dueOn(t, sixDays)).sort((a, b) => a - b)[0] ?? null) : null;
@@ -250,7 +245,8 @@ export type ExamPart =
       kind: "window";
       id: string;
       at: number;
-      opensAt: number;
+      /** null when Edunex gives only its close: then it's taken as open, with no way to mark it (its length isn't known). */
+      opensAt: number | null;
       /** Edunex takes it now. */
       open: boolean;
       /** The Student marked it done, then Edunex moved it: it's back, and says so. */
@@ -259,18 +255,30 @@ export type ExamPart =
     }
   | { kind: "takehome"; id: string; at: number | null; task: Task; status: TaskStatus };
 
-/** Some system gives it a day: a SIX sitting, a dated Edunex exam or a take-home. */
-export const examDated = (exam: Exam): boolean => exam.six.length > 0 || exam.edunex.some((e) => e.start !== null) || exam.tasks.length > 0;
+/** Some system gives it a day: a SIX sitting, a dated Edunex exam (its start or its close) or a take-home. */
+export const examDated = (exam: Exam): boolean => exam.six.length > 0 || exam.edunex.some((e) => e.start !== null || e.end !== null) || exam.tasks.length > 0;
 
-/** The exam's parts still ahead, soonest first (a take-home with no deadline last). A window the Student marked done is behind. */
+/**
+ * The exam's parts still ahead, soonest first (a take-home with no deadline
+ * last). A window the Student marked done is behind. An Edunex sitting on a
+ * day SIX has one is the same sitting: SIX's time and room stand for it.
+ */
 export function examParts(exam: Exam, now: number, marks: readonly ExamMark[] = []): ExamPart[] {
   const parts: ExamPart[] = [];
   for (const session of exam.six)
     if (session.end > now)
       parts.push({ kind: "sitting", id: `six:${session.id}`, at: session.start, end: session.end, source: "six", room: session.room, title: null });
+  const sixDays = new Set(exam.six.map((session) => wibDay(session.start)));
   for (const item of exam.edunex) {
-    if (item.start === null || edunexEnd(item) <= now) continue;
+    if (item.start === null) {
+      // Only its close: due then, like a deadline.
+      if (item.end !== null && item.end > now)
+        parts.push({ kind: "window", id: `edunex:${item.id}`, at: item.end, opensAt: null, open: true, moved: false, edunex: item });
+      continue;
+    }
+    if (edunexEnd(item) <= now) continue;
     if (!isExamWindow(item)) {
+      if (sixDays.has(wibDay(item.start))) continue;
       parts.push({ kind: "sitting", id: `edunex:${item.id}`, at: item.start, end: item.end, source: "edunex", room: null, title: item.title });
       continue;
     }

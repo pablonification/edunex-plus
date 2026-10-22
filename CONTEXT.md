@@ -79,7 +79,7 @@ _Avoid_: exam season, "Minggu UTS" (Minggu reads as Sunday next to a date)
 _Avoid_: dismiss, hide, complete
 
 **Snooze**:
-"Ingatkan nanti" (Remind me later): the Student puts a Beranda item or a course's attendance banner off until a moment that fits it ("Besok pagi", "Sehari sebelum tenggat", "Saat dibuka"). It always ends: at that moment, at the item's last useful moment, or when the item changes (a moved deadline, a new count, turning urgent), two weeks at most. Kept on this computer; OS notifications and the bell are not affected.
+"Ingatkan nanti" (Remind me later): the Student puts a Beranda item, a late Task in Tugas & Ujian (the same snooze as Beranda's for that Task) or a course's attendance banner off until a moment that fits it ("Besok pagi", "Sehari sebelum tenggat", "Saat dibuka"). It always ends: at that moment, at the item's last useful moment, or when the item changes (a moved deadline, a new count, turning urgent), two weeks at most. Kept on this computer; OS notifications and the bell are not affected.
 _Avoid_: dismiss, mute, "don't remind me again" (nothing is hidden for good)
 
 ### SIX and ITB's rules

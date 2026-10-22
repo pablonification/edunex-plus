@@ -22,13 +22,11 @@ export const tasksStrings = {
     en: "New Tasks and exam days show up here as soon as Edunex or SIX lists them.",
   },
   "tasks.showAll": { id: "Tampilkan semua", en: "Show all" },
-  "tasks.allHandedIn": { id: "Semua sudah dikumpulkan", en: "All handed in" },
   "tasks.noneDone": { id: "Belum ada tugas yang selesai", en: "Nothing handed in yet" },
   "tasks.examsNoSix": {
     id: "Ujian dari jadwal SIX (tanggal dan ruangnya) muncul setelah SIX terhubung.",
     en: "Exams from SIX's timetable (their dates and rooms) show once SIX is connected.",
   },
-  "tasks.none": { id: "Belum ada tugas semester ini", en: "No Tasks this semester yet" },
   "tasks.unavailable": { id: "Tugas belum bisa dimuat", en: "Your Tasks couldn't be loaded yet" },
   "tasks.dueNext": { id: "Tenggat berikutnya", en: "Due next" },
 

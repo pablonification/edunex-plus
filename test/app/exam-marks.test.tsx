@@ -65,7 +65,7 @@ describe("Mark as done on an Edunex exam open for days", () => {
       // Edunex's own id and the window it had, and when (the sync took a few seconds of the pretend clock).
       { id: "edunex-exam:88002", facts: `${Date.parse("2026-10-19T08:00:00+07:00")}|${Date.parse("2026-10-30T23:59:00+07:00")}`, at: expect.any(Number) },
     ]);
-    expect(s.store.dataset("local.examMarks")?.value[0].at).toBeGreaterThanOrEqual(Date.parse(NOW));
+    expect((s.store.dataset("local.examMarks")!.value as { at: number }[])[0].at).toBeGreaterThanOrEqual(Date.parse(NOW));
 
     await s.click("Urungkan");
     expect(quizRow()).toBeDefined();

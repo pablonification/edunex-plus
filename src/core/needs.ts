@@ -475,8 +475,11 @@ export const taskProvider: NeedProvider = {
   },
 };
 
-/** A Task's own item, whatever else speaks for it (a Presence window it's handed in for); null when it needs nothing. */
-function taskNeed(task: Task, now: number): NeedDraft | null {
+/**
+ * A Task's own item, whatever else speaks for it (a Presence window it's handed in for); null when it needs nothing.
+ * Tugas & Ujian puts off a late Task as this item, so one snooze holds in both places.
+ */
+export function taskNeed(task: Task, now: number): NeedDraft | null {
   const status = taskStatus(task, now);
   const base = {
     kind: "task",
@@ -601,7 +604,7 @@ export const examProvider: NeedProvider = {
       if (!part || part.at - now > AHEAD) continue;
       const next: ExamSitting =
         part.kind === "window"
-          ? { start: part.opensAt, end: part.at, room: null, source: "edunex" }
+          ? { start: part.opensAt ?? part.at, end: part.at, room: null, source: "edunex" }
           : { start: part.at, end: part.end, room: part.room, source: part.source };
       const left = part.at - now;
       const sources: NeedSource[] = [...(exam.six.length ? ["six" as const] : []), ...(exam.edunex.length || exam.tasks.length ? ["edunex" as const] : [])];

@@ -5,9 +5,11 @@
 // behind the Student, and waits in Done under "Past exams". Pure: the screen,
 // a course's tab and the sidebar's count all read it, so they count the same.
 import { wibDay } from "./course-meetings";
-import { type Exam, type ExamPart, examAhead, examDated, examMarkOn, examParts } from "./exams";
-import type { CalendarEvent, ExamMark, Task, TaskStatus } from "./models";
+import { type Exam, type ExamPart, examAhead, examDated, examMarkOn, examParts, PERIOD_NEAR } from "./exams";
+import type { CalendarEvent, ExamMark, SnoozeEntry, Task, TaskStatus } from "./models";
+import { taskNeed } from "./needs";
 import { dayStart, weekStart } from "./schedule";
+import { activeSnooze, type Snoozable, snoozable } from "./snooze";
 import { isOpenStatus, submittedAt, taskStatus } from "./tasks";
 
 const DAY = 86_400_000;
@@ -29,8 +31,6 @@ export interface TodoInput {
   marks?: readonly ExamMark[];
   now: number;
 }
-
-const NEAR = 14 * DAY;
 
 /**
  * Everything still ahead, soonest first: a Task at its deadline, an exam's
@@ -70,7 +70,7 @@ export function todoList({ tasks, exams, marks = [], now }: TodoInput): TodoItem
       });
   }
   for (const { week, examKind, exams: undated } of periods.values()) {
-    const state: PeriodState = week.start <= now ? "during" : week.start - now <= NEAR ? "near" : "far";
+    const state: PeriodState = week.start <= now ? "during" : week.start - now <= PERIOD_NEAR ? "near" : "far";
     items.push({ kind: "period", key: `period:${week.id}`, at: week.start, course: null, examKind, week, exams: undated, state });
   }
   return items.sort(
@@ -110,6 +110,36 @@ export const todoCount = (items: readonly TodoItem[]): number => items.filter(to
 /** Something late, or running out (or starting) within a day. */
 export const todoUrgent = (items: readonly TodoItem[], now: number): boolean =>
   items.some((item) => item.kind !== "period" && todoCounted(item) && (item.late || (item.at !== null && item.at - now < DAY)));
+
+// ---------------------------------------------------------------- put off
+
+/** The Task a late row is about: a Task, or an exam's take-home. */
+const lateTask = (item: TodoItem): Task | null =>
+  !(item.kind !== "period" && item.late) ? null : item.kind === "task" ? item.task : item.part?.kind === "takehome" ? item.part.task : null;
+
+/**
+ * A late row can be put off ("Ingatkan nanti") as Beranda puts off the same
+ * Task: the same item, so a snooze from either place holds in both, with
+ * the same moments. Nothing else in the list is put off here.
+ */
+export function lateSnoozable(item: TodoItem, now: number): Snoozable | null {
+  const task = lateTask(item);
+  const need = task ? taskNeed(task, now) : null;
+  return need ? snoozable(need, now) : null;
+}
+
+/** The list without the late rows put off, and those rows with until when: they're back when it ends, or when the Task changes. */
+export function putOffLate(items: readonly TodoItem[], entries: readonly SnoozeEntry[], now: number) {
+  const shown: TodoItem[] = [];
+  const putOff: { item: TodoItem; entry: SnoozeEntry }[] = [];
+  for (const item of items) {
+    const key = lateSnoozable(item, now)?.key;
+    const entry = key ? activeSnooze(key, entries, now) : undefined;
+    if (entry) putOff.push({ item, entry });
+    else shown.push(item);
+  }
+  return { shown, putOff };
+}
 
 // ---------------------------------------------------------------- Done
 

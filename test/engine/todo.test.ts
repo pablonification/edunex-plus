@@ -5,7 +5,9 @@
 import { describe, expect, it } from "vitest";
 import { examAhead, examMarkKey, examParts, mergeExams, pruneExamMarks } from "../../src/core/exams";
 import type { AcademicCalendar, ClassSession, CourseOutline, EdunexExam, ExamMark, Task } from "../../src/core/models";
-import { doneList, type TodoItem, todoCount, todoForCourse, todoGroup, todoList, todoUrgent } from "../../src/core/todo";
+import { taskNeed } from "../../src/core/needs";
+import { snoozeKey } from "../../src/core/snooze";
+import { doneList, lateSnoozable, putOffLate, type TodoItem, todoCount, todoForCourse, todoGroup, todoList, todoUrgent } from "../../src/core/todo";
 import { aTask } from "../kit/tasks";
 
 const HOUR = 3_600_000;
@@ -234,6 +236,30 @@ describe("Mark as done", () => {
     const old = mark();
     expect(pruneExamMarks([old], wib("2026-11-20T00:00:00"))).toEqual([old]);
     expect(pruneExamMarks([old], wib("2026-12-01T00:00:00"))).toEqual([]);
+  });
+});
+
+describe("putting off a late Task", () => {
+  it("only a late row, as Beranda's own item for that Task: same key, same moments; back once the Task changes", () => {
+    const late = { ...takeHome, lateAllowed: true };
+    const now = wib("2026-10-24T09:00:00");
+    const input = term(now, { tasks: [late, bab2] });
+    const items = todoList(input);
+    const own = taskNeed(bab2, now)!;
+    const bab2Row = items.find((item) => item.key === "task:117003")!;
+    expect(lateSnoozable(bab2Row, now)?.key).toEqual(snoozeKey(own));
+    // A late take-home is put off as its Task, too; nothing that isn't late is.
+    expect(lateSnoozable(items.find((item) => item.key === "exam:DK4073-UTS:task:117764")!, now)?.key.id).toBe("task:117764");
+    expect(items.filter((item) => lateSnoozable(item, now)).map((item) => item.key)).toEqual(["task:117003", "exam:DK4073-UTS:task:117764"]);
+    const entry = { ...snoozeKey(own), until: now + DAY };
+    const { shown, putOff } = putOffLate(items, [entry], now);
+    expect(putOff.map(({ item }) => item.key)).toEqual(["task:117003"]);
+    expect(todoCount(shown)).toBe(todoCount(items) - 1);
+    // The lecturer moves the deadline: the snooze no longer holds.
+    const moved = { ...bab2, dueAt: wib("2026-10-25T23:59:00") };
+    expect(putOffLate(todoList(term(now, { tasks: [late, moved] })), [entry], now).putOff).toEqual([]);
+    // Its time is up: back.
+    expect(putOffLate(items, [entry], now + DAY).putOff).toEqual([]);
   });
 });
 

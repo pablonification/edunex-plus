@@ -20,6 +20,7 @@ import { useOpenExternal } from "../hooks";
 import { type Format, type Translate, useFormat, useNow, useT } from "../i18n";
 import { useNav } from "../nav";
 import { useExams } from "../schedule-data";
+import { refocus } from "../snooze-menu";
 import { useDataset } from "../store";
 import { Button, IconButton } from "../ui/controls";
 import { cx } from "../ui/cx";
@@ -91,6 +92,20 @@ function CourseCode({ code, course }: { code: string; course: TermCourse | undef
   );
 }
 
+/**
+ * Where focus goes when a row leaves with its whole list (the last row of its
+ * group, or of Done's past exams): the next row on the screen, else the one
+ * before, else the picked segment. Inside a list that stays, PresenceList
+ * hands focus on itself, so this only catches focus that fell to the page.
+ */
+function focusAfterRow(control: HTMLElement): () => HTMLElement | null {
+  const row = control.closest("li");
+  const rows = [...document.querySelectorAll<HTMLElement>("main li > button")];
+  const at = rows.findIndex((button) => row?.contains(button));
+  const next = at < 0 ? undefined : (rows.slice(at + 1).find((b) => !row?.contains(b)) ?? rows.slice(0, at).reverse()[0]);
+  return () => (next?.isConnected ? next : document.querySelector<HTMLElement>("main [role=radio][aria-checked=true]"));
+}
+
 /** "Kuis Komunikasi Pemasaran": the exam's name for a control's label. */
 const examName = (t: Translate, exam: Exam, name: string) => `${t(`exam.kind.${exam.kind}`)} ${name}`;
 
@@ -120,7 +135,18 @@ function SittingWhen({ at, end }: { at: number; end: number | null }) {
  * the one thing the app can't see), or a take-home to hand in, which opens its
  * Task page. On a course's page the course goes without saying.
  */
-export function ExamPartRow({ item, inCourse = false }: { item: Extract<TodoItem, { kind: "exam" }>; inCourse?: boolean }) {
+export function ExamPartRow({
+  item,
+  inCourse = false,
+  id,
+  actions,
+}: {
+  item: Extract<TodoItem, { kind: "exam" }>;
+  inCourse?: boolean;
+  id?: string;
+  /** A late take-home's "Ingatkan nanti", as for any late Task. */
+  actions?: ReactNode;
+}) {
   const t = useT();
   const f = useFormat();
   const { go } = useNav();
@@ -145,7 +171,9 @@ export function ExamPartRow({ item, inCourse = false }: { item: Extract<TodoItem
       </span>
     );
   } else if (part?.kind === "window") {
-    facts = [code, t("exam.onEdunex"), part.edunex.title ?? "", part.open ? t("exam.window.open") : t("task.opens", { when: f.dueLabel(part.opensAt) })];
+    // With only its close, Edunex doesn't say when it opens: nothing is said about it.
+    const opens = part.opensAt === null ? "" : part.open ? t("exam.window.open") : t("task.opens", { when: f.dueLabel(part.opensAt) });
+    facts = [code, t("exam.onEdunex"), part.edunex.title ?? "", opens];
     trailing = <DueWhen at={part.at} late={false} />;
   } else if (part?.kind === "sitting") {
     facts = [code, t(part.source === "six" ? "exam.inClass" : "exam.onEdunex"), part.source === "six" ? (part.room ?? "") : (part.title ?? "")];
@@ -155,11 +183,16 @@ export function ExamPartRow({ item, inCourse = false }: { item: Extract<TodoItem
     facts = [code, exam.inOutline ? t("exam.outlineOnly") : t("exam.noDate")];
   }
 
-  const markDone = async () => {
+  const markDone = async (control: HTMLElement) => {
     if (part?.kind !== "window") return;
+    const next = focusAfterRow(control);
     try {
       await marks.mark(part.edunex);
-      toast(t("exam.marked"), "success", { label: t("action.undo"), onClick: () => void marks.unmark(part.edunex).catch(() => undefined) });
+      toast(t("exam.marked"), "success", {
+        label: t("action.undo"),
+        onClick: () => void marks.unmark(part.edunex).catch((error: unknown) => toast(t(errorKey(error)), "danger")),
+      });
+      refocus(next);
     } catch (error) {
       toast(t(errorKey(error)), "danger");
     }
@@ -167,18 +200,22 @@ export function ExamPartRow({ item, inCourse = false }: { item: Extract<TodoItem
 
   return (
     <Row
+      id={id}
       onClick={() => go(part?.kind === "takehome" ? { screen: "task", taskId: part.task.id } : { screen: "exam", examId: exam.id })}
       title={<ExamTitle exam={exam} name={name} />}
       meta={<Meta truncate>{facts}</Meta>}
       trailing={trailing}
       actions={
-        part?.kind === "window" && part.open ? (
+        // Only a window of known length, open now: a quiz the Student may already have taken on Edunex.
+        part?.kind === "window" && part.opensAt !== null && part.open ? (
           <Tooltip content={t("exam.markDone")}>
-            <IconButton label={t("exam.markDoneFor", { title: examName(t, exam, name) })} size="sm" onClick={() => void markDone()}>
+            <IconButton label={t("exam.markDoneFor", { title: examName(t, exam, name) })} size="sm" onClick={(event) => void markDone(event.currentTarget)}>
               <Icons.CheckCircle className="size-4" />
             </IconButton>
           </Tooltip>
-        ) : undefined
+        ) : (
+          actions
+        )
       }
     >
       {part?.kind === "takehome" && item.late && <span className="mt-1 block text-small text-muted">{t("home.need.task.overdue")}</span>}
@@ -298,11 +335,13 @@ export function PastExamRow({ past, inCourse = false }: { past: PastExam; inCour
     main = exam.week ? f.dayRange(exam.week.firstDay, exam.week.lastDay) : "";
     sub = exam.kind === "UTS" || exam.kind === "UAS" ? t("exam.period", { kind: exam.kind }) : "";
   }
-  const unmark = async () => {
+  const unmark = async (control: HTMLElement) => {
     const marked = exam.edunex.filter((e) => past.marks.some((m) => m.id === examMarkKey(e).id));
+    const next = focusAfterRow(control);
     try {
       for (const item of marked) await marks.unmark(item);
       toast(t("exam.unmarked"));
+      refocus(next);
     } catch (error) {
       toast(t(errorKey(error)), "danger");
     }
@@ -321,7 +360,7 @@ export function PastExamRow({ past, inCourse = false }: { past: PastExam; inCour
       actions={
         mark ? (
           <Tooltip content={t("exam.unmark")}>
-            <IconButton label={t("exam.unmarkFor", { title: examName(t, exam, name) })} size="sm" onClick={() => void unmark()}>
+            <IconButton label={t("exam.unmarkFor", { title: examName(t, exam, name) })} size="sm" onClick={(event) => void unmark(event.currentTarget)}>
               <Icons.Undo className="size-4" />
             </IconButton>
           </Tooltip>

@@ -28,11 +28,14 @@ export interface ExamMarks {
   unmark(exam: Pick<EdunexExam, "id">): Promise<void>;
 }
 
+/** No marks: one list, so what reads them doesn't work it all out again on every render. */
+const NONE: readonly ExamMark[] = [];
+
 /** The marks as the window has them: none in data saved before "Mark as done" existed. */
 export function useExamMarkList(): readonly ExamMark[] {
   const saved = useDataset("local.examMarks");
   const mine = useSyncExternalStore(subscribe, () => pending);
-  return mine?.marks ?? saved ?? [];
+  return mine?.marks ?? saved ?? NONE;
 }
 
 export function useExamMarks(): ExamMarks {

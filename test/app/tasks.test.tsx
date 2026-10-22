@@ -332,6 +332,72 @@ describe("Tugas & Ujian", () => {
   });
 });
 
+describe("putting off a late Task", () => {
+  /** 22 Oct, with a PL3032 Task that was due on Tuesday and is still taken late. */
+  async function withLateTask() {
+    screen = await openApp({ world: new PretendWorld({ now: "2026-10-22T14:10:00+07:00" }), signedIn: true, six: true });
+    const s = screen;
+    s.world.edunex.postTask(95059, { name: "Ringkasan K5", start_at: "2026-10-13T08:00:00+07:00", end_at: "2026-10-20T23:59:00+07:00", is_lateable: 1 });
+    await s.engineDoes(() => s.engine.refresh("edunex"));
+    await s.click(/^Tugas & Ujian\d*(, Perlu perhatianmu)?$/);
+    return s;
+  }
+  const menuItems = () => [...document.querySelectorAll("[role=menuitem]")].map((item) => item.textContent ?? "");
+  const toastText = () => document.querySelector("[aria-live=polite]")?.textContent ?? "";
+  const lateSection = () => [...document.querySelectorAll("main section")].find((section) => section.querySelector("h2")?.textContent?.startsWith("Terlambat"));
+
+  it("offers Beranda's moments on a late row, takes it out of To do and its counts, and says what's put off", async () => {
+    const s = await withLateTask();
+    expect(sections()[0]).toBe("Terlambat 2");
+    const todo = Number(s.button(/^Belum selesai/).textContent?.match(/\d+/)?.[0]);
+    const badge = Number(s.button(/^Tugas & Ujian\d+/).textContent?.match(/\d+/)?.[0]);
+    // Only the late rows can be put off.
+    expect(s.has("Ingatkan nanti: Tugas 02 Bab II")).toBe(true);
+    expect(s.has(/^Ingatkan nanti: UTS Markom/)).toBe(false);
+    await s.click("Ingatkan nanti: Ringkasan K5");
+    // A late Task's moments, as on Beranda: in three hours or tomorrow morning.
+    expect(menuItems()).toEqual([expect.stringMatching(/^3 jam lagiHari ini, 17:1\d$/), "Besok pagiBesok, 07:00"]);
+    await s.click([...document.querySelectorAll<HTMLElement>("[role=menuitem]")][1]!);
+    expect(row("Ringkasan K5")).toBeUndefined();
+    expect(toastText()).toContain("Diingatkan lagi Besok, 07:00");
+    expect(sections()[0]).toBe("Terlambat 1");
+    expect(Number(s.button(/^Belum selesai/).textContent?.match(/\d+/)?.[0])).toBe(todo - 1);
+    expect(Number(s.button(/^Tugas & Ujian\d+/).textContent?.match(/\d+/)?.[0])).toBe(badge - 1);
+    // The same snooze Beranda keeps.
+    expect(s.store.dataset("local.snoozes")?.value).toEqual([expect.objectContaining({ id: expect.stringMatching(/^task:\d+$/), reason: "morning" })]);
+    expect(lateSection()?.textContent).toContain("1 ditunda · Tampilkan");
+
+    // The way back: the list of what's put off, each with Ingatkan sekarang.
+    await s.click("Tampilkan");
+    expect(lateSection()?.textContent).toContain("Ringkasan K5PL3032 · Kembali Besok, 07:00");
+    await s.click("Ingatkan sekarang: Ringkasan K5");
+    expect(row("Ringkasan K5")).toBeDefined();
+    expect(lateSection()?.textContent).not.toContain("ditunda");
+    expect(sections()[0]).toBe("Terlambat 2");
+  });
+
+  it("is the same snooze as Beranda's: put off here, it's put off there too", async () => {
+    const s = await withLateTask();
+    await s.click("Ingatkan nanti: Ringkasan K5");
+    await s.click([...document.querySelectorAll<HTMLElement>("[role=menuitem]")][1]!);
+    await s.click(/^Beranda/);
+    const needs = document.querySelector('main section[aria-labelledby="home-needs"]');
+    expect([...(needs?.querySelectorAll("li") ?? [])].some((li) => li.textContent?.includes("Ringkasan K5"))).toBe(false);
+    expect(needs?.textContent).toContain("1 ditunda");
+  });
+
+  it("with every late row put off, Terlambat says so instead of disappearing, and nothing claims all is done", async () => {
+    const s = await withLateTask();
+    await s.click("Ingatkan nanti: Ringkasan K5");
+    await s.click([...document.querySelectorAll<HTMLElement>("[role=menuitem]")][1]!);
+    await s.click("Ingatkan nanti: Tugas 02 Bab II");
+    await s.click([...document.querySelectorAll<HTMLElement>("[role=menuitem]")][1]!);
+    expect(sections()[0]).toBe("Terlambat");
+    expect(lateSection()?.textContent).toContain("2 ditunda · Tampilkan");
+    expect(s.text()).not.toContain("Tidak ada yang perlu dikerjakan");
+  });
+});
+
 describe("the Task page", () => {
   it("shows the instructions, the lecturer's files to download, the rules and the history", async () => {
     const s = await open();
