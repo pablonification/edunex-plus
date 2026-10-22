@@ -41,7 +41,7 @@ const RULES: { name: string; matches: (token: string) => boolean; instead: strin
   },
   {
     name: "arrival animation",
-    matches: (token) => /^(stagger|animate-rise|animate-enter|animate-arrive)(-|$)/.test(token) || token === "--i",
+    matches: (token) => /^(stagger|animate-rise|animate-enter|animate-arrive|animate-line-in|animate-grow-in)(-|$)/.test(token) || token === "--i",
     instead:
       "nothing: rows and screens appear at once; motion only explains a change (see Motion in the design system). The first run's arrival is ARRIVE from ui/motion/arrival.ts, in the first run only",
   },
@@ -63,6 +63,9 @@ const ALLOWED: { file: string; token: string }[] = [
   { file: "src/app/ui/motion/arrival.ts", token: "motion-safe:animate-arrive" },
   { file: "src/app/ui/motion/arrival.ts", token: "motion-safe:animate-arrive-mark" },
   { file: "src/app/ui/motion/arrival.ts", token: "motion-safe:animate-arrive-app" },
+  // The welcome screen's answers as they change: a source connected, "Beranda siap".
+  { file: "src/app/shell/welcome.tsx", token: "motion-safe:animate-line-in" },
+  { file: "src/app/shell/welcome.tsx", token: "motion-safe:animate-grow-in" },
 ];
 
 /** The first run, the only place things arrive: the welcome screen, the first-run scan, and the app's first look after the welcome screen. */
@@ -123,7 +126,7 @@ describe("the window's classes", () => {
   });
 
   it("let things arrive only in the first run, which is seen once", () => {
-    const users = sources("src/app").filter((file) => /from "[./]*\/?(ui\/)?motion\/arrival"/.test(readFileSync(path.join(root, file), "utf8")));
+    const users = sources("src/app").filter((file) => /from "[^"]*\barrival"/.test(readFileSync(path.join(root, file), "utf8")));
     expect(users.sort()).toEqual(FIRST_RUN);
   });
 

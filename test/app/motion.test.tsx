@@ -626,8 +626,42 @@ describe("the first run", () => {
     expect(span("Terhubung")?.className).toContain("origin-right");
   });
 
-  it("glides the app's mark down to the reading step instead of jumping, and keeps it gliding while the counts come in", async () => {
+  /**
+   * The window's own longer timers (the reading step's), on a clock the test moves, so what it sees never
+   * depends on how fast this machine is; the harness's quick steps (0–5 ms) still run as usual.
+   */
+  function heldTimers() {
+    let now = 0;
+    let ids = 1_000_000;
+    const held = new Map<number, { at: number; run: () => void }>();
+    const set = globalThis.setTimeout;
+    const clear = globalThis.clearTimeout;
+    vi.spyOn(globalThis, "setTimeout").mockImplementation(((run: () => void, ms = 0, ...args: unknown[]) => {
+      if (ms < 100) return set(run, ms, ...args);
+      held.set(++ids, { at: now + ms, run });
+      return ids;
+    }) as typeof setTimeout);
+    vi.spyOn(globalThis, "clearTimeout").mockImplementation(((id: number) => {
+      if (!held.delete(id)) clear(id);
+    }) as typeof clearTimeout);
+    return {
+      /** Moves the clock on, running what falls due in order (and what those start, if it falls due too). */
+      advance: (ms: number) =>
+        act(async () => {
+          now += ms;
+          for (;;) {
+            const next = [...held].filter(([, timer]) => timer.at <= now).sort(([, a], [, b]) => a.at - b.at)[0];
+            if (!next) break;
+            held.delete(next[0]);
+            next[1].run();
+          }
+        }),
+    };
+  }
+
+  it("glides the app's mark down to the reading step instead of jumping, and keeps it gliding while the page redraws", async () => {
     const motion = animating();
+    heldTimers();
     screen = await openApp({ firstScan: true });
     await screen.click("Hubungkan Edunex");
     // jsdom lays nothing out: here the mark sits higher on the welcome form than on the shorter reading step.
@@ -643,7 +677,8 @@ describe("the first run", () => {
       const [glide] = motion.on(mark);
       expect(glide.keyframes).toEqual([{ transform: "translate(0px, -180px)" }, { transform: "none" }]);
       expect(glide.options).toMatchObject({ duration: DURATION.slow, easing: EASE.standard });
-      await screen.wait(5_000);
+      // Edunex says something new: the welcome screen around the mark redraws.
+      await screen.apply({ type: "status", status: { ...screen.store.status("edunex"), updatedAt: Date.now() } });
       expect(glide.playState).toBe("running");
       expect(motion.on(mark)).toHaveLength(1);
     } finally {
@@ -657,6 +692,7 @@ describe("the first run", () => {
     vi.stubGlobal("cancelAnimationFrame", () => undefined);
     vi.spyOn(performance, "now").mockReturnValue(1000);
     animating();
+    heldTimers();
     try {
       screen = await openApp({ firstScan: true });
       await screen.click("Hubungkan Edunex");
@@ -669,24 +705,33 @@ describe("the first run", () => {
         for (const callback of frames.splice(0)) callback(1000 + DURATION.slow / 2);
       });
       const counting = [...document.querySelectorAll("dd [aria-hidden]")].map((el) => el.textContent);
-      expect(counting.length).toBeGreaterThan(0);
-      for (const count of counting) expect(count).toMatch(/^\d+$/);
+      expect(counting).toHaveLength(1);
+      expect(counting[0]).toMatch(/^\d+$/);
     } finally {
       vi.unstubAllGlobals();
       vi.restoreAllMocks();
     }
   });
 
-  it("says Beranda siap a moment before the app comes in, and the app eases in that once", async () => {
+  it("says Beranda siap once its own parts are in, holds it a moment, then the app eases in that once", async () => {
     animating();
-    screen = await openApp({ firstScan: true });
-    await screen.click("Hubungkan Edunex");
-    await screen.click("Lanjut");
-    await screen.wait();
-    expect(screen.text()).toContain("Beranda siap");
-    expect(shell()).toBeNull();
-    await pause(700);
-    expect(shell()?.className).toContain("motion-safe:animate-arrive-app");
+    const timers = heldTimers();
+    try {
+      screen = await openApp({ firstScan: true });
+      await screen.click("Hubungkan Edunex");
+      // Everything is read already; the step still arrives in full first, so "Beranda siap" is seen coming, and heard.
+      await screen.click("Lanjut");
+      expect(screen.text()).toContain("Menyiapkan Beranda");
+      await timers.advance(100 + 3 * 60 + DURATION.slow);
+      expect(screen.text()).toContain("Beranda siap");
+      expect(shell()).toBeNull();
+      await timers.advance(599);
+      expect(shell()).toBeNull();
+      await timers.advance(1);
+      expect(shell()?.className).toContain("motion-safe:animate-arrive-app");
+    } finally {
+      vi.restoreAllMocks();
+    }
   });
 
   it("with motion off, goes from reading straight to the app; a window that opens signed in shows it at once", async () => {

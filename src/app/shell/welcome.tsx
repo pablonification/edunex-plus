@@ -9,8 +9,8 @@
 // docs/design-system.md's Motion): its parts arrive one after another, a line
 // that says something new rises in, a source that connects shows "Terhubung"
 // growing in where its button was, the app's mark glides down as the form
-// gives way to the reading step, the counts tick up, and "Beranda siap" holds
-// a moment before the app comes in.
+// gives way to the reading step, the counts tick up, and once the step is in,
+// "Beranda siap" holds a moment before the app comes in.
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { homeReady, scanSummary } from "../../core/first-scan";
 import type { DatasetName, SourceId } from "../../core/models";
@@ -26,8 +26,9 @@ import { Icons } from "../ui/icons";
 import { Meta, Stat, StatRow } from "../ui/layout";
 import { stillMotion } from "../ui/motion/animate";
 import { AnimatedNumber } from "../ui/motion/animated-number";
-import { ARRIVE, ARRIVE_MARK, arriveAt } from "../ui/motion/arrival";
+import { ARRIVAL_STAGGER, ARRIVE, ARRIVE_MARK, arriveAt } from "../ui/motion/arrival";
 import { useGlide } from "../ui/motion/glide";
+import { DURATION } from "../ui/motion/tokens";
 import { useSignIn, useSignInNote } from "./source-status";
 
 /** What the reading step counts, and what decides it's done (src/core/first-scan.ts homeReady). */
@@ -55,6 +56,9 @@ const READY_BEAT = 600;
 
 /** The reading step's parts start arriving this far into the mark's glide down to them. */
 const AFTER_GLIDE = 100;
+
+/** By then the reading step's own parts are in (its status line is the fourth): "Beranda siap" waits for that, so it is seen arriving, and heard. */
+const STEP_ARRIVED = AFTER_GLIDE + 3 * ARRIVAL_STAGGER + DURATION.slow;
 
 /** A count as it ticks up: whole numbers only, never "24,6" on the way to 25. */
 const whole = (count: number) => String(Math.round(count));
@@ -145,7 +149,7 @@ export function Welcome({ onDone }: { onDone: () => void }) {
                 <Button variant="primary" size="lg" className="mt-7 w-full" disabled={!edunex && !six} onClick={next} aria-describedby="welcome-next-hint">
                   {t("welcome.continue")}
                 </Button>
-                <p id="welcome-next-hint" key={hint} className={cx("mt-2 text-center text-small text-muted", changed && "motion-safe:animate-line-in")}>
+                <p id="welcome-next-hint" key={hint} className={cx("mt-2 text-center text-small text-muted", changed && hint && "motion-safe:animate-line-in")}>
                   {hint === "connectFirst" ? t("welcome.continueHint") : hint ? t(`welcome.${hint}`) : ""}
                 </p>
               </div>
@@ -168,7 +172,9 @@ function Reading({ onDone }: { onDone: () => void }) {
   const ready = homeReady(saved, statuses);
   const summary = scanSummary(saved, statuses);
   const [patience, setPatience] = useState(false);
-  /** Beranda's parts are in: "Beranda siap" shows, then the app comes in. */
+  /** The step's own parts have arrived (at once with motion off). */
+  const [arrived, setArrived] = useState(stillMotion);
+  /** Beranda's parts are in, and so are the step's: "Beranda siap" shows, then the app comes in. */
   const [landed, setLanded] = useState(false);
   const done = useRef(onDone);
   useEffect(() => {
@@ -176,10 +182,15 @@ function Reading({ onDone }: { onDone: () => void }) {
   });
 
   useEffect(() => {
+    if (arrived) return;
+    const timer = setTimeout(() => setArrived(true), STEP_ARRIVED);
+    return () => clearTimeout(timer);
+  }, [arrived]);
+  useEffect(() => {
     if (!ready) return;
     if (stillMotion()) done.current();
-    else setLanded(true);
-  }, [ready]);
+    else if (arrived) setLanded(true);
+  }, [ready, arrived]);
   // Only on its own clock: the window redrawing as the rest arrives doesn't hold it back.
   useEffect(() => {
     if (!landed) return;
@@ -225,7 +236,7 @@ function Reading({ onDone }: { onDone: () => void }) {
           </p>
         )}
       </div>
-      {patience && !landed && (
+      {patience && (
         <div className="mt-4 motion-safe:animate-line-in">
           <Button variant="secondary" onClick={onDone}>
             {t("welcome.readingSkip")}

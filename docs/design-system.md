@@ -273,7 +273,7 @@ keeps them equal).
 | A segmented control's or tab list's highlight (`SlidingHighlight`) | Sits on the new pick at once and glides there from the old one as a transform (translate and scale), 150 ms ease-out |
 | A figure the Student just changed (`AnimatedNumber`) | Counts 400 ms ease-out with no overshoot, while the page's text is already the true value. A figure that changes on its own just changes |
 | Bars filling | 500 ms, when new data arrives. A window's time left (`CountdownBar`), which shrinks every minute, slides as a transform in 400 ms ease-out. Work under way (`ProgressBar`: a hand-in, a download) slides as a transform too, 400 ms linear (progress doesn't ease), picking up from wherever it is when the next share comes in |
-| The first run (`ui/motion/arrival.ts`): the welcome screen, its reading step, the app's first look after them, the first-run scan | Seen once, so its parts arrive one after another (`ARRIVE`, `arriveAt`): 400 ms ease-out, rising 8 px, 60 ms apart in reading order, the app's mark first, growing in from 90%. A source that connects: the line under its name rises 4 px in 200 ms, and "Terhubung" grows in from 90% where its button was (only on a change, never on the first draw). "Lanjut": the mark glides to its place on the reading step (`useGlide`, a FLIP transform, 400 ms ease-standard) while the step's parts arrive 100 ms in; the counts tick up (`AnimatedNumber`); "Beranda siap" holds 600 ms, then the app eases in from 98% in 400 ms (`ARRIVE_APP`), that once. The first-run scan's lines arrive the same way, 100 ms into the dialog's own opening. With Reduce motion everything is there at once, and the reading step goes straight in |
+| The first run (`ui/motion/arrival.ts`): the welcome screen, its reading step, the app's first look after them, the first-run scan | Seen once, so its parts arrive one after another (`ARRIVE`, `arriveAt`): 400 ms ease-out, rising 8 px, 60 ms apart in reading order, the app's mark first, growing in from 90%. A source that connects: the line under its name rises 4 px in 200 ms, and "Terhubung" grows in from 90% where its button was (only on a change, never on the first draw). "Lanjut": the mark glides to its place on the reading step (`useGlide`, a FLIP transform, 400 ms ease-standard) while the step's parts arrive 100 ms in; the counts tick up in whole numbers (`AnimatedNumber`); once Beranda's parts and the step's own are in, "Beranda siap" holds 600 ms, then the app eases in from 98% in 400 ms (`ARRIVE_APP`), that once. The first-run scan's lines arrive the same way, 100 ms into the dialog's own opening (also when it's opened again from Settings: still rare). With Reduce motion everything is there at once, and the reading step goes straight in |
 | Loading placeholders | 1.4 s pulse in four held steps, not every frame |
 
 **Rules.**
@@ -285,7 +285,8 @@ keeps them equal).
 - Screens and rows never animate in; a row moves only when the Student's own
   action removes it. The first run is the exception (above):
   `test/app/ui-rules.test.ts` keeps its arrival classes in
-  `ui/motion/arrival.ts`, and that file to the first run.
+  `ui/motion/arrival.ts` (and the welcome screen's `animate-line-in` and
+  `animate-grow-in` in `welcome.tsx`), and that file to the first run.
 - No decoration: no glow, spotlight, tilt or parallax, and nothing loops except
   loading placeholders, spinners and live dots. A loop (`data-loop`, with
   `ref={pauseUnseen}` from `ui/motion/visible.ts`) rests while it is

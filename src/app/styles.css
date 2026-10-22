@@ -273,7 +273,7 @@
   --animate-arrive: arrive var(--duration-slow) var(--ease-out) backwards;
   --animate-arrive-mark: grow-in var(--duration-slow) var(--ease-out) backwards;
   --animate-arrive-app: pop-in var(--duration-slow) var(--ease-out);
-  /* A source just connected on the welcome screen: its "Terhubung", and the line under its name. */
+  /* On the welcome screen: a source just connected (its "Terhubung", the line under its name), and "Beranda siap". */
   --animate-grow-in: grow-in var(--duration-base) var(--ease-out);
   --animate-line-in: line-in var(--duration-base) var(--ease-out);
   /* Stepped, as T3 Code's loops: a few held frames per cycle instead of one every frame. */
