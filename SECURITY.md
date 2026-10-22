@@ -43,8 +43,11 @@ The app and this repository:
 Not in scope:
 
 - Edunex, SIX or ITB's Microsoft sign-in themselves: report those to ITB.
-- The installers not being signed by Apple or Microsoft ([docs/install.md](docs/install.md) explains
-  the warnings this causes).
+- The installers not being signed by a publisher Apple or Microsoft knows yet
+  ([docs/code-signing.md](docs/code-signing.md); [docs/install.md](docs/install.md) explains the
+  warnings this causes). A file that claims to be Edunex Plus but comes from anywhere other than
+  this repository's releases, or, once releases are signed, is signed by anyone else, is in scope:
+  report it.
 - Someone who already controls your unlocked computer or user account.
 
 ## Supported versions
