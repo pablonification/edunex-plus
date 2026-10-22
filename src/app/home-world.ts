@@ -16,6 +16,7 @@ import { useDataset, useDatasetPayload, useSettings, useStatus } from "./store";
 export function useHomeWorld(): HomeWorld | undefined {
   const courses = useTermCourses();
   const tasks = useDataset("edunex.tasks");
+  const taskEdits = useDataset("edunex.taskEdits");
   const presence = useDataset("edunex.presence");
   const materials = useDataset("edunex.materials");
   const announcements = useDataset("edunex.announcements");
@@ -61,6 +62,7 @@ export function useHomeWorld(): HomeWorld | undefined {
       countLog: countLog ?? {},
       // As Presensi judges them: the saved results, and what the latest count already says.
       classResults: classResults(savedResults ?? {}, countLog ?? {}, schedule ?? [], now, readAt),
+      taskEdits,
     };
   }, [
     courses,
@@ -79,6 +81,7 @@ export function useHomeWorld(): HomeWorld | undefined {
     countLog,
     savedResults,
     readAt,
+    taskEdits,
     term,
     attendanceTarget,
     attendanceTargets,

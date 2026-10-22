@@ -9,14 +9,14 @@ import { type DragEvent, lazy, type ReactNode, Suspense, useEffect, useId, useMe
 import { answerFileProblem, type HandInResult, type PickedFile } from "../../core/actions/tasks";
 import { attendanceWindow, type CountedIn, presenceOptional } from "../../core/attendance";
 import { introModule } from "../../core/course-materials";
-import { activeDone, taskDoneKey, taskPutAway } from "../../core/done";
+import { taskDoneKey, taskPutAway } from "../../core/done";
 import type { Exam } from "../../core/exams";
-import type { DoneHow, Task, TaskFile, TaskModule, TaskStatus } from "../../core/models";
+import type { DoneHow, Task, TaskChange, TaskFile, TaskModule, TaskStatus } from "../../core/models";
 import type { StringKey } from "../../core/strings";
+import { type EditView, editView, titleOnly } from "../../core/task-edits";
 import {
   attendanceResult,
   attendanceSession,
-  editedAfterSubmit,
   edunexTaskUrl,
   type HandInCheck,
   handInChecks,
@@ -46,17 +46,19 @@ import { canView, isPdfName, useAnswerAttach, usePdfViewer } from "../pdf";
 import { type Todo, useExams, useTodo } from "../schedule-data";
 import { isBuilt } from "../shell/built";
 import { useRefresh, useSignIn } from "../shell/source-status";
-import { canSnooze, refocus, SnoozeMenu } from "../snooze-menu";
+import { canSnooze, DoneButton, refocus, SnoozeMenu } from "../snooze-menu";
 import { useDone, useSnoozes } from "../snoozes";
 import { useBridge, useDataset, useStatus } from "../store";
 import { Button, Segmented, useRadioKeys } from "../ui/controls";
 import { cx } from "../ui/cx";
 import { Card, CourseDot, EmptyState, ProgressBar, Skeleton, StatusChip, StatusGlyph, Tag } from "../ui/display";
 import { Icons } from "../ui/icons";
-import { factsLabel, List, Row as ListRow, Meta, Page, PageHeader, Section } from "../ui/layout";
+import { factsLabel, List, Row as ListRow, Meta, Notice as NoticeBox, Page, PageHeader, Section } from "../ui/layout";
 import { Menu } from "../ui/menu";
+import { stillMotion } from "../ui/motion/animate";
+import { DisclosurePanel, disclosureTrigger } from "../ui/motion/disclosure";
 import { PresenceList } from "../ui/motion/presence-list";
-import { ignoreClosingClick, PANEL_MOTION_CLASS, SCRIM_CLASS, toast, useReturnFocus } from "../ui/overlays";
+import { Dialog, ignoreClosingClick, PANEL_MOTION_CLASS, SCRIM_CLASS, toast, useReturnFocus } from "../ui/overlays";
 import type { RichEditorHandle } from "../ui/rich-editor";
 import { plainText } from "../ui/rich-text";
 import { ExamPartRow, PastExamRow, PeriodRow, takeHomeWhy } from "./exam";
@@ -581,6 +583,7 @@ function Signal({ task, status }: Row) {
   const now = useNow();
   const presence = useDataset("edunex.presence");
   const { entries: handled } = useDone();
+  const edit = editView(task, useDataset("edunex.taskEdits"), handled);
   const optional = presenceOptional(useCountedIn(task.courseCode));
   let signal: ReactNode = null;
   const window = isOpenStatus(status) ? attendanceWindow(task, presence, now) : null;
@@ -593,8 +596,8 @@ function Signal({ task, status }: Row) {
         {t(`task.marked.${marked.how as MarkedHow}`)}
       </span>
     );
-  // Not once checked ("Sudah kucek" on Beranda).
-  else if (editedAfterSubmit(task) && task.editedAt !== null && !activeDone(taskDoneKey(task, "edited"), handled))
+  // Not once checked, nor when nothing the app compares changed.
+  else if (edit?.afterSubmit && task.editedAt !== null && !edit.checked && edit.state !== "none")
     signal = (
       <span className="font-medium text-warning-fg">
         <Icons.PenLine className="size-3.5 shrink-0" />
@@ -673,6 +676,8 @@ function TaskPage({ task }: { task: Task }) {
     ) : (
       <span className={cx("flex items-center gap-1.5", className)}>{children}</span>
     );
+  /** "Lihat perubahannya" asks History to open its newest edit: which, and how many times asked (each ask moves focus again). */
+  const [reveal, setReveal] = useState<{ at: number; asked: number } | null>(null);
 
   return (
     <Page width="wide" className="grid gap-10 min-[1100px]:grid-cols-[minmax(0,1fr)_340px]">
@@ -736,6 +741,7 @@ function TaskPage({ task }: { task: Task }) {
         )}
 
         <Notes task={task} />
+        <EditNotice task={task} onSee={(at) => setReveal((was) => ({ at, asked: (was?.asked ?? 0) + 1 }))} />
 
         <section className="mt-8" aria-labelledby="task-instructions">
           <h2 id="task-instructions" className="mb-2.5 text-title font-semibold">
@@ -766,7 +772,7 @@ function TaskPage({ task }: { task: Task }) {
 
       <aside className="space-y-4 self-start min-[1100px]:sticky min-[1100px]:top-6">
         <HandIn key={task.id} task={task} status={status} />
-        <History task={task} />
+        <History task={task} reveal={reveal} />
       </aside>
     </Page>
   );
@@ -774,16 +780,14 @@ function TaskPage({ task }: { task: Task }) {
 
 /**
  * What Edunex doesn't say on its Task page: attendance taken by handing it in
- * (and, once handed in, whether it counted), a change after the Student
- * handed in (loud, with the way to check), a short window. An edit before the
- * Student handed in is only history. Where the course counts in SIX, the
- * attendance window is optional: said once, calmly, and nothing about it after.
+ * (and, once handed in, whether it counted), a short window. Where the course
+ * counts in SIX, the attendance window is optional: said once, calmly, and
+ * nothing about it after. A lecturer's edit is EditNotice's.
  */
 function Notes({ task }: { task: Task }) {
   const t = useT();
   const f = useFormat();
   const now = useNow();
-  const open = useOpenExternal();
   const presence = useDataset("edunex.presence");
   const optional = presenceOptional(useCountedIn(task.courseCode));
   const sessions = presence?.[task.courseCode] ?? [];
@@ -828,18 +832,6 @@ function Notes({ task }: { task: Task }) {
       tone: "neutral",
       icon: <Icons.Hand className="mt-0.5 size-4 shrink-0" />,
       text: t("task.note.attendanceMissed", { when: range(session.opensAt, session.closesAt) }),
-    });
-  const sentAt = submittedAt(task);
-  if (task.editedAt !== null && sentAt !== null && editedAfterSubmit(task))
-    notes.push({
-      tone: "warning",
-      icon: <Icons.PenLine className="mt-0.5 size-4 shrink-0" />,
-      text: t("task.note.editedAfterSubmit", { edited: f.dayMonth(task.editedAt), sent: f.dayMonth(sentAt) }),
-      action: (
-        <Button size="sm" icon={<Icons.ArrowUpRight className="size-3.5" />} onClick={() => open(edunexTaskUrl(task.id))}>
-          {t("action.openInEdunex")}
-        </Button>
-      ),
     });
   const window = shortWindow(task);
   if (window !== null && task.opensAt !== null && task.dueAt !== null)
@@ -1862,39 +1854,192 @@ function MarkHandedIn({ task }: { task: Task }) {
   );
 }
 
-// ---------------------------------------------------------------- history
+// ---------------------------------------------------------------- a lecturer's edit
 
-function History({ task }: { task: Task }) {
+const DAY_MS = 24 * 60 * 60_000;
+/** Before hand-in, a change's notice stays this long unless checked; the quiet "nothing changed" line, a week. */
+const BEFORE_FOR = 14 * DAY_MS;
+const NONE_FOR = 7 * DAY_MS;
+
+/** The Task's newest edit as the screens tell it, with what the Student checked. */
+function useEditView(task: Task): EditView | null {
+  const { entries } = useDone();
+  return editView(task, useDataset("edunex.taskEdits"), entries);
+}
+
+/**
+ * A lecturer's edit, said in one line with the way to what changed: History
+ * holds the detail, one step per edit, and the instructions above stay clean.
+ * After hand-in it stays until checked ("Sudah kucek"); before hand-in, for two
+ * weeks or until checked, and not for a new title alone. With no earlier copy
+ * after hand-in: the notice as before, saying the earlier version isn't known.
+ * Nothing compared changed: a quiet grey line for a week. Once checked here,
+ * one quiet line with Undo until the page is left.
+ */
+function EditNotice({ task, onSee }: { task: Task; onSee: (at: number) => void }) {
   const t = useT();
   const f = useFormat();
   const now = useNow();
   const open = useOpenExternal();
-  const steps = taskHistory(task);
+  const { unmark } = useDone();
+  const view = useEditView(task);
+  const shownAt = useRef(now);
+  if (!view || task.editedAt === null) return null;
+  const sentAt = submittedAt(task);
+  const age = now - task.editedAt;
+  const edited = f.dayMonth(task.editedAt);
+  const name = factsLabel(task.title, task.courseCode);
+  if (view.checked)
+    return view.checked.at >= shownAt.current ? (
+      <p className="mt-5 flex flex-wrap items-center gap-x-2 text-small text-muted">
+        <Icons.Check className="size-3.5 shrink-0 text-success-fg" weight="bold" />
+        {t("done.line.checked", { when: f.dayTimeWord(view.checked.at) })}
+        <button
+          type="button"
+          aria-label={t("done.undoFor", { what: t("done.line.checked", { when: f.dayTimeWord(view.checked.at) }) })}
+          onClick={() => void unmark(view.checked!.id).catch(() => undefined)}
+          className="focus-ring rounded font-medium text-accent-fg hover:underline"
+        >
+          {t("action.undo")}
+        </button>
+      </p>
+    ) : null;
+  const check = <DoneButton item={taskDoneKey(task, "edited")} how="checked" name={name} said={t("done.toast.checked")} words variant="secondary" />;
+  if (view.state === "unknown") {
+    // Before hand-in an edit nobody can describe is History's alone.
+    if (!view.afterSubmit || sentAt === null) return null;
+    return (
+      <NoticeBox
+        tone="warning"
+        icon={<Icons.PenLine className="size-4" weight="bold" />}
+        className="mt-5"
+        title={t("task.note.editedAfterSubmit", { edited, sent: f.dayMonth(sentAt) })}
+        action={
+          <>
+            {check}
+            <Button size="sm" variant="ghost" icon={<Icons.ArrowUpRight className="size-3.5" />} onClick={() => open(edunexTaskUrl(task.id))}>
+              {t("action.openInEdunex")}
+            </Button>
+          </>
+        }
+      >
+        {t("task.change.unknown")}
+      </NoticeBox>
+    );
+  }
+  if (view.state === "none")
+    return age < NONE_FOR ? (
+      <p className="mt-5 flex items-start gap-2.5 rounded-lg bg-fill px-3.5 py-2.5 text-body text-muted">
+        <Icons.Info className="mt-0.5 size-4 shrink-0" />
+        {t("task.change.none", { edited })}
+      </p>
+    ) : null;
+  if (!view.afterSubmit && (titleOnly(view.changes) || age >= BEFORE_FOR)) return null;
+  // Before hand-in it's information, unless the deadline was pulled in to within a day.
+  const pulledIn = view.changes.some((c) => c.kind === "deadline" && c.from !== null && c.to !== null && c.to < c.from && c.to - now <= DAY_MS);
+  return (
+    <NoticeBox
+      tone={view.afterSubmit || pulledIn ? "warning" : "info"}
+      icon={<Icons.PenLine className="size-4" weight="bold" />}
+      className="mt-5"
+      title={
+        <>
+          {view.afterSubmit && sentAt !== null ? t("task.change.afterSubmit", { edited, sent: f.dayMonth(sentAt) }) : t("task.change.before", { edited })}{" "}
+          <button type="button" onClick={() => onSee(task.editedAt!)} className="focus-ring rounded font-semibold underline underline-offset-2">
+            {t("task.change.see")}
+          </button>
+        </>
+      }
+      action={check}
+    />
+  );
+}
+
+// ---------------------------------------------------------------- history
+
+function History({ task, reveal }: { task: Task; reveal: { at: number; asked: number } | null }) {
+  const t = useT();
+  const f = useFormat();
+  const now = useNow();
+  const open = useOpenExternal();
+  const edits = useDataset("edunex.taskEdits");
+  const steps = taskHistory(task, edits);
+  const sentAt = submittedAt(task);
+  const [opened, setOpened] = useState<number | null>(null);
+  const [compare, setCompare] = useState<{ change: Extract<TaskChange, { kind: "instructions" }>; at: number } | null>(null);
+  const triggers = useRef(new Map<number, HTMLButtonElement>());
+  const baseId = useId();
+  // "Lihat perubahannya": the newest edit opens and takes the focus; where History sits under the page (under 1100px), it scrolls there.
+  useEffect(() => {
+    if (!reveal) return;
+    setOpened(reveal.at);
+    const button = triggers.current.get(reveal.at);
+    if (!button) return;
+    button.scrollIntoView?.({ block: "nearest", behavior: stillMotion() ? "auto" : "smooth" });
+    button.focus({ preventScroll: true });
+  }, [reveal]);
   return (
     <div className="px-4">
       {steps.length >= 2 && (
         <>
           <p className="mb-3 text-small font-semibold text-muted">{t("history.title")}</p>
           <ol className="relative ml-1.5 space-y-3 border-l border-line pl-4">
-            {steps.map((step) => (
-              <li key={step.kind} className="relative text-small">
-                <span
-                  aria-hidden
-                  className={cx(
-                    "absolute top-1 -left-[21px] size-[9px] rounded-full ring-[3px] ring-canvas",
-                    step.kind === "submitted"
-                      ? "bg-live"
-                      : step.kind === "edited" && editedAfterSubmit(task)
-                        ? "bg-meter-warning"
-                        : step.at > now && step.kind !== "draft"
-                          ? "border border-faint bg-canvas"
-                          : "bg-faint/60",
+            {steps.map((step) => {
+              const afterSubmit = step.kind === "edited" && sentAt !== null && step.at > sentAt;
+              const known = step.kind === "edited" && step.edit && step.edit.changes.length > 0 ? step.edit : null;
+              const panelId = `${baseId}-${step.at}`;
+              const isOpen = opened === step.at;
+              return (
+                <li key={`${step.kind}:${step.at}`} className="relative text-small">
+                  <span
+                    aria-hidden
+                    className={cx(
+                      "absolute top-1 -left-[21px] size-[9px] rounded-full ring-[3px] ring-canvas",
+                      step.kind === "submitted"
+                        ? "bg-live"
+                        : afterSubmit
+                          ? "bg-meter-warning"
+                          : step.at > now && step.kind !== "draft"
+                            ? "border border-faint bg-canvas"
+                            : "bg-faint/60",
+                    )}
+                  />
+                  {known ? (
+                    <>
+                      <button
+                        type="button"
+                        ref={(element) => {
+                          if (element) triggers.current.set(step.at, element);
+                          else triggers.current.delete(step.at);
+                        }}
+                        {...disclosureTrigger(isOpen, panelId)}
+                        onClick={() => setOpened(isOpen ? null : step.at)}
+                        className="focus-ring -mx-1 flex w-[calc(100%+0.5rem)] items-start gap-1 rounded px-1 text-left"
+                      >
+                        <span className="min-w-0 flex-1">
+                          <span className="block font-medium">{t("history.edited")}</span>
+                          <span className="block text-faint tabular-nums">{f.dueLabel(step.at)}</span>
+                        </span>
+                        <Icons.ChevronDown className={cx("mt-0.5 size-3.5 shrink-0 text-faint transition-transform duration-150", isOpen && "rotate-180")} />
+                      </button>
+                      <DisclosurePanel open={isOpen} id={panelId}>
+                        <div className="pt-1.5 pb-0.5">
+                          <p className="sr-only">{t("history.editedChanges")}</p>
+                          <ChangeList changes={known.changes} onCompare={(change) => setCompare({ change, at: step.at })} />
+                          {afterSubmit && <p className="mt-2 text-muted">{t("task.change.whatToDo")}</p>}
+                        </div>
+                      </DisclosurePanel>
+                    </>
+                  ) : (
+                    <>
+                      <span className="block font-medium">{t(`history.${step.kind}`)}</span>
+                      <span className="block text-faint tabular-nums">{f.dueLabel(step.at)}</span>
+                      {step.kind === "edited" && <span className="block text-muted">{t(step.edit ? "change.none" : "change.unknown")}</span>}
+                    </>
                   )}
-                />
-                <span className="block font-medium">{t(`history.${step.kind}`)}</span>
-                <span className="block text-faint tabular-nums">{f.dueLabel(step.at)}</span>
-              </li>
-            ))}
+                </li>
+              );
+            })}
           </ol>
         </>
       )}
@@ -1906,6 +2051,140 @@ function History({ task }: { task: Task }) {
         {t("action.openInEdunex")}
         <Icons.ArrowUpRight className="size-3.5" />
       </button>
+      {compare && <InstructionsCompare change={compare.change} at={compare.at} onClose={() => setCompare(null)} />}
     </div>
+  );
+}
+
+/** A date the way History says it: "Jum, 9 Okt, 23:59". */
+const stamp = (f: Format, at: number) => `${f.weekdayShort(at)}, ${f.dayMonth(at)}, ${f.time(at)}`;
+
+/**
+ * One edit's changes, one plain line each: "Tenggat: Jum, 9 Okt, 23:59 →
+ * Sen, 12 Okt, 23:59", "Berkas baru: brief-v2.pdf", "Sekarang boleh
+ * terlambat". The "→" is read out as "from … to …". The instructions open whole, now and before.
+ */
+function ChangeList({ changes, onCompare }: { changes: readonly TaskChange[]; onCompare: (change: Extract<TaskChange, { kind: "instructions" }>) => void }) {
+  const t = useT();
+  const f = useFormat();
+  const kind = (k: Task["kind"]) => (k === "task" ? "" : k.toUpperCase());
+  const fromTo = (label: string, from: string, to: string) => (
+    <>
+      <span aria-hidden>
+        {label}: {from} → {to}
+      </span>
+      <span className="sr-only">
+        {label} {t("change.fromTo", { from, to })}
+      </span>
+    </>
+  );
+  const names = (files: readonly TaskFile[]) => f.list(files.map((file) => file.name));
+  const line = (change: TaskChange): ReactNode => {
+    switch (change.kind) {
+      case "deadline":
+        return fromTo(
+          t("change.deadline"),
+          change.from === null ? t("change.none.value") : stamp(f, change.from),
+          change.to === null ? t("change.none.value") : stamp(f, change.to),
+        );
+      case "opens":
+        return fromTo(
+          t("change.opens"),
+          change.from === null ? t("change.rightAway") : stamp(f, change.from),
+          change.to === null ? t("change.rightAway") : stamp(f, change.to),
+        );
+      case "title":
+        return fromTo(t("change.title"), change.from, change.to);
+      case "instructions":
+        return (
+          <span className="flex flex-wrap items-baseline gap-x-2">
+            {t("change.instructions")}
+            <button type="button" onClick={() => onCompare(change)} className="focus-ring rounded font-medium text-accent-fg hover:underline">
+              {t("change.instructions.show")}
+            </button>
+          </span>
+        );
+      case "files": {
+        // The same name at a new link: the file was replaced.
+        const replaced = change.added.filter((file) => change.removed.some((old) => old.name === file.name));
+        const added = change.added.filter((file) => !replaced.includes(file));
+        const removed = change.removed.filter((file) => !replaced.some((r) => r.name === file.name));
+        return (
+          <>
+            {replaced.length > 0 && <span className="block">{t("change.fileReplaced", { files: names(replaced), count: replaced.length })}</span>}
+            {added.length > 0 && <span className="block">{t("change.filesAdded", { files: names(added), count: added.length })}</span>}
+            {removed.length > 0 && <span className="block">{t("change.filesRemoved", { files: names(removed), count: removed.length })}</span>}
+          </>
+        );
+      }
+      case "lateAllowed":
+        return t(change.to ? "change.lateOn" : "change.lateOff");
+      case "fileRequired":
+        return t(change.to ? "change.fileRequiredOn" : "change.fileRequiredOff");
+      case "group":
+        return t(change.to ? "change.groupOn" : "change.groupOff");
+      case "examKind":
+        return change.to === "task" ? t("change.examKindOff", { kind: kind(change.from) }) : t("change.examKind", { kind: kind(change.to) });
+    }
+  };
+  return (
+    <ul className="space-y-1 break-words">
+      {changes.map((change) => (
+        <li key={change.kind}>{line(change)}</li>
+      ))}
+    </ul>
+  );
+}
+
+/**
+ * The instructions as they are now and as they were before an edit, each
+ * whole, side by side where there's room and one under the other where
+ * there isn't. No marks inside sentences: a paragraph that's new or changed
+ * gets a quiet edge in "Sekarang", said to screen readers too.
+ */
+function InstructionsCompare({ change, at, onClose }: { change: Extract<TaskChange, { kind: "instructions" }>; at: number; onClose: () => void }) {
+  const t = useT();
+  const f = useFormat();
+  const lines = (text: string) => text.split("\n").filter((line) => line.trim() !== "");
+  const before = lines(change.before);
+  const had = new Set(before);
+  const side = (title: string, paragraphs: string[], marks: boolean) => (
+    <section className="min-w-0">
+      <h3 className="mb-2 text-small font-semibold text-muted">{title}</h3>
+      {paragraphs.length ? (
+        <div className="space-y-2 text-body leading-relaxed break-words">
+          {paragraphs.map((paragraph, i) =>
+            marks && !had.has(paragraph) ? (
+              // biome-ignore lint/suspicious/noArrayIndexKey: the same paragraph can repeat; its place is its identity
+              <p key={i} className="border-l-2 border-info-fg/60 pl-3">
+                <span className="sr-only">{t("task.instructions.changedPart")} </span>
+                {paragraph}
+              </p>
+            ) : (
+              // biome-ignore lint/suspicious/noArrayIndexKey: as above
+              <p key={i}>{paragraph}</p>
+            ),
+          )}
+        </div>
+      ) : (
+        <p className="text-body text-muted">{t("task.instructions.empty")}</p>
+      )}
+    </section>
+  );
+  return (
+    <Dialog
+      open
+      onOpenChange={(open) => !open && onClose()}
+      title={t("task.instructions.compare", { date: f.dayMonth(at) })}
+      className="w-[min(960px,calc(100vw-48px))]"
+    >
+      <div className="@container">
+        <div className="grid grid-cols-1 gap-x-8 gap-y-6 @min-[40rem]:grid-cols-2">
+          {side(t("task.instructions.now"), lines(change.after), true)}
+          {side(t("task.instructions.before"), before, false)}
+        </div>
+        {change.cut && <p className="mt-4 text-small text-muted">{t("task.instructions.cut")}</p>}
+      </div>
+    </Dialog>
   );
 }

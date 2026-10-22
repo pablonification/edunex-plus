@@ -13,6 +13,8 @@
 //   EDUNEX_DEMO_AFTER_CLASS=counted|absent|missing  the day runs on past DK4073's 11:00 class to 16:05: SIX counts
 //                            PL3002's morning class, and counts DK4073's (counted), marks it absent, or leaves it
 //                            uncounted (missing), so Presensi shows what SIX's count did after class
+//   EDUNEX_DEMO_EDIT=1       after the first sync, the lecturer revises Tugas 01 Bab I (handed in weeks ago):
+//                            new instructions, a later deadline and a new file, so the app knows what changed
 //
 // Every run starts from an empty profile (deleted again on quit), so each begins the same way.
 import fs from "node:fs";
@@ -297,6 +299,17 @@ const hooks: DemoHooks = {
     if (scenario === "signed-in") await fastForward(engine.signIn("six", { cookie: PRETEND_SIX_COOKIE }));
     // ITB's calendar, the public catalog's pages (one every 3.5 s), and the first alerts settle.
     await world.clock.advance(200_000);
+    if (process.env.EDUNEX_DEMO_EDIT === "1") {
+      const brief = "https://edunexfixture.blob.core.windows.net/edunex/fixture-brief-v2";
+      world.putFile(brief, SAMPLE_PDF);
+      world.edunex.editTask(117001, {
+        end_at: "2026-10-12T23:59:00+07:00",
+        description:
+          "<p>Kumpulkan ulang Bab I yang sudah direvisi memakai template terbaru, paling lambat Senin, 12 Oktober 2026 pukul 23.59.</p><p>Format berkas PDF, nama berkas NIM_Bab1.pdf.</p>",
+        files: [{ name: "brief-v2.pdf", file: brief }],
+      });
+      await fastForward(engine.refresh("edunex"));
+    }
     await engine.updateSettings({ firstScanDone: true });
     // Settings shows a linked phone, under the demo's made-up topic (it sends nothing anywhere).
     if (scenario === "signed-in") await engine.phone.connect();

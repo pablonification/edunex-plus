@@ -104,6 +104,23 @@ export const homeStrings = {
   "home.need.task.due": { id: "Tenggat {when}", en: "Due {when}" },
   "home.need.task.draft": { id: "Draf belum dikumpulkan", en: "Draft not handed in" },
   "home.need.task.edited": { id: "Diubah dosen setelah kamu kumpulkan · cek lagi", en: "Changed after you handed it in · check again" },
+  "home.need.task.editedCount": {
+    id: "Diubah dosen setelah kamu kumpulkan · {count} perubahan",
+    en: { one: "Changed after you handed it in · {count} change", other: "Changed after you handed it in · {count} changes" },
+  },
+  "home.need.task.editedMove": { id: "Diubah dosen setelah kamu kumpulkan · {change}", en: "Changed after you handed it in · {change}" },
+  "home.need.task.changedCount": {
+    id: "Diubah dosen · {count} perubahan",
+    en: { one: "Changed by your lecturer · {count} change", other: "Changed by your lecturer · {count} changes" },
+  },
+  "home.need.task.changedMove": { id: "Diubah dosen · {change}", en: "Changed by your lecturer · {change}" },
+  // One date moving, mid-sentence
+  "home.move.deadline": { id: "tenggat diundur ke {date}", en: "deadline moved to {date}" },
+  "home.move.deadlineEarlier": { id: "tenggat dimajukan ke {date}", en: "deadline moved earlier to {date}" },
+  "home.move.deadlineAdded": { id: "sekarang ada tenggat {date}", en: "now due {date}" },
+  "home.move.deadlineRemoved": { id: "tenggat dihapus", en: "deadline removed" },
+  "home.move.opens": { id: "mulai bisa dijawab {date}", en: "opens for answers {date}" },
+  "home.move.opensNow": { id: "langsung bisa dijawab", en: "open for answers now" },
   "home.need.attendance.none": { id: "{course}: jangan absen lagi", en: "{course}: don't miss another class" },
   "home.need.attendance.tomorrow": { id: "{course}: jangan absen besok", en: "{course}: don't miss tomorrow's class" },
   "home.need.attendance.out": { id: "{course}: tak bisa lagi capai {target}%", en: "{course}: can't reach {target}% anymore" },
@@ -141,6 +158,21 @@ export const homeStrings = {
   "alert.taskEdited": { id: "Tugas diubah · {course}", en: "Task edited · {course}" },
   "alert.taskEdited.afterSubmit": { id: "Diubah setelah kamu kumpulkan · {course}", en: "Changed after you handed in · {course}" },
   "alert.taskEdited.afterSubmit.body": { id: "{title} · cek apakah perlu dikumpulkan ulang", en: "{title} · check whether to hand it in again" },
+  // How many things changed (History on the Task page says which); one date moving is said by name
+  "alert.taskEdited.count": { id: "{title} · {count} perubahan", en: { one: "{title} · {count} change", other: "{title} · {count} changes" } },
+  "alert.taskEdited.count.after": {
+    id: "{title} · {count} perubahan · cek apakah perlu dikumpulkan ulang",
+    en: { one: "{title} · {count} change · check whether to hand it in again", other: "{title} · {count} changes · check whether to hand it in again" },
+  },
+  "alert.taskEdited.deadline": { id: "Tenggat diundur ke {dateId}, {time} · {course}", en: "Deadline moved to {dateEn}, {time} · {course}" },
+  "alert.taskEdited.deadlineEarlier": { id: "Tenggat dimajukan ke {dateId}, {time} · {course}", en: "Deadline moved earlier to {dateEn}, {time} · {course}" },
+  "alert.taskEdited.deadlineAdded": { id: "Sekarang ada tenggat {dateId}, {time} · {course}", en: "Now due {dateEn}, {time} · {course}" },
+  "alert.taskEdited.deadlineRemoved": { id: "Tenggat dihapus · {course}", en: "Deadline removed · {course}" },
+  "alert.taskEdited.opens": { id: "Mulai bisa dijawab {dateId}, {time} · {course}", en: "Opens for answers {dateEn}, {time} · {course}" },
+  "alert.taskEdited.opensNow": { id: "Sekarang langsung bisa dijawab · {course}", en: "Now open for answers · {course}" },
+  // Edunex marked it changed, but nothing the app compares did: the bell alone, quietly
+  "alert.taskEdited.none": { id: "Tugas ditandai berubah · {course}", en: "Task marked as changed · {course}" },
+  "alert.taskEdited.none.body": { id: "{title} · tenggat, instruksi, dan berkas sama", en: "{title} · same deadline, instructions and files" },
   "alert.materialToday": { id: "Materi untuk kuliah hari ini · {course}", en: "Material for today's class · {course}" },
   "alert.materialToday.body": { id: "{title} · kuliah {time}", en: "{title} · class at {time}" },
   // The whole "changes" group: Task edits, and Jadwal's moved, extra and overlapping classes and meetings outside SIX.

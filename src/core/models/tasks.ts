@@ -1,7 +1,7 @@
 // Tasks with the Student's answers (#72, #73). The first fields are shared
 // with the course page and later screens; the rest serve the Task page and
 // handing in. What the facts mean at a given moment (status, signals) lives
-// in src/core/tasks.ts.
+// in src/core/tasks.ts; what changed in each edit, in src/core/task-edits.ts.
 import { z } from "zod";
 
 /** A Task's true status, from the answer's submit bit and the Task's own dates and state. */
@@ -73,7 +73,41 @@ export const Task = z.object({
 });
 export type Task = z.infer<typeof Task>;
 
+/** One thing a lecturer changed in a Task, as the app compared two copies of it. */
+export const TaskChange = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("deadline"), from: z.number().nullable(), to: z.number().nullable() }),
+  z.object({ kind: z.literal("opens"), from: z.number().nullable(), to: z.number().nullable() }),
+  /** The instructions' text (not their HTML), whole on both sides; `cut` when one ran past the cap. */
+  z.object({ kind: z.literal("instructions"), before: z.string().max(20_000), after: z.string().max(20_000), cut: z.boolean().optional() }),
+  z.object({ kind: z.literal("files"), added: z.array(TaskFile).max(50), removed: z.array(TaskFile).max(50) }),
+  z.object({ kind: z.literal("title"), from: z.string(), to: z.string() }),
+  z.object({ kind: z.literal("lateAllowed"), from: z.boolean(), to: z.boolean() }),
+  z.object({ kind: z.literal("fileRequired"), from: z.boolean(), to: z.boolean() }),
+  z.object({ kind: z.literal("group"), from: z.boolean(), to: z.boolean() }),
+  z.object({ kind: z.literal("examKind"), from: z.enum(["task", "uts", "uas"]), to: z.enum(["task", "uts", "uas"]) }),
+]);
+export type TaskChange = z.infer<typeof TaskChange>;
+
+/** One edit of a Task: what differs from the copy the app had just before it. */
+export const TaskEdit = z.object({
+  taskId: z.number(),
+  /** This version's Task.editedAt; the edit alert's id carries it (task.edited:{taskId}:{at}). */
+  at: z.number(),
+  /** The earlier copy's own time (its editedAt, else when it was posted). */
+  since: z.number().nullable(),
+  /** When the app saw it. */
+  seenAt: z.number(),
+  /** Empty: Edunex moved updated_at, but nothing the app compares differs. */
+  changes: z.array(TaskChange),
+});
+export type TaskEdit = z.infer<typeof TaskEdit>;
+
 export const tasksDatasets = {
   /** Every Task of this term's courses (and their parent classes), with the Student's answers. */
   "edunex.tasks": z.array(Task),
+  /**
+   * What the lecturer changed in each edit the app saw, newest first, 3 per Task. Kept apart from the Tasks
+   * (an older app meeting a newer kind of change drops only these), and gone at sign-out like all of Edunex.
+   */
+  "edunex.taskEdits": z.array(TaskEdit).max(300),
 } as const;

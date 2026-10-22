@@ -2,11 +2,13 @@
 // into the app's Tasks. Shapes verified against test/fixtures/edunex/course-tasks.*.json.
 import { z } from "zod";
 import type { Task, TaskAnswer, TaskFile, TaskModule } from "../../../core/models";
+import { nextEdits } from "../../../core/task-edits";
 import { byDeadline, taskStatus } from "../../../core/tasks";
 import { EngineError } from "../../errors";
 import type { Transport } from "../../http/transport";
 import type { SourceContext } from "../source";
 import type { EdunexClient } from "./client";
+import { instructionsText } from "./instructions-text";
 
 const HOUR = 3_600_000;
 
@@ -213,7 +215,7 @@ function editedAt(postedAt: number | null, updatedAt: number | null, sentAt: num
   return updatedAt - postedAt > HOUR || (sentAt !== null && updatedAt > sentAt) ? updatedAt : null;
 }
 
-export function sortTasks(tasks: Task[]): Task[] {
+function sortTasks(tasks: Task[]): Task[] {
   return [...tasks].sort(byDeadline);
 }
 
@@ -240,5 +242,19 @@ export async function remember(context: SourceContext, taskId: number, task: Tas
   const log = writeLog(context);
   log.tasks.set(taskId, ++log.count);
   const list = (context.get("edunex.tasks") ?? []).filter((item) => item.id !== taskId);
-  await context.set("edunex.tasks", sortTasks(task ? [...list, task] : list));
+  // A lecturer's edit can be seen here first.
+  await storeTasks(context, task ? [...list, task] : list);
+}
+
+/**
+ * Stores the Tasks, noting first what the lecturer changed in each one Edunex
+ * says was edited, against the copy kept until now (the only earlier version
+ * there is). The edits go first: the edit alert runs on the Tasks' change and
+ * reads them. With no copy yet (the first sync after signing in) there's
+ * nothing to compare, so nothing is noted.
+ */
+export async function storeTasks(context: SourceContext, tasks: Task[]): Promise<void> {
+  const stored = context.get("edunex.tasks");
+  if (stored) await context.set("edunex.taskEdits", nextEdits(context.get("edunex.taskEdits") ?? [], stored, tasks, context.clock.now(), instructionsText));
+  await context.set("edunex.tasks", sortTasks(tasks));
 }

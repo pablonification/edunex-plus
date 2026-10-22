@@ -36,6 +36,7 @@ export async function startHome(options: { now?: string; world?: PretendWorld } 
         target: targetFor(h.engine.snapshot().settings, course.code),
       })),
       tasks: h.dataset("edunex.tasks") ?? [],
+      taskEdits: h.dataset("edunex.taskEdits"),
       presence: h.dataset("edunex.presence") ?? {},
       materials: h.dataset("edunex.materials") ?? {},
       announcements: h.dataset("edunex.announcements") ?? {},

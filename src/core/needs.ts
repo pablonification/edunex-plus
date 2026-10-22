@@ -41,9 +41,11 @@ import type {
   PresenceSession,
   SixCourse,
   Task,
+  TaskEdit,
 } from "./models";
 import type { Route } from "./route";
 import { dayStart, isScheduleReminder, slotMarks, weekStart } from "./schedule";
+import { dateMove } from "./task-edits";
 import { editedAfterSubmit, isOpenStatus, notOpenYet, shortWindow, takesAnswers, taskStatus } from "./tasks";
 
 const MINUTE = 60_000;
@@ -98,6 +100,8 @@ export interface HomeWorld {
   /** SIX's attendance count per course over time, and what it did after each class the app watched (by SIX's meeting id). */
   countLog?: CountLog;
   classResults?: ClassResults;
+  /** What the lecturer changed in each edit the app saw (none known: every edit is "not known"). */
+  taskEdits?: readonly TaskEdit[];
 }
 
 /** What every provider shares, worked out once. */
@@ -474,17 +478,22 @@ export const taskProvider: NeedProvider = {
     const viaPresence = presenceTasks(context);
     return context.tasks.flatMap((task) => {
       if (viaPresence.has(task.id)) return [];
-      const need = taskNeed(task, context.now);
+      const need = taskNeed(task, context.now, context.taskEdits);
       return need ? [need] : [];
     });
   },
 };
 
+/** The record of a Task's newest edit, when the app saw it happen. */
+export const newestEdit = (task: Pick<Task, "id" | "editedAt">, edits: readonly TaskEdit[] | undefined): TaskEdit | null =>
+  task.editedAt === null ? null : ((edits ?? []).find((edit) => edit.taskId === task.id && edit.at === task.editedAt) ?? null);
+
 /**
  * A Task's own item, whatever else speaks for it (a Presence window it's handed in for); null when it needs nothing.
- * Tugas & Ujian puts off a late Task as this item, so one snooze holds in both places.
+ * Tugas & Ujian puts off a late Task as this item, so one snooze holds in both places. An edit after hand-in is an
+ * item unless the app compared it (`edits`) and nothing it reads changed.
  */
-export function taskNeed(task: Task, now: number): NeedDraft | null {
+export function taskNeed(task: Task, now: number, edits?: readonly TaskEdit[]): NeedDraft | null {
   const status = taskStatus(task, now);
   const base = {
     kind: "task",
@@ -494,7 +503,7 @@ export function taskNeed(task: Task, now: number): NeedDraft | null {
     action: { kind: "go", route: { screen: "task", taskId: task.id } },
     task,
   } as const;
-  if (editedAfterSubmit(task) && task.editedAt! <= now && now - task.editedAt! < RECENT) {
+  if (editedAfterSubmit(task) && task.editedAt! <= now && now - task.editedAt! < RECENT && newestEdit(task, edits)?.changes.length !== 0) {
     const stillOpen = task.dueAt === null || task.dueAt > now || task.lateAllowed;
     return { ...base, id: `task:${task.id}:edited`, band: stillOpen && !task.closed ? "now" : "soon", reason: "edited", draft: false };
   }
@@ -520,7 +529,7 @@ export function dueItems(context: HomeContext, plan: TodayPlan): NeedDraft[] {
   const viaPresence = presenceTasks(context);
   return plan.due.flatMap((task) => {
     if (viaPresence.has(task.id)) return [];
-    const need = taskNeed(task, context.now);
+    const need = taskNeed(task, context.now, context.taskEdits);
     return need ? [need] : [];
   });
 }
@@ -757,14 +766,40 @@ const CHANGE_KINDS: ReadonlySet<AlertKind> = new Set(["newTask", "newMaterial", 
 export const taskEditedId = (task: Pick<Task, "id" | "editedAt">) => `task.edited:${task.id}:${task.editedAt}`;
 export const materialPostedId = (material: Pick<Material, "id">) => `material.posted:${material.id}`;
 
-/** The text of a Task edit, as the alert and the list both say it. */
-export function taskEditedText(task: Task): Pick<Alert, "title" | "body"> {
-  return editedAfterSubmit(task)
-    ? {
-        title: { key: "alert.taskEdited.afterSubmit", vars: { course: task.courseCode } },
-        body: { key: "alert.taskEdited.afterSubmit.body", vars: { title: task.title } },
-      }
-    : { title: { key: "alert.taskEdited", vars: { course: task.courseCode } }, body: { key: "alert.plain", vars: { title: task.title } } };
+/**
+ * The text of a Task edit, as the alert, the bell and "Yang berubah" all say
+ * it: quietly, that the lecturer changed it and how many things changed (the
+ * Task page's History says which). One date moving (the deadline, the
+ * opening) is said by name: a fact, not a diff. After hand-in it still says
+ * what to do. Not compared (`edit` null): as before. Nothing compared changed:
+ * a quiet line for the bell alone. The body keeps `{title}`: grouping and the
+ * list's sameness read it.
+ */
+export function taskEditedText(task: Task, edit: TaskEdit | null = null): Pick<Alert, "title" | "body"> {
+  const after = editedAfterSubmit(task);
+  const course = task.courseCode;
+  const title = task.title;
+  if (edit && edit.changes.length === 0)
+    return { title: { key: "alert.taskEdited.none", vars: { course } }, body: { key: "alert.taskEdited.none.body", vars: { title } } };
+  const body = after ? ({ key: "alert.taskEdited.afterSubmit.body", vars: { title } } as const) : ({ key: "alert.plain", vars: { title } } as const);
+  const move = edit ? dateMove(edit.changes) : null;
+  if (move) return { title: moveTitle(move, course), body };
+  if (!edit) return { title: { key: after ? "alert.taskEdited.afterSubmit" : "alert.taskEdited", vars: { course } }, body };
+  return {
+    title: { key: after ? "alert.taskEdited.afterSubmit" : "alert.taskEdited", vars: { course } },
+    body: { key: after ? "alert.taskEdited.count.after" : "alert.taskEdited.count", vars: { title, count: edit.changes.length } },
+  };
+}
+
+/** "Tenggat diundur ke Sen, 12 Okt, 23:59 · II4091": the one date that moved, with its day and time, so a move within a day still reads as one. */
+function moveTitle(move: NonNullable<ReturnType<typeof dateMove>>, course: string): Alert["title"] {
+  const at = (ms: number) => ({ course, ...dateVars(ms), time: clock(ms) });
+  if (move.kind === "deadline") {
+    if (move.to === null) return { key: "alert.taskEdited.deadlineRemoved", vars: { course } };
+    if (move.from === null) return { key: "alert.taskEdited.deadlineAdded", vars: at(move.to) };
+    return { key: move.to < move.from ? "alert.taskEdited.deadlineEarlier" : "alert.taskEdited.deadline", vars: at(move.to) };
+  }
+  return move.to === null ? { key: "alert.taskEdited.opensNow", vars: { course } } : { key: "alert.taskEdited.opens", vars: at(move.to) };
 }
 
 /**
@@ -791,7 +826,14 @@ export function recentChanges(world: HomeWorld | HomeContext, history: readonly 
         target,
       });
     if (task.editedAt !== null)
-      derived.push({ id: taskEditedId(task), kind: "taskEdited", source: "edunex", at: task.editedAt, ...taskEditedText(task), target });
+      derived.push({
+        id: taskEditedId(task),
+        kind: "taskEdited",
+        source: "edunex",
+        at: task.editedAt,
+        ...taskEditedText(task, newestEdit(task, context.taskEdits)),
+        target,
+      });
   }
   for (const [code, materials] of Object.entries(context.materials))
     for (const material of materials)

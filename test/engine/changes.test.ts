@@ -3,7 +3,8 @@
 // Task edited (loud when edited after the Student handed it in) and material
 // posted for a class that meets today.
 import { describe, expect, it } from "vitest";
-import type { ClassSession, SixCourse } from "../../src/core/models";
+import type { Alert, ClassSession, SixCourse } from "../../src/core/models";
+import { translate } from "../../src/core/strings";
 import { PretendWorld } from "../pretend/world";
 import { type PretendSixState, STUDENT, startAttendance } from "./attendance-harness";
 
@@ -51,7 +52,8 @@ describe("a Task edited", () => {
     await app.until("2026-10-08T09:10:00+07:00");
     const [edit] = app.of("taskEdited");
     expect(app.of("taskEdited")).toHaveLength(1);
-    expect(edit.text).toBe("Tugas diubah · II4091 — Tugas 02 Bab II");
+    // How many things changed, not which: the Task page's History says which.
+    expect(edit.text).toBe("Tugas diubah · II4091 — Tugas 02 Bab II · 1 perubahan");
     expect(edit).toMatchObject({ source: "edunex", count: 1, target: { screen: "task", taskId: 117003 } });
     // Never twice: the same edit stays one alert.
     await app.until("2026-10-08T12:00:00+07:00");
@@ -70,10 +72,52 @@ describe("a Task edited", () => {
     await app.until("2026-10-08T10:00:00+07:00");
     const edits = app.of("taskEdited");
     expect(edits.map((n) => n.text)).toEqual([
-      "Diubah setelah kamu kumpulkan · II4091 — Tugas 02 Bab II · cek apakah perlu dikumpulkan ulang",
-      "Tugas diubah · II4091 — Tugas 03 Bab III",
+      "Diubah setelah kamu kumpulkan · II4091 — Tugas 02 Bab II · 1 perubahan · cek apakah perlu dikumpulkan ulang",
+      "Tugas diubah · II4091 — Tugas 03 Bab III · 1 perubahan",
     ]);
     expect(edits[0].shownAt).toBeLessThan(edits[1].shownAt);
+  });
+
+  it("one date moving is said by name, with its day and time; a deadline pulled in close comes at once", async () => {
+    const app = await start();
+    app.world.edunex.moveDeadline(117010, "2026-11-02T23:59:00+07:00");
+    app.world.edunex.moveDeadline(117003, "2026-10-09T20:00:00+07:00");
+    await app.until("2026-10-08T09:10:00+07:00");
+    const texts = app.of("taskEdited").map((n) => n.text);
+    expect(texts).toContain("Tenggat dimajukan ke Jum, 9 Okt, 20:00 · II4091 — Tugas 02 Bab II");
+    expect(texts).toContain("Tenggat diundur ke Sen, 2 Nov, 23:59 · II4091 — Tugas 03 Bab III");
+    // Pulled in to tomorrow: urgent, not held for a grouped notification.
+    expect(app.of("taskEdited").find((n) => n.text.startsWith("Tenggat dimajukan"))).toMatchObject({ count: 1 });
+  });
+
+  it("several changes in one edit: how many", async () => {
+    const app = await start();
+    app.world.edunex.editTask(117003, { description: "<p>Revisi.</p>", is_lateable: false, name: "Tugas 02 Bab II (revisi)" });
+    await app.until("2026-10-08T09:10:00+07:00");
+    expect(app.of("taskEdited").map((n) => n.text)).toEqual(["Tugas diubah · II4091 — Tugas 02 Bab II (revisi) · 3 perubahan"]);
+  });
+
+  it("nothing compared changed: no notification, and the bell lists it quietly", async () => {
+    const app = await start();
+    app.world.edunex.editTask(117003, {});
+    await app.until("2026-10-08T09:10:00+07:00");
+    expect(app.of("taskEdited")).toEqual([]);
+    const history = app.engine.snapshot().datasets.find((d) => d.name === "app.alerts")?.value as { items: { kind: string }[] } | undefined;
+    expect((history?.items ?? []).map((i) => i.kind)).not.toContain("taskEdited");
+  });
+
+  it("speaks English", async () => {
+    const app = await start();
+    await app.engine.updateSettings({ lang: "en" });
+    app.world.edunex.moveDeadline(117010, "2026-11-02T23:59:00+07:00");
+    app.world.edunex.editTask(117003, { description: "<p>Revisi.</p>", is_lateable: false });
+    await app.until("2026-10-08T09:10:00+07:00");
+    const history = app.engine.snapshot().datasets.find((d) => d.name === "app.alerts")?.value as { items: Alert[] };
+    const alerts = history.items.filter((a) => a.kind === "taskEdited");
+    expect(alerts.map((a) => `${translate("en", a.title.key, a.title.vars)} — ${a.body ? translate("en", a.body.key, a.body.vars) : ""}`).sort()).toEqual([
+      "Deadline moved to Mon, 2 Nov, 23:59 · II4091 — Tugas 03 Bab III",
+      "Task edited · II4091 — Tugas 02 Bab II · 2 changes",
+    ]);
   });
 
   it("turned off in Settings (Changes): no notification, still in the history", async () => {
