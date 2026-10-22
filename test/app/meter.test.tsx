@@ -7,6 +7,7 @@
 import { act, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it } from "vitest";
+import { ProgressBar } from "../../src/app/ui/display";
 import { CountdownBar, ShareMeter } from "../../src/app/ui/meter";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -52,5 +53,24 @@ describe("ShareMeter", () => {
     const meter = draw(<ShareMeter share={60} target={80} tone={tone} label="Kehadiran 3/5" />).querySelector("[role=img]")!;
     const fills = [...meter.querySelectorAll<HTMLElement>("span")].filter((span) => span.style.background);
     expect(fills.map((span) => span.style.background)).toEqual([color]);
+  });
+});
+
+describe("ProgressBar", () => {
+  it("moves by sliding at a steady pace (progress doesn't ease), never resized", () => {
+    const fill = fillOf(draw(<ProgressBar value={0.25} label="25% terunduh" />));
+    expect(fill.style.translate).toBe("-75% 0");
+    expect(fill.style.width).toBe("");
+    expect(fill.className).toContain("motion-safe:transition-[translate]");
+    expect(fill.className).toContain("motion-safe:ease-linear");
+  });
+
+  it("knowing how far at last, starts a fresh fill instead of sliding over from where the unknown one sat", () => {
+    const container = draw(<ProgressBar value={0} indeterminate label="Mengunduh" />);
+    const unknown = fillOf(container);
+    expect(unknown.className).toContain("motion-safe:animate-shimmer");
+    act(() => root!.render(<ProgressBar value={0.5} label="50% terunduh" />));
+    expect(fillOf(container)).not.toBe(unknown);
+    expect(fillOf(container).style.translate).toBe("-50% 0");
   });
 });

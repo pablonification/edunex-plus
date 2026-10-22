@@ -18,6 +18,7 @@ import { cx } from "../ui/cx";
 import { EmptyState } from "../ui/display";
 import { type IconProps, Icons } from "../ui/icons";
 import { factsLabel, Meta } from "../ui/layout";
+import { ARRIVE, arriveAt } from "../ui/motion/arrival";
 import { Dialog } from "../ui/overlays";
 import { PanelBoundary } from "../ui/panel-boundary";
 import { isBuilt } from "./built";
@@ -44,6 +45,9 @@ const SCANNED: readonly DatasetName[] = [
 
 /** Lines say at most this many courses, exams or meetings, then "and N more". */
 const SHOWN = 3;
+
+/** What the scan found starts coming in this far into the dialog's own opening. */
+const IN_DIALOG = 100;
 
 const ICON: Record<Finding["kind"], ComponentType<IconProps>> = {
   attendance: Icons.Hand,
@@ -147,21 +151,29 @@ function Findings({ onGo }: { onGo: (route: Route) => void }) {
       : summary.read.length === 1
         ? t(summary.read[0] === "edunex" ? "scan.title.edunex" : "scan.title.six", { count })
         : t("scan.title", { count });
+  // Seen once (and again only when asked for from Settings), so what it found comes in a line at a time
+  // as the dialog opens (the first run, docs/design-system.md).
   return (
     <>
-      <Summary summary={summary} />
-      {heading && <h3 className="mt-1.5 text-heading font-semibold tracking-[-0.01em]">{heading}</h3>}
+      <div className={ARRIVE} style={arriveAt(0, IN_DIALOG)}>
+        <Summary summary={summary} />
+      </div>
+      {heading && (
+        <h3 className={cx("mt-1.5 text-heading font-semibold tracking-[-0.01em]", ARRIVE)} style={arriveAt(1, IN_DIALOG)}>
+          {heading}
+        </h3>
+      )}
       {findings.length ? (
         // Rows on the dialog itself, split by hairlines and reaching its edges, so a hovered row fills the width.
         <ol className="-mx-5 mt-4">
           {findings.map((finding, i) => (
-            <li key={finding.kind} className={cx(i > 0 && "border-t border-line")}>
+            <li key={finding.kind} className={cx(i > 0 && "border-t border-line", ARRIVE)} style={arriveAt(i + 2, IN_DIALOG)}>
               <Line finding={finding} onGo={onGo} />
             </li>
           ))}
         </ol>
       ) : (
-        <div className="mt-4">
+        <div className={cx("mt-4", ARRIVE)} style={arriveAt(2, IN_DIALOG)}>
           <EmptyState icon={<Icons.CheckCircle className="size-5" />} title={t("scan.empty")} />
         </div>
       )}

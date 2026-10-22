@@ -266,6 +266,29 @@ describe("the update plan", () => {
     expect(tries).toBe(2);
   });
 
+  it("downloads once when asked twice at the same moment (at start, and the release just found), so its bar only goes forward", async () => {
+    let downloads = 0;
+    const { updater, sent, settled } = setUp({
+      download: async (_file, progress) => {
+        downloads++;
+        progress(0.5);
+        await new Promise((resolve) => setImmediate(resolve));
+        progress(0.9);
+        return { path: "/tmp/x.zip", sha512: SHA, size: 100 };
+      },
+    });
+    // The window asks how far it got while both are still working out how this copy updates.
+    await Promise.all([updater.fetch(), updater.fetch(), updater.state(), updater.download()]);
+    await settled();
+    expect(downloads).toBe(1);
+    expect(sent.map((s) => [s.step, s.progress])).toEqual([
+      ["downloading", null],
+      ["downloading", 0.5],
+      ["downloading", 0.9],
+      ["ready", 1],
+    ]);
+  });
+
   it("restarting for it puts it in place once, opened again", async () => {
     const { updater, reopened, settled } = setUp();
     await updater.download();

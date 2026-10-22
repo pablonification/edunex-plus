@@ -216,16 +216,26 @@ export class MismatchError extends Error {}
 export function createUpdater(deps: UpdaterDeps): Updater {
   let state: UpdateInstall | null = null;
   let way: Awaited<ReturnType<UpdaterDeps["way"]>> | null = null;
+  /** Working out how this copy updates: whoever asks while it runs waits for the same answer, so none of them starts from a blank state. */
+  let finding: Promise<void> | null = null;
   let staged: string | null = null;
   /** Put in place already (restart or quit): once is enough. */
   let installing = false;
 
   async function current(): Promise<UpdateInstall> {
-    if (!state) {
-      way = await deps.way();
-      state = { blocked: "blocked" in way ? way.blocked : null, step: "idle", version: null, progress: null, problem: null };
-    }
-    return state;
+    finding ??= deps.way().then(
+      (found) => {
+        way = found;
+        state = { blocked: "blocked" in found ? found.blocked : null, step: "idle", version: null, progress: null, problem: null };
+      },
+      (error: unknown) => {
+        // Asked again next time.
+        finding = null;
+        throw error;
+      },
+    );
+    await finding;
+    return state as UpdateInstall;
   }
 
   function set(patch: Partial<UpdateInstall>): UpdateInstall {
@@ -267,8 +277,13 @@ export function createUpdater(deps: UpdaterDeps): Updater {
     }
   }
 
-  /** Starts downloading `notice`'s release, unless it's on its way or there already. */
-  function start(now: UpdateInstall, notice: UpdateNotice, kind: UpdateKind, arch: Arch, quiet: boolean): UpdateInstall {
+  /**
+   * Starts downloading `notice`'s release, unless it's on its way or there already. It looks at the
+   * state as it is now, not as it was when the asking began: the check at start and the release just
+   * found ask at the same moment, and two downloads would take turns moving one bar back and forth.
+   */
+  function start(notice: UpdateNotice, kind: UpdateKind, arch: Arch, quiet: boolean): UpdateInstall {
+    const now = state as UpdateInstall;
     if ((now.step === "downloading" || now.step === "ready") && now.version === notice.version) return now;
     staged = null;
     const started = set({ step: "downloading", version: notice.version, progress: null, problem: null });
@@ -286,7 +301,7 @@ export function createUpdater(deps: UpdaterDeps): Updater {
         await deps.openPage(notice.url);
         return now;
       }
-      return start(now, notice, way.kind, way.arch, false);
+      return start(notice, way.kind, way.arch, false);
     },
     async fetch() {
       const now = await current();
@@ -295,7 +310,7 @@ export function createUpdater(deps: UpdaterDeps): Updater {
       if (!notice || now.blocked || !way || "blocked" in way) return;
       // A download that failed waits for "Coba lagi": by itself, it isn't tried again for the same version.
       if (now.step === "failed" && now.version === notice.version) return;
-      start(now, notice, way.kind, way.arch, true);
+      start(notice, way.kind, way.arch, true);
     },
     async install() {
       const now = await current();
