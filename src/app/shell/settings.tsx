@@ -4,15 +4,20 @@
 // then the accounts (who is
 // signed in, when each was last checked, sign out of one, or sign out and
 // remove everything), then notifications and what closing the window does,
-// then notifications on the phone (./phone.tsx), then appearance, then the
-// rest (attendance targets: the default and each course's own), then what the
+// then notifications on the phone (./phone.tsx), then appearance, then each
+// course's color (the term at a glance, in both themes, and the way back to
+// automatic), then the rest (attendance targets: the default and each
+// course's own), then what the
 // app is (licence, the open-source software it uses, opened as a page of its
 // own).
-import { lazy, type ReactNode, Suspense, useRef, useState } from "react";
+import { lazy, type ReactNode, Suspense, useEffect, useRef, useState } from "react";
 import { type AlertGroup, DEADLINE_REMINDERS, type DeadlineReminder, type Settings, type SourceId, type UpdateCheckResult } from "../../core/models";
 import type { StringKey } from "../../core/strings";
 import { TargetStepper, useTargets } from "../attendance-parts";
 import { errorKey } from "../bridge";
+import { CourseColorPicker, colorName } from "../course-color-picker";
+import { useCourseColorPicks } from "../course-colors";
+import { type TermCourse, useTermCourses } from "../courses";
 import { useFocusNext } from "../hooks";
 import { useFormat, useT } from "../i18n";
 import { displayName } from "../names";
@@ -22,7 +27,7 @@ import { useBridge, useDataset, useSettings, useStatus, useStore, useUpdateInsta
 import { AppMark, SourceLogo } from "../ui/brand";
 import { Button, Segmented, Switch } from "../ui/controls";
 import { cx } from "../ui/cx";
-import { Card, ProgressBar, Skeleton } from "../ui/display";
+import { Card, CourseDot, ProgressBar, Skeleton } from "../ui/display";
 import { Icons } from "../ui/icons";
 import { Meta, Notice } from "../ui/layout";
 import { ConfirmDialog, Dialog, toast } from "../ui/overlays";
@@ -36,10 +41,13 @@ const Licences = lazy(() => import("./licences"));
 export function SettingsDialog({
   open,
   onOpenChange,
+  startAt = null,
   onShowFirstScan,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** A group to open at, instead of the top (the sidebar's course colors button). */
+  startAt?: "courseColors" | null;
   onShowFirstScan?: () => void;
 }) {
   const t = useT();
@@ -70,7 +78,12 @@ export function SettingsDialog({
             <Licences />
           </Suspense>
         ) : (
-          <SettingsBody onSignedOutOfEverything={() => onOpenChange(false)} onShowFirstScan={onShowFirstScan} onShowLicences={() => setPage("licences")} />
+          <SettingsBody
+            startAt={startAt}
+            onSignedOutOfEverything={() => onOpenChange(false)}
+            onShowFirstScan={onShowFirstScan}
+            onShowLicences={() => setPage("licences")}
+          />
         )}
       </PanelBoundary>
     </Dialog>
@@ -78,10 +91,12 @@ export function SettingsDialog({
 }
 
 function SettingsBody({
+  startAt,
   onSignedOutOfEverything,
   onShowFirstScan,
   onShowLicences,
 }: {
+  startAt: "courseColors" | null;
   onSignedOutOfEverything: () => void;
   onShowFirstScan?: () => void;
   onShowLicences: () => void;
@@ -169,6 +184,8 @@ function SettingsBody({
         </Row>
       </Group>
 
+      <CourseColorSettings start={startAt === "courseColors"} />
+
       <Group title={t("settings.other")}>
         <AttendanceTargets />
       </Group>
@@ -239,6 +256,116 @@ function AttendanceTargets() {
         </Row>
       ))}
     </>
+  );
+}
+
+/**
+ * Each course's color, the whole term at once: what's picked, what's automatic, which share a color, and how they
+ * look in the other theme too. Each row opens the same picker as the sidebar; one row puts every course back to
+ * automatic, at once, with Undo. Hidden while there are no courses.
+ */
+function CourseColorSettings({ start }: { start: boolean }) {
+  const t = useT();
+  const f = useFormat();
+  const term = useTermCourses();
+  const picks = useCourseColorPicks();
+  const [open, setOpen] = useState<string | null>(null);
+  const group = useRef<HTMLElement>(null);
+  const triggers = useRef(new Map<string, HTMLButtonElement>());
+  // Asked for from the sidebar: Settings opens here, with focus on the first course's color.
+  useEffect(() => {
+    if (!start) return;
+    const timer = setTimeout(() => {
+      group.current?.scrollIntoView?.({ block: "start" });
+      group.current?.querySelector<HTMLButtonElement>("[data-color-trigger]")?.focus();
+    });
+    return () => clearTimeout(timer);
+  }, [start]);
+  // A code in two classes is one course with one color.
+  const courses = (term ?? []).filter((course, index, all) => all.findIndex((other) => other.code === course.code) === index);
+  if (!courses.length) return null;
+  const codes = courses.map((course) => course.code);
+  const picked = courses.filter((course) => course.colorPicked).length;
+  const reset = () => {
+    // Its button goes: focus stays in the list, on the last course's color, never back at the top of Settings.
+    triggers.current.get(codes.at(-1)!)?.focus();
+    void picks.resetAll(codes);
+  };
+  return (
+    <Group title={t("settings.courseColors")} note={t("settings.courseColors.note")} lead={<ColorPreview courses={courses} />} groupRef={group}>
+      {courses.map((course) => {
+        const same = courses.filter((other) => other.code !== course.code && other.colorId === course.colorId).map((other) => other.code);
+        const name = colorName(t, course.colorId);
+        return (
+          <Row
+            key={course.code}
+            label={course.name}
+            hint={
+              <Meta>
+                {course.code}
+                {t(course.colorPicked ? "courseColor.yours" : "courseColor.automatic")}
+                {same.length ? t("courseColor.sameAs", { codes: f.list(same) }) : ""}
+              </Meta>
+            }
+          >
+            <CourseColorPicker
+              code={course.code}
+              open={open === course.code}
+              onOpenChange={(next) => setOpen(next ? course.code : null)}
+              side="left"
+              align="center"
+              trigger={
+                <button
+                  ref={(button) => {
+                    if (button) triggers.current.set(course.code, button);
+                    else triggers.current.delete(course.code);
+                  }}
+                  type="button"
+                  data-color-trigger
+                  aria-label={t("courseColor.current", { code: course.code, color: name })}
+                  className="focus-ring inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg border border-edge bg-surface px-2.5 text-small font-medium whitespace-nowrap transition-colors duration-150 hover:bg-hover"
+                >
+                  <CourseDot color={course.color} />
+                  {name}
+                  <Icons.ChevronDown className="size-3 text-muted" />
+                </button>
+              }
+            />
+          </Row>
+        );
+      })}
+      <Row label={t("settings.courseColors.all")} hint={picked ? t("settings.courseColors.allHint", { count: picked }) : t("settings.courseColors.allAuto")}>
+        {picked > 0 && (
+          <Button size="sm" onClick={reset}>
+            {t("settings.courseColors.reset")}
+          </Button>
+        )}
+      </Row>
+    </Group>
+  );
+}
+
+/** The term's sidebar rows in light and in dark, side by side: how a pick looks in the theme not on screen. */
+function ColorPreview({ courses }: { courses: readonly TermCourse[] }) {
+  const t = useT();
+  return (
+    <div inert>
+      <p className="mb-1.5 px-1 text-caption text-faint">{t("settings.courseColors.preview")}</p>
+      <div className="grid grid-cols-1 gap-2 min-[30rem]:grid-cols-2">
+        {(["light", "dark"] as const).map((theme) => (
+          <div key={theme} className={cx(theme === "light" ? "preview-light" : "preview-dark", "rounded-xl border border-edge bg-sidebar p-1.5 text-fg")}>
+            <p className="px-1.5 pt-0.5 pb-1 text-caption font-semibold text-muted">{t(`settings.theme.${theme}`)}</p>
+            {courses.map((course) => (
+              <div key={course.code} className="flex h-7 items-center gap-2 px-1.5 text-small">
+                <CourseDot color={course.color} />
+                <span className="shrink-0 font-medium tabular-nums">{course.code}</span>
+                <span className="truncate text-muted">{course.name}</span>
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -604,9 +731,21 @@ function About() {
 }
 
 /** `lead`: shown between the title and the rows (an update notice), while it draws anything. */
-function Group({ title, note, lead, children }: { title?: string; note?: string; lead?: ReactNode; children: ReactNode }) {
+function Group({
+  title,
+  note,
+  lead,
+  groupRef,
+  children,
+}: {
+  title?: string;
+  note?: string;
+  lead?: ReactNode;
+  groupRef?: React.Ref<HTMLElement>;
+  children: ReactNode;
+}) {
   return (
-    <section>
+    <section ref={groupRef}>
       {title && <h3 className="mb-2 px-1 text-small font-semibold text-muted">{title}</h3>}
       {lead && <div className="mb-2 empty:hidden">{lead}</div>}
       <Card className="divide-y divide-line overflow-hidden">{children}</Card>

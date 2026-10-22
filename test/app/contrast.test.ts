@@ -104,6 +104,21 @@ const pairs: [string, string, number][] = [
   ),
 ];
 
+describe("Settings' preview of the course colors", () => {
+  // Each side draws its own theme whatever the theme on screen: its values are that theme's, never stale copies.
+  it.each([
+    ["light", light],
+    ["dark", dark],
+  ])("draws the %s theme with its own values", (name, theme) => {
+    const preview = variables(block(css, css.indexOf(`.preview-${name} {`)));
+    expect(preview.size).toBeGreaterThan(COURSE_PALETTE.length);
+    for (const [token, value] of preview) {
+      const own = value.startsWith("var(") ? lookup(theme, value.slice(4, -1).trim()) : value;
+      expect(own, token).toBe(lookup(theme, token));
+    }
+  });
+});
+
 describe.each([
   ["light", light],
   ["dark", dark],

@@ -5,7 +5,7 @@ import * as AlertDialogPrimitive from "@radix-ui/react-alert-dialog";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import * as PopoverPrimitive from "@radix-ui/react-popover";
 import * as TooltipPrimitive from "@radix-ui/react-tooltip";
-import { type MouseEvent, type ReactNode, useEffect, useLayoutEffect, useRef, useSyncExternalStore } from "react";
+import { type MouseEvent, type ReactNode, type RefObject, useEffect, useLayoutEffect, useRef, useSyncExternalStore } from "react";
 import { useT } from "../i18n";
 import { Button, IconButton } from "./controls";
 import { cx } from "./cx";
@@ -36,9 +36,12 @@ export function useReturnFocus() {
     onCloseAutoFocus: (event: Event) => {
       event.preventDefault();
       if (clickedAway.current || !opener.current) return;
+      const at = document.activeElement;
+      // A panel this one opened has focus (a menu item that opens a picker, which arrives before the menu has gone): it keeps it.
+      const panel = event.target instanceof Node ? event.target : null;
+      if (at instanceof HTMLElement && !panel?.contains(at) && at.closest("[data-radix-popper-content-wrapper], [role=dialog]")) return;
       // Its row has gone and the screen has already put focus where it belongs (the planner's hidden list): it stays there.
       const gone = !opener.current.isConnected || opener.current.closest("[data-leaving]") !== null;
-      const at = document.activeElement;
       if (gone && at instanceof HTMLElement && at !== document.body && at.isConnected && !at.closest("[data-leaving]")) return;
       if (!focusInsteadOf(opener.current) && opener.current.isConnected) opener.current.focus();
     },
@@ -194,9 +197,20 @@ export const TooltipProvider = ({ children }: { children: ReactNode }) => (
   </TooltipPrimitive.Provider>
 );
 
-export function Tooltip({ content, children, side = "bottom" }: { content: ReactNode; children: ReactNode; side?: "top" | "bottom" | "left" | "right" }) {
+/** `hidden`: kept shut while something else opened from the same control speaks for it (a panel beside it). */
+export function Tooltip({
+  content,
+  children,
+  side = "bottom",
+  hidden = false,
+}: {
+  content: ReactNode;
+  children: ReactNode;
+  side?: "top" | "bottom" | "left" | "right";
+  hidden?: boolean;
+}) {
   return (
-    <TooltipPrimitive.Root>
+    <TooltipPrimitive.Root open={hidden ? false : undefined}>
       <TooltipPrimitive.Trigger asChild>{children}</TooltipPrimitive.Trigger>
       <TooltipPrimitive.Portal>
         <TooltipPrimitive.Content
@@ -213,25 +227,36 @@ export function Tooltip({ content, children, side = "bottom" }: { content: React
   );
 }
 
-/** A panel that opens from a control (alerts, sync status): Escape or a click outside closes it, focus goes back. */
+/**
+ * A panel that opens from a control (alerts, sync status): Escape or a click outside closes it, focus goes back.
+ * Opened from state instead (a sidebar row that opens its course on click, and the picker on right-click), it
+ * hangs from `anchor` and has no trigger of its own.
+ */
 export function Popover({
   trigger,
+  anchor,
   open,
   onOpenChange,
+  side = "bottom",
   align = "end",
   label,
   initialFocus,
+  onEscapeKeyDown,
   className,
   children,
 }: {
-  trigger: ReactNode;
+  trigger?: ReactNode;
+  anchor?: RefObject<HTMLElement | null>;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  side?: "top" | "right" | "bottom" | "left";
   align?: "start" | "center" | "end";
   /** The panel's accessible name. */
   label: string;
   /** Where focus goes when it opens, when not its first control (a row's own part of the panel). */
   initialFocus?: () => HTMLElement | null | undefined;
+  /** Escape, before it closes: told apart from a click outside (the color picker puts everything back). */
+  onEscapeKeyDown?: () => void;
   className?: string;
   children: ReactNode;
 }) {
@@ -245,13 +270,16 @@ export function Popover({
   };
   return (
     <PopoverPrimitive.Root open={open} onOpenChange={onOpenChange}>
-      <PopoverPrimitive.Trigger asChild>{trigger}</PopoverPrimitive.Trigger>
+      {trigger && <PopoverPrimitive.Trigger asChild>{trigger}</PopoverPrimitive.Trigger>}
+      {anchor && <PopoverPrimitive.Anchor virtualRef={anchor as RefObject<HTMLElement>} />}
       <PopoverPrimitive.Portal>
         <PopoverPrimitive.Content
           aria-label={label}
           {...returnFocus}
           onOpenAutoFocus={onOpenAutoFocus}
+          onEscapeKeyDown={onEscapeKeyDown}
           onClickCapture={ignoreClosingClick}
+          side={side}
           align={align}
           sideOffset={8}
           collisionPadding={12}

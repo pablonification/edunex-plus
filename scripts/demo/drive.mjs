@@ -88,6 +88,11 @@ export async function launchDemo(options = {}) {
       if (patch.theme) await page.emulateMedia({ colorScheme: patch.theme === "system" ? null : patch.theme });
       await settle(page);
     },
+    /** Saves what the Student entered on this computer the way the window does ("local.courseColors", "local.plan"). */
+    async local(name, value) {
+      await page.evaluate(([n, v]) => window.edunexPlus.invoke("local.set", { name: n, value: v }), [name, value]);
+      await settle(page);
+    },
     /** Runs a function on the pretend world in the main process (post a Task, go offline, ...). */
     world(fn, arg) {
       return app.evaluate(
