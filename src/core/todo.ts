@@ -163,7 +163,7 @@ export function doneList({ tasks, exams, marks = [], now }: TodoInput): { handed
   const closed = tasks.filter((task) => taskStatus(task, now) === "closed").sort((a, b) => (b.dueAt ?? 0) - (a.dueAt ?? 0));
   const pastExams: PastExam[] = [];
   for (const exam of exams) {
-    const sat = exam.six.length > 0 || exam.edunex.some((e) => e.start !== null);
+    const sat = exam.six.length > 0 || exam.edunex.some((e) => e.start !== null || e.end !== null);
     if ((!sat && examDated(exam)) || examAhead(exam, now, marks)) continue;
     const held = exam.edunex.flatMap((e) => {
       const mark = examMarkOn(e, marks);
@@ -171,7 +171,10 @@ export function doneList({ tasks, exams, marks = [], now }: TodoInput): { handed
     });
     const moments = [
       ...exam.six.map((session) => session.end),
-      ...exam.edunex.flatMap((e) => (e.start === null ? [] : [examMarkOn(e, marks)?.at ?? e.end ?? e.start])),
+      ...exam.edunex.flatMap((e) => {
+        const at = examMarkOn(e, marks)?.at ?? e.end ?? e.start;
+        return at === null ? [] : [at];
+      }),
       ...exam.tasks.map((task) => submittedAt(task) ?? task.dueAt ?? 0),
     ];
     pastExams.push({ exam, at: moments.length ? Math.max(...moments) : (exam.week?.end ?? 0), marks: held });

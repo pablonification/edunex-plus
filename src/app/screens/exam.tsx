@@ -316,7 +316,7 @@ export function PastExamRow({ past, inCourse = false }: { past: PastExam; inCour
   const { course, name } = useExamCourse(exam);
   const code = inCourse ? "" : <CourseCode code={exam.courseCode} course={course} />;
   const [sitting] = exam.six;
-  const online = exam.edunex.find((e) => e.start !== null);
+  const online = exam.edunex.find((e) => e.start !== null || e.end !== null);
   const [mark] = past.marks;
   let facts: ReactNode[];
   let main: string;
@@ -330,6 +330,11 @@ export function PastExamRow({ past, inCourse = false }: { past: PastExam; inCour
     const window = isExamWindow(online);
     main = window && online.end !== null ? f.dueLabel(online.end) : f.relativeDay(online.start);
     sub = mark ? t("exam.markedOn", { date: f.dayMonth(mark.at) }) : online.end !== null ? f.timeRange(online.start, online.end) : f.time(online.start);
+  } else if (online?.end != null) {
+    // Only its close was given: when it closed.
+    facts = [code, t("exam.onEdunex"), online.title ?? ""];
+    main = f.dueLabel(online.end);
+    sub = f.fromNow(online.end);
   } else {
     facts = [code, t("exam.neverAnnounced")];
     main = exam.week ? f.dayRange(exam.week.firstDay, exam.week.lastDay) : "";

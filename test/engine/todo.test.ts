@@ -204,6 +204,29 @@ describe("when an exam is over", () => {
     expect(parts(wib("2026-10-22T00:01:00"))).toEqual([]);
   });
 
+  it("SIX and Edunex giving the same sitting on the same day is one row and one count, SIX's; on different days, two", () => {
+    const sameDay = quiz({ id: "7001", title: "UTS Markom", start: wib("2026-10-15T11:00:00"), end: wib("2026-10-15T13:00:00") });
+    const input = term(wib("2026-10-14T08:00:00"), { tasks: [], edunex: [sameDay] });
+    expect(titles(todoList(input)).filter((title) => title.startsWith("DK4073"))).toEqual(["DK4073-UTS sitting"]);
+    expect(todoList(input).find((item) => item.kind === "exam")).toMatchObject({ part: { source: "six", room: "TVST C" } });
+    const otherDay = quiz({ id: "7001", title: "UTS Markom", start: wib("2026-10-16T09:00:00"), end: wib("2026-10-16T11:00:00") });
+    expect(titles(todoList(term(wib("2026-10-14T08:00:00"), { tasks: [], edunex: [otherDay] }))).filter((t) => t.startsWith("DK4073"))).toEqual([
+      "DK4073-UTS sitting",
+      "DK4073-UTS sitting",
+    ]);
+  });
+
+  it("an Edunex exam with only its close is due then, and over after it", () => {
+    const closeOnly = quiz({ start: null, end: wib("2026-10-28T23:59:00") });
+    const before = term(wib("2026-10-22T09:00:00"), { tasks: [], edunex: [closeOnly] });
+    const item = todoList(before).find((i) => i.kind === "exam" && i.exam.kind === "KUIS");
+    // Its length isn't known: no Mark as done for it (opensAt is null).
+    expect(item).toMatchObject({ at: closeOnly.end, part: { kind: "window", opensAt: null } });
+    const after = term(wib("2026-10-29T00:30:00"), { tasks: [], edunex: [closeOnly] });
+    expect(todoList(after).some((i) => i.kind === "exam" && i.exam.kind === "KUIS")).toBe(false);
+    expect(doneList(after).pastExams.map((p) => p.exam.kind)).toContain("KUIS");
+  });
+
   it("a sitting the same day as the take-home's deadline is two rows", () => {
     const sameDay = { ...takeHome, dueAt: wib("2026-10-15T23:59:00") };
     const input = term(wib("2026-10-14T08:00:00"), { tasks: [sameDay] });
