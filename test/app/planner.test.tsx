@@ -530,7 +530,7 @@ describe("the study planner", () => {
     expect(first).toMatch(/^DK4073/);
     await s.click("Coba tanpa DK4073");
     expect(rows()[0].textContent).toBe("DK4073Komunikasi PemasaranTidak diambil di rencana3Kembalikan");
-    expect(rows()[0].className).toBe(rows()[1].className.replace(" text-body", " text-body text-muted"));
+    expect(rows()[0].className).toBe(`${rows()[1].className} text-muted`);
   });
 
   it("this semester's block is there while its KRS is still empty: a course can be tried, and its SKS count", async () => {

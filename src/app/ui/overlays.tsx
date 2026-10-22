@@ -242,9 +242,10 @@ export function Popover({
           align={align}
           sideOffset={8}
           collisionPadding={12}
-          // Grows from its control, so it shows which side it opened on, and fades as it closes.
+          // Grows from its control, so it shows which side it opened on, and fades as it closes. Never bigger
+          // than the room the window leaves it (zoomed in, a short window): it scrolls inside instead.
           className={cx(
-            "no-drag z-(--z-popover) origin-(--radix-popover-content-transform-origin) rounded-xl border border-edge bg-raised text-fg shadow-pop focus:outline-none",
+            "no-drag z-(--z-popover) max-h-(--radix-popover-content-available-height) max-w-(--radix-popover-content-available-width) origin-(--radix-popover-content-transform-origin) overflow-y-auto overscroll-contain rounded-xl border border-edge bg-raised text-fg shadow-pop focus:outline-none",
             "motion-safe:data-[state=open]:animate-popover-in motion-safe:data-[state=closed]:animate-popover-out",
             className,
           )}

@@ -28,7 +28,7 @@ const confirmButton = () =>
 const openTask = async (title: string, now?: string) => {
   const s = await openApp({ signedIn: true, world: new PretendWorld({ now }) });
   screen = s;
-  await s.click(/^Tugas & Ujian\d*$/);
+  await s.click(/^Tugas & Ujian\d*(, Perlu perhatianmu)?$/);
   const row = () => [...document.querySelectorAll<HTMLButtonElement>("main li button")].find((b) => b.textContent?.startsWith(title));
   if (!row()) await s.click(/^Selesai/);
   const found = row();
@@ -159,7 +159,7 @@ describe("handing in", () => {
     world.edunex.postTask(95326, { name: "Tugas Kelompok 1", type: "GROUP" });
     screen = await openApp({ signedIn: true, world });
     const s = screen;
-    await s.click(/^Tugas & Ujian\d*$/);
+    await s.click(/^Tugas & Ujian\d*(, Perlu perhatianmu)?$/);
     await s.click([...document.querySelectorAll<HTMLButtonElement>("main li button")].find((b) => b.textContent?.startsWith("Tugas Kelompok 1"))!);
     expect(card()).toContain("Ini tugas kelompok. Kumpulkan bersama kelompokmu di Edunex.");
     // Nothing of the Student's own to show, so no "Jawabanmu" over it.

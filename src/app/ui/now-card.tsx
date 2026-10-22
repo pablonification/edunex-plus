@@ -37,7 +37,8 @@ export function NowCard({
   return (
     <Card variant={raised ? "raised" : "plain"} className="overflow-hidden">
       <div className="flex flex-wrap items-center gap-x-5 gap-y-3 px-5 py-4">
-        <div className="flex min-w-0 flex-1 items-stretch gap-4">
+        {/* The time and the words keep 18rem beside the action; with less, the action goes under them instead of squeezing the title. */}
+        <div className="flex min-w-0 flex-1 basis-72 items-stretch gap-4">
           {time && (
             <div className="flex w-[4.5rem] shrink-0 flex-col items-end border-r border-line pr-4 tabular-nums">
               <span className="text-title font-semibold">{time.start}</span>
@@ -51,7 +52,7 @@ export function NowCard({
             {note}
           </div>
         </div>
-        {action && <div className="flex shrink-0 items-center gap-2">{action}</div>}
+        {action && <div className="flex min-w-0 flex-wrap items-center gap-2">{action}</div>}
       </div>
       {children}
     </Card>
@@ -68,7 +69,8 @@ export function NowLine({ icon, action, children }: { icon: ReactNode; action?: 
   return (
     <div className="flex min-h-8 flex-wrap items-center gap-x-3 gap-y-1 text-body text-muted">
       <span className="flex shrink-0 text-faint">{icon}</span>
-      <div className="min-w-0 flex-1">{children}</div>
+      {/* The facts keep 16rem beside the action; with less, the action goes under them. */}
+      <div className="min-w-0 flex-1 basis-64">{children}</div>
       {action}
     </div>
   );

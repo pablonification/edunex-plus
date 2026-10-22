@@ -81,7 +81,7 @@ import { Button, IconButton } from "../../ui/controls";
 import { cx } from "../../ui/cx";
 import { Card, Tag } from "../../ui/display";
 import { Icons } from "../../ui/icons";
-import { Meta } from "../../ui/layout";
+import { breakAfterSlashes, Meta } from "../../ui/layout";
 import { Menu, type MenuItem } from "../../ui/menu";
 import { AnimatedNumber } from "../../ui/motion/animated-number";
 import { DisclosurePanel, disclosureTrigger } from "../../ui/motion/disclosure";
@@ -617,7 +617,8 @@ function TermBlock({
             </Tooltip>
           )}
         </header>
-        <ul>{children}</ul>
+        {/* Its width decides its rows' layout (LINE). */}
+        <ul className="@container">{children}</ul>
         {onAdd && (
           <button
             type="button"
@@ -664,6 +665,31 @@ function goToRule(rule: Rule) {
   setTimeout(() => el.classList.remove("bg-warning-bg"), 1200);
 }
 
+/**
+ * A course's row in a semester: its code, name, tag and SKS, the grade and the remove button. In a card under 34rem
+ * (the window zoomed in), where a tag would leave the name under 10rem, the tag and SKS go on a line under the
+ * name, so the name keeps room to be read and the grade and remove stay on the row.
+ */
+const LINE =
+  "grid grid-cols-[64px_minmax(0,1fr)_auto_28px_62px_28px] items-center gap-3 border-b border-line px-4 py-2 text-body last:border-b-0 @max-[34rem]:grid-cols-[64px_minmax(0,1fr)_62px_28px] @max-[34rem]:gap-y-1";
+/** The tag and SKS: columns of the row, or together on the line under the name in a narrow card. */
+const LINE_ASIDE =
+  "contents @max-[34rem]:col-start-2 @max-[34rem]:row-start-2 @max-[34rem]:flex @max-[34rem]:items-center @max-[34rem]:gap-2 @max-[34rem]:[&>:empty]:hidden";
+
+/** A course's name in a row, as a kit Row's title: it wraps (after a "/" too) and shows whole on hover; never cut with no way to read it. */
+export function CourseName({ name, className }: { name: string; className?: string }) {
+  return (
+    <span className={cx("line-clamp-2 block break-words", className)} title={name}>
+      {breakAfterSlashes(name)}
+    </span>
+  );
+}
+
+/** A row's SKS: a bare figure in its column, "3 SKS" on the line under the name in a narrow card (under 34rem). */
+export function Sks({ sks, className }: { sks: number; className?: string }) {
+  return <span className={cx("text-right text-small tabular-nums @max-[34rem]:after:content-['_SKS']", className)}>{sks}</span>;
+}
+
 function CourseLine({
   code,
   name,
@@ -694,10 +720,10 @@ function CourseLine({
 }) {
   const t = useT();
   return (
-    <li className="grid grid-cols-[64px_minmax(0,1fr)_auto_28px_62px_28px] items-center gap-3 border-b border-line px-4 py-2 text-body last:border-b-0">
+    <li className={LINE}>
       <span className="text-small font-semibold tabular-nums">{code}</span>
       <span className="min-w-0">
-        <span className="block truncate">{name}</span>
+        <CourseName name={name} />
         {flag && (
           <button
             type="button"
@@ -711,8 +737,10 @@ function CourseLine({
           </button>
         )}
       </span>
-      {tag}
-      <span className="text-right text-small text-muted tabular-nums">{sks}</span>
+      <span className={LINE_ASIDE}>
+        {tag}
+        <Sks sks={sks} className="text-muted" />
+      </span>
       {posted ? (
         <span
           className="inline-flex h-7 items-center justify-center rounded-md bg-neutral-bg text-small font-bold text-neutral-fg"
@@ -740,14 +768,16 @@ function CourseLine({
 function DroppedLine({ code, name, sks, onPutBack }: { code: string; name: string; sks: number; onPutBack: () => void }) {
   const t = useT();
   return (
-    <li className="grid grid-cols-[64px_minmax(0,1fr)_auto_28px_62px_28px] items-center gap-3 border-b border-line px-4 py-2 text-body text-muted last:border-b-0">
+    <li className={cx(LINE, "text-muted")}>
       <span className="text-small font-semibold tabular-nums line-through">{code}</span>
       <span className="min-w-0">
-        <span className="block truncate line-through">{name}</span>
+        <CourseName name={name} className="line-through" />
         <span className="block text-caption text-info-fg">{t("planner.droppedTag")}</span>
       </span>
-      <span />
-      <span className="text-right text-small tabular-nums line-through">{sks}</span>
+      <span className={LINE_ASIDE}>
+        <span />
+        <Sks sks={sks} className="line-through" />
+      </span>
       <Button
         size="sm"
         variant="ghost"
@@ -1100,7 +1130,7 @@ function Rules({ record, rules, plan, undoable }: { record: StudentRecord; rules
                 return (
                   <li key={anchor} className="flex items-center gap-2 text-small">
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate text-fg">{title}</span>
+                      <CourseName name={title} className="text-fg" />
                       <span className="block text-caption text-muted">{t(`planner.reasonShort.${reason}`)}</span>
                     </span>
                     <Button
@@ -1145,7 +1175,7 @@ function Outlook({ record, state }: { record: StudentRecord; state: PlanState })
         <p className="mb-1.5 text-caption font-medium text-muted">{t("honors.title")}</p>
         <HonorsList projection={projection} />
       </div>
-      <p className="border-t border-line px-4 py-2.5 text-caption text-faint">{t("honors.rule")}</p>
+      <p className="border-t border-line px-4 py-2.5 text-small text-faint">{t("honors.rule")}</p>
     </Card>
   );
 }
@@ -1274,7 +1304,7 @@ function MinorPanel({
               <li key={code} className="grid grid-cols-[64px_minmax(0,1fr)_auto] items-center gap-3 border-b border-line py-2 last:border-b-0">
                 <span className="text-small font-semibold tabular-nums">{code}</span>
                 <span className="min-w-0">
-                  <span className="block truncate text-body">{info.name}</span>
+                  <CourseName name={info.name} className="text-body" />
                   <span className="block text-caption text-muted">{info.sks} SKS</span>
                 </span>
                 {st ? (
@@ -1418,8 +1448,8 @@ function AddCourse({
       <li key={code} className="flex items-center gap-3 border-b border-line px-5 py-2.5 last:border-b-0">
         <span className="w-[64px] shrink-0 text-small font-semibold tabular-nums">{code}</span>
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-body font-medium">{info.name}</span>
-          <Meta truncate className="text-caption text-muted">
+          <CourseName name={info.name} className="text-body font-medium" />
+          <Meta className="text-caption text-muted">
             {`${info.sks} SKS`}
             {owner}
             {why}

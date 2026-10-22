@@ -142,7 +142,7 @@ describe("a question that leaves the way it came", () => {
   it("hands a Task in once, however fast the second click on Kumpulkan", async () => {
     playCssAnimations();
     screen = await openApp({ signedIn: true });
-    await screen.click(/^Tugas & Ujian\d*$/);
+    await screen.click(/^Tugas & Ujian\d*(, Perlu perhatianmu)?$/);
     await screen.click(/^Tugas 02 Bab II/);
     await screen.write("<p>Berikut jawaban saya.</p>");
     screen.willPick([{ name: "Bab II.pdf" }]);
