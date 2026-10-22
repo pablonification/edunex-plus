@@ -135,7 +135,8 @@ describe("Home", () => {
     await act(async () => screen!.button("Perbarui sekarang").click());
     for (let i = 0; i < 20; i++) await act(async () => new Promise((resolve) => setImmediate(resolve)));
     expect(screen.button(/^Status data:/).textContent).toBe("Memperbarui SIX…");
-    expect(screen.button("Memperbarui…").disabled).toBe(true);
+    // Busy, it takes no clicks but keeps focus (a disabled button would drop it to the page).
+    expect(screen.button("Memperbarui…").getAttribute("aria-disabled")).toBe("true");
     await act(async () => screen!.world.clock.advance(120_000));
     expect(screen.button(/^Status data:/).textContent).toBe("Diperbarui baru saja");
   });
@@ -193,6 +194,9 @@ describe("Settings", () => {
     await screen.click(row!.querySelector("button")!);
     const confirm = document.querySelector("[role=alertdialog]");
     expect(confirm?.textContent).toContain("Keluar dan hapus semua data?");
+    // What goes for good, what the Student entered too, and that it can't be undone.
+    expect(confirm?.textContent).toContain("Itu termasuk yang kamu isi sendiri, seperti rencana studi, koreksi kurikulum,");
+    expect(confirm?.textContent).toContain("Ini tidak bisa dibatalkan.");
     expect(screen.vault.secrets.size).toBe(1);
     await screen.click([...confirm!.querySelectorAll("button")].find((b) => b.textContent === "Keluar & hapus data")!);
     expect(screen.text()).toContain("Selamat datang di Edunex Plus");

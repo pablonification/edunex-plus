@@ -160,7 +160,7 @@ export function FileViewer({ open, onOpenChange, name, kind, load, actions, fall
           onCloseAutoFocus={returnFocus.onCloseAutoFocus}
           onClickCapture={ignoreClosingClick}
           className={cx(
-            "fixed inset-x-3 bottom-3 z-(--z-dialog) flex flex-col overflow-hidden rounded-2xl bg-raised text-fg shadow-dialog ring-1 ring-black/10 focus:outline-none dark:ring-white/10",
+            "fixed inset-x-3 bottom-3 z-(--z-dialog) flex flex-col overflow-hidden rounded-2xl bg-raised text-fg border border-transparent shadow-dialog ring-1 ring-black/10 focus:outline-none dark:ring-white/10",
             PANEL_MOTION_CLASS,
             // Below macOS's traffic lights, and below the top bar where Windows and Linux draw their window buttons.
             platform === "darwin" ? "top-10" : platform ? "top-[calc(var(--title-bar)+--spacing(2))]" : "top-3",
@@ -178,7 +178,7 @@ export function FileViewer({ open, onOpenChange, name, kind, load, actions, fall
                 tabIndex={view.phase === "ready" ? 0 : -1}
                 aria-label={name}
                 className={cx(
-                  "min-h-0 flex-1 overflow-auto bg-sunken outline-none focus-visible:shadow-[inset_0_0_0_2px_var(--focus)]",
+                  "min-h-0 flex-1 overflow-auto overscroll-contain bg-sunken outline-none focus-visible:shadow-[inset_0_0_0_2px_var(--focus)]",
                   view.phase !== "ready" && "grid place-items-center p-6",
                 )}
               >
@@ -208,7 +208,11 @@ export function FileViewer({ open, onOpenChange, name, kind, load, actions, fall
                   <SlideCards slides={view.shown.slides} />
                 ) : view.shown.kind === "image" ? (
                   <div className="grid min-h-full place-items-center p-6">
-                    <img src={view.shown.url} alt={name} className="h-auto max-w-full rounded-sm shadow-card" />
+                    <img
+                      src={view.shown.url}
+                      alt={name}
+                      className="h-auto max-w-full rounded-sm shadow-card outline -outline-offset-1 outline-black/10 dark:outline-white/10"
+                    />
                   </div>
                 ) : null}
               </section>
@@ -292,7 +296,7 @@ function Sheets({ sheets, name, scroller }: { sheets: Sheet[]; name: string; scr
         // biome-ignore lint/a11y/noNoninteractiveTabindex: the table scrolls, so it takes the keyboard (arrows, Page Down)
         tabIndex={0}
         aria-label={sheet.name || name}
-        className="min-h-0 flex-1 overflow-auto bg-surface outline-none focus-visible:shadow-[inset_0_0_0_2px_var(--focus)]"
+        className="min-h-0 flex-1 overflow-auto overscroll-contain bg-surface outline-none focus-visible:shadow-[inset_0_0_0_2px_var(--focus)]"
       >
         <table className="border-separate border-spacing-0 text-small">
           <thead>

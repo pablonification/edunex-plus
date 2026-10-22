@@ -107,8 +107,7 @@ export function useFill() {
 export const FILL_AREA = "[data-fill]";
 
 /** A form field's box: a light blue tint, as PDF readers mark what can be filled in. */
-const FIELD =
-  "focus-ring absolute m-0 bg-[rgb(47_111_235/0.08)] text-black hover:bg-[rgb(47_111_235/0.14)] focus:bg-[rgb(47_111_235/0.04)] disabled:pointer-events-none";
+const FIELD = "focus-ring absolute m-0 bg-accent/8 text-black hover:bg-accent/14 focus:bg-accent/4 disabled:pointer-events-none";
 
 export function FieldBox({
   field,
@@ -190,9 +189,6 @@ export function FieldBox({
 const nextSize = (size: number, direction: 1 | -1) =>
   direction > 0 ? (TEXT_SIZES.find((s) => s > size) ?? size) : (TEXT_SIZES.findLast((s) => s < size) ?? size);
 
-/** At a limit a button says so but keeps the keyboard (a disabled one would drop focus out of the box). */
-const LIMIT = "aria-disabled:opacity-50 aria-disabled:hover:bg-transparent aria-disabled:hover:text-muted";
-
 export function TextBox({
   text,
   scale,
@@ -265,7 +261,7 @@ export function TextBox({
           }
         }}
         style={{ fontSize: text.size * scale, lineHeight: LINE_HEIGHT }}
-        className="block min-w-8 resize-none overflow-hidden whitespace-pre bg-transparent p-0 font-[Helvetica,Arial,sans-serif] text-black outline-1 outline-transparent [field-sizing:content] group-hover/text:outline-dashed group-hover/text:outline-[rgb(47_111_235/0.6)] focus:outline-2 focus:outline-solid focus:outline-focus"
+        className="block min-w-8 resize-none overflow-hidden whitespace-pre bg-transparent p-0 font-[Helvetica,Arial,sans-serif] text-black outline-1 outline-transparent [field-sizing:content] group-hover/text:outline-dashed group-hover/text:outline-accent/60 focus:outline-2 focus:outline-solid focus:outline-focus"
       />
       {/* Its own small tools, above it while it's in use: move, size, delete. */}
       <div
@@ -289,7 +285,7 @@ export function TextBox({
           </IconButton>
         </Tooltip>
         <Tooltip content={t("pdf.text.smaller")} side="top">
-          <IconButton label={t("pdf.text.smaller")} size="sm" aria-disabled={text.size <= TEXT_SIZES[0]} className={LIMIT} onClick={() => resize(-1)}>
+          <IconButton label={t("pdf.text.smaller")} size="sm" aria-disabled={text.size <= TEXT_SIZES[0]} onClick={() => resize(-1)}>
             <Icons.Minus className="size-4" />
           </IconButton>
         </Tooltip>
@@ -298,7 +294,7 @@ export function TextBox({
           {text.size}
         </span>
         <Tooltip content={t("pdf.text.bigger")} side="top">
-          <IconButton label={t("pdf.text.bigger")} size="sm" aria-disabled={text.size >= TEXT_SIZES.at(-1)!} className={LIMIT} onClick={() => resize(1)}>
+          <IconButton label={t("pdf.text.bigger")} size="sm" aria-disabled={text.size >= TEXT_SIZES.at(-1)!} onClick={() => resize(1)}>
             <Icons.Plus className="size-4" />
           </IconButton>
         </Tooltip>
@@ -352,7 +348,7 @@ export function SaveBar({
         {dirty ? t("pdf.unsaved") : t("pdf.copySaved")}
       </p>
       <Tooltip content={undo}>
-        <IconButton label={t("pdf.undo")} size="sm" aria-disabled={!canUndo} className={LIMIT} onClick={onUndo}>
+        <IconButton label={t("pdf.undo")} size="sm" aria-disabled={!canUndo} onClick={onUndo}>
           <UndoIcon className="size-4" />
         </IconButton>
       </Tooltip>

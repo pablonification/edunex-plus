@@ -42,6 +42,8 @@ export interface Format {
   /** "1,9 MB" / "1.9 MB" */
   fileSize(bytes: number): string;
   number(value: number, digits?: number): string;
+  /** "UTS, Tugas, dan UAS" / "UTS, Tasks and UAS"; one item as it is. */
+  list(items: readonly string[]): string;
 }
 
 export function makeFormat(lang: Lang, now: number): Format {
@@ -53,6 +55,7 @@ export function makeFormat(lang: Lang, now: number): Format {
   const dayMonthFmt = dtf({ day: "numeric", month: "short" });
   const dateLongFmt = dtf({ weekday: "long", day: "numeric", month: "long" });
   const rtf = new Intl.RelativeTimeFormat(lang, { numeric: "auto" });
+  const listFmt = new Intl.ListFormat(locale, { type: "conjunction" });
   const t = (key: Parameters<typeof translate>[1], vars?: Parameters<typeof translate>[2]) => translate(lang, key, vars);
 
   const time = (when: When) => timeFmt.format(ms(when)).replace(".", ":");
@@ -136,5 +139,6 @@ export function makeFormat(lang: Lang, now: number): Format {
       return `${new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format(bytes / 1024 / 1024)} MB`;
     },
     number: (value, digits = 2) => new Intl.NumberFormat(locale, { minimumFractionDigits: digits, maximumFractionDigits: digits }).format(value),
+    list: (items) => listFmt.format(items),
   };
 }

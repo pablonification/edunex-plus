@@ -107,7 +107,7 @@ export function SearchPalette({ open, onOpenChange, onSettings }: { open: boolea
           onCloseAutoFocus={onCloseAutoFocus}
           className={cx(
             "fixed top-[12vh] left-1/2 z-(--z-dialog) flex w-[min(620px,calc(100vw-48px))] -translate-x-1/2 flex-col overflow-hidden",
-            "rounded-2xl bg-raised text-fg shadow-dialog ring-1 ring-black/10 focus:outline-none dark:ring-white/10",
+            "rounded-2xl border border-transparent bg-raised text-fg shadow-dialog ring-1 ring-black/10 focus:outline-none dark:ring-white/10",
           )}
         >
           <DialogPrimitive.Title className="sr-only">{t("search.open")}</DialogPrimitive.Title>
@@ -209,7 +209,7 @@ function Palette({ shown, onClose, onSettings }: { shown: boolean; onClose: () =
         />
         <Kbd>esc</Kbd>
       </div>
-      <div id={`${id}-results`} role="listbox" aria-label={t("search.results")} className="max-h-[min(420px,64vh)] overflow-y-auto p-2">
+      <div id={`${id}-results`} role="listbox" aria-label={t("search.results")} className="max-h-[min(420px,64vh)] overflow-y-auto overscroll-contain p-2">
         {groups.map((group) => (
           // biome-ignore lint/a11y/useSemanticElements: a group of options inside the listbox (the ARIA listbox pattern); a fieldset can't go there
           <div key={group.kind} role="group" aria-labelledby={`${id}-${group.kind}`}>

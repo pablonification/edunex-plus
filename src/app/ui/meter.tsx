@@ -76,7 +76,8 @@ export function CountdownBar({
   const left = Math.max(0, Math.min(1, (closesAt - now) / Math.max(1, closesAt - opensAt)));
   const soon = closesAt - now < 15 * 60_000;
   return (
-    <span className={cx("flex items-center gap-3", className)}>
+    // With no room for the words beside the bar, they go under it, whole.
+    <span className={cx("flex flex-wrap items-center gap-x-3 gap-y-1", className)}>
       <span
         role="progressbar"
         aria-label={label}
@@ -95,7 +96,7 @@ export function CountdownBar({
           style={{ translate: `${(left - 1) * 100}% 0` }}
         />
       </span>
-      {showLabel && <span className={cx("shrink-0 text-small font-semibold tabular-nums", soon ? "text-warning-fg" : "text-muted")}>{label}</span>}
+      {showLabel && <span className={cx("min-w-0 text-small font-semibold tabular-nums", soon ? "text-warning-fg" : "text-muted")}>{label}</span>}
     </span>
   );
 }

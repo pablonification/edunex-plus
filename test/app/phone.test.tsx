@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 // Settings' "Notifikasi di HP" in the window, with the real engine behind the
 // bridge and a pretend ntfy behind the engine: connect, the QR code and the
-// code to paste, a test, what a failure says, quiet hours, and disconnecting.
+// code to paste, a test, what a failure says, quiet hours, and disconnecting
+// (asked first).
 import { act } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 import { openApp } from "./harness";
@@ -69,7 +70,20 @@ describe("phone notifications in Settings", () => {
     expect(s.text()).toContain("Belum terkirim ke HP: tidak ada koneksi.");
 
     s.ntfy.answer = "ok";
+    // Asked first, saying what goes: the code is forgotten, so connecting again needs a new one on the phone.
+    expect(s.text()).toContain("Menghubungkan lagi butuh kode baru di HP.");
     await s.click("Putuskan");
+    const question = () => document.querySelector("[role=alertdialog]");
+    expect(question()?.textContent).toContain("Putuskan HP?");
+    expect(question()?.textContent).toContain("Untuk menghubungkan lagi, HP-mu perlu kode baru.");
+    await s.click("Batal");
+    expect(question()).toBeNull();
+    expect(s.engine.phone.link()).toMatchObject({ connected: true });
+    expect(qr()).not.toBeNull();
+
+    await s.click("Putuskan");
+    await s.click("Putuskan HP");
+    expect(question()).toBeNull();
     expect(qr()).toBeNull();
     expect(s.has("Hubungkan HP")).toBe(true);
     expect(s.engine.phone.link()).toEqual({ connected: false });

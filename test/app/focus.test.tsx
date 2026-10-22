@@ -1,7 +1,10 @@
 // @vitest-environment jsdom
 // Keyboard use: a dialog or panel closed with Escape puts focus back on what
 // opened it, so the next Tab carries on from there instead of the top of the page;
-// a button that goes once pressed hands focus on instead of dropping it.
+// a button that goes once pressed hands focus on instead of dropping it; a new
+// screen opened from inside the last one takes focus on its title; a button that
+// can't run just now (busy, at its limit) keeps focus.
+import { act } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { finishLeaving, playCssAnimations } from "./fake-animations";
 import { openApp } from "./harness";
@@ -108,6 +111,82 @@ describe("focus when the focused control goes", () => {
   });
 });
 
+describe("focus when the screen changes", () => {
+  /** Two frames: the new screen draws, then focus is looked at (as refocus does). */
+  const frames = () => act(async () => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
+
+  it("a row that opens a Task: focus goes to the Task's title, not to the page", async () => {
+    screen = await openApp({ signedIn: true });
+    await screen.click(/^Tugas & Ujian/);
+    const row = screen.button(/^Tugas 02 Bab II/);
+    row.focus();
+    await screen.click(row);
+    await frames();
+    const title = document.querySelector<HTMLElement>("main h1");
+    expect(title?.textContent).toBe("Tugas 02 Bab II");
+    expect(document.activeElement).toBe(title);
+    // A heading, not a control: reachable by script only, never a Tab stop of its own.
+    expect(title?.tabIndex).toBe(-1);
+  });
+
+  it("Back between two detail screens: it stays in the top bar, and focus goes to the title it returns to", async () => {
+    screen = await openApp({ signedIn: true, six: true });
+    await screen.click(/^Tugas & Ujian/);
+    const exam = [...document.querySelectorAll<HTMLButtonElement>("main li button")].find((b) => b.textContent?.includes("Komunikasi Pemasaran"));
+    await screen.click(exam!);
+    await frames();
+    const examTitle = document.querySelector("main h1")?.textContent;
+    await screen.click(screen.button(/Buka tugas/));
+    await frames();
+    expect(document.querySelector("main h1")?.textContent).not.toBe(examTitle);
+    const back = screen.button(/^Kembali ke/);
+    back.focus();
+    await screen.click(back);
+    await frames();
+    const title = document.querySelector<HTMLElement>("main h1");
+    expect(title?.textContent).toBe(examTitle);
+    expect(screen.has(/^Kembali ke/)).toBe(true);
+    expect(document.activeElement).toBe(title);
+  });
+
+  it("a screen picked in the sidebar leaves focus in the sidebar", async () => {
+    screen = await openApp({ signedIn: true });
+    const nav = screen.button(/^Jadwal/);
+    nav.focus();
+    await screen.click(nav);
+    await frames();
+    expect(document.activeElement).toBe(nav);
+  });
+});
+
+describe("a control that can't run just now keeps focus", () => {
+  it("Perbarui sekarang, pressed from the keyboard, stays focused while it works", async () => {
+    screen = await openApp({ signedIn: true, six: true });
+    await screen.click(/^Status data:/);
+    const refresh = screen.button("Perbarui sekarang");
+    refresh.focus();
+    await act(async () => refresh.click());
+    for (let i = 0; i < 20; i++) await act(async () => new Promise((resolve) => setImmediate(resolve)));
+    expect(refresh.textContent).toBe("Memperbarui…");
+    expect(refresh.getAttribute("aria-disabled")).toBe("true");
+    expect(document.activeElement).toBe(refresh);
+  });
+
+  it("a target stepped down to its floor keeps focus on its − button, which then changes nothing", async () => {
+    screen = await openApp({ signedIn: true, six: true });
+    await screen.engineDoes(() => screen!.engine.updateSettings({ attendanceTarget: 55 }));
+    await screen.apply({ type: "command", command: "settings" });
+    const lower = screen.button("Turunkan target umum");
+    lower.focus();
+    await screen.click(lower);
+    expect(screen.engine.snapshot().settings.attendanceTarget).toBe(50);
+    expect(lower.getAttribute("aria-disabled")).toBe("true");
+    expect(document.activeElement).toBe(lower);
+    await screen.click(lower);
+    expect(screen.engine.snapshot().settings.attendanceTarget).toBe(50);
+  });
+});
+
 describe("a question before something final", () => {
   it("takes no click beside it as an answer, starts on Cancel, and Escape gives focus back to the button that asked", async () => {
     screen = await openApp({ signedIn: true });
@@ -142,7 +221,7 @@ describe("a question that leaves the way it came", () => {
   it("hands a Task in once, however fast the second click on Kumpulkan", async () => {
     playCssAnimations();
     screen = await openApp({ signedIn: true });
-    await screen.click(/^Tugas & Ujian\d*$/);
+    await screen.click(/^Tugas & Ujian\d*(, Perlu perhatianmu)?$/);
     await screen.click(/^Tugas 02 Bab II/);
     await screen.write("<p>Berikut jawaban saya.</p>");
     screen.willPick([{ name: "Bab II.pdf" }]);

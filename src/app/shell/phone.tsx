@@ -2,7 +2,8 @@
 // app (src/engine/alerts/phone.ts). Off until the Student connects; then a QR
 // code of the subscribe link for Android, the code to paste for iPhone (its
 // ntfy app doesn't open ntfy:// links), the steps, a test, quiet hours and a
-// way out. The window only asks: main makes the code and does the sending.
+// way out, asked first: the code goes with it, so connecting again means a new
+// one on the phone. The window only asks: main makes the code and does the sending.
 import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { encode } from "uqr";
 import type { PhoneLink } from "../../core/actions/phone";
@@ -12,7 +13,7 @@ import { useT } from "../i18n";
 import { useBridge, useDataset } from "../store";
 import { Button, Switch } from "../ui/controls";
 import { Icons } from "../ui/icons";
-import { toast } from "../ui/overlays";
+import { ConfirmDialog, toast } from "../ui/overlays";
 
 const STEPS: StringKey[] = ["phone.step.install", "phone.step.android", "phone.step.iphone"];
 /** Turned on again: 22:00 to 06:00. */
@@ -38,6 +39,7 @@ function PhoneRows({ settings, update, report }: PhoneSettingsProps) {
   const [busy, setBusy] = useState<"connect" | "test" | "disconnect" | null>(null);
   const [sent, setSent] = useState(false);
   const [notCancelled, setNotCancelled] = useState(false);
+  const [confirming, setConfirming] = useState(false);
 
   useEffect(() => {
     let live = true;
@@ -74,10 +76,14 @@ function PhoneRows({ settings, update, report }: PhoneSettingsProps) {
     });
   const disconnect = () =>
     run("disconnect", async () => {
-      const { cancelled } = await bridge.invoke("phone.disconnect", {});
-      setSent(false);
-      setNotCancelled(!cancelled);
-      setLink({ connected: false });
+      try {
+        const { cancelled } = await bridge.invoke("phone.disconnect", {});
+        setSent(false);
+        setNotCancelled(!cancelled);
+        setLink({ connected: false });
+      } finally {
+        setConfirming(false);
+      }
     });
   const copy = () => void bridge.invoke("phone.copy", {}).then(() => toast(t("phone.copied"), "success"), report);
 
@@ -120,10 +126,19 @@ function PhoneRows({ settings, update, report }: PhoneSettingsProps) {
       )}
       <QuietHoursRow quiet={settings.phoneQuietHours} onChange={(phoneQuietHours) => update({ phoneQuietHours })} />
       <Line label={t("phone.disconnect")} hint={t("phone.disconnectHint")}>
-        <Button size="sm" variant="danger" busy={busy === "disconnect"} onClick={() => void disconnect()}>
+        <Button size="sm" variant="danger" onClick={() => setConfirming(true)}>
           {t("phone.disconnectAction")}
         </Button>
       </Line>
+      <ConfirmDialog
+        open={confirming}
+        onOpenChange={setConfirming}
+        title={t("phone.disconnectTitle")}
+        body={t("phone.disconnectBody")}
+        confirmLabel={t("phone.disconnect")}
+        busy={busy === "disconnect"}
+        onConfirm={() => void disconnect()}
+      />
     </>
   );
 }
@@ -158,7 +173,7 @@ function HourSelect({ label, value, not, onChange }: { label: string; value: num
       value={value}
       aria-label={label}
       onChange={(event) => onChange(Number(event.target.value))}
-      className="focus-ring h-7 rounded-md border border-edge bg-surface px-1.5 text-small font-semibold text-fg tabular-nums transition-colors duration-150 hover:bg-hover"
+      className="focus-ring h-7 rounded-md border border-field-edge bg-surface px-1.5 text-small font-semibold text-fg tabular-nums transition-colors duration-150 hover:bg-hover"
     >
       {HOURS.filter((hour) => hour !== not).map((hour) => (
         <option key={hour} value={hour}>

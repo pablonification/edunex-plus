@@ -38,8 +38,8 @@ describe("Beranda on the recorded Thursday morning", () => {
     expect(now).toContain("Aplikasi memeriksa SIX tiap 2 menit selama kuliah dan memberi tahu saat Tandai Hadir muncul.");
     // Not a tick: nothing says the Student is marked present yet.
     expect(section("home-now")?.textContent).not.toMatch(/tercatat hadir|sudah hadir/);
-    expect(screen.button("Buka PL3002 di SIX untuk Tandai Hadir").textContent).toBe("Buka di SIX");
-    expect(screen.button("Buka PL3002 di SIX untuk Tandai Hadir").className).not.toContain("bg-accent");
+    expect(screen.button("Buka di SIX untuk Tandai Hadir di PL3002").textContent).toBe("Buka di SIX");
+    expect(screen.button("Buka di SIX untuk Tandai Hadir di PL3002").className).not.toContain("bg-accent");
     expect(now).toContain("Presensi Edunex juga dibuka sampai 09:30, tidak wajib.");
     expect(now).not.toContain("Catat kehadiran");
     // 6 of 7: the UTS-week lecture on 15 Oct may not run, so it buys no absence (#85: never one too many).
@@ -168,16 +168,16 @@ describe("SIX's Tandai Hadir in class", () => {
     world.six.openCheckIn("2194342");
     await screen.engineDoes(() => world.clock.advance(2.5 * 60_000));
     expect(text("home-now")).toContain("Tandai Hadir sudah dibuka di SIXBelum kamu tekan. Kuliah sampai 10:00.");
-    const open = screen.button("Buka PL3002 di SIX untuk Tandai Hadir");
+    const open = screen.button("Buka di SIX untuk Tandai Hadir di PL3002");
     expect(open.className).toContain("bg-accent");
-    await screen.click("Buka PL3002 di SIX untuk Tandai Hadir");
+    await screen.click("Buka di SIX untuk Tandai Hadir di PL3002");
     expect(screen.calls.at(-1)).toEqual({ name: "six.openCheckIn", input: { meetingId: "2194342" } });
 
     // Pressed in SIX: the button goes, and Beranda says only what it saw.
     world.six.closeCheckIn("2194342");
     await screen.engineDoes(() => world.clock.advance(2.5 * 60_000));
     expect(text("home-now")).toContain("Tandai Hadir sudah tidak tampil di SIX: sudah kamu tekan, atau sudah ditutup.");
-    expect(screen.button("Buka PL3002 di SIX untuk Tandai Hadir").className).not.toContain("bg-accent");
+    expect(screen.button("Buka di SIX untuk Tandai Hadir di PL3002").className).not.toContain("bg-accent");
   });
 
   it("early in the term, with no count in SIX yet: it doesn't claim where attendance counts, nor call the Edunex Presence optional", async () => {

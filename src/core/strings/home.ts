@@ -5,9 +5,9 @@ import type { Entry } from "./entry";
 export const homeStrings = {
   // The ITB calendar's next exam week, as a calm line under the greeting
   "home.utsStarts": { id: "Masa UTS mulai {date}", en: "UTS period starts {date}" },
-  "home.uasStarts": { id: "Masa UAS mulai {date}", en: "Final exams start {date}" },
+  "home.uasStarts": { id: "Masa UAS mulai {date}", en: "UAS period starts {date}" },
   "home.utsNow": { id: "Masa UTS sampai {date}", en: "UTS period until {date}" },
-  "home.uasNow": { id: "Masa UAS sampai {date}", en: "Final exams until {date}" },
+  "home.uasNow": { id: "Masa UAS sampai {date}", en: "UAS period until {date}" },
   "home.inDays": { id: "{count} hari lagi", en: { one: "in {count} day", other: "in {count} days" } },
 
   // Sekarang: the class going on or next, where attendance counts, the open Presence
@@ -33,7 +33,8 @@ export const homeStrings = {
     en: "Tandai Hadir no longer shows in SIX: you pressed it, or it closed.",
   },
   "home.now.openSix": { id: "Buka di SIX", en: "Open in SIX" },
-  "home.now.openSixLabel": { id: "Buka {course} di SIX untuk Tandai Hadir", en: "Open {course} in SIX to press Tandai Hadir" },
+  // Starts with what the button shows (home.now.openSix), so a voice command for it works.
+  "home.now.openSixLabel": { id: "Buka di SIX untuk Tandai Hadir di {course}", en: "Open in SIX to press Tandai Hadir for {course}" },
   "home.now.countEdunex": { id: "Kehadiran dihitung lewat Presensi Edunex.", en: "Attendance counts through Edunex Presence." },
   "home.now.countNotKnown": {
     id: "Belum tahu kehadiran dihitung di mana sampai SIX terhubung; mengisinya tidak ada ruginya.",
@@ -135,5 +136,5 @@ export const homeStrings = {
   "alert.materialToday.body": { id: "{title} · kuliah {time}", en: "{title} · class at {time}" },
   // The whole "changes" group: Task edits, and Jadwal's moved, extra and overlapping classes and meetings outside SIX.
   "settings.alerts.changes": { id: "Ada perubahan", en: "Something changed" },
-  "settings.alerts.changesHint": { id: "Ruang/jam pindah, tugas diubah, pertemuan baru", en: "Room or time moved, task edited, meeting added" },
+  "settings.alerts.changesHint": { id: "Ruang/jam pindah, tugas diubah, pertemuan baru", en: "Room or time moved, Task edited, meeting added" },
 } as const satisfies Record<string, Entry>;

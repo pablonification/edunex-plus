@@ -65,7 +65,7 @@ export function MeetingsTab({ page }: { page: CoursePage }) {
           <EmptyState icon={<Icons.Calendar className="size-5" />} title={t("meeting.none")} />
         )
       ) : (
-        <ol className="overflow-hidden rounded-xl border border-edge bg-surface shadow-card">
+        <ol className="@container overflow-hidden rounded-xl border border-edge bg-surface shadow-card">
           {meetings.map((meeting, index) => {
             const period = periodOf(meeting);
             const firstInPeriod = period && (index === 0 || periodOf(meetings[index - 1]) !== period);
@@ -220,7 +220,7 @@ function MeetingRow({
         <LiveDot className="scale-75" />
         <Meta truncate>
           {t("meeting.state.open")}
-          {presence ? <span className="font-medium opacity-80">{f.countdown(presence.closesAt)}</span> : null}
+          {presence ? <span className="font-normal tabular-nums">{f.countdown(presence.closesAt)}</span> : null}
         </Meta>
       </Tag>
     );
@@ -245,7 +245,13 @@ function MeetingRow({
   return (
     <li className={cx(index > 0 && "border-t border-line")}>
       {divider && <PeriodDivider period={divider} />}
-      <div className={cx("grid grid-cols-[132px_minmax(10rem,1fr)_auto] items-center gap-4 px-4 py-3", next && "bg-info-bg/30")}>
+      {/* In a narrow list (the window zoomed in) the buttons and state go under the meeting's name instead of squeezing it. */}
+      <div
+        className={cx(
+          "grid grid-cols-[132px_minmax(0,1fr)_auto] items-center gap-4 px-4 py-3 @max-lg:grid-cols-[132px_minmax(0,1fr)] @max-lg:gap-y-2",
+          next && "bg-info-bg/30",
+        )}
+      >
         <span className={cx("text-body tabular-nums", future && !next && "text-muted")}>
           <span className="block font-medium">
             {f.weekdayShort(meeting.start)}, {f.dayMonth(meeting.start)}
@@ -259,7 +265,7 @@ function MeetingRow({
           {facts.some(Boolean) && <Meta className="mt-0.5 text-small text-muted">{facts}</Meta>}
         </span>
         {/* In a narrow window the button and the state stack, so the meeting's name keeps room to be read. */}
-        <span className="flex flex-wrap items-center justify-end gap-2">
+        <span className="flex flex-wrap items-center justify-end gap-2 @max-lg:col-start-2 @max-lg:justify-start @max-lg:empty:hidden">
           {announced?.link && meeting.end > now && (
             <Button size="sm" icon={<Icons.Video className="size-3.5" />} onClick={() => open(announced.link!)}>
               {t("material.join")}

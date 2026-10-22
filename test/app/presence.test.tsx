@@ -60,7 +60,7 @@ describe("the Presensi screen", () => {
     expect(answer()).toEqual(["KU5014 sudah tak bisa capai 80%.", "Jangan absen lagi di DK4073 dan PL3032.", "Masih bisa absen 1× lagi di PL3002."]);
     expect(rows().map((li) => li.textContent?.slice(0, 6))).toEqual(["KU5014", "DK4073", "PL3032", "PL3002", "II4091"]);
     // The courses with nothing to spare or out of reach: PL3002, one absence still allowed, isn't counted.
-    expect(s.button(/^Presensi/).textContent).toBe("Presensi3");
+    expect(s.button(/^Presensi/).textContent).toBe("Presensi3, Perlu perhatianmu");
     // What was cut: the tally tiles and their filter, and the meeting squares that read like a timeline.
     expect(s.text()).not.toMatch(/Masih aman|Hati-hati|Tampilkan semua/);
     expect(document.querySelectorAll("main [role=listitem]")).toHaveLength(0);
@@ -177,7 +177,7 @@ describe("the Presensi screen", () => {
     expect(ku).toContain("Tak bisa lagi capai 80%");
     expect(ku).toContain("Hadir 2 dari 6 · 33% · paling tinggi 71% di akhir kuliah");
     expect(ku).toContain("Ada pertemuan yang kamu hadiri tapi tak tercatat? Minta dosen membetulkannya di SIX.");
-    await s.click("Cek di SIX");
+    await s.click("Buka jadwal di SIX");
     expect(s.calls.at(-1)).toEqual({
       name: "shell.openExternal",
       input: { url: "https://six.itb.ac.id/app/mahasiswa:18223901+2026-1/kelas/jadwal/mahasiswa/2021000001" },
@@ -253,7 +253,7 @@ describe("the Presensi screen", () => {
     await s.key("Escape");
     // The page's own target says plainly it's for every course: not to be mixed up with a row's "Target 80%".
     await s.click("Target semua mata kuliah: 80%");
-    expect(document.querySelector("[role=dialog]")?.textContent).toContain("Untuk mata kuliah yang tak punya target sendiri");
+    expect(document.querySelector("[role=dialog]")?.textContent).toContain("Dipakai untuk mata kuliah yang tak punya target sendiri");
     await s.click("Naikkan target umum");
     expect(s.calls.at(-1)).toEqual({ name: "settings.update", input: { attendanceTarget: 85 } });
     await s.click("Naikkan target umum");

@@ -142,6 +142,7 @@ class Quiet extends Component<{ children: ReactNode }, { broken: boolean }> {
 
 function Findings({ onGo }: { onGo: (route: Route) => void }) {
   const t = useT();
+  const answerId = useId();
   const { saved, statuses, findings } = useScan(true);
   const summary = scanSummary(saved, statuses);
   const count = notable(findings);
@@ -158,14 +159,15 @@ function Findings({ onGo }: { onGo: (route: Route) => void }) {
       <div className={ARRIVE} style={arriveAt(0, IN_DIALOG)}>
         <Summary summary={summary} />
       </div>
+      {/* The dialog's answer, as big as one in a card, but not a heading bigger than the dialog's own title. It names the list instead. */}
       {heading && (
-        <h3 className={cx("mt-1.5 text-heading font-semibold tracking-[-0.01em]", ARRIVE)} style={arriveAt(1, IN_DIALOG)}>
+        <p id={answerId} className={cx("mt-1.5 text-heading font-semibold tracking-[-0.01em]", ARRIVE)} style={arriveAt(1, IN_DIALOG)}>
           {heading}
-        </h3>
+        </p>
       )}
       {findings.length ? (
         // Rows on the dialog itself, split by hairlines and reaching its edges, so a hovered row fills the width.
-        <ol className="-mx-5 mt-4">
+        <ol aria-labelledby={heading ? answerId : undefined} className="-mx-5 mt-4">
           {findings.map((finding, i) => (
             <li key={finding.kind} className={cx(i > 0 && "border-t border-line", ARRIVE)} style={arriveAt(i + 2, IN_DIALOG)}>
               <Line finding={finding} onGo={onGo} />
@@ -195,9 +197,10 @@ function Findings({ onGo }: { onGo: (route: Route) => void }) {
  */
 function Summary({ summary }: { summary: ReturnType<typeof scanSummary> }) {
   const t = useT();
+  const f = useFormat();
   if (!summary.read.length) return null;
   const names = summary.connected.map((source) => t(`source.${source}`));
-  const connected = names.length ? t("scan.connected", { sources: names.length === 2 ? t("scan.and", { a: names[0], b: names[1] }) : names[0] }) : null;
+  const connected = names.length ? t("scan.connected", { sources: f.list(names) }) : null;
   const read = [t("scan.read.courses", { count: summary.courses }), summary.tasks ? t("scan.read.tasks", { count: summary.tasks }) : null].filter(Boolean);
   return (
     <p className="flex items-center gap-2 text-small font-medium text-muted">

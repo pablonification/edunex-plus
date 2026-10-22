@@ -97,7 +97,7 @@ export function AnnouncementsTab({
                   </Button>
                 )}
               </div>
-              <p className="mt-2.5 text-body leading-relaxed break-words whitespace-pre-line">
+              <p className="mt-2.5 max-w-prose text-body leading-relaxed break-words whitespace-pre-line">
                 <Linked text={item.text} />
               </p>
             </Card>

@@ -96,7 +96,7 @@ export function GradeSelect({
       onChange={(event) => onChange(event.target.value as LetterGrade)}
       className={cx(
         "focus-ring h-7 w-[62px] rounded-md px-1.5 text-small font-semibold transition-colors duration-150 hover:bg-hover",
-        guess ? "border border-dashed border-track bg-transparent text-muted" : "border border-edge bg-surface text-fg",
+        guess ? "border border-dashed border-field-edge bg-transparent text-muted" : "border border-field-edge bg-surface text-fg",
         className,
       )}
     >
@@ -118,7 +118,7 @@ export function GradeBadge({ grade, struck = false, title }: { grade: string; st
       className={cx(
         "inline-grid h-6 min-w-8 place-items-center rounded-md px-1.5 text-small font-bold tabular-nums",
         failing ? "bg-danger-bg text-danger-fg" : "bg-neutral-bg text-neutral-fg",
-        struck && "line-through opacity-70",
+        struck && "line-through",
       )}
     >
       {grade}

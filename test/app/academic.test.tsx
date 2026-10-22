@@ -128,7 +128,9 @@ describe("the KRS tab", () => {
     await tab("KRS");
     expect(panel()).toContain("KRS belum dikirim");
     expect(panel()).toContain("Pengisian KRS (DRS) dibuka sampai 20 Agu");
-    expect(early.button(/^Rencana studi/).textContent).toBe("Rencana studi1");
+    expect(early.button(/^Rencana studi/).textContent).toBe("Rencana studi1, Perlu perhatianmu");
+    // Amber is never the only signal: a warning mark beside the count, and the meaning in the button's name (above).
+    expect(early.button(/^Rencana studi/).querySelector(".bg-warning-bg svg")).not.toBeNull();
     expect(early.button(/^Rencana studi/).innerHTML).toContain("warning");
   });
 
@@ -165,6 +167,8 @@ describe("the KRS tab", () => {
     const badge = s.button(/^Rencana studi/);
     expect(badge.textContent).toBe("Rencana studi1");
     expect(badge.innerHTML).not.toContain("warning");
+    // No warning mark either: only the place's own icon.
+    expect(badge.querySelectorAll("svg")).toHaveLength(1);
   });
 
   it("before SIX is read", async () => {
@@ -219,7 +223,7 @@ describe("the UKT tab", () => {
     await inject("six.bills", bills(unpaid));
     await s.click(/^Rencana studi/);
     await tab("UKT");
-    expect(s.button(/^Rencana studi/).textContent).toBe("Rencana studi1");
+    expect(s.button(/^Rencana studi/).textContent).toBe("Rencana studi1, Perlu perhatianmu");
     s.close();
 
     const late = await openPlan("2027-02-02T09:00:00+07:00");

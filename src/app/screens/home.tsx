@@ -242,6 +242,8 @@ function NowCardView({ card, courses }: { card: NowCard; courses: readonly TermC
         <button
           type="button"
           onClick={() => go(open())}
+          // One line, cut short when the name is long: whole on hover.
+          title={nameOf(courses, code, session?.courseName)}
           className="focus-ring block max-w-full truncate rounded text-left text-heading font-semibold tracking-[-0.01em] hover:underline hover:decoration-faint hover:underline-offset-4"
         >
           {nameOf(courses, code, session?.courseName)}
@@ -263,7 +265,8 @@ function NowCardView({ card, courses }: { card: NowCard; courses: readonly TermC
           )}
           {windowFor ? <span className="tabular-nums">{classDayTime(f, windowFor.start, windowFor.end)}</span> : ""}
           {session && !/^kuliah$/i.test(session.activity) ? (
-            <span className={cx("font-semibold", /\b(UTS|UAS)\b/i.test(session.activity) && "text-danger-fg")}>{session.activity}</span>
+            // An exam reads by its word and weight; red is for what is lost, overdue or failing (docs/design-system.md).
+            <span className="font-semibold">{session.activity}</span>
           ) : (
             ""
           )}
@@ -344,7 +347,7 @@ function Attendance({ card }: { card: NowCard }) {
         >
           {presence && (
             <div className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-line pt-3">
-              <p className="min-w-0 flex-1 text-small text-muted">
+              <p className="min-w-0 flex-1 basis-64 text-small text-muted">
                 {/* Optional only where it's known not to count; not known yet, it's simply there to do. */}
                 {presence.counts !== false
                   ? t("presence.record.edunexDo", {
@@ -377,7 +380,8 @@ function Attendance({ card }: { card: NowCard }) {
     return (
       <div className="border-t border-line bg-sunken/60 px-5 py-4">
         <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-          <div className="min-w-0 flex-1">
+          {/* The words keep 16rem beside the button; with less, the button goes under them. */}
+          <div className="min-w-0 flex-1 basis-64">
             <p className="flex items-center gap-2 text-body font-semibold">
               <Icons.Hand className={cx("size-4 shrink-0", quiet ? "text-muted" : "text-accent-fg")} />
               {t("home.now.presenceDo", { action, time: f.dayTime(session.closesAt) })}
@@ -421,7 +425,7 @@ function Attendance({ card }: { card: NowCard }) {
   if (!where && !presence) return null;
   return (
     <div className="flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-line bg-sunken/60 px-5 py-3.5">
-      <div className="min-w-0 flex-1">
+      <div className="min-w-0 flex-1 basis-64">
         {where && (
           <p className="flex items-center gap-2 text-body font-medium">
             <Icons.CheckCircle className="size-4 shrink-0 text-success-fg" weight="bold" />
@@ -474,7 +478,8 @@ function CheckIn({
   return (
     <div className="border-t border-line bg-sunken/60 px-5 py-4">
       <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-        <div className="min-w-0 flex-1">
+        {/* The words keep 16rem beside the button; with less, the button goes under them. */}
+        <div className="min-w-0 flex-1 basis-64">
           <p className={cx("flex items-center gap-2 text-body", state === "open" ? "font-semibold" : "font-medium")}>
             <Icons.Hand className={cx("size-4 shrink-0", state === "open" ? "text-accent-fg" : "text-muted")} />
             {state === "open"
@@ -749,11 +754,7 @@ function TodayRow({ item, courses, onCard }: { item: TodayItem; courses: readonl
         <Meta className={cx(past && "text-faint")}>
           <CourseMark code={session.courseCode} courses={courses} past={past} />
           {session.room ?? ""}
-          {exam || !/^kuliah$/i.test(session.activity) ? (
-            <span className={cx("font-semibold", exam && !past && "text-danger-fg")}>{session.activity}</span>
-          ) : (
-            ""
-          )}
+          {exam || !/^kuliah$/i.test(session.activity) ? <span className="font-semibold">{session.activity}</span> : ""}
         </Meta>
       }
       trailing={

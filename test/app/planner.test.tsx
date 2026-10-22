@@ -65,6 +65,9 @@ async function tab(name: string) {
   await screen!.wait(0);
 }
 
+/** The question's own "Atur ulang rencana", not the button behind it that asked. */
+const confirmReset = () => [...document.querySelectorAll<HTMLButtonElement>("[role=alertdialog] button")].find((b) => b.textContent === "Atur ulang rencana")!;
+
 const block = (title: RegExp) =>
   [...document.querySelectorAll<HTMLElement>("section[aria-label]")].find((el) => title.test(el.getAttribute("aria-label") ?? ""));
 /** The "Add course" button of a semester. */
@@ -348,7 +351,7 @@ describe("the study planner", () => {
     // Kept through "Reset plan".
     await s.click("Hapus II4010");
     await s.click("Atur ulang rencana");
-    await s.click("Atur ulang");
+    await s.click(confirmReset());
     expect(saved()?.hidden).toMatchObject({ "parity|II4090": { reason: "program-adds" } });
 
     await s.click("Disembunyikan (1) · Tampilkan");
@@ -376,7 +379,7 @@ describe("the study planner", () => {
     expect(rulesCard()).toContain("Sistem Informasi CerdasTidak dilanjutkan");
     await s.click("Hapus II4011");
     await s.click("Atur ulang rencana");
-    await s.click("Atur ulang");
+    await s.click(confirmReset());
     expect(saved()?.terms[0].courses.map((c) => c.code)).toEqual(["II4090", "II4092"]);
     await tab("Kurikulum");
     expect(s.text()).toContain("Sistem Informasi CerdasTerdaftar · tidak dilanjutkan");
@@ -422,7 +425,7 @@ describe("the study planner", () => {
     // "Reset plan" used to plan the registered minor again.
     await s.click("Hapus II4010");
     await s.click("Atur ulang rencana");
-    await s.click("Atur ulang");
+    await s.click(confirmReset());
     expect(rule("minor")).toEqual([]);
     await tab("Kurikulum");
     expect(s.text()).toContain("Branding Berbasis DigitalDesain Komunikasi Visual · Terdaftar · tidak dilanjutkan");
@@ -480,7 +483,7 @@ describe("the study planner", () => {
     // Kept with the curriculum corrections: a reset doesn't plan it again, and Kurikulum agrees.
     await s.click("Hapus II4010");
     await s.click("Atur ulang rencana");
-    await s.click("Atur ulang");
+    await s.click(confirmReset());
     expect(saved()?.terms[0].courses.map((c) => c.code)).toEqual(["II4092", "II4010", "II4011"]);
     await tab("Kurikulum");
     const row = [...document.querySelectorAll("main li")].find((li) => li.textContent?.startsWith("II4090"))?.textContent;
@@ -514,7 +517,7 @@ describe("the study planner", () => {
     await s.click("Batal");
     expect(saved()?.terms[0].courses.map((c) => c.code)).not.toContain("II4010");
     await s.click("Atur ulang rencana");
-    await s.click("Atur ulang");
+    await s.click(confirmReset());
     expect(saved()?.terms[0].courses.map((c) => c.code)).toEqual(["II4090", "II4092", "II4010", "II4011"]);
     expect(toastText()).toContain("Rencana diatur ulangUrungkan");
     // Only the newest change can be undone: its toast replaces the removal's.
@@ -530,7 +533,7 @@ describe("the study planner", () => {
     expect(first).toMatch(/^DK4073/);
     await s.click("Coba tanpa DK4073");
     expect(rows()[0].textContent).toBe("DK4073Komunikasi PemasaranTidak diambil di rencana3Kembalikan");
-    expect(rows()[0].className).toBe(rows()[1].className.replace(" text-body", " text-body text-muted"));
+    expect(rows()[0].className).toBe(`${rows()[1].className} text-muted`);
   });
 
   it("this semester's block is there while its KRS is still empty: a course can be tried, and its SKS count", async () => {
@@ -680,7 +683,7 @@ describe("the curriculum map", () => {
     // "Reset plan" leaves corrections alone; "Restore" takes one back.
     await s.click("Hapus II4010");
     await s.click("Atur ulang rencana");
-    await s.click("Atur ulang");
+    await s.click(confirmReset());
     expect(fixes()?.slots.II4090).toMatchObject({ kind: "done" });
     await tab("Kurikulum");
     await s.click("Koreksi II4090");

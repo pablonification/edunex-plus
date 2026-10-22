@@ -72,6 +72,65 @@ describe("motion timings", () => {
 });
 
 describe("toasts", () => {
+  it("an error stays until it's closed: what went wrong and what to do don't leave on a timer", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date"] });
+    try {
+      const { container } = await mount(
+        <I18nProvider lang="id">
+          <Toaster />
+        </I18nProvider>,
+      );
+      await act(async () => {
+        toast("Kalender tidak bisa disimpan. Coba lagi.", "danger");
+        toast("Draf tersimpan", "success");
+      });
+      await act(async () => vi.advanceTimersByTime(60_000));
+      expect(container.textContent).toContain("Kalender tidak bisa disimpan");
+      expect(container.textContent).not.toContain("Draf tersimpan");
+      const close = container.querySelector<HTMLButtonElement>("button[aria-label=Tutup]");
+      expect(close).not.toBeNull();
+      await act(async () => close?.click());
+      await act(async () => vi.advanceTimersByTime(1_000));
+      expect(container.textContent).not.toContain("Kalender tidak bisa disimpan");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("an error isn't pushed out by newer toasts, and the same error said again shows once", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date"] });
+    try {
+      const { container } = await mount(
+        <I18nProvider lang="id">
+          <Toaster />
+        </I18nProvider>,
+      );
+      await act(async () => {
+        toast("Berkas gagal diunduh. Cek koneksimu, lalu coba lagi.", "danger");
+        toast("Draf tersimpan", "success");
+        toast("Tugas terkumpul");
+        toast("Ditunda sampai besok");
+      });
+      await act(async () => vi.advanceTimersByTime(1_000));
+      // Three at most: the oldest that goes by itself made room, not the error.
+      expect(container.textContent).toContain("Berkas gagal diunduh");
+      expect(container.textContent).not.toContain("Draf tersimpan");
+      expect(container.textContent).toContain("Ditunda sampai besok");
+
+      await act(async () => {
+        toast("Berkas gagal diunduh. Cek koneksimu, lalu coba lagi.", "danger");
+      });
+      await act(async () => vi.advanceTimersByTime(1_000));
+      expect(container.textContent?.match(/Berkas gagal diunduh/g)).toHaveLength(1);
+      // Errors that pile up scroll inside the window rather than running off its top.
+      const stack = container.querySelector("[aria-live=polite]");
+      expect(stack?.className).toContain("max-h-dvh");
+      expect(stack?.className).toContain("overflow-y-auto");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("one that's taken away is gone, and the others and the live region stay", async () => {
     screen = await openApp({ signedIn: true });
     let first = 0;

@@ -29,6 +29,11 @@ const line = (title: string) =>
 /** What a line says under its title. */
 const detail = (title: string) => document.getElementById(line(title).getAttribute("aria-describedby") ?? "")?.textContent;
 const h1 = () => document.querySelector("main h1")?.textContent;
+/** The dialog's answer: what names its list ("7 hal yang tidak disampaikan kedua sistem"). */
+const answer = () => {
+  const id = dialog()?.querySelector("ol")?.getAttribute("aria-labelledby");
+  return id ? document.getElementById(id) : null;
+};
 const activeTab = () => document.querySelector("main [role=tab][data-state=active]")?.textContent;
 
 async function press(key: string) {
@@ -42,7 +47,7 @@ describe("after the first full sync of Edunex and SIX", () => {
     screen = await openApp({ firstScan: true, signedIn: true, six: true });
     expect(dialog()).toBeDefined();
     expect(dialog()?.querySelector("p")?.textContent).toBe("Edunex dan SIX terhubung · 5 mata kuliah, 10 tugas dibaca");
-    expect(dialog()?.querySelector("h3")?.textContent).toBe("7 hal yang tidak disampaikan kedua sistem");
+    expect(answer()?.textContent).toBe("7 hal yang tidak disampaikan kedua sistem");
     expect(titles()).toEqual([
       "Kehadiran 3 mata kuliah berisiko",
       "KU5014 dan PL3032 bentrok di 5 pertemuan",
@@ -55,7 +60,7 @@ describe("after the first full sync of Edunex and SIX", () => {
     // Calm and action-first: the facts, then what to do. PL3002, with one absence still allowed, isn't at risk.
     expect(detail("Kehadiran 3")).toBe("KU5014: hadir 2 dari 6 · paling tinggi 73% dari target 80%DK4073: jangan absen lagiPL3032: jangan absen lagi");
     expect(detail("KU5014 dan PL3032")).toBe("Berikutnya Hari ini, 16:00–16:30. Pilih yang akan kamu hadiri, atau tanyakan ke dosen.");
-    expect(detail("Kehadiran 1")).toBe('PL3002: SIX mencatat hadir 6 dari 7; abaikan 5 "absen" di EdunexTandai Hadir di SIX; Presensi Edunex tidak wajib.');
+    expect(detail("Kehadiran 1")).toBe("SIX mencatat PL3002 hadir 6 dari 7, jadi abaikan 5 “absen” di EdunexTandai Hadir di SIX. Presensi Edunex tidak wajib.");
     // DK4073's UTS is one exam: SIX's sitting, with the take-home a week later said calmly as its second part.
     expect(detail("3 ujian")).toBe(
       "UTS PL3032, minggu UTS 12–16 OktUTS DK4073: Kam 15 Okt, 11:00 · TVST C · Take-home tenggat Kam 22 OktUAS PL3032, minggu UAS 7–22 Des",
@@ -135,7 +140,7 @@ describe("after the welcome screen", () => {
     await screen.click("Hubungkan SIX");
     expect(dialog()).toBeUndefined();
     await screen.click("Lanjut");
-    expect(dialog()?.querySelector("h3")?.textContent).toBe("7 hal yang tidak disampaikan kedua sistem");
+    expect(answer()?.textContent).toBe("7 hal yang tidak disampaikan kedua sistem");
   });
 
   it("with Edunex alone, what Edunex doesn't say; connecting SIX later doesn't bring it back by itself", async () => {
@@ -147,7 +152,7 @@ describe("after the welcome screen", () => {
     expect(dialog()).toBeUndefined();
     await screen.wait();
     expect(dialog()?.querySelector("p")?.textContent).toBe("Edunex terhubung · 5 mata kuliah, 10 tugas dibaca");
-    expect(dialog()?.querySelector("h3")?.textContent).toBe("2 hal yang tidak disampaikan Edunex");
+    expect(answer()?.textContent).toBe("2 hal yang tidak disampaikan Edunex");
     expect(titles()).toEqual(["3 ujian akan datang", "Dosen mengubah 6 tugas setelah diunggah"]);
     await press("Escape");
 
@@ -176,7 +181,7 @@ describe("only with something to say", () => {
     await screen.apply({ type: "command", command: "settings" });
     await screen.click("Lihat: Ringkasan saat pertama terhubung");
     expect(dialog()?.textContent).toContain("Tidak ada yang perlu kamu perhatikan");
-    expect(dialog()?.querySelector("h3")).toBeNull();
+    expect(answer()).toBeNull();
   });
 
   it("names what couldn't be read, and leaves out the lines that need it", async () => {
@@ -194,7 +199,7 @@ describe("only with something to say", () => {
     ]);
     expect(detail("1 bagian")).toBe("SIX tidak bisa dihubungi: Jadwal");
     // What couldn't be read isn't counted as something neither system says.
-    expect(dialog()?.querySelector("h3")?.textContent).toBe("4 hal yang tidak disampaikan kedua sistem");
+    expect(answer()?.textContent).toBe("4 hal yang tidak disampaikan kedua sistem");
     await screen.click(line("1 bagian"));
     expect(document.getElementById("home-needs")?.textContent).toMatch(/^Perlu perhatianmu/);
   });
@@ -219,7 +224,7 @@ describe("in English", () => {
     await screen.wait(1_000);
     expect(dialog()?.querySelector("h2")?.textContent).toBe("Your first-connection summary");
     expect(dialog()?.querySelector("p")?.textContent).toBe("Edunex and SIX connected · 5 courses, 10 Tasks read");
-    expect(dialog()?.querySelector("h3")?.textContent).toBe("7 things neither system tells you");
+    expect(answer()?.textContent).toBe("7 things neither system tells you");
     expect(titles()).toEqual([
       "Attendance at risk in 3 courses",
       "KU5014 and PL3032 overlap in 5 meetings",

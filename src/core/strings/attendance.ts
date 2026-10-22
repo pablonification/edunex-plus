@@ -71,8 +71,8 @@ export const attendanceStrings = {
   "presence.target": { id: "Target {value}%", en: "Target {value}%" },
   "presence.target.button": { id: "Target semua mata kuliah: {value}%", en: "Target for all courses: {value}%" },
   "presence.target.global": {
-    id: "Untuk mata kuliah yang tak punya target sendiri: di Presensi, Beranda, dan pengingat.",
-    en: "For every course without its own target: on Presence, Home and in alerts.",
+    id: "Dipakai untuk mata kuliah yang tak punya target sendiri, di Presensi, Beranda, dan pengingat.",
+    en: "Used for every course without its own target, on Presence, Home and in notifications.",
   },
   "presence.target.reset": { id: "Kembali ke {value}%", en: "Back to {value}%" },
   "presence.target.lower": { id: "Turunkan target umum", en: "Lower the default target" },
@@ -124,8 +124,8 @@ export const attendanceStrings = {
   "presence.row.next": { id: "Berikutnya: {when}", en: "Next: {when}" },
   "presence.row.now": { id: "Sedang berlangsung sampai {time}", en: "On now until {time}" },
   "presence.record.six": { id: "Tandai Hadir di SIX saat tombolnya muncul", en: "press Tandai Hadir in SIX when it shows" },
-  "presence.record.both": { id: "Tandai Hadir di SIX, lalu isi Presensi Edunex", en: "press Tandai Hadir in SIX, then check in on Edunex" },
-  "presence.record.edunex": { id: "isi Presensi Edunex tiap pertemuan", en: "check in on Edunex every meeting" },
+  "presence.record.both": { id: "Tandai Hadir di SIX, lalu isi Presensi Edunex", en: "press Tandai Hadir in SIX, then fill in Edunex Presence" },
+  "presence.record.edunex": { id: "isi Presensi Edunex tiap pertemuan", en: "fill in Edunex Presence every meeting" },
   "presence.record.bothDo": { id: "Tandai Hadir di SIX, lalu {action} sebelum {time}", en: "press Tandai Hadir in SIX, then {action} before {time}" },
   "presence.record.edunexDo": { id: "Presensi Edunex: {action} sebelum {time}", en: "Edunex Presence: {action} before {time}" },
   "presence.row.window": { id: "Presensi Edunex {when}: {action}", en: "Edunex Presence {when}: {action}" },
@@ -157,7 +157,7 @@ export const attendanceStrings = {
     id: "Hadiri {count} pertemuan berikutnya untuk kembali ke {target}%",
     en: { one: "Attend the next class to get back to {target}%", other: "Attend the next {count} classes to get back to {target}%" },
   },
-  "presence.checkSix": { id: "Cek di SIX", en: "Check in SIX" },
+  "presence.checkSix": { id: "Buka jadwal di SIX", en: "Open the timetable in SIX" },
 
   // SIX's "Tandai Hadir" open now in a class
   "presence.checkIn.title": { id: "Tandai Hadir yang dibuka sekarang", en: "Tandai Hadir open now" },

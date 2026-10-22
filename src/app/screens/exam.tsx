@@ -108,7 +108,7 @@ export function ExamRow({ exam }: { exam: Exam }) {
       meta={
         <Meta truncate>
           <span className="inline-flex items-center gap-1.5 font-medium text-fg/80">
-            <CourseDot color={course?.color ?? "#888"} className="size-2" />
+            <CourseDot color={course?.color ?? "var(--faint)"} className="size-2" />
             {exam.courseCode}
           </span>
           {when}
@@ -239,7 +239,7 @@ function ExamPage({ exam, others, course, courses }: { exam: Exam; others: Exam[
         eyebrow={
           <span className="flex items-center gap-2">
             <KindLabel exam={exam} />
-            <CourseDot color={course?.color ?? "#888"} className="size-2" />
+            <CourseDot color={course?.color ?? "var(--faint)"} className="size-2" />
             <span className="font-semibold text-fg/80">{exam.courseCode}</span>
           </span>
         }
@@ -366,7 +366,7 @@ function ExamPage({ exam, others, course, courses }: { exam: Exam; others: Exam[
                   className="focus-ring inline-flex h-8 items-center gap-2 rounded-lg border border-edge bg-surface px-3 text-small font-medium shadow-card transition-colors duration-150 hover:bg-hover"
                 >
                   <KindLabel exam={other} />
-                  <CourseDot color={courses.find((c) => c.code === other.courseCode)?.color ?? "#888"} className="size-2" />
+                  <CourseDot color={courses.find((c) => c.code === other.courseCode)?.color ?? "var(--faint)"} className="size-2" />
                   {other.courseCode}
                   <span className="text-faint">
                     {other.at !== null
@@ -412,7 +412,7 @@ function TakeHomeCard({ task }: { task: Task }) {
           {isOpenStatus(status) ? t("examPage.openTask") : task.title}
           {isOpenStatus(status) ? <span className="font-normal text-muted">{task.title}</span> : null}
         </Meta>
-        <Icons.ChevronRight className="size-3.5 shrink-0 transition-transform duration-150 group-hover:translate-x-0.5" />
+        <Icons.ChevronRight className="size-3.5 shrink-0" />
       </span>
     </button>
   );

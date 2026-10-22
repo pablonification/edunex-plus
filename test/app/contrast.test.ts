@@ -83,6 +83,8 @@ const pairs: [string, string, number][] = [
   ["--focus", "--raised", 3],
   // A meter's fill on its track (attendance, a window's time left): 3:1, like any mark that carries meaning.
   ...["--meter-warning", "--meter-success", "--danger-fg", "--accent"].map((fill) => [fill, "--meter-track", 3] as [string, string, number]),
+  // A field's edge and a switch that's off show where the control is: 3:1 on what they sit on.
+  ...["--canvas", "--surface", "--raised", "--sunken", "--fill"].map((bg) => ["--field-edge", bg, 3] as [string, string, number]),
 ];
 
 describe.each([

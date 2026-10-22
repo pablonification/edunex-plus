@@ -4,6 +4,7 @@
 // (the next row, or what follows the notice), so nobody is left focused on nothing.
 import { useRef } from "react";
 import { type Snoozable, snoozeChoices } from "../core/snooze";
+import { errorKey } from "./bridge";
 import { useFormat, useNow, useT } from "./i18n";
 import { useSnoozes } from "./snoozes";
 import { Icons } from "./ui/icons";
@@ -41,7 +42,7 @@ export function SnoozeMenu({ item, name, words = false, onTone = false }: { item
           onClick: () => void wake(item.key.id).catch(() => undefined),
         });
       },
-      (error: unknown) => toast(t("error.action", { message: error instanceof Error ? error.message : String(error) }), "danger"),
+      (error: unknown) => toast(t(errorKey(error)), "danger"),
     );
     refocus(next);
   };

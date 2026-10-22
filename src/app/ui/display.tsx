@@ -183,7 +183,7 @@ export function ProgressBar({ value, label, indeterminate = false }: { value: nu
       aria-valuemin={0}
       aria-valuemax={100}
       aria-valuenow={indeterminate ? undefined : Math.round(value * 100)}
-      className="relative block h-1 overflow-hidden rounded-full bg-black/[0.06] dark:bg-white/[0.08]"
+      className="relative block h-1 overflow-hidden rounded-full bg-meter-track"
     >
       {/* Its own element per kind, so the known bar never slides in from where the unknown one sat. Known, it
           moves as CountdownBar does: full width, pushed left by what's left, linear (progress doesn't ease),

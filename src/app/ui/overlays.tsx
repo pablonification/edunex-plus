@@ -103,7 +103,7 @@ export function Dialog({
             // Sized to what it shows, the dialog would shrink and re-centre as a search on the page narrows it,
             // moving the box the Student types in (the search palette hangs from the top for the same reason).
             back && "h-[min(720px,86vh)]",
-            "rounded-2xl bg-raised text-fg shadow-dialog ring-1 ring-black/10 focus:outline-none dark:ring-white/10",
+            "rounded-2xl bg-raised text-fg border border-transparent shadow-dialog ring-1 ring-black/10 focus:outline-none dark:ring-white/10",
             PANEL_MOTION_CLASS,
             className,
           )}
@@ -123,7 +123,7 @@ export function Dialog({
               </IconButton>
             </DialogPrimitive.Close>
           </div>
-          <div key={back ? "below" : "top"} className="min-h-0 overflow-y-auto px-5 py-5">
+          <div key={back ? "below" : "top"} className="min-h-0 overflow-y-auto overscroll-contain px-5 py-5">
             {children}
           </div>
         </DialogPrimitive.Content>
@@ -168,7 +168,7 @@ export function ConfirmDialog({
           onCloseAutoFocus={onCloseAutoFocus}
           onClickCapture={ignoreClosingClick}
           className={cx(
-            "fixed top-1/2 left-1/2 z-(--z-confirm) w-[min(420px,calc(100vw-48px))] -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-raised p-5 text-fg shadow-dialog ring-1 ring-black/10 focus:outline-none dark:ring-white/10",
+            "fixed top-1/2 left-1/2 z-(--z-confirm) w-[min(420px,calc(100vw-48px))] -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-raised p-5 text-fg border border-transparent shadow-dialog ring-1 ring-black/10 focus:outline-none dark:ring-white/10",
             PANEL_MOTION_CLASS,
           )}
         >
@@ -244,9 +244,10 @@ export function Popover({
           align={align}
           sideOffset={8}
           collisionPadding={12}
-          // Grows from its control, so it shows which side it opened on, and fades as it closes.
+          // Grows from its control, so it shows which side it opened on, and fades as it closes. Never bigger
+          // than the room the window leaves it (zoomed in, a short window): it scrolls inside instead.
           className={cx(
-            "no-drag z-(--z-popover) origin-(--radix-popover-content-transform-origin) rounded-xl border border-edge bg-raised text-fg shadow-pop focus:outline-none",
+            "no-drag z-(--z-popover) max-h-(--radix-popover-content-available-height) max-w-(--radix-popover-content-available-width) origin-(--radix-popover-content-transform-origin) overflow-y-auto overscroll-contain rounded-xl border border-edge bg-raised text-fg shadow-pop focus:outline-none",
             "motion-safe:data-[state=open]:animate-popover-in motion-safe:data-[state=closed]:animate-popover-out",
             className,
           )}
@@ -320,14 +321,28 @@ function releaseClock(id: number, by: "pointer" | "focus") {
   runClock(id);
 }
 
-/** A short message at the bottom of the window that goes away by itself; with an action, a little later. Returns its id. */
+/**
+ * A short message at the bottom of the window that goes away by itself; with an action, a little later.
+ * An error stays until the Student closes it: what went wrong and what to do mustn't leave before it's read.
+ * Returns its id.
+ */
 export function toast(text: string, tone: ToastItem["tone"] = "neutral", action?: ToastItem["action"]): number {
   const id = nextId++;
-  for (const pushedOut of toasts.slice(0, -2)) stopClock(pushedOut.id);
-  toasts = [...toasts.slice(-2), { id, text, tone, action }];
+  // The same error said again (a retry that failed again) takes the place of the one before it.
+  let kept = toasts.filter((item) => !(tone === "danger" && item.tone === "danger" && item.text === text));
+  // Three at most: the oldest of those that would go by themselves makes room; an error is never pushed out.
+  while (kept.length > 2) {
+    const oldest = kept.findIndex((item) => item.tone !== "danger");
+    if (oldest === -1) break;
+    kept = kept.filter((_, i) => i !== oldest);
+  }
+  for (const pushedOut of toasts) if (!kept.includes(pushedOut)) stopClock(pushedOut.id);
+  toasts = [...kept, { id, text, tone, action }];
   publish();
-  clocks.set(id, { left: action ? 8_000 : 5_000, since: 0, timer: null, held: new Set() });
-  runClock(id);
+  if (tone !== "danger") {
+    clocks.set(id, { left: action ? 8_000 : 5_000, since: 0, timer: null, held: new Set() });
+    runClock(id);
+  }
   return id;
 }
 
@@ -350,10 +365,22 @@ export function Toaster() {
     },
     () => toasts,
   );
+  const stack = useRef<HTMLDivElement>(null);
+  // Errors stay until they're closed, so several can outgrow a small or zoomed window. The stack then
+  // scrolls inside the window, and a new one is brought into view at the bottom.
+  useLayoutEffect(() => {
+    const box = stack.current;
+    if (box && items.length) box.scrollTop = box.scrollHeight;
+  }, [items]);
   return (
     // Newest at the bottom. A toast rises in; when one goes, it fades first, then the gap closes,
     // so the others slide into place instead of jumping. The live region itself never leaves.
-    <div aria-live="polite" className="pointer-events-none fixed bottom-5 left-1/2 z-(--z-toast) flex -translate-x-1/2 flex-col items-center">
+    <div
+      ref={stack}
+      aria-live="polite"
+      // As wide as the window with room at the sides, so a scrolling stack doesn't cut the toasts' shadows; it takes no clicks itself.
+      className="pointer-events-none fixed inset-x-0 bottom-0 z-(--z-toast) flex max-h-dvh flex-col items-center overflow-y-auto overscroll-contain px-16 pb-5"
+    >
       <Presence>
         {items.map((item) => (
           <Toast key={item.id} item={item} />
@@ -367,6 +394,7 @@ export function Toaster() {
 const focusCameFrom = new WeakMap<Element, HTMLElement>();
 
 function Toast({ item }: { item: ToastItem }) {
+  const t = useT();
   const ref = useRef<HTMLDivElement>(null);
   const card = useRef<HTMLDivElement>(null);
   const exit = usePresence()?.exit;
@@ -401,12 +429,14 @@ function Toast({ item }: { item: ToastItem }) {
         }}
         onBlur={(event) => !event.currentTarget.contains(event.relatedTarget) && releaseClock(item.id, "focus")}
         className={cx(
-          "pointer-events-auto flex items-center gap-2.5 rounded-xl py-2.5 pr-2.5 pl-3.5 text-small font-medium shadow-pop",
-          item.tone === "danger" ? "bg-danger-bg text-danger-fg" : "bg-tooltip-bg text-tooltip-fg",
+          "pointer-events-auto flex max-w-xl items-center gap-2.5 rounded-xl py-2.5 pr-2.5 pl-3.5 text-small font-medium shadow-pop",
+          // The neutral toast is the theme turned over, so its focus ring is the light theme's blue in dark too (3:1 on it).
+          item.tone === "danger" ? "bg-danger-bg text-danger-fg" : "bg-tooltip-bg text-tooltip-fg [--focus:var(--accent)]",
         )}
       >
         {item.tone === "danger" && <Icons.AlertTriangle className="size-4 shrink-0" />}
-        {item.tone === "success" && <Icons.CheckCircle className="size-4 shrink-0 text-live" weight="bold" />}
+        {/* Green where it reads on the dark toast; on the light one (the dark theme's) the text's own color. */}
+        {item.tone === "success" && <Icons.CheckCircle className="size-4 shrink-0 text-live dark:text-current" weight="bold" />}
         <span className="pr-1">{item.text}</span>
         {item.action && (
           <button
@@ -419,6 +449,11 @@ function Toast({ item }: { item: ToastItem }) {
           >
             {item.action.label}
           </button>
+        )}
+        {item.tone === "danger" && (
+          <IconButton label={t("action.close")} size="sm" onClick={() => dismiss(item.id)} className="-my-1 text-current hover:text-current">
+            <Icons.X className="size-3.5" />
+          </IconButton>
         )}
       </div>
     </div>

@@ -12,7 +12,7 @@ import { lazy, type ReactNode, Suspense, useRef, useState } from "react";
 import { type AlertGroup, DEADLINE_REMINDERS, type DeadlineReminder, type Settings, type SourceId, type UpdateCheckResult } from "../../core/models";
 import type { StringKey } from "../../core/strings";
 import { TargetStepper, useTargets } from "../attendance-parts";
-import { ActionError } from "../bridge";
+import { errorKey } from "../bridge";
 import { useFocusNext } from "../hooks";
 import { useFormat, useT } from "../i18n";
 import { displayName } from "../names";
@@ -186,7 +186,7 @@ function SettingsBody({
         open={confirming}
         onOpenChange={setConfirming}
         title={t("settings.signOutAllConfirm")}
-        body={t("settings.signOutAllHint")}
+        body={t("settings.signOutAllBody")}
         confirmLabel={t("settings.signOutAll")}
         busy={busy}
         onConfirm={() => void signOutOfEverything()}
@@ -466,7 +466,7 @@ function UpdateNotice({ report }: { report: (error: unknown) => void }) {
 
 function useReport() {
   const t = useT();
-  return (error: unknown) => toast(t("error.action", { message: error instanceof ActionError ? error.message : String(error) }), "danger");
+  return (error: unknown) => toast(t(errorKey(error)), "danger");
 }
 
 /** What's put off with "Ingatkan nanti" on Beranda and course pages, and the way to bring it all back; only while there is some. */

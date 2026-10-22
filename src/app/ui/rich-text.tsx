@@ -77,7 +77,8 @@ export function RichText({
 }) {
   const doc = new DOMParser().parseFromString(html, "text/html");
   return (
-    <div className={cx("text-body leading-relaxed break-words", className)}>
+    // Lines no longer than reading is comfortable (65 characters); a wide table scrolls in its own box.
+    <div className={cx("max-w-prose text-body leading-relaxed break-words", className)}>
       {children(doc.body, { open: onOpenLink, image: renderImage, alt: pictureAlt }, "r")}
     </div>
   );
@@ -126,7 +127,13 @@ function PictureLink({ src, hooks }: { src: string; hooks: Hooks }) {
 /** A picture written right into the HTML; most have no description of their own. */
 function InlinePicture({ src, alt, fallback }: RichTextImage & { fallback?: string }) {
   const t = useT();
-  return <img src={src} alt={alt || fallback || t("image.alt")} className="h-auto max-w-full rounded-lg" />;
+  return (
+    <img
+      src={src}
+      alt={alt || fallback || t("image.alt")}
+      className="h-auto max-w-full rounded-lg outline -outline-offset-1 outline-black/10 dark:outline-white/10"
+    />
+  );
 }
 
 const STRUCTURAL = new Set(["table", "thead", "tbody", "tr", "ul", "ol"]);

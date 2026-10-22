@@ -3,7 +3,7 @@
 // search too (the top bar, or ⌘K), and once, after the first full sync, the
 // first-run scan. A screen shows in the sidebar once it's built (./built.ts).
 // Beranda comes with the window; every other screen loads after it (../later.tsx).
-import { type ComponentType, Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { type ComponentType, type RefObject, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { edunexCourseUrl, sixStatusUrl } from "../../core/links";
 import type { StringKey } from "../../core/strings";
 import { type TermCourse, useTermCourses } from "../courses";
@@ -124,13 +124,17 @@ function Layout({ arriving }: { arriving: boolean }) {
       <div className="flex min-w-0 flex-1 flex-col">
         <PanelBoundary name="top bar" compact>
           <TopBar onSearch={() => openSearch(false)} />
-          <ProblemBanner />
+          {/* A live region that is always there, so a banner arriving in it is read out. */}
+          <div role="status" className="shrink-0">
+            <ProblemBanner />
+          </div>
         </PanelBoundary>
         <main ref={main} className="min-h-0 flex-1 overflow-y-auto">
           {/* Outside the screen's own guard, so the screen before stays while the next one's code loads. */}
           <Suspense fallback={null}>
             <PanelBoundary key={key} name={route.screen}>
               <CurrentScreen route={route} />
+              <TitleTakesFocus main={main} />
             </PanelBoundary>
           </Suspense>
         </main>
@@ -164,6 +168,29 @@ function Layout({ arriving }: { arriving: boolean }) {
       </PanelBoundary>
     </div>
   );
+}
+
+/**
+ * When the screen that left took focus with it (the row that opened this one, Back, a ⌘ shortcut from
+ * the page), the new screen's title takes it, so the keyboard and a screen reader carry on from the top
+ * of what's shown instead of from the window's start. So does Back, even where it stays in the top bar.
+ * Focus the Student put somewhere else that's still there (the sidebar) stays.
+ * Inside the screen's own guard, so it runs once the screen has drawn, not while its code still loads.
+ */
+function TitleTakesFocus({ main }: { main: RefObject<HTMLElement | null> }) {
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      const at = document.activeElement;
+      // Back stays in the top bar between two detail screens, and pressing it still hands focus to the screen it opened.
+      if (at && at !== document.body && !(at instanceof HTMLElement && at.dataset.back !== undefined)) return;
+      const title = main.current?.querySelector<HTMLElement>("h1");
+      if (!title) return;
+      title.tabIndex = -1;
+      title.focus();
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [main]);
+  return null;
 }
 
 function CurrentScreen({ route }: { route: Route }) {
@@ -262,17 +289,22 @@ function Sidebar({ onSettings }: { onSettings: () => void }) {
   ];
 
   return (
-    <aside className="flex h-full w-[248px] shrink-0 flex-col border-r border-line bg-sidebar select-none">
+    // Zoomed in far enough that the window is under 52rem wide (from 120% on the smallest window; never at 100%), the
+    // sidebar folds to a rail of its icons, course dots and counts: the words stay as the controls' names and in their
+    // tooltips, and the rail scrolls, so the screen keeps its room and nothing falls off the window.
+    <aside className="flex h-full w-[248px] shrink-0 flex-col border-r border-line bg-sidebar select-none max-[52rem]:w-18 max-[52rem]:overflow-x-hidden max-[52rem]:overflow-y-auto">
       {store.platform === "darwin" && <div className="drag h-10 shrink-0" />}
       {/* The app's own name, under the traffic lights on macOS, level with the top bar elsewhere (clear of window buttons some Linux desktops put at the left). It moves the window. */}
       <div
         className={cx(
-          "drag flex shrink-0 items-center gap-2.5 pr-5",
-          store.platform === "darwin" ? "h-11 pl-5" : "h-(--title-bar) pl-[calc(--spacing(5)+var(--window-controls-start))]",
+          "drag flex shrink-0 items-center gap-2.5 pr-5 max-[52rem]:justify-center max-[52rem]:pr-0",
+          store.platform === "darwin"
+            ? "h-11 pl-5 max-[52rem]:pl-0"
+            : "h-(--title-bar) pl-[calc(--spacing(5)+var(--window-controls-start))] max-[52rem]:pl-(--window-controls-start)",
         )}
       >
         <AppMark className="size-5" />
-        <span className="text-body font-semibold tracking-[-0.01em]">Edunex Plus</span>
+        <span className="text-body font-semibold tracking-[-0.01em] max-[52rem]:sr-only">Edunex Plus</span>
       </div>
 
       <nav aria-label={t("nav.menu")} className="space-y-0.5 px-3">
@@ -287,52 +319,45 @@ function Sidebar({ onSettings }: { onSettings: () => void }) {
                   aria-current={active ? "page" : undefined}
                   onClick={() => go({ screen } as Route)}
                   className={cx(
-                    "focus-ring flex h-[34px] w-full items-center gap-2.5 rounded-lg px-2.5 text-body",
+                    "focus-ring relative flex h-[34px] w-full items-center gap-2.5 rounded-lg px-2.5 text-body max-[52rem]:justify-center max-[52rem]:px-0",
                     active ? "bg-selected font-semibold" : "font-medium text-fg/90 hover:bg-hover",
                   )}
                 >
                   <Icon className={cx("size-[17px] shrink-0", active ? "text-accent-fg" : "text-muted")} weight={active ? "fill" : "regular"} />
-                  <span className="flex-1 truncate text-left">{t(label)}</span>
-                  {badge && <Badge tone={badge.tone === "warning" ? "warning" : "neutral"}>{badge.value}</Badge>}
+                  <span className="flex-1 truncate text-left max-[52rem]:sr-only">{t(label)}</span>
+                  {badge && <NavBadge badge={badge} />}
                 </button>
               </Tooltip>
             );
           })}
       </nav>
 
-      <div className="mt-6 min-h-0 flex-1 overflow-y-auto px-3">
+      <div className="mt-6 min-h-0 flex-1 overflow-y-auto px-3 max-[52rem]:shrink-0 max-[52rem]:basis-auto max-[52rem]:overflow-visible">
         {courses && courses.length > 0 && (
           <>
-            <p className="mb-1.5 px-2.5 text-caption font-semibold text-faint">{t("nav.courses")}</p>
+            <p className="mb-1.5 px-2.5 text-caption font-semibold text-faint max-[52rem]:sr-only">{t("nav.courses")}</p>
             <ul className="space-y-0.5">
               {courses.map((course) => {
                 const active = route.screen === "course" && route.code === course.code;
                 const site = courseReady ? null : outside(course);
-                const row = (
-                  <button
-                    type="button"
-                    aria-current={active ? "page" : undefined}
-                    onClick={() => (courseReady ? go({ screen: "course", code: course.code }) : site && open(site.url))}
-                    title={course.name}
-                    className={cx(
-                      "focus-ring flex h-[34px] w-full items-center gap-2.5 rounded-lg px-2.5 text-left text-body",
-                      active ? "bg-selected" : "hover:bg-hover",
-                    )}
-                  >
-                    <CourseDot color={course.color} />
-                    <span className={cx("shrink-0 tabular-nums", active ? "font-semibold" : "font-medium")}>{course.code}</span>
-                    <span className="truncate text-small text-muted">{course.name}</span>
-                  </button>
-                );
                 return (
                   <li key={course.code}>
-                    {site ? (
-                      <Tooltip content={site.label} side="right">
-                        {row}
-                      </Tooltip>
-                    ) : (
-                      row
-                    )}
+                    {/* Its whole name on hover and focus (cut short here, and only a dot in the rail); where it opens, until the course page is built. */}
+                    <Tooltip content={factsLabel(course.code, course.name, site?.label)} side="right">
+                      <button
+                        type="button"
+                        aria-current={active ? "page" : undefined}
+                        onClick={() => (courseReady ? go({ screen: "course", code: course.code }) : site && open(site.url))}
+                        className={cx(
+                          "focus-ring flex h-[34px] w-full items-center gap-2.5 rounded-lg px-2.5 text-left text-body max-[52rem]:justify-center max-[52rem]:px-0",
+                          active ? "bg-selected" : "hover:bg-hover",
+                        )}
+                      >
+                        <CourseDot color={course.color} />
+                        <span className={cx("shrink-0 tabular-nums max-[52rem]:sr-only", active ? "font-semibold" : "font-medium")}>{course.code}</span>
+                        <span className="truncate text-small text-muted max-[52rem]:sr-only">{course.name}</span>
+                      </button>
+                    </Tooltip>
                   </li>
                 );
               })}
@@ -342,25 +367,48 @@ function Sidebar({ onSettings }: { onSettings: () => void }) {
       </div>
 
       <div className="border-t border-line px-2 py-2">
-        <button type="button" onClick={onSettings} className="focus-ring flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left hover:bg-hover">
-          <span className="grid size-7 shrink-0 place-items-center rounded-full bg-info-bg text-micro font-bold text-info-fg">
-            {account ? initials(account.name) : <Icons.User className="size-3.5" />}
-          </span>
-          <span className="min-w-0">
-            <span className="block truncate text-small font-semibold">{account ? displayName(account.name) : t("nav.settings")}</span>
-            <span className="block truncate text-caption text-faint">{account ? t("nav.settings") : (student?.nim ?? "")}</span>
-          </span>
-          <span className="relative ml-auto shrink-0">
-            <Icons.Settings className="size-4 text-faint" />
-            {update && (
-              <span className="absolute -top-0.5 -right-0.5 size-2 rounded-full bg-accent ring-2 ring-sidebar">
-                <span className="sr-only">{t("update.available")}</span>
-              </span>
-            )}
-          </span>
-        </button>
+        <Tooltip side="right" content={factsLabel(t("nav.settings"), store.platform === "darwin" ? "⌘," : "Ctrl+,")}>
+          <button
+            type="button"
+            onClick={onSettings}
+            className="focus-ring flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left hover:bg-hover max-[52rem]:h-9 max-[52rem]:justify-center max-[52rem]:py-0"
+          >
+            <span className="grid size-7 shrink-0 place-items-center rounded-full bg-info-bg text-micro font-bold text-info-fg max-[52rem]:hidden">
+              {account ? initials(account.name) : <Icons.User className="size-3.5" />}
+            </span>
+            <span className="min-w-0 max-[52rem]:sr-only">
+              <span className="block truncate text-small font-semibold">{account ? displayName(account.name) : t("nav.settings")}</span>
+              <span className="block truncate text-caption text-faint">{account ? t("nav.settings") : (student?.nim ?? "")}</span>
+            </span>
+            <span className="relative ml-auto shrink-0 max-[52rem]:ml-0">
+              <Icons.Settings className="size-4 text-faint" />
+              {update && (
+                <span className="absolute -top-0.5 -right-0.5 size-2 rounded-full bg-accent ring-2 ring-sidebar">
+                  <span className="sr-only">{t("update.available")}</span>
+                </span>
+              )}
+            </span>
+          </button>
+        </Tooltip>
       </div>
     </aside>
+  );
+}
+
+/**
+ * A place's count in the sidebar: grey says how many, amber that one needs the Student today. Amber also carries a
+ * warning mark, and says so to a screen reader ("Presensi 3, Perlu perhatianmu"), so color isn't the only signal.
+ * In the rail it sits on the icon's corner.
+ */
+function NavBadge({ badge }: { badge: NonNullable<BadgeValue> }) {
+  const t = useT();
+  const warning = badge.tone === "warning";
+  return (
+    <Badge tone={warning ? "warning" : "neutral"} className="gap-0.5 max-[52rem]:absolute max-[52rem]:-top-0.5 max-[52rem]:left-1/2 max-[52rem]:ml-0.5">
+      {warning && <Icons.AlertTriangle className="size-2.5 shrink-0" weight="bold" />}
+      {badge.value}
+      {warning && <span className="sr-only">{`, ${t("home.needs")}`}</span>}
+    </Badge>
   );
 }
 
@@ -395,6 +443,7 @@ function TopBar({ onSearch }: { onSearch: () => void }) {
             variant="ghost"
             size="sm"
             aria-label={t("action.backTo", { place: backLabel })}
+            data-back=""
             className="no-drag -ml-1.5 max-w-[280px] min-w-0 shrink text-small"
             icon={<Icons.ChevronLeft className="size-4 shrink-0" />}
             onClick={back}

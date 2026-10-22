@@ -110,7 +110,8 @@ function ForYou() {
     grouped.set(g, [...(grouped.get(g) ?? []), d]);
   }
   return (
-    <div>
+    // The lists' width decides their columns (DEADLINE_COLUMNS), not the window's.
+    <div className="@container">
       <div className="space-y-6">
         {GROUPS.map((group) => {
           const items = grouped.get(group);
@@ -153,7 +154,7 @@ function ForYou() {
                   <span className="font-medium text-faint tabular-nums">{items.length}</span>
                 </h3>
                 {!collapsed && (
-                  <List>
+                  <List className={DEADLINE_COLUMNS}>
                     {items.map((deadline) => (
                       <DeadlineRow key={deadline.event.id} deadline={deadline} showTerm={deadline.event.term !== term && deadline.event.term !== named} />
                     ))}
@@ -171,7 +172,7 @@ function ForYou() {
             {t("deadlines.past")}
             <span className="text-faint tabular-nums">{past.length}</span>
           </summary>
-          <List className="mt-3">
+          <List className={cx("mt-3", DEADLINE_COLUMNS)}>
             {past.map((deadline) => (
               <DeadlineRow key={deadline.event.id} deadline={deadline} showTerm={deadline.event.term !== term} />
             ))}
@@ -181,6 +182,14 @@ function ForYou() {
     </div>
   );
 }
+
+/**
+ * A list of deadlines shares its columns (each row a subgrid), so the dates stay on one line ("30 Nov – 11 Des")
+ * and the titles still line up: the date column keeps its usual 112px (128px with the row's padding) and grows, for
+ * every row, to a range that needs more. In a narrow list (zoomed in far) a row stacks its date, what it is and
+ * "dalam 3 hari" in one column, so the title keeps the list's width instead of being squeezed to nothing.
+ */
+const DEADLINE_COLUMNS = "grid grid-cols-[minmax(128px,auto)_minmax(0,1fr)_auto] gap-x-4 @max-md:grid-cols-1";
 
 /** `showTerm`: the event's term, only where it isn't the one the Student is reading about (this term, or the group's). */
 function DeadlineRow({ deadline, showTerm }: { deadline: Deadline; showTerm: boolean }) {
@@ -204,9 +213,9 @@ function DeadlineRow({ deadline, showTerm }: { deadline: Deadline; showTerm: boo
   const near = when === "next" && offset < 14;
   const warn = meaning?.warn && when !== "past";
   return (
-    <li>
-      <div className={cx("grid grid-cols-[112px_minmax(0,1fr)_auto] items-start gap-4 px-4 py-3", when === "past" && "text-muted")}>
-        <span className="text-body font-semibold tabular-nums">
+    <li className="col-span-full grid grid-cols-subgrid">
+      <div className={cx("col-span-full grid grid-cols-subgrid items-start px-4 py-3 @max-md:gap-y-1", when === "past" && "text-muted")}>
+        <span className="text-body font-semibold whitespace-nowrap tabular-nums">
           {dates}
           <span className="block text-caption font-normal text-faint">{days}</span>
         </span>
@@ -226,14 +235,14 @@ function DeadlineRow({ deadline, showTerm }: { deadline: Deadline; showTerm: boo
               )}
             >
               {meaning.done && <Icons.Check className="mt-[3px] size-3 shrink-0" weight="bold" />}
-              {warn && <Icons.AlertTriangle className="mt-[3px] size-3 shrink-0" />}
+              {warn && <Icons.AlertTriangle className="mt-[3px] size-3 shrink-0" weight="bold" />}
               {t(meaning.key, meaning.vars)}
             </span>
           )}
         </span>
         <span
           className={cx(
-            "pt-0.5 text-right text-small whitespace-nowrap",
+            "pt-0.5 text-right text-small whitespace-nowrap @max-md:pt-0 @max-md:text-left",
             when === "now" ? "font-semibold text-success-fg" : near ? "font-semibold text-warning-fg" : "text-faint",
           )}
         >

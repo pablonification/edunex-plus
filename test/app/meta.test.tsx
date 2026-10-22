@@ -103,6 +103,37 @@ describe("Meta", () => {
     expect(facts(meta).at(-1)?.lastElementChild?.className).toContain("truncate");
   });
 
+  it("truncated: the whole line shows on hover, never cut with no way to read it", () => {
+    const meta = draw(
+      <Meta truncate>
+        <span className="inline-flex items-center gap-1">
+          <svg aria-hidden />
+          {"R.SG PWK LT.6"}
+        </span>
+        {""}
+        {"Modul 5 · Tugas sangat panjang"}
+      </Meta>,
+    );
+    expect(meta.title).toBe("R.SG PWK LT.6 · Modul 5 · Tugas sangat panjang");
+    expect(() => assertTidyFacts()).not.toThrow();
+    // Facts that wrap show whole already: no tooltip to repeat them.
+    act(() => root?.unmount());
+    expect(draw(<Meta>{"II4091 · Modul 5"}</Meta>).hasAttribute("title")).toBe(false);
+  });
+
+  it("truncated: words split across nested elements keep their space in the hover title", () => {
+    const meta = draw(
+      <Meta truncate>
+        <span>
+          <strong>Modul </strong>
+          <span>5</span>
+        </span>
+        {"Tugas"}
+      </Meta>,
+    );
+    expect(meta.title).toBe("Modul 5 · Tugas");
+  });
+
   it("truncated: an earlier fact as wide as the line ends in '…' at its edge, not cut mid-letter", () => {
     const meta = draw(<Meta truncate>{"Ringkasan bab dua dengan judul yang sangat panjang sekali · cek apakah perlu dikumpulkan ulang"}</Meta>);
     const [long] = facts(meta);

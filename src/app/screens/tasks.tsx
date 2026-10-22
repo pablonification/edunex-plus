@@ -368,7 +368,7 @@ function Place({ task }: { task: Task }) {
   return (
     <Meta truncate>
       <span className="inline-flex items-center gap-1.5 font-medium text-fg/80">
-        <CourseDot color={course?.color ?? "#888"} className="size-2" />
+        <CourseDot color={course?.color ?? "var(--faint)"} className="size-2" />
         {task.courseCode}
       </span>
       {where}
@@ -466,7 +466,7 @@ function TaskPage({ task }: { task: Task }) {
   const where = moduleLabel(t, task.module);
   const place = (
     <>
-      <CourseDot color={course?.color ?? "#888"} className="size-2" />
+      <CourseDot color={course?.color ?? "var(--faint)"} className="size-2" />
       <span className="font-semibold">{task.courseCode}</span>
       {where && (
         <>
@@ -628,7 +628,7 @@ function Notes({ task }: { task: Task }) {
       text: t("task.note.editedAfterSubmit", { edited: f.dayMonth(task.editedAt), sent: f.dayMonth(sentAt) }),
       action: (
         <Button size="sm" icon={<Icons.ArrowUpRight className="size-3.5" />} onClick={() => open(edunexTaskUrl(task.id))}>
-          {t("task.note.editedCheck")}
+          {t("action.openInEdunex")}
         </Button>
       ),
     });
@@ -676,7 +676,7 @@ function useDownload(done?: () => Promise<void>) {
       downloaded(file.url, existing);
       await done?.();
     } catch {
-      toast(t("task.downloadFailed", { name: file.name }), "danger");
+      toast(t("file.downloadFailed", { name: file.name }), "danger");
     } finally {
       setBusy(null);
     }
@@ -1363,7 +1363,7 @@ function HandInDialog({
       case "late":
         return t("handIn.check.late", { when: f.dueLabel(check.dueAt) });
       case "fileType":
-        return t("handIn.check.fileType", { type: check.type.toUpperCase(), files: check.files.join(", ") });
+        return t("handIn.check.fileType", { type: check.type.toUpperCase(), files: f.list(check.files), count: check.files.length });
       case "naming":
         return t("handIn.check.naming", { pattern: check.pattern });
       case "offline":
@@ -1384,7 +1384,7 @@ function HandInDialog({
           // While it leaves, a second click on "Kumpulkan" (a double-click) must not hand in twice.
           onClickCapture={ignoreClosingClick}
           className={cx(
-            "fixed top-1/2 left-1/2 z-(--z-confirm) w-[min(460px,calc(100vw-48px))] -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-raised p-5 text-fg shadow-dialog ring-1 ring-black/10 focus:outline-none dark:ring-white/10",
+            "fixed top-1/2 left-1/2 z-(--z-confirm) w-[min(460px,calc(100vw-48px))] -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-raised p-5 text-fg border border-transparent shadow-dialog ring-1 ring-black/10 focus:outline-none dark:ring-white/10",
             PANEL_MOTION_CLASS,
           )}
         >
@@ -1439,7 +1439,8 @@ function FileBadge({ name, state }: { name: string; state?: Attached["state"] })
       aria-hidden
       className={cx(
         "grid size-8 shrink-0 place-items-center rounded-md text-micro font-bold",
-        state === "failed" ? "bg-danger-bg text-danger-fg" : ext === "PDF" ? "bg-danger-bg/70 text-danger-fg" : "bg-neutral-bg text-neutral-fg",
+        // Red only for a file that failed: a PDF is no danger, so it is grey like any other kind.
+        state === "failed" ? "bg-danger-bg text-danger-fg" : "bg-neutral-bg text-neutral-fg",
       )}
     >
       {state === "uploading" || state === "waiting" ? (
@@ -1564,7 +1565,7 @@ function noticeFor(error: unknown): Notice {
     case "VendorChanged":
       return { tone: "danger", text: "handIn.error.changed", action: "edunex" };
     case "Rejected":
-      return { tone: "danger", text: "handIn.error.rejected" };
+      return { tone: "danger", text: "handIn.error.rejected", action: "edunex" };
     default:
       return { tone: "danger", text: "handIn.error.failed" };
   }
@@ -1593,7 +1594,7 @@ function History({ task }: { task: Task }) {
                     step.kind === "submitted"
                       ? "bg-live"
                       : step.kind === "edited" && editedAfterSubmit(task)
-                        ? "bg-warning-fg"
+                        ? "bg-meter-warning"
                         : step.at > now && step.kind !== "draft"
                           ? "border border-faint bg-canvas"
                           : "bg-faint/60",
@@ -1611,7 +1612,7 @@ function History({ task }: { task: Task }) {
         onClick={() => open(edunexTaskUrl(task.id))}
         className={cx("focus-ring inline-flex items-center gap-1 rounded text-small font-medium text-accent-fg hover:underline", steps.length >= 2 && "mt-4")}
       >
-        {t("task.openInEdunex")}
+        {t("action.openInEdunex")}
         <Icons.ArrowUpRight className="size-3.5" />
       </button>
     </div>

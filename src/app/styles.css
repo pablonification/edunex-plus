@@ -21,6 +21,8 @@
   --sunken: #f7f7f9;
   --scrim: rgb(0 0 0 / 0.25);
   --track: #d4d4da;
+  /* The edge of a field or a switch that's off: 3:1 on every surface, so the control shows where it is (test/app/contrast.test.ts). */
+  --field-edge: #8d8d92;
   --segment: #ffffff;
   --tooltip-bg: #1d1d1f;
   --tooltip-fg: #ffffff;
@@ -130,6 +132,7 @@
     --sunken: #19191c;
     --scrim: rgb(0 0 0 / 0.45);
     --track: #3a3a40;
+    --field-edge: #6c6c72;
     --segment: #34343a;
     --tooltip-bg: #ececef;
     --tooltip-fg: #1d1d1f;
@@ -189,6 +192,7 @@
   --color-sunken: var(--sunken);
   --color-scrim: var(--scrim);
   --color-track: var(--track);
+  --color-field-edge: var(--field-edge);
   --color-segment: var(--segment);
   --color-tooltip-bg: var(--tooltip-bg);
   --color-tooltip-fg: var(--tooltip-fg);
@@ -259,6 +263,8 @@
      ease-standard; leaving is quicker than arriving. */
   --ease-standard: cubic-bezier(0.2, 0, 0, 1);
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  /* Every transition that names no curve (a press, a color, a switch's track) runs on the app's own, not Tailwind's. */
+  --default-transition-timing-function: var(--ease-out);
   --animate-fade-in: fade-in var(--duration-quick) var(--ease-standard);
   --animate-fade-out: fade-out var(--duration-quick) var(--ease-standard) both;
   --animate-pop-in: pop-in var(--duration-base) var(--ease-out);
@@ -394,6 +400,10 @@
     outline: 2px solid var(--focus);
     outline-offset: 2px;
   }
+  /* A screen's title takes focus when the screen changes (shell.tsx); it isn't a control, so it draws no ring. */
+  h1[tabindex="-1"]:focus {
+    outline: none;
+  }
   ::selection {
     background: color-mix(in oklab, var(--accent) 28%, transparent);
   }
@@ -427,15 +437,21 @@ html[data-hidden] [data-loop] * {
   :root {
     interpolate-size: allow-keywords;
   }
+  /* As the kit's DisclosurePanel: opening grows and fades in (200 ms, ease-out); closing is quicker (150 ms, ease-standard). */
   details::details-content {
     height: 0;
+    opacity: 0;
     overflow: clip;
     transition:
-      height var(--duration-base) var(--ease-out),
-      content-visibility var(--duration-base) allow-discrete;
+      height var(--duration-quick) var(--ease-standard),
+      opacity var(--duration-quick) var(--ease-standard),
+      content-visibility var(--duration-quick) allow-discrete;
   }
   details[open]::details-content {
     height: auto;
+    opacity: 1;
+    transition-duration: var(--duration-base);
+    transition-timing-function: var(--ease-out);
   }
 }
 

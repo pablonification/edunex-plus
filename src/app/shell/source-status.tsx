@@ -3,7 +3,7 @@
 // every screen, when something needs the Student.
 import { type ReactNode, useCallback, useState, useSyncExternalStore } from "react";
 import type { SourceId, SourceState } from "../../core/models";
-import { ActionError, type Bridge } from "../bridge";
+import { type Bridge, errorKey } from "../bridge";
 import { useFormat, useT } from "../i18n";
 import { useBridge, useDataset, useSignInStep, useStatus } from "../store";
 import { SourceLogo } from "../ui/brand";
@@ -25,7 +25,7 @@ export function useSignIn() {
       try {
         await bridge.invoke("auth.signIn", { source });
       } catch (error) {
-        toast(error instanceof ActionError && error.kind !== "Failed" ? t("error.action", { message: error.message }) : t("welcome.signInFailed"), "danger");
+        toast(t(errorKey(error, "welcome.signInFailed")), "danger");
       } finally {
         setBusy(false);
       }
@@ -119,7 +119,7 @@ function StateMark({ state, busy }: { state: SourceState; busy: boolean }) {
     case "offline":
       return <Icons.WifiOff className="size-3.5 text-faint" />;
     case "expired":
-      return <span aria-hidden className="size-2 rounded-full bg-warning-fg" />;
+      return <span aria-hidden className="size-2 rounded-full bg-meter-warning" />;
     case "changed":
       return <Icons.AlertTriangle className="size-3.5 text-danger-fg" />;
     default:
@@ -175,8 +175,10 @@ export function SyncStatus() {
         <button
           type="button"
           aria-label={`${t("sync.title")}: ${text}`}
+          // Whole while the search field and the back button can give up room. Zoomed in (the sidebar a rail), it gives
+          // up its words too before anything goes past the window, down to its mark: they stay in its name and panel.
           className={cx(
-            "focus-ring no-drag inline-flex h-8 items-center gap-2 rounded-lg px-2.5 text-small font-medium transition-colors duration-150",
+            "focus-ring no-drag inline-flex h-8 shrink-0 items-center gap-2 rounded-lg px-2.5 text-small font-medium transition-colors duration-150 max-[52rem]:min-w-11 max-[52rem]:shrink",
             state === "changed"
               ? "bg-danger-bg text-danger-fg"
               : state === "expired"
@@ -184,8 +186,11 @@ export function SyncStatus() {
                 : "text-muted hover:bg-hover hover:text-fg",
           )}
         >
-          <StateMark state={state === "signed-out" ? "signed-out" : state} busy={state === "connecting"} />
-          <span className="max-w-[180px] truncate">{text}</span>
+          <span className="flex shrink-0">
+            <StateMark state={state === "signed-out" ? "signed-out" : state} busy={state === "connecting"} />
+          </span>
+          {/* Room for "Diperbarui 25 menit yang lalu" whole. */}
+          <span className="max-w-[220px] min-w-0 truncate">{text}</span>
         </button>
       }
     >
@@ -314,11 +319,11 @@ export function ProblemBanner() {
       : problem.state === "changed"
         ? t("status.changedHint", { source: name })
         : t("banner.keptHint");
+  // Announced through the live region the shell keeps around it (shell.tsx): one mounted already holding its text isn't read reliably.
   return (
     <div
-      role="status"
       className={cx(
-        "flex shrink-0 items-center gap-3 border-b px-6 py-2 text-small motion-safe:animate-slide-down",
+        "flex items-center gap-3 border-b px-6 py-2 text-small motion-safe:animate-slide-down",
         problem.state === "changed"
           ? "border-danger-fg/15 bg-danger-bg text-danger-fg"
           : offline
@@ -333,9 +338,10 @@ export function ProblemBanner() {
       ) : (
         <Icons.AlertTriangle className="size-4 shrink-0" />
       )}
-      <p className="min-w-0 flex-1 truncate">
+      {/* Wraps rather than cuts: the detail is when the data was last fresh, or the one thing to do. */}
+      <p className="min-w-0 flex-1 text-pretty">
         <span className="font-semibold">{title}</span>
-        {detail && <span className="opacity-85"> {detail}</span>}
+        {detail && <span> {detail}</span>}
       </p>
       {needsSignIn ? (
         <Button size="sm" variant="primary" busy={signingIn} onClick={() => void signIn(problem.source)}>

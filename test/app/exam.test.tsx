@@ -20,7 +20,7 @@ const examRow = (code: string) =>
 
 async function openTasks(world?: PretendWorld) {
   screen = await openApp({ world, signedIn: true, six: true });
-  await screen.click(/^Tugas & Ujian\d*$/);
+  await screen.click(/^Tugas & Ujian\d*(, Perlu perhatianmu)?$/);
   return screen;
 }
 
@@ -76,7 +76,7 @@ describe("the exam list", () => {
     s.close();
     // The day after the take-home UTS was due: both dates are behind the Student.
     screen = await openApp({ world: new PretendWorld({ now: "2026-10-23T09:00:00+07:00" }), signedIn: true, six: true });
-    await screen.click(/^Tugas & Ujian\d*$/);
+    await screen.click(/^Tugas & Ujian\d*(, Perlu perhatianmu)?$/);
     expect(examRow("DK4073")).toBeUndefined();
     await screen.click(/^Selesai/);
     expect(examRow("DK4073")).toBeDefined();
@@ -112,12 +112,12 @@ describe("the exam page", () => {
     expect(s.text()).toContain("Kehadiran sebelum ujian · Hadir 4 dari 6");
 
     // One quiet line of official pages.
-    await s.click("Lihat di SIX");
+    await s.click("Buka jadwal di SIX");
     expect(s.calls.at(-1)).toEqual({
       name: "shell.openExternal",
       input: { url: "https://six.itb.ac.id/app/mahasiswa:18223901+2026-1/kelas/jadwal/mahasiswa/2021000001" },
     });
-    await s.click("Lihat tugas di Edunex");
+    await s.click("Buka tugasnya di Edunex");
     expect(s.calls.at(-1)).toEqual({ name: "shell.openExternal", input: { url: "https://edunex.itb.ac.id/assignment/take/117764" } });
 
     // The take-home card opens the Task page.
@@ -153,7 +153,7 @@ describe("the exam page", () => {
     const s = screen;
     // ITB's calendar (the exam weeks) is read after Edunex.
     await s.wait(5 * 60_000);
-    await s.click(/^Tugas & Ujian\d*$/);
+    await s.click(/^Tugas & Ujian\d*(, Perlu perhatianmu)?$/);
     expect(examSection()?.textContent).toContain("Ujian dari jadwal SIX (tanggal dan ruangnya) muncul setelah SIX terhubung.");
     expect(s.text().match(/muncul setelah SIX terhubung/g)).toHaveLength(1);
     await s.click(examRow("DK4073")!);

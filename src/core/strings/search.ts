@@ -74,7 +74,6 @@ export const searchStrings = {
   "scan.heading": { id: "Ringkasan saat pertama terhubung", en: "Your first-connection summary" },
   "scan.empty": { id: "Tidak ada yang perlu kamu perhatikan", en: "Nothing needs your attention" },
   "scan.connected": { id: "{sources} terhubung", en: "{sources} connected" },
-  "scan.and": { id: "{a} dan {b}", en: "{a} and {b}" },
   "scan.read": { id: "{list} dibaca", en: "{list} read" },
   "scan.read.courses": { id: "{count} mata kuliah", en: { one: "{count} course", other: "{count} courses" } },
   "scan.read.tasks": { id: "{count} tugas", en: { one: "{count} Task", other: "{count} Tasks" } },
@@ -116,13 +115,13 @@ export const searchStrings = {
     en: { one: "{count} course counts attendance in SIX, not Edunex", other: "{count} courses count attendance in SIX, not Edunex" },
   },
   "scan.unused.course": {
-    id: '{code}: SIX mencatat hadir {attended} dari {held}; abaikan {count} "absen" di Edunex',
+    id: "SIX mencatat {code} hadir {attended} dari {held}, jadi abaikan {count} “absen” di Edunex",
     en: {
-      one: '{code}: SIX has {attended} of {held}; ignore the {count} "absence" Edunex shows',
-      other: '{code}: SIX has {attended} of {held}; ignore the {count} "absences" Edunex shows',
+      one: "SIX has {code} at {attended} of {held}, so ignore the {count} “absence” Edunex shows",
+      other: "SIX has {code} at {attended} of {held}, so ignore the {count} “absences” Edunex shows",
     },
   },
-  "scan.unused.note": { id: "Tandai Hadir di SIX; Presensi Edunex tidak wajib.", en: "Press Tandai Hadir in SIX; Edunex Presence is optional." },
+  "scan.unused.note": { id: "Tandai Hadir di SIX. Presensi Edunex tidak wajib.", en: "Press Tandai Hadir in SIX. Edunex Presence is optional." },
 
   // Exams
   "scan.exams.title": { id: "{count} ujian akan datang", en: { one: "{count} upcoming exam", other: "{count} upcoming exams" } },

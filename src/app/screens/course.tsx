@@ -14,6 +14,7 @@ import { attendanceKey, attendanceSnoozable } from "../../core/snooze";
 import { useAttendance } from "../attendance";
 import { verdictLabel } from "../attendance-labels";
 import { AttendanceSummary, CourseTarget } from "../attendance-parts";
+import { errorKey } from "../bridge";
 import { useOpenExternal } from "../hooks";
 import { type Format, type StringKey, type Translate, useFormat, useLang, useNow, useT } from "../i18n";
 import { useNav } from "../nav";
@@ -146,7 +147,8 @@ function AttendanceMeter({ page }: { page: CoursePage }) {
   if (!health?.held) return null;
   return (
     <AttendanceSummary
-      className="w-[260px] pt-0.5"
+      // The meter's usual width at least, wider where its words need it (never past the header), so they stay on one line.
+      className="w-fit max-w-full min-w-[min(260px,100%)] pt-0.5"
       health={health}
       // With no room left the banner below says it, as its title; put off with "Ingatkan nanti", the words are back here.
       words={banner ? null : verdictLabel(t, health)}
@@ -189,10 +191,10 @@ function MoreMenu({ page }: { page: CoursePage }) {
       const result = await bridge.invoke("course.saveOffline", { code: course.code, pick });
       if (result.folder === null) return;
       if (result.saved + result.kept + result.failed === 0) toast(t("offline.nothing"));
-      else if (result.failed > 0) toast(t("offline.failed", { count: result.failed }), "danger");
+      else if (result.failed > 0) toast(t(pick ? "offline.failedPicked" : "offline.failed", { count: result.failed, action: t("offline.save") }), "danger");
       else toast(t("offline.done", { count: result.saved, saved: result.saved, kept: result.kept }), "success");
     } catch (error) {
-      toast(t("error.action", { message: error instanceof Error ? error.message : String(error) }), "danger");
+      toast(t(errorKey(error)), "danger");
     } finally {
       setBusy(false);
     }
@@ -475,12 +477,13 @@ function MeetingNow({ page }: { page: CoursePage }) {
     >
       {presence && (
         <NowZone>
-          <div className="flex max-w-[560px] items-center gap-3 text-small">
+          {/* With no room for the countdown beside the words, it goes under them. */}
+          <div className="flex max-w-[560px] flex-wrap items-center gap-x-3 gap-y-1 text-small">
             {/* Said here unless the line above already says it. */}
             {(current || upcoming) && <span className="shrink-0 font-semibold">{t("course.presenceOpen")}</span>}
             {/* The same shrinking countdown as on Presensi and Beranda. */}
             <CountdownBar
-              className="min-w-16 flex-1"
+              className="min-w-16 flex-1 basis-64"
               opensAt={presence.opensAt}
               closesAt={presence.closesAt}
               now={now}

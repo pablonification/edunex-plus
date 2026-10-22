@@ -136,6 +136,11 @@ export const shellStrings = {
     en: "Signs out of Edunex and SIX, then removes all your data from this computer.",
   },
   "settings.signOutAllConfirm": { id: "Keluar dan hapus semua data?", en: "Sign out and remove all data?" },
+  // What goes for good (the engine's signOut): what was read, and what only the Student entered.
+  "settings.signOutAllBody": {
+    id: "Kamu keluar dari Edunex dan SIX, dan semua yang disimpan aplikasi di komputer ini dihapus. Itu termasuk yang kamu isi sendiri, seperti rencana studi, koreksi kurikulum, bobot dan nilai mata kuliah, target kehadiran per mata kuliah, pengingat yang ditunda, dan HP yang terhubung. Ini tidak bisa dibatalkan.",
+    en: "You're signed out of Edunex and SIX, and everything the app keeps on this computer is removed. That includes what you entered yourself, like your study plan, curriculum corrections, course weights and scores, each course's attendance target, snoozed reminders and the connected phone. You can't undo this.",
+  },
   "settings.other": { id: "Lainnya", en: "Other" },
   "settings.sessionNotSaved": {
     id: "Komputer ini tidak punya penyimpanan aman, jadi sesimu tidak disimpan. Kamu perlu masuk lagi setiap membuka aplikasi.",
@@ -167,7 +172,15 @@ export const shellStrings = {
 
   // Crash guard
   "error.panel": { id: "Bagian ini gagal ditampilkan", en: "This part couldn't be shown" },
-  "error.action": { id: "Tidak berhasil: {message}", en: "That didn't work: {message}" },
+  // An action that didn't work, by what went wrong (src/app/bridge.ts errorKey): what happened, then what to do.
+  // Never the engine's own message: it's for the log, and names no way forward.
+  "error.offline": { id: "Tidak bisa terhubung sekarang. Coba lagi sebentar lagi.", en: "Couldn't connect just now. Try again in a moment." },
+  "error.expired": { id: "Sesimu berakhir. Masuk lagi, lalu coba lagi.", en: "Your session ended. Sign in again, then try again." },
+  "error.changed": {
+    id: "Edunex atau SIX menjawab dengan cara yang tidak dikenali. Coba lagi nanti.",
+    en: "Edunex or SIX answered in a way the app doesn't recognise. Try again later.",
+  },
+  "error.failed": { id: "Belum berhasil. Coba lagi.", en: "That didn't go through. Try again." },
 
   // Task statuses (design system; used from the Tasks ticket on)
   "taskStatus.not_started": { id: "Belum dikerjakan", en: "Not started" },

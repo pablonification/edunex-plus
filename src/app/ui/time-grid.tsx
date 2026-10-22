@@ -21,6 +21,8 @@ export interface GridDay {
   head: ReactNode;
   /** wide: shares the free width; narrow: an empty weekday; slim: an empty weekend day. */
   size: "wide" | "narrow" | "slim";
+  /** A wide day's most blocks side by side (a clash): each keeps room for its time and code. */
+  lanes?: number;
   /** today, or a period without regular lectures (exam week, holiday). */
   tone?: "today" | "off" | null;
   /** Things that aren't a place to be: deadlines, hand-in windows. */
@@ -42,7 +44,18 @@ export interface GridBand {
 }
 
 const AXIS = 48;
-const SIZE = { wide: "minmax(0,1fr)", narrow: "56px", slim: "36px" } as const;
+const SIZE = { narrow: "56px", slim: "36px" } as const;
+/**
+ * A busy day shares the free width, but never narrower than its blocks need: 6.25rem for a day of blocks one under
+ * another (five of them still fit the smallest window), 7rem for each block side by side in a clash, so each keeps
+ * its time and code. Where the days can't all have that (a narrow window, zoomed in), the grid scrolls sideways in
+ * its own frame instead, the next day showing at the edge.
+ */
+const columnOf = (day: GridDay) => {
+  if (day.size !== "wide") return SIZE[day.size];
+  const lanes = day.lanes ?? 1;
+  return `minmax(${lanes > 1 ? 7 * lanes : 6.25}rem,1fr)`;
+};
 
 const GridContext = createContext<{ hours: Hours; hourHeight: number }>({ hours: { from: 420, to: 1080 }, hourHeight: 44 });
 
@@ -70,7 +83,7 @@ export function TimeGrid({
   hourHeight?: number;
   className?: string;
 }) {
-  const columns = `${AXIS}px ${days.map((day) => SIZE[day.size]).join(" ")}`;
+  const columns = `${AXIS}px ${days.map(columnOf).join(" ")}`;
   const lane = days.some((day) => day.lane);
   const height = ((hours.to - hours.from) * hourHeight) / 60;
   const rows = lane ? `auto auto ${height}px` : `auto ${height}px`;
@@ -87,7 +100,8 @@ export function TimeGrid({
 
   return (
     <GridContext.Provider value={{ hours, hourHeight }}>
-      <div className={className}>
+      {/* Its frame reaches 4px past the grid on the sides and below, its margins taking that back, so a block's focus ring isn't clipped. */}
+      <div className={cx("-mx-1 -mb-1 overflow-x-auto overflow-y-hidden px-1 pb-1", className)}>
         {lines.length > 0 && (
           <div className="mb-1.5 grid gap-y-1" style={{ gridTemplateColumns: columns }}>
             {lines.flatMap((line, row) =>
@@ -153,8 +167,9 @@ function NowLine({ minute }: { minute: number }) {
   return (
     // Behind the blocks: it marks the time without running through a class's text (the class going on shows it itself).
     <div aria-hidden className="pointer-events-none absolute inset-x-0 z-5" style={{ top: y(minute) }}>
-      <div className="h-0.5 -translate-y-1/2 bg-danger-fg" />
-      <div className="absolute top-0 -left-1 size-2 -translate-y-1/2 rounded-full bg-danger-fg" />
+      {/* Blue, as today's date above it and the today line in the deadlines list: red is for what is lost or late. */}
+      <div className="h-0.5 -translate-y-1/2 bg-accent" />
+      <div className="absolute top-0 -left-1 size-2 -translate-y-1/2 rounded-full bg-accent" />
     </div>
   );
 }

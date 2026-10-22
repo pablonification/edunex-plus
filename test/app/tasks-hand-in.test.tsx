@@ -28,7 +28,7 @@ const confirmButton = () =>
 const openTask = async (title: string, now?: string) => {
   const s = await openApp({ signedIn: true, world: new PretendWorld({ now }) });
   screen = s;
-  await s.click(/^Tugas & Ujian\d*$/);
+  await s.click(/^Tugas & Ujian\d*(, Perlu perhatianmu)?$/);
   const row = () => [...document.querySelectorAll<HTMLButtonElement>("main li button")].find((b) => b.textContent?.startsWith(title));
   if (!row()) await s.click(/^Selesai/);
   const found = row();
@@ -159,7 +159,7 @@ describe("handing in", () => {
     world.edunex.postTask(95326, { name: "Tugas Kelompok 1", type: "GROUP" });
     screen = await openApp({ signedIn: true, world });
     const s = screen;
-    await s.click(/^Tugas & Ujian\d*$/);
+    await s.click(/^Tugas & Ujian\d*(, Perlu perhatianmu)?$/);
     await s.click([...document.querySelectorAll<HTMLButtonElement>("main li button")].find((b) => b.textContent?.startsWith("Tugas Kelompok 1"))!);
     expect(card()).toContain("Ini tugas kelompok. Kumpulkan bersama kelompokmu di Edunex.");
     // Nothing of the Student's own to show, so no "Jawabanmu" over it.
@@ -277,6 +277,24 @@ describe("handing in", () => {
     expect(card()).toContain("Edunex menerima permintaanmu, tapi belum menunjukkan perubahannya.");
     expect(card()).toContain("Draf");
     await s.click("Buka di Edunex");
+    expect(s.calls.at(-1)).toEqual({ name: "shell.openExternal", input: { url: "https://edunex.itb.ac.id/assignment/take/117003" } });
+  });
+
+  it("Edunex refusing a submit: the files stay, and the notice offers the Task on Edunex", async () => {
+    const s = await openTask("Tugas 02 Bab II");
+    await s.write(ANSWER);
+    s.willPick([{ name: "Bab II.pdf" }]);
+    await s.click(ATTACH);
+    await s.click("Simpan draf");
+    s.world.edunex.fail(/^\/course\/task\/answers\/\d+$/, 422, 1);
+    await s.click("Kumpulkan");
+    await s.click(confirmButton()!);
+    const notice = document.querySelector("main aside [role=alert]");
+    expect(notice?.textContent).toContain("Edunex menolak ini. Berkasmu tetap terlampir. Periksa tugas ini di Edunex.");
+    expect(card()).toContain("Bab II.pdf");
+    // Never the engine's own words.
+    expect(card()).not.toContain("422");
+    await s.click([...notice!.querySelectorAll("button")].find((b) => b.textContent === "Buka di Edunex")!);
     expect(s.calls.at(-1)).toEqual({ name: "shell.openExternal", input: { url: "https://edunex.itb.ac.id/assignment/take/117003" } });
   });
 

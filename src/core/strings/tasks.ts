@@ -42,7 +42,6 @@ export const tasksStrings = {
   "task.noInstructions": { id: "Tidak ada instruksi.", en: "No instructions." },
   "task.lecturerFiles": { id: "Berkas dari dosen", en: "Files from lecturer" },
   "task.download": { id: "Unduh {name}", en: "Download {name}" },
-  "task.downloadFailed": { id: "{name} gagal diunduh", en: "{name} couldn't be downloaded" },
   "task.notFound": { id: "Tugas ini tidak ditemukan", en: "This Task wasn't found" },
   "task.backToTasks": { id: "Ke Tugas & Ujian", en: "Go to Tasks & Exams" },
   "task.note.editedAfterSubmit": {
@@ -103,7 +102,7 @@ export const tasksStrings = {
     id: "Edunex tidak menerima berkas jenis ini. Gunakan PDF, Word, Excel, PowerPoint, ZIP, RAR, JPG, atau PNG.",
     en: "Edunex doesn't take this kind of file. Use PDF, Word, Excel, PowerPoint, ZIP, RAR, JPG or PNG.",
   },
-  "handIn.group": { id: "Ini tugas kelompok. Kumpulkan bersama kelompokmu di Edunex.", en: "This is a group task. Hand it in with your group on Edunex." },
+  "handIn.group": { id: "Ini tugas kelompok. Kumpulkan bersama kelompokmu di Edunex.", en: "This is a group Task. Hand it in with your group on Edunex." },
   "handIn.unreadable": {
     id: "Berkas ini tidak bisa dibaca. Coba simpan ulang lalu lampirkan lagi.",
     en: "This file can't be read. Save it again, then attach it again.",
@@ -147,8 +146,8 @@ export const tasksStrings = {
   "handIn.notOpen": { id: "Tugas ini belum dibuka di Edunex.", en: "This Task isn't open on Edunex yet." },
   "handIn.gone": { id: "Tugas ini sudah tidak ada di Edunex.", en: "This Task is no longer on Edunex." },
   "handIn.error.offline": {
-    id: "Edunex tidak bisa dihubungi. Berkasmu tetap terlampir, coba lagi.",
-    en: "Edunex can't be reached. Your files stay attached; try again.",
+    id: "Edunex tidak bisa dihubungi. Berkasmu tetap terlampir. Coba lagi.",
+    en: "Edunex can't be reached. Your files stay attached. Try again.",
   },
   "handIn.error.expired": {
     id: "Sesi Edunex berakhir. Masuk lagi, lalu coba lagi. Berkasmu tetap terlampir.",
@@ -158,8 +157,14 @@ export const tasksStrings = {
     id: "Edunex menjawab dengan cara yang tidak dikenali. Periksa tugas ini di Edunex.",
     en: "Edunex answered in a way the app doesn't recognise. Check this Task on Edunex.",
   },
-  "handIn.error.rejected": { id: "Edunex menolak permintaan ini. Berkasmu tetap terlampir.", en: "Edunex refused this. Your files stay attached." },
-  "handIn.error.failed": { id: "Tidak berhasil. Berkasmu tetap terlampir, coba lagi.", en: "That didn't work. Your files stay attached; try again." },
+  "handIn.error.rejected": {
+    id: "Edunex menolak ini. Berkasmu tetap terlampir. Periksa tugas ini di Edunex.",
+    en: "Edunex refused this. Your files stay attached. Check this Task on Edunex.",
+  },
+  "handIn.error.failed": {
+    id: "Edunex belum menerimanya. Berkasmu tetap terlampir. Coba lagi.",
+    en: "Edunex didn't get it. Your files stay attached. Try again.",
+  },
 
   // Tugas & Ujian, redesigned
   "tasks.filter.course": { id: "Mata kuliah", en: "Course" },
@@ -170,7 +175,6 @@ export const tasksStrings = {
   "task.editedAfterSubmitLine": { id: "Diubah setelah kamu kumpulkan ({date}) · cek lagi", en: "Changed after you submitted ({date}) · check again" },
   "task.submittedOnDate": { id: "Dikumpulkan {date}", en: "Submitted {date}" },
   "task.partOfExam": { id: "Bagian dari {kind} {code}", en: "Part of {code} {kind}" },
-  "task.openInEdunex": { id: "Lihat di Edunex", en: "View on Edunex" },
   "task.note.attendanceCounted": {
     id: "Terhitung hadir: kamu mengumpulkan di dalam jendela presensi ({when}).",
     en: "Counted as present: you handed it in inside the attendance window ({when}).",
@@ -183,7 +187,6 @@ export const tasksStrings = {
     id: "Jendela presensi tugas ini sudah lewat ({when}). Kalau dikumpulkan sekarang, tugas terkumpul tapi tidak dihitung hadir.",
     en: "This Task's attendance window has passed ({when}). Handed in now, it counts as handed in, not as present.",
   },
-  "task.note.editedCheck": { id: "Lihat di Edunex", en: "View on Edunex" },
   "exam.row.takeHome": { id: "Take-home: {title} · tenggat {when}", en: "Take-home: {title} · due {when}" },
   "exam.row.disagree": { id: "SIX: {six} · Edunex: {edunex}. Pastikan ke dosen.", en: "SIX: {six} · Edunex: {edunex}. Check with your lecturer." },
 
@@ -230,7 +233,10 @@ export const tasksStrings = {
   },
   "handIn.check.attendanceIn": { id: "Di dalam jendela presensi: terhitung hadir.", en: "Inside the attendance window: you'll be counted present." },
   "handIn.check.late": { id: "Tenggat sudah lewat ({when}). Tugasmu tercatat terlambat.", en: "The deadline has passed ({when}). It's recorded as late." },
-  "handIn.check.fileType": { id: "Dosen minta berkas {type}; {files} bukan {type}.", en: "Your lecturer asks for a {type} file; {files} isn't one." },
+  "handIn.check.fileType": {
+    id: "Dosen minta berkas {type}, tapi {files} bukan {type}.",
+    en: { one: "Your lecturer asks for a {type} file, but {files} isn't one.", other: "Your lecturer asks for {type} files, but {files} aren't." },
+  },
   "handIn.check.naming": { id: "Dosen minta nama berkas \u2018{pattern}\u2019.", en: "Your lecturer asks for the file name \u2018{pattern}\u2019." },
   "handIn.check.final": { id: "Setelah dikumpulkan, jawabanmu final.", en: "Once handed in, your answer is final." },
   "handIn.submitNow": { id: "Kumpulkan sekarang", en: "Submit now" },
@@ -289,10 +295,10 @@ export const tasksStrings = {
   "examPage.items": { id: "{count} materi", en: { one: "{count} item", other: "{count} items" } },
   "examPage.noItems": { id: "Belum ada materi", en: "No materials yet" },
   "examPage.official": { id: "Halaman resmi", en: "Official pages" },
-  "examPage.seeSix": { id: "Lihat di SIX", en: "View in SIX" },
-  "examPage.seeTask": { id: "Lihat tugas di Edunex", en: "View the Task on Edunex" },
-  "examPage.seeCourse": { id: "Lihat mata kuliah di Edunex", en: "View the course on Edunex" },
+  "examPage.seeSix": { id: "Buka jadwal di SIX", en: "Open the timetable in SIX" },
+  "examPage.seeTask": { id: "Buka tugasnya di Edunex", en: "Open the Task in Edunex" },
+  "examPage.seeCourse": { id: "Buka mata kuliahnya di Edunex", en: "Open the course in Edunex" },
   "examPage.attendance": { id: "Kehadiran sebelum ujian", en: "Attendance before the exam" },
   "examPage.attendanceLine": { id: "Hadir {attended} dari {held}", en: "Attended {attended} of {held}" },
-  "examPage.seePresence": { id: "Lihat presensi", en: "See attendance" },
+  "examPage.seePresence": { id: "Ke Presensi", en: "Go to Presence" },
 } as const satisfies Record<string, Entry>;

@@ -121,7 +121,7 @@ export default function RichEditor({ initial, onChange, label, placeholder, desc
   );
 
   return (
-    <div className="rounded-lg border border-edge bg-surface transition-colors duration-150 has-[.ProseMirror:focus-visible]:border-(--focus) has-[.ProseMirror:focus-visible]:outline-2 has-[.ProseMirror:focus-visible]:outline-offset-1 has-[.ProseMirror:focus-visible]:outline-(--focus)">
+    <div className="rounded-lg border border-field-edge bg-surface transition-colors duration-150 has-[.ProseMirror:focus-visible]:border-(--focus) has-[.ProseMirror:focus-visible]:outline-2 has-[.ProseMirror:focus-visible]:outline-offset-1 has-[.ProseMirror:focus-visible]:outline-(--focus)">
       <Toolbar editor={editor} linking={linking} onLink={() => setLinking((open) => !open)} />
       {linking && <LinkRow editor={editor} onDone={() => setLinking(false)} />}
       <EditorContent editor={editor} />
@@ -265,7 +265,7 @@ function LinkRow({ editor, onDone }: { editor: Editor; onDone: () => void }) {
         onChange={(event) => setHref(event.target.value)}
         onKeyDown={keys}
         placeholder="https://"
-        className="focus-ring h-8 min-w-0 flex-1 rounded-md border border-edge bg-canvas px-2.5 text-small"
+        className="focus-ring h-8 min-w-0 flex-1 rounded-md border border-field-edge bg-canvas px-2.5 text-small"
       />
       <Button size="sm" variant="primary" disabled={!valid} onClick={apply}>
         {t("editor.linkApply")}

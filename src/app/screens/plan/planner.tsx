@@ -81,8 +81,9 @@ import { Button, IconButton } from "../../ui/controls";
 import { cx } from "../../ui/cx";
 import { Card, Tag } from "../../ui/display";
 import { Icons } from "../../ui/icons";
-import { Meta } from "../../ui/layout";
+import { breakAfterSlashes, Meta } from "../../ui/layout";
 import { Menu, type MenuItem } from "../../ui/menu";
+import { stillMotion } from "../../ui/motion/animate";
 import { AnimatedNumber } from "../../ui/motion/animated-number";
 import { DisclosurePanel, disclosureTrigger } from "../../ui/motion/disclosure";
 import { PresenceItem, PresenceList } from "../../ui/motion/presence-list";
@@ -471,8 +472,8 @@ function SksBar({ sks }: { sks: SksModel }) {
   const scale = Math.max(sks.need, sks.total);
   const share = (n: number) => `${(n / scale) * 100}%`;
   const parts = [
-    { n: sks.passed, label: t("planner.legend.passed", { n: sks.passed }), color: "bg-live" },
-    { n: sks.inProgress, label: t("planner.legend.now", { n: sks.inProgress }), color: "bg-live/45" },
+    { n: sks.passed, label: t("planner.legend.passed", { n: sks.passed }), color: "bg-meter-success" },
+    { n: sks.inProgress, label: t("planner.legend.now", { n: sks.inProgress }), color: "bg-meter-success/45" },
     { n: sks.planned, label: t("planner.legend.planned", { n: sks.planned }), color: "bg-info-fg/55" },
     // Only once the Student said their program will add a required course.
     ...(sks.byProgram ? [{ n: sks.byProgram, label: t("planner.legend.byProgram", { n: sks.byProgram }), color: "bg-info-fg/25" }] : []),
@@ -485,7 +486,8 @@ function SksBar({ sks }: { sks: SksModel }) {
         aria-valuemin={0}
         aria-valuemax={sks.need}
         aria-valuenow={Math.min(sks.total, sks.need)}
-        className="relative flex h-2.5 gap-[2px] overflow-hidden rounded-full bg-black/[0.06] dark:bg-white/[0.08]"
+        // The meters' own track and green, so what has passed reads 3:1 on it in both themes.
+        className="relative flex h-2.5 gap-[2px] overflow-hidden rounded-full bg-meter-track"
       >
         {parts.map((part) => (
           <span
@@ -494,7 +496,7 @@ function SksBar({ sks }: { sks: SksModel }) {
             style={{ width: share(part.n) }}
           />
         ))}
-        {sks.total > sks.need && <span aria-hidden className="absolute inset-y-0 w-[2px] bg-fg/70" style={{ left: share(sks.need) }} />}
+        {sks.total > sks.need && <span aria-hidden className="absolute inset-y-0 w-[2px] bg-fg" style={{ left: share(sks.need) }} />}
       </div>
       <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-caption text-muted tabular-nums">
         {parts.map((part) => (
@@ -525,7 +527,7 @@ function Past({ record, steps }: { record: StudentRecord; steps: ProjectedStep[]
         type="button"
         onClick={() => setOpen(!open)}
         {...disclosureTrigger(open, id)}
-        className="focus-ring flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-hover"
+        className="focus-ring flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-hover focus-visible:-outline-offset-2"
       >
         <Icons.ChevronRight className={cx("size-4 text-faint transition-transform duration-150", open && "rotate-90")} />
         <Meta className="flex-1 text-body font-semibold">
@@ -617,13 +619,14 @@ function TermBlock({
             </Tooltip>
           )}
         </header>
-        <ul>{children}</ul>
+        {/* Its width decides its rows' layout (LINE). */}
+        <ul className="@container">{children}</ul>
         {onAdd && (
           <button
             type="button"
             onClick={onAdd}
             data-focus={addKey}
-            className="focus-ring flex w-full items-center gap-2 border-t border-line px-4 py-2.5 text-left text-small font-semibold text-accent-fg hover:bg-hover"
+            className="focus-ring flex w-full items-center gap-2 border-t border-line px-4 py-2.5 text-left text-small font-semibold text-accent-fg hover:bg-hover focus-visible:-outline-offset-2"
           >
             <Icons.Plus className="size-3.5" />
             {addLabel ?? t("planner.addCourse")}
@@ -655,13 +658,42 @@ function RoleTag({ record, code, minor, spec }: { record: StudentRecord; code: s
 
 const ruleAnchor = (rule: Rule) => `rule-${rule.id}${"code" in rule ? `-${rule.code}` : ""}${"term" in rule ? `-${rule.term}` : ""}`;
 
-/** Shows a rule in the list and draws the eye to it. */
+/**
+ * Shows a rule in the list and draws the eye to it. Focus goes with it, so the keyboard and a screen
+ * reader carry on from the rule; it glides there only when the OS allows motion.
+ */
 function goToRule(rule: Rule) {
   const el = document.getElementById(ruleAnchor(rule));
   if (!el) return;
-  el.scrollIntoView?.({ behavior: "smooth", block: "center" });
+  el.scrollIntoView?.({ behavior: stillMotion() ? "auto" : "smooth", block: "center" });
+  el.focus({ preventScroll: true });
   el.classList.add("bg-warning-bg");
   setTimeout(() => el.classList.remove("bg-warning-bg"), 1200);
+}
+
+/**
+ * A course's row in a semester: its code, name, tag and SKS, the grade and the remove button. In a card under 34rem
+ * (the window zoomed in), where a tag would leave the name under 10rem, the tag and SKS go on a line under the
+ * name, so the name keeps room to be read and the grade and remove stay on the row.
+ */
+const LINE =
+  "grid grid-cols-[64px_minmax(0,1fr)_auto_28px_62px_28px] items-center gap-3 border-b border-line px-4 py-2 text-body last:border-b-0 @max-[34rem]:grid-cols-[64px_minmax(0,1fr)_62px_28px] @max-[34rem]:gap-y-1";
+/** The tag and SKS: columns of the row, or together on the line under the name in a narrow card. */
+const LINE_ASIDE =
+  "contents @max-[34rem]:col-start-2 @max-[34rem]:row-start-2 @max-[34rem]:flex @max-[34rem]:items-center @max-[34rem]:gap-2 @max-[34rem]:[&>:empty]:hidden";
+
+/** A course's name in a row, as a kit Row's title: it wraps (after a "/" too) and shows whole on hover; never cut with no way to read it. */
+export function CourseName({ name, className }: { name: string; className?: string }) {
+  return (
+    <span className={cx("line-clamp-2 block break-words", className)} title={name}>
+      {breakAfterSlashes(name)}
+    </span>
+  );
+}
+
+/** A row's SKS: a bare figure in its column, "3 SKS" on the line under the name in a narrow card (under 34rem). */
+export function Sks({ sks, className }: { sks: number; className?: string }) {
+  return <span className={cx("text-right text-small tabular-nums @max-[34rem]:after:content-['_SKS']", className)}>{sks}</span>;
 }
 
 function CourseLine({
@@ -694,25 +726,27 @@ function CourseLine({
 }) {
   const t = useT();
   return (
-    <li className="grid grid-cols-[64px_minmax(0,1fr)_auto_28px_62px_28px] items-center gap-3 border-b border-line px-4 py-2 text-body last:border-b-0">
+    <li className={LINE}>
       <span className="text-small font-semibold tabular-nums">{code}</span>
       <span className="min-w-0">
-        <span className="block truncate">{name}</span>
+        <CourseName name={name} />
         {flag && (
           <button
             type="button"
             onClick={() => goToRule(flag)}
             className="focus-ring mt-0.5 inline-flex items-center gap-1 rounded text-caption font-medium text-warning-fg hover:underline"
           >
-            <Icons.AlertTriangle className="size-3" />
+            <Icons.AlertTriangle className="size-3" weight="bold" />
             {flag.id === "parity"
               ? t("planner.flag.parity", { kind: t(flag.semester % 2 === 1 ? "rule.parity.odd" : "rule.parity.even") })
               : t("planner.flag.early")}
           </button>
         )}
       </span>
-      {tag}
-      <span className="text-right text-small text-muted tabular-nums">{sks}</span>
+      <span className={LINE_ASIDE}>
+        {tag}
+        <Sks sks={sks} className="text-muted" />
+      </span>
       {posted ? (
         <span
           className="inline-flex h-7 items-center justify-center rounded-md bg-neutral-bg text-small font-bold text-neutral-fg"
@@ -740,14 +774,16 @@ function CourseLine({
 function DroppedLine({ code, name, sks, onPutBack }: { code: string; name: string; sks: number; onPutBack: () => void }) {
   const t = useT();
   return (
-    <li className="grid grid-cols-[64px_minmax(0,1fr)_auto_28px_62px_28px] items-center gap-3 border-b border-line px-4 py-2 text-body text-muted last:border-b-0">
+    <li className={cx(LINE, "text-muted")}>
       <span className="text-small font-semibold tabular-nums line-through">{code}</span>
       <span className="min-w-0">
-        <span className="block truncate line-through">{name}</span>
+        <CourseName name={name} className="line-through" />
         <span className="block text-caption text-info-fg">{t("planner.droppedTag")}</span>
       </span>
-      <span />
-      <span className="text-right text-small tabular-nums line-through">{sks}</span>
+      <span className={LINE_ASIDE}>
+        <span />
+        <Sks sks={sks} className="line-through" />
+      </span>
       <Button
         size="sm"
         variant="ghost"
@@ -1016,6 +1052,7 @@ function Rules({ record, rules, plan, undoable }: { record: StudentRecord; rules
                 <PresenceItem key={ruleAnchor(rule)}>
                   <div
                     id={ruleAnchor(rule)}
+                    tabIndex={-1}
                     className="flex scroll-m-24 items-start gap-2.5 rounded-lg px-2 py-1.5 transition-colors duration-500"
                     data-rule={rule.id}
                     data-level={rule.level}
@@ -1100,7 +1137,7 @@ function Rules({ record, rules, plan, undoable }: { record: StudentRecord; rules
                 return (
                   <li key={anchor} className="flex items-center gap-2 text-small">
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate text-fg">{title}</span>
+                      <CourseName name={title} className="text-fg" />
                       <span className="block text-caption text-muted">{t(`planner.reasonShort.${reason}`)}</span>
                     </span>
                     <Button
@@ -1145,7 +1182,7 @@ function Outlook({ record, state }: { record: StudentRecord; state: PlanState })
         <p className="mb-1.5 text-caption font-medium text-muted">{t("honors.title")}</p>
         <HonorsList projection={projection} />
       </div>
-      <p className="border-t border-line px-4 py-2.5 text-caption text-faint">{t("honors.rule")}</p>
+      <p className="border-t border-line px-4 py-2.5 text-small text-faint">{t("honors.rule")}</p>
     </Card>
   );
 }
@@ -1178,8 +1215,12 @@ function Minors({ record, state, undoable }: { record: StudentRecord; state: Pla
                 className="focus-ring group flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left hover:bg-hover"
               >
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-small font-semibold">{m.name}</span>
-                  <span className="block truncate text-caption text-muted">{m.program}</span>
+                  <span className="block truncate text-small font-semibold" title={m.name}>
+                    {m.name}
+                  </span>
+                  <span className="block truncate text-caption text-muted" title={m.program}>
+                    {m.program}
+                  </span>
                 </span>
                 <span className="shrink-0 text-right">
                   <span className="block text-caption font-semibold tabular-nums">{t("planner.minorSks", { have: m.have, need: m.need })}</span>
@@ -1274,7 +1315,7 @@ function MinorPanel({
               <li key={code} className="grid grid-cols-[64px_minmax(0,1fr)_auto] items-center gap-3 border-b border-line py-2 last:border-b-0">
                 <span className="text-small font-semibold tabular-nums">{code}</span>
                 <span className="min-w-0">
-                  <span className="block truncate text-body">{info.name}</span>
+                  <CourseName name={info.name} className="text-body" />
                   <span className="block text-caption text-muted">{info.sks} SKS</span>
                 </span>
                 {st ? (
@@ -1418,8 +1459,8 @@ function AddCourse({
       <li key={code} className="flex items-center gap-3 border-b border-line px-5 py-2.5 last:border-b-0">
         <span className="w-[64px] shrink-0 text-small font-semibold tabular-nums">{code}</span>
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-body font-medium">{info.name}</span>
-          <Meta truncate className="text-caption text-muted">
+          <CourseName name={info.name} className="text-body font-medium" />
+          <Meta className="text-caption text-muted">
             {`${info.sks} SKS`}
             {owner}
             {why}
@@ -1445,7 +1486,8 @@ function AddCourse({
     <Dialog open onOpenChange={(o) => !o && onClose()} title={title} className="w-[min(680px,calc(100vw-48px))]">
       <Tabs.Root value={tab} onValueChange={(v) => setTab(v as AddTab)} className="-mx-5 -my-5">
         <div className="border-b border-line px-5 pt-3">
-          <label className="flex h-9 items-center gap-2 rounded-lg bg-fill px-3">
+          {/* The box shows the focus ring: the input itself is borderless inside it. */}
+          <label className="flex h-9 items-center gap-2 rounded-lg bg-fill px-3 has-[input:focus-visible]:outline-2 has-[input:focus-visible]:outline-offset-2 has-[input:focus-visible]:outline-focus">
             <Icons.Search className="size-4 text-faint" />
             <input
               autoFocus
@@ -1520,7 +1562,7 @@ function AddCourse({
                               )}
                             >
                               {code}
-                              {done ? <Icons.Check className="size-3" /> : <span aria-hidden>+</span>}
+                              {done ? <Icons.Check className="size-3" weight="bold" /> : <span aria-hidden>+</span>}
                             </button>
                           </li>
                         );

@@ -109,7 +109,7 @@ function ScoreInput({
         className={cx(
           "focus-ring h-8 rounded-md border bg-surface px-2 text-right text-body tabular-nums shadow-[inset_0_1px_1px_rgb(0_0_0/0.04)] transition-colors duration-150",
           width,
-          problem ? "border-danger-fg" : highlight ? "border-warning-fg ring-2 ring-warning-bg" : "border-edge hover:border-track",
+          problem ? "border-danger-fg" : highlight ? "border-warning-fg ring-2 ring-warning-bg" : "border-field-edge",
         )}
       />
       {problem && (
@@ -140,7 +140,7 @@ function PartName({ name, onRename }: { name: string; onRename: (name: string) =
           if (event.key === "Enter") event.currentTarget.blur();
           if (event.key === "Escape") setEditing(false);
         }}
-        className="focus-ring h-8 w-full rounded-md border border-edge bg-surface px-2 font-medium"
+        className="focus-ring h-8 w-full rounded-md border border-field-edge bg-surface px-2 font-medium"
       />
     );
   return (
@@ -149,7 +149,7 @@ function PartName({ name, onRename }: { name: string; onRename: (name: string) =
       <IconButton
         label={t("grade.rename", { part: name })}
         size="sm"
-        className="opacity-60 group-hover:opacity-100 focus-visible:opacity-100"
+        className="text-faint group-hover:text-fg focus-visible:text-fg"
         onClick={() => setEditing(true)}
       >
         <Icons.PenLine className="size-3.5" />
@@ -221,7 +221,7 @@ function Calculator({ page, onOpenModules }: { page: CoursePage; onOpenModules?:
   const aim = target ?? result.needs.find((need) => !need.reached && need.need !== null)?.letter ?? "A";
   const need = result.needs.find((n) => n.letter === aim)!;
   const open = contract.parts.filter((part) => partScore(part, attendance) === null && part.weight > 0).map(nameOf);
-  const listed = open.length > 1 ? `${open.slice(0, -1).join(", ")} ${t("grade.and")} ${open.at(-1)}` : (open[0] ?? "");
+  const listed = f.list(open);
   const best = result.secured + result.openWeight;
 
   let answer: string;

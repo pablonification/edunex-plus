@@ -51,7 +51,8 @@ export function WeekView({ days, input }: { days: readonly string[]; input: Sche
   const hours = timeAxis(plan.flatMap((day) => [...day.classes.map((c) => c.session), ...day.outside, ...day.edunex]));
   const events = input.events.filter((e) => SCHEDULE_EVENT_KINDS.has(e.kind) && e.firstDay <= days[6] && e.lastDay >= days[0]);
 
-  // Busy days share the width; empty ones shrink. A single-day mark (the last lecture day) needs room for its name.
+  // Busy days share the width, each with room for its blocks side by side (`lanes`); empty ones shrink.
+  // A single-day mark (the last lecture day) needs room for its name.
   const busy = plan.map((day) => !isEmptyDay(day) || events.some((e) => e.firstDay === day.day && e.lastDay === day.day));
   // A week with nothing on it keeps its weekdays wide: there's nothing to give the room to.
   const anyBusy = busy.some(Boolean);
@@ -67,6 +68,7 @@ export function WeekView({ days, input }: { days: readonly string[]; input: Sche
       label: f.dateLong(at),
       head: <DayHead at={at} today={day.day === today} size={size} />,
       size,
+      lanes: lanesOf(day),
       tone: day.day === today ? "today" : day.events.some((e) => NO_LECTURES.has(e.kind)) ? "off" : null,
       lane: lane.length ? lane : undefined,
       children: <DayBlocks day={day} notInSix={input.six} />,
@@ -101,7 +103,7 @@ function BandLabel({ event, f, uncertain, short }: { event: CalendarEvent; f: Fo
         <Meta truncate>
           {periodName(t, event)}
           {short ? null : span}
-          {uncertain ? <span className="font-medium opacity-80">{t("schedule.band.uncertain")}</span> : null}
+          {uncertain ? <span className="font-normal">{t("schedule.band.uncertain")}</span> : null}
         </Meta>
       </span>
     </>
@@ -140,13 +142,18 @@ const span = (start: number, end: number) => {
   return { from, to: Math.ceil(to / 5) * 5 };
 };
 
+/** A day's blocks: its classes and the meetings outside SIX. */
+const dayItems = (day: ScheduleDay): Item[] => [
+  ...day.classes.map((item) => ({ kind: "class" as const, start: item.session.start, end: item.session.end, item })),
+  ...day.outside.map((meeting) => ({ kind: "meeting" as const, start: meeting.start, end: meeting.end, meeting })),
+  ...day.edunex.map((meeting) => ({ kind: "meeting" as const, start: meeting.start, end: meeting.end, meeting })),
+];
+
+/** The most blocks a day has side by side: its column keeps room for each (TimeGrid). */
+const lanesOf = (day: ScheduleDay) => Math.max(1, ...sideBySide(dayItems(day)).map((p) => p.columns));
+
 function DayBlocks({ day, notInSix }: { day: ScheduleDay; notInSix: boolean }) {
-  const items: Item[] = [
-    ...day.classes.map((item) => ({ kind: "class" as const, start: item.session.start, end: item.session.end, item })),
-    ...day.outside.map((meeting) => ({ kind: "meeting" as const, start: meeting.start, end: meeting.end, meeting })),
-    ...day.edunex.map((meeting) => ({ kind: "meeting" as const, start: meeting.start, end: meeting.end, meeting })),
-  ];
-  const placed = sideBySide(items);
+  const placed = sideBySide(dayItems(day));
   return (
     <>
       {placed.map((p) => {
@@ -197,7 +204,12 @@ function ClassBlock({ item, minutes, narrow }: { item: ScheduledClass; minutes: 
     <button
       type="button"
       aria-label={label}
-      className={cx(BLOCK, "border border-edge bg-raised py-1 pr-1.5 pl-2.5 text-fg shadow-raised hover:border-track hover:shadow-lift", past && "opacity-60")}
+      // Past, quieter in token greys that still read at 4.5:1 (as Beranda's rows); never faded with opacity.
+      className={cx(
+        BLOCK,
+        "border border-edge bg-raised py-1 pr-1.5 pl-2.5 text-fg shadow-raised hover:border-track hover:shadow-lift",
+        past && "bg-sunken text-muted shadow-card",
+      )}
     >
       <Stripe color={world.color(code)} />
       <Meta truncate className="font-bold">
@@ -216,13 +228,13 @@ function ClassBlock({ item, minutes, narrow }: { item: ScheduledClass; minutes: 
         "border py-1 pr-1.5 pl-2.5 shadow-card hover:border-track hover:shadow-lift",
         uncertain ? "border-dashed border-track bg-sunken text-muted" : "border-edge bg-surface",
         live && "ring-2 ring-live/50",
-        past && "opacity-60",
+        past && "bg-sunken text-muted",
       )}
       style={uncertain ? { backgroundImage: "repeating-linear-gradient(135deg, transparent 0 6px, var(--fill) 6px 12px)" } : undefined}
     >
       <Stripe color={world.color(code)} faded={uncertain !== null} />
       <ClashTint item={item} />
-      <span className={cx(FITS, "font-semibold tabular-nums", !uncertain && "text-fg")}>
+      <span className={cx(FITS, "font-semibold tabular-nums", !uncertain && !past && "text-fg")}>
         <span className="min-w-0 truncate">{time}</span>
         {live && <LiveDot className="ml-auto shrink-0" />}
         {uncertain && !narrow && <Uncertain />}
@@ -232,12 +244,12 @@ function ClassBlock({ item, minutes, narrow }: { item: ScheduledClass; minutes: 
         (narrow ? (
           // Beside another class the time fills the line; the course line holds only the code, so the word goes there.
           <span className={FITS}>
-            <span className={cx("min-w-0 truncate font-semibold tabular-nums", !uncertain && "text-fg")}>{code}</span>
+            <span className={cx("min-w-0 truncate font-semibold tabular-nums", !uncertain && !past && "text-fg")}>{code}</span>
             {uncertain && <Uncertain />}
           </span>
         ) : (
           <span className="relative truncate">
-            <span className={cx("font-semibold tabular-nums", !uncertain && "text-fg")}>{code}</span>
+            <span className={cx("font-semibold tabular-nums", !uncertain && !past && "text-fg")}>{code}</span>
             <span className="text-muted"> {world.name(code, session.courseName)}</span>
           </span>
         ))}
@@ -352,15 +364,19 @@ function MeetingBlock({ meeting, minutes, notInSix }: { meeting: OutsideMeeting 
     <button
       type="button"
       aria-label={label}
-      className={cx(BLOCK, "border border-dashed border-faint/70 bg-surface py-1 pr-1.5 pl-2 hover:border-faint hover:shadow-lift", past && "opacity-60")}
+      className={cx(
+        BLOCK,
+        "border border-dashed border-faint/70 bg-surface py-1 pr-1.5 pl-2 hover:border-faint hover:shadow-lift",
+        past && "bg-sunken text-muted",
+      )}
     >
-      <span className="flex items-center gap-1 font-semibold text-fg tabular-nums">
+      <span className={cx("flex items-center gap-1 font-semibold tabular-nums", !past && "text-fg")}>
         <span className="truncate">{time}</span>
         {meeting.online && !joinable && <Icons.Video className="ml-auto size-3.5 shrink-0 text-muted" />}
       </span>
       {lines >= 2 && (
         <span className="truncate">
-          <span className="font-semibold text-fg tabular-nums">{meeting.code}</span>
+          <span className={cx("font-semibold tabular-nums", !past && "text-fg")}>{meeting.code}</span>
           <span className="text-muted"> {what}</span>
         </span>
       )}

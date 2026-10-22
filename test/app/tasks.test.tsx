@@ -22,7 +22,7 @@ const row = (title: string) => [...document.querySelectorAll<HTMLButtonElement>(
 const examRow = (text: string) => [...document.querySelectorAll<HTMLButtonElement>("main li button")].find((b) => b.textContent?.includes(text));
 const card = () => document.querySelector("main aside")?.textContent ?? "";
 const goToTask = async (s: NonNullable<typeof screen>, title: string) => {
-  await s.click(/^Tugas & Ujian\d*$/);
+  await s.click(/^Tugas & Ujian\d*(, Perlu perhatianmu)?$/);
   if (!row(title)) await s.click(/^Selesai/);
   if (!row(title)) await s.click(/^Belum selesai/);
   if (!row(title) && examRow(`Take-home: ${title}`)) {
@@ -41,7 +41,7 @@ const goToTask = async (s: NonNullable<typeof screen>, title: string) => {
 describe("Tugas & Ujian", () => {
   it("lists every Task to hand in by when it's due, with its course, module and true status", async () => {
     const s = await open();
-    await s.click(/^Tugas & Ujian\d*$/);
+    await s.click(/^Tugas & Ujian\d*(, Perlu perhatianmu)?$/);
     // The counts sit in the segments; no subtitle repeats them.
     expect(s.button(/^Belum selesai/).textContent).toBe("Belum selesai 5");
     expect(s.button(/^Selesai/).textContent).toBe("Selesai 5");
@@ -60,7 +60,7 @@ describe("Tugas & Ujian", () => {
 
   it("a long Task title wraps rather than being cut, and shows whole on hover", async () => {
     const s = await open();
-    await s.click(/^Tugas & Ujian\d*$/);
+    await s.click(/^Tugas & Ujian\d*(, Perlu perhatianmu)?$/);
     // The Task lists (the exam list above has its own rows).
     const titles = [...document.querySelectorAll<HTMLElement>("main section:not([aria-labelledby=tasks-exams]) li button .line-clamp-2")];
     expect(titles.length).toBe(4);
@@ -72,7 +72,7 @@ describe("Tugas & Ujian", () => {
 
   it("filters by course, and hides the groups a course has nothing in", async () => {
     const s = await open();
-    await s.click(/^Tugas & Ujian\d*$/);
+    await s.click(/^Tugas & Ujian\d*(, Perlu perhatianmu)?$/);
     await s.click("PL3002");
     expect(row("Tugas Mandiri Individu")).toBeDefined();
     expect(row("Tugas 02 Bab II")).toBeUndefined();
@@ -80,7 +80,7 @@ describe("Tugas & Ujian", () => {
     expect(document.querySelector("[aria-labelledby=tasks-exams]")).toBeNull();
     // The choice stays while the app runs.
     await s.click(/^Beranda/);
-    await s.click(/^Tugas & Ujian\d*$/);
+    await s.click(/^Tugas & Ujian\d*(, Perlu perhatianmu)?$/);
     expect(row("Tugas 02 Bab II")).toBeUndefined();
     await s.click("Semua");
     expect(row("Tugas 02 Bab II")).toBeDefined();
@@ -88,7 +88,7 @@ describe("Tugas & Ujian", () => {
 
   it('a long title may wrap after a "/" instead of mid-word, and shows whole on hover', async () => {
     const s = await open();
-    await s.click(/^Tugas & Ujian\d*$/);
+    await s.click(/^Tugas & Ujian\d*(, Perlu perhatianmu)?$/);
     const title = row("Tugas Mandiri Individu")!.querySelector("[title]")!;
     expect(title.getAttribute("title")).toBe("Tugas Mandiri Individu tentang Projek Penciptaan/Pengembangan Inovasi Kampus Ganesha");
     expect(title.innerHTML).toContain("Penciptaan/<wbr>Pengembangan");
@@ -96,7 +96,7 @@ describe("Tugas & Ujian", () => {
 
   it("the course filter is one radio group: a single Tab stop, arrows move the pick, a second click keeps it", async () => {
     const s = await open();
-    await s.click(/^Tugas & Ujian\d*$/);
+    await s.click(/^Tugas & Ujian\d*(, Perlu perhatianmu)?$/);
     const group = document.querySelector<HTMLElement>("[role=radiogroup][aria-label='Mata kuliah']")!;
     const chips = () => [...group.querySelectorAll<HTMLButtonElement>("[role=radio]")];
     const checked = () => chips().find((chip) => chip.getAttribute("aria-checked") === "true")?.textContent;
@@ -126,7 +126,7 @@ describe("Tugas & Ujian", () => {
 
   it("shows what was handed in, loudly when the lecturer changed it afterwards, and a short window", async () => {
     const s = await open();
-    await s.click(/^Tugas & Ujian\d*$/);
+    await s.click(/^Tugas & Ujian\d*(, Perlu perhatianmu)?$/);
     await s.click(/^Selesai/);
     expect(sections()).toEqual(["Terkumpul 5"]);
     expect(row("Tugas 01 Bab I")!.textContent).toContain("Diubah setelah kamu kumpulkan (22 Sep) · cek lagi");
@@ -137,7 +137,7 @@ describe("Tugas & Ujian", () => {
 
   it("a Task whose hand-in is the class's attendance says so, with the Presence window, in the list and on its page", async () => {
     const s = await open();
-    await s.click(/^Tugas & Ujian\d*$/);
+    await s.click(/^Tugas & Ujian\d*(, Perlu perhatianmu)?$/);
     // II4091's Presence on Friday is set to Answer Assignment: handing in Tugas 02 inside 15:00–23:59 is the attendance.
     expect(row("Tugas 02 Bab II")!.textContent).toContain("Juga presensi: Jum, 16 Okt 15:00–23:59");
     expect(row("Tugas Mandiri Individu")!.textContent).not.toContain("presensi");
@@ -158,7 +158,7 @@ describe("Tugas & Ujian", () => {
     });
     screen = await openApp({ signedIn: true, six: true, world });
     const s = screen;
-    await s.click(/^Tugas & Ujian\d*$/);
+    await s.click(/^Tugas & Ujian\d*(, Perlu perhatianmu)?$/);
     expect(row("Tugas Mandiri Individu")!.textContent).toContain("Juga Presensi Edunex, tidak wajib: Kam, 15 Okt 08:00–23:59");
     await s.click(row("Tugas Mandiri Individu")!);
     expect(s.text()).toContain(
@@ -182,7 +182,7 @@ describe("Tugas & Ujian", () => {
 
   it("a new Task appears, and one submitted on the website moves to Selesai", async () => {
     const s = await open();
-    await s.click(/^Tugas & Ujian\d*$/);
+    await s.click(/^Tugas & Ujian\d*(, Perlu perhatianmu)?$/);
     s.world.edunex.postTask(95059, { name: "Tugas 1 Infrastruktur" });
     s.world.edunex.submitOnWebsite(117873);
     await s.wait(16 * 60_000);
@@ -194,7 +194,7 @@ describe("Tugas & Ujian", () => {
 
   it("past a deadline: overdue first when late answers are allowed; a closed Task under Selesai", async () => {
     const s = await open("2026-10-23T08:00:00+07:00");
-    await s.click(/^Tugas & Ujian\d*$/);
+    await s.click(/^Tugas & Ujian\d*(, Perlu perhatianmu)?$/);
     expect(sections()).toEqual(["Terlambat 1", "Minggu depan 1", "Nanti 2"]);
     expect(row("Tugas 02 Bab II")!.textContent).toContain("Terlambat");
     expect(s.button(/^Belum selesai/).textContent).toBe("Belum selesai 4");
@@ -219,7 +219,7 @@ describe("Tugas & Ujian", () => {
     const world = new PretendWorld();
     world.edunex.fail(/^\/course\/tasks$/, 503);
     screen = await openApp({ signedIn: true, world });
-    await screen.click(/^Tugas & Ujian\d*$/);
+    await screen.click(/^Tugas & Ujian\d*(, Perlu perhatianmu)?$/);
     expect(screen.text()).toContain("Tugas belum bisa dimuat");
     world.edunex.clearFaults();
     await screen.click("Coba lagi");
@@ -253,7 +253,7 @@ describe("the Task page", () => {
     expect(history).toEqual(["Diunggah dosenKam, 17 Sep, 08:45", "Diubah dosenKam, 24 Sep, 11:11", "TenggatKam, 22 Okt, 23:50"]);
     // An edit before the Student handed in is history, not a warning.
     expect(s.text()).not.toContain("Diubah dosen pada");
-    await s.click("Lihat di Edunex");
+    await s.click("Buka di Edunex");
     expect(s.calls.at(-1)).toEqual({ name: "shell.openExternal", input: { url: "https://edunex.itb.ac.id/assignment/take/117764" } });
   });
 
@@ -323,7 +323,7 @@ describe("the Task page", () => {
     expect(s.calls.at(-1)?.name).toBe("files.download");
     // Edunex never told the Student about this edit.
     expect(s.text()).toContain("Dosen mengubah tugas ini pada 8 Okt, setelah kamu mengumpulkan pada 16 Sep.");
-    await s.click("Lihat di Edunex");
+    await s.click("Buka di Edunex");
     expect(s.calls.at(-1)?.name).toBe("shell.openExternal");
   });
 

@@ -19,7 +19,7 @@ import { Button } from "../ui/controls";
 import { cx } from "../ui/cx";
 import { Card, CourseCode, Tag } from "../ui/display";
 import { Icons } from "../ui/icons";
-import { List, Meta, Notice, Page, PageHeader, Row, Section, Stat, StatRow } from "../ui/layout";
+import { breakAfterSlashes, List, Meta, Notice, Page, PageHeader, Row, Section, Stat, StatRow } from "../ui/layout";
 import { AnimatedNumber } from "../ui/motion/animated-number";
 import { DisclosurePanel, disclosureTrigger } from "../ui/motion/disclosure";
 import { GradeBadge, GradeSelect, HonorsSentence, IpkChart, NeedText, predicateFor, TargetControl, usePredicate, useTermName } from "./plan/projection";
@@ -330,13 +330,13 @@ function TermRow({ record, term, open, onToggle }: { record: StudentRecord; term
         type="button"
         onClick={onToggle}
         {...disclosureTrigger(open, id)}
-        className="focus-ring flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-hover"
+        className="focus-ring flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-hover focus-visible:-outline-offset-2"
       >
         <Icons.ChevronRight className={cx("size-4 text-faint transition-transform duration-150", open && "rotate-90")} />
         <span className="flex-1 text-body font-medium">{termName(term.term)}</span>
         {!term.ip.agrees && (
           <span className="inline-flex items-center gap-1 text-caption font-medium text-warning-fg">
-            <Icons.AlertTriangle className="size-3" />
+            <Icons.AlertTriangle className="size-3" weight="bold" />
             {t("grades.termDisagree", { six: num(term.ip.six), computed: num(term.ip.computed) })}
           </span>
         )}
@@ -346,18 +346,27 @@ function TermRow({ record, term, open, onToggle }: { record: StudentRecord; term
         </span>
       </button>
       <DisclosurePanel open={open} id={id}>
-        <ul className="border-t border-line bg-sunken px-4 py-2">
+        {/* In a narrow list (the window zoomed in) a course's tags and SKS go on a line under its name, its grade staying on the row. */}
+        <ul className="@container border-t border-line bg-sunken px-4 py-2">
           {term.courses.map((course) => (
-            <li key={`${course.code}-${course.attempt}`} className="grid grid-cols-[84px_minmax(0,1fr)_auto_56px_40px] items-center gap-3 py-1.5 text-body">
+            <li
+              key={`${course.code}-${course.attempt}`}
+              className="grid grid-cols-[84px_minmax(0,1fr)_auto_56px_40px] items-center gap-3 py-1.5 text-body @max-md:grid-cols-[84px_minmax(0,1fr)_40px] @max-md:gap-y-1"
+            >
               <span className="text-small font-semibold tabular-nums">{course.code}</span>
-              <span className="truncate">{course.name}</span>
-              <span className="flex justify-end gap-1.5">
-                {course.attempt > 1 && <Tag>{t("grades.retaken")}</Tag>}
-                {course.standing !== "counted" && (
-                  <Tag tone={course.standing === "pending" ? "neutral" : "warning"}>{t(`grades.standing.${course.standing}`)}</Tag>
-                )}
+              {/* As a kit Row's title: a long name wraps (after a "/" too) and shows whole on hover. */}
+              <span className="line-clamp-2 block break-words" title={course.name}>
+                {breakAfterSlashes(course.name)}
               </span>
-              <span className="text-right text-small text-muted tabular-nums">{course.sks} SKS</span>
+              <span className="contents @max-md:col-start-2 @max-md:row-start-2 @max-md:flex @max-md:flex-wrap @max-md:items-center @max-md:gap-1.5 @max-md:[&>:empty]:hidden">
+                <span className="flex justify-end gap-1.5">
+                  {course.attempt > 1 && <Tag>{t("grades.retaken")}</Tag>}
+                  {course.standing !== "counted" && (
+                    <Tag tone={course.standing === "pending" ? "neutral" : "warning"}>{t(`grades.standing.${course.standing}`)}</Tag>
+                  )}
+                </span>
+                <span className="text-right text-small text-muted tabular-nums">{course.sks} SKS</span>
+              </span>
               <span className="text-right">
                 {course.grade ? <GradeBadge grade={course.grade} struck={course.standing === "replaced"} /> : <span className="text-faint">—</span>}
               </span>

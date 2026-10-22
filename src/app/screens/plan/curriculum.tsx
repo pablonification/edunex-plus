@@ -22,7 +22,7 @@ import { Meta, Section } from "../../ui/layout";
 import { Menu, type MenuItem } from "../../ui/menu";
 import { Dialog, Tooltip, toast } from "../../ui/overlays";
 import { useViewChoice } from "../../view-choice";
-import { WhatIfTag } from "./planner";
+import { CourseName, Sks, WhatIfTag } from "./planner";
 import { SixNeeded } from "./six-needed";
 
 /** SIX's public course page (no sign-in): the syllabus. */
@@ -158,11 +158,13 @@ export function Tab({ onCalendar }: { onCalendar?: () => void }) {
         sks={sks}
       />
       <div className="grid grid-cols-1 items-start gap-6 @4xl:grid-cols-[minmax(0,1fr)_320px]">
-        <div className="min-w-0 space-y-3">
+        {/* A row reached with Shift+Tab scrolls in at the top edge: its controls keep the pinned bar's height clear, or they'd sit under it. */}
+        <div className="min-w-0 space-y-3 [&_a]:scroll-mt-14 [&_button]:scroll-mt-14">
           <LeftBar sks={sks} onlyLeft={onlyLeft} onToggle={setOnlyLeft} toggleRef={focus.toggle} />
           {semesters.map((semester) => (
             <Card key={semester.semester} className="overflow-hidden">
-              <section aria-label={t("planner.semester", { n: semester.semester })}>
+              {/* Its width decides its rows' layout (CourseRow). */}
+              <section aria-label={t("planner.semester", { n: semester.semester })} className="@container">
                 <header className="flex items-center justify-between gap-3 border-b border-line px-4 py-2.5">
                   <h3 className="text-body font-semibold">{t("planner.semester", { n: semester.semester })}</h3>
                   {!onlyLeft && (
@@ -249,7 +251,7 @@ function Totals({
     <Card className="px-6 py-4">
       <p className="text-small font-medium text-muted">{name}</p>
       {(startedOn !== null || unlisted > 0) && (
-        <p className="mt-0.5 max-w-[72ch] text-caption text-muted">
+        <p className="mt-0.5 max-w-[72ch] text-small text-muted">
           {[startedOn !== null && t("curriculum.startedOn", { from: startedOn, to: year }), unlisted > 0 && t("curriculum.unlistedNote", { count: unlisted })]
             .filter(Boolean)
             .join(" ")}
@@ -353,7 +355,7 @@ function Status({ status, grade }: { status: SlotStatus; grade: string | null })
     case "failed":
       return (
         <span className="inline-flex h-[20px] items-center gap-1 rounded-full bg-danger-bg px-2 text-micro font-semibold whitespace-nowrap text-danger-fg">
-          <Icons.AlertTriangle className="size-3" />
+          <Icons.AlertTriangle className="size-3" weight="bold" />
           {label}
         </span>
       );
@@ -400,30 +402,34 @@ function CourseRow({ course, menu, ref }: { course: MapCourse; menu?: MenuItem[]
   const open = useOpenExternal();
   const crossed = course.status === "not-mine";
   return (
+    // In a card under 34rem (the window zoomed in) the status and SKS go on a line under the name, so the name keeps room
+    // to be read and the syllabus and menu stay on the row.
     <li
       ref={ref}
-      className="group grid grid-cols-[68px_minmax(0,1fr)_auto_28px_28px_28px] items-center gap-3 border-b border-line px-4 py-2 text-body last:border-b-0"
+      className="group grid grid-cols-[68px_minmax(0,1fr)_auto_28px_28px_28px] items-center gap-3 border-b border-line px-4 py-2 text-body last:border-b-0 @max-[34rem]:grid-cols-[68px_minmax(0,1fr)_28px_28px] @max-[34rem]:gap-y-1"
     >
       <span className={cx("text-small font-semibold tabular-nums", crossed && "text-muted")}>{course.code}</span>
       <span className="min-w-0">
-        <span className={cx("block truncate", crossed && "text-muted")}>{course.name}</span>
+        <CourseName name={course.name} className={cx(crossed && "text-muted")} />
         {(course.via || course.fix) && (
           <Meta className="text-caption text-muted">
-            {course.via && <span className="truncate">{t("curriculum.via", { code: course.via.code, name: course.via.name })}</span>}
+            {course.via && <span>{t("curriculum.via", { code: course.via.code, name: course.via.name })}</span>}
             {course.fix && <span className="inline-flex items-center gap-1 whitespace-nowrap">{t("curriculum.fixed")}</span>}
             {course.sixLeft && <span>{t("curriculum.sixStillLeft")}</span>}
           </Meta>
         )}
       </span>
-      {course.whatIf === "added" ? (
-        // Tried this semester, not on SIX's KRS: never "This semester" as if it were.
-        <WhatIfTag />
-      ) : course.whatIf === "left-out" ? (
-        <span className="text-small whitespace-nowrap text-info-fg">{t("planner.droppedTag")}</span>
-      ) : (
-        <Status status={course.status} grade={course.grade} />
-      )}
-      <span className="text-right text-small text-muted tabular-nums">{course.sks}</span>
+      <span className="contents @max-[34rem]:col-start-2 @max-[34rem]:row-start-2 @max-[34rem]:flex @max-[34rem]:items-center @max-[34rem]:gap-2">
+        {course.whatIf === "added" ? (
+          // Tried this semester, not on SIX's KRS: never "This semester" as if it were.
+          <WhatIfTag />
+        ) : course.whatIf === "left-out" ? (
+          <span className="text-small whitespace-nowrap text-info-fg">{t("planner.droppedTag")}</span>
+        ) : (
+          <Status status={course.status} grade={course.grade} />
+        )}
+        <Sks sks={course.sks} className="text-muted" />
+      </span>
       {course.courseId ? (
         <Tooltip content={t("curriculum.syllabusOf", { code: course.code })}>
           <IconButton
@@ -473,8 +479,8 @@ function PickStandIn({ record, course, onPick, onClose }: { record: StudentRecor
               >
                 <span className="text-small font-semibold tabular-nums">{c.code}</span>
                 <span className="min-w-0">
-                  <span className="block truncate text-body">{c.name}</span>
-                  {c.fills && <span className="block truncate text-caption text-muted">{t("curriculum.pick.fills", { code: c.fills })}</span>}
+                  <CourseName name={c.name} className="text-body" />
+                  {c.fills && <span className="block text-caption text-muted">{t("curriculum.pick.fills", { code: c.fills })}</span>}
                 </span>
                 <Meta align="end" className="text-small text-muted tabular-nums">
                   {c.grade}
@@ -508,7 +514,11 @@ function Packages({ id, title, packages }: { id: string; title: string; packages
                 <span className="block text-small font-semibold">{p.name}</span>
                 {(p.program || p.registered) && (
                   <Meta className="text-caption text-muted">
-                    {p.program && <span className="truncate">{p.program}</span>}
+                    {p.program && (
+                      <span className="truncate" title={p.program}>
+                        {p.program}
+                      </span>
+                    )}
                     {p.registered && (
                       <span className={p.notContinuing ? undefined : "font-medium text-info-fg"}>
                         {t(p.notContinuing ? "curriculum.notContinuing" : "curriculum.registered")}
@@ -536,7 +546,7 @@ function Packages({ id, title, packages }: { id: string; title: string; packages
                   >
                     {c.code}
                   </span>
-                  <span className={cx("min-w-0 flex-1 truncate", isLeft(c.status) ? "text-muted" : "text-fg")}>{c.name}</span>
+                  <CourseName name={c.name} className={cx("min-w-0 flex-1", isLeft(c.status) ? "text-muted" : "text-fg")} />
                   <PackageMark status={c.status} whatIf={c.whatIf} />
                 </li>
               ))}

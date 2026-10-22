@@ -21,7 +21,7 @@ const presenceRow = (code: string) =>
 const dialog = () => document.querySelector("[role=dialog]")?.textContent ?? "";
 /** The course page's banner, by its one action. */
 const banner = () =>
-  [...document.querySelectorAll("main button")].find((b) => b.textContent === "Lihat presensi")?.parentElement?.parentElement?.textContent ?? "";
+  [...document.querySelectorAll("main button")].find((b) => b.textContent === "Ke Presensi")?.parentElement?.parentElement?.textContent ?? "";
 
 async function openCourse(code: string) {
   await screen!.click([...document.querySelectorAll<HTMLButtonElement>("aside button")].find((b) => b.textContent?.startsWith(code))!);

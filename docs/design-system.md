@@ -106,6 +106,7 @@ the focus ring.
 | `--sunken` | `#f7f7f9` | `#19191c` |
 | `--scrim` | `rgb(0 0 0 / 0.25)` | `rgb(0 0 0 / 0.45)` |
 | `--track` | `#d4d4da` | `#3a3a40` |
+| `--field-edge` | `#8d8d92` | `#6c6c72` |
 | `--segment` | `#ffffff` | `#34343a` |
 
 **Text and accent**
@@ -139,6 +140,10 @@ the focus ring.
 | `--neutral-bg` | `#f0f0f2` | `#27272b` |
 | `--neutral-fg` | `#4f4f56` | `#bdbdc5` |
 | `--live` | `#22a35a` | `#2fbf6c` |
+
+**Field edges.** A field's edge (a grade, a score, the answer box, a link
+box) and a switch that's off use `--field-edge`, 3:1 on every surface, so the
+control shows where it is; cards and lists keep the quieter `--edge`.
 
 **Meters (fill on track).** A meter's fill reads 3:1 on its own track. Amber
 and green have meter colors of their own: the tones' `-fg` colors are for
@@ -216,12 +221,20 @@ most three styles: its title, one supporting line, one meta line.
 ## Space, shape, depth
 
 - **Spacing** on a 4 px grid. One page container for every screen
-  (`Page`): 40 px side padding, 1040 px wide (Jadwal goes wider), the same
-  left edge everywhere. Sections 40 px apart; inside a section 12 px.
+  (`Page`): 40 px side padding (20 px once the window is under 52rem wide,
+  zoomed in), 1040 px wide (Jadwal goes wider), the same left edge
+  everywhere. Sections 40 px apart; inside a section 12 px.
   A grid that holds rows gives every column a size that can shrink
   (`grid-cols-1`, `minmax(0,…)`), at every width: a column that fits its
   content would grow to a long title with no spaces and push the page past
-  the window.
+  the window. Where a row's secondary columns (a tag, SKS) would squeeze its
+  name in a narrow list, they move to a line under the name (`@container`)
+  and the row's controls stay on it.
+- **Zoom.** Every screen still works zoomed to 200% (the window's zoom is
+  real): text wraps, a row's action goes under its words rather than
+  squeezing them to a word per line (a text block keeps a real `basis-64`),
+  nothing runs past the window, and what can't reflow (the week's time grid,
+  a tab list) scrolls sideways in its own frame.
 - **Radius**: 5 px keys and tags (`rounded-tag`), 6–8 px buttons and inputs
   (`rounded-md`, `rounded-lg`), 12 px cards and lists (`rounded-xl`), 16 px
   raised cards and dialogs (`rounded-2xl`), full for chips and switches. No
@@ -259,7 +272,7 @@ keeps them equal).
 
 | What | How |
 |---|---|
-| Hover, press, color changes | Hover backgrounds: instant. Buttons press to 97% in 150 ms (not menu or popover triggers, not rows; a row's press is its darker background). Other color changes: 150 ms |
+| Hover, press, color changes | Hover backgrounds: instant (rows, menu items, notifications). Buttons press to 97% in 150 ms (not menu or popover triggers, not rows; a row's press is its darker background). Other color changes: 150 ms. A transition that names no curve runs on `--ease-out` (`--default-transition-timing-function`), never Tailwind's own |
 | Switching light and dark | At once: nothing fades its color (`.no-transitions` on `<html>` for two frames) |
 | Screens and their rows | Nothing: switching screens or going further in is instant, and rows don't rise in |
 | Search (⌘K) | Nothing: there and gone at once, scrim included. It's opened from the keyboard many times a day, and a command palette that animates makes every one of those wait |
@@ -344,34 +357,34 @@ Screens are composed, not styled one by one:
 
 | Part | Use |
 |---|---|
-| `Page` | Every screen's frame: width and padding. |
-| `PageHeader` | Eyebrow (the date, a course code), title, one description line, actions on the right. |
+| `Page` | Every screen's frame: width and padding (narrower sides under 52rem). |
+| `PageHeader` | Eyebrow (the date, a course code), title, one description line, actions on the right; under the title when they don't fit beside it, where they wrap. |
 | `Section` | A titled part of a screen with an optional count, description and a link-like action. |
 | `List` + `Row` | Rows on one card divided by hairlines. `Row`: leading indicator, title, one meta line, trailing state or action. A clickable row is one button: the whole row is the target, a chevron appears on hover. `actions` (such as "Ingatkan nanti") sit beside that button where the chevron would be, never inside it: always shown, a faint icon until the row is hovered or focused, so nobody has to hunt for it. |
-| `Meta` | Facts on one line, quietly separated ("11:00–12:59 · TVST C"); empty parts drop out and text holding " · " splits into facts. The only place a "·" between facts is drawn: no line ever starts or ends with one (`align="end"` for a right-aligned column, `truncate` for one line). Labels and tooltips join facts with `factsLabel()`; a test fails on a "·" written by hand. |
-| `NowCard`, `NowZone`, `NowLine` (`ui/now-card.tsx`) | What's on now or next, the same on Beranda and a course page: a time block on the left (never a colored stripe; the course's color is its dot), what it is, one line of facts, the one thing to do, and zones under it split by hairlines. Raised while it matters now (a class on, a Presence window open), plain otherwise; a course page says what's next in one quiet line instead, and a Presence window still open from an earlier class in one of its own under the card. |
-| `Notice` | Something to know right here (info, warning, danger, success, neutral) with the one thing to do, and optionally a quiet "Ingatkan nanti" (`snooze`) after it. |
+| `Meta` | Facts on one line, quietly separated ("11:00–12:59 · TVST C"); empty parts drop out and text holding " · " splits into facts. The only place a "·" between facts is drawn: no line ever starts or ends with one (`align="end"` for a right-aligned column, `truncate` for one line, whole on hover). Labels and tooltips join facts with `factsLabel()`; a test fails on a "·" written by hand. |
+| `NowCard`, `NowZone`, `NowLine` (`ui/now-card.tsx`) | What's on now or next, the same on Beranda and a course page: a time block on the left (never a colored stripe; the course's color is its dot), what it is, one line of facts, the one thing to do (under them when they'd be narrower than 18rem beside it), and zones under it split by hairlines. Raised while it matters now (a class on, a Presence window open), plain otherwise; a course page says what's next in one quiet line instead, and a Presence window still open from an earlier class in one of its own under the card. |
+| `Notice` | Something to know right here (info, warning, danger, success, neutral) with the one thing to do, and optionally a quiet "Ingatkan nanti" (`snooze`) after it; the action goes under the words when they'd be narrower than 16rem beside it. |
 | `StatRow` + `Stat` | Figures read at a glance (SKS, an IP, absences left), side by side with no box, split by hairlines; labels, figures and hints each line up across the row, stacking only in a container under 320 px. Figures in `text-figure`, or `size="heading"` for a few small counts beside other content. Never a figure the page's answer just said. |
 | `Card` | `plain`, `raised` (what matters most now), `sunken` (quiet areas). |
 | `EmptyState` | What would be here, why it is empty, and the way forward. Small and kind; hide empty groups instead where nothing is lost. |
-| `Button` | `primary` (one per view: the main action), `secondary`, `ghost`, `danger` (destructive only, never for a final but safe action like handing in). Shows a spinner while working. |
+| `Button` | `primary` (one per view: the main action), `secondary`, `ghost`, `danger` (destructive only, never for a final but safe action like handing in). Shows a spinner while working, and takes no second press then; it stays focused (`aria-disabled`, not `disabled`, which would drop a keyboard user's focus on the page). So does a stepper's − or + at its limit. |
 | `IconButton` | Square, always with a name and a tooltip. |
-| `Popover` | A panel from a control (alerts, data status); Escape and a click outside close it. |
+| `Popover` | A panel from a control (alerts, data status); Escape and a click outside close it. Never bigger than the room the window leaves it: it scrolls inside instead. |
 | `Dialog`, `ConfirmDialog` | Focus stays inside; Escape closes; both leave the way they came, taking no second click while they go (other dialog shells reuse `SCRIM_CLASS`, `PANEL_MOTION_CLASS` and `onClickCapture={ignoreClosingClick}`). Confirm only before what can't be undone: it is an alert dialog, so a click beside it isn't an answer and Cancel has focus first. A page one level down (Settings' open-source licences) swaps in at once with a back button naming where it goes (`back`), keeps the dialog at its full height (so a search on it stays put while its results change), starts at its own top, and going back puts focus on the button that opened it. |
-| `toast(text, tone, action?)` | Neutral, success or danger; with an action ("Urungkan", "Lihat") it stays 8 s. It waits while the pointer is on it or focus is in it, then goes on with the time it had left. When it goes (Urungkan pressed from the keyboard), focus goes back where it came from, never to the page. Never the only place an error is said. |
+| `toast(text, tone, action?)` | Neutral, success or danger; with an action ("Urungkan", "Lihat") it stays 8 s; an error (`danger`) stays until the Student closes it, with its own close button. It waits while the pointer is on it or focus is in it, then goes on with the time it had left. When it goes (Urungkan pressed from the keyboard), focus goes back where it came from, never to the page. Never the only place an error is said. |
 | `StatusChip` | A Task's true status: each its own color, glyph and word. Shown only where the status says something (not "Belum dikerjakan" on every to-do row). |
 | `Tag` | A word marking one row as the exception ("Baru", "Hadir", "UTS"): `sm` 18 px or `md` 22 px, in a tone (neutral, info, warning, success, danger). Never on every row. |
 | `SourceLogo`, `AppMark` (`ui/brand.tsx`) | The real Edunex and SIX logos where the app stands for one of them (connecting, the data status, the accounts in Settings); Edunex Plus's own icon (`assets/icon.png`) in the sidebar, on the welcome screen and in Settings. |
-| `Badge` | Sidebar counts: neutral = how many; amber = something needs the Student today. |
+| `Badge` | Sidebar counts: neutral = how many; amber = something needs the Student today, with a small warning mark and "Perlu perhatianmu" in the place's name, so color isn't the only signal. |
 | `Skeleton` | Placeholders in the shape of what's coming; never a blank area or a lone spinner. |
 | `Menu` (`ui/menu.tsx`) | A "⋯" button for a screen's rare actions; an item that can't run stays, dimmed, with the reason under it. A `trigger` makes it quiet, for a row's or a notice's own small menu: a small "⋯", or another icon where the menu is one kind of action, with its words where there's room. |
 | `SnoozeMenu` (`app/snooze-menu.tsx`) | "Ingatkan nanti" on a row or notice: the moments that fit the item, each with until when; then a toast saying when it's back, with Urungkan. A row or notice that leaves hands keyboard focus on (the next row, what follows the notice), never to the page. What's put off is listed quietly ("2 ditunda · Tampilkan") where it was (a deadline put off from Beranda's "Hari ini", with "Perlu perhatianmu"'s), and in Settings. |
 | `LineChart` (`ui/chart.tsx`) | The one chart spec: a clean value range with hairline gridlines, estimates dashed, a labelled target line, a direct end label, a tooltip per column, a table for screen readers. |
-| `ShareMeter`, `CountdownBar` (`ui/meter.tsx`) | Status-colored meters: attendance against the course's target, a tick (the best still reachable as an optional ghost), always under a label that says what it measures; time left in a window, shrinking, amber in its last 15 minutes. |
+| `ShareMeter`, `CountdownBar` (`ui/meter.tsx`) | Status-colored meters: attendance against the course's target, a tick (the best still reachable as an optional ghost), always under a label that says what it measures; time left in a window, shrinking, amber in its last 15 minutes, its words under the bar when there's no room beside it. |
 | `Stepper` (`ui/controls.tsx`) | A number stepped between bounds (an attendance target, 50–100% by 5): − and + with names, the value read out when it changes. |
 | `Segmented`, `useRadioKeys` (`ui/controls.tsx`) | A few choices, one picked (the theme, Minggu/Bulan, the IPK target): a radio group whose highlight glides to the pick. Arrow keys move the choice; only the picked one is a Tab stop (the first while none is). An option takes a longer `name` where its label is too short to read alone ("Target IPK 3,50"). Other radio groups of the screen's own buttons (filter chips) get the same keys from `useRadioKeys`. |
-| `TabBar` (`ui/tabs.tsx`) | The tabs of a screen or dialog, inside the screen's own `Tabs.Root` with its panels in `Tabs.Content`, so each tab names its panel: names, an optional quiet count, one underline that glides to the picked tab. The panel swaps at once. `sm` inside a dialog. |
-| `TimeGrid`, `GridBlock` (`ui/time-grid.tsx`) | A week as a time grid: height is duration, shared time side by side, empty days narrow, periods tinted and named, a now line. |
+| `TabBar` (`ui/tabs.tsx`) | The tabs of a screen or dialog, inside the screen's own `Tabs.Root` with its panels in `Tabs.Content`, so each tab names its panel: names, an optional quiet count, one underline that glides to the picked tab. The panel swaps at once. `sm` inside a dialog. Tabs that don't fit scroll sideways in their own frame, each name on one line. |
+| `TimeGrid`, `GridBlock` (`ui/time-grid.tsx`) | A week as a time grid: height is duration, shared time side by side, empty days narrow, periods tinted and named, a now line (blue, as today's date). A busy day keeps room for its blocks' time and code (6.25rem, 7rem a block in a clash); where the window can't fit them, the grid scrolls sideways in its own frame. A block that has ended is quieter in token greys on `bg-sunken`, never faded with opacity. |
 | `RichEditor` (`ui/rich-editor.tsx`) | A box for writing formatted text (a Task's answer): bold, italic, lists, a link, a quote, undo and redo; pasting keeps only simple formatting. Loaded lazily with the screen that uses it (TipTap underneath); it holds only what Edunex's own editor writes, never pictures, tables or embeds. |
 | `RichText`, `WebLink` (`ui/rich-text.tsx`) | What a lecturer wrote (notes, Task instructions), rebuilt safely from its HTML as Edunex shows it: formatting, lists, tables, figures; a link says where it goes on hover and focus and opens in the browser; pictures from Edunex's storage come in through the app (`LecturerHtml`, `RemoteImage`), with a placeholder while loading and the reason when one can't show. A long note folds with "Tampilkan semua". |
 | `PdfViewer` (`ui/pdf-viewer.tsx`), `usePdfViewer()` (`pdf.tsx`) | A PDF read in the app, over the current screen: pages one under another, white in both themes, sharp at any zoom; "3 dari 12" with a box to jump; − / + and fit width or the whole page (slides open whole); the keyboard (arrows, PgUp/PgDn, Space, Home/End, ⌘+ ⌘− ⌘0, Esc); selectable text; Download in the toolbar; when it can't show, why, with Download, Open in Edunex and Try again. |
@@ -386,7 +399,11 @@ Screens are composed, not styled one by one:
 The shell: a sidebar (the app's icon and name, ⌘1–⌘6, courses with their dot, the Student's name
 opening Settings), a top bar (back button naming where it goes, ⌘K search,
 the alerts bell, the data-status control) and the problem banner under it.
-Every screen sits in its own crash guard.
+Zoomed in until the window is under 52rem wide (from 120% on the smallest
+window; never at 100%), the sidebar folds to a rail of icons, course dots
+and counts that scrolls: the words stay as the controls' names and in their
+tooltips. The data status gives up its words, down to its mark, before
+anything runs past the window. Every screen sits in its own crash guard.
 
 ## Copy
 
@@ -394,6 +411,12 @@ Every screen sits in its own crash guard.
   15:00–23:59", not a sentence that ends with the instruction.
 - **Say what happened and what to do**, in that order: "Sesi SIX berakhir.
   Data terakhir tetap bisa dibaca." + **Masuk lagi**.
+- **An error says how to recover**, picked by what went wrong (no
+  connection, session ended, Edunex answered oddly; `errorKey` in
+  `src/app/bridge.ts`), never the engine's own message: "Kalender tidak bisa
+  disimpan. Coba lagi, atau simpan ke folder lain." A confirm before what
+  can't be undone names what's lost and says so; its button is a verb and
+  its object ("Putuskan HP", "Atur ulang rencana"), never a bare "Buang".
 - **Positive and honest framing**: "Masih bisa absen 2× lagi", "IPK
   tertinggi yang masih mungkin: 3,45". Never three "tak tercapai" in a row.
 - **No system words**: no "snapshot", "salinan materi", "kelas induk",
@@ -438,10 +461,17 @@ URS stay as they are in both languages.
 ## Accessibility
 
 - Text contrast meets WCAG AA in both themes, checked by a test.
-- Keyboard: every control is reachable with Tab, shows a visible focus ring,
+- Keyboard: every control is reachable with Tab, shows a visible focus ring
+  (drawn inside a row whose list clips its edges, `focus-visible:-outline-offset-2`),
   and works with Enter or Space; segmented controls use the arrow keys;
   dialogs trap focus and close on Escape. ⌘, opens Settings and ⌘R refreshes
   (Ctrl on Windows and Linux).
-- Reduced motion is respected everywhere.
+- A new screen opened from inside the last one (a row, Back) puts focus on
+  its title, so the keyboard and a screen reader carry on from its top; a
+  screen picked in the sidebar leaves focus there. A jump within a screen (a
+  study-plan rule) moves focus with it.
+- Reduced motion is respected everywhere, a scroll the app starts included.
+- The problem banner arrives in a live region that is always there, so it is
+  read out; it wraps rather than cuts its text.
 - Status is never color alone; icons are hidden from screen readers and
   controls carry names.
