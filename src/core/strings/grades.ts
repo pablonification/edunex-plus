@@ -63,8 +63,8 @@ export const gradesStrings = {
   "grades.thisTerm": { id: "Semester ini", en: "This semester" },
   "grades.whatIf": { id: "Perkiraan nilaimu · ubah untuk mencoba", en: "The grades you expect · change them to try" },
   "grades.edunexNote": {
-    id: 'Nilai Edunex belum dirilis. "0.00 · E" di Edunex bukan nilaimu.',
-    en: "Edunex grades aren't published yet. \"0.00 · E\" on Edunex isn't your grade.",
+    id: "Nilai Edunex belum dirilis. “0.00 · E” di Edunex bukan nilaimu.",
+    en: "Edunex grades aren't published yet. “0.00 · E” on Edunex isn't your grade.",
   },
   "grades.expectedOf": { id: "Perkiraan nilai {code}", en: "Expected grade for {code}" },
   "grades.edunexGrade": { id: "Edunex {total} · {letter}", en: "Edunex {total} · {letter}" },
@@ -210,7 +210,7 @@ export const gradesStrings = {
   "planner.reset.terms": { id: "{n} semester yang kamu tambahkan", en: { one: "{n} semester you added", other: "{n} semesters you added" } },
   "planner.reset.other": { id: "target dan minor yang kamu pilih", en: "the target and minor you picked" },
   "planner.reset.whatIfs": { id: "{n} perubahan di semester ini", en: { one: "{n} change to this semester", other: "{n} changes to this semester" } },
-  "planner.resetConfirm": { id: "Atur ulang", en: "Reset" },
+  "planner.resetConfirm": { id: "Atur ulang rencana", en: "Reset plan" },
   "planner.resetDone": { id: "Rencana diatur ulang", en: "Plan reset" },
   "planner.removedTerm": {
     id: "{term} dihapus ({count} mata kuliah)",

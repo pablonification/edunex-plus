@@ -7,7 +7,7 @@ import { type ReactNode, useState } from "react";
 import { type AttendanceHealth, percent } from "../core/attendance";
 import { DEFAULT_SETTINGS, type Settings } from "../core/models";
 import { METER_TONE, STATE_TONE } from "./attendance-labels";
-import { ActionError } from "./bridge";
+import { errorKey } from "./bridge";
 import { useT } from "./i18n";
 import { useBridge, useSettings } from "./store";
 import { Button, Stepper } from "./ui/controls";
@@ -25,10 +25,7 @@ export function useTargets() {
   const t = useT();
   const bridge = useBridge();
   const { attendanceTarget, attendanceTargets } = useSettings();
-  const save = (patch: Partial<Settings>) =>
-    void bridge
-      .invoke("settings.update", patch)
-      .catch((error: unknown) => toast(t("error.action", { message: error instanceof ActionError ? error.message : String(error) }), "danger"));
+  const save = (patch: Partial<Settings>) => void bridge.invoke("settings.update", patch).catch((error: unknown) => toast(t(errorKey(error)), "danger"));
   return {
     target: attendanceTarget,
     /** Course codes with their own target, and the target. */

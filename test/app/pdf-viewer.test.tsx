@@ -537,7 +537,7 @@ describe("filling a PDF", () => {
     // Closing with its button asks too; discarding closes, and the PDF opens fresh next time.
     await s.click("Tutup");
     expect(asking()).not.toBeNull();
-    await s.click("Buang");
+    await s.click("Buang isian");
     expect(viewer()).toBeNull();
     await s.click(`Lihat: ${NAME}`);
     expect(box("Nama").value).toBe("");
@@ -570,14 +570,14 @@ describe("filling a PDF", () => {
     expect(document.querySelector("h1")?.textContent).toBe(course);
     // Closing later doesn't go anywhere either: the earlier way out was dropped.
     await s.click("Tutup");
-    await s.click("Buang");
+    await s.click("Buang isian");
     expect(viewer()).toBeNull();
     expect(document.querySelector("h1")?.textContent).toBe(course);
-    // Asked again on the way out, "Buang" goes on to where the Student was going.
+    // Asked again on the way out, "Buang isian" goes on to where the Student was going.
     await s.click(`Lihat: ${NAME}`);
     await type(box("Nama"), "Ana");
     await key(document.activeElement!, "1", { metaKey: true });
-    await s.click("Buang");
+    await s.click("Buang isian");
     expect(viewer()).toBeNull();
     expect(document.querySelector("h1")?.textContent).not.toBe(course);
   });

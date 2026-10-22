@@ -253,7 +253,7 @@ describe("the Task page", () => {
     expect(history).toEqual(["Diunggah dosenKam, 17 Sep, 08:45", "Diubah dosenKam, 24 Sep, 11:11", "TenggatKam, 22 Okt, 23:50"]);
     // An edit before the Student handed in is history, not a warning.
     expect(s.text()).not.toContain("Diubah dosen pada");
-    await s.click("Lihat di Edunex");
+    await s.click("Buka di Edunex");
     expect(s.calls.at(-1)).toEqual({ name: "shell.openExternal", input: { url: "https://edunex.itb.ac.id/assignment/take/117764" } });
   });
 
@@ -323,7 +323,7 @@ describe("the Task page", () => {
     expect(s.calls.at(-1)?.name).toBe("files.download");
     // Edunex never told the Student about this edit.
     expect(s.text()).toContain("Dosen mengubah tugas ini pada 8 Okt, setelah kamu mengumpulkan pada 16 Sep.");
-    await s.click("Lihat di Edunex");
+    await s.click("Buka di Edunex");
     expect(s.calls.at(-1)?.name).toBe("shell.openExternal");
   });
 

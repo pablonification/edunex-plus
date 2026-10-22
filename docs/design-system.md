@@ -391,6 +391,12 @@ Every screen sits in its own crash guard.
   15:00–23:59", not a sentence that ends with the instruction.
 - **Say what happened and what to do**, in that order: "Sesi SIX berakhir.
   Data terakhir tetap bisa dibaca." + **Masuk lagi**.
+- **An error says how to recover**, picked by what went wrong (no
+  connection, session ended, Edunex answered oddly; `errorKey` in
+  `src/app/bridge.ts`), never the engine's own message: "Kalender tidak bisa
+  disimpan. Coba lagi, atau simpan ke folder lain." A confirm before what
+  can't be undone names what's lost and says so; its button is a verb and
+  its object ("Putuskan HP", "Atur ulang rencana"), never a bare "Buang".
 - **Positive and honest framing**: "Masih bisa absen 2× lagi", "IPK
   tertinggi yang masih mungkin: 3,45". Never three "tak tercapai" in a row.
 - **No system words**: no "snapshot", "salinan materi", "kelas induk",

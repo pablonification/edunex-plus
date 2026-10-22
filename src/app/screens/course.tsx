@@ -14,6 +14,7 @@ import { attendanceKey, attendanceSnoozable } from "../../core/snooze";
 import { useAttendance } from "../attendance";
 import { verdictLabel } from "../attendance-labels";
 import { AttendanceSummary, CourseTarget } from "../attendance-parts";
+import { errorKey } from "../bridge";
 import { useOpenExternal } from "../hooks";
 import { type Format, type StringKey, type Translate, useFormat, useLang, useNow, useT } from "../i18n";
 import { useNav } from "../nav";
@@ -189,10 +190,10 @@ function MoreMenu({ page }: { page: CoursePage }) {
       const result = await bridge.invoke("course.saveOffline", { code: course.code, pick });
       if (result.folder === null) return;
       if (result.saved + result.kept + result.failed === 0) toast(t("offline.nothing"));
-      else if (result.failed > 0) toast(t("offline.failed", { count: result.failed }), "danger");
+      else if (result.failed > 0) toast(t(pick ? "offline.failedPicked" : "offline.failed", { count: result.failed, action: t("offline.save") }), "danger");
       else toast(t("offline.done", { count: result.saved, saved: result.saved, kept: result.kept }), "success");
     } catch (error) {
-      toast(t("error.action", { message: error instanceof Error ? error.message : String(error) }), "danger");
+      toast(t(errorKey(error)), "danger");
     } finally {
       setBusy(false);
     }

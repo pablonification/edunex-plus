@@ -628,7 +628,7 @@ function Notes({ task }: { task: Task }) {
       text: t("task.note.editedAfterSubmit", { edited: f.dayMonth(task.editedAt), sent: f.dayMonth(sentAt) }),
       action: (
         <Button size="sm" icon={<Icons.ArrowUpRight className="size-3.5" />} onClick={() => open(edunexTaskUrl(task.id))}>
-          {t("task.note.editedCheck")}
+          {t("action.openInEdunex")}
         </Button>
       ),
     });
@@ -676,7 +676,7 @@ function useDownload(done?: () => Promise<void>) {
       downloaded(file.url, existing);
       await done?.();
     } catch {
-      toast(t("task.downloadFailed", { name: file.name }), "danger");
+      toast(t("file.downloadFailed", { name: file.name }), "danger");
     } finally {
       setBusy(null);
     }
@@ -1363,7 +1363,7 @@ function HandInDialog({
       case "late":
         return t("handIn.check.late", { when: f.dueLabel(check.dueAt) });
       case "fileType":
-        return t("handIn.check.fileType", { type: check.type.toUpperCase(), files: check.files.join(", ") });
+        return t("handIn.check.fileType", { type: check.type.toUpperCase(), files: f.list(check.files), count: check.files.length });
       case "naming":
         return t("handIn.check.naming", { pattern: check.pattern });
       case "offline":
@@ -1565,7 +1565,7 @@ function noticeFor(error: unknown): Notice {
     case "VendorChanged":
       return { tone: "danger", text: "handIn.error.changed", action: "edunex" };
     case "Rejected":
-      return { tone: "danger", text: "handIn.error.rejected" };
+      return { tone: "danger", text: "handIn.error.rejected", action: "edunex" };
     default:
       return { tone: "danger", text: "handIn.error.failed" };
   }
@@ -1612,7 +1612,7 @@ function History({ task }: { task: Task }) {
         onClick={() => open(edunexTaskUrl(task.id))}
         className={cx("focus-ring inline-flex items-center gap-1 rounded text-small font-medium text-accent-fg hover:underline", steps.length >= 2 && "mt-4")}
       >
-        {t("task.openInEdunex")}
+        {t("action.openInEdunex")}
         <Icons.ArrowUpRight className="size-3.5" />
       </button>
     </div>

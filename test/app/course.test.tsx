@@ -799,7 +799,7 @@ describe("grades", () => {
     expect(s.text()).toContain("Ini contoh bobot, bukan bobot PL3002.");
     await type("Nilai UTS", "80");
     // UTS 80 secures 24 of the 75 an A needs; the other 70% must average 73. The answer comes as a sentence.
-    expect(s.text()).toContain("Untuk A kamu butuh rata-rata 73 di UAS, Tugas, Kuis dan Kehadiran.");
+    expect(s.text()).toContain("Untuk A kamu butuh rata-rata 73 di UAS, Tugas, Kuis, dan Kehadiran.");
     expect(s.text()).not.toContain("Ini contoh bobot");
     expect(s.calls.at(-1)).toMatchObject({ name: "local.set", input: { name: "local.courseWeights" } });
     expect(data("local.courseWeights").PL3002.parts[0]).toMatchObject({ id: "uts", score: 80 });
@@ -876,7 +876,7 @@ describe("grades", () => {
     await tab(/^Nilai/);
     await type("Nilai UTS", "80");
     await s.click("AB");
-    expect(s.text()).toContain("Untuk AB kamu butuh rata-rata 63 di UAS, Tugas, Kuis dan Kehadiran.");
+    expect(s.text()).toContain("Untuk AB kamu butuh rata-rata 63 di UAS, Tugas, Kuis, dan Kehadiran.");
     expect(s.text()).toContain("A ≥ 73");
   });
 

@@ -39,7 +39,7 @@ export const coursePageStrings = {
   "course.tasks": { id: "Tugas", en: "Tasks" },
   "course.itemCount": { id: "{count} isi", en: { one: "{count} item", other: "{count} items" } },
   "course.empty": { id: "Kosong", en: "Empty" },
-  "course.openTask": { id: "Ada tugas terbuka", en: "Has an open task" },
+  "course.openTask": { id: "Ada tugas terbuka", en: "Has an open Task" },
   "material.pdf": { id: "PDF", en: "PDF" },
   "material.vicon": { id: "Kelas online", en: "Online class" },
   "material.note": { id: "Catatan", en: "Note" },
@@ -58,6 +58,10 @@ export const coursePageStrings = {
   "material.createdBy": { id: "Dibuat oleh {name} pada {when}", en: "Created by {name} on {when}" },
   "material.updatedBy": { id: "Diperbarui oleh {name} pada {when}", en: "Updated by {name} on {when}" },
   "material.downloaded": { id: "Tersimpan di Unduhan", en: "Saved to Downloads" },
+  "file.downloadFailed": {
+    id: "{name} gagal diunduh. Cek koneksimu, lalu coba lagi.",
+    en: "{name} couldn't be downloaded. Check your connection, then try again.",
+  },
   "material.openedCopy": { id: "Sudah ada di komputer ini, tidak diunduh lagi", en: "Already on this computer, not downloaded again" },
   "file.openIn": { id: "Buka di {app}", en: "Open in {app}" },
   "file.open": { id: "Buka", en: "Open" },
@@ -67,14 +71,32 @@ export const coursePageStrings = {
   "file.reveal.win32": { id: "Tampilkan di File Explorer", en: "Show in File Explorer" },
   "file.reveal.linux": { id: "Buka foldernya", en: "Open its folder" },
   "file.revealShort": { id: "Tampilkan", en: "Show" },
-  "file.openFailed": { id: "Tidak bisa membuka {name}", en: "Couldn't open {name}" },
+  "file.openFailed": {
+    id: "{name} tidak bisa dibuka. Kalau sudah dipindah atau dihapus, unduh lagi.",
+    en: "Couldn't open {name}. If you moved or deleted it, download it again.",
+  },
   "offline.save": { id: "Simpan untuk offline", en: "Save for offline" },
   "offline.pick": { id: "Simpan ke folder lain…", en: "Save to another folder…" },
   "offline.done": {
     id: "{saved} berkas baru tersimpan, {kept} sudah ada",
     en: { one: "{saved} new file saved, {kept} already there", other: "{saved} new files saved, {kept} already there" },
   },
-  "offline.failed": { id: "{count} berkas gagal diunduh", en: { one: "{count} file couldn't be downloaded", other: "{count} files couldn't be downloaded" } },
+  // {action}: offline.save, the menu item that saves to the same folder again; files already there are kept, not downloaded again.
+  "offline.failed": {
+    id: "{count} berkas gagal diunduh. Pilih {action} lagi untuk mengunduhnya.",
+    en: {
+      one: "{count} file couldn't be downloaded. Choose {action} again to get it.",
+      other: "{count} files couldn't be downloaded. Choose {action} again to get them.",
+    },
+  },
+  // Saved to a folder the Student picked: the same folder again.
+  "offline.failedPicked": {
+    id: "{count} berkas gagal diunduh. Simpan lagi ke folder yang sama untuk mengunduhnya.",
+    en: {
+      one: "{count} file couldn't be downloaded. Save to the same folder again to get it.",
+      other: "{count} files couldn't be downloaded. Save to the same folder again to get them.",
+    },
+  },
   "offline.nothing": { id: "Mata kuliah ini belum punya berkas", en: "This course has no files yet" },
 
   // Meetings
@@ -96,7 +118,7 @@ export const coursePageStrings = {
   "meeting.state.held": { id: "Sudah berlangsung", en: "Took place" },
 
   // Tasks and exams
-  "course.noTasks": { id: "Tidak ada tugas", en: "No tasks" },
+  "course.noTasks": { id: "Tidak ada tugas", en: "No Tasks" },
   "course.exams": { id: "Ujian", en: "Exams" },
   "course.noExamsNoSix": {
     id: "Belum ada ujian di Edunex. Jadwal ujian dari SIX muncul setelah SIX terhubung.",
@@ -182,19 +204,19 @@ export const coursePageStrings = {
   "course.risk.next": { id: "Pertemuan berikutnya {when}{room}.", en: "Next meeting {when}{room}." },
   "course.risk.room": { id: " di {room}", en: " in {room}" },
   "course.risk.clash": { id: "Bentrok dengan {code} {time}.", en: "Clashes with {code} {time}." },
-  "course.risk.seePresence": { id: "Lihat presensi", en: "See attendance" },
+  "course.risk.seePresence": { id: "Ke Presensi", en: "Go to Presence" },
   "offline.files": { id: "{count} berkas · {size}", en: { one: "{count} file · {size}", other: "{count} files · {size}" } },
   "offline.filesNoSize": { id: "{count} berkas", en: { one: "{count} file", other: "{count} files" } },
   "offline.noneYet": { id: "Belum ada berkas untuk disimpan", en: "No files to save yet" },
   "course.openEdunex": { id: "Buka di Edunex", en: "Open in Edunex" },
-  "course.openSix": { id: "Lihat jadwal di SIX", en: "View the timetable in SIX" },
+  "course.openSix": { id: "Buka jadwal di SIX", en: "Open the timetable in SIX" },
   "course.new": { id: "Baru", en: "New" },
   "course.newHint": { id: "Ada materi baru minggu ini", en: "New material this week" },
   "course.openTasks": { id: "{count} terbuka", en: "{count} open" },
   "course.openTasksHint": { id: "Tugas yang belum dikumpulkan", en: "Tasks not handed in yet" },
   "course.emptyModules": { id: "{count} modul belum berisi", en: { one: "{count} module with nothing yet", other: "{count} modules with nothing yet" } },
   "course.kind.pdf": { id: "{count} PDF", en: "{count} PDF" },
-  "course.kind.task": { id: "{count} tugas", en: { one: "{count} task", other: "{count} tasks" } },
+  "course.kind.task": { id: "{count} tugas", en: { one: "{count} Task", other: "{count} Tasks" } },
   "course.kind.link": { id: "{count} tautan", en: { one: "{count} link", other: "{count} links" } },
   "course.kind.vicon": { id: "{count} kelas online", en: { one: "{count} online class", other: "{count} online classes" } },
   "course.kind.note": { id: "{count} catatan", en: { one: "{count} note", other: "{count} notes" } },
@@ -246,5 +268,4 @@ export const coursePageStrings = {
   "grade.range": { id: "Isi 0–100", en: "Enter 0–100" },
   "grade.notNumber": { id: "Isi angka", en: "Enter a number" },
   "grade.fromSixShort": { id: "dari SIX", en: "from SIX" },
-  "grade.and": { id: "dan", en: "and" },
 } as const satisfies Record<string, Entry>;
