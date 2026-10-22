@@ -16,6 +16,8 @@ import { planOfflineFiles } from "../../src/core/course-materials";
 import { isOfficialUrl, isWebLink } from "../../src/core/links";
 import { type SourceId, type UpdateBlock, UpdateNotice } from "../../src/core/models";
 import { phoneCalendar } from "../../src/core/phone-calendar";
+import { createChatGptConnection } from "../../src/desktop/chatgpt/connection";
+import type { ChatGptIdentity } from "../../src/desktop/chatgpt/signin";
 import { handInHandlers, type LocalFile } from "../../src/desktop/hand-in";
 import { readFile } from "../../src/desktop/remote-files";
 import { createUpdater, followAutoUpdates, type UpdateKind } from "../../src/desktop/self-update";
@@ -65,6 +67,8 @@ if (typeof Range !== "undefined" && !Range.prototype.getClientRects) {
 }
 
 export interface Options {
+  /** A pretend browser completing ChatGPT sign-in, without ever contacting OpenAI. */
+  chatgptSignIn?: (signal: AbortSignal) => Promise<ChatGptIdentity>;
   world?: PretendWorld;
   storage?: MemoryStorage;
   vault?: MemoryVault;
@@ -223,7 +227,22 @@ export async function openApp(options: Options = {}) {
     },
     background: track,
   });
+  const chatgpt = createChatGptConnection({
+    config: options.chatgptSignIn ? { clientId: "oaiapp_pretend", redirectUri: "http://127.0.0.1:1455/auth/openai/callback" } : null,
+    vault,
+    signIn:
+      options.chatgptSignIn ??
+      (async () => {
+        throw new Error("ChatGPT is not configured");
+      }),
+    changed: (status) => {
+      for (const listener of listeners) listener({ type: "chatgpt", status });
+    },
+  });
   const handlers: { [N in ActionName]: (input: never) => Promise<unknown> } = {
+    "chatgpt.status": chatgpt.status,
+    "chatgpt.connect": chatgpt.connect,
+    "chatgpt.disconnect": chatgpt.disconnect,
     "app.snapshot": async () => ({
       ...engine.snapshot(),
       platform: options.platform ?? "darwin",
@@ -236,6 +255,7 @@ export async function openApp(options: Options = {}) {
       return { signedIn: await signIns.signIn(source) };
     },
     "auth.signOut": async ({ source }: { source?: SourceId }) => {
+      if (!source) await chatgpt.disconnect();
       await engine.signOut(source);
       return {};
     },
@@ -376,7 +396,7 @@ export async function openApp(options: Options = {}) {
         }
       })();
       // Held (`holdOpening`), an app starting isn't waited for: the test looks at the window meanwhile.
-      if (!(action === "files.open" && opening)) track(work);
+      if (action !== "chatgpt.connect" && !(action === "files.open" && opening)) track(work);
       return work;
     },
     onEvent(listener) {

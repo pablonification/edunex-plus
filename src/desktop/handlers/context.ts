@@ -3,6 +3,7 @@ import type { BrowserWindow, Session } from "electron";
 import type { Event } from "../../core/contract";
 import type { Lang, Settings } from "../../core/models";
 import type { Engine } from "../../engine/engine";
+import type { createChatGptConnection } from "../chatgpt/connection";
 import type { DownloadedFiles } from "../downloaded-files";
 import type { FileCache } from "../file-cache";
 import type { Handlers } from "../ipc";
@@ -13,6 +14,7 @@ import type { VaultMode } from "../vault";
 import type { Platform } from "../window";
 
 export interface DesktopContext {
+  chatgpt: ReturnType<typeof createChatGptConnection>;
   engine: Engine;
   window(): BrowserWindow | null;
   packaged: boolean;

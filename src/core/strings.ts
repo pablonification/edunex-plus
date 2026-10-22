@@ -7,6 +7,7 @@
 import { academicStrings } from "./strings/academic";
 import { alertsStrings } from "./strings/alerts";
 import { attendanceStrings } from "./strings/attendance";
+import { chatgptStrings } from "./strings/chatgpt";
 import { contentStrings } from "./strings/content";
 import { coursePageStrings } from "./strings/course-page";
 import type { Entry } from "./strings/entry";
@@ -28,6 +29,7 @@ import { updatesStrings } from "./strings/updates";
 export type { Entry } from "./strings/entry";
 
 export const STRINGS = {
+  ...chatgptStrings,
   ...shellStrings,
   ...tasksStrings,
   ...coursePageStrings,

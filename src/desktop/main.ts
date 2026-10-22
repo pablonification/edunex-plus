@@ -4,7 +4,7 @@
 
 import module from "node:module";
 import path from "node:path";
-import { app, type BrowserWindow, dialog, powerMonitor, session } from "electron";
+import { app, type BrowserWindow, dialog, powerMonitor, session, shell } from "electron";
 import { CHANNEL_EVENT } from "../core/channels";
 import type { Event } from "../core/contract";
 import type { Settings } from "../core/models";
@@ -13,11 +13,14 @@ import type { Route } from "../core/route";
 import { translate } from "../core/strings";
 import { systemClock } from "../engine/clock";
 import { createEngine, type Engine } from "../engine/engine";
+import { createChatGptConnection } from "./chatgpt/connection";
+import { chatgptConfig, signInWithChatGpt } from "./chatgpt/signin";
 import { demo, demoPhone } from "./demo";
 import { createDownloadedFiles, DOWNLOADED_FILES_FOLDER } from "./downloaded-files";
 import { createFileCache, FILE_CACHE_FOLDER } from "./file-cache";
 import { alertsHandlers } from "./handlers/alerts";
 import { authHandlers } from "./handlers/auth";
+import { chatgptHandlers } from "./handlers/chatgpt";
 import type { DesktopContext } from "./handlers/context";
 import { coreHandlers } from "./handlers/core";
 import { coursePageHandlers } from "./handlers/course-page";
@@ -110,6 +113,29 @@ async function start(): Promise<void> {
   const storage = new FileStorage(path.join(root, "data"));
   void storage.sweep();
   const { vault, mode } = await openVault(new FileStorage(vaultFolder(userData)), vaultKey);
+  // Main is the local OAuth client. A distributed app cannot keep a confidential client secret.
+  // The demo never contacts OpenAI, even if the developer has configured a real client.
+  const config = demo ? { clientId: "oaiapp_demo", redirectUri: "http://127.0.0.1:1455/auth/openai/callback" } : chatgptConfig(process.env);
+  const chatgpt = createChatGptConnection({
+    config,
+    vault,
+    changed: (status) => send({ type: "chatgpt", status }),
+    signIn: (signal) => {
+      if (!config) throw new Error("ChatGPT is not configured");
+      if (demo) return Promise.resolve({ issuer: "https://auth.openai.com", clientId: config.clientId, subject: "pretend-student", name: "Dimas Pratama" });
+      return signInWithChatGpt({
+        config,
+        signal,
+        fetch: (url, init) => {
+          const headers = new Headers(init?.headers);
+          headers.set("User-Agent", `EdunexPlus/${__APP_VERSION__} (+https://github.com/pablonification/edunex-plus)`);
+          return fetch(url, { ...init, headers, signal: AbortSignal.any([signal, AbortSignal.timeout(15_000)]) });
+        },
+        openBrowser: (url) => shell.openExternal(url),
+        message: translate(engine?.snapshot().settings.lang ?? DEFAULT_SETTINGS.lang, "chatgpt.callback"),
+      });
+    },
+  });
 
   // The engine talks to the sources on its own in-memory session; the page gets no permissions at all.
   const engineSession = session.fromPartition("engine", { cache: false });
@@ -177,6 +203,7 @@ async function start(): Promise<void> {
   };
 
   const context: DesktopContext = {
+    chatgpt,
     engine: current,
     window: () => window,
     packaged,
@@ -196,6 +223,7 @@ async function start(): Promise<void> {
     updater,
   };
   const handlers: Handlers = {
+    ...chatgptHandlers(context),
     ...coreHandlers(context),
     ...authHandlers(context),
     ...tasksHandlers(context),

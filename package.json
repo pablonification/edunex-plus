@@ -63,6 +63,7 @@
     "@tiptap/starter-kit": "3.31.4",
     "cheerio": "^1.2.0",
     "docx-preview": "0.4.1",
+    "jose": "^6.2.13",
     "jszip": "3.10.2",
     "pdfjs-dist": "6.4.299",
     "react": "^19.3.0",

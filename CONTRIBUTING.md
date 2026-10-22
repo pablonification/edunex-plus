@@ -22,6 +22,9 @@ npm run dev
 "Edunex Plus Dev" with its own data folder, so it never touches an installed
 copy. Electron downloads itself the first time the app starts.
 
+The optional ChatGPT identity connection has its own [setup and focused tests](docs/chatgpt.md).
+It stays unavailable without a provisioned public OAuth client; the demo uses only made-up identities.
+
 | Command | What it does |
 |---|---|
 | `npm run dev` | The app with live reload. |

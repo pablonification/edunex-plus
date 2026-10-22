@@ -20,6 +20,10 @@ Everything stays on your computer:
   "Edunex Plus Vault", and only Edunex Plus can get it: its small keychain helper hands it to the
   app signed with the project's certificate, and to nothing else. If there is no secure storage,
   they are kept only in memory until you quit.
+- **Your optional ChatGPT identity** (OpenAI issuer, app client ID, account subject and display
+  name) is kept in the same encrypted vault, or only in memory without secure storage. No OpenAI
+  tokens are saved. Disconnecting ChatGPT or signing out of everything removes it. It does not
+  connect or disconnect your INA account. See [ChatGPT setup and behavior](chatgpt.md).
 - **What the app has read** (Tasks, courses, timetable, grades, alerts, settings) is saved as
   files in the app's data folder, so it opens instantly and works offline:
   `~/Library/Application Support/Edunex Plus` on macOS, `%APPDATA%\Edunex Plus` on Windows,
@@ -42,6 +46,12 @@ Nothing leaves your computer except the app's own requests to:
   the button for you;
 - **ITB's public pages** (the academic calendar and SIX's public course catalog), without any
   session;
+- **OpenAI** (`auth.openai.com`), only when you choose to connect ChatGPT: identity discovery,
+  authorization, code exchange and signing-key verification. The system browser handles sign-in;
+  it may visit OpenAI's authentication services or your chosen identity provider. No student
+  records or course data are sent to OpenAI, and no AI requests are made. The temporary callback
+  listens only on this computer's IPv4 loopback address. Disconnecting forgets the app's identity,
+  leaving your browser's ChatGPT session under your control;
 - **GitHub**, once a day and when you press **Check for updates**, to check for a newer release
   (no personal data is sent), and to download it: by itself with **Update automatically** on
   (the default), otherwise only when you press **Download & install**;

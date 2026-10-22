@@ -37,6 +37,7 @@ export const authHandlers: HandlerGroup<"auth.signIn" | "auth.signOut"> = (conte
     },
     "auth.signOut": async ({ source }) => {
       both.stopQuiet();
+      if (!source) await context.chatgpt.disconnect();
       await context.engine.signOut(source);
       // Edunex's files go with the account they came from, even one still on its way in, and so does the
       // record of where its downloads went. Signing out of everything carries on if this fails:

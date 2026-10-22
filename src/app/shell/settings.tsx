@@ -27,6 +27,7 @@ import { Icons } from "../ui/icons";
 import { Meta, Notice } from "../ui/layout";
 import { ConfirmDialog, Dialog, toast } from "../ui/overlays";
 import { PanelBoundary } from "../ui/panel-boundary";
+import { ChatGptSettings } from "./chatgpt";
 import { PhoneSettings } from "./phone";
 import { useSignIn, useSignInNote } from "./source-status";
 
@@ -122,6 +123,7 @@ function SettingsBody({
       <Group title={t("settings.accounts")} note={t("settings.accounts.note")}>
         <AccountRow source="edunex" who={account ? [displayName(account.name), account.nim] : null} />
         <AccountRow source="six" who={student ? [displayName(student.name), student.program ?? student.nim] : null} />
+        <ChatGptSettings />
         {onShowFirstScan && (
           <Row label={t("settings.firstScan")} hint={t("settings.firstScan.hint")}>
             <Button size="sm" aria-label={`${t("settings.firstScan.show")}: ${t("settings.firstScan")}`} onClick={onShowFirstScan}>

@@ -4,6 +4,7 @@
 // actions in its own file under ./actions; this file joins them.
 import { z } from "zod";
 import { alertsActions } from "./actions/alerts";
+import { ChatGptStatus, chatgptActions } from "./actions/chatgpt";
 import { coreActions } from "./actions/core";
 import { coursePageActions } from "./actions/course-page";
 import { filesActions } from "./actions/files";
@@ -25,6 +26,7 @@ export const BridgeError = z.object({ kind: ErrorKind, message: z.string() });
 export type BridgeError = z.infer<typeof BridgeError>;
 
 export const Actions = {
+  ...chatgptActions,
   ...coreActions,
   ...tasksActions,
   ...coursePageActions,
@@ -45,6 +47,7 @@ export type SignInStep = z.infer<typeof SignInStep>;
 const SignInSource = z.enum(["edunex", "six"]);
 
 export const Event = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("chatgpt"), status: ChatGptStatus }),
   z.object({ type: z.literal("dataset"), dataset: DatasetPayload }),
   z.object({ type: z.literal("dataset.removed"), name: z.string() }),
   z.object({ type: z.literal("status"), status: SourceStatus }),

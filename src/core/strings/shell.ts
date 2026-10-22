@@ -132,14 +132,14 @@ export const shellStrings = {
   "settings.signOutAll": { id: "Keluar & hapus data", en: "Sign out & remove data" },
   "settings.signOutAll.label": { id: "Keluar dari semua akun", en: "Sign out of everything" },
   "settings.signOutAllHint": {
-    id: "Keluar dari Edunex dan SIX, lalu menghapus semua datamu dari komputer ini.",
-    en: "Signs out of Edunex and SIX, then removes all your data from this computer.",
+    id: "Keluar dari Edunex dan SIX, memutuskan ChatGPT, lalu menghapus semua datamu dari komputer ini.",
+    en: "Signs out of Edunex and SIX, disconnects ChatGPT, then removes all your data from this computer.",
   },
   "settings.signOutAllConfirm": { id: "Keluar dan hapus semua data?", en: "Sign out and remove all data?" },
   // What goes for good (the engine's signOut): what was read, and what only the Student entered.
   "settings.signOutAllBody": {
-    id: "Kamu keluar dari Edunex dan SIX, dan semua yang disimpan aplikasi di komputer ini dihapus. Itu termasuk yang kamu isi sendiri, seperti rencana studi, koreksi kurikulum, bobot dan nilai mata kuliah, target kehadiran per mata kuliah, pengingat yang ditunda, dan HP yang terhubung. Ini tidak bisa dibatalkan.",
-    en: "You're signed out of Edunex and SIX, and everything the app keeps on this computer is removed. That includes what you entered yourself, like your study plan, curriculum corrections, course weights and scores, each course's attendance target, snoozed reminders and the connected phone. You can't undo this.",
+    id: "Kamu keluar dari Edunex dan SIX, dan semua yang disimpan aplikasi di komputer ini dihapus. Itu termasuk yang kamu isi sendiri, seperti rencana studi, koreksi kurikulum, bobot dan nilai mata kuliah, target kehadiran per mata kuliah, pengingat yang ditunda, HP yang terhubung, dan identitas ChatGPT. Ini tidak bisa dibatalkan.",
+    en: "You're signed out of Edunex and SIX, and everything the app keeps on this computer is removed. That includes what you entered yourself, like your study plan, curriculum corrections, course weights and scores, each course's attendance target, snoozed reminders, the connected phone and your ChatGPT identity. You can't undo this.",
   },
   "settings.other": { id: "Lainnya", en: "Other" },
   "settings.sessionNotSaved": {

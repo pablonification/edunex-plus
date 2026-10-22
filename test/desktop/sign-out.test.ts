@@ -56,7 +56,14 @@ const signOutWith = (cache: ReturnType<typeof createFileCache>, downloadedFiles 
     clearCache: async () => undefined,
     clearAuthCache: async () => undefined,
   };
-  const context = { engine: { signOut: async () => undefined }, fileCache: cache, downloadedFiles, userData: root, engineSession } as unknown as Context;
+  const context = {
+    chatgpt: { disconnect: async () => void cleared.push("chatgpt identity") },
+    engine: { signOut: async () => undefined },
+    fileCache: cache,
+    downloadedFiles,
+    userData: root,
+    engineSession,
+  } as unknown as Context;
   return authHandlers(context)["auth.signOut"];
 };
 
@@ -110,7 +117,7 @@ describe("signing out", () => {
     await fs.mkdir(path.join(root, "feed-snapshots"));
     await signOutWith(cache, await downloaded(URL_A))({});
     expect(await fs.readdir(root)).toEqual(["Downloads"]);
-    expect(cleared).toEqual(expect.arrayContaining(["window storage", "window cache", "engine storage", "v1 storage", "sign-in window"]));
+    expect(cleared).toEqual(expect.arrayContaining(["chatgpt identity", "window storage", "window cache", "engine storage", "v1 storage", "sign-in window"]));
   });
 
   it("of everything finishes even when the files can't be removed at that moment", async () => {
