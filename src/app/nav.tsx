@@ -1,10 +1,10 @@
 // Where the Student is in the app, with a back history (mouse back button,
 // ⌘[ via the menu later). Screens move with go(); nothing reads the URL.
-// Back comes back to a screen as the Student left it: what other screens link
-// to (a course's tab and module, a study-plan tab, Tugas & Ujian's "Selesai")
-// is recorded in its route with replace(), which adds no step to Back; a choice
-// nothing links to (the semester open on Nilai, a fold) is kept beside it with
-// usePlaceState().
+// Back comes back to a screen as the Student left it: where on the screen they
+// are (a course's tab and module, a study-plan tab, Tugas & Ujian's "Selesai"),
+// which a link or an alert is compared with, is recorded in its route with
+// replace(), which adds no step to Back; any other choice (the semester open on
+// Nilai, a fold) is kept beside it with usePlaceState().
 // Before the screen changes, `leave` may hold it (a PDF with unsaved filling
 // asks the Student first) and lets it go on only if they say so. Moving to a
 // screen whose code is still loading (later.tsx) is a transition: the one
@@ -45,6 +45,12 @@ interface Place {
 /** Every part `route` names is `place`'s (a course's code, with any tab). */
 const shows = (place: Route, route: Route) => Object.entries(route).every(([key, value]) => (place as Record<string, unknown>)[key] === value);
 const same = (a: Route, b: Route) => shows(a, b) && shows(b, a);
+/** What a route puts on screen: a course's module shows only on its Modul tab (on another, it's kept for coming back to it). */
+function onScreen(route: Route): Route {
+  if (route.screen !== "course" || (route.tab ?? "modules") === "modules") return route;
+  const { module: _kept, ...rest } = route;
+  return rest;
+}
 
 const NavContext = createContext<Nav | null>(null);
 
@@ -79,7 +85,9 @@ export function NavProvider({
     const next = () => {
       const { drawsAtOnce } = latest.current;
       const to = update(shown.current.stack)?.at(-1);
-      if (!to) return;
+      // Staying (the place on screen picked again) drops a move still waiting for its screen's code: queued after it,
+      // the history on screen is the one that's kept.
+      if (!to) return setHistory(() => shown.current);
       const apply = () =>
         setHistory((history) => {
           const stack = update(history.stack);
@@ -100,7 +108,7 @@ export function NavProvider({
         if (keep && shows(shown, route)) return null;
         // A link to exactly the course page shown opens it afresh, with no step for Back: what it's about (the class on
         // now, the module it names) may be scrolled out of sight. Any other screen stays: a Task keeps the files being attached.
-        if (same(shown, route)) return route.screen === "course" ? [...stack.slice(0, -1), { route, id }] : null;
+        if (same(onScreen(shown), onScreen(route))) return route.screen === "course" ? [...stack.slice(0, -1), { route, id }] : null;
         return [...stack.slice(-49), { route, id }];
       });
     },

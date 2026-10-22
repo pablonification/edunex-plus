@@ -100,7 +100,7 @@ describe("screens that load later", () => {
     expect(app.textContent).not.toContain("Beranda");
   });
 
-  it("the place on screen, picked again while the next one's code loads, adds no step: Back goes where the Student was", async () => {
+  it("the place on screen, picked again while the next one's code loads, stays: the move on its way is dropped, with no step for Back", async () => {
     const grades = slowScreen("Nilai kamu");
     const app = await mount(
       <NavProvider drawsAtOnce={(route) => route.screen === "home" || grades.Screen.loaded()}>
@@ -108,11 +108,9 @@ describe("screens that load later", () => {
       </NavProvider>,
     );
     await press(app, "Nilai");
-    // Beranda is still on screen: picking it is staying there, whatever is on its way.
+    // Beranda is still on screen: picking it is staying there.
     await press(app, "⌘1");
     await act(async () => grades.arrive());
-    expect(app.querySelector("p")?.textContent).toBe("Nilai kamu");
-    await press(app, "Kembali");
     expect(app.querySelector("p")?.textContent).toBe("Beranda");
     expect(app.textContent).not.toContain("Kembali");
   });

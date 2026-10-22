@@ -472,7 +472,7 @@ URS stay as they are in both languages.
   study-plan rule) moves focus with it.
 - Back comes back to a screen as the Student left it: the same tab, module,
   "Selesai" or semester open, scrolled where it was (`nav.tsx`: `replace` for
-  what other screens link to, `usePlaceState` for the rest). Picking a tab or
+  what the screen's route says, `usePlaceState` for the rest). Picking a tab or
   a module adds no step to Back and leaves the page where it is; a new visit
   starts from the screen's default, at its top. The sidebar and ⌘1–6, on the
   place already open, keep it as it is.
