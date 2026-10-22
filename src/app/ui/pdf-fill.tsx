@@ -107,8 +107,7 @@ export function useFill() {
 export const FILL_AREA = "[data-fill]";
 
 /** A form field's box: a light blue tint, as PDF readers mark what can be filled in. */
-const FIELD =
-  "focus-ring absolute m-0 bg-accent/8 text-black hover:bg-accent/14 focus:bg-accent/4 disabled:pointer-events-none";
+const FIELD = "focus-ring absolute m-0 bg-accent/8 text-black hover:bg-accent/14 focus:bg-accent/4 disabled:pointer-events-none";
 
 export function FieldBox({
   field,

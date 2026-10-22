@@ -175,8 +175,10 @@ export function SyncStatus() {
         <button
           type="button"
           aria-label={`${t("sync.title")}: ${text}`}
+          // Whole while the search field and the back button can give up room. Zoomed in (the sidebar a rail), it gives
+          // up its words too before anything goes past the window, down to its mark: they stay in its name and panel.
           className={cx(
-            "focus-ring no-drag inline-flex h-8 items-center gap-2 rounded-lg px-2.5 text-small font-medium transition-colors duration-150",
+            "focus-ring no-drag inline-flex h-8 shrink-0 items-center gap-2 rounded-lg px-2.5 text-small font-medium transition-colors duration-150 max-[52rem]:min-w-11 max-[52rem]:shrink",
             state === "changed"
               ? "bg-danger-bg text-danger-fg"
               : state === "expired"
@@ -184,8 +186,11 @@ export function SyncStatus() {
                 : "text-muted hover:bg-hover hover:text-fg",
           )}
         >
-          <StateMark state={state === "signed-out" ? "signed-out" : state} busy={state === "connecting"} />
-          <span className="max-w-[180px] truncate">{text}</span>
+          <span className="flex shrink-0">
+            <StateMark state={state === "signed-out" ? "signed-out" : state} busy={state === "connecting"} />
+          </span>
+          {/* Room for "Diperbarui 25 menit yang lalu" whole. */}
+          <span className="max-w-[220px] min-w-0 truncate">{text}</span>
         </button>
       }
     >

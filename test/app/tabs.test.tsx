@@ -106,6 +106,15 @@ describe("TabBar", () => {
     expect(container.querySelector("[role=tabpanel]:not([hidden])")?.textContent).toBe("Isi pertemuan");
   });
 
+  it("tabs that don't fit scroll sideways in their own frame, each name on one line, the underline still over the hairline", async () => {
+    const container = await mount(<Bar />);
+    const list = container.querySelector("[role=tablist]")!;
+    expect(list.parentElement?.className).toContain("overflow-x-auto");
+    // The list itself never clips: its underline covers the hairline under it.
+    expect(list.className).toMatch(/\bw-max\b.*\boverflow-visible\b/);
+    expect([...list.querySelectorAll("[role=tab]")].map((tab) => /\bshrink-0\b.*\bwhitespace-nowrap\b/.test(tab.className))).toEqual([true, true]);
+  });
+
   it("each tab names a panel that exists", async () => {
     await mount(<Bar />);
     expect(controls()).toEqual([

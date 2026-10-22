@@ -77,7 +77,8 @@ export function RichText({
 }) {
   const doc = new DOMParser().parseFromString(html, "text/html");
   return (
-    <div className={cx("text-body leading-relaxed break-words", className)}>
+    // Lines no longer than reading is comfortable (65 characters); a wide table scrolls in its own box.
+    <div className={cx("max-w-prose text-body leading-relaxed break-words", className)}>
       {children(doc.body, { open: onOpenLink, image: renderImage, alt: pictureAlt }, "r")}
     </div>
   );

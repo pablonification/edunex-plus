@@ -51,7 +51,8 @@ export function WeekView({ days, input }: { days: readonly string[]; input: Sche
   const hours = timeAxis(plan.flatMap((day) => [...day.classes.map((c) => c.session), ...day.outside, ...day.edunex]));
   const events = input.events.filter((e) => SCHEDULE_EVENT_KINDS.has(e.kind) && e.firstDay <= days[6] && e.lastDay >= days[0]);
 
-  // Busy days share the width; empty ones shrink. A single-day mark (the last lecture day) needs room for its name.
+  // Busy days share the width, each with room for its blocks side by side (`lanes`); empty ones shrink.
+  // A single-day mark (the last lecture day) needs room for its name.
   const busy = plan.map((day) => !isEmptyDay(day) || events.some((e) => e.firstDay === day.day && e.lastDay === day.day));
   // A week with nothing on it keeps its weekdays wide: there's nothing to give the room to.
   const anyBusy = busy.some(Boolean);
@@ -67,6 +68,7 @@ export function WeekView({ days, input }: { days: readonly string[]; input: Sche
       label: f.dateLong(at),
       head: <DayHead at={at} today={day.day === today} size={size} />,
       size,
+      lanes: lanesOf(day),
       tone: day.day === today ? "today" : day.events.some((e) => NO_LECTURES.has(e.kind)) ? "off" : null,
       lane: lane.length ? lane : undefined,
       children: <DayBlocks day={day} notInSix={input.six} />,
@@ -140,13 +142,18 @@ const span = (start: number, end: number) => {
   return { from, to: Math.ceil(to / 5) * 5 };
 };
 
+/** A day's blocks: its classes and the meetings outside SIX. */
+const dayItems = (day: ScheduleDay): Item[] => [
+  ...day.classes.map((item) => ({ kind: "class" as const, start: item.session.start, end: item.session.end, item })),
+  ...day.outside.map((meeting) => ({ kind: "meeting" as const, start: meeting.start, end: meeting.end, meeting })),
+  ...day.edunex.map((meeting) => ({ kind: "meeting" as const, start: meeting.start, end: meeting.end, meeting })),
+];
+
+/** The most blocks a day has side by side: its column keeps room for each (TimeGrid). */
+const lanesOf = (day: ScheduleDay) => Math.max(1, ...sideBySide(dayItems(day)).map((p) => p.columns));
+
 function DayBlocks({ day, notInSix }: { day: ScheduleDay; notInSix: boolean }) {
-  const items: Item[] = [
-    ...day.classes.map((item) => ({ kind: "class" as const, start: item.session.start, end: item.session.end, item })),
-    ...day.outside.map((meeting) => ({ kind: "meeting" as const, start: meeting.start, end: meeting.end, meeting })),
-    ...day.edunex.map((meeting) => ({ kind: "meeting" as const, start: meeting.start, end: meeting.end, meeting })),
-  ];
-  const placed = sideBySide(items);
+  const placed = sideBySide(dayItems(day));
   return (
     <>
       {placed.map((p) => {

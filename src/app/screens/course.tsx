@@ -147,7 +147,8 @@ function AttendanceMeter({ page }: { page: CoursePage }) {
   if (!health?.held) return null;
   return (
     <AttendanceSummary
-      className="w-[260px] pt-0.5"
+      // The meter's usual width at least, wider where its words need it (never past the header), so they stay on one line.
+      className="w-fit max-w-full min-w-[min(260px,100%)] pt-0.5"
       health={health}
       // With no room left the banner below says it, as its title; put off with "Ingatkan nanti", the words are back here.
       words={banner ? null : verdictLabel(t, health)}
@@ -476,12 +477,13 @@ function MeetingNow({ page }: { page: CoursePage }) {
     >
       {presence && (
         <NowZone>
-          <div className="flex max-w-[560px] items-center gap-3 text-small">
+          {/* With no room for the countdown beside the words, it goes under them. */}
+          <div className="flex max-w-[560px] flex-wrap items-center gap-x-3 gap-y-1 text-small">
             {/* Said here unless the line above already says it. */}
             {(current || upcoming) && <span className="shrink-0 font-semibold">{t("course.presenceOpen")}</span>}
             {/* The same shrinking countdown as on Presensi and Beranda. */}
             <CountdownBar
-              className="min-w-16 flex-1"
+              className="min-w-16 flex-1 basis-64"
               opensAt={presence.opensAt}
               closesAt={presence.closesAt}
               now={now}
