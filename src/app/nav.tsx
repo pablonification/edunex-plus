@@ -1,5 +1,9 @@
 // Where the Student is in the app, with a back history (mouse back button,
 // ⌘[ via the menu later). Screens move with go(); nothing reads the URL.
+// Back comes back to a screen as the Student left it: what other screens link
+// to (a course's tab and module, a study-plan tab) is recorded in its route with
+// replace(), which adds no step to Back; a choice nothing links to (a list's
+// "Selesai", the semester open) is kept beside it with usePlaceState().
 // Before the screen changes, `leave` may hold it (a PDF with unsaved filling
 // asks the Student first) and lets it go on only if they say so. Moving to a
 // screen whose code is still loading (later.tsx) is a transition: the one
@@ -12,12 +16,33 @@ export type { Route } from "../core/route";
 
 interface Nav {
   route: Route;
-  go(route: Route): void;
+  /** The place in history being shown: new with each move, the same while its screen records what it shows (`replace`). */
+  place: number;
+  /** The place was come back to with Back, not opened: it shows as the Student left it. */
+  returned: boolean;
+  /**
+   * Opens `route`, unless it's the one shown. `keep`: a place picked as a whole (the sidebar, ⌘1–6) is
+   * already there when its screen shows it in any tab, and stays as it is; any other link opens exactly what it names.
+   */
+  go(route: Route, options?: { keep?: boolean }): void;
+  /** What this place shows now (its tab, the module picked), kept in its place in history: Back comes back to it, and it adds no step. */
+  replace(route: Route): void;
   back(): void;
   canGoBack: boolean;
   /** Where back goes, to name it on the back button. */
   previous: Route | null;
+  /** What the screen keeps in its place in history (usePlaceState). */
+  kept: Map<string, unknown>;
 }
+
+interface Place {
+  route: Route;
+  id: number;
+}
+
+/** Every part `route` names is `place`'s (a course's code, with any tab). */
+const shows = (place: Route, route: Route) => Object.entries(route).every(([key, value]) => (place as Record<string, unknown>)[key] === value);
+const same = (a: Route, b: Route) => shows(a, b) && shows(b, a);
 
 const NavContext = createContext<Nav | null>(null);
 
@@ -34,25 +59,55 @@ export function NavProvider({
   drawsAtOnce?: (route: Route) => boolean;
   children: ReactNode;
 }) {
-  const [history, setHistory] = useState<Route[]>([initial ?? { screen: "home" }]);
+  const [history, setHistory] = useState<{ stack: Place[]; returned: boolean }>(() => ({
+    stack: [{ route: initial ?? { screen: "home" }, id: 0 }],
+    returned: false,
+  }));
+  const ids = useRef(0);
+  const kept = useRef(new Map<number, Map<string, unknown>>());
   const latest = useRef({ leave, drawsAtOnce, history });
   latest.current = { leave, drawsAtOnce, history };
-  const move = useCallback((update: (stack: Route[]) => Route[]) => {
+  /** `update` gives the new history, or null to stay. */
+  const move = useCallback((update: (stack: Place[]) => Place[] | null, returned = false) => {
     const next = () => {
       const { drawsAtOnce, history } = latest.current;
-      const to = update(history).at(-1);
-      if (drawsAtOnce && to && drawsAtOnce(to)) setHistory(update);
-      else startTransition(() => setHistory(update));
+      const to = update(history.stack)?.at(-1);
+      if (!to) return;
+      const apply = () =>
+        setHistory((history) => {
+          const stack = update(history.stack);
+          return stack ? { stack, returned } : history;
+        });
+      if (drawsAtOnce?.(to.route)) apply();
+      else startTransition(apply);
     };
     const { leave } = latest.current;
     if (leave) leave(next);
     else next();
   }, []);
   const go = useCallback(
-    (route: Route) => move((stack) => (JSON.stringify(stack.at(-1)) === JSON.stringify(route) ? stack : [...stack.slice(-49), route])),
+    (route: Route, { keep = false } = {}) => {
+      const id = ++ids.current;
+      move((stack) => ((keep ? shows : same)(stack.at(-1)!.route, route) ? null : [...stack.slice(-49), { route, id }]));
+    },
     [move],
   );
-  const back = useCallback(() => move((stack) => (stack.length > 1 ? stack.slice(0, -1) : stack)), [move]);
+  const back = useCallback(() => move((stack) => (stack.length > 1 ? stack.slice(0, -1) : null), true), [move]);
+  // The same screen, still drawn: nothing to leave, nothing to load. Its own place, even with a move to another
+  // screen still waiting for its code (a transition) above it.
+  const replaceAt = useCallback(
+    (id: number, route: Route) =>
+      setHistory((history) => {
+        const at = history.stack.findIndex((place) => place.id === id);
+        if (at < 0 || same(history.stack[at].route, route)) return history;
+        return { ...history, stack: history.stack.with(at, { route, id }) };
+      }),
+    [],
+  );
+  // A place gone from history (gone back from, or past the 50 kept) is never shown again.
+  useEffect(() => {
+    for (const id of kept.current.keys()) if (!history.stack.some((place) => place.id === id)) kept.current.delete(id);
+  }, [history]);
   useEffect(() => {
     const onMouse = (event: MouseEvent) => {
       if (event.button === 3) back();
@@ -60,10 +115,23 @@ export function NavProvider({
     window.addEventListener("mouseup", onMouse);
     return () => window.removeEventListener("mouseup", onMouse);
   }, [back]);
-  const value = useMemo<Nav>(
-    () => ({ route: history.at(-1)!, go, back, canGoBack: history.length > 1, previous: history.at(-2) ?? null }),
-    [history, go, back],
-  );
+  const value = useMemo<Nav>(() => {
+    const { stack, returned } = history;
+    const { route, id } = stack.at(-1)!;
+    let here = kept.current.get(id);
+    if (!here) kept.current.set(id, (here = new Map()));
+    return {
+      route,
+      place: id,
+      returned,
+      go,
+      replace: (next: Route) => replaceAt(id, next),
+      back,
+      canGoBack: stack.length > 1,
+      previous: stack.at(-2)?.route ?? null,
+      kept: here,
+    };
+  }, [history, go, replaceAt, back]);
   return <NavContext.Provider value={value}>{children}</NavContext.Provider>;
 }
 
@@ -71,4 +139,21 @@ export function useNav(): Nav {
   const nav = useContext(NavContext);
   if (!nav) throw new Error("NavProvider is missing");
   return nav;
+}
+
+/**
+ * Like `useState`, for a choice the screen's route doesn't carry (a list's "Selesai", the semester open):
+ * kept in its place in history, so Back finds it as the Student left it; a new visit starts from `initial`.
+ */
+export function usePlaceState<T>(key: string, initial: T): [T, (next: T) => void] {
+  const { kept } = useNav();
+  const [value, setValue] = useState<T>(() => (kept.has(key) ? (kept.get(key) as T) : initial));
+  const set = useCallback(
+    (next: T) => {
+      kept.set(key, next);
+      setValue(next);
+    },
+    [kept, key],
+  );
+  return [value, set];
 }

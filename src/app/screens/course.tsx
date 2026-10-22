@@ -30,6 +30,7 @@ import { Menu } from "../ui/menu";
 import { CountdownBar } from "../ui/meter";
 import { NowCard, NowLine, NowZone } from "../ui/now-card";
 import { toast } from "../ui/overlays";
+import { PanelBoundary } from "../ui/panel-boundary";
 import { TabBar } from "../ui/tabs";
 import { type CoursePage, useCoursePage } from "./course/data";
 import { GradesTab } from "./course/grades";
@@ -40,11 +41,28 @@ import { ModulesTab } from "./course/modules";
 const TABS = ["modules", "meetings", "tasks", "grades", "announcements"] as const;
 type Tab = (typeof TABS)[number];
 
-/** `module`: open the Modul tab on this Edunex module (search and alerts name one). */
+/**
+ * `tab` and `module`: what the page shows, kept in its place in history (nav.replace) as the Student picks
+ * them, so Back comes back to them. A module named on arrival (search, an alert, a Task's way up) comes into
+ * view once; one picked here, or come back to, leaves the page where it is.
+ */
 export function CourseScreen({ code, tab, module }: { code: string; tab?: string; module?: number }) {
   const t = useT();
   const page = useCoursePage(code);
-  const [current, setCurrent] = useState<Tab>(module === undefined && (TABS as readonly string[]).includes(tab ?? "") ? (tab as Tab) : "modules");
+  const { replace, returned } = useNav();
+  const current: Tab = (TABS as readonly string[]).includes(tab ?? "") ? (tab as Tab) : "modules";
+  const [asked, setAsked] = useState(module !== undefined && !returned);
+  const show = (next: { tab: Tab; module?: number }) => {
+    setAsked(false);
+    replace({ screen: "course", code, ...next });
+  };
+  const pickTab = (next: Tab) => show({ tab: next, ...(module === undefined ? {} : { module }) });
+  // Each tab in its own crash guard: one that breaks leaves the tab bar, and the way to another tab.
+  const panel = (key: Tab, content: ReactNode) => (
+    <Tabs.Content value={key} className="focus-ring rounded-sm">
+      <PanelBoundary name={`course ${key}`}>{content}</PanelBoundary>
+    </Tabs.Content>
+  );
 
   if (page === undefined) return <Loading />;
   if (page === null)
@@ -67,7 +85,7 @@ export function CourseScreen({ code, tab, module }: { code: string; tab?: string
       <Header page={page} />
       <RiskStrip page={page} />
       <MeetingNow page={page} />
-      <Tabs.Root value={current} onValueChange={(value) => setCurrent(value as Tab)}>
+      <Tabs.Root value={current} onValueChange={(value) => pickTab(value as Tab)}>
         <TabBar
           value={current}
           label={page.course.code}
@@ -76,25 +94,31 @@ export function CourseScreen({ code, tab, module }: { code: string; tab?: string
         />
         <div className="pt-6">
           {/* Every tab keeps its panel while Edunex's part isn't here yet, so each tab still names the panel it controls. */}
-          <Tabs.Content value="modules" className="focus-ring rounded-sm">
-            {loaded ? <ModulesTab page={page} module={module} /> : <NotLoaded />}
-          </Tabs.Content>
-          <Tabs.Content value="meetings" className="focus-ring rounded-sm">
-            {loaded ? <MeetingsTab page={page} /> : <NotLoaded />}
-          </Tabs.Content>
-          <Tabs.Content value="tasks" className="focus-ring rounded-sm">
-            {loaded ? <TasksTab tasks={page.tasks} exams={page.exams} /> : <NotLoaded />}
-          </Tabs.Content>
-          <Tabs.Content value="announcements" className="focus-ring rounded-sm">
-            {loaded ? (
+          {panel(
+            "modules",
+            loaded ? (
+              <ModulesTab
+                page={page}
+                module={module}
+                asked={asked}
+                onShown={() => setAsked(false)}
+                onPick={(picked) => show({ tab: "modules", module: picked })}
+              />
+            ) : (
+              <NotLoaded />
+            ),
+          )}
+          {panel("meetings", loaded ? <MeetingsTab page={page} /> : <NotLoaded />)}
+          {panel("tasks", loaded ? <TasksTab tasks={page.tasks} exams={page.exams} /> : <NotLoaded />)}
+          {panel(
+            "announcements",
+            loaded ? (
               <AnnouncementsTab announcements={page.announcements} mainCourseId={page.course.edunex?.courseId ?? null} code={page.course.code} />
             ) : (
               <NotLoaded />
-            )}
-          </Tabs.Content>
-          <Tabs.Content value="grades" className="focus-ring rounded-sm">
-            <GradesTab page={page} onOpenModules={() => setCurrent("modules")} />
-          </Tabs.Content>
+            ),
+          )}
+          {panel("grades", <GradesTab page={page} onOpenModules={() => pickTab("modules")} />)}
         </div>
       </Tabs.Root>
     </Page>

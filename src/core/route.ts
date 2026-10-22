@@ -5,7 +5,8 @@ import { z } from "zod";
 
 export const Route = z.discriminatedUnion("screen", [
   z.object({ screen: z.literal("home") }),
-  z.object({ screen: z.literal("tasks") }),
+  // "Selesai" picked (Belum selesai, its default, goes unnamed): so Back from a handed-in Task finds it, and an alert for new Tasks opens on them.
+  z.object({ screen: z.literal("tasks"), show: z.literal("done").optional() }),
   z.object({ screen: z.literal("task"), taskId: z.number() }),
   z.object({ screen: z.literal("exam"), examId: z.string() }),
   z.object({ screen: z.literal("course"), code: z.string(), tab: z.string().optional(), module: z.number().optional() }),

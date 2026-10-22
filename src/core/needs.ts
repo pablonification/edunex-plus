@@ -21,7 +21,7 @@ import {
   presenceAction,
   presenceOptional,
 } from "./attendance";
-import { materialKind } from "./course-materials";
+import { introModule, materialKind } from "./course-materials";
 import { type AnnouncedMeeting, announcedMeetings, courseMeetings, wibDay } from "./course-meetings";
 import { dateVars, sameLocalDay, weekdayVars } from "./dates";
 import { type Exam, mergeExams } from "./exams";
@@ -777,7 +777,8 @@ export function recentChanges(world: HomeWorld | HomeContext, history: readonly 
           at: material.postedAt,
           title: { key: "alert.newMaterial", vars: { course: code } },
           body: { key: "alert.plain", vars: { title: material.title } },
-          target: { screen: "course", code, tab: "modules" },
+          // The module it's in, as the alert from the sync names it (alerts/changes.ts), never the course's newest.
+          target: { screen: "course", code, tab: "modules", module: material.moduleId ?? introModule(material.courseId) },
         });
   for (const session of context.schedule ?? []) {
     if (session.end <= now || session.start - now > AHEAD) continue;

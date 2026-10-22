@@ -35,7 +35,7 @@ import { useHomeWorld } from "../home-world";
 import { useOpenCheckIn, useOpenExternal } from "../hooks";
 import { type Format, type Translate, useFormat, useNow, useT } from "../i18n";
 import { firstName } from "../names";
-import { type Route, useNav } from "../nav";
+import { type Route, useNav, usePlaceState } from "../nav";
 import { openAlerts } from "../shell/alerts";
 import { useRefresh, useSignIn } from "../shell/source-status";
 import { canSnooze, refocus, SnoozeMenu } from "../snooze-menu";
@@ -818,7 +818,7 @@ function NeedsYou({ needs, due, courses }: { needs: readonly NeedDraft[]; due: r
     // "Hari ini"'s first, as the page reads: they're the soonest.
     return { shown: own.shown, snoozed: [...partitionSnoozed(due, snoozeKey, entries, now).snoozed, ...own.snoozed] };
   }, [needs, due, entries, now]);
-  const [listOpen, setListOpen] = useState(false);
+  const [listOpen, setListOpen] = usePlaceState("home.snoozedOpen", false);
   // Closed once nothing is put off, so the next snooze doesn't find the list open.
   if (listOpen && !snoozed.length) setListOpen(false);
   const snoozedLine = snoozed.length > 0 && <SnoozedLine count={snoozed.length} open={listOpen} onToggle={() => setListOpen(!listOpen)} />;

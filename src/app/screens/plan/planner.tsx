@@ -76,6 +76,7 @@ import {
 } from "../../../core/planner";
 import { useFocusNext } from "../../hooks";
 import { useFormat, useLang, useT } from "../../i18n";
+import { usePlaceState } from "../../nav";
 import { type PlanState, useCurriculumFix, usePlan, useStudentRecord } from "../../study-plan";
 import { Button, IconButton } from "../../ui/controls";
 import { cx } from "../../ui/cx";
@@ -516,7 +517,7 @@ function Past({ record, steps }: { record: StudentRecord; steps: ProjectedStep[]
   const t = useT();
   const f = useFormat();
   const termLabel = useTermLabel();
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = usePlaceState("planner.past", false);
   const id = useId();
   if (!steps.length) return null;
   const ipk = record.transcript ? (record.transcript.ipk.six ?? record.transcript.ipk.computed) : null;
@@ -956,7 +957,7 @@ function Rules({ record, rules, plan, undoable }: { record: StudentRecord; rules
   const focusNext = useFocusNext();
   const setFix = useCurriculumFix();
   const notContinuingItems = useNotContinuing(record, plan, undoable);
-  const [showHidden, setShowHidden] = useState(false);
+  const [showHidden, setShowHidden] = usePlaceState("planner.hidden", false);
   const minor = activeMinor(record, plan);
   const spec = activeSpecialization(record, plan);
   const shownAgain = (title: string, edit: (p: StudyPlan) => StudyPlan) => () => undoable(edit, t("planner.shownDone", { title }));

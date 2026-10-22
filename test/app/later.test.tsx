@@ -49,16 +49,16 @@ class Guard extends Component<{ children: ReactNode }, { failed: boolean }> {
   }
 }
 
-/** The shell's shape: a fallback that must never show, around the screen's own guard, keyed by the route. */
+/** The shell's shape: a fallback that must never show, around the screen's own guard, keyed by its place in history. */
 function Window({ later: Later }: { later: Later<object> }) {
-  const { route, go } = useNav();
+  const { route, place, go } = useNav();
   return (
     <>
       <button type="button" onClick={() => go({ screen: "grades" })}>
         Nilai
       </button>
       <Suspense fallback={<p>Blank</p>}>
-        <Guard key={route.screen}>{route.screen === "home" ? <p>Beranda</p> : <Later />}</Guard>
+        <Guard key={place}>{route.screen === "home" ? <p>Beranda</p> : <Later />}</Guard>
       </Suspense>
     </>
   );

@@ -383,7 +383,7 @@ Screens are composed, not styled one by one:
 | `ShareMeter`, `CountdownBar` (`ui/meter.tsx`) | Status-colored meters: attendance against the course's target, a tick (the best still reachable as an optional ghost), always under a label that says what it measures; time left in a window, shrinking, amber in its last 15 minutes, its words under the bar when there's no room beside it. |
 | `Stepper` (`ui/controls.tsx`) | A number stepped between bounds (an attendance target, 50–100% by 5): − and + with names, the value read out when it changes. |
 | `Segmented`, `useRadioKeys` (`ui/controls.tsx`) | A few choices, one picked (the theme, Minggu/Bulan, the IPK target): a radio group whose highlight glides to the pick. Arrow keys move the choice; only the picked one is a Tab stop (the first while none is). An option takes a longer `name` where its label is too short to read alone ("Target IPK 3,50"). Other radio groups of the screen's own buttons (filter chips) get the same keys from `useRadioKeys`. |
-| `TabBar` (`ui/tabs.tsx`) | The tabs of a screen or dialog, inside the screen's own `Tabs.Root` with its panels in `Tabs.Content`, so each tab names its panel: names, an optional quiet count, one underline that glides to the picked tab. The panel swaps at once. `sm` inside a dialog. Tabs that don't fit scroll sideways in their own frame, each name on one line. |
+| `TabBar` (`ui/tabs.tsx`) | The tabs of a screen or dialog, inside the screen's own `Tabs.Root` with its panels in `Tabs.Content`, so each tab names its panel: names, an optional quiet count, one underline that glides to the picked tab. The panel swaps at once, in its own crash guard; a screen's tab is in its route, so Back comes back to it. `sm` inside a dialog. Tabs that don't fit scroll sideways in their own frame, each name on one line. |
 | `TimeGrid`, `GridBlock` (`ui/time-grid.tsx`) | A week as a time grid: height is duration, shared time side by side, empty days narrow, periods tinted and named, a now line (blue, as today's date). A busy day keeps room for its blocks' time and code (6.25rem, 7rem a block in a clash); where the window can't fit them, the grid scrolls sideways in its own frame. A block that has ended is quieter in token greys on `bg-sunken`, never faded with opacity. |
 | `RichEditor` (`ui/rich-editor.tsx`) | A box for writing formatted text (a Task's answer): bold, italic, lists, a link, a quote, undo and redo; pasting keeps only simple formatting. Loaded lazily with the screen that uses it (TipTap underneath); it holds only what Edunex's own editor writes, never pictures, tables or embeds. |
 | `RichText`, `WebLink` (`ui/rich-text.tsx`) | What a lecturer wrote (notes, Task instructions), rebuilt safely from its HTML as Edunex shows it: formatting, lists, tables, figures; a link says where it goes on hover and focus and opens in the browser; pictures from Edunex's storage come in through the app (`LecturerHtml`, `RemoteImage`), with a placeholder while loading and the reason when one can't show. A long note folds with "Tampilkan semua". |
@@ -470,6 +470,12 @@ URS stay as they are in both languages.
   its title, so the keyboard and a screen reader carry on from its top; a
   screen picked in the sidebar leaves focus there. A jump within a screen (a
   study-plan rule) moves focus with it.
+- Back comes back to a screen as the Student left it: the same tab, module,
+  "Selesai" or semester open, scrolled where it was (`nav.tsx`: `replace` for
+  what other screens link to, `usePlaceState` for the rest). Picking a tab or
+  a module adds no step to Back and leaves the page where it is; a new visit
+  starts from the screen's default, at its top. The sidebar and ⌘1–6, on the
+  place already open, keep it as it is.
 - Reduced motion is respected everywhere, a scroll the app starts included.
 - The problem banner arrives in a live region that is always there, so it is
   read out; it wraps rather than cuts its text.
