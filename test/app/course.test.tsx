@@ -724,7 +724,7 @@ describe("meetings", () => {
   it("without SIX, Edunex's tally is a fact: it doesn't claim to count, nothing is amber, and SIX is a click away", async () => {
     const s = await openCourse("PL3002");
     await tab(/^Pertemuan/);
-    expect(s.text()).toContain("Edunex: hadir 1 dari 6 Presensi");
+    expect(s.text()).toContain("Hadir 1 dari 6 di Edunex");
     expect(s.text()).toContain("Hitungan resmi ada di SIX. Hubungkan SIX untuk tahu kehadiran mana yang dihitung.");
     expect(s.text()).not.toContain("dicatat lewat Presensi Edunex");
     const unrecorded = [...document.querySelectorAll("main ol li span")].filter((el) => el.textContent === "Tidak tercatat di Edunex");
@@ -978,6 +978,6 @@ describe("in English", () => {
     await s.engineDoes(() => s.engine.updateSettings({ lang: "en" }));
     expect(s.text()).toContain("On now · until 10:00");
     expect(s.text()).not.toContain("In progress");
-    expect(s.text()).toContain("Your attendance counts in SIX; this Presence is optional.");
+    expect(s.text()).toContain("Your attendance counts in SIX. This Presence is optional.");
   });
 });

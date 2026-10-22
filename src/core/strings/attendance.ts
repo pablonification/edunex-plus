@@ -54,6 +54,11 @@ export const attendanceStrings = {
   "presence.day.all": { id: "Semuanya masih ada jatah absen.", en: "Each has an absence to spare." },
   "presence.day.one": { id: "Masih ada jatah absen.", en: "It has an absence to spare." },
   "presence.day.none": { id: "Tak ada yang masih punya jatah absen.", en: "None has an absence to spare." },
+  // Some of the day's courses have no SIX count yet: only those with one are named.
+  "presence.day.some": {
+    id: "{codes} masih ada jatah absen.",
+    en: { one: "{codes} has an absence to spare.", other: "{codes} have an absence to spare." },
+  },
   "presence.day.oneNone": { id: "Jatah absennya sudah habis.", en: "It has no absences left." },
   "presence.day.next": { id: "Tak ada kuliah hari ini dan besok. Berikutnya {day}.", en: "No classes today or tomorrow. Your next is {day}." },
   "presence.ended": { id: "Kuliah berakhir {date}.", en: "Lectures ended {date}." },
@@ -242,8 +247,8 @@ export const attendanceStrings = {
   "presence.six.absentOn": { id: "SIX mencatatmu tidak hadir di {code} {day}", en: "SIX marked you absent in {code} on {day}" },
   "presence.six.missingOn": { id: "SIX belum menghitung kuliah {code} {day}", en: "SIX hasn't counted the {code} class on {day}" },
   "presence.six.absentOut": {
-    id: "Kalau kamu tadi hadir, minta dosen membetulkannya hari ini. Sampai dibetulkan, {code} tak bisa capai {target}%.",
-    en: "If you were in class, ask your lecturer to fix it today. Until then, {code} can't reach {target}%.",
+    id: "Kalau kamu hadir di kuliah itu, minta dosen membetulkannya. Sampai dibetulkan, {code} tak bisa capai {target}%.",
+    en: "If you were in class, ask your lecturer to fix it. Until then, {code} can't reach {target}%.",
   },
   "presence.six.counted": { id: "{codes} sudah dihitung di SIX hari ini.", en: "{codes} counted in SIX today." },
   "presence.six.countedLate": { id: "{code} akhirnya dihitung di SIX.", en: "{code} counted in SIX after all." },
@@ -255,7 +260,7 @@ export const attendanceStrings = {
   // An Edunex Presence window open now that counts
   "presence.open.title": { id: "Presensi yang dibuka sekarang", en: "Presence open now" },
   "presence.now": { id: "Perlu perhatianmu sekarang", en: "Needs you now" },
-  "presence.open.do": { id: "{action} sebelum {time}", en: "{action} before {time}" },
+  "presence.open.do": { id: "{action} sebelum {time}", en: "{action} by {time}" },
   "presence.open.counts": { id: "{code} · dicatat lewat Presensi Edunex", en: "{code} · recorded through Edunex Presence" },
   "presence.open.notKnown": {
     id: "{code} · belum tahu dihitung di mana. Mengisinya tidak ada ruginya.",
@@ -301,7 +306,7 @@ export const attendanceStrings = {
     en: "ITB has no institute-wide minimum. Set each course's target to the minimum in its course contract.",
   },
   "presence.how.check": {
-    id: "Setelah tiap kuliah, aplikasi memeriksa hitungan SIX bertambah, dan memberi tahu hari itu juga jika tidak.",
+    id: "Setelah tiap kuliah, aplikasi memeriksa apakah hitungan SIX bertambah, dan memberi tahu hari itu juga jika tidak.",
     en: "After each class the app checks that SIX's count went up, and tells you the same day if it didn't.",
   },
   "presence.openSix": { id: "Buka jadwal di SIX", en: "Open the timetable in SIX" },

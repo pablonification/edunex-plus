@@ -612,7 +612,7 @@ describe("the next class day, on top of Presensi", () => {
 
   it("today while a class of today hasn't ended: how many, and which can spare one", () => {
     const now = wib("2026-10-08T08:07:00");
-    expect(dayAnswer(courses(now), schedule, period, now)).toEqual({ kind: "day", day: "today", count: 3, spare: { codes: ["PL3002"], of: 3 } });
+    expect(dayAnswer(courses(now), schedule, period, now)).toEqual({ kind: "day", day: "today", count: 3, spare: { codes: ["PL3002"], of: 3, courses: 3 } });
   });
 
   it("tomorrow once today's classes are over", () => {
@@ -631,9 +631,17 @@ describe("the next class day, on top of Presensi", () => {
   it("every course with a spare, none, and none counted yet", () => {
     const now = wib("2026-10-08T07:00:00");
     const spare = [health("PL3002", 6, now)];
-    expect(dayAnswer(spare, schedule, period, now)).toMatchObject({ spare: { codes: ["PL3002"], of: 1 }, count: 1 });
-    expect(dayAnswer([health("KU5014", 2, now)], schedule, period, now)).toMatchObject({ spare: { codes: [], of: 1 } });
+    expect(dayAnswer(spare, schedule, period, now)).toMatchObject({ spare: { codes: ["PL3002"], of: 1, courses: 1 }, count: 1 });
+    expect(dayAnswer([health("KU5014", 2, now)], schedule, period, now)).toMatchObject({ spare: { codes: [], of: 1, courses: 1 } });
     expect(dayAnswer([health("PL3002", null, now)], schedule, period, now)).toMatchObject({ spare: null });
+  });
+
+  it("past SIX's timetable, the weekly slot carried on is a class too", () => {
+    // Wednesday 4 November, evening: SIX's timetable ends with October, so tomorrow's Thursday class is the weekly slot carried on.
+    const october = schedule.filter((s) => s.start < wib("2026-11-01T00:00:00"));
+    const now = wib("2026-11-04T20:00:00");
+    const pl = attendanceHealth({ code: "PL3002", six: { attended: 6, held: 7 }, presence: [], schedule: october, period, target: 80, now });
+    expect(dayAnswer([pl], october, period, now)).toMatchObject({ kind: "day", day: "tomorrow", count: 1 });
   });
 
   it("after the last lecture day: when lectures ended", () => {
@@ -666,8 +674,10 @@ describe("what SIX's count did after each class", () => {
   it("absent or missing only once SIX was read after the gate", () => {
     const missing = log(["2026-10-07T10:00:00", 6, 7]);
     expect(classResults({}, missing, classes, wib("2026-10-08T12:59:00"), wib("2026-10-08T12:59:00"))).toEqual({});
-    // Past the gate, but SIX last read before it: nothing said.
-    expect(classResults({}, missing, classes, wib("2026-10-08T13:30:00"), wib("2026-10-08T12:00:00"))).toEqual({});
+    // Past the gate, but SIX not read since the class: a quiet SIX isn't one that didn't count.
+    expect(classResults({}, missing, classes, wib("2026-10-08T13:30:00"), wib("2026-10-08T09:59:00"))).toEqual({});
+    // Read after the class ended: said once the gate has passed.
+    expect(classResults({}, missing, classes, wib("2026-10-08T13:30:00"), wib("2026-10-08T12:00:00"))[thu.id]).toMatchObject({ result: "missing" });
     const at = wib("2026-10-08T13:05:00");
     expect(classResults({}, missing, classes, at, at)[thu.id]).toMatchObject({ result: "missing", at });
     const absent = log(["2026-10-07T10:00:00", 6, 7], ["2026-10-08T11:00:00", 6, 8]);
@@ -713,6 +723,18 @@ describe("what SIX's count did after each class", () => {
     const at = wib("2026-10-08T10:31:00");
     const results = classResults({}, log(["2026-10-07T10:00:00", 6, 7], ["2026-10-08T10:30:00", 7, 8]), classes, at, at);
     expect(classResults(results, {}, classes, at + 15 * DAY, at + 15 * DAY)).toEqual({});
+  });
+
+  it("the count's history drops a course SIX no longer lists", () => {
+    const log = appendCount(
+      {},
+      [
+        { code: "PL3002", attendance: { attended: 6, held: 7 } },
+        { code: "XX1000", attendance: { attended: 1, held: 1 } },
+      ],
+      1,
+    );
+    expect(Object.keys(appendCount(log, [{ code: "PL3002", attendance: { attended: 6, held: 7 } }], 2))).toEqual(["PL3002"]);
   });
 
   it("the count's history keeps the changes only, the last 30 per course", () => {

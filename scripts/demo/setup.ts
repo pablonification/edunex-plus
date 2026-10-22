@@ -32,7 +32,10 @@ const platform = process.env.EDUNEX_DEMO_PLATFORM as DemoHooks["platform"];
 if (platform && !["darwin", "win32", "linux"].includes(platform)) throw new Error(`Unknown EDUNEX_DEMO_PLATFORM "${platform}"`);
 
 // Signed-in demos start a few minutes early: the first sync (SIX at a page every two seconds, ITB's catalog) is played fast before the window opens.
-const start = process.env.EDUNEX_DEMO_NOW ?? (scenario === "first-run" ? "2026-10-08T08:10:00+07:00" : "2026-10-08T08:07:00+07:00");
+// Played on through the day, it starts before the morning's class, so the app watches it from the start.
+const start =
+  process.env.EDUNEX_DEMO_NOW ??
+  (scenario === "first-run" ? "2026-10-08T08:10:00+07:00" : process.env.EDUNEX_DEMO_AFTER_CLASS ? "2026-10-08T07:30:00+07:00" : "2026-10-08T08:07:00+07:00");
 const world = new PretendWorld({ now: start });
 if (process.env.EDUNEX_DEMO_CHECK_IN === "open") world.six.openCheckIn("2194342");
 const afterClass = process.env.EDUNEX_DEMO_AFTER_CLASS;

@@ -333,8 +333,9 @@ describe("the course page's attendance banner", () => {
     const banner = () => document.querySelector("main .bg-danger-bg")?.textContent ?? "";
     const header = () => document.querySelector("main header")?.textContent ?? "";
     expect(banner()).toContain("Tak bisa lagi capai 80%");
-    // Said once: the banner has it, so the header only counts.
+    // The banner says what to do; the header's bar and words say how far, without the banner's words.
     expect(header()).not.toContain("Tak bisa lagi capai 80%");
+    expect(header()).toMatch(/Terpakai 4× · lebih \d× untuk 80%/);
     expect(s.button(/^Ingatkan nanti: KU5014: /).textContent).toBe("Ingatkan nanti");
 
     await snooze("KU5014: Tak bisa lagi capai 80%", "Sebelum kuliah berikutnya");
@@ -345,7 +346,7 @@ describe("the course page's attendance banner", () => {
     expect(document.activeElement).not.toBe(document.body);
     expect(document.querySelector("main")?.contains(document.activeElement)).toBe(true);
     // The header still says where attendance stands, in words, not by its color alone.
-    expect(header()).toContain("Tak bisa lagi capai 80%");
+    expect(header()).toMatch(/Terpakai 4× · lebih \d× untuk 80%/);
 
     await s.click([...document.querySelectorAll<HTMLButtonElement>("aside nav button")].find((b) => b.textContent?.startsWith("Beranda"))!);
     expect(titles().some((t) => t.startsWith("KU5014"))).toBe(false);

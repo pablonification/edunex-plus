@@ -136,17 +136,26 @@ export function TargetsPanel({
   const t = useT();
   const { target, own, setDefault, setOwn } = useTargets();
   const panel = `targets-panel`;
+  const close = (next: boolean) => {
+    onOpenChange(next);
+    // Opened from a row whose "Ubah target" went with the change (the course is back in reach): focus lands on the Targets button.
+    if (!next)
+      setTimeout(() => {
+        if (document.activeElement === document.body || !document.activeElement?.isConnected)
+          document.querySelector<HTMLElement>("[data-targets-trigger]")?.focus();
+      }, 0);
+  };
   const tabOut = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.key !== "Tab" || event.shiftKey) return;
     const controls = [...event.currentTarget.querySelectorAll<HTMLElement>("button:not([disabled])")];
     if (document.activeElement !== controls.at(-1)) return;
     event.preventDefault();
-    onOpenChange(false);
+    close(false);
   };
   return (
     <Popover
       open={open}
-      onOpenChange={onOpenChange}
+      onOpenChange={close}
       label={t("settings.attendance.target")}
       align="end"
       className="w-[min(340px,calc(100vw-40px))] p-4"
@@ -263,15 +272,17 @@ export function AbsenceBudget({
 }) {
   const t = useT();
   const words = budgetWords(t, health, soFar);
+  const share = health.held ? percent(health.attended ?? 0, health.held) : 0;
+  const over = health.state === "met" || health.state === "missed";
   const count =
     place === "header" && health.held ? (
       <p className="mt-0.5 text-caption text-faint tabular-nums">
-        {t("presence.row.count", { attended: health.attended ?? 0, held: health.held, percent: percent(health.attended ?? 0, health.held) })}
+        {over ? t("presence.row.final", { percent: share }) : t("presence.row.count", { attended: health.attended ?? 0, held: health.held, percent: share })}
       </p>
     ) : null;
   if (!words) {
     // Lectures over: the final word, calm, instead of a budget.
-    if (place === "row" || (health.state !== "met" && health.state !== "missed")) return null;
+    if (place === "row" || !over) return null;
     return (
       <div className={cx("min-w-0", className)}>
         <p className={cx("text-small font-semibold", STATE_TONE[health.state])}>{budgetLabel(t, health)}</p>
@@ -291,7 +302,8 @@ export function AbsenceBudget({
     />
   );
   const text = (
-    <Meta className="text-small text-muted tabular-nums">
+    // On a row the words sit at its end: each "·" goes with the fact before it, so a wrapped line still ends right.
+    <Meta align={place === "row" ? "end" : "start"} className="text-small text-muted tabular-nums">
       {words.lead ?? ""}
       <span className={cx("font-semibold", BAR_TEXT[words.tone])}>{words.bold}</span>
       {own ? t("presence.row.ownTarget", { value: health.target }) : ""}

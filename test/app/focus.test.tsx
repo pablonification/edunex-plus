@@ -85,6 +85,22 @@ describe("focus when the focused control goes", () => {
     expect(document.activeElement).toBe(opener);
   });
 
+  it("Presensi's Targets panel opened from a row: when the change takes that row's button away, focus lands on the Targets button", async () => {
+    screen = await openApp({ signedIn: true, six: true });
+    await screen.click(/^Presensi/);
+    const change = screen.button("Ubah target: KU5014");
+    change.focus();
+    await screen.click(change);
+    expect(document.activeElement?.getAttribute("aria-label")).toBe("Turunkan target KU5014");
+    // 70%: KU5014 is back in reach, so its row no longer offers "Ubah target".
+    await screen.click("Turunkan target KU5014");
+    await screen.click("Turunkan target KU5014");
+    expect(screen.has("Ubah target: KU5014")).toBe(false);
+    await screen.key("Escape");
+    await tick();
+    expect(document.activeElement).toBe(screen.button(/^Target70–80%$/));
+  });
+
   it("Presensi's rows hold still while a target is being changed, and sort again once the panel closes", async () => {
     screen = await openApp({ signedIn: true, six: true });
     await screen.click(/^Presensi/);

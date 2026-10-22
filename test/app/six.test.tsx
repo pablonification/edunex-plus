@@ -58,8 +58,7 @@ describe("first run", () => {
     expect(cards()).toHaveLength(5);
     expect(card("DK4073")).toContain("Komunikasi Pemasaran");
     expect(card("DK4073")).toContain("Kelas 01 · 3 SKS");
-    expect(card("DK4073")).toContain("4/6");
-    expect(card("DK4073")).toContain("66%");
+    expect(card("DK4073")).toContain("Terpakai 2× · habis");
     await edunexLive();
     await sixLive();
   });
@@ -97,7 +96,11 @@ describe("Home with both systems", () => {
     };
     for (const [code, facts] of Object.entries(expected)) for (const fact of facts) expect(card(code)).toContain(fact);
     // No share on a card: nothing that could seem to disagree with the bar.
-    expect(cards().join(" ")).not.toMatch(/\d+\/\d+|\d+%(?! *$)(?!.*untuk)/);
+    for (const text of cards()) {
+      expect(text).not.toMatch(/\d+\/\d+/);
+      // The only percent a card may name is the target.
+      expect([...text.matchAll(/(\d+)%/g)].every((m) => m[1] === "80")).toBe(true);
+    }
     // SIX's (Indonesian) names, and Edunex's course page for each.
     expect(card("PL3032")).toContain("Ekonomi Infrastruktur dan Transportasi");
     expect(screen.has("Buka di Edunex: PL3032")).toBe(true);
@@ -137,7 +140,7 @@ describe("Home with both systems", () => {
     screen = await openApp({ world, signedIn: true, six: true });
     expect(cards()).toHaveLength(5);
     expect(card("PL3032")).toContain("Tidak ada di Edunex");
-    expect(card("PL3032")).toContain("4/7");
+    expect(card("PL3032")).toContain("Terpakai 3× · habis");
     expect(screen.has("Buka di Edunex: PL3032")).toBe(false);
     await screen.click("Buka di SIX: PL3032");
     expect(screen.calls.at(-1)).toEqual({ name: "shell.openExternal", input: { url: "https://six.itb.ac.id/app/mahasiswa:18223901/statusmhs" } });
@@ -174,7 +177,7 @@ describe("each system on its own", () => {
     expect(screen.text()).toContain("Sesi SIX berakhir. Data terakhir tetap bisa dibaca.");
     await edunexLive();
     expect(await screen.sourceState("SIX")).toBe("Sesi berakhir");
-    expect(card("DK4073")).toContain("4/6");
+    expect(card("DK4073")).toContain("Terpakai 2× · habis");
     screen.world.six.sessionValid = true;
     await screen.click("Masuk lagi");
     expect(screen.text()).not.toContain("Sesi SIX berakhir");
@@ -188,7 +191,7 @@ describe("each system on its own", () => {
     expect(screen.text()).toContain("Sesi Edunex berakhir.");
     await sixLive();
     expect(cards()).toHaveLength(5);
-    expect(card("PL3002")).toContain("6/7");
+    expect(card("PL3002")).toContain("Terpakai 1× · sisa 1×");
   });
 
   it("SIX changing something says so and keeps the last courses", async () => {
@@ -197,7 +200,7 @@ describe("each system on its own", () => {
     await refreshSix();
     expect(screen.text()).toContain("SIX berubah");
     expect(screen.text()).toContain("SIX mengirim data yang tidak dikenali.");
-    expect(card("DK4073")).toContain("4/6");
+    expect(card("DK4073")).toContain("Terpakai 2× · habis");
     await edunexLive();
   });
 
@@ -206,7 +209,7 @@ describe("each system on its own", () => {
     screen.world.six.rateLimit(1);
     await refreshSix();
     expect(await screen.sourceState("SIX")).toBe("Tidak terhubung");
-    expect(card("DK4073")).toContain("4/6");
+    expect(card("DK4073")).toContain("Terpakai 2× · habis");
   });
 });
 

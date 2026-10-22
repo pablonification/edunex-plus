@@ -7,7 +7,7 @@
 // - No absences left, or the target out of reach: once each time a course's
 //   SIX count moves it into that state, against the course's own target.
 //   Changing a target never alerts: the Student is looking right at it.
-import { afterClass, attendanceHealth, isExamActivity, lecturePeriod, percent, resultGate, targetFor } from "../../core/attendance";
+import { attendanceHealth, isExamActivity, judgeClass, lecturePeriod, percent, resultGate, targetFor } from "../../core/attendance";
 import { wibDay } from "../../core/course-meetings";
 import type { SixCourse } from "../../core/models";
 import type { AlertDraft, Detector, DetectorContext, PlannedAlert } from "./detector";
@@ -20,34 +20,36 @@ const sixTerm = ({ get }: Read) => get("six.student")?.term ?? null;
 /**
  * SIX's count over time comes from the saved log (`six.countLog`, written by
  * the status feed before each new count lands), so a class is judged the same
- * after a restart, the same day only. Signing out of SIX, or another Student,
- * starts the log over.
+ * after a restart, the same day only, and by the same rule as Presensi
+ * (`judgeClass`): never a class from before the app watched, never one whose
+ * count can't be told apart from another class's. Signing out of SIX, or
+ * another Student, starts the log over.
  */
 export function sixNotCounting(): Detector {
   return {
     name: "attendance.sixNotCounting",
-    watches: ["six.courses", "six.schedule", "six.countLog"],
+    watches: ["six.courses", "six.schedule", "six.countLog", "six.classResults"],
     plan(context) {
       const courses = sixCourses(context) ?? [];
+      const schedule = sixSchedule(context);
       const log = context.get("six.countLog") ?? {};
+      const results = context.get("six.classResults") ?? {};
+      // Only a count read after the class says anything: SIX offline or signed out isn't SIX not counting.
+      const read = context.fetchedAt("six.courses");
+      if (read === null) return [];
       const planned: PlannedAlert[] = [];
       const today = wibDay(context.now);
-      for (const session of sixSchedule(context)) {
+      for (const session of schedule) {
         if (isExamActivity(session.activity) || wibDay(session.start) !== today) continue;
         const count = courses.find((c) => c.code === session.courseCode)?.attendance;
-        const before = log[session.courseCode]?.filter((c) => c.at <= session.start).at(-1);
-        if (!count || !before) continue;
-        // Only a count read after the class says anything: SIX offline or signed out isn't SIX not counting.
-        const read = context.fetchedAt("six.courses");
-        if (read === null || read <= session.end) continue;
-        const result = afterClass(before, count);
-        if (result === "counted") continue;
+        const judged = judgeClass(session, schedule, log, results, read);
+        if (!count || !judged || judged.result === "counted") continue;
         planned.push({
           id: `six.notCounted:${session.id}`,
           kind: "attendanceRisk",
           source: "six",
           ...resultGate(session),
-          title: { key: result === "absent" ? "alert.six.absent" : "alert.six.missing", vars: { course: session.courseCode } },
+          title: { key: judged.result === "absent" ? "alert.six.absent" : "alert.six.missing", vars: { course: session.courseCode } },
           body: { key: "alert.six.body", vars: { attended: count.attended, held: count.held } },
           target: { screen: "presence" },
         });

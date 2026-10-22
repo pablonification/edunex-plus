@@ -73,7 +73,6 @@ export function PresenceScreen() {
   };
   const zone = nowZone(attendance, { now, student, checkIns, events: calendar?.events ?? [] });
   const lectures = attendance.lastDay !== null && wibDay(now) > attendance.lastDay;
-  const counted = courses.some((c) => c.health.held);
   const context: RowContext = {
     now,
     student,
@@ -101,7 +100,7 @@ export function PresenceScreen() {
               onOpenChange={(open) => openTargets(open)}
               focus={targets.focus}
               trigger={
-                <Button icon={<Icons.Target className="size-3.5" />}>
+                <Button icon={<Icons.Target className="size-3.5" />} data-targets-trigger="">
                   {t("presence.targets.button")}
                   <span className="font-normal text-muted tabular-nums">{targetRange(courses)}</span>
                 </Button>
@@ -131,7 +130,7 @@ export function PresenceScreen() {
         )}
       </div>
 
-      {courses.length > 0 && sixConnected && !lectures && counted && <Footer attendance={attendance} />}
+      {courses.length > 0 && sixConnected && !lectures && <Footer attendance={attendance} />}
       {courses.length > 0 && <HowCounted lastDay={attendance.lastDay} />}
     </Page>
   );
@@ -167,8 +166,17 @@ function groupsOf(courses: readonly CourseAttendance[], signedOut: boolean, stil
       group,
       items: codes.map((code) => byCode.get(code)).filter((c): c is CourseAttendance => c !== undefined),
     }));
-    const added = courses.filter((c) => !placed.has(c.course.code));
-    return added.length ? [...frozen, ...groupsOf(added, signedOut, null)] : frozen;
+    // A course that appears meanwhile joins its group's end (or a group of its own), never a second copy of a group.
+    for (const extra of groupsOf(
+      courses.filter((c) => !placed.has(c.course.code)),
+      signedOut,
+      null,
+    )) {
+      const same = frozen.find((g) => g.group === extra.group);
+      if (same) same.items.push(...extra.items);
+      else frozen.push(extra);
+    }
+    return frozen;
   }
   return GROUP_ORDER.map((group) => ({
     group,
@@ -220,8 +228,9 @@ const GROUP_ICON: Record<PresenceGroup, ReactNode> = {
 function GroupTitle({ group, items }: { group: PresenceGroup; items: readonly CourseAttendance[] }) {
   const t = useT();
   return (
-    <span className="inline-flex items-center gap-2">
-      {GROUP_ICON[group]}
+    // Lined up on the words' baseline, so the count after it sits on the same line.
+    <span className="inline-flex items-baseline gap-2">
+      <span className="self-center">{GROUP_ICON[group]}</span>
       {groupLabel(t, group, items)}
     </span>
   );
@@ -245,15 +254,20 @@ function DayLine({ attendance }: { attendance: Attendance }) {
   if (answer.kind === "next") return <span>{t("presence.day.next", { day: dayLabel(f, answer.at) })}</span>;
   const first = t(answer.day === "today" ? "presence.day.today" : "presence.day.tomorrow", { count: answer.count });
   const { spare } = answer;
+  // Said only of the courses SIX has a count for; with some still uncounted, they're named instead of "only" or "each".
   const second = !spare
     ? ""
-    : spare.of === 1
-      ? t(spare.codes.length ? "presence.day.one" : "presence.day.oneNone")
-      : spare.codes.length === spare.of
-        ? t("presence.day.all")
-        : spare.codes.length === 0
-          ? t("presence.day.none")
-          : t("presence.day.only", { codes: f.list(spare.codes), count: spare.codes.length });
+    : spare.of < spare.courses
+      ? spare.codes.length
+        ? t("presence.day.some", { codes: f.list(spare.codes), count: spare.codes.length })
+        : ""
+      : spare.of === 1
+        ? t(spare.codes.length ? "presence.day.one" : "presence.day.oneNone")
+        : spare.codes.length === spare.of
+          ? t("presence.day.all")
+          : spare.codes.length === 0
+            ? t("presence.day.none")
+            : t("presence.day.only", { codes: f.list(spare.codes), count: spare.codes.length });
   return <span>{second ? `${first} ${second}` : first}</span>;
 }
 
@@ -779,10 +793,10 @@ function Exception({ item, context }: { item: CourseAttendance; context: RowCont
   }
   // 6–7. What the next class's Edunex window asks, where Edunex keeps the count too.
   const next = health.left.next;
-  if (nextWindow && nextWindow.action.activity !== "course") {
+  if (nextWindow && (nextWindow.action.activity !== "course" || health.countedIn === "edunex")) {
     const label = actionLabel(nextWindow);
     const time = f.time(nextWindow.session.closesAt);
-    if (health.countedIn === "both" && next && wibDay(nextWindow.session.opensAt) === wibDay(next.start))
+    if (health.countedIn === "both" && nextWindow.action.activity !== "course" && next && wibDay(nextWindow.session.opensAt) === wibDay(next.start))
       return <Quiet>{t("presence.record.bothDo", { action: label.charAt(0).toLowerCase() + label.slice(1), time })}</Quiet>;
     if (health.countedIn === "edunex") {
       const assignment = nextWindow.action.activity === "assignment";

@@ -458,11 +458,12 @@ export function clashPick(a: AttendanceHealth, b: AttendanceHealth): ClashPick {
  * spare."). The day is today while a class of today hasn't ended, else
  * tomorrow; with neither, the next class at all (SIX's, else the weekly slot
  * carried on). Exams aren't classes. After ITB's last lecture day, the day
- * lectures ended. `spare`: the day's courses with an absence to spare, of
- * those with a SIX count (null when none has one yet).
+ * lectures ended. `spare`: the day's courses with an absence to spare, `of`
+ * those with a SIX count, among the day's `courses` (null when none has a
+ * count yet).
  */
 export type DayAnswer =
-  | { kind: "day"; day: "today" | "tomorrow"; count: number; spare: { codes: string[]; of: number } | null }
+  | { kind: "day"; day: "today" | "tomorrow"; count: number; spare: { codes: string[]; of: number; courses: number } | null }
   | { kind: "next"; at: number }
   | { kind: "ended"; lastDay: string };
 
@@ -474,16 +475,22 @@ export function dayAnswer(
 ): DayAnswer | null {
   if (period && wibDay(now) > period.lastDay) return { kind: "ended", lastDay: period.lastDay };
   const mine = new Map(courses.map((h) => [h.code, h]));
-  const classes = schedule.filter((s) => mine.has(s.courseCode) && !isExamActivity(s.activity) && (!period || wibDay(s.start) <= period.lastDay));
+  // SIX's classes, then the weekly slots carried on past its timetable (so a month SIX hasn't published yet isn't empty).
+  const classes = [
+    ...schedule
+      .filter((s) => mine.has(s.courseCode) && !isExamActivity(s.activity) && (!period || wibDay(s.start) <= period.lastDay))
+      .map((s) => ({ code: s.courseCode, start: s.start, end: s.end })),
+    ...courses.flatMap((h) => h.left.upcoming.filter((m) => m.estimated).map((m) => ({ code: h.code, start: m.start, end: m.start + 1 }))),
+  ];
   const today = classes.filter((s) => wibDay(s.start) === wibDay(now) && s.end > now);
   const tomorrow = classes.filter((s) => wibDay(s.start) === wibDay(now + DAY));
   const day = today.length ? "today" : tomorrow.length ? "tomorrow" : null;
   if (day) {
     const sessions = day === "today" ? today : tomorrow;
-    const codes = [...new Set(sessions.map((s) => s.courseCode))];
+    const codes = [...new Set(sessions.map((s) => s.code))];
     const counted = codes.map((code) => mine.get(code)!).filter((h) => h.state !== "unknown");
     const spare = counted.filter((h) => h.state === "safe" || h.state === "risk").map((h) => h.code);
-    return { kind: "day", day, count: sessions.length, spare: counted.length ? { codes: spare, of: counted.length } : null };
+    return { kind: "day", day, count: sessions.length, spare: counted.length ? { codes: spare, of: counted.length, courses: codes.length } : null };
   }
   const coming = courses.flatMap((h) => h.left.upcoming).sort((a, b) => a.start - b.start);
   const next = coming.find((m) => !m.uncertain) ?? coming[0];
@@ -597,9 +604,16 @@ export type CountLog = Readonly<Record<string, readonly CountAt[]>>;
 
 const LOG_KEEP = 30;
 
-/** The log with each course's count as read at `at`, appended only where it changed (the same object when nothing did). */
+/**
+ * The log with each course's count as read at `at`, appended only where it
+ * changed, and only for the courses SIX lists now (the same object when
+ * nothing changed).
+ */
 export function appendCount(log: CountLog, courses: readonly Pick<SixCourse, "code" | "attendance">[], at: number): CountLog {
-  let next: Record<string, readonly CountAt[]> | null = null;
+  // A course SIX no longer lists (last term's) takes its history with it.
+  const listed = new Set(courses.map((c) => c.code));
+  const gone = courses.length > 0 && Object.keys(log).some((code) => !listed.has(code));
+  let next: Record<string, readonly CountAt[]> | null = gone ? Object.fromEntries(Object.entries(log).filter(([code]) => listed.has(code))) : null;
   for (const course of courses) {
     if (!course.attendance) continue;
     const list = (next ?? log)[course.code] ?? [];
@@ -629,15 +643,47 @@ export type ClassResults = Readonly<Record<string, ClassResult>>;
 const RESULTS_KEEP = 14 * DAY;
 
 /**
- * What SIX's count did after each class, by SIX's meeting id. SIX gives
- * totals only, so a class is judged only where its count can be told apart:
+ * What SIX's count says about one class so far, where it can be told apart
+ * (SIX gives totals only):
  * - from the count before it started; never a class from before the app watched;
  * - only by what changed before the course's next class, and never when the
  *   course's class before it was still uncounted (one change could be either's);
  * - counted as soon as both numbers went up; absent (held up, attended not)
- *   or missing (neither) only once SIX was read after `resultGate`, the same day.
- * A result missing or absent first that SIX later counted keeps when it was
- * first judged (`wasAt`). `readAt`: when SIX's count was last read.
+ *   or missing (neither) only from a count read after the class ended, and
+ *   never when the course's next class starts before `resultGate` (two
+ *   classes sharing one count).
+ * `readAt`: when SIX's count was last read. The saved results, Presensi, its
+ * badge and the alert all judge with this; when they may say it is
+ * `resultGate`'s.
+ */
+export function judgeClass(
+  session: ClassSession,
+  schedule: readonly ClassSession[],
+  log: CountLog,
+  previous: ClassResults,
+  readAt: number,
+): { result: AfterClass; at: number } | null {
+  const counts = log[session.courseCode] ?? [];
+  const before = counts.filter((c) => c.at <= session.start).at(-1);
+  if (!before) return null;
+  const siblings = schedule
+    .filter((s) => s.courseCode === session.courseCode && s.id !== session.id && !isExamActivity(s.activity))
+    .sort((a, b) => a.start - b.start);
+  const prev = siblings.filter((s) => s.start < session.start).at(-1);
+  if (prev && prev.end > before.at && previous[prev.id]?.result !== "counted") return null;
+  const horizon = siblings.find((s) => s.start > session.start)?.start ?? Number.POSITIVE_INFINITY;
+  const after = counts.filter((c) => c.at > session.start && c.at <= Math.min(horizon, readAt)).at(-1) ?? before;
+  const result = afterClass(before, after);
+  if (result === "counted") return { result, at: after.at };
+  if (readAt <= session.end || horizon <= resultGate(session).at) return null;
+  return { result, at: after === before ? readAt : after.at };
+}
+
+/**
+ * What SIX's count did after each class, by SIX's meeting id (`judgeClass`):
+ * counted as soon as SIX counts it; absent or missing once `resultGate` has
+ * passed, the same day. A result missing or absent first that SIX later
+ * counted keeps when it was first judged (`wasAt`). Kept 14 days.
  */
 export function classResults(previous: ClassResults, log: CountLog, schedule: readonly ClassSession[], now: number, readAt: number): ClassResults {
   const kept = Object.entries(previous).filter(([, r]) => r.start >= now - RESULTS_KEEP);
@@ -647,28 +693,21 @@ export function classResults(previous: ClassResults, log: CountLog, schedule: re
     if (session.start > now || session.start < now - RESULTS_KEEP) continue;
     const old = next[session.id];
     if (old?.result === "counted") continue;
-    const counts = log[session.courseCode] ?? [];
-    const before = counts.filter((c) => c.at <= session.start).at(-1);
-    if (!before) continue;
-    const siblings = classes.filter((s) => s.courseCode === session.courseCode && s.id !== session.id);
-    const prev = siblings.filter((s) => s.start < session.start).at(-1);
-    if (prev && prev.end > before.at && next[prev.id]?.result !== "counted") continue;
-    const horizon = siblings.find((s) => s.start > session.start)?.start ?? Number.POSITIVE_INFINITY;
-    const after = counts.filter((c) => c.at > session.start && c.at <= Math.min(horizon, now)).at(-1) ?? before;
-    const result = afterClass(before, after);
+    const judged = judgeClass(session, classes, log, next, readAt);
+    if (!judged) continue;
     const base = { courseCode: session.courseCode, start: session.start, end: session.end };
-    if (result === "counted") {
-      next[session.id] = { ...base, result, at: after.at, ...(old ? { wasAt: old.at } : {}) };
+    if (judged.result === "counted") {
+      next[session.id] = { ...base, result: "counted", at: judged.at, ...(old ? { wasAt: old.at } : {}) };
       continue;
     }
     // Missing, then SIX held the class without counting the Student: it says more now, from when SIX showed it.
     if (old) {
-      if (old.result === "missing" && result === "absent") next[session.id] = { ...base, result, at: after.at };
+      if (old.result === "missing" && judged.result === "absent") next[session.id] = { ...base, result: "absent", at: judged.at };
       continue;
     }
     const gate = resultGate(session);
-    if (now < gate.at || now >= gate.until || readAt < gate.at || horizon <= gate.at) continue;
-    next[session.id] = { ...base, result, at: now };
+    if (now < gate.at || now >= gate.until) continue;
+    next[session.id] = { ...base, result: judged.result, at: now };
   }
   return next;
 }

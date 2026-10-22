@@ -10,10 +10,10 @@ import {
   type AttendanceHealth,
   attendanceHealth,
   type ClashPick,
-  type ClassResult,
   type ClassResults,
   type CountLog,
   clashPick,
+  classResults,
   isExamActivity,
   lecturePeriod,
   openWindows,
@@ -21,11 +21,11 @@ import {
   presenceAction,
   targetFor,
 } from "../core/attendance";
-import { clashes, wibDay } from "../core/course-meetings";
+import { clashes } from "../core/course-meetings";
 import type { ClassSession, PresenceSession } from "../core/models";
 import { type TermCourse, useTermCourses } from "./courses";
 import { useNow } from "./i18n";
-import { useDataset, useSettings, useStatus } from "./store";
+import { useDataset, useDatasetPayload, useSettings, useStatus } from "./store";
 
 export interface CourseAttendance {
   course: TermCourse;
@@ -33,8 +33,6 @@ export interface CourseAttendance {
   presence: PresenceSession[];
   /** The next Edunex Presence window that hasn't opened yet, and what counts in it. */
   nextWindow: { session: PresenceSession; action: PresenceAction } | null;
-  /** What SIX's count did after the course's class today (the latest), when the app saw. */
-  today: ClassResult | null;
   /** Its next class shares time with another course's: which, when, and which to go to. */
   clash: { other: string; from: number; to: number; pick: ClashPick; session: ClassSession; with: ClassSession } | null;
 }
@@ -75,7 +73,9 @@ export function useAttendance(): Attendance | undefined {
   const schedule = useDataset("six.schedule");
   const student = useDataset("six.student");
   const countLog = useDataset("six.countLog");
-  const results = useDataset("six.classResults");
+  const saved = useDataset("six.classResults");
+  // When SIX's count was last read: a class is judged only from a count read after it.
+  const readAt = useDatasetPayload("six.courses")?.fetchedAt ?? 0;
   const { attendanceTarget: target, attendanceTargets } = useSettings();
   // Signed out of SIX: which system counts can't be known, so nothing reads as counting.
   const sixConnected = useStatus("six").state !== "signed-out" || sixCourses !== undefined;
@@ -85,6 +85,8 @@ export function useAttendance(): Attendance | undefined {
     if (!courses) return undefined;
     const period = lecturePeriod(calendar, student?.term ?? null, now);
     const timetable = schedule ?? [];
+    // The saved results, and what the latest count already says (the status feed saves it at its next read).
+    const results = classResults(saved ?? {}, countLog ?? {}, timetable, now, readAt);
     const healthOf = new Map<string, AttendanceHealth>();
     const base = courses.map((course) => {
       const six = course.attendance ?? sixCourses?.find((c) => c.code === course.code)?.attendance ?? null;
@@ -104,12 +106,7 @@ export function useAttendance(): Attendance | undefined {
       const nextWindow = coming ? { session: coming, action: presenceAction(coming, tasks ?? []) } : null;
       return { course, health, presence: mine, nextWindow };
     });
-    const day = wibDay(now);
     const list = base.map((item): CourseAttendance => {
-      const today =
-        Object.values(results ?? {})
-          .filter((r) => r.courseCode === item.course.code && wibDay(r.start) === day)
-          .sort((a, b) => b.start - a.start)[0] ?? null;
       // The class on now, else the next: a clash said on its row is about the class the Student decides on.
       const next =
         timetable.find((s) => s.courseCode === item.course.code && s.start <= now && now < s.end && !isExamActivity(s.activity)) ?? item.health.left.next;
@@ -125,7 +122,7 @@ export function useAttendance(): Attendance | undefined {
               with: other,
             }
           : null;
-      return { ...item, today, clash };
+      return { ...item, clash };
     });
     const open = openWindows(presence ?? {}, now).map(({ code, session }) => {
       const health = healthOf.get(code);
@@ -147,7 +144,7 @@ export function useAttendance(): Attendance | undefined {
       sixConnected,
       schedule: timetable,
       countLog: countLog ?? {},
-      results: results ?? {},
+      results,
     };
-  }, [courses, presence, tasks, calendar, sixCourses, schedule, student, target, attendanceTargets, sixConnected, countLog, results, now]);
+  }, [courses, presence, tasks, calendar, sixCourses, schedule, student, target, attendanceTargets, sixConnected, countLog, saved, readAt, now]);
 }
