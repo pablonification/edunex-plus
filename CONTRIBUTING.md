@@ -165,6 +165,22 @@ password once more, and whoever holds it can sign an app macOS takes for Edunex 
 build with `codesign -d -r- "release/mac-arm64/Edunex Plus.app"`: signed, it names
 `id.edunexplus.desktop` and the certificate; ad-hoc, only a `cdhash`.
 
+**The Windows installers' signature** ([docs/code-signing.md](docs/code-signing.md)). Releases are
+signed by SignPath Foundation, free for open-source projects, once it has accepted the project and
+its settings are in the repository (`SIGNPATH_API_TOKEN` secret, `SIGNPATH_ORGANIZATION_ID`
+variable; `scripts/setup-windows-signing.sh` walks a maintainer through it). SignPath signs on its
+own servers, so a signed build takes two passes: `node scripts/package-win.mjs --to-sign <folder>`
+builds the installers and keeps aside what's signed first (each app's `Edunex Plus.exe` and each
+uninstaller), SignPath signs them, `--signed <folder>` makes the installers again from them, SignPath
+signs the installers, and `scripts/update-info.mjs` writes their new sha512 into `latest*.yml` so
+the app's updater accepts them. Electron's own DLLs are shipped as Electron makes them: SignPath signs
+only a project's own files. Without the settings (forks, your builds, releases before then) nothing
+is signed, as before; the release workflow's other builds (of `main`, or started by hand) take both
+passes with a stand-in certificate, so all of the signed path but the trip to SignPath is tried
+before a release depends on it. Check a signed build with `Get-AuthenticodeSignature` on the
+installer: `Valid`, signed by `CN=SignPath Foundation`. Why browsers and Windows warn about unsigned
+installers, and the other options: [docs/research/windows-download-warnings.md](docs/research/windows-download-warnings.md).
+
 **The keychain helper** is committed built and signed, and every Mac build checks it carries
 that exact build. Build it again (`npm run build:keychain-helper`, on a Mac, with
 `MAC_SIGNING_KEYCHAIN` naming a keychain that holds the certificate, made as the release workflow
@@ -186,7 +202,9 @@ writes it), with its own licence and Electron's and Chromium's.
    told about it.
 2. The **Package and release** workflow checks that the tag matches the
    version, builds for macOS, Windows and Linux, and makes a draft release with
-   notes grouped by label.
+   notes grouped by label. Once SignPath is set up, it emails you twice while
+   the Windows build waits: approve each signing request in SignPath (the job
+   gives up after 45 minutes each).
 3. Try the draft's installers on real accounts, then publish it. Installed
    apps offer the update only once it's published.
 

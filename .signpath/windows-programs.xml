@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SignPath artifact configuration "windows-programs": round 1 of a signed Windows release
+  (.github/workflows/release.yml; the first pass of scripts/package-win.mjs). The zip holds the project's own
+  programs, which have to be signed before the installers are made: each app's "Edunex Plus.exe"
+  (renamed so no file name has a space) and each installer's uninstaller. Electron's own DLLs are left
+  out: SignPath Foundation signs only a project's own files.
+  version         package.json's version: the uninstallers' ProductVersion string (0.1.0-alpha.12)
+  windowsVersion  as Windows numbers it: the app program's ProductVersion string (0.1.0.0), and
+                  every file's fixed version. If SignPath's sample check reads the fixed version,
+                  use ${windowsVersion} for the uninstallers too.
+  Copy this into SignPath: Project > Artifact configurations > New, slug "windows-programs".
+-->
+<artifact-configuration xmlns="http://signpath.io/artifact-configuration/v1">
+  <parameters>
+    <parameter name="version" required="true" />
+    <parameter name="windowsVersion" required="true" />
+  </parameters>
+  <zip-file>
+    <pe-file-set product-name="Edunex Plus" product-version="${windowsVersion}">
+      <include path="Edunex-Plus-x64.exe" />
+      <include path="Edunex-Plus-arm64.exe" />
+      <for-each>
+        <authenticode-sign />
+      </for-each>
+    </pe-file-set>
+    <pe-file-set product-name="Edunex Plus" product-version="${version}">
+      <include path="Edunex-Plus-Setup-${version}.__uninstaller.exe" />
+      <include path="Edunex-Plus-${version}-arm64.__uninstaller.exe" />
+      <for-each>
+        <authenticode-sign />
+      </for-each>
+    </pe-file-set>
+  </zip-file>
+</artifact-configuration>

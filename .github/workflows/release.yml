@@ -4,7 +4,9 @@
 #   version, builds all three, and puts them in a DRAFT release with notes
 #   written from the merged pull requests (.github/release.yml groups them).
 #   You publish the draft by hand after trying it on real accounts; only then
-#   does the app's once-a-day update check see the new version.
+#   does the app's once-a-day update check see the new version. Once SignPath
+#   is set up (docs/code-signing.md), the Windows installers are signed on the
+#   way, and the job waits for you to approve each signing in SignPath.
 # - On pushes to main that touch packaging, and by hand from a branch (Actions →
 #   Package and release → Run workflow): builds all three as a check, keeps
 #   them for a week on the run's page, and publishes nothing.
@@ -20,6 +22,9 @@ on:
       - "electron-builder.config.mjs"
       - "scripts/package-fuses.mjs"
       - "scripts/package-sign.mjs"
+      - "scripts/package-sign-win.mjs"
+      - "scripts/package-win.mjs"
+      - "scripts/update-info.mjs"
       - "scripts/build-desktop.mjs"
       - "scripts/desktop-bundle.mjs"
       - "scripts/adhoc-sign-electron.mjs"
@@ -83,7 +88,11 @@ jobs:
             os: ubuntu-latest
             target: linux
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 30
+    # A signed Windows release waits for two approvals in SignPath.
+    timeout-minutes: ${{ matrix.target == 'win' && 120 || 30 }}
+    permissions:
+      contents: read
+      actions: read # SignPath reads this run and downloads what it signs with the job's token
     steps:
       - name: Check out
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -128,6 +137,36 @@ jobs:
           security import "$p12" -k "$keychain" -f pkcs12 -P "$MAC_SIGNING_PASSWORD" -T /usr/bin/codesign
           # Lets codesign use the key without a dialog nobody could click.
           security set-key-partition-list -S apple-tool:,apple: -s -k "$password" "$keychain" > /dev/null
+      # The Windows installers are signed by SignPath Foundation, free for open-source projects
+      # (docs/code-signing.md). It signs on its own servers, so a signed build takes two passes
+      # (scripts/package-win.mjs, scripts/package-sign-win.mjs): the app's own programs and the
+      # uninstallers are signed first, then the installers made from them. Releases are signed
+      # once the SignPath settings exist; without them a release is unsigned, as before. This
+      # workflow's other builds (main, or started by hand) take the same two passes, folders and
+      # checks with a stand-in signature; only the trip to SignPath and back is left for releases.
+      - name: Choose how the Windows installers are signed (Windows)
+        id: windows-signing
+        if: matrix.target == 'win'
+        env:
+          SIGNPATH_API_TOKEN: ${{ secrets.SIGNPATH_API_TOKEN }}
+          SIGNPATH_ORGANIZATION_ID: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+        run: |
+          version=$(node -p 'require("./package.json").version')
+          {
+            echo "version=$version"
+            # As Windows numbers it in the app's own program: electron-builder writes major.minor.patch.0.
+            echo "windows-version=${version%%[-+]*}.0"
+          } >> "$GITHUB_OUTPUT"
+          if [[ "$GITHUB_REF" != refs/tags/* ]]; then
+            echo "way=stand-in" >> "$GITHUB_OUTPUT"
+            echo "Not a release: the Windows installers get a stand-in signature, to try the way a signed release is built."
+          elif [ -n "$SIGNPATH_API_TOKEN" ] && [ -n "$SIGNPATH_ORGANIZATION_ID" ]; then
+            echo "way=signpath" >> "$GITHUB_OUTPUT"
+            echo "A release: SignPath signs the Windows installers. Approve each signing request in SignPath when it emails you."
+          else
+            echo "way=none" >> "$GITHUB_OUTPUT"
+            echo "::warning::This release's Windows installers aren't signed: Windows and the browser warn about them, and Smart App Control blocks them. Set up SignPath (docs/code-signing.md)."
+          fi
       - name: Build and package
         env:
           TARGET: ${{ matrix.target }}
@@ -135,7 +174,152 @@ jobs:
           # look for certificates; with this keychain, scripts/package-sign.mjs signs it again.
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
           MAC_SIGNING_KEYCHAIN: ${{ steps.signing.outputs.keychain }}
-        run: npm run "package:$TARGET" -- --publish never
+          WINDOWS_SIGNING: ${{ steps.windows-signing.outputs.way }}
+        run: |
+          if [ "$TARGET" != win ]; then
+            npm run "package:$TARGET" -- --publish never
+          elif [ "$WINDOWS_SIGNING" = none ]; then
+            npm run package:win
+          else
+            # Pass 1: the installers, and in release/to-sign the programs to sign first.
+            npm run package:win -- --to-sign release/to-sign
+          fi
+      # Run by hand: the programs to sign, as they are before signing, for checking SignPath's
+      # artifact configuration against (scripts/setup-windows-signing.sh).
+      - name: Keep a sample of what SignPath signs first (Windows, run by hand)
+        if: steps.windows-signing.outputs.way == 'stand-in' && github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: windows-programs-sample
+          path: release/to-sign
+          if-no-files-found: error
+          retention-days: 3
+      # Not a release: a certificate made for this run stands in for SignPath's, and what it signs goes
+      # to the folders SignPath's would come back to. Windows trusts it on this runner only, so the
+      # checks below can ask for a valid signature either way.
+      - name: Make a stand-in signing certificate (Windows)
+        id: stand-in
+        if: steps.windows-signing.outputs.way == 'stand-in'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $cert = New-SelfSignedCertificate -Type CodeSigningCert -Subject 'CN=Edunex Plus stand-in, not trusted anywhere else' -CertStoreLocation Cert:\CurrentUser\My -NotAfter (Get-Date).AddDays(1)
+          $public = Join-Path $env:RUNNER_TEMP 'stand-in.cer'
+          Export-Certificate -Cert $cert -FilePath $public | Out-Null
+          Import-Certificate -FilePath $public -CertStoreLocation Cert:\LocalMachine\Root | Out-Null
+          "thumbprint=$($cert.Thumbprint)" >> $env:GITHUB_OUTPUT
+      - name: Sign the app's programs with the stand-in (Windows)
+        if: steps.windows-signing.outputs.way == 'stand-in'
+        shell: pwsh
+        env:
+          THUMBPRINT: ${{ steps.stand-in.outputs.thumbprint }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $cert = Get-Item "Cert:\CurrentUser\My\$env:THUMBPRINT"
+          Copy-Item release/to-sign release/signed-programs -Recurse
+          foreach ($file in Get-ChildItem release/signed-programs -Filter *.exe) {
+            $signed = Set-AuthenticodeSignature -FilePath $file.FullName -Certificate $cert -HashAlgorithm SHA256
+            if ($signed.Status -ne 'Valid') { throw "$($file.Name): $($signed.Status) $($signed.StatusMessage)" }
+          }
+      - name: Send the app's programs to SignPath (Windows)
+        id: programs-to-sign
+        if: steps.windows-signing.outputs.way == 'signpath'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: windows-programs-to-sign
+          path: release/to-sign
+          if-no-files-found: error
+          retention-days: 1
+      - name: Sign the app's programs (Windows; approve it in SignPath)
+        if: steps.windows-signing.outputs.way == 'signpath'
+        uses: signpath/github-action-submit-signing-request@f6d04783b4569d051e0c80105fe66e82819d0092 # v3.0
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG || 'edunex-plus' }}
+          signing-policy-slug: ${{ vars.SIGNPATH_SIGNING_POLICY_SLUG || 'release-signing' }}
+          artifact-configuration-slug: windows-programs
+          github-artifact-id: ${{ steps.programs-to-sign.outputs.artifact-id }}
+          parameters: |
+            version: "${{ steps.windows-signing.outputs.version }}"
+            windowsVersion: "${{ steps.windows-signing.outputs.windows-version }}"
+          wait-for-completion: true
+          wait-for-completion-timeout-in-seconds: 2700
+          output-artifact-directory: release/signed-programs
+      - name: Make the installers from the signed programs (Windows)
+        if: matrix.target == 'win' && steps.windows-signing.outputs.way != 'none'
+        run: node scripts/package-win.mjs --signed release/signed-programs
+      - name: Sign the installers with the stand-in (Windows)
+        if: steps.windows-signing.outputs.way == 'stand-in'
+        shell: pwsh
+        env:
+          THUMBPRINT: ${{ steps.stand-in.outputs.thumbprint }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $cert = Get-Item "Cert:\CurrentUser\My\$env:THUMBPRINT"
+          New-Item release/signed-installers -ItemType Directory -Force | Out-Null
+          Copy-Item release/*.exe release/signed-installers
+          foreach ($file in Get-ChildItem release/signed-installers -Filter *.exe) {
+            $signed = Set-AuthenticodeSignature -FilePath $file.FullName -Certificate $cert -HashAlgorithm SHA256
+            if ($signed.Status -ne 'Valid') { throw "$($file.Name): $($signed.Status) $($signed.StatusMessage)" }
+          }
+      - name: Send the installers to SignPath (Windows)
+        id: installers-to-sign
+        if: steps.windows-signing.outputs.way == 'signpath'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: windows-installers-to-sign
+          path: release/*.exe
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
+      - name: Sign the installers (Windows; approve it in SignPath)
+        if: steps.windows-signing.outputs.way == 'signpath'
+        uses: signpath/github-action-submit-signing-request@f6d04783b4569d051e0c80105fe66e82819d0092 # v3.0
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG || 'edunex-plus' }}
+          signing-policy-slug: ${{ vars.SIGNPATH_SIGNING_POLICY_SLUG || 'release-signing' }}
+          artifact-configuration-slug: windows-installers
+          github-artifact-id: ${{ steps.installers-to-sign.outputs.artifact-id }}
+          parameters: |
+            version: "${{ steps.windows-signing.outputs.version }}"
+          wait-for-completion: true
+          wait-for-completion-timeout-in-seconds: 2700
+          output-artifact-directory: release/signed-installers
+      - name: Put the signed installers in place (Windows)
+        if: matrix.target == 'win' && steps.windows-signing.outputs.way != 'none'
+        run: cp release/signed-installers/*.exe release/
+      # Signing changed the installers' bytes: the app's updater checks a download against the
+      # sha512 in latest*.yml (src/desktop/self-update.ts), so it has to be the signed file's.
+      - name: Write the signed installers' sha512 into the update info (Windows)
+        if: matrix.target == 'win' && steps.windows-signing.outputs.way != 'none'
+        run: node scripts/update-info.mjs release
+      - name: Check the signatures (Windows)
+        if: matrix.target == 'win' && steps.windows-signing.outputs.way != 'none'
+        shell: pwsh
+        env:
+          WAY: ${{ steps.windows-signing.outputs.way }}
+          THUMBPRINT: ${{ steps.stand-in.outputs.thumbprint }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $ours = @(Get-ChildItem release -Filter *.exe) + @(Get-Item 'release/win-unpacked/Edunex Plus.exe', 'release/win-arm64-unpacked/Edunex Plus.exe')
+          $rows = foreach ($file in $ours) {
+            $signature = Get-AuthenticodeSignature $file.FullName
+            $signer = $signature.SignerCertificate
+            $byUs = if ($env:WAY -eq 'signpath') { $signer.Subject -like '*CN=SignPath Foundation*' } else { $signer.Thumbprint -eq $env:THUMBPRINT }
+            $name = [IO.Path]::GetRelativePath($PWD, $file.FullName)
+            if ($signature.Status -ne 'Valid' -or -not $byUs) { throw "$name isn't signed as it should be: $($signature.Status), $($signer.Subject)" }
+            "| $name | $($signer.Subject) |"
+          }
+          # Still the build pass 1 checked: signing must leave Electron's security switches as they were.
+          foreach ($app in 'release/win-unpacked/Edunex Plus.exe', 'release/win-arm64-unpacked/Edunex Plus.exe') {
+            node scripts/package-fuses.mjs $app
+            if ($LASTEXITCODE -ne 0) { throw "The fuses changed in $app." }
+          }
+          $shipped = (Get-ChildItem release/win-unpacked -Filter *.dll | ForEach-Object { $_.Name }) -join ', '
+          @("### Windows signatures ($env:WAY)", '', '| File | Signed by |', '|---|---|') + $rows + @('', "Electron's own DLLs ship as Electron made them: $shipped.") | Add-Content $env:GITHUB_STEP_SUMMARY
       - name: Remove the signing certificate (macOS)
         if: always() && steps.signing.outputs.keychain != ''
         env:
@@ -188,6 +372,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
+          WINDOWS_SIGNING: ${{ steps.windows-signing.outputs.way }}
         run: |
           $ErrorActionPreference = 'Stop'
           function Install([string]$exe, [string[]]$switches) {
@@ -221,6 +406,13 @@ jobs:
           $listed = @(Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*' | Where-Object { $_.DisplayName -like 'Edunex Plus*' })
           if ($listed.Count -ne 1) { throw "Installed apps lists Edunex Plus $($listed.Count) times." }
           if (-not (Test-Path "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Edunex Plus.lnk")) { throw 'No Start menu shortcut.' }
+          # A signed installer puts a signed app and a signed uninstaller in place: the next update runs that uninstaller.
+          if ($env:WINDOWS_SIGNING -and $env:WINDOWS_SIGNING -ne 'none') {
+            foreach ($file in "$old\Edunex Plus.exe", "$old\Uninstall Edunex Plus.exe") {
+              $signature = Get-AuthenticodeSignature $file
+              if ($signature.Status -ne 'Valid') { throw "$file isn't signed: $($signature.Status) $($signature.StatusMessage)" }
+            }
+          }
 
           $data = Join-Path $env:APPDATA 'Edunex Plus'
           New-Item -ItemType Directory -Force $data | Out-Null
@@ -262,7 +454,9 @@ jobs:
             # A re-run: refresh the files on the release that already exists.
             gh release upload "$TAG" --repo "$REPO" --clobber installers/*
           else
-            flags=(--draft --generate-notes --verify-tag --title "Edunex Plus ${TAG#v}")
+            # Above the notes GitHub writes: how to install, and how the installers are signed.
+            intro="How to install: [install guide](https://github.com/$REPO/blob/main/docs/install.md). How the installers are signed: [code signing policy](https://github.com/$REPO/blob/main/docs/code-signing.md)."
+            flags=(--draft --generate-notes --notes "$intro" --verify-tag --title "Edunex Plus ${TAG#v}")
             # v0.1.0-alpha.1 and the like are pre-releases: only copies that are
             # pre-releases themselves offer them (src/engine/updates.ts).
             if [[ "$TAG" == *-* ]]; then flags+=(--prerelease); fi
