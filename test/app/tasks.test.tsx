@@ -143,7 +143,7 @@ describe("Tugas & Ujian", () => {
     await s.click(row("Tugas 02 Bab II")!);
     // How the app knows: the lecturer linked the Task to that class's Edunex Presence.
     expect(s.text()).toContain(
-      "Tugas ini sekaligus Presensi-mu: dosen menautkannya ke Presensi Edunex, jadi hanya terhitung hadir jika dikumpulkan di dalam jendelanya, Jum, 16 Okt, 15:00–23:59.",
+      "Tugas ini sekaligus Presensi-mu. Kamu hanya terhitung hadir jika mengumpulkannya di dalam jendelanya, Jum, 16 Okt, 15:00–23:59.",
     );
   });
 
@@ -161,7 +161,7 @@ describe("Tugas & Ujian", () => {
     expect(row("Tugas Mandiri Individu")!.textContent).toContain("Juga Presensi Edunex, tidak wajib: Kam, 15 Okt 08:00–23:59");
     await s.click(row("Tugas Mandiri Individu")!);
     expect(s.text()).toContain(
-      "Dosen menautkan tugas ini ke Presensi Edunex: mengumpulkan pada Kam, 15 Okt, 08:00–23:59 juga mengisinya. Tidak wajib: kehadiran PL3002 dihitung di SIX.",
+      "Mengumpulkan tugas ini pada Kam, 15 Okt, 08:00–23:59 juga mengisi Presensi Edunex. Tidak wajib, karena kehadiran PL3002 dihitung di SIX.",
     );
     expect(s.text()).not.toContain("hanya terhitung jika dikumpulkan");
     // Nothing nudges the Student to wait for the window: Kumpulkan stays the main button once there's a file.
@@ -529,7 +529,7 @@ describe("the Task page", () => {
     await s.engineDoes(() => s.engine.refresh("edunex"));
     await goToTask(s, "Tugas 01 Bab I");
     expect(card()).toContain("Sedang dinilai");
-    expect(card()).toContain("Nilai—");
+    expect(card()).toContain("Nilai-");
     expect(card()).toContain("Dosen sedang menilai tugas ini.");
     s.world.edunex.publishScore(117001, 88);
     await s.engineDoes(() => s.engine.refresh("edunex"));

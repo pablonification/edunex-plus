@@ -314,7 +314,7 @@ function Planner({ real, record, state }: { real: StudentRecord; record: Student
                     sks={course.sks}
                     tag={
                       course.retake ? (
-                        <Tag>{t("planner.role.retake", { grade: record.graded.get(course.code)?.grade ?? "—" })}</Tag>
+                        <Tag>{t("planner.role.retake", { grade: record.graded.get(course.code)?.grade ?? "-" })}</Tag>
                       ) : (
                         <RoleTag record={record} code={course.code} minor={minor} spec={spec} />
                       )
@@ -442,7 +442,7 @@ function Summary({ record, state, rules }: { record: StudentRecord; state: PlanS
               </>
             ) : (
               <>
-                <dd className="text-title font-semibold">{finish ? t("planner.semester", { n: finish.semester }) : "—"}</dd>
+                <dd className="text-title font-semibold">{finish ? t("planner.semester", { n: finish.semester }) : "-"}</dd>
                 <dd className={cx("text-caption font-medium", warnings ? "text-warning-fg" : "text-muted")} role="status">
                   {warnings
                     ? t("planner.toCheck", { count: warnings })
@@ -456,7 +456,7 @@ function Summary({ record, state, rules }: { record: StudentRecord; state: PlanS
           <div>
             <dt className="text-caption font-medium text-muted">{t("grades.graduation")}</dt>
             <dd className="text-title font-semibold tabular-nums">
-              {projection.finalIpk === null ? "—" : <AnimatedNumber value={projection.finalIpk} format={(value) => f.number(value, 2)} />}
+              {projection.finalIpk === null ? "-" : <AnimatedNumber value={projection.finalIpk} format={(value) => f.number(value, 2)} />}
             </dd>
             <dd className={cx("text-caption", projection.honor ? "font-semibold text-success-fg" : "text-muted")}>{word}</dd>
           </div>
@@ -533,7 +533,7 @@ function Past({ record, steps }: { record: StudentRecord; steps: ProjectedStep[]
         <Icons.ChevronRight className={cx("size-4 text-faint transition-transform duration-150", open && "rotate-90")} />
         <Meta className="flex-1 text-body font-semibold">
           {t("planner.past", { n: last })}
-          <span className="font-normal text-muted">{t("planner.pastMeta", { sks: record.passedSks, ipk: ipk === null ? "—" : f.number(ipk, 2) })}</span>
+          <span className="font-normal text-muted">{t("planner.pastMeta", { sks: record.passedSks, ipk: ipk === null ? "-" : f.number(ipk, 2) })}</span>
         </Meta>
       </button>
       <DisclosurePanel open={open} id={id}>
@@ -542,7 +542,7 @@ function Past({ record, steps }: { record: StudentRecord; steps: ProjectedStep[]
             <li key={s.term} className="text-small">
               <span className="font-medium">{termLabel(s.term, s.semester)}</span>
               <Meta className="text-muted tabular-nums">
-                {`IP ${s.ip === null ? "—" : f.number(s.ip, 2)}`}
+                {`IP ${s.ip === null ? "-" : f.number(s.ip, 2)}`}
                 {`${s.sks} SKS`}
               </Meta>
             </li>
@@ -606,9 +606,9 @@ function TermBlock({
           </span>
           {step && (
             <span className="border-l border-line pl-3 text-right leading-tight">
-              <span className="block text-small font-semibold tabular-nums">IP {step.ip === null ? "—" : f.number(step.ip, 2)}</span>
+              <span className="block text-small font-semibold tabular-nums">IP {step.ip === null ? "-" : f.number(step.ip, 2)}</span>
               <span className="block text-caption text-faint tabular-nums">
-                {t("planner.ipkAfter", { ipk: step.ipk === null ? "—" : f.number(step.ipk, 2) })}
+                {t("planner.ipkAfter", { ipk: step.ipk === null ? "-" : f.number(step.ipk, 2) })}
               </span>
             </span>
           )}
@@ -654,7 +654,7 @@ function RoleTag({ record, code, minor, spec }: { record: StudentRecord; code: s
   // An empty cell keeps the row's columns.
   if (courseRole(record, code, minor, spec) !== "required") return <span />;
   const semester = record.required.get(code)?.semester ?? record.requiredLeft.find((c) => c.code === code)?.semester;
-  return <Tag tone="info">{t("planner.role.required", { n: semester ?? "—" })}</Tag>;
+  return <Tag tone="info">{t("planner.role.required", { n: semester ?? "-" })}</Tag>;
 }
 
 const ruleAnchor = (rule: Rule) => `rule-${rule.id}${"code" in rule ? `-${rule.code}` : ""}${"term" in rule ? `-${rule.term}` : ""}`;

@@ -56,8 +56,8 @@ export const contentStrings = {
   "pdf.copySaved": { id: "Salinan tersimpan", en: "Copy saved" },
   "pdf.saveCopy": { id: "Simpan salinan", en: "Save a copy" },
   "pdf.saveCopyHint": {
-    id: "Simpan PDF yang sudah diisi sebagai berkas baru; aslinya tetap",
-    en: "Save the filled-in PDF as a new file; the original stays as it was",
+    id: "Jadi berkas baru, aslinya tidak berubah",
+    en: "Saves a new file and leaves the original as it was",
   },
   "pdf.savedAs": { id: "Tersimpan: {file}", en: "Saved: {file}" },
   "pdf.saveCopyFailed": {
@@ -66,8 +66,8 @@ export const contentStrings = {
   },
   "pdf.attach": { id: "Lampirkan ke jawaban", en: "Attach to answer" },
   "pdf.attachHint": {
-    id: "Jadi berkas di jawabanmu; terkirim saat kamu menyimpan draf atau mengumpulkan",
-    en: "Becomes a file in your answer; it's sent when you save the draft or submit",
+    id: "Jadi berkas di jawabanmu, terkirim saat kamu menyimpan draf atau mengumpulkan",
+    en: "Becomes a file in your answer, sent when you save the draft or submit",
   },
   "pdf.attached": { id: "{name} dilampirkan ke jawabanmu, belum disimpan", en: "{name} is attached to your answer, not saved yet" },
   "pdf.filledName": { id: "{name} (diisi)", en: "{name} (filled)" },

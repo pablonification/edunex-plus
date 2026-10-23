@@ -63,11 +63,11 @@ describe("phone notifications in Settings", () => {
 
     s.ntfy.answer = "busy";
     await s.click("Kirim tes");
-    expect(s.text()).toContain("Belum terkirim ke HP: ntfy sedang sibuk. Dicoba lagi nanti.");
+    expect(s.text()).toContain("Belum terkirim ke HP karena ntfy sedang sibuk. Dicoba lagi nanti.");
     expect(s.text()).not.toContain("Terkirim. Tidak sampai?");
     s.ntfy.answer = "offline";
     await s.click("Kirim tes");
-    expect(s.text()).toContain("Belum terkirim ke HP: tidak ada koneksi.");
+    expect(s.text()).toContain("Belum terkirim ke HP karena tidak ada koneksi.");
 
     s.ntfy.answer = "ok";
     // Asked first, saying what goes: the code is forgotten, so connecting again needs a new one on the phone.

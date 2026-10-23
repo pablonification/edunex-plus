@@ -15,7 +15,7 @@ import { readCompoundFile } from "../../core/compound-file";
 export type Block = string | { rows: string[][] };
 
 /** cp1252's characters for 0x80–0x9F, where it differs from Latin-1: how Word writes text in a byte per character. */
-const CP1252 = "€\u0081‚ƒ„…†‡ˆ‰Š‹Œ\u008dŽ\u008f\u0090‘’“”•–—˜™š›œ\u009džŸ";
+const CP1252 = "€\u0081‚ƒ„…†‡ˆ‰Š‹Œ\u008dŽ\u008f\u0090‘’“”•–\u2014˜™š›œ\u009džŸ";
 
 const PARAGRAPH = 0x0d;
 const CELL = 0x07;

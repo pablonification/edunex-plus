@@ -67,7 +67,7 @@ function Answer({ record, state }: { record: StudentRecord; state: PlanState }) 
       title={t("nav.grades")}
       description={
         <>
-          <span className="font-medium text-fg">{t("grades.answer", { ipk: ipk === null ? "—" : f.number(ipk, 2) })}</span>{" "}
+          <span className="font-medium text-fg">{t("grades.answer", { ipk: ipk === null ? "-" : f.number(ipk, 2) })}</span>{" "}
           {variableSks > 0 && finalIpk !== null && word && t("grades.answerFinal", { final: f.number(finalIpk, 2), predicate: word.toLowerCase() })}
         </>
       }
@@ -80,7 +80,7 @@ function Disagreement({ record }: { record: StudentRecord }) {
   const f = useFormat();
   const { ipk } = record.transcript!;
   if (ipk.agrees) return null;
-  const num = (value: number | null) => (value === null ? "—" : f.number(value, 2));
+  const num = (value: number | null) => (value === null ? "-" : f.number(value, 2));
   return (
     <Notice tone="warning" title={t("grades.disagreeTitle")} className="mb-6">
       <span role="status">
@@ -98,7 +98,7 @@ function Standing({ record, state }: { record: StudentRecord; state: PlanState }
   const f = useFormat();
   const termName = useTermName(record);
   const transcript = record.transcript!;
-  const num = (value: number | null) => (value === null ? "—" : f.number(value, 2));
+  const num = (value: number | null) => (value === null ? "-" : f.number(value, 2));
   const graded = transcript.terms.filter((term) => term.term !== record.term && shownIndex(term.ip) !== null);
   const last = graded.at(-1);
   const before = graded.at(-2);
@@ -144,7 +144,7 @@ function Graduation({ record, state }: { record: StudentRecord; state: PlanState
     <Card className="flex flex-col px-5 py-4">
       <h2 className="text-title font-semibold tracking-[-0.01em]">{t("grades.graduation")}</h2>
       <p className="text-caption text-muted">{t("grades.graduationEstimate")}</p>
-      <p className="mt-3 text-display font-semibold">{final === null ? "—" : <AnimatedNumber value={final} format={(value) => f.number(value, 2)} />}</p>
+      <p className="mt-3 text-display font-semibold">{final === null ? "-" : <AnimatedNumber value={final} format={(value) => f.number(value, 2)} />}</p>
       {word && <p className={cx("text-small font-semibold", projection.honor ? "text-success-fg" : "text-fg")}>{word}</p>}
       {finish && (
         <p className={cx("mt-1 flex items-center gap-1.5 text-small", finish.level === "error" ? "text-warning-fg" : "text-muted")}>
@@ -223,7 +223,7 @@ function ThisTerm({ record, state }: { record: StudentRecord; state: PlanState }
             <li className="space-y-2.5 bg-sunken px-4 py-3.5" aria-live="polite">
               <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
                 <p className="text-body">
-                  {t("grades.ipkAfter")} <span className="ml-1 text-lead font-semibold tabular-nums">{after === null ? "—" : f.number(after, 2)}</span>
+                  {t("grades.ipkAfter")} <span className="ml-1 text-lead font-semibold tabular-nums">{after === null ? "-" : f.number(after, 2)}</span>
                 </p>
                 <TargetControl record={record} state={state} />
               </div>
@@ -321,7 +321,7 @@ function TermRow({ record, term, open, onToggle }: { record: StudentRecord; term
   const f = useFormat();
   const termName = useTermName(record);
   const ip = shownIndex(term.ip);
-  const num = (value: number | null) => (value === null ? "—" : f.number(value, 2));
+  const num = (value: number | null) => (value === null ? "-" : f.number(value, 2));
   const now = term.term === record.term && ip === null;
   const id = useId();
   return (
@@ -368,7 +368,7 @@ function TermRow({ record, term, open, onToggle }: { record: StudentRecord; term
                 <span className="text-right text-small text-muted tabular-nums">{course.sks} SKS</span>
               </span>
               <span className="text-right">
-                {course.grade ? <GradeBadge grade={course.grade} struck={course.standing === "replaced"} /> : <span className="text-faint">—</span>}
+                {course.grade ? <GradeBadge grade={course.grade} struck={course.standing === "replaced"} /> : <span className="text-faint">-</span>}
               </span>
             </li>
           ))}

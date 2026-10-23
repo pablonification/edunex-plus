@@ -274,7 +274,7 @@ describe("with Edunex alone", () => {
     const now = text("home-now");
     expect(now).toContain("Presensi sedang dibuka");
     // Without SIX nobody knows whether Edunex counts: said as a just-in-case, the button quiet.
-    expect(now).toContain("Tanpa SIX, belum pasti ini dihitung: catat saja untuk berjaga-jaga.");
+    expect(now).toContain("Tanpa SIX, belum pasti ini dihitung. Catat saja untuk berjaga-jaga.");
     expect(now).not.toContain("dihitung lewat Presensi Edunex");
     const button = [...document.querySelectorAll<HTMLButtonElement>("section[aria-labelledby=home-now] button")].find(
       (b) => b.textContent === "Catat di Edunex",

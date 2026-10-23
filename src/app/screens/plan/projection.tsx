@@ -264,7 +264,7 @@ export function HonorsList({ projection, className }: { projection: Projection; 
                   ? t("honors.needs", { avg: f.number(h.average, 2), letter: letterForAverage(h.average) })
                   : h.kind === "out"
                     ? t("honors.out")
-                    : "—";
+                    : "-";
           const strong = h.kind === "needs" || h.kind === "secured";
           return (
             <li key={h.level} className="flex items-baseline justify-between gap-3">

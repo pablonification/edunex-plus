@@ -297,7 +297,7 @@ export const attendanceStrings = {
     en: "Absences left counts the classes still to come until the last lecture day ({date}), from SIX's timetable and then each course's weekly slot.",
   },
   "presence.how.uncertain": {
-    id: "Kuliah yang dijadwalkan SIX di minggu UTS, UAS atau hari libur mungkin tak ada. Itu tak dihitung dalam jatah absenmu. Kalau tetap ada, hadiri. Tetap dihitung.",
+    id: "Kuliah yang dijadwalkan SIX di masa UTS, masa UAS, atau hari libur mungkin tak ada. Itu tak dihitung dalam jatah absenmu. Kalau tetap ada, hadiri. Tetap dihitung.",
     en: "A class SIX lists in a UTS or UAS week or on a holiday may not run. It isn't counted in your absences left. If it runs, go. It still counts.",
   },
   "presence.how.edunex": {
