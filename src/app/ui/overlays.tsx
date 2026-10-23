@@ -220,6 +220,7 @@ export function Popover({
   onOpenChange,
   align = "end",
   label,
+  initialFocus,
   className,
   children,
 }: {
@@ -229,10 +230,19 @@ export function Popover({
   align?: "start" | "center" | "end";
   /** The panel's accessible name. */
   label: string;
+  /** Where focus goes when it opens, when not its first control (a row's own part of the panel). */
+  initialFocus?: () => HTMLElement | null | undefined;
   className?: string;
   children: ReactNode;
 }) {
   const returnFocus = useReturnFocus();
+  const onOpenAutoFocus = (event: Event) => {
+    returnFocus.onOpenAutoFocus();
+    const target = initialFocus?.();
+    if (!target) return;
+    event.preventDefault();
+    target.focus();
+  };
   return (
     <PopoverPrimitive.Root open={open} onOpenChange={onOpenChange}>
       <PopoverPrimitive.Trigger asChild>{trigger}</PopoverPrimitive.Trigger>
@@ -240,6 +250,7 @@ export function Popover({
         <PopoverPrimitive.Content
           aria-label={label}
           {...returnFocus}
+          onOpenAutoFocus={onOpenAutoFocus}
           onClickCapture={ignoreClosingClick}
           align={align}
           sideOffset={8}

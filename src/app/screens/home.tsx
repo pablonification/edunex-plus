@@ -9,7 +9,7 @@
 // lives in src/core/needs.ts.
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { rupiah } from "../../core/academic";
-import { type AttendanceHealth, type AttendanceState, percent } from "../../core/attendance";
+import { type AttendanceHealth, type AttendanceState, clashPick, percent } from "../../core/attendance";
 import { checkingIn } from "../../core/check-in";
 import { wibDay } from "../../core/course-meetings";
 import { PERIOD_NEAR } from "../../core/exams";
@@ -29,8 +29,8 @@ import {
   todayPlan,
 } from "../../core/needs";
 import { activeSnooze, partitionSnoozed, snoozable, snoozeKey } from "../../core/snooze";
-import { budgetLabel, useActionLabel, verdictLabel } from "../attendance-labels";
-import { AttendanceSummary } from "../attendance-parts";
+import { budgetLabel, useActionLabel } from "../attendance-labels";
+import { AbsenceBudget } from "../attendance-parts";
 import { type TermCourse, useTerm, useTermCourses } from "../courses";
 import { useHomeWorld } from "../home-world";
 import { useOpenCheckIn, useOpenExternal } from "../hooks";
@@ -313,7 +313,7 @@ function Attendance({ card }: { card: NowCard }) {
   const presence = card.presence;
   const counted = facts?.countedIn ?? "unknown";
 
-  const budget = facts?.health && facts.state !== "unknown" ? budgetLabel(t, facts.health) : null;
+  const budget = facts?.health && facts.state !== "unknown" ? cardBudget(t, facts.health) : null;
   const where = presence?.counts
     ? t("home.now.countEdunex")
     : presence?.noSix
@@ -343,7 +343,6 @@ function Attendance({ card }: { card: NowCard }) {
         <CheckIn
           session={session}
           check={check}
-          countsInSix={counted === "six" || counted === "both"}
           url={sixTimetableUrl(student, session.start)}
           budget={budget ? <span className={STATE_TEXT[facts!.state]}>{budget}</span> : null}
         >
@@ -460,15 +459,12 @@ function Attendance({ card }: { card: NowCard }) {
 function CheckIn({
   session,
   check,
-  countsInSix,
   url,
   budget,
   children,
 }: {
   session: ClassSession;
   check: SixCheckIn | undefined;
-  /** SIX's count says attendance counts there; else nobody can say yet (early in the term), and it isn't claimed. */
-  countsInSix: boolean;
   url: string;
   budget: ReactNode;
   children: ReactNode;
@@ -484,17 +480,11 @@ function CheckIn({
         <div className="min-w-0 flex-1 basis-64">
           <p className={cx("flex items-center gap-2 text-body", state === "open" ? "font-semibold" : "font-medium")}>
             <Icons.Hand className={cx("size-4 shrink-0", state === "open" ? "text-accent-fg" : "text-muted")} />
-            {state === "open"
-              ? t("home.now.checkInOpen")
-              : state === "gone"
-                ? t("home.now.checkInGone")
-                : countsInSix
-                  ? t("home.now.countSix")
-                  : t("home.now.checkInWatch")}
+            {state === "open" ? t("home.now.checkInOpen") : state === "gone" ? t("home.now.checkInGone") : t("home.now.checkInWatch")}
           </p>
           <p className="mt-0.5 pl-6 text-small text-muted">
             <Meta>
-              {state === "open" ? t("home.now.checkInOpenHint", { time: f.time(session.end) }) : state === "waiting" ? t("home.now.checkInWaiting") : ""}
+              {state === "open" ? t("home.now.checkInOpenHint", { time: f.time(session.end) }) : state === "waiting" ? t("home.now.checkEvery") : ""}
               {budget ?? ""}
             </Meta>
           </p>
@@ -626,7 +616,7 @@ function Today({
           {/* A deadline put off fades out, and focus moves on to the next row. */}
           <PresenceList>
             {today.map((item) => (
-              <TodayRow key={keyOf(item)} item={item} courses={courses} onCard={onCard} />
+              <TodayRow key={keyOf(item)} item={item} courses={courses} onCard={onCard} context={context} />
             ))}
           </PresenceList>
         </List>
@@ -641,7 +631,7 @@ function Today({
           <List label={t("home.today.tomorrow")}>
             <PresenceList>
               {tomorrow.map((item) => (
-                <TodayRow key={keyOf(item)} item={item} courses={courses} onCard={onCard} />
+                <TodayRow key={keyOf(item)} item={item} courses={courses} onCard={onCard} context={context} />
               ))}
             </PresenceList>
           </List>
@@ -664,7 +654,7 @@ function When({ start, end, past, tone }: { start: string; end?: string; past?: 
   );
 }
 
-function TodayRow({ item, courses, onCard }: { item: TodayItem; courses: readonly TermCourse[]; onCard: string | null }) {
+function TodayRow({ item, courses, onCard, context }: { item: TodayItem; courses: readonly TermCourse[]; onCard: string | null; context: HomeContext }) {
   const t = useT();
   const f = useFormat();
   const now = useNow();
@@ -742,11 +732,18 @@ function TodayRow({ item, courses, onCard }: { item: TodayItem; courses: readonl
   const exam = /\b(UTS|UAS)\b/i.test(session.activity);
   // A sitting opens its exam's page: when and where, what to study.
   const examId = examIds.get(session.id);
-  // Said once: the now card shows its class's budget, and "tak bisa lagi capai" is in Perlu perhatianmu and on the course card.
-  const budget = facts.health && facts.state !== "unknown" && facts.state !== "out" && !past && !shownAbove ? budgetLabel(t, facts.health) : null;
+  // Said on the day: no absences left, or the target out of reach (so the course doesn't vanish from Beranda); the now card says it for its class.
+  const budget = facts.health && (facts.state === "none" || facts.state === "out") && !past && !shownAbove ? budgetLabel(t, facts.health) : null;
   // The now card says "Jam berubah · biasanya …" for its class; the row keeps only the amber time.
   const moved = facts.moved && !shownAbove;
-  const clash = facts.overlap ? t("home.today.overlap", { course: facts.overlap.code, time: f.timeRange(facts.overlap.from, facts.overlap.to) }) : null;
+  // A clash, with the pick folded in on the course that needs the Student more (Presensi's answer).
+  const other = facts.overlap ? context.health.get(facts.overlap.code) : undefined;
+  const picked = facts.health && other ? clashPick(facts.health, other).pick === session.courseCode : false;
+  const clash = facts.overlap
+    ? `${t("home.today.overlap", { course: facts.overlap.code, time: f.timeRange(facts.overlap.from, facts.overlap.to) })}${picked ? `. ${t("home.today.pick")}` : ""}`
+    : null;
+  // A class that's over: what SIX's count did after it, when the app saw.
+  const result = past ? context.classResults?.[session.id]?.result : undefined;
   return (
     <Row
       // Past, quieter in token greys that still read at 4.5:1; never faded with opacity.
@@ -766,7 +763,17 @@ function TodayRow({ item, courses, onCard }: { item: TodayItem; courses: readonl
         facts.live ? (
           <NowMark fresh={fresh} />
         ) : past ? (
-          <span className="text-caption text-faint">{t("home.today.done")}</span>
+          <span className={cx("text-caption", result === "absent" ? "font-medium text-danger-fg" : result === "missing" ? "text-warning-fg" : "text-faint")}>
+            {t(
+              result === "counted"
+                ? "home.today.counted"
+                : result === "absent"
+                  ? "home.today.absent"
+                  : result === "missing"
+                    ? "home.today.notCounted"
+                    : "home.today.done",
+            )}
+          </span>
         ) : session.start - now <= SOON ? (
           <span className="text-caption whitespace-nowrap text-muted tabular-nums">{f.fromNow(session.start)}</span>
         ) : undefined
@@ -776,7 +783,7 @@ function TodayRow({ item, courses, onCard }: { item: TodayItem; courses: readonl
       }
     >
       {!past && (budget || clash) && (
-        // Kept beside a clash: choosing between two classes is when "Jangan absen lagi" matters most.
+        // Kept beside a clash: choosing between two classes is when "Jatah absen habis" matters most.
         <Meta className="mt-1 text-small font-medium">
           {budget ? <span className={STATE_TEXT[facts.state]}>{budget}</span> : ""}
           {clash ? <span className="text-warning-fg">{clash}</span> : ""}
@@ -1361,13 +1368,16 @@ function CardHead({ course }: { course: TermCourse }) {
   );
 }
 
-/**
- * "Kehadiran 4/6 · 66%" over a meter with the course's target as a tick; the
- * share rounds down so it never looks better than it is. With no room to
- * spare, the state in words under it; a course with room stays quiet.
- */
+/** The course's absences, as Presensi draws them: "Jatah absen", the bar, "Terpakai 1× · sisa 1×". */
 function CourseAttendance({ health }: { health: AttendanceHealth | undefined }) {
   const t = useT();
   if (!health?.held) return <span className="text-caption text-faint">{t("course.noMeetingsYet")}</span>;
-  return <AttendanceSummary health={health} words={health.state === "safe" ? null : verdictLabel(t, health)} />;
+  return <AbsenceBudget health={health} place="card" />;
+}
+
+/** The now card's few words for a course's absences: "Jatah absen PL3002 sisa 1×", or the state when none is left. */
+function cardBudget(t: Translate, health: AttendanceHealth): string {
+  return health.state === "safe" || health.state === "risk"
+    ? t("home.now.leftIn", { count: health.absencesLeft ?? 0, code: health.code })
+    : budgetLabel(t, health);
 }

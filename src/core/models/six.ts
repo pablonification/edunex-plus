@@ -57,6 +57,23 @@ export const SixCheckIn = z.object({
 });
 export type SixCheckIn = z.infer<typeof SixCheckIn>;
 
+/** A course's count in SIX ("Hadir X dari Y pertemuan") as read at a moment (ms). */
+export const SixCount = z.object({ at: z.number(), attended: z.number(), held: z.number() });
+
+/**
+ * What SIX's count did after one class: counted (both numbers went up),
+ * absent (held went up, attended didn't) or missing (neither, a few hours
+ * after class). `wasAt`: it was absent or missing first, judged then.
+ */
+export const SixClassResult = z.object({
+  courseCode: z.string(),
+  start: z.number(),
+  end: z.number(),
+  result: z.enum(["counted", "absent", "missing"]),
+  at: z.number(),
+  wasAt: z.number().optional(),
+});
+
 export const sixDatasets = {
   "six.student": SixStudent,
   /** This term's courses, in SIX's order. */
@@ -71,4 +88,12 @@ export const sixDatasets = {
   "six.scheduleMonths": z.array(z.string()),
   /** "Tandai Hadir" in each class meeting read while it was on, by SIX's meeting id (the last two days). */
   "six.checkIn": z.record(z.string(), SixCheckIn),
+  /**
+   * SIX's attendance count per course over time, as the app read it: the
+   * changes only, the last 30 per course. Saved by a version from 0.1.0-alpha.12 on;
+   * older data has none, and every reader starts from empty.
+   */
+  "six.countLog": z.record(z.string(), z.array(SixCount)),
+  /** What SIX's count did after each class the app watched, by SIX's meeting id (the last 14 days). */
+  "six.classResults": z.record(z.string(), SixClassResult),
 } as const;
