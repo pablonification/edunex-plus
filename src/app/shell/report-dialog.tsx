@@ -89,7 +89,7 @@ export function ReportDialog({ ask, open, onOpenChange }: { ask: ReportAsk | nul
             {/* Two ways, side by side: LINE first, since most Students have it and fewer have GitHub. */}
             <div className="grid grid-cols-1 gap-3 min-[30rem]:grid-cols-2">
               <Way
-                logo={<LineLogo className="size-7" />}
+                logo={<LineLogo className="size-8" />}
                 label={t("report.line")}
                 hint={t("report.lineHint", { id: MAINTAINER_LINE.id })}
                 busy={saving === "line"}
@@ -97,7 +97,7 @@ export function ReportDialog({ ask, open, onOpenChange }: { ask: ReportAsk | nul
                 onClick={() => void choose("line")}
               />
               <Way
-                logo={<GitHubMark className="size-7 text-fg" />}
+                logo={<GitHubMark className="size-8 text-fg" />}
                 label={t("report.github")}
                 hint={t("report.githubHint")}
                 busy={saving === "github"}
@@ -179,7 +179,11 @@ function WhatsSent({ preview }: { preview: ReportPreview }) {
   );
 }
 
-/** One way to send it, as a whole tile: the service's own mark, its name, and who reads it there. */
+/**
+ * One way to send it, as one big button: the service's own mark, its name and who reads it there,
+ * and a round arrow that's always there, filled with the accent on hover. It sits raised on the
+ * dialog, and answers hover and press like a button.
+ */
 function Way({
   logo,
   label,
@@ -203,15 +207,23 @@ function Way({
       aria-busy={busy || undefined}
       aria-disabled={disabled || undefined}
       onClick={disabled ? undefined : onClick}
-      className="focus-ring flex flex-col items-start gap-3 rounded-xl border border-edge bg-surface p-4 text-left transition-colors duration-150 hover:bg-hover aria-disabled:pointer-events-none aria-disabled:opacity-60"
+      className={cx(
+        "group focus-ring flex items-start gap-3.5 rounded-xl border border-edge bg-surface p-4 text-left shadow-card",
+        "transition-[border-color,background-color,box-shadow,scale] duration-150 hover:border-accent/50 hover:bg-hover hover:shadow-lift active:scale-[0.99] active:bg-selected",
+        "aria-disabled:pointer-events-none aria-disabled:opacity-60",
+      )}
     >
       {/* The marks keep their own room: nothing touches them. */}
-      <span className="flex h-7 items-center">{busy ? <Icons.Loader className="size-5 animate-spin text-muted" /> : logo}</span>
-      <span>
+      <span className="grid size-9 shrink-0 place-items-center">{busy ? <Icons.Loader className="size-5 animate-spin text-muted" /> : logo}</span>
+      <span className="min-w-0 flex-1">
         <span className="block text-body font-semibold">{label}</span>
         <span id={hintId} className="mt-0.5 block text-small text-pretty text-muted">
           {hint}
         </span>
+      </span>
+      {/* A round "go" at the end, filled with the accent on hover: this tile is a button. */}
+      <span className="grid size-8 shrink-0 place-items-center self-center rounded-full bg-fill text-fg transition-colors duration-150 group-hover:bg-accent group-hover:text-on-accent">
+        <Icons.ArrowRight className="size-4 transition-transform duration-150 group-hover:translate-x-px" weight="bold" />
       </span>
     </button>
   );
