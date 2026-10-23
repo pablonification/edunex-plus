@@ -482,7 +482,7 @@ anything runs past the window. Every screen sits in its own crash guard.
   `src/app/bridge.ts`), never the engine's own message: "Kalender tidak bisa
   disimpan. Coba lagi, atau simpan ke folder lain." A confirm before what
   can't be undone names what's lost and says so; its button is a verb and
-  its object ("Putuskan HP", "Atur ulang rencana"), never a bare "Buang".
+  its object ("Putuskan semua HP", "Atur ulang rencana"), never a bare "Buang".
 - **Positive and honest framing**: "Sisa jatah absen 2×", "IPK
   tertinggi yang masih mungkin: 3,45". Never three "tak tercapai" in a row.
 - **One percent at a time, labeled.** Never two shares side by side without

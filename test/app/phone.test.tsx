@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 // Settings' "Notifikasi di HP" in the window, with the real engine behind the
 // bridge and a pretend ntfy behind the engine: connect, the QR code and the
-// code to paste, a test, what a failure says, quiet hours, and disconnecting
-// (asked first).
+// code to paste, another phone on the same code, a test, what a failure says,
+// quiet hours, and disconnecting every phone (asked first).
 import { act } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 import { openApp } from "./harness";
@@ -40,6 +40,8 @@ describe("phone notifications in Settings", () => {
     expect(s.text()).toContain("Orang lain tidak bisa membacanya tanpa kode ini, tapi pengelola ntfy bisa.");
     expect(qr()).toBeNull();
     expect(s.ntfy.log).toEqual([]);
+    // More than one phone is possible from the start.
+    expect(s.text()).toContain("Lewat aplikasi ntfy yang gratis tanpa akun, di satu HP atau lebih.");
 
     await s.click("Hubungkan HP");
     const link = s.engine.phone.link();
@@ -48,7 +50,10 @@ describe("phone notifications in Settings", () => {
     // Drawn from the code's modules, as SVG elements.
     expect(qr()?.querySelector("path")?.getAttribute("d")).toMatch(/^M\d+ \d+h1v1h-1z/);
     expect(s.text()).toContain(link.topic);
-    expect(s.text()).toContain("iPhone: di ntfy, ketuk +, lalu ketik kode di bawah.");
+    expect(s.text()).toContain("Di Android, pindai kode QR ini dengan kamera HP.");
+    expect(s.text()).toContain("Di iPhone, buka ntfy, ketuk +, lalu ketik kode di bawah.");
+    // Another phone subscribes from the same QR code or code: ntfy gives every subscriber each message.
+    expect(s.text()).toContain("Untuk HP lain, ulangi langkah ini di HP itu. Semua mendapat notifikasi yang sama.");
 
     await s.click("Salin kode");
     expect(s.copied).toEqual([link.topic]);
@@ -59,30 +64,32 @@ describe("phone notifications in Settings", () => {
     await s.click("Hubungkan HP");
     await s.click("Kirim tes");
     expect(s.ntfy.sent.at(-1)).toMatchObject({ title: "Edunex Plus terhubung" });
-    expect(s.text()).toContain("Terkirim. Tidak sampai?");
+    expect(s.text()).toContain("Terkirim. Ada HP yang tidak menerima?");
 
     s.ntfy.answer = "busy";
     await s.click("Kirim tes");
     expect(s.text()).toContain("Belum terkirim ke HP karena ntfy sedang sibuk. Dicoba lagi nanti.");
-    expect(s.text()).not.toContain("Terkirim. Tidak sampai?");
+    expect(s.text()).not.toContain("Terkirim. Ada HP yang tidak menerima?");
     s.ntfy.answer = "offline";
     await s.click("Kirim tes");
     expect(s.text()).toContain("Belum terkirim ke HP karena tidak ada koneksi.");
 
     s.ntfy.answer = "ok";
-    // Asked first, saying what goes: the code is forgotten, so connecting again needs a new one on the phone.
-    expect(s.text()).toContain("Menghubungkan lagi butuh kode baru di HP.");
+    // It stops every phone; one phone alone stops in its own ntfy app.
+    expect(s.text()).toContain("Semua HP berhenti menerima notifikasi. Untuk satu HP saja, hapus kodenya di aplikasi ntfy HP itu.");
+    // Asked first, saying what goes: the code is forgotten, so connecting again needs a new one on each phone.
     await s.click("Putuskan");
     const question = () => document.querySelector("[role=alertdialog]");
-    expect(question()?.textContent).toContain("Putuskan HP?");
-    expect(question()?.textContent).toContain("Untuk menghubungkan lagi, HP-mu perlu kode baru.");
+    expect(question()?.textContent).toContain("Putuskan semua HP?");
+    expect(question()?.textContent).toContain("Tiap HP dengan kode ini berhenti menerima notifikasi");
+    expect(question()?.textContent).toContain("Untuk menghubungkan lagi, tiap HP perlu kode baru.");
     await s.click("Batal");
     expect(question()).toBeNull();
     expect(s.engine.phone.link()).toMatchObject({ connected: true });
     expect(qr()).not.toBeNull();
 
     await s.click("Putuskan");
-    await s.click("Putuskan HP");
+    await s.click("Putuskan semua HP");
     expect(question()).toBeNull();
     expect(qr()).toBeNull();
     expect(s.has("Hubungkan HP")).toBe(true);

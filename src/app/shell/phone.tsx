@@ -1,9 +1,12 @@
-// Settings' "Notifikasi di HP": alerts on the Student's phone through the ntfy
+// Settings' "Notifikasi di HP": alerts on the Student's phones through the ntfy
 // app (src/engine/alerts/phone.ts). Off until the Student connects; then a QR
 // code of the subscribe link for Android, the code to paste for iPhone (its
 // ntfy app doesn't open ntfy:// links), the steps, a test, quiet hours and a
 // way out, asked first: the code goes with it, so connecting again means a new
-// one on the phone. The window only asks: main makes the code and does the sending.
+// one on each phone. Any number of phones can subscribe to the one code, and
+// ntfy gives each the same messages; it never tells the app who subscribed, so
+// Settings says how to add a phone and how to drop one, not which are there.
+// The window only asks: main makes the code and does the sending.
 import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { encode } from "uqr";
 import type { PhoneLink } from "../../core/actions/phone";
@@ -103,11 +106,14 @@ function PhoneRows({ settings, update, report }: PhoneSettingsProps) {
     <>
       <div className="flex items-center gap-4 px-4 py-3">
         <QrCode text={link.link} label={t("phone.qr")} />
-        <ol className="min-w-0 list-decimal space-y-1.5 pl-4 text-small text-muted">
-          {STEPS.map((step) => (
-            <li key={step}>{t(step)}</li>
-          ))}
-        </ol>
+        <div className="min-w-0">
+          <ol className="list-decimal space-y-1.5 pl-4 text-small text-muted">
+            {STEPS.map((step) => (
+              <li key={step}>{t(step)}</li>
+            ))}
+          </ol>
+          <p className="mt-2.5 text-small text-fg">{t("phone.morePhones")}</p>
+        </div>
       </div>
       <Line label={t("phone.topic")} hint={<span className="font-mono break-all text-body select-all">{link.topic}</span>}>
         <Button size="sm" aria-label={t("phone.copyCode")} onClick={copy}>

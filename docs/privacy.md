@@ -49,7 +49,7 @@ Nothing leaves your computer except the app's own requests to:
   (no personal data is sent), and to download it: by itself with **Update automatically** on
   (the default), otherwise only when you press **Download & install**;
 - **ntfy** (`ntfy.sh`), only if you turn on phone notifications: the alert's text (for example
-  a Task's name and deadline), sent under a private code that only this app and your phone
+  a Task's name and deadline), sent under a private code that only this app and your phones
   use. ntfy's operator can read these messages, and Settings says so. Turning it off cancels
   the reminders already booked there; if ntfy can't be reached then, the app tells you some
   may still arrive.
