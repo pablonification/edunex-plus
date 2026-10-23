@@ -20,16 +20,27 @@ const MINUTE = 60_000;
 type Home = Awaited<ReturnType<typeof startHome>>;
 const menuOf = (h: Pick<Home, "engine" | "world">): TrayMenu => trayMenu(h.engine.snapshot(), h.world.clock.now());
 
-/** The menu as the Student reads it: a line per entry, "~" before a line that can't be clicked, "[…]" around a section's label. */
+/** The menu as the Student reads it: a line per entry, "~" before a line that can't be clicked, "[…]" around a section's label, "▸" after one that opens more, "//" before a line's detail. */
 function read(menu: TrayMenu): string[] {
   return menu.entries.map((entry) =>
-    entry.type === "separator" ? "---" : entry.type === "header" ? `[${entry.label}]` : `${entry.action ? "" : "~ "}${entry.label}`,
+    entry.type === "separator"
+      ? "---"
+      : entry.type === "header"
+        ? `[${entry.label}]`
+        : entry.type === "submenu"
+          ? `${entry.label} ▸ ${entry.entries.map((inner) => (inner.type === "item" ? inner.label : "")).join(" | ")}`
+          : `${entry.action ? "" : "~ "}${entry.label}${entry.detail ? ` // ${entry.detail}` : ""}`,
   );
+}
+
+/** Every line, those in a submenu too. */
+function lines(entries: readonly TrayEntry[]): TrayEntry[] {
+  return entries.flatMap((entry) => (entry.type === "submenu" ? lines(entry.entries) : [entry]));
 }
 
 /** The line that says `label`, to click. */
 function line(menu: TrayMenu, label: string | RegExp): Extract<TrayEntry, { type: "item" }> {
-  const found = menu.entries.find(
+  const found = lines(menu.entries).find(
     (entry): entry is Extract<TrayEntry, { type: "item" }> =>
       entry.type === "item" && (typeof label === "string" ? entry.label === label : label.test(entry.label)),
   );
@@ -56,17 +67,18 @@ function withStatuses(menu: Home, statuses: Partial<Record<"edunex" | "six", Par
 }
 
 describe("the status line", () => {
-  it("all well: when the data was last read, as a time of day that doesn't go stale while the menu is open; a quiet line", async () => {
+  it("all well: no line about it, only when the data was last read, under Perbarui sekarang, as a time that doesn't go stale while the menu is open", async () => {
     const h = await startHome();
     const menu = menuOf(h);
-    expect(read(menu)[0]).toMatch(/^~ Diperbarui pukul \d\d:\d\d$/);
+    expect(read(menu)[0]).toBe("[Sedang berlangsung]");
+    expect(line(menu, "Perbarui sekarang").detail).toMatch(/^Diperbarui pukul \d\d:\d\d$/);
     // Read on another day: that day too.
     const yesterday = withStatuses(h, {
       edunex: { updatedAt: Date.parse("2026-10-07T14:05:00+07:00") },
       six: { updatedAt: Date.parse("2026-10-07T14:05:00+07:00") },
     });
-    expect(read(yesterday)[0]).toBe("~ Diperbarui kemarin, 14:05");
-    expect(read(withStatuses(h, { six: { state: "connecting" } }))[0]).toBe("~ Memperbarui…");
+    expect(line(yesterday, "Perbarui sekarang").detail).toBe("Diperbarui kemarin, 14:05");
+    expect(line(withStatuses(h, { six: { state: "connecting" } }), "Perbarui sekarang").detail).toBe("Memperbarui…");
   });
 
   it("a session that ended says so, and opens the window, where the banner signs in again", async () => {
@@ -99,8 +111,7 @@ describe("the status line", () => {
       "---",
       "Buka Edunex Plus",
       "~ Perbarui sekarang",
-      "Buka Edunex di browser",
-      "Buka SIX di browser",
+      "Buka di browser ▸ Edunex | SIX",
       "Pengaturan…",
       "---",
       "Keluar dari Edunex Plus",
@@ -111,11 +122,11 @@ describe("the status line", () => {
 });
 
 describe("the class", () => {
-  it("on now: until when, its time, code, name and room, opening the course's meetings", async () => {
+  it("on now: its code and name, the time and room under it, opening the course's meetings", async () => {
     const h = await startHome();
     const menu = menuOf(h);
-    expect(section(menu, "Sedang berlangsung · sampai 10:00")).toEqual(["08:00–10:00 · PL3002 Ekonomi dan Inovasi dalam… · R.SG PWK LT.6"]);
-    expect(line(menu, /^08:00–10:00 · PL3002/).action).toEqual({ kind: "route", route: { screen: "course", code: "PL3002", tab: "meetings" } });
+    expect(section(menu, "Sedang berlangsung")).toEqual(["PL3002 Ekonomi dan Inovasi dalam… // 08:00–10:00 · R.SG PWK LT.6"]);
+    expect(line(menu, /^PL3002/).action).toEqual({ kind: "route", route: { screen: "course", code: "PL3002", tab: "meetings" } });
     // SIX counts PL3002: Edunex's window is optional, so the menu doesn't ask for it.
     expect(read(menu).some((label) => label.includes("Presensi PL3002"))).toBe(false);
   });
@@ -123,12 +134,12 @@ describe("the class", () => {
   it("between classes the next one today, and in the evening tomorrow's, the meeting only Edunex announced included", async () => {
     const h = await startHome();
     await h.until("2026-10-08T10:30:00+07:00");
-    expect(section(menuOf(h), "Kuliah berikutnya · Hari ini")).toEqual(["11:00–12:59 · DK4073 Komunikasi Pemasaran · TVST C"]);
+    expect(section(menuOf(h), "Kuliah berikutnya · Hari ini")).toEqual(["DK4073 Komunikasi Pemasaran // 11:00–12:59 · TVST C"]);
     await h.until("2026-10-08T18:00:00+07:00");
     const evening = menuOf(h);
-    expect(section(evening, "Kuliah berikutnya · Besok")).toEqual(["15:00–17:00 · II4091 Proposal Tugas Akhir · Pertemuan 3 · daring"]);
+    expect(section(evening, "Kuliah berikutnya · Besok")).toEqual(["II4091 Proposal Tugas Akhir // 15:00–17:00 · Pertemuan 3 · daring"]);
     // The card has it: "Perlu perhatianmu" doesn't say it again.
-    expect(section(evening, "Perlu perhatianmu").some((label) => label.startsWith("II4091 ada pertemuan"))).toBe(false);
+    expect(section(evening, "Perlu perhatianmu").some((label) => label.startsWith("Pertemuan daring II4091"))).toBe(false);
   });
 
   it("Tandai Hadir open in SIX: a line to press it, opening SIX on the class as the app's own button does", async () => {
@@ -137,11 +148,11 @@ describe("the class", () => {
     h.world.six.openCheckIn("2194342");
     await h.until("2026-10-08T08:40:00+07:00");
     const menu = menuOf(h);
-    expect(section(menu, "Sedang berlangsung · sampai 10:00")).toEqual([
-      "08:00–10:00 · PL3002 Ekonomi dan Inovasi dalam… · R.SG PWK LT.6",
-      "Tekan Tandai Hadir di SIX · PL3002",
+    expect(section(menu, "Sedang berlangsung")).toEqual([
+      "PL3002 Ekonomi dan Inovasi dalam… // 08:00–10:00 · R.SG PWK LT.6",
+      "Tekan Tandai Hadir di SIX // PL3002",
     ]);
-    expect(line(menu, "Tekan Tandai Hadir di SIX · PL3002").action).toEqual({ kind: "checkIn", meetingId: "2194342" });
+    expect(line(menu, "Tekan Tandai Hadir di SIX").action).toEqual({ kind: "checkIn", meetingId: "2194342" });
     // Pressed, or closed: the line goes once SIX stops showing it.
     h.world.six.closeCheckIn("2194342");
     await h.until("2026-10-08T08:50:00+07:00");
@@ -153,10 +164,10 @@ describe("the class", () => {
     const h = await startHome({ now: "2026-10-16T15:01:00" });
     const menu = menuOf(h);
     const presence = line(menu, /^Isi Presensi II4091/);
-    expect(presence.label).toBe("Isi Presensi II4091 · tutup 23:59");
+    expect([presence.label, presence.detail]).toEqual(["Isi Presensi II4091", "Tutup 23:59"]);
     expect(presence.action).toEqual({ kind: "route", route: { screen: "task", taskId: 117003 } });
     // Under its class, as SIX lists it (no room for an online class).
-    expect(section(menu, "Sedang berlangsung · sampai 23:00")).toEqual(["15:00–23:00 · II4091 Proposal Tugas Akhir", presence.label]);
+    expect(section(menu, "Sedang berlangsung")).toEqual(["II4091 Proposal Tugas Akhir // 15:00–23:00", "Isi Presensi II4091 // Tutup 23:59"]);
   });
 });
 
@@ -176,25 +187,24 @@ describe("Perlu perhatianmu", () => {
     const menu = menuOf(h);
     // Due within a day first, then within three, then the rest of the week, as on Beranda.
     expect(section(menu, "Perlu perhatianmu")).toEqual([
-      "Ringkasan K5 · Tenggat Hari ini, 23:59",
-      "II4091 ada pertemuan daring · Besok, 15:00–17:00",
-      "KU5014: tak bisa lagi capai 80%",
-      "UTS Komunikasi Pemasaran · Kam, 15 Okt, 11:00",
+      "Ringkasan K5 // PL3032 · Tenggat Hari ini, 23:59",
+      "Pertemuan daring II4091 // Besok, 15:00–17:00",
+      "Kehadiran KU5014 // Tak bisa lagi capai 80%",
       "Lihat semua 6 di Beranda",
     ]);
     expect(line(menu, /^Ringkasan K5/).action).toEqual({ kind: "route", route: { screen: "task", taskId: tonight } });
-    expect(line(menu, /^II4091 ada pertemuan/).action).toMatchObject({ kind: "url", url: expect.stringMatching(/^https:\/\/teams\.microsoft\.com\//) });
+    expect(line(menu, /^Pertemuan daring II4091/).action).toMatchObject({ kind: "url", url: expect.stringMatching(/^https:\/\/teams\.microsoft\.com\//) });
     // The rest are on Beranda.
     expect(line(menu, "Lihat semua 6 di Beranda").action).toEqual({ kind: "route", route: { screen: "home" } });
-    expect(NEEDS_SHOWN).toBe(4);
+    expect(NEEDS_SHOWN).toBe(3);
     expect(menu.tooltip).toBe("Edunex Plus · 6 perlu perhatianmu");
-    // What's past "Lihat semua" is still Beranda's: Sunday's and Tuesday's Tasks.
+    // What's past "Lihat semua" is still Beranda's: the UTS, then Sunday's and Tuesday's Tasks.
     const context = snapshotHomeWorld(h.engine.snapshot(), h.world.clock.now())!;
     expect(
       attentionWithToday(context, nowCard(context))
         .map((need) => need.id)
         .slice(NEEDS_SHOWN),
-    ).toEqual([`task:${sunday}`, `task:${tuesday}`]);
+    ).toEqual([expect.stringMatching(/^exam:/), `task:${sunday}`, `task:${tuesday}`]);
   });
 
   it("leaves out what the Student put off or marked handled, as Beranda does", async () => {
@@ -210,24 +220,25 @@ describe("Perlu perhatianmu", () => {
     await h.engine.setLocal("local.done", putAway([], taskDoneKey(proposal, "due"), "handedElsewhere", now));
     const menu = menuOf(h);
     expect(section(menu, "Perlu perhatianmu")).toEqual([
-      "II4091 ada pertemuan daring · Besok, 15:00–17:00",
-      "KU5014: tak bisa lagi capai 80%",
-      "UTS Komunikasi Pemasaran · Kam, 15 Okt, 11:00",
-      "Laporan Akhir · Tenggat Sel, 13 Okt, 23:59",
+      "Pertemuan daring II4091 // Besok, 15:00–17:00",
+      "Kehadiran KU5014 // Tak bisa lagi capai 80%",
+      "UTS DK4073 // Kam, 15 Okt, 11:00",
+      "Lihat semua 4 di Beranda",
     ]);
     // Snoozed until 14:12: back in the menu after that.
     await h.until("2026-10-08T15:00:00+07:00");
-    expect(section(menuOf(h), "Perlu perhatianmu")).toContain("Ringkasan K5 · Tenggat Hari ini, 23:59");
+    expect(section(menuOf(h), "Perlu perhatianmu")).toContain("Ringkasan K5 // PL3032 · Tenggat Hari ini, 23:59");
   });
 
   it("looks as far ahead as Beranda: the range in Settings", async () => {
     const h = await startHome();
     await withTasks(h);
+    expect(menuOf(h).tooltip).toBe("Edunex Plus · 6 perlu perhatianmu");
+    // Three days: Sunday's Task is in, Tuesday's Task and Thursday's UTS aren't.
     await h.engine.updateSettings({ needsAhead: 3 });
-    const three = section(menuOf(h), "Perlu perhatianmu");
-    expect(three).toContain("Proposal · Tenggat Min, 11 Okt, 23:59");
-    expect(three.some((label) => label.startsWith("Laporan Akhir"))).toBe(false);
-    expect(three.some((label) => label.startsWith("UTS"))).toBe(false);
+    const three = menuOf(h);
+    expect(section(three, "Perlu perhatianmu").at(-1)).toBe("Lihat semua 4 di Beranda");
+    expect(three.tooltip).toBe("Edunex Plus · 4 perlu perhatianmu");
   });
 
   it("nothing due in the range: Beranda's words, and how far it looked", async () => {
@@ -260,9 +271,9 @@ describe("Perlu perhatianmu", () => {
       end_at: "2026-10-08T23:59:00+07:00",
     });
     await h.refresh();
-    const label = section(menuOf(h), "Perlu perhatianmu")[0]!;
-    expect(label).toBe("Analisis Kebijakan Perencanaan… · Tenggat Hari ini, 23:59");
-    expect(label.length).toBeLessThanOrEqual(64);
+    const entry = line(menuOf(h), /^Analisis/);
+    expect([entry.label, entry.detail]).toEqual(["Analisis Kebijakan Perencanaan…", "PL3032 · Tenggat Hari ini, 23:59"]);
+    expect(entry.label.length).toBeLessThanOrEqual(36);
     expect(cut("Ekonomi dan Inovasi dalam Perencanaan", 20)).toBe("Ekonomi dan Inovasi…");
     expect(cut("Tugas-Besar-Tanpa-Spasi-Sama-Sekali", 12)).toBe("Tugas-Besar…");
   });
@@ -286,20 +297,19 @@ describe("the actions", () => {
   it("open, refresh, Edunex and SIX in the browser, Settings, and quit last, each doing what it says", async () => {
     const h = await startHome();
     const menu = menuOf(h);
-    expect(read(menu).slice(-8)).toEqual([
+    expect(read(menu).slice(-7)).toEqual([
       "---",
       "Buka Edunex Plus",
-      "Perbarui sekarang",
-      "Buka Edunex di browser",
-      "Buka SIX di browser",
+      expect.stringMatching(/^Perbarui sekarang \/\/ Diperbarui pukul \d\d:\d\d$/),
+      "Buka di browser ▸ Edunex | SIX",
       "Pengaturan…",
       "---",
       "Keluar dari Edunex Plus",
     ]);
     expect(line(menu, "Buka Edunex Plus").action).toEqual({ kind: "window" });
     expect(line(menu, "Perbarui sekarang").action).toEqual({ kind: "refresh" });
-    expect(line(menu, "Buka Edunex di browser").action).toEqual({ kind: "url", url: "https://edunex.itb.ac.id" });
-    expect(line(menu, "Buka SIX di browser").action).toEqual({ kind: "url", url: "https://six.itb.ac.id" });
+    expect(line(menu, "Edunex").action).toEqual({ kind: "url", url: "https://edunex.itb.ac.id" });
+    expect(line(menu, "SIX").action).toEqual({ kind: "url", url: "https://six.itb.ac.id" });
     expect(line(menu, "Pengaturan…").action).toEqual({ kind: "command", command: "settings" });
     expect(line(menu, "Keluar dari Edunex Plus").action).toEqual({ kind: "quit" });
   });
@@ -311,23 +321,19 @@ describe("the actions", () => {
     await h.engine.markAlertsRead();
     await h.engine.updateSettings({ lang: "en" });
     const menu = menuOf(h);
-    const [status, ...rest] = read(menu);
-    expect(status).toMatch(/^~ Updated at \d\d:\d\d$/);
-    expect(rest).toEqual([
-      "---",
-      "[On now · until 10:00]",
-      "08:00–10:00 · PL3002 Ekonomi dan Inovasi dalam… · R.SG PWK LT.6",
+    expect(read(menu)).toEqual([
+      "[On now]",
+      "PL3002 Ekonomi dan Inovasi dalam… // 08:00–10:00 · R.SG PWK LT.6",
       "---",
       "[Needs you]",
-      "Ringkasan K5 · Due Today, 23:59",
-      "II4091 meets online · Tomorrow, 15:00–17:00",
-      "KU5014: can't reach 80% anymore",
-      "Komunikasi Pemasaran UTS · Thu, 15 Oct, 11:00",
+      "Ringkasan K5 // PL3032 · Due Today, 23:59",
+      "II4091 online meeting // Tomorrow, 15:00–17:00",
+      "KU5014 attendance // Can't reach 80% anymore",
+      "See all 4 on Home",
       "---",
       "Open Edunex Plus",
-      "Refresh now",
-      "Open Edunex in browser",
-      "Open SIX in browser",
+      expect.stringMatching(/^Refresh now \/\/ Updated at \d\d:\d\d$/),
+      "Open in browser ▸ Edunex | SIX",
       "Settings…",
       "---",
       "Quit Edunex Plus",

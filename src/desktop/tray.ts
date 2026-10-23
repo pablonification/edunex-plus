@@ -91,15 +91,25 @@ export function createTray(options: { menu: () => TrayMenu; now: () => number; a
 function menuItem(entry: TrayEntry, act: (action: TrayAction) => void): MenuItemConstructorOptions {
   if (entry.type === "separator") return { type: "separator" };
   const label = systemLabel(entry.label);
+  if (entry.type === "submenu") return { label, submenu: entry.entries.map((inner) => menuItem(inner, act)) };
   // A section's label: macOS 14 draws a real one; elsewhere a line that can't be clicked.
   if (entry.type === "header") return headers() ? { type: "header", label } : { label, enabled: false };
   const { action } = entry;
-  return action ? { label, click: () => act(action) } : { label, enabled: false };
+  // The detail: in small grey type under the label where macOS draws one (14.4 on), else after it.
+  const shown = entry.detail === undefined ? { label } : subtitles() ? { label, sublabel: entry.detail } : { label: `${label} · ${systemLabel(entry.detail)}` };
+  return action ? { ...shown, click: () => act(action) } : { ...shown, enabled: false };
 }
 
 /** Windows and Linux read "&" as the key to underline: "&&" is one "&", as a Task's title has it. */
 function systemLabel(label: string): string {
   return process.platform === "darwin" ? label : label.replaceAll("&", "&&");
+}
+
+/** A second, smaller line under an item, as macOS draws it from 14.4 on. */
+function subtitles(): boolean {
+  if (process.platform !== "darwin") return false;
+  const [major = 0, minor = 0] = process.getSystemVersion().split(".").map(Number);
+  return major > 14 || (major === 14 && minor >= 4);
 }
 
 /** Section labels as macOS draws them, from macOS 14 on. */

@@ -45,8 +45,10 @@ export type TrayEntry =
   | { type: "separator" }
   /** A quiet label over its section. */
   | { type: "header"; label: string }
-  /** `action` null: a line to read, not to click. */
-  | { type: "item"; label: string; action: TrayAction | null };
+  /** `action` null: a line to read, not to click. `detail`: the when and where, in small grey type under it (macOS), else after it. */
+  | { type: "item"; label: string; detail?: string; action: TrayAction | null }
+  /** A line that opens a few more, so the menu stays short. */
+  | { type: "submenu"; label: string; entries: TrayEntry[] };
 
 export interface TrayMenu {
   tooltip: string;
@@ -54,11 +56,10 @@ export interface TrayMenu {
 }
 
 /** How many of "Perlu perhatianmu" the menu lists; past that, a line to Beranda. */
-export const NEEDS_SHOWN = 4;
-/** The longest line, in characters: a long Task title or course name is cut, so the menu stays narrow. */
-const LONGEST = 64;
-/** The least of a title kept beside its "when", however long that is. */
-const TITLE_KEPT = 32;
+export const NEEDS_SHOWN = 3;
+/** The longest title and detail, in characters: a long Task title or course name is cut, so the menu stays narrow. */
+const TITLE = 36;
+const DETAIL = 40;
 
 type Translate = (key: StringKey, vars?: Vars) => string;
 
@@ -70,11 +71,15 @@ export function trayMenu(snapshot: Pick<Snapshot, "datasets" | "statuses" | "set
   const context = world ? homeContext(world) : undefined;
   const courses = snapshotTermCourses(snapshot) ?? [];
   const card = context ? nowCard(context) : null;
-  const needs = context ? needsSection(snapshot, context, card, courses, f, t) : null;
+  const needs = context ? needsSection(snapshot, context, card, f, t) : null;
 
-  const entries: TrayEntry[] = [statusLine(snapshot, f, t)];
+  // All well: no line about it, only when the data was read, under "Perbarui sekarang". Something wrong: it comes first.
+  const status = statusLine(snapshot, f, t);
+  const entries: TrayEntry[] = status.problem ? [status.problem] : [];
   const section = (lines: TrayEntry[]) => {
-    if (lines.length) entries.push({ type: "separator" }, ...lines);
+    if (!lines.length) return;
+    if (entries.length) entries.push({ type: "separator" });
+    entries.push(...lines);
   };
   section(classSection(snapshot, card, courses, now, f, t));
   section(needs?.entries ?? []);
@@ -82,9 +87,15 @@ export function trayMenu(snapshot: Pick<Snapshot, "datasets" | "statuses" | "set
   const signedIn = snapshot.statuses.some((status) => (status.source === "edunex" || status.source === "six") && status.state !== "signed-out");
   section([
     { type: "item", label: t("tray.open"), action: { kind: "window" } },
-    { type: "item", label: t("sync.refreshNow"), action: signedIn ? { kind: "refresh" } : null },
-    { type: "item", label: t("tray.openEdunex"), action: { kind: "url", url: EDUNEX_WEB } },
-    { type: "item", label: t("tray.openSix"), action: { kind: "url", url: SIX_WEB } },
+    { type: "item", label: t("sync.refreshNow"), ...(status.updated ? { detail: status.updated } : {}), action: signedIn ? { kind: "refresh" } : null },
+    {
+      type: "submenu",
+      label: t("tray.openInBrowser"),
+      entries: [
+        { type: "item", label: t("source.edunex"), action: { kind: "url", url: EDUNEX_WEB } },
+        { type: "item", label: t("source.six"), action: { kind: "url", url: SIX_WEB } },
+      ],
+    },
     { type: "item", label: t("menu.settings"), action: { kind: "command", command: "settings" } },
   ]);
   section([{ type: "item", label: t("tray.quit"), action: { kind: "quit" } }]);
@@ -97,18 +108,18 @@ export function trayMenu(snapshot: Pick<Snapshot, "datasets" | "statuses" | "set
 const SIGNED_OUT = (source: SourceStatus["source"]): SourceStatus => ({ source, state: "signed-out", updatedAt: null, detail: null });
 
 /**
- * One line, as the window's top bar and banner say it: when the data was
- * last read while all is well; else the problem, and a click opens the
- * window, where its banner has the fix (sign in again, try again).
+ * As the window's top bar and banner say it: the problem, a line whose click
+ * opens the window, where its banner has the fix (sign in again, try again);
+ * else when the data was last read.
  */
-function statusLine(snapshot: Pick<Snapshot, "datasets" | "statuses">, f: Format, t: Translate): TrayEntry {
+function statusLine(snapshot: Pick<Snapshot, "datasets" | "statuses">, f: Format, t: Translate): { problem: TrayEntry | null; updated: string | null } {
   const status = (source: "edunex" | "six") => snapshot.statuses.find((entry) => entry.source === source) ?? SIGNED_OUT(source);
   const sources = [status("edunex"), status("six")];
   const name = (entry: SourceStatus) => t(`source.${entry.source}`);
   const saved = { edunex: snapshotDataset(snapshot, "edunex.account") !== undefined, six: snapshotDataset(snapshot, "six.student") !== undefined } as const;
   const signedIn = sources.filter((entry) => entry.state !== "signed-out");
-  const fix = (label: string): TrayEntry => ({ type: "item", label, action: { kind: "window" } });
-  const quiet = (label: string): TrayEntry => ({ type: "item", label, action: null });
+  const fix = (label: string) => ({ problem: { type: "item", label, action: { kind: "window" } } as TrayEntry, updated: null });
+  const quiet = (updated: string) => ({ problem: null, updated });
   // Signed in to neither, nothing kept: the window's welcome is where to start.
   if (!signedIn.length && !saved.edunex && !saved.six) return fix(t("welcome.continueHint"));
   const changed = signedIn.find((entry) => entry.state === "changed");
@@ -158,14 +169,17 @@ function classSection(
     const course = courses.find((c) => c.code === code);
     lines.push({
       type: "header",
-      label: card.state === "live" ? t("home.now.live", { time: f.time(slot.end) }) : t("home.now.later", { day: f.relativeDay(slot.start) }),
+      // On now: its time is on the line under it.
+      label: card.state === "live" ? t("tray.now") : t("home.now.later", { day: f.relativeDay(slot.start) }),
     });
     const what = session
       ? [session.room, /^kuliah$/i.test(session.activity) ? null : session.activity]
       : [t(meeting!.meeting.online ? "home.today.meetingOnline" : "home.today.meeting", { number: meeting!.meeting.number })];
+    const name = course?.name ?? session?.courseName ?? null;
     lines.push({
       type: "item",
-      label: withName(f.timeRange(slot.start, slot.end), code, course?.name ?? session?.courseName ?? null, what),
+      label: cut(name ? `${code} ${name}` : code, TITLE),
+      detail: cut([f.timeRange(slot.start, slot.end), ...what.filter((part): part is string => Boolean(part))].join(" · "), DETAIL),
       action: { kind: "route", route: course?.edunex ? { screen: "course", code, tab: "meetings" } : { screen: "presence" } },
     });
   }
@@ -173,7 +187,7 @@ function classSection(
   const student = snapshotDataset(snapshot, "six.student");
   const checkIns = snapshotDataset(snapshot, "six.checkIn") ?? {};
   const open = student ? (snapshotDataset(snapshot, "six.schedule") ?? []).filter((s) => checkIns[s.id]?.state === "open" && checkingIn(s, now)) : [];
-  for (const s of open) lines.push({ type: "item", label: t("tray.checkIn", { course: s.courseCode }), action: { kind: "checkIn", meetingId: s.id } });
+  for (const s of open) lines.push({ type: "item", label: t("tray.checkIn"), detail: s.courseCode, action: { kind: "checkIn", meetingId: s.id } });
   // Optional where SIX counts: Beranda says so quietly, and the menu leaves it out.
   const presence = card?.presence;
   if (presence && presence.counts !== false) {
@@ -181,7 +195,8 @@ function classSection(
     const title = presence.noSix ? t("home.need.presenceNoSix", { course: presence.code }) : t("home.need.presence", { course: presence.code });
     lines.push({
       type: "item",
-      label: `${title} · ${t("home.need.presence.closes", { time: f.dayTime(presence.session.closesAt) })}`,
+      label: title,
+      detail: capital(t("home.need.presence.closes", { time: f.dayTime(presence.session.closesAt) })),
       // Recorded by handing in a Task: that Task in the app, as Beranda's button; else the Presence on Edunex.
       action:
         presence.activity === "assignment" && presence.task
@@ -198,7 +213,6 @@ function needsSection(
   snapshot: Pick<Snapshot, "datasets" | "statuses" | "settings">,
   context: ReturnType<typeof homeContext>,
   card: NowCard | null,
-  courses: readonly TermCourseBase[],
   f: Format,
   t: Translate,
 ): { entries: TrayEntry[]; count: number } | null {
@@ -222,7 +236,7 @@ function needsSection(
     entries.push({ type: "item", label, action: { kind: "route", route: { screen: "home" } } });
     return { entries, count: 0 };
   }
-  for (const need of shown.slice(0, NEEDS_SHOWN)) entries.push({ type: "item", label: needLabel(need, courses, f, t), action: needAction(need) });
+  for (const need of shown.slice(0, NEEDS_SHOWN)) entries.push({ type: "item", ...needLine(need, f, t), action: needAction(need) });
   if (shown.length > NEEDS_SHOWN)
     entries.push({ type: "item", label: t("tray.needs.all", { count: shown.length }), action: { kind: "route", route: { screen: "home" } } });
   return { entries, count: shown.length };
@@ -233,22 +247,24 @@ function needAction(need: NeedDraft): TrayAction {
   return need.action.kind === "go" ? { kind: "route", route: need.action.route } : { kind: "url", url: need.action.url };
 }
 
-/** Beranda's row in one line: its title, then when, as a time and a day. */
-function needLabel(need: NeedDraft, courses: readonly TermCourseBase[], f: Format, t: Translate): string {
+/** Beranda's row, short: what it is, and when (with the course where the title doesn't say it). */
+function needLine(need: NeedDraft, f: Format, t: Translate): { label: string; detail?: string } {
   const course = need.course ?? "";
-  const line = (title: string, when?: string | null) =>
-    when ? `${cut(title, Math.max(TITLE_KEPT, LONGEST - when.length - 3))} · ${when}` : cut(title, LONGEST);
+  const line = (label: string, ...detail: (string | null | undefined)[]) => {
+    const parts = detail.filter((part): part is string => Boolean(part));
+    return parts.length ? { label: cut(label, TITLE), detail: cut(capital(parts.join(" · ")), DETAIL) } : { label: cut(label, TITLE) };
+  };
   switch (need.kind) {
     case "task": {
       const { task } = need;
-      if (need.reason === "edited") return line(task.title, t("tray.edited"));
-      if (need.reason === "overdue" || task.dueAt === null) return line(task.title, t("home.need.task.overdue"));
-      return line(task.title, t("home.need.task.due", { when: f.dueLabel(task.dueAt) }));
+      if (need.reason === "edited") return line(task.title, course, t("tray.edited"));
+      if (need.reason === "overdue" || task.dueAt === null) return line(task.title, course, t("home.need.task.overdue"));
+      return line(task.title, course, t("home.need.task.due", { when: f.dueLabel(task.dueAt) }));
     }
     case "presence": {
       if (!need.open) {
-        const title = need.task ? t("home.need.presenceAhead.assignment", { task: need.task.title }) : t("home.need.presenceAhead", { course });
-        return line(title, t("tray.opens", { when: f.dueLabel(need.session.opensAt) }));
+        const title = need.task ? need.task.title : t("home.need.presenceAhead", { course });
+        return line(title, need.task ? course : null, t("tray.opens", { when: f.dueLabel(need.session.opensAt) }));
       }
       const title =
         need.countedIn === "noSix"
@@ -260,23 +276,22 @@ function needLabel(need: NeedDraft, courses: readonly TermCourseBase[], f: Forma
     }
     case "exam": {
       const { exam, sitting } = need;
-      const name = courses.find((c) => c.code === exam.courseCode)?.name ?? exam.courseCode;
-      const title = t("home.need.exam", { kind: t(`exam.kind.${exam.kind}`), course: name });
+      const title = t("home.need.exam", { kind: t(`exam.kind.${exam.kind}`), course: exam.courseCode });
       // Open for days on Edunex: it runs out when it closes, like a deadline.
       if (need.window && sitting.end !== null) return line(title, t("home.need.exam.closes", { when: f.dueLabel(sitting.end) }));
       return line(title, f.dueLabel(sitting.start));
     }
     case "attendance": {
       const { health } = need;
-      const out = health.state === "out";
-      const key = out ? "home.need.attendance.out" : need.at !== null ? "home.need.attendance.tomorrow" : "home.need.attendance.none";
-      return line(t(key, { course, target: health.target }));
+      const key = health.state === "out" ? "tray.attendance.out" : need.at !== null ? "tray.attendance.tomorrow" : "tray.attendance.none";
+      return line(t("tray.attendance", { course }), t(key, { target: health.target }));
     }
     case "meeting": {
       const { meeting } = need;
-      // The day stays with its time ("Besok, 15:00–17:00"), not mid-title.
-      const title = t(meeting.online ? "tray.meeting.online" : "tray.meeting", { course });
-      return line(title, `${f.relativeDay(meeting.start)}, ${f.timeRange(meeting.start, meeting.end)}`);
+      return line(
+        t(meeting.online ? "tray.meeting.online" : "tray.meeting", { course }),
+        `${f.relativeDay(meeting.start)}, ${f.timeRange(meeting.start, meeting.end)}`,
+      );
     }
     case "krs": {
       const at = need.open ? need.closesAt - 1 : need.at!;
@@ -305,15 +320,9 @@ function alertsLine(snapshot: Pick<Snapshot, "datasets">, t: Translate): TrayEnt
 
 // ---------------------------------------------------------------- lines
 
-/** "08:00–10:00 · PL3002 Ekonomi dan Inovasi… · R.SG PWK LT.6": the course's name only in the room the rest leaves. */
-function withName(time: string, code: string, name: string | null, rest: readonly (string | null)[]): string {
-  const after = rest
-    .filter((part): part is string => Boolean(part))
-    .map((part) => ` · ${part}`)
-    .join("");
-  const room = LONGEST - time.length - code.length - after.length - 4;
-  const named = name && room >= 12 ? `${code} ${cut(name, room)}` : code;
-  return `${time} · ${named}${after}`;
+/** "Tutup 09:30" under a title: a detail starts as a sentence does. */
+function capital(text: string): string {
+  return text.charAt(0).toLocaleUpperCase() + text.slice(1);
 }
 
 /** Cut to `max` characters with an ellipsis, at a word where one is near. */
