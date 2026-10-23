@@ -550,6 +550,23 @@ describe("bills", () => {
     expect(readBills(partly.page(BILLS)).find((b) => b.term === "2023-2")).toMatchObject({ status: "partly-paid", nextDueAt: wib("2024-03-24T23:59:59.999") });
   });
 
+  it("an SPI row (the one-off development fee, not a term's UKT) is left out, and the terms are read as before", () => {
+    const page = sixPage(BILLS);
+    const spi = page.replace(
+      /(Tahun 2023 \/ 2024\s*<\/th><\/tr>)/,
+      `$1<tr><td><strong>
+                SPI            </strong></td><td class="text-right">
+                            25.000.000
+                                </td><td class="text-right">
+                            25.000.000
+                    </td><td class="text-left">
+                                                                        20 Agu 2023
+                                                        </td><td class="text-center"><a href="#" class="btn_kode" data-url="/app/mahasiswa:18223901/keuangan/kodebayar/2021000001/2023/SPI"><strong><i class="fa fa-info-circle fa-fw fa-lg" aria-hidden="true"></i></strong></a></td></tr>`,
+    );
+    expect(spi).not.toBe(page);
+    expect(readBills(spi)).toEqual(readBills(page));
+  });
+
   it("refuses layouts it doesn't know", () => {
     const page = sixPage(BILLS);
     const refused = (html: string) => verdict(() => readBills(html));
