@@ -1,6 +1,7 @@
 // v2-15 (#84): SIX's public course catalog: every Sarjana program's required
 // courses, own courses, specializations and minors, read politely (one page
 // at a time, at least 3 s apart), kept for days, and robust to pages that fail.
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { MemoryStorage } from "../pretend/memory";
 import { PretendWorld } from "../pretend/world";
@@ -127,6 +128,36 @@ describe("SIX public course catalog", () => {
     expect(program(h, "154").state).toBe("ready");
     expect(course(h, "PL4111")).toMatchObject({ owner: "154", category: "Kuliah" });
     expect(h.status("itb")).toMatchObject({ state: "changed", detail: "SIX's catalog page for Sistem dan Teknologi Informasi (182) changed" });
+  });
+
+  it("a new program whose courses SIX hasn't filled in yet: read as having no required courses, not as a changed page", async () => {
+    // As SIX shows Teknik Industri (Kampus Cirebon): the required courses with every semester's heading
+    // and columns, each row empty; the program's own courses, the columns and no row.
+    const page = readFileSync(new URL("../fixtures/pub/kur2024-174.html", import.meta.url), "utf8");
+    const tableIn = (pane: string) => {
+      const start = page.indexOf("<table", page.indexOf(`id="${pane}"`));
+      return page.slice(start, page.indexOf("</table>", start));
+    };
+    const required = tableIn("wajib");
+    const own = tableIn("katalog");
+    const noRequired = required.replace(/<tr><td[\s\S]*?<\/tr>/g, '<tr><td colspan="3"></td><td colspan="3"></td></tr>');
+    const noOwn = own.replace(/<tr><td[\s\S]*$/, "");
+    for (const [table, emptied] of [
+      [required, noRequired],
+      [own, noOwn],
+    ]) {
+      expect(table).toMatch(/<a href/);
+      expect(emptied).toMatch(/<th/);
+      expect(emptied).not.toMatch(/<a href/);
+    }
+    const world = new PretendWorld();
+    world.itb.changeLayout("/pub/kur2024/174", required, noRequired);
+    world.itb.changeLayout("/pub/kur2024/174", own, noOwn);
+    const h = await startEngine({ world });
+    await h.wait(FULL_READ);
+    expect(program(h, "174")).toMatchObject({ state: "ready", required: [] });
+    expect(h.dataset("itb.catalog")!.courses.filter((c) => c.owner === "174")).toEqual([]);
+    expect(h.status("itb").state).not.toBe("changed");
   });
 
   it("a page whose layout changed is read again at the next launch, not before a day within one", async () => {

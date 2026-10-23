@@ -123,7 +123,9 @@ function readRequired($: CheerioAPI, courses: PageCourse[]): ProgramPage["requir
       courses.push({ code, name, sks: sksOf(sks, `required course ${code}`), category: null });
     });
   });
-  if (required.length === 0) throw changed("program page lists no required courses");
+  // A new program SIX hasn't filled in yet (Teknik Industri, Kampus Cirebon) has every semester's heading
+  // and columns, and empty rows: no courses yet. Only a table without a semester is a changed page.
+  if (semesters.length === 0) throw changed("program page lists no semesters");
   return required;
 }
 
@@ -181,7 +183,7 @@ export function readProgramPage(html: string): ProgramPage {
     if (!CODE.test(code)) throw changed(`catalog: "${code}" isn't a course code`);
     catalog.push({ code, name, category: category || null, sks: sksOf(sks, `catalog ${code}`) });
   });
-  if (catalog.length === 0) throw changed("program page's catalog is empty");
+  // No row under the columns: a new program with no courses of its own yet, as its required courses.
 
   return { required, specializations: tracks("spesialisasi"), multidisciplinary: tracks("multidisiplin"), minors, catalog, courses: [...catalog, ...courses] };
 }
