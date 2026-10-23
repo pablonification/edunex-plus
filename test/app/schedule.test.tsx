@@ -157,8 +157,8 @@ describe("Jadwal: the week as a timetable", () => {
   it("a Task's deadline sits above the day, and opens the Task", async () => {
     const s = await openSchedule();
     for (let i = 0; i < 2; i++) await s.click("Minggu berikutnya");
-    expect(items("Kamis, 22 Oktober")).toContain("Tenggat 23:50: UTS Markom");
-    await s.click("Tenggat 23:50: UTS Markom");
+    expect(items("Kamis, 22 Oktober")).toContain("DK4073 · Tenggat 23:50: UTS Markom");
+    await s.click("DK4073 · Tenggat 23:50: UTS Markom");
     expect(popover()).toContain("Kam, 22 Okt, 23:50");
     await s.click("Buka tugas");
     expect(document.querySelector("main h1")?.textContent).toBe("UTS Markom");
@@ -293,6 +293,49 @@ describe("Jadwal: the week as a timetable", () => {
     await s.wait();
     expect(s.text()).not.toContain("Jadwal kuliah & ruang butuh SIX");
     expect(items("Kamis, 8 Oktober")).toHaveLength(4);
+  });
+});
+
+describe("Jadwal: each course's color", () => {
+  /** The course-color marks in a block: the stripe down its edge. */
+  const stripe = (el: Element) => el.querySelector<HTMLElement>('[style*="--course-"]');
+
+  it("stays whole beside a clash: the stripe is drawn over the clash's tint", async () => {
+    await openSchedule();
+    const clashing = block("Kamis, 8 Oktober", "PL3032 ·");
+    const tint = clashing.querySelector(".bg-warning-bg")!;
+    expect(stripe(clashing)).not.toBeNull();
+    // Later in the block, so painted above it.
+    expect(tint.compareDocumentPosition(stripe(clashing)!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("a class too short for two lines says its start and its code, so the color is never the only cue", async () => {
+    const s = await openSchedule();
+    s.world.six.addMeeting({
+      code: "PL3002",
+      name: "Ekonomi dan Inovasi dalam Perencanaan",
+      room: "9009",
+      id: "2194370",
+      day: "2026-11-11",
+      start: "13:00",
+      end: "13:30",
+    });
+    await s.engineDoes(() => s.engine.refresh("six"));
+    for (let i = 0; i < 5; i++) await s.click("Minggu berikutnya");
+    expect(block("Rabu, 11 November", "PL3002 · 13:00–13:30").textContent).toMatch(/^13:00 PL3002/);
+  });
+
+  it("a meeting only Edunex announced gets its course's color too, dashed like its edge", async () => {
+    await openSchedule();
+    const meeting = block("Jumat, 9 Oktober", "II4091 · Pertemuan 3");
+    expect(stripe(meeting)?.style.background).toMatch(/repeating-linear-gradient.*var\(--course-/);
+  });
+
+  it("a deadline above the day has its course's square and code, as every other mark", async () => {
+    const s = await openSchedule();
+    for (let i = 0; i < 2; i++) await s.click("Minggu berikutnya");
+    const due = block("Kamis, 22 Oktober", "DK4073 · Tenggat 23:50");
+    expect(due.querySelector('[style*="--course-"]')?.className).toContain("size-2");
   });
 });
 

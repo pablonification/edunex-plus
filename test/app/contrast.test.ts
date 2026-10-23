@@ -5,6 +5,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import { COURSE_PALETTE } from "../../src/core/course-colors";
 
 const css = readFileSync(path.resolve(import.meta.dirname, "../../src/app/styles.css"), "utf8");
 
@@ -94,6 +95,13 @@ const pairs: [string, string, number][] = [
   ),
   // A field's edge and a switch that's off show where the control is: 3:1 on what they sit on.
   ...["--canvas", "--surface", "--raised", "--sunken", "--fill"].map((bg) => ["--field-edge", bg, 3] as [string, string, number]),
+  // A course's dot and stripe, on everything they sit on: the sidebar's rows (hovered, picked), lists, popovers, the
+  // week grid. 3:1 like any mark that carries meaning. A palette color with no token fails here on its own.
+  ...COURSE_PALETTE.flatMap(({ id }) =>
+    ["--canvas", "--surface", "--raised", "--sidebar", "--welcome", "--hover", "--sunken", "--fill", "--selected@--sidebar", "--selected@--raised"].map(
+      (bg) => [`--course-${id}`, bg, 3] as [string, string, number],
+    ),
+  ),
 ];
 
 describe.each([
