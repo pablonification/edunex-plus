@@ -697,7 +697,7 @@ describe("meetings", () => {
     expect(text).toContain("Kalaupun hadir di semua sisa pertemuan, kehadiranmu berakhir di 73%.");
     // The bar stays under the banner, with what's past its limit; the header says the share once, labeled.
     const header = document.querySelector("main header")?.textContent ?? "";
-    expect(header).toContain("Jatah absenTerpakai 4× · lebih 1× untuk 80%Kehadiran 33% sejauh ini (2 dari 6)");
+    expect(header).toContain("Jatah absenTerpakai 4× · lewat batas 1×Kehadiran 33% sejauh ini (2 dari 6)");
     expect(document.querySelector("main header [role=img] [data-state=over]")).not.toBeNull();
     // The banner's button is the fix: a class SIX may have missed.
     await s.click("Buka jadwal di SIX");
