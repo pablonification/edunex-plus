@@ -12,6 +12,7 @@ import type { DatasetName, DatasetValue, ProblemReport, SixStudent } from "../..
 import { isEngineError } from "../../src/engine/errors";
 import type { Kept } from "../../src/engine/report/kept-pages";
 import { buildReport } from "../../src/engine/report/report";
+import { Replacements, scrubRecordText, scrubSixRecords } from "../../src/engine/report/scrub";
 import { LoginMe } from "../../src/engine/sources/edunex/schemas";
 import { readBills } from "../../src/engine/sources/six/readers/bills";
 import { readKrs } from "../../src/engine/sources/six/readers/krs";
@@ -264,5 +265,28 @@ describe("a report about an Edunex answer", () => {
     expect(typeof student.total).toBe("number");
     expect(student.total).not.toBe(87.5);
     expect(student.index).toMatch(/^(A|AB|B|BC|C)$/);
+  });
+});
+
+describe("text from a page is only ever text to find, never a pattern", () => {
+  it("a known value with a pattern's characters in it is replaced where it's written, and nowhere else", () => {
+    const known = new Replacements();
+    known.add("(B)", "[b]");
+    known.add("C.*", "[c]");
+    known.add("A+B", "[ab]");
+    known.add("1.5", "[n]");
+    // Read as patterns, "C.*" would take "CXY", "A+B" would take "AAB" and "1.5" would take "105".
+    expect(known.apply("(B) B (B)x C.* CXY C.*Z zA+B A+B AAB 1.5 105 21.5")).toBe("[b] B [b]x [c] CXY [c]Z zA+B [ab] AAB [n] 105 21.5");
+  });
+
+  it("a grade cell that isn't a letter grade stays as SIX wrote it; one that is gets the made-up grade, in its text only", () => {
+    const rules = { grade: () => "BC", amountFactor: 1 };
+    const row = (cell: string) => `<tr><td>II2230</td><td>${cell}</td></tr>`;
+    for (const odd of ["A+", "(B)", "C.*", "A.", "[A]"]) expect(scrubSixRecords(row(odd), rules)).toBe(row(odd));
+    expect(scrubSixRecords(row(" A "), rules)).toBe(row(" BC "));
+    expect(scrubSixRecords(row("&nbsp;AB"), rules)).toBe(row("&nbsp;BC"));
+    expect(scrubSixRecords(row('<span title="A">A</span>'), rules)).toBe(row('<span title="A">BC</span>'));
+    expect(scrubRecordText("II2230 · Algoritma · 3 · A+ · 5", rules)).toBe("II2230 · Algoritma · 3 · A+ · 5");
+    expect(scrubRecordText("II2230 · Algoritma · 3 · A · 5", rules)).toBe("II2230 · Algoritma · 3 · BC · 5");
   });
 });

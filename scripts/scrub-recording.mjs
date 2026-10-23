@@ -148,12 +148,13 @@ const htmlOf = (pathRe) => sixBodies.filter((e) => pathRe.test(e.path)).pop()?.b
 
 const me = jsonOf(/^\/login\/me$/) ?? {};
 const statusPage = htmlOf(/\/statusmhs$/);
-const identityRow = (label) => {
-  const m = new RegExp(`<th>${label}</th>\\s*<td>([\\s\\S]*?)</td>`).exec(statusPage);
+/** The name in the status page's student details. */
+const nameRow = () => {
+  const m = /<th>Nama<\/th>\s*<td>([\s\S]*?)<\/td>/.exec(statusPage);
   return m ? stripTags(m[1]) : null;
 };
 const student = {
-  name: (me.name ?? identityRow("Nama") ?? "").trim(),
+  name: (me.name ?? nameRow() ?? "").trim(),
   nim: String(me.code ?? /mahasiswa:(\d{8})/.exec(sixBodies[0]?.path ?? "")?.[1] ?? ""),
   // Edunex's "email" holds the NIM for students; only a real address counts as one.
   email: typeof me.email === "string" && me.email.includes("@") ? me.email : null,
@@ -244,6 +245,21 @@ const realIpk = graded.length ? round2(graded.reduce((a, s) => a + s.realPts, 0)
 const fakeIpk = graded.length ? round2(graded.reduce((a, s) => a + s.fakePts, 0) / graded.reduce((a, s) => a + s.sks, 0)) : null;
 const lastIp = graded.length ? { real: graded[graded.length - 1].nr, fake: round2(graded[graded.length - 1].fakePts / graded[graded.length - 1].sks) } : null;
 
+/**
+ * The last term's IPS where a page shows it ("<th>IPS …</th><td>3.27"): the first "<td>" within 80
+ * characters of an "<th>IPS" that starts with the real one gets the made-up one. By plain search, so
+ * no value from a page becomes a pattern.
+ */
+const withIps = (html, real, fake) => {
+  for (let th = html.indexOf("<th>IPS"); th !== -1; th = html.indexOf("<th>IPS", th + 1)) {
+    for (let gap = 0; gap <= 80; gap++) {
+      const td = th + "<th>IPS".length + gap;
+      if (html.startsWith("<td>", td) && html.startsWith(real, td + 4)) return `${html.slice(0, td + 4)}${fake}${html.slice(td + 4 + real.length)}`;
+    }
+  }
+  return html;
+};
+
 /** The shared rules (grades, amounts, the advisor's chat), then IP and IPK recomputed from the made-up grades. */
 const scrubSix = (html, pagePath) => {
   let out = scrubSixRecords(html, records);
@@ -276,7 +292,7 @@ const scrubSix = (html, pagePath) => {
   }
   if (realIpk && fakeIpk) {
     out = out.replace(/(<th>Indeks Prestasi Kumulatif<\/th>\s*<td>(?:<span[^>]*>)?)[\d.]+/g, `$1${fakeIpk}`);
-    if (lastIp?.real) out = out.replace(new RegExp(`(<th>IPS[\\s\\S]{0,80}?<td>)${lastIp.real.replace(".", "\\.")}`), `$1${lastIp.fake}`);
+    if (lastIp?.real) out = withIps(out, lastIp.real, lastIp.fake);
     let i = 0;
     out = out.replace(/(addRows\(\[\['\d\/\d{4}', )([\d.]+)/g, (all, a) => {
       const s = graded[i++];

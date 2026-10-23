@@ -92,8 +92,6 @@ export class FakePeople {
   }
 }
 
-export const escapeRe = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
 /** Text of an HTML fragment: tags out, the common entities read, whitespace collapsed. */
 export const stripTags = (html: string) =>
   html
@@ -116,10 +114,35 @@ export function stableHash(text: string): number {
 
 // ---------------------------------------------------------------- known values
 
+const isDigit = (c: string | undefined) => c !== undefined && c >= "0" && c <= "9";
+const isLetter = (c: string | undefined) => c !== undefined && ((c >= "a" && c <= "z") || (c >= "A" && c <= "Z"));
+const isAlphanumeric = (c: string | undefined) => isDigit(c) || isLetter(c);
+
+/** Whether the characters on either side of a place (undefined at an end) leave a word there whole. */
+type Apart = (before: string | undefined, after: string | undefined) => boolean;
+
+/**
+ * `text` with every place `word` stands whole (`apart`) replaced by `fake`, left to right and never
+ * overlapping, by plain search: nothing from a page ever becomes a pattern.
+ */
+export function replaceWhole(text: string, word: string, fake: string, apart: Apart): string {
+  let out = "";
+  let kept = 0;
+  let from = 0;
+  for (let at = text.indexOf(word, from); at !== -1; at = text.indexOf(word, from)) {
+    if (apart(text[at - 1], text[at + word.length])) {
+      out += `${text.slice(kept, at)}${fake}`;
+      kept = at + word.length;
+      from = kept;
+    } else from = at + 1;
+  }
+  return out + text.slice(kept);
+}
+
 /** Real value → fake value, replaced wherever it appears whole. The first fake given for a value stays. */
 export class Replacements {
   private readonly map = new Map<string, string>();
-  private compiled: { pattern: RegExp; fake: string }[] | null = null;
+  private ordered: { real: string; fake: string; apart: Apart }[] | null = null;
 
   /** Values under three characters are too common to replace. */
   add(real: string | number | null | undefined, fake: string | number | null | undefined): void {
@@ -127,7 +150,7 @@ export class Replacements {
     const key = String(real);
     if (key.length < 3 || key === String(fake) || this.map.has(key)) return;
     this.map.set(key, String(fake));
-    this.compiled = null;
+    this.ordered = null;
   }
 
   has(real: string): boolean {
@@ -146,17 +169,20 @@ export class Replacements {
   /**
    * Every real value in `text` replaced, the longest first. Numbers only need non-digit neighbours
    * ("_18223901_" in file names, "%3D2021000001" in links); words need non-alphanumeric ones, so "_"
-   * and "-" still separate them.
+   * and "-" still separate them. A value's own characters are only ever text to find ("A+", "(B)").
    */
   apply(text: string): string {
-    this.compiled ??= this.reals().map((real) => {
-      const numeric = /^\d+$/.test(real);
-      const before = numeric ? "(?<!\\d)" : /^[A-Za-z0-9]/.test(real) ? "(?<![A-Za-z0-9])" : "";
-      const after = numeric ? "(?!\\d)" : /[A-Za-z0-9]$/.test(real) ? "(?![A-Za-z0-9])" : "";
-      return { pattern: new RegExp(`${before}${escapeRe(real)}${after}`, "g"), fake: this.map.get(real)! };
+    this.ordered ??= this.reals().map((real) => {
+      const numeric = [...real].every(isDigit);
+      const first = isAlphanumeric(real[0]);
+      const last = isAlphanumeric(real[real.length - 1]);
+      const apart: Apart = numeric
+        ? (before, after) => !isDigit(before) && !isDigit(after)
+        : (before, after) => !(first && isAlphanumeric(before)) && !(last && isAlphanumeric(after));
+      return { real, fake: this.map.get(real)!, apart };
     });
     let out = text;
-    for (const { pattern, fake } of this.compiled) out = out.replace(pattern, () => fake);
+    for (const { real, fake, apart } of this.ordered) out = replaceWhole(out, real, fake, apart);
     return out;
   }
 }
@@ -360,6 +386,24 @@ export function mapText(html: string, change: (text: string) => string): string 
     .join("");
 }
 
+/**
+ * Where `grade` first stands as a word in a cell's text: in a run that starts the cell or follows a
+ * ">", up to the next "<", with no letter on either side. By plain search, so the cell's text never
+ * becomes a pattern. -1 when it isn't there.
+ */
+function gradeAt(inner: string, grade: string): number {
+  let start = 0;
+  while (true) {
+    const end = inner.indexOf("<", start);
+    const stop = end === -1 ? inner.length : end;
+    for (let at = inner.indexOf(grade, start); at !== -1 && at + grade.length <= stop; at = inner.indexOf(grade, at + 1))
+      if (!isLetter(inner[at - 1]) && !isLetter(inner[at + grade.length])) return at;
+    const next = inner.indexOf(">", start);
+    if (next === -1) return -1;
+    start = next + 1;
+  }
+}
+
 /** In a row with a course code, any cell that holds just a letter grade gets that course's made-up one. */
 function gradesInRows(html: string, grade: RecordRules["grade"]): string {
   return html.replace(/<tr\b[^>]*>[\s\S]*?<\/tr>/gi, (row) => {
@@ -368,7 +412,8 @@ function gradesInRows(html: string, grade: RecordRules["grade"]): string {
     return row.replace(/(<td\b[^>]*>)([\s\S]*?)(<\/td>)/gi, (cell, open: string, inner: string, close: string) => {
       const text = stripTags(inner);
       if (/<t[dr]\b/i.test(inner) || !LETTER_GRADE.test(text)) return cell;
-      return `${open}${inner.replace(new RegExp(`(^|>)([^<]*?)(?<![A-Za-z])${text}(?![A-Za-z])`), `$1$2${grade(code, text)}`)}${close}`;
+      const at = gradeAt(inner, text);
+      return at < 0 ? cell : `${open}${inner.slice(0, at)}${grade(code, text)}${inner.slice(at + text.length)}${close}`;
     });
   });
 }
