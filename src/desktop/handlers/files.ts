@@ -5,12 +5,13 @@
 // file cache (the signed-in Student's, wiped at sign-out), the Student's own
 // offline copies under Documents, for every kind, and the files the app
 // downloaded for them, which "Unduh" opens again instead of downloading twice.
-// And saving a PDF filled in the app, only where the Student chooses in the
-// save dialog; and opening a copy on this computer in the app they pick, or
+// And saving a PDF filled in the app, or a file's highlights and notes as
+// Markdown, only where the Student chooses in the save dialog (or the notes to
+// the clipboard); and opening a copy on this computer in the app they pick, or
 // showing it in its folder.
 import { promises as fs } from "node:fs";
 import path from "node:path";
-import { app, dialog, shell } from "electron";
+import { app, clipboard, dialog, shell } from "electron";
 import type { Event } from "../../core/contract";
 import { planOfflineFiles } from "../../core/course-materials";
 import type { DatasetName, DatasetValue } from "../../core/models";
@@ -24,7 +25,9 @@ import { LIMITS, readFile, sniff } from "../remote-files";
 import type { DesktopContext, HandlerGroup } from "./context";
 import { offlineRoot } from "./course-page";
 
-export const filesHandlers: HandlerGroup<"files.read" | "files.saveCopy" | "files.local" | "files.open" | "files.reveal"> = (context) => ({
+export const filesHandlers: HandlerGroup<
+  "files.read" | "files.saveCopy" | "files.saveNotes" | "files.copyNotes" | "files.local" | "files.open" | "files.reveal"
+> = (context) => ({
   "files.read": ({ url, as }) =>
     readFile({ fetch: context.fetchFile, cache: context.fileCache, offline: (address) => offlineCopy(context, address, LIMITS[as].bytes) }, url, as),
   "files.saveCopy": async ({ name, bytes }) => {
@@ -40,6 +43,22 @@ export const filesHandlers: HandlerGroup<"files.read" | "files.saveCopy" | "file
     const file = pdfName(chosen.filePath);
     await fs.writeFile(file, bytes);
     return { file: path.basename(file) };
+  },
+  "files.saveNotes": async ({ name, text }) => {
+    const window = context.window();
+    if (!window) throw new EngineError("Failed", "The window is closed");
+    const chosen = await dialog.showSaveDialog(window, {
+      defaultPath: path.join(app.getPath("downloads"), markdownName(safeName(name))),
+      filters: [{ name: "Markdown", extensions: ["md"] }],
+    });
+    if (chosen.canceled || !chosen.filePath) return { file: null };
+    const file = markdownName(chosen.filePath);
+    await fs.writeFile(file, text, "utf8");
+    return { file: path.basename(file) };
+  },
+  "files.copyNotes": async ({ text }) => {
+    clipboard.writeText(text);
+    return {};
   },
   "files.local": async ({ url }) => {
     const file = isDownloadable(url) ? await copyOnThisComputer(context, url) : null;
@@ -78,6 +97,8 @@ const kindOf = (file: string) => path.extname(file).toLowerCase().slice(0, 16);
 
 /** A file name that ends in ".pdf", whatever the Student typed. */
 export const pdfName = (name: string) => (/\.pdf$/i.test(name) ? name : `${name}.pdf`);
+/** A file name that ends in ".md", whatever the Student typed. */
+const markdownName = (name: string) => (/\.(md|markdown)$/i.test(name) ? name : `${name}.md`);
 
 /** Who is signed in to Edunex (their NIM): the files the app keeps are theirs. */
 export function edunexNim(engine: Engine): string | null {

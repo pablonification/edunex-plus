@@ -95,7 +95,7 @@ _Avoid_: course status, tag color, theme
 _Avoid_: annotation, note, bookmark, mark (in UI copy)
 
 **Page note**:
-"Catatan halaman": what the Student writes about one page of a PDF they read in the app (a lecturer's slide, mostly), one note a page. A Word document or a text file, whose pages aren't fixed, has one note for the whole file. Kept with the file's highlights, by its content, on this computer only and never sent to Edunex, and removed with them (signing out of everything, a different Student signing in). On screen the Student's own notes are "Catatanku", so they're never taken for a lecturer's "Catatan" on Edunex.
+"Catatan halaman": what the Student writes about one page of a PDF they read in the app (a lecturer's slide, mostly), one note a page. A Word document or a text file, whose pages aren't fixed, has one note for the whole file. Kept with the file's highlights, by its content, on this computer only and never sent to Edunex, and removed with them (signing out of everything, a different Student signing in). On screen the Student's own notes are "Catatanku", so they're never taken for a lecturer's "Catatan" on Edunex. A file's notes and highlights go out together, as Markdown, only when the Student copies or saves them.
 _Avoid_: annotation, comment, footnote, a bare "Catatan" in UI copy (that's a lecturer's note on Edunex)
 
 ### SIX and ITB's rules

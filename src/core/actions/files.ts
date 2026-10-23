@@ -4,7 +4,8 @@
 // process fetches it, or takes a copy already on this computer: the window's
 // content policy never lets it reach the internet itself. A file that can't be
 // shown comes back as a problem to explain, not as an error. And writing a PDF
-// the Student filled in the app to a file they choose.
+// the Student filled in the app to a file they choose, and a file's highlights
+// and notes as Markdown, to a file they choose or the clipboard.
 import { z } from "zod";
 import { Bytes, MAX_UPLOAD_BYTES } from "./tasks";
 
@@ -30,6 +31,9 @@ export type OpenApp = z.infer<typeof OpenApp>;
 export const LocalCopy = z.object({ name: z.string(), apps: z.array(OpenApp), preferred: z.string().nullable(), chooser: z.boolean() });
 export type LocalCopy = z.infer<typeof LocalCopy>;
 
+/** The most a file's exported highlights and notes may be, in characters: its 500 highlights and 500 notes, whole, fit. */
+export const MAX_NOTES_TEXT = 2_000_000;
+
 export const filesActions = {
   /**
    * A picture (PNG, JPEG, GIF or WebP, up to 20 MB), a PDF (up to 100 MB), a
@@ -51,6 +55,18 @@ export const filesActions = {
     input: z.object({ name: z.string().min(1).max(200), bytes: Bytes.refine((bytes) => bytes.byteLength <= MAX_UPLOAD_BYTES) }),
     output: z.object({ file: z.string().nullable() }),
   },
+  /**
+   * A file's highlights and notes as Markdown, saved as a new .md file where
+   * the Student chooses in the system save dialog (Downloads, under `name`,
+   * unless they pick otherwise). `file`: the name it was saved under; null when
+   * they closed the dialog.
+   */
+  "files.saveNotes": {
+    input: z.object({ name: z.string().min(1).max(200), text: z.string().min(1).max(MAX_NOTES_TEXT) }),
+    output: z.object({ file: z.string().nullable() }),
+  },
+  /** The same Markdown, put on the clipboard (the window may not use it itself). */
+  "files.copyNotes": { input: z.object({ text: z.string().min(1).max(MAX_NOTES_TEXT) }), output: z.object({}) },
   /** The copy of this file on this computer, if there is one. Only copies the app made itself, never a place the window names. */
   "files.local": { input: z.object({ url: z.string().url().max(4000) }), output: LocalCopy.nullable() },
   /**

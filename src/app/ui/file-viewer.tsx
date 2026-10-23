@@ -6,7 +6,8 @@
 // with the file's name, Download and Close; Esc closes and focus goes back.
 // A Word document's text and a text file's can be highlighted, as in a PDF
 // (./highlights.tsx), and each can have one note, in a panel beside it
-// (./page-notes.tsx): their pages aren't fixed, so a note is the whole file's. What reads each kind loads on first use, in a chunk of
+// (./page-notes.tsx): their pages aren't fixed, so a note is the whole file's.
+// The "⋯" menu copies them or saves them as Markdown (./marks-export.tsx). What reads each kind loads on first use, in a chunk of
 // its own. Nothing in a file runs: a Word document is drawn in a shadow root
 // (its styles stay inside), slides are built as elements from plain data,
 // links go through the app's own link rules or nowhere, and text is only ever
@@ -15,6 +16,7 @@ import * as DialogPrimitive from "@radix-ui/react-dialog";
 import * as Tabs from "@radix-ui/react-tabs";
 import { type ReactNode, type RefObject, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { FileProblem } from "../../core/actions/files";
+import { locate } from "../../core/highlights";
 import { isWebLink } from "../../core/links";
 import type { Highlight } from "../../core/models";
 import { useT } from "../i18n";
@@ -23,6 +25,7 @@ import { cx } from "./cx";
 import type { Block } from "./doc";
 import { type Highlights, MarkLayer, type TextRoot, useHighlighter } from "./highlights";
 import { Icons } from "./icons";
+import { type ExportMarks, MarksMenu } from "./marks-export";
 import { settled } from "./motion/animate";
 import { ignoreClosingClick, keepOpenForToasts, PANEL_MOTION_CLASS, SCRIM_CLASS, useReturnFocus } from "./overlays";
 import { NOTES_AREA, NotesButton, NotesPanel, type PageNotes, useNotesPanel } from "./page-notes";
@@ -32,6 +35,7 @@ import { MAX_COLUMNS, MAX_ROWS, readCsv, type Sheet } from "./sheets";
 import { SlideDeck } from "./slide-deck";
 import type { Deck } from "./slides";
 import { TabBar } from "./tabs";
+import { textOf } from "./text-anchor";
 import { DocPages, SlideCards } from "./text-only";
 import { Failed, Loading, Toolbar } from "./viewer-frame";
 
@@ -109,11 +113,29 @@ export interface FileViewerProps {
   highlights?: Highlights;
   /** This file's note, for a Word document or a text file: one for the whole file. */
   notes?: PageNotes;
+  /** The course the file is in ("II4091 Proposal Tugas Akhir"), named when its highlights and notes go out. */
+  course?: string;
+  /** Copies or saves the file's highlights and notes as Markdown; none where they can't go out. */
+  onExport?: ExportMarks;
   /** The system whose window buttons it leaves room for at the top (macOS also names shortcuts with ⌘); none in tests. */
   platform?: "darwin" | "win32" | "linux";
 }
 
-export function FileViewer({ open, onOpenChange, name, kind, load, actions, fallback, onOpenLink, highlights, notes, platform }: FileViewerProps) {
+export function FileViewer({
+  open,
+  onOpenChange,
+  name,
+  kind,
+  load,
+  actions,
+  fallback,
+  onOpenLink,
+  highlights,
+  notes,
+  course,
+  onExport,
+  platform,
+}: FileViewerProps) {
   const t = useT();
   const returnFocus = useReturnFocus();
   const panel = useRef<HTMLDivElement>(null);
@@ -125,9 +147,10 @@ export function FileViewer({ open, onOpenChange, name, kind, load, actions, fall
   const textRoot = useRef<Node | null>(null);
   const shown = view.phase === "ready" ? view.shown.kind : null;
   const notesHere = shown === "docx" || shown === "text" ? notes : undefined;
+  const highlightsHere = shown === "docx" || shown === "text" ? highlights : undefined;
   const notesPanel = useNotesPanel();
   const highlighter = useHighlighter({
-    highlights: shown === "docx" || shown === "text" ? highlights : undefined,
+    highlights: highlightsHere,
     container: content,
     scroller,
     roots: useCallback((): TextRoot[] => {
@@ -220,6 +243,23 @@ export function FileViewer({ open, onOpenChange, name, kind, load, actions, fall
           <PanelBoundary name="file viewer" compact header={<Toolbar name={name} />}>
             <Toolbar name={name} actions={view.phase === "failed" ? undefined : actions}>
               {notesHere && <NotesButton open={notesPanel.open} paged={false} onClick={() => notesPanel.show(!notesPanel.open)} />}
+              <MarksMenu
+                name={name}
+                course={course}
+                highlights={highlightsHere}
+                notes={notesHere}
+                wholeTexts={async () => {
+                  // Each highlight's whole text, found again in the file's (only its first words are kept).
+                  const text = textRoot.current ? textOf(textRoot.current) : "";
+                  const whole = new Map<string, string>();
+                  for (const highlight of highlightsHere?.items ?? []) {
+                    const at = locate(text, highlight);
+                    if (at) whole.set(highlight.id, text.slice(at.start, at.end));
+                  }
+                  return whole;
+                }}
+                onExport={onExport}
+              />
             </Toolbar>
             {view.phase === "ready" && view.shown.kind === "sheets" ? (
               <Sheets sheets={view.shown.sheets} name={name} scroller={scroller} />

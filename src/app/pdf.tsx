@@ -13,6 +13,7 @@
 // Edunex (a PDF, a Word document, a text file) is kept on this computer by
 // the file's content, and comes back each time it opens, and so do the notes
 // they write on a PDF's pages or on a Word document or text file (./highlights.ts).
+// Both can be copied, or saved as a Markdown file where the Student chooses.
 import { createContext, lazy, type ReactNode, Suspense, startTransition, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { FileProblem, ReadAs } from "../core/actions/files";
 import { ActionError, errorKey } from "./bridge";
@@ -20,6 +21,7 @@ import { fileIdentity, useFileHighlights, useFileNotes } from "./highlights";
 import { useOpenExternal, useOpenLink } from "./hooks";
 import { useT } from "./i18n";
 import { OpenFile, useDownloadedToast, useLocalCopy } from "./open-file";
+import { useCourseNames } from "./schedule-data";
 import { useBridge, useStore } from "./store";
 import { Button } from "./ui/controls";
 import type { FileKind } from "./ui/file-viewer";
@@ -43,7 +45,19 @@ export type PdfSource = (
 ) & {
   /** The Task it's on, whose answer a filled-in copy can go into. */
   taskId?: number;
+  /** The course it's in ("II4091 Proposal Tugas Akhir", see useCourseLabel), named when its highlights and notes go out. */
+  course?: string;
 };
+
+/**
+ * A course's code and name, as a file opened from it names it. For the screens
+ * that open files, inside their own crash guard: course data that doesn't read
+ * breaks that screen, never the viewer every screen shares.
+ */
+export function useCourseLabel(): (code: string | undefined) => string | undefined {
+  const name = useCourseNames();
+  return useCallback((code) => (code ? `${code} ${name(code, "")}`.trim() : undefined), [name]);
+}
 
 /** Puts a filled-in PDF into the answer: as a file attached there, the way one picked from the computer is. */
 export type AnswerAttach = (file: { name: string; bytes: Uint8Array }) => Promise<void>;
@@ -239,6 +253,22 @@ export function PdfViewerProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  /** The file's highlights and notes as Markdown: on the clipboard, or in a file where the Student chooses ("Slide (catatan).md"). */
+  const exportMarks = async (text: string, how: "copy" | "save") => {
+    try {
+      if (how === "copy") {
+        await bridge.invoke("files.copyNotes", { text });
+        toast(t("export.copied"), "success");
+        return;
+      }
+      const name = t("export.fileName", { name: (source?.name ?? "").replace(/\.[^.]+$/, "").slice(0, 180) });
+      const { file } = await bridge.invoke("files.saveNotes", { name, text });
+      if (file) toast(t("pdf.savedAs", { file }), "success");
+    } catch (error) {
+      toast(t(errorKey(error, how === "copy" ? "export.copyFailed" : "export.failed")), "danger");
+    }
+  };
+
   const answer = source?.taskId !== undefined ? answers.get(source.taskId) : undefined;
   const attach = answer
     ? async (bytes: Uint8Array) => {
@@ -311,6 +341,8 @@ export function PdfViewerProvider({ children }: { children: ReactNode }) {
             onOpenLink={openLink}
             highlights={highlights}
             notes={notes}
+            course={source.course}
+            onExport={file ? exportMarks : undefined}
             platform={platform}
           />
         )}
@@ -332,6 +364,8 @@ export function PdfViewerProvider({ children }: { children: ReactNode }) {
             onDirtyChange={onDirtyChange}
             highlights={highlights}
             notes={notes}
+            course={source.course}
+            onExport={file ? exportMarks : undefined}
             platform={platform}
           />
         )}

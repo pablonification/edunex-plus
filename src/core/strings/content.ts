@@ -79,6 +79,7 @@ export const contentStrings = {
   },
   "pdf.discard.confirm": { id: "Buang isian", en: "Discard entries" },
   "pdf.discard.keep": { id: "Lanjut mengisi", en: "Keep filling" },
+  "viewer.more": { id: "Lainnya", en: "More" },
   "viewer.loading": { id: "Memuat berkas…", en: "Loading the file…" },
   "viewer.failed": { id: "Berkas ini tidak bisa ditampilkan", en: "This file can't be shown" },
   "viewer.broken": {

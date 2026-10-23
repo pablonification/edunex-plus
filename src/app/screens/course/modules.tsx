@@ -26,8 +26,8 @@ import { useOpenExternal, useOpenLink } from "../../hooks";
 import { type Format, type Translate, useFormat, useNow, useT } from "../../i18n";
 import { LecturerHtml, RemoteImage } from "../../lecturer-html";
 import { OpenFile, useDownloadedToast, useLocalCopy } from "../../open-file";
-import { canView, usePdfViewer } from "../../pdf";
-import { useBridge } from "../../store";
+import { canView, useCourseLabel, usePdfViewer } from "../../pdf";
+import { useBridge, useDataset } from "../../store";
 import { Button, IconButton } from "../../ui/controls";
 import { cx } from "../../ui/cx";
 import { EmptyState, Tag } from "../../ui/display";
@@ -356,6 +356,10 @@ export function MaterialRow({ material }: { material: Material }) {
   const openExternal = useOpenExternal();
   const openLink = useOpenLink();
   const pdf = usePdfViewer();
+  // The course it's in (a joint class's material too), named when what the Student marked in it goes out.
+  const course = useCourseLabel()(
+    useDataset("edunex.courses")?.find((c) => c.edunex.courseId === material.courseId || c.edunex.relatedCourseIds.includes(material.courseId))?.code,
+  );
   const [busy, setBusy] = useState(false);
   const kind = materialKind(material.type);
   const action = materialAction(material);
@@ -439,7 +443,7 @@ export function MaterialRow({ material }: { material: Material }) {
             size="sm"
             icon={<Icons.Eye className="size-3.5" />}
             aria-label={named(t("pdf.view"))}
-            onClick={() => pdf.open({ kind: "edunex", url: action.url, name: action.name, edunexUrl: edunexMaterialUrl(material) })}
+            onClick={() => pdf.open({ kind: "edunex", url: action.url, name: action.name, edunexUrl: edunexMaterialUrl(material), course })}
           >
             {t("pdf.view")}
           </Button>

@@ -305,6 +305,19 @@ export async function openApp(options: Options = {}) {
       savedCopies.push({ name, text: new TextDecoder().decode(bytes) });
       return { file: name };
     },
+    // A file's highlights and notes as Markdown: through the same pretend save dialog, or onto the clipboard (`copied`).
+    "files.saveNotes": async ({ name, text }: { name: string; text: string }) => {
+      if (saveDialogCloses) {
+        saveDialogCloses = false;
+        return { file: null };
+      }
+      savedCopies.push({ name: `${name}.md`, text });
+      return { file: `${name}.md` };
+    },
+    "files.copyNotes": async ({ text }: { text: string }) => {
+      copied.push(text);
+      return {};
+    },
     "course.saveOffline": async ({ code, pick }: { code: string; pick: boolean }) => {
       const value = <T,>(name: string) => engine.snapshot().datasets.find((d) => d.name === name)?.value as T | undefined;
       const course = value<{ code: string; name: string; edunex: { courseId: number } }[]>("edunex.courses")?.find((c) => c.code === code);

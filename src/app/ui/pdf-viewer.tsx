@@ -10,7 +10,9 @@
 // highlight kept by its page and its place in the page's text
 // (./highlights.tsx), and each page can have a note, in a panel beside the
 // pages that follows the page being read, with a mark on each page that has
-// one (./page-notes.tsx). pdf.js loads on first use (./pdf-engine.ts).
+// one (./page-notes.tsx); the "⋯" menu copies them or saves them as Markdown,
+// each highlight's text whole (./marks-export.tsx). pdf.js loads on first use
+// (./pdf-engine.ts).
 import { TextTIcon } from "@phosphor-icons/react/dist/csr/TextT";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import {
@@ -27,6 +29,7 @@ import {
   useState,
 } from "react";
 import type { FileProblem } from "../../core/actions/files";
+import { locate } from "../../core/highlights";
 import { linkHost } from "../../core/links";
 import type { Highlight, PageNote } from "../../core/models";
 import { useT } from "../i18n";
@@ -34,6 +37,7 @@ import { Button, IconButton } from "./controls";
 import { cx } from "./cx";
 import { type Highlights, MarkLayer, type TextRoot, useHighlighter } from "./highlights";
 import { Icons, icon } from "./icons";
+import { type ExportMarks, MarksMenu } from "./marks-export";
 import { settled } from "./motion/animate";
 import { ConfirmDialog, ignoreClosingClick, keepOpenForToasts, PANEL_MOTION_CLASS, SCRIM_CLASS, Tooltip, toast, useReturnFocus } from "./overlays";
 import { NOTES_AREA, NotesButton, NotesPanel, PageNoteMark, type PageNotes, useNotesPanel } from "./page-notes";
@@ -51,6 +55,7 @@ import {
   type PdfText,
 } from "./pdf-engine";
 import { FILL_AREA, FieldBox, type FillState, SaveBar, TEXT_SIZES, TextBox, useFill } from "./pdf-fill";
+import { textOf } from "./text-anchor";
 import { Failed, Loading, Toolbar } from "./viewer-frame";
 
 const TextIcon = icon(TextTIcon);
@@ -93,6 +98,10 @@ export interface PdfViewerProps {
   highlights?: Highlights;
   /** This file's notes, a page's each; none where it has no highlights either. */
   notes?: PageNotes;
+  /** The course the file is in ("II4091 Proposal Tugas Akhir"), named when its highlights and notes go out. */
+  course?: string;
+  /** Copies or saves the file's highlights and notes as Markdown; none where they can't go out. */
+  onExport?: ExportMarks;
   /** The system whose window buttons it leaves room for at the top (macOS also names shortcuts with ⌘); none in tests. */
   platform?: "darwin" | "win32" | "linux";
 }
@@ -112,6 +121,8 @@ export function PdfViewer({
   onDirtyChange,
   highlights,
   notes,
+  course,
+  onExport,
   platform,
 }: PdfViewerProps) {
   const t = useT();
@@ -245,6 +256,8 @@ export function PdfViewer({
                 onAttach={onAttach && (() => void keep("attach", onAttach))}
                 highlights={highlights}
                 notes={notes}
+                course={course}
+                onExport={onExport}
               />
             ) : (
               <>
@@ -315,6 +328,8 @@ function Reader({
   onAttach,
   highlights,
   notes,
+  course,
+  onExport,
 }: {
   doc: PdfDocument;
   sizes: PdfSize[];
@@ -330,6 +345,8 @@ function Reader({
   onAttach?: () => void;
   highlights?: Highlights;
   notes?: PageNotes;
+  course?: string;
+  onExport?: ExportMarks;
 }) {
   const t = useT();
   const total = useId();
@@ -392,6 +409,20 @@ function Reader({
     for (const highlight of highlights?.items ?? []) if (highlight.page) out.set(highlight.page, [...(out.get(highlight.page) ?? []), highlight]);
     return out;
   }, [highlights?.items]);
+  /** Each highlight's whole text, read again from its page (only its first words are kept), for the export. */
+  const wholeTexts = useCallback(async () => {
+    const whole = new Map<string, string>();
+    for (const [number, list] of byPage) {
+      const box = document.createElement("div");
+      await (await doc.page(number)).text(box, 1).promise;
+      const text = textOf(box);
+      for (const highlight of list) {
+        const at = locate(text, highlight);
+        if (at) whole.set(highlight.id, text.slice(at.start, at.end));
+      }
+    }
+    return whole;
+  }, [doc, byPage]);
   const notesPanel = useNotesPanel();
   const notesByPage = useMemo(() => new Map((notes?.items ?? []).flatMap((note) => (note.page ? [[note.page, note] as const] : []))), [notes?.items]);
   // A zoom moves the text from under the bar: it closes.
@@ -611,6 +642,7 @@ function Reader({
           </Button>
         </Tooltip>
         {notes && <NotesButton open={notesPanel.open} paged onClick={() => notesPanel.show(!notesPanel.open)} />}
+        <MarksMenu name={name} course={course} highlights={highlights} notes={notes} wholeTexts={wholeTexts} onExport={onExport} />
         {actions && <Divider />}
       </Toolbar>
       <div className="flex min-h-0 flex-1">

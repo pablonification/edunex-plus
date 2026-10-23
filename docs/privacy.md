@@ -29,7 +29,8 @@ Everything stays on your computer:
   you write on their pages) is saved in the same folder. Highlights and notes are never sent to
   Edunex.
 - **Files you save** go where you put them: downloads to your Downloads folder, offline course
-  files to `Documents/Edunex Plus` unless you pick another folder. The app remembers where each
+  files to `Documents/Edunex Plus` unless you pick another folder, and a file's highlights and
+  notes, saved as Markdown, where you choose in the save dialog (or onto the clipboard, if you copy them). The app remembers where each
   download went, so downloading it again opens the copy you already have; signing out of Edunex
   forgets that.
 

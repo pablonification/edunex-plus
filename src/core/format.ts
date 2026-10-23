@@ -24,6 +24,8 @@ export interface Format {
   dayRange(first: string, last: string): string;
   /** "Kamis, 8 Oktober" / "Thursday, 8 October" */
   dateLong(when: When): string;
+  /** "23 Oktober 2026": a date read later, away from the app (a file it saved). */
+  dateYear(when: When): string;
   /** "Hari ini" / "Besok" / "Kemarin", else "Kam, 8 Okt" */
   relativeDay(when: When): string;
   /** "Besok, 23:59" */
@@ -57,6 +59,7 @@ export function makeFormat(lang: Lang, now: number): Format {
   const weekdayShortFmt = dtf({ weekday: "short" });
   const dayMonthFmt = dtf({ day: "numeric", month: "short" });
   const dateLongFmt = dtf({ weekday: "long", day: "numeric", month: "long" });
+  const dateYearFmt = dtf({ day: "numeric", month: "long", year: "numeric" });
   const rtf = new Intl.RelativeTimeFormat(lang, { numeric: "auto" });
   const listFmt = new Intl.ListFormat(locale, { type: "conjunction" });
   const t = (key: Parameters<typeof translate>[1], vars?: Parameters<typeof translate>[2]) => translate(lang, key, vars);
@@ -92,6 +95,7 @@ export function makeFormat(lang: Lang, now: number): Format {
         : `${dayMonth(noon(first))} – ${dayMonth(noon(last))}`;
     },
     dateLong: (when) => dateLongFmt.format(ms(when)),
+    dateYear: (when) => dateYearFmt.format(ms(when)),
     relativeDay,
     dueLabel: (when) => `${relativeDay(when)}, ${time(when)}`,
     dayTime: (when) => {

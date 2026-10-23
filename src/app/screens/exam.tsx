@@ -654,7 +654,7 @@ function Study({ exam }: { exam: Exam }) {
           <ul className="mb-6 grid gap-2 sm:grid-cols-2">
             {files.map(({ file, taskId }) => (
               <li key={file.url}>
-                <LecturerFile file={file} taskId={taskId} />
+                <LecturerFile file={file} taskId={taskId} courseCode={exam.courseCode} />
               </li>
             ))}
           </ul>

@@ -42,7 +42,7 @@ import { type Format, type Translate, useFormat, useNow, useT } from "../i18n";
 import { LecturerHtml } from "../lecturer-html";
 import { type Route, useNav } from "../nav";
 import { OpenFile, useDownloadedToast, useLocalCopy } from "../open-file";
-import { canView, isPdfName, useAnswerAttach, usePdfViewer } from "../pdf";
+import { canView, isPdfName, useAnswerAttach, useCourseLabel, usePdfViewer } from "../pdf";
 import { type Todo, useExams, useTodo } from "../schedule-data";
 import { isBuilt } from "../shell/built";
 import { useRefresh, useSignIn } from "../shell/source-status";
@@ -762,7 +762,7 @@ function TaskPage({ task }: { task: Task }) {
             <ul className="grid gap-2 sm:grid-cols-2">
               {task.files.map((file) => (
                 <li key={file.url}>
-                  <LecturerFile file={file} taskId={task.id} />
+                  <LecturerFile file={file} taskId={task.id} courseCode={task.courseCode} />
                 </li>
               ))}
             </ul>
@@ -892,9 +892,13 @@ function shortName(name: string): string {
   return name.slice(0, 200 - ext.length) + ext;
 }
 
-/** `taskId`: the Task it's on, whose page on Edunex is the way forward when the file's link stops working. */
-export function LecturerFile({ file, taskId }: { file: TaskFile; taskId: number }) {
+/**
+ * `taskId`: the Task it's on, whose page on Edunex is the way forward when the file's link stops working; `courseCode`:
+ * its course, named when what the Student marked in the file goes out.
+ */
+export function LecturerFile({ file, taskId, courseCode }: { file: TaskFile; taskId: number; courseCode?: string }) {
   const t = useT();
+  const course = useCourseLabel()(courseCode);
   const local = useLocalCopy(file.url);
   const { download, busy } = useDownload(local.refresh);
   const pdf = usePdfViewer();
@@ -905,7 +909,9 @@ export function LecturerFile({ file, taskId }: { file: TaskFile; taskId: number 
     <button
       type="button"
       aria-label={t(viewable ? "pdf.viewFile" : "task.download", { name: file.name })}
-      onClick={() => (viewable ? pdf.open({ kind: "edunex", url: file.url, name: file.name, edunexUrl: edunexTaskUrl(taskId), taskId }) : void download(file))}
+      onClick={() =>
+        viewable ? pdf.open({ kind: "edunex", url: file.url, name: file.name, edunexUrl: edunexTaskUrl(taskId), taskId, course }) : void download(file)
+      }
       className="focus-ring flex w-full items-center gap-3 rounded-xl border border-edge bg-surface px-3 py-2.5 text-left shadow-card transition-colors duration-150 hover:bg-hover"
     >
       <FileBadge name={file.name} />
@@ -1027,6 +1033,7 @@ function HandIn({ task, status }: Row) {
   const { refresh, busy: refreshing } = useRefresh();
   const { download, busy: downloading } = useDownload();
   const pdf = usePdfViewer();
+  const courseLabel = useCourseLabel();
   const [attached, setAttached] = useState<Attached[]>([]);
   const [removed, setRemoved] = useState<string[]>([]);
   const [busy, setBusy] = useState<"draft" | "submit" | null>(null);
@@ -1132,7 +1139,8 @@ function HandIn({ task, status }: Row) {
 
   // A file in the answer opens in the viewer: one on Edunex (saved, or uploaded a moment ago) by its link, with
   // the Task's page as the way out; a PDF still on its way up from its bytes, read by main by the id it gave.
-  const preview = (file: TaskFile) => () => pdf.open({ kind: "edunex", url: file.url, name: file.name, edunexUrl: edunexTaskUrl(task.id), taskId: task.id });
+  const preview = (file: TaskFile) => () =>
+    pdf.open({ kind: "edunex", url: file.url, name: file.name, edunexUrl: edunexTaskUrl(task.id), taskId: task.id, course: courseLabel(task.courseCode) });
   const previewPicked = (item: Attached) => () =>
     pdf.open({
       kind: "bytes",
