@@ -181,8 +181,8 @@ except Presence `start_at`/`end_at`, which must be readable).
   edit: `open_status`, the answer, the score, the module. Raw fields the app doesn't read
   (`rubrics`, `passing_grade`, weights) move `updated_at` too: such an edit is noted with no
   changes. With no earlier copy (the first sync after signing in) nothing is noted, and the
-  screens say what changed isn't known. Edunex closing a Task at its deadline doesn't move
-  `updated_at`.
+  screens say what changed isn't known. The app takes Edunex closing a Task at its deadline
+  not to move `updated_at`, as the pretend Edunex does; that hasn't been seen on a real account.
 - **Submit status.** `is_sent` alone decides (`0`/`1`, `"0"`/`"1"` or a boolean; anything else
   is a vendor change). `sent_at` is stamped on drafts too, so it counts only when `is_sent` is
   set. With several answers on one Task, the handed-in one wins, else the latest draft.
