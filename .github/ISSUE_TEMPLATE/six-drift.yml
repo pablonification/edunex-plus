@@ -1,0 +1,29 @@
+name: A SIX page the app couldn't read
+description: Sent from the app's "Laporkan masalah", which fills this in. The page in it was scrubbed on the Student's computer.
+labels: [six-drift, needs-triage]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        > [!NOTE]
+        > The app filled this in and took your details out of the page on your computer. Names, NIM, contacts and links are replaced, and grades and amounts are made up. This page is public, so read it before you send it.
+
+  - type: textarea
+    id: report
+    attributes:
+      label: What the app couldn't read
+      description: Filled in by the app.
+    validations:
+      required: true
+
+  - type: textarea
+    id: doing
+    attributes:
+      label: What were you doing?
+      description: Optional. Filled in by the app if you wrote it there.
+
+  - type: textarea
+    id: page
+    attributes:
+      label: The scrubbed page
+      description: Drag the file the app saved (edunex-plus-report-….json, in Downloads) into this box.

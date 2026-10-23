@@ -24,6 +24,7 @@ import { coreHandlers } from "./handlers/core";
 import { coursePageHandlers } from "./handlers/course-page";
 import { edunexNim, filesHandlers, forgetOtherStudentsFiles } from "./handlers/files";
 import { phoneHandlers } from "./handlers/phone";
+import { reportHandlers } from "./handlers/report";
 import { scheduleHandlers } from "./handlers/schedule";
 import { openCheckIn, sixHandlers } from "./handlers/six";
 import { tasksHandlers } from "./handlers/tasks";
@@ -205,6 +206,7 @@ async function start(): Promise<void> {
     ...updatesHandlers(context),
     ...scheduleHandlers(context),
     ...phoneHandlers(context),
+    ...reportHandlers(context),
   };
   registerBridge({ window: () => window, isAppUrl, handlers });
   theme = followTheme(() => window, currentPlatform());

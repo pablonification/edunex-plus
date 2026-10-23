@@ -62,6 +62,23 @@ const PDFJS_ASSETS = [
  * helpers sit in its script. Vite's licence file also carries the licences of
  * what Vite bundles for itself, none of which reaches the app: only its own is kept.
  */
+/** LINE's and GitHub's marks, copied from Simple Icons into src/app/ui/brand.tsx: no package ships them. */
+const SIMPLE_ICONS = {
+  name: "Simple Icons (LINE and GitHub marks)",
+  version: null,
+  licence: "CC0-1.0",
+  source: "https://github.com/simple-icons/simple-icons",
+  text: [
+    "The LINE and GitHub marks drawn in the app come from Simple Icons (https://simpleicons.org),",
+    "which dedicates its icon data to the public domain under CC0 1.0 Universal",
+    "(https://creativecommons.org/publicdomain/zero/1.0/).",
+    "",
+    "The marks themselves are trademarks of LY Corporation (LINE) and GitHub, Inc. Edunex Plus uses",
+    "them only to name where a problem report goes, as their guidelines describe",
+    "(https://line.me/en/logo, https://github.com/logos).",
+  ].join("\n"),
+};
+
 const BUILD_TOOLS = [{ name: "tailwindcss" }, { name: "vite", keep: (text) => text.split(/^# Licenses of bundled dependencies/m)[0] }];
 
 const LICENCE_FILE = /^(licen[cs]e|copying|notice)([._-].*)?$/i;
@@ -207,6 +224,8 @@ export function openSourceList(root = ROOT) {
     const text = asset.files.map((file) => fs.readFileSync(path.join(pdfjs.dir, file), "utf8").trim()).join("\n\n---\n\n");
     entries.push({ name: asset.name, version: null, licence: asset.licence, source: asset.source, text });
   }
+  // The window draws LINE's and GitHub's marks itself ("Laporkan masalah", src/app/ui/brand.tsx), from Simple Icons.
+  entries.push(SIMPLE_ICONS);
   for (const tool of BUILD_TOOLS) {
     const dir = locate(tool.name, root);
     if (!dir) throw new Error(`${tool.name} isn't installed: run npm ci`);
