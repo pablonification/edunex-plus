@@ -58,6 +58,10 @@
   --meter-track: #ececef;
   --meter-warning: #b26b00;
   --meter-success: #1e8f4f;
+  /* An absence still left in the absence bar (AbsenceBar): a ring that reads 3:1 on a row, hovered too
+     (--field-edge doesn't, on --hover). Its stripes for an estimate, before SIX has a count. */
+  --pip-ring: #7a7a80;
+  --hatch: rgb(0 0 0 / 0.07);
 
   /* Task statuses */
   --status-not-started-bg: var(--neutral-bg);
@@ -162,6 +166,8 @@
     --meter-track: #2c2c30;
     --meter-warning: #f2c862;
     --meter-success: var(--live);
+    --pip-ring: #77777d;
+    --hatch: rgb(255 255 255 / 0.08);
 
     --status-draft-bg: #382d10;
     --status-draft-fg: #f2c862;
@@ -219,6 +225,7 @@
   --color-meter-track: var(--meter-track);
   --color-meter-warning: var(--meter-warning);
   --color-meter-success: var(--meter-success);
+  --color-pip-ring: var(--pip-ring);
 }
 
 @theme {

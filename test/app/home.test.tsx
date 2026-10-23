@@ -34,8 +34,7 @@ describe("Beranda on the recorded Thursday morning", () => {
     expect(colored.every((el) => el.classList.contains("size-2"))).toBe(true);
     expect(now).toContain("Jam berubah · biasanya 08:00–09:30");
     // SIX counts PL3002: SIX's "Tandai Hadir" is what counts, and the app is watching for it; Edunex's window is optional.
-    expect(now).toContain("Kehadiran dihitung di SIX: tekan Tandai Hadir di SIX saat tombolnya muncul.");
-    expect(now).toContain("Aplikasi memeriksa SIX tiap 2 menit selama kuliah dan memberi tahu saat Tandai Hadir muncul.");
+    expect(now).toContain("Tekan Tandai Hadir di SIX saat tombolnya muncul.Aplikasi memeriksa tiap 2 menit · Jatah absen PL3002 sisa 1×");
     // Not a tick: nothing says the Student is marked present yet.
     expect(section("home-now")?.textContent).not.toMatch(/tercatat hadir|sudah hadir/);
     expect(screen.button("Buka di SIX untuk Tandai Hadir di PL3002").textContent).toBe("Buka di SIX");
@@ -43,7 +42,7 @@ describe("Beranda on the recorded Thursday morning", () => {
     expect(now).toContain("Presensi Edunex juga dibuka sampai 09:30, tidak wajib.");
     expect(now).not.toContain("Catat kehadiran");
     // 6 of 7: the UTS-week lecture on 15 Oct may not run, so it buys no absence (#85: never one too many).
-    expect(now).toContain("Masih bisa absen 1× lagi");
+    expect(now).not.toContain("sisa 2×");
     expect(now).toContain("Setelah ini 11:00 · DK4073 Komunikasi Pemasaran");
     // Optional means quiet: not the primary button.
     // Named as the course page and Presensi name it, the visible words first in its name.
@@ -66,20 +65,21 @@ describe("Beranda on the recorded Thursday morning", () => {
 
   it("today: SIX's classes with time and room, absences left, the moved class, the overlap, and tomorrow's online meeting; rows open their course", async () => {
     screen = await openApp({ signedIn: true, six: true });
-    // The now card above says "Jam berubah · biasanya 08:00–09:30" and "Masih bisa absen 1× lagi" for this class; the row doesn't say them again.
+    // The now card above says "Jam berubah · biasanya 08:00–09:30" and "Jatah absen PL3002 sisa 1×" for this class; the row doesn't say them again.
     expect(row("home-today", "08:0010:00")).toBe("08:0010:00Ekonomi dan Inovasi dalam PerencanaanPL3002 · R.SG PWK LT.6Sekarang");
     expect(text("home-now")).toContain("Jam berubah · biasanya 08:00–09:30");
-    expect(text("home-now")).toContain("Masih bisa absen 1× lagi");
+    expect(text("home-now")).toContain("Jatah absen PL3002 sisa 1×");
     // Three hours off: the time column says when, no "dalam 3 jam" beside it.
-    expect(row("home-today", "11:00")).toBe("11:0012:59Komunikasi PemasaranDK4073 · TVST CJangan absen lagi");
-    // Out of reach is said in Perlu perhatianmu and on the course card, not a third time here.
-    expect(text("home-today")).not.toContain("Tak bisa lagi capai");
-    // PL3032 (15:00–16:30) and KU5014 (16:00–17:50) share half an hour: each row names the other,
-    // beside "Jangan absen lagi" on one line, as that's what decides which class to sit in.
+    expect(row("home-today", "11:00")).toBe("11:0012:59Komunikasi PemasaranDK4073 · TVST CJatah absen habis");
+    // PL3032 (15:00–16:30) and KU5014 (16:00–17:50) share half an hour: each row names the other, beside its state on one line,
+    // as that's what decides which class to sit in; the one still in reach of its target says to go to it (Presensi's answer).
     expect(row("home-today", "15:00")).toBe(
-      "15:0016:30Ekonomi Infrastruktur dan TransportasiPL3032 · R.SG PWK LT.6Jangan absen lagi · Bentrok dengan KU5014 16:00–16:30",
+      "15:0016:30Ekonomi Infrastruktur dan TransportasiPL3032 · R.SG PWK LT.6Jatah absen habis · Bentrok dengan KU5014 16:00–16:30. Pilih ini kalau hanya bisa hadir di salah satunya.",
     );
-    expect(row("home-today", "16:00")).toBe("16:0017:50Teknik Penyelesaian Masalah TerstrukturKU5014 · 9134Bentrok dengan PL3032 16:00–16:30");
+    // Out of reach is said on the day too, so the course doesn't drop off Beranda.
+    expect(row("home-today", "16:00")).toBe(
+      "16:0017:50Teknik Penyelesaian Masalah TerstrukturKU5014 · 9134Tak bisa lagi capai 80% · Bentrok dengan PL3032 16:00–16:30",
+    );
     expect(row("home-today", "11:00")).not.toContain("Bentrok");
     expect(text("home-today")).toContain("Besok");
     expect(row("home-today", "15:0017:00")).toBe("15:0017:00Proposal Tugas AkhirII4091 · Pertemuan 3 · daringTidak ada di jadwal SIX");
@@ -110,10 +110,10 @@ describe("Beranda on the recorded Thursday morning", () => {
     screen = await openApp({ signedIn: true, six: true });
     await screen.engineDoes(() => screen!.engine.updateSettings({ lang: "en" }));
     expect(text("home-now")).toContain("On now · until 10:00");
-    expect(text("home-now")).toContain("Attendance counts in SIX: press Tandai Hadir in SIX when it shows.");
-    expect(text("home-now")).toContain("Edunex Presence is also open until 09:30; it's optional.");
+    expect(text("home-now")).toContain("Press Tandai Hadir in SIX when it shows.The app checks every 2 minutes · 1 PL3002 absence left");
+    expect(text("home-now")).toContain("Edunex Presence is also open until 09:30. It's optional.");
     expect(row("home-today", "08:00")).toMatch(/Now$/);
-    expect(row("home-today", "15:00")).toContain("Don't miss another class · Clashes with KU5014 16:00–16:30");
+    expect(row("home-today", "15:00")).toContain("No absences left · Clashes with KU5014 16:00–16:30. Go to this one if you can make only one.");
     expect(text("home-now")).toContain("New time · usually 08:00–09:30");
     expect(rows("home-needs")[0]).toContain("KU5014: can't reach 80% anymore");
     expect(text("home-changes")).toContain("PL3002 schedule changedThu, 8 Oct 08:00–10:00 · usually 08:00–09:30");
@@ -124,7 +124,7 @@ describe("Beranda on the recorded Thursday morning", () => {
 describe("later the same Thursday", () => {
   it("only a class within two hours says how soon; a past one reads in quiet greys, not faded, and says Selesai", async () => {
     screen = await openApp({ world: new PretendWorld({ now: "2026-10-08T10:15:00+07:00" }), signedIn: true, six: true });
-    // On the card as next, so its row leaves "Jangan absen lagi" to the card too.
+    // On the card as next, so its row leaves "Jatah absen habis" to the card too.
     expect(row("home-today", "11:00")).toMatch(/^11:0012:59Komunikasi PemasaranDK4073 · TVST Cdalam 4\d menit$/);
     expect(row("home-today", "15:00")).not.toContain("dalam");
     expect(row("home-today", "08:00")).toMatch(/Selesai$/);
@@ -140,8 +140,8 @@ describe("an open window that counts", () => {
   it("in class, SIX's Tandai Hadir comes first and the Presence that counts too is under it, one click from its Task", async () => {
     screen = await openApp({ world: new PretendWorld({ now: "2026-10-16T15:01:00+07:00" }), signedIn: true, six: true });
     const now = text("home-now");
-    expect(now.indexOf("Kehadiran dihitung di SIX: tekan Tandai Hadir")).toBeGreaterThan(-1);
-    expect(now.indexOf("Presensi Edunex: Kumpulkan Tugas 02 Bab II sebelum 23:59")).toBeGreaterThan(now.indexOf("Tandai Hadir"));
+    expect(now.indexOf("Tekan Tandai Hadir di SIX saat tombolnya muncul.")).toBeGreaterThan(-1);
+    expect(now.indexOf("Presensi Edunex. Kumpulkan Tugas 02 Bab II sebelum 23:59.")).toBeGreaterThan(now.indexOf("Tandai Hadir"));
     await screen.click("Buka tugasnya");
     expect(document.querySelector("main h1")?.textContent).toBe("Tugas 02 Bab II");
   });
@@ -162,7 +162,7 @@ describe("SIX's Tandai Hadir in class", () => {
   it("shows the moment SIX does: the primary action opens SIX on the class, and once pressed it says so without claiming a tick", async () => {
     const world = new PretendWorld({ now: "2026-10-08T08:12:00+07:00" });
     screen = await openApp({ world, signedIn: true, six: true });
-    expect(text("home-now")).toContain("Kehadiran dihitung di SIX: tekan Tandai Hadir");
+    expect(text("home-now")).toContain("Tekan Tandai Hadir di SIX saat tombolnya muncul.");
 
     // The lecturer opens it in PL3002's class (meeting 2194342): within one look, Beranda says so.
     world.six.openCheckIn("2194342");
@@ -176,7 +176,7 @@ describe("SIX's Tandai Hadir in class", () => {
     // Pressed in SIX: the button goes, and Beranda says only what it saw.
     world.six.closeCheckIn("2194342");
     await screen.engineDoes(() => world.clock.advance(2.5 * 60_000));
-    expect(text("home-now")).toContain("Tandai Hadir sudah tidak tampil di SIX: sudah kamu tekan, atau sudah ditutup.");
+    expect(text("home-now")).toContain("Tandai Hadir sudah tidak tampil di SIX. Sudah kamu tekan, atau sudah ditutup.");
     expect(screen.button("Buka di SIX untuk Tandai Hadir di PL3002").className).not.toContain("bg-accent");
   });
 
@@ -187,7 +187,7 @@ describe("SIX's Tandai Hadir in class", () => {
     const now = text("home-now");
     expect(now).toContain("Tekan Tandai Hadir di SIX saat tombolnya muncul.");
     expect(now).not.toContain("Kehadiran dihitung di SIX");
-    expect(now).toContain("Presensi Edunex: Buka mata kuliahnya di Edunex sebelum 09:30");
+    expect(now).toContain("Presensi Edunex. Buka mata kuliahnya di Edunex sebelum 09:30.");
     expect(now).not.toContain("tidak wajib");
   });
 });

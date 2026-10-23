@@ -9,6 +9,7 @@ import { createEngine, type Engine } from "../../src/engine/engine";
 import { EngineError } from "../../src/engine/errors";
 import { edunex } from "../../src/engine/sources/edunex";
 import { itb } from "../../src/engine/sources/itb";
+import { saveCourses } from "../../src/engine/sources/six/feeds";
 import type { Source } from "../../src/engine/sources/source";
 import { PRETEND_TOKEN } from "../pretend/edunex";
 import { MemoryStorage, MemoryVault } from "../pretend/memory";
@@ -38,8 +39,9 @@ export function standInSix(state: PretendSixState): Source<null> {
         async run(current) {
           if (!current()) return;
           if (state.offline) throw new EngineError("Offline", "SIX is unreachable");
-          for (const [name, value] of [as("six.student", state.student), as("six.courses", state.courses), as("six.schedule", state.schedule)])
-            await context.set(name, structuredClone(value));
+          for (const [name, value] of [as("six.student", state.student), as("six.schedule", state.schedule)]) await context.set(name, structuredClone(value));
+          // As SIX's own feed saves them: the count's history first, then the count.
+          await saveCourses(context, structuredClone(state.courses));
         },
       });
     },
