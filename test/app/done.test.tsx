@@ -251,7 +251,7 @@ describe("the Task page", () => {
       "Tidak kukumpulkanTidak ada pengingat lagi, kecuali tenggat atau tugasnya berubah.",
     ]);
     await s.click([...document.querySelectorAll<HTMLElement>("[role=menuitem]")][1]!);
-    expect(card()).toMatch(/Kamu memilih tidak mengumpulkan · hari ini, 08:\d\dUrungkan/);
+    expect(card()).toMatch(/Kamu memilih tidak mengumpulkan · hari ini, 08:\d\d · Urungkan/);
     // The status stays Edunex's own: the app never claims Edunex has it.
     expect(card()).toContain("Belum dikerjakan");
     await frame();
@@ -280,7 +280,7 @@ describe("the Task page", () => {
     await s.click("Tandai tugas yang tidak dikumpulkan lewat Edunex");
     await s.click([...document.querySelectorAll<HTMLElement>("[role=menuitem]")][0]!);
     const card = () => document.querySelector("main aside")?.textContent ?? "";
-    expect(card()).toMatch(/Kamu kumpulkan dengan cara lain · hari ini, 08:\d\dUrungkan/);
+    expect(card()).toMatch(/Kamu kumpulkan dengan cara lain · hari ini, 08:\d\d · Urungkan/);
 
     await goTo(/^Tugas & Ujian/);
     const row = [...document.querySelectorAll("main li")].find((li) => li.textContent?.startsWith("Poster di kelas"));
@@ -301,7 +301,7 @@ describe("the Task page", () => {
     const card = () => document.querySelector("main aside")?.textContent ?? "";
     expect(card()).toContain("Kelompokmu sudah mengumpulkan?Kelompokku sudah kumpul");
     await press(s.button("Kelompokku sudah kumpul"));
-    expect(card()).toMatch(/Kamu tandai sudah dikumpulkan kelompok · hari ini, 08:\d\dUrungkan/);
+    expect(card()).toMatch(/Kamu tandai sudah dikumpulkan kelompok · hari ini, 08:\d\d · Urungkan/);
     await frame();
     const undo = s.button("Urungkan: Kamu tandai sudah dikumpulkan kelompok");
     expect(document.activeElement).toBe(undo);

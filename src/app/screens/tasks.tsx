@@ -1815,26 +1815,27 @@ function MarkHandedIn({ task }: { task: Task }) {
   };
   if (entry)
     return (
-      <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-caption text-muted">
-        <Icons.Check className="size-3.5 shrink-0 text-success-fg" weight="bold" />
-        <Meta>
+      // One line of facts beside the ✓, Undo last, wrapping under its words on a narrow card.
+      <div className="flex items-start gap-1.5 text-caption text-muted">
+        <Icons.Check className="mt-0.5 size-3.5 shrink-0 text-success-fg" weight="bold" />
+        <Meta className="flex-1">
           {t(`task.marked.${entry.how as MarkedHow}`)}
           {f.dayTimeWord(entry.at)}
+          <button
+            ref={undo}
+            type="button"
+            // The answer box has an "Urungkan" of its own: this one says what it takes back.
+            aria-label={t("done.undoFor", { what: t(`task.marked.${entry.how as MarkedHow}`) })}
+            onClick={() => {
+              setMoved("unmarked");
+              void unmark(key.id).catch(() => undefined);
+            }}
+            className="focus-ring rounded font-medium text-accent-fg hover:underline"
+          >
+            {t("action.undo")}
+          </button>
         </Meta>
-        <button
-          ref={undo}
-          type="button"
-          // The answer box has an "Urungkan" of its own: this one says what it takes back.
-          aria-label={t("done.undoFor", { what: t(`task.marked.${entry.how as MarkedHow}`) })}
-          onClick={() => {
-            setMoved("unmarked");
-            void unmark(key.id).catch(() => undefined);
-          }}
-          className="focus-ring rounded font-medium text-accent-fg hover:underline"
-        >
-          {t("action.undo")}
-        </button>
-      </p>
+      </div>
     );
   if (task.group)
     return (
