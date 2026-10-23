@@ -32,6 +32,7 @@ import {
   todayPlan,
 } from "../../core/needs";
 import { activeSnooze, partitionSnoozed, snoozable, snoozeKey } from "../../core/snooze";
+import { dateMove, type EditView, editView, titleOnly } from "../../core/task-edits";
 import { budgetLabel, useActionLabel } from "../attendance-labels";
 import { AbsenceBudget } from "../attendance-parts";
 import { type TermCourse, useCourseColor, useTerm, useTermCourses } from "../courses";
@@ -1057,10 +1058,37 @@ interface NeedView {
 /** What an item is, said whole where its facts aren't beside it: a Task's name with its course ("Tugas 02 · II4091"), a window with its class. */
 const fullName = (need: NeedDraft, view: NeedView) => factsLabel(view.title, view.titleLacksCourse && need.course, view.which);
 
+/**
+ * What a Task's newest edit changed, as a row's note says it: how many
+ * things, or the one date that moved, by name. Null when nothing's to say:
+ * never edited, checked, not compared, or nothing compared changed.
+ */
+function editNote(t: Translate, f: Format, view: EditView | null, afterSubmit: boolean): string | null {
+  if (!view || view.checked || view.state !== "known") return null;
+  const move = dateMove(view.changes);
+  const date = (at: number) => `${f.weekdayShort(at)}, ${f.dayMonth(at)}`;
+  if (move) {
+    const change =
+      move.kind === "deadline"
+        ? move.to === null
+          ? t("home.move.deadlineRemoved")
+          : move.from === null
+            ? t("home.move.deadlineAdded", { date: date(move.to) })
+            : t(move.to < move.from ? "home.move.deadlineEarlier" : "home.move.deadline", { date: date(move.to) })
+        : move.to === null
+          ? t("home.move.opensNow")
+          : t("home.move.opens", { date: date(move.to) });
+    return t(afterSubmit ? "home.need.task.editedMove" : "home.need.task.changedMove", { change });
+  }
+  return t(afterSubmit ? "home.need.task.editedCount" : "home.need.task.changedCount", { count: view.changes.length });
+}
+
 function useNeedView(courses: readonly TermCourse[]): (need: NeedDraft) => NeedView {
   const t = useT();
   const f = useFormat();
   const now = useNow();
+  const edits = useDataset("edunex.taskEdits");
+  const { entries: handled } = useDone();
   const near = (at: number | null) => (at !== null && at - now <= DAY ? "warning" : null);
   return (need) => {
     const course = need.course ? <CourseMark key="course" code={need.course} courses={courses} /> : null;
@@ -1123,15 +1151,20 @@ function useNeedView(courses: readonly TermCourse[]): (need: NeedDraft) => NeedV
       }
       case "task": {
         const { task } = need;
+        const edit = editView(task, edits, handled);
         if (need.reason === "edited")
           return {
             title: task.title,
             titleLacksCourse: true,
             meta: [course],
-            note: { text: t("home.need.task.edited"), tone: "warning" },
+            // How many things changed (the Task page's History says which); not compared: as before.
+            note: { text: editNote(t, f, edit, true) ?? t("home.need.task.edited"), tone: "warning" },
             when: null,
             tone: "warning",
           };
+        // Changed before hand-in: a quiet note on the Task's own row for two weeks, never a second row; title alone is History's.
+        const editAt = edit?.record?.at ?? task.editedAt;
+        const changed = edit && editAt !== null && now - editAt < 14 * DAY && !titleOnly(edit.changes) ? editNote(t, f, edit, false) : null;
         const meta =
           need.reason === "overdue"
             ? t("home.need.task.overdue")
@@ -1148,6 +1181,7 @@ function useNeedView(courses: readonly TermCourse[]): (need: NeedDraft) => NeedV
             </span>,
             need.draft ? t("home.need.task.draft") : null,
           ],
+          note: changed ? { text: changed, tone: null } : undefined,
           when: need.reason === "overdue" ? t("home.need.late") : f.fromNow(task.dueAt!),
           tone: need.reason === "overdue" ? "danger" : near(task.dueAt),
         };
@@ -1301,6 +1335,8 @@ const CHANGE_ICON: Partial<Record<AlertKind, typeof Icons.Home>> = {
   krs: Icons.ShieldCheck,
 };
 const IMPORTANT: ReadonlySet<string> = new Set(["alert.taskEdited.afterSubmit", "alert.materialToday", "home.change.moved", "home.change.meeting"]);
+/** An edit after hand-in whose title names the change ("Tenggat diundur ke …") still says so in its body. */
+const IMPORTANT_BODY: ReadonlySet<string> = new Set(["alert.taskEdited.afterSubmit.body", "alert.taskEdited.count.after"]);
 
 /** A short look at the last week's changes: the bell keeps all of them, with the same words. */
 function Changes({ context }: { context: HomeContext }) {
@@ -1337,7 +1373,7 @@ function Changes({ context }: { context: HomeContext }) {
 function ChangeRow({ item, f, onOpen }: { item: Alert; f: Format; onOpen: () => void }) {
   const t = useT();
   const Icon = CHANGE_ICON[item.kind] ?? Icons.Bell;
-  const important = IMPORTANT.has(item.title.key);
+  const important = IMPORTANT.has(item.title.key) || (item.body !== null && item.body !== undefined && IMPORTANT_BODY.has(item.body.key));
   const code = typeof item.title.vars?.course === "string" ? item.title.vars.course : null;
   const colorOf = useCourseColor();
   return (

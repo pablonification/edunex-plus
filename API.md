@@ -172,7 +172,17 @@ except Presence `start_at`/`end_at`, which must be readable).
 - **Tasks edited after posting.** Edunex moves only `updated_at`. A change more than an hour
   after posting, or any change after the Student handed in, counts as an edit
   (`editedAt` in `task-records.ts`). The notification feed misses many Tasks, so the Tasks feed
-  also runs on its own cadence.
+  also runs on its own cadence. Edunex never says what changed, so whenever `editedAt` moves the
+  app compares the copy it kept with the new one (`storeTasks`, for the Tasks feed and the
+  hand-in readback alike) and keeps the differences per edit in `edunex.taskEdits`
+  (`src/core/task-edits.ts`): the deadline, the opening, the instructions by their text (read
+  out of the HTML by `instructions-text.ts`, so markup alone isn't a change), the files by link,
+  the title, the late and file rules, group and UTS/UAS. Not compared, as they move without an
+  edit: `open_status`, the answer, the score, the module. Raw fields the app doesn't read
+  (`rubrics`, `passing_grade`, weights) move `updated_at` too: such an edit is noted with no
+  changes. With no earlier copy (the first sync after signing in) nothing is noted, and the
+  screens say what changed isn't known. The app takes Edunex closing a Task at its deadline
+  not to move `updated_at`, as the pretend Edunex does; that hasn't been seen on a real account.
 - **Submit status.** `is_sent` alone decides (`0`/`1`, `"0"`/`"1"` or a boolean; anything else
   is a vendor change). `sent_at` is stamped on drafts too, so it counts only when `is_sent` is
   set. With several answers on one Task, the handed-in one wins, else the latest draft.

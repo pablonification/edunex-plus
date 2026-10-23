@@ -186,9 +186,13 @@ export class PretendEdunex {
     this.editTask(taskId, { end_at: endAt });
   }
 
-  /** The deadline passes with no late answers: Edunex says "overdue" ("Sorry, the assignment was closed on …"). */
+  /**
+   * The deadline passes with no late answers: Edunex says "overdue" ("Sorry, the assignment was closed on …").
+   * Edunex closes it itself, so `updated_at` stays: it isn't the lecturer's edit.
+   */
   closeTask(taskId: number): void {
-    this.editTask(taskId, { open_status: "overdue", end_at: wib(this.clock.now() - 60_000), is_lateable: false });
+    const task = this.task(taskId);
+    task.attributes = { ...task.attributes, open_status: "overdue", end_at: wib(this.clock.now() - 60_000), is_lateable: false };
   }
 
   publishScore(taskId: number, score: number): void {

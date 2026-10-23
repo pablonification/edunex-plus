@@ -9,7 +9,7 @@ import { isEngineError } from "../../errors";
 import type { SourceContext } from "../source";
 import type { EdunexClient } from "./client";
 import { fetchCourses } from "./feeds";
-import { fetchCourseTasks, sortTasks, toTask, writeLog } from "./task-records";
+import { fetchCourseTasks, storeTasks, toTask, writeLog } from "./task-records";
 
 export { taskActions } from "./hand-in";
 
@@ -53,7 +53,7 @@ export function registerTaskFeeds(context: SourceContext, client: EdunexClient):
       // A Task the Student changed while this ran is already stored as Edunex read it back afterwards.
       const latest = context.get("edunex.tasks") ?? [];
       const tasks = named.flatMap((task) => ((log.tasks.get(task.id) ?? 0) > begun ? latest.filter((kept) => kept.id === task.id) : [task]));
-      await context.set("edunex.tasks", sortTasks(tasks));
+      await storeTasks(context, tasks);
       if (failure) throw failure;
     },
   });

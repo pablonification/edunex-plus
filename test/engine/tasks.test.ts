@@ -104,7 +104,8 @@ describe("Tasks with their true status", () => {
       { kind: "opens", at: at("2026-09-11T15:00:00+07:00") },
       { kind: "draft", at: at("2026-09-18T17:15:26+07:00") },
       { kind: "submitted", at: at("2026-09-18T19:12:22+07:00") },
-      { kind: "edited", at: at("2026-09-22T20:08:31+07:00") },
+      // Edited before the app had a copy to compare: what changed isn't known.
+      { kind: "edited", at: at("2026-09-22T20:08:31+07:00"), edit: null },
       { kind: "deadline", at: at("2026-09-25T23:59:00+07:00") },
     ]);
     // Opened as it was posted, and created then sent within a minute on the website: no separate steps for those.
