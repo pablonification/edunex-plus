@@ -9,7 +9,7 @@ import { type DragEvent, lazy, type ReactNode, Suspense, useEffect, useId, useMe
 import { answerFileProblem, type HandInResult, type PickedFile } from "../../core/actions/tasks";
 import { attendanceWindow, type CountedIn, presenceOptional } from "../../core/attendance";
 import { introModule } from "../../core/course-materials";
-import { taskDoneKey, taskPutAway } from "../../core/done";
+import { activeDone, taskDoneKey, taskPutAway } from "../../core/done";
 import type { Exam } from "../../core/exams";
 import type { DoneHow, Task, TaskFile, TaskModule, TaskStatus } from "../../core/models";
 import type { StringKey } from "../../core/strings";
@@ -593,7 +593,8 @@ function Signal({ task, status }: Row) {
         {t(`task.marked.${marked.how as MarkedHow}`)}
       </span>
     );
-  else if (editedAfterSubmit(task) && task.editedAt !== null)
+  // Not once checked ("Sudah kucek" on Beranda).
+  else if (editedAfterSubmit(task) && task.editedAt !== null && !activeDone(taskDoneKey(task, "edited"), handled))
     signal = (
       <span className="font-medium text-warning-fg">
         <Icons.PenLine className="size-3.5 shrink-0" />
@@ -1799,15 +1800,17 @@ function MarkHandedIn({ task }: { task: Task }) {
   const key = taskDoneKey(task, "due");
   const entry = done(key);
   const undo = useRef<HTMLButtonElement>(null);
-  const [justMarked, setJustMarked] = useState(false);
-  // The menu or the button that was pressed has gone with the line: focus goes to its Undo, once the menu has closed.
+  const again = useRef<HTMLParagraphElement & HTMLDivElement>(null);
+  const [moved, setMoved] = useState<"marked" | "unmarked" | null>(null);
+  // The menu or the button that was pressed has gone with the line: focus goes to its Undo, once the menu has closed;
+  // after Undo, back to the way to mark it, never to the page.
   useEffect(() => {
-    if (!justMarked || !entry) return;
-    setJustMarked(false);
-    requestAnimationFrame(() => undo.current?.focus());
-  }, [justMarked, entry]);
+    if (moved === null || (moved === "marked") !== (entry !== undefined)) return;
+    setMoved(null);
+    requestAnimationFrame(() => (moved === "marked" ? undo.current : again.current?.querySelector<HTMLElement>("button"))?.focus());
+  }, [moved, entry]);
   const put = (how: MarkedHow) => {
-    setJustMarked(true);
+    setMoved("marked");
     mark(key, how).catch((error: unknown) => toast(t(errorKey(error)), "danger"));
   };
   if (entry)
@@ -1823,7 +1826,10 @@ function MarkHandedIn({ task }: { task: Task }) {
           type="button"
           // The answer box has an "Urungkan" of its own: this one says what it takes back.
           aria-label={t("done.undoFor", { what: t(`task.marked.${entry.how as MarkedHow}`) })}
-          onClick={() => void unmark(key.id).catch(() => undefined)}
+          onClick={() => {
+            setMoved("unmarked");
+            void unmark(key.id).catch(() => undefined);
+          }}
           className="focus-ring rounded font-medium text-accent-fg hover:underline"
         >
           {t("action.undo")}
@@ -1832,7 +1838,7 @@ function MarkHandedIn({ task }: { task: Task }) {
     );
   if (task.group)
     return (
-      <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-caption text-muted">
+      <p ref={again} className="flex flex-wrap items-center gap-x-2 gap-y-1 text-caption text-muted">
         {t("done.groupAsk")}
         <button type="button" onClick={() => put("groupDone")} className="focus-ring rounded font-medium text-accent-fg hover:underline">
           {t("done.groupDone")}
@@ -1840,7 +1846,7 @@ function MarkHandedIn({ task }: { task: Task }) {
       </p>
     );
   return (
-    <div className="flex flex-wrap items-center gap-x-1 text-caption text-muted">
+    <div ref={again} className="flex flex-wrap items-center gap-x-1 text-caption text-muted">
       {t("done.otherWay")}
       <Menu
         label={t("done.otherWay.menuFor")}

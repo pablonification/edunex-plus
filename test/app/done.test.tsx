@@ -57,6 +57,36 @@ describe("the ✓ on Beranda", () => {
     expect(s.store.dataset("local.done")?.value).toEqual([]);
   });
 
+  it("snoozing the row above one with a ✓ hands focus to that row's alarm, never its ✓", async () => {
+    const world = new PretendWorld({ now: MONDAY });
+    world.edunex.postTask(95059, { name: "Esai singkat", end_at: "2026-10-13T10:00:00+07:00" });
+    world.edunex.postTask(95059, { name: "Laporan kelompok", type: "GROUP", end_at: "2026-10-13T20:00:00+07:00" });
+    const s = await open({ world });
+    // Both due tomorrow: Hari ini's "Besok", one above the other.
+    const alarm = s.button("Ingatkan nanti: Esai singkat · PL3032");
+    const below = alarm.closest("li")?.nextElementSibling;
+    expect(below?.textContent).toContain("Laporan kelompok");
+    expect(below?.querySelector("[data-done]")).toBeTruthy();
+    await press(alarm);
+    await press([...document.querySelectorAll<HTMLElement>("[role=menuitem]")][0]!);
+    await frame();
+    expect(document.activeElement).toBe(below?.querySelector("[aria-haspopup=menu]"));
+  });
+
+  it("checked on Beranda, the Tasks list stops saying to check it again", async () => {
+    const s = await open();
+    const line = () => [...document.querySelectorAll("main li")].find((li) => li.textContent?.startsWith("Tugas tentang Imfact"))?.textContent ?? "";
+    await goTo(/^Tugas & Ujian/);
+    await s.click(/^Selesai/);
+    expect(line()).toContain("Diubah setelah kamu kumpulkan");
+    await goTo(/^Beranda/);
+    await press(s.button(`Sudah kucek: ${EDITED}`));
+    await goTo(/^Tugas & Ujian/);
+    await s.click(/^Selesai/);
+    expect(line()).toContain("Tugas tentang Imfact");
+    expect(line()).not.toContain("Diubah setelah kamu kumpulkan");
+  });
+
   it("lists what's handled under the list, with when, and shows one again", async () => {
     const s = await open();
     await press(s.button(`Sudah kucek: ${EDITED}`));
@@ -192,6 +222,14 @@ describe("a group Task", () => {
     expect(needs()?.textContent).toContain("1 sudah beres");
     expect(row()).toBeUndefined();
   });
+
+  it("its deadline today marked done: Hari ini says today's deadlines are handled, not snoozed", async () => {
+    const world = new PretendWorld({ now: MONDAY });
+    world.edunex.postTask(95059, { name: "Laporan kelompok", type: "GROUP", end_at: "2026-10-12T20:00:00+07:00" });
+    const s = await open({ world });
+    await press(s.button("Kelompokku sudah kumpul: Laporan kelompok · PL3032"));
+    expect(today()?.textContent).toContain("Tidak ada kuliah hari ini. Tenggat hari ini sudah beres.");
+  });
 });
 
 describe("the Task page", () => {
@@ -262,7 +300,14 @@ describe("the Task page", () => {
     await s.click([...document.querySelectorAll<HTMLButtonElement>("main li button")].find((b) => b.textContent?.startsWith("Tugas Kelompok 1"))!);
     const card = () => document.querySelector("main aside")?.textContent ?? "";
     expect(card()).toContain("Kelompokmu sudah mengumpulkan?Kelompokku sudah kumpul");
-    await s.click("Kelompokku sudah kumpul");
+    await press(s.button("Kelompokku sudah kumpul"));
     expect(card()).toMatch(/Kamu tandai sudah dikumpulkan kelompok · hari ini, 08:\d\dUrungkan/);
+    await frame();
+    const undo = s.button("Urungkan: Kamu tandai sudah dikumpulkan kelompok");
+    expect(document.activeElement).toBe(undo);
+    // Undo from the keyboard: back to the way to mark it, never to the page.
+    await press(undo);
+    await frame();
+    expect(document.activeElement).toBe(s.button("Kelompokku sudah kumpul"));
   });
 });

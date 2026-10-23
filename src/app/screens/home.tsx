@@ -606,14 +606,19 @@ function Today({
     ...plan.due.map((task): TodayItem => ({ kind: "due", at: task.dueAt!, task, need: needOf(task) })),
   ].sort((a, b) => a.at - b.at);
   // Put off, or put away by the Student (handed in another way, by the group, not at all): listed under "Perlu perhatianmu".
-  const putOff = (item: TodayItem) =>
-    item.kind === "due" &&
-    ((item.need !== null && activeSnooze(snoozeKey(item.need), entries, now) !== undefined) || taskPutAway(item.task, handled) !== undefined);
+  const snoozed = (item: TodayItem) => item.kind === "due" && item.need !== null && activeSnooze(snoozeKey(item.need), entries, now) !== undefined;
+  const putAway = (item: TodayItem) => item.kind === "due" && taskPutAway(item.task, handled) !== undefined;
+  const putOff = (item: TodayItem) => snoozed(item) || putAway(item);
   const shown = items.filter((item) => !putOff(item));
   const today = shown.filter((item) => wibDay(item.at) === day);
   const tomorrow = shown.filter((item) => wibDay(item.at) !== day);
-  // Never "no deadlines today" while today's are only put off.
-  const snoozedToday = items.some((item) => putOff(item) && wibDay(item.at) === day);
+  // Never "no deadlines today" while today's are only put off or handled, and never "snoozed" for what's handled.
+  const isToday = (item: TodayItem) => wibDay(item.at) === day;
+  const empty = items.some((item) => snoozed(item) && isToday(item))
+    ? "home.today.noneSnoozed"
+    : items.some((item) => putAway(item) && isToday(item))
+      ? "home.today.noneHandled"
+      : "home.today.none";
   return (
     <Section id="home-today" title={t("home.today")} className="mt-0">
       {!context.schedule && <NoSixToday />}
@@ -627,9 +632,7 @@ function Today({
           </PresenceList>
         </List>
       ) : (
-        context.schedule && (
-          <p className="rounded-xl bg-sunken px-4 py-3.5 text-body text-muted">{t(snoozedToday ? "home.today.noneSnoozed" : "home.today.none")}</p>
-        )
+        context.schedule && <p className="rounded-xl bg-sunken px-4 py-3.5 text-body text-muted">{t(empty)}</p>
       )}
       {tomorrow.length > 0 && (
         <>
