@@ -142,8 +142,10 @@ describe("the ✓ on Beranda", () => {
   });
 
   it("with only handled things left: a green 'all handled', never 'nothing due'", async () => {
-    // Thursday: the target out of reach is the one item; the rest of the day is in Hari ini.
+    // Thursday, looking 3 days ahead (next Thursday's UTS is a week off): the target out of reach is the one item;
+    // the rest of the day is in Hari ini.
     const s = await open({ world: new PretendWorld() });
+    await s.engineDoes(() => s.engine.updateSettings({ needsAhead: 3 }));
     // Once the page has put focus on its title, as it does when it opens.
     await frame();
     expect(titles()).toEqual(["KU5014: tak bisa lagi capai 80%Paling tinggi 73% · cek ke dosen kalau ada yang terlewat"]);

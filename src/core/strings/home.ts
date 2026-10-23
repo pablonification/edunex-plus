@@ -82,10 +82,26 @@ export const homeStrings = {
   "home.today.due": { id: "Tenggat", en: "Due" },
   "home.today.tomorrow": { id: "Besok", en: "Tomorrow" },
 
-  // Perlu perhatianmu: the week ahead, without what Sekarang and Hari ini show
+  // Perlu perhatianmu: the days ahead the Student picked in Settings, without what Sekarang and Hari ini show
   "home.needs": { id: "Perlu perhatianmu", en: "Needs you" },
-  "home.needs.none": { id: "Bebas tenggat sampai {day}", en: "Nothing due until {day}" },
-  "home.needs.noneHint": { id: "Tidak ada tugas atau ujian dengan tenggat minggu ini.", en: "No Tasks or exams due this week." },
+  "home.needs.none": {
+    id: "Bebas tenggat {count} hari ke depan",
+    en: { one: "Nothing due in the next {count} day", other: "Nothing due in the next {count} days" },
+  },
+  // {day}: the last day it looks at, which is free too
+  "home.needs.noneHint": { id: "Tidak ada tugas atau ujian dengan tenggat sampai {day}.", en: "No Tasks or exams due by {day}." },
+  // Something is due that the list doesn't show: Hari ini has it, or it isn't open yet
+  "home.needs.noneElse": { id: "Tidak ada lagi yang perlu perhatianmu sekarang", en: "Nothing else needs you now" },
+  "home.needs.noneElseHint": { id: "Tenggat berikutnya {when}.", en: "Next due {when}." },
+  // Settings: how far ahead Perlu perhatianmu looks, in whole days
+  "settings.needsAhead": { id: "Jangkauan Perlu perhatianmu", en: "How far ahead Needs you looks" },
+  "settings.needsAhead.hint": {
+    id: "Yang bertenggat sampai akhir hari terakhir muncul di Beranda.",
+    en: "What's due by the end of the last day shows on Home.",
+  },
+  "settings.needsAhead.3": { id: "3 hari", en: "3 days" },
+  "settings.needsAhead.7": { id: "1 minggu", en: "1 week" },
+  "settings.needsAhead.14": { id: "2 minggu", en: "2 weeks" },
   "home.need.presence": { id: "Isi Presensi {course}", en: "Fill in {course} Presence" },
   "home.need.presence.closes": { id: "tutup {time}", en: "closes {time}" },
   "home.need.presenceOptional": { id: "Presensi {course} dibuka, tidak wajib", en: "{course} Presence is open; it's optional" },

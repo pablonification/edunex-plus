@@ -2,7 +2,7 @@
 // pretend Edunex, SIX and ITB calendar on a fake clock: what each provider
 // raises, in which band, with which action and sources, and the ranking.
 import { describe, expect, it } from "vitest";
-import { type HomeWorld, type Need, type NeedProvider, needsYou, PROVIDERS, recentChanges, slotChange } from "../../src/core/needs";
+import { type HomeWorld, type Need, type NeedProvider, needsRange, needsYou, PROVIDERS, recentChanges, slotChange } from "../../src/core/needs";
 import { translate } from "../../src/core/strings";
 import { wib } from "../pretend/edunex";
 import { PretendWorld } from "../pretend/world";
@@ -29,8 +29,10 @@ describe("the recorded Thursday morning (8 Oct, 08:12)", () => {
       "soon class:2194402",
       `soon meeting:II4091:${at("2026-10-09T15:00:00")}`,
       "soon attendance:KU5014:out",
+      // Next Thursday at 11:00, seven days ahead: the week counts whole days, so it's in.
+      "later exam:DK4073-UTS",
     ]);
-    expect(needs.map((n) => n.rank)).toEqual([1, 2, 3, 4, 5]);
+    expect(needs.map((n) => n.rank)).toEqual([1, 2, 3, 4, 5, 6]);
 
     // PL3002: Edunex's window is open while SIX's class runs (moved: until 10:00, usually 09:30); SIX counts.
     const presence = needs[0];
@@ -165,6 +167,57 @@ describe("a deadline at midnight", () => {
     const quiz = h.world.edunex.postTask(95001, { name: "Kuis kelas", end_at: wib(h.world.clock.now() + 2 * 3_600_000) });
     await h.refresh();
     expect(find(needsYou(h.home()), `task:${quiz}`)).toMatchObject({ band: "now", reason: "short" });
+  });
+});
+
+describe("how far ahead it looks", () => {
+  it("whole days: on Friday afternoon, a deadline at 23:59 the next Friday is in the week; one on Saturday isn't", async () => {
+    const h = await startHome({ now: "2026-10-23T15:00:00+07:00" });
+    const friday = h.world.edunex.postTask(95001, { name: "Tugas 03 Bab III", end_at: "2026-10-30T23:59:00+07:00" });
+    const saturday = h.world.edunex.postTask(95001, { name: "Laporan", end_at: "2026-10-31T09:00:00+07:00" });
+    await h.refresh();
+    const needs = needsYou(h.home());
+    expect(find(needs, `task:${friday}`)).toMatchObject({ band: "later", reason: "due" });
+    expect(find(needs, `task:${saturday}`)).toBeUndefined();
+    expect(needsRange(h.home())).toMatchObject({ days: 7, until: at("2026-10-31T00:00:00") });
+  });
+
+  it("the Student's choice: 3 days or 2 weeks, each to the end of its last day, for Tasks and exams alike", async () => {
+    const h = await startHome({ now: "2026-10-23T15:00:00+07:00" });
+    const monday = h.world.edunex.postTask(95001, { name: "Esai", end_at: "2026-10-26T23:59:00+07:00" });
+    const tuesday = h.world.edunex.postTask(95001, { name: "Proposal", end_at: "2026-10-27T08:00:00+07:00" });
+    const lastDay = h.world.edunex.postTask(95001, { name: "Laporan akhir", end_at: "2026-11-06T23:59:00+07:00" });
+    const after = h.world.edunex.postTask(95001, { name: "Refleksi", end_at: "2026-11-07T08:00:00+07:00" });
+    await h.refresh();
+    const quiz = { id: "9003", courseId: 95001, title: "Kuis 3", start: at("2026-10-27T19:00:00"), end: at("2026-10-27T20:00:00") };
+    const posted = [monday, tuesday, lastDay, after];
+    const ids = (ahead: number) =>
+      needsYou({ ...h.home(), tasks: h.home().tasks.filter((task) => posted.includes(task.id)), exams: { PL3002: [quiz] }, needsAhead: ahead })
+        .filter((n) => n.kind === "task" || n.kind === "exam")
+        .map((n) => n.id);
+
+    expect(ids(3)).toEqual([`task:${monday}`]);
+    expect(ids(7)).toEqual(["exam:PL3002-KUIS-e9003", `task:${monday}`, `task:${tuesday}`]);
+    expect(ids(14)).toEqual(["exam:PL3002-KUIS-e9003", `task:${monday}`, `task:${tuesday}`, `task:${lastDay}`]);
+    expect(ids(14)).not.toContain(`task:${after}`);
+    expect(needsRange({ ...h.home(), needsAhead: 3 })).toMatchObject({ days: 3, until: at("2026-10-27T00:00:00") });
+  });
+
+  it("knows what's due within the range even where the list doesn't show it: tomorrow's (in Hari ini), one not open yet", async () => {
+    const h = await startHome({ now: "2026-10-23T15:00:00+07:00" });
+    // Opens on Tuesday for an hour: nothing to hand in yet, but it's due within the week.
+    const quiz = h.world.edunex.postTask(95001, { name: "Kuis", start_at: "2026-10-27T10:00:00+07:00", end_at: "2026-10-27T11:00:00+07:00" });
+    const tomorrow = h.world.edunex.postTask(95001, { name: "Ringkasan", end_at: "2026-10-24T23:59:00+07:00" });
+    await h.refresh();
+    const only = (...ids: number[]): HomeWorld => ({ ...h.home(), tasks: h.home().tasks.filter((task) => ids.includes(task.id)) });
+    expect(needsRange(only()).next).toBeNull();
+
+    expect(find(needsYou(only(quiz)), `task:${quiz}`)).toBeUndefined();
+    expect(needsRange(only(quiz)).next).toBe(at("2026-10-27T11:00:00"));
+    expect(needsRange({ ...only(quiz), needsAhead: 3 }).next).toBeNull();
+
+    // Due tomorrow: Hari ini shows it, so Perlu perhatianmu doesn't, and still it's due.
+    expect(needsRange(only(quiz, tomorrow)).next).toBe(at("2026-10-24T23:59:00"));
   });
 });
 

@@ -32,6 +32,11 @@ export const DEADLINE_REMINDERS = [48, 24, 3, 1] as const;
 export const DeadlineReminder = z.literal(DEADLINE_REMINDERS);
 export type DeadlineReminder = z.infer<typeof DeadlineReminder>;
 
+/** How many whole days after today Beranda's "Perlu perhatianmu" looks ahead: 3 days, a week, 2 weeks. */
+export const NEEDS_AHEAD = [3, 7, 14] as const;
+export const NeedsAhead = z.literal(NEEDS_AHEAD);
+export type NeedsAhead = z.infer<typeof NeedsAhead>;
+
 /** Hours on this computer's clock when the phone holds alerts that can wait (start to end, across midnight when end is earlier). */
 export const QuietHours = z
   .object({ start: z.number().int().min(0).max(23), end: z.number().int().min(0).max(23) })
@@ -74,6 +79,10 @@ export const Settings = z.object({
   /** A course's own target (percent) by course code, from its course contract; see `targetFor`. */
   attendanceTargets: z.record(z.string().min(1).max(32), AttendanceTarget),
 
+  // Beranda
+  /** How far ahead "Perlu perhatianmu" looks: what's due by the end of that day shows there (see `needsRange`). */
+  needsAhead: NeedsAhead,
+
   // Files
   /** The app the Student last opened each kind of file in, by extension (".pdf"): its place on this computer. */
   openWith: z.record(z.string().max(16), z.string().max(1000)),
@@ -104,6 +113,9 @@ export const DEFAULT_SETTINGS: Settings = {
   // Attendance (#85)
   attendanceTarget: 80,
   attendanceTargets: {},
+
+  // Beranda
+  needsAhead: 7,
 
   // Files
   openWith: {},

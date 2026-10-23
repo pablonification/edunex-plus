@@ -37,6 +37,16 @@ describe("saved settings", () => {
     expect(odd.engine.snapshot().settings).toMatchObject({ theme: "dark", deadlineReminders: [48, 24, 3] });
   });
 
+  it("from before choosing how far ahead Perlu perhatianmu looks: a week; a choice loads as saved, one the app doesn't offer falls back alone", async () => {
+    const before = await startEngine({ storage: saved({ theme: "dark", lang: "en" }), start: false });
+    expect(before.engine.snapshot().settings).toMatchObject({ theme: "dark", needsAhead: 7 });
+    const chosen = await startEngine({ storage: saved({ needsAhead: 14 }), start: false });
+    expect(chosen.engine.snapshot().settings.needsAhead).toBe(14);
+    const odd = await startEngine({ storage: saved({ theme: "dark", needsAhead: 5 }), start: false });
+    expect(odd.engine.snapshot().settings).toMatchObject({ theme: "dark", needsAhead: 7 });
+    await expect(odd.engine.updateSettings({ needsAhead: 30 as never })).rejects.toThrow();
+  });
+
   it("with this version's per-course targets, they load as saved", async () => {
     const h = await startEngine({ storage: saved({ attendanceTarget: 80, attendanceTargets: { DK4073: 75, KU5014: 90 } }), start: false });
     expect(h.engine.snapshot().settings.attendanceTargets).toEqual({ DK4073: 75, KU5014: 90 });
