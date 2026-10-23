@@ -5,7 +5,8 @@
 // (./text-only.tsx). The same panel over the current screen as the PDF viewer,
 // with the file's name, Download and Close; Esc closes and focus goes back.
 // A Word document's text and a text file's can be highlighted, as in a PDF
-// (./highlights.tsx). What reads each kind loads on first use, in a chunk of
+// (./highlights.tsx), and each can have one note, in a panel beside it
+// (./page-notes.tsx): their pages aren't fixed, so a note is the whole file's. What reads each kind loads on first use, in a chunk of
 // its own. Nothing in a file runs: a Word document is drawn in a shadow root
 // (its styles stay inside), slides are built as elements from plain data,
 // links go through the app's own link rules or nowhere, and text is only ever
@@ -24,6 +25,7 @@ import { type Highlights, MarkLayer, type TextRoot, useHighlighter } from "./hig
 import { Icons } from "./icons";
 import { settled } from "./motion/animate";
 import { ignoreClosingClick, keepOpenForToasts, PANEL_MOTION_CLASS, SCRIM_CLASS, useReturnFocus } from "./overlays";
+import { NOTES_AREA, NotesButton, NotesPanel, type PageNotes, useNotesPanel } from "./page-notes";
 import { PanelBoundary } from "./panel-boundary";
 import type { Slide } from "./ppt";
 import { MAX_COLUMNS, MAX_ROWS, readCsv, type Sheet } from "./sheets";
@@ -105,11 +107,13 @@ export interface FileViewerProps {
   onOpenLink: (url: string) => void;
   /** This file's highlights, for a Word document or a text file; none for a file that isn't Edunex's. */
   highlights?: Highlights;
+  /** This file's note, for a Word document or a text file: one for the whole file. */
+  notes?: PageNotes;
   /** The system whose window buttons it leaves room for at the top (macOS also names shortcuts with ⌘); none in tests. */
   platform?: "darwin" | "win32" | "linux";
 }
 
-export function FileViewer({ open, onOpenChange, name, kind, load, actions, fallback, onOpenLink, highlights, platform }: FileViewerProps) {
+export function FileViewer({ open, onOpenChange, name, kind, load, actions, fallback, onOpenLink, highlights, notes, platform }: FileViewerProps) {
   const t = useT();
   const returnFocus = useReturnFocus();
   const panel = useRef<HTMLDivElement>(null);
@@ -120,6 +124,8 @@ export function FileViewer({ open, onOpenChange, name, kind, load, actions, fall
   const content = useRef<HTMLDivElement>(null);
   const textRoot = useRef<Node | null>(null);
   const shown = view.phase === "ready" ? view.shown.kind : null;
+  const notesHere = shown === "docx" || shown === "text" ? notes : undefined;
+  const notesPanel = useNotesPanel();
   const highlighter = useHighlighter({
     highlights: shown === "docx" || shown === "text" ? highlights : undefined,
     container: content,
@@ -194,9 +200,13 @@ export function FileViewer({ open, onOpenChange, name, kind, load, actions, fall
           }}
           onCloseAutoFocus={returnFocus.onCloseAutoFocus}
           onPointerDownOutside={keepOpenForToasts}
-          // With a highlight's bar open, Escape closes the bar; the next one closes the viewer.
+          // With a highlight's bar open, Escape closes the bar, and in the note it gives the keyboard back to the file;
+          // the next one closes the viewer.
           onEscapeKeyDown={(event) => {
-            if (highlighter.escape()) event.preventDefault();
+            if (event.target instanceof HTMLElement && event.target.closest(NOTES_AREA)) {
+              event.preventDefault();
+              scroller.current?.focus();
+            } else if (highlighter.escape()) event.preventDefault();
           }}
           onClickCapture={ignoreClosingClick}
           className={cx(
@@ -208,56 +218,70 @@ export function FileViewer({ open, onOpenChange, name, kind, load, actions, fall
         >
           {/* Whatever in the viewer fails breaks the viewer, not the window; its title and Close stay. */}
           <PanelBoundary name="file viewer" compact header={<Toolbar name={name} />}>
-            <Toolbar name={name} actions={view.phase === "failed" ? undefined : actions} />
+            <Toolbar name={name} actions={view.phase === "failed" ? undefined : actions}>
+              {notesHere && <NotesButton open={notesPanel.open} paged={false} onClick={() => notesPanel.show(!notesPanel.open)} />}
+            </Toolbar>
             {view.phase === "ready" && view.shown.kind === "sheets" ? (
               <Sheets sheets={view.shown.sheets} name={name} scroller={scroller} />
             ) : (
-              <section
-                ref={scroller}
-                // The file scrolls, so once it's there it takes the keyboard (arrows, Page Down).
-                tabIndex={view.phase === "ready" ? 0 : -1}
-                aria-label={name}
-                // Highlighting: what's selected as the mouse comes up, a highlight under a click, ⌘⇧H and ⌘Z.
-                onMouseDown={highlighter.onMouseDown}
-                onMouseUp={highlighter.onMouseUp}
-                onKeyDown={highlighter.onKey}
-                className={cx(
-                  "min-h-0 flex-1 overflow-auto overscroll-contain bg-sunken outline-none focus-visible:shadow-[inset_0_0_0_2px_var(--focus)]",
-                  view.phase !== "ready" && "grid place-items-center p-6",
+              <div className="flex min-h-0 flex-1">
+                <section
+                  ref={scroller}
+                  // The file scrolls, so once it's there it takes the keyboard (arrows, Page Down).
+                  tabIndex={view.phase === "ready" ? 0 : -1}
+                  aria-label={name}
+                  // Highlighting: what's selected as the mouse comes up, a highlight under a click, ⌘⇧H and ⌘Z.
+                  onMouseDown={highlighter.onMouseDown}
+                  onMouseUp={highlighter.onMouseUp}
+                  onKeyDown={highlighter.onKey}
+                  className={cx(
+                    "min-h-0 min-w-0 flex-1 overflow-auto overscroll-contain bg-sunken outline-none focus-visible:shadow-[inset_0_0_0_2px_var(--focus)]",
+                    view.phase !== "ready" && "grid place-items-center p-6",
+                  )}
+                >
+                  {view.phase === "loading" ? (
+                    <Loading label={t("viewer.loading")} />
+                  ) : view.phase === "failed" ? (
+                    <Failed title={t("viewer.failed")} detail={view.problem === "broken" ? t("viewer.broken") : t(`file.problem.${view.problem}`)}>
+                      {view.problem === "unreachable" ? (
+                        <Button variant="primary" icon={<Icons.RefreshCw className="size-3.5" />} onClick={() => setAttempt((n) => n + 1)}>
+                          {t("action.tryAgain")}
+                        </Button>
+                      ) : (
+                        fallback?.(view.problem)
+                      )}
+                    </Failed>
+                  ) : view.shown.kind === "docx" ? (
+                    <WordPages nodes={view.shown.nodes} onOpenLink={onOpenLink} marks={marks} />
+                  ) : view.shown.kind === "slides" ? (
+                    <SlideDeck deck={view.shown.deck} onOpenLink={onOpenLink} />
+                  ) : view.shown.kind === "text" ? (
+                    <TextFile text={view.shown.text} marks={marks} />
+                  ) : view.shown.kind === "doc" ? (
+                    <DocPages pages={view.shown.pages} />
+                  ) : view.shown.kind === "ppt" ? (
+                    <SlideCards slides={view.shown.slides} />
+                  ) : view.shown.kind === "image" ? (
+                    <div className="grid min-h-full place-items-center p-6">
+                      <img
+                        src={view.shown.url}
+                        alt={name}
+                        className="h-auto max-w-full rounded-sm shadow-card outline -outline-offset-1 outline-black/10 dark:outline-white/10"
+                      />
+                    </div>
+                  ) : null}
+                </section>
+                {notesHere && notesPanel.open && (
+                  <NotesPanel
+                    notes={notesHere}
+                    focus={notesPanel.focus}
+                    onClose={() => {
+                      notesPanel.show(false);
+                      scroller.current?.focus();
+                    }}
+                  />
                 )}
-              >
-                {view.phase === "loading" ? (
-                  <Loading label={t("viewer.loading")} />
-                ) : view.phase === "failed" ? (
-                  <Failed title={t("viewer.failed")} detail={view.problem === "broken" ? t("viewer.broken") : t(`file.problem.${view.problem}`)}>
-                    {view.problem === "unreachable" ? (
-                      <Button variant="primary" icon={<Icons.RefreshCw className="size-3.5" />} onClick={() => setAttempt((n) => n + 1)}>
-                        {t("action.tryAgain")}
-                      </Button>
-                    ) : (
-                      fallback?.(view.problem)
-                    )}
-                  </Failed>
-                ) : view.shown.kind === "docx" ? (
-                  <WordPages nodes={view.shown.nodes} onOpenLink={onOpenLink} marks={marks} />
-                ) : view.shown.kind === "slides" ? (
-                  <SlideDeck deck={view.shown.deck} onOpenLink={onOpenLink} />
-                ) : view.shown.kind === "text" ? (
-                  <TextFile text={view.shown.text} marks={marks} />
-                ) : view.shown.kind === "doc" ? (
-                  <DocPages pages={view.shown.pages} />
-                ) : view.shown.kind === "ppt" ? (
-                  <SlideCards slides={view.shown.slides} />
-                ) : view.shown.kind === "image" ? (
-                  <div className="grid min-h-full place-items-center p-6">
-                    <img
-                      src={view.shown.url}
-                      alt={name}
-                      className="h-auto max-w-full rounded-sm shadow-card outline -outline-offset-1 outline-black/10 dark:outline-white/10"
-                    />
-                  </div>
-                ) : null}
-              </section>
+              </div>
             )}
             {highlighter.announcer}
           </PanelBoundary>

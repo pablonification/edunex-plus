@@ -1,7 +1,8 @@
 // Highlights, seam 1: the rules alone. Making, recoloring, removing and
-// putting back a highlight in a file; the caps, which let the files changed
-// longest ago go first; and finding a highlight's text again in a page whose
-// text reads a little differently now. Made-up lines of a course outline.
+// putting back a highlight in a file; the notes kept with them, one a page
+// (or one for a whole file); the caps, which let the files changed longest ago
+// go first; and finding a highlight's text again in a page whose text reads a
+// little differently now. Made-up lines of a course outline.
 import { describe, expect, it } from "vitest";
 import {
   addHighlights,
@@ -9,14 +10,27 @@ import {
   HIGHLIGHT_COLORS,
   highlightsIn,
   locate,
+  notesIn,
   pruneHighlights,
   quoteOf,
   recolorHighlight,
   removeHighlight,
+  removeNote,
   restoreHighlight,
+  restoreNote,
+  setNote,
   trimmed,
 } from "../../src/core/highlights";
-import { Datasets, type Highlight, type HighlightedFile, MAX_FILE_HIGHLIGHTS, MAX_HIGHLIGHT_FILES, MAX_HIGHLIGHTS } from "../../src/core/models";
+import {
+  Datasets,
+  type Highlight,
+  type HighlightedFile,
+  MAX_FILE_HIGHLIGHTS,
+  MAX_HIGHLIGHT_FILES,
+  MAX_HIGHLIGHTS,
+  MAX_NOTE,
+  MAX_NOTES,
+} from "../../src/core/models";
 
 const FILE = "a".repeat(64);
 const OTHER = "b".repeat(64);
@@ -78,6 +92,72 @@ describe("making and changing highlights", () => {
     let files = addHighlights([], FILE, [mark("h1", 0, 6)], 1);
     files = removeHighlight(files, FILE, "h1", 2);
     expect(files).toEqual([]);
+  });
+});
+
+describe("notes on a page", () => {
+  const notes = (files: readonly HighlightedFile[], file = FILE) => notesIn(files, file).map((n) => `${n.page ?? "-"} ${n.text}`);
+
+  it("one a page, by page, kept with the file's highlights; writing again changes it", () => {
+    let files = addHighlights([], FILE, [mark("h1", 0, 6)], 1);
+    files = setNote(files, FILE, 3, "Tanya dosen soal rumus ini", 2);
+    files = setNote(files, FILE, 1, "Definisi biaya tetap", 3);
+    files = setNote(files, FILE, 3, "Tanya dosen soal rumus ini.\nLihat juga Bab 2.", 4);
+    expect(notes(files)).toEqual(["1 Definisi biaya tetap", "3 Tanya dosen soal rumus ini.\nLihat juga Bab 2."]);
+    expect(ids(files)).toEqual(["h1 yellow"]);
+    expect(files[0].at).toBe(4);
+    expect(Datasets["local.highlights"].safeParse(files).success).toBe(true);
+  });
+
+  it("a Word document or text file has one, for the whole file", () => {
+    let files = setNote([], FILE, undefined, "Ringkasan untuk UTS", 1);
+    files = setNote(files, FILE, undefined, "Ringkasan untuk UTS dan UAS", 2);
+    expect(notes(files)).toEqual(["- Ringkasan untuk UTS dan UAS"]);
+  });
+
+  it("a file with notes and no highlights is kept; emptied (spaces only) or removed, the note goes, and the file with its last", () => {
+    let files = setNote([], FILE, 2, "Catat contoh ini", 1);
+    files = addHighlights(files, FILE, [mark("h1", 0, 6)], 2);
+    files = removeHighlight(files, FILE, "h1", 3);
+    expect(notes(files)).toEqual(["2 Catat contoh ini"]);
+    files = setNote(files, FILE, 2, "  \n ", 4);
+    expect(files).toEqual([]);
+    files = setNote(files, FILE, 2, "Catat contoh ini", 5);
+    files = removeNote(files, FILE, 2, 6);
+    expect(files).toEqual([]);
+  });
+
+  it("put back once however often Undo is pressed, but never over a note written on its page since", () => {
+    let files = setNote([], FILE, 4, "Catatan lama", 1);
+    const removed = notesIn(files, FILE)[0];
+    files = removeNote(files, FILE, 4, 2);
+    files = restoreNote(files, FILE, removed, 3);
+    files = restoreNote(files, FILE, removed, 4);
+    expect(notes(files)).toEqual(["4 Catatan lama"]);
+    files = removeNote(files, FILE, 4, 5);
+    files = setNote(files, FILE, 4, "Catatan baru", 6);
+    files = restoreNote(files, FILE, removed, 7);
+    expect(notes(files)).toEqual(["4 Catatan baru"]);
+  });
+
+  it("are kept to MAX_NOTE characters; a file saved before notes existed loads, and keeps no empty field when written", () => {
+    const files = setNote([], FILE, 1, "a".repeat(MAX_NOTE + 10), 1);
+    expect(notesIn(files, FILE)[0].text).toHaveLength(MAX_NOTE);
+    const older: HighlightedFile[] = [{ file: FILE, at: 1, highlights: [mark("h1", 0, 6)] }];
+    expect(Datasets["local.highlights"].safeParse(older).data).toEqual(older);
+    expect(notesIn(older, FILE)).toEqual([]);
+    expect(Object.keys(addHighlights(older, FILE, [mark("h2", 20, 27)], 2)[0])).toEqual(["file", "at", "highlights"]);
+  });
+
+  it("past the most notes in all, the files changed longest ago go first, whole", () => {
+    let files: HighlightedFile[] = [];
+    for (let n = 0; n < 3; n++)
+      for (let page = 1; page <= MAX_NOTES / 2; page++) files = setNote(files, n.toString(16).padStart(64, "0"), page, `Catatan ${page}`, n * 1000 + page);
+    expect(files.map((f) => f.file.slice(-1))).toEqual(["2", "1"]);
+    expect(Datasets["local.highlights"].safeParse(files).success).toBe(true);
+    expect(Datasets["local.highlights"].safeParse([...files, { file: FILE, at: 0, highlights: [], notes: [{ page: 1, text: "x", at: 0 }] }]).success).toBe(
+      false,
+    );
   });
 });
 

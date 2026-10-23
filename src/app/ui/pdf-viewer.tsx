@@ -8,7 +8,9 @@
 // page (./pdf-fill.tsx), then saved as a copy or attached to a Task's answer;
 // closing with that unsaved asks first. Text can be highlighted, each
 // highlight kept by its page and its place in the page's text
-// (./highlights.tsx). pdf.js loads on first use (./pdf-engine.ts).
+// (./highlights.tsx), and each page can have a note, in a panel beside the
+// pages that follows the page being read, with a mark on each page that has
+// one (./page-notes.tsx). pdf.js loads on first use (./pdf-engine.ts).
 import { TextTIcon } from "@phosphor-icons/react/dist/csr/TextT";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import {
@@ -26,7 +28,7 @@ import {
 } from "react";
 import type { FileProblem } from "../../core/actions/files";
 import { linkHost } from "../../core/links";
-import type { Highlight } from "../../core/models";
+import type { Highlight, PageNote } from "../../core/models";
 import { useT } from "../i18n";
 import { Button, IconButton } from "./controls";
 import { cx } from "./cx";
@@ -34,6 +36,7 @@ import { type Highlights, MarkLayer, type TextRoot, useHighlighter } from "./hig
 import { Icons, icon } from "./icons";
 import { settled } from "./motion/animate";
 import { ConfirmDialog, ignoreClosingClick, keepOpenForToasts, PANEL_MOTION_CLASS, SCRIM_CLASS, Tooltip, toast, useReturnFocus } from "./overlays";
+import { NOTES_AREA, NotesButton, NotesPanel, PageNoteMark, type PageNotes, useNotesPanel } from "./page-notes";
 import { PanelBoundary } from "./panel-boundary";
 import {
   LINE_HEIGHT,
@@ -88,6 +91,8 @@ export interface PdfViewerProps {
   onDirtyChange?: (dirty: boolean) => void;
   /** This file's highlights; none for a file that isn't Edunex's (the Student's own, about to be handed in). */
   highlights?: Highlights;
+  /** This file's notes, a page's each; none where it has no highlights either. */
+  notes?: PageNotes;
   /** The system whose window buttons it leaves room for at the top (macOS also names shortcuts with ⌘); none in tests. */
   platform?: "darwin" | "win32" | "linux";
 }
@@ -106,6 +111,7 @@ export function PdfViewer({
   onStay,
   onDirtyChange,
   highlights,
+  notes,
   platform,
 }: PdfViewerProps) {
   const t = useT();
@@ -211,7 +217,7 @@ export function PdfViewer({
           onClickCapture={ignoreClosingClick}
           onEscapeKeyDown={(event) => {
             // Escape while typing a page number only lets go of the number (the page box does that), in a box being
-            // filled in it leaves the box, and with a highlight's bar open it closes the bar; the next one closes.
+            // filled in or a note it leaves the box, and with a highlight's bar open it closes the bar; the next one closes.
             if (event.target instanceof HTMLElement && (event.target.dataset.editing || fillEscape.current(event.target))) event.preventDefault();
           }}
           className={cx(
@@ -238,6 +244,7 @@ export function PdfViewer({
                 onSaveCopy={onSaveCopy && (() => void keep("copy", onSaveCopy))}
                 onAttach={onAttach && (() => void keep("attach", onAttach))}
                 highlights={highlights}
+                notes={notes}
               />
             ) : (
               <>
@@ -307,6 +314,7 @@ function Reader({
   onSaveCopy,
   onAttach,
   highlights,
+  notes,
 }: {
   doc: PdfDocument;
   sizes: PdfSize[];
@@ -321,6 +329,7 @@ function Reader({
   onSaveCopy?: () => void;
   onAttach?: () => void;
   highlights?: Highlights;
+  notes?: PageNotes;
 }) {
   const t = useT();
   const total = useId();
@@ -383,6 +392,8 @@ function Reader({
     for (const highlight of highlights?.items ?? []) if (highlight.page) out.set(highlight.page, [...(out.get(highlight.page) ?? []), highlight]);
     return out;
   }, [highlights?.items]);
+  const notesPanel = useNotesPanel();
+  const notesByPage = useMemo(() => new Map((notes?.items ?? []).flatMap((note) => (note.page ? [[note.page, note] as const] : []))), [notes?.items]);
   // A zoom moves the text from under the bar: it closes.
   // biome-ignore lint/correctness/useExhaustiveDependencies: on each zoom
   useEffect(() => closeBar(), [scale, closeBar]);
@@ -469,6 +480,10 @@ function Reader({
 
   useEffect(() => {
     fillEscape.current = (target) => {
+      if (target.closest(NOTES_AREA)) {
+        toPages();
+        return true;
+      }
       if (highlightEscape()) return true;
       if (placing) {
         setPlacing(false);
@@ -491,6 +506,8 @@ function Reader({
     if (!root) return;
     const mod = event.metaKey || event.ctrlKey;
     const target = event.target as HTMLElement;
+    // A note is typed as in any box: its keys are its own (⌘Z undoes the typing), and Escape is the viewer's (above).
+    if (target.closest(NOTES_AREA)) return;
     // ⌘⇧H highlights what's selected; ⌘Z, just after a highlight was removed, puts it back.
     if (highlighter.onKey(event)) return;
     // Undo and redo are the filling's, in a box too (typing in one box is one step).
@@ -593,59 +610,79 @@ function Reader({
             {t("pdf.addText")}
           </Button>
         </Tooltip>
+        {notes && <NotesButton open={notesPanel.open} paged onClick={() => notesPanel.show(!notesPanel.open)} />}
         {actions && <Divider />}
       </Toolbar>
-      <section
-        ref={scroller}
-        // biome-ignore lint/a11y/noNoninteractiveTabindex: the pages scroll, so they take the keyboard (arrows, Page Down)
-        tabIndex={0}
-        aria-label={name}
-        onScroll={track}
-        onMouseDown={highlighter.onMouseDown}
-        onMouseUp={placing ? undefined : highlighter.onMouseUp}
-        className={cx(
-          "min-h-0 flex-1 overflow-auto overscroll-contain bg-sunken outline-none focus-visible:shadow-[inset_0_0_0_2px_var(--focus)]",
-          // Waiting for the spot: a click on a page puts the text there instead of selecting the page's own.
-          placing && "cursor-crosshair [&_.pdf-text]:pointer-events-none",
+      <div className="flex min-h-0 flex-1">
+        <section
+          ref={scroller}
+          // biome-ignore lint/a11y/noNoninteractiveTabindex: the pages scroll, so they take the keyboard (arrows, Page Down)
+          tabIndex={0}
+          aria-label={name}
+          onScroll={track}
+          onMouseDown={highlighter.onMouseDown}
+          onMouseUp={placing ? undefined : highlighter.onMouseUp}
+          className={cx(
+            "min-h-0 min-w-0 flex-1 overflow-auto overscroll-contain bg-sunken outline-none focus-visible:shadow-[inset_0_0_0_2px_var(--focus)]",
+            // Waiting for the spot: a click on a page puts the text there instead of selecting the page's own.
+            placing && "cursor-crosshair [&_.pdf-text]:pointer-events-none",
+          )}
+        >
+          {/* A page that fails to draw breaks the pages, not the window; the toolbar and Close stay. */}
+          <PanelBoundary name="pdf pages" compact>
+            <div ref={content} className="relative flex w-max min-w-full flex-col items-center gap-4" style={{ padding: PAD }}>
+              {sizes.map((size, index) => (
+                <PageView
+                  // biome-ignore lint/suspicious/noArrayIndexKey: a PDF's pages are its positions
+                  key={index}
+                  ref={(element) => {
+                    pages.current[index] = element;
+                  }}
+                  doc={doc}
+                  number={index + 1}
+                  count={doc.pages}
+                  size={size}
+                  scale={scale}
+                  near={near.has(index + 1)}
+                  onOpenLink={onOpenLink}
+                  onGoTo={go}
+                  values={values}
+                  radios={radios}
+                  onField={(field, value) => setField(field, value, doc.form?.[field])}
+                  texts={fill.fill.texts}
+                  fresh={fresh}
+                  onEditText={editText}
+                  onRemoveText={removeText}
+                  onLeaveText={toPages}
+                  onPlace={placing ? (x, y) => putText(index + 1, x, y - (TEXT_SIZES[2] * LINE_HEIGHT) / 2) : undefined}
+                  highlights={byPage.get(index + 1) ?? NONE}
+                  openHighlight={highlighter.open}
+                  onOpenHighlight={(id) => highlighter.openFor(id, true)}
+                  onRemoveHighlight={(id) => highlighter.remove(id, true)}
+                  note={notesByPage.get(index + 1)}
+                  onOpenNote={() => {
+                    go(index + 1);
+                    notesPanel.show(true);
+                  }}
+                />
+              ))}
+              {highlighter.bar}
+            </div>
+          </PanelBoundary>
+        </section>
+        {notes && notesPanel.open && (
+          <NotesPanel
+            notes={notes}
+            page={current}
+            focus={notesPanel.focus}
+            onGoTo={go}
+            onClose={() => {
+              notesPanel.show(false);
+              toPages();
+            }}
+          />
         )}
-      >
-        {/* A page that fails to draw breaks the pages, not the window; the toolbar and Close stay. */}
-        <PanelBoundary name="pdf pages" compact>
-          <div ref={content} className="relative flex w-max min-w-full flex-col items-center gap-4" style={{ padding: PAD }}>
-            {sizes.map((size, index) => (
-              <PageView
-                // biome-ignore lint/suspicious/noArrayIndexKey: a PDF's pages are its positions
-                key={index}
-                ref={(element) => {
-                  pages.current[index] = element;
-                }}
-                doc={doc}
-                number={index + 1}
-                count={doc.pages}
-                size={size}
-                scale={scale}
-                near={near.has(index + 1)}
-                onOpenLink={onOpenLink}
-                onGoTo={go}
-                values={values}
-                radios={radios}
-                onField={(field, value) => setField(field, value, doc.form?.[field])}
-                texts={fill.fill.texts}
-                fresh={fresh}
-                onEditText={editText}
-                onRemoveText={removeText}
-                onLeaveText={toPages}
-                onPlace={placing ? (x, y) => putText(index + 1, x, y - (TEXT_SIZES[2] * LINE_HEIGHT) / 2) : undefined}
-                highlights={byPage.get(index + 1) ?? NONE}
-                openHighlight={highlighter.open}
-                onOpenHighlight={(id) => highlighter.openFor(id, true)}
-                onRemoveHighlight={(id) => highlighter.remove(id, true)}
-              />
-            ))}
-            {highlighter.bar}
-          </div>
-        </PanelBoundary>
-      </section>
+      </div>
       {fill.changed && <SaveBar dirty={fill.dirty} canUndo={fill.canUndo} onUndo={undo} mac={mac} busy={busy} onSaveCopy={onSaveCopy} onAttach={onAttach} />}
       {highlighter.announcer}
     </div>
@@ -683,6 +720,8 @@ function PageView({
   openHighlight,
   onOpenHighlight,
   onRemoveHighlight,
+  note,
+  onOpenNote,
 }: {
   ref: (element: HTMLDivElement | null) => void;
   doc: PdfDocument;
@@ -711,6 +750,9 @@ function PageView({
   openHighlight: string | null;
   onOpenHighlight: (id: string) => void;
   onRemoveHighlight: (id: string) => void;
+  /** The Student's note on this page, marked on its top edge. */
+  note?: PageNote;
+  onOpenNote: () => void;
 }) {
   const t = useT();
   const paper = useRef<HTMLDivElement>(null);
@@ -895,6 +937,7 @@ function PageView({
             onLeave={onLeaveText}
           />
         ))}
+      {note && <PageNoteMark page={number} note={note} onOpen={onOpenNote} />}
     </div>
   );
 }

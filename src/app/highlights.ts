@@ -1,15 +1,28 @@
-// The Student's highlights ("local.highlights") as the file viewers draw them:
-// one file's, by its SHA-256, and the ways to change them. A change shows at
-// once: until the engine has saved it, the window keeps its own copy, so two
-// changes in a row don't undo each other (local.set replaces the whole list).
-// The rules live in core/highlights.ts; the viewers' part in ui/highlights.tsx.
+// The Student's highlights and page notes ("local.highlights") as the file
+// viewers show them: one file's, by its SHA-256, and the ways to change them.
+// A change shows at once: until the engine has saved it, the window keeps its
+// own copy, so two changes in a row don't undo each other (local.set replaces
+// the whole list). The rules live in core/highlights.ts; the viewers' part in
+// ui/highlights.tsx and ui/page-notes.tsx.
 import { useMemo, useSyncExternalStore } from "react";
-import { addHighlights, highlightsIn, recolorHighlight, removeHighlight, restoreHighlight } from "../core/highlights";
+import {
+  addHighlights,
+  highlightsIn,
+  notesIn,
+  recolorHighlight,
+  removeHighlight,
+  removeNote,
+  restoreHighlight,
+  restoreNote,
+  setNote,
+} from "../core/highlights";
 import type { HighlightedFile } from "../core/models";
+import type { StringKey } from "../core/strings";
 import { useT } from "./i18n";
 import { type AppStore, useBridge, useDataset, useStore } from "./store";
 import type { Highlights } from "./ui/highlights";
 import { toast } from "./ui/overlays";
+import type { PageNotes } from "./ui/page-notes";
 
 /** What the window wrote and the engine hasn't confirmed yet, with how many writes are on their way. */
 let pending: { value: HighlightedFile[]; writes: number } | null = null;
@@ -32,26 +45,27 @@ export async function fileIdentity(bytes: Uint8Array): Promise<string> {
   return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
-/** One file's highlights (`file`: its identity; null while it's being read, or for a file that isn't Edunex's: none). */
-export function useFileHighlights(file: string | null): Highlights | undefined {
+/** Every file's highlights and notes as the window shows them: its own copy while a write is on its way, else the saved list. */
+function useAllMarks(): readonly HighlightedFile[] {
+  const saved = useDataset("local.highlights");
+  const mine = useSyncExternalStore(subscribe, () => pending);
+  return mine?.value ?? saved ?? NONE;
+}
+
+/** Saves what `change` makes of the list as it stands when called, not as some render saw it; `failed` says so when it can't. */
+function useSave(failed: StringKey) {
   const t = useT();
   const store = useStore();
   const bridge = useBridge();
-  const saved = useDataset("local.highlights");
-  const mine = useSyncExternalStore(subscribe, () => pending);
-  const all = mine?.value ?? saved ?? NONE;
-
-  return useMemo(() => {
-    if (!file) return undefined;
-    /** Saves what `change` makes of the list as it stands when called, not as some render saw it. */
-    const save = async (change: (files: readonly HighlightedFile[], now: number) => HighlightedFile[]) => {
+  return useMemo(
+    () => async (change: (files: readonly HighlightedFile[], now: number) => HighlightedFile[]) => {
       const value = change(committedNow(store), Date.now());
       pending = { value, writes: (pending?.writes ?? 0) + 1 };
       publish();
       try {
         await bridge.invoke("local.set", { name: "local.highlights", value });
       } catch {
-        toast(t("highlight.saveFailed"), "danger");
+        toast(t(failed), "danger");
       } finally {
         // The engine sends the saved list before it answers: once every write is answered, that's the one to show.
         if (pending && --pending.writes === 0) {
@@ -59,7 +73,18 @@ export function useFileHighlights(file: string | null): Highlights | undefined {
           publish();
         }
       }
-    };
+    },
+    [store, bridge, t, failed],
+  );
+}
+
+/** One file's highlights (`file`: its identity; null while it's being read, or for a file that isn't Edunex's: none). */
+export function useFileHighlights(file: string | null): Highlights | undefined {
+  const all = useAllMarks();
+  const save = useSave("highlight.saveFailed");
+
+  return useMemo(() => {
+    if (!file) return undefined;
     return {
       items: highlightsIn(all, file),
       add: (highlights) => void save((files, now) => addHighlights(files, file, highlights, now)),
@@ -67,5 +92,21 @@ export function useFileHighlights(file: string | null): Highlights | undefined {
       remove: (id) => void save((files, now) => removeHighlight(files, file, id, now)),
       restore: (highlight) => void save((files, now) => restoreHighlight(files, file, highlight, now)),
     };
-  }, [file, all, store, bridge, t]);
+  }, [file, all, save]);
+}
+
+/** One file's notes, a page's each (a Word document's or text file's: one for the whole file); none where it has no highlights either. */
+export function useFileNotes(file: string | null): PageNotes | undefined {
+  const all = useAllMarks();
+  const save = useSave("pageNote.saveFailed");
+
+  return useMemo(() => {
+    if (!file) return undefined;
+    return {
+      items: notesIn(all, file),
+      set: (page, text) => void save((files, now) => setNote(files, file, page, text, now)),
+      remove: (page) => void save((files, now) => removeNote(files, file, page, now)),
+      restore: (note) => void save((files, now) => restoreNote(files, file, note, now)),
+    };
+  }, [file, all, save]);
 }
