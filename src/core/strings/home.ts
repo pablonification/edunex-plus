@@ -110,6 +110,7 @@ export const homeStrings = {
   "home.need.exam.disagree": { id: "SIX dan Edunex beda tanggal", en: "SIX and Edunex give different dates" },
   "home.need.exam.takeHome": { id: "Take-home tenggat {date}", en: "Take-home due {date}" },
   "home.need.exam.edunex": { id: "di Edunex", en: "in Edunex" },
+  "home.need.exam.closes": { id: "Tutup {when}", en: "Closes {when}" },
   "home.need.krs": { id: "Kirim KRS", en: "Send your KRS" },
   "home.need.krs.closes": { id: "DRS tutup {date}", en: "DRS closes {date}" },
   "home.need.krs.opens": { id: "DRS dibuka {date}", en: "DRS opens {date}" },

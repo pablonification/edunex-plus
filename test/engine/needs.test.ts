@@ -236,6 +236,22 @@ describe("exams", () => {
     });
   });
 
+  it("an Edunex exam open for days is due at its close, like a deadline, and gone once the Student marks it done", async () => {
+    const h = await startHome({ now: "2026-10-26T09:00:00+07:00" });
+    const quiz = { id: "88002", courseId: 93409, title: "Kuis Brand Equity", start: at("2026-10-19T08:00:00"), end: at("2026-10-30T23:59:00") };
+    const world = { ...h.home(), exams: { DK4073: [quiz] } };
+    expect(find(needsYou(world), "exam:DK4073-KUIS-e88002")).toMatchObject({
+      at: quiz.end,
+      band: "later",
+      window: true,
+      sitting: { start: quiz.start, end: quiz.end, source: "edunex" },
+    });
+    // Within a day of its close it's now, as a deadline would be.
+    expect(find(needsYou({ ...world, now: at("2026-10-30T09:00:00") }), "exam:DK4073-KUIS-e88002")).toMatchObject({ band: "now" });
+    const marked = [{ id: "edunex-exam:88002", facts: `${quiz.start}|${quiz.end}`, at: at("2026-10-26T08:00:00") }];
+    expect(find(needsYou({ ...world, examMarks: marked }), "exam:DK4073-KUIS-e88002")).toBeUndefined();
+  });
+
   it("an exam SIX and Edunex agree on is coming up within the week, and not before", async () => {
     // KU5014's class on Thursday 22 October becomes its UTS.
     const world = new PretendWorld({ now: "2026-10-14T12:00:00+07:00" });

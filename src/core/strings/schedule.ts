@@ -158,8 +158,6 @@ export const scheduleStrings = {
 
   // Exams in Tugas & Ujian
   "exams.title": { id: "Ujian", en: "Exams" },
-  "exams.none": { id: "Belum ada ujian", en: "No exams yet" },
-  "exams.nonePast": { id: "Belum ada ujian yang lewat", en: "No past exams" },
   "exam.kind.UTS": { id: "UTS", en: "UTS" },
   "exam.kind.UAS": { id: "UAS", en: "UAS" },
   "exam.kind.KUIS": { id: "Kuis", en: "Quiz" },
@@ -169,10 +167,6 @@ export const scheduleStrings = {
   // How a Task is known to be an exam's take-home
   "exam.takeHomeBy.edunex": { id: "Edunex menandainya {kind}", en: "Edunex files it under {kind}" },
   "exam.takeHomeBy.name": { id: "Namanya diawali “{start}”", en: "Its name starts with “{start}”" },
-  "exams.takeHomeRule": {
-    id: "Take-home: tugas Edunex yang ditandai UTS atau UAS, atau yang namanya diawali UTS, UAS, Midex atau Finex.",
-    en: "Take-home: an Edunex Task filed under UTS or UAS, or whose name starts with UTS, UAS, Midex or Finex.",
-  },
   "exam.onEdunex": { id: "Di Edunex", en: "On Edunex" },
   "exam.due": { id: "Tenggat {when}", en: "Due {when}" },
   "exam.outlineOnly": { id: "Ada di daftar isi Edunex", en: "In the Edunex outline" },
@@ -181,6 +175,25 @@ export const scheduleStrings = {
   "exam.noDate": { id: "Belum ada tanggal", en: "No date yet" },
   "exam.dayUnknown": { id: "Hari dan jamnya belum diumumkan", en: "Day and time not announced yet" },
   "exam.prepare": { id: "Persiapan", en: "Prepare" },
+  "exam.until": { id: "sampai {time}", en: "until {time}" },
+  "exam.neverAnnounced": { id: "Harinya tidak pernah diumumkan", en: "Its day was never announced" },
+  // An exam period whose exams have no day yet: one quiet line in Tugas & Ujian
+  "exam.period": { id: "Masa {kind}", en: "{kind} period" },
+  "exam.period.noDayFor": { id: "Hari ujian {codes} belum diumumkan", en: "No day yet for {codes}" },
+  "exam.period.noDayCount": {
+    id: "{count} ujian belum diumumkan harinya",
+    en: { one: "{count} exam with no day yet", other: "{count} exams with no day yet" },
+  },
+  // An Edunex exam open for days, and the Student's "Mark as done" on it
+  "exam.window.open": { id: "Sudah bisa dikerjakan", en: "Open now" },
+  "exam.markDone": { id: "Tandai selesai", en: "Mark as done" },
+  "exam.markDoneFor": { id: "Tandai {title} selesai", en: "Mark {title} as done" },
+  "exam.marked": { id: "Dipindah ke Selesai", en: "Moved to Done" },
+  "exam.markedOn": { id: "Ditandai {date}", en: "Marked {date}" },
+  "exam.unmark": { id: "Pindahkan ke Belum selesai", en: "Move back to To do" },
+  "exam.unmarkFor": { id: "Pindahkan {title} ke Belum selesai", en: "Move {title} back to To do" },
+  "exam.unmarked": { id: "Kembali ke Belum selesai", en: "Back in To do" },
+  "exam.markChanged": { id: "Edunex mengubah waktunya. Cek lagi.", en: "Edunex changed its time. Check again." },
 
   // The exam page
   "exam.when": { id: "Kapan dan di mana", en: "When and where" },

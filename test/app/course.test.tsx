@@ -924,29 +924,38 @@ describe("announcements and exams", () => {
   it("Tasks & Exams says when neither SIX nor Edunex has an exam", async () => {
     await openCourse("PL3002", { six: true });
     await tab(/^Tugas & Ujian/);
-    const exams = [...document.querySelectorAll<HTMLElement>("main section")].find((section) => section.querySelector("h2")?.textContent?.startsWith("Ujian"));
-    // Said under the exams' own heading, not floating between the Task lists.
-    expect(exams?.textContent).toContain("Belum ada ujian di SIX maupun Edunex");
+    const todo = document.querySelector("main section[aria-labelledby=course-todo]");
+    // Said under the course's list, not floating between groups.
+    expect(todo?.textContent).toContain("Belum ada ujian di SIX maupun Edunex");
   });
 
   it("without SIX, Tasks & Exams doesn't claim SIX has no exam, and offers SIX", async () => {
     const s = await openCourse("PL3002");
     await tab(/^Tugas & Ujian/);
-    const exams = [...document.querySelectorAll<HTMLElement>("main section")].find((section) => section.querySelector("h2")?.textContent?.startsWith("Ujian"));
-    expect(exams?.textContent).toContain("Belum ada ujian di Edunex. Jadwal ujian dari SIX muncul setelah SIX terhubung.");
-    expect(exams?.textContent).not.toContain("SIX maupun");
-    await s.click([...exams!.querySelectorAll("button")].find((b) => b.textContent === "Masuk ke SIX")!);
+    const todo = document.querySelector("main section[aria-labelledby=course-todo]");
+    expect(todo?.textContent).toContain("Belum ada ujian di Edunex. Jadwal ujian dari SIX muncul setelah SIX terhubung.");
+    expect(todo?.textContent).not.toContain("SIX maupun");
+    await s.click([...todo!.querySelectorAll("button")].find((b) => b.textContent === "Masuk ke SIX")!);
     await s.wait();
     expect(s.store.status("six").state).toBe("live");
   });
 
-  it("Tasks & Exams lists the same exams as Tugas & Ujian, each opening its page", async () => {
-    const s = await openCourse("DK4073");
+  it("Tasks & Exams is Tugas & Ujian's one list for the course: its exam's parts in order, counted once each", async () => {
+    const s = await openCourse("DK4073", { six: true });
+    // The tab counts what's still to do: the UTS sitting and its take-home, the take-home once.
+    expect([...document.querySelectorAll("[role=tab]")].find((el) => el.textContent?.startsWith("Tugas & Ujian"))?.textContent).toBe("Tugas & Ujian2");
     await tab(/^Tugas & Ujian/);
-    const exams = [...document.querySelectorAll<HTMLElement>("main section")].find((section) => section.querySelector("h2")?.textContent?.startsWith("Ujian"))!;
-    expect(exams.textContent).toContain("Take-home");
-    await s.click(exams.querySelector<HTMLButtonElement>("li button")!);
-    expect(document.querySelector("main h1")?.textContent).toBe("Marketing Communication");
+    const todo = document.querySelector("main section[aria-labelledby=course-todo]")!;
+    const rows = [...todo.querySelectorAll<HTMLButtonElement>("li > button")];
+    // On its own course's page the course's code goes without saying.
+    expect(rows.map((b) => b.textContent)).toEqual([
+      "UTSKomunikasi PemasaranDi kelas · TVST CKam, 15 Okt11:00–12:59",
+      "UTSKomunikasi PemasaranTake-home · UTS MarkomKam, 22 Okt, 23:50dalam 14 hari",
+    ]);
+    // Done's groups follow, as in Tugas & Ujian, once there's something in them: nothing of DK4073's is done yet.
+    expect(document.querySelector("main section[aria-labelledby=course-submitted]")).toBeNull();
+    await s.click(rows[0]);
+    expect(document.querySelector("main h1")?.textContent).toBe("Komunikasi Pemasaran");
     expect(document.querySelector("main")?.textContent).toContain("Kapan dan di mana");
   });
 });

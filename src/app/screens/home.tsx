@@ -12,6 +12,7 @@ import { rupiah } from "../../core/academic";
 import { type AttendanceHealth, type AttendanceState, percent } from "../../core/attendance";
 import { checkingIn } from "../../core/check-in";
 import { wibDay } from "../../core/course-meetings";
+import { PERIOD_NEAR } from "../../core/exams";
 import { edunexCourseUrl, sixStatusUrl, sixTimetableUrl } from "../../core/links";
 import type { Alert, AlertKind, ClassSession, SixCheckIn, SnoozeEntry } from "../../core/models";
 import {
@@ -36,6 +37,7 @@ import { useOpenCheckIn, useOpenExternal } from "../hooks";
 import { type Format, type Translate, useFormat, useNow, useT } from "../i18n";
 import { firstName } from "../names";
 import { type Route, useNav, usePlaceState } from "../nav";
+import { useExamIds } from "../schedule-data";
 import { openAlerts } from "../shell/alerts";
 import { useRefresh, useSignIn } from "../shell/source-status";
 import { canSnooze, refocus, SnoozeMenu } from "../snooze-menu";
@@ -150,7 +152,7 @@ function ExamWeek() {
   const calendar = useDataset("itb.calendar");
   const exams = calendar?.events.filter((e) => e.kind === "uts" || e.kind === "uas") ?? [];
   const running = exams.find((e) => e.start <= now && now < e.end);
-  const next = exams.find((e) => e.start > now && e.start - now <= 14 * DAY);
+  const next = exams.find((e) => e.start > now && e.start - now <= PERIOD_NEAR);
   if (!running && !next) return null;
   const date = (at: number) => `${f.weekday(at)}, ${f.dayMonth(at)}`;
   let facts: string[];
@@ -668,6 +670,7 @@ function TodayRow({ item, courses, onCard }: { item: TodayItem; courses: readonl
   const now = useNow();
   const { go } = useNav();
   const open = useOpenExternal();
+  const examIds = useExamIds();
   const fresh = useStatus("six").state === "live";
   const edunexFresh = useStatus("edunex").state === "live";
   const shownAbove = keyOf(item) === onCard;
@@ -737,6 +740,8 @@ function TodayRow({ item, courses, onCard }: { item: TodayItem; courses: readonl
   const past = session.end <= now;
   const course = courses.find((c) => c.code === session.courseCode);
   const exam = /\b(UTS|UAS)\b/i.test(session.activity);
+  // A sitting opens its exam's page: when and where, what to study.
+  const examId = examIds.get(session.id);
   // Said once: the now card shows its class's budget, and "tak bisa lagi capai" is in Perlu perhatianmu and on the course card.
   const budget = facts.health && facts.state !== "unknown" && facts.state !== "out" && !past && !shownAbove ? budgetLabel(t, facts.health) : null;
   // The now card says "Jam berubah · biasanya …" for its class; the row keeps only the amber time.
@@ -766,7 +771,9 @@ function TodayRow({ item, courses, onCard }: { item: TodayItem; courses: readonl
           <span className="text-caption whitespace-nowrap text-muted tabular-nums">{f.fromNow(session.start)}</span>
         ) : undefined
       }
-      onClick={() => go(course?.edunex ? { screen: "course", code: session.courseCode, tab: "meetings" } : { screen: "presence" })}
+      onClick={() =>
+        go(examId ? { screen: "exam", examId } : course?.edunex ? { screen: "course", code: session.courseCode, tab: "meetings" } : { screen: "presence" })
+      }
     >
       {!past && (budget || clash) && (
         // Kept beside a clash: choosing between two classes is when "Jangan absen lagi" matters most.
@@ -1037,17 +1044,23 @@ function useNeedView(courses: readonly TermCourse[]): (need: NeedDraft) => NeedV
       case "exam": {
         const { exam, sitting } = need;
         const time = sitting.end !== null ? f.timeRange(sitting.start, sitting.end) : f.time(sitting.start);
+        // Open for days on Edunex: it runs out when it closes, like a deadline.
+        const closes = need.window && sitting.end !== null ? sitting.end : null;
         return {
           title: t("home.need.exam", { kind: t(`exam.kind.${exam.kind}`), course: nameOf(courses, exam.courseCode) }),
-          meta: [course, `${f.relativeDay(sitting.start)}, ${time}`, sitting.source === "six" ? sitting.room : t("home.need.exam.edunex")],
+          meta: [
+            course,
+            closes !== null ? t("home.need.exam.closes", { when: f.dueLabel(closes) }) : `${f.relativeDay(sitting.start)}, ${time}`,
+            sitting.source === "six" ? sitting.room : t("home.need.exam.edunex"),
+          ],
           note: need.disagree
             ? { text: t("home.need.exam.disagree"), tone: "warning" }
             : need.takeHomeDue !== null
               ? // A take-home due another day is the exam's second part: said plainly, no warning.
                 { text: t("home.need.exam.takeHome", { date: `${f.weekdayShort(need.takeHomeDue)} ${f.dayMonth(need.takeHomeDue)}` }), tone: null }
               : undefined,
-          when: f.fromNow(sitting.start),
-          tone: near(sitting.start),
+          when: f.fromNow(closes ?? sitting.start),
+          tone: near(closes ?? sitting.start),
         };
       }
       case "attendance": {

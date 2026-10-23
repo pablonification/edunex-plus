@@ -119,7 +119,6 @@ export const coursePageStrings = {
 
   // Tasks and exams
   "course.noTasks": { id: "Tidak ada tugas", en: "No Tasks" },
-  "course.exams": { id: "Ujian", en: "Exams" },
   "course.noExamsNoSix": {
     id: "Belum ada ujian di Edunex. Jadwal ujian dari SIX muncul setelah SIX terhubung.",
     en: "No exams in Edunex yet. SIX's exam timetable shows once SIX is connected.",
@@ -224,7 +223,6 @@ export const coursePageStrings = {
   "course.kind.file": { id: "{count} berkas", en: { one: "{count} file", other: "{count} files" } },
   "course.kind.image": { id: "{count} gambar", en: { one: "{count} image", other: "{count} images" } },
   "course.todo": { id: "Perlu dikerjakan", en: "To do" },
-  "course.handedIn": { id: "Sudah dikumpulkan", en: "Handed in" },
   "course.nothingTodo": { id: "Tidak ada tugas yang perlu dikerjakan.", en: "Nothing to hand in." },
 
   // Meetings, the honest attendance story

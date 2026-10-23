@@ -10,7 +10,6 @@ import type { PresenceSession, SourceState, Task, TaskModule, TaskStatus } from 
 
 const MINUTE = 60_000;
 const HOUR = 60 * MINUTE;
-const DAY = 24 * HOUR;
 
 /** Open for answers less than this long: a short window, often posted during class. */
 export const SHORT_WINDOW_MS = 6 * HOUR;
@@ -99,26 +98,6 @@ export function taskHistory(task: Task): HistoryStep[] {
   if (sentAt !== null) steps.push({ kind: "submitted", at: sentAt });
   if (task.dueAt !== null) steps.push({ kind: "deadline", at: task.dueAt });
   return steps.sort((a, b) => a.at - b.at);
-}
-
-// ---------------------------------------------------------------- grouping for the list
-
-/** Monday 00:00 of the week `at` falls in, in the computer's time zone. */
-function weekStart(at: number): number {
-  const day = new Date(at);
-  day.setHours(0, 0, 0, 0);
-  day.setDate(day.getDate() - ((day.getDay() + 6) % 7));
-  return day.getTime();
-}
-
-export type DueGroup = "overdue" | "thisWeek" | "nextWeek" | "later";
-
-/** Where an open Task sits in the list: late, due this calendar week (Monday first), next week, or later. */
-export function dueGroup(task: Pick<Task, "dueAt">, status: TaskStatus, now: number): DueGroup {
-  if (status === "overdue") return "overdue";
-  if (task.dueAt === null) return "later";
-  const weeks = Math.round((weekStart(task.dueAt) - weekStart(now)) / (7 * DAY));
-  return weeks <= 0 ? "thisWeek" : weeks === 1 ? "nextWeek" : "later";
 }
 
 // ---------------------------------------------------------------- before handing in

@@ -5,7 +5,7 @@
 // distinct word is matched once per query, so a full term answers within a frame.
 import { introModule, outlineEntries } from "./course-materials";
 import { examRoute, examsFound, takeHomeOnly } from "./exam-sources";
-import { type Exam, examKind, takeHomeKind } from "./exams";
+import { type Exam, examAhead, examKind, takeHomeKind } from "./exams";
 import type { Announcement, Material, Task } from "./models";
 import type { Route } from "./route";
 import { courseName, inTerm, type Saved, termCourses } from "./saved";
@@ -67,7 +67,8 @@ interface ItemBase {
 export type SearchItem =
   | (ItemBase & { kind: "course"; classNo: string | null; sks: number | null })
   | (ItemBase & { kind: "task"; task: Task })
-  | (ItemBase & { kind: "exam"; exam: Exam })
+  /** `past`: every part of it is behind the Student, as Tugas & Ujian's Done has it. */
+  | (ItemBase & { kind: "exam"; exam: Exam; past: boolean })
   /** `module` null: course-wide, in its Edunex course's Introduction; `jointClass`: that course is the joint class's. */
   | (ItemBase & { kind: "material"; material: Material; module: ModulePlace | null; jointClass: boolean })
   | (ItemBase & { kind: "module"; module: ModulePlace })
@@ -258,8 +259,10 @@ export function searchIndex(saved: Saved, { lang, screens, now }: IndexOptions):
     ]);
   }
 
-  // Soonest first, so the sooner exam wins a tie.
-  for (const exam of examsFound(saved, now)) {
+  // Exams still ahead first, soonest first, so the sooner exam wins a tie and a past one never beats one to come.
+  const marks = saved["local.examMarks"];
+  const exams = examsFound(saved, now).map((exam) => ({ exam, past: !examAhead(exam, now, marks) }));
+  for (const { exam, past } of [...exams.filter((e) => !e.past), ...exams.filter((e) => e.past)]) {
     const kind = translate(lang, `exam.kind.${exam.kind}`);
     const title = takeHomeOnly(exam) ? exam.tasks[0]!.title : (exam.edunex[0]?.title ?? `${kind} ${displayName(exam.courseCode)}`.trim());
     const session = exam.six[0];
@@ -276,7 +279,7 @@ export function searchIndex(saved: Saved, { lang, screens, now }: IndexOptions):
     ]
       .filter(Boolean)
       .join(" ");
-    add({ kind: "exam", key: `exam:${exam.id}`, title, code: exam.courseCode, target: examRoute(exam), exam }, [
+    add({ kind: "exam", key: `exam:${exam.id}`, title, code: exam.courseCode, target: examRoute(exam), exam, past }, [
       [title, TITLE],
       // A take-home's or Edunex exam's own title ("UTS Markom") names the exam as much as its shown title.
       ...[...exam.tasks.map((task) => task.title), ...exam.edunex.map((e) => e.title)]
