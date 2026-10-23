@@ -123,7 +123,7 @@ describe("the ✓ on Beranda", () => {
     await s.click([...document.querySelectorAll<HTMLButtonElement>("aside button")].find((b) => b.textContent?.startsWith("KU5014"))!);
     expect(document.querySelector("main .bg-danger-bg")).toBeNull();
     // The header still says where attendance stands.
-    expect(document.querySelector("main header")?.textContent).toMatch(/Jatah absen.*lebih \d+× untuk 80%/);
+    expect(document.querySelector("main header")?.textContent).toMatch(/Jatah absen.*lewat batas \d+×/);
 
     await s.engineDoes(() => s.engine.updateSettings({ attendanceTargets: { KU5014: 70 } }));
     await goTo(/^Beranda/);
