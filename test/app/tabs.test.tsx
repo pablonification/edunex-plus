@@ -115,6 +115,28 @@ describe("TabBar", () => {
     expect([...list.querySelectorAll("[role=tab]")].map((tab) => /\bshrink-0\b.*\bwhitespace-nowrap\b/.test(tab.className))).toEqual([true, true]);
   });
 
+  it("in a frame scrolled sideways, the picked tab is in sight as the bar is drawn, never cut off past its edge", async () => {
+    // Made-up layout: a frame 150 px wide; tabs 80 px wide, 100 px apart.
+    vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (this: HTMLElement) {
+      const place = [...(this.parentElement?.querySelectorAll("[data-highlight]") ?? [])].indexOf(this);
+      const [left, width] = this.dataset.highlight !== undefined ? [place * 100, 80] : [0, 150];
+      return { left, right: left + width, top: 0, bottom: 28, width, height: 28, x: left, y: 0, toJSON: () => ({}) } as DOMRect;
+    });
+    const container = await mount(
+      <Tabs.Root value="meetings">
+        <TabBar
+          value="meetings"
+          label="KU5014"
+          tabs={[
+            { value: "modules", label: "Modul" },
+            { value: "meetings", label: "Pertemuan" },
+          ]}
+        />
+      </Tabs.Root>,
+    );
+    expect(container.querySelector<HTMLElement>("[role=tablist]")!.parentElement!.scrollLeft).toBe(30);
+  });
+
   it("each tab names a panel that exists", async () => {
     await mount(<Bar />);
     expect(controls()).toEqual([

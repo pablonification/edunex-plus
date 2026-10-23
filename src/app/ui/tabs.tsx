@@ -4,6 +4,7 @@
 // screen keeps its own Tabs.Root and Tabs.Content around it: a tab's content
 // swaps at once, only the underline moves.
 import * as Tabs from "@radix-ui/react-tabs";
+import { useLayoutEffect, useRef } from "react";
 import { cx } from "./cx";
 import { SlidingHighlight } from "./motion/sliding-highlight";
 
@@ -34,11 +35,23 @@ export function TabBar<T extends string>({
   size?: keyof typeof SIZE;
   className?: string;
 }) {
+  const frame = useRef<HTMLDivElement>(null);
+  // In a frame scrolled sideways, the picked tab stays in sight: as the bar is drawn (Back to a later tab) and on each
+  // pick. Only the frame moves, never the page.
+  useLayoutEffect(() => {
+    const el = frame.current;
+    const picked = [...(el?.querySelectorAll<HTMLElement>("[data-highlight]") ?? [])].find((tab) => tab.dataset.highlight === value);
+    if (!el || !picked) return;
+    const box = el.getBoundingClientRect();
+    const tab = picked.getBoundingClientRect();
+    if (tab.left < box.left) el.scrollLeft -= box.left - tab.left;
+    else if (tab.right > box.right) el.scrollLeft += tab.right - box.right;
+  }, [value]);
   return (
     // Tabs that don't fit the width (a narrow window, zoomed in) scroll sideways in their own frame, each name on
     // one line, instead of being cut at the window's edge. The frame reaches 4px past the list on every side, its
     // margins taking that back, so a tab's focus ring and the underline's pixel on the hairline aren't clipped.
-    <div className="-m-1 overflow-x-auto overflow-y-hidden p-1">
+    <div ref={frame} className="-m-1 overflow-x-auto overflow-y-hidden p-1">
       <Tabs.List
         aria-label={label}
         // The list itself never scrolls (its frame does), so the underline can cover the list's own hairline.

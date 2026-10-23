@@ -8,6 +8,7 @@ import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { type DragEvent, lazy, type ReactNode, Suspense, useEffect, useId, useMemo, useRef, useState } from "react";
 import { answerFileProblem, type HandInResult, type PickedFile } from "../../core/actions/tasks";
 import { attendanceWindow, type CountedIn, presenceOptional } from "../../core/attendance";
+import { introModule } from "../../core/course-materials";
 import { examPassed } from "../../core/exams";
 import type { Task, TaskFile, TaskModule, TaskStatus } from "../../core/models";
 import type { StringKey } from "../../core/strings";
@@ -40,7 +41,7 @@ import { type TermCourse, useTermCourses } from "../courses";
 import { useOpenExternal } from "../hooks";
 import { type Format, type Translate, useFormat, useNow, useT } from "../i18n";
 import { LecturerHtml } from "../lecturer-html";
-import { useNav } from "../nav";
+import { type Route, useNav } from "../nav";
 import { OpenFile, useDownloadedToast, useLocalCopy } from "../open-file";
 import { canView, isPdfName, useAnswerAttach, usePdfViewer } from "../pdf";
 import { useExams } from "../schedule-data";
@@ -95,7 +96,8 @@ const GROUPS: { group: DueGroup; title: StringKey }[] = [
 // The course filter the Student last chose, kept while the app runs (per window).
 const lastCourse = new WeakMap<object, string | null>();
 
-export function TasksScreen() {
+/** `show`: "done" while Selesai is picked, kept in its place in history (nav.replace), so Back comes back to it. */
+export function TasksScreen({ show: shown }: { show?: "done" }) {
   const t = useT();
   const f = useFormat();
   const now = useNow();
@@ -103,7 +105,9 @@ export function TasksScreen() {
   const exams = useExams();
   const courses = useTermCourses();
   const bridge = useBridge();
-  const [show, setShow] = useState<"open" | "done">("open");
+  const { replace } = useNav();
+  const show = shown ?? "open";
+  const setShow = (next: "open" | "done") => replace(next === "done" ? { screen: "tasks", show: "done" } : { screen: "tasks" });
   const [course, setCourseState] = useState<string | null>(lastCourse.get(bridge) ?? null);
   const setCourse = (value: string | null) => {
     lastCourse.set(bridge, value);
@@ -464,33 +468,40 @@ function TaskPage({ task }: { task: Task }) {
   const late = status === "overdue" || status === "closed";
   const soon = !late && isOpenStatus(status) && task.dueAt !== null && task.dueAt - now < DAY;
   const where = moduleLabel(t, task.module);
-  const place = (
-    <>
-      <CourseDot color={course?.color ?? "var(--faint)"} className="size-2" />
-      <span className="font-semibold">{task.courseCode}</span>
-      {where && (
-        <>
-          <Icons.ChevronRight className="size-3 shrink-0" />
-          <Meta truncate>{where}</Meta>
-        </>
-      )}
-    </>
-  );
+  // The way up, part by part: the course opens as the sidebar opens it; its module opens on that module, the way a search for it does.
+  const linked = isBuilt({ screen: "course", code: task.courseCode });
+  const crumb = (route: Route, children: ReactNode, className?: string) =>
+    linked ? (
+      <button type="button" onClick={() => go(route)} className={cx("focus-ring flex items-center gap-1.5 rounded hover:text-fg", className)}>
+        {children}
+      </button>
+    ) : (
+      <span className={cx("flex items-center gap-1.5", className)}>{children}</span>
+    );
 
   return (
     <Page width="wide" className="grid gap-10 min-[1100px]:grid-cols-[minmax(0,1fr)_340px]">
       <article className="min-w-0">
-        {isBuilt({ screen: "course", code: task.courseCode }) ? (
-          <button
-            type="button"
-            onClick={() => go({ screen: "course", code: task.courseCode })}
-            className="focus-ring flex max-w-full items-center gap-1.5 rounded text-small font-medium text-muted hover:text-fg"
-          >
-            {place}
-          </button>
-        ) : (
-          <p className="flex max-w-full items-center gap-1.5 text-small font-medium text-muted">{place}</p>
-        )}
+        <p className="flex max-w-full items-center gap-1.5 text-small font-medium text-muted">
+          {crumb(
+            { screen: "course", code: task.courseCode },
+            <>
+              <CourseDot color={course?.color ?? "var(--faint)"} className="size-2" />
+              <span className="font-semibold">{task.courseCode}</span>
+            </>,
+            "shrink-0",
+          )}
+          {where && (
+            <>
+              <Icons.ChevronRight className="size-3 shrink-0" />
+              {crumb(
+                { screen: "course", code: task.courseCode, tab: "modules", module: task.moduleId ?? introModule(task.courseId) },
+                <Meta truncate>{where}</Meta>,
+                "min-w-0",
+              )}
+            </>
+          )}
+        </p>
         <h1 className="mt-2 text-display leading-tight font-semibold tracking-[-0.02em] text-balance">{task.title}</h1>
         {/* One line of facts; once the Task is open, when it opened is history (Riwayat says it). */}
         <Meta className="mt-2.5 text-body text-muted">
