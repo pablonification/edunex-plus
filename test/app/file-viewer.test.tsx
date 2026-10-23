@@ -20,11 +20,10 @@ afterEach(() => {
 const BLOB = "https://edunexfixture.blob.core.windows.net/edunex/fixture-1";
 const PNG = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 13]);
 const viewer = () => document.querySelector<HTMLElement>("[role=dialog]");
-/** What the viewer shows, the Word document's pages (in their shadow root) included. */
-const shown = () => {
-  const pages = viewer()?.querySelector("section > div")?.shadowRoot;
-  return `${viewer()?.textContent ?? ""}${pages?.textContent ?? ""}`;
-};
+/** The Word document's pages, in their own shadow root. */
+const wordPages = () => [...(viewer()?.querySelectorAll("section div") ?? [])].find((element) => element.shadowRoot)?.shadowRoot ?? null;
+/** What the viewer shows, the Word document's pages included. */
+const shown = () => `${viewer()?.textContent ?? ""}${wordPages()?.textContent ?? ""}`;
 
 /** PL3002's Pengantar with these files posted in it, as a lecturer's uploads, open on screen. */
 async function openWith(files: { name: string; ext: string; bytes: Uint8Array | string }[]) {
@@ -61,7 +60,7 @@ describe("files other than PDFs in the viewer", () => {
     expect(shown()).toContain("Pembagian tugas minggu ini");
     // Its styles stay in its own shadow root, not the app's page.
     expect(document.head.querySelector("style")?.textContent ?? "").not.toContain(".docx-wrapper");
-    const pages = viewer()!.querySelector("section > div")!.shadowRoot!;
+    const pages = wordPages()!;
     const link = [...pages.querySelectorAll("a")].find((a) => a.textContent === "formulir")!;
     await act(async () => {
       link.click();

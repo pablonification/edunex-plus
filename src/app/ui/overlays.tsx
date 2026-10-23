@@ -48,8 +48,8 @@ export function useReturnFocus() {
   };
 }
 
-/** A press on a toast over a dialog (Urungkan for a change made in Settings) isn't a click away from the dialog. */
-function keepOpenForToasts(event: Event) {
+/** A press on a toast over a dialog (Urungkan for a change made in Settings, or a highlight removed in a viewer) isn't a click away from the dialog. */
+export function keepOpenForToasts(event: Event) {
   if (event.target instanceof Element && event.target.closest("[role=status]")) event.preventDefault();
 }
 
