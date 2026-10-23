@@ -7,9 +7,9 @@
 // where they point. A form's fields can be filled in and text added on any
 // page (./pdf-fill.tsx), then saved as a copy or attached to a Task's answer;
 // closing with that unsaved asks first. Text can be highlighted, each
-// highlight kept by its page and its place in the page's text, and the "⋯"
-// menu removes them all (./highlights.tsx). pdf.js loads on first use
-// (./pdf-engine.ts).
+// highlight kept by its page and its place in the page's text, and the
+// toolbar's eraser removes them all (./highlights.tsx). pdf.js loads on first
+// use (./pdf-engine.ts).
 import { TextTIcon } from "@phosphor-icons/react/dist/csr/TextT";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import {
@@ -594,7 +594,7 @@ function Reader({
             {t("pdf.addText")}
           </Button>
         </Tooltip>
-        {highlighter.menu}
+        {highlighter.clearButton}
         {actions && <Divider />}
       </Toolbar>
       <section

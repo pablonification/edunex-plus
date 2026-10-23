@@ -5,8 +5,8 @@
 // (./text-only.tsx). The same panel over the current screen as the PDF viewer,
 // with the file's name, Download and Close; Esc closes and focus goes back.
 // A Word document's text and a text file's can be highlighted, as in a PDF,
-// and the "⋯" menu removes them all (./highlights.tsx). What reads each kind loads on first use, in a chunk of
-// its own. Nothing in a file runs: a Word document is drawn in a shadow root
+// and the toolbar's eraser removes them all (./highlights.tsx). What reads
+// each kind loads on first use, in a chunk of its own. Nothing in a file runs: a Word document is drawn in a shadow root
 // (its styles stay inside), slides are built as elements from plain data,
 // links go through the app's own link rules or nowhere, and text is only ever
 // shown as text.
@@ -208,11 +208,11 @@ export function FileViewer({ open, onOpenChange, name, kind, load, actions, fall
         >
           {/* Whatever in the viewer fails breaks the viewer, not the window; its title and Close stay. */}
           <PanelBoundary name="file viewer" compact header={<Toolbar name={name} />}>
-            {/* ⌘⇧H and ⌘Z wherever the keyboard is in the viewer: the file, or its toolbar's "⋯" after "Hapus semua sorotan". */}
+            {/* ⌘⇧H and ⌘Z wherever the keyboard is in the viewer, the toolbar's eraser too, after it removed them all. */}
             {/* biome-ignore lint/a11y/noStaticElementInteractions: keys for the whole viewer, wherever focus is inside it */}
             <div className="flex min-h-0 flex-1 flex-col" onKeyDown={highlighter.onKey}>
               <Toolbar name={name} actions={view.phase === "failed" ? undefined : actions}>
-                {highlighter.menu}
+                {highlighter.clearButton}
               </Toolbar>
               {view.phase === "ready" && view.shown.kind === "sheets" ? (
                 <Sheets sheets={view.shown.sheets} name={name} scroller={scroller} />

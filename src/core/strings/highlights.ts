@@ -1,7 +1,7 @@
 // Text for highlighting in the file viewers ("Sorotan"): the highlighter's
-// colors, the bar over the selected text or a highlight, removing all of a
-// file's from the viewer's menu, what a highlight is called to a screen
-// reader, and what's said back. Color names are plain words, never "warna 2".
+// colors, the bar over the selected text or a highlight, the eraser that
+// removes all of a file's, what a highlight is called to a screen reader, and
+// what's said back. Color names are plain words, never "warna 2".
 import type { Entry } from "./entry";
 
 export const highlightStrings = {
@@ -19,9 +19,8 @@ export const highlightStrings = {
   "highlight.remove": { id: "Hapus sorotan", en: "Remove highlight" },
   "highlight.removeShort": { id: "Hapus", en: "Remove" },
   "highlight.removeKeys": { id: "Hapus sorotan ({keys})", en: "Remove highlight ({keys})" },
-  // The viewer's menu: every highlight in the file at once
+  // The toolbar's eraser: every highlight in the file at once, and why it's dimmed while there's none
   "highlight.clearAll": { id: "Hapus semua sorotan", en: "Remove all highlights" },
-  "highlight.clearAllHint": { id: "{count} sorotan di berkas ini", en: { one: "{count} highlight in this file", other: "{count} highlights in this file" } },
   "highlight.clearAllNone": { id: "Belum ada sorotan di berkas ini", en: "No highlights in this file yet" },
   // A highlight, as a screen reader names it
   "highlight.label": { id: "Sorotan {color}: {text}", en: "Highlight in {color}: {text}" },

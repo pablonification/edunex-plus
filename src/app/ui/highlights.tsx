@@ -3,12 +3,13 @@
 // (./file-viewer.tsx) share: the highlights drawn on the text, the bar that
 // floats over selected text (a color each) or over a highlight (its colors,
 // then Remove; the pointer turns to a hand over one, saying a click opens
-// it), the viewer's "⋯" menu that removes all of a file's at once, the
-// keyboard (⌘⇧H highlights what's selected in the color picked last; on a
-// highlight, Enter opens its bar and Delete removes it; ⌘Z puts back what was
-// just removed), and a line said to screen readers after each. The caller
-// saves them (../highlights.ts); each is kept where its text is
+// it), the eraser in the viewer's toolbar that removes all of a file's at
+// once, the keyboard (⌘⇧H highlights what's selected in the color picked
+// last; on a highlight, Enter opens its bar and Delete removes it; ⌘Z puts
+// back what was just removed), and a line said to screen readers after each.
+// The caller saves them (../highlights.ts); each is kept where its text is
 // (./text-anchor.ts), so it comes back at any zoom.
+import { EraserIcon } from "@phosphor-icons/react/dist/csr/Eraser";
 import { HighlighterIcon } from "@phosphor-icons/react/dist/csr/Highlighter";
 import { TrashIcon } from "@phosphor-icons/react/dist/csr/Trash";
 import { type KeyboardEvent, type MouseEvent, type ReactNode, type RefObject, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
@@ -18,12 +19,12 @@ import { useT } from "../i18n";
 import { Button, IconButton } from "./controls";
 import { cx } from "./cx";
 import { Icons, icon } from "./icons";
-import { Menu } from "./menu";
 import { Tooltip, toast } from "./overlays";
 import { around, type Box, boxesOf, offsetsIn, rangeAt, selectedRange, textOf } from "./text-anchor";
 
 const MarkerIcon = icon(HighlighterIcon);
 const DeleteIcon = icon(TrashIcon);
+const ClearIcon = icon(EraserIcon);
 
 /** One file's highlights and the ways to change them; saved by the caller. */
 export interface Highlights {
@@ -469,21 +470,17 @@ export function useHighlighter({
         onRemove={shown.mode === "edit" ? () => remove(shown.id, shown.keyboard) : undefined}
       />
     ),
-    /** The viewer's "⋯" menu, for its toolbar: Remove all highlights. None for a file that can't be highlighted. */
-    menu: highlights && (
-      <Menu
-        label={t("viewer.more")}
-        trigger={{ icon: <Icons.MoreHorizontal className="size-4" /> }}
-        items={[
-          {
-            label: t("highlight.clearAll"),
-            hint: highlights.items.length ? t("highlight.clearAllHint", { count: highlights.items.length }) : t("highlight.clearAllNone"),
-            icon: <DeleteIcon className="size-4" />,
-            disabled: !highlights.items.length,
-            onSelect: clearAll,
-          },
-        ]}
-      />
+    /**
+     * For the viewer's toolbar: the eraser that removes every highlight in the file, there from the start so a
+     * Student finds it, dimmed with the reason while there's none (it keeps the keyboard, so ⌘Z still reaches the
+     * viewer after it). None for a file that can't be highlighted.
+     */
+    clearButton: highlights && (
+      <Tooltip content={t(highlights.items.length ? "highlight.clearAll" : "highlight.clearAllNone")}>
+        <IconButton label={t("highlight.clearAll")} size="sm" aria-disabled={!highlights.items.length} onClick={clearAll}>
+          <ClearIcon className="size-4" />
+        </IconButton>
+      </Tooltip>
     ),
     announcer: (
       <div aria-live="polite" className="sr-only">

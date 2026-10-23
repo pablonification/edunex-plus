@@ -2,9 +2,9 @@
 // Highlighting what's read in the app. Text selected in a course's PDF or
 // text file gets a bar over it, a color each, and ⌘⇧H highlights it in the
 // color picked last; a highlight is a stop for the keyboard, whose bar changes
-// its color or removes it, and Delete removes it; the viewer's "⋯" menu
-// removes all of a file's at once; Undo and ⌘Z put them back. Each is said
-// to screen readers. Highlights are kept on this computer by the
+// its color or removes it, and Delete removes it; the eraser in the viewer's
+// toolbar removes all of a file's at once; Undo and ⌘Z put them back. Each is
+// said to screen readers. Highlights are kept on this computer by the
 // file's content and come back the next time it opens, after a restart too; a
 // Word document's do as well. pdf.js can't lay out text in jsdom, so a
 // stand-in lays each page's lines out as spans, as pdf.js's text layer does;
@@ -69,10 +69,10 @@ const viewer = () => document.querySelector<HTMLElement>("[role=dialog]");
 const pages = () => viewer()!.querySelector<HTMLElement>("section[tabindex='0']")!;
 const page = (n: number) => viewer()!.querySelector<HTMLElement>(`[data-page="${n}"]`)!;
 const bar = () => viewer()?.querySelector<HTMLElement>("[role=toolbar]") ?? null;
-/** The viewer's own "⋯" (the course page behind it has one too), and its one item as the Student reads it. */
-const more = () => viewer()!.querySelector<HTMLButtonElement>("button[aria-label=Lainnya]")!;
-const clearAllItem = () =>
-  [...document.querySelectorAll<HTMLButtonElement>("[role=menuitem]")].find((item) => item.textContent?.startsWith("Hapus semua sorotan"));
+/** The toolbar's eraser. */
+const eraser = () => viewer()!.querySelector<HTMLButtonElement>("button[aria-label='Hapus semua sorotan']")!;
+/** What the tooltip in view says. */
+const tooltip = () => document.querySelector("[role=tooltip]")?.textContent;
 /** What the viewer last said to screen readers. */
 const said = () => [...viewer()!.querySelectorAll("[aria-live=polite]")].at(-1)?.textContent;
 /** The highlights the app saved last, as "page start-end color text". */
@@ -225,33 +225,36 @@ describe("highlighting a PDF", () => {
     expect(savedHighlights(s)).toHaveLength(3);
   });
 
-  it("the ⋯ menu removes every highlight in the file at once; Undo and ⌘Z put them all back", async () => {
+  it("the toolbar's eraser removes every highlight in the file at once; Undo and ⌘Z put them all back", async () => {
     const s = await openOutline();
-    // None yet: the item says why it can't run.
-    await s.click(more());
-    expect(clearAllItem()?.disabled).toBe(true);
-    expect(clearAllItem()?.textContent).toBe("Hapus semua sorotanBelum ada sorotan di berkas ini");
-    await s.key("Escape");
+    // There from the start, dimmed while there's nothing to remove, and saying why.
+    expect(eraser().getAttribute("aria-disabled")).toBe("true");
+    await act(async () => eraser().focus());
+    expect(tooltip()).toBe("Belum ada sorotan di berkas ini");
+    await s.click(eraser());
+    expect(s.calls.some((call) => call.name === "local.set" && (call.input as { name: string }).name === "local.highlights")).toBe(false);
+    expect(s.text()).not.toContain("sorotan dihapus");
 
     await select(page(1), "mahasiswa mampu");
     await s.click("Sorot kuning");
     await select(page(2), "Pengantar");
     await s.click("Sorot biru");
-    await s.click(more());
-    expect(clearAllItem()?.textContent).toBe("Hapus semua sorotan2 sorotan di berkas ini");
-    await s.click(clearAllItem()!);
+    expect(eraser().getAttribute("aria-disabled")).toBe("false");
+    await act(async () => eraser().focus());
+    await s.click(eraser());
     expect(savedHighlights(s)).toEqual([]);
     expect(s.has("Sorotan kuning: mahasiswa mampu")).toBe(false);
     expect(s.text()).toContain("2 sorotan dihapus");
     expect(said()).toBe("2 sorotan dihapus. Urungkan dengan ⌘Z.");
-    // The keyboard is back on the "⋯", as after any menu's item, and ⌘Z works from there too.
-    expect(document.activeElement).toBe(more());
+    // The keyboard stays on the eraser, dimmed now, and ⌘Z works from there.
+    expect(document.activeElement).toBe(eraser());
+    expect(eraser().getAttribute("aria-disabled")).toBe("true");
 
     await s.click("Urungkan");
     expect(savedHighlights(s).map((h) => h.slice(9))).toEqual(["1 28-43 yellow mahasiswa mampu", "2 10-19 blue Pengantar"]);
 
-    await s.click(more());
-    await s.click(clearAllItem()!);
+    await act(async () => eraser().focus());
+    await s.click(eraser());
     await press(document.activeElement!, "z", { metaKey: true });
     expect(savedHighlights(s)).toHaveLength(2);
     expect(said()).toBe("2 sorotan dikembalikan");
@@ -297,7 +300,7 @@ describe("highlighting other files", () => {
     return s;
   }
 
-  it("a text file's text is highlighted as a PDF's is, and kept by its content; its ⋯ menu removes them all", async () => {
+  it("a text file's text is highlighted as a PDF's is, and kept by its content; its eraser removes them all", async () => {
     const text = "Catatan kuliah\nRumus utama: biaya total = biaya tetap + biaya variabel\n";
     const s = await openWith({ name: "Catatan", ext: "txt", bytes: text });
     await select(viewer()!.querySelector("pre")!, "biaya tetap");
@@ -308,8 +311,8 @@ describe("highlighting other files", () => {
     await tick();
     expect(s.has("Sorotan kuning: biaya tetap")).toBe(true);
 
-    await s.click(more());
-    await s.click(clearAllItem()!);
+    await act(async () => eraser().focus());
+    await s.click(eraser());
     expect(savedHighlights(s)).toEqual([]);
     expect(said()).toBe("1 sorotan dihapus. Urungkan dengan ⌘Z.");
     await press(document.activeElement!, "z", { metaKey: true });
