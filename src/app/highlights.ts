@@ -4,7 +4,7 @@
 // changes in a row don't undo each other (local.set replaces the whole list).
 // The rules live in core/highlights.ts; the viewers' part in ui/highlights.tsx.
 import { useMemo, useSyncExternalStore } from "react";
-import { addHighlights, highlightsIn, recolorHighlight, removeHighlight, restoreHighlight } from "../core/highlights";
+import { addHighlights, clearHighlights, highlightsIn, recolorHighlight, removeHighlight, restoreHighlights } from "../core/highlights";
 import type { HighlightedFile } from "../core/models";
 import { useT } from "./i18n";
 import { type AppStore, useBridge, useDataset, useStore } from "./store";
@@ -65,7 +65,8 @@ export function useFileHighlights(file: string | null): Highlights | undefined {
       add: (highlights) => void save((files, now) => addHighlights(files, file, highlights, now)),
       recolor: (id, color) => void save((files, now) => recolorHighlight(files, file, id, color, now)),
       remove: (id) => void save((files, now) => removeHighlight(files, file, id, now)),
-      restore: (highlight) => void save((files, now) => restoreHighlight(files, file, highlight, now)),
+      clear: () => void save((files, now) => clearHighlights(files, file, now)),
+      restore: (highlights) => void save((files, now) => restoreHighlights(files, file, highlights, now)),
     };
   }, [file, all, store, bridge, t]);
 }

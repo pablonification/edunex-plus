@@ -1,9 +1,10 @@
 // Highlights ("Sorotan") as the Student makes and changes them in a file they
 // read in the app: the highlighter's colors, adding (the same text again only
-// takes the new color), changing a color, removing and putting back, the caps,
-// and finding a highlight's text again where the page's text reads a little
-// differently now (a later pdf.js splitting a line another way). Pure: the
-// viewer works out the text and its offsets, and saves what these return.
+// takes the new color), changing a color, removing one or all of a file's and
+// putting them back, the caps, and finding a highlight's text again where the
+// page's text reads a little differently now (a later pdf.js splitting a line
+// another way). Pure: the viewer works out the text and its offsets, and saves
+// what these return.
 import { type Highlight, type HighlightedFile, MAX_FILE_HIGHLIGHTS, MAX_HIGHLIGHT_FILES, MAX_HIGHLIGHTS, MAX_QUOTE } from "./models/highlights";
 
 /** The highlighter's colors, in the order the toolbar offers them; yellow first, as a highlighter is. */
@@ -42,9 +43,12 @@ export function removeHighlight(files: readonly HighlightedFile[], file: string,
   return change(files, file, now, (list) => list.filter((highlight) => highlight.id !== id));
 }
 
-/** A highlight removed, put back (Undo); no second copy when it's back already. */
-export const restoreHighlight = (files: readonly HighlightedFile[], file: string, highlight: Highlight, now: number): HighlightedFile[] =>
-  addHighlights(files, file, [highlight], now);
+/** Every highlight in a file, removed at once. */
+export const clearHighlights = (files: readonly HighlightedFile[], file: string, now: number): HighlightedFile[] => change(files, file, now, () => []);
+
+/** Highlights removed, put back (Undo); no second copy of one that's back already. */
+export const restoreHighlights = (files: readonly HighlightedFile[], file: string, highlights: readonly Highlight[], now: number): HighlightedFile[] =>
+  addHighlights(files, file, highlights, now);
 
 function change(files: readonly HighlightedFile[], file: string, now: number, update: (list: readonly Highlight[]) => Highlight[]): HighlightedFile[] {
   const highlights = update(highlightsIn(files, file)).slice(-MAX_FILE_HIGHLIGHTS);
