@@ -2,20 +2,23 @@
 // (./pdf-viewer.tsx) and the one for Word documents and text files
 // (./file-viewer.tsx) share: the highlights drawn on the text, the bar that
 // floats over selected text (a color each) or over a highlight (its colors,
-// then Remove), the keyboard (⌘⇧H highlights what's selected in the color
-// picked last; on a highlight, Enter opens its bar and Delete removes it; ⌘Z
-// puts back the one just removed), and a line said to screen readers after
-// each. The caller saves them (../highlights.ts); each is kept where its text
-// is (./text-anchor.ts), so it comes back at any zoom.
+// then Remove; the pointer turns to a hand over one, saying a click opens
+// it), the viewer's "⋯" menu that removes all of a file's at once, the
+// keyboard (⌘⇧H highlights what's selected in the color picked last; on a
+// highlight, Enter opens its bar and Delete removes it; ⌘Z puts back what was
+// just removed), and a line said to screen readers after each. The caller
+// saves them (../highlights.ts); each is kept where its text is
+// (./text-anchor.ts), so it comes back at any zoom.
 import { HighlighterIcon } from "@phosphor-icons/react/dist/csr/Highlighter";
 import { TrashIcon } from "@phosphor-icons/react/dist/csr/Trash";
 import { type KeyboardEvent, type MouseEvent, type ReactNode, type RefObject, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { colorOf, DEFAULT_HIGHLIGHT_COLOR, HIGHLIGHT_COLORS, type HighlightColor, locate, quoteOf, trimmed } from "../../core/highlights";
 import type { Highlight } from "../../core/models";
 import { useT } from "../i18n";
-import { IconButton } from "./controls";
+import { Button, IconButton } from "./controls";
 import { cx } from "./cx";
 import { Icons, icon } from "./icons";
+import { Menu } from "./menu";
 import { Tooltip, toast } from "./overlays";
 import { around, type Box, boxesOf, offsetsIn, rangeAt, selectedRange, textOf } from "./text-anchor";
 
@@ -28,7 +31,9 @@ export interface Highlights {
   add(highlights: Highlight[]): void;
   recolor(id: string, color: HighlightColor): void;
   remove(id: string): void;
-  restore(highlight: Highlight): void;
+  /** Every one in the file. */
+  clear(): void;
+  restore(highlights: readonly Highlight[]): void;
 }
 
 /** Where a file's text is now: a PDF page's text (and which page), or a whole document, maybe in a shadow root. */
@@ -210,9 +215,11 @@ export function useHighlighter({
   const keys = keysFor(mac);
   const [bar, setBar] = useState<BarState | null>(null);
   const [said, setSaid] = useState({ text: "", n: 0 });
-  /** The highlight just removed, which ⌘Z puts back; forgotten once anything else changes. */
-  const removed = useRef<{ highlight: Highlight; from: Highlights } | null>(null);
+  /** What was just removed (one highlight, or all of the file's), which ⌘Z puts back; forgotten once anything else changes. */
+  const removed = useRef<{ highlights: readonly Highlight[]; from: Highlights } | null>(null);
   const pointer = useRef(false);
+  /** The pointer is over a highlight: the file says so with a hand (see styles.css). */
+  const hovering = useRef(false);
   const latest = useRef({ highlights, bar, roots, t, keys });
   latest.current = { highlights, bar, roots, t, keys };
 
@@ -319,15 +326,16 @@ export function useHighlighter({
       const highlight = from?.items.find((item) => item.id === id);
       if (!from || !highlight) return;
       from.remove(id);
-      removed.current = { highlight, from };
+      const gone = { highlights: [highlight], from };
+      removed.current = gone;
       setBar(null);
       // Its stop has gone: the keyboard carries on from the pages.
       if (keyboard) scroller.current?.focus();
       toast(t("highlight.removed"), "neutral", {
         label: t("action.undo"),
         onClick: () => {
-          from.restore(highlight);
-          if (removed.current?.highlight === highlight) removed.current = null;
+          from.restore(gone.highlights);
+          if (removed.current === gone) removed.current = null;
         },
       });
       say(t("highlight.removedUndo", { keys: keys.undo }));
@@ -335,12 +343,34 @@ export function useHighlighter({
     [scroller, say],
   );
 
+  /** Every highlight in the file, removed at once, with Undo in the toast and ⌘Z, as one is. */
+  const clearAll = useCallback(() => {
+    const { highlights: from, t, keys } = latest.current;
+    if (!from?.items.length) return;
+    const gone = { highlights: from.items, from };
+    const count = gone.highlights.length;
+    from.clear();
+    removed.current = gone;
+    setBar(null);
+    // Their stops have gone, and the menu with them: the keyboard carries on from the pages, where ⌘Z is.
+    scroller.current?.focus();
+    toast(t("highlight.cleared", { count }), "neutral", {
+      label: t("action.undo"),
+      onClick: () => {
+        from.restore(gone.highlights);
+        if (removed.current === gone) removed.current = null;
+      },
+    });
+    say(t("highlight.clearedUndo", { count, keys: keys.undo }));
+  }, [scroller, say]);
+
   const undo = useCallback(() => {
     const last = removed.current;
     if (!last) return false;
-    last.from.restore(last.highlight);
+    last.from.restore(last.highlights);
     removed.current = null;
-    say(latest.current.t("highlight.restored"));
+    const count = last.highlights.length;
+    say(count === 1 ? latest.current.t("highlight.restored") : latest.current.t("highlight.restoredAll", { count }));
     return true;
   }, [say]);
 
@@ -378,6 +408,15 @@ export function useHighlighter({
   const onMouseDown = () => {
     pointer.current = true;
   };
+  /** A hand over a highlight, since a click there opens its bar; not while the mouse is selecting text. */
+  const hover = (over: boolean) => {
+    if (over === hovering.current) return;
+    hovering.current = over;
+    scroller.current?.toggleAttribute("data-on-highlight", over);
+  };
+  const onMouseMove = (event: MouseEvent) => hover(Boolean(highlights?.items.length) && event.buttons === 0 && markAt(event.clientX, event.clientY) !== null);
+  // Gone from the file (to the toolbar's "Tambah teks", say): its own pointer is back.
+  const onMouseLeave = () => hover(false);
   const onMouseUp = (event: MouseEvent) => {
     pointer.current = false;
     if (!highlights || (event.target instanceof Element && event.target.closest(CONTROLS))) return;
@@ -411,6 +450,8 @@ export function useHighlighter({
     /** The highlight whose bar is open. */
     open: editing?.id ?? null,
     onMouseDown,
+    onMouseMove,
+    onMouseLeave,
     onMouseUp,
     onKey,
     escape: escapeBar,
@@ -428,6 +469,22 @@ export function useHighlighter({
         mac={mac}
         onPick={(color) => (shown.mode === "new" ? add(color, shown.parts) : recolor(shown.id, color))}
         onRemove={shown.mode === "edit" ? () => remove(shown.id, shown.keyboard) : undefined}
+      />
+    ),
+    /** The viewer's "⋯" menu, for its toolbar: Remove all highlights. None for a file that can't be highlighted. */
+    menu: highlights && (
+      <Menu
+        label={t("viewer.more")}
+        trigger={{ icon: <Icons.MoreHorizontal className="size-4" /> }}
+        items={[
+          {
+            label: t("highlight.clearAll"),
+            hint: highlights.items.length ? t("highlight.clearAllHint", { count: highlights.items.length }) : t("highlight.clearAllNone"),
+            icon: <DeleteIcon className="size-4" />,
+            disabled: !highlights.items.length,
+            onSelect: clearAll,
+          },
+        ]}
       />
     ),
     announcer: (
@@ -508,9 +565,10 @@ function HighlightBar({
           </div>
           <span aria-hidden className="mx-1 h-5 w-px shrink-0 bg-line" />
           <Tooltip side={at.above ? "top" : "bottom"} content={t("highlight.removeKeys", { keys: keys.remove })}>
-            <IconButton label={t("highlight.remove")} size="sm" onClick={onRemove}>
-              <DeleteIcon className="size-4" />
-            </IconButton>
+            {/* Its word beside the bin, so removing a highlight is plain at a glance. */}
+            <Button variant="ghost" size="sm" aria-label={t("highlight.remove")} icon={<DeleteIcon className="size-4" />} onClick={onRemove} className="px-2">
+              {t("highlight.removeShort")}
+            </Button>
           </Tooltip>
         </>
       ) : (

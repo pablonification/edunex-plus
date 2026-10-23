@@ -4,8 +4,8 @@
 // as they are, a picture whole, an old Word document or PowerPoint as its text
 // (./text-only.tsx). The same panel over the current screen as the PDF viewer,
 // with the file's name, Download and Close; Esc closes and focus goes back.
-// A Word document's text and a text file's can be highlighted, as in a PDF
-// (./highlights.tsx). What reads each kind loads on first use, in a chunk of
+// A Word document's text and a text file's can be highlighted, as in a PDF,
+// and the "⋯" menu removes them all (./highlights.tsx). What reads each kind loads on first use, in a chunk of
 // its own. Nothing in a file runs: a Word document is drawn in a shadow root
 // (its styles stay inside), slides are built as elements from plain data,
 // links go through the app's own link rules or nowhere, and text is only ever
@@ -208,7 +208,9 @@ export function FileViewer({ open, onOpenChange, name, kind, load, actions, fall
         >
           {/* Whatever in the viewer fails breaks the viewer, not the window; its title and Close stay. */}
           <PanelBoundary name="file viewer" compact header={<Toolbar name={name} />}>
-            <Toolbar name={name} actions={view.phase === "failed" ? undefined : actions} />
+            <Toolbar name={name} actions={view.phase === "failed" ? undefined : actions}>
+              {highlighter.menu}
+            </Toolbar>
             {view.phase === "ready" && view.shown.kind === "sheets" ? (
               <Sheets sheets={view.shown.sheets} name={name} scroller={scroller} />
             ) : (
@@ -217,8 +219,10 @@ export function FileViewer({ open, onOpenChange, name, kind, load, actions, fall
                 // The file scrolls, so once it's there it takes the keyboard (arrows, Page Down).
                 tabIndex={view.phase === "ready" ? 0 : -1}
                 aria-label={name}
-                // Highlighting: what's selected as the mouse comes up, a highlight under a click, ⌘⇧H and ⌘Z.
+                // Highlighting: what's selected as the mouse comes up, a highlight under a click (a hand over one), ⌘⇧H and ⌘Z.
                 onMouseDown={highlighter.onMouseDown}
+                onMouseMove={highlighter.onMouseMove}
+                onMouseLeave={highlighter.onMouseLeave}
                 onMouseUp={highlighter.onMouseUp}
                 onKeyDown={highlighter.onKey}
                 className={cx(
