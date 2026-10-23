@@ -90,7 +90,7 @@ describe("Home with both systems", () => {
     const expected = {
       DK4073: ["Kelas 01 · 3 SKS", "Jatah absenTerpakai 2× · habis"],
       II4091: ["Kelas 01 · 2 SKS", "Jatah absenBelum terpakai · sisa 2×"],
-      KU5014: ["Kelas 01 · 3 SKS", "Jatah absenTerpakai 4× · lebih 1× untuk 80%"],
+      KU5014: ["Kelas 01 · 3 SKS", "Jatah absenTerpakai 4× · lewat batas 1×"],
       PL3002: ["Kelas 01 · 3 SKS", "Jatah absenTerpakai 1× · sisa 1×"],
       PL3032: ["Kelas 01 · 3 SKS", "Jatah absenTerpakai 3× · habis"],
     };
@@ -105,7 +105,7 @@ describe("Home with both systems", () => {
     expect(card("PL3032")).toContain("Ekonomi Infrastruktur dan Transportasi");
     expect(screen.has("Buka di Edunex: PL3032")).toBe(true);
     // The bar's own name says the allowance; screen readers hear it.
-    expect(meter("KU5014").label).toBe("Jatah absen semester ini 3×. Terpakai 4×, lebih 1×.");
+    expect(meter("KU5014").label).toBe("Jatah absen semester ini 3×. Terpakai 4×, lewat batas 1×.");
     // Bars speak in status colors, never the course's: KU5014 past its limit (red), DK4073 full (amber), II4091 calm.
     expect(meter("KU5014").tone).toBe("danger");
     expect(meter("DK4073").tone).toBe("warning");

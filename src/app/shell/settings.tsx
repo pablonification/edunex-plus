@@ -6,8 +6,8 @@
 // remove everything), then notifications and what closing the window does,
 // then notifications on the phone (./phone.tsx), then appearance, then each
 // course's color (the term at a glance, in both themes, and the way back to
-// automatic), then the rest (attendance targets: the default and each
-// course's own), then what the
+// automatic), then the rest (how far ahead Beranda's "Perlu perhatianmu"
+// looks, attendance targets: the default and each course's own), then what the
 // app is (licence, the open-source software it uses, opened as a page of its
 // own).
 import { lazy, type ReactNode, Suspense, useEffect, useRef, useState } from "react";
@@ -16,6 +16,8 @@ import {
   type CourseColors,
   DEADLINE_REMINDERS,
   type DeadlineReminder,
+  NEEDS_AHEAD,
+  type NeedsAhead,
   type Settings,
   type SourceId,
   type UpdateCheckResult,
@@ -35,7 +37,7 @@ import { useBridge, useDataset, useSettings, useStatus, useStore, useUpdateInsta
 import { AppMark, SourceLogo } from "../ui/brand";
 import { Button, Segmented, Switch } from "../ui/controls";
 import { cx } from "../ui/cx";
-import { Card, CourseDot, ProgressBar, Skeleton } from "../ui/display";
+import { Card, CourseCode, CourseDot, ProgressBar, Skeleton } from "../ui/display";
 import { Icons } from "../ui/icons";
 import { Meta, Notice } from "../ui/layout";
 import { ConfirmDialog, Dialog, toast } from "../ui/overlays";
@@ -203,6 +205,17 @@ function SettingsBody({
       <CourseColorSettings start={startAt === "courseColors"} onStarted={onStarted} />
 
       <Group title={t("settings.other")}>
+        <Row label={t("settings.needsAhead")} hint={t("settings.needsAhead.hint")}>
+          {/* The hint wraps, never the choices. */}
+          <span className="flex shrink-0">
+            <Segmented
+              label={t("settings.needsAhead")}
+              value={String(settings.needsAhead)}
+              onChange={(days) => update({ needsAhead: Number(days) as NeedsAhead })}
+              options={NEEDS_AHEAD.map((days) => ({ value: String(days), label: t(`settings.needsAhead.${days}`) }))}
+            />
+          </span>
+        </Row>
         <AttendanceTargets />
       </Group>
 
@@ -313,7 +326,8 @@ function CourseColorSettings({ start, onStarted }: { start: boolean; onStarted: 
     void picks.resetAll(codes);
   };
   return (
-    <Group title={t("settings.courseColors")} note={t("settings.courseColors.note")} lead={<ColorPreview courses={courses} />} groupRef={group}>
+    <Group title={t("settings.courseColors")} note={t("settings.courseColors.note")} groupRef={group}>
+      <ColorPreview courses={courses} />
       {courses.map((course) => {
         const same = courses.filter((other) => other.code !== course.code && other.colorId === course.colorId).map((other) => other.code);
         const name = colorName(t, course.colorId);
@@ -368,26 +382,31 @@ function CourseColorSettings({ start, onStarted }: { start: boolean; onStarted: 
   );
 }
 
-/** The term's sidebar rows in light and in dark, side by side: how a pick looks in the theme not on screen. */
+/**
+ * The term in light and in dark, one band each at the top of the list: how a pick looks in the theme not on screen.
+ * Dot and code only, as the week and the task rows mark a course, so every course fits whole, in columns however many
+ * there are. The bands share their columns, so a code sits right above itself in the other theme.
+ */
 function ColorPreview({ courses }: { courses: readonly TermCourse[] }) {
   const t = useT();
   return (
-    <div inert>
-      <p className="mb-1.5 px-1 text-caption text-faint">{t("settings.courseColors.preview")}</p>
-      <div className="grid grid-cols-1 gap-2 min-[30rem]:grid-cols-2">
-        {(["light", "dark"] as const).map((theme) => (
-          <div key={theme} className={cx(theme === "light" ? "preview-light" : "preview-dark", "rounded-xl border border-edge bg-sidebar p-1.5 text-fg")}>
-            <p className="px-1.5 pt-0.5 pb-1 text-caption font-semibold text-muted">{t(`settings.theme.${theme}`)}</p>
+    <div inert className="grid grid-cols-[auto_minmax(0,1fr)]">
+      {(["light", "dark"] as const).map((theme) => (
+        <div
+          key={theme}
+          className={cx(
+            theme === "light" ? "preview-light" : "preview-dark",
+            "col-span-2 grid grid-cols-subgrid items-start gap-x-4 bg-sidebar px-4 py-2.5 text-small text-fg",
+          )}
+        >
+          <span className="text-muted">{t(`settings.theme.${theme}`)}</span>
+          <span className="grid grid-cols-[repeat(auto-fill,minmax(5rem,1fr))] gap-x-3 gap-y-1">
             {courses.map((course) => (
-              <div key={course.code} className="flex h-7 items-center gap-2 px-1.5 text-small">
-                <CourseDot color={course.color} />
-                <span className="shrink-0 font-medium tabular-nums">{course.code}</span>
-                <span className="truncate text-muted">{course.name}</span>
-              </div>
+              <CourseCode key={course.code} code={course.code} color={course.color} className="font-medium" />
             ))}
-          </div>
-        ))}
-      </div>
+          </span>
+        </div>
+      ))}
     </div>
   );
 }
@@ -770,7 +789,8 @@ function Group({
   children: ReactNode;
 }) {
   return (
-    <section ref={groupRef}>
+    // Opened at a group (the sidebar's palette button), it lands with the dialog's own top padding above it.
+    <section ref={groupRef} className="scroll-mt-5">
       {title && <h3 className="mb-2 px-1 text-small font-semibold text-muted">{title}</h3>}
       {lead && <div className="mb-2 empty:hidden">{lead}</div>}
       <Card className="divide-y divide-line overflow-hidden">{children}</Card>

@@ -5,11 +5,12 @@
 // SIX's count that didn't go up after a class, today's receipt, a clash today
 // with which class to go to, the exam-week note. Then every course, grouped
 // by what it asks of the Student (out of reach, no absences left, recorded in
-// Edunex, absences to spare, …), each row in three lines at most: the
-// course, its next class, one exception; and its absences as a bar with
-// words ("Jatah absen", "Terpakai 1× · sisa 1×"). How it's recorded and that
-// later dates are estimated is said once, under the groups. Targets are one
-// panel from the header. Nothing here is hidden by a snooze elsewhere.
+// Edunex, absences to spare, …), each row the course and its next class,
+// SIX's share labeled over its absences as a bar with words ("Kehadiran 85%
+// sejauh ini (6 dari 7)", "Jatah absen", "Terpakai 1× · sisa 1×"), and one
+// exception at most on a line of its own. How it's recorded and that later
+// dates are estimated is said once, under the groups. Targets are one panel
+// from the header. Nothing here is hidden by a snooze elsewhere.
 import { type ReactNode, useState } from "react";
 import {
   type AttendanceHealth,
@@ -602,8 +603,9 @@ interface RowContext {
 }
 
 /**
- * A course in three lines at most: the course (the strongest thing in the
- * row), its next class, and one exception; its absences at the row's end.
+ * A course: the course (the strongest thing in the row) and its next class on
+ * the left, its absences and SIX's share at the row's end, and one exception
+ * at most on a line of its own under both, its actions at the row's end too.
  * The whole row opens the course's meetings; its own controls sit above it.
  */
 function CourseRow({ item, group, context }: { item: CourseAttendance; group: PresenceGroup; context: RowContext }) {
@@ -621,6 +623,9 @@ function CourseRow({ item, group, context }: { item: CourseAttendance; group: Pr
     words?.lead ?? "",
     words?.bold ?? "",
     words && own ? t("presence.row.ownTarget", { value: health.target }) : "",
+    words && health.held
+      ? t("presence.row.count", { attended: health.attended ?? 0, held: health.held, percent: percent(health.attended ?? 0, health.held) })
+      : "",
     !words ? sideText(t, group, health) : "",
     ...meta,
   ]
@@ -635,17 +640,19 @@ function CourseRow({ item, group, context }: { item: CourseAttendance; group: Pr
         onClick={() => go({ screen: "course", code: course.code, tab: "meetings" })}
         className="absolute inset-0 z-0 outline-none focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-solid focus-visible:outline-focus"
       />
-      {/* Wide: the course, its next class and one exception on the left, its absences on the right. Narrow (zoomed in): the absences under the name. */}
-      <div className="pointer-events-none relative grid grid-cols-1 px-5 py-4 @[37.5rem]:grid-cols-[minmax(0,1fr)_auto] @[37.5rem]:gap-x-8">
-        <p className="flex min-w-0 items-baseline gap-2 @[37.5rem]:col-start-1 @[37.5rem]:row-start-1">
-          <CourseCode code={course.code} color={course.color} className="shrink-0 text-small" />
-          <span className="line-clamp-2 min-w-0 text-body font-semibold" title={name(course.code, course.name)}>
-            {name(course.code, course.name)}
-          </span>
-        </p>
+      {/* Wide: the course and its next class on the left, its attendance on the right, the exception across both. Narrow (the window small, or zoomed in): one under another. */}
+      <div className="pointer-events-none relative grid grid-cols-1 px-5 py-4 @[48rem]:grid-cols-[minmax(0,1fr)_auto] @[48rem]:gap-x-8">
+        <div className="min-w-0">
+          <p className="flex min-w-0 items-baseline gap-2">
+            <CourseCode code={course.code} color={course.color} className="shrink-0 text-small" />
+            <span className="line-clamp-2 min-w-0 text-body font-semibold" title={name(course.code, course.name)}>
+              {name(course.code, course.name)}
+            </span>
+          </p>
+          {meta.length > 0 && <Meta className="mt-1 text-small text-muted">{meta}</Meta>}
+        </div>
         <Side item={item} group={group} own={own} soFar={context.soFar} signedOut={context.signedOut} />
-        {meta.length > 0 && <Meta className="mt-1 text-small text-muted @[37.5rem]:col-start-1 @[37.5rem]:row-start-2">{meta}</Meta>}
-        <div className="@[37.5rem]:col-start-1 @[37.5rem]:row-start-3">
+        <div className="@[48rem]:col-span-2">
           <Exception item={item} context={context} />
         </div>
       </div>
@@ -657,8 +664,8 @@ function CourseRow({ item, group, context }: { item: CourseAttendance; group: Pr
 function Side({ item, group, own, soFar, signedOut }: { item: CourseAttendance; group: PresenceGroup; own: boolean; soFar: boolean; signedOut: boolean }) {
   const t = useT();
   const { health } = item;
-  const place =
-    "mt-2 @[37.5rem]:col-start-2 @[37.5rem]:row-span-3 @[37.5rem]:row-start-1 @[37.5rem]:mt-0 @[37.5rem]:min-w-42 @[37.5rem]:self-start @[37.5rem]:text-end";
+  // One width on every row, so the labels and bars line up down the list.
+  const place = "mt-2.5 @[48rem]:mt-0.5 @[48rem]:w-104 @[48rem]:self-start";
   if (signedOut) return null;
   if (group === "out" || group === "none" || group === "spare" || group === "unknown")
     return <AbsenceBudget health={health} place="row" own={own} soFar={soFar} className={place} />;
@@ -734,44 +741,36 @@ function Exception({ item, context }: { item: CourseAttendance; context: RowCont
     if (recent) return <Quiet icon={<Icons.Hand className="mt-0.5 size-3.5 shrink-0" />}>{t("presence.row.gone")}</Quiet>;
   }
   // 3. Out of reach or finished below: a count SIX got wrong, or a wrong target, is the way back.
+  // The heading and the bar already say what's lost in red; this is the fix, so calm, its actions blue.
   if ((health.state === "out" || health.state === "missed") && !zone.results.some((r) => r.code === course.code && r.absent))
     return (
-      <Warning
-        tone="danger"
+      <Quiet
+        icon={<Icons.Info className="mt-0.5 size-3.5 shrink-0" />}
         action={
           <>
             {student && (
-              <Button
-                size="sm"
-                variant="ghost"
-                className="pointer-events-auto relative -my-1 h-6 px-1.5 text-danger-fg"
-                icon={<Icons.ArrowUpRight className="size-3.5" />}
-                onClick={() => open(sixTimetableUrl(student))}
-              >
+              <RowLink icon={<Icons.ArrowUpRight className="size-3.5" />} onClick={() => open(sixTimetableUrl(student))}>
                 {t("presence.checkSix")}
-              </Button>
+              </RowLink>
             )}
             {health.state === "out" && (
-              <Button
-                size="sm"
-                variant="ghost"
-                className="pointer-events-auto relative -my-1 h-6 px-1.5 text-danger-fg"
+              <RowLink
                 icon={<Icons.Target className="size-3.5" />}
                 aria-label={`${t("presence.changeTarget")}: ${course.code}`}
                 onClick={() => context.onChangeTarget(course.code)}
               >
                 {t("presence.changeTarget")}
-              </Button>
+              </RowLink>
             )}
           </>
         }
       >
         {t("presence.warn.out")}
-      </Warning>
+      </Quiet>
     );
   // 4. No absences left, and the target hangs on a class that may not run.
   const needed = health.needsUncertain ? health.left.upcoming.find((m) => m.uncertain) : undefined;
-  if (needed) return <Warning tone="warning">{uncertainText(t, f, needed.start, context.events, health.target)}</Warning>;
+  if (needed) return <Warning>{uncertainText(t, f, needed.start, context.events, health.target)}</Warning>;
   // 5. The next class clashes with another course's (unless today's clash card says it).
   const clash = item.clash;
   const onCard = zone.clashes.some((c) => c.a.course.code === course.code || c.b.course.code === course.code);
@@ -789,7 +788,7 @@ function Exception({ item, context }: { item: CourseAttendance; context: RowCont
         : clash.pick.pick === clash.other
           ? t("presence.row.clashOther", { code: clash.other })
           : t("presence.row.clashAsk");
-    return <Warning tone="warning">{`${head} ${tail}`}</Warning>;
+    return <Warning>{`${head} ${tail}`}</Warning>;
   }
   // 6–7. What the next class's Edunex window asks, where Edunex keeps the count too.
   const next = health.left.next;
@@ -812,8 +811,7 @@ function Exception({ item, context }: { item: CourseAttendance; context: RowCont
   }
   // 8. The next class may not run (exam week, holiday), unless the note on top says it for every course.
   const first = health.left.upcoming[0];
-  if (first?.uncertain && !(zone.week?.codes.includes(course.code) ?? false))
-    return <Warning tone="warning">{uncertainText(t, f, first.start, context.events)}</Warning>;
+  if (first?.uncertain && !(zone.week?.codes.includes(course.code) ?? false)) return <Warning>{uncertainText(t, f, first.start, context.events)}</Warning>;
   // 9. A lab next, in a course that also has lectures.
   if (
     at?.session &&
@@ -836,22 +834,46 @@ function uncertainText(t: Translate, f: Format, start: number, events: readonly 
   return target ? t("presence.warn.needed", { date, period, target }) : t("presence.warn.uncertain", { date, period });
 }
 
-function Warning({ tone, action, children }: { tone: "warning" | "danger"; action?: ReactNode; children: ReactNode }) {
+/** The exception's line, across the row: its words on one line where they fit, its actions at the row's end (under the words when both don't fit). */
+function Line({ className, icon, action, children }: { className: string; icon?: ReactNode; action?: ReactNode; children: ReactNode }) {
   return (
-    <p className={cx("mt-1.5 flex flex-wrap items-start gap-x-2 gap-y-1 text-small font-medium", tone === "danger" ? "text-danger-fg" : "text-warning-fg")}>
-      <Icons.AlertTriangle className="mt-0.5 size-3.5 shrink-0" weight="bold" />
-      <span className="min-w-0 flex-1 basis-64">{children}</span>
-      {action && <span className="flex flex-wrap items-center gap-x-1">{action}</span>}
-    </p>
+    <div className={cx("mt-3 flex flex-wrap items-start gap-x-6 gap-y-1.5 text-small", className)}>
+      <p className="flex min-w-0 items-start gap-2">
+        {icon}
+        <span className="min-w-0">{children}</span>
+      </p>
+      {action && <span className="ml-auto flex flex-wrap items-center gap-x-4 gap-y-1">{action}</span>}
+    </div>
   );
 }
 
-function Quiet({ icon, children }: { icon?: ReactNode; children: ReactNode }) {
+function Warning({ children }: { children: ReactNode }) {
   return (
-    <p className="mt-1.5 flex items-start gap-2 text-small text-muted">
+    <Line className="font-medium text-warning-fg" icon={<Icons.AlertTriangle className="mt-0.5 size-3.5 shrink-0" weight="bold" />}>
+      {children}
+    </Line>
+  );
+}
+
+function Quiet({ icon, action, children }: { icon?: ReactNode; action?: ReactNode; children: ReactNode }) {
+  return (
+    <Line className="text-muted" icon={icon} action={action}>
+      {children}
+    </Line>
+  );
+}
+
+/** A row's own action, a link in blue above the row's button. */
+function RowLink({ icon, children, ...rest }: { icon: ReactNode; children: ReactNode; onClick: () => void; "aria-label"?: string }) {
+  return (
+    <button
+      type="button"
+      className="focus-ring pointer-events-auto relative inline-flex items-center gap-1 rounded font-medium text-accent-fg hover:underline"
+      {...rest}
+    >
       {icon}
-      <span className="min-w-0">{children}</span>
-    </p>
+      {children}
+    </button>
   );
 }
 

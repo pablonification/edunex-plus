@@ -62,14 +62,16 @@ describe("AbsenceBar", () => {
     expect([...el.children].every((child) => child.getAttribute("aria-hidden") === "true")).toBe(true);
   });
 
-  it("full: amber, in the meter's amber; past the limit: a limit line, then red segments, each with a ×", () => {
+  it("full: amber, in the meter's amber; past the limit: still amber up to a limit line, then only what's over in red", () => {
     const full = bar(<AbsenceBar allowed={2} used={2} tone="warning" label="x" />)!;
     expect(states(full)).toEqual(["used", "used"]);
     expect(full.querySelector('[data-state="used"]')!.className).toContain("bg-meter-warning");
     const over = bar(<AbsenceBar allowed={2} used={2} over={2} tone="danger" label="x" />)!;
     expect(states(over)).toEqual(["used", "used", "limit", "over", "over"]);
-    expect(over.querySelector('[data-state="used"]')!.className).toContain("bg-danger-fg");
-    expect(over.querySelectorAll('[data-state="over"] svg')).toHaveLength(2);
+    for (const used of over.querySelectorAll('[data-state="used"]')) expect(used.className).toContain("bg-meter-warning");
+    for (const miss of over.querySelectorAll('[data-state="over"]')) expect(miss.className).toContain("bg-danger-fg");
+    // Plain segments: a × too small to read is gone, the limit line says where they start.
+    expect(over.querySelectorAll("svg")).toHaveLength(0);
   });
 
   it("an estimate is hatched, with nothing used", () => {

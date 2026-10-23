@@ -18,6 +18,7 @@ import { Button } from "./controls";
 import { cx } from "./cx";
 import type { Block } from "./doc";
 import { Icons } from "./icons";
+import { settled } from "./motion/animate";
 import { ignoreClosingClick, PANEL_MOTION_CLASS, SCRIM_CLASS, useReturnFocus } from "./overlays";
 import { PanelBoundary } from "./panel-boundary";
 import type { Slide } from "./ppt";
@@ -105,6 +106,7 @@ export interface FileViewerProps {
 export function FileViewer({ open, onOpenChange, name, kind, load, actions, fallback, onOpenLink, platform }: FileViewerProps) {
   const t = useT();
   const returnFocus = useReturnFocus();
+  const panel = useRef<HTMLDivElement>(null);
   const scroller = useRef<HTMLElement>(null);
   const [attempt, setAttempt] = useState(0);
   const [view, setView] = useState<View>({ phase: "loading" });
@@ -123,6 +125,9 @@ export function FileViewer({ open, onOpenChange, name, kind, load, actions, fall
           setView({ phase: "failed", problem: read.problem });
           return;
         }
+        // Read in while the panel opens, then made into pages once it has stopped moving: doing that mid-way would stall it.
+        await settled(panel.current);
+        if (!live) return;
         const shown = await show(kind, read);
         if (shown.kind === "image") picture = shown.url;
         // Shut while it was being read: the picture goes now (the cleanup below already ran).
@@ -151,6 +156,7 @@ export function FileViewer({ open, onOpenChange, name, kind, load, actions, fall
       <DialogPrimitive.Portal>
         <DialogPrimitive.Overlay className={cx(SCRIM_CLASS, "z-(--z-dialog)")} />
         <DialogPrimitive.Content
+          ref={panel}
           aria-describedby={undefined}
           onOpenAutoFocus={(event) => {
             returnFocus.onOpenAutoFocus();

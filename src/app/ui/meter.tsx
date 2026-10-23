@@ -3,12 +3,12 @@
 // spends them; and how much time a window has left, shrinking, amber in its
 // last minutes.
 import { cx } from "./cx";
-import { Icons } from "./icons";
 
 export type BarTone = "neutral" | "warning" | "danger";
 
 // The meter colors, not the tones' text colors (amber text is brown); each reads 3:1 on a row, hovered too.
-const USED: Record<BarTone, string> = { neutral: "bg-muted", warning: "bg-meter-warning", danger: "bg-danger-fg" };
+// Past the limit the bar itself is full, so amber: only what's over it is red.
+const USED: Record<BarTone, string> = { neutral: "bg-muted", warning: "bg-meter-warning", danger: "bg-meter-warning" };
 /** From this many segments the gaps go: one fill, split where the used part ends. */
 const CONTINUOUS = 12;
 /** The bar's width (px) at each size, and the gap between segments. */
@@ -20,10 +20,11 @@ const HATCH = { backgroundImage: "repeating-linear-gradient(135deg, var(--hatch)
 /**
  * "Jatah absen": one segment per absence the course's target allows this
  * term, filled from the start as they're used, ringed while still left.
- * Misses past the limit sit after a short limit line, red, each with a × (so
- * color is never the only sign). `estimate`: before SIX has a count, the
- * timetable's allowance, hatched. Always beside its words ("1 used · 1 left"),
- * never alone; one picture with a name, never a stop for the keyboard.
+ * Full, it turns amber; misses past the limit sit after a short limit line,
+ * red (the line says where the limit is, so color is never the only sign).
+ * `estimate`: before SIX has a count, the timetable's allowance, hatched.
+ * Always beside its words ("1 used · 1 left"), never alone; one picture with
+ * a name, never a stop for the keyboard.
  * Nothing to draw (no absence allowed, none missed): nothing.
  */
 export function AbsenceBar({
@@ -91,11 +92,9 @@ export function AbsenceBar({
               key={i}
               aria-hidden
               data-state="over"
-              className={cx("flex shrink-0 items-center justify-center rounded-xs bg-danger-fg text-surface", height)}
+              className={cx("shrink-0 rounded-xs bg-danger-fg", height)}
               style={{ width: `${segment}px` }}
-            >
-              <Icons.X className="size-1.5" weight="bold" />
-            </span>
+            />
           ))}
         </>
       )}

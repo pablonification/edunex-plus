@@ -118,7 +118,7 @@ export const attendanceStrings = {
   "presence.bar.noneUsed": { id: "Belum terpakai", en: "None used" },
   "presence.bar.left": { id: "sisa {count}×", en: "{count} left" },
   "presence.bar.noneLeft": { id: "habis", en: "none left" },
-  "presence.bar.over": { id: "lebih {count}× untuk {target}%", en: "{count} too many for {target}%" },
+  "presence.bar.over": { id: "lewat batas {count}×", en: "{count} over the limit" },
   "presence.bar.about": { id: "Sekitar {count}× semester ini", en: "About {count} allowed this term" },
   "presence.bar.zero": { id: "Tak boleh absen", en: "No absences allowed" },
   "presence.bar.a11y": {
@@ -130,8 +130,8 @@ export const attendanceStrings = {
     en: "Absences this term. All {allowed} used, none left.",
   },
   "presence.bar.a11yOver": {
-    id: "Jatah absen semester ini {allowed}×. Terpakai {used}×, lebih {over}×.",
-    en: "Absences this term. {used} used, {allowed} allowed, {over} too many.",
+    id: "Jatah absen semester ini {allowed}×. Terpakai {used}×, lewat batas {over}×.",
+    en: "Absences this term. {used} used, {allowed} allowed, {over} over the limit.",
   },
   "presence.bar.a11yAbout": {
     id: "Jatah absen semester ini sekitar {count}×.",
@@ -144,7 +144,10 @@ export const attendanceStrings = {
 
   // A course's row
   "presence.courses": { id: "Mata kuliah", en: "Courses" },
-  "presence.row.count": { id: "Kehadiran {percent}% sejauh ini ({attended} dari {held})", en: "{percent}% attended so far ({attended} of {held})" },
+  // A row's share, labeled: "Kehadiran" before "73% sejauh ini (11 dari 15)", the figure stronger
+  "presence.share.label": { id: "Kehadiran", en: "Attendance" },
+  "presence.share.soFar": { id: "sejauh ini ({attended} dari {held})", en: "so far ({attended} of {held})" },
+  "presence.row.count": { id: "Kehadiran {percent}% sejauh ini ({attended} dari {held})", en: "Attendance {percent}% so far ({attended} of {held})" },
   "presence.row.final": { id: "Selesai dengan kehadiran {percent}%", en: "Finished at {percent}% attended" },
   "presence.row.ownTarget": { id: "target {value}%", en: "target {value}%" },
   "presence.edunexTally": { id: "Hadir {recorded} dari {closed} di Edunex", en: "Present in {recorded} of {closed} in Edunex" },

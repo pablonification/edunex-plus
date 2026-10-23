@@ -120,6 +120,17 @@ function pdfjs(): Promise<PdfJs> {
   return library;
 }
 
+/**
+ * Loads pdf.js before the first PDF's panel opens (../pdf.tsx waits for it): started with the panel already
+ * moving, it would hold the window up mid-way. A load that fails is tried again by openPdf.
+ */
+export function preparePdf(): Promise<void> {
+  return pdfjs().then(
+    () => undefined,
+    () => undefined,
+  );
+}
+
 /** The most pixels one page's drawing holds, pdf.js's own viewer's cap (about 128 MB), and the longest side a canvas can have. */
 const MAX_PIXELS = 2 ** 25;
 const MAX_SIDE = 32_767;
