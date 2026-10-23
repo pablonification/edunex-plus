@@ -315,7 +315,10 @@ app.on("before-quit", (event) => {
   if (readyToQuit || !autoUpdates) return;
   event.preventDefault();
   readyToQuit = true;
-  void autoUpdates.beforeQuit().finally(() => app.quit());
+  // Asked again a moment later, not right away: ⌘Q is still being answered while this runs, and
+  // that answer (cancelled, above) would undo a quit asked from inside it: the window closes,
+  // the app stays.
+  void autoUpdates.beforeQuit().finally(() => setImmediate(() => app.quit()));
 });
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();
