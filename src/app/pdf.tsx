@@ -9,10 +9,13 @@
 // bytes the caller reads. Each viewer loads on first use. What the Student
 // fills in there is saved as a copy where they choose, or, opened from a Task
 // whose answer can still change, attached to that answer (the Task's hand-in
-// card offers itself with useAnswerAttach).
+// card offers itself with useAnswerAttach). What they highlight in a file on
+// Edunex (a PDF, a Word document, a text file) is kept on this computer by
+// the file's content, and comes back each time it opens (./highlights.ts).
 import { createContext, lazy, type ReactNode, Suspense, startTransition, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { FileProblem, ReadAs } from "../core/actions/files";
 import { ActionError, errorKey } from "./bridge";
+import { fileIdentity, useFileHighlights } from "./highlights";
 import { useOpenExternal, useOpenLink } from "./hooks";
 import { useT } from "./i18n";
 import { OpenFile, useDownloadedToast, useLocalCopy } from "./open-file";
@@ -82,6 +85,9 @@ const READ_AS: Readonly<Record<ViewerKind, ReadAs>> = {
   ppt: "ppt",
 };
 
+/** The kinds whose text can be highlighted: a PDF, a Word document, text and code. */
+const HIGHLIGHTABLE: ReadonlySet<ViewerKind> = new Set(["pdf", "docx", "text"]);
+
 /** What the viewer shows a file as, by its name; null when it can't, and the file downloads and opens in the computer's own app. */
 export function viewerKind(name: string): ViewerKind | null {
   const ext = /\.([a-z0-9]+)$/i.exec(name.trim())?.[1].toLowerCase();
@@ -141,6 +147,9 @@ export function PdfViewerProvider({ children }: { children: ReactNode }) {
   const dirty = useRef(false);
   /** What waits for the viewer to shut (going to another screen) while it asks about unsaved filling. */
   const leaving = useRef<(() => void) | null>(null);
+  /** Which file is open, by its content, once it's read in: its highlights are kept by it. */
+  const [identity, setIdentity] = useState<{ source: PdfSource; file: string } | null>(null);
+  const highlights = useFileHighlights(source?.kind === "edunex" && identity?.source === source ? identity.file : null);
 
   // Bytes handed in are always a PDF; a name the viewer doesn't know (a caller's mistake) is tried as one.
   const kind: ViewerKind = source?.kind === "edunex" ? (viewerKind(source.name) ?? "pdf") : "pdf";
@@ -151,7 +160,15 @@ export function PdfViewerProvider({ children }: { children: ReactNode }) {
     return async (): Promise<Uint8Array | { problem: FileProblem }> => {
       try {
         const result = await bridge.invoke("files.read", { url: source.url, as });
-        return "problem" in result ? result : result.bytes;
+        if ("problem" in result) return result;
+        // One whose text can be highlighted is told apart by its content, worked out beside the drawing (a highlight
+        // can't be made before the text shows).
+        if (HIGHLIGHTABLE.has(kind))
+          fileIdentity(result.bytes).then(
+            (file) => setIdentity({ source, file }),
+            () => undefined,
+          );
+        return result.bytes;
       } catch (error) {
         return { problem: error instanceof ActionError && error.kind === "Rejected" ? "unreadable" : "unreachable" };
       }
@@ -289,6 +306,7 @@ export function PdfViewerProvider({ children }: { children: ReactNode }) {
             actions={downloadButton}
             fallback={fallback}
             onOpenLink={openLink}
+            highlights={highlights}
             platform={platform}
           />
         )}
@@ -308,6 +326,7 @@ export function PdfViewerProvider({ children }: { children: ReactNode }) {
               leaving.current = null;
             }}
             onDirtyChange={onDirtyChange}
+            highlights={highlights}
             platform={platform}
           />
         )}
