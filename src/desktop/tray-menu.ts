@@ -274,8 +274,9 @@ function needLabel(need: NeedDraft, courses: readonly TermCourseBase[], f: Forma
     }
     case "meeting": {
       const { meeting } = need;
-      const title = t(meeting.online ? "home.need.meeting.online" : "home.need.meeting", { course, day: f.relativeDay(meeting.start) });
-      return line(title, f.timeRange(meeting.start, meeting.end));
+      // The day stays with its time ("Besok, 15:00–17:00"), not mid-title.
+      const title = t(meeting.online ? "tray.meeting.online" : "tray.meeting", { course });
+      return line(title, `${f.relativeDay(meeting.start)}, ${f.timeRange(meeting.start, meeting.end)}`);
     }
     case "krs": {
       const at = need.open ? need.closesAt - 1 : need.at!;

@@ -177,7 +177,7 @@ describe("Perlu perhatianmu", () => {
     // Due within a day first, then within three, then the rest of the week, as on Beranda.
     expect(section(menu, "Perlu perhatianmu")).toEqual([
       "Ringkasan K5 · Tenggat Hari ini, 23:59",
-      "II4091 ada pertemuan daring Besok · 15:00–17:00",
+      "II4091 ada pertemuan daring · Besok, 15:00–17:00",
       "KU5014: tak bisa lagi capai 80%",
       "UTS Komunikasi Pemasaran · Kam, 15 Okt, 11:00",
       "Lihat semua 6 di Beranda",
@@ -210,7 +210,7 @@ describe("Perlu perhatianmu", () => {
     await h.engine.setLocal("local.done", putAway([], taskDoneKey(proposal, "due"), "handedElsewhere", now));
     const menu = menuOf(h);
     expect(section(menu, "Perlu perhatianmu")).toEqual([
-      "II4091 ada pertemuan daring Besok · 15:00–17:00",
+      "II4091 ada pertemuan daring · Besok, 15:00–17:00",
       "KU5014: tak bisa lagi capai 80%",
       "UTS Komunikasi Pemasaran · Kam, 15 Okt, 11:00",
       "Laporan Akhir · Tenggat Sel, 13 Okt, 23:59",
@@ -320,7 +320,7 @@ describe("the actions", () => {
       "---",
       "[Needs you]",
       "Ringkasan K5 · Due Today, 23:59",
-      "II4091 meets online Tomorrow · 15:00–17:00",
+      "II4091 meets online · Tomorrow, 15:00–17:00",
       "KU5014: can't reach 80% anymore",
       "Komunikasi Pemasaran UTS · Thu, 15 Oct, 11:00",
       "---",

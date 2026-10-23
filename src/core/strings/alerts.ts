@@ -91,6 +91,8 @@ export const alertsStrings = {
   "tray.offline": { id: "Tidak terhubung · data dari {when}", en: "Offline · data from {when}" },
   "tray.checkIn": { id: "Tekan Tandai Hadir di SIX · {course}", en: "Press Tandai Hadir in SIX · {course}" },
   "tray.opens": { id: "dibuka {when}", en: "opens {when}" },
+  "tray.meeting": { id: "{course} ada pertemuan", en: "{course} meets" },
+  "tray.meeting.online": { id: "{course} ada pertemuan daring", en: "{course} meets online" },
   "tray.edited": { id: "diubah dosen", en: "changed by your lecturer" },
   "tray.needs.all": { id: "Lihat semua {count} di Beranda", en: "See all {count} on Home" },
   "tray.openEdunex": { id: "Buka Edunex di browser", en: "Open Edunex in browser" },
