@@ -166,6 +166,10 @@ export async function openApp(options: Options = {}) {
   let linksFail = false;
   /** The app a file opens in is still starting, until the test lets it (`holdOpening`). */
   let opening: Promise<void> | null = null;
+  /** The Student is still in the sign-in window, until the test lets them finish (`holdSignIn`). */
+  let signingIn: Promise<void> | null = null;
+  /** The sign-ins held meanwhile, still running. */
+  let heldSignIns: Promise<unknown>[] = [];
   /** Release pages main opened in the browser for an update, in order. */
   const openedPages: string[] = [];
   /** Updates main put in place, in order: restarted for (`reopen`), or as the app quit. */
@@ -216,6 +220,7 @@ export async function openApp(options: Options = {}) {
       open: async (source, { quiet, onStep }) => {
         const session = source === "edunex" ? PRETEND_TOKEN : PRETEND_SIX_COOKIE;
         if (quiet) return options.microsoft === "remembers" ? session : null;
+        await signingIn;
         if (options.signInWindow === "closes") return null;
         // Microsoft hands back; the window hides while the website's session is read.
         onStep("finishing");
@@ -378,8 +383,9 @@ export async function openApp(options: Options = {}) {
           throw error;
         }
       })();
-      // Held (`holdOpening`), an app starting isn't waited for: the test looks at the window meanwhile.
-      if (!(action === "files.open" && opening)) track(work);
+      // Held (`holdOpening`, `holdSignIn`), an app starting or a sign-in isn't waited for: the test looks at the window meanwhile.
+      if (action === "auth.signIn" && signingIn) heldSignIns.push(work);
+      else if (!(action === "files.open" && opening)) track(work);
       return work;
     },
     onEvent(listener) {
@@ -516,6 +522,20 @@ export async function openApp(options: Options = {}) {
       return () => {
         opening = null;
         done();
+      };
+    },
+    /** The next sign-ins stay in their window (the Student still typing), until the function this returns is called (pass it to `engineDoes`). */
+    holdSignIn(): () => Promise<unknown> {
+      let done = () => {};
+      signingIn = new Promise((resolve) => {
+        done = resolve;
+      });
+      return () => {
+        const held = heldSignIns;
+        signingIn = null;
+        heldSignIns = [];
+        done();
+        return Promise.all(held);
       };
     },
     /** From now on the system fails to open links in the browser. */

@@ -119,18 +119,8 @@ export function Welcome({ onDone }: { onDone: () => void }) {
 
               <div className={cx("mt-7", ARRIVE)} style={arriveAt(3)}>
                 <Card className="divide-y divide-line overflow-hidden">
-                  <SourceRow
-                    source="edunex"
-                    detail={t("welcome.edunexDetail")}
-                    who={account ? [displayName(account.name), account.nim] : null}
-                    primary={!edunex && !six}
-                  />
-                  <SourceRow
-                    source="six"
-                    detail={t("welcome.sixDetail")}
-                    who={student ? [displayName(student.name), student.program ?? student.nim] : null}
-                    primary={false}
-                  />
+                  <SourceRow source="edunex" detail={t("welcome.edunexDetail")} who={account ? [displayName(account.name), account.nim] : null} />
+                  <SourceRow source="six" detail={t("welcome.sixDetail")} who={student ? [displayName(student.name), student.program ?? student.nim] : null} />
                 </Card>
               </div>
 
@@ -251,13 +241,11 @@ function SourceRow({
   source,
   detail,
   who,
-  primary,
 }: {
   source: Extract<SourceId, "edunex" | "six">;
   detail: string;
   /** Who is signed in: their name, then their NIM or program. */
   who: readonly string[] | null;
-  primary: boolean;
 }) {
   const t = useT();
   const status = useStatus(source);
@@ -324,12 +312,9 @@ function SourceRow({
           {t("welcome.connected")}
         </span>
       ) : (
-        <Button
-          variant={primary ? "primary" : "secondary"}
-          busy={busy}
-          aria-label={t("welcome.connectSource", { source: name })}
-          onClick={() => void signIn(source)}
-        >
+        // Blue whenever it can be pressed, for either system, as a sign-in button is everywhere in the app: an outlined
+        // one beside a blue one read as switched off. Busy, it dims behind its spinner, and done, "Terhubung" takes its place.
+        <Button variant="primary" busy={busy} aria-label={t("welcome.connectSource", { source: name })} onClick={() => void signIn(source)}>
           {t("welcome.connect")}
         </Button>
       )}

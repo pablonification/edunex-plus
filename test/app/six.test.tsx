@@ -21,6 +21,13 @@ const meter = (code: string) => {
   return { label: el?.getAttribute("aria-label"), tone: el?.getAttribute("data-tone") };
 };
 const sidebar = () => document.querySelector("aside")?.textContent ?? "";
+/** How a first-run button looks: blue (press it), busy (dimmed behind its spinner), grey (can't run yet) or plain. */
+const look = (name: string) => {
+  const button = screen!.button(name);
+  if (button.disabled) return button.className.includes("disabled:bg-edge") ? "grey" : "faded";
+  if (button.getAttribute("aria-busy") === "true") return "busy";
+  return button.className.split(" ").includes("bg-accent") ? "blue" : "plain";
+};
 /** What the top bar's status panel says about each system. */
 const edunexLive = async () => expect(await screen!.sourceState("Edunex")).toBe("Terhubung");
 const sixLive = async () => expect(await screen!.sourceState("SIX")).toBe("Terhubung");
@@ -31,9 +38,10 @@ describe("first run", () => {
   it("connects Edunex, then SIX, then shows this term's courses from SIX with SKS and attendance", async () => {
     screen = await openApp();
     expect(screen.text()).toContain("Jadwal dan ruang, hitungan kehadiran, nilai, KRS, UKT");
-    // "Lanjut" is always the primary button; disabled, it says why.
+    // Both "Hubungkan" are blue: either system can come first, and an outlined one read as switched off.
+    // "Lanjut" can't run yet: grey, never a faded blue beside them, and it says why.
+    expect([look("Hubungkan Edunex"), look("Hubungkan SIX"), look("Lanjut")]).toEqual(["blue", "blue", "grey"]);
     expect(screen.button("Lanjut").disabled).toBe(true);
-    expect(screen.button("Lanjut").className).toContain("bg-accent");
     expect(screen.text()).toContain("Hubungkan Edunex atau SIX dulu");
 
     await screen.click("Hubungkan Edunex");
@@ -41,9 +49,15 @@ describe("first run", () => {
     expect(screen.text()).toContain("Dimas Pratama · 18223901");
     expect(screen.has("Hubungkan Edunex")).toBe(false);
     expect(screen.button("Lanjut").disabled).toBe(false);
+    // SIX's still reads as a button to press, as Edunex's did.
+    expect([look("Hubungkan SIX"), look("Lanjut")]).toEqual(["blue", "blue"]);
     expect(screen.text()).toContain("SIX bisa dihubungkan nanti dari Pengaturan");
 
+    // While the Student is in SIX's sign-in window, its button is busy, not pressable again.
+    const signedIn = screen.holdSignIn();
     await screen.click("Hubungkan SIX");
+    expect(look("Hubungkan SIX")).toBe("busy");
+    await screen.engineDoes(signedIn);
     expect(screen.calls.filter((c) => c.name === "auth.signIn").map((c) => c.input)).toEqual([{ source: "edunex" }, { source: "six" }]);
     expect(screen.text()).toContain("Dimas Pratama · Sistem dan Teknologi Informasi");
     expect(screen.has("Hubungkan SIX")).toBe(false);
@@ -78,6 +92,7 @@ describe("first run", () => {
     screen = await openApp({ signInWindow: "closes" });
     await screen.click("Hubungkan SIX");
     expect(screen.button("Hubungkan SIX").disabled).toBe(false);
+    expect([look("Hubungkan SIX"), look("Lanjut")]).toEqual(["blue", "grey"]);
     expect(screen.button("Lanjut").disabled).toBe(true);
   });
 });

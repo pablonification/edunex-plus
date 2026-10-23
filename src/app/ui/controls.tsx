@@ -10,7 +10,10 @@ type Variant = "primary" | "secondary" | "ghost" | "danger";
 type Size = "sm" | "md" | "lg";
 
 const VARIANT: Record<Variant, string> = {
-  primary: "bg-accent text-on-accent shadow-button hover:bg-accent-hover active:bg-accent-active",
+  // Blue means it can be pressed now. Disabled, a primary goes grey, not a faded blue that reads as either state
+  // (the first run's "Lanjut"). Busy keeps its blue, dimmed, beside its spinner.
+  primary:
+    "bg-accent text-on-accent shadow-button hover:bg-accent-hover active:bg-accent-active disabled:bg-edge disabled:text-faint disabled:opacity-100 disabled:shadow-none",
   secondary: "border border-edge bg-surface text-fg hover:bg-hover",
   ghost: "text-muted hover:bg-hover hover:text-fg",
   danger: "border border-edge bg-surface text-danger-fg hover:bg-danger-bg",

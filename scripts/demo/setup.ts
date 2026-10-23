@@ -13,6 +13,8 @@
 //   EDUNEX_DEMO_AFTER_CLASS=counted|absent|missing  the day runs on past DK4073's 11:00 class to 16:05: SIX counts
 //                            PL3002's morning class, and counts DK4073's (counted), marks it absent, or leaves it
 //                            uncounted (missing), so Presensi shows what SIX's count did after class
+//   EDUNEX_DEMO_SIGN_IN=asks|fails  first-run: Microsoft wants the Student again, so the other system doesn't come along
+//                            by itself and its own "Hubungkan" waits (asks), or the sign-in page can't open (fails)
 //   EDUNEX_DEMO_EDIT=1       after the first sync, the lecturer revises Tugas 01 Bab I (handed in weeks ago):
 //                            new instructions, a later deadline and a new file, so the app knows what changed
 //
@@ -46,6 +48,8 @@ if (process.env.EDUNEX_DEMO_QUIZ === "1")
   world.edunex.exams.set(93409, [
     { id: 88002, type: "exams", attributes: { name: "Kuis Brand Equity", start_at: "2026-10-19T08:00:00+07:00", end_at: "2026-10-30T23:59:00+07:00" } },
   ]);
+const signInDoes = process.env.EDUNEX_DEMO_SIGN_IN;
+if (signInDoes && !["asks", "fails"].includes(signInDoes)) throw new Error(`Unknown EDUNEX_DEMO_SIGN_IN "${signInDoes}"`);
 const afterClass = process.env.EDUNEX_DEMO_AFTER_CLASS;
 if (afterClass && !["counted", "absent", "missing"].includes(afterClass)) throw new Error(`Unknown EDUNEX_DEMO_AFTER_CLASS "${afterClass}"`);
 // Each run gets its own throwaway profile, so several demos can run side by side.
@@ -278,8 +282,11 @@ const hooks: DemoHooks = {
   async signIn(source, { quiet, onStep }) {
     const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
     // About as long as a sign-in window that remembers the Microsoft account, then the website
-    // reading its session out of sight. A quiet try for the other system finds Microsoft's session.
+    // reading its session out of sight. A quiet try for the other system finds Microsoft's session, unless
+    // EDUNEX_DEMO_SIGN_IN says Microsoft asks for the Student again.
+    if (signInDoes === "fails" && !quiet) throw new Error("The pretend sign-in page couldn't open");
     await wait(900);
+    if (quiet && signInDoes === "asks") return null;
     if (!quiet) {
       onStep("finishing");
       await wait(1_500);
