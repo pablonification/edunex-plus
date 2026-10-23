@@ -193,7 +193,8 @@ describe("Perlu perhatianmu", () => {
       "Lihat semua 6 di Beranda",
     ]);
     expect(line(menu, /^Ringkasan K5/).action).toEqual({ kind: "route", route: { screen: "task", taskId: tonight } });
-    expect(line(menu, /^Pertemuan daring II4091/).action).toMatchObject({ kind: "url", url: expect.stringMatching(/^https:\/\/teams\.microsoft\.com\//) });
+    // The lecturer's meeting link: any web page, as the window opens it (not only official ones).
+    expect(line(menu, /^Pertemuan daring II4091/).action).toMatchObject({ kind: "link", url: expect.stringMatching(/^https:\/\/teams\.microsoft\.com\//) });
     // The rest are on Beranda.
     expect(line(menu, "Lihat semua 6 di Beranda").action).toEqual({ kind: "route", route: { screen: "home" } });
     expect(NEEDS_SHOWN).toBe(3);

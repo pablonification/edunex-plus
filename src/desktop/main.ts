@@ -7,7 +7,7 @@ import path from "node:path";
 import { app, type BrowserWindow, dialog, powerMonitor, session, shell } from "electron";
 import { CHANNEL_EVENT } from "../core/channels";
 import type { Event } from "../core/contract";
-import { isOfficialUrl } from "../core/links";
+import { isOfficialUrl, isWebLink } from "../core/links";
 import type { Settings } from "../core/models";
 import { DEFAULT_SETTINGS, UpdateNotice } from "../core/models";
 import type { Route } from "../core/route";
@@ -306,6 +306,10 @@ function trayAction(action: TrayAction): void {
     case "url":
       // Only official pages, as the window's own links ("shell.openExternal").
       if (isOfficialUrl(action.url)) void shell.openExternal(action.url).catch(() => undefined);
+      break;
+    case "link":
+      // A lecturer's link, as the window's "shell.openLink": any web page, in the browser.
+      if (isWebLink(action.url)) void shell.openExternal(action.url).catch(() => undefined);
       break;
     case "checkIn":
       checkIn(action.meetingId);

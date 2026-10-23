@@ -35,6 +35,8 @@ export type TrayAction =
   | { kind: "command"; command: "settings" | "alerts" }
   /** An official page (Edunex, SIX, a Presence) in the browser. */
   | { kind: "url"; url: string }
+  /** A lecturer's link (an online class's meeting): any web page, in the browser, as the window opens it. */
+  | { kind: "link"; url: string }
   /** SIX on the class's popup, for its "Tandai Hadir", as the app's own button does. */
   | { kind: "checkIn"; meetingId: string }
   /** Edunex and SIX read again now, as the window's own refresh. */
@@ -244,7 +246,8 @@ function needsSection(
 
 /** Where Beranda's row goes: a screen, or the official page. */
 function needAction(need: NeedDraft): TrayAction {
-  return need.action.kind === "go" ? { kind: "route", route: need.action.route } : { kind: "url", url: need.action.url };
+  if (need.action.kind === "go") return { kind: "route", route: need.action.route };
+  return need.action.via === "link" ? { kind: "link", url: need.action.url } : { kind: "url", url: need.action.url };
 }
 
 /** Beranda's row, short: what it is, and when (with the course where the title doesn't say it). */
