@@ -3,7 +3,7 @@
 // the Student asks for). Edunex and SIX need a session; ITB's public pages
 // (academic calendar, course catalog) don't.
 import type { z } from "zod";
-import type { DatasetName, DatasetValue, Settings, SourceId } from "../../core/models";
+import type { DatasetName, DatasetValue, Settings, SkippedRow, SourceId } from "../../core/models";
 import type { Clock } from "../clock";
 import type { Pace } from "../http/pace";
 import type { Transport } from "../http/transport";
@@ -34,8 +34,12 @@ export interface SourceContext {
   userAgent: string;
   settings(): Settings;
   get<N extends DatasetName>(name: N): DatasetValue<N> | undefined;
-  /** Stores a fresh value; the screens hear about it only when it changed. */
-  set<N extends DatasetName>(name: N, value: DatasetValue<N>): Promise<boolean>;
+  /**
+   * Stores a fresh value; the screens hear about it only when it changed. `skipped`: the rows of the
+   * page it came from that the reader left out (./skipped.ts), kept in "<source>.skipped" for the
+   * screens to say so; none clears what an earlier read left out.
+   */
+  set<N extends DatasetName>(name: N, value: DatasetValue<N>, skipped?: readonly SkippedRow[]): Promise<boolean>;
   /** Forgets every dataset whose name starts with `prefix`. */
   remove(prefix: string): Promise<void>;
   feed(spec: FeedSpec): void;

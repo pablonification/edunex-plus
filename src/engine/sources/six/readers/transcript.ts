@@ -1,8 +1,12 @@
 // Reads SIX's transcript by semester (/statusmhs/transkrip/historis/{sid}):
 // every course per term with its grade, SIX's IP per term, and SKS totals.
 // Works out how each row counts (retakes, rows off the transcript, T and
-// missing grades) and checks SIX's IP and IPK against the rows.
+// missing grades) and checks SIX's IP and IPK against the rows. A course row
+// it doesn't understand is left out (skipped); the IP checks then say the
+// app's count differs from SIX's, as they do for any row the app can't count.
+
 import { checkIndex, cumulativeIndex, isLetterGrade, type Standing, type Transcript, type TranscriptCourse, termIndex } from "../../../../core/models";
+import type { Skipped } from "../../skipped";
 import {
   cellsOf,
   changed,
@@ -15,6 +19,7 @@ import {
   openPage,
   type Page,
   rowsOf,
+  rowText,
   termFromHeading,
   textOf,
 } from "./records-common";
@@ -34,12 +39,13 @@ interface RawTerm {
   footer: { sks: number; ip: number | null } | null;
 }
 
-export function readTranscript(html: string, sixIpk: SixIpk): Transcript {
-  const page = openPage(html, "transcript");
+export function readTranscript(html: string, sixIpk: SixIpk, skipped?: Skipped): Transcript {
+  const page = openPage(html, "transcript", skipped);
   const tables = page.$("table").filter((_, table) => page.$(table).find("tr.info").length > 0);
   if (tables.length !== 1) changed(page, "no table of semesters");
 
   const terms: RawTerm[] = [];
+  const list = page.skipped.list();
   let sksTaken: number | null = null;
   for (const row of rowsOf(page, tables.first())) {
     const cells = cellsOf(page, row);
@@ -55,9 +61,11 @@ export function readTranscript(html: string, sixIpk: SixIpk): Transcript {
       expectLabels(page, cells.map(textOf), HEADER, "the course header");
     } else {
       if (!current || current.footer) changed(page, "a course row is outside a semester");
-      current.rows.push(readRow(page, cells));
+      const course = list.item(rowText(cells), () => readRow(page, cells));
+      if (course) current.rows.push(course);
     }
   }
+  list.done();
   if (terms.some((t) => !t.footer) || sksTaken === null) changed(page, "a total row is missing");
   if (new Set(terms.map((t) => t.term)).size !== terms.length) changed(page, "a semester appears twice");
   // Oldest first, whatever SIX's order: which attempt of a course is the newest depends on it.

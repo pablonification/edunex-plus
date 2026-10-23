@@ -1,9 +1,26 @@
 // Reads the term's study plan (/registrasi/rencanastudi/{sid}): when it was
 // sent, approved by the academic advisor and made official, its change round
 // (URS), the UKT payment, and its courses with the advisor's approval per
-// course. The advisor chat on the same page is never read.
+// course. The advisor chat on the same page is never read. A course row it
+// doesn't understand is left out (skipped).
 import type { KrsCourse, KrsPlan, KrsState, KrsSteps } from "../../../../core/models";
-import { cellsOf, changed, type Elem, expectLabels, field, int, openPage, type Page, rowsOf, rupiah, stamp, termFromHeading, textOf } from "./records-common";
+import type { Skipped } from "../../skipped";
+import {
+  cellsOf,
+  changed,
+  type Elem,
+  expectLabels,
+  field,
+  int,
+  openPage,
+  type Page,
+  rowsOf,
+  rowText,
+  rupiah,
+  stamp,
+  termFromHeading,
+  textOf,
+} from "./records-common";
 
 const COURSE_HEADER = ["Kode", "Mata Kuliah", "Kelas", "SKS", "Disetujui"];
 type Step = keyof KrsSteps | "ukt";
@@ -21,8 +38,8 @@ const CHANGE_STEPS: [string, Step][] = [
 ];
 const CHANGE_HEADING = "Penggantian Rencana Studi (URS)";
 
-export function readKrs(html: string): KrsPlan {
-  const page = openPage(html, "KRS");
+export function readKrs(html: string, skipped?: Skipped): KrsPlan {
+  const page = openPage(html, "KRS", skipped);
   const heading = page.$(".page-header h1 small").first();
   if (heading.length !== 1) changed(page, "it names no term");
   const tables = page
@@ -94,7 +111,7 @@ function readCourses(page: Page, table: Elem): { list: KrsCourse[]; sks: number 
   const total = rows.pop();
   // The total row: an empty cell over three columns, the SKS, an empty cell.
   if (total?.length !== 3 || total[0]!.attr("colspan") !== "3") changed(page, "the SKS total is missing");
-  const list = rows.map((cells) => {
+  const list = page.skipped.each(rows, rowText, (cells) => {
     if (cells.length !== COURSE_HEADER.length) changed(page, `a course row has ${cells.length} cells`);
     const [code, name, classNo, sks, approved] = cells as [Elem, Elem, Elem, Elem, Elem];
     if (!/^[A-Z]{2}\d{4}$/.test(textOf(code))) changed(page, `"${textOf(code)}" isn't a course code`);

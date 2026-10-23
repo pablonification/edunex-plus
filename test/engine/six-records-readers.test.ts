@@ -12,6 +12,7 @@ import { readProgress } from "../../src/engine/sources/six/readers/progress";
 import { readSchemes } from "../../src/engine/sources/six/readers/schemes";
 import { readSyllabus } from "../../src/engine/sources/six/readers/syllabus";
 import { readTranscript } from "../../src/engine/sources/six/readers/transcript";
+import { Skipped } from "../../src/engine/sources/skipped";
 import { bodyText, exchanges, sixPage } from "../kit/fixtures";
 import { PretendSix } from "../pretend/six";
 
@@ -27,6 +28,12 @@ const IPK = { value: 3.26, sks: 125 };
 const wib = (iso: string) => Date.parse(`${iso}+07:00`);
 
 /** The reader's result, or "VendorChanged: <message>" when it refuses the page. */
+/** What a reader makes of a page, and the rows it left out. */
+function skipping<T>(read: (skipped: Skipped) => T): { value: T; skipped: Skipped["rows"] } {
+  const skipped = new Skipped();
+  return { value: read(skipped), skipped: skipped.rows };
+}
+
 function verdict<T>(read: () => T): T | string {
   try {
     return read();
@@ -142,6 +149,26 @@ describe("transcript by semester", () => {
     expect(transcriptOf(six).terms.find((t) => t.term === "2025-1")!.ip).toMatchObject({ six: 3.25, computed: 3.25, agrees: true });
   });
 
+  it("a course row it doesn't understand is left out and kept; the others read, and SIX's IP shows next to the app's", () => {
+    const page = sixPage(TRANSCRIPT);
+    const all = readTranscript(page, IPK);
+    const codes = (transcript: typeof all) => transcript.terms.map((term) => [term.term, term.courses.map((c) => c.code)]);
+    const first = all.terms[0]!;
+    const grade = skipping((skipped) =>
+      readTranscript(page.replace(/(<td>FI1101<span[^>]*>-19<\/span><\/td><td>[^<]*<\/td><td>4<\/td><td>)\s*A\s*/, "$185.5"), IPK, skipped),
+    );
+    expect(codes(grade.value)).toEqual(
+      codes({ ...all, terms: [{ ...first, courses: first.courses.filter((c) => c.code !== "FI1101") }, ...all.terms.slice(1)] }),
+    );
+    expect(grade.skipped).toEqual([{ row: "1 · FI1101-19 · Fisika Dasar IA · 4 · 85.5 · 1", why: 'SIX transcript page: grade "85.5" isn\'t a grade' }]);
+    expect(grade.value.terms[0]!.ip.agrees).toBe(false);
+    const mark = skipping((skipped) =>
+      readTranscript(page.replace('<i class="fa fa-check fa-fw text-success" aria-hidden="true"></i></td></tr>', "Ya</td></tr>"), IPK, skipped),
+    );
+    expect(mark.skipped.map((row) => row.why)).toEqual(["SIX transcript page: a transcript mark is neither ✓ nor ✗"]);
+    expect(mark.value.terms.flatMap((t) => t.courses)).toHaveLength(all.terms.flatMap((t) => t.courses).length - 1);
+  });
+
   it("refuses layouts it doesn't know", () => {
     const page = sixPage(TRANSCRIPT);
     const refused = (html: string) => verdict(() => readTranscript(html, IPK));
@@ -152,14 +179,12 @@ describe("transcript by semester", () => {
     expect(refused(page.split("<th>Nilai</th>").join("<th>Bobot</th><th>Nilai</th>"))).toMatch(
       /^VendorChanged: SIX transcript page: the course header has 8 columns/,
     );
-    expect(refused(page.replace(/(<td>FI1101<span[^>]*>-19<\/span><\/td><td>[^<]*<\/td><td>4<\/td><td>)\s*A\s*/, "$185.5"))).toBe(
-      'VendorChanged: SIX transcript page: grade "85.5" isn\'t a grade',
-    );
+    // Every grade written another way, only this term's ungraded courses still read: the table changed, not a row.
+    expect(refused(page.replace(/<td>\s*([A-E]{1,2}|T)\s*<\/td>/g, "<td>85.5</td>"))).toBe('VendorChanged: SIX transcript page: grade "85.5" isn\'t a grade');
     expect(refused(page.replace("Semester 1 Tahun 2023/2024", "Semester Ganjil"))).toBe(
       'VendorChanged: SIX transcript page: semester heading "Semester Ganjil" names no term',
     );
     expect(refused(page.replace("NR 3.69", "NR 3,6"))).toMatch(/^VendorChanged: SIX transcript page: semester IP "3,6"/);
-    expect(refused(page.replace('<i class="fa fa-check fa-fw text-success" aria-hidden="true"></i></td></tr>', "Ya</td></tr>"))).toMatch(/neither ✓ nor ✗/);
     expect(refused(page.replace(/<tr class="info">[\s\S]*<\/table>/, "</table>"))).toBe("VendorChanged: SIX transcript page: no table of semesters");
     expect(refused("<html><body><h1>Maintenance</h1></body></html>")).toBe("VendorChanged: SIX transcript page: no table of semesters");
   });
@@ -235,6 +260,20 @@ describe("graduation progress (curriculum position)", () => {
     expect(firstSemester.some((c) => c.code === "KI1101")).toBe(false);
   });
 
+  it("a course row it doesn't understand is left out and kept; the rest of its semester and stage read", () => {
+    const page = sixPage(PROGRESS);
+    const courses = (progress: ReturnType<typeof readProgress>["progress"]) =>
+      progress.stages.flatMap((s) => s.semesters.flatMap((m) => m.courses.map((c) => c.code)));
+    const all = courses(readProgress(page).progress);
+    const { value, skipped } = skipping((into) =>
+      readProgress(page.replace('<span class="label label-danger" title="Belum diambil">', '<span class="label label-warning" title="Belum diambil">'), into),
+    );
+    expect(courses(value.progress)).toEqual(all.filter((code) => code !== "II4090"));
+    expect(skipped).toEqual([
+      { row: expect.stringMatching(/II4090/), why: 'SIX curriculum position page: course II4090 has an unknown status "Belum diambil"' },
+    ]);
+  });
+
   it("refuses layouts it doesn't know", () => {
     const page = sixPage(PROGRESS);
     const refused = (html: string) => verdict(() => readProgress(html));
@@ -242,9 +281,8 @@ describe("graduation progress (curriculum position)", () => {
     expect(refused(page.replace(/Tahap Sarjana\s*\(IP 3\.18 \/ SKS Lulus 107\)/, "Tahap Sarjana (3.18)"))).toBe(
       'VendorChanged: SIX curriculum position page: stage "Tahap Sarjana (3.18)" isn\'t readable',
     );
-    expect(refused(page.replace('<span class="label label-danger" title="Belum diambil">', '<span class="label label-warning" title="Belum diambil">'))).toBe(
-      'VendorChanged: SIX curriculum position page: course II4090 has an unknown status "Belum diambil"',
-    );
+    // Every graded course's term written another way: more rows left out than read, so the table changed.
+    expect(refused(page.replace(/\d{4}-[123]/g, "Ganjil"))).toMatch(/^VendorChanged: SIX curriculum position page: course \w+ reads/);
     expect(refused(page.replace(/Lulus 125 SKS\s*\/\s*Nilai T 0 SKS/, "125 SKS"))).toBe(
       'VendorChanged: SIX curriculum position page: SKS "125 SKS" isn\'t readable',
     );
@@ -340,6 +378,20 @@ describe("curriculum", () => {
     ]);
   });
 
+  it("a row of required courses it doesn't understand is left out and kept; the other semesters' courses read", () => {
+    const structure = sixPage(STRUCTURE);
+    const all = readCurriculumStructure(structure);
+    const { value, skipped } = skipping((into) =>
+      readCurriculumStructure(structure.replace(/(<a href="\/pub\/matakuliah\/47455">)\s*MA1101\s*</, "$1 Matematika <"), into),
+    );
+    expect(skipped).toEqual([{ row: expect.stringMatching(/^Matematika · /), why: 'SIX curriculum structure page: "Matematika" isn\'t a course code' }]);
+    // MA1101's row, and the course beside it in the same row, are left out; nothing else.
+    expect(value.required.length).toBeGreaterThanOrEqual(all.required.length - 2);
+    expect(value.required.length).toBeLessThan(all.required.length);
+    expect(value.required.some((c) => c.code === "MA1101")).toBe(false);
+    expect(value.catalog).toEqual(all.catalog);
+  });
+
   it("refuses layouts it doesn't know", () => {
     expect(verdict(() => readCurriculumList(sixPage(LIST).replace('<th class="text-center">SKS Lulus</th>', '<th class="text-center">Beban</th>')))).toMatch(
       /^VendorChanged: SIX curriculum list page: the list header reads/,
@@ -348,7 +400,8 @@ describe("curriculum", () => {
     expect(verdict(() => readCurriculumStructure(structure.replace('id="katalog"', 'id="catalog"')))).toBe(
       "VendorChanged: SIX curriculum structure page: the katalog tab is missing",
     );
-    expect(verdict(() => readCurriculumStructure(structure.replace(/(<a href="\/pub\/matakuliah\/47455">)\s*MA1101\s*</, "$1 Matematika <")))).toBe(
+    // Every course code written another way: not a row, the tables changed.
+    expect(verdict(() => readCurriculumStructure(structure.replace(/(<a href="\/pub\/matakuliah\/\d+">)\s*[A-Z]{2}\d{3}[\dX]\s*</g, "$1 Matematika <")))).toBe(
       'VendorChanged: SIX curriculum structure page: "Matematika" isn\'t a course code',
     );
     expect(
@@ -567,17 +620,35 @@ describe("bills", () => {
     expect(readBills(spi)).toEqual(readBills(page));
   });
 
-  it("refuses layouts it doesn't know", () => {
+  it("a bill row it doesn't understand is left out and kept with what it shows; the other bills read", () => {
+    const page = sixPage(BILLS);
+    const all = readBills(page);
+    const without = (term: string) => all.filter((bill) => bill.term !== term);
+    const date = skipping((skipped) => readBills(page.replace("24 Agu 2026", "2026-08-24"), skipped));
+    expect(date.value).toEqual(without("2026-1"));
+    expect(date.skipped).toEqual([
+      { row: "1 - Ganjil · 5.400.000 · 5.400.000 · 2026-08-24", why: 'SIX finance page: deadline of 2026-1 "2026-08-24" isn\'t a date' },
+    ]);
+    const amount = skipping((skipped) => readBills(page.replace(/(<td class="text-right">\s*)5\.400\.000/, "$15.400.000,00"), skipped));
+    expect(amount.value).toEqual(without("2025-1"));
+    expect(amount.skipped.map((row) => row.why)).toEqual(['SIX finance page: bill of 2025-1 "5.400.000,00" isn\'t an amount']);
+    const term = skipping((skipped) => readBills(page.replace("1&nbsp;-&nbsp;Ganjil", "Ganjil"), skipped));
+    expect(term.value).toEqual(without("2023-1"));
+    expect(term.skipped.map((row) => row.row)).toEqual(["Ganjil · 10.500.000 · 10.500.000 · 20 Agu 2023"]);
+    // Read without a list to keep them in: still left out.
+    expect(readBills(page.replace("24 Agu 2026", "2026-08-24"))).toEqual(without("2026-1"));
+  });
+
+  it("refuses layouts it doesn't know: its header, a year it can't read, or no bill it understands", () => {
     const page = sixPage(BILLS);
     const refused = (html: string) => verdict(() => readBills(html));
     expect(refused(page.replace("<th class='text-right'>Pembayaran (Rp)</th>", "<th class='text-right'>Dibayar (Rp)</th>"))).toMatch(
       /^VendorChanged: SIX finance page: the bills header reads/,
     );
-    expect(refused(page.replace("24 Agu 2026", "2026-08-24"))).toBe('VendorChanged: SIX finance page: deadline of 2026-1 "2026-08-24" isn\'t a date');
-    expect(refused(page.replace(/(<td class="text-right">\s*)5\.400\.000/, "$15.400.000,00"))).toBe(
-      'VendorChanged: SIX finance page: bill of 2025-1 "5.400.000,00" isn\'t an amount',
+    expect(refused(page.replace("Tahun 2024 / 2025", "Tahun Ajaran Baru"))).toBe(
+      'VendorChanged: SIX finance page: year row "Tahun Ajaran Baru" isn\'t readable',
     );
-    expect(refused(page.replace("1&nbsp;-&nbsp;Ganjil", "Ganjil"))).toBe('VendorChanged: SIX finance page: term "Ganjil" isn\'t readable');
+    expect(refused(page.replace(/\d&nbsp;-&nbsp;/g, ""))).toBe('VendorChanged: SIX finance page: term "Ganjil" isn\'t readable');
   });
 
   it("reads SIX's English page the same way", () => {
@@ -596,6 +667,40 @@ describe("bills", () => {
     ]);
     for (const label of ["Tagihan", "Tahun", "Ganjil", " Agu ", "5.400.000"]) expect(english).not.toContain(label);
     expect(readBills(english)).toEqual(readBills(page));
+  });
+});
+
+describe("every reader, given a row it doesn't recognise among the ones it does", () => {
+  /** `html` with `row` put before the row holding `marker` (the first after `after`). */
+  const withRowBefore = (html: string, marker: string, row: string, after = "") => {
+    const at = html.indexOf(marker, after ? html.indexOf(after) : 0);
+    expect(at).toBeGreaterThan(0);
+    const start = html.lastIndexOf("<tr", at);
+    return html.slice(0, start) + row + html.slice(start);
+  };
+  const cases: [string, RegExp, (html: string, skipped: Skipped) => unknown, string, string, string?][] = [
+    ["a KRS course", KRS, readKrs, "DK4073", "<tr><td>XX-01</td><td>Mata kuliah baru</td><td>01</td><td>3</td><td></td></tr>"],
+    ["a curriculum", LIST, readCurriculumList, "Lihat Struktur Kurikulum", "<tr><td>Kurikulum lama</td><td>2013</td></tr>"],
+    ["a scheme registration", SCHEMES, readSchemes, "Sistem Informasi Cerdas &#183;", "<tr><td>2</td><td>Minor baru</td><td>-</td></tr>"],
+    ["a specialization's course", STRUCTURE, readCurriculumStructure, "II4021", "<tr><td>II4X99</td><td>Topik Khusus</td><td>3</td></tr>"],
+    ["a catalog course", STRUCTURE, readCurriculumStructure, "<td", "<tr><td>Kategori baru</td><td>3</td></tr>", 'id="katalog"'],
+  ];
+
+  it.each(cases)("%s: left out and kept with what it shows; the rest reads as before", (_name, path, read, marker, row, after) => {
+    const page = sixPage(path);
+    const before = read(page, new Skipped());
+    const { value, skipped } = skipping((into) => read(withRowBefore(page, marker, row, after), into));
+    expect(value).toEqual(before);
+    expect(skipped).toHaveLength(1);
+    expect(skipped[0]!.row).toBe(
+      row
+        .replace(/<[^>]+>/g, " · ")
+        .split(" · ")
+        .map((part) => part.trim())
+        .filter(Boolean)
+        .join(" · "),
+    );
+    expect(skipped[0]!.why).toMatch(/^SIX /);
   });
 });
 

@@ -217,6 +217,28 @@ describe("the UKT tab", () => {
     expect(new Set(historyRows().map((row) => row.children.length))).toEqual(new Set([3]));
   });
 
+  it("a row SIX shows that the app doesn't recognise: said quietly, as SIX shows it, with SIX's page to check; gone once read", async () => {
+    const s = await openPlan("2026-10-11T09:00:00+07:00");
+    await inject("six.krs", krs());
+    await inject("six.bills", bills());
+    await s.click(/^Rencana studi/);
+    await tab("UKT");
+    expect(panel()).not.toContain("belum dikenali");
+    const row = "Uang Pangkal · 25.000.000 · 25.000.000 · 20 Agu 2023";
+    await inject("six.student", { nim: "18223901", name: "Dimas Pratama", studentId: "2021000001", term: "2026-1", program: null, programCode: null });
+    await inject("six.skipped", { "six.bills": [{ row, why: 'SIX finance page: term "Uang Pangkal" isn\'t readable' }] });
+    expect(panel()).toContain(`1 baris di SIX belum dikenaliBelum ditampilkan di sini. Cek di SIX.${row}Buka di SIX`);
+    // Not a warning: the bills SIX shows the app does recognise are all there.
+    expect(panel()).toContain("Riwayat");
+    await s.click("Buka di SIX");
+    expect(s.calls.at(-1)).toEqual({ name: "shell.openExternal", input: { url: "https://six.itb.ac.id/app/mahasiswa:18223901/keuangan" } });
+    // Another dataset's rows are said on its own screen, not here.
+    await inject("six.skipped", { "six.krs": [{ row, why: "" }] });
+    expect(panel()).not.toContain("belum dikenali");
+    await inject("six.skipped", {});
+    expect(panel()).not.toContain("belum dikenali");
+  });
+
   it("due within a week is a warning; overdue is said plainly", async () => {
     const s = await openPlan("2027-01-28T09:00:00+07:00");
     await inject("six.krs", { ...krs(), term: "2026-2" });
