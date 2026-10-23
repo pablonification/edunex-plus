@@ -1,7 +1,8 @@
 // Human-friendly times and numbers in the Student's language, in the
 // computer's own time zone ("Besok, 23:59 · dalam 6 jam", never a raw
 // timestamp). `now` is passed in so screens and tests agree on the moment.
-import { type Lang, translate } from "../../core/strings";
+// The window's screens (src/app/i18n) and the tray menu (src/desktop/tray-menu.ts) both use it.
+import { type Lang, translate } from "./strings";
 
 export type When = number | string | Date;
 

@@ -82,4 +82,17 @@ export const alertsStrings = {
   },
   "tray.explainer.keep": { id: "Tetap berjalan", en: "Keep running" },
   "tray.explainer.quit": { id: "Keluar sepenuhnya", en: "Quit completely" },
+  // The tray menu's own lines (src/desktop/tray-menu.ts); the rest are Beranda's words
+  "tray.tooltip": {
+    id: "Edunex Plus · {count} perlu perhatianmu",
+    en: { one: "Edunex Plus · {count} needs you", other: "Edunex Plus · {count} need you" },
+  },
+  "tray.updatedAt": { id: "Diperbarui pukul {time}", en: "Updated at {time}" },
+  "tray.offline": { id: "Tidak terhubung · data dari {when}", en: "Offline · data from {when}" },
+  "tray.checkIn": { id: "Tekan Tandai Hadir di SIX · {course}", en: "Press Tandai Hadir in SIX · {course}" },
+  "tray.opens": { id: "dibuka {when}", en: "opens {when}" },
+  "tray.edited": { id: "diubah dosen", en: "changed by your lecturer" },
+  "tray.needs.all": { id: "Lihat semua {count} di Beranda", en: "See all {count} on Home" },
+  "tray.openEdunex": { id: "Buka Edunex di browser", en: "Open Edunex in browser" },
+  "tray.openSix": { id: "Buka SIX di browser", en: "Open SIX in browser" },
 } as const satisfies Record<string, Entry>;

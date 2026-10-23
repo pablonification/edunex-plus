@@ -49,8 +49,8 @@ export const Event = z.discriminatedUnion("type", [
   z.object({ type: z.literal("dataset.removed"), name: z.string() }),
   z.object({ type: z.literal("status"), status: SourceStatus }),
   z.object({ type: z.literal("settings"), settings: Settings }),
-  /** A menu item or global shortcut the window should act on. */
-  z.object({ type: z.literal("command"), command: z.enum(["settings", "refresh", "search"]) }),
+  /** A menu item or global shortcut the window should act on ("alerts": the tray menu's new notifications open the bell). */
+  z.object({ type: z.literal("command"), command: z.enum(["settings", "refresh", "search", "alerts"]) }),
   /** Open a screen: the Student clicked an OS notification. */
   z.object({ type: z.literal("navigate"), route: Route }),
   /** A sign-in's step past the Student's part (null: with the Student again, or over). */
