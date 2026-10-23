@@ -1,10 +1,11 @@
 // Highlights, seam 1: the rules alone. Making, recoloring, removing and
-// putting back a highlight in a file; the caps, which let the files changed
+// putting back a highlight in a file, or all of a file's at once; the caps, which let the files changed
 // longest ago go first; and finding a highlight's text again in a page whose
 // text reads a little differently now. Made-up lines of a course outline.
 import { describe, expect, it } from "vitest";
 import {
   addHighlights,
+  clearHighlights,
   colorOf,
   HIGHLIGHT_COLORS,
   highlightsIn,
@@ -13,7 +14,7 @@ import {
   quoteOf,
   recolorHighlight,
   removeHighlight,
-  restoreHighlight,
+  restoreHighlights,
   trimmed,
 } from "../../src/core/highlights";
 import { Datasets, type Highlight, type HighlightedFile, MAX_FILE_HIGHLIGHTS, MAX_HIGHLIGHT_FILES, MAX_HIGHLIGHTS } from "../../src/core/models";
@@ -69,9 +70,22 @@ describe("making and changing highlights", () => {
     const removed = highlightsIn(files, FILE)[1];
     files = removeHighlight(files, FILE, "h2", 6);
     expect(ids(files)).toEqual(["h1 blue"]);
-    files = restoreHighlight(files, FILE, removed, 7);
-    files = restoreHighlight(files, FILE, removed, 8);
+    files = restoreHighlights(files, FILE, [removed], 7);
+    files = restoreHighlights(files, FILE, [removed], 8);
     expect(ids(files)).toEqual(["h1 blue", "h2 yellow"]);
+  });
+
+  it("removes all of a file's at once, leaves other files alone, and puts them all back in their order", () => {
+    let files = addHighlights([], OTHER, [mark("o1", 0, 6)], 1);
+    files = addHighlights(files, FILE, [mark("h1", 0, 6), mark("h2", 20, 27, { color: "green" })], 2);
+    const all = highlightsIn(files, FILE);
+    files = clearHighlights(files, FILE, 3);
+    expect(ids(files)).toEqual([]);
+    expect(files.map((f) => f.file)).toEqual([OTHER]);
+    files = restoreHighlights(files, FILE, all, 4);
+    files = restoreHighlights(files, FILE, all, 5);
+    expect(ids(files)).toEqual(["h1 yellow", "h2 green"]);
+    expect(ids(files, OTHER)).toEqual(["o1 yellow"]);
   });
 
   it("a file whose last highlight goes isn't kept at all", () => {
