@@ -82,4 +82,23 @@ export const alertsStrings = {
   },
   "tray.explainer.keep": { id: "Tetap berjalan", en: "Keep running" },
   "tray.explainer.quit": { id: "Keluar sepenuhnya", en: "Quit completely" },
+  // The tray menu's own lines (src/desktop/tray-menu.ts); the rest are Beranda's words
+  "tray.tooltip": {
+    id: "Edunex Plus · {count} perlu perhatianmu",
+    en: { one: "Edunex Plus · {count} needs you", other: "Edunex Plus · {count} need you" },
+  },
+  "tray.updatedAt": { id: "Diperbarui pukul {time}", en: "Updated at {time}" },
+  "tray.offline": { id: "Tidak terhubung · data dari {when}", en: "Offline · data from {when}" },
+  "tray.checkIn": { id: "Tekan Tandai Hadir di SIX", en: "Press Tandai Hadir in SIX" },
+  "tray.opens": { id: "dibuka {when}", en: "opens {when}" },
+  "tray.now": { id: "Sedang berlangsung", en: "On now" },
+  "tray.meeting": { id: "Pertemuan {course}", en: "{course} meeting" },
+  "tray.meeting.online": { id: "Pertemuan daring {course}", en: "{course} online meeting" },
+  "tray.attendance": { id: "Kehadiran {course}", en: "{course} attendance" },
+  "tray.attendance.out": { id: "Tak bisa lagi capai {target}%", en: "Can't reach {target}% anymore" },
+  "tray.attendance.tomorrow": { id: "Jangan absen besok", en: "Don't miss tomorrow's class" },
+  "tray.attendance.none": { id: "Jangan absen lagi", en: "Don't miss another class" },
+  "tray.edited": { id: "diubah dosen", en: "changed by your lecturer" },
+  "tray.needs.all": { id: "Lihat semua {count} di Beranda", en: "See all {count} on Home" },
+  "tray.openInBrowser": { id: "Buka di browser", en: "Open in browser" },
 } as const satisfies Record<string, Entry>;

@@ -58,7 +58,7 @@ describe("the tray icon", () => {
     ["darwin", "/app/assets/trayTemplate.png", true],
   ] as const)("%s shows %s", (platform, file, template) => {
     runOn(platform);
-    createTray({ lang: "id", open: () => undefined, quit: () => undefined });
+    createTray({ menu: () => ({ tooltip: "Edunex Plus", entries: [] }), now: () => 0, act: () => undefined })?.destroy();
     expect(loaded).toEqual([{ file, template }]);
   });
 

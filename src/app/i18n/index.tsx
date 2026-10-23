@@ -2,11 +2,11 @@
 // clock ticks once a minute so "in 6 hours" stays true without re-rendering
 // every second. Tests pass their own clock.
 import { createContext, type ReactNode, useCallback, useContext, useMemo, useSyncExternalStore } from "react";
+import { type Format, makeFormat } from "../../core/format";
 import { type Lang, type StringKey, translate, type Vars } from "../../core/strings";
-import { type Format, makeFormat } from "./format";
 
+export type { Format } from "../../core/format";
 export type { Lang, StringKey } from "../../core/strings";
-export type { Format } from "./format";
 
 export interface UiClock {
   now(): number;
