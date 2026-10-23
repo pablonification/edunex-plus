@@ -85,6 +85,8 @@ const pairs: [string, string, number][] = [
     ["--surface", "--hover", "--selected@--surface"].map((bg) => [fg, bg, 4.5] as [string, string, number]),
   ),
   ["--tooltip-fg", "--tooltip-bg", 4.5],
+  // A primary button that can't run yet: grey, its words still readable (WCAG asks nothing of a disabled control).
+  ["--faint", "--edge", 3],
   ["--focus", "--canvas", 3],
   ["--focus", "--raised", 3],
   // A meter's fill on its track (attendance, a window's time left): 3:1, like any mark that carries meaning.
