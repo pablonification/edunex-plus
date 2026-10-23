@@ -8,6 +8,7 @@ import { act } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Task } from "../../src/core/models";
 import { PretendWorld } from "../pretend/world";
+import { playOpenings } from "./fake-animations";
 import { openApp } from "./harness";
 
 /** What the stand-in opened and freed; `hold` keeps the next PDF opening until it's let go; `saved`: each fill it wrote. */
@@ -66,6 +67,7 @@ vi.mock("../../src/app/ui/pdf-engine", () => {
     PdfOpenError,
     LINE_HEIGHT: 1.35,
     OFF: "Off",
+    preparePdf: async () => undefined,
     openPdf: async (bytes: Uint8Array) => {
       const text = new TextDecoder().decode(bytes);
       if (text.includes("/Encrypt")) throw new PdfOpenError("locked");
@@ -275,6 +277,27 @@ describe("the PDF viewer", () => {
     await wait(200);
     expect(drawing()).not.toBe(first);
     expect(first!.width).toBe(0);
+  });
+
+  it("the panel opens on its own: the file is read and opened meanwhile, and its pages come in once it has stopped moving", async () => {
+    const world = new PretendWorld();
+    world.putFile(BLOB, "%PDF-1.7 Pages: 3");
+    const s = await openPl3032(world);
+    const opening = playOpenings();
+    const before = engine.opened;
+    try {
+      await s.click("Lihat: K1. SAP Ekonomi Infrastruktur dan Transportasi");
+      expect(s.calls).toContainEqual({ name: "files.read", input: { url: BLOB, as: "pdf" } });
+      expect(engine.opened - before).toBe(1);
+      // Laying out and drawing the pages while it moves would stall it: its placeholder stays until it lands.
+      expect(viewer()?.textContent).toContain("Memuat PDF");
+      expect(viewer()!.querySelectorAll("[role=group]")).toHaveLength(0);
+      await opening.land();
+      expect(viewer()?.textContent).toContain("dari 3");
+      expect(viewer()!.querySelectorAll("[role=group]")).toHaveLength(3);
+    } finally {
+      opening.stop();
+    }
   });
 
   it("closing it while the PDF is still opening frees it all the same", async () => {

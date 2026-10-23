@@ -54,6 +54,29 @@ export function playAnimations() {
 }
 
 /**
+ * jsdom runs no CSS, so a panel never reports its opening. Here each dialog does (element.getAnimations), as
+ * Chromium does while its pop-in runs, until the test lets it land. Call `stop` after the test.
+ */
+export function playOpenings() {
+  const motion = playAnimations();
+  let landed = () => {};
+  const finished = new Promise<void>((resolve) => {
+    landed = resolve;
+  });
+  Element.prototype.getAnimations = function (this: Element) {
+    return this.getAttribute("role") === "dialog" ? [{ finished } as unknown as Animation] : [];
+  };
+  return {
+    /** The opening ends, as the browser ends it once its time is up. */
+    land: () => act(async () => landed()),
+    stop: () => {
+      delete (Element.prototype as { getAnimations?: unknown }).getAnimations;
+      motion.stop();
+    },
+  };
+}
+
+/**
  * jsdom runs no CSS, so Radix drops a closing panel at once. Here every panel reports the
  * animation its classes give its state (data-[state=closed]:animate-pop-out → "pop-out"), as
  * Chromium does, so a closing one stays on screen until its animation ends, as in the window.
