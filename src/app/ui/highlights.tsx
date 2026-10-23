@@ -352,8 +352,6 @@ export function useHighlighter({
     from.clear();
     removed.current = gone;
     setBar(null);
-    // Their stops have gone, and the menu with them: the keyboard carries on from the pages, where ⌘Z is.
-    scroller.current?.focus();
     toast(t("highlight.cleared", { count }), "neutral", {
       label: t("action.undo"),
       onClick: () => {
@@ -362,7 +360,7 @@ export function useHighlighter({
       },
     });
     say(t("highlight.clearedUndo", { count, keys: keys.undo }));
-  }, [scroller, say]);
+  }, [say]);
 
   const undo = useCallback(() => {
     const last = removed.current;

@@ -208,61 +208,64 @@ export function FileViewer({ open, onOpenChange, name, kind, load, actions, fall
         >
           {/* Whatever in the viewer fails breaks the viewer, not the window; its title and Close stay. */}
           <PanelBoundary name="file viewer" compact header={<Toolbar name={name} />}>
-            <Toolbar name={name} actions={view.phase === "failed" ? undefined : actions}>
-              {highlighter.menu}
-            </Toolbar>
-            {view.phase === "ready" && view.shown.kind === "sheets" ? (
-              <Sheets sheets={view.shown.sheets} name={name} scroller={scroller} />
-            ) : (
-              <section
-                ref={scroller}
-                // The file scrolls, so once it's there it takes the keyboard (arrows, Page Down).
-                tabIndex={view.phase === "ready" ? 0 : -1}
-                aria-label={name}
-                // Highlighting: what's selected as the mouse comes up, a highlight under a click (a hand over one), ⌘⇧H and ⌘Z.
-                onMouseDown={highlighter.onMouseDown}
-                onMouseMove={highlighter.onMouseMove}
-                onMouseLeave={highlighter.onMouseLeave}
-                onMouseUp={highlighter.onMouseUp}
-                onKeyDown={highlighter.onKey}
-                className={cx(
-                  "min-h-0 flex-1 overflow-auto overscroll-contain bg-sunken outline-none focus-visible:shadow-[inset_0_0_0_2px_var(--focus)]",
-                  view.phase !== "ready" && "grid place-items-center p-6",
-                )}
-              >
-                {view.phase === "loading" ? (
-                  <Loading label={t("viewer.loading")} />
-                ) : view.phase === "failed" ? (
-                  <Failed title={t("viewer.failed")} detail={view.problem === "broken" ? t("viewer.broken") : t(`file.problem.${view.problem}`)}>
-                    {view.problem === "unreachable" ? (
-                      <Button variant="primary" icon={<Icons.RefreshCw className="size-3.5" />} onClick={() => setAttempt((n) => n + 1)}>
-                        {t("action.tryAgain")}
-                      </Button>
-                    ) : (
-                      fallback?.(view.problem)
-                    )}
-                  </Failed>
-                ) : view.shown.kind === "docx" ? (
-                  <WordPages nodes={view.shown.nodes} onOpenLink={onOpenLink} marks={marks} />
-                ) : view.shown.kind === "slides" ? (
-                  <SlideDeck deck={view.shown.deck} onOpenLink={onOpenLink} />
-                ) : view.shown.kind === "text" ? (
-                  <TextFile text={view.shown.text} marks={marks} />
-                ) : view.shown.kind === "doc" ? (
-                  <DocPages pages={view.shown.pages} />
-                ) : view.shown.kind === "ppt" ? (
-                  <SlideCards slides={view.shown.slides} />
-                ) : view.shown.kind === "image" ? (
-                  <div className="grid min-h-full place-items-center p-6">
-                    <img
-                      src={view.shown.url}
-                      alt={name}
-                      className="h-auto max-w-full rounded-sm shadow-card outline -outline-offset-1 outline-black/10 dark:outline-white/10"
-                    />
-                  </div>
-                ) : null}
-              </section>
-            )}
+            {/* ⌘⇧H and ⌘Z wherever the keyboard is in the viewer: the file, or its toolbar's "⋯" after "Hapus semua sorotan". */}
+            {/* biome-ignore lint/a11y/noStaticElementInteractions: keys for the whole viewer, wherever focus is inside it */}
+            <div className="flex min-h-0 flex-1 flex-col" onKeyDown={highlighter.onKey}>
+              <Toolbar name={name} actions={view.phase === "failed" ? undefined : actions}>
+                {highlighter.menu}
+              </Toolbar>
+              {view.phase === "ready" && view.shown.kind === "sheets" ? (
+                <Sheets sheets={view.shown.sheets} name={name} scroller={scroller} />
+              ) : (
+                <section
+                  ref={scroller}
+                  // The file scrolls, so once it's there it takes the keyboard (arrows, Page Down).
+                  tabIndex={view.phase === "ready" ? 0 : -1}
+                  aria-label={name}
+                  // Highlighting: what's selected as the mouse comes up, a highlight under a click (a hand over one).
+                  onMouseDown={highlighter.onMouseDown}
+                  onMouseMove={highlighter.onMouseMove}
+                  onMouseLeave={highlighter.onMouseLeave}
+                  onMouseUp={highlighter.onMouseUp}
+                  className={cx(
+                    "min-h-0 flex-1 overflow-auto overscroll-contain bg-sunken outline-none focus-visible:shadow-[inset_0_0_0_2px_var(--focus)]",
+                    view.phase !== "ready" && "grid place-items-center p-6",
+                  )}
+                >
+                  {view.phase === "loading" ? (
+                    <Loading label={t("viewer.loading")} />
+                  ) : view.phase === "failed" ? (
+                    <Failed title={t("viewer.failed")} detail={view.problem === "broken" ? t("viewer.broken") : t(`file.problem.${view.problem}`)}>
+                      {view.problem === "unreachable" ? (
+                        <Button variant="primary" icon={<Icons.RefreshCw className="size-3.5" />} onClick={() => setAttempt((n) => n + 1)}>
+                          {t("action.tryAgain")}
+                        </Button>
+                      ) : (
+                        fallback?.(view.problem)
+                      )}
+                    </Failed>
+                  ) : view.shown.kind === "docx" ? (
+                    <WordPages nodes={view.shown.nodes} onOpenLink={onOpenLink} marks={marks} />
+                  ) : view.shown.kind === "slides" ? (
+                    <SlideDeck deck={view.shown.deck} onOpenLink={onOpenLink} />
+                  ) : view.shown.kind === "text" ? (
+                    <TextFile text={view.shown.text} marks={marks} />
+                  ) : view.shown.kind === "doc" ? (
+                    <DocPages pages={view.shown.pages} />
+                  ) : view.shown.kind === "ppt" ? (
+                    <SlideCards slides={view.shown.slides} />
+                  ) : view.shown.kind === "image" ? (
+                    <div className="grid min-h-full place-items-center p-6">
+                      <img
+                        src={view.shown.url}
+                        alt={name}
+                        className="h-auto max-w-full rounded-sm shadow-card outline -outline-offset-1 outline-black/10 dark:outline-white/10"
+                      />
+                    </div>
+                  ) : null}
+                </section>
+              )}
+            </div>
             {highlighter.announcer}
           </PanelBoundary>
         </DialogPrimitive.Content>

@@ -244,15 +244,15 @@ describe("highlighting a PDF", () => {
     expect(s.has("Sorotan kuning: mahasiswa mampu")).toBe(false);
     expect(s.text()).toContain("2 sorotan dihapus");
     expect(said()).toBe("2 sorotan dihapus. Urungkan dengan ⌘Z.");
-    // The keyboard carries on from the pages, where ⌘Z puts them back.
-    expect(document.activeElement).toBe(pages());
+    // The keyboard is back on the "⋯", as after any menu's item, and ⌘Z works from there too.
+    expect(document.activeElement).toBe(more());
 
     await s.click("Urungkan");
     expect(savedHighlights(s).map((h) => h.slice(9))).toEqual(["1 28-43 yellow mahasiswa mampu", "2 10-19 blue Pengantar"]);
 
     await s.click(more());
     await s.click(clearAllItem()!);
-    await press(pages(), "z", { metaKey: true });
+    await press(document.activeElement!, "z", { metaKey: true });
     expect(savedHighlights(s)).toHaveLength(2);
     expect(said()).toBe("2 sorotan dikembalikan");
     expect(s.has("Sorotan biru: Pengantar")).toBe(true);
