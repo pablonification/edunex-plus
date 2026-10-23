@@ -25,7 +25,9 @@ import {
   type HomeContext,
   homeContext,
   type NeedDraft,
+  type NeedsRange,
   type NowCard,
+  needsRange,
   nowCard,
   recentChanges,
   type TodayPlan,
@@ -129,6 +131,7 @@ function Answers({ context, courses }: { context: HomeContext; courses: readonly
   const plan = useMemo(() => todayPlan(context), [context]);
   const needs = useMemo(() => attention(context, card, plan), [context, card, plan]);
   const due = useMemo(() => dueItems(context, plan), [context, plan]);
+  const range = useMemo(() => needsRange(context), [context]);
   return (
     <>
       <NowSection card={card} courses={courses} hasSchedule={context.schedule !== null} />
@@ -138,7 +141,7 @@ function Answers({ context, courses }: { context: HomeContext; courses: readonly
         <div className="grid grid-cols-1 items-start gap-x-8 gap-y-10 @min-[800px]:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
           <Today context={context} plan={plan} due={due} courses={courses} onCard={cardKey(card)} />
           <div className="grid grid-cols-[minmax(0,1fr)] gap-y-10">
-            <NeedsYou needs={needs} due={due} courses={courses} />
+            <NeedsYou needs={needs} due={due} range={range} courses={courses} />
             <Changes context={context} />
           </div>
         </div>
@@ -828,8 +831,21 @@ function CourseMark({ code, past = false }: { code: string; courses: readonly Te
 
 // ---------------------------------------------------------------- Perlu perhatianmu
 
-/** `due`: "Hari ini"'s deadlines, as items: the ones put off or put away are listed here with the rest. */
-function NeedsYou({ needs, due, courses }: { needs: readonly NeedDraft[]; due: readonly NeedDraft[]; courses: readonly TermCourse[] }) {
+/**
+ * `due`: "Hari ini"'s deadlines, as items: the ones put off or put away are listed here with the rest.
+ * `range`: how far ahead it looks, for the empty list to say only what's true.
+ */
+function NeedsYou({
+  needs,
+  due,
+  range,
+  courses,
+}: {
+  needs: readonly NeedDraft[];
+  due: readonly NeedDraft[];
+  range: NeedsRange;
+  courses: readonly TermCourse[];
+}) {
   const t = useT();
   const f = useFormat();
   const now = useNow();
@@ -891,9 +907,17 @@ function NeedsYou({ needs, due, courses }: { needs: readonly NeedDraft[]; due: r
               : // A group Task marked done may still be due: "handled", not "nothing due".
                 done.length
                 ? t("home.needs.allHandled")
-                : t("home.needs.none", { day: `${f.weekday(now + 7 * DAY)}, ${f.dayMonth(now + 7 * DAY)}` })}
+                : // Something due that isn't listed here (Hari ini has it, or it isn't open yet): never "nothing due".
+                  range.next !== null
+                  ? t("home.needs.noneElse")
+                  : t("home.needs.none", { count: range.days })}
           </p>
-          <div className="mt-0.5 pl-6 text-small text-muted">{awayLine || t("home.needs.noneHint")}</div>
+          <div className="mt-0.5 pl-6 text-small text-muted">
+            {awayLine ||
+              (range.next !== null
+                ? t("home.needs.noneElseHint", { when: f.dayTimeWord(range.next) })
+                : t("home.needs.noneHint", { day: `${f.weekday(range.until - 1)}, ${f.dayMonth(range.until - 1)}` }))}
+          </div>
         </div>
       )}
       {!loading && listOpen && snoozed.length > 0 && (

@@ -34,7 +34,7 @@ export function useHomeWorld(): HomeWorld | undefined {
   // The same test as Presensi's: signed out of SIX, nothing reads as counting.
   const sixConnected = useStatus("six").state !== "signed-out" || sixCourses !== undefined;
   const term = useTerm();
-  const { attendanceTarget, attendanceTargets } = useSettings();
+  const { attendanceTarget, attendanceTargets, needsAhead } = useSettings();
   const now = useNow();
   return useMemo(() => {
     if (!courses) return undefined;
@@ -63,6 +63,7 @@ export function useHomeWorld(): HomeWorld | undefined {
       // As Presensi judges them: the saved results, and what the latest count already says.
       classResults: classResults(savedResults ?? {}, countLog ?? {}, schedule ?? [], now, readAt),
       taskEdits,
+      needsAhead,
     };
   }, [
     courses,
@@ -85,6 +86,7 @@ export function useHomeWorld(): HomeWorld | undefined {
     term,
     attendanceTarget,
     attendanceTargets,
+    needsAhead,
     now,
   ]);
 }
