@@ -8,7 +8,7 @@
 // Ranking: the band first (now, soon, coming up), then the area in the order
 // of PROVIDERS, then the soonest moment, so the window closing first is on top.
 
-import { billNeedsStudent, krsWindows } from "./academic";
+import { billUrgency, krsWindows } from "./academic";
 import {
   type AttendanceHealth,
   type AttendanceState,
@@ -25,23 +25,24 @@ import {
 } from "./attendance";
 import { introModule, materialKind } from "./course-materials";
 import { type AnnouncedMeeting, announcedMeetings, courseMeetings, wibDay } from "./course-meetings";
-import { dateVars, sameLocalDay, weekdayVars } from "./dates";
+import { dateVars, localDayStart, sameLocalDay, weekdayVars } from "./dates";
 import { type Exam, examParts, mergeExams } from "./exams";
-import type {
-  AcademicCalendar,
-  Alert,
-  AlertKind,
-  Announcement,
-  Bill,
-  ClassSession,
-  EdunexExam,
-  ExamMark,
-  KrsPlan,
-  Material,
-  PresenceSession,
-  SixCourse,
-  Task,
-  TaskEdit,
+import {
+  type AcademicCalendar,
+  type Alert,
+  type AlertKind,
+  type Announcement,
+  type Bill,
+  type ClassSession,
+  DEFAULT_SETTINGS,
+  type EdunexExam,
+  type ExamMark,
+  type KrsPlan,
+  type Material,
+  type PresenceSession,
+  type SixCourse,
+  type Task,
+  type TaskEdit,
 } from "./models";
 import type { Route } from "./route";
 import { dayStart, isScheduleReminder, slotMarks, weekStart } from "./schedule";
@@ -54,11 +55,10 @@ const DAY = 24 * HOUR;
 
 /** A class starting this soon is "now": time to go. */
 export const STARTING_SOON = HOUR;
-/** Tasks due within these are now / soon / coming up. */
+/** Tasks due within these are now / soon; later ones are coming up, as far ahead as the Student looks (`needsRange`). */
 export const DUE_NOW = DAY;
 const DUE_SOON = 3 * DAY;
-const DUE_LATER = 7 * DAY;
-/** How far ahead "coming up" looks, and how far back "What changed" does. */
+/** How far ahead "Sekarang" looks for the next class and "What changed" for a moved one, and how far back "What changed" looks. */
 const AHEAD = 7 * DAY;
 const RECENT = 7 * DAY;
 
@@ -102,6 +102,8 @@ export interface HomeWorld {
   classResults?: ClassResults;
   /** What the lecturer changed in each edit the app saw (none known: every edit is "not known"). */
   taskEdits?: readonly TaskEdit[];
+  /** How many whole days after today "Perlu perhatianmu" looks (Settings); a week when not given. */
+  needsAhead?: number;
 }
 
 /** What every provider shares, worked out once. */
@@ -242,6 +244,38 @@ export function needsYou(world: HomeWorld | HomeContext, providers: readonly Nee
     .map((need, i) => ({ ...need, rank: i + 1 }) as Need);
 }
 
+/**
+ * How far "Perlu perhatianmu" looks: today and `days` more, whole days on this
+ * computer's clock (as "dalam 7 hari" counts them), so a deadline late on the
+ * last day is in. Its empty state says "nothing due" only when nothing is.
+ */
+export interface NeedsRange {
+  days: number;
+  /** Where it ends: the start of the day after its last. */
+  until: number;
+  /**
+   * The soonest thing due within it, listed there or not (today's and
+   * tomorrow's deadlines are in "Hari ini"; a Task not open yet isn't listed):
+   * a Task still to hand in, an exam, a UKT bill. Null when nothing is.
+   */
+  next: number | null;
+}
+
+const rangeEnd = (world: Pick<HomeWorld, "now" | "needsAhead">) => localDayStart(world.now, (world.needsAhead ?? DEFAULT_SETTINGS.needsAhead) + 1);
+
+export function needsRange(world: HomeWorld | HomeContext): NeedsRange {
+  const context = "health" in world ? world : homeContext(world);
+  const { now } = context;
+  const until = rangeEnd(context);
+  const toHandIn = context.tasks.flatMap((task) => {
+    const status = taskStatus(task, now);
+    return (status === "not_started" || status === "draft") && task.dueAt !== null ? [task.dueAt] : [];
+  });
+  const listed = [...examProvider.needs(context), ...academicProvider.needs(context)].flatMap((need) => (need.at === null ? [] : [need.at]));
+  const due = [...toHandIn, ...listed].filter((at) => at > now && at < until);
+  return { days: context.needsAhead ?? DEFAULT_SETTINGS.needsAhead, until, next: due.length ? Math.min(...due) : null };
+}
+
 // ---------------------------------------------------------------- shared facts
 
 const courseOf = (context: HomeContext, code: string) => context.courses.find((course) => course.code === code);
@@ -356,9 +390,10 @@ const countedHere = (context: HomeContext, code: string): CountedIn =>
 /** The Tasks a Presence window open now or coming up asks to hand in: the Presence item speaks for them. */
 function presenceTasks(context: HomeContext): Set<number> {
   const ids = new Set<number>();
+  const until = rangeEnd(context);
   for (const [code, sessions] of Object.entries(context.presence))
     for (const session of sessions) {
-      if (session.closesAt <= context.now || session.opensAt - context.now > AHEAD || session.recorded?.present) continue;
+      if (session.closesAt <= context.now || session.opensAt >= until || session.recorded?.present) continue;
       // Where SIX counts the window is optional: the Task's own deadline speaks for it.
       if (presenceOptional(countedHere(context, code))) continue;
       const action = presenceAction(session, context.tasks);
@@ -406,9 +441,10 @@ export const presenceProvider: NeedProvider = {
         classMoved: moved,
       });
     }
+    const until = rangeEnd(context);
     for (const [code, sessions] of Object.entries(context.presence)) {
       for (const session of sessions) {
-        if (session.opensAt <= now || session.opensAt - now > AHEAD || session.recorded?.present) continue;
+        if (session.opensAt <= now || session.opensAt >= until || session.recorded?.present) continue;
         const { action, live, countedIn, moved } = facts(code, session);
         // Viewing the course is every week's default; where SIX counts, the window is optional: neither is a thing to do.
         if (action.activity === "course" || presenceOptional(countedIn)) continue;
@@ -470,16 +506,18 @@ export const classProvider: NeedProvider = {
 
 /**
  * Tasks to hand in: late but still taken, a short answer window open now,
- * due within a day (now), three days (soon) or a week (coming up); and a
- * Task the lecturer edited after the Student handed it in, in the last week.
+ * due within a day (now), three days (soon) or the rest of the range (coming
+ * up); and a Task the lecturer edited after the Student handed it in, in the
+ * last week.
  */
 export const taskProvider: NeedProvider = {
   area: "task",
   needs(context) {
     const viaPresence = presenceTasks(context);
+    const until = rangeEnd(context);
     return context.tasks.flatMap((task) => {
       if (viaPresence.has(task.id)) return [];
-      const need = taskNeed(task, context.now, context.taskEdits);
+      const need = taskNeed(task, context.now, context.taskEdits, until);
       return need ? [need] : [];
     });
   },
@@ -492,9 +530,9 @@ export const newestEdit = (task: Pick<Task, "id" | "editedAt">, edits: readonly 
 /**
  * A Task's own item, whatever else speaks for it (a Presence window it's handed in for); null when it needs nothing.
  * Tugas & Ujian puts off a late Task as this item, so one snooze holds in both places. An edit after hand-in is an
- * item unless the app compared it (`edits`) and nothing it reads changed.
+ * item unless the app compared it (`edits`) and nothing it reads changed. `until`: where the range ends (`needsRange`).
  */
-export function taskNeed(task: Task, now: number, edits?: readonly TaskEdit[]): NeedDraft | null {
+export function taskNeed(task: Task, now: number, edits?: readonly TaskEdit[], until = rangeEnd({ now })): NeedDraft | null {
   const status = taskStatus(task, now);
   const base = {
     kind: "task",
@@ -517,7 +555,7 @@ export function taskNeed(task: Task, now: number, edits?: readonly TaskEdit[]): 
   if (task.dueAt === null) return null;
   const left = task.dueAt - now;
   if (shortWindow(task) !== null && left <= DUE_SOON) return { ...base, id: `task:${task.id}`, band: "now", reason: "short", draft };
-  if (left > DUE_LATER) return null;
+  if (task.dueAt >= until) return null;
   return { ...base, id: `task:${task.id}`, band: left <= DUE_NOW ? "now" : left <= DUE_SOON ? "soon" : "later", reason: "due", draft };
 }
 
@@ -531,21 +569,23 @@ export function taskNeed(task: Task, now: number, edits?: readonly TaskEdit[]): 
  */
 export function dueItems(context: HomeContext, plan: TodayPlan): NeedDraft[] {
   const viaPresence = presenceTasks(context);
+  const until = rangeEnd(context);
   return plan.due.flatMap((task) => {
     if (viaPresence.has(task.id)) return [];
-    const need = taskNeed(task, context.now, context.taskEdits);
+    const need = taskNeed(task, context.now, context.taskEdits, until);
     return need ? [need] : [];
   });
 }
 
-/** Meetings announced only in Edunex text, not on SIX's timetable, in the coming week. */
+/** Meetings announced only in Edunex text, not on SIX's timetable, within the range. */
 export const meetingProvider: NeedProvider = {
   area: "meeting",
   needs(context) {
     const { now } = context;
+    const until = rangeEnd(context);
     return context.courses.flatMap((course) =>
       onlyInEdunex(context, course.code)
-        .filter((m) => m.end > now && m.start - now <= AHEAD)
+        .filter((m) => m.end > now && m.start < until)
         .map(
           ({ postedAt: _postedAt, ...meeting }): NeedDraft => ({
             id: `meeting:${course.code}:${meeting.start}`,
@@ -604,7 +644,7 @@ export const attendanceProvider: NeedProvider = {
 };
 
 /**
- * Exams within the week, each at its next sitting: SIX's session with its
+ * Exams within the range, each at its next sitting: SIX's session with its
  * room, or Edunex's dated exam (a take-home exam is a Task, and the Task
  * item speaks for it); an Edunex exam open for days is at its close, like a
  * deadline, and gone once the Student marks it done. Within a day it's now,
@@ -624,11 +664,12 @@ export const examProvider: NeedProvider = {
       courses: context.courses.map((c) => c.code),
       now,
     });
+    const until = rangeEnd(context);
     const out: NeedDraft[] = [];
     for (const exam of exams) {
       // The parts still ahead at their moments (a window at its close); a take-home is the Task item's.
       const [part] = examParts(exam, now, context.examMarks).filter((p) => p.kind !== "takehome");
-      if (!part || part.at - now > AHEAD) continue;
+      if (!part || part.at >= until) continue;
       const next: ExamSitting =
         part.kind === "window"
           ? { start: part.opensAt ?? part.at, end: part.at, room: null, source: "edunex" }
@@ -656,18 +697,19 @@ export const examProvider: NeedProvider = {
 
 /**
  * SIX's study-plan steps the Student must take: a KRS not sent while ITB's
- * DRS window is open or opens within the week (now when it closes within a
- * day, else soon); and a UKT bill overdue or due within the week.
+ * DRS window is open or opens within the range (now when it closes within a
+ * day, else soon); and a UKT bill overdue or due within the range.
  */
 export const academicProvider: NeedProvider = {
   area: "krs",
   needs(context) {
     const { now } = context;
+    const until = rangeEnd(context);
     const out: NeedDraft[] = [];
     const plan = context.krs;
     if (plan && plan.state === "not-sent") {
       const { drs } = krsWindows(context.calendar, plan.term);
-      if (drs && drs.end > now && drs.start - now <= AHEAD) {
+      if (drs && drs.end > now && drs.start < until) {
         const open = drs.start <= now;
         out.push({
           id: `krs:${plan.term}`,
@@ -684,7 +726,8 @@ export const academicProvider: NeedProvider = {
       }
     }
     for (const bill of context.bills ?? []) {
-      if (!billNeedsStudent(bill, now) || bill.nextDueAt === null) continue;
+      const urgency = billUrgency(bill, now);
+      if (urgency === "paid" || urgency === "not-billed" || bill.nextDueAt === null || bill.nextDueAt >= until) continue;
       const overdue = bill.nextDueAt < now;
       out.push({
         id: `bill:${bill.term}`,
@@ -1005,7 +1048,7 @@ export function nowCard(world: HomeWorld | HomeContext): NowCard | null {
 const cardMeetingId = (card: NowCard | null) => (card?.meeting ? `meeting:${card.meeting.code}:${card.meeting.meeting.start}` : null);
 
 /**
- * "Perlu perhatianmu": what needs the Student this week that "Sekarang" and
+ * "Perlu perhatianmu": what needs the Student within the range that "Sekarang" and
  * "Hari ini" don't already show. Out: today's classes and their risk (each
  * class row carries it, except a target out of reach: that's the course's, with its own step), the Presence and the meeting on the card, meetings and deadlines of
  * today and tomorrow (in "Hari ini"), and exams sat in today's classes.

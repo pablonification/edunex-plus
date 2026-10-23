@@ -6,8 +6,8 @@
 // remove everything), then notifications and what closing the window does,
 // then notifications on the phone (./phone.tsx), then appearance, then each
 // course's color (the term at a glance, in both themes, and the way back to
-// automatic), then the rest (attendance targets: the default and each
-// course's own), then what the
+// automatic), then the rest (how far ahead Beranda's "Perlu perhatianmu"
+// looks, attendance targets: the default and each course's own), then what the
 // app is (licence, the open-source software it uses, opened as a page of its
 // own).
 import { lazy, type ReactNode, Suspense, useEffect, useRef, useState } from "react";
@@ -16,6 +16,8 @@ import {
   type CourseColors,
   DEADLINE_REMINDERS,
   type DeadlineReminder,
+  NEEDS_AHEAD,
+  type NeedsAhead,
   type Settings,
   type SourceId,
   type UpdateCheckResult,
@@ -203,6 +205,17 @@ function SettingsBody({
       <CourseColorSettings start={startAt === "courseColors"} onStarted={onStarted} />
 
       <Group title={t("settings.other")}>
+        <Row label={t("settings.needsAhead")} hint={t("settings.needsAhead.hint")}>
+          {/* The hint wraps, never the choices. */}
+          <span className="flex shrink-0">
+            <Segmented
+              label={t("settings.needsAhead")}
+              value={String(settings.needsAhead)}
+              onChange={(days) => update({ needsAhead: Number(days) as NeedsAhead })}
+              options={NEEDS_AHEAD.map((days) => ({ value: String(days), label: t(`settings.needsAhead.${days}`) }))}
+            />
+          </span>
+        </Row>
         <AttendanceTargets />
       </Group>
 
