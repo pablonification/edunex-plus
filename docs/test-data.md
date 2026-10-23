@@ -10,9 +10,11 @@ Student account, with every personal detail replaced before it is committed.
 |---|---|
 | `scripts/record-session.cjs` (`npm run record`) | Opens Edunex and SIX in two windows on a throwaway in-memory session. You sign in yourself and browse; it saves what the sites request and receive to `.scratch/recordings/<time>/` (git-ignored). |
 | `scripts/scrub-recording.mjs` (`npm run fixtures:scrub`) | Turns the recordings into `test/fixtures/` with personal details replaced, and writes the real values it replaced to `.scratch/private-identity.json` (git-ignored). |
+| `src/engine/report/scrub.ts` | What counts as personal and what replaces it: the rules the script and the app's "Laporkan masalah" share. |
+| `scripts/report-to-fixtures.mjs` (`npm run fixtures:from-report -- <file> <name>`) | Puts the pages of a report a Student sent from the app (already scrubbed on their computer) into `test/fixtures/`, and says which check they fail ([ADR 0007](adr/0007-report-a-page-the-app-couldnt-read.md)). |
 | `test/kit/fixtures.ts` | Loads recorded responses: `edunexJson(path, query)`, `sixPage(path)`, `publicPage(name)`. |
 | `test/kit/builder.ts` | "Real record, changed on purpose": `withFields(record, patch)` and `withItem(list, where, patch)` change only the fields a test is about. |
-| `test/kit/privacy.test.ts` | Fails the run if anything personal is in `test/fixtures/`. |
+| `test/kit/privacy.test.ts` | Fails the run if anything personal is in `test/fixtures/`, by the rules in `test/kit/privacy-rules.ts` (a report's pages are held to them too). |
 
 ## The recorder is read-only
 
@@ -45,11 +47,15 @@ file contents.
   phone, address, birth details, profile photo. Their written answers and
   any lecturer comments on them.
 - Other people: every lecturer and assistant name (titles kept), classmates'
-  student numbers in file names, the academic advisor's chat messages.
+  student numbers in file names, staff numbers, pictures of people, the
+  academic advisor's chat messages.
 - Links and secrets: online-meeting links, meeting IDs and passcodes, file
-  links on Edunex's storage, course join tokens.
+  links on Edunex's storage, course join tokens, session and form tokens.
 - Records: grades (swapped per course; IP and IPK are recomputed so every
   page still adds up) and money amounts (scaled, so instalments still sum).
+  A report from the app makes these up instead (D and E too, IP and IPK
+  included, amounts by a factor new for each report), since it rarely has the
+  whole transcript.
 
 Pages that hold passwords or family data (SIX's control panel, master data,
 student ID card, PDDikti) are never exported.

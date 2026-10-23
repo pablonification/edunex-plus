@@ -10,9 +10,30 @@
 // Writes test/fixtures/{edunex,six,pub}/ plus an index.json per system, and
 // the list of real identity values it replaced to .scratch/private-identity.json
 // (git-ignored) so the privacy test can prove none of them was committed.
+//
+// The rules for what's personal are the app's own (src/engine/report/scrub.ts),
+// shared with "Laporkan masalah". This script adds what only a whole recording
+// allows: who the Student is from Edunex's account, and IP and IPK recomputed
+// from the made-up grades so every page still adds up.
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
+import {
+  coreName,
+  FAKE_STUDENT,
+  FakePeople,
+  looksLikeName,
+  peopleInEdunex,
+  peopleOnSixPage,
+  Replacements,
+  Shapes,
+  scrubEdunexFields,
+  scrubPatterns,
+  scrubSixRecords,
+  sixStudentIds,
+  stripTags,
+  studentNumbers,
+} from "../src/engine/report/scrub.ts";
 
 const root = path.resolve(import.meta.dirname, "..");
 const recordingsDir = path.join(root, ".scratch", "recordings");
@@ -71,65 +92,7 @@ const PUBLIC_CATALOG = ["index.html", "prodi-182.html", "prodi-154.html", "prodi
 
 // ---------------------------------------------------------------- fake values
 
-const FAKE_STUDENT = {
-  name: "Dimas Pratama",
-  first: "Dimas",
-  email: "dimas.pratama@mahasiswa.itb.ac.id",
-  phone: "080000000000",
-};
-const FIRST = [
-  "Andi",
-  "Budi",
-  "Citra",
-  "Dewi",
-  "Eko",
-  "Fajar",
-  "Gita",
-  "Hadi",
-  "Indra",
-  "Joko",
-  "Kartika",
-  "Laras",
-  "Maya",
-  "Nanda",
-  "Oki",
-  "Putri",
-  "Rizki",
-  "Sari",
-  "Tegar",
-  "Utami",
-  "Wahyu",
-  "Yudi",
-  "Bayu",
-  "Nisa",
-  "Reza",
-  "Tari",
-];
-const LAST = [
-  "Wijaya",
-  "Santoso",
-  "Kusuma",
-  "Hidayat",
-  "Saputra",
-  "Lestari",
-  "Nugroho",
-  "Rahman",
-  "Setiadi",
-  "Halim",
-  "Gunawan",
-  "Firmansyah",
-  "Permana",
-  "Siregar",
-  "Wibowo",
-  "Yuliana",
-  "Hartono",
-  "Purnama",
-  "Susanto",
-  "Utomo",
-];
-
 const hash = (text) => crypto.createHash("sha256").update(`edunex-plus-fixtures:${text}`).digest();
-const escapeRe = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 // ---------------------------------------------------------------- read the recordings
 
@@ -180,21 +143,13 @@ const jsonOf = (pathRe) => {
   return hit ? JSON.parse(hit.body) : null;
 };
 const htmlOf = (pathRe) => sixBodies.filter((e) => pathRe.test(e.path)).pop()?.body ?? "";
-const stripTags = (html) =>
-  html
-    .replace(/<[^>]+>/g, " ")
-    .replace(/&nbsp;/g, " ")
-    .replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(Number(n)))
-    .replace(/&amp;/g, "&")
-    .replace(/\s+/g, " ")
-    .trim();
 
 // ---------------------------------------------------------------- discover the identity
 
 const me = jsonOf(/^\/login\/me$/) ?? {};
 const statusPage = htmlOf(/\/statusmhs$/);
 const identityRow = (label) => {
-  const m = new RegExp(`<th>${escapeRe(label)}</th>\\s*<td>([\\s\\S]*?)</td>`).exec(statusPage);
+  const m = new RegExp(`<th>${label}</th>\\s*<td>([\\s\\S]*?)</td>`).exec(statusPage);
   return m ? stripTags(m[1]) : null;
 };
 const student = {
@@ -207,144 +162,55 @@ const student = {
   address: me.address && me.address.length > 3 ? me.address : null,
   birthPlace: me.place_of_birth && me.place_of_birth.length > 2 ? me.place_of_birth : null,
 };
-const sixIds = new Set(sixBodies.map((e) => /\/(\d{10})(?:\/|$|\?)/.exec(e.path)?.[1]).filter(Boolean));
+const sixIds = new Set(sixBodies.flatMap((e) => sixStudentIds(e.path)));
 const edunexIds = new Set([me.id, me.user_id, me.student_id, ...(me.student_ids ?? [])].filter((v) => v !== undefined && v !== null).map(String));
 
-/** "Prof. Dr. Ir. Nama Lengkap, M.T." → "Nama Lengkap" */
-const coreName = (full) =>
-  full
-    .split(",")[0]
-    .replace(/\b(Prof|Dr|Ir|Drs|Dra|Hj|H|Eng|Dr\.Eng)\.\s*/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
 const people = new Set();
 const addPerson = (value) => {
   if (typeof value !== "string") return;
   const core = coreName(value);
-  if (core.length >= 4 && /^[A-Z][A-Za-z'’.-]+( [A-Za-z'’.-]+)*$/.test(core) && core !== student.name) people.add(core);
+  if (looksLikeName(core) && core !== student.name) people.add(core);
 };
-const PERSON_FIELDS = new Set(["lecturer", "created_by", "updated_by", "sent_by", "verified_by"]);
-const isPersonObject = (o) => ["user_id", "nidn", "front_degree", "back_degree", "last_online", "place_of_birth"].some((k) => k in o);
-const walk = (value, visit) => {
-  if (Array.isArray(value)) {
-    for (const v of value) walk(v, visit);
-  } else if (value && typeof value === "object") {
-    visit(value);
-    for (const v of Object.values(value)) walk(v, visit);
-  }
-};
-for (const ex of edunexBodies) {
-  walk(JSON.parse(ex.body), (o) => {
-    for (const [k, v] of Object.entries(o)) if (PERSON_FIELDS.has(k)) addPerson(v);
-    if (isPersonObject(o) && typeof o.name === "string") addPerson(o.name);
-    if (typeof o.message === "string") addPerson(/^(.*?) has been added new/.exec(o.message)?.[1]);
-  });
-}
-for (const ex of sixBodies) {
-  for (const m of ex.body.matchAll(/<th>Dosen Wali<\/th>\s*<td>([\s\S]*?)<\/td>/g)) addPerson(stripTags(m[1]));
-  if (/kuesioner/.test(ex.path)) for (const m of ex.body.matchAll(/<div>([^<]{4,90})<\/div>/g)) if (/,\s*[A-Z]/.test(m[1])) addPerson(m[1].trim());
-}
+for (const ex of edunexBodies) for (const person of peopleInEdunex(JSON.parse(ex.body))) addPerson(person);
+for (const ex of sixBodies) for (const person of peopleOnSixPage(ex.body, ex.path)) addPerson(person);
 // Student-number shaped values (the Student's and classmates' NIMs inside file names).
 const nims = new Set([student.nim].filter(Boolean));
-for (const ex of [...edunexBodies, ...sixBodies]) for (const m of ex.body.matchAll(/(?<!\d)(1\d{2}(?:1[5-9]|2\d)\d{3})(?!\d)/g)) nims.add(m[1]);
+for (const ex of [...edunexBodies, ...sixBodies]) for (const nim of studentNumbers(ex.body)) nims.add(nim);
 
 // ---------------------------------------------------------------- the replacement map
 
-const replacementMap = new Map(); // real → fake; the first mapping for a value wins
-const add = (real, fake) => {
-  if (real && fake && String(real).length >= 3 && real !== fake && !replacementMap.has(String(real))) replacementMap.set(String(real), String(fake));
-};
-add(student.name, FAKE_STUDENT.name);
-add(student.name.toUpperCase(), FAKE_STUDENT.name.toUpperCase());
-add(student.name.split(" ")[0], FAKE_STUDENT.first);
-add(student.email, FAKE_STUDENT.email);
-add(student.phone, FAKE_STUDENT.phone);
-add(student.address, "Jl. Contoh No. 1, Bandung");
-add(student.birthPlace, "Bandung");
-const fakeNims = new Map();
-[...nims]
-  .sort((a, b) => (a === student.nim ? -1 : b === student.nim ? 1 : a.localeCompare(b)))
-  .forEach((nim, i) => {
-    fakeNims.set(nim, `${nim.slice(0, 5)}${String(901 + i).padStart(3, "0")}`);
-    add(nim, fakeNims.get(nim));
-  });
-if (student.username && !fakeNims.has(student.username)) add(student.username, "dimas.pratama");
-[...sixIds].sort().forEach((id, i) => {
-  add(id, String(2021000001 + i));
-});
-[...edunexIds].sort().forEach((id, i) => {
-  add(id, String(900001 + i));
-});
-const usedFakes = new Set();
-[...people].sort().forEach((core, i) => {
-  let fake = `${FIRST[i % FIRST.length]} ${LAST[(i * 7 + Math.floor(i / FIRST.length)) % LAST.length]}`;
-  while (usedFakes.has(fake)) fake = `${fake} Jr`;
-  usedFakes.add(fake);
-  add(core, fake);
-  add(core.toUpperCase(), fake.toUpperCase());
-});
-const replacements = [...replacementMap.entries()].sort((a, b) => b[0].length - a[0].length);
-// Numbers only need non-digit neighbours ("_18223901_" in file names, "%3D2021000001" in
-// links); words need non-alphanumeric ones, so "_" and "-" still separate them.
-const replaceAll = (text) => {
-  let out = text;
-  for (const [real, fake] of replacements) {
-    const numeric = /^\d+$/.test(real);
-    const before = numeric ? "(?<!\\d)" : /^[A-Za-z0-9]/.test(real) ? "(?<![A-Za-z0-9])" : "";
-    const after = numeric ? "(?!\\d)" : /[A-Za-z0-9]$/.test(real) ? "(?![A-Za-z0-9])" : "";
-    out = out.replace(new RegExp(`${before}${escapeRe(real)}${after}`, "g"), fake);
-  }
-  return out;
-};
+const known = new Replacements();
+known.add(student.name, FAKE_STUDENT.name);
+known.add(student.name.toUpperCase(), FAKE_STUDENT.name.toUpperCase());
+known.add(student.name.split(" ")[0], FAKE_STUDENT.first);
+known.add(student.email, FAKE_STUDENT.email);
+known.add(student.phone, FAKE_STUDENT.phone);
+known.add(student.address, "Jl. Contoh No. 1, Bandung");
+known.add(student.birthPlace, "Bandung");
+const sortedNims = [...nims].sort((a, b) => (a === student.nim ? -1 : b === student.nim ? 1 : a.localeCompare(b)));
+for (const [i, nim] of sortedNims.entries()) known.add(nim, FAKE_STUDENT.nim + i);
+if (student.username && !nims.has(student.username)) known.add(student.username, "dimas.pratama");
+for (const [i, id] of [...sixIds].sort().entries()) known.add(id, FAKE_STUDENT.sixId + i);
+for (const [i, id] of [...edunexIds].sort().entries()) known.add(id, FAKE_STUDENT.edunexId + i);
+const fakePeople = new FakePeople();
+for (const core of [...people].sort()) {
+  const fake = fakePeople.next();
+  known.add(core, fake);
+  known.add(core.toUpperCase(), fake.toUpperCase());
+}
+const shapes = new Shapes();
 
-// ---------------------------------------------------------------- pattern scrubs (links, tokens, contacts)
-
-const blobIds = new Map();
-const scrubPatterns = (text) =>
-  text
-    .replace(/https:\/\/teams\.(?:microsoft|live)\.com\/[^"'\s<>\\)]+/g, "https://teams.microsoft.com/meet/000000000000?p=fixture")
-    .replace(/https:\/\/[\w.-]*zoom\.us\/[^"'\s<>\\)]+/g, "https://zoom.us/j/0000000000")
-    .replace(/https:\/\/[a-z0-9]+\.blob\.core\.windows\.net\/[^"'\s<>\\)]+/g, (url) => {
-      if (!blobIds.has(url)) blobIds.set(url, blobIds.size + 1);
-      return `https://edunexfixture.blob.core.windows.net/edunex/fixture-${blobIds.get(url)}`;
-    })
-    .replace(/(Course Tokens?\s*:\s*)[A-Z0-9]{4,}/gi, "$1FIXTUR")
-    .replace(/((?:Meeting|Rapat) ID\s*:?\s*)[\d ]{6,}\d/gi, "$1000 000 000")
-    .replace(/((?:Passcode|Kode sandi|Password)\s*:?\s*)[^\s<"\\]+/gi, "$1fixture")
-    .replace(/(?<!\d)(?:\+62|62|0)8\d{7,11}(?!\d)/g, "080000000000")
-    .replace(/[\w.+-]+@(?!example\.com)[\w-]+(?:\.[\w-]+)+/g, (email) => (email === FAKE_STUDENT.email ? email : "someone@example.com"));
-
-// ---------------------------------------------------------------- personal fields in Edunex JSON
-
-const scrubJson = (value) => {
-  walk(value, (o) => {
-    if (isPersonObject(o)) {
-      for (const k of ["address", "place_of_birth", "phone_number", "religion", "ms_account", "zoom_email", "notification_email"])
-        if (k in o && o[k]) o[k] = "-";
-      if ("date_of_birth" in o && o.date_of_birth) o.date_of_birth = "2000-01-01T00:00:00.000Z";
-      if ("nidn" in o && o.nidn) o.nidn = "0000000000";
-      if ("thumbnail" in o && typeof o.thumbnail === "string" && o.thumbnail) o.thumbnail = null;
-    }
-    // The Student's own work and lecturers' feedback on it.
-    if ("is_sent" in o && "task_id" in o) {
-      if (typeof o.answer === "string" && o.answer) o.answer = "<p>Jawaban.</p>";
-      if (typeof o.comment === "string" && o.comment) o.comment = "Komentar.";
-    }
-    // Lecturer staff numbers sit in "email" on lecturer objects.
-    if ("email" in o && typeof o.email === "string" && /^\d{15,}$/.test(o.email)) o.email = "000000000000000000";
-  });
-  return value;
-};
-
-// ---------------------------------------------------------------- SIX: grades, amounts, advisor chat
+// ---------------------------------------------------------------- SIX: grades, IP and IPK
 
 const POINTS = { A: 4, AB: 3.5, B: 3, BC: 2.5, C: 2, D: 1, E: 0 };
 const POOL = ["A", "A", "A", "AB", "AB", "AB", "B", "B", "BC", "C"];
 const round2 = (n) => (Math.round((n + 1e-9) * 100) / 100).toFixed(2);
+// D and E stay as they are here, so a retaken course still reads as one.
 const fakeGrade = (code, real) => (real in POINTS && real !== "D" && real !== "E" ? POOL[hash(`grade:${code}`)[0] % POOL.length] : real);
+// Every amount scaled the same way, so sums and instalments still add up.
+const records = { grade: fakeGrade, amountFactor: 1.2 };
 
 const historisPage = sixBodies.find((e) => /transkrip\/historis\/\d+$/.test(e.path));
-const gradeMap = new Map();
 const semesterNr = []; // per semester: { real, fake }
 if (historisPage) {
   let sem = null;
@@ -365,7 +231,6 @@ if (historisPage) {
     const [, code, sks, grade] = cell;
     if (!(grade in POINTS)) continue;
     const fake = fakeGrade(code, grade);
-    gradeMap.set(code, fake);
     sem.realPts += POINTS[grade] * Number(sks);
     sem.fakePts += POINTS[fake] * Number(sks);
     sem.sks += Number(sks);
@@ -379,13 +244,9 @@ const realIpk = graded.length ? round2(graded.reduce((a, s) => a + s.realPts, 0)
 const fakeIpk = graded.length ? round2(graded.reduce((a, s) => a + s.fakePts, 0) / graded.reduce((a, s) => a + s.sks, 0)) : null;
 const lastIp = graded.length ? { real: graded[graded.length - 1].nr, fake: round2(graded[graded.length - 1].fakePts / graded[graded.length - 1].sks) } : null;
 
+/** The shared rules (grades, amounts, the advisor's chat), then IP and IPK recomputed from the made-up grades. */
 const scrubSix = (html, pagePath) => {
-  let out = html;
-  // The Student's grades: replaced per course, the same everywhere.
-  out = out.replace(
-    /(<td>)([A-Z]{2}\d{4})(<span[^>]*>-\d+<\/span><\/td>(?:<td>[^<]*<\/td>){1,2}<td>\d+<\/td><td>\s*)([A-Z]{1,2})(\s*<\/td>)/g,
-    (all, a, code, b, grade, c) => (gradeMap.has(code) && grade in POINTS ? `${a}${code}${b}${gradeMap.get(code)}${c}` : all),
-  );
+  let out = scrubSixRecords(html, records);
   if (/transkrip\/historis/.test(pagePath)) {
     let i = 0;
     out = out.replace(/NR\s+([\d.]+)/g, (all) => {
@@ -415,24 +276,13 @@ const scrubSix = (html, pagePath) => {
   }
   if (realIpk && fakeIpk) {
     out = out.replace(/(<th>Indeks Prestasi Kumulatif<\/th>\s*<td>(?:<span[^>]*>)?)[\d.]+/g, `$1${fakeIpk}`);
-    if (lastIp?.real) out = out.replace(new RegExp(`(<th>IPS[\\s\\S]{0,80}?<td>)${escapeRe(lastIp.real)}`), `$1${lastIp.fake}`);
+    if (lastIp?.real) out = out.replace(new RegExp(`(<th>IPS[\\s\\S]{0,80}?<td>)${lastIp.real.replace(".", "\\.")}`), `$1${lastIp.fake}`);
     let i = 0;
     out = out.replace(/(addRows\(\[\['\d\/\d{4}', )([\d.]+)/g, (all, a) => {
       const s = graded[i++];
       return s ? `${a}${round2(s.fakePts / s.sks)}` : all;
     });
   }
-  // Money: every amount scaled the same way, so sums and instalments still add up.
-  // SIX writes amounts as "8.750.000", with or without "Rp".
-  const scaled = (n) => String(Math.round((Number(n.replace(/\./g, "")) * 1.2) / 1000) * 1000).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-  out = out.replace(/(Rp\s?)?(?<![\d.])(\d{1,3}(?:\.\d{3}){1,})(?![\d.])/g, (all, rp, n) =>
-    rp || n.split(".").length >= 3 ? `${rp ? "Rp " : ""}${scaled(n)}` : all,
-  );
-  // Messages between the Student and the academic advisor.
-  out = out.replace(
-    /(<li class="list-group-item" style='padding-(?:left|right): 15%'><div class="small text-info">[\s\S]*?<\/div><div>)([\s\S]*?)(<span class="small text-muted">|<\/div><\/li>)/g,
-    (_, a, _msg, c) => `${a} Pesan. ${c}`,
-  );
   return out;
 };
 
@@ -459,15 +309,15 @@ fs.mkdirSync(path.join(outDir, "six"), { recursive: true });
 const index = { edunex: [], six: [] };
 const usedNames = new Set();
 for (const ex of [...exchanges.values()].sort((a, b) => a.path.localeCompare(b.path))) {
-  const fakePath = replaceAll(ex.path);
-  const fakeQuery = Object.fromEntries(Object.entries(ex.query).map(([k, v]) => [k, replaceAll(String(v))]));
+  const fakePath = known.apply(ex.path);
+  const fakeQuery = Object.fromEntries(Object.entries(ex.query).map(([k, v]) => [k, known.apply(String(v))]));
   let body;
   let ext;
   if (ex.system === "edunex") {
-    body = JSON.stringify(scrubJson(JSON.parse(scrubPatterns(replaceAll(ex.body)))), null, 2);
+    body = JSON.stringify(scrubEdunexFields(JSON.parse(scrubPatterns(known.apply(ex.body), shapes))), null, 2);
     ext = "json";
   } else {
-    body = scrubPatterns(replaceAll(scrubSix(ex.body, ex.path)));
+    body = scrubPatterns(known.apply(scrubSix(ex.body, ex.path)), shapes);
     ext = "html";
   }
   let name = `${slug(fakePath.replace(/^\/app\/mahasiswa:\d+(\+\d{4}-\d)?/, ""))}${queryLabel(fakeQuery)}` || "root";
@@ -486,7 +336,7 @@ for (const file of PUBLIC_CATALOG) {
 }
 
 // The real values, for the privacy test on this machine only (git-ignored).
-const privateValues = [...new Set(replacements.map(([real]) => real).filter((v) => v.length >= 4))];
+const privateValues = [...new Set(known.reals().filter((v) => v.length >= 4))];
 fs.writeFileSync(
   identityFile,
   `${JSON.stringify({ note: "Real identity values replaced in test/fixtures. Never commit.", values: privateValues }, null, 2)}\n`,
@@ -494,5 +344,5 @@ fs.writeFileSync(
 
 console.log(
   `fixtures → test/fixtures: ${index.edunex.length} Edunex responses, ${index.six.length} SIX pages; ` +
-    `replaced ${people.size} people, ${nims.size} student numbers, ${gradeMap.size} grades (IPK ${realIpk} → ${fakeIpk}), ${blobIds.size} file links`,
+    `replaced ${people.size} people, ${nims.size} student numbers, ${graded.length} graded terms (IPK ${realIpk} → ${fakeIpk}), ${shapes.fileLinks.size} file links`,
 );
