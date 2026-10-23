@@ -13,6 +13,7 @@ import type { CurriculumFix } from "../../../core/models";
 import { hasWhatIfs, type SksModel, type StudentRecord, sksModel } from "../../../core/planner";
 import { useOpenExternal } from "../../hooks";
 import { useT } from "../../i18n";
+import { SkippedNote } from "../../skipped-note";
 import { useCurriculumFix, usePlan, useStudentRecord } from "../../study-plan";
 import { IconButton, Switch } from "../../ui/controls";
 import { cx } from "../../ui/cx";
@@ -149,6 +150,7 @@ export function Tab({ onCalendar }: { onCalendar?: () => void }) {
   };
   return (
     <div className="@container space-y-6">
+      <SkippedNote datasets={["six.curriculum", "six.progress"]} />
       <Totals
         whatIf={hasWhatIfs(state.plan, record)}
         name={record.curriculum.name}
