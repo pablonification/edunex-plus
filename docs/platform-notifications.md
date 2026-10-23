@@ -78,6 +78,12 @@ Settings → Notifikasi di HP sends alerts to the Student's phone through
   `ntfy://ntfy.sh/<topic>?display=Edunex%20Plus` link).
 - iPhone: the ntfy app doesn't open `ntfy://` links, so the Student taps +
   and pastes the topic from Settings ("Salin").
+- More than one phone (or a tablet): each scans the same QR code or types the
+  same code, and ntfy gives every one of them each message. ntfy never tells
+  the sender who subscribed, so the app can't list or count the phones:
+  Settings says that every phone with the code gets the same notifications,
+  that one phone stops by removing the code from its own ntfy app, and that
+  "Putuskan semua HP" stops all of them (connecting again makes a new code).
 - Planned alerts are booked ahead with ntfy's scheduled delivery (at most 3
   days on ntfy.sh, so the app books up to 70 hours ahead), so they arrive
   with the laptop closed. A booking the plan drops is cancelled; one for

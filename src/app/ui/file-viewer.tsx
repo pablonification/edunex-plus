@@ -4,10 +4,12 @@
 // as they are, a picture whole, an old Word document or PowerPoint as its text
 // (./text-only.tsx). The same panel over the current screen as the PDF viewer,
 // with the file's name, Download and Close; Esc closes and focus goes back.
-// A Word document's text and a text file's can be highlighted, as in a PDF
-// (./highlights.tsx), and each can have one note, in a panel beside it
-// (./page-notes.tsx): their pages aren't fixed, so a note is the whole file's. What reads each kind loads on first use, in a chunk of
-// its own. Nothing in a file runs: a Word document is drawn in a shadow root
+// A Word document's text and a text file's can be highlighted, as in a PDF,
+// and the toolbar's eraser removes them all (./highlights.tsx); each has one
+// note for the whole file, since its pages aren't fixed, in a panel beside it
+// (./page-notes.tsx). What reads each kind loads on first use, in a chunk of
+// its own.
+// Nothing in a file runs: a Word document is drawn in a shadow root
 // (its styles stay inside), slides are built as elements from plain data,
 // links go through the app's own link rules or nowhere, and text is only ever
 // shown as text.
@@ -218,71 +220,83 @@ export function FileViewer({ open, onOpenChange, name, kind, load, actions, fall
         >
           {/* Whatever in the viewer fails breaks the viewer, not the window; its title and Close stay. */}
           <PanelBoundary name="file viewer" compact header={<Toolbar name={name} />}>
-            <Toolbar name={name} actions={view.phase === "failed" ? undefined : actions}>
-              {notesHere && <NotesButton open={notesPanel.open} paged={false} onClick={() => notesPanel.show(!notesPanel.open)} />}
-            </Toolbar>
-            {view.phase === "ready" && view.shown.kind === "sheets" ? (
-              <Sheets sheets={view.shown.sheets} name={name} scroller={scroller} />
-            ) : (
-              <div className="flex min-h-0 flex-1">
-                <section
-                  ref={scroller}
-                  // The file scrolls, so once it's there it takes the keyboard (arrows, Page Down).
-                  tabIndex={view.phase === "ready" ? 0 : -1}
-                  aria-label={name}
-                  // Highlighting: what's selected as the mouse comes up, a highlight under a click, ⌘⇧H and ⌘Z.
-                  onMouseDown={highlighter.onMouseDown}
-                  onMouseUp={highlighter.onMouseUp}
-                  onKeyDown={highlighter.onKey}
-                  className={cx(
-                    "min-h-0 min-w-0 flex-1 overflow-auto overscroll-contain bg-sunken outline-none focus-visible:shadow-[inset_0_0_0_2px_var(--focus)]",
-                    view.phase !== "ready" && "grid place-items-center p-6",
+            {/* ⌘⇧H and ⌘Z wherever the keyboard is in the viewer, the toolbar's eraser too, after it removed them all; */}
+            {/* never in the note, whose keys are its own (⌘Z undoes its typing). */}
+            {/* biome-ignore lint/a11y/noStaticElementInteractions: keys for the whole viewer, wherever focus is inside it */}
+            <div
+              className="flex min-h-0 flex-1 flex-col"
+              onKeyDown={(event) => {
+                if (!(event.target instanceof Element && event.target.closest(NOTES_AREA))) highlighter.onKey(event);
+              }}
+            >
+              <Toolbar name={name} actions={view.phase === "failed" ? undefined : actions}>
+                {highlighter.clearButton}
+                {notesHere && <NotesButton open={notesPanel.open} paged={false} onClick={() => notesPanel.show(!notesPanel.open)} />}
+              </Toolbar>
+              {view.phase === "ready" && view.shown.kind === "sheets" ? (
+                <Sheets sheets={view.shown.sheets} name={name} scroller={scroller} />
+              ) : (
+                <div className="flex min-h-0 flex-1">
+                  <section
+                    ref={scroller}
+                    // The file scrolls, so once it's there it takes the keyboard (arrows, Page Down).
+                    tabIndex={view.phase === "ready" ? 0 : -1}
+                    aria-label={name}
+                    // Highlighting: what's selected as the mouse comes up, a highlight under a click (a hand over one).
+                    onMouseDown={highlighter.onMouseDown}
+                    onMouseMove={highlighter.onMouseMove}
+                    onMouseLeave={highlighter.onMouseLeave}
+                    onMouseUp={highlighter.onMouseUp}
+                    className={cx(
+                      "min-h-0 min-w-0 flex-1 overflow-auto overscroll-contain bg-sunken outline-none focus-visible:shadow-[inset_0_0_0_2px_var(--focus)]",
+                      view.phase !== "ready" && "grid place-items-center p-6",
+                    )}
+                  >
+                    {view.phase === "loading" ? (
+                      <Loading label={t("viewer.loading")} />
+                    ) : view.phase === "failed" ? (
+                      <Failed title={t("viewer.failed")} detail={view.problem === "broken" ? t("viewer.broken") : t(`file.problem.${view.problem}`)}>
+                        {view.problem === "unreachable" ? (
+                          <Button variant="primary" icon={<Icons.RefreshCw className="size-3.5" />} onClick={() => setAttempt((n) => n + 1)}>
+                            {t("action.tryAgain")}
+                          </Button>
+                        ) : (
+                          fallback?.(view.problem)
+                        )}
+                      </Failed>
+                    ) : view.shown.kind === "docx" ? (
+                      <WordPages nodes={view.shown.nodes} onOpenLink={onOpenLink} marks={marks} />
+                    ) : view.shown.kind === "slides" ? (
+                      <SlideDeck deck={view.shown.deck} onOpenLink={onOpenLink} />
+                    ) : view.shown.kind === "text" ? (
+                      <TextFile text={view.shown.text} marks={marks} />
+                    ) : view.shown.kind === "doc" ? (
+                      <DocPages pages={view.shown.pages} />
+                    ) : view.shown.kind === "ppt" ? (
+                      <SlideCards slides={view.shown.slides} />
+                    ) : view.shown.kind === "image" ? (
+                      <div className="grid min-h-full place-items-center p-6">
+                        <img
+                          src={view.shown.url}
+                          alt={name}
+                          className="h-auto max-w-full rounded-sm shadow-card outline -outline-offset-1 outline-black/10 dark:outline-white/10"
+                        />
+                      </div>
+                    ) : null}
+                  </section>
+                  {notesHere && notesPanel.open && (
+                    <NotesPanel
+                      notes={notesHere}
+                      focus={notesPanel.focus}
+                      onClose={() => {
+                        notesPanel.show(false);
+                        scroller.current?.focus();
+                      }}
+                    />
                   )}
-                >
-                  {view.phase === "loading" ? (
-                    <Loading label={t("viewer.loading")} />
-                  ) : view.phase === "failed" ? (
-                    <Failed title={t("viewer.failed")} detail={view.problem === "broken" ? t("viewer.broken") : t(`file.problem.${view.problem}`)}>
-                      {view.problem === "unreachable" ? (
-                        <Button variant="primary" icon={<Icons.RefreshCw className="size-3.5" />} onClick={() => setAttempt((n) => n + 1)}>
-                          {t("action.tryAgain")}
-                        </Button>
-                      ) : (
-                        fallback?.(view.problem)
-                      )}
-                    </Failed>
-                  ) : view.shown.kind === "docx" ? (
-                    <WordPages nodes={view.shown.nodes} onOpenLink={onOpenLink} marks={marks} />
-                  ) : view.shown.kind === "slides" ? (
-                    <SlideDeck deck={view.shown.deck} onOpenLink={onOpenLink} />
-                  ) : view.shown.kind === "text" ? (
-                    <TextFile text={view.shown.text} marks={marks} />
-                  ) : view.shown.kind === "doc" ? (
-                    <DocPages pages={view.shown.pages} />
-                  ) : view.shown.kind === "ppt" ? (
-                    <SlideCards slides={view.shown.slides} />
-                  ) : view.shown.kind === "image" ? (
-                    <div className="grid min-h-full place-items-center p-6">
-                      <img
-                        src={view.shown.url}
-                        alt={name}
-                        className="h-auto max-w-full rounded-sm shadow-card outline -outline-offset-1 outline-black/10 dark:outline-white/10"
-                      />
-                    </div>
-                  ) : null}
-                </section>
-                {notesHere && notesPanel.open && (
-                  <NotesPanel
-                    notes={notesHere}
-                    focus={notesPanel.focus}
-                    onClose={() => {
-                      notesPanel.show(false);
-                      scroller.current?.focus();
-                    }}
-                  />
-                )}
-              </div>
-            )}
+                </div>
+              )}
+            </div>
             {highlighter.announcer}
           </PanelBoundary>
         </DialogPrimitive.Content>

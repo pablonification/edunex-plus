@@ -79,6 +79,8 @@ const words = (code: string) => row(code)?.querySelector("[role=img]")?.nextElem
 /** A row's attendance at its end, label by label: "Kehadiran" → "85% sejauh ini (6 dari 7)", "Jatah absen" → … */
 const side = (code: string) =>
   Object.fromEntries([...(row(code)?.querySelectorAll("dl > dt") ?? [])].map((dt) => [dt.textContent, dt.nextElementSibling?.textContent ?? ""]));
+/** The Targets panel's rows, top to bottom: each course's code, or "default". */
+const targetRows = () => [...document.querySelectorAll("[role=dialog] li [data-target]")].map((el) => el.getAttribute("data-target"));
 const rowName = (code: string) => row(code)?.querySelector(":scope > button")?.getAttribute("aria-label") ?? "";
 
 describe("the Presensi screen", () => {
@@ -151,10 +153,16 @@ describe("the Presensi screen", () => {
     await s.click(change);
     const panel = document.querySelector("[role=dialog]")!;
     expect(panel.textContent).toContain("Target kehadiran");
-    // Focus is on KU5014's own stepper.
+    // KU5014 first, tinted, focus on its own stepper; the default last, out of the way of a change meant for one course.
+    expect(targetRows()).toEqual(["KU5014", "DK4073", "II4091", "PL3002", "PL3032", "default"]);
+    expect(panel.querySelector('[data-target="KU5014"]')?.closest("li")?.className).toContain("bg-fill");
     expect(document.activeElement?.getAttribute("aria-label")).toBe("Turunkan target KU5014");
     await s.key("Escape");
     expect(document.activeElement?.getAttribute("aria-label")).toBe("Ubah target: KU5014");
+    // From the header's "Target", the overview: the default first, then each course in its order, none tinted.
+    await s.click(/^Target80%$/);
+    expect(targetRows()).toEqual(["default", "DK4073", "II4091", "KU5014", "PL3002", "PL3032"]);
+    expect(document.querySelector("[role=dialog] li.bg-fill")).toBeNull();
   });
 
   it("a clash today: which to go to if the Student can make only one, and why, said once", async () => {

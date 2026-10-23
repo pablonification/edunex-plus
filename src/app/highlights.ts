@@ -7,12 +7,13 @@
 import { useMemo, useSyncExternalStore } from "react";
 import {
   addHighlights,
+  clearHighlights,
   highlightsIn,
   notesIn,
   recolorHighlight,
   removeHighlight,
   removeNote,
-  restoreHighlight,
+  restoreHighlights,
   restoreNote,
   setNote,
 } from "../core/highlights";
@@ -90,12 +91,13 @@ export function useFileHighlights(file: string | null): Highlights | undefined {
       add: (highlights) => void save((files, now) => addHighlights(files, file, highlights, now)),
       recolor: (id, color) => void save((files, now) => recolorHighlight(files, file, id, color, now)),
       remove: (id) => void save((files, now) => removeHighlight(files, file, id, now)),
-      restore: (highlight) => void save((files, now) => restoreHighlight(files, file, highlight, now)),
+      clear: () => void save((files, now) => clearHighlights(files, file, now)),
+      restore: (highlights) => void save((files, now) => restoreHighlights(files, file, highlights, now)),
     };
   }, [file, all, save]);
 }
 
-/** One file's notes, a page's each (a Word document's or text file's: one for the whole file); none where it has no highlights either. */
+/** One file's notes, a page's each (a Word document's or text file's: one for the whole file); none for a file that isn't Edunex's, as for highlights. */
 export function useFileNotes(file: string | null): PageNotes | undefined {
   const all = useAllMarks();
   const save = useSave("pageNote.saveFailed");

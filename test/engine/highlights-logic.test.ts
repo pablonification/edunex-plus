@@ -1,11 +1,13 @@
 // Highlights, seam 1: the rules alone. Making, recoloring, removing and
-// putting back a highlight in a file; the notes kept with them, one a page
-// (or one for a whole file); the caps, which let the files changed longest ago
-// go first; and finding a highlight's text again in a page whose text reads a
-// little differently now. Made-up lines of a course outline.
+// putting back a highlight in a file, or all of a file's at once; the notes
+// kept with them, one a page (or one for a whole file), which removing all the
+// highlights leaves, and the other way round; the caps, which let the files
+// changed longest ago go first; and finding a highlight's text again in a page
+// whose text reads a little differently now. Made-up lines of a course outline.
 import { describe, expect, it } from "vitest";
 import {
   addHighlights,
+  clearHighlights,
   colorOf,
   HIGHLIGHT_COLORS,
   highlightsIn,
@@ -16,7 +18,7 @@ import {
   recolorHighlight,
   removeHighlight,
   removeNote,
-  restoreHighlight,
+  restoreHighlights,
   restoreNote,
   setNote,
   trimmed,
@@ -83,9 +85,22 @@ describe("making and changing highlights", () => {
     const removed = highlightsIn(files, FILE)[1];
     files = removeHighlight(files, FILE, "h2", 6);
     expect(ids(files)).toEqual(["h1 blue"]);
-    files = restoreHighlight(files, FILE, removed, 7);
-    files = restoreHighlight(files, FILE, removed, 8);
+    files = restoreHighlights(files, FILE, [removed], 7);
+    files = restoreHighlights(files, FILE, [removed], 8);
     expect(ids(files)).toEqual(["h1 blue", "h2 yellow"]);
+  });
+
+  it("removes all of a file's at once, leaves other files alone, and puts them all back in their order", () => {
+    let files = addHighlights([], OTHER, [mark("o1", 0, 6)], 1);
+    files = addHighlights(files, FILE, [mark("h1", 0, 6), mark("h2", 20, 27, { color: "green" })], 2);
+    const all = highlightsIn(files, FILE);
+    files = clearHighlights(files, FILE, 3);
+    expect(ids(files)).toEqual([]);
+    expect(files.map((f) => f.file)).toEqual([OTHER]);
+    files = restoreHighlights(files, FILE, all, 4);
+    files = restoreHighlights(files, FILE, all, 5);
+    expect(ids(files)).toEqual(["h1 yellow", "h2 green"]);
+    expect(ids(files, OTHER)).toEqual(["o1 yellow"]);
   });
 
   it("a file whose last highlight goes isn't kept at all", () => {
@@ -107,6 +122,34 @@ describe("notes on a page", () => {
     expect(ids(files)).toEqual(["h1 yellow"]);
     expect(files[0].at).toBe(4);
     expect(Datasets["local.highlights"].safeParse(files).success).toBe(true);
+  });
+
+  it("removing all of a file's highlights keeps its notes, removing its notes keeps its highlights, and Undo of either leaves the other", () => {
+    let files = addHighlights([], FILE, [mark("h1", 0, 6), mark("h2", 20, 27, { color: "green" })], 1);
+    files = setNote(files, FILE, 1, "Definisi biaya tetap", 2);
+    files = setNote(files, FILE, 2, "Contoh soal", 3);
+    const all = highlightsIn(files, FILE);
+
+    files = clearHighlights(files, FILE, 4);
+    expect(ids(files)).toEqual([]);
+    expect(notes(files)).toEqual(["1 Definisi biaya tetap", "2 Contoh soal"]);
+    expect(Datasets["local.highlights"].safeParse(files).success).toBe(true);
+    files = restoreHighlights(files, FILE, all, 5);
+    expect(ids(files)).toEqual(["h1 yellow", "h2 green"]);
+    expect(notes(files)).toEqual(["1 Definisi biaya tetap", "2 Contoh soal"]);
+
+    const first = notesIn(files, FILE)[0];
+    files = removeNote(files, FILE, 1, 6);
+    files = removeNote(files, FILE, 2, 7);
+    expect(ids(files)).toEqual(["h1 yellow", "h2 green"]);
+    expect(notes(files)).toEqual([]);
+    files = restoreNote(files, FILE, first, 8);
+    expect(notes(files)).toEqual(["1 Definisi biaya tetap"]);
+    expect(ids(files)).toEqual(["h1 yellow", "h2 green"]);
+
+    // With neither left, the file goes.
+    files = removeNote(clearHighlights(files, FILE, 9), FILE, 1, 10);
+    expect(files).toEqual([]);
   });
 
   it("a Word document or text file has one, for the whole file", () => {

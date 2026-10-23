@@ -637,3 +637,9 @@ html[data-hidden] [data-loop] * {
     top: 0;
   }
 }
+
+/* Over a highlight (ui/highlights.tsx), a hand: a click opens its bar, to change its color or remove it. */
+[data-on-highlight],
+[data-on-highlight] .pdf-text :is(span, br) {
+  cursor: pointer;
+}

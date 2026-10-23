@@ -91,7 +91,7 @@ _Avoid_: dismissed, done (on screen), archived
 _Avoid_: course status, tag color, theme
 
 **Highlight**:
-"Sorotan": text the Student marked in a file they read in the app (a PDF, a Word document, a text file), in one of four highlighter colors. Kept on this computer only, never sent to Edunex, by the file's content, so the same file shows its highlights wherever it's listed. Each is kept where its text is (a PDF's page and the characters on it), so it comes back at any zoom; one whose text isn't in the file any more isn't drawn. Removed when the Student signs out of everything, and when a different Student signs in.
+"Sorotan": text the Student marked in a file they read in the app (a PDF, a Word document, a text file), in one of four highlighter colors. Kept on this computer only, never sent to Edunex, by the file's content, so the same file shows its highlights wherever it's listed. Each is kept where its text is (a PDF's page and the characters on it), so it comes back at any zoom; one whose text isn't in the file any more isn't drawn. The Student removes one, or all of a file's at once, and can put them back right after. Removed when the Student signs out of everything, and when a different Student signs in.
 _Avoid_: annotation, note, bookmark, mark (in UI copy)
 
 **Page note**:

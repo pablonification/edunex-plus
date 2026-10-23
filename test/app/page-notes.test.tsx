@@ -8,7 +8,9 @@
 // Urungkan, emptying a note removes it, Escape gives the keyboard back to the
 // pages, and ⌘Z in the note is the typing's. Notes come back after a restart,
 // and the panel opens as it was left. A text file has one note, for the whole
-// file. pdf.js can't lay out text in jsdom: a stand-in lays out each page's
+// file. Notes and highlights share the file's record without touching each
+// other: the eraser leaves the notes, a note's Hapus leaves the highlights,
+// and ⌘Z typed in a note is the note's. pdf.js can't lay out text in jsdom: a stand-in lays out each page's
 // lines, as in highlights.test.tsx.
 import { createHash } from "node:crypto";
 import { act } from "react";
@@ -67,6 +69,15 @@ const savedShows = () => {
   const status = [...panel()!.querySelectorAll("span[aria-hidden]")].find((el) => el.textContent === "Tersimpan");
   return status?.classList.contains("opacity-100") ?? false;
 };
+/** The toolbar's eraser, "Hapus semua sorotan". */
+const eraser = () => viewer()!.querySelector<HTMLButtonElement>("button[aria-label='Hapus semua sorotan']")!;
+/** The highlights the app saved last, as "page text color". */
+const savedHighlights = (s: Awaited<ReturnType<typeof openApp>>) => {
+  const value = s.calls.findLast((call) => call.name === "local.set" && (call.input as { name: string }).name === "local.highlights")?.input as
+    | { value: HighlightedFile[] }
+    | undefined;
+  return (value?.value ?? []).flatMap((file) => file.highlights.map((h) => `${h.page ?? "-"} ${h.text} ${h.color}`));
+};
 /** The notes the app saved last, as "file page text". */
 const savedNotes = (s: Awaited<ReturnType<typeof openApp>>) => {
   const value = s.calls.findLast((call) => call.name === "local.set" && (call.input as { name: string }).name === "local.highlights")?.input as
@@ -93,6 +104,29 @@ async function press(target: Element, key: string, init: KeyboardEventInit = {})
     target.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true, ...init }));
   });
   await tick();
+}
+
+/** The Student selects `words` under `within` with the mouse: pressed, dragged over them, let go. */
+async function select(within: ParentNode, words: string) {
+  const walker = document.createTreeWalker(within, NodeFilter.SHOW_TEXT);
+  let node: Text | null = null;
+  for (let at = walker.nextNode(); at; at = walker.nextNode()) if ((at as Text).data.includes(words)) node = at as Text;
+  if (!node) throw new Error(`No "${words}" to select`);
+  const range = document.createRange();
+  range.setStart(node, node.data.indexOf(words));
+  range.setEnd(node, node.data.indexOf(words) + words.length);
+  await act(async () => {
+    node.parentElement!.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+    document.getSelection()!.removeAllRanges();
+    document.getSelection()!.addRange(range);
+    node.parentElement!.dispatchEvent(new MouseEvent("mouseup", { bubbles: true }));
+  });
+}
+
+/** The Student clicks the toolbar's eraser (a click puts the keyboard on it). */
+async function erase(s: Awaited<ReturnType<typeof openApp>>) {
+  await act(async () => eraser().focus());
+  await s.click(eraser());
 }
 
 /** The Student leaves the note for the pages: what they typed is saved. */
@@ -254,5 +288,69 @@ describe("a note on a text file", () => {
     expect(savedNotes(s)).toEqual([`${sha(text).slice(0, 8)} - Hafalkan rumus biaya total`]);
     // No other pages to list.
     expect(panel()!.textContent).not.toContain("Catatan di halaman lain");
+  });
+});
+
+describe("notes and highlights in the same file", () => {
+  it("the eraser and Catatanku sit side by side; the eraser leaves the notes, and a note's Hapus leaves the highlights", async () => {
+    const s = await openOutline();
+    // Side by side in the toolbar, the eraser first.
+    const toolbar = viewer()!.querySelector("h2")!.parentElement!;
+    const names = [...toolbar.querySelectorAll("button")].map((b) => b.getAttribute("aria-label") ?? b.textContent);
+    expect(names.indexOf("Catatanku") - names.indexOf("Hapus semua sorotan")).toBe(1);
+
+    await select(viewer()!.querySelector('[data-page="1"]')!, "Proposal Tugas");
+    await s.click("Sorot kuning");
+    await openNotes(s);
+    await type(note(), "Bahas di bimbingan");
+    await leave();
+    expect(savedHighlights(s)).toEqual(["1 Proposal Tugas yellow"]);
+    expect(savedNotes(s).map((n) => n.slice(9))).toEqual(["1 Bahas di bimbingan"]);
+
+    await erase(s);
+    expect(savedHighlights(s)).toEqual([]);
+    expect(savedNotes(s).map((n) => n.slice(9))).toEqual(["1 Bahas di bimbingan"]);
+    expect(note().value).toBe("Bahas di bimbingan");
+    expect(s.has("Catatan halaman 1")).toBe(true);
+    await s.click("Urungkan");
+    expect(savedHighlights(s)).toEqual(["1 Proposal Tugas yellow"]);
+    expect(savedNotes(s).map((n) => n.slice(9))).toEqual(["1 Bahas di bimbingan"]);
+
+    await s.click("Hapus catatan");
+    expect(savedNotes(s)).toEqual([]);
+    expect(savedHighlights(s)).toEqual(["1 Proposal Tugas yellow"]);
+    expect(s.has("Sorotan kuning: Proposal Tugas")).toBe(true);
+  });
+
+  it("in a text file, ⌘Z typed in the note is the note's, not the reader's Undo for the highlights just erased", async () => {
+    const s = await openApp({ signedIn: true });
+    screen = s;
+    const url = `${BLOB}-ringkasan.txt`;
+    s.world.edunex.postMaterial(95001, { name: "Ringkasan", type: "file", content: url });
+    s.world.putFile(url, "Ringkasan kuliah\nRumus utama: biaya total = biaya tetap + biaya variabel\n");
+    await s.engineDoes(() => s.engine.refresh("edunex"));
+    const card = [...document.querySelectorAll<HTMLButtonElement>("main ul li button")].find((b) => b.textContent?.startsWith("PL3002"));
+    await s.click(card!);
+    const nav = document.querySelector("nav[aria-label='Daftar isi']")!;
+    await s.click([...nav.querySelectorAll("button")].find((b) => b.textContent?.includes("Pengantar"))!);
+    await s.click("Lihat: Ringkasan");
+    for (let i = 0; i < 200 && (!viewer() || viewer()!.querySelector("[role=status]")); i++)
+      await act(async () => new Promise((resolve) => setTimeout(resolve, 10)));
+    await tick();
+
+    await select(viewer()!.querySelector("pre")!, "biaya tetap");
+    await s.click("Sorot kuning");
+    await erase(s);
+    expect(savedHighlights(s)).toEqual([]);
+    await openNotes(s);
+    await type(note(), "Hafalkan");
+    await press(note(), "z", { metaKey: true });
+    expect(savedHighlights(s)).toEqual([]);
+    expect(s.has("Sorotan kuning: biaya tetap")).toBe(false);
+    // From the eraser, ⌘Z is the reader's again.
+    await press(eraser(), "z", { metaKey: true });
+    expect(savedHighlights(s)).toEqual(["- biaya tetap yellow"]);
+    await leave();
+    expect(savedNotes(s).map((n) => n.slice(9))).toEqual(["- Hafalkan"]);
   });
 });
