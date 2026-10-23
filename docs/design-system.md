@@ -216,9 +216,10 @@ text.
 The Student picks a course's color where they see it, with a right-click (or
 Shift+F10, or the context-menu key) on its sidebar row, its dot and code above
 the course page's title, or "Ganti warna" in that page's "Lainnya". Settings →
-Warna mata kuliah lists the term at once, previews it in light and dark, and
-puts every course back to automatic. The sidebar's palette button beside
-"Mata kuliah" opens that list. They all open one picker
+Warna mata kuliah lists the term at once, previews it in light and dark (a band
+for each theme on top of the list, each course by its dot and code, the two in
+the same columns), and puts every course back to automatic. The sidebar's
+palette button beside "Mata kuliah" opens that list. They all open one picker
 (`src/app/course-color-picker.tsx`): "Otomatis (Biru muda)" first, then the ten
 colors by hue in two rows of five, each with the code of a course that has it.
 Moving through them redraws the course everywhere, unsaved. The picker saves
@@ -409,7 +410,7 @@ Screens are composed, not styled one by one:
 | `Button` | `primary` (one per view: the main action), `secondary`, `ghost`, `danger` (destructive only, never for a final but safe action like handing in). Shows a spinner while working, and takes no second press then; it stays focused (`aria-disabled`, not `disabled`, which would drop a keyboard user's focus on the page). So does a stepper's − or + at its limit. |
 | `IconButton` | Square, always with a name and a tooltip. |
 | `Popover` | A panel from a control (alerts, data status); Escape and a click outside close it. Never bigger than the room the window leaves it: it scrolls inside instead. Opened from state (a sidebar row whose click opens its course), it hangs from `anchor` on any `side`. |
-| `Dialog`, `ConfirmDialog` | Focus stays inside; Escape closes; both leave the way they came, taking no second click while they go (other dialog shells reuse `SCRIM_CLASS`, `PANEL_MOTION_CLASS` and `onClickCapture={ignoreClosingClick}`). Confirm only before what can't be undone: it is an alert dialog, so a click beside it isn't an answer and Cancel has focus first. A page one level down (Settings' open-source licences) swaps in at once with a back button naming where it goes (`back`), keeps the dialog at its full height (so a search on it stays put while its results change), starts at its own top, and going back puts focus on the button that opened it. |
+| `Dialog`, `ConfirmDialog` | Focus stays inside; Escape closes; only the body scrolls, never the box, so the title bar stays put whatever is scrolled into view; both leave the way they came, taking no second click while they go (other dialog shells reuse `SCRIM_CLASS`, `PANEL_MOTION_CLASS` and `onClickCapture={ignoreClosingClick}`). Confirm only before what can't be undone: it is an alert dialog, so a click beside it isn't an answer and Cancel has focus first. A page one level down (Settings' open-source licences) swaps in at once with a back button naming where it goes (`back`), keeps the dialog at its full height (so a search on it stays put while its results change), starts at its own top, and going back puts focus on the button that opened it. |
 | `toast(text, tone, action?)` | Neutral, success or danger; with an action ("Urungkan", "Lihat") it stays 8 s; an error (`danger`) stays until the Student closes it, with its own close button. It waits while the pointer is on it or focus is in it, then goes on with the time it had left. When it goes (Urungkan pressed from the keyboard), focus goes back where it came from, never to the page. Never the only place an error is said. |
 | `StatusChip` | A Task's true status: each its own color, glyph and word. Shown only where the status says something (not "Belum dikerjakan" on every to-do row). |
 | The date column (`DueWhen`, `TaskDate`; `SittingWhen` in `screens/exam.tsx`) | Tugas & Ujian's one edge for "when", 136 px on the right of every row. A countdown means a deadline ("Sab, 24 Okt, 23:59" over "dalam 2 hari"): amber within a day, red only once late. A time range means a sitting, be there ("Min, 25 Okt" over "19:00–20:30"): amber within a day, green "Sekarang" over "sampai 20:30" while it's on. The second line goes when it only says the day again ("Besok"). |
