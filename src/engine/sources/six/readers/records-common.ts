@@ -2,12 +2,17 @@
 // one table, SIX's numbers, days and WIB times, term codes, and the checks
 // that turn a layout the app doesn't know into "SIX changed something".
 //
+// A row a reader doesn't understand is left out and kept in the page's
+// `skipped` (../../skipped.ts), so the rest of the page still reads; what
+// holds the rows (tables, headers, headings) stays strict.
+//
 // Readers find things by structure (tables, classes, icons, links). Header
 // labels are checked against the recorded Indonesian pages; on SIX's English
 // variant, which has no recording yet, only the structure is checked.
 import { type Cheerio, type CheerioAPI, load } from "cheerio/slim";
 import type { Element } from "domhandler";
 import { EngineError } from "../../../errors";
+import { Skipped } from "../../skipped";
 
 export type Elem = Cheerio<Element>;
 
@@ -17,12 +22,14 @@ export interface Page {
   lang: "id" | "en";
   /** "transcript", "KRS", … for error messages. */
   name: string;
+  /** The rows the reader left out. */
+  skipped: Skipped;
 }
 
-export function openPage(html: string, name: string): Page {
+export function openPage(html: string, name: string, skipped = new Skipped()): Page {
   const $ = load(html);
   const active = $('li.active > a[href^="/pub/locale/"]').attr("href") ?? "";
-  return { $, lang: /^\/pub\/locale\/en\b/.test(active) ? "en" : "id", name };
+  return { $, lang: /^\/pub\/locale\/en\b/.test(active) ? "en" : "id", name, skipped };
 }
 
 /** SIX answered a page the app doesn't know how to read. */
@@ -44,6 +51,9 @@ export function rowsOf(page: Page, table: Elem): Elem[] {
     .toArray()
     .map((tr) => $(tr));
 }
+
+/** A row as the Student would find it on SIX: its cells' text, the empty ones left out. */
+export const rowText = (cells: readonly Elem[]) => cells.map(textOf).filter(Boolean).join(" · ");
 
 export function cellsOf(page: Page, row: Elem): Elem[] {
   return row

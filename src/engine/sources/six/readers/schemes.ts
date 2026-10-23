@@ -1,8 +1,10 @@
 // Reads what the Student registered for (/statusmhs/program-integrasi/riwayat/{sid},
 // "Skema Program Pendidikan"): specialization, minor, multidisciplinary
-// program or double major, with the advisor's and the program's approval.
+// program or double major, with the advisor's and the program's approval. A
+// row it doesn't understand is left out (skipped).
 import type { SchemeRegistration } from "../../../../core/models";
-import { cellsOf, changed, clean, day, type Elem, expectLabels, openPage, type Page, rowsOf, textOf } from "./records-common";
+import type { Skipped } from "../../skipped";
+import { cellsOf, changed, clean, day, type Elem, expectLabels, openPage, type Page, rowsOf, rowText, textOf } from "./records-common";
 
 const HEADER = [
   ["", "Skema Program Pendidikan", "Persetujuan", "Status"],
@@ -24,8 +26,8 @@ const BY_TITLE: Record<string, SchemeRegistration["kind"]> = {
   "double major": "double-major",
 };
 
-export function readSchemes(html: string): SchemeRegistration[] {
-  const page = openPage(html, "education scheme");
+export function readSchemes(html: string, skipped?: Skipped): SchemeRegistration[] {
+  const page = openPage(html, "education scheme", skipped);
   const out: SchemeRegistration[] = [];
   const seen = new Set<SchemeRegistration["kind"]>();
   for (const element of page.$(".panel").toArray()) {
@@ -39,21 +41,23 @@ export function readSchemes(html: string): SchemeRegistration[] {
     const [first, second, ...rows] = rowsOf(page, table);
     expectLabels(page, first ? cellsOf(page, first).map(textOf) : [], HEADER[0]!, "the header");
     expectLabels(page, second ? cellsOf(page, second).map(textOf) : [], HEADER[1]!, "the header");
-    for (const row of rows) {
-      const cells = cellsOf(page, row);
-      if (cells.length === 1) continue; // "Tidak ada data."
-      if (cells.length !== 5) changed(page, `a ${kind} row has ${cells.length} cells`);
-      const [, scheme, advisor, program, status] = cells as Elem[];
-      const [name, runBy] = textOf(scheme!).split(" · ").map(clean);
-      out.push({
-        kind,
-        name: name!,
-        program: runBy || null,
-        advisorApprovedOn: approval(page, advisor!),
-        programApprovedOn: approval(page, program!),
-        status: textOf(status!),
-      });
-    }
+    // "Tidak ada data." across the table: no row.
+    const registered = rows.map((row) => cellsOf(page, row)).filter((cells) => cells.length !== 1);
+    out.push(
+      ...page.skipped.each(registered, rowText, (cells): SchemeRegistration => {
+        if (cells.length !== 5) changed(page, `a ${kind} row has ${cells.length} cells`);
+        const [, scheme, advisor, program, status] = cells as Elem[];
+        const [name, runBy] = textOf(scheme!).split(" · ").map(clean);
+        return {
+          kind,
+          name: name!,
+          program: runBy || null,
+          advisorApprovedOn: approval(page, advisor!),
+          programApprovedOn: approval(page, program!),
+          status: textOf(status!),
+        };
+      }),
+    );
   }
   if (seen.size === 0) changed(page, "no scheme panels");
   return out;

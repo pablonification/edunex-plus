@@ -8,6 +8,7 @@ import type { ClassSession, KrsPlan } from "../../../core/models";
 import { useCourseColor, useTermCourses } from "../../courses";
 import { useFormat, useNow, useT } from "../../i18n";
 import { useNav } from "../../nav";
+import { SkippedNote } from "../../skipped-note";
 import { useDataset } from "../../store";
 import { Button } from "../../ui/controls";
 import { cx } from "../../ui/cx";
@@ -45,6 +46,7 @@ export function Tab(_: { onCalendar?: () => void }) {
   );
   return (
     <div className="@container space-y-8">
+      <SkippedNote datasets={["six.krs"]} />
       <Stage plan={plan} overlaps={overlaps.filter((o) => o.upcoming)} />
       <div className="grid grid-cols-1 items-start gap-8 @4xl:grid-cols-[minmax(0,1fr)_300px]">
         <Courses plan={plan} overlaps={overlaps} />

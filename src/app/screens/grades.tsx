@@ -13,6 +13,7 @@ import { useTermCourses } from "../courses";
 import { useOpenExternal } from "../hooks";
 import { useFormat, useNow, useT } from "../i18n";
 import { useNav, usePlaceState } from "../nav";
+import { SkippedNote } from "../skipped-note";
 import { useDataset } from "../store";
 import { type PlanState, usePlan, useStudentRecord } from "../study-plan";
 import { Button } from "../ui/controls";
@@ -39,6 +40,7 @@ export function GradesScreen() {
   return (
     <Page className="@container">
       <Answer record={record} state={state} />
+      <SkippedNote datasets={["six.transcript", "six.progress"]} className="mt-6" />
       <Disagreement record={record} />
       <Standing record={record} state={state} />
       <div className="mt-10 grid grid-cols-1 items-start gap-6 @3xl:grid-cols-[minmax(0,1fr)_288px]">

@@ -1,14 +1,15 @@
 // Reads UKT bills (/keuangan, "Status Keuangan"): per term the amount billed,
 // the amount paid and the last day to pay, or the instalments with their own
-// days and amounts.
+// days and amounts. A bill row it doesn't understand is left out (skipped).
 import type { Bill, BillStatus, Instalment } from "../../../../core/models";
-import { cellsOf, changed, day, type Elem, endOfDayWib, expectLabels, int, openPage, type Page, rowsOf, rupiah, textOf } from "./records-common";
+import type { Skipped } from "../../skipped";
+import { cellsOf, changed, day, type Elem, endOfDayWib, expectLabels, int, openPage, type Page, rowsOf, rowText, rupiah, textOf } from "./records-common";
 
 const HEADER = ["Semester", "Tagihan (Rp)", "Pembayaran (Rp)", "Batas Pembayaran", "Petunjuk"];
 
 /** Oldest term first. */
-export function readBills(html: string): Bill[] {
-  const page = openPage(html, "finance");
+export function readBills(html: string, skipped?: Skipped): Bill[] {
+  const page = openPage(html, "finance", skipped);
   // The bills table is the one with academic-year rows ("Tahun 2023 / 2024").
   const tables = page.$("table").filter((_, table) => rowsOf(page, page.$(table)).some((row) => row.hasClass("warning")));
   if (tables.length !== 1) changed(page, "no table of bills");
@@ -16,10 +17,12 @@ export function readBills(html: string): Bill[] {
   expectLabels(page, header ? cellsOf(page, header).map(textOf) : [], HEADER, "the bills header");
 
   const bills: Bill[] = [];
+  const list = page.skipped.list();
   let year: number | null = null;
   for (const row of rows) {
     const cells = cellsOf(page, row);
     if (row.hasClass("warning")) {
+      // A year holds the rows under it: one the app can't read would put them in the wrong year.
       const years = /(\d{4})\s*\/\s*(\d{4})/.exec(textOf(row));
       if (cells.length !== 1 || !years) changed(page, `year row "${textOf(row)}" isn't readable`);
       year = Number(years[1]);
@@ -28,10 +31,16 @@ export function readBills(html: string): Bill[] {
     } else if (textOf(cells[0]!) === "SPI") {
       // SPI, the development fee some intakes pay once on entry: not a term's UKT, so not a bill here.
     } else {
-      if (year === null || cells.length !== HEADER.length) changed(page, "a bill row is out of place");
-      bills.push(readBill(page, year, cells));
+      if (year === null) changed(page, "a bill row is out of place");
+      const of = year;
+      const bill = list.item(rowText(cells), () => {
+        if (cells.length !== HEADER.length) changed(page, `a bill row has ${cells.length} cells`);
+        return readBill(page, of, cells);
+      });
+      if (bill) bills.push(bill);
     }
   }
+  list.done();
   return bills.sort((a, b) => a.term.localeCompare(b.term));
 }
 

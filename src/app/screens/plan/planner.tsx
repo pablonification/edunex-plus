@@ -77,6 +77,7 @@ import {
 import { useFocusNext } from "../../hooks";
 import { useFormat, useLang, useT } from "../../i18n";
 import { usePlaceState } from "../../nav";
+import { SkippedNote } from "../../skipped-note";
 import { type PlanState, useCurriculumFix, usePlan, useStudentRecord } from "../../study-plan";
 import { Button, IconButton } from "../../ui/controls";
 import { cx } from "../../ui/cx";
@@ -219,6 +220,7 @@ function Planner({ real, record, state }: { real: StudentRecord; record: Student
 
   return (
     <div className="@container space-y-6">
+      <SkippedNote datasets={["six.curriculum"]} />
       <Summary record={record} state={state} rules={rules} />
       <div className="grid grid-cols-1 items-start gap-6 @4xl:grid-cols-[minmax(0,1fr)_340px]">
         <div className="min-w-0 space-y-3">

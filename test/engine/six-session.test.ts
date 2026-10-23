@@ -340,6 +340,37 @@ describe("what SIX shows changes", () => {
   });
 });
 
+describe("a row SIX shows that the app doesn't understand", () => {
+  const STATUS = /\/statusmhs$/;
+  it("is left out and kept with what it shows; the other courses read, SIX stays connected, and a read without it clears it", async () => {
+    const h = await signedIn();
+    expect(h.dataset("six.skipped")).toBeUndefined();
+    h.world.six.changeLayout(STATUS, "<td>PL3002</td>", "<td>PL-3002</td>");
+    await until(h, h.engine.refresh("six"));
+    expect(h.status("six").state).toBe("live");
+    expect(h.dataset("six.courses")).toEqual(COURSES.filter((course) => course.code !== "PL3002"));
+    expect(h.dataset("six.skipped")).toEqual({
+      "six.courses": [
+        { row: expect.stringMatching(/^\d+ · PL-3002 · Ekonomi dan Inovasi dalam Perencanaan · /), why: "SIX statusmhs: course 4 has no course code" },
+      ],
+    });
+
+    h.world.six.changeLayout(STATUS, "<td>PL-3002</td>", "<td>PL3002</td>");
+    await until(h, h.engine.refresh("six"));
+    expect(h.dataset("six.courses")).toEqual(COURSES);
+    expect(h.dataset("six.skipped")).toEqual({});
+  });
+
+  it("is forgotten with the rest of SIX's data on sign-out", async () => {
+    const h = await signedIn();
+    h.world.six.changeLayout(STATUS, "<td>PL3002</td>", "<td>PL-3002</td>");
+    await until(h, h.engine.refresh("six"));
+    expect(h.dataset("six.skipped")).toHaveProperty("six.courses");
+    await h.engine.signOut("six");
+    expect(h.dataset("six.skipped")).toBeUndefined();
+  });
+});
+
 describe("SIX changed something", () => {
   const STATUS = /\/statusmhs$/;
   const TIMETABLE = /\/kelas\/jadwal\/mahasiswa\/\d+$/;
@@ -347,7 +378,6 @@ describe("SIX changed something", () => {
     ["the course table gains a column", STATUS, '<th class="text-center">Nilai</th>', '<th class="text-center">Nilai</th><th>Dosen</th>', "different layout"],
     ["attendance loses its exact count", STATUS, 'title="Hadir', 'data-note="Hadir', "attendance without its count"],
     ["the course list loses its term", STATUS, "Daftar Kuliah Semester 1-2026/2027", "Daftar Kuliah", "course list is missing"],
-    ["a course code changes shape", STATUS, "<td>PL3002</td>", "<td>PL-3002</td>", "no course code"],
     ["the timetable's meetings lose their address", TIMETABLE, 'data-url="', 'data-href="', "can't read"],
     // A Sunday column before Monday: every date would be a day off.
     ["the timetable's grid starts on another weekday", TIMETABLE, "<tr><td >", '<tr><td ><div class="">27</div></td><td >', "line up with the weekdays"],

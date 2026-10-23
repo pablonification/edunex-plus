@@ -2,7 +2,7 @@
 // for opening a link: the app's own links go only to official pages; a link a
 // lecturer wrote (in a note, a Task, an announcement) may go to any web page,
 // in the system browser, as Edunex itself opens it.
-import type { AcademicCalendar } from "./models";
+import type { AcademicCalendar, DatasetName } from "./models";
 
 export const EDUNEX_WEB = "https://edunex.itb.ac.id";
 
@@ -15,6 +15,30 @@ export const sixStatusUrl = (nim: string) => `${SIX_WEB}/app/mahasiswa:${nim}/st
 
 /** Who SIX's own page addresses name: the NIM, SIX's id for the Student, the term ("2026-1"). */
 export type SixAddress = { nim: string; studentId: string; term: string };
+
+/** Where SIX shows each of the Student's records, as a path: the pages the app reads them from. */
+export const sixRecordPaths = {
+  transcript: ({ nim, studentId }: SixAddress) => `/app/mahasiswa:${nim}/statusmhs/transkrip/historis/${studentId}`,
+  progress: ({ nim, studentId }: SixAddress) => `/app/mahasiswa:${nim}/statusmhs/transkrip/kurikulum/${studentId}`,
+  curricula: ({ nim }: Pick<SixAddress, "nim">) => `/app/mahasiswa:${nim}/kurikulum/kurikulum/list`,
+  schemes: ({ nim, studentId }: SixAddress) => `/app/mahasiswa:${nim}/statusmhs/program-integrasi/riwayat/${studentId}`,
+  krs: ({ nim, studentId, term }: SixAddress) => `/app/mahasiswa:${nim}+${term}/registrasi/rencanastudi/${studentId}`,
+  bills: ({ nim }: Pick<SixAddress, "nim">) => `/app/mahasiswa:${nim}/keuangan`,
+  syllabus: ({ nim }: Pick<SixAddress, "nim">, courseId: string) => `/app/mahasiswa:${nim}/kurikulum/silabus/${courseId}/view`,
+};
+
+/** The SIX page a dataset is read from, where the Student can check a row the app left out of it. */
+export function sixPageOf(dataset: DatasetName, who: SixAddress): string {
+  if (dataset === "six.courses") return sixStatusUrl(who.nim);
+  const path = {
+    "six.transcript": sixRecordPaths.transcript(who),
+    "six.progress": sixRecordPaths.progress(who),
+    "six.curriculum": sixRecordPaths.curricula(who),
+    "six.krs": sixRecordPaths.krs(who),
+    "six.bills": sixRecordPaths.bills(who),
+  }[dataset as string];
+  return `${SIX_WEB}${path ?? ""}`;
+}
 
 /** SIX's timetable, as a path. */
 const timetablePath = (who: SixAddress) => `/app/mahasiswa:${who.nim}+${who.term}/kelas/jadwal/mahasiswa/${who.studentId}`;
