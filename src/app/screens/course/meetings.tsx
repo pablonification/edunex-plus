@@ -6,7 +6,7 @@
 // absence where SIX is (or, signed out of SIX, may be) the one that counts.
 // A meeting carries one number only: the name Edunex or SIX gives it.
 import type { ReactNode } from "react";
-import type { CountedIn } from "../../../core/attendance";
+import type { AfterClass, CountedIn } from "../../../core/attendance";
 import { type OutlineEntry, outlineEntries } from "../../../core/course-materials";
 import { type Meeting, meetingModules, meetingState, nextMeetingIndex, wibDay } from "../../../core/course-meetings";
 import { edunexCourseUrl } from "../../../core/links";
@@ -79,6 +79,7 @@ export function MeetingsTab({ page }: { page: CoursePage }) {
                 moduleTitle={meetingModuleTitle(t, modules, meeting)}
                 divider={firstInPeriod ? period : undefined}
                 fallbackUrl={course.edunex ? edunexCourseUrl(course.edunex.courseId) : null}
+                sixResult={meeting.six ? (attendance?.results[meeting.six.id]?.result ?? null) : null}
               />
             );
           })}
@@ -149,6 +150,7 @@ function MeetingRow({
   moduleTitle,
   divider,
   fallbackUrl,
+  sixResult,
 }: {
   meeting: Meeting;
   index: number;
@@ -157,6 +159,8 @@ function MeetingRow({
   moduleTitle: string | null;
   divider: CalendarEvent | undefined;
   fallbackUrl: string | null;
+  /** What SIX's count did after this class, where the app saw (never for two classes sharing one count). */
+  sixResult: AfterClass | null;
 }) {
   const t = useT();
   const f = useFormat();
@@ -200,6 +204,18 @@ function MeetingRow({
     meeting.notInSix ? (
       <span key="notInSix" className="font-medium text-warning-fg">
         {t("meeting.notInSix")}
+      </span>
+    ) : (
+      ""
+    ),
+    sixResult === "counted" ? (
+      <span key="six" className="inline-flex items-center gap-1">
+        <Icons.CheckCircle className="size-3 text-success-fg" weight="bold" />
+        {t("meeting.sixCounted")}
+      </span>
+    ) : sixResult ? (
+      <span key="six" className="font-medium text-warning-fg">
+        {t("meeting.sixNotCounted")}
       </span>
     ) : (
       ""

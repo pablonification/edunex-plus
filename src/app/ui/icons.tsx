@@ -6,6 +6,7 @@
 import type { Icon as PhosphorIcon } from "@phosphor-icons/react";
 import { AlarmIcon } from "@phosphor-icons/react/dist/csr/Alarm";
 import { AppWindowIcon } from "@phosphor-icons/react/dist/csr/AppWindow";
+import { ArrowCounterClockwiseIcon } from "@phosphor-icons/react/dist/csr/ArrowCounterClockwise";
 import { ArrowRightIcon } from "@phosphor-icons/react/dist/csr/ArrowRight";
 import { ArrowsClockwiseIcon } from "@phosphor-icons/react/dist/csr/ArrowsClockwise";
 import { ArrowsInSimpleIcon } from "@phosphor-icons/react/dist/csr/ArrowsInSimple";
@@ -148,6 +149,7 @@ export const Icons = {
   Loader: icon(CircleNotchIcon),
   Info: icon(InfoIcon),
   ArrowRight: icon(ArrowRightIcon),
+  Undo: icon(ArrowCounterClockwiseIcon),
   Plus: icon(PlusIcon),
   Minus: icon(MinusIcon),
   MoreHorizontal: icon(DotsThreeIcon),

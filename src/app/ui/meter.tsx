@@ -1,57 +1,104 @@
 // Meters that answer a question at a glance, in status colors only (never a
-// course's): where attendance stands against the target, with the best still
-// reachable as a ghost; and how much time a window has left, shrinking, amber
-// in its last minutes.
+// course's): the absences a course's target allows this term, as the Student
+// spends them; and how much time a window has left, shrinking, amber in its
+// last minutes.
 import { cx } from "./cx";
+import { Icons } from "./icons";
 
-export type MeterTone = "success" | "warning" | "danger" | "neutral";
+export type BarTone = "neutral" | "warning" | "danger";
 
-// The meter colors, not the tones' text colors (amber text is brown); each reads 3:1 on the track.
-const FILL: Record<MeterTone, string> = {
-  success: "var(--meter-success)",
-  warning: "var(--meter-warning)",
-  danger: "var(--danger-fg)",
-  neutral: "var(--faint)",
-};
+// The meter colors, not the tones' text colors (amber text is brown); each reads 3:1 on a row, hovered too.
+const USED: Record<BarTone, string> = { neutral: "bg-muted", warning: "bg-meter-warning", danger: "bg-danger-fg" };
+/** From this many segments the gaps go: one fill, split where the used part ends. */
+const CONTINUOUS = 12;
+/** The bar's width (px) at each size, and the gap between segments. */
+const WIDTH = { sm: 96, md: 200 } as const;
+const GAP = 2;
+const LEFT_RING = "shadow-[inset_0_0_0_1.5px_var(--pip-ring)]";
+const HATCH = { backgroundImage: "repeating-linear-gradient(135deg, var(--hatch) 0 2px, transparent 2px 4px)" };
 
 /**
- * A share (0–100) against a target: the share filled, the best still
- * reachable as a lighter part after it, a tick at the target. When the best
- * stops short of the tick, the target is out of reach: the bar shows it.
+ * "Jatah absen": one segment per absence the course's target allows this
+ * term, filled from the start as they're used, ringed while still left.
+ * Misses past the limit sit after a short limit line, red, each with a × (so
+ * color is never the only sign). `estimate`: before SIX has a count, the
+ * timetable's allowance, hatched. Always beside its words ("1 used · 1 left"),
+ * never alone; one picture with a name, never a stop for the keyboard.
+ * Nothing to draw (no absence allowed, none missed): nothing.
  */
-export function ShareMeter({
-  share,
-  best,
-  target,
+export function AbsenceBar({
+  allowed,
+  used,
+  over = 0,
   tone,
+  estimate = false,
+  size = "sm",
   label,
   className,
 }: {
-  share: number;
-  /** The share if every remaining meeting is attended (0–100). */
-  best?: number | null;
-  target: number;
-  tone: MeterTone;
+  /** Segments in the bar: the limit. */
+  allowed: number;
+  /** Filled from the start (at most `allowed`). */
+  used: number;
+  /** Past the limit: after the limit line, red. */
+  over?: number;
+  tone: BarTone;
+  estimate?: boolean;
+  /** sm: a Presence row; md: the course page's header and Home's course cards (the card's width, up to it). */
+  size?: "sm" | "md";
   label: string;
   className?: string;
 }) {
-  const clamp = (value: number) => Math.max(0, Math.min(100, value));
-  const fill = FILL[tone];
+  if (allowed <= 0 && over <= 0) return null;
+  const filled = estimate ? 0 : Math.min(used, allowed);
+  // An over segment is as wide as one of the bar's own, while they all fit in half the bar's width again.
+  const own = allowed > 0 ? (WIDTH[size] - GAP * (allowed - 1)) / allowed : WIDTH[size] / 4;
+  const segment = over > 0 ? Math.max(6, Math.min(own, (WIDTH[size] / 2 - GAP * (over - 1)) / over)) : own;
+  const height = size === "sm" ? "h-2" : "h-2.75";
+  const state = (i: number) => (estimate ? "estimate" : i < filled ? "used" : "left");
   return (
-    <span role="img" aria-label={label} data-tone={tone} className={cx("relative block h-1.5 rounded-full bg-meter-track", className)}>
-      {best != null && best > share && (
-        <span
-          aria-hidden
-          className="absolute inset-y-0 left-0 rounded-full opacity-30 motion-safe:transition-[width] motion-safe:duration-500"
-          style={{ width: `${clamp(best)}%`, background: fill }}
-        />
+    <span role="img" aria-label={label} data-tone={tone} className={cx("inline-flex max-w-full items-center gap-0.5 align-middle", className)}>
+      {allowed > 0 &&
+        (allowed < CONTINUOUS ? (
+          <span aria-hidden className={cx("flex min-w-0 shrink gap-0.5", size === "sm" ? "w-24" : "w-50")}>
+            {Array.from({ length: allowed }, (_, i) => (
+              <span
+                // biome-ignore lint/suspicious/noArrayIndexKey: segments are positions, nothing else tells them apart
+                key={i}
+                data-state={state(i)}
+                className={cx("min-w-0 flex-1 rounded-xs transition-colors duration-150", height, state(i) === "used" ? USED[tone] : LEFT_RING)}
+                style={estimate ? HATCH : undefined}
+              />
+            ))}
+          </span>
+        ) : (
+          // Too many to tell apart: one fill, split at what's used. The words always say the numbers.
+          <span
+            aria-hidden
+            data-state="continuous"
+            className={cx("relative flex min-w-0 shrink overflow-hidden rounded-xs", height, LEFT_RING, size === "sm" ? "w-24" : "w-50")}
+            style={estimate ? HATCH : undefined}
+          >
+            {filled > 0 && <span data-state="used" className={cx("h-full", USED[tone])} style={{ width: `${(filled / allowed) * 100}%` }} />}
+          </span>
+        ))}
+      {over > 0 && (
+        <>
+          <span aria-hidden data-state="limit" className={cx("mx-0.5 w-0.5 shrink-0 rounded-full bg-fg", size === "sm" ? "h-3.5" : "h-4.25")} />
+          {Array.from({ length: over }, (_, i) => (
+            <span
+              // biome-ignore lint/suspicious/noArrayIndexKey: segments are positions, nothing else tells them apart
+              key={i}
+              aria-hidden
+              data-state="over"
+              className={cx("flex shrink-0 items-center justify-center rounded-xs bg-danger-fg text-surface", height)}
+              style={{ width: `${segment}px` }}
+            >
+              <Icons.X className="size-1.5" weight="bold" />
+            </span>
+          ))}
+        </>
       )}
-      <span
-        aria-hidden
-        className="absolute inset-y-0 left-0 rounded-full motion-safe:transition-[width] motion-safe:duration-500"
-        style={{ width: `${clamp(share)}%`, background: fill }}
-      />
-      <span aria-hidden className="absolute -top-1 h-3.5 w-0.5 -translate-x-1/2 rounded-full bg-fg" style={{ left: `${clamp(target)}%` }} />
     </span>
   );
 }

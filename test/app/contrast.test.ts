@@ -5,6 +5,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import { COURSE_PALETTE } from "../../src/core/course-colors";
 
 const css = readFileSync(path.resolve(import.meta.dirname, "../../src/app/styles.css"), "utf8");
 
@@ -78,13 +79,29 @@ const pairs: [string, string, number][] = [
   ...["danger", "warning", "success", "info", "neutral"].map((tone) => [`--${tone}-fg`, `--${tone}-bg`, 4.5] as [string, string, number]),
   ...["not-started", "draft", "submitted", "overdue", "closed", "review"].map((s) => [`--status-${s}-fg`, `--status-${s}-bg`, 4.5] as [string, string, number]),
   ["--source-itb-fg", "--source-itb-bg", 4.5],
+  // Tugas & Ujian's date column on its row, at rest, hovered and pressed: amber within a day, red once late, green while on.
+  ...["--warning-fg", "--danger-fg", "--success-fg"].flatMap((fg) =>
+    ["--surface", "--hover", "--selected@--surface"].map((bg) => [fg, bg, 4.5] as [string, string, number]),
+  ),
   ["--tooltip-fg", "--tooltip-bg", 4.5],
   ["--focus", "--canvas", 3],
   ["--focus", "--raised", 3],
   // A meter's fill on its track (attendance, a window's time left): 3:1, like any mark that carries meaning.
   ...["--meter-warning", "--meter-success", "--danger-fg", "--accent"].map((fill) => [fill, "--meter-track", 3] as [string, string, number]),
+  // The absence bar's marks on the rows and cards it sits on, hovered too: used (muted, amber, red), a ring
+  // for one still left (--pip-ring: --field-edge doesn't read on a hovered row), the limit line.
+  ...["--muted", "--meter-warning", "--danger-fg", "--pip-ring", "--fg"].flatMap((mark) =>
+    ["--surface", "--hover", "--raised", "--canvas"].map((bg) => [mark, bg, 3] as [string, string, number]),
+  ),
   // A field's edge and a switch that's off show where the control is: 3:1 on what they sit on.
   ...["--canvas", "--surface", "--raised", "--sunken", "--fill"].map((bg) => ["--field-edge", bg, 3] as [string, string, number]),
+  // A course's dot and stripe, on everything they sit on: the sidebar's rows (hovered, picked), lists, popovers, the
+  // week grid. 3:1 like any mark that carries meaning. A palette color with no token fails here on its own.
+  ...COURSE_PALETTE.flatMap(({ id }) =>
+    ["--canvas", "--surface", "--raised", "--sidebar", "--welcome", "--hover", "--sunken", "--fill", "--selected@--sidebar", "--selected@--raised"].map(
+      (bg) => [`--course-${id}`, bg, 3] as [string, string, number],
+    ),
+  ),
 ];
 
 describe.each([

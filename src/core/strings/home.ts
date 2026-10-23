@@ -17,20 +17,21 @@ export const homeStrings = {
   "home.now.later": { id: "Kuliah berikutnya · {day}", en: "Next class · {day}" },
   "home.now.presenceOnly": { id: "Presensi sedang dibuka", en: "Presence is open" },
   "home.now.countSix": {
-    id: "Kehadiran dihitung di SIX: tekan Tandai Hadir di SIX saat tombolnya muncul.",
-    en: "Attendance counts in SIX: press Tandai Hadir in SIX when it shows.",
+    id: "Kehadiran dihitung di SIX. Tekan Tandai Hadir di SIX saat tombolnya muncul.",
+    en: "Attendance counts in SIX. Press Tandai Hadir in SIX when it shows.",
+  },
+  "home.now.checkEvery": { id: "Aplikasi memeriksa tiap 2 menit", en: "The app checks every 2 minutes" },
+  "home.now.leftIn": {
+    id: "Jatah absen {code} sisa {count}×",
+    en: { one: "{count} {code} absence left", other: "{count} {code} absences left" },
   },
   "home.now.checkInWatch": { id: "Tekan Tandai Hadir di SIX saat tombolnya muncul.", en: "Press Tandai Hadir in SIX when it shows." },
   // SIX's "Tandai Hadir" for the class on now, as the app last saw it in the class's popup
   "home.now.checkInOpen": { id: "Tandai Hadir sudah dibuka di SIX", en: "Tandai Hadir is open in SIX" },
   "home.now.checkInOpenHint": { id: "Belum kamu tekan. Kuliah sampai {time}.", en: "You haven't pressed it yet. Class until {time}." },
-  "home.now.checkInWaiting": {
-    id: "Aplikasi memeriksa SIX tiap 2 menit selama kuliah dan memberi tahu saat Tandai Hadir muncul.",
-    en: "During class the app checks SIX every 2 minutes and tells you when Tandai Hadir shows.",
-  },
   "home.now.checkInGone": {
-    id: "Tandai Hadir sudah tidak tampil di SIX: sudah kamu tekan, atau sudah ditutup.",
-    en: "Tandai Hadir no longer shows in SIX: you pressed it, or it closed.",
+    id: "Tandai Hadir sudah tidak tampil di SIX. Sudah kamu tekan, atau sudah ditutup.",
+    en: "Tandai Hadir no longer shows in SIX. You pressed it, or it closed.",
   },
   "home.now.openSix": { id: "Buka di SIX", en: "Open in SIX" },
   // Starts with what the button shows (home.now.openSix), so a voice command for it works.
@@ -46,7 +47,7 @@ export const homeStrings = {
   },
   "home.now.countUnknown": { id: "Belum ada hitungan kehadiran di SIX.", en: "SIX has no attendance count yet." },
   "home.now.presenceDo": { id: "{action} sebelum {time}", en: "{action} before {time}" },
-  "home.now.presenceExtra": { id: "Presensi Edunex juga dibuka sampai {time}, tidak wajib.", en: "Edunex Presence is also open until {time}; it's optional." },
+  "home.now.presenceExtra": { id: "Presensi Edunex juga dibuka sampai {time}, tidak wajib.", en: "Edunex Presence is also open until {time}. It's optional." },
   "home.now.closesIn": { id: "tutup dalam {left}", en: "closes in {left}" },
   "home.now.closesWhen": { id: "tutup {when}", en: "closes {when}" },
   "home.now.recordLabel": { id: "Catat di Edunex: Presensi {course}", en: "Record in Edunex: {course} Presence" },
@@ -67,6 +68,11 @@ export const homeStrings = {
   "home.today.changed": { id: "Jam berubah · biasanya {usual}", en: "New time · usually {usual}" },
   "home.today.roomChanged": { id: "Ruang berubah · biasanya {room}", en: "New room · usually {room}" },
   "home.today.overlap": { id: "Bentrok dengan {course} {time}", en: "Clashes with {course} {time}" },
+  "home.today.pick": { id: "Pilih ini kalau hanya bisa hadir di salah satunya.", en: "Go to this one if you can make only one." },
+  // A past class: what SIX's count did after it, when the app saw
+  "home.today.counted": { id: "Dihitung di SIX", en: "Counted in SIX" },
+  "home.today.notCounted": { id: "Belum dihitung SIX", en: "Not counted yet" },
+  "home.today.absent": { id: "Tercatat tidak hadir", en: "Marked absent" },
   "home.today.join": { id: "Gabung", en: "Join" },
   "home.today.joinLabel": { id: "Gabung kelas daring: {course}", en: "Join online class: {course}" },
   "home.today.notInSix": { id: "Tidak ada di jadwal SIX", en: "Not on SIX's timetable" },
@@ -110,6 +116,7 @@ export const homeStrings = {
   "home.need.exam.disagree": { id: "SIX dan Edunex beda tanggal", en: "SIX and Edunex give different dates" },
   "home.need.exam.takeHome": { id: "Take-home tenggat {date}", en: "Take-home due {date}" },
   "home.need.exam.edunex": { id: "di Edunex", en: "in Edunex" },
+  "home.need.exam.closes": { id: "Tutup {when}", en: "Closes {when}" },
   "home.need.krs": { id: "Kirim KRS", en: "Send your KRS" },
   "home.need.krs.closes": { id: "DRS tutup {date}", en: "DRS closes {date}" },
   "home.need.krs.opens": { id: "DRS dibuka {date}", en: "DRS opens {date}" },

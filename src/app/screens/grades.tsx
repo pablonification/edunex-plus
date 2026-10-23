@@ -6,13 +6,13 @@
 // term's grades as a clearly marked what-if with the one shared target; and
 // the transcript by term. Without SIX, this term's courses from Edunex with
 // their calculators, and what signing in to SIX unlocks.
-import { useId, useState } from "react";
+import { useId } from "react";
 import type { CalendarEvent, CheckedIndex, TranscriptTerm } from "../../core/models";
 import { checkPlan, expectedGrade, hasWhatIfs, project, type StudentRecord, sksModel, targetOf } from "../../core/planner";
 import { useTermCourses } from "../courses";
 import { useOpenExternal } from "../hooks";
 import { useFormat, useNow, useT } from "../i18n";
-import { useNav } from "../nav";
+import { useNav, usePlaceState } from "../nav";
 import { useDataset } from "../store";
 import { type PlanState, usePlan, useStudentRecord } from "../study-plan";
 import { Button } from "../ui/controls";
@@ -294,7 +294,7 @@ function Transcript({ record }: { record: StudentRecord }) {
   const stage = record.progress?.stages.at(-1);
   const stageIp = stage ? shownIndex(stage.ip) : null;
   const lastGraded = [...terms].reverse().find((term) => term.ip.computed !== null)?.term ?? null;
-  const [open, setOpen] = useState<string | null>(lastGraded);
+  const [open, setOpen] = usePlaceState<string | null>("grades.open", lastGraded);
   return (
     <Section
       id="transcript"

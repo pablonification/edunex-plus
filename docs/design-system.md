@@ -29,7 +29,8 @@ the Motion section below allows it.
 ## Principles
 
 1. **Answer first.** Each screen answers one question before anything else
-   (Beranda: what do I do now; Presensi: am I OK, and what do I do; Nilai:
+   (Beranda: what do I do now; Presensi: am I OK, and what do I do, said for
+   the next class day; Nilai:
    where is my IPK). The answer is the first thing at the top left, in a
    sentence; the detail follows.
 2. **Nothing to relearn.** Same names and places as Edunex and SIX: Beranda,
@@ -41,7 +42,8 @@ the Motion section below allows it.
 4. **Color means something.** Neutral by default. Blue is for actions and
    links; red for what is lost, overdue, failing or destructive; amber for
    what needs the Student soon; green for done, safe and live. Course colors
-   only mark identity, on a dot or a stripe, never a bar or a word.
+   only mark identity, on a dot or a stripe, never a bar or a word, and
+   always beside the course's code.
 5. **The source only where it changes what to do.** Where to act ("Catat di
    Edunex"), which date to trust when SIX and Edunex disagree, what is missing
    ("Tidak ada di SIX"). Never a tag on every row.
@@ -154,6 +156,15 @@ text, and amber text is brown. Red uses `--danger-fg`, blue `--accent`.
 | `--meter-track` | `#ececef` | `#2c2c30` |
 | `--meter-warning` | `#b26b00` | `#f2c862` |
 | `--meter-success` | `#1e8f4f` | `#2fbf6c` (`--live`) |
+| `--pip-ring` | `#7a7a80` | `#77777d` |
+| `--hatch` | `rgb(0 0 0 / 0.07)` | `rgb(255 255 255 / 0.08)` |
+
+**The absence bar** (`AbsenceBar`) sits on rows and cards rather than a
+track, so its marks read 3:1 on `--surface`, `--hover`, `--raised` and
+`--canvas`: a used absence fills in `--muted`, `--meter-warning` once the bar
+is full, `--danger-fg` past its limit; one still left is a ring in
+`--pip-ring` (`--field-edge` falls under 3:1 on a hovered row); an estimate is
+that ring with `--hatch` stripes; the limit line is `--fg`.
 
 **Task statuses (background / text)**
 
@@ -181,17 +192,31 @@ its own colors (background / text) stands for it, and tints exam periods.
 | `--source-itb-bg` | `#f3ecfd` | `#271d3a` |
 | `--source-itb-fg` | `#6338b8` | `#c4b0f5` |
 
-**Course colors.** Each course has an identity color for its dot and stripe:
-`#3366F0 #7C5CFC #0FA3B1 #D6409F #64748B #9D4EDD #0284C7 #8D6E63`. The
-palette leaves out the hues status speaks in (red, amber, orange, green), so a
-course never looks "in danger" because of its color. The color comes from the
-course code (`src/core/course-colors.ts`), so it stays the same across
-launches, and courses of one term don't share one. Course colors mark
-identity only: never a bar's fill, a status, or text.
+**Course colors.** Each course has an identity color for its dot and stripe,
+one of ten named colors (`src/core/course-colors.ts`), each a pair of tones,
+`--course-<id>` for light and for dark: cyan, indigo, berry, blue, orchid,
+magenta, purple, pink, plum, lavender (the automatic order, most distinct
+first). Saved data holds the name, never a hex, so a tone can be tuned
+without touching it. The palette keeps to OKLCH hues 208°–354°. It has no
+red, rose, orange, amber, yellow or brown (status), no green or teal (teal
+reads as green), and no grey (an unknown course, "not yet"), so a course never
+looks in danger, done or switched off because of its color. Every tone reaches 3:1
+on every surface it sits on in its theme, hovered and picked rows included
+(`test/app/contrast.test.ts`), and stays clear of the accent and focus blues.
+A course's automatic color is remembered the first time it shows (the first
+free one in the order), so it never moves by itself, not when SIX connects
+and not when a course is added or dropped. A course the app doesn't know is an
+outlined square (1 px `--faint`), never a grey one. The code is always beside
+the mark. A week block too short for two lines reads "08:00 PL3002", and the
+rail shows the code under the dot. A meeting only Edunex announced gets a
+dashed stripe. In high contrast the marks stay, edged in the system's text
+color. Course colors mark identity only: never a bar's fill, a status, or
+text.
 
 **Status colors.** Red (`danger`): lost, overdue, failed, can't reach the
 target, destructive. Amber (`warning`): needs the Student soon (no absences
-left, due within a day, a session ended). Green (`success`, `live`): done,
+left, due within a day, a session ended). A full absence bar is amber; what's
+past its limit is red. Green (`success`, `live`): done,
 safe, connected, happening now. Blue (`accent`, `info`): actions, links,
 neutral information. Grey (`neutral`): not yet, not applicable. Bars and
 meters take their color from status (the meter colors above), never from the
@@ -373,17 +398,19 @@ Screens are composed, not styled one by one:
 | `Dialog`, `ConfirmDialog` | Focus stays inside; Escape closes; both leave the way they came, taking no second click while they go (other dialog shells reuse `SCRIM_CLASS`, `PANEL_MOTION_CLASS` and `onClickCapture={ignoreClosingClick}`). Confirm only before what can't be undone: it is an alert dialog, so a click beside it isn't an answer and Cancel has focus first. A page one level down (Settings' open-source licences) swaps in at once with a back button naming where it goes (`back`), keeps the dialog at its full height (so a search on it stays put while its results change), starts at its own top, and going back puts focus on the button that opened it. |
 | `toast(text, tone, action?)` | Neutral, success or danger; with an action ("Urungkan", "Lihat") it stays 8 s; an error (`danger`) stays until the Student closes it, with its own close button. It waits while the pointer is on it or focus is in it, then goes on with the time it had left. When it goes (Urungkan pressed from the keyboard), focus goes back where it came from, never to the page. Never the only place an error is said. |
 | `StatusChip` | A Task's true status: each its own color, glyph and word. Shown only where the status says something (not "Belum dikerjakan" on every to-do row). |
+| The date column (`DueWhen`, `TaskDate`; `SittingWhen` in `screens/exam.tsx`) | Tugas & Ujian's one edge for "when", 136 px on the right of every row. A countdown means a deadline ("Sab, 24 Okt, 23:59" over "dalam 2 hari"): amber within a day, red only once late. A time range means a sitting, be there ("Min, 25 Okt" over "19:00–20:30"): amber within a day, green "Sekarang" over "sampai 20:30" while it's on. The second line goes when it only says the day again ("Besok"). |
+| The period line (`PeriodRow`) | An exam period whose exams have no day yet: one quiet disclosure row where the period falls in the list, its mark the ITB calendar's own tint (`--source-itb-bg` / `--source-itb-fg`), never counted. Closed while it's far off, open within two weeks, on top of the list while it's on. Each exam under it opens its page. |
 | `Tag` | A word marking one row as the exception ("Baru", "Hadir", "UTS"): `sm` 18 px or `md` 22 px, in a tone (neutral, info, warning, success, danger). Never on every row. |
 | `SourceLogo`, `AppMark` (`ui/brand.tsx`) | The real Edunex and SIX logos where the app stands for one of them (connecting, the data status, the accounts in Settings); Edunex Plus's own icon (`assets/icon.png`) in the sidebar, on the welcome screen and in Settings. |
 | `Badge` | Sidebar counts: neutral = how many; amber = something needs the Student today, with a small warning mark and "Perlu perhatianmu" in the place's name, so color isn't the only signal. |
 | `Skeleton` | Placeholders in the shape of what's coming; never a blank area or a lone spinner. |
 | `Menu` (`ui/menu.tsx`) | A "⋯" button for a screen's rare actions; an item that can't run stays, dimmed, with the reason under it. A `trigger` makes it quiet, for a row's or a notice's own small menu: a small "⋯", or another icon where the menu is one kind of action, with its words where there's room. |
-| `SnoozeMenu` (`app/snooze-menu.tsx`) | "Ingatkan nanti" on a row or notice: the moments that fit the item, each with until when; then a toast saying when it's back, with Urungkan. A row or notice that leaves hands keyboard focus on (the next row, what follows the notice), never to the page. What's put off is listed quietly ("2 ditunda · Tampilkan") where it was (a deadline put off from Beranda's "Hari ini", with "Perlu perhatianmu"'s), and in Settings. |
+| `SnoozeMenu` (`app/snooze-menu.tsx`) | "Ingatkan nanti" on a row or notice: the moments that fit the item, each with until when; then a toast saying when it's back, with Urungkan. A row or notice that leaves hands keyboard focus on (the next row, what follows the notice), never to the page. What's put off is listed quietly ("2 ditunda · Tampilkan") where it was (a deadline put off from Beranda's "Hari ini", with "Perlu perhatianmu"'s; a late Task in Tugas & Ujian under Terlambat, which stays as a heading while all its rows are put off), and in Settings. In Tugas & Ujian only the late rows have it, and a Task put off there is put off on Beranda too: one snooze per Task. |
 | `LineChart` (`ui/chart.tsx`) | The one chart spec: a clean value range with hairline gridlines, estimates dashed, a labelled target line, a direct end label, a tooltip per column, a table for screen readers. |
-| `ShareMeter`, `CountdownBar` (`ui/meter.tsx`) | Status-colored meters: attendance against the course's target, a tick (the best still reachable as an optional ghost), always under a label that says what it measures; time left in a window, shrinking, amber in its last 15 minutes, its words under the bar when there's no room beside it. |
+| `AbsenceBar`, `CountdownBar` (`ui/meter.tsx`) | Status-colored meters. `AbsenceBar`: "Jatah absen", one short segment per absence the course's target allows this term, filled from the start as they're used (neutral, amber once full), ringed while left; past the limit, a short limit line and red segments, each with a ×. It keeps its width (from 12 segments, one fill); it never stands alone: `AbsenceBudget` (`app/attendance-parts.tsx`) draws it under its label with its words ("Terpakai 1× · sisa 1×", the last part bold in the bar's tone), on a Presensi row, the course page's header and Beranda's course cards. No share beside it on a row: the course page's header is the one place SIX's count says its percent, labeled. `CountdownBar`: time left in a window, shrinking, amber in its last 15 minutes, its words under the bar when there's no room beside it. |
 | `Stepper` (`ui/controls.tsx`) | A number stepped between bounds (an attendance target, 50–100% by 5): − and + with names, the value read out when it changes. |
 | `Segmented`, `useRadioKeys` (`ui/controls.tsx`) | A few choices, one picked (the theme, Minggu/Bulan, the IPK target): a radio group whose highlight glides to the pick. Arrow keys move the choice; only the picked one is a Tab stop (the first while none is). An option takes a longer `name` where its label is too short to read alone ("Target IPK 3,50"). Other radio groups of the screen's own buttons (filter chips) get the same keys from `useRadioKeys`. |
-| `TabBar` (`ui/tabs.tsx`) | The tabs of a screen or dialog, inside the screen's own `Tabs.Root` with its panels in `Tabs.Content`, so each tab names its panel: names, an optional quiet count, one underline that glides to the picked tab. The panel swaps at once. `sm` inside a dialog. Tabs that don't fit scroll sideways in their own frame, each name on one line. |
+| `TabBar` (`ui/tabs.tsx`) | The tabs of a screen or dialog, inside the screen's own `Tabs.Root` with its panels in `Tabs.Content`, so each tab names its panel: names, an optional quiet count, one underline that glides to the picked tab. The panel swaps at once. A screen's tabs (a course, Rencana studi) each sit in their own crash guard, and the tab picked is in the screen's route, so Back comes back to it. `sm` inside a dialog. Tabs that don't fit scroll sideways in their own frame, each name on one line, the picked one kept in sight. |
 | `TimeGrid`, `GridBlock` (`ui/time-grid.tsx`) | A week as a time grid: height is duration, shared time side by side, empty days narrow, periods tinted and named, a now line (blue, as today's date). A busy day keeps room for its blocks' time and code (6.25rem, 7rem a block in a clash); where the window can't fit them, the grid scrolls sideways in its own frame. A block that has ended is quieter in token greys on `bg-sunken`, never faded with opacity. |
 | `RichEditor` (`ui/rich-editor.tsx`) | A box for writing formatted text (a Task's answer): bold, italic, lists, a link, a quote, undo and redo; pasting keeps only simple formatting. Loaded lazily with the screen that uses it (TipTap underneath); it holds only what Edunex's own editor writes, never pictures, tables or embeds. |
 | `RichText`, `WebLink` (`ui/rich-text.tsx`) | What a lecturer wrote (notes, Task instructions), rebuilt safely from its HTML as Edunex shows it: formatting, lists, tables, figures; a link says where it goes on hover and focus and opens in the browser; pictures from Edunex's storage come in through the app (`LecturerHtml`, `RemoteImage`), with a placeholder while loading and the reason when one can't show. A long note folds with "Tampilkan semua". |
@@ -401,8 +428,8 @@ opening Settings), a top bar (back button naming where it goes, ⌘K search,
 the alerts bell, the data-status control) and the problem banner under it.
 Zoomed in until the window is under 52rem wide (from 120% on the smallest
 window; never at 100%), the sidebar folds to a rail of icons, course dots
-and counts that scrolls: the words stay as the controls' names and in their
-tooltips. The data status gives up its words, down to its mark, before
+(each with its code under it, in micro type) and counts that scrolls: the
+words stay as the controls' names and in their tooltips. The data status gives up its words, down to its mark, before
 anything runs past the window. Every screen sits in its own crash guard.
 
 ## Copy
@@ -417,8 +444,11 @@ anything runs past the window. Every screen sits in its own crash guard.
   disimpan. Coba lagi, atau simpan ke folder lain." A confirm before what
   can't be undone names what's lost and says so; its button is a verb and
   its object ("Putuskan HP", "Atur ulang rencana"), never a bare "Buang".
-- **Positive and honest framing**: "Masih bisa absen 2× lagi", "IPK
+- **Positive and honest framing**: "Sisa jatah absen 2×", "IPK
   tertinggi yang masih mungkin: 3,45". Never three "tak tercapai" in a row.
+- **One percent at a time, labeled.** Never two shares side by side without
+  words ("At best 73%" over "33%"): "Kehadiran 85% sejauh ini (6 dari 7)",
+  "Kalaupun hadir di semua sisa pertemuan, kehadiranmu berakhir di 73%".
 - **No system words**: no "snapshot", "salinan materi", "kelas induk",
   "data source". The Student's words: kuliah, pertemuan, tugas, presensi.
 - **Human times**: "Besok, 23:59 · dalam 6 jam", "Diperbarui 5 menit yang
@@ -470,6 +500,12 @@ URS stay as they are in both languages.
   its title, so the keyboard and a screen reader carry on from its top; a
   screen picked in the sidebar leaves focus there. A jump within a screen (a
   study-plan rule) moves focus with it.
+- Back comes back to a screen as the Student left it: the same tab, module,
+  "Selesai" or semester open, scrolled where it was (`nav.tsx`: `replace` for
+  what the screen's route says, `usePlaceState` for the rest). Picking a tab or
+  a module adds no step to Back and leaves the page where it is; a new visit
+  starts from the screen's default, at its top. The sidebar and ⌘1–6, on the
+  place already open, keep it as it is.
 - Reduced motion is respected everywhere, a scroll the app starts included.
 - The problem banner arrives in a live region that is always there, so it is
   read out; it wraps rather than cuts its text.

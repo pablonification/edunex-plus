@@ -7,7 +7,6 @@ export const coursePageStrings = {
   "course.unavailable": { id: "Isi mata kuliah belum bisa dimuat", en: "This course couldn't be loaded yet" },
   "course.sks": { id: "{count} SKS", en: "{count} SKS" },
   "course.lecturer": { id: "Dosen", en: "Lecturer" },
-  "course.attendance": { id: "Kehadiran", en: "Attendance" },
   "course.attended": { id: "Hadir {attended} dari {held}", en: "Attended {attended} of {held}" },
 
   // Tabs
@@ -108,6 +107,9 @@ export const coursePageStrings = {
   "meeting.untitled": { id: "Kuliah", en: "Class" },
   "meeting.window": { id: "Presensi {range}", en: "Presence {range}" },
   "meeting.notInSix": { id: "Tidak ada di SIX", en: "Not in SIX" },
+  // What SIX's count did after a class the app watched (SIX gives totals only, so it's said as the count, never "present")
+  "meeting.sixCounted": { id: "Hitungan SIX bertambah setelah kuliah ini", en: "SIX's count went up after this class" },
+  "meeting.sixNotCounted": { id: "Hitungan SIX tak bertambah setelah kuliah ini", en: "SIX's count didn't go up after this class" },
   "meeting.announced": { id: "Diumumkan di Edunex", en: "Announced on Edunex" },
   "meeting.online": { id: "Daring", en: "Online" },
   "meeting.state.present": { id: "Hadir", en: "Present" },
@@ -119,7 +121,6 @@ export const coursePageStrings = {
 
   // Tasks and exams
   "course.noTasks": { id: "Tidak ada tugas", en: "No Tasks" },
-  "course.exams": { id: "Ujian", en: "Exams" },
   "course.noExamsNoSix": {
     id: "Belum ada ujian di Edunex. Jadwal ujian dari SIX muncul setelah SIX terhubung.",
     en: "No exams in Edunex yet. SIX's exam timetable shows once SIX is connected.",
@@ -164,7 +165,6 @@ export const coursePageStrings = {
   "course.jointClass": { id: "Kelas gabungan", en: "Joint class" },
   "course.fromJointClass": { id: "dari kelas gabungan (semua kelas {code})", en: "from the joint class (every {code} class)" },
   "course.more": { id: "Lainnya", en: "More" },
-  "course.attendanceShare": { id: "{attended}/{held} · {percent}%", en: "{attended}/{held} · {percent}%" },
   // {time}: "23:00" today, "besok, 23:00", "Sen, 12 Okt, 23:00"; how long is left only while it's under a day.
   "course.closesAt": { id: "tutup {time} ({left} lagi)", en: "closes {time} ({left} left)" },
   "course.closesOn": { id: "tutup {time}", en: "closes {time}" },
@@ -173,27 +173,27 @@ export const coursePageStrings = {
     en: "Without SIX it's not certain this Presence counts: record it just in case.",
   },
   "course.presenceCountsSix": {
-    id: "Kehadiranmu dihitung di SIX; Presensi ini tidak wajib.",
-    en: "Your attendance counts in SIX; this Presence is optional.",
+    id: "Kehadiranmu dihitung di SIX. Presensi ini tidak wajib.",
+    en: "Your attendance counts in SIX. This Presence is optional.",
   },
   "course.join": { id: "Gabung", en: "Join" },
   "course.online": { id: "Daring", en: "Online" },
   "course.risk.best": {
-    id: "Paling tinggi {best}% kalau kamu hadir di semua sisa pertemuan. Cek ke dosen kalau ada yang terlewat.",
-    en: "At best {best}% if you attend every meeting left. Ask the lecturer if one was missed.",
+    id: "Kalaupun hadir di semua sisa pertemuan, kehadiranmu berakhir di {best}%. Ada yang kamu hadiri tapi tak tercatat? Minta dosen membetulkannya di SIX.",
+    en: "Even attending every class left, you'd end at {best}%. Was a class you attended not counted? Ask your lecturer to fix it in SIX.",
   },
   "course.risk.none": {
-    id: "{count} pertemuan lagi sampai {date}: hadiri semuanya agar tetap {target}%.",
+    id: "{count} pertemuan lagi sampai {date}. Hadiri semuanya agar tetap {target}%.",
     en: {
-      one: "{count} meeting left until {date}: attend it to stay at {target}%.",
-      other: "{count} meetings left until {date}: attend them all to stay at {target}%.",
+      one: "{count} meeting left until {date}. Attend it to stay at {target}%.",
+      other: "{count} meetings left until {date}. Attend them all to stay at {target}%.",
     },
   },
   "course.risk.noneAbout": {
-    id: "Sekitar {count} pertemuan lagi sampai {date}: hadiri semuanya agar tetap {target}%.",
+    id: "Sekitar {count} pertemuan lagi sampai {date}. Hadiri semuanya agar tetap {target}%.",
     en: {
-      one: "About {count} meeting left until {date}: attend it to stay at {target}%.",
-      other: "About {count} meetings left until {date}: attend them all to stay at {target}%.",
+      one: "About {count} meeting left until {date}. Attend it to stay at {target}%.",
+      other: "About {count} meetings left until {date}. Attend them all to stay at {target}%.",
     },
   },
   "course.risk.noneIfRuns": {
@@ -224,7 +224,6 @@ export const coursePageStrings = {
   "course.kind.file": { id: "{count} berkas", en: { one: "{count} file", other: "{count} files" } },
   "course.kind.image": { id: "{count} gambar", en: { one: "{count} image", other: "{count} images" } },
   "course.todo": { id: "Perlu dikerjakan", en: "To do" },
-  "course.handedIn": { id: "Sudah dikumpulkan", en: "Handed in" },
   "course.nothingTodo": { id: "Tidak ada tugas yang perlu dikerjakan.", en: "Nothing to hand in." },
 
   // Meetings, the honest attendance story

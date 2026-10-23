@@ -60,11 +60,31 @@ _Avoid_: assignment in code identifiers (collides with programming terms); use T
 Edunex's aggregated list of pending items (tasks, exams) for the logged-in account.
 _Avoid_: todo list in UI copy without the Edunex meaning
 
+**Exam**:
+"Ujian": one exam of a course (its UTS, its UAS, a quiz), however many systems list it: SIX's sitting with its room, Edunex's exam, a take-home, the course outline, ITB's exam week. Its parts each run out at their own moment (a sitting at its start, an Edunex exam open for more than a day at its close, a take-home at its deadline). It's behind the Student once every part is; one never given a day is behind once its exam week ends.
+_Avoid_: test, assessment
+
+**Take-home**:
+An exam handed in as an Edunex Task: Edunex files it under UTS or UAS, or its name starts with the exam's word ("UTS Markom", "Midex"). Listed once, as the exam's, at its deadline.
+_Avoid_: exam Task, assignment exam
+
 ### In the app
 
+**Exam period**:
+"Masa UTS", "Masa UAS": ITB's exam week (or weeks) of the term, from the ITB calendar. Exams with only their period known yet are one quiet line where the period falls in Tugas & Ujian, never counted as something to do.
+_Avoid_: exam season, "Minggu UTS" (Minggu reads as Sunday next to a date)
+
+**Mark as done**:
+"Tandai selesai": the Student moves an Edunex exam open for more than a day (a quiz open for a week) to Done once they've taken it, the one thing about an exam no system tells the app. Only there: never on a SIX sitting (its time decides) or a Task (Edunex knows). Undoable, kept on this computer, and it ends when Edunex moves the exam's time: then it's back in To do and says so.
+_Avoid_: dismiss, hide, complete
+
 **Snooze**:
-"Ingatkan nanti" (Remind me later): the Student puts a Beranda item or a course's attendance banner off until a moment that fits it ("Besok pagi", "Sehari sebelum tenggat", "Saat dibuka"). It always ends: at that moment, at the item's last useful moment, or when the item changes (a moved deadline, a new count, turning urgent), two weeks at most. Kept on this computer; OS notifications and the bell are not affected.
+"Ingatkan nanti" (Remind me later): the Student puts a Beranda item, a late Task in Tugas & Ujian (the same snooze as Beranda's for that Task) or a course's attendance banner off until a moment that fits it ("Besok pagi", "Sehari sebelum tenggat", "Saat dibuka"). It always ends: at that moment, at the item's last useful moment, or when the item changes (a moved deadline, a new count, turning urgent), two weeks at most. Kept on this computer; OS notifications and the bell are not affected.
 _Avoid_: dismiss, mute, "don't remind me again" (nothing is hidden for good)
+
+**Course color**:
+"Warna mata kuliah": a course's identity mark, its dot and its stripe, the same on every screen. One of ten named colors ("Biru", "Nila"), each with a tone for light and one for dark; none is a status hue or grey. A course's automatic color is remembered the first time it shows, so it never moves by itself; a color the Student picks stays with the course code, next term too. Kept on this computer.
+_Avoid_: course status, tag color, theme
 
 ### SIX and ITB's rules
 
@@ -106,6 +126,10 @@ _Avoid_: GPA in Indonesian copy
 **Kehadiran**:
 SIX's attendance percentage per Class, with the exact count in a tooltip: "Hadir X dari Y pertemuan" (present at X of Y Class sessions). ITB has no institute-wide minimum; each course contract sets one. The app's default target is 80%, editable, and a course can have its own target (from its contract). "Absences left" counts only meetings sure to come: a class SIX still lists in a UTS or UAS week or on a holiday may not run, so it isn't counted.
 _Avoid_: Presence (that's the Edunex feature)
+
+**Absence budget**:
+"Jatah absen" ("Absences" on screen in English): the absences a course's target allows this term, the ones already missed plus the ones left, from SIX's count and the meetings sure to come. Presensi groups courses by it (absences to spare, no absences left, can't reach the target anymore) and draws it as a short bar, one segment per absence. Before SIX has a count it's estimated from the timetable alone. A class on now is neither held nor still to come until SIX counts it, so the budget can lose a segment during class and get it back once SIX counts it.
+_Avoid_: "allowance", "skips"
 
 **Tandai Hadir**:
 SIX's own "mark present" button. During a class, the class's popup on SIX's timetable (Jadwal, then click the class) can show it; the Student presses it to be counted present in SIX's Kehadiran. While a class is on, the app reads that popup every 2 minutes and tells the Student when the button shows, and opens SIX on it; it never presses it. Kept as SIX's words in English copy too: it's what the Student looks for in SIX.

@@ -58,6 +58,10 @@
   --meter-track: #ececef;
   --meter-warning: #b26b00;
   --meter-success: #1e8f4f;
+  /* An absence still left in the absence bar (AbsenceBar): a ring that reads 3:1 on a row, hovered too
+     (--field-edge doesn't, on --hover). Its stripes for an estimate, before SIX has a count. */
+  --pip-ring: #7a7a80;
+  --hatch: rgb(0 0 0 / 0.07);
 
   /* Task statuses */
   --status-not-started-bg: var(--neutral-bg);
@@ -76,6 +80,19 @@
   /* Sources */
   --source-itb-bg: #f3ecfd;
   --source-itb-fg: #6338b8;
+
+  /* Course colors (src/core/course-colors.ts): a course's dot and stripe, never a fill, a status or text. Each is a
+     name with a tone per theme, 3:1 on every surface it sits on (test/app/contrast.test.ts). */
+  --course-cyan: #028dab;
+  --course-indigo: #6e46fb;
+  --course-berry: #a80165;
+  --course-blue: #015f98;
+  --course-orchid: #be49d8;
+  --course-magenta: #b10ca6;
+  --course-purple: #8500c2;
+  --course-pink: #d6459b;
+  --course-plum: #843e8b;
+  --course-lavender: #8d61bf;
 
   /* Layers, lowest to highest: z-(--z-dialog). Inside one panel, Tailwind's
      plain z-10 / z-20 are fine; these are for things that float over the window. */
@@ -162,6 +179,8 @@
     --meter-track: #2c2c30;
     --meter-warning: #f2c862;
     --meter-success: var(--live);
+    --pip-ring: #77777d;
+    --hatch: rgb(255 255 255 / 0.08);
 
     --status-draft-bg: #382d10;
     --status-draft-fg: #f2c862;
@@ -175,6 +194,17 @@
     --status-review-fg: #c4b5ff;
     --source-itb-bg: #271d3a;
     --source-itb-fg: #c4b0f5;
+
+    --course-cyan: #06bfe7;
+    --course-indigo: #8370ff;
+    --course-berry: #d44d8e;
+    --course-blue: #3c8bc8;
+    --course-orchid: #eb95ff;
+    --course-magenta: #dc4ece;
+    --course-purple: #a551dd;
+    --course-pink: #ff7ac3;
+    --course-plum: #ac69b2;
+    --course-lavender: #b381ed;
   }
 }
 
@@ -219,6 +249,7 @@
   --color-meter-track: var(--meter-track);
   --color-meter-warning: var(--meter-warning);
   --color-meter-success: var(--meter-success);
+  --color-pip-ring: var(--pip-ring);
 }
 
 @theme {

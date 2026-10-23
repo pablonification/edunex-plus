@@ -25,8 +25,9 @@ you what needs you now:
 - **Beranda:** today's classes, deadlines and anything urgent, most important first.
 - **Tugas & Ujian:** every Task and exam with its real status. Save a draft or submit from the
   app.
-- **Presensi:** your attendance count per course and how many absences you have left. In class,
-  it tells you the moment SIX's **Tandai Hadir** opens and takes you straight to it.
+- **Presensi:** how many more classes you can miss in each course, which ones have none left, and
+  which class to go to when two clash. In class, it tells you the moment SIX's **Tandai Hadir**
+  opens and takes you straight to it, and after class whether SIX counted it.
 - **Courses:** modules, materials (Word, Excel, PowerPoint and PDF open in the app, and work
   offline), meetings and rooms.
 - **Rencana studi:** your KRS, UKT bills and ITB's academic deadlines.
@@ -35,7 +36,7 @@ you what needs you now:
 
 | Tugas & Ujian | Presensi |
 | --- | --- |
-| ![Tugas & Ujian: exams in the midterm week and Tasks due next week, each with its course and deadline](docs/screenshots/tasks-light.png) | ![Presensi: each course's attendance count, how many absences are left before the 80% target, and clashes](docs/screenshots/presence-light.png) |
+| ![Tugas & Ujian: exams in the midterm week and Tasks due next week, each with its course and deadline](docs/screenshots/tasks-light.png) | ![Presensi: today's classes and which can still be missed, a clash with which class to go to, and each course's absences as a short bar, grouped by what it asks](docs/screenshots/presence-light.png) |
 
 It never marks attendance for you and never changes your KRS. Bahasa Indonesia and English,
 light and dark.

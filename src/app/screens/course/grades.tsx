@@ -10,6 +10,7 @@ import { percent } from "../../../core/attendance";
 import { EXAMPLE_CONTRACT, EXAMPLE_PART_IDS, letterFor, partScore, standing } from "../../../core/course-contract";
 import { CONTRACT_LETTERS, type ContractLetter, type ContractPart, type CourseContract } from "../../../core/models";
 import { useFormat, useT } from "../../i18n";
+import { usePlaceState } from "../../nav";
 import { useBridge, useDataset } from "../../store";
 import { Button, IconButton, Segmented } from "../../ui/controls";
 import { cx } from "../../ui/cx";
@@ -165,7 +166,7 @@ function Calculator({ page, onOpenModules }: { page: CoursePage; onOpenModules?:
   const code = page.course.code;
   const saved = useDataset("local.courseWeights");
   const [draft, setDraft] = useState<CourseContract | null>(null);
-  const [target, setTarget] = useState<ContractLetter | null>(null);
+  const [target, setTarget] = usePlaceState<ContractLetter | null>("course.aim", null);
   // Boxes holding something unusable: no answer is given from numbers the Student can't see.
   const [problems, setProblems] = useState<ReadonlySet<string>>(new Set());
   const mark = (key: string) => (bad: boolean) =>

@@ -14,7 +14,7 @@ afterEach(() => {
 /** Beranda's course cards (the other lists on Beranda are rows). */
 const cards = () => [...document.querySelectorAll('main section[aria-labelledby="home-courses"] ul > li')].map((li) => li.textContent ?? "");
 const card = (code: string) => cards().find((text) => text.startsWith(code)) ?? "";
-/** A course card's attendance meter: what a screen reader hears, and its status color. */
+/** A course card's absence bar: what a screen reader hears, and its status color. */
 const meter = (code: string) => {
   const li = [...document.querySelectorAll('main section[aria-labelledby="home-courses"] ul > li')].find((el) => el.textContent?.startsWith(code));
   const el = li?.querySelector("[role=img]");
@@ -58,8 +58,7 @@ describe("first run", () => {
     expect(cards()).toHaveLength(5);
     expect(card("DK4073")).toContain("Komunikasi Pemasaran");
     expect(card("DK4073")).toContain("Kelas 01 · 3 SKS");
-    expect(card("DK4073")).toContain("4/6");
-    expect(card("DK4073")).toContain("66%");
+    expect(card("DK4073")).toContain("Terpakai 2× · habis");
     await edunexLive();
     await sixLive();
   });
@@ -84,39 +83,42 @@ describe("first run", () => {
 });
 
 describe("Home with both systems", () => {
-  it("each course shows its class, SKS and SIX's attendance, labelled, against the target, in words when it isn't safe", async () => {
+  it("each course shows its class, SKS and its absences from SIX's count, as Presensi draws them", async () => {
     screen = await openApp({ signedIn: true, six: true });
     expect(cards().map((text) => text.slice(0, 6))).toEqual(["DK4073", "II4091", "KU5014", "PL3002", "PL3032"]);
-    // The bar says what it is ("Kehadiran"), then SIX's count and share; with no room to spare, what that means.
+    // The bar says what it is ("Jatah absen"), then what's used and what's left.
     const expected = {
-      DK4073: ["Kelas 01 · 3 SKS", "Kehadiran4/6 · 66%Jangan absen lagi"],
-      II4091: ["Kelas 01 · 2 SKS", "Kehadiran3/3 · 100%"],
-      KU5014: ["Kelas 01 · 3 SKS", "Kehadiran2/6 · 33%Tak bisa lagi capai 80%"],
-      PL3002: ["Kelas 01 · 3 SKS", "Kehadiran6/7 · 85%Masih bisa absen 1× lagi"],
-      PL3032: ["Kelas 01 · 3 SKS", "Kehadiran4/7 · 57%Jangan absen lagi"],
+      DK4073: ["Kelas 01 · 3 SKS", "Jatah absenTerpakai 2× · habis"],
+      II4091: ["Kelas 01 · 2 SKS", "Jatah absenBelum terpakai · sisa 2×"],
+      KU5014: ["Kelas 01 · 3 SKS", "Jatah absenTerpakai 4× · lebih 1× untuk 80%"],
+      PL3002: ["Kelas 01 · 3 SKS", "Jatah absenTerpakai 1× · sisa 1×"],
+      PL3032: ["Kelas 01 · 3 SKS", "Jatah absenTerpakai 3× · habis"],
     };
     for (const [code, facts] of Object.entries(expected)) for (const fact of facts) expect(card(code)).toContain(fact);
-    // A course with room to spare stays quiet.
-    expect(card("II4091").endsWith("3/3 · 100%")).toBe(true);
+    // No share on a card: nothing that could seem to disagree with the bar.
+    for (const text of cards()) {
+      expect(text).not.toMatch(/\d+\/\d+/);
+      // The only percent a card may name is the target.
+      expect([...text.matchAll(/(\d+)%/g)].every((m) => m[1] === "80")).toBe(true);
+    }
     // SIX's (Indonesian) names, and Edunex's course page for each.
     expect(card("PL3032")).toContain("Ekonomi Infrastruktur dan Transportasi");
     expect(screen.has("Buka di Edunex: PL3032")).toBe(true);
-    // The meter marks the course's target; screen readers hear it.
-    expect(meter("KU5014").label).toBe("Hadir 2 dari 6, 33%, target 80%");
-    // Meters speak in status colors, never the course's: KU5014 can't reach 80% (red), DK4073 has no absences left (amber), II4091 is safe (green).
+    // The bar's own name says the allowance; screen readers hear it.
+    expect(meter("KU5014").label).toBe("Jatah absen semester ini 3×. Terpakai 4×, lebih 1×.");
+    // Bars speak in status colors, never the course's: KU5014 past its limit (red), DK4073 full (amber), II4091 calm.
     expect(meter("KU5014").tone).toBe("danger");
     expect(meter("DK4073").tone).toBe("warning");
-    expect(meter("II4091").tone).toBe("success");
+    expect(meter("II4091").tone).toBe("neutral");
     await edunexLive();
     await sixLive();
   });
 
   it("attendance follows SIX", async () => {
     screen = await openApp({ signedIn: true, six: true });
-    screen.world.six.setAttendance("KU5014", 3, 7);
+    screen.world.six.setAttendance("KU5014", 3, 6);
     await screen.engineDoes(() => screen!.engine.refresh("six"));
-    expect(card("KU5014")).toContain("3/7");
-    expect(card("KU5014")).toContain("42%");
+    expect(card("KU5014")).toContain("Terpakai 3× · habis");
   });
 
   it("speaks English with the official course names (the transcript's), the same counts", async () => {
@@ -126,8 +128,8 @@ describe("Home with both systems", () => {
     expect(card("PL3032")).toContain("Ekonomi Infrastruktur dan Transportasi");
     expect(card("PL3032")).not.toContain("Infrastructure and Transportation Economics");
     expect(card("PL3032")).toContain("Class 01 · 3 SKS");
-    expect(card("PL3032")).toContain("Attendance4/7 · 57%Don't miss another class");
-    expect(meter("PL3032").label).toBe("Attended 4 of 7, 57%, target 80%");
+    expect(card("PL3032")).toContain("Absences3 used · none left");
+    expect(meter("PL3032").label).toBe("Absences this term. All 3 used, none left.");
     expect(await screen.sourceState("SIX")).toBe("Connected");
   });
 
@@ -138,7 +140,7 @@ describe("Home with both systems", () => {
     screen = await openApp({ world, signedIn: true, six: true });
     expect(cards()).toHaveLength(5);
     expect(card("PL3032")).toContain("Tidak ada di Edunex");
-    expect(card("PL3032")).toContain("4/7");
+    expect(card("PL3032")).toContain("Terpakai 3× · habis");
     expect(screen.has("Buka di Edunex: PL3032")).toBe(false);
     await screen.click("Buka di SIX: PL3032");
     expect(screen.calls.at(-1)).toEqual({ name: "shell.openExternal", input: { url: "https://six.itb.ac.id/app/mahasiswa:18223901/statusmhs" } });
@@ -175,7 +177,7 @@ describe("each system on its own", () => {
     expect(screen.text()).toContain("Sesi SIX berakhir. Data terakhir tetap bisa dibaca.");
     await edunexLive();
     expect(await screen.sourceState("SIX")).toBe("Sesi berakhir");
-    expect(card("DK4073")).toContain("4/6");
+    expect(card("DK4073")).toContain("Terpakai 2× · habis");
     screen.world.six.sessionValid = true;
     await screen.click("Masuk lagi");
     expect(screen.text()).not.toContain("Sesi SIX berakhir");
@@ -189,7 +191,7 @@ describe("each system on its own", () => {
     expect(screen.text()).toContain("Sesi Edunex berakhir.");
     await sixLive();
     expect(cards()).toHaveLength(5);
-    expect(card("PL3002")).toContain("6/7");
+    expect(card("PL3002")).toContain("Terpakai 1× · sisa 1×");
   });
 
   it("SIX changing something says so and keeps the last courses", async () => {
@@ -198,7 +200,7 @@ describe("each system on its own", () => {
     await refreshSix();
     expect(screen.text()).toContain("SIX berubah");
     expect(screen.text()).toContain("SIX mengirim data yang tidak dikenali.");
-    expect(card("DK4073")).toContain("4/6");
+    expect(card("DK4073")).toContain("Terpakai 2× · habis");
     await edunexLive();
   });
 
@@ -207,7 +209,7 @@ describe("each system on its own", () => {
     screen.world.six.rateLimit(1);
     await refreshSix();
     expect(await screen.sourceState("SIX")).toBe("Tidak terhubung");
-    expect(card("DK4073")).toContain("4/6");
+    expect(card("DK4073")).toContain("Terpakai 2× · habis");
   });
 });
 

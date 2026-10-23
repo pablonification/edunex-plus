@@ -4,8 +4,10 @@
 import type { z } from "zod";
 import { alertsDatasets } from "./models/alerts";
 import { appDatasets } from "./models/app";
+import { courseColorDatasets } from "./models/course-colors";
 import { coursePageDatasets } from "./models/course-page";
 import { edunexDatasets } from "./models/edunex";
+import { examMarkDatasets } from "./models/exam-marks";
 import { itbDatasets } from "./models/itb";
 import { plannerDatasets } from "./models/planner";
 import { sixDatasets } from "./models/six";
@@ -16,8 +18,10 @@ import { tasksDatasets } from "./models/tasks";
 export * from "./models/alerts";
 export * from "./models/app";
 export * from "./models/base";
+export * from "./models/course-colors";
 export * from "./models/course-page";
 export * from "./models/edunex";
+export * from "./models/exam-marks";
 export * from "./models/itb";
 export * from "./models/planner";
 export * from "./models/six";
@@ -37,6 +41,8 @@ export const Datasets = {
   ...alertsDatasets,
   ...appDatasets,
   ...snoozeDatasets,
+  ...examMarkDatasets,
+  ...courseColorDatasets,
 } as const satisfies Record<string, z.ZodType>;
 export type DatasetName = keyof typeof Datasets;
 export type DatasetValue<N extends DatasetName> = z.infer<(typeof Datasets)[N]>;

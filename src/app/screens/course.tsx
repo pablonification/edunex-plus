@@ -11,17 +11,19 @@ import { clashes, type Meeting, openPresences, pinnedMeeting } from "../../core/
 import { edunexCourseUrl, sixTimetableUrl } from "../../core/links";
 import type { PresenceSession } from "../../core/models";
 import { attendanceKey, attendanceSnoozable } from "../../core/snooze";
+import { todoCount, todoForCourse } from "../../core/todo";
 import { useAttendance } from "../attendance";
 import { verdictLabel } from "../attendance-labels";
-import { AttendanceSummary, CourseTarget } from "../attendance-parts";
+import { AbsenceBudget, CourseTarget } from "../attendance-parts";
 import { errorKey } from "../bridge";
 import { useOpenExternal } from "../hooks";
 import { type Format, type StringKey, type Translate, useFormat, useLang, useNow, useT } from "../i18n";
 import { useNav } from "../nav";
+import { useTodo } from "../schedule-data";
 import { useRefresh } from "../shell/source-status";
 import { SnoozeMenu } from "../snooze-menu";
 import { useSnoozes } from "../snoozes";
-import { useBridge, useDataset, useStatus } from "../store";
+import { useBridge, useDataset, useSettings, useStatus } from "../store";
 import { Button } from "../ui/controls";
 import { CourseDot, EmptyState, LiveDot, Skeleton } from "../ui/display";
 import { Icons } from "../ui/icons";
@@ -30,6 +32,7 @@ import { Menu } from "../ui/menu";
 import { CountdownBar } from "../ui/meter";
 import { NowCard, NowLine, NowZone } from "../ui/now-card";
 import { toast } from "../ui/overlays";
+import { PanelBoundary } from "../ui/panel-boundary";
 import { TabBar } from "../ui/tabs";
 import { type CoursePage, useCoursePage } from "./course/data";
 import { GradesTab } from "./course/grades";
@@ -40,11 +43,29 @@ import { ModulesTab } from "./course/modules";
 const TABS = ["modules", "meetings", "tasks", "grades", "announcements"] as const;
 type Tab = (typeof TABS)[number];
 
-/** `module`: open the Modul tab on this Edunex module (search and alerts name one). */
+/**
+ * `tab` and `module`: what the page shows, kept in its place in history (nav.replace) as the Student picks
+ * them, so Back comes back to them. A module named on arrival (search, an alert, a Task's way up) comes into
+ * view once; one picked here, or come back to, leaves the page where it is.
+ */
 export function CourseScreen({ code, tab, module }: { code: string; tab?: string; module?: number }) {
   const t = useT();
   const page = useCoursePage(code);
-  const [current, setCurrent] = useState<Tab>(module === undefined && (TABS as readonly string[]).includes(tab ?? "") ? (tab as Tab) : "modules");
+  const todo = useTodo();
+  const { replace, returned } = useNav();
+  const current: Tab = (TABS as readonly string[]).includes(tab ?? "") ? (tab as Tab) : "modules";
+  const [asked, setAsked] = useState(module !== undefined && !returned);
+  const show = (next: { tab: Tab; module?: number }) => {
+    setAsked(false);
+    replace({ screen: "course", code, ...next });
+  };
+  const pickTab = (next: Tab) => show({ tab: next, ...(module === undefined ? {} : { module }) });
+  // Each tab in its own crash guard: one that breaks leaves the tab bar, and the way to another tab.
+  const panel = (key: Tab, content: ReactNode) => (
+    <Tabs.Content value={key} className="focus-ring rounded-sm">
+      <PanelBoundary name={`course ${key}`}>{content}</PanelBoundary>
+    </Tabs.Content>
+  );
 
   if (page === undefined) return <Loading />;
   if (page === null)
@@ -58,7 +79,8 @@ export function CourseScreen({ code, tab, module }: { code: string; tab?: string
   const counts: Partial<Record<Tab, number>> = {
     modules: page.outline?.modules.length,
     meetings: page.meetings.length,
-    tasks: page.tasks.length + page.exams.length,
+    // The course's "Belum selesai": its Tasks and exams with a day still ahead, a take-home once.
+    tasks: todo ? todoCount(todoForCourse(todo.items, code)) : undefined,
     announcements: page.announcements?.length || undefined,
   };
 
@@ -67,7 +89,7 @@ export function CourseScreen({ code, tab, module }: { code: string; tab?: string
       <Header page={page} />
       <RiskStrip page={page} />
       <MeetingNow page={page} />
-      <Tabs.Root value={current} onValueChange={(value) => setCurrent(value as Tab)}>
+      <Tabs.Root value={current} onValueChange={(value) => pickTab(value as Tab)}>
         <TabBar
           value={current}
           label={page.course.code}
@@ -76,25 +98,31 @@ export function CourseScreen({ code, tab, module }: { code: string; tab?: string
         />
         <div className="pt-6">
           {/* Every tab keeps its panel while Edunex's part isn't here yet, so each tab still names the panel it controls. */}
-          <Tabs.Content value="modules" className="focus-ring rounded-sm">
-            {loaded ? <ModulesTab page={page} module={module} /> : <NotLoaded />}
-          </Tabs.Content>
-          <Tabs.Content value="meetings" className="focus-ring rounded-sm">
-            {loaded ? <MeetingsTab page={page} /> : <NotLoaded />}
-          </Tabs.Content>
-          <Tabs.Content value="tasks" className="focus-ring rounded-sm">
-            {loaded ? <TasksTab tasks={page.tasks} exams={page.exams} /> : <NotLoaded />}
-          </Tabs.Content>
-          <Tabs.Content value="announcements" className="focus-ring rounded-sm">
-            {loaded ? (
+          {panel(
+            "modules",
+            loaded ? (
+              <ModulesTab
+                page={page}
+                module={module}
+                asked={asked}
+                onShown={() => setAsked(false)}
+                onPick={(picked) => show({ tab: "modules", module: picked })}
+              />
+            ) : (
+              <NotLoaded />
+            ),
+          )}
+          {panel("meetings", loaded ? <MeetingsTab page={page} /> : <NotLoaded />)}
+          {panel("tasks", loaded ? <TasksTab code={page.course.code} exams={page.exams} /> : <NotLoaded />)}
+          {panel(
+            "announcements",
+            loaded ? (
               <AnnouncementsTab announcements={page.announcements} mainCourseId={page.course.edunex?.courseId ?? null} code={page.course.code} />
             ) : (
               <NotLoaded />
-            )}
-          </Tabs.Content>
-          <Tabs.Content value="grades" className="focus-ring rounded-sm">
-            <GradesTab page={page} onOpenModules={() => setCurrent("modules")} />
-          </Tabs.Content>
+            ),
+          )}
+          {panel("grades", <GradesTab page={page} onOpenModules={() => pickTab("modules")} />)}
         </div>
       </Tabs.Root>
     </Page>
@@ -138,29 +166,29 @@ function Header({ page }: { page: CoursePage }) {
   );
 }
 
-/** SIX's count against the course's target, what's left before it in words, and the target, a click from changing it (#85). */
+/**
+ * The course's absences ("Jatah absen": the bar and "Terpakai 1× · sisa 1×"),
+ * SIX's count with its share (the one place a share is said), and the
+ * target, a click from changing it (#85). It stays while the banner below
+ * shows: the banner says what to do, the bar how far.
+ */
 function AttendanceMeter({ page }: { page: CoursePage }) {
-  const t = useT();
   const attendance = useAttendance();
+  const { attendanceTargets } = useSettings();
   const health = attendance?.courses.find((c) => c.course.code === page.course.code)?.health;
-  const banner = useBannerShows(page.course.code, health);
-  if (!health?.held) return null;
+  if (!health || !attendance?.sixConnected) return null;
   return (
-    <AttendanceSummary
-      // The meter's usual width at least, wider where its words need it (never past the header), so they stay on one line.
-      className="w-fit max-w-full min-w-[min(260px,100%)] pt-0.5"
-      health={health}
-      // With no room left the banner below says it, as its title; put off with "Ingatkan nanti", the words are back here.
-      words={banner ? null : verdictLabel(t, health)}
-      aside={<CourseTarget code={page.course.code} className="shrink-0" />}
-    />
+    <div className="flex max-w-full flex-wrap items-start gap-x-5 gap-y-2 pt-0.5">
+      <AbsenceBudget health={health} place="header" own={Object.hasOwn(attendanceTargets, page.course.code)} soFar={attendance.period === null} />
+      {health.held ? <CourseTarget code={page.course.code} /> : null}
+    </div>
   );
 }
 
 /**
  * The attendance banner shows with no room left or the target out of reach,
  * unless it's put off with "Ingatkan nanti" (here or on Beranda: they share
- * it) until its time or a new count; the header meter says it meanwhile.
+ * it) until its time or a new count; the header's bar says it meanwhile.
  */
 function useBannerShows(code: string, health: AttendanceHealth | undefined): boolean {
   const { snoozed } = useSnoozes();
@@ -243,8 +271,10 @@ function RiskStrip({ page }: { page: CoursePage }) {
   const f = useFormat();
   const now = useNow();
   const { go } = useNav();
+  const open = useOpenExternal();
   const attendance = useAttendance();
   const schedule = useDataset("six.schedule");
+  const student = useDataset("six.student");
   const health = attendance?.courses.find((c) => c.course.code === page.course.code)?.health;
   const shows = useBannerShows(page.course.code, health);
   if (!health || !attendance || !shows) return null;
@@ -261,9 +291,16 @@ function RiskStrip({ page }: { page: CoursePage }) {
       className="mb-4"
       title={title}
       action={
-        <Button size="sm" onClick={() => go({ screen: "presence" })}>
-          {t("course.risk.seePresence")}
-        </Button>
+        // The fix: out of reach, a class SIX may have missed; no absences left, every class from here on, as Presensi plans them.
+        out && student ? (
+          <Button size="sm" icon={<Icons.ArrowUpRight className="size-3.5" />} onClick={() => open(sixTimetableUrl(student))}>
+            {t("presence.checkSix")}
+          </Button>
+        ) : (
+          <Button size="sm" onClick={() => go({ screen: "presence" })}>
+            {t("course.risk.seePresence")}
+          </Button>
+        )
       }
       snooze={<SnoozeMenu item={later} name={`${page.course.code}: ${title}`} words onTone />}
     >
@@ -286,7 +323,7 @@ function RiskStrip({ page }: { page: CoursePage }) {
   );
 }
 
-/** "7 pertemuan lagi sampai 4 Des: hadiri semuanya agar tetap 80%." ("Sekitar" when part of it is the weekly slot carried on.) */
+/** "7 pertemuan lagi sampai 4 Des. Hadiri semuanya agar tetap 80%." ("Sekitar" when part of it is the weekly slot carried on.) */
 function noneLeft(t: ReturnType<typeof useT>, f: ReturnType<typeof useFormat>, health: AttendanceHealth, lastDay: string | null): string {
   const { count, estimated } = health.left;
   // The sure meetings alone fall short: one that may not run has to.

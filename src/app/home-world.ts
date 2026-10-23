@@ -2,11 +2,11 @@
 // now. Beranda and the alerts bell both read it, so "Yang berubah" and the
 // bell's history come from one place and never disagree.
 import { useMemo } from "react";
-import { targetFor } from "../core/attendance";
+import { classResults, targetFor } from "../core/attendance";
 import type { HomeWorld } from "../core/needs";
 import { useTerm, useTermCourses } from "./courses";
 import { useNow } from "./i18n";
-import { useDataset, useSettings, useStatus } from "./store";
+import { useDataset, useDatasetPayload, useSettings, useStatus } from "./store";
 
 /**
  * Once the term's courses are known. The exact moment, not rounded down: a
@@ -22,10 +22,14 @@ export function useHomeWorld(): HomeWorld | undefined {
   const schedule = useDataset("six.schedule");
   const scheduleMonths = useDataset("six.scheduleMonths");
   const exams = useDataset("edunex.exams");
+  const examMarks = useDataset("local.examMarks");
   const calendar = useDataset("itb.calendar");
   const krs = useDataset("six.krs");
   const bills = useDataset("six.bills");
   const sixCourses = useDataset("six.courses");
+  const countLog = useDataset("six.countLog");
+  const savedResults = useDataset("six.classResults");
+  const readAt = useDatasetPayload("six.courses")?.fetchedAt ?? 0;
   // The same test as Presensi's: signed out of SIX, nothing reads as counting.
   const sixConnected = useStatus("six").state !== "signed-out" || sixCourses !== undefined;
   const term = useTerm();
@@ -49,10 +53,14 @@ export function useHomeWorld(): HomeWorld | undefined {
       schedule: schedule ?? null,
       scheduleMonths,
       exams,
+      examMarks,
       calendar,
       krs,
       bills,
       sixConnected,
+      countLog: countLog ?? {},
+      // As Presensi judges them: the saved results, and what the latest count already says.
+      classResults: classResults(savedResults ?? {}, countLog ?? {}, schedule ?? [], now, readAt),
     };
   }, [
     courses,
@@ -63,10 +71,14 @@ export function useHomeWorld(): HomeWorld | undefined {
     schedule,
     scheduleMonths,
     exams,
+    examMarks,
     calendar,
     krs,
     bills,
     sixConnected,
+    countLog,
+    savedResults,
+    readAt,
     term,
     attendanceTarget,
     attendanceTargets,

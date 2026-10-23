@@ -169,6 +169,23 @@ describe("exams", () => {
     expect(keys(search(index, "markom")).sort()).toEqual(["exam:DK4073-UTS", "module:473251"]);
   });
 
+  it("exams still ahead come first; one behind the Student is marked as past, by Tugas & Ujian's own rule", () => {
+    // 23 October: PL3032's UTS week ended with no day given, and DK4073's UTS was sat and its take-home closed.
+    const later = searchIndex(saved, { lang: "id", screens: ALL, now: Date.parse("2026-10-23T09:00:00+07:00") });
+    const exams = search(later, "ekonomi infrastruktur").find((group) => group.kind === "exam");
+    expect(exams?.items.map((item) => [item.key, item.kind === "exam" && item.past])).toEqual([
+      ["exam:PL3032-UAS", false],
+      ["exam:PL3032-UTS", true],
+    ]);
+    expect(search(later, "uts komunikasi").find((group) => group.kind === "exam")?.items[0]).toMatchObject({ key: "exam:DK4073-UTS", past: true });
+    // Before, both are still ahead.
+    expect(
+      search(index, "uts")
+        .find((group) => group.kind === "exam")
+        ?.items.every((item) => item.kind === "exam" && !item.past),
+    ).toBe(true);
+  });
+
   it("a take-home UAS is found as its exam too, never also as a Task", () => {
     const tasks = saved["edunex.tasks"] ?? [];
     const uas = { ...tasks.find((task) => task.id === 117764)!, id: 990001, title: "Proyek Akhir Markom", kind: "uas" as const };

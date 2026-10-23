@@ -8,7 +8,7 @@
 // so a dense calendar stays readable. The view picked stays while the app is
 // open; ITB's calendar is named and linked, with when it was last checked.
 // Works without SIX.
-import { Fragment, useRef, useState } from "react";
+import { Fragment, useRef } from "react";
 import { CALENDAR_GROUPS, type CalendarEntry, type CalendarGroup, DEADLINE_KINDS, type Deadline, fullCalendar } from "../../../core/academic";
 import { itbCalendar } from "../../../core/links";
 import type { AcademicCalendar } from "../../../core/models";
@@ -16,6 +16,7 @@ import type { StringKey } from "../../../core/strings";
 import { useDeadlines, useThisTerm } from "../../deadlines";
 import { useOpenExternal } from "../../hooks";
 import { useFormat, useLang, useNow, useT } from "../../i18n";
+import { usePlaceState } from "../../nav";
 import { useDataset } from "../../store";
 import { Button, Segmented } from "../../ui/controls";
 import { cx } from "../../ui/cx";
@@ -102,7 +103,7 @@ function ForYou() {
   const term = useThisTerm();
   const termYears = useTermYears();
   const { upcoming, past } = useDeadlines();
-  const [nextOpen, setNextOpen] = useState(false);
+  const [nextOpen, setNextOpen] = usePlaceState("deadlines.nextTerm", false);
   const grouped = new Map<Group, Deadline[]>();
   const termEnd = Math.max(0, ...[...upcoming, ...past].filter((d) => d.event.term === term).map((d) => d.event.end));
   for (const d of upcoming) {
@@ -270,9 +271,9 @@ function EveryEvent() {
   const krs = useDataset("six.krs");
   const bills = useDataset("six.bills");
   const progress = useDataset("six.progress");
-  const [query, setQuery] = useState("");
-  const [groups, setGroups] = useState<ReadonlySet<CalendarGroup>>(new Set());
-  const [earlier, setEarlier] = useState(false);
+  const [query, setQuery] = usePlaceState("calendar.query", "");
+  const [groups, setGroups] = usePlaceState<ReadonlySet<CalendarGroup>>("calendar.groups", new Set());
+  const [earlier, setEarlier] = usePlaceState("calendar.earlier", false);
   const search = useRef<HTMLInputElement>(null);
   const { months, total, counts } = fullCalendar(
     { calendar, now, krs, bills, progress },

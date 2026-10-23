@@ -8,6 +8,11 @@
 //   EDUNEX_DEMO_NOW=<ISO>    the moment the demo starts (default: the recorded Thursday morning)
 //   EDUNEX_DEMO_PLATFORM=win32|linux  the window's page drawn as on that system (its title bar, Ctrl shortcuts)
 //   EDUNEX_DEMO_CHECK_IN=open  SIX's "Tandai Hadir" shows in the morning's PL3002 class (meeting 2194342)
+//   EDUNEX_DEMO_QUIZ=1       DK4073 also has an Edunex quiz open for ten days (19–30 Oct), for "Tandai selesai"
+//                            (no real Edunex exam record has been seen, so it follows the app's model of one)
+//   EDUNEX_DEMO_AFTER_CLASS=counted|absent|missing  the day runs on past DK4073's 11:00 class to 16:05: SIX counts
+//                            PL3002's morning class, and counts DK4073's (counted), marks it absent, or leaves it
+//                            uncounted (missing), so Presensi shows what SIX's count did after class
 //
 // Every run starts from an empty profile (deleted again on quit), so each begins the same way.
 import fs from "node:fs";
@@ -16,6 +21,7 @@ import path from "node:path";
 import zlib from "node:zlib";
 import { app, dialog, net, session, shell } from "electron";
 import type { DemoHooks } from "../../src/desktop/demo";
+import type { Engine } from "../../src/engine/engine";
 import { fillablePdf } from "../../test/kit/fillable-pdf";
 import { PRETEND_TOKEN } from "../../test/pretend/edunex";
 import { PRETEND_SIX_COOKIE } from "../../test/pretend/six";
@@ -28,9 +34,18 @@ const platform = process.env.EDUNEX_DEMO_PLATFORM as DemoHooks["platform"];
 if (platform && !["darwin", "win32", "linux"].includes(platform)) throw new Error(`Unknown EDUNEX_DEMO_PLATFORM "${platform}"`);
 
 // Signed-in demos start a few minutes early: the first sync (SIX at a page every two seconds, ITB's catalog) is played fast before the window opens.
-const start = process.env.EDUNEX_DEMO_NOW ?? (scenario === "first-run" ? "2026-10-08T08:10:00+07:00" : "2026-10-08T08:07:00+07:00");
+// Played on through the day, it starts before the morning's class, so the app watches it from the start.
+const start =
+  process.env.EDUNEX_DEMO_NOW ??
+  (scenario === "first-run" ? "2026-10-08T08:10:00+07:00" : process.env.EDUNEX_DEMO_AFTER_CLASS ? "2026-10-08T07:30:00+07:00" : "2026-10-08T08:07:00+07:00");
 const world = new PretendWorld({ now: start });
 if (process.env.EDUNEX_DEMO_CHECK_IN === "open") world.six.openCheckIn("2194342");
+if (process.env.EDUNEX_DEMO_QUIZ === "1")
+  world.edunex.exams.set(93409, [
+    { id: 88002, type: "exams", attributes: { name: "Kuis Brand Equity", start_at: "2026-10-19T08:00:00+07:00", end_at: "2026-10-30T23:59:00+07:00" } },
+  ]);
+const afterClass = process.env.EDUNEX_DEMO_AFTER_CLASS;
+if (afterClass && !["counted", "absent", "missing"].includes(afterClass)) throw new Error(`Unknown EDUNEX_DEMO_AFTER_CLASS "${afterClass}"`);
 // Each run gets its own throwaway profile, so several demos can run side by side.
 const profile = `Edunex Plus Demo/${scenario}-${process.pid}`;
 const profileDir = path.join(app.getPath("appData"), profile);
@@ -236,6 +251,24 @@ const slides = samplePdf(
 for (const name of ["slide-pengantar", "slide-pengantar-gabungan"])
   world.putFile(`https://edunexfixture.blob.core.windows.net/edunex/fixture-${name}`, sizedAs(slides, 2_310_544));
 
+/** Runs the pretend clock to `iso`, a minute at a time, so every feed and alert on the way has its turn. */
+async function runUntil(iso: string): Promise<void> {
+  const until = Date.parse(iso);
+  while (world.clock.now() < until) await world.clock.advance(Math.min(60_000, until - world.clock.now()));
+}
+
+/** The day goes on to 16:05: SIX counts PL3002's morning class, then does what EDUNEX_DEMO_AFTER_CLASS says with DK4073's 11:00. */
+async function playTheDay(engine: Engine, result: string): Promise<void> {
+  await runUntil("2026-10-08T10:30:00+07:00");
+  world.six.setAttendance("PL3002", 7, 8);
+  await runUntil("2026-10-08T13:30:00+07:00");
+  if (result === "counted") world.six.setAttendance("DK4073", 5, 7);
+  if (result === "absent") world.six.setAttendance("DK4073", 4, 7);
+  await runUntil("2026-10-08T16:05:00+07:00");
+  // SIX read once more past DK4073's check (15:59), as its hourly read would soon.
+  await fastForward(engine.refresh("six"));
+}
+
 const hooks: DemoHooks = {
   transport: world,
   clock: world.clock,
@@ -267,6 +300,7 @@ const hooks: DemoHooks = {
     await engine.updateSettings({ firstScanDone: true });
     // Settings shows a linked phone, under the demo's made-up topic (it sends nothing anywhere).
     if (scenario === "signed-in") await engine.phone.connect();
+    if (afterClass && scenario === "signed-in") await playTheDay(engine, afterClass);
     runInRealTime();
     return true;
   },

@@ -9,9 +9,10 @@
 // lives in src/core/needs.ts.
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { rupiah } from "../../core/academic";
-import { type AttendanceHealth, type AttendanceState, percent } from "../../core/attendance";
+import { type AttendanceHealth, type AttendanceState, clashPick, percent } from "../../core/attendance";
 import { checkingIn } from "../../core/check-in";
 import { wibDay } from "../../core/course-meetings";
+import { PERIOD_NEAR } from "../../core/exams";
 import { edunexCourseUrl, sixStatusUrl, sixTimetableUrl } from "../../core/links";
 import type { Alert, AlertKind, ClassSession, SixCheckIn, SnoozeEntry } from "../../core/models";
 import {
@@ -28,14 +29,15 @@ import {
   todayPlan,
 } from "../../core/needs";
 import { activeSnooze, partitionSnoozed, snoozable, snoozeKey } from "../../core/snooze";
-import { budgetLabel, useActionLabel, verdictLabel } from "../attendance-labels";
-import { AttendanceSummary } from "../attendance-parts";
-import { type TermCourse, useTerm, useTermCourses } from "../courses";
+import { budgetLabel, useActionLabel } from "../attendance-labels";
+import { AbsenceBudget } from "../attendance-parts";
+import { type TermCourse, useCourseColor, useTerm, useTermCourses } from "../courses";
 import { useHomeWorld } from "../home-world";
 import { useOpenCheckIn, useOpenExternal } from "../hooks";
 import { type Format, type Translate, useFormat, useNow, useT } from "../i18n";
 import { firstName } from "../names";
-import { type Route, useNav } from "../nav";
+import { type Route, useNav, usePlaceState } from "../nav";
+import { useExamIds } from "../schedule-data";
 import { openAlerts } from "../shell/alerts";
 import { useRefresh, useSignIn } from "../shell/source-status";
 import { canSnooze, refocus, SnoozeMenu } from "../snooze-menu";
@@ -101,7 +103,6 @@ export function Home() {
   );
 }
 
-const colorOf = (courses: readonly TermCourse[], code: string | null) => courses.find((course) => course.code === code)?.color ?? "var(--faint)";
 const nameOf = (courses: readonly TermCourse[], code: string, fallback?: string) => courses.find((course) => course.code === code)?.name ?? fallback ?? code;
 
 function AnswersLoading() {
@@ -134,7 +135,7 @@ function Answers({ context, courses }: { context: HomeContext; courses: readonly
           <Today context={context} plan={plan} due={due} courses={courses} onCard={cardKey(card)} />
           <div className="grid grid-cols-[minmax(0,1fr)] gap-y-10">
             <NeedsYou needs={needs} due={due} courses={courses} />
-            <Changes context={context} courses={courses} />
+            <Changes context={context} />
           </div>
         </div>
       </div>
@@ -150,7 +151,7 @@ function ExamWeek() {
   const calendar = useDataset("itb.calendar");
   const exams = calendar?.events.filter((e) => e.kind === "uts" || e.kind === "uas") ?? [];
   const running = exams.find((e) => e.start <= now && now < e.end);
-  const next = exams.find((e) => e.start > now && e.start - now <= 14 * DAY);
+  const next = exams.find((e) => e.start > now && e.start - now <= PERIOD_NEAR);
   if (!running && !next) return null;
   const date = (at: number) => `${f.weekday(at)}, ${f.dayMonth(at)}`;
   let facts: string[];
@@ -211,7 +212,7 @@ function NowCardView({ card, courses }: { card: NowCard; courses: readonly TermC
   const link = facts?.link ?? meeting?.link ?? null;
   const fresh = useStatus(meeting ? "edunex" : "six").state === "live";
   const code = session?.courseCode ?? card.meeting?.code ?? card.presence!.code;
-  const color = colorOf(courses, code);
+  const color = useCourseColor()(code);
   const course = courses.find((c) => c.code === code);
   // A window alone on the card: the class it's for, as a window can stay open for days, into the next one.
   const windowFor = !session && card.presence ? (card.presence.class ?? card.presence.session) : null;
@@ -311,7 +312,7 @@ function Attendance({ card }: { card: NowCard }) {
   const presence = card.presence;
   const counted = facts?.countedIn ?? "unknown";
 
-  const budget = facts?.health && facts.state !== "unknown" ? budgetLabel(t, facts.health) : null;
+  const budget = facts?.health && facts.state !== "unknown" ? cardBudget(t, facts.health) : null;
   const where = presence?.counts
     ? t("home.now.countEdunex")
     : presence?.noSix
@@ -341,7 +342,6 @@ function Attendance({ card }: { card: NowCard }) {
         <CheckIn
           session={session}
           check={check}
-          countsInSix={counted === "six" || counted === "both"}
           url={sixTimetableUrl(student, session.start)}
           budget={budget ? <span className={STATE_TEXT[facts!.state]}>{budget}</span> : null}
         >
@@ -458,15 +458,12 @@ function Attendance({ card }: { card: NowCard }) {
 function CheckIn({
   session,
   check,
-  countsInSix,
   url,
   budget,
   children,
 }: {
   session: ClassSession;
   check: SixCheckIn | undefined;
-  /** SIX's count says attendance counts there; else nobody can say yet (early in the term), and it isn't claimed. */
-  countsInSix: boolean;
   url: string;
   budget: ReactNode;
   children: ReactNode;
@@ -482,17 +479,11 @@ function CheckIn({
         <div className="min-w-0 flex-1 basis-64">
           <p className={cx("flex items-center gap-2 text-body", state === "open" ? "font-semibold" : "font-medium")}>
             <Icons.Hand className={cx("size-4 shrink-0", state === "open" ? "text-accent-fg" : "text-muted")} />
-            {state === "open"
-              ? t("home.now.checkInOpen")
-              : state === "gone"
-                ? t("home.now.checkInGone")
-                : countsInSix
-                  ? t("home.now.countSix")
-                  : t("home.now.checkInWatch")}
+            {state === "open" ? t("home.now.checkInOpen") : state === "gone" ? t("home.now.checkInGone") : t("home.now.checkInWatch")}
           </p>
           <p className="mt-0.5 pl-6 text-small text-muted">
             <Meta>
-              {state === "open" ? t("home.now.checkInOpenHint", { time: f.time(session.end) }) : state === "waiting" ? t("home.now.checkInWaiting") : ""}
+              {state === "open" ? t("home.now.checkInOpenHint", { time: f.time(session.end) }) : state === "waiting" ? t("home.now.checkEvery") : ""}
               {budget ?? ""}
             </Meta>
           </p>
@@ -624,7 +615,7 @@ function Today({
           {/* A deadline put off fades out, and focus moves on to the next row. */}
           <PresenceList>
             {today.map((item) => (
-              <TodayRow key={keyOf(item)} item={item} courses={courses} onCard={onCard} />
+              <TodayRow key={keyOf(item)} item={item} courses={courses} onCard={onCard} context={context} />
             ))}
           </PresenceList>
         </List>
@@ -639,7 +630,7 @@ function Today({
           <List label={t("home.today.tomorrow")}>
             <PresenceList>
               {tomorrow.map((item) => (
-                <TodayRow key={keyOf(item)} item={item} courses={courses} onCard={onCard} />
+                <TodayRow key={keyOf(item)} item={item} courses={courses} onCard={onCard} context={context} />
               ))}
             </PresenceList>
           </List>
@@ -662,12 +653,13 @@ function When({ start, end, past, tone }: { start: string; end?: string; past?: 
   );
 }
 
-function TodayRow({ item, courses, onCard }: { item: TodayItem; courses: readonly TermCourse[]; onCard: string | null }) {
+function TodayRow({ item, courses, onCard, context }: { item: TodayItem; courses: readonly TermCourse[]; onCard: string | null; context: HomeContext }) {
   const t = useT();
   const f = useFormat();
   const now = useNow();
   const { go } = useNav();
   const open = useOpenExternal();
+  const examIds = useExamIds();
   const fresh = useStatus("six").state === "live";
   const edunexFresh = useStatus("edunex").state === "live";
   const shownAbove = keyOf(item) === onCard;
@@ -737,11 +729,20 @@ function TodayRow({ item, courses, onCard }: { item: TodayItem; courses: readonl
   const past = session.end <= now;
   const course = courses.find((c) => c.code === session.courseCode);
   const exam = /\b(UTS|UAS)\b/i.test(session.activity);
-  // Said once: the now card shows its class's budget, and "tak bisa lagi capai" is in Perlu perhatianmu and on the course card.
-  const budget = facts.health && facts.state !== "unknown" && facts.state !== "out" && !past && !shownAbove ? budgetLabel(t, facts.health) : null;
+  // A sitting opens its exam's page: when and where, what to study.
+  const examId = examIds.get(session.id);
+  // Said on the day: no absences left, or the target out of reach (so the course doesn't vanish from Beranda); the now card says it for its class.
+  const budget = facts.health && (facts.state === "none" || facts.state === "out") && !past && !shownAbove ? budgetLabel(t, facts.health) : null;
   // The now card says "Jam berubah · biasanya …" for its class; the row keeps only the amber time.
   const moved = facts.moved && !shownAbove;
-  const clash = facts.overlap ? t("home.today.overlap", { course: facts.overlap.code, time: f.timeRange(facts.overlap.from, facts.overlap.to) }) : null;
+  // A clash, with the pick folded in on the course that needs the Student more (Presensi's answer).
+  const other = facts.overlap ? context.health.get(facts.overlap.code) : undefined;
+  const picked = facts.health && other ? clashPick(facts.health, other).pick === session.courseCode : false;
+  const clash = facts.overlap
+    ? `${t("home.today.overlap", { course: facts.overlap.code, time: f.timeRange(facts.overlap.from, facts.overlap.to) })}${picked ? `. ${t("home.today.pick")}` : ""}`
+    : null;
+  // A class that's over: what SIX's count did after it, when the app saw.
+  const result = past ? context.classResults?.[session.id]?.result : undefined;
   return (
     <Row
       // Past, quieter in token greys that still read at 4.5:1; never faded with opacity.
@@ -761,15 +762,27 @@ function TodayRow({ item, courses, onCard }: { item: TodayItem; courses: readonl
         facts.live ? (
           <NowMark fresh={fresh} />
         ) : past ? (
-          <span className="text-caption text-faint">{t("home.today.done")}</span>
+          <span className={cx("text-caption", result === "absent" ? "font-medium text-danger-fg" : result === "missing" ? "text-warning-fg" : "text-faint")}>
+            {t(
+              result === "counted"
+                ? "home.today.counted"
+                : result === "absent"
+                  ? "home.today.absent"
+                  : result === "missing"
+                    ? "home.today.notCounted"
+                    : "home.today.done",
+            )}
+          </span>
         ) : session.start - now <= SOON ? (
           <span className="text-caption whitespace-nowrap text-muted tabular-nums">{f.fromNow(session.start)}</span>
         ) : undefined
       }
-      onClick={() => go(course?.edunex ? { screen: "course", code: session.courseCode, tab: "meetings" } : { screen: "presence" })}
+      onClick={() =>
+        go(examId ? { screen: "exam", examId } : course?.edunex ? { screen: "course", code: session.courseCode, tab: "meetings" } : { screen: "presence" })
+      }
     >
       {!past && (budget || clash) && (
-        // Kept beside a clash: choosing between two classes is when "Jangan absen lagi" matters most.
+        // Kept beside a clash: choosing between two classes is when "Jatah absen habis" matters most.
         <Meta className="mt-1 text-small font-medium">
           {budget ? <span className={STATE_TEXT[facts.state]}>{budget}</span> : ""}
           {clash ? <span className="text-warning-fg">{clash}</span> : ""}
@@ -791,10 +804,11 @@ function NowMark({ fresh }: { fresh: boolean }) {
   );
 }
 
-function CourseMark({ code, courses, past = false }: { code: string; courses: readonly TermCourse[]; past?: boolean }) {
+function CourseMark({ code, past = false }: { code: string; courses: readonly TermCourse[]; past?: boolean }) {
+  const color = useCourseColor()(code);
   return (
     <span className={cx("inline-flex items-center gap-1.5 font-medium tabular-nums", past ? "text-faint" : "text-fg/80")}>
-      <CourseDot color={colorOf(courses, code)} className="size-2" />
+      <CourseDot color={color} className="size-2" />
       {code}
     </span>
   );
@@ -818,7 +832,7 @@ function NeedsYou({ needs, due, courses }: { needs: readonly NeedDraft[]; due: r
     // "Hari ini"'s first, as the page reads: they're the soonest.
     return { shown: own.shown, snoozed: [...partitionSnoozed(due, snoozeKey, entries, now).snoozed, ...own.snoozed] };
   }, [needs, due, entries, now]);
-  const [listOpen, setListOpen] = useState(false);
+  const [listOpen, setListOpen] = usePlaceState("home.snoozedOpen", false);
   // Closed once nothing is put off, so the next snooze doesn't find the list open.
   if (listOpen && !snoozed.length) setListOpen(false);
   const snoozedLine = snoozed.length > 0 && <SnoozedLine count={snoozed.length} open={listOpen} onToggle={() => setListOpen(!listOpen)} />;
@@ -1037,17 +1051,23 @@ function useNeedView(courses: readonly TermCourse[]): (need: NeedDraft) => NeedV
       case "exam": {
         const { exam, sitting } = need;
         const time = sitting.end !== null ? f.timeRange(sitting.start, sitting.end) : f.time(sitting.start);
+        // Open for days on Edunex: it runs out when it closes, like a deadline.
+        const closes = need.window && sitting.end !== null ? sitting.end : null;
         return {
           title: t("home.need.exam", { kind: t(`exam.kind.${exam.kind}`), course: nameOf(courses, exam.courseCode) }),
-          meta: [course, `${f.relativeDay(sitting.start)}, ${time}`, sitting.source === "six" ? sitting.room : t("home.need.exam.edunex")],
+          meta: [
+            course,
+            closes !== null ? t("home.need.exam.closes", { when: f.dueLabel(closes) }) : `${f.relativeDay(sitting.start)}, ${time}`,
+            sitting.source === "six" ? sitting.room : t("home.need.exam.edunex"),
+          ],
           note: need.disagree
             ? { text: t("home.need.exam.disagree"), tone: "warning" }
             : need.takeHomeDue !== null
               ? // A take-home due another day is the exam's second part: said plainly, no warning.
                 { text: t("home.need.exam.takeHome", { date: `${f.weekdayShort(need.takeHomeDue)} ${f.dayMonth(need.takeHomeDue)}` }), tone: null }
               : undefined,
-          when: f.fromNow(sitting.start),
-          tone: near(sitting.start),
+          when: f.fromNow(closes ?? sitting.start),
+          tone: near(closes ?? sitting.start),
         };
       }
       case "attendance": {
@@ -1167,7 +1187,7 @@ const CHANGE_ICON: Partial<Record<AlertKind, typeof Icons.Home>> = {
 const IMPORTANT: ReadonlySet<string> = new Set(["alert.taskEdited.afterSubmit", "alert.materialToday", "home.change.moved", "home.change.meeting"]);
 
 /** A short look at the last week's changes: the bell keeps all of them, with the same words. */
-function Changes({ context, courses }: { context: HomeContext; courses: readonly TermCourse[] }) {
+function Changes({ context }: { context: HomeContext }) {
   const t = useT();
   const f = useFormat();
   const { go } = useNav();
@@ -1190,7 +1210,7 @@ function Changes({ context, courses }: { context: HomeContext; courses: readonly
       ) : (
         <List label={t("home.changes")}>
           {changes.map((item) => (
-            <ChangeRow key={item.id} item={item} f={f} courses={courses} onOpen={() => go(item.target)} />
+            <ChangeRow key={item.id} item={item} f={f} onOpen={() => go(item.target)} />
           ))}
         </List>
       )}
@@ -1198,18 +1218,19 @@ function Changes({ context, courses }: { context: HomeContext; courses: readonly
   );
 }
 
-function ChangeRow({ item, f, courses, onOpen }: { item: Alert; f: Format; courses: readonly TermCourse[]; onOpen: () => void }) {
+function ChangeRow({ item, f, onOpen }: { item: Alert; f: Format; onOpen: () => void }) {
   const t = useT();
   const Icon = CHANGE_ICON[item.kind] ?? Icons.Bell;
   const important = IMPORTANT.has(item.title.key);
   const code = typeof item.title.vars?.course === "string" ? item.title.vars.course : null;
+  const colorOf = useCourseColor();
   return (
     <Row
       className="py-2.5"
       leading={
         <span className="relative mt-0.5">
           <Icon className={cx("size-4", important ? "text-warning-fg" : "text-faint")} />
-          {code && <CourseDot color={colorOf(courses, code)} className="absolute -right-1 -bottom-1 size-2 ring-2 ring-surface" />}
+          {code && <CourseDot color={colorOf(code)} className="absolute -right-1 -bottom-1 size-2 ring-2 ring-surface" />}
         </span>
       }
       title={<Meta>{t(item.title.key, item.title.vars)}</Meta>}
@@ -1348,13 +1369,16 @@ function CardHead({ course }: { course: TermCourse }) {
   );
 }
 
-/**
- * "Kehadiran 4/6 · 66%" over a meter with the course's target as a tick; the
- * share rounds down so it never looks better than it is. With no room to
- * spare, the state in words under it; a course with room stays quiet.
- */
+/** The course's absences, as Presensi draws them: "Jatah absen", the bar, "Terpakai 1× · sisa 1×". */
 function CourseAttendance({ health }: { health: AttendanceHealth | undefined }) {
   const t = useT();
   if (!health?.held) return <span className="text-caption text-faint">{t("course.noMeetingsYet")}</span>;
-  return <AttendanceSummary health={health} words={health.state === "safe" ? null : verdictLabel(t, health)} />;
+  return <AbsenceBudget health={health} place="card" />;
+}
+
+/** The now card's few words for a course's absences: "Jatah absen PL3002 sisa 1×", or the state when none is left. */
+function cardBudget(t: Translate, health: AttendanceHealth): string {
+  return health.state === "safe" || health.state === "risk"
+    ? t("home.now.leftIn", { count: health.absencesLeft ?? 0, code: health.code })
+    : budgetLabel(t, health);
 }

@@ -6,8 +6,8 @@
 import { krsOverlaps, type Overlap } from "./academic";
 import { type AttendanceHealth, attendanceHealth, countedIn, lecturePeriod, needsAttention, type TargetSettings, targetFor } from "./attendance";
 import { type AnnouncedMeeting, announcedMeetings, courseMeetings } from "./course-meetings";
-import { examAhead, examRoute, examsFound } from "./exam-sources";
-import type { Exam } from "./exams";
+import { examRoute, examsFound } from "./exam-sources";
+import { type Exam, examAhead } from "./exams";
 import { blockedBy, HONORS, type HonorLevel, honorFor, type Path } from "./honors";
 import type { DatasetName, SourceId, SourceState, SourceStatus, Task } from "./models";
 import { semesterOf } from "./planner";
@@ -206,7 +206,7 @@ function unusedPresence({ saved, now }: ScanInput): Finding | null {
  * outline, dated by ITB's exam week. The line opens the soonest.
  */
 function exams({ saved, now }: ScanInput): Finding | null {
-  const ahead = examsFound(saved, now).filter((exam) => examAhead(exam, now));
+  const ahead = examsFound(saved, now).filter((exam) => examAhead(exam, now, saved["local.examMarks"]));
   if (!ahead.length) return null;
   const sources = new Set<"edunex" | "six" | "itb">();
   for (const exam of ahead) {

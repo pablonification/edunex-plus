@@ -13,7 +13,9 @@ import {
   type AttendanceHealth,
   type AttendanceState,
   attendanceHealth,
+  type ClassResults,
   type CountedIn,
+  type CountLog,
   isExamActivity,
   lecturePeriod,
   openWindows,
@@ -21,10 +23,10 @@ import {
   presenceAction,
   presenceOptional,
 } from "./attendance";
-import { materialKind } from "./course-materials";
+import { introModule, materialKind } from "./course-materials";
 import { type AnnouncedMeeting, announcedMeetings, courseMeetings, wibDay } from "./course-meetings";
 import { dateVars, sameLocalDay, weekdayVars } from "./dates";
-import { type Exam, mergeExams } from "./exams";
+import { type Exam, examParts, mergeExams } from "./exams";
 import type {
   AcademicCalendar,
   Alert,
@@ -33,6 +35,7 @@ import type {
   Bill,
   ClassSession,
   EdunexExam,
+  ExamMark,
   KrsPlan,
   Material,
   PresenceSession,
@@ -84,12 +87,17 @@ export interface HomeWorld {
   scheduleMonths?: readonly string[];
   /** Edunex's exams by course code. */
   exams?: Readonly<Record<string, readonly EdunexExam[]>>;
+  /** The Edunex exam windows the Student marked done (Tugas & Ujian). */
+  examMarks?: readonly ExamMark[];
   calendar: AcademicCalendar | undefined;
   /** SIX's study plan (KRS) for the term, and the UKT bills. */
   krs?: KrsPlan;
   bills?: readonly Bill[];
   /** False while signed out of SIX: then which system counts can't be known. */
   sixConnected?: boolean;
+  /** SIX's attendance count per course over time, and what it did after each class the app watched (by SIX's meeting id). */
+  countLog?: CountLog;
+  classResults?: ClassResults;
 }
 
 /** What every provider shares, worked out once. */
@@ -184,6 +192,8 @@ export type NeedFacts =
       disagree: boolean;
       /** The take-home's deadline, when it's due on another day than SIX's sitting (two parts, not a conflict). */
       takeHomeDue: number | null;
+      /** An Edunex exam open for days: it's due at its close (`sitting.end`), like a deadline. */
+      window: boolean;
     }
   | { kind: "krs"; closesAt: number; open: boolean; window: "drs" }
   | { kind: "bill"; bill: Bill; overdue: boolean };
@@ -470,8 +480,11 @@ export const taskProvider: NeedProvider = {
   },
 };
 
-/** A Task's own item, whatever else speaks for it (a Presence window it's handed in for); null when it needs nothing. */
-function taskNeed(task: Task, now: number): NeedDraft | null {
+/**
+ * A Task's own item, whatever else speaks for it (a Presence window it's handed in for); null when it needs nothing.
+ * Tugas & Ujian puts off a late Task as this item, so one snooze holds in both places.
+ */
+export function taskNeed(task: Task, now: number): NeedDraft | null {
   const status = taskStatus(task, now);
   const base = {
     kind: "task",
@@ -571,10 +584,12 @@ export const attendanceProvider: NeedProvider = {
 /**
  * Exams within the week, each at its next sitting: SIX's session with its
  * room, or Edunex's dated exam (a take-home exam is a Task, and the Task
- * item speaks for it). Within a day it's now, within three days soon, else
- * coming up; when SIX and Edunex give the sitting different days it's at
- * least soon, time to ask the lecturer. A take-home due on another day than
- * SIX's sitting is said calmly: two parts, not a conflict.
+ * item speaks for it); an Edunex exam open for days is at its close, like a
+ * deadline, and gone once the Student marks it done. Within a day it's now,
+ * within three days soon, else coming up; when SIX and Edunex give the
+ * sitting different days it's at least soon, time to ask the lecturer. A
+ * take-home due on another day than SIX's sitting is said calmly: two parts,
+ * not a conflict.
  */
 export const examProvider: NeedProvider = {
   area: "exam",
@@ -589,26 +604,28 @@ export const examProvider: NeedProvider = {
     });
     const out: NeedDraft[] = [];
     for (const exam of exams) {
-      const sittings: ExamSitting[] = [
-        ...exam.six.map((s) => ({ start: s.start, end: s.end, room: s.room, source: "six" as const })),
-        ...exam.edunex.flatMap((e) => (e.start !== null ? [{ start: e.start, end: e.end, room: null, source: "edunex" as const }] : [])),
-      ];
-      const [next] = sittings.filter((s) => (s.end ?? s.start) > now).sort((a, b) => a.start - b.start);
-      if (!next || next.start - now > AHEAD) continue;
-      const left = next.start - now;
+      // The parts still ahead at their moments (a window at its close); a take-home is the Task item's.
+      const [part] = examParts(exam, now, context.examMarks).filter((p) => p.kind !== "takehome");
+      if (!part || part.at - now > AHEAD) continue;
+      const next: ExamSitting =
+        part.kind === "window"
+          ? { start: part.opensAt ?? part.at, end: part.at, room: null, source: "edunex" }
+          : { start: part.at, end: part.end, room: part.room, source: part.source };
+      const left = part.at - now;
       const sources: NeedSource[] = [...(exam.six.length ? ["six" as const] : []), ...(exam.edunex.length || exam.tasks.length ? ["edunex" as const] : [])];
       out.push({
         id: `exam:${exam.id}`,
         kind: "exam",
         course: exam.courseCode,
         band: left <= DUE_NOW ? "now" : left <= DUE_SOON || exam.disagree ? "soon" : "later",
-        at: next.start,
+        at: part.at,
         sources,
         action: { kind: "go", route: { screen: "exam", examId: exam.id } },
         exam,
         sitting: next,
         disagree: exam.disagree,
         takeHomeDue: next.source === "six" ? exam.takeHomeApart : null,
+        window: part.kind === "window",
       });
     }
     return out;
@@ -777,7 +794,8 @@ export function recentChanges(world: HomeWorld | HomeContext, history: readonly 
           at: material.postedAt,
           title: { key: "alert.newMaterial", vars: { course: code } },
           body: { key: "alert.plain", vars: { title: material.title } },
-          target: { screen: "course", code, tab: "modules" },
+          // The module it's in, as the alert from the sync names it (alerts/changes.ts), never the course's newest.
+          target: { screen: "course", code, tab: "modules", module: material.moduleId ?? introModule(material.courseId) },
         });
   for (const session of context.schedule ?? []) {
     if (session.end <= now || session.start - now > AHEAD) continue;

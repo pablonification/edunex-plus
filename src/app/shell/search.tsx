@@ -14,13 +14,13 @@ import type { Exam } from "../../core/exams";
 import type { DatasetName } from "../../core/models";
 import { SCREENS, type ScreenId, type SearchItem, search, searchIndex, suggestions } from "../../core/search";
 import { isOpenStatus, taskStatus } from "../../core/tasks";
-import { useTermCourses } from "../courses";
+import { useCourseColor, useTermCourses } from "../courses";
 import { type Format, type Translate, useFormat, useLang, useNow, useT } from "../i18n";
 import { useNav } from "../nav";
 import { useSaved } from "../saved";
 import { useBridge, useSettings, useStore } from "../store";
 import { cx } from "../ui/cx";
-import { Kbd } from "../ui/display";
+import { CourseDot, Kbd } from "../ui/display";
 import { type IconProps, Icons } from "../ui/icons";
 import { factsLabel, Meta } from "../ui/layout";
 import { SCRIM_STILL, useReturnFocus } from "../ui/overlays";
@@ -148,7 +148,7 @@ function Palette({ shown, onClose, onSettings }: { shown: boolean; onClose: () =
   const index = useMemo(() => searchIndex(saved, { lang, screens: BUILT, now }), [saved, lang, now]);
   const groups = useMemo(() => (query.trim() ? search(index, query) : suggestions(index, now, recent)), [index, query, now, recent]);
   const items = groups.flatMap((group) => group.items);
-  const colors = useMemo(() => new Map((courses ?? []).map((course) => [course.code, course.color])), [courses]);
+  const colorOf = useCourseColor();
   const optionId = (at: number) => `${id}-option-${at}`;
   const current = Math.min(active, items.length - 1);
   const dark =
@@ -237,7 +237,7 @@ function Palette({ shown, onClose, onSettings }: { shown: boolean; onClose: () =
                   onClick={() => open(item)}
                   className={cx("flex cursor-default items-center gap-3 rounded-lg px-3 py-2", selected && "bg-selected")}
                 >
-                  <ItemMark item={item} color={item.code ? colors.get(item.code) : undefined} />
+                  <ItemMark item={item} color={colorOf(item.code)} />
                   <span className="min-w-0 flex-1">
                     <span id={`${optionId(mine)}-title`} className="line-clamp-2 text-body font-medium">
                       {item.title}
@@ -308,7 +308,7 @@ function ItemMark({ item, color }: { item: SearchItem; color: string | undefined
   return (
     <span className="relative grid size-7 shrink-0 place-items-center rounded-md bg-fill">
       <Icon className="size-3.5 text-muted" />
-      {color && <span aria-hidden className="absolute -right-0.5 -bottom-0.5 size-2 rounded-xs ring-2 ring-raised" style={{ background: color }} />}
+      {item.code && <CourseDot color={color} className="absolute -right-0.5 -bottom-0.5 size-2 ring-2 ring-raised" />}
     </span>
   );
 }
@@ -340,7 +340,12 @@ function detailOf(item: SearchItem, t: Translate, f: Format, now: number): strin
       break;
     }
     case "exam":
-      parts.push(takeHomeOnly(item.exam) ? t("task.takeHome", { kind: t(`exam.kind.${item.exam.kind}`) }) : null, examWhen(item.exam, t, f));
+      parts.push(
+        takeHomeOnly(item.exam) ? t("task.takeHome", { kind: t(`exam.kind.${item.exam.kind}`) }) : null,
+        examWhen(item.exam, t, f),
+        // Behind the Student, as in Done: said, so it isn't taken for one to come.
+        item.past ? t("deadlines.past") : null,
+      );
       break;
     // The joint class's copy of a module says so, or the two rows read the same.
     case "material":
