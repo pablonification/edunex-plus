@@ -82,17 +82,38 @@
   --source-itb-fg: #6338b8;
 
   /* Course colors (src/core/course-colors.ts): a course's dot and stripe, never a fill, a status or text. Each is a
-     name with a tone per theme, 3:1 on every surface it sits on (test/app/contrast.test.ts). */
-  --course-cyan: #028dab;
-  --course-indigo: #6e46fb;
-  --course-berry: #a80165;
-  --course-blue: #015f98;
-  --course-orchid: #be49d8;
-  --course-magenta: #b10ca6;
-  --course-purple: #8500c2;
-  --course-pink: #d6459b;
-  --course-plum: #843e8b;
-  --course-lavender: #8d61bf;
+     name with a tone per theme, 3:1 on every surface it sits on (test/app/contrast.test.ts). Both tones are
+     always defined, for Settings' preview of the theme not on screen (.preview-light, .preview-dark). */
+  --course-cyan-light: #028dab;
+  --course-cyan-dark: #06bfe7;
+  --course-cyan: var(--course-cyan-light);
+  --course-indigo-light: #6e46fb;
+  --course-indigo-dark: #8370ff;
+  --course-indigo: var(--course-indigo-light);
+  --course-berry-light: #a80165;
+  --course-berry-dark: #d44d8e;
+  --course-berry: var(--course-berry-light);
+  --course-blue-light: #015f98;
+  --course-blue-dark: #3c8bc8;
+  --course-blue: var(--course-blue-light);
+  --course-orchid-light: #be49d8;
+  --course-orchid-dark: #eb95ff;
+  --course-orchid: var(--course-orchid-light);
+  --course-magenta-light: #b10ca6;
+  --course-magenta-dark: #dc4ece;
+  --course-magenta: var(--course-magenta-light);
+  --course-purple-light: #8500c2;
+  --course-purple-dark: #a551dd;
+  --course-purple: var(--course-purple-light);
+  --course-pink-light: #d6459b;
+  --course-pink-dark: #ff7ac3;
+  --course-pink: var(--course-pink-light);
+  --course-plum-light: #843e8b;
+  --course-plum-dark: #ac69b2;
+  --course-plum: var(--course-plum-light);
+  --course-lavender-light: #8d61bf;
+  --course-lavender-dark: #b381ed;
+  --course-lavender: var(--course-lavender-light);
 
   /* Layers, lowest to highest: z-(--z-dialog). Inside one panel, Tailwind's
      plain z-10 / z-20 are fine; these are for things that float over the window. */
@@ -195,17 +216,52 @@
     --source-itb-bg: #271d3a;
     --source-itb-fg: #c4b0f5;
 
-    --course-cyan: #06bfe7;
-    --course-indigo: #8370ff;
-    --course-berry: #d44d8e;
-    --course-blue: #3c8bc8;
-    --course-orchid: #eb95ff;
-    --course-magenta: #dc4ece;
-    --course-purple: #a551dd;
-    --course-pink: #ff7ac3;
-    --course-plum: #ac69b2;
-    --course-lavender: #b381ed;
+    --course-cyan: var(--course-cyan-dark);
+    --course-indigo: var(--course-indigo-dark);
+    --course-berry: var(--course-berry-dark);
+    --course-blue: var(--course-blue-dark);
+    --course-orchid: var(--course-orchid-dark);
+    --course-magenta: var(--course-magenta-dark);
+    --course-purple: var(--course-purple-dark);
+    --course-pink: var(--course-pink-dark);
+    --course-plum: var(--course-plum-dark);
+    --course-lavender: var(--course-lavender-dark);
   }
+}
+
+/* Settings' preview of the course colors in both themes at once (src/app/shell/settings.tsx): each side keeps
+   its own theme's sidebar, edge, text and tones, whatever the theme on screen (test/app/contrast.test.ts). */
+.preview-light {
+  --sidebar: #f5f5f7;
+  --edge: #e4e4e9;
+  --fg: #1d1d1f;
+  --muted: #5b5b61;
+  --course-cyan: var(--course-cyan-light);
+  --course-indigo: var(--course-indigo-light);
+  --course-berry: var(--course-berry-light);
+  --course-blue: var(--course-blue-light);
+  --course-orchid: var(--course-orchid-light);
+  --course-magenta: var(--course-magenta-light);
+  --course-purple: var(--course-purple-light);
+  --course-pink: var(--course-pink-light);
+  --course-plum: var(--course-plum-light);
+  --course-lavender: var(--course-lavender-light);
+}
+.preview-dark {
+  --sidebar: #1b1b1e;
+  --edge: #2a2a2f;
+  --fg: #ececef;
+  --muted: #a8a8b0;
+  --course-cyan: var(--course-cyan-dark);
+  --course-indigo: var(--course-indigo-dark);
+  --course-berry: var(--course-berry-dark);
+  --course-blue: var(--course-blue-dark);
+  --course-orchid: var(--course-orchid-dark);
+  --course-magenta: var(--course-magenta-dark);
+  --course-purple: var(--course-purple-dark);
+  --course-pink: var(--course-pink-dark);
+  --course-plum: var(--course-plum-dark);
+  --course-lavender: var(--course-lavender-dark);
 }
 
 @theme inline {

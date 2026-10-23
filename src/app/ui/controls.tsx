@@ -179,14 +179,23 @@ export function Stepper({
  * reachable), the arrow keys move the choice and the focus with it, and
  * clicking the checked choice keeps it. Spread `radio(index)` on each button.
  */
-export function useRadioKeys<T>(values: readonly T[], value: T | null, onChange: (value: T) => void) {
+export function useRadioKeys<T>(values: readonly T[], value: T | null, onChange: (value: T) => void, rows?: readonly number[]) {
   const buttons = useRef<(HTMLButtonElement | null)[]>([]);
   // A null value is a choice where the group has one (the Tasks filter's "Semua"), else nothing picked.
   const checked = values.indexOf(value as T);
-  const move = (from: number, step: number) => {
-    const index = (from + step + values.length) % values.length;
+  const go = (index: number) => {
     onChange(values[index]);
     buttons.current[index]?.focus();
+  };
+  const move = (from: number, step: number) => go((from + step + values.length) % values.length);
+  // Laid out in rows (`rows`: how many in each, as the color picker's automatic choice over two rows of five),
+  // ↑ and ↓ go to the row above or below, as near the same column as it has.
+  const vertical = (from: number, step: number) => {
+    if (!rows) return move(from, step);
+    const starts = rows.map((_, row) => rows.slice(0, row).reduce((sum, n) => sum + n, 0));
+    const row = starts.findLastIndex((start) => start <= from);
+    const to = (row + step + rows.length) % rows.length;
+    go(starts[to] + Math.min(from - starts[row], rows[to] - 1));
   };
   return (index: number) => ({
     ref: (el: HTMLButtonElement | null) => {
@@ -197,13 +206,29 @@ export function useRadioKeys<T>(values: readonly T[], value: T | null, onChange:
     tabIndex: index === Math.max(checked, 0) ? 0 : -1,
     onClick: () => onChange(values[index]),
     onKeyDown: (event: KeyboardEvent) => {
-      if (event.key === "ArrowRight" || event.key === "ArrowDown") {
-        event.preventDefault();
-        move(index, 1);
-      } else if (event.key === "ArrowLeft" || event.key === "ArrowUp") {
-        event.preventDefault();
-        move(index, -1);
+      switch (event.key) {
+        case "ArrowRight":
+          move(index, 1);
+          break;
+        case "ArrowLeft":
+          move(index, -1);
+          break;
+        case "ArrowDown":
+          vertical(index, 1);
+          break;
+        case "ArrowUp":
+          vertical(index, -1);
+          break;
+        case "Home":
+          go(0);
+          break;
+        case "End":
+          go(values.length - 1);
+          break;
+        default:
+          return;
       }
+      event.preventDefault();
     },
   });
 }
