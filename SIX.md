@@ -94,6 +94,16 @@ sign-in, liveness first), then repeat every `every` ± `jitter`.
 | `/app/mahasiswa:{nim}/keuangan` | `six.bills` (24 h ± 1 h) | UKT bills per term: billed, paid, last day to pay, instalments | `readers/bills.ts` |
 | `/app/mahasiswa:{nim}+{term}/kelas/pertemuan/{meetingId}/mhs/{sid}?returnTo=…` (a class's popup on the timetable, its `data-url`), with `X-Requested-With: XMLHttpRequest` as SIX's own page asks for it | `six.checkIn` (2 min ± 20 s), only from 5 minutes before a class on the timetable starts to 10 minutes after it ends; outside class it requests nothing. A class whose button came and went isn't read again | Whether SIX's "Tandai Hadir" button shows and can be pressed (not disabled) | `six/check-in.ts` `showsCheckIn` |
 
+**Kept from the status page.** Each time the status page is read, the app also keeps, as SIX data on
+this computer (`six.*`, so signing out of SIX or another Student signing in removes it): each
+course's count over time (only when it changed, the last 30 per course, `six.countLog`) and what
+the count did after each class it watched (counted, marked absent, or not counted a few hours
+after class, the last 14 days, `six.classResults`). SIX gives totals only, so a class is judged
+only from a count read before it started, and never when two classes of a course share one
+change. Nothing more is requested for it. Whether SIX's "held" count goes up when a class
+starts, when "Tandai Hadir" opens or when the lecturer records it was not recorded: until it is,
+a class on now counts as neither held nor still to come.
+
 A full refresh is about 10 SIX pages, and one popup per class on now. A class is about one
 popup every 2 minutes: about 70 small requests for a 2-hour class. The student profile the app keeps is only what the
 status page shows (name, NIM, program, term); it never reads SIX's profile or master-data pages.

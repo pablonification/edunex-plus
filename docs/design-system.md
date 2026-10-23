@@ -29,7 +29,8 @@ the Motion section below allows it.
 ## Principles
 
 1. **Answer first.** Each screen answers one question before anything else
-   (Beranda: what do I do now; Presensi: am I OK, and what do I do; Nilai:
+   (Beranda: what do I do now; Presensi: am I OK, and what do I do, said for
+   the next class day; Nilai:
    where is my IPK). The answer is the first thing at the top left, in a
    sentence; the detail follows.
 2. **Nothing to relearn.** Same names and places as Edunex and SIX: Beranda,
@@ -154,6 +155,15 @@ text, and amber text is brown. Red uses `--danger-fg`, blue `--accent`.
 | `--meter-track` | `#ececef` | `#2c2c30` |
 | `--meter-warning` | `#b26b00` | `#f2c862` |
 | `--meter-success` | `#1e8f4f` | `#2fbf6c` (`--live`) |
+| `--pip-ring` | `#7a7a80` | `#77777d` |
+| `--hatch` | `rgb(0 0 0 / 0.07)` | `rgb(255 255 255 / 0.08)` |
+
+**The absence bar** (`AbsenceBar`) sits on rows and cards rather than a
+track, so its marks read 3:1 on `--surface`, `--hover`, `--raised` and
+`--canvas`: a used absence fills in `--muted`, `--meter-warning` once the bar
+is full, `--danger-fg` past its limit; one still left is a ring in
+`--pip-ring` (`--field-edge` falls under 3:1 on a hovered row); an estimate is
+that ring with `--hatch` stripes; the limit line is `--fg`.
 
 **Task statuses (background / text)**
 
@@ -191,7 +201,8 @@ identity only: never a bar's fill, a status, or text.
 
 **Status colors.** Red (`danger`): lost, overdue, failed, can't reach the
 target, destructive. Amber (`warning`): needs the Student soon (no absences
-left, due within a day, a session ended). Green (`success`, `live`): done,
+left, due within a day, a session ended). A full absence bar is amber; what's
+past its limit is red. Green (`success`, `live`): done,
 safe, connected, happening now. Blue (`accent`, `info`): actions, links,
 neutral information. Grey (`neutral`): not yet, not applicable. Bars and
 meters take their color from status (the meter colors above), never from the
@@ -382,7 +393,7 @@ Screens are composed, not styled one by one:
 | `Menu` (`ui/menu.tsx`) | A "⋯" button for a screen's rare actions; an item that can't run stays, dimmed, with the reason under it. A `trigger` makes it quiet, for a row's or a notice's own small menu: a small "⋯", or another icon where the menu is one kind of action, with its words where there's room. |
 | `SnoozeMenu` (`app/snooze-menu.tsx`) | "Ingatkan nanti" on a row or notice: the moments that fit the item, each with until when; then a toast saying when it's back, with Urungkan. A row or notice that leaves hands keyboard focus on (the next row, what follows the notice), never to the page. What's put off is listed quietly ("2 ditunda · Tampilkan") where it was (a deadline put off from Beranda's "Hari ini", with "Perlu perhatianmu"'s; a late Task in Tugas & Ujian under Terlambat, which stays as a heading while all its rows are put off), and in Settings. In Tugas & Ujian only the late rows have it, and a Task put off there is put off on Beranda too: one snooze per Task. |
 | `LineChart` (`ui/chart.tsx`) | The one chart spec: a clean value range with hairline gridlines, estimates dashed, a labelled target line, a direct end label, a tooltip per column, a table for screen readers. |
-| `ShareMeter`, `CountdownBar` (`ui/meter.tsx`) | Status-colored meters: attendance against the course's target, a tick (the best still reachable as an optional ghost), always under a label that says what it measures; time left in a window, shrinking, amber in its last 15 minutes, its words under the bar when there's no room beside it. |
+| `AbsenceBar`, `CountdownBar` (`ui/meter.tsx`) | Status-colored meters. `AbsenceBar`: "Jatah absen", one short segment per absence the course's target allows this term, filled from the start as they're used (neutral, amber once full), ringed while left; past the limit, a short limit line and red segments, each with a ×. It keeps its width (from 12 segments, one fill); it never stands alone: `AbsenceBudget` (`app/attendance-parts.tsx`) draws it under its label with its words ("Terpakai 1× · sisa 1×", the last part bold in the bar's tone), on a Presensi row, the course page's header and Beranda's course cards. No share beside it on a row: the course page's header is the one place SIX's count says its percent, labeled. `CountdownBar`: time left in a window, shrinking, amber in its last 15 minutes, its words under the bar when there's no room beside it. |
 | `Stepper` (`ui/controls.tsx`) | A number stepped between bounds (an attendance target, 50–100% by 5): − and + with names, the value read out when it changes. |
 | `Segmented`, `useRadioKeys` (`ui/controls.tsx`) | A few choices, one picked (the theme, Minggu/Bulan, the IPK target): a radio group whose highlight glides to the pick. Arrow keys move the choice; only the picked one is a Tab stop (the first while none is). An option takes a longer `name` where its label is too short to read alone ("Target IPK 3,50"). Other radio groups of the screen's own buttons (filter chips) get the same keys from `useRadioKeys`. |
 | `TabBar` (`ui/tabs.tsx`) | The tabs of a screen or dialog, inside the screen's own `Tabs.Root` with its panels in `Tabs.Content`, so each tab names its panel: names, an optional quiet count, one underline that glides to the picked tab. The panel swaps at once. A screen's tabs (a course, Rencana studi) each sit in their own crash guard, and the tab picked is in the screen's route, so Back comes back to it. `sm` inside a dialog. Tabs that don't fit scroll sideways in their own frame, each name on one line, the picked one kept in sight. |
@@ -419,8 +430,11 @@ anything runs past the window. Every screen sits in its own crash guard.
   disimpan. Coba lagi, atau simpan ke folder lain." A confirm before what
   can't be undone names what's lost and says so; its button is a verb and
   its object ("Putuskan HP", "Atur ulang rencana"), never a bare "Buang".
-- **Positive and honest framing**: "Masih bisa absen 2× lagi", "IPK
+- **Positive and honest framing**: "Sisa jatah absen 2×", "IPK
   tertinggi yang masih mungkin: 3,45". Never three "tak tercapai" in a row.
+- **One percent at a time, labeled.** Never two shares side by side without
+  words ("At best 73%" over "33%"): "Kehadiran 85% sejauh ini (6 dari 7)",
+  "Kalaupun hadir di semua sisa pertemuan, kehadiranmu berakhir di 73%".
 - **No system words**: no "snapshot", "salinan materi", "kelas induk",
   "data source". The Student's words: kuliah, pertemuan, tugas, presensi.
 - **Human times**: "Besok, 23:59 · dalam 6 jam", "Diperbarui 5 menit yang

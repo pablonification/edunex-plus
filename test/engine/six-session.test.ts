@@ -247,8 +247,14 @@ describe("sessions", () => {
     }
     await until(h, h.engine.signIn("six", SIX));
     expect(h.dataset("six.student")).toMatchObject({ nim: "18224999", name: "Rina Sari" });
-    // The last Student's meetings are gone, not shown as this one's.
+    // The last Student's meetings are gone, not shown as this one's, and so is the history of their counts.
     expect(h.dataset("six.schedule")).toBeUndefined();
+    const since = h.world.clock.now() - 10 * 60_000;
+    expect(
+      Object.values(h.dataset("six.countLog") ?? {})
+        .flat()
+        .every((c) => c.at >= since),
+    ).toBe(true);
     expect(h.status("six").state).toBe("changed");
   });
 
@@ -288,6 +294,28 @@ describe("what SIX shows changes", () => {
     h.world.six.setAttendance("KU5014", 3, 7);
     await until(h, h.engine.refresh("six"));
     expect(h.dataset("six.courses")?.find((c) => c.code === "KU5014")?.attendance).toEqual({ attended: 3, held: 7 });
+  });
+
+  it("keeps the count's history, changes only, and what it did after a class the app watched", async () => {
+    const h = await signedIn();
+    const log = () => h.dataset("six.countLog")?.KU5014?.map((c) => [c.attended, c.held]);
+    expect(log()).toEqual([[2, 6]]);
+    await until(h, h.engine.refresh("six"));
+    expect(log()).toEqual([[2, 6]]);
+    // KU5014's class today, 16:00–17:50: SIX counts it after.
+    const ku = h.dataset("six.schedule")!.find((s) => s.courseCode === "KU5014" && s.start === at("2026-10-08T16:00:00+07:00"))!;
+    await h.wait(at("2026-10-08T18:30:00+07:00") - h.world.clock.now());
+    h.world.six.setAttendance("KU5014", 3, 7);
+    await until(h, h.engine.refresh("six"));
+    expect(log()).toEqual([
+      [2, 6],
+      [3, 7],
+    ]);
+    expect(h.dataset("six.classResults")?.[ku.id]).toMatchObject({ courseCode: "KU5014", result: "counted" });
+    // SIX data: it goes with the SIX session.
+    await h.engine.signOut("six");
+    expect(h.dataset("six.countLog")).toBeUndefined();
+    expect(h.dataset("six.classResults")).toBeUndefined();
   });
 
   it("a moved meeting shows its new time and room", async () => {

@@ -137,7 +137,7 @@ describe("SIX not counting a class", () => {
     expect(notCounted(app)).toEqual([]);
     await app.until("2026-10-22T13:01:00+07:00");
     expect(notCounted(app).map((n) => n.text)).toEqual([
-      "SIX belum mencatat kuliah hari ini · PL3002 — Hadir 6 dari 7 di SIX. Jika kamu hadir, minta dosen memperbaikinya hari ini.",
+      "SIX belum menghitung kuliah hari ini · PL3002 — Hadir 6 dari 7 di SIX. Jika kamu hadir, minta dosen membetulkannya hari ini.",
     ]);
     expect(notCounted(app)[0]).toMatchObject({ source: "six", target: { screen: "presence" } });
     await app.until("2026-10-23T09:00:00+07:00");
@@ -175,6 +175,15 @@ describe("SIX not counting a class", () => {
     expect(notCounted(app)).toEqual([]);
   });
 
+  it("after a restart, a class is judged from the saved count history, the same day", async () => {
+    const { app } = await classDay();
+    await app.until("2026-10-22T09:00:00+07:00");
+    app.engine.stop();
+    const again = await startAttendance({ world: app.world, six: sixState(), storage: app.storage, vault: app.vault, signIn: false });
+    await again.until("2026-10-22T13:01:00+07:00");
+    expect(notCounted(again).map((n) => n.title.key)).toEqual(["alert.six.missing"]);
+  });
+
   it("a class from before the app started isn't judged", async () => {
     const world = new PretendWorld({ now: "2026-10-22T11:00:00+07:00" });
     const app = await startAttendance({ world, six: sixState() });
@@ -202,14 +211,14 @@ describe("no absences left, target out of reach", () => {
     await app.sixRefresh();
     await app.until("2026-10-21T21:30:00+07:00");
     expect(app.of("attendanceRisk").map((n) => n.text)).toEqual([
-      "Jangan absen lagi · DK4073 — Hadir 7 dari 10 di SIX: hadiri setiap pertemuan tersisa untuk tetap 80%.",
+      "Jatah absen habis · DK4073 — Hadir 7 dari 10 di SIX. Hadiri setiap pertemuan tersisa agar tetap 80%.",
     ]);
 
     six.courses = [course("DK4073", 7, 11)];
     await app.sixRefresh();
     await app.until("2026-10-21T22:00:00+07:00");
     expect(app.of("attendanceRisk").map((n) => n.title.key)).toEqual(["alert.attendance.none", "alert.attendance.out"]);
-    expect(app.of("attendanceRisk")[1].text).toMatch(/^Target 80% tak tercapai lagi · DK4073 — Paling tinggi 76%/);
+    expect(app.of("attendanceRisk")[1].text).toMatch(/^Tak bisa lagi capai 80% · DK4073 — Kalaupun hadir di semua sisa pertemuan, kehadiranmu berakhir di 76%/);
 
     // Nothing new while it stays there.
     await app.sixRefresh();
@@ -231,14 +240,16 @@ describe("no absences left, target out of reach", () => {
     await app.sixRefresh();
     await app.until("2026-10-21T21:30:00+07:00");
     expect(app.of("attendanceRisk").map((n) => n.text)).toEqual([
-      "Jangan absen lagi · DK4073 — Hadir 7 dari 8 di SIX: hadiri setiap pertemuan tersisa untuk tetap 90%.",
+      "Jatah absen habis · DK4073 — Hadir 7 dari 8 di SIX. Hadiri setiap pertemuan tersisa agar tetap 90%.",
     ]);
 
     // 7 of 9: at best 13 of 15, 86.7%: said as 86%, never rounded up.
     six.courses = [course("DK4073", 7, 9)];
     await app.sixRefresh();
     await app.until("2026-10-21T22:00:00+07:00");
-    expect(app.of("attendanceRisk")[1].text).toMatch(/^Target 90% tak tercapai lagi · DK4073 — Paling tinggi 86%\./);
+    expect(app.of("attendanceRisk")[1].text).toMatch(
+      /^Tak bisa lagi capai 90% · DK4073 — Kalaupun hadir di semua sisa pertemuan, kehadiranmu berakhir di 86%\./,
+    );
   });
 
   it("a lecture that may not run (UTS week) never makes the target out of reach while attending it could still get there", async () => {

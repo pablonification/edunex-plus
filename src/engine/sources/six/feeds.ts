@@ -1,7 +1,9 @@
 // SIX's feeds (#76): the student status page (hourly; also the liveness
-// check) for who the Student is and this term's courses, and the timetable
+// check) for who the Student is and this term's courses, with the history of
+// each course's attendance count and what it did after each class, and the timetable
 // (on launch and twice a day) for this month's and next month's meetings.
-import type { ClassSession } from "../../../core/models";
+import { appendCount, classResults } from "../../../core/attendance";
+import type { ClassSession, DatasetValue, SixCourse } from "../../../core/models";
 import type { SourceContext } from "../source";
 import type { SixClient } from "./client";
 import type { SixPages } from "./pages";
@@ -22,7 +24,7 @@ export function registerSixFeeds(context: SourceContext, client: SixClient): voi
       const previous = context.get("six.student");
       if (previous && previous.nim !== student.nim) await context.remove("six.");
       await context.set("six.student", student);
-      await context.set("six.courses", courses);
+      await saveCourses(context, courses);
     },
   });
   context.feed({
@@ -39,6 +41,20 @@ export function registerSixFeeds(context: SourceContext, client: SixClient): voi
       void context.runNow((feed) => feed === "six.checkIn");
     },
   });
+}
+
+/**
+ * This term's courses as SIX just showed them, after the count's history and
+ * what it did after each class: whoever hears of the new count (the alerts,
+ * the screens) finds those already up to date.
+ */
+export async function saveCourses(context: Pick<SourceContext, "clock" | "get" | "set">, courses: SixCourse[]): Promise<void> {
+  const now = context.clock.now();
+  const log = appendCount(context.get("six.countLog") ?? {}, courses, now);
+  await context.set("six.countLog", log as DatasetValue<"six.countLog">);
+  const results = classResults(context.get("six.classResults") ?? {}, log, context.get("six.schedule") ?? [], now, now);
+  await context.set("six.classResults", results as DatasetValue<"six.classResults">);
+  await context.set("six.courses", courses);
 }
 
 /**
