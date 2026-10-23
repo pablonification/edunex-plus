@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 // v2-04 (#72), seam 2: Tugas & Ujian and the Task page as the Student sees
 // them, with the real engine and the pretend Edunex behind the bridge.
+import { act } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 import { PretendWorld } from "../pretend/world";
 import { openApp } from "./harness";
@@ -409,6 +410,9 @@ describe("the Task page", () => {
     expect(s.text()).toContain("Berkas dari dosen");
     // A PDF opens in the viewer. Here the file isn't on the pretend storage, so the way forward is the Task's page on Edunex.
     await s.click("Lihat UTS MARKOM SEM 1 2026 2027.pdf");
+    // The first time, the viewer comes in a tick after the click, then reads the file.
+    for (let i = 0; i < 100 && !s.calls.some((call) => call.name === "files.read"); i++)
+      await act(async () => new Promise((resolve) => setTimeout(resolve, 10)));
     expect(s.calls.at(-1)).toEqual({ name: "files.read", input: { url: "https://edunexfixture.blob.core.windows.net/edunex/fixture-8", as: "pdf" } });
     expect(document.querySelector("[role=dialog]")?.textContent).toContain("Berkas ini sudah tidak ada di Edunex.");
     await s.click("Buka di Edunex");

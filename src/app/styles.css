@@ -115,6 +115,15 @@
   --course-lavender-dark: #b381ed;
   --course-lavender: var(--course-lavender-light);
 
+  /* Highlighter ink ("Sorotan", src/core/highlights.ts): the same in both themes,
+     as it's drawn on paper (PDF and Word pages are white in both), multiplied into
+     the page so the print stays as dark as it was. Under a text file's text on the
+     dark surface it's dimmed (ui/highlights.tsx), so light text stays readable. */
+  --highlight-yellow: #ffe45c;
+  --highlight-green: #b4ec9e;
+  --highlight-blue: #a6d3ff;
+  --highlight-pink: #ffbada;
+
   /* Layers, lowest to highest: z-(--z-dialog). Inside one panel, Tailwind's
      plain z-10 / z-20 are fine; these are for things that float over the window. */
   --z-sticky: 10;
