@@ -149,8 +149,11 @@ function Header({ page }: { page: CoursePage }) {
             trigger={
               <span className="inline-flex">
                 <Tooltip content={t("courseColor.change")} hidden={picking}>
+                  {/* The popover's trigger is the span around the tooltip: the button says itself that it opens the picker. */}
                   <button
                     type="button"
+                    aria-haspopup="dialog"
+                    aria-expanded={picking}
                     aria-label={t("courseColor.current", { code: course.code, color: colorName(t, course.colorId) })}
                     className="group focus-ring -mx-1 inline-flex items-center gap-1.5 rounded px-1 transition-colors duration-150 hover:bg-hover"
                   >

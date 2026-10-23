@@ -5,7 +5,7 @@ import * as AlertDialogPrimitive from "@radix-ui/react-alert-dialog";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import * as PopoverPrimitive from "@radix-ui/react-popover";
 import * as TooltipPrimitive from "@radix-ui/react-tooltip";
-import { type MouseEvent, type ReactNode, type RefObject, useEffect, useLayoutEffect, useRef, useSyncExternalStore } from "react";
+import { type MouseEvent, type ReactNode, type RefObject, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useT } from "../i18n";
 import { Button, IconButton } from "./controls";
 import { cx } from "./cx";
@@ -46,6 +46,11 @@ export function useReturnFocus() {
       if (!focusInsteadOf(opener.current) && opener.current.isConnected) opener.current.focus();
     },
   };
+}
+
+/** A press on a toast over a dialog (Urungkan for a change made in Settings) isn't a click away from the dialog. */
+function keepOpenForToasts(event: Event) {
+  if (event.target instanceof Element && event.target.closest("[role=status]")) event.preventDefault();
 }
 
 /**
@@ -100,6 +105,7 @@ export function Dialog({
           aria-describedby={undefined}
           onOpenAutoFocus={onOpenAutoFocus}
           onCloseAutoFocus={onCloseAutoFocus}
+          onPointerDownOutside={keepOpenForToasts}
           onClickCapture={ignoreClosingClick}
           className={cx(
             "fixed top-1/2 left-1/2 z-(--z-dialog) flex max-h-[min(720px,86vh)] w-[min(600px,calc(100vw-48px))] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden",
@@ -209,8 +215,12 @@ export function Tooltip({
   side?: "top" | "bottom" | "left" | "right";
   hidden?: boolean;
 }) {
+  // Always controlled, so `hidden` never switches it between controlled and not. Shut while hidden: it opens again
+  // on the next hover or focus, never from where it was before.
+  const [open, setOpen] = useState(false);
+  if (hidden && open) setOpen(false);
   return (
-    <TooltipPrimitive.Root open={hidden ? false : undefined}>
+    <TooltipPrimitive.Root open={open && !hidden} onOpenChange={setOpen}>
       <TooltipPrimitive.Trigger asChild>{children}</TooltipPrimitive.Trigger>
       <TooltipPrimitive.Portal>
         <TooltipPrimitive.Content

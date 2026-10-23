@@ -114,6 +114,8 @@ export interface CourseColorPicks {
   finish(code: string): Promise<void>;
   /** Every course of the term back to automatic, at once, with Undo. */
   resetAll(codes: readonly string[]): Promise<void>;
+  /** Puts back a value a change replaced, and takes that change's toast away (Settings' own Urungkan, for a keyboard that can't reach the toast). */
+  restore(value: CourseColors): Promise<void>;
 }
 
 export function useCourseColorPicks(): CourseColorPicks {
@@ -169,6 +171,11 @@ export function useCourseColorPicks(): CourseColorPicks {
       } catch (error) {
         failed(error);
       }
+    },
+    async restore(value) {
+      if (said !== null) dismissToast(said);
+      said = null;
+      await save(store, bridge, () => value).catch(failed);
     },
   };
 }

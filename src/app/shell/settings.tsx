@@ -11,12 +11,20 @@
 // app is (licence, the open-source software it uses, opened as a page of its
 // own).
 import { lazy, type ReactNode, Suspense, useEffect, useRef, useState } from "react";
-import { type AlertGroup, DEADLINE_REMINDERS, type DeadlineReminder, type Settings, type SourceId, type UpdateCheckResult } from "../../core/models";
+import {
+  type AlertGroup,
+  type CourseColors,
+  DEADLINE_REMINDERS,
+  type DeadlineReminder,
+  type Settings,
+  type SourceId,
+  type UpdateCheckResult,
+} from "../../core/models";
 import type { StringKey } from "../../core/strings";
 import { TargetStepper, useTargets } from "../attendance-parts";
 import { errorKey } from "../bridge";
 import { CourseColorPicker, colorName } from "../course-color-picker";
-import { useCourseColorPicks } from "../course-colors";
+import { useCommittedCourseColors, useCourseColorPicks } from "../course-colors";
 import { type TermCourse, useTermCourses } from "../courses";
 import { useFocusNext } from "../hooks";
 import { useFormat, useT } from "../i18n";
@@ -53,11 +61,16 @@ export function SettingsDialog({
   const t = useT();
   const focusNext = useFocusNext();
   const [page, setPage] = useState<"settings" | "licences">("settings");
+  // Where this opening starts, used once: back from the licences, Settings doesn't jump there again.
+  const [start, setStart] = useState(open ? startAt : null);
   // Opened again, Settings starts on its own page (closing leaves the last one on screen while it goes).
   const [wasOpen, setWasOpen] = useState(open);
   if (open !== wasOpen) {
     setWasOpen(open);
-    if (open) setPage("settings");
+    if (open) {
+      setPage("settings");
+      setStart(startAt);
+    }
   }
   const licences = page === "licences";
   const back = () => {
@@ -79,7 +92,8 @@ export function SettingsDialog({
           </Suspense>
         ) : (
           <SettingsBody
-            startAt={startAt}
+            startAt={start}
+            onStarted={() => setStart(null)}
             onSignedOutOfEverything={() => onOpenChange(false)}
             onShowFirstScan={onShowFirstScan}
             onShowLicences={() => setPage("licences")}
@@ -92,11 +106,13 @@ export function SettingsDialog({
 
 function SettingsBody({
   startAt,
+  onStarted,
   onSignedOutOfEverything,
   onShowFirstScan,
   onShowLicences,
 }: {
   startAt: "courseColors" | null;
+  onStarted: () => void;
   onSignedOutOfEverything: () => void;
   onShowFirstScan?: () => void;
   onShowLicences: () => void;
@@ -184,7 +200,7 @@ function SettingsBody({
         </Row>
       </Group>
 
-      <CourseColorSettings start={startAt === "courseColors"} />
+      <CourseColorSettings start={startAt === "courseColors"} onStarted={onStarted} />
 
       <Group title={t("settings.other")}>
         <AttendanceTargets />
@@ -264,31 +280,36 @@ function AttendanceTargets() {
  * look in the other theme too. Each row opens the same picker as the sidebar; one row puts every course back to
  * automatic, at once, with Undo. Hidden while there are no courses.
  */
-function CourseColorSettings({ start }: { start: boolean }) {
+function CourseColorSettings({ start, onStarted }: { start: boolean; onStarted: () => void }) {
   const t = useT();
   const f = useFormat();
   const term = useTermCourses();
   const picks = useCourseColorPicks();
+  const committed = useCommittedCourseColors();
   const [open, setOpen] = useState<string | null>(null);
+  // What "Kembalikan semua ke otomatis" replaced. Settings holds focus inside it, so a keyboard can't reach the
+  // toast's Urungkan: the same button offers it here, until something is picked again.
+  const [undo, setUndo] = useState<CourseColors | null>(null);
   const group = useRef<HTMLElement>(null);
-  const triggers = useRef(new Map<string, HTMLButtonElement>());
   // Asked for from the sidebar: Settings opens here, with focus on the first course's color.
   useEffect(() => {
     if (!start) return;
     const timer = setTimeout(() => {
       group.current?.scrollIntoView?.({ block: "start" });
       group.current?.querySelector<HTMLButtonElement>("[data-color-trigger]")?.focus();
+      onStarted();
     });
     return () => clearTimeout(timer);
-  }, [start]);
+  }, [start, onStarted]);
   // A code in two classes is one course with one color.
   const courses = (term ?? []).filter((course, index, all) => all.findIndex((other) => other.code === course.code) === index);
   if (!courses.length) return null;
   const codes = courses.map((course) => course.code);
   const picked = courses.filter((course) => course.colorPicked).length;
+  if (undo && picked > 0) setUndo(null);
   const reset = () => {
-    // Its button goes: focus stays in the list, on the last course's color, never back at the top of Settings.
-    triggers.current.get(codes.at(-1)!)?.focus();
+    // The button stays where it is, focus on it, and turns into Urungkan.
+    setUndo(committed ?? null);
     void picks.resetAll(codes);
   };
   return (
@@ -316,10 +337,6 @@ function CourseColorSettings({ start }: { start: boolean }) {
               align="center"
               trigger={
                 <button
-                  ref={(button) => {
-                    if (button) triggers.current.set(course.code, button);
-                    else triggers.current.delete(course.code);
-                  }}
                   type="button"
                   data-color-trigger
                   aria-label={t("courseColor.current", { code: course.code, color: name })}
@@ -335,10 +352,16 @@ function CourseColorSettings({ start }: { start: boolean }) {
         );
       })}
       <Row label={t("settings.courseColors.all")} hint={picked ? t("settings.courseColors.allHint", { count: picked }) : t("settings.courseColors.allAuto")}>
-        {picked > 0 && (
+        {picked > 0 ? (
           <Button size="sm" onClick={reset}>
             {t("settings.courseColors.reset")}
           </Button>
+        ) : (
+          undo && (
+            <Button size="sm" onClick={() => void picks.restore(undo)}>
+              {t("action.undo")}
+            </Button>
+          )
         )}
       </Row>
     </Group>

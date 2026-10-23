@@ -7,7 +7,7 @@
 // so the screen behind is the preview; nothing is saved until it closes
 // (Enter, a click outside, focus leaving), and Escape puts everything back.
 // Two courses may share a color: it says so, once, in neutral words.
-import { type ReactNode, type RefObject, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, type RefObject, useLayoutEffect, useRef, useState } from "react";
 import { applyChoice, courseTone, type PaletteId, PICKER_ORDER, pickedColor, resolveCourseColors } from "../core/course-colors";
 import { endPreview, previewCourseColor, useCommittedCourseColors, useCourseColorPicks, withLegacy } from "./course-colors";
 import { useTermCourses } from "./courses";
@@ -76,12 +76,13 @@ function Choices({ code, onDone }: { code: string; onDone: () => void }) {
   const f = useFormat();
   const courses = useTermCourses();
   const committed = useCommittedCourseColors();
-  const codes = useMemo(() => {
+  // Everything is worked out against how things were when it opened, so moving through the colors never shoves
+  // the other courses around. The term's codes too: each preview redraws the course list, and a picker on its way
+  // out (or two at once, one closing as the next opens) must not draw its choice again when that happens.
+  const [codes] = useState(() => {
     const term = courses?.map((course) => course.code) ?? [];
     return term.includes(code) ? term : [...term, code];
-  }, [courses, code]);
-  // Everything is worked out against how things were when it opened, so moving through the colors never shoves
-  // the other courses around.
+  });
   const [base] = useState(() => withLegacy(codes, committed));
   const [choice, setChoice] = useState<PaletteId | null>(() => pickedColor(code, base) ?? null);
   useLayoutEffect(() => previewCourseColor({ code, codes, base, choice }), [code, codes, base, choice]);
@@ -181,8 +182,8 @@ function Choices({ code, onDone }: { code: string; onDone: () => void }) {
           })}
         </div>
       </div>
-      {/* Always there, so a screen reader hears each note as it comes. Neutral: sharing a color is fine. */}
-      <p id={`color-note-${code}`} aria-live="polite" className="mt-2 flex gap-1.5 text-small text-muted empty:hidden">
+      {/* Always there and never hidden, so a screen reader hears each note as it comes. Neutral: sharing a color is fine. */}
+      <p id={`color-note-${code}`} aria-live="polite" className="mt-2 flex gap-1.5 text-small text-muted empty:mt-0">
         {note && (
           <>
             <Icons.Info className="mt-0.5 size-3.5 shrink-0" />

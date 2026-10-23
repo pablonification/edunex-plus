@@ -88,6 +88,9 @@ const choice = (name: string) =>
 const checked = () => picker()?.querySelector("[role=radio][aria-checked=true]");
 const note = () => picker()?.querySelector("[aria-live=polite]")?.textContent ?? "";
 const toasts = () => [...document.querySelectorAll("[role=status]")].map((el) => el.textContent ?? "").join(" | ");
+/** The Urungkan buttons of the toasts still showing (a leaving one is inert). */
+const toastUndos = () =>
+  [...document.querySelectorAll<HTMLButtonElement>("[role=status]:not([inert]) button")].filter((button) => button.textContent === "Urungkan");
 const sidebarRow = (code: string) => [...document.querySelectorAll<HTMLButtonElement>("aside li button")].find((b) => b.textContent?.startsWith(code))!;
 /** What's saved, as "CODE id" for each pick. */
 const savedPicks = () => {
@@ -250,17 +253,51 @@ describe("course colors in Settings", () => {
     expect(dialog()).toContain("DK4073 · pilihanmu · sama dengan II4091");
     expect(dialog()).toContain("II4091 · pilihanmu · sama dengan DK4073");
 
-    await press(s.button("Kembalikan semua ke otomatis"));
+    const reset = s.button("Kembalikan semua ke otomatis");
+    await press(reset);
     expect(savedPicks()).toEqual([]);
     // One toast: a newer change takes the older one's place, whose Undo would undo this one too.
     expect(toasts()).toContain("2 mata kuliah kembali ke warna otomatis");
-    expect([...document.querySelectorAll("button")].filter((button) => button.textContent === "Urungkan")).toHaveLength(1);
+    expect(toastUndos()).toHaveLength(1);
     expect(dialog()).toContain("Semua mata kuliahSemua otomatis");
-    // Its button went: focus stays in the list.
-    expect(document.activeElement).not.toBe(document.body);
-    expect(document.activeElement?.getAttribute("aria-label")).toMatch(/^Warna PL3032/);
-    await s.click("Urungkan");
+    // Settings keeps focus inside it, out of the toast's reach: the same button, still focused, is Urungkan now.
+    expect(document.activeElement).toBe(reset);
+    expect(reset.textContent).toBe("Urungkan");
+    await press(reset);
     expect(savedPicks()).toEqual(["DK4073 indigo", "II4091 indigo"]);
+    // Its toast goes with it, so the one Undo can't run twice.
+    expect(toastUndos()).toHaveLength(0);
+    expect(document.activeElement).toBe(reset);
+    expect(reset.textContent).toBe("Kembalikan semua ke otomatis");
+  });
+
+  it("Settings comes back at its top, opened any other way", async () => {
+    screen = await openApp({ signedIn: true, six: true });
+    const s = screen;
+    await s.click("Warna mata kuliah");
+    expect(document.activeElement?.getAttribute("aria-label")).toBe("Warna DK4073: Biru");
+    await s.key("Escape");
+    await s.click(/Dimas Pratama/);
+    expect(document.querySelector("[role=dialog]")).not.toBeNull();
+    expect(document.activeElement?.getAttribute("aria-label") ?? "").not.toMatch(/^Warna /);
+  });
+
+  it("Urungkan on the toast over Settings puts the color back and leaves Settings open", async () => {
+    screen = await openApp({ signedIn: true, six: true });
+    const s = screen;
+    await s.click("Warna mata kuliah");
+    await press(s.button("Warna DK4073: Biru"));
+    await s.click(choice("Nila")!);
+    await s.key("Enter");
+    expect(savedPicks()).toEqual(["DK4073 indigo"]);
+    const [undo] = toastUndos();
+    // The press lands outside Settings, as a mouse's does.
+    await act(async () => {
+      undo.dispatchEvent(new MouseEvent("pointerdown", { bubbles: true, cancelable: true }));
+    });
+    await s.click(undo);
+    expect(savedPicks()).toEqual([]);
+    expect(document.querySelector("[role=dialog]")?.textContent).toContain("Semua mata kuliah");
   });
 
   it("signing out of everything says the course colors go too", async () => {

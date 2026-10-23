@@ -85,6 +85,11 @@ function Layout({ arriving }: { arriving: boolean }) {
   const settingsLoaded = SettingsDialog.useLoaded();
   const searchLoaded = SearchPalette.useLoaded();
   const scanLoaded = FirstScan.useLoaded();
+  /** Settings at its top, or at a group (the sidebar's course colors button): every way in says which, so none inherits the last. */
+  const openSettings = useCallback((at: "courseColors" | null = null) => {
+    setSettingsAt(at);
+    setSettingsOpen(true);
+  }, []);
   /** Search opens over anything else; the shortcut also closes it. */
   const openSearch = useCallback((toggle: boolean) => {
     setSettingsOpen(false);
@@ -98,11 +103,11 @@ function Layout({ arriving }: { arriving: boolean }) {
   useCommand(
     useCallback(
       (command) => {
-        if (command === "settings") setSettingsOpen(true);
+        if (command === "settings") openSettings();
         if (command === "refresh") void refreshNow(bridge);
         if (command === "search") openSearch(false);
       },
-      [bridge, openSearch],
+      [bridge, openSearch, openSettings],
     ),
   );
   useRefreshWhenBackOnline();
@@ -118,12 +123,7 @@ function Layout({ arriving }: { arriving: boolean }) {
   return (
     <div className={cx("flex h-dvh overflow-hidden bg-canvas text-fg", arriving && ARRIVE_APP)}>
       <PanelBoundary name="sidebar" compact>
-        <Sidebar
-          onSettings={(at) => {
-            setSettingsAt(at ?? null);
-            setSettingsOpen(true);
-          }}
-        />
+        <Sidebar onSettings={openSettings} />
       </PanelBoundary>
       <div className="flex min-w-0 flex-1 flex-col">
         <PanelBoundary name="top bar" compact>
@@ -163,7 +163,7 @@ function Layout({ arriving }: { arriving: boolean }) {
       </PanelBoundary>
       <PanelBoundary name="search" compact>
         <Suspense fallback={null}>
-          {(searchOpen || searchLoaded) && <SearchPalette open={searchOpen} onOpenChange={setSearchOpen} onSettings={() => setSettingsOpen(true)} />}
+          {(searchOpen || searchLoaded) && <SearchPalette open={searchOpen} onOpenChange={setSearchOpen} onSettings={() => openSettings()} />}
         </Suspense>
       </PanelBoundary>
       <PanelBoundary name="first scan" compact>
@@ -293,7 +293,7 @@ interface NavItem {
   owns?: Route["screen"][];
 }
 
-function Sidebar({ onSettings }: { onSettings: (at?: "courseColors") => void }) {
+function Sidebar({ onSettings }: { onSettings: (at?: "courseColors" | null) => void }) {
   const store = useStore();
   const t = useT();
   const { route, go } = useNav();
@@ -384,9 +384,10 @@ function Sidebar({ onSettings }: { onSettings: (at?: "courseColors") => void }) 
           <>
             <div className="mb-1 flex items-center justify-between pr-1 pl-2.5 max-[52rem]:sr-only">
               <p className="text-caption font-semibold text-faint">{t("nav.courses")}</p>
-              {/* The visible way to the colors (a Mac has no context-menu key): Settings' list of them. */}
+              {/* The visible way to the colors (a Mac has no context-menu key): Settings' list of them. Not in the rail,
+                  where this heading is only read out and the button would be a tab stop nobody sees. */}
               <Tooltip content={t("nav.courseColors")} side="right">
-                <IconButton label={t("nav.courseColors")} size="sm" onClick={() => onSettings("courseColors")} className="size-6 text-faint">
+                <IconButton label={t("nav.courseColors")} size="sm" onClick={() => onSettings("courseColors")} className="size-6 text-faint max-[52rem]:hidden">
                   <Icons.Palette className="size-3.5" />
                 </IconButton>
               </Tooltip>
@@ -429,7 +430,9 @@ function Sidebar({ onSettings }: { onSettings: (at?: "courseColors") => void }) 
               })}
             </ul>
             {picker && (
+              // One per course: a right-click on another row while this one is still on its way out starts afresh.
               <CourseColorPicker
+                key={picker.code}
                 code={picker.code}
                 open={picker.open}
                 onOpenChange={(next) => setPicker({ code: picker.code, open: next })}
