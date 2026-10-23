@@ -75,7 +75,11 @@ export const shellStrings = {
     id: "Belum ditampilkan di sini. Cek di SIX.",
     en: { one: "It isn't shown here yet. Check it on SIX.", other: "They aren't shown here yet. Check them on SIX." },
   },
-  "skipped.openSix": { id: "Buka di SIX", en: "Open in SIX" },
+  "sixPage.openSix": { id: "Buka di SIX", en: "Open in SIX" },
+  // A SIX page whose layout changed while the rest of SIX reads: said on the screens that show its data.
+  "sixPage.changed": { id: "SIX mengubah halaman ini", en: "SIX changed this page" },
+  "sixPage.changedSince": { id: "Data dari {when} tetap ditampilkan.", en: "Your data from {when} is still shown." },
+  "sixPage.changedNever": { id: "Bagian ini belum bisa dibaca dari SIX.", en: "This part can't be read from SIX yet." },
   "status.signedOutHint": {
     id: "Masuk ke {source} untuk memperbarui data ini.",
     en: "Sign in to {source} to bring this up to date.",

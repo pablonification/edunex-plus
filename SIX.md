@@ -210,10 +210,13 @@ could make a day look free).
 | `5xx` from SIX | Offline | Offline |
 | Other `4xx`, or more than 3 redirects | Failed | Changed, with the detail |
 | No answer, unreachable, or timeout | Offline | Offline |
-| Page layout not as recorded | VendorChanged | Changed, with the detail |
+| Page layout not as recorded | VendorChanged | Changed, with the detail; for a record page or the timetable, said on its screens instead (below) |
 
 A source's status is the worst of its feeds' latest outcomes: changed (VendorChanged, Failed,
-Rejected) over offline over live.
+Rejected) over offline over live. A feed that says which datasets it fills (`FeedSpec.shows`: the
+records and the timetable, not the status page) doesn't count: when its page changes, SIX stays live
+and lists that page under `changedPages`, and the screens showing those datasets say so with when
+their data is from ([ADR 0006](docs/adr/0006-a-changed-six-page-is-said-on-its-screens.md)).
 
 ## Recorded but not read, and unconfirmed
 

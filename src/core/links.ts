@@ -27,19 +27,6 @@ export const sixRecordPaths = {
   syllabus: ({ nim }: Pick<SixAddress, "nim">, courseId: string) => `/app/mahasiswa:${nim}/kurikulum/silabus/${courseId}/view`,
 };
 
-/** The SIX page a dataset is read from, where the Student can check a row the app left out of it. */
-export function sixPageOf(dataset: DatasetName, who: SixAddress): string {
-  if (dataset === "six.courses") return sixStatusUrl(who.nim);
-  const path = {
-    "six.transcript": sixRecordPaths.transcript(who),
-    "six.progress": sixRecordPaths.progress(who),
-    "six.curriculum": sixRecordPaths.curricula(who),
-    "six.krs": sixRecordPaths.krs(who),
-    "six.bills": sixRecordPaths.bills(who),
-  }[dataset as string];
-  return `${SIX_WEB}${path ?? ""}`;
-}
-
 /** SIX's timetable, as a path. */
 const timetablePath = (who: SixAddress) => `/app/mahasiswa:${who.nim}+${who.term}/kelas/jadwal/mahasiswa/${who.studentId}`;
 
@@ -52,6 +39,20 @@ export function sixTimetableUrl(who: SixAddress, at?: number): string {
   if (at === undefined) return `${SIX_WEB}${timetablePath(who)}`;
   const month = new Date(at + 7 * 3_600_000).toISOString().slice(0, 7).replace("-", "");
   return `${SIX_WEB}${timetablePath(who)}?bulan=${month}`;
+}
+
+/** The SIX page a dataset is read from, where the Student can check a row the app left out of it, or the page that changed. */
+export function sixPageOf(dataset: DatasetName, who: SixAddress): string {
+  if (dataset === "six.courses") return sixStatusUrl(who.nim);
+  if (dataset === "six.schedule") return sixTimetableUrl(who);
+  const path = {
+    "six.transcript": sixRecordPaths.transcript(who),
+    "six.progress": sixRecordPaths.progress(who),
+    "six.curriculum": sixRecordPaths.curricula(who),
+    "six.krs": sixRecordPaths.krs(who),
+    "six.bills": sixRecordPaths.bills(who),
+  }[dataset as string];
+  return `${SIX_WEB}${path ?? ""}`;
 }
 
 /** The popup of one class meeting, as SIX's timetable loads it when the class is clicked (its `data-url`). */

@@ -37,7 +37,7 @@ import { type Format, type Translate, useFormat, useNow, useT } from "../i18n";
 import { useNav } from "../nav";
 import { useCourseNames } from "../schedule-data";
 import { useSignIn } from "../shell/source-status";
-import { SkippedNote } from "../skipped-note";
+import { SixPageNote } from "../six-page-note";
 import { useDataset, useSettings } from "../store";
 import { Button } from "../ui/controls";
 import { cx } from "../ui/cx";
@@ -114,7 +114,7 @@ export function PresenceScreen() {
 
       {/* What needs the Student now, then the groups, 40 px apart. */}
       <div>
-        <SkippedNote datasets={["six.courses"]} className="mb-8" />
+        <SixPageNote datasets={["six.courses", "six.schedule"]} className="mb-8" />
         <NowZone zone={zone} attendance={attendance} />
         {courses.length === 0 ? (
           <div className="mt-10 first:mt-0">

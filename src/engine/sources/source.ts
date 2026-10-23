@@ -22,6 +22,12 @@ export interface FeedSpec {
    * answer doesn't mark the source offline: it just tries again later.
    */
   background?: boolean;
+  /**
+   * The datasets this feed fills from one page of the source. When that page's layout changes, the
+   * screens showing them say so and keep the last data, and the source isn't "changed" as a whole.
+   * Without it (the page the whole session rests on), a change is the whole source's.
+   */
+  shows?: readonly DatasetName[];
   /** `current()` turns false once the session this run started under has ended; store nothing then. */
   run(current: () => boolean): Promise<void>;
 }

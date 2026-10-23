@@ -47,6 +47,7 @@ import { type Route, useNav, usePlaceState } from "../nav";
 import { useExamIds } from "../schedule-data";
 import { openAlerts } from "../shell/alerts";
 import { useRefresh, useSignIn } from "../shell/source-status";
+import { SixPageNote } from "../six-page-note";
 import { canSnooze, DoneButton, type RowDone, refocus, rowControls, SnoozeMenu } from "../snooze-menu";
 import { useDone, useSnoozes } from "../snoozes";
 import { useDataset, useStatus } from "../store";
@@ -102,6 +103,7 @@ export function Home() {
         title={`${f.greeting()}${name ? `, ${firstName(name)}` : ""}`}
         description={<ExamWeek />}
       />
+      <SixPageNote datasets={["six.schedule"]} className="mb-6" />
       {context ? <Answers context={context} courses={courses ?? []} /> : <AnswersLoading />}
       <Section id="home-courses" title={useT()("home.coursesThisTerm")} count={courses?.length}>
         <Courses courses={courses} nim={student?.nim} context={context} />

@@ -239,6 +239,27 @@ describe("the UKT tab", () => {
     expect(panel()).not.toContain("belum dikenali");
   });
 
+  it("SIX changed its fees page, the rest of SIX read: the tab says so with when its bills are from, and keeps them; with none yet, it says so instead of waiting", async () => {
+    const s = await openPlan("2026-10-11T09:00:00+07:00");
+    await inject("six.krs", krs());
+    await s.click(/^Rencana studi/);
+    await tab("UKT");
+    const changed = async (pages: { datasets: string[]; detail: string }[] | undefined) =>
+      s.apply({ type: "status", status: { ...s.store.status("six"), state: "live", changedPages: pages } });
+    await changed([{ datasets: ["six.bills"], detail: 'SIX finance page: the bills header reads "…"' }]);
+    expect(panel()).toContain("SIX mengubah halaman iniBagian ini belum bisa dibaca dari SIX.Buka di SIX");
+    expect(panel()).not.toContain("Memuat");
+
+    await inject("six.bills", bills());
+    expect(panel()).toMatch(/SIX mengubah halaman iniData dari .+ tetap ditampilkan\.Buka di SIX/);
+    expect(panel()).toContain("Riwayat");
+    // Another page changing isn't said here.
+    await changed([{ datasets: ["six.krs"], detail: "" }]);
+    expect(panel()).not.toContain("SIX mengubah halaman ini");
+    await changed(undefined);
+    expect(panel()).not.toContain("SIX mengubah halaman ini");
+  });
+
   it("due within a week is a warning; overdue is said plainly", async () => {
     const s = await openPlan("2027-01-28T09:00:00+07:00");
     await inject("six.krs", { ...krs(), term: "2026-2" });
