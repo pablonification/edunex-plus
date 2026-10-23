@@ -116,9 +116,11 @@ export function CourseTarget({ code, className }: { code: string; className?: st
 /**
  * Presensi's one Targets panel: the default first, then every course with its
  * own stepper, an "Own target" tag and the way back to the default.
- * `focus`: the course whose stepper takes focus as it opens (a row's "Change
- * target"). Tab past its last control closes it, as Escape and a click
- * outside do; focus goes back to what opened it.
+ * `focus`: the course a row's "Change target" opened it for. That course comes
+ * first, its stepper taking focus, and the default goes last, so it isn't the
+ * first thing in reach when the Student meant one course. Tab past its last
+ * control closes it, as Escape and a click outside do; focus goes back to what
+ * opened it.
  */
 export function TargetsPanel({
   courses,
@@ -145,6 +147,16 @@ export function TargetsPanel({
           document.querySelector<HTMLElement>("[data-targets-trigger]")?.focus();
       }, 0);
   };
+  const chosen = focus ? courses.find((course) => course.code === focus) : undefined;
+  const ordered = chosen ? [chosen, ...courses.filter((course) => course !== chosen)] : courses;
+  const everyCourse = (
+    <TargetRow
+      key="default"
+      name={t("presence.targets.default")}
+      hint={t("settings.attendance.targetHintOwn")}
+      stepper={<TargetStepper value={target} onChange={setDefault} />}
+    />
+  );
   const tabOut = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.key !== "Tab" || event.shiftKey) return;
     const controls = [...event.currentTarget.querySelectorAll<HTMLElement>("button:not([disabled])")];
@@ -167,17 +179,14 @@ export function TargetsPanel({
         <p className="text-title font-semibold">{t("settings.attendance.target")}</p>
         <p className="mt-1 text-small text-muted">{t("presence.target.contract")}</p>
         <ul className="mt-3 divide-y divide-line">
-          <TargetRow
-            name={t("presence.targets.default")}
-            hint={t("settings.attendance.targetHintOwn")}
-            stepper={<TargetStepper value={target} onChange={setDefault} />}
-          />
-          {courses.map((course) => {
+          {!chosen && everyCourse}
+          {ordered.map((course) => {
             const mine = Object.hasOwn(own, course.code) ? own[course.code] : null;
             return (
               <TargetRow
                 key={course.code}
                 code={course.code}
+                chosen={course === chosen}
                 title={
                   <span className="flex min-w-0 items-center gap-1.5">
                     <CourseCode code={course.code} color={course.color} className="text-small" />
@@ -206,13 +215,14 @@ export function TargetsPanel({
               />
             );
           })}
+          {chosen && everyCourse}
         </ul>
       </div>
     </Popover>
   );
 }
 
-/** One target: what it's for (a course, or the default), and its stepper. */
+/** One target: what it's for (a course, or the default), and its stepper. `chosen`: the course the panel was opened for, tinted. */
 function TargetRow({
   code,
   title,
@@ -220,6 +230,7 @@ function TargetRow({
   hint,
   reset,
   stepper,
+  chosen = false,
 }: {
   code?: string;
   title?: ReactNode;
@@ -227,9 +238,15 @@ function TargetRow({
   hint?: string;
   reset?: ReactNode;
   stepper: ReactNode;
+  chosen?: boolean;
 }) {
   return (
-    <li className="flex items-center justify-between gap-3 py-2.5 first:pt-0 last:pb-0">
+    <li
+      className={cx(
+        "flex items-center justify-between gap-3 py-2.5 first:pt-0 last:pb-0",
+        chosen && "-mx-2.5 mb-1 rounded-lg bg-fill px-2.5 first:pt-2.5 [&+li]:border-t-0",
+      )}
+    >
       <div className="min-w-0 flex-1">
         {title ?? <p className="text-small font-semibold">{name}</p>}
         {/* A course's name, cut to one line: whole on hover. */}
