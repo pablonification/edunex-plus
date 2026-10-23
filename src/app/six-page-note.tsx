@@ -1,11 +1,13 @@
 // What a screen says about the SIX pages its data comes from, where that data is shown: a page
 // whose layout changed (its data stays as last read, and says from when), else the rows the app
 // left out because it doesn't recognise them yet (a new kind of fee, a course written another
-// way), as SIX writes them. Either way, a way to check it on SIX. Nothing to say: nothing shown.
+// way), as SIX writes them. Either way, a way to check it on SIX, and to report the page to the
+// app's maintainer ("Laporkan masalah"). Nothing to say: nothing shown.
 import { SIX_WEB, sixPageOf } from "../core/links";
 import type { ChangedPage, DatasetName } from "../core/models";
 import { useOpenExternal } from "./hooks";
 import { useFormat, useT } from "./i18n";
+import { ReportButton } from "./report";
 import { useDataset, useDatasetPayload, useStatus } from "./store";
 import { Button } from "./ui/controls";
 import { Notice } from "./ui/layout";
@@ -27,9 +29,12 @@ export function SixPageNote({ datasets, className }: { datasets: readonly Datase
   const skipped = useDataset("six.skipped");
   const student = useDataset("six.student");
   const openSix = (name: DatasetName) => (
-    <Button size="sm" onClick={() => open(student ? sixPageOf(name, student) : SIX_WEB)}>
-      {t("sixPage.openSix")}
-    </Button>
+    <>
+      <Button size="sm" onClick={() => open(student ? sixPageOf(name, student) : SIX_WEB)}>
+        {t("sixPage.openSix")}
+      </Button>
+      <ReportButton about={{ datasets: [...datasets] }} />
+    </>
   );
 
   if (page) {

@@ -5,6 +5,7 @@ import { type ReactNode, useCallback, useState, useSyncExternalStore } from "rea
 import type { SourceId, SourceState } from "../../core/models";
 import { type Bridge, errorKey } from "../bridge";
 import { useFormat, useT } from "../i18n";
+import { ReportButton } from "../report";
 import { useBridge, useDataset, useSignInStep, useStatus } from "../store";
 import { SourceLogo } from "../ui/brand";
 import { Button, IconButton } from "../ui/controls";
@@ -249,6 +250,7 @@ function SourceRow({ source }: { source: SourceId }) {
         <p className="text-small text-muted">
           {hint ?? (status.updatedAt ? t("status.updated", { when: f.fromNow(status.updatedAt) }) : t("status.neverUpdated"))}
         </p>
+        {status.state === "changed" && source !== "itb" && <ReportButton about={{ source }} className="mt-2" />}
       </div>
       {needsSignIn ? (
         <Button size="sm" variant={status.state === "expired" ? "primary" : "secondary"} busy={signingIn} onClick={() => void signIn(source)}>
@@ -352,6 +354,7 @@ export function ProblemBanner() {
           {t("action.tryAgain")}
         </Button>
       )}
+      {problem.state === "changed" && <ReportButton about={{ source: problem.source as "edunex" | "six" }} />}
       {!offline && (
         <IconButton size="sm" label={t("action.close")} onClick={() => setDismissed(key)} className="-mr-1 text-current hover:text-current">
           <Icons.X className="size-3.5" />

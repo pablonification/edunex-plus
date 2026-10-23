@@ -42,4 +42,25 @@ describe("opening pages in the browser", () => {
     await expect(handlers["shell.openExternal"]({ url: "https://docs.google.com/x" })).rejects.toMatchObject({ kind: "Rejected" });
     expect(opened).toEqual(["https://edunex.itb.ac.id/courses/1"]);
   });
+
+  it("a problem report opens a new issue on the app's repository and the maintainer's LINE, and nothing near them", async () => {
+    const issue = "https://github.com/pablonification/edunex-plus/issues/new?template=six-drift.yml&title=SIX";
+    await handlers["shell.openExternal"]({ url: issue });
+    await handlers["shell.openExternal"]({ url: "https://line.me/ti/p/~arqilasp12" });
+    for (const url of [
+      "https://github.com/pablonification/edunex-plus",
+      "https://github.com/pablonification/edunex-plus/issues/1",
+      "https://github.com/pablonification/other/issues/new",
+      "https://github.com/pablonification/edunex-plus/issues/new/choose",
+      // A name and password in front of the address (joined here, so the repository's privacy test doesn't read it as an email).
+      ["https://name:secret", "github.com/pablonification/edunex-plus/issues/new"].join("@"),
+      "https://gist.github.com/pablonification/edunex-plus/issues/new",
+      "http://github.com/pablonification/edunex-plus/issues/new",
+      "https://line.me/ti/p/~someone-else",
+      "https://line.me/ti/p/~arqilasp12?x=1",
+      "https://line.me/R/ti/p/@arqilasp12",
+    ])
+      await expect(handlers["shell.openExternal"]({ url })).rejects.toMatchObject({ kind: "Rejected" });
+    expect(opened).toEqual([issue, "https://line.me/ti/p/~arqilasp12"]);
+  });
 });

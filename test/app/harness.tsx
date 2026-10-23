@@ -18,6 +18,7 @@ import { type SourceId, type UpdateBlock, UpdateNotice } from "../../src/core/mo
 import { phoneCalendar } from "../../src/core/phone-calendar";
 import { handInHandlers, type LocalFile } from "../../src/desktop/hand-in";
 import { readFile } from "../../src/desktop/remote-files";
+import { reportHandlers } from "../../src/desktop/report";
 import { createUpdater, followAutoUpdates, type UpdateKind } from "../../src/desktop/self-update";
 import { signInToBoth } from "../../src/desktop/signin-both";
 import { createEngine, type Engine } from "../../src/engine/engine";
@@ -172,6 +173,8 @@ export async function openApp(options: Options = {}) {
   let heldSignIns: Promise<unknown>[] = [];
   /** Release pages main opened in the browser for an update, in order. */
   const openedPages: string[] = [];
+  /** "Laporkan masalah": the files main saved to Downloads, the addresses it opened, the files it showed in their folder. */
+  const reports = { files: [] as { name: string; text: string }[], opened: [] as string[], revealed: [] as string[] };
   /** Updates main put in place, in order: restarted for (`reopen`), or as the app quit. */
   const installed: { kind: UpdateKind; staged: string; reopen: boolean }[] = [];
   /** The update download under way: it has reached 40% and waits for the test to finish it. */
@@ -360,6 +363,22 @@ export async function openApp(options: Options = {}) {
       return { file: "Edunex Plus.ics", events: calendar.events };
     },
     "schedule.reveal": async () => ({}),
+    // "Laporkan masalah" runs main's real handlers; Downloads, the clipboard and the browser are pretend.
+    ...reportHandlers({
+      engine,
+      os: () => "macOS 15.3 (arm64)",
+      lang: () => engine.snapshot().settings.lang,
+      save: async (name, text) => {
+        reports.files.push({ name, text });
+        return `/Users/dimas/Downloads/${name}`;
+      },
+      copy: (text) => void copied.push(text),
+      open: async (url) => {
+        if (!isOfficialUrl(url)) throw new EngineError("Rejected", "Only official pages open from the app");
+        reports.opened.push(url);
+      },
+      reveal: (file) => void reports.revealed.push(file),
+    }),
     // Handing in runs main's real handlers; only the system file picker is pretend.
     ...handInHandlers(engine, async () => {
       const files = nextPick;
@@ -458,6 +477,7 @@ export async function openApp(options: Options = {}) {
     ntfy,
     copied,
     openedPages,
+    reports,
     installed,
     /** The Student quits the app, as main handles it: a ready update is put in place first, with "Perbarui otomatis" on. */
     async quit(): Promise<void> {

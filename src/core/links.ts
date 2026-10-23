@@ -96,10 +96,25 @@ function parse(url: string): URL | null {
   }
 }
 
-/** Edunex, SIX, ITB and the online-class services: the only pages the app's own links open. */
+/**
+ * The maintainer's LINE, where "Laporkan masalah" sends a Student without a GitHub account. A personal
+ * LINE ID: its link has "~", and it's never written with "@", which reads as an official account's.
+ */
+export const MAINTAINER_LINE = { id: "arqilasp12", url: "https://line.me/ti/p/~arqilasp12" } as const;
+
+/** Where "Laporkan masalah" opens a new issue on the app's repository, prefilled through its issue forms. */
+export const NEW_ISSUE_URL = "https://github.com/pablonification/edunex-plus/issues/new";
+
+/** The two addresses a problem report goes to, exactly: a new issue on this repository (its form and words in the query), and the maintainer's LINE. */
+function isReportAddress(parsed: URL): boolean {
+  if (parsed.username || parsed.password || parsed.hash) return false;
+  return `${parsed.origin}${parsed.pathname}` === NEW_ISSUE_URL || (parsed.href === MAINTAINER_LINE.url && !parsed.search);
+}
+
+/** Edunex, SIX, ITB and the online-class services, and where a problem report goes: the only pages the app's own links open. */
 export function isOfficialUrl(url: string): boolean {
   const parsed = parse(url);
-  return parsed?.protocol === "https:" && OFFICIAL_HOSTS.some((host) => host.test(parsed.hostname));
+  return parsed?.protocol === "https:" && (OFFICIAL_HOSTS.some((host) => host.test(parsed.hostname)) || isReportAddress(parsed));
 }
 
 /**

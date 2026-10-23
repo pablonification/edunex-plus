@@ -15,6 +15,7 @@ import { later } from "../later";
 import { displayName, initials } from "../names";
 import { NavProvider, type Route, useNav } from "../nav";
 import { usePdfViewer } from "../pdf";
+import { useReportAsk } from "../report";
 import { Home } from "../screens/home";
 import { useBridge, useCommand, useDataset, useJoined, useNavigateRequests, useStore } from "../store";
 import { AppMark } from "../ui/brand";
@@ -41,10 +42,11 @@ const PlanScreen = later(() => import("../screens/plan").then((screen) => screen
 const CourseScreen = later(() => import("../screens/course").then((screen) => screen.CourseScreen));
 const TaskScreen = later(() => import("../screens/tasks").then((screen) => screen.TaskScreen));
 const ExamScreen = later(() => import("../screens/exam").then((screen) => screen.ExamScreen));
-// What opens over the screen: Settings, quick search and the first-run scan.
+// What opens over the screen: Settings, quick search, the first-run scan and "Laporkan masalah".
 const SettingsDialog = later(() => import("./settings").then((dialog) => dialog.SettingsDialog));
 const SearchPalette = later(() => import("./search").then((dialog) => dialog.SearchPalette));
 const FirstScan = later(() => import("./first-scan").then((dialog) => dialog.FirstScan));
+const ReportDialog = later(() => import("./report-dialog").then((dialog) => dialog.ReportDialog));
 
 const SCREENS: Record<Route["screen"], { loaded(): boolean } | null> = {
   home: null,
@@ -85,6 +87,19 @@ function Layout({ arriving }: { arriving: boolean }) {
   const settingsLoaded = SettingsDialog.useLoaded();
   const searchLoaded = SearchPalette.useLoaded();
   const scanLoaded = FirstScan.useLoaded();
+  const reportLoaded = ReportDialog.useLoaded();
+  // "Laporkan masalah" opens over everything else, about what the Student was looking at.
+  const reportAsk = useReportAsk();
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportShown, setReportShown] = useState(reportAsk);
+  if (reportAsk !== reportShown) {
+    setReportShown(reportAsk);
+    if (reportAsk) {
+      setSettingsOpen(false);
+      setSearchOpen(false);
+      setReportOpen(true);
+    }
+  }
   /** Settings at its top, or at a group (the sidebar's course colors button): every way in says which, so none inherits the last. */
   const openSettings = useCallback((at: "courseColors" | null = null) => {
     setSettingsAt(at);
@@ -167,10 +182,13 @@ function Layout({ arriving }: { arriving: boolean }) {
           {(searchOpen || searchLoaded) && <SearchPalette open={searchOpen} onOpenChange={setSearchOpen} onSettings={() => openSettings()} />}
         </Suspense>
       </PanelBoundary>
+      <PanelBoundary name="report" compact>
+        <Suspense fallback={null}>{(reportOpen || reportLoaded) && <ReportDialog ask={reportShown} open={reportOpen} onOpenChange={setReportOpen} />}</Suspense>
+      </PanelBoundary>
       <PanelBoundary name="first scan" compact>
         <Suspense fallback={null}>
           {/* It also watches for the first full sync to open itself, so it stays drawn once in. */}
-          {(scanOpen || scanLoaded) && <FirstScan open={scanOpen} onOpenChange={setScanOpen} blocked={settingsOpen || searchOpen} />}
+          {(scanOpen || scanLoaded) && <FirstScan open={scanOpen} onOpenChange={setScanOpen} blocked={settingsOpen || searchOpen || reportOpen} />}
         </Suspense>
       </PanelBoundary>
     </div>

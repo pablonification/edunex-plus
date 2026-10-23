@@ -1,0 +1,23 @@
+name: Edunex data the app couldn't read
+description: Sent from the app's "Laporkan masalah", which fills this in. The page in it was scrubbed on the Student's computer.
+labels: [edunex-drift, needs-triage]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        > [!NOTE]
+        > The app filled this in and scrubbed the page on your computer: names, NIM, contacts and links are replaced, grades and amounts are made up. This page is public, so read it before you send it.
+
+  - type: textarea
+    id: report
+    attributes:
+      label: What the app couldn't read
+      description: Filled in by the app.
+    validations:
+      required: true
+
+  - type: textarea
+    id: page
+    attributes:
+      label: The scrubbed data
+      description: Drag the file the app saved (edunex-plus-report-….json, in Downloads) into this box.
