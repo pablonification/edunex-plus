@@ -10,6 +10,10 @@
     "formatter": { "quoteStyle": "double", "semicolons": "always", "trailingCommas": "all", "arrowParentheses": "always" }
   },
   "assist": { "actions": { "source": { "organizeImports": "on" } } },
+  "overrides": [
+    { "includes": ["src/**"], "plugins": ["./biome-plugins/no-em-dash-copy.grit"] },
+    { "includes": ["src/core/strings/**"], "plugins": ["./biome-plugins/no-semicolon-copy.grit"] }
+  ],
   "linter": {
     "enabled": true,
     "rules": {

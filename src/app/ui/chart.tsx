@@ -241,7 +241,7 @@ export function LineChart({
                 {estimate(i) && estimateWord ? ` (${estimateWord})` : ""}
               </th>
               {series.map((s) => (
-                <td key={s.name}>{s.values[i] === null || s.values[i] === undefined ? "—" : format(s.values[i]!)}</td>
+                <td key={s.name}>{s.values[i] === null || s.values[i] === undefined ? "-" : format(s.values[i]!)}</td>
               ))}
             </tr>
           ))}

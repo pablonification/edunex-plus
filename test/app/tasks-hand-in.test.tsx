@@ -144,7 +144,7 @@ describe("handing in", () => {
     const s = await openTask("Tugas 02 Bab II");
     s.willPick([{ name: "rekaman.zip", size: 200 * 1024 * 1024 }, { name: "rekaman.mp4" }]);
     await s.click(ATTACH);
-    expect(card()).toContain("Lebih dari 100 MB: Edunex tidak menerima berkas sebesar ini");
+    expect(card()).toContain("Edunex tidak menerima berkas lebih dari 100 MB");
     expect(card()).toContain("Edunex tidak menerima berkas jenis ini. Gunakan PDF, Word, Excel, PowerPoint, ZIP, RAR, JPG, atau PNG.");
     expect(s.has(/^Unggah ulang/)).toBe(false);
     expect(s.world.edunex.writes).toEqual([]);
@@ -440,7 +440,7 @@ describe("the written answer", () => {
     await s.wait(0);
     expect(box()).toBeNull();
     expect(card()).toContain("Lihat grafik dari repo saya:");
-    expect(card()).toContain("Jawaban ini berisi gambar, tabel, rumus, atau gaya teks yang tidak bisa diubah di sini.");
+    expect(card()).toContain("Jawaban ini berisi gambar, tabel, rumus, atau gaya teks, jadi ubah teksnya di Edunex.");
     // The picture shows, as on Edunex: read in from its storage by the main process, not offered as a link.
     const img = document.querySelector("main aside img");
     expect(img?.getAttribute("src")).toMatch(/^blob:/);
@@ -570,7 +570,7 @@ describe("handing in can't cost the Student their attendance", () => {
     await s.click("Kumpulkan");
     await s.click("Kumpulkan tetap (tidak dihitung hadir)");
     expect(card()).toContain("Terkumpul");
-    expect(article()).toContain("Tidak dihitung hadir: dikumpulkan di luar jendela presensi (Jum, 16 Okt, 15:00–23:59).");
+    expect(article()).toContain("Tidak dihitung hadir karena dikumpulkan di luar jendela presensi (Jum, 16 Okt, 15:00–23:59).");
     expect(article()).not.toContain("hanya terhitung jika dikumpulkan");
   });
 
@@ -581,11 +581,11 @@ describe("handing in can't cost the Student their attendance", () => {
     await s.click(ATTACH);
     expect(s.button("Kumpulkan").className).toContain("bg-accent");
     await s.click("Kumpulkan");
-    expect(dialogText()).toContain("Di dalam jendela presensi: terhitung hadir.");
+    expect(dialogText()).toContain("Di dalam jendela presensi, jadi terhitung hadir.");
     const submit = s.button("Kumpulkan sekarang");
     expect(submit.className).toContain("bg-accent");
     await s.click(submit);
-    expect(article()).toContain("Terhitung hadir: kamu mengumpulkan di dalam jendela presensi (Hari ini, 15:00–23:59).");
+    expect(article()).toContain("Terhitung hadir. Kamu mengumpulkan di dalam jendela presensi (Hari ini, 15:00–23:59).");
   });
 
   it("a file unlike what the lecturer asked for gets a soft hint, and the confirm names it", async () => {
@@ -610,7 +610,7 @@ describe("handing in can't cost the Student their attendance", () => {
     s.world.setOffline(true);
     await s.engineDoes(() => s.engine.refresh("edunex"));
     expect(s.button("Kumpulkan").disabled).toBe(true);
-    expect(card()).toContain("Tidak terhubung ke Edunex. Berkasmu tetap di sini; kumpulkan setelah tersambung lagi.");
+    expect(card()).toContain("Tidak terhubung ke Edunex. Kumpulkan setelah tersambung lagi. Berkasmu tetap di sini.");
     s.world.setOffline(false);
     const retry = [...document.querySelectorAll<HTMLButtonElement>("main aside button")].find((b) => b.textContent === "Coba lagi")!;
     await s.click(retry);

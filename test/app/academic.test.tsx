@@ -251,11 +251,11 @@ describe("the Kalender akademik tab", () => {
     expect(panel()).toContain("Sekarang · Min, 11 Okt");
     // A range says its days ("Sen–Jum"), not just the first.
     // The coming seven days are named as such: next week's exam is never filed under "Minggu ini".
-    expect(rows("7 hari ke depan")).toEqual(["12–16 OktSen–JumUTSMinggu ujian tengah semester.besok"]);
+    expect(rows("7 hari ke depan")).toEqual(["12–16 OktSen–JumUTSMasa ujian tengah semester.besok"]);
     expect(rows("Minggu ini")).toEqual([]);
     expect(group("7 hari ke depan")!.querySelector("li .text-warning-fg")?.textContent).toBe("besok");
     expect(rows("Semester ini")[0]).toContain("Kuesioner evaluasi perkuliahanIsi kuesioner tiap mata kuliah, atau SIX menyembunyikan nilainya.");
-    expect(rows("Semester ini").find((r) => r.includes("Evaluasi kemajuan studi"))).toContain("Target 72 SKS di akhir tahun ke-3; kamu sudah lulus 125 SKS.");
+    expect(rows("Semester ini").find((r) => r.includes("Evaluasi kemajuan studi"))).toContain("Target 72 SKS di akhir tahun ke-3. Kamu sudah lulus 125 SKS.");
     // This term's events don't repeat the term; next semester names its term once, in its heading, and is folded until opened.
     expect(panel()).not.toContain("· 2026/2027 Ganjil");
     expect(group("Semester depan")!.querySelector("h3")!.textContent).toBe("Semester depan · 2026/2027 Genap12");
@@ -290,7 +290,7 @@ describe("the Kalender akademik tab", () => {
       "9 OktJumBatas Waktu Pemasukan Nilai Konversi Aktivitas Kemahasiswaan Semester II-2025/2026",
       "Sekarang · Min, 11 Okt",
       "12 OktSenHari Pertama Periode Pembukaan Kelas/Mata Kuliah Semester II-2026/2027 oleh Program Studi",
-      // ITB's title says it all: no second line that only says it again ("Minggu ujian tengah semester.").
+      // ITB's title says it all: no second line that only says it again ("Masa ujian tengah semester.").
       "12–16 OktSen–JumMasa Ujian Tengah Semester I-2026/2027",
     ]);
     // One that tells the Student something keeps its line.

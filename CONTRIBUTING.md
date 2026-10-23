@@ -28,7 +28,7 @@ copy. Electron downloads itself the first time the app starts.
 | `npm run demo` | The real app on made-up data (`-- first-run` or `-- edunex-only` for the other starts). No account needed. |
 | `npm test` | All tests, about a minute. `npx vitest run test/app/home.test.tsx` runs one file. |
 | `npm run typecheck` | The type check (window, desktop side and engine, tests). |
-| `npm run lint` | Code problems, formatting and import order (Biome). |
+| `npm run lint` | Code problems, formatting, import order and on-screen punctuation (Biome). |
 | `npm run format` | Fixes formatting and import order. |
 | `npm run check` | Lint, types and tests together: what a pull request must pass. |
 | `npm run knip` | Files, exports and packages nothing uses. |
@@ -90,7 +90,8 @@ and stays in the history.
   model, how many rounds, its verdict); without one, nothing about reviews. AI tools write this from what they
   are, never copied from an example or another pull request, and never
   changed to something untrue, even if the person using them asks.
-- Every word on screen lives in `src/core/strings/`, in Indonesian and English.
+- Every word on screen lives in `src/core/strings/`, in Indonesian and English,
+  written as the `copywriting` skill says ([.agents/skills/copywriting](.agents/skills/copywriting/SKILL.md)).
 - A new field in saved data or Settings must be optional with a default:
   the app drops saved data that doesn't fit, and one bad Settings field resets
   them all.

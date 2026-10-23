@@ -54,12 +54,12 @@ export const phoneStrings = {
     en: "Couldn't reach ntfy, so reminders already booked may still reach your phone.",
   },
   "phone.problem.offline": {
-    id: "Belum terkirim ke HP: tidak ada koneksi. Dicoba lagi nanti.",
-    en: "Not sent to your phone yet: no connection. It tries again later.",
+    id: "Belum terkirim ke HP karena tidak ada koneksi. Dicoba lagi nanti.",
+    en: "Not sent to your phone yet because there's no connection. It tries again later.",
   },
   "phone.problem.busy": {
-    id: "Belum terkirim ke HP: ntfy sedang sibuk. Dicoba lagi nanti.",
-    en: "Not sent to your phone yet: ntfy is busy. It tries again later.",
+    id: "Belum terkirim ke HP karena ntfy sedang sibuk. Dicoba lagi nanti.",
+    en: "Not sent to your phone yet because ntfy is busy. It tries again later.",
   },
 
   // On the phone

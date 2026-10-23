@@ -330,7 +330,7 @@ function Calculator({ page, onOpenModules }: { page: CoursePage; onOpenModules?:
                       <ScoreInput
                         label={t("grade.scoreOf", { part: name })}
                         value={part.score}
-                        placeholder="—"
+                        placeholder="-"
                         onProblem={mark(`s:${part.id}`)}
                         onValue={(value) => setPart(part.id, { score: value })}
                       />

@@ -116,7 +116,7 @@ describe("Jadwal: the week as a timetable", () => {
     // The Gabung button says it's online: the block doesn't say "Daring" again under it.
     expect(block("Jumat, 9 Oktober", "II4091 · Pertemuan 3").textContent).not.toContain("Daring");
     const meeting = await details(s, /^II4091 · Pertemuan 3/);
-    expect(meeting).toContain("Diumumkan dosen di Edunex; jadwal SIX tidak mencantumkannya.");
+    expect(meeting).toContain("Diumumkan dosen di Edunex, tidak ada di jadwal SIX.");
     await s.click("Gabung");
     expect(s.calls.at(-1)?.name).toBe("shell.openExternal");
     expect(String((s.calls.at(-1)!.input as { url: string }).url)).toMatch(/^https:\/\/teams\.microsoft\.com\//);
@@ -407,7 +407,7 @@ describe("the phone calendar", () => {
     expect(dialog).toContain("Kalender ITB");
     expect(dialog).toContain("Sampai akhir semestersampai Sel, 22 Des");
     expect(dialog).toContain("Jadwal kuliah dari SIX baru ada sampai Sen, 30 Nov.");
-    expect(dialog).toContain("Ini salinan sekali ambil: ekspor lagi jika jadwal berubah.");
+    expect(dialog).toContain("Ini salinan sekali ambil. Ekspor lagi jika jadwal berubah.");
     await s.click(/^Simpan \d+ acara$/);
     expect(s.calls.at(-1)).toEqual({
       name: "schedule.export",

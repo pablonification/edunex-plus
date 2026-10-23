@@ -1,0 +1,8 @@
+// A semicolon in the strings catalog (src/core/strings/): two short sentences read better than one joined by it.
+or {
+  JsStringLiteralExpression(),
+  JsTemplateChunkElement()
+} as $copy where {
+  $copy <: r"(?s).*;.*",
+  register_diagnostic(span=$copy, message="No semicolon in on-screen words. End the sentence, or join with a comma and a word like jadi, tapi, so or but. See .agents/skills/copywriting.")
+}

@@ -63,10 +63,10 @@ describe("after the first full sync of Edunex and SIX", () => {
     expect(detail("Kehadiran 1")).toBe("SIX mencatat PL3002 hadir 6 dari 7, jadi abaikan 5 “absen” di EdunexTandai Hadir di SIX. Presensi Edunex tidak wajib.");
     // DK4073's UTS is one exam: SIX's sitting, with the take-home a week later said calmly as its second part.
     expect(detail("3 ujian")).toBe(
-      "UTS PL3032, minggu UTS 12–16 OktUTS DK4073: Kam 15 Okt, 11:00 · TVST C · Take-home tenggat Kam 22 OktUAS PL3032, minggu UAS 7–22 Des",
+      "UTS PL3032, masa UTS 12–16 OktUTS DK4073: Kam 15 Okt, 11:00 · TVST C · Take-home tenggat Kam 22 OktUAS PL3032, masa UAS 7–22 Des",
     );
-    expect(detail("1 pertemuan")).toBe("II4091 pertemuan 3: Besok, 15:00–17:00 · daringTidak ada di jadwal SIX; sudah ada di Beranda.");
-    expect(detail("Dosen mengubah")).toBe("2 di antaranya setelah kamu mengumpulkan. Cek lagi instruksinya; Edunex tidak mengabarkannya.");
+    expect(detail("1 pertemuan")).toBe("II4091 pertemuan 3: Besok, 15:00–17:00 · daringTidak ada di jadwal SIX, tapi sudah ada di Beranda.");
+    expect(detail("Dosen mengubah")).toBe("2 di antaranya setelah kamu mengumpulkan. Edunex tidak mengabarkannya, jadi cek lagi instruksinya.");
     expect(detail("IPK")).toBe("Kurang 0,24 untuk cum laude (3,50).");
     // No source tags: a line is its title and its facts.
     expect(line("Kehadiran 3").textContent).toBe(`Kehadiran 3 mata kuliah berisiko${detail("Kehadiran 3")}`);

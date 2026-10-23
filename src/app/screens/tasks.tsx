@@ -1298,7 +1298,7 @@ function HandIn({ task, status }: Row) {
           {(task.score !== null || status === "in_review") && (
             <span className="ml-auto text-right text-caption text-muted">
               {t("task.score")}
-              <span className="block text-title font-semibold text-fg tabular-nums">{task.score !== null ? formatScore(task.score, f) : "—"}</span>
+              <span className="block text-title font-semibold text-fg tabular-nums">{task.score !== null ? formatScore(task.score, f) : "-"}</span>
             </span>
           )}
         </div>
