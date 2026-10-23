@@ -4,10 +4,15 @@
 // main process and preload (dist/desktop) and the tray icons (assets/tray*); everything they use is
 // already bundled, so no node_modules. The fuses are flipped and checked in
 // scripts/package-fuses.mjs; the Mac app is signed with the certificate in scripts/package-sign.mjs;
-// the disk image is packed smaller in scripts/package-dmg.mjs.
+// the disk image is packed smaller in scripts/package-dmg.mjs. Release builds of the Windows
+// installers are signed by SignPath in two passes (scripts/package-win.mjs, scripts/package-sign-win.mjs).
 import { artifactBuildCompleted } from "./scripts/package-dmg.mjs";
 import { afterPack } from "./scripts/package-fuses.mjs";
 import { afterSign, KEYCHAIN_HELPER } from "./scripts/package-sign.mjs";
+import { uninstallerHook, uninstallerStep } from "./scripts/package-sign-win.mjs";
+
+// The uninstaller's step in a two-pass Windows build (scripts/package-win.mjs sets it), or none.
+const uninstallers = uninstallerStep(process.env);
 
 // The Windows installer for ARM PCs (Snapdragon and the like). Each kind of PC has its own, half
 // the size of one carrying both; scripts/package-win.mjs builds this one, then the x64 one under
@@ -105,6 +110,10 @@ export default {
     // Every size Windows shows, each drawn for its size (scripts/make-icons.mjs). The installer
     // and the uninstaller wear it too.
     icon: "assets/icon.ico",
+    // electron-builder signs nothing itself: SignPath signs between the two passes of a release
+    // build. In those passes this hook only keeps the uninstaller aside, then puts its signed copy
+    // in; called once per file (one sha256 signature, not a sha1 one too).
+    ...(uninstallers && { signtoolOptions: { sign: uninstallerHook(uninstallers), signingHashAlgorithms: ["sha256"] } }),
   },
   // One click, no questions: installs for this Windows user only (in %LOCALAPPDATA%\Programs,
   // no administrator password), adds "Edunex Plus" to the Start menu and the desktop, and opens
@@ -124,6 +133,10 @@ export default {
     installerHeaderIcon: "assets/icon.ico",
     include: "assets/installer.nsh",
     differentialPackage: false,
+    // No elevate.exe in the app: it only serves electron-updater installing for everyone, and this
+    // app installs per user and updates itself (src/desktop/updater.ts). It would also be copied, unsigned,
+    // into the signed app folder when the installers are made from it (scripts/package-win.mjs --signed).
+    packElevateHelper: false,
   },
   appImage: {
     // biome-ignore lint/suspicious/noTemplateCurlyInString: electron-builder fills in its own ${…} names

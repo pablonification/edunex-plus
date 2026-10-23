@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SignPath artifact configuration "windows-installers": round 2 of a signed Windows release
+  (.github/workflows/release.yml). The zip holds the two installers, made from the programs round 1
+  signed. SignPath can't open an NSIS installer, so each is signed as one program.
+  version  package.json's version: the installers' ProductVersion string (0.1.0-alpha.12). Their
+           fixed version is 0.1.0.0: if SignPath's sample check reads that, add a windowsVersion
+           parameter here and to the workflow's "Sign the installers" step.
+  Copy this into SignPath: Project > Artifact configurations > New, slug "windows-installers".
+-->
+<artifact-configuration xmlns="http://signpath.io/artifact-configuration/v1">
+  <parameters>
+    <parameter name="version" required="true" />
+  </parameters>
+  <zip-file>
+    <pe-file-set product-name="Edunex Plus" product-version="${version}">
+      <include path="Edunex-Plus-Setup-${version}.exe" />
+      <include path="Edunex-Plus-${version}-arm64.exe" />
+      <for-each>
+        <authenticode-sign />
+      </for-each>
+    </pe-file-set>
+  </zip-file>
+</artifact-configuration>

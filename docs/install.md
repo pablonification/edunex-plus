@@ -26,9 +26,10 @@ silicon, "Processor … Intel" means an Intel Mac. The app needs macOS 12 Monter
 Not sure which Windows PC? Settings → System → About: "ARM-based processor" means ARM; anything
 else (x64) means Intel or AMD. On Windows 11 the Intel and AMD installer runs on ARM too, just slower.
 
-The installers aren't signed with paid certificates yet, so macOS and Windows warn you the first
-time you open each new version. That's expected for this alpha; the steps below get past it, and
-the app then opens normally until the next update.
+Your browser and your system warn you the first time you open each new version: Windows and the
+browser because few people have downloaded that version yet, macOS because the app isn't signed by
+Apple ([code signing policy](code-signing.md)). That's expected for this alpha; the steps below get
+past it, and the app then opens normally.
 
 ## macOS
 
@@ -62,18 +63,28 @@ the app to Applications, then the same steps.
 
 ## Windows
 
-1. Run `Edunex-Plus-Setup-<version>.exe` (on an ARM PC: `Edunex-Plus-<version>-arm64.exe`).
-2. If a blue **"Windows protected your PC"** window appears, click **More info**, then **Run
-   anyway**.
+1. Download `Edunex-Plus-Setup-<version>.exe` (on an ARM PC: `Edunex-Plus-<version>-arm64.exe`).
+   The browser may hold it back because few people have downloaded this version yet:
+   - **Microsoft Edge** says "… isn't commonly downloaded. Make sure you trust … before you open
+     it.": point at the file in Downloads, click **⋯**, then **Keep**, then **Show more** →
+     **Keep anyway**.
+   - **Chrome** says "Suspicious download blocked": open Downloads (the arrow at the top right),
+     choose the file, then **Download suspicious file**.
+2. Run it. If a blue **"Windows protected your PC"** window appears, click **More info**, then
+   **Run anyway**. It names the publisher as "Unknown publisher" until the installers are signed;
+   then it says **SignPath Foundation** ([code signing policy](code-signing.md)).
 
 There's nothing to choose: it installs for your Windows account only (no administrator
-password), adds **Edunex Plus** to the Start menu and the desktop, and opens it.
+password), adds **Edunex Plus** to the Start menu and the desktop, and opens it. Updates from
+inside the app don't go through the browser.
 
-- If the browser holds the download back ("isn't commonly downloaded"), choose **Keep** (in
-  Edge: **⋯ → Keep → Show more → Keep anyway**).
-- If Windows says **Smart App Control blocked** it, there's no "Run anyway": Smart App Control
-  allows only signed apps. You'd have to turn it off in Windows Security → App & browser control,
-  and Windows can't turn it back on without a reset, so wait for a signed release instead.
+- If Windows says **Smart App Control blocked** it, there's no "Run anyway": Smart App Control runs
+  only apps it recognises or that are signed, and Edunex Plus's installers, or parts of them, aren't
+  ([code signing policy](code-signing.md)). Turning it off (Windows Security → App & browser control
+  → Smart App Control settings) removes that protection for every app, not just this one, so the
+  safer choice is to wait. On Windows 11 24H2 or newer, kept up to date, you may be able to turn it
+  back on there later (Microsoft began rolling that out in March 2026, and the October 2026 update
+  can grey it out); on older Windows only a reset turns it back on.
 - Install from the installer, not by copying the folder: Windows shows the app's notifications
   only once it has its Start menu shortcut.
 
@@ -102,6 +113,19 @@ away: use the `.deb` there (it sets the sandbox up), or start the AppImage with 
 
 Saving your sign-in between launches needs a keyring (GNOME Keyring or KWallet). Without one,
 the app still works but asks you to sign in again after each restart, and Settings says so.
+
+## Check a download (optional)
+
+Every release also lists `SHA256SUMS.txt`: one fingerprint per file, written by the same GitHub
+workflow that built them. To check that the file you downloaded is that file, print its
+fingerprint and find the same line in `SHA256SUMS.txt`:
+
+- **Windows** (PowerShell, in your Downloads folder): `Get-FileHash .\Edunex-Plus-Setup-<version>.exe`.
+  Windows prints it in capitals. It's the same fingerprint.
+- **macOS** (Terminal): `shasum -a 256 ~/Downloads/Edunex-Plus-<version>-arm64.dmg`
+- **Linux**: `sha256sum ~/Downloads/edunex-plus_<version>_amd64.deb`
+
+If they don't match, don't open the file. Download it again from the release page.
 
 ## Updates
 
