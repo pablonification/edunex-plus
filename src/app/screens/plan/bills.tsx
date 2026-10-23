@@ -6,6 +6,7 @@ import { type BillUrgency, billLeft, billUrgency, nextTerm, rupiah, uktDeadline 
 import type { Bill } from "../../../core/models";
 import { useThisTerm } from "../../deadlines";
 import { useFormat, useNow, useT } from "../../i18n";
+import { SkippedNote } from "../../skipped-note";
 import { useDataset } from "../../store";
 import { cx } from "../../ui/cx";
 import { Card } from "../../ui/display";
@@ -73,6 +74,7 @@ export function Tab(_: { onCalendar?: () => void }) {
           <Notice tone="danger" title={t("bills.overdue", { term: termYears(bill.term), date: f.dayMonth(bill.nextDueAt!), amount: rupiah(billLeft(bill)) })} />
         </div>
       ))}
+      <SkippedNote datasets={["six.bills"]} />
       {current && (
         <div className="grid grid-cols-1 gap-3 @2xl:grid-cols-2">
           <BillCard label={t("bills.thisTerm")} bill={current} />

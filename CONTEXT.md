@@ -86,6 +86,10 @@ _Avoid_: dismiss, mute, "don't remind me again" (nothing is hidden for good by a
 "Sudah beres": the Student says a Beranda item is dealt with, where only they can know it: a lecturer's change checked ("Sudah kucek"), a class's attendance warning seen ("Sudah tahu"), a group hand-in, a payment SIX hasn't shown, or a Task handed in another way or not handed in at all (marked on its page). Only a new fact brings it back (another edit, a moved deadline, a new target), never time alone, except a bill turning overdue. What the app can see (the Student's own hand-in, a Presence, the KRS) clears itself and has no "handled". A Task marked handed in another way or not handed in gets no deadline reminders. Kept on this computer, and cleared when a different Student signs in. Called `done` in code.
 _Avoid_: dismissed, done (on screen), archived
 
+**Unrecognised row**:
+"Baris yang belum dikenali": a row a SIX page shows that the app doesn't understand (a fee that isn't a term's UKT, a course written another way). The app leaves that row out, reads the rest of the page, and says so on the screen that shows that page's data, with the row as SIX writes it and a way to open that page on SIX. It's not "SIX changed": that's the page's layout itself, or more rows left out than read. Called `skipped` in code ([ADR 0005](docs/adr/0005-read-past-a-row-the-app-doesnt-know.md)).
+_Avoid_: error, broken row, ignored
+
 **Course color**:
 "Warna mata kuliah": a course's identity mark, its dot and its stripe, the same on every screen. One of ten named colors ("Biru", "Nila"), each with a tone for light and one for dark; none is a status hue or grey. A course's automatic color is remembered the first time it shows, so it never moves by itself; a color the Student picks stays with the course code, next term too. Kept on this computer.
 _Avoid_: course status, tag color, theme

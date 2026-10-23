@@ -3,7 +3,7 @@
 // each course's attendance count and what it did after each class, and the timetable
 // (on launch and twice a day) for this month's and next month's meetings.
 import { appendCount, classResults } from "../../../core/attendance";
-import type { ClassSession, DatasetValue, SixCourse } from "../../../core/models";
+import type { ClassSession, DatasetValue, SixCourse, SkippedRow } from "../../../core/models";
 import type { SourceContext } from "../source";
 import type { SixClient } from "./client";
 import type { SixPages } from "./pages";
@@ -18,13 +18,13 @@ export function registerSixFeeds(context: SourceContext, client: SixClient): voi
     every: HOUR,
     jitter: 5 * MINUTE,
     async run(current) {
-      const { student, courses } = await client.status();
+      const { student, courses, skipped } = await client.status();
       if (!current()) return;
       // A different Student signed in to SIX on this computer: nothing of the last one may show.
       const previous = context.get("six.student");
       if (previous && previous.nim !== student.nim) await context.remove("six.");
       await context.set("six.student", student);
-      await saveCourses(context, courses);
+      await saveCourses(context, courses, skipped);
     },
   });
   context.feed({
@@ -48,13 +48,17 @@ export function registerSixFeeds(context: SourceContext, client: SixClient): voi
  * what it did after each class: whoever hears of the new count (the alerts,
  * the screens) finds those already up to date.
  */
-export async function saveCourses(context: Pick<SourceContext, "clock" | "get" | "set">, courses: SixCourse[]): Promise<void> {
+export async function saveCourses(
+  context: Pick<SourceContext, "clock" | "get" | "set">,
+  courses: SixCourse[],
+  skipped: readonly SkippedRow[] = [],
+): Promise<void> {
   const now = context.clock.now();
   const log = appendCount(context.get("six.countLog") ?? {}, courses, now);
   await context.set("six.countLog", log as DatasetValue<"six.countLog">);
   const results = classResults(context.get("six.classResults") ?? {}, log, context.get("six.schedule") ?? [], now, now);
   await context.set("six.classResults", results as DatasetValue<"six.classResults">);
-  await context.set("six.courses", courses);
+  await context.set("six.courses", courses, skipped);
 }
 
 /**

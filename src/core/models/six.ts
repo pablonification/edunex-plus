@@ -1,6 +1,7 @@
 // SIX: the Student, this term's courses with attendance, and the timetable
 // (#76). These shapes are shared with Home, the course page and later screens.
 import { z } from "zod";
+import { SkippedRows } from "./base";
 
 export const SixStudent = z.object({
   nim: z.string(),
@@ -75,6 +76,8 @@ export const SixClassResult = z.object({
 });
 
 export const sixDatasets = {
+  /** The rows each SIX dataset's last read left out. Saved by a version from 0.1.0-alpha.16 on; older data has none. */
+  "six.skipped": SkippedRows,
   "six.student": SixStudent,
   /** This term's courses, in SIX's order. */
   "six.courses": z.array(SixCourse),

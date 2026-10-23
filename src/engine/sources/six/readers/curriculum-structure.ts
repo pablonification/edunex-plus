@@ -1,17 +1,19 @@
 // Reads a curriculum's structure (/kurikulum/kurikulum/{id}/struktur): the
 // required courses by recommended semester, the program's specializations,
 // the minors open to the Student, and the program's course catalog. Every
-// course carries SIX's id, which leads to its syllabus.
+// course carries SIX's id, which leads to its syllabus. A row, a package or a
+// minor it doesn't understand is left out (skipped).
 import type { Curriculum, CurriculumCourse } from "../../../../core/models";
-import { COURSE_CODE, cellsOf, changed, clean, courseIdOf, type Elem, expectLabels, int, openPage, type Page, rowsOf, textOf } from "./records-common";
+import type { Skipped } from "../../skipped";
+import { COURSE_CODE, cellsOf, changed, clean, courseIdOf, type Elem, expectLabels, int, openPage, type Page, rowsOf, rowText, textOf } from "./records-common";
 
 const COURSE_HEADER = ["Kode", "Mata Kuliah", "SKS"];
 const CATALOG_HEADER = ["Kode", "Mata Kuliah", "Kategori", "SKS"];
 
 export type CurriculumStructure = Pick<Curriculum, "name" | "required" | "specializations" | "minors" | "catalog">;
 
-export function readCurriculumStructure(html: string): CurriculumStructure {
-  const page = openPage(html, "curriculum structure");
+export function readCurriculumStructure(html: string, skipped?: Skipped): CurriculumStructure {
+  const page = openPage(html, "curriculum structure", skipped);
   const pane = (id: string) => {
     const node = page.$(`.tab-pane#${id}`);
     if (node.length !== 1) changed(page, `the ${id} tab is missing`);
@@ -22,10 +24,14 @@ export function readCurriculumStructure(html: string): CurriculumStructure {
   return {
     name,
     required: readRequired(page, pane("wajib")),
-    specializations: pane("spesialisasi")
-      .find(".panel")
-      .toArray()
-      .map((panel) => readPackage(page, page.$(panel))),
+    specializations: page.skipped.each(
+      pane("spesialisasi")
+        .find(".panel")
+        .toArray()
+        .map((panel) => page.$(panel)),
+      panelTitle,
+      (panel) => readPackage(page, panel),
+    ),
     minors: readMinors(page, pane("minor")),
     catalog: readCatalog(page, pane("katalog")),
   };
@@ -40,6 +46,7 @@ function course(page: Page, code: Elem, name: Elem, sks: Elem): CurriculumCourse
 /** Semesters side by side: a heading row names them, then each row holds one course (or an empty slot) per semester. */
 function readRequired(page: Page, pane: Elem): Curriculum["required"] {
   const out: Curriculum["required"] = [];
+  const list = page.skipped.list();
   let semesters: number[] = [];
   for (const table of pane.find("table").toArray()) {
     for (const row of rowsOf(page, page.$(table))) {
@@ -58,31 +65,40 @@ function readRequired(page: Page, pane: Elem): Curriculum["required"] {
           "the required courses header",
         );
       } else {
-        let at = 0;
-        for (const semester of semesters) {
-          const cell = cells[at];
-          if (!cell) changed(page, "a row of required courses is short");
-          if (cell.attr("colspan") === "3" && textOf(cell) === "") {
-            at += 1;
-            continue;
+        // A row holds a course (or an empty slot) per semester: one the app doesn't understand leaves the row out.
+        const courses = list.item(rowText(cells), () => {
+          const row: Curriculum["required"] = [];
+          let at = 0;
+          for (const semester of semesters) {
+            const cell = cells[at];
+            if (!cell) changed(page, "a row of required courses is short");
+            if (cell.attr("colspan") === "3" && textOf(cell) === "") {
+              at += 1;
+              continue;
+            }
+            const [code, name, sks] = cells.slice(at, at + 3);
+            if (!code || !name || !sks) changed(page, "a row of required courses is short");
+            row.push({ ...course(page, code, name, sks), semester });
+            at += 3;
           }
-          const [code, name, sks] = cells.slice(at, at + 3);
-          if (!code || !name || !sks) changed(page, "a row of required courses is short");
-          out.push({ ...course(page, code, name, sks), semester });
-          at += 3;
-        }
-        if (at !== cells.length) changed(page, "a row of required courses is too long");
+          if (at !== cells.length) changed(page, "a row of required courses is too long");
+          return row;
+        });
+        out.push(...(courses ?? []));
       }
     }
   }
+  list.done();
   if (out.length === 0) changed(page, "no required courses");
   // Rows hold two semesters side by side; list them semester by semester, in SIX's order within each.
   return out.sort((a, b) => a.semester - b.semester);
 }
 
+const panelTitle = (panel: Elem) => textOf(panel.find(".panel-title").first());
+
 /** A package panel: "Sistem Informasi Cerdas (12 SKS)", a note, and its courses. */
 function readPackage(page: Page, panel: Elem): Curriculum["specializations"][number] {
-  const title = textOf(panel.find(".panel-title").first());
+  const title = panelTitle(panel);
   const heading = /^(.*?)\s*\((\d+)\s*\S*\)$/.exec(title);
   const table = panel.find("table");
   if (!title || table.length !== 1) changed(page, `package "${title}" isn't readable`);
@@ -92,7 +108,7 @@ function readPackage(page: Page, panel: Elem): Curriculum["specializations"][num
     name: heading ? heading[1]! : title,
     sks: heading ? Number(heading[2]) : null,
     note: clean(panel.find(".panel-body").text()) || null,
-    courses: rows.map((cells) => {
+    courses: page.skipped.each(rows, rowText, (cells) => {
       if (cells.length !== 3) changed(page, `a course of "${title}" has ${cells.length} cells`);
       return course(page, cells[0]!, cells[1]!, cells[2]!);
     }),
@@ -102,17 +118,23 @@ function readPackage(page: Page, panel: Elem): Curriculum["specializations"][num
 /** Minors by faculty: a faculty heading, then its programs' minors ("Matematika - Program Minor Matematika (16 SKS)"). */
 function readMinors(page: Page, pane: Elem): Curriculum["minors"] {
   const out: Curriculum["minors"] = [];
+  const list = page.skipped.list();
   let faculty: string | null = null;
   for (const child of pane.children().toArray()) {
     const node = page.$(child);
     if (node.is("h2")) faculty = textOf(node);
-    for (const panel of node.find(".panel").toArray()) {
-      const minor = readPackage(page, page.$(panel));
-      const split = minor.name.indexOf(" - ");
-      if (!faculty || split < 0) changed(page, `minor "${minor.name}" isn't readable`);
-      out.push({ ...minor, faculty, program: minor.name.slice(0, split), name: minor.name.slice(split + 3) });
+    for (const element of node.find(".panel").toArray()) {
+      const panel = page.$(element);
+      const minor = list.item(panelTitle(panel), () => {
+        const read = readPackage(page, panel);
+        const split = read.name.indexOf(" - ");
+        if (!faculty || split < 0) changed(page, `minor "${read.name}" isn't readable`);
+        return { ...read, faculty, program: read.name.slice(0, split), name: read.name.slice(split + 3) };
+      });
+      if (minor) out.push(minor);
     }
   }
+  list.done();
   return out;
 }
 
@@ -121,7 +143,7 @@ function readCatalog(page: Page, pane: Elem): Curriculum["catalog"] {
   if (table.length !== 1) changed(page, "the catalog has no table");
   const [header, ...rows] = rowsOf(page, table).map((row) => cellsOf(page, row));
   expectLabels(page, (header ?? []).map(textOf), CATALOG_HEADER, "the catalog header");
-  return rows.map((cells) => {
+  return page.skipped.each(rows, rowText, (cells) => {
     if (cells.length !== 4) changed(page, `a catalog row has ${cells.length} cells`);
     return { ...course(page, cells[0]!, cells[1]!, cells[3]!), category: textOf(cells[2]!) };
   });

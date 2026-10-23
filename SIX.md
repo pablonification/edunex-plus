@@ -195,6 +195,14 @@ calendar or has no events. Each throws **VendorChanged** with the page and what 
 (`six/html.ts`, `readers/records-common.ts`, `itb/catalog-pages.ts`, `itb/calendar.ts`). A
 changed catalog page marks only that program "changed" and the feed reports it after the run.
 
+A check about one row leaves that row out instead ([ADR 0005](docs/adr/0005-read-past-a-row-the-app-doesnt-know.md),
+`sources/skipped.ts`): the rest of the page reads, and the row is kept in `six.skipped` with what it
+shows and why, for the screen that shows that data to say so. That holds for the rows of the
+fees, transcript, curriculum position, KRS, curriculum list and structure, scheme and status
+pages. What holds the rows stays strict (a table, its header, a year or semester heading), as does
+a list with more rows left out than read, and the month timetable as a whole (a meeting left out
+could make a day look free).
+
 | What happened | Error | The app shows |
 | --- | --- | --- |
 | Redirect to `/login` or off SIX, `401`, or SIX's sign-in page | Unauthorized | Expired if on the liveness feed, otherwise a liveness check |

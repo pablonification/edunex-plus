@@ -2,7 +2,7 @@
 // the network, time, disk and keychain injected. The desktop shell runs it in
 // Electron's main process; tests run it whole against the pretend world.
 import type { Event, Snapshot } from "../core/contract";
-import { type DatasetName, Datasets, DEFAULT_SETTINGS, Settings, SourceId, SourceStatus, type UpdateCheckResult } from "../core/models";
+import { type DatasetName, Datasets, DEFAULT_SETTINGS, Settings, type SkippedRow, SourceId, SourceStatus, type UpdateCheckResult } from "../core/models";
 import { isNewerRelease } from "../core/updates";
 import { AlertCenter, type AlertNotice } from "./alerts/center";
 import type { Detector } from "./alerts/detector";
@@ -88,6 +88,9 @@ function loadSettings(saved: unknown): Settings {
   });
   return Settings.parse(Object.fromEntries(each));
 }
+
+/** Where each source keeps the rows its reads left out. */
+const SKIPPED: Partial<Record<SourceId, "six.skipped">> = { six: "six.skipped" };
 
 export function createEngine(deps: EngineDeps): Engine {
   const { clock, storage, vault } = deps;
@@ -296,6 +299,18 @@ export function createEngine(deps: EngineDeps): Engine {
     return transport;
   }
 
+  /**
+   * What a read left out, for its source's "<source>.skipped" (only SIX keeps one); a read that left
+   * nothing out clears its entry. Null when there's nothing to keep or clear, as for almost every read.
+   */
+  function skippedNotes(source: SourceId, name: DatasetName, skipped: readonly SkippedRow[]) {
+    const notes = SKIPPED[source];
+    if (!notes) return null;
+    const { [name]: earlier, ...others } = store.get(notes) ?? {};
+    if (!earlier && !skipped.length) return null;
+    return { name: notes, value: skipped.length ? { ...others, [name]: [...skipped] } : others };
+  }
+
   /** What a source reaches during one session. Writes from an ended session are dropped. */
   function contextFor(source: SourceId): SourceContext {
     const session = generation(source);
@@ -306,11 +321,13 @@ export function createEngine(deps: EngineDeps): Engine {
       userAgent,
       settings: () => settings,
       get: (name) => store.get(name),
-      set: async (name, value) => {
+      set: async (name, value, skipped = []) => {
         if (!current()) return false;
         const changed = await store.set(name, value, clock.now());
         // Read again but unchanged: plans that look at when it was read still need to know.
         if (!changed) alerts.touched(name);
+        const notes = skippedNotes(source, name, skipped);
+        if (notes) await store.set(notes.name, notes.value, clock.now());
         return changed;
       },
       remove: async (prefix) => {

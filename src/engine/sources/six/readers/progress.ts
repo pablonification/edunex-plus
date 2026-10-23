@@ -1,8 +1,11 @@
 // Reads SIX's graduation progress (/statusmhs/transkrip/kurikulum/{sid},
 // "Transkrip Posisi Kurikulum"): the Student's courses placed in their
 // curriculum by stage and recommended semester, SIX's IP and passed SKS per
-// stage, the IPK, and SKS by kind of course.
+// stage, the IPK, and SKS by kind of course. A course or SKS row it doesn't
+// understand is left out (skipped).
+
 import { type CourseKind, checkIndex, type Progress, type ProgressCourse, type ProgressStage, termIndex } from "../../../../core/models";
+import type { Skipped } from "../../skipped";
 import {
   cellsOf,
   changed,
@@ -16,6 +19,7 @@ import {
   openPage,
   type Page,
   rowsOf,
+  rowText,
   textOf,
 } from "./records-common";
 import type { SixIpk } from "./transcript";
@@ -27,8 +31,8 @@ const KIND_CODES: Record<string, CourseKind> = { W: "required", PD: "program-ele
 const KIND_LABELS: Record<string, CourseKind> = { wajib: "required", "pilihan dalam prodi": "program-elective", "pilihan luar prodi": "outside-elective" };
 
 /** The progress, and SIX's IPK with the SKS it covers (to check the transcript's). */
-export function readProgress(html: string): { progress: Progress; ipk: SixIpk } {
-  const page = openPage(html, "curriculum position");
+export function readProgress(html: string, skipped?: Skipped): { progress: Progress; ipk: SixIpk } {
+  const page = openPage(html, "curriculum position", skipped);
   const tables = page
     .$("table")
     .toArray()
@@ -78,7 +82,7 @@ function readKinds(page: Page, table: Elem): Progress["sksByKind"] {
   const [header, ...rows] = rowsOf(page, table).map((row) => cellsOf(page, row));
   if (!header) changed(page, "the SKS by kind table is empty");
   expectLabels(page, header.map(textOf), KINDS_HEADER, "the SKS by kind header");
-  return rows.map((cells) => {
+  return page.skipped.each(rows, rowText, (cells) => {
     if (cells.length !== 2) changed(page, "an SKS by kind row has the wrong cells");
     const label = textOf(cells[0]!);
     return { kind: (page.lang === "id" && KIND_LABELS[label.toLowerCase()]) || "other", label, sks: int(page, textOf(cells[1]!), "SKS by kind") };
@@ -94,6 +98,7 @@ interface StageDraft {
 
 function readStages(page: Page, table: Elem): ProgressStage[] {
   const stages: StageDraft[] = [];
+  const list = page.skipped.list();
   let total = false;
   for (const row of rowsOf(page, table)) {
     const cells = cellsOf(page, row);
@@ -115,9 +120,11 @@ function readStages(page: Page, table: Elem): ProgressStage[] {
     } else {
       const semester = stage?.semesters.at(-1);
       if (!semester) changed(page, "a course row is outside a semester");
-      semester.courses.push(readCourse(page, cells));
+      const course = list.item(rowText(cells), () => readCourse(page, cells));
+      if (course) semester.courses.push(course);
     }
   }
+  list.done();
   if (!total) changed(page, "the overall total is missing");
   return stages.map((stage) => {
     const courses = stage.semesters.flatMap((s) => s.courses);

@@ -66,6 +66,16 @@ export const shellStrings = {
     id: "{source} mengirim data yang tidak dikenali. Data terakhir tetap ditampilkan.",
     en: "{source} sent data the app doesn't recognise. Your last data is still shown.",
   },
+  // A row of a SIX page the app left out, said on the screen that shows that page's data, with the row as SIX shows it.
+  "skipped.title": {
+    id: "{count} baris di SIX belum dikenali",
+    en: { one: "{count} row on SIX isn't recognised", other: "{count} rows on SIX aren't recognised" },
+  },
+  "skipped.body": {
+    id: "Belum ditampilkan di sini. Cek di SIX.",
+    en: { one: "It isn't shown here yet. Check it on SIX.", other: "They aren't shown here yet. Check them on SIX." },
+  },
+  "skipped.openSix": { id: "Buka di SIX", en: "Open in SIX" },
   "status.signedOutHint": {
     id: "Masuk ke {source} untuk memperbarui data ini.",
     en: "Sign in to {source} to bring this up to date.",

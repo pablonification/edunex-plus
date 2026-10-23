@@ -1,12 +1,16 @@
 // SIX's student status page (/app/mahasiswa:{nim}/statusmhs): who the
 // Student is, this term, and the term's courses with class, SKS and the exact
-// attendance count. Also the NIM, from SIX's home page.
-import type { SixCourse, SixStudent } from "../../../core/models";
+// attendance count. Also the NIM, from SIX's home page. A course row it
+// doesn't understand is left out (skipped).
+import type { SixCourse, SixStudent, SkippedRow } from "../../../core/models";
+import { Skipped } from "../skipped";
 import { COURSE_CODE, changed, clean, links, type Nodes, type Page, parse } from "./html";
 
 export interface StatusPage {
   student: SixStudent;
   courses: SixCourse[];
+  /** The course rows left out. */
+  skipped: SkippedRow[];
 }
 
 const PAGE = "statusmhs";
@@ -48,9 +52,10 @@ export function readStatusPage(html: string, nim: string): StatusPage {
   );
   if (!name) throw changed(PAGE, "no name");
 
-  const { term, courses } = readCourseList($);
+  const skipped = new Skipped();
+  const { term, courses } = readCourseList($, skipped);
   const program = readProgram($, nim);
-  return { student: { nim, name, studentId, term, program: program?.name ?? null, programCode: program?.code ?? null }, courses };
+  return { student: { nim, name, studentId, term, program: program?.name ?? null, programCode: program?.code ?? null }, courses, skipped: skipped.rows };
 }
 
 /** "182 / Sistem dan Teknologi Informasi" in the Student's details table. */
@@ -70,7 +75,7 @@ function readProgram($: Page, nim: string): { code: string; name: string } | nul
   return null;
 }
 
-function readCourseList($: Page): { term: string; courses: SixCourse[] } {
+function readCourseList($: Page, skipped: Skipped): { term: string; courses: SixCourse[] } {
   const panel = $(".panel")
     .filter((_, el) => TERM.test(clean($(el).find(".panel-title").first().text())))
     .first();
@@ -88,8 +93,14 @@ function readCourseList($: Page): { term: string; courses: SixCourse[] } {
   const header = rows[0];
   if (!header || header.length !== COLUMNS || header.filter("td").length > 0) throw changed(PAGE, "the course table has a different layout");
 
-  const courses = rows.slice(1).map((cells, index) => {
-    const at = `course ${index + 1}`;
+  const numbered = rows.slice(1).map((cells, index) => ({ cells, at: `course ${index + 1}` }));
+  const shown = ({ cells }: (typeof numbered)[number]) =>
+    cells
+      .toArray()
+      .map((cell) => clean($(cell).text()))
+      .filter(Boolean)
+      .join(" · ");
+  const courses = skipped.each(numbered, shown, ({ cells, at }) => {
     if (cells.length !== COLUMNS) throw changed(PAGE, `${at} has ${cells.length} cells`);
     const text = (column: number) => clean(cells.eq(column).text());
     const code = text(1);
