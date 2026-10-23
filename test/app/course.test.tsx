@@ -833,7 +833,7 @@ describe("grades", () => {
     expect(s.text()).toContain("Isi 0–100");
     expect(document.querySelector<HTMLInputElement>("input[aria-label='Nilai UTS']")!.value).toBe("120");
     // Nothing was saved from it.
-    expect(s.calls.some((c) => c.name === "local.set")).toBe(false);
+    expect(s.calls.some((c) => c.name === "local.set" && (c.input as { name: string }).name === "local.courseWeights")).toBe(false);
   });
 
   it("gives no answer while a box holds a number it can't use, and says to fix it", async () => {

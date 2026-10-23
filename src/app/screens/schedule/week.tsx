@@ -29,7 +29,7 @@ import { useOpenExternal } from "../../hooks";
 import { type Format, useFormat, useT } from "../../i18n";
 import type { ScheduleData } from "../../schedule-data";
 import { cx } from "../../ui/cx";
-import { LiveDot } from "../../ui/display";
+import { CourseDot, LiveDot } from "../../ui/display";
 import { Icons } from "../../ui/icons";
 import { factsLabel, Meta } from "../../ui/layout";
 import { Popover } from "../../ui/overlays";
@@ -232,10 +232,12 @@ function ClassBlock({ item, minutes, narrow }: { item: ScheduledClass; minutes: 
       )}
       style={uncertain ? { backgroundImage: "repeating-linear-gradient(135deg, transparent 0 6px, var(--fill) 6px 12px)" } : undefined}
     >
-      <Stripe color={world.color(code)} faded={uncertain !== null} />
       <ClashTint item={item} />
+      {/* Over the clash's tint: the course's color stays whole beside the shared minutes. */}
+      <Stripe color={world.color(code)} faded={uncertain !== null} />
       <span className={cx(FITS, "font-semibold tabular-nums", !uncertain && !past && "text-fg")}>
-        <span className="min-w-0 truncate">{time}</span>
+        {/* One line only (under 50 minutes): its start and its code, so the color is never the only way to tell it. */}
+        <span className="min-w-0 truncate">{lines < 2 ? `${f.time(session.start)} ${code}` : time}</span>
         {live && <LiveDot className="ml-auto shrink-0" />}
         {uncertain && !narrow && <Uncertain />}
         {!live && !narrow && lines < 4 && <MarkIcons item={item} />}
@@ -303,8 +305,22 @@ function ClashTint({ item }: { item: ScheduledClass }) {
   );
 }
 
-function Stripe({ color, faded = false }: { color: string; faded?: boolean }) {
-  return <span aria-hidden className={cx("absolute inset-y-0 left-0 w-[3px]", faded && "opacity-50")} style={{ background: color }} />;
+/**
+ * The course's color down the block's left edge; none for a course the app doesn't know. Dashed for a meeting only
+ * Edunex announced, like its block's edge. High contrast keeps it, edged in the system's text color.
+ */
+function Stripe({ color, faded = false, dashed = false }: { color: string | undefined; faded?: boolean; dashed?: boolean }) {
+  if (!color) return null;
+  return (
+    <span
+      aria-hidden
+      className={cx(
+        "absolute inset-y-0 left-0 w-[3px] forced-color-adjust-none forced-colors:outline forced-colors:outline-1 forced-colors:outline-[CanvasText]",
+        faded && "opacity-50",
+      )}
+      style={{ background: dashed ? `repeating-linear-gradient(to bottom, ${color} 0 5px, transparent 5px 8px)` : color }}
+    />
+  );
 }
 
 /** What's unusual about a class, in words (as many as fit). */
@@ -366,12 +382,13 @@ function MeetingBlock({ meeting, minutes, notInSix }: { meeting: OutsideMeeting 
       aria-label={label}
       className={cx(
         BLOCK,
-        "border border-dashed border-faint/70 bg-surface py-1 pr-1.5 pl-2 hover:border-faint hover:shadow-lift",
+        "border border-dashed border-faint/70 bg-surface py-1 pr-1.5 pl-2.5 hover:border-faint hover:shadow-lift",
         past && "bg-sunken text-muted",
       )}
     >
-      <span className={cx("flex items-center gap-1 font-semibold tabular-nums", !past && "text-fg")}>
-        <span className="truncate">{time}</span>
+      <Stripe color={world.color(meeting.code)} dashed />
+      <span className={cx("relative flex items-center gap-1 font-semibold tabular-nums", !past && "text-fg")}>
+        <span className="truncate">{lines < 2 ? `${f.time(meeting.start)} ${meeting.code}` : time}</span>
         {meeting.online && !joinable && <Icons.Video className="ml-auto size-3.5 shrink-0 text-muted" />}
       </span>
       {lines >= 2 && (
@@ -446,13 +463,12 @@ function DueChip({ task }: { task: Task }) {
   const trigger = (
     <button
       type="button"
-      aria-label={t("schedule.due", { time, title: task.title })}
+      aria-label={factsLabel(task.courseCode, t("schedule.due", { time, title: task.title }))}
       className="focus-ring flex w-full items-start gap-1.5 rounded-md px-1.5 py-1 text-left text-caption transition-colors duration-150 hover:bg-hover"
     >
       <Icons.Clock className="mt-0.5 size-3 shrink-0 text-muted" weight="bold" />
       <span className="line-clamp-2 min-w-0">
-        <span className="font-semibold tabular-nums">{time}</span>{" "}
-        <span aria-hidden className="mb-px inline-block size-1.5 rounded-full align-middle" style={{ background: world.color(task.courseCode) }} />{" "}
+        <span className="font-semibold tabular-nums">{time}</span> <CourseDot color={world.color(task.courseCode)} className="mb-px size-2 align-middle" />{" "}
         <span className="font-semibold tabular-nums">{task.courseCode}</span> {task.title}
       </span>
     </button>

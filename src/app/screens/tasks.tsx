@@ -35,7 +35,7 @@ import { lateSnoozable, type TodoGroup, type TodoItem, todoCount, todoCounted, t
 import { answerShape, editableInApp } from "../answer-html";
 import { useAttendance } from "../attendance";
 import { ActionError, errorKey } from "../bridge";
-import { type TermCourse, useTermCourses } from "../courses";
+import { type TermCourse, useCourseColor, useTermCourses } from "../courses";
 import { useOpenExternal } from "../hooks";
 import { type Format, type Translate, useFormat, useNow, useT } from "../i18n";
 import { LecturerHtml } from "../lecturer-html";
@@ -533,10 +533,10 @@ export function TaskDate({ task, status }: Row) {
 
 /** "● DK4073": the course's code with its dot. */
 function CourseCodeMark({ task }: { task: Task }) {
-  const course = useCourse(task.courseCode);
+  const color = useCourseColor()(task.courseCode);
   return (
     <span className="inline-flex items-center gap-1.5 font-medium text-fg/80">
-      <CourseDot color={course?.color ?? "var(--faint)"} className="size-2" />
+      <CourseDot color={color} className="size-2" />
       {task.courseCode}
     </span>
   );
@@ -546,11 +546,12 @@ function CourseCodeMark({ task }: { task: Task }) {
 function Place({ task }: { task: Task }) {
   const t = useT();
   const course = useCourse(task.courseCode);
+  const color = useCourseColor()(task.courseCode);
   const where = moduleLabel(t, task.module) ?? course?.name ?? null;
   return (
     <Meta truncate>
       <span className="inline-flex items-center gap-1.5 font-medium text-fg/80">
-        <CourseDot color={course?.color ?? "var(--faint)"} className="size-2" />
+        <CourseDot color={color} className="size-2" />
         {task.courseCode}
       </span>
       {where}
@@ -640,7 +641,7 @@ function TaskPage({ task }: { task: Task }) {
   const f = useFormat();
   const now = useNow();
   const { go } = useNav();
-  const course = useCourse(task.courseCode);
+  const color = useCourseColor()(task.courseCode);
   const exam = useExams()?.find((e) => e.tasks.some((item) => item.id === task.id));
   const status = taskStatus(task, now);
   const late = status === "overdue" || status === "closed";
@@ -664,7 +665,7 @@ function TaskPage({ task }: { task: Task }) {
           {crumb(
             { screen: "course", code: task.courseCode },
             <>
-              <CourseDot color={course?.color ?? "var(--faint)"} className="size-2" />
+              <CourseDot color={color} className="size-2" />
               <span className="font-semibold">{task.courseCode}</span>
             </>,
             "shrink-0",

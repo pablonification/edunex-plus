@@ -31,7 +31,7 @@ import {
 import { activeSnooze, partitionSnoozed, snoozable, snoozeKey } from "../../core/snooze";
 import { budgetLabel, useActionLabel } from "../attendance-labels";
 import { AbsenceBudget } from "../attendance-parts";
-import { type TermCourse, useTerm, useTermCourses } from "../courses";
+import { type TermCourse, useCourseColor, useTerm, useTermCourses } from "../courses";
 import { useHomeWorld } from "../home-world";
 import { useOpenCheckIn, useOpenExternal } from "../hooks";
 import { type Format, type Translate, useFormat, useNow, useT } from "../i18n";
@@ -103,7 +103,6 @@ export function Home() {
   );
 }
 
-const colorOf = (courses: readonly TermCourse[], code: string | null) => courses.find((course) => course.code === code)?.color ?? "var(--faint)";
 const nameOf = (courses: readonly TermCourse[], code: string, fallback?: string) => courses.find((course) => course.code === code)?.name ?? fallback ?? code;
 
 function AnswersLoading() {
@@ -136,7 +135,7 @@ function Answers({ context, courses }: { context: HomeContext; courses: readonly
           <Today context={context} plan={plan} due={due} courses={courses} onCard={cardKey(card)} />
           <div className="grid grid-cols-[minmax(0,1fr)] gap-y-10">
             <NeedsYou needs={needs} due={due} courses={courses} />
-            <Changes context={context} courses={courses} />
+            <Changes context={context} />
           </div>
         </div>
       </div>
@@ -213,7 +212,7 @@ function NowCardView({ card, courses }: { card: NowCard; courses: readonly TermC
   const link = facts?.link ?? meeting?.link ?? null;
   const fresh = useStatus(meeting ? "edunex" : "six").state === "live";
   const code = session?.courseCode ?? card.meeting?.code ?? card.presence!.code;
-  const color = colorOf(courses, code);
+  const color = useCourseColor()(code);
   const course = courses.find((c) => c.code === code);
   // A window alone on the card: the class it's for, as a window can stay open for days, into the next one.
   const windowFor = !session && card.presence ? (card.presence.class ?? card.presence.session) : null;
@@ -805,10 +804,11 @@ function NowMark({ fresh }: { fresh: boolean }) {
   );
 }
 
-function CourseMark({ code, courses, past = false }: { code: string; courses: readonly TermCourse[]; past?: boolean }) {
+function CourseMark({ code, past = false }: { code: string; courses: readonly TermCourse[]; past?: boolean }) {
+  const color = useCourseColor()(code);
   return (
     <span className={cx("inline-flex items-center gap-1.5 font-medium tabular-nums", past ? "text-faint" : "text-fg/80")}>
-      <CourseDot color={colorOf(courses, code)} className="size-2" />
+      <CourseDot color={color} className="size-2" />
       {code}
     </span>
   );
@@ -1187,7 +1187,7 @@ const CHANGE_ICON: Partial<Record<AlertKind, typeof Icons.Home>> = {
 const IMPORTANT: ReadonlySet<string> = new Set(["alert.taskEdited.afterSubmit", "alert.materialToday", "home.change.moved", "home.change.meeting"]);
 
 /** A short look at the last week's changes: the bell keeps all of them, with the same words. */
-function Changes({ context, courses }: { context: HomeContext; courses: readonly TermCourse[] }) {
+function Changes({ context }: { context: HomeContext }) {
   const t = useT();
   const f = useFormat();
   const { go } = useNav();
@@ -1210,7 +1210,7 @@ function Changes({ context, courses }: { context: HomeContext; courses: readonly
       ) : (
         <List label={t("home.changes")}>
           {changes.map((item) => (
-            <ChangeRow key={item.id} item={item} f={f} courses={courses} onOpen={() => go(item.target)} />
+            <ChangeRow key={item.id} item={item} f={f} onOpen={() => go(item.target)} />
           ))}
         </List>
       )}
@@ -1218,18 +1218,19 @@ function Changes({ context, courses }: { context: HomeContext; courses: readonly
   );
 }
 
-function ChangeRow({ item, f, courses, onOpen }: { item: Alert; f: Format; courses: readonly TermCourse[]; onOpen: () => void }) {
+function ChangeRow({ item, f, onOpen }: { item: Alert; f: Format; onOpen: () => void }) {
   const t = useT();
   const Icon = CHANGE_ICON[item.kind] ?? Icons.Bell;
   const important = IMPORTANT.has(item.title.key);
   const code = typeof item.title.vars?.course === "string" ? item.title.vars.course : null;
+  const colorOf = useCourseColor();
   return (
     <Row
       className="py-2.5"
       leading={
         <span className="relative mt-0.5">
           <Icon className={cx("size-4", important ? "text-warning-fg" : "text-faint")} />
-          {code && <CourseDot color={colorOf(courses, code)} className="absolute -right-1 -bottom-1 size-2 ring-2 ring-surface" />}
+          {code && <CourseDot color={colorOf(code)} className="absolute -right-1 -bottom-1 size-2 ring-2 ring-surface" />}
         </span>
       }
       title={<Meta>{t(item.title.key, item.title.vars)}</Meta>}

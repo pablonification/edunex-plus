@@ -161,11 +161,25 @@ export function StatusChip({ status }: { status: TaskStatus }) {
   );
 }
 
-export function CourseDot({ color, className }: { color: string; className?: string }) {
-  return <span aria-hidden className={cx("inline-block size-2.5 shrink-0 rounded-xs", className)} style={{ background: color }} />;
+/**
+ * A course's color, as a small square. No color (a course the app doesn't know, with no pick): an outline, so grey
+ * never stands for a course. High contrast keeps it, edged in the system's text color.
+ */
+export function CourseDot({ color, className }: { color: string | undefined; className?: string }) {
+  return (
+    <span
+      aria-hidden
+      className={cx(
+        "inline-block size-2.5 shrink-0 rounded-xs forced-color-adjust-none forced-colors:outline forced-colors:outline-1 forced-colors:outline-[CanvasText]",
+        !color && "border border-faint",
+        className,
+      )}
+      style={color ? { background: color } : undefined}
+    />
+  );
 }
 
-export function CourseCode({ code, color, className }: { code: string; color: string; className?: string }) {
+export function CourseCode({ code, color, className }: { code: string; color: string | undefined; className?: string }) {
   return (
     <span className={cx("inline-flex items-center gap-1.5 font-semibold tracking-[0.01em] tabular-nums", className)}>
       <CourseDot color={color} className="size-2" />
