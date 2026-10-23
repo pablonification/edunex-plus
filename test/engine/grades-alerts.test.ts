@@ -129,7 +129,7 @@ describe("new and changed grades", () => {
     app.world.six.gradeCourse("2026-1", "II4091", "A");
     await app.sixAgain();
     expect(app.grades()).toEqual([]);
-    expect(app.engine.snapshot().statuses.find((s) => s.source === "six")?.state).toBe("changed");
+    expect(app.engine.snapshot().statuses.find((s) => s.source === "six")?.changedPages?.[0]?.datasets).toContain("six.transcript");
     app.world.six.changeLayout(TRANSCRIPT, ">Status<", ">Masuk Transkrip<");
     await app.sixAgain();
     expect(app.grades().map((n) => n.title.vars?.course)).toEqual(["II4091"]);

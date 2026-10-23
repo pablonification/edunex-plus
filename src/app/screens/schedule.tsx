@@ -11,6 +11,7 @@ import { dayStart, monthGrid, shiftDay, termWeek, weekStart } from "../../core/s
 import { useFormat, useLang, useNow, useT } from "../i18n";
 import { useScheduleInput } from "../schedule-data";
 import { useSignIn } from "../shell/source-status";
+import { SixPageNote, useChangedPage } from "../six-page-note";
 import { useStatus } from "../store";
 import { Button, IconButton, Segmented } from "../ui/controls";
 import { cx } from "../ui/cx";
@@ -75,7 +76,9 @@ export function ScheduleScreen() {
       ? t("schedule.weekOf", { n, range })
       : range
     : new Intl.DateTimeFormat(lang === "id" ? "id-ID" : "en-GB", { month: "long", year: "numeric" }).format(dayStart(`${month.month}-15`));
-  const waiting = !input || (!input.six && (six.state === "connecting" || six.state === "live"));
+  // The timetable's page changed and nothing was read yet: no use waiting for it.
+  const timetableChanged = useChangedPage(["six.schedule"]);
+  const waiting = !input || (!input.six && (six.state === "connecting" || six.state === "live") && !timetableChanged);
   const visible = week ? days : month.weeks.flat().filter((day) => day.startsWith(month.month));
   const unpublished = input?.six && !visible.some((day) => input.months.includes(day.slice(0, 7)));
 
@@ -126,7 +129,8 @@ export function ScheduleScreen() {
         <GridSkeleton />
       ) : (
         <ScheduleWorldProvider>
-          {!input.six && <NeedsSix />}
+          <SixPageNote datasets={["six.schedule"]} className="mb-4" />
+          {!input.six && !timetableChanged && <NeedsSix />}
           {unpublished && (
             <p className="mb-3 flex items-center gap-2 rounded-lg bg-sunken px-3.5 py-2 text-small text-muted">
               <Icons.Info className="size-3.5 shrink-0" />

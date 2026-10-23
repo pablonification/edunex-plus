@@ -140,6 +140,8 @@ export function createEngine(deps: EngineDeps): Engine {
   const answered = new Map<SourceId, number>();
   /** Feeds a manual refresh leaves to their own schedule (FeedSpec.background). */
   const background = new Set<string>();
+  /** Feeds whose page changing is said on their screens, not as the whole source's (FeedSpec.shows): what each fills. */
+  const pages = new Map<string, readonly DatasetName[]>();
   /** Each source's current session number. Work started under an earlier one lands nowhere. */
   const generations = new Map<SourceId, number>(SourceId.options.map((source) => [source, 0]));
   /** The session each source runs with now (for actions). */
@@ -206,13 +208,19 @@ export function createEngine(deps: EngineDeps): Engine {
     }
     if (statuses.get(source)?.state === "expired" || statuses.get(source)?.state === "signed-out") return;
 
-    const mine = [...outcomes.entries()].filter(([name]) => sourceOf(name) === source).map(([, outcome]) => outcome);
-    const changed = mine.find((o) => o && (o.kind === "VendorChanged" || o.kind === "Failed" || o.kind === "Rejected"));
-    const offline = mine.find((o) => o?.kind === "Offline");
-    if (changed) setStatus(source, { state: "changed", detail: changed.message });
-    else if (offline) setStatus(source, { state: "offline", detail: offline.message });
+    const mine = [...outcomes.entries()].filter(([name]) => sourceOf(name) === source);
+    const isChange = (o: EngineError | null) => o?.kind === "VendorChanged" || o?.kind === "Failed" || o?.kind === "Rejected";
+    // A page whose screens say it changed (FeedSpec.shows) isn't the whole source changing: the rest reads on.
+    const changedPages = mine
+      .filter(([name, o]) => isChange(o) && pages.has(name))
+      .map(([name, o]) => ({ datasets: [...pages.get(name)!], detail: o!.message }));
+    const pagesPatch = { changedPages: changedPages.length ? changedPages : undefined };
+    const changed = mine.find(([name, o]) => isChange(o) && !pages.has(name))?.[1];
+    const offline = mine.find(([, o]) => o?.kind === "Offline")?.[1];
+    if (changed) setStatus(source, { state: "changed", detail: changed.message, ...pagesPatch });
+    else if (offline) setStatus(source, { state: "offline", detail: offline.message, ...pagesPatch });
     else {
-      setStatus(source, { state: "live", detail: null, updatedAt: clock.now() });
+      setStatus(source, { state: "live", detail: null, updatedAt: clock.now(), ...pagesPatch });
       // A good read of Edunex: the phone's "laptop hasn't checked" warning moves on.
       if (source === "edunex") phone.checked(clock.now());
     }
@@ -237,7 +245,7 @@ export function createEngine(deps: EngineDeps): Engine {
   async function expire(source: SourceId): Promise<void> {
     endSession(source);
     await vault.delete(sessionKey(source));
-    setStatus(source, { state: "expired", detail: null });
+    setStatus(source, { state: "expired", detail: null, changedPages: undefined });
   }
 
   /**
@@ -250,6 +258,8 @@ export function createEngine(deps: EngineDeps): Engine {
     unreachableAt.delete(spec.name);
     if (spec.background) background.add(spec.name);
     else background.delete(spec.name);
+    if (spec.shows) pages.set(spec.name, spec.shows);
+    else pages.delete(spec.name);
     scheduler.add({
       name: spec.name,
       every: spec.every,
@@ -421,7 +431,7 @@ export function createEngine(deps: EngineDeps): Engine {
       if (!parsed.success) throw new EngineError("Rejected", `That isn't a ${id} session`);
       endSession(id);
       await vault.set(sessionKey(id), JSON.stringify({ ...parsed.data, savedAt: clock.now() }));
-      setStatus(id, { state: "connecting", detail: null });
+      setStatus(id, { state: "connecting", detail: null, changedPages: undefined });
       startSource(source, parsed.data);
       // Whose session this is comes first: a different Student's data must be gone before anything new lands.
       await checkLiveness(id);
@@ -434,7 +444,7 @@ export function createEngine(deps: EngineDeps): Engine {
         endSession(source.id);
         await vault.delete(sessionKey(source.id));
         await store.remove(`${source.id}.`);
-        setStatus(source.id, { state: "signed-out", updatedAt: null, detail: null });
+        setStatus(source.id, { state: "signed-out", updatedAt: null, detail: null, changedPages: undefined });
         // Nothing reads Edunex any more: no warning that it hasn't.
         if (source.id === "edunex") phone.checked(null);
       }

@@ -13,7 +13,7 @@ import type { CurriculumFix } from "../../../core/models";
 import { hasWhatIfs, type SksModel, type StudentRecord, sksModel } from "../../../core/planner";
 import { useOpenExternal } from "../../hooks";
 import { useT } from "../../i18n";
-import { SkippedNote } from "../../skipped-note";
+import { SixPageNote } from "../../six-page-note";
 import { useCurriculumFix, usePlan, useStudentRecord } from "../../study-plan";
 import { IconButton, Switch } from "../../ui/controls";
 import { cx } from "../../ui/cx";
@@ -89,6 +89,7 @@ export function Tab({ onCalendar }: { onCalendar?: () => void }) {
   if (!record || !state || !record.curriculum || !map)
     return (
       <SixNeeded
+        datasets={["six.curriculum", "six.progress"]}
         icon={<Icons.Layers className="size-5" />}
         title={t("curriculum.needSix")}
         body={t("curriculum.needSixBody")}
@@ -150,7 +151,7 @@ export function Tab({ onCalendar }: { onCalendar?: () => void }) {
   };
   return (
     <div className="@container space-y-6">
-      <SkippedNote datasets={["six.curriculum", "six.progress"]} />
+      <SixPageNote datasets={["six.curriculum", "six.progress"]} />
       <Totals
         whatIf={hasWhatIfs(state.plan, record)}
         name={record.curriculum.name}

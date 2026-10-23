@@ -2,7 +2,8 @@
 // progress, the curriculum with the Student's registrations, the study plan
 // and UKT bills, each read when SIX's session starts and then once a day.
 // They stay on this computer like every dataset, each with the rows its pages
-// left out (../skipped.ts).
+// left out (../skipped.ts). A record page whose layout changed is said on its
+// own screens (FeedSpec.shows), not as all of SIX changing.
 import { sixRecordPaths } from "../../../core/links";
 import type { Curriculum, Syllabus } from "../../../core/models";
 import { EngineError } from "../../errors";
@@ -29,6 +30,7 @@ export function registerSixRecordFeeds(context: SourceContext, pages: SixPages):
   context.feed({
     name: "six.transcript",
     ...DAILY,
+    shows: ["six.transcript", "six.progress"],
     async run() {
       const who = await pages.who();
       const history = await pages.page(recordPaths.transcript(who));
@@ -43,6 +45,7 @@ export function registerSixRecordFeeds(context: SourceContext, pages: SixPages):
   context.feed({
     name: "six.curriculum",
     ...DAILY,
+    shows: ["six.curriculum"],
     async run() {
       const skipped = new Skipped();
       await context.set("six.curriculum", await fetchCurriculum(pages, skipped), skipped.rows);
@@ -51,6 +54,7 @@ export function registerSixRecordFeeds(context: SourceContext, pages: SixPages):
   context.feed({
     name: "six.krs",
     ...DAILY,
+    shows: ["six.krs"],
     async run() {
       const skipped = new Skipped();
       await context.set("six.krs", readKrs(await pages.page(recordPaths.krs(await pages.who())), skipped), skipped.rows);
@@ -59,6 +63,7 @@ export function registerSixRecordFeeds(context: SourceContext, pages: SixPages):
   context.feed({
     name: "six.bills",
     ...DAILY,
+    shows: ["six.bills"],
     async run() {
       const skipped = new Skipped();
       await context.set("six.bills", readBills(await pages.page(recordPaths.bills(await pages.who())), skipped), skipped.rows);

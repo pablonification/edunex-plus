@@ -255,7 +255,9 @@ describe("sessions", () => {
         .flat()
         .every((c) => c.at >= since),
     ).toBe(true);
-    expect(h.status("six").state).toBe("changed");
+    // No timetable for this Student: that page is said to have changed, the rest of SIX reads.
+    expect(h.status("six").state).toBe("live");
+    expect(h.status("six").changedPages?.map((page) => page.datasets)).toEqual([["six.schedule", "six.scheduleMonths"]]);
   });
 
   it("sign-out of SIX removes its session and data, and leaves Edunex alone", async () => {
@@ -387,11 +389,29 @@ describe("SIX changed something", () => {
     h.world.six.changeLayout(path, from, to);
     expect(h.world.six.page(path)).toContain(to);
     await until(h, h.engine.refresh("six"));
-    expect(h.status("six").state).toBe("changed");
-    expect(h.status("six").detail).toContain(detail);
+    if (path === STATUS) {
+      // The page the session rests on: all of SIX changed.
+      expect(h.status("six").state).toBe("changed");
+      expect(h.status("six").detail).toContain(detail);
+    } else {
+      // The timetable alone: said where it's shown, and the rest of SIX reads on.
+      expect(h.status("six").state).toBe("live");
+      expect(h.status("six").changedPages).toEqual([{ datasets: ["six.schedule", "six.scheduleMonths"], detail: expect.stringContaining(detail) }]);
+    }
     expect(h.dataset("six.courses")).toEqual(before.courses);
     expect(h.dataset("six.schedule")).toEqual(before.schedule);
     expect(h.vault.secrets.has("six.session")).toBe(true);
+  });
+
+  it("the timetable read again as it was: its page is no longer said to have changed", async () => {
+    const h = await signedIn();
+    h.world.six.changeLayout(TIMETABLE, 'data-url="', 'data-href="');
+    await until(h, h.engine.refresh("six"));
+    expect(h.status("six").changedPages).toHaveLength(1);
+    h.world.six.changeLayout(TIMETABLE, 'data-href="', 'data-url="');
+    await until(h, h.engine.refresh("six"));
+    expect(h.status("six")).toMatchObject({ state: "live", detail: null });
+    expect(h.status("six").changedPages).toBeUndefined();
   });
 
   it("an unknown header word changes nothing (SIX's wording isn't what the app reads)", async () => {

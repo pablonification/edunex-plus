@@ -25,6 +25,12 @@ export type ScanPart = (typeof SCAN_PARTS)[SourceId][number];
 
 const stateOf = (statuses: readonly SourceStatus[], source: SourceId): SourceState => statuses.find((s) => s.source === source)?.state ?? "signed-out";
 const hasAll = (saved: Saved, source: SourceId) => SCAN_PARTS[source].every((name) => saved[name] !== undefined);
+/** A page of the source that fills `name` changed, while the rest still reads (SourceStatus.changedPages). */
+const pageChanged = (statuses: readonly SourceStatus[], source: SourceId, name: DatasetName) =>
+  statuses.find((s) => s.source === source)?.changedPages?.some((page) => page.datasets.includes(name)) ?? false;
+/** Arrived, or won't until the app reads that page again: its layout changed. */
+const settledPart = (saved: Saved, statuses: readonly SourceStatus[], source: SourceId) => (name: DatasetName) =>
+  saved[name] !== undefined || pageChanged(statuses, source, name);
 
 /**
  * The first full sync is done: every signed-in system (Edunex, SIX) has read
@@ -33,8 +39,9 @@ const hasAll = (saved: Saved, source: SourceId) => SCAN_PARTS[source].every((nam
  */
 export function scanReady(saved: Saved, statuses: readonly SourceStatus[]): boolean {
   const signedIn = (["edunex", "six"] as const).filter((source) => stateOf(statuses, source) !== "signed-out");
-  // "live" without every part: still reading.
-  const settled = (source: SourceId) => stateOf(statuses, source) !== "connecting" && (hasAll(saved, source) || stateOf(statuses, source) !== "live");
+  // "live" without every part: still reading, unless a part's page changed.
+  const settled = (source: SourceId) =>
+    stateOf(statuses, source) !== "connecting" && (SCAN_PARTS[source].every(settledPart(saved, statuses, source)) || stateOf(statuses, source) !== "live");
   const calendar = hasAll(saved, "itb") || ["offline", "changed"].includes(stateOf(statuses, "itb"));
   return signedIn.length > 0 && signedIn.every(settled) && calendar;
 }
@@ -54,7 +61,7 @@ export function homeReady(saved: Saved, statuses: readonly SourceStatus[]): bool
   const signedIn = (["edunex", "six"] as const).filter((source) => stateOf(statuses, source) !== "signed-out");
   const settled = (source: "edunex" | "six") => {
     const state = stateOf(statuses, source);
-    const has = HOME_PARTS[source].every((name) => saved[name] !== undefined);
+    const has = HOME_PARTS[source].every(settledPart(saved, statuses, source));
     return has || (state !== "connecting" && state !== "live");
   };
   return signedIn.length > 0 && signedIn.every(settled);
@@ -299,11 +306,14 @@ function ipkStanding({ saved }: ScanInput): Finding | null {
   };
 }
 
-/** What a system couldn't read: parts that never arrived because it went offline, changed something, or ended the session. */
+/** What a system couldn't read: parts that never arrived because it went offline, changed something (or one page did), or ended the session. */
 function unread({ saved, statuses }: ScanInput): Finding | null {
   const parts = (["edunex", "six", "itb"] as const).flatMap((source) => {
     const state = stateOf(statuses, source);
-    if (state !== "offline" && state !== "changed" && state !== "expired") return [];
+    if (state !== "offline" && state !== "changed" && state !== "expired") {
+      const fromPages = SCAN_PARTS[source].filter((name) => saved[name] === undefined && pageChanged(statuses, source, name));
+      return fromPages.length ? [{ source, state: "changed" as const, missing: fromPages }] : [];
+    }
     const missing = SCAN_PARTS[source].filter((name) => saved[name] === undefined);
     if (!missing.length && state !== "changed") return [];
     // ITB's side also reads SIX's public catalog: with the calendar there, a changed catalog page is what changed.

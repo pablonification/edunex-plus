@@ -197,9 +197,11 @@ describe("when the scan is ready", () => {
     expect(homeReady(savedOf(h), statuses(h))).toBe(true);
   });
 
-  it("when a system stops with a reason instead of reading everything", async () => {
+  it("when a system stops with a reason instead of reading everything, or one of its pages changed", async () => {
     const h = await firstSync({ before: (h) => h.world.six.changeLayout(TRANSCRIPT, "Masuk Transkrip", "Status") });
-    expect(h.status("six").state).toBe("changed");
+    // SIX's transcript page changed, the rest of SIX read: SIX is live, and that page is said to have changed.
+    expect(h.status("six").state).toBe("live");
+    expect(h.status("six").changedPages).toEqual([{ datasets: ["six.transcript", "six.progress"], detail: expect.stringMatching(/^SIX transcript page: /) }]);
     expect(h.saved()["six.transcript"]).toBeUndefined();
     expect(scanReady(h.saved(), h.statuses())).toBe(true);
   });
