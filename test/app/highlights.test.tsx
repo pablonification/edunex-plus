@@ -44,6 +44,7 @@ vi.mock("../../src/app/ui/pdf-engine", () => {
     PdfOpenError,
     LINE_HEIGHT: 1.35,
     OFF: "Off",
+    preparePdf: async () => undefined,
     openPdf: async (bytes: Uint8Array) => ({
       pages: Number(/Pages: (\d+)/.exec(new TextDecoder().decode(bytes))?.[1] ?? 1),
       form: null,
