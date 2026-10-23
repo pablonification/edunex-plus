@@ -26,6 +26,7 @@ export * from "./models/exam-marks";
 export * from "./models/highlights";
 export * from "./models/itb";
 export * from "./models/planner";
+export * from "./models/report";
 export * from "./models/six";
 export * from "./models/six-records";
 export * from "./models/snoozes";

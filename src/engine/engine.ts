@@ -2,7 +2,18 @@
 // the network, time, disk and keychain injected. The desktop shell runs it in
 // Electron's main process; tests run it whole against the pretend world.
 import type { Event, Snapshot } from "../core/contract";
-import { type DatasetName, Datasets, DEFAULT_SETTINGS, Settings, type SkippedRow, SourceId, SourceStatus, type UpdateCheckResult } from "../core/models";
+import {
+  type DatasetName,
+  Datasets,
+  DEFAULT_SETTINGS,
+  type ProblemReport,
+  type ReportAbout,
+  Settings,
+  type SkippedRow,
+  SourceId,
+  SourceStatus,
+  type UpdateCheckResult,
+} from "../core/models";
 import { isNewerRelease } from "../core/updates";
 import { AlertCenter, type AlertNotice } from "./alerts/center";
 import type { Detector } from "./alerts/detector";
@@ -12,6 +23,8 @@ import type { Clock } from "./clock";
 import { EngineError, isEngineError } from "./errors";
 import { Pace } from "./http/pace";
 import type { Transport } from "./http/transport";
+import { KeptPages } from "./report/kept-pages";
+import { buildReport } from "./report/report";
 import { type AnySource, SOURCES } from "./sources";
 import type { FeedSpec, SourceContext } from "./sources/source";
 import { DatasetStore } from "./store/datasets";
@@ -61,6 +74,11 @@ export interface Engine {
   markAlertsRead(): Promise<void>;
   /** Asks GitHub for a newer release now ("Periksa pembaruan"); "off" where the app never asks (development, the demo). */
   checkForUpdates(): Promise<UpdateCheckResult>;
+  /**
+   * "Laporkan masalah": what the app couldn't read about `about`, scrubbed of everything personal
+   * (report/report.ts). The pages behind it are kept in memory only, until their source signs out.
+   */
+  report(about: ReportAbout): ProblemReport;
   /** The Student's phone, through ntfy: link it, a test, unlink it. */
   readonly phone: Pick<PhoneChannel, "link" | "connect" | "test" | "disconnect" | "idle">;
   /**
@@ -142,6 +160,8 @@ export function createEngine(deps: EngineDeps): Engine {
   const background = new Set<string>();
   /** Feeds whose page changing is said on their screens, not as the whole source's (FeedSpec.shows): what each fills. */
   const pages = new Map<string, readonly DatasetName[]>();
+  /** The pages behind each feed's latest read that went wrong, for a report. In memory only. */
+  const kept = new KeptPages();
   /** Each source's current session number. Work started under an earlier one lands nowhere. */
   const generations = new Map<SourceId, number>(SourceId.options.map((source) => [source, 0]));
   /** The session each source runs with now (for actions). */
@@ -235,6 +255,7 @@ export function createEngine(deps: EngineDeps): Engine {
   function endSession(source: SourceId): void {
     generations.set(source, generation(source) + 1);
     sessions.delete(source);
+    kept.forget(source);
     for (const name of [...outcomes.keys()].filter((feed) => sourceOf(feed) === source)) {
       scheduler.remove(name);
       outcomes.delete(name);
@@ -267,8 +288,11 @@ export function createEngine(deps: EngineDeps): Engine {
       run: async () => {
         const session = generation(source);
         const current = () => generation(source) === session;
+        // Only a signed-in Student's pages are worth a report (ITB's public pages are the same for everyone).
+        const read = () => spec.run(current);
         try {
-          await spec.run(current);
+          if (sources.get(source)?.session) await kept.during({ feed: spec.name, shows: spec.shows, now: () => clock.now(), current }, read);
+          else await read();
         } catch (error) {
           if (current()) await settle(spec.name, error);
           throw error; // so the scheduler backs this feed off
@@ -300,6 +324,8 @@ export function createEngine(deps: EngineDeps): Engine {
         async request(request) {
           const sent = ++tick;
           const response = await deps.transport.request(request);
+          if (request.method === "GET" && (response.status < 300 || response.status >= 400))
+            kept.saw({ url: request.url, status: response.status, body: response.body });
           if (response.status < 500 && response.status !== 429) answered.set(source, Math.max(answered.get(source) ?? 0, sent));
           return response;
         },
@@ -334,6 +360,7 @@ export function createEngine(deps: EngineDeps): Engine {
       set: async (name, value, skipped = []) => {
         if (!current()) return false;
         const changed = await store.set(name, value, clock.now());
+        kept.leftOut(name, skipped);
         // Read again but unchanged: plans that look at when it was read still need to know.
         if (!changed) alerts.touched(name);
         const notes = skippedNotes(source, name, skipped);
@@ -507,6 +534,18 @@ export function createEngine(deps: EngineDeps): Engine {
 
     async checkForUpdates() {
       return updates ? updates.checkNow() : "off";
+    },
+
+    report(about) {
+      return buildReport({
+        kept: kept.list(),
+        about,
+        get: (name) => store.get(name),
+        statuses: [...statuses.values()],
+        version: deps.version,
+        now: clock.now(),
+        seed: Math.floor((deps.random ?? Math.random)() * 2 ** 32),
+      });
     },
 
     phone,
