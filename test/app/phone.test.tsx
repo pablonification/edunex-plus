@@ -50,7 +50,8 @@ describe("phone notifications in Settings", () => {
     // Drawn from the code's modules, as SVG elements.
     expect(qr()?.querySelector("path")?.getAttribute("d")).toMatch(/^M\d+ \d+h1v1h-1z/);
     expect(s.text()).toContain(link.topic);
-    expect(s.text()).toContain("iPhone: di ntfy, ketuk +, lalu ketik kode di bawah.");
+    expect(s.text()).toContain("Di Android, pindai kode QR ini dengan kamera HP.");
+    expect(s.text()).toContain("Di iPhone, buka ntfy, ketuk +, lalu ketik kode di bawah.");
     // Another phone subscribes from the same QR code or code: ntfy gives every subscriber each message.
     expect(s.text()).toContain("Untuk HP lain, ulangi langkah ini di HP itu. Semua mendapat notifikasi yang sama.");
 
