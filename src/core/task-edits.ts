@@ -159,7 +159,7 @@ function mergeOne(from: TaskChange, to: TaskChange): TaskChange | null {
 export interface EditView {
   /** unknown: no record of the newest edit; none: nothing compared changed since the version last checked; known: some did. */
   state: "unknown" | "none" | "known";
-  /** The newest edit's record, when there is one. */
+  /** The record of the edit that speaks for the Task (`speakingEdit`), when there is one. */
   record: TaskEdit | null;
   /** Every record of the Task, newest first: History tells each. */
   records: TaskEdit[];
@@ -171,20 +171,34 @@ export interface EditView {
   afterSubmit: boolean;
 }
 
+/**
+ * The edit that speaks for a Task now: its newest, or, when Edunex marked it
+ * changed again with nothing compared different (a second save, a rubric), the
+ * newest before it that changed something, so a re-save never hides a change
+ * the Student hasn't checked. Null: the newest edit wasn't seen happen.
+ */
+export function speakingEdit(task: Pick<Task, "id" | "editedAt">, edits: readonly TaskEdit[] | undefined): TaskEdit | null {
+  if (task.editedAt === null) return null;
+  const records = (edits ?? []).filter((edit) => edit.taskId === task.id && edit.at <= task.editedAt!).sort((a, b) => b.at - a.at);
+  const newest = records.find((edit) => edit.at === task.editedAt);
+  if (!newest) return null;
+  return newest.changes.length ? newest : (records.find((edit) => edit.changes.length > 0) ?? newest);
+}
+
 /** A Task's edit as the screens tell it; null while it was never edited. */
 export function editView(task: Task, edits: readonly TaskEdit[] | undefined, done: readonly DoneEntry[]): EditView | null {
   if (task.editedAt === null) return null;
   const records = (edits ?? []).filter((edit) => edit.taskId === task.id).sort((a, b) => b.at - a.at);
-  const record = records.find((edit) => edit.at === task.editedAt) ?? null;
-  const key = taskDoneKey(task, "edited");
+  const record = speakingEdit(task, edits);
+  // Checked against the edit that speaks: an empty re-save after it doesn't bring it back.
+  const key = taskDoneKey(task, "edited", record?.at);
   const checked = done.find((entry) => entry.id === key.id && entry.facts === key.facts);
   // An earlier version checked: only what came after it is news.
   const older = done.find((entry) => entry.id === key.id && entry.facts !== key.facts);
   const since = older ? Number(older.facts.split("|")[1]) : Number.NEGATIVE_INFINITY;
   const changes = mergeEdits(records.filter((edit) => edit.at > (Number.isFinite(since) ? since : Number.NEGATIVE_INFINITY)));
   return {
-    // The newest edit decides, as Beranda's row and the notification do: one that changed nothing compared is "none", whatever came before.
-    state: record === null ? "unknown" : record.changes.length && changes.length ? "known" : "none",
+    state: record === null ? "unknown" : changes.length ? "known" : "none",
     record,
     records,
     changes,

@@ -1886,8 +1886,10 @@ function EditNotice({ task, onSee }: { task: Task; onSee: (at: number) => void }
   const shownAt = useRef(now);
   if (!view || task.editedAt === null) return null;
   const sentAt = submittedAt(task);
-  const age = now - task.editedAt;
-  const edited = f.dayMonth(task.editedAt);
+  // The edit that speaks for the Task: the newest that changed something (a re-save after it changes nothing).
+  const at = view.record?.at ?? task.editedAt;
+  const age = now - at;
+  const edited = f.dayMonth(at);
   const name = factsLabel(task.title, task.courseCode);
   if (view.checked)
     return view.checked.at >= shownAt.current ? (
@@ -1904,7 +1906,7 @@ function EditNotice({ task, onSee }: { task: Task; onSee: (at: number) => void }
         </button>
       </p>
     ) : null;
-  const check = <DoneButton item={taskDoneKey(task, "edited")} how="checked" name={name} said={t("done.toast.checked")} words variant="secondary" />;
+  const check = <DoneButton item={taskDoneKey(task, "edited", at)} how="checked" name={name} said={t("done.toast.checked")} words variant="secondary" />;
   if (view.state === "unknown") {
     // Before hand-in an edit nobody can describe is History's alone.
     if (!view.afterSubmit || sentAt === null) return null;
@@ -1945,7 +1947,7 @@ function EditNotice({ task, onSee }: { task: Task; onSee: (at: number) => void }
       title={
         <>
           {view.afterSubmit && sentAt !== null ? t("task.change.afterSubmit", { edited, sent: f.dayMonth(sentAt) }) : t("task.change.before", { edited })}{" "}
-          <button type="button" onClick={() => onSee(task.editedAt!)} className="focus-ring rounded font-semibold underline underline-offset-2">
+          <button type="button" onClick={() => onSee(at)} className="focus-ring rounded font-semibold underline underline-offset-2">
             {t("task.change.see")}
           </button>
         </>
@@ -1975,8 +1977,10 @@ function History({ task, reveal }: { task: Task; reveal: { at: number; asked: nu
     setOpened(reveal.at);
     const button = triggers.current.get(reveal.at);
     if (!button) return;
-    button.scrollIntoView?.({ block: "nearest", behavior: stillMotion() ? "auto" : "smooth" });
     button.focus({ preventScroll: true });
+    // Under 1100px History sits under the page: the step goes to the top, so the list it opens shows under it.
+    const narrow = !window.matchMedia?.("(min-width: 1100px)").matches;
+    (button.closest("li") ?? button).scrollIntoView?.({ block: narrow ? "start" : "nearest", behavior: stillMotion() ? "auto" : "smooth" });
   }, [reveal]);
   return (
     <div className="px-4">

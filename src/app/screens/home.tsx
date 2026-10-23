@@ -1163,7 +1163,8 @@ function useNeedView(courses: readonly TermCourse[]): (need: NeedDraft) => NeedV
             tone: "warning",
           };
         // Changed before hand-in: a quiet note on the Task's own row for two weeks, never a second row; title alone is History's.
-        const changed = edit && task.editedAt !== null && now - task.editedAt < 14 * DAY && !titleOnly(edit.changes) ? editNote(t, f, edit, false) : null;
+        const editAt = edit?.record?.at ?? task.editedAt;
+        const changed = edit && editAt !== null && now - editAt < 14 * DAY && !titleOnly(edit.changes) ? editNote(t, f, edit, false) : null;
         const meta =
           need.reason === "overdue"
             ? t("home.need.task.overdue")

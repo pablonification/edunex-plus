@@ -45,7 +45,7 @@ import type {
 } from "./models";
 import type { Route } from "./route";
 import { dayStart, isScheduleReminder, slotMarks, weekStart } from "./schedule";
-import { dateMove } from "./task-edits";
+import { dateMove, speakingEdit } from "./task-edits";
 import { editedAfterSubmit, isOpenStatus, notOpenYet, shortWindow, takesAnswers, taskStatus } from "./tasks";
 
 const MINUTE = 60_000;
@@ -185,7 +185,8 @@ export type NeedFacts =
       classMoved: SlotChange | null;
     }
   | ({ kind: "class" } & ClassFacts)
-  | { kind: "task"; task: Task; reason: "overdue" | "short" | "due" | "edited"; draft: boolean }
+  /** `editAt`, for "edited": the edit it's about (the newest that changed something). */
+  | { kind: "task"; task: Task; reason: "overdue" | "short" | "due" | "edited"; draft: boolean; editAt?: number | null }
   | { kind: "attendance"; health: AttendanceHealth }
   | { kind: "meeting"; meeting: AnnouncedMeeting }
   | {
@@ -503,9 +504,12 @@ export function taskNeed(task: Task, now: number, edits?: readonly TaskEdit[]): 
     action: { kind: "go", route: { screen: "task", taskId: task.id } },
     task,
   } as const;
-  if (editedAfterSubmit(task) && task.editedAt! <= now && now - task.editedAt! < RECENT && newestEdit(task, edits)?.changes.length !== 0) {
+  // The edit that speaks: a re-save that changed nothing compared doesn't hide the change before it.
+  const speaking = speakingEdit(task, edits);
+  const editAt = speaking?.at ?? task.editedAt;
+  if (editedAfterSubmit(task) && editAt !== null && editAt <= now && now - editAt < RECENT && speaking?.changes.length !== 0) {
     const stillOpen = task.dueAt === null || task.dueAt > now || task.lateAllowed;
-    return { ...base, id: `task:${task.id}:edited`, band: stillOpen && !task.closed ? "now" : "soon", reason: "edited", draft: false };
+    return { ...base, id: `task:${task.id}:edited`, band: stillOpen && !task.closed ? "now" : "soon", reason: "edited", draft: false, editAt };
   }
   if (!isOpenStatus(status) || notOpenYet(task, now) || !takesAnswers(task, now)) return null;
   const draft = status === "draft";

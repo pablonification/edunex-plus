@@ -4,12 +4,24 @@
 // the screens make of them.
 import { describe, expect, it } from "vitest";
 import { putAway, taskDoneKey } from "../../src/core/done";
-import { Datasets, type Task, type TaskEdit } from "../../src/core/models";
+import { Datasets, type Task, type TaskAnswer, type TaskEdit } from "../../src/core/models";
+import { taskNeed } from "../../src/core/needs";
 import { dateMove, editView, mergeEdits, nextEdits, taskChanges, titleOnly } from "../../src/core/task-edits";
 import { instructionsText } from "../../src/engine/sources/edunex/instructions-text";
 import { aTask } from "../kit/tasks";
 
 const at = (iso: string) => Date.parse(`${iso}+07:00`);
+/** Handed in on 1 Oct, before every edit here. */
+const sent: TaskAnswer = {
+  id: 1,
+  sent: true,
+  text: "<p>Jawaban</p>",
+  files: [],
+  createdAt: null,
+  updatedAt: null,
+  sentAt: at("2026-10-01T10:00:00"),
+  reviewedAt: null,
+};
 const task = (fields: Partial<Task> = {}): Task =>
   aTask({
     id: 117001,
@@ -75,6 +87,13 @@ describe("what's compared", () => {
     expect(instructionsText("<h2>Ketentuan</h2><ol><li>Satu</li><li>Dua</li></ol><p>Kirim<br>sebelum Senin.</p><script>x()</script>")).toBe(
       "Ketentuan\n1. Satu\n2. Dua\nKirim\nsebelum Senin.",
     );
+    // A paragraph inside a list item stays beside its mark.
+    expect(instructionsText("<ul><li><p>Satu</p></li><li><p>Dua</p></li></ul>")).toBe("• Satu\n• Dua");
+  });
+
+  it("odd markup never stops the Tasks being saved: a stray % in a picture's link, a pasted picture with no name", () => {
+    expect(instructionsText('<p><img src="https://example.com/Nilai 100%.png"></p>')).toBe("[gambar: Nilai 100%.png] (https://example.com/Nilai 100%.png)");
+    expect(instructionsText('<p><img src="data:image/png;base64,iVBORw0KGgo="></p>')).toMatch(/^\[gambar\] \(data:[0-9a-f]{12}\)$/);
   });
 
   it("not what moves without an edit, nor a group flag that wasn't read before", () => {
@@ -180,8 +199,16 @@ describe("several edits as one, and what the screens make of them", () => {
     // The first edit was checked: only the second is news.
     const checkedFirst = putAway([], taskDoneKey({ ...t, editedAt: at("2026-10-07T10:00:00") }, "edited"), "checked", 0);
     expect(editView(t, records, checkedFirst)).toMatchObject({ state: "known", checked: undefined, changes: [{ kind: "title", from: "A", to: "B" }] });
-    // The newest edit changed nothing compared: "none", as on Beranda and in the notification, even after an unchecked one.
-    expect(editView({ ...t, editedAt: at("2026-10-09T10:00:00") }, [...records, edit("2026-10-09T10:00:00", [])], [])).toMatchObject({ state: "none" });
+    // A re-save that changed nothing compared doesn't hide the change before it, nor bring back one already checked.
+    const resaved = { ...t, editedAt: at("2026-10-09T10:00:00") };
+    const withResave = [...records, edit("2026-10-09T10:00:00", [])];
+    expect(editView(resaved, withResave, [])).toMatchObject({ state: "known", record: { at: at("2026-10-08T10:00:00") } });
+    expect(editView(resaved, withResave, [])?.changes.map((c) => c.kind)).toEqual(["deadline", "title"]);
+    expect(editView(resaved, withResave, putAway([], taskDoneKey(t, "edited"), "checked", 0))?.checked?.how).toBe("checked");
+    const need = taskNeed({ ...resaved, status: "submitted", answer: sent }, at("2026-10-09T12:00:00"), withResave);
+    expect(need).toMatchObject({ reason: "edited", editAt: at("2026-10-08T10:00:00") });
+    // Alone, an edit that changed nothing compared is "none", and no item.
+    expect(taskNeed({ ...t, status: "submitted", answer: sent }, at("2026-10-08T12:00:00"), [edit("2026-10-08T10:00:00", [])])).toBeNull();
     // This very version checked.
     const checked = putAway([], taskDoneKey(t, "edited"), "checked", 0);
     expect(editView(t, records, checked)?.checked?.how).toBe("checked");

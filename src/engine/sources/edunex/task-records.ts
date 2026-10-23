@@ -1,7 +1,7 @@
 // Edunex's Task records (GET /course/tasks with the Student's answers), read
 // into the app's Tasks. Shapes verified against test/fixtures/edunex/course-tasks.*.json.
 import { z } from "zod";
-import type { Task, TaskAnswer, TaskFile, TaskModule } from "../../../core/models";
+import type { Task, TaskAnswer, TaskEdit, TaskFile, TaskModule } from "../../../core/models";
 import { nextEdits } from "../../../core/task-edits";
 import { byDeadline, taskStatus } from "../../../core/tasks";
 import { EngineError } from "../../errors";
@@ -255,6 +255,14 @@ export async function remember(context: SourceContext, taskId: number, task: Tas
  */
 export async function storeTasks(context: SourceContext, tasks: Task[]): Promise<void> {
   const stored = context.get("edunex.tasks");
-  if (stored) await context.set("edunex.taskEdits", nextEdits(context.get("edunex.taskEdits") ?? [], stored, tasks, context.clock.now(), instructionsText));
-  await context.set("edunex.tasks", sortTasks(tasks));
+  let edits: TaskEdit[] | null = null;
+  try {
+    if (stored) edits = nextEdits(context.get("edunex.taskEdits") ?? [], stored, tasks, context.clock.now(), instructionsText);
+  } catch {
+    // Saying what changed must never stop the Tasks being saved: this edit is then "not known".
+    edits = null;
+  }
+  // Both into memory at once, before either is written: a hand-in read back meanwhile can't be overwritten
+  // by this older copy, and the edit alert (run once the Tasks are written) finds the edits there.
+  await Promise.all([edits ? context.set("edunex.taskEdits", edits) : null, context.set("edunex.tasks", sortTasks(tasks))]);
 }

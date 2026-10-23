@@ -37,12 +37,22 @@ const BLOCKS = new Set([
 ]);
 const DROP = "script, style, template, noscript";
 
+/** A link's file name as a reader sees it; a stray "%" leaves it as written. */
+function fileName(src: string): string {
+  const name = src.split(/[?#]/)[0]?.split("/").pop() ?? "";
+  try {
+    return decodeURIComponent(name);
+  } catch {
+    return name;
+  }
+}
+
 /** A picture's stand-in: its alt text or file name, and where it comes from (an inline one by a short hash). */
 function picture(element: Element): string {
   const src = element.attribs.src ?? "";
-  const name = (element.attribs.alt ?? "").trim() || decodeURIComponent(src.split(/[?#]/)[0]?.split("/").pop() ?? "") || "gambar";
+  const name = (element.attribs.alt ?? "").trim() || (src.startsWith("data:") ? "" : fileName(src));
   const from = src.startsWith("data:") ? `data:${createHash("sha256").update(src).digest("hex").slice(0, 12)}` : src;
-  return `[gambar: ${name}]${from ? ` (${from})` : ""}`;
+  return `${name ? `[gambar: ${name}]` : "[gambar]"}${from ? ` (${from})` : ""}`;
 }
 
 export function instructionsText(html: string): string {
@@ -50,8 +60,10 @@ export function instructionsText(html: string): string {
   const $ = load(html, null, false);
   $(DROP).remove();
   const out: string[] = [];
+  // A new line, but not straight after a list item's mark: "<li><p>…" keeps its words beside the bullet.
   const line = () => {
-    if (out.length && out[out.length - 1] !== "\n") out.push("\n");
+    const last = out[out.length - 1];
+    if (out.length && last !== "\n" && !/^(• |\d+\. )$/.test(last ?? "")) out.push("\n");
   };
   const walk = (nodes: AnyNode[], list: { ordered: boolean; n: number } | null) => {
     for (const node of nodes) {
