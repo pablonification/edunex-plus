@@ -32,6 +32,10 @@ Everything stays on your computer:
   download went, so downloading it again opens the copy you already have; signing out of Edunex
   forgets that.
 
+- **A page the app couldn't read** (one whose layout changed, or with rows it doesn't recognise)
+  is kept in memory while it can't, never on disk, so you can report it if you want to. It's gone
+  once that page reads again or you sign out.
+
 **Settings → Keluar** (sign out of everything) removes every session and every saved trace
 from this computer.
 

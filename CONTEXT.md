@@ -94,6 +94,10 @@ _Avoid_: error, broken row, ignored
 "SIX mengubah halaman ini": one SIX page whose layout changed (the fees page, the timetable) while the rest of SIX still reads. The screens that show its data say so, keep the data from the last good read, and say when that was; SIX itself stays connected. Not "SIX changed" (the banner), which is the page the whole session rests on. Called `changedPages` in code ([ADR 0006](docs/adr/0006-a-changed-six-page-is-said-on-its-screens.md)).
 _Avoid_: broken page, error, SIX is down
 
+**Problem report**:
+"Laporan masalah": what a Student can send the maintainer when the app couldn't read a page (a changed page, unrecognised rows, Edunex or SIX changing): the app's version and system, which page and which check, and that page as SIX or Edunex sent it, scrubbed on their computer (names, numbers, contacts, links replaced, grades and amounts made up). The page is kept in memory only, until that page reads again or they sign out, and nothing is sent until they pick GitHub or LINE. Called `report` in code ([ADR 0007](docs/adr/0007-report-a-page-the-app-couldnt-read.md)).
+_Avoid_: crash report, log, telemetry, feedback
+
 **Course color**:
 "Warna mata kuliah": a course's identity mark, its dot and its stripe, the same on every screen. One of ten named colors ("Biru", "Nila"), each with a tone for light and one for dark; none is a status hue or grey. A course's automatic color is remembered the first time it shows, so it never moves by itself; a color the Student picks stays with the course code, next term too. Kept on this computer.
 _Avoid_: course status, tag color, theme
