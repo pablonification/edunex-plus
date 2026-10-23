@@ -91,7 +91,8 @@ function outcome(read: (html: string, skipped: Skipped, nim: string) => unknown,
 }
 
 const STATUS = "/app/mahasiswa:18223901/statusmhs";
-const pageOf = (path: string) => sixPage(new RegExp(`${path.replace(/[+.]/g, "\\$&")}$`));
+/** The recorded page at exactly this path. */
+const pageOf = (path: string) => sixPage(path);
 const historis = /\/transkrip\/historis\/\d+$/;
 
 const SIX_CASES: {
