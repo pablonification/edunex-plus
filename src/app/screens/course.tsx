@@ -11,6 +11,7 @@ import { clashes, type Meeting, openPresences, pinnedMeeting } from "../../core/
 import { edunexCourseUrl, sixTimetableUrl } from "../../core/links";
 import type { PresenceSession } from "../../core/models";
 import { attendanceKey, attendanceSnoozable } from "../../core/snooze";
+import { todoCount, todoForCourse } from "../../core/todo";
 import { useAttendance } from "../attendance";
 import { verdictLabel } from "../attendance-labels";
 import { AttendanceSummary, CourseTarget } from "../attendance-parts";
@@ -18,6 +19,7 @@ import { errorKey } from "../bridge";
 import { useOpenExternal } from "../hooks";
 import { type Format, type StringKey, type Translate, useFormat, useLang, useNow, useT } from "../i18n";
 import { useNav } from "../nav";
+import { useTodo } from "../schedule-data";
 import { useRefresh } from "../shell/source-status";
 import { SnoozeMenu } from "../snooze-menu";
 import { useSnoozes } from "../snoozes";
@@ -49,6 +51,7 @@ type Tab = (typeof TABS)[number];
 export function CourseScreen({ code, tab, module }: { code: string; tab?: string; module?: number }) {
   const t = useT();
   const page = useCoursePage(code);
+  const todo = useTodo();
   const { replace, returned } = useNav();
   const current: Tab = (TABS as readonly string[]).includes(tab ?? "") ? (tab as Tab) : "modules";
   const [asked, setAsked] = useState(module !== undefined && !returned);
@@ -76,7 +79,8 @@ export function CourseScreen({ code, tab, module }: { code: string; tab?: string
   const counts: Partial<Record<Tab, number>> = {
     modules: page.outline?.modules.length,
     meetings: page.meetings.length,
-    tasks: page.tasks.length + page.exams.length,
+    // The course's "Belum selesai": its Tasks and exams with a day still ahead, a take-home once.
+    tasks: todo ? todoCount(todoForCourse(todo.items, code)) : undefined,
     announcements: page.announcements?.length || undefined,
   };
 
@@ -109,7 +113,7 @@ export function CourseScreen({ code, tab, module }: { code: string; tab?: string
             ),
           )}
           {panel("meetings", loaded ? <MeetingsTab page={page} /> : <NotLoaded />)}
-          {panel("tasks", loaded ? <TasksTab tasks={page.tasks} exams={page.exams} /> : <NotLoaded />)}
+          {panel("tasks", loaded ? <TasksTab code={page.course.code} exams={page.exams} /> : <NotLoaded />)}
           {panel(
             "announcements",
             loaded ? (

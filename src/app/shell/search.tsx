@@ -340,7 +340,12 @@ function detailOf(item: SearchItem, t: Translate, f: Format, now: number): strin
       break;
     }
     case "exam":
-      parts.push(takeHomeOnly(item.exam) ? t("task.takeHome", { kind: t(`exam.kind.${item.exam.kind}`) }) : null, examWhen(item.exam, t, f));
+      parts.push(
+        takeHomeOnly(item.exam) ? t("task.takeHome", { kind: t(`exam.kind.${item.exam.kind}`) }) : null,
+        examWhen(item.exam, t, f),
+        // Behind the Student, as in Done: said, so it isn't taken for one to come.
+        item.past ? t("deadlines.past") : null,
+      );
       break;
     // The joint class's copy of a module says so, or the two rows read the same.
     case "material":

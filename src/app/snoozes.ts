@@ -5,8 +5,9 @@
 // whole list). The rules (what matches, until when) live in core/snooze.ts.
 import { useSyncExternalStore } from "react";
 import type { SnoozeEntry } from "../core/models";
-import { attention, dueItems, homeContext, nowCard, todayPlan } from "../core/needs";
+import { attention, dueItems, homeContext, nowCard, taskNeed, todayPlan } from "../core/needs";
 import { activeSnooze, attendanceKey, holding, pruneSnoozes, type SnoozeKey, snoozeKey } from "../core/snooze";
+import { taskStatus } from "../core/tasks";
 import { useAttendance } from "./attendance";
 import { useHomeWorld } from "./home-world";
 import { useNow } from "./i18n";
@@ -32,6 +33,15 @@ export interface Snoozes {
   /** Shows it again now. */
   wake(id: string): Promise<void>;
   wakeAll(): Promise<void>;
+}
+
+const NONE: readonly SnoozeEntry[] = [];
+
+/** The saved snoozes as the window has them (its own copy while a write is on its way), the same list while nothing changes. */
+export function useSnoozeEntries(): readonly SnoozeEntry[] {
+  const saved = useDataset("local.snoozes");
+  const mine = useSyncExternalStore(subscribe, () => pending);
+  return mine?.entries ?? saved ?? NONE;
 }
 
 export function useSnoozes(): Snoozes {
@@ -74,7 +84,7 @@ export function useSnoozes(): Snoozes {
 
 /**
  * The snoozes still hiding something now, on Beranda (its "Perlu perhatianmu",
- * as it shows it, and the deadlines in "Hari ini") or on a course page (the attendance banner): what Settings
+ * as it shows it, and the deadlines in "Hari ini"), in Tugas & Ujian (a late Task) or on a course page (the attendance banner): what Settings
  * counts. One whose deadline moved, whose count changed or whose Task was
  * handed in hides nothing, so it isn't counted.
  */
@@ -87,6 +97,11 @@ export function useHeldBack(): readonly SnoozeEntry[] {
   const context = homeContext(world);
   const plan = todayPlan(context);
   const keys = [...attention(context, nowCard(context), plan), ...dueItems(context, plan)].map(snoozeKey);
+  // A late Task put off in Tugas & Ujian, also one Beranda leaves to its Presence window.
+  for (const task of world.tasks) {
+    const need = taskStatus(task, now) === "overdue" ? taskNeed(task, now) : null;
+    if (need) keys.push(snoozeKey(need));
+  }
   // A banner's key carries its course's state, so only a course still showing that banner matches.
   if (attendance) for (const { course, health } of attendance.courses) keys.push(attendanceKey(course.code, health));
   return holding(entries, keys, now);

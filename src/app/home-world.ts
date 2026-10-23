@@ -22,6 +22,7 @@ export function useHomeWorld(): HomeWorld | undefined {
   const schedule = useDataset("six.schedule");
   const scheduleMonths = useDataset("six.scheduleMonths");
   const exams = useDataset("edunex.exams");
+  const examMarks = useDataset("local.examMarks");
   const calendar = useDataset("itb.calendar");
   const krs = useDataset("six.krs");
   const bills = useDataset("six.bills");
@@ -49,6 +50,7 @@ export function useHomeWorld(): HomeWorld | undefined {
       schedule: schedule ?? null,
       scheduleMonths,
       exams,
+      examMarks,
       calendar,
       krs,
       bills,
@@ -63,6 +65,7 @@ export function useHomeWorld(): HomeWorld | undefined {
     schedule,
     scheduleMonths,
     exams,
+    examMarks,
     calendar,
     krs,
     bills,

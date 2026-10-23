@@ -8,6 +8,8 @@
 //   EDUNEX_DEMO_NOW=<ISO>    the moment the demo starts (default: the recorded Thursday morning)
 //   EDUNEX_DEMO_PLATFORM=win32|linux  the window's page drawn as on that system (its title bar, Ctrl shortcuts)
 //   EDUNEX_DEMO_CHECK_IN=open  SIX's "Tandai Hadir" shows in the morning's PL3002 class (meeting 2194342)
+//   EDUNEX_DEMO_QUIZ=1       DK4073 also has an Edunex quiz open for ten days (19–30 Oct), for "Tandai selesai"
+//                            (no real Edunex exam record has been seen, so it follows the app's model of one)
 //
 // Every run starts from an empty profile (deleted again on quit), so each begins the same way.
 import fs from "node:fs";
@@ -31,6 +33,10 @@ if (platform && !["darwin", "win32", "linux"].includes(platform)) throw new Erro
 const start = process.env.EDUNEX_DEMO_NOW ?? (scenario === "first-run" ? "2026-10-08T08:10:00+07:00" : "2026-10-08T08:07:00+07:00");
 const world = new PretendWorld({ now: start });
 if (process.env.EDUNEX_DEMO_CHECK_IN === "open") world.six.openCheckIn("2194342");
+if (process.env.EDUNEX_DEMO_QUIZ === "1")
+  world.edunex.exams.set(93409, [
+    { id: 88002, type: "exams", attributes: { name: "Kuis Brand Equity", start_at: "2026-10-19T08:00:00+07:00", end_at: "2026-10-30T23:59:00+07:00" } },
+  ]);
 // Each run gets its own throwaway profile, so several demos can run side by side.
 const profile = `Edunex Plus Demo/${scenario}-${process.pid}`;
 const profileDir = path.join(app.getPath("appData"), profile);

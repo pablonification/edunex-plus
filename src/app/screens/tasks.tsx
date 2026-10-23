@@ -9,15 +9,12 @@ import { type DragEvent, lazy, type ReactNode, Suspense, useEffect, useId, useMe
 import { answerFileProblem, type HandInResult, type PickedFile } from "../../core/actions/tasks";
 import { attendanceWindow, type CountedIn, presenceOptional } from "../../core/attendance";
 import { introModule } from "../../core/course-materials";
-import { examPassed } from "../../core/exams";
+import type { Exam } from "../../core/exams";
 import type { Task, TaskFile, TaskModule, TaskStatus } from "../../core/models";
 import type { StringKey } from "../../core/strings";
 import {
   attendanceResult,
   attendanceSession,
-  byDeadline,
-  type DueGroup,
-  dueGroup,
   editedAfterSubmit,
   edunexTaskUrl,
   type HandInCheck,
@@ -34,9 +31,10 @@ import {
   taskHistory,
   taskStatus,
 } from "../../core/tasks";
+import { lateSnoozable, type TodoGroup, type TodoItem, todoCount, todoCounted, todoForCourse, todoGroup } from "../../core/todo";
 import { answerShape, editableInApp } from "../answer-html";
 import { useAttendance } from "../attendance";
-import { ActionError } from "../bridge";
+import { ActionError, errorKey } from "../bridge";
 import { type TermCourse, useTermCourses } from "../courses";
 import { useOpenExternal } from "../hooks";
 import { type Format, type Translate, useFormat, useNow, useT } from "../i18n";
@@ -44,19 +42,22 @@ import { LecturerHtml } from "../lecturer-html";
 import { type Route, useNav } from "../nav";
 import { OpenFile, useDownloadedToast, useLocalCopy } from "../open-file";
 import { canView, isPdfName, useAnswerAttach, usePdfViewer } from "../pdf";
-import { useExams } from "../schedule-data";
+import { type Todo, useExams, useTodo } from "../schedule-data";
 import { isBuilt } from "../shell/built";
 import { useRefresh, useSignIn } from "../shell/source-status";
+import { canSnooze, refocus, SnoozeMenu } from "../snooze-menu";
+import { useSnoozes } from "../snoozes";
 import { useBridge, useDataset, useStatus } from "../store";
 import { Button, Segmented, useRadioKeys } from "../ui/controls";
 import { cx } from "../ui/cx";
-import { Card, CourseDot, EmptyState, ProgressBar, Skeleton, StatusChip, StatusGlyph } from "../ui/display";
+import { Card, CourseDot, EmptyState, ProgressBar, Skeleton, StatusChip, StatusGlyph, Tag } from "../ui/display";
 import { Icons } from "../ui/icons";
 import { factsLabel, List, Row as ListRow, Meta, Page, PageHeader, Section } from "../ui/layout";
+import { PresenceList } from "../ui/motion/presence-list";
 import { ignoreClosingClick, PANEL_MOTION_CLASS, SCRIM_CLASS, toast, useReturnFocus } from "../ui/overlays";
 import type { RichEditorHandle } from "../ui/rich-editor";
 import { plainText } from "../ui/rich-text";
-import { ExamRow, examWeekLabel, takeHomeWhy } from "./exam";
+import { ExamPartRow, PastExamRow, PeriodRow, takeHomeWhy } from "./exam";
 
 const MINUTE = 60_000;
 const HOUR = 60 * MINUTE;
@@ -65,13 +66,6 @@ const DAY = 24 * HOUR;
 interface Row {
   task: Task;
   status: TaskStatus;
-}
-
-/** Every Task with its status right now. */
-function useRows(): Row[] | undefined {
-  const tasks = useDataset("edunex.tasks");
-  const now = useNow();
-  return useMemo(() => tasks?.map((task) => ({ task, status: taskStatus(task, now) })), [tasks, now]);
 }
 
 /** A course's name and color, for a row's "course · module" line. */
@@ -86,23 +80,29 @@ function useCountedIn(code: string): CountedIn | undefined {
 
 // ---------------------------------------------------------------- Tugas & Ujian
 
-const GROUPS: { group: DueGroup; title: StringKey }[] = [
+const GROUPS: { group: TodoGroup; title: StringKey }[] = [
   { group: "overdue", title: "tasks.group.overdue" },
   { group: "thisWeek", title: "tasks.group.thisWeek" },
   { group: "nextWeek", title: "tasks.group.nextWeek" },
   { group: "later", title: "tasks.group.later" },
+  { group: "undated", title: "tasks.group.undated" },
 ];
 
 // The course filter the Student last chose, kept while the app runs (per window).
 const lastCourse = new WeakMap<object, string | null>();
 
-/** `show`: "done" while Selesai is picked, kept in its place in history (nav.replace), so Back comes back to it. */
+/**
+ * Everything still ahead in one list, ordered by the moment each runs out
+ * (a Task's deadline, a sitting's start, an Edunex window's close), with no
+ * section of exams pulled out of order; an exam period whose exams have no
+ * day yet is one quiet line where it falls, on top while it's on. Done holds
+ * what's handed in, the exams behind the Student and what closed.
+ *
+ * `show`: "done" while Selesai is picked, kept in its place in history (nav.replace), so Back comes back to it.
+ */
 export function TasksScreen({ show: shown }: { show?: "done" }) {
   const t = useT();
-  const f = useFormat();
-  const now = useNow();
-  const rows = useRows();
-  const exams = useExams();
+  const todo = useTodo();
   const courses = useTermCourses();
   const bridge = useBridge();
   const { replace } = useNav();
@@ -114,46 +114,34 @@ export function TasksScreen({ show: shown }: { show?: "done" }) {
     setCourseState(value);
   };
 
-  // A take-home exam is one thing with its exam: its Task shows inside the exam row.
-  const folded = useMemo(() => new Set((exams ?? []).flatMap((exam) => exam.tasks.map((task) => task.id))), [exams]);
-  const lists = useMemo(() => {
-    const open: Row[] = [];
-    const submitted: Row[] = [];
-    const missed: Row[] = [];
-    for (const row of rows ?? []) {
-      if (isOpenStatus(row.status)) open.push(row);
-      else if (row.status === "closed") missed.push(row);
-      else submitted.push(row);
-    }
-    open.sort((a, b) => byDeadline(a.task, b.task));
-    submitted.sort((a, b) => (submittedAt(b.task) ?? 0) - (submittedAt(a.task) ?? 0));
-    missed.sort((a, b) => (b.task.dueAt ?? 0) - (a.task.dueAt ?? 0));
-    return { open, submitted, missed };
-  }, [rows]);
-
+  const now = todo?.now ?? 0;
+  const items = todoForCourse(todo?.items ?? [], course);
   const mine = (code: string) => course === null || code === course;
-  const listed = (row: Row) => mine(row.task.courseCode) && !(show === "open" && folded.has(row.task.id));
-  const sections =
-    show === "open"
-      ? GROUPS.map(({ group, title }) => ({ title, rows: lists.open.filter((row) => listed(row) && dueGroup(row.task, row.status, now) === group) }))
-      : [
-          { title: "tasks.group.submitted" as const, rows: lists.submitted.filter(listed) },
-          { title: "tasks.group.closed" as const, rows: lists.missed.filter(listed) },
-        ];
-  const shownExams = (exams ?? []).filter((exam) => examPassed(exam, now) === (show === "done") && mine(exam.courseCode));
-  const week =
-    show === "open"
-      ? ((exams ?? []).find((exam) => exam.week && exam.week.end > now && exam.kind === "UTS")?.week ??
-        (exams ?? []).find((exam) => exam.week && exam.week.end > now)?.week)
-      : undefined;
-  const weekExam = week ? (exams ?? []).find((exam) => exam.week === week) : undefined;
-  const nothing = shownExams.length === 0 && sections.every((section) => section.rows.length === 0);
-  // Signed out of SIX, only Edunex's exams are known: said once, under them, with the way to SIX's timetable.
+  const done = {
+    handedIn: (todo?.done.handedIn ?? []).filter((task) => mine(task.courseCode)),
+    pastExams: (todo?.done.pastExams ?? []).filter((past) => mine(past.exam.courseCode)),
+    closed: (todo?.done.closed ?? []).filter((task) => mine(task.courseCode)),
+  };
+  const doneCount = done.handedIn.length + done.pastExams.length + done.closed.length;
+  // An exam period going on sits on top: everything this week happens inside it.
+  const during = items.filter((item) => item.kind === "period" && item.state === "during");
+  const rest = items.filter((item) => !during.includes(item));
+  // Late rows put off ("Ingatkan nanti") are out of the list and its counts; Terlambat says how many, and shows them.
+  const putOff = (todo?.putOff ?? []).filter(({ item }) => mine(item.course ?? ""));
+  const groups = GROUPS.map(({ group, title }) => ({ group, title, items: rest.filter((item) => todoGroup(item, now) === group) })).filter(
+    (group) => group.items.length > 0 || (group.group === "overdue" && putOff.length > 0),
+  );
+  // Never "nothing to do" while something is only put off.
+  const nothingToDo = !rest.some(todoCounted) && putOff.length === 0;
+  // Signed out of SIX, only Edunex's exams are known: said once, at the end of the list, with the way to SIX's timetable.
   const examsNoSix = useStatus("six").state === "signed-out" && show === "open" && course === null;
   // Courses with something in either segment, for the filter.
-  const withItems = (courses ?? []).filter(
-    (c) => (rows ?? []).some((row) => row.task.courseCode === c.code) || (exams ?? []).some((exam) => exam.courseCode === c.code),
-  );
+  const codes = new Set([
+    ...(todo?.items ?? []).map((item) => item.course),
+    ...(todo?.exams ?? []).map((exam) => exam.courseCode),
+    ...[...(todo?.done.handedIn ?? []), ...(todo?.done.closed ?? [])].map((task) => task.courseCode),
+  ]);
+  const withItems = (courses ?? []).filter((c) => codes.has(c.code));
   // One radio group: "Semua" (null) first, then each course; arrows move the pick, a second click keeps it.
   const radio = useRadioKeys([null, ...withItems.map((c) => c.code)], course, setCourse);
 
@@ -167,8 +155,8 @@ export function TasksScreen({ show: shown }: { show?: "done" }) {
             value={show}
             onChange={setShow}
             options={[
-              { value: "open", label: rows ? `${t("tasks.filter.open")} ${lists.open.length}` : t("tasks.filter.open") },
-              { value: "done", label: rows ? `${t("tasks.filter.done")} ${lists.submitted.length + lists.missed.length}` : t("tasks.filter.done") },
+              { value: "open", label: todo ? `${t("tasks.filter.open")} ${todoCount(items)}` : t("tasks.filter.open") },
+              { value: "done", label: todo ? `${t("tasks.filter.done")} ${doneCount}` : t("tasks.filter.done") },
             ]}
           />
         }
@@ -187,56 +175,188 @@ export function TasksScreen({ show: shown }: { show?: "done" }) {
         </div>
       )}
 
-      {!rows ? (
+      {!todo ? (
         <NoTasksYet />
-      ) : nothing ? (
-        <EmptyState
-          icon={<Icons.CheckCircle className="size-5" />}
-          title={
-            course !== null && show === "open"
-              ? t("tasks.noneForCourse", { code: course })
-              : rows.length === 0
-                ? t("tasks.none")
-                : show === "open"
-                  ? t("tasks.allHandedIn")
-                  : t("tasks.noneDone")
-          }
-        />
+      ) : show === "done" ? (
+        doneCount === 0 ? (
+          <EmptyState icon={<Icons.CheckCircle className="size-5" />} title={t("tasks.noneDone")} />
+        ) : (
+          <DoneGroups done={done} exams={todo.exams} />
+        )
       ) : (
         <>
-          {(shownExams.length > 0 || examsNoSix) && (
-            <Section
-              id="tasks-exams"
-              title={t("exams.title")}
-              count={shownExams.length || undefined}
-              description={week && weekExam && (weekExam.kind === "UTS" || weekExam.kind === "UAS") ? examWeekLabel(t, f, weekExam.kind, week) : undefined}
-            >
-              {shownExams.length > 0 && (
-                <List label={t("exams.title")}>
-                  {shownExams.map((exam) => (
-                    <ExamRow key={exam.id} exam={exam} />
+          {during.length > 0 && (
+            <List label={t("exams.title")} className="mb-10">
+              {during.map((item) => (
+                <TodoRow key={item.key} item={item} />
+              ))}
+            </List>
+          )}
+          {nothingToDo ? (
+            <>
+              <EmptyState
+                icon={<Icons.CheckCircle className="size-5" />}
+                title={course !== null ? t("tasks.noneForCourse", { code: course }) : t("tasks.empty.title")}
+                description={course === null ? t("tasks.empty.hint") : undefined}
+              >
+                {course !== null && (
+                  <Button size="sm" onClick={() => setCourse(null)}>
+                    {t("tasks.showAll")}
+                  </Button>
+                )}
+              </EmptyState>
+              {/* What's still to know though nothing is to do: an exam period ahead, an exam with no date. */}
+              {rest.length > 0 && (
+                <List label={t("exams.title")} className="mt-6">
+                  {rest.map((item) => (
+                    <TodoRow key={item.key} item={item} />
                   ))}
                 </List>
               )}
-              {/* Under a take-home, how the app tells one from a Task: said once for the list. */}
-              {shownExams.some((exam) => exam.tasks.length > 0) && <p className="mt-2.5 px-1 text-small text-muted">{t("exams.takeHomeRule")}</p>}
-              {examsNoSix && <ExamsNoSix />}
-            </Section>
-          )}
-          {sections
-            .filter((section) => section.rows.length > 0)
-            .map((section) => (
-              <Section key={section.title} id={`tasks-${section.title}`} title={t(section.title)} count={section.rows.length}>
-                <List label={t(section.title)}>
-                  {section.rows.map((row) => (
-                    <TaskRow key={row.task.id} {...row} />
-                  ))}
-                </List>
+            </>
+          ) : (
+            groups.map((group) => (
+              <Section key={group.group} id={`tasks-${group.group}`} title={t(group.title)} count={todoCount(group.items) || undefined}>
+                {group.items.length > 0 && (
+                  <List label={t(group.title)}>
+                    {/* A row put off fades out, and focus moves on to the next (or to "ditunda" under them). */}
+                    <PresenceList>
+                      {group.items.map((item) => (
+                        <TodoRow key={item.key} item={item} />
+                      ))}
+                    </PresenceList>
+                  </List>
+                )}
+                {group.group === "overdue" && <PutOff putOff={putOff} />}
               </Section>
-            ))}
+            ))
+          )}
+          {examsNoSix && <ExamsNoSix />}
         </>
       )}
     </Page>
+  );
+}
+
+/** A row's id, so focus can come back to it (a late Task brought back from what's put off). */
+const todoRowId = (key: string) => `todo-${key}`;
+
+/** The Task a late row is about, for its name: a Task, or an exam's take-home. */
+const lateTitle = (item: TodoItem) =>
+  item.kind === "task" ? item.task.title : item.kind === "exam" && item.part?.kind === "takehome" ? item.part.task.title : "";
+
+/**
+ * A row of the one list, whatever it is: a Task, an exam's part, an exam
+ * period. A late one can be put off ("Ingatkan nanti") as on Beranda, the
+ * same snooze for the same Task.
+ */
+export function TodoRow({ item, inCourse = false }: { item: TodoItem; inCourse?: boolean }) {
+  const now = useNow();
+  const late = lateSnoozable(item, now);
+  const snooze = late && canSnooze(late, now) ? <SnoozeMenu item={late} name={lateTitle(item)} /> : undefined;
+  const id = todoRowId(item.key);
+  if (item.kind === "task")
+    return <TaskRow task={item.task} status={item.status} meta={inCourse ? "module" : "course"} late={item.late} id={id} actions={snooze} />;
+  if (item.kind === "period") return <PeriodRow item={item} inCourse={inCourse} />;
+  return <ExamPartRow item={item} inCourse={inCourse} id={id} actions={snooze} />;
+}
+
+/** "1 ditunda · Tampilkan" under the late rows, as on Beranda: quiet, opening what's put off, each with Ingatkan sekarang. */
+export function PutOff({ putOff }: { putOff: Todo["putOff"] }) {
+  const t = useT();
+  const [open, setOpen] = useState(false);
+  // Closed once nothing is put off, so the next snooze doesn't find the list open.
+  if (open && !putOff.length) setOpen(false);
+  if (!putOff.length) return null;
+  return (
+    <>
+      <div className="mt-2.5 px-1">
+        <Meta className="text-small text-muted">
+          <span className="inline-flex items-center gap-1.5">
+            <Icons.Snooze className="size-3.5 shrink-0 text-faint" />
+            {t("snooze.count", { count: putOff.length })}
+          </span>
+          <button
+            type="button"
+            data-snoozed=""
+            aria-expanded={open}
+            onClick={() => setOpen(!open)}
+            className="focus-ring rounded font-medium text-accent-fg hover:underline"
+          >
+            {open ? t("snooze.hideList") : t("snooze.showList")}
+          </button>
+        </Meta>
+      </div>
+      {open && (
+        <List label={t("snooze.list")} className="mt-2.5">
+          {putOff.map(({ item, entry }) => (
+            <PutOffRow key={item.key} item={item} entry={entry} />
+          ))}
+        </List>
+      )}
+    </>
+  );
+}
+
+/** A late Task put off: what it is, when it's back, and the way to bring it back now. */
+function PutOffRow({ item, entry }: Todo["putOff"][number]) {
+  const t = useT();
+  const f = useFormat();
+  const { wake } = useSnoozes();
+  const title = lateTitle(item);
+  const when = f.dueLabel(entry.until);
+  const wakeNow = (button: HTMLElement) => {
+    const row = button.closest("li");
+    const sibling = (row?.nextElementSibling ?? row?.previousElementSibling)?.querySelector<HTMLElement>("button");
+    void wake(entry.id).catch((error: unknown) => toast(t(errorKey(error)), "danger"));
+    // Its row leaves with the button: on to the next thing put off, else to the Task, back in the list.
+    refocus(() => sibling ?? document.getElementById(todoRowId(item.key)));
+  };
+  return (
+    <ListRow
+      title={title}
+      meta={
+        <Meta>
+          {item.course ?? ""}
+          {entry.reason === "change" ? t("snooze.untilChange", { when }) : t("snooze.until", { when })}
+        </Meta>
+      }
+      trailing={
+        <Button size="sm" variant="ghost" aria-label={t("snooze.wakeFor", { title })} onClick={(event) => wakeNow(event.currentTarget)}>
+          {t("snooze.wake")}
+        </Button>
+      }
+    />
+  );
+}
+
+/** Done: handed in, past exams, closed; each newest first. A take-home keeps its exam's look. */
+export function DoneGroups({ done, exams, inCourse = false }: { done: Todo["done"]; exams: readonly Exam[]; inCourse?: boolean }) {
+  const t = useT();
+  const now = useNow();
+  const examOf = (task: Task) => exams.find((exam) => exam.tasks.some((item) => item.id === task.id));
+  const meta = inCourse ? "module" : "course";
+  const sections = [
+    { id: "submitted", title: "tasks.group.submitted" as const, count: done.handedIn.length },
+    { id: "pastExams", title: "tasks.group.pastExams" as const, count: done.pastExams.length },
+    { id: "closed", title: "tasks.group.closed" as const, count: done.closed.length },
+  ].filter((section) => section.count > 0);
+  return (
+    <>
+      {sections.map((section) => (
+        <Section key={section.id} id={`${inCourse ? "course" : "tasks"}-${section.id}`} title={t(section.title)} count={section.count}>
+          <List label={t(section.title)}>
+            <PresenceList>
+              {section.id === "pastExams"
+                ? done.pastExams.map((past) => <PastExamRow key={past.exam.id} past={past} inCourse={inCourse} />)
+                : (section.id === "submitted" ? done.handedIn : done.closed).map((task) => (
+                    <TaskRow key={task.id} task={task} status={taskStatus(task, now)} meta={meta} exam={examOf(task)} />
+                  ))}
+            </PresenceList>
+          </List>
+        </Section>
+      ))}
+    </>
   );
 }
 
@@ -255,13 +375,12 @@ function FilterChip({ radio, children }: { radio: ReturnType<ReturnType<typeof u
   );
 }
 
-/** Before the first Task list has arrived: placeholders while it's on its way, else why it isn't. */
-/** Under the exams, without SIX: SIX's exam timetable is missing, and the one way to get it. */
+/** At the end of the list, without SIX: SIX's exam timetable is missing, and the one way to get it. */
 function ExamsNoSix() {
   const t = useT();
   const { signIn, busy } = useSignIn();
   return (
-    <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
+    <div className="mt-8 flex flex-wrap items-center gap-x-4 gap-y-2">
       <p className="text-small text-muted">{t("tasks.examsNoSix")}</p>
       <Button size="sm" busy={busy} onClick={() => void signIn("six")}>
         {t("action.signInTo", { source: "SIX" })}
@@ -270,6 +389,7 @@ function ExamsNoSix() {
   );
 }
 
+/** Before the first Task list has arrived: placeholders while it's on its way, else why it isn't. */
 function NoTasksYet() {
   const t = useT();
   const status = useStatus("edunex");
@@ -314,52 +434,110 @@ export function TaskRows({ tasks, meta = "course", label }: { tasks: readonly Ta
   );
 }
 
-function TaskRow({ task, status, meta = "course" }: Row & { meta?: "course" | "module" | "none" }) {
+/**
+ * A Task as a row, opening its page. Under "Terlambat" the heading says it's
+ * late (no chip on every row), and the row says it's still taken. A take-home
+ * in Done keeps its exam's look: the tag, the course, "Take-home".
+ */
+function TaskRow({
+  task,
+  status,
+  meta = "course",
+  late = false,
+  exam,
+  id,
+  actions,
+}: Row & { meta?: "course" | "module" | "none"; late?: boolean; exam?: Exam; id?: string; actions?: ReactNode }) {
   const t = useT();
   const { go } = useNav();
+  const course = useCourse(task.courseCode);
   const module = moduleLabel(t, task.module);
+  const chip = LOUD.includes(status) && !(late && status === "overdue");
   return (
     <ListRow
+      id={id}
       onClick={() => go({ screen: "task", taskId: task.id })}
-      title={task.title}
-      meta={meta === "course" ? <Place task={task} /> : meta === "module" && module ? <Meta>{module}</Meta> : undefined}
+      actions={actions}
+      title={
+        exam ? (
+          <span className="flex min-w-0 items-center gap-2">
+            <Tag>{t(`exam.kind.${exam.kind}`)}</Tag>
+            <span className="truncate">{course?.name ?? exam.courseCode}</span>
+          </span>
+        ) : (
+          task.title
+        )
+      }
+      meta={
+        exam ? (
+          <Meta truncate>
+            {meta === "course" ? <CourseCodeMark task={task} /> : ""}
+            {t("exam.takeHome")}
+            {task.title}
+          </Meta>
+        ) : meta === "course" ? (
+          <Place task={task} />
+        ) : meta === "module" && module ? (
+          <Meta>{module}</Meta>
+        ) : undefined
+      }
       trailing={
         <span className="flex items-center gap-4">
-          {LOUD.includes(status) && <StatusChip status={status} />}
+          {chip && <StatusChip status={status} />}
           <TaskDate task={task} status={status} />
         </span>
       }
     >
+      {late && <span className="mt-1 block text-small text-muted">{t("home.need.task.overdue")}</span>}
       <Signal task={task} status={status} />
-      <span className="sr-only">{!LOUD.includes(status) && t(`taskStatus.${status}`)}</span>
+      <span className="sr-only">{!chip && !late && t(`taskStatus.${status}`)}</span>
     </ListRow>
   );
 }
 
-/** "Jum, 16 Okt, 23:59 / dalam 8 hari": red within a day or past it; "Dikumpulkan 24 Sep" once handed in. */
+/**
+ * The list's one date column, for a deadline: its day and time over how
+ * long until it (dropped when it only says the day again: "Besok"); amber
+ * within a day, red once late.
+ */
+export function DueWhen({ at, late, under }: { at: number; late: boolean; under?: string }) {
+  const f = useFormat();
+  const now = useNow();
+  const soon = !late && at > now && at - now < DAY;
+  const repeats = under === undefined && Math.abs(f.dayOffset(at)) === 1 && Math.abs(at - now) >= DAY;
+  return (
+    <span className={cx("w-[136px] text-right text-small whitespace-nowrap tabular-nums", late ? "text-danger-fg" : soon && "text-warning-fg")}>
+      <span className="block font-medium">{f.dueLabel(at)}</span>
+      {!repeats && <span className={cx("block", !late && !soon && "text-faint")}>{under ?? f.fromNow(at)}</span>}
+    </span>
+  );
+}
+
+/** "Jum, 16 Okt, 23:59 / dalam 8 hari": amber within a day, red once late; "Dikumpulkan 24 Sep" once handed in. */
 export function TaskDate({ task, status }: Row) {
   const t = useT();
   const f = useFormat();
-  const now = useNow();
   const sentAt = submittedAt(task);
-  const soon = task.dueAt !== null && (status === "overdue" || status === "closed" || (isOpenStatus(status) && task.dueAt - now < DAY));
+  if (sentAt !== null)
+    return (
+      <span className="w-[136px] text-right text-small whitespace-nowrap tabular-nums">
+        <span className="block font-medium">
+          {task.score !== null ? t("task.scoreValue", { score: formatScore(task.score, f) }) : t("task.submittedOnDate", { date: f.dayMonth(sentAt) })}
+        </span>
+        {task.score !== null && <span className="block text-faint">{t("task.submittedOnDate", { date: f.dayMonth(sentAt) })}</span>}
+      </span>
+    );
+  if (task.dueAt === null) return <span className="w-[136px] text-right text-small whitespace-nowrap text-faint">{t("task.noDeadline")}</span>;
+  return <DueWhen at={task.dueAt} late={status === "overdue" || status === "closed"} under={status === "closed" ? t("task.notHandedIn") : undefined} />;
+}
+
+/** "● DK4073": the course's code with its dot. */
+function CourseCodeMark({ task }: { task: Task }) {
+  const course = useCourse(task.courseCode);
   return (
-    <span className="w-[136px] text-right text-small whitespace-nowrap tabular-nums">
-      {sentAt !== null ? (
-        <>
-          <span className="block font-medium">
-            {task.score !== null ? t("task.scoreValue", { score: formatScore(task.score, f) }) : t("task.submittedOnDate", { date: f.dayMonth(sentAt) })}
-          </span>
-          {task.score !== null && <span className="block text-faint">{t("task.submittedOnDate", { date: f.dayMonth(sentAt) })}</span>}
-        </>
-      ) : task.dueAt !== null ? (
-        <>
-          <span className={cx("block font-medium", soon && "text-danger-fg")}>{f.dueLabel(task.dueAt)}</span>
-          <span className={cx("block", soon ? "text-danger-fg" : "text-faint")}>{status === "closed" ? t("task.notHandedIn") : f.fromNow(task.dueAt)}</span>
-        </>
-      ) : (
-        <span className="block text-faint">{t("task.noDeadline")}</span>
-      )}
+    <span className="inline-flex items-center gap-1.5 font-medium text-fg/80">
+      <CourseDot color={course?.color ?? "var(--faint)"} className="size-2" />
+      {task.courseCode}
     </span>
   );
 }
@@ -506,16 +684,19 @@ function TaskPage({ task }: { task: Task }) {
         {/* One line of facts; once the Task is open, when it opened is history (Riwayat says it). */}
         <Meta className="mt-2.5 text-body text-muted">
           {task.dueAt !== null ? (
-            <span className={cx("inline-flex items-center gap-1.5 font-medium", late || soon ? "text-danger-fg" : "text-fg")}>
+            // Red once late; amber while it's due within a day.
+            <span className={cx("inline-flex items-center gap-1.5 font-medium", late ? "text-danger-fg" : soon ? "text-warning-fg" : "text-fg")}>
               <Icons.Clock className="size-3.5 shrink-0" />
               {t("task.due", { when: f.dueLabel(task.dueAt) })}
             </span>
           ) : (
             t("task.noDeadline")
           )}
-          {task.dueAt !== null && <span className={cx((late || soon) && "text-danger-fg")}>{f.fromNow(task.dueAt)}</span>}
+          {task.dueAt !== null && <span className={cx(late ? "text-danger-fg" : soon && "text-warning-fg")}>{f.fromNow(task.dueAt)}</span>}
           {isOpenStatus(status) && task.dueAt !== null && (
-            <span className={cx(!task.lateAllowed && soon && "text-danger-fg")}>{task.lateAllowed ? t("handIn.lateAllowed") : t("handIn.lateNotAllowed")}</span>
+            <span className={cx(!task.lateAllowed && soon && "text-warning-fg")}>
+              {task.lateAllowed ? t("handIn.lateAllowed") : t("handIn.lateNotAllowed")}
+            </span>
           )}
           {task.opensAt !== null && notOpenYet(task, now) && (
             <span className="font-medium text-warning-fg">{t("task.opens", { when: f.dueLabel(task.opensAt) })}</span>

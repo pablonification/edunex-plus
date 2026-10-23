@@ -60,10 +60,26 @@ _Avoid_: assignment in code identifiers (collides with programming terms); use T
 Edunex's aggregated list of pending items (tasks, exams) for the logged-in account.
 _Avoid_: todo list in UI copy without the Edunex meaning
 
+**Exam**:
+"Ujian": one exam of a course (its UTS, its UAS, a quiz), however many systems list it: SIX's sitting with its room, Edunex's exam, a take-home, the course outline, ITB's exam week. Its parts each run out at their own moment (a sitting at its start, an Edunex exam open for more than a day at its close, a take-home at its deadline). It's behind the Student once every part is; one never given a day is behind once its exam week ends.
+_Avoid_: test, assessment
+
+**Take-home**:
+An exam handed in as an Edunex Task: Edunex files it under UTS or UAS, or its name starts with the exam's word ("UTS Markom", "Midex"). Listed once, as the exam's, at its deadline.
+_Avoid_: exam Task, assignment exam
+
 ### In the app
 
+**Exam period**:
+"Masa UTS", "Masa UAS": ITB's exam week (or weeks) of the term, from the ITB calendar. Exams with only their period known yet are one quiet line where the period falls in Tugas & Ujian, never counted as something to do.
+_Avoid_: exam season, "Minggu UTS" (Minggu reads as Sunday next to a date)
+
+**Mark as done**:
+"Tandai selesai": the Student moves an Edunex exam open for more than a day (a quiz open for a week) to Done once they've taken it, the one thing about an exam no system tells the app. Only there: never on a SIX sitting (its time decides) or a Task (Edunex knows). Undoable, kept on this computer, and it ends when Edunex moves the exam's time: then it's back in To do and says so.
+_Avoid_: dismiss, hide, complete
+
 **Snooze**:
-"Ingatkan nanti" (Remind me later): the Student puts a Beranda item or a course's attendance banner off until a moment that fits it ("Besok pagi", "Sehari sebelum tenggat", "Saat dibuka"). It always ends: at that moment, at the item's last useful moment, or when the item changes (a moved deadline, a new count, turning urgent), two weeks at most. Kept on this computer; OS notifications and the bell are not affected.
+"Ingatkan nanti" (Remind me later): the Student puts a Beranda item, a late Task in Tugas & Ujian (the same snooze as Beranda's for that Task) or a course's attendance banner off until a moment that fits it ("Besok pagi", "Sehari sebelum tenggat", "Saat dibuka"). It always ends: at that moment, at the item's last useful moment, or when the item changes (a moved deadline, a new count, turning urgent), two weeks at most. Kept on this computer; OS notifications and the bell are not affected.
 _Avoid_: dismiss, mute, "don't remind me again" (nothing is hidden for good)
 
 ### SIX and ITB's rules
