@@ -107,6 +107,14 @@ describe("the bell", () => {
     expect(screen.has(/^Kembali ke /)).toBe(true);
   });
 
+  it("the tray menu's new notifications open the bell, as if it was clicked: the count goes", async () => {
+    const s = await withNewMaterial();
+    await s.apply({ type: "command", command: "alerts" });
+    expect(panel()?.textContent).toContain("Materi baru · PL3032");
+    await s.key("Escape");
+    expect(s.has(/belum dibaca/)).toBe(false);
+  });
+
   it("speaks English when asked", async () => {
     const s = await withNewMaterial();
     await s.engineDoes(() => s.engine.updateSettings({ lang: "en" }));

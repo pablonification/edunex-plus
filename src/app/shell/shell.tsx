@@ -26,7 +26,7 @@ import { factsLabel } from "../ui/layout";
 import { ARRIVE_APP } from "../ui/motion/arrival";
 import { Tooltip, toast } from "../ui/overlays";
 import { PanelBoundary } from "../ui/panel-boundary";
-import { AlertsBell } from "./alerts";
+import { AlertsBell, openAlerts } from "./alerts";
 import { type Badge as BadgeValue, usePlanBadge, usePresenceBadge, useTasksBadge } from "./badges";
 import { isBuilt } from "./built";
 import { SearchButton, useSearchShortcut } from "./search-button";
@@ -106,6 +106,7 @@ function Layout({ arriving }: { arriving: boolean }) {
         if (command === "settings") openSettings();
         if (command === "refresh") void refreshNow(bridge);
         if (command === "search") openSearch(false);
+        if (command === "alerts") openAlerts();
       },
       [bridge, openSearch, openSettings],
     ),

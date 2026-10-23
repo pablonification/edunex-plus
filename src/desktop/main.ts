@@ -4,9 +4,10 @@
 
 import module from "node:module";
 import path from "node:path";
-import { app, type BrowserWindow, dialog, powerMonitor, session } from "electron";
+import { app, type BrowserWindow, dialog, powerMonitor, session, shell } from "electron";
 import { CHANNEL_EVENT } from "../core/channels";
 import type { Event } from "../core/contract";
+import { isOfficialUrl, isWebLink } from "../core/links";
 import type { Settings } from "../core/models";
 import { DEFAULT_SETTINGS, UpdateNotice } from "../core/models";
 import type { Route } from "../core/route";
@@ -38,6 +39,7 @@ import { followAutoUpdates } from "./self-update";
 import { FileStorage } from "./storage";
 import { electronTransport } from "./transport";
 import { type AppTray, createTray } from "./tray";
+import { type TrayAction, trayMenu } from "./tray-menu";
 import { electronUpdater } from "./updater";
 import { holdsSafeStorage, openVault } from "./vault";
 import { createMainWindow, currentPlatform, followTheme, loadWindowState } from "./window";
@@ -72,16 +74,12 @@ let autoUpdates: ReturnType<typeof followAutoUpdates> | null = null;
 let readyToQuit = false;
 /** macOS: the key the saved sign-ins are locked with, from the keychain helper (src/desktop/keychain-helper.ts); null elsewhere. */
 let vaultKey: Buffer | null = null;
+/** The engine's clock: the demo's runs at its own made-up moment. */
+const clock = demo?.clock ?? systemClock;
 const notifier = createNotifier({
   lang: () => engine?.snapshot().settings.lang ?? DEFAULT_SETTINGS.lang,
   open: openRoute,
-  openCheckIn: (meetingId) => {
-    if (!engine) return;
-    // The class went off SIX's timetable meanwhile: Beranda, where its attendance is.
-    openCheckIn({ engine, lang: () => engine?.snapshot().settings.lang ?? DEFAULT_SETTINGS.lang, packaged }, meetingId).catch(() =>
-      openRoute({ screen: "home" }),
-    );
-  },
+  openCheckIn: checkIn,
 });
 
 if (!app.requestSingleInstanceLock()) {
@@ -124,7 +122,7 @@ async function start(): Promise<void> {
   let followAccount: (event: Event) => Promise<void> = async () => undefined;
   const current = createEngine({
     transport: demo?.transport ?? electronTransport(engineSession),
-    clock: demo?.clock ?? systemClock,
+    clock,
     storage,
     vault,
     version: __APP_VERSION__,
@@ -133,6 +131,7 @@ async function start(): Promise<void> {
       send(event);
       void followAccount(event);
       autoUpdates?.onEvent(event);
+      tray?.changed();
     },
     // The demo's made-up alerts stay in the app: no OS notifications, nothing to a phone.
     alert: (notice) => void (demo ? undefined : notifier.show(notice)),
@@ -226,7 +225,7 @@ async function start(): Promise<void> {
     startSyncing();
   }, 6_000);
   shown.once("show", () => clearTimeout(fallback));
-  tray = createTray({ lang: current.snapshot().settings.lang, open: reveal, quit: () => app.quit() });
+  tray = createTray({ menu: () => trayMenu(current.snapshot(), clock.now()), now: () => clock.now(), act: trayAction });
   shown.on("close", (event) => {
     if (quitting) return;
     const { closeToTray, trayExplained } = current.snapshot().settings;
@@ -261,7 +260,7 @@ function startSyncing(): void {
 
 function applySettings(settings: Settings): void {
   theme?.set(settings.theme);
-  tray?.setLang(settings.lang);
+  tray?.update();
   installMenu({ lang: settings.lang, devTools: !packaged, command: (command) => send({ type: "command", command }) });
 }
 
@@ -280,6 +279,49 @@ function reveal(): void {
 function openRoute(route: Route): void {
   reveal();
   send({ type: "navigate", route });
+}
+
+/** "Tandai Hadir" (a notification, the tray menu): SIX on the class's popup. */
+function checkIn(meetingId: string): void {
+  if (!engine) return;
+  // The class went off SIX's timetable meanwhile: Beranda, where its attendance is.
+  openCheckIn({ engine, lang: () => engine?.snapshot().settings.lang ?? DEFAULT_SETTINGS.lang, packaged }, meetingId).catch(() =>
+    openRoute({ screen: "home" }),
+  );
+}
+
+/** A line of the tray menu was clicked (./tray-menu.ts). */
+function trayAction(action: TrayAction): void {
+  switch (action.kind) {
+    case "window":
+      reveal();
+      break;
+    case "route":
+      openRoute(action.route);
+      break;
+    case "command":
+      reveal();
+      send({ type: "command", command: action.command });
+      break;
+    case "url":
+      // Only official pages, as the window's own links ("shell.openExternal").
+      if (isOfficialUrl(action.url)) void shell.openExternal(action.url).catch(() => undefined);
+      break;
+    case "link":
+      // A lecturer's link, as the window's "shell.openLink": any web page, in the browser.
+      if (isWebLink(action.url)) void shell.openExternal(action.url).catch(() => undefined);
+      break;
+    case "checkIn":
+      checkIn(action.meetingId);
+      break;
+    case "refresh":
+      // The window's own refresh, so its top bar says what's being read; with no window, the engine's.
+      if (window && !window.isDestroyed()) send({ type: "command", command: "refresh" });
+      else void engine?.refresh().catch(() => undefined);
+      break;
+    case "quit":
+      app.quit();
+  }
 }
 
 /** The first time the window closes into the tray: say so once, and offer to quit instead. */

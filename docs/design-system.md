@@ -400,6 +400,13 @@ are decorative; the control around them carries the name.
   keep the system's own title bar.
 - **Tray**: macOS's menu bar takes a one-colour template glyph; Windows and
   Linux show the colour app icon, drawn at each size (`scripts/make-icons.mjs`).
+  Its menu answers "what do I need to know now" without the window, the same
+  on all three (`src/desktop/tray-menu.ts`): the data status (or what's wrong,
+  opening the window on its fix), the class on now or next with "Tandai Hadir"
+  and the Presence to fill in, the first four of Beranda's "Perlu perhatianmu"
+  with "Hari ini"'s deadlines in, new notifications, then the actions and Quit.
+  Beranda's own words and reasoning, never "in 5 minutes" (a menu left open
+  doesn't tick), each line one short fact cut with "…", no emoji.
 - The window opens only once the page has drawn the saved data, on a
   background matching the theme, so there is no white flash.
 - Closing the window on macOS keeps the app running (Dock); elsewhere it

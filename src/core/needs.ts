@@ -1061,8 +1061,8 @@ export function attention(world: HomeWorld | HomeContext, card: NowCard | null =
   const due = new Set(shownToday.due.map((task) => task.id));
   const meetsToday = new Set(shownToday.classes.filter((c) => c.session.end > context.now).map((c) => c.session.courseCode));
   const soon = (at: number) => wibDay(at) === day || wibDay(at) === tomorrow;
-  return needsYou(context)
-    .filter((need) => {
+  return ranked(
+    needsYou(context).filter((need) => {
       switch (need.kind) {
         case "class":
           return false;
@@ -1080,9 +1080,39 @@ export function attention(world: HomeWorld | HomeContext, card: NowCard | null =
         default:
           return true;
       }
-    })
-    .map((need, i) => ({ ...need, rank: i + 1 }));
+    }),
+  );
 }
+
+/**
+ * "Perlu perhatianmu" where only "Sekarang" stands beside it (the tray menu):
+ * the same items, ranked the same, with what Beranda leaves to "Hari ini"
+ * kept in (today's and tomorrow's deadlines and meetings, an exam sat today,
+ * a class's attendance warning), so a deadline tonight is never left out. Out:
+ * the classes, and what the card shows (its Presence, its meeting, its class's exam).
+ */
+export function attentionWithToday(world: HomeWorld | HomeContext, card: NowCard | null = null): Need[] {
+  const context = "health" in world ? world : homeContext(world);
+  const onCard = card?.class?.session ?? null;
+  return ranked(
+    needsYou(context).filter((need) => {
+      switch (need.kind) {
+        case "class":
+          return false;
+        case "presence":
+          return need.session.id !== card?.presence?.session.id;
+        case "meeting":
+          return need.id !== cardMeetingId(card);
+        case "exam":
+          return !(onCard && need.sitting.source === "six" && need.course === onCard.courseCode && need.sitting.start === onCard.start);
+        default:
+          return true;
+      }
+    }),
+  );
+}
+
+const ranked = (needs: readonly Need[]): Need[] => needs.map((need, i) => ({ ...need, rank: i + 1 }));
 
 /**
  * The bell's history: every alert the app raised (reminders too), with the

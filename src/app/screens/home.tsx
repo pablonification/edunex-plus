@@ -14,8 +14,9 @@ import { rupiah } from "../../core/academic";
 import { type AttendanceHealth, type AttendanceState, clashPick, percent } from "../../core/attendance";
 import { checkingIn } from "../../core/check-in";
 import { wibDay } from "../../core/course-meetings";
-import { type DoneTerms, doneTerms, needDoneKey, partitionDone, taskPutAway } from "../../core/done";
+import { type DoneTerms, doneTerms, taskPutAway } from "../../core/done";
 import { PERIOD_NEAR } from "../../core/exams";
+import { heldBack } from "../../core/held-back";
 import { edunexCourseUrl, sixStatusUrl, sixTimetableUrl } from "../../core/links";
 import type { Alert, AlertKind, ClassSession, DoneEntry, SixCheckIn, SnoozeEntry } from "../../core/models";
 import {
@@ -33,7 +34,7 @@ import {
   type TodayPlan,
   todayPlan,
 } from "../../core/needs";
-import { activeSnooze, partitionSnoozed, snoozable, snoozeKey } from "../../core/snooze";
+import { activeSnooze, snoozable, snoozeKey } from "../../core/snooze";
 import { dateMove, type EditView, editView, titleOnly } from "../../core/task-edits";
 import { budgetLabel, useActionLabel } from "../attendance-labels";
 import { AbsenceBudget } from "../attendance-parts";
@@ -852,17 +853,7 @@ function NeedsYou({
   // what they marked handled ("Sudah kucek") leaves it until a new fact brings it back.
   const { entries } = useSnoozes();
   const { entries: handled } = useDone();
-  const { shown, snoozed, done } = useMemo(() => {
-    const own = partitionDone(needs, needDoneKey, handled);
-    const today = partitionDone(due, needDoneKey, handled);
-    const left = partitionSnoozed(own.shown, snoozeKey, entries, now);
-    // "Hari ini"'s first, as the page reads: they're the soonest.
-    return {
-      shown: left.shown,
-      snoozed: [...partitionSnoozed(today.shown, snoozeKey, entries, now).snoozed, ...left.snoozed],
-      done: [...today.done, ...own.done],
-    };
-  }, [needs, due, entries, handled, now]);
+  const { shown, snoozed, done } = useMemo(() => heldBack(needs, due, entries, handled, now), [needs, due, entries, handled, now]);
   const [listOpen, setListOpen] = usePlaceState("home.snoozedOpen", false);
   const away = snoozed.length + done.length;
   // Closed once nothing is put off or away, so the next one doesn't find the list open.

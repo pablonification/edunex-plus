@@ -1,39 +1,26 @@
-// This term's courses as the Student sees them: SIX is the truth for
-// enrollment (once SIX is connected) and Edunex adds its course pages, joined
-// by course code, class and term. A course has one name everywhere, in both
-// languages: its official one (SIX's, else ITB's public catalog), else the
-// name its Edunex page carries. The transcript, KRS and planner use the
-// official names too, so no two screens call one course differently. Each
-// course's color is the Student's pick or its remembered automatic one
-// (./course-colors.ts).
+// This term's courses as the Student sees them (src/core/term-courses.ts: SIX
+// for enrollment, Edunex's course pages, one official name). The transcript,
+// KRS and planner use the official names too, so no two screens call one
+// course differently. Each course's color is the Student's pick or its
+// remembered automatic one (./course-colors.ts).
 import { useCallback, useMemo } from "react";
 import { courseTone, type PaletteId, pickedColor, resolveCourseColors } from "../core/course-colors";
-import type { Course, SixCourse } from "../core/models";
+import type { SixCourse } from "../core/models";
+import { type TermCourseBase, termCourses, termOf } from "../core/term-courses";
 import { useCourseColorsValue, withLegacy } from "./course-colors";
 import { useDataset } from "./store";
 
-export interface TermCourse {
-  code: string;
-  classNo: string | null;
-  name: string;
-  /** From SIX; null until SIX is connected. */
-  sks: number | null;
-  attendance: SixCourse["attendance"];
+export interface TermCourse extends TermCourseBase {
   /** Its color's tone in the theme on screen (a CSS color): its dot and stripe. */
   color: string;
   colorId: PaletteId;
   /** The Student picked it (else it's automatic). */
   colorPicked: boolean;
-  /** The Edunex course pages, when the course has them. */
-  edunex: Course["edunex"] | null;
-  inSix: boolean;
 }
 
 /** SIX's term code ("2026-1"): SIX's once connected, else Edunex's. */
 export function useTerm(): string | undefined {
-  const student = useDataset("six.student");
-  const edunex = useDataset("edunex.courses");
-  return student?.term ?? edunex?.[0]?.term;
+  return termOf(useDataset("six.student"), useDataset("edunex.courses"));
 }
 
 export function useTermCourses(): TermCourse[] | undefined {
@@ -42,45 +29,13 @@ export function useTermCourses(): TermCourse[] | undefined {
   const six = useSixCourses();
   const saved = useCourseColorsValue();
   return useMemo(() => {
-    if (!edunex && !six) return undefined;
-    const colorsOf = (codes: string[]) => {
-      const { colors } = resolveCourseColors(codes, withLegacy(codes, saved));
-      return (code: string) => {
-        const { id, picked } = colors.get(code)!;
-        return { color: courseTone(id), colorId: id, colorPicked: picked };
-      };
-    };
-    if (!six) {
-      const color = colorsOf(edunex!.map((course) => course.code));
-      const official = new Map((catalog?.courses ?? []).map((course) => [course.code, course.name]));
-      return edunex!.map((course) => ({
-        code: course.code,
-        classNo: course.classNo,
-        name: official.get(course.code) ?? course.name,
-        sks: null,
-        attendance: null,
-        ...color(course.code),
-        edunex: course.edunex,
-        inSix: false,
-      }));
-    }
-    // Edunex courses of another term, or not in SIX at all, are left out: SIX says what the Student takes.
-    const sameTerm = (edunex ?? []).filter((course) => course.term === six.term);
-    const key = (code: string, classNo: string | null) => `${code}|${classNo ?? ""}`;
-    const byClass = new Map(sameTerm.map((course) => [key(course.code, course.classNo), course]));
-    const color = colorsOf(six.courses.map((course) => course.code));
-    return six.courses.map((course) => {
-      const match = byClass.get(key(course.code, course.classNo)) ?? sameTerm.find((e) => e.code === course.code);
-      return {
-        code: course.code,
-        classNo: course.classNo,
-        name: course.name,
-        sks: course.sks,
-        attendance: course.attendance,
-        ...color(course.code),
-        edunex: match?.edunex ?? null,
-        inSix: true,
-      };
+    const courses = termCourses({ edunex, catalog, six });
+    if (!courses) return undefined;
+    const codes = courses.map((course) => course.code);
+    const { colors } = resolveCourseColors(codes, withLegacy(codes, saved));
+    return courses.map((course) => {
+      const { id, picked } = colors.get(course.code)!;
+      return { ...course, color: courseTone(id), colorId: id, colorPicked: picked };
     });
   }, [edunex, catalog, six, saved]);
 }
