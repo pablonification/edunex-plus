@@ -4,7 +4,7 @@ Electron + TypeScript desktop app for ITB students (Edunex and SIX in one window
 `README.md`; setup, privacy rules and CI: `CONTRIBUTING.md`.
 
 - `src/core`: pure code shared by both sides (models, the bridge contract, `strings/` for every
-  word on screen in Indonesian and English).
+  word on screen in Indonesian and English, written with the `copywriting` skill).
 - `src/engine`: sign-in sessions, syncing, alerts (Node only, behind `Transport` and `Clock`).
 - `src/desktop`: Electron main and preload (windows, session vault, IPC, `app://`).
 - `src/app`: the window, React 19 + Tailwind v4; only reads what the engine publishes.

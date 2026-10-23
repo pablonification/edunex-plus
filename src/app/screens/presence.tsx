@@ -894,7 +894,7 @@ function HowCounted({ lastDay }: { lastDay: string | null }) {
   const f = useFormat();
   const open = useOpenExternal();
   const student = useDataset("six.student");
-  const date = lastDay ? dayLabel(f, noonOf(lastDay)) : "—";
+  const date = lastDay ? dayLabel(f, noonOf(lastDay)) : "-";
   return (
     <details className="group mt-6">
       <summary className="focus-ring inline-flex cursor-pointer list-none items-center gap-1.5 rounded text-small font-medium text-muted transition-colors duration-150 select-none hover:text-fg [&::-webkit-details-marker]:hidden">

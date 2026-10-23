@@ -127,7 +127,7 @@ export const searchStrings = {
   "scan.exams.title": { id: "{count} ujian akan datang", en: { one: "{count} upcoming exam", other: "{count} upcoming exams" } },
   "scan.exams.at": { id: "{name} {code}: {when}", en: "{name} {code}: {when}" },
   "scan.exams.takeHome": { id: "{kind} take-home {code}, tenggat {when}", en: "Take-home {kind} {code}, due {when}" },
-  "scan.exams.week": { id: "{kind} {code}, minggu {kind} {range}", en: "{kind} {code}, {kind} week {range}" },
+  "scan.exams.week": { id: "{kind} {code}, masa {kind} {range}", en: "{kind} {code}, {kind} period {range}" },
   "scan.exams.noDate": { id: "{name} {code}, tanggal belum ada", en: "{name} {code}, no date yet" },
 
   // Meetings announced only in Edunex
@@ -137,7 +137,7 @@ export const searchStrings = {
   },
   "scan.notInSix.meeting": { id: "{code} pertemuan {number}: {when}", en: "{code} meeting {number}: {when}" },
   "scan.notInSix.online": { id: "daring", en: "online" },
-  "scan.notInSix.note": { id: "Tidak ada di jadwal SIX; sudah ada di Beranda.", en: "Not on SIX's timetable; it's on Home." },
+  "scan.notInSix.note": { id: "Tidak ada di jadwal SIX, tapi sudah ada di Beranda.", en: "Not on SIX's timetable, but already on Home." },
 
   // Tasks edited after posting
   "scan.edited.title": {
@@ -145,7 +145,7 @@ export const searchStrings = {
     en: { one: "Lecturers edited {count} Task after posting it", other: "Lecturers edited {count} Tasks after posting them" },
   },
   "scan.edited.afterSubmit": { id: "{count} di antaranya setelah kamu mengumpulkan.", en: "{count} after you'd already submitted." },
-  "scan.edited.silent": { id: "Cek lagi instruksinya; Edunex tidak mengabarkannya.", en: "Check the instructions again; Edunex didn't say." },
+  "scan.edited.silent": { id: "Edunex tidak mengabarkannya, jadi cek lagi instruksinya.", en: "Edunex didn't say, so check the instructions again." },
 
   // The IPK and its honors level (Peraturan Akademik ITB)
   "scan.ipk.title": { id: "IPK {ipk} · {band}", en: "IPK {ipk} · {band}" },

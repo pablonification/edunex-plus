@@ -56,7 +56,7 @@ describe("the bell", () => {
     await screen.click("Notifikasi");
     expect(panel()?.textContent).toContain("Belum ada yang berubah");
     expect(panel()?.textContent).toContain(
-      "Tugas baru, materi, dan tenggat yang mendekat muncul di sini. Edunex diperiksa sendiri secara berkala; jadwal dan kehadiran menyusul setelah SIX terhubung.",
+      "Tugas baru, materi, dan tenggat yang mendekat muncul di sini. Jadwal dan kehadiran menyusul setelah SIX terhubung.",
     );
     // It never claims SIX is checked while SIX isn't connected.
     expect(panel()?.textContent).not.toContain("Edunex dan SIX diperiksa");
@@ -137,7 +137,7 @@ describe("alert settings", () => {
     expect(screen.engine.snapshot().settings.deadlineReminders).toEqual([48, 24, 3, 1]);
     for (const name of ["2 hari", "1 hari", "3 jam", "1 jam"]) await screen.click(name);
     expect(screen.engine.snapshot().settings.deadlineReminders).toEqual([]);
-    expect(screen.text()).toContain("Tidak ada waktu dipilih: tidak ada pengingat tenggat");
+    expect(screen.text()).toContain("Belum ada waktu dipilih, jadi tidak ada pengingat tenggat");
 
     // A class in 15 minutes: off until turned on.
     expect(screen.button("Kuliah sebentar lagi").getAttribute("aria-checked")).toBe("false");

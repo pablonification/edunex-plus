@@ -23,7 +23,7 @@ describe("first run", () => {
 
     await screen.apply({ type: "signIn", source: "edunex", step: "slow" });
     expect(screen.text()).toContain("Edunex lambat menyelesaikan masuk");
-    expect(screen.text()).toContain("Jendela masuknya terbuka lagi: tunggu di sana, atau tutup lalu coba lagi.");
+    expect(screen.text()).toContain("Jendela masuknya terbuka lagi. Tunggu di sana, atau tutup lalu coba lagi.");
 
     await screen.apply({ type: "signIn", source: "edunex", step: null });
     expect(screen.text()).not.toContain("lambat");
@@ -64,7 +64,7 @@ describe("first run", () => {
     expect(screen.text()).toContain("Finishing signing in to SIX…");
     await screen.apply({ type: "signIn", source: "six", step: "slow" });
     expect(screen.text()).toContain("SIX is slow to finish signing in");
-    expect(screen.text()).toContain("Its sign-in window is open again: wait there, or close it and try again.");
+    expect(screen.text()).toContain("Its sign-in window is open again. Wait there, or close it and try again.");
   });
 });
 

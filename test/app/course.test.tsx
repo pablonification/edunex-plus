@@ -529,7 +529,7 @@ describe("meetings", () => {
     // A meeting's facts are one line, a "·" between each, not spread apart by gaps.
     expect(meetings.find((m) => m.includes("8 Okt"))).toContain("R.SG PWK LT.6 · Presensi 08:00–09:30");
     // SIX is the official record; the intro says once that Edunex's gaps can still count, and the rows stay quiet.
-    expect(s.text()).toContain("yang tidak dicatat Edunex tetap bisa terhitung di SIX");
+    expect(s.text()).toContain("Yang tidak tercatat di Edunex tetap bisa terhitung di SIX");
     // The count and what's left are the header's: the tab doesn't say them a second time.
     expect(s.text().match(/\(6 dari 7\)|hadir 6 dari 7/gi)).toHaveLength(1);
     expect(s.text().match(/Terpakai 1× · sisa 1×/g)).toHaveLength(1);
@@ -551,7 +551,7 @@ describe("meetings", () => {
 
   it("without SIX, the open window is worth recording just in case, said calmly", async () => {
     const s = await openCourse("PL3002");
-    expect(s.text()).toContain("Tanpa SIX, belum pasti Presensi ini dihitung: catat saja untuk berjaga-jaga.");
+    expect(s.text()).toContain("Tanpa SIX, belum pasti Presensi ini dihitung. Catat saja untuk berjaga-jaga.");
     const buttons = [...document.querySelectorAll("main button")].filter((b) => b.textContent === "Catat di Edunex");
     expect(buttons.length).toBeGreaterThan(0);
     expect(buttons.every((b) => !b.className.includes("bg-accent "))).toBe(true);

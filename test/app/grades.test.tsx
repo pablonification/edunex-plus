@@ -144,13 +144,13 @@ describe("Nilai", () => {
     const s = await openGrades();
     // 408 points over 125 SKS; 14 SKS this semester: (3.3 × 139 − 408) / 14 = 3.62…, rounded up.
     await type("Target IPK lainnya", "3,3");
-    expect(text("section[aria-labelledby=this-term] [role=status]")).toBe("Untuk IPK 3,30: rata-rata 3,63 (sekitar A) di 14 SKS semester ini.");
+    expect(text("section[aria-labelledby=this-term] [role=status]")).toBe("Untuk IPK 3,30, kamu butuh rata-rata 3,63 (sekitar A) di 14 SKS semester ini.");
     expect(s.store.dataset("local.plan")?.value).toMatchObject({ target: 3.3 });
     await s.click("Target IPK 3,50");
     expect(text("section[aria-labelledby=this-term] [role=status]")).toContain("IPK 3,50 belum terkejar semester ini, walau semua A.");
     // (3 × 139 − 408) / 14 = 0.64: below a D average, so it's safe, never "about D".
     await s.click("Target IPK 3,00");
-    expect(text("section[aria-labelledby=this-term] [role=status]")).toBe("Sudah aman: nilai D semua pun tetap mencapai 3,00.");
+    expect(text("section[aria-labelledby=this-term] [role=status]")).toBe("Sudah aman. Nilai D semua pun tetap mencapai 3,00.");
     await type("Target IPK lainnya", "2,5");
     expect(text("section[aria-labelledby=this-term] [role=status]")).toBe("IPK 2,50 sudah pasti tercapai.");
   });
@@ -216,7 +216,7 @@ describe("Nilai", () => {
     const now = termRow(/^Smt 7 · 2026\/2027 Ganjil/);
     expect(now.textContent).toContain("Berlangsung");
     await screen!.click(now);
-    expect([...now.parentElement!.querySelectorAll("ul li")].map((li) => li.textContent)).toContain("II4091Proposal Tugas AkhirBelum ada nilai2 SKS—");
+    expect([...now.parentElement!.querySelectorAll("ul li")].map((li) => li.textContent)).toContain("II4091Proposal Tugas AkhirBelum ada nilai2 SKS-");
   });
 
   it("when SIX's IPK and the rows disagree, says so plainly and shows SIX's figure", async () => {

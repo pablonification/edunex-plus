@@ -55,12 +55,12 @@ export const tasksStrings = {
   },
   "task.note.shortWindow": { id: "Hanya dibuka {duration} ({range}).", en: "Open for only {duration} ({range})." },
   "task.note.attendance": {
-    id: "Tugas ini sekaligus Presensi-mu: dosen menautkannya ke Presensi Edunex, jadi hanya terhitung hadir jika dikumpulkan di dalam jendelanya, {date}, {time}.",
-    en: "This Task is also your attendance: your lecturer linked it to Edunex Presence, so it counts as present only if handed in inside its window, {date}, {time}.",
+    id: "Tugas ini sekaligus Presensi-mu. Kamu hanya terhitung hadir jika mengumpulkannya di dalam jendelanya, {date}, {time}.",
+    en: "This Task is also your attendance. You count as present only if you hand it in inside its window, {date}, {time}.",
   },
   "task.note.attendanceOptional": {
-    id: "Dosen menautkan tugas ini ke Presensi Edunex: mengumpulkan pada {date}, {time} juga mengisinya. Tidak wajib: kehadiran {course} dihitung di SIX.",
-    en: "Your lecturer linked this Task to Edunex Presence: handing it in on {date}, {time} fills that in too. It's optional: {course} attendance is counted in SIX.",
+    id: "Mengumpulkan tugas ini pada {date}, {time} juga mengisi Presensi Edunex. Tidak wajib, karena kehadiran {course} dihitung di SIX.",
+    en: "Handing this Task in on {date}, {time} also fills in Edunex Presence. That's optional, since {course} attendance counts in SIX.",
   },
   "task.duration.hours": { id: "{count} jam", en: { one: "{count} hour", other: "{count} hours" } },
   "task.duration.minutes": { id: "{count} menit", en: { one: "{count} minute", other: "{count} minutes" } },
@@ -146,7 +146,7 @@ export const tasksStrings = {
     id: "Sesi Edunex berakhir, jadi belum terunggah. Masuk lagi, lalu coba lagi.",
     en: "Your Edunex session ended, so it isn't uploaded yet. Sign in again, then try again.",
   },
-  "handIn.tooBig": { id: "Lebih dari 100 MB: Edunex tidak menerima berkas sebesar ini", en: "Over 100 MB: Edunex doesn't take files this big" },
+  "handIn.tooBig": { id: "Edunex tidak menerima berkas lebih dari 100 MB", en: "Edunex doesn't take files over 100 MB" },
   "handIn.wrongType": {
     id: "Edunex tidak menerima berkas jenis ini. Gunakan PDF, Word, Excel, PowerPoint, ZIP, RAR, JPG, atau PNG.",
     en: "Edunex doesn't take this kind of file. Use PDF, Word, Excel, PowerPoint, ZIP, RAR, JPG or PNG.",
@@ -229,12 +229,12 @@ export const tasksStrings = {
   "task.submittedOnDate": { id: "Dikumpulkan {date}", en: "Submitted {date}" },
   "task.partOfExam": { id: "Bagian dari {kind} {code}", en: "Part of {code} {kind}" },
   "task.note.attendanceCounted": {
-    id: "Terhitung hadir: kamu mengumpulkan di dalam jendela presensi ({when}).",
-    en: "Counted as present: you handed it in inside the attendance window ({when}).",
+    id: "Terhitung hadir. Kamu mengumpulkan di dalam jendela presensi ({when}).",
+    en: "Counted as present. You handed it in inside the attendance window ({when}).",
   },
   "task.note.attendanceOutside": {
-    id: "Tidak dihitung hadir: dikumpulkan di luar jendela presensi ({when}). Tugasnya tetap terkumpul.",
-    en: "Not counted as present: handed in outside the attendance window ({when}). The Task itself is handed in.",
+    id: "Tidak dihitung hadir karena dikumpulkan di luar jendela presensi ({when}). Tugasnya tetap terkumpul.",
+    en: "Not counted as present, since it was handed in outside the attendance window ({when}). The Task itself is handed in.",
   },
   "task.note.attendanceMissed": {
     id: "Jendela presensi tugas ini sudah lewat ({when}). Kalau dikumpulkan sekarang, tugas terkumpul tapi tidak dihitung hadir.",
@@ -263,8 +263,8 @@ export const tasksStrings = {
   "handIn.why.failed": { id: "Coba lagi atau hapus berkas yang gagal terunggah.", en: "Try again or remove the file that didn't upload." },
   "handIn.why.refused": { id: "Hapus dulu berkas yang tidak diterima Edunex.", en: "Remove the file Edunex doesn't take first." },
   "handIn.why.offline": {
-    id: "Tidak terhubung ke Edunex. Berkasmu tetap di sini; kumpulkan setelah tersambung lagi.",
-    en: "Not connected to Edunex. Your files stay here; hand in once you're back online.",
+    id: "Tidak terhubung ke Edunex. Kumpulkan setelah tersambung lagi. Berkasmu tetap di sini.",
+    en: "Not connected to Edunex. Hand in once you're back online. Your files stay here.",
   },
   "handIn.why.expired": { id: "Sesi Edunex berakhir. Masuk lagi untuk mengumpulkan.", en: "Your Edunex session ended. Sign in again to hand in." },
   "handIn.why.early": {
@@ -283,7 +283,7 @@ export const tasksStrings = {
     id: "Jendela presensi sudah lewat ({when}). Tugas tetap terkumpul, tapi tidak dihitung hadir.",
     en: "The attendance window has passed ({when}). It's still handed in, but not counted as present.",
   },
-  "handIn.check.attendanceIn": { id: "Di dalam jendela presensi: terhitung hadir.", en: "Inside the attendance window: you'll be counted present." },
+  "handIn.check.attendanceIn": { id: "Di dalam jendela presensi, jadi terhitung hadir.", en: "Inside the attendance window, so you'll be counted present." },
   "handIn.check.late": { id: "Tenggat sudah lewat ({when}). Tugasmu tercatat terlambat.", en: "The deadline has passed ({when}). It's recorded as late." },
   "handIn.check.fileType": {
     id: "Dosen minta berkas {type}, tapi {files} bukan {type}.",
@@ -301,8 +301,8 @@ export const tasksStrings = {
   "handIn.textUnsaved": { id: "Jawaban belum disimpan", en: "Answer not saved yet" },
   "handIn.textDiscard": { id: "Buang perubahan", en: "Discard changes" },
   "handIn.textRich": {
-    id: "Jawaban ini berisi gambar, tabel, rumus, atau gaya teks yang tidak bisa diubah di sini. Ubah teksnya di Edunex; berkasnya tetap bisa diatur di sini.",
-    en: "This answer has pictures, tables, formulas or text styling the app can't edit. Change the text on Edunex; you can still manage the files here.",
+    id: "Jawaban ini berisi gambar, tabel, rumus, atau gaya teks, jadi ubah teksnya di Edunex. Berkasnya tetap bisa diatur di sini.",
+    en: "This answer has pictures, tables, formulas or text styling, so change its text on Edunex. You can still manage the files here.",
   },
   "handIn.editOnEdunex": { id: "Ubah di Edunex", en: "Edit on Edunex" },
   "handIn.preview": { id: "Lihat {name}", en: "Preview {name}" },

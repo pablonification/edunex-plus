@@ -1,0 +1,11 @@
+// An em dash in a string, a template or JSX text under src/: words someone reads.
+// Comments and regex literals aren't matched. Write it as \u2014 where it's data, not copy.
+or {
+  JsStringLiteralExpression(),
+  JsTemplateChunkElement(),
+  JsxText(),
+  JsxString()
+} as $copy where {
+  $copy <: r"(?s).*—.*",
+  register_diagnostic(span=$copy, message="No em dash in on-screen words. Use a period, a comma or parentheses, and a hyphen for an empty value. See .agents/skills/copywriting.")
+}

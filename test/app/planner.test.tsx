@@ -154,7 +154,7 @@ describe("the study planner", () => {
       await s.click(`Tambah ${code}`);
     }
     expect(block(/^Semester 8/)!.textContent).toContain("21 / 24 SKS");
-    expect(rule("load")).toEqual(["warn: Perlu dicekSemester 8 · 2026/2027 Genap21 SKS: di atas 20 perlu persetujuan dosen wali.Sembunyikan"]);
+    expect(rule("load")).toEqual(["warn: Perlu dicekSemester 8 · 2026/2027 Genap21 SKS. Lebih dari 20 SKS perlu persetujuan dosen wali.Sembunyikan"]);
     expect(saved()?.terms[0].courses.map((c) => c.code)).toEqual(["II4090", "II4092", "II4010", "II4011", "II4021", "II4022", "II4023"]);
     expect(s.calls.some((c) => c.name === "local.set")).toBe(true);
     // Never a KRS: the only thing written is the plan on this computer.
@@ -226,7 +226,9 @@ describe("the study planner", () => {
     await s.click(addIn(/^Semester 9/));
     await search("II4024");
     await s.click("Tambah II4024");
-    expect(rule("finish")).toEqual(["warn: Perlu dicekLulus di semester 9Lewat 8 semester; predikat pujian masih mungkin (maks. 9).Sembunyikan"]);
+    expect(rule("finish")).toEqual([
+      "warn: Perlu dicekLulus di semester 9Lewat 8 semester. Predikat pujian masih mungkin jika lulus dalam 9 semester.Sembunyikan",
+    ]);
     await act(async () => {
       const select = document.querySelector<HTMLSelectElement>("select[aria-label='Perkiraan nilai II4092']")!;
       select.value = "A";
@@ -257,7 +259,7 @@ describe("the study planner", () => {
     expect(s.text()).toContain("Cum laude (≥ 3,50) sudah di luar jangkauan. Tiap nilai bagus tetap menaikkan IPK-mu.");
     expect(s.text()).not.toContain("Summa cum laude ≥ 3,85di luar jangkauan");
     await s.click("Target IPK 3,00");
-    expect(s.text()).toContain("Untuk IPK 3,00: rata-rata 1,74 (sekitar C) di 26 SKS tersisa.");
+    expect(s.text()).toContain("Untuk IPK 3,00, kamu butuh rata-rata 1,74 (sekitar C) di 26 SKS tersisa.");
     expect(saved()?.target).toBe(3);
     await s.click("Nilai");
     expect(s.button("Target IPK 3,00").getAttribute("aria-checked")).toBe("true");
@@ -466,7 +468,7 @@ describe("the study planner", () => {
     expect(rule("required")).toEqual(["error: Belum terpenuhiMata kuliah wajibBelum direncanakan: II4090 Kerja Praktik.Prodiku akan menambahkannya"]);
     expect(summary()).toContain("Belum bisa lulusKurang 1 mata kuliah wajib");
     await s.click("Prodiku akan menambahkan II4090 Kerja Praktik");
-    expect(toastText()).toContain("II4090 Kerja Praktik dihitung terpenuhi: prodimu akan menambahkannyaUrungkan");
+    expect(toastText()).toContain("II4090 Kerja Praktik dihitung terpenuhi karena prodimu akan menambahkannyaUrungkan");
     expect(fixes()).toEqual({ II4090: expect.objectContaining({ kind: "program-adds" }) });
     await s.click("Urungkan");
     expect(fixes()).toEqual({});
@@ -639,7 +641,7 @@ describe("the curriculum map", () => {
     expect(row("KU1011")).toBeUndefined();
     expect(row("WI1111")).toBe("WI1111Laboratorium Fisika DasarTidak ada di catatan SIX-mu1");
     expect(s.text()).toContain(
-      "Kamu mulai dengan Kurikulum 2019; SIX menaruh mata kuliahmu di Kurikulum 2024. 3 mata kuliah tidak ada di catatan SIX-mu, jadi tidak dihitung sebagai sisa.",
+      "Kamu mulai dengan Kurikulum 2019, tapi SIX menaruh mata kuliahmu di Kurikulum 2024. 3 mata kuliah tidak ada di catatan SIX-mu, jadi tidak dihitung sebagai sisa.",
     );
     // Never "check with your program", and never counted as left: the planner's "All 42" and this tab agree.
     expect(s.text()).not.toMatch(/cek ke prodi|perlu dicek ke prodi/);
@@ -677,7 +679,7 @@ describe("the curriculum map", () => {
     await s.click(/^Sudah selesai/);
     expect(row("II4090")).toBe("II4090Kerja PraktikDikoreksi olehmu · SIX masih mencatatnya belum diambilSudah selesai2");
     await tab("Rencana");
-    expect(rule("required")[0]).toContain("Kamu mengoreksi II4090 Kerja Praktik; SIX masih mencatatnya belum diambil.");
+    expect(rule("required")[0]).toContain("Kamu mengoreksi II4090 Kerja Praktik, tapi SIX masih mencatatnya belum diambil.");
     expect(rule("parity")).toEqual([]);
 
     // "Reset plan" leaves corrections alone; "Restore" takes one back.

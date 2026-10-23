@@ -169,8 +169,8 @@ export const coursePageStrings = {
   "course.closesAt": { id: "tutup {time} ({left} lagi)", en: "closes {time} ({left} left)" },
   "course.closesOn": { id: "tutup {time}", en: "closes {time}" },
   "course.presenceNoSix": {
-    id: "Tanpa SIX, belum pasti Presensi ini dihitung: catat saja untuk berjaga-jaga.",
-    en: "Without SIX it's not certain this Presence counts: record it just in case.",
+    id: "Tanpa SIX, belum pasti Presensi ini dihitung. Catat saja untuk berjaga-jaga.",
+    en: "Without SIX it's not certain this Presence counts. Record it just in case.",
   },
   "course.presenceCountsSix": {
     id: "Kehadiranmu dihitung di SIX. Presensi ini tidak wajib.",
@@ -228,8 +228,8 @@ export const coursePageStrings = {
 
   // Meetings, the honest attendance story
   "meeting.sixTotalsOnly": {
-    id: "SIX hanya memberi jumlahnya. Di bawah ini catatan Edunex per pertemuan; yang tidak dicatat Edunex tetap bisa terhitung di SIX.",
-    en: "SIX gives only the total. Below is what Edunex recorded per meeting; one Edunex didn't record can still count in SIX.",
+    id: "SIX hanya memberi jumlahnya. Di bawah ini catatan Edunex per pertemuan. Yang tidak tercatat di Edunex tetap bisa terhitung di SIX.",
+    en: "SIX gives only the total. Below is Edunex's record of each meeting. One Edunex didn't record can still count in SIX.",
   },
   "meeting.noSixCount": {
     id: "Hitungan resmi ada di SIX. Hubungkan SIX untuk tahu kehadiran mana yang dihitung.",

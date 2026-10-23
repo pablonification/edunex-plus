@@ -92,13 +92,13 @@ export function Tab(_: { onCalendar?: () => void }) {
             >
               <span className="font-medium">{termYears(bill.term)}</span>
               <span className="text-right tabular-nums">
-                {bill.amount !== null ? rupiah(bill.amount) : "—"}
+                {bill.amount !== null ? rupiah(bill.amount) : "-"}
                 {bill.instalments.length > 0 && (
                   <span className="ml-2 text-caption text-faint">{t("bills.inInstalments", { count: bill.instalments.length })}</span>
                 )}
               </span>
               <span className="text-right text-small text-muted tabular-nums">
-                {bill.dueDate ? `${f.dayMonth(dayMs(bill.dueDate))} ${bill.dueDate.slice(0, 4)}` : "—"}
+                {bill.dueDate ? `${f.dayMonth(dayMs(bill.dueDate))} ${bill.dueDate.slice(0, 4)}` : "-"}
               </span>
               {statusColumn && <span className="text-right">{bill.status !== "paid" && <StatusChip bill={bill} />}</span>}
             </li>
@@ -148,7 +148,7 @@ function BillCard({ label, bill }: { label: string; bill: Bill }) {
       </Meta>
       {billedNow ? (
         <>
-          <p className="mt-1 text-figure font-semibold tabular-nums">{bill.amount !== null ? rupiah(bill.amount) : "—"}</p>
+          <p className="mt-1 text-figure font-semibold tabular-nums">{bill.amount !== null ? rupiah(bill.amount) : "-"}</p>
           <div className="mt-1.5 flex flex-wrap items-center gap-2">
             <StatusChip bill={bill} />
             {bill.status === "partly-paid" && bill.paid !== null && (

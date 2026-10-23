@@ -83,8 +83,8 @@ export const academicStrings = {
     en: "Sign in to SIX to see your UKT bills, instalments and their deadlines.",
   },
   "bills.deadline": { id: "Batas bayar", en: "Pay by" },
-  "bills.otherSix": { id: "SIX menulis {date}; ikuti yang lebih awal.", en: "SIX says {date}; go by the earlier date." },
-  "bills.otherItb": { id: "Kalender ITB menulis {date}; ikuti yang lebih awal.", en: "ITB's calendar says {date}; go by the earlier date." },
+  "bills.otherSix": { id: "SIX menulis {date}. Ikuti yang lebih awal.", en: "SIX says {date}. Go by the earlier date." },
+  "bills.otherItb": { id: "Kalender ITB menulis {date}. Ikuti yang lebih awal.", en: "ITB's calendar says {date}. Go by the earlier date." },
   "bills.expect": {
     id: "Tagihan biasanya muncul beberapa minggu sebelum batas bayar, {date}.",
     en: "The bill usually shows up a few weeks before the deadline, {date}.",
@@ -183,8 +183,8 @@ export const academicStrings = {
     id: "Isi kuesioner tiap mata kuliah, atau SIX menyembunyikan nilainya.",
     en: "Fill it in for every course, or SIX hides that grade.",
   },
-  "deadline.uts": { id: "Minggu ujian tengah semester.", en: "Midterm exam week." },
-  "deadline.uas": { id: "Minggu ujian akhir semester. Cek kehadiranmu sebelumnya.", en: "Final exam weeks. Check your attendance before." },
+  "deadline.uts": { id: "Masa ujian tengah semester.", en: "Midterm exam week." },
+  "deadline.uas": { id: "Masa ujian akhir semester. Cek kehadiranmu sebelumnya.", en: "Final exam weeks. Check your attendance before." },
   "deadline.lectureStart": { id: "Pertemuan pertama semester.", en: "The semester's first meetings." },
   "deadline.lectureEnd": { id: "Jatah absenmu dihitung sampai hari ini.", en: "Your absences left count up to this day." },
   "deadline.grades": { id: "Batas dosen memasukkan nilai akhir.", en: "Lecturers' deadline for final grades." },
@@ -194,12 +194,12 @@ export const academicStrings = {
   },
   "deadline.progress": { id: "ITB memeriksa SKS lulus tiap mahasiswa.", en: "ITB checks every student's passed SKS." },
   "deadline.progress.ok": {
-    id: "Target {target} SKS di akhir tahun ke-{year}; kamu sudah lulus {passed} SKS.",
-    en: "Target {target} SKS by the end of year {year}; you've passed {passed} SKS.",
+    id: "Target {target} SKS di akhir tahun ke-{year}. Kamu sudah lulus {passed} SKS.",
+    en: "Target {target} SKS by the end of year {year}. You've passed {passed} SKS.",
   },
   "deadline.progress.short": {
-    id: "Target {target} SKS di akhir tahun ke-{year}; kamu baru lulus {passed} SKS, kurang {missing}.",
-    en: "Target {target} SKS by the end of year {year}; you've passed {passed} SKS, {missing} short.",
+    id: "Target {target} SKS di akhir tahun ke-{year}. Kamu baru lulus {passed} SKS, kurang {missing}.",
+    en: "Target {target} SKS by the end of year {year}. You've passed {passed} SKS, {missing} short.",
   },
 
   // Alerts

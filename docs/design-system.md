@@ -473,8 +473,16 @@ anything runs past the window. Every screen sits in its own crash guard.
 - **Voice**: Indonesian uses *kamu* and plain, friendly words; English is
   plain and short. Sentence case for titles and buttons. A button says what
   it does ("Keluar dari SIX", not "Keluar").
+- **Plain punctuation.** Full stops, not semicolons. A colon only for a label,
+  a time or a list, never to set up a point. No em dash, and "-" for an empty
+  value. ` · ` between the facts of a meta line. `npm run lint` fails on an em
+  dash under `src/` or a semicolon in the catalog.
 - **Every string comes from the catalog**, in both languages, with plural
   forms for English counts.
+
+Writing or reviewing a string: the `copywriting` skill
+([.agents/skills/copywriting/SKILL.md](../.agents/skills/copywriting/SKILL.md))
+has the length budget per element, the AI tells to cut and before/after examples.
 
 ### Glossary
 
