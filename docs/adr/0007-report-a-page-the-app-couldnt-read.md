@@ -70,18 +70,27 @@ safe to share.
   like a personal detail), and prints the check it fails.
 - **Nothing is sent until the Student chooses how** ("Laporkan masalah", reached from the SIX and
   Edunex status in the banner and the status panel, the screens' SIX page note, and Settings). It
-  shows what goes: the app's version and the computer's system, which page and which check, and the
-  scrubbed page to read through, with an optional "what were you doing?". Then two ways, side by
-  side:
-  - *GitHub*: a new issue on this repository, prefilled (title, labels, a summary) through an issue
-    form whose labels apply for anyone (`six-drift`, `edunex-drift`). A web address can't carry a
-    whole page, so the app saves the report file and says plainly to drag it into the issue.
-  - *LINE*, for the many Students without a GitHub account: the app copies the summary, saves the
-    same file to send along, shows the maintainer's LINE ID and opens LINE to that contact. The ID
-    and its link live in one constant.
-  The GitHub page and the LINE address pass the app's official-links rule by their exact address,
-  nothing wider. The report the Student sends is the one they were shown: the window gets the
-  scrubbed copy to show and names it back to send.
+  says what goes in plain words, the page named as the app's screens name it ("SIX mengubah halaman
+  UKT", or the rows the app didn't recognise), that the page goes along with their details taken
+  out, and the app's version and the computer's system. The engine's own words, the page's address
+  and the page itself are there to read, folded away as technical details. Then an optional "what
+  were you doing?", and two ways side by side, each with its service's own mark:
+  - *LINE*, for the many Students without a GitHub account. A personal LINE ID can't be opened with
+    a message filled in, and a page is too big for a chat message, so the report file is the
+    message: it's saved to Downloads with the Student's note in it, and shown as a file with a way
+    to find it. Then two steps: add the maintainer (the QR code of their LINE link, which is what
+    line.me shows on a computer anyway, or their ID to search for), and send the file in that chat,
+    by dragging it into LINE on the computer or, with LINE only on the phone, after moving the file
+    there (AirDrop, email, Drive). The app opens nothing for LINE. The ID and its link live in one
+    constant.
+  - *GitHub*: the report file is saved when a page goes with it, then a new issue opens on the
+    Student's click, filled in (title, a summary, their note in its own box) through an issue form
+    whose labels apply for anyone (`six-drift`, `edunex-drift`); then they drag the file into it. A
+    web address can't carry a whole page, hence the file.
+  Each way is a short numbered list, each step ticked once the app knows it's done, with one
+  primary button at a time. Only the new-issue page passes the app's official-links rule, by its
+  exact address. The report the Student sends is the one they were shown: the window gets the
+  scrubbed copy to show and names it back to save or open.
 - **No AI on the Student's side.** Using a free model (OpenRouter) to read the page and write the
   report was considered and dropped: the page carries personal data before it's scrubbed, free
   model providers may keep prompts, a key inside a public desktop app can be pulled out and abused,
@@ -90,13 +99,13 @@ safe to share.
 ## For the maintainer to decide (not built)
 
 1. **A relay, so a Student sends with one click.** A small Cloudflare Worker that takes a report
-   and creates the issue with a token only it holds: a fine-grained GitHub token that can open
-   issues on this repository and nothing else, rate-limited per address and per day, refusing
-   bodies over a size, and checking each page against the same privacy rules before posting. The
-   app would offer "Kirim" beside GitHub and LINE, with the same preview, and post the same report
-   it saves today. Nothing in the Student's flow changes; nobody needs a GitHub account; the
-   maintainer gets every report as an issue with its file. Costs: a service to run and watch, and
-   an address anyone can post to, so spam has to be planned for.
+   and creates the issue itself, with a fine-grained GitHub token only it holds that can open
+   issues on this repository and nothing else. It would be rate-limited per address and per day,
+   refuse bodies over a size, and check each page against the same privacy rules before posting.
+   The app would offer "Kirim" beside LINE and GitHub, with the same preview, and post the same
+   report it saves today: no file to move, no LINE or GitHub account needed, and the maintainer gets
+   every report as an issue with its pages. Costs: a service to run and watch, and an address anyone
+   can post to, so spam has to be planned for.
 2. **A GitHub Action that turns a report into a fix to review.** When a `six-drift` or
    `edunex-drift` issue arrives with a report file, it runs Claude Code
    (`anthropics/claude-code-action`) with this repository's skills: add the pages with
