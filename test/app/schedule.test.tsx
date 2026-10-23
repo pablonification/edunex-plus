@@ -466,3 +466,24 @@ describe("the phone calendar", () => {
     expect(events.every((e) => e.start < Date.parse("2026-11-05T00:00:00+07:00"))).toBe(true);
   });
 });
+
+describe("SIX changing its timetable page, the rest of SIX read", () => {
+  it("Jadwal says so instead of waiting for it, as does Beranda, and SIX isn't said to have changed as a whole", async () => {
+    const world = new PretendWorld();
+    world.six.changeLayout(/\/kelas\/jadwal\/mahasiswa\/\d+$/, 'data-url="', 'data-href="');
+    const s = await openSchedule({ signedIn: true, six: true, world });
+    await s.wait();
+    expect(s.engine.snapshot().statuses.find((status) => status.source === "six")).toMatchObject({ state: "live" });
+    expect(s.text()).toContain("SIX mengubah halaman iniBagian ini belum bisa dibaca dari SIX.Buka di SIX");
+    expect(document.querySelector("main [aria-busy=true]")).toBeNull();
+    // Not the banner every screen shows when all of SIX changed.
+    expect(s.text()).not.toContain("SIX mengirim data yang tidak dikenali");
+    await s.click("Buka di SIX");
+    expect(s.calls.at(-1)).toEqual({
+      name: "shell.openExternal",
+      input: { url: "https://six.itb.ac.id/app/mahasiswa:18223901+2026-1/kelas/jadwal/mahasiswa/2021000001" },
+    });
+    await s.click(/^Beranda/);
+    expect(s.text()).toContain("SIX mengubah halaman ini");
+  });
+});

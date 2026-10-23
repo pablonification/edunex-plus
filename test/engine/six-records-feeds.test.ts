@@ -200,15 +200,21 @@ describe("SIX records: grades (#78)", () => {
     expect(transcript.ipk).toMatchObject({ six: 3.26, sixSks: 125, computed: 3.27, sks: 123, agrees: false });
   });
 
-  it("layout changed: SIX changed something, and the last transcript stays as it was", async () => {
+  it("layout changed: that page is said to have changed, the last transcript stays as it was, and the rest of SIX reads on", async () => {
     const h = await signedIn();
     const before = h.dataset("six.transcript");
     h.world.six.changeLayout(TRANSCRIPT, "Masuk Transkrip", "Status");
     h.world.six.gradeCourse("2026-1", "II4091", "A");
     await h.engine.refresh("six");
     expect(h.status()).toMatchObject({
-      state: "changed",
-      detail: 'SIX transcript page: the course header reads " | Kode | Mata Kuliah | SKS | Nilai | Semester Kurikulum | Status"',
+      state: "live",
+      detail: null,
+      changedPages: [
+        {
+          datasets: ["six.transcript", "six.progress"],
+          detail: 'SIX transcript page: the course header reads " | Kode | Mata Kuliah | SKS | Nilai | Semester Kurikulum | Status"',
+        },
+      ],
     });
     expect(h.dataset("six.transcript")).toEqual(before);
     expect(h.dataset("six.krs")).toBeDefined();
@@ -216,6 +222,7 @@ describe("SIX records: grades (#78)", () => {
     h.world.six.changeLayout(TRANSCRIPT, ">Status<", ">Masuk Transkrip<");
     await h.engine.refresh("six");
     expect(h.status().state).toBe("live");
+    expect(h.status().changedPages).toBeUndefined();
     expect(gradeChanges(before, h.dataset("six.transcript")!)).toHaveLength(1);
   });
 });
@@ -227,7 +234,10 @@ describe("SIX records: curriculum (#79)", () => {
       html.replace('<span class="text-success"><i class="fa fa-fw fa-check"></i></span>', '<span class="text-danger"><i class="fa fa-fw fa-times"></i></span>'),
     );
     const h = await signedIn({ world });
-    expect(h.status()).toMatchObject({ state: "changed", detail: "SIX curriculum list page: no curriculum is in force" });
+    expect(h.status()).toMatchObject({
+      state: "live",
+      changedPages: [{ datasets: ["six.curriculum"], detail: "SIX curriculum list page: no curriculum is in force" }],
+    });
     expect(h.dataset("six.curriculum")).toBeUndefined();
     expect(h.dataset("six.transcript")).toBeDefined();
   });

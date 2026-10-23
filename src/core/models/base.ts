@@ -24,6 +24,13 @@ export type SkippedRow = z.infer<typeof SkippedRow>;
 export const SkippedRows = z.record(z.string(), z.array(SkippedRow));
 export type SkippedRows = z.infer<typeof SkippedRows>;
 
+/**
+ * One page of a source whose layout changed while the rest still reads (SIX's fees page, its timetable):
+ * the datasets it fills, whose screens say so and keep the last data, and what didn't fit.
+ */
+export const ChangedPage = z.object({ datasets: z.array(z.string()), detail: z.string() });
+export type ChangedPage = z.infer<typeof ChangedPage>;
+
 export const SourceStatus = z.object({
   source: SourceId,
   state: SourceState,
@@ -31,6 +38,8 @@ export const SourceStatus = z.object({
   updatedAt: z.number().nullable(),
   /** Short, factual detail for "changed" and "offline", e.g. the call that failed. */
   detail: z.string().nullable(),
+  /** Pages that changed without the whole source changing (FeedSpec.shows). Saved by a version from 0.1.0-alpha.16 on. */
+  changedPages: z.array(ChangedPage).optional(),
 });
 export type SourceStatus = z.infer<typeof SourceStatus>;
 

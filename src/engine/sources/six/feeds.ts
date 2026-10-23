@@ -1,7 +1,9 @@
 // SIX's feeds (#76): the student status page (hourly; also the liveness
 // check) for who the Student is and this term's courses, with the history of
 // each course's attendance count and what it did after each class, and the timetable
-// (on launch and twice a day) for this month's and next month's meetings.
+// (on launch and twice a day) for this month's and next month's meetings. The
+// status page is what the session rests on: SIX changing it is all of SIX
+// changing. The timetable changing is said where it's shown (FeedSpec.shows).
 import { appendCount, classResults } from "../../../core/attendance";
 import type { ClassSession, DatasetValue, SixCourse, SkippedRow } from "../../../core/models";
 import type { SourceContext } from "../source";
@@ -31,6 +33,7 @@ export function registerSixFeeds(context: SourceContext, client: SixClient): voi
     name: "six.schedule",
     every: 12 * HOUR,
     jitter: 30 * MINUTE,
+    shows: ["six.schedule", "six.scheduleMonths"],
     async run() {
       const { sessions, months } = await readSchedule(client, context.clock.now());
       // The meetings first: for a moment the months may lag behind them, never run ahead (a month
