@@ -108,7 +108,10 @@ export function Dialog({
           onPointerDownOutside={keepOpenForToasts}
           onClickCapture={ignoreClosingClick}
           className={cx(
-            "fixed top-1/2 left-1/2 z-(--z-dialog) flex max-h-[min(720px,86vh)] w-[min(600px,calc(100vw-48px))] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden",
+            // Clipped, never scrollable: scrolling a group into view (Settings, opened at the course colors) or
+            // focusing a control would otherwise scroll the box itself too, pushing the title bar out of sight and
+            // leaving an empty band at the bottom. Only the body below scrolls.
+            "fixed top-1/2 left-1/2 z-(--z-dialog) flex max-h-[min(720px,86vh)] w-[min(600px,calc(100vw-48px))] -translate-x-1/2 -translate-y-1/2 flex-col overflow-clip",
             // Sized to what it shows, the dialog would shrink and re-centre as a search on the page narrows it,
             // moving the box the Student types in (the search palette hangs from the top for the same reason).
             back && "h-[min(720px,86vh)]",

@@ -55,7 +55,6 @@ export const courseColorStrings = {
     id: "Warna otomatis diberikan saat mata kuliah pertama muncul dan tidak berubah sendiri. Warna pilihanmu tetap ikut mata kuliahnya, semester depan juga.",
     en: "A course gets its automatic color when it first shows, and it never changes by itself. A color you pick stays with the course, next semester too.",
   },
-  "settings.courseColors.preview": { id: "Pratinjau", en: "Preview" },
   "settings.courseColors.all": { id: "Semua mata kuliah", en: "All courses" },
   "settings.courseColors.allHint": { id: "{count} pilihanmu", en: { one: "{count} picked by you", other: "{count} picked by you" } },
   "settings.courseColors.allAuto": { id: "Semua otomatis", en: "All automatic" },
