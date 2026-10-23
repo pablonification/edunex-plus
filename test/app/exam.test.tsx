@@ -14,9 +14,14 @@ afterEach(() => {
   screen = null;
 });
 
-const examSection = () => document.querySelector("main section[aria-labelledby=tasks-exams]");
-const examRow = (code: string) =>
-  [...(examSection()?.querySelectorAll("li button") ?? [])].find((b) => b.textContent?.includes(code)) as HTMLButtonElement | undefined;
+// Every row of the one list (a period line's own button aside: it opens and closes, it doesn't go anywhere).
+const rows = () => [...document.querySelectorAll<HTMLButtonElement>("main li button")].filter((b) => !b.hasAttribute("aria-expanded") && b.closest("li"));
+/** An exam's row that opens its page: a sitting, a window, or an exam with no day under its period's line (never its take-home). */
+const examRow = (code: string) => rows().find((b) => b.textContent?.includes(code) && !/Take-home · /.test(b.textContent ?? ""));
+const takeHomeRow = (code: string) => rows().find((b) => b.textContent?.includes(code) && /Take-home · /.test(b.textContent ?? ""));
+const periodLine = (kind: string) =>
+  [...document.querySelectorAll<HTMLButtonElement>("main li > button[aria-expanded]")].find((b) => b.textContent?.startsWith(kind));
+const section = (title: string) => [...document.querySelectorAll("main section")].find((s) => s.querySelector("h2")?.textContent?.startsWith(title));
 
 async function openTasks(world?: PretendWorld) {
   screen = await openApp({ world, signedIn: true, six: true });
@@ -33,53 +38,57 @@ function withEdunexSitting(): PretendWorld {
   return world;
 }
 
-describe("the exam list", () => {
-  it("merges SIX's UTS in class and Edunex's take-home UTS as two parts, calmly, and lists ITB's exam weeks", async () => {
+describe("exams in the one list", () => {
+  it("SIX's UTS in class and Edunex's take-home UTS are two parts, each at its own moment, calmly; ITB's weeks are one line each", async () => {
     await openTasks();
-    const row = examRow("DK4073")!.textContent ?? "";
-    // The date leads; the kind is a quiet label; no source tags, the source only where it changes what to do.
-    expect(row.startsWith("Kam15Okt")).toBe(true);
-    expect(row).toContain("UTSKomunikasi Pemasaran");
-    // A take-home due a week after SIX's sitting is no conflict: the sitting is said plainly, the take-home on its own line.
-    expect(row).toContain("DK4073 · Di kelas · 11:00–12:59 · TVST C");
-    expect(row).not.toContain("SIX juga");
-    expect(row).toContain("Take-home: UTS Markom · tenggat Kam, 22 Okt, 23:50");
-    expect(row).not.toContain("Pastikan ke dosen");
+    // No Exams section on top: the exam's parts sit among the Tasks.
+    expect(document.querySelector("main section[aria-labelledby=tasks-exams]")).toBeNull();
+    const sitting = examRow("DK4073")!.textContent ?? "";
+    // The kind is a quiet tag; the source only where it changes what to do; the date column says day and time range.
+    expect(sitting).toBe("UTSKomunikasi PemasaranDK4073 · Di kelas · TVST CKam, 15 Okt11:00–12:59");
     expect(examRow("DK4073")!.querySelector(".text-warning-fg")).toBeNull();
-    expect(row).toContain("dalam 7 hari");
-    expect(examSection()?.querySelector("h2")?.parentElement?.textContent).toContain("Masa UTS 12–16 Okt");
-    // A row with only ITB's exam week gives the week's range on its date tile, never "Minggu" (it reads as Sunday);
-    // the kind is said once, by the row's tag.
-    const weekOnly = [...(examSection()?.querySelectorAll("li button") ?? [])].map((b) => b.textContent ?? "").find((t) => t.startsWith("7–22DesUAS"));
-    // The tile gives the week; the row says what's still missing instead of repeating it.
-    expect(weekOnly).toContain("Hari dan jamnya belum diumumkan");
-    expect(examSection()?.textContent).not.toMatch(/minggu/i);
-    // Under the list, once: how a take-home is told from a Task.
-    expect(examSection()?.textContent).toContain("Take-home: tugas Edunex yang ditandai UTS atau UAS, atau yang namanya diawali UTS, UAS, Midex atau Finex.");
+    // The take-home is its own row at its deadline, with its exam's tag, opening the Task page.
+    expect(takeHomeRow("DK4073")!.textContent).toBe("UTSKomunikasi PemasaranDK4073 · Take-home · UTS MarkomKam, 22 Okt, 23:50dalam 14 hari");
+    expect(sitting).not.toContain("SIX juga");
+    expect(sitting).not.toContain("Pastikan ke dosen");
+    // An exam known only by ITB's week is under that week's line, which gives the range and never "Minggu" (it reads as Sunday).
+    expect(periodLine("Masa UTS")!.textContent).toBe("Masa UTSHari ujian PL3032 belum diumumkan12–16 Oktdalam 4 hari");
+    expect(periodLine("Masa UAS")!.textContent).toBe("Masa UASHari ujian PL3032 belum diumumkan7–22 Desdalam 60 hari");
+    expect(periodLine("Masa UAS")!.textContent).not.toMatch(/minggu/i);
+    expect(examRow("PL3032")!.textContent).toBe("UTSEkonomi Infrastruktur dan TransportasiPL3032 · Hari dan jamnya belum diumumkan");
+    // No footnote on how a take-home is told from a Task: its row says "Take-home".
+    expect(screen!.text()).not.toContain("Take-home: tugas Edunex yang ditandai");
+    await screen!.click(takeHomeRow("DK4073")!);
+    expect(document.querySelector("main h1")?.textContent).toBe("UTS Markom");
   });
 
-  it("a take-home due before SIX's sitting: the tile shows the deadline's day, and the class sitting names its own", async () => {
+  it("a take-home due before SIX's sitting comes first, at its own day", async () => {
     const world = new PretendWorld();
     world.edunex.moveDeadline(117764, "2026-10-12T23:59:00+07:00");
     await openTasks(world);
-    const row = examRow("DK4073")!.textContent ?? "";
-    expect(row.startsWith("Sen12Okt")).toBe(true);
-    expect(row).toContain("DK4073 · Di kelas · Kam 15 Okt · 11:00–12:59 · TVST C");
-    expect(row).toContain("Take-home: UTS Markom · tenggat Sen, 12 Okt, 23:59");
+    const order = rows().map((b) => b.textContent ?? "");
+    expect(order.findIndex((t) => t.includes("Take-home · UTS Markom"))).toBeLessThan(order.findIndex((t) => t.includes("DK4073 · Di kelas")));
+    expect(takeHomeRow("DK4073")!.textContent).toContain("Sen, 12 Okt, 23:59");
   });
 
-  it("an exam that has passed moves to Selesai", async () => {
+  it("an exam is over once every part is: then it waits in Selesai under Past exams", async () => {
     const s = await openTasks();
     await s.click(/^Selesai/);
     // No past exams: the group isn't there at all.
-    expect(examSection()).toBeNull();
+    expect(section("Ujian yang sudah lewat")).toBeUndefined();
     s.close();
-    // The day after the take-home UTS was due: both dates are behind the Student.
+    // The day after the take-home UTS was due (not taken late): the sitting and the take-home are both behind the Student.
     screen = await openApp({ world: new PretendWorld({ now: "2026-10-23T09:00:00+07:00" }), signedIn: true, six: true });
     await screen.click(/^Tugas & Ujian\d*(, Perlu perhatianmu)?$/);
     expect(examRow("DK4073")).toBeUndefined();
+    // PL3032's UTS week ended with no day ever given: over too.
+    expect(periodLine("Masa UTS")).toBeUndefined();
     await screen.click(/^Selesai/);
-    expect(examRow("DK4073")).toBeDefined();
+    expect(section("Ujian yang sudah lewat")?.textContent).toContain("Ujian yang sudah lewat 2");
+    expect(examRow("DK4073")!.textContent).toBe("UTSKomunikasi PemasaranDK4073 · Di kelas · TVST CKam, 15 Okt11:00–12:59");
+    expect(examRow("PL3032")!.textContent).toBe("UTSEkonomi Infrastruktur dan TransportasiPL3032 · Harinya tidak pernah diumumkan12–16 OktMasa UTS");
+    // The take-home, closed without a hand-in, is with the Tasks that closed, in its exam's look.
+    expect(section("Ditutup, tidak dikumpulkan")?.textContent).toContain("UTSKomunikasi PemasaranDK4073 · Take-home · UTS Markom");
   });
 });
 
@@ -127,7 +136,9 @@ describe("the exam page", () => {
 
   it("two sittings on different days: the warning, and a question for the lecturer that greets for the time it's copied", async () => {
     const s = await openTasks(withEdunexSitting());
+    // Both sittings say it, each at its own day.
     expect(examRow("DK4073")!.textContent).toContain("SIX: Kam 15 Okt · Edunex: Jum 16 Okt. Pastikan ke dosen.");
+    expect(rows().find((b) => b.textContent?.includes("DK4073 · Di Edunex · UTS Markom"))!.textContent).toContain("Pastikan ke dosen.");
     await s.click(examRow("DK4073")!);
     expect(s.text()).toContain("SIX dan Edunex memberi tanggal berbeda");
     expect(s.text()).toContain("SIX: Kam 15 Okt · Edunex: Jum 16 Okt.");
@@ -154,9 +165,12 @@ describe("the exam page", () => {
     // ITB's calendar (the exam weeks) is read after Edunex.
     await s.wait(5 * 60_000);
     await s.click(/^Tugas & Ujian\d*(, Perlu perhatianmu)?$/);
-    expect(examSection()?.textContent).toContain("Ujian dari jadwal SIX (tanggal dan ruangnya) muncul setelah SIX terhubung.");
+    // Said once, at the end of the list, with the way to SIX.
+    expect(s.text()).toContain("Ujian dari jadwal SIX (tanggal dan ruangnya) muncul setelah SIX terhubung.");
     expect(s.text().match(/muncul setelah SIX terhubung/g)).toHaveLength(1);
-    await s.click(examRow("DK4073")!);
+    // Without SIX, DK4073's UTS is only its take-home: its row opens the Task page, which leads to the exam.
+    await s.click(takeHomeRow("DK4073")!);
+    await s.click(/^Bagian dari UTS DK4073/);
     const others = document.querySelector("main section[aria-labelledby=exam-others]")?.textContent ?? "";
     expect(others).toContain("PL3032Masa UTS");
     expect(others).not.toContain("Belum ada tanggal");
@@ -187,6 +201,19 @@ describe("the exam page", () => {
     expect(when).not.toContain("Belum dijadwalkan");
   });
 
+  it("once it's over: its day and how long ago, no attendance to watch, and the exams still ahead first among the others", async () => {
+    screen = await openApp({ world: new PretendWorld({ now: "2026-10-23T09:00:00+07:00" }), signedIn: true, six: true });
+    const s = screen;
+    await s.apply({ type: "navigate", route: { screen: "exam", examId: "DK4073-UTS" } });
+    expect(document.querySelector("main header")?.textContent).toContain("Kamis, 15 Oktober · 8 hari yang lalu");
+    expect(s.text()).not.toContain("Kehadiran sebelum ujian");
+    const others = [...document.querySelectorAll("main section[aria-labelledby=exam-others] li")].map((li) => li.textContent);
+    // PL3032's UAS is still to come; its UTS week ended with no day.
+    expect(others).toEqual(["UASPL3032Masa UAS 7–22 Des", "UTSPL3032Masa UTS 12–16 Okt"]);
+    await s.apply({ type: "navigate", route: { screen: "exam", examId: "PL3032-UTS" } });
+    expect(document.querySelector("main header")?.textContent).toContain("Harinya tidak pernah diumumkan");
+  });
+
   it("an exam no longer listed says so", async () => {
     const s = await openTasks();
     await s.apply({ type: "navigate", route: { screen: "exam", examId: "PL3002-UAS" } });
@@ -197,7 +224,7 @@ describe("the exam page", () => {
     const s = await openTasks();
     await s.engineDoes(() => s.engine.updateSettings({ lang: "en" }));
     const row = examRow("DK4073")!;
-    expect(row.textContent).toContain("DK4073 · In class · 11:00–12:59 · TVST C");
+    expect(row.textContent).toBe("UTSKomunikasi PemasaranDK4073 · In class · TVST CThu, 15 Oct11:00–12:59");
     await s.click(row);
     expect(s.text()).toContain("When and where");
     expect(s.text()).toContain("Check your lecturer's announcements");

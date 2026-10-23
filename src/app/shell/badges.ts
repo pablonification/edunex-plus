@@ -3,33 +3,28 @@
 import { useMemo } from "react";
 import { billNeedsStudent, krsNeedsStudent, krsOverlaps } from "../../core/academic";
 import { needsAttention } from "../../core/attendance";
-import { isOpenStatus, taskStatus } from "../../core/tasks";
+import { todoCount, todoUrgent } from "../../core/todo";
 import { useAttendance } from "../attendance";
 import { useDeadlines } from "../deadlines";
 import { useNow } from "../i18n";
+import { useTodo } from "../schedule-data";
 import { useDataset } from "../store";
 import { builtPlanTabs, type PlanTab } from "./built";
 
 export type Badge = { value: number; tone: "neutral" | "warning" } | null;
 
-const DAY = 24 * 60 * 60_000;
-
-/** Tugas & Ujian: Tasks still to hand in; amber when one is late or due within a day. */
+/**
+ * Tugas & Ujian: the same number as its "Belum selesai" (Tasks, take-homes and
+ * exams with a day still ahead; never an exam period); amber when one is late
+ * or runs out (or starts) within a day.
+ */
 export function useTasksBadge(): Badge {
-  const tasks = useDataset("edunex.tasks");
-  const now = useNow();
+  const todo = useTodo();
   return useMemo(() => {
-    if (!Array.isArray(tasks)) return null;
-    let value = 0;
-    let urgent = false;
-    for (const task of tasks) {
-      const status = taskStatus(task, now);
-      if (!isOpenStatus(status)) continue;
-      value += 1;
-      if (status === "overdue" || (task.dueAt !== null && task.dueAt - now < DAY)) urgent = true;
-    }
-    return value ? { value, tone: urgent ? "warning" : "neutral" } : null;
-  }, [tasks, now]);
+    if (!todo) return null;
+    const value = todoCount(todo.items);
+    return value ? { value, tone: todoUrgent(todo.items, todo.now) ? "warning" : "neutral" } : null;
+  }, [todo]);
 }
 
 /** Presensi: courses that need the Student (no absences left, or the target out of reach). */

@@ -133,7 +133,9 @@ Notes:
   of its link (`src/desktop/downloads.ts`, allowed only for Edunex's Azure storage, the API host
   and `itb.ac.id`), on an explicit click; no token is attached.
 - **`/exam/exams`**: no exam was ever recorded (the account had none), so only the envelope and
-  `id` are required; the other field names are a guess.
+  `id` are required; the other field names are a guess. Tugas & Ujian reads `start_at`/`end_at`
+  as the time it's open: open longer than 24 h it's due at its close, with "Tandai selesai", which
+  is kept by the exam's `id` and that window. Check both against a real exam list.
 - Seen in recordings but **not called** by v2: `/todo` (no submit status, and its times are
   WIB marked as UTC), `/course/agenda` (Task deadlines with no timezone),
   `/course/tasks/{id}?include=answers` (a Task is read back through its course's list instead),

@@ -29,7 +29,11 @@ const openTask = async (title: string, now?: string) => {
   const s = await openApp({ signedIn: true, world: new PretendWorld({ now }) });
   screen = s;
   await s.click(/^Tugas & Ujian\d*(, Perlu perhatianmu)?$/);
-  const row = () => [...document.querySelectorAll<HTMLButtonElement>("main li button")].find((b) => b.textContent?.startsWith(title));
+  // A take-home is its exam's row: "UTS · Marketing Communication · Take-home · UTS Markom".
+  const row = () =>
+    [...document.querySelectorAll<HTMLButtonElement>("main li button")].find(
+      (b) => b.textContent?.startsWith(title) || b.textContent?.includes(`Take-home · ${title}`),
+    );
   if (!row()) await s.click(/^Selesai/);
   const found = row();
   if (!found) throw new Error(`No Task row ${title}`);

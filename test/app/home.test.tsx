@@ -294,6 +294,15 @@ describe("an exam on Beranda", () => {
     expect(screen.text()).toContain("Kapan dan di mana");
   });
 
+  it("the exam in today's classes opens its exam page, not the course's meetings", async () => {
+    screen = await openApp({ world: new PretendWorld({ now: "2026-10-15T08:30:00+07:00" }), signedIn: true, six: true });
+    const today = [...document.querySelectorAll<HTMLButtonElement>("section[aria-labelledby=home-today] li > button")];
+    const exam = today.find((b) => b.textContent?.includes("UTS"))!;
+    await screen.click(exam);
+    expect(document.querySelector("main h1")?.textContent).toBe("Komunikasi Pemasaran");
+    expect(screen.text()).toContain("Kapan dan di mana");
+  });
+
   it("speaks English", async () => {
     screen = await openApp({ world: new PretendWorld({ now: "2026-10-14T09:00:00+07:00" }), signedIn: true, six: true });
     await screen.engineDoes(() => screen!.engine.updateSettings({ lang: "en" }));

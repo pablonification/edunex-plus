@@ -4,6 +4,7 @@
 // Edunex, SIX and ITB calendar.
 import { act } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { PretendWorld } from "../pretend/world";
 import { playCssAnimations } from "./fake-animations";
 import { openApp } from "./harness";
 
@@ -137,6 +138,13 @@ describe("quick search", () => {
     expect(document.querySelector("nav [aria-current=true]")?.textContent).toContain("02 Penyusunan Proposal TA");
     await press("[", { metaKey: true });
     expect(document.querySelector("#course-entry")).toBeNull();
+  });
+
+  it("an exam behind the Student says so, as Tugas & Ujian's Done does", async () => {
+    screen = await openApp({ world: new PretendWorld({ now: "2026-10-23T09:00:00+07:00" }), signedIn: true, six: true });
+    await commandK();
+    await type("uts komunikasi");
+    expect(activeRow()).toBe("UTS Komunikasi PemasaranDK4073 · Kam, 15 Okt, 11:00–12:59 · TVST C · Sudah lewat↵");
   });
 
   it("an exam opens its exam page: SIX's sitting and Edunex's take-home are one UTS", async () => {

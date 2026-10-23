@@ -106,13 +106,14 @@ describe("Back to a course", () => {
     const course = h1();
     await tab(/^Tugas & Ujian/);
     const panel = () => document.querySelector<HTMLElement>("[role=tabpanel][data-state=active]")!;
-    await s.click(panel().querySelector<HTMLButtonElement>("li button")!);
+    // One list: the UTS sitting in class, and its take-home, a Task handed in on Edunex.
+    const inList = (text: RegExp) => [...panel().querySelectorAll<HTMLButtonElement>("li button")].find((b) => text.test(b.textContent ?? ""))!;
+    await s.click(inList(/Take-home/));
     expect(h1()).not.toBe(course);
     await back();
     expect(h1()).toBe(course);
     expect(pickedTab()).toMatch(/^Tugas & Ujian/);
-    const exams = [...panel().querySelectorAll("section")].find((section) => section.querySelector("h2")?.textContent?.startsWith("Ujian"))!;
-    await s.click(exams.querySelector<HTMLButtonElement>("li button")!);
+    await s.click(inList(/Di kelas/));
     expect(main().textContent).toContain("Kapan dan di mana");
     await back();
     expect(pickedTab()).toMatch(/^Tugas & Ujian/);

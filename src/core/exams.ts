@@ -7,7 +7,8 @@
 // the exam page, the alerts and the calendar export read it.
 import { isExamActivity } from "./attendance";
 import { wibDay } from "./course-meetings";
-import type { AcademicCalendar, CalendarEvent, ClassSession, CourseOutline, EdunexExam, Task } from "./models";
+import type { AcademicCalendar, CalendarEvent, ClassSession, CourseOutline, EdunexExam, ExamMark, Task, TaskStatus } from "./models";
+import { isOpenStatus, taskStatus } from "./tasks";
 
 /** UTS and UAS keep ITB's words; quizzes and other exams are told apart from them. */
 export type ExamKind = "UTS" | "UAS" | "KUIS" | "UJIAN";
@@ -56,6 +57,11 @@ export function takeHomeOf(task: Pick<Task, "kind" | "title">): TakeHome | null 
 export const takeHomeKind = (task: Pick<Task, "kind" | "title">): "UTS" | "UAS" | null => takeHomeOf(task)?.kind ?? null;
 
 const HOUR = 3_600_000;
+const DAY = 24 * HOUR;
+/** An Edunex exam open longer than this runs out when it closes, like a deadline; a shorter one is sat at its start. */
+export const WINDOW_AS_DEADLINE = 24 * HOUR;
+/** An exam week this close is worth looking ahead to: Beranda's line under the greeting, the period line opening in Tugas & Ujian. */
+export const PERIOD_NEAR = 14 * DAY;
 /** A deadline on one of these days: its own, or the day before for one just past midnight ("00:00" closes the day before). */
 export const dueOn = (at: number, days: ReadonlySet<string>) => days.has(wibDay(at)) || days.has(wibDay(at - 3 * HOUR));
 
@@ -76,8 +82,6 @@ export interface Exam {
   week: CalendarEvent | null;
   /** The earliest date any system gives (ms); null when none does yet. */
   at: number | null;
-  /** The latest date any system gives: past it, the exam is behind the Student. */
-  last: number | null;
   /** SIX and Edunex both give a sitting, on no common day. */
   disagree: boolean;
   /** When SIX also lists a class sitting and a take-home is due on another day: that deadline (the soonest). Two parts, not a conflict. */
@@ -133,7 +137,6 @@ export function mergeExams(sources: ExamSources): Exam[] {
         inOutline: false,
         week: null,
         at: null,
-        last: null,
         disagree: false,
         takeHomeApart: null,
       };
@@ -186,7 +189,6 @@ export function mergeExams(sources: ExamSources): Exam[] {
     const dues = exam.tasks.flatMap((t) => (t.dueAt !== null ? [t.dueAt] : []));
     const times = [...exam.six.map((s) => s.start), ...sittings, ...dues];
     exam.at = times.length ? Math.min(...times) : null;
-    exam.last = times.length ? Math.max(...[...exam.six.map((s) => s.end), ...sittings, ...dues]) : null;
     // A sitting is compared with sittings only: a take-home's deadline isn't the day of an exam.
     exam.disagree = sixDays.size > 0 && sittings.length > 0 && !sittings.some((t) => sixDays.has(wibDay(t)));
     exam.takeHomeApart = sixDays.size ? (dues.filter((t) => !dueOn(t, sixDays)).sort((a, b) => a - b)[0] ?? null) : null;
@@ -199,5 +201,105 @@ export function mergeExams(sources: ExamSources): Exam[] {
   );
 }
 
-/** Behind the Student: every date it has passed. Undated exams are still to come. */
-export const examPassed = (exam: Exam, now: number) => exam.last !== null && exam.last < now;
+// ---------------------------------------------------------------- what's still ahead
+
+/** When an Edunex exam is over: its end, else the end of its WIB day when Edunex gives only a start. */
+function edunexEnd(exam: Pick<EdunexExam, "start" | "end">): number {
+  if (exam.end !== null) return exam.end;
+  return Date.parse(`${wibDay(exam.start ?? 0)}T00:00:00+07:00`) + DAY;
+}
+
+/** An Edunex exam open longer than a day (a quiz open for a week): it runs out when it closes. */
+export const isExamWindow = (exam: Pick<EdunexExam, "start" | "end">): boolean =>
+  exam.start !== null && exam.end !== null && exam.end - exam.start > WINDOW_AS_DEADLINE;
+
+/** What a "Mark as done" is kept by: Edunex's own exam id, and the window it had then. */
+export const examMarkKey = (exam: Pick<EdunexExam, "id" | "start" | "end">) => ({
+  id: `edunex-exam:${exam.id}`,
+  facts: `${exam.start ?? ""}|${exam.end ?? ""}`,
+});
+
+/** The Student's mark on this window, while the window is the one they marked. */
+export function examMarkOn(exam: Pick<EdunexExam, "id" | "start" | "end">, marks: readonly ExamMark[]): ExamMark | undefined {
+  const key = examMarkKey(exam);
+  return marks.find((mark) => mark.id === key.id && mark.facts === key.facts);
+}
+
+/** Marks a month after their window closed are let go (a window Edunex moved since keeps its mark until then too). */
+export function pruneExamMarks(marks: readonly ExamMark[], now: number): ExamMark[] {
+  return marks.filter((mark) => {
+    const end = Number(mark.facts.split("|")[1]);
+    return !Number.isFinite(end) || end === 0 || end > now - 30 * DAY;
+  });
+}
+
+/**
+ * A part of an exam still ahead of the Student, at the moment it runs out:
+ * a sitting (SIX's session, or an Edunex exam open a day or less) at its
+ * start; an Edunex window open longer than a day at its close; a take-home
+ * still to hand in (late but still taken included) at its deadline.
+ */
+export type ExamPart =
+  | { kind: "sitting"; id: string; at: number; end: number | null; source: "six" | "edunex"; room: string | null; title: string | null }
+  | {
+      kind: "window";
+      id: string;
+      at: number;
+      /** null when Edunex gives only its close: then it's taken as open, with no way to mark it (its length isn't known). */
+      opensAt: number | null;
+      /** Edunex takes it now. */
+      open: boolean;
+      /** The Student marked it done, then Edunex moved it: it's back, and says so. */
+      moved: boolean;
+      edunex: EdunexExam;
+    }
+  | { kind: "takehome"; id: string; at: number | null; task: Task; status: TaskStatus };
+
+/** Some system gives it a day: a SIX sitting, a dated Edunex exam (its start or its close) or a take-home. */
+export const examDated = (exam: Exam): boolean => exam.six.length > 0 || exam.edunex.some((e) => e.start !== null || e.end !== null) || exam.tasks.length > 0;
+
+/**
+ * The exam's parts still ahead, soonest first (a take-home with no deadline
+ * last). A window the Student marked done is behind. An Edunex sitting on a
+ * day SIX has one is the same sitting: SIX's time and room stand for it.
+ */
+export function examParts(exam: Exam, now: number, marks: readonly ExamMark[] = []): ExamPart[] {
+  const parts: ExamPart[] = [];
+  for (const session of exam.six)
+    if (session.end > now)
+      parts.push({ kind: "sitting", id: `six:${session.id}`, at: session.start, end: session.end, source: "six", room: session.room, title: null });
+  const sixDays = new Set(exam.six.map((session) => wibDay(session.start)));
+  for (const item of exam.edunex) {
+    if (item.start === null) {
+      // Only its close: due then, like a deadline.
+      if (item.end !== null && item.end > now)
+        parts.push({ kind: "window", id: `edunex:${item.id}`, at: item.end, opensAt: null, open: true, moved: false, edunex: item });
+      continue;
+    }
+    if (edunexEnd(item) <= now) continue;
+    if (!isExamWindow(item)) {
+      if (sixDays.has(wibDay(item.start))) continue;
+      parts.push({ kind: "sitting", id: `edunex:${item.id}`, at: item.start, end: item.end, source: "edunex", room: null, title: item.title });
+      continue;
+    }
+    if (examMarkOn(item, marks)) continue;
+    const moved = marks.some((mark) => mark.id === examMarkKey(item).id);
+    parts.push({ kind: "window", id: `edunex:${item.id}`, at: edunexEnd(item), opensAt: item.start, open: item.start <= now, moved, edunex: item });
+  }
+  for (const task of exam.tasks) {
+    const status = taskStatus(task, now);
+    if (isOpenStatus(status)) parts.push({ kind: "takehome", id: `task:${task.id}`, at: task.dueAt, task, status });
+  }
+  return parts.sort((a, b) => (a.at ?? Number.MAX_SAFE_INTEGER) - (b.at ?? Number.MAX_SAFE_INTEGER));
+}
+
+/**
+ * Still ahead of the Student while some part of it is: a sitting not over,
+ * an Edunex window not closed (and not marked done), a take-home still to
+ * hand in. An exam no system dates is ahead until ITB's exam week for it
+ * ends, and always when it has no week.
+ */
+export function examAhead(exam: Exam, now: number, marks: readonly ExamMark[] = []): boolean {
+  if (!examDated(exam)) return exam.week === null || exam.week.end > now;
+  return examParts(exam, now, marks).length > 0;
+}

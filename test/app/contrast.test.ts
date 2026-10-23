@@ -78,6 +78,10 @@ const pairs: [string, string, number][] = [
   ...["danger", "warning", "success", "info", "neutral"].map((tone) => [`--${tone}-fg`, `--${tone}-bg`, 4.5] as [string, string, number]),
   ...["not-started", "draft", "submitted", "overdue", "closed", "review"].map((s) => [`--status-${s}-fg`, `--status-${s}-bg`, 4.5] as [string, string, number]),
   ["--source-itb-fg", "--source-itb-bg", 4.5],
+  // Tugas & Ujian's date column on its row, at rest, hovered and pressed: amber within a day, red once late, green while on.
+  ...["--warning-fg", "--danger-fg", "--success-fg"].flatMap((fg) =>
+    ["--surface", "--hover", "--selected@--surface"].map((bg) => [fg, bg, 4.5] as [string, string, number]),
+  ),
   ["--tooltip-fg", "--tooltip-bg", 4.5],
   ["--focus", "--canvas", 3],
   ["--focus", "--raised", 3],
