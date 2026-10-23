@@ -6,7 +6,7 @@ body:
     attributes:
       value: |
         > [!NOTE]
-        > The app filled this in and scrubbed the page on your computer: names, NIM, contacts and links are replaced, grades and amounts are made up. This page is public, so read it before you send it.
+        > The app filled this in and took your details out of the page on your computer. Names, NIM, contacts and links are replaced, and grades and amounts are made up. This page is public, so read it before you send it.
 
   - type: textarea
     id: report
@@ -15,6 +15,12 @@ body:
       description: Filled in by the app.
     validations:
       required: true
+
+  - type: textarea
+    id: doing
+    attributes:
+      label: What were you doing?
+      description: Optional. Filled in by the app if you wrote it there.
 
   - type: textarea
     id: page

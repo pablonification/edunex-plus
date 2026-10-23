@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
 // "Laporkan masalah" (ADR 0007) as the Student sees it: from where the app says something went
-// wrong, what will be sent (the app, the page, the check, the scrubbed page) before anything is,
-// then GitHub or the maintainer's LINE, side by side. The real engine against the pretend SIX and
-// Edunex, and main's real report handlers; only Downloads, the clipboard and the browser are pretend.
+// wrong, what will be sent, in plain words (the engine's own and the page itself folded away), before
+// anything is; then LINE or GitHub, side by side, and that way one step at a time. The real engine
+// against the pretend SIX and Edunex, and main's real report handlers; only Downloads, the browser
+// and the file manager are pretend.
 import { act } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 import { openApp } from "./harness";
@@ -16,6 +17,7 @@ afterEach(() => {
 const BILLS = /\/keuangan$/;
 const dialog = () => document.querySelector("[role=dialog]")?.textContent ?? "";
 const reportFile = /^edunex-plus-report-\d{4}-\d\d-\d\d-\d{4}\.json$/;
+const isPrimary = (name: string | RegExp) => screen!.button(name).className.includes("bg-accent");
 
 async function note(text: string) {
   await act(async () => {
@@ -33,8 +35,8 @@ async function tab(name: string) {
   });
 }
 
-describe("reporting a SIX page the app couldn't read", () => {
-  it("from the screen's note: shows what goes, sends nothing until asked, then LINE gets the summary and the file, with the maintainer's ID said plainly", async () => {
+describe("reporting a SIX page the app couldn't read, on LINE", () => {
+  it("says in plain words what goes, sends nothing until asked, then walks through the steps one at a time", async () => {
     const s = (screen = await openApp({ signedIn: true, six: true }));
     s.world.six.changeLayout(BILLS, "<th class='text-right'>Pembayaran (Rp)</th>", "<th>Dibayar</th>");
     await s.engineDoes(() => s.engine.refresh("six"));
@@ -44,63 +46,68 @@ describe("reporting a SIX page the app couldn't read", () => {
 
     await s.click("Laporkan masalah");
     const shown = dialog();
-    expect(shown).toContain("Belum ada yang terkirim sampai kamu memilih caranya.");
+    expect(shown).toContain("Tidak ada yang terkirim sebelum kamu memilih caranya.");
+    expect(shown).toContain(
+      "SIX mengubah halaman UKTHalaman ini ikut dikirim. Nama, NIM, kontak, dan tautan diganti, nilai dan jumlah uang diganti angka karangan.",
+    );
     expect(shown).toContain("Edunex Plus 2.0.0-test di macOS 15.3 (arm64)");
-    expect(shown).toContain("SIX · /keuangan · Tidak bisa dibaca");
-    expect(shown).toContain('Yang tidak cocok: SIX finance page: the bills header reads "Semester | Tagihan (Rp) | Dibayar | Batas Pembayaran | Petunjuk"');
-    expect(shown).toContain("Nama, NIM, kontak, dan tautan sudah diganti.");
-    expect(shown).toContain("Ke LINE pengelola aplikasi: arqilasp12.");
-    expect(s.calls.map((call) => call.name)).not.toContain("report.send");
-    expect([s.reports.files, s.reports.opened, s.copied]).toEqual([[], [], []]);
+    expect(shown).toContain("Kirim lewat LINEKe arqilasp12, pengelola aplikasi. Hanya pengelola yang membacanya.");
+    expect(shown).toContain("Buka di GitHubButuh akun GitHub. Laporannya bisa dibaca siapa saja.");
+    // The engine's own words, the page's address and the page itself only in the technical details.
+    for (const technical of ["SIX finance page", "/keuangan", "<th>"]) expect(shown).not.toContain(technical);
+    expect(shown).not.toContain(":");
+    expect([s.reports.files, s.reports.opened]).toEqual([[], []]);
 
-    // The page itself, to read through before it goes.
-    await s.click("Lihat halamannya");
+    await s.click("Detail teknis");
+    expect(dialog()).toContain('SIX finance page: the bills header reads "Semester | Tagihan (Rp) | Dibayar | Batas Pembayaran | Petunjuk"');
+    expect(dialog()).toContain("/keuangan");
     expect(document.querySelector("[role=dialog] pre")?.textContent).toContain("<th>Dibayar</th>");
+    await s.click("Detail teknis");
 
     await note("membuka tab UKT");
-    await s.click("Kirim lewat LINE");
+    await s.click(/^Kirim lewat LINE/);
+    // The file is the message: saved, with the note in it. Nothing opens until asked.
     const [file] = s.reports.files;
     expect(file!.name).toMatch(reportFile);
     expect(JSON.parse(file!.text)).toMatchObject({
       format: 1,
       os: "macOS 15.3 (arm64)",
+      note: "membuka tab UKT",
       problems: [{ feed: "six.bills", kind: "changed", pages: [{ system: "six", path: "/app/mahasiswa:18223901/keuangan" }] }],
     });
-    expect(s.copied).toEqual([
-      [
-        "Laporan dari Edunex Plus 2.0.0-test di macOS 15.3 (arm64)",
-        "",
-        "SIX · /keuangan · Tidak bisa dibaca",
-        'SIX finance page: the bills header reads "Semester | Tagihan (Rp) | Dibayar | Batas Pembayaran | Petunjuk"',
-        "",
-        "Status: Edunex: Terhubung · SIX: Terhubung",
-        "",
-        "Yang sedang kulakukan: membuka tab UKT",
-        "",
-        `Halaman yang sudah disamarkan: ${file!.name}`,
-      ].join("\n"),
-    ]);
-    expect(s.reports.opened).toEqual(["https://line.me/ti/p/~arqilasp12"]);
-    expect(dialog()).toContain(
-      `Lanjutkan di LINELaporannya sudah tersalin. Tempel di chat dengan arqilasp12, lalu kirim juga ${file!.name} dari folder Unduhan.`,
+    expect(s.reports.opened).toEqual([]);
+    expect(s.copied).toEqual([]);
+    const steps = dialog();
+    expect(steps).toContain(`Berkas laporan sudah disimpan, selesai${file!.name}`);
+    expect(steps).toMatch(/\d+ KBTampilkan di Finder/);
+    // Adding the maintainer: the code LINE's own page shows on a computer, or the ID to search for.
+    expect(steps).toContain("2Tambahkan arqilasp12 di LINEPindai kode ini dengan LINE di HP, atau cari ID arqilasp12. Sudah berteman? Lewati langkah ini.");
+    expect(document.querySelector("[role=dialog] svg[aria-label='Kode QR untuk menambahkan arqilasp12 di LINE']")).not.toBeNull();
+    expect(steps).toContain(
+      "3Kirim berkasnya di chat dengan arqilasp12Di LINE komputer, seret berkasnya ke chat. LINE cuma di HP? Pindahkan berkasnya ke HP dulu, lewat AirDrop, email, atau Drive.",
     );
-    expect(dialog()).toContain("LINE pengelola aplikasi: arqilasp12. Kalau LINE tidak terbuka, cari ID ini di LINE.");
-    // A personal LINE ID: never written as an official account's.
-    expect(dialog()).not.toContain("@arqilasp12");
-
-    await s.click("Salin laporan");
-    expect(s.copied).toHaveLength(2);
-    await s.click("Tampilkan berkas");
+    expect(steps).not.toContain(":");
+    expect(steps).not.toContain("@arqilasp12");
+    // Nothing for the app to open: "Selesai" is the one thing to press, the file's folder the way to find it.
+    expect(isPrimary("Selesai")).toBe(true);
+    expect(isPrimary("Tampilkan di Finder")).toBe(false);
+    await s.click("Tampilkan di Finder");
     expect(s.reports.revealed).toEqual([`/Users/dimas/Downloads/${file!.name}`]);
-    await s.click("Buka LINE");
-    expect(s.calls.at(-1)).toEqual({ name: "shell.openExternal", input: { url: "https://line.me/ti/p/~arqilasp12" } });
+    expect(s.reports.opened).toEqual([]);
+
+    // Back to what's sent, the note kept; the same file is written again, not another one.
+    await s.click("Kembali");
+    expect(document.querySelector<HTMLTextAreaElement>("[role=dialog] textarea")?.value).toBe("membuka tab UKT");
+    await s.click(/^Kirim lewat LINE/);
+    expect(s.reports.files.map((saved) => saved.name)).toEqual([file!.name]);
+
     await s.click("Selesai");
     expect(document.querySelector("[role=dialog]")).toBeNull();
   });
 });
 
-describe("reporting Edunex changing something", () => {
-  it("from the banner and the status panel; GitHub opens a new issue through Edunex's form, filled in, and the Student is told to drag the file in", async () => {
+describe("reporting Edunex changing something, on GitHub", () => {
+  it("from the banner and the status panel; GitHub opens on the Student's click, filled in, through Edunex's form", async () => {
     const s = (screen = await openApp({ signedIn: true }));
     s.world.edunex.mangle(/^\/course\/presences\/list$/, { kind: "missing-field", field: "course_code" });
     await s.engineDoes(() => s.engine.refresh("edunex"));
@@ -111,35 +118,57 @@ describe("reporting Edunex changing something", () => {
     await s.key("Escape");
 
     await s.click("Laporkan masalah");
-    expect(dialog()).toContain("Edunex · /course/presences/list · Tidak bisa dibaca");
-    await s.click("Buka di GitHub");
+    expect(dialog()).toContain("Edunex mengubah data mata kuliahHalaman ini ikut dikirim.");
+    await note("membuka Beranda");
+    await s.click(/^Buka di GitHub/);
     const [file] = s.reports.files;
     expect(file!.name).toMatch(reportFile);
+    expect(s.reports.opened).toEqual([]);
+    expect(dialog()).toContain(
+      "2Buka laporan baru di GitHubIsinya sudah terisi. Kamu perlu masuk ke GitHub.Buka GitHub3Seret berkasnya ke kotak terakhir, lalu kirim",
+    );
+    expect(dialog()).not.toContain(":");
+    expect(isPrimary("Buka GitHub")).toBe(true);
+    expect(isPrimary("Selesai")).toBe(false);
+
+    await s.click("Buka GitHub");
     const issue = new URL(s.reports.opened[0]!);
     expect(`${issue.origin}${issue.pathname}`).toBe("https://github.com/pablonification/edunex-plus/issues/new");
     expect(issue.searchParams.get("template")).toBe("edunex-drift.yml");
-    expect(issue.searchParams.get("title")).toBe("Edunex · /course/presences/list · Tidak bisa dibaca");
-    expect(issue.searchParams.get("report")).toContain(`/course/presences/list: 0.course_code`);
-    expect(issue.searchParams.get("report")).toContain(`Halaman yang sudah disamarkan: ${file!.name}`);
-    expect(s.copied).toEqual([]);
-    expect(dialog()).toContain(`Lanjutkan di GitHubGitHub terbuka di browsermu. Seret ${file!.name} dari folder Unduhan ke laporannya, lalu kirim.`);
+    expect(issue.searchParams.get("title")).toBe("Edunex mengubah data mata kuliah");
+    expect(issue.searchParams.get("report")).toMatch(
+      /^Edunex mengubah data mata kuliah\.\n` \/course\/presences\/list: 0\.course_code .+ `\n\nEdunex Plus 2\.0\.0-test di macOS 15\.3 \(arm64\)$/,
+    );
+    expect(issue.searchParams.get("doing")).toBe("membuka Beranda");
+    expect(dialog()).toContain("Buka laporan baru di GitHub, selesai");
+    expect(isPrimary("Buka lagi")).toBe(false);
+    expect(isPrimary("Selesai")).toBe(true);
   });
 });
 
 describe("reporting from Settings", () => {
-  it("with nothing the app couldn't read, says so, and GitHub opens the bug form with no file", async () => {
+  it("with nothing the app couldn't read, says so; GitHub needs no file and opens the bug form, LINE still sends one with the note", async () => {
     const s = (screen = await openApp({ signedIn: true }));
     await s.apply({ type: "command", command: "settings" });
     await s.click("Laporkan masalah");
     expect(dialog()).not.toContain("Pengaturan");
     expect(dialog()).toContain("Saat ini tidak ada halaman yang gagal dibaca.");
-    expect(document.querySelector("[role=dialog] pre")).toBeNull();
-    await s.click("Buka di GitHub");
+    expect(s.has("Detail teknis")).toBe(false);
+    await note("jadwal hari Senin kosong");
+
+    await s.click(/^Buka di GitHub/);
+    expect(s.reports.files).toEqual([]);
+    expect(dialog()).toContain("1Buka laporan baru di GitHub");
+    expect(dialog()).toContain("2Periksa isinya, lalu kirim");
+    expect(s.has("Tampilkan di Finder")).toBe(false);
+    await s.click("Buka GitHub");
     const issue = new URL(s.reports.opened[0]!);
     expect(issue.searchParams.get("template")).toBe("bug.yml");
-    expect(issue.searchParams.get("what")).toContain("Laporan dari Edunex Plus 2.0.0-test di macOS 15.3 (arm64)");
-    expect(s.reports.files).toEqual([]);
-    expect(dialog()).toContain("GitHub terbuka di browsermu. Cek laporannya, lalu kirim.");
-    expect(s.has("Tampilkan berkas")).toBe(false);
+    expect(issue.searchParams.get("what")).toBe("Edunex Plus 2.0.0-test di macOS 15.3 (arm64)");
+    expect(issue.searchParams.get("steps")).toBe("jadwal hari Senin kosong");
+
+    await s.click("Kembali");
+    await s.click(/^Kirim lewat LINE/);
+    expect(JSON.parse(s.reports.files[0]!.text)).toMatchObject({ problems: [], note: "jadwal hari Senin kosong" });
   });
 });

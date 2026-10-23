@@ -174,7 +174,7 @@ export async function openApp(options: Options = {}) {
   /** Release pages main opened in the browser for an update, in order. */
   const openedPages: string[] = [];
   /** "Laporkan masalah": the files main saved to Downloads, the addresses it opened, the files it showed in their folder. */
-  const reports = { files: [] as { name: string; text: string }[], opened: [] as string[], revealed: [] as string[] };
+  const reports = { files: [] as { name: string; path: string; text: string }[], opened: [] as string[], revealed: [] as string[] };
   /** Updates main put in place, in order: restarted for (`reopen`), or as the app quit. */
   const installed: { kind: UpdateKind; staged: string; reopen: boolean }[] = [];
   /** The update download under way: it has reached 40% and waits for the test to finish it. */
@@ -363,16 +363,16 @@ export async function openApp(options: Options = {}) {
       return { file: "Edunex Plus.ics", events: calendar.events };
     },
     "schedule.reveal": async () => ({}),
-    // "Laporkan masalah" runs main's real handlers; Downloads, the clipboard and the browser are pretend.
+    // "Laporkan masalah" runs main's real handlers; Downloads, the browser and the file manager are pretend.
     ...reportHandlers({
       engine,
       os: () => "macOS 15.3 (arm64)",
       lang: () => engine.snapshot().settings.lang,
-      save: async (name, text) => {
-        reports.files.push({ name, text });
-        return `/Users/dimas/Downloads/${name}`;
+      save: async (name, text, replacing) => {
+        const file = replacing ?? `/Users/dimas/Downloads/${name}`;
+        reports.files = [...reports.files.filter((saved) => saved.path !== file), { name: file.slice(file.lastIndexOf("/") + 1), path: file, text }];
+        return file;
       },
-      copy: (text) => void copied.push(text),
       open: async (url) => {
         if (!isOfficialUrl(url)) throw new EngineError("Rejected", "Only official pages open from the app");
         reports.opened.push(url);

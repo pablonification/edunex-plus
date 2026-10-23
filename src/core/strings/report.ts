@@ -1,80 +1,88 @@
 // Text for "Laporkan masalah" (ADR 0007): sending the app's maintainer a page the app couldn't
-// read, scrubbed on the Student's computer, on GitHub or LINE. And the report's own words, which go
-// with it in the Student's language.
+// read, with the Student's details taken out on their computer, on LINE or GitHub. Pages are named
+// the way the app's screens name them, and the engine's own words stay in the technical details.
 import type { Entry } from "./entry";
 
 export const reportStrings = {
   // Where it opens: a source's status, a screen's note about its SIX page, Settings
   "report.open": { id: "Laporkan", en: "Report" },
   "report.title": { id: "Laporkan masalah", en: "Report a problem" },
-  "report.settingsHint": { id: "Ke pengelola aplikasi, lewat GitHub atau LINE", en: "To the app's maintainer, on GitHub or LINE" },
+  "report.settingsHint": { id: "Ke pengelola aplikasi, lewat LINE atau GitHub", en: "To the app's maintainer, on LINE or GitHub" },
 
   // What's sent, before anything is
   "report.lead": {
-    id: "Dari laporan ini, pengelola bisa memperbaiki aplikasinya. Belum ada yang terkirim sampai kamu memilih caranya.",
-    en: "With this report, the maintainer can fix the app. Nothing is sent until you choose how.",
+    id: "Pengelola aplikasi bisa memperbaikinya dari laporan ini. Tidak ada yang terkirim sebelum kamu memilih caranya.",
+    en: "The app's maintainer can fix it from this report. Nothing is sent until you choose how.",
   },
   "report.sent": { id: "Yang dikirim", en: "What's sent" },
+  "report.changed.six": { id: "SIX mengubah halaman {page}", en: "SIX changed its {page} page" },
+  "report.changed.sixAny": { id: "SIX mengubah salah satu halamannya", en: "SIX changed one of its pages" },
+  "report.changed.edunex": { id: "Edunex mengubah data {page}", en: "Edunex changed its {page} data" },
+  "report.changed.edunexAny": { id: "Edunex mengubah datanya", en: "Edunex changed its data" },
+  "report.skipped": {
+    id: "{count} baris di halaman {page} belum dikenali",
+    en: { one: "{count} row on the {page} page isn't recognised", other: "{count} rows on the {page} page aren't recognised" },
+  },
+  "report.page.status": { id: "status mahasiswa", en: "student status" },
+  "report.page.schedule": { id: "jadwal", en: "schedule" },
+  "report.page.grades": { id: "nilai", en: "grades" },
+  "report.page.curriculum": { id: "kurikulum", en: "curriculum" },
+  "report.page.krs": { id: "KRS", en: "KRS" },
+  "report.page.ukt": { id: "UKT", en: "UKT" },
+  "report.page.account": { id: "akun", en: "account" },
+  "report.page.courses": { id: "mata kuliah", en: "course" },
+  "report.page.tasks": { id: "tugas", en: "task" },
+  "report.page.materials": { id: "materi", en: "material" },
+  "report.page.notifications": { id: "notifikasi", en: "notification" },
+  "report.pageGoes": {
+    id: "Halaman ini ikut dikirim. Nama, NIM, kontak, dan tautan diganti, nilai dan jumlah uang diganti angka karangan.",
+    en: "This page goes with it. Names, NIM, contacts and links are replaced, and grades and amounts are made up.",
+  },
   "report.app": { id: "Edunex Plus {version} di {os}", en: "Edunex Plus {version} on {os}" },
-  "report.changed": { id: "Tidak bisa dibaca", en: "Couldn't be read" },
-  "report.skipped": { id: "{count} baris dilewati", en: { one: "{count} row left out", other: "{count} rows left out" } },
-  "report.check": { id: "Yang tidak cocok: {check}", en: "What didn't fit: {check}" },
   "report.nothingKept": {
     id: "Saat ini tidak ada halaman yang gagal dibaca. Laporannya berisi versi aplikasi, sistem komputermu, dan ceritamu.",
     en: "No page is failing to read right now. The report has the app's version, your computer's system and what you write.",
   },
-  "report.showPage": { id: "Lihat halamannya", en: "Show the page" },
-  "report.hidePage": { id: "Tutup halamannya", en: "Hide the page" },
-  "report.scrubbed": {
-    id: "Nama, NIM, kontak, dan tautan sudah diganti. Nilai dan jumlah uang diganti angka karangan.",
-    en: "Names, NIM, contacts and links are replaced. Grades and amounts are made up.",
-  },
+  "report.details": { id: "Detail teknis", en: "Technical details" },
   "report.note": { id: "Apa yang sedang kamu lakukan?", en: "What were you doing?" },
   "report.notePlaceholder": { id: "Opsional, misalnya membuka tab UKT", en: "Optional, for example opening the UKT tab" },
-  "report.how": { id: "Kirim lewat", en: "Send it on" },
-  "report.github": { id: "Buka di GitHub", en: "Open on GitHub" },
-  "report.githubHint": { id: "Butuh akun GitHub. Laporannya bisa dibaca siapa saja.", en: "Needs a GitHub account. Anyone can read the report." },
+  "report.how": { id: "Kirim lewat", en: "Send it through" },
   "report.line": { id: "Kirim lewat LINE", en: "Send on LINE" },
   "report.lineHint": {
-    id: "Ke LINE pengelola aplikasi: {id}. Hanya pengelola yang membacanya.",
-    en: "To the app maintainer's LINE: {id}. Only the maintainer reads it.",
+    id: "Ke {id}, pengelola aplikasi. Hanya pengelola yang membacanya.",
+    en: "To {id}, the app's maintainer. Only the maintainer reads it.",
   },
+  "report.github": { id: "Buka di GitHub", en: "Open on GitHub" },
+  "report.githubHint": { id: "Butuh akun GitHub. Laporannya bisa dibaca siapa saja.", en: "Needs a GitHub account. Anyone can read the report." },
 
-  // After choosing
-  "report.githubOpened": { id: "Lanjutkan di GitHub", en: "Finish on GitHub" },
-  "report.githubFile": {
-    id: "GitHub terbuka di browsermu. Seret {file} dari folder Unduhan ke laporannya, lalu kirim.",
-    en: "GitHub opened in your browser. Drag {file} from your Downloads folder into the report, then submit it.",
+  // Then, step by step
+  "report.saved": { id: "Berkas laporan sudah disimpan", en: "Report file saved" },
+  "report.stepDone": { id: "selesai", en: "done" },
+  "report.lineAdd": { id: "Tambahkan {id} di LINE", en: "Add {id} on LINE" },
+  "report.lineAddHint": {
+    id: "Pindai kode ini dengan LINE di HP, atau cari ID {id}. Sudah berteman? Lewati langkah ini.",
+    en: "Scan this code with LINE on your phone, or search for the ID {id}. Already friends? Skip this step.",
   },
-  "report.githubNoFile": {
-    id: "GitHub terbuka di browsermu. Cek laporannya, lalu kirim.",
-    en: "GitHub opened in your browser. Check the report, then submit it.",
+  "report.qr": { id: "Kode QR untuk menambahkan {id} di LINE", en: "QR code to add {id} on LINE" },
+  "report.lineSend": { id: "Kirim berkasnya di chat dengan {id}", en: "Send the file in your chat with {id}" },
+  "report.lineSendHint": {
+    id: "Di LINE komputer, seret berkasnya ke chat. LINE cuma di HP? Pindahkan berkasnya ke HP dulu, lewat AirDrop, email, atau Drive.",
+    en: "In LINE on your computer, drag the file into the chat. LINE only on your phone? Move the file there first, with AirDrop, email or Drive.",
   },
-  "report.lineOpened": { id: "Lanjutkan di LINE", en: "Finish on LINE" },
-  "report.lineFile": {
-    id: "Laporannya sudah tersalin. Tempel di chat dengan {id}, lalu kirim juga {file} dari folder Unduhan.",
-    en: "The report is copied. Paste it in the chat with {id}, then send {file} from your Downloads folder too.",
-  },
-  "report.lineNoFile": {
-    id: "Laporannya sudah tersalin. Tempel di chat dengan {id}, lalu kirim.",
-    en: "The report is copied. Paste it in the chat with {id}, then send it.",
-  },
-  "report.lineId": {
-    id: "LINE pengelola aplikasi: {id}. Kalau LINE tidak terbuka, cari ID ini di LINE.",
-    en: "The app maintainer's LINE: {id}. If LINE didn't open, search for this ID in LINE.",
-  },
-  "report.showFile": { id: "Tampilkan berkas", en: "Show the file" },
-  "report.copy": { id: "Salin laporan", en: "Copy the report" },
-  "report.copied": { id: "Laporan tersalin", en: "Report copied" },
-  "report.openLine": { id: "Buka LINE", en: "Open LINE" },
+  "report.githubOpen": { id: "Buka laporan baru di GitHub", en: "Open a new report on GitHub" },
+  "report.githubOpenHint": { id: "Isinya sudah terisi. Kamu perlu masuk ke GitHub.", en: "It's already filled in. You need to be signed in to GitHub." },
+  "report.githubOpenButton": { id: "Buka GitHub", en: "Open GitHub" },
+  "report.openAgain": { id: "Buka lagi", en: "Open again" },
+  "report.githubAttach": { id: "Seret berkasnya ke kotak terakhir, lalu kirim", en: "Drag the file into the last box, then submit" },
+  "report.githubSubmit": { id: "Periksa isinya, lalu kirim", en: "Check it, then submit" },
   "report.done": { id: "Selesai", en: "Done" },
-  "report.failed": { id: "Laporan tidak bisa disiapkan. Coba lagi.", en: "The report couldn't be prepared. Try again." },
-  "report.sendFailed": { id: "Laporan tidak bisa disimpan atau dibuka. Coba lagi.", en: "The report couldn't be saved or opened. Try again." },
 
-  // The report's own words: the summary pasted on LINE and put in the GitHub issue
-  "report.summary.title": { id: "Laporan dari Edunex Plus {version}", en: "Report from Edunex Plus {version}" },
-  "report.summary.from": { id: "Laporan dari Edunex Plus {version} di {os}", en: "Report from Edunex Plus {version} on {os}" },
-  "report.summary.status": { id: "Status: {list}", en: "Status: {list}" },
-  "report.summary.doing": { id: "Yang sedang kulakukan: {note}", en: "What I was doing: {note}" },
-  "report.summary.file": { id: "Halaman yang sudah disamarkan: {file}", en: "The scrubbed page: {file}" },
+  // When something doesn't work
+  "report.failed": { id: "Laporan tidak bisa disiapkan. Coba lagi.", en: "The report couldn't be prepared. Try again." },
+  "report.saveFailed": { id: "Berkas laporan tidak bisa disimpan. Coba lagi.", en: "The report file couldn't be saved. Try again." },
+  "report.openFailed": { id: "{place} tidak bisa dibuka. Coba lagi.", en: "{place} couldn't be opened. Try again." },
+  "report.revealFailed": { id: "Folder berkasnya tidak bisa dibuka. Coba lagi.", en: "The file's folder couldn't be opened. Try again." },
+
+  // The report's own title on GitHub, when no page is in it
+  "report.summaryTitle": { id: "Laporan dari Edunex Plus {version}", en: "Report from Edunex Plus {version}" },
 } as const satisfies Record<string, Entry>;
