@@ -549,10 +549,16 @@ export const meetingProvider: NeedProvider = {
   },
 };
 
+/** The eve-of-class warning starts this long into the WIB day before the class. */
+const EVE_FROM = 7 * HOUR;
+
 /**
  * SIX's count leaves no absences, or the target can't be reached anymore.
- * With no absences left, a course meeting later today is already the class
- * item ("don't miss it").
+ * With no absences left it's said on the WIB day before each class, from
+ * 07:00 ("don't miss tomorrow's class"), as the class itself is the class
+ * item on its day ("don't miss it"); with no class known at all (SIX hasn't
+ * published the month, no usual slot), every day, so the warning is never lost.
+ * `at`: that next class (the usual weekly slot when SIX's timetable ends first).
  */
 export const attendanceProvider: NeedProvider = {
   area: "attendance",
@@ -562,16 +568,19 @@ export const attendanceProvider: NeedProvider = {
         .filter((s) => !isExamActivity(s.activity))
         .map((s) => s.courseCode),
     );
+    const eve = context.now >= dayStart(today(context)) + EVE_FROM;
     const out: NeedDraft[] = [];
     for (const course of context.courses) {
       const health = context.health.get(course.code);
       if (!health || (health.state !== "none" && health.state !== "out") || (health.state === "none" && meetsToday.has(course.code))) continue;
+      const next = health.left.upcoming[0]?.start ?? null;
+      if (health.state === "none" && next !== null && !(eve && wibDay(next - DAY) === today(context))) continue;
       out.push({
         id: `attendance:${course.code}:${health.state}`,
         kind: "attendance",
         course: course.code,
         band: "soon",
-        at: health.left.next?.start ?? null,
+        at: health.state === "none" ? next : (health.left.next?.start ?? null),
         sources: context.usesCalendar ? ["six", "itb"] : ["six"],
         action: { kind: "go", route: { screen: "presence" } },
         health,

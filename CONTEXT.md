@@ -80,7 +80,11 @@ _Avoid_: dismiss, hide, complete
 
 **Snooze**:
 "Ingatkan nanti" (Remind me later): the Student puts a Beranda item, a late Task in Tugas & Ujian (the same snooze as Beranda's for that Task) or a course's attendance banner off until a moment that fits it ("Besok pagi", "Sehari sebelum tenggat", "Saat dibuka"). It always ends: at that moment, at the item's last useful moment, or when the item changes (a moved deadline, a new count, turning urgent), two weeks at most. Kept on this computer; OS notifications and the bell are not affected.
-_Avoid_: dismiss, mute, "don't remind me again" (nothing is hidden for good)
+_Avoid_: dismiss, mute, "don't remind me again" (nothing is hidden for good by a snooze; that's Handled)
+
+**Handled**:
+"Sudah beres": the Student says a Beranda item is dealt with, where only they can know it: a lecturer's change checked ("Sudah kucek"), a class's attendance warning seen ("Sudah tahu"), a group hand-in, a payment SIX hasn't shown, or a Task handed in another way or not handed in at all (marked on its page). Only a new fact brings it back (another edit, a moved deadline, a new target), never time alone, except a bill turning overdue. What the app can see (the Student's own hand-in, a Presence, the KRS) clears itself and has no "handled". A Task marked handed in another way or not handed in gets no deadline reminders. Kept on this computer, and cleared when a different Student signs in. Called `done` in code.
+_Avoid_: dismissed, done (on screen), archived
 
 **Course color**:
 "Warna mata kuliah": a course's identity mark, its dot and its stripe, the same on every screen. One of ten named colors ("Biru", "Nila"), each with a tone for light and one for dark; none is a status hue or grey. A course's automatic color is remembered the first time it shows, so it never moves by itself; a color the Student picks stays with the course code, next term too. Kept on this computer.

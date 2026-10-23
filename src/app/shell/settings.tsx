@@ -30,7 +30,7 @@ import { useFocusNext } from "../hooks";
 import { useFormat, useT } from "../i18n";
 import { displayName } from "../names";
 import { useCourseNames } from "../schedule-data";
-import { useHeldBack, useSnoozes } from "../snoozes";
+import { useDone, useHeldBack, useSnoozes } from "../snoozes";
 import { useBridge, useDataset, useSettings, useStatus, useStore, useUpdateInstall } from "../store";
 import { AppMark, SourceLogo } from "../ui/brand";
 import { Button, Segmented, Switch } from "../ui/controls";
@@ -619,15 +619,17 @@ function useReport() {
   return (error: unknown) => toast(t(errorKey(error)), "danger");
 }
 
-/** What's put off with "Ingatkan nanti" on Beranda and course pages, and the way to bring it all back; only while there is some. */
+/** What's put off with "Ingatkan nanti" or marked handled, on Beranda, Task pages and course pages, and the way to bring it all back; only while there is some. */
 function SnoozedReminders({ report }: { report: (error: unknown) => void }) {
   const t = useT();
   const { wakeAll } = useSnoozes();
+  const { unmarkAll } = useDone();
   const held = useHeldBack();
-  if (!held.length) return null;
+  const count = held.snoozed.length + held.done.length;
+  if (!count) return null;
   return (
-    <Row label={t("settings.snoozed", { count: held.length })} hint={t("settings.snoozed.hint")}>
-      <Button size="sm" onClick={() => wakeAll().then(() => toast(t("settings.snoozed.woken"), "success"), report)}>
+    <Row label={t("settings.snoozed", { count })} hint={t("settings.snoozed.hint")}>
+      <Button size="sm" onClick={() => Promise.all([wakeAll(), unmarkAll()]).then(() => toast(t("settings.snoozed.woken"), "success"), report)}>
         {t("settings.snoozed.wakeAll")}
       </Button>
     </Row>

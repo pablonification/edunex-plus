@@ -2,6 +2,8 @@
 // against the pretend Edunex on a fake clock. Assertions are on the OS
 // notifications the engine asks for and the in-app history.
 import { describe, expect, it } from "vitest";
+import { putAway, taskDoneKey } from "../../src/core/done";
+import type { Task } from "../../src/core/models";
 import type { Detector } from "../../src/engine/alerts/detector";
 import { DETECTORS } from "../../src/engine/alerts/detectors";
 import { wib } from "../pretend/edunex";
@@ -226,6 +228,27 @@ describe("time-based alerts", () => {
     await app.until("2026-10-08T10:00:00+07:00");
     expect(opened()).toHaveLength(1);
     expect(opened()[0]).toMatchObject({ kind: "presenceOpen", count: 1, shownAt: Date.parse("2026-10-08T10:00:00+07:00"), target: { screen: "presence" } });
+  });
+
+  it("no deadline reminders for a Task the Student marked handed in another way, until its deadline moves", async () => {
+    const world = new PretendWorld({ now: "2026-10-08T08:12:00+07:00" });
+    const app = await startAlerts({ world });
+    await app.wait(10 * MINUTE);
+    const due = Date.parse("2026-10-09T20:00:00+07:00");
+    const id = world.edunex.postTask(95001, { name: "Esai lewat email", end_at: wib(due) });
+    await app.wait(20 * MINUTE);
+    const tasks = app.engine.snapshot().datasets.find((d) => d.name === "edunex.tasks")?.value as Task[];
+    const task = tasks.find((t) => t.id === id)!;
+    await app.engine.setLocal("local.done", putAway([], taskDoneKey(task, "due"), "handedElsewhere", world.clock.now()));
+    const reminders = () => app.shown.filter((n) => n.kind === "deadline" && n.text.includes("Esai lewat email"));
+    // Past the 24-hour mark: nothing.
+    await app.until("2026-10-08T21:00:00+07:00");
+    expect(reminders()).toEqual([]);
+
+    // The lecturer moves the deadline: a new fact, so the reminders are back at the new times.
+    world.edunex.moveDeadline(id, wib(Date.parse("2026-10-10T08:00:00+07:00")));
+    await app.until("2026-10-09T08:30:00+07:00");
+    expect(reminders()).toHaveLength(1);
   });
 
   it("a window already open at the first sync is part of the silent baseline", async () => {
