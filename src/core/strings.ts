@@ -12,6 +12,7 @@ import { courseColorStrings } from "./strings/course-colors";
 import { coursePageStrings } from "./strings/course-page";
 import type { Entry } from "./strings/entry";
 import { gradesStrings } from "./strings/grades";
+import { highlightStrings } from "./strings/highlights";
 import { homeStrings } from "./strings/home";
 import { itbStrings } from "./strings/itb";
 import { licencesStrings } from "./strings/licences";
@@ -49,6 +50,7 @@ export const STRINGS = {
   ...licencesStrings,
   ...phoneStrings,
   ...courseColorStrings,
+  ...highlightStrings,
 } as const satisfies Record<string, Entry>;
 
 export type StringKey = keyof typeof STRINGS;

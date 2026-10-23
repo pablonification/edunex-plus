@@ -6,6 +6,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { COURSE_PALETTE } from "../../src/core/course-colors";
+import { HIGHLIGHT_COLORS } from "../../src/core/highlights";
 
 const css = readFileSync(path.resolve(import.meta.dirname, "../../src/app/styles.css"), "utf8");
 
@@ -125,5 +126,26 @@ describe.each([
 ])("%s theme", (_name, theme) => {
   it.each(pairs)("%s on %s is readable", (fg, bg, minimum) => {
     expect(contrast(resolve(theme, fg), resolve(theme, bg))).toBeGreaterThanOrEqual(minimum);
+  });
+});
+
+describe("the highlighter's ink", () => {
+  const INKS = HIGHLIGHT_COLORS.map((color) => `--highlight-${color}`);
+  /** `ink` seen through at `alpha` over `base`. */
+  const over = (ink: string, alpha: number, base: string) =>
+    hex(
+      [1, 2, 3].map((i) => Number.parseInt(ink.slice(i * 2 - 1, i * 2 + 1), 16) * alpha + Number.parseInt(base.slice(i * 2 - 1, i * 2 + 1), 16) * (1 - alpha)),
+    );
+
+  // On paper (a PDF's pages, a Word document's) the ink is multiplied into the white page: the print reads as on paper.
+  it.each(INKS)("%s keeps black print readable on a page", (ink) => {
+    expect(contrast("#000000", lookup(light, ink))).toBeGreaterThanOrEqual(4.5);
+    expect(lookup(dark, ink)).toBe(lookup(light, ink));
+  });
+
+  // Under a text file's own text: full in the light theme, dimmed to 30% on the dark surface (ui/highlights.tsx).
+  it.each(INKS)("%s keeps a text file's text readable in both themes", (ink) => {
+    expect(contrast(resolve(light, "--fg"), lookup(light, ink))).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(resolve(dark, "--fg"), over(lookup(dark, ink), 0.3, resolve(dark, "--surface")))).toBeGreaterThanOrEqual(4.5);
   });
 });

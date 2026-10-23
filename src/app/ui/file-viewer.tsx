@@ -4,22 +4,26 @@
 // as they are, a picture whole, an old Word document or PowerPoint as its text
 // (./text-only.tsx). The same panel over the current screen as the PDF viewer,
 // with the file's name, Download and Close; Esc closes and focus goes back.
-// What reads each kind loads on first use, in a chunk of its own. Nothing in a
-// file runs: a Word document is drawn in a shadow root (its styles stay
-// inside), slides are built as elements from plain data, links go through the
-// app's own link rules or nowhere, and text is only ever shown as text.
+// A Word document's text and a text file's can be highlighted, as in a PDF
+// (./highlights.tsx). What reads each kind loads on first use, in a chunk of
+// its own. Nothing in a file runs: a Word document is drawn in a shadow root
+// (its styles stay inside), slides are built as elements from plain data,
+// links go through the app's own link rules or nowhere, and text is only ever
+// shown as text.
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import * as Tabs from "@radix-ui/react-tabs";
-import { type ReactNode, type RefObject, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { type ReactNode, type RefObject, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { FileProblem } from "../../core/actions/files";
 import { isWebLink } from "../../core/links";
+import type { Highlight } from "../../core/models";
 import { useT } from "../i18n";
 import { Button } from "./controls";
 import { cx } from "./cx";
 import type { Block } from "./doc";
+import { type Highlights, MarkLayer, type TextRoot, useHighlighter } from "./highlights";
 import { Icons } from "./icons";
 import { settled } from "./motion/animate";
-import { ignoreClosingClick, PANEL_MOTION_CLASS, SCRIM_CLASS, useReturnFocus } from "./overlays";
+import { ignoreClosingClick, keepOpenForToasts, PANEL_MOTION_CLASS, SCRIM_CLASS, useReturnFocus } from "./overlays";
 import { PanelBoundary } from "./panel-boundary";
 import type { Slide } from "./ppt";
 import { MAX_COLUMNS, MAX_ROWS, readCsv, type Sheet } from "./sheets";
@@ -99,17 +103,42 @@ export interface FileViewerProps {
   /** The way forward when it can't be shown, for that reason (Open in Edunex, Download). Storage out of reach is the viewer's own "Try again". */
   fallback?: (problem: FileViewProblem) => ReactNode;
   onOpenLink: (url: string) => void;
-  /** The system whose window buttons it leaves room for at the top; none in tests. */
+  /** This file's highlights, for a Word document or a text file; none for a file that isn't Edunex's. */
+  highlights?: Highlights;
+  /** The system whose window buttons it leaves room for at the top (macOS also names shortcuts with ⌘); none in tests. */
   platform?: "darwin" | "win32" | "linux";
 }
 
-export function FileViewer({ open, onOpenChange, name, kind, load, actions, fallback, onOpenLink, platform }: FileViewerProps) {
+export function FileViewer({ open, onOpenChange, name, kind, load, actions, fallback, onOpenLink, highlights, platform }: FileViewerProps) {
   const t = useT();
   const returnFocus = useReturnFocus();
   const panel = useRef<HTMLDivElement>(null);
   const scroller = useRef<HTMLElement>(null);
   const [attempt, setAttempt] = useState(0);
   const [view, setView] = useState<View>({ phase: "loading" });
+  /** A Word document's pages or a text file's text, and the box around it that scrolls with it: what's highlighted, and where the bar goes. */
+  const content = useRef<HTMLDivElement>(null);
+  const textRoot = useRef<Node | null>(null);
+  const shown = view.phase === "ready" ? view.shown.kind : null;
+  const highlighter = useHighlighter({
+    highlights: shown === "docx" || shown === "text" ? highlights : undefined,
+    container: content,
+    scroller,
+    roots: useCallback((): TextRoot[] => {
+      const node = textRoot.current;
+      return node ? [{ node, shadow: node instanceof ShadowRoot ? node : null }] : [];
+    }, []),
+    mac: platform === "darwin",
+  });
+  const marks: Marks = {
+    content,
+    textRoot,
+    highlights: highlights?.items ?? NONE,
+    open: highlighter.open,
+    onOpen: (id) => highlighter.openFor(id, true),
+    onRemove: (id) => highlighter.remove(id, true),
+    bar: highlighter.bar,
+  };
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: "Coba lagi" bumps attempt to read the file again
   useEffect(() => {
@@ -164,6 +193,11 @@ export function FileViewer({ open, onOpenChange, name, kind, load, actions, fall
             scroller.current?.focus();
           }}
           onCloseAutoFocus={returnFocus.onCloseAutoFocus}
+          onPointerDownOutside={keepOpenForToasts}
+          // With a highlight's bar open, Escape closes the bar; the next one closes the viewer.
+          onEscapeKeyDown={(event) => {
+            if (highlighter.escape()) event.preventDefault();
+          }}
           onClickCapture={ignoreClosingClick}
           className={cx(
             "fixed inset-x-3 bottom-3 z-(--z-dialog) flex flex-col overflow-hidden rounded-2xl bg-raised text-fg border border-transparent shadow-dialog ring-1 ring-black/10 focus:outline-none dark:ring-white/10",
@@ -183,6 +217,10 @@ export function FileViewer({ open, onOpenChange, name, kind, load, actions, fall
                 // The file scrolls, so once it's there it takes the keyboard (arrows, Page Down).
                 tabIndex={view.phase === "ready" ? 0 : -1}
                 aria-label={name}
+                // Highlighting: what's selected as the mouse comes up, a highlight under a click, ⌘⇧H and ⌘Z.
+                onMouseDown={highlighter.onMouseDown}
+                onMouseUp={highlighter.onMouseUp}
+                onKeyDown={highlighter.onKey}
                 className={cx(
                   "min-h-0 flex-1 overflow-auto overscroll-contain bg-sunken outline-none focus-visible:shadow-[inset_0_0_0_2px_var(--focus)]",
                   view.phase !== "ready" && "grid place-items-center p-6",
@@ -201,13 +239,11 @@ export function FileViewer({ open, onOpenChange, name, kind, load, actions, fall
                     )}
                   </Failed>
                 ) : view.shown.kind === "docx" ? (
-                  <WordPages nodes={view.shown.nodes} onOpenLink={onOpenLink} />
+                  <WordPages nodes={view.shown.nodes} onOpenLink={onOpenLink} marks={marks} />
                 ) : view.shown.kind === "slides" ? (
                   <SlideDeck deck={view.shown.deck} onOpenLink={onOpenLink} />
                 ) : view.shown.kind === "text" ? (
-                  <pre className="m-6 min-h-[calc(100%-3rem)] rounded-lg bg-surface p-5 font-mono text-small break-words whitespace-pre-wrap text-fg shadow-card select-text">
-                    {view.shown.text}
-                  </pre>
+                  <TextFile text={view.shown.text} marks={marks} />
                 ) : view.shown.kind === "doc" ? (
                   <DocPages pages={view.shown.pages} />
                 ) : view.shown.kind === "ppt" ? (
@@ -223,10 +259,51 @@ export function FileViewer({ open, onOpenChange, name, kind, load, actions, fall
                 ) : null}
               </section>
             )}
+            {highlighter.announcer}
           </PanelBoundary>
         </DialogPrimitive.Content>
       </DialogPrimitive.Portal>
     </DialogPrimitive.Root>
+  );
+}
+
+const NONE: readonly Highlight[] = [];
+
+/** What a highlightable file draws its highlights and their bar with. */
+interface Marks {
+  /** The box around the file's text, which scrolls with it. */
+  content: RefObject<HTMLDivElement | null>;
+  /** Where its text is: the Word document's shadow root, the text file's own box. */
+  textRoot: RefObject<Node | null>;
+  highlights: readonly Highlight[];
+  open: string | null;
+  onOpen: (id: string) => void;
+  onRemove: (id: string) => void;
+  bar: ReactNode;
+}
+
+/** A text file as it is, in the app's own colors; its highlights sit under the text. */
+function TextFile({ text, marks }: { text: string; marks: Marks }) {
+  const { content, textRoot, bar, ...layer } = marks;
+  const [drawn, setDrawn] = useState(0);
+  // Kept from one render to the next: a new function each time would let go of the box and take it again, after the highlights look for it.
+  const setRoot = useCallback(
+    (element: HTMLPreElement | null) => {
+      textRoot.current = element;
+    },
+    [textRoot],
+  );
+  // The text is there now (its box set after the highlights' own): they're placed on it.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: each new text
+  useLayoutEffect(() => setDrawn((n) => n + 1), [text]);
+  return (
+    <div ref={content} className="relative m-6 min-h-[calc(100%-3rem)] rounded-lg bg-surface shadow-card">
+      <MarkLayer root={textRoot} origin={content} version={drawn} under {...layer} />
+      <pre ref={setRoot} className="relative p-5 font-mono text-small break-words whitespace-pre-wrap text-fg select-text">
+        {text}
+      </pre>
+      {bar}
+    </div>
   );
 }
 
@@ -242,8 +319,11 @@ const WORD_STYLE = `
  * there. A link to a web page opens through the app's link rules; one to a
  * place in the document goes there; any other goes nowhere.
  */
-function WordPages({ nodes, onOpenLink }: { nodes: Node[]; onOpenLink: (url: string) => void }) {
+function WordPages({ nodes, onOpenLink, marks }: { nodes: Node[]; onOpenLink: (url: string) => void; marks: Marks }) {
+  const { content, textRoot, bar, ...layer } = marks;
   const host = useRef<HTMLDivElement>(null);
+  /** Counts the times the pages were put in: their highlights are placed on them each time. */
+  const [drawn, setDrawn] = useState(0);
   useLayoutEffect(() => {
     const element = host.current;
     if (!element) return;
@@ -251,6 +331,8 @@ function WordPages({ nodes, onOpenLink }: { nodes: Node[]; onOpenLink: (url: str
     const style = document.createElement("style");
     style.textContent = WORD_STYLE;
     root.replaceChildren(...nodes, style);
+    textRoot.current = root;
+    setDrawn((n) => n + 1);
     const follow = (event: Event) => {
       const link = event.target instanceof Element ? event.target.closest("a") : null;
       if (!link) return;
@@ -267,8 +349,15 @@ function WordPages({ nodes, onOpenLink }: { nodes: Node[]; onOpenLink: (url: str
       root.removeEventListener("click", follow);
       root.removeEventListener("auxclick", follow);
     };
-  }, [nodes, onOpenLink]);
-  return <div ref={host} />;
+  }, [nodes, onOpenLink, textRoot]);
+  // Highlights over the pages, their ink multiplied into the paper.
+  return (
+    <div ref={content} className="relative">
+      <div ref={host} />
+      <MarkLayer root={textRoot} origin={content} version={drawn} {...layer} />
+      {bar}
+    </div>
+  );
 }
 
 const columnName = (index: number) => {

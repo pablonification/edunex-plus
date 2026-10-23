@@ -90,6 +90,10 @@ _Avoid_: dismissed, done (on screen), archived
 "Warna mata kuliah": a course's identity mark, its dot and its stripe, the same on every screen. One of ten named colors ("Biru", "Nila"), each with a tone for light and one for dark; none is a status hue or grey. A course's automatic color is remembered the first time it shows, so it never moves by itself; a color the Student picks stays with the course code, next term too. Kept on this computer.
 _Avoid_: course status, tag color, theme
 
+**Highlight**:
+"Sorotan": text the Student marked in a file they read in the app (a PDF, a Word document, a text file), in one of four highlighter colors. Kept on this computer only, never sent to Edunex, by the file's content, so the same file shows its highlights wherever it's listed. Each is kept where its text is (a PDF's page and the characters on it), so it comes back at any zoom; one whose text isn't in the file any more isn't drawn. Removed when the Student signs out of everything, and when a different Student signs in.
+_Avoid_: annotation, note, bookmark, mark (in UI copy)
+
 ### SIX and ITB's rules
 
 **SIX**:

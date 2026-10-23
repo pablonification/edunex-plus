@@ -6,8 +6,9 @@
 // focus goes back), text that can be selected and copied, and links that go
 // where they point. A form's fields can be filled in and text added on any
 // page (./pdf-fill.tsx), then saved as a copy or attached to a Task's answer;
-// closing with that unsaved asks first. pdf.js loads on first use
-// (./pdf-engine.ts).
+// closing with that unsaved asks first. Text can be highlighted, each
+// highlight kept by its page and its place in the page's text
+// (./highlights.tsx). pdf.js loads on first use (./pdf-engine.ts).
 import { TextTIcon } from "@phosphor-icons/react/dist/csr/TextT";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import {
@@ -25,12 +26,14 @@ import {
 } from "react";
 import type { FileProblem } from "../../core/actions/files";
 import { linkHost } from "../../core/links";
+import type { Highlight } from "../../core/models";
 import { useT } from "../i18n";
 import { Button, IconButton } from "./controls";
 import { cx } from "./cx";
+import { type Highlights, MarkLayer, type TextRoot, useHighlighter } from "./highlights";
 import { Icons, icon } from "./icons";
 import { settled } from "./motion/animate";
-import { ConfirmDialog, ignoreClosingClick, PANEL_MOTION_CLASS, SCRIM_CLASS, Tooltip, toast, useReturnFocus } from "./overlays";
+import { ConfirmDialog, ignoreClosingClick, keepOpenForToasts, PANEL_MOTION_CLASS, SCRIM_CLASS, Tooltip, toast, useReturnFocus } from "./overlays";
 import { PanelBoundary } from "./panel-boundary";
 import {
   LINE_HEIGHT,
@@ -83,6 +86,8 @@ export interface PdfViewerProps {
   onStay?: () => void;
   /** Whether there's unsaved filling, as it changes. */
   onDirtyChange?: (dirty: boolean) => void;
+  /** This file's highlights; none for a file that isn't Edunex's (the Student's own, about to be handed in). */
+  highlights?: Highlights;
   /** The system whose window buttons it leaves room for at the top (macOS also names shortcuts with ⌘); none in tests. */
   platform?: "darwin" | "win32" | "linux";
 }
@@ -100,6 +105,7 @@ export function PdfViewer({
   closeRequest = 0,
   onStay,
   onDirtyChange,
+  highlights,
   platform,
 }: PdfViewerProps) {
   const t = useT();
@@ -201,10 +207,11 @@ export function PdfViewer({
             scroller.current?.focus();
           }}
           onCloseAutoFocus={returnFocus.onCloseAutoFocus}
+          onPointerDownOutside={keepOpenForToasts}
           onClickCapture={ignoreClosingClick}
           onEscapeKeyDown={(event) => {
-            // Escape while typing a page number only lets go of the number (the page box does that), and in a box being
-            // filled in it leaves the box; the next one closes.
+            // Escape while typing a page number only lets go of the number (the page box does that), in a box being
+            // filled in it leaves the box, and with a highlight's bar open it closes the bar; the next one closes.
             if (event.target instanceof HTMLElement && (event.target.dataset.editing || fillEscape.current(event.target))) event.preventDefault();
           }}
           className={cx(
@@ -230,6 +237,7 @@ export function PdfViewer({
                 busy={busy}
                 onSaveCopy={onSaveCopy && (() => void keep("copy", onSaveCopy))}
                 onAttach={onAttach && (() => void keep("attach", onAttach))}
+                highlights={highlights}
               />
             ) : (
               <>
@@ -283,6 +291,7 @@ export function PdfViewer({
 }
 
 const Divider = () => <span aria-hidden className="mx-1.5 h-5 w-px shrink-0 bg-line" />;
+const NONE: readonly Highlight[] = [];
 
 function Reader({
   doc,
@@ -297,6 +306,7 @@ function Reader({
   busy,
   onSaveCopy,
   onAttach,
+  highlights,
 }: {
   doc: PdfDocument;
   sizes: PdfSize[];
@@ -310,6 +320,7 @@ function Reader({
   busy: "copy" | "attach" | null;
   onSaveCopy?: () => void;
   onAttach?: () => void;
+  highlights?: Highlights;
 }) {
   const t = useT();
   const total = useId();
@@ -322,6 +333,8 @@ function Reader({
     if (fresh) setFresh(null);
   }, [fresh]);
   const pages = useRef<(HTMLElement | null)[]>([]);
+  /** The pages and the space around them, which scroll together: a highlight's bar is placed in it. */
+  const content = useRef<HTMLDivElement>(null);
   // Slides (landscape) open whole; a document fills the width, as people read it.
   const [zoom, setZoom] = useState<Zoom>(() => ({ fit: sizes[0].width > sizes[0].height ? "page" : "width" }));
   const [box, setBox] = useState({ width: 0, height: 0 });
@@ -353,6 +366,29 @@ function Reader({
   const raw = "fit" in zoom ? (zoom.fit === "width" ? fitWidth : fitPage) : (zoom.percent / 100) * ACTUAL;
   const scale = Math.min(Math.max(raw, 0.15), 6);
   const percent = Math.round((scale / ACTUAL) * 100);
+
+  // Highlighting, in the text of each page drawn now.
+  const textRoots = useCallback(
+    (): TextRoot[] =>
+      pages.current.flatMap((page, index) => {
+        const node = page?.querySelector(".pdf-text");
+        return node?.hasChildNodes() ? [{ page: index + 1, node }] : [];
+      }),
+    [],
+  );
+  const highlighter = useHighlighter({ highlights, container: content, scroller, roots: textRoots, mac });
+  const { close: closeBar, forgetUndo, escape: highlightEscape } = highlighter;
+  const byPage = useMemo(() => {
+    const out = new Map<number, Highlight[]>();
+    for (const highlight of highlights?.items ?? []) if (highlight.page) out.set(highlight.page, [...(out.get(highlight.page) ?? []), highlight]);
+    return out;
+  }, [highlights?.items]);
+  // A zoom moves the text from under the bar: it closes.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: on each zoom
+  useEffect(() => closeBar(), [scale, closeBar]);
+  // Something filled in since a highlight was removed: ⌘Z is the filling's again.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: on each change to the filling
+  useEffect(() => forgetUndo(), [fill.fill, forgetUndo]);
 
   // Only pages in or near the view are drawn.
   useEffect(() => {
@@ -433,6 +469,7 @@ function Reader({
 
   useEffect(() => {
     fillEscape.current = (target) => {
+      if (highlightEscape()) return true;
       if (placing) {
         setPlacing(false);
         return true;
@@ -441,7 +478,7 @@ function Reader({
       toPages();
       return true;
     };
-  }, [fillEscape, placing, toPages]);
+  }, [fillEscape, placing, toPages, highlightEscape]);
 
   const zoomBy = (direction: 1 | -1) => {
     const next = direction > 0 ? STEPS.find((step) => step > percent + 1) : STEPS.findLast((step) => step < percent - 1);
@@ -454,6 +491,8 @@ function Reader({
     if (!root) return;
     const mod = event.metaKey || event.ctrlKey;
     const target = event.target as HTMLElement;
+    // ⌘⇧H highlights what's selected; ⌘Z, just after a highlight was removed, puts it back.
+    if (highlighter.onKey(event)) return;
     // Undo and redo are the filling's, in a box too (typing in one box is one step).
     if (mod && (event.key.toLowerCase() === "z" || event.key === "y")) {
       event.preventDefault();
@@ -562,6 +601,8 @@ function Reader({
         tabIndex={0}
         aria-label={name}
         onScroll={track}
+        onMouseDown={highlighter.onMouseDown}
+        onMouseUp={placing ? undefined : highlighter.onMouseUp}
         className={cx(
           "min-h-0 flex-1 overflow-auto overscroll-contain bg-sunken outline-none focus-visible:shadow-[inset_0_0_0_2px_var(--focus)]",
           // Waiting for the spot: a click on a page puts the text there instead of selecting the page's own.
@@ -570,7 +611,7 @@ function Reader({
       >
         {/* A page that fails to draw breaks the pages, not the window; the toolbar and Close stay. */}
         <PanelBoundary name="pdf pages" compact>
-          <div className="relative flex w-max min-w-full flex-col items-center gap-4" style={{ padding: PAD }}>
+          <div ref={content} className="relative flex w-max min-w-full flex-col items-center gap-4" style={{ padding: PAD }}>
             {sizes.map((size, index) => (
               <PageView
                 // biome-ignore lint/suspicious/noArrayIndexKey: a PDF's pages are its positions
@@ -595,12 +636,18 @@ function Reader({
                 onRemoveText={removeText}
                 onLeaveText={toPages}
                 onPlace={placing ? (x, y) => putText(index + 1, x, y - (TEXT_SIZES[2] * LINE_HEIGHT) / 2) : undefined}
+                highlights={byPage.get(index + 1) ?? NONE}
+                openHighlight={highlighter.open}
+                onOpenHighlight={(id) => highlighter.openFor(id, true)}
+                onRemoveHighlight={(id) => highlighter.remove(id, true)}
               />
             ))}
+            {highlighter.bar}
           </div>
         </PanelBoundary>
       </section>
       {fill.changed && <SaveBar dirty={fill.dirty} canUndo={fill.canUndo} onUndo={undo} mac={mac} busy={busy} onSaveCopy={onSaveCopy} onAttach={onAttach} />}
+      {highlighter.announcer}
     </div>
   );
 }
@@ -632,6 +679,10 @@ function PageView({
   onRemoveText,
   onLeaveText,
   onPlace,
+  highlights,
+  openHighlight,
+  onOpenHighlight,
+  onRemoveHighlight,
 }: {
   ref: (element: HTMLDivElement | null) => void;
   doc: PdfDocument;
@@ -654,10 +705,18 @@ function PageView({
   onLeaveText: () => void;
   /** "Tambah teks" is waiting: a click here puts it at that spot (at scale 1). */
   onPlace?: (x: number, y: number) => void;
+  /** The highlights on this page. */
+  highlights: readonly Highlight[];
+  /** The highlight whose bar is open, on any page. */
+  openHighlight: string | null;
+  onOpenHighlight: (id: string) => void;
+  onRemoveHighlight: (id: string) => void;
 }) {
   const t = useT();
   const paper = useRef<HTMLDivElement>(null);
   const text = useRef<HTMLDivElement>(null);
+  /** Counts the times the page's text was laid out (a zoom lays it out again): its highlights are placed on it each time. */
+  const [laidOut, setLaidOut] = useState(0);
   const [page, setPage] = useState<PdfPage | null>(null);
   const [links, setLinks] = useState<PdfLink[]>([]);
   const [fields, setFields] = useState<PdfField[]>([]);
@@ -715,8 +774,13 @@ function PageView({
 
   useEffect(() => {
     if (!near || !page || !text.current) return;
+    let live = true;
     const task = page.text(text.current, scale);
-    return () => task.cancel();
+    void task.promise.then(() => live && setLaidOut((n) => n + 1));
+    return () => {
+      live = false;
+      task.cancel();
+    };
   }, [near, page, scale]);
 
   useEffect(() => {
@@ -764,6 +828,19 @@ function PageView({
       className="relative shrink-0 bg-white shadow-card ring-1 ring-black/5 [--focus:var(--accent)] [color-scheme:light]"
     >
       <div ref={paper} aria-hidden />
+      {/* Over the drawing, under the text: the mouse selects the text through them. Measured from the text, which covers the page. */}
+      {near && (
+        <MarkLayer
+          root={text}
+          origin={text}
+          scale={scale}
+          version={laidOut}
+          highlights={highlights}
+          open={openHighlight}
+          onOpen={onOpenHighlight}
+          onRemove={onRemoveHighlight}
+        />
+      )}
       <div ref={text} className="pdf-text" />
       {near &&
         links.map((link) => {
