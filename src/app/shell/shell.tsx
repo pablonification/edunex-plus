@@ -3,7 +3,7 @@
 // search too (the top bar, or ⌘K), and once, after the first full sync, the
 // first-run scan. A screen shows in the sidebar once it's built (./built.ts).
 // Beranda comes with the window; every other screen loads after it (../later.tsx).
-import { type ComponentType, type RefObject, Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { type ComponentType, type RefObject, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { edunexCourseUrl, sixStatusUrl } from "../../core/links";
 import type { StringKey } from "../../core/strings";
 import { type TermCourse, useTermCourses } from "../courses";
@@ -76,7 +76,7 @@ function Layout({ arriving }: { arriving: boolean }) {
   const [scanOpen, setScanOpen] = useState(false);
   const bridge = useBridge();
   const t = useT();
-  const { route, go } = useNav();
+  const { route, place, go } = useNav();
   const main = useRef<HTMLElement>(null);
   const settingsLoaded = SettingsDialog.useLoaded();
   const searchLoaded = SearchPalette.useLoaded();
@@ -109,12 +109,7 @@ function Layout({ arriving }: { arriving: boolean }) {
       setScanOpen(false);
     }, []),
   );
-  // A new screen starts at its top.
-  const key = JSON.stringify(route);
-  // biome-ignore lint/correctness/useExhaustiveDependencies: key is the route; it changing is what scrolls back to the top
-  useEffect(() => {
-    if (main.current) main.current.scrollTop = 0;
-  }, [key]);
+  useScrollPlace(main);
 
   return (
     <div className={cx("flex h-dvh overflow-hidden bg-canvas text-fg", arriving && ARRIVE_APP)}>
@@ -132,7 +127,8 @@ function Layout({ arriving }: { arriving: boolean }) {
         <main ref={main} className="min-h-0 flex-1 overflow-y-auto">
           {/* Outside the screen's own guard, so the screen before stays while the next one's code loads. */}
           <Suspense fallback={null}>
-            <PanelBoundary key={key} name={route.screen}>
+            {/* Keyed by its place in history: a tab picked on it (nav.replace) keeps it drawn, with its scroll and focus. */}
+            <PanelBoundary key={place} name={route.screen}>
               <CurrentScreen route={route} />
               <TitleTakesFocus main={main} />
             </PanelBoundary>
@@ -170,6 +166,30 @@ function Layout({ arriving }: { arriving: boolean }) {
   );
 }
 
+const SCROLLED = "shell.scrolled";
+
+/**
+ * A new screen starts at its top; one come back to with Back, where the Student left it. The scroll is kept
+ * in its place in history as it scrolls (read once the next screen is in, it would be cut to that one's
+ * height). Set before the window draws, so it never shows the wrong part first.
+ */
+function useScrollPlace(main: RefObject<HTMLElement | null>) {
+  const { kept, returned } = useNav();
+  const here = useRef(kept);
+  useLayoutEffect(() => {
+    const el = main.current;
+    if (!el) return;
+    const note = () => here.current.set(SCROLLED, el.scrollTop);
+    el.addEventListener("scroll", note, { passive: true });
+    return () => el.removeEventListener("scroll", note);
+  }, [main]);
+  // A new place, or the one Back came back to; a tab picked on it (nav.replace) keeps both, and the scroll.
+  useLayoutEffect(() => {
+    here.current = kept;
+    if (main.current) main.current.scrollTop = returned ? ((kept.get(SCROLLED) as number | undefined) ?? 0) : 0;
+  }, [main, kept, returned]);
+}
+
 /**
  * When the screen that left took focus with it (the row that opened this one, Back, a ⌘ shortcut from
  * the page), the new screen's title takes it, so the keyboard and a screen reader carry on from the top
@@ -186,7 +206,8 @@ function TitleTakesFocus({ main }: { main: RefObject<HTMLElement | null> }) {
       const title = main.current?.querySelector<HTMLElement>("h1");
       if (!title) return;
       title.tabIndex = -1;
-      title.focus();
+      // Where the screen is scrolled to stays (Back brings it back where it was).
+      title.focus({ preventScroll: true });
     });
     return () => cancelAnimationFrame(frame);
   }, [main]);
@@ -198,7 +219,7 @@ function CurrentScreen({ route }: { route: Route }) {
     case "home":
       return <Home />;
     case "tasks":
-      return <TasksScreen />;
+      return <TasksScreen show={route.show} />;
     case "task":
       return <TaskScreen taskId={route.taskId} />;
     case "exam":
@@ -236,7 +257,7 @@ function useNavShortcuts(closeOverlays: () => void) {
       if (!Number.isInteger(index) || index < 0 || index >= NAV_ORDER.length) return;
       event.preventDefault();
       closeOverlays();
-      go({ screen: NAV_ORDER[index] } as Route);
+      go({ screen: NAV_ORDER[index] } as Route, { keep: true });
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -317,7 +338,7 @@ function Sidebar({ onSettings }: { onSettings: () => void }) {
                 <button
                   type="button"
                   aria-current={active ? "page" : undefined}
-                  onClick={() => go({ screen } as Route)}
+                  onClick={() => go({ screen } as Route, { keep: true })}
                   className={cx(
                     "focus-ring relative flex h-[34px] w-full items-center gap-2.5 rounded-lg px-2.5 text-body max-[52rem]:justify-center max-[52rem]:px-0",
                     active ? "bg-selected font-semibold" : "font-medium text-fg/90 hover:bg-hover",
@@ -347,7 +368,7 @@ function Sidebar({ onSettings }: { onSettings: () => void }) {
                       <button
                         type="button"
                         aria-current={active ? "page" : undefined}
-                        onClick={() => (courseReady ? go({ screen: "course", code: course.code }) : site && open(site.url))}
+                        onClick={() => (courseReady ? go({ screen: "course", code: course.code }, { keep: true }) : site && open(site.url))}
                         className={cx(
                           "focus-ring flex h-[34px] w-full items-center gap-2.5 rounded-lg px-2.5 text-left text-body max-[52rem]:justify-center max-[52rem]:px-0",
                           active ? "bg-selected" : "hover:bg-hover",

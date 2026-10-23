@@ -465,7 +465,7 @@ function Study({ exam }: { exam: Exam }) {
             {before.map((module, i) => (
               <Row
                 key={module.id}
-                onClick={() => go({ screen: "course", code: exam.courseCode, tab: "modules" })}
+                onClick={() => go({ screen: "course", code: exam.courseCode, tab: "modules", module: module.id })}
                 leading={<span className="grid size-6 place-items-center rounded-md bg-fill text-caption font-semibold text-muted tabular-nums">{i + 1}</span>}
                 title={module.title}
                 trailing={

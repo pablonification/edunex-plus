@@ -143,8 +143,24 @@ function contentsOf(page: CoursePage, t: Translate): Entry[] {
   });
 }
 
-/** `module`: the Edunex module asked for (from search or an alert), or a course's Introduction (introModule); it opens selected and in view. */
-export function ModulesTab({ page, module }: { page: CoursePage; module?: number }) {
+/**
+ * `module`: the Edunex module shown (picked here, or asked for by search or an alert), or a course's
+ * Introduction (introModule); without one, the newest with something in it. `asked`: it was asked for on
+ * arrival, so it comes into view once; `onShown` says it has.
+ */
+export function ModulesTab({
+  page,
+  module,
+  asked = false,
+  onShown,
+  onPick,
+}: {
+  page: CoursePage;
+  module?: number;
+  asked?: boolean;
+  onShown?: () => void;
+  onPick: (module: number) => void;
+}) {
   const t = useT();
   const f = useFormat();
   const now = useNow();
@@ -152,22 +168,24 @@ export function ModulesTab({ page, module }: { page: CoursePage; module?: number
   // A module not opened yet is never the one shown, even when nothing has content yet (the start of a term).
   const opened = entries.filter((e) => !e.unopened);
   const first = opened[newestWithContent(opened.map((e) => ({ hasContent: e.tasks.length + e.materials.length > 0, at: latest(e), parent: e.parent })))];
-  const [selected, setSelected] = useState<string | null>(module === undefined ? null : String(module));
-  const active: Entry | undefined = opened.find((e) => e.id === selected) ?? first;
-  const asked = module !== undefined && active?.id === String(module);
+  // A Task's module the contents don't list as opened (Edunex's outline leaves it out): where its Tasks are, the Introduction.
+  const named = opened.find((e) => e.id === String(module)) ?? opened.find((e) => e.tasks.some((task) => task.moduleId === module));
+  const active: Entry | undefined = named ?? first;
+  const inView = asked && named !== undefined;
   const root = useRef<HTMLDivElement>(null);
-  const shown = useRef(false);
+  const latestShown = useRef(onShown);
+  latestShown.current = onShown;
   useEffect(() => {
     // Once, on arrival: the module asked for comes into view if it's below the fold; picking another later doesn't move the page.
-    if (!asked || shown.current) return;
+    if (!inView) return;
     // After the window puts a newly opened screen at its top.
     const frame = requestAnimationFrame(() => {
-      shown.current = true;
+      latestShown.current?.();
       root.current?.querySelector("[aria-current=true]")?.scrollIntoView?.({ block: "nearest" });
       root.current?.querySelector("#course-entry")?.scrollIntoView?.({ block: "nearest" });
     });
     return () => cancelAnimationFrame(frame);
-  }, [asked]);
+  }, [inView]);
 
   if (!entries.length) return <EmptyState icon={<Icons.BookOpen className="size-5" />} title={t("course.noMaterials")} />;
   const firstParent = entries.findIndex((e) => e.parent);
@@ -225,7 +243,7 @@ export function ModulesTab({ page, module }: { page: CoursePage; module?: number
                 <button
                   type="button"
                   aria-current={isActive ? "true" : undefined}
-                  onClick={() => setSelected(entry.id)}
+                  onClick={() => onPick(Number(entry.id))}
                   className={cx(
                     "focus-ring flex w-full scroll-my-6 items-start gap-2.5 rounded-lg px-2 text-left",
                     empty ? "py-1" : "py-2",
@@ -274,7 +292,9 @@ export function ModulesTab({ page, module }: { page: CoursePage; module?: number
           {t("course.noMaterials")}
         </p>
       ) : (
-        <section className="min-w-0" aria-labelledby="course-entry">
+        // The newest, shown by itself, is noted once the Student does something in it (opens a Task): Back finds this one,
+        // even if a newer one arrives meanwhile.
+        <section className="min-w-0" aria-labelledby="course-entry" onClickCapture={named ? undefined : () => onPick(Number(active.id))}>
           <header className="mb-5">
             <Meta className="text-small font-semibold text-muted">
               {active.intro ? t("course.courseWide") : t("course.module", { no: active.label ?? "" })}

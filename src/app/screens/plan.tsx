@@ -3,10 +3,12 @@
 // shows once it's built (../shell/built.ts); the screen shows once one is.
 // The sidebar's count for it is in ../shell/badges.ts.
 import * as Tabs from "@radix-ui/react-tabs";
-import { type ComponentType, useState } from "react";
+import type { ComponentType } from "react";
 import { type StringKey, useT } from "../i18n";
+import { useNav } from "../nav";
 import { builtPlanTabs, type PlanTab } from "../shell/built";
 import { Page, PageHeader } from "../ui/layout";
+import { PanelBoundary } from "../ui/panel-boundary";
 import { TabBar } from "../ui/tabs";
 import * as bills from "./plan/bills";
 import * as curriculum from "./plan/curriculum";
@@ -22,10 +24,13 @@ const TAB: Readonly<Record<PlanTab, ComponentType<{ onCalendar?: () => void }>>>
   deadlines: deadlines.Tab,
 };
 
+/** `tab`: the tab shown, kept in its place in history (nav.replace) as the Student picks it, so Back comes back to it. */
 export function PlanScreen({ tab }: { tab?: string }) {
   const t = useT();
+  const { replace } = useNav();
   const first = builtPlanTabs[0] ?? "planner";
-  const [current, setCurrent] = useState<PlanTab>(builtPlanTabs.some((id) => id === tab) ? (tab as PlanTab) : first);
+  const current: PlanTab = builtPlanTabs.some((id) => id === tab) ? (tab as PlanTab) : first;
+  const setCurrent = (next: PlanTab) => replace({ screen: "plan", tab: next });
   if (!builtPlanTabs.length) return null;
   return (
     <Page width="wide">
@@ -41,7 +46,10 @@ export function PlanScreen({ tab }: { tab?: string }) {
           const Tab = TAB[id];
           return (
             <Tabs.Content key={id} value={id} className="focus-ring rounded-sm pt-6">
-              <Tab onCalendar={() => setCurrent("deadlines")} />
+              {/* Its own crash guard: a tab that breaks leaves the tab bar, and the way to another tab. */}
+              <PanelBoundary name={`plan ${id}`}>
+                <Tab onCalendar={() => setCurrent("deadlines")} />
+              </PanelBoundary>
             </Tabs.Content>
           );
         })}
