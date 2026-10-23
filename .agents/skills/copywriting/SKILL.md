@@ -18,14 +18,14 @@ The reader is a tired ITB student between classes who needs one answer. Write th
 
 | Element | Budget | From the app |
 |---|---|---|
-| Button | 1–3 words: a verb and its object | Putuskan HP · Atur ulang rencana |
+| Button | 1–3 words: a verb and its object | Putuskan semua HP · Atur ulang rencana |
 | Title | under 6 words, no full stop | Perlu perhatianmu |
 | Row meta line | facts joined by ` · `, no full stop | Tenggat {when} · belum dikumpulkan |
 | Hint | one line, about 10 words | Digabung jika banyak sekaligus |
 | Error | what went wrong, then the one fix | Sesimu berakhir. Masuk lagi, lalu coba lagi. |
 | Toast | what happened, and when it comes back if it does, then Undo | Ditandai sudah dicek. Muncul lagi hanya jika dosen mengubahnya lagi. |
 | Empty state | what shows here, and when | Mata kuliahmu muncul di sini setelah SIX mencantumkan kelasmu semester ini. |
-| Confirm | the question names the action, the body names what's lost, the buttons are verbs | Putuskan HP? |
+| Confirm | the question names the action, the body names what's lost, the buttons are verbs | Putuskan semua HP? |
 | Notification | title says what and `· {course}`, body gives the one detail | Tenggat 3 jam lagi · {course} |
 
 A sentence past 20 words gets split or cut. Indonesian runs longer than English: fit the Indonesian.
