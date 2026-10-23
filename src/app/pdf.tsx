@@ -10,7 +10,7 @@
 // fills in there is saved as a copy where they choose, or, opened from a Task
 // whose answer can still change, attached to that answer (the Task's hand-in
 // card offers itself with useAnswerAttach).
-import { createContext, lazy, type ReactNode, Suspense, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { createContext, lazy, type ReactNode, Suspense, startTransition, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { FileProblem, ReadAs } from "../core/actions/files";
 import { ActionError, errorKey } from "./bridge";
 import { useOpenExternal, useOpenLink } from "./hooks";
@@ -23,7 +23,12 @@ import { Icons } from "./ui/icons";
 import { Tooltip, toast } from "./ui/overlays";
 import type { PdfProblem } from "./ui/pdf-viewer";
 
-const PdfViewer = lazy(() => import("./ui/pdf-viewer").then((module) => ({ default: module.PdfViewer })));
+// The first PDF brings pdf.js in with its viewer, before the panel opens: starting it with the panel moving would stall it.
+const PdfViewer = lazy(() =>
+  Promise.all([import("./ui/pdf-viewer"), import("./ui/pdf-engine").then((engine) => engine.preparePdf())]).then(([module]) => ({
+    default: module.PdfViewer,
+  })),
+);
 const FileViewer = lazy(() => import("./ui/file-viewer").then((module) => ({ default: module.FileViewer })));
 
 export type PdfSource = (
@@ -231,10 +236,13 @@ export function PdfViewerProvider({ children }: { children: ReactNode }) {
 
   const viewer = useMemo(
     () => ({
-      open: (next: PdfSource) => {
-        setSource(next);
-        setOpen(true);
-      },
+      // A transition: the first time, the window stays as it is while the viewer's code comes in, then the panel
+      // opens, instead of React holding it back a further 300 ms after showing nothing (its reveal throttle).
+      open: (next: PdfSource) =>
+        startTransition(() => {
+          setSource(next);
+          setOpen(true);
+        }),
       close: (then?: () => void) => {
         if (dirty.current) {
           leaving.current = then ?? null;
@@ -269,8 +277,9 @@ export function PdfViewerProvider({ children }: { children: ReactNode }) {
   return (
     <Context value={viewer}>
       {children}
-      {source && kind !== "pdf" && (
-        <Suspense fallback={null}>
+      {/* There from the start, so opening a viewer for the first time waits in the transition above, not on a fallback. */}
+      <Suspense fallback={null}>
+        {source && kind !== "pdf" && (
           <FileViewer
             open={open}
             onOpenChange={onOpenChange}
@@ -282,10 +291,8 @@ export function PdfViewerProvider({ children }: { children: ReactNode }) {
             onOpenLink={openLink}
             platform={platform}
           />
-        </Suspense>
-      )}
-      {source && kind === "pdf" && (
-        <Suspense fallback={null}>
+        )}
+        {source && kind === "pdf" && (
           <PdfViewer
             open={open}
             onOpenChange={onOpenChange}
@@ -303,8 +310,8 @@ export function PdfViewerProvider({ children }: { children: ReactNode }) {
             onDirtyChange={onDirtyChange}
             platform={platform}
           />
-        </Suspense>
-      )}
+        )}
+      </Suspense>
     </Context>
   );
 }

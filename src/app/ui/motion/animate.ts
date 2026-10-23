@@ -28,6 +28,20 @@ export function animate(element: Element, keyframes: Keyframe[], options: Keyfra
   return animationsOff() ? null : element.animate(keyframes, options);
 }
 
+/**
+ * Resolves once what moves the element itself has run its course (a panel's CSS opening), at once when nothing
+ * does (Reduce motion, tests, jsdom). Heavy work waits for it, so the motion has the frames to itself. A loop
+ * never runs its course, so it isn't waited for.
+ */
+export function settled(element: Element | null): Promise<void> {
+  const moving = element && !animationsOff() ? element.getAnimations() : [];
+  const ending = moving.filter((animation) => animation.effect?.getComputedTiming().endTime !== Infinity);
+  return Promise.all(ending.map((animation) => animation.finished)).then(
+    () => undefined,
+    () => undefined,
+  );
+}
+
 const SPACE = ["height", "paddingTop", "paddingBottom", "borderTopWidth", "borderBottomWidth", "marginTop", "marginBottom"] as const;
 
 /**
