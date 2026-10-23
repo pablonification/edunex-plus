@@ -11,7 +11,7 @@ and Linux.
 <sub>Pictures come from the demo's made-up student, never a real account.</sub>
 
 [Download](#download) · [Install guide](docs/install.md) · [Privacy](docs/privacy.md) ·
-[Contributing](CONTRIBUTING.md)
+[Code signing policy](docs/code-signing.md) · [Contributing](CONTRIBUTING.md)
 
 > **Unofficial.** Built by students. Not made by, endorsed by or connected to ITB or Cognisia
 > (the company behind Edunex). It uses your own Edunex and SIX sign-in, so your account stays
@@ -54,9 +54,10 @@ under **Assets** (Windows or Linux on ARM: see the [install guide](docs/install.
 | Ubuntu, Debian, Mint | `edunex-plus_<version>_amd64.deb` |
 | Other Linux | `Edunex-Plus-<version>-x86_64.AppImage` |
 
-The app isn't signed yet, so macOS and Windows warn you the first time you open it. The
-[install guide](docs/install.md) shows the one step to get past that, plus updating and
-uninstalling.
+Your browser and your system warn you the first time you open each new version: few people have
+downloaded it yet, and the Mac app isn't signed by Apple. The [install guide](docs/install.md)
+shows the steps to get past that, plus updating and uninstalling. How the installers are signed:
+the [code signing policy](docs/code-signing.md).
 
 > **Alpha:** expect rough edges, and double-check anything important on Edunex or SIX itself.
 > Something broke? [Open an issue](https://github.com/pablonification/edunex-plus/issues).
@@ -101,6 +102,7 @@ student data** anywhere: use the demo. Security problems go through a
 | [docs/design-system.md](docs/design-system.md) | The look |
 | [docs/test-data.md](docs/test-data.md), [docs/scenarios.md](docs/scenarios.md) | How tests work |
 | [docs/platform-notifications.md](docs/platform-notifications.md) | Notifications on each system and the phone |
+| [docs/code-signing.md](docs/code-signing.md), [docs/research/](docs/research/) | How the installers are signed, and why browsers warn about them |
 
 ## Supported by
 

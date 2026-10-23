@@ -626,6 +626,12 @@ section {
   font-size: 15px;
   color: var(--fg-muted);
 }
+/* A link inside a sentence: the accent colour and an underline, so colour isn't the only cue. */
+.inline-link {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
 .guide .guide-hint {
   font-size: 13.5px;
   color: var(--fg-dim);
