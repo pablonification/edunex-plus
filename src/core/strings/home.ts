@@ -21,10 +21,8 @@ export const homeStrings = {
     en: "Attendance counts in SIX. Press Tandai Hadir in SIX when it shows.",
   },
   "home.now.checkEvery": { id: "Aplikasi memeriksa tiap 2 menit", en: "The app checks every 2 minutes" },
-  "home.now.leftIn": {
-    id: "Jatah absen {code} sisa {count}×",
-    en: { one: "{count} {code} absence left", other: "{count} {code} absences left" },
-  },
+  // The class's share in SIX, short, beside its absences left (the card names the course already)
+  "home.now.share": { id: "Kehadiran {percent}%", en: "Attendance {percent}%" },
   "home.now.checkInWatch": { id: "Tekan Tandai Hadir di SIX saat tombolnya muncul.", en: "Press Tandai Hadir in SIX when it shows." },
   // SIX's "Tandai Hadir" for the class on now, as the app last saw it in the class's popup
   "home.now.checkInOpen": { id: "Tandai Hadir sudah dibuka di SIX", en: "Tandai Hadir is open in SIX" },

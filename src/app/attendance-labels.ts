@@ -62,7 +62,7 @@ export function verdictLabel(t: Translate, health: AttendanceHealth): string {
 export interface BudgetWords {
   /** The quiet part, first: "Terpakai 1×", "Belum terpakai". */
   lead: string | null;
-  /** The part that answers, last and bold: "sisa 1×", "habis", "lebih 1× untuk 80%". */
+  /** The part that answers, last and bold: "sisa 1×", "habis", "lewat batas 1×". */
   bold: string;
   tone: BarTone;
   bar: { allowed: number; used: number; over: number; estimate: boolean } | null;
@@ -92,7 +92,7 @@ export function budgetWords(t: Translate, health: AttendanceHealth, soFar = fals
   if (over > 0)
     return {
       lead,
-      bold: t("presence.bar.over", { count: over, target: health.target }),
+      bold: t("presence.bar.over", { count: over }),
       tone: "danger",
       bar,
       label: t("presence.bar.a11yOver", { allowed, used: missed, over }),

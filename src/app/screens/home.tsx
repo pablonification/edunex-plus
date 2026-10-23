@@ -346,12 +346,7 @@ function Attendance({ card }: { card: NowCard }) {
   if (session && student && (card.state === "live" || card.state === "next") && checkingIn(session, now)) {
     if (check || counted === "six" || counted === "both" || counted === "unknown")
       return (
-        <CheckIn
-          session={session}
-          check={check}
-          url={sixTimetableUrl(student, session.start)}
-          budget={budget ? <span className={STATE_TEXT[facts!.state]}>{budget}</span> : null}
-        >
+        <CheckIn session={session} check={check} url={sixTimetableUrl(student, session.start)} budget={budget}>
           {presence && (
             <div className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-line pt-3">
               <p className="min-w-0 flex-1 basis-64 text-small text-muted">
@@ -396,7 +391,7 @@ function Attendance({ card }: { card: NowCard }) {
             <p className="mt-0.5 text-small text-muted">
               <Meta>
                 {where ?? ""}
-                {budget ? <span className={STATE_TEXT[facts!.state]}>{budget}</span> : ""}
+                {budget ?? ""}
               </Meta>
             </p>
           </div>
@@ -441,7 +436,7 @@ function Attendance({ card }: { card: NowCard }) {
         )}
         <p className="mt-0.5 pl-6 text-small text-muted">
           <Meta>
-            {budget ? <span className={cx("font-medium", STATE_TEXT[facts!.state])}>{budget}</span> : ""}
+            {budget ?? ""}
             {presence ? t("home.now.presenceExtra", { time: f.dayTime(presence.session.closesAt) }) : ""}
           </Meta>
         </p>
@@ -1552,9 +1547,17 @@ function CourseAttendance({ health }: { health: AttendanceHealth | undefined }) 
   return <AbsenceBudget health={health} place="card" />;
 }
 
-/** The now card's few words for a course's absences: "Jatah absen PL3002 sisa 1×", or the state when none is left. */
-function cardBudget(t: Translate, health: AttendanceHealth): string {
-  return health.state === "safe" || health.state === "risk"
-    ? t("home.now.leftIn", { count: health.absencesLeft ?? 0, code: health.code })
-    : budgetLabel(t, health);
+/**
+ * The now card's few words for its course's attendance, two facts for its
+ * line (a fragment, so Meta puts its dot between them): SIX's share, labeled
+ * ("Kehadiran 93%"), then what's left ("Sisa jatah absen 1×", or the state
+ * when none is) in the state's color.
+ */
+function cardBudget(t: Translate, health: AttendanceHealth): ReactNode {
+  return (
+    <>
+      {health.held ? t("home.now.share", { percent: percent(health.attended ?? 0, health.held) }) : ""}
+      <span className={STATE_TEXT[health.state]}>{budgetLabel(t, health)}</span>
+    </>
+  );
 }

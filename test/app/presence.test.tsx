@@ -4,7 +4,7 @@
 // behind the bridge (some tests put SIX's count and timetable in directly).
 // "Absences left": the answer for the next class day first, then only what
 // needs the Student now, then the courses grouped by what they ask, each with
-// its absences as a bar and words, and one exception at most.
+// SIX's share and its absences as a bar and words, and one exception at most.
 import { afterEach, describe, expect, it } from "vitest";
 import type { ClassSession, SixCourse, Task } from "../../src/core/models";
 import { aTask } from "../kit/tasks";
@@ -74,8 +74,11 @@ const bar = (code: string) => {
       }
     : null;
 };
-/** The words under a row's bar. */
-const words = (code: string) => row(code)?.querySelector("[role=img]")?.parentElement?.nextElementSibling?.textContent ?? "";
+/** The words beside a row's bar. */
+const words = (code: string) => row(code)?.querySelector("[role=img]")?.nextElementSibling?.textContent ?? "";
+/** A row's attendance at its end, label by label: "Kehadiran" → "85% sejauh ini (6 dari 7)", "Jatah absen" → … */
+const side = (code: string) =>
+  Object.fromEntries([...(row(code)?.querySelectorAll("dl > dt") ?? [])].map((dt) => [dt.textContent, dt.nextElementSibling?.textContent ?? ""]));
 const rowName = (code: string) => row(code)?.querySelector(":scope > button")?.getAttribute("aria-label") ?? "";
 
 describe("the Presensi screen", () => {
@@ -93,7 +96,7 @@ describe("the Presensi screen", () => {
     expect(s.text()).not.toMatch(/Jangan absen lagi|Masih bisa absen|Semua aman/);
   });
 
-  it("a row: the course first, its next class, and its absences as a bar with words; never a percent", async () => {
+  it("a row: the course first, its next class, then SIX's share, labeled, over its absences as a bar with words", async () => {
     await openPresence(undefined, true);
     expect(card("DK4073")).toContain("Berikutnya hari ini, 11:00–12:59 · TVST C");
     expect(bar("DK4073")).toEqual({ label: "Jatah absen semester ini 2×. Semua sudah terpakai.", tone: "warning", segments: ["used", "used"] });
@@ -101,24 +104,28 @@ describe("the Presensi screen", () => {
     expect(bar("PL3002")).toMatchObject({ tone: "neutral", segments: ["used", "left"] });
     expect(words("PL3002")).toBe("Terpakai 1× · sisa 1×");
     expect(words("II4091")).toBe("Belum terpakai · sisa 2×");
-    // Past the limit: a limit line, then what's over, in red with a ×; the words name the target.
+    // Past the limit: amber up to a limit line, then what's over in red; the words say it plainly.
     expect(bar("KU5014")).toMatchObject({ tone: "danger", segments: ["used", "used", "used", "limit", "over"] });
-    expect(words("KU5014")).toBe("Terpakai 4× · lebih 1× untuk 80%");
+    expect(words("KU5014")).toBe("Terpakai 4× · lewat batas 1×");
     // The bold part answers, in its tone.
     expect(row("DK4073")?.querySelector(".text-warning-fg")?.textContent).toBe("habis");
-    expect(row("KU5014")?.querySelector(".text-danger-fg.font-semibold")?.textContent).toBe("lebih 1× untuk 80%");
-    // No share on a row: nothing that could seem to disagree with the bar.
-    for (const li of rows()) {
-      expect(li.textContent).not.toMatch(/\d+ dari \d+/);
-      // The only percent a row may name is the target.
-      expect([...(li.textContent ?? "").matchAll(/(\d+)%/g)].every((m) => m[1] === "80")).toBe(true);
-    }
+    expect(row("KU5014")?.querySelector(".text-danger-fg.font-semibold")?.textContent).toBe("lewat batas 1×");
+    // SIX's share, once per row, labeled and "so far", over the bar: the labels line up, each with its value.
+    expect(side("KU5014")).toEqual({ Kehadiran: "33% sejauh ini (2 dari 6)", "Jatah absen": "Terpakai 4× · lewat batas 1×" });
+    expect(side("DK4073")).toEqual({ Kehadiran: "66% sejauh ini (4 dari 6)", "Jatah absen": "Terpakai 2× · habis" });
+    expect(side("PL3002").Kehadiran).toBe("85% sejauh ini (6 dari 7)");
+    expect(side("II4091").Kehadiran).toBe("100% sejauh ini (3 dari 3)");
+    for (const li of rows()) expect((li.querySelector("dl")?.textContent ?? "").match(/\d+%/g)).toHaveLength(1);
     // The row's name reads as the Student sees it.
     expect(rowName("PL3002")).toBe(
-      "PL3002 Ekonomi dan Inovasi dalam Perencanaan, Jatah absen, Terpakai 1×, sisa 1×, Sedang berlangsung sampai 10:00, R.SG PWK LT.6",
+      "PL3002 Ekonomi dan Inovasi dalam Perencanaan, Jatah absen, Terpakai 1×, sisa 1×, Kehadiran 85% sejauh ini (6 dari 7), Sedang berlangsung sampai 10:00, R.SG PWK LT.6",
     );
-    expect(rowName("DK4073")).toMatch(/^DK4073 Komunikasi Pemasaran, Jatah absen, Terpakai 2×, habis, Berikutnya hari ini/);
-    expect(rowName("KU5014")).toMatch(/^KU5014 .*, Jatah absen, Terpakai 4×, lebih 1× untuk 80%, Berikutnya hari ini, 16:00/);
+    expect(rowName("DK4073")).toMatch(
+      /^DK4073 Komunikasi Pemasaran, Jatah absen, Terpakai 2×, habis, Kehadiran 66% sejauh ini \(4 dari 6\), Berikutnya hari ini/,
+    );
+    expect(rowName("KU5014")).toMatch(
+      /^KU5014 .*, Jatah absen, Terpakai 4×, lewat batas 1×, Kehadiran 33% sejauh ini \(2 dari 6\), Berikutnya hari ini, 16:00/,
+    );
   });
 
   it("one exception per row: Tandai Hadir watched in class; out of reach, the fix and the target a click away", async () => {
@@ -130,6 +137,11 @@ describe("the Presensi screen", () => {
     expect(now()).not.toContain("Catat di Edunex");
     const ku = card("KU5014");
     expect(ku).toContain("Ada pertemuan yang kamu hadiri tapi tak tercatat? Minta dosen membetulkannya di SIX.");
+    // Red only for what's lost (the words past the limit); the way back is calm, its actions blue like every link.
+    expect([...row("KU5014")!.querySelectorAll("[class*='text-danger-fg']")].map((el) => el.textContent)).toEqual(["lewat batas 1×"]);
+    const actions = [...row("KU5014")!.querySelectorAll<HTMLButtonElement>("button:not(:scope > button)")];
+    expect(actions.map((b) => b.textContent)).toEqual(["Buka jadwal di SIX", "Ubah target"]);
+    for (const action of actions) expect(action.className).toContain("text-accent-fg");
     // One exception only: KU5014's clash is said by today's clash card.
     expect(ku).not.toContain("Bentrok");
     // Recorded through Edunex too: Tandai Hadir, then what that day's Presence asks for, by when.
@@ -399,7 +411,8 @@ describe("the Presensi screen", () => {
     expect(words("DK4073")).toBe("2 used · none left");
     expect(words("PL3002")).toBe("1 used · 1 left");
     expect(words("II4091")).toBe("None used · 2 left");
-    expect(words("KU5014")).toBe("4 used · 1 too many for 80%");
+    expect(words("KU5014")).toBe("4 used · 1 over the limit");
+    expect(side("KU5014").Attendance).toBe("33% so far (2 of 6)");
     expect(card("DK4073")).toContain("Next class today, 11:00–12:59 · TVST C");
     expect(card("PL3002")).toContain("Tandai Hadir hasn't shown yet. The app checks SIX every 2 minutes.");
     expect(now()).toContain("If you can make only one, go to PL3032. It has no absences left, and KU5014 can't reach 80% anymore.");
