@@ -10,7 +10,7 @@
 // itself (when SIX connects, or a course is added or dropped); else the first
 // color no other course of the term has. A pick that takes an automatic
 // course's color moves only that course.
-import type { CourseColors } from "./models";
+import { type CourseColors, MAX_COURSE_COLORS } from "./models";
 
 /** In the automatic order: the most distinct first, so a term's first five courses get the five most distinct. */
 export const COURSE_PALETTE = [
@@ -85,6 +85,47 @@ export function resolveCourseColors(codes: readonly string[], saved: CourseColor
     give(code, id, false);
   }
   return { colors, remember, moved };
+}
+
+/**
+ * The Student's choice for one course: a color, or automatic (null). `at` (ms) is when, for the cap. A course
+ * going back to automatic keeps its remembered color, so it returns to the one it had if that's free.
+ */
+export function applyChoice(value: CourseColors, code: string, choice: PaletteId | null, at: number): CourseColors {
+  const { [code]: _, ...picks } = value.picks;
+  return { ...value, picks: choice ? { ...picks, [code]: { color: choice, at } } : picks };
+}
+
+/** What the term's colors make of `value` saved: the automatic colors handed out are remembered with it. */
+export function withRemembered(codes: readonly string[], value: CourseColors): CourseColors {
+  const { remember } = resolveCourseColors(codes, value);
+  return Object.keys(remember).length ? { ...value, automatic: { ...value.automatic, ...remember } } : value;
+}
+
+/**
+ * Kept to the saved cap (more than a whole degree's courses): the picks made longest ago go first, then the
+ * colors remembered first, never this term's.
+ */
+export function pruneCourseColors(value: CourseColors, codes: readonly string[]): CourseColors {
+  const term = new Set(codes);
+  let picks = value.picks;
+  const pickCodes = Object.keys(picks);
+  if (pickCodes.length > MAX_COURSE_COLORS) {
+    const gone = new Set(
+      pickCodes
+        .filter((code) => !term.has(code))
+        .sort((a, b) => picks[a].at - picks[b].at)
+        .slice(0, pickCodes.length - MAX_COURSE_COLORS),
+    );
+    picks = Object.fromEntries(Object.entries(picks).filter(([code]) => !gone.has(code)));
+  }
+  let automatic = value.automatic;
+  const autoCodes = Object.keys(automatic ?? {});
+  if (automatic && autoCodes.length > MAX_COURSE_COLORS) {
+    const gone = new Set(autoCodes.filter((code) => !term.has(code)).slice(0, autoCodes.length - MAX_COURSE_COLORS));
+    automatic = Object.fromEntries(Object.entries(automatic).filter(([code]) => !gone.has(code)));
+  }
+  return picks === value.picks && automatic === value.automatic ? value : { ...value, picks, ...(automatic ? { automatic } : {}) };
 }
 
 /** The Student's pick for a course outside the term (a grade from last term, a Task of a course not in SIX). */

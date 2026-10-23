@@ -4,6 +4,7 @@
 // the old hashed colors to the palette. The demo's made-up course codes.
 import { describe, expect, it } from "vitest";
 import {
+  applyChoice,
   COURSE_PALETTE,
   courseTone,
   isCourseColorId,
@@ -11,7 +12,9 @@ import {
   type PaletteId,
   PICKER_ORDER,
   pickedColor,
+  pruneCourseColors,
   resolveCourseColors,
+  withRemembered,
 } from "../../src/core/course-colors";
 import type { CourseColors } from "../../src/core/models";
 
@@ -101,6 +104,30 @@ describe("which color each course gets", () => {
 
   it("a code in two classes is one course with one color", () => {
     expect(shown(["PL3002", "PL3002", "DK4073"])).toEqual(["DK4073 cyan", "PL3002 indigo"]);
+  });
+});
+
+describe("a choice in the picker", () => {
+  it("picking a color saves it with the course moved out of its way; going back to automatic returns to the color it had", () => {
+    const saved: CourseColors = { picks: {}, automatic: resolveCourseColors(TERM, undefined).remember };
+    const picked = withRemembered(TERM, applyChoice(saved, "PL3002", "cyan", 5));
+    expect(picked).toEqual({ picks: { PL3002: { color: "cyan", at: 5 } }, automatic: { ...saved.automatic, DK4073: "blue" } });
+    // Back to automatic: PL3002's own blue went to DK4073, so it takes the first free one.
+    const back = withRemembered(TERM, applyChoice(picked, "PL3002", null, 6));
+    expect(back.picks).toEqual({});
+    expect(shown(TERM, back)).toEqual(["DK4073 blue", "II4091 indigo", "KU5014 berry", "PL3002 cyan", "PL3032 orchid"]);
+  });
+
+  it("past the cap, the picks made longest ago for courses outside the term go first, never this term's", () => {
+    const old = Object.fromEntries(Array.from({ length: 200 }, (_, i) => [`XX${1000 + i}`, { color: "blue", at: 100 + i }]));
+    const value = applyChoice({ picks: { ...old, PL3002: { color: "cyan", at: 1 } } }, "DK4073", "pink", 999);
+    const kept = pruneCourseColors(value, TERM);
+    expect(Object.keys(kept.picks)).toHaveLength(200);
+    expect(kept.picks.PL3002).toBeDefined();
+    expect(kept.picks.DK4073).toBeDefined();
+    expect(kept.picks.XX1000).toBeUndefined();
+    expect(kept.picks.XX1001).toBeUndefined();
+    expect(kept.picks.XX1002).toBeDefined();
   });
 });
 

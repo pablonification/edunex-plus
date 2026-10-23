@@ -16,6 +16,7 @@ import { useAttendance } from "../attendance";
 import { verdictLabel } from "../attendance-labels";
 import { AbsenceBudget, CourseTarget } from "../attendance-parts";
 import { errorKey } from "../bridge";
+import { CourseColorPicker, colorName } from "../course-color-picker";
 import { useOpenExternal } from "../hooks";
 import { type Format, type StringKey, type Translate, useFormat, useLang, useNow, useT } from "../i18n";
 import { useNav } from "../nav";
@@ -27,11 +28,11 @@ import { useBridge, useDataset, useSettings, useStatus } from "../store";
 import { Button } from "../ui/controls";
 import { CourseDot, EmptyState, LiveDot, Skeleton } from "../ui/display";
 import { Icons } from "../ui/icons";
-import { Meta, Notice, Page, PageHeader } from "../ui/layout";
+import { factsLabel, Meta, Notice, Page, PageHeader } from "../ui/layout";
 import { Menu } from "../ui/menu";
 import { CountdownBar } from "../ui/meter";
 import { NowCard, NowLine, NowZone } from "../ui/now-card";
-import { toast } from "../ui/overlays";
+import { Tooltip, toast } from "../ui/overlays";
 import { PanelBoundary } from "../ui/panel-boundary";
 import { TabBar } from "../ui/tabs";
 import { type CoursePage, useCoursePage } from "./course/data";
@@ -133,16 +134,37 @@ function Header({ page }: { page: CoursePage }) {
   const t = useT();
   const { course, outline } = page;
   const sks = course.sks ?? outline?.credits ?? null;
+  // The course's color picker hangs from its dot and code, opened there or from "Lainnya".
+  const [picking, setPicking] = useState(false);
   return (
     // The "⋯" stays at the top right at every width; only the meter wraps under the class line when the window is narrow.
     <div className="mb-6 flex items-start gap-4">
       <PageHeader
         className="mb-0 min-w-0 flex-1 items-start"
         eyebrow={
-          <span className="flex items-center gap-1.5">
-            <CourseDot color={course.color} className="size-2" />
-            <span className="font-semibold text-fg/80">{course.code}</span>
-          </span>
+          <CourseColorPicker
+            code={course.code}
+            open={picking}
+            onOpenChange={setPicking}
+            trigger={
+              <span className="inline-flex">
+                <Tooltip content={t("courseColor.change")} hidden={picking}>
+                  {/* The popover's trigger is the span around the tooltip: the button says itself that it opens the picker. */}
+                  <button
+                    type="button"
+                    aria-haspopup="dialog"
+                    aria-expanded={picking}
+                    aria-label={t("courseColor.current", { code: course.code, color: colorName(t, course.colorId) })}
+                    className="group focus-ring -mx-1 inline-flex items-center gap-1.5 rounded px-1 transition-colors duration-150 hover:bg-hover"
+                  >
+                    <CourseDot color={course.color} className="size-2" />
+                    <span className="font-semibold text-fg/80">{course.code}</span>
+                    <Icons.ChevronDown className="size-3 text-muted opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100" />
+                  </button>
+                </Tooltip>
+              </span>
+            }
+          />
         }
         title={course.name}
         description={
@@ -161,7 +183,7 @@ function Header({ page }: { page: CoursePage }) {
         }
         actions={<AttendanceMeter page={page} />}
       />
-      <MoreMenu page={page} />
+      <MoreMenu page={page} onChangeColor={() => setPicking(true)} />
     </div>
   );
 }
@@ -196,8 +218,8 @@ function useBannerShows(code: string, health: AttendanceHealth | undefined): boo
   return !snoozed(attendanceKey(code, health));
 }
 
-/** The rare actions: save the files for offline, open the official pages. */
-function MoreMenu({ page }: { page: CoursePage }) {
+/** The rare actions: save the files for offline, change the course's color, open the official pages. */
+function MoreMenu({ page, onChangeColor }: { page: CoursePage; onChangeColor: () => void }) {
   const t = useT();
   const f = useFormat();
   const lang = useLang();
@@ -248,6 +270,12 @@ function MoreMenu({ page }: { page: CoursePage }) {
       { label: t("offline.pick"), icon: <Icons.FolderDown className="size-4" />, disabled: busy || files.length === 0, onSelect: () => void save(true) },
     );
   }
+  items.push({
+    label: t("courseColor.change"),
+    hint: factsLabel(colorName(t, course.colorId), t(course.colorPicked ? "courseColor.yours" : "courseColor.automatic")),
+    icon: <CourseDot color={course.color} />,
+    onSelect: onChangeColor,
+  });
   if (course.edunex)
     items.push({
       label: t("course.openEdunex"),
@@ -256,7 +284,6 @@ function MoreMenu({ page }: { page: CoursePage }) {
     });
   if (page.inSix && student)
     items.push({ label: t("course.openSix"), icon: <Icons.ArrowUpRight className="size-4" />, onSelect: () => open(sixTimetableUrl(student)) });
-  if (!items.length) return null;
   return <Menu label={t("course.more")} items={items} />;
 }
 

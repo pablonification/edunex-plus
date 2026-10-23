@@ -54,6 +54,7 @@ import { MegaphoneIcon } from "@phosphor-icons/react/dist/csr/Megaphone";
 import { MinusIcon } from "@phosphor-icons/react/dist/csr/Minus";
 import { MoonIcon } from "@phosphor-icons/react/dist/csr/Moon";
 import { NoteIcon } from "@phosphor-icons/react/dist/csr/Note";
+import { PaletteIcon } from "@phosphor-icons/react/dist/csr/Palette";
 import { PaperclipIcon } from "@phosphor-icons/react/dist/csr/Paperclip";
 import { PathIcon } from "@phosphor-icons/react/dist/csr/Path";
 import { PencilSimpleLineIcon } from "@phosphor-icons/react/dist/csr/PencilSimpleLine";
@@ -148,6 +149,7 @@ export const Icons = {
   LogOut: icon(SignOutIcon),
   Loader: icon(CircleNotchIcon),
   Info: icon(InfoIcon),
+  Palette: icon(PaletteIcon),
   ArrowRight: icon(ArrowRightIcon),
   Undo: icon(ArrowCounterClockwiseIcon),
   Plus: icon(PlusIcon),

@@ -8,6 +8,7 @@ import { academicStrings } from "./strings/academic";
 import { alertsStrings } from "./strings/alerts";
 import { attendanceStrings } from "./strings/attendance";
 import { contentStrings } from "./strings/content";
+import { courseColorStrings } from "./strings/course-colors";
 import { coursePageStrings } from "./strings/course-page";
 import type { Entry } from "./strings/entry";
 import { gradesStrings } from "./strings/grades";
@@ -47,6 +48,7 @@ export const STRINGS = {
   ...snoozeStrings,
   ...licencesStrings,
   ...phoneStrings,
+  ...courseColorStrings,
 } as const satisfies Record<string, Entry>;
 
 export type StringKey = keyof typeof STRINGS;

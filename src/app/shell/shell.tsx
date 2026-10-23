@@ -3,9 +3,10 @@
 // search too (the top bar, or ⌘K), and once, after the first full sync, the
 // first-run scan. A screen shows in the sidebar once it's built (./built.ts).
 // Beranda comes with the window; every other screen loads after it (../later.tsx).
-import { type ComponentType, type RefObject, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { type ComponentType, type KeyboardEvent, type RefObject, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { edunexCourseUrl, sixStatusUrl } from "../../core/links";
 import type { StringKey } from "../../core/strings";
+import { CourseColorPicker } from "../course-color-picker";
 import { useRememberCourseColors } from "../course-colors";
 import { type TermCourse, useTermCourses } from "../courses";
 import { useOpenExternal } from "../hooks";
@@ -17,7 +18,7 @@ import { usePdfViewer } from "../pdf";
 import { Home } from "../screens/home";
 import { useBridge, useCommand, useDataset, useJoined, useNavigateRequests, useStore } from "../store";
 import { AppMark } from "../ui/brand";
-import { Button } from "../ui/controls";
+import { Button, IconButton } from "../ui/controls";
 import { cx } from "../ui/cx";
 import { Badge, CourseDot } from "../ui/display";
 import { type IconProps, Icons } from "../ui/icons";
@@ -73,6 +74,8 @@ export function Shell({ arriving = false }: { arriving?: boolean }) {
 
 function Layout({ arriving }: { arriving: boolean }) {
   const [settingsOpen, setSettingsOpen] = useState(false);
+  /** Where Settings opens: at its top, or at a group the Student asked for (the sidebar's course colors button). */
+  const [settingsAt, setSettingsAt] = useState<"courseColors" | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [scanOpen, setScanOpen] = useState(false);
   const bridge = useBridge();
@@ -82,6 +85,11 @@ function Layout({ arriving }: { arriving: boolean }) {
   const settingsLoaded = SettingsDialog.useLoaded();
   const searchLoaded = SearchPalette.useLoaded();
   const scanLoaded = FirstScan.useLoaded();
+  /** Settings at its top, or at a group (the sidebar's course colors button): every way in says which, so none inherits the last. */
+  const openSettings = useCallback((at: "courseColors" | null = null) => {
+    setSettingsAt(at);
+    setSettingsOpen(true);
+  }, []);
   /** Search opens over anything else; the shortcut also closes it. */
   const openSearch = useCallback((toggle: boolean) => {
     setSettingsOpen(false);
@@ -95,11 +103,11 @@ function Layout({ arriving }: { arriving: boolean }) {
   useCommand(
     useCallback(
       (command) => {
-        if (command === "settings") setSettingsOpen(true);
+        if (command === "settings") openSettings();
         if (command === "refresh") void refreshNow(bridge);
         if (command === "search") openSearch(false);
       },
-      [bridge, openSearch],
+      [bridge, openSearch, openSettings],
     ),
   );
   useRefreshWhenBackOnline();
@@ -115,7 +123,7 @@ function Layout({ arriving }: { arriving: boolean }) {
   return (
     <div className={cx("flex h-dvh overflow-hidden bg-canvas text-fg", arriving && ARRIVE_APP)}>
       <PanelBoundary name="sidebar" compact>
-        <Sidebar onSettings={() => setSettingsOpen(true)} />
+        <Sidebar onSettings={openSettings} />
       </PanelBoundary>
       <div className="flex min-w-0 flex-1 flex-col">
         <PanelBoundary name="top bar" compact>
@@ -144,6 +152,7 @@ function Layout({ arriving }: { arriving: boolean }) {
             <SettingsDialog
               open={settingsOpen}
               onOpenChange={setSettingsOpen}
+              startAt={settingsAt}
               onShowFirstScan={() => {
                 setSettingsOpen(false);
                 setScanOpen(true);
@@ -154,7 +163,7 @@ function Layout({ arriving }: { arriving: boolean }) {
       </PanelBoundary>
       <PanelBoundary name="search" compact>
         <Suspense fallback={null}>
-          {(searchOpen || searchLoaded) && <SearchPalette open={searchOpen} onOpenChange={setSearchOpen} onSettings={() => setSettingsOpen(true)} />}
+          {(searchOpen || searchLoaded) && <SearchPalette open={searchOpen} onOpenChange={setSearchOpen} onSettings={() => openSettings()} />}
         </Suspense>
       </PanelBoundary>
       <PanelBoundary name="first scan" compact>
@@ -284,7 +293,7 @@ interface NavItem {
   owns?: Route["screen"][];
 }
 
-function Sidebar({ onSettings }: { onSettings: () => void }) {
+function Sidebar({ onSettings }: { onSettings: (at?: "courseColors" | null) => void }) {
   const store = useStore();
   const t = useT();
   const { route, go } = useNav();
@@ -294,6 +303,20 @@ function Sidebar({ onSettings }: { onSettings: () => void }) {
   const courses = useTermCourses();
   // Each course's automatic color, remembered the first time it shows, so it never moves by itself.
   useRememberCourseColors(courses?.map((course) => course.code));
+  // A course's color picker, from a right-click on its row (or Shift+F10, or the context-menu key): it hangs from the
+  // row, as a click on the row opens the course. `open` false: it's on its way out, still naming its course.
+  const [picker, setPicker] = useState<{ code: string; open: boolean } | null>(null);
+  const rows = useRef(new Map<string, HTMLButtonElement>());
+  const anchor = useRef<HTMLElement | null>(null);
+  const pickColor = (code: string) => {
+    anchor.current = rows.current.get(code) ?? null;
+    setPicker({ code, open: true });
+  };
+  const contextKey = (code: string) => (event: KeyboardEvent) => {
+    if (event.key !== "ContextMenu" && !(event.shiftKey && event.key === "F10")) return;
+    event.preventDefault();
+    pickColor(code);
+  };
   const open = useOpenExternal();
   /** Until the course page exists, a course opens on its official site: Edunex's page, else SIX's list. */
   const outside = (course: TermCourse) =>
@@ -359,22 +382,41 @@ function Sidebar({ onSettings }: { onSettings: () => void }) {
       <div className="mt-6 min-h-0 flex-1 overflow-y-auto px-3 max-[52rem]:shrink-0 max-[52rem]:basis-auto max-[52rem]:overflow-visible">
         {courses && courses.length > 0 && (
           <>
-            <p className="mb-1.5 px-2.5 text-caption font-semibold text-faint max-[52rem]:sr-only">{t("nav.courses")}</p>
+            <div className="mb-1 flex items-center justify-between pr-1 pl-2.5 max-[52rem]:sr-only">
+              <p className="text-caption font-semibold text-faint">{t("nav.courses")}</p>
+              {/* The visible way to the colors (a Mac has no context-menu key): Settings' list of them. Not in the rail,
+                  where this heading is only read out and the button would be a tab stop nobody sees. */}
+              <Tooltip content={t("nav.courseColors")} side="right">
+                <IconButton label={t("nav.courseColors")} size="sm" onClick={() => onSettings("courseColors")} className="size-6 text-faint max-[52rem]:hidden">
+                  <Icons.Palette className="size-3.5" />
+                </IconButton>
+              </Tooltip>
+            </div>
             <ul className="space-y-0.5">
               {courses.map((course) => {
                 const active = route.screen === "course" && route.code === course.code;
                 const site = courseReady ? null : outside(course);
+                const picking = picker?.open === true && picker.code === course.code;
                 return (
                   <li key={course.code}>
                     {/* Its whole name on hover and focus (cut short here, and only a dot in the rail); where it opens, until the course page is built. */}
-                    <Tooltip content={factsLabel(course.code, course.name, site?.label)} side="right">
+                    <Tooltip content={factsLabel(course.code, course.name, site?.label)} side="right" hidden={picking}>
                       <button
+                        ref={(button) => {
+                          if (button) rows.current.set(course.code, button);
+                          else rows.current.delete(course.code);
+                        }}
                         type="button"
                         aria-current={active ? "page" : undefined}
                         onClick={() => (courseReady ? go({ screen: "course", code: course.code }, { keep: true }) : site && open(site.url))}
+                        onContextMenu={(event) => {
+                          event.preventDefault();
+                          pickColor(course.code);
+                        }}
+                        onKeyDown={contextKey(course.code)}
                         className={cx(
                           "focus-ring flex h-[34px] w-full items-center gap-2.5 rounded-lg px-2.5 text-left text-body max-[52rem]:h-[42px] max-[52rem]:flex-col max-[52rem]:justify-center max-[52rem]:gap-1 max-[52rem]:px-0",
-                          active ? "bg-selected" : "hover:bg-hover",
+                          active || picking ? "bg-selected" : "hover:bg-hover",
                         )}
                       >
                         <CourseDot color={course.color} />
@@ -387,6 +429,17 @@ function Sidebar({ onSettings }: { onSettings: () => void }) {
                 );
               })}
             </ul>
+            {picker && (
+              // One per course: a right-click on another row while this one is still on its way out starts afresh.
+              <CourseColorPicker
+                key={picker.code}
+                code={picker.code}
+                open={picker.open}
+                onOpenChange={(next) => setPicker({ code: picker.code, open: next })}
+                anchor={anchor}
+                side="right"
+              />
+            )}
           </>
         )}
       </div>
@@ -395,7 +448,7 @@ function Sidebar({ onSettings }: { onSettings: () => void }) {
         <Tooltip side="right" content={factsLabel(t("nav.settings"), store.platform === "darwin" ? "⌘," : "Ctrl+,")}>
           <button
             type="button"
-            onClick={onSettings}
+            onClick={() => onSettings()}
             className="focus-ring flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left hover:bg-hover max-[52rem]:h-9 max-[52rem]:justify-center max-[52rem]:py-0"
           >
             <span className="grid size-7 shrink-0 place-items-center rounded-full bg-info-bg text-micro font-bold text-info-fg max-[52rem]:hidden">
