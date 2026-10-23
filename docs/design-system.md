@@ -349,6 +349,10 @@ keeps them equal).
   the one thing drawn frame by frame. Everything else is CSS. A piece stops
   what it started when it goes, so nothing keeps running on a removed
   element.
+- Motion has the frames to itself: heavy work waits until it has stopped. The
+  file viewers read their file while the panel opens, but lay it out and draw
+  it once the panel has landed (`settled` in `ui/motion/animate.ts`), and the
+  first PDF brings pdf.js in before its panel opens.
 - **Reduced motion**, turned on in the OS: every CSS animation and transition
   is cut to an instant; the CSS rule doesn't reach `element.animate`, so the
   kit asks the same setting before each JS animation and jumps to the end
