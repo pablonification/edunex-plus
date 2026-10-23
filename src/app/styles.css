@@ -378,8 +378,9 @@
   /* On the welcome screen: a source just connected (its "Terhubung", the line under its name), and "Beranda siap". */
   --animate-grow-in: grow-in var(--duration-base) var(--ease-out);
   --animate-line-in: line-in var(--duration-base) var(--ease-out);
-  /* Stepped, as T3 Code's loops: a few held frames per cycle instead of one every frame. */
-  --animate-shimmer: shimmer 1.4s steps(4, jump-none) infinite;
+  /* A smooth fade, never stepped: held frames read as a stutter on a page-sized placeholder. Only opacity
+     changes, so it runs off the main thread and stays smooth while a file is read in. */
+  --animate-shimmer: shimmer 1.4s ease-in-out infinite;
 
   @keyframes fade-in {
     from {
