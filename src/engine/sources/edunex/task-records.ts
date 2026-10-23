@@ -264,5 +264,7 @@ export async function storeTasks(context: SourceContext, tasks: Task[]): Promise
   }
   // Both into memory at once, before either is written: a hand-in read back meanwhile can't be overwritten
   // by this older copy, and the edit alert (run once the Tasks are written) finds the edits there.
-  await Promise.all([edits ? context.set("edunex.taskEdits", edits) : null, context.set("edunex.tasks", sortTasks(tasks))]);
+  // No list until there's an edit to keep: a sync that changes nothing tells the screens nothing.
+  const keep = edits !== null && (edits.length > 0 || context.get("edunex.taskEdits") !== undefined);
+  await Promise.all([keep ? context.set("edunex.taskEdits", edits!) : null, context.set("edunex.tasks", sortTasks(tasks))]);
 }
