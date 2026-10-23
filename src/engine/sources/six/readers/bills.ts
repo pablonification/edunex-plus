@@ -25,6 +25,8 @@ export function readBills(html: string): Bill[] {
       year = Number(years[1]);
     } else if (cells.length === 1) {
       // A note across the table: nothing to read.
+    } else if (textOf(cells[0]!) === "SPI") {
+      // SPI, the development fee some intakes pay once on entry: not a term's UKT, so not a bill here.
     } else {
       if (year === null || cells.length !== HEADER.length) changed(page, "a bill row is out of place");
       bills.push(readBill(page, year, cells));
