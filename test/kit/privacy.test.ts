@@ -13,6 +13,8 @@ const identityFile = path.resolve(FIXTURES_DIR, "..", "..", ".scratch", "private
 const privateValues: string[] = fs.existsSync(identityFile) ? JSON.parse(fs.readFileSync(identityFile, "utf8")).values : [];
 
 const FAKE_NIM = /^18223(?:9\d\d)$/;
+/** An Indonesian civil servant's staff number: birth date, appointment month, sex, then a sequence ("19580206 198503 1 002"). */
+const NIP = /(?<!\d)(?:19|20)\d{2}(?:0[1-9]|1[0-2])(?:[0-2]\d|3[01])(?:19|20)\d{2}(?:0[1-9]|1[0-2])[12]\d{3}(?!\d)/g;
 
 function hits(pattern: RegExp, allowed: (match: string) => boolean = () => false): string[] {
   const out: string[] = [];
@@ -43,6 +45,11 @@ describe("committed test data holds nothing personal", () => {
   it("has no real email addresses or phone numbers", () => {
     expect(hits(/[\w.+-]+@[\w-]+(?:\.[\w-]+)+/g, (m) => m.endsWith("@example.com") || m === "dimas.pratama@mahasiswa.itb.ac.id")).toEqual([]);
     expect(hits(/(?<!\d)(?:\+62|62|0)8\d{7,11}(?!\d)/g, (m) => m === "080000000000")).toEqual([]);
+  });
+
+  it("has no staff numbers (NIP, which starts with a birth date) and no profile pictures named after someone", () => {
+    expect(hits(NIP)).toEqual([]);
+    expect(hits(/cdn-edunex\.itb\.ac\.id\/avatar\/[^"'\s<]+/g, (m) => m.endsWith("/avatar/fixture-avatar.jpg"))).toEqual([]);
   });
 
   it("has none of the pages that hold passwords or family data", () => {

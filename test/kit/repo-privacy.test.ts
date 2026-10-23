@@ -78,6 +78,10 @@ describe.skipIf(texts === null)("tracked files hold nothing personal or secret",
     expect(hits(/(?<!\d)1\d{2}(?:1[5-9]|2\d)\d{3}(?!\d)/g, (m) => FAKE_NIM.test(m))).toEqual([]);
   });
 
+  it("has no staff numbers (NIP, which starts with a birth date)", () => {
+    expect(hits(/(?<!\d)(?:19|20)\d{2}(?:0[1-9]|1[0-2])(?:[0-2]\d|3[01])(?:19|20)\d{2}(?:0[1-9]|1[0-2])[12]\d{3}(?!\d)/g, () => false)).toEqual([]);
+  });
+
   it("has no real email addresses or phone numbers", () => {
     expect(hits(/[\w.+-]+@[\w-]+(?:\.[\w-]+)*\.[a-z]{2,}/gi, isAllowedEmail)).toEqual([]);
     expect(hits(/(?<!\d)(?:\+62|62|0)8\d{7,11}(?!\d)/g, (m) => FAKE_PHONES.has(m))).toEqual([]);
