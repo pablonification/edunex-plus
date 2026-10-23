@@ -3,9 +3,10 @@
 // (./file-viewer.tsx) share: "Catatanku" in the toolbar, which opens a panel
 // beside the file with the note on the page being read (a PDF's; a Word
 // document or text file has one note for the whole file), saved as the
-// Student types, with Hapus (and Urungkan in its toast) and the file's notes
-// on other pages, each a way to its page; and the mark on a PDF page that has
-// one, which opens the panel there. Escape in the note gives the keyboard back
+// Student types (a quiet "Tersimpan" says so for a moment; that it stays on
+// this computer, the empty note's placeholder says), with Hapus (and Urungkan
+// in its toast) and the file's notes on other pages, each a way to its page;
+// and the mark on a PDF page that has one, which opens the panel there. Escape in the note gives the keyboard back
 // to the file (the viewer does that). The caller saves them (../highlights.ts),
 // kept with the file's highlights by its content.
 import { NotePencilIcon } from "@phosphor-icons/react/dist/csr/NotePencil";
@@ -75,9 +76,10 @@ const firstLine = (text: string) => text.trim().split("\n")[0];
 
 /**
  * The panel beside the file: the note on `page` (none: on the whole file),
- * saved a moment after the Student stops typing, when the box loses the
- * keyboard, when another page comes into view, and as it closes. Emptied, the
- * note goes; "Hapus catatan" says so in a toast with Urungkan.
+ * saved a moment after the Student stops typing and when the box loses the
+ * keyboard, then "Tersimpan" for a moment; also, quietly, when another page
+ * comes into view and as it closes. Emptied, the note goes; "Hapus catatan"
+ * says so in a toast with Urungkan.
  */
 export function NotesPanel({
   notes,
@@ -97,30 +99,49 @@ export function NotesPanel({
   const t = useT();
   const title = useId();
   const othersTitle = useId();
+  const described = useId();
   const box = useRef<HTMLTextAreaElement>(null);
   /** What's typed on a page and not saved yet. */
   const [draft, setDraft] = useState<{ page?: number; text: string } | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const latest = useRef({ notes, draft });
   latest.current = { notes, draft };
+  /** Bumped as a note is saved while the Student writes: "Tersimpan" shows for a moment. */
+  const [saved, setSaved] = useState(0);
+  useEffect(() => {
+    if (!saved) return;
+    const hide = setTimeout(() => setSaved(0), 2000);
+    return () => clearTimeout(hide);
+  }, [saved]);
 
-  /** What's typed and waiting, saved now. */
+  /** What's typed and waiting, saved now; true when it's a note (emptied, it just goes). */
   const flush = useCallback(() => {
-    if (timer.current === undefined) return;
+    if (timer.current === undefined) return false;
     clearTimeout(timer.current);
     timer.current = undefined;
     const { notes, draft } = latest.current;
-    if (draft) notes.set(draft.page, draft.text);
+    if (!draft) return false;
+    notes.set(draft.page, draft.text);
+    return draft.text.trim() !== "";
   }, []);
+  const save = useCallback(() => {
+    if (flush()) setSaved((n) => n + 1);
+  }, [flush]);
 
   // Another page in view: what was typed on the one before is saved, and this one's note shows.
   // biome-ignore lint/correctness/useExhaustiveDependencies: on each new page
   useEffect(() => {
     flush();
     setDraft(null);
+    setSaved(0);
   }, [page, flush]);
   // Closing (or the viewer shutting) saves what's waiting.
-  useEffect(() => flush, [flush]);
+  useEffect(
+    () => () => {
+      flush();
+    },
+    [flush],
+  );
   useEffect(() => {
     if (focus) box.current?.focus();
   }, [focus]);
@@ -134,6 +155,7 @@ export function NotesPanel({
     // What's shown goes, and is what Urungkan puts back.
     const gone: PageNote = { ...(page ? { page } : {}), text, at: Date.now() };
     setDraft(null);
+    setSaved(0);
     notes.remove(page);
     box.current?.focus();
     toast(t("pageNote.removed"), "neutral", { label: t("action.undo"), onClick: () => notes.restore(gone) });
@@ -152,10 +174,11 @@ export function NotesPanel({
           </IconButton>
         </Tooltip>
       </div>
-      <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-4">
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-4">
         <textarea
           ref={box}
           aria-labelledby={title}
+          aria-describedby={described}
           value={text}
           maxLength={MAX_NOTE}
           placeholder={t(page ? "pageNote.placeholder" : "pageNote.placeholderFile")}
@@ -164,27 +187,50 @@ export function NotesPanel({
             latest.current.draft = next;
             setDraft(next);
             clearTimeout(timer.current);
-            timer.current = setTimeout(flush, 600);
+            timer.current = setTimeout(save, 600);
           }}
-          onBlur={flush}
+          onBlur={save}
           className="min-h-44 w-full resize-y rounded-lg border border-field-edge bg-surface px-3 py-2 text-body text-fg placeholder:text-faint focus:border-focus focus:outline-none"
         />
-        <div className="flex min-h-7 items-center gap-2">
-          <p className="min-w-0 flex-1 text-caption text-muted">{t("pageNote.kept")}</p>
+        {/* What the placeholder and "Tersimpan" show, for screen readers whatever is in the box. */}
+        <p id={described} className="sr-only">
+          {t("pageNote.kept")}
+        </p>
+        {/* One quiet row under the note, the same height with or without its parts, so nothing below it moves. */}
+        <div className="mt-1.5 flex h-7 items-center gap-2">
+          <span
+            aria-hidden
+            className={cx(
+              "flex min-w-0 flex-1 items-center gap-1 text-caption text-muted transition-opacity duration-150",
+              saved ? "opacity-100" : "opacity-0",
+            )}
+          >
+            <Icons.Check className="size-3.5 shrink-0" />
+            {t("pageNote.saved")}
+          </span>
           {text.trim() && (
             <Tooltip content={t("pageNote.remove")}>
-              <Button size="sm" variant="ghost" aria-label={t("pageNote.remove")} icon={<DeleteIcon className="size-3.5" />} onClick={remove} className="px-2">
+              {/* Its bin and word line up with the box's right edge; the hover reaches past it. */}
+              <Button
+                size="sm"
+                variant="ghost"
+                aria-label={t("pageNote.remove")}
+                icon={<DeleteIcon className="size-3.5" />}
+                onClick={remove}
+                className="-mr-2 px-2"
+              >
                 {t("pageNote.removeShort")}
               </Button>
             </Tooltip>
           )}
         </div>
         {others.length > 0 && (
-          <section aria-labelledby={othersTitle} className="mt-2 border-t border-line pt-3">
-            <h3 id={othersTitle} className="mb-1 px-2 text-caption font-medium text-muted">
+          <section aria-labelledby={othersTitle} className="mt-4 border-t border-line pt-4">
+            <h3 id={othersTitle} className="mb-1.5 text-small font-semibold text-muted">
               {t("pageNote.others")}
             </h3>
-            <ul>
+            {/* Each row's words line up with the note's; its hover reaches past them. */}
+            <ul className="-mx-2">
               {others.map((note) => (
                 <li key={note.page}>
                   <button

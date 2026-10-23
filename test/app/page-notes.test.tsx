@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
 // Notes on a page ("Catatan halaman"). "Catatanku" in the PDF viewer opens a
 // panel beside the pages with the note on the page being read, saved as it's
-// typed (and when the box is left), on this computer only, kept with the
-// file's highlights by its content; a page with a note is marked, and the
+// typed (and when the box is left), "Tersimpan" for a moment after, on this
+// computer only (the empty note says so), kept with the file's highlights by
+// its content; a page with a note is marked, and the
 // panel lists the file's other notes, each a way to its page. Hapus has
 // Urungkan, emptying a note removes it, Escape gives the keyboard back to the
 // pages, and ⌘Z in the note is the typing's. Notes come back after a restart,
@@ -61,6 +62,11 @@ const pages = () => viewer()!.querySelector<HTMLElement>("section[tabindex='0']"
 const panel = () => viewer()?.querySelector<HTMLElement>("[data-page-notes]") ?? null;
 const note = () => panel()!.querySelector("textarea")!;
 const title = () => panel()?.querySelector("h2")?.textContent;
+/** Whether "Tersimpan" shows under the note now (it fades, so it's always there to the DOM). */
+const savedShows = () => {
+  const status = [...panel()!.querySelectorAll("span[aria-hidden]")].find((el) => el.textContent === "Tersimpan");
+  return status?.classList.contains("opacity-100") ?? false;
+};
 /** The notes the app saved last, as "file page text". */
 const savedNotes = (s: Awaited<ReturnType<typeof openApp>>) => {
   const value = s.calls.findLast((call) => call.name === "local.set" && (call.input as { name: string }).name === "local.highlights")?.input as
@@ -124,13 +130,21 @@ describe("notes on a PDF's pages", () => {
     expect(title()).toBe("Catatan halaman 1");
     // The keyboard is in the note, ready to type.
     expect(document.activeElement).toBe(note());
-    expect(note().placeholder).toBe("Tulis catatan untuk halaman ini");
-    expect(panel()!.textContent).toContain("Tersimpan otomatis, hanya di komputer ini");
+    // Where notes stay is said once, in the empty note; a screen reader hears it, and that it saves itself, in the box's description.
+    expect(note().placeholder).toBe("Tulis catatan untuk halaman ini.\nHanya disimpan di komputer ini.");
+    expect(document.getElementById(note().getAttribute("aria-describedby")!)?.textContent).toBe(
+      "Tersimpan otomatis saat kamu berhenti mengetik, hanya di komputer ini.",
+    );
+    expect(savedShows()).toBe(false);
 
     await type(note(), "Pilih topik yang datanya sudah ada.");
-    // Saved a moment after the typing stops.
+    expect(savedShows()).toBe(false);
+    // Saved a moment after the typing stops, and "Tersimpan" says so for a moment.
     await act(async () => new Promise((resolve) => setTimeout(resolve, 700)));
     expect(savedNotes(s)).toEqual([`${sha(PDF).slice(0, 8)} 1 Pilih topik yang datanya sudah ada.`]);
+    expect(savedShows()).toBe(true);
+    await act(async () => new Promise((resolve) => setTimeout(resolve, 2100)));
+    expect(savedShows()).toBe(false);
     expect(viewer()!.querySelector('[data-page="1"]')!.contains(s.button("Catatan halaman 1"))).toBe(true);
     expect(s.has("Catatan halaman 2")).toBe(false);
     // It's kept on this computer, and goes nowhere else.
@@ -151,7 +165,7 @@ describe("notes on a PDF's pages", () => {
     expect(savedNotes(s).map((n) => n.slice(9))).toEqual(["1 Definisi", "3 Tanya dosen soal jadwal bimbingan\nLalu isi formulir"]);
     // The others, by their first line.
     expect(panel()!.textContent).toContain("Catatan di halaman lain");
-    await s.click("Halaman 1: Definisi");
+    await s.click("Halaman 1, Definisi");
     expect(title()).toBe("Catatan halaman 1");
     expect(note().value).toBe("Definisi");
 
@@ -233,7 +247,7 @@ describe("a note on a text file", () => {
 
     await openNotes(s);
     expect(title()).toBe("Catatan berkas ini");
-    expect(note().placeholder).toBe("Tulis catatan untuk berkas ini");
+    expect(note().placeholder).toBe("Tulis catatan untuk berkas ini.\nHanya disimpan di komputer ini.");
     await type(note(), "Hafalkan rumus biaya total");
     await act(async () => viewer()!.querySelector<HTMLElement>("section[tabindex='0']")!.focus());
     await tick();
