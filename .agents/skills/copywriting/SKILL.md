@@ -5,7 +5,7 @@ description: The app's on-screen words in Indonesian and English. Use when addin
 
 # Copywriting
 
-The reader is a tired ITB student between classes who needs one answer. Write the shortest true sentence that tells them what happened or what to do, in both languages. The voice and the Glossary live in `docs/design-system.md` (Copy); this is the working checklist.
+The reader is a tired ITB student between classes who needs one answer. Write the shortest true sentence that tells them what happened or what to do, in both languages. The voice and the Glossary live in `docs/design-system.md` (Copy). This is the working checklist.
 
 ## Steps
 
@@ -78,7 +78,7 @@ Attendance, deadlines and grades are never shortened into something false. Keep 
 
 ## Check
 
-- `npm run lint` runs the two copy rules in `biome-plugins/`; `test/kit/copy-lint.test.ts` proves they still fire. Where an em dash is data, not words (a character table), write it as `\u2014`.
+- `npm run lint` runs the two copy rules in `biome-plugins/`, and `test/kit/copy-lint.test.ts` proves they still fire. Where an em dash is data, not words (a character table), write it as `\u2014`.
 - Changed a string? `grep -rn` its old text in `test/` and update what asserts on it.
 - Read both languages as the student would. The first two words should tell them what this is about.
 
