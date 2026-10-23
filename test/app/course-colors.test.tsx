@@ -234,6 +234,10 @@ describe("course colors in Settings", () => {
     expect(dialog()).toContain("Warna mata kuliah");
     expect(dialog()).toContain("Ekonomi dan Inovasi dalam PerencanaanPL3002 · otomatis");
     expect(dialog()).toContain("Semua mata kuliahSemua otomatis");
+    // The preview marks each course by its dot and code, in light and in dark: no name to cut short.
+    const preview = document.querySelector("[role=dialog] [inert]");
+    expect(preview?.textContent).toBe("TerangDK4073II4091KU5014PL3002PL3032GelapDK4073II4091KU5014PL3002PL3032");
+    expect(preview?.querySelectorAll('[style*="--course-"]')).toHaveLength(10);
     // Opened here, focus is on the first course's color.
     expect(document.activeElement?.getAttribute("aria-label")).toBe("Warna DK4073: Biru");
 
