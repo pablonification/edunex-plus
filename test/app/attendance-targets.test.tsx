@@ -84,7 +84,7 @@ describe("a course's own attendance target", () => {
     screen = await openApp({ signedIn: true, six: true });
     await screen.engineDoes(() => screen!.engine.updateSettings({ lang: "en", attendanceTargets: { DK4073: 75 } }));
     await openCourse("DK4073");
-    expect(header()).toContain("Absences2 used · 1 left · target 75%66% attended so far (4 of 6)Target 75%");
+    expect(header()).toContain("Absences2 used · 1 left · target 75%Attendance 66% so far (4 of 6)Target 75%");
     await screen.click("Target 75% for DK4073");
     expect(dialog()).toContain("DK4073 attendance target");
     expect(dialog()).toContain("Use the default (80%)");

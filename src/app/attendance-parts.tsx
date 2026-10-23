@@ -251,11 +251,11 @@ function TargetRow({
 /**
  * "Jatah absen" with the absence bar and its words ("Terpakai 1× · sisa 1×"),
  * the same on every screen; the one piece the bar's look lives behind.
- * `row`: a Presensi row's budget (right-aligned beside the course, under its
- * name when the row is narrow); `header`: the course page, with SIX's count
- * under it (the one place with a share); `card`: Beranda's course cards.
- * `own`: the course has its own target ("· target 75%"). Nothing where the
- * course has no budget to show.
+ * `row`: a Presensi row's two labeled lines, SIX's share over the bar
+ * ("Kehadiran 73% sejauh ini (11 dari 15)", "Jatah absen ▬▬▬ Terpakai 1× ·
+ * sisa 1×"); `header`: the course page, the share under the words; `card`:
+ * Beranda's course cards, no share. `own`: the course has its own target
+ * ("· target 75%"). Nothing where the course has no budget to show.
  */
 export function AbsenceBudget({
   health,
@@ -302,8 +302,7 @@ export function AbsenceBudget({
     />
   );
   const text = (
-    // On a row the words sit at its end: each "·" goes with the fact before it, so a wrapped line still ends right.
-    <Meta align={place === "row" ? "end" : "start"} className="text-small text-muted tabular-nums">
+    <Meta className="text-small text-muted tabular-nums">
       {words.lead ?? ""}
       <span className={cx("font-semibold", BAR_TEXT[words.tone])}>{words.bold}</span>
       {own ? t("presence.row.ownTarget", { value: health.target }) : ""}
@@ -311,19 +310,23 @@ export function AbsenceBudget({
   );
   if (place === "row")
     return (
-      // Wide: the label and bar over the words, at the row's end. Narrow (zoomed in): under the name, on one wrapping line.
-      <div
-        className={cx(
-          "flex flex-wrap items-center gap-x-3 gap-y-1 @[37.5rem]:flex-col @[37.5rem]:flex-nowrap @[37.5rem]:items-end @[37.5rem]:gap-y-1",
-          className,
-        )}
-      >
-        <span className="flex items-center gap-2">
-          <span className="text-caption text-faint">{t("presence.bar.label")}</span>
+      // Each label over the next, so the values (and the bars, row to row) line up; the words go under the bar when they don't fit beside it.
+      // A label is as tall as its value's first line (16 + 2 px), so it sits level with it, wrapped or not.
+      <dl className={cx("grid grid-cols-[auto_minmax(0,1fr)] items-start gap-x-3 gap-y-1", className)}>
+        {health.held ? (
+          <>
+            <dt className="py-px text-caption text-faint">{t("presence.share.label")}</dt>
+            <dd className="text-small text-muted tabular-nums">
+              <span className="font-medium text-fg">{share}%</span> {t("presence.share.soFar", { attended: health.attended ?? 0, held: health.held })}
+            </dd>
+          </>
+        ) : null}
+        <dt className="py-px text-caption text-faint">{t("presence.bar.label")}</dt>
+        <dd className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1">
           {bar}
-        </span>
-        {text}
-      </div>
+          {text}
+        </dd>
+      </dl>
     );
   return (
     <div className={cx("min-w-0", className)}>

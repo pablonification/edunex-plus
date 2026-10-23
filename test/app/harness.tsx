@@ -23,13 +23,16 @@ import { signInToBoth } from "../../src/desktop/signin-both";
 import { createEngine, type Engine } from "../../src/engine/engine";
 import { EngineError, isEngineError } from "../../src/engine/errors";
 import { PRETEND_TOKEN } from "../pretend/edunex";
-// The PDF viewer loads on first use; here it's loaded already, so opening one settles within a click.
+// The PDF viewer and pdf.js load on first use; here they're loaded already (below), so opening a PDF settles within a click.
 import "../../src/app/ui/pdf-viewer";
+import { preparePdf } from "../../src/app/ui/pdf-engine";
 import { MemoryStorage, MemoryVault } from "../pretend/memory";
 import { PretendNtfy } from "../pretend/ntfy";
 import { PRETEND_SIX_COOKIE } from "../pretend/six";
 import { PretendWorld } from "../pretend/world";
 import { assertTidyFacts } from "./tidy-facts";
+
+await preparePdf();
 
 // Popovers place themselves with floating-ui, which asks every ancestor whether it
 // matches ":popover-open" or ":modal". jsdom's selector engine doesn't know those and

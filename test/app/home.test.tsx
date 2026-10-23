@@ -34,7 +34,8 @@ describe("Beranda on the recorded Thursday morning", () => {
     expect(colored.every((el) => el.classList.contains("size-2"))).toBe(true);
     expect(now).toContain("Jam berubah · biasanya 08:00–09:30");
     // SIX counts PL3002: SIX's "Tandai Hadir" is what counts, and the app is watching for it; Edunex's window is optional.
-    expect(now).toContain("Tekan Tandai Hadir di SIX saat tombolnya muncul.Aplikasi memeriksa tiap 2 menit · Jatah absen PL3002 sisa 1×");
+    // Its attendance, short: SIX's share, labeled, then what's left (the card names the course already).
+    expect(now).toContain("Tekan Tandai Hadir di SIX saat tombolnya muncul.Aplikasi memeriksa tiap 2 menit · Kehadiran 85% · Sisa jatah absen 1×");
     // Not a tick: nothing says the Student is marked present yet.
     expect(section("home-now")?.textContent).not.toMatch(/tercatat hadir|sudah hadir/);
     expect(screen.button("Buka di SIX untuk Tandai Hadir di PL3002").textContent).toBe("Buka di SIX");
@@ -57,18 +58,20 @@ describe("Beranda on the recorded Thursday morning", () => {
 
   it("Perlu perhatianmu doesn't repeat today: today's classes and their risk are in Hari ini; a target out of reach stays, one click from Presensi", async () => {
     screen = await openApp({ signedIn: true, six: true });
-    expect(document.querySelector('main h2[id="home-needs"]')?.textContent).toBe("Perlu perhatianmu 1");
-    expect(rows("home-needs")).toEqual(["KU5014: tak bisa lagi capai 80%Paling tinggi 73% · cek ke dosen kalau ada yang terlewat"]);
+    expect(document.querySelector('main h2[id="home-needs"]')?.textContent).toBe("Perlu perhatianmu 2");
+    expect(rows("home-needs")[0]).toBe("KU5014: tak bisa lagi capai 80%Paling tinggi 73% · cek ke dosen kalau ada yang terlewat");
+    // DK4073's UTS is next Thursday at 11:00, seven days ahead: the week counts whole days, so it's in.
+    expect(rows("home-needs")[1]).toMatch(/^UTS Komunikasi Pemasaran/);
     await screen.click(/^KU5014: tak bisa lagi capai 80%/);
     expect(document.querySelector("h1")?.textContent).toBe("Presensi");
   });
 
   it("today: SIX's classes with time and room, absences left, the moved class, the overlap, and tomorrow's online meeting; rows open their course", async () => {
     screen = await openApp({ signedIn: true, six: true });
-    // The now card above says "Jam berubah · biasanya 08:00–09:30" and "Jatah absen PL3002 sisa 1×" for this class; the row doesn't say them again.
+    // The now card above says "Jam berubah · biasanya 08:00–09:30" and "Sisa jatah absen 1×" for this class; the row doesn't say them again.
     expect(row("home-today", "08:0010:00")).toBe("08:0010:00Ekonomi dan Inovasi dalam PerencanaanPL3002 · R.SG PWK LT.6Sekarang");
     expect(text("home-now")).toContain("Jam berubah · biasanya 08:00–09:30");
-    expect(text("home-now")).toContain("Jatah absen PL3002 sisa 1×");
+    expect(text("home-now")).toContain("Kehadiran 85% · Sisa jatah absen 1×");
     // Three hours off: the time column says when, no "dalam 3 jam" beside it.
     expect(row("home-today", "11:00")).toBe("11:0012:59Komunikasi PemasaranDK4073 · TVST CJatah absen habis");
     // PL3032 (15:00–16:30) and KU5014 (16:00–17:50) share half an hour: each row names the other, beside its state on one line,
@@ -110,7 +113,7 @@ describe("Beranda on the recorded Thursday morning", () => {
     screen = await openApp({ signedIn: true, six: true });
     await screen.engineDoes(() => screen!.engine.updateSettings({ lang: "en" }));
     expect(text("home-now")).toContain("On now · until 10:00");
-    expect(text("home-now")).toContain("Press Tandai Hadir in SIX when it shows.The app checks every 2 minutes · 1 PL3002 absence left");
+    expect(text("home-now")).toContain("Press Tandai Hadir in SIX when it shows.The app checks every 2 minutes · Attendance 85% · 1 absence left");
     expect(text("home-now")).toContain("Edunex Presence is also open until 09:30. It's optional.");
     expect(row("home-today", "08:00")).toMatch(/Now$/);
     expect(row("home-today", "15:00")).toContain("No absences left · Clashes with KU5014 16:00–16:30. Go to this one if you can make only one.");
@@ -447,7 +450,8 @@ describe("nothing to do", () => {
     world.edunex.contents.clear();
     world.edunex.announcements.clear();
     screen = await openApp({ world, signedIn: true });
-    expect(text("home-needs")).toContain("Bebas tenggat sampai Sabtu, 17 Okt");
+    expect(text("home-needs")).toContain("Bebas tenggat 7 hari ke depan");
+    expect(text("home-needs")).toContain("Tidak ada tugas atau ujian dengan tenggat sampai Sabtu, 17 Okt.");
     expect(text("home-today")).toContain("Jadwal dan ruang kuliah muncul setelah SIX terhubung.");
     expect(text("home-changes")).toContain("Tidak ada yang berubah minggu ini.");
     // SIX is a click away from where its classes would be.
@@ -455,5 +459,56 @@ describe("nothing to do", () => {
     await screen.wait();
     expect(screen.store.status("six").state).toBe("live");
     expect(text("home-today")).not.toContain("muncul setelah SIX terhubung");
+  });
+});
+
+describe("how far ahead Perlu perhatianmu looks", () => {
+  /** Friday 23 October, 15:00, with only these Tasks on Edunex. */
+  const friday = (...tasks: { name: string; end_at: string; start_at?: string }[]) => {
+    const world = new PretendWorld({ now: "2026-10-23T15:00:00+07:00" });
+    const ids = tasks.map((task) => world.edunex.postTask(95001, task));
+    for (const [course, list] of world.edunex.tasks)
+      world.edunex.tasks.set(
+        course,
+        list.filter((task) => ids.includes(task.id as number)),
+      );
+    world.edunex.presences.clear();
+    world.edunex.contents.clear();
+    world.edunex.announcements.clear();
+    return world;
+  };
+
+  it("counts whole days: a deadline at 23:59 on the seventh day is listed, never said to be free", async () => {
+    screen = await openApp({ world: friday({ name: "Tugas 03 Bab III", end_at: "2026-10-30T23:59:00+07:00" }), signedIn: true });
+    expect(rows("home-needs").some((r) => r.startsWith("Tugas 03 Bab III"))).toBe(true);
+    expect(text("home-needs")).not.toContain("Bebas tenggat");
+  });
+
+  it("follows Settings: 3 days, a week or 2 weeks, and the empty list says which days are free", async () => {
+    screen = await openApp({ world: friday({ name: "Tugas 03 Bab III", end_at: "2026-10-30T23:59:00+07:00" }), signedIn: true });
+    await screen.apply({ type: "command", command: "settings" });
+    expect(["3 hari", "1 minggu", "2 minggu"].map((name) => screen!.button(name).getAttribute("aria-checked"))).toEqual(["false", "true", "false"]);
+    await screen.click("3 hari");
+    expect(screen.engine.snapshot().settings.needsAhead).toBe(3);
+    await screen.key("Escape");
+    expect(text("home-needs")).toContain("Bebas tenggat 3 hari ke depan");
+    expect(text("home-needs")).toContain("Tidak ada tugas atau ujian dengan tenggat sampai Senin, 26 Okt.");
+    expect(text("home-needs")).not.toContain("Tugas 03 Bab III");
+  });
+
+  it("a deadline only Hari ini shows, or one not open yet: nothing else needs you, never 'nothing due'", async () => {
+    screen = await openApp({ world: friday({ name: "Ringkasan", end_at: "2026-10-24T23:59:00+07:00" }), signedIn: true });
+    expect(text("home-today")).toContain("Ringkasan");
+    expect(text("home-needs")).toContain("Tidak ada lagi yang perlu perhatianmu sekarang");
+    expect(text("home-needs")).toContain("Tenggat berikutnya besok, 23:59.");
+    expect(text("home-needs")).not.toContain("Bebas tenggat");
+    screen.close();
+
+    screen = await openApp({
+      world: friday({ name: "Kuis", start_at: "2026-10-27T10:00:00+07:00", end_at: "2026-10-27T11:00:00+07:00" }),
+      signedIn: true,
+    });
+    expect(text("home-needs")).toContain("Tenggat berikutnya Sel, 27 Okt, 11:00.");
+    expect(text("home-needs")).not.toContain("Bebas tenggat");
   });
 });

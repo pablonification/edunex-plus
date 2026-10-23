@@ -169,7 +169,8 @@ describe("Perlu perhatianmu", () => {
     const world = h.home();
     // needsYou still has them all.
     expect(needsYou(world).map((n) => n.id)).toEqual(expect.arrayContaining(["presence:2194342", "class:2153983", "class:2194402"]));
-    expect(ids(world)).toEqual(["attendance:KU5014:out"]);
+    // Next Thursday's UTS is a week ahead, not today: it stays.
+    expect(ids(world)).toEqual(["attendance:KU5014:out", "exam:DK4073-UTS"]);
     // Tomorrow's II4091 meeting is in Hari ini's "Besok".
     expect(todayPlan(world).announced.map((m) => m.code)).toEqual(["II4091"]);
   });

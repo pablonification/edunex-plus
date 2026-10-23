@@ -9,6 +9,7 @@ import { act } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 import { aDocx, anXlsx, aPptx } from "../kit/office-files";
 import { aDoc, anXls, aPpt } from "../kit/old-office-files";
+import { playOpenings } from "./fake-animations";
 import { openApp } from "./harness";
 
 let screen: Awaited<ReturnType<typeof openApp>> | null = null;
@@ -143,6 +144,25 @@ describe("files other than PDFs in the viewer", () => {
     await settle();
     expect(s.calls).toContainEqual({ name: "files.read", input: { url: `${BLOB}-papan.png`, as: "image" } });
     expect(viewer()!.querySelector("img")?.getAttribute("alt")).toBe("Papan.png");
+  });
+
+  it("the panel opens on its own: the file is read meanwhile, and made into what it shows once the panel has stopped moving", async () => {
+    const s = await openWith([{ name: "Catatan", ext: "txt", bytes: "Bawa laptop ke kelas." }]);
+    const opening = playOpenings();
+    try {
+      await s.click("Lihat: Catatan");
+      // Its first time: the viewer comes in first.
+      for (let i = 0; i < 200 && !viewer(); i++) await act(async () => new Promise((resolve) => setTimeout(resolve, 10)));
+      await act(async () => new Promise((resolve) => setTimeout(resolve, 10)));
+      expect(s.calls).toContainEqual({ name: "files.read", input: { url: `${BLOB}-catatan.txt`, as: "text" } });
+      expect(viewer()?.textContent).toContain("Memuat berkas…");
+      expect(viewer()!.querySelector("pre")).toBeNull();
+      await opening.land();
+      await settle();
+      expect(viewer()!.querySelector("pre")?.textContent).toBe("Bawa laptop ke kelas.");
+    } finally {
+      opening.stop();
+    }
   });
 
   it("a file that isn't what its name says can't be shown, and downloading it is the way forward", async () => {

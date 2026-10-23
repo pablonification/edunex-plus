@@ -32,6 +32,7 @@ import { Button, IconButton } from "./controls";
 import { cx } from "./cx";
 import { type Highlights, MarkLayer, type TextRoot, useHighlighter } from "./highlights";
 import { Icons, icon } from "./icons";
+import { settled } from "./motion/animate";
 import { ConfirmDialog, ignoreClosingClick, keepOpenForToasts, PANEL_MOTION_CLASS, SCRIM_CLASS, Tooltip, toast, useReturnFocus } from "./overlays";
 import { PanelBoundary } from "./panel-boundary";
 import {
@@ -109,6 +110,7 @@ export function PdfViewer({
 }: PdfViewerProps) {
   const t = useT();
   const returnFocus = useReturnFocus();
+  const panel = useRef<HTMLDivElement>(null);
   const scroller = useRef<HTMLElement>(null);
   const [attempt, setAttempt] = useState(0);
   const [view, setView] = useState<View>({ phase: "loading" });
@@ -169,6 +171,9 @@ export function PdfViewer({
         if (!live) return opened.destroy();
         doc = opened;
         const first = (await doc.page(1)).size;
+        // pdf.js reads the file in its worker while the panel opens; the pages are laid out and drawn once it has
+        // stopped moving, since doing that mid-way would stall it.
+        await settled(panel.current);
         if (!live) return;
         let sizes: PdfSize[] = Array.from({ length: doc.pages }, () => first);
         setView({ phase: "ready", doc, sizes });
@@ -193,6 +198,7 @@ export function PdfViewer({
       <DialogPrimitive.Portal>
         <DialogPrimitive.Overlay className={cx(SCRIM_CLASS, "z-(--z-dialog)")} />
         <DialogPrimitive.Content
+          ref={panel}
           aria-describedby={undefined}
           onOpenAutoFocus={(event) => {
             returnFocus.onOpenAutoFocus();

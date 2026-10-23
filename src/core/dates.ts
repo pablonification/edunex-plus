@@ -18,3 +18,11 @@ export const weekdayVars = (ms: number) => ({ dayId: format("id", ms, { weekday:
 
 /** The same day on this computer's clock. */
 export const sameLocalDay = (a: number, b: number) => new Date(a).toDateString() === new Date(b).toDateString();
+
+/** The start of the day `days` days after the one holding `ms`, on this computer's clock. */
+export function localDayStart(ms: number, days = 0): number {
+  const day = new Date(ms);
+  day.setHours(0, 0, 0, 0);
+  day.setDate(day.getDate() + days);
+  return day.getTime();
+}
