@@ -93,6 +93,7 @@ export function DoneButton({
   said,
   words = false,
   onTone = false,
+  variant = "ghost",
 }: {
   item: SnoozeKey;
   how: RowDone;
@@ -102,6 +103,8 @@ export function DoneButton({
   words?: boolean;
   /** It sits on a colored notice and takes its color. */
   onTone?: boolean;
+  /** With `words`: quiet, or outlined where it's the notice's one thing to do. */
+  variant?: "ghost" | "secondary";
 }) {
   const t = useT();
   const { mark, unmark } = useDone();
@@ -122,7 +125,7 @@ export function DoneButton({
       {words ? (
         <Button
           size="sm"
-          variant="ghost"
+          variant={variant}
           icon={<Icons.Check className="size-4" weight="bold" />}
           aria-label={t(`done.${how}For`, { title: name })}
           data-done=""

@@ -29,9 +29,14 @@ const facts = (...parts: unknown[]) => parts.map((part) => (part === null || par
  * handed in, or handed in by the group; back when its deadline, its late
  * rule or Edunex's own state moves, or the lecturer edits it again).
  */
-export function taskDoneKey(task: Pick<Task, "id" | "dueAt" | "lateAllowed" | "closed" | "editedAt">, kind: "edited" | "due"): SnoozeKey {
+export function taskDoneKey(
+  task: Pick<Task, "id" | "dueAt" | "lateAllowed" | "closed" | "editedAt">,
+  kind: "edited" | "due",
+  /** For "edited": the edit it's about, when not the newest (an empty re-save after a change: core/task-edits.ts). */
+  editAt: number | null = task.editedAt,
+): SnoozeKey {
   return kind === "edited"
-    ? { id: `task:${task.id}:edited`, facts: facts("edited", task.editedAt) }
+    ? { id: `task:${task.id}:edited`, facts: facts("edited", editAt) }
     : { id: `task:${task.id}`, facts: facts(task.dueAt, task.lateAllowed, task.closed, task.editedAt) };
 }
 
@@ -50,7 +55,7 @@ export interface DoneTerms {
 export function doneTerms(need: NeedDraft): DoneTerms | null {
   switch (need.kind) {
     case "task":
-      if (need.reason === "edited") return { key: taskDoneKey(need.task, "edited"), how: "checked" };
+      if (need.reason === "edited") return { key: taskDoneKey(need.task, "edited", need.editAt), how: "checked" };
       // Only the group's hand-in can't be seen: the Student's own shows on Edunex, or is marked on the Task page.
       return { key: taskDoneKey(need.task, "due"), how: need.task.group ? "groupDone" : null };
     case "attendance": {

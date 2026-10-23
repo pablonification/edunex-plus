@@ -411,14 +411,15 @@ describe("an online meeting only Edunex announced", () => {
 });
 
 describe("Tasks on Beranda", () => {
-  it("a Task due tonight is in Hari ini (not twice); edited after handing in, it says to check", async () => {
+  it("a Task due tonight is in Hari ini (not twice); edited after handing in, it says how many things changed", async () => {
     screen = await openApp({ signedIn: true, six: true });
     screen.world.edunex.postTask(95059, { name: "Ringkasan K5", end_at: "2026-10-08T23:59:00+07:00" });
     screen.world.edunex.editTask(117432, { description: "<p>Tambahkan referensi.</p>" });
     await screen.engineDoes(() => screen!.engine.refresh("edunex"));
     expect(row("home-today", "23:59")).toMatch(/^23:59Ringkasan K5PL3032 · Tenggatdalam 1\d jam$/);
     expect(rows("home-needs").some((r) => r.includes("Ringkasan K5"))).toBe(false);
-    expect(row("home-needs", "Tugas tentang Imfact")).toContain("Diubah dosen setelah kamu kumpulkan · cek lagi");
+    // How many things changed; the Task page's History says which.
+    expect(row("home-needs", "Tugas tentang Imfact")).toContain("Diubah dosen setelah kamu kumpulkan · 1 perubahan");
     expect(text("home-changes")).toContain("Tugas baru · PL3032Ringkasan K5");
     await screen.click(/^23:59Ringkasan K5/);
     expect(document.querySelector("h1")?.textContent).toBe("Ringkasan K5");

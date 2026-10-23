@@ -421,9 +421,10 @@ describe("the Task page", () => {
     // The exam it's part of, and how the app knows.
     expect(s.text()).toContain("Bagian dari UTS DK4073 · Edunex menandainya UTS");
     const history = [...document.querySelectorAll("main aside ol li")].map((li) => li.textContent);
-    expect(history).toEqual(["Diunggah dosenKam, 17 Sep, 08:45", "Diubah dosenKam, 24 Sep, 11:11", "TenggatKam, 22 Okt, 23:50"]);
-    // An edit before the Student handed in is history, not a warning.
-    expect(s.text()).not.toContain("Diubah dosen pada");
+    // Edited before the app had a copy to compare: History says what changed isn't known.
+    expect(history).toEqual(["Diunggah dosenKam, 17 Sep, 08:45", "Diubah dosenKam, 24 Sep, 11:11Perubahannya tidak diketahui", "TenggatKam, 22 Okt, 23:50"]);
+    // An edit before the Student handed in that nobody can describe is history, not a warning.
+    expect(s.text()).not.toContain("Dosen mengubah tugas ini");
     await s.click("Buka di Edunex");
     expect(s.calls.at(-1)).toEqual({ name: "shell.openExternal", input: { url: "https://edunex.itb.ac.id/assignment/take/117764" } });
   });
@@ -492,8 +493,9 @@ describe("the Task page", () => {
     expect(s.has("Kumpulkan")).toBe(false);
     await s.click("Unduh TUGAS IMPACT ON INNOVATION THE ECONOMY - 18223901.pdf");
     expect(s.calls.at(-1)?.name).toBe("files.download");
-    // Edunex never told the Student about this edit.
+    // Edunex never told the Student about this edit, and the app had no copy from before it.
     expect(s.text()).toContain("Dosen mengubah tugas ini pada 8 Okt, setelah kamu mengumpulkan pada 16 Sep.");
+    expect(s.text()).toContain("Versi sebelumnya tidak diketahui, jadi aplikasi tidak bisa menunjukkan apa yang berubah.");
     await s.click("Buka di Edunex");
     expect(s.calls.at(-1)?.name).toBe("shell.openExternal");
   });

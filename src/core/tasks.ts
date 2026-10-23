@@ -6,7 +6,7 @@
 import { type CountedIn, presenceAction, presenceOptional } from "./attendance";
 import { htmlText } from "./course-materials";
 import { EDUNEX_WEB } from "./links";
-import type { PresenceSession, SourceState, Task, TaskModule, TaskStatus } from "./models";
+import type { PresenceSession, SourceState, Task, TaskEdit, TaskModule, TaskStatus } from "./models";
 
 const MINUTE = 60_000;
 const HOUR = 60 * MINUTE;
@@ -79,20 +79,25 @@ export type HistoryKind = "posted" | "opens" | "edited" | "draft" | "submitted" 
 export interface HistoryStep {
   kind: HistoryKind;
   at: number;
+  /** An edit's record of what changed; null: the app didn't see it happen, so what changed isn't known. */
+  edit?: TaskEdit | null;
 }
 
 /**
  * The Task's own timeline from Edunex's timestamps, the receipt the website
- * never shows: posted, opens for answers, edited, draft saved, submitted,
- * deadline. Steps that repeat another (opening as it's posted, a draft saved
- * on the way to submitting) are left out.
+ * never shows: posted, opens for answers, edited (each edit the app saw, with
+ * what changed, and the newest even when it didn't see it), draft saved,
+ * submitted, deadline. Steps that repeat another (opening as it's posted, a
+ * draft saved on the way to submitting) are left out.
  */
-export function taskHistory(task: Task): HistoryStep[] {
+export function taskHistory(task: Task, edits: readonly TaskEdit[] = []): HistoryStep[] {
   const steps: HistoryStep[] = [];
   const sentAt = submittedAt(task);
   if (task.postedAt !== null) steps.push({ kind: "posted", at: task.postedAt });
   if (task.opensAt !== null && (task.postedAt === null || Math.abs(task.opensAt - task.postedAt) > HOUR)) steps.push({ kind: "opens", at: task.opensAt });
-  if (task.editedAt !== null) steps.push({ kind: "edited", at: task.editedAt });
+  const seen = edits.filter((edit) => edit.taskId === task.id);
+  for (const edit of seen) steps.push({ kind: "edited", at: edit.at, edit });
+  if (task.editedAt !== null && !seen.some((edit) => edit.at === task.editedAt)) steps.push({ kind: "edited", at: task.editedAt, edit: null });
   const draftAt = task.answer?.createdAt ?? null;
   if (draftAt !== null && (sentAt === null || sentAt - draftAt > 5 * MINUTE)) steps.push({ kind: "draft", at: draftAt });
   if (sentAt !== null) steps.push({ kind: "submitted", at: sentAt });
