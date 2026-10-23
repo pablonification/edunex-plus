@@ -183,7 +183,8 @@ export function editView(task: Task, edits: readonly TaskEdit[] | undefined, don
   const since = older ? Number(older.facts.split("|")[1]) : Number.NEGATIVE_INFINITY;
   const changes = mergeEdits(records.filter((edit) => edit.at > (Number.isFinite(since) ? since : Number.NEGATIVE_INFINITY)));
   return {
-    state: record === null ? "unknown" : changes.length ? "known" : "none",
+    // The newest edit decides, as Beranda's row and the notification do: one that changed nothing compared is "none", whatever came before.
+    state: record === null ? "unknown" : record.changes.length && changes.length ? "known" : "none",
     record,
     records,
     changes,

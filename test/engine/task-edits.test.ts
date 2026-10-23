@@ -180,6 +180,8 @@ describe("several edits as one, and what the screens make of them", () => {
     // The first edit was checked: only the second is news.
     const checkedFirst = putAway([], taskDoneKey({ ...t, editedAt: at("2026-10-07T10:00:00") }, "edited"), "checked", 0);
     expect(editView(t, records, checkedFirst)).toMatchObject({ state: "known", checked: undefined, changes: [{ kind: "title", from: "A", to: "B" }] });
+    // The newest edit changed nothing compared: "none", as on Beranda and in the notification, even after an unchecked one.
+    expect(editView({ ...t, editedAt: at("2026-10-09T10:00:00") }, [...records, edit("2026-10-09T10:00:00", [])], [])).toMatchObject({ state: "none" });
     // This very version checked.
     const checked = putAway([], taskDoneKey(t, "edited"), "checked", 0);
     expect(editView(t, records, checked)?.checked?.how).toBe("checked");
