@@ -11,16 +11,16 @@ export const phoneStrings = {
   },
   "phone.off": { id: "Kirim ke HP juga", en: "Send to your phone too" },
   "phone.offHint": {
-    id: "Lewat aplikasi ntfy, gratis tanpa akun, di satu HP atau lebih. Pengingat tenggat tetap sampai walau laptop ditutup.",
-    en: "Through the free ntfy app, no account needed, on one phone or more. Deadline reminders still arrive with the laptop closed.",
+    id: "Lewat aplikasi ntfy yang gratis tanpa akun, di satu HP atau lebih. Pengingat tenggat tetap sampai walau laptop ditutup.",
+    en: "Through the free ntfy app with no account, on one phone or more. Deadline reminders still arrive with the laptop closed.",
   },
   "phone.connect": { id: "Hubungkan HP", en: "Connect phone" },
   "phone.step.install": { id: "Pasang aplikasi ntfy dari Play Store atau App Store.", en: "Install the ntfy app from the Play Store or App Store." },
   "phone.step.android": { id: "Android: pindai kode QR ini dengan kamera HP.", en: "Android: scan this QR code with your phone's camera." },
   "phone.step.iphone": { id: "iPhone: di ntfy, ketuk +, lalu ketik kode di bawah.", en: "iPhone: in ntfy, tap +, then type the code below." },
   "phone.morePhones": {
-    id: "Untuk HP lain, ulangi langkah ini di HP itu. Tiap HP dengan kode ini menerima notifikasi yang sama.",
-    en: "For another phone, repeat these steps on it. Every phone with this code gets the same notifications.",
+    id: "Untuk HP lain, ulangi langkah ini di HP itu. Semua mendapat notifikasi yang sama.",
+    en: "For another phone, repeat these steps on it. Each one gets the same notifications.",
   },
   "phone.qr": { id: "Kode QR untuk Android", en: "QR code for Android" },
   "phone.topic": { id: "Kode untuk iPhone", en: "Code for iPhone" },
@@ -31,8 +31,8 @@ export const phoneStrings = {
   "phone.testHint": { id: "Pastikan sampai di tiap HP", en: "Check that it reaches each phone" },
   "phone.testAction": { id: "Kirim tes", en: "Send test" },
   "phone.testSent": {
-    id: "Terkirim. Ada HP yang tidak menerima? Pastikan kode di aplikasi ntfy-nya sama dengan kode di atas.",
-    en: "Sent. A phone got nothing? Check that the code in its ntfy app matches the one above.",
+    id: "Terkirim. Ada HP yang tidak menerima? Pastikan kode di ntfy HP itu sama dengan kode di atas.",
+    en: "Sent. A phone got nothing? Check that its code in ntfy matches the one above.",
   },
   "phone.quiet": { id: "Jam tenang", en: "Quiet hours" },
   "phone.quietHint": {
@@ -43,8 +43,8 @@ export const phoneStrings = {
   "phone.quietEnd": { id: "Jam tenang selesai", en: "Quiet hours end" },
   "phone.disconnect": { id: "Putuskan semua HP", en: "Disconnect all phones" },
   "phone.disconnectHint": {
-    id: "Semua HP berhenti menerima notifikasi. Untuk satu HP saja, hapus kode ini dari aplikasi ntfy di HP itu.",
-    en: "Every phone stops getting them. For one phone only, remove this code from the ntfy app on that phone.",
+    id: "Semua HP berhenti menerima notifikasi. Untuk satu HP saja, hapus kodenya di aplikasi ntfy HP itu.",
+    en: "Every phone stops getting them. For just one, remove the code in its ntfy app.",
   },
   "phone.disconnectAction": { id: "Putuskan", en: "Disconnect" },
   // Asked first: the code is forgotten, so connecting again means setting up a new one on every phone. Confirmed with phone.disconnect.

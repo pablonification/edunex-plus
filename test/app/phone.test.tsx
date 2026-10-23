@@ -41,7 +41,7 @@ describe("phone notifications in Settings", () => {
     expect(qr()).toBeNull();
     expect(s.ntfy.log).toEqual([]);
     // More than one phone is possible from the start.
-    expect(s.text()).toContain("Lewat aplikasi ntfy, gratis tanpa akun, di satu HP atau lebih.");
+    expect(s.text()).toContain("Lewat aplikasi ntfy yang gratis tanpa akun, di satu HP atau lebih.");
 
     await s.click("Hubungkan HP");
     const link = s.engine.phone.link();
@@ -52,7 +52,7 @@ describe("phone notifications in Settings", () => {
     expect(s.text()).toContain(link.topic);
     expect(s.text()).toContain("iPhone: di ntfy, ketuk +, lalu ketik kode di bawah.");
     // Another phone subscribes from the same QR code or code: ntfy gives every subscriber each message.
-    expect(s.text()).toContain("Untuk HP lain, ulangi langkah ini di HP itu. Tiap HP dengan kode ini menerima notifikasi yang sama.");
+    expect(s.text()).toContain("Untuk HP lain, ulangi langkah ini di HP itu. Semua mendapat notifikasi yang sama.");
 
     await s.click("Salin kode");
     expect(s.copied).toEqual([link.topic]);
@@ -75,7 +75,7 @@ describe("phone notifications in Settings", () => {
 
     s.ntfy.answer = "ok";
     // It stops every phone; one phone alone stops in its own ntfy app.
-    expect(s.text()).toContain("Semua HP berhenti menerima notifikasi. Untuk satu HP saja, hapus kode ini dari aplikasi ntfy di HP itu.");
+    expect(s.text()).toContain("Semua HP berhenti menerima notifikasi. Untuk satu HP saja, hapus kodenya di aplikasi ntfy HP itu.");
     // Asked first, saying what goes: the code is forgotten, so connecting again needs a new one on each phone.
     await s.click("Putuskan");
     const question = () => document.querySelector("[role=alertdialog]");
