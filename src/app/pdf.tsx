@@ -11,11 +11,12 @@
 // whose answer can still change, attached to that answer (the Task's hand-in
 // card offers itself with useAnswerAttach). What they highlight in a file on
 // Edunex (a PDF, a Word document, a text file) is kept on this computer by
-// the file's content, and comes back each time it opens (./highlights.ts).
+// the file's content, and comes back each time it opens, and so do the notes
+// they write on a PDF's pages or on a Word document or text file (./highlights.ts).
 import { createContext, lazy, type ReactNode, Suspense, startTransition, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { FileProblem, ReadAs } from "../core/actions/files";
 import { ActionError, errorKey } from "./bridge";
-import { fileIdentity, useFileHighlights } from "./highlights";
+import { fileIdentity, useFileHighlights, useFileNotes } from "./highlights";
 import { useOpenExternal, useOpenLink } from "./hooks";
 import { useT } from "./i18n";
 import { OpenFile, useDownloadedToast, useLocalCopy } from "./open-file";
@@ -149,7 +150,9 @@ export function PdfViewerProvider({ children }: { children: ReactNode }) {
   const leaving = useRef<(() => void) | null>(null);
   /** Which file is open, by its content, once it's read in: its highlights are kept by it. */
   const [identity, setIdentity] = useState<{ source: PdfSource; file: string } | null>(null);
-  const highlights = useFileHighlights(source?.kind === "edunex" && identity?.source === source ? identity.file : null);
+  const file = source?.kind === "edunex" && identity?.source === source ? identity.file : null;
+  const highlights = useFileHighlights(file);
+  const notes = useFileNotes(file);
 
   // Bytes handed in are always a PDF; a name the viewer doesn't know (a caller's mistake) is tried as one.
   const kind: ViewerKind = source?.kind === "edunex" ? (viewerKind(source.name) ?? "pdf") : "pdf";
@@ -307,6 +310,7 @@ export function PdfViewerProvider({ children }: { children: ReactNode }) {
             fallback={fallback}
             onOpenLink={openLink}
             highlights={highlights}
+            notes={notes}
             platform={platform}
           />
         )}
@@ -327,6 +331,7 @@ export function PdfViewerProvider({ children }: { children: ReactNode }) {
             }}
             onDirtyChange={onDirtyChange}
             highlights={highlights}
+            notes={notes}
             platform={platform}
           />
         )}
