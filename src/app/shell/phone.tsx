@@ -7,8 +7,7 @@
 // ntfy gives each the same messages; it never tells the app who subscribed, so
 // Settings says how to add a phone and how to drop one, not which are there.
 // The window only asks: main makes the code and does the sending.
-import { type ReactNode, useEffect, useMemo, useState } from "react";
-import { encode } from "uqr";
+import { type ReactNode, useEffect, useState } from "react";
 import type { PhoneLink } from "../../core/actions/phone";
 import { DEFAULT_SETTINGS, type QuietHours, type Settings } from "../../core/models";
 import type { StringKey } from "../../core/strings";
@@ -17,6 +16,7 @@ import { useBridge, useDataset } from "../store";
 import { Button, Switch } from "../ui/controls";
 import { Icons } from "../ui/icons";
 import { ConfirmDialog, toast } from "../ui/overlays";
+import { QrCode } from "../ui/qr-code";
 
 const STEPS: StringKey[] = ["phone.step.install", "phone.step.android", "phone.step.iphone"];
 /** Turned on again: 22:00 to 06:00. */
@@ -217,26 +217,5 @@ function Status({ tone, children }: { tone: "success" | "warning"; children: Rea
       <Icon className="mt-0.5 size-4 shrink-0" weight="bold" />
       {children}
     </p>
-  );
-}
-
-/**
- * A QR code drawn from its modules, one SVG path, never markup from a string.
- * Black on white in either theme, with the quiet border cameras need.
- */
-function QrCode({ text, label }: { text: string; label: string }) {
-  const { d, size } = useMemo(() => {
-    const { data } = encode(text, { ecc: "M", border: 0 });
-    let path = "";
-    for (const [y, row] of data.entries()) for (const [x, dark] of row.entries()) if (dark) path += `M${x} ${y}h1v1h-1z`;
-    return { d: path, size: data.length };
-  }, [text]);
-  const quiet = 3;
-  const box = size + quiet * 2;
-  return (
-    <svg role="img" aria-label={label} viewBox={`${-quiet} ${-quiet} ${box} ${box}`} shapeRendering="crispEdges" className="size-36 shrink-0 rounded-lg">
-      <rect x={-quiet} y={-quiet} width={box} height={box} fill="#fff" />
-      <path d={d} fill="#000" />
-    </svg>
   );
 }

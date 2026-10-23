@@ -9,7 +9,7 @@
 // automatic), then the rest (how far ahead Beranda's "Perlu perhatianmu"
 // looks, attendance targets: the default and each course's own), then what the
 // app is (licence, the open-source software it uses, opened as a page of its
-// own).
+// own), and "Laporkan masalah" to its maintainer.
 import { lazy, type ReactNode, Suspense, useEffect, useRef, useState } from "react";
 import {
   type AlertGroup,
@@ -31,6 +31,7 @@ import { type TermCourse, useTermCourses } from "../courses";
 import { useFocusNext } from "../hooks";
 import { useFormat, useT } from "../i18n";
 import { displayName } from "../names";
+import { openReport } from "../report";
 import { useCourseNames } from "../schedule-data";
 import { useDone, useHeldBack, useSnoozes } from "../snoozes";
 import { useBridge, useDataset, useSettings, useStatus, useStore, useUpdateInstall } from "../store";
@@ -221,6 +222,11 @@ function SettingsBody({
 
       <Group title={t("settings.about")} note={t("settings.unofficial")}>
         <About />
+        <Row label={t("report.title")} hint={t("report.settingsHint")}>
+          <Button size="sm" aria-label={t("report.title")} icon={<Icons.Flag className="size-3.5" />} onClick={() => openReport({})}>
+            {t("report.open")}
+          </Button>
+        </Row>
         <Row label={t("licences.title")} hint={t("licences.hint")}>
           <Button size="sm" data-focus="licences" aria-label={t("licences.viewAll")} onClick={onShowLicences}>
             {t("licences.view")}

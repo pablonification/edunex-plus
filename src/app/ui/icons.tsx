@@ -20,6 +20,7 @@ import { CalendarDotsIcon } from "@phosphor-icons/react/dist/csr/CalendarDots";
 import { CaretDownIcon } from "@phosphor-icons/react/dist/csr/CaretDown";
 import { CaretLeftIcon } from "@phosphor-icons/react/dist/csr/CaretLeft";
 import { CaretRightIcon } from "@phosphor-icons/react/dist/csr/CaretRight";
+import { ChatCircleTextIcon } from "@phosphor-icons/react/dist/csr/ChatCircleText";
 import { CheckIcon } from "@phosphor-icons/react/dist/csr/Check";
 import { CheckCircleIcon } from "@phosphor-icons/react/dist/csr/CheckCircle";
 import { CircleIcon } from "@phosphor-icons/react/dist/csr/Circle";
@@ -36,6 +37,7 @@ import { FileTextIcon } from "@phosphor-icons/react/dist/csr/FileText";
 import { FlagIcon } from "@phosphor-icons/react/dist/csr/Flag";
 import { FolderOpenIcon } from "@phosphor-icons/react/dist/csr/FolderOpen";
 import { GearSixIcon } from "@phosphor-icons/react/dist/csr/GearSix";
+import { GithubLogoIcon } from "@phosphor-icons/react/dist/csr/GithubLogo";
 import { GlobeIcon } from "@phosphor-icons/react/dist/csr/Globe";
 import { GraduationCapIcon } from "@phosphor-icons/react/dist/csr/GraduationCap";
 import { HandIcon } from "@phosphor-icons/react/dist/csr/Hand";
@@ -135,6 +137,9 @@ export const Icons = {
   AppWindow: icon(AppWindowIcon),
   Target: icon(TargetIcon),
   Flag: icon(FlagIcon),
+  // "Laporkan masalah": the two ways a report goes.
+  GitHub: icon(GithubLogoIcon),
+  Chat: icon(ChatCircleTextIcon),
   PenLine: icon(PencilSimpleLineIcon),
   Zap: icon(LightningIcon),
   Layers: icon(StackIcon),

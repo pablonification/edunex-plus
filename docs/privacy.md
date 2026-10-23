@@ -53,6 +53,13 @@ Nothing leaves your computer except the app's own requests to:
 - **GitHub**, once a day and when you press **Check for updates**, to check for a newer release
   (no personal data is sent), and to download it: by itself with **Update automatically** on
   (the default), otherwise only when you press **Download & install**;
+- **A problem report** ("Laporkan masalah"), only when you send one and only what it showed
+  you first: the app's version, your computer's system, which page couldn't be read and why, that
+  page with your name, NIM, contacts and links replaced and your grades and amounts made up, and
+  what you wrote. The app doesn't send it itself. For LINE, it saves the report as a file in
+  Downloads and shows the maintainer's LINE code, and you send them the file there. For GitHub, it
+  opens a new issue, filled in (public, so anyone can read it), and saves the page as a file for you
+  to add to it;
 - **ntfy** (`ntfy.sh`), only if you turn on phone notifications: the alert's text (for example
   a Task's name and deadline), sent under a private code that only this app and your phones
   use. ntfy's operator can read these messages, and Settings says so. Turning it off cancels
