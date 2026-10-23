@@ -75,7 +75,11 @@ export function focusInsteadOf(control: HTMLElement): boolean {
   return true;
 }
 
-/** The same control in the next row that stays, else the one before, else the list itself. */
+/** A row's ✓ and its menus are their own kinds: focus from one never lands on another (a ✓ is one Enter from putting a row away). */
+const KINDS = ["[data-done]", "[aria-haspopup]"];
+const kindOf = (control: HTMLElement) => KINDS.find((selector) => control.matches(selector)) ?? null;
+
+/** The same control in the next row that stays (by kind, then place), else the one before, else the list itself. */
 function findStandIns(item: HTMLElement) {
   const staying = (step: "nextElementSibling" | "previousElementSibling"): HTMLElement | null => {
     let next = item[step];
@@ -85,8 +89,12 @@ function findStandIns(item: HTMLElement) {
   const neighbour = [staying("nextElementSibling"), staying("previousElementSibling")].find((row) => row?.querySelector(FOCUSABLE));
   const targets = neighbour ? [...neighbour.querySelectorAll<HTMLElement>(FOCUSABLE)] : [];
   const list = item.parentElement;
-  for (const [place, control] of [...item.querySelectorAll<HTMLElement>(FOCUSABLE)].entries()) {
-    const instead = targets[place] ?? targets[0] ?? list;
+  const controls = [...item.querySelectorAll<HTMLElement>(FOCUSABLE)];
+  for (const control of controls) {
+    const kind = kindOf(control);
+    const alike = targets.filter((target) => kindOf(target) === kind);
+    const place = controls.filter((other) => kindOf(other) === kind).indexOf(control);
+    const instead = alike[place] ?? alike[0] ?? targets[0] ?? list;
     if (instead) standIns.set(control, instead);
   }
 }

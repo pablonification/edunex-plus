@@ -61,6 +61,7 @@ export const homeStrings = {
   "home.today": { id: "Hari ini", en: "Today" },
   "home.today.none": { id: "Tidak ada kuliah atau tenggat hari ini.", en: "No classes or deadlines today." },
   "home.today.noneSnoozed": { id: "Tidak ada kuliah hari ini. Tenggat hari ini kamu tunda.", en: "No classes today. You snoozed today's deadlines." },
+  "home.today.noneHandled": { id: "Tidak ada kuliah hari ini. Tenggat hari ini sudah beres.", en: "No classes today. Today's deadlines are handled." },
   "home.today.noSix": { id: "Jadwal dan ruang kuliah muncul setelah SIX terhubung.", en: "Classes and rooms show once SIX is connected." },
   "home.today.signInSix": { id: "Masuk ke SIX", en: "Sign in to SIX" },
   "home.today.done": { id: "Selesai", en: "Done" },
@@ -104,6 +105,7 @@ export const homeStrings = {
   "home.need.task.draft": { id: "Draf belum dikumpulkan", en: "Draft not handed in" },
   "home.need.task.edited": { id: "Diubah dosen setelah kamu kumpulkan · cek lagi", en: "Changed after you handed it in · check again" },
   "home.need.attendance.none": { id: "{course}: jangan absen lagi", en: "{course}: don't miss another class" },
+  "home.need.attendance.tomorrow": { id: "{course}: jangan absen besok", en: "{course}: don't miss tomorrow's class" },
   "home.need.attendance.out": { id: "{course}: tak bisa lagi capai {target}%", en: "{course}: can't reach {target}% anymore" },
   "home.need.attendance.outMeta": {
     id: "Paling tinggi {best}% · cek ke dosen kalau ada yang terlewat",

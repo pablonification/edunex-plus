@@ -220,6 +220,27 @@ describe("Edunex sign-in → your courses", () => {
     expect(h.dataset("edunex.courses")).toHaveLength(1);
   });
 
+  it("a different Student signing in after the last one signed out of Edunex alone starts with no snoozes or handled list", async () => {
+    const h = await signedIn();
+    // Student A puts KU5014's warning away and snoozes something, then signs out of Edunex only.
+    await h.engine.setLocal("local.done", [{ id: "attendance:KU5014", facts: "out|80", at: h.world.clock.now(), how: "gotIt" }]);
+    await h.engine.setLocal("local.snoozes", [{ id: "task:117001", facts: "x", until: h.world.clock.now() + 3_600_000 }]);
+    await h.engine.signOut("edunex");
+    expect(h.dataset("local.done")).toHaveLength(1);
+
+    // The same Student back: their lists stay.
+    await h.engine.signIn("edunex", { token: PRETEND_TOKEN });
+    expect(h.dataset("local.done")).toHaveLength(1);
+    await h.engine.signOut("edunex");
+
+    // Student B on the same computer: nothing of A's.
+    h.world.edunex.me = { ...h.world.edunex.me, name: "Rina Sari", code: "18223902" };
+    await h.engine.signIn("edunex", { token: PRETEND_TOKEN });
+    expect(h.dataset("edunex.account")?.nim).toBe("18223902");
+    expect(h.dataset("local.done")).toBeUndefined();
+    expect(h.dataset("local.snoozes")).toBeUndefined();
+  });
+
   it("a damaged saved session counts as signed out instead of stopping the app", async () => {
     const vault = new MemoryVault();
     vault.secrets.set("edunex.session", "{not json");

@@ -18,6 +18,14 @@ export function registerCoreFeeds(context: SourceContext, client: EdunexClient):
       const previous = context.get("edunex.account");
       // A different Student signed in on this computer: nothing of the last one may show.
       if (previous && previous.nim !== account.nim) await context.remove("edunex.");
+      // Nor their snoozes and what they marked handled, kept past signing out of Edunex alone: Task ids are the
+      // whole class's, so a classmate's "not handing it in" would hide this Student's Task and stop its reminders.
+      const owner = context.get("local.owner");
+      if ((previous && previous.nim !== account.nim) || (owner && owner.nim !== account.nim)) {
+        await context.remove("local.snoozes");
+        await context.remove("local.done");
+      }
+      if (owner?.nim !== account.nim) await context.set("local.owner", { nim: account.nim });
       await context.set("edunex.account", account);
     },
   });

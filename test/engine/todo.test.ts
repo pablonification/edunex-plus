@@ -3,6 +3,7 @@
 // ahead at the moment it runs out, one quiet line per exam period with no day
 // yet, and Done. The cases are the design's table of when an exam is over.
 import { describe, expect, it } from "vitest";
+import { putAway, taskDoneKey } from "../../src/core/done";
 import { examAhead, examMarkKey, examParts, mergeExams, pruneExamMarks } from "../../src/core/exams";
 import type { AcademicCalendar, ClassSession, CourseOutline, EdunexExam, ExamMark, Task } from "../../src/core/models";
 import { taskNeed } from "../../src/core/needs";
@@ -301,5 +302,34 @@ describe("one count everywhere", () => {
     expect(titles(todoForCourse(items, "DK4073"))).toEqual(["DK4073-UTS sitting", "DK4073-UTS takehome"]);
     expect(titles(todoForCourse(items, "PL3032"))).toEqual(["UTS period (PL3032)", "UAS period (PL3032)"]);
     expect(todoCount(todoForCourse(items, "PL3032"))).toBe(0);
+  });
+});
+
+describe("what the Student marked on a Task's page", () => {
+  const now = wib("2026-10-08T08:12:00");
+  const essay = aTask({ id: 95001, courseCode: "PL3032", courseId: 95059, title: "Esai", status: "not_started", dueAt: wib("2026-10-14T23:59:00") });
+  const report = aTask({ id: 95002, courseCode: "PL3032", courseId: 95059, title: "Laporan", status: "not_started", dueAt: wib("2026-10-15T23:59:00") });
+  const input = (how: "notHandingIn" | "handedElsewhere") => ({
+    tasks: [essay, report],
+    exams: [],
+    handled: putAway([], taskDoneKey(essay, "due"), how, now),
+    now,
+  });
+
+  it("not handing it in: out of To do and its count, into Done; back once its deadline moves", () => {
+    expect(titles(todoList(input("notHandingIn")))).toEqual(["Laporan"]);
+    expect(doneList(input("notHandingIn")).notHandingIn.map((task) => task.title)).toEqual(["Esai"]);
+    const moved = { ...input("notHandingIn"), tasks: [{ ...essay, dueAt: wib("2026-10-16T23:59:00") }, report] };
+    expect(titles(todoList(moved))).toEqual(["Laporan", "Esai"]);
+    expect(doneList(moved).notHandingIn).toEqual([]);
+  });
+
+  it("handed in another way: still listed (Edunex still has it open), not counted, and never what makes the count amber", () => {
+    const items = todoList(input("handedElsewhere"));
+    expect(titles(items)).toEqual(["Esai", "Laporan"]);
+    expect(todoCount(items)).toBe(1);
+    expect(doneList(input("handedElsewhere")).notHandingIn).toEqual([]);
+    const tonight = { ...input("handedElsewhere"), now: wib("2026-10-14T12:00:00") };
+    expect(todoUrgent(todoList(tonight), tonight.now)).toBe(false);
   });
 });

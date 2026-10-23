@@ -52,6 +52,7 @@ export function TasksTab({ code, exams }: { code: string; exams: Exam[] }) {
     handedIn: todo.done.handedIn.filter((task) => task.courseCode === code),
     pastExams: todo.done.pastExams.filter((past) => past.exam.courseCode === code),
     closed: todo.done.closed.filter((task) => task.courseCode === code),
+    notHandingIn: todo.done.notHandingIn.filter((task) => task.courseCode === code),
   };
   return (
     <div>

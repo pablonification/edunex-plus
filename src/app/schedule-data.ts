@@ -12,7 +12,7 @@ import { doneList, putOffLate, type TodoItem, todoList } from "../core/todo";
 import { useTerm, useTermCourses } from "./courses";
 import { useExamMarkList } from "./exam-marks";
 import { useNow } from "./i18n";
-import { useSnoozeEntries } from "./snoozes";
+import { useDoneEntries, useSnoozeEntries } from "./snoozes";
 import { useDataset } from "./store";
 
 /** A course's name by its code, the one name it has everywhere (see ./courses), else the given fallback. */
@@ -90,13 +90,14 @@ export function useTodo(): Todo | undefined {
   const exams = useExams();
   const marks = useExamMarkList();
   const snoozes = useSnoozeEntries();
+  const handled = useDoneEntries();
   const now = useMinute();
   return useMemo(() => {
     if (!Array.isArray(tasks)) return undefined;
-    const input = { tasks, exams: exams ?? [], marks, now };
+    const input = { tasks, exams: exams ?? [], marks, handled, now };
     const { shown, putOff } = putOffLate(todoList(input), snoozes, now);
     return { items: shown, putOff, done: doneList(input), exams: exams ?? [], now };
-  }, [tasks, exams, marks, snoozes, now]);
+  }, [tasks, exams, marks, snoozes, handled, now]);
 }
 
 /** The exam each SIX exam session belongs to, by SIX meeting id: the id of the exam page it opens. */

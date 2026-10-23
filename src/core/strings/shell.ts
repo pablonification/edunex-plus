@@ -194,6 +194,7 @@ export const shellStrings = {
   "time.today": { id: "Hari ini", en: "Today" },
   "time.tomorrow": { id: "Besok", en: "Tomorrow" },
   "time.yesterday": { id: "Kemarin", en: "Yesterday" },
+  "time.todayWord": { id: "hari ini", en: "today" },
   "time.tomorrowWord": { id: "besok", en: "tomorrow" },
   "time.yesterdayWord": { id: "kemarin", en: "yesterday" },
   "time.justNow": { id: "baru saja", en: "just now" },

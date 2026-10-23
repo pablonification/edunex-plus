@@ -5,8 +5,9 @@
 // behind the Student, and waits in Done under "Past exams". Pure: the screen,
 // a course's tab and the sidebar's count all read it, so they count the same.
 import { wibDay } from "./course-meetings";
+import { notHandingIn, taskPutAway } from "./done";
 import { type Exam, type ExamPart, examAhead, examDated, examMarkOn, examParts, PERIOD_NEAR } from "./exams";
-import type { CalendarEvent, ExamMark, SnoozeEntry, Task, TaskStatus } from "./models";
+import type { CalendarEvent, DoneEntry, ExamMark, SnoozeEntry, Task, TaskStatus } from "./models";
 import { taskNeed } from "./needs";
 import { dayStart, weekStart } from "./schedule";
 import { activeSnooze, type Snoozable, snoozable } from "./snooze";
@@ -18,7 +19,8 @@ const DAY = 86_400_000;
 export type PeriodState = "far" | "near" | "during";
 
 export type TodoItem =
-  | { kind: "task"; key: string; at: number | null; course: string; task: Task; status: TaskStatus; late: boolean }
+  /** `putAway`: the Student said it's handed in another way or by the group (core/done.ts): listed, not counted. */
+  | { kind: "task"; key: string; at: number | null; course: string; task: Task; status: TaskStatus; late: boolean; putAway: boolean }
   /** `part` is null for an exam no system dates and with no exam week: it waits under "No date yet". */
   | { kind: "exam"; key: string; at: number | null; course: string; exam: Exam; part: ExamPart | null; late: boolean }
   | { kind: "period"; key: string; at: number; course: null; examKind: "UTS" | "UAS"; week: CalendarEvent; exams: Exam[]; state: PeriodState };
@@ -29,6 +31,8 @@ export interface TodoInput {
   tasks: readonly Task[];
   exams: readonly Exam[];
   marks?: readonly ExamMark[];
+  /** What the Student marked handled ("local.done"). */
+  handled?: readonly DoneEntry[];
   now: number;
 }
 
@@ -39,13 +43,15 @@ export interface TodoInput {
  * after the rows, then the course code decides; otherwise the exams' own
  * order (UTS before UAS) holds.
  */
-export function todoList({ tasks, exams, marks = [], now }: TodoInput): TodoItem[] {
+export function todoList({ tasks, exams, marks = [], handled = [], now }: TodoInput): TodoItem[] {
   const items: TodoItem[] = [];
   const takeHomes = new Set(exams.flatMap((exam) => exam.tasks.map((task) => task.id)));
   for (const task of tasks) {
     const status = taskStatus(task, now);
-    if (takeHomes.has(task.id) || !isOpenStatus(status)) continue;
-    items.push({ kind: "task", key: `task:${task.id}`, at: task.dueAt, course: task.courseCode, task, status, late: status === "overdue" });
+    // Not handing it in (said on its page): it's under Done, not to do.
+    if (takeHomes.has(task.id) || !isOpenStatus(status) || notHandingIn(task, handled)) continue;
+    const putAway = taskPutAway(task, handled) !== undefined;
+    items.push({ kind: "task", key: `task:${task.id}`, at: task.dueAt, course: task.courseCode, task, status, late: status === "overdue", putAway });
   }
   const periods = new Map<string, { week: CalendarEvent; examKind: "UTS" | "UAS"; exams: Exam[] }>();
   for (const exam of exams) {
@@ -101,8 +107,11 @@ export function todoGroup(item: TodoItem, now: number): TodoGroup {
   return weeks <= 0 ? "thisWeek" : weeks === 1 ? "nextWeek" : "later";
 }
 
-/** A row that counts: a Task or an exam with a day. A period line, and an exam with no day, are things to know, not to do. */
-export const todoCounted = (item: TodoItem): boolean => item.kind === "task" || (item.kind === "exam" && item.part !== null);
+/**
+ * A row that counts: a Task or an exam with a day. A period line, and an exam with no day, are things to know, not to do;
+ * a Task the Student handed in another way or their group handed in stays listed (Edunex still has it open) but isn't counted.
+ */
+export const todoCounted = (item: TodoItem): boolean => (item.kind === "task" && !item.putAway) || (item.kind === "exam" && item.part !== null);
 
 /** "Belum selesai N", the sidebar's count and a course's tab: the same rows. */
 export const todoCount = (items: readonly TodoItem[]): number => items.filter(todoCounted).length;
@@ -152,13 +161,19 @@ export interface PastExam {
 
 /**
  * What's done, each group newest first: handed in (Tasks and take-homes, in
- * review included), past exams (their sitting or window behind or marked
- * done, or their exam week over with no day ever given) and closed without a
- * hand-in. A take-home shows once, with the Tasks; its past exam doesn't
- * repeat it. A new kind of done (a Task the Student gave up on) is one more
- * group here.
+ * review included), not handing it in (still open on Edunex, soonest first:
+ * the Student said so on its page), past exams (their sitting or window
+ * behind or marked done, or their exam week over with no day ever given) and
+ * closed without a hand-in. A take-home shows once, with the Tasks; its past
+ * exam doesn't repeat it.
  */
-export function doneList({ tasks, exams, marks = [], now }: TodoInput): { handedIn: Task[]; pastExams: PastExam[]; closed: Task[] } {
+export function doneList({ tasks, exams, marks = [], handled = [], now }: TodoInput): {
+  handedIn: Task[];
+  /** Still open on Edunex, but the Student said they won't hand it in (on its page). */
+  notHandingIn: Task[];
+  pastExams: PastExam[];
+  closed: Task[];
+} {
   const handedIn = tasks.filter((task) => submittedAt(task) !== null).sort((a, b) => (submittedAt(b) ?? 0) - (submittedAt(a) ?? 0));
   const closed = tasks.filter((task) => taskStatus(task, now) === "closed").sort((a, b) => (b.dueAt ?? 0) - (a.dueAt ?? 0));
   const pastExams: PastExam[] = [];
@@ -180,5 +195,6 @@ export function doneList({ tasks, exams, marks = [], now }: TodoInput): { handed
     pastExams.push({ exam, at: moments.length ? Math.max(...moments) : (exam.week?.end ?? 0), marks: held });
   }
   pastExams.sort((a, b) => b.at - a.at || a.exam.courseCode.localeCompare(b.exam.courseCode));
-  return { handedIn, pastExams, closed };
+  const declined = tasks.filter((task) => isOpenStatus(taskStatus(task, now)) && notHandingIn(task, handled)).sort((a, b) => (a.dueAt ?? 0) - (b.dueAt ?? 0));
+  return { handedIn, notHandingIn: declined, pastExams, closed };
 }

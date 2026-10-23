@@ -5,16 +5,19 @@
 // perhatianmu" (the week ahead, never repeating today); then a short "Yang
 // berubah" (the bell has it all) and this term's courses. A deadline (in either
 // column) and anything in "Perlu perhatianmu" can be put off ("Ingatkan
-// nanti"); what's put off is listed under "Perlu perhatianmu". The reasoning
-// lives in src/core/needs.ts.
+// nanti"); a row only the Student can know is dealt with has a ✓ that puts it
+// away for good ("Sudah kucek"). What's put off and what's handled are listed
+// under "Perlu perhatianmu". The reasoning lives in src/core/needs.ts and
+// src/core/done.ts.
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { rupiah } from "../../core/academic";
 import { type AttendanceHealth, type AttendanceState, clashPick, percent } from "../../core/attendance";
 import { checkingIn } from "../../core/check-in";
 import { wibDay } from "../../core/course-meetings";
+import { type DoneTerms, doneTerms, needDoneKey, partitionDone, taskPutAway } from "../../core/done";
 import { PERIOD_NEAR } from "../../core/exams";
 import { edunexCourseUrl, sixStatusUrl, sixTimetableUrl } from "../../core/links";
-import type { Alert, AlertKind, ClassSession, SixCheckIn, SnoozeEntry } from "../../core/models";
+import type { Alert, AlertKind, ClassSession, DoneEntry, SixCheckIn, SnoozeEntry } from "../../core/models";
 import {
   attention,
   type ClassFacts,
@@ -40,8 +43,8 @@ import { type Route, useNav, usePlaceState } from "../nav";
 import { useExamIds } from "../schedule-data";
 import { openAlerts } from "../shell/alerts";
 import { useRefresh, useSignIn } from "../shell/source-status";
-import { canSnooze, refocus, SnoozeMenu } from "../snooze-menu";
-import { useSnoozes } from "../snoozes";
+import { canSnooze, DoneButton, type RowDone, refocus, rowControls, SnoozeMenu } from "../snooze-menu";
+import { useDone, useSnoozes } from "../snoozes";
 import { useDataset, useStatus } from "../store";
 import { Button, IconButton } from "../ui/controls";
 import { cx } from "../ui/cx";
@@ -594,6 +597,7 @@ function Today({
   const t = useT();
   const now = useNow();
   const { entries } = useSnoozes();
+  const { entries: handled } = useDone();
   const day = wibDay(context.now);
   const needOf = (task: TodayPlan["due"][number]) => due.find((need) => need.kind === "task" && need.task.id === task.id) ?? null;
   const items: TodayItem[] = [
@@ -601,12 +605,20 @@ function Today({
     ...plan.announced.map(({ code, meeting }): TodayItem => ({ kind: "meeting", at: meeting.start, code, meeting })),
     ...plan.due.map((task): TodayItem => ({ kind: "due", at: task.dueAt!, task, need: needOf(task) })),
   ].sort((a, b) => a.at - b.at);
-  const putOff = (item: TodayItem) => item.kind === "due" && item.need !== null && activeSnooze(snoozeKey(item.need), entries, now) !== undefined;
+  // Put off, or put away by the Student (handed in another way, by the group, not at all): listed under "Perlu perhatianmu".
+  const snoozed = (item: TodayItem) => item.kind === "due" && item.need !== null && activeSnooze(snoozeKey(item.need), entries, now) !== undefined;
+  const putAway = (item: TodayItem) => item.kind === "due" && taskPutAway(item.task, handled) !== undefined;
+  const putOff = (item: TodayItem) => snoozed(item) || putAway(item);
   const shown = items.filter((item) => !putOff(item));
   const today = shown.filter((item) => wibDay(item.at) === day);
   const tomorrow = shown.filter((item) => wibDay(item.at) !== day);
-  // Never "no deadlines today" while today's are only put off.
-  const snoozedToday = items.some((item) => putOff(item) && wibDay(item.at) === day);
+  // Never "no deadlines today" while today's are only put off or handled, and never "snoozed" for what's handled.
+  const isToday = (item: TodayItem) => wibDay(item.at) === day;
+  const empty = items.some((item) => snoozed(item) && isToday(item))
+    ? "home.today.noneSnoozed"
+    : items.some((item) => putAway(item) && isToday(item))
+      ? "home.today.noneHandled"
+      : "home.today.none";
   return (
     <Section id="home-today" title={t("home.today")} className="mt-0">
       {!context.schedule && <NoSixToday />}
@@ -620,9 +632,7 @@ function Today({
           </PresenceList>
         </List>
       ) : (
-        context.schedule && (
-          <p className="rounded-xl bg-sunken px-4 py-3.5 text-body text-muted">{t(snoozedToday ? "home.today.noneSnoozed" : "home.today.none")}</p>
-        )
+        context.schedule && <p className="rounded-xl bg-sunken px-4 py-3.5 text-body text-muted">{t(empty)}</p>
       )}
       {tomorrow.length > 0 && (
         <>
@@ -669,10 +679,11 @@ function TodayRow({ item, courses, onCard, context }: { item: TodayItem; courses
     const close = task.dueAt! - now <= 6 * 60 * MINUTE;
     // Put off as "Perlu perhatianmu" puts off a deadline: the moments that still fit, never past its last hours.
     const later = need ? snoozable(need, now) : null;
+    const name = factsLabel(task.title, task.courseCode);
     return (
       <Row
         id={need ? needRowId(need.id) : undefined}
-        actions={later && canSnooze(later, now) ? <SnoozeMenu item={later} name={factsLabel(task.title, task.courseCode)} /> : undefined}
+        actions={rowControls(need && doneButton(t, need, name), later && canSnooze(later, now) ? <SnoozeMenu item={later} name={name} /> : undefined)}
         leading={<When start={f.time(task.dueAt!)} tone={close ? "text-warning-fg" : undefined} />}
         title={task.title}
         meta={
@@ -816,7 +827,7 @@ function CourseMark({ code, past = false }: { code: string; courses: readonly Te
 
 // ---------------------------------------------------------------- Perlu perhatianmu
 
-/** `due`: "Hari ini"'s deadlines, as items: the ones put off are listed here with the rest. */
+/** `due`: "Hari ini"'s deadlines, as items: the ones put off or put away are listed here with the rest. */
 function NeedsYou({ needs, due, courses }: { needs: readonly NeedDraft[]; due: readonly NeedDraft[]; courses: readonly TermCourse[] }) {
   const t = useT();
   const f = useFormat();
@@ -825,17 +836,26 @@ function NeedsYou({ needs, due, courses }: { needs: readonly NeedDraft[]; due: r
   // Until Edunex's Tasks arrive, an empty list would claim more than the app knows.
   const edunex = useStatus("edunex");
   const loading = tasks === undefined && edunex.state !== "signed-out";
-  // What the Student put off ("Ingatkan nanti") leaves the list until its time, or until it changes.
+  // What the Student put off ("Ingatkan nanti") leaves the list until its time, or until it changes;
+  // what they marked handled ("Sudah kucek") leaves it until a new fact brings it back.
   const { entries } = useSnoozes();
-  const { shown, snoozed } = useMemo(() => {
-    const own = partitionSnoozed(needs, snoozeKey, entries, now);
+  const { entries: handled } = useDone();
+  const { shown, snoozed, done } = useMemo(() => {
+    const own = partitionDone(needs, needDoneKey, handled);
+    const today = partitionDone(due, needDoneKey, handled);
+    const left = partitionSnoozed(own.shown, snoozeKey, entries, now);
     // "Hari ini"'s first, as the page reads: they're the soonest.
-    return { shown: own.shown, snoozed: [...partitionSnoozed(due, snoozeKey, entries, now).snoozed, ...own.snoozed] };
-  }, [needs, due, entries, now]);
+    return {
+      shown: left.shown,
+      snoozed: [...partitionSnoozed(today.shown, snoozeKey, entries, now).snoozed, ...left.snoozed],
+      done: [...today.done, ...own.done],
+    };
+  }, [needs, due, entries, handled, now]);
   const [listOpen, setListOpen] = usePlaceState("home.snoozedOpen", false);
-  // Closed once nothing is put off, so the next snooze doesn't find the list open.
-  if (listOpen && !snoozed.length) setListOpen(false);
-  const snoozedLine = snoozed.length > 0 && <SnoozedLine count={snoozed.length} open={listOpen} onToggle={() => setListOpen(!listOpen)} />;
+  const away = snoozed.length + done.length;
+  // Closed once nothing is put off or away, so the next one doesn't find the list open.
+  if (listOpen && !away) setListOpen(false);
+  const awayLine = away > 0 && <AwayLine snoozed={snoozed.length} done={done.length} open={listOpen} onToggle={() => setListOpen(!listOpen)} />;
   return (
     <Section id="home-needs" title={t("home.needs")} count={loading || shown.length === 0 ? undefined : shown.length} className="mt-0">
       {loading ? (
@@ -846,17 +866,17 @@ function NeedsYou({ needs, due, courses }: { needs: readonly NeedDraft[]; due: r
       ) : shown.length ? (
         <>
           <List label={t("home.needs")}>
-            {/* A row put off fades out, and focus moves on to the next. */}
+            {/* A row put off or away fades out, and focus moves on to the next. */}
             <PresenceList>
               {shown.map((need) => (
                 <NeedRow key={need.id} need={need} courses={courses} />
               ))}
             </PresenceList>
           </List>
-          {snoozedLine && <div className="mt-2.5 px-1">{snoozedLine}</div>}
+          {awayLine && <div className="mt-2.5 px-1">{awayLine}</div>}
         </>
       ) : (
-        // Everything left is put off: say so, never "nothing due".
+        // Everything left is put off or handled: say so, never "nothing due".
         <div className="rounded-xl bg-sunken px-4 py-3.5">
           <p className="flex items-center gap-2 text-body font-medium">
             {/* Green says "all clear": not while things are only put off. */}
@@ -865,9 +885,14 @@ function NeedsYou({ needs, due, courses }: { needs: readonly NeedDraft[]; due: r
             ) : (
               <Icons.CheckCircle className="size-4 shrink-0 text-success-fg" weight="bold" />
             )}
-            {snoozed.length ? t("home.needs.allSnoozed") : t("home.needs.none", { day: `${f.weekday(now + 7 * DAY)}, ${f.dayMonth(now + 7 * DAY)}` })}
+            {snoozed.length
+              ? t("home.needs.allSnoozed")
+              : // A group Task marked done may still be due: "handled", not "nothing due".
+                done.length
+                ? t("home.needs.allHandled")
+                : t("home.needs.none", { day: `${f.weekday(now + 7 * DAY)}, ${f.dayMonth(now + 7 * DAY)}` })}
           </p>
-          <div className="mt-0.5 pl-6 text-small text-muted">{snoozedLine || t("home.needs.noneHint")}</div>
+          <div className="mt-0.5 pl-6 text-small text-muted">{awayLine || t("home.needs.noneHint")}</div>
         </div>
       )}
       {!loading && listOpen && snoozed.length > 0 && (
@@ -877,19 +902,38 @@ function NeedsYou({ needs, due, courses }: { needs: readonly NeedDraft[]; due: r
           ))}
         </List>
       )}
+      {!loading && listOpen && done.length > 0 && (
+        <List label={t("done.list")} className="mt-2.5">
+          {done.map(({ item, entry }) => (
+            <DoneRow key={item.id} need={item} entry={entry} courses={courses} />
+          ))}
+        </List>
+      )}
     </Section>
   );
 }
 
-/** "2 ditunda · Tampilkan": quiet, at the end of the list, opening what's put off. */
-function SnoozedLine({ count, open, onToggle }: { count: number; open: boolean; onToggle: () => void }) {
+/** "2 ditunda · 1 sudah beres · Tampilkan": quiet, at the end of the list, opening what's put off and away. */
+function AwayLine({ snoozed, done, open, onToggle }: { snoozed: number; done: number; open: boolean; onToggle: () => void }) {
   const t = useT();
   return (
     <Meta className="text-small text-muted">
-      <span className="inline-flex items-center gap-1.5">
-        <Icons.Snooze className="size-3.5 shrink-0 text-faint" />
-        {t("snooze.count", { count })}
-      </span>
+      {snoozed > 0 ? (
+        <span className="inline-flex items-center gap-1.5">
+          <Icons.Snooze className="size-3.5 shrink-0 text-faint" />
+          {t("snooze.count", { count: snoozed })}
+        </span>
+      ) : (
+        ""
+      )}
+      {done > 0 ? (
+        <span className="inline-flex items-center gap-1.5">
+          <Icons.Check className="size-3.5 shrink-0 text-faint" weight="bold" />
+          {t("done.count", { count: done })}
+        </span>
+      ) : (
+        ""
+      )}
       <button type="button" data-snoozed="" aria-expanded={open} onClick={onToggle} className="focus-ring rounded font-medium text-accent-fg hover:underline">
         {open ? t("snooze.hideList") : t("snooze.showList")}
       </button>
@@ -904,13 +948,6 @@ function SnoozedRow({ need, entry, courses }: { need: NeedDraft; entry: SnoozeEn
   const { wake } = useSnoozes();
   const view = useNeedView(courses)(need);
   const when = f.dueLabel(entry.until);
-  const wakeNow = (button: HTMLElement) => {
-    const row = button.closest("li");
-    const sibling = (row?.nextElementSibling ?? row?.previousElementSibling)?.querySelector<HTMLElement>("button");
-    void wake(entry.id).catch(() => undefined);
-    // Its row leaves with the button: on to the next thing put off, else to the item itself, back in the list.
-    refocus(() => sibling ?? document.getElementById(needRowId(need.id)));
-  };
   return (
     <Row
       title={view.title}
@@ -922,12 +959,79 @@ function SnoozedRow({ need, entry, courses }: { need: NeedDraft; entry: SnoozeEn
         </Meta>
       }
       trailing={
-        <Button size="sm" variant="ghost" aria-label={t("snooze.wakeFor", { title: fullName(need, view) })} onClick={(event) => wakeNow(event.currentTarget)}>
+        <Button
+          size="sm"
+          variant="ghost"
+          aria-label={t("snooze.wakeFor", { title: fullName(need, view) })}
+          onClick={(event) => bringBack(event.currentTarget, need, () => wake(entry.id))}
+        >
           {t("snooze.wake")}
         </Button>
       }
     />
   );
+}
+
+/** Something handled: what it is, when the Student said so, and the way to show it again. */
+function DoneRow({ need, entry, courses }: { need: NeedDraft; entry: DoneEntry; courses: readonly TermCourse[] }) {
+  const t = useT();
+  const f = useFormat();
+  const { unmark } = useDone();
+  const view = useNeedView(courses)(need);
+  return (
+    <Row
+      title={view.title}
+      meta={
+        <Meta>
+          {view.titleLacksCourse && need.course ? <CourseMark code={need.course} courses={courses} /> : null}
+          {view.which ? <span className="tabular-nums">{view.which}</span> : null}
+          {t(`done.line.${entry.how}`, { when: f.dayTimeWord(entry.at) })}
+        </Meta>
+      }
+      trailing={
+        <Button
+          size="sm"
+          variant="ghost"
+          aria-label={t("done.showAgainFor", { title: fullName(need, view) })}
+          onClick={(event) => bringBack(event.currentTarget, need, () => unmark(entry.id))}
+        >
+          {t("done.showAgain")}
+        </Button>
+      }
+    />
+  );
+}
+
+/** Brings an item back from the list of what's put off or away; its row leaves with the button, so focus goes on to the next one there, else to the item itself, back in the list. */
+function bringBack(button: HTMLElement, need: NeedDraft, change: () => Promise<void>) {
+  const row = button.closest("li");
+  const sibling = (row?.nextElementSibling ?? row?.previousElementSibling)?.querySelector<HTMLElement>("button");
+  void change().catch(() => undefined);
+  refocus(() => sibling ?? document.getElementById(needRowId(need.id)));
+}
+
+/** The ✓ for an item only the Student can know is dealt with, saying until what it's put away; none for the rest. */
+function doneButton(t: Translate, need: NeedDraft, name: string): ReactNode {
+  const terms = doneTerms(need);
+  if (!terms?.how) return undefined;
+  return <DoneButton item={terms.key} how={terms.how as RowDone} name={name} said={doneSaid(t, need, terms)} />;
+}
+
+function doneSaid(t: Translate, need: NeedDraft, terms: DoneTerms): string {
+  switch (terms.how) {
+    case "gotIt":
+      return need.kind === "attendance" && need.health.state === "out"
+        ? t("done.toast.gotIt", { course: need.course ?? "" })
+        : terms.key.id.includes(":class:")
+          ? t("done.toast.gotItClass")
+          : t("done.toast.gotItCount");
+    case "checked":
+    case "groupDone":
+    case "paid":
+      return t(`done.toast.${terms.how}`);
+    default:
+      return "";
+  }
 }
 
 /** A Needs-you row's id, so focus can be sent back to it. */
@@ -1079,15 +1183,23 @@ function useNeedView(courses: readonly TermCourse[]): (need: NeedDraft) => NeedV
           best: percent(health.best ?? 0),
           course: need.course ?? "",
         };
+        const out = health.state === "out";
+        // No absences left: said the day before each class, with its time; with no class known, every day.
+        const tomorrow = !out && need.at !== null;
         return {
-          title: t(health.state === "out" ? "home.need.attendance.out" : "home.need.attendance.none", vars),
+          title: t(out ? "home.need.attendance.out" : tomorrow ? "home.need.attendance.tomorrow" : "home.need.attendance.none", vars),
           meta: [
-            <span key="a" className={health.state === "out" ? "text-danger-fg" : "text-warning-fg"}>
-              {t(health.state === "out" ? "home.need.attendance.outMeta" : "home.need.attendance.noneMeta", vars)}
+            tomorrow && need.at !== null ? (
+              <span key="t" className="tabular-nums">
+                {f.time(need.at)}
+              </span>
+            ) : null,
+            <span key="a" className={out ? "text-danger-fg" : "text-warning-fg"}>
+              {t(out ? "home.need.attendance.outMeta" : "home.need.attendance.noneMeta", vars)}
             </span>,
           ],
           when: null,
-          tone: health.state === "out" ? "danger" : "warning",
+          tone: out ? "danger" : "warning",
         };
       }
       case "meeting": {
@@ -1131,19 +1243,23 @@ function useNeedView(courses: readonly TermCourse[]): (need: NeedDraft) => NeedV
 }
 
 function NeedRow({ need, courses }: { need: NeedDraft; courses: readonly TermCourse[] }) {
+  const t = useT();
   const view = useNeedView(courses)(need);
   const now = useNow();
   const { go } = useNav();
   const open = useOpenExternal();
   const act = () => (need.action.kind === "go" ? go(need.action.route) : open(need.action.url));
   const later = snoozable(need, now);
+  const name = fullName(need, view);
+  // Attendance has "Sudah tahu" instead of a snooze: the warning is for one class, or for good.
+  const snooze = need.kind !== "attendance" && canSnooze(later, now) ? <SnoozeMenu item={later} name={name} /> : undefined;
   return (
     <Row
       id={needRowId(need.id)}
       title={view.title}
       label={view.label}
       meta={<Meta>{view.meta}</Meta>}
-      actions={canSnooze(later, now) ? <SnoozeMenu item={later} name={fullName(need, view)} /> : undefined}
+      actions={rowControls(doneButton(t, need, name), snooze)}
       trailing={
         view.when ? (
           <span

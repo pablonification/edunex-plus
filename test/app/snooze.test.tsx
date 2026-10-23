@@ -9,6 +9,8 @@ import { PretendWorld } from "../pretend/world";
 import { openApp } from "./harness";
 
 const MONDAY = "2026-10-12T08:07:00+07:00";
+/** Monday's Task the lecturer edited after it was handed in, as its controls name it. */
+const EDITED = "Tugas tentang Imfact on Innovation The Economy  Kampus Ganesha · PL3002";
 
 let screen: Awaited<ReturnType<typeof openApp>> | null = null;
 afterEach(() => {
@@ -48,7 +50,7 @@ async function snooze(name: string, choice: string | RegExp) {
 describe("putting off what needs you on Beranda", () => {
   it("offers moments that fit, hides the row, says when it's back, and Undo brings it back", async () => {
     const s = await open();
-    expect(heading()).toBe("Perlu perhatianmu 6");
+    expect(heading()).toBe("Perlu perhatianmu 4");
     expect(titles()).toContain("UTS Komunikasi PemasaranDK4073 · Kam, 15 Okt, 11:00–12:59 · TVST CTake-home tenggat Kam 22 Oktdalam 3 hari");
 
     await s.click("Ingatkan nanti: UTS Komunikasi Pemasaran");
@@ -61,27 +63,40 @@ describe("putting off what needs you on Beranda", () => {
     await s.click([...document.querySelectorAll<HTMLElement>("[role=menuitem]")][1]!);
 
     expect(titles().some((t) => t.startsWith("UTS Komunikasi Pemasaran"))).toBe(false);
-    expect(heading()).toBe("Perlu perhatianmu 5");
+    expect(heading()).toBe("Perlu perhatianmu 3");
     expect(needs()?.textContent).toContain("1 ditunda");
     expect(toastText()).toContain("Diingatkan lagi Besok, 07:00");
     expect(s.calls.some((call) => call.name === "local.set" && (call.input as { name: string }).name === "local.snoozes")).toBe(true);
     expect(s.store.dataset("local.snoozes")?.value).toEqual([expect.objectContaining({ id: "exam:DK4073-UTS", reason: "morning" })]);
 
     await s.click("Urungkan");
-    expect(heading()).toBe("Perlu perhatianmu 6");
+    expect(heading()).toBe("Perlu perhatianmu 4");
     expect(titles().some((t) => t.startsWith("UTS Komunikasi Pemasaran"))).toBe(true);
     expect(needs()?.textContent).not.toContain("ditunda");
   });
 
+  it("a Task the lecturer edited is put off for hours or a morning; 'until something changes' is its ✓", async () => {
+    const s = await open();
+    await s.click(`Ingatkan nanti: ${EDITED}`);
+    expect(menuItems()).toEqual([expect.stringMatching(/^3 jam lagiHari ini, 11:0\d$/), "Besok pagiBesok, 07:00"]);
+  });
+
+  it("attendance has no snooze on Beranda: its ✓ says the Student has seen it", async () => {
+    await open();
+    const row = needs()?.querySelector<HTMLElement>('[aria-label="Sudah tahu: KU5014: tak bisa lagi capai 80%"]')?.closest("li");
+    expect(row).toBeTruthy();
+    expect(row?.querySelector("[aria-haspopup=menu]")).toBeNull();
+  });
+
   it("the row's control sits beside its button, not inside it, and hands focus to the next row", async () => {
     const s = await open();
-    const control = s.button("Ingatkan nanti: DK4073: jangan absen lagi");
+    const control = s.button("Ingatkan nanti: Kumpulkan Tugas 02 Bab II · II4091");
     expect(control.closest("li")?.querySelector(":scope > button")?.contains(control)).toBe(false);
     expect(control.getAttribute("aria-haspopup")).toBe("menu");
     // The row fades out of the list (PresenceList), handing focus to the same control in the next row.
     const next = control.closest("li")?.nextElementSibling?.querySelector<HTMLElement>("[aria-haspopup=menu]");
     expect(next).toBeTruthy();
-    await snooze("DK4073: jangan absen lagi", "Besok pagi");
+    await snooze("Kumpulkan Tugas 02 Bab II · II4091", "Besok pagi");
     await frame();
     expect(document.activeElement).toBe(next);
   });
@@ -102,7 +117,7 @@ describe("putting off what needs you on Beranda", () => {
   it("comes back by itself at its time", async () => {
     const s = await open();
     await snooze("UTS Komunikasi Pemasaran", "3 jam lagi");
-    expect(heading()).toBe("Perlu perhatianmu 5");
+    expect(heading()).toBe("Perlu perhatianmu 3");
     await s.wait(3 * 3_600_000 + 60_000);
     await s.tick();
     expect(titles().some((t) => t.startsWith("UTS Komunikasi Pemasaran"))).toBe(true);
@@ -121,9 +136,11 @@ describe("putting off what needs you on Beranda", () => {
     expect(titles().some((t) => t.startsWith("Ringkasan K6"))).toBe(true);
   });
 
-  it("comes back when SIX records another meeting", async () => {
+  it("comes back when SIX records another meeting (put off from the course's banner, which Beranda's item shares)", async () => {
     const s = await open();
-    await snooze("KU5014: tak bisa lagi capai 80%", "Sampai ada perubahan");
+    await s.click([...document.querySelectorAll<HTMLButtonElement>("aside button")].find((b) => b.textContent?.startsWith("KU5014"))!);
+    await snooze("KU5014: Tak bisa lagi capai 80%", "Sampai ada perubahan");
+    await s.click([...document.querySelectorAll<HTMLButtonElement>("aside nav button")].find((b) => b.textContent?.startsWith("Beranda"))!);
     expect(titles().some((t) => t.startsWith("KU5014"))).toBe(false);
     s.world.six.setAttendance("KU5014", 2, 7);
     await s.engineDoes(() => s.engine.refresh("six"));
@@ -133,17 +150,17 @@ describe("putting off what needs you on Beranda", () => {
   it("the list of what's put off says when each is back, and brings one back now", async () => {
     const s = await open();
     await snooze("UTS Komunikasi Pemasaran", "Besok pagi");
-    await snooze("KU5014: tak bisa lagi capai 80%", "Sampai ada perubahan");
+    await snooze("Kumpulkan Tugas 02 Bab II · II4091", "Saat dibuka");
     expect(needs()?.textContent).toContain("2 ditunda");
     await s.click("Tampilkan");
     const list = [...document.querySelectorAll('ul[aria-label="Yang ditunda"] li')].map((li) => li.textContent);
-    // In Beranda's order: the attendance that's out of reach before an exam three days away.
+    // In Beranda's order: the Presence window ahead before the exam, both coming up this week.
     expect(list).toEqual([
-      "KU5014: tak bisa lagi capai 80%Sampai ada perubahan, paling lambat Sen, 26 Okt, 07:00Ingatkan sekarang",
+      "Kumpulkan Tugas 02 Bab IIII4091 · Kembali Jum, 16 Okt, 15:00Ingatkan sekarang",
       "UTS Komunikasi PemasaranKembali Besok, 07:00Ingatkan sekarang",
     ]);
-    await press(s.button("Ingatkan sekarang: KU5014: tak bisa lagi capai 80%"));
-    expect(titles().some((t) => t.startsWith("KU5014: tak bisa lagi capai 80%"))).toBe(true);
+    await press(s.button("Ingatkan sekarang: Kumpulkan Tugas 02 Bab II · II4091"));
+    expect(titles().some((t) => t.startsWith("Kumpulkan Tugas 02 Bab II"))).toBe(true);
     expect(needs()?.textContent).toContain("1 ditunda");
     // Its row left with the button: focus goes on to the next thing put off…
     await frame();
@@ -199,7 +216,7 @@ describe("putting off what needs you on Beranda", () => {
     await snooze("UTS Komunikasi Pemasaran", "Besok pagi");
     await s.click("Tampilkan");
     await s.click("Ingatkan sekarang: UTS Komunikasi Pemasaran");
-    await snooze("KU5014: tak bisa lagi capai 80%", "Besok pagi");
+    await snooze(EDITED, "Besok pagi");
     expect(document.querySelector('ul[aria-label="Yang ditunda"]')).toBeNull();
     expect(needs()?.querySelector("[data-snoozed]")?.textContent).toBe("Tampilkan");
   });
@@ -207,20 +224,21 @@ describe("putting off what needs you on Beranda", () => {
   it("Undo takes back only its own snooze, not what the Student brought back since", async () => {
     const s = await open();
     await snooze("UTS Komunikasi Pemasaran", "Besok pagi");
-    await snooze("KU5014: tak bisa lagi capai 80%", "Besok pagi");
+    await snooze(EDITED, "Besok pagi");
     await s.click("Tampilkan");
     await s.click("Ingatkan sekarang: UTS Komunikasi Pemasaran");
-    // The toast still offers to undo putting off KU5014.
+    // The toast still offers to undo putting off the edited Task.
     await s.click("Urungkan");
     expect(s.store.dataset("local.snoozes")?.value).toEqual([]);
     expect(titles().some((t) => t.startsWith("UTS Komunikasi Pemasaran"))).toBe(true);
-    expect(titles().some((t) => t.startsWith("KU5014"))).toBe(true);
-    expect(heading()).toBe("Perlu perhatianmu 6");
+    expect(titles().some((t) => t.startsWith("Tugas tentang Imfact"))).toBe(true);
+    expect(heading()).toBe("Perlu perhatianmu 4");
   });
 
-  it("with everything put off, says so honestly: not 'nothing due'", async () => {
-    await open();
-    for (let left = 6; left > 0; left--) {
+  it("with everything put off (some of it handled), says so honestly: not 'nothing due', not all clear", async () => {
+    const s = await open();
+    await press(s.button("Sudah tahu: KU5014: tak bisa lagi capai 80%"));
+    for (let left = 3; left > 0; left--) {
       const control = needs()?.querySelector<HTMLButtonElement>('[aria-label^="Ingatkan nanti: "]');
       await snooze(control!.getAttribute("aria-label")!.replace("Ingatkan nanti: ", ""), "Besok pagi");
     }
@@ -232,7 +250,8 @@ describe("putting off what needs you on Beranda", () => {
     // Nothing reads as "all clear": no green check while things are only put off.
     expect(needs()?.querySelector(".text-success-fg")).toBeNull();
     expect(text).toContain("Tidak ada lagi yang perlu perhatianmu sekarang");
-    expect(text).toContain("6 ditunda");
+    expect(text).toContain("3 ditunda");
+    expect(text).toContain("1 sudah beres");
     expect(text).not.toContain("Bebas tenggat");
     expect(heading()).toBe("Perlu perhatianmu");
   });
@@ -245,7 +264,7 @@ describe("putting off what needs you on Beranda", () => {
     screen = null;
 
     s = await open({ storage });
-    expect(heading()).toBe("Perlu perhatianmu 5");
+    expect(heading()).toBe("Perlu perhatianmu 3");
     expect(needs()?.textContent).toContain("1 ditunda");
 
     await s.engineDoes(() => s.engine.signOut());
@@ -322,7 +341,7 @@ describe("putting off a deadline in Hari ini", () => {
     expect(today()?.textContent).toContain("Tidak ada kuliah hari ini. Tenggat hari ini kamu tunda.");
     expect(today()?.textContent).not.toContain("Tidak ada kuliah atau tenggat hari ini.");
     await s.apply({ type: "command", command: "settings" });
-    expect(document.querySelector("[role=dialog]")?.textContent).toContain("Pengingat yang ditunda (1)");
+    expect(document.querySelector("[role=dialog]")?.textContent).toContain("Pengingat yang ditunda atau sudah beres (1)");
   });
 });
 
@@ -362,15 +381,18 @@ describe("Settings", () => {
     const s = await open();
     expect(s.has(/^Tampilkan semua lagi/)).toBe(false);
     await snooze("UTS Komunikasi Pemasaran", "Besok pagi");
-    await snooze("KU5014: tak bisa lagi capai 80%", "Besok pagi");
+    await snooze(EDITED, "Besok pagi");
+    await press(s.button("Sudah tahu: KU5014: tak bisa lagi capai 80%"));
     await s.apply({ type: "command", command: "settings" });
     const dialog = () => document.querySelector("[role=dialog]")?.textContent ?? "";
-    expect(dialog()).toContain("Pengingat yang ditunda (2)");
-    expect(dialog()).toContain("Notifikasi tetap muncul.");
+    expect(dialog()).toContain("Pengingat yang ditunda atau sudah beres (3)");
+    expect(dialog()).toContain("Hanya di komputer ini");
+    expect(dialog()).toContain("Notifikasi perubahan baru tetap muncul.");
     await s.click("Tampilkan semua lagi");
     expect(toastText()).toContain("Semua pengingat tampil lagi");
     await s.key("Escape");
-    expect(heading()).toBe("Perlu perhatianmu 6");
+    expect(heading()).toBe("Perlu perhatianmu 4");
+    expect(s.store.dataset("local.done")?.value).toEqual([]);
   });
 
   it("counts a course banner put off under the course's own target", async () => {
@@ -381,7 +403,7 @@ describe("Settings", () => {
     await s.click([...document.querySelectorAll<HTMLButtonElement>("aside button")].find((b) => b.textContent?.startsWith("DK4073"))!);
     await snooze("DK4073: Jatah absen habis", "Besok pagi");
     await s.apply({ type: "command", command: "settings" });
-    expect(document.querySelector("[role=dialog]")?.textContent).toContain("Pengingat yang ditunda (1)");
+    expect(document.querySelector("[role=dialog]")?.textContent).toContain("Pengingat yang ditunda atau sudah beres (1)");
   });
 
   it("doesn't count a snooze whose item came back by changing", async () => {
@@ -397,6 +419,6 @@ describe("Settings", () => {
 
     await s.apply({ type: "command", command: "settings" });
     const dialog = document.querySelector("[role=dialog]")?.textContent ?? "";
-    expect(dialog).toContain("Pengingat yang ditunda (1)");
+    expect(dialog).toContain("Pengingat yang ditunda atau sudah beres (1)");
   });
 });

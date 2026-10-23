@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { billNeedsStudent, krsNeedsStudent, krsOverlaps } from "../../core/academic";
 import { resultNeedsStudent } from "../../core/attendance";
 import { checkingIn } from "../../core/check-in";
+import { activeDone, billDoneKey } from "../../core/done";
 import { todoCount, todoUrgent } from "../../core/todo";
 import { useAttendance } from "../attendance";
 import { useDeadlines } from "../deadlines";
@@ -16,8 +17,9 @@ export type Badge = { value: number; tone: "neutral" | "warning" } | null;
 
 /**
  * Tugas & Ujian: the same number as its "Belum selesai" (Tasks, take-homes and
- * exams with a day still ahead; never an exam period); amber when one is late
- * or runs out (or starts) within a day.
+ * exams with a day still ahead; never an exam period, nor a Task the Student
+ * put away: handed in another way, by the group, not at all); amber when one
+ * is late or runs out (or starts) within a day.
  */
 export function useTasksBadge(): Badge {
   const todo = useTodo();
@@ -48,11 +50,14 @@ export function usePresenceBadge(): Badge {
   return value > 0 ? { value, tone: "warning" } : null;
 }
 
-/** UKT: bills overdue or due within a week. */
+/** UKT: bills overdue or due within a week, unless marked paid where SIX doesn't show it yet. */
 function useBillsBadge(): Badge {
   const bills = useDataset("six.bills");
+  const handled = useDataset("local.done") ?? [];
   const now = useNow();
-  const value = bills?.filter((bill) => billNeedsStudent(bill, now)).length ?? 0;
+  const paid = (bill: NonNullable<typeof bills>[number]) =>
+    bill.nextDueAt !== null && activeDone(billDoneKey(bill, bill.nextDueAt < now), handled) !== undefined;
+  const value = bills?.filter((bill) => billNeedsStudent(bill, now) && !paid(bill)).length ?? 0;
   return value > 0 ? { value, tone: "warning" } : null;
 }
 

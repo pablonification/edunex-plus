@@ -29,6 +29,8 @@ export interface Format {
   dueLabel(when: When): string;
   /** Mid-sentence, with its day only when it isn't today: "23:00", "besok, 23:00", "Sen, 12 Okt, 23:00". */
   dayTime(when: When): string;
+  /** Mid-sentence, always with its day: "hari ini, 20:16", "kemarin, 20:16", "Sen, 12 Okt, 20:16". */
+  dayTimeWord(when: When): string;
   /** "dalam 6 jam" / "6 hours ago" / "baru saja" */
   fromNow(when: When): string;
   /** "18 mnt" / "1 jam 5 mnt"; "18 min" / "1h 05m" */
@@ -96,6 +98,11 @@ export function makeFormat(lang: Lang, now: number): Format {
       if (offset === 0) return time(when);
       // Mid-sentence, so "besok", not "Besok".
       const day = offset === 1 ? t("time.tomorrowWord") : offset === -1 ? t("time.yesterdayWord") : relativeDay(when);
+      return `${day}, ${time(when)}`;
+    },
+    dayTimeWord: (when) => {
+      const offset = dayOffset(when);
+      const day = offset === 0 ? t("time.todayWord") : offset === 1 ? t("time.tomorrowWord") : offset === -1 ? t("time.yesterdayWord") : relativeDay(when);
       return `${day}, ${time(when)}`;
     },
     fromNow: (when) => {

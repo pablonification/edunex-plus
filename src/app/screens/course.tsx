@@ -8,6 +8,7 @@ import { type ReactNode, useMemo, useState } from "react";
 import { type AttendanceHealth, percent } from "../../core/attendance";
 import { planOfflineFiles } from "../../core/course-materials";
 import { clashes, type Meeting, openPresences, pinnedMeeting } from "../../core/course-meetings";
+import { outOfReachKey } from "../../core/done";
 import { edunexCourseUrl, sixTimetableUrl } from "../../core/links";
 import type { PresenceSession } from "../../core/models";
 import { attendanceKey, attendanceSnoozable } from "../../core/snooze";
@@ -22,8 +23,8 @@ import { type Format, type StringKey, type Translate, useFormat, useLang, useNow
 import { useNav } from "../nav";
 import { useTodo } from "../schedule-data";
 import { useRefresh } from "../shell/source-status";
-import { SnoozeMenu } from "../snooze-menu";
-import { useSnoozes } from "../snoozes";
+import { DoneButton, SnoozeMenu } from "../snooze-menu";
+import { useDone, useSnoozes } from "../snoozes";
 import { useBridge, useDataset, useSettings, useStatus } from "../store";
 import { Button } from "../ui/controls";
 import { CourseDot, EmptyState, LiveDot, Skeleton } from "../ui/display";
@@ -214,7 +215,10 @@ function AttendanceMeter({ page }: { page: CoursePage }) {
  */
 function useBannerShows(code: string, health: AttendanceHealth | undefined): boolean {
   const { snoozed } = useSnoozes();
+  const { done } = useDone();
   if (!health || (health.state !== "out" && health.state !== "none")) return false;
+  // Out of reach and marked "Sudah tahu" (here or on Beranda): the header's meter says it from then on.
+  if (health.state === "out" && done(outOfReachKey(code, health))) return false;
   return !snoozed(attendanceKey(code, health));
 }
 
@@ -329,7 +333,21 @@ function RiskStrip({ page }: { page: CoursePage }) {
           </Button>
         )
       }
-      snooze={<SnoozeMenu item={later} name={`${page.course.code}: ${title}`} words onTone />}
+      snooze={
+        <>
+          {out && (
+            <DoneButton
+              item={outOfReachKey(page.course.code, health)}
+              how="gotIt"
+              name={`${page.course.code}: ${title}`}
+              said={t("done.toast.gotIt", { course: page.course.code })}
+              words
+              onTone
+            />
+          )}
+          <SnoozeMenu item={later} name={`${page.course.code}: ${title}`} words onTone />
+        </>
+      }
     >
       {[
         out ? t("course.risk.best", { best: percent(health.best ?? 0) }) : noneLeft(t, f, health, attendance.lastDay),
