@@ -1,16 +1,9 @@
 // Small hooks every screen uses.
-import { useCallback, useEffect, useMemo, useRef } from "react";
-import { courseColors } from "../core/course-colors";
+import { useCallback, useEffect, useRef } from "react";
 import { linkHost } from "../core/links";
-import type { Course } from "../core/models";
 import { useT } from "./i18n";
 import { useBridge } from "./store";
 import { toast } from "./ui/overlays";
-
-/** Each course's identity color, stable across launches. */
-export function useCourseColors(courses: readonly Course[] | undefined): Map<string, string> {
-  return useMemo(() => courseColors((courses ?? []).map((course) => course.code)), [courses]);
-}
 
 /** Says a link didn't open, naming where it went; never a silent dead click. */
 function useLinkFailed(): (url: string) => void {

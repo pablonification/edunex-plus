@@ -10,7 +10,7 @@ import { clockOf, type EdunexMeeting, type OutsideMeeting, type ScheduledClass, 
 import { isOpenStatus, taskStatus } from "../../../core/tasks";
 import { useAttendance } from "../../attendance";
 import { budgetLabel, STATE_TONE } from "../../attendance-labels";
-import { useTermCourses } from "../../courses";
+import { useCourseColor } from "../../courses";
 import { useOpenExternal } from "../../hooks";
 import { type Format, type Translate, useFormat, useNow, useT } from "../../i18n";
 import { useNav } from "../../nav";
@@ -25,7 +25,8 @@ import { Meta } from "../../ui/layout";
 /** What every block on the screen reads besides its own item. */
 export interface ScheduleWorld {
   now: number;
-  color(code: string): string;
+  /** The course's color; none for a course the app doesn't know (its mark is an outline). */
+  color(code: string): string | undefined;
   name(code: string, fallback?: string): string;
   lecturer(code: string): string | null;
   health(code: string): AttendanceHealth | undefined;
@@ -37,7 +38,7 @@ export interface ScheduleWorld {
 const WorldContext = createContext<ScheduleWorld | null>(null);
 
 export function ScheduleWorldProvider({ children }: { children: ReactNode }) {
-  const courses = useTermCourses();
+  const colorOf = useCourseColor();
   const names = useCourseNames();
   const outline = useDataset("edunex.outline");
   const attendance = useAttendance();
@@ -46,11 +47,10 @@ export function ScheduleWorldProvider({ children }: { children: ReactNode }) {
   const examIds = useExamIds();
   const now = useNow();
   const world = useMemo<ScheduleWorld>(() => {
-    const colors = new Map((courses ?? []).map((c) => [c.code, c.color]));
     const health = new Map((attendance?.courses ?? []).map((c) => [c.course.code, c.health]));
     return {
       now,
-      color: (code) => colors.get(code) ?? "var(--faint)",
+      color: colorOf,
       name: names,
       lecturer: (code) => outline?.[code]?.lecturer ?? null,
       health: (code) => health.get(code),
@@ -58,7 +58,7 @@ export function ScheduleWorldProvider({ children }: { children: ReactNode }) {
       tasks: tasks ?? [],
       examId: (id) => examIds.get(id),
     };
-  }, [courses, names, outline, attendance, presence, tasks, examIds, now]);
+  }, [colorOf, names, outline, attendance, presence, tasks, examIds, now]);
   return <WorldContext.Provider value={world}>{children}</WorldContext.Provider>;
 }
 

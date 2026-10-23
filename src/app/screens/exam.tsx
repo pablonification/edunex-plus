@@ -14,7 +14,7 @@ import type { PastExam, TodoItem } from "../../core/todo";
 import { useAttendance } from "../attendance";
 import { budgetLabel, STATE_TONE } from "../attendance-labels";
 import { errorKey } from "../bridge";
-import { type TermCourse, useTermCourses } from "../courses";
+import { type TermCourse, useCourseColor, useTermCourses } from "../courses";
 import { useExamMarkList, useExamMarks } from "../exam-marks";
 import { useOpenExternal } from "../hooks";
 import { type Format, type Translate, useFormat, useNow, useT } from "../i18n";
@@ -83,10 +83,11 @@ function useExamCourse(exam: Exam): { course: TermCourse | undefined; name: stri
   return { course, name: course?.name ?? exam.six[0]?.courseName ?? exam.courseCode };
 }
 
-function CourseCode({ code, course }: { code: string; course: TermCourse | undefined }) {
+function CourseCode({ code }: { code: string }) {
+  const color = useCourseColor()(code);
   return (
     <span className="inline-flex items-center gap-1.5 font-medium text-fg/80">
-      <CourseDot color={course?.color ?? "var(--faint)"} className="size-2" />
+      <CourseDot color={color} className="size-2" />
       {code}
     </span>
   );
@@ -152,9 +153,9 @@ export function ExamPartRow({
   const { go } = useNav();
   const marks = useExamMarks();
   const { exam, part } = item;
-  const { course, name } = useExamCourse(exam);
+  const { name } = useExamCourse(exam);
   const days = sourceDays(f, exam);
-  const code = inCourse ? "" : <CourseCode code={exam.courseCode} course={course} />;
+  const code = inCourse ? "" : <CourseCode code={exam.courseCode} />;
 
   let facts: ReactNode[];
   let trailing: ReactNode;
@@ -286,7 +287,7 @@ export function PeriodRow({ item, inCourse = false }: { item: Extract<TodoItem, 
 function PeriodExam({ exam }: { exam: Exam }) {
   const t = useT();
   const { go } = useNav();
-  const { course, name } = useExamCourse(exam);
+  const { name } = useExamCourse(exam);
   return (
     <Row
       onClick={() => go({ screen: "exam", examId: exam.id })}
@@ -294,7 +295,7 @@ function PeriodExam({ exam }: { exam: Exam }) {
       title={<ExamTitle exam={exam} name={name} />}
       meta={
         <Meta truncate>
-          <CourseCode code={exam.courseCode} course={course} />
+          <CourseCode code={exam.courseCode} />
           {t("exam.dayUnknown")}
         </Meta>
       }
@@ -313,8 +314,8 @@ export function PastExamRow({ past, inCourse = false }: { past: PastExam; inCour
   const { go } = useNav();
   const marks = useExamMarks();
   const { exam } = past;
-  const { course, name } = useExamCourse(exam);
-  const code = inCourse ? "" : <CourseCode code={exam.courseCode} course={course} />;
+  const { name } = useExamCourse(exam);
+  const code = inCourse ? "" : <CourseCode code={exam.courseCode} />;
   const [sitting] = exam.six;
   const online = exam.edunex.find((e) => e.start !== null || e.end !== null);
   const [mark] = past.marks;
@@ -397,10 +398,11 @@ export function ExamScreen({ examId }: { examId: string }) {
       </Page>
     );
   const course = courses?.find((c) => c.code === exam.courseCode);
-  return <ExamPage exam={exam} exams={exams} course={course} courses={courses ?? []} />;
+  return <ExamPage exam={exam} exams={exams} course={course} />;
 }
 
-function ExamPage({ exam, exams, course, courses }: { exam: Exam; exams: Exam[]; course: TermCourse | undefined; courses: TermCourse[] }) {
+function ExamPage({ exam, exams, course }: { exam: Exam; exams: Exam[]; course: TermCourse | undefined }) {
+  const colorOf = useCourseColor();
   const t = useT();
   const f = useFormat();
   const now = useNow();
@@ -449,7 +451,7 @@ function ExamPage({ exam, exams, course, courses }: { exam: Exam; exams: Exam[];
         eyebrow={
           <span className="flex items-center gap-2">
             <KindLabel exam={exam} />
-            <CourseDot color={course?.color ?? "var(--faint)"} className="size-2" />
+            <CourseDot color={colorOf(exam.courseCode)} className="size-2" />
             <span className="font-semibold text-fg/80">{exam.courseCode}</span>
           </span>
         }
@@ -576,7 +578,7 @@ function ExamPage({ exam, exams, course, courses }: { exam: Exam; exams: Exam[];
                   className="focus-ring inline-flex h-8 items-center gap-2 rounded-lg border border-edge bg-surface px-3 text-small font-medium shadow-card transition-colors duration-150 hover:bg-hover"
                 >
                   <KindLabel exam={other} />
-                  <CourseDot color={courses.find((c) => c.code === other.courseCode)?.color ?? "var(--faint)"} className="size-2" />
+                  <CourseDot color={colorOf(other.courseCode)} className="size-2" />
                   {other.courseCode}
                   <span className="text-faint">
                     {other.at !== null

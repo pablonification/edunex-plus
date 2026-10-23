@@ -437,6 +437,10 @@ export function createEngine(deps: EngineDeps): Engine {
 
     async setLocal(name, value) {
       if (!name.startsWith("local.") || !Object.hasOwn(Datasets, name)) throw new EngineError("Rejected", `${name} isn't kept on this computer`);
+      // The window saves the courses' remembered colors by itself, as they show: one that arrives after signing out of
+      // everything (or before anyone signed in) belongs to nobody, and would outlive the data it came from.
+      if (name === "local.courseColors" && !store.get("edunex.account") && !store.get("six.student"))
+        throw new EngineError("Rejected", "Course colors are kept only while someone is signed in");
       const parsed = Datasets[name as DatasetName].safeParse(value);
       if (!parsed.success) throw new EngineError("Rejected", `That isn't a valid ${name}`);
       await store.set(name as DatasetName, parsed.data as never, clock.now());

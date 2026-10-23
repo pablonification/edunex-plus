@@ -8,7 +8,7 @@
 import { type ComponentType, useMemo, useState, useSyncExternalStore } from "react";
 import type { Alert, AlertKind } from "../../core/models";
 import { alertFeed } from "../../core/needs";
-import { useTermCourses } from "../courses";
+import { useCourseColor } from "../courses";
 import { useHomeWorld } from "../home-world";
 import { useOpenCheckIn } from "../hooks";
 import { type Format, useFormat, useNow, useT } from "../i18n";
@@ -130,8 +130,7 @@ function AlertsPanel({ readAt, onRead, onClose }: { readAt: number; onRead: (at:
   // Signed out of SIX, nothing here came from SIX: the footnote doesn't say it did.
   const sixOut = useStatus("six").state === "signed-out";
   const world = useHomeWorld();
-  const courses = useTermCourses();
-  const colors = useMemo(() => new Map((courses ?? []).map((course) => [course.code, course.color])), [courses]);
+  const colorOf = useCourseColor();
   const items = useMemo(() => (world ? alertFeed(world, history?.items ?? []) : (history?.items ?? [])), [world, history]);
   /** Raised while the Student wasn't looking. What the data shows by itself was there before: never "new". */
   const raised = useMemo(() => new Set((history?.items ?? []).map((item) => item.id)), [history]);
@@ -180,7 +179,6 @@ function AlertsPanel({ readAt, onRead, onClose }: { readAt: number; onRead: (at:
                 const Icon = KIND_ICON[item.kind];
                 const unread = isUnread(item);
                 const code = typeof item.title.vars?.course === "string" ? item.title.vars.course : null;
-                const color = code ? colors.get(code) : undefined;
                 return (
                   <li key={item.id}>
                     <button
@@ -194,7 +192,7 @@ function AlertsPanel({ readAt, onRead, onClose }: { readAt: number; onRead: (at:
                     >
                       <span className={cx("relative mt-0.5 shrink-0", PRESSING.has(item.kind) ? "text-warning-fg" : "text-faint")}>
                         <Icon className="size-4" />
-                        {color && <CourseDot color={color} className="absolute -right-1 -bottom-1 size-2 ring-2 ring-raised" />}
+                        {code && <CourseDot color={colorOf(code)} className="absolute -right-1 -bottom-1 size-2 ring-2 ring-raised" />}
                       </span>
                       <span className="min-w-0 flex-1">
                         <Meta className={cx("text-small", unread ? "font-semibold" : "font-medium")}>{t(item.title.key, item.title.vars)}</Meta>
