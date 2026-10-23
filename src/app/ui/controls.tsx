@@ -206,17 +206,29 @@ export function useRadioKeys<T>(values: readonly T[], value: T | null, onChange:
     tabIndex: index === Math.max(checked, 0) ? 0 : -1,
     onClick: () => onChange(values[index]),
     onKeyDown: (event: KeyboardEvent) => {
-      const keys: Record<string, () => void> = {
-        ArrowRight: () => move(index, 1),
-        ArrowLeft: () => move(index, -1),
-        ArrowDown: () => vertical(index, 1),
-        ArrowUp: () => vertical(index, -1),
-        Home: () => go(0),
-        End: () => go(values.length - 1),
-      };
-      if (!Object.hasOwn(keys, event.key)) return;
+      switch (event.key) {
+        case "ArrowRight":
+          move(index, 1);
+          break;
+        case "ArrowLeft":
+          move(index, -1);
+          break;
+        case "ArrowDown":
+          vertical(index, 1);
+          break;
+        case "ArrowUp":
+          vertical(index, -1);
+          break;
+        case "Home":
+          go(0);
+          break;
+        case "End":
+          go(values.length - 1);
+          break;
+        default:
+          return;
+      }
       event.preventDefault();
-      keys[event.key]();
     },
   });
 }
