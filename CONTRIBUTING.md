@@ -185,6 +185,12 @@ before a release depends on it. Check a signed build with `Get-AuthenticodeSigna
 installer: `Valid`, signed by `CN=SignPath Foundation`. Why browsers and Windows warn about unsigned
 installers, and the other options: [docs/research/windows-download-warnings.md](docs/research/windows-download-warnings.md).
 
+**Updates download only what changed** ([ADR 0008](docs/adr/0008-download-only-what-changed.md)).
+Last in each packaging job, `scripts/chunk-maps.mjs` writes a chunk map beside each installer and
+AppImage, and a map and a chunk pack for each Mac app, and lists each map with its sha512 in
+`latest*.yml`. An installed copy cuts the files it has the same way (`src/desktop/chunks.ts`) and
+downloads only the chunks it lacks; when anything doesn't line up, it downloads the whole file.
+
 **The keychain helper** is committed built and signed, and every Mac build checks it carries
 that exact build. Build it again (`npm run build:keychain-helper`, on a Mac, with
 `MAC_SIGNING_KEYCHAIN` naming a keychain that holds the certificate, made as the release workflow

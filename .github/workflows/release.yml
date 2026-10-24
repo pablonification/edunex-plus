@@ -27,6 +27,7 @@ on:
       - "scripts/package-mac-update.mjs"
       - "scripts/package-zip-win.mjs"
       - "scripts/update-info.mjs"
+      - "scripts/chunk-maps.mjs"
       - "scripts/build-desktop.mjs"
       - "scripts/desktop-bundle.mjs"
       - "scripts/adhoc-sign-electron.mjs"
@@ -406,6 +407,11 @@ jobs:
             exit 1
           fi
           echo "The packaged app opened and stayed open."
+      # Last, once every file is final: the maps that let an update download only the chunks a
+      # computer doesn't have (docs/adr/0008-download-only-what-changed.md), each listed with its
+      # sha512 in the latest*.yml beside its file.
+      - name: Write the chunk maps
+        run: node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/chunk-maps.mjs release
       # With them, the update info files (latest-mac.yml, latest.yml, latest-linux*.yml): the
       # sha512 of each file the app downloads when it updates itself, which it checks before
       # installing (src/desktop/self-update.ts).
@@ -420,6 +426,8 @@ jobs:
             release/*.exe
             release/*.AppImage
             release/*.deb
+            release/*.chunks.json
+            release/*.chunks.pack
             release/latest*.yml
           if-no-files-found: error
           retention-days: ${{ startsWith(github.ref, 'refs/tags/') && 30 || 7 }}

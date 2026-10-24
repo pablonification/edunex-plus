@@ -9,6 +9,11 @@
 // (followAutoUpdates). This file is the plan and its rules; the Electron side
 // (downloading, unpacking, starting the new version) is ./updater.ts.
 //
+// When the release maps its files in chunks, only the parts this computer
+// doesn't have are downloaded, and the new version is put together from them
+// and what it has (./partial-update.ts), checked as strictly. Anything that
+// doesn't line up there, and the whole file is downloaded, as before.
+//
 // - macOS: the .tar.xz for this Mac (arm64 or x64), or the zip in a release
 //   without one, unpacked beside the running app and swapped in by a small
 //   script once the app has quit. Not Squirrel.Mac: it refuses apps signed
@@ -210,6 +215,17 @@ done
 exec "$@"
 `;
 
+/** The new version this computer updates to: the release's files, the one a full download is, and its sha512 in `yml`. */
+export interface Patch {
+  kind: UpdateKind;
+  arch: Arch;
+  version: string;
+  release: ReleaseFile[];
+  file: ReleaseFile;
+  yml: string;
+  sha512: string;
+}
+
 /** What the Electron side does; tests stand in for it. */
 export interface UpdaterDeps {
   /** How this copy updates, or why it can't (worked out once, at start). */
@@ -220,6 +236,13 @@ export interface UpdaterDeps {
   api(url: string): Promise<unknown>;
   /** A small file from the release (latest*.yml), as text. */
   text(url: string): Promise<string>;
+  /**
+   * Downloads only the parts of `file` this computer doesn't have and puts the new version together
+   * (./partial-update.ts): what `install` takes, the Mac app already checked as `unpack` checks one.
+   * Null when the release has no chunk map for it, or most of it would be downloaded anyway; throws
+   * when anything doesn't line up. `progress` gets 0–1.
+   */
+  patch(update: Patch, progress: (share: number) => void): Promise<string | null>;
   /** Downloads a release file into a fresh folder; its sha512 (base64) and size. `progress` gets 0–1. */
   download(file: ReleaseFile, progress: (share: number) => void): Promise<{ path: string; sha512: string; size: number }>;
   /** Mac: unpacks the downloaded file, packed as `kind` says, and checks the app in it is this app at `version`; the new app's path. */
@@ -248,6 +271,8 @@ const OFFLINE =
 
 /** A file that isn't the one the release lists. */
 export class MismatchError extends Error {}
+
+const isOffline = (error: unknown) => OFFLINE.test(error instanceof Error ? error.message : String(error));
 
 export function createUpdater(deps: UpdaterDeps): Updater {
   let state: UpdateInstall | null = null;
@@ -284,31 +309,49 @@ export function createUpdater(deps: UpdaterDeps): Updater {
   async function run(notice: UpdateNotice, kind: UpdateKind, arch: Arch, quiet: boolean): Promise<void> {
     try {
       const release = ReleaseAnswer.parse(await deps.api(releaseApiUrl(notice)));
-      const picked = pickReleaseFile(
-        release.assets.map((asset) => ({ name: asset.name, url: asset.browser_download_url, size: asset.size })),
-        kind,
-        arch,
-      );
+      const files = release.assets.map((asset) => ({ name: asset.name, url: asset.browser_download_url, size: asset.size }));
+      const picked = pickReleaseFile(files, kind, arch);
       if (!picked) {
         set({ blocked: "noFile", step: "idle", progress: null });
         if (!quiet) await deps.openPage(notice.url);
         return;
       }
       // A release that publishes its update info must list the file in it.
-      const chosen = downloadOf(picked, picked.info ? await deps.text(picked.info.url) : null);
+      const yml = picked.info ? await deps.text(picked.info.url) : null;
+      const chosen = downloadOf(picked, yml);
       if (!chosen) throw new MismatchError(`${picked.info?.name} doesn't list ${picked.file.name}`);
+      const expected = chosen.sha512;
       let shown = -1;
-      const file = await deps.download(chosen.file, (share) => {
+      const progress = (share: number) => {
         const percent = Math.floor(Math.max(0, Math.min(1, share)) * 100);
         if (percent !== shown) set({ progress: (shown = percent) / 100 });
-      });
-      if (file.size !== chosen.file.size || (chosen.sha512 && file.sha512 !== chosen.sha512))
-        throw new MismatchError(`${chosen.file.name} isn't the file the release lists`);
-      staged = kind === "mac" ? await deps.unpack(file.path, macArchiveOf(chosen.file.name), notice.version) : file.path;
+      };
+      // Only the parts this computer doesn't have, when the release maps them. Anything that doesn't
+      // line up there, and the whole file comes as before; without a connection, neither would.
+      const patched =
+        yml !== null && expected
+          ? await deps
+              .patch({ kind, arch, version: notice.version, release: files, file: chosen.file, yml, sha512: expected }, progress)
+              .catch((error: unknown) => {
+                if (isOffline(error)) throw error;
+                return null;
+              })
+          : null;
+      if (patched) staged = patched;
+      else {
+        // The bar starts again for the whole file.
+        if (shown >= 0) {
+          shown = -1;
+          set({ progress: null });
+        }
+        const file = await deps.download(chosen.file, progress);
+        if (file.size !== chosen.file.size || (expected && file.sha512 !== expected))
+          throw new MismatchError(`${chosen.file.name} isn't the file the release lists`);
+        staged = kind === "mac" ? await deps.unpack(file.path, macArchiveOf(chosen.file.name), notice.version) : file.path;
+      }
       set({ step: "ready", progress: 1 });
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      const problem: UpdateProblem = error instanceof MismatchError ? "mismatch" : OFFLINE.test(message) ? "offline" : "failed";
+      const problem: UpdateProblem = error instanceof MismatchError ? "mismatch" : isOffline(error) ? "offline" : "failed";
       set({ step: "failed", progress: null, problem });
     }
   }
