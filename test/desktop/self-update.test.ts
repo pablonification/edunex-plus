@@ -1,11 +1,13 @@
-// Updating from inside the app: which file of a release is this computer's,
-// the sha512 the release's latest*.yml gives for it, the only hosts a download
-// may come from or be sent on to, where a Mac app can be replaced, and the plan
-// main follows (download, check, wait for the Student, install).
+// Updating from inside the app: which file of a release is this computer's (on
+// a Mac, the smaller .tar.xz when the release lists it), the sha512 the
+// release's latest*.yml gives for it, the only hosts a download may come from
+// or be sent on to, where a Mac app can be replaced, and the plan main follows
+// (download, check, wait for the Student, install).
 import { describe, expect, it } from "vitest";
 import type { UpdateInstall, UpdateNotice } from "../../src/core/models";
 import {
   createUpdater,
+  downloadOf,
   followAutoUpdates,
   isDownloadUrl,
   isPlainFileName,
@@ -40,12 +42,14 @@ const release = [
   file("latest-linux-arm64.yml"),
   file("Edunex-Plus-1.2.0-arm64.exe"),
   file("latest-win-arm64.yml"),
+  file("Edunex-Plus-1.2.0-arm64-mac.tar.xz"),
+  file("Edunex-Plus-1.2.0-x64-mac.tar.xz"),
 ];
 
 describe("this computer's file in a release", () => {
-  it("is the zip for this kind of Mac, with latest-mac.yml", () => {
-    expect(pickReleaseFile(release, "mac", "arm64")).toEqual({ file: release[2], info: release[8] });
-    expect(pickReleaseFile(release, "mac", "x64")).toEqual({ file: release[3], info: release[8] });
+  it("is the zip for this kind of Mac, and the same app packed smaller beside it, with latest-mac.yml", () => {
+    expect(pickReleaseFile(release, "mac", "arm64")).toEqual({ file: release[2], smaller: release[14], info: release[8] });
+    expect(pickReleaseFile(release, "mac", "x64")).toEqual({ file: release[3], smaller: release[15], info: release[8] });
   });
 
   it("is never a name that points at a folder, since the download is saved under it", () => {
@@ -56,17 +60,17 @@ describe("this computer's file in a release", () => {
   });
 
   it("is the installer for this kind of Windows PC: Setup with latest.yml, or the ARM one with its own", () => {
-    expect(pickReleaseFile(release, "windows", "x64")).toEqual({ file: release[4], info: release[9] });
-    expect(pickReleaseFile(release, "windows", "arm64")).toEqual({ file: release[12], info: release[13] });
+    expect(pickReleaseFile(release, "windows", "x64")).toEqual({ file: release[4], smaller: null, info: release[9] });
+    expect(pickReleaseFile(release, "windows", "arm64")).toEqual({ file: release[12], smaller: null, info: release[13] });
   });
 
   it("is the AppImage for this kind of PC, with its own latest-linux*.yml", () => {
-    expect(pickReleaseFile(release, "appImage", "x64")).toEqual({ file: release[5], info: release[10] });
-    expect(pickReleaseFile(release, "appImage", "arm64")).toEqual({ file: release[6], info: release[11] });
+    expect(pickReleaseFile(release, "appImage", "x64")).toEqual({ file: release[5], smaller: null, info: release[10] });
+    expect(pickReleaseFile(release, "appImage", "arm64")).toEqual({ file: release[6], smaller: null, info: release[11] });
   });
 
   it("is there without an update info file (an older release), and missing when the release has none for this computer", () => {
-    expect(pickReleaseFile(release.slice(0, 8), "mac", "arm64")).toEqual({ file: release[2], info: null });
+    expect(pickReleaseFile(release.slice(0, 8), "mac", "arm64")).toEqual({ file: release[2], smaller: null, info: null });
     expect(
       pickReleaseFile(
         release.filter((f) => !f.name.endsWith("mac.zip")),
@@ -81,6 +85,28 @@ describe("this computer's file in a release", () => {
     expect(pickReleaseFile(elsewhere, "mac", "arm64")).toBeNull();
     const otherRepo = [file("Edunex-Plus-1.2.0-arm64-mac.zip", 10, "https://github.com/someone/else/releases/download/v1/x.zip")];
     expect(pickReleaseFile(otherRepo, "mac", "arm64")).toBeNull();
+  });
+});
+
+describe("the file a Mac downloads", () => {
+  const zip = file("Edunex-Plus-1.2.0-arm64-mac.zip", 118);
+  const tarXz = file("Edunex-Plus-1.2.0-arm64-mac.tar.xz", 80);
+  const listing = (...listed: [ReleaseFile, string][]) => `files:\n${listed.map(([f, sha]) => `  - url: ${f.name}\n    sha512: ${sha}\n`).join("")}`;
+
+  it("is the smaller .tar.xz when latest-mac.yml lists it, checked against its own sha512", () => {
+    const yml = listing([zip, SHA], [tarXz, OTHER_SHA]);
+    expect(downloadOf({ file: zip, smaller: tarXz, info: null }, yml)).toEqual({ file: tarXz, sha512: OTHER_SHA });
+  });
+
+  it("is the zip when the release has no .tar.xz, or latest-mac.yml doesn't list it", () => {
+    const yml = listing([zip, SHA]);
+    expect(downloadOf({ file: zip, smaller: null, info: null }, yml)).toEqual({ file: zip, sha512: SHA });
+    expect(downloadOf({ file: zip, smaller: tarXz, info: null }, yml)).toEqual({ file: zip, sha512: SHA });
+  });
+
+  it("is the zip, checked by its size only, in a release without latest-mac.yml (an older one), and none when the yml lists neither", () => {
+    expect(downloadOf({ file: zip, smaller: tarXz, info: null }, null)).toEqual({ file: zip, sha512: null });
+    expect(downloadOf({ file: zip, smaller: tarXz, info: null }, listing())).toBeNull();
   });
 });
 
@@ -183,6 +209,7 @@ describe("the update plan", () => {
     const opened: string[] = [];
     const installed: string[] = [];
     const reopened: boolean[] = [];
+    const unpacked: string[] = [];
     const updater = createUpdater({
       way: async () => ({ kind: "mac", arch: "arm64" }),
       notice: () => notice,
@@ -192,7 +219,10 @@ describe("the update plan", () => {
         progress(0.5);
         return { path: "/tmp/x.zip", sha512: SHA, size: 100 };
       },
-      unpack: async () => "/tmp/app/Edunex Plus.app",
+      unpack: async (_archive, kind) => {
+        unpacked.push(kind);
+        return "/tmp/app/Edunex Plus.app";
+      },
       install: async (_kind, staged, reopen) => {
         installed.push(staged);
         reopened.push(reopen);
@@ -204,11 +234,11 @@ describe("the update plan", () => {
     const settled = async () => {
       for (let i = 0; i < 20; i++) await new Promise((resolve) => setImmediate(resolve));
     };
-    return { updater, sent, opened, installed, reopened, settled };
+    return { updater, sent, opened, installed, reopened, unpacked, settled };
   }
 
   it("downloads, checks the file, and waits for the Student before installing", async () => {
-    const { updater, sent, installed, settled } = setUp();
+    const { updater, sent, installed, unpacked, settled } = setUp();
     expect((await updater.download()).step).toBe("downloading");
     await settled();
     expect(sent.map((s) => [s.step, s.progress])).toEqual([
@@ -216,9 +246,26 @@ describe("the update plan", () => {
       ["downloading", 0.5],
       ["ready", 1],
     ]);
-    expect(installed).toEqual([]);
+    expect([installed, unpacked]).toEqual([[], ["zip"]]);
     await updater.install();
     expect(installed).toEqual(["/tmp/app/Edunex Plus.app"]);
+  });
+
+  it("on a Mac, downloads the smaller .tar.xz when the release lists it, and unpacks it as one", async () => {
+    const tarXz = file("Edunex-Plus-1.2.0-arm64-mac.tar.xz", 80);
+    const downloaded: string[] = [];
+    const { updater, sent, unpacked, settled } = setUp({
+      api: async () => ({ ...answer, assets: [...answer.assets, { name: tarXz.name, browser_download_url: tarXz.url, size: tarXz.size }] }),
+      text: async () => `${yml}  - url: ${tarXz.name}\n    sha512: ${OTHER_SHA}\n    size: 80\n`,
+      download: async (picked) => {
+        downloaded.push(picked.name);
+        return { path: `/tmp/${picked.name}`, sha512: OTHER_SHA, size: 80 };
+      },
+    });
+    await updater.download();
+    await settled();
+    expect([downloaded, unpacked]).toEqual([[tarXz.name], ["tarXz"]]);
+    expect(sent.at(-1)).toMatchObject({ step: "ready" });
   });
 
   it('by itself ("Perbarui otomatis"), downloads the same way and puts it in place as the app quits, without opening it', async () => {

@@ -9,9 +9,10 @@
 // (followAutoUpdates). This file is the plan and its rules; the Electron side
 // (downloading, unpacking, starting the new version) is ./updater.ts.
 //
-// - macOS: the zip for this Mac (arm64 or x64), unpacked beside the running app
-//   and swapped in by a small script once the app has quit. Not Squirrel.Mac:
-//   it refuses apps signed ad-hoc, as these are.
+// - macOS: the .tar.xz for this Mac (arm64 or x64), or the zip in a release
+//   without one, unpacked beside the running app and swapped in by a small
+//   script once the app has quit. Not Squirrel.Mac: it refuses apps signed
+//   ad-hoc, as these are.
 // - Windows: the one-click installer for this PC (x64 or ARM), run silently as an update.
 // - Linux AppImage: the new AppImage, put where the running one is.
 // - A .deb, a development or demo build, or an app it can't replace where it
@@ -26,6 +27,11 @@ import { EngineError } from "../engine/errors";
 /** How this copy puts a new version in place. */
 export type UpdateKind = "mac" | "windows" | "appImage";
 export type Arch = "arm64" | "x64";
+/**
+ * How a Mac update is packed: the zip every release has, or the same app as a .tar.xz, about a
+ * third smaller, which newer releases have beside it (scripts/package-mac-update.mjs).
+ */
+export type MacArchive = "zip" | "tarXz";
 
 /** The only hosts a release's files come from: GitHub, and where it sends downloads on to. */
 const DOWNLOAD_HOSTS = ["github.com", "objects.githubusercontent.com", "release-assets.githubusercontent.com"];
@@ -66,6 +72,16 @@ export interface ReleaseFile {
   size: number;
 }
 
+/** What a release has for this computer (pickReleaseFile). */
+export interface PickedFiles {
+  /** The file every release has for it. */
+  file: ReleaseFile;
+  /** On a Mac, the same app packed smaller, when the release has it; null otherwise. */
+  smaller: ReleaseFile | null;
+  /** The latest*.yml that lists their sha512, or null. */
+  info: ReleaseFile | null;
+}
+
 /** The release's API address for the tag the update check found (its page ends with the tag). */
 export function releaseApiUrl(notice: UpdateNotice): string {
   const tag = decodeURIComponent(notice.url.slice(notice.url.lastIndexOf("/") + 1));
@@ -77,10 +93,12 @@ export function releaseApiUrl(notice: UpdateNotice): string {
  * the release has none). Names are electron-builder's (electron-builder.config.mjs):
  * Edunex-Plus-1.2.3-arm64-mac.zip, Edunex-Plus-Setup-1.2.3.exe (Intel and AMD PCs; up to
  * 0.1.0-alpha.5 both kinds in one) or Edunex-Plus-1.2.3-arm64.exe (ARM PCs, with its own
- * latest-win-arm64.yml), Edunex-Plus-1.2.3-x86_64.AppImage. Only files at this app's own release addresses count, and only
- * plain file names: the download is saved under its name, so one naming a folder ("..", "a/b") never is.
+ * latest-win-arm64.yml), Edunex-Plus-1.2.3-x86_64.AppImage. On a Mac, also the same app as
+ * Edunex-Plus-1.2.3-arm64-mac.tar.xz (scripts/package-mac-update.mjs). Only files at this app's
+ * own release addresses count, and only plain file names: the download is saved under its name,
+ * so one naming a folder ("..", "a/b") never is.
  */
-export function pickReleaseFile(files: ReleaseFile[], kind: UpdateKind, arch: Arch): { file: ReleaseFile; info: ReleaseFile | null } | null {
+export function pickReleaseFile(files: ReleaseFile[], kind: UpdateKind, arch: Arch): PickedFiles | null {
   const ours = files.filter((file) => isReleaseFileUrl(file.url) && isPlainFileName(file.name));
   const named = (test: (name: string) => boolean) => ours.find((file) => test(file.name)) ?? null;
   const pick = {
@@ -95,8 +113,26 @@ export function pickReleaseFile(files: ReleaseFile[], kind: UpdateKind, arch: Ar
     },
   }[kind];
   const file = named(pick.file);
-  return file && { file, info: named((name) => name === pick.info) };
+  const smaller = kind === "mac" ? named((name) => name.endsWith(`-${arch}-mac.tar.xz`)) : null;
+  return file && { file, smaller, info: named((name) => name === pick.info) };
 }
+
+/**
+ * Which file to download of those a release has for this computer, and the sha512 it must have:
+ * the smaller one when the update info lists it, else the file every release has. Without update
+ * info (an older release) that file, checked by its size only; null when the update info doesn't
+ * list it.
+ */
+export function downloadOf(picked: PickedFiles, yml: string | null): { file: ReleaseFile; sha512: string | null } | null {
+  if (yml === null) return { file: picked.file, sha512: null };
+  const listed = picked.smaller && sha512From(yml, picked.smaller.name);
+  if (picked.smaller && listed) return { file: picked.smaller, sha512: listed };
+  const sha512 = sha512From(yml, picked.file.name);
+  return sha512 ? { file: picked.file, sha512 } : null;
+}
+
+/** How a Mac update file is packed, by its name. */
+export const macArchiveOf = (name: string): MacArchive => (name.endsWith(".tar.xz") ? "tarXz" : "zip");
 
 const unquote = (value: string) => value.trim().replace(/^(['"])(.*)\1$/, "$2");
 const SHA512 = /^[A-Za-z0-9+/]{86}==$/;
@@ -186,8 +222,8 @@ export interface UpdaterDeps {
   text(url: string): Promise<string>;
   /** Downloads a release file into a fresh folder; its sha512 (base64) and size. `progress` gets 0–1. */
   download(file: ReleaseFile, progress: (share: number) => void): Promise<{ path: string; sha512: string; size: number }>;
-  /** Mac: unpacks the zip and checks the app in it is this app at `version`; the new app's path. */
-  unpack(zip: string, version: string): Promise<string>;
+  /** Mac: unpacks the downloaded file, packed as `kind` says, and checks the app in it is this app at `version`; the new app's path. */
+  unpack(archive: string, kind: MacArchive, version: string): Promise<string>;
   /** Puts the downloaded version in place once this copy quits, and opens it then (`reopen`) and quits now, or not (already quitting). */
   install(kind: UpdateKind, staged: string, reopen: boolean): Promise<void>;
   openPage(url: string): Promise<void>;
@@ -258,17 +294,17 @@ export function createUpdater(deps: UpdaterDeps): Updater {
         if (!quiet) await deps.openPage(notice.url);
         return;
       }
-      // A release that publishes its update info must list this file in it.
-      const expected = picked.info ? sha512From(await deps.text(picked.info.url), picked.file.name) : null;
-      if (picked.info && !expected) throw new MismatchError(`${picked.info.name} doesn't list ${picked.file.name}`);
+      // A release that publishes its update info must list the file in it.
+      const chosen = downloadOf(picked, picked.info ? await deps.text(picked.info.url) : null);
+      if (!chosen) throw new MismatchError(`${picked.info?.name} doesn't list ${picked.file.name}`);
       let shown = -1;
-      const file = await deps.download(picked.file, (share) => {
+      const file = await deps.download(chosen.file, (share) => {
         const percent = Math.floor(Math.max(0, Math.min(1, share)) * 100);
         if (percent !== shown) set({ progress: (shown = percent) / 100 });
       });
-      if (file.size !== picked.file.size || (expected && file.sha512 !== expected))
-        throw new MismatchError(`${picked.file.name} isn't the file the release lists`);
-      staged = kind === "mac" ? await deps.unpack(file.path, notice.version) : file.path;
+      if (file.size !== chosen.file.size || (chosen.sha512 && file.sha512 !== chosen.sha512))
+        throw new MismatchError(`${chosen.file.name} isn't the file the release lists`);
+      staged = kind === "mac" ? await deps.unpack(file.path, macArchiveOf(chosen.file.name), notice.version) : file.path;
       set({ step: "ready", progress: 1 });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);

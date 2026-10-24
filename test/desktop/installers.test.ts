@@ -180,8 +180,8 @@ describe("the Windows installer", () => {
       url: `${RELEASE}/${name}`,
       size: 10,
     }));
-    expect(pickReleaseFile(files, "windows", "x64")).toEqual({ file: files[0], info: files[2] });
-    expect(pickReleaseFile(files, "windows", "arm64")).toEqual({ file: files[1], info: files[3] });
+    expect(pickReleaseFile(files, "windows", "x64")).toEqual({ file: files[0], smaller: null, info: files[2] });
+    expect(pickReleaseFile(files, "windows", "arm64")).toEqual({ file: files[1], smaller: null, info: files[3] });
     // 0.1.0-alpha.5 takes the first Setup…exe on any PC, and an ARM build doesn't start on an Intel or AMD one.
     expect(files.filter(({ name }) => /Setup.*\.exe$/i.test(name))).toEqual([files[0]]);
   });
