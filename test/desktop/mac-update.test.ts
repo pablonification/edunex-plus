@@ -1,4 +1,4 @@
-// The Mac update, a third smaller (scripts/package-mac-update.mjs): every release build packs the
+// The Mac update, about a third smaller (scripts/package-mac-update.mjs): every release build packs the
 // app in each Mac zip again as a .tar.xz beside it, and the app updates from that when the release
 // lists it (src/desktop/updater.ts unpacks it). Its name must never fit what older copies look for:
 // they'd take it for the zip. On a Mac, the last tests pack a small signed app the way a release

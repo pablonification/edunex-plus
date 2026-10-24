@@ -28,8 +28,8 @@ import { EngineError } from "../engine/errors";
 export type UpdateKind = "mac" | "windows" | "appImage";
 export type Arch = "arm64" | "x64";
 /**
- * How a Mac update is packed: the zip every release has, or the same app as a .tar.xz, a third
- * smaller, which newer releases have beside it (scripts/package-mac-update.mjs).
+ * How a Mac update is packed: the zip every release has, or the same app as a .tar.xz, about a
+ * third smaller, which newer releases have beside it (scripts/package-mac-update.mjs).
  */
 export type MacArchive = "zip" | "tarXz";
 

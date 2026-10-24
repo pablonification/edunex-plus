@@ -5,7 +5,7 @@
 // already bundled, so no node_modules. The fuses are flipped and checked in
 // scripts/package-fuses.mjs; the Mac app is signed with the certificate in scripts/package-sign.mjs;
 // the disk image is packed smaller in scripts/package-dmg.mjs; after the build, release builds pack
-// the app in each Mac zip again, a third smaller, for updating (scripts/package-mac-update.mjs).
+// the app in each Mac zip again, about a third smaller, for updating (scripts/package-mac-update.mjs).
 // Release builds of the Windows installers are signed by SignPath in two passes
 // (scripts/package-win.mjs, scripts/package-sign-win.mjs); the release workflow then puts each in a
 // zip too (scripts/package-zip-win.mjs).

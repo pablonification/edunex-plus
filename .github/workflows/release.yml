@@ -186,7 +186,7 @@ jobs:
             # Pass 1: the installers, and in release/to-sign the programs to sign first.
             npm run package:win -- --to-sign release/to-sign
           fi
-      # The same Mac app as each zip, packed a third smaller for updating: a .tar.xz beside it, in
+      # The same Mac app as each zip, packed about a third smaller for updating: a .tar.xz beside it, in
       # latest-mac.yml with its sha512, checked to unpack to the signed app
       # (scripts/package-mac-update.mjs). The zip stays: copies up to 0.1.0-alpha.16 update only from it.
       - name: Pack the Mac update smaller (macOS)

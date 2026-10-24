@@ -1,7 +1,8 @@
-// The Mac update, a third smaller. The app updates itself from one file of a release
+// The Mac update, about a third smaller. The app updates itself from one file of a release
 // (src/desktop/self-update.ts); on a Mac, up to 0.1.0-alpha.16, from the zip electron-builder makes
-// (Edunex-Plus-<version>-<arch>-mac.zip, about 118 MB). Once electron-builder is done, this packs the
-// app in each zip again as Edunex-Plus-<version>-<arch>-mac.tar.xz (about 80 MB): tar keeps the links
+// (Edunex-Plus-<version>-<arch>-mac.zip, 118 MB for Apple silicon, 125 MB for Intel). Once
+// electron-builder is done, this packs the app in each zip again as
+// Edunex-Plus-<version>-<arch>-mac.tar.xz (80 MB, and 90 MB for Intel): tar keeps the links
 // and modes Electron's frameworks need, as the zip does, and xz packs it tighter. Each goes into
 // latest-mac.yml beside its zip, with its sha512 and size, so the app checks it as it checks the zip.
 // The zip stays in every release: copies up to 0.1.0-alpha.16 update only from a file named like it.
