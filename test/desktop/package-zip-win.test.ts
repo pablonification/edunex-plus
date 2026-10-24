@@ -106,6 +106,6 @@ describe("the zip beside each Windows installer", () => {
     expect(at("node scripts/package-zip-win.mjs release")).toBeGreaterThan(at("name: Put the signed installers in place (Windows)"));
     expect(at("node scripts/package-zip-win.mjs release")).toBeLessThan(at("name: Keep the installers"));
     expect(workflow).toContain("release/*.zip");
-    expect(workflow).toContain("files=(*.dmg *.zip *.exe *.deb *.AppImage)");
+    expect(workflow).toContain("files=(*.dmg *.zip *.tar.xz *.exe *.deb *.AppImage)");
   });
 });
