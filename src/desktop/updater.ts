@@ -36,6 +36,9 @@ const MAX_TEXT = 2 * 1024 * 1024;
 /** GitHub's API, the only place the release's file list comes from. */
 const isApiUrl = (url: string) => url.startsWith("https://api.github.com/");
 
+/** Where an update is downloaded and unpacked, in the system's temporary folder; emptied for each download. */
+const updateFolder = () => path.join(app.getPath("temp"), "edunex-plus-update");
+
 export interface ElectronUpdaterOptions {
   /** False for development and demo builds: they only ever open the release page. */
   packaged: boolean;
@@ -46,7 +49,7 @@ export interface ElectronUpdaterOptions {
 }
 
 export function electronUpdater(options: ElectronUpdaterOptions): Updater {
-  const folder = path.join(app.getPath("temp"), "edunex-plus-update");
+  const folder = updateFolder();
 
   /** GET with redirects followed only while `allowed` says so; the body goes to `sink`. */
   function get(
@@ -176,7 +179,7 @@ export function electronUpdater(options: ElectronUpdaterOptions): Updater {
       );
       return { path: target, sha512: hash.digest("base64"), size };
     },
-    unpack: (archive, kind, version) => unpackMacUpdate(archive, kind, version, path.join(folder, "app")),
+    unpack: unpackMacUpdate,
     install: async (kind: UpdateKind, staged, reopen) => {
       if (kind === "mac") {
         const bundle = macBundleOf(app.getPath("exe"));
@@ -211,13 +214,14 @@ export function electronUpdater(options: ElectronUpdaterOptions): Updater {
 }
 
 /**
- * Unpacks a downloaded Mac update into `into`, made afresh, and checks it holds one app, a folder,
- * that is this app at `version`; the new app's path. The zip with ditto; the .tar.xz with macOS's
- * own tar (bsdtar), which reads xz on every macOS the app runs on. Without -P, tar refuses an entry
- * with ".." in its path or one that goes through a link, and takes the "/" off an absolute path, so
- * nothing it unpacks lands outside `into`.
+ * Unpacks a downloaded Mac update into a fresh folder in the update folder, and checks it holds one
+ * app, a folder, that is this app at `version`; the new app's path. The zip with ditto; the .tar.xz
+ * with macOS's own tar (bsdtar), which reads xz on every macOS the app runs on. Without -P, tar
+ * refuses an entry with ".." in its path or one that goes through a link, and takes the "/" off an
+ * absolute path, so nothing it unpacks lands outside that folder.
  */
-export async function unpackMacUpdate(archive: string, kind: MacArchive, version: string, into: string): Promise<string> {
+export async function unpackMacUpdate(archive: string, kind: MacArchive, version: string): Promise<string> {
+  const into = path.join(updateFolder(), "app");
   await fsp.rm(into, { recursive: true, force: true });
   await fsp.mkdir(into, { recursive: true });
   if (kind === "tarXz") await run("/usr/bin/tar", ["-x", "-f", archive, "-C", into]);

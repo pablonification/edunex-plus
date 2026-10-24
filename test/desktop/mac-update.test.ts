@@ -12,7 +12,9 @@ import { packArgs, packMacUpdate, updateName } from "../../scripts/package-mac-u
 import { pickReleaseFile } from "../../src/desktop/self-update";
 import { unpackMacUpdate } from "../../src/desktop/updater";
 
-vi.mock("electron", () => ({ app: {}, net: {}, shell: {} }));
+// The system's temporary folder, where the app downloads and unpacks an update: a fresh one for each test.
+const system = vi.hoisted(() => ({ temp: "" }));
+vi.mock("electron", () => ({ app: { getPath: () => system.temp }, net: {}, shell: {} }));
 
 const root = path.resolve(import.meta.dirname, "../..");
 const RELEASE = "https://github.com/pablonification/edunex-plus/releases/download/v1.2.3";
@@ -105,8 +107,11 @@ const verifies = (app: string) => {
 
 describe.runIf(process.platform === "darwin")("the Mac update on this Mac", () => {
   let work = "";
+  let into = "";
   beforeEach(() => {
     work = fs.mkdtempSync(path.join(os.tmpdir(), "mac-update-test-"));
+    system.temp = work;
+    into = path.join(work, "edunex-plus-update", "app");
   });
   afterEach(() => fs.rmSync(work, { recursive: true, force: true }));
 
@@ -117,18 +122,20 @@ describe.runIf(process.platform === "darwin")("the Mac update on this Mac", () =
     const tarXz = path.join(work, updateName(path.basename(zip)));
     const { size } = await packMacUpdate(zip, tarXz);
     expect(size).toBe(fs.statSync(tarXz).size);
-    const fromTar = await unpackMacUpdate(tarXz, "tarXz", "1.2.3", path.join(work, "from-tar"));
-    const fromZip = await unpackMacUpdate(zip, "zip", "1.2.3", path.join(work, "from-zip"));
-    for (const unpacked of [fromTar, fromZip]) {
-      expect(path.basename(unpacked)).toBe("Edunex Plus.app");
-      expect(verifies(unpacked), unpacked).toBe(true);
+    for (const [archive, kind] of [
+      [tarXz, "tarXz"],
+      [zip, "zip"],
+    ] as const) {
+      const unpacked = await unpackMacUpdate(archive, kind, "1.2.3");
+      expect(unpacked).toBe(path.join(into, "Edunex Plus.app"));
+      expect(verifies(unpacked), kind).toBe(true);
       const framework = path.join(unpacked, "Contents", "Frameworks", "Pretend.framework");
       expect(fs.readlinkSync(path.join(framework, "Versions", "Current"))).toBe("A");
       expect(fs.readlinkSync(path.join(framework, "Pretend"))).toBe("Versions/Current/Pretend");
       expect(fs.statSync(path.join(unpacked, "Contents", "MacOS", "Edunex Plus")).mode & 0o777).toBe(0o755);
+      // Downloaded once, put in place from the unpacked app: the download itself is gone.
+      expect(fs.existsSync(archive)).toBe(false);
     }
-    // Downloaded once, put in place from the unpacked app: the download itself is gone.
-    expect([fs.existsSync(tarXz), fs.existsSync(zip)]).toEqual([false, false]);
   });
 
   it("is refused when it holds another app, another version, two apps, or a link where the app should be", async () => {
@@ -143,14 +150,14 @@ describe.runIf(process.platform === "darwin")("the Mac update on this Mac", () =
       tar(["-c", "-J", "-f", out, "-C", folder, ...names]);
       return out;
     };
-    const unpack = (archive: string, version = "1.2.3") => unpackMacUpdate(archive, "tarXz", version, path.join(work, "into"));
+    const unpack = (archive: string, version = "1.2.3") => unpackMacUpdate(archive, "tarXz", version);
     await expect(unpack(packed(built, "Edunex Plus.app"), "1.3.0")).rejects.toThrow("another app or another version");
     await expect(unpack(packed(path.join(work, "other-id"), "Edunex Plus.app"))).rejects.toThrow("another app or another version");
     await expect(unpack(packed(built, "Edunex Plus.app", "Other.app"))).rejects.toThrow("doesn't hold one app");
     await expect(unpack(packed(path.join(work, "linked"), "Edunex Plus.app"))).rejects.toThrow("doesn't hold one app");
     const tarXz = path.join(work, "good.tar.xz");
     tar(packArgs(app, tarXz));
-    await expect(unpack(tarXz)).resolves.toBe(path.join(work, "into", "Edunex Plus.app"));
+    await expect(unpack(tarXz)).resolves.toBe(path.join(into, "Edunex Plus.app"));
   });
 
   it("never unpacks anything outside its folder: '..' and a path through a link are refused, an absolute path lands inside", async () => {
@@ -158,19 +165,18 @@ describe.runIf(process.platform === "darwin")("the Mac update on this Mac", () =
     makeApp(built);
     fs.writeFileSync(path.join(built, "loose"), "not part of the app");
     fs.symlinkSync(work, path.join(built, "link"));
-    const into = path.join(work, "into");
     // -P keeps the paths as -s rewrites them, as only a crafted archive would have them.
     const crafted = (from: string, to: string, ...extra: string[]) => {
       const out = path.join(work, `crafted-${extra.length}-${path.basename(to)}.tar.xz`);
       tar(["-c", "-J", "-P", "-s", `,^loose$,${to},`, "-f", out, "-C", built, "Edunex Plus.app", ...extra, from]);
       return out;
     };
-    await expect(unpackMacUpdate(crafted("loose", "../escaped"), "tarXz", "1.2.3", into)).rejects.toThrow();
-    expect(fs.existsSync(path.join(work, "escaped"))).toBe(false);
-    await expect(unpackMacUpdate(crafted("loose", "link/through", "link"), "tarXz", "1.2.3", into)).rejects.toThrow();
+    await expect(unpackMacUpdate(crafted("loose", "../escaped"), "tarXz", "1.2.3")).rejects.toThrow();
+    expect(fs.existsSync(path.join(into, "..", "escaped"))).toBe(false);
+    await expect(unpackMacUpdate(crafted("loose", "link/through", "link"), "tarXz", "1.2.3")).rejects.toThrow();
     expect(fs.existsSync(path.join(work, "through"))).toBe(false);
     const absolute = path.join(work, "absolute");
-    await expect(unpackMacUpdate(crafted("loose", absolute), "tarXz", "1.2.3", into)).resolves.toBe(path.join(into, "Edunex Plus.app"));
+    await expect(unpackMacUpdate(crafted("loose", absolute), "tarXz", "1.2.3")).resolves.toBe(path.join(into, "Edunex Plus.app"));
     expect(fs.existsSync(absolute)).toBe(false);
     expect(fs.existsSync(path.join(into, absolute))).toBe(true);
   });
