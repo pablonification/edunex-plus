@@ -147,7 +147,10 @@ export default {
     // The one-click window shows it above its progress bar.
     installerHeaderIcon: "assets/icon.ico",
     include: "assets/installer.nsh",
-    differentialPackage: false,
+    // The app inside the installer packed file by file (not one solid stream), so the parts that
+    // didn't change are the same bytes in the next release, and an update downloads only the rest
+    // (docs/adr/0008-download-only-what-changed.md). The installer is a little bigger for it.
+    differentialPackage: true,
     // No elevate.exe in the app: it only serves electron-updater installing for everyone, and this
     // app installs per user and updates itself (src/desktop/updater.ts). It would also be copied, unsigned,
     // into the signed app folder when the installers are made from it (scripts/package-win.mjs --signed).
