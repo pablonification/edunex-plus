@@ -11,6 +11,7 @@ import path from "node:path";
 import { promisify } from "node:util";
 import { app, type IncomingMessage, net, type Session, shell } from "electron";
 import type { UpdateInstall, UpdateNotice } from "../core/models";
+import { downloadPartial, isRangeAnswer } from "./partial-update";
 import {
   type Arch,
   createUpdater,
@@ -32,6 +33,11 @@ const run = promisify(execFile);
 /** Give up on a download that sends nothing for this long. */
 const STALLED_AFTER = 60_000;
 const MAX_TEXT = 2 * 1024 * 1024;
+/** How long a signed link GitHub sent a download on to is used again (GitHub's last longer). */
+const SIGNED_FOR = 5 * 60_000;
+
+/** GitHub answered, but not as asked (a signed link that ran out answers 403). */
+class StatusError extends Error {}
 
 /** GitHub's API, the only place the release's file list comes from. */
 const isApiUrl = (url: string) => url.startsWith("https://api.github.com/");
@@ -51,12 +57,15 @@ export interface ElectronUpdaterOptions {
 export function electronUpdater(options: ElectronUpdaterOptions): Updater {
   const folder = updateFolder();
 
-  /** GET with redirects followed only while `allowed` says so; the body goes to `sink`. */
+  /**
+   * GET with redirects followed only while `allowed` says so; the body goes to `sink`. `status` is the
+   * answer expected (206 for a range), and `redirected` hears each place it's sent on to.
+   */
   function get(
     url: string,
     allowed: (url: string) => boolean,
     sink: (response: IncomingMessage) => Promise<void>,
-    headers: Record<string, string> = {},
+    { headers = {}, status = 200, redirected }: { headers?: Record<string, string>; status?: number; redirected?: (url: string) => void } = {},
   ): Promise<void> {
     if (!allowed(url)) return Promise.reject(new Error(`Not a GitHub address: ${url}`));
     return new Promise((resolve, reject) => {
@@ -75,11 +84,12 @@ export function electronUpdater(options: ElectronUpdaterOptions): Updater {
       for (const [name, value] of Object.entries(headers)) client.setHeader(name, value);
       client.on("redirect", (_status, _method, location) => {
         // Followed now or never (ClientRequest drops it otherwise); anywhere else ends the download.
-        if (allowed(location)) client.followRedirect();
-        else fail(new Error(`Sent away from GitHub: ${location}`));
+        if (!allowed(location)) return fail(new Error(`Sent away from GitHub: ${location}`));
+        redirected?.(location);
+        client.followRedirect();
       });
       client.on("response", (response) => {
-        if (response.statusCode !== 200) return fail(new Error(`GitHub answered ${response.statusCode}`));
+        if (response.statusCode !== status) return fail(new StatusError(`GitHub answered ${response.statusCode}`));
         response.on("data", stall);
         sink(response).then(
           () => {
@@ -96,7 +106,11 @@ export function electronUpdater(options: ElectronUpdaterOptions): Updater {
   }
 
   async function text(url: string, allowed: (url: string) => boolean, headers?: Record<string, string>): Promise<string> {
-    let body = "";
+    return (await bytes(url, allowed, MAX_TEXT, headers)).toString("utf8");
+  }
+
+  async function bytes(url: string, allowed: (url: string) => boolean, max: number, headers?: Record<string, string>): Promise<Buffer> {
+    let body = Buffer.alloc(0);
     await get(
       url,
       allowed,
@@ -106,19 +120,70 @@ export function electronUpdater(options: ElectronUpdaterOptions): Updater {
           let size = 0;
           response.on("data", (chunk: Buffer) => {
             size += chunk.length;
-            // A release's file list and its latest*.yml are small; anything bigger isn't them.
-            if (size > MAX_TEXT) return reject(new MismatchError(`${url} is too big`));
+            // A release's file list, its latest*.yml and its chunk maps are small; anything bigger isn't them.
+            if (size > max) return reject(new MismatchError(`${url} is too big`));
             chunks.push(chunk);
           });
           response.on("end", () => {
-            body = Buffer.concat(chunks).toString("utf8");
+            body = Buffer.concat(chunks);
             resolve();
           });
           response.on("error", reject);
         }),
-      headers,
+      { headers },
     );
     return body;
+  }
+
+  /** Where GitHub last sent each release file on to, and when: a signed link, good for a while, so each range skips a step. */
+  const signed = new Map<string, { url: string; at: number }>();
+
+  /** Bytes `start` to `end` (not included) of a release file, as ./partial-update.ts asks for them. */
+  async function range(file: ReleaseFile, start: number, end: number, onData: (data: Buffer) => void): Promise<void> {
+    const reused = signed.get(file.url);
+    const from = reused && Date.now() - reused.at < SIGNED_FOR ? reused.url : file.url;
+    const ask = (url: string) =>
+      get(
+        url,
+        isDownloadUrl,
+        (response) =>
+          new Promise((resolve, reject) => {
+            if (!isRangeAnswer(String(response.headers["content-range"] ?? ""), start, end, file.size)) {
+              return reject(new MismatchError(`GitHub sent another part of ${file.name}`));
+            }
+            let size = 0;
+            let stopped = false;
+            const stop = (error: unknown) => {
+              stopped = true;
+              reject(error);
+            };
+            response.on("data", (chunk: Buffer) => {
+              if (stopped) return;
+              size += chunk.length;
+              if (size > end - start) return stop(new MismatchError(`GitHub sent more of ${file.name} than asked`));
+              try {
+                onData(chunk);
+              } catch (error) {
+                stop(error);
+              }
+            });
+            response.on("end", () => (size === end - start ? resolve() : stop(new Error(`GitHub sent less of ${file.name} than asked`))));
+            response.on("error", stop);
+          }),
+        {
+          headers: { range: `bytes=${start}-${end - 1}` },
+          status: 206,
+          redirected: (location) => signed.set(file.url, { url: location, at: Date.now() }),
+        },
+      );
+    try {
+      await ask(from);
+    } catch (error) {
+      // The signed link has run out (or was refused) before anything came: GitHub is asked for a new one.
+      if (from === file.url || !(error instanceof StatusError)) throw error;
+      signed.delete(file.url);
+      await ask(file.url);
+    }
   }
 
   const deps: UpdaterDeps = {
@@ -143,6 +208,20 @@ export function electronUpdater(options: ElectronUpdaterOptions): Updater {
     notice: options.notice,
     api: async (url) => JSON.parse(await text(url, isApiUrl, { accept: "application/vnd.github+json", "x-github-api-version": "2022-11-28" })),
     text: (url) => text(url, isDownloadUrl),
+    patch: async (update, progress) => {
+      const have = await haveAlready(update.kind);
+      if (!have) return null;
+      await fsp.rm(folder, { recursive: true, force: true });
+      const into = update.kind === "mac" ? path.join(folder, "app") : folder;
+      await fsp.mkdir(into, { recursive: true });
+      try {
+        const made = await downloadPartial({ ...update, have, into, progress }, { bytes: (file) => bytes(file.url, isDownloadUrl, file.size), range });
+        return made && update.kind === "mac" ? await checkApp(made, update.version) : made;
+      } catch (error) {
+        console.warn("[update] downloading only what changed didn't work, so the whole file comes instead:", error);
+        throw error;
+      }
+    },
     download: async (file: ReleaseFile, progress) => {
       await fsp.rm(folder, { recursive: true, force: true });
       await fsp.mkdir(folder, { recursive: true });
@@ -227,6 +306,11 @@ export async function unpackMacUpdate(archive: string, kind: MacArchive, version
   if (kind === "tarXz") await run("/usr/bin/tar", ["-x", "-f", archive, "-C", into]);
   else await run("/usr/bin/ditto", ["-x", "-k", archive, into]);
   await fsp.rm(archive, { force: true });
+  return checkApp(into, version);
+}
+
+/** Mac: the one app in `into` (unpacked, or put together from chunks), a folder, checked to be this app at `version`; its path. */
+async function checkApp(into: string, version: string): Promise<string> {
   const apps = (await fsp.readdir(into)).filter((name) => name.endsWith(".app"));
   const unpacked = apps.length === 1 ? path.join(into, apps[0]) : null;
   // A link named like an app would put whatever it points at in the app's place.
@@ -239,6 +323,22 @@ export async function unpackMacUpdate(archive: string, kind: MacArchive, version
   // Downloaded by the app itself, so not marked; cleared anyway, so macOS opens it without asking.
   await run("/usr/bin/xattr", ["-dr", "com.apple.quarantine", unpacked]).catch(() => undefined);
   return unpacked;
+}
+
+/**
+ * What this computer already has of the new version, for ./partial-update.ts to take chunks from:
+ * the Mac app itself; on Windows the installer that put this version in place, which
+ * electron-builder's installer copies to %LOCALAPPDATA%\<package name>-updater\installer.exe each
+ * time it runs (its updaterCacheDirName); the AppImage running now. Null when it isn't there.
+ */
+async function haveAlready(kind: UpdateKind): Promise<string | null> {
+  const found =
+    kind === "mac"
+      ? macBundleOf(app.getPath("exe"))
+      : kind === "windows"
+        ? process.env.LOCALAPPDATA && path.join(process.env.LOCALAPPDATA, "edunex-plus-updater", "installer.exe")
+        : process.env.APPIMAGE;
+  return found && (await fsp.stat(found).catch(() => null)) ? found : null;
 }
 
 /** Whether this user may replace what's at these paths. */

@@ -13,8 +13,10 @@ import {
   isPlainFileName,
   isReleaseFileUrl,
   MAC_SWAP_SCRIPT,
+  MismatchError,
   macBundleOf,
   macPlaceProblem,
+  type Patch,
   pickReleaseFile,
   type ReleaseFile,
   releaseApiUrl,
@@ -215,6 +217,7 @@ describe("the update plan", () => {
       notice: () => notice,
       api: async () => answer,
       text: async () => yml,
+      patch: async () => null,
       download: async (_file, progress) => {
         progress(0.5);
         return { path: "/tmp/x.zip", sha512: SHA, size: 100 };
@@ -375,6 +378,83 @@ describe("the update plan", () => {
     await settled();
     expect(sent.at(-1)).toMatchObject({ step: "failed", problem: "mismatch" });
     await expect(updater.install()).rejects.toThrow();
+  });
+
+  it("downloads only what changed when the release maps it, and puts that in place", async () => {
+    const asked: Patch[] = [];
+    let downloads = 0;
+    const { updater, sent, installed, settled } = setUp({
+      patch: async (update, progress) => {
+        asked.push(update);
+        progress(0.4);
+        return "/tmp/app/Edunex Plus.app";
+      },
+      download: async () => {
+        downloads++;
+        return { path: "/tmp/x.zip", sha512: SHA, size: 100 };
+      },
+    });
+    await updater.download();
+    await settled();
+    expect(asked).toEqual([{ kind: "mac", arch: "arm64", version: "1.2.0", release: [zip, file("latest-mac.yml")], file: zip, yml, sha512: SHA }]);
+    expect(downloads).toBe(0);
+    expect(sent.map((s) => [s.step, s.progress])).toEqual([
+      ["downloading", null],
+      ["downloading", 0.4],
+      ["ready", 1],
+    ]);
+    await updater.install();
+    expect(installed).toEqual(["/tmp/app/Edunex Plus.app"]);
+  });
+
+  it("downloads the whole file when only what changed doesn't line up, its bar starting again", async () => {
+    const { updater, sent, installed, settled } = setUp({
+      patch: async (_update, progress) => {
+        progress(0.3);
+        throw new MismatchError("Chunk 3 isn't the one the map lists");
+      },
+    });
+    await updater.download();
+    await settled();
+    expect(sent.map((s) => [s.step, s.progress])).toEqual([
+      ["downloading", null],
+      ["downloading", 0.3],
+      ["downloading", null],
+      ["downloading", 0.5],
+      ["ready", 1],
+    ]);
+    await updater.install();
+    expect(installed).toEqual(["/tmp/app/Edunex Plus.app"]);
+  });
+
+  it("doesn't try the whole file without a connection, nor only what changed for a release without update info", async () => {
+    let downloads = 0;
+    const offline = setUp({
+      patch: async () => {
+        throw new Error("net::ERR_INTERNET_DISCONNECTED");
+      },
+      download: async () => {
+        downloads++;
+        return { path: "/tmp/x.zip", sha512: SHA, size: 100 };
+      },
+    });
+    await offline.updater.download();
+    await offline.settled();
+    expect(offline.sent.at(-1)).toMatchObject({ step: "failed", problem: "offline" });
+    expect(downloads).toBe(0);
+
+    let patched = 0;
+    const older = setUp({
+      api: async () => ({ ...answer, assets: answer.assets.slice(0, 1) }),
+      patch: async () => {
+        patched++;
+        return null;
+      },
+    });
+    await older.updater.download();
+    await older.settled();
+    expect(older.sent.at(-1)).toMatchObject({ step: "ready" });
+    expect(patched).toBe(0);
   });
 
   it("says when there's no connection", async () => {
