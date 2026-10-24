@@ -93,6 +93,16 @@ describe("the files a release publishes for updating from inside the app", () =>
   });
 });
 
+describe("the Linux AppImage", () => {
+  it("opens on Ubuntu 22.04 and newer as they come, packed with zstd", () => {
+    // electron-builder's static runtime needs no libfuse2, and packs with zstd by itself: "gzip"
+    // or "store" would make it bigger again, and "xz" quietly becomes zstd.
+    expect(config.toolsets?.appimage).toBe("1.0.3");
+    expect(config.appImage?.compression ?? null).toBeNull();
+    expect(config.compression ?? "normal").not.toBe("store");
+  });
+});
+
 describe("the macOS disk image", () => {
   const dmg = config.dmg ?? {};
   const [app, applications, terminal] = dmg.contents ?? [];

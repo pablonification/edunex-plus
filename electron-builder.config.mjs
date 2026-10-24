@@ -5,7 +5,8 @@
 // already bundled, so no node_modules. The fuses are flipped and checked in
 // scripts/package-fuses.mjs; the Mac app is signed with the certificate in scripts/package-sign.mjs;
 // the disk image is packed smaller in scripts/package-dmg.mjs. Release builds of the Windows
-// installers are signed by SignPath in two passes (scripts/package-win.mjs, scripts/package-sign-win.mjs).
+// installers are signed by SignPath in two passes (scripts/package-win.mjs, scripts/package-sign-win.mjs);
+// the release workflow then puts each in a zip too (scripts/package-zip-win.mjs).
 import { artifactBuildCompleted } from "./scripts/package-dmg.mjs";
 import { afterPack } from "./scripts/package-fuses.mjs";
 import { afterSign, KEYCHAIN_HELPER } from "./scripts/package-sign.mjs";
@@ -22,6 +23,17 @@ const uninstallers = uninstallerStep(process.env);
 export const WINDOWS_ARM_INSTALLER = "Edunex-Plus-${version}-arm64.${ext}";
 /** The ARM installer's update info: electron-builder names it latest.yml too, so it's renamed. */
 export const WINDOWS_ARM_UPDATE_INFO = "latest-win-arm64.yml";
+// Each Windows installer also goes on the release in a zip holding just that installer, signed as
+// it is beside it (scripts/package-zip-win.mjs): to try whether browsers warn less about a zip than
+// about the installer itself. No version of the app updates itself from them
+// (src/desktop/self-update.ts takes "Setup….exe", "…-arm64.exe" and "…-<arch>-mac.zip"): each ends
+// in "-windows-<arch>.zip".
+export const WINDOWS_ZIPS = {
+  // biome-ignore lint/suspicious/noTemplateCurlyInString: filled in as electron-builder's ${…} names are
+  x64: "Edunex-Plus-Setup-${version}-windows-x64.zip",
+  // biome-ignore lint/suspicious/noTemplateCurlyInString: filled in as electron-builder's ${…} names are
+  arm64: "Edunex-Plus-${version}-windows-arm64.zip",
+};
 
 export default {
   // Matches app.setAppUserModelId in src/desktop/main.ts (Windows notifications).
@@ -138,6 +150,16 @@ export default {
     // into the signed app folder when the installers are made from it (scripts/package-win.mjs --signed).
     packElevateHelper: false,
   },
+  // The AppImage is made with electron-builder's newer AppImage tools (1.0.3, its default from
+  // electron-builder 27). Their runtime opens it on Ubuntu 22.04 and newer as they come: the old
+  // one needs libfuse2, which they leave out, and stopped at "AppImages require FUSE to run". It's
+  // also packed with zstd instead of gzip: 8% smaller (116.7 MB, not 126.2) and as quick to open.
+  // Each Linux update downloads the whole AppImage (src/desktop/updater.ts), so that's every
+  // update's size too. xz would make it 21% smaller, but only the old runtime reads it, and it
+  // unpacks eight times slower than gzip as the app starts. Its launcher (AppRun) turns Chromium's
+  // sandbox off only where the system doesn't let it start (Ubuntu 24.04); the old tools' menu
+  // entry turned it off everywhere.
+  toolsets: { appimage: "1.0.3" },
   appImage: {
     // biome-ignore lint/suspicious/noTemplateCurlyInString: electron-builder fills in its own ${…} names
     artifactName: "Edunex-Plus-${version}-${arch}.${ext}",
