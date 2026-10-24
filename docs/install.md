@@ -59,7 +59,8 @@ for a while after you try to open the app: if it's gone, open the app again firs
 </details>
 
 A `.zip` (`…-arm64-mac.zip`, on Intel `…-x64-mac.zip`) is there too, if you prefer it to the disk image: unzip it and move
-the app to Applications, then the same steps.
+the app to Applications, then the same steps. The `…-mac.tar.xz` beside it is what the app downloads when it updates
+itself: you don't need it.
 
 ## Windows
 

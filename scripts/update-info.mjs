@@ -5,6 +5,9 @@
 // in their place:
 //
 //   node scripts/update-info.mjs release
+//
+// It also lists files electron-builder doesn't make, as the smaller Mac update
+// (scripts/package-mac-update.mjs, `withFilesListed`).
 import { createHash } from "node:crypto";
 import { createReadStream } from "node:fs";
 import { readdir, readFile, stat, writeFile } from "node:fs/promises";
@@ -12,6 +15,10 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 
 const unquote = (value) => value.trim().replace(/^(['"])(.*)\1$/, "$2");
+
+function checkSha512(name, sha512) {
+  if (!/^[A-Za-z0-9+/]{86}==$/.test(sha512)) throw new Error(`Not a sha512 for ${name}: ${sha512}`);
+}
 
 /**
  * The file names an update info file lists, in the short, fixed shape electron-builder writes:
@@ -27,9 +34,7 @@ export function listedFiles(yml) {
  * Every other line stays as it was. Throws when the file lists none of them, or a hash is malformed.
  */
 export function withSignedFiles(yml, signed) {
-  for (const [name, { sha512 }] of Object.entries(signed)) {
-    if (!/^[A-Za-z0-9+/]{86}==$/.test(sha512)) throw new Error(`Not a sha512 for ${name}: ${sha512}`);
-  }
+  for (const [name, { sha512 }] of Object.entries(signed)) checkSha512(name, sha512);
   const top = /^path:\s*(.+)$/m.exec(yml);
   const main = top ? unquote(top[1]) : null;
   let current = null;
@@ -53,6 +58,29 @@ export function withSignedFiles(yml, signed) {
   }
   if (!changed) throw new Error(`The update info lists none of ${Object.keys(signed).join(", ")}`);
   return lines.join("");
+}
+
+/**
+ * The update info with each file in `files` ({ name: { sha512, size } }) listed: one it lists already
+ * gets the new sha512 and size, as in withSignedFiles; a new one goes after the files it lists, so an
+ * app that knows only those reads them as before. Throws when the file has no `files:` list.
+ */
+export function withFilesListed(yml, files) {
+  const listed = new Set(listedFiles(yml));
+  const known = Object.entries(files).filter(([name]) => listed.has(name));
+  const added = Object.entries(files).filter(([name]) => !listed.has(name));
+  for (const [name, { sha512 }] of added) checkSha512(name, sha512);
+  const updated = known.length ? withSignedFiles(yml, Object.fromEntries(known)) : yml;
+  if (!added.length) return updated;
+  const end = updated.includes("\r\n") ? "\r\n" : "\n";
+  const lines = updated.split(end);
+  const start = lines.findIndex((line) => /^files:\s*$/.test(line));
+  if (start === -1) throw new Error("The update info has no files: list");
+  // The list goes on while its lines are indented.
+  let after = start + 1;
+  while (after < lines.length && /^\s/.test(lines[after])) after++;
+  lines.splice(after, 0, ...added.flatMap(([name, { sha512, size }]) => [`  - url: ${name}`, `    sha512: ${sha512}`, `    size: ${size}`]));
+  return lines.join(end);
 }
 
 /** A file's sha512, base64, as electron-builder writes it. */

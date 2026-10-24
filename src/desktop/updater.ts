@@ -17,6 +17,7 @@ import {
   isDownloadUrl,
   isPlainFileName,
   MAC_SWAP_SCRIPT,
+  type MacArchive,
   MismatchError,
   macBundleOf,
   macPlaceProblem,
@@ -175,23 +176,7 @@ export function electronUpdater(options: ElectronUpdaterOptions): Updater {
       );
       return { path: target, sha512: hash.digest("base64"), size };
     },
-    unpack: async (zip, version) => {
-      const into = path.join(folder, "app");
-      await fsp.rm(into, { recursive: true, force: true });
-      await run("/usr/bin/ditto", ["-x", "-k", zip, into]);
-      await fsp.rm(zip, { force: true });
-      const apps = (await fsp.readdir(into)).filter((name) => name.endsWith(".app"));
-      if (apps.length !== 1) throw new MismatchError("The zip doesn't hold one app");
-      const unpacked = path.join(into, apps[0]);
-      const plist = path.join(unpacked, "Contents", "Info.plist");
-      const read = async (key: string) => (await run("/usr/bin/plutil", ["-extract", key, "raw", "-o", "-", plist])).stdout.trim();
-      if ((await read("CFBundleIdentifier")) !== "id.edunexplus.desktop" || (await read("CFBundleShortVersionString")) !== version) {
-        throw new MismatchError("The zip holds another app or another version");
-      }
-      // Downloaded by the app itself, so not marked; cleared anyway, so macOS opens it without asking.
-      await run("/usr/bin/xattr", ["-dr", "com.apple.quarantine", unpacked]).catch(() => undefined);
-      return unpacked;
-    },
+    unpack: (archive, kind, version) => unpackMacUpdate(archive, kind, version, path.join(folder, "app")),
     install: async (kind: UpdateKind, staged, reopen) => {
       if (kind === "mac") {
         const bundle = macBundleOf(app.getPath("exe"));
@@ -223,6 +208,33 @@ export function electronUpdater(options: ElectronUpdaterOptions): Updater {
     send: options.send,
   };
   return createUpdater(deps);
+}
+
+/**
+ * Unpacks a downloaded Mac update into `into`, made afresh, and checks it holds one app, a folder,
+ * that is this app at `version`; the new app's path. The zip with ditto; the .tar.xz with macOS's
+ * own tar (bsdtar), which reads xz on every macOS the app runs on. Without -P, tar refuses an entry
+ * with ".." in its path or one that goes through a link, and takes the "/" off an absolute path, so
+ * nothing it unpacks lands outside `into`.
+ */
+export async function unpackMacUpdate(archive: string, kind: MacArchive, version: string, into: string): Promise<string> {
+  await fsp.rm(into, { recursive: true, force: true });
+  await fsp.mkdir(into, { recursive: true });
+  if (kind === "tarXz") await run("/usr/bin/tar", ["-x", "-f", archive, "-C", into]);
+  else await run("/usr/bin/ditto", ["-x", "-k", archive, into]);
+  await fsp.rm(archive, { force: true });
+  const apps = (await fsp.readdir(into)).filter((name) => name.endsWith(".app"));
+  const unpacked = apps.length === 1 ? path.join(into, apps[0]) : null;
+  // A link named like an app would put whatever it points at in the app's place.
+  if (!unpacked || !(await fsp.lstat(unpacked)).isDirectory()) throw new MismatchError("The update doesn't hold one app");
+  const plist = path.join(unpacked, "Contents", "Info.plist");
+  const read = async (key: string) => (await run("/usr/bin/plutil", ["-extract", key, "raw", "-o", "-", plist])).stdout.trim();
+  if ((await read("CFBundleIdentifier")) !== "id.edunexplus.desktop" || (await read("CFBundleShortVersionString")) !== version) {
+    throw new MismatchError("The update holds another app or another version");
+  }
+  // Downloaded by the app itself, so not marked; cleared anyway, so macOS opens it without asking.
+  await run("/usr/bin/xattr", ["-dr", "com.apple.quarantine", unpacked]).catch(() => undefined);
+  return unpacked;
 }
 
 /** Whether this user may replace what's at these paths. */

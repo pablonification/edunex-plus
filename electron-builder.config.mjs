@@ -4,9 +4,11 @@
 // main process and preload (dist/desktop) and the tray icons (assets/tray*); everything they use is
 // already bundled, so no node_modules. The fuses are flipped and checked in
 // scripts/package-fuses.mjs; the Mac app is signed with the certificate in scripts/package-sign.mjs;
-// the disk image is packed smaller in scripts/package-dmg.mjs. Release builds of the Windows
-// installers are signed by SignPath in two passes (scripts/package-win.mjs, scripts/package-sign-win.mjs);
-// the release workflow then puts each in a zip too (scripts/package-zip-win.mjs).
+// the disk image is packed smaller in scripts/package-dmg.mjs; after the build, release builds pack
+// the app in each Mac zip again, a third smaller, for updating (scripts/package-mac-update.mjs).
+// Release builds of the Windows installers are signed by SignPath in two passes
+// (scripts/package-win.mjs, scripts/package-sign-win.mjs); the release workflow then puts each in a
+// zip too (scripts/package-zip-win.mjs).
 import { artifactBuildCompleted } from "./scripts/package-dmg.mjs";
 import { afterPack } from "./scripts/package-fuses.mjs";
 import { afterSign, KEYCHAIN_HELPER } from "./scripts/package-sign.mjs";
@@ -113,7 +115,8 @@ export default {
     // Every disk image's name says which Mac it's for, Intel too (electron-builder leaves x64 out).
     // biome-ignore lint/suspicious/noTemplateCurlyInString: electron-builder fills in its own ${…} names
     artifactName: "Edunex-Plus-${version}-${arch}.${ext}",
-    // The app updates itself from the zip; the disk image is only for a first install.
+    // The app updates itself from the zip (or the smaller .tar.xz made from it); the disk image is
+    // only for a first install.
     writeUpdateInfo: false,
   },
   win: {

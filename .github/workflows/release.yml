@@ -24,6 +24,7 @@ on:
       - "scripts/package-sign.mjs"
       - "scripts/package-sign-win.mjs"
       - "scripts/package-win.mjs"
+      - "scripts/package-mac-update.mjs"
       - "scripts/package-zip-win.mjs"
       - "scripts/update-info.mjs"
       - "scripts/build-desktop.mjs"
@@ -185,6 +186,12 @@ jobs:
             # Pass 1: the installers, and in release/to-sign the programs to sign first.
             npm run package:win -- --to-sign release/to-sign
           fi
+      # The same Mac app as each zip, packed a third smaller for updating: a .tar.xz beside it, in
+      # latest-mac.yml with its sha512, checked to unpack to the signed app
+      # (scripts/package-mac-update.mjs). The zip stays: copies up to 0.1.0-alpha.16 update only from it.
+      - name: Pack the Mac update smaller (macOS)
+        if: matrix.target == 'mac'
+        run: node scripts/package-mac-update.mjs release
       # Run by hand: the programs to sign, as they are before signing, for checking SignPath's
       # artifact configuration against (scripts/setup-windows-signing.sh).
       - name: Keep a sample of what SignPath signs first (Windows, run by hand)
@@ -409,6 +416,7 @@ jobs:
           path: |
             release/*.dmg
             release/*.zip
+            release/*.tar.xz
             release/*.exe
             release/*.AppImage
             release/*.deb
@@ -507,7 +515,7 @@ jobs:
         working-directory: installers
         run: |
           shopt -s nullglob
-          files=(*.dmg *.zip *.exe *.deb *.AppImage)
+          files=(*.dmg *.zip *.tar.xz *.exe *.deb *.AppImage)
           if (( ${#files[@]} == 0 )); then echo "No installers to sum" >&2; exit 1; fi
           sha256sum -- "${files[@]}" > SHA256SUMS.txt
           cat SHA256SUMS.txt
