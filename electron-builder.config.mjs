@@ -153,12 +153,12 @@ export default {
   // The AppImage is made with electron-builder's newer AppImage tools (1.0.3, its default from
   // electron-builder 27). Their runtime opens it on Ubuntu 22.04 and newer as they come: the old
   // one needs libfuse2, which they leave out, and stopped at "AppImages require FUSE to run". It's
-  // also packed with zstd instead of gzip: 8% smaller (116.7 MB, not 126.2) and as quick to open.
-  // Each Linux update downloads the whole AppImage (src/desktop/updater.ts), so that's every
-  // update's size too. xz would make it 21% smaller, but only the old runtime reads it, and it
-  // unpacks eight times slower than gzip as the app starts. Its launcher (AppRun) turns Chromium's
-  // sandbox off only where the system doesn't let it start (Ubuntu 24.04); the old tools' menu
-  // entry turned it off everywhere.
+  // also packed with zstd instead of gzip: 7% smaller (117.8 MB, not 126.2, for Intel and AMD PCs)
+  // and a little quicker to open. Each Linux update downloads the whole AppImage
+  // (src/desktop/updater.ts), so that's every update's size too. xz would make it about 20%
+  // smaller, but only the old runtime reads it, and it unpacks about eight times slower than gzip
+  // as the app starts. The launcher inside (AppRun) turns Chromium's sandbox off only where the
+  // system doesn't let it start (Ubuntu 24.04); the old tools' menu entry turned it off everywhere.
   toolsets: { appimage: "1.0.3" },
   appImage: {
     // biome-ignore lint/suspicious/noTemplateCurlyInString: electron-builder fills in its own ${…} names
