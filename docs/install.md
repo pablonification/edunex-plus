@@ -108,8 +108,8 @@ chmod +x Edunex-Plus-<version>-x86_64.AppImage
 
 On ARM the file is `Edunex-Plus-<version>-arm64.AppImage`.
 
-On Ubuntu 24.04 and newer an AppImage can't set up Chromium's sandbox, so the app closes right
-away: use the `.deb` there (it sets the sandbox up), or start the AppImage with `--no-sandbox`.
+Ubuntu 24.04 and newer don't let an AppImage set up Chromium's sandbox, so there the AppImage
+opens the app without it. The `.deb` sets the sandbox up: use it there if you can.
 
 Saving your sign-in between launches needs a keyring (GNOME Keyring or KWallet). Without one,
 the app still works but asks you to sign in again after each restart, and Settings says so.

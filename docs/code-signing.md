@@ -19,6 +19,10 @@ On Windows, for each kind of PC (Intel or AMD, and ARM):
 - the app's own program, `Edunex Plus.exe`, inside it;
 - the uninstaller, `Uninstall Edunex Plus.exe`, which every update also runs.
 
+Each installer also comes in a zip, `Edunex-Plus-Setup-<version>-windows-x64.zip` or
+`Edunex-Plus-<version>-windows-arm64.zip`, holding that same signed installer. A zip itself can't
+carry a signature.
+
 Files Edunex Plus didn't build stay as their makers ship them: Electron's own DLLs (some carry
 Microsoft's signature, some none) and the installer's NSIS plugins. SignPath Foundation signs only a
 project's own files. Smart App Control, on Windows 11 PCs where it's on, checks those too, so it may

@@ -24,6 +24,7 @@ on:
       - "scripts/package-sign.mjs"
       - "scripts/package-sign-win.mjs"
       - "scripts/package-win.mjs"
+      - "scripts/package-zip-win.mjs"
       - "scripts/update-info.mjs"
       - "scripts/build-desktop.mjs"
       - "scripts/desktop-bundle.mjs"
@@ -320,6 +321,29 @@ jobs:
           }
           $shipped = (Get-ChildItem release/win-unpacked -Filter *.dll | ForEach-Object { $_.Name }) -join ', '
           @("### Windows signatures ($env:WAY)", '', '| File | Signed by |', '|---|---|') + $rows + @('', "Electron's own DLLs ship as Electron made them: $shipped.") | Add-Content $env:GITHUB_STEP_SUMMARY
+      # Each installer, final now (signed or not), also in a zip of its own (scripts/package-zip-win.mjs),
+      # then opened with Windows' own zip reader: it must hold exactly the installer beside it.
+      - name: Zip each installer (Windows)
+        if: matrix.target == 'win'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          node scripts/package-zip-win.mjs release
+          if ($LASTEXITCODE -ne 0) { throw 'The installers were not zipped.' }
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          $zips = @(Get-ChildItem release -Filter '*-windows-*.zip')
+          if ($zips.Count -ne 2) { throw "$($zips.Count) zips in release/, not one per installer." }
+          foreach ($zip in $zips) {
+            $archive = [IO.Compression.ZipFile]::OpenRead($zip.FullName)
+            try {
+              if ($archive.Entries.Count -ne 1) { throw "$($zip.Name) holds $($archive.Entries.Count) files, not one." }
+              $entry = $archive.Entries[0]
+              $stream = $entry.Open()
+              try { $inside = (Get-FileHash -InputStream $stream -Algorithm SHA256).Hash } finally { $stream.Dispose() }
+              if ($inside -ne (Get-FileHash "release/$($entry.FullName)" -Algorithm SHA256).Hash) { throw "$($zip.Name) doesn't hold the $($entry.FullName) beside it." }
+              "$($zip.Name) holds $($entry.FullName), $($zip.Length) bytes."
+            } finally { $archive.Dispose() }
+          }
       - name: Remove the signing certificate (macOS)
         if: always() && steps.signing.outputs.keychain != ''
         env:
@@ -329,6 +353,39 @@ jobs:
       - name: List the apps that open a file (Windows)
         if: matrix.target == 'win'
         run: npx vitest run test/desktop/open-with.test.ts
+      # The AppImage as Students download it, on this runner's Ubuntu 24.04 as it comes: it doesn't
+      # let an AppImage start Chromium's sandbox, so the AppImage's launcher must see that and start
+      # the app without it. The app must know the file it runs from (APPIMAGE): it replaces that file
+      # when it updates itself (src/desktop/updater.ts).
+      - name: Start the AppImage (Linux)
+        if: matrix.target == 'linux'
+        run: |
+          # fuse3 comes with every Ubuntu desktop since 22.04; the AppImage needs nothing more.
+          missing=()
+          command -v xvfb-run > /dev/null || missing+=(xvfb)
+          command -v fusermount3 > /dev/null || missing+=(fuse3)
+          if (( ${#missing[@]} )); then sudo apt-get update && sudo apt-get install -y "${missing[@]}"; fi
+          appimage=$(realpath release/Edunex-Plus-*-x86_64.AppImage)
+          timeout 25 xvfb-run --auto-servernum "$appimage" &
+          started=$!
+          sleep 15
+          pid=$(pgrep -o -x edunex-plus) || { echo "::error::The AppImage closed by itself instead of staying open."; exit 1; }
+          if ! grep -qzxF "APPIMAGE=$appimage" "/proc/$pid/environ"; then
+            echo "::error::The app doesn't know the AppImage it runs from, so it couldn't update itself."
+            exit 1
+          fi
+          started_as=$(tr '\0' ' ' < "/proc/$pid/cmdline")
+          # Still running after 25 seconds (timeout's 124) means it opened and stayed open.
+          status=0
+          wait "$started" || status=$?
+          if [ "$status" -ne 124 ]; then
+            echo "::error::The AppImage closed by itself (exit $status) instead of staying open."
+            exit 1
+          fi
+          # One copy at a time: the next step's would hand over to this one and close.
+          pkill -x edunex-plus || true
+          for _ in $(seq 20); do pgrep -x edunex-plus > /dev/null || break; sleep 1; done
+          echo "The AppImage opened and stayed open, started as: $started_as"
       - name: Start the packaged app (Linux)
         if: matrix.target == 'linux'
         run: |
