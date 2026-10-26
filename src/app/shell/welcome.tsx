@@ -367,8 +367,11 @@ function Connect({ aim, onNext }: { aim: (element: HTMLElement | null, reach: nu
   // In its sign-in window: only until it connects (its first read goes on after, out of sight).
   const waiting = (["edunex", "six"] as const).some((source) => signIns[source].busy && !isIn[source]);
   // One big button, as in the prototype: Edunex first (SIX usually comes along on the same sign-in), then whichever is
-  // still apart, with a quiet Lanjut beside it once one is in.
+  // still apart, with a quiet "Lewati" beside it once one is in.
   const offer = !edunex ? "edunex" : !six ? "six" : null;
+  // What the quiet pill skips, kept while it shrinks away once both are in.
+  const [skips, setSkips] = useState<"edunex" | "six">(offer ?? "six");
+  if (offer && offer !== skips) setSkips(offer);
   // The app trying it by itself on the sign-in just done: it says so, instead of asking for a second sign-in.
   const joining = offer !== null && connected && steps[offer] === "joining";
   const title = connected ? (name ? t("welcome.connectedTitle", { name }) : t("welcome.connectedTitlePlain")) : t("welcome.connectTitle");
@@ -422,11 +425,11 @@ function Connect({ aim, onNext }: { aim: (element: HTMLElement | null, reach: nu
       >
         {lead}
       </p>
-      {/* One big pill that changes what it says (Hubungkan, waiting, bringing SIX along, Lanjut), with a quiet Lanjut
+      {/* One big pill that changes what it says (Hubungkan, waiting, bringing SIX along, Lanjut), with a quiet "Lewati"
           growing out beside it while the other system is still apart. */}
       <div className={cx("mt-8 flex items-center justify-center", ARRIVE_SCENE)} style={arriveAt(0, 800)}>
         <Beside open={connected && offer !== null}>
-          <Pill quiet label={t("welcome.continue")} onClick={next} />
+          <Pill quiet label={t("welcome.skipSource", { source: t(`source.${skips}`) })} onClick={next} />
         </Beside>
         {offer ? (
           <Pill

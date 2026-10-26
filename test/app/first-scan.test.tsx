@@ -152,7 +152,7 @@ describe("after the welcome screen", () => {
     screen = await openApp({ firstScan: true });
     await screen.click("Mulai");
     await screen.click("Hubungkan Edunex");
-    await screen.click("Lanjut");
+    await screen.click("Lewati SIX");
     await screen.click("Buka Edunex Plus");
     // ITB's calendar is still on its way: the scan waits for it.
     expect(screen.store.status("itb").state).toBe("connecting");

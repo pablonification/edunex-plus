@@ -768,7 +768,7 @@ describe("the first run", () => {
     expect(arrivals("scene")).toEqual([1600, 1800]);
   });
 
-  it("Mulai and Lanjut change scene in a view transition that carries the app's mark", async () => {
+  it("Mulai and Lewati SIX change scene in a view transition that carries the app's mark", async () => {
     animating();
     const scenes = viewTransitions();
     try {
@@ -777,7 +777,7 @@ describe("the first run", () => {
       await screen.click("Mulai");
       expect(scenes.changes[0]).toMatchObject({ scene: "connect", before: ["app-mark"], after: ["app-mark"] });
       await screen.click("Hubungkan Edunex");
-      await screen.click("Lanjut");
+      await screen.click("Lewati SIX");
       expect(scenes.changes[1]).toMatchObject({ scene: "reading", before: ["app-mark"] });
       expect(screen.calls.some((c) => c.name === "auth.signInDone")).toBe(true);
     } finally {
@@ -812,7 +812,7 @@ describe("the first run", () => {
       await act(async () => window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" })));
       await screen.click("Mulai");
       await screen.click("Hubungkan Edunex");
-      await screen.click("Lanjut");
+      await screen.click("Lewati SIX");
       expect(preview()?.hasAttribute("inert")).toBe(true);
       expect(preview()?.closest("[aria-hidden]")).not.toBeNull();
       expect(preview()?.querySelector("aside")).not.toBeNull();
@@ -838,7 +838,7 @@ describe("the first run", () => {
     await act(async () => window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" })));
     await screen.click("Mulai");
     await screen.click("Hubungkan Edunex");
-    await screen.click("Lanjut");
+    await screen.click("Lewati SIX");
     await screen.wait();
     expect(screen.text()).toContain("Semua siap, Dimas.");
     expect(document.querySelector("[role=dialog]")).toBeNull();
@@ -864,7 +864,7 @@ describe("the first run", () => {
       expect(screen.text()).not.toContain("MAHASISWA ITB");
       await screen.click("Mulai");
       await screen.click("Hubungkan Edunex");
-      await screen.click("Lanjut");
+      await screen.click("Lewati SIX");
       await screen.wait();
       await screen.click("Buka Edunex Plus");
       expect(preview()).toBeNull();
