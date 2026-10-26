@@ -156,7 +156,7 @@ describe("the SIX sign-in window", () => {
 });
 
 /** The real sign-in handlers, on an engine that only keeps who is signed in. */
-function app(start: { six?: SourceState; sixData?: boolean; firstRun?: boolean; firstRead?: Promise<void> } = {}) {
+function app(start: { six?: SourceState; sixData?: boolean; firstRun?: boolean; firstRead?: Promise<void>; edunexEnds?: SourceState } = {}) {
   const states: Record<string, SourceState> = { edunex: "signed-out", six: start.six ?? "signed-out", itb: "live" };
   const signedIn: { source: string; session: unknown }[] = [];
   const events: Event[] = [];
@@ -172,7 +172,7 @@ function app(start: { six?: SourceState; sixData?: boolean; firstRun?: boolean; 
       states[source] = "connecting";
       // The engine's first read of the system, before the sign-in call returns.
       if (source === "edunex") await start.firstRead;
-      states[source] = "live";
+      states[source] = source === "edunex" ? (start.edunexEnds ?? "live") : "live";
     },
     signOut: async (source?: string) => {
       for (const one of source ? [source] : ["edunex", "six"]) states[one] = "signed-out";
@@ -335,6 +335,17 @@ describe("SIX by itself, right after Edunex", () => {
     await edunex;
     await wait(5_000);
     expect(browser.windows[1]!.shows).toBe(0);
+    expect(signedIn.map((one) => one.source)).toEqual(["edunex"]);
+  });
+
+  it("keeps nothing when Edunex's session ends as it connects", async () => {
+    const { connect, signedIn } = app({ edunexEnds: "expired" });
+    const edunex = connect("edunex");
+    await wait(1_000);
+    await studentSignsIn(browser.windows[0]!);
+    await wait(2_000);
+    await edunex;
+    await wait(3_000);
     expect(signedIn.map((one) => one.source)).toEqual(["edunex"]);
   });
 

@@ -82,8 +82,10 @@ export function signInToBoth(deps: {
         const session = await deps.windows.open(source, { quiet, onStep });
         attempt.handedBack = true;
         if (!session || attempt.stopped) return false;
-        // Signed out of the one it rode on while that was connecting (the wrong account, say): nothing it found is kept.
-        if ((ridesOn && !(await landed(ridesOn))) || attempt.stopped) return false;
+        // The one it rode on didn't end up in (signed out meanwhile, the wrong account say, or its session ended at once):
+        // nothing the app's own try found is kept. One the Student took over is theirs to keep.
+        const rodeIn = !ridesOn || ((await landed(ridesOn)) && !(attempt.quiet && needsSignIn(OTHER[source])));
+        if (!rodeIn || attempt.stopped) return false;
         const connecting = deps.engine.signIn(source, source === "edunex" ? { token: session } : { cookie: session });
         // The hidden window saw the system signed in: say so now, not after its first full read (SIX reads at human pace).
         if (attempt.quiet) deps.send({ type: "signIn.joined", source });
