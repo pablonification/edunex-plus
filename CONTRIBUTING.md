@@ -108,7 +108,6 @@ code or logs to know whether a change is good:
 | **test** | All the tests. | must pass |
 | **build** | The app builds, and the JavaScript the window loads at start stays under its size budget. | must pass |
 | **knip** | Code and packages nothing uses. | advisory |
-| **screens** | Pictures of every screen on made-up data, for pull requests that touch the screens. | advisory |
 | **workflows** | Mistakes and security slips in `.github/` (actionlint, zizmor), when it changes. | must pass |
 | **dependency-review** | New or updated packages: no known serious security hole, only permissive licences. | must pass |
 | **claude-review** | An AI review in plain words, once a Claude key is set up. | advisory |
@@ -120,15 +119,6 @@ files", "Window JS loaded at start: 320 kB gzip of a 360 kB budget"). When
 something fails, the summary says what, and each problem is also marked on its
 line in the pull request's **Files changed** tab.
 
-**The pictures.** For pull requests that touch the screens, CI takes a picture
-of every screen on the demo's made-up data twice, as the pull request leaves
-the app and as its base has it, and compares them. A comment "Screens this pull
-request changes" shows each screen that differs, before and after, cropped to
-the change, and updates on each push (the pictures live on the `pr-assets`
-branch). Every picture is also in a zip under **Artifacts** on the run's
-summary page, for 14 days. Pull requests from forks get the zip and the list,
-not the comment.
-
 **When a check fails:**
 
 - **lint**: run `npm run format`, commit, and fix what's left.
@@ -137,8 +127,6 @@ not the comment.
   it only when needed (a dynamic `import()`), or raise the budget in
   `scripts/check-bundle-size.mjs` on purpose and say why.
 - **knip**: delete what's truly unused, or tell knip why it stays in `knip.json`.
-- **screens**: open the pictures; the comment lists any screen it couldn't
-  picture.
 
 Labels are added for you: `area:app`, `area:engine`, `area:desktop`,
 `area:ci`, `tests`, `documentation`, `dependencies`, and `security-sensitive`

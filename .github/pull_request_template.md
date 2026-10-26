@@ -13,8 +13,8 @@
 ## Before and after
 
 <!-- Anything on screen: the same state before and after, light and dark, from the demo (`npm run demo`),
-     never from a real account. Say which usability heuristics it serves. CI also posts the screens it
-     sees changing. Nothing on screen changes? Write "No visible change." -->
+     never from a real account. Say which usability heuristics it serves. Nothing on screen changes?
+     Write "No visible change." -->
 
 ## Verification
 
