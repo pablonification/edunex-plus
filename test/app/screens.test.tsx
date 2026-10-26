@@ -59,6 +59,20 @@ describe("first run", () => {
     expect(screen.has("Connect Edunex")).toBe(true);
   });
 
+  it("while reading, the preview of the app takes no shortcuts or menu commands", async () => {
+    screen = await openApp();
+    await screen.click("Mulai");
+    await screen.click("Hubungkan Edunex");
+    await screen.click("Lanjut");
+    await act(async () => {
+      window.dispatchEvent(new KeyboardEvent("keydown", { key: "k", metaKey: true, ctrlKey: true, bubbles: true, cancelable: true }));
+    });
+    await screen.apply({ type: "command", command: "settings" });
+    await screen.apply({ type: "command", command: "search" });
+    expect(document.querySelector("[role=dialog]")).toBeNull();
+    expect(screen.has("Buka Edunex Plus")).toBe(true);
+  });
+
   it("says so when this computer can't keep the session safely", async () => {
     screen = await openApp({ vaultMode: "memory" });
     await screen.click("Mulai");

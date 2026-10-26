@@ -95,6 +95,17 @@ describe("first run", () => {
     expect(card("PL3002")).toContain("Tidak ada di Edunex");
   });
 
+  it("while Edunex's sign-in runs, SIX's logo waits instead of starting a second one", async () => {
+    screen = await openApp();
+    await screen.click("Mulai");
+    const signedIn = screen.holdSignIn();
+    await screen.click("Hubungkan Edunex");
+    expect(look("Hubungkan SIX")).toBe("busy");
+    await screen.click(screen.button("Hubungkan SIX"));
+    await screen.engineDoes(signedIn);
+    expect(screen.calls.filter((c) => c.name === "auth.signIn").map((c) => c.input)).toEqual([{ source: "edunex" }]);
+  });
+
   it("closing the SIX sign-in window leaves SIX ready to try again", async () => {
     screen = await openApp({ signInWindow: "closes" });
     await screen.click("Mulai");

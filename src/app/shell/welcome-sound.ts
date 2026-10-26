@@ -7,6 +7,17 @@
 const NOTE = { D3: 146.83, A3: 220, D4: 293.66, E4: 329.63, Fs4: 369.99, A4: 440, B4: 493.88, D5: 587.33, E5: 659.25 } as const;
 type Note = keyof typeof NOTE;
 
+/** Noise for the room and the air: a small seeded generator (xorshift), the same every run, from −1 to 1. */
+function noise(seed: number): () => number {
+  let x = seed >>> 0 || 1;
+  return () => {
+    x ^= x << 13;
+    x ^= x >>> 17;
+    x ^= x << 5;
+    return (x >>> 0) / 0x7fffffff - 1;
+  };
+}
+
 let audio: AudioContext | null = null;
 let bus: AudioNode | null = null;
 let on = true;
@@ -37,7 +48,8 @@ function output(): { context: AudioContext; bus: AudioNode } | null {
     const impulse = audio.createBuffer(2, length, audio.sampleRate);
     for (let channel = 0; channel < 2; channel++) {
       const data = impulse.getChannelData(channel);
-      for (let i = 0; i < length; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / length) ** 3.2;
+      const next = noise(0x9e3779b9 + channel);
+      for (let i = 0; i < length; i++) data[i] = next() * (1 - i / length) ** 3.2;
     }
     room.buffer = impulse;
     soften.connect(dry).connect(audio.destination);
@@ -90,13 +102,14 @@ function air(gain = 0.018) {
   const { context } = out;
   const t = context.currentTime;
   const length = Math.round(context.sampleRate * 1.2);
-  const noise = context.createBuffer(1, length, context.sampleRate);
-  const data = noise.getChannelData(0);
-  for (let i = 0; i < length; i++) data[i] = Math.random() * 2 - 1;
+  const buffer = context.createBuffer(1, length, context.sampleRate);
+  const data = buffer.getChannelData(0);
+  const next = noise(0x85ebca6b);
+  for (let i = 0; i < length; i++) data[i] = next();
   const source = context.createBufferSource();
   const filter = context.createBiquadFilter();
   const level = context.createGain();
-  source.buffer = noise;
+  source.buffer = buffer;
   filter.type = "lowpass";
   filter.Q.value = 0.3;
   filter.frequency.setValueAtTime(250, t);

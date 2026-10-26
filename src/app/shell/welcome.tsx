@@ -154,7 +154,7 @@ export function Welcome({ onDone, app }: { onDone: () => void; app: ReactNode })
 function Light({ step, onReady }: { step: Step; onReady: (light: AsciiLight | null) => void }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const ready = useRef(onReady);
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!canvas.current) return;
     const made = createAsciiLight(canvas.current);
     ready.current(made);
@@ -388,6 +388,7 @@ function Connect({ aim, onNext }: { aim: (element: HTMLElement | null, reach: nu
         <SourceTile
           source="six"
           who={student ? [displayName(student.name), student.program ?? student.nim] : null}
+          busy={busy}
           onConnect={connected ? undefined : () => connect("six")}
         />
       </div>
@@ -437,17 +438,19 @@ function Link({ on, side }: { on: boolean; side: "left" | "right" }) {
 function SourceTile({
   source,
   who,
+  busy = false,
   onConnect,
 }: {
   source: Extract<SourceId, "edunex" | "six">;
   /** Who is signed in: their name, then their NIM or program. */
   who: readonly string[] | null;
+  /** Connect's sign-in is under way. */
+  busy?: boolean;
   /** Its logo connects it, when the big button is the other system's. */
   onConnect?: () => void;
 }) {
   const t = useT();
   const status = useStatus(source);
-  const { busy } = useSignIn();
   const note = useSignInNote(source);
   const name = t(`source.${source}`);
   const connected = isConnected(status.state);

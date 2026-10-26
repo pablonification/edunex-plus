@@ -113,16 +113,23 @@ function Layout({ arriving }: { arriving: boolean }) {
   useNavigateRequests(go);
   // The other system came along on the Student's sign-in: worth a word, not a dialog.
   useJoined(useCallback((source) => toast(t("signIn.joined", { source: t(`source.${source}`) }), "success"), [t]));
-  useSearchShortcut(useCallback(() => openSearch(true), [openSearch]));
+  // While it is still the welcome's preview, its shortcuts and the menu's commands wait: Settings or Search opened
+  // there would float over the welcome screen, out of its reach.
+  useSearchShortcut(
+    useCallback(() => {
+      if (!arriving) openSearch(true);
+    }, [arriving, openSearch]),
+  );
   useCommand(
     useCallback(
       (command) => {
+        if (arriving) return;
         if (command === "settings") openSettings();
         if (command === "refresh") void refreshNow(bridge);
         if (command === "search") openSearch(false);
         if (command === "alerts") openAlerts();
       },
-      [bridge, openSearch, openSettings],
+      [arriving, bridge, openSearch, openSettings],
     ),
   );
   useRefreshWhenBackOnline();
@@ -132,6 +139,7 @@ function Layout({ arriving }: { arriving: boolean }) {
       setSearchOpen(false);
       setScanOpen(false);
     }, []),
+    arriving,
   );
   useScrollPlace(main);
 
@@ -268,10 +276,11 @@ function CurrentScreen({ route }: { route: Route }) {
 const NAV_ORDER = ["home", "tasks", "schedule", "presence", "grades", "plan"] as const;
 
 /** ⌘1 to ⌘6 open the six places in the sidebar (Ctrl elsewhere); ⌘[ goes back. Either closes what's open over the screen first. */
-function useNavShortcuts(closeOverlays: () => void) {
+function useNavShortcuts(closeOverlays: () => void, off: boolean) {
   const store = useStore();
   const { go, back } = useNav();
   useEffect(() => {
+    if (off) return;
     const mac = store.platform === "darwin";
     const onKey = (event: globalThis.KeyboardEvent) => {
       if (event.altKey || event.shiftKey || !(mac ? event.metaKey : event.ctrlKey)) return;
@@ -289,7 +298,7 @@ function useNavShortcuts(closeOverlays: () => void) {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [store, go, back, closeOverlays]);
+  }, [store, go, back, closeOverlays, off]);
 }
 
 /** Coming back online is the best moment to check again; the engine's own rhythm handles the rest. */
