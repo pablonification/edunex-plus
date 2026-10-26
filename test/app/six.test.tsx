@@ -61,7 +61,7 @@ describe("first run", () => {
     expect(look("Hubungkan SIX")).toBe("busy");
     await screen.engineDoes(signedIn);
     expect(screen.calls.filter((c) => c.name === "auth.signIn").map((c) => c.input)).toEqual([{ source: "edunex" }, { source: "six" }]);
-    expect(screen.text()).toContain("Dimas Pratama · Sistem dan Teknologi Informasi");
+    expect(screen.text()).toContain("SIXSistem dan Teknologi Informasi");
     expect(screen.has("Hubungkan SIX")).toBe(false);
     // Connected says who, never still "waiting" (the audit's stale SIX line).
     expect(screen.text()).not.toContain("Masuk di jendela Microsoft");
@@ -85,7 +85,7 @@ describe("first run", () => {
     screen = await openApp();
     await screen.click("Mulai");
     await screen.click("Hubungkan SIX");
-    expect(screen.text()).toContain("Dimas Pratama · Sistem dan Teknologi Informasi");
+    expect(screen.text()).toContain("SIXSistem dan Teknologi Informasi");
     expect(screen.has("Hubungkan Edunex")).toBe(true);
     await screen.click("Lanjut");
     await screen.wait();

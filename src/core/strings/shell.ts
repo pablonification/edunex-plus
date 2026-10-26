@@ -108,6 +108,8 @@ export const shellStrings = {
   },
   "welcome.connectedTitle": { id: "Kamu sudah terhubung, {name}.", en: "You're connected, {name}." },
   "welcome.connectedTitlePlain": { id: "Kamu sudah terhubung.", en: "You're connected." },
+  "welcome.bothConnected": { id: "Edunex dan SIX sudah terhubung.", en: "Edunex and SIX are both connected." },
+  "welcome.bringingAlong": { id: "Menghubungkan {source} juga…", en: "Bringing {source} along…" },
   "welcome.sixCameAlong": { id: "SIX ikut terhubung lewat sekali masuk yang sama.", en: "SIX came along on the same sign-in." },
   "welcome.notConnected": { id: "Belum terhubung", en: "Not connected" },
   "welcome.waitingShort": { id: "Menunggu Microsoft…", en: "Waiting for Microsoft…" },
@@ -194,6 +196,7 @@ export const shellStrings = {
   "menu.file": { id: "Berkas", en: "File" },
   "menu.view": { id: "Tampilan", en: "View" },
   "signIn.edunexTitle": { id: "Masuk ke Edunex", en: "Sign in to Edunex" },
+  "signIn.joining": { id: "Menghubungkan {source}…", en: "Connecting {source}…" },
   "signIn.finishing": { id: "Menyelesaikan masuk ke {source}…", en: "Finishing signing in to {source}…" },
   "signIn.slow": { id: "{source} lambat menyelesaikan masuk", en: "{source} is slow to finish signing in" },
   "signIn.slowHint": {

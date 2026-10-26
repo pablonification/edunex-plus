@@ -41,8 +41,8 @@ export type ActionName = keyof typeof Actions;
 export type ActionInput<N extends ActionName> = z.input<(typeof Actions)[N]["input"]>;
 export type ActionOutput<N extends ActionName> = z.infer<(typeof Actions)[N]["output"]>;
 
-/** Where a sign-in stands once the Student's part in its window is over: finishing out of sight, or slow and shown again. */
-export const SignInStep = z.enum(["finishing", "slow"]);
+/** Where a sign-in stands without the Student: the app trying it by itself on their sign-in to the other system, finishing out of sight once their part is over, or slow and shown again. */
+export const SignInStep = z.enum(["joining", "finishing", "slow"]);
 export type SignInStep = z.infer<typeof SignInStep>;
 const SignInSource = z.enum(["edunex", "six"]);
 

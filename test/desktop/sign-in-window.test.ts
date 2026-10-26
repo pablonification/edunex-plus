@@ -210,8 +210,11 @@ describe("SIX by itself, right after Edunex", () => {
       { source: "six", session: { cookie: `khongguan=${PRETEND_SIGN_IN_COOKIE}` } },
     ]);
     expect(events).toContainEqual({ type: "signIn.joined", source: "six" });
-    // SIX's try said nothing on the way: no step for SIX but the last "nothing going on".
-    expect(events.filter((event) => event.type === "signIn" && event.source === "six")).toEqual([{ type: "signIn", source: "six", step: null }]);
+    // SIX's try said only that it's joining, then "nothing going on": no Microsoft steps for a window nobody sees.
+    expect(events.filter((event) => event.type === "signIn" && event.source === "six")).toEqual([
+      { type: "signIn", source: "six", step: "joining" },
+      { type: "signIn", source: "six", step: null },
+    ]);
     const six = browser.windows[1]!;
     expect(six.shows).toBe(0);
     expect(six.isDestroyed()).toBe(true);
@@ -317,7 +320,7 @@ describe("SIX by itself, right after Edunex", () => {
     expect(signedIn.map((one) => one.source)).toEqual(["edunex"]);
   });
 
-  it("isn't tried once the Student signs out while Edunex's first read is still going", async () => {
+  it("starts while Edunex's first read is still going, and keeps nothing once the Student signs out meanwhile", async () => {
     let read: () => void = () => undefined;
     const { connect, handlers, signedIn } = app({ firstRead: new Promise<void>((resolve) => (read = resolve)) });
     const edunex = connect("edunex");
@@ -325,11 +328,13 @@ describe("SIX by itself, right after Edunex", () => {
     await studentSignsIn(browser.windows[0]!);
     await wait(2_000);
     // The wrong account, say: the Student signs out of Edunex before its first read is done.
+    // SIX's window didn't wait for that read.
+    expect(browser.windows).toHaveLength(2);
     await handlers["auth.signOut"]({ source: "edunex" });
     read();
     await edunex;
     await wait(5_000);
-    expect(browser.windows).toHaveLength(1);
+    expect(browser.windows[1]!.shows).toBe(0);
     expect(signedIn.map((one) => one.source)).toEqual(["edunex"]);
   });
 

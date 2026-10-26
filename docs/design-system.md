@@ -335,6 +335,7 @@ keeps them equal).
 | `--ease-out` | (0.16, 1, 0.3, 1) | Arriving: a fast start, a soft landing |
 | `--ease-standard` | (0.2, 0, 0, 1) | Leaving and moving |
 | `--ease-scene` | (0.32, 0.72, 0, 1) | The first run's camera: off at once, a long soft landing, for something crossing the window |
+| `--ease-island` | a sampled spring, 650 ms | The welcome's pills changing shape to fit new words, like the Dynamic Island: the only curve that overshoots (about 5%) |
 
 **What moves.**
 

@@ -25,7 +25,14 @@ import { finishLeaving, playAnimations, playCssAnimations } from "./fake-animati
 import { openApp } from "./harness";
 
 const css = readFileSync(path.resolve(import.meta.dirname, "../../src/app/styles.css"), "utf8");
-const cssValue = (name: string) => css.match(new RegExp(`${name}:\\s*([^;]+);`))?.[1].trim();
+/** A token's value as written once, whatever lines the formatter broke it over (a sampled spring is long). */
+const cssValue = (name: string) =>
+  css
+    .match(new RegExp(`${name}:\\s*([^;]+);`))?.[1]
+    .replace(/\s+/g, " ")
+    .replace(/\( /g, "(")
+    .replace(/,? \)/g, ")")
+    .trim();
 
 let screen: Awaited<ReturnType<typeof openApp>> | null = null;
 let unmount: (() => void) | null = null;
