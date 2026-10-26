@@ -31,3 +31,8 @@ export function arriveAt(step: number, after = 0, stagger = ARRIVAL_STAGGER): CS
 
 /** From one word of a title starting to the next. */
 export const WORD_STAGGER = 70;
+
+/** One word of a title that is changing, blurring away before the new title comes in. */
+export const LEAVE_WORD = "motion-safe:animate-leave-word";
+/** How long a changing title takes to leave (styles.css, leave-word, and its last word's turn). */
+export const WORD_LEAVE = 420;

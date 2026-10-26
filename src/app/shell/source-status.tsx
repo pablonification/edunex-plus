@@ -2,6 +2,7 @@
 // each source in words, with its fix), and a banner under the top bar, on
 // every screen, when something needs the Student.
 import { type ReactNode, useCallback, useState, useSyncExternalStore } from "react";
+import type { SignInStep } from "../../core/contract";
 import type { SourceId, SourceState } from "../../core/models";
 import { type Bridge, errorKey } from "../bridge";
 import { useFormat, useT } from "../i18n";
@@ -37,17 +38,17 @@ export function useSignIn() {
 }
 
 /**
- * What a sign-in says once the Student's part in its window is over: it's
- * finishing out of sight, or it's slow and its window is shown again.
+ * What a sign-in says while the Student has nothing to do in it: the app is
+ * trying it by itself on their sign-in to the other system, it's finishing
+ * out of sight, or it's slow and its window is shown again.
  */
-export function useSignInNote(source: SourceId): { text: string; hint: string | null; slow: boolean } | null {
+export function useSignInNote(source: SourceId): { step: SignInStep; text: string; hint: string | null; slow: boolean } | null {
   const t = useT();
   const step = useSignInStep(source === "six" ? "six" : "edunex");
   if (source === "itb" || !step) return null;
   const name = t(`source.${source}`);
-  return step === "slow"
-    ? { text: t("signIn.slow", { source: name }), hint: t("signIn.slowHint"), slow: true }
-    : { text: t("signIn.finishing", { source: name }), hint: null, slow: false };
+  if (step === "slow") return { step, text: t("signIn.slow", { source: name }), hint: t("signIn.slowHint"), slow: true };
+  return { step, text: t(step === "joining" ? "signIn.joining" : "signIn.finishing", { source: name }), hint: null, slow: false };
 }
 
 // The sources a refresh is reading right now, whoever asked (the panel, ⌘R,

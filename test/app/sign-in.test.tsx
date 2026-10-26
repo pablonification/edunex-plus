@@ -34,9 +34,12 @@ describe("first run", () => {
   it("connects SIX by itself right after Edunex when Microsoft remembers the Student", async () => {
     screen = await openApp({ firstScan: true, microsoft: "remembers" });
     await screen.click("Mulai");
+    const pill = screen.button("Hubungkan Edunex");
     await screen.click("Hubungkan Edunex");
+    // One pill that changes what it says, not a new button: it can morph from one to the next.
+    expect(screen.button("Lanjut")).toBe(pill);
     expect(screen.text()).toContain("Dimas Pratama · 18223901");
-    expect(screen.text()).toContain("Dimas Pratama · Sistem dan Teknologi Informasi");
+    expect(screen.text()).toContain("SIXSistem dan Teknologi Informasi");
     expect(screen.has("Hubungkan SIX")).toBe(false);
     // The Student pressed one button: SIX's sign-in never asked them for anything.
     expect(signInCalls()).toEqual([{ source: "edunex" }]);
@@ -59,7 +62,25 @@ describe("first run", () => {
 
     await screen.click("Hubungkan SIX");
     expect(signInCalls()).toEqual([{ source: "edunex" }, { source: "six" }]);
-    expect(screen.text()).toContain("Dimas Pratama · Sistem dan Teknologi Informasi");
+    expect(screen.text()).toContain("SIXSistem dan Teknologi Informasi");
+  });
+
+  it("says SIX is coming along while the app tries it by itself, instead of asking for a second sign-in", async () => {
+    screen = await openApp({ firstScan: true, microsoft: "asks" });
+    await screen.click("Mulai");
+    await screen.click("Hubungkan Edunex");
+    await screen.apply({ type: "signIn", source: "six", step: "joining" });
+    expect(screen.text()).toContain("Menghubungkan SIX…");
+    expect(screen.button("Hubungkan SIX").getAttribute("aria-busy")).toBe("true");
+    expect(screen.text()).toContain("Menghubungkan SIX juga…");
+    expect(screen.text()).not.toContain("SIX bisa dihubungkan nanti");
+    // Edunex is in, so nothing waits on Microsoft's window any more.
+    expect(screen.text()).not.toContain("Tutup jendela itu untuk membatalkan.");
+
+    // It gave up: SIX's own Hubungkan, as before.
+    await screen.apply({ type: "signIn", source: "six", step: null });
+    expect(screen.button("Hubungkan SIX").getAttribute("aria-busy")).toBe(null);
+    expect(screen.text()).toContain("SIX bisa dihubungkan nanti dari Pengaturan");
   });
 
   it("reads the same in English", async () => {

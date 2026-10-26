@@ -14,13 +14,13 @@
 // into focus as the read comes in; "Buka Edunex Plus" grows that window into the
 // app. Soft sound marks the moments (welcome-sound.ts). With Reduce motion it
 // starts at the promise, nothing moves, and the steps just change.
-import { type ReactNode, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { type CSSProperties, type ReactNode, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { firstRead, homeReady, type ScanPart, scanSummary } from "../../core/first-scan";
 import type { DatasetName, SourceId } from "../../core/models";
 import { useT } from "../i18n";
 import { displayName, firstName } from "../names";
 import { useSaved } from "../saved";
-import { useBridge, useDataset, useSettings, useStatus, useStore } from "../store";
+import { useBridge, useDataset, useSettings, useSignInStep, useStatus, useStore } from "../store";
 import { AppMark, SourceLogo } from "../ui/brand";
 import { IconButton, Segmented } from "../ui/controls";
 import { cx } from "../ui/cx";
@@ -28,10 +28,10 @@ import { Icons } from "../ui/icons";
 import { Meta } from "../ui/layout";
 import { animate, stillMotion } from "../ui/motion/animate";
 import { AnimatedNumber } from "../ui/motion/animated-number";
-import { ARRIVE, ARRIVE_MARK, ARRIVE_SCENE, ARRIVE_WORD, arriveAt, WORD_STAGGER } from "../ui/motion/arrival";
+import { ARRIVE, ARRIVE_MARK, ARRIVE_SCENE, ARRIVE_WORD, arriveAt, LEAVE_WORD, WORD_LEAVE, WORD_STAGGER } from "../ui/motion/arrival";
 import { type AsciiLight, createAsciiLight, lightAt } from "../ui/motion/ascii-light";
 import { CARRIED, changeScene } from "../ui/motion/scene";
-import { EASE } from "../ui/motion/tokens";
+import { EASE, ISLAND_MS } from "../ui/motion/tokens";
 import { pauseUnseen } from "../ui/motion/visible";
 import { useSignIn, useSignInNote } from "./source-status";
 import { setSound, sound, soundOn } from "./welcome-sound";
@@ -321,13 +321,13 @@ function Hello({
       <div className={ARRIVE_SCENE} style={arriveAt(0, 1800)}>
         <Pill
           className="mt-8"
+          label={t("welcome.start")}
           aria-label={t("welcome.start")}
           onClick={() => {
             sound.tap();
             onNext();
           }}
         >
-          {t("welcome.start")}
           <kbd aria-hidden className="welcome-key">
             ↵
           </kbd>
@@ -345,7 +345,9 @@ function Connect({ aim, onNext }: { aim: (element: HTMLElement | null, reach: nu
   const student = useDataset("six.student");
   const edunex = isConnected(useStatus("edunex").state);
   const six = isConnected(useStatus("six").state);
-  const { signIn, busy } = useSignIn();
+  // One each, so Edunex's sign-in still reading doesn't keep SIX's button waiting.
+  const signIns = { edunex: useSignIn(), six: useSignIn() };
+  const steps = { edunex: useSignInStep("edunex"), six: useSignInStep("six") };
   const [sixAsked, setSixAsked] = useState(false);
   const mark = useRef<HTMLDivElement | null>(null);
   useLayoutEffect(() => {
@@ -361,16 +363,25 @@ function Connect({ aim, onNext }: { aim: (element: HTMLElement | null, reach: nu
   }, [both, bothChanged]);
   const name = account ? firstName(account.name) : student ? firstName(student.name) : null;
   const connected = edunex || six;
-  const title = connected ? (name ? t("welcome.connectedTitle", { name }) : t("welcome.connectedTitlePlain")) : t("welcome.connectTitle");
-  const lead =
-    both && !sixAsked ? t("welcome.sixCameAlong") : edunex !== six ? t(edunex ? "welcome.sixLater" : "welcome.edunexLater") : t("welcome.connectLead");
+  const isIn = { edunex, six };
+  // In its sign-in window: only until it connects (its first read goes on after, out of sight).
+  const waiting = (["edunex", "six"] as const).some((source) => signIns[source].busy && !isIn[source]);
   // One big button, as in the prototype: Edunex first (SIX usually comes along on the same sign-in), then whichever is
   // still apart, with a quiet Lanjut beside it once one is in.
   const offer = !edunex ? "edunex" : !six ? "six" : null;
+  // The app trying it by itself on the sign-in just done: it says so, instead of asking for a second sign-in.
+  const joining = offer !== null && connected && steps[offer] === "joining";
+  const title = connected ? (name ? t("welcome.connectedTitle", { name }) : t("welcome.connectedTitlePlain")) : t("welcome.connectTitle");
+  const lead = both
+    ? t(sixAsked ? "welcome.bothConnected" : "welcome.sixCameAlong")
+    : connected && !joining
+      ? t(edunex ? "welcome.sixLater" : "welcome.edunexLater")
+      : t("welcome.connectLead");
+  const leadChanged = useChanged(lead);
   const connect = (source: "edunex" | "six") => {
     sound.tap();
     if (source === "six") setSixAsked(true);
-    void signIn(source);
+    void signIns[source].signIn(source);
   };
   const next = () => {
     sound.tap();
@@ -379,39 +390,63 @@ function Connect({ aim, onNext }: { aim: (element: HTMLElement | null, reach: nu
 
   return (
     <div className="flex w-full max-w-[760px] flex-col items-center pt-8 text-center">
-      <div className="flex w-full items-center justify-center">
-        <SourceTile source="edunex" who={account ? [displayName(account.name), account.nim] : null} />
-        <Link on={edunex} side="left" />
-        <Mark size="medium" markRef={(element) => (mark.current = element)} />
-        <Link on={six} side="right" />
-        {/* Before anything is in, SIX's own logo connects SIX first (the big button is Edunex's). */}
+      {/* Lined up on the logos, so both stay level with the app's mark whatever their lines say. The mark is carried
+          from the step before; Edunex and SIX rise in either side of it, then their links. */}
+      <div className="flex w-full items-start justify-center">
+        <SourceTile className={ARRIVE_SCENE} style={arriveAt(0, 350, 120)} source="edunex" who={account ? [displayName(account.name), account.nim] : null} />
+        <Link on={edunex} side="left" style={arriveAt(0, 600)} />
+        <div className="-mt-1.5">
+          <Mark size="medium" markRef={(element) => (mark.current = element)} />
+        </div>
+        <Link on={six} side="right" style={arriveAt(0, 700)} />
+        {/* Before anything is in, SIX's own logo connects SIX first (the big button is Edunex's). Its name is Edunex's,
+            already said on the left: SIX says the program. */}
         <SourceTile
+          className={ARRIVE_SCENE}
+          style={arriveAt(1, 350, 120)}
           source="six"
-          who={student ? [displayName(student.name), student.program ?? student.nim] : null}
-          busy={busy}
+          who={student ? [student.program ?? student.nim] : null}
+          busy={waiting}
           onConnect={connected ? undefined : () => connect("six")}
         />
       </div>
       <h2 className="mt-20 text-scene font-bold tracking-[-0.02em]">
         <Words text={title} at={300} />
       </h2>
-      <p key={lead} className={cx("mt-4 max-w-[500px] text-pitch text-muted text-balance", ARRIVE_SCENE)} style={arriveAt(0, 650)}>
+      {/* Two lines kept for it and one for the hint below, so the row above stays put as they change. */}
+      {/* It arrives with the step; a new one later comes in at once, as the title's words do. */}
+      <p
+        key={lead}
+        className={cx("mt-4 min-h-[2lh] max-w-[500px] text-pitch text-muted text-balance", leadChanged ? "motion-safe:animate-line-in" : ARRIVE_SCENE)}
+        style={leadChanged ? undefined : arriveAt(0, 650)}
+      >
         {lead}
       </p>
-      <div className={cx("mt-8 flex items-center gap-3", ARRIVE_SCENE)} style={arriveAt(0, 800)}>
-        {connected && (
-          <Pill quiet={!!offer} onClick={next}>
-            {t("welcome.continue")}
-          </Pill>
-        )}
-        {offer && (
-          <Pill busy={busy} aria-label={t("welcome.connectSource", { source: t(`source.${offer}`) })} onClick={() => connect(offer)}>
-            {busy ? t("welcome.waitingShort") : t("welcome.connectSource", { source: t(`source.${offer}`) })}
-          </Pill>
+      {/* One big pill that changes what it says (Hubungkan, waiting, bringing SIX along, Lanjut), with a quiet Lanjut
+          growing out beside it while the other system is still apart. */}
+      <div className={cx("mt-8 flex items-center justify-center", ARRIVE_SCENE)} style={arriveAt(0, 800)}>
+        <Beside open={connected && offer !== null}>
+          <Pill quiet label={t("welcome.continue")} onClick={next} />
+        </Beside>
+        {offer ? (
+          <Pill
+            label={
+              waiting
+                ? t("welcome.waitingShort")
+                : joining
+                  ? t("welcome.bringingAlong", { source: t(`source.${offer}`) })
+                  : t("welcome.connectSource", { source: t(`source.${offer}`) })
+            }
+            busy={waiting || joining}
+            aria-label={t("welcome.connectSource", { source: t(`source.${offer}`) })}
+            onClick={() => connect(offer)}
+          />
+        ) : (
+          <Pill label={t("welcome.continue")} onClick={next} />
         )}
       </div>
-      {busy && <p className="mt-3 text-small text-faint motion-safe:animate-line-in">{t("welcome.waitingHint")}</p>}
-      <p className={cx("mt-4 max-w-[520px] text-caption text-faint", ARRIVE_SCENE)} style={arriveAt(0, 950)}>
+      <p className="mt-3 h-[1lh] text-small text-faint">{waiting && <span className="block motion-safe:animate-line-in">{t("welcome.waitingHint")}</span>}</p>
+      <p className={cx("mt-3 max-w-[520px] text-caption text-faint", ARRIVE_SCENE)} style={arriveAt(0, 950)}>
         {t("welcome.readOnly")}
       </p>
       {store.vault === "memory" && <p className="mt-4 rounded-lg bg-warning-bg px-3.5 py-2.5 text-small text-warning-fg">{t("settings.sessionNotSaved")}</p>}
@@ -420,9 +455,10 @@ function Connect({ aim, onNext }: { aim: (element: HTMLElement | null, reach: nu
 }
 
 /** A hairline from a system to the app: dashed while apart, drawn solid when it connects. */
-function Link({ on, side }: { on: boolean; side: "left" | "right" }) {
+function Link({ on, side, style }: { on: boolean; side: "left" | "right"; style?: CSSProperties }) {
   return (
-    <span aria-hidden className="welcome-link relative mx-4 h-0.5 w-26 shrink">
+    // Level with the middle of the logos (64 px) beside it.
+    <span aria-hidden className={cx("welcome-link relative mx-4 mt-[31px] h-0.5 w-26 shrink", ARRIVE_SCENE)} style={style}>
       <span
         className={cx(
           "absolute inset-0 rounded-full transition-transform duration-700 ease-scene",
@@ -440,14 +476,18 @@ function SourceTile({
   who,
   busy = false,
   onConnect,
+  className,
+  style,
 }: {
   source: Extract<SourceId, "edunex" | "six">;
-  /** Who is signed in: their name, then their NIM or program. */
+  /** Who is signed in, a fact or two: Edunex's name and NIM, SIX's program. */
   who: readonly string[] | null;
   /** Connect's sign-in is under way. */
   busy?: boolean;
   /** Its logo connects it, when the big button is the other system's. */
   onConnect?: () => void;
+  className?: string;
+  style?: CSSProperties;
 }) {
   const t = useT();
   const status = useStatus(source);
@@ -462,7 +502,7 @@ function SourceTile({
   let hint: string | null = null;
   let says = "apart";
   if (connected && who) {
-    line = <Meta>{who}</Meta>;
+    line = <Meta truncate>{who}</Meta>;
     says = "who";
   } else if (connected) {
     line = t("welcome.readingName");
@@ -471,15 +511,15 @@ function SourceTile({
     line = t("status.connecting");
     says = "connecting";
   } else if (note) {
-    // Microsoft handed back: the sign-in window is out of sight while the app reads the session.
+    // The app trying it by itself, or Microsoft handed back: the sign-in window is out of sight.
     line = note.text;
     hint = note.hint;
-    says = note.slow ? "slow" : "finishing";
+    says = note.step;
   }
   const changed = useChanged(says);
   const logo = <SourceLogo source={source} className="size-16 shadow-[0_10px_24px_-8px_rgb(0_0_0/0.7)] ring-1 ring-white/12" />;
   return (
-    <div className="flex w-[220px] shrink-0 flex-col items-center">
+    <div className={cx("flex w-[220px] shrink-0 flex-col items-center", className)} style={style}>
       <span className="relative">
         {onConnect ? (
           <button
@@ -511,8 +551,8 @@ function SourceTile({
       <span
         key={says}
         className={cx(
-          "mt-0.5 max-w-full text-small",
-          connected ? "truncate text-muted" : note?.slow ? "text-warning-fg" : "text-faint",
+          "mt-0.5 max-w-full text-small text-balance",
+          connected ? "text-muted" : note?.slow ? "text-warning-fg" : "text-faint",
           changed && "motion-safe:animate-line-in",
         )}
       >
@@ -677,20 +717,22 @@ function Reading({
           )}
         </div>
         {/* Its place is kept from the start, so nothing above moves when it comes. */}
-        <div className="mt-6 h-12">
-          {(ready || patience) && (
-            <Pill className="motion-safe:animate-line-in" onClick={open}>
-              {t("welcome.open")}
-            </Pill>
-          )}
-        </div>
+        <div className="mt-6 h-12">{(ready || patience) && <Pill className="motion-safe:animate-line-in" label={t("welcome.open")} onClick={open} />}</div>
       </div>
     </div>
   );
 }
 
-/** The welcome's own button: the app's primary button at its most tactile (styles.css, .welcome-pill). */
+/** How long a pill's old words take to blur away (styles.css, pill-out). */
+const PILL_LEAVE = 220;
+
+/**
+ * The welcome's own button: the app's primary button at its most tactile (styles.css, .welcome-pill). It is one
+ * shape that changes what it says, like the Dynamic Island: the old words blur away as the new ones sharpen in, and
+ * the pill springs to their width instead of jumping to it.
+ */
 function Pill({
+  label,
   busy = false,
   quiet = false,
   className,
@@ -698,14 +740,41 @@ function Pill({
   onClick,
   ...rest
 }: {
+  label: string;
   busy?: boolean;
   /** Glass instead of blue: the other way on, beside the big button. */
   quiet?: boolean;
   className?: string;
-  children: ReactNode;
+  /** After the words: Mulai's ↵. */
+  children?: ReactNode;
   onClick: () => void;
   "aria-label"?: string;
 }) {
+  const face = useRef<HTMLSpanElement>(null);
+  const [width, setWidth] = useState<number>();
+  const says = `${busy ? "busy:" : ""}${label}`;
+  const first = useRef(says);
+  const last = useRef({ says, busy, label });
+  const [leaving, setLeaving] = useState<{ busy: boolean; label: string } | null>(null);
+  // The pill's width is its words' width, measured, so it can spring there.
+  useLayoutEffect(() => {
+    const element = face.current;
+    if (!element || !says) return;
+    const measure = () => setWidth(element.offsetWidth || undefined);
+    measure();
+    const observer = typeof ResizeObserver === "function" ? new ResizeObserver(measure) : null;
+    observer?.observe(element);
+    return () => observer?.disconnect();
+  }, [says]);
+  // The words it said a moment ago, blurring away under the new ones.
+  useLayoutEffect(() => {
+    const before = last.current;
+    last.current = { says, busy, label };
+    if (before.says === says || stillMotion()) return;
+    setLeaving(before);
+    const timer = setTimeout(() => setLeaving(null), PILL_LEAVE);
+    return () => clearTimeout(timer);
+  }, [says, busy, label]);
   return (
     <button
       type="button"
@@ -714,23 +783,82 @@ function Pill({
         if (!busy) onClick();
       }}
       className={cx("welcome-pill focus-ring", quiet && "welcome-pill-quiet", className)}
+      style={{ width }}
       {...rest}
     >
-      {busy && <Icons.Loader className="size-4 animate-spin" />}
-      {children}
+      <span key={says} ref={face} className={cx("welcome-pill-face", says !== first.current && "motion-safe:animate-pill-in")}>
+        {busy && <Icons.Loader className="size-4 animate-spin" />}
+        {label}
+        {children}
+      </span>
+      {leaving && (
+        <span aria-hidden className="pointer-events-none absolute inset-0 flex items-center justify-center">
+          <span className="welcome-pill-face motion-safe:animate-pill-out">
+            {leaving.busy && <Icons.Loader className="size-4 animate-spin" />}
+            {leaving.label}
+          </span>
+        </span>
+      )}
     </button>
   );
 }
 
-/** A title that comes in a word at a time from `at` ms; said in another language later, at once. */
+/**
+ * What sits beside a pill (Lanjut, beside "Hubungkan SIX"): it grows out of the gap and folds back into it, so the
+ * pill beside it glides over instead of jumping. Gone, it can't be reached while it folds away.
+ */
+function Beside({ open, children }: { open: boolean; children: ReactNode }) {
+  const box = useRef<HTMLDivElement>(null);
+  const [kept, setKept] = useState(open);
+  if (open && !kept) setKept(true);
+  // There from the start: it arrives with the step.
+  const still = useRef(open);
+  useLayoutEffect(() => {
+    if (still.current) {
+      still.current = false;
+      return;
+    }
+    const element = box.current;
+    if (!element) return;
+    const shown = { width: `${element.scrollWidth}px`, opacity: 1, filter: "blur(0)" };
+    const folded = { width: "0px", opacity: 0, filter: "blur(6px)" };
+    const move = open
+      ? animate(element, [folded, shown], { duration: ISLAND_MS, easing: EASE.island })
+      : animate(element, [{ ...shown, width: `${element.offsetWidth}px` }, folded], { duration: 380, easing: EASE.standard, fill: "forwards" });
+    if (open) return () => move?.cancel();
+    if (!move) return setKept(false);
+    move.onfinish = () => setKept(false);
+    return () => move.cancel();
+  }, [open]);
+  if (!kept) return null;
+  return (
+    <div ref={box} inert={!open} aria-hidden={!open || undefined} className="welcome-beside flex shrink-0">
+      <div className="flex w-max shrink-0 pr-3">{children}</div>
+    </div>
+  );
+}
+
+/** A title that comes in a word at a time from `at` ms; a new one later (connected, ready, another language) blurs the old one away first. */
 function Words({ text, at }: { text: string; at: number }) {
   const first = useRef(text);
-  const start = text === first.current ? at : 0;
-  return text.split(" ").map((word, i) => (
+  const still = stillMotion();
+  const [shown, setShown] = useState(text);
+  useEffect(() => {
+    if (shown === text) return;
+    const timer = setTimeout(() => setShown(text), WORD_LEAVE);
+    return () => clearTimeout(timer);
+  }, [text, shown]);
+  const now = still ? text : shown;
+  const leaving = now !== text;
+  const start = now === first.current ? at : 0;
+  return now.split(" ").map((word, i) => (
     // biome-ignore lint/suspicious/noArrayIndexKey: a word is its place in the title (one can come twice); another title remounts them all
-    <span key={`${text}-${i}`}>
+    <span key={`${now}-${i}`}>
       {i > 0 && " "}
-      <span className={cx("inline-block", ARRIVE_WORD)} style={arriveAt(i, start, WORD_STAGGER)}>
+      <span
+        className={cx("inline-block", leaving ? LEAVE_WORD : ARRIVE_WORD)}
+        style={leaving ? arriveAt(i, 0, WORD_STAGGER / 4) : arriveAt(i, start, WORD_STAGGER)}
+      >
         {word}
       </span>
     </span>

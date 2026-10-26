@@ -15,5 +15,19 @@ export const EASE_POINTS = {
 
 const curve = ([x1, y1, x2, y2]: readonly number[]) => `cubic-bezier(${x1}, ${y1}, ${x2}, ${y2})`;
 
-/** standard for leaving and moving; out (fast start, soft landing) for arriving; scene (off at once, a long soft landing) for the first run's camera moves. None overshoots. */
-export const EASE = { standard: curve(EASE_POINTS.standard), out: curve(EASE_POINTS.out), scene: curve(EASE_POINTS.scene) } as const;
+/**
+ * A spring, sampled: it overshoots a little (about 5%) and settles, like the Dynamic Island. Only the welcome
+ * screen's pills, a shape changing to fit new words; ISLAND_MS long.
+ */
+const ISLAND =
+  "linear(0, 0.052, 0.175, 0.33, 0.492, 0.641, 0.769, 0.87, 0.946, 0.999, 1.032, 1.049, 1.056, 1.054, 1.048, 1.04, 1.031, 1.022, 1.015, 1.009, 1.004, 1.001, 0.999, 0.997, 1)";
+/** How long the island spring takes to settle. */
+export const ISLAND_MS = 650;
+
+/** standard for leaving and moving; out (fast start, soft landing) for arriving; scene (off at once, a long soft landing) for the first run's camera moves. None of those overshoots; island, the welcome's pills, does. */
+export const EASE = {
+  standard: curve(EASE_POINTS.standard),
+  out: curve(EASE_POINTS.out),
+  scene: curve(EASE_POINTS.scene),
+  island: ISLAND,
+} as const;

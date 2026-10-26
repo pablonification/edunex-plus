@@ -380,6 +380,34 @@
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   /* The first run's camera: off at once, a long soft landing, for something crossing the window. */
   --ease-scene: cubic-bezier(0.32, 0.72, 0, 1);
+  /* A spring, sampled (ui/motion/tokens.ts, ISLAND): the welcome's pills changing shape, 650 ms. */
+  --ease-island: linear(
+    0,
+    0.052,
+    0.175,
+    0.33,
+    0.492,
+    0.641,
+    0.769,
+    0.87,
+    0.946,
+    0.999,
+    1.032,
+    1.049,
+    1.056,
+    1.054,
+    1.048,
+    1.04,
+    1.031,
+    1.022,
+    1.015,
+    1.009,
+    1.004,
+    1.001,
+    0.999,
+    0.997,
+    1
+  );
   /* Every transition that names no curve (a press, a color, a switch's track) runs on the app's own, not Tailwind's. */
   --default-transition-timing-function: var(--ease-out);
   --animate-fade-in: fade-in var(--duration-quick) var(--ease-standard);
@@ -397,6 +425,9 @@
   --animate-arrive-mark: arrive-mark 1000ms var(--ease-out) backwards;
   --animate-arrive-word: arrive-word 900ms var(--ease-out) backwards;
   --animate-arrive-scene: arrive-scene 700ms var(--ease-out) backwards;
+  --animate-leave-word: leave-word 340ms var(--ease-standard) forwards;
+  --animate-pill-in: pill-in 380ms var(--ease-out) 80ms backwards;
+  --animate-pill-out: pill-out 220ms var(--ease-standard) forwards;
   /* On the welcome screen: a system just connected (its check, the line under its name), and "Beranda siap". */
   --animate-grow-in: grow-in var(--duration-base) var(--ease-out);
   --animate-line-in: line-in var(--duration-base) var(--ease-out);
@@ -472,6 +503,27 @@
       opacity: 0;
       transform: translateY(14px) scale(0.985);
       filter: blur(8px);
+    }
+  }
+  @keyframes leave-word {
+    to {
+      opacity: 0;
+      transform: translateY(-0.25em);
+      filter: blur(10px);
+    }
+  }
+  @keyframes pill-in {
+    from {
+      opacity: 0;
+      transform: scale(0.9);
+      filter: blur(6px);
+    }
+  }
+  @keyframes pill-out {
+    to {
+      opacity: 0;
+      transform: scale(0.9);
+      filter: blur(6px);
     }
   }
   @keyframes grow-in {
@@ -595,14 +647,15 @@ html[data-hidden] [data-loop] * {
 
 /* The welcome's button: the app's primary button at its most tactile, a lit top edge, a darker bottom one and a
    soft lift in its own blue. */
+/* One shape that changes what it says: its words are its face (sized there), the pill springs to the face's width
+   (welcome.tsx, Pill) and clips the words on their way in and out. */
 .welcome-pill {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
   height: 48px;
-  min-width: 150px;
-  padding: 0 24px;
+  overflow: hidden;
   border-radius: 999px;
   color: #fff;
   font-size: 15.5px;
@@ -618,7 +671,28 @@ html[data-hidden] [data-loop] * {
   text-shadow: 0 1px 1px rgb(0 20 80 / 0.35);
   transition:
     transform var(--duration-quick) var(--ease-out),
-    filter var(--duration-quick) var(--ease-out);
+    filter var(--duration-quick) var(--ease-out),
+    width 650ms var(--ease-island);
+}
+.welcome-pill-face {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-width: 150px;
+  padding: 0 24px;
+  white-space: nowrap;
+}
+@media (prefers-reduced-motion: reduce) {
+  .welcome-pill {
+    transition: none;
+  }
+}
+/* Lanjut, growing out of the gap beside the big pill: its glow can spill past it, its body can't. */
+.welcome-beside {
+  overflow: clip;
+  overflow-clip-margin: 24px;
 }
 .welcome-pill:hover {
   filter: brightness(1.07);
