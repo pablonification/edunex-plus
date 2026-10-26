@@ -49,10 +49,10 @@ describe("first run", () => {
     // Still welcoming: SIX is next, with the same Microsoft sign-in.
     expect(screen.text()).toContain("Dimas Pratama · 18223901");
     expect(screen.has("Hubungkan Edunex")).toBe(false);
-    expect(screen.button("Lanjut").disabled).toBe(false);
-    // SIX's is the big button now, as Edunex's was, with a quiet Lanjut beside it.
+    expect(screen.button("Lewati SIX").disabled).toBe(false);
+    // SIX's is the big button now, as Edunex's was, with a quiet way to skip it beside it.
     expect(look("Hubungkan SIX")).toBe("blue");
-    expect(screen.button("Lanjut").className).toContain("welcome-pill-quiet");
+    expect(screen.button("Lewati SIX").className).toContain("welcome-pill-quiet");
     expect(screen.text()).toContain("SIX bisa dihubungkan nanti dari Pengaturan");
 
     // While the Student is in SIX's sign-in window, its button is busy, not pressable again.
@@ -87,7 +87,7 @@ describe("first run", () => {
     await screen.click("Hubungkan SIX");
     expect(screen.text()).toContain("SIXSistem dan Teknologi Informasi");
     expect(screen.has("Hubungkan Edunex")).toBe(true);
-    await screen.click("Lanjut");
+    await screen.click("Lewati Edunex");
     await screen.wait();
     await screen.click("Buka Edunex Plus");
     expect(cards()).toHaveLength(5);

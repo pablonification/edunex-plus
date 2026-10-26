@@ -5,6 +5,7 @@ export const sixStrings = {
   // Connecting (welcome screen, Settings)
   "welcome.connectSource": { id: "Hubungkan {source}", en: "Connect {source}" },
   "welcome.continue": { id: "Lanjut", en: "Continue" },
+  "welcome.skipSource": { id: "Lewati {source}", en: "Skip {source}" },
   "account.signInTo": { id: "Masuk ke {source}", en: "Sign in to {source}" },
   "account.signOutOf": { id: "Keluar dari {source}", en: "Sign out of {source}" },
   "signIn.sixTitle": { id: "Masuk ke SIX", en: "Sign in to SIX" },

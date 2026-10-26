@@ -32,7 +32,7 @@ describe("first run", () => {
     await screen.click("Hubungkan Edunex");
     expect(screen.calls.some((c) => c.name === "auth.signIn")).toBe(true);
     // The welcome stays, so SIX can be connected next (#76); the Student moves on when ready.
-    await screen.click("Lanjut");
+    await screen.click("Lewati SIX");
     await screen.click("Buka Edunex Plus");
     expect(screen.text()).toContain("Mata kuliah semester ini");
     expect(cards()).toHaveLength(5);
@@ -63,7 +63,7 @@ describe("first run", () => {
     screen = await openApp();
     await screen.click("Mulai");
     await screen.click("Hubungkan Edunex");
-    await screen.click("Lanjut");
+    await screen.click("Lewati SIX");
     await act(async () => {
       window.dispatchEvent(new KeyboardEvent("keydown", { key: "k", metaKey: true, ctrlKey: true, bubbles: true, cancelable: true }));
     });
