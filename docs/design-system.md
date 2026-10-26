@@ -193,6 +193,17 @@ its own colors (background / text) stands for it, and tints exam periods.
 | `--source-itb-bg` | `#f3ecfd` | `#271d3a` |
 | `--source-itb-fg` | `#6338b8` | `#c4b0f5` |
 
+**The first run's stage** (the welcome screen only, Motion below) is near-black
+in either theme, lit by its own light (`ui/motion/ascii-light.ts`): soft glows
+in the app's blues, from `#0b1a6b` to `#cfe0ff`, drawn in ASCII characters,
+coming from the app's mark. Inside it the tokens take their dark values
+(`.stage-dark`); its preview of the app takes the app's own theme back
+(`.welcome-app`).
+
+| Token | Light | Dark |
+|---|---|---|
+| `--stage` | `#04050a` | `#04050a` |
+
 **Course colors.** Each course has an identity color for its dot and stripe,
 one of ten named colors (`src/core/course-colors.ts`), each a pair of tones,
 `--course-<id>` for light and for dark: cyan, indigo, berry, blue, orchid,
@@ -268,6 +279,12 @@ most three styles: its title, one supporting line, one meta line.
 | `text-figure` | 26 / 32 | A figure read at a glance (`Stat`: IPK, SKS, absences left) |
 | `text-display` | 28 / 34 | Page titles (semibold, −0.02em) |
 
+The first run alone (the welcome screen) goes bigger, and has a serif:
+`text-hero` 50 / 54 for its promise and `text-scene` 38 / 43 for each step's
+title (bold, −0.02em), with `text-pitch` 17 / 26 for the line under them; its credit is `font-serif` (New York on macOS),
+`text-credit` 15 / 28 in spaced capitals with `text-credit-word` 20 / 28 for
+the little italic word.
+
 ## Space, shape, depth
 
 - **Spacing** on a 4 px grid. One page container for every screen
@@ -317,6 +334,7 @@ keeps them equal).
 | `--duration-slow` | 400 ms | A number counting, a bar filling |
 | `--ease-out` | (0.16, 1, 0.3, 1) | Arriving: a fast start, a soft landing |
 | `--ease-standard` | (0.2, 0, 0, 1) | Leaving and moving |
+| `--ease-scene` | (0.32, 0.72, 0, 1) | The first run's camera: off at once, a long soft landing, for something crossing the window |
 
 **What moves.**
 
@@ -336,7 +354,7 @@ keeps them equal).
 | A segmented control's or tab list's highlight (`SlidingHighlight`) | Sits on the new pick at once and glides there from the old one as a transform (translate and scale), 150 ms ease-out |
 | A figure the Student just changed (`AnimatedNumber`) | Counts 400 ms ease-out with no overshoot, while the page's text is already the true value. A figure that changes on its own just changes |
 | Bars filling | 500 ms, when new data arrives. A window's time left (`CountdownBar`), which shrinks every minute, slides as a transform in 400 ms ease-out. Work under way (`ProgressBar`: a hand-in, a download) slides as a transform too, 400 ms linear (progress doesn't ease), picking up from wherever it is when the next share comes in |
-| The first run (`ui/motion/arrival.ts`): the welcome screen, its reading step, the app's first look after them, the first-run scan | Seen once, so its parts arrive one after another (`ARRIVE`, `arriveAt`): 400 ms ease-out, rising 8 px, 60 ms apart in reading order, the app's mark first, growing in from 90%. A source that connects: the line under its name rises 4 px in 200 ms, and "Terhubung" grows in from 90% where its button was (only on a change, never on the first draw). "Lanjut": the mark glides to its place on the reading step (`useGlide`, a FLIP transform, 400 ms ease-standard) while the step's parts arrive 100 ms in; the counts tick up in whole numbers (`AnimatedNumber`); once Beranda's parts and the step's own are in, "Beranda siap" holds 600 ms, then the app eases in from 98% in 400 ms (`ARRIVE_APP`), that once. The first-run scan's lines arrive the same way, 100 ms into the dialog's own opening (also when it's opened again from Settings: still rare). With Reduce motion everything is there at once, and the reading step goes straight in |
+| The first run (`ui/motion/arrival.ts`, `ui/motion/scene.ts`, `ui/motion/ascii-light.ts`, `shell/welcome-sound.ts`): the welcome screen, its reading step, the first-run scan | The app's first impression, seen once, after Dia, Arc and Droppy: a scene of its own on a dark stage, one bold line, one sentence and one button per step. **Light:** one light, from the app's mark: soft glows in the app's blues drawn in ASCII characters that scramble under the pointer (WebGL2, adapted from React Bits' GradientASCII, its notice kept). It scrambles in outward from the mark, eases to the mark's new place on each step (`lightAt`, `tween`), backlights the reading step's window, brightens once when Beranda is ready, and fades as the app opens. It rests while the window is hidden, and with Reduce motion it is drawn once and holds still. **Opening:** the credit, "*dari* MAHASISWA ITB" in serif, the little word turning to *untuk* in place (the old blurs away up as the new sharpens in, their shared slot narrowing so the line stays centred); any key or click moves on. **Promise:** the mark comes into focus as it grows from 80% (`ARRIVE_MARK`), the title a word at a time (`ARRIVE_WORD`, 70 ms apart, each rising and sharpening in 900 ms), then the sentence and "Mulai" (`ARRIVE_SCENE`). **Steps** change in a view transition (`changeScene`) that carries the mark (850 ms `--ease-scene`) while the step before drifts out of focus in 420 ms. **Connect:** Edunex and SIX either side of the app, their logos level with its mark (a slow sign-in's hint hangs below, never lifting a tile); a system that connects gets its check (growing in), its line rises in, and its dashed link to the app draws solid. One big button: "Hubungkan Edunex" first (SIX usually comes along on the same sign-in), then whichever system is still apart, with a quiet glass "Lanjut" beside it once one is in; before anything is in, SIX's own logo connects SIX first. **Reading:** the Student's own Beranda, the app itself scaled down in a window and out of reach (`inert`), coming into focus as the read comes in (`firstRead`: blur to sharp); the counts tick up in whole numbers (`AnimatedNumber`); a line names the part still coming (held at least 700 ms, for the eye only). "Buka Edunex Plus" (once Beranda is ready, or after 20 s) grows the window to the app's size (1050 ms) and the app is then just there; the first-run scan waits for it. **Sound:** calm, synthesised cues on the moments that matter (a swell as the light blooms, a tap on each button, a note per part read, a chord when Beranda is ready), sines through a lowpass and a little room, quiet; the speaker button turns it off. The scan's lines arrive one after another (`ARRIVE`, 400 ms, rising 8 px and into focus, 60 ms apart), 100 ms into the dialog's own opening. With Reduce motion the light holds still and everything is there at once: no credit, no scene change, and "Buka Edunex Plus" opens the app at once |
 | Loading placeholders | 1.4 s pulse in four held steps, not every frame |
 
 **Rules.**
@@ -348,12 +366,18 @@ keeps them equal).
 - Screens and rows never animate in; a row moves only when the Student's own
   action removes it. The first run is the exception (above):
   `test/app/ui-rules.test.ts` keeps its arrival classes in
-  `ui/motion/arrival.ts` (and the welcome screen's `animate-line-in` and
-  `animate-grow-in` in `welcome.tsx`), and that file to the first run.
+  `ui/motion/arrival.ts` (and the welcome screen's answers, `animate-line-in`
+  and `animate-grow-in`, in `welcome.tsx`), and `arrival.ts`, `scene.ts` and
+  `ascii-light.ts` to the first run.
 - No decoration: no glow, spotlight, tilt or parallax, and nothing loops except
-  loading placeholders, spinners and live dots. A loop (`data-loop`, with
+  loading placeholders, spinners and live dots. The welcome screen is the one
+  exception: its light (`ascii-light.ts`) glows and moves, there alone. A loop (`data-loop`, with
   `ref={pauseUnseen}` from `ui/motion/visible.ts`) rests while it is
   off-screen or the window is hidden.
+- Scene changes (a view transition, `changeScene` in `ui/motion/scene.ts`) are
+  the first run's alone: from its promise to connecting, and to reading.
+- Sound is the first run's alone (`shell/welcome-sound.ts`), and can be
+  turned off there.
 - No animation library. JS animation only through the kit's
   `src/app/ui/motion/` pieces and the toasts, with `element.animate` (via
   `animate()` and `leave()` in `ui/motion/animate.ts`); a number counting is
@@ -459,8 +483,9 @@ Screens are composed, not styled one by one:
 | `AnimatedNumber` (`ui/motion/`) | A figure the Student just changed counts to its new value, in the app's number format; screen readers and copies only ever get the true value. |
 | `SlidingHighlight` (`ui/motion/`) | The highlight of a segmented control or tab list, gliding to the new pick. The group keeps its own buttons; items carry `data-highlight`. A rounded fill stretches a little while it glides between items of different widths. |
 | `DisclosurePanel`, `disclosureTrigger` (`ui/motion/`) | A panel opening smoothly under the screen's own button, which says what it controls. |
-| `useGlide` (`ui/motion/`) | Something that stays on screen while the page changes around it glides to its new place instead of jumping (the app's mark on the welcome screen): `before()` right before the change, then a FLIP transform. |
-| `ARRIVE`, `arriveAt` (`ui/motion/arrival.ts`) | The first run's parts arriving one after another. The first run only. |
+| `ARRIVE`, `ARRIVE_WORD`, `ARRIVE_SCENE`, `arriveAt` (`ui/motion/arrival.ts`) | The first run's parts arriving one after another, a title a word at a time. The first run only. |
+| `changeScene` (`ui/motion/scene.ts`) | The first run's scene changes, as view transitions that carry the app's mark (`CARRIED`, by `view-transition-name`) from one step to the next. The first run only. |
+| `createAsciiLight`, `lightAt` (`ui/motion/ascii-light.ts`) | The welcome screen's light: one canvas, from a point, eased between places. The first run only. |
 | `PresenceList`, `PresenceItem` (`ui/motion/`) | Rows the Student can remove (snoozed, handed in) without the list jumping or focus getting lost. A kit `Row` is a `PresenceItem` (a plain `<li>` outside a list that opts in), so a list opts in by wrapping its rows in `PresenceList`. Built on `Presence` (`ui/motion/presence.tsx`), which keeps a leaving child on screen until it has played its way out; the toasts use it too. |
 
 The shell: a sidebar (the app's icon and name, ⌘1–⌘6, courses with their dot, the Student's name

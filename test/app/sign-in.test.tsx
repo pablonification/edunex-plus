@@ -17,6 +17,7 @@ const signInCalls = () => screen!.calls.filter((call) => call.name === "auth.sig
 describe("first run", () => {
   it("says the sign-in is finishing while its window is out of sight, and what to do when it's slow", async () => {
     screen = await openApp({ firstScan: true });
+    await screen.click("Mulai");
     await screen.apply({ type: "signIn", source: "edunex", step: "finishing" });
     expect(screen.text()).toContain("Menyelesaikan masuk ke Edunex…");
     expect(screen.text()).not.toContain("Masuk di jendela Microsoft");
@@ -27,11 +28,12 @@ describe("first run", () => {
 
     await screen.apply({ type: "signIn", source: "edunex", step: null });
     expect(screen.text()).not.toContain("lambat");
-    expect(screen.text()).toContain("Tugas, materi, presensi, unggahan dosen");
+    expect(screen.text()).toContain("Belum terhubung");
   });
 
   it("connects SIX by itself right after Edunex when Microsoft remembers the Student", async () => {
     screen = await openApp({ firstScan: true, microsoft: "remembers" });
+    await screen.click("Mulai");
     await screen.click("Hubungkan Edunex");
     expect(screen.text()).toContain("Dimas Pratama · 18223901");
     expect(screen.text()).toContain("Dimas Pratama · Sistem dan Teknologi Informasi");
@@ -39,13 +41,16 @@ describe("first run", () => {
     // The Student pressed one button: SIX's sign-in never asked them for anything.
     expect(signInCalls()).toEqual([{ source: "edunex" }]);
     expect(screen.text()).not.toContain("SIX bisa dihubungkan nanti");
+    expect(screen.text()).toContain("SIX ikut terhubung lewat sekali masuk yang sama.");
     await screen.click("Lanjut");
     await screen.wait(60_000);
+    await screen.click("Buka Edunex Plus");
     expect(await screen.sourceState("SIX")).toBe("Terhubung");
   });
 
   it("leaves SIX's own Hubungkan as it was when Microsoft wants the Student again", async () => {
     screen = await openApp({ firstScan: true, microsoft: "asks" });
+    await screen.click("Mulai");
     await screen.click("Hubungkan Edunex");
     expect(screen.text()).toContain("Dimas Pratama · 18223901");
     expect(screen.has("Hubungkan SIX")).toBe(true);
@@ -59,6 +64,7 @@ describe("first run", () => {
 
   it("reads the same in English", async () => {
     screen = await openApp({ firstScan: true });
+    await screen.click("Mulai");
     await screen.engineDoes(() => screen!.engine.updateSettings({ lang: "en" }));
     await screen.apply({ type: "signIn", source: "six", step: "finishing" });
     expect(screen.text()).toContain("Finishing signing in to SIX…");

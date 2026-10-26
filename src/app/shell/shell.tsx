@@ -24,7 +24,6 @@ import { cx } from "../ui/cx";
 import { Badge, CourseDot } from "../ui/display";
 import { type IconProps, Icons } from "../ui/icons";
 import { factsLabel } from "../ui/layout";
-import { ARRIVE_APP } from "../ui/motion/arrival";
 import { Tooltip, toast } from "../ui/overlays";
 import { PanelBoundary } from "../ui/panel-boundary";
 import { AlertsBell, openAlerts } from "./alerts";
@@ -62,7 +61,7 @@ const SCREENS: Record<Route["screen"], { loaded(): boolean } | null> = {
 /** Beranda comes with the window; any other screen once its code is in. */
 const drawsAtOnce = (route: Route) => SCREENS[route.screen]?.loaded() ?? true;
 
-/** `arriving`: it comes in from the welcome screen, so it eases in that once (the first run, docs/design-system.md). */
+/** `arriving`: it is still the welcome screen's preview of the app, so the first-run scan waits for it to open. */
 export function Shell({ arriving = false }: { arriving?: boolean }) {
   // No PDF from the last screen is left open over the next one (a search result, a notification, ⌘[); with
   // filling not saved, the screen waits for the Student's answer.
@@ -114,16 +113,23 @@ function Layout({ arriving }: { arriving: boolean }) {
   useNavigateRequests(go);
   // The other system came along on the Student's sign-in: worth a word, not a dialog.
   useJoined(useCallback((source) => toast(t("signIn.joined", { source: t(`source.${source}`) }), "success"), [t]));
-  useSearchShortcut(useCallback(() => openSearch(true), [openSearch]));
+  // While it is still the welcome's preview, its shortcuts and the menu's commands wait: Settings or Search opened
+  // there would float over the welcome screen, out of its reach.
+  useSearchShortcut(
+    useCallback(() => {
+      if (!arriving) openSearch(true);
+    }, [arriving, openSearch]),
+  );
   useCommand(
     useCallback(
       (command) => {
+        if (arriving) return;
         if (command === "settings") openSettings();
         if (command === "refresh") void refreshNow(bridge);
         if (command === "search") openSearch(false);
         if (command === "alerts") openAlerts();
       },
-      [bridge, openSearch, openSettings],
+      [arriving, bridge, openSearch, openSettings],
     ),
   );
   useRefreshWhenBackOnline();
@@ -133,11 +139,12 @@ function Layout({ arriving }: { arriving: boolean }) {
       setSearchOpen(false);
       setScanOpen(false);
     }, []),
+    arriving,
   );
   useScrollPlace(main);
 
   return (
-    <div className={cx("flex h-dvh overflow-hidden bg-canvas text-fg", arriving && ARRIVE_APP)}>
+    <div className="flex h-dvh overflow-hidden bg-canvas text-fg">
       <PanelBoundary name="sidebar" compact>
         <Sidebar onSettings={openSettings} />
       </PanelBoundary>
@@ -188,7 +195,7 @@ function Layout({ arriving }: { arriving: boolean }) {
       <PanelBoundary name="first scan" compact>
         <Suspense fallback={null}>
           {/* It also watches for the first full sync to open itself, so it stays drawn once in. */}
-          {(scanOpen || scanLoaded) && <FirstScan open={scanOpen} onOpenChange={setScanOpen} blocked={settingsOpen || searchOpen || reportOpen} />}
+          {(scanOpen || scanLoaded) && <FirstScan open={scanOpen} onOpenChange={setScanOpen} blocked={settingsOpen || searchOpen || reportOpen || arriving} />}
         </Suspense>
       </PanelBoundary>
     </div>
@@ -269,10 +276,11 @@ function CurrentScreen({ route }: { route: Route }) {
 const NAV_ORDER = ["home", "tasks", "schedule", "presence", "grades", "plan"] as const;
 
 /** ⌘1 to ⌘6 open the six places in the sidebar (Ctrl elsewhere); ⌘[ goes back. Either closes what's open over the screen first. */
-function useNavShortcuts(closeOverlays: () => void) {
+function useNavShortcuts(closeOverlays: () => void, off: boolean) {
   const store = useStore();
   const { go, back } = useNav();
   useEffect(() => {
+    if (off) return;
     const mac = store.platform === "darwin";
     const onKey = (event: globalThis.KeyboardEvent) => {
       if (event.altKey || event.shiftKey || !(mac ? event.metaKey : event.ctrlKey)) return;
@@ -290,7 +298,7 @@ function useNavShortcuts(closeOverlays: () => void) {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [store, go, back, closeOverlays]);
+  }, [store, go, back, closeOverlays, off]);
 }
 
 /** Coming back online is the best moment to check again; the engine's own rhythm handles the rest. */

@@ -67,6 +67,29 @@ export function homeReady(saved: Saved, statuses: readonly SourceStatus[]): bool
   return signedIn.length > 0 && signedIn.every(settled);
 }
 
+/** The first read as the welcome's reading step shows it. */
+export interface FirstRead {
+  /** How much of what the scan reads from the signed-in systems is in, 0 to 1; 1 once Beranda is ready. */
+  progress: number;
+  /** Each signed-in system that has read all of it, or stopped for a reason it shows. */
+  done: ("edunex" | "six")[];
+  /** The first part still coming in, in reading order. */
+  next: { source: "edunex" | "six"; part: ScanPart } | null;
+}
+
+export function firstRead(saved: Saved, statuses: readonly SourceStatus[]): FirstRead {
+  const signedIn = (["edunex", "six"] as const).filter((source) => stateOf(statuses, source) !== "signed-out");
+  const reading = (source: "edunex" | "six") => ["connecting", "live"].includes(stateOf(statuses, source));
+  const parts = signedIn.flatMap((source) => SCAN_PARTS[source].map((part) => ({ source, part })));
+  // A part whose page changed won't come until the app reads that page again: nothing more is coming.
+  const missing = parts.filter(({ source, part }) => !settledPart(saved, statuses, source)(part));
+  return {
+    progress: homeReady(saved, statuses) ? 1 : parts.length ? (parts.length - missing.length) / parts.length : 0,
+    done: signedIn.filter((source) => !reading(source) || missing.every((one) => one.source !== source)),
+    next: missing.find(({ source }) => reading(source)) ?? null,
+  };
+}
+
 // ---------------------------------------------------------------- findings
 
 export type Tone = "danger" | "warning" | "info" | "success";

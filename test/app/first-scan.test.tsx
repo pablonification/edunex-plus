@@ -136,17 +136,24 @@ describe("after the first full sync of Edunex and SIX", () => {
 describe("after the welcome screen", () => {
   it("with SIX connected right after Edunex, it waits for SIX's first read and speaks for both", async () => {
     screen = await openApp({ firstScan: true });
+    await screen.click("Mulai");
     await screen.click("Hubungkan Edunex");
     await screen.click("Hubungkan SIX");
     expect(dialog()).toBeUndefined();
     await screen.click("Lanjut");
+    // The reading step's preview of the app doesn't open it: the scan waits for the app itself.
+    await screen.wait();
+    expect(dialog()).toBeUndefined();
+    await screen.click("Buka Edunex Plus");
     expect(answer()?.textContent).toBe("7 hal yang tidak disampaikan kedua sistem");
   });
 
   it("with Edunex alone, what Edunex doesn't say; connecting SIX later doesn't bring it back by itself", async () => {
     screen = await openApp({ firstScan: true });
+    await screen.click("Mulai");
     await screen.click("Hubungkan Edunex");
     await screen.click("Lanjut");
+    await screen.click("Buka Edunex Plus");
     // ITB's calendar is still on its way: the scan waits for it.
     expect(screen.store.status("itb").state).toBe("connecting");
     expect(dialog()).toBeUndefined();

@@ -53,7 +53,7 @@ describe("the window's top on Windows and Linux", () => {
 
   it("the welcome screen moves the window by its top, and its language choice keeps clear of the window buttons", async () => {
     screen = await openApp({ platform: "win32" });
-    expect(screen.text()).toContain("Selamat datang di Edunex Plus");
+    expect(screen.text()).toContain("Edunex dan SIX, akhirnya di satu tempat.");
     const language = screen.button("English").closest(".no-drag")!;
     expect(language.className).toContain("right-[calc(--spacing(4)+var(--window-controls))]");
     const band = [...document.querySelectorAll(".drag")].find((element) => element.className.includes("h-(--title-bar)"));

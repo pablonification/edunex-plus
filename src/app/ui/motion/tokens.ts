@@ -10,9 +10,10 @@ export const DURATION = { quick: 150, base: 200, slow: 400 } as const;
 export const EASE_POINTS = {
   standard: [0.2, 0, 0, 1],
   out: [0.16, 1, 0.3, 1],
+  scene: [0.32, 0.72, 0, 1],
 } as const satisfies Record<string, readonly [number, number, number, number]>;
 
 const curve = ([x1, y1, x2, y2]: readonly number[]) => `cubic-bezier(${x1}, ${y1}, ${x2}, ${y2})`;
 
-/** standard for leaving and moving; out (fast start, soft landing) for arriving. Neither overshoots. */
-export const EASE = { standard: curve(EASE_POINTS.standard), out: curve(EASE_POINTS.out) } as const;
+/** standard for leaving and moving; out (fast start, soft landing) for arriving; scene (off at once, a long soft landing) for the first run's camera moves. None overshoots. */
+export const EASE = { standard: curve(EASE_POINTS.standard), out: curve(EASE_POINTS.out), scene: curve(EASE_POINTS.scene) } as const;

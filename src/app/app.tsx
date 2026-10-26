@@ -66,20 +66,15 @@ function Root() {
   const nobody = nobodyIn(edunex, six, account, student);
   // On first run the welcome screen stays until the Student moves on, so SIX can be connected right after Edunex.
   const [welcoming, setWelcoming] = useState(nobody);
-  /** The app comes in from the welcome screen (it eases in, once), not with the window (there at once). */
-  const [fromWelcome, setFromWelcome] = useState(false);
   if (nobody && !welcoming) setWelcoming(true);
   return welcoming ? (
     // Its code is in on first run; after a sign-out, the idle preload has long brought it.
     <Suspense fallback={null}>
-      <Welcome
-        onDone={() => {
-          setWelcoming(false);
-          setFromWelcome(true);
-        }}
-      />
+      {/* Its reading step shows the app itself, scaled down, coming into focus; "Buka Edunex Plus" grows it to the
+          window, and the app is then just there (the first run, docs/design-system.md). */}
+      <Welcome app={<Shell arriving />} onDone={() => setWelcoming(false)} />
     </Suspense>
   ) : (
-    <Shell arriving={fromWelcome} />
+    <Shell />
   );
 }
