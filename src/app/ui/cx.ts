@@ -8,7 +8,7 @@ import { extendTailwindMerge } from "tailwind-merge";
 const merge = extendTailwindMerge({
   extend: {
     theme: {
-      text: ["micro", "caption", "small", "body", "lead", "title", "heading", "figure", "display"],
+      text: ["micro", "caption", "small", "body", "lead", "title", "heading", "figure", "display", "hero", "scene", "pitch", "credit", "credit-word"],
       shadow: ["button", "thumb", "card", "raised", "lift", "pop", "dialog"],
       animate: ["fade-in", "fade-out", "pop-in", "pop-out", "popover-in", "popover-out", "slide-down", "toast-in", "shimmer"],
       ease: ["standard", "out"],

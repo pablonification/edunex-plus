@@ -64,6 +64,8 @@ import { PlusIcon } from "@phosphor-icons/react/dist/csr/Plus";
 import { ReceiptIcon } from "@phosphor-icons/react/dist/csr/Receipt";
 import { ShieldCheckIcon } from "@phosphor-icons/react/dist/csr/ShieldCheck";
 import { SignOutIcon } from "@phosphor-icons/react/dist/csr/SignOut";
+import { SpeakerHighIcon } from "@phosphor-icons/react/dist/csr/SpeakerHigh";
+import { SpeakerSlashIcon } from "@phosphor-icons/react/dist/csr/SpeakerSlash";
 import { SquaresFourIcon } from "@phosphor-icons/react/dist/csr/SquaresFour";
 import { StackIcon } from "@phosphor-icons/react/dist/csr/Stack";
 import { StarIcon } from "@phosphor-icons/react/dist/csr/Star";
@@ -124,6 +126,8 @@ export const Icons = {
   AlertTriangle: icon(WarningIcon),
   Lock: icon(LockSimpleIcon),
   ShieldCheck: icon(ShieldCheckIcon),
+  Speaker: icon(SpeakerHighIcon),
+  SpeakerOff: icon(SpeakerSlashIcon),
   WifiOff: icon(WifiSlashIcon),
   RefreshCw: icon(ArrowsClockwiseIcon),
   Megaphone: icon(MegaphoneIcon),

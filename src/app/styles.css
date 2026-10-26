@@ -4,7 +4,9 @@
    prefers-color-scheme is always the truth here. */
 @import "tailwindcss";
 
-:root {
+:root,
+/* The welcome screen's preview of the app sits inside its dark stage: it takes the app's own theme back. */
+.welcome-app {
   color-scheme: light;
 
   /* Surfaces */
@@ -123,6 +125,8 @@
   --highlight-green: #b4ec9e;
   --highlight-blue: #a6d3ff;
   --highlight-pink: #ffbada;
+  /* The first run's stage (welcome.tsx): near-black in either theme, lit by its own light (ui/motion/ascii-light.ts). */
+  --stage: #04050a;
 
   /* Layers, lowest to highest: z-(--z-dialog). Inside one panel, Tailwind's
      plain z-10 / z-20 are fine; these are for things that float over the window. */
@@ -163,7 +167,8 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root,
+  .welcome-app {
     color-scheme: dark;
 
     --canvas: #161618;
@@ -315,11 +320,14 @@
   --color-meter-warning: var(--meter-warning);
   --color-meter-success: var(--meter-success);
   --color-pip-ring: var(--pip-ring);
+  --color-stage: var(--stage);
 }
 
 @theme {
   --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI Variable Text", "Segoe UI", system-ui, "Noto Sans", "Inter", sans-serif;
   --font-mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+  /* The first run's credit only: the system's serif (New York on macOS). */
+  --font-serif: ui-serif, "New York", "Iowan Old Style", Georgia, serif;
 
   /* Type scale */
   --text-micro: 11px;
@@ -341,6 +349,17 @@
   --text-figure--line-height: 32px;
   --text-display: 28px;
   --text-display--line-height: 34px;
+  /* The first run only (welcome.tsx): its promise, each step's title, and its credit. */
+  --text-hero: 50px;
+  --text-hero--line-height: 54px;
+  --text-scene: 38px;
+  --text-scene--line-height: 43px;
+  --text-pitch: 17px;
+  --text-pitch--line-height: 26px;
+  --text-credit: 15px;
+  --text-credit--line-height: 28px;
+  --text-credit-word: 20px;
+  --text-credit-word--line-height: 28px;
 
   /* Radius: Tailwind's scale (md 6px buttons, lg 8px inputs and buttons, xl 12px
      cards and lists, 2xl 16px raised cards and dialogs, full chips), plus tags. */
@@ -359,6 +378,8 @@
      ease-standard; leaving is quicker than arriving. */
   --ease-standard: cubic-bezier(0.2, 0, 0, 1);
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  /* The first run's camera: off at once, a long soft landing, for something crossing the window. */
+  --ease-scene: cubic-bezier(0.32, 0.72, 0, 1);
   /* Every transition that names no curve (a press, a color, a switch's track) runs on the app's own, not Tailwind's. */
   --default-transition-timing-function: var(--ease-out);
   --animate-fade-in: fade-in var(--duration-quick) var(--ease-standard);
@@ -369,13 +390,14 @@
   --animate-popover-out: pop-out var(--duration-quick) var(--ease-standard) both;
   --animate-slide-down: slide-down var(--duration-base) var(--ease-out) both;
   --animate-toast-in: toast-in var(--duration-base) var(--ease-out);
-  /* The first run only (welcome.tsx, the app's first look after it, the first-run scan): seen once, so
-     its parts arrive one after another instead of all at once. Each waits its turn (animation-delay)
-     already hidden, then holds nothing once in, so a later change never replays it. */
+  /* The first run only (welcome.tsx, the first-run scan; the classes are named in ui/motion/arrival.ts): seen
+     once, so its parts arrive one after another, coming into focus as they rise. Each waits its turn
+     (animation-delay) already hidden, then holds nothing once in, so a later change never replays it. */
   --animate-arrive: arrive var(--duration-slow) var(--ease-out) backwards;
-  --animate-arrive-mark: grow-in var(--duration-slow) var(--ease-out) backwards;
-  --animate-arrive-app: pop-in var(--duration-slow) var(--ease-out);
-  /* On the welcome screen: a source just connected (its "Terhubung", the line under its name), and "Beranda siap". */
+  --animate-arrive-mark: arrive-mark 1000ms var(--ease-out) backwards;
+  --animate-arrive-word: arrive-word 900ms var(--ease-out) backwards;
+  --animate-arrive-scene: arrive-scene 700ms var(--ease-out) backwards;
+  /* On the welcome screen: a system just connected (its check, the line under its name), and "Beranda siap". */
   --animate-grow-in: grow-in var(--duration-base) var(--ease-out);
   --animate-line-in: line-in var(--duration-base) var(--ease-out);
   /* A smooth fade, never stepped: held frames read as a stutter on a page-sized placeholder. Only opacity
@@ -421,12 +443,35 @@
       transform: translateY(-6px);
     }
   }
-  /* The first run: a part rising into place; the app's mark and a "Terhubung" growing in (from 90%,
-     never from nothing); a row's line saying something new. */
+  /* The first run: a part rising into place and into focus; the app's mark coming into focus as it grows
+     (from 80%, never from nothing), a title a word at a time, a whole block of the welcome screen; a
+     "Terhubung" growing in; a row's line saying something new. */
   @keyframes arrive {
     from {
       opacity: 0;
       transform: translateY(8px);
+      filter: blur(4px);
+    }
+  }
+  @keyframes arrive-mark {
+    from {
+      opacity: 0;
+      transform: scale(0.8);
+      filter: blur(16px);
+    }
+  }
+  @keyframes arrive-word {
+    from {
+      opacity: 0;
+      transform: translateY(0.3em);
+      filter: blur(12px);
+    }
+  }
+  @keyframes arrive-scene {
+    from {
+      opacity: 0;
+      transform: translateY(14px) scale(0.985);
+      filter: blur(8px);
     }
   }
   @keyframes grow-in {
@@ -527,6 +572,148 @@
 html[data-hidden] [data-loop],
 html[data-hidden] [data-loop] * {
   animation-play-state: paused;
+}
+
+/* The first run's stage (welcome.tsx) is dark in either theme: inside it, the tokens take their dark values. */
+.stage-dark {
+  color-scheme: dark;
+  --fill: #232327;
+  --hover: #222226;
+  --selected: rgb(255 255 255 / 0.07);
+  --edge: #2a2a2f;
+  --line: #26262b;
+  --segment: #34343a;
+  --fg: #ececef;
+  --muted: #a8a8b0;
+  --faint: #97979d;
+  --accent-fg: #7aa2ff;
+  --focus: #6f9bff;
+  --warning-bg: #382d10;
+  --warning-fg: #f2c862;
+  --success-fg: #80e0a9;
+}
+
+/* The welcome's button: the app's primary button at its most tactile, a lit top edge, a darker bottom one and a
+   soft lift in its own blue. */
+.welcome-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: 48px;
+  min-width: 150px;
+  padding: 0 24px;
+  border-radius: 999px;
+  color: #fff;
+  font-size: 15.5px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  background: linear-gradient(180deg, #5891ff 0%, #2f6feb 50%, #2862de 100%);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.4),
+    inset 0 -1px 0 rgb(0 10 60 / 0.35),
+    inset 0 0 0 1px rgb(255 255 255 / 0.08),
+    0 1px 2px rgb(0 0 0 / 0.55),
+    0 10px 28px -8px rgb(47 111 235 / 0.75);
+  text-shadow: 0 1px 1px rgb(0 20 80 / 0.35);
+  transition:
+    transform var(--duration-quick) var(--ease-out),
+    filter var(--duration-quick) var(--ease-out);
+}
+.welcome-pill:hover {
+  filter: brightness(1.07);
+}
+.welcome-pill:active {
+  transform: scale(0.97);
+}
+.welcome-pill[aria-busy="true"] {
+  filter: saturate(0.85) brightness(0.92);
+}
+/* The other way on, beside the big button: glass on the stage, the same size. */
+.welcome-pill-quiet {
+  color: rgb(235 240 255 / 0.85);
+  background: rgb(255 255 255 / 0.07);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.1),
+    inset 0 0 0 1px rgb(255 255 255 / 0.1);
+  text-shadow: none;
+}
+.welcome-pill-quiet:hover {
+  filter: none;
+  background: rgb(255 255 255 / 0.11);
+}
+/* SIX's logo, when it is the way to connect SIX first: it lifts a little under the pointer. */
+.welcome-logo {
+  border-radius: 22%;
+  transition: transform var(--duration-quick) var(--ease-out);
+}
+.welcome-logo:hover {
+  transform: translateY(-2px);
+}
+.welcome-logo:active {
+  transform: scale(0.96);
+}
+/* The ↵ on "Mulai": a small key. */
+.welcome-key {
+  display: inline-grid;
+  place-items: center;
+  min-width: 26px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 6px;
+  font: 600 12px var(--font-sans);
+  background: rgb(255 255 255 / 0.16);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.25),
+    inset 0 -1px 0 rgb(0 0 0 / 0.2);
+}
+/* A system's link to the app: dashed while apart; the solid line (its child) draws in when it connects. */
+.welcome-link {
+  background-image: linear-gradient(90deg, rgb(255 255 255 / 0.22) 50%, transparent 50%);
+  background-size: 8px 2px;
+}
+.welcome-link > span {
+  background: linear-gradient(90deg, rgb(79 141 255 / 0.3), #6aa0ff);
+}
+.welcome-link > span.origin-right {
+  background: linear-gradient(270deg, rgb(79 141 255 / 0.3), #6aa0ff);
+}
+.welcome-check {
+  background: linear-gradient(180deg, #3ddc84, #1fb866);
+  box-shadow:
+    0 0 0 3px var(--stage),
+    inset 0 1px 0 rgb(255 255 255 / 0.35);
+}
+/* The reading step's window onto Beranda: a hairline edge and a deep shadow, over the light behind it. */
+.welcome-window {
+  background: #0d0e12;
+  box-shadow:
+    0 0 0 1px rgb(255 255 255 / 0.1),
+    0 40px 90px -30px rgb(0 0 0 / 0.9);
+}
+.welcome-mark {
+  filter: drop-shadow(0 10px 30px rgb(0 0 0 / 0.55));
+}
+
+/* The first run's scene changes (ui/motion/scene.ts), as view transitions: the browser carries the app's mark
+   from where it was to where it is next (as a transform) while the step before drifts out of focus and the next
+   comes in behind it. Never with Reduce motion. */
+html[data-scene]::view-transition-group(*) {
+  animation-duration: 850ms;
+  animation-timing-function: var(--ease-scene);
+}
+html[data-scene]::view-transition-old(root) {
+  animation: scene-leave 420ms var(--ease-standard) both;
+}
+html[data-scene]::view-transition-new(root) {
+  animation: none;
+}
+@keyframes scene-leave {
+  to {
+    opacity: 0;
+    transform: scale(0.985);
+    filter: blur(10px);
+  }
 }
 
 /* A native disclosure (<details>) opens and closes smoothly instead of jumping. */

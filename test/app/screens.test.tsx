@@ -27,11 +27,13 @@ const live = async () => expect(await screen!.sourceState("Edunex")).toBe("Terhu
 describe("first run", () => {
   it("welcomes the Student, and connecting Edunex shows their courses", async () => {
     screen = await openApp();
-    expect(screen.text()).toContain("Selamat datang di Edunex Plus");
+    expect(screen.text()).toContain("Edunex dan SIX, akhirnya di satu tempat.");
+    await screen.click("Mulai");
     await screen.click("Hubungkan Edunex");
     expect(screen.calls.some((c) => c.name === "auth.signIn")).toBe(true);
     // The welcome stays, so SIX can be connected next (#76); the Student moves on when ready.
     await screen.click("Lanjut");
+    await screen.click("Buka Edunex Plus");
     expect(screen.text()).toContain("Mata kuliah semester ini");
     expect(cards()).toHaveLength(5);
     for (const [code, name] of COURSES) {
@@ -43,20 +45,23 @@ describe("first run", () => {
 
   it("closing the sign-in window leaves the welcome screen ready to try again", async () => {
     screen = await openApp({ signInWindow: "closes" });
+    await screen.click("Mulai");
     await screen.click("Hubungkan Edunex");
-    expect(screen.text()).toContain("Selamat datang di Edunex Plus");
+    expect(screen.text()).toContain("Hubungkan Edunex dan SIX");
     expect(screen.button("Hubungkan Edunex").disabled).toBe(false);
   });
 
   it("speaks English before signing in, if asked", async () => {
     screen = await openApp();
     await screen.click("English");
-    expect(screen.text()).toContain("Welcome to Edunex Plus");
+    expect(screen.text()).toContain("Edunex and SIX, finally in one place.");
+    await screen.click("Get started");
     expect(screen.has("Connect Edunex")).toBe(true);
   });
 
   it("says so when this computer can't keep the session safely", async () => {
     screen = await openApp({ vaultMode: "memory" });
+    await screen.click("Mulai");
     expect(screen.text()).toContain("Komputer ini tidak punya penyimpanan aman");
   });
 });
@@ -199,7 +204,7 @@ describe("Settings", () => {
     expect(confirm?.textContent).toContain("Ini tidak bisa dibatalkan.");
     expect(screen.vault.secrets.size).toBe(1);
     await screen.click([...confirm!.querySelectorAll("button")].find((b) => b.textContent === "Keluar & hapus data")!);
-    expect(screen.text()).toContain("Selamat datang di Edunex Plus");
+    expect(screen.text()).toContain("Edunex dan SIX, akhirnya di satu tempat.");
     expect(screen.vault.secrets.size).toBe(0);
     expect(screen.engine.snapshot().datasets).toEqual([]);
   });

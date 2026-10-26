@@ -663,31 +663,35 @@ describe("AnimatedNumber", () => {
 });
 
 describe("the first run", () => {
-  /** The parts of the first run that arrive, in page order, with when each starts. */
-  const arrivals = () =>
-    [...document.querySelectorAll<HTMLElement>("[class*='animate-arrive']")].map((el) => Number.parseInt(el.style.animationDelay || "0", 10));
-  const span = (text: string) => [...document.querySelectorAll("span")].find((el) => el.textContent === text);
+  /** When each part of the first run of a kind starts arriving, in page order. */
+  const arrivals = (kind: "word" | "scene") =>
+    [...document.querySelectorAll<HTMLElement>(`[class*='animate-arrive-${kind}']`)].map((el) => Number.parseInt(el.style.animationDelay || "0", 10));
   const shell = () => document.querySelector<HTMLElement>(".h-dvh.bg-canvas");
+  /** The reading step's window onto the app. */
+  const preview = () => document.querySelector<HTMLElement>(".welcome-app");
+  /** What a scene change carries, by view-transition-name. */
+  const names = () =>
+    [...document.querySelectorAll<HTMLElement>("*")]
+      .filter((el) => el.style.viewTransitionName)
+      .map((el) => el.style.viewTransitionName)
+      .sort();
 
-  it("arrives a part at a time, in reading order, 60 ms apart, the app's mark first", async () => {
-    screen = await openApp({ firstScan: true });
-    expect(arrivals()).toEqual([0, 60, 120, 180, 240, 300]);
-    expect(document.querySelector("main img")?.className).toContain("motion-safe:animate-arrive-mark");
-  });
-
-  it("says a source connected with its new line rising in and Terhubung growing in where the button was", async () => {
-    screen = await openApp({ firstScan: true });
-    // Nothing more moves on the first draw: it arrives with the screen.
-    expect(document.querySelector("[class*='animate-line-in'], [class*='animate-grow-in']")).toBeNull();
-    await screen.click("Hubungkan Edunex");
-    expect(span("Dimas Pratama · 18223901")?.className).toContain("motion-safe:animate-line-in");
-    expect(span("Terhubung")?.className).toContain("motion-safe:animate-grow-in");
-    expect(span("Terhubung")?.className).toContain("origin-right");
-  });
+  /** Chromium's view transitions, stood in for: the next scene is drawn at once, and what's carried is noted before and after. */
+  function viewTransitions() {
+    const changes: { scene: string | undefined; before: string[]; after: string[] }[] = [];
+    document.startViewTransition = ((update: () => void) => {
+      const change = { scene: document.documentElement.dataset.scene, before: names(), after: [] as string[] };
+      changes.push(change);
+      update();
+      change.after = names();
+      return { ready: Promise.resolve(), finished: Promise.resolve(), updateCallbackDone: Promise.resolve(), skipTransition() {} } as unknown as ViewTransition;
+    }) as typeof document.startViewTransition;
+    return { changes, stop: () => delete (document as { startViewTransition?: unknown }).startViewTransition };
+  }
 
   /**
-   * The window's own longer timers (the reading step's), on a clock the test moves, so what it sees never
-   * depends on how fast this machine is; the harness's quick steps (0–5 ms) still run as usual.
+   * The window's own longer timers, on a clock the test moves, so what it sees never depends on how fast this
+   * machine is; the harness's quick steps (0–5 ms) still run as usual.
    */
   function heldTimers() {
     let now = 0;
@@ -718,34 +722,78 @@ describe("the first run", () => {
     };
   }
 
-  it("glides the app's mark down to the reading step instead of jumping, and keeps it gliding while the page redraws", async () => {
+  it("opens on its credit, the little word turning from dari to untuk, then the promise; a key moves on at once", async () => {
     const motion = animating();
-    heldTimers();
-    screen = await openApp({ firstScan: true });
-    await screen.click("Hubungkan Edunex");
-    // jsdom lays nothing out: here the mark sits higher on the welcome form than on the shorter reading step.
-    const measure = HTMLElement.prototype.getBoundingClientRect;
-    vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (this: HTMLElement) {
-      if (this.firstElementChild?.tagName !== "IMG") return measure.call(this);
-      const top = document.querySelector("main h1")?.textContent?.startsWith("Membaca") ? 300 : 120;
-      return { top, left: 40, right: 104, bottom: top + 64, width: 64, height: 64, x: 40, y: top, toJSON: () => ({}) };
-    });
+    const timers = heldTimers();
     try {
-      await screen.click("Lanjut");
-      const mark = document.querySelector("main img")!.parentElement!;
-      const [glide] = motion.on(mark);
-      expect(glide.keyframes).toEqual([{ transform: "translate(0px, -180px)" }, { transform: "none" }]);
-      expect(glide.options).toMatchObject({ duration: DURATION.slow, easing: EASE.standard });
-      // Edunex says something new: the welcome screen around the mark redraws.
-      await screen.apply({ type: "status", status: { ...screen.store.status("edunex"), updatedAt: Date.now() } });
-      expect(glide.playState).toBe("running");
-      expect(motion.on(mark)).toHaveLength(1);
+      screen = await openApp({ firstScan: true });
+      // Read out once, whole; on screen, one line whose first word turns.
+      expect(screen.text()).toContain("dari MAHASISWA ITB, untuk MAHASISWA ITB");
+      expect(screen.has("Mulai")).toBe(false);
+      await timers.advance(1500);
+      const [from, to] = document.querySelectorAll<HTMLElement>("[aria-hidden] > .italic > span");
+      expect(from.textContent).toBe("dari");
+      expect(to.textContent).toBe("untuk");
+      // The old word blurs away upward, the new one sharpens in, and their shared slot narrows to it.
+      expect(motion.on(from)[0].keyframes.at(-1)).toMatchObject({ opacity: 0 });
+      expect(motion.on(to)[0].keyframes[0]).toMatchObject({ opacity: 0 });
+      expect(motion.on(from.parentElement!)[0].moves).toEqual(["width"]);
+      await timers.advance(1800);
+      expect(screen.text()).toContain("Edunex dan SIX, akhirnya di satu tempat.");
+      expect(screen.has("Mulai")).toBe(true);
+      screen.close();
+
+      screen = await openApp({ firstScan: true });
+      await act(async () => window.dispatchEvent(new KeyboardEvent("keydown", { key: " " })));
+      expect(screen.has("Mulai")).toBe(true);
     } finally {
       vi.restoreAllMocks();
     }
   });
 
-  it("ticks the reading step's counts up in whole numbers", async () => {
+  it("brings the promise in a word at a time, then the rest, the app's mark first", async () => {
+    animating();
+    screen = await openApp({ firstScan: true });
+    await act(async () => window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" })));
+    // "Edunex dan SIX," then "akhirnya di satu tempat.", 70 ms apart, after the mark (500 ms in).
+    expect(arrivals("word")).toEqual([900, 970, 1040, 1110, 1180, 1250, 1320]);
+    expect(document.querySelector<HTMLElement>("[class*='animate-arrive-mark']")?.style.animationDelay).toBe("500ms");
+    expect(arrivals("scene")).toEqual([1600, 1800]);
+  });
+
+  it("Mulai and Lanjut change scene in a view transition that carries the app's mark", async () => {
+    animating();
+    const scenes = viewTransitions();
+    try {
+      screen = await openApp({ firstScan: true });
+      await act(async () => window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" })));
+      await screen.click("Mulai");
+      expect(scenes.changes[0]).toMatchObject({ scene: "connect", before: ["app-mark"], after: ["app-mark"] });
+      await screen.click("Hubungkan Edunex");
+      await screen.click("Lanjut");
+      expect(scenes.changes[1]).toMatchObject({ scene: "reading", before: ["app-mark"] });
+      expect(screen.calls.some((c) => c.name === "auth.signInDone")).toBe(true);
+    } finally {
+      scenes.stop();
+    }
+  });
+
+  it("answers where a system connects: its line rises in, its check grows in, and its link to the app draws", async () => {
+    screen = await openApp({ firstScan: true });
+    await screen.click("Mulai");
+    // Nothing more moves on the first draw: it arrives with the step.
+    expect(document.querySelector("[class*='animate-line-in'], [class*='animate-grow-in']")).toBeNull();
+    const links = () => [...document.querySelectorAll(".welcome-link > span")].map((link) => link.className.includes("scale-x-100"));
+    expect(links()).toEqual([false, false]);
+    await screen.click("Hubungkan Edunex");
+    const line = [...document.querySelectorAll("span")].find((el) => el.textContent === "Dimas Pratama · 18223901");
+    expect(line?.className).toContain("motion-safe:animate-line-in");
+    expect(document.querySelector(".welcome-check")?.className).toContain("motion-safe:animate-grow-in");
+    expect(links()).toEqual([true, false]);
+    expect(screen.text()).toContain("Kamu sudah terhubung, Dimas.");
+  });
+
+  it("reads with the app itself in the window, out of reach and coming into focus, the counts ticking in whole numbers", async () => {
     const frames: FrameRequestCallback[] = [];
     vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => frames.push(callback));
     vi.stubGlobal("cancelAnimationFrame", () => undefined);
@@ -754,8 +802,13 @@ describe("the first run", () => {
     heldTimers();
     try {
       screen = await openApp({ firstScan: true });
+      await act(async () => window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" })));
+      await screen.click("Mulai");
       await screen.click("Hubungkan Edunex");
       await screen.click("Lanjut");
+      expect(preview()?.hasAttribute("inert")).toBe(true);
+      expect(preview()?.closest("[aria-hidden]")).not.toBeNull();
+      expect(preview()?.querySelector("aside")).not.toBeNull();
       // One more Task comes in while the step shows: its count moves from 10 to 11. Look at it halfway.
       const tasks = screen.store.dataset("edunex.tasks")!;
       const value = tasks.value as unknown[];
@@ -763,7 +816,7 @@ describe("the first run", () => {
       await act(async () => {
         for (const callback of frames.splice(0)) callback(1000 + DURATION.slow / 2);
       });
-      const counting = [...document.querySelectorAll("dd [aria-hidden]")].map((el) => el.textContent);
+      const counting = [...document.querySelectorAll("main .tabular-nums .font-semibold [aria-hidden]")].map((el) => el.textContent);
       expect(counting).toHaveLength(1);
       expect(counting[0]).toMatch(/^\d+$/);
     } finally {
@@ -772,38 +825,51 @@ describe("the first run", () => {
     }
   });
 
-  it("says Beranda siap once its own parts are in, holds it a moment, then the app eases in that once", async () => {
-    animating();
-    const timers = heldTimers();
-    try {
-      screen = await openApp({ firstScan: true });
-      await screen.click("Hubungkan Edunex");
-      // Everything is read already; the step still arrives in full first, so "Beranda siap" is seen coming, and heard.
-      await screen.click("Lanjut");
-      expect(screen.text()).toContain("Menyiapkan Beranda");
-      await timers.advance(100 + 3 * 60 + DURATION.slow);
-      expect(screen.text()).toContain("Beranda siap");
-      expect(shell()).toBeNull();
-      await timers.advance(599);
-      expect(shell()).toBeNull();
-      await timers.advance(1);
-      expect(shell()?.className).toContain("motion-safe:animate-arrive-app");
-    } finally {
-      vi.restoreAllMocks();
-    }
-  });
-
-  it("with motion off, goes from reading straight to the app; a window that opens signed in shows it at once", async () => {
+  it("Buka Edunex Plus grows the window to the app's own size, then the app is just there; the first-run scan waits for it", async () => {
+    const motion = animating();
     screen = await openApp({ firstScan: true });
+    await act(async () => window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" })));
+    await screen.click("Mulai");
     await screen.click("Hubungkan Edunex");
     await screen.click("Lanjut");
     await screen.wait();
-    expect(screen.text()).not.toContain("Beranda siap");
+    expect(screen.text()).toContain("Semua siap, Dimas.");
+    expect(document.querySelector("[role=dialog]")).toBeNull();
+    const box = preview()!.parentElement!;
+    await screen.click("Buka Edunex Plus");
+    const [grow] = motion.on(box);
+    expect(grow.moves).toEqual(["borderRadius", "height", "left", "top", "width"]);
+    expect(grow.keyframes.at(-1)).toMatchObject({ left: "0px", top: "0px", width: `${window.innerWidth}px`, height: `${window.innerHeight}px` });
+    expect(motion.on(preview()!)[0].keyframes.at(-1)).toEqual({ transform: "scale(1)" });
+    expect(preview()).not.toBeNull();
+    await act(async () => grow.finish());
+    await screen.wait();
+    expect(preview()).toBeNull();
     expect(shell()).not.toBeNull();
-    screen.close();
+    expect(document.querySelector("[role=dialog]")).not.toBeNull();
+  });
 
-    screen = await openApp({ signedIn: true });
-    expect(shell()?.className).not.toContain("animate-");
+  it("with motion off, starts at the promise, changes no scene in a transition, and opens the app at once", async () => {
+    const scenes = viewTransitions();
+    try {
+      screen = await openApp({ firstScan: true });
+      expect(screen.text()).toContain("Edunex dan SIX, akhirnya di satu tempat.");
+      expect(screen.text()).not.toContain("MAHASISWA ITB");
+      await screen.click("Mulai");
+      await screen.click("Hubungkan Edunex");
+      await screen.click("Lanjut");
+      await screen.wait();
+      await screen.click("Buka Edunex Plus");
+      expect(preview()).toBeNull();
+      expect(shell()).not.toBeNull();
+      expect(scenes.changes).toEqual([]);
+      screen.close();
+
+      screen = await openApp({ signedIn: true });
+      expect(shell()?.className).not.toContain("animate-");
+    } finally {
+      scenes.stop();
+    }
   });
 });
 

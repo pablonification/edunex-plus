@@ -36,7 +36,7 @@ const RULES: { name: string; matches: (token: string) => boolean; instead: strin
   },
   {
     name: "glow",
-    matches: (token) => token.startsWith("drop-shadow-["),
+    matches: (token) => token.startsWith("drop-shadow-[") || token.startsWith("bg-[radial-gradient"),
     instead: "a shadow token (shadow-card, shadow-raised, shadow-pop, shadow-dialog): no coloured glow",
   },
   {
@@ -62,14 +62,15 @@ const ALLOWED: { file: string; token: string }[] = [
   // The first run is seen once, so its parts arrive (Motion in the design system); the classes are named only here.
   { file: "src/app/ui/motion/arrival.ts", token: "motion-safe:animate-arrive" },
   { file: "src/app/ui/motion/arrival.ts", token: "motion-safe:animate-arrive-mark" },
-  { file: "src/app/ui/motion/arrival.ts", token: "motion-safe:animate-arrive-app" },
-  // The welcome screen's answers as they change: a source connected, "Beranda siap".
+  { file: "src/app/ui/motion/arrival.ts", token: "motion-safe:animate-arrive-word" },
+  { file: "src/app/ui/motion/arrival.ts", token: "motion-safe:animate-arrive-scene" },
+  // The welcome screen's answers as they change: a system connected (its check, the line under its name), "Beranda siap".
   { file: "src/app/shell/welcome.tsx", token: "motion-safe:animate-line-in" },
   { file: "src/app/shell/welcome.tsx", token: "motion-safe:animate-grow-in" },
 ];
 
-/** The first run, the only place things arrive: the welcome screen, the first-run scan, and the app's first look after the welcome screen. */
-const FIRST_RUN = ["src/app/shell/first-scan.tsx", "src/app/shell/shell.tsx", "src/app/shell/welcome.tsx"];
+/** The first run, the only place things arrive, change scene or are lit: the welcome screen and the first-run scan. */
+const FIRST_RUN = ["src/app/shell/first-scan.tsx", "src/app/shell/welcome.tsx"];
 
 function sources(dir: string): string[] {
   return readdirSync(path.join(root, dir), { withFileTypes: true }).flatMap((entry) => {
@@ -125,8 +126,11 @@ describe("the window's classes", () => {
     expect(sources("src/app").flatMap((file) => broken(file))).toEqual([]);
   });
 
-  it("let things arrive only in the first run, which is seen once", () => {
-    const users = sources("src/app").filter((file) => /from "[^"]*\barrival"/.test(readFileSync(path.join(root, file), "utf8")));
+  it("let things arrive, scenes change and the light shine only in the first run, which is seen once", () => {
+    // The kit's own motion pieces aside.
+    const users = sources("src/app")
+      .filter((file) => !file.startsWith("src/app/ui/motion/"))
+      .filter((file) => /from "[^"]*\b(arrival|scene|ascii-light)"/.test(readFileSync(path.join(root, file), "utf8")));
     expect(users.sort()).toEqual(FIRST_RUN);
   });
 
@@ -140,6 +144,7 @@ describe("the window's classes", () => {
       'const e = <div className="h-screen backdrop-blur-md drop-shadow-[0_0_8px_var(--accent)]" />;',
       'const f = <div className="rounded-tag text-micro z-10 rounded-[22%] uppercase tracking-normal" />;',
       'const g = <h1 className="motion-safe:animate-arrive" />;',
+      'const h = <span className="bg-[radial-gradient(closest-side,var(--accent),transparent)]" />;',
     ].join("\n");
     expect(broken("sample.tsx", sample).map((found) => found.replace(/ \(.*$/, ""))).toEqual([
       "sample.tsx:2 text-[10px]",
@@ -153,6 +158,7 @@ describe("the window's classes", () => {
       "sample.tsx:6 drop-shadow-[0_0_8px_var(--accent)]",
       "sample.tsx:7 rounded-[22%]",
       "sample.tsx:8 motion-safe:animate-arrive",
+      "sample.tsx:9 bg-[radial-gradient(closest-side,var(--accent),transparent)]",
     ]);
   });
 });

@@ -24,7 +24,6 @@ import { cx } from "../ui/cx";
 import { Badge, CourseDot } from "../ui/display";
 import { type IconProps, Icons } from "../ui/icons";
 import { factsLabel } from "../ui/layout";
-import { ARRIVE_APP } from "../ui/motion/arrival";
 import { Tooltip, toast } from "../ui/overlays";
 import { PanelBoundary } from "../ui/panel-boundary";
 import { AlertsBell, openAlerts } from "./alerts";
@@ -62,7 +61,7 @@ const SCREENS: Record<Route["screen"], { loaded(): boolean } | null> = {
 /** Beranda comes with the window; any other screen once its code is in. */
 const drawsAtOnce = (route: Route) => SCREENS[route.screen]?.loaded() ?? true;
 
-/** `arriving`: it comes in from the welcome screen, so it eases in that once (the first run, docs/design-system.md). */
+/** `arriving`: it is still the welcome screen's preview of the app, so the first-run scan waits for it to open. */
 export function Shell({ arriving = false }: { arriving?: boolean }) {
   // No PDF from the last screen is left open over the next one (a search result, a notification, ⌘[); with
   // filling not saved, the screen waits for the Student's answer.
@@ -137,7 +136,7 @@ function Layout({ arriving }: { arriving: boolean }) {
   useScrollPlace(main);
 
   return (
-    <div className={cx("flex h-dvh overflow-hidden bg-canvas text-fg", arriving && ARRIVE_APP)}>
+    <div className="flex h-dvh overflow-hidden bg-canvas text-fg">
       <PanelBoundary name="sidebar" compact>
         <Sidebar onSettings={openSettings} />
       </PanelBoundary>
@@ -188,7 +187,7 @@ function Layout({ arriving }: { arriving: boolean }) {
       <PanelBoundary name="first scan" compact>
         <Suspense fallback={null}>
           {/* It also watches for the first full sync to open itself, so it stays drawn once in. */}
-          {(scanOpen || scanLoaded) && <FirstScan open={scanOpen} onOpenChange={setScanOpen} blocked={settingsOpen || searchOpen || reportOpen} />}
+          {(scanOpen || scanLoaded) && <FirstScan open={scanOpen} onOpenChange={setScanOpen} blocked={settingsOpen || searchOpen || reportOpen || arriving} />}
         </Suspense>
       </PanelBoundary>
     </div>

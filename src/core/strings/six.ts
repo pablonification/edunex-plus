@@ -3,7 +3,6 @@ import type { Entry } from "./entry";
 
 export const sixStrings = {
   // Connecting (welcome screen, Settings)
-  "welcome.sixDetail": { id: "Jadwal dan ruang, hitungan kehadiran, nilai, KRS, UKT", en: "Timetable and rooms, attendance count, grades, KRS, UKT" },
   "welcome.connectSource": { id: "Hubungkan {source}", en: "Connect {source}" },
   "welcome.continue": { id: "Lanjut", en: "Continue" },
   "account.signInTo": { id: "Masuk ke {source}", en: "Sign in to {source}" },

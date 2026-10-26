@@ -38,5 +38,6 @@ it("shows the welcome screen in the first frame on first run, in English until t
   // Not awaited: the first frame, before anything else could load.
   act(() => root.render(<App store={store} bridge={bridge} />));
   unmount = () => act(() => root.unmount());
-  expect(container.textContent).toContain("Welcome to Edunex Plus");
+  // Its opening credit, already in its place: the window never shows a blank first frame.
+  expect(container.textContent).toContain("from ITB STUDENTS, for ITB STUDENTS");
 });

@@ -4,7 +4,7 @@
 // nothing to say stays out.
 import { describe, expect, it } from "vitest";
 import { percent } from "../../src/core/attendance";
-import { type Finding, type FindingKind, firstScan, homeReady, notable, scanReady, scanSummary } from "../../src/core/first-scan";
+import { type Finding, type FindingKind, firstRead, firstScan, homeReady, notable, scanReady, scanSummary } from "../../src/core/first-scan";
 import type { SourceStatus, Transcript } from "../../src/core/models";
 import type { Saved } from "../../src/core/saved";
 import { aTask } from "../kit/tasks";
@@ -197,6 +197,30 @@ describe("when the scan is ready", () => {
     expect(homeReady(savedOf(h), statuses(h))).toBe(true);
   });
 
+  it("the welcome's reading step shows the read only going forward, what's still coming, each system done, and all of it once Beranda is ready", async () => {
+    const h = await startEngine();
+    expect(firstRead(savedOf(h), statuses(h))).toEqual({ progress: 0, done: [], next: null });
+    await h.engine.signIn("edunex", { token: PRETEND_TOKEN });
+    await h.wait(5_000);
+    expect(firstRead(savedOf(h), statuses(h))).toEqual({ progress: 1, done: ["edunex"], next: null });
+
+    let finished = false;
+    const signingIn = h.engine.signIn("six", { cookie: PRETEND_SIX_COOKIE }).finally(() => (finished = true));
+    const steps: ReturnType<typeof firstRead>[] = [];
+    for (let second = 0; second < 600 && !finished; second++) {
+      if (h.status("six").state !== "signed-out") steps.push(firstRead(savedOf(h), statuses(h)));
+      await h.world.clock.advance(1_000);
+    }
+    await signingIn;
+    const progress = steps.map((step) => step.progress);
+    expect(progress).toEqual([...progress].sort((a, b) => a - b));
+    // While SIX reads, it isn't done, and the line names one of its parts still coming.
+    const reading = steps.filter((step) => step.progress < 1);
+    expect(reading.length).toBeGreaterThan(3);
+    expect(reading.every((step) => !step.done.includes("six") && step.next?.source === "six")).toBe(true);
+    expect(firstRead(savedOf(h), statuses(h))).toEqual({ progress: 1, done: ["edunex", "six"], next: null });
+  });
+
   it("when a system stops with a reason instead of reading everything, or one of its pages changed", async () => {
     const h = await firstSync({ before: (h) => h.world.six.changeLayout(TRANSCRIPT, "Masuk Transkrip", "Status") });
     // SIX's transcript page changed, the rest of SIX read: SIX is live, and that page is said to have changed.
@@ -204,6 +228,8 @@ describe("when the scan is ready", () => {
     expect(h.status("six").changedPages).toEqual([{ datasets: ["six.transcript", "six.progress"], detail: expect.stringMatching(/^SIX transcript page: /) }]);
     expect(h.saved()["six.transcript"]).toBeUndefined();
     expect(scanReady(h.saved(), h.statuses())).toBe(true);
+    // The reading step counts it as done: nothing more is coming from it.
+    expect(firstRead(h.saved(), h.statuses())).toMatchObject({ done: ["edunex", "six"], next: null });
   });
 });
 
