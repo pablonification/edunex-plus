@@ -6,7 +6,7 @@
 // Nothing here ever calls a meeting an absence: SIX may count what Edunex
 // didn't record.
 import { htmlText, materialKind, type OutlineEntry } from "./course-materials";
-import type { Announcement, ClassSession, Material, PresenceSession } from "./models";
+import type { Announcement, ClassSession, Material, PresenceSession, UnreadSession } from "./models";
 
 const HOUR = 3_600_000;
 
@@ -206,12 +206,20 @@ export function meetingState(meeting: Meeting, now: number): MeetingState {
  * while SIX isn't connected. `sixMonths` are the months whose own timetable
  * page was read ("2026-10"): only there can a meeting be missing from SIX.
  */
+/** A day SIX shows a class on that the app couldn't read, maybe this course's (ADR 0013): a meeting then may be on SIX after all. */
+export function mayBeInSix(unread: readonly UnreadSession[] | undefined, code: string, start: number): boolean {
+  const day = wibDay(start);
+  return (unread ?? []).some((one) => one.day === day && (one.code === null || one.code === code));
+}
+
 export function courseMeetings(
   code: string,
   presence: readonly PresenceSession[],
   sixSessions: readonly ClassSession[] | null,
   announced: readonly AnnouncedMeeting[],
   sixMonths: readonly string[] = [],
+  /** SIX's meetings the app couldn't read: on their days nothing is said to be missing from SIX. */
+  unread: readonly UnreadSession[] = [],
 ): Meeting[] {
   const meetings: Meeting[] = presence.map((p) => ({ key: `p${p.id}`, start: p.start, end: p.end, six: null, presence: p, announced: null, notInSix: false }));
   const overlap = (m: Meeting, start: number, end: number) => Math.min(m.end, end) - Math.max(m.start, start);
@@ -237,7 +245,7 @@ export function courseMeetings(
     else meetings.push({ key: `a${item.start}`, start: item.start, end: item.end, six: null, presence: null, announced: item, notInSix: false });
   }
   const read = new Set(sixSessions ? sixMonths : []);
-  for (const meeting of meetings) meeting.notInSix = !meeting.six && read.has(wibMonth(meeting.start));
+  for (const meeting of meetings) meeting.notInSix = !meeting.six && read.has(wibMonth(meeting.start)) && !mayBeInSix(unread, code, meeting.start);
   return meetings.sort((a, b) => a.start - b.start || a.key.localeCompare(b.key));
 }
 

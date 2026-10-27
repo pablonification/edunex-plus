@@ -161,6 +161,20 @@ describe("class in 15 minutes", () => {
     expect(classSoon.plan!(context({ "six.schedule": schedule }))).toEqual([]);
   });
 
+  it("a day with a class the app couldn't read: that morning, where its time is, never silence", () => {
+    const unread = [{ day: "2026-10-22", row: "10.00-12.00 PL3032 Ekonomi Infrastruktur...", code: "PL3032" }];
+    expect(read(classSoon.plan!(context({ "six.schedule": [], "six.scheduleUnread": unread }, { classSoonAlerts: true })))).toEqual([
+      {
+        id: "class.unread:2026-10-22",
+        at: wib("2026-10-22T06:00:00"),
+        until: wib("2026-10-23T00:00:00"),
+        text: "Ada kuliah hari ini yang belum terbaca — Jam dan ruangnya ada di jadwal SIX.",
+      },
+    ]);
+    // Off with the class reminders.
+    expect(classSoon.plan!(context({ "six.scheduleUnread": unread }))).toEqual([]);
+  });
+
   it("15 minutes before each class, with its room; not for an exam", () => {
     expect(read(classSoon.plan!(context({ "six.schedule": schedule }, { classSoonAlerts: true })))).toEqual([
       {

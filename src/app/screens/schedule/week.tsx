@@ -8,7 +8,7 @@
 // details in a popover.
 import { useMemo } from "react";
 import { wibDay } from "../../../core/course-meetings";
-import type { CalendarEvent, Task } from "../../../core/models";
+import type { CalendarEvent, Task, UnreadSession } from "../../../core/models";
 import {
   clockOf,
   dayStart,
@@ -34,7 +34,7 @@ import { Icons } from "../../ui/icons";
 import { factsLabel, Meta } from "../../ui/layout";
 import { Popover } from "../../ui/overlays";
 import { GridBlock, type GridDay, TimeGrid } from "../../ui/time-grid";
-import { ClassDetails, DueDetails, handInLabel, MeetingDetails, periodName, timeRange, useWorld, WindowDetails } from "./details";
+import { ClassDetails, DueDetails, handInLabel, MeetingDetails, periodName, timeRange, UnreadDetails, useWorld, WindowDetails } from "./details";
 
 const HOUR_HEIGHT = 46;
 /** Minutes a line of block text needs (caption on a 15 px line). */
@@ -66,7 +66,13 @@ export function WeekView({ days, input }: { days: readonly string[]; input: Sche
     return {
       key: day.day,
       label: f.dateLong(at),
-      head: <DayHead at={at} today={day.day === today} size={size} />,
+      head: (
+        <>
+          <DayHead at={at} today={day.day === today} size={size} />
+          {/* No time to place it at, and not a deadline: under the date, about the day. */}
+          {day.unread.length > 0 && <UnreadChip day={day.day} unread={day.unread} />}
+        </>
+      ),
       size,
       lanes: lanesOf(day),
       tone: day.day === today ? "today" : day.events.some((e) => NO_LECTURES.has(e.kind)) ? "off" : null,
@@ -164,7 +170,11 @@ function DayBlocks({ day, notInSix }: { day: ScheduleDay; notInSix: boolean }) {
             {p.item.kind === "class" ? (
               <ClassBlock item={p.item.item} minutes={to - from} narrow={p.columns > 1} />
             ) : (
-              <MeetingBlock meeting={p.item.meeting} minutes={to - from} notInSix={notInSix} />
+              <MeetingBlock
+                meeting={p.item.meeting}
+                minutes={to - from}
+                notInSix={notInSix && !("maybeInSix" in p.item.meeting && p.item.meeting.maybeInSix)}
+              />
             )}
           </GridBlock>
         );
@@ -418,6 +428,27 @@ function MeetingBlock({ meeting, minutes, notInSix }: { meeting: OutsideMeeting 
         </button>
       )}
     </div>
+  );
+}
+
+/** Meetings SIX shows that day that the app couldn't read, under its date: a click from what SIX writes and its timetable. */
+function UnreadChip({ day, unread }: { day: string; unread: readonly UnreadSession[] }) {
+  const t = useT();
+  const text = t("schedule.unread.chip", { count: unread.length });
+  const trigger = (
+    <button
+      type="button"
+      aria-label={text}
+      className="focus-ring mt-1.5 flex w-full items-start gap-1.5 rounded-md border border-dashed border-edge bg-surface px-1.5 py-1 text-left text-caption transition-colors duration-150 hover:bg-hover"
+    >
+      <Icons.Info className="mt-0.5 size-3 shrink-0 text-muted" weight="bold" />
+      <span className="line-clamp-3 min-w-0">{text}</span>
+    </button>
+  );
+  return (
+    <Popover trigger={trigger} align="start" label={text} className="w-[340px] p-4">
+      <UnreadDetails day={day} unread={unread} />
+    </Popover>
   );
 }
 

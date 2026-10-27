@@ -1,7 +1,11 @@
 // SIX's month timetable (/app/mahasiswa:{nim}+{term}/kelas/jadwal/mahasiswa/{id}?bulan=YYYYMM):
 // a Monday-first grid of days, each with its meetings (SIX's meeting id,
-// time, course, activity and room). Times are WIB.
-import type { ClassSession } from "../../../core/models";
+// time, course, activity and room). Times are WIB. The grid stays strict: its
+// rows, the day numbers, the weekdays they fall on and the month it names. A
+// meeting it can't read is left out and its day marked, so that day is never
+// shown as free (ADR 0013).
+import type { ClassSession, UnreadSession } from "../../../core/models";
+import { rowText, type SkipList, Skipped } from "../skipped";
 import { COURSE_CODE, changed, clean, type Element, type Nodes, parse } from "./html";
 
 export interface TimetablePage {
@@ -10,13 +14,20 @@ export interface TimetablePage {
   /** The months SIX offers for this term, from its tabs. */
   months: string[];
   sessions: ClassSession[];
+  /** The meetings it shows that the app couldn't read, by day. */
+  unread: UnreadSession[];
 }
 
 const PAGE = "jadwal";
 const WIB = 7 * 3_600_000;
 const DAY = 86_400_000;
 const MONTH = /[?&]bulan=(\d{4})(\d{2})\b/;
-const TIME_RANGE = /\d{1,2}:\d{2}\s*-\s*\d{1,2}:\d{2}/g;
+/** A meeting's time as SIX shows it in a day: "08:00-09:30". */
+const TIME = /\d{1,2}:\d{2}\s*-\s*\d{1,2}:\d{2}/;
+const TIME_RANGE = new RegExp(TIME.source, "g");
+/** The day's text cut before each time it shows: one piece per meeting. */
+const BEFORE_TIME = new RegExp(`(?=\\b${TIME.source})`);
+const timeOf = (text: string) => TIME.exec(text)?.[0].replace(/\s+/g, "") ?? null;
 
 /** "202610" for a moment, in WIB. */
 export function wibMonth(ms: number): string {
@@ -31,8 +42,19 @@ export function nextMonth(month: string): string {
   return index === 12 ? `${year + 1}01` : `${year}${String(index + 1).padStart(2, "0")}`;
 }
 
-/** Reads one month page. `requested` is the month asked for, used only when SIX doesn't mark one. */
-export function readTimetable(html: string, requested: string): TimetablePage {
+/**
+ * Reads one month page. `requested` is the month asked for, used only when SIX doesn't mark one.
+ * `skipped`: where the meetings it can't read are noted. More left out than read is the page changing.
+ */
+export function readTimetable(html: string, requested: string, skipped = new Skipped()): TimetablePage {
+  const list = skipped.list();
+  const page = readMonth(html, requested, list);
+  list.done();
+  return page;
+}
+
+/** One month page, its meetings read into `list`: the caller says when the read is done (a read of two months counts both). */
+export function readMonth(html: string, requested: string, list: SkipList): TimetablePage {
   const $ = parse(html);
   const tabMonth = (el: Element) => {
     const match = MONTH.exec(clean($(el).attr("href") ?? ""));
@@ -59,6 +81,7 @@ export function readTimetable(html: string, requested: string): TimetablePage {
   let previousDay = 0;
   let inMonth = false;
   const sessions: ClassSession[] = [];
+  const unread: UnreadSession[] = [];
   for (const tr of rows) {
     $(tr)
       .children("td")
@@ -74,15 +97,48 @@ export function readTimetable(html: string, requested: string): TimetablePage {
         year = shown.getUTCFullYear();
         index = shown.getUTCMonth();
         if (`${year}${String(index + 1).padStart(2, "0")}` === month) inMonth = true;
+        // A meeting it can't read is left out, its day marked: a day with one is never shown as free.
+        const leftOut = (text: string, code: string | null) => unread.push({ day: shown.toISOString().slice(0, 10), row: rowText(text), code });
         const meetings = $(td).find("a[data-url*='/pertemuan/']").toArray();
-        for (const link of meetings) sessions.push(readMeeting($(link), date));
-        // Every time shown in a day must be a meeting the app read: a day it can't read is never shown as free.
-        const times = clean($(td).children("div").slice(1).text()).match(TIME_RANGE) ?? [];
-        if (times.length !== meetings.length) throw changed(PAGE, "a day with meetings the app can't read");
+        for (const link of meetings) {
+          const text = clean($(link).text());
+          const session = list.item(`${day} · ${text}`, () => readMeeting($(link), date));
+          if (session) sessions.push(session);
+          else leftOut(text, codeIn(clean($(link).attr("data-kuliah") ?? "")));
+        }
+        // Every time shown in a day is a meeting: one without a meeting the app can open is left out too,
+        // as the piece of the day's text from its time on.
+        const said = clean($(td).children("div").slice(1).text());
+        const linked = meetings.map((link) => timeOf(clean($(link).text())));
+        const loose = said
+          .split(BEFORE_TIME)
+          .map((piece) => piece.trim())
+          .filter((piece) => {
+            const time = timeOf(piece);
+            if (!time) return false;
+            const at = linked.indexOf(time);
+            if (at < 0) return true;
+            linked.splice(at, 1);
+            return false;
+          });
+        const times = said.match(TIME_RANGE) ?? [];
+        for (let extra = times.length - meetings.length, i = 0; extra > 0; extra--, i++) {
+          const piece = loose[i] ?? said;
+          list.item(`${day} · ${piece}`, () => {
+            throw changed(PAGE, "a time without its meeting");
+          });
+          leftOut(piece, codeIn(piece));
+        }
       });
   }
   if (!inMonth) throw changed(PAGE, "the grid doesn't show the month it names");
-  return { month, months, sessions };
+  return { month, months, sessions, unread };
+}
+
+/** The course code a meeting the app couldn't read shows plainly first ("DK4073 Komunikasi…"), if any. */
+function codeIn(text: string): string | null {
+  const code = /\b([A-Z]{2}\d{4})\b/.exec(text)?.[1] ?? null;
+  return code && COURSE_CODE.test(code) ? code : null;
 }
 
 function readMeeting(link: Nodes, day: number): ClassSession {

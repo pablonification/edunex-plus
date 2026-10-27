@@ -22,6 +22,7 @@ export interface HomeFacts {
   announcements: Value<"edunex.announcements">;
   schedule: Value<"six.schedule">;
   scheduleMonths: Value<"six.scheduleMonths">;
+  scheduleUnread: Value<"six.scheduleUnread">;
   exams: Value<"edunex.exams">;
   examMarks: Value<"local.examMarks">;
   calendar: Value<"itb.calendar">;
@@ -55,6 +56,7 @@ export function homeWorld(facts: HomeFacts): HomeWorld | undefined {
     announcements: facts.announcements ?? {},
     schedule: facts.schedule ?? null,
     scheduleMonths: facts.scheduleMonths,
+    scheduleUnread: facts.scheduleUnread ?? [],
     exams: facts.exams,
     examMarks: facts.examMarks,
     calendar: facts.calendar,
@@ -104,6 +106,7 @@ export function snapshotHomeWorld(snapshot: Pick<Snapshot, "datasets" | "statuse
     announcements: dataset("edunex.announcements"),
     schedule: dataset("six.schedule"),
     scheduleMonths: dataset("six.scheduleMonths"),
+    scheduleUnread: dataset("six.scheduleUnread"),
     exams: dataset("edunex.exams"),
     examMarks: dataset("local.examMarks"),
     calendar: dataset("itb.calendar"),

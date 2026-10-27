@@ -5,12 +5,13 @@
 // Tasks and materials), Pertemuan, Tugas & Ujian, Nilai and Pengumuman.
 import * as Tabs from "@radix-ui/react-tabs";
 import { type ReactNode, useMemo, useState } from "react";
-import { type AttendanceHealth, percent } from "../../core/attendance";
+import { type AttendanceHealth, firstUnreadDay, percent } from "../../core/attendance";
 import { planOfflineFiles } from "../../core/course-materials";
 import { clashes, type Meeting, openPresences, pinnedMeeting } from "../../core/course-meetings";
 import { outOfReachKey } from "../../core/done";
 import { edunexCourseUrl, sixTimetableUrl } from "../../core/links";
 import type { PresenceSession } from "../../core/models";
+import { dayNoon } from "../../core/schedule";
 import { attendanceKey, attendanceSnoozable } from "../../core/snooze";
 import { todoCount, todoForCourse } from "../../core/todo";
 import { useAttendance } from "../attendance";
@@ -23,6 +24,7 @@ import { type Format, type StringKey, type Translate, useFormat, useLang, useNow
 import { useNav } from "../nav";
 import { useTodo } from "../schedule-data";
 import { useRefresh } from "../shell/source-status";
+import { OpenSixTimetable } from "../six-page-note";
 import { DoneButton, SnoozeMenu } from "../snooze-menu";
 import { useDone, useSnoozes } from "../snoozes";
 import { useBridge, useDataset, useSettings, useStatus } from "../store";
@@ -409,6 +411,8 @@ function MeetingNow({ page }: { page: CoursePage }) {
   const open = useOpenExternal();
   const attendance = useAttendance();
   const live = useStatus("edunex").state === "live";
+  const schedule = useDataset("six.schedule");
+  const unread = useDataset("six.scheduleUnread");
   const modules = pageModules(page);
   const pinned = pinnedMeeting(page.meetings, now);
   const windows = openPresences(page.presence ?? [], now);
@@ -503,8 +507,18 @@ function MeetingNow({ page }: { page: CoursePage }) {
       </NowLine>,
     );
   }
-  // Nothing on and no window open: at most the next meeting's line.
-  if (!current && !presence) return lines[0] ?? null;
+  // A class of the course SIX shows that the app couldn't read, up to the next meeting: its time and room are on SIX.
+  const unreadDay = firstUnreadDay(unread ?? [], schedule ?? [], now, next?.start ?? null, page.course.code);
+  if (unreadDay)
+    lines.push(
+      <NowLine key="unread" icon={<Icons.Info className="size-4" />} action={<OpenSixTimetable day={unreadDay} />}>
+        <Meta>
+          <span className="font-medium text-fg">{t("home.now.unread", { day: f.relativeDay(dayNoon(unreadDay)) })}</span>
+        </Meta>
+      </NowLine>,
+    );
+  // Nothing on and no window open: at most the next meeting's line, and a class the app couldn't read.
+  if (!current && !presence) return lines.length ? lines : null;
 
   const start = meeting?.start ?? presence!.start;
   const end = meeting?.end ?? presence!.end;

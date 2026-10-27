@@ -126,6 +126,16 @@ describe("schedule alerts", () => {
     expect(meeting[0].source).toBe("edunex");
   });
 
+  it("not on a day SIX shows a class of that course the app can't read: the announced meeting may be that one", async () => {
+    const app = await start();
+    // II4091's class on Friday 23 October, its time written with dots.
+    app.world.six.addMeetingOn(23, { id: "2299002", code: "II4091", name: "Proposal Tugas Akhir", start: "13.00", end: "15.00" });
+    await app.refresh("six");
+    app.world.edunex.postAnnouncement(95326, { announcement: "Pertemuan 05: Jumat, 23 Oktober 2026 Pkl. 13:00 - 15:00 WIB (Online)" });
+    await app.refresh("edunex");
+    expect(app.shown.filter((n) => n.kind === "meeting")).toEqual([]);
+  });
+
   it("a month counts as read only from its own page: early December on November's page doesn't make December's meetings 'outside SIX'", async () => {
     const app = await start();
     // SIX's November page also shows 1–4 December, here with PL3002's class on Thursday 3 December.

@@ -46,6 +46,14 @@ export const ClassSession = z.object({
 export type ClassSession = z.infer<typeof ClassSession>;
 
 /**
+ * A meeting SIX's timetable shows that the app couldn't read (its time written another way, say): its
+ * day (WIB, "2026-10-08"), what SIX writes for it, and its course code when SIX gives one plainly. Its
+ * time and room aren't known, so its day is never shown as free (ADR 0013).
+ */
+export const UnreadSession = z.object({ day: z.string(), row: z.string(), code: z.string().nullable() });
+export type UnreadSession = z.infer<typeof UnreadSession>;
+
+/**
  * SIX's "Tandai Hadir" button for one class meeting, as the app last saw it in
  * the meeting's popup on SIX's timetable, read while the class is on. SIX
  * counts a Student present when they press it there. waiting: read, no button
@@ -90,6 +98,8 @@ export const sixDatasets = {
    * their month read, so nothing there is called missing from SIX.
    */
   "six.scheduleMonths": z.array(z.string()),
+  /** The meetings of those months the app couldn't read, by day. Saved by a version from 0.1.0-alpha.22 on; older data has none. */
+  "six.scheduleUnread": z.array(UnreadSession),
   /** "Tandai Hadir" in each class meeting read while it was on, by SIX's meeting id (the last two days). */
   "six.checkIn": z.record(z.string(), SixCheckIn),
   /**

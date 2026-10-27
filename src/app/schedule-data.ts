@@ -35,6 +35,7 @@ export interface ScheduleData extends ScheduleInput {
 export function useScheduleInput(): ScheduleData | undefined {
   const schedule = useDataset("six.schedule");
   const months = useDataset("six.scheduleMonths");
+  const unread = useDataset("six.scheduleUnread");
   const courses = useTermCourses();
   const materials = useDataset("edunex.materials");
   const announcements = useDataset("edunex.announcements");
@@ -49,8 +50,8 @@ export function useScheduleInput(): ScheduleData | undefined {
     const open = (tasks ?? []).filter((task) => isOpenStatus(taskStatus(task, now)));
     const shared = { tasks: open, events: calendar?.events ?? [], windows: taskWindows(presence, schedule ?? [], tasks ?? []) };
     if (!schedule) return { ...shared, schedule: [], months: [], outside: [], edunex: edunexMeetings(codes, edunex), six: false };
-    return { ...shared, schedule, months: months ?? [], outside: meetingsOutsideSix(codes, schedule, months, edunex), six: true };
-  }, [schedule, months, courses, materials, announcements, presence, tasks, calendar, now]);
+    return { ...shared, schedule, months: months ?? [], unread: unread ?? [], outside: meetingsOutsideSix(codes, schedule, months, edunex, unread), six: true };
+  }, [schedule, months, unread, courses, materials, announcements, presence, tasks, calendar, now]);
 }
 
 /** Every exam of the term; undefined until SIX or Edunex has said anything. */

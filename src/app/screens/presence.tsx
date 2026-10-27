@@ -16,6 +16,7 @@ import {
   type AttendanceHealth,
   clashPick,
   dayAnswer,
+  firstUnreadDay,
   GROUP_ORDER,
   isExamActivity,
   onUsualSlot,
@@ -28,7 +29,8 @@ import {
 import { checkingIn } from "../../core/check-in";
 import { wibDay } from "../../core/course-meetings";
 import { sixTimetableUrl } from "../../core/links";
-import type { CalendarEvent, ClassSession, SixCheckIn, SixStudent } from "../../core/models";
+import type { CalendarEvent, ClassSession, SixCheckIn, SixStudent, UnreadSession } from "../../core/models";
+import { dayNoon } from "../../core/schedule";
 import { type Attendance, type CourseAttendance, type OpenWindow, useAttendance } from "../attendance";
 import { budgetWords, useActionLabel } from "../attendance-labels";
 import { AbsenceBudget, TargetsPanel } from "../attendance-parts";
@@ -60,6 +62,7 @@ export function PresenceScreen() {
   const now = useNow();
   const student = useDataset("six.student");
   const checkIns = useDataset("six.checkIn");
+  const unread = useDataset("six.scheduleUnread");
   const calendar = useDataset("itb.calendar");
   const { attendanceTargets } = useSettings();
   const name = useCourseNames();
@@ -85,6 +88,7 @@ export function PresenceScreen() {
     zone,
     signedOut,
     schedule: attendance.schedule,
+    unread: unread ?? [],
     own: attendanceTargets,
     soFar: attendance.period === null,
     onChangeTarget: (code) => openTargets(true, code),
@@ -248,16 +252,20 @@ function DayLine({ attendance }: { attendance: Attendance }) {
   const t = useT();
   const f = useFormat();
   const now = useNow();
+  const unread = useDataset("six.scheduleUnread");
   const answer = dayAnswer(
     attendance.courses.map((c) => c.health),
     attendance.schedule,
     attendance.period,
     now,
+    unread,
   );
   if (!answer) return null;
   if (answer.kind === "ended") return <span>{t("presence.ended", { date: dayLabel(f, noonOf(answer.lastDay)) })}</span>;
-  if (answer.kind === "next") return <span>{t("presence.day.next", { day: dayLabel(f, answer.at) })}</span>;
-  const first = t(answer.day === "today" ? "presence.day.today" : "presence.day.tomorrow", { count: answer.count });
+  // A class SIX shows that the app couldn't read: counted on its day, and said, with where to look.
+  const unreadLine = answer.unread ? ` ${t("presence.day.unread", { count: answer.unread })}` : "";
+  if (answer.kind === "next") return <span>{`${t("presence.day.next", { day: dayLabel(f, answer.at) })}${unreadLine}`}</span>;
+  const first = `${t(answer.day === "today" ? "presence.day.today" : "presence.day.tomorrow", { count: answer.count })}${unreadLine}`;
   const { spare } = answer;
   // Said only of the courses SIX has a count for; with some still uncounted, they're named instead of "only" or "each".
   const second = !spare
@@ -600,6 +608,8 @@ interface RowContext {
   zone: Zone;
   signedOut: boolean;
   schedule: readonly ClassSession[];
+  /** SIX's meetings the app couldn't read, by day (ADR 0013). */
+  unread: readonly UnreadSession[];
   own: Readonly<Record<string, number>>;
   /** Without ITB's calendar: absences count only SIX's timetable so far. */
   soFar: boolean;
@@ -705,8 +715,11 @@ function windowWhen(t: Translate, f: Format, window: NonNullable<CourseAttendanc
 function metaParts(t: Translate, f: Format, item: CourseAttendance, context: RowContext): string[] {
   if (context.signedOut) return item.nextWindow ? [t("presence.row.window", { when: windowWhen(t, f, item.nextWindow) })] : [];
   const at = classOf(item, context);
+  if (at?.live && at.session) return [t("presence.row.now", { time: f.time(at.session.end) }), at.session.room ?? ""].filter(Boolean);
+  // A class of the course SIX shows that the app couldn't read, before the next one it can: that comes first.
+  const unreadDay = firstUnreadDay(context.unread, context.schedule, context.now, at?.start ?? null, item.course.code);
+  if (unreadDay) return [t("home.now.unread", { day: f.relativeDay(dayNoon(unreadDay)) })];
   if (!at) return [];
-  if (at.live && at.session) return [t("presence.row.now", { time: f.time(at.session.end) }), at.session.room ?? ""].filter(Boolean);
   const time = at.session ? f.timeRange(at.session.start, at.session.end) : f.time(at.start);
   const offset = f.dayOffset(at.start);
   const when =

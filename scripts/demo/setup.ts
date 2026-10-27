@@ -26,6 +26,8 @@
 //                            the courses stay as last read (changed); it writes KU5014's code another way, so SIX's
 //                            list loses that row and Edunex's KU5014 stays (lost); or it has no attendance column, so
 //                            every course's attendance is blank and the table is noted once (blank)
+//   EDUNEX_DEMO_TIMETABLE=unread  SIX writes the time of DK4073's class this Thursday (8 Oct, 11:00) with dots, so
+//                            the app can't read that meeting: it's left out and its day says so (ADR 0013)
 //
 // Every run starts from an empty profile (deleted again on quit), so each begins the same way.
 import fs from "node:fs";
@@ -76,6 +78,9 @@ if (courseTable && !["changed", "lost", "blank"].includes(courseTable)) throw ne
 if (courseTable === "lost") world.six.changeLayout(/\/statusmhs$/, "<td>KU5014</td>", "<td>KU-5014</td>");
 if (courseTable === "blank")
   world.six.editPage(/\/statusmhs$/, (html) => html.replace('<th class="text-right">Kehadiran</th>', "").replace(/<td class="text-right">[\s\S]*?<\/td>/g, ""));
+const timetable = process.env.EDUNEX_DEMO_TIMETABLE;
+if (timetable && timetable !== "unread") throw new Error(`Unknown EDUNEX_DEMO_TIMETABLE "${timetable}"`);
+if (timetable === "unread") world.six.moveMeeting("2153983", "11.00", "12.59");
 if (process.env.EDUNEX_DEMO_QUIZ === "1")
   world.edunex.exams.set(93409, [
     { id: 88002, type: "exams", attributes: { name: "Kuis Brand Equity", start_at: "2026-10-19T08:00:00+07:00", end_at: "2026-10-30T23:59:00+07:00" } },

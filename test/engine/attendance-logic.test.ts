@@ -648,6 +648,49 @@ describe("the next class day, on top of Presensi", () => {
     const now = wib("2026-12-07T09:00:00");
     expect(dayAnswer(courses(now), schedule, period, now)).toEqual({ kind: "ended", lastDay: "2026-12-04" });
   });
+
+  describe("with a class SIX shows that the app couldn't read", () => {
+    const unread = (day: string) => ({ day, row: "10.00-12.00 PL3032 Ekonomi Infrastruktur...", code: "PL3032" });
+
+    it("it counts on its day, and is said", () => {
+      const now = wib("2026-10-08T08:07:00");
+      expect(dayAnswer(courses(now), schedule, period, now, [unread("2026-10-08")])).toEqual({
+        kind: "day",
+        day: "today",
+        count: 4,
+        // Its course isn't known: the day's courses aren't all known, so never "each" or "only".
+        spare: { codes: ["PL3002"], of: 3, courses: 4 },
+        unread: 1,
+      });
+    });
+
+    it("in the evening, after the teaching day, the line moves on to tomorrow", () => {
+      const evening = wib("2026-10-07T19:00:00");
+      expect(dayAnswer(courses(evening), schedule, period, evening, [unread("2026-10-07")])).toMatchObject({ kind: "day", day: "tomorrow", count: 3 });
+      expect(dayAnswer(courses(evening), schedule, period, evening, [unread("2026-10-07")])).not.toHaveProperty("unread");
+    });
+
+    it("a day with only that class isn't a day off: today, else tomorrow", () => {
+      const friday = wib("2026-10-09T09:00:00");
+      expect(dayAnswer(courses(friday), schedule, period, friday, [unread("2026-10-09")])).toMatchObject({ kind: "day", day: "today", count: 1, unread: 1 });
+      const thursday = wib("2026-10-08T20:00:00");
+      expect(dayAnswer(courses(thursday), schedule, period, thursday, [unread("2026-10-09")])).toMatchObject({
+        kind: "day",
+        day: "tomorrow",
+        count: 1,
+        unread: 1,
+      });
+    });
+
+    it("before the next class, it's the next day with one", () => {
+      const now = wib("2026-10-09T09:00:00");
+      expect(dayAnswer(courses(now), schedule, period, now, [unread("2026-10-19")])).toEqual({ kind: "next", at: wib("2026-10-19T12:00:00"), unread: 1 });
+      // On the next class's own day: that class, with it said.
+      expect(dayAnswer(courses(now), schedule, period, now, [unread("2026-10-22")])).toEqual({ kind: "next", at: wib("2026-10-22T08:00:00"), unread: 1 });
+      // After it: the next class as before.
+      expect(dayAnswer(courses(now), schedule, period, now, [unread("2026-10-29")])).toEqual({ kind: "next", at: wib("2026-10-22T08:00:00") });
+    });
+  });
 });
 
 describe("what SIX's count did after each class", () => {

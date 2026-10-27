@@ -13,7 +13,9 @@
 //   Tasks: the Task alerts cover them.
 // - A class in 15 minutes, with its room, once the Student turns it on: from
 //   SIX's timetable as it is now (a moved class at its new time and room), and
-//   meetings announced only in Edunex.
+//   meetings announced only in Edunex. A class on SIX's timetable the app
+//   couldn't read has no time to count back from: that morning instead, the
+//   day has a class whose time and room are on SIX (ADR 0013).
 // Every one is silent on the first sync (the center does that) and only
 // about what is still to come. Days read as the app writes them ("Kam, 15
 // Okt", "Thu, 15 Oct"): the text carries both languages' (src/core/dates.ts).
@@ -134,15 +136,22 @@ function outsideSix(get: Get) {
   const materials = get("edunex.materials");
   const announcements = get("edunex.announcements");
   const codes = [...new Set([...Object.keys(materials ?? {}), ...Object.keys(announcements ?? {})])];
-  return meetingsOutsideSix(codes, get("six.schedule"), get("six.scheduleMonths"), { materials, announcements, presence: get("edunex.presence") });
+  return meetingsOutsideSix(
+    codes,
+    get("six.schedule"),
+    get("six.scheduleMonths"),
+    { materials, announcements, presence: get("edunex.presence") },
+    get("six.scheduleUnread"),
+  );
 }
 
 export const meetingsOutside: Detector = {
   name: "schedule.meetingsOutside",
-  watches: ["six.schedule", "six.scheduleMonths", "edunex.materials", "edunex.announcements", "edunex.presence"],
+  watches: ["six.schedule", "six.scheduleMonths", "six.scheduleUnread", "edunex.materials", "edunex.announcements", "edunex.presence"],
   changed(_change, { get, now }) {
+    // Not one on a day SIX shows a class the app couldn't read: it may be that one.
     return outsideSix(get)
-      .filter((meeting) => meeting.start > now)
+      .filter((meeting) => meeting.start > now && !meeting.maybeInSix)
       .map((meeting) => ({
         // The id Beranda's "what changed" gives the same meeting, so it shows once there.
         id: `meeting:${meeting.code}:${meeting.start}`,
@@ -238,10 +247,12 @@ export const examAlerts: Detector = {
 
 /** "10:00–11:30": the start and end of what starts soon. */
 const span = (start: number, end: number) => `${clockTime(start)}–${clockTime(end)}`;
+/** A day with a class the app couldn't read is said at 06:00 WIB, before the first classes. */
+const EARLY = 6 * HOUR;
 
 export const classSoon: Detector = {
   name: "schedule.classSoon",
-  watches: ["six.schedule", "six.scheduleMonths", "edunex.materials", "edunex.announcements", "edunex.presence"],
+  watches: ["six.schedule", "six.scheduleMonths", "six.scheduleUnread", "edunex.materials", "edunex.announcements", "edunex.presence"],
   plan({ get, settings }) {
     if (!settings.classSoonAlerts) return [];
     const schedule = get("six.schedule") ?? [];
@@ -276,6 +287,18 @@ export const classSoon: Detector = {
         target: { screen: "schedule" },
       }),
     );
-    return [...classes, ...announced];
+    const unread = [...new Set((get("six.scheduleUnread") ?? []).map((one) => one.day))].map(
+      (day): PlannedAlert => ({
+        id: `class.unread:${day}`,
+        kind: "classSoon",
+        source: "six",
+        at: dayStart(day) + EARLY,
+        until: dayStart(day) + DAY,
+        title: { key: "alert.classUnread" },
+        body: { key: "alert.classUnread.body" },
+        target: { screen: "schedule" },
+      }),
+    );
+    return [...classes, ...announced, ...unread];
   },
 };

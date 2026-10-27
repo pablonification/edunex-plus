@@ -84,7 +84,7 @@ sign-in, liveness first), then repeat every `every` ± `jitter`.
 | --- | --- | --- | --- |
 | `/home` | `six.status`, only when the NIM isn't known yet this session | The NIM | `six/status.ts` `readNim` |
 | `/app/mahasiswa:{nim}/statusmhs` | `six.status` (1 h ± 5 min); liveness | Name, `{sid}`, program code and name, the term, this term's courses: code, name, class, SKS, and attendance as "Hadir X dari Y pertemuan" from the tooltip, checked against the percentage shown (with sick days SIX shows two, "82.35% / 94.12%": the first is read). The course table's columns are found by their labels, in any order. A class, SKS or attendance it can't read is left blank and the row noted; the course stays ([ADR 0009](docs/adr/0009-keep-a-course-whose-detail-cant-be-read.md)). A course table it can't read leaves the Student, the term and every other page reading ([ADR 0012](docs/adr/0012-six-course-table-changes-alone.md)) | `six/status.ts` `readStatusPage` |
-| `/app/mahasiswa:{nim}+{term}/kelas/jadwal/mahasiswa/{sid}?bulan={YYYYMM}` | `six.schedule` (12 h ± 30 min): this month (WIB), plus next month when SIX's tabs offer it | Each meeting: SIX meeting id, date, start/end (WIB), course code and name, activity (Kuliah, UTS, …) and room | `six/timetable.ts` |
+| `/app/mahasiswa:{nim}+{term}/kelas/jadwal/mahasiswa/{sid}?bulan={YYYYMM}` | `six.schedule` (12 h ± 30 min): this month (WIB), plus next month when SIX's tabs offer it | Each meeting: SIX meeting id, date, start/end (WIB), course code and name, activity (Kuliah, UTS, …) and room. A meeting it can't read is left out and its day marked (`six.scheduleUnread`), so that day is never shown as free ([ADR 0013](docs/adr/0013-a-meeting-the-app-cant-read-marks-its-day.md)) | `six/timetable.ts` |
 | `/app/mahasiswa:{nim}/statusmhs/transkrip/historis/{sid}` | `six.transcript` (24 h ± 1 h) | Every course per term with grade, SKS, curriculum semester, on-transcript mark; SIX's IP per term; SKS taken. Retakes and IP/IPK are worked out and checked; with a grade, mark or SKS the app can't read in it, SIX's figure shows unchecked | `readers/transcript.ts` |
 | `/app/mahasiswa:{nim}/statusmhs/transkrip/kurikulum/{sid}` | `six.transcript` (same run) | Graduation progress: entry term, IPK (and the SKS it covers), SKS passed and graded T, SKS by kind, courses by stage and curriculum semester (graded, in progress, exempt, not taken). A status label it doesn't know leaves its course out | `readers/progress.ts` |
 | `/app/mahasiswa:{nim}/kurikulum/kurikulum/list` | `six.curriculum` (24 h ± 1 h) | Curricula for the program: year, SKS to graduate, normal length, which one is in force, its structure link | `readers/curriculum-list.ts` |
@@ -196,8 +196,7 @@ it as a candidate source; the app does not request it.
 Every reader rejects what it can't place for certain instead of guessing: a header without a
 column that says which row it is (or one no blank can stand for, like a course's grade on the
 curriculum-position page), a row with another number of cells than its header, a number that
-isn't a number, attendance that disagrees with its percentage, a day with times the app can't
-read (never shown as free), a calendar that isn't a calendar or has no events. Each throws **VendorChanged** with the page and what didn't fit
+isn't a number, attendance that disagrees with its percentage, a calendar that isn't a calendar or has no events. Each throws **VendorChanged** with the page and what didn't fit
 (`six/html.ts`, `readers/records-common.ts`, `itb/catalog-pages.ts`, `itb/calendar.ts`). A
 changed catalog page marks only that program "changed" and the feed reports it after the run.
 
@@ -220,9 +219,14 @@ courses they leave out ([ADR 0011](docs/adr/0011-record-columns-by-name-and-blan
 `test/engine/six-odd-cells.test.ts` changes each recorded page one cell at a time (a second value,
 extra words, an empty cell) and keeps what every reader does in
 `test/engine/__snapshots__/six-odd-cells.txt`. What holds the rows stays strict (a table, its header, a year or semester heading), as does
-a list with more rows left out than read, and the month timetable as a whole (a meeting left out
-could make a day look free). The status page's course table is the one table whose columns are found
-by their labels, so a column added or moved still reads.
+a list with more rows left out than read, and the month timetable's grid (its rows, the day numbers,
+the weekdays and the month it names). A meeting on the timetable the app can't read is left out the
+same way, and kept in `six.scheduleUnread` with its day, its text and its course code when SIX shows
+one plainly: Jadwal, Beranda, Presensi, the course page, the tray menu and the class reminders say
+there's a class that day the app couldn't read, with a way to SIX's timetable, and never call the day
+free ([ADR 0013](docs/adr/0013-a-meeting-the-app-cant-read-marks-its-day.md)). The timetable counts its
+meetings left out across the months it reads together. The status page's course table finds its
+columns by their labels too, so a column added or moved still reads.
 
 | What happened | Error | The app shows |
 | --- | --- | --- |

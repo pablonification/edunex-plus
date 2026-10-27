@@ -1,16 +1,17 @@
-// Jadwal's month: what's unusual, not the routine. Exams, deadlines, Presence
-// by handing in a Task, moved, extra and clashing classes and meetings only
-// Edunex announced each get a line with its own icon (the words in its
-// name); the routine collapses to a quiet count ("4 kuliah"). ITB's periods
-// (UTS, UAS, holidays) tint their days, named on their first day. A day
-// opens its details in a popover, with the way to its week.
+// Jadwal's month: what's unusual, not the routine. Classes the app couldn't
+// read, exams, deadlines, Presence by handing in a Task, moved, extra and
+// clashing classes and meetings only Edunex announced each get a line with its
+// own icon (the words in its name); the routine collapses to a quiet count
+// ("4 kuliah"). ITB's periods (UTS, UAS, holidays) tint their days, named on
+// their first day. A day opens its details in a popover, with the way to its week.
 import { type ReactNode, useMemo } from "react";
 import { wibDay } from "../../../core/course-meetings";
 import type { CalendarEvent } from "../../../core/models";
-import { dayStart, type MonthGrid, type ScheduleDay, scheduleDays } from "../../../core/schedule";
+import { dayStart, isEmptyDay, type MonthGrid, type ScheduleDay, scheduleDays } from "../../../core/schedule";
 import { taskStatus } from "../../../core/tasks";
 import { type Format, type Translate, useFormat, useT } from "../../i18n";
 import type { ScheduleData } from "../../schedule-data";
+import { OpenSixTimetable } from "../../six-page-note";
 import { Button } from "../../ui/controls";
 import { cx } from "../../ui/cx";
 import { CourseDot, Tag } from "../../ui/display";
@@ -129,10 +130,20 @@ export function MonthView({ month, input, onShowWeek }: { month: MonthGrid; inpu
   );
 }
 
-/** What's unusual that day, one line each, worst first: exams, clashes, hand-in windows, deadlines, moves, meetings only Edunex announced. */
+/**
+ * What's unusual that day, one line each, worst first: classes the app couldn't read (the day isn't free), exams,
+ * clashes, hand-in windows, deadlines, moves, meetings only Edunex announced.
+ */
 function monthLines(day: ScheduleDay, t: Translate, f: Format, world: ReturnType<typeof useWorld>): Line[] {
   const lines: Line[] = [];
   const time = (ms: number) => f.time(ms);
+  if (day.unread.length)
+    lines.push({
+      key: "unread",
+      icon: <Icons.Info className="size-3 shrink-0" weight="bold" />,
+      text: t("schedule.unread.short"),
+      full: t("schedule.unread.chip", { count: day.unread.length }),
+    });
   for (const event of day.events.filter((e) => MARKED.has(e.kind))) {
     lines.push({
       key: `c${event.id}`,
@@ -266,7 +277,7 @@ function DayDetails({ day, period, onShowWeek }: { day: ScheduleDay; period: Cal
       note: null as string | null,
     })),
   ].sort((a, b) => a.start - b.start);
-  const empty = !timed.length && !day.windows.length && !day.due.length;
+  const empty = isEmptyDay(day);
   return (
     <>
       <p className="text-title font-semibold">{f.dateLong(noon)}</p>
@@ -275,6 +286,15 @@ function DayDetails({ day, period, onShowWeek }: { day: ScheduleDay; period: Cal
         <p className="mt-3 text-small text-muted">{t("schedule.month.nothing")}</p>
       ) : (
         <ul className="mt-3 space-y-2 text-small">
+          {day.unread.map((one) => (
+            <li key={`u${one.row}`} className="flex items-start gap-2.5">
+              <span className="w-[86px] shrink-0 pt-px text-caption font-semibold text-faint">-</span>
+              <span className="min-w-0 flex-1">
+                <span className="block font-semibold">{t("schedule.unread.title", { count: 1 })}</span>
+                <span className="block text-caption break-words text-muted">{one.row}</span>
+              </span>
+            </li>
+          ))}
           {timed.map((item) => (
             <li key={item.key} className="flex items-start gap-2.5">
               <span className="w-[86px] shrink-0 pt-px text-caption font-semibold tabular-nums">{timeRange(f, item.start, item.end)}</span>
@@ -314,7 +334,8 @@ function DayDetails({ day, period, onShowWeek }: { day: ScheduleDay; period: Cal
           ))}
         </ul>
       )}
-      <div className="mt-4 flex justify-end">
+      <div className="mt-4 flex flex-wrap justify-end gap-2">
+        {day.unread.length > 0 && <OpenSixTimetable day={day.day} />}
         <Button size="sm" variant="primary" onClick={onShowWeek}>
           {t("schedule.month.showWeek")}
           <Icons.ArrowRight className="size-3.5" />

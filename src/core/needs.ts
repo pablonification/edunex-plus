@@ -16,6 +16,7 @@ import {
   type ClassResults,
   type CountedIn,
   type CountLog,
+  firstUnreadDay,
   isExamActivity,
   lecturePeriod,
   openWindows,
@@ -24,7 +25,7 @@ import {
   presenceOptional,
 } from "./attendance";
 import { introModule, materialKind } from "./course-materials";
-import { type AnnouncedMeeting, announcedMeetings, courseMeetings, wibDay } from "./course-meetings";
+import { type AnnouncedMeeting, announcedMeetings, courseMeetings, mayBeInSix, wibDay } from "./course-meetings";
 import { dateVars, localDayStart, sameLocalDay, weekdayVars } from "./dates";
 import { type Exam, examParts, mergeExams } from "./exams";
 import {
@@ -43,6 +44,7 @@ import {
   type SixCourse,
   type Task,
   type TaskEdit,
+  type UnreadSession,
 } from "./models";
 import type { Route } from "./route";
 import { dayStart, isScheduleReminder, slotMarks, weekStart } from "./schedule";
@@ -87,6 +89,8 @@ export interface HomeWorld {
   schedule: readonly ClassSession[] | null;
   /** The months whose own SIX timetable page was read ("2026-10"): only there can a meeting be "not in SIX". */
   scheduleMonths?: readonly string[];
+  /** SIX's meetings the app couldn't read, by day: those days are never free (ADR 0013). */
+  scheduleUnread?: readonly UnreadSession[];
   /** Edunex's exams by course code. */
   exams?: Readonly<Record<string, readonly EdunexExam[]>>;
   /** The Edunex exam windows the Student marked done (Tugas & Ujian). */
@@ -190,7 +194,12 @@ export type NeedFacts =
   /** `editAt`, for "edited": the edit it's about (the newest that changed something). */
   | { kind: "task"; task: Task; reason: "overdue" | "short" | "due" | "edited"; draft: boolean; editAt?: number | null }
   | { kind: "attendance"; health: AttendanceHealth }
-  | { kind: "meeting"; meeting: AnnouncedMeeting }
+  | {
+      kind: "meeting";
+      meeting: AnnouncedMeeting;
+      /** On a day with a class SIX shows that the app couldn't read, maybe this one: never said to be missing from SIX. */
+      maybeInSix?: true;
+    }
   | {
       kind: "exam";
       exam: Exam;
@@ -596,6 +605,7 @@ export const meetingProvider: NeedProvider = {
             sources: ["edunex"],
             action: meeting.link ? { kind: "open", url: meeting.link, via: "link" } : courseRoute(course.code),
             meeting,
+            ...maybeInSix(context, course.code, meeting.start),
           }),
         ),
     );
@@ -761,10 +771,12 @@ export const PROVIDERS: readonly NeedProvider[] = [
 export interface TodayPlan {
   /** SIX's meetings today, by start. */
   classes: ClassFacts[];
+  /** SIX's meetings today and tomorrow the app couldn't read: no time, so before the day's others. */
+  unread: UnreadSession[];
   /** The next class to start (today), for the countdown. */
   next: ClassSession | null;
-  /** Meetings announced only in Edunex today and tomorrow. */
-  announced: { code: string; meeting: AnnouncedMeeting }[];
+  /** Meetings announced only in Edunex today and tomorrow (`maybeInSix`: as for NeedFacts' meeting). */
+  announced: { code: string; meeting: AnnouncedMeeting; maybeInSix?: true }[];
   /** Open Tasks due today and tomorrow, soonest first. */
   due: Task[];
 }
@@ -779,13 +791,31 @@ export function todayPlan(world: HomeWorld | HomeContext): TodayPlan {
     .sort((a, b) => a.start - b.start)
     .map((s) => classFacts(context, s));
   const announcedSoon = context.courses
-    .flatMap((course) => onlyInEdunex(context, course.code).map(({ postedAt: _p, ...meeting }) => ({ code: course.code, meeting })))
+    .flatMap((course) =>
+      onlyInEdunex(context, course.code).map(({ postedAt: _p, ...meeting }) => ({
+        code: course.code,
+        meeting,
+        ...maybeInSix(context, course.code, meeting.start),
+      })),
+    )
     .filter(({ meeting }) => meeting.end > now && (wibDay(meeting.start) === day || wibDay(meeting.start) === tomorrow))
     .sort((a, b) => a.meeting.start - b.meeting.start);
   const due = context.tasks
     .filter((task) => task.dueAt !== null && takesAnswers(task, now) && task.dueAt > now && (wibDay(task.dueAt) === day || wibDay(task.dueAt) === tomorrow))
     .sort((a, b) => a.dueAt! - b.dueAt!);
-  return { classes, next: classes.find((c) => c.session.start > now)?.session ?? null, announced: announcedSoon, due };
+  const unread = (context.scheduleUnread ?? []).filter((one) => one.day === day || one.day === tomorrow);
+  return { classes, unread, next: classes.find((c) => c.session.start > now)?.session ?? null, announced: announcedSoon, due };
+}
+
+/** `{ maybeInSix: true }` for a meeting on a day SIX shows a class of the course (or any) the app couldn't read. */
+const maybeInSix = (context: HomeWorld, code: string, start: number) => (mayBeInSix(context.scheduleUnread, code, start) ? { maybeInSix: true as const } : {});
+
+/**
+ * The day "Sekarang" says has a class SIX shows that the app couldn't read: up to the card's class
+ * (NowCard.unreadDay), else a week ahead, where a free week would be said. Beranda and the tray menu.
+ */
+export function unreadAhead(world: HomeWorld | HomeContext, card: NowCard | null): string | null {
+  return card ? card.unreadDay : firstUnreadDay(world.scheduleUnread ?? [], world.schedule ?? [], world.now, null);
 }
 
 // ---------------------------------------------------------------- what changed
@@ -976,10 +1006,12 @@ export interface NowCard {
   state: "live" | "next" | "later" | "presence";
   class: ClassFacts | null;
   /** The meeting shown instead of a SIX class (only with SIX connected: else nothing is "only in Edunex"). */
-  meeting: { code: string; meeting: AnnouncedMeeting } | null;
+  meeting: { code: string; meeting: AnnouncedMeeting; maybeInSix?: true } | null;
   presence: OpenPresence | null;
   /** The class (or meeting) after this one today. */
   after: (Pick<ClassSession, "courseCode" | "start" | "room"> & { courseName?: string }) | null;
+  /** A day up to the card's, from today, with a class the app couldn't read (firstUnreadDay): said with the card. */
+  unreadDay: string | null;
 }
 
 type CardItem = { start: number; end: number } & ({ kind: "class"; session: ClassSession } | { kind: "meeting"; code: string; meeting: AnnouncedMeeting });
@@ -1038,9 +1070,10 @@ export function nowCard(world: HomeWorld | HomeContext): NowCard | null {
   return {
     state: !shown ? "presence" : shown === live ? "live" : shown === next ? "next" : "later",
     class: shown?.kind === "class" ? classFacts(context, shown.session) : null,
-    meeting: shown?.kind === "meeting" ? { code: shown.code, meeting: shown.meeting } : null,
+    meeting: shown?.kind === "meeting" ? { code: shown.code, meeting: shown.meeting, ...maybeInSix(context, shown.code, shown.meeting.start) } : null,
     presence,
     after: !after ? null : after.kind === "class" ? after.session : { courseCode: after.code, start: after.start, room: null },
+    unreadDay: firstUnreadDay(context.scheduleUnread ?? [], context.schedule ?? [], now, shown?.start ?? null),
   };
 }
 

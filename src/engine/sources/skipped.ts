@@ -15,7 +15,7 @@ import { type EngineError, isEngineError } from "../errors";
 const ROW_LENGTH = 120;
 
 /** What a row shows, as kept: whitespace collapsed, cut to ROW_LENGTH. */
-function rowText(row: string): string {
+export function rowText(row: string): string {
   const text = row.replace(/\s+/g, " ").trim();
   return text.length > ROW_LENGTH ? `${text.slice(0, ROW_LENGTH - 1)}…` : text;
 }

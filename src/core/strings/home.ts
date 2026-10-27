@@ -53,6 +53,8 @@ export const homeStrings = {
   "home.now.after": { id: "Setelah ini {time} · {course}", en: "After this {time} · {course}" },
   "home.now.lastToday": { id: "Kuliah terakhir hari ini", en: "Last class today" },
   "home.now.free": { id: "Tidak ada kuliah dalam seminggu ke depan.", en: "No classes in the coming week." },
+  // A day with a class SIX shows that the app couldn't read: the next class, or a free week, isn't said without it.
+  "home.now.unread": { id: "Ada kuliah yang belum terbaca · {day}", en: "A class the app can't read · {day}" },
   "home.now.openCourse": { id: "Buka mata kuliah", en: "Open course" },
 
   // Hari ini: today's classes, meetings outside SIX, and what's due today and tomorrow

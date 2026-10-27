@@ -61,6 +61,11 @@ export const attendanceStrings = {
   },
   "presence.day.oneNone": { id: "Jatah absennya sudah habis.", en: "It has no absences left." },
   "presence.day.next": { id: "Tak ada kuliah hari ini dan besok. Berikutnya {day}.", en: "No classes today or tomorrow. Your next is {day}." },
+  // Of that day's classes, the ones SIX shows that the app couldn't read.
+  "presence.day.unread": {
+    id: "{count} kuliah belum terbaca. Cek di SIX.",
+    en: { one: "The app can't read {count} class. Check it on SIX.", other: "The app can't read {count} classes. Check them on SIX." },
+  },
   "presence.ended": { id: "Kuliah berakhir {date}.", en: "Lectures ended {date}." },
   "presence.answer.noSix": { id: "Jatah absen dihitung dari SIX", en: "Absences left are counted from SIX" },
   "presence.noSix.noWatch": {

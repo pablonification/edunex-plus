@@ -467,6 +467,52 @@ describe("the phone calendar", () => {
   });
 });
 
+describe("a meeting on SIX's timetable the app can't read", () => {
+  /** SIX writes a meeting's time with dots ("11.00-12.59"): the app can't read it. */
+  const dotted = (world: PretendWorld, id: string, start: string, end: string) => world.six.moveMeeting(id, start, end);
+
+  it("Jadwal shows every other class, and that day says there's a class the app can't read, with SIX's timetable a click away", async () => {
+    const world = new PretendWorld();
+    dotted(world, "2153983", "11.00", "12.59");
+    const s = await openSchedule({ signedIn: true, six: true, world });
+    expect(items("Kamis, 8 Oktober")).toEqual([
+      "1 kuliah belum terbaca",
+      "PL3002 · 08:00–10:00 · R.SG PWK LT.6 · Berubah",
+      "PL3032 · 15:00–16:30 · R.SG PWK LT.6 · Bentrok KU5014",
+      "KU5014 · 16:00–17:50 · 9134 · Bentrok PL3032",
+    ]);
+    const said = await details(s, "1 kuliah belum terbaca");
+    expect(said).toContain("Ada kuliah yang belum terbacaJam dan ruangnya ada di SIX.");
+    expect(said).toContain("11.00-12.59 DK4073 Komunikasi");
+    await s.click("1 kuliah belum terbaca");
+    await s.click([...document.querySelectorAll<HTMLButtonElement>("[role=dialog] button")].find((b) => b.textContent === "Buka jadwal di SIX")!);
+    expect(s.calls.at(-1)).toEqual({
+      name: "shell.openExternal",
+      input: { url: "https://six.itb.ac.id/app/mahasiswa:18223901+2026-1/kelas/jadwal/mahasiswa/2021000001?bulan=202610" },
+    });
+  });
+
+  it("a day whose every class the app can't read isn't free, in the week or the month", async () => {
+    const world = new PretendWorld();
+    for (const [id, start, end] of [
+      ["2194342", "08.00", "10.00"],
+      ["2153983", "11.00", "12.59"],
+      ["2194402", "15.00", "16.30"],
+      ["2185658", "16.00", "17.50"],
+    ] as const)
+      dotted(world, id, start, end);
+    const s = await openSchedule({ signedIn: true, six: true, world });
+    expect(items("Kamis, 8 Oktober")).toEqual(["4 kuliah belum terbaca"]);
+    expect(day("Kamis, 8 Oktober")).not.toContain("Kosong");
+    // A day with nothing on it still is.
+    expect(day("Rabu, 7 Oktober")).toContain("Kosong");
+    await s.click("Bulan");
+    const thursday = [...document.querySelectorAll("main button")].find((b) => b.getAttribute("aria-label")?.startsWith("Kamis, 8 Oktober:"));
+    expect(thursday?.getAttribute("aria-label")).toContain("4 kuliah belum terbaca");
+    expect(thursday?.textContent).toContain("Kuliah belum terbaca");
+  });
+});
+
 describe("SIX changing its timetable page, the rest of SIX read", () => {
   it("Jadwal says so instead of waiting for it, as does Beranda, and SIX isn't said to have changed as a whole", async () => {
     const world = new PretendWorld();

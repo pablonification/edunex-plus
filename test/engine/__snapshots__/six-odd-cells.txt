@@ -17,7 +17,7 @@ Status Pendaftaran › SKS: second value: same · extra words: same · emptied: 
 table 1 › Senin: second value: same · extra words: same · emptied: page refused
 table 1 › Selasa: second value: same · extra words: same · emptied: page refused
 table 1 › Rabu: second value: same · extra words: same · emptied: page refused
-table 1 › Kamis: second value: page refused · extra words: page refused · emptied: page refused
+table 1 › Kamis: second value: row left out · extra words: row left out · emptied: page refused
 table 1 › Jumat: second value: same · extra words: same · emptied: page refused
 
 ## transcript

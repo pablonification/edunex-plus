@@ -36,6 +36,7 @@ export function useCoursePage(code: string): CoursePage | null | undefined {
   const tasks = useDataset("edunex.tasks");
   const six = useDataset("six.schedule");
   const sixMonths = useDataset("six.scheduleMonths");
+  const sixUnread = useDataset("six.scheduleUnread");
   return useMemo(() => {
     if (!courses) return undefined;
     const course = courses.find((c) => c.code === code);
@@ -51,10 +52,10 @@ export function useCoursePage(code: string): CoursePage | null | undefined {
       announcements: courseAnnouncements,
       exams: (exams ?? []).filter((exam) => exam.courseCode === code),
       tasks: (tasks ?? []).filter((task) => task.courseCode === code),
-      meetings: courseMeetings(code, presence?.[code] ?? [], six ?? null, announced, sixMonths),
+      meetings: courseMeetings(code, presence?.[code] ?? [], six ?? null, announced, sixMonths, sixUnread),
       inSix: (six ?? []).some((session) => session.courseCode === code),
     };
-  }, [code, courses, outline, materials, presence, announcements, exams, tasks, six, sixMonths]);
+  }, [code, courses, outline, materials, presence, announcements, exams, tasks, six, sixMonths, sixUnread]);
 }
 
 /** A Task still to do: not handed in, and not past its deadline. */

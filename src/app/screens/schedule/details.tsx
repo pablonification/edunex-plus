@@ -5,7 +5,7 @@
 import { createContext, type ReactNode, useContext, useMemo } from "react";
 import { type AttendanceHealth, presenceAction } from "../../../core/attendance";
 import { wibDay } from "../../../core/course-meetings";
-import type { PresenceSession, Task } from "../../../core/models";
+import type { PresenceSession, Task, UnreadSession } from "../../../core/models";
 import { clockOf, type EdunexMeeting, type OutsideMeeting, type ScheduledClass, type TaskWindow, weekDays } from "../../../core/schedule";
 import { isOpenStatus, taskStatus } from "../../../core/tasks";
 import { useAttendance } from "../../attendance";
@@ -15,6 +15,7 @@ import { useOpenExternal } from "../../hooks";
 import { type Format, type Translate, useFormat, useNow, useT } from "../../i18n";
 import { useNav } from "../../nav";
 import { useCourseNames, useExamIds } from "../../schedule-data";
+import { OpenSixTimetable } from "../../six-page-note";
 import { useDataset } from "../../store";
 import { Button } from "../../ui/controls";
 import { cx } from "../../ui/cx";
@@ -387,6 +388,26 @@ export function DueDetails({ task }: { task: Task }) {
           {t("schedule.openTask")}
           <Icons.ArrowRight className="size-3.5" />
         </Button>
+      </Actions>
+    </>
+  );
+}
+
+/** A day's meetings SIX shows that the app couldn't read: each as SIX writes it, and SIX's timetable for that month. */
+export function UnreadDetails({ day, unread }: { day: string; unread: readonly UnreadSession[] }) {
+  const t = useT();
+  const count = unread.length;
+  return (
+    <>
+      <p className="text-title leading-snug font-semibold text-balance">{t("schedule.unread.title", { count })}</p>
+      <p className="mt-1 text-small text-muted">{t("schedule.unread.hint", { count })}</p>
+      <ul className="mt-3 space-y-1 text-caption break-words text-muted">
+        {unread.map((one) => (
+          <li key={one.row}>{one.row}</li>
+        ))}
+      </ul>
+      <Actions>
+        <OpenSixTimetable day={day} primary />
       </Actions>
     </>
   );

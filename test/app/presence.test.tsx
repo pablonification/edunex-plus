@@ -459,3 +459,26 @@ describe("attendance in Settings", () => {
     expect(screen.engine.snapshot().settings.attendanceTarget).toBe(75);
   });
 });
+
+describe("a class on SIX's timetable the app can't read", () => {
+  it("counts in the day's line, which says to check it on SIX", async () => {
+    const world = new PretendWorld();
+    world.six.moveMeeting("2153983", "11.00", "12.59");
+    screen = await openApp({ world, signedIn: true, six: true });
+    await screen.click(/^Presensi/);
+    expect(document.querySelector("main header")?.textContent).toContain("Hari ini ada 4 kuliah. 1 kuliah belum terbaca. Cek di SIX.");
+    // DK4073's own next class is that one, not next week's.
+    const dk = [...document.querySelectorAll("main li")].find((li) => li.textContent?.includes("DK4073Komunikasi Pemasaran"));
+    expect(dk?.textContent).toContain("Ada kuliah yang belum terbaca · Hari ini");
+    expect(dk?.textContent).not.toContain("Berikutnya");
+  });
+
+  it("the course's page says it where its next meeting is, with SIX's timetable a click away", async () => {
+    const world = new PretendWorld();
+    world.six.moveMeeting("2153983", "11.00", "12.59");
+    screen = await openApp({ world, signedIn: true, six: true });
+    await screen.click(/^DK4073/);
+    expect(document.querySelector("main")?.textContent).toContain("Ada kuliah yang belum terbaca · Hari ini");
+    expect(screen.has("Buka jadwal di SIX")).toBe(true);
+  });
+});

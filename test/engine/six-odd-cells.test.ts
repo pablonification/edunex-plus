@@ -38,7 +38,7 @@ const PAGES: { name: string; path: RegExp; partName?: string; read: (html: strin
       return page;
     },
   },
-  { name: "timetable", path: /\/kelas\/jadwal\/mahasiswa\/\d+$/, read: (html) => readTimetable(html, "202610") },
+  { name: "timetable", path: /\/kelas\/jadwal\/mahasiswa\/\d+$/, read: (html, skipped) => readTimetable(html, "202610", skipped) },
   { name: "transcript", path: /\/transkrip\/historis\/\d+$/, read: (html, skipped) => readTranscript(html, IPK, skipped) },
   { name: "curriculum position", path: /\/transkrip\/kurikulum\/\d+$/, read: (html, skipped) => readProgress(html, skipped) },
   { name: "KRS", path: /\/registrasi\/rencanastudi\/\d+$/, read: (html, skipped) => readKrs(html, skipped) },

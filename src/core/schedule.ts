@@ -10,8 +10,8 @@
 // and the alert detectors all reason with this. Days are WIB days, ITB's
 // own, so a class lands on the same day on any computer.
 import { isExamActivity, presenceAction, usualSlots } from "./attendance";
-import { announcedMeetings, courseMeetings, wibDay } from "./course-meetings";
-import type { Announcement, CalendarEvent, ClassSession, Material, PresenceSession, Task } from "./models";
+import { announcedMeetings, courseMeetings, mayBeInSix, wibDay } from "./course-meetings";
+import type { Announcement, CalendarEvent, ClassSession, Material, PresenceSession, Task, UnreadSession } from "./models";
 
 const MINUTE = 60_000;
 const HOUR = 60 * MINUTE;
@@ -22,6 +22,8 @@ const WIB = 7 * HOUR;
 
 /** The start of a WIB day ("2026-10-08") in ms. */
 export const dayStart = (day: string) => Date.parse(`${day}T00:00:00+07:00`);
+/** Noon of a WIB day, the moment to name that day by ("Kam, 8 Okt"). */
+export const dayNoon = (day: string) => Date.parse(`${day}T12:00:00+07:00`);
 const addDays = (day: string, n: number) => wibDay(dayStart(day) + n * DAY + 12 * HOUR);
 /** 0 Monday … 6 Sunday. */
 const mondayIndex = (day: string) => (new Date(dayStart(day) + WIB).getUTCDay() + 6) % 7;
@@ -293,6 +295,8 @@ export interface OutsideMeeting {
   end: number;
   online: boolean;
   link: string | null;
+  /** On a day with a class SIX shows that the app couldn't read, maybe this one: shown, never said to be missing from SIX. */
+  maybeInSix?: true;
 }
 
 /**
@@ -310,6 +314,7 @@ export function meetingsOutsideSix(
     announcements?: Record<string, readonly Announcement[]>;
     presence?: Record<string, readonly PresenceSession[]>;
   },
+  unread: readonly UnreadSession[] = [],
 ): OutsideMeeting[] {
   if (!schedule || !months?.length) return [];
   const out: OutsideMeeting[] = [];
@@ -319,7 +324,7 @@ export function meetingsOutsideSix(
     for (const meeting of courseMeetings(code, edunex.presence?.[code] ?? [], schedule, announced, months)) {
       if (!meeting.notInSix || !meeting.announced) continue;
       const { number, start, end, online, link } = meeting.announced;
-      out.push({ code, number, start, end, online, link });
+      out.push({ code, number, start, end, online, link, ...(mayBeInSix(unread, code, start) ? { maybeInSix: true as const } : {}) });
     }
   }
   return out.sort((a, b) => a.start - b.start);
@@ -445,6 +450,8 @@ export interface ScheduleDay {
   events: CalendarEvent[];
   /** A holiday on ITB's calendar. */
   holiday: CalendarEvent | null;
+  /** Meetings SIX shows that day that the app couldn't read: the day isn't free, whatever else it holds. */
+  unread: UnreadSession[];
 }
 
 export interface ScheduleInput {
@@ -456,6 +463,8 @@ export interface ScheduleInput {
   windows?: readonly TaskWindow[];
   /** Without SIX: what Edunex knows. */
   edunex?: readonly EdunexMeeting[];
+  /** SIX's meetings the app couldn't read, by day. */
+  unread?: readonly UnreadSession[];
 }
 
 /** What each day holds. `tasks` are the ones to show (the caller picks open ones). */
@@ -496,12 +505,14 @@ export function scheduleDays(days: readonly string[], input: ScheduleInput): Sch
       due: input.tasks.filter((t) => t.dueAt !== null && wibDay(t.dueAt) === day && !windowTasks.has(t.id)).sort((a, b) => (a.dueAt ?? 0) - (b.dueAt ?? 0)),
       events: covering,
       holiday: covering.find((e) => e.kind === "holiday") ?? null,
+      unread: (input.unread ?? []).filter((u) => u.day === day),
     };
   });
 }
 
-/** A day with nothing on it. */
-export const isEmptyDay = (day: ScheduleDay) => !day.classes.length && !day.outside.length && !day.edunex.length && !day.windows.length && !day.due.length;
+/** A day with nothing on it: never one with a meeting the app couldn't read. */
+export const isEmptyDay = (day: ScheduleDay) =>
+  !day.classes.length && !day.outside.length && !day.edunex.length && !day.windows.length && !day.due.length && !day.unread.length;
 
 // ---------------------------------------------------------------- what changed (alerts)
 

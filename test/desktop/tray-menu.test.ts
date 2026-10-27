@@ -142,6 +142,20 @@ describe("the class", () => {
     expect(section(evening, "Perlu perhatianmu").some((label) => label.startsWith("Pertemuan daring II4091"))).toBe(false);
   });
 
+  it("a class SIX shows that the app couldn't read, up to the next one: said under it, opening Jadwal", async () => {
+    const world = new PretendWorld();
+    // DK4073's 11:00 class, its time written with dots.
+    world.six.moveMeeting("2153983", "11.00", "12.59");
+    const h = await startHome({ world });
+    await h.until("2026-10-08T10:30:00+07:00");
+    const menu = menuOf(h);
+    expect(section(menu, "Kuliah berikutnya · Hari ini").at(-1)).toBe("Ada kuliah yang belum terbaca · Hari ini // Jam dan ruangnya ada di SIX.");
+    expect(line(menu, /^Ada kuliah yang belum terbaca/).action).toEqual({
+      kind: "url",
+      url: "https://six.itb.ac.id/app/mahasiswa:18223901+2026-1/kelas/jadwal/mahasiswa/2021000001?bulan=202610",
+    });
+  });
+
   it("Tandai Hadir open in SIX: a line to press it, opening SIX on the class as the app's own button does", async () => {
     const h = await startHome();
     expect(read(menuOf(h)).some((label) => label.includes("Tandai Hadir"))).toBe(false);

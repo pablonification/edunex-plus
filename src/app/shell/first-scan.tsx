@@ -31,6 +31,7 @@ const SCANNED: readonly DatasetName[] = [
   "six.skipped",
   "six.schedule",
   "six.scheduleMonths",
+  "six.scheduleUnread",
   "six.transcript",
   "six.progress",
   "six.krs",
