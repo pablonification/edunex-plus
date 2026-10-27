@@ -14,6 +14,7 @@ Student account, with every personal detail replaced before it is committed.
 | `scripts/report-to-fixtures.mjs` (`npm run fixtures:from-report -- <file> <name>`) | Puts the pages of a report a Student sent from the app (already scrubbed on their computer) into `test/fixtures/`, and says which check they fail ([ADR 0007](adr/0007-report-a-page-the-app-couldnt-read.md)). |
 | `test/kit/fixtures.ts` | Loads recorded responses: `edunexJson(path, query)`, `sixPage(path)`, `publicPage(name)`. |
 | `test/kit/builder.ts` | "Real record, changed on purpose": `withFields(record, patch)` and `withItem(list, where, patch)` change only the fields a test is about. |
+| `test/engine/six-odd-cells.test.ts` | Changes each recorded SIX page one cell at a time, the way another Student's SIX might show it, and keeps what each reader does in `test/engine/__snapshots__/six-odd-cells.txt`. A change to that file is a reader getting more or less forgiving. |
 | `test/kit/privacy.test.ts` | Fails the run if anything personal is in `test/fixtures/`, by the rules in `test/kit/privacy-rules.ts` (a report's pages are held to them too). |
 
 ## The recorder is read-only

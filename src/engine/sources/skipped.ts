@@ -13,9 +13,24 @@ import { type EngineError, isEngineError } from "../errors";
 /** Enough of a row to find it on the service's page. */
 const ROW_LENGTH = 120;
 
+/** What a row shows, as kept: whitespace collapsed, cut to ROW_LENGTH. */
+function rowText(row: string): string {
+  const text = row.replace(/\s+/g, " ").trim();
+  return text.length > ROW_LENGTH ? `${text.slice(0, ROW_LENGTH - 1)}…` : text;
+}
+
 /** The rows a read left out, across its page's lists. */
 export class Skipped {
   readonly rows: SkippedRow[] = [];
+
+  /**
+   * A row that was read but with a detail it couldn't (a course's attendance written another way):
+   * the row is kept with that detail blank, and noted here like a row left out, so the screens say
+   * which row to check on SIX. It doesn't count as left out.
+   */
+  blanked(row: string, why: string): void {
+    this.rows.push({ row: rowText(row), why });
+  }
 
   /** A list whose rows are read one by one with `SkipList.item`; `done()` after the last. */
   list(): SkipList {
@@ -55,8 +70,7 @@ export class SkipList {
       if (!isEngineError(error, "VendorChanged")) throw error;
       this.first ??= error;
       this.left += 1;
-      const text = row.replace(/\s+/g, " ").trim();
-      this.into.push({ row: text.length > ROW_LENGTH ? `${text.slice(0, ROW_LENGTH - 1)}…` : text, why: error.message });
+      this.into.push({ row: rowText(row), why: error.message });
       return undefined;
     }
   }

@@ -83,7 +83,7 @@ sign-in, liveness first), then repeat every `every` ± `jitter`.
 | Path | Feed (cadence) | What is taken | Reader |
 | --- | --- | --- | --- |
 | `/home` | `six.status`, only when the NIM isn't known yet this session | The NIM | `six/status.ts` `readNim` |
-| `/app/mahasiswa:{nim}/statusmhs` | `six.status` (1 h ± 5 min); liveness | Name, `{sid}`, program code and name, the term, this term's courses: code, name, class, SKS, and attendance as "Hadir X dari Y pertemuan" from the tooltip, checked against the percentage shown | `six/status.ts` `readStatusPage` |
+| `/app/mahasiswa:{nim}/statusmhs` | `six.status` (1 h ± 5 min); liveness | Name, `{sid}`, program code and name, the term, this term's courses: code, name, class, SKS, and attendance as "Hadir X dari Y pertemuan" from the tooltip, checked against the percentage shown (with sick days SIX shows two, "82.35% / 94.12%": the first is read). A class, SKS or attendance it can't read is left blank and the row noted; the course stays ([ADR 0009](docs/adr/0009-keep-a-course-whose-detail-cant-be-read.md)) | `six/status.ts` `readStatusPage` |
 | `/app/mahasiswa:{nim}+{term}/kelas/jadwal/mahasiswa/{sid}?bulan={YYYYMM}` | `six.schedule` (12 h ± 30 min): this month (WIB), plus next month when SIX's tabs offer it | Each meeting: SIX meeting id, date, start/end (WIB), course code and name, activity (Kuliah, UTS, …) and room | `six/timetable.ts` |
 | `/app/mahasiswa:{nim}/statusmhs/transkrip/historis/{sid}` | `six.transcript` (24 h ± 1 h) | Every course per term with grade, SKS, curriculum semester, on-transcript mark; SIX's IP per term; SKS taken. Retakes and IP/IPK are worked out and checked | `readers/transcript.ts` |
 | `/app/mahasiswa:{nim}/statusmhs/transkrip/kurikulum/{sid}` | `six.transcript` (same run) | Graduation progress: entry term, IPK (and the SKS it covers), SKS passed and graded T, SKS by kind, courses by stage and curriculum semester (graded, in progress, exempt, not taken) | `readers/progress.ts` |
@@ -109,8 +109,8 @@ popup every 2 minutes: about 70 small requests for a 2-hour class. The student p
 status page shows (name, NIM, program, term); it never reads SIX's profile or master-data pages.
 
 **Written but not wired:** `/app/mahasiswa:{nim}/kurikulum/silabus/{courseId}/view` has a
-reader (`readers/syllabus.ts`) and `fetchSyllabus` in `six/records.ts`, meant to be read on
-demand, one page at a time. Nothing in the app calls it yet, so the app does not request it today.
+reader (`readers/syllabus.ts`) and `fetchSyllabus` in `six/records.ts`, meant to be read
+on demand, one page at a time. Nothing in the app calls it yet, so the app does not request it today.
 
 ## The SIX window ("Tandai Hadir")
 
@@ -199,7 +199,11 @@ A check about one row leaves that row out instead ([ADR 0005](docs/adr/0005-read
 `sources/skipped.ts`): the rest of the page reads, and the row is kept in `six.skipped` with what it
 shows and why, for the screen that shows that data to say so. That holds for the rows of the
 fees, transcript, curriculum position, KRS, curriculum list and structure, scheme and status
-pages. What holds the rows stays strict (a table, its header, a year or semester heading), as does
+pages. On the status page a course whose class, SKS or attendance can't be read stays, with that
+detail blank, and its row is noted the same way ([ADR 0009](docs/adr/0009-keep-a-course-whose-detail-cant-be-read.md)).
+`test/engine/six-odd-cells.test.ts` changes each recorded page one cell at a time (a second value,
+extra words, an empty cell) and keeps what every reader does in
+`test/engine/__snapshots__/six-odd-cells.txt`. What holds the rows stays strict (a table, its header, a year or semester heading), as does
 a list with more rows left out than read, and the month timetable as a whole (a meeting left out
 could make a day look free).
 
@@ -235,6 +239,9 @@ their data is from ([ADR 0006](docs/adr/0006-a-changed-six-page-is-said-on-its-s
   popup (`test/pretend/six.ts`).
 - **Not recorded, not read:** control panel, master data, student ID card and PDDikti pages
   are never exported or read.
+- **Attendance with sick days:** seen only as text in a Student's report (#237: "82.35% / 94.12%",
+  14 and 16 of 17 meetings); its tooltip wasn't sent. The reader takes the two numbers in a row in a
+  tooltip that give the first percentage; the tests try the shapes it could take.
 - **Timetable:** only one month was recorded; other months in tests are generated.
 - **KRS:** SIX's look for a step not taken yet and for a course not yet approved was not
   recorded (tests use an empty cell).
