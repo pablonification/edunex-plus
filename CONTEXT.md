@@ -99,7 +99,7 @@ _Avoid_: missing class, broken class, error
 _Avoid_: broken page, error, SIX is down
 
 **Guide**:
-"Panduan": the short tour of the window a new Student is offered after their first sign-in, once the app has opened. Each step points at one part of the window (Tugas & Ujian, Presensi, the course list, Beranda, search, the bell, Settings), says what it's for, and opens it. It can be skipped at any step, is offered once (again after signing out of everything, for the next Student), and Settings › Tentang starts it again. The first-run scan waits for it. Not offered to a Student who used the app before it existed. Called `guide` in code.
+"Panduan": the tour of the window a new Student is offered after their first sign-in, once the app has opened. It opens each place in the sidebar's order and a course, and lights their parts one at a time, saying what each is for and how to use it, then the menus and tools around them. A part a page doesn't show right now is passed over. It can be skipped at any step, is offered once (again after signing out of everything, for the next Student), and Settings › Tentang starts it again. The first-run scan waits for it. Not offered to a Student who used the app before it existed. Called `guide` in code.
 _Avoid_: onboarding, walkthrough, tutorial (in UI copy)
 
 **Problem report**:

@@ -98,6 +98,13 @@ function Layout({ arriving }: { arriving: boolean }) {
     if (guide === "offer" && !finished) toast(t("guide.later"));
     setGuide(null);
     if (due) void bridge.invoke("settings.update", { guideDone: true }).catch(() => undefined);
+    // The keyboard carries on from the top of the screen it ends on, once the guide has let go of it.
+    setTimeout(() => {
+      const title = main.current?.querySelector<HTMLElement>("h1");
+      if (!title) return;
+      title.tabIndex = -1;
+      title.focus({ preventScroll: true });
+    });
   };
   const { route, place, go } = useNav();
   const main = useRef<HTMLElement>(null);
@@ -157,7 +164,8 @@ function Layout({ arriving }: { arriving: boolean }) {
       setSearchOpen(false);
       setScanOpen(false);
     }, []),
-    arriving,
+    // The guide opens each place itself while it runs.
+    arriving || guide !== null,
   );
   useScrollPlace(main);
 
@@ -415,7 +423,7 @@ function Sidebar({ onSettings }: { onSettings: (at?: "courseColors" | null) => v
         <span className="text-body font-semibold tracking-[-0.01em] max-[52rem]:sr-only">Edunex Plus</span>
       </div>
 
-      <nav aria-label={t("nav.menu")} className="space-y-0.5 px-3">
+      <nav aria-label={t("nav.menu")} data-guide="nav" className="space-y-0.5 px-3">
         {items
           .filter((item) => isBuilt({ screen: item.screen } as Route))
           .map(({ screen, label, Icon, badge, owns }, index) => {
@@ -424,7 +432,6 @@ function Sidebar({ onSettings }: { onSettings: (at?: "courseColors" | null) => v
               <Tooltip key={screen} side="right" content={factsLabel(t(label), `${store.platform === "darwin" ? "⌘" : "Ctrl+"}${index + 1}`)}>
                 <button
                   type="button"
-                  data-guide={screen}
                   aria-current={active ? "page" : undefined}
                   onClick={() => go({ screen } as Route, { keep: true })}
                   className={cx(

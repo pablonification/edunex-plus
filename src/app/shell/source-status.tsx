@@ -176,6 +176,7 @@ export function SyncStatus() {
       trigger={
         <button
           type="button"
+          data-guide="status"
           aria-label={`${t("sync.title")}: ${text}`}
           // Whole while the search field and the back button can give up room. Zoomed in (the sidebar a rail), it gives
           // up its words too before anything goes past the window, down to its mark: they stay in its name and panel.

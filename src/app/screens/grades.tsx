@@ -112,25 +112,27 @@ function Standing({ record, state }: { record: StudentRecord; state: PlanState }
   const signed = (value: number) => `${value > 0.004 ? "+" : value < -0.004 ? "−" : "±"}${f.number(Math.abs(value), 2)}`;
   const sks = sksModel(record, state.plan);
   const { bestIpk, variableSks } = state.projection;
-  // The IPK itself is the header's answer; these are the figures around it.
+  // The IPK itself is the header's answer; these are the figures around it. The guide points here (shell/guide.tsx).
   return (
-    <StatRow>
-      <Stat label={t("grades.sksPassed")} value={String(passedSks(record) ?? "-")} hint={t("grades.sksPassedHint", { need: sks.need })} />
-      <Stat
-        label={t("grades.lastIp")}
-        value={num(lastIp)}
-        hint={
-          last ? (
-            delta === null ? (
-              termName(last.term)
-            ) : (
-              <Meta>{t("grades.lastIpHint", { term: termName(last.term).split(" · ")[0], delta: signed(delta) })}</Meta>
-            )
-          ) : undefined
-        }
-      />
-      <Stat label={t("grades.best")} value={num(bestIpk)} hint={variableSks ? t("grades.bestHint", { sks: variableSks }) : t("grades.bestNone")} />
-    </StatRow>
+    <div data-guide="grades-standing">
+      <StatRow>
+        <Stat label={t("grades.sksPassed")} value={String(passedSks(record) ?? "-")} hint={t("grades.sksPassedHint", { need: sks.need })} />
+        <Stat
+          label={t("grades.lastIp")}
+          value={num(lastIp)}
+          hint={
+            last ? (
+              delta === null ? (
+                termName(last.term)
+              ) : (
+                <Meta>{t("grades.lastIpHint", { term: termName(last.term).split(" · ")[0], delta: signed(delta) })}</Meta>
+              )
+            ) : undefined
+          }
+        />
+        <Stat label={t("grades.best")} value={num(bestIpk)} hint={variableSks ? t("grades.bestHint", { sks: variableSks }) : t("grades.bestNone")} />
+      </StatRow>
+    </div>
   );
 }
 
