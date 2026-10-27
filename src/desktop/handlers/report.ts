@@ -11,11 +11,24 @@ import type { HandlerGroup } from "./context";
 
 const SYSTEMS: Partial<Record<NodeJS.Platform, string>> = { darwin: "macOS", win32: "Windows", linux: "Linux" };
 
-export const reportHandlers: HandlerGroup<"report.preview" | "report.save" | "report.open" | "report.reveal" | "report.windowError"> = (context) =>
+/** The computer's system, as a report names it ("macOS 15.3 (arm64)"). */
+export const systemName = () => `${SYSTEMS[process.platform] ?? process.platform} ${process.getSystemVersion()} (${process.arch})`;
+
+export const reportHandlers: HandlerGroup<
+  | "report.preview"
+  | "report.save"
+  | "report.open"
+  | "report.reveal"
+  | "report.send"
+  | "report.note"
+  | "report.dismiss"
+  | "report.openIssue"
+  | "report.windowError"
+> = (context) =>
   handlersOn({
     engine: context.engine,
     log: context.log,
-    os: () => `${SYSTEMS[process.platform] ?? process.platform} ${process.getSystemVersion()} (${process.arch})`,
+    os: systemName,
     lang: context.lang,
     async save(name, text, replacing) {
       let file = replacing;
@@ -33,4 +46,5 @@ export const reportHandlers: HandlerGroup<"report.preview" | "report.save" | "re
       await shell.openExternal(url);
     },
     reveal: (file) => shell.showItemInFolder(file),
+    openIssue: (url) => shell.openExternal(url),
   });

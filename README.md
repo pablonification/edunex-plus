@@ -67,8 +67,12 @@ the [code signing policy](docs/code-signing.md).
 - You sign in on ITB's real Microsoft page. Your password never reaches the app.
 - Your sign-in is locked in your system's keychain. What the app reads is saved only on your
   computer.
-- It talks only to Edunex, SIX, ITB's public pages, GitHub (to check for updates) and, if you
-  turn on phone alerts, ntfy. No analytics, no tracking.
+- It talks only to Edunex, SIX, ITB's public pages, GitHub (to check for updates), ntfy if you
+  turn on phone alerts, and the maintainer's report relay when a problem report goes: when you
+  press **Kirim langsung**, or by itself if you said so when the app asked. A report has your
+  name, NIM, contacts and links replaced and your grades and amounts made up first. The whole
+  report stays private for the maintainer; the public GitHub issue gets only its summary.
+  **Settings → Laporan masalah** stops it sending by itself. No analytics, no tracking.
 - **Settings → Keluar** removes everything it saved.
 
 Full details: [docs/privacy.md](docs/privacy.md).

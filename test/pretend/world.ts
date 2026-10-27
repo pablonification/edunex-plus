@@ -1,12 +1,13 @@
 // The pretend world the engine talks to in tests: Edunex, SIX, ITB's public
-// pages, Edunex's file storage and GitHub's releases behind one Transport, on a fake clock, with
-// a network that can drop or slow down.
+// pages, Edunex's file storage, GitHub's releases and the report relay behind one Transport, on a
+// fake clock, with a network that can drop or slow down.
 import { type Clock, sleep } from "../../src/engine/clock";
 import { type HttpRequest, type HttpResponse, NetworkError, type Transport } from "../../src/engine/http/transport";
 import { FakeClock } from "./clock";
 import { PretendEdunex } from "./edunex";
 import { PretendGithub } from "./github";
 import { PretendItb } from "./itb";
+import { PRETEND_RELAY, PretendRelay } from "./relay";
 import { PretendSix } from "./six";
 
 export class PretendWorld implements Transport {
@@ -15,6 +16,7 @@ export class PretendWorld implements Transport {
   readonly six: PretendSix;
   readonly itb: PretendItb;
   readonly github: PretendGithub;
+  readonly relay = new PretendRelay();
   /** Files on Edunex's storage (uploaded, or put there by a test), by path. */
   readonly blobs = new Map<string, Uint8Array | string>();
   /** The headers each upload to the storage came with, by path. */
@@ -67,7 +69,7 @@ export class PretendWorld implements Transport {
         }
         await sleep(this.clock, this.latencyMs);
       }
-      const response = this.route(request, url);
+      const response = await this.route(request, url);
       this.log.push({ at, method: request.method, url: request.url, status: response.status });
       return response;
     } catch (error) {
@@ -104,11 +106,12 @@ export class PretendWorld implements Transport {
     return new Response(typeof blob === "string" ? new TextEncoder().encode(blob) : new Uint8Array(blob!), { status });
   }
 
-  private route(request: HttpRequest, url: URL): HttpResponse {
+  private route(request: HttpRequest, url: URL): HttpResponse | Promise<HttpResponse> {
     if (this.itb.serves(url)) return this.itb.handle(request, url);
     if (url.host === "api-edunex.cognisia.id") return this.edunex.handle(request, url);
     if (url.host === "six.itb.ac.id") return this.six.handle(request, url);
     if (url.host === "api.github.com") return this.github.handle(request, url);
+    if (url.host === new URL(PRETEND_RELAY).host) return this.relay.handle(request, url);
     if (url.host.endsWith(".blob.core.windows.net")) {
       if (request.method === "PUT") {
         const fault = this.uploadFaults.shift();

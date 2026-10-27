@@ -18,10 +18,12 @@ import {
   type DeadlineReminder,
   NEEDS_AHEAD,
   type NeedsAhead,
+  reportSendingOf,
   type Settings,
   type SourceId,
   type UpdateCheckResult,
 } from "../../core/models";
+import { pageName } from "../../core/report";
 import type { StringKey } from "../../core/strings";
 import { TargetStepper, useTargets } from "../attendance-parts";
 import { errorKey } from "../bridge";
@@ -29,7 +31,7 @@ import { CourseColorPicker, colorName } from "../course-color-picker";
 import { useCommittedCourseColors, useCourseColorPicks } from "../course-colors";
 import { type TermCourse, useTermCourses } from "../courses";
 import { useFocusNext } from "../hooks";
-import { useFormat, useT } from "../i18n";
+import { useFormat, useLang, useT } from "../i18n";
 import { displayName } from "../names";
 import { openReport } from "../report";
 import { useCourseNames } from "../schedule-data";
@@ -220,9 +222,11 @@ function SettingsBody({
         <AttendanceTargets />
       </Group>
 
+      {store.relay && <ReportSettings settings={settings} update={update} report={report} />}
+
       <Group title={t("settings.about")} note={t("settings.unofficial")}>
         <About />
-        <Row label={t("report.title")} hint={t("report.settingsHint")}>
+        <Row label={t("report.title")} hint={t(store.relay ? "report.settingsHintRelay" : "report.settingsHint")}>
           <Button size="sm" aria-label={t("report.title")} icon={<Icons.Flag className="size-3.5" />} onClick={() => openReport({})}>
             {t("report.open")}
           </Button>
@@ -244,6 +248,62 @@ function SettingsBody({
         onConfirm={() => void signOutOfEverything()}
       />
     </div>
+  );
+}
+
+/**
+ * Problem reports, while the app has the maintainer's relay (ADR 0014): whether they go by
+ * themselves (asked once, the first time the app keeps one), and what went: when, which page,
+ * how, and its public issue.
+ */
+function ReportSettings({ settings, update, report }: { settings: Settings; update: (patch: Partial<Settings>) => void; report: (error: unknown) => void }) {
+  const t = useT();
+  const f = useFormat();
+  const lang = useLang();
+  const bridge = useBridge();
+  const sent = useDataset("app.reports")?.sent ?? [];
+  const pages = (feeds: readonly string[]) => {
+    const names = feeds.map((feed) => pageName(feed, lang)).filter((name): name is string => !!name);
+    return names.length ? t("report.settings.page", { page: f.list(names) }) : t("report.settings.noPage");
+  };
+  return (
+    <Group title={t("report.settings.title")} note={t("report.settings.note")}>
+      <Row label={t("report.settings.sending")} hint={t("report.settings.sendingHint")}>
+        <span className="flex shrink-0">
+          <Segmented
+            label={t("report.settings.sending")}
+            value={reportSendingOf(settings)}
+            // A choice made here answers the question the app asks once, too.
+            onChange={(reportSending) => update({ reportSending, reportAsked: true })}
+            options={[
+              { value: "auto", label: t("report.settings.auto") },
+              { value: "ask", label: t("report.settings.ask") },
+              { value: "never", label: t("report.settings.never") },
+            ]}
+          />
+        </span>
+      </Row>
+      {sent.map((one) => (
+        <Row
+          key={`${one.at} ${one.id}`}
+          label={pages(one.feeds)}
+          hint={<Meta>{[f.dayTime(one.at), t(one.how === "auto" ? "report.settings.byItself" : "report.settings.byYou")]}</Meta>}
+        >
+          {one.issue ? (
+            <Button
+              size="sm"
+              aria-label={t("report.settings.seeIssue", { number: one.issue.number })}
+              icon={<Icons.ArrowUpRight className="size-3.5" />}
+              onClick={() => void bridge.invoke("report.openIssue", { number: one.issue!.number }).catch(report)}
+            >
+              {`#${one.issue.number}`}
+            </Button>
+          ) : (
+            <span className="shrink-0 text-small text-muted">{t("report.settings.notFiled")}</span>
+          )}
+        </Row>
+      ))}
+    </Group>
   );
 }
 

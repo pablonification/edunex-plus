@@ -11,6 +11,8 @@ export const Snapshot = z.object({
   datasets: z.array(DatasetPayload),
   statuses: z.array(SourceStatus),
   settings: Settings,
+  /** Whether a problem report can go to the maintainer's relay with one click: this copy has its address (ADR 0014). */
+  relay: z.boolean().optional(),
 });
 export type Snapshot = z.infer<typeof Snapshot>;
 

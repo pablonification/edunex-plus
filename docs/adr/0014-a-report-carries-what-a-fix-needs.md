@@ -1,10 +1,12 @@
-# 14. A problem report carries what a fix needs
+# 14. A problem report carries what a fix needs, and can send itself
 
 Status: accepted (2026-10-27). Adds to [0007](0007-report-a-page-the-app-couldnt-read.md): the report
 it describes now says whether its scrubbed pages still go wrong the same way, shows the rows that
 didn't fit as the page wrote them, says what the problem cost the Student, and carries what the app
-did in the last hour. Changes one rule of 0007: on GitHub the report file is saved whenever it
-carries the app's log, not only when a page goes with it.
+did in the last hour. Changes two rules of 0007. On GitHub the report file is saved whenever it
+carries the app's log, not only when a page goes with it. And 0007's "nothing is sent until the
+Student chooses how" now has a second way to choose: the Student can say once that reports go by
+themselves (below), and "Kirim" sends with one click.
 
 ## Context
 
@@ -60,6 +62,49 @@ left no trace for a report to carry.
 - **The Student still sees exactly what goes.** "Laporkan masalah" says the log goes too, and its
   folded technical details show the verdict, the cost, the rows' markup and shapes, and the log.
 
+### Sending, with one click or by itself
+
+#237 also showed the other half: a Student who has to drag a file into GitHub often doesn't. 0007
+left the relay for the maintainer to decide; it's built now (`relay/`, its own pull request), and
+this is the app's side.
+
+- **The relay's address is one constant** (`REPORT_RELAY_URL`, `src/core/links.ts`), shipped
+  empty. While it's empty there's no "Kirim", no question, nothing sent by itself: the app is as it
+  was. The maintainer fills it in once the relay runs. Requests go through the engine's door to the
+  network with the app's User-Agent, as every other request it makes (API v1:
+  `src/engine/report/relay.ts`).
+- **"Kirim langsung" sits first, with LINE and GitHub**, across the dialog (three tiles side by
+  side don't fit it), and posts exactly the report the Student was shown, with their note, which
+  the box says goes public. LINE and GitHub stay as they were.
+- **The app asks once.** The first time it keeps a problem it asks, in a quiet card in the
+  window's corner under any dialog, whether reports like it go by themselves (saying a public
+  issue is filed), ask each time, or never. Closed without an answer, that's "ask each time", the
+  default. The choice is a Settings field (`reportSending`, "ask" by default) and whether the
+  question was answered another (`reportAsked`), both optional so older settings load; a new
+  Student signing in is asked again. Answering "by themselves" sends the problem it asked about;
+  the others go as they're read again. "Ask each time" asks about each new problem, with a way to
+  see its report.
+- **By itself, each problem goes once.** It's known by a signature (its feed, its kind, its checks
+  with every number a "9"), and only that signature's hash and when it went are saved, never what
+  was in the report, so a restart doesn't send it again. It goes again only once it went away (its
+  page read well) and came back, 7 days or more after it went: a page that stays changed is one
+  problem, however long. Nothing goes while every source the Student is signed in to gets no
+  answer, and a relay that didn't answer, or answered as a deploy gone wrong (any status but its
+  own refusals), is tried again quietly, later each time. A report it refuses (odd, too big,
+  something in it looks personal) isn't tried again until it comes back. Signing out of everything
+  forgets all of it, and a send still under way then lands nowhere.
+- **After it went**, "Laporan terkirim. Mau tambah cerita?": the issue's number, a way to open it,
+  and a box of up to 1,000 characters for the Student's story, said to be public. Its token lives
+  in memory only, so the story can be added while the app stays open.
+- **Settings lists what went**: when, which page, by itself or by the Student, and its issue,
+  which opens in the browser. That's the one page the app opens outside its official-links rule:
+  only the issue of a report it sent, its address made from the issue's number
+  (`report.openIssue`), so the window can't open any other page that way.
+- **Who sees what**: the whole report (its pages, the log) stays private on the relay, for the
+  maintainer. The public issue shows its summary, its check, the rows that didn't fit (scrubbed),
+  whether the scrubbed page still fails, what it cost, the app's version and system, how it was
+  sent, and the Student's story.
+
 ## Consequences
 
 - A report can be turned into a failing test without asking the Student anything, and says so
@@ -68,6 +113,11 @@ left no trace for a report to carry.
   as if it were an IP, so a report can say `no` where the Student's attendance is that low. The
   row's shape still shows "9.9%".
 - A report is built a little slower (each problem's pages are read twice more), only when asked.
+- With the relay running, a report reaches the maintainer even when the Student wouldn't have
+  dragged a file anywhere, and a problem many Students meet becomes one issue counted many times
+  (the relay's own deduplication), not many.
+- The app now sends something by itself, which it never did: only a scrubbed problem report, only
+  when the Student said so, and Settings turns it off. README and docs/privacy.md say exactly what.
 - Main's own errors no longer reach only a console. An uncaught error is only watched, so Electron
   handles it as before; an unhandled rejection is now caught, logged and printed, instead of being
   left to Electron's default.

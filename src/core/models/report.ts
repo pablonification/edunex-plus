@@ -80,6 +80,43 @@ export type LogLevel = z.infer<typeof LogLevel>;
 export const LogEntry = z.object({ at: z.number(), level: LogLevel, area: z.string(), message: z.string() });
 export type LogEntry = z.infer<typeof LogEntry>;
 
+/** The public issue the relay filed for a report. */
+export const ReportIssue = z.object({ number: z.number().int().positive(), url: z.string().url() });
+export type ReportIssue = z.infer<typeof ReportIssue>;
+
+/**
+ * A report sent to the maintainer's relay: when, about which feeds' pages, how (by itself, or the
+ * Student's "Kirim"), its id there (null when the relay files it later), and its public issue once
+ * there is one. Never what was in it.
+ */
+export const SentReport = z.object({
+  id: z.string().max(100).nullable(),
+  at: z.number(),
+  feeds: z.array(z.string().max(60)).max(20),
+  how: z.enum(["auto", "manual"]),
+  issue: ReportIssue.nullable(),
+});
+export type SentReport = z.infer<typeof SentReport>;
+
+/** A problem the app is asking the Student about: the first one ever (`first`, asked once), or one more in "ask" mode. */
+export const ReportAsking = z.object({
+  feed: z.string().max(60),
+  kind: z.enum(["changed", "skipped"]),
+  rowsLeftOut: z.number().int().min(0),
+  datasets: z.array(z.string().max(60)).max(20),
+  first: z.boolean(),
+  at: z.number(),
+});
+export type ReportAsking = z.infer<typeof ReportAsking>;
+
+/** "app.reports": the reports sent, the newest first, and the problem the app is asking about now. */
+export const ReportsState = z.object({ sent: z.array(SentReport).max(30), asking: ReportAsking.nullable() });
+export type ReportsState = z.infer<typeof ReportsState>;
+
+export const reportDatasets = {
+  "app.reports": ReportsState,
+} as const;
+
 export const ProblemReport = z.object({
   /**
    * The report's layout, for the script that turns one into test data (scripts/report-to-fixtures.mjs).

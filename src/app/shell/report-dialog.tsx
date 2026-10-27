@@ -1,17 +1,23 @@
 // "Laporkan masalah" (ADR 0007). First what goes to the app's maintainer, said plainly before
 // anything does (what went wrong and on which page, that the page goes along with the Student's
 // details taken out, the app and the system; the engine's own words and the page itself in a
-// collapsed technical part), an optional note, and the two ways side by side. Then that way, step
-// by step, one thing to do at a time: the file is saved, reach the maintainer, send the file there.
-// Main saves and opens; the window only names the report it showed.
+// collapsed technical part), an optional note, and the ways to send it: "Kirim langsung" first when
+// the app has the maintainer's relay (ADR 0014), then LINE and GitHub side by side. Kirim sends it
+// at once and says so, with a box for the Student's story; LINE and GitHub go step by step, one
+// thing to do at a time: the file is saved, reach the maintainer, send the file there.
+// Main saves, opens and sends; the window only names the report it showed.
 import { type ReactNode, useEffect, useId, useState } from "react";
+import type { ActionOutput } from "../../core/contract";
 import { MAINTAINER_LINE } from "../../core/links";
-import type { ReportImpact } from "../../core/models";
-import { MAX_NOTE, pageLabel, problemHeading, type ReportPreview } from "../../core/report";
+import { type ReportImpact, reportSendingOf } from "../../core/models";
+import { pageLabel, problemHeading, type ReportPreview } from "../../core/report";
+import type { StringKey } from "../../core/strings";
+import { errorKey } from "../bridge";
 import { useFormat, useLang, useT } from "../i18n";
 import type { ReportAsk } from "../report";
-import { useBridge, useStore } from "../store";
-import { GitHubMark, LineLogo } from "../ui/brand";
+import { NoteField, ReportSent } from "../report-sent";
+import { useBridge, useSettings, useStore } from "../store";
+import { AppMark, GitHubMark, LineLogo } from "../ui/brand";
 import { Button } from "../ui/controls";
 import { cx } from "../ui/cx";
 import { Card, Skeleton } from "../ui/display";
@@ -22,6 +28,15 @@ import { QrCode } from "../ui/qr-code";
 
 type Via = "line" | "github";
 type Saved = { name: string; bytes: number } | null;
+type Sent = Extract<ActionOutput<"report.send">, { result: "filed" | "stored" }>;
+
+/** Why "Kirim" didn't send it, in the Student's words. */
+const NOT_SENT: Record<Exclude<ActionOutput<"report.send">["result"], Sent["result"]>, StringKey> = {
+  personal: "report.sendPersonal",
+  "too-big": "report.sendTooBig",
+  busy: "report.sendBusy",
+  failed: "report.sendFailed",
+};
 
 export function ReportDialog({ ask, open, onOpenChange }: { ask: ReportAsk | null; open: boolean; onOpenChange: (open: boolean) => void }) {
   const t = useT();
@@ -29,8 +44,14 @@ export function ReportDialog({ ask, open, onOpenChange }: { ask: ReportAsk | nul
   const [preview, setPreview] = useState<ReportPreview | null>(null);
   const [failed, setFailed] = useState(false);
   const [note, setNote] = useState("");
-  const [saving, setSaving] = useState<Via | null>(null);
+  const [saving, setSaving] = useState<Via | "relay" | null>(null);
   const [chosen, setChosen] = useState<{ via: Via; file: Saved } | null>(null);
+  const [sent, setSent] = useState<Sent | null>(null);
+  /** Why "Kirim langsung" didn't send it, said beside the ways (and the other two still there). */
+  const [notSent, setNotSent] = useState<StringKey | null>(null);
+  const relay = useStore().relay;
+  const settings = useSettings();
+  const auto = relay && reportSendingOf(settings) === "auto";
 
   // Each ask is a fresh report: what the app has kept now, scrubbed now.
   useEffect(() => {
@@ -40,6 +61,8 @@ export function ReportDialog({ ask, open, onOpenChange }: { ask: ReportAsk | nul
     setFailed(false);
     setNote("");
     setChosen(null);
+    setSent(null);
+    setNotSent(null);
     bridge.invoke("report.preview", ask.about).then(
       (report) => current && setPreview(report),
       () => current && setFailed(true),
@@ -48,6 +71,22 @@ export function ReportDialog({ ask, open, onOpenChange }: { ask: ReportAsk | nul
       current = false;
     };
   }, [ask, bridge]);
+
+  // "Kirim langsung": the report shown, with the note, to the maintainer's relay.
+  const send = async () => {
+    if (!preview) return;
+    setSaving("relay");
+    setNotSent(null);
+    try {
+      const answer = await bridge.invoke("report.send", { id: preview.id, note });
+      if (answer.result === "filed" || answer.result === "stored") setSent(answer);
+      else setNotSent(NOT_SENT[answer.result]);
+    } catch (error) {
+      setNotSent(errorKey(error, "report.sendFailed"));
+    } finally {
+      setSaving(null);
+    }
+  };
 
   const choose = async (via: Via) => {
     if (!preview) return;
@@ -67,28 +106,45 @@ export function ReportDialog({ ask, open, onOpenChange }: { ask: ReportAsk | nul
         <Notice tone="danger" title={t("report.failed")} />
       ) : !preview ? (
         <Skeleton className="h-48 rounded-xl" />
+      ) : sent ? (
+        <div className="space-y-6">
+          <ReportSent id={sent.id} issue={sent.issue} duplicate={sent.duplicate} />
+          <div className="flex justify-end border-t border-line pt-4">
+            <Button variant="primary" onClick={() => onOpenChange(false)}>
+              {t("report.done")}
+            </Button>
+          </div>
+        </div>
       ) : chosen ? (
         // "Kembali": to what's sent, to read it again or take the other way; the note stays.
         <Steps preview={preview} note={note} {...chosen} onBack={() => setChosen(null)} onDone={() => onOpenChange(false)} />
       ) : (
         <div className="space-y-6">
-          <p className="text-body text-pretty text-muted">{t("report.lead")}</p>
+          <p className="text-body text-pretty text-muted">{t(auto ? "report.leadAuto" : "report.lead")}</p>
           <WhatsSent preview={preview} />
-          <label className="block">
-            <span className="mb-2 block px-1 text-small font-semibold text-muted">{t("report.note")}</span>
-            <textarea
-              value={note}
-              maxLength={MAX_NOTE}
-              rows={2}
-              placeholder={t("report.notePlaceholder")}
-              onChange={(event) => setNote(event.target.value)}
-              className="block w-full resize-y rounded-lg border border-edge bg-surface px-3 py-2 text-body outline-none placeholder:text-faint focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
-            />
-          </label>
+          <NoteField
+            label={t("report.note")}
+            value={note}
+            onChange={setNote}
+            placeholder={t("report.notePlaceholder")}
+            hint={relay ? t("report.notePublic") : undefined}
+          />
           <section>
             <h3 className="mb-2 px-1 text-small font-semibold text-muted">{t("report.how")}</h3>
-            {/* Two ways, side by side: LINE first, since most Students have it and fewer have GitHub. */}
+            {notSent && <Notice tone="danger" title={t(notSent)} className="mb-3" />}
+            {/* With the relay, one click first, across. Then two ways, side by side: LINE first, since most Students have it and fewer have GitHub. */}
             <div className="grid grid-cols-1 gap-3 min-[30rem]:grid-cols-2">
+              {relay && (
+                <Way
+                  className="min-[30rem]:col-span-2"
+                  logo={<AppMark className="size-8 rounded-lg" />}
+                  label={t("report.relay")}
+                  hint={t("report.relayHint")}
+                  busy={saving === "relay"}
+                  disabled={saving !== null}
+                  onClick={() => void send()}
+                />
+              )}
               <Way
                 logo={<LineLogo className="size-8" />}
                 label={t("report.line")}
@@ -235,6 +291,7 @@ function Way({
   busy,
   disabled,
   onClick,
+  className,
 }: {
   logo: ReactNode;
   label: string;
@@ -242,6 +299,7 @@ function Way({
   busy: boolean;
   disabled: boolean;
   onClick: () => void;
+  className?: string;
 }) {
   const hintId = useId();
   return (
@@ -252,6 +310,7 @@ function Way({
       aria-disabled={disabled || undefined}
       onClick={disabled ? undefined : onClick}
       className={cx(
+        className,
         "group focus-ring flex items-start gap-3.5 rounded-xl border border-edge bg-surface p-4 text-left shadow-card",
         "transition-[border-color,background-color,box-shadow,scale] duration-150 hover:border-accent/50 hover:bg-hover hover:shadow-lift active:scale-[0.99] active:bg-selected",
         "aria-disabled:pointer-events-none aria-disabled:opacity-60",

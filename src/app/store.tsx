@@ -23,6 +23,8 @@ export class AppStore {
   readonly version: string;
   readonly platform: AppSnapshot["platform"];
   readonly vault: AppSnapshot["vault"];
+  /** Problem reports can go to the maintainer's relay with one click: this copy has its address. */
+  readonly relay: boolean;
 
   constructor(snapshot: AppSnapshot) {
     for (const dataset of snapshot.datasets) this.datasets.set(dataset.name, dataset);
@@ -32,6 +34,7 @@ export class AppStore {
     this.version = snapshot.version;
     this.platform = snapshot.platform;
     this.vault = snapshot.vault;
+    this.relay = snapshot.relay ?? false;
   }
 
   apply(event: Event): void {

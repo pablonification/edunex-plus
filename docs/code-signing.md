@@ -57,8 +57,9 @@ has an account there.
 ## Privacy
 
 Edunex Plus talks only to the systems it's for (Edunex, SIX and ITB's public pages), to GitHub to
-check for and download updates, and to ntfy only if you turn on phone notifications. No analytics,
-no telemetry. Every server it contacts, and what it sends, is in [Signing in and privacy](privacy.md).
+check for and download updates, to ntfy only if you turn on phone notifications, and to the
+maintainer's report relay only with a problem report you send, or one you said may go by itself.
+No analytics, no tracking. Every server it contacts, and what it sends, is in [Signing in and privacy](privacy.md).
 The services it uses have their own: [GitHub's privacy statement](https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement)
 and [ntfy's privacy policy](https://ntfy.sh/docs/privacy/).
 

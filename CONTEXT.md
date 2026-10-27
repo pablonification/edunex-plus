@@ -99,8 +99,16 @@ _Avoid_: missing class, broken class, error
 _Avoid_: broken page, error, SIX is down
 
 **Problem report**:
-"Laporan masalah": what a Student can send the maintainer when the app couldn't read a page (a changed page, unrecognised rows, Edunex or SIX changing): the app's version and system, which page and which check, and that page as SIX or Edunex sent it, scrubbed on their computer (names, numbers, contacts, links replaced, grades and amounts made up). It also says whether the scrubbed page still fails the same way, and carries the App log. The page is kept in memory only, until that page reads again or they sign out, and nothing is sent until they pick GitHub or LINE. Called `report` in code ([ADR 0007](docs/adr/0007-report-a-page-the-app-couldnt-read.md), [ADR 0014](docs/adr/0014-a-report-carries-what-a-fix-needs.md)).
+"Laporan masalah": what a Student can send the maintainer when the app couldn't read a page (a changed page, unrecognised rows, Edunex or SIX changing): the app's version and system, which page and which check, and that page as SIX or Edunex sent it, scrubbed on their computer (names, numbers, contacts, links replaced, grades and amounts made up). It also says whether the scrubbed page still fails the same way, and carries the App log. The page is kept in memory only, until that page reads again or they sign out, and nothing is sent until they choose how (the Report relay, LINE, GitHub), or by itself if they said so when the app asked. Called `report` in code ([ADR 0007](docs/adr/0007-report-a-page-the-app-couldnt-read.md), [ADR 0014](docs/adr/0014-a-report-carries-what-a-fix-needs.md)).
 _Avoid_: crash report, log, telemetry, feedback
+
+**Report relay**:
+The maintainer's small service a Problem report goes to with one click ("Kirim langsung"), or by itself when the Student agreed: it keeps the whole report private for the maintainer and files a public GitHub issue with only its summary. Called `relay` in code.
+_Avoid_: server, backend, cloud, telemetry
+
+**Story**:
+"Cerita": what the Student adds in their own words to a Problem report that went to the Report relay, right after it went. Public, on its issue. Called `note` in code.
+_Avoid_: comment, feedback, description
 
 **App log**:
 "Yang dilakukan aplikasi": what the app did in the last hour (its reads, sign-ins, updates, notifications, errors), kept in memory only and carried, scrubbed, by every Problem report. Called `log` in code.

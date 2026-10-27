@@ -40,6 +40,9 @@ Everything stays on your computer:
   updates, which notifications showed, errors, the window breaking) is kept in memory only, 300
   lines at most, never on disk, so a problem report can say what led up to it. Quitting the app
   forgets it.
+- **Problem reports you sent** with **Kirim langsung**, or that went by themselves: when, which
+  page, and their issue number, so Settings can list them; and for each problem a fingerprint made
+  from what went wrong (never what was in the report), so the same one isn't sent twice.
 
 **Settings → Keluar** (sign out of everything) removes every session and every saved trace
 from this computer.
@@ -57,10 +60,26 @@ Nothing leaves your computer except the app's own requests to:
 - **GitHub**, once a day and when you press **Check for updates**, to check for a newer release
   (no personal data is sent), and to download it: by itself with **Update automatically** on
   (the default), otherwise only when you press **Download & install**;
-- **A problem report** ("Laporkan masalah"), only when you send one and only what it showed
-  you first: the app's version, your computer's system, which page couldn't be read and why, that
-  page with your name, NIM, contacts and links replaced and your grades and amounts made up, what
-  the app did in the last hour with the same details taken out, and what you wrote. The app doesn't send it itself. For LINE, it saves the report as a file in
+- **The maintainer's report relay**, only with a problem report, and only in two cases. When you
+  press **Kirim langsung** in "Laporkan masalah": the report it showed you, with what you wrote.
+  Or by itself, if you said so: the first time the app can't read a page it asks once whether
+  reports like it should go by themselves, ask each time, or never, and **Settings → Laporan
+  masalah** changes that any time ("Jangan" stops it). Then each problem goes once (again only if
+  it went away and came back a week or more later), never while you're offline, and right after,
+  the app says it went and lets you add a story. A report carries the app's version, your computer's system and language, which
+  page couldn't be read and why, that page with your name, NIM, contacts and links replaced and
+  your grades and amounts made up, the rows that didn't fit, and what the app did in the last hour
+  with the same details taken out. The relay checks it for anything personal again and refuses
+  it if it finds any. The whole report stays private on the relay, for the maintainer; it files a
+  public issue on GitHub with only the summary: which page and check, the rows that didn't fit
+  (scrubbed), whether the scrubbed page still fails, what it cost, the app's version and system,
+  and your story if you add one. That issue, and your story, anyone can read. This copy of the
+  app has no relay address yet: until the maintainer runs it, none of this appears;
+- **A problem report** on LINE or GitHub, only when you send one and only what it showed you
+  first: the app's version, your computer's system, which page couldn't be read and why, that page
+  with your name, NIM, contacts and links replaced and your grades and amounts made up, what the
+  app did in the last hour with the same details taken out, and what you wrote. The app doesn't
+  send these itself. For LINE, it saves the report as a file in
   Downloads and shows the maintainer's LINE code, and you send them the file there. For GitHub, it
   opens a new issue, filled in (public, so anyone can read it), and saves the report as a file (the
   page, and what the app did) for you to add to it;
@@ -70,6 +89,7 @@ Nothing leaves your computer except the app's own requests to:
   the reminders already booked there; if ntfy can't be reached then, the app tells you some
   may still arrive.
 
-No other servers, no analytics, no telemetry. Every request says it comes from Edunex Plus
+No other servers, no analytics, no tracking: nothing about how you use the app is ever sent. A
+problem report goes only as described above. Every request says it comes from Edunex Plus
 (its User-Agent), and the app reads at a human pace. How it uses each system is written down in
 [API.md](../API.md) (Edunex) and [SIX.md](../SIX.md).

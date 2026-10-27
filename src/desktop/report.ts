@@ -3,13 +3,14 @@
 // the report file, their note in it, to Downloads (for LINE always: the file is the message; for
 // GitHub when there's a page to attach). On GitHub, a new issue then opens on their click, filled
 // in; LINE needs nothing opened (the window shows the maintainer's QR code). The window names the
-// report it showed back by its id, so what goes is exactly what the Student read. A relay that
-// posts the report itself would be one more way here.
+// report it showed back by its id, so what goes is exactly what the Student read. "Kirim" posts that
+// same report to the maintainer's relay, through the engine (ADR 0014).
 //
 // No Electron here, so the window's tests run these as main does: ./handlers/report.ts gives them
 // the system (Downloads, the browser, the file manager).
 import { randomUUID } from "node:crypto";
 import path from "node:path";
+import { reportIssuePage } from "../core/links";
 import type { Lang } from "../core/models";
 import { needsFile, type ReportPreview, reportFile, reportFileName, reportIssueUrl } from "../core/report";
 import type { AppLog } from "../engine/app-log";
@@ -18,7 +19,7 @@ import { EngineError } from "../engine/errors";
 import type { Handlers } from "./ipc";
 
 export interface ReportDesk {
-  engine: Pick<Engine, "report">;
+  engine: Pick<Engine, "report" | "reports">;
   /** The app's own log, which every report carries: the window's errors go in it. */
   log: Pick<AppLog, "add">;
   /** The computer's system, as the report names it ("macOS 15.3 (arm64)"). */
@@ -32,9 +33,24 @@ export interface ReportDesk {
   /** Opens a new issue in the browser, under the official-links rule. */
   open(url: string): Promise<void>;
   reveal(file: string): void;
+  /** Opens the public issue of a report the app sent, in the browser. */
+  openIssue(url: string): Promise<void>;
 }
 
-export function reportHandlers(desk: ReportDesk): Pick<Handlers, "report.preview" | "report.save" | "report.open" | "report.reveal" | "report.windowError"> {
+export function reportHandlers(
+  desk: ReportDesk,
+): Pick<
+  Handlers,
+  | "report.preview"
+  | "report.save"
+  | "report.open"
+  | "report.reveal"
+  | "report.send"
+  | "report.note"
+  | "report.dismiss"
+  | "report.openIssue"
+  | "report.windowError"
+> {
   /** The report the window shows now: the only one it can send. */
   let shown: ReportPreview | null = null;
   /** Its file, once saved. */
@@ -65,6 +81,22 @@ export function reportHandlers(desk: ReportDesk): Pick<Handlers, "report.preview
     "report.reveal": async ({ id }) => {
       if (saved?.id !== id) throw new EngineError("Rejected", "No file was saved for that report");
       desk.reveal(saved.file);
+      return {};
+    },
+    // "Kirim": exactly the report shown, with the system it named, to the maintainer's relay.
+    "report.send": async ({ id, note }) => {
+      const report = showing(id);
+      return desk.engine.reports.send(report.report, { note, os: report.os });
+    },
+    "report.note": async ({ sent, note }) => ({ result: await desk.engine.reports.note(sent, note) }),
+    "report.dismiss": async () => {
+      await desk.engine.reports.dismiss();
+      return {};
+    },
+    // Only the issue of a report this app sent, its address made here from its number.
+    "report.openIssue": async ({ number }) => {
+      if (!desk.engine.reports.filed(number)) throw new EngineError("Rejected", "That isn't the issue of a report this app sent");
+      await desk.openIssue(reportIssuePage(number));
       return {};
     },
     "report.windowError": async ({ kind, where, message }) => {

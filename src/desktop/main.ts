@@ -25,7 +25,7 @@ import { coreHandlers } from "./handlers/core";
 import { coursePageHandlers } from "./handlers/course-page";
 import { edunexNim, filesHandlers, forgetOtherStudentsFiles } from "./handlers/files";
 import { phoneHandlers } from "./handlers/phone";
-import { reportHandlers } from "./handlers/report";
+import { reportHandlers, systemName } from "./handlers/report";
 import { scheduleHandlers } from "./handlers/schedule";
 import { openCheckIn, sixHandlers } from "./handlers/six";
 import { tasksHandlers } from "./handlers/tasks";
@@ -148,6 +148,9 @@ async function start(): Promise<void> {
     alert: (notice) => void (demo ? undefined : notifier.show(notice)),
     phone: demo ? demoPhone : { ntfy: ntfyClient(ntfySession) },
     log,
+    // The demo's pretend relay, when it asks for one; otherwise the address the app ships with.
+    relay: demo?.relay,
+    os: systemName,
   });
   engine = current;
   await current.load();

@@ -11,6 +11,7 @@ import { examMarkDatasets } from "./models/exam-marks";
 import { highlightDatasets } from "./models/highlights";
 import { itbDatasets } from "./models/itb";
 import { plannerDatasets } from "./models/planner";
+import { reportDatasets } from "./models/report";
 import { sixDatasets } from "./models/six";
 import { sixRecordsDatasets } from "./models/six-records";
 import { snoozeDatasets } from "./models/snoozes";
@@ -43,6 +44,7 @@ export const Datasets = {
   ...plannerDatasets,
   ...alertsDatasets,
   ...appDatasets,
+  ...reportDatasets,
   ...snoozeDatasets,
   ...examMarkDatasets,
   ...courseColorDatasets,

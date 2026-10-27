@@ -15,6 +15,8 @@
 //                            uncounted (missing), so Presensi shows what SIX's count did after class
 //   EDUNEX_DEMO_SIGN_IN=asks|fails  first-run: Microsoft wants the Student again, so the other system doesn't come along
 //                            by itself and its own "Hubungkan" waits (asks), or the sign-in page can't open (fails)
+//   EDUNEX_DEMO_RELAY=1      problem reports can go to a pretend relay ("Kirim", sending by themselves), which the
+//                            app ships without: test/pretend/relay.ts answers, files made-up issues, sends nothing
 //   EDUNEX_DEMO_EDIT=1       after the first sync, the lecturer revises Tugas 01 Bab I (handed in weeks ago):
 //                            new instructions, a later deadline and a new file, so the app knows what changed
 //   EDUNEX_DEMO_SICK=1       SIX writes DK4073's attendance as it does for a Student with sick days (#237): two
@@ -39,6 +41,7 @@ import type { DemoHooks } from "../../src/desktop/demo";
 import type { Engine } from "../../src/engine/engine";
 import { fillablePdf } from "../../test/kit/fillable-pdf";
 import { PRETEND_TOKEN } from "../../test/pretend/edunex";
+import { PRETEND_RELAY } from "../../test/pretend/relay";
 import { PRETEND_SIX_COOKIE } from "../../test/pretend/six";
 import { PretendWorld } from "../../test/pretend/world";
 
@@ -368,6 +371,7 @@ const hooks: DemoHooks = {
   clockOffset: () => world.clock.now() - Date.now(),
   fetchFile: (url, init) => world.fetch(url, init),
   platform,
+  relay: process.env.EDUNEX_DEMO_RELAY === "1" ? PRETEND_RELAY : undefined,
 };
 
 globalThis.__edunexPlusDemo = hooks;
