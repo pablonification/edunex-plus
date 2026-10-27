@@ -4,7 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { allFixtureFiles, FIXTURES_DIR } from "./fixtures";
-import { personalHits } from "./privacy-rules";
+import { PRIVATE_PAGES, personalHits } from "./privacy-rules";
 
 const files = allFixtureFiles().filter((file) => !file.includes(`${path.sep}pub${path.sep}`));
 const texts = files.map((file) => ({ file: path.relative(FIXTURES_DIR, file), text: fs.readFileSync(file, "utf8") }));
@@ -30,6 +30,6 @@ describe("committed test data holds nothing personal", () => {
 
   it("has none of the pages that hold passwords or family data", () => {
     const names = texts.map((t) => t.file).join("\n");
-    expect(names).not.toMatch(/controlpanel|datainduk|ktm|pddikti/);
+    expect(names).not.toMatch(PRIVATE_PAGES);
   });
 });

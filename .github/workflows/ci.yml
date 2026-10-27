@@ -54,7 +54,7 @@ jobs:
             if [ "$everything" = true ] || grep -qE "$2" <<< "$files"; then echo "$1=true"; else echo "$1=false"; fi
           }
           {
-            area deps '^package(-lock)?\.json$'
+            area deps '^(relay/)?package(-lock)?\.json$'
             area workflows '^\.github/'
           } | tee -a "$GITHUB_OUTPUT"
 
@@ -233,3 +233,14 @@ jobs:
           allow-licenses: >-
             MIT, MIT-0, ISC, 0BSD, BSD-2-Clause, BSD-3-Clause, Apache-2.0, MPL-2.0,
             BlueOak-1.0.0, Python-2.0, CC-BY-4.0, CC0-1.0, Unlicense, WTFPL, Zlib
+          # wrangler, the tool that puts the report relay online (relay/), brings sharp to run the
+          # relay on the maintainer's computer, and sharp's prebuilt image library is LGPL. It runs
+          # there only: none of it is in the app, or in the relay that's put online.
+          allow-dependencies-licenses: >-
+            pkg:npm/@img/sharp-libvips-darwin-arm64, pkg:npm/@img/sharp-libvips-darwin-x64,
+            pkg:npm/@img/sharp-libvips-linux-arm, pkg:npm/@img/sharp-libvips-linux-arm64,
+            pkg:npm/@img/sharp-libvips-linux-ppc64, pkg:npm/@img/sharp-libvips-linux-riscv64,
+            pkg:npm/@img/sharp-libvips-linux-s390x, pkg:npm/@img/sharp-libvips-linux-x64,
+            pkg:npm/@img/sharp-libvips-linuxmusl-arm64, pkg:npm/@img/sharp-libvips-linuxmusl-x64,
+            pkg:npm/@img/sharp-wasm32, pkg:npm/@img/sharp-win32-arm64, pkg:npm/@img/sharp-win32-ia32,
+            pkg:npm/@img/sharp-win32-x64

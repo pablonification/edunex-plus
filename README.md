@@ -107,6 +107,7 @@ student data** anywhere: use the demo. Security problems go through a
 | [docs/test-data.md](docs/test-data.md), [docs/scenarios.md](docs/scenarios.md) | How tests work |
 | [docs/platform-notifications.md](docs/platform-notifications.md) | Notifications on each system and the phone |
 | [docs/code-signing.md](docs/code-signing.md), [docs/research/](docs/research/) | How the installers are signed, and why browsers warn about them |
+| [docs/relay.md](docs/relay.md) | How a Student's problem report becomes an issue here, and setting up the relay that files it |
 
 ## Supported by
 

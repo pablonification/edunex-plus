@@ -97,7 +97,10 @@ safe to share.
   model providers may keep prompts, a key inside a public desktop app can be pulled out and abused,
   and the app already knows which page and which check failed.
 
-## For the maintainer to decide (not built)
+## For the maintainer to decide (since built)
+
+Both are built now, as [0015](0015-a-relay-files-reports-and-a-bot-drafts-the-fix.md) records, with
+what changed on the way. This is how they were first sketched.
 
 1. **A relay, so a Student sends with one click.** A small Cloudflare Worker that takes a report
    and creates the issue itself, with a fine-grained GitHub token only it holds that can open

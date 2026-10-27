@@ -1,0 +1,26 @@
+# The report relay on Cloudflare's free plan (docs/relay.md). `npm run deploy` here puts it online;
+# the two secrets are set once with `npx wrangler secret put GITHUB_TOKEN` and `... MAINTAINER_TOKEN`.
+name = "edunex-plus-relay"
+main = "src/worker.ts"
+compatibility_date = "2026-10-20"
+workers_dev = true
+
+[vars]
+GITHUB_REPO = "pablonification/edunex-plus"
+
+# Everything the relay keeps lives in one Durable Object, on the free plan's SQLite storage.
+[[durable_objects.bindings]]
+name = "RELAY"
+class_name = "RelayObject"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["RelayObject"]
+
+# Files the reports that are waiting (GitHub was down, or the day's new issues were used up) and
+# brings each issue's count of reports up to date.
+[triggers]
+crons = ["*/10 * * * *"]
+
+[observability]
+enabled = true

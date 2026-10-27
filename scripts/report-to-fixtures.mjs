@@ -1,8 +1,8 @@
 // Turns a report a Student sent from "Laporkan masalah" (the .json file the app saved for them, see
-// docs/adr/0007-report-a-page-the-app-couldnt-read.md) into test data: each page it carries, already
-// scrubbed on their computer, goes into test/fixtures under a name that says where it came from.
-// Then write the test that reads it and fails the way the report says (its check, or the rows it
-// left out), and fix the reader.
+// docs/adr/0007-report-a-page-the-app-couldnt-read.md, or what the report relay keeps, docs/relay.md)
+// into test data: each page it carries, already scrubbed on their computer, goes into test/fixtures
+// under a name that says where it came from. Then write the test that reads it and fails the way
+// the report says (its check, or the rows it left out), and fix the reader.
 //
 // A report of format 2 (docs/adr/0014-a-report-carries-what-a-fix-needs.md) also says whether its
 // scrubbed pages still fail that way, the rows as the page wrote them, and what it cost the Student:
@@ -25,8 +25,10 @@ if (!file) {
   console.error("Which report? npm run fixtures:from-report -- <report.json> [<name>]");
   process.exit(1);
 }
-const report = JSON.parse(fs.readFileSync(file, "utf8"));
-if (![1, 2].includes(report.format) || !Array.isArray(report.problems)) {
+const contents = JSON.parse(fs.readFileSync(file, "utf8"));
+// The relay keeps the report inside what the app sent it ({ envelope: 1, report, os, note, … }).
+const report = contents.envelope === 1 ? contents.report : contents;
+if (![1, 2].includes(report?.format) || !Array.isArray(report.problems)) {
   console.error(`${file} isn't a report from Edunex Plus.`);
   process.exit(1);
 }

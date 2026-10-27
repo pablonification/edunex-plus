@@ -11,10 +11,15 @@ const RULES: { what: string; pattern: RegExp; allowed: (match: string) => boolea
   { what: "meeting link", pattern: /teams\.(?:microsoft|live)\.com\/[^"'\s<]+/g, allowed: (m) => m.includes("000000000000") },
   { what: "file link", pattern: /\.blob\.core\.windows\.net\/[^"'\s<]+/g, allowed: (m) => m.includes("/edunex/fixture-") },
   { what: "signed link", pattern: /[?&]sig=[\w%+/=-]+/g, allowed: (m) => m.endsWith("=fixture") },
-  { what: "session token", pattern: /eyJ[A-Za-z0-9_-]{8,}\.eyJ[A-Za-z0-9_-]{8,}/g, allowed: () => false },
+  // Only where a run of a token's characters starts, as a token does (after a quote, a space, an =):
+  // tried from every "eyJ" in one long run, "eyJ" a million times over took hours.
+  { what: "session token", pattern: /(?<![A-Za-z0-9_-])eyJ[A-Za-z0-9_-]{8,}\.eyJ[A-Za-z0-9_-]{8,}/g, allowed: () => false },
+  // At most 64 characters before the @, as an address has: a long run of letters with no @ after it
+  // stays quick to search (unbounded, a million of them took hours). The report relay runs these
+  // rules on whatever anyone sends it (relay/), so each must stay quick on any text.
   {
     what: "email",
-    pattern: /[\w.+-]+@[\w-]+(?:\.[\w-]+)+/g,
+    pattern: /[\w.+-]{1,64}@[\w-]+(?:\.[\w-]+)+/g,
     allowed: (m) => m.endsWith("@example.com") || m === "dimas.pratama@mahasiswa.itb.ac.id",
   },
   { what: "phone number", pattern: /(?<!\d)(?:\+62|62|0)8\d{7,11}(?!\d)/g, allowed: (m) => m === "080000000000" },
@@ -26,6 +31,12 @@ const RULES: { what: string; pattern: RegExp; allowed: (match: string) => boolea
   },
   { what: "named photo", pattern: /cdn-edunex\.itb\.ac\.id\/avatar\/[^"'\s<]+/g, allowed: (m) => m.endsWith("/avatar/fixture-avatar.jpg") },
 ];
+
+/**
+ * SIX's pages that hold passwords or family data. The app never reads them, so neither the test
+ * data nor a report may carry one (privacy.test.ts, the report relay).
+ */
+export const PRIVATE_PAGES = /controlpanel|datainduk|ktm|pddikti/i;
 
 /** Each value in `text` shaped like something personal and not one of the made-up ones: "email: rahmat@…". */
 export function personalHits(text: string): string[] {

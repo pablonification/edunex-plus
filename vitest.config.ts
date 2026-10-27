@@ -8,7 +8,8 @@ export default defineConfig({
     // Weeks simulated on the fake clock replay every sync (SIX's real pages each hour): seconds
     // alone, much longer while the machine is busy.
     testTimeout: 60_000,
-    include: ["test/**/*.test.ts", "test/**/*.test.tsx"],
+    // The report relay (relay/) runs its own tests here too, on Node, without Cloudflare.
+    include: ["test/**/*.test.ts", "test/**/*.test.tsx", "relay/test/**/*.test.ts"],
     environment: "node",
   },
 });
