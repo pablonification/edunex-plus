@@ -1,7 +1,8 @@
 // Settings on disk (#85): what an older version saved still loads, a value
 // that no longer fits falls back alone (never the Student's theme or language
 // with it), each course's own attendance target belongs to the Student who
-// set it, and quiet hours on the phone are on for settings saved before them.
+// set it, quiet hours on the phone are on for settings saved before them, and
+// the guide isn't offered to a Student who used the app before it.
 import { describe, expect, it } from "vitest";
 import { DEFAULT_SETTINGS } from "../../src/core/models";
 import { PRETEND_TOKEN } from "../pretend/edunex";
@@ -82,6 +83,21 @@ describe("saved settings", () => {
     const odd = await startEngine({ storage: saved({ theme: "dark", phoneQuietHours: { start: 7, end: 7 } }), start: false });
     expect(odd.engine.snapshot().settings).toMatchObject({ theme: "dark", phoneQuietHours: { start: 22, end: 6 } });
     await expect(odd.engine.updateSettings({ phoneQuietHours: { start: 24, end: 6 } })).rejects.toThrow();
+  });
+
+  it("from before the guide: a Student whose first-run scan was done knows the app, so it isn't offered; one who hadn't got that far is", async () => {
+    const using = await startEngine({ storage: saved({ theme: "dark", firstScanDone: true }), start: false });
+    expect(using.engine.snapshot().settings).toMatchObject({ theme: "dark", guideDone: true });
+    const notYet = await startEngine({ storage: saved({ theme: "dark", firstScanDone: false }), start: false });
+    expect(notYet.engine.snapshot().settings.guideDone).toBe(false);
+    // With one value that doesn't fit, the rest still loads the same way.
+    const odd = await startEngine({ storage: saved({ firstScanDone: true, closeToTray: "sometimes" }), start: false });
+    expect(odd.engine.snapshot().settings).toMatchObject({ closeToTray: true, guideDone: true });
+    // A first start offers it, and once taken it loads as saved.
+    const fresh = await startEngine({ start: false });
+    expect(fresh.engine.snapshot().settings.guideDone).toBe(false);
+    const taken = await startEngine({ storage: saved({ firstScanDone: false, guideDone: true }), start: false });
+    expect(taken.engine.snapshot().settings.guideDone).toBe(true);
   });
 
   it("a target out of range is refused, not saved", async () => {

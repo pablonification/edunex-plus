@@ -122,6 +122,13 @@ export const Settings = z.object({
   /** The first full sync's findings were shown (or there were none): the scan doesn't open by itself again. */
   firstScanDone: z.boolean(),
 
+  // The guide (shell/guide.tsx)
+  /**
+   * The Student took the tour of the app or skipped it: it doesn't offer itself again (Settings still starts it).
+   * Saved from 0.1.0-alpha.23 on; before, a Student whose first-run scan was done already knew the app (loadSettings).
+   */
+  guideDone: z.boolean().optional(),
+
   // Problem reports (ADR 0014)
   /** Whether they go by themselves. Saved from 0.1.0-alpha.22 on; "ask" before. */
   reportSending: ReportSending.optional(),
@@ -159,10 +166,16 @@ export const DEFAULT_SETTINGS: Settings = {
   // First-run scan (#81)
   firstScanDone: false,
 
+  // The guide
+  guideDone: false,
+
   // Problem reports (ADR 0014)
   reportSending: "ask",
   reportAsked: false,
 };
+
+/** The guide offers itself after a new Student's first sign-in, until they take it or skip it (not on settings older than it). */
+export const guideDue = (settings: Pick<Settings, "guideDone">): boolean => settings.guideDone === false;
 
 /** Whether problem reports go by themselves, as the Student said: "ask" until they say otherwise. */
 export const reportSendingOf = (settings: Pick<Settings, "reportSending">): ReportSending => settings.reportSending ?? "ask";

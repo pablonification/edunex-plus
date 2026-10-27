@@ -46,7 +46,8 @@ export function GradesScreen() {
       </div>
       <Disagreement record={record} />
       <Standing record={record} state={state} />
-      <div className="mt-10 grid grid-cols-1 items-start gap-6 @3xl:grid-cols-[minmax(0,1fr)_288px]">
+      {/* The guide points here (shell/guide.tsx). */}
+      <div data-guide="grades-outlook" className="mt-10 grid grid-cols-1 items-start gap-6 @3xl:grid-cols-[minmax(0,1fr)_288px]">
         <Card className="min-w-0 px-5 pt-4 pb-4">
           <h2 className="mb-3 text-title font-semibold tracking-[-0.01em]">{t("grades.chart")}</h2>
           <IpkChart steps={state.projection.steps} target={targetOf(record, state.plan)} />

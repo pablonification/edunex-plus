@@ -56,12 +56,15 @@ export function SettingsDialog({
   onOpenChange,
   startAt = null,
   onShowFirstScan,
+  onShowGuide,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   /** A group to open at, instead of the top (the sidebar's course colors button). */
   startAt?: "courseColors" | null;
   onShowFirstScan?: () => void;
+  /** Starts the guide's tour (it closes Settings first). */
+  onShowGuide?: () => void;
 }) {
   const t = useT();
   const focusNext = useFocusNext();
@@ -101,6 +104,7 @@ export function SettingsDialog({
             onStarted={() => setStart(null)}
             onSignedOutOfEverything={() => onOpenChange(false)}
             onShowFirstScan={onShowFirstScan}
+            onShowGuide={onShowGuide}
             onShowLicences={() => setPage("licences")}
           />
         )}
@@ -114,12 +118,14 @@ function SettingsBody({
   onStarted,
   onSignedOutOfEverything,
   onShowFirstScan,
+  onShowGuide,
   onShowLicences,
 }: {
   startAt: "courseColors" | null;
   onStarted: () => void;
   onSignedOutOfEverything: () => void;
   onShowFirstScan?: () => void;
+  onShowGuide?: () => void;
   onShowLicences: () => void;
 }) {
   const t = useT();
@@ -226,6 +232,13 @@ function SettingsBody({
 
       <Group title={t("settings.about")} note={t("settings.unofficial")}>
         <About />
+        {onShowGuide && (
+          <Row label={t("settings.guide")} hint={t("settings.guide.hint")}>
+            <Button size="sm" aria-label={`${t("settings.guide.start")}: ${t("settings.guide")}`} onClick={onShowGuide}>
+              {t("settings.guide.start")}
+            </Button>
+          </Row>
+        )}
         <Row label={t("report.title")} hint={t(store.relay ? "report.settingsHintRelay" : "report.settingsHint")}>
           <Button size="sm" aria-label={t("report.title")} icon={<Icons.Flag className="size-3.5" />} onClick={() => openReport({})}>
             {t("report.open")}

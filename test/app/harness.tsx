@@ -93,6 +93,8 @@ export interface Options {
   checkForUpdates?: boolean;
   /** Let the first-run scan open by itself, as for a new Student (default: already seen, so it doesn't cover the screen under test). */
   firstScan?: boolean;
+  /** Let the guide offer its tour, as after a new Student's first sign-in (default: already taken, so it doesn't sit over the screen under test). */
+  guide?: boolean;
   /** The system the window runs on (default macOS). */
   platform?: AppSnapshot["platform"];
   /** Where the phone's messages go (default: a pretend ntfy of its own). */
@@ -138,6 +140,7 @@ export async function openApp(options: Options = {}) {
   if (firstStart) await engine.updateSettings({ lang: "id" });
   if (options.autoUpdate !== undefined) await engine.updateSettings({ autoUpdate: options.autoUpdate });
   if (!options.firstScan) await engine.updateSettings({ firstScanDone: true });
+  if (!options.guide) await engine.updateSettings({ guideDone: true });
   if (options.start !== false) engine.start();
 
   /** SIX is read at human pace (a page every two seconds): the fake clock runs until the work is done. */

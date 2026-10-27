@@ -155,15 +155,18 @@ export function TasksScreen({ show: shown }: { show?: "done" }) {
       <PageHeader
         title={t("nav.tasks")}
         actions={
-          <Segmented
-            label={t("tasks.show")}
-            value={show}
-            onChange={setShow}
-            options={[
-              { value: "open", label: todo ? `${t("tasks.filter.open")} ${todoCount(items)}` : t("tasks.filter.open") },
-              { value: "done", label: todo ? `${t("tasks.filter.done")} ${doneCount}` : t("tasks.filter.done") },
-            ]}
-          />
+          // The guide points here once there are Tasks to show (shell/guide.tsx).
+          <div data-guide={todo ? "tasks-show" : undefined}>
+            <Segmented
+              label={t("tasks.show")}
+              value={show}
+              onChange={setShow}
+              options={[
+                { value: "open", label: todo ? `${t("tasks.filter.open")} ${todoCount(items)}` : t("tasks.filter.open") },
+                { value: "done", label: todo ? `${t("tasks.filter.done")} ${doneCount}` : t("tasks.filter.done") },
+              ]}
+            />
+          </div>
         }
         className="mb-5"
       />

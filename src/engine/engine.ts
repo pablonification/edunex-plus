@@ -123,12 +123,14 @@ const STATE_FORMAT = 1;
  */
 function loadSettings(saved: unknown): Settings {
   const fields = saved !== null && typeof saved === "object" ? (saved as Record<string, unknown>) : {};
-  const whole = Settings.safeParse({ ...DEFAULT_SETTINGS, ...fields });
+  // Saved before the guide: a Student whose first-run scan was done already knows the app, so it isn't offered.
+  const defaults: Settings = { ...DEFAULT_SETTINGS, guideDone: fields.firstScanDone === true };
+  const whole = Settings.safeParse({ ...defaults, ...fields });
   if (whole.success) return whole.data;
-  // Every field, the optional ones too (a choice the Student made, not yet made).
+  // Every field, the optional ones too (a choice the Student made, not yet made). One not saved takes its default, as above.
   const each = Object.keys(Settings.shape).map((key) => {
     const parsed = Settings.shape[key as keyof Settings].safeParse(fields[key]);
-    return [key, parsed.success ? parsed.data : DEFAULT_SETTINGS[key as keyof Settings]];
+    return [key, parsed.success && fields[key] !== undefined ? parsed.data : defaults[key as keyof Settings]];
   });
   return Settings.parse(Object.fromEntries(each.filter(([, value]) => value !== undefined)));
 }
@@ -609,14 +611,20 @@ export function createEngine(deps: EngineDeps): Engine {
       }
       // Signing out of everything also forgets what the Student entered (their
       // courses' own attendance targets too), and the next Student on this
-      // computer gets their own first-run scan.
+      // computer gets their own first-run scan and guide.
       if (!only) {
         await store.remove("local.");
         await alerts.reset();
         // Whether reports go by themselves was this Student's to say: the next one is asked again.
         await outbox.reset();
-        if (settings.firstScanDone || Object.keys(settings.attendanceTargets).length > 0 || reportSendingOf(settings) !== "ask" || settings.reportAsked) {
-          settings = { ...settings, firstScanDone: false, attendanceTargets: {}, reportSending: "ask", reportAsked: false };
+        if (
+          settings.firstScanDone ||
+          settings.guideDone !== false ||
+          Object.keys(settings.attendanceTargets).length > 0 ||
+          reportSendingOf(settings) !== "ask" ||
+          settings.reportAsked
+        ) {
+          settings = { ...settings, firstScanDone: false, guideDone: false, attendanceTargets: {}, reportSending: "ask", reportAsked: false };
           await saveState();
           deps.emit({ type: "settings", settings });
         }

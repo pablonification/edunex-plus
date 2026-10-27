@@ -89,7 +89,8 @@ export function ScheduleScreen() {
         title={t("nav.schedule")}
         description={<span className="tabular-nums">{description}</span>}
         actions={
-          <>
+          // The guide points at these together, then at the grid (shell/guide.tsx).
+          <div data-guide="schedule-view" className="flex min-w-0 flex-wrap items-center gap-2">
             <Segmented
               label={t("schedule.view")}
               value={place.view}
@@ -121,7 +122,7 @@ export function ScheduleScreen() {
               </Tooltip>
             </div>
             <ExportButton />
-          </>
+          </div>
         }
       />
 
@@ -137,7 +138,9 @@ export function ScheduleScreen() {
               {t("schedule.notCovered")}
             </p>
           )}
-          {week ? <WeekView days={days} input={input} /> : <MonthView month={month} input={input} onShowWeek={showWeek} />}
+          <div data-guide="schedule-grid">
+            {week ? <WeekView days={days} input={input} /> : <MonthView month={month} input={input} onShowWeek={showWeek} />}
+          </div>
         </ScheduleWorldProvider>
       )}
     </Page>
