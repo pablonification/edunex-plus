@@ -1,8 +1,10 @@
 // SIX's student status page (/app/mahasiswa:{nim}/statusmhs): who the
 // Student is, this term, and the term's courses with class, SKS and the exact
 // attendance count. Also the NIM, from SIX's home page. A course row it
-// doesn't understand is left out (skipped).
+// doesn't understand is left out (skipped); one with a detail it can't read
+// is kept with that detail blank.
 import type { SixCourse, SixStudent, SkippedRow } from "../../../core/models";
+import { isEngineError } from "../../errors";
 import { Skipped } from "../skipped";
 import { COURSE_CODE, changed, clean, links, type Nodes, type Page, parse } from "./html";
 
@@ -20,6 +22,8 @@ const TERM = /\b([123])\s*-\s*(\d{4})\s*\/\s*(\d{4})\b/;
 const STUDENT_ID = [/\/kelas\/jadwal\/mahasiswa\/(\d+)/, /\/transkrip\/(?:historis|kurikulum)\/(\d+)/, /[?&]mahasiswa_id=(\d+)/];
 /** The course table: row number, code, name, class, SKS, attendance, grade. */
 const COLUMNS = 7;
+/** A percentage as SIX shows it: "66.67%". */
+const PERCENT = /^(\d{1,3})(?:[.,](\d+))?\s*%$/;
 
 /** The Student's NIM, from the links on SIX's home page (or any page signed in as a student). */
 export function readNim(html: string): string {
@@ -100,48 +104,83 @@ function readCourseList($: Page, skipped: Skipped): { term: string; courses: Six
       .map((cell) => clean($(cell).text()))
       .filter(Boolean)
       .join(" · ");
-  const courses = skipped.each(numbered, shown, ({ cells, at }) => {
+  // The code and name say which course a row is: without them it's left out. Its class, SKS and
+  // attendance are details: one SIX writes another way (a second percentage for sick days, #237)
+  // is left blank, and the row noted, so the course still shows here and on Edunex's side.
+  const courses = skipped.each(numbered, shown, (row) => {
+    const { cells, at } = row;
     if (cells.length !== COLUMNS) throw changed(PAGE, `${at} has ${cells.length} cells`);
     const text = (column: number) => clean(cells.eq(column).text());
     const code = text(1);
     const name = text(2);
-    const classNo = text(3);
-    const sks = text(4);
     if (!COURSE_CODE.test(code)) throw changed(PAGE, `${at} has no course code`);
     if (!name || COURSE_CODE.test(name)) throw changed(PAGE, `${at} has no name`);
-    if (classNo !== "" && !/^\d{1,3}$/.test(classNo)) throw changed(PAGE, `${at} has no class number`);
-    if (!/^\d{1,2}$/.test(sks)) throw changed(PAGE, `${at} has no SKS`);
-    return { code, name, classNo: classNo || null, sks: Number(sks), attendance: readAttendance($, cells.eq(5), at) };
+    const blanked: string[] = [];
+    const detail = <T>(read: () => T): T | null => {
+      try {
+        return read();
+      } catch (error) {
+        if (!isEngineError(error, "VendorChanged")) throw error;
+        blanked.push(error.message);
+        return null;
+      }
+    };
+    const classNo = detail(() => {
+      const classNo = text(3);
+      if (classNo !== "" && !/^\d{1,3}$/.test(classNo)) throw changed(PAGE, `${at} has no class number`);
+      return classNo || null;
+    });
+    const sks = detail(() => {
+      const sks = text(4);
+      if (!/^\d{1,2}$/.test(sks)) throw changed(PAGE, `${at} has no SKS`);
+      return Number(sks);
+    });
+    const attendance = detail(() => readAttendance($, cells.eq(5), at));
+    if (blanked.length) skipped.blanked(shown(row), blanked.join("; "));
+    return { code, name, classNo, sks, attendance };
   });
   return { term: `${first}-${half}`, courses };
 }
 
 /**
  * The attendance cell shows a percentage; its tooltip has the exact count
- * ("Hadir 4 dari 6 pertemuan"). The two numbers are read whatever the wording,
- * and must agree with the percentage shown.
+ * ("Hadir 4 dari 6 pertemuan"). The count is read as two numbers in a row in a
+ * tooltip, whatever the wording, and must agree with the percentage shown. With
+ * sick days SIX shows a second percentage ("82.35% / 94.12%", #237): the first
+ * is the meetings attended, as for everyone else, and is the one read.
  */
 function readAttendance($: Page, cell: Nodes, at: string): SixCourse["attendance"] {
   const shown = clean(cell.text());
-  const titles = cell
+  const counts = cell
     .find("[title]")
     .toArray()
-    .map((el) => clean($(el).attr("title") ?? ""))
-    .filter((title) => /\d/.test(title));
+    .map(
+      (el) =>
+        clean($(el).attr("title") ?? "")
+          .match(/\d+/g)
+          ?.map(Number) ?? [],
+    )
+    .filter((numbers) => numbers.length > 0);
   if (shown === "" || shown === "-") {
-    if (titles.length) throw changed(PAGE, `${at}: attendance count without a percentage`);
+    if (counts.length) throw changed(PAGE, `${at}: attendance count without a percentage`);
     return null;
   }
-  const numbers = titles.length === 1 ? titles[0].match(/\d+/g) : null;
-  if (numbers?.length !== 2) throw changed(PAGE, `${at}: attendance without its count`);
-  const [attended, held] = numbers.map(Number);
-  if (attended > held) throw changed(PAGE, `${at}: attended more meetings than were held`);
-  if (held === 0) return { attended, held };
-  const percent = /^(\d{1,3})(?:[.,](\d+))?\s*%$/.exec(shown);
-  if (!percent) throw changed(PAGE, `${at}: attendance isn't a percentage`);
-  const value = Number(`${percent[1]}.${percent[2] ?? "0"}`);
+  if (!counts.some((numbers) => numbers.length >= 2)) throw changed(PAGE, `${at}: attendance without its count`);
+  // No meeting held yet: whatever percentage SIX shows.
+  if (counts.length === 1 && counts[0]!.join() === "0,0") return { attended: 0, held: 0 };
+  const percents = shown.split("/").map((part) => PERCENT.exec(part.trim()));
+  if (percents.some((percent) => !percent)) throw changed(PAGE, `${at}: attendance isn't a percentage`);
+  const [, whole, decimals] = percents[0]!;
+  const value = Number(`${whole}.${decimals ?? "0"}`);
   // Within the rounding of the digits SIX shows.
-  const tolerance = 0.5 * 10 ** -(percent[2]?.length ?? 0) + 1e-9;
-  if (Math.abs((attended / held) * 100 - value) > tolerance) throw changed(PAGE, `${at}: attendance count and percentage disagree`);
-  return { attended, held };
+  const tolerance = 0.5 * 10 ** -(decimals?.length ?? 0) + 1e-9;
+  const fits = new Map<string, { attended: number; held: number }>();
+  for (const numbers of counts) {
+    for (let i = 1; i < numbers.length; i++) {
+      const [attended, held] = [numbers[i - 1]!, numbers[i]!];
+      if (held > 0 && attended <= held && Math.abs((attended / held) * 100 - value) <= tolerance) fits.set(`${attended}/${held}`, { attended, held });
+    }
+  }
+  if (fits.size === 1) return [...fits.values()][0]!;
+  throw changed(PAGE, fits.size ? `${at}: attendance has more than one count that fits` : `${at}: attendance count and percentage disagree`);
 }

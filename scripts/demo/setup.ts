@@ -17,6 +17,8 @@
 //                            by itself and its own "Hubungkan" waits (asks), or the sign-in page can't open (fails)
 //   EDUNEX_DEMO_EDIT=1       after the first sync, the lecturer revises Tugas 01 Bab I (handed in weeks ago):
 //                            new instructions, a later deadline and a new file, so the app knows what changed
+//   EDUNEX_DEMO_SICK=1       SIX writes DK4073's attendance as it does for a Student with sick days (#237): two
+//                            percentages, each with its count, so the app reads the first (its meetings attended)
 //
 // Every run starts from an empty profile (deleted again on quit), so each begins the same way.
 import fs from "node:fs";
@@ -44,6 +46,13 @@ const start =
   (scenario === "first-run" ? "2026-10-08T08:10:00+07:00" : process.env.EDUNEX_DEMO_AFTER_CLASS ? "2026-10-08T07:30:00+07:00" : "2026-10-08T08:07:00+07:00");
 const world = new PretendWorld({ now: start });
 if (process.env.EDUNEX_DEMO_CHECK_IN === "open") world.six.openCheckIn("2194342");
+if (process.env.EDUNEX_DEMO_SICK === "1")
+  world.six.editPage(/\/statusmhs$/, (html) =>
+    html.replace(
+      '<span title="Hadir 4 dari 6 pertemuan">66.67%</span>',
+      '<span title="Hadir 4 dari 6 pertemuan">66.67%</span> / <span title="Hadir dan sakit 5 dari 6 pertemuan">83.33%</span>',
+    ),
+  );
 if (process.env.EDUNEX_DEMO_QUIZ === "1")
   world.edunex.exams.set(93409, [
     { id: 88002, type: "exams", attributes: { name: "Kuis Brand Equity", start_at: "2026-10-19T08:00:00+07:00", end_at: "2026-10-30T23:59:00+07:00" } },

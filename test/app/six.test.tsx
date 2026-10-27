@@ -229,7 +229,7 @@ describe("each system on its own", () => {
 
   it("SIX changing something says so and keeps the last courses", async () => {
     screen = await openApp({ signedIn: true, six: true });
-    screen.world.six.changeLayout(/\/statusmhs$/, 'title="Hadir', 'data-note="Hadir');
+    screen.world.six.changeLayout(/\/statusmhs$/, '<th class="text-center">Nilai</th>', '<th class="text-center">Nilai</th><th>Dosen</th>');
     await refreshSix();
     expect(screen.text()).toContain("SIX berubah");
     expect(screen.text()).toContain("SIX mengirim data yang tidak dikenali.");

@@ -23,8 +23,9 @@ export const SixCourse = z.object({
   /** SIX's (Indonesian) name. */
   name: z.string(),
   classNo: z.string().nullable(),
-  sks: z.number(),
-  /** "Hadir X dari Y pertemuan": exact counts when SIX shows them. */
+  /** Null when SIX writes it in a way the app can't read yet (the row is noted in six.skipped). */
+  sks: z.number().nullable(),
+  /** "Hadir X dari Y pertemuan": exact counts when SIX shows them; null too when the app can't read them. */
   attendance: z.object({ attended: z.number(), held: z.number() }).nullable(),
 });
 export type SixCourse = z.infer<typeof SixCourse>;

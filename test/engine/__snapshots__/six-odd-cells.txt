@@ -1,0 +1,98 @@
+## status
+Data Mahasiswa › column 1: second value: same · extra words: same · emptied: same
+Data Mahasiswa › column 2: second value: reads differently · extra words: reads differently · emptied: reads differently
+Daftar Kuliah Semester 1-… › column 1: second value: same · extra words: same · emptied: same
+Daftar Kuliah Semester 1-… › Kode: second value: row left out · extra words: row left out · emptied: row left out
+Daftar Kuliah Semester 1-… › Mata Kuliah: second value: reads differently · extra words: reads differently · emptied: row left out
+Daftar Kuliah Semester 1-… › Kelas: second value: kept, cell blank and noted · extra words: kept, cell blank and noted · emptied: reads differently
+Daftar Kuliah Semester 1-… › SKS: second value: kept, cell blank and noted · extra words: kept, cell blank and noted · emptied: kept, cell blank and noted
+Daftar Kuliah Semester 1-… › Kehadiran: second value: same · extra words: kept, cell blank and noted · emptied: reads differently
+Status Pendaftaran › Tahun: second value: same · extra words: same · emptied: same
+Status Pendaftaran › Semester: second value: same · extra words: same · emptied: same
+Status Pendaftaran › Status: second value: same · extra words: same · emptied: same
+Status Pendaftaran › #MK: second value: same · extra words: same · emptied: same
+Status Pendaftaran › SKS: second value: same · extra words: same · emptied: same
+
+## timetable
+table 1 › Senin: second value: same · extra words: same · emptied: page refused
+table 1 › Selasa: second value: same · extra words: same · emptied: page refused
+table 1 › Rabu: second value: same · extra words: same · emptied: page refused
+table 1 › Kamis: second value: page refused · extra words: page refused · emptied: page refused
+table 1 › Jumat: second value: same · extra words: same · emptied: page refused
+
+## transcript
+Data Mahasiswa › column 1: second value: same · extra words: same · emptied: same
+Data Mahasiswa › column 2: second value: same · extra words: same · emptied: same
+table 2 › Semester 1 Tahun 2023/2024: second value: same · extra words: same · emptied: same
+table 2 › column 2: second value: row left out · extra words: row left out · emptied: row left out
+table 2 › column 3: second value: reads differently · extra words: reads differently · emptied: reads differently
+table 2 › column 4: second value: row left out · extra words: row left out · emptied: row left out
+table 2 › column 5: second value: row left out · extra words: row left out · emptied: reads differently
+table 2 › column 6: second value: row left out · extra words: row left out · emptied: reads differently
+
+## curriculum position
+Data Mahasiswa › column 1: second value: same · extra words: same · emptied: same
+Data Mahasiswa › column 2: second value: same · extra words: same · emptied: same
+table 2 › Jenis Mata Kuliah: second value: reads differently · extra words: reads differently · emptied: reads differently
+table 2 › SKS: second value: row left out · extra words: row left out · emptied: row left out
+table 3 › Tahap Persiapan Bersama (IP 3.81 / SKS Lulus 18): second value: same · extra words: same · emptied: same
+table 3 › column 2: second value: row left out · extra words: row left out · emptied: row left out
+table 3 › column 3: second value: reads differently · extra words: reads differently · emptied: reads differently
+table 3 › column 4: second value: reads differently · extra words: reads differently · emptied: reads differently
+table 3 › column 5: second value: row left out · extra words: row left out · emptied: row left out
+table 3 › column 6: second value: row left out · extra words: row left out · emptied: reads differently
+table 3 › column 7: second value: row left out · extra words: row left out · emptied: row left out
+
+## KRS
+Data Mahasiswa › column 1: second value: same · extra words: same · emptied: same
+Data Mahasiswa › column 2: second value: same · extra words: same · emptied: same
+Status Pendaftaran › Penggantian Rencana Studi (URS): second value: page refused · extra words: page refused · emptied: page refused
+Status Pendaftaran › column 2: second value: page refused · extra words: page refused · emptied: reads differently
+Daftar Mata Kuliah › Kode: second value: row left out · extra words: row left out · emptied: row left out
+Daftar Mata Kuliah › Mata Kuliah: second value: reads differently · extra words: reads differently · emptied: reads differently
+Daftar Mata Kuliah › Kelas: second value: reads differently · extra words: reads differently · emptied: reads differently
+Daftar Mata Kuliah › SKS: second value: row left out · extra words: row left out · emptied: row left out
+
+## fees
+Data Mahasiswa › column 1: second value: same · extra words: same · emptied: same
+Data Mahasiswa › column 2: second value: same · extra words: same · emptied: same
+table 2 › Semester: second value: same · extra words: same · emptied: row left out
+table 2 › Tagihan (Rp): second value: row left out · extra words: row left out · emptied: reads differently
+table 2 › Pembayaran (Rp): second value: row left out · extra words: row left out · emptied: reads differently
+table 2 › Batas Pembayaran: second value: row left out · extra words: row left out · emptied: reads differently
+table 3 › column 1: second value: row left out · extra words: row left out · emptied: row left out
+table 3 › column 2: second value: row left out · extra words: row left out · emptied: row left out
+table 3 › column 3: second value: row left out · extra words: row left out · emptied: row left out
+
+## curriculum list
+table 1 › column 1: second value: same · extra words: same · emptied: same
+table 1 › column 2: second value: same · extra words: same · emptied: same
+table 1 › No Prodi: second value: reads differently · extra words: reads differently · emptied: reads differently
+table 1 › Program Studi: second value: reads differently · extra words: reads differently · emptied: reads differently
+table 1 › Fakultas: second value: reads differently · extra words: reads differently · emptied: reads differently
+table 1 › Nama Kurikulum: second value: reads differently · extra words: reads differently · emptied: row left out
+table 1 › Tahun: second value: row left out · extra words: row left out · emptied: row left out
+table 1 › SKS Lulus: second value: row left out · extra words: row left out · emptied: reads differently
+table 1 › Masa Studi (Semester): second value: row left out · extra words: row left out · emptied: reads differently
+
+## curriculum structure
+table 1 › Semester 1: second value: row left out · extra words: row left out · emptied: row left out
+table 1 › Semester 2: second value: reads differently · extra words: reads differently · emptied: reads differently
+table 1 › column 3: second value: row left out · extra words: row left out · emptied: row left out
+table 1 › column 4: second value: row left out · extra words: row left out · emptied: row left out
+table 1 › column 5: second value: reads differently · extra words: reads differently · emptied: reads differently
+table 1 › column 6: second value: row left out · extra words: row left out · emptied: row left out
+Keamanan dan Privasi Siber (12 SKS) › Kode: second value: row left out · extra words: row left out · emptied: row left out
+Keamanan dan Privasi Siber (12 SKS) › Mata Kuliah: second value: reads differently · extra words: reads differently · emptied: reads differently
+Keamanan dan Privasi Siber (12 SKS) › SKS: second value: row left out · extra words: row left out · emptied: row left out
+table 83 › Fakultas: second value: same · extra words: same · emptied: same
+table 83 › No Prodi: second value: same · extra words: same · emptied: same
+table 83 › Program Studi: second value: same · extra words: same · emptied: same
+table 84 › Kode: second value: row left out · extra words: row left out · emptied: row left out
+table 84 › Mata Kuliah: second value: reads differently · extra words: reads differently · emptied: reads differently
+table 84 › Kategori: second value: reads differently · extra words: reads differently · emptied: reads differently
+table 84 › SKS: second value: row left out · extra words: row left out · emptied: row left out
+
+## schemes
+Minor › column 1: second value: same · extra words: same · emptied: same
+Outbound Mobility › column 1: second value: same · extra words: same · emptied: same

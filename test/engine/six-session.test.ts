@@ -363,6 +363,53 @@ describe("a row SIX shows that the app doesn't understand", () => {
     expect(h.dataset("six.skipped")).toEqual({});
   });
 
+  // #237: with sick days SIX shows a second percentage. The real tooltip wasn't sent, so these are the shapes it could take.
+  const DK4073 = '<span title="Hadir 4 dari 6 pertemuan">66.67%</span>';
+  it.each([
+    ["a second percentage after the first", `${DK4073} / 83.33%`],
+    ["a tooltip with the sick days too", '<span title="Hadir 4 dari 6 pertemuan, sakit 1">66.67% / 83.33%</span>'],
+    ["a tooltip for each percentage", `${DK4073} / <span title="Hadir + sakit 5 dari 6 pertemuan">83.33%</span>`],
+  ])("attendance with sick days, %s: the count of meetings attended, as for everyone else", async (_name, cell) => {
+    const h = await signedIn();
+    h.world.six.changeLayout(STATUS, DK4073, cell);
+    await until(h, h.engine.refresh("six"));
+    expect(h.dataset("six.courses")).toEqual(COURSES);
+    expect(h.dataset("six.skipped")).toBeUndefined();
+  });
+
+  it("a detail it can't read (attendance, class, SKS) is left blank: the course stays, and its row is noted", async () => {
+    const h = await signedIn();
+    h.world.six.changeLayout(STATUS, DK4073, '<span title="Hadir 4 dari 7 pertemuan, sakit 2">66.67% / 85.71%</span>');
+    h.world.six.changeLayout(
+      STATUS,
+      '<td>II4091</td><td>Proposal Tugas Akhir</td><td class="text-center">01</td><td class="text-center">2</td>',
+      '<td>II4091</td><td>Proposal Tugas Akhir</td><td class="text-center">01 / K2</td><td class="text-center">2 (+1)</td>',
+    );
+    await until(h, h.engine.refresh("six"));
+    expect(h.status("six").state).toBe("live");
+    expect(h.dataset("six.courses")).toEqual([{ ...COURSES[0], attendance: null }, { ...COURSES[1], classNo: null, sks: null }, ...COURSES.slice(2)]);
+    expect(h.dataset("six.skipped")).toEqual({
+      "six.courses": [
+        { row: expect.stringMatching(/^1 · DK4073 · .* · 66\.67% \/ 85\.71%$/), why: "SIX statusmhs: course 1: attendance count and percentage disagree" },
+        {
+          row: expect.stringMatching(/^2 · II4091 · .* · 01 \/ K2 · 2 \(\+1\) · /),
+          why: "SIX statusmhs: course 2 has no class number; SIX statusmhs: course 2 has no SKS",
+        },
+      ],
+    });
+  });
+
+  it("every course's attendance it can't read: the courses stay, each noted, and SIX stays connected", async () => {
+    const h = await signedIn();
+    h.world.six.changeLayout(STATUS, 'title="Hadir', 'data-note="Hadir');
+    await until(h, h.engine.refresh("six"));
+    expect(h.status("six").state).toBe("live");
+    expect(h.dataset("six.courses")).toEqual(COURSES.map((course) => ({ ...course, attendance: null })));
+    expect(h.dataset("six.skipped")?.["six.courses"]?.map((row) => row.why)).toEqual(
+      COURSES.map((_, i) => `SIX statusmhs: course ${i + 1}: attendance without its count`),
+    );
+  });
+
   it("is forgotten with the rest of SIX's data on sign-out", async () => {
     const h = await signedIn();
     h.world.six.changeLayout(STATUS, "<td>PL3002</td>", "<td>PL-3002</td>");
@@ -378,7 +425,6 @@ describe("SIX changed something", () => {
   const TIMETABLE = /\/kelas\/jadwal\/mahasiswa\/\d+$/;
   it.each([
     ["the course table gains a column", STATUS, '<th class="text-center">Nilai</th>', '<th class="text-center">Nilai</th><th>Dosen</th>', "different layout"],
-    ["attendance loses its exact count", STATUS, 'title="Hadir', 'data-note="Hadir', "attendance without its count"],
     ["the course list loses its term", STATUS, "Daftar Kuliah Semester 1-2026/2027", "Daftar Kuliah", "course list is missing"],
     ["the timetable's meetings lose their address", TIMETABLE, 'data-url="', 'data-href="', "can't read"],
     // A Sunday column before Monday: every date would be a day off.
