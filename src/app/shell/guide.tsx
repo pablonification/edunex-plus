@@ -127,8 +127,8 @@ export function Guide({ start, hidden, onEnd }: { start: "offer" | "tour"; hidde
   /** Which way the Student is going, to pass over a part that isn't there. */
   const [way, setWay] = useState<1 | -1>(1);
   const step = at < 0 ? null : STEPS[at];
-  // The course shown: the term's first with a file its row opens in the app (a PDF first, else a Word document or
-  // slides), at the module holding it, so what its last step says about files is there to see. Else the term's first.
+  // The course shown: the term's first with a file its row opens in the app (a PDF first, else any other file the
+  // viewer shows), at the module holding it, so what its last step says about files is there to see. Else the first.
   const pick = useMemo(() => {
     if (!isBuilt({ screen: "course", code: "" }) || !courses?.length) return null;
     for (const pdf of [true, false])

@@ -13,6 +13,7 @@ let screen: Awaited<ReturnType<typeof openApp>> | null = null;
 afterEach(() => {
   screen?.close();
   screen = null;
+  vi.restoreAllMocks();
 });
 
 const card = () => document.querySelector<HTMLElement>("[data-guide-card]");
@@ -334,6 +335,19 @@ describe("the tour", () => {
     expect(screen.engine.snapshot().settings.guideDone).toBe(true);
   });
 
+  it("shows a course whose file opens in the app: a PDF that's really a Drive link doesn't count", async () => {
+    screen = await openApp({ guide: true, signedIn: true, six: true });
+    // The term's first course gets a "PDF" Edunex only links to (it opens in the browser, not the app's viewer).
+    const materials = screen.engine.snapshot().datasets.find((d) => d.name === "edunex.materials")!;
+    const value = materials.value as Record<string, { type: string }[]>;
+    const pdf = value.II4091.find((material) => material.type === "pdf")!;
+    const drive = { ...pdf, id: -2, content: "https://drive.google.com/file/d/fixture-slides/view" };
+    await screen.apply({ type: "dataset", dataset: { ...materials, value: { ...value, DK4073: [...(value.DK4073 ?? []), drive] }, hash: "drive" } });
+    await screen.click("Mulai panduan");
+    while (cardTitle() !== "Mata kuliahmu") await screen.click("Lanjut");
+    expect(h1()).toBe("Proposal Tugas Akhir");
+  });
+
   it("keeps the course it opened while that chapter runs, even as materials come in", async () => {
     screen = await openApp({ guide: true, signedIn: true, six: true });
     await screen.click("Mulai panduan");
@@ -394,10 +408,10 @@ describe("the tour", () => {
 describe("a fault in the tour", () => {
   it("ends it, and the window is the Student's again", async () => {
     screen = await openApp({ guide: true, signedIn: true, six: true });
-    const quiet = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
     await screen.click("Mulai panduan");
     expect(cardTitle()).toBe("Kuliah sekarang");
-    // Materials the tour can't read: it breaks.
+    // Materials the tour can't read: it breaks (and so does Beranda's own panel, behind its own guard).
     const good = screen.store.dataset("edunex.materials")!;
     await screen.apply({ type: "dataset", dataset: { ...good, value: { II4091: "not a list" }, hash: "broken" } });
     expect(card()).toBeNull();
@@ -406,7 +420,6 @@ describe("a fault in the tour", () => {
     // The place shortcuts work again.
     await press("2", { metaKey: true });
     expect(h1()).toBe("Tugas & Ujian");
-    quiet.mockRestore();
   });
 });
 
