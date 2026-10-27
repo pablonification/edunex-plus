@@ -33,9 +33,9 @@ jobs:
           REPO: ${{ github.repository }}
           PR: ${{ github.event.pull_request.number }}
         run: |
-          # Changed lines, leaving out the lockfile and the recorded test data.
+          # Changed lines, leaving out the lockfiles (the app's and the report relay's) and the recorded test data.
           lines=$(gh api --paginate "repos/$REPO/pulls/$PR/files" \
-            --jq '.[] | select(.filename != "package-lock.json" and (.filename | startswith("test/fixtures/") | not)) | .additions + .deletions' |
+            --jq '.[] | select((.filename | endswith("package-lock.json") | not) and (.filename | startswith("test/fixtures/") | not)) | .additions + .deletions' |
             awk '{ total += $1 } END { print total + 0 }')
           if [ "$lines" -lt 10 ]; then size=XS
           elif [ "$lines" -lt 100 ]; then size=S

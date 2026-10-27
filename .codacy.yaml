@@ -19,6 +19,8 @@ exclude_paths:
   - "docs/**"
   - "**/*.md"
   - "package-lock.json"
+  - "relay/package-lock.json"
+  - "relay/test/**"
   - "scripts/**"
   - "test/**"
   - "vite.config.ts"

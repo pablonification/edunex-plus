@@ -126,6 +126,24 @@ _Avoid_: annotation, note, bookmark, mark (in UI copy)
 "Catatan halaman": what the Student writes about one page of a PDF they read in the app (a lecturer's slide, mostly), one note a page. A Word document or a text file, whose pages aren't fixed, has one note for the whole file. Kept with the file's highlights, by its content, on this computer only and never sent to Edunex, and removed with them (signing out of everything, a different Student signing in). On screen the Student's own notes are "Catatanku", so they're never taken for a lecturer's "Catatan" on Edunex.
 _Avoid_: annotation, comment, footnote, a bare "Catatan" in UI copy (that's a lecturer's note on Edunex)
 
+### Reports and fixes
+
+**Drift**:
+SIX or Edunex showing something the app doesn't read yet: a Changed page, or Unrecognised rows.
+_Avoid_: breakage, outage (SIX still works; the app hasn't learned it)
+
+**Report relay**:
+The small service a Problem report goes to when the Student sends it from the app: it files the report as an issue on the app's repository, one issue per problem, and keeps the pages private for the maintainer. Called `relay` in code ([ADR 0015](docs/adr/0015-a-relay-files-reports-and-a-bot-drafts-the-fix.md)).
+_Avoid_: server, backend, telemetry
+
+**Signature**:
+What makes two Problem reports the same problem: the system, the page, the kind (a Changed page or Unrecognised rows) and the check that failed, its numbers aside. Reports with one signature share one issue.
+_Avoid_: fingerprint, hash
+
+**Fix bot**:
+The GitHub workflow that turns a relay issue into a draft fix: the report's pages as test data, a test that fails the way the Student's read did, and the reader changed until it passes. The maintainer reviews it; it never merges. Called `drift-fix` in code.
+_Avoid_: auto-fix, AI agent
+
 ### SIX and ITB's rules
 
 **SIX**:

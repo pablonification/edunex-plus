@@ -28,6 +28,7 @@
   - changed-files:
       - any-glob-to-any-file:
           - ".github/**"
+          - "relay/**"
           - "scripts/ci/**"
           - "scripts/check-bundle-size.mjs"
           - "biome.json"
@@ -47,12 +48,14 @@ dependencies:
       - any-glob-to-any-file: ["package.json", "package-lock.json"]
 
 # Sessions, tokens, the window's locks and the bridge to it, packaging switches,
-# the Mac app's signature, and the workflows that hold the repository's keys:
+# the Mac app's signature, the workflows that hold the repository's keys, and
+# the report relay, which holds Students' reports and a token for the issues:
 # worth a careful look.
 security-sensitive:
   - changed-files:
       - any-glob-to-any-file:
           - "src/desktop/**"
+          - "relay/**"
           - "src/core/actions/**"
           - "electron-builder.config.mjs"
           - "scripts/package-fuses.*"

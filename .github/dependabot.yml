@@ -47,6 +47,23 @@ updates:
       - dependency-name: domhandler
         update-types: ["version-update:semver-major"]
 
+  # The report relay (relay/, docs/relay.md): wrangler and zod, once a month. Its
+  # updates reach Students only when the maintainer deploys the relay again.
+  - package-ecosystem: npm
+    directory: /relay
+    schedule:
+      interval: monthly
+      timezone: Asia/Jakarta
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 2
+    labels: [dependencies, "area:ci"]
+    commit-message:
+      prefix: "chore(relay)"
+    groups:
+      relay:
+        patterns: ["*"]
+
   - package-ecosystem: github-actions
     # The workflows, and this repository's own shared steps.
     directories: ["/", "/.github/actions/*"]
