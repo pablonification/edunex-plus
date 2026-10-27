@@ -37,7 +37,7 @@ import { type Format, type Translate, useFormat, useNow, useT } from "../i18n";
 import { useNav } from "../nav";
 import { useCourseNames } from "../schedule-data";
 import { useSignIn } from "../shell/source-status";
-import { SixPageNote } from "../six-page-note";
+import { SixPageNote, useChangedPage } from "../six-page-note";
 import { useDataset, useSettings } from "../store";
 import { Button } from "../ui/controls";
 import { cx } from "../ui/cx";
@@ -65,6 +65,8 @@ export function PresenceScreen() {
   const name = useCourseNames();
   const [targets, setTargets] = useState<{ open: boolean; focus: string | null }>({ open: false, focus: null });
   const [still, setStill] = useState<Still | null>(null);
+  // SIX changed its course table before it read: the note at the top says why there's nothing to list.
+  const listChanged = useChangedPage(["six.courses"]) !== undefined;
   if (!attendance) return <Loading />;
   const { courses, sixConnected } = attendance;
   const signedOut = !sixConnected;
@@ -116,21 +118,21 @@ export function PresenceScreen() {
       <div>
         <SixPageNote datasets={["six.courses", "six.schedule"]} className="mb-8" />
         <NowZone zone={zone} attendance={attendance} />
-        {courses.length === 0 ? (
-          <div className="mt-10 first:mt-0">
-            <EmptyState icon={<Icons.Hand className="size-5" />} title={t("presence.empty")} description={t("presence.emptyHint")} />
-          </div>
-        ) : (
-          groups.map(({ group, items }) => (
-            <Section key={group} id={`presence-${group}`} title={<GroupTitle group={group} items={items} />} count={items.length}>
-              <List label={groupLabel(t, group, items)} className="@container">
-                {items.map((item) => (
-                  <CourseRow key={item.course.code} item={item} group={group} context={context} />
-                ))}
-              </List>
-            </Section>
-          ))
-        )}
+        {courses.length === 0
+          ? !listChanged && (
+              <div className="mt-10 first:mt-0">
+                <EmptyState icon={<Icons.Hand className="size-5" />} title={t("presence.empty")} description={t("presence.emptyHint")} />
+              </div>
+            )
+          : groups.map(({ group, items }) => (
+              <Section key={group} id={`presence-${group}`} title={<GroupTitle group={group} items={items} />} count={items.length}>
+                <List label={groupLabel(t, group, items)} className="@container">
+                  {items.map((item) => (
+                    <CourseRow key={item.course.code} item={item} group={group} context={context} />
+                  ))}
+                </List>
+              </Section>
+            ))}
       </div>
 
       {courses.length > 0 && sixConnected && !lectures && <Footer attendance={attendance} />}

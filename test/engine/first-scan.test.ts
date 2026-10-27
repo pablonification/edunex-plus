@@ -233,6 +233,19 @@ describe("when the scan is ready", () => {
   });
 });
 
+describe("SIX's course table changing on its own", () => {
+  it("the scan doesn't wait for the course list, names it as unread, and reads the rest from Edunex's list", async () => {
+    const h = await firstSync({ before: (h) => h.world.six.joinCodeAndName() });
+    expect(h.status("six").state).toBe("live");
+    expect(h.saved()["six.courses"]).toBeUndefined();
+    expect(scanReady(h.saved(), h.statuses())).toBe(true);
+    expect(firstRead(h.saved(), h.statuses())).toMatchObject({ progress: 1, done: ["edunex", "six"], next: null });
+    const findings = scan(h.saved(), h.statuses(), h.world.clock.now());
+    expect(of(findings, "unread")?.parts).toEqual([{ source: "six", state: "changed", missing: ["six.courses"] }]);
+    expect(scanSummary(h.saved(), h.statuses())).toMatchObject({ connected: ["edunex", "six"], courses: 5 });
+  });
+});
+
 describe("with Edunex alone", () => {
   it("only what Edunex can tell: exams it knows and edited Tasks", async () => {
     const h = await firstSync({ six: false });

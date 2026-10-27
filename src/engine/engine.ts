@@ -20,7 +20,7 @@ import type { Detector } from "./alerts/detector";
 import { DETECTORS } from "./alerts/detectors";
 import { type Ntfy, PhoneChannel } from "./alerts/phone";
 import type { Clock } from "./clock";
-import { EngineError, isEngineError } from "./errors";
+import { EngineError, isEngineError, PartChanged } from "./errors";
 import { Pace } from "./http/pace";
 import type { Transport } from "./http/transport";
 import { KeptPages } from "./report/kept-pages";
@@ -160,6 +160,8 @@ export function createEngine(deps: EngineDeps): Engine {
   const background = new Set<string>();
   /** Feeds whose page changing is said on their screens, not as the whole source's (FeedSpec.shows): what each fills. */
   const pages = new Map<string, readonly DatasetName[]>();
+  /** Feeds whose page has a part that can change alone (FeedSpec.part): what that part fills. */
+  const parts = new Map<string, readonly DatasetName[]>();
   /** The pages behind each feed's latest read that went wrong, for a report. In memory only. */
   const kept = new KeptPages();
   /** Each source's current session number. Work started under an earlier one lands nowhere. */
@@ -230,12 +232,14 @@ export function createEngine(deps: EngineDeps): Engine {
 
     const mine = [...outcomes.entries()].filter(([name]) => sourceOf(name) === source);
     const isChange = (o: EngineError | null) => o?.kind === "VendorChanged" || o?.kind === "Failed" || o?.kind === "Rejected";
-    // A page whose screens say it changed (FeedSpec.shows) isn't the whole source changing: the rest reads on.
+    // A page whose screens say it changed (FeedSpec.shows), or the part of a page that changed alone (FeedSpec.part), isn't the
+    // whole source changing: the rest reads on.
+    const saidOn = (name: string, o: EngineError) => pages.get(name) ?? (o instanceof PartChanged ? parts.get(name) : undefined);
     const changedPages = mine
-      .filter(([name, o]) => isChange(o) && pages.has(name))
-      .map(([name, o]) => ({ datasets: [...pages.get(name)!], detail: o!.message }));
+      .filter(([name, o]) => isChange(o) && saidOn(name, o!))
+      .map(([name, o]) => ({ datasets: [...saidOn(name, o!)!], detail: o!.message }));
     const pagesPatch = { changedPages: changedPages.length ? changedPages : undefined };
-    const changed = mine.find(([name, o]) => isChange(o) && !pages.has(name))?.[1];
+    const changed = mine.find(([name, o]) => isChange(o) && !saidOn(name, o!))?.[1];
     const offline = mine.find(([, o]) => o?.kind === "Offline")?.[1];
     if (changed) setStatus(source, { state: "changed", detail: changed.message, ...pagesPatch });
     else if (offline) setStatus(source, { state: "offline", detail: offline.message, ...pagesPatch });
@@ -281,6 +285,8 @@ export function createEngine(deps: EngineDeps): Engine {
     else background.delete(spec.name);
     if (spec.shows) pages.set(spec.name, spec.shows);
     else pages.delete(spec.name);
+    if (spec.part) parts.set(spec.name, spec.part);
+    else parts.delete(spec.name);
     scheduler.add({
       name: spec.name,
       every: spec.every,
@@ -288,10 +294,11 @@ export function createEngine(deps: EngineDeps): Engine {
       run: async () => {
         const session = generation(source);
         const current = () => generation(source) === session;
-        // Only a signed-in Student's pages are worth a report (ITB's public pages are the same for everyone).
+        // Only a signed-in Student's pages are worth a report (ITB's public pages are the same for everyone). A page whose
+        // part can change alone is reported for what that part fills, so the screens listing it can send it.
         const read = () => spec.run(current);
         try {
-          if (sources.get(source)?.session) await kept.during({ feed: spec.name, shows: spec.shows, now: () => clock.now(), current }, read);
+          if (sources.get(source)?.session) await kept.during({ feed: spec.name, shows: spec.shows ?? spec.part, now: () => clock.now(), current }, read);
           else await read();
         } catch (error) {
           if (current()) await settle(spec.name, error);

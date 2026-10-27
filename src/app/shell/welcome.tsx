@@ -40,6 +40,8 @@ import { setSound, sound, soundOn } from "./welcome-sound";
 const READ: readonly DatasetName[] = [
   "six.student",
   "six.courses",
+  // Whether SIX's course list lost a row: then this term's Edunex courses it doesn't name stay.
+  "six.skipped",
   "six.schedule",
   "six.scheduleMonths",
   "six.transcript",

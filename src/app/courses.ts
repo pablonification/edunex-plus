@@ -5,10 +5,9 @@
 // remembered automatic one (./course-colors.ts).
 import { useCallback, useMemo } from "react";
 import { courseTone, type PaletteId, pickedColor, resolveCourseColors } from "../core/course-colors";
-import type { SixCourse } from "../core/models";
-import { type TermCourseBase, termCourses, termOf } from "../core/term-courses";
+import { type SixList, sixList, type TermCourseBase, termCourses, termOf } from "../core/term-courses";
 import { useCourseColorsValue, withLegacy } from "./course-colors";
-import { useDataset } from "./store";
+import { useDataset, useStatus } from "./store";
 
 export interface TermCourse extends TermCourseBase {
   /** Its color's tone in the theme on screen (a CSS color): its dot and stripe. */
@@ -26,7 +25,7 @@ export function useTerm(): string | undefined {
 export function useTermCourses(): TermCourse[] | undefined {
   const edunex = useDataset("edunex.courses");
   const catalog = useDataset("itb.catalog");
-  const six = useSixCourses();
+  const six = useSixList();
   const saved = useCourseColorsValue();
   return useMemo(() => {
     const courses = termCourses({ edunex, catalog, six });
@@ -59,8 +58,10 @@ export function useCourseColor(): (code: string | null | undefined) => string | 
   );
 }
 
-function useSixCourses(): { term: string; courses: SixCourse[] } | undefined {
+function useSixList(): SixList | undefined {
   const student = useDataset("six.student");
   const courses = useDataset("six.courses");
-  return useMemo(() => (student && courses ? { term: student.term, courses } : undefined), [student, courses]);
+  const skipped = useDataset("six.skipped");
+  const { changedPages } = useStatus("six");
+  return useMemo(() => sixList({ student, courses, skipped, status: { changedPages } }), [student, courses, skipped, changedPages]);
 }

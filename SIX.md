@@ -83,7 +83,7 @@ sign-in, liveness first), then repeat every `every` ± `jitter`.
 | Path | Feed (cadence) | What is taken | Reader |
 | --- | --- | --- | --- |
 | `/home` | `six.status`, only when the NIM isn't known yet this session | The NIM | `six/status.ts` `readNim` |
-| `/app/mahasiswa:{nim}/statusmhs` | `six.status` (1 h ± 5 min); liveness | Name, `{sid}`, program code and name, the term, this term's courses: code, name, class, SKS, and attendance as "Hadir X dari Y pertemuan" from the tooltip, checked against the percentage shown (with sick days SIX shows two, "82.35% / 94.12%": the first is read). A class, SKS or attendance it can't read is left blank and the row noted; the course stays ([ADR 0009](docs/adr/0009-keep-a-course-whose-detail-cant-be-read.md)) | `six/status.ts` `readStatusPage` |
+| `/app/mahasiswa:{nim}/statusmhs` | `six.status` (1 h ± 5 min); liveness | Name, `{sid}`, program code and name, the term, this term's courses: code, name, class, SKS, and attendance as "Hadir X dari Y pertemuan" from the tooltip, checked against the percentage shown (with sick days SIX shows two, "82.35% / 94.12%": the first is read). The course table's columns are found by their labels, in any order. A class, SKS or attendance it can't read is left blank and the row noted; the course stays ([ADR 0009](docs/adr/0009-keep-a-course-whose-detail-cant-be-read.md)). A course table it can't read leaves the Student, the term and every other page reading ([ADR 0012](docs/adr/0012-six-course-table-changes-alone.md)) | `six/status.ts` `readStatusPage` |
 | `/app/mahasiswa:{nim}+{term}/kelas/jadwal/mahasiswa/{sid}?bulan={YYYYMM}` | `six.schedule` (12 h ± 30 min): this month (WIB), plus next month when SIX's tabs offer it | Each meeting: SIX meeting id, date, start/end (WIB), course code and name, activity (Kuliah, UTS, …) and room | `six/timetable.ts` |
 | `/app/mahasiswa:{nim}/statusmhs/transkrip/historis/{sid}` | `six.transcript` (24 h ± 1 h) | Every course per term with grade, SKS, curriculum semester, on-transcript mark; SIX's IP per term; SKS taken. Retakes and IP/IPK are worked out and checked; with a grade, mark or SKS the app can't read in it, SIX's figure shows unchecked | `readers/transcript.ts` |
 | `/app/mahasiswa:{nim}/statusmhs/transkrip/kurikulum/{sid}` | `six.transcript` (same run) | Graduation progress: entry term, IPK (and the SKS it covers), SKS passed and graded T, SKS by kind, courses by stage and curriculum semester (graded, in progress, exempt, not taken). A status label it doesn't know leaves its course out | `readers/progress.ts` |
@@ -163,8 +163,11 @@ The app asks for Indonesian (`Accept-Language: id-ID`), but a Student can switch
 and SIX may answer in English anyway. Readers find things by structure (tables, classes, icons,
 links, number patterns), not wording:
 
-- The status page and the timetable read the same in both languages; the attendance count is
-  read as the two numbers in the tooltip, whatever the words.
+- The timetable reads the same in both languages; on the status page the attendance count is
+  read as the two numbers in the tooltip, whatever the words. The status page's course table finds
+  its columns by their labels, Indonesian and English (Code, Course, Class, Credits, Attendance and a
+  few more, guessed, `six/status.ts`); a header in other words, in the layout as recorded, reads as
+  recorded.
 - Record readers (`readers/records-common.ts`) find a table's columns, and a key-value field's row,
   by its label in Indonesian or English, on any page: a Student's Indonesian fees page showed "Invoice
   (Rp)" and "Payment Due Date". They also detect the language from SIX's active `/pub/locale/en` switch:
@@ -203,7 +206,10 @@ A check about one row leaves that row out instead ([ADR 0005](docs/adr/0005-read
 shows and why, for the screen that shows that data to say so. That holds for the rows of the
 fees, transcript, curriculum position, KRS, curriculum list and structure, scheme and status
 pages. On the status page a course whose class, SKS or attendance can't be read stays, with that
-detail blank, and its row is noted the same way ([ADR 0009](docs/adr/0009-keep-a-course-whose-detail-cant-be-read.md)).
+detail blank, and its row is noted the same way, marked `blank` ([ADR 0009](docs/adr/0009-keep-a-course-whose-detail-cant-be-read.md));
+a column SIX doesn't show is noted once, for the table. A course row left out because its code or
+name can't be read keeps this term's Edunex courses SIX doesn't list on every screen, since it was
+probably one of them ([ADR 0012](docs/adr/0012-six-course-table-changes-alone.md)).
 The record pages do the same for every cell but what says which row it is (a course's code and name,
 a bill's term, a curriculum's name and year, a scheme's name), and find their columns by label: a
 column the app doesn't know is passed over, one moved reads the same, a detail's column that's
@@ -215,7 +221,8 @@ courses they leave out ([ADR 0011](docs/adr/0011-record-columns-by-name-and-blan
 extra words, an empty cell) and keeps what every reader does in
 `test/engine/__snapshots__/six-odd-cells.txt`. What holds the rows stays strict (a table, its header, a year or semester heading), as does
 a list with more rows left out than read, and the month timetable as a whole (a meeting left out
-could make a day look free).
+could make a day look free). The status page's course table is the one table whose columns are found
+by their labels, so a column added or moved still reads.
 
 | What happened | Error | The app shows |
 | --- | --- | --- |
@@ -224,13 +231,18 @@ could make a day look free).
 | `5xx` from SIX | Offline | Offline |
 | Other `4xx`, or more than 3 redirects | Failed | Changed, with the detail |
 | No answer, unreachable, or timeout | Offline | Offline |
-| Page layout not as recorded | VendorChanged | Changed, with the detail; for a record page or the timetable, said on its screens instead (below) |
+| Page layout not as recorded | VendorChanged | Changed, with the detail; for a record page, the timetable or the status page's course table, said on its screens instead (below) |
 
 A source's status is the worst of its feeds' latest outcomes: changed (VendorChanged, Failed,
 Rejected) over offline over live. A feed that says which datasets it fills (`FeedSpec.shows`: the
 records and the timetable, not the status page) doesn't count: when its page changes, SIX stays live
 and lists that page under `changedPages`, and the screens showing those datasets say so with when
-their data is from ([ADR 0006](docs/adr/0006-a-changed-six-page-is-said-on-its-screens.md)).
+their data is from ([ADR 0006](docs/adr/0006-a-changed-six-page-is-said-on-its-screens.md)). The status
+page's course table is a part that changes the same way (`FeedSpec.part`): when only it can't be
+read, the Student and the term are stored, every other page reads on, `six.courses` keeps its last
+list under `changedPages`, and Beranda's course cards and Presensi say so; until it first reads, the
+course list is Edunex's ([ADR 0012](docs/adr/0012-six-course-table-changes-alone.md)). The rest of the
+status page, who the Student is and the term, is still all of SIX.
 
 ## Recorded but not read, and unconfirmed
 
@@ -258,6 +270,7 @@ their data is from ([ADR 0006](docs/adr/0006-a-changed-six-page-is-said-on-its-s
 - **English:** SIX's English wording was not recorded. Of the English labels the record readers know,
   only the fees page's "Invoice (Rp)" and "Payment Due Date" were seen, on a Student's Indonesian page;
   the others are guesses, and an English page whose label isn't one of them reads by recorded position.
+  The status page's English column labels are guesses too.
 - **429:** SIX's real rate-limit answer (status, `Retry-After`) is modelled, not captured; the
   pretend server answers `429` with `Retry-After: 900`.
 - **Session length:** "about 30 days" is from observation, not measured by the app.

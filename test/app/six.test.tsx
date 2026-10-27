@@ -3,6 +3,7 @@
 // Edunex and SIX behind the bridge; the tests look at what the Student sees.
 import { act } from "react";
 import { afterEach, describe, expect, it } from "vitest";
+import { PretendWorld } from "../pretend/world";
 import { openApp } from "./harness";
 
 let screen: Awaited<ReturnType<typeof openApp>> | null = null;
@@ -21,6 +22,10 @@ const meter = (code: string) => {
   return { label: el?.getAttribute("aria-label"), tone: el?.getAttribute("data-tone") };
 };
 const sidebar = () => document.querySelector("aside")?.textContent ?? "";
+/** Beranda's "Mata kuliah semester ini", with what's said about it. */
+const coursesSection = () => document.querySelector('main section[aria-labelledby="home-courses"]')?.textContent ?? "";
+/** A screen still waiting for its data. */
+const waiting = () => document.querySelector("main [aria-busy=true]") !== null;
 /** How a first-run button looks: blue (press it), busy (dimmed behind its spinner), grey (can't run yet) or plain. */
 const look = (name: string) => {
   const button = screen!.button(name);
@@ -190,6 +195,27 @@ describe("Home with both systems", () => {
     expect(sidebar()).not.toContain("KU5014");
   });
 
+  it("an Edunex course stays when SIX's list left out a row it couldn't tell the course of: that row was probably it", async () => {
+    screen = await openApp({ signedIn: true, six: true });
+    screen.world.six.changeLayout(/\/statusmhs$/, "<td>KU5014</td>", "<td>KU-5014</td>");
+    await refreshSix();
+    expect(cards().map((text) => text.slice(0, 6))).toEqual(["DK4073", "II4091", "PL3002", "PL3032", "KU5014"]);
+    expect(card("KU5014")).toContain("Teknik Penyelesaian Masalah Terstruktur");
+    expect(sidebar()).toContain("KU5014");
+  });
+
+  it("a detail SIX writes another way doesn't make its list incomplete: a course SIX doesn't list stays out", async () => {
+    screen = await openApp({ signedIn: true, six: true });
+    screen.world.six.editPage(/\/statusmhs$/, (html) =>
+      html
+        .replace(/<tr>(?:(?!<\/tr>)[\s\S])*?<td>KU5014<\/td>[\s\S]*?<\/tr>/, "")
+        .replace('<span title="Hadir 4 dari 6 pertemuan">66.67%</span>', '<span title="Hadir 4 dari 7 pertemuan, sakit 2">66.67% / 85.71%</span>'),
+    );
+    await refreshSix();
+    expect(cards().map((text) => text.slice(0, 6))).toEqual(["DK4073", "II4091", "PL3002", "PL3032"]);
+    expect(sidebar()).not.toContain("KU5014");
+  });
+
   it("an Edunex course of another term isn't joined to this term's SIX course", async () => {
     const world = (await openApp({ start: false })).world;
     screen?.close();
@@ -229,7 +255,8 @@ describe("each system on its own", () => {
 
   it("SIX changing something says so and keeps the last courses", async () => {
     screen = await openApp({ signedIn: true, six: true });
-    screen.world.six.changeLayout(/\/statusmhs$/, '<th class="text-center">Nilai</th>', '<th class="text-center">Nilai</th><th>Dosen</th>');
+    // The course list's term: what the rest of SIX rests on.
+    screen.world.six.changeLayout(/\/statusmhs$/, "Daftar Kuliah Semester 1-2026/2027", "Daftar Kuliah");
     await refreshSix();
     expect(screen.text()).toContain("SIX berubah");
     expect(screen.text()).toContain("SIX mengirim data yang tidak dikenali.");
@@ -243,6 +270,68 @@ describe("each system on its own", () => {
     await refreshSix();
     expect(await screen.sourceState("SIX")).toBe("Tidak terhubung");
     expect(card("DK4073")).toContain("Terpakai 2× · habis");
+  });
+});
+
+describe("SIX's course table changing on its own", () => {
+  it("says so where the courses are listed and keeps the last ones; the rest of SIX reads on", async () => {
+    screen = await openApp({ signedIn: true, six: true });
+    screen.world.six.joinCodeAndName();
+    await refreshSix();
+    expect(screen.text()).not.toContain("SIX berubah");
+    await sixLive();
+    expect(coursesSection()).toMatch(/SIX mengubah halaman iniData dari .+ tetap ditampilkan\.Buka di SIX/);
+    expect(card("DK4073")).toContain("Terpakai 2× · habis");
+    await screen.click("Presensi");
+    expect(screen.text()).toMatch(/SIX mengubah halaman iniData dari .+ tetap ditampilkan\.Buka di SIX/);
+    // Its report sends the status page.
+    await screen.click("Laporkan masalah");
+    expect(document.querySelector("[role=dialog]")?.textContent).toContain("SIX mengubah halaman status mahasiswaHalaman ini ikut dikirim.");
+    await screen.key("Escape");
+    for (const other of ["Jadwal", "Nilai"]) {
+      await screen.click(other);
+      expect(screen.text(), other).not.toContain("SIX mengubah halaman ini");
+    }
+  });
+
+  it("never read: Edunex's courses of SIX's term show, without SIX's details, and the list says why", async () => {
+    const world = new PretendWorld();
+    world.six.joinCodeAndName();
+    world.edunex.pairs = world.edunex.pairs.map((pair: { course_code: string }) =>
+      pair.course_code === "PL3032" ? { ...pair, year: "2025", semester: "2" } : pair,
+    );
+    screen = await openApp({ world, signedIn: true, six: true });
+    expect(cards().map((text) => text.slice(0, 6))).toEqual(["DK4073", "II4091", "KU5014", "PL3002"]);
+    expect(card("DK4073")).toContain("Kelas 01");
+    expect(card("DK4073")).not.toContain("SKS");
+    expect(coursesSection()).toContain("SIX mengubah halaman iniBagian ini belum bisa dibaca dari SIX.");
+    await sixLive();
+  });
+
+  it("never read, with only SIX connected: the screens say so instead of waiting, or of saying there are no courses", async () => {
+    const world = new PretendWorld();
+    world.six.joinCodeAndName();
+    screen = await openApp({ world, six: true });
+    expect(waiting()).toBe(false);
+    expect(coursesSection()).toBe("Mata kuliah semester iniSIX mengubah halaman iniBagian ini belum bisa dibaca dari SIX.Buka di SIXLaporkan");
+    await screen.click("Presensi");
+    expect(waiting()).toBe(false);
+    expect(screen.text()).toContain("SIX mengubah halaman iniBagian ini belum bisa dibaca dari SIX.");
+    expect(screen.text()).not.toContain("Belum ada mata kuliah semester ini");
+  });
+
+  it("without an attendance column: every course stays, and Presensi says that detail is left blank, once", async () => {
+    screen = await openApp({ signedIn: true, six: true });
+    screen.world.six.editPage(/\/statusmhs$/, (html) =>
+      html.replace('<th class="text-right">Kehadiran</th>', "").replace(/<td class="text-right">[\s\S]*?<\/td>/g, ""),
+    );
+    await refreshSix();
+    expect(cards()).toHaveLength(5);
+    await screen.click(/^Presensi/);
+    expect(screen.text()).toContain(
+      "1 baris di SIX terbaca sebagianYang belum terbaca dikosongkan di sini. Cek di SIX.Kode · Mata Kuliah · Kelas · SKS · Nilai",
+    );
+    expect(screen.text()).not.toContain("belum dikenali");
   });
 });
 

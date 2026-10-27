@@ -47,6 +47,17 @@ async function type(text: string) {
   });
 }
 
+describe("a course SIX's list lost", () => {
+  it("is still found when SIX left its row out, as every screen keeps it", async () => {
+    screen = await openApp({ signedIn: true, six: true });
+    screen.world.six.changeLayout(/\/statusmhs$/, "<td>KU5014</td>", "<td>KU-5014</td>");
+    await screen.engineDoes(() => screen!.engine.refresh("six"));
+    await commandK();
+    await type("KU5014");
+    expect(groups()[0]).toEqual(["Mata kuliah", "Teknik Penyelesaian Masalah Terstruktur"]);
+  });
+});
+
 describe("quick search", () => {
   it("⌘K opens it from anywhere with the cursor in the field; before typing: the next Tasks, the courses, the places and the verbs", async () => {
     screen = await openApp({ signedIn: true, six: true });
