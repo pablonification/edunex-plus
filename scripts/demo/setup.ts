@@ -366,7 +366,8 @@ const hooks: DemoHooks = {
       world.six.joinCodeAndName();
       await fastForward(engine.refresh("six"));
     }
-    await engine.updateSettings({ firstScanDone: true });
+    // The guide offers itself after the first run's sign-in (EDUNEX_DEMO_GUIDE=1: here too, for its pictures).
+    await engine.updateSettings({ firstScanDone: true, guideDone: process.env.EDUNEX_DEMO_GUIDE !== "1" });
     // Settings shows a linked phone, under the demo's made-up topic (it sends nothing anywhere).
     if (scenario === "signed-in") await engine.phone.connect();
     if (afterClass && scenario === "signed-in") await playTheDay(engine, afterClass);

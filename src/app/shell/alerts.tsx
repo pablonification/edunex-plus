@@ -93,7 +93,7 @@ export function AlertsBell() {
       label={t("alerts.title")}
       className="flex max-h-[min(560px,70vh)] w-[400px] flex-col overflow-hidden"
       trigger={
-        <IconButton label={label} className="relative">
+        <IconButton label={label} data-guide="alerts" className="relative">
           <Icons.Bell className="size-4" />
           {unread > 0 && (
             <span

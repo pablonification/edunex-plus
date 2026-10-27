@@ -29,6 +29,7 @@ export function SearchButton({ onOpen }: { onOpen: () => void }) {
   return (
     <button
       type="button"
+      data-guide="search"
       aria-label={t("search.open")}
       aria-keyshortcuts={mac ? "Meta+K" : "Control+K"}
       onClick={onOpen}
