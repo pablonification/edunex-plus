@@ -14,11 +14,12 @@
 import * as PopoverPrimitive from "@radix-ui/react-popover";
 import { type ReactNode, type RefObject, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { introModule } from "../../core/course-materials";
+import { introModule, materialKind } from "../../core/course-materials";
 import type { StringKey } from "../../core/strings";
 import { useTermCourses } from "../courses";
 import { useT } from "../i18n";
 import { type Route, useNav } from "../nav";
+import { canView } from "../pdf";
 import { useDataset, useStore } from "../store";
 import { AppMark } from "../ui/brand";
 import { Button } from "../ui/controls";
@@ -114,24 +115,28 @@ export function Guide({ start, hidden, onEnd }: { start: "offer" | "tour"; hidde
   const nav = useNav();
   const courses = useTermCourses();
   const materials = useDataset("edunex.materials");
-  // The course shown: the term's first with a PDF (else any file), at the module holding it, so what its last step
-  // says about files is there to see. Else the term's first course.
-  const shown = useMemo(() => {
-    if (!isBuilt({ screen: "course", code: "" }) || !courses?.length) return null;
-    for (const type of ["pdf", "file"])
-      for (const course of courses) {
-        const file = materials?.[course.code]?.find((material) => material.type === type);
-        if (file) return { code: course.code, module: file.moduleId ?? introModule(file.courseId) };
-      }
-    return { code: courses[0].code, module: undefined };
-  }, [courses, materials]);
-  const course = shown?.code ?? null;
-  const module = shown?.module;
   // -1: the offer.
   const [at, setAt] = useState(start === "offer" ? -1 : 0);
   /** Which way the Student is going, to pass over a part that isn't there. */
   const [way, setWay] = useState<1 | -1>(1);
   const step = at < 0 ? null : STEPS[at];
+  // The course shown: the term's first with a PDF (else a file that opens in the app, a Word document or slides), at
+  // the module holding it, so what its last step says about files is there to see. Else the term's first course.
+  const pick = useMemo(() => {
+    if (!isBuilt({ screen: "course", code: "" }) || !courses?.length) return null;
+    const tries = [(type: string) => materialKind(type) === "pdf", (type: string) => materialKind(type) === "file" && canView(`.${type}`)];
+    for (const fits of tries)
+      for (const course of courses) {
+        const file = materials?.[course.code]?.find((material) => fits(material.type));
+        if (file) return { code: course.code, module: file.moduleId ?? introModule(file.courseId) };
+      }
+    return { code: courses[0].code, module: undefined };
+  }, [courses, materials]);
+  // Kept while its chapter runs: materials arriving then (among the last of a first sync) never switch the page.
+  const [shown, setShown] = useState(pick);
+  if (step?.chapter !== "course" && (pick?.code !== shown?.code || pick?.module !== shown?.module)) setShown(pick);
+  const course = shown?.code ?? null;
+  const module = shown?.module;
   const route = useMemo(() => (step ? CHAPTERS[step.chapter].shows(course, module) : null), [step, course, module]);
   const there = route !== null && showing(nav.route, route);
   const end = useLatest(onEnd);
@@ -190,8 +195,8 @@ export function Guide({ start, hidden, onEnd }: { start: "offer" | "tour"; hidde
       delete target.dataset.guideOn;
     };
   }, [target, hidden]);
-  // Measured once it's in view.
-  const lit = useLit(hidden ? null : target);
+  // Measured once it's in view. The offer's mark sits tight against the menu under it: its ring stays inside it.
+  const lit = useLit(hidden ? null : target, step ? ROOM : -EDGE);
   // A part too tall for the card above or below it (the week's grid) has it just inside its bottom corner, in view.
   const crowded = step !== null && lit !== null && (step.side === "top" || step.side === "bottom") && lit.height > window.innerHeight - CARD_ROOM;
   const hang = useMemo(() => (target && crowded ? insideCorner(target) : target), [target, crowded]);
@@ -320,11 +325,11 @@ function useTarget(selector: string | null, key: number, missing: () => void): H
 }
 
 /**
- * The box a step lights: its part with room around it, cut to what it's seen through (the window, or for a part of the
+ * The box a step lights: its part with `room` around it, cut to what it's seen through (the window, or for a part of the
  * screen, the screen under the top bar) so its ring stays whole. Kept up to date as the part moves or changes size,
  * and as anything else in the window changes (a banner arriving above it, a section growing as a sync comes in).
  */
-function useLit(element: HTMLElement | null): DOMRect | null {
+function useLit(element: HTMLElement | null, room: number): DOMRect | null {
   const [lit, setLit] = useState<DOMRect | null>(null);
   useLayoutEffect(() => {
     if (!element) {
@@ -334,13 +339,13 @@ function useLit(element: HTMLElement | null): DOMRect | null {
     const measure = () => {
       const part = element.getBoundingClientRect();
       const seen = element.closest("main")?.getBoundingClientRect() ?? new DOMRect(0, 0, window.innerWidth, window.innerHeight);
-      const top = Math.max(part.top - ROOM, seen.top + EDGE);
-      const left = Math.max(part.left - ROOM, seen.left + EDGE);
+      const top = Math.max(part.top - room, seen.top + EDGE);
+      const left = Math.max(part.left - room, seen.left + EDGE);
       const box = new DOMRect(
         left,
         top,
-        Math.max(0, Math.min(part.right + ROOM, seen.right - EDGE) - left),
-        Math.max(0, Math.min(part.bottom + ROOM, seen.bottom - EDGE) - top),
+        Math.max(0, Math.min(part.right + room, seen.right - EDGE) - left),
+        Math.max(0, Math.min(part.bottom + room, seen.bottom - EDGE) - top),
       );
       // The same box keeps its object: drawing it changes the window, which would measure it again.
       setLit((last) => (last && sameBox(last, box) ? last : box));
@@ -364,7 +369,7 @@ function useLit(element: HTMLElement | null): DOMRect | null {
       window.removeEventListener("resize", read);
       window.removeEventListener("scroll", read, true);
     };
-  }, [element]);
+  }, [element, room]);
   return lit;
 }
 

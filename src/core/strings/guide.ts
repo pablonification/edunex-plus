@@ -48,7 +48,7 @@ export const guideStrings = {
   // Tugas & Ujian
   "guide.tasks.show.title": { id: "Belum selesai atau selesai", en: "To do or done" },
   "guide.tasks.show.body": {
-    id: "Belum selesai dikelompokkan per minggu, yang terlambat paling atas. Selesai berisi yang sudah terkumpul atau ditutup, dan ujian yang sudah lewat.",
+    id: "Yang belum selesai dikelompokkan per minggu, yang terlambat paling atas. Yang sudah terkumpul atau ditutup, dan ujian yang sudah lewat, pindah ke Selesai.",
     en: "To do is grouped by week, with anything overdue first. Done keeps what's submitted or closed, and past exams.",
   },
   "guide.tasks.row.title": { id: "Tenggat dan pengumpulan", en: "Deadlines and handing in" },
@@ -77,8 +77,8 @@ export const guideStrings = {
   },
   "guide.presence.now.title": { id: "Perlu perhatianmu sekarang", en: "Needs you now" },
   "guide.presence.now.body": {
-    id: "Tandai Hadir yang sedang dibuka, Presensi Edunex, dan kuliah yang bentrok. Setelah kuliah, di sini terlihat apakah SIX sudah menghitungmu hadir.",
-    en: "Tandai Hadir when it's open, Edunex Presence and classes that clash. After class, it shows whether SIX counted you.",
+    id: "Tandai Hadir yang sedang dibuka, Presensi Edunex kecuali yang tidak wajib, dan kuliah yang bentrok. Setelah kuliah, di sini terlihat apakah SIX sudah menghitungmu hadir.",
+    en: "Tandai Hadir when it's open, Edunex Presence unless it's optional, and classes that clash. After class, it shows whether SIX counted you.",
   },
   "guide.presence.row.title": { id: "Kehadiran dan jatah absen", en: "Attendance and absences" },
   "guide.presence.row.body": {
@@ -89,8 +89,8 @@ export const guideStrings = {
   // Nilai
   "guide.grades.outlook.title": { id: "Menuju lulus", en: "Toward graduation" },
   "guide.grades.outlook.body": {
-    id: "IP dan IPK-mu tiap semester, dan arahnya dengan nilai yang kamu perkirakan. Lalu IPK saat lulus, dan predikat pujian yang masih bisa diraih.",
-    en: "Your IP and IPK each semester, and where the grades you expect take them. Then the IPK you'd graduate with, and the honors still in reach.",
+    id: "IP dan IPK-mu tiap semester, dan ke mana arahnya dengan nilai yang kamu perkirakan. Lalu IPK saat lulus, dan apakah predikat pujian masih bisa diraih.",
+    en: "Your IP and IPK each semester, and where the grades you expect take them. Then the IPK you'd graduate with, and whether honors are still in reach.",
   },
   "guide.grades.term.title": { id: "Semester ini", en: "This semester" },
   "guide.grades.term.body": {
@@ -123,8 +123,8 @@ export const guideStrings = {
   },
   "guide.course.modules.title": { id: "Modul dan materi", en: "Modules and materials" },
   "guide.course.modules.body": {
-    id: "Kebanyakan berkas terbuka di aplikasi, dan teks PDF atau Word bisa kamu sorot dan beri catatan. Untuk membaca tanpa internet, pilih Simpan untuk offline di Lainnya (⋯).",
-    en: "Most files open in the app, and in a PDF or Word file you can highlight and add notes. To read without internet, choose Save for offline under More (⋯).",
+    id: "Kebanyakan berkas terbuka di aplikasi. Di PDF atau Word, kamu bisa menyorot teks dan menulis di Catatanku. Untuk membaca tanpa internet, pilih Simpan untuk offline di Lainnya (⋯) di atas halaman.",
+    en: "Most files open in the app. In a PDF or Word file, you can highlight text and write in My notes. To read without internet, choose Save for offline under More (⋯) at the top of the page.",
   },
 
   // Menu dan alat

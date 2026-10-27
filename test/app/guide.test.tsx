@@ -173,7 +173,7 @@ describe("the tour", () => {
       ["Mata kuliah semester ini", "Beranda · 5 dari 5 · Tiap mata kuliah dengan sisa jatah absennya. Klik untuk membuka halamannya.", "home-courses", HOME],
       [
         "Belum selesai atau selesai",
-        "Tugas & Ujian · 1 dari 2 · Belum selesai dikelompokkan per minggu, yang terlambat paling atas. Selesai berisi yang sudah terkumpul atau ditutup, dan ujian yang sudah lewat.",
+        "Tugas & Ujian · 1 dari 2 · Yang belum selesai dikelompokkan per minggu, yang terlambat paling atas. Yang sudah terkumpul atau ditutup, dan ujian yang sudah lewat, pindah ke Selesai.",
         "tasks-show",
         "Tugas & Ujian",
       ],
@@ -204,7 +204,7 @@ describe("the tour", () => {
       ],
       [
         "Perlu perhatianmu sekarang",
-        "Presensi · 2 dari 3 · Tandai Hadir yang sedang dibuka, Presensi Edunex, dan kuliah yang bentrok. Setelah kuliah, di sini terlihat apakah SIX sudah menghitungmu hadir.",
+        "Presensi · 2 dari 3 · Tandai Hadir yang sedang dibuka, Presensi Edunex kecuali yang tidak wajib, dan kuliah yang bentrok. Setelah kuliah, di sini terlihat apakah SIX sudah menghitungmu hadir.",
         "presence-now",
         "Presensi",
       ],
@@ -216,7 +216,7 @@ describe("the tour", () => {
       ],
       [
         "Menuju lulus",
-        "Nilai · 1 dari 2 · IP dan IPK-mu tiap semester, dan arahnya dengan nilai yang kamu perkirakan. Lalu IPK saat lulus, dan predikat pujian yang masih bisa diraih.",
+        "Nilai · 1 dari 2 · IP dan IPK-mu tiap semester, dan ke mana arahnya dengan nilai yang kamu perkirakan. Lalu IPK saat lulus, dan apakah predikat pujian masih bisa diraih.",
         "grades-outlook",
         "Nilai",
       ],
@@ -253,7 +253,7 @@ describe("the tour", () => {
       ],
       [
         "Modul dan materi",
-        "Mata kuliah · 3 dari 3 · Kebanyakan berkas terbuka di aplikasi, dan teks PDF atau Word bisa kamu sorot dan beri catatan. Untuk membaca tanpa internet, pilih Simpan untuk offline di Lainnya (⋯).",
+        "Mata kuliah · 3 dari 3 · Kebanyakan berkas terbuka di aplikasi. Di PDF atau Word, kamu bisa menyorot teks dan menulis di Catatanku. Untuk membaca tanpa internet, pilih Simpan untuk offline di Lainnya (⋯) di atas halaman.",
         "course-modules",
         "Proposal Tugas Akhir",
       ],
@@ -320,6 +320,38 @@ describe("the tour", () => {
       "Mata kuliah: Isi mata kuliah (2 dari 2)",
     ]);
     expect(steps.at(-1)).toBe("Menu dan alat: Pengaturan (5 dari 5)");
+  });
+
+  it("Escape leaves even before a card is up, while a part is still awaited", async () => {
+    screen = await openApp({ guide: true, signedIn: true });
+    await screen.click("Mulai panduan");
+    // With Edunex alone some parts are never there: right after Lanjut onto one, no card is up yet.
+    do await screen.click("Lanjut");
+    while (card());
+    expect(scrim()).toBe(true);
+    await press("Escape");
+    expect(scrim()).toBe(false);
+    expect(screen.engine.snapshot().settings.guideDone).toBe(true);
+  });
+
+  it("keeps the course it opened while that chapter runs, even as materials come in", async () => {
+    screen = await openApp({ guide: true, signedIn: true, six: true });
+    await screen.click("Mulai panduan");
+    while (cardTitle() !== "Mata kuliahmu") await screen.click("Lanjut");
+    expect(h1()).toBe("Proposal Tugas Akhir");
+    // A PDF arrives for the term's first course, which would now be the one to show: the chapter stays where it is.
+    const materials = screen.engine.snapshot().datasets.find((d) => d.name === "edunex.materials")!;
+    const value = materials.value as Record<string, { type: string }[]>;
+    const pdf = value.II4091.find((material) => material.type === "pdf")!;
+    await screen.apply({
+      type: "dataset",
+      dataset: { ...materials, value: { ...value, DK4073: [...(value.DK4073 ?? []), { ...pdf, id: -1 }] }, hash: "more" },
+    });
+    expect(cardTitle()).toBe("Mata kuliahmu");
+    expect(h1()).toBe("Proposal Tugas Akhir");
+    await screen.click("Lanjut");
+    expect(cardTitle()).toBe("Isi mata kuliah");
+    expect(h1()).toBe("Proposal Tugas Akhir");
   });
 
   it("goes back a step, and across a chapter reopens that place at its last part; the first step has no way back", async () => {
