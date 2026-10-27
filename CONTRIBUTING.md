@@ -110,7 +110,6 @@ code or logs to know whether a change is good:
 | **knip** | Code and packages nothing uses. | advisory |
 | **workflows** | Mistakes and security slips in `.github/` (actionlint, zizmor), when it changes. | must pass |
 | **dependency-review** | New or updated packages: no known serious security hole, only permissive licences. | must pass |
-| **claude-review** | An AI review in plain words, once a Claude key is set up. | advisory |
 
 **Reading the results.** At the bottom of a pull request, each check shows a
 green tick or a red cross. **Details** → **Summary** opens the run's summary
