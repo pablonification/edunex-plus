@@ -24,4 +24,12 @@ export const reportActions = {
   "report.open": { input: z.object({ id: Shown, note: Note }), output: z.object({}) },
   /** Shows the report file in its folder, to drag it into the chat or the issue. */
   "report.reveal": { input: z.object({ id: Shown }), output: z.object({}) },
+  /**
+   * Something broke in the window (an error nobody caught, a promise nobody waited for, a panel's
+   * crash guard): it goes in the app's own log, which a report carries. `where`: the panel.
+   */
+  "report.windowError": {
+    input: z.object({ kind: z.enum(["error", "rejection", "panel"]), where: z.string().max(80).optional(), message: z.string().max(2000) }),
+    output: z.object({}),
+  },
 } as const;

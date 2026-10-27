@@ -28,7 +28,12 @@ export const authHandlers: HandlerGroup<"auth.signIn" | "auth.signOut"> = (conte
         stopQuiet: (source) => (source === "edunex" ? stopQuietEdunexSignIn : stopQuietSixSignIn)(),
         forget: forgetSignInSession,
       };
-  const both = signInToBoth({ engine: context.engine, send: context.send, windows });
+  const both = signInToBoth({
+    engine: context.engine,
+    send: context.send,
+    windows,
+    log: context.log,
+  });
 
   return {
     "auth.signIn": async ({ source }) => {

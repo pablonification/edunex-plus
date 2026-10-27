@@ -16,6 +16,7 @@ const { signInToEdunex } = await import("../../src/desktop/signin");
 const { signInToSix } = await import("../../src/desktop/six-signin");
 const { forgetSignInSession } = await import("../../src/desktop/signin-session");
 const { authHandlers } = await import("../../src/desktop/handlers/auth");
+const { AppLog } = await import("../../src/engine/app-log");
 type Context = Parameters<typeof authHandlers>[0];
 
 const parent = { focus: vi.fn(), isDestroyed: () => false };
@@ -188,6 +189,7 @@ function app(start: { six?: SourceState; sixData?: boolean; firstRun?: boolean; 
     downloadedFiles: { clear: async () => undefined },
     userData: "/nowhere",
     engineSession: {},
+    log: new AppLog(() => 0),
   } as unknown as Context;
   const handlers = authHandlers(context);
   /** The Student presses "Hubungkan" for a system. */

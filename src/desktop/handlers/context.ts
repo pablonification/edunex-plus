@@ -2,6 +2,7 @@
 import type { BrowserWindow, Session } from "electron";
 import type { Event } from "../../core/contract";
 import type { Lang, Settings } from "../../core/models";
+import type { AppLog } from "../../engine/app-log";
 import type { Engine } from "../../engine/engine";
 import type { DownloadedFiles } from "../downloaded-files";
 import type { FileCache } from "../file-cache";
@@ -39,6 +40,8 @@ export interface DesktopContext {
   notifier: Notifier;
   /** Updating from inside the app. */
   updater: Updater;
+  /** The app's own log (src/engine/app-log.ts), which the engine writes to too and every report carries. */
+  log: AppLog;
 }
 
 /** A group of handlers for some of the bridge's actions. */

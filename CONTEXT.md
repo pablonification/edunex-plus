@@ -99,8 +99,12 @@ _Avoid_: missing class, broken class, error
 _Avoid_: broken page, error, SIX is down
 
 **Problem report**:
-"Laporan masalah": what a Student can send the maintainer when the app couldn't read a page (a changed page, unrecognised rows, Edunex or SIX changing): the app's version and system, which page and which check, and that page as SIX or Edunex sent it, scrubbed on their computer (names, numbers, contacts, links replaced, grades and amounts made up). The page is kept in memory only, until that page reads again or they sign out, and nothing is sent until they pick GitHub or LINE. Called `report` in code ([ADR 0007](docs/adr/0007-report-a-page-the-app-couldnt-read.md)).
+"Laporan masalah": what a Student can send the maintainer when the app couldn't read a page (a changed page, unrecognised rows, Edunex or SIX changing): the app's version and system, which page and which check, and that page as SIX or Edunex sent it, scrubbed on their computer (names, numbers, contacts, links replaced, grades and amounts made up). It also says whether the scrubbed page still fails the same way, and carries the App log. The page is kept in memory only, until that page reads again or they sign out, and nothing is sent until they pick GitHub or LINE. Called `report` in code ([ADR 0007](docs/adr/0007-report-a-page-the-app-couldnt-read.md), [ADR 0014](docs/adr/0014-a-report-carries-what-a-fix-needs.md)).
 _Avoid_: crash report, log, telemetry, feedback
+
+**App log**:
+"Yang dilakukan aplikasi": what the app did in the last hour (its reads, sign-ins, updates, notifications, errors), kept in memory only and carried, scrubbed, by every Problem report. Called `log` in code.
+_Avoid_: telemetry, analytics, history ("Riwayat" is a Task's), "Catatan" (a lecturer's note)
 
 **Course color**:
 "Warna mata kuliah": a course's identity mark, its dot and its stripe, the same on every screen. One of ten named colors ("Biru", "Nila"), each with a tone for light and one for dark; none is a status hue or grey. A course's automatic color is remembered the first time it shows, so it never moves by itself; a color the Student picks stays with the course code, next term too. Kept on this computer.

@@ -21,6 +21,7 @@ import { readFile } from "../../src/desktop/remote-files";
 import { reportHandlers } from "../../src/desktop/report";
 import { createUpdater, followAutoUpdates, type UpdateKind } from "../../src/desktop/self-update";
 import { signInToBoth } from "../../src/desktop/signin-both";
+import { AppLog } from "../../src/engine/app-log";
 import { createEngine, type Engine } from "../../src/engine/engine";
 import { EngineError, isEngineError } from "../../src/engine/errors";
 import { PRETEND_TOKEN } from "../pretend/edunex";
@@ -109,6 +110,8 @@ export async function openApp(options: Options = {}) {
   const listeners = new Set<(event: unknown) => void>();
   /** Main's "Perbarui otomatis", once the updater is there. */
   let autoUpdates: ReturnType<typeof followAutoUpdates> | null = null;
+  /** The app's own log, which main and the engine share. */
+  const log = new AppLog(() => world.clock.now());
   const engine: Engine = createEngine({
     transport: world,
     clock: world.clock,
@@ -118,6 +121,7 @@ export async function openApp(options: Options = {}) {
     checkForUpdates: options.checkForUpdates,
     phone: { ntfy: ntfy.send, newTopic: ntfy.newTopic },
     random: () => 0.5,
+    log,
     emit: (event: Event) => {
       autoUpdates?.onEvent(event);
       for (const listener of listeners) listener(event);
@@ -368,6 +372,7 @@ export async function openApp(options: Options = {}) {
     // "Laporkan masalah" runs main's real handlers; Downloads, the browser and the file manager are pretend.
     ...reportHandlers({
       engine,
+      log,
       os: () => "macOS 15.3 (arm64)",
       lang: () => engine.snapshot().settings.lang,
       save: async (name, text, replacing) => {
@@ -473,6 +478,7 @@ export async function openApp(options: Options = {}) {
     store,
     storage,
     vault,
+    log,
     calls,
     exported,
     savedCopies,

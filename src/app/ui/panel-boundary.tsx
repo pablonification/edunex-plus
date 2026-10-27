@@ -3,6 +3,7 @@
 // a way out, never the whole window.
 import { Component, type ErrorInfo, type ReactNode, useState } from "react";
 import { useT } from "../i18n";
+import { windowError } from "../window-errors";
 import { Button } from "./controls";
 import { cx } from "./cx";
 import { Icons } from "./icons";
@@ -25,6 +26,7 @@ export class PanelBoundary extends Component<Props, { error: Error | null }> {
 
   componentDidCatch(error: unknown, info: ErrorInfo) {
     console.error(`[panel:${this.props.name}]`, error, info.componentStack);
+    windowError("panel", error, this.props.name);
   }
 
   render() {

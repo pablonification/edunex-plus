@@ -93,8 +93,8 @@ export function reportIssueUrl(preview: ReportPreview, note: string, lang: Lang)
   return `${NEW_ISSUE_URL}?${query}`;
 }
 
-/** Whether there's a page to send along. */
-export const hasPages = ({ report }: ReportPreview) => report.problems.some((problem) => problem.pages.length > 0);
+/** Whether there's more than a web address can carry: a page, or what the app did (its log). The file carries it. */
+export const needsFile = ({ report }: ReportPreview) => report.problems.some((problem) => problem.pages.length > 0) || (report.log?.length ?? 0) > 0;
 
 /** "edunex-plus-report-2026-10-23-1405.json", in this computer's time. */
 export function reportFileName(at: number): string {

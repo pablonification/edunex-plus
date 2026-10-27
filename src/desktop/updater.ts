@@ -11,6 +11,7 @@ import path from "node:path";
 import { promisify } from "node:util";
 import { app, type IncomingMessage, net, type Session, shell } from "electron";
 import type { UpdateInstall, UpdateNotice } from "../core/models";
+import { errorLine } from "../engine/app-log";
 import { downloadPartial, isRangeAnswer } from "./partial-update";
 import {
   type Arch,
@@ -52,6 +53,7 @@ export interface ElectronUpdaterOptions {
   session: Session;
   notice(): UpdateNotice | null;
   send(state: UpdateInstall): void;
+  log?: UpdaterDeps["log"];
 }
 
 export function electronUpdater(options: ElectronUpdaterOptions): Updater {
@@ -219,6 +221,7 @@ export function electronUpdater(options: ElectronUpdaterOptions): Updater {
         return made && update.kind === "mac" ? await checkApp(made, update.version) : made;
       } catch (error) {
         console.warn("[update] downloading only what changed didn't work, so the whole file comes instead:", error);
+        options.log?.("warn", `only what changed didn't download, so the whole file comes: ${errorLine(error)}`);
         throw error;
       }
     },
@@ -288,6 +291,7 @@ export function electronUpdater(options: ElectronUpdaterOptions): Updater {
     },
     openPage: (url) => shell.openExternal(url),
     send: options.send,
+    log: options.log,
   };
   return createUpdater(deps);
 }

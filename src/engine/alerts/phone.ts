@@ -19,6 +19,7 @@
 //   Presence, a class about to start and other urgent alerts always come at their time;
 // - nothing here blocks or throws into the alert center: what fails waits
 //   (longer each time) and goes on a later replan.
+
 import { createHash, randomBytes } from "node:crypto";
 import { z } from "zod";
 import type { PhoneLink, PhoneProblem } from "../../core/actions/phone";
@@ -28,6 +29,7 @@ import { ALERT_GROUP, type AlertGroup, type AlertKind, type AlertText, type Cour
 import type { Route } from "../../core/route";
 import { type StringKey, translate } from "../../core/strings";
 import { edunexTaskUrl } from "../../core/tasks";
+import type { AreaLog } from "../app-log";
 import type { Clock } from "../clock";
 import { EngineError } from "../errors";
 import type { Vault } from "../store/storage";
@@ -69,6 +71,8 @@ export interface PhoneDeps {
   quiet(): QuietHours | null;
   /** This term's courses, for the Edunex page a tap on a course's alert opens. */
   courses(): readonly Course[];
+  /** What didn't go through, for the app's own log (../app-log.ts): never the topic or the message. */
+  log?: AreaLog;
 }
 
 const MINUTE = 60_000;
@@ -376,7 +380,11 @@ export class PhoneChannel {
         await this.round();
       } while (this.again);
     })()
-      .catch((error: unknown) => console.error("[phone] sending failed:", error instanceof Error ? error.name : "unknown"))
+      .catch((error: unknown) => {
+        const name = error instanceof Error ? error.name : "unknown";
+        console.error("[phone] sending failed:", name);
+        this.deps.log?.("error", `sending failed: ${name}`);
+      })
       .finally(() => {
         this.running = null;
       });
@@ -518,12 +526,16 @@ export class PhoneChannel {
     }
     if (status === 429 || status >= 500) return this.failed("busy");
     // Already gone (delivered, or cancelled before) is as good as cancelled.
-    if (status >= 400 && !(request.method === "DELETE" && status === 404)) return "refused";
+    if (status >= 400 && !(request.method === "DELETE" && status === 404)) {
+      this.deps.log?.("warn", `ntfy refused a ${request.method} (${status})`);
+      return "refused";
+    }
     this.clearFailures();
     return "ok";
   }
 
   private failed(problem: PhoneProblem): Outcome {
+    this.deps.log?.("warn", problem === "offline" ? "ntfy didn't answer" : "ntfy is busy");
     this.problem = problem;
     this.failures++;
     const { first, most } = BACKOFF[problem];

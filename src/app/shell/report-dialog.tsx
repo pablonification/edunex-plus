@@ -6,6 +6,7 @@
 // Main saves and opens; the window only names the report it showed.
 import { type ReactNode, useEffect, useId, useState } from "react";
 import { MAINTAINER_LINE } from "../../core/links";
+import type { ReportImpact } from "../../core/models";
 import { MAX_NOTE, pageLabel, problemHeading, type ReportPreview } from "../../core/report";
 import { useFormat, useLang, useT } from "../i18n";
 import type { ReportAsk } from "../report";
@@ -15,7 +16,7 @@ import { Button } from "../ui/controls";
 import { cx } from "../ui/cx";
 import { Card, Skeleton } from "../ui/display";
 import { Icons } from "../ui/icons";
-import { Notice } from "../ui/layout";
+import { Meta, Notice } from "../ui/layout";
 import { Dialog, toast } from "../ui/overlays";
 import { QrCode } from "../ui/qr-code";
 
@@ -112,14 +113,21 @@ export function ReportDialog({ ask, open, onOpenChange }: { ask: ReportAsk | nul
   );
 }
 
-/** Each problem in a sentence, that its page goes along without the Student's details, the app and the system; the technical part folded away. */
+/**
+ * Each problem in a sentence, that its page goes along without the Student's details, that what the
+ * app did goes too, the app and the system; the technical part folded away: the engine's own words,
+ * how the scrubbed page reads again, what it cost, the rows as the page wrote them, the pages
+ * themselves and the app's log, all exactly as they go.
+ */
 function WhatsSent({ preview }: { preview: ReportPreview }) {
   const t = useT();
+  const f = useFormat();
   const lang = useLang();
   const heading = useId();
   const details = useId();
   const [technical, setTechnical] = useState(false);
   const { report } = preview;
+  const log = report.log ?? [];
   return (
     <section aria-labelledby={heading}>
       <h3 id={heading} className="mb-2 px-1 text-small font-semibold text-muted">
@@ -140,8 +148,9 @@ function WhatsSent({ preview }: { preview: ReportPreview }) {
           </div>
         ))}
         {report.problems.length === 0 && <p className="px-4 py-3 text-small text-pretty text-muted">{t("report.nothingKept")}</p>}
+        {log.length > 0 && <p className="px-4 py-3 text-small text-pretty text-muted">{t("report.logGoes")}</p>}
         <p className="px-4 py-3 text-small text-muted">{t("report.app", { version: report.version, os: preview.os })}</p>
-        {report.problems.length > 0 && (
+        {(report.problems.length > 0 || log.length > 0) && (
           <div className="px-2 py-1.5">
             <Button
               size="sm"
@@ -162,20 +171,55 @@ function WhatsSent({ preview }: { preview: ReportPreview }) {
                         {line}
                       </p>
                     ))}
+                    {problem.reproduces && <p className="text-caption text-muted">{t(`report.reproduces.${problem.reproduces}`)}</p>}
+                    {problem.impact && <Impact impact={problem.impact} />}
+                    {problem.cells?.map((cell) => (
+                      <div key={cell.row}>
+                        <p className="mb-1 font-mono text-caption break-words text-faint">{t("report.cell", { shape: cell.shape })}</p>
+                        {cell.html && <Code>{[cell.header, cell.html].filter(Boolean).join("\n")}</Code>}
+                      </div>
+                    ))}
                     {problem.pages.map((page) => (
                       <div key={page.path}>
                         <p className="mb-1 font-mono text-caption text-faint">{pageLabel(page.path)}</p>
-                        <pre className="max-h-56 overflow-auto rounded-lg bg-fill p-3 font-mono text-caption whitespace-pre-wrap break-all">{page.body}</pre>
+                        <Code>{page.body}</Code>
                       </div>
                     ))}
                   </div>
                 ))}
+                {log.length > 0 && (
+                  <div>
+                    <p className="mb-1 text-caption text-faint">{t("report.log")}</p>
+                    <Code>{log.map((entry) => `${f.time(entry.at)}  ${entry.level}  ${entry.area}  ${entry.message}`).join("\n")}</Code>
+                  </div>
+                )}
               </div>
             )}
           </div>
         )}
       </Card>
     </section>
+  );
+}
+
+/** Technical text as it goes: the engine's lines, the page's markup. */
+function Code({ children }: { children: string }) {
+  return <pre className="max-h-56 overflow-auto rounded-lg bg-fill p-3 font-mono text-caption whitespace-pre-wrap break-all">{children}</pre>;
+}
+
+/** What a problem cost: what it touched, the rows it left out or left blank, when that data last read whole. */
+function Impact({ impact }: { impact: ReportImpact }) {
+  const t = useT();
+  const f = useFormat();
+  return (
+    <Meta className="text-caption text-muted">
+      {[
+        impact.datasets.join(", "),
+        impact.rowsLeftOut > 0 && t("report.impact.rows", { count: impact.rowsLeftOut }),
+        impact.detailsBlank > 0 && t("report.impact.blank", { count: impact.detailsBlank }),
+        impact.lastGoodAt === null ? t("report.impact.neverGood") : t("report.impact.lastGood", { when: f.dayTime(impact.lastGoodAt) }),
+      ]}
+    </Meta>
   );
 }
 

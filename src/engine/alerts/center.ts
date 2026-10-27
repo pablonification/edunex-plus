@@ -21,6 +21,7 @@ import {
   type Settings,
 } from "../../core/models";
 import type { StringKey } from "../../core/strings";
+import { type AreaLog, errorLine } from "../app-log";
 import type { Clock, TimerHandle } from "../clock";
 import type { Storage } from "../store/storage";
 import type { AlertDraft, DatasetChange, Detector, DetectorContext, PlannedAlert } from "./detector";
@@ -68,6 +69,8 @@ export interface AlertCenterDeps {
   upcoming?(planned: readonly PlannedAlert[]): void;
   /** Signing out of everything, or another Student: what was booked ahead goes too. */
   forget?(): Promise<void>;
+  /** Something that went wrong, for the app's own log (../app-log.ts). */
+  log?: AreaLog;
 }
 
 export class AlertCenter {
@@ -156,7 +159,13 @@ export class AlertCenter {
       await this.ledger.clear();
       await this.deps.remove("app.alerts");
     });
-    await Promise.all([this.writes, this.deps.forget?.().catch((error) => console.error("[alerts] forgetting the phone failed:", error))]);
+    await Promise.all([
+      this.writes,
+      this.deps.forget?.().catch((error) => {
+        console.error("[alerts] forgetting the phone failed:", error);
+        this.deps.log?.("error", `forgetting the phone failed: ${errorLine(error)}`);
+      }),
+    ]);
   }
 
   private context(): DetectorContext {
@@ -226,6 +235,7 @@ export class AlertCenter {
     } catch (error) {
       // An OS notification that fails must never stop syncing; the history still has it.
       console.error("[alerts] delivery failed:", error);
+      this.deps.log?.("error", `delivery failed: ${errorLine(error)}`);
     }
   }
 
@@ -260,6 +270,7 @@ export class AlertCenter {
     } catch (error) {
       // Booking ahead that fails must never stop the alerts on this computer.
       console.error("[alerts] booking ahead failed:", error);
+      this.deps.log?.("error", `booking ahead failed: ${errorLine(error)}`);
     }
   }
 
@@ -283,7 +294,10 @@ export class AlertCenter {
 
   /** Disk writes happen one after another, in order. */
   private queue(work: () => Promise<unknown>): Promise<unknown> {
-    this.writes = this.writes.then(work).catch((error) => console.error("[alerts] saving failed:", error));
+    this.writes = this.writes.then(work).catch((error) => {
+      console.error("[alerts] saving failed:", error);
+      this.deps.log?.("error", `saving failed: ${errorLine(error)}`);
+    });
     return this.writes;
   }
 }

@@ -57,12 +57,14 @@ const KNOWN: Partial<{ [N in DatasetName]: DatasetValue<N> }> = {
   "six.student": { nim: REAL.nim, name: REAL.name, studentId: REAL.sixId, term: "2026-1", program: null, programCode: null } satisfies SixStudent,
 };
 
-function report(kept: Omit<Kept, "at" | "datasets">, known = KNOWN): ProblemReport {
+function report(kept: Omit<Kept, "at" | "datasets" | "affects" | "lastGoodAt">, known = KNOWN): Promise<ProblemReport> {
   return buildReport({
-    kept: [{ ...kept, datasets: [], at: 0 }],
+    kept: [{ ...kept, datasets: [], affects: [], at: 0, lastGoodAt: null }],
     about: {},
     get: (name) => known[name] as never,
+    fetchedAt: () => null,
     statuses: [],
+    log: [],
     version: "2.0.0-test",
     now: 0,
     seed: 7,
@@ -160,7 +162,7 @@ const SIX_CASES: {
 ];
 
 describe("a report about a SIX page", () => {
-  it.each(SIX_CASES)("$what: none of the Student's details, and the scrubbed page fails the same check", ({ path, drift, read }) => {
+  it.each(SIX_CASES)("$what: none of the Student's details, and the scrubbed page fails the same check", async ({ path, drift, read }) => {
     const html = drift(real(pageOf(path)));
     const before = outcome(read, html, REAL.nim);
     const kept =
@@ -170,7 +172,7 @@ describe("a report about a SIX page", () => {
     expect("check" in before || before.rows.length > 0).toBe(true);
 
     for (const known of [KNOWN, {}]) {
-      const sent = report(
+      const sent = await report(
         {
           ...kept,
           pages: [{ url: `https://six.itb.ac.id${path.split("18223901").join(REAL.nim).split("2021000001").join(REAL.sixId)}`, status: 200, body: html }],
@@ -185,9 +187,9 @@ describe("a report about a SIX page", () => {
     }
   });
 
-  it("keeps what the page is made of and makes up the Student's records: grades, amounts, IPK, the advisor's chat, their age", () => {
+  it("keeps what the page is made of and makes up the Student's records: grades, amounts, IPK, the advisor's chat, their age", async () => {
     const pages = [historis, /\/keuangan$/, /\/transkrip\/kurikulum\/\d+$/, /\/registrasi\/rencanastudi\/\d+$/].map((path) => real(sixPage(path)));
-    const sent = report({
+    const sent = await report({
       feed: "six.page",
       kind: "changed",
       check: "",
@@ -218,7 +220,7 @@ describe("a report about a SIX page", () => {
 });
 
 describe("a report about an Edunex answer", () => {
-  it("its people's details are gone, and it fails the same check", () => {
+  it("its people's details are gone, and it fails the same check", async () => {
     const me = {
       ...edunexJson<Record<string, unknown>>("/login/me"),
       name: REAL.name,
@@ -237,7 +239,7 @@ describe("a report about an Edunex answer", () => {
       return issue && `/login/me: ${issue.path.join(".")} ${issue.message}`;
     };
     const before = check(me)!;
-    const sent = report({
+    const sent = await report({
       feed: "edunex.account",
       kind: "changed",
       check: before,
@@ -251,12 +253,12 @@ describe("a report about an Edunex answer", () => {
     expect(sent.problems[0]!.check).toBe(before);
   });
 
-  it("a gradebook's scores and grades are made up", () => {
+  it("a gradebook's scores and grades are made up", async () => {
     const gradebook = {
       grades: [],
       students: [{ ...edunexJson<{ students: object[] }>("/gradebook", { course_id: "92948", class_id: "84725" }).students[0], total: 87.5, index: "AB" }],
     };
-    const sent = report({
+    const sent = await report({
       feed: "edunex.outline",
       kind: "changed",
       check: "",
@@ -267,6 +269,47 @@ describe("a report about an Edunex answer", () => {
     expect(typeof student.total).toBe("number");
     expect(student.total).not.toBe(87.5);
     expect(student.index).toMatch(/^(A|AB|B|BC|C)$/);
+  });
+});
+
+describe("what a report says it cost the Student", () => {
+  it("counts a row read with a detail left blank apart from a row left out", async () => {
+    const sent = await report({
+      feed: "six.status",
+      kind: "skipped",
+      check: "SIX statusmhs: course 3 has no course code",
+      rows: [
+        { row: "3 · K-5014 · Teknik", why: "SIX statusmhs: course 3 has no course code" },
+        { row: "4 · PL3002 · Ekonomi · 82.35% / 94.12%", why: "SIX statusmhs: course 4: attendance without its count", blank: true },
+      ],
+      pages: [],
+    });
+    expect(sent.problems[0]!.impact).toMatchObject({ rowsLeftOut: 1, detailsBlank: 1, lastGoodAt: null });
+  });
+});
+
+describe("a row left out, found on its page", () => {
+  it("is found by its text even when a reader cut it, and never matched to an empty row", async () => {
+    const name = "Mata Kuliah dengan Nama yang Sangat Panjang Sekali untuk Menguji Baris yang Dipotong oleh Pembaca Halaman";
+    const row = `<tr><td>9</td><td>II-2230</td><td>${name}</td><td>3</td></tr>`;
+    const text = `9 · II-2230 · ${name} · 3`;
+    const sent = await report({
+      feed: "six.page",
+      kind: "skipped",
+      check: "SIX page: row 9 has no course code",
+      rows: [{ row: `${text.slice(0, 119)}…`, why: "SIX page: row 9 has no course code" }],
+      pages: [
+        { url: "https://six.itb.ac.id/p", status: 200, body: `<table><tr><th>No</th><th>Kode</th><th>Nama</th><th>SKS</th></tr><tr></tr>${row}</table>` },
+      ],
+    });
+    expect(sent.problems[0]!.cells).toEqual([
+      {
+        row: `${text.slice(0, 119)}…`,
+        html: row,
+        header: "<tr><th>No</th><th>Kode</th><th>Nama</th><th>SKS</th></tr>",
+        shape: expect.stringMatching(/^9 · a-9 · a( a)+…$/),
+      },
+    ]);
   });
 });
 

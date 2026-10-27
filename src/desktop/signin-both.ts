@@ -7,6 +7,7 @@
 // purpose isn't tried. Microsoft's session goes once neither needs it.
 import type { Event, SignInStep } from "../core/contract";
 import type { DatasetName } from "../core/models";
+import { type AppLog, errorLine } from "../engine/app-log";
 import type { Engine } from "../engine/engine";
 
 export type SignInSource = "edunex" | "six";
@@ -40,6 +41,8 @@ export function signInToBoth(deps: {
   windows: SignInWindows;
   /** Sees each quiet try (tests wait for it). */
   background?(work: Promise<unknown>): void;
+  /** Each step, for the app's own log (src/engine/app-log.ts). */
+  log?: Pick<AppLog, "add">;
 }) {
   const running = new Map<SignInSource, { result: Promise<boolean>; quiet: boolean; stopped: boolean; handedBack: boolean }>();
 
@@ -63,7 +66,10 @@ export function signInToBoth(deps: {
 
   /** `ridesOn`: the other system's sign-in this quiet one rides on. What it finds waits for that one to be in. */
   function signIn(source: SignInSource, quiet: boolean, ridesOn?: Promise<void>): Promise<boolean> {
-    const onStep = (step: SignInStep | null) => deps.send({ type: "signIn", source, step });
+    const onStep = (step: SignInStep | null) => {
+      if (step) deps.log?.add("info", source, `sign-in ${step}`);
+      deps.send({ type: "signIn", source, step });
+    };
     const now = running.get(source);
     if (now) {
       // The Student asks for the one the app is trying by itself: it's theirs now, with its window when it needs them.
@@ -79,9 +85,13 @@ export function signInToBoth(deps: {
       try {
         // The app's own try says so, for the Student who would otherwise press "Hubungkan" again.
         if (quiet) onStep("joining");
+        else deps.log?.add("info", source, "sign-in window opened");
         const session = await deps.windows.open(source, { quiet, onStep });
         attempt.handedBack = true;
-        if (!session || attempt.stopped) return false;
+        if (!session || attempt.stopped) {
+          deps.log?.add("info", source, attempt.stopped ? "sign-in stopped" : attempt.quiet ? "sign-in by itself needs the Student" : "sign-in window closed");
+          return false;
+        }
         // The one it rode on didn't end up in (signed out meanwhile, the wrong account say, or its session ended at once):
         // nothing the app's own try found is kept. One the Student took over is theirs to keep.
         const rodeIn = !ridesOn || ((await landed(ridesOn)) && !(attempt.quiet && needsSignIn(OTHER[source])));
@@ -94,6 +104,7 @@ export function signInToBoth(deps: {
         await connecting;
         return true;
       } catch (error) {
+        deps.log?.add("warn", source, `sign-in failed: ${errorLine(error)}`);
         if (attempt.quiet) return false;
         throw error;
       } finally {

@@ -7,8 +7,10 @@
 // Grades, amounts, IP and IPK and Edunex scores are made up for each report, from `seed`: the
 // shape stays, so the pages read as the real ones did, and two reports can't be compared to work
 // the real values back.
-import type { DatasetName, DatasetValue, ProblemReport, ReportAbout, ReportPage, SourceStatus } from "../../core/models";
+import type { DatasetName, DatasetValue, LogEntry, ProblemReport, ReportAbout, ReportImpact, ReportPage, ReportProblem, SourceStatus } from "../../core/models";
+import { findCells } from "./cells";
 import type { Kept, KeptPage } from "./kept-pages";
+import { type PageAgain, reproduces, sixIdentity } from "./reread";
 import {
   FAKE_STUDENT,
   FakePeople,
@@ -35,7 +37,11 @@ export interface ReportInput {
   kept: readonly Kept[];
   about: ReportAbout;
   get<N extends DatasetName>(name: N): DatasetValue<N> | undefined;
+  /** When a dataset was last stored: what its screens show, read last. */
+  fetchedAt(name: DatasetName): number | null;
   statuses: readonly SourceStatus[];
+  /** The app's own log (../app-log.ts), as it is. */
+  log: readonly LogEntry[];
   version: string;
   now: number;
   /** Picks this report's made-up values. */
@@ -45,7 +51,7 @@ export interface ReportInput {
 /** Made-up grades come out as often as real ones do: mostly A and AB. */
 const GRADES = ["A", "A", "A", "AB", "AB", "AB", "B", "B", "BC", "C"];
 
-export function buildReport(input: ReportInput): ProblemReport {
+export async function buildReport(input: ReportInput): Promise<ProblemReport> {
   const { about } = input;
   const chosen = input.kept.filter(
     (kept) =>
@@ -53,23 +59,76 @@ export function buildReport(input: ReportInput): ProblemReport {
   );
   const scrub = new ReportScrubber(input, chosen);
   return {
-    format: 1,
+    format: 2,
     version: input.version,
     at: input.now,
     sources: input.statuses
       .filter((status) => status.source !== "itb")
       .map((status) => ({ source: status.source, state: status.state, detail: status.detail === null ? null : scrub.text(status.detail) })),
-    problems: chosen.map((kept) => ({
-      feed: kept.feed,
-      datasets: [...kept.datasets],
-      kind: kept.kind,
-      check: scrub.text(kept.check),
-      rows: kept.rows.map((row) => ({ row: scrub.text(row.row), why: scrub.text(row.why) })),
-      at: kept.at,
-      pages: kept.pages.map((page) => scrub.page(kept.feed, page)),
-    })),
+    problems: await Promise.all(chosen.map((kept) => problem(input, scrub, kept))),
+    log: input.log.map((entry) => ({ ...entry, message: scrub.log(entry.message) })),
   };
 }
+
+/** A folder in this computer's home ("/Users/name/…", "C:\\Users\\name\\…"): its owner's name. */
+const HOME = /(\/Users\/|\/home\/|[A-Za-z]:\\(?:Users|Documents and Settings)\\)[^/\\\s"'<>]+/g;
+
+async function problem(input: ReportInput, scrub: ReportScrubber, kept: Kept): Promise<ReportProblem> {
+  const check = scrub.text(kept.check);
+  const rows = kept.rows.map((row) => ({ row: scrub.text(row.row), why: scrub.text(row.why) }));
+  const pages = kept.pages.map((page) => scrub.page(kept.feed, page));
+  const changed = kept.kind === "changed";
+  const who = sixIdentity(input.get("six.student"));
+  const again = await reproduces(
+    { feed: kept.feed, at: kept.at, get: input.get },
+    {
+      pages: kept.pages.map((page) => ({ ...page, path: pathOf(page.url) })),
+      who,
+      expected: { check: changed ? kept.check : null, rows: kept.rows },
+    },
+    {
+      pages: pages.map((page, i): PageAgain => ({ ...page, check: kept.pages[i]!.check })),
+      who: who && { nim: scrub.value(who.nim), studentId: scrub.value(who.studentId), term: who.term },
+      expected: { check: changed ? check : null, rows },
+    },
+  );
+  const cells = findCells(
+    kept.rows.map((real, i) => ({ real, scrubbed: rows[i]! })),
+    pages,
+  );
+  return {
+    feed: kept.feed,
+    datasets: [...kept.datasets],
+    kind: kept.kind,
+    check,
+    rows,
+    at: kept.at,
+    pages,
+    reproduces: again,
+    ...(cells.length ? { cells } : {}),
+    impact: impactOf(input, kept),
+  };
+}
+
+/**
+ * What it cost the Student. A page whose layout changed keeps the data its screens show from the
+ * last read that stored it (ADR 0006): when nothing says the feed read well since, that's when.
+ */
+function impactOf(input: ReportInput, kept: Kept): ReportImpact {
+  const stored = kept.affects.map((name) => input.fetchedAt(name)).filter((at): at is number => at !== null);
+  const blank = kept.rows.filter((row) => row.blank).length;
+  return {
+    datasets: [...kept.affects],
+    rowsLeftOut: kept.rows.length - blank,
+    detailsBlank: blank,
+    lastGoodAt: kept.lastGoodAt ?? (kept.kind === "changed" && stored.length ? Math.max(...stored) : null),
+  };
+}
+
+const pathOf = (url: string) => {
+  const parsed = new URL(url);
+  return `${parsed.pathname}${parsed.search}`;
+};
 
 const systemOf = (feed: string) => (feed.startsWith("six.") ? "six" : "edunex");
 
@@ -121,7 +180,10 @@ class ReportScrubber {
     const pages = kept.flatMap((one) => one.pages.map((page) => ({ feed: one.feed, ...page })));
     const six = pages.filter((page) => systemOf(page.feed) === "six");
     const answers = pages.filter((page) => systemOf(page.feed) === "edunex").map((page) => parseJson(page.body));
-    const words = kept.flatMap((one) => [one.check, ...one.rows.flatMap((row) => [row.row, row.why])]).join("\n");
+    // The log too: a NIM in a line of it (an address SIX wrote) is someone's like any other.
+    const words = [...kept.flatMap((one) => [one.check, ...one.rows.flatMap((row) => [row.row, row.why])]), ...input.log.map((entry) => entry.message)].join(
+      "\n",
+    );
     const student = input.get("six.student");
     const account = input.get("edunex.account");
 
@@ -140,8 +202,10 @@ class ReportScrubber {
     const sixIds = new Set([student?.studentId, ...six.flatMap((page) => sixStudentIds(`${page.url}\n${page.body}`))].filter((id): id is string => !!id));
     for (const [i, id] of [...sixIds].entries()) this.known.add(id, FAKE_STUDENT.sixId + i);
 
-    // Edunex's ids for the Student, on the records that are theirs.
+    // Edunex's ids for the Student, on the records that are theirs, and in the address of their notifications.
     const edunexIds = new Set<string>();
+    const addresses = [...pages.map((page) => page.url), words, ...input.statuses.map((status) => status.detail ?? "")].join("\n");
+    for (const match of addresses.matchAll(/\/notifications\/(\d+)/g)) edunexIds.add(match[1]!);
     for (const answer of answers)
       walk(answer, (o) => {
         if (!isPersonObject(o) || !(nims.has(String(o.code)) || names.has(String(o.name)))) return;
@@ -169,9 +233,24 @@ class ReportScrubber {
     return scrubPatterns(this.known.apply(scrubRecordText(text, this.rules)), this.shapes);
   }
 
+  /**
+   * A line of the app's log: like a check's words, no folder in this computer's home says whose it
+   * is, and no id in an address it names says whose it was (Edunex's for the Student, in
+   * "/notifications/123456"): its digits become zeros.
+   */
+  log(text: string): string {
+    return this.text(text)
+      .replace(HOME, "$1~")
+      .replace(/(?<=\/)\d{4,}(?=[/?#&\s"')]|$)/g, (id) => "0".repeat(id.length));
+  }
+
+  /** A value as the pages' addresses carry it (a NIM, SIX's id for the Student), as it is in them once scrubbed. */
+  value(text: string): string {
+    return scrubPatterns(this.known.apply(text), this.shapes);
+  }
+
   page(feed: string, page: KeptPage): ReportPage {
-    const url = new URL(page.url);
-    const path = scrubPatterns(this.known.apply(`${url.pathname}${url.search}`), this.shapes);
+    const path = this.value(pathOf(page.url));
     const system = systemOf(feed);
     if (system === "six")
       return { system, path, status: page.status, body: scrubPatterns(this.known.apply(scrubSixRecords(page.body, this.rules)), this.shapes) };
