@@ -1,0 +1,443 @@
+# The fix bot (docs/fix-bot.md, ADR 0015): turns an issue the report relay filed into a draft pull
+# request that fixes the reader, for the maintainer to review, and says on the issue what it found.
+# It starts on a new relay issue whose scrubbed pages fail the same way (the relay lets the first 3
+# a day start by themselves), when the maintainer adds ready-for-agent to a relay issue, or by hand
+# from main. Nobody else can start it. It skips itself until a Claude key and the relay are set up.
+#
+# Three jobs, so the one that runs the repository's code holds nothing worth taking:
+# - start decides, and gets a ticket for the issue's report from the relay that only this run can use.
+#   It holds the relay's token, and runs no code from the repository.
+# - fix runs Claude, which runs the tests: it can't push, and reads that one report with the ticket
+#   and the run's own GitHub token.
+# - publish pushes bot/drift-<issue> and opens the draft. It runs nothing from the change, and
+#   refuses a change to .github/ or to what judges a change (scripts/ci/drift-fix-guard.mjs).
+name: Fix bot
+
+on:
+  issues:
+    types: [opened, labeled]
+  workflow_dispatch:
+    inputs:
+      issue:
+        description: The number of an issue the report relay filed
+        required: true
+        type: number
+
+permissions: {}
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  start:
+    name: start
+    # Other issue events don't start a runner at all.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.action == 'opened' && contains(github.event.issue.labels.*.name, 'from-relay')) ||
+      (github.event.action == 'labeled' && github.event.label.name == 'ready-for-agent')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      issues: read # the issue and its marker
+    outputs:
+      go: ${{ steps.decide.outputs.go }}
+      issue: ${{ steps.decide.outputs.issue }}
+      base: ${{ steps.decide.outputs.base }}
+      report: ${{ steps.decide.outputs.report }}
+      ticket: ${{ steps.ticket.outputs.ticket }}
+    steps:
+      - name: Decide whether to start
+        id: decide
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          EVENT: ${{ github.event_name }}
+          ACTION: ${{ github.event.action }}
+          REF: ${{ github.ref }}
+          SHA: ${{ github.sha }}
+          ISSUE: ${{ github.event.issue.number || inputs.issue }}
+          SENDER: ${{ github.event.sender.login }}
+          AUTOMATIC: ${{ vars.DRIFT_FIX_AUTOMATIC }}
+          CLAUDE_OAUTH: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          CLAUDE_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          RELAY_URL: ${{ vars.RELAY_URL }}
+          RELAY_TOKEN: ${{ secrets.RELAY_MAINTAINER_TOKEN }}
+        run: |
+          skip() {
+            echo "go=false" >> "$GITHUB_OUTPUT"
+            printf '### Fix bot\n\nNot starting: %s\n' "$1" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          }
+          [[ "$ISSUE" =~ ^[0-9]+$ ]] || skip "no issue number."
+          [ "$REF" = refs/heads/main ] || skip "it runs from main only."
+          # Only someone who can write to the repository: the maintainer, or the relay, which files as them.
+          permission=$(gh api "repos/$REPO/collaborators/$SENDER/permission" --jq .permission 2> /dev/null || echo none)
+          case "$permission" in admin | maintain | write) ;; *) skip "$SENDER can't start it." ;; esac
+
+          issue=$(gh api "repos/$REPO/issues/$ISSUE" 2> /dev/null) || skip "there's no issue #$ISSUE."
+          [ "$(jq -r '.pull_request.url // ""' <<< "$issue")" = "" ] || skip "#$ISSUE is a pull request."
+          [ "$(jq -r .state <<< "$issue")" = open ] || skip "#$ISSUE is closed."
+          # The relay files as the maintainer and marks its issues from-relay, which no issue form can:
+          # so the marker below was written by the relay, not by whoever opened the issue.
+          case "$(jq -r .author_association <<< "$issue")" in OWNER | MEMBER | COLLABORATOR) ;; *) skip "#$ISSUE wasn't filed by the relay." ;; esac
+          labels=" $(jq -r '[.labels[].name] | join(" ")' <<< "$issue") "
+          case "$labels" in *" from-relay "*) ;; *) skip "#$ISSUE isn't from the relay." ;; esac
+          case "$labels" in *" six-drift "* | *" edunex-drift "*) ;; *) skip "#$ISSUE isn't about a page the app couldn't read." ;; esac
+          # The relay's marker, on the issue's first line.
+          marker=$(jq -c '(.body // "") | split("\n")[0] | capture("^<!-- edunex-plus-relay (?<m>\\{.*\\}) -->\r?$").m | fromjson' <<< "$issue" 2> /dev/null || true)
+          [ -n "$marker" ] || skip "#$ISSUE has no report from the relay."
+          [ "$(jq -r .kind <<< "$marker")" = drift ] || skip "#$ISSUE is a report with no page in it: there's no reader to fix."
+          # One report, so the job that runs Claude holds no other Student's: the latest whose pages
+          # fail the same way, or else the newest.
+          report=$(jq -r '[.reproducing, (.reports // [])[]] | map(select(type == "string" and test("^[0-9a-f-]{36}$"))) | .[0] // empty' <<< "$marker")
+          [ -n "$report" ] || skip "#$ISSUE's marker names no report."
+
+          if [ "$EVENT" = issues ] && [ "$ACTION" = opened ]; then
+            [ "$AUTOMATIC" != off ] || skip "runs that start by themselves are off (the DRIFT_FIX_AUTOMATIC variable): add ready-for-agent to start it."
+            [ "$(jq -r .reproduces <<< "$marker")" = yes ] || skip "the scrubbed pages don't fail the same way, or the app didn't check: add ready-for-agent to start it anyway."
+            [ "$(jq -r .botStarts <<< "$marker")" = true ] || skip "today's runs that start by themselves are used up: add ready-for-agent to start it."
+          fi
+          [ -n "$CLAUDE_OAUTH$CLAUDE_KEY" ] || skip "no Claude key yet. Add CLAUDE_CODE_OAUTH_TOKEN (from claude setup-token) or ANTHROPIC_API_KEY as a repository secret."
+          { [ -n "$RELAY_URL" ] && [ -n "$RELAY_TOKEN" ]; } || skip "the relay isn't set up for it yet: the RELAY_URL variable and the RELAY_MAINTAINER_TOKEN secret (docs/relay.md)."
+          {
+            echo "go=true"
+            echo "issue=$ISSUE"
+            echo "base=$SHA"
+            echo "report=$report"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Get a ticket for the report
+        id: ticket
+        if: steps.decide.outputs.go == 'true'
+        env:
+          RELAY_URL: ${{ vars.RELAY_URL }}
+          RELAY_TOKEN: ${{ secrets.RELAY_MAINTAINER_TOKEN }}
+          REPORT: ${{ steps.decide.outputs.report }}
+          RUN: ${{ github.run_id }}
+        run: |
+          # A ticket reads one report, a few times in the next hours, and only from this run: the relay
+          # checks the run's own GitHub token with each read. It shows in the fix job's log; without
+          # that token it's no use to anyone.
+          ticket=$(curl -fsS -X POST "${RELAY_URL%/}/v1/reports/$REPORT/ticket" -H "authorization: Bearer $RELAY_TOKEN" \
+            -H "content-type: application/json" -d "{\"run\":\"$RUN\"}" | jq -er .ticket) || {
+            echo "::error::The relay has no report $REPORT any more (it keeps them 60 days)."
+            exit 1
+          }
+          echo "ticket=$ticket" >> "$GITHUB_OUTPUT"
+
+  fix:
+    name: fix
+    needs: start
+    if: needs.start.outputs.go == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    # One fix for an issue at a time; a run that starts meanwhile waits for it.
+    concurrency:
+      group: drift-fix-${{ needs.start.outputs.issue }}
+      cancel-in-progress: false
+    permissions:
+      contents: read # check out main; nothing in this job can push
+      issues: read # read the issue
+      id-token: write # the run's own GitHub token, which the relay asks for with each ticket
+    outputs:
+      outcome: ${{ steps.check.outputs.outcome }}
+      model: ${{ steps.check.outputs.model }}
+    steps:
+      - name: Check out main
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.start.outputs.base }}
+          persist-credentials: false
+
+      - name: Set up Node and packages
+        uses: ./.github/actions/setup
+
+      - name: Fetch the report and the issue
+        env:
+          RELAY_URL: ${{ vars.RELAY_URL }}
+          REPORT: ${{ needs.start.outputs.report }}
+          TICKET: ${{ needs.start.outputs.ticket }}
+          ISSUE: ${{ needs.start.outputs.issue }}
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          relay="${RELAY_URL%/}"
+          run=$(curl -fsS -H "authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=$relay" | jq -r .value)
+          echo "::add-mask::$run"
+          # .scratch/ is git-ignored: the report never becomes part of the change.
+          mkdir -p .scratch/drift
+          curl -fsS "$relay/v1/reports/$REPORT" -H "authorization: Bearer $TICKET" -H "x-github-oidc: $run" -o .scratch/drift/report.json
+          gh issue view "$ISSUE" --repo "$REPO" --json number,title,body,labels > .scratch/drift/issue.json
+
+      - name: Write the prompt
+        id: prompt
+        env:
+          ISSUE: ${{ needs.start.outputs.issue }}
+        run: |
+          delimiter="prompt-$(openssl rand -hex 16)"
+          {
+            echo "text<<$delimiter"
+            sed "s/{{ISSUE}}/$ISSUE/g" .github/drift-fix.md
+            echo "$delimiter"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Fix it with Claude
+        id: claude
+        # An outage or a used-up quota ends here; the issue is told.
+        continue-on-error: true
+        uses: anthropics/claude-code-action@1d6de8cb0c237e7c15e9e1bdf973826ebae490cc # v1.0.248
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          # The job's own token, read-only here: Claude can read the issue, but not push or comment.
+          github_token: ${{ github.token }}
+          prompt: ${{ steps.prompt.outputs.text }}
+          claude_args: |
+            --max-turns 150
+            --allowedTools "Read,Glob,Grep,Edit,Write,Skill,TodoWrite,Bash(npm run check),Bash(npm run format),Bash(npm run typecheck),Bash(npm run fixtures:from-report:*),Bash(npx vitest run:*),Bash(npx biome check:*),Bash(git status:*),Bash(git diff:*),Bash(git restore:*),Bash(ls:*)"
+            --disallowedTools "WebFetch,WebSearch"
+            --json-schema '{"type":"object","additionalProperties":false,"required":["outcome","comment","pr_title","pr_body"],"properties":{"outcome":{"type":"string","enum":["fixed","not-reproduced","not-fixed"]},"comment":{"type":"string"},"pr_title":{"type":"string"},"pr_body":{"type":"string"}}}'
+
+      - name: Check the change
+        id: check
+        if: ${{ !cancelled() }}
+        env:
+          RESULT: ${{ steps.claude.outputs.structured_output }}
+          EXECUTION: ${{ steps.claude.outputs.execution_file }}
+        run: |
+          out="$RUNNER_TEMP/drift-fix"
+          mkdir -p "$out"
+          # The model, from the run's own record, for the pull request's "Made with" line.
+          model=$(jq -r '[.[] | select(.type == "system" and .subtype == "init") | .model][0] // empty' "$EXECUTION" 2> /dev/null || true)
+          echo "model=${model:-model unknown}" >> "$GITHUB_OUTPUT"
+
+          outcome=failed
+          if [ -n "$RESULT" ]; then
+            outcome=$(jq -r .outcome <<< "$RESULT")
+            jq -r .comment <<< "$RESULT" > "$out/comment.md"
+            jq -r .pr_title <<< "$RESULT" > "$out/pr-title.txt"
+            jq -r .pr_body <<< "$RESULT" > "$out/pr.md"
+          fi
+          git add -A
+          if [ "$outcome" = fixed ]; then
+            if git diff --cached --quiet; then
+              outcome=no-change
+            else
+              # The checks again, on the change itself. The tests' details stay out of this public log.
+              set +e
+              npx biome ci --colors=off . > "$RUNNER_TEMP/lint.log" 2>&1
+              lint=$?
+              npm run typecheck > "$RUNNER_TEMP/types.log" 2>&1
+              types=$?
+              npx vitest run --reporter=json --outputFile.json="$RUNNER_TEMP/vitest.json" > /dev/null 2>&1
+              tests=$?
+              set -e
+              privacy=0
+              if [ -s "$RUNNER_TEMP/vitest.json" ]; then
+                privacy=$(jq '[.testResults[] | select((.name | test("test/kit/(repo-)?privacy\\.test\\.ts$")) and .status != "passed")] | length' "$RUNNER_TEMP/vitest.json")
+              else
+                tests=1
+              fi
+              if [ "$privacy" != 0 ]; then
+                # Nothing of it goes anywhere, Claude's words included.
+                outcome=privacy
+                rm -f "$out"/*
+              elif [ "$lint" != 0 ] || [ "$types" != 0 ] || [ "$tests" != 0 ]; then
+                outcome=checks
+                echo "Lint: $lint, types: $types, tests: $tests."
+                tail -40 "$RUNNER_TEMP/lint.log" "$RUNNER_TEMP/types.log"
+                jq -r '.testResults[] | select(.status != "passed") | "Failed: \(.name)"' "$RUNNER_TEMP/vitest.json" 2> /dev/null || true
+              else
+                # The publish job's guard, here already, so nothing it would refuse is handed over (main's
+                # own copy: the change may not touch it, and it isn't run from the change).
+                guard="$RUNNER_TEMP/guard"
+                mkdir -p "$guard/scripts/ci" "$guard/test/kit"
+                git show HEAD:scripts/ci/drift-fix-guard.mjs > "$guard/scripts/ci/drift-fix-guard.mjs"
+                git show HEAD:test/kit/privacy-rules.ts > "$guard/test/kit/privacy-rules.ts"
+                if why=$(node "$guard/scripts/ci/drift-fix-guard.mjs" "$out" "$PWD"); then
+                  git diff --cached --binary > "$out/fix.patch"
+                else
+                  echo "Held back: $why"
+                  outcome=held
+                  rm -f "$out"/*
+                fi
+              fi
+            fi
+          fi
+          echo "outcome=$outcome" >> "$GITHUB_OUTPUT"
+          echo "Outcome: $outcome"
+
+      # What goes public anyway once it's pushed (the change, after its own checks passed) and the
+      # words for the issue. Gone after a day.
+      - name: Hand the change to the publish job
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: drift-fix
+          path: ${{ runner.temp }}/drift-fix/
+          retention-days: 1
+          if-no-files-found: ignore
+
+  publish:
+    name: publish
+    needs: [start, fix]
+    if: ${{ !cancelled() && needs.start.outputs.go == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    concurrency:
+      group: drift-fix-publish-${{ needs.start.outputs.issue }}
+      cancel-in-progress: false
+    permissions:
+      contents: write # push bot/drift-<issue>
+      pull-requests: write # open the draft pull request
+      issues: write # say on the issue what happened
+    steps:
+      # The commit the start job saw, never one the fix job names: this job's checkout, and the
+      # guard and the comment helper it runs, stay main's own.
+      - name: Check out main
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.start.outputs.base }}
+          persist-credentials: false
+
+      - name: Set up Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+
+      - name: Get the change
+        if: needs.fix.result != 'skipped'
+        # Nothing to get when the fix job stopped before it, or kept it to itself (the privacy tests).
+        continue-on-error: true
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: drift-fix
+          path: ${{ runner.temp }}/drift-fix
+
+      - name: Read what the fix job said
+        id: said
+        env:
+          OUTCOME: ${{ needs.fix.outputs.outcome }}
+          MODEL: ${{ needs.fix.outputs.model }}
+        run: |
+          # It ran Claude on strangers' data: only words this job knows go any further.
+          case "$OUTCOME" in fixed | not-reproduced | not-fixed | no-change | privacy | checks | held) ;; *) OUTCOME=failed ;; esac
+          [[ "$MODEL" =~ ^[A-Za-z0-9._:-]{1,80}$ ]] || MODEL="model unknown"
+          {
+            echo "outcome=$OUTCOME"
+            echo "model=$MODEL"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Push the branch and open the draft
+        id: publish
+        if: steps.said.outputs.outcome == 'fixed'
+        env:
+          MODEL: ${{ steps.said.outputs.model }}
+          ISSUE: ${{ needs.start.outputs.issue }}
+          REPO: ${{ github.repository }}
+          # A token of the maintainer's own opens the pull request with CI (docs/fix-bot.md).
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          WORKFLOW_TOKEN: ${{ github.token }}
+        run: |
+          words="$RUNNER_TEMP/drift-fix"
+          branch="bot/drift-$ISSUE"
+          said() { echo "outcome=$1" >> "$GITHUB_OUTPUT"; }
+          said failed
+          [ -s "$words/fix.patch" ] || exit 0
+
+          # The change goes on a copy of main; the guard runs from this checkout, untouched.
+          work="$RUNNER_TEMP/branch"
+          git worktree add --quiet --detach "$work" HEAD
+          if ! git -C "$work" apply --index "$words/fix.patch"; then
+            said unappliable
+            exit 0
+          fi
+          if ! why=$(node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/ci/drift-fix-guard.mjs "$words" "$work"); then
+            said refused
+            echo "why=$why" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "$why"
+
+          title=$(head -n 1 "$words/pr-title.txt" | cut -c 1-120)
+          [ -n "$title" ] || title="fix: read the page in #$ISSUE again"
+          token="${BOT_TOKEN:-$WORKFLOW_TOKEN}"
+          git -C "$work" -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit --quiet -m "$title" -m "Closes #$ISSUE"
+          git -C "$work" push --quiet --force "https://x-access-token:${token}@github.com/${REPO}.git" "HEAD:refs/heads/$branch"
+          echo "branch=$branch" >> "$GITHUB_OUTPUT"
+
+          # Its body: Claude's, without anyone mentioned, closing the issue, then what ran it.
+          body="$RUNNER_TEMP/pr.md"
+          {
+            grep -q "Closes #$ISSUE" "$words/pr.md" || printf 'Closes #%s.\n\n' "$ISSUE"
+            sed -E 's/@([A-Za-z0-9])/@\xe2\x80\x8b\1/g' "$words/pr.md"
+            if [ -z "$BOT_TOKEN" ]; then
+              printf '\n> [!NOTE]\n> CI hasn'"'"'t run: GitHub doesn'"'"'t start it for pull requests its own token opens. Close and reopen this pull request to run it.\n'
+            fi
+            printf '\n## Made with\n\nMade with %s in Claude Code in GitHub Actions.\n' "$MODEL"
+          } > "$body"
+          export GH_TOKEN="$token"
+          number=$(gh pr list --repo "$REPO" --head "$branch" --state open --json number --jq '.[0].number // empty')
+          if [ -n "$number" ]; then
+            gh pr edit "$number" --repo "$REPO" --title "$title" --body-file "$body" > /dev/null
+          elif gh pr create --repo "$REPO" --draft --base main --head "$branch" --title "$title" --body-file "$body" > /dev/null; then
+            number=$(gh pr list --repo "$REPO" --head "$branch" --state open --json number --jq '.[0].number')
+          else
+            # The repository doesn't let GitHub Actions open pull requests, and there's no BOT_TOKEN.
+            said no-pr
+            exit 0
+          fi
+          echo "pr=$number" >> "$GITHUB_OUTPUT"
+          said fixed
+
+      - name: Say on the issue what happened
+        if: ${{ !cancelled() }}
+        env:
+          OUTCOME: ${{ steps.publish.outputs.outcome || steps.said.outputs.outcome || 'failed' }}
+          WHY: ${{ steps.publish.outputs.why }}
+          PR: ${{ steps.publish.outputs.pr }}
+          BRANCH: ${{ steps.publish.outputs.branch }}
+          MODEL: ${{ steps.said.outputs.model || 'model unknown' }}
+          ISSUE: ${{ needs.start.outputs.issue }}
+          SERVER: ${{ github.server_url }}
+          RUN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          words="$RUNNER_TEMP/drift-fix"
+          comment="$RUNNER_TEMP/comment.md"
+          claude=""
+          held=""
+          # Claude's own words go on only if the guard finds nothing personal in them, whatever happened.
+          if [ -s "$words/comment.md" ]; then
+            if node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/ci/drift-fix-guard.mjs "$words" > /dev/null; then
+              claude=$(sed -E 's/@([A-Za-z0-9])/@\xe2\x80\x8b\1/g' "$words/comment.md")
+            else
+              held="Its explanation was held back: it had something shaped like a personal detail in it."
+            fi
+          fi
+          case "$OUTCOME" in
+            fixed) line="**A draft fix is ready: #$PR.** It's for you to review; it doesn't merge by itself." ;;
+            no-pr) line="**The fix is on the branch \`$BRANCH\`, but GitHub Actions may not open pull requests here.** [Open it as a draft]($SERVER/$GITHUB_REPOSITORY/compare/main...$BRANCH?expand=1), or add a BOT_TOKEN so the bot does (docs/fix-bot.md)." ;;
+            not-reproduced) line="**The fix bot couldn't make the failure happen in a test,** so it changed nothing." ;;
+            not-fixed) line="**The fix bot couldn't fix it,** so it pushed nothing." ;;
+            no-change) line="**The fix bot said it fixed it, but changed nothing,** so there's nothing to review." ;;
+            privacy) line="**The fix didn't pass the privacy tests, so nothing was pushed.** On purpose, nothing says what they found: look at the report by hand (docs/relay.md)."; claude="" ;;
+            checks) line="**The fix didn't pass \`npm run check\`, so nothing was pushed.** [The run]($RUN) says which check failed." ;;
+            refused) line="**The fix was refused, so nothing was pushed:** $WHY"; claude="" ;;
+            held) line="**The fix was held back, so nothing was pushed:** it touched what a fix may not, or held something shaped like a personal detail. [The run]($RUN) says which."; claude="" ;;
+            unappliable) line="**The fix didn't apply to main any more, so nothing was pushed.** Add ready-for-agent again to start over." ;;
+            *) line="**The fix bot couldn't finish** (an outage, a used-up quota, or the time ran out). [The run]($RUN) says which." ;;
+          esac
+          {
+            echo "$line"
+            if [ -n "$claude" ]; then printf '\n%s\n' "$claude"; fi
+            if [ -n "$held" ]; then printf '\n%s\n' "$held"; fi
+            printf '\n<sub>From the fix bot: Claude Code in GitHub Actions (%s), which can be wrong. [Its run](%s).</sub>\n' "$MODEL" "$RUN"
+          } > "$comment"
+          # A comment for each run, so a later run never overwrites what an earlier one said.
+          gh issue comment "$ISSUE" --repo "$GITHUB_REPOSITORY" --body-file "$comment" > /dev/null
+          printf '### Fix bot\n\n%s\n' "$line" >> "$GITHUB_STEP_SUMMARY"
