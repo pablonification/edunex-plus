@@ -103,6 +103,7 @@ student data** anywhere: use the demo. Security problems go through a
 | [CONTEXT.md](CONTEXT.md) | The words the project uses (Task, Presence, KRS, Kehadiran…) |
 | [docs/adr/](docs/adr/) | How it's built and why |
 | [API.md](API.md), [SIX.md](SIX.md) | How the app reads Edunex and SIX |
+| [docs/fix-bot.md](docs/fix-bot.md) | The bot that drafts a fix when the app can't read a page a Student reported |
 | [docs/design-system.md](docs/design-system.md) | The look |
 | [docs/test-data.md](docs/test-data.md), [docs/scenarios.md](docs/scenarios.md) | How tests work |
 | [docs/platform-notifications.md](docs/platform-notifications.md) | Notifications on each system and the phone |
