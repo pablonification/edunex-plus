@@ -329,7 +329,7 @@ describe("SIX's course table changing on its own", () => {
     expect(cards()).toHaveLength(5);
     await screen.click(/^Presensi/);
     expect(screen.text()).toContain(
-      "1 baris di SIX terbaca sebagianYang belum terbaca dikosongkan di sini. Cek di SIX.Kode · Mata Kuliah · Kelas · SKS · Nilai",
+      "1 baris belum terbaca utuhSebagian isinya belum ditampilkan di sini. Cek di SIX.Kode · Mata Kuliah · Kelas · SKS · Nilai",
     );
     expect(screen.text()).not.toContain("belum dikenali");
   });
