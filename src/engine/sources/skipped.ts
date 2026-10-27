@@ -5,8 +5,9 @@
 //
 // What holds the rows stays strict: a table that's gone, its columns, a heading the rows under it
 // belong to (a row read under the wrong term is worse than none). And a list with more rows the app
-// didn't understand than rows it did isn't odd rows: the list itself changed (SIX writing every grade
-// another way, say, with only this term's ungraded courses still read), and that's "SIX changed something".
+// didn't understand than rows it did isn't odd rows: the list itself changed (SIX writing every course
+// code another way, say), and that's "SIX changed something". A row the app can place, with only a
+// detail it can't read, is kept with that detail blank (`blanked`, ADR 0009 and 0011).
 import type { SkippedRow } from "../../core/models";
 import { type EngineError, isEngineError } from "../errors";
 
@@ -29,7 +30,7 @@ export class Skipped {
    * which row to check on SIX. It doesn't count as left out.
    */
   blanked(row: string, why: string): void {
-    this.rows.push({ row: rowText(row), why });
+    this.rows.push({ row: rowText(row), why, blank: true });
   }
 
   /** A list whose rows are read one by one with `SkipList.item`; `done()` after the last. */

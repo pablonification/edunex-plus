@@ -75,7 +75,7 @@ export function registerSixRecordFeeds(context: SourceContext, pages: SixPages):
 export async function fetchCurriculum(pages: SixPages, skipped?: Skipped): Promise<Curriculum> {
   const who = await pages.who();
   const list = readCurriculumList(await pages.page(recordPaths.curricula(who)), skipped);
-  const current = list.filter((entry) => entry.active).sort((a, b) => b.year - a.year)[0];
+  const current = list.filter((entry) => entry.active === true).sort((a, b) => b.year - a.year)[0];
   if (!current) changed("curriculum list", "no curriculum is in force");
   const structure = readCurriculumStructure(await pages.page(current.structurePath), skipped);
   const registrations = readSchemes(await pages.page(recordPaths.schemes(who)), skipped);

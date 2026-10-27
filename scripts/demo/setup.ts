@@ -19,6 +19,8 @@
 //                            new instructions, a later deadline and a new file, so the app knows what changed
 //   EDUNEX_DEMO_SICK=1       SIX writes DK4073's attendance as it does for a Student with sick days (#237): two
 //                            percentages, each with its count, so the app reads the first (its meetings attended)
+//   EDUNEX_DEMO_ODD=1        SIX writes this term's UKT payment ("Lunas") and FI1101's grade ("A (remedial)") another way,
+//                            as another Student's SIX might: both rows stay, with that cell blank, and UKT and Nilai say so
 //
 // Every run starts from an empty profile (deleted again on quit), so each begins the same way.
 import fs from "node:fs";
@@ -53,6 +55,17 @@ if (process.env.EDUNEX_DEMO_SICK === "1")
       '<span title="Hadir 4 dari 6 pertemuan">66.67%</span> / <span title="Hadir dan sakit 5 dari 6 pertemuan">83.33%</span>',
     ),
   );
+if (process.env.EDUNEX_DEMO_ODD === "1") {
+  world.six.editPage(/\/keuangan$/, (html) =>
+    html.replace(
+      /(<td class="text-right">\s*5\.400\.000\s*<\/td><td class="text-right">\s*)5\.400\.000(\s*<\/td><td class="text-left">\s*24 Agu 2026)/,
+      "$1Lunas$2",
+    ),
+  );
+  world.six.editPage(/\/transkrip\/historis\/\d+$/, (html) =>
+    html.replace(/(<td>FI1101<span[^>]*>-19<\/span><\/td><td>[^<]*<\/td><td>4<\/td><td>)\s*A\s*/, "$1A (remedial)"),
+  );
+}
 if (process.env.EDUNEX_DEMO_QUIZ === "1")
   world.edunex.exams.set(93409, [
     { id: 88002, type: "exams", attributes: { name: "Kuis Brand Equity", start_at: "2026-10-19T08:00:00+07:00", end_at: "2026-10-30T23:59:00+07:00" } },

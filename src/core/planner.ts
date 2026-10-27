@@ -140,6 +140,11 @@ export interface StudentRecord {
   courses: Map<string, CourseInfo>;
   /** Program names by SIX's number, from the catalog. */
   programNames: Map<string, string>;
+  /**
+   * Courses whose grade or SKS SIX writes in a way the app can't read yet (and no other page or ITB's
+   * catalog gives the SKS): the app's own figures (IPK projections, SKS sums) leave them out, and say so.
+   */
+  unread: { code: string; name: string }[];
 }
 
 export interface RecordInput {
@@ -168,25 +173,16 @@ export function studentRecord(input: RecordInput): StudentRecord {
   const term = input.term ?? terms.at(-1)?.term ?? null;
   const entryTerm = progress?.entryTerm ?? terms[0]?.term ?? null;
 
-  const inTranscript = terms.find((t) => t.term === term);
-  const thisTerm: TermCourseRecord[] = inTranscript
-    ? inTranscript.courses.map((c) => ({ code: c.code, name: c.name, sks: c.sks, grade: isLetterGrade(c.grade) ? c.grade : null }))
-    : (input.termCourses ?? []).map((c) => ({ ...c, grade: null }));
-
-  const graded = new Map<string, { name: string; sks: number; grade: LetterGrade; term: string }>();
-  for (const t of terms)
-    for (const c of t.courses)
-      if (c.standing === "counted" && isLetterGrade(c.grade)) graded.set(c.code, { name: c.name, sks: c.sks, grade: c.grade, term: t.term });
   const rows = terms.flatMap((t) => t.courses);
-
   const progressRows: ProgressRow[] = (progress?.stages ?? []).flatMap((stage) =>
     stage.semesters.flatMap((s) => s.courses.map((c) => ({ ...c, semester: s.semester }))),
   );
   const exempt = new Set(progressRows.filter((c) => c.status === "exempt").map((c) => c.code));
 
   const courses = new Map<string, CourseInfo>();
-  const know = (code: string, name: string, sks: number, owner: string | null, override = true) => {
-    if (override || !courses.has(code)) courses.set(code, { code, name, sks, owner: owner ?? courses.get(code)?.owner ?? null });
+  // An SKS SIX writes in a way the app can't read yet is no SKS: another page's, or ITB's catalog's, stands.
+  const know = (code: string, name: string, sks: number | null, owner: string | null, override = true) => {
+    if (sks !== null && (override || !courses.has(code))) courses.set(code, { code, name, sks, owner: owner ?? courses.get(code)?.owner ?? null });
   };
   for (const c of catalog?.courses ?? []) know(c.code, c.name, c.sks, c.owner);
   const programCode = curriculum?.program.code ?? null;
@@ -194,9 +190,44 @@ export function studentRecord(input: RecordInput): StudentRecord {
   for (const c of curriculum?.required ?? []) know(c.code, c.name, c.sks, courses.get(c.code)?.owner ?? null);
   for (const pkg of [...(curriculum?.specializations ?? []), ...(curriculum?.minors ?? [])])
     for (const c of pkg.courses) know(c.code, c.name, c.sks, null, false);
-  for (const c of [...rows, ...progressRows, ...thisTerm]) know(c.code, c.name, c.sks, null, false);
+  for (const c of [...rows, ...progressRows, ...(input.termCourses ?? [])]) know(c.code, c.name, c.sks, null, false);
 
-  const required = new Map((curriculum?.required ?? []).map((c) => [c.code, { code: c.code, name: c.name, sks: c.sks, semester: c.semester }]));
+  const unread: StudentRecord["unread"] = [];
+  const leftOut = (c: { code: string; name: string }) => {
+    if (!unread.some((u) => u.code === c.code)) unread.push({ code: c.code, name: c.name });
+  };
+  /** A course's SKS for the app's sums: SIX's on its row, else another page's or the catalog's; with none anywhere, it's left out of them, and named. */
+  const sksToCount = (c: { code: string; name: string; sks: number | null }) => {
+    const sks = c.sks ?? courses.get(c.code)?.sks ?? null;
+    if (sks === null) leftOut(c);
+    return sks;
+  };
+  // This term's courses: an SKS SIX writes another way is another page's or the catalog's; with none anywhere, left out.
+  const inTranscript = terms.find((t) => t.term === term);
+  const thisTerm: TermCourseRecord[] = (
+    inTranscript
+      ? inTranscript.courses.map((c) => ({ code: c.code, name: c.name, sks: c.sks, grade: isLetterGrade(c.grade) ? c.grade : null }))
+      : (input.termCourses ?? []).map((c) => ({ ...c, grade: null }))
+  ).flatMap((c) => {
+    const sks = sksToCount(c);
+    return sks === null ? [] : [{ ...c, sks }];
+  });
+
+  // A past grade or SKS SIX writes another way counts in none of the app's figures, as in SIX's IPK check
+  // (this term's ungraded courses are the Student's what-ifs whatever SIX shows).
+  const graded = new Map<string, { name: string; sks: number; grade: LetterGrade; term: string }>();
+  for (const t of terms)
+    for (const c of t.courses) {
+      if (t.term !== term && (c.standing === "unknown" || (c.sks === null && isLetterGrade(c.grade)))) leftOut(c);
+      if (c.standing === "counted" && isLetterGrade(c.grade) && c.sks !== null) graded.set(c.code, { name: c.name, sks: c.sks, grade: c.grade, term: t.term });
+    }
+
+  const required = new Map(
+    (curriculum?.required ?? []).flatMap((c) => {
+      const sks = sksToCount(c);
+      return sks === null ? [] : [[c.code, { code: c.code, name: c.name, sks, semester: c.semester }] as const];
+    }),
+  );
   const slots = slotStandings({ slots: [...required.values()], rows: progress ? progressRows : null, graded, thisTerm, fixes: input.fixes ?? {} });
   // Courses filling a slot under another code count there, never also as electives.
   const filling = new Set([...slots.values()].flatMap((s) => (s.via ? [s.via.code] : [])));
@@ -212,7 +243,9 @@ export function studentRecord(input: RecordInput): StudentRecord {
     for (const row of progressRows) {
       if (row.kind !== "required" || requiredLeft.some((c) => c.code === row.code) || corrected(row.code)) continue;
       const failed = row.status === "graded" && row.grade === "E" && !thisTermCodes.has(row.code);
-      if (row.status === "not-taken" || failed) requiredLeft.push({ code: row.code, name: row.name, sks: row.sks, semester: row.semester });
+      if (row.status !== "not-taken" && !failed) continue;
+      const sks = sksToCount(row);
+      if (sks !== null) requiredLeft.push({ code: row.code, name: row.name, sks, semester: row.semester });
     }
     // Courses SIX leaves off the Student's record that they said are theirs: still to take.
     for (const [code, standing] of slots)
@@ -224,15 +257,17 @@ export function studentRecord(input: RecordInput): StudentRecord {
     }
   }
 
-  const requiredSks = curriculum ? curriculum.required.reduce((sum, c) => sum + c.sks, 0) : null;
+  const requiredSks = curriculum ? curriculum.required.reduce((sum, c) => sum + (sksToCount(c) ?? 0), 0) : null;
   const graduationSks = curriculum?.graduationSks ?? DEFAULT_GRADUATION_SKS;
   const electiveRows = progressRows.filter((c) => ELECTIVE.has(c.kind) && !filling.has(c.code));
-  const sksOf = (list: { sks: number }[]) => list.reduce((sum, c) => sum + c.sks, 0);
+  const sumOf = (list: { code: string; name: string; sks: number | null }[]) => list.reduce((sum, c) => sum + (sksToCount(c) ?? 0), 0);
   // A graded elective without a letter yet is this term's, as SIX lists it.
   const electivePassed = progress
-    ? sksOf(electiveRows.filter((c) => c.status === "exempt" || (c.status === "graded" && passedGrade(c.grade))))
-    : sksOf([...graded.entries()].filter(([code, g]) => !required.has(code) && !filling.has(code) && passedGrade(g.grade)).map(([, g]) => g));
-  const electiveInProgress = progress ? sksOf(electiveRows.filter((c) => c.status === "in-progress" || (c.status === "graded" && !isLetterGrade(c.grade)))) : 0;
+    ? sumOf(electiveRows.filter((c) => c.status === "exempt" || (c.status === "graded" && passedGrade(c.grade))))
+    : sumOf(
+        [...graded.entries()].filter(([code, g]) => !required.has(code) && !filling.has(code) && passedGrade(g.grade)).map(([code, g]) => ({ code, ...g })),
+      );
+  const electiveInProgress = progress ? sumOf(electiveRows.filter((c) => c.status === "in-progress" || (c.status === "graded" && !isLetterGrade(c.grade)))) : 0;
   const electiveHave = electivePassed + electiveInProgress;
 
   const registration = (kind: "specialization" | "minor") => curriculum?.registrations.find((r) => r.kind === kind)?.name.toLowerCase() ?? null;
@@ -249,7 +284,8 @@ export function studentRecord(input: RecordInput): StudentRecord {
       }))
     : (catalog?.minors ?? []).map((m) => ({ key: `${m.program} · ${m.name}`, name: m.name, program: m.program, sks: m.sks, note: null, courses: m.courses }));
   const minorName = registration("minor");
-  const programName = curriculum ? curriculum.program.name.replace(/^S1\s+/i, "") : null;
+  const programName = curriculum?.program.name ? curriculum.program.name.replace(/^S1\s+/i, "") : null;
+  const programId = curriculum?.program.code ?? null;
 
   return {
     transcript,
@@ -260,7 +296,7 @@ export function studentRecord(input: RecordInput): StudentRecord {
     semesterNow: term ? semesterOf(term, entryTerm) : null,
     graduationSks,
     normalSemesters: curriculum?.semesters ?? DEFAULT_SEMESTERS,
-    program: curriculum && programName ? { code: curriculum.program.code, name: programName } : null,
+    program: programId && programName ? { code: programId, name: programName } : null,
     thisTerm,
     thisTermDropped: [],
     thisTermAdded: [],
@@ -283,10 +319,24 @@ export function studentRecord(input: RecordInput): StudentRecord {
     courses,
     programNames: new Map([
       ...(catalog?.programs ?? []).map((p) => [p.id, p.name] as const),
-      ...(curriculum && programName ? [[curriculum.program.code, programName] as const] : []),
+      ...(programId && programName ? [[programId, programName] as const] : []),
     ]),
+    unread,
   };
 }
+
+/**
+ * The IPK the planner starts from (a target, the usual grade): the app's from the rows, or SIX's when a row it
+ * can't read leaves the app without one.
+ */
+export const startingIpk = (record: StudentRecord): number | null => (record.transcript ? (record.transcript.ipk.computed ?? record.transcript.ipk.six) : null);
+
+/** SKS passed as the screens show it: SIX's count, the app's own only without SIX's progress page, null when SIX's can't be read. */
+export const passedSks = (record: StudentRecord): number | null => (record.progress && record.progress.sksPassed === null ? null : record.passedSks);
+
+/** A course's SKS: as its row has it, else as another SIX page or ITB's catalog does; null with none anywhere. */
+export const knownSks = (record: StudentRecord, course: { code: string; sks: number | null }): number | null =>
+  course.sks ?? record.courses.get(course.code)?.sks ?? null;
 
 export const courseInfo = (record: StudentRecord, code: string): CourseInfo => record.courses.get(code) ?? { code, name: code, sks: 0, owner: null };
 
@@ -527,7 +577,7 @@ export function defaultPlan(record: StudentRecord, hidden?: StudyPlan["hidden"])
   // Hidden warnings describe the Student, not the plan: a fresh plan keeps them.
   const empty: StudyPlan = { terms: [], expected: {}, target: null, minor: record.registeredMinor, ...(hidden ? { hidden } : {}) };
   if (!record.term) return empty;
-  const grade = nearestLetter(record.transcript?.ipk.computed ?? null);
+  const grade = nearestLetter(startingIpk(record));
   const terms: { term: string; semester: number }[] = [];
   let term = nextTerm(record.term);
   let semester = record.semesterNow === null ? null : record.semesterNow + 1;
@@ -550,8 +600,10 @@ export function defaultPlan(record: StudentRecord, hidden?: StudyPlan["hidden"])
     record.thisTerm.some((c) => c.code === code) ||
     [...items.values()].some((list) => list.some((c) => c.code === code));
   for (const course of activeSpecialization(record, empty)?.courses ?? []) {
-    if (taken(course.code)) continue;
-    const at = terms.find((t) => (items.get(t.term) ?? []).reduce((sum, c) => sum + c.sks, 0) + course.sks <= NORMAL_SKS) ?? terms[terms.length - 1];
+    // A course whose SKS SIX writes another way, and the catalog doesn't give, isn't placed for the Student.
+    const sks = knownSks(record, course);
+    if (taken(course.code) || sks === null) continue;
+    const at = terms.find((t) => (items.get(t.term) ?? []).reduce((sum, c) => sum + c.sks, 0) + sks <= NORMAL_SKS) ?? terms[terms.length - 1];
     place(course.code, at.term);
   }
   return { ...empty, terms: terms.map((t) => ({ term: t.term, courses: items.get(t.term) ?? [] })) };
@@ -610,7 +662,8 @@ export function removeTerm(plan: StudyPlan, term: string): StudyPlan {
 export interface ProjectedStep {
   term: string;
   semester: number | null;
-  sks: number;
+  /** SIX's total for a past term (null when the app can't read it), the courses' for the others. */
+  sks: number | null;
   /** The term's IP, shown as SIX shows it for past terms. */
   ip: number | null;
   /** The IPK once the term is done. */
@@ -647,7 +700,7 @@ export interface Projection {
 
 /** This term's expected grade for a course: the one the Student picked, else their usual level. */
 export function expectedGrade(record: StudentRecord, plan: StudyPlan, code: string): LetterGrade {
-  return plan.expected[code] ?? nearestLetter(record.transcript?.ipk.computed ?? null);
+  return plan.expected[code] ?? nearestLetter(startingIpk(record));
 }
 
 /**
@@ -663,7 +716,7 @@ export function project(record: StudentRecord, rawPlan: StudyPlan): Projection {
   const steps: ProjectedStep[] = [];
 
   // Past terms: SIX's IP, and the IPK the rows make after each.
-  const attempts: { code: string; sks: number; grade: string | null }[] = [];
+  const attempts: { code: string; sks: number | null; grade: string | null }[] = [];
   for (const t of transcript?.terms ?? []) {
     if (record.term && t.term >= record.term) break;
     attempts.push(...t.courses.filter((c) => c.standing === "counted" || c.standing === "replaced"));
@@ -697,7 +750,7 @@ export function project(record: StudentRecord, rawPlan: StudyPlan): Projection {
     });
   }
 
-  const finalIpk = targets.length ? ipkWith(targets).value : (transcript?.ipk.computed ?? null);
+  const finalIpk = targets.length ? ipkWith(targets).value : startingIpk(record);
   const lastPlanned = [...plan.terms].reverse().find((t) => termKind(t.term) !== "short" && t.courses.length);
   const finishSemester = lastPlanned
     ? semesterOf(lastPlanned.term, record.entryTerm)
@@ -948,7 +1001,7 @@ export function checkPlan(record: StudentRecord, rawPlan: StudyPlan, projection:
     const spec = record.specialization;
     const covered = (code: string) => passedGrade(record.graded.get(code)?.grade ?? null) || record.thisTerm.some((c) => c.code === code) || planned.has(code);
     const gaps = spec.courses.filter((c) => !covered(c.code));
-    const coveredSks = spec.courses.filter((c) => covered(c.code)).reduce((sum, c) => sum + c.sks, 0);
+    const coveredSks = spec.courses.filter((c) => covered(c.code)).reduce((sum, c) => sum + (knownSks(record, c) ?? 0), 0);
     const done = !gaps.length || (spec.sks !== null && coveredSks >= spec.sks);
     rules.push({
       id: "specialization",
@@ -1110,7 +1163,7 @@ export function parseTarget(text: string): { kind: "ok"; value: number } | { kin
 /** The Student's target, one setting for Nilai and the planner: theirs, else the next honors line above the IPK. */
 export function targetOf(record: StudentRecord, plan: StudyPlan): number {
   if (plan.target !== null && plan.target >= TARGET_MIN && plan.target <= TARGET_MAX) return plan.target;
-  const ipk = record.transcript?.ipk.computed ?? 0;
+  const ipk = startingIpk(record) ?? 0;
   return [3, 3.5, 3.75, 3.85, 4].find((v) => v > ipk + 1e-9) ?? 4;
 }
 

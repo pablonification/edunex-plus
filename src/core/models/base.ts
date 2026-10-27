@@ -17,8 +17,9 @@ export type SourceState = z.infer<typeof SourceState>;
 /**
  * A row of a service's page the app didn't understand, so it left that row out and read the rest
  * (a fee SIX lists that isn't a term's UKT, say): the row as the page shows it, and what didn't fit.
+ * `blank`: the row was kept, with what didn't fit left blank (a bill's payment written another way).
  */
-export const SkippedRow = z.object({ row: z.string(), why: z.string() });
+export const SkippedRow = z.object({ row: z.string(), why: z.string(), blank: z.boolean().optional() });
 export type SkippedRow = z.infer<typeof SkippedRow>;
 /** By dataset ("six.bills"): the rows its last read left out. A dataset read without any isn't here. */
 export const SkippedRows = z.record(z.string(), z.array(SkippedRow));

@@ -125,12 +125,26 @@ describe("new and changed grades", () => {
 
   it("layout changed: nothing is announced from a page the app can't read, and the grade arrives once it can", async () => {
     const app = await start();
-    app.world.six.changeLayout(TRANSCRIPT, "Masuk Transkrip", "Status");
+    app.world.six.changeLayout(TRANSCRIPT, "<th>Kode</th>", "<th>Kode MK</th>");
     app.world.six.gradeCourse("2026-1", "II4091", "A");
     await app.sixAgain();
     expect(app.grades()).toEqual([]);
     expect(app.engine.snapshot().statuses.find((s) => s.source === "six")?.changedPages?.[0]?.datasets).toContain("six.transcript");
-    app.world.six.changeLayout(TRANSCRIPT, ">Status<", ">Masuk Transkrip<");
+    app.world.six.changeLayout(TRANSCRIPT, "<th>Kode MK</th>", "<th>Kode</th>");
+    await app.sixAgain();
+    expect(app.grades().map((n) => n.title.vars?.course)).toEqual(["II4091"]);
+  });
+
+  it("a grade SIX writes another way for a while: nothing announced while it can't be read, nor when it reads again", async () => {
+    const app = await start();
+    app.world.six.gradeCourse("2025-1", "II3130", "C (remedial)");
+    await app.sixAgain();
+    expect(app.grades()).toEqual([]);
+    app.world.six.gradeCourse("2025-1", "II3130", "C");
+    await app.sixAgain();
+    expect(app.grades()).toEqual([]);
+    // A grade that's really new still is.
+    app.world.six.gradeCourse("2026-1", "II4091", "A");
     await app.sixAgain();
     expect(app.grades().map((n) => n.title.vars?.course)).toEqual(["II4091"]);
   });

@@ -12,7 +12,7 @@
 import { DAY, rupiah, termVars, wibMorning } from "../../core/academic";
 import { wibDay } from "../../core/course-meetings";
 import type { AcademicCalendar, AlertText, Bill, KrsChange, KrsPlan } from "../../core/models";
-import { krsChanges } from "../../core/models";
+import { krsChanges, stepDone } from "../../core/models";
 import type { StringKey } from "../../core/strings";
 import type { AlertDraft, Detector, PlannedAlert } from "./detector";
 
@@ -52,11 +52,12 @@ function courseText(change: KrsChange, before: KrsPlan | undefined): AlertText |
       const vars = {
         code: change.code,
         course: change.code,
-        classNo: change.classNo,
-        sks: change.sks,
+        classNo: change.classNo ?? "-",
+        sks: change.sks ?? "-",
       };
-      if (was && was.classNo !== change.classNo) return { key: "alert.krs.class", vars };
-      if (was && was.sks !== change.sks) return { key: "alert.krs.sks", vars };
+      // Said by what changed between two reads of it: a detail SIX wrote another way either time isn't one.
+      if (was?.classNo != null && change.classNo !== null && was.classNo !== change.classNo) return { key: "alert.krs.class", vars };
+      if (was?.sks != null && change.sks !== null && was.sks !== change.sks) return { key: "alert.krs.sks", vars };
       return {
         key: change.approved ? "alert.krs.courseApproved" : "alert.krs.unapproved",
         vars,
@@ -83,10 +84,11 @@ export const krsChanged: Detector = {
     const changes = krsChanges(before, plan);
     const drafts: AlertDraft[] = [];
     const common = { kind: "krs", source: "six", target: KRS_TARGET } as const;
-    const body = {
-      key: "alert.krs.body",
-      vars: { count: plan.courses.length, sks: plan.sks },
-    } as const;
+    // SIX's total, when the app can read it.
+    const body: AlertText =
+      plan.sks === null
+        ? { key: "alert.krs.bodyCourses", vars: { count: plan.courses.length } }
+        : { key: "alert.krs.body", vars: { count: plan.courses.length, sks: plan.sks } };
     const stepped = changes.some((c) => c.kind === "approved");
     for (const c of changes) {
       if (c.kind === "approved" || c.kind === "legalized") {
@@ -245,7 +247,7 @@ export function calendarReminders(calendar: AcademicCalendar | undefined, krs: K
         if (!plan || plan.state === "not-sent") window("alert.academic.drsOpen", "alert.academic.drsCloses", "alert.academic.drsBody");
         break;
       case "urs":
-        if (!plan?.change?.sentAt) window("alert.academic.ursOpen", "alert.academic.ursCloses", "alert.academic.ursBody");
+        if (!(plan?.change && stepDone(plan.change, "sentAt"))) window("alert.academic.ursOpen", "alert.academic.ursCloses", "alert.academic.ursBody");
         break;
       case "ukt-deadline":
         if (bills?.find((b) => b.term === event.term)?.status !== "paid")

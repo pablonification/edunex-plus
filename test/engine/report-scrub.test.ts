@@ -87,7 +87,8 @@ function outcome(read: (html: string, skipped: Skipped, nim: string) => unknown,
     if (isEngineError(error, "VendorChanged")) return { check: error.message };
     throw error;
   }
-  return { rows: skipped.rows };
+  // A report carries each row as SIX shows it and what didn't fit.
+  return { rows: skipped.rows.map(({ row, why }) => ({ row, why })) };
 }
 
 const STATUS = "/app/mahasiswa:18223901/statusmhs";
@@ -104,7 +105,7 @@ const SIX_CASES: {
   {
     what: "the fees page's header changes",
     path: "/app/mahasiswa:18223901/keuangan",
-    drift: (html) => html.replace("<th class='text-right'>Pembayaran (Rp)</th>", "<th>Dibayar</th>"),
+    drift: (html) => html.replace("<th class='text-left'>Semester</th>", "<th>Periode</th>"),
     read: (html, skipped) => readBills(html, skipped),
   },
   {
@@ -116,7 +117,7 @@ const SIX_CASES: {
   {
     what: "the transcript's header changes",
     path: "/app/mahasiswa:18223901/statusmhs/transkrip/historis/2021000001",
-    drift: (html) => html.split("Masuk Transkrip").join("Status"),
+    drift: (html) => html.split("<th>Kode</th>").join("<th>Kode MK</th>"),
     read: (html, skipped) => readTranscript(html, { value: null, sks: null }, skipped),
   },
   {
@@ -134,7 +135,7 @@ const SIX_CASES: {
   {
     what: "the KRS's course header changes",
     path: "/app/mahasiswa:18223901+2026-1/registrasi/rencanastudi/2021000001",
-    drift: (html) => html.replace('<th class="text-center">Disetujui</th>', '<th class="text-center">Status</th>'),
+    drift: (html) => html.replace("<th>Kode</th>", "<th>Kode MK</th>"),
     read: (html, skipped) => readKrs(html, skipped),
   },
   {

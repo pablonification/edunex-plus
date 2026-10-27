@@ -13,7 +13,7 @@ import type { CurriculumFix } from "../../../core/models";
 import { hasWhatIfs, type SksModel, type StudentRecord, sksModel } from "../../../core/planner";
 import { useOpenExternal } from "../../hooks";
 import { useT } from "../../i18n";
-import { SixPageNote } from "../../six-page-note";
+import { SixPageNote, UnreadNote } from "../../six-page-note";
 import { useCurriculumFix, usePlan, useStudentRecord } from "../../study-plan";
 import { IconButton, Switch } from "../../ui/controls";
 import { cx } from "../../ui/cx";
@@ -151,7 +151,10 @@ export function Tab({ onCalendar }: { onCalendar?: () => void }) {
   };
   return (
     <div className="@container space-y-6">
-      <SixPageNote datasets={["six.curriculum", "six.progress"]} />
+      <div className="space-y-2 empty:hidden">
+        <SixPageNote datasets={["six.curriculum", "six.progress"]} />
+        <UnreadNote record={record} />
+      </div>
       <Totals
         whatIf={hasWhatIfs(state.plan, record)}
         name={record.curriculum.name}
@@ -487,7 +490,7 @@ function PickStandIn({ record, course, onPick, onClose }: { record: StudentRecor
                 </span>
                 <Meta align="end" className="text-small text-muted tabular-nums">
                   {c.grade}
-                  {`${c.sks} SKS`}
+                  {`${c.sks ?? "-"} SKS`}
                 </Meta>
               </button>
             </li>

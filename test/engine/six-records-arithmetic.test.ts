@@ -2,7 +2,7 @@
 // rounding as SIX shows an index, the newest grade of a retaken course, the
 // target calculator's projection, and the changes the alerts are built on.
 import { describe, expect, it } from "vitest";
-import { checkIndex, cumulativeIndex, gradeChanges, krsChanges, projectIpk, roundIndex, termIndex } from "../../src/core/models";
+import { checkIndex, cumulativeIndex, gradeChanges, type KrsPlan, krsChanges, projectIpk, roundIndex, termIndex } from "../../src/core/models";
 import { readKrs } from "../../src/engine/sources/six/readers/krs";
 import { readTranscript } from "../../src/engine/sources/six/readers/transcript";
 import { PretendSix } from "../pretend/six";
@@ -53,7 +53,7 @@ describe("IP and IPK", () => {
 
   it("projects the IPK from target grades for this term's courses, a retake replacing the old grade", () => {
     const transcript = transcriptOf(new PretendSix(() => 0));
-    const thisTerm = transcript.terms.at(-1)!.courses.map((c) => ({ code: c.code, sks: c.sks, grade: "A" as const }));
+    const thisTerm = transcript.terms.at(-1)!.courses.map((c) => ({ code: c.code, sks: c.sks!, grade: "A" as const }));
     // (408 + 4 × 14) / (125 + 14)
     expect(projectIpk(transcript, thisTerm)).toEqual({ points: 464, sks: 139, value: 3.34 });
     // II3130 again, A instead of C: (408 − 6 + 12) / 125
@@ -98,6 +98,35 @@ describe("what changed, for alerts", () => {
       { kind: "course-changed", code: "KU5014", name: "Teknik Penyelesaian Masalah Terstruktur", classNo: "01", sks: 3, approved: false },
       { kind: "course-removed", code: "PL3032", name: "Ekonomi Infrastruktur dan Transportasi" },
     ]);
+  });
+
+  it("a detail SIX writes another way for a while is no change, going blank or coming back; a real change beside it still is", () => {
+    const plan = readKrs(new PretendSix(() => 0).page(KRS));
+    const blank: KrsPlan = {
+      ...plan,
+      plan: { ...plan.plan, approvedAt: null, undated: ["approvedAt"] },
+      courses: plan.courses.map((c) => (c.code === "DK4073" ? { ...c, classNo: null, sks: null, approved: null } : c)),
+      sks: null,
+    };
+    expect(krsChanges(plan, blank)).toEqual([]);
+    expect(krsChanges(blank, plan)).toEqual([]);
+    const unapproved = { ...blank, courses: blank.courses.map((c) => (c.code === "KU5014" ? { ...c, approved: false } : c)) };
+    expect(krsChanges(blank, unapproved)).toEqual([
+      { kind: "course-changed", code: "KU5014", name: "Teknik Penyelesaian Masalah Terstruktur", classNo: "01", sks: 3, approved: false },
+    ]);
+  });
+
+  it("a step newly done at a time the app can't read is news once, not again when its time reads", () => {
+    const six = new PretendSix(() => 0);
+    six.dropKrsChange();
+    six.krsStep("plan", "Pengesahan KSM", null);
+    six.krsStep("plan", "Persetujuan Dosen Wali", null);
+    const sent = readKrs(six.page(KRS));
+    six.krsStep("plan", "Persetujuan Dosen Wali", "18/08/2026 14:39");
+    const undated = readKrs(six.page(KRS));
+    expect(krsChanges(sent, undated)).toEqual([{ kind: "approved", round: "plan", at: null }]);
+    six.krsStep("plan", "Persetujuan Dosen Wali", "18 Agu 2026 14.39.32");
+    expect(krsChanges(undated, readKrs(six.page(KRS)))).toEqual([]);
   });
 
   it("the change round (URS) approved, and a new term's plan counted from empty", () => {

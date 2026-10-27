@@ -65,6 +65,12 @@ describe("KRS", () => {
     expect(change?.map((s) => s.at)).toEqual([wib("2026-09-15T14:15:10"), wib("2026-09-15T19:18:25"), wib("2026-09-16T11:02:56")]);
   });
 
+  it("a step SIX shows as done at a time the app can't read is done, without a time", () => {
+    const plan = official();
+    const { plan: steps } = krsTimeline({ ...plan, plan: { ...plan.plan, approvedAt: null, undated: ["approvedAt"] } });
+    expect(steps.find((s) => s.key === "approved")).toEqual({ key: "approved", at: null, done: true });
+  });
+
   it("what each state asks of the Student", () => {
     const plan = official();
     expect(krsStage({ ...plan, state: "not-sent" })).toBe("send");
@@ -126,6 +132,8 @@ describe("UKT", () => {
     expect(billUrgency(bill({ status: "paid", paid: 5_400_000, nextDueAt: null }), now)).toBe("paid");
     expect(billUrgency(bill({ status: "not-billed", amount: null, nextDueAt: null }), now)).toBe("not-billed");
     expect(billUrgency(bill({ nextDueAt: null }), now)).toBe("no-date");
+    // SIX writes what's paid another way: not "not paid", whatever the day.
+    expect(billUrgency(bill({ status: "unknown", nextDueAt: null }), wib("2027-02-01T00:00:01"))).toBe("unknown");
     const recorded = readBills(new PretendSix(() => 0).page(/\/keuangan$/));
     expect(recorded.map((b) => billUrgency(b, now)).filter((u) => u !== "paid" && u !== "not-billed")).toEqual([]);
     expect(rupiah(5_400_000)).toBe("Rp5.400.000");

@@ -46,6 +46,7 @@ import {
   onlyFor,
   type ProjectedStep,
   packageKey,
+  passedSks,
   planMinor,
   plannedCodes,
   programElectives,
@@ -68,6 +69,7 @@ import {
   shortTermToAdd,
   showRule,
   sksModel,
+  startingIpk,
   stopFollowing,
   targetOf,
   termKind,
@@ -77,7 +79,7 @@ import {
 import { useFocusNext } from "../../hooks";
 import { useFormat, useLang, useT } from "../../i18n";
 import { usePlaceState } from "../../nav";
-import { SixPageNote } from "../../six-page-note";
+import { SixPageNote, UnreadNote } from "../../six-page-note";
 import { type PlanState, useCurriculumFix, usePlan, useStudentRecord } from "../../study-plan";
 import { Button, IconButton } from "../../ui/controls";
 import { cx } from "../../ui/cx";
@@ -221,7 +223,10 @@ function Planner({ real, record, state }: { real: StudentRecord; record: Student
 
   return (
     <div className="@container space-y-6">
-      <SixPageNote datasets={["six.curriculum"]} />
+      <div className="space-y-2 empty:hidden">
+        <SixPageNote datasets={["six.curriculum"]} />
+        <UnreadNote record={record} />
+      </div>
       <Summary record={record} state={state} rules={rules} />
       <div className="grid grid-cols-1 items-start gap-6 @4xl:grid-cols-[minmax(0,1fr)_340px]">
         <div className="min-w-0 space-y-3">
@@ -536,7 +541,7 @@ function Past({ record, steps }: { record: StudentRecord; steps: ProjectedStep[]
         <Icons.ChevronRight className={cx("size-4 text-faint transition-transform duration-150", open && "rotate-90")} />
         <Meta className="flex-1 text-body font-semibold">
           {t("planner.past", { n: last })}
-          <span className="font-normal text-muted">{t("planner.pastMeta", { sks: record.passedSks, ipk: ipk === null ? "-" : f.number(ipk, 2) })}</span>
+          <span className="font-normal text-muted">{t("planner.pastMeta", { sks: passedSks(record) ?? "-", ipk: ipk === null ? "-" : f.number(ipk, 2) })}</span>
         </Meta>
       </button>
       <DisclosurePanel open={open} id={id}>
@@ -546,7 +551,7 @@ function Past({ record, steps }: { record: StudentRecord; steps: ProjectedStep[]
               <span className="font-medium">{termLabel(s.term, s.semester)}</span>
               <Meta className="text-muted tabular-nums">
                 {`IP ${s.ip === null ? "-" : f.number(s.ip, 2)}`}
-                {`${s.sks} SKS`}
+                {`${s.sks ?? "-"} SKS`}
               </Meta>
             </li>
           ))}
@@ -695,9 +700,12 @@ export function CourseName({ name, className }: { name: string; className?: stri
   );
 }
 
-/** A row's SKS: a bare figure in its column, "3 SKS" on the line under the name in a narrow card (under 34rem). */
-export function Sks({ sks, className }: { sks: number; className?: string }) {
-  return <span className={cx("text-right text-small tabular-nums @max-[34rem]:after:content-['_SKS']", className)}>{sks}</span>;
+/**
+ * A row's SKS: a bare figure in its column, "3 SKS" on the line under the name in a narrow card (under 34rem);
+ * "-" when SIX writes it in a way the app can't read yet, never 0.
+ */
+export function Sks({ sks, className }: { sks: number | null; className?: string }) {
+  return <span className={cx("text-right text-small tabular-nums @max-[34rem]:after:content-['_SKS']", className)}>{sks ?? "-"}</span>;
 }
 
 function CourseLine({
@@ -1281,7 +1289,7 @@ function MinorPanel({
   const stopped = registered && notContinuing(plan, "minor", minor.name);
   const progress = minorProgress(record, plan, minor);
   const have = progress.passed + progress.now + progress.planned;
-  const grade = nearestLetter(record.transcript?.ipk.computed ?? null);
+  const grade = nearestLetter(startingIpk(record));
   const label = (term: string) => termLabel(term, semesterOf(term, record.entryTerm));
   const stateText = (code: string, st: CourseState) =>
     st === "passed" ? t("planner.state.passed", { grade: record.graded.get(code)?.grade ?? "" }) : st ? t(`planner.state.${st}`) : null;
@@ -1427,7 +1435,7 @@ function AddCourse({
   const [query, setQuery] = useState("");
   const minor = activeMinor(record, plan);
   const spec = activeSpecialization(record, plan);
-  const grade = nearestLetter(record.transcript?.ipk.computed ?? null);
+  const grade = nearestLetter(startingIpk(record));
   const add = (code: string, retake: boolean) => {
     const info = courseInfo(record, code);
     onAdd({ code, name: info.name, sks: info.sks, grade, retake });

@@ -390,10 +390,15 @@ describe("a row SIX shows that the app doesn't understand", () => {
     expect(h.dataset("six.courses")).toEqual([{ ...COURSES[0], attendance: null }, { ...COURSES[1], classNo: null, sks: null }, ...COURSES.slice(2)]);
     expect(h.dataset("six.skipped")).toEqual({
       "six.courses": [
-        { row: expect.stringMatching(/^1 · DK4073 · .* · 66\.67% \/ 85\.71%$/), why: "SIX statusmhs: course 1: attendance count and percentage disagree" },
+        {
+          row: expect.stringMatching(/^1 · DK4073 · .* · 66\.67% \/ 85\.71%$/),
+          why: "SIX statusmhs: course 1: attendance count and percentage disagree",
+          blank: true,
+        },
         {
           row: expect.stringMatching(/^2 · II4091 · .* · 01 \/ K2 · 2 \(\+1\) · /),
           why: "SIX statusmhs: course 2 has no class number; SIX statusmhs: course 2 has no SKS",
+          blank: true,
         },
       ],
     });

@@ -5,7 +5,9 @@
 import { act } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 import type { Transcript } from "../../src/core/models";
+import { readTranscript } from "../../src/engine/sources/six/readers/transcript";
 import { records } from "../engine/grades-records";
+import { sixPage } from "../kit/fixtures";
 import { PretendWorld } from "../pretend/world";
 import { openApp } from "./harness";
 
@@ -217,6 +219,55 @@ describe("Nilai", () => {
     expect(now.textContent).toContain("Berlangsung");
     await screen!.click(now);
     expect([...now.parentElement!.querySelectorAll("ul li")].map((li) => li.textContent)).toContain("II4091Proposal Tugas AkhirBelum ada nilai2 SKS-");
+  });
+
+  it("a grade SIX writes another way: the course stays, said to check on SIX, its term's IP and the IPK SIX's, and the estimates say they leave it out", async () => {
+    const s = await openGrades({
+      edit: (t) => {
+        const page = sixPage(/\/transkrip\/historis\/\d+$/).replace(
+          /(<td>FI1101<span[^>]*>-19<\/span><\/td><td>[^<]*<\/td><td>4<\/td><td>)\s*A\s*/,
+          "$1A (remedial)",
+        );
+        Object.assign(t, readTranscript(page, { value: 3.26, sks: 125 }));
+      },
+    });
+    expect(text("main header")).toContain("IPK-mu 3,26.");
+    expect(s.text()).not.toContain("SIX menampilkan IPK");
+    expect(s.text()).toContain("Perkiraan di sini belum menghitung FI1101 karena nilai atau SKS-nya di SIX belum terbaca.");
+    const first = termRow(/^Smt 1 · 2023\/2024 Ganjil/);
+    expect(first.textContent).toContain("IP 3,69");
+    expect(first.textContent).not.toContain("dari baris");
+    await s.click(first);
+    expect([...first.parentElement!.querySelectorAll("ul li")].map((li) => li.textContent)).toContain("FI1101Fisika Dasar IACek di SIX4 SKS-");
+  });
+
+  it("an SKS SIX writes another way shows as -, never as 0", async () => {
+    const s = await openGrades({
+      edit: (t) => {
+        const page = sixPage(/\/transkrip\/historis\/\d+$/).replace(/(<td>FI1101<span[^>]*>-19<\/span><\/td><td>[^<]*<\/td><td>)4/, "$14 SKS");
+        Object.assign(t, readTranscript(page, { value: 3.26, sks: 125 }));
+      },
+    });
+    const first = termRow(/^Smt 1 · 2023\/2024 Ganjil/);
+    await s.click(first);
+    expect([...first.parentElement!.querySelectorAll("ul li")].map((li) => li.textContent)).toContain("FI1101Fisika Dasar IA- SKSA");
+    expect(s.text()).toContain("Perkiraan di sini belum menghitung FI1101");
+  });
+
+  it("with a grade SIX writes another way in the last graded semester, that semester still opens first", async () => {
+    await openGrades({
+      edit: (t) => {
+        const page = sixPage(/\/transkrip\/historis\/\d+$/).replace(
+          /(<td>FK3057<span[^>]*>-\d{2}<\/span><\/td><td>[^<]*<\/td><td>2<\/td><td>)\s*B\s*/,
+          "$1B (remedial)",
+        );
+        Object.assign(t, readTranscript(page, { value: 3.26, sks: 125 }));
+      },
+    });
+    const term = termRow(/^Smt 6 · 2025\/2026 Genap/);
+    expect(term.getAttribute("aria-expanded")).toBe("true");
+    expect(term.textContent).toContain("IP 3,27");
+    expect([...term.parentElement!.querySelectorAll("ul li")].map((li) => li.textContent)).toContain("FK3057Sains Sepak BolaCek di SIX2 SKS-");
   });
 
   it("when SIX's IPK and the rows disagree, says so plainly and shows SIX's figure", async () => {

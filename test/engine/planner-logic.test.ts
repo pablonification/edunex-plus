@@ -29,6 +29,7 @@ import {
   minorProgress,
   onlyFor,
   parseTarget,
+  passedSks,
   planMinor,
   programElectives,
   project,
@@ -52,6 +53,8 @@ import {
   untried,
   withWhatIf,
 } from "../../src/core/planner";
+import { readTranscript } from "../../src/engine/sources/six/readers/transcript";
+import { sixPage } from "../kit/fixtures";
 import { type Records, records } from "./grades-records";
 
 let data: Records;
@@ -124,6 +127,30 @@ describe("the Student's record", () => {
     expect(left).not.toContain("II2100"); // passed with C
     // Courses that fill a slot count there, not also as electives: KU1011 and WI2011 (2 SKS each) used to be counted twice.
     expect(bare.electivePassed).toBe(40);
+  });
+
+  it("a past grade or SKS SIX writes another way counts in none of the app's figures, and is named; this term's SKS comes from another page", () => {
+    const page = sixPage(/\/transkrip\/historis\/\d+$/)
+      .replace(/(<td>FI1101<span[^>]*>-19<\/span><\/td><td>[^<]*<\/td><td>4<\/td><td>)\s*A\s*/, "$1A (remedial)")
+      .replace(/(<td>DK4073<span[^>]*>-24<\/span><\/td><td>[^<]*<\/td><td>)3/, "$13 SKS");
+    const odd = studentRecord({ ...data, transcript: readTranscript(page, { value: 3.26, sks: 125 }), term: "2026-1" });
+    expect(odd.unread).toEqual([{ code: "FI1101", name: "Fisika Dasar IA" }]);
+    expect(odd.graded.has("FI1101")).toBe(false);
+    // DK4073's SKS as the curriculum-position page has it.
+    expect(odd.thisTerm.find((c) => c.code === "DK4073")).toMatchObject({ sks: 3 });
+    // SIX's IP stands for 2023-1; the IPK after it is the rows' without FI1101: (66.5 − 16) / 14.
+    expect(project(odd, defaultPlan(odd)).steps[0]).toMatchObject({ term: "2023-1", ip: 3.69, ipk: 3.61 });
+    expect(record.unread).toEqual([]);
+    // Without a figure of the app's (its IPK goes unchecked), what starts from the IPK starts from SIX's.
+    expect(odd.transcript!.ipk).toMatchObject({ six: 3.26, computed: null });
+    expect(targetOf(odd, defaultPlan(odd))).toBe(targetOf(record, defaultPlan(record)));
+    expect(defaultPlan(odd).expected).toEqual(defaultPlan(record).expected);
+  });
+
+  it("SKS passed as the screens say it: SIX's, the app's own only without SIX's progress page, none when SIX's can't be read", () => {
+    expect(passedSks(record)).toBe(125);
+    expect(passedSks(studentRecord({ ...data, progress: { ...data.progress, sksPassed: null }, term: "2026-1" }))).toBeNull();
+    expect(passedSks(studentRecord({ transcript: data.transcript, curriculum: data.curriculum, term: "2026-1" }))).toEqual(expect.any(Number));
   });
 
   it("numbers semesters from the entry term; short semesters have none", () => {

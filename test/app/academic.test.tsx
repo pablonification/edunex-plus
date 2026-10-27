@@ -8,6 +8,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import type { Bill, ClassSession, DatasetName, KrsPlan, Progress } from "../../src/core/models";
 import { readBills } from "../../src/engine/sources/six/readers/bills";
 import { readKrs } from "../../src/engine/sources/six/readers/krs";
+import { Skipped } from "../../src/engine/sources/skipped";
 import { PretendSix } from "../pretend/six";
 import { PretendWorld } from "../pretend/world";
 import { openApp } from "./harness";
@@ -24,15 +25,15 @@ const KRS = /\/registrasi\/rencanastudi\/\d+$/;
 const BILLS = /\/keuangan$/;
 
 /** The recorded KRS, as SIX staff (or the Student) left it. */
-function krs(edit: (six: PretendSix) => void = () => undefined): KrsPlan {
+function krs(edit: (six: PretendSix) => void = () => undefined, skipped?: Skipped): KrsPlan {
   const six = new PretendSix(() => 0);
   edit(six);
-  return readKrs(six.page(KRS));
+  return readKrs(six.page(KRS), skipped);
 }
-function bills(edit: (six: PretendSix) => void = () => undefined): Bill[] {
+function bills(edit: (six: PretendSix) => void = () => undefined, skipped?: Skipped): Bill[] {
   const six = new PretendSix(() => 0);
   edit(six);
-  return readBills(six.page(BILLS));
+  return readBills(six.page(BILLS), skipped);
 }
 const sentOnly = (six: PretendSix) => {
   six.dropKrsChange();
@@ -132,6 +133,34 @@ describe("the KRS tab", () => {
     // Amber is never the only signal: a warning mark beside the count, and the meaning in the button's name (above).
     expect(early.button(/^Rencana studi/).querySelector(".bg-warning-bg svg")).not.toBeNull();
     expect(early.button(/^Rencana studi/).innerHTML).toContain("warning");
+  });
+
+  it("a course's SKS, the plan's total or a step's time SIX writes another way show as -, never as 0 or as not done; the note names the rows", async () => {
+    const s = await openPlan("2026-10-11T09:00:00+07:00");
+    await inject("six.student", { nim: "18223901", name: "Dimas Pratama", studentId: "2021000001", term: "2026-1", program: null, programCode: null });
+    const skipped = new Skipped();
+    const odd = krs(
+      (six) =>
+        six.editPage(KRS, (html) =>
+          html
+            .replace(/(PL3002[\s\S]*?<td class="text-center">\s*01\s*<\/td><td class="text-center">\s*)3/, "$13 SKS")
+            .replace('<th class="text-center">14 </th>', '<th class="text-center">14 SKS</th>')
+            .replace("15 Sep 2026 19.18.25", "15/09/2026 19:18"),
+        ),
+      skipped,
+    );
+    await inject("six.krs", odd);
+    await inject("six.skipped", { "six.krs": skipped.rows });
+    await s.click(/^Rencana studi/);
+    await tab("KRS");
+    const text = panel();
+    expect(text).toContain("3 baris belum terbaca utuh");
+    expect(text).toContain("PL3002Ekonomi dan Inovasi dalam Perencanaan- SKS");
+    expect(text).toContain("Mata kuliah- dari maks. 24 SKS");
+    expect(text).not.toContain("0 SKS");
+    // Done, at a time the app can't read: done all the same.
+    expect(text).toContain("Perubahan rencana studi (URS)DikirimSel, 15 Sep · 14:15Disetujui dosen wali-Disahkan (KSM)");
+    expect(text).toContain("KRS sudah sah");
   });
 
   it("overlapping classes on SIX's timetable are flagged", async () => {
@@ -237,6 +266,28 @@ describe("the UKT tab", () => {
     expect(panel()).not.toContain("belum dikenali");
     await inject("six.skipped", {});
     expect(panel()).not.toContain("belum dikenali");
+  });
+
+  it("a bill whose payment SIX writes another way stays, with whether it's paid unknown, never 'not paid', and the note names its row", async () => {
+    const s = await openPlan("2027-01-20T09:00:00+07:00");
+    await inject("six.krs", { ...krs(), term: "2026-2" });
+    await inject("six.student", { nim: "18223901", name: "Dimas Pratama", studentId: "2021000001", term: "2026-2", program: null, programCode: null });
+    const skipped = new Skipped();
+    await inject(
+      "six.bills",
+      bills((six) => six.setBill("2026-2", { amount: "5.400.000", paid: "Lunas", due: "31 Jan 2027" }), skipped),
+    );
+    await inject("six.skipped", { "six.bills": skipped.rows });
+    await s.click(/^Rencana studi/);
+    await tab("UKT");
+    const text = panel();
+    expect(text).toContain("1 baris belum terbaca utuhSebagian isinya belum ditampilkan di sini. Cek di SIX.2 - Genap · 5.400.000 · Lunas · 31 Jan 2027");
+    expect(text).toContain("Semester ini · 2026/2027 GenapRp5.400.000Cek di SIX");
+    expect(text).toMatch(/Riwayat2026\/2027 GenapRp5\.400\.00031 Jan 2027Cek di SIX2026\/2027 Ganjil/);
+    expect(text).not.toContain("Belum dibayar");
+    expect(text).not.toContain("Bayar paling lambat");
+    // Nothing the app can't know is owed asks for attention.
+    expect(s.button(/^Rencana studi/).textContent).toBe("Rencana studi");
   });
 
   it("SIX changed its fees page, the rest of SIX read: the tab says so with when its bills are from, and keeps them; with none yet, it says so instead of waiting", async () => {
