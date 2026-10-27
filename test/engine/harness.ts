@@ -29,7 +29,7 @@ export async function startEngine(
     start?: boolean;
     version?: string;
     checkForUpdates?: boolean;
-    /** Where problem reports go with one click (the pretend relay); none by default, as the app ships. */
+    /** Where problem reports go with one click (the pretend relay); none by default, never the real one. */
     relay?: string;
   } = {},
 ): Promise<Harness> {
@@ -48,7 +48,7 @@ export async function startEngine(
     emit: (e) => events.push(e),
     random: () => 0.5,
     log,
-    relay: options.relay,
+    relay: options.relay ?? "",
     os: () => "macOS 15.3 (arm64)",
   });
   // A first start: the tests read alerts in Bahasa Indonesia, which a Student picks in Settings.

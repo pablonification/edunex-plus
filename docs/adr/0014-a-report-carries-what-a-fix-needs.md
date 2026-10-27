@@ -70,8 +70,9 @@ this is the app's side.
 
 - **The relay's address is one constant** (`REPORT_RELAY_URL`, `src/core/links.ts`), shipped
   empty. While it's empty there's no "Kirim", no question, nothing sent by itself: the app is as it
-  was. The maintainer fills it in once the relay runs. Requests go through the engine's door to the
-  network with the app's User-Agent, as every other request it makes (API v1:
+  was. The maintainer fills it in once the relay runs, and has. Tests and the demo never use it:
+  they have no relay unless they ask for the pretend one. Requests go through the engine's door to
+  the network with the app's User-Agent, as every other request it makes (API v1:
   `src/engine/report/relay.ts`).
 - **"Kirim langsung" sits first, with LINE and GitHub**, across the dialog (three tiles side by
   side don't fit it), and posts exactly the report the Student was shown, with their note, which
