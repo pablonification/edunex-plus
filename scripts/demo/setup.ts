@@ -51,6 +51,11 @@ if (!["signed-in", "edunex-only", "first-run"].includes(scenario)) throw new Err
 const platform = process.env.EDUNEX_DEMO_PLATFORM as DemoHooks["platform"];
 if (platform && !["darwin", "win32", "linux"].includes(platform)) throw new Error(`Unknown EDUNEX_DEMO_PLATFORM "${platform}"`);
 
+// The demo's sign-ins are made up and its profile goes on quit, so it never needs the real keychain.
+// Without this, every Electron that runs it (each checkout has its own) makes macOS ask to open
+// "Edunex Plus Demo Safe Storage", and a demo a script started waits on that question unseen.
+app.commandLine.appendSwitch("use-mock-keychain");
+
 // Signed-in demos start a few minutes early: the first sync (SIX at a page every two seconds, ITB's catalog) is played fast before the window opens.
 // Played on through the day, it starts before the morning's class, so the app watches it from the start.
 const start =
