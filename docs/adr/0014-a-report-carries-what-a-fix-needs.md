@@ -1,0 +1,73 @@
+# 14. A problem report carries what a fix needs
+
+Status: accepted (2026-10-27). Adds to [0007](0007-report-a-page-the-app-couldnt-read.md): the report
+it describes now says whether its scrubbed pages still go wrong the same way, shows the rows that
+didn't fit as the page wrote them, says what the problem cost the Student, and carries what the app
+did in the last hour. Changes one rule of 0007: on GitHub the report file is saved whenever it
+carries the app's log, not only when a page goes with it.
+
+## Context
+
+#237 was the first report a Student sent: SIX wrote a sick-day Student's attendance as
+"82.35% / 94.12%", and three of their courses went missing. The report named the rows and the
+check that failed them, but the page never arrived (the Student had to drag a file into GitHub, and
+didn't), and the tooltip that explained the two numbers was only in the page. The maintainer had to
+ask for screenshots. A report that leaves out one thing the fix needs costs a round trip with a
+Student who may not answer.
+
+Three more gaps showed. The scrubber decides what's personal on pages nobody has seen, and nothing
+said when it had also taken out what went wrong. Nothing said what the problem cost the Student
+(a course gone, a screen out of date since when). And the app kept no log: errors went to a console
+nobody sees, so a sign-in that went round, a notification that never showed or the window breaking
+left no trace for a report to carry.
+
+## Decision
+
+- **The scrubbed pages are read again, offline, the way the feed read them** (`src/engine/report/reread.ts`).
+  SIX's pages go through SIX's own client and the feed's own code (the record feeds as they're
+  registered, the status page and the timetable through the readers their feeds call), an Edunex
+  answer through the check its call ran on it, which travels with the request
+  (`HttpRequest.check`) so it's the same schema. The real pages are read first as a control: when
+  even they don't go wrong the same way offline (a page the read needed wasn't kept, what the app
+  knew then has changed), the report says `unknown`. Otherwise `yes` when the scrubbed pages fail
+  the same check, or leave out the same rows for the same reasons, and `no` when they don't.
+- **Each row left out is found in its scrubbed page by its text**, with its table's header row,
+  each up to 2,000 characters, as written (the tooltip too): the public issue can show exactly what
+  didn't fit without the page. Its **shape** comes from the real row before scrubbing, every run of
+  letters an "a" and of digits a "9" ("82.35% / 94.12%" → "9.9% / 9.9%"): nothing of the Student's
+  is left, and the clue stays even where scrubbing made the value up.
+- **Each problem says what it cost**: the datasets it touched (for a page that changed, all the feed
+  fills, as far as the app has seen), how many rows it left out, how many details it left blank (a
+  row read with a detail SIX writes another way, marked `blank` where it's noted), and when the
+  screens' data was last read whole (null: never). When each feed last read whole, and what it
+  stores, is saved with the app's state, so a restart doesn't make it "never".
+- **The app keeps its own log of the last hour, in memory only** (`src/engine/app-log.ts`): each feed's
+  read and how it went, sign-in steps and every change of a source's state, actions that failed,
+  the update check and the updater's steps, which notifications showed and which didn't, what broke
+  in main with nobody to catch it, and the window's own errors (one nobody caught, a promise nobody
+  waited for, a panel its crash guard caught), sent to main over the bridge. 300 lines at most, a
+  line cut to 500 characters, an error by its kind and message, never its stack. Never on disk,
+  never sent anywhere by itself.
+- **Every report carries the log**, scrubbed with that report's rules (which also learn from the log:
+  a NIM in an address, the Student's Edunex id in the address of their notifications), a home
+  folder in any line keeps no owner ("/Users/~/…"), and an id in an address becomes zeros. A report
+  from Settings with no page carries it too, so sign-in problems, crashes and missing notifications
+  come with what led up to them. On GitHub the report file is saved whenever it holds a page or the
+  log, since an issue's address can carry neither. The log starts again when the Student signs out
+  or another Student's data arrives: what the app did for one isn't the next one's to send.
+- **The report's format is 2.** The new fields are optional, and `npm run fixtures:from-report` takes
+  1 and 2 and prints whether the scrubbed pages still fail, the rows as written and the cost.
+- **The Student still sees exactly what goes.** "Laporkan masalah" says the log goes too, and its
+  folded technical details show the verdict, the cost, the rows' markup and shapes, and the log.
+
+## Consequences
+
+- A report can be turned into a failing test without asking the Student anything, and says so
+  when it can't (`no`, `unknown`).
+- The re-read already caught one scrubbing slip: an attendance figure under 5% ("1.00%") is made up
+  as if it were an IP, so a report can say `no` where the Student's attendance is that low. The
+  row's shape still shows "9.9%".
+- A report is built a little slower (each problem's pages are read twice more), only when asked.
+- Main's own errors no longer reach only a console. An uncaught error is only watched, so Electron
+  handles it as before; an unhandled rejection is now caught, logged and printed, instead of being
+  left to Electron's default.

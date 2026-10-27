@@ -6,9 +6,11 @@
 // no notice. Never downloads or installs anything itself: the window links to
 // the release page, and main downloads and installs only when the Student
 // asks (src/desktop/self-update.ts).
+
 import { z } from "zod";
 import type { UpdateCheckResult, UpdateNotice } from "../core/models";
 import { isNewerRelease, isPrerelease, LATEST_RELEASE_API, newestTag, RELEASES_API, releasePageUrl } from "../core/updates";
+import type { AreaLog } from "./app-log";
 import type { Clock, TimerHandle } from "./clock";
 import type { Transport } from "./http/transport";
 import type { Storage } from "./store/storage";
@@ -31,6 +33,8 @@ export interface UpdateCheckDeps {
   userAgent: string;
   /** A newer release, or null when the running version is the latest. */
   publish(notice: UpdateNotice | null): Promise<void>;
+  /** What each check found, for the app's own log (./app-log.ts). */
+  log?: AreaLog;
 }
 
 export interface UpdateCheck {
@@ -74,9 +78,14 @@ export function createUpdateCheck(deps: UpdateCheckDeps): UpdateCheck {
   }
 
   function ask(): Promise<Exclude<UpdateCheckResult, "off">> {
-    asking ??= check().finally(() => {
-      asking = null;
-    });
+    asking ??= check()
+      .then((found) => {
+        deps.log?.(found === "unknown" ? "warn" : "info", `check: ${found}`);
+        return found;
+      })
+      .finally(() => {
+        asking = null;
+      });
     return asking;
   }
 

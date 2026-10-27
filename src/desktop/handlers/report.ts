@@ -11,9 +11,10 @@ import type { HandlerGroup } from "./context";
 
 const SYSTEMS: Partial<Record<NodeJS.Platform, string>> = { darwin: "macOS", win32: "Windows", linux: "Linux" };
 
-export const reportHandlers: HandlerGroup<"report.preview" | "report.save" | "report.open" | "report.reveal"> = (context) =>
+export const reportHandlers: HandlerGroup<"report.preview" | "report.save" | "report.open" | "report.reveal" | "report.windowError"> = (context) =>
   handlersOn({
     engine: context.engine,
+    log: context.log,
     os: () => `${SYSTEMS[process.platform] ?? process.platform} ${process.getSystemVersion()} (${process.arch})`,
     lang: context.lang,
     async save(name, text, replacing) {

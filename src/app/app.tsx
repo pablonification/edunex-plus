@@ -11,12 +11,14 @@ import { Shell } from "./shell/shell";
 import { type AppStore, StoreProvider, useDataset, useSettings, useStatus } from "./store";
 import { Toaster, TooltipProvider } from "./ui/overlays";
 import { PanelBoundary } from "./ui/panel-boundary";
+import { useWindowErrors } from "./window-errors";
 
 export function App({ store, bridge, clock }: { store: AppStore; bridge: Bridge; clock?: UiClock }) {
   // The window chrome differs per system (styles.css: --title-bar, --window-controls), from the first frame.
   useLayoutEffect(() => {
     document.documentElement.dataset.platform = store.platform;
   }, [store.platform]);
+  useWindowErrors(bridge);
   return (
     <StoreProvider store={store} bridge={bridge}>
       <Localized clock={clock}>

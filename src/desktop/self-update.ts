@@ -27,6 +27,7 @@ import { z } from "zod";
 import type { Event } from "../core/contract";
 import type { UpdateBlock, UpdateInstall, UpdateNotice, UpdateProblem } from "../core/models";
 import { RELEASES_REPO } from "../core/updates";
+import { type AreaLog, errorLine } from "../engine/app-log";
 import { EngineError } from "../engine/errors";
 
 /** How this copy puts a new version in place. */
@@ -251,6 +252,8 @@ export interface UpdaterDeps {
   install(kind: UpdateKind, staged: string, reopen: boolean): Promise<void>;
   openPage(url: string): Promise<void>;
   send(state: UpdateInstall): void;
+  /** Each step and what went wrong, for the app's own log (src/engine/app-log.ts). */
+  log?: AreaLog;
 }
 
 export interface Updater {
@@ -350,8 +353,10 @@ export function createUpdater(deps: UpdaterDeps): Updater {
         staged = kind === "mac" ? await deps.unpack(file.path, macArchiveOf(chosen.file.name), notice.version) : file.path;
       }
       set({ step: "ready", progress: 1 });
+      deps.log?.("info", `${notice.version} ready to install${patched ? ", only what changed" : ""}`);
     } catch (error) {
       const problem: UpdateProblem = error instanceof MismatchError ? "mismatch" : isOffline(error) ? "offline" : "failed";
+      deps.log?.(problem === "offline" ? "warn" : "error", `downloading ${notice.version} failed (${problem}): ${errorLine(error)}`);
       set({ step: "failed", progress: null, problem });
     }
   }
@@ -365,6 +370,7 @@ export function createUpdater(deps: UpdaterDeps): Updater {
     const now = state as UpdateInstall;
     if ((now.step === "downloading" || now.step === "ready") && now.version === notice.version) return now;
     staged = null;
+    deps.log?.("info", `downloading ${notice.version}${quiet ? " by itself" : ""}`);
     const started = set({ step: "downloading", version: notice.version, progress: null, problem: null });
     void run(notice, kind, arch, quiet);
     return started;
@@ -395,12 +401,14 @@ export function createUpdater(deps: UpdaterDeps): Updater {
       const now = await current();
       if (now.step !== "ready" || !staged || !way || "blocked" in way) throw new EngineError("Rejected", "No update is ready to install");
       installing = true;
+      deps.log?.("info", "installing, then restarting");
       await deps.install(way.kind, staged, true);
     },
     async installOnQuit() {
       const now = await current();
       if (installing || now.step !== "ready" || !staged || !way || "blocked" in way) return false;
       installing = true;
+      deps.log?.("info", "installing as the app quits");
       await deps.install(way.kind, staged, false);
       return true;
     },

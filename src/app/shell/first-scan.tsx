@@ -21,6 +21,7 @@ import { factsLabel, Meta } from "../ui/layout";
 import { ARRIVE, arriveAt } from "../ui/motion/arrival";
 import { Dialog } from "../ui/overlays";
 import { PanelBoundary } from "../ui/panel-boundary";
+import { windowError } from "../window-errors";
 import { isBuilt } from "./built";
 
 /** What the scan reads. */
@@ -137,6 +138,7 @@ class Quiet extends Component<{ children: ReactNode }, { broken: boolean }> {
   }
   componentDidCatch(error: unknown) {
     console.error("[first-run scan]", error);
+    windowError("panel", error, "first-run scan");
   }
   render() {
     return this.state.broken ? null : this.props.children;

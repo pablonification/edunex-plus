@@ -36,6 +36,10 @@ Everything stays on your computer:
 - **A page the app couldn't read** (one whose layout changed, or with rows it doesn't recognise)
   is kept in memory while it can't, never on disk, so you can report it if you want to. It's gone
   once that page reads again or you sign out.
+- **What the app did in the last hour** (which pages it read and how that went, sign-in steps,
+  updates, which notifications showed, errors, the window breaking) is kept in memory only, 300
+  lines at most, never on disk, so a problem report can say what led up to it. Quitting the app
+  forgets it.
 
 **Settings → Keluar** (sign out of everything) removes every session and every saved trace
 from this computer.
@@ -55,11 +59,11 @@ Nothing leaves your computer except the app's own requests to:
   (the default), otherwise only when you press **Download & install**;
 - **A problem report** ("Laporkan masalah"), only when you send one and only what it showed
   you first: the app's version, your computer's system, which page couldn't be read and why, that
-  page with your name, NIM, contacts and links replaced and your grades and amounts made up, and
-  what you wrote. The app doesn't send it itself. For LINE, it saves the report as a file in
+  page with your name, NIM, contacts and links replaced and your grades and amounts made up, what
+  the app did in the last hour with the same details taken out, and what you wrote. The app doesn't send it itself. For LINE, it saves the report as a file in
   Downloads and shows the maintainer's LINE code, and you send them the file there. For GitHub, it
-  opens a new issue, filled in (public, so anyone can read it), and saves the page as a file for you
-  to add to it;
+  opens a new issue, filled in (public, so anyone can read it), and saves the report as a file (the
+  page, and what the app did) for you to add to it;
 - **ntfy** (`ntfy.sh`), only if you turn on phone notifications: the alert's text (for example
   a Task's name and deadline), sent under a private code that only this app and your phones
   use. ntfy's operator can read these messages, and Settings says so. Turning it off cancels

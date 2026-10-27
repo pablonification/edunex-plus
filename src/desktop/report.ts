@@ -11,13 +11,16 @@
 import { randomUUID } from "node:crypto";
 import path from "node:path";
 import type { Lang } from "../core/models";
-import { hasPages, type ReportPreview, reportFile, reportFileName, reportIssueUrl } from "../core/report";
+import { needsFile, type ReportPreview, reportFile, reportFileName, reportIssueUrl } from "../core/report";
+import type { AppLog } from "../engine/app-log";
 import type { Engine } from "../engine/engine";
 import { EngineError } from "../engine/errors";
 import type { Handlers } from "./ipc";
 
 export interface ReportDesk {
   engine: Pick<Engine, "report">;
+  /** The app's own log, which every report carries: the window's errors go in it. */
+  log: Pick<AppLog, "add">;
   /** The computer's system, as the report names it ("macOS 15.3 (arm64)"). */
   os(): string;
   lang(): Lang;
@@ -31,7 +34,7 @@ export interface ReportDesk {
   reveal(file: string): void;
 }
 
-export function reportHandlers(desk: ReportDesk): Pick<Handlers, "report.preview" | "report.save" | "report.open" | "report.reveal"> {
+export function reportHandlers(desk: ReportDesk): Pick<Handlers, "report.preview" | "report.save" | "report.open" | "report.reveal" | "report.windowError"> {
   /** The report the window shows now: the only one it can send. */
   let shown: ReportPreview | null = null;
   /** Its file, once saved. */
@@ -43,13 +46,13 @@ export function reportHandlers(desk: ReportDesk): Pick<Handlers, "report.preview
 
   return {
     "report.preview": async (about) => {
-      shown = { id: randomUUID(), os: desk.os(), report: desk.engine.report(about) };
+      shown = { id: randomUUID(), os: desk.os(), report: await desk.engine.report(about) };
       saved = null;
       return shown;
     },
     "report.save": async ({ id, via, note }) => {
       const report = showing(id);
-      if (via === "github" && !hasPages(report)) return { file: null };
+      if (via === "github" && !needsFile(report)) return { file: null };
       const text = reportFile(report, note);
       const file = await desk.save(reportFileName(report.report.at), text, saved?.id === id ? saved.file : null);
       saved = { id, file };
@@ -62,6 +65,10 @@ export function reportHandlers(desk: ReportDesk): Pick<Handlers, "report.preview
     "report.reveal": async ({ id }) => {
       if (saved?.id !== id) throw new EngineError("Rejected", "No file was saved for that report");
       desk.reveal(saved.file);
+      return {};
+    },
+    "report.windowError": async ({ kind, where, message }) => {
+      desk.log.add("error", "window", where ? `${kind} in ${where}: ${message}` : `${kind}: ${message}`);
       return {};
     },
   };

@@ -6,13 +6,20 @@ import { type BrowserWindow, ipcMain } from "electron";
 import type { z } from "zod";
 import { CHANNEL_INVOKE } from "../core/channels";
 import { type ActionName, type ActionOutput, type ActionResult, Actions, type ErrorKind } from "../core/contract";
+import { type AreaLog, errorLine } from "../engine/app-log";
 import { isEngineError } from "../engine/errors";
 
 export type Handlers = { [N in ActionName]: (input: z.infer<(typeof Actions)[N]["input"]>) => Promise<ActionOutput<N>> };
 
 const failure = (kind: ErrorKind, message: string): ActionResult<never> => ({ ok: false, error: { kind, message } });
 
-export function registerBridge(options: { window: () => BrowserWindow | null; isAppUrl: (url: string) => boolean; handlers: Handlers }): void {
+export function registerBridge(options: {
+  window: () => BrowserWindow | null;
+  isAppUrl: (url: string) => boolean;
+  handlers: Handlers;
+  /** An action that failed in a way nobody planned for, for the app's own log (src/engine/app-log.ts). */
+  log?: AreaLog;
+}): void {
   ipcMain.handle(CHANNEL_INVOKE, async (event, name: unknown, input: unknown): Promise<ActionResult<unknown>> => {
     const window = options.window();
     const frame = event.senderFrame;
@@ -29,6 +36,7 @@ export function registerBridge(options: { window: () => BrowserWindow | null; is
     } catch (error) {
       if (isEngineError(error)) return failure(error.kind, error.message);
       console.error(`[bridge] ${action} failed:`, error);
+      options.log?.("error", `${action} failed: ${errorLine(error)}`);
       return failure("Failed", "Something went wrong in the app");
     }
   });

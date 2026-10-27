@@ -5,7 +5,8 @@
 // against the pretend SIX and Edunex, and main's real report handlers; only Downloads, the browser
 // and the file manager are pretend.
 import { act } from "react";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { windowError } from "../../src/app/window-errors";
 import { openApp } from "./harness";
 
 let screen: Awaited<ReturnType<typeof openApp>> | null = null;
@@ -60,6 +61,9 @@ describe("reporting a SIX page the app couldn't read, on LINE", () => {
 
     await s.click("Detail teknis");
     expect(dialog()).toContain('SIX finance page: the bills header has no "Semester" column');
+    // That the scrubbed page fails the same way, and what it cost: the fees as last read whole.
+    expect(dialog()).toContain("Tanpa data pribadimu pun, halaman ini masih gagal dibaca dengan cara yang sama.");
+    expect(dialog()).toMatch(/six\.bills · Terakhir terbaca utuh /);
     expect(dialog()).toContain("/keuangan");
     expect(document.querySelector("[role=dialog] pre")?.textContent).toContain("<th>Periode</th>");
     await s.click("Detail teknis");
@@ -70,7 +74,7 @@ describe("reporting a SIX page the app couldn't read, on LINE", () => {
     const [file] = s.reports.files;
     expect(file!.name).toMatch(reportFile);
     expect(JSON.parse(file!.text)).toMatchObject({
-      format: 1,
+      format: 2,
       os: "macOS 15.3 (arm64)",
       note: "membuka tab UKT",
       problems: [{ feed: "six.bills", kind: "changed", pages: [{ system: "six", path: "/app/mahasiswa:18223901/keuangan" }] }],
@@ -147,20 +151,23 @@ describe("reporting Edunex changing something, on GitHub", () => {
 });
 
 describe("reporting from Settings", () => {
-  it("with nothing the app couldn't read, says so; GitHub needs no file and opens the bug form, LINE still sends one with the note", async () => {
+  it("with nothing the app couldn't read, says so; what the app did goes along, in a file on GitHub too, and the bug form opens", async () => {
     const s = (screen = await openApp({ signedIn: true }));
     await s.apply({ type: "command", command: "settings" });
     await s.click("Laporkan masalah");
     expect(dialog()).not.toContain("Pengaturan");
     expect(dialog()).toContain("Saat ini tidak ada halaman yang gagal dibaca.");
-    expect(s.has("Detail teknis")).toBe(false);
+    expect(dialog()).toContain("Yang dilakukan aplikasi sejam terakhir juga ikut dikirim, tanpa data pribadimu.");
     await note("jadwal hari Senin kosong");
 
     await s.click(/^Buka di GitHub/);
-    expect(s.reports.files).toEqual([]);
-    expect(dialog()).toContain("1Buka laporan baru di GitHub");
-    expect(dialog()).toContain("2Periksa isinya, lalu kirim");
-    expect(s.has("Tampilkan di Finder")).toBe(false);
+    const [file] = s.reports.files;
+    expect(JSON.parse(file!.text)).toMatchObject({
+      problems: [],
+      log: expect.arrayContaining([expect.objectContaining({ area: "edunex.account", message: "ok" })]),
+    });
+    expect(dialog()).toContain("2Buka laporan baru di GitHub");
+    expect(dialog()).toContain("3Seret berkasnya ke kotak terakhir, lalu kirim");
     await s.click("Buka GitHub");
     const issue = new URL(s.reports.opened[0]!);
     expect(issue.searchParams.get("template")).toBe("bug.yml");
@@ -170,5 +177,54 @@ describe("reporting from Settings", () => {
     await s.click("Kembali");
     await s.click(/^Kirim lewat LINE/);
     expect(JSON.parse(s.reports.files[0]!.text)).toMatchObject({ problems: [], note: "jadwal hari Senin kosong" });
+  });
+});
+
+describe("a row the app left out, in a report", () => {
+  it("shows the row as SIX wrote it, its real shape, whether the scrubbed page still leaves it out, and what it cost", async () => {
+    const s = (screen = await openApp({ signedIn: true, six: true }));
+    s.world.six.changeLayout(/\/statusmhs$/, "<td>PL3002</td>", "<td>PL-3002</td>");
+    await s.engineDoes(() => s.engine.refresh("six"));
+    await s.apply({ type: "command", command: "settings" });
+    await s.click("Laporkan masalah");
+    expect(dialog()).toContain("1 baris di halaman status mahasiswa belum dikenali");
+    await s.click("Detail teknis");
+    expect(dialog()).toContain("Tanpa data pribadimu pun, halaman ini masih gagal dibaca dengan cara yang sama.");
+    expect(dialog()).toMatch(/six\.courses · 1 baris belum dikenali · Terakhir terbaca utuh /);
+    expect(dialog()).toContain("Bentuk asli barisnya: 9 · a-9 · a a a a a · 9 · 9 · 9.9%");
+    const code = [...document.querySelectorAll("[role=dialog] pre")].map((pre) => pre.textContent);
+    expect(code).toContain(
+      `<tr><th></th><th>Kode</th><th>Mata Kuliah</th><th class="text-center">Kelas</th><th class="text-center">SKS</th><th class="text-right">Kehadiran</th><th class="text-center">Nilai</th></tr>\n<tr><th scope="row" class='text-right'>4</th><td>PL-3002</td><td>Ekonomi dan Inovasi dalam Perencanaan</td><td class="text-center">01</td><td class="text-center">3</td><td class="text-right"><span title="Hadir 6 dari 7 pertemuan">85.71%</span></td><td class="text-center"></td></tr>`,
+    );
+  });
+});
+
+describe("what the app did, in a report", () => {
+  it("the window's own errors reach it, and the report shows it under the technical details", async () => {
+    const s = (screen = await openApp({ signedIn: true }));
+    const quiet = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    // A panel breaks, and something the window started fails with nobody to catch it.
+    const good = s.store.dataset("edunex.courses")!;
+    await s.apply({ type: "dataset", dataset: { ...good, value: { not: "a list" }, hash: "broken" } });
+    await act(async () => {
+      window.dispatchEvent(Object.assign(new Event("unhandledrejection"), { reason: new TypeError("fetch failed") }));
+    });
+    await s.apply({ type: "dataset", dataset: good });
+    quiet.mockRestore();
+
+    await s.apply({ type: "command", command: "settings" });
+    await s.click("Laporkan masalah");
+    await s.click("Detail teknis");
+    const shown = [...document.querySelectorAll("[role=dialog] pre")].map((pre) => pre.textContent).join("\n");
+    expect(shown).toMatch(/error {2}window {2}panel in [\w:-]+: TypeError: /);
+    expect(shown).toContain("error  window  rejection: TypeError: fetch failed");
+    expect(shown).toContain("info  edunex.account  ok");
+  });
+
+  it("a panel that breaks as the window first draws reaches it too", async () => {
+    // Before the window is connected to main: a crash guard catching on the very first draw.
+    windowError("panel", new TypeError("courses is not iterable"), "sidebar");
+    const s = (screen = await openApp({ signedIn: true }));
+    expect(s.log.entries().map((entry) => entry.message)).toContain("panel in sidebar: TypeError: courses is not iterable");
   });
 });

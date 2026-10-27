@@ -43,7 +43,30 @@ export const reportStrings = {
     id: "Saat ini tidak ada halaman yang gagal dibaca. Laporannya berisi versi aplikasi, sistem komputermu, dan ceritamu.",
     en: "No page is failing to read right now. The report has the app's version, your computer's system and what you write.",
   },
+  "report.logGoes": {
+    id: "Yang dilakukan aplikasi sejam terakhir juga ikut dikirim, tanpa data pribadimu.",
+    en: "What the app did in the last hour goes too, without your details.",
+  },
   "report.details": { id: "Detail teknis", en: "Technical details" },
+  // In the technical details: how the scrubbed page reads, what the problem cost, the rows, the app's log
+  "report.reproduces.yes": {
+    id: "Tanpa data pribadimu pun, halaman ini masih gagal dibaca dengan cara yang sama.",
+    en: "Without your details, the page still fails to read the same way.",
+  },
+  "report.reproduces.no": {
+    id: "Tanpa data pribadimu, halaman ini tidak lagi gagal dengan cara yang sama.",
+    en: "Without your details, the page no longer fails the same way.",
+  },
+  "report.reproduces.unknown": {
+    id: "Belum bisa dicek apakah halaman ini masih gagal tanpa data pribadimu.",
+    en: "Couldn't check whether the page still fails without your details.",
+  },
+  "report.impact.rows": { id: "{count} baris belum dikenali", en: { one: "{count} row not recognised", other: "{count} rows not recognised" } },
+  "report.impact.blank": { id: "{count} isian dikosongkan", en: { one: "{count} detail left blank", other: "{count} details left blank" } },
+  "report.impact.lastGood": { id: "Terakhir terbaca utuh {when}", en: "Last read whole {when}" },
+  "report.impact.neverGood": { id: "Belum pernah terbaca utuh", en: "Never read whole yet" },
+  "report.cell": { id: "Bentuk asli barisnya: {shape}", en: "The row's real shape: {shape}" },
+  "report.log": { id: "Yang dilakukan aplikasi sejam terakhir", en: "What the app did in the last hour" },
   "report.note": { id: "Apa yang sedang kamu lakukan?", en: "What were you doing?" },
   "report.notePlaceholder": { id: "Opsional, misalnya membuka tab UKT", en: "Optional, for example opening the UKT tab" },
   "report.how": { id: "Kirim lewat", en: "Send it through" },

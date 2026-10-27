@@ -12,6 +12,7 @@ import type { Settings } from "../core/models";
 import { DEFAULT_SETTINGS, UpdateNotice } from "../core/models";
 import type { Route } from "../core/route";
 import { translate } from "../core/strings";
+import { AppLog, errorLine } from "../engine/app-log";
 import { systemClock } from "../engine/clock";
 import { createEngine, type Engine } from "../engine/engine";
 import { demo, demoPhone } from "./demo";
@@ -77,10 +78,19 @@ let readyToQuit = false;
 let vaultKey: Buffer | null = null;
 /** The engine's clock: the demo's runs at its own made-up moment. */
 const clock = demo?.clock ?? systemClock;
+/** The app's own log, in memory only: what main and the engine did in the last hour, for a problem report. */
+const log = new AppLog(() => clock.now());
+// What breaks in main with nobody to catch it goes in the log too. A monitor: Electron still says so as it always has.
+process.on("uncaughtExceptionMonitor", (error) => log.add("error", "main", `uncaught ${errorLine(error)}`));
+process.on("unhandledRejection", (reason) => {
+  log.add("error", "main", `unhandled rejection ${errorLine(reason)}`);
+  console.error("[main] unhandled rejection:", reason);
+});
 const notifier = createNotifier({
   lang: () => engine?.snapshot().settings.lang ?? DEFAULT_SETTINGS.lang,
   open: openRoute,
   openCheckIn: checkIn,
+  log: log.for("notifications"),
 });
 
 if (!app.requestSingleInstanceLock()) {
@@ -137,6 +147,7 @@ async function start(): Promise<void> {
     // The demo's made-up alerts stay in the app: no OS notifications, nothing to a phone.
     alert: (notice) => void (demo ? undefined : notifier.show(notice)),
     phone: demo ? demoPhone : { ntfy: ntfyClient(ntfySession) },
+    log,
   });
   engine = current;
   await current.load();
@@ -146,6 +157,7 @@ async function start(): Promise<void> {
     packaged: packaged && !demo,
     userAgent: `EdunexPlus/${__APP_VERSION__} (+https://github.com/pablonification/edunex-plus)`,
     session: session.fromPartition("updates", { cache: false }),
+    log: log.for("update"),
     notice: () => {
       const dataset = current.snapshot().datasets.find((entry) => entry.name === "app.update");
       const notice = dataset && UpdateNotice.safeParse(dataset.value);
@@ -194,6 +206,7 @@ async function start(): Promise<void> {
     startSyncing,
     notifier,
     updater,
+    log,
   };
   const handlers: Handlers = {
     ...coreHandlers(context),
@@ -208,7 +221,7 @@ async function start(): Promise<void> {
     ...phoneHandlers(context),
     ...reportHandlers(context),
   };
-  registerBridge({ window: () => window, isAppUrl, handlers });
+  registerBridge({ window: () => window, isAppUrl, handlers, log: log.for("bridge") });
   theme = followTheme(() => window, currentPlatform());
   applySettings(current.snapshot().settings);
 
@@ -344,6 +357,7 @@ async function explainTray(current: Engine): Promise<void> {
 
 function fail(error: unknown): void {
   console.error("[main] start failed:", error);
+  log.add("error", "main", `start failed: ${errorLine(error)}`);
   dialog.showErrorBox(
     translate(engine?.snapshot().settings.lang ?? DEFAULT_SETTINGS.lang, "app.startFailed"),
     error instanceof Error ? error.message : String(error),

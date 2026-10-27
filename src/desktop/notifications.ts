@@ -11,18 +11,28 @@ import type { AlertText, Lang } from "../core/models";
 import type { Route } from "../core/route";
 import { translate } from "../core/strings";
 import type { AlertNotice } from "../engine/alerts/center";
+import { type AreaLog, errorLine } from "../engine/app-log";
 
 export interface Notifier {
   /** Shows the alert; false when this system can't show notifications. */
   show(notice: Pick<AlertNotice, "id" | "kind" | "title" | "body" | "target" | "checkIn">): boolean;
 }
 
-export function createNotifier(options: { lang: () => Lang; open: (route: Route) => void; openCheckIn: (meetingId: string) => void }): Notifier {
+export function createNotifier(options: {
+  lang: () => Lang;
+  open: (route: Route) => void;
+  openCheckIn: (meetingId: string) => void;
+  /** Which alerts showed and which didn't, for the app's own log (src/engine/app-log.ts): their kind, never their words. */
+  log?: AreaLog;
+}): Notifier {
   const live = new Set<Notification>();
   const text = (part: AlertText) => translate(options.lang(), part.key, part.vars);
   return {
     show(notice) {
-      if (!Notification.isSupported()) return false;
+      if (!Notification.isSupported()) {
+        options.log?.("warn", `${notice.kind} not shown: this system shows no notifications`);
+        return false;
+      }
       const notification = new Notification({
         title: text(notice.title),
         body: notice.body ? text(notice.body) : undefined,
@@ -40,8 +50,10 @@ export function createNotifier(options: { lang: () => Lang; open: (route: Route)
       notification.on("failed", (_event, error) => {
         forget();
         console.error("[notifications] not shown:", error);
+        options.log?.("error", `${notice.kind} not shown: ${errorLine(error)}`);
       });
       notification.show();
+      options.log?.("info", `${notice.kind} shown`);
       return true;
     },
   };

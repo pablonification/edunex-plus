@@ -1,6 +1,7 @@
 // The engine: sources, feeds, the dataset store and per-source status, with
 // the network, time, disk and keychain injected. The desktop shell runs it in
 // Electron's main process; tests run it whole against the pretend world.
+import { z } from "zod";
 import type { Event, Snapshot } from "../core/contract";
 import {
   type DatasetName,
@@ -19,11 +20,12 @@ import { AlertCenter, type AlertNotice } from "./alerts/center";
 import type { Detector } from "./alerts/detector";
 import { DETECTORS } from "./alerts/detectors";
 import { type Ntfy, PhoneChannel } from "./alerts/phone";
+import { AppLog, errorLine } from "./app-log";
 import type { Clock } from "./clock";
 import { EngineError, isEngineError, PartChanged } from "./errors";
 import { Pace } from "./http/pace";
 import type { Transport } from "./http/transport";
-import { KeptPages } from "./report/kept-pages";
+import { type FeedHistory, KeptPages } from "./report/kept-pages";
 import { buildReport } from "./report/report";
 import { type AnySource, SOURCES } from "./sources";
 import type { FeedSpec, SourceContext } from "./sources/source";
@@ -50,6 +52,8 @@ export interface EngineDeps {
   detectors?: readonly Detector[];
   /** Asks GitHub once a day for a newer release (packaged builds only). */
   checkForUpdates?: boolean;
+  /** The app's own log, which main writes to as well (the window's errors, the updater). One of its own without it. */
+  log?: AppLog;
 }
 
 export interface Engine {
@@ -78,7 +82,7 @@ export interface Engine {
    * "Laporkan masalah": what the app couldn't read about `about`, scrubbed of everything personal
    * (report/report.ts). The pages behind it are kept in memory only, until their source signs out.
    */
-  report(about: ReportAbout): ProblemReport;
+  report(about: ReportAbout): Promise<ProblemReport>;
   /** The Student's phone, through ntfy: link it, a test, unlink it. */
   readonly phone: Pick<PhoneChannel, "link" | "connect" | "test" | "disconnect" | "idle">;
   /**
@@ -107,15 +111,26 @@ function loadSettings(saved: unknown): Settings {
   return Settings.parse(Object.fromEntries(each));
 }
 
+/** Source states that are the app going about its work; the others are worth a warning in the log. */
+const QUIET_STATES = new Set<SourceStatus["state"]>(["connecting", "live", "signed-out"]);
+
+/** How much a failure matters in the log: a page that changed or a refusal is an error, no answer or an ended session a warning. */
+const levelOf = (error: unknown) => (isEngineError(error, "Offline") || isEngineError(error, "Unauthorized") ? "warn" : "error");
+
+/** When each feed last read well and what it stores (report/kept-pages.ts), as saved with the state. */
+const FeedHistories = z.record(z.string().max(60), z.object({ fills: z.array(z.string().max(60)).max(30), goodAt: z.number().nullable() }));
+
 /** Where each source keeps the rows its reads left out. */
 const SKIPPED: Partial<Record<SourceId, "six.skipped">> = { six: "six.skipped" };
 
 export function createEngine(deps: EngineDeps): Engine {
   const { clock, storage, vault } = deps;
+  const log = deps.log ?? new AppLog(() => clock.now());
   const sources = new Map((deps.sources ?? SOURCES).map((source) => [source.id, source]));
   const store = new DatasetStore(storage, (event) => {
     deps.emit(event);
     alerts.observe(event);
+    followStudent(event);
   });
   const statuses = new Map<SourceId, SourceStatus>(SourceId.options.map((source) => [source, { source, state: "signed-out", updatedAt: null, detail: null }]));
   let settings: Settings = DEFAULT_SETTINGS;
@@ -127,6 +142,7 @@ export function createEngine(deps: EngineDeps): Engine {
     lang: () => settings.lang,
     quiet: () => settings.phoneQuietHours,
     courses: () => store.get("edunex.courses") ?? [],
+    log: log.for("phone"),
   });
   const alerts = new AlertCenter({
     clock,
@@ -147,6 +163,7 @@ export function createEngine(deps: EngineDeps): Engine {
     },
     upcoming: (planned) => phone.upcoming(planned),
     forget: async () => void (await phone.disconnect()),
+    log: log.for("alerts"),
   });
   /** The latest outcome of every feed: null when it worked. */
   const outcomes = new Map<string, EngineError | null>();
@@ -178,6 +195,7 @@ export function createEngine(deps: EngineDeps): Engine {
         storage,
         version: deps.version,
         userAgent,
+        log: log.for("update"),
         publish: async (notice) => {
           if (notice) await store.set("app.update", notice, clock.now());
           else await store.remove("app.update");
@@ -188,13 +206,32 @@ export function createEngine(deps: EngineDeps): Engine {
   const generation = (source: SourceId) => generations.get(source) ?? 0;
 
   async function saveState(): Promise<void> {
-    await storage.write("state.json", JSON.stringify({ format: STATE_FORMAT, settings, statuses: [...statuses.values()] }));
+    await storage.write("state.json", JSON.stringify({ format: STATE_FORMAT, settings, statuses: [...statuses.values()], feeds: kept.histories() }));
+  }
+
+  /** Whose data each source holds now (their NIM). */
+  const students = new Map<SourceId, string>();
+  /**
+   * Another Student's data arriving on this computer: what the app did and read for the one before
+   * isn't this one's to report (the log, when each feed last read well).
+   */
+  function followStudent(event: Event): void {
+    if (event.type !== "dataset") return;
+    const source = event.dataset.name === "edunex.account" ? "edunex" : event.dataset.name === "six.student" ? "six" : null;
+    const nim = (event.dataset.value as { nim?: unknown } | null)?.nim;
+    if (!source || typeof nim !== "string") return;
+    const before = students.get(source);
+    students.set(source, nim);
+    if (!before || before === nim) return;
+    log.clear();
+    kept.forgetReads(source);
   }
 
   function setStatus(source: SourceId, patch: Partial<SourceStatus>): void {
     const current = statuses.get(source)!;
     const next = { ...current, ...patch };
     if (JSON.stringify(next) === JSON.stringify(current)) return;
+    if (next.state !== current.state) log.add(QUIET_STATES.has(next.state) ? "info" : "warn", source, `${current.state} → ${next.state}`);
     statuses.set(source, next);
     deps.emit({ type: "status", status: next });
     void saveState();
@@ -301,10 +338,16 @@ export function createEngine(deps: EngineDeps): Engine {
           if (sources.get(source)?.session) await kept.during({ feed: spec.name, shows: spec.shows ?? spec.part, now: () => clock.now(), current }, read);
           else await read();
         } catch (error) {
-          if (current()) await settle(spec.name, error);
+          if (current()) {
+            log.add(levelOf(error), spec.name, errorLine(error));
+            await settle(spec.name, error);
+          }
           throw error; // so the scheduler backs this feed off
         }
-        if (current()) await settle(spec.name, null);
+        if (current()) {
+          log.add("info", spec.name, "ok");
+          await settle(spec.name, null);
+        }
       },
     });
   }
@@ -332,7 +375,7 @@ export function createEngine(deps: EngineDeps): Engine {
           const sent = ++tick;
           const response = await deps.transport.request(request);
           if (request.method === "GET" && (response.status < 300 || response.status >= 400))
-            kept.saw({ url: request.url, status: response.status, body: response.body });
+            kept.saw({ url: request.url, status: response.status, body: response.body, check: request.check });
           if (response.status < 500 && response.status !== 429) answered.set(source, Math.max(answered.get(source) ?? 0, sent));
           return response;
         },
@@ -368,6 +411,7 @@ export function createEngine(deps: EngineDeps): Engine {
         if (!current()) return false;
         const changed = await store.set(name, value, clock.now());
         kept.leftOut(name, skipped);
+        if (skipped.length) log.add("warn", name, skipped.length === 1 ? "1 row left out" : `${skipped.length} rows left out`);
         // Read again but unchanged: plans that look at when it was read still need to know.
         if (!changed) alerts.touched(name);
         const notes = skippedNotes(source, name, skipped);
@@ -405,6 +449,13 @@ export function createEngine(deps: EngineDeps): Engine {
       await store.load();
       await alerts.load();
       await phone.load();
+      for (const [source, name] of [
+        ["edunex", "edunex.account"],
+        ["six", "six.student"],
+      ] as const) {
+        const nim = store.get(name)?.nim;
+        if (nim) students.set(source, nim);
+      }
       // A notice saved before this version was installed.
       const notice = store.get("app.update");
       if (notice && !isNewerRelease(notice.version, deps.version)) await store.remove("app.update");
@@ -416,6 +467,8 @@ export function createEngine(deps: EngineDeps): Engine {
             const parsed = SourceStatus.safeParse(status);
             if (parsed.success) statuses.set(parsed.data.source, parsed.data);
           }
+          const feeds = FeedHistories.safeParse(saved.feeds ?? {});
+          if (feeds.success) kept.remember(feeds.data as Record<string, FeedHistory>);
         }
       } catch {
         // Unreadable state: start from defaults.
@@ -463,6 +516,7 @@ export function createEngine(deps: EngineDeps): Engine {
       if (!source?.session) throw new EngineError("Rejected", `${id} has no sign-in`);
       const parsed = source.session.safeParse(raw);
       if (!parsed.success) throw new EngineError("Rejected", `That isn't a ${id} session`);
+      log.add("info", id, "signing in");
       endSession(id);
       await vault.set(sessionKey(id), JSON.stringify({ ...parsed.data, savedAt: clock.now() }));
       setStatus(id, { state: "connecting", detail: null, changedPages: undefined });
@@ -473,9 +527,13 @@ export function createEngine(deps: EngineDeps): Engine {
     },
 
     async signOut(only) {
+      // What the app did for this Student is theirs alone: the next one's reports start without it.
+      log.clear();
       for (const source of sources.values()) {
         if (!source.session || (only && source.id !== only)) continue;
         endSession(source.id);
+        kept.forgetReads(source.id);
+        students.delete(source.id);
         await vault.delete(sessionKey(source.id));
         await store.remove(`${source.id}.`);
         setStatus(source.id, { state: "signed-out", updatedAt: null, detail: null, changedPages: undefined });
@@ -518,8 +576,11 @@ export function createEngine(deps: EngineDeps): Engine {
       if (!source || !action) throw new EngineError("Rejected", `Unknown action ${id}.${name}`);
       if (source.session && !sessions.has(id)) throw new EngineError("Unauthorized", `Sign in to ${id} first`);
       try {
-        return await action(contextFor(id), sessions.get(id), input);
+        const done = await action(contextFor(id), sessions.get(id), input);
+        log.add("info", `${id}.${name}`, "ok");
+        return done;
       } catch (error) {
+        log.add(levelOf(error), `${id}.${name}`, errorLine(error));
         // A refusal asks the liveness check, which alone may end the session. No answer at all asks every
         // signed-in source, so the status says what's reachable within seconds, not at the next sync.
         if (isEngineError(error, "Unauthorized")) void checkLiveness(id);
@@ -548,7 +609,9 @@ export function createEngine(deps: EngineDeps): Engine {
         kept: kept.list(),
         about,
         get: (name) => store.get(name),
+        fetchedAt: (name) => store.fetchedAt(name),
         statuses: [...statuses.values()],
+        log: log.entries(),
         version: deps.version,
         now: clock.now(),
         seed: Math.floor((deps.random ?? Math.random)() * 2 ** 32),

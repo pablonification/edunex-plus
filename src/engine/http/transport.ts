@@ -4,6 +4,16 @@
 
 export type HttpMethod = "GET" | "HEAD" | "POST" | "PUT" | "PATCH" | "DELETE";
 
+/** An answer as its caller checks it: where it came from (its path), its status, its body. */
+export interface Answer {
+  path: string;
+  status: number;
+  body: string;
+}
+
+/** How a caller checks an answer: throws an EngineError when it doesn't fit. */
+export type AnswerCheck = (answer: Answer) => unknown;
+
 export interface HttpRequest {
   method: HttpMethod;
   url: string;
@@ -13,6 +23,12 @@ export interface HttpRequest {
   redirect?: "follow" | "manual";
   /** Give up after this long; the engine always sets one. */
   timeoutMs?: number;
+  /**
+   * How the caller checks the answer: throws an EngineError when it doesn't fit (an Edunex answer
+   * against its schema). The network ignores it; the engine keeps it with the page behind a read
+   * that went wrong, so a report checks the scrubbed answer the same way (src/engine/report).
+   */
+  check?: AnswerCheck;
 }
 
 export interface HttpResponse {
