@@ -4,7 +4,19 @@
 // guide offers a tour of it, and once, after the first full sync, the
 // first-run scan opens. A screen shows in the sidebar once it's built (./built.ts).
 // Beranda comes with the window; every other screen loads after it (../later.tsx).
-import { type ComponentType, type KeyboardEvent, type RefObject, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import {
+  Component,
+  type ComponentType,
+  type KeyboardEvent,
+  type ReactNode,
+  type RefObject,
+  Suspense,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import { edunexCourseUrl, sixStatusUrl } from "../../core/links";
 import { guideDue } from "../../core/models";
 import type { StringKey } from "../../core/strings";
@@ -28,6 +40,7 @@ import { type IconProps, Icons } from "../ui/icons";
 import { factsLabel } from "../ui/layout";
 import { Tooltip, toast } from "../ui/overlays";
 import { PanelBoundary } from "../ui/panel-boundary";
+import { windowError } from "../window-errors";
 import { AlertsBell, openAlerts } from "./alerts";
 import { type Badge as BadgeValue, usePlanBadge, usePresenceBadge, useTasksBadge } from "./badges";
 import { isBuilt } from "./built";
@@ -99,8 +112,10 @@ function Layout({ arriving }: { arriving: boolean }) {
     if (guide?.start === "offer" && !finished) toast(t("guide.later"));
     setGuide(null);
     if (due) void bridge.invoke("settings.update", { guideDone: true }).catch(() => undefined);
-    // The keyboard carries on from the top of the screen it ends on, once the guide has let go of it.
+    // The keyboard carries on from the top of the screen it ends on, once the guide has let go of it, unless something
+    // else has it by then (a dialog the tour ended under).
     setTimeout(() => {
+      if (document.activeElement && document.activeElement !== document.body) return;
       const title = main.current?.querySelector<HTMLElement>("h1");
       if (!title) return;
       title.tabIndex = -1;
@@ -108,6 +123,7 @@ function Layout({ arriving }: { arriving: boolean }) {
     });
   };
   const { route, place, go } = useNav();
+  const pdf = usePdfViewer();
   const main = useRef<HTMLElement>(null);
   const settingsLoaded = SettingsDialog.useLoaded();
   const searchLoaded = SearchPalette.useLoaded();
@@ -209,7 +225,9 @@ function Layout({ arriving }: { arriving: boolean }) {
               }}
               onShowGuide={() => {
                 setSettingsOpen(false);
-                setGuide((last) => ({ start: "tour", run: (last?.run ?? 0) + 1 }));
+                // A PDF open over the screen closes first (with filling not saved, the Student says whether to drop it,
+                // and keeping it starts no tour): the tour then opens each place with nothing over it.
+                pdf.close(() => setGuide((last) => ({ start: "tour", run: (last?.run ?? 0) + 1 })));
               }}
             />
           )}
@@ -226,12 +244,14 @@ function Layout({ arriving }: { arriving: boolean }) {
       <PanelBoundary name="report question" compact>
         <ReportAskCard />
       </PanelBoundary>
-      <PanelBoundary name="guide" compact>
-        <Suspense fallback={null}>
-          {/* It steps aside while a dialog is open, and comes back where it was. */}
-          {guide && <Guide key={guide.run} start={guide.start} hidden={settingsOpen || searchOpen || reportOpen || scanOpen} onEnd={endGuide} />}
-        </Suspense>
-      </PanelBoundary>
+      {guide && (
+        <GuideGuard key={guide.run} onBreak={() => endGuide(false)}>
+          <Suspense fallback={null}>
+            {/* It steps aside while a dialog is open, and comes back where it was. */}
+            <Guide start={guide.start} hidden={settingsOpen || searchOpen || reportOpen || scanOpen} onEnd={endGuide} />
+          </Suspense>
+        </GuideGuard>
+      )}
       <PanelBoundary name="first scan" compact>
         <Suspense fallback={null}>
           {/* It also watches for the first full sync to open itself, so it stays drawn once in. It waits for the guide. */}
@@ -242,6 +262,25 @@ function Layout({ arriving }: { arriving: boolean }) {
       </PanelBoundary>
     </div>
   );
+}
+
+/**
+ * The guide breaking (its code didn't come in, or a fault in it) ends it, as if skipped: the window never stays held
+ * for a tour that isn't there (the place shortcuts off, the first-run scan waiting).
+ */
+class GuideGuard extends Component<{ onBreak: () => void; children: ReactNode }, { broken: boolean }> {
+  state = { broken: false };
+  static getDerivedStateFromError() {
+    return { broken: true };
+  }
+  componentDidCatch(error: unknown) {
+    console.error("[guide]", error);
+    windowError("panel", error, "guide");
+    this.props.onBreak();
+  }
+  render() {
+    return this.state.broken ? null : this.props.children;
+  }
 }
 
 const SCROLLED = "shell.scrolled";

@@ -290,6 +290,9 @@ export function PdfViewerProvider({ children }: { children: ReactNode }) {
   }, []);
   const onOpenChange = (next: boolean) => {
     setOpen(next);
+    // Closed, nothing is left unsaved: a move asked for straight after (the guide opening its first place, once
+    // Settings started it over a form) goes on without asking again, before the viewer says so itself.
+    if (!next) dirty.current = false;
     const then = leaving.current;
     leaving.current = null;
     if (!next) then?.();

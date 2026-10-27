@@ -9,17 +9,17 @@
 // doesn't show right now (no class today, no course this term) is passed
 // over. "Lewati panduan" and Escape leave at any step, a dialog opened over it
 // (⌘K, ⌘,) puts it aside until it closes, and Settings › Tentang starts it again.
-// Going elsewhere anyway (a search result, a notification) ends it there, and so
-// does a place that doesn't open (the Student kept a PDF's filling): the window is
-// never left dimmed with no card.
+// Going elsewhere anyway (a search result, a notification) ends it there, and a
+// place that never opens ends it too: the window is never left dimmed with no card.
 import * as PopoverPrimitive from "@radix-ui/react-popover";
 import { type ReactNode, type RefObject, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { introModule } from "../../core/course-materials";
 import type { StringKey } from "../../core/strings";
 import { useTermCourses } from "../courses";
 import { useT } from "../i18n";
 import { type Route, useNav } from "../nav";
-import { useStore } from "../store";
+import { useDataset, useStore } from "../store";
 import { AppMark } from "../ui/brand";
 import { Button } from "../ui/controls";
 import { ProgressBar } from "../ui/display";
@@ -30,15 +30,18 @@ type Side = "top" | "right" | "bottom" | "left";
 /** What a card can hang from: an element, or a point worked out from one. */
 type Measurable = { getBoundingClientRect(): DOMRect };
 
-/** Each chapter's name over its cards, and the place it opens (a course: the term's first, or none, and it's passed over). */
-const CHAPTERS: Record<Chapter, { name: StringKey; shows: (course: string | null) => Route | null }> = {
+/** Each chapter's name over its cards, and the place it opens (a course, at a module or not, or none: it's passed over). */
+const CHAPTERS: Record<Chapter, { name: StringKey; shows: (course: string | null, module: number | undefined) => Route | null }> = {
   home: { name: "nav.home", shows: () => ({ screen: "home" }) },
   tasks: { name: "nav.tasks", shows: () => ({ screen: "tasks" }) },
   schedule: { name: "nav.schedule", shows: () => ({ screen: "schedule" }) },
   presence: { name: "nav.presence", shows: () => ({ screen: "presence" }) },
   grades: { name: "nav.grades", shows: () => ({ screen: "grades" }) },
   plan: { name: "nav.plan", shows: () => ({ screen: "plan" }) },
-  course: { name: "nav.courses", shows: (code) => (code ? { screen: "course", code } : null) },
+  course: {
+    name: "nav.courses",
+    shows: (code, module) => (code ? { screen: "course", code, ...(module === undefined ? {} : { tab: "modules", module }) } : null),
+  },
   tools: { name: "guide.tools", shows: () => ({ screen: "home" }) },
 };
 
@@ -68,7 +71,7 @@ const STEPS: readonly Step[] = [
   { chapter: "presence", part: "targets", target: "[data-targets-trigger]", side: "bottom", align: "end" },
   { chapter: "presence", part: "now", target: '[data-guide="presence-now"]', side: "bottom", align: "start" },
   { chapter: "presence", part: "row", target: `${section("presence-")} li`, side: "bottom", align: "start" },
-  { chapter: "grades", part: "standing", target: '[data-guide="grades-standing"]', side: "bottom", align: "start" },
+  { chapter: "grades", part: "outlook", target: '[data-guide="grades-outlook"]', side: "bottom", align: "start" },
   { chapter: "grades", part: "term", target: section("this-term"), side: "top", align: "start" },
   { chapter: "plan", part: "tabs", target: "main [role=tablist]", side: "bottom", align: "start" },
   { chapter: "plan", part: "plan", target: '[data-guide="plan"]', side: "bottom", align: "start" },
@@ -86,10 +89,12 @@ const STEPS: readonly Step[] = [
 const MARK = '[data-guide="intro"]';
 /** How long a part its page hasn't drawn yet is waited for, before the step is passed over. */
 const WAIT = 400;
-/** How long a step's place is waited for: one that hasn't opened by then (the Student kept a PDF's filling) ends the tour. */
-const OPENING = 3000;
+/** How long a step's place is waited for: one that hasn't opened by then (its code never came in) ends the tour. */
+const OPENING = 10_000;
 /** The room the lit part gets around it, in px. */
 const ROOM = 6;
+/** The room kept above a part scrolled to the top of the screen, so its ring stands clear of it, in px. */
+const ABOVE = 16;
 /** How far inside what it's seen through (the window, or the screen under the top bar) the ring stays, whole, in px. */
 const EDGE = 2;
 /** The height the card needs above or below its part, in px: a part taller than the window less this has it inside. */
@@ -108,13 +113,26 @@ export function Guide({ start, hidden, onEnd }: { start: "offer" | "tour"; hidde
   const mac = useStore().platform === "darwin";
   const nav = useNav();
   const courses = useTermCourses();
-  const course = isBuilt({ screen: "course", code: "" }) ? (courses?.[0]?.code ?? null) : null;
+  const materials = useDataset("edunex.materials");
+  // The course shown: the term's first with a PDF (else any file), at the module holding it, so what its last step
+  // says about files is there to see. Else the term's first course.
+  const shown = useMemo(() => {
+    if (!isBuilt({ screen: "course", code: "" }) || !courses?.length) return null;
+    for (const type of ["pdf", "file"])
+      for (const course of courses) {
+        const file = materials?.[course.code]?.find((material) => material.type === type);
+        if (file) return { code: course.code, module: file.moduleId ?? introModule(file.courseId) };
+      }
+    return { code: courses[0].code, module: undefined };
+  }, [courses, materials]);
+  const course = shown?.code ?? null;
+  const module = shown?.module;
   // -1: the offer.
   const [at, setAt] = useState(start === "offer" ? -1 : 0);
   /** Which way the Student is going, to pass over a part that isn't there. */
   const [way, setWay] = useState<1 | -1>(1);
   const step = at < 0 ? null : STEPS[at];
-  const route = useMemo(() => (step ? CHAPTERS[step.chapter].shows(course) : null), [step, course]);
+  const route = useMemo(() => (step ? CHAPTERS[step.chapter].shows(course, module) : null), [step, course, module]);
   const there = route !== null && showing(nav.route, route);
   const end = useLatest(onEnd);
 
@@ -134,22 +152,35 @@ export function Guide({ start, hidden, onEnd }: { start: "offer" | "tour"; hidde
     if (route) open(route, { keep: true });
     else passOver();
   }, [step, route, open, passOver]);
-  // Its place on screen, then gone with no step taken (a search result or a notification opened over the tour): the
-  // Student went elsewhere, and the tour ends there. A place that doesn't open (the Student kept a PDF's filling, so
-  // the window stayed) ends it a moment later.
-  const reached = useRef<Route | null>(null);
+  // Its place on screen, then gone or opened afresh with no step taken (a search result or a notification opened over
+  // the tour, even one for the same page): the Student went elsewhere, and the tour ends there. A place that never
+  // opens ends it too, a while later.
+  const reached = useRef<{ route: Route; place: number } | null>(null);
   useLayoutEffect(() => {
     if (!route) return;
-    if (there) {
-      reached.current = route;
+    const last = reached.current?.route === route ? reached.current : null;
+    if (there && (!last || last.place === nav.place)) {
+      reached.current = { route, place: nav.place };
       return;
     }
-    if (reached.current === route) return end(false);
+    if (last) return end(false);
     const timer = setTimeout(() => end(false), OPENING);
     return () => clearTimeout(timer);
-  }, [route, there, end]);
+  }, [route, there, nav.place, end]);
 
   const target = useTarget(step ? (there ? step.target : null) : MARK, at, passOver);
+  // Before a card is up (its place or its part still coming), Escape leaves all the same.
+  useEffect(() => {
+    if (target || hidden) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") end(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [target, hidden, end]);
+  // The first part shown: Back stops there (the parts before it aren't on their pages).
+  const [first, setFirst] = useState<number | null>(null);
+  if (target && step && (first === null || at < first)) setFirst(at);
   useLayoutEffect(() => {
     if (!target || hidden) return;
     bringIntoView(target);
@@ -219,7 +250,7 @@ export function Guide({ start, hidden, onEnd }: { start: "offer" | "tour"; hidde
                   <Button size="sm" variant="ghost" className="mr-auto -ml-2" onClick={skip}>
                     {t("guide.skip")}
                   </Button>
-                  {at > 0 && (
+                  {first !== null && at > first && (
                     <Button size="sm" onClick={() => go(at - 1, -1)}>
                       {t("action.back")}
                     </Button>
@@ -251,35 +282,39 @@ function useLatest<A extends unknown[]>(fn: (...args: A) => void): (...args: A) 
 
 /**
  * The element `selector` finds for step `key`, or null while there's nothing to look for. One its screen hasn't drawn
- * yet is waited for a moment, then `missing` is called. Found for its own step only: a new step's card never opens,
- * even for a frame, at the last step's part.
+ * yet is waited for a moment, then `missing` is called. It's looked up again as the page changes: a part drawn anew
+ * (data coming in) is the one lit, and a part gone from the page is waited for, then passed over, like one not drawn
+ * yet. Found for its own step only: a new step's card never opens, even for a frame, at the last step's part.
  */
 function useTarget(selector: string | null, key: number, missing: () => void): HTMLElement | null {
   const [found, setFound] = useState<{ key: number; element: HTMLElement } | null>(null);
   useLayoutEffect(() => {
     if (!selector) return;
-    const look = () => document.querySelector<HTMLElement>(selector);
-    const now = look();
-    if (now) {
-      setFound({ key, element: now });
-      return;
-    }
-    const observer = new MutationObserver(() => {
-      const element = look();
-      if (!element) return;
-      stop();
-      setFound({ key, element });
-    });
-    const timer = setTimeout(() => {
-      stop();
-      missing();
-    }, WAIT);
-    const stop = () => {
-      observer.disconnect();
+    let shown: HTMLElement | null = null;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const look = () => {
+      if (shown?.isConnected) return;
+      const element = document.querySelector<HTMLElement>(selector);
+      if (element) {
+        clearTimeout(timer);
+        timer = undefined;
+        shown = element;
+        setFound({ key, element });
+        return;
+      }
+      if (shown) {
+        shown = null;
+        setFound(null);
+      }
+      timer ??= setTimeout(missing, WAIT);
+    };
+    const changed = new MutationObserver(look);
+    changed.observe(document.body, { childList: true, subtree: true });
+    look();
+    return () => {
+      changed.disconnect();
       clearTimeout(timer);
     };
-    observer.observe(document.body, { childList: true, subtree: true });
-    return stop;
   }, [selector, key, missing]);
   return selector !== null && found?.key === key ? found.element : null;
 }
@@ -345,11 +380,16 @@ function insideCorner(element: HTMLElement): Measurable {
   };
 }
 
-/** The part comes into view: on the screen, in the middle when it fits there, else from its top; elsewhere, just in. */
+/**
+ * The part comes into view: on the screen, in the middle when it fits there, else from its top with room above it
+ * for its ring; elsewhere (the sidebar, the top bar), just in.
+ */
 function bringIntoView(element: HTMLElement) {
   const main = element.closest("main");
-  const block = !main ? "nearest" : element.getBoundingClientRect().height <= main.clientHeight * 0.55 ? "center" : "start";
-  element.scrollIntoView?.({ block });
+  if (!main) return element.scrollIntoView?.({ block: "nearest" });
+  const part = element.getBoundingClientRect();
+  const from = part.top - main.getBoundingClientRect().top;
+  main.scrollTop += part.height <= main.clientHeight * 0.55 ? from - (main.clientHeight - part.height) / 2 : from - ABOVE;
 }
 
 /**

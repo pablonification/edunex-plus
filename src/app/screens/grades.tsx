@@ -46,7 +46,8 @@ export function GradesScreen() {
       </div>
       <Disagreement record={record} />
       <Standing record={record} state={state} />
-      <div className="mt-10 grid grid-cols-1 items-start gap-6 @3xl:grid-cols-[minmax(0,1fr)_288px]">
+      {/* The guide points here (shell/guide.tsx). */}
+      <div data-guide="grades-outlook" className="mt-10 grid grid-cols-1 items-start gap-6 @3xl:grid-cols-[minmax(0,1fr)_288px]">
         <Card className="min-w-0 px-5 pt-4 pb-4">
           <h2 className="mb-3 text-title font-semibold tracking-[-0.01em]">{t("grades.chart")}</h2>
           <IpkChart steps={state.projection.steps} target={targetOf(record, state.plan)} />
@@ -112,27 +113,25 @@ function Standing({ record, state }: { record: StudentRecord; state: PlanState }
   const signed = (value: number) => `${value > 0.004 ? "+" : value < -0.004 ? "−" : "±"}${f.number(Math.abs(value), 2)}`;
   const sks = sksModel(record, state.plan);
   const { bestIpk, variableSks } = state.projection;
-  // The IPK itself is the header's answer; these are the figures around it. The guide points here (shell/guide.tsx).
+  // The IPK itself is the header's answer; these are the figures around it.
   return (
-    <div data-guide="grades-standing">
-      <StatRow>
-        <Stat label={t("grades.sksPassed")} value={String(passedSks(record) ?? "-")} hint={t("grades.sksPassedHint", { need: sks.need })} />
-        <Stat
-          label={t("grades.lastIp")}
-          value={num(lastIp)}
-          hint={
-            last ? (
-              delta === null ? (
-                termName(last.term)
-              ) : (
-                <Meta>{t("grades.lastIpHint", { term: termName(last.term).split(" · ")[0], delta: signed(delta) })}</Meta>
-              )
-            ) : undefined
-          }
-        />
-        <Stat label={t("grades.best")} value={num(bestIpk)} hint={variableSks ? t("grades.bestHint", { sks: variableSks }) : t("grades.bestNone")} />
-      </StatRow>
-    </div>
+    <StatRow>
+      <Stat label={t("grades.sksPassed")} value={String(passedSks(record) ?? "-")} hint={t("grades.sksPassedHint", { need: sks.need })} />
+      <Stat
+        label={t("grades.lastIp")}
+        value={num(lastIp)}
+        hint={
+          last ? (
+            delta === null ? (
+              termName(last.term)
+            ) : (
+              <Meta>{t("grades.lastIpHint", { term: termName(last.term).split(" · ")[0], delta: signed(delta) })}</Meta>
+            )
+          ) : undefined
+        }
+      />
+      <Stat label={t("grades.best")} value={num(bestIpk)} hint={variableSks ? t("grades.bestHint", { sks: variableSks }) : t("grades.bestNone")} />
+    </StatRow>
   );
 }
 

@@ -6,8 +6,8 @@ import type { Entry } from "./entry";
 export const guideStrings = {
   "guide.intro.title": { id: "Kenalan dulu dengan Edunex Plus", en: "Get to know Edunex Plus" },
   "guide.intro.body": {
-    id: "Lihat isi tiap halaman dan cara memakainya, sekitar 3 menit. Bisa dilewati kapan saja.",
-    en: "See what's on each page and how to use it, in about 3 minutes. Skip it any time.",
+    id: "Lihat isi tiap halaman dan cara memakainya, dalam beberapa menit. Bisa dilewati kapan saja.",
+    en: "See what's on each page and how to use it, in a few minutes. Skip it any time.",
   },
   "guide.start": { id: "Mulai panduan", en: "Take the tour" },
   "guide.skip": { id: "Lewati panduan", en: "Skip the tour" },
@@ -48,13 +48,13 @@ export const guideStrings = {
   // Tugas & Ujian
   "guide.tasks.show.title": { id: "Belum selesai atau selesai", en: "To do or done" },
   "guide.tasks.show.body": {
-    id: "Lihat yang masih harus dikerjakan atau yang sudah, tugas maupun ujian.",
-    en: "See what's still to do or what's done, Tasks and exams alike.",
+    id: "Belum selesai dikelompokkan per minggu, yang terlambat paling atas. Selesai berisi yang sudah terkumpul atau ditutup, dan ujian yang sudah lewat.",
+    en: "To do is grouped by week, with anything overdue first. Done keeps what's submitted or closed, and past exams.",
   },
   "guide.tasks.row.title": { id: "Tenggat dan pengumpulan", en: "Deadlines and handing in" },
   "guide.tasks.row.body": {
-    id: "Tenggat atau waktu ujiannya di kanan, kuning di 24 jam terakhir dan merah kalau terlambat. Klik tugas untuk menulis jawaban, melampirkan berkas, lalu menyimpan draf atau mengumpulkan.",
-    en: "The deadline or exam time is on the right, amber in its last 24 hours and red once late. Click a Task to write your answer, attach files, then save a draft or submit it.",
+    id: "Tenggat dan waktu ujian ada di kanan, kuning kalau tinggal kurang dari sehari, merah kalau terlambat. Klik tugas untuk menulis jawaban, melampirkan berkas, lalu menyimpan draf atau mengumpulkan.",
+    en: "Deadlines and exam times are on the right, amber with under a day to go, red once late. Click a Task to write your answer, attach files, then save a draft or submit it.",
   },
 
   // Jadwal
@@ -65,8 +65,8 @@ export const guideStrings = {
   },
   "guide.schedule.grid.title": { id: "Jadwal resmi", en: "The official schedule" },
   "guide.schedule.grid.body": {
-    id: "Tiap kuliah dari SIX dengan ruangnya. Pertemuan yang hanya diumumkan di Edunex bergaris putus-putus, dan yang bentrok berdampingan.",
-    en: "Every class from SIX with its room. A meeting only Edunex announced has a dashed edge, and clashes sit side by side.",
+    id: "Tiap kuliah dari SIX dengan ruangnya, dan yang bentrok berdampingan. Garis putus-putus berarti pertemuan yang hanya diumumkan di Edunex, atau kuliah yang belum pasti ada.",
+    en: "Every class from SIX with its room, and clashes side by side. A dashed edge is a meeting only Edunex announced, or a class that may not run.",
   },
 
   // Presensi
@@ -75,7 +75,7 @@ export const guideStrings = {
     id: "Jatah absen dihitung dari target ini. Samakan target tiap mata kuliah dengan batas minimal di kontrak kuliahnya.",
     en: "Absences left are counted from this target. Set each course's target to the minimum in its course contract.",
   },
-  "guide.presence.now.title": { id: "Sekarang", en: "Now" },
+  "guide.presence.now.title": { id: "Perlu perhatianmu sekarang", en: "Needs you now" },
   "guide.presence.now.body": {
     id: "Tandai Hadir yang sedang dibuka, Presensi Edunex, dan kuliah yang bentrok. Setelah kuliah, di sini terlihat apakah SIX sudah menghitungmu hadir.",
     en: "Tandai Hadir when it's open, Edunex Presence and classes that clash. After class, it shows whether SIX counted you.",
@@ -87,10 +87,10 @@ export const guideStrings = {
   },
 
   // Nilai
-  "guide.grades.standing.title": { id: "Posisimu", en: "Where you stand" },
-  "guide.grades.standing.body": {
-    id: "Sejauh mana kamu menuju lulus, bagaimana semester lalu, dan IPK tertinggi yang masih bisa kamu capai kalau semua A.",
-    en: "How far you are toward graduating, how last semester went, and the best IPK you can still reach with straight A's.",
+  "guide.grades.outlook.title": { id: "Menuju lulus", en: "Toward graduation" },
+  "guide.grades.outlook.body": {
+    id: "IP dan IPK-mu tiap semester, dan arahnya dengan nilai yang kamu perkirakan. Lalu IPK saat lulus, dan predikat pujian yang masih bisa diraih.",
+    en: "Your IP and IPK each semester, and where the grades you expect take them. Then the IPK you'd graduate with, and the honors still in reach.",
   },
   "guide.grades.term.title": { id: "Semester ini", en: "This semester" },
   "guide.grades.term.body": {
@@ -106,8 +106,8 @@ export const guideStrings = {
   },
   "guide.plan.plan.title": { id: "Rencanamu", en: "Your plan" },
   "guide.plan.plan.body": {
-    id: "Kapan kamu lulus dan dengan IPK berapa. Tambahkan mata kuliah ke semester di bawahnya untuk mencoba, dan aturan ITB langsung dicek. KRS-mu tidak berubah.",
-    en: "When you'd graduate, and with what IPK. Add courses to the semesters below to try a plan, and ITB's rules are checked as you go. Your KRS doesn't change.",
+    id: "SKS yang terpenuhi, kapan kamu lulus, dan dengan IPK berapa. Coba tambah mata kuliah di semester di bawahnya, dan aturan ITB langsung dicek. KRS-mu tidak berubah.",
+    en: "How many SKS your plan covers, when you'd graduate and with what IPK. Try adding courses to the semesters below, and ITB's rules are checked as you go. Your KRS doesn't change.",
   },
 
   // A course
@@ -130,8 +130,8 @@ export const guideStrings = {
   // Menu dan alat
   "guide.tools.nav.title": { id: "Menu", en: "Menu" },
   "guide.tools.nav.body": {
-    id: "Angka di samping tiap halaman adalah yang menunggu, dan kuning berarti ada yang perlu hari ini. Pindah cepat dengan {keys}.",
-    en: "The number beside each page is what's waiting, amber when something needs you today. Jump between them with {keys}.",
+    id: "Angka di samping tiap halaman adalah jumlah yang menunggu, dan kuning kalau ada yang perlu segera kamu urus. Pindah cepat dengan {keys}.",
+    en: "The number beside each page is what's waiting there, amber when something needs you soon. Jump between them with {keys}.",
   },
   "guide.tools.search.title": { id: "Cari dari mana saja", en: "Search from anywhere" },
   "guide.tools.search.body": {
