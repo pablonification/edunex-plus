@@ -104,7 +104,7 @@ describe("a SIX page the app couldn't read", () => {
 
   it("a page that never read says so: nothing was read well before", async () => {
     const h = await startEngine();
-    h.world.six.changeLayout(BILLS, "<th class='text-right'>Pembayaran (Rp)</th>", "<th>Dibayar</th>");
+    h.world.six.changeLayout(BILLS, "<th class='text-left'>Semester</th>", "<th>Periode</th>");
     await until(h, h.engine.signIn("six", { cookie: PRETEND_SIX_COOKIE }));
     const [problem] = (await h.engine.report({ datasets: ["six.bills"] })).problems;
     expect(problem!.impact).toEqual({ datasets: ["six.bills"], rowsLeftOut: 0, detailsBlank: 0, lastGoodAt: null });
@@ -246,7 +246,7 @@ describe("the app's own log", () => {
 
   it("says how each read went, a page change and rows left out included", async () => {
     const h = await signedIn();
-    h.world.six.changeLayout(BILLS, "<th class='text-right'>Pembayaran (Rp)</th>", "<th>Dibayar</th>");
+    h.world.six.changeLayout(BILLS, "<th class='text-left'>Semester</th>", "<th>Periode</th>");
     h.world.six.changeLayout(STATUS, "<td>PL3002</td>", "<td>PL-3002</td>");
     await until(h, h.engine.refresh("six"));
     const { log } = await h.engine.report({});
@@ -256,7 +256,7 @@ describe("the app's own log", () => {
           at: expect.any(Number),
           level: "error",
           area: "six.bills",
-          message: expect.stringMatching(/^VendorChanged: SIX finance page: the bills header reads/),
+          message: expect.stringMatching(/^VendorChanged: SIX finance page: the bills header has no "Semester" column/),
         },
         { at: expect.any(Number), level: "warn", area: "six.courses", message: "1 row left out" },
       ]),
