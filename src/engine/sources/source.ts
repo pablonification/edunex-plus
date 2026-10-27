@@ -28,6 +28,13 @@ export interface FeedSpec {
    * Without it (the page the whole session rests on), a change is the whole source's.
    */
   shows?: readonly DatasetName[];
+  /**
+   * The datasets a part of this feed's page fills when that part can change alone (SIX's course
+   * table, on the page the session rests on). The feed stores what the rest of the page says and
+   * throws PartChanged: those datasets keep their last data and their screens say so, as for
+   * `shows`. Any other change is still the whole source's.
+   */
+  part?: readonly DatasetName[];
   /** `current()` turns false once the session this run started under has ended; store nothing then. */
   run(current: () => boolean): Promise<void>;
 }

@@ -2,13 +2,14 @@
 // show it (#237: a second percentage on attendance for sick days). Each table's first row has each
 // cell changed three ways, one at a time, and what the reader does is kept in
 // __snapshots__/six-odd-cells.txt: the page reads the same, reads something else, keeps the row with
-// that cell blank and noted, leaves the row out, or refuses the page. A change to that file is a
+// that cell blank and noted, leaves the row out, refuses a part of the page (the status page's
+// course table, ADR 0012), or refuses the page. A change to that file is a
 // reader getting more or less forgiving, said in the diff. One rule is held outright: this term's
 // courses are never lost over a cell other than their code and name, since a course SIX leaves out
-// is gone from Edunex's side too.
+// loses SIX's details everywhere, and shows only if Edunex has it.
 import { type CheerioAPI, load } from "cheerio/slim";
 import { describe, expect, it } from "vitest";
-import { isEngineError } from "../../src/engine/errors";
+import { isEngineError, PartChanged } from "../../src/engine/errors";
 import { readBills } from "../../src/engine/sources/six/readers/bills";
 import { readCurriculumList } from "../../src/engine/sources/six/readers/curriculum-list";
 import { readCurriculumStructure } from "../../src/engine/sources/six/readers/curriculum-structure";
@@ -24,12 +25,15 @@ import { sixPage } from "../kit/fixtures";
 const NIM = "18223901";
 const IPK = { value: 3.26, sks: 125 };
 
-const PAGES: { name: string; path: RegExp; read: (html: string, skipped: Skipped) => unknown }[] = [
+/** `partName`: what a reader that can refuse one part of its page alone (PartChanged) calls that part. */
+const PAGES: { name: string; path: RegExp; partName?: string; read: (html: string, skipped: Skipped) => unknown }[] = [
   {
     name: "status",
     path: /\/statusmhs$/,
+    partName: "course table",
     read: (html, skipped) => {
       const page = readStatusPage(html, NIM);
+      if (page.tableChanged) throw new PartChanged(page.tableChanged.message);
       skipped.rows.push(...page.skipped);
       return page;
     },
@@ -58,17 +62,19 @@ interface Read {
   json: string;
   noted: number;
   error: string | null;
+  /** What was refused: the page, or one part of it. */
+  refused: string | null;
 }
 
 function read(page: (typeof PAGES)[number], html: string): Read {
   const skipped = new Skipped();
   try {
     const value = page.read(html, skipped);
-    return { value, json: JSON.stringify(value), noted: skipped.rows.length, error: null };
+    return { value, json: JSON.stringify(value), noted: skipped.rows.length, error: null, refused: null };
   } catch (error) {
     // Anything but "SIX changed something" is a crash, and fails the test.
     if (!isEngineError(error)) throw error;
-    return { value: null, json: "", noted: 0, error: error.message };
+    return { value: null, json: "", noted: 0, error: error.message, refused: error instanceof PartChanged && page.partName ? page.partName : "page" };
   }
 }
 
@@ -80,7 +86,7 @@ function size(value: unknown): number {
 }
 
 function verdict(before: Read, after: Read): string {
-  if (after.error) return "page refused";
+  if (after.refused) return `${after.refused} refused`;
   if (after.noted > before.noted) return size(after.value) < size(before.value) ? "row left out" : "kept, cell blank and noted";
   return after.json === before.json ? "same" : "reads differently";
 }
@@ -142,9 +148,9 @@ describe("SIX's pages with one cell written another way", () => {
         if (!changed) continue;
         const after = readStatusPage(changed, NIM);
         expect(
-          after.courses.map((c) => c.code),
+          after.courses?.map((c) => c.code),
           `${table.headings[column]}, ${name}`,
-        ).toEqual(before.courses.map((c) => c.code));
+        ).toEqual(before.courses!.map((c) => c.code));
       }
     }
   });

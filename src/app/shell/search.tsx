@@ -37,6 +37,8 @@ const BUILT = (Object.keys(SCREENS) as ScreenId[]).filter((screen) => {
 const SEARCHED: readonly DatasetName[] = [
   "six.student",
   "six.courses",
+  // Whether SIX's course list lost a row: then this term's Edunex courses it doesn't name stay.
+  "six.skipped",
   "six.schedule",
   "edunex.courses",
   "edunex.tasks",

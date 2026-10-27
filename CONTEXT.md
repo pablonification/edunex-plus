@@ -91,7 +91,7 @@ _Avoid_: dismissed, done (on screen), archived
 _Avoid_: error, broken row, ignored
 
 **Changed page**:
-"SIX mengubah halaman ini": one SIX page whose layout changed (the fees page, the timetable) while the rest of SIX still reads. The screens that show its data say so, keep the data from the last good read, and say when that was; SIX itself stays connected. Not "SIX changed" (the banner), which is the page the whole session rests on. Called `changedPages` in code ([ADR 0006](docs/adr/0006-a-changed-six-page-is-said-on-its-screens.md)).
+"SIX mengubah halaman ini": one SIX page whose layout changed (the fees page, the timetable, the status page's course table) while the rest of SIX still reads. The screens that show its data say so, keep the data from the last good read, and say when that was; SIX itself stays connected. Not "SIX changed" (the banner), which is what the whole session rests on: who the Student is and the term. Called `changedPages` in code ([ADR 0006](docs/adr/0006-a-changed-six-page-is-said-on-its-screens.md), [ADR 0012](docs/adr/0012-six-course-table-changes-alone.md)).
 _Avoid_: broken page, error, SIX is down
 
 **Problem report**:

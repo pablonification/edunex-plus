@@ -6,7 +6,7 @@ import { classResults, targetFor } from "./attendance";
 import type { DatasetName, DatasetValue, Settings } from "./models";
 import type { HomeWorld } from "./needs";
 import type { Snapshot } from "./snapshot";
-import { type TermCourseBase, termCourses, termOf } from "./term-courses";
+import { sixList, type TermCourseBase, termCourses, termOf } from "./term-courses";
 
 type Value<N extends DatasetName> = DatasetValue<N> | undefined;
 
@@ -75,13 +75,16 @@ export function snapshotDataset<N extends DatasetName>(snapshot: Pick<Snapshot, 
 }
 
 /** This term's courses from the engine's snapshot, as the window joins them. */
-export function snapshotTermCourses(snapshot: Pick<Snapshot, "datasets">): TermCourseBase[] | undefined {
-  const student = snapshotDataset(snapshot, "six.student");
-  const six = snapshotDataset(snapshot, "six.courses");
+export function snapshotTermCourses(snapshot: Pick<Snapshot, "datasets" | "statuses">): TermCourseBase[] | undefined {
   return termCourses({
     edunex: snapshotDataset(snapshot, "edunex.courses"),
     catalog: snapshotDataset(snapshot, "itb.catalog"),
-    six: student && six ? { term: student.term, courses: six } : undefined,
+    six: sixList({
+      student: snapshotDataset(snapshot, "six.student"),
+      courses: snapshotDataset(snapshot, "six.courses"),
+      skipped: snapshotDataset(snapshot, "six.skipped"),
+      status: snapshot.statuses.find((status) => status.source === "six"),
+    }),
   });
 }
 

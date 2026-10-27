@@ -47,7 +47,7 @@ import { type Route, useNav, usePlaceState } from "../nav";
 import { useExamIds } from "../schedule-data";
 import { openAlerts } from "../shell/alerts";
 import { useRefresh, useSignIn } from "../shell/source-status";
-import { SixPageNote } from "../six-page-note";
+import { SixPageNote, useChangedPage } from "../six-page-note";
 import { canSnooze, DoneButton, type RowDone, refocus, rowControls, SnoozeMenu } from "../snooze-menu";
 import { useDone, useSnoozes } from "../snoozes";
 import { useDataset, useStatus } from "../store";
@@ -105,9 +105,7 @@ export function Home() {
       />
       <SixPageNote datasets={["six.schedule"]} className="mb-6" />
       {context ? <Answers context={context} courses={courses ?? []} /> : <AnswersLoading />}
-      <Section id="home-courses" title={useT()("home.coursesThisTerm")} count={courses?.length}>
-        <Courses courses={courses} nim={student?.nim} context={context} />
-      </Section>
+      <HomeCourses courses={courses} nim={student?.nim} context={context} />
     </Page>
   );
 }
@@ -1439,6 +1437,23 @@ function Courses({ courses, nim, context }: { courses: TermCourse[] | undefined;
   }
   if (courses.length === 0) return <EmptyState icon={<Icons.BookOpen className="size-5" />} title={t("home.noCourses")} />;
   return <CourseGrid courses={courses} nim={nim} context={context} />;
+}
+
+/**
+ * This term's courses. When SIX changed its course table, the ones shown are its last good list (or
+ * Edunex's) and say so; with none to show, the note says why on its own. Rows SIX wrote another way are
+ * said on Presensi.
+ */
+function HomeCourses({ courses, nim, context }: { courses: TermCourse[] | undefined; nim: string | undefined; context: HomeContext | undefined }) {
+  const t = useT();
+  const changed = useChangedPage(["six.courses"]);
+  const onlyNote = changed && courses?.length === 0;
+  return (
+    <Section id="home-courses" title={t("home.coursesThisTerm")} count={onlyNote ? undefined : courses?.length}>
+      {changed && <SixPageNote datasets={["six.courses"]} className="mb-3" />}
+      {!onlyNote && <Courses courses={courses} nim={nim} context={context} />}
+    </Section>
+  );
 }
 
 const CARD_MIN = 220;

@@ -21,6 +21,11 @@
 //                            percentages, each with its count, so the app reads the first (its meetings attended)
 //   EDUNEX_DEMO_ODD=1        SIX writes this term's UKT payment ("Lunas") and FI1101's grade ("A (remedial)") another way,
 //                            as another Student's SIX might: both rows stay, with that cell blank, and UKT and Nilai say so
+//   EDUNEX_DEMO_COURSE_TABLE=changed|lost|blank  SIX's course table on the status page (ADR 0012): after the first
+//                            sync it writes each course's code and name in one cell, so the table can't be read and
+//                            the courses stay as last read (changed); it writes KU5014's code another way, so SIX's
+//                            list loses that row and Edunex's KU5014 stays (lost); or it has no attendance column, so
+//                            every course's attendance is blank and the table is noted once (blank)
 //
 // Every run starts from an empty profile (deleted again on quit), so each begins the same way.
 import fs from "node:fs";
@@ -66,6 +71,11 @@ if (process.env.EDUNEX_DEMO_ODD === "1") {
     html.replace(/(<td>FI1101<span[^>]*>-19<\/span><\/td><td>[^<]*<\/td><td>4<\/td><td>)\s*A\s*/, "$1A (remedial)"),
   );
 }
+const courseTable = process.env.EDUNEX_DEMO_COURSE_TABLE;
+if (courseTable && !["changed", "lost", "blank"].includes(courseTable)) throw new Error(`Unknown EDUNEX_DEMO_COURSE_TABLE "${courseTable}"`);
+if (courseTable === "lost") world.six.changeLayout(/\/statusmhs$/, "<td>KU5014</td>", "<td>KU-5014</td>");
+if (courseTable === "blank")
+  world.six.editPage(/\/statusmhs$/, (html) => html.replace('<th class="text-right">Kehadiran</th>', "").replace(/<td class="text-right">[\s\S]*?<\/td>/g, ""));
 if (process.env.EDUNEX_DEMO_QUIZ === "1")
   world.edunex.exams.set(93409, [
     { id: 88002, type: "exams", attributes: { name: "Kuis Brand Equity", start_at: "2026-10-19T08:00:00+07:00", end_at: "2026-10-30T23:59:00+07:00" } },
@@ -338,6 +348,10 @@ const hooks: DemoHooks = {
         files: [{ name: "brief-v2.pdf", file: brief }],
       });
       await fastForward(engine.refresh("edunex"));
+    }
+    if (courseTable === "changed" && scenario === "signed-in") {
+      world.six.joinCodeAndName();
+      await fastForward(engine.refresh("six"));
     }
     await engine.updateSettings({ firstScanDone: true });
     // Settings shows a linked phone, under the demo's made-up topic (it sends nothing anywhere).

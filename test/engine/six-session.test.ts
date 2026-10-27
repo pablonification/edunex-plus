@@ -388,6 +388,7 @@ describe("a row SIX shows that the app doesn't understand", () => {
     await until(h, h.engine.refresh("six"));
     expect(h.status("six").state).toBe("live");
     expect(h.dataset("six.courses")).toEqual([{ ...COURSES[0], attendance: null }, { ...COURSES[1], classNo: null, sks: null }, ...COURSES.slice(2)]);
+    // Kept, not left out: SIX's list is whole.
     expect(h.dataset("six.skipped")).toEqual({
       "six.courses": [
         {
@@ -429,25 +430,42 @@ describe("SIX changed something", () => {
   const STATUS = /\/statusmhs$/;
   const TIMETABLE = /\/kelas\/jadwal\/mahasiswa\/\d+$/;
   it.each([
-    ["the course table gains a column", STATUS, '<th class="text-center">Nilai</th>', '<th class="text-center">Nilai</th><th>Dosen</th>', "different layout"],
-    ["the course list loses its term", STATUS, "Daftar Kuliah Semester 1-2026/2027", "Daftar Kuliah", "course list is missing"],
-    ["the timetable's meetings lose their address", TIMETABLE, 'data-url="', 'data-href="', "can't read"],
+    // What the session rests on, who the Student is and the term: all of SIX changed.
+    ["the course list loses its term", STATUS, "Daftar Kuliah Semester 1-2026/2027", "Daftar Kuliah", "course list is missing", null],
+    ["the Student's student id is gone", STATUS, "2021000001", "x", "no student id", null],
+    // The course table alone: said where the courses are listed.
+    [
+      "the course table's header gains a column its rows don't have",
+      STATUS,
+      '<th class="text-center">Nilai</th>',
+      '<th class="text-center">Nilai</th><th>Dosen</th>',
+      "course 1 has 7 cells",
+      ["six.courses"],
+    ],
+    // The timetable alone: said where it's shown.
+    ["the timetable's meetings lose their address", TIMETABLE, 'data-url="', 'data-href="', "can't read", ["six.schedule", "six.scheduleMonths"]],
     // A Sunday column before Monday: every date would be a day off.
-    ["the timetable's grid starts on another weekday", TIMETABLE, "<tr><td >", '<tr><td ><div class="">27</div></td><td >', "line up with the weekdays"],
-  ] as const)("%s: says so and keeps the last good data", async (_name, path, from, to, detail) => {
+    [
+      "the timetable's grid starts on another weekday",
+      TIMETABLE,
+      "<tr><td >",
+      '<tr><td ><div class="">27</div></td><td >',
+      "line up with the weekdays",
+      ["six.schedule", "six.scheduleMonths"],
+    ],
+  ] as const)("%s: says so and keeps the last good data", async (_name, path, from, to, detail, page) => {
     const h = await signedIn();
     const before = { courses: h.dataset("six.courses"), schedule: h.dataset("six.schedule") };
     h.world.six.changeLayout(path, from, to);
     expect(h.world.six.page(path)).toContain(to);
     await until(h, h.engine.refresh("six"));
-    if (path === STATUS) {
-      // The page the session rests on: all of SIX changed.
+    if (!page) {
       expect(h.status("six").state).toBe("changed");
       expect(h.status("six").detail).toContain(detail);
     } else {
-      // The timetable alone: said where it's shown, and the rest of SIX reads on.
+      // The rest of SIX reads on.
       expect(h.status("six").state).toBe("live");
-      expect(h.status("six").changedPages).toEqual([{ datasets: ["six.schedule", "six.scheduleMonths"], detail: expect.stringContaining(detail) }]);
+      expect(h.status("six").changedPages).toEqual([{ datasets: page, detail: expect.stringContaining(detail) }]);
     }
     expect(h.dataset("six.courses")).toEqual(before.courses);
     expect(h.dataset("six.schedule")).toEqual(before.schedule);
@@ -465,7 +483,7 @@ describe("SIX changed something", () => {
     expect(h.status("six").changedPages).toBeUndefined();
   });
 
-  it("an unknown header word changes nothing (SIX's wording isn't what the app reads)", async () => {
+  it("another word for a column the app knows changes nothing", async () => {
     const h = await signedIn();
     const before = h.events.length;
     h.world.six.changeLayout(/\/statusmhs$/, ">Kehadiran</th>", ">Presensi</th>");
@@ -473,6 +491,128 @@ describe("SIX changed something", () => {
     expect(h.status("six").state).toBe("live");
     // The recorded morning has a class on: its first look at "Tandai Hadir" is news of its own.
     expect(h.events.slice(before).filter((e) => e.type === "dataset" && e.dataset.name !== "six.checkIn")).toEqual([]);
+  });
+});
+
+describe("SIX's course table, apart from the rest of the status page", () => {
+  const STATUS = /\/statusmhs$/;
+
+  it("one that can't be read keeps the Student, the term and the other SIX pages: only the course list is said to have changed", async () => {
+    const h = await signedIn();
+    const student = h.dataset("six.student");
+    h.world.six.joinCodeAndName();
+    const since = h.world.clock.now();
+    await until(h, h.engine.refresh("six"));
+    expect(h.status("six")).toMatchObject({ state: "live", detail: null });
+    expect(h.status("six").changedPages).toEqual([{ datasets: ["six.courses"], detail: "SIX statusmhs: the course table has no code column" }]);
+    expect(h.dataset("six.student")).toEqual(student);
+    // The last good list stays, with its counts.
+    expect(h.dataset("six.courses")).toEqual(COURSES);
+    // Every other SIX page is read as before.
+    const paths = sixRequests(h, since).map((r) => new URL(r.url).pathname);
+    expect(paths).toEqual(expect.arrayContaining([expect.stringMatching(/\/kelas\/jadwal\//), expect.stringMatching(/\/keuangan$/)]));
+    expect(h.dataset("six.schedule")).toHaveLength(22);
+    expect(h.vault.secrets.has("six.session")).toBe(true);
+  });
+
+  it("never read since sign-in: the Student and every other SIX page still read, and the course list says it changed", async () => {
+    const h = await startEngine();
+    h.world.six.joinCodeAndName();
+    await until(h, h.engine.signIn("six", SIX));
+    expect(h.status("six")).toMatchObject({ state: "live", detail: null });
+    expect(h.status("six").changedPages).toEqual([{ datasets: ["six.courses"], detail: expect.stringContaining("course table") }]);
+    expect(h.dataset("six.student")).toMatchObject({ nim: "18223901", studentId: "2021000001", term: "2026-1" });
+    expect(h.dataset("six.courses")).toBeUndefined();
+    expect(h.dataset("six.schedule")).toHaveLength(22);
+    expect(h.dataset("six.transcript")).toBeDefined();
+    expect(h.dataset("six.bills")).toBeDefined();
+  });
+
+  it.each([
+    [
+      "a new column",
+      (html: string) =>
+        html
+          .replace('<th class="text-center">Nilai</th>', '<th class="text-center">Nilai</th><th>Dosen</th>')
+          .replace(/(<td class="text-center"><\/td>)(<\/tr>)/g, "$1<td>Dr. Rina Wulandari</td>$2"),
+    ],
+    [
+      "the code after the name",
+      (html: string) =>
+        html
+          .replace("<th>Kode</th><th>Mata Kuliah</th>", "<th>Mata Kuliah</th><th>Kode</th>")
+          .replace(/<td>([A-Z]{2}\d{4})<\/td><td>([^<]+)<\/td>/g, "<td>$2</td><td>$1</td>"),
+    ],
+    [
+      "SKS before the class",
+      (html: string) =>
+        html
+          .replace('<th class="text-center">Kelas</th><th class="text-center">SKS</th>', '<th class="text-center">SKS</th><th class="text-center">Kelas</th>')
+          .replace(
+            /<td class="text-center">(\d{2})<\/td><td class="text-center">(\d)<\/td>/g,
+            '<td class="text-center">$2</td><td class="text-center">$1</td>',
+          ),
+    ],
+  ])("%s reads the same", async (_name, edit) => {
+    const h = await signedIn();
+    h.world.six.editPage(STATUS, edit);
+    await until(h, h.engine.refresh("six"));
+    expect(h.status("six")).toMatchObject({ state: "live", detail: null });
+    expect(h.status("six").changedPages).toBeUndefined();
+    expect(h.dataset("six.courses")).toEqual(COURSES);
+    expect(h.dataset("six.skipped")).toBeUndefined();
+  });
+
+  it("without its attendance column: every course stays with its attendance blank, and the table is noted once", async () => {
+    const h = await signedIn();
+    h.world.six.editPage(STATUS, (html) => html.replace('<th class="text-right">Kehadiran</th>', "").replace(/<td class="text-right">[\s\S]*?<\/td>/g, ""));
+    await until(h, h.engine.refresh("six"));
+    expect(h.status("six")).toMatchObject({ state: "live", detail: null });
+    expect(h.status("six").changedPages).toBeUndefined();
+    expect(h.dataset("six.courses")).toEqual(COURSES.map((course) => ({ ...course, attendance: null })));
+    expect(h.dataset("six.skipped")).toEqual({
+      "six.courses": [{ row: "Kode · Mata Kuliah · Kelas · SKS · Nilai", why: "SIX statusmhs: the course table has no attendance column", blank: true }],
+    });
+  });
+
+  it("a header all in words the app doesn't know, in the layout as recorded, reads as recorded", async () => {
+    const h = await signedIn();
+    const words = [
+      ["<th>Kode</th>", "<th>Kd.</th>"],
+      ["<th>Mata Kuliah</th>", "<th>Matkul</th>"],
+      [">Kelas</th>", ">Kls</th>"],
+      [">SKS</th>", ">Bobot</th>"],
+      [">Kehadiran</th>", ">Absensi</th>"],
+    ];
+    for (const [from, to] of words) h.world.six.changeLayout(STATUS, from!, to!);
+    await until(h, h.engine.refresh("six"));
+    expect(h.status("six").changedPages).toBeUndefined();
+    expect(h.dataset("six.courses")).toEqual(COURSES);
+    expect(h.dataset("six.skipped")).toBeUndefined();
+  });
+
+  it("in a new term: last term's courses aren't kept as this term's while the table can't be read", async () => {
+    const h = await signedIn();
+    h.world.six.changeLayout(STATUS, "Daftar Kuliah Semester 1-2026/2027", "Daftar Kuliah Semester 2-2026/2027");
+    h.world.six.joinCodeAndName();
+    await until(h, h.engine.refresh("six"));
+    expect(h.dataset("six.student")?.term).toBe("2026-2");
+    expect(h.dataset("six.courses")).toBeUndefined();
+    expect(h.status("six")).toMatchObject({ state: "live", changedPages: [{ datasets: ["six.courses"], detail: expect.stringContaining("course table") }] });
+  });
+
+  it("read again as it was: the course list reads and is no longer said to have changed", async () => {
+    const h = await signedIn();
+    const recorded = h.world.six.page(STATUS);
+    h.world.six.joinCodeAndName();
+    await until(h, h.engine.refresh("six"));
+    expect(h.status("six").changedPages).toHaveLength(1);
+    h.world.six.editPage(STATUS, () => recorded);
+    h.world.six.setAttendance("PL3002", 7, 8);
+    await until(h, h.engine.refresh("six"));
+    expect(h.status("six")).toMatchObject({ state: "live", detail: null });
+    expect(h.status("six").changedPages).toBeUndefined();
+    expect(h.dataset("six.courses")?.find((course) => course.code === "PL3002")?.attendance).toEqual({ attended: 7, held: 8 });
   });
 });
 

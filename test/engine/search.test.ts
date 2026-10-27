@@ -307,6 +307,22 @@ describe("only this term's courses", () => {
     expect(keys(search(term, "PL3002")).filter((key) => key.includes("PL3002") || key.startsWith("task:1174") || key.startsWith("task:1178"))).toEqual([]);
     expect(first("ekonomi inovasi", term)?.key).not.toBe("course:PL3002");
   });
+
+  it("unless SIX's list left out a row it couldn't tell the course of: the Edunex course it probably was is still found", () => {
+    const lost: Saved = {
+      ...saved,
+      "six.courses": saved["six.courses"]!.filter((c) => c.code !== "PL3002"),
+      "six.skipped": {
+        "six.courses": [{ row: "4 · PL-3002 · Ekonomi dan Inovasi dalam Perencanaan · 01 · 3 · 85.71%", why: "SIX statusmhs: course 4 has no course code" }],
+      },
+    };
+    const term = searchIndex(lost, { lang: "id", screens: [], now });
+    expect(first("PL3002", term)?.key).toBe("course:PL3002");
+    expect(keys(search(term, "PL3002")).some((key) => key.startsWith("task:1174") || key.startsWith("task:1178"))).toBe(true);
+    // A detail SIX wrote another way leaves the list whole: a course it doesn't name stays out.
+    const blanked: Saved = { ...lost, "six.skipped": { "six.courses": [{ ...lost["six.skipped"]!["six.courses"]![0]!, blank: true }] } };
+    expect(first("PL3002", searchIndex(blanked, { lang: "id", screens: [], now }))?.key).not.toBe("course:PL3002");
+  });
 });
 
 describe("a full term", () => {

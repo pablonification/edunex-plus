@@ -1,8 +1,9 @@
 // What the app has saved, by dataset name (the window's store, or an engine
 // snapshot), and this term's courses as the screens list them. For code that
 // reasons over many datasets at once: quick search and the first-run scan.
-import type { DatasetName, DatasetValue } from "./models";
+import type { Course, DatasetName, DatasetValue } from "./models";
 import type { Lang } from "./strings";
+import { lostFromSix, sixListIncomplete } from "./term-courses";
 
 export type Saved = { [N in DatasetName]?: DatasetValue<N> };
 
@@ -21,18 +22,31 @@ export interface TermCourseNames {
 /**
  * This term's courses as the screens list them: SIX is the truth for
  * enrollment once connected (Edunex's courses of the same term join by code
- * and class), else Edunex's list.
+ * and class), else Edunex's list, of SIX's term once SIX knows it. As in
+ * ./term-courses.ts, a SIX list that lost a row it couldn't tell the course
+ * of keeps this term's Edunex courses it doesn't name.
  */
 export function termCourses(saved: Saved): TermCourseNames[] {
   const edunex = saved["edunex.courses"] ?? [];
   const six = saved["six.courses"];
   const term = saved["six.student"]?.term;
-  if (!six || !term) return edunex.map((c) => ({ code: c.code, classNo: c.classNo, six: null, edunex: c.name, edunexCourseId: c.edunex.courseId, sks: null }));
+  const fromEdunex = (c: Course): TermCourseNames => ({
+    code: c.code,
+    classNo: c.classNo,
+    six: null,
+    edunex: c.name,
+    edunexCourseId: c.edunex.courseId,
+    sks: null,
+  });
+  if (!term) return edunex.map(fromEdunex);
   const sameTerm = edunex.filter((c) => c.term === term);
-  return six.map((c) => {
+  if (!six) return sameTerm.map(fromEdunex);
+  const listed = six.map((c) => {
     const match = sameTerm.find((e) => e.code === c.code && e.classNo === c.classNo) ?? sameTerm.find((e) => e.code === c.code);
     return { code: c.code, classNo: c.classNo, six: c.name, edunex: match?.name ?? null, edunexCourseId: match?.edunex.courseId ?? null, sks: c.sks };
   });
+  if (!sixListIncomplete(saved["six.skipped"])) return listed;
+  return [...listed, ...lostFromSix(sameTerm, six).map(fromEdunex)];
 }
 
 /** The course's name in the Student's language: SIX's in Indonesian, Edunex's in English when it has one. */

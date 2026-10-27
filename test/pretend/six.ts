@@ -250,6 +250,13 @@ export class PretendSix {
     this.editPage(path, (html) => html.split(from).join(to));
   }
 
+  /** The status page's course table writes each course's code and name in one cell: it has no code column any more. */
+  joinCodeAndName(): void {
+    this.editPage(/\/statusmhs$/, (html) =>
+      html.replace("<th>Kode</th><th>Mata Kuliah</th>", "<th>Mata Kuliah</th>").replace(/<td>([A-Z]{2}\d{4})<\/td><td>([^<]+)<\/td>/g, "<td>$1 $2</td>"),
+    );
+  }
+
   /** The Student switched SIX to English (its EN switch): the same pages in other words. */
   useEnglish(): void {
     for (const [key, html] of this.pages) this.pages.set(key, inEnglish(html));

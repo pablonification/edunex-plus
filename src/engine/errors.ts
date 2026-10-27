@@ -19,3 +19,14 @@ export class EngineError extends Error {
 
 export const isEngineError = (error: unknown, kind?: ErrorKind): error is EngineError =>
   error instanceof EngineError && (kind === undefined || error.kind === kind);
+
+/**
+ * SIX changed one part of a page whose rest still read (the course table on the status page, which
+ * also says who the Student is): the feed stored what it could read. Only the datasets that part
+ * fills (FeedSpec.part) keep their last data and say so on their screens; the source stays live.
+ */
+export class PartChanged extends EngineError {
+  constructor(message: string) {
+    super("VendorChanged", message);
+  }
+}

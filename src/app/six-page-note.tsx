@@ -23,13 +23,14 @@ export function useChangedPage(datasets: readonly DatasetName[]): ChangedPage | 
   return status.changedPages?.find((page) => page.datasets.some((name) => datasets.includes(name as DatasetName)));
 }
 
-/** `datasets`: what the screen shows from SIX, the one it shows most first (its last read is the one said). */
+/** `datasets`: what the screen shows from SIX, the one it shows most first (its last read is said, unless another's page changed). */
 export function SixPageNote({ datasets, className }: { datasets: readonly DatasetName[]; className?: string }) {
   const t = useT();
   const f = useFormat();
   const open = useOpenExternal();
   const page = useChangedPage(datasets);
-  const last = useDatasetPayload(datasets[0]!);
+  // The page that changed says when its own data was read.
+  const last = useDatasetPayload(datasets.find((name) => page?.datasets.includes(name)) ?? datasets[0]!);
   const skipped = useDataset("six.skipped");
   const student = useDataset("six.student");
   const openSix = (name: DatasetName) => (
