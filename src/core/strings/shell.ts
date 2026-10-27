@@ -75,6 +75,15 @@ export const shellStrings = {
     id: "Belum ditampilkan di sini. Cek di SIX.",
     en: { one: "It isn't shown here yet. Check it on SIX.", other: "They aren't shown here yet. Check them on SIX." },
   },
+  // A row of a SIX page the app kept with a cell it can't read yet left blank (a payment written another way).
+  "skipped.blankTitle": {
+    id: "{count} baris belum terbaca utuh",
+    en: { one: "{count} row isn't fully read", other: "{count} rows aren't fully read" },
+  },
+  "skipped.blankBody": {
+    id: "Sebagian isinya belum ditampilkan di sini. Cek di SIX.",
+    en: { one: "Part of it isn't shown here yet. Check it on SIX.", other: "Parts of them aren't shown here yet. Check them on SIX." },
+  },
   "sixPage.openSix": { id: "Buka di SIX", en: "Open in SIX" },
   // A SIX page whose layout changed while the rest of SIX reads: said on the screens that show its data.
   "sixPage.changed": { id: "SIX mengubah halaman ini", en: "SIX changed this page" },

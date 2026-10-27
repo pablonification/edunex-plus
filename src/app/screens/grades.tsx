@@ -8,12 +8,12 @@
 // their calculators, and what signing in to SIX unlocks.
 import { useId } from "react";
 import type { CalendarEvent, CheckedIndex, TranscriptTerm } from "../../core/models";
-import { checkPlan, expectedGrade, hasWhatIfs, project, type StudentRecord, sksModel, targetOf } from "../../core/planner";
+import { checkPlan, expectedGrade, hasWhatIfs, passedSks, project, type StudentRecord, sksModel, targetOf } from "../../core/planner";
 import { useTermCourses } from "../courses";
 import { useOpenExternal } from "../hooks";
 import { useFormat, useNow, useT } from "../i18n";
 import { useNav, usePlaceState } from "../nav";
-import { SixPageNote } from "../six-page-note";
+import { SixPageNote, UnreadNote } from "../six-page-note";
 import { useDataset } from "../store";
 import { type PlanState, usePlan, useStudentRecord } from "../study-plan";
 import { Button } from "../ui/controls";
@@ -40,7 +40,10 @@ export function GradesScreen() {
   return (
     <Page className="@container">
       <Answer record={record} state={state} />
-      <SixPageNote datasets={["six.transcript", "six.progress"]} className="mt-6" />
+      <div className="mt-6 mb-6 space-y-2 empty:hidden">
+        <SixPageNote datasets={["six.transcript", "six.progress"]} />
+        <UnreadNote record={record} />
+      </div>
       <Disagreement record={record} />
       <Standing record={record} state={state} />
       <div className="mt-10 grid grid-cols-1 items-start gap-6 @3xl:grid-cols-[minmax(0,1fr)_288px]">
@@ -112,7 +115,7 @@ function Standing({ record, state }: { record: StudentRecord; state: PlanState }
   // The IPK itself is the header's answer; these are the figures around it.
   return (
     <StatRow>
-      <Stat label={t("grades.sksPassed")} value={String(record.passedSks)} hint={t("grades.sksPassedHint", { need: sks.need })} />
+      <Stat label={t("grades.sksPassed")} value={String(passedSks(record) ?? "-")} hint={t("grades.sksPassedHint", { need: sks.need })} />
       <Stat
         label={t("grades.lastIp")}
         value={num(lastIp)}
@@ -295,7 +298,7 @@ function Transcript({ record }: { record: StudentRecord }) {
   const terms = record.transcript!.terms;
   const stage = record.progress?.stages.at(-1);
   const stageIp = stage ? shownIndex(stage.ip) : null;
-  const lastGraded = [...terms].reverse().find((term) => term.ip.computed !== null)?.term ?? null;
+  const lastGraded = [...terms].reverse().find((term) => shownIndex(term.ip) !== null)?.term ?? null;
   const [open, setOpen] = usePlaceState<string | null>("grades.open", lastGraded);
   return (
     <Section
@@ -364,10 +367,12 @@ function TermRow({ record, term, open, onToggle }: { record: StudentRecord; term
                 <span className="flex justify-end gap-1.5">
                   {course.attempt > 1 && <Tag>{t("grades.retaken")}</Tag>}
                   {course.standing !== "counted" && (
-                    <Tag tone={course.standing === "pending" ? "neutral" : "warning"}>{t(`grades.standing.${course.standing}`)}</Tag>
+                    <Tag tone={course.standing === "pending" || course.standing === "unknown" ? "neutral" : "warning"}>
+                      {t(`grades.standing.${course.standing}`)}
+                    </Tag>
                   )}
                 </span>
-                <span className="text-right text-small text-muted tabular-nums">{course.sks} SKS</span>
+                <span className="text-right text-small text-muted tabular-nums">{course.sks ?? "-"} SKS</span>
               </span>
               <span className="text-right">
                 {course.grade ? <GradeBadge grade={course.grade} struck={course.standing === "replaced"} /> : <span className="text-faint">-</span>}

@@ -1,11 +1,39 @@
 // Reads UKT bills (/keuangan, "Status Keuangan"): per term the amount billed,
 // the amount paid and the last day to pay, or the instalments with their own
-// days and amounts. A bill row it doesn't understand is left out (skipped).
+// days and amounts. A bill whose term it can't read is left out (skipped); an
+// amount, payment or deadline it can't read is left blank and the row noted.
 import type { Bill, BillStatus, Instalment } from "../../../../core/models";
 import type { Skipped } from "../../skipped";
-import { cellsOf, changed, day, type Elem, endOfDayWib, expectLabels, int, openPage, type Page, rowsOf, rowText, rupiah, textOf } from "./records-common";
+import {
+  type Column,
+  type Columns,
+  cellsOf,
+  changed,
+  columns,
+  day,
+  details,
+  type Elem,
+  endOfDayWib,
+  int,
+  labelsOf,
+  openPage,
+  type Page,
+  rowsOf,
+  rowText,
+  rupiah,
+  textOf,
+  widthOf,
+} from "./records-common";
 
 const HEADER = ["Semester", "Tagihan (Rp)", "Pembayaran (Rp)", "Batas Pembayaran", "Petunjuk"];
+/** A Student's Indonesian page wrote "Invoice (Rp)" and "Payment Due Date". */
+const COLUMNS = {
+  term: { labels: ["Semester", "Term"], required: true },
+  amount: { labels: ["Tagihan (Rp)", "Tagihan", "Invoice (Rp)", "Invoice", "Bill (Rp)", "Bill"] },
+  paid: { labels: ["Pembayaran (Rp)", "Pembayaran", "Payment (Rp)", "Payment", "Paid (Rp)", "Paid"] },
+  due: { labels: ["Batas Pembayaran", "Payment Due Date", "Due Date", "Due"] },
+} satisfies Record<string, Column>;
+type Table = Columns<keyof typeof COLUMNS>;
 
 /** Oldest term first. */
 export function readBills(html: string, skipped?: Skipped): Bill[] {
@@ -14,7 +42,7 @@ export function readBills(html: string, skipped?: Skipped): Bill[] {
   const tables = page.$("table").filter((_, table) => rowsOf(page, page.$(table)).some((row) => row.hasClass("warning")));
   if (tables.length !== 1) changed(page, "no table of bills");
   const [header, ...rows] = rowsOf(page, tables.first());
-  expectLabels(page, header ? cellsOf(page, header).map(textOf) : [], HEADER, "the bills header");
+  const table = columns(page, header ? labelsOf(cellsOf(page, header)) : [], COLUMNS, HEADER, "the bills header");
 
   const bills: Bill[] = [];
   const list = page.skipped.list();
@@ -28,14 +56,14 @@ export function readBills(html: string, skipped?: Skipped): Bill[] {
       year = Number(years[1]);
     } else if (cells.length === 1) {
       // A note across the table: nothing to read.
-    } else if (textOf(cells[0]!) === "SPI") {
+    } else if (textOf(table.cell(cells, "term") ?? cells[0]!) === "SPI") {
       // SPI, the development fee some intakes pay once on entry: not a term's UKT, so not a bill here.
     } else {
       if (year === null) changed(page, "a bill row is out of place");
       const of = year;
       const bill = list.item(rowText(cells), () => {
-        if (cells.length !== HEADER.length) changed(page, `a bill row has ${cells.length} cells`);
-        return readBill(page, of, cells);
+        if (widthOf(cells) !== table.width) changed(page, `a bill row has ${cells.length} cells`);
+        return readBill(page, of, table, cells);
       });
       if (bill) bills.push(bill);
     }
@@ -44,19 +72,37 @@ export function readBills(html: string, skipped?: Skipped): Bill[] {
   return bills.sort((a, b) => a.term.localeCompare(b.term));
 }
 
-function readBill(page: Page, year: number, cells: Elem[]): Bill {
-  const [label, billed, paidCell, due] = cells as [Elem, Elem, Elem, Elem];
+function readBill(page: Page, year: number, table: Table, cells: Elem[]): Bill {
   // "1 - Ganjil", "2 - Genap", "3 - Pendek": the number is the term's.
-  const semester = /^([123])\b/.exec(textOf(label))?.[1];
-  if (!semester) changed(page, `term "${textOf(label)}" isn't readable`);
+  const label = textOf(table.need(cells, "term"));
+  const semester = /^([123])\b/.exec(label)?.[1];
+  if (!semester) changed(page, `term "${label}" isn't readable`);
   const term = `${year}-${semester}`;
-  const amount = rupiah(page, textOf(billed), `bill of ${term}`);
-  const paid = rupiah(page, textOf(paidCell), `payment of ${term}`);
-  const instalments = readInstalments(page, term, due);
-  const dueDate = instalments.length ? instalments.at(-1)!.dueDate : day(page, textOf(due), `deadline of ${term}`);
+  const detail = details(page);
+  const amount = detail.of("amount", table.cell(cells, "amount"), (cell) => rupiah(page, textOf(cell), `bill of ${term}`));
+  const paid = detail.of("paid", table.cell(cells, "paid"), (cell) => rupiah(page, textOf(cell), `payment of ${term}`));
+  // An instalment it can't read blanks the whole deadline: a later one is never taken for the next one due.
+  const due = detail.of("due", table.cell(cells, "due"), (cell) => {
+    const instalments = readInstalments(page, term, cell);
+    return { instalments, dueDate: instalments.length ? instalments.at(-1)!.dueDate : day(page, textOf(cell), `deadline of ${term}`) };
+  });
+  detail.note(rowText(cells));
+  const instalments = due?.instalments ?? [];
+  const dueDate = due?.dueDate ?? null;
   const dueAt = dueDate === null ? null : endOfDayWib(dueDate);
 
-  const status: BillStatus = amount === null ? "not-billed" : (paid ?? 0) >= amount ? "paid" : (paid ?? 0) > 0 ? "partly-paid" : "unpaid";
+  // Billed against paid only when both are read: with either blank, whether it's paid isn't known.
+  const status: BillStatus = detail.blank("amount")
+    ? "unknown"
+    : amount === null
+      ? "not-billed"
+      : detail.blank("paid")
+        ? "unknown"
+        : (paid ?? 0) >= amount
+          ? "paid"
+          : (paid ?? 0) > 0
+            ? "partly-paid"
+            : "unpaid";
   let nextDueAt: number | null = null;
   if (status === "unpaid" || status === "partly-paid") {
     // The first instalment the payments so far don't cover.

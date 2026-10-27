@@ -85,13 +85,13 @@ sign-in, liveness first), then repeat every `every` ± `jitter`.
 | `/home` | `six.status`, only when the NIM isn't known yet this session | The NIM | `six/status.ts` `readNim` |
 | `/app/mahasiswa:{nim}/statusmhs` | `six.status` (1 h ± 5 min); liveness | Name, `{sid}`, program code and name, the term, this term's courses: code, name, class, SKS, and attendance as "Hadir X dari Y pertemuan" from the tooltip, checked against the percentage shown (with sick days SIX shows two, "82.35% / 94.12%": the first is read). A class, SKS or attendance it can't read is left blank and the row noted; the course stays ([ADR 0009](docs/adr/0009-keep-a-course-whose-detail-cant-be-read.md)) | `six/status.ts` `readStatusPage` |
 | `/app/mahasiswa:{nim}+{term}/kelas/jadwal/mahasiswa/{sid}?bulan={YYYYMM}` | `six.schedule` (12 h ± 30 min): this month (WIB), plus next month when SIX's tabs offer it | Each meeting: SIX meeting id, date, start/end (WIB), course code and name, activity (Kuliah, UTS, …) and room | `six/timetable.ts` |
-| `/app/mahasiswa:{nim}/statusmhs/transkrip/historis/{sid}` | `six.transcript` (24 h ± 1 h) | Every course per term with grade, SKS, curriculum semester, on-transcript mark; SIX's IP per term; SKS taken. Retakes and IP/IPK are worked out and checked | `readers/transcript.ts` |
-| `/app/mahasiswa:{nim}/statusmhs/transkrip/kurikulum/{sid}` | `six.transcript` (same run) | Graduation progress: entry term, IPK (and the SKS it covers), SKS passed and graded T, SKS by kind, courses by stage and curriculum semester (graded, in progress, exempt, not taken) | `readers/progress.ts` |
+| `/app/mahasiswa:{nim}/statusmhs/transkrip/historis/{sid}` | `six.transcript` (24 h ± 1 h) | Every course per term with grade, SKS, curriculum semester, on-transcript mark; SIX's IP per term; SKS taken. Retakes and IP/IPK are worked out and checked; with a grade, mark or SKS the app can't read in it, SIX's figure shows unchecked | `readers/transcript.ts` |
+| `/app/mahasiswa:{nim}/statusmhs/transkrip/kurikulum/{sid}` | `six.transcript` (same run) | Graduation progress: entry term, IPK (and the SKS it covers), SKS passed and graded T, SKS by kind, courses by stage and curriculum semester (graded, in progress, exempt, not taken). A status label it doesn't know leaves its course out | `readers/progress.ts` |
 | `/app/mahasiswa:{nim}/kurikulum/kurikulum/list` | `six.curriculum` (24 h ± 1 h) | Curricula for the program: year, SKS to graduate, normal length, which one is in force, its structure link | `readers/curriculum-list.ts` |
 | `/app/mahasiswa:{nim}/kurikulum/kurikulum/{id}/struktur` (the link from the list, `returnTo` dropped) | `six.curriculum` | Required courses by semester, specializations, minors, the program's catalog, each course's SIX course id | `readers/curriculum-structure.ts` |
 | `/app/mahasiswa:{nim}/statusmhs/program-integrasi/riwayat/{sid}` | `six.curriculum` | Registered specialization, minor, multidisciplinary program or double major, with advisor and program approval days | `readers/schemes.ts` |
-| `/app/mahasiswa:{nim}+{term}/registrasi/rencanastudi/{sid}` | `six.krs` (24 h ± 1 h) | The KRS: term, advisor name, max SKS, sent / advisor-approved / official stamps, the change round (URS), UKT paid and amount, courses with class, SKS and per-course approval. The advisor chat on the page is never read | `readers/krs.ts` |
-| `/app/mahasiswa:{nim}/keuangan` | `six.bills` (24 h ± 1 h) | UKT bills per term: billed, paid, last day to pay, instalments (an "SPI" row, the one-off development fee, is left out) | `readers/bills.ts` |
+| `/app/mahasiswa:{nim}+{term}/registrasi/rencanastudi/{sid}` | `six.krs` (24 h ± 1 h) | The KRS: term, advisor name, max SKS, sent / advisor-approved / official stamps (a step done at a time the app can't read counts as done, undated), the change round (URS), UKT paid and amount, courses with class, SKS and per-course approval. The advisor chat on the page is never read | `readers/krs.ts` |
+| `/app/mahasiswa:{nim}/keuangan` | `six.bills` (24 h ± 1 h) | UKT bills per term: billed, paid, last day to pay, instalments (an "SPI" row, the one-off development fee, is left out). With the amount or payment blank, whether a bill is paid is unknown; an instalment the app can't read blanks the bill's deadline | `readers/bills.ts` |
 | `/app/mahasiswa:{nim}+{term}/kelas/pertemuan/{meetingId}/mhs/{sid}?returnTo=…` (a class's popup on the timetable, its `data-url`), with `X-Requested-With: XMLHttpRequest` as SIX's own page asks for it | `six.checkIn` (2 min ± 20 s), only from 5 minutes before a class on the timetable starts to 10 minutes after it ends; outside class it requests nothing. A class whose button came and went isn't read again | Whether SIX's "Tandai Hadir" button shows and can be pressed (not disabled) | `six/check-in.ts` `showsCheckIn` |
 
 **Kept from the status page.** Each time the status page is read, the app also keeps, as SIX data on
@@ -165,10 +165,12 @@ links, number patterns), not wording:
 
 - The status page and the timetable read the same in both languages; the attendance count is
   read as the two numbers in the tooltip, whatever the words.
-- Record readers (`readers/records-common.ts`) detect the language from SIX's active
-  `/pub/locale/en` switch. On English pages they check only the number of columns, not header
-  labels; key-value fields are taken by recorded row position; KRS steps by their order.
-  Course kinds in "SKS by kind" become "other". Dates accept English month names.
+- Record readers (`readers/records-common.ts`) find a table's columns, and a key-value field's row,
+  by its label in Indonesian or English, on any page: a Student's Indonesian fees page showed "Invoice
+  (Rp)" and "Payment Due Date". They also detect the language from SIX's active `/pub/locale/en` switch:
+  on English pages a label the app doesn't know is taken from where the recorded page has it (when the
+  header has the recorded number of columns), and KRS steps by their order. Course kinds in "SKS by
+  kind" become "other". Dates accept English month names.
 - SIX's real English wording was **never recorded**; the tests use the Indonesian pages with
   words swapped (`test/pretend/six.ts`).
 
@@ -188,10 +190,11 @@ it as a candidate source; the app does not request it.
 
 ## Vendor changes and error mapping
 
-Every reader rejects what it can't place for certain instead of guessing: an unknown header,
-a wrong cell count, a number that isn't a number, attendance that disagrees with its
-percentage, a day with times the app can't read (never shown as free), a calendar that isn't a
-calendar or has no events. Each throws **VendorChanged** with the page and what didn't fit
+Every reader rejects what it can't place for certain instead of guessing: a header without a
+column that says which row it is (or one no blank can stand for, like a course's grade on the
+curriculum-position page), a row with another number of cells than its header, a number that
+isn't a number, attendance that disagrees with its percentage, a day with times the app can't
+read (never shown as free), a calendar that isn't a calendar or has no events. Each throws **VendorChanged** with the page and what didn't fit
 (`six/html.ts`, `readers/records-common.ts`, `itb/catalog-pages.ts`, `itb/calendar.ts`). A
 changed catalog page marks only that program "changed" and the feed reports it after the run.
 
@@ -201,6 +204,13 @@ shows and why, for the screen that shows that data to say so. That holds for the
 fees, transcript, curriculum position, KRS, curriculum list and structure, scheme and status
 pages. On the status page a course whose class, SKS or attendance can't be read stays, with that
 detail blank, and its row is noted the same way ([ADR 0009](docs/adr/0009-keep-a-course-whose-detail-cant-be-read.md)).
+The record pages do the same for every cell but what says which row it is (a course's code and name,
+a bill's term, a curriculum's name and year, a scheme's name), and find their columns by label: a
+column the app doesn't know is passed over, one moved reads the same, a detail's column that's
+missing leaves that detail blank in every row (noted once), and one that says which row it is
+refuses the page. A check over a blank (an IP or IPK, a bill against its payment) is skipped, with
+SIX's own figure shown; the screens show a blank as "-", and the planner's estimates say which
+courses they leave out ([ADR 0011](docs/adr/0011-record-columns-by-name-and-blank-cells.md)).
 `test/engine/six-odd-cells.test.ts` changes each recorded page one cell at a time (a second value,
 extra words, an empty cell) and keeps what every reader does in
 `test/engine/__snapshots__/six-odd-cells.txt`. What holds the rows stays strict (a table, its header, a year or semester heading), as does
@@ -245,7 +255,9 @@ their data is from ([ADR 0006](docs/adr/0006-a-changed-six-page-is-said-on-its-s
 - **Timetable:** only one month was recorded; other months in tests are generated.
 - **KRS:** SIX's look for a step not taken yet and for a course not yet approved was not
   recorded (tests use an empty cell).
-- **English:** SIX's English wording was not recorded.
+- **English:** SIX's English wording was not recorded. Of the English labels the record readers know,
+  only the fees page's "Invoice (Rp)" and "Payment Due Date" were seen, on a Student's Indonesian page;
+  the others are guesses, and an English page whose label isn't one of them reads by recorded position.
 - **429:** SIX's real rate-limit answer (status, `Retry-After`) is modelled, not captured; the
   pretend server answers `429` with `Retry-After: 900`.
 - **Session length:** "about 30 days" is from observation, not measured by the app.

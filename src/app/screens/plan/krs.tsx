@@ -153,7 +153,9 @@ function Timeline({ title, steps }: { title: string; steps: KrsStep[] }) {
                   : t("krs.step.uktUnpaid")
                 : step.at !== null
                   ? [`${f.weekdayShort(step.at)}, ${f.dayMonth(step.at)}`, f.time(step.at)]
-                  : t("krs.step.notYet")}
+                  : step.done
+                    ? "-"
+                    : t("krs.step.notYet")}
             </Meta>
           </li>
         ))}
@@ -168,11 +170,14 @@ function Courses({ plan, overlaps }: { plan: KrsPlan; overlaps: Overlap[] }) {
   const { go } = useNav();
   const term = useTermCourses();
   const colorOf = useCourseColor();
-  const over = plan.maxSks !== null && plan.sks > plan.maxSks;
-  // Say once what every row shares; chips only where a row differs.
+  // A total, class or approval SIX writes in a way the app can't read yet is "-", never 0 and never "not approved".
+  const sks = plan.sks ?? "-";
+  const over = plan.maxSks !== null && plan.sks !== null && plan.sks > plan.maxSks;
+  // Say once what every row shares; chips only where a row differs. No class read on any row: nothing to say.
   const classes = new Set(plan.courses.map((c) => c.classNo));
-  const sameClass = classes.size === 1 ? [...classes][0] : null;
-  const allApproved = plan.courses.every((c) => c.approved);
+  const oneClass = classes.size === 1;
+  const sameClass = oneClass ? [...classes][0] : null;
+  const allApproved = plan.courses.every((c) => c.approved === true);
   const clashWith = (code: string) => overlaps.filter((o) => o.upcoming && o.codes.includes(code)).map((o) => o.codes.find((c) => c !== code)!);
   const past = overlaps.filter((o) => !o.upcoming);
   return (
@@ -181,12 +186,12 @@ function Courses({ plan, overlaps }: { plan: KrsPlan; overlaps: Overlap[] }) {
       title={t("krs.courses")}
       action={
         <span className={cx("text-small font-medium tabular-nums", over ? "text-danger-fg" : "text-muted")}>
-          {plan.maxSks !== null ? t("krs.sksOfMax", { sks: plan.sks, max: plan.maxSks }) : t("krs.sks", { sks: plan.sks })}
+          {plan.maxSks !== null ? t("krs.sksOfMax", { sks, max: plan.maxSks }) : t("krs.sks", { sks })}
         </span>
       }
       className="min-w-0"
     >
-      {plan.maxSks !== null && (
+      {plan.maxSks !== null && plan.sks !== null && (
         <>
           <Bar
             className="mb-3"
@@ -207,9 +212,9 @@ function Courses({ plan, overlaps }: { plan: KrsPlan; overlaps: Overlap[] }) {
               leading={<CourseCode code={course.code} color={colorOf(course.code)} className="w-[76px] text-small" />}
               title={course.name}
               meta={
-                clashes.length || !sameClass ? (
+                clashes.length || !oneClass ? (
                   <Meta>
-                    {sameClass ? "" : t("krs.class", { classNo: course.classNo })}
+                    {oneClass ? "" : t("krs.class", { classNo: course.classNo ?? "-" })}
                     {clashes.length ? (
                       <span className="inline-flex items-center gap-1 font-medium text-warning-fg">
                         <Icons.Overlap className="size-3" weight="bold" />
@@ -223,13 +228,13 @@ function Courses({ plan, overlaps }: { plan: KrsPlan; overlaps: Overlap[] }) {
               }
               trailing={
                 <span className="flex items-center gap-3">
-                  {!course.approved && (
+                  {course.approved === false && (
                     <span className="inline-flex items-center gap-1 text-caption font-semibold text-warning-fg">
                       <Icons.Clock className="size-3.5" />
                       {t("krs.notApproved")}
                     </span>
                   )}
-                  <span className="w-[52px] text-right text-small font-medium tabular-nums">{t("krs.sks", { sks: course.sks })}</span>
+                  <span className="w-[52px] text-right text-small font-medium tabular-nums">{t("krs.sks", { sks: course.sks ?? "-" })}</span>
                 </span>
               }
               onClick={known ? () => go({ screen: "course", code: course.code }) : undefined}

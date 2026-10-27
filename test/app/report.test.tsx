@@ -38,7 +38,7 @@ async function tab(name: string) {
 describe("reporting a SIX page the app couldn't read, on LINE", () => {
   it("says in plain words what goes, sends nothing until asked, then walks through the steps one at a time", async () => {
     const s = (screen = await openApp({ signedIn: true, six: true }));
-    s.world.six.changeLayout(BILLS, "<th class='text-right'>Pembayaran (Rp)</th>", "<th>Dibayar</th>");
+    s.world.six.changeLayout(BILLS, "<th class='text-left'>Semester</th>", "<th>Periode</th>");
     await s.engineDoes(() => s.engine.refresh("six"));
     await s.click(/^Rencana studi/);
     await tab("UKT");
@@ -59,9 +59,9 @@ describe("reporting a SIX page the app couldn't read, on LINE", () => {
     expect([s.reports.files, s.reports.opened]).toEqual([[], []]);
 
     await s.click("Detail teknis");
-    expect(dialog()).toContain('SIX finance page: the bills header reads "Semester | Tagihan (Rp) | Dibayar | Batas Pembayaran | Petunjuk"');
+    expect(dialog()).toContain('SIX finance page: the bills header has no "Semester" column');
     expect(dialog()).toContain("/keuangan");
-    expect(document.querySelector("[role=dialog] pre")?.textContent).toContain("<th>Dibayar</th>");
+    expect(document.querySelector("[role=dialog] pre")?.textContent).toContain("<th>Periode</th>");
     await s.click("Detail teknis");
 
     await note("membuka tab UKT");

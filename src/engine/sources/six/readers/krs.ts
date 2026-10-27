@@ -1,17 +1,23 @@
 // Reads the term's study plan (/registrasi/rencanastudi/{sid}): when it was
 // sent, approved by the academic advisor and made official, its change round
 // (URS), the UKT payment, and its courses with the advisor's approval per
-// course. The advisor chat on the same page is never read. A course row it
-// doesn't understand is left out (skipped).
-import type { KrsCourse, KrsPlan, KrsState, KrsSteps } from "../../../../core/models";
+// course. The advisor chat on the same page is never read. A course whose
+// code it can't read is left out (skipped); a class, SKS, approval or time it
+// can't read is left blank and its row noted.
+import { type KrsCourse, type KrsPlan, type KrsState, type KrsSteps, type KrsStepTime, stepDone } from "../../../../core/models";
 import type { Skipped } from "../../skipped";
 import {
+  COURSE_COLUMNS,
+  type Column,
   cellsOf,
   changed,
+  columns,
+  details,
   type Elem,
-  expectLabels,
   field,
   int,
+  labelsOf,
+  noteBlank,
   openPage,
   type Page,
   rowsOf,
@@ -20,10 +26,16 @@ import {
   stamp,
   termFromHeading,
   textOf,
+  widthOf,
 } from "./records-common";
 
 const COURSE_HEADER = ["Kode", "Mata Kuliah", "Kelas", "SKS", "Disetujui"];
-type Step = keyof KrsSteps | "ukt";
+const PLAN_COLUMNS = {
+  ...COURSE_COLUMNS,
+  classNo: { labels: ["Kelas", "Class"] },
+  approved: { labels: ["Disetujui", "Approved"] },
+} satisfies Record<string, Column>;
+type Step = KrsStepTime | "ukt";
 /** The status rows of each round, as recorded; on English pages they're taken in this order. */
 const PLAN_STEPS: [string, Step][] = [
   ["Pengiriman Rencana Studi", "sentAt"],
@@ -49,17 +61,26 @@ export function readKrs(html: string, skipped?: Skipped): KrsPlan {
   // Student data, the registration status, then the courses.
   const [data, status, courses] = tables as [Elem | undefined, Elem | undefined, Elem | undefined];
   if (!data || !status || !courses) changed(page, "its tables moved");
-  const advisor = field(page, data, "Dosen Wali", 6);
-  const maxSks = field(page, data, "Maksimal Beban", 10);
+  const advisor = field(page, data, ["Dosen Wali", "Academic Advisor", "Advisor"], 6);
+  const maxSks = field(page, data, ["Maksimal Beban", "Maximum Load", "Max Load"], 10);
+  const detail = details(page);
+  const max = detail.of("maxSks", maxSks, (cell) => int(page, /^\d+/.exec(textOf(cell))?.[0] ?? textOf(cell), "maximum SKS"));
+  detail.note(maxSks ? rowText(cellsOf(page, maxSks.parent())) : "");
 
   const { plan, change, ukt } = readStatus(page, status);
   const { list, sks } = readCourses(page, courses);
-  const latest = change?.sentAt ? change : plan;
-  const state: KrsState = latest.legalizedAt ? "official" : latest.approvedAt ? "approved" : latest.sentAt ? "sent" : "not-sent";
+  const latest = change && stepDone(change, "sentAt") ? change : plan;
+  const state: KrsState = stepDone(latest, "legalizedAt")
+    ? "official"
+    : stepDone(latest, "approvedAt")
+      ? "approved"
+      : stepDone(latest, "sentAt")
+        ? "sent"
+        : "not-sent";
   return {
     term: termFromHeading(page, textOf(heading), "plan heading"),
     advisor: advisor ? textOf(advisor) || null : null,
-    maxSks: maxSks ? int(page, /^\d+/.exec(textOf(maxSks))?.[0] ?? textOf(maxSks), "maximum SKS") : null,
+    maxSks: max,
     state,
     plan,
     change,
@@ -87,6 +108,7 @@ function readStatus(page: Page, table: Elem): { plan: KrsSteps; change: KrsSteps
   const [plan, change] = rounds.map((rows, round) => {
     const known = round === 0 ? PLAN_STEPS : CHANGE_STEPS;
     const steps: KrsSteps = { sentAt: null, approvedAt: null, legalizedAt: null };
+    const undated: KrsStepTime[] = [];
     const seen = new Set<Step>();
     if (page.lang !== "id" && rows.length !== known.length) changed(page, "a status round has unknown rows");
     rows.forEach(([head, value], i) => {
@@ -94,34 +116,53 @@ function readStatus(page: Page, table: Elem): { plan: KrsSteps; change: KrsSteps
       const step = page.lang === "id" ? known.find(([name]) => name === label)?.[1] : known[i]![1];
       if (!step) return; // A row the app doesn't use.
       seen.add(step);
-      if (step === "ukt") ukt = { paid: head!.parent().hasClass("success"), amount: /\d/.test(textOf(value!)) ? rupiah(page, textOf(value!), "UKT") : null };
-      else steps[step] = stamp(page, value!.text(), label);
+      const detail = details(page);
+      if (step === "ukt")
+        ukt = {
+          paid: head!.parent().hasClass("success"),
+          amount: /\d/.test(textOf(value!)) ? detail.of(step, value!, (cell) => rupiah(page, textOf(cell), "UKT")) : null,
+        };
+      else {
+        // A time it can't read: SIX shows the step done (the cell holds a date), just not when.
+        steps[step] = detail.of(step, value!, (cell) => stamp(page, cell.text(), label));
+        if (detail.blank(step)) undated.push(step);
+      }
+      detail.note(rowText([head!, value!]));
     });
     // Sent, approved and made official are what the app shows: without one of them the state would be wrong.
     const missing = known.find(([, step]) => step !== "ukt" && !seen.has(step));
     if (missing) changed(page, `the ${round === 0 ? "plan" : "change"} round has no ${missing[0]} row`);
-    return steps;
+    return undated.length ? { ...steps, undated } : steps;
   });
   return { plan: plan!, change: change ?? null, ukt };
 }
 
-function readCourses(page: Page, table: Elem): { list: KrsCourse[]; sks: number } {
+function readCourses(page: Page, table: Elem): { list: KrsCourse[]; sks: number | null } {
   const [header, ...rows] = rowsOf(page, table).map((row) => cellsOf(page, row));
-  expectLabels(page, (header ?? []).map(textOf), COURSE_HEADER, "the course header");
-  const total = rows.pop();
-  // The total row: an empty cell over three columns, the SKS, an empty cell.
-  if (total?.length !== 3 || total[0]!.attr("colspan") !== "3") changed(page, "the SKS total is missing");
+  const course = columns(page, header ? labelsOf(header) : [], PLAN_COLUMNS, COURSE_HEADER, "the course header");
+  // The total row: an empty cell over the columns before SKS, the SKS, an empty cell.
+  const total = Number(rows.at(-1)?.[0]?.attr("colspan")) > 1 ? rows.pop()! : null;
   const list = page.skipped.each(rows, rowText, (cells) => {
-    if (cells.length !== COURSE_HEADER.length) changed(page, `a course row has ${cells.length} cells`);
-    const [code, name, classNo, sks, approved] = cells as [Elem, Elem, Elem, Elem, Elem];
-    if (!/^[A-Z]{2}\d{4}$/.test(textOf(code))) changed(page, `"${textOf(code)}" isn't a course code`);
-    return {
-      code: textOf(code),
-      name: textOf(name),
-      classNo: textOf(classNo),
-      sks: int(page, textOf(sks), "SKS"),
-      approved: approved.find(".fa-check").length > 0,
+    if (widthOf(cells) !== course.width) changed(page, `a course row has ${cells.length} cells`);
+    const code = textOf(course.need(cells, "code"));
+    if (!/^[A-Z]{2}\d{4}$/.test(code)) changed(page, `"${code}" isn't a course code`);
+    const detail = details(page);
+    const read: KrsCourse = {
+      code,
+      name: textOf(course.need(cells, "name")),
+      classNo: detail.of("classNo", course.cell(cells, "classNo"), textOf),
+      sks: detail.of("sks", course.cell(cells, "sks"), (cell) => int(page, textOf(cell), "SKS")),
+      approved: detail.of("approved", course.cell(cells, "approved"), (cell) => cell.find(".fa-check").length > 0),
     };
+    detail.note(rowText(cells));
+    return read;
   });
-  return { list, sks: int(page, textOf(total[1]!), "SKS total") };
+  if (!total) {
+    noteBlank(page, (header ?? []).map(textOf).filter(Boolean).join(" · "), "the SKS total is missing");
+    return { list, sks: null };
+  }
+  const detail = details(page);
+  const sks = detail.of("sks", course.cell(total, "sks"), (cell) => int(page, textOf(cell), "SKS total"));
+  detail.note(rowText(total));
+  return { list, sks };
 }

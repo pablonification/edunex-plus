@@ -46,7 +46,7 @@ describe("a SIX page the app couldn't read", () => {
     expect(h.dataset("six.student")?.name).toBe("Rahmat Hidayatullah");
     expect(h.engine.report({}).problems).toEqual([]);
 
-    h.world.six.changeLayout(BILLS, "<th class='text-right'>Pembayaran (Rp)</th>", "<th>Dibayar</th>");
+    h.world.six.changeLayout(BILLS, "<th class='text-left'>Semester</th>", "<th>Periode</th>");
     await until(h, h.engine.refresh("six"));
     const changed = h.status("six").changedPages![0]!;
     const report = h.engine.report({ datasets: ["six.bills"] });
@@ -59,7 +59,7 @@ describe("a SIX page the app couldn't read", () => {
         check: changed.detail,
         rows: [],
         at: expect.any(Number),
-        pages: [{ system: "six", path: "/app/mahasiswa:18223901/keuangan", status: 200, body: expect.stringContaining("<th>Dibayar</th>") }],
+        pages: [{ system: "six", path: "/app/mahasiswa:18223901/keuangan", status: 200, body: expect.stringContaining("<th>Periode</th>") }],
       },
     ]);
     expect(() => readBills(report.problems[0]!.pages[0]!.body)).toThrow(changed.detail);
@@ -80,17 +80,17 @@ describe("a SIX page the app couldn't read", () => {
 
   it("read as it was again, it's forgotten", async () => {
     const h = await signedIn();
-    h.world.six.changeLayout(BILLS, "<th class='text-right'>Pembayaran (Rp)</th>", "<th>Dibayar</th>");
+    h.world.six.changeLayout(BILLS, "<th class='text-left'>Semester</th>", "<th>Periode</th>");
     await until(h, h.engine.refresh("six"));
     expect(h.engine.report({}).problems).toHaveLength(1);
-    h.world.six.changeLayout(BILLS, "<th>Dibayar</th>", "<th class='text-right'>Pembayaran (Rp)</th>");
+    h.world.six.changeLayout(BILLS, "<th>Periode</th>", "<th class='text-left'>Semester</th>");
     await until(h, h.engine.refresh("six"));
     expect(h.engine.report({}).problems).toEqual([]);
   });
 
   it("signing out of SIX forgets it", async () => {
     const h = await signedIn();
-    h.world.six.changeLayout(BILLS, "<th class='text-right'>Pembayaran (Rp)</th>", "<th>Dibayar</th>");
+    h.world.six.changeLayout(BILLS, "<th class='text-left'>Semester</th>", "<th>Periode</th>");
     await until(h, h.engine.refresh("six"));
     await h.engine.signOut("six");
     expect(h.engine.report({}).problems).toEqual([]);

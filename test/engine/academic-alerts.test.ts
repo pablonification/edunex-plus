@@ -34,6 +34,16 @@ describe("KRS alerts", () => {
     expect(app.of("krs")).toHaveLength(2);
   });
 
+  it("the plan's SKS total SIX writes another way: the alert counts its courses, and says no SKS it can't read", async () => {
+    const world = new PretendWorld({ now: "2026-08-17T09:00:00+07:00" });
+    sentOnly(world);
+    world.six.editPage(/\/registrasi\/rencanastudi\/\d+$/, (html) => html.replace('<th class="text-center">14 </th>', '<th class="text-center">14 SKS</th>'));
+    const app = await startAcademic({ world });
+    world.six.krsStep("plan", "Persetujuan Dosen Wali", "18 Agu 2026 14.39.32");
+    await app.sixRefresh();
+    expect(app.texts("krs")).toEqual(["KRS disetujui dosen wali — 5 mata kuliah"]);
+  });
+
   it("the plan changed by the advisor: each course in the history, one notification", async () => {
     const world = new PretendWorld({ now: "2026-10-11T09:00:00+07:00" });
     const app = await startAcademic({ world });
@@ -78,6 +88,15 @@ describe("UKT alerts", () => {
     await app.sixRefresh();
     await app.until("2027-02-03T09:00:00+07:00");
     expect(app.of("bill")).toHaveLength(2);
+  });
+
+  it("a bill whose payment SIX writes another way: no 'new bill' and no reminder says it's unpaid", async () => {
+    const world = new PretendWorld({ now: "2027-01-10T09:00:00+07:00" });
+    const app = await startAcademic({ world });
+    world.six.setBill("2026-2", { amount: "5.400.000", paid: "Lunas", due: "31 Jan 2027" });
+    await app.sixRefresh();
+    await app.until("2027-02-03T09:00:00+07:00");
+    expect(app.of("bill")).toEqual([]);
   });
 
   it("left unpaid: the day before, then overdue once", async () => {

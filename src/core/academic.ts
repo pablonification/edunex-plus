@@ -2,7 +2,17 @@
 // Student. Pure: the KRS and UKT tabs, the Kalender akademik tab and the
 // alerts all reason with these, so they always agree. View only: nothing here
 // changes a KRS or pays a bill.
-import type { AcademicCalendar, Bill, CalendarEvent, CalendarKind, ClassSession, KrsPlan, Progress } from "./models";
+import {
+  type AcademicCalendar,
+  type Bill,
+  type CalendarEvent,
+  type CalendarKind,
+  type ClassSession,
+  type KrsPlan,
+  type KrsSteps,
+  type Progress,
+  stepDone,
+} from "./models";
 import type { StringKey, Vars } from "./strings";
 
 const HOUR = 3_600_000;
@@ -54,7 +64,7 @@ export type KrsStepKey = "sent" | "approved" | "ukt" | "official";
 
 export interface KrsStep {
   key: KrsStepKey;
-  /** When it happened (ms); null while it hasn't, and for the UKT step. */
+  /** When it happened (ms); null while it hasn't, when SIX writes it in a way the app can't read yet, and for the UKT step. */
   at: number | null;
   done: boolean;
   /** The UKT step's amount, when SIX shows it. */
@@ -63,16 +73,19 @@ export interface KrsStep {
 
 /** The plan round's steps in SIX's order (sent, approved, UKT paid, official), and the change round's (URS) when there is one. */
 export function krsTimeline(plan: KrsPlan): { plan: KrsStep[]; change: KrsStep[] | null } {
-  const steps: KrsStep[] = [
-    { key: "sent", at: plan.plan.sentAt, done: plan.plan.sentAt !== null },
-    { key: "approved", at: plan.plan.approvedAt, done: plan.plan.approvedAt !== null },
-  ];
+  // Done with its time, or done at a time the app can't read yet (`undated`): then `at` is null.
+  const step = (steps: KrsSteps, key: "sent" | "approved" | "official", at: "sentAt" | "approvedAt" | "legalizedAt"): KrsStep => ({
+    key,
+    at: steps[at],
+    done: stepDone(steps, at),
+  });
+  const steps: KrsStep[] = [step(plan.plan, "sent", "sentAt"), step(plan.plan, "approved", "approvedAt")];
   if (plan.ukt) steps.push({ key: "ukt", at: null, done: plan.ukt.paid, amount: plan.ukt.amount });
-  steps.push({ key: "official", at: plan.plan.legalizedAt, done: plan.plan.legalizedAt !== null });
+  steps.push(step(plan.plan, "official", "legalizedAt"));
   const change = plan.change && [
-    { key: "sent" as const, at: plan.change.sentAt, done: plan.change.sentAt !== null },
-    { key: "approved" as const, at: plan.change.approvedAt, done: plan.change.approvedAt !== null },
-    { key: "official" as const, at: plan.change.legalizedAt, done: plan.change.legalizedAt !== null },
+    step(plan.change, "sent", "sentAt"),
+    step(plan.change, "approved", "approvedAt"),
+    step(plan.change, "official", "legalizedAt"),
   ];
   return { plan: steps, change };
 }
@@ -177,14 +190,15 @@ export function krsOverlaps(codes: readonly string[], schedule: readonly ClassSe
 export const BILL_SOON = 7 * DAY;
 
 /**
- * paid, not-billed: nothing to do. overdue: the next payment's day has
- * passed. soon: due within a week. due: due later. no-date: unpaid, SIX
- * gives no last day.
+ * paid, not-billed: nothing to do. unknown: SIX writes what's billed or paid
+ * in a way the app can't read yet, so it can't say. overdue: the next
+ * payment's day has passed. soon: due within a week. due: due later.
+ * no-date: unpaid, SIX gives no last day.
  */
-export type BillUrgency = "paid" | "not-billed" | "overdue" | "soon" | "due" | "no-date";
+export type BillUrgency = "paid" | "not-billed" | "unknown" | "overdue" | "soon" | "due" | "no-date";
 
 export function billUrgency(bill: Bill, now: number): BillUrgency {
-  if (bill.status === "paid" || bill.status === "not-billed") return bill.status;
+  if (bill.status === "paid" || bill.status === "not-billed" || bill.status === "unknown") return bill.status;
   if (bill.nextDueAt === null) return "no-date";
   if (bill.nextDueAt < now) return "overdue";
   return bill.nextDueAt - now <= BILL_SOON ? "soon" : "due";
@@ -274,7 +288,7 @@ export function deadlineMeaning(event: CalendarEvent, facts: Omit<DeadlineFacts,
       if (plan && plan.state !== "not-sent") return { key: "deadline.drs.sent", done: true };
       return { key: "deadline.drs" };
     case "urs":
-      if (plan?.change?.sentAt) return { key: "deadline.urs.changed", done: true };
+      if (plan?.change && stepDone(plan.change, "sentAt")) return { key: "deadline.urs.changed", done: true };
       return { key: "deadline.urs" };
     case "ukt-deadline": {
       const bill = facts.bills?.find((b) => b.term === event.term);
@@ -299,8 +313,9 @@ export function deadlineMeaning(event: CalendarEvent, facts: Omit<DeadlineFacts,
       return { key: "deadline.gradeChange" };
     case "progress-check": {
       const target = progressTarget(facts.progress?.entryTerm ?? null, event.firstDay);
-      if (!target || !facts.progress) return { key: "deadline.progress" };
-      const passed = facts.progress.sksPassed;
+      // SIX's SKS passed, never a count the app made up without it.
+      const passed = facts.progress?.sksPassed ?? null;
+      if (!target || passed === null) return { key: "deadline.progress" };
       const vars = { target: target.sks, year: target.year, passed, missing: target.sks - passed };
       return passed >= target.sks ? { key: "deadline.progress.ok", vars, done: true } : { key: "deadline.progress.short", vars, warn: true };
     }

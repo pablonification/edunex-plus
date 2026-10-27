@@ -5,7 +5,17 @@
 // specializations and minors with progress.
 import { fillsSlot, type ProgressRow, rowStatus, type StandingStatus } from "./curriculum-slots";
 import type { CurriculumFix, StudyPlan } from "./models";
-import { activeMinor, activeSpecialization, minorCoverage, minorNeed, notContinuing, plannedCodes, rankedMinors, type StudentRecord } from "./planner";
+import {
+  activeMinor,
+  activeSpecialization,
+  knownSks,
+  minorCoverage,
+  minorNeed,
+  notContinuing,
+  plannedCodes,
+  rankedMinors,
+  type StudentRecord,
+} from "./planner";
 
 /** Where a course stands, and planned: in the Student's plan. */
 export type SlotStatus = StandingStatus | "planned";
@@ -13,7 +23,8 @@ export type SlotStatus = StandingStatus | "planned";
 export interface MapCourse {
   code: string;
   name: string;
-  sks: number;
+  /** Null when SIX writes it in a way the app can't read yet, and no other page or the catalog gives it. */
+  sks: number | null;
   /** SIX's course id: its public syllabus page. */
   courseId: string | null;
   status: SlotStatus;
@@ -30,7 +41,8 @@ export interface MapCourse {
 
 export interface MapSemester {
   semester: number;
-  required: MapCourse[];
+  /** The curriculum's own courses: their SKS is always known (the record's). */
+  required: (MapCourse & { sks: number })[];
   /** Other courses SIX counts in this semester: electives, and older-curriculum courses that fill no slot here. */
   others: MapCourse[];
 }
@@ -44,7 +56,8 @@ export interface PackageProgress {
   registered: boolean;
   /** Registered, but the Student said they aren't continuing it. */
   notContinuing: boolean;
-  courses: { code: string; name: string; sks: number; status: SlotStatus; whatIf: MapCourse["whatIf"] }[];
+  /** A course's SKS is null when SIX writes it in a way the app can't read yet, and the catalog doesn't give it. */
+  courses: { code: string; name: string; sks: number | null; status: SlotStatus; whatIf: MapCourse["whatIf"] }[];
 }
 
 export interface CurriculumMap {
@@ -77,7 +90,7 @@ export function curriculumMap(record: StudentRecord, plan: StudyPlan): Curriculu
     return graded ? { status: graded.grade === "E" ? "failed" : "passed", grade: graded.grade } : null;
   };
 
-  const slotCourse = (slot: (typeof slots)[number]): MapCourse => {
+  const slotCourse = (slot: (typeof slots)[number]): MapCourse & { sks: number } => {
     const standing = record.slots.get(slot.code);
     return {
       code: slot.code,
@@ -107,7 +120,7 @@ export function curriculumMap(record: StudentRecord, plan: StudyPlan): Curriculu
     semester(row.semester).others.push({
       code: row.code,
       name: row.name,
-      sks: row.sks,
+      sks: knownSks(record, row),
       courseId: null,
       status: withPlan(rowStatus(row), row.code),
       grade: row.grade,
@@ -138,6 +151,9 @@ export function curriculumMap(record: StudentRecord, plan: StudyPlan): Curriculu
   const requiredLeftSks = record.requiredLeft.reduce((sum, c) => sum + c.sks, 0);
 
   const tried = new Set(record.thisTermAdded);
+  const packaged = new Map(
+    [...(record.curriculum?.specializations ?? []), ...(record.curriculum?.minors ?? [])].flatMap((p) => p.courses.map((c) => [c.code, c] as const)),
+  );
   const packageWhatIf = (code: string): MapCourse["whatIf"] => (tried.has(code) ? "added" : leftOut.has(code) ? "left-out" : null);
   const packageStatus = (code: string): SlotStatus => {
     const seen = fromTranscript(code);
@@ -145,12 +161,19 @@ export function curriculumMap(record: StudentRecord, plan: StudyPlan): Curriculu
   };
   const spec = record.curriculum?.specializations ?? [];
   const specializations: PackageProgress[] = spec.map((p) => {
-    const courses = p.courses.map((c) => ({ code: c.code, name: c.name, sks: c.sks, status: packageStatus(c.code), whatIf: packageWhatIf(c.code) }));
+    const courses = p.courses.map((c) => ({
+      code: c.code,
+      name: c.name,
+      sks: knownSks(record, c),
+      status: packageStatus(c.code),
+      whatIf: packageWhatIf(c.code),
+    }));
+    const sum = (list: typeof courses) => list.reduce((total, c) => total + (c.sks ?? 0), 0);
     return {
       name: p.name,
       program: null,
-      sks: p.sks ?? courses.reduce((sum, c) => sum + c.sks, 0),
-      have: courses.filter((c) => c.status === "passed" || c.status === "in-progress").reduce((sum, c) => sum + c.sks, 0),
+      sks: p.sks ?? sum(courses),
+      have: sum(courses.filter((c) => c.status === "passed" || c.status === "in-progress")),
       registered: record.specialization?.name === p.name,
       notContinuing: record.specialization?.name === p.name && activeSpecialization(record, plan) === null,
       courses,
@@ -169,8 +192,9 @@ export function curriculumMap(record: StudentRecord, plan: StudyPlan): Curriculu
     notContinuing: m.key === record.registeredMinor && notContinuing(plan, "minor", m.name),
     courses: m.courses.map((code) => ({
       code,
-      name: record.courses.get(code)?.name ?? code,
-      sks: record.courses.get(code)?.sks ?? 0,
+      name: record.courses.get(code)?.name ?? packaged.get(code)?.name ?? code,
+      // An SKS SIX writes another way, which the catalog doesn't give either, is "-", never 0.
+      sks: knownSks(record, { code, sks: packaged.get(code)?.sks ?? null }),
       status: packageStatus(code),
       whatIf: packageWhatIf(code),
     })),

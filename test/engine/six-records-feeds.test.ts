@@ -203,7 +203,7 @@ describe("SIX records: grades (#78)", () => {
   it("layout changed: that page is said to have changed, the last transcript stays as it was, and the rest of SIX reads on", async () => {
     const h = await signedIn();
     const before = h.dataset("six.transcript");
-    h.world.six.changeLayout(TRANSCRIPT, "Masuk Transkrip", "Status");
+    h.world.six.changeLayout(TRANSCRIPT, "<th>Kode</th>", "<th>Kode MK</th>");
     h.world.six.gradeCourse("2026-1", "II4091", "A");
     await h.engine.refresh("six");
     expect(h.status()).toMatchObject({
@@ -212,14 +212,14 @@ describe("SIX records: grades (#78)", () => {
       changedPages: [
         {
           datasets: ["six.transcript", "six.progress"],
-          detail: 'SIX transcript page: the course header reads " | Kode | Mata Kuliah | SKS | Nilai | Semester Kurikulum | Status"',
+          detail: 'SIX transcript page: the course header has no "Kode" column',
         },
       ],
     });
     expect(h.dataset("six.transcript")).toEqual(before);
     expect(h.dataset("six.krs")).toBeDefined();
 
-    h.world.six.changeLayout(TRANSCRIPT, ">Status<", ">Masuk Transkrip<");
+    h.world.six.changeLayout(TRANSCRIPT, "<th>Kode MK</th>", "<th>Kode</th>");
     await h.engine.refresh("six");
     expect(h.status().state).toBe("live");
     expect(h.status().changedPages).toBeUndefined();

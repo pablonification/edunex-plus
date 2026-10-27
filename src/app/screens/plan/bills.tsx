@@ -18,6 +18,7 @@ import { SixNeeded } from "./six-needed";
 const STATUS: Record<BillUrgency, { tone: string; icon: typeof Icons.Clock }> = {
   paid: { tone: "text-success-fg", icon: Icons.CheckCircle },
   "not-billed": { tone: "bg-neutral-bg text-neutral-fg", icon: Icons.Circle },
+  unknown: { tone: "bg-neutral-bg text-neutral-fg", icon: Icons.Info },
   overdue: { tone: "bg-danger-bg text-danger-fg", icon: Icons.AlertTriangle },
   soon: { tone: "bg-warning-bg text-warning-fg", icon: Icons.Clock },
   due: { tone: "bg-neutral-bg text-neutral-fg", icon: Icons.Clock },
@@ -134,12 +135,13 @@ function BillCard({ label, bill }: { label: string; bill: Bill }) {
   const itb = uktDeadline(calendar, bill.term);
   const billedNow = bill.status !== "not-billed";
   const deadline = deadlineOf(bill, itb?.lastDay ?? null);
+  // Each instalment covered by what's paid; unknown (null) when SIX writes the payment in a way the app can't read yet.
   const paidInstalments = (() => {
     let paid = bill.paid ?? 0;
     return bill.instalments.map((i) => {
       const covered = paid >= i.amount;
       paid -= i.amount;
-      return covered;
+      return bill.status === "unknown" ? null : covered;
     });
   })();
   return (
@@ -190,7 +192,13 @@ function BillCard({ label, bill }: { label: string; bill: Bill }) {
             {bill.instalments.map((instalment, i) => (
               <li key={instalment.number} className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-3">
                 <span className="flex items-center gap-1.5">
-                  {paidInstalments[i] ? <Icons.CheckCircle className="size-3.5 text-success-fg" /> : <Icons.Circle className="size-3.5 text-faint" />}
+                  {paidInstalments[i] === null ? (
+                    <Icons.Info className="size-3.5 text-faint" />
+                  ) : paidInstalments[i] ? (
+                    <Icons.CheckCircle className="size-3.5 text-success-fg" />
+                  ) : (
+                    <Icons.Circle className="size-3.5 text-faint" />
+                  )}
                   {t("bills.instalment", { number: instalment.number })}
                 </span>
                 <span className="tabular-nums">{rupiah(instalment.amount)}</span>

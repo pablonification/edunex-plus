@@ -34,13 +34,12 @@ export function useStudentRecord(): StudentRecord | undefined {
     if (!transcript) return undefined;
     const term = student?.term ?? krs?.term ?? null;
     const krsCourses = krs && krs.term === term ? krs.courses : undefined;
-    // A course whose SKS SIX's status page wrote another way: the KRS's, else the catalog's.
+    // A course whose SKS SIX's status page (or the KRS) wrote another way: the KRS's, else the catalog's.
     const sksOf = (code: string) => krsCourses?.find((c) => c.code === code)?.sks ?? catalog?.courses.find((c) => c.code === code)?.sks ?? null;
-    const termCourses =
-      courses?.flatMap((c) => {
-        const sks = c.sks ?? sksOf(c.code);
-        return sks === null ? [] : [{ ...c, sks }];
-      }) ?? krsCourses;
+    const termCourses = (courses ?? krsCourses)?.flatMap((c) => {
+      const sks = c.sks ?? sksOf(c.code);
+      return sks === null ? [] : [{ ...c, sks }];
+    });
     return studentRecord({ transcript, progress, curriculum, catalog, term, termCourses, fixes: fixes?.slots });
   }, [transcript, progress, curriculum, catalog, krs, student, courses, fixes]);
 }

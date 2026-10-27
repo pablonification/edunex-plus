@@ -87,7 +87,7 @@ _Avoid_: dismiss, mute, "don't remind me again" (nothing is hidden for good by a
 _Avoid_: dismissed, done (on screen), archived
 
 **Unrecognised row**:
-"Baris yang belum dikenali": a row a SIX page shows that the app doesn't understand (a fee that isn't a term's UKT, a course written another way). The app leaves that row out, reads the rest of the page, and says so on the screen that shows that page's data, with the row as SIX writes it and a way to open that page on SIX. It's not "SIX changed": that's the page's layout itself, or more rows left out than read. Called `skipped` in code ([ADR 0005](docs/adr/0005-read-past-a-row-the-app-doesnt-know.md)).
+"Baris yang belum dikenali": a row a SIX page shows that the app doesn't understand (a fee that isn't a term's UKT, a course written another way). The app leaves that row out, reads the rest of the page, and says so on the screen that shows that page's data, with the row as SIX writes it and a way to open that page on SIX. When the app can tell which row it is and only a detail of it doesn't fit (a payment, an SKS, a grade written another way), the row stays with that detail blank, said as "baris yang belum terbaca utuh". It's not "SIX changed": that's the page's layout itself, or more rows left out than read. Called `skipped` in code ([ADR 0005](docs/adr/0005-read-past-a-row-the-app-doesnt-know.md), [ADR 0011](docs/adr/0011-record-columns-by-name-and-blank-cells.md)).
 _Avoid_: error, broken row, ignored
 
 **Changed page**:

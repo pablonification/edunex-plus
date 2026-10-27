@@ -105,6 +105,7 @@ export const gradesStrings = {
   "grades.standing.off-transcript": { id: "Belum masuk transkrip", en: "Not on the transcript yet" },
   "grades.standing.pending": { id: "Belum ada nilai", en: "No grade yet" },
   "grades.standing.no-points": { id: "Tanpa bobot", en: "No grade points" },
+  "grades.standing.unknown": { id: "Cek di SIX", en: "Check on SIX" },
   "grades.retaken": { id: "Mengulang", en: "Retake" },
   "grades.needSix": { id: "Transkrip & IPK butuh SIX", en: "Transcript & IPK need SIX" },
   "grades.needSixBody": {

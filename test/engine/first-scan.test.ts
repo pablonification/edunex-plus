@@ -222,7 +222,7 @@ describe("when the scan is ready", () => {
   });
 
   it("when a system stops with a reason instead of reading everything, or one of its pages changed", async () => {
-    const h = await firstSync({ before: (h) => h.world.six.changeLayout(TRANSCRIPT, "Masuk Transkrip", "Status") });
+    const h = await firstSync({ before: (h) => h.world.six.changeLayout(TRANSCRIPT, "<th>Kode</th>", "<th>Kode MK</th>") });
     // SIX's transcript page changed, the rest of SIX read: SIX is live, and that page is said to have changed.
     expect(h.status("six").state).toBe("live");
     expect(h.status("six").changedPages).toEqual([{ datasets: ["six.transcript", "six.progress"], detail: expect.stringMatching(/^SIX transcript page: /) }]);
@@ -250,7 +250,7 @@ describe("with Edunex alone", () => {
 
 describe("what couldn't be read", () => {
   it("SIX changed its transcript page: that part is named, and the IPK line stays out", async () => {
-    const h = await firstSync({ before: (h) => h.world.six.changeLayout(TRANSCRIPT, "Masuk Transkrip", "Status") });
+    const h = await firstSync({ before: (h) => h.world.six.changeLayout(TRANSCRIPT, "<th>Kode</th>", "<th>Kode MK</th>") });
     const findings = scan(h.saved(), h.statuses(), h.world.clock.now());
     expect(of(findings, "ipk")).toBeUndefined();
     expect(of(findings, "unread")).toMatchObject({
