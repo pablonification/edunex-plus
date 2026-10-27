@@ -32,9 +32,10 @@ responses in `test/fixtures/edunex/` (file names mirror the request path and que
 6. **On-device-only storage.** The access token is kept only through the OS keychain (Electron
    safeStorage); where there is no real secure storage it lives in memory until the app quits.
    Datasets and the alert history stay on this computer. What leaves the device is only what
-   the calls themselves carry. No app servers, no data sync, no telemetry. (Packaged builds
-   also ask GitHub once a day whether a newer release exists, and when the Student presses
-   "Periksa pembaruan".)
+   the calls themselves carry. No data sync, no telemetry. (Packaged builds also ask GitHub once
+   a day whether a newer release exists, and when the Student presses "Periksa pembaruan". A
+   problem report, scrubbed, goes to the maintainer's report relay only when the Student sends
+   one or said reports may go by themselves: docs/privacy.md.)
 7. **Distinctive User-Agent.** Every API call carries
    `EdunexPlus/<version> (+https://github.com/pablonification/edunex-plus)`
    (`src/engine/engine.ts`). The API client never pretends to be a browser, so Cognisia can

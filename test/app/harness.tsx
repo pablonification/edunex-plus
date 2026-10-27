@@ -30,6 +30,7 @@ import "../../src/app/ui/pdf-viewer";
 import { preparePdf } from "../../src/app/ui/pdf-engine";
 import { MemoryStorage, MemoryVault } from "../pretend/memory";
 import { PretendNtfy } from "../pretend/ntfy";
+import { PRETEND_RELAY } from "../pretend/relay";
 import { PRETEND_SIX_COOKIE } from "../pretend/six";
 import { PretendWorld } from "../pretend/world";
 import { assertTidyFacts } from "./tidy-facts";
@@ -100,6 +101,8 @@ export interface Options {
   updateBlocked?: UpdateBlock;
   /** "Perbarui otomatis" (default: on, as on a first start). */
   autoUpdate?: boolean;
+  /** Problem reports can go to the pretend relay ("Kirim"); the app ships without one (default). */
+  relay?: boolean;
 }
 
 export async function openApp(options: Options = {}) {
@@ -122,6 +125,8 @@ export async function openApp(options: Options = {}) {
     phone: { ntfy: ntfy.send, newTopic: ntfy.newTopic },
     random: () => 0.5,
     log,
+    relay: options.relay ? PRETEND_RELAY : undefined,
+    os: () => "macOS 15.3 (arm64)",
     emit: (event: Event) => {
       autoUpdates?.onEvent(event);
       for (const listener of listeners) listener(event);
@@ -385,6 +390,7 @@ export async function openApp(options: Options = {}) {
         reports.opened.push(url);
       },
       reveal: (file) => void reports.revealed.push(file),
+      openIssue: async (url) => void reports.opened.push(url),
     }),
     // Handing in runs main's real handlers; only the system file picker is pretend.
     ...handInHandlers(engine, async () => {

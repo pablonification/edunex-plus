@@ -60,10 +60,19 @@ interface Read {
 export const isChange = (error: unknown): error is EngineError =>
   isEngineError(error) && (error.kind === "VendorChanged" || error.kind === "Failed" || error.kind === "Rejected");
 
+/** Who hears when a problem is kept (again) and when it's forgotten: the reports that send themselves (./outbox.ts). */
+export interface KeptEvents {
+  kept?(kept: Kept): void;
+  /** `readWell`: its page read well again (not its source signing out). */
+  forgotten?(kept: Kept, readWell: boolean): void;
+}
+
 export class KeptPages {
   private readonly reads = new AsyncLocalStorage<Read>();
   private readonly kept = new Map<string, Kept>();
   private readonly history = new Map<string, FeedHistory>();
+
+  constructor(private readonly events: KeptEvents = {}) {}
 
   /**
    * Runs one read of `feed`, noting the pages it gets, then keeps them if it went wrong (an error
@@ -92,7 +101,8 @@ export class KeptPages {
     const before = this.history.get(feed);
     const fills = notes.stored.size ? [...notes.stored] : (before?.fills ?? []);
     if (!rows.length) {
-      this.kept.delete(feed);
+      const was = this.kept.get(feed);
+      if (was && this.kept.delete(feed)) this.events.forgotten?.(was, true);
       this.history.set(feed, { fills, goodAt: now() });
       return;
     }
@@ -123,7 +133,11 @@ export class KeptPages {
 
   /** The source signed out, its session ended or another Student's began: its pages go. */
   forget(source: SourceId): void {
-    for (const feed of [...this.kept.keys()]) if (feed.startsWith(`${source}.`)) this.kept.delete(feed);
+    for (const [feed, was] of [...this.kept])
+      if (feed.startsWith(`${source}.`)) {
+        this.kept.delete(feed);
+        this.events.forgotten?.(was, false);
+      }
   }
 
   /** The source signed out, or another Student's data arrived: what its feeds' reads did before is no one's now. */
@@ -142,7 +156,9 @@ export class KeptPages {
   }
 
   private keep(feed: string, kept: Omit<Kept, "feed" | "pages" | "lastGoodAt">, pages: KeptPage[]): void {
-    this.kept.set(feed, { feed, ...kept, pages, lastGoodAt: this.history.get(feed)?.goodAt ?? null });
+    const whole = { feed, ...kept, pages, lastGoodAt: this.history.get(feed)?.goodAt ?? null };
+    this.kept.set(feed, whole);
+    this.events.kept?.(whole);
   }
 }
 

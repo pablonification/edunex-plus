@@ -131,6 +131,7 @@
   /* Layers, lowest to highest: z-(--z-dialog). Inside one panel, Tailwind's
      plain z-10 / z-20 are fine; these are for things that float over the window. */
   --z-sticky: 10;
+  --z-float: 40; /* a quiet card in the window's corner (shell/report-ask.tsx): over the page, under any dialog */
   --z-dialog: 50;
   --z-confirm: 55; /* a question asked over a dialog */
   --z-popover: 60;

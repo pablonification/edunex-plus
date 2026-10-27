@@ -22,7 +22,7 @@ const clip = (text: string, max: number) => (text.length > max ? `${text.slice(0
 /** "/app/mahasiswa:18223901+2026-1/keuangan?bulan=202610" → "/keuangan": a page's address, for the technical details. */
 export const pageLabel = (path: string) => path.replace(/^\/app\/mahasiswa:[^/]+/, "").replace(/\?.*$/, "") || "/";
 
-export const systemOf = (problem: ReportProblem) => (problem.feed.startsWith("six.") ? "six" : "edunex");
+export const systemOf = (problem: Pick<ReportProblem, "feed">) => (problem.feed.startsWith("six.") ? "six" : "edunex");
 
 /** Each feed's page, named as the screens that show its data name it. */
 const PAGES: Record<string, StringKey> = {
@@ -40,11 +40,20 @@ const PAGES: Record<string, StringKey> = {
   "edunex.notifications": "report.page.notifications",
 };
 
-/** What went wrong, in a sentence a Student reads: "SIX mengubah halaman UKT", "1 baris di halaman UKT belum dikenali". */
-export function problemHeading(problem: ReportProblem, lang: Lang): string {
-  const key = PAGES[problem.feed];
-  const page = key ? translate(lang, key) : null;
-  if (problem.kind === "skipped") return translate(lang, "report.skipped", { count: problem.rows.length, page: page ?? "SIX" });
+/** A feed's page as the screens name it ("UKT"), or null for one they don't name. */
+export function pageName(feed: string, lang: Lang): string | null {
+  const key = PAGES[feed];
+  return key ? translate(lang, key) : null;
+}
+
+/**
+ * What went wrong, in a sentence a Student reads: "SIX mengubah halaman UKT", "1 baris di halaman
+ * UKT belum dikenali". `rows`: the rows left out, or how many.
+ */
+export function problemHeading(problem: Pick<ReportProblem, "feed" | "kind"> & { rows: readonly unknown[] | number }, lang: Lang): string {
+  const page = pageName(problem.feed, lang);
+  const rows = typeof problem.rows === "number" ? problem.rows : problem.rows.length;
+  if (problem.kind === "skipped") return translate(lang, "report.skipped", { count: rows, page: page ?? "SIX" });
   if (systemOf(problem) === "six") return page ? translate(lang, "report.changed.six", { page }) : translate(lang, "report.changed.sixAny");
   return page ? translate(lang, "report.changed.edunex", { page }) : translate(lang, "report.changed.edunexAny");
 }

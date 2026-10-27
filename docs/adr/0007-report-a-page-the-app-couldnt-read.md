@@ -1,6 +1,7 @@
 # 7. A Student can report a page the app couldn't read, scrubbed on their computer
 
-Status: accepted (2026-10-23). Follows [0005](0005-read-past-a-row-the-app-doesnt-know.md) and
+Status: accepted (2026-10-23). Amended by [0014](0014-a-report-carries-what-a-fix-needs.md): the relay
+below is built, and a report can go with one click, or by itself when the Student agreed. Follows [0005](0005-read-past-a-row-the-app-doesnt-know.md) and
 [0006](0006-a-changed-six-page-is-said-on-its-screens.md): those make one odd row or one changed
 page cost as little as possible; this gets the page that caused it to the maintainer, so the reader
 can learn it.

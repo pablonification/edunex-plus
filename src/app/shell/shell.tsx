@@ -29,6 +29,7 @@ import { PanelBoundary } from "../ui/panel-boundary";
 import { AlertsBell, openAlerts } from "./alerts";
 import { type Badge as BadgeValue, usePlanBadge, usePresenceBadge, useTasksBadge } from "./badges";
 import { isBuilt } from "./built";
+import { ReportAskCard } from "./report-ask";
 import { SearchButton, useSearchShortcut } from "./search-button";
 import { ProblemBanner, refreshNow, SyncStatus } from "./source-status";
 
@@ -191,6 +192,9 @@ function Layout({ arriving }: { arriving: boolean }) {
       </PanelBoundary>
       <PanelBoundary name="report" compact>
         <Suspense fallback={null}>{(reportOpen || reportLoaded) && <ReportDialog ask={reportShown} open={reportOpen} onOpenChange={setReportOpen} />}</Suspense>
+      </PanelBoundary>
+      <PanelBoundary name="report question" compact>
+        <ReportAskCard />
       </PanelBoundary>
       <PanelBoundary name="first scan" compact>
         <Suspense fallback={null}>

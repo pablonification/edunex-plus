@@ -63,6 +63,13 @@ export const QuietHours = z
   .refine((quiet) => quiet.start !== quiet.end, "Quiet hours must start and end at different hours");
 export type QuietHours = z.infer<typeof QuietHours>;
 
+/**
+ * What the Student said about sending problem reports by themselves (ADR 0014): "auto" sends each
+ * one as the app keeps it, "ask" asks each time (the default), "never" never asks again.
+ */
+export const ReportSending = z.enum(["auto", "ask", "never"]);
+export type ReportSending = z.infer<typeof ReportSending>;
+
 export const Theme = z.enum(["system", "light", "dark"]);
 export const Lang = z.enum(["id", "en"]);
 export type Lang = z.infer<typeof Lang>;
@@ -114,6 +121,12 @@ export const Settings = z.object({
   // First-run scan (#81)
   /** The first full sync's findings were shown (or there were none): the scan doesn't open by itself again. */
   firstScanDone: z.boolean(),
+
+  // Problem reports (ADR 0014)
+  /** Whether they go by themselves. Saved from 0.1.0-alpha.22 on; "ask" before. */
+  reportSending: ReportSending.optional(),
+  /** The Student answered, or closed, the question the app asks once, the first time it keeps a problem. */
+  reportAsked: z.boolean().optional(),
 });
 export type Settings = z.infer<typeof Settings>;
 
@@ -145,7 +158,14 @@ export const DEFAULT_SETTINGS: Settings = {
 
   // First-run scan (#81)
   firstScanDone: false,
+
+  // Problem reports (ADR 0014)
+  reportSending: "ask",
+  reportAsked: false,
 };
+
+/** Whether problem reports go by themselves, as the Student said: "ask" until they say otherwise. */
+export const reportSendingOf = (settings: Pick<Settings, "reportSending">): ReportSending => settings.reportSending ?? "ask";
 
 export interface Dataset<T = unknown> {
   value: T;

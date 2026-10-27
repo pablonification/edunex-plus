@@ -3,12 +3,14 @@
 // Electron's main process; tests run it whole against the pretend world.
 import { z } from "zod";
 import type { Event, Snapshot } from "../core/contract";
+import { REPORT_RELAY_URL } from "../core/links";
 import {
   type DatasetName,
   Datasets,
   DEFAULT_SETTINGS,
   type ProblemReport,
   type ReportAbout,
+  reportSendingOf,
   Settings,
   type SkippedRow,
   SourceId,
@@ -26,6 +28,8 @@ import { EngineError, isEngineError, PartChanged } from "./errors";
 import { Pace } from "./http/pace";
 import type { Transport } from "./http/transport";
 import { type FeedHistory, KeptPages } from "./report/kept-pages";
+import { type Noted, Outbox, type Sent } from "./report/outbox";
+import { relayBase } from "./report/relay";
 import { buildReport } from "./report/report";
 import { type AnySource, SOURCES } from "./sources";
 import type { FeedSpec, SourceContext } from "./sources/source";
@@ -54,6 +58,10 @@ export interface EngineDeps {
   checkForUpdates?: boolean;
   /** The app's own log, which main writes to as well (the window's errors, the updater). One of its own without it. */
   log?: AppLog;
+  /** The maintainer's report relay (ADR 0014); REPORT_RELAY_URL by default, which ships empty: no relay. */
+  relay?: string;
+  /** The computer's system, as a report that sends itself names it ("macOS 15.3 (arm64)"). */
+  os?(): string;
 }
 
 export interface Engine {
@@ -83,6 +91,19 @@ export interface Engine {
    * (report/report.ts). The pages behind it are kept in memory only, until their source signs out.
    */
   report(about: ReportAbout): Promise<ProblemReport>;
+  /**
+   * Problem reports to the maintainer's relay (report/outbox.ts): "Kirim" with the report the
+   * Student was shown, their note on one sent this session, closing the question the app asked,
+   * and (for tests) waiting until what's due has gone.
+   */
+  readonly reports: {
+    send(report: ProblemReport, details: { note: string; os: string }): Promise<Sent>;
+    note(id: string, note: string): Promise<Noted>;
+    dismiss(): Promise<void>;
+    /** Whether a report this app sent was filed as that issue. */
+    filed(issue: number): boolean;
+    idle(): Promise<void>;
+  };
   /** The Student's phone, through ntfy: link it, a test, unlink it. */
   readonly phone: Pick<PhoneChannel, "link" | "connect" | "test" | "disconnect" | "idle">;
   /**
@@ -104,11 +125,12 @@ function loadSettings(saved: unknown): Settings {
   const fields = saved !== null && typeof saved === "object" ? (saved as Record<string, unknown>) : {};
   const whole = Settings.safeParse({ ...DEFAULT_SETTINGS, ...fields });
   if (whole.success) return whole.data;
-  const each = Object.entries(DEFAULT_SETTINGS).map(([key, fallback]) => {
+  // Every field, the optional ones too (a choice the Student made, not yet made).
+  const each = Object.keys(Settings.shape).map((key) => {
     const parsed = Settings.shape[key as keyof Settings].safeParse(fields[key]);
-    return [key, parsed.success ? parsed.data : fallback];
+    return [key, parsed.success ? parsed.data : DEFAULT_SETTINGS[key as keyof Settings]];
   });
-  return Settings.parse(Object.fromEntries(each));
+  return Settings.parse(Object.fromEntries(each.filter(([, value]) => value !== undefined)));
 }
 
 /** Source states that are the app going about its work; the others are worth a warning in the log. */
@@ -180,7 +202,7 @@ export function createEngine(deps: EngineDeps): Engine {
   /** Feeds whose page has a part that can change alone (FeedSpec.part): what that part fills. */
   const parts = new Map<string, readonly DatasetName[]>();
   /** The pages behind each feed's latest read that went wrong, for a report. In memory only. */
-  const kept = new KeptPages();
+  const kept = new KeptPages({ kept: (problem) => outbox.onKept(problem), forgotten: (problem, readWell) => outbox.onForgotten(problem, readWell) });
   /** Each source's current session number. Work started under an earlier one lands nowhere. */
   const generations = new Map<SourceId, number>(SourceId.options.map((source) => [source, 0]));
   /** The session each source runs with now (for actions). */
@@ -188,6 +210,38 @@ export function createEngine(deps: EngineDeps): Engine {
   // Feeds report their own outcome (see addFeed); the scheduler only uses failures to back off.
   const scheduler = new Scheduler(clock, () => undefined, deps.random);
   const userAgent = `EdunexPlus/${deps.version} (+https://github.com/pablonification/edunex-plus)`;
+  /** The report about what `about` names, from what's kept (`chosen`: only those). */
+  const reportOf = (about: ReportAbout, chosen = kept.list()) =>
+    buildReport({
+      kept: chosen,
+      about,
+      get: (name) => store.get(name),
+      fetchedAt: (name) => store.fetchedAt(name),
+      statuses: [...statuses.values()],
+      log: log.entries(),
+      version: deps.version,
+      now: clock.now(),
+      seed: Math.floor((deps.random ?? Math.random)() * 2 ** 32),
+    });
+  const relay = relayBase(deps.relay ?? REPORT_RELAY_URL);
+  const outbox = new Outbox({
+    clock,
+    storage,
+    relay: relay ? { base: relay, transport: deps.transport, userAgent } : null,
+    os: () => deps.os?.() ?? "",
+    settings: () => settings,
+    keptFor: (feed) => kept.list().find((one) => one.feed === feed),
+    build: (feed) =>
+      reportOf(
+        {},
+        kept.list().filter((one) => one.feed === feed),
+      ),
+    get: () => store.get("app.reports"),
+    set: async (state) => void (await store.set("app.reports", state, clock.now())),
+    // Nothing goes while every source the Student is signed in to gets no answer.
+    online: () => [...statuses.values()].some((status) => status.source !== "itb" && ["connecting", "live", "changed"].includes(status.state)),
+    log: log.for("reports"),
+  });
   const updates = deps.checkForUpdates
     ? createUpdateCheck({
         transport: deps.transport,
@@ -232,6 +286,8 @@ export function createEngine(deps: EngineDeps): Engine {
     const next = { ...current, ...patch };
     if (JSON.stringify(next) === JSON.stringify(current)) return;
     if (next.state !== current.state) log.add(QUIET_STATES.has(next.state) ? "info" : "warn", source, `${current.state} → ${next.state}`);
+    // Answering again: a report that waited for a connection goes now.
+    if (next.state === "live" && current.state !== "live") outbox.wake();
     statuses.set(source, next);
     deps.emit({ type: "status", status: next });
     void saveState();
@@ -429,6 +485,15 @@ export function createEngine(deps: EngineDeps): Engine {
     };
   }
 
+  async function updateSettings(patch: Partial<Settings>): Promise<Settings> {
+    const before = settings;
+    settings = Settings.parse({ ...settings, ...Object.fromEntries(Object.entries(patch).filter(([, v]) => v !== undefined)) });
+    await saveState();
+    deps.emit({ type: "settings", settings });
+    if (reportSendingOf(settings) !== reportSendingOf(before) || settings.reportAsked !== before.reportAsked) outbox.chose(reportSendingOf(settings));
+    return settings;
+  }
+
   function startSource(source: AnySource, session: unknown): void {
     sessions.set(source.id, session);
     source.start(contextFor(source.id), session);
@@ -449,6 +514,7 @@ export function createEngine(deps: EngineDeps): Engine {
       await store.load();
       await alerts.load();
       await phone.load();
+      await outbox.load();
       for (const [source, name] of [
         ["edunex", "edunex.account"],
         ["six", "six.student"],
@@ -501,6 +567,7 @@ export function createEngine(deps: EngineDeps): Engine {
       scheduler.stop();
       alerts.stop();
       updates?.stop();
+      outbox.stop();
     },
 
     session(source) {
@@ -508,7 +575,7 @@ export function createEngine(deps: EngineDeps): Engine {
     },
 
     snapshot() {
-      return { version: deps.version, datasets: store.snapshot(), statuses: [...statuses.values()], settings };
+      return { version: deps.version, datasets: store.snapshot(), statuses: [...statuses.values()], settings, relay: outbox.on };
     },
 
     async signIn(id, raw) {
@@ -546,8 +613,10 @@ export function createEngine(deps: EngineDeps): Engine {
       if (!only) {
         await store.remove("local.");
         await alerts.reset();
-        if (settings.firstScanDone || Object.keys(settings.attendanceTargets).length > 0) {
-          settings = { ...settings, firstScanDone: false, attendanceTargets: {} };
+        // Whether reports go by themselves was this Student's to say: the next one is asked again.
+        await outbox.reset();
+        if (settings.firstScanDone || Object.keys(settings.attendanceTargets).length > 0 || reportSendingOf(settings) !== "ask" || settings.reportAsked) {
+          settings = { ...settings, firstScanDone: false, attendanceTargets: {}, reportSending: "ask", reportAsked: false };
           await saveState();
           deps.emit({ type: "settings", settings });
         }
@@ -589,12 +658,7 @@ export function createEngine(deps: EngineDeps): Engine {
       }
     },
 
-    async updateSettings(patch) {
-      settings = Settings.parse({ ...settings, ...Object.fromEntries(Object.entries(patch).filter(([, v]) => v !== undefined)) });
-      await saveState();
-      deps.emit({ type: "settings", settings });
-      return settings;
-    },
+    updateSettings,
 
     markAlertsRead() {
       return alerts.markRead();
@@ -605,17 +669,18 @@ export function createEngine(deps: EngineDeps): Engine {
     },
 
     report(about) {
-      return buildReport({
-        kept: kept.list(),
-        about,
-        get: (name) => store.get(name),
-        fetchedAt: (name) => store.fetchedAt(name),
-        statuses: [...statuses.values()],
-        log: log.entries(),
-        version: deps.version,
-        now: clock.now(),
-        seed: Math.floor((deps.random ?? Math.random)() * 2 ** 32),
-      });
+      return reportOf(about);
+    },
+
+    reports: {
+      send: (report, details) => outbox.send(report, details),
+      note: (id, note) => outbox.note(id, note),
+      async dismiss() {
+        // Closing the question asked once answers it with the default: ask each time.
+        if ((await outbox.dismiss()) && !settings.reportAsked) await updateSettings({ reportAsked: true });
+      },
+      filed: (issue) => outbox.filed(issue),
+      idle: () => outbox.idle(),
     },
 
     phone,

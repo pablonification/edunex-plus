@@ -104,15 +104,30 @@ function parse(url: string): URL | null {
  */
 export const MAINTAINER_LINE = { id: "arqilasp12", url: "https://line.me/ti/p/~arqilasp12" } as const;
 
+/**
+ * The maintainer's report relay (ADR 0014, its server in relay/): "Kirim" posts a problem report
+ * there, and so does the app by itself when the Student said so. Empty until the maintainer has it
+ * running: then there's no "Kirim", no question and nothing sent by itself. An https address,
+ * without a trailing slash.
+ */
+export const REPORT_RELAY_URL = "";
+
 /** Where "Laporkan masalah" opens a new issue on the app's repository, prefilled through its issue forms. */
 export const NEW_ISSUE_URL = "https://github.com/pablonification/edunex-plus/issues/new";
+
+/** The public issue the relay filed for a report the app sent, by its number: the one issue page the app opens. */
+export const reportIssuePage = (number: number) => `https://github.com/pablonification/edunex-plus/issues/${number}`;
 
 /** Where a problem report opens, exactly: a new issue on this repository, its form and words in the query. */
 function isReportAddress(parsed: URL): boolean {
   return !parsed.username && !parsed.password && !parsed.hash && `${parsed.origin}${parsed.pathname}` === NEW_ISSUE_URL;
 }
 
-/** Edunex, SIX, ITB and the online-class services, and a new issue for a problem report: the only pages the app's own links open. */
+/**
+ * Edunex, SIX, ITB and the online-class services, and a new issue for a problem report: the only
+ * pages the app's own links open. (The issue of a report the app sent opens apart, by its number:
+ * reportIssuePage, through report.openIssue.)
+ */
 export function isOfficialUrl(url: string): boolean {
   const parsed = parse(url);
   return parsed?.protocol === "https:" && (OFFICIAL_HOSTS.some((host) => host.test(parsed.hostname)) || isReportAddress(parsed));

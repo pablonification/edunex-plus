@@ -29,6 +29,8 @@ export async function startEngine(
     start?: boolean;
     version?: string;
     checkForUpdates?: boolean;
+    /** Where problem reports go with one click (the pretend relay); none by default, as the app ships. */
+    relay?: string;
   } = {},
 ): Promise<Harness> {
   const world = options.world ?? new PretendWorld({ now: options.now });
@@ -46,6 +48,8 @@ export async function startEngine(
     emit: (e) => events.push(e),
     random: () => 0.5,
     log,
+    relay: options.relay,
+    os: () => "macOS 15.3 (arm64)",
   });
   // A first start: the tests read alerts in Bahasa Indonesia, which a Student picks in Settings.
   const firstStart = (await storage.read("state.json")) === null;
