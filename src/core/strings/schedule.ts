@@ -21,6 +21,12 @@ export const scheduleStrings = {
   },
   "schedule.signInSix": { id: "Masuk ke SIX", en: "Sign in to SIX" },
   "schedule.free": { id: "Kosong", en: "Free" },
+  // A meeting SIX shows that the app couldn't read: its day is never free, and SIX has its time and room.
+  "schedule.unread.chip": { id: "{count} kuliah belum terbaca", en: { one: "{count} class the app can't read", other: "{count} classes the app can't read" } },
+  "schedule.unread.title": { id: "Ada kuliah yang belum terbaca", en: { one: "A class the app can't read", other: "Classes the app can't read" } },
+  "schedule.unread.hint": { id: "Jam dan ruangnya ada di SIX.", en: { one: "Its time and room are in SIX.", other: "Their times and rooms are in SIX." } },
+  "schedule.unread.short": { id: "Kuliah belum terbaca", en: "Class the app can't read" },
+  "schedule.unread.open": { id: "Buka jadwal di SIX", en: "Open the timetable in SIX" },
   "schedule.lane": { id: "Tenggat", en: "Due" },
   "schedule.live": { id: "Sedang berlangsung", en: "Happening now" },
   "schedule.room.none": { id: "Ruang belum ada", en: "No room yet" },
@@ -251,6 +257,9 @@ export const scheduleStrings = {
   "alert.classSoon.time": { id: "{time}", en: "{time}" },
   "alert.classSoon.room": { id: "{time} · {room}", en: "{time} · {room}" },
   "alert.classSoon.online": { id: "{time} · daring", en: "{time} · online" },
+  // The morning of a day with a class SIX shows that the app couldn't read: its time is on SIX.
+  "alert.classUnread": { id: "Ada kuliah hari ini yang belum terbaca", en: "A class today the app can't read" },
+  "alert.classUnread.body": { id: "Jam dan ruangnya ada di jadwal SIX.", en: "Its time and room are on SIX's timetable." },
   // The "changes" group's row is in ./home.ts: it covers Task edits too.
   "settings.alerts.exams": { id: "Ujian", en: "Exams" },
   "settings.alerts.examsHint": {
@@ -258,5 +267,8 @@ export const scheduleStrings = {
     en: "When one is scheduled, a week before, the evening before and that morning",
   },
   "settings.alerts.classSoon": { id: "Kuliah sebentar lagi", en: "Class soon" },
-  "settings.alerts.classSoonHint": { id: "15 menit sebelum kuliah, dengan ruangannya", en: "15 minutes before a class, with its room" },
+  "settings.alerts.classSoonHint": {
+    id: "15 menit sebelum kuliah, dengan ruangannya, atau pagi harinya jika jamnya belum terbaca",
+    en: "15 minutes before a class, with its room, or that morning when its time can't be read",
+  },
 } as const satisfies Record<string, Entry>;

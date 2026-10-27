@@ -17,10 +17,11 @@ import { checkingIn } from "../core/check-in";
 import { type Format, makeFormat } from "../core/format";
 import { heldBack } from "../core/held-back";
 import { snapshotDataset, snapshotHomeWorld, snapshotTermCourses } from "../core/home-world";
-import { EDUNEX_WEB, SIX_WEB } from "../core/links";
+import { EDUNEX_WEB, SIX_WEB, sixTimetableUrl } from "../core/links";
 import type { Lang, SourceStatus } from "../core/models";
-import { attentionWithToday, homeContext, type NeedDraft, type NowCard, needsRange, nowCard } from "../core/needs";
+import { attentionWithToday, homeContext, type NeedDraft, type NowCard, needsRange, nowCard, unreadAhead } from "../core/needs";
 import type { Route } from "../core/route";
+import { dayNoon } from "../core/schedule";
 import type { Snapshot } from "../core/snapshot";
 import { type StringKey, translate, type Vars } from "../core/strings";
 import type { TermCourseBase } from "../core/term-courses";
@@ -83,7 +84,8 @@ export function trayMenu(snapshot: Pick<Snapshot, "datasets" | "statuses" | "set
     if (entries.length) entries.push({ type: "separator" });
     entries.push(...lines);
   };
-  section(classSection(snapshot, card, courses, now, f, t));
+  // A day up to the card's class (a week ahead without one) with a class the app couldn't read, as Beranda says it.
+  section(classSection(snapshot, card, courses, context ? unreadAhead(context, card) : null, now, f, t));
   section(needs?.entries ?? []);
   section(alertsLine(snapshot, t));
   const signedIn = snapshot.statuses.some((status) => (status.source === "edunex" || status.source === "six") && status.state !== "signed-out");
@@ -158,6 +160,7 @@ function classSection(
   snapshot: Pick<Snapshot, "datasets">,
   card: NowCard | null,
   courses: readonly TermCourseBase[],
+  unread: string | null,
   now: number,
   f: Format,
   t: Translate,
@@ -185,6 +188,7 @@ function classSection(
       action: { kind: "route", route: course?.edunex ? { screen: "course", code, tab: "meetings" } : { screen: "presence" } },
     });
   }
+
   // SIX's button, for any class on now (as Presensi and its badge count them): the app read it, it never presses it.
   const student = snapshotDataset(snapshot, "six.student");
   const checkIns = snapshotDataset(snapshot, "six.checkIn") ?? {};
@@ -206,6 +210,14 @@ function classSection(
           : { kind: "url", url: presence.url },
     });
   }
+  // A class SIX shows that the app couldn't read, up to the card's class: last, under it, opening SIX's timetable on that month.
+  if (unread)
+    lines.push({
+      type: "item",
+      label: t("home.now.unread", { day: f.relativeDay(dayNoon(unread)) }),
+      detail: t("schedule.unread.hint", { count: 1 }),
+      action: student ? { kind: "url", url: sixTimetableUrl(student, dayNoon(unread)) } : { kind: "route", route: { screen: "schedule" } },
+    });
   return lines;
 }
 

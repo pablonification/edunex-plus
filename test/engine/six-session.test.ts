@@ -257,7 +257,7 @@ describe("sessions", () => {
     ).toBe(true);
     // No timetable for this Student: that page is said to have changed, the rest of SIX reads.
     expect(h.status("six").state).toBe("live");
-    expect(h.status("six").changedPages?.map((page) => page.datasets)).toEqual([["six.schedule", "six.scheduleMonths"]]);
+    expect(h.status("six").changedPages?.map((page) => page.datasets)).toEqual([["six.schedule", "six.scheduleMonths", "six.scheduleUnread"]]);
   });
 
   it("sign-out of SIX removes its session and data, and leaves Edunex alone", async () => {
@@ -443,7 +443,14 @@ describe("SIX changed something", () => {
       ["six.courses"],
     ],
     // The timetable alone: said where it's shown.
-    ["the timetable's meetings lose their address", TIMETABLE, 'data-url="', 'data-href="', "can't read", ["six.schedule", "six.scheduleMonths"]],
+    [
+      "the timetable's meetings lose their address",
+      TIMETABLE,
+      'data-url="',
+      'data-href="',
+      "a time without its meeting",
+      ["six.schedule", "six.scheduleMonths", "six.scheduleUnread"],
+    ],
     // A Sunday column before Monday: every date would be a day off.
     [
       "the timetable's grid starts on another weekday",
@@ -451,7 +458,7 @@ describe("SIX changed something", () => {
       "<tr><td >",
       '<tr><td ><div class="">27</div></td><td >',
       "line up with the weekdays",
-      ["six.schedule", "six.scheduleMonths"],
+      ["six.schedule", "six.scheduleMonths", "six.scheduleUnread"],
     ],
   ] as const)("%s: says so and keeps the last good data", async (_name, path, from, to, detail, page) => {
     const h = await signedIn();
@@ -613,6 +620,68 @@ describe("SIX's course table, apart from the rest of the status page", () => {
     expect(h.status("six")).toMatchObject({ state: "live", detail: null });
     expect(h.status("six").changedPages).toBeUndefined();
     expect(h.dataset("six.courses")?.find((course) => course.code === "PL3002")?.attendance).toEqual({ attended: 7, held: 8 });
+  });
+});
+
+describe("a meeting on SIX's timetable the app can't read", () => {
+  const TIMETABLE = /\/kelas\/jadwal\/mahasiswa\/\d+$/;
+  /** DK4073's class on Thursday 8 October, its time written with dots. */
+  const dotted = (h: Harness) => h.world.six.moveMeeting("2153983", "11.00", "12.59");
+
+  it("is left out and its day marked: every other meeting reads, SIX stays connected, and a read without it clears both", async () => {
+    const h = await signedIn();
+    const recorded = h.world.six.page(TIMETABLE);
+    dotted(h);
+    await until(h, h.engine.refresh("six"));
+    expect(h.status("six")).toMatchObject({ state: "live", detail: null });
+    expect(h.status("six").changedPages).toBeUndefined();
+    expect(h.dataset("six.schedule")).toHaveLength(21);
+    expect(meeting(h, "2153983")).toBeUndefined();
+    // The same day's other classes are there.
+    expect(meeting(h, "2194342")).toMatchObject({ courseCode: "PL3002", start: at("2026-10-08T08:00:00+07:00") });
+    expect(h.dataset("six.scheduleUnread")).toEqual([{ day: "2026-10-08", row: expect.stringMatching(/^11\.00-12\.59 DK4073 /), code: "DK4073" }]);
+    expect(h.dataset("six.skipped")).toEqual({
+      "six.schedule": [{ row: expect.stringMatching(/^8 · 11\.00-12\.59 DK4073 /), why: "SIX jadwal: a meeting without its id, course, time or activity" }],
+    });
+
+    h.world.six.editPage(TIMETABLE, () => recorded);
+    await until(h, h.engine.refresh("six"));
+    expect(h.dataset("six.schedule")).toHaveLength(22);
+    expect(h.dataset("six.scheduleUnread")).toEqual([]);
+    expect(h.dataset("six.skipped")).toEqual({});
+  });
+
+  it("a time a day shows without a meeting the app can open marks that day too, each with its own piece of the day", async () => {
+    const h = await signedIn();
+    const linkless = (id: string) =>
+      h.world.six.changeLayout(TIMETABLE, `data-url="/app/mahasiswa:18223901+2026-1/kelas/pertemuan/${id}/`, `data-href="/${id}/`);
+    linkless("2153983");
+    linkless("2194402");
+    await until(h, h.engine.refresh("six"));
+    expect(h.status("six").changedPages).toBeUndefined();
+    expect(h.dataset("six.schedule")).toHaveLength(20);
+    expect(h.dataset("six.scheduleUnread")).toEqual([
+      { day: "2026-10-08", row: expect.stringMatching(/^11:00-12:59 DK4073 Komunikasi .*\)$/), code: "DK4073" },
+      { day: "2026-10-08", row: expect.stringMatching(/^15:00-16:30 PL3032 Ekonomi .*\)$/), code: "PL3032" },
+    ]);
+  });
+
+  it("a month whose only meeting it can't read isn't the page changing: the read counts both months", async () => {
+    const h = await startEngine({ now: "2026-10-31T09:00:00+07:00" });
+    h.world.six.addMeeting({ id: "2299001", code: "PL3002", name: "Ekonomi dan Inovasi dalam Perencanaan", day: "2026-11-03", start: "08.00", end: "09.30" });
+    await until(h, h.engine.signIn("six", SIX));
+    expect(h.status("six")).toMatchObject({ state: "live", detail: null });
+    expect(h.status("six").changedPages).toBeUndefined();
+    expect(h.dataset("six.scheduleUnread")).toEqual([{ day: "2026-11-03", row: expect.stringMatching(/^08\.00-09\.30 PL3002 /), code: "PL3002" }]);
+  });
+
+  it("on the first read, the meetings it can read arrive with the day marked", async () => {
+    const h = await startEngine();
+    dotted(h);
+    await until(h, h.engine.signIn("six", SIX));
+    expect(h.status("six")).toMatchObject({ state: "live", detail: null });
+    expect(h.dataset("six.schedule")).toHaveLength(21);
+    expect(h.dataset("six.scheduleUnread")?.map((one) => one.day)).toEqual(["2026-10-08"]);
   });
 });
 

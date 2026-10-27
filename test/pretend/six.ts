@@ -90,6 +90,16 @@ export class PretendSix {
     );
   }
 
+  /** Puts a meeting first in a day's cell of the recorded month (9 for 9 October), on a day that may have none. */
+  addMeetingOn(day: number, meeting: Omit<AddedMeeting, "day">): void {
+    this.editPage(/\/kelas\/jadwal\/mahasiswa\/\d+$/, (html) =>
+      html.replace(
+        new RegExp(`(<td[^>]*><div class="[^"]*">\\s*${day}\\s*(?:<span[^>]*>[^<]*</span>\\s*)?</div><div style="min-height: 5em;">)`),
+        (cell) => `${cell}${meetingHtml(meeting)}`,
+      ),
+    );
+  }
+
   /** Releases a grade for a course this semester (the Nilai column on the status page). */
   releaseGrade(code: string, grade: string): void {
     this.editPage(/\/statusmhs$/, (html) =>

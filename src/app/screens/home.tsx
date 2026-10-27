@@ -18,7 +18,7 @@ import { type DoneTerms, doneTerms, taskPutAway } from "../../core/done";
 import { PERIOD_NEAR } from "../../core/exams";
 import { heldBack } from "../../core/held-back";
 import { edunexCourseUrl, sixStatusUrl, sixTimetableUrl } from "../../core/links";
-import type { Alert, AlertKind, ClassSession, DoneEntry, SixCheckIn, SnoozeEntry } from "../../core/models";
+import type { Alert, AlertKind, ClassSession, DoneEntry, SixCheckIn, SnoozeEntry, UnreadSession } from "../../core/models";
 import {
   attention,
   type ClassFacts,
@@ -33,7 +33,9 @@ import {
   recentChanges,
   type TodayPlan,
   todayPlan,
+  unreadAhead,
 } from "../../core/needs";
+import { dayNoon, dayStart } from "../../core/schedule";
 import { activeSnooze, snoozable, snoozeKey } from "../../core/snooze";
 import { dateMove, type EditView, editView, titleOnly } from "../../core/task-edits";
 import { budgetLabel, useActionLabel } from "../attendance-labels";
@@ -47,7 +49,7 @@ import { type Route, useNav, usePlaceState } from "../nav";
 import { useExamIds } from "../schedule-data";
 import { openAlerts } from "../shell/alerts";
 import { useRefresh, useSignIn } from "../shell/source-status";
-import { SixPageNote, useChangedPage } from "../six-page-note";
+import { OpenSixTimetable, SixPageNote, useChangedPage } from "../six-page-note";
 import { canSnooze, DoneButton, type RowDone, refocus, rowControls, SnoozeMenu } from "../snooze-menu";
 import { useDone, useSnoozes } from "../snoozes";
 import { useDataset, useStatus } from "../store";
@@ -89,6 +91,8 @@ export function Home() {
   const name = account?.name ?? student?.name;
   const world = useHomeWorld();
   const context = useMemo(() => (world ? homeContext(world) : undefined), [world]);
+  // The timetable's page changed: said here. A class on it the app couldn't read is said in Hari ini and on the card, quietly.
+  const timetableChanged = useChangedPage(["six.schedule"]);
 
   return (
     <Page>
@@ -103,7 +107,7 @@ export function Home() {
         title={`${f.greeting()}${name ? `, ${firstName(name)}` : ""}`}
         description={<ExamWeek />}
       />
-      <SixPageNote datasets={["six.schedule"]} className="mb-6" />
+      {timetableChanged && <SixPageNote datasets={["six.schedule"]} className="mb-6" />}
       {context ? <Answers context={context} courses={courses ?? []} /> : <AnswersLoading />}
       <HomeCourses courses={courses} nim={student?.nim} context={context} />
     </Page>
@@ -135,7 +139,7 @@ function Answers({ context, courses }: { context: HomeContext; courses: readonly
   const range = useMemo(() => needsRange(context), [context]);
   return (
     <>
-      <NowSection card={card} courses={courses} hasSchedule={context.schedule !== null} />
+      <NowSection card={card} courses={courses} hasSchedule={context.schedule !== null} unread={unreadAhead(context, card)} />
       <div className="@container mt-10">
         {/* The day on the left; what needs you and what changed beside it, so neither column runs on alone.
             Narrower, one column that can shrink: a long title with no spaces wraps instead of widening the page. */}
@@ -181,19 +185,41 @@ function ExamWeek() {
 
 // ---------------------------------------------------------------- Sekarang
 
-function NowSection({ card, courses, hasSchedule }: { card: NowCard | null; courses: readonly TermCourse[]; hasSchedule: boolean }) {
+function NowSection({
+  card,
+  courses,
+  hasSchedule,
+  unread,
+}: {
+  card: NowCard | null;
+  courses: readonly TermCourse[];
+  hasSchedule: boolean;
+  /** The first day ahead with a class SIX shows that the app couldn't read. */
+  unread: string | null;
+}) {
   const t = useT();
+  const f = useFormat();
   if (!card) {
-    // Without SIX there's no timetable: "Hari ini" says how to get it. With one, a quiet week.
+    // Without SIX there's no timetable: "Hari ini" says how to get it. With one, a quiet week, unless a class on it can't be read.
     if (!hasSchedule) return null;
     return (
       <section aria-labelledby="home-now">
         <h2 id="home-now" className="sr-only">
           {t("home.now")}
         </h2>
-        <Card variant="sunken" className="px-5 py-4 text-body text-muted">
-          {t("home.now.free")}
-        </Card>
+        {unread ? (
+          <Card variant="sunken" className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-5 py-4 text-body">
+            <span>
+              <Meta className="font-medium">{t("home.now.unread", { day: f.relativeDay(dayNoon(unread)) })}</Meta>
+              <span className="block text-small text-muted">{t("schedule.unread.hint", { count: 1 })}</span>
+            </span>
+            <OpenSixTimetable day={unread} />
+          </Card>
+        ) : (
+          <Card variant="sunken" className="px-5 py-4 text-body text-muted">
+            {t("home.now.free")}
+          </Card>
+        )}
       </section>
     );
   }
@@ -285,8 +311,8 @@ function NowCardView({ card, courses }: { card: NowCard; courses: readonly TermC
       note={
         facts?.moved ? (
           <Meta className="mt-1 text-small font-medium text-warning-fg">{movedLabel(t, f, facts)}</Meta>
-        ) : meeting ? (
-          // Read from the lecturer's text, not SIX: said where the Student decides to go.
+        ) : meeting && !card.meeting?.maybeInSix ? (
+          // Read from the lecturer's text, not SIX: said where the Student decides to go. Not on a day SIX shows a class the app couldn't read.
           <span className="mt-1 block text-small font-medium text-warning-fg">{t("home.today.notInSix")}</span>
         ) : undefined
       }
@@ -298,7 +324,23 @@ function NowCardView({ card, courses }: { card: NowCard; courses: readonly TermC
     >
       <Attendance card={card} />
       {card.after && <AfterThis session={card.after} courses={courses} />}
+      {card.unreadDay && <UnreadAhead day={card.unreadDay} />}
     </NowCardShell>
+  );
+}
+
+/** Under the card: a day up to its class's with a class the app couldn't read, so the card's class isn't taken for the only one. */
+function UnreadAhead({ day }: { day: string }) {
+  const t = useT();
+  const f = useFormat();
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t border-line px-5 py-2.5 text-small text-muted">
+      <span className="flex items-center gap-2">
+        <Icons.Info className="size-3.5 shrink-0 text-faint" />
+        <Meta>{t("home.now.unread", { day: f.relativeDay(dayNoon(day)) })}</Meta>
+      </span>
+      <OpenSixTimetable day={day} />
+    </div>
   );
 }
 
@@ -568,8 +610,9 @@ function NoSixToday() {
 }
 
 type TodayItem =
+  | { kind: "unread"; at: number; unread: UnreadSession }
   | { kind: "class"; at: number; facts: ClassFacts }
-  | { kind: "meeting"; at: number; code: string; meeting: TodayPlan["announced"][number]["meeting"] }
+  | { kind: "meeting"; at: number; code: string; meeting: TodayPlan["announced"][number]["meeting"]; maybeInSix?: true }
   | { kind: "due"; at: number; task: TodayPlan["due"][number]; need: NeedDraft | null };
 
 /** The Hari ini row key of what the now card shows. */
@@ -601,8 +644,10 @@ function Today({
   const day = wibDay(context.now);
   const needOf = (task: TodayPlan["due"][number]) => due.find((need) => need.kind === "task" && need.task.id === task.id) ?? null;
   const items: TodayItem[] = [
+    // No time to place it at: first on its day.
+    ...plan.unread.map((unread): TodayItem => ({ kind: "unread", at: dayStart(unread.day), unread })),
     ...plan.classes.map((facts): TodayItem => ({ kind: "class", at: facts.session.start, facts })),
-    ...plan.announced.map(({ code, meeting }): TodayItem => ({ kind: "meeting", at: meeting.start, code, meeting })),
+    ...plan.announced.map(({ code, meeting, maybeInSix }): TodayItem => ({ kind: "meeting", at: meeting.start, code, meeting, maybeInSix })),
     ...plan.due.map((task): TodayItem => ({ kind: "due", at: task.dueAt!, task, need: needOf(task) })),
   ].sort((a, b) => a.at - b.at);
   // Put off, or put away by the Student (handed in another way, by the group, not at all): listed under "Perlu perhatianmu".
@@ -651,7 +696,13 @@ function Today({
 }
 
 const keyOf = (item: TodayItem) =>
-  item.kind === "class" ? `class:${item.facts.session.id}` : item.kind === "meeting" ? `meeting:${item.code}:${item.at}` : `due:${item.task.id}`;
+  item.kind === "unread"
+    ? `unread:${item.unread.day}:${item.unread.row}`
+    : item.kind === "class"
+      ? `class:${item.facts.session.id}`
+      : item.kind === "meeting"
+        ? `meeting:${item.code}:${item.at}`
+        : `due:${item.task.id}`;
 
 /** The time column: start over end, or a deadline's one time. */
 function When({ start, end, past, tone }: { start: string; end?: string; past?: boolean; tone?: string }) {
@@ -673,6 +724,18 @@ function TodayRow({ item, courses, onCard, context }: { item: TodayItem; courses
   const fresh = useStatus("six").state === "live";
   const edunexFresh = useStatus("edunex").state === "live";
   const shownAbove = keyOf(item) === onCard;
+
+  if (item.kind === "unread") {
+    // As SIX writes it, so the Student knows which class to look for on SIX.
+    return (
+      <Row
+        leading={<When start="-" />}
+        title={t("schedule.unread.title", { count: 1 })}
+        meta={<span className="break-words">{item.unread.row}</span>}
+        trailing={<OpenSixTimetable day={item.unread.day} />}
+      />
+    );
+  }
 
   if (item.kind === "due") {
     const { task, need } = item;
@@ -705,6 +768,8 @@ function TodayRow({ item, courses, onCard, context }: { item: TodayItem; courses
   if (item.kind === "meeting") {
     const { meeting, code } = item;
     const live = meeting.start <= now && now < meeting.end;
+    // Not on a day SIX shows a class the app couldn't read: this may be it.
+    const notInSix = !shownAbove && !item.maybeInSix;
     return (
       <Row
         leading={<When start={f.time(meeting.start)} end={f.time(meeting.end)} />}
@@ -723,14 +788,14 @@ function TodayRow({ item, courses, onCard, context }: { item: TodayItem; courses
                 t("home.today.joinLabel", { course: code }),
                 f.timeRange(meeting.start, meeting.end),
                 live && t("home.today.now"),
-                !shownAbove && t("home.today.notInSix"),
+                notInSix && t("home.today.notInSix"),
               )
             : undefined
         }
         onClick={() => (meeting.link ? open(meeting.link) : go({ screen: "course", code, tab: "meetings" }))}
       >
         {/* The now card says it for the meeting it shows. */}
-        {!shownAbove && <span className="mt-1 block text-small font-medium text-warning-fg">{t("home.today.notInSix")}</span>}
+        {notInSix && <span className="mt-1 block text-small font-medium text-warning-fg">{t("home.today.notInSix")}</span>}
       </Row>
     );
   }
@@ -1250,7 +1315,7 @@ function useNeedView(courses: readonly TermCourse[]): (need: NeedDraft) => NeedV
         const { meeting } = need;
         return {
           title: t(meeting.online ? "home.need.meeting.online" : "home.need.meeting", { course: need.course ?? "", day: f.relativeDay(meeting.start) }),
-          meta: [course, f.timeRange(meeting.start, meeting.end), t("home.today.notInSix")],
+          meta: [course, f.timeRange(meeting.start, meeting.end), need.maybeInSix ? null : t("home.today.notInSix")],
           when: f.fromNow(meeting.start),
           tone: null,
           label: need.action.kind === "open" ? t("home.today.joinLabel", { course: need.course ?? "" }) : undefined,

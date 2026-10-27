@@ -8,7 +8,7 @@
 // Edunex didn't record may still have been counted in SIX.
 import { wibDay } from "./course-meetings";
 import { EDUNEX_WEB, edunexCourseUrl } from "./links";
-import type { AcademicCalendar, ClassSession, PresenceSession, Settings, SixCourse, Task } from "./models";
+import type { AcademicCalendar, ClassSession, PresenceSession, Settings, SixCourse, Task, UnreadSession } from "./models";
 
 const MINUTE = 60_000;
 const HOUR = 60 * MINUTE;
@@ -460,11 +460,14 @@ export function clashPick(a: AttendanceHealth, b: AttendanceHealth): ClashPick {
  * carried on). Exams aren't classes. After ITB's last lecture day, the day
  * lectures ended. `spare`: the day's courses with an absence to spare, `of`
  * those with a SIX count, among the day's `courses` (null when none has a
- * count yet).
+ * count yet). A class SIX shows that the app couldn't read (`unread`) counts
+ * on its day while it may still be ahead (unreadDaysAhead), and says so: a
+ * day with one is never taken for a day off. Its course isn't known, so the
+ * day's courses aren't all known either.
  */
 export type DayAnswer =
-  | { kind: "day"; day: "today" | "tomorrow"; count: number; spare: { codes: string[]; of: number; courses: number } | null }
-  | { kind: "next"; at: number }
+  | { kind: "day"; day: "today" | "tomorrow"; count: number; spare: { codes: string[]; of: number; courses: number } | null; unread?: number }
+  | { kind: "next"; at: number; unread?: number }
   | { kind: "ended"; lastDay: string };
 
 export function dayAnswer(
@@ -472,8 +475,13 @@ export function dayAnswer(
   schedule: readonly ClassSession[],
   period: ReturnType<typeof lecturePeriod>,
   now: number,
+  unread: readonly UnreadSession[] = [],
 ): DayAnswer | null {
   if (period && wibDay(now) > period.lastDay) return { kind: "ended", lastDay: period.lastDay };
+  const ahead = new Set(unreadDaysAhead(unread, schedule, now).filter((day) => !period || day <= period.lastDay));
+  const unreadOn = (day: string) => (ahead.has(day) ? unread.filter((one) => one.day === day).length : 0);
+  const unreadDays = [...ahead];
+  const withUnread = (count: number) => (count ? { unread: count } : {});
   const mine = new Map(courses.map((h) => [h.code, h]));
   // SIX's classes, then the weekly slots carried on past its timetable (so a month SIX hasn't published yet isn't empty).
   const classes = [
@@ -484,17 +492,58 @@ export function dayAnswer(
   ];
   const today = classes.filter((s) => wibDay(s.start) === wibDay(now) && s.end > now);
   const tomorrow = classes.filter((s) => wibDay(s.start) === wibDay(now + DAY));
-  const day = today.length ? "today" : tomorrow.length ? "tomorrow" : null;
+  const [unreadToday, unreadTomorrow] = [unreadOn(wibDay(now)), unreadOn(wibDay(now + DAY))];
+  const day = today.length || unreadToday ? "today" : tomorrow.length || unreadTomorrow ? "tomorrow" : null;
   if (day) {
     const sessions = day === "today" ? today : tomorrow;
+    const extra = day === "today" ? unreadToday : unreadTomorrow;
     const codes = [...new Set(sessions.map((s) => s.code))];
     const counted = codes.map((code) => mine.get(code)!).filter((h) => h.state !== "unknown");
     const spare = counted.filter((h) => h.state === "safe" || h.state === "risk").map((h) => h.code);
-    return { kind: "day", day, count: sessions.length, spare: counted.length ? { codes: spare, of: counted.length, courses: codes.length } : null };
+    return {
+      kind: "day",
+      day,
+      count: sessions.length + extra,
+      spare: counted.length ? { codes: spare, of: counted.length, courses: codes.length + extra } : null,
+      ...withUnread(extra),
+    };
   }
   const coming = courses.flatMap((h) => h.left.upcoming).sort((a, b) => a.start - b.start);
   const next = coming.find((m) => !m.uncertain) ?? coming[0];
+  // A day before it, or on it, with a class the app couldn't read: that day is the next one with a class.
+  const later = unreadDays.filter((one) => one > wibDay(now + DAY)).sort()[0];
+  if (later && (!next || later <= wibDay(next.start)))
+    return { kind: "next", at: next && later === wibDay(next.start) ? next.start : Date.parse(`${later}T12:00:00+07:00`), ...withUnread(unreadOn(later)) };
   return next ? { kind: "next", at: next.start } : null;
+}
+
+/** SIX's classes run until 18:00 WIB most days: a class of today the app couldn't read may be ahead until then. */
+const TEACHING_DAY_ENDS = 18 * HOUR;
+
+/**
+ * The days, from now on, with a class SIX shows that the app couldn't read. Its time isn't known, so
+ * today's counts until the teaching day ends: 18:00 WIB, or the end of a later class SIX lists that day.
+ */
+export function unreadDaysAhead(unread: readonly UnreadSession[], schedule: readonly ClassSession[], now: number): string[] {
+  const today = wibDay(now);
+  const ends = Math.max(Date.parse(`${today}T00:00:00+07:00`) + TEACHING_DAY_ENDS, ...schedule.filter((s) => wibDay(s.start) === today).map((s) => s.end));
+  return [...new Set(unread.map((one) => one.day))].filter((day) => day > today || (day === today && now < ends)).sort();
+}
+
+/**
+ * The first of those days up to the day of `until` (a week ahead without it): a class may be on then, so neither
+ * the next class nor a free week is said without it. `code`: only that course's (by the code SIX shows for it).
+ */
+export function firstUnreadDay(
+  unread: readonly UnreadSession[],
+  schedule: readonly ClassSession[],
+  now: number,
+  until: number | null,
+  code?: string,
+): string | null {
+  const last = wibDay(until ?? now + 7 * DAY);
+  const mine = code === undefined ? unread : unread.filter((one) => one.code === code);
+  return unreadDaysAhead(mine, schedule, now).find((day) => day <= last) ?? null;
 }
 
 // ---------------------------------------------------------------- what counts in an Edunex window

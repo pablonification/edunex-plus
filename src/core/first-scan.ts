@@ -262,7 +262,14 @@ function meetingsOutsideSix({ saved, now }: ScanInput, codes: readonly string[])
   for (const code of codes) {
     const announced = announcedMeetings(saved["edunex.materials"]?.[code] ?? [], saved["edunex.announcements"]?.[code] ?? []);
     if (!announced.length) continue;
-    for (const meeting of courseMeetings(code, saved["edunex.presence"]?.[code] ?? [], schedule, announced, saved["six.scheduleMonths"] ?? []))
+    for (const meeting of courseMeetings(
+      code,
+      saved["edunex.presence"]?.[code] ?? [],
+      schedule,
+      announced,
+      saved["six.scheduleMonths"] ?? [],
+      saved["six.scheduleUnread"] ?? [],
+    ))
       if (meeting.announced && meeting.notInSix && meeting.end > now) meetings.push({ code, meeting: meeting.announced });
   }
   if (!meetings.length) return null;

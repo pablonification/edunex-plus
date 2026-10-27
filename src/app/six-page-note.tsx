@@ -5,8 +5,9 @@
 // check it on SIX, and to report the page to the app's maintainer ("Laporkan masalah"). Nothing
 // to say: nothing shown. Under it, on Nilai and Rencana studi, the courses their estimates leave
 // out for that reason (UnreadNote).
-import { SIX_WEB, sixPageOf } from "../core/links";
+import { SIX_WEB, sixPageOf, sixTimetableUrl } from "../core/links";
 import type { ChangedPage, DatasetName } from "../core/models";
+import { dayNoon } from "../core/schedule";
 import { useOpenExternal } from "./hooks";
 import { useFormat, useT } from "./i18n";
 import { ReportButton } from "./report";
@@ -15,6 +16,23 @@ import { Button } from "./ui/controls";
 import { cx } from "./ui/cx";
 import { Icons } from "./ui/icons";
 import { Notice } from "./ui/layout";
+
+/** SIX's timetable on `day`'s month ("Buka jadwal di SIX"), where a class the app couldn't read has its time and room (ADR 0013). */
+export function OpenSixTimetable({ day, primary }: { day: string; primary?: boolean }) {
+  const t = useT();
+  const open = useOpenExternal();
+  const student = useDataset("six.student");
+  return (
+    <Button
+      size="sm"
+      variant={primary ? "primary" : "secondary"}
+      icon={<Icons.ArrowUpRight className="size-3.5" />}
+      onClick={() => open(student ? sixTimetableUrl(student, dayNoon(day)) : SIX_WEB)}
+    >
+      {t("schedule.unread.open")}
+    </Button>
+  );
+}
 
 /** The SIX page among `datasets`' that changed while the rest of SIX reads (SourceStatus.changedPages), if any. */
 export function useChangedPage(datasets: readonly DatasetName[]): ChangedPage | undefined {

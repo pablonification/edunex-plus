@@ -512,3 +512,43 @@ describe("how far ahead Perlu perhatianmu looks", () => {
     expect(text("home-needs")).not.toContain("Bebas tenggat");
   });
 });
+
+describe("a class on SIX's timetable the app can't read", () => {
+  it("Beranda lists it in today's classes, a click from SIX's timetable, and the card says the day has it", async () => {
+    const world = new PretendWorld();
+    // DK4073's 11:00 class, its time written with dots.
+    world.six.moveMeeting("2153983", "11.00", "12.59");
+    screen = await openApp({ world, signedIn: true, six: true });
+    // Today's, then tomorrow's online meeting.
+    expect(rows("home-today").map((one) => one.slice(0, 5))).toEqual(["-Ada ", "08:00", "15:00", "16:00", "15:00"]);
+    expect(row("home-today", "-")).toMatch(/^-Ada kuliah yang belum terbaca11\.00-12\.59 DK4073 Komunikasi .*Buka jadwal di SIX$/);
+    expect(text("home-now")).toContain("Ada kuliah yang belum terbaca · Hari ini");
+    // Quietly: the row and the card say it, not a note over Beranda.
+    expect(document.querySelector("main")?.textContent).not.toContain("belum dikenali");
+    await screen.click([...(section("home-today")?.querySelectorAll<HTMLButtonElement>("button") ?? [])].find((b) => b.textContent === "Buka jadwal di SIX")!);
+    expect(screen.calls.at(-1)).toEqual({
+      name: "shell.openExternal",
+      input: { url: "https://six.itb.ac.id/app/mahasiswa:18223901+2026-1/kelas/jadwal/mahasiswa/2021000001?bulan=202610" },
+    });
+  });
+
+  it("tomorrow's meeting announced only in Edunex isn't said to be missing from SIX on a day SIX shows a class of it the app can't read", async () => {
+    const world = new PretendWorld();
+    world.six.addMeetingOn(9, { id: "2299003", code: "II4091", name: "Proposal Tugas Akhir", start: "15.00", end: "17.00" });
+    screen = await openApp({ world, signedIn: true, six: true });
+    // Tomorrow: the class SIX shows that the app can't read, then the meeting Edunex announced, without "Tidak ada di jadwal SIX".
+    expect(rows("home-today").slice(-2)).toEqual([
+      expect.stringMatching(/^-Ada kuliah yang belum terbaca15\.00-17\.00 II4091 /),
+      expect.stringMatching(/^15:0017:00Proposal Tugas AkhirII4091 · Pertemuan 3 · daring$/),
+    ]);
+  });
+
+  it("a week with no other class says there's one the app can't read, not that the week is free", async () => {
+    const world = new PretendWorld({ now: "2026-10-31T09:00:00+07:00" });
+    world.six.addMeeting({ id: "2299001", code: "PL3002", name: "Ekonomi dan Inovasi dalam Perencanaan", day: "2026-11-03", start: "08.00", end: "09.30" });
+    screen = await openApp({ world, signedIn: true, six: true });
+    expect(text("home-now")).toContain("Ada kuliah yang belum terbaca · Sel, 3 Nov");
+    expect(text("home-now")).toContain("Jam dan ruangnya ada di SIX.");
+    expect(text("home-now")).not.toContain("Tidak ada kuliah dalam seminggu ke depan");
+  });
+});
