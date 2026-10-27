@@ -9,6 +9,9 @@
 // doesn't show right now (no class today, no course this term) is passed
 // over. "Lewati panduan" and Escape leave at any step, a dialog opened over it
 // (⌘K, ⌘,) puts it aside until it closes, and Settings › Tentang starts it again.
+// Going elsewhere anyway (a search result, a notification) ends it there, and so
+// does a place that doesn't open (the Student kept a PDF's filling): the window is
+// never left dimmed with no card.
 import * as PopoverPrimitive from "@radix-ui/react-popover";
 import { type ReactNode, type RefObject, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -19,9 +22,7 @@ import { type Route, useNav } from "../nav";
 import { useStore } from "../store";
 import { AppMark } from "../ui/brand";
 import { Button } from "../ui/controls";
-import { cx } from "../ui/cx";
 import { ProgressBar } from "../ui/display";
-import { ignoreClosingClick } from "../ui/overlays";
 import { isBuilt } from "./built";
 
 type Chapter = "home" | "tasks" | "schedule" | "presence" | "grades" | "plan" | "course" | "tools";
@@ -70,9 +71,10 @@ const STEPS: readonly Step[] = [
   { chapter: "grades", part: "standing", target: '[data-guide="grades-standing"]', side: "bottom", align: "start" },
   { chapter: "grades", part: "term", target: section("this-term"), side: "top", align: "start" },
   { chapter: "plan", part: "tabs", target: "main [role=tablist]", side: "bottom", align: "start" },
+  { chapter: "plan", part: "plan", target: '[data-guide="plan"]', side: "bottom", align: "start" },
   { chapter: "course", part: "list", target: '[data-guide="courses"]', side: "right", align: "start" },
   { chapter: "course", part: "tabs", target: "main [role=tablist]", side: "bottom", align: "start" },
-  { chapter: "course", part: "modules", target: "main [role=tabpanel][data-state=active]", side: "top", align: "start" },
+  { chapter: "course", part: "modules", target: '[data-guide="course-modules"]', side: "top", align: "start" },
   { chapter: "tools", part: "nav", target: '[data-guide="nav"]', side: "right", align: "start" },
   { chapter: "tools", part: "search", target: '[data-guide="search"]', side: "bottom", align: "end" },
   { chapter: "tools", part: "alerts", target: '[data-guide="alerts"]', side: "bottom", align: "end" },
@@ -84,8 +86,12 @@ const STEPS: readonly Step[] = [
 const MARK = '[data-guide="intro"]';
 /** How long a part its page hasn't drawn yet is waited for, before the step is passed over. */
 const WAIT = 400;
+/** How long a step's place is waited for: one that hasn't opened by then (the Student kept a PDF's filling) ends the tour. */
+const OPENING = 3000;
 /** The room the lit part gets around it, in px. */
 const ROOM = 6;
+/** How far inside what it's seen through (the window, or the screen under the top bar) the ring stays, whole, in px. */
+const EDGE = 2;
 /** The height the card needs above or below its part, in px: a part taller than the window less this has it inside. */
 const CARD_ROOM = 260;
 
@@ -110,6 +116,7 @@ export function Guide({ start, hidden, onEnd }: { start: "offer" | "tour"; hidde
   const step = at < 0 ? null : STEPS[at];
   const route = useMemo(() => (step ? CHAPTERS[step.chapter].shows(course) : null), [step, course]);
   const there = route !== null && showing(nav.route, route);
+  const end = useLatest(onEnd);
 
   const go = (to: number, toward: 1 | -1) => {
     if (to >= STEPS.length) return onEnd(true);
@@ -127,12 +134,22 @@ export function Guide({ start, hidden, onEnd }: { start: "offer" | "tour"; hidde
     if (route) open(route, { keep: true });
     else passOver();
   }, [step, route, open, passOver]);
+  // Its place on screen, then gone with no step taken (a search result or a notification opened over the tour): the
+  // Student went elsewhere, and the tour ends there. A place that doesn't open (the Student kept a PDF's filling, so
+  // the window stayed) ends it a moment later.
+  const reached = useRef<Route | null>(null);
+  useLayoutEffect(() => {
+    if (!route) return;
+    if (there) {
+      reached.current = route;
+      return;
+    }
+    if (reached.current === route) return end(false);
+    const timer = setTimeout(() => end(false), OPENING);
+    return () => clearTimeout(timer);
+  }, [route, there, end]);
 
   const target = useTarget(step ? (there ? step.target : null) : MARK, at, passOver);
-  const rect = useRect(hidden ? null : target);
-  // A part too tall for the card above or below it (the week's grid) has it just inside its bottom corner, in view.
-  const crowded = step !== null && rect !== null && (step.side === "top" || step.side === "bottom") && rect.height > window.innerHeight - CARD_ROOM;
-  const hang = useMemo(() => (target && crowded ? insideCorner(target) : target), [target, crowded]);
   useLayoutEffect(() => {
     if (!target || hidden) return;
     bringIntoView(target);
@@ -142,13 +159,18 @@ export function Guide({ start, hidden, onEnd }: { start: "offer" | "tour"; hidde
       delete target.dataset.guideOn;
     };
   }, [target, hidden]);
+  // Measured once it's in view.
+  const lit = useLit(hidden ? null : target);
+  // A part too tall for the card above or below it (the week's grid) has it just inside its bottom corner, in view.
+  const crowded = step !== null && lit !== null && (step.side === "top" || step.side === "bottom") && lit.height > window.innerHeight - CARD_ROOM;
+  const hang = useMemo(() => (target && crowded ? insideCorner(target) : target), [target, crowded]);
 
   if (hidden) return null;
   const skip = () => onEnd(false);
   const keys = { search: mac ? "⌘K" : "Ctrl+K", places: mac ? "⌘1–⌘6" : "Ctrl+1–6" };
   return (
     <>
-      <Scrim rect={rect} />
+      <Scrim lit={lit} />
       {target && !step && (
         <Card key="offer" anchor={target} side="right" align="start" onSkip={skip}>
           {({ titleId, bodyId, primary }) => (
@@ -174,13 +196,15 @@ export function Guide({ start, hidden, onEnd }: { start: "offer" | "tour"; hidde
       )}
       {hang && step && (
         <Card key={at} anchor={hang} side={crowded ? "top" : step.side} align={crowded ? "end" : step.align} onSkip={skip} counted>
-          {({ titleId, bodyId, counterId, primary }) => {
+          {({ titleId, bodyId, chapterId, counterId, primary }) => {
             const inChapter = STEPS.filter((other) => other.chapter === step.chapter && (other === step || document.querySelector(other.target)));
             return (
               <>
                 <ProgressBar value={(at + 1) / STEPS.length} label={t("guide.progress")} />
                 <div className="mt-3 flex items-baseline justify-between gap-3 text-caption">
-                  <span className="font-semibold text-muted">{t(CHAPTERS[step.chapter].name)}</span>
+                  <span id={chapterId} className="font-semibold text-muted">
+                    {t(CHAPTERS[step.chapter].name)}
+                  </span>
                   <span id={counterId} className="shrink-0 text-faint tabular-nums">
                     {t("guide.step", { step: inChapter.indexOf(step) + 1, count: inChapter.length })}
                   </span>
@@ -257,36 +281,59 @@ function useTarget(selector: string | null, key: number, missing: () => void): H
     observer.observe(document.body, { childList: true, subtree: true });
     return stop;
   }, [selector, key, missing]);
-  return found?.key === key ? found.element : null;
+  return selector !== null && found?.key === key ? found.element : null;
 }
 
-/** Where `element` is in the window, kept up to date as it moves or changes size. */
-function useRect(element: HTMLElement | null): DOMRect | null {
-  const [rect, setRect] = useState<DOMRect | null>(null);
+/**
+ * The box a step lights: its part with room around it, cut to what it's seen through (the window, or for a part of the
+ * screen, the screen under the top bar) so its ring stays whole. Kept up to date as the part moves or changes size,
+ * and as anything else in the window changes (a banner arriving above it, a section growing as a sync comes in).
+ */
+function useLit(element: HTMLElement | null): DOMRect | null {
+  const [lit, setLit] = useState<DOMRect | null>(null);
   useLayoutEffect(() => {
     if (!element) {
-      setRect(null);
+      setLit(null);
       return;
     }
+    const measure = () => {
+      const part = element.getBoundingClientRect();
+      const seen = element.closest("main")?.getBoundingClientRect() ?? new DOMRect(0, 0, window.innerWidth, window.innerHeight);
+      const top = Math.max(part.top - ROOM, seen.top + EDGE);
+      const left = Math.max(part.left - ROOM, seen.left + EDGE);
+      const box = new DOMRect(
+        left,
+        top,
+        Math.max(0, Math.min(part.right + ROOM, seen.right - EDGE) - left),
+        Math.max(0, Math.min(part.bottom + ROOM, seen.bottom - EDGE) - top),
+      );
+      // The same box keeps its object: drawing it changes the window, which would measure it again.
+      setLit((last) => (last && sameBox(last, box) ? last : box));
+    };
     let frame = 0;
     const read = () => {
       cancelAnimationFrame(frame);
-      frame = requestAnimationFrame(() => setRect(element.getBoundingClientRect()));
+      frame = requestAnimationFrame(measure);
     };
-    setRect(element.getBoundingClientRect());
+    measure();
     const resized = new ResizeObserver(read);
     resized.observe(element);
+    const changed = new MutationObserver(read);
+    changed.observe(document.body, { subtree: true, childList: true, attributes: true, characterData: true });
     window.addEventListener("resize", read);
     window.addEventListener("scroll", read, true);
     return () => {
       cancelAnimationFrame(frame);
       resized.disconnect();
+      changed.disconnect();
       window.removeEventListener("resize", read);
       window.removeEventListener("scroll", read, true);
     };
   }, [element]);
-  return rect;
+  return lit;
 }
+
+const sameBox = (a: DOMRect, b: DOMRect) => a.x === b.x && a.y === b.y && a.width === b.width && a.height === b.height;
 
 /** A point just inside `element`'s bottom right corner, where it's in view: a card hangs over it from there. */
 function insideCorner(element: HTMLElement): Measurable {
@@ -309,14 +356,14 @@ function bringIntoView(element: HTMLElement) {
  * The window dimmed but for the part the step is about, ringed, and taking no clicks: the guide's card is the one
  * thing to use while it runs. Before the part is found (its screen still opening), all of it is dimmed.
  */
-function Scrim({ rect }: { rect: DOMRect | null }) {
+function Scrim({ lit }: { lit: DOMRect | null }) {
   return createPortal(
-    <div aria-hidden className="no-drag fixed inset-0 z-(--z-float) overflow-hidden motion-safe:animate-fade-in">
-      {rect ? (
+    <div aria-hidden data-guide-scrim="" className="no-drag fixed inset-0 z-(--z-float) overflow-hidden motion-safe:animate-fade-in">
+      {lit ? (
         <div
           data-guide-lit=""
           className="guide-lit pointer-events-none absolute rounded-xl"
-          style={{ top: rect.top - ROOM, left: rect.left - ROOM, width: rect.width + 2 * ROOM, height: rect.height + 2 * ROOM }}
+          style={{ top: lit.top, left: lit.left, width: lit.width, height: lit.height }}
         />
       ) : (
         <div className="absolute inset-0 bg-scrim" />
@@ -328,7 +375,8 @@ function Scrim({ rect }: { rect: DOMRect | null }) {
 
 /**
  * The guide's card, hanging from its part: a dialog that holds the window (focus stays in it, the rest isn't read
- * out). Escape leaves the guide. Each step is a card of its own, growing from its part, with focus on its main button.
+ * out). Escape leaves the guide. Each step is a card of its own, growing from its part, with focus on its main button;
+ * it's never closed, only replaced by the next one or removed with the guide.
  */
 function Card({
   anchor,
@@ -341,13 +389,13 @@ function Card({
   anchor: Measurable;
   side: Side;
   align: "start" | "end";
-  /** It says which step it is ("2 dari 5"), read out after its title. */
+  /** It says where it is ("Presensi", "2 dari 5"), read out after its title. */
   counted?: boolean;
   onSkip: () => void;
-  children: (ids: { titleId: string; bodyId: string; counterId: string; primary: RefObject<HTMLButtonElement | null> }) => ReactNode;
+  children: (ids: { titleId: string; bodyId: string; chapterId: string; counterId: string; primary: RefObject<HTMLButtonElement | null> }) => ReactNode;
 }) {
   const id = useId();
-  const ids = { titleId: `${id}-title`, bodyId: `${id}-body`, counterId: `${id}-step` };
+  const ids = { titleId: `${id}-title`, bodyId: `${id}-body`, chapterId: `${id}-chapter`, counterId: `${id}-step` };
   const primary = useRef<HTMLButtonElement>(null);
   const keep = (event: Event) => event.preventDefault();
   return (
@@ -357,7 +405,7 @@ function Card({
         <PopoverPrimitive.Content
           data-guide-card=""
           aria-labelledby={ids.titleId}
-          aria-describedby={counted ? `${ids.counterId} ${ids.bodyId}` : ids.bodyId}
+          aria-describedby={counted ? `${ids.chapterId} ${ids.counterId} ${ids.bodyId}` : ids.bodyId}
           side={side}
           align={align}
           sideOffset={ROOM + 10}
@@ -370,12 +418,8 @@ function Card({
           onCloseAutoFocus={keep}
           onInteractOutside={keep}
           onEscapeKeyDown={onSkip}
-          onClickCapture={ignoreClosingClick}
           // Over its own dimming, under any dialog (Settings, search), as the window's other quiet card is.
-          className={cx(
-            "no-drag z-(--z-float) w-80 max-w-(--radix-popover-content-available-width) origin-(--radix-popover-content-transform-origin) rounded-xl border border-edge bg-raised p-4 text-fg shadow-pop focus:outline-none",
-            "motion-safe:data-[state=open]:animate-popover-in motion-safe:data-[state=closed]:animate-popover-out",
-          )}
+          className="no-drag z-(--z-float) w-80 max-w-(--radix-popover-content-available-width) origin-(--radix-popover-content-transform-origin) rounded-xl border border-edge bg-raised p-4 text-fg shadow-pop focus:outline-none motion-safe:animate-popover-in"
         >
           {children({ ...ids, primary })}
         </PopoverPrimitive.Content>

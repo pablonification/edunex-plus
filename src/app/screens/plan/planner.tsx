@@ -227,7 +227,10 @@ function Planner({ real, record, state }: { real: StudentRecord; record: Student
         <SixPageNote datasets={["six.curriculum"]} />
         <UnreadNote record={record} />
       </div>
-      <Summary record={record} state={state} rules={rules} />
+      {/* The guide points here (shell/guide.tsx). */}
+      <div data-guide="plan">
+        <Summary record={record} state={state} rules={rules} />
+      </div>
       <div className="grid grid-cols-1 items-start gap-6 @4xl:grid-cols-[minmax(0,1fr)_340px]">
         <div className="min-w-0 space-y-3">
           <Past record={record} steps={projection.steps.filter((s) => !s.projected && s.term !== record.term)} />

@@ -87,15 +87,16 @@ function Layout({ arriving }: { arriving: boolean }) {
   const t = useT();
   // The guide (./guide.tsx): it offers itself once the app has opened after a new Student's first sign-in (not in the
   // welcome's preview of it), and Settings starts its tour. Ended, it's remembered, and it doesn't offer itself again.
+  // Each start is a new tour (`run`), from its first part, even over one still running.
   const due = guideDue(useSettings()) && !arriving;
-  const [guide, setGuide] = useState<"offer" | "tour" | null>(null);
+  const [guide, setGuide] = useState<{ start: "offer" | "tour"; run: number } | null>(null);
   const [offered, setOffered] = useState(false);
   if (due && !offered) {
     setOffered(true);
-    setGuide("offer");
+    setGuide({ start: "offer", run: 0 });
   }
   const endGuide = (finished: boolean) => {
-    if (guide === "offer" && !finished) toast(t("guide.later"));
+    if (guide?.start === "offer" && !finished) toast(t("guide.later"));
     setGuide(null);
     if (due) void bridge.invoke("settings.update", { guideDone: true }).catch(() => undefined);
     // The keyboard carries on from the top of the screen it ends on, once the guide has let go of it.
@@ -208,7 +209,7 @@ function Layout({ arriving }: { arriving: boolean }) {
               }}
               onShowGuide={() => {
                 setSettingsOpen(false);
-                setGuide("tour");
+                setGuide((last) => ({ start: "tour", run: (last?.run ?? 0) + 1 }));
               }}
             />
           )}
@@ -227,8 +228,8 @@ function Layout({ arriving }: { arriving: boolean }) {
       </PanelBoundary>
       <PanelBoundary name="guide" compact>
         <Suspense fallback={null}>
-          {/* Each start is a new tour. It steps aside while a dialog is open, and comes back where it was. */}
-          {guide && <Guide key={guide} start={guide} hidden={settingsOpen || searchOpen || reportOpen || scanOpen} onEnd={endGuide} />}
+          {/* It steps aside while a dialog is open, and comes back where it was. */}
+          {guide && <Guide key={guide.run} start={guide.start} hidden={settingsOpen || searchOpen || reportOpen || scanOpen} onEnd={endGuide} />}
         </Suspense>
       </PanelBoundary>
       <PanelBoundary name="first scan" compact>
@@ -316,7 +317,10 @@ function CurrentScreen({ route }: { route: Route }) {
 
 const NAV_ORDER = ["home", "tasks", "schedule", "presence", "grades", "plan"] as const;
 
-/** ⌘1 to ⌘6 open the six places in the sidebar (Ctrl elsewhere); ⌘[ goes back. Either closes what's open over the screen first. */
+/**
+ * ⌘1 to ⌘6 open the six places in the sidebar (Ctrl elsewhere); ⌘[ goes back. Either closes what's open over the screen
+ * first. The mouse's back button goes back too. None of them works while `off` (the welcome's preview, the guide).
+ */
 function useNavShortcuts(closeOverlays: () => void, off: boolean) {
   const store = useStore();
   const { go, back } = useNav();
@@ -337,8 +341,15 @@ function useNavShortcuts(closeOverlays: () => void, off: boolean) {
       closeOverlays();
       go({ screen: NAV_ORDER[index] } as Route, { keep: true });
     };
+    const onMouse = (event: MouseEvent) => {
+      if (event.button === 3) back();
+    };
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener("mouseup", onMouse);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("mouseup", onMouse);
+    };
   }, [store, go, back, closeOverlays, off]);
 }
 
@@ -461,7 +472,7 @@ function Sidebar({ onSettings }: { onSettings: (at?: "courseColors" | null) => v
                 </IconButton>
               </Tooltip>
             </div>
-            <ul data-guide="courses" className="space-y-0.5 rounded-lg">
+            <ul data-guide="courses" className="space-y-0.5">
               {courses.map((course) => {
                 const active = route.screen === "course" && route.code === course.code;
                 const site = courseReady ? null : outside(course);

@@ -155,8 +155,8 @@ export function TasksScreen({ show: shown }: { show?: "done" }) {
       <PageHeader
         title={t("nav.tasks")}
         actions={
-          // The guide points here (shell/guide.tsx).
-          <div data-guide="tasks-show">
+          // The guide points here once there are Tasks to show (shell/guide.tsx).
+          <div data-guide={todo ? "tasks-show" : undefined}>
             <Segmented
               label={t("tasks.show")}
               value={show}

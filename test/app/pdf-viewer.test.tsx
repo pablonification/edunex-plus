@@ -579,6 +579,23 @@ describe("filling a PDF", () => {
     expect([k01.checked, k02.checked]).toEqual([true, false]);
   });
 
+  it("the guide started over filling not saved: kept filling, its first place never opens, and the tour ends (never a dimmed window with no card)", async () => {
+    const s = await openCourseForm();
+    await type(box("Nama"), "Ana");
+    await s.apply({ type: "command", command: "settings" });
+    await s.click("Mulai: Panduan aplikasi");
+    // The tour's first part is on Beranda: going there asks first.
+    expect(asking()?.textContent).toContain("Buang isianmu?");
+    await s.click("Lanjut mengisi");
+    expect(box("Nama").value).toBe("Ana");
+    expect(document.querySelector("[data-guide-scrim]")).not.toBeNull();
+    // Beranda never opened: a moment later, the tour has let go of the window.
+    await act(() => new Promise((resolve) => setTimeout(resolve, 3100)));
+    expect(document.querySelector("[data-guide-scrim]")).toBeNull();
+    expect(document.querySelector("[data-guide-card]")).toBeNull();
+    expect(box("Nama").value).toBe("Ana");
+  });
+
   it("going to another screen with filling not saved asks too, and the screen waits for the answer", async () => {
     const s = await openCourseForm();
     const course = document.querySelector("h1")?.textContent;

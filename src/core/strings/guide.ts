@@ -15,7 +15,7 @@ export const guideStrings = {
   "guide.done": { id: "Selesai", en: "Done" },
   "guide.step": { id: "{step} dari {count}", en: "{step} of {count}" },
   "guide.progress": { id: "Kemajuan panduan", en: "Tour progress" },
-  "guide.later": { id: "Panduan bisa dibuka lagi dari Pengaturan › Tentang", en: "Take the tour again from Settings › About" },
+  "guide.later": { id: "Panduan bisa dibuka nanti dari Pengaturan › Tentang", en: "You can take the tour later from Settings › About" },
   "guide.tools": { id: "Menu dan alat", en: "Menus and tools" },
 
   // Beranda
@@ -48,13 +48,13 @@ export const guideStrings = {
   // Tugas & Ujian
   "guide.tasks.show.title": { id: "Belum selesai atau selesai", en: "To do or done" },
   "guide.tasks.show.body": {
-    id: "Lihat yang masih harus dikerjakan, atau yang sudah. Pilih mata kuliah di bawahnya untuk melihat tugasnya saja.",
-    en: "See what's still to do, or what's done. Pick a course below to see only its Tasks.",
+    id: "Lihat yang masih harus dikerjakan atau yang sudah, tugas maupun ujian.",
+    en: "See what's still to do or what's done, Tasks and exams alike.",
   },
-  "guide.tasks.row.title": { id: "Tugas dan ujian", en: "Tasks and exams" },
+  "guide.tasks.row.title": { id: "Tenggat dan pengumpulan", en: "Deadlines and handing in" },
   "guide.tasks.row.body": {
-    id: "Tenggat atau waktu ujiannya di kanan, kuning sehari sebelumnya dan merah kalau terlambat. Klik tugas untuk menulis jawaban, melampirkan berkas, lalu menyimpan draf atau mengumpulkan.",
-    en: "The deadline or exam time is on the right, amber the day before and red once late. Click a Task to write your answer, attach files, then save a draft or hand it in.",
+    id: "Tenggat atau waktu ujiannya di kanan, kuning di 24 jam terakhir dan merah kalau terlambat. Klik tugas untuk menulis jawaban, melampirkan berkas, lalu menyimpan draf atau mengumpulkan.",
+    en: "The deadline or exam time is on the right, amber in its last 24 hours and red once late. Click a Task to write your answer, attach files, then save a draft or submit it.",
   },
 
   // Jadwal
@@ -72,8 +72,8 @@ export const guideStrings = {
   // Presensi
   "guide.presence.targets.title": { id: "Target kehadiran", en: "Attendance target" },
   "guide.presence.targets.body": {
-    id: "Jatah absen dihitung dari target ini. Atur target tiap mata kuliah sesuai kontrak kuliahnya.",
-    en: "Absences left are counted from this target. Set each course's own, from its course contract.",
+    id: "Jatah absen dihitung dari target ini. Samakan target tiap mata kuliah dengan batas minimal di kontrak kuliahnya.",
+    en: "Absences left are counted from this target. Set each course's target to the minimum in its course contract.",
   },
   "guide.presence.now.title": { id: "Sekarang", en: "Now" },
   "guide.presence.now.body": {
@@ -82,27 +82,32 @@ export const guideStrings = {
   },
   "guide.presence.row.title": { id: "Kehadiran dan jatah absen", en: "Attendance and absences" },
   "guide.presence.row.body": {
-    id: "Kehadiranmu di SIX sejauh ini, dan berapa kali lagi boleh absen. Bagian yang terisi sudah terpakai, yang kosong masih tersisa.",
-    en: "Your SIX attendance so far, and how many more classes you can miss. Filled marks are used, empty ones are left.",
+    id: "Kehadiranmu di SIX sejauh ini, dan berapa kali lagi boleh absen. Tiap tanda satu absen: terisi kalau terpakai, kosong kalau tersisa, merah kalau lewat batas.",
+    en: "Your SIX attendance so far, and how many more classes you can miss. Each mark is one absence: filled once used, empty while left, red past the limit.",
   },
 
   // Nilai
   "guide.grades.standing.title": { id: "Posisimu", en: "Where you stand" },
   "guide.grades.standing.body": {
-    id: "SKS yang sudah lulus, IP semester lalu, dan IPK tertinggi yang masih bisa kamu capai.",
-    en: "SKS passed, last semester's IP, and the highest IPK you can still reach.",
+    id: "Sejauh mana kamu menuju lulus, bagaimana semester lalu, dan IPK tertinggi yang masih bisa kamu capai kalau semua A.",
+    en: "How far you are toward graduating, how last semester went, and the best IPK you can still reach with straight A's.",
   },
   "guide.grades.term.title": { id: "Semester ini", en: "This semester" },
   "guide.grades.term.body": {
-    id: "Ubah perkiraan nilai tiap mata kuliah untuk melihat IPK-mu setelah semester ini.",
-    en: "Change the grade you expect in each course to see your IPK after this semester.",
+    id: "Ubah perkiraan nilai tiap mata kuliah untuk melihat IPK-mu setelah semester ini. Pilih target IPK untuk melihat rata-rata yang dibutuhkan, atau “Butuh berapa?” untuk satu mata kuliah.",
+    en: "Change the grade you expect in each course to see your IPK after this semester. Pick an IPK target to see the average it takes, or “What do I need?” for one course.",
   },
 
   // Rencana studi
   "guide.plan.tabs.title": { id: "Rencana, KRS, dan UKT", en: "Plan, KRS and UKT" },
   "guide.plan.tabs.body": {
-    id: "Rencanakan semester berikutnya, lalu cek kurikulum, KRS, tagihan UKT, dan kalender akademik ITB.",
-    en: "Plan your coming semesters, and check your curriculum, KRS, UKT bills and ITB's academic calendar.",
+    id: "Rencanakan studimu di sini, dan cek kurikulum, KRS, tagihan UKT, serta kalender akademik ITB di tab lainnya.",
+    en: "Plan your studies here, and check your curriculum, KRS, UKT bills and ITB's academic calendar in the other tabs.",
+  },
+  "guide.plan.plan.title": { id: "Rencanamu", en: "Your plan" },
+  "guide.plan.plan.body": {
+    id: "Kapan kamu lulus dan dengan IPK berapa. Tambahkan mata kuliah ke semester di bawahnya untuk mencoba, dan aturan ITB langsung dicek. KRS-mu tidak berubah.",
+    en: "When you'd graduate, and with what IPK. Add courses to the semesters below to try a plan, and ITB's rules are checked as you go. Your KRS doesn't change.",
   },
 
   // A course
@@ -113,20 +118,20 @@ export const guideStrings = {
   },
   "guide.course.tabs.title": { id: "Isi mata kuliah", en: "What's in a course" },
   "guide.course.tabs.body": {
-    id: "Modul, pertemuan, tugas, pengumuman, dan nilai, seperti di Edunex dan SIX, dalam satu halaman.",
-    en: "Modules, meetings, Tasks, announcements and grades, as Edunex and SIX have them, on one page.",
+    id: "Semua tentang mata kuliah ini dari Edunex dan SIX. Pertemuan menampilkan tiap kuliah dan Presensinya, dan Nilai menghitung yang kamu butuhkan untuk nilai yang kamu mau.",
+    en: "Everything about this course from Edunex and SIX. Meetings shows each class and its Presence, and Grades works out what you need for the grade you want.",
   },
   "guide.course.modules.title": { id: "Modul dan materi", en: "Modules and materials" },
   "guide.course.modules.body": {
-    id: "PDF, Word, Excel, dan PowerPoint terbuka di aplikasi, dan teksnya bisa kamu sorot dan beri catatan. Simpan untuk offline agar bisa dibaca tanpa internet.",
-    en: "PDFs, Word, Excel and PowerPoint open in the app, where you can highlight and add notes. Save them for offline to read without internet.",
+    id: "Kebanyakan berkas terbuka di aplikasi, dan teks PDF atau Word bisa kamu sorot dan beri catatan. Untuk membaca tanpa internet, pilih Simpan untuk offline di Lainnya (⋯).",
+    en: "Most files open in the app, and in a PDF or Word file you can highlight and add notes. To read without internet, choose Save for offline under More (⋯).",
   },
 
   // Menu dan alat
   "guide.tools.nav.title": { id: "Menu", en: "Menu" },
   "guide.tools.nav.body": {
-    id: "Angka di samping menu adalah yang menunggu, dan kuning berarti ada yang perlu hari ini. Pindah cepat dengan {keys}.",
-    en: "The number beside a place is what's waiting, amber when something needs you today. Jump between them with {keys}.",
+    id: "Angka di samping tiap halaman adalah yang menunggu, dan kuning berarti ada yang perlu hari ini. Pindah cepat dengan {keys}.",
+    en: "The number beside each page is what's waiting, amber when something needs you today. Jump between them with {keys}.",
   },
   "guide.tools.search.title": { id: "Cari dari mana saja", en: "Search from anywhere" },
   "guide.tools.search.body": {

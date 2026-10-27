@@ -19,7 +19,7 @@ const card = () => document.querySelector<HTMLElement>("[data-guide-card]");
 const cardTitle = () => card()?.querySelector("h2")?.textContent;
 /** The chapter over the card ("Presensi"). */
 const chapter = () => card()?.querySelector(".text-caption span")?.textContent;
-/** What the card says, as a screen reader reads it after its title: its step, then its sentences. */
+/** What the card says, as a screen reader reads it after its title: its place, its step, then its sentences. */
 const cardSays = () =>
   card()
     ?.getAttribute("aria-describedby")
@@ -37,8 +37,16 @@ const lit = () =>
       el.getAttribute("aria-labelledby"),
   );
 const dimmed = () => document.querySelector("[data-guide-lit]") !== null;
+/** The guide's dimming, around a part or (its place still opening) all of the window. */
+const scrim = () => document.querySelector("[data-guide-scrim]") !== null;
 const h1 = () => document.querySelector("main h1")?.textContent;
 const scan = () => [...document.querySelectorAll("[role=dialog]")].find((d) => d.querySelector("h2")?.textContent === "Ringkasan saat pertama terhubung");
+/** Each step of a walk as "Chapter: Title (2 dari 5)". */
+const named = (steps: string[][]) =>
+  steps.map(([title, says]) => {
+    const [name, count] = says.split(" · ");
+    return `${name}: ${title} (${count})`;
+  });
 /** Beranda's title on the pretend world's morning. */
 const HOME = "Selamat pagi, Dimas";
 /** What the toasts say, together. */
@@ -50,11 +58,11 @@ async function press(key: string, init: KeyboardEventInit = {}) {
   });
 }
 
-/** Walks the whole tour with Lanjut: each step's chapter, title, what it says, what it lights and the screen behind it. */
+/** Walks the whole tour with Lanjut: each step's title, what it says (its chapter first), what it lights and the screen behind it. */
 async function walk() {
   const steps: string[][] = [];
   for (;;) {
-    steps.push([chapter()!, cardTitle()!, cardSays()!, lit().join(), h1()!]);
+    steps.push([cardTitle()!, cardSays()!, lit().join(), h1()!]);
     // Each step's main button has the keyboard.
     expect(card()?.contains(document.activeElement)).toBe(true);
     if (!screen!.has("Lanjut")) return steps;
@@ -95,7 +103,7 @@ describe("after a new Student's first sign-in", () => {
     expect(card()).toBeNull();
     expect(dimmed()).toBe(false);
     expect(screen.engine.snapshot().settings.guideDone).toBe(true);
-    expect(toasts()).toContain("Panduan bisa dibuka lagi dari Pengaturan › Tentang");
+    expect(toasts()).toContain("Panduan bisa dibuka nanti dari Pengaturan › Tentang");
     expect(scan()).toBeDefined();
   });
 
@@ -129,142 +137,139 @@ describe("the tour", () => {
     await screen.click("Mulai panduan");
     expect(await walk()).toEqual([
       [
-        "Beranda",
         "Kuliah sekarang",
-        "1 dari 5 · Kuliah yang sedang berjalan atau berikutnya, dengan ruangnya. Saat Tandai Hadir di SIX dibuka, aplikasi memberi tahu dan membawamu ke sana.",
+        "Beranda · 1 dari 5 · Kuliah yang sedang berjalan atau berikutnya, dengan ruangnya. Saat Tandai Hadir di SIX dibuka, aplikasi memberi tahu dan membawamu ke sana.",
         "home-now",
         HOME,
       ],
       [
-        "Beranda",
         "Hari ini",
-        "2 dari 5 · Kuliah dan tenggat hari ini, berurutan. Kuliah yang bentrok atau tanpa sisa jatah absen diberi tanda.",
+        "Beranda · 2 dari 5 · Kuliah dan tenggat hari ini, berurutan. Kuliah yang bentrok atau tanpa sisa jatah absen diberi tanda.",
         "home-today",
         HOME,
       ],
       [
-        "Beranda",
         "Perlu perhatianmu",
-        "3 dari 5 · Yang perlu kamu urus, paling mendesak di atas. Centang yang sudah beres, atau pakai jam untuk diingatkan nanti.",
+        "Beranda · 3 dari 5 · Yang perlu kamu urus, paling mendesak di atas. Centang yang sudah beres, atau pakai jam untuk diingatkan nanti.",
         "home-needs",
         HOME,
       ],
       [
-        "Beranda",
         "Yang berubah",
-        "4 dari 5 · Tugas dan materi baru, tugas yang diubah dosen, dan jadwal yang pindah minggu ini. Semuanya tersimpan di lonceng.",
+        "Beranda · 4 dari 5 · Tugas dan materi baru, tugas yang diubah dosen, dan jadwal yang pindah minggu ini. Semuanya tersimpan di lonceng.",
         "home-changes",
         HOME,
       ],
-      ["Beranda", "Mata kuliah semester ini", "5 dari 5 · Tiap mata kuliah dengan sisa jatah absennya. Klik untuk membuka halamannya.", "home-courses", HOME],
+      ["Mata kuliah semester ini", "Beranda · 5 dari 5 · Tiap mata kuliah dengan sisa jatah absennya. Klik untuk membuka halamannya.", "home-courses", HOME],
       [
-        "Tugas & Ujian",
         "Belum selesai atau selesai",
-        "1 dari 2 · Lihat yang masih harus dikerjakan, atau yang sudah. Pilih mata kuliah di bawahnya untuk melihat tugasnya saja.",
+        "Tugas & Ujian · 1 dari 2 · Lihat yang masih harus dikerjakan atau yang sudah, tugas maupun ujian.",
         "tasks-show",
         "Tugas & Ujian",
       ],
       [
-        "Tugas & Ujian",
-        "Tugas dan ujian",
-        "2 dari 2 · Tenggat atau waktu ujiannya di kanan, kuning sehari sebelumnya dan merah kalau terlambat. Klik tugas untuk menulis jawaban, melampirkan berkas, lalu menyimpan draf atau mengumpulkan.",
+        "Tenggat dan pengumpulan",
+        "Tugas & Ujian · 2 dari 2 · Tenggat atau waktu ujiannya di kanan, kuning di 24 jam terakhir dan merah kalau terlambat. Klik tugas untuk menulis jawaban, melampirkan berkas, lalu menyimpan draf atau mengumpulkan.",
         // The first group of rows, the week ahead here.
         "tasks-nextWeek",
         "Tugas & Ujian",
       ],
       [
-        "Jadwal",
         "Minggu atau bulan",
-        "1 dari 2 · Ganti tampilan, geser dengan panah, dan tambahkan jadwalnya ke kalender HP-mu dari sini.",
+        "Jadwal · 1 dari 2 · Ganti tampilan, geser dengan panah, dan tambahkan jadwalnya ke kalender HP-mu dari sini.",
         "schedule-view",
         "Jadwal",
       ],
       [
-        "Jadwal",
         "Jadwal resmi",
-        "2 dari 2 · Tiap kuliah dari SIX dengan ruangnya. Pertemuan yang hanya diumumkan di Edunex bergaris putus-putus, dan yang bentrok berdampingan.",
+        "Jadwal · 2 dari 2 · Tiap kuliah dari SIX dengan ruangnya. Pertemuan yang hanya diumumkan di Edunex bergaris putus-putus, dan yang bentrok berdampingan.",
         "schedule-grid",
         "Jadwal",
       ],
       [
-        "Presensi",
         "Target kehadiran",
-        "1 dari 3 · Jatah absen dihitung dari target ini. Atur target tiap mata kuliah sesuai kontrak kuliahnya.",
+        "Presensi · 1 dari 3 · Jatah absen dihitung dari target ini. Samakan target tiap mata kuliah dengan batas minimal di kontrak kuliahnya.",
         "targets",
         "Presensi",
       ],
       [
-        "Presensi",
         "Sekarang",
-        "2 dari 3 · Tandai Hadir yang sedang dibuka, Presensi Edunex, dan kuliah yang bentrok. Setelah kuliah, di sini terlihat apakah SIX sudah menghitungmu hadir.",
+        "Presensi · 2 dari 3 · Tandai Hadir yang sedang dibuka, Presensi Edunex, dan kuliah yang bentrok. Setelah kuliah, di sini terlihat apakah SIX sudah menghitungmu hadir.",
         "presence-now",
         "Presensi",
       ],
       [
-        "Presensi",
         "Kehadiran dan jatah absen",
-        "3 dari 3 · Kehadiranmu di SIX sejauh ini, dan berapa kali lagi boleh absen. Bagian yang terisi sudah terpakai, yang kosong masih tersisa.",
+        "Presensi · 3 dari 3 · Kehadiranmu di SIX sejauh ini, dan berapa kali lagi boleh absen. Tiap tanda satu absen: terisi kalau terpakai, kosong kalau tersisa, merah kalau lewat batas.",
         "a row of presence",
         "Presensi",
       ],
-      ["Nilai", "Posisimu", "1 dari 2 · SKS yang sudah lulus, IP semester lalu, dan IPK tertinggi yang masih bisa kamu capai.", "grades-standing", "Nilai"],
-      ["Nilai", "Semester ini", "2 dari 2 · Ubah perkiraan nilai tiap mata kuliah untuk melihat IPK-mu setelah semester ini.", "this-term", "Nilai"],
       [
-        "Rencana studi",
+        "Posisimu",
+        "Nilai · 1 dari 2 · Sejauh mana kamu menuju lulus, bagaimana semester lalu, dan IPK tertinggi yang masih bisa kamu capai kalau semua A.",
+        "grades-standing",
+        "Nilai",
+      ],
+      [
+        "Semester ini",
+        "Nilai · 2 dari 2 · Ubah perkiraan nilai tiap mata kuliah untuk melihat IPK-mu setelah semester ini. Pilih target IPK untuk melihat rata-rata yang dibutuhkan, atau “Butuh berapa?” untuk satu mata kuliah.",
+        "this-term",
+        "Nilai",
+      ],
+      [
         "Rencana, KRS, dan UKT",
-        "1 dari 1 · Rencanakan semester berikutnya, lalu cek kurikulum, KRS, tagihan UKT, dan kalender akademik ITB.",
+        "Rencana studi · 1 dari 2 · Rencanakan studimu di sini, dan cek kurikulum, KRS, tagihan UKT, serta kalender akademik ITB di tab lainnya.",
         "tablist",
+        "Rencana studi",
+      ],
+      [
+        "Rencanamu",
+        "Rencana studi · 2 dari 2 · Kapan kamu lulus dan dengan IPK berapa. Tambahkan mata kuliah ke semester di bawahnya untuk mencoba, dan aturan ITB langsung dicek. KRS-mu tidak berubah.",
+        "plan",
         "Rencana studi",
       ],
       // The term's first course, as the sidebar lists it.
       [
-        "Mata kuliah",
         "Mata kuliahmu",
-        "1 dari 3 · Mata kuliah semester ini, masing-masing dengan warnanya. Klik kanan untuk mengganti warnanya.",
+        "Mata kuliah · 1 dari 3 · Mata kuliah semester ini, masing-masing dengan warnanya. Klik kanan untuk mengganti warnanya.",
         "courses",
         "Komunikasi Pemasaran",
       ],
       [
-        "Mata kuliah",
         "Isi mata kuliah",
-        "2 dari 3 · Modul, pertemuan, tugas, pengumuman, dan nilai, seperti di Edunex dan SIX, dalam satu halaman.",
+        "Mata kuliah · 2 dari 3 · Semua tentang mata kuliah ini dari Edunex dan SIX. Pertemuan menampilkan tiap kuliah dan Presensinya, dan Nilai menghitung yang kamu butuhkan untuk nilai yang kamu mau.",
         "tablist",
         "Komunikasi Pemasaran",
       ],
       [
-        "Mata kuliah",
         "Modul dan materi",
-        "3 dari 3 · PDF, Word, Excel, dan PowerPoint terbuka di aplikasi, dan teksnya bisa kamu sorot dan beri catatan. Simpan untuk offline agar bisa dibaca tanpa internet.",
-        "tabpanel",
+        "Mata kuliah · 3 dari 3 · Kebanyakan berkas terbuka di aplikasi, dan teks PDF atau Word bisa kamu sorot dan beri catatan. Untuk membaca tanpa internet, pilih Simpan untuk offline di Lainnya (⋯).",
+        "course-modules",
         "Komunikasi Pemasaran",
       ],
       // Back on Beranda for the tools around every place.
       [
-        "Menu dan alat",
         "Menu",
-        "1 dari 5 · Angka di samping menu adalah yang menunggu, dan kuning berarti ada yang perlu hari ini. Pindah cepat dengan ⌘1–⌘6.",
+        "Menu dan alat · 1 dari 5 · Angka di samping tiap halaman adalah yang menunggu, dan kuning berarti ada yang perlu hari ini. Pindah cepat dengan ⌘1–⌘6.",
         "nav",
         HOME,
       ],
-      ["Menu dan alat", "Cari dari mana saja", "2 dari 5 · Tekan ⌘K untuk mencari mata kuliah, tugas, modul, atau materi.", "search", HOME],
+      ["Cari dari mana saja", "Menu dan alat · 2 dari 5 · Tekan ⌘K untuk mencari mata kuliah, tugas, modul, atau materi.", "search", HOME],
       [
-        "Menu dan alat",
         "Notifikasi",
-        "3 dari 5 · Tugas dan materi baru, tenggat yang mendekat, dan Presensi yang dibuka muncul di sini. Bisa dikirim ke HP-mu juga.",
+        "Menu dan alat · 3 dari 5 · Tugas dan materi baru, tenggat yang mendekat, dan Presensi yang dibuka muncul di sini. Bisa dikirim ke HP-mu juga.",
         "alerts",
         HOME,
       ],
       [
-        "Menu dan alat",
         "Status data",
-        "4 dari 5 · Kapan Edunex dan SIX terakhir diperbarui. Kalau ada masalah, penyebab dan jalan keluarnya ada di sini.",
+        "Menu dan alat · 4 dari 5 · Kapan Edunex dan SIX terakhir diperbarui. Kalau ada masalah, penyebab dan jalan keluarnya ada di sini.",
         "status",
         HOME,
       ],
       [
-        "Menu dan alat",
         "Pengaturan",
-        "5 dari 5 · Atur pengingat tenggat, notifikasi di HP, bahasa, dan tema. Panduan ini juga bisa dibuka lagi dari sini.",
+        "Menu dan alat · 5 dari 5 · Atur pengingat tenggat, notifikasi di HP, bahasa, dan tema. Panduan ini juga bisa dibuka lagi dari sini.",
         "settings",
         HOME,
       ],
@@ -277,16 +282,30 @@ describe("the tour", () => {
     expect(lit()).toEqual([]);
     expect(dimmed()).toBe(false);
     expect(screen.engine.snapshot().settings.guideDone).toBe(true);
-    expect(toasts()).not.toContain("Panduan bisa dibuka lagi dari Pengaturan › Tentang");
+    expect(toasts()).not.toContain("Panduan bisa dibuka nanti dari Pengaturan › Tentang");
     expect(document.activeElement).toBe(document.querySelector("main h1"));
   });
 
   it("with Edunex alone, passes over what only SIX shows: the attendance target, and Nilai", async () => {
     screen = await openApp({ guide: true, signedIn: true });
     await screen.click("Mulai panduan");
-    const steps = (await walk()).map(([name, title, says]) => `${name}: ${title} (${says.split(" · ")[0]})`);
+    const steps = named(await walk());
     expect(steps.filter((step) => step.startsWith("Presensi"))).toEqual(["Presensi: Sekarang (1 dari 2)", "Presensi: Kehadiran dan jatah absen (2 dari 2)"]);
     expect(steps.some((step) => step.startsWith("Nilai"))).toBe(false);
+    // The plan needs SIX's transcript: its tabs are there, the plan isn't.
+    expect(steps.filter((step) => step.startsWith("Rencana studi"))).toEqual(["Rencana studi: Rencana, KRS, dan UKT (1 dari 1)"]);
+    expect(steps.at(-1)).toBe("Menu dan alat: Pengaturan (5 dari 5)");
+  });
+
+  it("with SIX alone, passes over what needs Edunex: Tugas & Ujian, and a course's modules", async () => {
+    screen = await openApp({ guide: true, six: true });
+    await screen.click("Mulai panduan");
+    const steps = named(await walk());
+    expect(steps.some((step) => step.startsWith("Tugas & Ujian"))).toBe(false);
+    expect(steps.filter((step) => step.startsWith("Mata kuliah:"))).toEqual([
+      "Mata kuliah: Mata kuliahmu (1 dari 2)",
+      "Mata kuliah: Isi mata kuliah (2 dari 2)",
+    ]);
     expect(steps.at(-1)).toBe("Menu dan alat: Pengaturan (5 dari 5)");
   });
 
@@ -307,9 +326,14 @@ describe("the tour", () => {
     await screen.click("Mulai panduan");
     for (let step = 0; step < 9; step++) await screen.click("Lanjut");
     expect(cardTitle()).toBe("Target kehadiran");
-    // ⌘5 would open Nilai: the tour keeps Presensi.
+    // ⌘5 would open Nilai, and ⌘[ or the mouse's back button Jadwal: the tour keeps Presensi.
     await press("5", { metaKey: true });
+    await press("[", { metaKey: true });
+    await act(async () => {
+      window.dispatchEvent(new MouseEvent("mouseup", { button: 3 }));
+    });
     expect(h1()).toBe("Presensi");
+    expect(cardTitle()).toBe("Target kehadiran");
 
     await screen.apply({ type: "command", command: "settings" });
     expect(card()).toBeNull();
@@ -319,6 +343,21 @@ describe("the tour", () => {
     expect(cardTitle()).toBe("Target kehadiran");
     expect(lit()).toEqual(["targets"]);
     expect(card()?.contains(document.activeElement)).toBe(true);
+  });
+});
+
+describe("going elsewhere anyway", () => {
+  it("a notification opened over the tour ends it there, with the Student where they went", async () => {
+    screen = await openApp({ guide: true, signedIn: true, six: true });
+    await screen.click("Mulai panduan");
+    for (let step = 0; step < 5; step++) await screen.click("Lanjut");
+    expect(chapter()).toBe("Tugas & Ujian");
+    await screen.apply({ type: "navigate", route: { screen: "course", code: "PL3032", tab: "modules" } });
+    expect(card()).toBeNull();
+    expect(scrim()).toBe(false);
+    expect(lit()).toEqual([]);
+    expect(screen.has(/^Kembali ke /)).toBe(true);
+    expect(screen.engine.snapshot().settings.guideDone).toBe(true);
   });
 });
 
@@ -334,7 +373,19 @@ describe("from Settings › Tentang", () => {
     expect(cardTitle()).toBe("Kuliah sekarang");
     await screen.click("Lewati panduan");
     expect(card()).toBeNull();
-    expect(toasts()).not.toContain("Panduan bisa dibuka lagi dari Pengaturan › Tentang");
+    expect(toasts()).not.toContain("Panduan bisa dibuka nanti dari Pengaturan › Tentang");
+  });
+
+  it("starts it again from its first part, even over a tour still running", async () => {
+    screen = await openApp({ guide: true, signedIn: true, six: true });
+    await screen.click("Mulai panduan");
+    for (let step = 0; step < 9; step++) await screen.click("Lanjut");
+    expect(cardTitle()).toBe("Target kehadiran");
+    await screen.apply({ type: "command", command: "settings" });
+    await screen.click("Mulai: Panduan aplikasi");
+    expect(chapter()).toBe("Beranda");
+    expect(cardTitle()).toBe("Kuliah sekarang");
+    expect(h1()).toBe(HOME);
   });
 });
 
@@ -346,13 +397,15 @@ describe("in English", () => {
     expect(cardSays()).toBe("See what's on each page and how to use it, in about 3 minutes. Skip it any time.");
     await screen.click("Take the tour");
     expect(chapter()).toBe("Home");
-    expect(cardSays()).toBe("1 of 5 · The class on now or next, with its room. When Tandai Hadir opens on SIX, the app tells you and takes you there.");
-    for (let step = 0; step < 18; step++) await screen.click("Next");
+    expect(cardSays()).toBe("Home · 1 of 5 · The class on now or next, with its room. When Tandai Hadir opens on SIX, the app tells you and takes you there.");
+    for (let step = 0; step < 19; step++) await screen.click("Next");
     expect(chapter()).toBe("Menus and tools");
-    expect(cardSays()).toBe("1 of 5 · The number beside a place is what's waiting, amber when something needs you today. Jump between them with Ctrl+1–6.");
+    expect(cardSays()).toBe(
+      "Menus and tools · 1 of 5 · The number beside each page is what's waiting, amber when something needs you today. Jump between them with Ctrl+1–6.",
+    );
     await screen.click("Next");
-    expect(cardSays()).toBe("2 of 5 · Press Ctrl+K to find a course, Task, module or material.");
+    expect(cardSays()).toBe("Menus and tools · 2 of 5 · Press Ctrl+K to find a course, Task, module or material.");
     await screen.click("Skip the tour");
-    expect(toasts()).toContain("Take the tour again from Settings › About");
+    expect(toasts()).toContain("You can take the tour later from Settings › About");
   });
 });
