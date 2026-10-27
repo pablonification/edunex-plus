@@ -6,7 +6,7 @@
 // at any step, comes back from Settings, steps aside for a dialog, holds the
 // window while it runs, and goes before the first-run scan.
 import { act } from "react";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { openApp } from "./harness";
 
 let screen: Awaited<ReturnType<typeof openApp>> | null = null;
@@ -388,6 +388,25 @@ describe("the tour", () => {
     expect(cardTitle()).toBe("Target kehadiran");
     expect(lit()).toEqual(["targets"]);
     expect(card()?.contains(document.activeElement)).toBe(true);
+  });
+});
+
+describe("a fault in the tour", () => {
+  it("ends it, and the window is the Student's again", async () => {
+    screen = await openApp({ guide: true, signedIn: true, six: true });
+    const quiet = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    await screen.click("Mulai panduan");
+    expect(cardTitle()).toBe("Kuliah sekarang");
+    // Materials the tour can't read: it breaks.
+    const good = screen.store.dataset("edunex.materials")!;
+    await screen.apply({ type: "dataset", dataset: { ...good, value: { II4091: "not a list" }, hash: "broken" } });
+    expect(card()).toBeNull();
+    expect(scrim()).toBe(false);
+    expect(screen.engine.snapshot().settings.guideDone).toBe(true);
+    // The place shortcuts work again.
+    await press("2", { metaKey: true });
+    expect(h1()).toBe("Tugas & Ujian");
+    quiet.mockRestore();
   });
 });
 

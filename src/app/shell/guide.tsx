@@ -14,12 +14,13 @@
 import * as PopoverPrimitive from "@radix-ui/react-popover";
 import { type ReactNode, type RefObject, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { introModule, materialKind } from "../../core/course-materials";
+import { introModule, materialAction } from "../../core/course-materials";
+import type { Material } from "../../core/models";
 import type { StringKey } from "../../core/strings";
 import { useTermCourses } from "../courses";
 import { useT } from "../i18n";
 import { type Route, useNav } from "../nav";
-import { canView } from "../pdf";
+import { canView, isPdfName } from "../pdf";
 import { useDataset, useStore } from "../store";
 import { AppMark } from "../ui/brand";
 import { Button } from "../ui/controls";
@@ -101,6 +102,12 @@ const EDGE = 2;
 /** The height the card needs above or below its part, in px: a part taller than the window less this has it inside. */
 const CARD_ROOM = 260;
 
+/** The name of the file a material's row opens in the app ("Lihat"): one kept on Edunex the viewer shows, or null. */
+function viewable(material: Material): string | null {
+  const action = materialAction(material);
+  return action.kind === "download" && canView(action.name) ? action.name : null;
+}
+
 /** The place `route` names is on screen (a course in any tab). */
 const showing = (on: Route, route: Route) => on.screen === route.screen && (route.screen !== "course" || (on.screen === "course" && on.code === route.code));
 
@@ -120,14 +127,16 @@ export function Guide({ start, hidden, onEnd }: { start: "offer" | "tour"; hidde
   /** Which way the Student is going, to pass over a part that isn't there. */
   const [way, setWay] = useState<1 | -1>(1);
   const step = at < 0 ? null : STEPS[at];
-  // The course shown: the term's first with a PDF (else a file that opens in the app, a Word document or slides), at
-  // the module holding it, so what its last step says about files is there to see. Else the term's first course.
+  // The course shown: the term's first with a file its row opens in the app (a PDF first, else a Word document or
+  // slides), at the module holding it, so what its last step says about files is there to see. Else the term's first.
   const pick = useMemo(() => {
     if (!isBuilt({ screen: "course", code: "" }) || !courses?.length) return null;
-    const tries = [(type: string) => materialKind(type) === "pdf", (type: string) => materialKind(type) === "file" && canView(`.${type}`)];
-    for (const fits of tries)
+    for (const pdf of [true, false])
       for (const course of courses) {
-        const file = materials?.[course.code]?.find((material) => fits(material.type));
+        const file = materials?.[course.code]?.find((material) => {
+          const name = viewable(material);
+          return name !== null && (!pdf || isPdfName(name));
+        });
         if (file) return { code: course.code, module: file.moduleId ?? introModule(file.courseId) };
       }
     return { code: courses[0].code, module: undefined };
