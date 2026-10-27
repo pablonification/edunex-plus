@@ -101,7 +101,7 @@ export interface Options {
   updateBlocked?: UpdateBlock;
   /** "Perbarui otomatis" (default: on, as on a first start). */
   autoUpdate?: boolean;
-  /** Problem reports can go to the pretend relay ("Kirim"); the app ships without one (default). */
+  /** Problem reports can go to the pretend relay ("Kirim"); none by default, never the real one. */
   relay?: boolean;
 }
 
@@ -125,7 +125,7 @@ export async function openApp(options: Options = {}) {
     phone: { ntfy: ntfy.send, newTopic: ntfy.newTopic },
     random: () => 0.5,
     log,
-    relay: options.relay ? PRETEND_RELAY : undefined,
+    relay: options.relay ? PRETEND_RELAY : "",
     os: () => "macOS 15.3 (arm64)",
     emit: (event: Event) => {
       autoUpdates?.onEvent(event);

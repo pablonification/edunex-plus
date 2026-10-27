@@ -148,8 +148,8 @@ async function start(): Promise<void> {
     alert: (notice) => void (demo ? undefined : notifier.show(notice)),
     phone: demo ? demoPhone : { ntfy: ntfyClient(ntfySession) },
     log,
-    // The demo's pretend relay, when it asks for one; otherwise the address the app ships with.
-    relay: demo?.relay,
+    // The demo's pretend relay, when it asks for one, and never the real one: its reports are made up.
+    relay: demo ? (demo.relay ?? "") : undefined,
     os: systemName,
   });
   engine = current;

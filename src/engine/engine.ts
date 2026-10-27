@@ -58,7 +58,7 @@ export interface EngineDeps {
   checkForUpdates?: boolean;
   /** The app's own log, which main writes to as well (the window's errors, the updater). One of its own without it. */
   log?: AppLog;
-  /** The maintainer's report relay (ADR 0014); REPORT_RELAY_URL by default, which ships empty: no relay. */
+  /** The maintainer's report relay (ADR 0014); REPORT_RELAY_URL by default. */
   relay?: string;
   /** The computer's system, as a report that sends itself names it ("macOS 15.3 (arm64)"). */
   os?(): string;

@@ -106,11 +106,10 @@ export const MAINTAINER_LINE = { id: "arqilasp12", url: "https://line.me/ti/p/~a
 
 /**
  * The maintainer's report relay (ADR 0014, its server in relay/): "Kirim" posts a problem report
- * there, and so does the app by itself when the Student said so. Empty until the maintainer has it
- * running: then there's no "Kirim", no question and nothing sent by itself. An https address,
- * without a trailing slash.
+ * there, and so does the app by itself when the Student said so. Empty would mean no relay: no
+ * "Kirim", no question and nothing sent by itself. An https address, without a trailing slash.
  */
-export const REPORT_RELAY_URL = "";
+export const REPORT_RELAY_URL = "https://edunex-plus-relay.edunex-plus.workers.dev";
 
 /** Where "Laporkan masalah" opens a new issue on the app's repository, prefilled through its issue forms. */
 export const NEW_ISSUE_URL = "https://github.com/pablonification/edunex-plus/issues/new";
