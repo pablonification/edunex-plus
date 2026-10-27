@@ -51,7 +51,7 @@ async function readAgain(h: Harness) {
 
 /** SIX changes its fees page (or puts it back), and the app reads it. */
 async function feesChange(h: Harness, back = false) {
-  const [from, to] = ["<th class='text-right'>Pembayaran (Rp)</th>", "<th>Dibayar</th>"];
+  const [from, to] = ["<th class='text-left'>Semester</th>", "<th>Periode</th>"];
   h.world.six.changeLayout(BILLS, back ? to : from, back ? from : to);
   await readAgain(h);
 }
@@ -176,7 +176,7 @@ describe("sending a report by itself", () => {
   it("sends a problem kept while another is still on its way", async () => {
     const h = await signedIn();
     const release = h.world.relay.hold();
-    h.world.six.changeLayout(BILLS, "<th class='text-right'>Pembayaran (Rp)</th>", "<th>Dibayar</th>");
+    h.world.six.changeLayout(BILLS, "<th class='text-left'>Semester</th>", "<th>Periode</th>");
     await until(h, h.engine.refresh("six"));
     await h.wait(2_000);
     h.world.six.changeLayout(STATUS, "<td>PL3002</td>", "<td>PL-3002</td>");
@@ -189,7 +189,7 @@ describe("sending a report by itself", () => {
   it("signing out of everything while one is on its way leaves nothing of it for the next Student", async () => {
     const h = await signedIn();
     const release = h.world.relay.hold();
-    h.world.six.changeLayout(BILLS, "<th class='text-right'>Pembayaran (Rp)</th>", "<th>Dibayar</th>");
+    h.world.six.changeLayout(BILLS, "<th class='text-left'>Semester</th>", "<th>Periode</th>");
     await until(h, h.engine.refresh("six"));
     await h.wait(2_000);
     await h.engine.signOut();

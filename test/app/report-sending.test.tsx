@@ -25,7 +25,7 @@ async function type(box: HTMLTextAreaElement, text: string) {
 
 /** SIX changes its fees page, and the app reads it. */
 async function feesChange(s: NonNullable<typeof screen>) {
-  s.world.six.changeLayout(BILLS, "<th class='text-right'>Pembayaran (Rp)</th>", "<th>Dibayar</th>");
+  s.world.six.changeLayout(BILLS, "<th class='text-left'>Semester</th>", "<th>Periode</th>");
   await s.engineDoes(() => s.engine.refresh("six"));
   await s.engineDoes(() => s.engine.reports.idle());
 }
