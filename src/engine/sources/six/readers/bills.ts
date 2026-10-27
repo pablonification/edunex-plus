@@ -34,6 +34,9 @@ const COLUMNS = {
   due: { labels: ["Batas Pembayaran", "Payment Due Date", "Due Date", "Due"] },
 } satisfies Record<string, Column>;
 type Table = Columns<keyof typeof COLUMNS>;
+// The development fees some intakes pay once on entry: SPI (Sumbangan Pengembangan Institusi)
+// and IPI (Iuran Pengembangan Institusi).
+const ONE_OFF = new Set(["SPI", "IPI"]);
 
 /** Oldest term first. */
 export function readBills(html: string, skipped?: Skipped): Bill[] {
@@ -56,8 +59,8 @@ export function readBills(html: string, skipped?: Skipped): Bill[] {
       year = Number(years[1]);
     } else if (cells.length === 1) {
       // A note across the table: nothing to read.
-    } else if (textOf(table.cell(cells, "term") ?? cells[0]!) === "SPI") {
-      // SPI, the development fee some intakes pay once on entry: not a term's UKT, so not a bill here.
+    } else if (ONE_OFF.has(textOf(table.cell(cells, "term") ?? cells[0]!))) {
+      // A development fee paid once on entry: not a term's UKT, so not a bill here.
     } else {
       if (year === null) changed(page, "a bill row is out of place");
       const of = year;

@@ -1049,6 +1049,24 @@ describe("bills", () => {
     expect(readBills(spi)).toEqual(readBills(page));
   });
 
+  it("an IPI row (the one-off development fee some intakes pay instead of SPI) is left out, and the terms are read as before", () => {
+    const page = sixPage(BILLS);
+    const ipi = page.replace(
+      /(Tahun 2023 \/ 2024\s*<\/th><\/tr>)/,
+      `$1<tr><td><strong>IPI</strong></td><td class="text-right">
+                                            30.456.000
+                    </td><td class="text-right">
+                            30.456.000
+                    </td><td class="text-left">
+                                                20 Agu 2023
+                                    </td><td class="text-center"><a href="https://goitb.id/TATACARA-PEMBAYARAN-MAHASISWA"><strong><i class="fa fa-info-circle fa-fw fa-lg" aria-hidden="true"></i></strong></a></td></tr>`,
+    );
+    expect(ipi).not.toBe(page);
+    const read = skipping((skipped) => readBills(ipi, skipped));
+    expect(read.value).toEqual(readBills(page));
+    expect(read.skipped).toEqual([]);
+  });
+
   it("a bill whose term it can't read is left out and kept with what it shows; the other bills read", () => {
     const page = sixPage(BILLS);
     const all = readBills(page);
