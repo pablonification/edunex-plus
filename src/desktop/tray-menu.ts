@@ -273,6 +273,7 @@ function needLine(need: NeedDraft, f: Format, t: Translate): { label: string; de
     case "task": {
       const { task } = need;
       if (need.reason === "edited") return line(task.title, course, t("tray.edited"));
+      if (need.reason === "returned") return line(task.title, course, t("home.need.task.returned"));
       if (need.reason === "overdue" || task.dueAt === null) return line(task.title, course, t("home.need.task.overdue"));
       return line(task.title, course, t("home.need.task.due", { when: f.dueLabel(task.dueAt) }));
     }

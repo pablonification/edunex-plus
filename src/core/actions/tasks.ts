@@ -3,7 +3,7 @@
 // or dropped it (by content): it never names a path on the computer. Every
 // write runs only because the Student clicked.
 import { z } from "zod";
-import { Task, TaskFile } from "../models";
+import { Task, TaskFile, TaskThread } from "../models";
 
 /** The biggest file the app hands in: 100 MB, as Edunex's uploader says. */
 export const MAX_UPLOAD_BYTES = 100 * 1024 * 1024;
@@ -51,6 +51,13 @@ export type HandInOutcome = z.infer<typeof HandInOutcome>;
 const HandInResult = z.object({ outcome: HandInOutcome, task: Task.nullable() });
 export type HandInResult = z.infer<typeof HandInResult>;
 
+/** A comment the Student writes under their answer to a Task (HTML from the app's editor). */
+export const TaskComment = z.object({ taskId: z.number().int().positive(), text: z.string().min(1).max(20_000) });
+export type TaskComment = z.infer<typeof TaskComment>;
+/** "sent": the thread, read back, holds it; "unconfirmed": Edunex took it but the thread doesn't show it yet; "gone": the Task is. */
+const TaskCommentResult = z.object({ outcome: z.enum(["sent", "unconfirmed", "gone"]), thread: TaskThread.nullable() });
+export type TaskCommentResult = z.infer<typeof TaskCommentResult>;
+
 /** A file's content. Checked by kind rather than by constructor: the bytes may come from another JavaScript context. */
 export const Bytes = z.custom<Uint8Array>((value) => Object.prototype.toString.call(value) === "[object Uint8Array]", "Not file content");
 
@@ -84,4 +91,6 @@ export const tasksActions = {
   "tasks.saveDraft": { input: HandIn, output: HandInResult },
   /** Hands the answer in; "submitted" only once Edunex confirms it when the Task is read back. */
   "tasks.submit": { input: HandIn, output: HandInResult },
+  /** Writes in the thread under the Student's answer, as the website's comment box does; "sent" once the thread, read back, holds it. */
+  "tasks.comment": { input: TaskComment, output: TaskCommentResult },
 } as const;

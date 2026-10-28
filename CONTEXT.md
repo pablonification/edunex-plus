@@ -56,6 +56,18 @@ _Avoid_: attendance (use Presence when referring to the Edunex feature)
 An assignment in Edunex's API (course/tasks); distinct from an exam.
 _Avoid_: assignment in code identifiers (collides with programming terms); use Task
 
+**Handed back**:
+"Dikembalikan": a Task the lecturer gave back to the Student to work on again, Edunex's "Revision Request". The answer is unsent again (still holding its text and files) and can be handed in again until the Task closes. Edunex keeps the first hand-in's time and the lecturer's check on it, which a draft never has. Called `returned` (a Task's status) and `handedBack` (on its answer) in code.
+_Avoid_: rejected, revision (in UI copy), resubmission request
+
+**Catatan dosen**:
+The lecturer's note on the Student's answer (Edunex's `comment` on it), written with a grade or when handing a Task back. The Student never writes one. Called `note` in code.
+_Avoid_: feedback, a bare "Catatan" for the Student's own notes (those are "Catatanku")
+
+**Komentar**:
+The thread under the Student's answer to a Task, where the Student and their lecturers write to each other (Edunex's "Comment / Feedback"). A lecturer's feedback on a hand-back is often a message here. Called `thread` in code.
+_Avoid_: discussion, chat, Story (that's a Problem report's)
+
 **To Do**:
 Edunex's aggregated list of pending items (tasks, exams) for the logged-in account.
 _Avoid_: todo list in UI copy without the Edunex meaning

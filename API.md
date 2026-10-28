@@ -21,14 +21,15 @@ responses in `test/fixtures/edunex/` (file names mirror the request path and que
    the real ITB/Microsoft pages in a window the app owns; the password and 2FA code only ever
    reach Microsoft's page and never touch Edunex Plus.
 3. **Read-mostly.** Every background call is a `GET`. The only writes are handing in a Task
-   (file upload, draft save, submit) — see [The only writes](#the-only-writes).
+   (file upload, draft save, submit) and a comment under the Student's own answer — see
+   [The only writes](#the-only-writes).
 4. **Polite, jittered polling with back-off.** One scheduler in the main process; each feed has
    its own cadence and random jitter (table below), so the app never calls on the dot. The
    fastest regular feed runs every 2–3 minutes. A failing feed backs off on its own (30 s, 1,
    2, 4, 8, then 15 min at most) and never slows the others. Presence alerts are clock math on
    the windows already read, never extra calls. The screens never call Edunex.
 5. **Explicit-only writes.** A write fires only on a deliberate click (attach a file, Save
-   draft, Submit). Nothing in a feed or any background path ever writes.
+   draft, Submit, Kirim on a comment). Nothing in a feed or any background path ever writes.
 6. **On-device-only storage.** The access token is kept only through the OS keychain (Electron
    safeStorage); where there is no real secure storage it lives in memory until the app quits.
    Datasets and the alert history stay on this computer. What leaves the device is only what
@@ -88,8 +89,9 @@ responses in `test/fixtures/edunex/` (file names mirror the request path and que
 | `edunex.materials` (also the course outline) | 1 h ± 6 min | `/course/courses/{id}`, `/gradebook` (only once published), `/course/contents/` per course and per module |
 | `edunex.announcements` | 1 h ± 6 min | `/course/announcements/course/{id}` |
 | `edunex.exams` | 3 h ± 18 min | `/exam/exams` per course |
+| `edunex.taskThreads` | 15 min ± 2 min, and after each `edunex.tasks` run; not on a manual refresh | `/course/comments` per answer, only where it's due: at once once the answer changed (handed in, handed back, reviewed), hourly while its Task takes answers or something happened to it in the last 3 weeks, otherwise never |
 
-Source: `feeds.ts`, `notifications.ts`, `tasks.ts`, `course-page.ts`; scheduling in
+Source: `feeds.ts`, `notifications.ts`, `tasks.ts`, `task-threads.ts`, `course-page.ts`; scheduling in
 `src/engine/sync/scheduler.ts`. Feeds start 0.5 s apart; sign-in and the manual refresh run
 them at once (a feed already running is not started twice). Within a feed, calls go one after
 another, except a course's `/course/contents/` calls, which go four at a time, as the Edunex
@@ -105,7 +107,7 @@ or mistyped field the app relies on is a vendor change (see [Errors](#errors)).
 | `/login/me` | none | `id` (user id), `name`, `code` (the NIM) |
 | `/notifications/{userId}` | none | `data.notifications[]`: `type`, `title`, `objectId`, `date`, `message` |
 | `/course/presences/list` | none | `course_id`, `course_code`, `courses_name`, `class_id`, `class_name`, `semester`, `year` |
-| `/course/tasks` | `filter[course_id][is]={courseId}`, `page[limit]=0` | `meta.total`; per Task `id`, `taskable_type`, `taskable_id`, `course_name`, `type`, `tasks_type`, `name`, `description`, `files[{name,file}]`, `start_at`, `end_at`, `created_at`, `updated_at`, `open_status`, `file_required`, `is_lateable`, `domain`, `show_score`, `answers[]`: `id`, `answer`, `files`, `score`, `is_sent`, `sent_at`, `created_at`, `updated_at`, `verified_at` |
+| `/course/tasks` | `filter[course_id][is]={courseId}`, `page[limit]=0` | `meta.total`; per Task `id`, `taskable_type`, `taskable_id`, `course_name`, `type`, `tasks_type`, `name`, `description`, `files[{name,file}]`, `start_at`, `end_at`, `created_at`, `updated_at`, `open_status`, `file_required`, `is_lateable`, `domain`, `show_score`, `answers[]`: `id`, `answer`, `files`, `score`, `is_sent`, `sent_at`, `created_at`, `updated_at`, `verified_at`, `comment` |
 | `/course/courses/{courseId}` | `include=modules,modules.activities,lecturer,lecturer.user,assistant,class` | `lecturer`, `credit`, `gradebook_publish`; `included[]` of type `modules`: `id`, `course_id`, `index`, `name`, `is_active`, `created_at` |
 | `/gradebook` | `course_id={courseId}`, `class_id={classId}` | `students[]`: `code`, `total`, `index` |
 | `/course/contents/` | `filter[contentable_id][is]={id}`, `filter[contentable_type][is]=App\Models\Courses` or `App\Models\Modules`, `sort=index`, `page[limit]=0` | `id`, `contentable_type`, `contentable_id`, `name`, `type`, `content`, `size`, `created_at`, `updated_at` |
@@ -113,6 +115,7 @@ or mistyped field the app relies on is a vendor change (see [Errors](#errors)).
 | `/course/announcements/course/{courseId}` | none | `id`, `announcement`, `created_at`, `creator.name` |
 | `/exam/exams` | `filter[course_id][is]={courseId}`, `page[limit]=0` | `data[].id`; from `attributes`, if present: `name` or `title`, `start_at`, `end_at` |
 | `/course/modules/{moduleId}` | `include=` (empty, as the website sends it) | `data.attributes.name`; only right before an upload |
+| `/course/comments` | `include=user`, `filter[commentable_type][is]=task_answer`, `filter[commentable_id][is]={answerId}`, `sort=-created_at`, `page[limit]=0`, `page[offset]=0` | `id`; `comment`, `created_at`, `files[{name or file_name, file}]`, `user{name, username, level}` |
 
 Notes:
 
@@ -125,6 +128,22 @@ Notes:
 - **`/course/tasks`**: `page[limit]=0` means "all". If fewer Tasks arrive than `meta.total`
   says, that's a vendor change, never a silently short list. One course failing keeps that
   course's last known Tasks and reports the error; going offline or a `401` stops the whole run.
+- **An answer handed back.** The lecturer's "Revision Request" (`setAnswerChangeRequest` in the
+  website's `js/app.79bf84f4.js`, the button in `js/assignment/detail-lecturer.c85d7075.js`) sends
+  `PATCH /course/task/answers/{id}` with `{ is_sent: 0, comment }`. Recorded on a real one
+  (`course-tasks.include-classes-answers.json`, answer 2798141): `is_sent` 0, `sent_at` still the
+  first hand-in's, `verified_at` and `updated_at` the moment it was handed back, `sent_by` the
+  lecturer's user id, `comment` left as it was (null there). So the app reads an unsent answer with a
+  `verified_at` as handed back ("Dikembalikan"): a draft the Student only saved has none. `comment` is
+  the lecturer's note on the answer ("Catatan dosen"): grading ("Save Result", `updateScore`) writes it
+  too, and nothing on the Student's side of the website does.
+- **`/course/comments`** is the thread under an answer, the website's "Comment / Feedback" box
+  (`ContentAssignmentReply`, every message at once with `page[limit]=0`, newest first). A lecturer's
+  feedback is often here, not in `comment`: on the recorded hand-back it was a message written three
+  seconds before. A message doesn't change the answer, and no notification type is known for one, so
+  the thread has its own feed. `level` `STUDENT` is the Student (their `username` is the NIM) or a
+  groupmate; anything else is staff. Files on a message (the lecturer's annotated-PDF tool posts one)
+  were never recorded with a message; the website shows `name`, else the link's last part.
 - **`/course/presences`** is paged 10 at a time (the website's page size). Edunex's "next" link
   never ends on its own, so paging stops at `meta.total` or an empty page. `presence_start`/
   `presence_end` are the real window (falling back to `start_at`/`end_at`); `presentable` and
@@ -200,9 +219,10 @@ except Presence `start_at`/`end_at`, which must be readable).
 
 ## The only writes
 
-Task Answers (the "saved ≠ submitted" surface) and their files, and nothing else. All in
-`src/engine/sources/edunex/hand-in.ts`. Each runs only from an explicit click, one at a time
-per Task (a second click waits, then re-reads).
+Task Answers (the "saved ≠ submitted" surface) and their files, and a comment under the Student's
+own answer ([ADR 0016](docs/adr/0016-the-student-comments-under-their-answer.md)), and nothing
+else. All in `src/engine/sources/edunex/hand-in.ts`. Each runs only from an explicit click, one at
+a time per Task (a second click waits, then re-reads).
 
 **From the website's code, not a live recording.** The recorder blocks writes, so these
 requests copy what Edunex's own website sends, read from its public JavaScript (fetched
@@ -267,8 +287,23 @@ other than `PERSONAL`) is handed in through the website's group pages
 5. Read back. "Submitted" only when `is_sent` is 1; otherwise "unconfirmed". There is no
    resubmit.
 
+**Comment** (Kirim under the answer, the website's "Add Comment", `createAnswerComment` in
+`js/app.79bf84f4.js`):
+
+1. Read the Task back. Stop if it's gone, a group Task, or has no answer yet (the thread hangs off
+   the answer). Edunex takes a comment whatever else the Task's state is (handed in, handed back,
+   closed), as the website shows its box.
+2. `POST /course/comments` with
+   `{ "data": { "attributes": { "comment", "commentable_id": answerId, "commentable_type": "task_answer" } } }`.
+   `comment` is the text, cleaned as an answer's is; one without words is refused before anything
+   is sent. No `files` (the website's box for a Student has none) and no reply-to (its form never
+   sends one).
+3. Read the thread back. "Sent" only when it holds the message as the Student's; otherwise
+   "unconfirmed".
+
 Writes with a body send `Content-Type: application/json`. Replies are not parsed beyond the
-status, except the upload links: every write is confirmed by reading the Task back. There are no
+status, except the upload links: every write is confirmed by reading the Task (a comment, its
+thread) back. There are no
 other `POST`, `PATCH`, `PUT` or `DELETE` calls to Edunex.
 
 What's confirmed live: the submit body (v1, issue #12) and creating an answer (v1). Everything
@@ -296,8 +331,8 @@ one success resets it. Edunex has no shared pace line (SIX and ITB's catalog do;
 
 ## Unconfirmed / not yet recorded
 
-- Every hand-in request is taken from the website's code, not seen live (see above); the
-  replies to the writes other than the upload links were never seen.
+- Every hand-in request, and the comment, is taken from the website's code, not seen live (see
+  above); the replies to the writes other than the upload links were never seen.
 - Whether the API itself refuses an answer with no text (the website never sends one).
 - Whether a second create-answer call for the same Task makes a duplicate (the app avoids it
   either way by re-reading first).
@@ -307,6 +342,9 @@ one success resets it. Edunex has no shared pace line (SIX and ITB's catalog do;
   (a month-old token was still valid).
 - Announcement times: only one was recorded (naive WIB); the reader accepts an offset too.
 - Edunex's rate limits: no `429` has been seen.
+- Files on a message in an answer's thread (`/course/comments`): every recorded message had none.
+- Whether a lecturer's message or hand-back sends the Student a notification of its own: none was
+  seen, so the app reads the thread itself.
 
 ## Other sites
 

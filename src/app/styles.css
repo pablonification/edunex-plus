@@ -78,6 +78,9 @@
   --status-closed-fg: #3f3f46;
   --status-review-bg: #ebe7fd;
   --status-review-fg: #5a33c8;
+  /* Handed back: the draft's tone (it's the Student's to work on again), its own glyph and word */
+  --status-returned-bg: var(--status-draft-bg);
+  --status-returned-fg: var(--status-draft-fg);
 
   /* Sources */
   --source-itb-bg: #f3ecfd;

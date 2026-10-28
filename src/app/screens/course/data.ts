@@ -58,5 +58,6 @@ export function useCoursePage(code: string): CoursePage | null | undefined {
   }, [code, courses, outline, materials, presence, announcements, exams, tasks, six, sixMonths, sixUnread]);
 }
 
-/** A Task still to do: not handed in, and not past its deadline. */
-export const isOpenTask = (task: Task, now: number) => (task.status === "not_started" || task.status === "draft") && (task.dueAt === null || task.dueAt > now);
+/** A Task still to do: not handed in (or handed back), and not past its deadline. */
+export const isOpenTask = (task: Task, now: number) =>
+  (task.status === "not_started" || task.status === "draft" || task.status === "returned") && (task.dueAt === null || task.dueAt > now);

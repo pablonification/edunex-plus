@@ -54,6 +54,23 @@ describe("what brings a snoozed item back", () => {
     expect(snoozeKey(urgent).facts).not.toBe(moved.facts);
   });
 
+  it("a Task handed back: on Beranda now, and back again when it's handed back another time", async () => {
+    const h = await startHome({ now: MONDAY });
+    h.world.edunex.handBack(117001);
+    await h.refresh();
+    const first = need(needsYou(h.home()), "task:117001");
+    expect(first).toMatchObject({ band: "now", reason: "returned" });
+    // Handed in again, then back once more, later: news, whatever was put off before.
+    h.world.edunex.submitOnWebsite(117001);
+    await h.refresh();
+    await h.until("2026-10-13T08:00:00+07:00");
+    h.world.edunex.handBack(117001);
+    await h.refresh();
+    const again = need(needsYou(h.home()), "task:117001");
+    expect(again.id).toBe(first.id);
+    expect(snoozeKey(again).facts).not.toBe(snoozeKey(first).facts);
+  });
+
   it("a Task whose Presence window is optional (its course counts in SIX): its own item, held through a refresh, back when the deadline moves", async () => {
     // PL3002 counts in SIX. Its lecturer ties Thursday's window to a Task: the Task keeps its own item, not the window's.
     const h = await startHome({ now: "2026-10-12T20:00:00+07:00" });

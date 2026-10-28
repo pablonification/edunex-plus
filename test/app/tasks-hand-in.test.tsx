@@ -73,7 +73,7 @@ describe("handing in", () => {
     expect(s.world.edunex.writes.filter((w) => w.method === "PATCH").at(-1)?.body).toEqual({ is_sent: 1 });
     expect(s.world.edunex.exportsCleared).toEqual([117003]);
     expect(card()).toContain("TerkumpulEdunex mencatatnya Hari ini, 08:12");
-    expect(card()).toContain("Sudah diserahkan. Pengumpulan bersifat final.");
+    expect(card()).toContain("Sudah diserahkan. Hanya dosen yang bisa mengembalikannya.");
     expect(s.has(ATTACH)).toBe(false);
     expect(s.world.edunex.task(117003).attributes.answers).toHaveLength(1);
   });

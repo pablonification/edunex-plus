@@ -11,7 +11,7 @@ import { attendanceWindow, type CountedIn, presenceOptional } from "../../core/a
 import { introModule } from "../../core/course-materials";
 import { taskDoneKey, taskPutAway } from "../../core/done";
 import type { Exam } from "../../core/exams";
-import type { DoneHow, Task, TaskChange, TaskFile, TaskModule, TaskStatus } from "../../core/models";
+import type { DoneHow, Task, TaskChange, TaskFile, TaskMessage, TaskModule, TaskStatus } from "../../core/models";
 import type { StringKey } from "../../core/strings";
 import { type EditView, editView, titleOnly } from "../../core/task-edits";
 import {
@@ -19,7 +19,9 @@ import {
   attendanceSession,
   edunexTaskUrl,
   type HandInCheck,
+  handedBackAt,
   handInChecks,
+  isLate,
   isOpenStatus,
   matchesNaming,
   moduleName,
@@ -40,6 +42,7 @@ import { type TermCourse, useCourseColor, useTermCourses } from "../courses";
 import { useOpenExternal } from "../hooks";
 import { type Format, type Translate, useFormat, useNow, useT } from "../i18n";
 import { LecturerHtml } from "../lecturer-html";
+import { initials } from "../names";
 import { type Route, useNav } from "../nav";
 import { OpenFile, useDownloadedToast, useLocalCopy } from "../open-file";
 import { canView, isPdfName, useAnswerAttach, usePdfViewer } from "../pdf";
@@ -430,7 +433,7 @@ function NoTasksYet() {
 }
 
 /** Statuses worth a chip in a list: the rest are said by the segment and the date. */
-const LOUD: readonly TaskStatus[] = ["draft", "overdue", "in_review"];
+const LOUD: readonly TaskStatus[] = ["draft", "overdue", "in_review", "returned"];
 
 /** Tasks as rows, each opening its page; on a course page the course itself goes without saying. */
 export function TaskRows({ tasks, meta = "course", label }: { tasks: readonly Task[]; meta?: "course" | "module" | "none"; label?: string }) {
@@ -527,6 +530,7 @@ export function DueWhen({ at, late, under }: { at: number; late: boolean; under?
 export function TaskDate({ task, status }: Row) {
   const t = useT();
   const f = useFormat();
+  const now = useNow();
   const sentAt = submittedAt(task);
   if (sentAt !== null)
     return (
@@ -538,7 +542,7 @@ export function TaskDate({ task, status }: Row) {
       </span>
     );
   if (task.dueAt === null) return <span className="w-[136px] text-right text-small whitespace-nowrap text-faint">{t("task.noDeadline")}</span>;
-  return <DueWhen at={task.dueAt} late={status === "overdue" || status === "closed"} under={status === "closed" ? t("task.notHandedIn") : undefined} />;
+  return <DueWhen at={task.dueAt} late={isLate(task, now) || status === "closed"} under={status === "closed" ? t("task.notHandedIn") : undefined} />;
 }
 
 /** "● DK4073": the course's code with its dot. */
@@ -666,7 +670,7 @@ function TaskPage({ task }: { task: Task }) {
   const color = useCourseColor()(task.courseCode);
   const exam = useExams()?.find((e) => e.tasks.some((item) => item.id === task.id));
   const status = taskStatus(task, now);
-  const late = status === "overdue" || status === "closed";
+  const late = isLate(task, now) || status === "closed";
   const soon = !late && isOpenStatus(status) && task.dueAt !== null && task.dueAt - now < DAY;
   const where = moduleLabel(t, task.module);
   // The way up, part by part: the course opens as the sidebar opens it; its module opens on that module, the way a search for it does.
@@ -745,6 +749,8 @@ function TaskPage({ task }: { task: Task }) {
 
         <Notes task={task} />
         <EditNotice task={task} onSee={(at) => setReveal((was) => ({ at, asked: (was?.asked ?? 0) + 1 }))} />
+        {/* Handed back: what the lecturer said comes first. Otherwise it follows the Task, as on Edunex. */}
+        {status === "returned" && <Feedback task={task} />}
 
         <section className="mt-8" aria-labelledby="task-instructions">
           <h2 id="task-instructions" className="mb-2.5 text-title font-semibold">
@@ -771,6 +777,7 @@ function TaskPage({ task }: { task: Task }) {
             </ul>
           </section>
         )}
+        {status !== "returned" && <Feedback task={task} />}
       </article>
 
       <aside className="space-y-4 self-start min-[1100px]:sticky min-[1100px]:top-6">
@@ -867,6 +874,148 @@ function Notes({ task }: { task: Task }) {
   );
 }
 
+/**
+ * What the lecturer wrote about the Student's answer, as Edunex's own Task page shows it under the answer: the note on
+ * it (written with a grade, or when handing it back), then the thread, oldest message first, where the Student writes
+ * back. Any personal Task with an answer has a thread (a group's is the group's, on Edunex).
+ */
+function Feedback({ task }: { task: Task }) {
+  const t = useT();
+  const answerId = task.answer?.id;
+  const thread = useDataset("edunex.taskThreads")?.find((kept) => kept.answerId === answerId);
+  const note = task.answer?.note ?? null;
+  if (answerId === undefined || task.group) return null;
+  const messages = thread?.messages ?? [];
+  return (
+    <section className="mt-8" aria-labelledby="task-thread">
+      {note && (
+        <div className="mb-6 rounded-xl border border-edge bg-surface px-4 py-3.5 shadow-card">
+          <h2 className="mb-1.5 flex items-center gap-2 text-body font-semibold">
+            <Icons.StickyNote className="size-4 shrink-0 text-muted" />
+            {t("task.note.title")}
+          </h2>
+          <LecturerHtml html={note} className="text-body leading-relaxed" />
+        </div>
+      )}
+      <h2 id="task-thread" className="mb-2.5 flex items-baseline gap-2 text-title font-semibold">
+        {t("task.thread.title")}
+        {messages.length > 0 && <span className="text-body font-normal text-muted tabular-nums">{messages.length}</span>}
+      </h2>
+      <div className="overflow-hidden rounded-xl border border-edge bg-surface shadow-card">
+        {messages.length > 0 ? (
+          <ol className="divide-y divide-line">
+            {messages.map((message) => (
+              <Message key={message.id} message={message} taskId={task.id} />
+            ))}
+          </ol>
+        ) : (
+          <p className="px-4 py-3.5 text-body text-muted">{t("task.thread.empty")}</p>
+        )}
+        <CommentBox taskId={task.id} />
+      </div>
+    </section>
+  );
+}
+
+/** One message: who wrote it (a lecturer marked so, the Student as "Kamu"), when, what, and any file it carries. */
+function Message({ message, taskId }: { message: TaskMessage; taskId: number }) {
+  const t = useT();
+  const f = useFormat();
+  const account = useDataset("edunex.account");
+  const mine = message.from === "me";
+  const name = mine ? t("task.thread.me") : message.name;
+  return (
+    <li className="flex gap-3 px-4 py-3.5">
+      <span
+        aria-hidden
+        className={cx(
+          "mt-0.5 grid size-8 shrink-0 place-items-center rounded-full text-micro font-bold",
+          mine ? "bg-info-bg text-info-fg" : "bg-fill text-muted",
+        )}
+      >
+        {initials(mine && account ? account.name : message.name) || "?"}
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-small">
+          <span className="font-semibold">{name}</span>
+          {message.from === "lecturer" && <Tag tone="info">{t("task.thread.lecturer")}</Tag>}
+          {message.at !== null && <span className="text-faint tabular-nums">{f.dueLabel(message.at)}</span>}
+        </p>
+        <LecturerHtml html={message.html} className="mt-1 text-body leading-relaxed" />
+        {message.files.length > 0 && (
+          <ul className="mt-2.5 grid gap-2 sm:grid-cols-2">
+            {message.files.map((file) => (
+              <li key={file.url}>
+                <LecturerFile file={file} taskId={taskId} />
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </li>
+  );
+}
+
+/** Where the Student writes back, as Edunex's own comment box under the answer: formatted text, sent with Kirim or ⌘↵. */
+function CommentBox({ taskId }: { taskId: number }) {
+  const t = useT();
+  const bridge = useBridge();
+  const edunex = useStatus("edunex");
+  const box = useRef<RichEditorHandle>(null);
+  const [text, setText] = useState("");
+  const [sending, setSending] = useState(false);
+  const hintId = useId();
+  const reason =
+    edunex.state === "offline" ? t("task.thread.offline") : edunex.state === "expired" || edunex.state === "signed-out" ? t("task.thread.signIn") : null;
+  const ready = plainText(text).trim() !== "" && !sending && reason === null;
+  const send = async () => {
+    if (!ready) return;
+    setSending(true);
+    try {
+      const result = await bridge.invoke("tasks.comment", { taskId, text });
+      if (result.outcome === "gone") return toast(t("handIn.gone"), "danger");
+      box.current?.reset("");
+      setText("");
+      if (result.outcome === "unconfirmed") toast(t("task.thread.unconfirmed"));
+    } catch (error) {
+      toast(t(errorKey(error)), "danger");
+    } finally {
+      setSending(false);
+    }
+  };
+  return (
+    <div className="border-t border-line bg-canvas/40 p-3">
+      <Suspense fallback={<Skeleton className="h-[106px] w-full rounded-lg" />}>
+        <RichEditor
+          ref={box}
+          compact
+          initial=""
+          onChange={setText}
+          onSubmit={() => void send()}
+          label={t("task.thread.label")}
+          placeholder={t("task.thread.placeholder")}
+          describedBy={reason ? hintId : undefined}
+        />
+      </Suspense>
+      <div className="mt-2 flex items-center justify-end gap-3">
+        {reason && (
+          <span id={hintId} className="mr-auto text-caption text-muted">
+            {reason}
+          </span>
+        )}
+        <Button
+          size="sm"
+          disabled={!ready}
+          icon={sending ? <Icons.Loader className="size-3.5 animate-spin" /> : <Icons.Send className="size-3.5" />}
+          onClick={() => void send()}
+        >
+          {t("task.thread.send")}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 /** Downloads a file from Edunex through the browser's download manager, into Downloads; `done`: it's there now. */
 function useDownload(done?: () => Promise<void>) {
   const bridge = useBridge();
@@ -942,6 +1091,7 @@ const GLYPH_TONE: Record<TaskStatus, string> = {
   overdue: "text-(--status-overdue-fg)",
   closed: "text-(--status-closed-fg)",
   in_review: "text-(--status-review-fg)",
+  returned: "text-(--status-returned-fg)",
 };
 
 /** A file the Student attached in this visit, before it's in Edunex's answer. */
@@ -1216,14 +1366,16 @@ function HandIn({ task, status }: Row) {
         ? draftAt !== null
           ? factsLabel(t("handIn.draftSaved", { when: f.dueLabel(draftAt) }), t("handIn.draftStatus").toLowerCase())
           : t("handIn.draftStatus")
-        : status === "overdue"
-          ? t("handIn.lateStill")
-          : status === "closed"
-            ? t("handIn.closedStatus")
-            : sentAt !== null
-              ? t("handIn.recorded", { when: f.dueLabel(sentAt) })
-              : "";
-  const submitLabel = status === "overdue" ? t("handIn.submitLate") : t("handIn.submit");
+        : status === "returned"
+          ? factsLabel(t("handIn.returnedStatus"), f.dueLabel(handedBackAt(task) ?? now))
+          : status === "overdue"
+            ? t("handIn.lateStill")
+            : status === "closed"
+              ? t("handIn.closedStatus")
+              : sentAt !== null
+                ? t("handIn.recorded", { when: f.dueLabel(sentAt) })
+                : "";
+  const submitLabel = status === "returned" ? t("handIn.submitAgain") : status === "overdue" ? t("handIn.submitLate") : t("handIn.submit");
   const inFlight = attached.filter((item) => item.state !== "failed");
   const done = inFlight.filter((item) => item.state === "uploaded").length;
 
@@ -1487,6 +1639,12 @@ function HandIn({ task, status }: Row) {
                 {why.fix && <span className="-my-0.5 shrink-0">{why.fix}</span>}
               </div>
             )}
+            {status === "returned" && (
+              <p className="flex items-start gap-2 text-small text-warning-fg">
+                <Icons.HandedBack className="mt-0.5 size-3.5 shrink-0" weight="bold" />
+                {t("handIn.returned")}
+              </p>
+            )}
             <p className="flex items-start gap-2 text-caption text-muted">
               <Icons.Lock className="mt-px size-3.5 shrink-0" />
               {t("handIn.explainer")}
@@ -1509,7 +1667,7 @@ function HandIn({ task, status }: Row) {
         checks={guard.checks}
         waitForWindow={guard.waitForWindow}
         canSave={changed}
-        submitLabel={status === "overdue" ? submitLabel : t("handIn.submitNow")}
+        submitLabel={status === "overdue" || status === "returned" ? submitLabel : t("handIn.submitNow")}
         busy={busy}
         onSubmit={() => void run("submit")}
         onSaveDraft={() => (changed ? void run("draft") : setConfirming(false))}
@@ -2004,11 +2162,13 @@ function History({ task, reveal }: { task: Task; reveal: { at: number; asked: nu
                       "absolute top-1 -left-[21px] size-[9px] rounded-full ring-[3px] ring-canvas",
                       step.kind === "submitted"
                         ? "bg-live"
-                        : afterSubmit
+                        : step.kind === "handedBack"
                           ? "bg-meter-warning"
-                          : step.at > now && step.kind !== "draft"
-                            ? "border border-faint bg-canvas"
-                            : "bg-faint/60",
+                          : afterSubmit
+                            ? "bg-meter-warning"
+                            : step.at > now && step.kind !== "draft"
+                              ? "border border-faint bg-canvas"
+                              : "bg-faint/60",
                     )}
                   />
                   {known ? (

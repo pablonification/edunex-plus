@@ -22,13 +22,21 @@ export function taskStatus(task: StatusFacts, now: number): TaskStatus {
   if (answer?.sent) return answer.reviewedAt !== null && task.score === null ? "in_review" : "submitted";
   const pastDue = task.dueAt !== null && now > task.dueAt;
   if (task.closed || (pastDue && !task.lateAllowed)) return "closed";
+  // Handed back says more than late: the Student is to work on it again, late or not.
+  if (answer?.handedBack) return "returned";
   if (pastDue) return "overdue";
   return answer ? "draft" : "not_started";
 }
 
-/** Still to hand in: not started, a draft, or late but still taken. */
+/** Still to hand in: not started, a draft, handed back, or late but still taken. */
 export function isOpenStatus(status: TaskStatus): boolean {
-  return status === "not_started" || status === "draft" || status === "overdue";
+  return status === "not_started" || status === "draft" || status === "overdue" || status === "returned";
+}
+
+/** Past its deadline while still taking answers: whatever goes in now is late (an "overdue" Task, or one handed back after it). */
+export function isLate(task: StatusFacts, now: number): boolean {
+  const status = taskStatus(task, now);
+  return status === "overdue" || (status === "returned" && task.dueAt !== null && now > task.dueAt);
 }
 
 /** Not open for answers yet: Edunex takes them from `opensAt` on. */
@@ -59,6 +67,11 @@ export function submittedAt(task: Pick<Task, "answer">): number | null {
   return task.answer?.sent ? task.answer.sentAt : null;
 }
 
+/** When a lecturer handed the answer back to work on again; null unless it's back with the Student now. */
+export function handedBackAt(task: Pick<Task, "answer">): number | null {
+  return task.answer && !task.answer.sent ? (task.answer.handedBack?.at ?? null) : null;
+}
+
 /** The Task's page on Edunex's website, as Edunex's own notifications link it. */
 export const edunexTaskUrl = (taskId: number) => `${EDUNEX_WEB}/assignment/take/${taskId}`;
 
@@ -75,7 +88,7 @@ export function byDeadline(a: Pick<Task, "dueAt" | "id">, b: Pick<Task, "dueAt" 
 
 // ---------------------------------------------------------------- history
 
-export type HistoryKind = "posted" | "opens" | "edited" | "draft" | "submitted" | "deadline";
+export type HistoryKind = "posted" | "opens" | "edited" | "draft" | "submitted" | "handedBack" | "deadline";
 export interface HistoryStep {
   kind: HistoryKind;
   at: number;
@@ -87,12 +100,14 @@ export interface HistoryStep {
  * The Task's own timeline from Edunex's timestamps, the receipt the website
  * never shows: posted, opens for answers, edited (each edit the app saw, with
  * what changed, and the newest even when it didn't see it), draft saved,
- * submitted, deadline. Steps that repeat another (opening as it's posted, a
- * draft saved on the way to submitting) are left out.
+ * submitted, handed back (after the hand-in Edunex still keeps), deadline.
+ * Steps that repeat another (opening as it's posted, a draft saved on the way
+ * to submitting) are left out.
  */
 export function taskHistory(task: Task, edits: readonly TaskEdit[] = []): HistoryStep[] {
   const steps: HistoryStep[] = [];
-  const sentAt = submittedAt(task);
+  const backAt = handedBackAt(task);
+  const sentAt = submittedAt(task) ?? (backAt !== null ? (task.answer?.handedBack?.sentAt ?? null) : null);
   if (task.postedAt !== null) steps.push({ kind: "posted", at: task.postedAt });
   if (task.opensAt !== null && (task.postedAt === null || Math.abs(task.opensAt - task.postedAt) > HOUR)) steps.push({ kind: "opens", at: task.opensAt });
   const seen = edits.filter((edit) => edit.taskId === task.id);
@@ -101,6 +116,7 @@ export function taskHistory(task: Task, edits: readonly TaskEdit[] = []): Histor
   const draftAt = task.answer?.createdAt ?? null;
   if (draftAt !== null && (sentAt === null || sentAt - draftAt > 5 * MINUTE)) steps.push({ kind: "draft", at: draftAt });
   if (sentAt !== null) steps.push({ kind: "submitted", at: sentAt });
+  if (backAt !== null) steps.push({ kind: "handedBack", at: backAt });
   if (task.dueAt !== null) steps.push({ kind: "deadline", at: task.dueAt });
   return steps.sort((a, b) => a.at - b.at);
 }
@@ -215,7 +231,7 @@ export function handInChecks(task: Task, facts: HandInFacts): { checks: HandInCh
     else if (facts.now > session.closesAt) checks.push({ kind: "attendanceMissed", tone: "warn", opensAt: session.opensAt, closesAt: session.closesAt });
     else checks.push({ kind: "attendanceIn", tone: "ok", closesAt: session.closesAt });
   }
-  if (taskStatus(task, facts.now) === "overdue" && task.dueAt !== null) checks.push({ kind: "late", tone: "warn", dueAt: task.dueAt });
+  if (isLate(task, facts.now) && task.dueAt !== null) checks.push({ kind: "late", tone: "warn", dueAt: task.dueAt });
   const type = requiredFileType(task.instructions);
   const wrongType = type ? facts.files.filter((file) => !file.name.toLowerCase().endsWith(`.${type}`) && !(type === "doc" && /\.docx$/i.test(file.name))) : [];
   if (type && wrongType.length) checks.push({ kind: "fileType", tone: "warn", type, files: wrongType.map((file) => file.name) });

@@ -4,7 +4,7 @@
 // is created only when there is none), and a submit counts only once Edunex
 // says the answer is sent when the Task is read back.
 import { z } from "zod";
-import { answerFileProblem, Bytes, HandIn, type HandInResult } from "../../../core/actions/tasks";
+import { answerFileProblem, Bytes, HandIn, type HandInResult, TaskComment, type TaskCommentResult } from "../../../core/actions/tasks";
 import type { Task, TaskFile } from "../../../core/models";
 import { takesAnswers } from "../../../core/tasks";
 import { EngineError, isEngineError } from "../../errors";
@@ -15,6 +15,7 @@ import { EDUNEX_API, EdunexClient, TIMEOUT_MS } from "./client";
 import { LoginMe } from "./schemas";
 import type { EdunexSession } from "./session";
 import { type AnswerFile, readTaskRecord, remember, type TaskRecord } from "./task-records";
+import { answerSeen, fetchThread, keepThread } from "./task-threads";
 
 // ---------------------------------------------------------------- Edunex's write calls
 //
@@ -172,7 +173,41 @@ export const taskActions: Record<string, SourceAction<EdunexSession>> = {
       });
     });
   },
+
+  /**
+   * Writes in the thread under the Student's answer, as the website's comment box ("Add Comment") does: the
+   * text, cleaned as an answer's is, under that answer, once. "sent" only when the thread, read back, holds it.
+   * Edunex takes a comment whatever the Task's state (handed in, handed back, closed); a group Task's answer is
+   * the group's, so never.
+   */
+  async comment(context, session, input) {
+    const { taskId, text } = parse(TaskComment, input);
+    return oneAtATime(context, taskId, async (): Promise<TaskCommentResult> => {
+      const client = new EdunexClient(context.transport, session.token, context.userAgent);
+      const fresh = await readBack(context, client, known(context, taskId));
+      if (!fresh) {
+        await remember(context, taskId, null);
+        return { outcome: "gone", thread: null };
+      }
+      personalOnly(fresh.task);
+      const answerId = fresh.task.answer?.id;
+      if (answerId === undefined) throw new EngineError("Rejected", "There's no answer to comment under yet");
+      const html = cleanAnswer(text);
+      if (!answerWords(html)) throw new EngineError("Rejected", "Write your comment first");
+      await write(context, session, "POST", "/course/comments", commentBody(answerId, html));
+      const messages = await fetchThread(client, answerId, context.get("edunex.account")?.nim ?? null);
+      const thread = { taskId, answerId, messages, readAt: context.clock.now(), seen: answerSeen(fresh.task) };
+      await keepThread(context, thread);
+      const words = answerWords(html);
+      return { outcome: messages.some((m) => m.from === "me" && answerWords(m.html) === words) ? "sent" : "unconfirmed", thread };
+    });
+  },
 };
+
+/** The website's comment box: `createAnswerComment` in js/app.79bf84f4.js (no reply-to: its form never sends one). */
+const commentBody = (answerId: number, html: string) => ({
+  data: { attributes: { comment: html, commentable_id: answerId, commentable_type: "task_answer" } },
+});
 
 const GONE: HandInResult = { outcome: "gone", task: null };
 

@@ -2,7 +2,8 @@
 // each course's Task list (answers included) against the pretend Edunex.
 import { describe, expect, it } from "vitest";
 import type { Task } from "../../src/core/models";
-import { editedAfterSubmit, shortWindow, taskHistory } from "../../src/core/tasks";
+import { editedAfterSubmit, isLate, isOpenStatus, shortWindow, takesAnswers, taskHistory } from "../../src/core/tasks";
+import { edunexJson } from "../kit/fixtures";
 import { aTask } from "../kit/tasks";
 import { PRETEND_TOKEN, wib } from "../pretend/edunex";
 import { MemoryStorage } from "../pretend/memory";
@@ -297,5 +298,82 @@ describe("Tasks with their true status", () => {
     first.world.setOffline(true);
     const again = await startEngine({ world: first.world, storage: first.storage, vault: first.vault, start: false });
     expect(again.dataset("edunex.tasks")).toHaveLength(10);
+  });
+});
+
+describe("a Task the lecturer handed back to work on again", () => {
+  it("is back with the Student, and the first hand-in stays in its history", async () => {
+    const h = await signedIn("2026-09-20T09:00:00+07:00");
+    const sentAt = task(h, 117001).answer?.sentAt;
+    h.world.edunex.handBack(117001);
+    await h.engine.refresh("edunex");
+    const back = task(h, 117001);
+    expect(back).toMatchObject({
+      status: "returned",
+      answer: { sent: false, sentAt: null, handedBack: { at: h.world.clock.now() - (h.world.clock.now() % 1000), sentAt } },
+    });
+    expect(isOpenStatus(back.status)).toBe(true);
+    expect(takesAnswers(back, h.world.clock.now())).toBe(true);
+    // Handed in, then handed back (a later edit of the Task may fall anywhere around them).
+    expect(taskHistory(back).flatMap((step) => (step.kind === "submitted" || step.kind === "handedBack" ? [step.kind] : []))).toEqual([
+      "submitted",
+      "handedBack",
+    ]);
+  });
+
+  it("reads as Edunex recorded one: unsent, with the lecturer's check and the first hand-in's time", async () => {
+    const h = await signedIn("2026-10-28T13:00:00+07:00");
+    const recorded = edunexJson<{ data: { id: string; attributes: { answers: unknown[] } }[] }>("/course/tasks", {
+      "filter[taskable_id][is]": "450222",
+      "page[limit]": "0",
+      "filter[taskable_type][is]": "modules",
+      include: "classes,answers",
+    }).data.find((t) => t.id === "117003")!;
+    h.world.edunex.task(117003).attributes.answers = recorded.attributes.answers;
+    await h.engine.refresh("edunex");
+    const back = task(h, 117003);
+    expect(back.status).toBe("returned");
+    expect(back.answer).toMatchObject({
+      sent: false,
+      note: null,
+      handedBack: { at: at("2026-10-27T17:45:45+07:00"), sentAt: at("2026-10-16T23:25:34+07:00") },
+    });
+    // Past its deadline, so what goes in now is late, but it says handed back first.
+    expect(isLate(back, h.world.clock.now())).toBe(true);
+  });
+
+  it("a draft the Student only saved is never taken for one handed back", async () => {
+    const h = await signedIn();
+    h.world.edunex.draftOnWebsite(117873);
+    await h.engine.refresh("edunex");
+    expect(task(h, 117873)).toMatchObject({ status: "draft", answer: { handedBack: null } });
+  });
+
+  it("carries the lecturer's note, written when handing it back or with a grade", async () => {
+    const h = await signedIn("2026-09-20T09:00:00+07:00");
+    h.world.edunex.handBack(117001, "<p>Lengkapi bagian metodologi.</p>");
+    await h.engine.refresh("edunex");
+    expect(task(h, 117001).answer?.note).toBe("<p>Lengkapi bagian metodologi.</p>");
+    h.world.edunex.gradeWithNote(117044, 85, "<p>Rapi.</p>");
+    await h.engine.refresh("edunex");
+    expect(task(h, 117044)).toMatchObject({ status: "submitted", score: 85, answer: { note: "<p>Rapi.</p>" } });
+  });
+
+  it("submitted again: handed in, and no longer handed back", async () => {
+    const h = await signedIn("2026-09-20T09:00:00+07:00");
+    h.world.edunex.handBack(117001);
+    await h.engine.refresh("edunex");
+    h.world.edunex.submitOnWebsite(117001);
+    await h.engine.refresh("edunex");
+    expect(task(h, 117001).status).not.toBe("returned");
+    expect(task(h, 117001).answer?.sent).toBe(true);
+  });
+
+  it("closed by Edunex meanwhile: closed, since nothing more can go in", async () => {
+    const h = await signedIn("2026-09-20T09:00:00+07:00");
+    h.world.edunex.handBack(117001);
+    h.world.edunex.closeTask(117001);
+    await h.engine.refresh("edunex");
+    expect(task(h, 117001).status).toBe("closed");
   });
 });

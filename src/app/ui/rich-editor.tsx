@@ -49,15 +49,21 @@ export interface RichEditorProps {
   /** An element saying more about it (a hint under the box). */
   describedBy?: string;
   ref?: Ref<RichEditorHandle>;
+  /** A smaller box, for a comment rather than an answer. */
+  compact?: boolean;
+  /** ⌘↵ / Ctrl+Enter sends what's written (a comment). */
+  onSubmit?: () => void;
 }
 
 const LINK = /^(https?:\/\/|mailto:)/i;
 
-export default function RichEditor({ initial, onChange, label, placeholder, describedBy, ref }: RichEditorProps) {
+export default function RichEditor({ initial, onChange, label, placeholder, describedBy, ref, compact = false, onSubmit }: RichEditorProps) {
   const [linking, setLinking] = useState(false);
   // The editor is made once; its change handler always reaches the latest onChange.
   const changed = useRef(onChange);
   changed.current = onChange;
+  const submit = useRef(onSubmit);
+  submit.current = onSubmit;
   const hint = useRef(placeholder);
   const editor = useEditor({
     extensions: [
@@ -83,7 +89,8 @@ export default function RichEditor({ initial, onChange, label, placeholder, desc
         "aria-label": label,
         ...(describedBy ? { "aria-describedby": describedBy } : {}),
         class: cx(
-          "max-h-[360px] min-h-[132px] overflow-y-auto px-3 py-2.5 text-body leading-relaxed outline-none",
+          compact ? "max-h-[240px] min-h-[64px]" : "max-h-[360px] min-h-[132px]",
+          "overflow-y-auto px-3 py-2.5 text-body leading-relaxed outline-none",
           "[&_p]:my-1.5 [&_p:first-child]:mt-0 [&_p:last-child]:mb-0 [&_ul]:my-1.5 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:my-1.5 [&_ol]:list-decimal [&_ol]:pl-5",
           "[&_li_p]:my-0 [&_blockquote]:my-1.5 [&_blockquote]:border-l-2 [&_blockquote]:border-track [&_blockquote]:pl-3 [&_blockquote]:text-muted",
           "[&_a]:text-accent-fg [&_a]:underline [&_a]:underline-offset-2 [&_h2]:mt-3 [&_h2]:font-semibold [&_h3]:mt-3 [&_h3]:font-semibold [&_h4]:mt-3 [&_h4]:font-semibold",
@@ -92,6 +99,11 @@ export default function RichEditor({ initial, onChange, label, placeholder, desc
       },
       // ⌘K / Ctrl+K adds a link, as in most editors; here it never also opens the app's search.
       handleKeyDown: (_view, event) => {
+        if (event.key === "Enter" && (event.metaKey || event.ctrlKey) && submit.current) {
+          event.preventDefault();
+          submit.current();
+          return true;
+        }
         if (event.key.toLowerCase() !== "k" || !(event.metaKey || event.ctrlKey)) return false;
         event.preventDefault();
         event.stopPropagation();

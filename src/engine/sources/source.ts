@@ -18,8 +18,10 @@ export interface FeedSpec {
   /**
    * Runs only on its own schedule, never on "Perbarui sekarang": public
    * reference data that changes a few times a year and takes minutes to read
-   * (ITB's catalog), which a refresh would otherwise wait on. Getting no
-   * answer doesn't mark the source offline: it just tries again later.
+   * (ITB's catalog), which a refresh would otherwise wait on, or a feed another
+   * one starts when it has read what this one needs (the threads under the
+   * Student's answers, once the Tasks are read). Getting no answer doesn't mark
+   * the source offline: it just tries again later.
    */
   background?: boolean;
   /**

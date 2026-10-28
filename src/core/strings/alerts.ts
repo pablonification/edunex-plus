@@ -5,6 +5,10 @@ export const alertsStrings = {
   // One alert (OS notification and history row)
   "alert.plain": { id: "{title}", en: "{title}" },
   "alert.newTask": { id: "Tugas baru · {course}", en: "New Task · {course}" },
+  "alert.handedBack": { id: "Tugas dikembalikan · {course}", en: "Task handed back · {course}" },
+  "alert.handedBack.body": { id: "{title} · perbaiki lalu kumpulkan lagi", en: "{title} · fix it, then submit again" },
+  "alert.taskComment": { id: "Komentar dosen · {course}", en: "Lecturer comment · {course}" },
+  "alert.taskComment.body": { id: "{title} · {text}", en: "{title} · {text}" },
   "alert.shortTask": { id: "Tugas singkat · {course}", en: "Short Task · {course}" },
   "alert.shortTask.body": { id: "{title} · tutup {time}", en: "{title} · closes {time}" },
   "alert.newMaterial": { id: "Materi baru · {course}", en: "New material · {course}" },
@@ -14,6 +18,7 @@ export const alertsStrings = {
   "alert.due1": { id: "Tenggat 1 jam lagi · {course}", en: "Due in 1 hour · {course}" },
   "alert.due.body": { id: "{title} · belum dikumpulkan", en: "{title} · not submitted yet" },
   "alert.due.draft": { id: "{title} · masih draf, belum dikumpulkan", en: "{title} · still a draft, not submitted yet" },
+  "alert.due.returned": { id: "{title} · dikembalikan dosen, belum dikumpulkan lagi", en: "{title} · handed back, not submitted again yet" },
 
   // A burst, grouped into one notification
   "alert.group.newTask": { id: "{count} tugas baru", en: { one: "{count} new Task", other: "{count} new Tasks" } },
@@ -48,6 +53,8 @@ export const alertsStrings = {
   "settings.alerts": { id: "Notifikasi", en: "Notifications" },
   "settings.alerts.newTask": { id: "Tugas baru", en: "New Tasks" },
   "settings.alerts.newTaskHint": { id: "Termasuk yang waktunya singkat, langsung", en: "Including short-window ones, immediately" },
+  "settings.alerts.feedback": { id: "Tanggapan dosen", en: "Lecturer feedback" },
+  "settings.alerts.feedbackHint": { id: "Saat tugasmu dikembalikan atau dosen berkomentar", en: "When a Task comes back or your lecturer comments" },
   "settings.alerts.newMaterial": { id: "Materi baru", en: "New materials" },
   "settings.alerts.newMaterialHint": { id: "Digabung jika banyak sekaligus", en: "Grouped when many arrive at once" },
   "settings.alerts.deadline": { id: "Tenggat", en: "Deadlines" },

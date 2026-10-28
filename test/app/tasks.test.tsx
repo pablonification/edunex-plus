@@ -492,7 +492,7 @@ describe("the Task page", () => {
     const s = await open();
     await goToTask(s, "Tugas tentang Imfact on Innovation");
     expect(card()).toContain("TerkumpulEdunex mencatatnya Rab, 16 Sep, 15:29");
-    expect(card()).toContain("Sudah diserahkan. Pengumpulan bersifat final.");
+    expect(card()).toContain("Sudah diserahkan. Hanya dosen yang bisa mengembalikannya.");
     expect(s.has(/^Lampirkan berkas/)).toBe(false);
     expect(s.has("Kumpulkan")).toBe(false);
     await s.click("Unduh TUGAS IMPACT ON INNOVATION THE ECONOMY - 18223901.pdf");
@@ -535,6 +535,50 @@ describe("the Task page", () => {
     await s.engineDoes(() => s.engine.refresh("edunex"));
     expect(card()).toContain("Terkumpul");
     expect(card()).toContain("Nilai88");
+  });
+
+  it("handed back: says so, shows what the lecturer wrote, and takes it again", async () => {
+    const s = await open();
+    s.world.edunex.comment(117001, "<p>Lengkapi latar belakang.</p>");
+    s.world.edunex.handBack(117001, "<p>Perbaiki bagian 1.2.</p>");
+    await s.engineDoes(() => s.engine.refresh("edunex"));
+    // The thread is read once the Tasks are.
+    await s.wait(60_000);
+    await goToTask(s, "Tugas 01 Bab I");
+    expect(card()).toContain("Dosen meminta perbaikan");
+    expect(card()).toContain("Perbaiki jawabanmu, lalu kumpulkan lagi.");
+    expect(s.has("Kumpulkan lagi")).toBe(true);
+    const page = document.querySelector("main article")?.textContent ?? "";
+    expect(page).toContain("Catatan dosenPerbaiki bagian 1.2.");
+    // The thread, oldest first: the recorded message, then the new one, each marked as the lecturer's.
+    const messages = [...document.querySelectorAll("main section[aria-labelledby=task-thread] ol > li")].map((li) => li.textContent ?? "");
+    expect(messages).toHaveLength(2);
+    expect(messages.every((m) => m.includes("Dosen"))).toBe(true);
+    expect(messages[1]).toContain("Lengkapi latar belakang.");
+    // Writing back, as on Edunex: Kirim waits for words.
+    expect(s.button("Kirim").disabled).toBe(true);
+    // Handed in, then handed back.
+    const steps = [...document.querySelectorAll("main aside ol li")].map((li) => li.textContent ?? "");
+    expect(steps.findIndex((step) => step.startsWith("Kamu mengumpulkan"))).toBeLessThan(steps.findIndex((step) => step.startsWith("Dikembalikan dosen")));
+  });
+
+  it("a comment goes from the Task page under the answer, and shows as the Student's own", async () => {
+    const s = await open();
+    await goToTask(s, "Tugas 01 Bab I");
+    // Handed in, nothing handed back: the thread follows the Task's instructions, with room to write.
+    const page = s.text();
+    expect(page.indexOf("Komentar")).toBeGreaterThan(page.indexOf("Instruksi"));
+    await s.write("<p>Bu, apakah <b>Bab I</b> sudah sesuai?</p>", /^Komentarmu$/);
+    await s.click("Kirim");
+    expect(s.world.edunex.writes.filter((w) => w.path === "/course/comments").map((w) => w.body.comment)).toEqual([
+      "<p>Bu, apakah <strong>Bab I</strong> sudah sesuai?</p>",
+    ]);
+    const mine = [...document.querySelectorAll("main section[aria-labelledby=task-thread] ol > li")].map((li) => li.textContent ?? "");
+    expect(mine.at(-1)).toContain("Kamu");
+    expect(mine.at(-1)).toContain("Bu, apakah Bab I sudah sesuai?");
+    // The box is empty again, ready for the next one.
+    expect((await s.editor(/^Komentarmu$/)).textContent).toBe("");
+    expect(s.button("Kirim").disabled).toBe(true);
   });
 
   it("an extended deadline shows at once, with the edit", async () => {

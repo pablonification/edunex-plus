@@ -183,6 +183,8 @@ that ring with `--hatch` stripes; the limit line is `--fg`.
 | `--status-closed-fg` | `#3f3f46` | `#c6c6ce` |
 | `--status-review-bg` | `#ebe7fd` | `#272042` |
 | `--status-review-fg` | `#5a33c8` | `#c4b5ff` |
+| `--status-returned-bg` | `--status-draft-bg` | `--status-draft-bg` |
+| `--status-returned-fg` | `--status-draft-fg` | `--status-draft-fg` |
 
 **Sources.** Edunex and SIX show their own logos (`SourceLogo`), never a
 letter in a colored square. The ITB calendar has no logo here: a calendar in

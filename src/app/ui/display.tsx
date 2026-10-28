@@ -115,7 +115,7 @@ export function Tag({
   );
 }
 
-export type TaskStatus = "not_started" | "draft" | "submitted" | "overdue" | "closed" | "in_review";
+export type TaskStatus = "not_started" | "draft" | "submitted" | "overdue" | "closed" | "in_review" | "returned";
 
 const STATUS_TONE: Record<TaskStatus, string> = {
   not_started: "bg-(--status-not-started-bg) text-(--status-not-started-fg)",
@@ -124,6 +124,7 @@ const STATUS_TONE: Record<TaskStatus, string> = {
   overdue: "bg-(--status-overdue-bg) text-(--status-overdue-fg)",
   closed: "bg-(--status-closed-bg) text-(--status-closed-fg)",
   in_review: "bg-(--status-review-bg) text-(--status-review-fg)",
+  returned: "bg-(--status-returned-bg) text-(--status-returned-fg)",
 };
 
 export function StatusGlyph({ status, className = "size-3.5" }: { status: TaskStatus; className?: string }) {
@@ -136,6 +137,8 @@ export function StatusGlyph({ status, className = "size-3.5" }: { status: TaskSt
       return <Icons.Lock className={className} weight="bold" />;
     case "in_review":
       return <Icons.Clock className={className} weight="bold" />;
+    case "returned":
+      return <Icons.HandedBack className={className} weight="bold" />;
     case "draft":
       return (
         <svg viewBox="0 0 24 24" className={className} aria-hidden focusable="false">

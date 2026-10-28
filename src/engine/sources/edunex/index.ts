@@ -6,6 +6,7 @@ import { registerCoursePageFeeds } from "./course-page";
 import { registerCoreFeeds } from "./feeds";
 import { registerNotificationFeed } from "./notifications";
 import { EdunexSession } from "./session";
+import { registerThreadFeed } from "./task-threads";
 import { registerTaskFeeds, taskActions } from "./tasks";
 
 export const edunex: Source<EdunexSession> = {
@@ -16,6 +17,7 @@ export const edunex: Source<EdunexSession> = {
     const client = new EdunexClient(context.transport, session.token, context.userAgent);
     registerCoreFeeds(context, client);
     registerTaskFeeds(context, client);
+    registerThreadFeed(context, client);
     registerCoursePageFeeds(context, client);
     registerNotificationFeed(context, client);
   },

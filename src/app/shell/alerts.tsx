@@ -28,6 +28,8 @@ const KIND_ICON: Record<AlertKind, ComponentType<IconProps>> = {
   presenceOpen: Icons.Hand,
   presenceClosing: Icons.Hand,
   taskEdited: Icons.PenLine,
+  taskHandedBack: Icons.HandedBack,
+  taskComment: Icons.Chat,
   scheduleChanged: Icons.CalendarClock,
   meeting: Icons.Megaphone,
   attendanceRisk: Icons.AlertTriangle,

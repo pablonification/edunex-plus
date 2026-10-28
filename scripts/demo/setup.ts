@@ -19,6 +19,9 @@
 //                            app ships without: test/pretend/relay.ts answers, files made-up issues, sends nothing
 //   EDUNEX_DEMO_EDIT=1       after the first sync, the lecturer revises Tugas 01 Bab I (handed in weeks ago):
 //                            new instructions, a later deadline and a new file, so the app knows what changed
+//   EDUNEX_DEMO_HANDED_BACK=1  after the first sync, the lecturer writes under Tugas 01 Bab I (handed in weeks ago)
+//                            and hands it back to work on again, as Edunex's "Revision Request" does, so the Task is
+//                            "Dikembalikan" with her message on its page
 //   EDUNEX_DEMO_SICK=1       SIX writes DK4073's attendance as it does for a Student with sick days (#237): two
 //                            percentages, each with its count, so the app reads the first (its meetings attended)
 //   EDUNEX_DEMO_ODD=1        SIX writes this term's UKT payment ("Lunas") and FI1101's grade ("A (remedial)") another way,
@@ -62,6 +65,13 @@ const start =
   process.env.EDUNEX_DEMO_NOW ??
   (scenario === "first-run" ? "2026-10-08T08:10:00+07:00" : process.env.EDUNEX_DEMO_AFTER_CLASS ? "2026-10-08T07:30:00+07:00" : "2026-10-08T08:07:00+07:00");
 const world = new PretendWorld({ now: start });
+// The recorded threads' messages are scrubbed to one word: in the demo, made-up ones a lecturer and a Student would write.
+for (const thread of world.edunex.comments.values())
+  for (const message of thread)
+    message.attributes.comment =
+      message.attributes.user.level === "STUDENT"
+        ? "<p>Baik, Bu. Bab I sudah saya sesuaikan dengan template terbaru.</p>"
+        : "<p>Sudah sesuai template. Lanjutkan ke Bab II.</p>";
 if (process.env.EDUNEX_DEMO_CHECK_IN === "open") world.six.openCheckIn("2194342");
 if (process.env.EDUNEX_DEMO_SICK === "1")
   world.six.editPage(/\/statusmhs$/, (html) =>
@@ -361,6 +371,16 @@ const hooks: DemoHooks = {
         files: [{ name: "brief-v2.pdf", file: brief }],
       });
       await fastForward(engine.refresh("edunex"));
+    }
+    if (process.env.EDUNEX_DEMO_HANDED_BACK === "1") {
+      world.edunex.comment(
+        117001,
+        "<p>Bab I sudah cukup jelas, tapi perlu dilengkapi:</p><ol><li>Tambahkan data pendukung pada latar belakang masalah.</li><li>Rumusan masalah dan tujuan harus saling berpasangan.</li></ol>",
+      );
+      world.edunex.handBack(117001);
+      await fastForward(engine.refresh("edunex"));
+      // The thread is read once the Tasks are.
+      await world.clock.advance(5_000);
     }
     if (courseTable === "changed" && scenario === "signed-in") {
       world.six.joinCodeAndName();
