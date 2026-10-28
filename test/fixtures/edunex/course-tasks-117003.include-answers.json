@@ -1,0 +1,158 @@
+{
+  "data": {
+    "type": "tasks",
+    "id": "117003",
+    "attributes": {
+      "taskable_type": "modules",
+      "taskable_id": 450222,
+      "name": "Tugas 02 Bab II",
+      "description": "<p>Kerjakan Bab II dari template proposal TA.</p><p>Ketentuan Pengumpulan:</p><ol><li>File diunggah dengan format .pdf dan sertakan juga link drive file.</li><li>Penamaan file ‘NIM Nama - Tugas 02.pdf’.</li></ol>",
+      "files": [],
+      "type": "PERSONAL",
+      "is_active": 1,
+      "start_at": "2026-09-18T15:00:00+07:00",
+      "end_at": "2026-10-16T23:59:00+07:00",
+      "lptk_id": 2,
+      "created_by": "Dr. Fajar Yuliana, S.T., M.T.",
+      "updated_by": "Dr. Fajar Yuliana, S.T., M.T.",
+      "deleted_by": null,
+      "created_at": "2026-09-11T10:00:53+07:00",
+      "updated_at": "2026-09-18T15:41:39+07:00",
+      "status": "assigned",
+      "course_id": 95326,
+      "download_url": "null",
+      "course_name": "Final Project Proposal",
+      "course_code": "II4091",
+      "period_id": 26,
+      "lecturer_percentage": 0,
+      "student_percentage": 0,
+      "all_class": true,
+      "is_assesment_open": false,
+      "assesment_method": "point",
+      "rubrics": [],
+      "open_status": "open",
+      "answers": [
+        {
+          "id": 2798141,
+          "task_id": 117003,
+          "student_id": 900006,
+          "answer": "<p>Jawaban.</p>",
+          "file": null,
+          "score": 0,
+          "is_sent": 0,
+          "sent_at": "2026-10-16 23:25:34",
+          "deleted_at": null,
+          "created_at": "2026-10-13 10:11:36",
+          "updated_at": "2026-10-27 17:45:45",
+          "verified_at": "2026-10-27 17:45:45",
+          "comment": null,
+          "verified_by": null,
+          "sent_by": 357,
+          "files": [
+            {
+              "id": 3411997,
+              "fileable_type": "task_answers",
+              "fileable_id": "2798141",
+              "name": "18223901 Dimas Pratama - Tugas 02.pdf",
+              "file": "https://edunexfixture.blob.core.windows.net/edunex/fixture-6",
+              "lptk_id": 2,
+              "course_id": 95326,
+              "created_at": "2026-10-16 23:24:34",
+              "updated_at": "2026-10-16 23:24:34",
+              "deleted_at": null
+            }
+          ],
+          "task": {
+            "id": 117003,
+            "taskable_type": "modules",
+            "taskable_id": 450222,
+            "name": "Tugas 02 Bab II",
+            "description": "<p>Kerjakan Bab II dari template proposal TA.</p><p>Ketentuan Pengumpulan:</p><ol><li>File diunggah dengan format .pdf dan sertakan juga link drive file.</li><li>Penamaan file ‘NIM Nama - Tugas 02.pdf’.</li></ol>",
+            "file": null,
+            "is_active": 1,
+            "start_at": "2026-09-18 15:00:00",
+            "end_at": "2026-10-16 23:59:00",
+            "lptk_id": 2,
+            "created_by": 357,
+            "updated_by": 357,
+            "deleted_by": null,
+            "created_at": "2026-09-11 10:00:53",
+            "updated_at": "2026-09-18 15:41:39",
+            "deleted_at": null,
+            "course_id": 95326,
+            "download_url": "null",
+            "all_class": 1,
+            "assesment_method": "point",
+            "file_required": 1,
+            "type": "PERSONAL",
+            "is_assesment_open": 0,
+            "lecturer_percentage": 0,
+            "student_percentage": 0,
+            "is_lateable": 1,
+            "domain": "task",
+            "show_score": 0,
+            "passing_grade": 0,
+            "course_name": "Final Project Proposal",
+            "course_code": "II4091",
+            "status": "assigned"
+          },
+          "verified": null,
+          "rubric": []
+        }
+      ],
+      "file_required": true,
+      "is_lateable": true,
+      "domain": "task",
+      "show_score": 0,
+      "passing_grade": 0
+    },
+    "links": {
+      "self": "https://api-edunex.cognisia.id/course/tasks/117003"
+    },
+    "relationships": {
+      "answers": {
+        "links": {
+          "self": "https://api-edunex.cognisia.id/course/tasks/117003/relationships/answers",
+          "related": "https://api-edunex.cognisia.id/course/tasks/117003/answers"
+        },
+        "data": [
+          {
+            "type": "answers",
+            "id": "2798141"
+          }
+        ]
+      }
+    }
+  },
+  "included": [
+    {
+      "type": "answers",
+      "id": "2798141",
+      "attributes": {
+        "task_id": 117003,
+        "student_id": 900006,
+        "answer": "<p>Jawaban.</p>",
+        "files": [
+          {
+            "name": "18223901 Dimas Pratama - Tugas 02.pdf",
+            "file": "https://edunexfixture.blob.core.windows.net/edunex/fixture-6"
+          }
+        ],
+        "score": "in_review",
+        "is_sent": 0,
+        "sent_at": "2026-10-16T23:25:34+07:00",
+        "deleted_at": null,
+        "created_at": "2026-10-13T10:11:36+07:00",
+        "updated_at": "2026-10-27T17:45:45+07:00",
+        "verified_at": "2026-10-27T17:45:45+07:00",
+        "course_id": 95326,
+        "comment": null,
+        "verified_by": null,
+        "rubric": []
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/answers/2798141"
+      }
+    }
+  ]
+}

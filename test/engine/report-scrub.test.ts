@@ -12,7 +12,7 @@ import type { DatasetName, DatasetValue, ProblemReport, SixStudent } from "../..
 import { isEngineError } from "../../src/engine/errors";
 import type { Kept } from "../../src/engine/report/kept-pages";
 import { buildReport } from "../../src/engine/report/report";
-import { Replacements, scrubRecordText, scrubSixRecords } from "../../src/engine/report/scrub";
+import { Replacements, scrubEdunexFields, scrubRecordText, scrubSixRecords } from "../../src/engine/report/scrub";
 import { LoginMe } from "../../src/engine/sources/edunex/schemas";
 import { readBills } from "../../src/engine/sources/six/readers/bills";
 import { readKrs } from "../../src/engine/sources/six/readers/krs";
@@ -251,6 +251,54 @@ describe("a report about an Edunex answer", () => {
     for (const gone of ["Tamansari", "Pematangsiantar", "rahmat-hidayatullah"]) expect(body).not.toContain(gone);
     expect(check(JSON.parse(body))).toBe(sent.problems[0]!.check);
     expect(sent.problems[0]!.check).toBe(before);
+  });
+
+  it("the messages under an answer are gone, and each still says whether a lecturer or the Student wrote it", () => {
+    const thread = {
+      data: [
+        {
+          type: "comments",
+          id: "1",
+          attributes: {
+            commentable_type: "task_answer",
+            commentable_id: 7,
+            comment: "<p>Bab 2 perlu perbaikan: tambahkan data kalibrasi.</p>",
+            user: {
+              id: 357,
+              username: "118110099",
+              name: "Dr. Siti Rahma",
+              email: "118110099",
+              level: "LECTURER",
+              last_online: "2026-10-28 12:20:43",
+              zoom_email: ["siti.rahma", "staff.itb.ac.id"].join("@"),
+              thumbnail: "https://cdn-edunex.itb.ac.id/avatar/siti.jpg",
+            },
+            files: [],
+          },
+        },
+        {
+          type: "comments",
+          id: "2",
+          attributes: {
+            commentable_type: "task_answer",
+            commentable_id: 7,
+            comment: "<p>Saya mengganti topik TA saya.</p>",
+            user: { id: 190001, username: REAL.nim, name: REAL.name, email: REAL.nim, level: "STUDENT" },
+            files: [],
+          },
+        },
+      ],
+    };
+    const body = JSON.stringify(scrubEdunexFields(structuredClone(thread)));
+    for (const gone of ["kalibrasi", "mengganti topik", "siti.rahma", "avatar/siti"]) expect(body).not.toContain(gone);
+    const messages = JSON.parse(body).data.map((c: { attributes: { comment: string; user: { level: string } } }) => [
+      c.attributes.user.level,
+      c.attributes.comment,
+    ]);
+    expect(messages).toEqual([
+      ["LECTURER", "<p>Komentar.</p>"],
+      ["STUDENT", "<p>Komentar.</p>"],
+    ]);
   });
 
   it("a gradebook's scores and grades are made up", async () => {

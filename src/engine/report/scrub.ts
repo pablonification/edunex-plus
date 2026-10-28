@@ -334,7 +334,7 @@ const fakePicture = (url: string) => {
 
 /**
  * People's own fields in an Edunex response (contacts, birth details, pictures), the Student's
- * answers and lecturers' comments on them, and lecturers' staff numbers. With `madeUp` (a report),
+ * answers and lecturers' comments on them (the messages under an answer too), and lecturers' staff numbers. With `madeUp` (a report),
  * the Student's scores and grades too.
  */
 export function scrubEdunexFields<T>(value: T, madeUp?: MadeUp): T {
@@ -352,6 +352,8 @@ export function scrubEdunexFields<T>(value: T, madeUp?: MadeUp): T {
       if (typeof o.answer === "string" && o.answer) o.answer = "<p>Jawaban.</p>";
       if (typeof o.comment === "string" && o.comment) o.comment = "Komentar.";
     }
+    // What the Student and their lecturers wrote to each other under an answer (/course/comments).
+    if ("commentable_type" in o && typeof o.comment === "string" && o.comment) o.comment = "<p>Komentar.</p>";
     // Lecturer staff numbers sit in "email" on lecturer objects.
     if ("email" in o && typeof o.email === "string" && /^\d{15,}$/.test(o.email)) o.email = "000000000000000000";
     if (!madeUp) return;

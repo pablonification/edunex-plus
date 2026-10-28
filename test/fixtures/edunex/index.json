@@ -71,6 +71,34 @@
   },
   {
     "method": "GET",
+    "path": "/course/comments",
+    "query": {
+      "include": "user",
+      "filter[commentable_type][is]": "task_answer",
+      "filter[commentable_id][is]": "2798141",
+      "sort": "-created_at",
+      "page[limit]": "0",
+      "page[offset]": "0"
+    },
+    "status": 200,
+    "file": "course-comments.include-user-commentable-id-2798141-page-offset-0.json"
+  },
+  {
+    "method": "GET",
+    "path": "/course/comments",
+    "query": {
+      "include": "user",
+      "filter[commentable_type][is]": "task_answer",
+      "filter[commentable_id][is]": "2698258",
+      "sort": "-created_at",
+      "page[limit]": "0",
+      "page[offset]": "0"
+    },
+    "status": 200,
+    "file": "course-comments.include-user-commentable-id-2698258-page-offset-0.json"
+  },
+  {
+    "method": "GET",
     "path": "/course/contents",
     "query": {
       "page[limit]": "3",
@@ -473,6 +501,27 @@
     },
     "status": 200,
     "file": "course-tasks.course-id-97602.json"
+  },
+  {
+    "method": "GET",
+    "path": "/course/tasks",
+    "query": {
+      "filter[taskable_id][is]": "450222",
+      "page[limit]": "0",
+      "filter[taskable_type][is]": "modules",
+      "include": "classes,answers"
+    },
+    "status": 200,
+    "file": "course-tasks.include-classes-answers.json"
+  },
+  {
+    "method": "GET",
+    "path": "/course/tasks/117003",
+    "query": {
+      "include": "answers"
+    },
+    "status": 200,
+    "file": "course-tasks-117003.include-answers.json"
   },
   {
     "method": "GET",
