@@ -322,6 +322,11 @@ export function createUpdater(deps: UpdaterDeps): Updater {
   let installing = false;
   /** The download running now; one started before it (an older version) no longer moves the bar or says how it went. */
   let latest = 0;
+  /**
+   * The last download started, until it has stopped. Each download empties and fills the same folder,
+   * so the next one waits for it; one that's no longer the latest stops before its next step on disk.
+   */
+  let working: Promise<void> = Promise.resolve();
 
   async function current(): Promise<UpdateInstall> {
     finding ??= deps.way().then(
@@ -369,7 +374,12 @@ export function createUpdater(deps: UpdaterDeps): Updater {
     const set = (patch: Partial<UpdateInstall>) => {
       if (id === latest) setState(patch);
     };
+    /** A newer download was asked for: this one stops here (its catch says nothing). */
+    const stillLatest = () => {
+      if (id !== latest) throw new Error(`${notice.version} was replaced by a newer download`);
+    };
     try {
+      stillLatest();
       const files = await releaseFiles(notice, kind, arch);
       const picked = pickReleaseFile(files, kind, arch);
       if (!picked) {
@@ -389,6 +399,7 @@ export function createUpdater(deps: UpdaterDeps): Updater {
       };
       // Only the parts this computer doesn't have, when the release maps them. Anything that doesn't
       // line up there, and the whole file comes as before; without a connection, neither would.
+      stillLatest();
       const patched =
         yml !== null && expected
           ? await deps
@@ -398,7 +409,7 @@ export function createUpdater(deps: UpdaterDeps): Updater {
                 return null;
               })
           : null;
-      if (id !== latest) return;
+      stillLatest();
       if (patched) staged = patched;
       else {
         // The bar starts again for the whole file.
@@ -409,8 +420,9 @@ export function createUpdater(deps: UpdaterDeps): Updater {
         const file = await deps.download(chosen.file, progress);
         if (file.size !== chosen.file.size || (expected && file.sha512 !== expected))
           throw new MismatchError(`${chosen.file.name} isn't the file the release lists`);
+        stillLatest();
         const unpacked = kind === "mac" ? await deps.unpack(file.path, macArchiveOf(chosen.file.name), notice.version) : file.path;
-        if (id !== latest) return;
+        stillLatest();
         staged = unpacked;
       }
       set({ step: "ready", progress: 1 });
@@ -434,7 +446,9 @@ export function createUpdater(deps: UpdaterDeps): Updater {
     staged = null;
     deps.log?.("info", `downloading ${notice.version}${quiet ? " by itself" : ""}`);
     const started = setState({ step: "downloading", version: notice.version, progress: null, problem: null });
-    void run(notice, kind, arch, quiet, ++latest);
+    const id = ++latest;
+    // Whatever goes wrong in run ends as a state; were anything to slip past it, the next download still starts.
+    working = working.then(() => run(notice, kind, arch, quiet, id)).catch(() => undefined);
     return started;
   }
 

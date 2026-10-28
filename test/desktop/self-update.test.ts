@@ -373,14 +373,23 @@ describe("the update plan", () => {
     expect(wrong.sent.length).toBe(before);
   });
 
-  it("follows the newest release found: an older download still finishing never says how it went over the newer one", async () => {
+  it("follows the newest release found: an older download still going stops before it touches the folder they share", async () => {
     const newer: UpdateNotice = { version: "1.3.0", url: "https://github.com/pablonification/edunex-plus/releases/tag/v1.3.0" };
     let found = notice;
     let finishOlder: () => void = () => undefined;
+    const steps: string[] = [];
+    let downloads = 0;
     const { updater, sent, installed, settled } = setUp({
       notice: () => found,
+      download: async () => {
+        const which = ++downloads;
+        steps.push(`download ${which}`);
+        if (which === 1) await new Promise<void>((resolve) => (finishOlder = resolve));
+        steps.push(`downloaded ${which}`);
+        return { path: "/tmp/x.zip", sha512: SHA, size: 100 };
+      },
       unpack: async (_archive, _kind, version) => {
-        if (version === "1.2.0") await new Promise<void>((resolve) => (finishOlder = resolve));
+        steps.push(`unpack ${version}`);
         return `/tmp/app/${version}.app`;
       },
     });
@@ -389,9 +398,13 @@ describe("the update plan", () => {
     found = newer;
     await updater.fetch();
     await settled();
-    expect(sent.at(-1)).toMatchObject({ step: "ready", version: "1.3.0" });
+    // The newer one waits: both download into the same folder.
+    expect(steps).toEqual(["download 1"]);
+    expect(sent.at(-1)).toMatchObject({ step: "downloading", version: "1.3.0" });
     finishOlder();
     await settled();
+    // The older one never unpacks, which would empty the folder the newer one is in.
+    expect(steps).toEqual(["download 1", "downloaded 1", "download 2", "downloaded 2", "unpack 1.3.0"]);
     expect(sent.at(-1)).toMatchObject({ step: "ready", version: "1.3.0" });
     await updater.install();
     expect(installed).toEqual(["/tmp/app/1.3.0.app"]);
