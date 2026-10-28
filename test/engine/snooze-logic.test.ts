@@ -176,6 +176,17 @@ describe("what an item can be put off until", () => {
     expect(offered(need(needsYou(h.home()), `task:${id}`), h.world.clock.now())).toEqual([]);
   });
 
+  it("a Task handed back after its deadline: put off as an overdue one is, not refused for a deadline already past", async () => {
+    const h = await startHome({ now: MONDAY });
+    // Tugas 01 Bab I was due 25 Sep: handed back now, it takes a late answer.
+    h.world.edunex.handBack(117001);
+    await h.refresh();
+    const now = h.world.clock.now();
+    const returned = need(needsYou(h.home()), "task:117001");
+    expect(snoozable(returned, now)).toMatchObject({ cap: null, moment: null, untilChange: false });
+    expect(offered(returned, now)).toContain(inThreeHours(now));
+  });
+
   it("holds until the time it promised: getting closer (coming up, then soon) doesn't bring it back early", async () => {
     const h = await startHome({ now: MONDAY });
     const now = h.world.clock.now();

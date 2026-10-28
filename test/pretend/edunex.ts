@@ -24,6 +24,8 @@ export type Breakage =
 
 interface Fault {
   path: RegExp;
+  /** Only requests with this method (default: any). */
+  method?: string;
   status?: number;
   breakage?: Breakage;
   times: number;
@@ -391,9 +393,9 @@ export class PretendEdunex {
     this.sessionValid = false;
   }
 
-  /** Answer `status` for matching paths, `times` times (default: until cleared). */
-  fail(path: RegExp, status: number, times = Number.POSITIVE_INFINITY): void {
-    this.faults.push({ path, status, times });
+  /** Answer `status` for matching paths (and `method`, if given), `times` times (default: until cleared). */
+  fail(path: RegExp, status: number, times = Number.POSITIVE_INFINITY, method?: string): void {
+    this.faults.push({ path, status, times, method });
   }
 
   /** Mangle the real response for matching paths: what a vendor change looks like. */
@@ -415,7 +417,7 @@ export class PretendEdunex {
   handle(request: HttpRequest, url: URL): HttpResponse {
     const path = url.pathname.replace(/\/+$/, "") || "/";
     const q = Object.fromEntries(url.searchParams);
-    const fault = this.faults.find((f) => f.path.test(path) && f.times > 0);
+    const fault = this.faults.find((f) => f.path.test(path) && (!f.method || f.method === request.method) && f.times > 0);
     if (fault) fault.times -= 1;
     if (fault?.status) return fault.status === 503 ? html(503, MAINTENANCE_HTML, url) : json(fault.status, { message: "error" }, url);
 

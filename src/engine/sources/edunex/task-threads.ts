@@ -72,7 +72,14 @@ export async function fetchThread(client: EdunexClient, answerId: number, nim: s
     .sort((x, y) => (x.at ?? 0) - (y.at ?? 0) || x.id - y.id);
 }
 
-const fileName = (url: string) => decodeURIComponent(url.split("?")[0]!.split("/").pop() || "file");
+function fileName(url: string): string {
+  const last = url.split("?")[0]!.split("/").pop() || "file";
+  try {
+    return decodeURIComponent(last);
+  } catch {
+    return last;
+  }
+}
 
 /** The answer's state that, once it moves, means its thread may have something new. */
 export const answerSeen = (task: Task) => {

@@ -195,7 +195,9 @@ export const taskActions: Record<string, SourceAction<EdunexSession>> = {
       const html = cleanAnswer(text);
       if (!answerWords(html)) throw new EngineError("Rejected", "Write your comment first");
       await write(context, session, "POST", "/course/comments", commentBody(answerId, html));
-      const messages = await fetchThread(client, answerId, context.get("edunex.account")?.nim ?? null);
+      // Sent, but not read back: "unconfirmed", never an error, or a second try would post it twice.
+      const messages = await fetchThread(client, answerId, context.get("edunex.account")?.nim ?? null).catch(() => null);
+      if (!messages) return { outcome: "unconfirmed", thread: null };
       const thread = { taskId, answerId, messages, readAt: context.clock.now(), seen: answerSeen(fresh.task) };
       await keepThread(context, thread);
       const words = answerWords(html);

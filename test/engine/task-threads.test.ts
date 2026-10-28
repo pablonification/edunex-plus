@@ -70,6 +70,14 @@ describe("the thread under the Student's answer", () => {
     await h.wait(HOUR + 20 * MINUTE);
     expect(thread(h, BAB_I.answerId)?.messages.map((m) => m.html)).toContain("<p>Tambahkan sumber.</p>");
   });
+
+  it("a file whose link can't be decoded is named by the link as it is, and the rest of the thread still reads", async () => {
+    const h = await signedIn("2026-09-23T08:00:00+07:00");
+    const file = "https://storage.edunex.itb.ac.id/edunex/fixture-comment/Revisi%E0.pdf";
+    h.world.edunex.comment(BAB_I.taskId, "<p>Lihat lampiran.</p>", "LECTURER", [{ file }]);
+    await h.wait(HOUR + 20 * MINUTE);
+    expect(thread(h, BAB_I.answerId)?.messages.at(-1)?.files).toEqual([{ name: "Revisi%E0.pdf", url: file }]);
+  });
 });
 
 describe("the Student writing under their answer", () => {
@@ -111,6 +119,16 @@ describe("the Student writing under their answer", () => {
     });
     // A comment of their own is never an alert, nor a reason to read the thread again.
     expect(result.thread?.messages.at(-1)?.from).toBe("me");
+  });
+
+  it("sent but not read back: 'unconfirmed', not an error, so the Student isn't led to send it twice", async () => {
+    const h = await signedIn("2026-10-08T08:00:00+07:00");
+    const before = thread(h, BAB_I.answerId);
+    h.world.edunex.fail(/^\/course\/comments$/, 500, 1, "GET");
+    expect(await comment(h, BAB_I.taskId, "<p>Baik, Bu.</p>")).toEqual({ outcome: "unconfirmed", thread: null });
+    expect(posts(h)).toHaveLength(1);
+    // What the app knew stays until the thread is next read.
+    expect(thread(h, BAB_I.answerId)).toEqual(before);
   });
 
   it("is refused before anything is sent: no answer yet, no words, or a group Task", async () => {

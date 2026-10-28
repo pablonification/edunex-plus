@@ -145,7 +145,8 @@ function ownTerms(need: NeedDraft, now: number): Snoozable {
       const { task } = need;
       // The lecturer's edit leaves the list a week on; checked, it's "handled" (✓), not snoozed until it changes.
       if (need.reason === "edited") return { key, cap: (task.editedAt ?? now) + 7 * DAY, moment: null, untilChange: false };
-      if (need.reason === "overdue" || task.dueAt === null) return { key, cap: null, moment: null, untilChange: false };
+      // Overdue, or handed back after the deadline: no deadline left to come back before.
+      if (need.reason === "overdue" || task.dueAt === null || task.dueAt <= now) return { key, cap: null, moment: null, untilChange: false };
       // A group Task handed in by the group is "handled" (✓).
       return { key, cap: task.dueAt - 3 * HOUR, moment: { kind: "dayBeforeDue", at: dayBefore(task.dueAt) }, untilChange: later && !task.group };
     }
