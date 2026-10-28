@@ -71,6 +71,17 @@ describe("the thread under the Student's answer", () => {
     expect(thread(h, BAB_I.answerId)?.messages.map((m) => m.html)).toContain("<p>Tambahkan sumber.</p>");
   });
 
+  it("is read at once when the Task page asks, so a message written elsewhere shows; asked again a moment later, not read twice", async () => {
+    const h = await signedIn("2026-10-08T08:00:00+07:00");
+    // Written on the website, from another computer: nothing about the answer changes.
+    h.world.edunex.comment(BAB_I.taskId, "<p>Sudah saya perbaiki, Bu.</p>", "STUDENT");
+    const before = reads(h.world, BAB_I.answerId);
+    await h.engine.act("edunex", "readThread", { taskId: BAB_I.taskId });
+    expect(thread(h, BAB_I.answerId)?.messages.at(-1)?.html).toBe("<p>Sudah saya perbaiki, Bu.</p>");
+    await h.engine.act("edunex", "readThread", { taskId: BAB_I.taskId });
+    expect(reads(h.world, BAB_I.answerId)).toBe(before + 1);
+  });
+
   it("a file whose link can't be decoded is named by the link as it is, and the rest of the thread still reads", async () => {
     const h = await signedIn("2026-09-23T08:00:00+07:00");
     const file = "https://storage.edunex.itb.ac.id/edunex/fixture-comment/Revisi%E0.pdf";

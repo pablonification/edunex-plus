@@ -89,7 +89,7 @@ responses in `test/fixtures/edunex/` (file names mirror the request path and que
 | `edunex.materials` (also the course outline) | 1 h ± 6 min | `/course/courses/{id}`, `/gradebook` (only once published), `/course/contents/` per course and per module |
 | `edunex.announcements` | 1 h ± 6 min | `/course/announcements/course/{id}` |
 | `edunex.exams` | 3 h ± 18 min | `/exam/exams` per course |
-| `edunex.taskThreads` | 15 min ± 2 min, and after each `edunex.tasks` run; not on a manual refresh | `/course/comments` per answer, only where it's due: at once once the answer changed (handed in, handed back, reviewed), hourly while its Task takes answers or something happened to it in the last 3 weeks, otherwise never |
+| `edunex.taskThreads` | 15 min ± 2 min, and after each `edunex.tasks` run; not on a manual refresh | `/course/comments` per answer, only where it's due: at once once the answer changed (handed in, handed back, reviewed), hourly while its Task takes answers or something happened to it in the last 3 weeks, otherwise never; and one answer's thread when its Task page opens or the window comes back to it (at most every 30 s), as the website reads it on each visit |
 
 Source: `feeds.ts`, `notifications.ts`, `tasks.ts`, `task-threads.ts`, `course-page.ts`; scheduling in
 `src/engine/sync/scheduler.ts`. Feeds start 0.5 s apart; sign-in and the manual refresh run
