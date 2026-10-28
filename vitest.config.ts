@@ -11,5 +11,7 @@ export default defineConfig({
     // The report relay (relay/) runs its own tests here too, on Node, without Cloudflare.
     include: ["test/**/*.test.ts", "test/**/*.test.tsx", "relay/test/**/*.test.ts"],
     environment: "node",
+    // Electron's fs without its .asar handling; plain Node's fs never had it.
+    alias: { "original-fs": "node:fs" },
   },
 });

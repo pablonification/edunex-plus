@@ -83,11 +83,14 @@ export function chunker(onChunk: (chunk: Chunk) => void) {
   };
 }
 
-/** Every chunk of a file on disk, read a piece at a time: the main process stays free in between. */
-export async function cutFile(file: string): Promise<Chunk[]> {
+/**
+ * Every chunk of a file on disk, read a piece at a time: the main process stays free in between. `read`
+ * opens it (the app passes original-fs's, so an app.asar is read as the file it is).
+ */
+export async function cutFile(file: string, read: typeof createReadStream = createReadStream): Promise<Chunk[]> {
   const chunks: Chunk[] = [];
   const cutter = chunker((chunk) => chunks.push(chunk));
-  for await (const piece of createReadStream(file, { highWaterMark: 1024 * 1024 })) cutter.push(piece as Buffer);
+  for await (const piece of read(file, { highWaterMark: 1024 * 1024 })) cutter.push(piece as Buffer);
   cutter.end();
   return chunks;
 }

@@ -3,11 +3,13 @@
 // release's latest*.yml gives for it, the only hosts a download may come from
 // or be sent on to, where a Mac app can be replaced, and the plan main follows
 // (download, check, wait for the Student, install).
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import type { UpdateInstall, UpdateNotice } from "../../src/core/models";
 import {
   createUpdater,
   downloadOf,
+  filesListedIn,
   followAutoUpdates,
   isDownloadUrl,
   isPlainFileName,
@@ -109,6 +111,28 @@ describe("the file a Mac downloads", () => {
   it("is the zip, checked by its size only, in a release without latest-mac.yml (an older one), and none when the yml lists neither", () => {
     expect(downloadOf({ file: zip, smaller: tarXz, info: null }, null)).toEqual({ file: zip, sha512: null });
     expect(downloadOf({ file: zip, smaller: tarXz, info: null }, listing())).toBeNull();
+  });
+});
+
+describe("the files latest*.yml lists", () => {
+  const notice: UpdateNotice = { version: "1.2.0", url: "https://github.com/pablonification/edunex-plus/releases/tag/v1.2.0" };
+
+  it("are each listed file with its size, at the release's download address", () => {
+    const yml = [
+      "version: 1.2.0",
+      "files:",
+      "  - url: Edunex-Plus-1.2.0-arm64-mac.zip",
+      `    sha512: ${SHA}`,
+      "    size: 100",
+      "  - url: 'Edunex-Plus-1.2.0-arm64-mac.tar.xz'",
+      `    sha512: ${OTHER_SHA}`,
+      "    size: 80",
+      "  - url: ../elsewhere.zip",
+      "    size: 5",
+      "path: Edunex-Plus-1.2.0-arm64-mac.zip",
+      "size: 999",
+    ].join("\n");
+    expect(filesListedIn(yml, notice)).toEqual([file("Edunex-Plus-1.2.0-arm64-mac.zip", 100), file("Edunex-Plus-1.2.0-arm64-mac.tar.xz", 80)]);
   });
 });
 
@@ -316,6 +340,63 @@ describe("the update plan", () => {
     expect(tries).toBe(2);
   });
 
+  it("by itself, tries a failed download again once the connection is back, but never a file that didn't match", async () => {
+    let tries = 0;
+    let online = false;
+    const { updater, sent, settled } = setUp({
+      api: async () => {
+        tries++;
+        if (!online) throw new Error("net::ERR_NETWORK_ACCESS_DENIED");
+        return answer;
+      },
+      text: async () => {
+        if (!online) throw new Error("net::ERR_NETWORK_ACCESS_DENIED");
+        return yml;
+      },
+    });
+    await updater.fetch();
+    await settled();
+    expect(sent.at(-1)).toMatchObject({ step: "failed", problem: "failed" });
+    online = true;
+    await updater.fetch(true);
+    await settled();
+    expect(tries).toBe(2);
+    expect(sent.at(-1)).toMatchObject({ step: "ready", version: "1.2.0" });
+
+    const wrong = setUp({ download: async () => ({ path: "/tmp/x.zip", sha512: OTHER_SHA, size: 100 }) });
+    await wrong.updater.fetch();
+    await wrong.settled();
+    expect(wrong.sent.at(-1)).toMatchObject({ step: "failed", problem: "mismatch" });
+    const before = wrong.sent.length;
+    await wrong.updater.fetch(true);
+    await wrong.settled();
+    expect(wrong.sent.length).toBe(before);
+  });
+
+  it("follows the newest release found: an older download still finishing never says how it went over the newer one", async () => {
+    const newer: UpdateNotice = { version: "1.3.0", url: "https://github.com/pablonification/edunex-plus/releases/tag/v1.3.0" };
+    let found = notice;
+    let finishOlder: () => void = () => undefined;
+    const { updater, sent, installed, settled } = setUp({
+      notice: () => found,
+      unpack: async (_archive, _kind, version) => {
+        if (version === "1.2.0") await new Promise<void>((resolve) => (finishOlder = resolve));
+        return `/tmp/app/${version}.app`;
+      },
+    });
+    await updater.fetch();
+    await settled();
+    found = newer;
+    await updater.fetch();
+    await settled();
+    expect(sent.at(-1)).toMatchObject({ step: "ready", version: "1.3.0" });
+    finishOlder();
+    await settled();
+    expect(sent.at(-1)).toMatchObject({ step: "ready", version: "1.3.0" });
+    await updater.install();
+    expect(installed).toEqual(["/tmp/app/1.3.0.app"]);
+  });
+
   it("downloads once when asked twice at the same moment (at start, and the release just found), so its bar only goes forward", async () => {
     let downloads = 0;
     const { updater, sent, settled } = setUp({
@@ -468,6 +549,46 @@ describe("the update plan", () => {
     expect(sent.at(-1)).toMatchObject({ step: "failed", problem: "offline" });
   });
 
+  it("reads the release's files from its update info when GitHub's API refuses (too many questions from a shared address)", async () => {
+    const asked: string[] = [];
+    const downloaded: string[] = [];
+    const { updater, sent, settled } = setUp({
+      api: async () => {
+        throw new Error("GitHub answered 403");
+      },
+      text: async (url) => {
+        asked.push(url);
+        return yml;
+      },
+      download: async (picked) => {
+        downloaded.push(picked.url);
+        return { path: "/tmp/x.zip", sha512: SHA, size: 100 };
+      },
+    });
+    await updater.fetch();
+    await settled();
+    expect(asked.every((url) => url === `${RELEASE}/latest-mac.yml`)).toBe(true);
+    expect(downloaded).toEqual([zip.url]);
+    expect(sent.at(-1)).toMatchObject({ step: "ready", version: "1.2.0" });
+  });
+
+  it("without a connection, doesn't try the update info instead of the API", async () => {
+    let read = 0;
+    const { updater, sent, settled } = setUp({
+      api: async () => {
+        throw new Error("net::ERR_INTERNET_DISCONNECTED");
+      },
+      text: async () => {
+        read++;
+        return yml;
+      },
+    });
+    await updater.fetch();
+    await settled();
+    expect(read).toBe(0);
+    expect(sent.at(-1)).toMatchObject({ step: "failed", problem: "offline" });
+  });
+
   it("opens the release page instead when this copy can't update itself", async () => {
     const { updater, opened, sent } = setUp({ way: async () => ({ blocked: "deb" }) });
     expect(await updater.download()).toMatchObject({ blocked: "deb", step: "idle" });
@@ -490,7 +611,7 @@ describe('"Perbarui otomatis"', () => {
     return {
       done,
       updater: {
-        fetch: async () => void done.push("fetch"),
+        fetch: async (again?: boolean) => void done.push(again ? "fetch again" : "fetch"),
         installOnQuit: async () => {
           done.push("installOnQuit");
           return true;
@@ -521,5 +642,28 @@ describe('"Perbarui otomatis"', () => {
     on = true;
     auto.onEvent({ type: "settings", settings: { autoUpdate: true } } as never);
     expect(done).toEqual(["fetch"]);
+  });
+
+  it("tries a failed download again when the connection comes back, once each time", () => {
+    const { updater, done } = fake();
+    const auto = followAutoUpdates(updater, () => true);
+    const status = (state: string) => ({ type: "status", status: { source: "edunex", state } }) as never;
+    auto.onEvent(status("live"));
+    auto.onEvent(status("offline"));
+    auto.onEvent(status("offline"));
+    auto.onEvent(status("live"));
+    auto.onEvent(status("live"));
+    expect(done).toEqual(["fetch again"]);
+  });
+});
+
+describe("the update's files on disk", () => {
+  it("go through original-fs: Electron's own fs takes an app.asar for a folder, and can't remove a downloaded app", () => {
+    for (const file of ["src/desktop/updater.ts", "src/desktop/partial-update.ts"]) {
+      const source = readFileSync(file, "utf8");
+      // Types alone are fine: nothing is read through them.
+      expect(source, file).not.toMatch(/^import (?!type )[^;]*from "(node:)?fs(\/promises)?";/m);
+      expect(source, file).toContain('from "original-fs"');
+    }
   });
 });

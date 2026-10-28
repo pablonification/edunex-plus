@@ -15,9 +15,11 @@
 // by the sha512 latest-mac.yml lists), then as an unpacked app is. When anything doesn't line up, or
 // most of the file would be downloaded anyway, ./self-update.ts downloads the whole file instead.
 import { createHash } from "node:crypto";
-import fsp, { type FileHandle } from "node:fs/promises";
+import type { FileHandle } from "node:fs/promises";
 import path from "node:path";
 import { brotliDecompressSync } from "node:zlib";
+// Electron's own fs reads an .asar file as a folder: the app's app.asar would be read as the files in it, not as itself.
+import { createReadStream, promises as fsp } from "original-fs";
 import { type ChunkMap, chunkMapName, chunkPackName, cutFile, macAppName, parseChunkMap } from "./chunks";
 import { type Arch, isPlainFileName, isReleaseFileUrl, MismatchError, type ReleaseFile, sha512From, type UpdateKind } from "./self-update";
 
@@ -163,7 +165,7 @@ export function planDownload(map: ChunkMap, have: (sha256: string) => boolean): 
 async function haveChunks(files: string[]): Promise<Map<string, { file: string; offset: number }>> {
   const have = new Map<string, { file: string; offset: number }>();
   for (const file of files) {
-    for (const chunk of await cutFile(file)) if (!have.has(chunk.sha256)) have.set(chunk.sha256, { file, offset: chunk.offset });
+    for (const chunk of await cutFile(file, createReadStream)) if (!have.has(chunk.sha256)) have.set(chunk.sha256, { file, offset: chunk.offset });
   }
   return have;
 }
