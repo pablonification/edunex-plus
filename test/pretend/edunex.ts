@@ -24,6 +24,8 @@ export type Breakage =
 
 interface Fault {
   path: RegExp;
+  /** Only requests with this method (default: any). */
+  method?: string;
   status?: number;
   breakage?: Breakage;
   times: number;
@@ -56,6 +58,8 @@ export class PretendEdunex {
   activeAnnouncements: Json[] = edunexJson("/course/announcements");
   readonly exams = new Map<number, Json[]>();
   readonly gradebooks = new Map<string, Json>();
+  /** The comment thread under each answer, by answer id (/course/comments, `commentable_type` "task_answer"). */
+  readonly comments = new Map<number, Json[]>();
   todo: Json = edunexJson("/todo");
   agenda: Json[] = edunexJson(/^\/course\/agenda$/);
   lptk: Json = edunexJson(/^\/course\/lptks\/\d+$/);
@@ -98,6 +102,7 @@ export class PretendEdunex {
       const annOf = /^\/course\/announcements\/course\/(\d+)$/.exec(ex.path);
       if (annOf) this.announcements.set(Number(annOf[1]), edunexJson(ex.path, q));
       if (ex.path === "/exam/exams") this.exams.set(Number(q["filter[course_id][is]"]), edunexJson<Json>(ex.path, q).data);
+      if (ex.path === "/course/comments") this.comments.set(Number(q["filter[commentable_id][is]"]), edunexJson<Json>(ex.path, q).data);
       if (ex.path === "/gradebook") this.gradebooks.set(`${q.course_id}:${q.class_id ?? ""}`, edunexJson(ex.path, q));
     }
     this.singleTaskTemplate = edunexJson(/^\/course\/tasks\/\d+$/);
@@ -210,6 +215,50 @@ export class PretendEdunex {
     const task = this.task(taskId);
     const now = wib(this.clock.now()).replace("T", " ").slice(0, 19);
     task.attributes.answers = task.attributes.answers.map((a: Json) => (a.is_sent ? { ...a, verified_at: now, verified_by: 900002 } : a));
+  }
+
+  /**
+   * The lecturer hands the answer back to work on again: their page's "Revision Request" sends `{ is_sent: 0, comment }`
+   * (the note they had written, if any). What Edunex then holds is the recorded answer 2798141
+   * (course-tasks.include-classes-answers.json): unsent, the first hand-in's `sent_at` kept, `verified_at` and
+   * `updated_at` at that moment, `sent_by` the lecturer.
+   */
+  handBack(taskId: number, comment?: string): void {
+    const task = this.task(taskId);
+    const now = wib(this.clock.now()).replace("T", " ").slice(0, 19);
+    task.attributes.answers = task.attributes.answers.map((a: Json) =>
+      a.is_sent ? { ...a, is_sent: 0, comment: comment ?? a.comment, verified_at: now, updated_at: now, sent_by: 900002 } : a,
+    );
+  }
+
+  /** The lecturer grades the handed-in answer with a note ("Save Result" sends the score and `comment` together). */
+  gradeWithNote(taskId: number, score: number, comment: string): void {
+    const task = this.task(taskId);
+    const now = wib(this.clock.now()).replace("T", " ").slice(0, 19);
+    task.attributes.show_score = 1;
+    task.attributes.answers = task.attributes.answers.map((a: Json) => (a.is_sent ? { ...a, score, comment, verified_at: now, verified_by: 900002 } : a));
+  }
+
+  /**
+   * Someone writes in the thread under the Student's answer to a Task (the handed-in one, else the latest): the
+   * lecturer by default, or the Student on the website. A copy of a recorded message of the same kind, with its time.
+   */
+  comment(taskId: number, html: string, by: "LECTURER" | "STUDENT" = "LECTURER", files: Json[] = []): number {
+    const answers = this.task(taskId).attributes.answers;
+    const latest = (a: Json) => Date.parse(String(a.updated_at ?? "")) || 0;
+    const answer = answers.find((a: Json) => a.is_sent) ?? [...answers].sort((x: Json, y: Json) => latest(y) - latest(x))[0];
+    if (!answer) throw new Error(`Task ${taskId} has no answer to write under`);
+    return Number(this.addComment(Number(answer.id), html, by, files).id);
+  }
+
+  /** A message under an answer, a copy of a recorded one by the same kind of person, written now. */
+  private addComment(answerId: number, html: string, by: "LECTURER" | "STUDENT", files: Json[] = []): Json {
+    const template = [...this.comments.values()].flat().find((c) => c.attributes.user.level === by);
+    const message = structuredClone(template);
+    message.id = String(this.nextId++);
+    Object.assign(message.attributes, { commentable_id: answerId, comment: html, files, created_at: wib(this.clock.now()), updated_at: wib(this.clock.now()) });
+    this.comments.set(answerId, [...(this.comments.get(answerId) ?? []), message]);
+    return message;
   }
 
   /** The Student saves a draft on the Edunex website (outside the app): an answer that isn't sent, with text as its editor writes it. */
@@ -345,9 +394,9 @@ export class PretendEdunex {
     this.sessionValid = false;
   }
 
-  /** Answer `status` for matching paths, `times` times (default: until cleared). */
-  fail(path: RegExp, status: number, times = Number.POSITIVE_INFINITY): void {
-    this.faults.push({ path, status, times });
+  /** Answer `status` for matching paths (and `method`, if given), `times` times (default: until cleared). */
+  fail(path: RegExp, status: number, times = Number.POSITIVE_INFINITY, method?: string): void {
+    this.faults.push({ path, status, times, method });
   }
 
   /** Mangle the real response for matching paths: what a vendor change looks like. */
@@ -369,7 +418,7 @@ export class PretendEdunex {
   handle(request: HttpRequest, url: URL): HttpResponse {
     const path = url.pathname.replace(/\/+$/, "") || "/";
     const q = Object.fromEntries(url.searchParams);
-    const fault = this.faults.find((f) => f.path.test(path) && f.times > 0);
+    const fault = this.faults.find((f) => f.path.test(path) && (!f.method || f.method === request.method) && f.times > 0);
     if (fault) fault.times -= 1;
     if (fault?.status) return fault.status === 503 ? html(503, MAINTENANCE_HTML, url) : json(fault.status, { message: "error" }, url);
 
@@ -398,6 +447,17 @@ export class PretendEdunex {
     if (path === "/course/agenda") return this.agenda;
     if ((m = /^\/course\/lptks\/(\d+)$/.exec(path))) return this.lptk;
     if (path === "/course/presences/list") return this.pairs;
+    if (path === "/course/comments") {
+      const thread = (this.comments.get(Number(q["filter[commentable_id][is]"])) ?? []).filter(
+        (c) => c.attributes.commentable_type === q["filter[commentable_type][is]"],
+      );
+      // As the website asks: newest first.
+      return page(
+        [...thread].sort((a, b) => String(b.attributes.created_at).localeCompare(String(a.attributes.created_at))),
+        q,
+        path,
+      );
+    }
     if (path === "/course/courses") return this.myCourses;
     if ((m = /^\/course\/courses\/(\d+)$/.exec(path)))
       return found((q.include ? this.courseDetail : this.coursePlain).get(Number(m[1])) ?? this.courseDetail.get(Number(m[1])));
@@ -437,6 +497,20 @@ export class PretendEdunex {
     this.writes.push({ method: request.method, path, body });
     const now = wib(this.clock.now()).replace("T", " ").slice(0, 19);
     let m: RegExpExecArray | null;
+    // The website's comment box, as the Student: under one of their answers, with text.
+    if (request.method === "POST" && path === "/course/comments") {
+      const answerId = Number(body.commentable_id);
+      const exists = [...this.tasks.values()].flat().some((task) => task.attributes.answers.some((a: Json) => Number(a.id) === answerId));
+      if (
+        body.commentable_type !== "task_answer" ||
+        !exists ||
+        !String(body.comment ?? "")
+          .replace(/<[^>]*>/g, "")
+          .trim()
+      )
+        throw new Refused();
+      return { data: this.addComment(answerId, String(body.comment), "STUDENT") };
+    }
     if (request.method === "POST" && path === "/course/task/answers") {
       const task = this.task(Number(body.task_id));
       if (!takesAnswers(this.asOfNow(task), this.clock.now()) || !hasText(body)) throw new Refused();

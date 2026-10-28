@@ -22,7 +22,7 @@ const frame = () => act(() => new Promise<void>((resolve) => requestAnimationFra
 const section = (id: string) => document.querySelector(`main section[aria-labelledby="${id}"]`);
 const needsRow = (title: string) => [...(section("home-needs")?.querySelectorAll("li") ?? [])].find((li) => li.textContent?.startsWith(title))?.textContent;
 const article = () => document.querySelector("main article")?.textContent ?? "";
-const history = () => document.querySelector("main aside ol");
+const history = () => document.querySelector("main section[aria-labelledby=task-history] ol");
 const goToTask = async (title: string) => {
   const s = screen!;
   await s.click(/^(Tugas & Ujian|Tasks & Exams)\d*(, (Perlu perhatianmu|Needs you))?$/);

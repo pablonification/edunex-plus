@@ -495,6 +495,7 @@ const ALERT_ROWS: { group: AlertGroup; label: StringKey; hint: StringKey; six?: 
   { group: "presence", label: "settings.alerts.presence", hint: "settings.alerts.presenceHint" },
   { group: "attendanceRisk", label: "settings.alerts.attendanceRisk", hint: "settings.alerts.attendanceRiskHint", six: true },
   { group: "changes", label: "settings.alerts.changes", hint: "settings.alerts.changesHint" },
+  { group: "feedback", label: "settings.alerts.feedback", hint: "settings.alerts.feedbackHint" },
   { group: "exams", label: "settings.alerts.exams", hint: "settings.alerts.examsHint" },
   { group: "deadline", label: "settings.alerts.deadline", hint: "settings.alerts.deadlineHint" },
   { group: "newTask", label: "settings.alerts.newTask", hint: "settings.alerts.newTaskHint" },

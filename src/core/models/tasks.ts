@@ -4,8 +4,11 @@
 // in src/core/tasks.ts; what changed in each edit, in src/core/task-edits.ts.
 import { z } from "zod";
 
-/** A Task's true status, from the answer's submit bit and the Task's own dates and state. */
-export const TaskStatus = z.enum(["not_started", "draft", "submitted", "overdue", "closed", "in_review"]);
+/**
+ * A Task's true status, from the answer's submit bit and the Task's own dates and state. "returned": the
+ * lecturer handed the answer back to work on again (Edunex's "Revision Request").
+ */
+export const TaskStatus = z.enum(["not_started", "draft", "submitted", "overdue", "closed", "in_review", "returned"]);
 export type TaskStatus = z.infer<typeof TaskStatus>;
 
 /** A file on Edunex's storage: one the lecturer attached, or one in the Student's answer. */
@@ -31,6 +34,16 @@ export const TaskAnswer = z.object({
   sentAt: z.number().nullable(),
   /** When the lecturer took it up for grading (Edunex's `verified_at`). */
   reviewedAt: z.number().nullable(),
+  /**
+   * The lecturer's note on the answer (Edunex's `comment`, HTML), written with a grade or when handing it back;
+   * the Student never writes it. Missing in data saved before it was read.
+   */
+  note: z.string().nullable().optional(),
+  /**
+   * Handed back to work on again: the lecturer unsent it (Edunex's "Revision Request"), which leaves their check
+   * (`at`, Edunex's `verified_at`) and the first hand-in's time (`sentAt`). Missing in data saved before it was read.
+   */
+  handedBack: z.object({ at: z.number(), sentAt: z.number().nullable() }).nullable().optional(),
 });
 export type TaskAnswer = z.infer<typeof TaskAnswer>;
 
@@ -102,6 +115,33 @@ export const TaskEdit = z.object({
 });
 export type TaskEdit = z.infer<typeof TaskEdit>;
 
+/** One message under the Student's answer, in Edunex's comment thread on it. */
+export const TaskMessage = z.object({
+  /** Edunex's comment id. */
+  id: z.number(),
+  at: z.number().nullable(),
+  /** Who wrote it: a lecturer or assistant, the Student, or another student (a group's). */
+  from: z.enum(["lecturer", "me", "student"]),
+  name: z.string(),
+  /** HTML: shown only through the safe renderer. */
+  html: z.string(),
+  /** Files attached to it (a lecturer's marked-up copy of the answer, say). */
+  files: z.array(TaskFile),
+});
+export type TaskMessage = z.infer<typeof TaskMessage>;
+
+/** The comment thread under the Student's answer to a Task, oldest message first. */
+export const TaskThread = z.object({
+  taskId: z.number(),
+  answerId: z.number(),
+  messages: z.array(TaskMessage),
+  /** When the app last read it. */
+  readAt: z.number(),
+  /** The answer as it was when read (its last change, review and submit bit): once it changes, the thread is read again. */
+  seen: z.string(),
+});
+export type TaskThread = z.infer<typeof TaskThread>;
+
 export const tasksDatasets = {
   /** Every Task of this term's courses (and their parent classes), with the Student's answers. */
   "edunex.tasks": z.array(Task),
@@ -110,4 +150,6 @@ export const tasksDatasets = {
    * (an older app meeting a newer kind of change drops only these), and gone at sign-out like all of Edunex.
    */
   "edunex.taskEdits": z.array(TaskEdit).max(300),
+  /** The comment thread under each answer the app reads (./API.md, "Feeds and cadence"). */
+  "edunex.taskThreads": z.array(TaskThread),
 } as const;

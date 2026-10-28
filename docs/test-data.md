@@ -45,8 +45,9 @@ file contents.
 ## What the scrubber replaces
 
 - The Student: name, student number (NIM), Edunex and SIX ids, email,
-  phone, address, birth details, profile photo. Their written answers and
-  any lecturer comments on them.
+  phone, address, birth details, profile photo. Their written answers,
+  any lecturer comments on them, and the messages in the thread under an
+  answer.
 - Other people: every lecturer and assistant name (titles kept), classmates'
   student numbers in file names, staff numbers, pictures of people, the
   academic advisor's chat messages.

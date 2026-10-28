@@ -424,7 +424,7 @@ describe("the Task page", () => {
     expect(document.querySelector("article")?.textContent).toContain("Tidak bisa terlambat");
     // The exam it's part of, and how the app knows.
     expect(s.text()).toContain("Bagian dari UTS DK4073 · Edunex menandainya UTS");
-    const history = [...document.querySelectorAll("main aside ol li")].map((li) => li.textContent);
+    const history = [...document.querySelectorAll("main section[aria-labelledby=task-history] ol > li")].map((li) => li.textContent);
     // Edited before the app had a copy to compare: History says what changed isn't known.
     expect(history).toEqual(["Diunggah dosenKam, 17 Sep, 08:45", "Diubah dosenKam, 24 Sep, 11:11Perubahannya tidak diketahui", "TenggatKam, 22 Okt, 23:50"]);
     // An edit before the Student handed in that nobody can describe is history, not a warning.
@@ -484,7 +484,7 @@ describe("the Task page", () => {
     expect(card()).toContain("bab2-draf.pdf");
     expect(s.button("Kumpulkan").disabled).toBe(false);
     expect(card()).toContain("Dosen bisa melihat draf yang tersimpan");
-    const history = [...document.querySelectorAll("main aside ol li")].map((li) => li.textContent);
+    const history = [...document.querySelectorAll("main section[aria-labelledby=task-history] ol > li")].map((li) => li.textContent);
     expect(history).toContain("Kamu menyimpan drafHari ini, 08:12");
   });
 
@@ -492,7 +492,7 @@ describe("the Task page", () => {
     const s = await open();
     await goToTask(s, "Tugas tentang Imfact on Innovation");
     expect(card()).toContain("TerkumpulEdunex mencatatnya Rab, 16 Sep, 15:29");
-    expect(card()).toContain("Sudah diserahkan. Pengumpulan bersifat final.");
+    expect(card()).toContain("Sudah diserahkan. Hanya dosen yang bisa mengembalikannya.");
     expect(s.has(/^Lampirkan berkas/)).toBe(false);
     expect(s.has("Kumpulkan")).toBe(false);
     await s.click("Unduh TUGAS IMPACT ON INNOVATION THE ECONOMY - 18223901.pdf");
@@ -537,6 +537,54 @@ describe("the Task page", () => {
     expect(card()).toContain("Nilai88");
   });
 
+  it("handed back: says so, shows what the lecturer wrote, and takes it again", async () => {
+    const s = await open();
+    s.world.edunex.comment(117001, "<p>Lengkapi latar belakang.</p>");
+    s.world.edunex.handBack(117001, "<p>Perbaiki bagian 1.2.</p>");
+    await s.engineDoes(() => s.engine.refresh("edunex"));
+    // The thread is read once the Tasks are.
+    await s.wait(60_000);
+    await goToTask(s, "Tugas 01 Bab I");
+    expect(card()).toContain("Dosen meminta perbaikan");
+    expect(card()).toContain("Perbaiki jawabanmu, lalu kumpulkan lagi.");
+    // The lecturer wrote: the way to their messages, in the card under this one.
+    expect(s.has("Lihat komentar")).toBe(true);
+    expect(s.has("Kumpulkan lagi")).toBe(true);
+    // The lecturer's note is in the hand-in card, by the answer it's about.
+    expect(card()).toContain("Catatan dosenPerbaiki bagian 1.2.");
+    // The thread, oldest first: the recorded message, then the new one, each marked as the lecturer's.
+    const messages = [...document.querySelectorAll("section[aria-labelledby=task-thread] ol > li")].map((li) => li.textContent ?? "");
+    expect(messages).toHaveLength(2);
+    expect(messages.every((m) => m.includes("Dosen"))).toBe(true);
+    expect(messages[1]).toContain("Lengkapi latar belakang.");
+    // Writing back, as on Edunex: a line to click, then Kirim waits for words.
+    await s.click("Tulis komentar untuk dosen…");
+    expect(s.button("Kirim").disabled).toBe(true);
+    // Handed in, then handed back.
+    const steps = [...document.querySelectorAll("main section[aria-labelledby=task-history] ol > li")].map((li) => li.textContent ?? "");
+    expect(steps.findIndex((step) => step.startsWith("Kamu mengumpulkan"))).toBeLessThan(steps.findIndex((step) => step.startsWith("Dikembalikan dosen")));
+  });
+
+  it("a comment goes from the Task page under the answer, and shows as the Student's own", async () => {
+    const s = await open();
+    await goToTask(s, "Tugas 01 Bab I");
+    // Under the answer, as on Edunex, never in the Task's own column.
+    expect(document.querySelector("main article section[aria-labelledby=task-thread]")).toBeNull();
+    expect(card()).toContain("Komentar");
+    await s.click("Tulis komentar untuk dosen…");
+    await s.write("<p>Bu, apakah <b>Bab I</b> sudah sesuai?</p>", /^Komentarmu$/);
+    await s.click("Kirim");
+    expect(s.world.edunex.writes.filter((w) => w.path === "/course/comments").map((w) => w.body.comment)).toEqual([
+      "<p>Bu, apakah <strong>Bab I</strong> sudah sesuai?</p>",
+    ]);
+    const mine = [...document.querySelectorAll("section[aria-labelledby=task-thread] ol > li")].map((li) => li.textContent ?? "");
+    expect(mine.at(-1)).toContain("Kamu");
+    expect(mine.at(-1)).toContain("Bu, apakah Bab I sudah sesuai?");
+    // Sent: the box closes back to its line.
+    expect(s.has("Kirim")).toBe(false);
+    expect(s.has("Tulis komentar untuk dosen…")).toBe(true);
+  });
+
   it("an extended deadline shows at once, with the edit", async () => {
     const s = await open();
     await goToTask(s, "Tugas 02 Bab II");
@@ -544,7 +592,9 @@ describe("the Task page", () => {
     s.world.edunex.moveDeadline(117003, "2026-10-20T23:59:00+07:00");
     await s.engineDoes(() => s.engine.refresh("edunex"));
     expect(s.text()).toContain("Tenggat Sel, 20 Okt, 23:59");
-    expect([...document.querySelectorAll("main aside ol li")].map((li) => li.textContent)).toContain("Diubah dosenHari ini, 11:12");
+    expect([...document.querySelectorAll("main section[aria-labelledby=task-history] ol > li")].map((li) => li.textContent)).toContain(
+      "Diubah dosenHari ini, 11:12",
+    );
   });
 
   it("a short answer window says how short", async () => {

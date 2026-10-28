@@ -14,7 +14,7 @@ const HOUR = 3_600_000;
 /** A Task whose whole answer window is this short is announced at once, never grouped. */
 const SHORT_WINDOW = 12 * HOUR;
 
-const notSubmitted = (task: Task) => task.status === "not_started" || task.status === "draft";
+const notSubmitted = (task: Task) => task.status === "not_started" || task.status === "draft" || task.status === "returned";
 
 export function newTaskAlert(task: Task, now: number): AlertDraft {
   const base = { id: `task.new:${task.id}`, kind: "newTask", source: "edunex", target: { screen: "task", taskId: task.id } } as const;
@@ -63,7 +63,10 @@ export const deadlineReminders: Detector = {
       const due = task.dueAt;
       const common = { kind: "deadline", source: "edunex", target: { screen: "task", taskId: task.id } } as const;
       // Saved but not handed in: a draft the Student may think is in.
-      const body = { key: task.status === "draft" ? "alert.due.draft" : "alert.due.body", vars: { title: task.title } } as const;
+      const body = {
+        key: task.status === "returned" ? "alert.due.returned" : task.status === "draft" ? "alert.due.draft" : "alert.due.body",
+        vars: { title: task.title },
+      } as const;
       const reminders = chosen.map(
         (hours, i): PlannedAlert => ({
           ...common,

@@ -66,6 +66,7 @@ const EDUNEX_KEEP = [
   /^\/message\/unread$/,
   /^\/todo$/,
   /^\/course\/agenda$/,
+  /^\/course\/comments$/,
 ];
 /** The open-course catalog lists every lecturer on campus; the app doesn't need it. */
 const EDUNEX_DROP_QUERY = ["filter[is_open][is]"];
@@ -312,7 +313,7 @@ const slug = (text) =>
     .slice(0, 80);
 const queryLabel = (query) => {
   const parts = Object.entries(query)
-    .filter(([k]) => /course_id|class_id|contentable|page\[offset\]|date|type\]\[in|^include$/.test(k))
+    .filter(([k]) => /course_id|class_id|contentable|commentable_id|page\[offset\]|date|type\]\[in|^include$/.test(k))
     .map(([k, v]) => `${k.replace(/^filter\[|\]\[(is|in)\]$|\]/g, "").replace(/\[/g, "-")}-${v}`);
   return parts.length ? `.${slug(parts.join("."))}` : "";
 };

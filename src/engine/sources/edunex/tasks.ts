@@ -54,6 +54,8 @@ export function registerTaskFeeds(context: SourceContext, client: EdunexClient):
       const latest = context.get("edunex.tasks") ?? [];
       const tasks = named.flatMap((task) => ((log.tasks.get(task.id) ?? 0) > begun ? latest.filter((kept) => kept.id === task.id) : [task]));
       await storeTasks(context, tasks);
+      // The threads under the answers just read: one handed in, handed back or reviewed is read at once (./task-threads.ts).
+      void context.runNow((feed) => feed === "edunex.taskThreads");
       if (failure) throw failure;
     },
   });

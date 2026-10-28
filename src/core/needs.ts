@@ -192,7 +192,7 @@ export type NeedFacts =
     }
   | ({ kind: "class" } & ClassFacts)
   /** `editAt`, for "edited": the edit it's about (the newest that changed something). */
-  | { kind: "task"; task: Task; reason: "overdue" | "short" | "due" | "edited"; draft: boolean; editAt?: number | null }
+  | { kind: "task"; task: Task; reason: "returned" | "overdue" | "short" | "due" | "edited"; draft: boolean; editAt?: number | null }
   | { kind: "attendance"; health: AttendanceHealth }
   | {
       kind: "meeting";
@@ -278,7 +278,7 @@ export function needsRange(world: HomeWorld | HomeContext): NeedsRange {
   const until = rangeEnd(context);
   const toHandIn = context.tasks.flatMap((task) => {
     const status = taskStatus(task, now);
-    return (status === "not_started" || status === "draft") && task.dueAt !== null ? [task.dueAt] : [];
+    return (status === "not_started" || status === "draft" || status === "returned") && task.dueAt !== null ? [task.dueAt] : [];
   });
   const listed = [...examProvider.needs(context), ...academicProvider.needs(context)].flatMap((need) => (need.at === null ? [] : [need.at]));
   const due = [...toHandIn, ...listed].filter((at) => at > now && at < until);
@@ -560,6 +560,8 @@ export function taskNeed(task: Task, now: number, edits?: readonly TaskEdit[], u
   }
   if (!isOpenStatus(status) || notOpenYet(task, now) || !takesAnswers(task, now)) return null;
   const draft = status === "draft";
+  // Handed back: the lecturer wants it again, so it's now, late or not.
+  if (status === "returned") return { ...base, id: `task:${task.id}`, band: "now", reason: "returned", draft: false };
   if (status === "overdue") return { ...base, id: `task:${task.id}`, band: "now", reason: "overdue", draft };
   if (task.dueAt === null) return null;
   const left = task.dueAt - now;
@@ -837,7 +839,18 @@ function usualVars(session: ClassSession, change: SlotChange): { usualId: string
 }
 
 /** Alert kinds that are changes (not reminders): what "What changed" lists from the history. */
-const CHANGE_KINDS: ReadonlySet<AlertKind> = new Set(["newTask", "newMaterial", "taskEdited", "scheduleChanged", "meeting", "exam", "grade", "krs"]);
+const CHANGE_KINDS: ReadonlySet<AlertKind> = new Set([
+  "newTask",
+  "newMaterial",
+  "taskEdited",
+  "taskHandedBack",
+  "taskComment",
+  "scheduleChanged",
+  "meeting",
+  "exam",
+  "grade",
+  "krs",
+]);
 
 /** The id the change alert and the change list share for a Task edit. */
 export const taskEditedId = (task: Pick<Task, "id" | "editedAt">) => `task.edited:${task.id}:${task.editedAt}`;

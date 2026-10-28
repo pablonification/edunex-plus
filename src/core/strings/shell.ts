@@ -234,6 +234,7 @@ export const shellStrings = {
   "taskStatus.overdue": { id: "Terlambat", en: "Overdue" },
   "taskStatus.closed": { id: "Ditutup", en: "Closed" },
   "taskStatus.in_review": { id: "Sedang dinilai", en: "In review" },
+  "taskStatus.returned": { id: "Dikembalikan", en: "Handed back" },
 
   // Time words
   "time.today": { id: "Hari ini", en: "Today" },
