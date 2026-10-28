@@ -245,7 +245,8 @@ export class PretendEdunex {
    */
   comment(taskId: number, html: string, by: "LECTURER" | "STUDENT" = "LECTURER", files: Json[] = []): number {
     const answers = this.task(taskId).attributes.answers;
-    const answer = answers.find((a: Json) => a.is_sent) ?? answers[answers.length - 1];
+    const latest = (a: Json) => Date.parse(String(a.updated_at ?? "")) || 0;
+    const answer = answers.find((a: Json) => a.is_sent) ?? [...answers].sort((x: Json, y: Json) => latest(y) - latest(x))[0];
     if (!answer) throw new Error(`Task ${taskId} has no answer to write under`);
     return Number(this.addComment(Number(answer.id), html, by, files).id);
   }

@@ -69,6 +69,10 @@ describe("what brings a snoozed item back", () => {
     const again = need(needsYou(h.home()), "task:117001");
     expect(again.id).toBe(first.id);
     expect(snoozeKey(again).facts).not.toBe(snoozeKey(first).facts);
+    // Late answers allowed again (past its deadline, the difference between handed back and closed): news too.
+    if (again.kind !== "task") throw new Error("Not a Task");
+    const lateAgain = { ...again, task: { ...again.task, lateAllowed: !again.task.lateAllowed } };
+    expect(snoozeKey(lateAgain).facts).not.toBe(snoozeKey(again).facts);
   });
 
   it("a Task whose Presence window is optional (its course counts in SIX): its own item, held through a refresh, back when the deadline moves", async () => {

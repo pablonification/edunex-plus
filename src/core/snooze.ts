@@ -68,7 +68,8 @@ export function snoozeKey(need: NeedDraft): SnoozeKey {
     case "task":
       if (need.reason === "edited") return { id: need.id, facts: facts("edited", need.task.editedAt) };
       // Handed back again later is news, whatever was put off before.
-      if (need.reason === "returned") return { id: need.id, facts: facts("returned", need.task.answer?.handedBack?.at, need.task.dueAt, need.task.closed) };
+      if (need.reason === "returned")
+        return { id: need.id, facts: facts("returned", need.task.answer?.handedBack?.at, need.task.dueAt, need.task.lateAllowed, need.task.closed) };
       return { id: need.id, facts: facts(need.reason, urgent, need.task.dueAt, need.task.lateAllowed, need.task.closed) };
     case "exam":
       return {
