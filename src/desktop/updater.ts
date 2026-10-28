@@ -5,11 +5,12 @@
 // has quit.
 import { execFile, spawn } from "node:child_process";
 import { createHash } from "node:crypto";
-import fs from "node:fs";
-import fsp from "node:fs/promises";
 import path from "node:path";
 import { promisify } from "node:util";
 import { app, type IncomingMessage, net, type Session, shell } from "electron";
+// Electron's own fs takes an .asar file for a folder: it can't remove a downloaded app (its app.asar
+// "isn't empty"), so a second update after one was ready failed for good. original-fs is fs without that.
+import fs, { promises as fsp } from "original-fs";
 import type { UpdateInstall, UpdateNotice } from "../core/models";
 import { errorLine } from "../engine/app-log";
 import { downloadPartial, isRangeAnswer } from "./partial-update";
