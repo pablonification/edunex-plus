@@ -120,6 +120,7 @@ export const tasksStrings = {
   "task.thread.lecturer": { id: "Dosen", en: "Lecturer" },
   "task.thread.me": { id: "Kamu", en: "You" },
   "task.thread.label": { id: "Komentarmu", en: "Your comment" },
+  "task.thread.see": { id: "Lihat komentar", en: "See comments" },
   "task.thread.placeholder": { id: "Tulis komentar untuk dosen…", en: "Write a comment to your lecturer…" },
   "task.thread.send": { id: "Kirim", en: "Send" },
   "task.thread.empty": { id: "Belum ada komentar. Dosen membaca komentarmu di Edunex.", en: "No comments yet. Your lecturer reads yours on Edunex." },

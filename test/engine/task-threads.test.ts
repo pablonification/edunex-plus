@@ -32,7 +32,7 @@ describe("the thread under the Student's answer", () => {
     const h = await signedIn("2026-10-08T08:00:00+07:00");
     h.world.edunex.comment(BAB_I.taskId, "<p>Sudah saya perbaiki, Bu.</p>", "STUDENT");
     h.world.edunex.comment(BAB_I.taskId, "<p>Lihat catatan di berkas.</p>", "LECTURER", [
-      { name: "bab1-catatan.pdf", file: "https://edunexfixture.blob.core.windows.net/edunex/c1" },
+      { name: "bab1-catatan.pdf", file: "https://edunexfixture.blob.core.windows.net/edunex/fixture-c1" },
     ]);
     h.world.edunex.handBack(BAB_I.taskId);
     await h.engine.refresh("edunex");
@@ -40,7 +40,10 @@ describe("the thread under the Student's answer", () => {
     expect(thread(h, BAB_I.answerId)?.messages).toEqual([
       { id: 99136, at: Date.parse("2026-09-22T20:59:02+07:00"), from: "lecturer", name: "Dr. Fajar Yuliana, S.T., M.T.", html: "<p>Komentar.</p>", files: [] },
       expect.objectContaining({ from: "me", html: "<p>Sudah saya perbaiki, Bu.</p>" }),
-      expect.objectContaining({ from: "lecturer", files: [{ name: "bab1-catatan.pdf", url: "https://edunexfixture.blob.core.windows.net/edunex/c1" }] }),
+      expect.objectContaining({
+        from: "lecturer",
+        files: [{ name: "bab1-catatan.pdf", url: "https://edunexfixture.blob.core.windows.net/edunex/fixture-c1" }],
+      }),
     ]);
     // Only answers have threads: a Task not started has none to read.
     expect(h.world.log.filter((r) => new URL(r.url).pathname === "/course/comments").length).toBeGreaterThan(0);

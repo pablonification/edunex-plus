@@ -42,7 +42,7 @@ import { type TermCourse, useCourseColor, useTermCourses } from "../courses";
 import { useOpenExternal } from "../hooks";
 import { type Format, type Translate, useFormat, useNow, useT } from "../i18n";
 import { LecturerHtml } from "../lecturer-html";
-import { initials } from "../names";
+import { bareName, initials } from "../names";
 import { type Route, useNav } from "../nav";
 import { OpenFile, useDownloadedToast, useLocalCopy } from "../open-file";
 import { canView, isPdfName, useAnswerAttach, usePdfViewer } from "../pdf";
@@ -749,8 +749,6 @@ function TaskPage({ task }: { task: Task }) {
 
         <Notes task={task} />
         <EditNotice task={task} onSee={(at) => setReveal((was) => ({ at, asked: (was?.asked ?? 0) + 1 }))} />
-        {/* Handed back: what the lecturer said comes first. Otherwise it follows the Task, as on Edunex. */}
-        {status === "returned" && <Feedback task={task} />}
 
         <section className="mt-8" aria-labelledby="task-instructions">
           <h2 id="task-instructions" className="mb-2.5 text-title font-semibold">
@@ -777,12 +775,12 @@ function TaskPage({ task }: { task: Task }) {
             </ul>
           </section>
         )}
-        {status !== "returned" && <Feedback task={task} />}
+        <History task={task} reveal={reveal} />
       </article>
 
       <aside className="space-y-4 self-start min-[1100px]:sticky min-[1100px]:top-6">
         <HandIn key={task.id} task={task} status={status} />
-        <History task={task} reveal={reveal} />
+        <Thread key={`thread:${task.id}`} task={task} />
       </aside>
     </Page>
   );
@@ -874,76 +872,79 @@ function Notes({ task }: { task: Task }) {
   );
 }
 
+/** The lecturer's note on the answer (with a grade, or handing it back), in the hand-in card by the answer it's about. */
+function LecturerNote({ task }: { task: Task }) {
+  const t = useT();
+  const note = task.answer?.note ?? null;
+  if (!note) return null;
+  return (
+    <figure className="rounded-lg bg-fill px-3 py-2">
+      <figcaption className="mb-0.5 text-caption text-muted">{t("task.note.title")}</figcaption>
+      <LecturerHtml html={note} className="text-small leading-relaxed" />
+    </figure>
+  );
+}
+
 /**
- * What the lecturer wrote about the Student's answer, as Edunex's own Task page shows it under the answer: the note on
- * it (written with a grade, or when handing it back), then the thread, oldest message first, where the Student writes
- * back. Any personal Task with an answer has a thread (a group's is the group's, on Edunex).
+ * The thread under the Student's answer, as Edunex shows it under the answer: oldest message first, the lecturer marked
+ * so, the Student as "Kamu", and a box to write back. Any personal Task with an answer has one (a group's is on Edunex).
  */
-function Feedback({ task }: { task: Task }) {
+function Thread({ task }: { task: Task }) {
   const t = useT();
   const answerId = task.answer?.id;
   const thread = useDataset("edunex.taskThreads")?.find((kept) => kept.answerId === answerId);
-  const note = task.answer?.note ?? null;
   if (answerId === undefined || task.group) return null;
   const messages = thread?.messages ?? [];
   return (
-    <section className="mt-8" aria-labelledby="task-thread">
-      {note && (
-        <div className="mb-6 rounded-xl border border-edge bg-surface px-4 py-3.5 shadow-card">
-          <h2 className="mb-1.5 flex items-center gap-2 text-body font-semibold">
-            <Icons.StickyNote className="size-4 shrink-0 text-muted" />
-            {t("task.note.title")}
-          </h2>
-          <LecturerHtml html={note} className="text-body leading-relaxed" />
-        </div>
-      )}
-      <h2 id="task-thread" className="mb-2.5 flex items-baseline gap-2 text-title font-semibold">
-        {t("task.thread.title")}
-        {messages.length > 0 && <span className="text-body font-normal text-muted tabular-nums">{messages.length}</span>}
-      </h2>
-      <div className="overflow-hidden rounded-xl border border-edge bg-surface shadow-card">
+    <Card>
+      <section className="p-4" aria-labelledby="task-thread">
+        <h2 id="task-thread" className="flex items-baseline gap-1.5 text-body font-semibold">
+          {t("task.thread.title")}
+          {messages.length > 0 && <span className="font-normal text-muted tabular-nums">{messages.length}</span>}
+        </h2>
         {messages.length > 0 ? (
-          <ol className="divide-y divide-line">
+          <ol className="mt-3 space-y-3.5">
             {messages.map((message) => (
               <Message key={message.id} message={message} taskId={task.id} />
             ))}
           </ol>
         ) : (
-          <p className="px-4 py-3.5 text-body text-muted">{t("task.thread.empty")}</p>
+          <p className="mt-1 text-small text-muted">{t("task.thread.empty")}</p>
         )}
         <CommentBox taskId={task.id} />
-      </div>
-    </section>
+      </section>
+    </Card>
   );
 }
 
-/** One message: who wrote it (a lecturer marked so, the Student as "Kamu"), when, what, and any file it carries. */
+/** One message: who wrote it, when, what, and any file it carries. */
 function Message({ message, taskId }: { message: TaskMessage; taskId: number }) {
   const t = useT();
   const f = useFormat();
   const account = useDataset("edunex.account");
   const mine = message.from === "me";
-  const name = mine ? t("task.thread.me") : message.name;
   return (
-    <li className="flex gap-3 px-4 py-3.5">
+    <li className="flex gap-2.5">
       <span
         aria-hidden
         className={cx(
-          "mt-0.5 grid size-8 shrink-0 place-items-center rounded-full text-micro font-bold",
+          "mt-px grid size-6 shrink-0 place-items-center rounded-full text-micro font-bold",
           mine ? "bg-info-bg text-info-fg" : "bg-fill text-muted",
         )}
       >
         {initials(mine && account ? account.name : message.name) || "?"}
       </span>
       <div className="min-w-0 flex-1">
-        <p className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-small">
-          <span className="font-semibold">{name}</span>
-          {message.from === "lecturer" && <Tag tone="info">{t("task.thread.lecturer")}</Tag>}
-          {message.at !== null && <span className="text-faint tabular-nums">{f.dueLabel(message.at)}</span>}
+        <p className="flex flex-wrap items-center gap-x-1.5 text-caption text-faint">
+          <span className="max-w-full truncate text-small font-semibold text-fg" title={message.name}>
+            {mine ? t("task.thread.me") : bareName(message.name)}
+          </span>
+          {message.from === "lecturer" && <span className="font-medium text-info-fg">{t("task.thread.lecturer")}</span>}
+          {message.at !== null && <span className="tabular-nums">{f.dueLabel(message.at)}</span>}
         </p>
-        <LecturerHtml html={message.html} className="mt-1 text-body leading-relaxed" />
+        <LecturerHtml html={message.html} className="mt-0.5 text-small leading-relaxed" />
         {message.files.length > 0 && (
-          <ul className="mt-2.5 grid gap-2 sm:grid-cols-2">
+          <ul className="mt-2 space-y-1.5">
             {message.files.map((file) => (
               <li key={file.url}>
                 <LecturerFile file={file} taskId={taskId} />
@@ -956,26 +957,32 @@ function Message({ message, taskId }: { message: TaskMessage; taskId: number }) 
   );
 }
 
-/** Where the Student writes back, as Edunex's own comment box under the answer: formatted text, sent with Kirim or ⌘↵. */
+/**
+ * Where the Student writes back: a line to click, then a small box (bold, italic, a link) with Batal and Kirim,
+ * sent with Kirim or ⌘↵. Closes again once sent, or on Batal.
+ */
 function CommentBox({ taskId }: { taskId: number }) {
   const t = useT();
   const bridge = useBridge();
   const edunex = useStatus("edunex");
-  const box = useRef<RichEditorHandle>(null);
+  const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const hintId = useId();
   const reason =
     edunex.state === "offline" ? t("task.thread.offline") : edunex.state === "expired" || edunex.state === "signed-out" ? t("task.thread.signIn") : null;
   const ready = plainText(text).trim() !== "" && !sending && reason === null;
+  const close = () => {
+    setOpen(false);
+    setText("");
+  };
   const send = async () => {
     if (!ready) return;
     setSending(true);
     try {
       const result = await bridge.invoke("tasks.comment", { taskId, text });
       if (result.outcome === "gone") return toast(t("handIn.gone"), "danger");
-      box.current?.reset("");
-      setText("");
+      close();
       if (result.outcome === "unconfirmed") toast(t("task.thread.unconfirmed"));
     } catch (error) {
       toast(t(errorKey(error)), "danger");
@@ -983,11 +990,21 @@ function CommentBox({ taskId }: { taskId: number }) {
       setSending(false);
     }
   };
+  if (!open)
+    return (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="focus-ring mt-3.5 flex w-full items-center gap-2 rounded-lg border border-field-edge bg-surface px-3 py-2 text-left text-small text-faint transition-colors duration-150 hover:border-muted hover:text-muted"
+      >
+        <Icons.Chat className="size-4 shrink-0" />
+        {t("task.thread.placeholder")}
+      </button>
+    );
   return (
-    <div className="border-t border-line bg-canvas/40 p-3">
-      <Suspense fallback={<Skeleton className="h-[106px] w-full rounded-lg" />}>
+    <div className="mt-3.5">
+      <Suspense fallback={<Skeleton className="h-[96px] w-full rounded-lg" />}>
         <RichEditor
-          ref={box}
           compact
           initial=""
           onChange={setText}
@@ -995,23 +1012,28 @@ function CommentBox({ taskId }: { taskId: number }) {
           label={t("task.thread.label")}
           placeholder={t("task.thread.placeholder")}
           describedBy={reason ? hintId : undefined}
+          actions={
+            <>
+              <Button size="sm" variant="ghost" onClick={close} disabled={sending}>
+                {t("action.cancel")}
+              </Button>
+              <Button
+                size="sm"
+                disabled={!ready}
+                icon={sending ? <Icons.Loader className="size-3.5 animate-spin" /> : <Icons.Send className="size-3.5" />}
+                onClick={() => void send()}
+              >
+                {t("task.thread.send")}
+              </Button>
+            </>
+          }
         />
       </Suspense>
-      <div className="mt-2 flex items-center justify-end gap-3">
-        {reason && (
-          <span id={hintId} className="mr-auto text-caption text-muted">
-            {reason}
-          </span>
-        )}
-        <Button
-          size="sm"
-          disabled={!ready}
-          icon={sending ? <Icons.Loader className="size-3.5 animate-spin" /> : <Icons.Send className="size-3.5" />}
-          onClick={() => void send()}
-        >
-          {t("task.thread.send")}
-        </Button>
-      </div>
+      {reason && (
+        <p id={hintId} className="mt-1.5 text-caption text-muted">
+          {reason}
+        </p>
+      )}
     </div>
   );
 }
@@ -1196,6 +1218,11 @@ function HandIn({ task, status }: Row) {
   }, [edunex.state]);
 
   const sent = status === "submitted" || status === "in_review";
+  const lecturerWrote = Boolean(
+    useDataset("edunex.taskThreads")
+      ?.find((thread) => thread.answerId === task.answer?.id)
+      ?.messages.some((message) => message.from === "lecturer"),
+  );
   // A group Task is handed in by the group on Edunex's own pages.
   const editable = !task.group && takesAnswers(task, now);
   const answer = useAnswerText(task);
@@ -1457,6 +1484,7 @@ function HandIn({ task, status }: Row) {
             </span>
           )}
         </div>
+        <LecturerNote task={task} />
 
         <div>
           {/* A group's answer is written on Edunex: the label only heads the files already in it. */}
@@ -1642,7 +1670,22 @@ function HandIn({ task, status }: Row) {
             {status === "returned" && (
               <p className="flex items-start gap-2 text-small text-warning-fg">
                 <Icons.HandedBack className="mt-0.5 size-3.5 shrink-0" weight="bold" />
-                {t("handIn.returned")}
+                <span className="min-w-0 flex-1">
+                  {t("handIn.returned")}
+                  {/* The lecturer's messages are in the card under this one, often below the fold. */}
+                  {lecturerWrote && (
+                    <>
+                      {" "}
+                      <button
+                        type="button"
+                        onClick={() => document.getElementById("task-thread")?.scrollIntoView({ block: "start", behavior: stillMotion() ? "auto" : "smooth" })}
+                        className="focus-ring rounded font-medium text-accent-fg hover:underline"
+                      >
+                        {t("task.thread.see")}
+                      </button>
+                    </>
+                  )}
+                </span>
               </p>
             )}
             <p className="flex items-start gap-2 text-caption text-muted">
@@ -2132,22 +2175,23 @@ function History({ task, reveal }: { task: Task; reveal: { at: number; asked: nu
   const [compare, setCompare] = useState<{ change: Extract<TaskChange, { kind: "instructions" }>; at: number } | null>(null);
   const triggers = useRef(new Map<number, HTMLButtonElement>());
   const baseId = useId();
-  // "Lihat perubahannya": the newest edit opens and takes the focus; where History sits under the page (under 1100px), it scrolls there.
+  // "Lihat perubahannya": the newest edit opens and takes the focus, and the page scrolls down to it.
   useEffect(() => {
     if (!reveal) return;
     setOpened(reveal.at);
     const button = triggers.current.get(reveal.at);
     if (!button) return;
     button.focus({ preventScroll: true });
-    // Under 1100px History sits under the page: the step goes to the top, so the list it opens shows under it.
-    const narrow = !window.matchMedia?.("(min-width: 1100px)").matches;
-    (button.closest("li") ?? button).scrollIntoView?.({ block: narrow ? "start" : "nearest", behavior: stillMotion() ? "auto" : "smooth" });
+    // The step goes to the top, so the list it opens shows under it.
+    (button.closest("li") ?? button).scrollIntoView?.({ block: "start", behavior: stillMotion() ? "auto" : "smooth" });
   }, [reveal]);
   return (
-    <div className="px-4">
+    <section className="mt-8" aria-labelledby="task-history">
       {steps.length >= 2 && (
         <>
-          <p className="mb-3 text-small font-semibold text-muted">{t("history.title")}</p>
+          <h2 id="task-history" className="mb-3 text-title font-semibold">
+            {t("history.title")}
+          </h2>
           <ol className="relative ml-1.5 space-y-3 border-l border-line pl-4">
             {steps.map((step) => {
               const afterSubmit = step.kind === "edited" && sentAt !== null && step.at > sentAt;
@@ -2219,7 +2263,7 @@ function History({ task, reveal }: { task: Task; reveal: { at: number; asked: nu
         <Icons.ArrowUpRight className="size-3.5" />
       </button>
       {compare && <InstructionsCompare change={compare.change} at={compare.at} onClose={() => setCompare(null)} />}
-    </div>
+    </section>
   );
 }
 

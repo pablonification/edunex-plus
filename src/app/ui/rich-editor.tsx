@@ -49,15 +49,19 @@ export interface RichEditorProps {
   /** An element saying more about it (a hint under the box). */
   describedBy?: string;
   ref?: Ref<RichEditorHandle>;
-  /** A smaller box, for a comment rather than an answer. */
+  /**
+   * A comment's box rather than an answer's: smaller, with bold, italic and a link only, in a bar under the
+   * text that also holds `actions` (its buttons), and the cursor in it from the start.
+   */
   compact?: boolean;
+  actions?: ReactNode;
   /** ⌘↵ / Ctrl+Enter sends what's written (a comment). */
   onSubmit?: () => void;
 }
 
 const LINK = /^(https?:\/\/|mailto:)/i;
 
-export default function RichEditor({ initial, onChange, label, placeholder, describedBy, ref, compact = false, onSubmit }: RichEditorProps) {
+export default function RichEditor({ initial, onChange, label, placeholder, describedBy, ref, compact = false, actions, onSubmit }: RichEditorProps) {
   const [linking, setLinking] = useState(false);
   // The editor is made once; its change handler always reaches the latest onChange.
   const changed = useRef(onChange);
@@ -81,6 +85,7 @@ export default function RichEditor({ initial, onChange, label, placeholder, desc
       Placeholder.configure({ placeholder: () => hint.current }),
     ],
     content: initial,
+    autofocus: compact ? "end" : false,
     shouldRerenderOnTransaction: false,
     editorProps: {
       attributes: {
@@ -89,7 +94,7 @@ export default function RichEditor({ initial, onChange, label, placeholder, desc
         "aria-label": label,
         ...(describedBy ? { "aria-describedby": describedBy } : {}),
         class: cx(
-          compact ? "max-h-[240px] min-h-[64px]" : "max-h-[360px] min-h-[132px]",
+          compact ? "max-h-[240px] min-h-[56px]" : "max-h-[360px] min-h-[132px]",
           "overflow-y-auto px-3 py-2.5 text-body leading-relaxed outline-none",
           "[&_p]:my-1.5 [&_p:first-child]:mt-0 [&_p:last-child]:mb-0 [&_ul]:my-1.5 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:my-1.5 [&_ol]:list-decimal [&_ol]:pl-5",
           "[&_li_p]:my-0 [&_blockquote]:my-1.5 [&_blockquote]:border-l-2 [&_blockquote]:border-track [&_blockquote]:pl-3 [&_blockquote]:text-muted",
@@ -134,14 +139,20 @@ export default function RichEditor({ initial, onChange, label, placeholder, desc
 
   return (
     <div className="rounded-lg border border-field-edge bg-surface transition-colors duration-150 has-[.ProseMirror:focus-visible]:border-(--focus) has-[.ProseMirror:focus-visible]:outline-2 has-[.ProseMirror:focus-visible]:outline-offset-1 has-[.ProseMirror:focus-visible]:outline-(--focus)">
-      <Toolbar editor={editor} linking={linking} onLink={() => setLinking((open) => !open)} />
+      {!compact && <Toolbar editor={editor} linking={linking} onLink={() => setLinking((open) => !open)} />}
       {linking && <LinkRow editor={editor} onDone={() => setLinking(false)} />}
       <EditorContent editor={editor} />
+      {compact && (
+        <div className="flex items-center justify-between gap-2 px-1.5 pb-1.5">
+          <Toolbar editor={editor} linking={linking} onLink={() => setLinking((open) => !open)} compact />
+          {actions && <div className="flex items-center gap-1.5">{actions}</div>}
+        </div>
+      )}
     </div>
   );
 }
 
-function Toolbar({ editor, linking, onLink }: { editor: Editor; linking: boolean; onLink: () => void }) {
+function Toolbar({ editor, linking, onLink, compact = false }: { editor: Editor; linking: boolean; onLink: () => void; compact?: boolean }) {
   const t = useT();
   const state = useEditorState({
     editor,
@@ -167,13 +178,43 @@ function Toolbar({ editor, linking, onLink }: { editor: Editor; linking: boolean
     buttons[(at + (event.key === "ArrowRight" ? 1 : buttons.length - 1)) % buttons.length].focus();
   };
   return (
-    <div role="toolbar" aria-label={t("editor.toolbar")} onKeyDown={move} className="flex flex-wrap items-center gap-0.5 border-b border-line px-1.5 py-1">
+    <div
+      role="toolbar"
+      aria-label={t("editor.toolbar")}
+      onKeyDown={move}
+      className={cx("flex flex-wrap items-center gap-0.5", !compact && "border-b border-line px-1.5 py-1")}
+    >
       <Tool label={t("editor.bold")} active={state.bold} onClick={() => run((c) => c.toggleBold())}>
         <Glyph.Bold className="size-4" weight="bold" />
       </Tool>
       <Tool label={t("editor.italic")} active={state.italic} onClick={() => run((c) => c.toggleItalic())}>
         <Glyph.Italic className="size-4" />
       </Tool>
+      {compact && (
+        <Tool label={t("editor.link")} active={state.link || linking} onClick={onLink}>
+          <Icons.Link className="size-4" />
+        </Tool>
+      )}
+      {!compact && <ListTools state={state} linking={linking} onLink={onLink} run={run} />}
+    </div>
+  );
+}
+
+/** The answer box's tools past bold and italic: lists, a quote, a link, undo and redo. */
+function ListTools({
+  state,
+  linking,
+  onLink,
+  run,
+}: {
+  state: { bullets: boolean; numbers: boolean; quote: boolean; link: boolean; undo: boolean; redo: boolean };
+  linking: boolean;
+  onLink: () => void;
+  run: (command: (chain: ReturnType<Editor["chain"]>) => ReturnType<Editor["chain"]>) => boolean;
+}) {
+  const t = useT();
+  return (
+    <>
       <span aria-hidden className="mx-1 h-4 w-px bg-line" />
       <Tool label={t("editor.bullets")} active={state.bullets} onClick={() => run((c) => c.toggleBulletList())}>
         <Glyph.ListBullets className="size-4" />
@@ -194,7 +235,7 @@ function Toolbar({ editor, linking, onLink }: { editor: Editor; linking: boolean
       <Tool label={t("editor.redo")} disabled={!state.redo} onClick={() => run((c) => c.redo())}>
         <Glyph.Redo className="size-4" />
       </Tool>
-    </div>
+    </>
   );
 }
 
