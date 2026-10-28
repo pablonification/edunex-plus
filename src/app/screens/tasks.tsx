@@ -891,9 +891,35 @@ function LecturerNote({ task }: { task: Task }) {
  */
 function Thread({ task }: { task: Task }) {
   const t = useT();
+  const bridge = useBridge();
   const answerId = task.answer?.id;
   const thread = useDataset("edunex.taskThreads")?.find((kept) => kept.answerId === answerId);
-  if (answerId === undefined || task.group) return null;
+  const shown = answerId !== undefined && !task.group;
+  const taskId = task.id;
+  // Read fresh when the page opens and each time the window comes back to the front, as the website reads it on each
+  // visit: a comment written on the website or another computer shows without waiting for the hourly read.
+  useEffect(() => {
+    if (!shown) return;
+    let reading = false;
+    const read = () => {
+      if (reading || document.visibilityState !== "visible") return;
+      reading = true;
+      void bridge
+        .invoke("tasks.readThread", { taskId })
+        .catch(() => undefined)
+        .finally(() => {
+          reading = false;
+        });
+    };
+    read();
+    window.addEventListener("focus", read);
+    document.addEventListener("visibilitychange", read);
+    return () => {
+      window.removeEventListener("focus", read);
+      document.removeEventListener("visibilitychange", read);
+    };
+  }, [bridge, taskId, shown]);
+  if (!shown) return null;
   const messages = thread?.messages ?? [];
   return (
     <Card>

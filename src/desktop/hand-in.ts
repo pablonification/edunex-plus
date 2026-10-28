@@ -22,7 +22,15 @@ export interface LocalFile {
   read(): Promise<Uint8Array>;
 }
 
-export type HandInAction = "tasks.pickFiles" | "tasks.dropFiles" | "tasks.readPicked" | "tasks.upload" | "tasks.saveDraft" | "tasks.submit" | "tasks.comment";
+export type HandInAction =
+  | "tasks.pickFiles"
+  | "tasks.dropFiles"
+  | "tasks.readPicked"
+  | "tasks.upload"
+  | "tasks.saveDraft"
+  | "tasks.submit"
+  | "tasks.comment"
+  | "tasks.readThread";
 type HandInHandlers = { [N in HandInAction]: (input: z.infer<(typeof Actions)[N]["input"]>) => Promise<ActionOutput<N>> };
 
 /** Picked files stay known this long a list (the latest ones). */
@@ -75,6 +83,7 @@ export function handInHandlers(engine: Engine, pick: () => Promise<LocalFile[]>)
     "tasks.saveDraft": async (input) => Actions["tasks.saveDraft"].output.parse(await engine.act("edunex", "saveDraft", input)),
     "tasks.submit": async (input) => Actions["tasks.submit"].output.parse(await engine.act("edunex", "submit", input)),
     "tasks.comment": async (input) => Actions["tasks.comment"].output.parse(await engine.act("edunex", "comment", input)),
+    "tasks.readThread": async (input) => Actions["tasks.readThread"].output.parse(await engine.act("edunex", "readThread", input)),
   };
 }
 

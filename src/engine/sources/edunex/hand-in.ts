@@ -15,7 +15,7 @@ import { EDUNEX_API, EdunexClient, TIMEOUT_MS } from "./client";
 import { LoginMe } from "./schemas";
 import type { EdunexSession } from "./session";
 import { type AnswerFile, readTaskRecord, remember, type TaskRecord } from "./task-records";
-import { answerSeen, fetchThread, keepThread } from "./task-threads";
+import { answerSeen, fetchThread, keepThread, readThreadNow } from "./task-threads";
 
 // ---------------------------------------------------------------- Edunex's write calls
 //
@@ -203,6 +203,13 @@ export const taskActions: Record<string, SourceAction<EdunexSession>> = {
       const words = answerWords(html);
       return { outcome: messages.some((m) => m.from === "me" && answerWords(m.html) === words) ? "sent" : "unconfirmed", thread };
     });
+  },
+
+  /** Reads the thread under the Student's answer now, when the Task page opens or comes back to the front (./task-threads.ts). */
+  async readThread(context, session, input) {
+    const { taskId } = parse(z.object({ taskId: z.number().int().positive() }), input);
+    await readThreadNow(context, new EdunexClient(context.transport, session.token, context.userAgent), taskId);
+    return {};
   },
 };
 

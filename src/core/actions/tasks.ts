@@ -93,4 +93,6 @@ export const tasksActions = {
   "tasks.submit": { input: HandIn, output: HandInResult },
   /** Writes in the thread under the Student's answer, as the website's comment box does; "sent" once the thread, read back, holds it. */
   "tasks.comment": { input: TaskComment, output: TaskCommentResult },
+  /** Reads the thread under the Student's answer now, as the website does each time its page opens. */
+  "tasks.readThread": { input: z.object({ taskId: z.number().int().positive() }), output: z.object({}) },
 } as const;

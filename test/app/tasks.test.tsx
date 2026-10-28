@@ -585,6 +585,22 @@ describe("the Task page", () => {
     expect(s.has("Tulis komentar untuk dosen…")).toBe(true);
   });
 
+  it("a comment written elsewhere shows when the Task page opens, and when the window comes back to it", async () => {
+    const s = await open();
+    const messages = () => [...document.querySelectorAll("section[aria-labelledby=task-thread] ol > li")].map((li) => li.textContent ?? "");
+    // The threads are read with the Tasks; then the Student writes on the website, from another computer.
+    await s.wait(60_000);
+    s.world.edunex.comment(117001, "<p>Sudah saya perbaiki, Bu.</p>", "STUDENT");
+    await goToTask(s, "Tugas 01 Bab I");
+    expect(messages().at(-1)).toContain("Sudah saya perbaiki, Bu.");
+    // The lecturer answers while the page stays open: back at the window, it's there, without waiting for the hourly read.
+    s.world.edunex.comment(117001, "<p>Baik, ditunggu.</p>");
+    await s.wait(60_000);
+    expect(messages().at(-1)).not.toContain("Baik, ditunggu.");
+    await s.engineDoes(async () => window.dispatchEvent(new Event("focus")));
+    expect(messages().at(-1)).toContain("Baik, ditunggu.");
+  });
+
   it("an extended deadline shows at once, with the edit", async () => {
     const s = await open();
     await goToTask(s, "Tugas 02 Bab II");
