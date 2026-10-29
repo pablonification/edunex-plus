@@ -10,6 +10,7 @@ import { useFormat, useT } from "../../../src/app/i18n";
 import { useBridge, useDataset, useSignInStep, useStatus } from "../../../src/app/store";
 import type { SignInStep } from "../../../src/core/contract";
 import type { SourceId, SourceState } from "../../../src/core/models";
+import { ReportButton } from "../parts/report";
 import { toast } from "../swaps/overlays";
 import { Button, IconButton } from "../ui/controls";
 import { EmptyState, LiveDot } from "../ui/display";
@@ -239,7 +240,7 @@ function SyncPanel({ open, onClose }: { open: boolean; onClose(): void }) {
   return (
     <Sheet open={open} onClose={onClose} title={t("sync.title")} testID="sheet.sync">
       {(["edunex", "six", "itb"] as const).map((source) => (
-        <SourceRow key={source} source={source} />
+        <SourceRow key={source} source={source} onClose={onClose} />
       ))}
       <Button
         style={{ marginTop: space[3], marginBottom: space[2] }}
@@ -262,7 +263,7 @@ function hintFor(state: SourceState, source: string, t: ReturnType<typeof useT>)
   return null;
 }
 
-function SourceRow({ source }: { source: SourceId }) {
+function SourceRow({ source, onClose }: { source: SourceId; onClose(): void }) {
   const t = useT();
   const f = useFormat();
   const status = useStatus(source);
@@ -285,6 +286,12 @@ function SourceRow({ source }: { source: SourceId }) {
         <Text size="small" tone="muted">
           {hint ?? (status.updatedAt ? t("status.updated", { when: f.fromNow(status.updatedAt) }) : t("status.neverUpdated"))}
         </Text>
+        {/* The report opens as its own screen: the sheet closes first so it isn't left over it. */}
+        {status.state === "changed" && source !== "itb" && (
+          <View style={{ marginTop: space[2], flexDirection: "row" }}>
+            <ReportButton about={{ source }} onOpen={onClose} />
+          </View>
+        )}
       </View>
       {needsSignIn ? (
         <Button size="sm" variant={status.state === "expired" ? "primary" : "secondary"} busy={signingIn} onPress={() => void signIn(source)}>
@@ -396,6 +403,7 @@ export function ProblemBanner({ belowBar = false }: { belowBar?: boolean }) {
             {t("action.tryAgain")}
           </Button>
         )}
+        {problem.state === "changed" && <ReportButton about={{ source: problem.source as "edunex" | "six" }} />}
       </View>
     </View>
   );
