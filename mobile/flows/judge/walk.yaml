@@ -42,11 +42,11 @@ appId: io.github.pablonification.edunexplus.demo
 # The exam is near the top of the list, above the Task just opened.
 - scrollUntilVisible:
     element:
-      id: "row.exam.DK4073-UTS:six:2179909"
+      id: row.exam.DK4073-UTS
     direction: UP
     optional: true
 - tapOn:
-    id: "row.exam.DK4073-UTS:six:2179909"
+    id: row.exam.DK4073-UTS
     optional: true
 - waitForAnimationToEnd
 - takeScreenshot: ${THEME}-06-ujian
@@ -96,6 +96,11 @@ appId: io.github.pablonification.edunexplus.demo
     optional: true
 - waitForAnimationToEnd
 - takeScreenshot: ${THEME}-11-ekspor-kalender
+- scrollUntilVisible:
+    element:
+      id: action.addToCalendar.confirm
+    direction: DOWN
+    optional: true
 - tapOn:
     id: action.addToCalendar.confirm
     optional: true

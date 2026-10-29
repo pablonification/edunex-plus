@@ -101,7 +101,18 @@ function flow(inventory, screen, states, config, appId) {
     const parts = (state ?? "").split("/");
     // The desktop's "todo" list (Belum selesai) is the phone's "open" segment.
     const list = about?.list ?? "todo";
-    const vars = { ...base, state: state ?? "", list: list === "todo" ? "open" : list, ...Object.fromEntries(parts.map((p, i) => [String(i + 1), p])) };
+    // The phone's id for an exam (row.exam.<id>): the desktop row's key up to its source ("DK4073-UTS:six:2179909"),
+    // or, for one the desktop lists without a key (under its Masa UTS/UAS line), its course and kind from the title.
+    const titled = /^(UTS|UAS|Kuis)\b.*?\b([A-Z]{2}\d{4})\b/.exec(about?.title ?? "");
+    const exam = state?.includes(":") ? state.split(":")[0] : titled ? `${titled[2]}-${titled[1].toUpperCase()}` : (state ?? "");
+    const vars = {
+      ...base,
+      state: state ?? "",
+      list: list === "todo" ? "open" : list,
+      exam,
+      examKind: /-(UTS|UAS)\b/.exec(exam)?.[1] ?? "",
+      ...Object.fromEntries(parts.map((p, i) => [String(i + 1), p])),
+    };
     const pick = Object.entries(conf.byState ?? {}).find(([re]) => new RegExp(re).test(state ?? ""));
     out.push("", `# ---- ${screen}${state ? ` ${state}` : ""}${about?.title ? ` (${about.title.replace(/\s+/g, " ").slice(0, 80)})` : ""}`);
     if (conf.relaunch && index > 0) out.push(...launch.map(line));
