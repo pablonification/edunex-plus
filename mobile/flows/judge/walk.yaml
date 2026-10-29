@@ -1,6 +1,9 @@
 # The phone's pictures for the same-feel judge (check B in mobile/PROGRESS.md): each screen in the state
 # the desktop demo's own pictures show it (scripts/demo/capture.mjs), named like them, with the theme
-# in front ("light-01-beranda"). Run through judge-light.yaml and judge-dark.yaml.
+# in front ("light-01-beranda"). Run through judge-light.yaml and judge-dark.yaml. The desktop's
+# 05 (a file dropped on the hand-in) needs the phone's file picker, 27 (offline) a phone without a
+# network, and 31 the English app: left out here. The first run (32-35) and Edunex alone (36-37) are
+# judge/first-run.yaml and judge/edunex-only.yaml.
 appId: io.github.pablonification.edunexplus.demo
 ---
 - extendedWaitUntil:
@@ -14,6 +17,8 @@ appId: io.github.pablonification.edunexplus.demo
       text: "Hari ini"
     direction: DOWN
 - takeScreenshot: ${THEME}-02-beranda-hari-ini
+
+# Tugas & Ujian, a Task, an exam
 - tapOn:
     id: tab.tasks
 - waitForAnimationToEnd
@@ -48,10 +53,134 @@ appId: io.github.pablonification.edunexplus.demo
 - tapOn:
     id: action.back
     optional: true
+
+# Jadwal: the week, a class, the week of the midterms, the month, the phone's calendar
+- tapOn:
+    id: tab.schedule
+- waitForAnimationToEnd
+- takeScreenshot: ${THEME}-07-jadwal-minggu
+- scrollUntilVisible:
+    element:
+      id: "row\\.class\\.KU5014.*"
+    direction: DOWN
+    optional: true
+- tapOn:
+    id: "row\\.class\\.KU5014.*"
+    index: 0
+    optional: true
+- waitForAnimationToEnd
+- takeScreenshot: ${THEME}-08-jadwal-detail
+- pressKey: back
+- scrollUntilVisible:
+    element:
+      id: action.nextWeek
+    direction: UP
+    optional: true
+- tapOn:
+    id: action.nextWeek
+- waitForAnimationToEnd
+- takeScreenshot: ${THEME}-09-jadwal-masa-uts
+- tapOn:
+    id: segment.view.month
+- waitForAnimationToEnd
+- takeScreenshot: ${THEME}-10-jadwal-bulan
+- tapOn:
+    id: segment.view.week
+- scrollUntilVisible:
+    element:
+      id: action.addToCalendar
+    direction: DOWN
+    optional: true
+- tapOn:
+    id: action.addToCalendar
+    optional: true
+- waitForAnimationToEnd
+- takeScreenshot: ${THEME}-11-ekspor-kalender
+- tapOn:
+    id: action.addToCalendar.confirm
+    optional: true
+# Android asks for the calendar once.
+- tapOn:
+    text: "(Allow|Izinkan|ALLOW|IZINKAN)"
+    optional: true
+- waitForAnimationToEnd
+- takeScreenshot: ${THEME}-12-ekspor-kalender-selesai
+- pressKey: back
+
+# Presensi
 - tapOn:
     id: tab.presence
 - waitForAnimationToEnd
 - takeScreenshot: ${THEME}-13-presensi
+
+# Nilai and Rencana studi, from Lainnya
+- tapOn:
+    id: tab.more
+- tapOn:
+    id: row.nav.grades
+- extendedWaitUntil:
+    visible:
+      id: screen.grades
+    timeout: 20000
+- waitForAnimationToEnd
+- takeScreenshot: ${THEME}-14-nilai
+- tapOn:
+    id: action.back
+- tapOn:
+    id: row.nav.plan
+- extendedWaitUntil:
+    visible:
+      id: screen.plan
+    timeout: 20000
+- tapOn:
+    id: tab.plan.planner
+    optional: true
+- waitForAnimationToEnd
+- takeScreenshot: ${THEME}-15-rencana
+- tapOn:
+    id: tab.plan.curriculum
+- waitForAnimationToEnd
+- takeScreenshot: ${THEME}-16-kurikulum
+- tapOn:
+    id: tab.plan.krs
+- waitForAnimationToEnd
+- takeScreenshot: ${THEME}-17-krs
+- tapOn:
+    id: tab.plan.bills
+- waitForAnimationToEnd
+- takeScreenshot: ${THEME}-18-ukt
+- tapOn:
+    id: tab.plan.deadlines
+- waitForAnimationToEnd
+- takeScreenshot: ${THEME}-19-kalender-akademik
+- tapOn:
+    id: action.back
+
+# A course: its page, its meetings, its grade calculator
+- scrollUntilVisible:
+    element:
+      id: row.course.PL3002
+    direction: DOWN
+- tapOn:
+    id: row.course.PL3002
+- extendedWaitUntil:
+    visible:
+      id: screen.course
+    timeout: 20000
+- waitForAnimationToEnd
+- takeScreenshot: ${THEME}-20-mata-kuliah
+- tapOn:
+    id: tab.course.meetings
+- waitForAnimationToEnd
+- takeScreenshot: ${THEME}-21-pertemuan
+- tapOn:
+    id: tab.course.grades
+- waitForAnimationToEnd
+- takeScreenshot: ${THEME}-22-kalkulator-nilai
+- tapOn:
+    id: action.back
+
+# Search, the data's state while it's read again, the bell
 - tapOn:
     id: tab.home
 - tapOn:
@@ -62,12 +191,52 @@ appId: io.github.pablonification.edunexplus.demo
 - tapOn:
     id: action.back
 - tapOn:
+    id: action.syncStatus
+- tapOn:
+    id: action.refreshNow
+    optional: true
+- takeScreenshot: ${THEME}-24-status-data-memperbarui
+- pressKey: back
+- tapOn:
     id: action.alerts
 - waitForAnimationToEnd
 - takeScreenshot: ${THEME}-25-notifikasi
 - tapOn:
     id: action.back
+
+# Lainnya, then Settings: the top, notifications, about, the licences
 - tapOn:
     id: tab.more
 - waitForAnimationToEnd
 - takeScreenshot: ${THEME}-lainnya
+- scrollUntilVisible:
+    element:
+      id: row.nav.settings
+    direction: DOWN
+- tapOn:
+    id: row.nav.settings
+- extendedWaitUntil:
+    visible:
+      id: screen.settings
+    timeout: 20000
+- waitForAnimationToEnd
+- takeScreenshot: ${THEME}-26-pengaturan
+- scrollUntilVisible:
+    element:
+      id: action.testAlert
+    direction: DOWN
+    centerElement: true
+- takeScreenshot: ${THEME}-26-pengaturan-notifikasi
+- scrollUntilVisible:
+    element:
+      id: action.licences
+    direction: DOWN
+    centerElement: true
+- takeScreenshot: ${THEME}-26-pengaturan-tentang
+- tapOn:
+    id: action.licences
+- waitForAnimationToEnd
+- takeScreenshot: ${THEME}-26-pengaturan-lisensi
+- tapOn:
+    id: action.back
+    optional: true

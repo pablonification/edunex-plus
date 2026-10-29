@@ -1,0 +1,41 @@
+# The first run, as the desktop demo's pictures 32-35 show it: the welcome, Edunex being connected,
+# both connected, the semester being read, then the first scan's summary. Opened by judge-light.yaml
+# and judge-dark.yaml on the first-run scenario.
+appId: io.github.pablonification.edunexplus.demo
+---
+- extendedWaitUntil:
+    visible:
+      id: action.start
+    timeout: 60000
+- waitForAnimationToEnd
+- takeScreenshot: ${THEME}-32-pertama-selamat-datang
+- tapOn:
+    id: action.start
+- tapOn:
+    id: action.connect.edunex
+- takeScreenshot: ${THEME}-32a-pertama-menyelesaikan
+- extendedWaitUntil:
+    visible:
+      id: screen.welcome.connected
+    timeout: 180000
+- waitForAnimationToEnd
+- takeScreenshot: ${THEME}-33-pertama-terhubung
+- tapOn:
+    id: action.continue
+- waitForAnimationToEnd
+- takeScreenshot: ${THEME}-34-pertama-membaca
+- extendedWaitUntil:
+    visible:
+      id: action.open
+    timeout: 600000
+- tapOn:
+    id: action.open
+- tapOn:
+    text: "(Allow|Izinkan|ALLOW|IZINKAN)"
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: screen.firstScan
+    timeout: 120000
+- waitForAnimationToEnd
+- takeScreenshot: ${THEME}-35-pertama-temuan

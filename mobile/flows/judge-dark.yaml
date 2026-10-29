@@ -1,4 +1,5 @@
-# Pictures of every screen in the dark theme, for the same-feel judge (judge/walk.yaml).
+# Pictures of every screen in the dark theme, for the same-feel judge: the signed-in walk
+# (judge/walk.yaml), the first run (judge/first-run.yaml) and Edunex alone (judge/edunex-only.yaml).
 appId: io.github.pablonification.edunexplus.demo
 tags:
   - judge
@@ -7,5 +8,17 @@ tags:
 - openLink: "edunexplusdemo://demo?EDUNEX_DEMO=signed-in&EDUNEX_DEMO_THEME=dark"
 - runFlow:
     file: judge/walk.yaml
+    env:
+      THEME: dark
+- clearState: io.github.pablonification.edunexplus.demo
+- openLink: "edunexplusdemo://demo?EDUNEX_DEMO=first-run&EDUNEX_DEMO_THEME=dark"
+- runFlow:
+    file: judge/first-run.yaml
+    env:
+      THEME: dark
+- clearState: io.github.pablonification.edunexplus.demo
+- openLink: "edunexplusdemo://demo?EDUNEX_DEMO=edunex-only&EDUNEX_DEMO_THEME=dark"
+- runFlow:
+    file: judge/edunex-only.yaml
     env:
       THEME: dark
