@@ -1,0 +1,2793 @@
+{
+  "scenario": "first-run",
+  "about": "Nobody signed in: the welcome screen, signing in, the first scan's summary",
+  "demo": {
+    "EDUNEX_DEMO": "first-run"
+  },
+  "lang": "id",
+  "count": 12,
+  "states": [
+    {
+      "screen": "welcome",
+      "state": "connected"
+    },
+    {
+      "screen": "welcome",
+      "state": "ready"
+    },
+    {
+      "screen": "first-scan",
+      "state": null
+    }
+  ],
+  "entries": [
+    {
+      "id": "welcome.connected.account.sistem-dan-teknologi-informasi",
+      "screen": "welcome",
+      "state": "connected",
+      "kind": "account",
+      "label": "Sistem dan Teknologi Informasi",
+      "tokens": ["Dimas Pratama", "18223901", "Sistem dan Teknologi Informasi"]
+    },
+    {
+      "id": "welcome.connected.account.dimas",
+      "screen": "welcome",
+      "state": "connected",
+      "kind": "account",
+      "label": "Dimas",
+      "tokens": ["Dimas"]
+    },
+    {
+      "id": "welcome.ready.account.dimas",
+      "screen": "welcome",
+      "state": "ready",
+      "kind": "account",
+      "label": "Dimas",
+      "tokens": ["Dimas"]
+    },
+    {
+      "id": "welcome.ready.account.5-mata-kuliah",
+      "screen": "welcome",
+      "state": "ready",
+      "kind": "account",
+      "label": "5 mata kuliah",
+      "context": "Semua siap, Dimas.",
+      "tokens": ["5 mata kuliah", "10 tugas", "40 pertemuan"]
+    },
+    {
+      "id": "first-scan.first-scan.5-mata-kuliah-10",
+      "screen": "first-scan",
+      "state": null,
+      "kind": "first-scan",
+      "label": "5 mata kuliah, 10",
+      "context": "Ringkasan saat pertama terhubung",
+      "tokens": ["5 mata kuliah, 10"]
+    },
+    {
+      "id": "first-scan.first-scan.kehadiran-3-mata-kuliah-berisiko",
+      "screen": "first-scan",
+      "state": null,
+      "kind": "first-scan",
+      "label": "Kehadiran 3 mata kuliah berisiko",
+      "context": "7 hal yang tidak disampaikan kedua sistem",
+      "tokens": ["Kehadiran 3 mata kuliah berisiko", "KU5014", "2 dari 6", "73%", "80%", "DK4073", "PL3032"]
+    },
+    {
+      "id": "first-scan.first-scan.ku5014",
+      "screen": "first-scan",
+      "state": null,
+      "kind": "first-scan",
+      "label": "KU5014",
+      "context": "7 hal yang tidak disampaikan kedua sistem",
+      "tokens": ["KU5014", "PL3032", "16:00–16:30"]
+    },
+    {
+      "id": "first-scan.first-scan.pl3002",
+      "screen": "first-scan",
+      "state": null,
+      "kind": "first-scan",
+      "label": "PL3002",
+      "context": "7 hal yang tidak disampaikan kedua sistem",
+      "tokens": ["PL3002"]
+    },
+    {
+      "id": "first-scan.first-scan.3-ujian-akan-datang",
+      "screen": "first-scan",
+      "state": null,
+      "kind": "first-scan",
+      "label": "3 ujian akan datang",
+      "context": "7 hal yang tidak disampaikan kedua sistem",
+      "tokens": ["3 ujian akan datang", "PL3032", "12–16 Okt", "UTS DK4073: Kam 15 Okt, 11:00", "TVST C", "Kam 22 Okt", "7–22 Des"]
+    },
+    {
+      "id": "first-scan.first-scan.1-pertemuan-hanya-diumumkan-di-edunex",
+      "screen": "first-scan",
+      "state": null,
+      "kind": "first-scan",
+      "label": "1 pertemuan hanya diumumkan di Edunex",
+      "context": "7 hal yang tidak disampaikan kedua sistem",
+      "tokens": ["1 pertemuan hanya diumumkan di Edunex", "II4091 pertemuan 3: Besok, 15:00–17:00", "daring"]
+    },
+    {
+      "id": "first-scan.first-scan.dosen-mengubah-6-tugas-setelah-diunggah",
+      "screen": "first-scan",
+      "state": null,
+      "kind": "first-scan",
+      "label": "Dosen mengubah 6 tugas setelah diunggah",
+      "context": "7 hal yang tidak disampaikan kedua sistem",
+      "tokens": ["Dosen mengubah 6 tugas setelah diunggah", "2 di antaranya setelah kamu mengumpulkan"]
+    },
+    {
+      "id": "first-scan.first-scan.ipk-3-26",
+      "screen": "first-scan",
+      "state": null,
+      "kind": "first-scan",
+      "label": "IPK 3,26",
+      "context": "7 hal yang tidak disampaikan kedua sistem",
+      "tokens": ["IPK 3,26", "0,24", "3,50"]
+    }
+  ],
+  "datasets": {
+    "edunex.courses": {
+      "facts": 10,
+      "shown": 0
+    },
+    "edunex.tasks": {
+      "facts": 20,
+      "shown": 0
+    },
+    "edunex.outline": {
+      "facts": 42,
+      "shown": 0
+    },
+    "edunex.materials": {
+      "facts": 13,
+      "shown": 0
+    },
+    "edunex.announcements": {
+      "facts": 1,
+      "shown": 0
+    },
+    "edunex.presence": {
+      "facts": 30,
+      "shown": 0
+    },
+    "edunex.notifications": {
+      "facts": 14,
+      "shown": 0
+    },
+    "edunex.account": {
+      "facts": 1,
+      "shown": 1
+    },
+    "six.student": {
+      "facts": 3,
+      "shown": 1
+    },
+    "six.courses": {
+      "facts": 10,
+      "shown": 0
+    },
+    "six.schedule": {
+      "facts": 22,
+      "shown": 0
+    },
+    "six.krs": {
+      "facts": 6,
+      "shown": 0
+    },
+    "six.bills": {
+      "facts": 12,
+      "shown": 0
+    },
+    "six.transcript": {
+      "facts": 98,
+      "shown": 0
+    },
+    "six.curriculum": {
+      "facts": 47,
+      "shown": 0
+    },
+    "itb.calendar": {
+      "facts": 110,
+      "shown": 0
+    },
+    "itb.catalog": {
+      "facts": 81,
+      "shown": 0
+    }
+  },
+  "notShown": [
+    {
+      "dataset": "edunex.courses",
+      "what": "DK4073: code",
+      "text": "DK4073"
+    },
+    {
+      "dataset": "edunex.courses",
+      "what": "DK4073: Edunex's name",
+      "text": "Marketing Communication"
+    },
+    {
+      "dataset": "edunex.courses",
+      "what": "II4091: code",
+      "text": "II4091"
+    },
+    {
+      "dataset": "edunex.courses",
+      "what": "II4091: Edunex's name",
+      "text": "Final Project Proposal"
+    },
+    {
+      "dataset": "edunex.courses",
+      "what": "KU5014: code",
+      "text": "KU5014"
+    },
+    {
+      "dataset": "edunex.courses",
+      "what": "KU5014: Edunex's name",
+      "text": "Teknik Penyelesaian Masalah Terstruktur"
+    },
+    {
+      "dataset": "edunex.courses",
+      "what": "PL3002: code",
+      "text": "PL3002"
+    },
+    {
+      "dataset": "edunex.courses",
+      "what": "PL3002: Edunex's name",
+      "text": "Economics and Innovation in Planning"
+    },
+    {
+      "dataset": "edunex.courses",
+      "what": "PL3032: code",
+      "text": "PL3032"
+    },
+    {
+      "dataset": "edunex.courses",
+      "what": "PL3032: Edunex's name",
+      "text": "Infrastructure and Transportation Economics"
+    },
+    {
+      "dataset": "edunex.tasks",
+      "what": "task 117044: title",
+      "text": "TUGAS 1"
+    },
+    {
+      "dataset": "edunex.tasks",
+      "what": "task 117044: deadline",
+      "text": "17 Sep"
+    },
+    {
+      "dataset": "edunex.tasks",
+      "what": "task 118842: title",
+      "text": "Tugas Problem Soving"
+    },
+    {
+      "dataset": "edunex.tasks",
+      "what": "task 118842: deadline",
+      "text": "24 Sep"
+    },
+    {
+      "dataset": "edunex.tasks",
+      "what": "task 117001: title",
+      "text": "Tugas 01 Bab I"
+    },
+    {
+      "dataset": "edunex.tasks",
+      "what": "task 117001: deadline",
+      "text": "25 Sep"
+    },
+    {
+      "dataset": "edunex.tasks",
+      "what": "task 113986: title",
+      "text": "Tugas 01 Submit Usulan Dosen Pembimbing dan Topik"
+    },
+    {
+      "dataset": "edunex.tasks",
+      "what": "task 113986: deadline",
+      "text": "2 Okt"
+    },
+    {
+      "dataset": "edunex.tasks",
+      "what": "task 117432: title",
+      "text": "Tugas tentang Imfact on Innovation The Economy Kampus Ganesha"
+    },
+    {
+      "dataset": "edunex.tasks",
+      "what": "task 117432: deadline",
+      "text": "8 Okt"
+    },
+    {
+      "dataset": "edunex.tasks",
+      "what": "task 117003: title",
+      "text": "Tugas 02 Bab II"
+    },
+    {
+      "dataset": "edunex.tasks",
+      "what": "task 117003: deadline",
+      "text": "16 Okt"
+    },
+    {
+      "dataset": "edunex.tasks",
+      "what": "task 117764: title",
+      "text": "UTS Markom"
+    },
+    {
+      "dataset": "edunex.tasks",
+      "what": "task 117764: deadline",
+      "text": "22 Okt"
+    },
+    {
+      "dataset": "edunex.tasks",
+      "what": "task 117010: title",
+      "text": "Tugas 03 Bab III"
+    },
+    {
+      "dataset": "edunex.tasks",
+      "what": "task 117010: deadline",
+      "text": "30 Okt"
+    },
+    {
+      "dataset": "edunex.tasks",
+      "what": "task 117023: title",
+      "text": "Tugas 04 Bab IV & V"
+    },
+    {
+      "dataset": "edunex.tasks",
+      "what": "task 117023: deadline",
+      "text": "13 Nov"
+    },
+    {
+      "dataset": "edunex.tasks",
+      "what": "task 117873: title",
+      "text": "Tugas Mandiri Individu tentang Projek Penciptaan/Pengembangan Inovasi Kampus Ganesha"
+    },
+    {
+      "dataset": "edunex.tasks",
+      "what": "task 117873: deadline",
+      "text": "26 Nov"
+    },
+    {
+      "dataset": "edunex.outline",
+      "what": "DK4073: lecturer",
+      "text": "Dra. Joko Hidayat, M.Si."
+    },
+    {
+      "dataset": "edunex.outline",
+      "what": "DK4073: module 1",
+      "text": "UTS Markom"
+    },
+    {
+      "dataset": "edunex.outline",
+      "what": "II4091: lecturer",
+      "text": "Dr. Hadi Halim, S.T., M.T."
+    },
+    {
+      "dataset": "edunex.outline",
+      "what": "II4091: module 1",
+      "text": "List Penawaran Topik TA"
+    },
+    {
+      "dataset": "edunex.outline",
+      "what": "II4091: module 2",
+      "text": "Template Proposal dan Laporan TA - Latex"
+    },
+    {
+      "dataset": "edunex.outline",
+      "what": "II4091: module 3",
+      "text": "01 Pengantar Proposal TA"
+    },
+    {
+      "dataset": "edunex.outline",
+      "what": "II4091: module 4",
+      "text": "02 Penyusunan Proposal TA"
+    },
+    {
+      "dataset": "edunex.outline",
+      "what": "II4091: module 5",
+      "text": "Tugas"
+    },
+    {
+      "dataset": "edunex.outline",
+      "what": "II4091: module 1",
+      "text": "Penawaran Topik TA Dosen"
+    },
+    {
+      "dataset": "edunex.outline",
+      "what": "II4091: module 2",
+      "text": "Template Proposal TA & Laporan TA - Latex"
+    },
+    {
+      "dataset": "edunex.outline",
+      "what": "II4091: module 3",
+      "text": "01 Pengantar Proposal TA"
+    },
+    {
+      "dataset": "edunex.outline",
+      "what": "II4091: module 4",
+      "text": "02 Penyusunan Proposal TA"
+    },
+    {
+      "dataset": "edunex.outline",
+      "what": "KU5014: lecturer",
+      "text": "Prof. Dr. Ir. Indra Hartono"
+    },
+    {
+      "dataset": "edunex.outline",
+      "what": "KU5014: module 1",
+      "text": "Pengantar Problem Solving"
+    },
+    {
+      "dataset": "edunex.outline",
+      "what": "KU5014: module 2",
+      "text": "Problem Statement"
+    },
+    {
+      "dataset": "edunex.outline",
+      "what": "KU5014: module 3",
+      "text": "Tugas"
+    },
+    {
+      "dataset": "edunex.outline",
+      "what": "KU5014: module 4",
+      "text": "Tugas Problem Solving 5w +2H"
+    },
+    {
+      "dataset": "edunex.outline",
+      "what": "PL3002: lecturer",
+      "text": "Dr. Ir. Maya Saputra, M.Si."
+    },
+    {
+      "dataset": "edunex.outline",
+      "what": "PL3002: module 1",
+      "text": "Info Awal Perkuliahan, Kontrak Belajar"
+    },
+    {
+      "dataset": "edunex.outline",
+      "what": "PL3002: module 2",
+      "text": "Impact of Innovation on the Economy"
+    },
+    {
+      "dataset": "edunex.outline",
+      "what": "PL3002: module 3",
+      "text": "Product Innovation"
+    },
+    {
+      "dataset": "edunex.outline",
+      "what": "PL3002: module 4",
+      "text": "Production Process Innovation"
+    },
+    {
+      "dataset": "edunex.outline",
+      "what": "PL3002: module 5",
+      "text": "Inovasi Kelembagaan Pasar"
+    },
+    {
+      "dataset": "edunex.outline",
+      "what": "PL3002: module 6",
+      "text": "Inovasi Keuangan dan Pembayaran"
+    },
+    {
+      "dataset": "edunex.outline",
+      "what": "PL3002: module 7",
+      "text": "Inovasi Pelayanan Publik"
+    },
+    {
+      "dataset": "edunex.outline",
+      "what": "PL3032: lecturer",
+      "text": "Prof. Dr. Eng. Tegar Nugroho, S.E, M.Ec.Dev."
+    },
+    {
+      "dataset": "edunex.outline",
+      "what": "PL3032: module 1",
+      "text": "K2. Teori Eko. Infrastruktur (Pandangan Sisi Permintaan.. Tipologi Infr.)"
+    },
+    {
+      "dataset": "edunex.outline",
+      "what": "PL3032: module 2",
+      "text": "K3. Keterkaitan antara infra. dgn Pemb. Eko (Infr. & Pertumb. Ek. kasus)"
+    },
+    {
+      "dataset": "edunex.outline",
+      "what": "PL3032: module 3",
+      "text": "K4. Model & Aplikasi Keterkaitan antara Infr. & Eko. (Model Makro, Mikro..)"
+    },
+    {
+      "dataset": "edunex.outline",
+      "what": "PL3032: module 4",
+      "text": "K5. Permintaan infrastruktur (Model. Perm. Kontinu & Diskrit)"
+    },
+    {
+      "dataset": "edunex.outline",
+      "what": "PL3032: module 5",
+      "text": "K5. Permintaan infrastruktur (Model. Perm. Kontinu & Diskrit)"
+    },
+    {
+      "dataset": "edunex.outline",
+      "what": "PL3032: module 6",
+      "text": "Module 06"
+    },
+    {
+      "dataset": "edunex.outline",
+      "what": "PL3032: module 7",
+      "text": "Module 07"
+    },
+    {
+      "dataset": "edunex.outline",
+      "what": "PL3032: module 8",
+      "text": "Midex/UTS"
+    },
+    {
+      "dataset": "edunex.outline",
+      "what": "PL3032: module 9",
+      "text": "Module 09"
+    },
+    {
+      "dataset": "edunex.outline",
+      "what": "PL3032: module 10",
+      "text": "Module 10"
+    },
+    {
+      "dataset": "edunex.outline",
+      "what": "PL3032: module 11",
+      "text": "Module 11"
+    },
+    {
+      "dataset": "edunex.outline",
+      "what": "PL3032: module 12",
+      "text": "Quiz 2"
+    },
+    {
+      "dataset": "edunex.outline",
+      "what": "PL3032: module 13",
+      "text": "Module 13"
+    },
+    {
+      "dataset": "edunex.outline",
+      "what": "PL3032: module 14",
+      "text": "Module 14"
+    },
+    {
+      "dataset": "edunex.outline",
+      "what": "PL3032: module 15",
+      "text": "Module 15"
+    },
+    {
+      "dataset": "edunex.outline",
+      "what": "PL3032: module 16",
+      "text": "Finex/UAS"
+    },
+    {
+      "dataset": "edunex.materials",
+      "what": "II4091: text 858709",
+      "text": "Jadwal Kuliah TA & Mekanisme Pelaksanaan"
+    },
+    {
+      "dataset": "edunex.materials",
+      "what": "II4091: text 851324",
+      "text": "Course Tokens : FIXTUR"
+    },
+    {
+      "dataset": "edunex.materials",
+      "what": "II4091: text 858708",
+      "text": "Jadwal Kuliah TA & Mekanisme Pelaksanaan"
+    },
+    {
+      "dataset": "edunex.materials",
+      "what": "II4091: ms-teams 874303",
+      "text": "Link Teams Pertemuan 02, Jumat 11 September 2026"
+    },
+    {
+      "dataset": "edunex.materials",
+      "what": "II4091: ms-teams 889385",
+      "text": "Link Teams Pertemuan 03: Jumat, 9 Oktober 2026"
+    },
+    {
+      "dataset": "edunex.materials",
+      "what": "II4091: text 880001",
+      "text": "Link Penawaran Topik TA"
+    },
+    {
+      "dataset": "edunex.materials",
+      "what": "II4091: zip 880002",
+      "text": "Template Proposal TA - LaTeX"
+    },
+    {
+      "dataset": "edunex.materials",
+      "what": "II4091: zip 880003",
+      "text": "Template Laporan TA - LaTeX"
+    },
+    {
+      "dataset": "edunex.materials",
+      "what": "II4091: pdf 880004",
+      "text": "Slide Pengantar Proposal TA"
+    },
+    {
+      "dataset": "edunex.materials",
+      "what": "II4091: text 880005",
+      "text": "Topik TA dari Dosen"
+    },
+    {
+      "dataset": "edunex.materials",
+      "what": "II4091: zip 880006",
+      "text": "Template Proposal TA - LaTeX"
+    },
+    {
+      "dataset": "edunex.materials",
+      "what": "II4091: pdf 880007",
+      "text": "Slide Pengantar Proposal TA"
+    },
+    {
+      "dataset": "edunex.materials",
+      "what": "PL3032: pdf 864414",
+      "text": "K1. SAP Ekonomi Infrastruktur dan Transportasi"
+    },
+    {
+      "dataset": "edunex.announcements",
+      "what": "II4091: announcement 2602",
+      "text": "Link teams untuk kuliah online Proposal"
+    },
+    {
+      "dataset": "edunex.presence",
+      "what": "II4091: Presence 2243736 day",
+      "text": "26 Agu"
+    },
+    {
+      "dataset": "edunex.presence",
+      "what": "II4091: Presence 2243736 topic",
+      "text": "01 Pengantar Proposal TA"
+    },
+    {
+      "dataset": "edunex.presence",
+      "what": "II4091: Presence 2243739 day",
+      "text": "18 Sep"
+    },
+    {
+      "dataset": "edunex.presence",
+      "what": "II4091: Presence 2243739 topic",
+      "text": "Tugas"
+    },
+    {
+      "dataset": "edunex.presence",
+      "what": "II4091: Presence 2243740 day",
+      "text": "16 Okt"
+    },
+    {
+      "dataset": "edunex.presence",
+      "what": "II4091: Presence 2243740 topic",
+      "text": "Tugas"
+    },
+    {
+      "dataset": "edunex.presence",
+      "what": "II4091: Presence 2243744 day",
+      "text": "30 Okt"
+    },
+    {
+      "dataset": "edunex.presence",
+      "what": "II4091: Presence 2243744 topic",
+      "text": "Tugas"
+    },
+    {
+      "dataset": "edunex.presence",
+      "what": "II4091: Presence 2243746 day",
+      "text": "13 Nov"
+    },
+    {
+      "dataset": "edunex.presence",
+      "what": "II4091: Presence 2243746 topic",
+      "text": "Tugas"
+    },
+    {
+      "dataset": "edunex.presence",
+      "what": "II4091: Presence 2243748 day",
+      "text": "18 Nov"
+    },
+    {
+      "dataset": "edunex.presence",
+      "what": "II4091: Presence 2243749 day",
+      "text": "25 Nov"
+    },
+    {
+      "dataset": "edunex.presence",
+      "what": "II4091: Presence 2243750 day",
+      "text": "2 Des"
+    },
+    {
+      "dataset": "edunex.presence",
+      "what": "PL3002: Presence 2194336 day",
+      "text": "27 Agu"
+    },
+    {
+      "dataset": "edunex.presence",
+      "what": "PL3002: Presence 2194336 topic",
+      "text": "Pendahuluan, CPL,CPMK, Kontrak Belajar"
+    },
+    {
+      "dataset": "edunex.presence",
+      "what": "PL3002: Presence 2194337 day",
+      "text": "3 Sep"
+    },
+    {
+      "dataset": "edunex.presence",
+      "what": "PL3002: Presence 2194337 topic",
+      "text": "Inovasi Proses"
+    },
+    {
+      "dataset": "edunex.presence",
+      "what": "PL3002: Presence 2194338 day",
+      "text": "10 Sep"
+    },
+    {
+      "dataset": "edunex.presence",
+      "what": "PL3002: Presence 2194339 day",
+      "text": "17 Sep"
+    },
+    {
+      "dataset": "edunex.presence",
+      "what": "PL3002: Presence 2194340 day",
+      "text": "24 Sep"
+    },
+    {
+      "dataset": "edunex.presence",
+      "what": "PL3002: Presence 2194341 day",
+      "text": "1 Okt"
+    },
+    {
+      "dataset": "edunex.presence",
+      "what": "PL3002: Presence 2194342 day",
+      "text": "8 Okt"
+    },
+    {
+      "dataset": "edunex.presence",
+      "what": "PL3002: Presence 2194343 day",
+      "text": "15 Okt"
+    },
+    {
+      "dataset": "edunex.presence",
+      "what": "PL3002: Presence 2194344 day",
+      "text": "22 Okt"
+    },
+    {
+      "dataset": "edunex.presence",
+      "what": "PL3002: Presence 2194345 day",
+      "text": "29 Okt"
+    },
+    {
+      "dataset": "edunex.presence",
+      "what": "PL3002: Presence 2194346 day",
+      "text": "5 Nov"
+    },
+    {
+      "dataset": "edunex.presence",
+      "what": "PL3002: Presence 2194347 day",
+      "text": "12 Nov"
+    },
+    {
+      "dataset": "edunex.presence",
+      "what": "PL3002: Presence 2194348 day",
+      "text": "19 Nov"
+    },
+    {
+      "dataset": "edunex.presence",
+      "what": "PL3002: Presence 2194349 day",
+      "text": "26 Nov"
+    },
+    {
+      "dataset": "edunex.presence",
+      "what": "PL3002: Presence 2194350 day",
+      "text": "3 Des"
+    },
+    {
+      "dataset": "edunex.notifications",
+      "what": "notification material 95059",
+      "text": "K5. Permintaan infrastruktur (Model. Perm. Kontinu & Diskrit)"
+    },
+    {
+      "dataset": "edunex.notifications",
+      "what": "notification material 95059",
+      "text": "K5. Permintaan infrastruktur (Model. Perm. Kontinu & Diskrit)"
+    },
+    {
+      "dataset": "edunex.notifications",
+      "what": "notification material 95001",
+      "text": "Inovasi Pelayanan Publik"
+    },
+    {
+      "dataset": "edunex.notifications",
+      "what": "notification material 97602",
+      "text": "Pertemuan 03: Jumat, 9 Oktober 2026"
+    },
+    {
+      "dataset": "edunex.notifications",
+      "what": "notification material 95001",
+      "text": "Inovasi Keuangan dan Pembayaran"
+    },
+    {
+      "dataset": "edunex.notifications",
+      "what": "notification material 95001",
+      "text": "Inovasi Kelembagaan Pasar"
+    },
+    {
+      "dataset": "edunex.notifications",
+      "what": "notification material 92948",
+      "text": "Managing The problem Proccess"
+    },
+    {
+      "dataset": "edunex.notifications",
+      "what": "notification task 118842",
+      "text": "Tugas Problem Soving"
+    },
+    {
+      "dataset": "edunex.notifications",
+      "what": "notification task 117873",
+      "text": "Tugas Mandiri Individu tentang Projek Penciptaan/Pengembangan Inovasi Kampus Ganesha"
+    },
+    {
+      "dataset": "edunex.notifications",
+      "what": "notification material 95001",
+      "text": "Tugas Mandiri Individu Projek Penciptaan/Pengembangan Inovasi"
+    },
+    {
+      "dataset": "edunex.notifications",
+      "what": "notification task 117764",
+      "text": "UTS Markom"
+    },
+    {
+      "dataset": "edunex.notifications",
+      "what": "notification material 95059",
+      "text": "K4. Model & Aplikasi Keterkaitan antara Infr. & Eko. (Model Makro, Mikro..)"
+    },
+    {
+      "dataset": "edunex.notifications",
+      "what": "notification material 95001",
+      "text": "Production Process Innovation"
+    },
+    {
+      "dataset": "edunex.notifications",
+      "what": "notification task 117432",
+      "text": "Tugas tentang Imfact on Innovation The Economy"
+    },
+    {
+      "dataset": "six.student",
+      "what": "name",
+      "text": "Dimas Pratama"
+    },
+    {
+      "dataset": "six.student",
+      "what": "NIM",
+      "text": "18223901"
+    },
+    {
+      "dataset": "six.courses",
+      "what": "DK4073: name",
+      "text": "Komunikasi Pemasaran"
+    },
+    {
+      "dataset": "six.courses",
+      "what": "DK4073: attendance",
+      "text": "4 dari 6"
+    },
+    {
+      "dataset": "six.courses",
+      "what": "II4091: name",
+      "text": "Proposal Tugas Akhir"
+    },
+    {
+      "dataset": "six.courses",
+      "what": "II4091: attendance",
+      "text": "3 dari 3"
+    },
+    {
+      "dataset": "six.courses",
+      "what": "KU5014: name",
+      "text": "Teknik Penyelesaian Masalah Terstruktur"
+    },
+    {
+      "dataset": "six.courses",
+      "what": "KU5014: attendance",
+      "text": "2 dari 6"
+    },
+    {
+      "dataset": "six.courses",
+      "what": "PL3002: name",
+      "text": "Ekonomi dan Inovasi dalam Perencanaan"
+    },
+    {
+      "dataset": "six.courses",
+      "what": "PL3002: attendance",
+      "text": "6 dari 7"
+    },
+    {
+      "dataset": "six.courses",
+      "what": "PL3032: name",
+      "text": "Ekonomi Infrastruktur dan Transportasi"
+    },
+    {
+      "dataset": "six.courses",
+      "what": "PL3032: attendance",
+      "text": "4 dari 7"
+    },
+    {
+      "dataset": "six.schedule",
+      "what": "meeting 2194341 (PL3002, 1 Okt)",
+      "text": "08:00–09:30"
+    },
+    {
+      "dataset": "six.schedule",
+      "what": "meeting 2153982 (DK4073, 1 Okt)",
+      "text": "11:00–12:59"
+    },
+    {
+      "dataset": "six.schedule",
+      "what": "meeting 2194401 (PL3032, 1 Okt)",
+      "text": "15:00–16:30"
+    },
+    {
+      "dataset": "six.schedule",
+      "what": "meeting 2185657 (KU5014, 1 Okt)",
+      "text": "16:00–17:50"
+    },
+    {
+      "dataset": "six.schedule",
+      "what": "meeting 2194342 (PL3002, 8 Okt)",
+      "text": "08:00–10:00"
+    },
+    {
+      "dataset": "six.schedule",
+      "what": "meeting 2153983 (DK4073, 8 Okt)",
+      "text": "11:00–12:59"
+    },
+    {
+      "dataset": "six.schedule",
+      "what": "meeting 2194402 (PL3032, 8 Okt)",
+      "text": "15:00–16:30"
+    },
+    {
+      "dataset": "six.schedule",
+      "what": "meeting 2185658 (KU5014, 8 Okt)",
+      "text": "16:00–17:50"
+    },
+    {
+      "dataset": "six.schedule",
+      "what": "meeting 2194343 (PL3002, 15 Okt)",
+      "text": "08:00–09:30"
+    },
+    {
+      "dataset": "six.schedule",
+      "what": "meeting 2179909 (DK4073, 15 Okt)",
+      "text": "11:00–12:59"
+    },
+    {
+      "dataset": "six.schedule",
+      "what": "meeting 2194403 (PL3032, 15 Okt)",
+      "text": "15:00–16:30"
+    },
+    {
+      "dataset": "six.schedule",
+      "what": "meeting 2185659 (KU5014, 15 Okt)",
+      "text": "16:00–17:50"
+    },
+    {
+      "dataset": "six.schedule",
+      "what": "meeting 2311195 (II4091, 16 Okt)",
+      "text": "15:00–23:00"
+    },
+    {
+      "dataset": "six.schedule",
+      "what": "meeting 2194344 (PL3002, 22 Okt)",
+      "text": "08:00–09:30"
+    },
+    {
+      "dataset": "six.schedule",
+      "what": "meeting 2153985 (DK4073, 22 Okt)",
+      "text": "11:00–12:59"
+    },
+    {
+      "dataset": "six.schedule",
+      "what": "meeting 2194404 (PL3032, 22 Okt)",
+      "text": "15:00–16:30"
+    },
+    {
+      "dataset": "six.schedule",
+      "what": "meeting 2185660 (KU5014, 22 Okt)",
+      "text": "16:00–17:50"
+    },
+    {
+      "dataset": "six.schedule",
+      "what": "meeting 2194345 (PL3002, 29 Okt)",
+      "text": "08:00–09:30"
+    },
+    {
+      "dataset": "six.schedule",
+      "what": "meeting 2153986 (DK4073, 29 Okt)",
+      "text": "11:00–12:59"
+    },
+    {
+      "dataset": "six.schedule",
+      "what": "meeting 2194405 (PL3032, 29 Okt)",
+      "text": "15:00–16:30"
+    },
+    {
+      "dataset": "six.schedule",
+      "what": "meeting 2185661 (KU5014, 29 Okt)",
+      "text": "16:00–17:50"
+    },
+    {
+      "dataset": "six.schedule",
+      "what": "meeting 2243744 (II4091, 30 Okt)",
+      "text": "15:00–23:59"
+    },
+    {
+      "dataset": "six.krs",
+      "what": "advisor",
+      "text": "Prof. Dr. Ir. Wahyu Wijaya, M.T."
+    },
+    {
+      "dataset": "six.krs",
+      "what": "KRS DK4073",
+      "text": "DK4073"
+    },
+    {
+      "dataset": "six.krs",
+      "what": "KRS II4091",
+      "text": "II4091"
+    },
+    {
+      "dataset": "six.krs",
+      "what": "KRS KU5014",
+      "text": "KU5014"
+    },
+    {
+      "dataset": "six.krs",
+      "what": "KRS PL3002",
+      "text": "PL3002"
+    },
+    {
+      "dataset": "six.krs",
+      "what": "KRS PL3032",
+      "text": "PL3032"
+    },
+    {
+      "dataset": "six.bills",
+      "what": "bill 2023-1",
+      "text": "Rp10.500.000"
+    },
+    {
+      "dataset": "six.bills",
+      "what": "bill 2023-2",
+      "text": "Rp10.500.000"
+    },
+    {
+      "dataset": "six.bills",
+      "what": "bill 2023-3",
+      "text": "Rp0"
+    },
+    {
+      "dataset": "six.bills",
+      "what": "bill 2024-1",
+      "text": "Rp6.000.000"
+    },
+    {
+      "dataset": "six.bills",
+      "what": "bill 2024-2",
+      "text": "Rp6.000.000"
+    },
+    {
+      "dataset": "six.bills",
+      "what": "bill 2024-3",
+      "text": "Rp0"
+    },
+    {
+      "dataset": "six.bills",
+      "what": "bill 2025-1",
+      "text": "Rp5.400.000"
+    },
+    {
+      "dataset": "six.bills",
+      "what": "bill 2025-2",
+      "text": "Rp5.400.000"
+    },
+    {
+      "dataset": "six.bills",
+      "what": "bill 2025-3",
+      "text": "Rp0"
+    },
+    {
+      "dataset": "six.bills",
+      "what": "bill 2026-1",
+      "text": "Rp5.400.000"
+    },
+    {
+      "dataset": "six.bills",
+      "what": "bill 2026-2",
+      "text": "Rp0"
+    },
+    {
+      "dataset": "six.bills",
+      "what": "bill 2026-3",
+      "text": "Rp0"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2023-1 FI1101: code",
+      "text": "FI1101"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2023-1 FI1101: SIX's name",
+      "text": "Fisika Dasar IA"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2023-1 KU1011: code",
+      "text": "KU1011"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2023-1 KU1011: SIX's name",
+      "text": "Tata Tulis Karya Ilmiah"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2023-1 KU1024: code",
+      "text": "KU1024"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2023-1 KU1024: SIX's name",
+      "text": "Bahasa Inggris"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2023-1 KU1102: code",
+      "text": "KU1102"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2023-1 KU1102: SIX's name",
+      "text": "Pengenalan Komputasi"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2023-1 KU1202: code",
+      "text": "KU1202"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2023-1 KU1202: SIX's name",
+      "text": "Pengantar Rekayasa dan Desain"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2023-1 MA1101: code",
+      "text": "MA1101"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2023-1 MA1101: SIX's name",
+      "text": "Matematika IA"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2023-2 FI1201: code",
+      "text": "FI1201"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2023-2 FI1201: SIX's name",
+      "text": "Fisika Dasar IIA"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2023-2 IF1210: code",
+      "text": "IF1210"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2023-2 IF1210: SIX's name",
+      "text": "Dasar Pemrograman"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2023-2 II1101: code",
+      "text": "II1101"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2023-2 II1101: SIX's name",
+      "text": "Komputasi dan Masyarakat"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2023-2 KI1002: code",
+      "text": "KI1002"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2023-2 KI1002: SIX's name",
+      "text": "Kimia Dasar B"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2023-2 KU1001: code",
+      "text": "KU1001"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2023-2 KU1001: SIX's name",
+      "text": "Olah Raga"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2023-2 MA1201: code",
+      "text": "MA1201"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2023-2 MA1201: SIX's name",
+      "text": "Matematika IIA"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2024-1 DK3071: code",
+      "text": "DK3071"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2024-1 DK3071: SIX's name",
+      "text": "Persuasi Media Sosial"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2024-1 IF2040: code",
+      "text": "IF2040"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2024-1 IF2040: SIX's name",
+      "text": "Pemodelan Basis Data"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2024-1 IF2111: code",
+      "text": "IF2111"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2024-1 IF2111: SIX's name",
+      "text": "Algoritma dan Struktur Data STI"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2024-1 II2100: code",
+      "text": "II2100"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2024-1 II2100: SIX's name",
+      "text": "Komunikasi Interpersonal dan Publik"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2024-1 II2110: code",
+      "text": "II2110"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2024-1 II2110: SIX's name",
+      "text": "Matematika Diskret"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2024-1 II2120: code",
+      "text": "II2120"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2024-1 II2120: SIX's name",
+      "text": "Jaringan Komputer"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2024-1 II2130: code",
+      "text": "II2130"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2024-1 II2130: SIX's name",
+      "text": "Sistem dan Arsitektur Komputer"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2024-1 KU2071: code",
+      "text": "KU2071"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2024-1 KU2071: SIX's name",
+      "text": "Pancasila dan Kewarganegaraan"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2024-1 WI2011: code",
+      "text": "WI2011"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2024-1 WI2011: SIX's name",
+      "text": "Agama Islam"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2024-2 IF2010: code",
+      "text": "IF2010"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2024-2 IF2010: SIX's name",
+      "text": "Pemrograman Berorientasi Objek"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2024-2 IF2050: code",
+      "text": "IF2050"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2024-2 IF2050: SIX's name",
+      "text": "Dasar Rekayasa Perangkat Lunak"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2024-2 II2210: code",
+      "text": "II2210"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2024-2 II2210: SIX's name",
+      "text": "Teknologi Platform"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2024-2 II2211: code",
+      "text": "II2211"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2024-2 II2211: SIX's name",
+      "text": "Probabilitas dan Statistik"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2024-2 II2221: code",
+      "text": "II2221"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2024-2 II2221: SIX's name",
+      "text": "Analisis Kebutuhan Enterprise"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2024-2 II2240: code",
+      "text": "II2240"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2024-2 II2240: SIX's name",
+      "text": "Sistem Multimedia"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2024-2 II2250: code",
+      "text": "II2250"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2024-2 II2250: SIX's name",
+      "text": "Manajemen Basis Data"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2024-2 II2260: code",
+      "text": "II2260"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2024-2 II2260: SIX's name",
+      "text": "Internet of Things"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2025-1 IF3070: code",
+      "text": "IF3070"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2025-1 IF3070: SIX's name",
+      "text": "Dasar Inteligensi Artifisial"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2025-1 II3120: code",
+      "text": "II3120"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2025-1 II3120: SIX's name",
+      "text": "Layanan Sistem dan Teknologi Informasi"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2025-1 II3130: code",
+      "text": "II3130"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2025-1 II3130: SIX's name",
+      "text": "Arsitektur Enterprise"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2025-1 II3131: code",
+      "text": "II3131"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2025-1 II3131: SIX's name",
+      "text": "Interaksi Manusia Komputer"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2025-1 II3140: code",
+      "text": "II3140"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2025-1 II3140: SIX's name",
+      "text": "Pengembangan Aplikasi Web dan Mobile"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2025-1 II3160: code",
+      "text": "II3160"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2025-1 II3160: SIX's name",
+      "text": "Teknologi Sistem Terintegrasi"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2025-1 II3170: code",
+      "text": "II3170"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2025-1 II3170: SIX's name",
+      "text": "Hukum dan Etika Teknologi Informasi"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2025-2 FK3057: code",
+      "text": "FK3057"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2025-2 FK3057: SIX's name",
+      "text": "Sains Sepak Bola"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2025-2 IF3211: code",
+      "text": "IF3211"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2025-2 IF3211: SIX's name",
+      "text": "Komputasi Domain Spesifik"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2025-2 II3220: code",
+      "text": "II3220"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2025-2 II3220: SIX's name",
+      "text": "Tata Kelola Teknologi Informasi"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2025-2 II3230: code",
+      "text": "II3230"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2025-2 II3230: SIX's name",
+      "text": "Keamanan Informasi"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2025-2 II3240: code",
+      "text": "II3240"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2025-2 II3240: SIX's name",
+      "text": "Rekayasa Sistem dan Teknologi Informasi"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2025-2 II4012: code",
+      "text": "II4012"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2025-2 II4012: SIX's name",
+      "text": "Inteligensi Artifisial untuk Bisnis"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2025-2 II4013: code",
+      "text": "II4013"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2025-2 II4013: SIX's name",
+      "text": "Data Analytics"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2025-2 WI2022: code",
+      "text": "WI2022"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2025-2 WI2022: SIX's name",
+      "text": "Manajemen Proyek"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2026-1 DK4073: code",
+      "text": "DK4073"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2026-1 DK4073: SIX's name",
+      "text": "Komunikasi Pemasaran"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2026-1 II4091: code",
+      "text": "II4091"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2026-1 II4091: SIX's name",
+      "text": "Proposal Tugas Akhir"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2026-1 KU5014: code",
+      "text": "KU5014"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2026-1 KU5014: SIX's name",
+      "text": "Teknik Penyelesaian Masalah Terstruktur"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2026-1 PL3002: code",
+      "text": "PL3002"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2026-1 PL3002: SIX's name",
+      "text": "Ekonomi dan Inovasi dalam Perencanaan"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2026-1 PL3032: code",
+      "text": "PL3032"
+    },
+    {
+      "dataset": "six.transcript",
+      "what": "2026-1 PL3032: SIX's name",
+      "text": "Ekonomi Infrastruktur dan Transportasi"
+    },
+    {
+      "dataset": "six.curriculum",
+      "what": "required MA1101",
+      "text": "MA1101"
+    },
+    {
+      "dataset": "six.curriculum",
+      "what": "required FI1101",
+      "text": "FI1101"
+    },
+    {
+      "dataset": "six.curriculum",
+      "what": "required KI1101",
+      "text": "KI1101"
+    },
+    {
+      "dataset": "six.curriculum",
+      "what": "required WI1101",
+      "text": "WI1101"
+    },
+    {
+      "dataset": "six.curriculum",
+      "what": "required WI1102",
+      "text": "WI1102"
+    },
+    {
+      "dataset": "six.curriculum",
+      "what": "required WI1103",
+      "text": "WI1103"
+    },
+    {
+      "dataset": "six.curriculum",
+      "what": "required WI1111",
+      "text": "WI1111"
+    },
+    {
+      "dataset": "six.curriculum",
+      "what": "required WI1116",
+      "text": "WI1116"
+    },
+    {
+      "dataset": "six.curriculum",
+      "what": "required II1200",
+      "text": "II1200"
+    },
+    {
+      "dataset": "six.curriculum",
+      "what": "required IF1210",
+      "text": "IF1210"
+    },
+    {
+      "dataset": "six.curriculum",
+      "what": "required WI2001",
+      "text": "WI2001"
+    },
+    {
+      "dataset": "six.curriculum",
+      "what": "required WI2005",
+      "text": "WI2005"
+    },
+    {
+      "dataset": "six.curriculum",
+      "what": "required WI201X",
+      "text": "WI201X"
+    },
+    {
+      "dataset": "six.curriculum",
+      "what": "required WI2006",
+      "text": "WI2006"
+    },
+    {
+      "dataset": "six.curriculum",
+      "what": "required WI2002",
+      "text": "WI2002"
+    },
+    {
+      "dataset": "six.curriculum",
+      "what": "required WI2003",
+      "text": "WI2003"
+    },
+    {
+      "dataset": "six.curriculum",
+      "what": "required II2100",
+      "text": "II2100"
+    },
+    {
+      "dataset": "six.curriculum",
+      "what": "required II2110",
+      "text": "II2110"
+    },
+    {
+      "dataset": "six.curriculum",
+      "what": "required II2120",
+      "text": "II2120"
+    },
+    {
+      "dataset": "six.curriculum",
+      "what": "required II2130",
+      "text": "II2130"
+    },
+    {
+      "dataset": "six.curriculum",
+      "what": "required IF2040",
+      "text": "IF2040"
+    },
+    {
+      "dataset": "six.curriculum",
+      "what": "required IF2010",
+      "text": "IF2010"
+    },
+    {
+      "dataset": "six.curriculum",
+      "what": "required WI2004",
+      "text": "WI2004"
+    },
+    {
+      "dataset": "six.curriculum",
+      "what": "required II2210",
+      "text": "II2210"
+    },
+    {
+      "dataset": "six.curriculum",
+      "what": "required II2211",
+      "text": "II2211"
+    },
+    {
+      "dataset": "six.curriculum",
+      "what": "required II2221",
+      "text": "II2221"
+    },
+    {
+      "dataset": "six.curriculum",
+      "what": "required II2240",
+      "text": "II2240"
+    },
+    {
+      "dataset": "six.curriculum",
+      "what": "required II2250",
+      "text": "II2250"
+    },
+    {
+      "dataset": "six.curriculum",
+      "what": "required II2260",
+      "text": "II2260"
+    },
+    {
+      "dataset": "six.curriculum",
+      "what": "required IF2050",
+      "text": "IF2050"
+    },
+    {
+      "dataset": "six.curriculum",
+      "what": "required II3120",
+      "text": "II3120"
+    },
+    {
+      "dataset": "six.curriculum",
+      "what": "required II3130",
+      "text": "II3130"
+    },
+    {
+      "dataset": "six.curriculum",
+      "what": "required II3131",
+      "text": "II3131"
+    },
+    {
+      "dataset": "six.curriculum",
+      "what": "required II3140",
+      "text": "II3140"
+    },
+    {
+      "dataset": "six.curriculum",
+      "what": "required II3160",
+      "text": "II3160"
+    },
+    {
+      "dataset": "six.curriculum",
+      "what": "required II3170",
+      "text": "II3170"
+    },
+    {
+      "dataset": "six.curriculum",
+      "what": "required IF3070",
+      "text": "IF3070"
+    },
+    {
+      "dataset": "six.curriculum",
+      "what": "required II3220",
+      "text": "II3220"
+    },
+    {
+      "dataset": "six.curriculum",
+      "what": "required II3230",
+      "text": "II3230"
+    },
+    {
+      "dataset": "six.curriculum",
+      "what": "required II3240",
+      "text": "II3240"
+    },
+    {
+      "dataset": "six.curriculum",
+      "what": "required IF3211",
+      "text": "IF3211"
+    },
+    {
+      "dataset": "six.curriculum",
+      "what": "required WI2022",
+      "text": "WI2022"
+    },
+    {
+      "dataset": "six.curriculum",
+      "what": "required II4091",
+      "text": "II4091"
+    },
+    {
+      "dataset": "six.curriculum",
+      "what": "required II4090",
+      "text": "II4090"
+    },
+    {
+      "dataset": "six.curriculum",
+      "what": "required II4092",
+      "text": "II4092"
+    },
+    {
+      "dataset": "six.curriculum",
+      "what": "specialization",
+      "text": "Keamanan dan Privasi Siber"
+    },
+    {
+      "dataset": "six.curriculum",
+      "what": "specialization",
+      "text": "Sistem Informasi Cerdas"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2026-07-07 urs: Penggantian Rencana Studi Semester Antara 2025/2026",
+      "text": "7 Jul"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2026-07-22 graduation: Batas Waktu Pemenuhan Persyaratan Administrasi Kelulusan Yudisium Juli 2026",
+      "text": "22 Jul"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2026-07-28 graduation: Yudisium ITB Bulan Juli 2026",
+      "text": "28 Jul"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2026-07-31 grade-change-deadline: Batas Akhir Perubahan Nilai Mata Kuliah Semester II-2025/2026 Kategori Non TA/Tesis/Disertasi (Revisi-02 )",
+      "text": "31 Jul"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2026-08-03 progress-check: Pemantauan dan Evaluasi Akademik Mahasiswa",
+      "text": "3 Agu"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2026-08-05 other: Penetapan Status Mahasiswa Baru Semester I-2026/2027",
+      "text": "5 Agu"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2026-08-05 other: Sidang Terbuka Penerimaan Mahasiswa Baru Semester I-2026/2027",
+      "text": "5 Agu"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2026-08-07 study-extension: Batas Akhir Pengajuan Perpanjangan Waktu Studi Semester I-2026/2027 dari mahasiswa",
+      "text": "7 Agu"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2026-08-12 grade-change-deadline: Batas Akhir Perubahan Nilai Mata Kuliah Semester II-2025/2026 Kategori TA/Tesis/Disertasi (Revisi-02 )",
+      "text": "12 Agu"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2026-08-12 graduation: Batas Waktu Pemenuhan Persyaratan Administrasi Kelulusan Yudisium Agustus 2026",
+      "text": "12 Agu"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2026-08-12 drs: Pendaftaran Rencana Studi (DRS) dan Perwalian Semester I-2026/2027",
+      "text": "12 Agu"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2026-08-18 graduation: Yudisium ITB Bulan Agustus 2026",
+      "text": "18 Agu"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2026-08-19 other: Batas Akhir Pengisian Portofolio Semester II-2025/2026 (Revisi-02)",
+      "text": "19 Agu"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2026-08-21 lecture-end: Hari Terakhir Masa Perkuliahan Semester Antara 2025/2026",
+      "text": "21 Agu"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2026-08-23 ukt-deadline: Batas Waktu Pembayaran Biaya Pendidikan Semester I-2026/2027 bagi Mahasiswa Lama",
+      "text": "23 Agu"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2026-08-24 lecture-start: Hari Pertama Masa Kuliah Semester I-2026/2027",
+      "text": "24 Agu"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2026-08-24 other: Hari Pertama Verifikasi Portofolio Semester II-2025/2026 (Revisi-02)",
+      "text": "24 Agu"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2026-08-26 grade-deadline: Batas Akhir Kategori Tepat Waktu Pemasukan Nilai Akhir Mata Kuliah Semester Antara 2025/2026",
+      "text": "26 Agu"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2026-08-27 graduation: Hari Wisuda Ketiga Tahun Akademik 2025/2026",
+      "text": "27 Agu"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2026-08-27 graduation: Hari Wisuda Ketiga Tahun Akademik 2025/2026 (Revisi)",
+      "text": "27 Agu"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2026-08-27 graduation: Penerbitan Ijazah Yudisium Mei 2026, Juni 2026, dan Juli 2026",
+      "text": "27 Agu"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2026-08-27 graduation: Penerbitan Ijazah Yudisium Mei 2026, Juni 2026, dan Juli 2026 (Revisi-02)",
+      "text": "27 Agu"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2026-09-11 grade-change-deadline: Batas Akhir Perubahan Nilai Mata Kuliah Semester Antara 2025/2026",
+      "text": "11 Sep"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2026-09-15 urs: Perubahan Rencana Studi (URS) Semester I-2026/2027",
+      "text": "15 Sep"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2026-09-18 leave: Batas Akhir Pengajuan Cuti Semester I-2026/2027",
+      "text": "18 Sep"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2026-09-18 other: Hari Terakhir Verifikasi Portofolio Semester II-2025/2026 (Revisi-02)",
+      "text": "18 Sep"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2026-09-21 other: Penyelesaian Kasus Mahasiswa yang Tidak Mendaftar Dua Semester",
+      "text": "21 Sep"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2026-09-23 graduation: Batas Waktu Pemenuhan Persyaratan Administrasi Kelulusan untuk Yudisium September 2026",
+      "text": "23 Sep"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2026-09-29 graduation: Yudisium ITB Bulan September 2026",
+      "text": "29 Sep"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2026-10-09 other: Batas Waktu Pemasukan Nilai Konversi Aktivitas Kemahasiswaan Semester II-2025/2026",
+      "text": "9 Okt"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2026-10-12 other: Hari Pertama Periode Pembukaan Kelas/Mata Kuliah Semester II-2026/2027 oleh Program Studi",
+      "text": "12 Okt"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2026-10-12 uts: Masa Ujian Tengah Semester I-2026/2027",
+      "text": "12 Okt"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2026-10-29 graduation: Hari Wisuda Pertama Tahun Akademik 2026/2027",
+      "text": "29 Okt"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2026-10-29 graduation: Penerbitan Ijazah Yudisium Agustus 2026 dan September 2026",
+      "text": "29 Okt"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2026-10-30 other: Batas Pelaporan PDDikti Semester II-2025/2026 dan Semester Antara 2025/2026",
+      "text": "30 Okt"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2026-11-12 other: Batas Koreksi DPK untuk Acuan DNA Semester I-2026/2027",
+      "text": "12 Nov"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2026-11-13 other: Hari Terakhir Periode Pembukaan Kelas/Mata Kuliah Semester II-2026/2027 oleh Program Studi",
+      "text": "13 Nov"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2026-11-18 graduation: Batas Waktu Pemenuhan Persyaratan Administrasi Kelulusan untuk Yudisium November 2026",
+      "text": "18 Nov"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2026-11-24 graduation: Yudisium ITB Bulan November 2026",
+      "text": "24 Nov"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2026-11-30 questionnaire: Pengisian Kuesioner Evaluasi Perkuliahan Semester I-2026/2027",
+      "text": "30 Nov"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2026-12-04 lecture-end: Hari Terakhir Masa Kuliah Semester I-2026/2027",
+      "text": "4 Des"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2026-12-07 uas: Ujian Akhir Semester I-2026/2027",
+      "text": "7 Des"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2026-12-21 other: Batas Pencatatan Kegiatan Aktivitas Kemahasiswaan dan Pembimbingan Tugas Akhir/Tesis/Disertasi Semester I-2026/2027",
+      "text": "21 Des"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2026-12-23 graduation: Batas Waktu Pemenuhan Persyaratan Administrasi Kelulusan untuk Yudisium Desember 2026",
+      "text": "23 Des"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2026-12-24 holiday: Libur Kuliah dalam rangka Hari Raya Natal",
+      "text": "24 Des"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2026-12-29 graduation: Yudisium ITB Bulan Desember 2026",
+      "text": "29 Des"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2027-01-04 other: Pendaftaran Mahasiswa Baru Semester Genap Program Pascasarjana dan Profesi",
+      "text": "4 Jan"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2027-01-08 grade-deadline: Batas Akhir Kategori Tepat Waktu Pemasukan Nilai Akhir Mata Kuliah Semester I-2026/2027",
+      "text": "8 Jan"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2027-01-15 study-extension: Batas Akhir Pengajuan Perpanjangan Waktu Studi Semester II-2026/2027 dari Mahasiswa",
+      "text": "15 Jan"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2027-01-15 other: Batas Akhir Pengisian Kuesioner Akhir Pilihan Program Studi Mahasiswa Angkatan 2027",
+      "text": "15 Jan"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2027-01-15 grade-change-deadline: Batas Akhir Perubahan Nilai Mata Kuliah Sarjana Angkatan 2026 Semester I-2026/2027",
+      "text": "15 Jan"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2027-01-18 progress-check: Pemantauan dan Evaluasi Akademik Mahasiswa",
+      "text": "18 Jan"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2027-01-20 graduation: Batas Waktu Pemenuhan Persyaratan Administrasi Kelulusan untuk Yudisium Januari 2027",
+      "text": "20 Jan"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2027-01-20 drs: Pendaftaran Rencana Studi (DRS) dan Perwalian Semester II-2026/2027",
+      "text": "20 Jan"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2027-01-20 other: Penjurusan Mahasiswa Angkatan 2026",
+      "text": "20 Jan"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2027-01-21 other: Penetapan Status Mahasiswa Baru Semester II-2026/2027",
+      "text": "21 Jan"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2027-01-21 other: Sidang Terbuka Penerimaan Mahasiswa Baru Semester II-2026/2027",
+      "text": "21 Jan"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2027-01-26 graduation: Yudisium ITB Bulan Januari 2027",
+      "text": "26 Jan"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2027-01-31 ukt-deadline: Batas Waktu Pembayaran Biaya Pendidikan Semester II-2026/2027 bagi Mahasiswa Lama",
+      "text": "31 Jan"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2027-02-01 lecture-start: Hari Pertama Masa Kuliah Semester II-2026/2027",
+      "text": "1 Feb"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2027-02-04 grade-change-deadline: Batas Akhir Perubahan Nilai Mata Kuliah Semester I-2026/2027",
+      "text": "4 Feb"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2027-02-12 other: Batas Akhir Pengisian Portofolio Semester I-2026/2027",
+      "text": "12 Feb"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2027-02-15 other: Hari Pertama Verifikasi Portofolio Semester I-2026/2027",
+      "text": "15 Feb"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2027-02-17 graduation: Batas Waktu Pemenuhan Persyaratan Administrasi Kelulusan untuk Yudisium Februari 2027",
+      "text": "17 Feb"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2027-02-23 urs: Perubahan Rencana Studi (URS) Semester II-2026/2027",
+      "text": "23 Feb"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2027-02-23 graduation: Yudisium ITB Bulan Februari 2027",
+      "text": "23 Feb"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2027-02-26 leave: Batas Akhir Pengajuan Cuti Semester II-2026/2027",
+      "text": "26 Feb"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2027-02-27 graduation: Penerbitan Ijazah Yudisium November 2026, Desember 2026, dan Januari 2027",
+      "text": "27 Feb"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2027-03-01 other: Penyelesaian Kasus Mahasiswa yang Tidak Mendaftar Dua Semester",
+      "text": "1 Mar"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2027-03-02 other: Sidang Terbuka Dalam Rangka Dies Natalis ke-68 ITB",
+      "text": "2 Mar"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2027-03-10 holiday: Libur Kuliah dalam rangka Hari Raya Idul Fitri*)",
+      "text": "10 Mar"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2027-03-20 other: Hari Terakhir Verifikasi Portofolio Semester I-2026/2027",
+      "text": "20 Mar"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2027-03-24 graduation: Batas Waktu Pemenuhan Persyaratan Administrasi Kelulusan untuk Yudisium Maret 2027",
+      "text": "24 Mar"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2027-03-29 other: Hari Pertama Periode Pembukaan Kelas/Mata Kuliah Semester I-2027/2028 oleh Program Studi",
+      "text": "29 Mar"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2027-03-29 uts: Masa Ujian Tengah Semester II-2026/2027",
+      "text": "29 Mar"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2027-03-30 graduation: Yudisium ITB Bulan Maret 2027",
+      "text": "30 Mar"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2027-04-16 other: Batas Waktu Pemasukan Nilai Konversi Aktivitas Kemahasiswaan Semester I-2026/2027",
+      "text": "16 Apr"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2027-04-22 graduation: Hari Wisuda Kedua Tahun Akademik 2026/2027",
+      "text": "22 Apr"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2027-04-22 graduation: Penerbitan Ijazah Yudisium Februari 2027 dan Maret 2027",
+      "text": "22 Apr"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2027-04-29 other: Batas Pelaporan PDDikti Semester I-2026/2027",
+      "text": "29 Apr"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2027-04-30 other: Batas Koreksi DPK untuk Acuan DNA Semester II-2026/2027",
+      "text": "30 Apr"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2027-04-30 other: Hari Terakhir Periode Pembukaan Kelas/Mata Kuliah Semester I-2027/2028 oleh Program Studi",
+      "text": "30 Apr"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2027-05-10 other: Hari Pertama Periode Pembukaan Kelas/Mata Kuliah Semester Antara 2026/2027 oleh Program Studi",
+      "text": "10 Mei"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2027-05-10 questionnaire: Pengisian Kuesioner Evaluasi Perkuliahan Semester II-2026/2027",
+      "text": "10 Mei"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2027-05-19 graduation: Batas Waktu Pemenuhan Persyaratan Administrasi Kelulusan untuk Yudisium Mei 2027",
+      "text": "19 Mei"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2027-05-21 lecture-end: Hari Terakhir Masa Kuliah Semester II-2026/2027",
+      "text": "21 Mei"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2027-05-24 uas: Ujian Akhir Semester II-2026/2027",
+      "text": "24 Mei"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2027-05-25 graduation: Yudisium ITB Bulan Mei 2027",
+      "text": "25 Mei"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2027-05-28 other: Batas Pencatatan Kegiatan Aktivitas Kemahasiswaan dan Pembimbingan Tugas Akhir/Tesis/Disertasi Semester II-2026/2027",
+      "text": "28 Mei"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2027-06-04 other: Hari Terakhir Periode Pembukaan Kelas/Mata Kuliah Semester Antara 2026/2027 oleh Program Studi",
+      "text": "4 Jun"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2027-06-15 drs: Pendaftaran Rencana Studi (DRS) dan Perwalian Semester Antara 2026/2027",
+      "text": "15 Jun"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2027-06-21 lecture-start: Hari Pertama Masa Perkuliahan Semester Antara 2026/2027",
+      "text": "21 Jun"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2027-06-22 grade-deadline: Batas Akhir Kategori Tepat Waktu Pemasukan Nilai Akhir Mata Kuliah Semester II-2026/2027",
+      "text": "22 Jun"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2027-06-23 graduation: Batas Waktu Pemenuhan Persyaratan Administrasi Kelulusan Yudisium Juni 2027",
+      "text": "23 Jun"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2027-06-29 urs: Perubahan Rencana Studi (URS) Semester Antara 2026/2027",
+      "text": "29 Jun"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2027-06-29 graduation: Yudisium ITB Bulan Juni 2027",
+      "text": "29 Jun"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2027-07-21 graduation: Batas Waktu Pemenuhan Persyaratan Administrasi Kelulusan Yudisium Juli 2027",
+      "text": "21 Jul"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2027-07-23 grade-change-deadline: Batas Akhir Perubahan Nilai Mata Kuliah Kategori Bukan TA/Tesis/Disertasi Semester II-2026/2027",
+      "text": "23 Jul"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2027-07-27 graduation: Yudisium ITB Bulan Juli 2027",
+      "text": "27 Jul"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2027-08-02 progress-check: Pemantauan dan Evaluasi Akademik Mahasiswa",
+      "text": "2 Agu"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2027-08-04 study-extension: Batas Akhir Pengajuan Perpanjangan Waktu Studi Semester I-2027/2028 dari mahasiswa",
+      "text": "4 Agu"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2027-08-04 grade-change-deadline: Batas Akhir Perubahan Nilai Mata Kuliah Kategori TA/Tesis/Disertasi Semester II-2026/2027",
+      "text": "4 Agu"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2027-08-04 graduation: Batas Waktu Pemenuhan Persyaratan Administrasi Kelulusan Yudisium Agustus 2027",
+      "text": "4 Agu"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2027-08-10 graduation: Yudisium ITB Bulan Agustus 2027",
+      "text": "10 Agu"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2027-08-13 lecture-end: Hari Terakhir Masa Perkuliahan Semester Antara 2026/2027",
+      "text": "13 Agu"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2027-08-20 grade-deadline: Batas Akhir Kategori Tepat Waktu Pemasukan Nilai Akhir Mata Kuliah Semester Antara 2026/2027",
+      "text": "20 Agu"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2027-08-20 other: Batas Akhir Pengisian Portofolio Semester II-2026/2027",
+      "text": "20 Agu"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2027-08-23 other: Verifikasi Portofolio Semester II-2026/2027",
+      "text": "23 Agu"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2027-08-26 graduation: Hari Wisuda Ketiga Tahun Akademik 2026/2027",
+      "text": "26 Agu"
+    },
+    {
+      "dataset": "itb.calendar",
+      "what": "2027-08-26 graduation: Penerbitan Ijazah Yudisium Mei 2027, Juni 2027, dan Juli 2027",
+      "text": "26 Agu"
+    },
+    {
+      "dataset": "itb.catalog",
+      "what": "minor 1359",
+      "text": "Fisika"
+    },
+    {
+      "dataset": "itb.catalog",
+      "what": "minor 1366",
+      "text": "Ruang Publik"
+    },
+    {
+      "dataset": "itb.catalog",
+      "what": "minor 1367",
+      "text": "Perancangan dan Rekayasa Tapak"
+    },
+    {
+      "dataset": "itb.catalog",
+      "what": "minor 1368",
+      "text": "Perancangan Berpusat pada Manusia"
+    },
+    {
+      "dataset": "itb.catalog",
+      "what": "minor 1369",
+      "text": "Manajemen Proyek Berkelanjutan"
+    },
+    {
+      "dataset": "itb.catalog",
+      "what": "minor 1370",
+      "text": "Teknologi Bangunan Berkelanjutan"
+    },
+    {
+      "dataset": "itb.catalog",
+      "what": "minor 1371",
+      "text": "Sejarah Arsitektur Indonesia"
+    },
+    {
+      "dataset": "itb.catalog",
+      "what": "minor 1372",
+      "text": "Perumahan Terjangkau"
+    },
+    {
+      "dataset": "itb.catalog",
+      "what": "minor 1373",
+      "text": "Perumahan Bertumpu pada Masyarakat"
+    },
+    {
+      "dataset": "itb.catalog",
+      "what": "minor 1374",
+      "text": "Perumahan Komersial"
+    },
+    {
+      "dataset": "itb.catalog",
+      "what": "minor 1382",
+      "text": "Teknologi Pasca Panen"
+    },
+    {
+      "dataset": "itb.catalog",
+      "what": "minor 1384",
+      "text": "Sistem Pertanian Terpadu"
+    },
+    {
+      "dataset": "itb.catalog",
+      "what": "minor 1385",
+      "text": "Sistem Pertanian Presisi"
+    },
+    {
+      "dataset": "itb.catalog",
+      "what": "minor 1395",
+      "text": "Desain Interior Pilihan A"
+    },
+    {
+      "dataset": "itb.catalog",
+      "what": "minor 1396",
+      "text": "Desain Interior Pilihan B"
+    },
+    {
+      "dataset": "itb.catalog",
+      "what": "minor 1403",
+      "text": "Sistem Informasi"
+    },
+    {
+      "dataset": "itb.catalog",
+      "what": "minor 1404",
+      "text": "Teknologi Informasi"
+    },
+    {
+      "dataset": "itb.catalog",
+      "what": "minor 1407",
+      "text": "Core Chemical Engineering"
+    },
+    {
+      "dataset": "itb.catalog",
+      "what": "minor 1408",
+      "text": "Sustainable Chemical Engineering"
+    },
+    {
+      "dataset": "itb.catalog",
+      "what": "minor 1410",
+      "text": "Asuransi Jiwa"
+    },
+    {
+      "dataset": "itb.catalog",
+      "what": "minor 1412",
+      "text": "Matematika Keuangan"
+    },
+    {
+      "dataset": "itb.catalog",
+      "what": "minor 1415",
+      "text": "Teknik Metalurgi"
+    },
+    {
+      "dataset": "itb.catalog",
+      "what": "minor 1432",
+      "text": "Teknik Reservoir"
+    },
+    {
+      "dataset": "itb.catalog",
+      "what": "minor 1433",
+      "text": "Teknik Pengeboran"
+    },
+    {
+      "dataset": "itb.catalog",
+      "what": "minor 1434",
+      "text": "Teknik Produksi"
+    },
+    {
+      "dataset": "itb.catalog",
+      "what": "minor 1446",
+      "text": "Program Minor Rekayasa Hayati"
+    },
+    {
+      "dataset": "itb.catalog",
+      "what": "minor 1516",
+      "text": "Teknologi Reforestasi"
+    },
+    {
+      "dataset": "itb.catalog",
+      "what": "minor 1535",
+      "text": "Teknologi Pengolahan Bahan Nabati"
+    },
+    {
+      "dataset": "itb.catalog",
+      "what": "minor 1536",
+      "text": "Mikrobiologi"
+    },
+    {
+      "dataset": "itb.catalog",
+      "what": "minor 1546",
+      "text": "Perencanaan Wilayah dan Kota"
+    },
+    {
+      "dataset": "itb.catalog",
+      "what": "minor 1547",
+      "text": "Perencanaan Kota"
+    },
+    {
+      "dataset": "itb.catalog",
+      "what": "minor 1548",
+      "text": "Perencanaan Wilayah dan Perdesaan"
+    },
+    {
+      "dataset": "itb.catalog",
+      "what": "minor 1549",
+      "text": "Infastruktur Wilayah dan Kota"
+    },
+    {
+      "dataset": "itb.catalog",
+      "what": "minor 1550",
+      "text": "Manajemen Pembangunan Kota"
+    },
+    {
+      "dataset": "itb.catalog",
+      "what": "minor 1566",
+      "text": "Astronomi Observasional"
+    },
+    {
+      "dataset": "itb.catalog",
+      "what": "minor 1567",
+      "text": "Sains Keplanetan"
+    },
+    {
+      "dataset": "itb.catalog",
+      "what": "minor 1568",
+      "text": "Komputasi Astronomi"
+    },
+    {
+      "dataset": "itb.catalog",
+      "what": "minor 1587",
+      "text": "Teknik Kelautan"
+    },
+    {
+      "dataset": "itb.catalog",
+      "what": "minor 1592",
+      "text": "Teknik Lingkungan"
+    },
+    {
+      "dataset": "itb.catalog",
+      "what": "minor 1600",
+      "text": "Teknik Geofisika"
+    },
+    {
+      "dataset": "itb.catalog",
+      "what": "minor 1614",
+      "text": "Biologi Sel dan Molekuler"
+    },
+    {
+      "dataset": "itb.catalog",
+      "what": "minor 1615",
+      "text": "Ekologi"
+    },
+    {
+      "dataset": "itb.catalog",
+      "what": "minor 1616",
+      "text": "Biologi Hewan"
+    },
+    {
+      "dataset": "itb.catalog",
+      "what": "minor 1617",
+      "text": "Biologi Tumbuhan"
+    },
+    {
+      "dataset": "itb.catalog",
+      "what": "minor 1626",
+      "text": "Sumber Daya Air"
+    },
+    {
+      "dataset": "itb.catalog",
+      "what": "minor 1661",
+      "text": "Program Minor"
+    },
+    {
+      "dataset": "itb.catalog",
+      "what": "minor 1696",
+      "text": "Tata Kelola Seni"
+    },
+    {
+      "dataset": "itb.catalog",
+      "what": "minor 1715",
+      "text": "Narasi Visual"
+    },
+    {
+      "dataset": "itb.catalog",
+      "what": "minor 1716",
+      "text": "Branding Berbasis Digital"
+    },
+    {
+      "dataset": "itb.catalog",
+      "what": "minor 1719",
+      "text": "Rekayasa Infrastruktur Lingkungan"
+    },
+    {
+      "dataset": "itb.catalog",
+      "what": "minor 1761",
+      "text": "Analisis Spasial untuk Ketahanan Pangan"
+    },
+    {
+      "dataset": "itb.catalog",
+      "what": "minor 1762",
+      "text": "Teknik Pangan"
+    },
+    {
+      "dataset": "itb.catalog",
+      "what": "minor 1781",
+      "text": "Manajemen Bisnis"
+    },
+    {
+      "dataset": "itb.catalog",
+      "what": "minor 1808",
+      "text": "Meteorologi Dasar"
+    },
+    {
+      "dataset": "itb.catalog",
+      "what": "minor 1809",
+      "text": "Studi Kriya, Ruang, dan Komunitas"
+    },
+    {
+      "dataset": "itb.catalog",
+      "what": "minor 1810",
+      "text": "Program Minor Matematika"
+    },
+    {
+      "dataset": "itb.catalog",
+      "what": "minor 1814",
+      "text": "Kewirausahaan Teknologi"
+    },
+    {
+      "dataset": "itb.catalog",
+      "what": "minor 1825",
+      "text": "Oseanografi Fisika"
+    },
+    {
+      "dataset": "itb.catalog",
+      "what": "minor 1826",
+      "text": "Pemodelan Oseanografi"
+    },
+    {
+      "dataset": "itb.catalog",
+      "what": "minor 1827",
+      "text": "Kebencanaan Pesisir dan Laut"
+    },
+    {
+      "dataset": "itb.catalog",
+      "what": "minor 1834",
+      "text": "Pengembangan Obat"
+    },
+    {
+      "dataset": "itb.catalog",
+      "what": "minor 1835",
+      "text": "Pengembangan Sediaan Farmasi"
+    },
+    {
+      "dataset": "itb.catalog",
+      "what": "minor 1837",
+      "text": "Teknik Industri"
+    },
+    {
+      "dataset": "itb.catalog",
+      "what": "minor 1857",
+      "text": "1 : Sistem Komunikasi"
+    },
+    {
+      "dataset": "itb.catalog",
+      "what": "minor 1858",
+      "text": "2 : Jaringan Komunikasi dan Keamanan"
+    },
+    {
+      "dataset": "itb.catalog",
+      "what": "minor 1859",
+      "text": "Teknologi Nano dan Rekayasa Material"
+    },
+    {
+      "dataset": "itb.catalog",
+      "what": "minor 1860",
+      "text": "Rekayasa Sistem Energi"
+    },
+    {
+      "dataset": "itb.catalog",
+      "what": "minor 1861",
+      "text": "Rekayasa Bangunan dan Lingkungan Berkelanjutan"
+    },
+    {
+      "dataset": "itb.catalog",
+      "what": "minor 1862",
+      "text": "Rekayasa Instrumentasi dan Kontrol"
+    },
+    {
+      "dataset": "itb.catalog",
+      "what": "minor 1863",
+      "text": "Rekayasa Sistem Instrumen Bio dan Medis"
+    },
+    {
+      "dataset": "itb.catalog",
+      "what": "minor 1872",
+      "text": "Geologi Dasar"
+    },
+    {
+      "dataset": "itb.catalog",
+      "what": "minor 1873",
+      "text": "Sistem Tenaga Listrik"
+    },
+    {
+      "dataset": "itb.catalog",
+      "what": "minor 1874",
+      "text": "Konversi Energi Listrik"
+    },
+    {
+      "dataset": "itb.catalog",
+      "what": "minor 1875",
+      "text": "Teknologi Tegangan Tinggi"
+    },
+    {
+      "dataset": "itb.catalog",
+      "what": "minor 1880",
+      "text": "Teknik Elektro Analog"
+    },
+    {
+      "dataset": "itb.catalog",
+      "what": "minor 1881",
+      "text": "Teknik Elektro Digital"
+    },
+    {
+      "dataset": "itb.catalog",
+      "what": "minor 1919",
+      "text": "Rekayasa Perangkat Lunak"
+    },
+    {
+      "dataset": "itb.catalog",
+      "what": "minor 1920",
+      "text": "Ilmu Data & Inteligensi Artifisial"
+    },
+    {
+      "dataset": "itb.catalog",
+      "what": "minor 1952",
+      "text": "Teknik Biomedis"
+    },
+    {
+      "dataset": "itb.catalog",
+      "what": "minor 1966",
+      "text": "Kesehatan Olahraga"
+    },
+    {
+      "dataset": "itb.catalog",
+      "what": "minor 1988",
+      "text": "Manajemen Rekayasa"
+    }
+  ],
+  "notCaptured": []
+}
