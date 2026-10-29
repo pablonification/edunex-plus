@@ -30,4 +30,33 @@ export const mobileStrings = {
     id: "Kotak jawaban di HP hanya untuk teks biasa, jadi ubah jawaban berformat ini di Edunex. Berkasnya tetap bisa diatur di sini.",
     en: "The answer box on the phone takes plain text only, so change this formatted answer on Edunex. You can still manage the files here.",
   },
+  // schedule
+  // "Tambahkan ke kalender HP" on the phone (S8): the events go into the phone's own calendar, in one called Edunex Plus.
+  "mobile.calendar.lead": {
+    id: "Kuliah, ujian dan tenggatmu masuk ke kalender HP, di kalender bernama Edunex Plus.",
+    en: "Your classes, exams and deadlines go into your phone's calendar, in one called Edunex Plus.",
+  },
+  "mobile.calendar.add": { id: "Tambahkan {count} acara", en: { one: "Add {count} event", other: "Add {count} events" } },
+  "mobile.calendar.again": {
+    id: "Menambahkan lagi memperbarui acaranya, tidak menggandakannya.",
+    en: "Adding again updates the events instead of adding copies.",
+  },
+  "mobile.calendar.added": {
+    id: "{count} acara ada di kalender HP",
+    en: { one: "{count} event in your phone's calendar", other: "{count} events in your phone's calendar" },
+  },
+  // The Student said no to calendar access (or Android won't ask again): the way to allow it, or the file instead.
+  "mobile.calendar.denied": { id: "Kalender HP belum diizinkan", en: "Calendar access is off" },
+  "mobile.calendar.deniedHint": {
+    id: "Izinkan Kalender untuk Edunex Plus di setelan HP, atau bagikan .ics ke aplikasi kalender.",
+    en: "Allow Calendar for Edunex Plus in your phone's settings, or share the .ics with a calendar app.",
+  },
+  "mobile.calendar.settings": { id: "Buka setelan", en: "Open settings" },
+  "mobile.calendar.failed": {
+    id: "Kalender HP tidak bisa diisi. Coba lagi, atau bagikan .ics.",
+    en: "Couldn't add to your phone's calendar. Try again, or share the .ics.",
+  },
+  // The desktop's calendar file, through the share sheet (Drive, email, another calendar app).
+  "mobile.calendar.share": { id: "Bagikan .ics", en: "Share .ics" },
+  "mobile.calendar.shareFailed": { id: "Berkas .ics tidak bisa dibagikan. Coba lagi.", en: "Couldn't share the .ics file. Try again." },
 } as const satisfies Record<string, Entry>;
