@@ -23,7 +23,7 @@ const deadline = (id: string, at: number, extra: Partial<PlannedAlert> = {}): Pl
   until: at + HOUR,
   title: { key: "alert.due3", vars: { course: "II4091" } },
   body: { key: "alert.due.body", vars: { title: "Laporan kemajuan" } },
-  target: { screen: "task", taskId: "t1" },
+  target: { screen: "task", taskId: 1 },
   ...extra,
 });
 
@@ -37,13 +37,13 @@ describe("what's booked with Android", () => {
     expect(book[0].content).toEqual({
       title: "Tenggat 3 jam lagi · II4091",
       body: "Laporan kemajuan · belum dikumpulkan\nAbaikan kalau sudah dikumpulkan.",
-      data: { target: { screen: "task", taskId: "t1" } },
+      data: { target: { screen: "task", taskId: 1 } },
       channelId: CHANNELS.normal,
     });
     // The live one has no footnote: it's raised from what was just read.
     expect(noticeContent(deadline("a", NOW), "en").body).toBe("Laporan kemajuan · not submitted yet");
     const presence = noticeContent(
-      { ...deadline("p", NOW), kind: "presenceOpen", checkIn: { meetingId: "m1", url: "https://six.itb.ac.id/x" }, body: undefined },
+      { ...deadline("p", NOW), kind: "presenceOpen", checkIn: { meetingId: "m1", url: "https://six.itb.ac.id/x" }, body: null },
       "en",
       true,
     );
