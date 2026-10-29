@@ -1,9 +1,7 @@
-import { Page, PageHeader } from "../../src/ui/layout";
+import { useParam } from "../../src/nav";
+import { CheckInPage } from "../../src/screens/presence/check-in-page";
 
 export default function Screen() {
-  return (
-    <Page testID="screen.check-in">
-      <PageHeader title="check-in" />
-    </Page>
-  );
+  const meetingId = useParam("meetingId") ?? "";
+  return <CheckInPage key={meetingId} meetingId={meetingId} />;
 }
