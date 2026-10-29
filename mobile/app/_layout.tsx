@@ -1,6 +1,7 @@
 // The app's frame: the engine and the desktop's store (../src/shell/boot), the theme, and a stack
 // over the bottom tabs for everything a tab opens (a Task, a course, Settings). The crypto polyfill and
 // the background sync come first, from ../index.ts.
+import { NavigationBar } from "expo-navigation-bar";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useState } from "react";
@@ -49,6 +50,8 @@ function Frame() {
   return (
     <>
       <StatusBar style={welcoming || theme.scheme === "dark" ? "light" : "dark"} />
+      {/* Three-button navigation's buttons: light on the welcome's dark stage and the dark theme, else dark. */}
+      <NavigationBar style={welcoming || theme.scheme === "dark" ? "dark" : "light"} />
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: theme.color.canvas }, animation: "slide_from_right" }} />
       {welcoming && <Welcome onDone={() => setWelcoming(false)} />}
       {!welcoming && <FirstScanWatch />}
