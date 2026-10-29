@@ -5,17 +5,20 @@ Branch: `mobile`. App: `mobile/` (Expo SDK 58, React Native 0.88, Expo Router, d
 
 ## Where things stand
 
-- Step 0 (tools): done, see "Tools on pabs". Redroid boots (Android 13, 720x1600 @280dpi, WIB).
-- Scope list: written (below).
-- Foundation on `mobile` (not yet run on a device; waiting for the first dev-client APK from CI):
-  engine host (expo/fetch transport, file storage, secure-store vault, notifier, in-process
-  bridge), the desktop's AppStore/I18n reused, theme + ui parts with the desktop's names, tabs,
-  route stubs, navigation (`src/nav.ts`), sign-in in WebViews with the desktop's signInToBoth,
-  the web-cookies native module, background sync task, sheets/swipe/top bar, porting guide
-  (`mobile/AGENTS.md`).
-- First run on Redroid works (demo dev client from CI + Metro on pabs): engine, store, tabs, header,
-  badges (Tugas 6, Rencana studi 1, as the desktop), Lainnya with the 5 courses in their colors.
-- Next: welcome/sign-in (lead), Beranda and Tugas helpers running, CI helper finishing.
+- Every scope row is built; the ones marked `done` are proven on Redroid (see each row). Still open:
+  A4 (background sync, needs the real dev client from the next CI run), A7/S10 real sign-in
+  (Blockers for Arqila), and the judge and Score A for the rest.
+- Check A (same data): the pipeline works (signed-in on Redroid: home, presence, schedule, tasks,
+  courses, alerts, changes and exam all 100%), but CI's scenario jobs haven't produced a score yet:
+  the emulator's own "Pixel Launcher isn't responding" dialog covered the app. Fixed with a
+  watchdog in `scripts/ci/mobile-e2e.sh` (f613169); the next run counts.
+- Check B (same feel): judge round 1 done (9 screens), fixes in; round 2 waits for the next run's
+  full set (~37 screens a theme, the first run and Edunex alone too).
+- Fresh tester: 4 broken, 5 wrong, 6 missing; the broken ones and most wrong ones fixed
+  (b335967, 262503e, 8c833dc, e6a4bb8, e5eb318); the rest with two helpers (mobile-reminders,
+  mobile-gaps).
+- Next: merge the helpers, then the next CI run → judge round 2 + Score A; A4 on the real dev
+  client; picky-student pass; performance round; hand-off.
 
 ## Tools on pabs (installed without sudo)
 
@@ -143,7 +146,9 @@ machine). Every helper runs at effort high or more.
 | wording | Dev 1 (Opus 5.5, high) | Phone words where desktop strings say computer, window, click (override table + test) | `mobile-wording` | merged (6d7b18a): `wording.native.ts` swap, 8 keys, `test/kit/phone-wording.test.ts` guards ~1,900 keys the phone shows |
 | widget | Contact (Opus 5.5, high) | D1 home-screen widget (the tray's now/next/deadline) | `mobile-widget` | merged (a55850f), wired: `useWidgetUpdates` in the frame, `updateWidgets` after a closed-app sync, entry `mobile/index.ts` |
 | judge | Dev 1 (Opus 5.5, high) | Check B, checker (never edits): round 1 on 9 screens from run 40938204552 | `mobile-judge` (reads only) | round 1 done: 5/9 light, 4/9 dark, 2 unjudgeable pictures; fixes in ff2a963, 69b9cfb, a4a1d8d; round 2 on the next run's full set |
-| tester | Contact (Opus 5.5, high) | Fresh tester, checker (never edits): traces every desktop flow through the phone's code for broken, missing, wrong, rough | `mobile-tester` (reads only) | running |
+| tester | Contact (Opus 5.5, high) | Fresh tester, checker (never edits): traces every desktop flow through the phone's code for broken, missing, wrong, rough | `mobile-tester` (reads only) | done (on a stale checkout: its wording, widget and background-task findings were already fixed); the rest fixed or handed out |
+| reminders | Contact (Opus 5.5, high) | Timed alerts scheduled ahead as Android notifications, the phone's true words about checking, a way back when notifications are off | `mobile-reminders` | building |
+| gaps | Dev 1 (Opus 5.5, high) | Course offline save, exam to calendar, banners on Nilai and Rencana, Laporkan on banners, welcome language switch, file and share words | `mobile-gaps` | building |
 | inventory | Contact (Opus 5.5, high) | Check A inventory from the desktop demo per scenario + Maestro flow generator + score reporter | `mobile-inventory` | merged (8915598): 766 items signed-in, 15 scenarios |
 | home | Contact (Opus 5.5, xhigh) | S1 Beranda | `mobile-home` | merged (afdc26c) |
 | tasks | Dev 1 (Opus 5.5, high) | S2–S4 Tugas & Ujian, Task (hand-in, files), Exam | `mobile-tasks` | merged (d3ab9bd), handlers wired (3fcf067) |
