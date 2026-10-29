@@ -1,9 +1,6 @@
-import { Page, PageHeader } from "../../src/ui/layout";
+import { useParam } from "../../src/nav";
+import { TaskScreen } from "../../src/screens/tasks/task-page";
 
 export default function Screen() {
-  return (
-    <Page testID="screen.task">
-      <PageHeader title="task" />
-    </Page>
-  );
+  return <TaskScreen taskId={Number(useParam("taskId"))} />;
 }
