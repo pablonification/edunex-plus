@@ -812,7 +812,7 @@
       ]
     },
     "course": {
-      "status": "placeholder",
+      "status": "ready",
       "relaunch": true,
       "steps": [
         {
@@ -833,8 +833,11 @@
           }
         },
         {
-          "assertVisible": {
-            "id": "screen.course"
+          "extendedWaitUntil": {
+            "visible": {
+              "id": "screen.course"
+            },
+            "timeout": 30000
           }
         }
       ],
@@ -858,6 +861,33 @@
             }
           },
           {
+            "extendedWaitUntil": {
+              "visible": {
+                "id": "screen.course"
+              },
+              "timeout": 30000
+            }
+          },
+          {
+            "runFlow": {
+              "when": {
+                "notVisible": {
+                  "id": "tab.course.modules"
+                }
+              },
+              "commands": [
+                {
+                  "swipe": {
+                    "from": {
+                      "id": "tabs.course"
+                    },
+                    "direction": "LEFT"
+                  }
+                }
+              ]
+            }
+          },
+          {
             "tapOn": {
               "id": "tab.course.modules"
             }
@@ -872,6 +902,14 @@
           {
             "tapOn": {
               "id": "row.module.{{3}}"
+            }
+          },
+          {
+            "extendedWaitUntil": {
+              "visible": {
+                "id": "action.courseContents"
+              },
+              "timeout": 10000
             }
           }
         ],
@@ -894,8 +932,43 @@
             }
           },
           {
+            "extendedWaitUntil": {
+              "visible": {
+                "id": "screen.course"
+              },
+              "timeout": 30000
+            }
+          },
+          {
+            "runFlow": {
+              "when": {
+                "notVisible": {
+                  "id": "tab.course.{{2}}"
+                }
+              },
+              "commands": [
+                {
+                  "swipe": {
+                    "from": {
+                      "id": "tabs.course"
+                    },
+                    "direction": "LEFT"
+                  }
+                }
+              ]
+            }
+          },
+          {
             "tapOn": {
               "id": "tab.course.{{2}}"
+            }
+          },
+          {
+            "extendedWaitUntil": {
+              "visible": {
+                "id": "panel.course.{{2}}"
+              },
+              "timeout": 10000
             }
           }
         ]
