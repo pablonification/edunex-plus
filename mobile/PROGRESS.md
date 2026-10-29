@@ -123,10 +123,13 @@ machine). Every helper runs at effort high or more.
 | --- | --- | --- | --- | --- |
 | engine | Contact (Opus 5.5, xhigh) | src/engine on Hermes: platform swaps, read context, pretend without fs, bundle guard, Intl findings | `mobile-engine` | merged (ab9900a): check green, ran on a real Hermes VM, output identical to Node |
 | ci | Dev 1 (Opus 5.5, high) | `.github/workflows/mobile.yml`: APKs (demo, real, dev clients), emulator + Maestro, desktop shots light/dark | `mobile-ci` | merged (8def9c0): green run 40920151536, ~18 min |
-| presence | Contact (Opus 5.5, high) | S9 Presensi, S10 Tandai Hadir in a SIX page | `mobile-presence` | building |
+| presence | Contact (Opus 5.5, high) | S9 Presensi, S10 Tandai Hadir in a SIX page | `mobile-presence` | merged (3255960), check-in wired |
+| schedule | Dev 1 (Opus 5.5, high) | S5–S8 Jadwal (day strip + agenda, month, class sheet, phone calendar) | `mobile-schedule` | building |
+| grades-plan | Contact (Opus 5.5, xhigh) | S11–S16 Nilai, Rencana studi (planner, kurikulum, KRS, UKT, kalender) | `mobile-grades-plan` | building |
+| course | Dev 1 (Opus 5.5, high) | S17–S19, A11, A15 course page, grade calculator, color picker | `mobile-course` | building |
 | inventory | Contact (Opus 5.5, high) | Check A inventory from the desktop demo per scenario + Maestro flow generator + score reporter | `mobile-inventory` | merged (8915598): 766 items signed-in, 15 scenarios |
-| home | Contact (Opus 5.5, xhigh) | S1 Beranda | `mobile-home` | building |
-| tasks | Dev 1 (Opus 5.5, high) | S2–S4 Tugas & Ujian, Task (hand-in, files), Exam | `mobile-tasks` | building |
+| home | Contact (Opus 5.5, xhigh) | S1 Beranda | `mobile-home` | merged (afdc26c) |
+| tasks | Dev 1 (Opus 5.5, high) | S2–S4 Tugas & Ujian, Task (hand-in, files), Exam | `mobile-tasks` | merged (d3ab9bd), handlers wired (3fcf067) |
 
 ### Pieces still to hand out (each one helper, own branch `mobile-<piece>`)
 

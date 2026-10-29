@@ -48,15 +48,16 @@ const line = (command) => `- ${JSON.stringify(command)}`;
 /** The checks for one entry: scroll to its first text (down, then up), then look for each text. */
 function checks(scenario, entry) {
   const out = [`# ${entry.kind}: ${entry.label}`.replace(/\s+/g, " ")];
-  const first = { text: pattern(entry.tokens[0]) };
-  out.push(line({ scrollUntilVisible: { element: first, direction: "DOWN", timeout: 5000, optional: true } }));
-  out.push(
-    line({
-      runFlow: { when: { notVisible: first }, commands: [{ scrollUntilVisible: { element: first, direction: "UP", timeout: 5000, optional: true } }] },
-    }),
-  );
+  // Each text is looked for on its own, scrolling down then up to it: an item's first text (a time, a code) is often
+  // on the screen higher up too, and anchoring on it left the rest of the item out of view. The flow proves the phone
+  // shows each fact of the item, wherever it lays them out.
   entry.tokens.forEach((token, i) => {
-    out.push(line({ assertVisible: { text: pattern(token), optional: true, label: label(scenario, entry.id, i + 1, entry.tokens.length) } }));
+    const element = { text: pattern(token) };
+    out.push(line({ scrollUntilVisible: { element, direction: "DOWN", timeout: 4000, optional: true } }));
+    out.push(
+      line({ runFlow: { when: { notVisible: element }, commands: [{ scrollUntilVisible: { element, direction: "UP", timeout: 4000, optional: true } }] } }),
+    );
+    out.push(line({ assertVisible: { ...element, optional: true, label: label(scenario, entry.id, i + 1, entry.tokens.length) } }));
   });
   return out;
 }
@@ -93,7 +94,9 @@ function flow(inventory, screen, states, config, appId) {
   ];
   states.forEach(({ state, about, entries }, index) => {
     const parts = (state ?? "").split("/");
-    const vars = { ...base, state: state ?? "", list: about?.list ?? "todo", ...Object.fromEntries(parts.map((p, i) => [String(i + 1), p])) };
+    // The desktop's "todo" list (Belum selesai) is the phone's "open" segment.
+    const list = about?.list ?? "todo";
+    const vars = { ...base, state: state ?? "", list: list === "todo" ? "open" : list, ...Object.fromEntries(parts.map((p, i) => [String(i + 1), p])) };
     const pick = Object.entries(conf.byState ?? {}).find(([re]) => new RegExp(re).test(state ?? ""));
     out.push("", `# ---- ${screen}${state ? ` ${state}` : ""}${about?.title ? ` (${about.title.replace(/\s+/g, " ").slice(0, 80)})` : ""}`);
     if (conf.relaunch && index > 0) out.push(...launch.map(line));

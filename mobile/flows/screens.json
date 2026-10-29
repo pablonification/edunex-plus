@@ -137,7 +137,7 @@
       ]
     },
     "home": {
-      "status": "placeholder",
+      "status": "ready",
       "steps": [
         {
           "tapOn": {
@@ -152,7 +152,7 @@
       ]
     },
     "changes": {
-      "status": "placeholder",
+      "status": "ready",
       "steps": [
         {
           "tapOn": {
@@ -160,20 +160,13 @@
           }
         },
         {
-          "scrollUntilVisible": {
-            "element": {
-              "id": "action.changes.all"
-            }
-          }
-        },
-        {
           "tapOn": {
-            "id": "action.changes.all"
+            "id": "action.alerts"
           }
         },
         {
           "assertVisible": {
-            "id": "screen.changes"
+            "id": "screen.alerts"
           }
         }
       ]
@@ -194,7 +187,7 @@
       ]
     },
     "tasks": {
-      "status": "placeholder",
+      "status": "ready",
       "steps": [
         {
           "tapOn": {
@@ -203,7 +196,7 @@
         },
         {
           "tapOn": {
-            "id": "action.tasks.{{state}}"
+            "id": "segment.show.{{state}}"
           }
         },
         {
@@ -211,10 +204,29 @@
             "id": "screen.tasks"
           }
         }
-      ]
+      ],
+      "byState": {
+        "^todo$": [
+          {
+            "tapOn": {
+              "id": "tab.tasks"
+            }
+          },
+          {
+            "tapOn": {
+              "id": "segment.show.open"
+            }
+          },
+          {
+            "assertVisible": {
+              "id": "screen.tasks"
+            }
+          }
+        ]
+      }
     },
     "task": {
-      "status": "placeholder",
+      "status": "ready",
       "relaunch": true,
       "steps": [
         {
@@ -224,14 +236,15 @@
         },
         {
           "tapOn": {
-            "id": "action.tasks.{{list}}"
+            "id": "segment.show.{{list}}"
           }
         },
         {
           "scrollUntilVisible": {
             "element": {
               "id": "row.task.{{state}}"
-            }
+            },
+            "timeout": 15000
           }
         },
         {
@@ -247,7 +260,7 @@
       ]
     },
     "exam": {
-      "status": "placeholder",
+      "status": "ready",
       "relaunch": true,
       "steps": [
         {
@@ -257,14 +270,15 @@
         },
         {
           "tapOn": {
-            "id": "action.tasks.{{list}}"
+            "id": "segment.show.{{list}}"
           }
         },
         {
           "scrollUntilVisible": {
             "element": {
               "id": "row.exam.{{state}}"
-            }
+            },
+            "timeout": 15000
           }
         },
         {
@@ -359,7 +373,7 @@
       ]
     },
     "presence": {
-      "status": "placeholder",
+      "status": "ready",
       "steps": [
         {
           "tapOn": {
