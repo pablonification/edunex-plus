@@ -6,7 +6,7 @@ import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useState } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { SafeAreaProvider } from "react-native-safe-area-context";
+import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useDataset, useStatus } from "../../src/app/store";
 import { useWidgetUpdates } from "../src/host/widget";
 import { CourseColorPickerHost } from "../src/parts/course-color-picker";
@@ -42,6 +42,7 @@ function useNobodyIn(): boolean {
 
 function Frame() {
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const nobody = useNobodyIn();
   useWidgetUpdates();
   // On first run the welcome stays until the Student moves on, so SIX can be connected right after Edunex.
@@ -52,7 +53,17 @@ function Frame() {
       <StatusBar style={welcoming || theme.scheme === "dark" ? "light" : "dark"} />
       {/* Three-button navigation's buttons: light on the welcome's dark stage and the dark theme, else dark. */}
       <NavigationBar style={welcoming || theme.scheme === "dark" ? "dark" : "light"} />
-      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: theme.color.canvas }, animation: "slide_from_right" }} />
+      {/* A screen over the tabs ends above the phone's navigation bar: nothing to tap sits under its buttons (the tabs
+          end at their own bar). */}
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          contentStyle: { backgroundColor: theme.color.canvas, paddingBottom: insets.bottom },
+          animation: "slide_from_right",
+        }}
+      >
+        <Stack.Screen name="(tabs)" options={{ contentStyle: { backgroundColor: theme.color.canvas } }} />
+      </Stack>
       {welcoming && <Welcome onDone={() => setWelcoming(false)} />}
       {!welcoming && <FirstScanWatch />}
       <ReportAskCard />

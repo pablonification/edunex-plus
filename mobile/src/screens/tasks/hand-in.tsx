@@ -5,7 +5,6 @@
 // box: an answer Edunex holds with formatting stays as it is, changed on Edunex.
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, StyleSheet, TextInput, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAttendance } from "../../../../src/app/attendance";
 import { ActionError, errorKey } from "../../../../src/app/bridge";
 import { useOpenExternal } from "../../../../src/app/hooks";
@@ -611,7 +610,6 @@ const WHY_TONE: Record<"warning" | "neutral" | "danger", TextTone> = { warning: 
 export function HandInBar({ h }: { h: HandInState }) {
   const t = useT();
   const theme = useTheme();
-  const insets = useSafeAreaInsets();
   const why = useWhy(h);
   if (!h.editable) return null;
   const submitLabel = h.status === "overdue" ? t("handIn.submitLate") : t("handIn.submit");
@@ -623,7 +621,7 @@ export function HandInBar({ h }: { h: HandInState }) {
         borderTopColor: theme.color.line,
         paddingHorizontal: space.page,
         paddingTop: space[3],
-        paddingBottom: insets.bottom + space[3],
+        paddingBottom: space[3],
         gap: space[2.5],
       }}
     >

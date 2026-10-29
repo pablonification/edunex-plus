@@ -2,12 +2,10 @@
 // it scrolls: "Ke Beranda" under the first-run scan, "Selesai" under a report that went.
 import type { ReactNode } from "react";
 import { StyleSheet, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { space, useTheme } from "../ui/theme";
 
 export function BottomBar({ children }: { children: ReactNode }) {
   const theme = useTheme();
-  const insets = useSafeAreaInsets();
   return (
     <View
       style={{
@@ -18,7 +16,7 @@ export function BottomBar({ children }: { children: ReactNode }) {
         borderTopColor: theme.color.line,
         paddingHorizontal: space.page,
         paddingTop: space[3],
-        paddingBottom: insets.bottom + space[3],
+        paddingBottom: space[3],
       }}
     >
       {children}

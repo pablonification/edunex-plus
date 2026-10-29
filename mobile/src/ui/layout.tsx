@@ -4,7 +4,6 @@
 import { useScrollToTop } from "expo-router";
 import { Children, type ComponentRef, Fragment, isValidElement, type ReactNode, type Ref, type RefObject, useCallback, useRef } from "react";
 import { Pressable, RefreshControl, ScrollView, type ScrollViewProps, StyleSheet, View, type ViewStyle } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Icons } from "./icons";
 import { Text } from "./text";
 import { radius, space, useTheme } from "./theme";
@@ -465,12 +464,6 @@ export function Stat({
 /** Space between the parts of a screen that aren't sections (a card under the header). */
 export function Gap({ size = 4 }: { size?: keyof typeof space }) {
   return <View style={{ height: space[size] }} />;
-}
-
-/** The bottom of the content, clear of the tab bar and the phone's gesture area. */
-export function useBottomSpace(): number {
-  const insets = useSafeAreaInsets();
-  return insets.bottom + space[6];
 }
 
 const styles = StyleSheet.create({

@@ -171,7 +171,7 @@ export default function Search() {
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
         keyExtractor={(row) => ("head" in row ? `head:${row.head}` : row.item.key)}
-        contentContainerStyle={{ paddingBottom: insets.bottom + space[6] }}
+        contentContainerStyle={{ paddingBottom: space[6] }}
         ListEmptyComponent={
           query.trim() ? (
             <View style={{ alignItems: "center", marginTop: space[8], paddingHorizontal: space[6], gap: space[1] }}>
