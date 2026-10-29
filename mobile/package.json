@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "main": "expo-router/entry",
   "dependencies": {
+    "@expo/metro-runtime": "~58.0.15",
     "@shopify/flash-list": "2.3.2",
     "cheerio": "1.2.0",
     "domhandler": "5.0.3",

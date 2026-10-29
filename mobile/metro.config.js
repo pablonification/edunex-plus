@@ -1,6 +1,7 @@
 // Metro bundles the phone app with the desktop's own code: src/core, src/engine and the
-// DOM-free data hooks of src/app (and, in a demo build, test/pretend). Every import, theirs
-// too, resolves from mobile/node_modules only, so there's one copy of each library.
+// DOM-free data hooks of src/app (and, in a demo build, test/pretend). A package those files
+// import resolves as if mobile/ imported it, from mobile/node_modules, so there's one copy of
+// each library (one React) whether or not the repository root has its own installed.
 // A few desktop modules that touch Electron or the DOM have a phone version (SWAPS); the
 // desktop's files stay as they are.
 const path = require("node:path");
@@ -10,8 +11,9 @@ const root = path.resolve(__dirname, "..");
 const config = getDefaultConfig(__dirname);
 
 config.watchFolders = [path.join(root, "src"), path.join(root, "test")];
-config.resolver.nodeModulesPaths = [path.join(__dirname, "node_modules")];
-config.resolver.disableHierarchicalLookup = true;
+const mobileFolder = __dirname + path.sep;
+const fromMobile = path.join(__dirname, "package.json");
+const isPackage = (name) => !name.startsWith(".") && !path.isAbsolute(name);
 
 /** A desktop file (by its path from the repository root, without extension) → its phone version. */
 const SWAPS = {
@@ -31,9 +33,15 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
   // cheerio's browser build is its parse5 loader without fromURL (which needs Node's undici):
   // pages parse exactly as on the desktop.
   if (moduleName === "cheerio") {
-    return context.resolveRequest({ ...context, unstable_conditionNames: ["browser", "import", "require"] }, moduleName, platform);
+    return context.resolveRequest(
+      { ...context, originModulePath: fromMobile, unstable_conditionNames: ["browser", "import", "require"] },
+      moduleName,
+      platform,
+    );
   }
-  const resolved = context.resolveRequest(context, moduleName, platform);
+  const outside = !context.originModulePath.startsWith(mobileFolder);
+  const asked = outside && isPackage(moduleName) ? { ...context, originModulePath: fromMobile } : context;
+  const resolved = asked.resolveRequest(asked, moduleName, platform);
   if (resolved.type === "sourceFile") {
     const swap = swapOf(resolved.filePath);
     if (swap) return { type: "sourceFile", filePath: swap };
