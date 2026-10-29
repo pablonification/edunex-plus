@@ -229,6 +229,11 @@ machine). Every helper runs at effort high or more.
   APK is ready, sign in on your own phone (or on Redroid while I watch nothing: I'd only read the
   app's own status line), and tell me whether Edunex and SIX both say "Terhubung". No data from
   it goes anywhere near the repo.
+- **Phone updates need an APK on the releases.** "Periksa pembaruan" on the phone now only offers a
+  GitHub release that carries an `.apk` (desktop releases have none, so it stays quiet). To ship the
+  phone that way: a release keystore (kept as a repository secret, never in the repo) and a step in
+  `.github/workflows/release.yml` that builds the release APK with it and attaches it. Your call on
+  the key and on whether phone releases follow the desktop's version numbers.
 - **Tandai Hadir's SIX page (S10) needs the same real session.** The demo's SIX is pretend, so
   "Buka di SIX" opens nothing there. With a real account: on a class whose Tandai Hadir is open,
   press Buka di SIX and say whether SIX's timetable opens on that class with its button showing
