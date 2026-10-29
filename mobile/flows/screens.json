@@ -91,48 +91,149 @@
       }
     },
     "first-scan": {
-      "status": "placeholder",
+      "status": "ready",
       "launch": [
         {
           "clearState": "{{appId}}"
         },
         {
           "openLink": "{{demoLink}}"
+        },
+        {
+          "extendedWaitUntil": {
+            "visible": {
+              "id": "(tab\\.home|screen\\.welcome)"
+            },
+            "timeout": 120000
+          }
         }
       ],
       "steps": [
         {
+          "runFlow": {
+            "when": {
+              "visible": {
+                "id": "screen.welcome"
+              }
+            },
+            "commands": [
+              {
+                "extendedWaitUntil": {
+                  "visible": {
+                    "id": "action.start"
+                  },
+                  "timeout": 60000
+                }
+              },
+              {
+                "tapOn": {
+                  "id": "action.start"
+                }
+              },
+              {
+                "extendedWaitUntil": {
+                  "visible": {
+                    "id": "action.connect.edunex"
+                  },
+                  "timeout": 60000
+                }
+              },
+              {
+                "tapOn": {
+                  "id": "action.connect.edunex"
+                }
+              },
+              {
+                "extendedWaitUntil": {
+                  "visible": {
+                    "id": "action.continue"
+                  },
+                  "timeout": 180000
+                }
+              },
+              {
+                "tapOn": {
+                  "id": "action.continue"
+                }
+              },
+              {
+                "extendedWaitUntil": {
+                  "visible": {
+                    "id": "action.open"
+                  },
+                  "timeout": 600000
+                }
+              },
+              {
+                "tapOn": {
+                  "id": "action.open"
+                }
+              },
+              {
+                "tapOn": {
+                  "text": "(Allow|Izinkan)",
+                  "optional": true
+                }
+              },
+              {
+                "extendedWaitUntil": {
+                  "visible": {
+                    "id": "screen.firstScan"
+                  },
+                  "timeout": 300000,
+                  "optional": true
+                }
+              }
+            ]
+          }
+        },
+        {
+          "runFlow": {
+            "when": {
+              "notVisible": {
+                "id": "screen.firstScan"
+              }
+            },
+            "commands": [
+              {
+                "tapOn": {
+                  "id": "tab.more"
+                }
+              },
+              {
+                "tapOn": {
+                  "id": "row.nav.settings"
+                }
+              },
+              {
+                "extendedWaitUntil": {
+                  "visible": {
+                    "id": "screen.settings"
+                  },
+                  "timeout": 30000
+                }
+              },
+              {
+                "scrollUntilVisible": {
+                  "element": {
+                    "id": "action.firstScan"
+                  }
+                }
+              },
+              {
+                "tapOn": {
+                  "id": "action.firstScan"
+                }
+              }
+            ]
+          }
+        },
+        {
           "extendedWaitUntil": {
             "visible": {
-              "id": "action.connect.edunex"
+              "id": "screen.firstScan"
             },
             "timeout": 60000
-          }
-        },
-        {
-          "tapOn": {
-            "id": "action.connect.edunex"
-          }
-        },
-        {
-          "extendedWaitUntil": {
-            "visible": {
-              "id": "action.continue"
-            },
-            "timeout": 120000
-          }
-        },
-        {
-          "tapOn": {
-            "id": "action.continue"
-          }
-        },
-        {
-          "extendedWaitUntil": {
-            "visible": {
-              "id": "screen.first-scan"
-            },
-            "timeout": 180000
           }
         }
       ]
