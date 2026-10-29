@@ -271,10 +271,15 @@ function factParts(children: ReactNode): ReactNode[] {
   return parts;
 }
 
+/** Each fact's dot sits in a slot this wide before it; at the start of a line the slot is clipped away. */
+const SEP = 18;
+
 /**
  * Facts on one line, quietly separated: "11:00–12:59 · TVST C". Empty parts drop out, and text
- * holding " · " becomes separate facts. A fact that wraps takes its dot along, so no line starts
- * or ends with "·". Elements (a course dot, an icon) sit among the facts.
+ * holding " · " becomes separate facts. Each fact carries its own dot, so a fact that wraps takes
+ * its dot along, and the dot of a fact that starts a line sits outside the box, clipped away (the
+ * desktop's way): no line starts or ends with "·". Elements (a course dot, an icon) sit among the
+ * facts. `numberOfLines`: one plain line, cut short.
  */
 export function Meta({
   children,
@@ -288,31 +293,31 @@ export function Meta({
   numberOfLines?: number;
 }) {
   const parts = factParts(children);
-  if (parts.every((part) => typeof part === "string"))
+  if (numberOfLines !== undefined && parts.every((part) => typeof part === "string"))
     return (
       <Text size={size} tone={tone} numberOfLines={numberOfLines}>
         {(parts as string[]).join("  ·  ")}
       </Text>
     );
   return (
-    <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", rowGap: 2 }}>
-      {parts.map((part, i) => (
-        // biome-ignore lint/suspicious/noArrayIndexKey: the facts are positional children; text has no key of its own
-        <View key={i} style={{ flexDirection: "row", alignItems: "center", flexShrink: 1 }}>
-          {i > 0 && (
-            <Text size={size} tone="faint">
-              {"  ·  "}
+    <View style={{ overflow: "hidden" }}>
+      <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", rowGap: 2, marginLeft: -SEP }}>
+        {parts.map((part, i) => (
+          // biome-ignore lint/suspicious/noArrayIndexKey: the facts are positional children; text has no key of its own
+          <View key={i} style={{ flexDirection: "row", alignItems: "center", flexShrink: 1, maxWidth: "100%" }}>
+            <Text size={size} tone="faint" style={{ width: SEP, textAlign: "center" }} accessible={false} importantForAccessibility="no">
+              {i > 0 ? "·" : ""}
             </Text>
-          )}
-          {typeof part === "string" ? (
-            <Text size={size} tone={tone} style={{ flexShrink: 1 }}>
-              {part}
-            </Text>
-          ) : (
-            part
-          )}
-        </View>
-      ))}
+            {typeof part === "string" ? (
+              <Text size={size} tone={tone} style={{ flexShrink: 1 }}>
+                {part}
+              </Text>
+            ) : (
+              <View style={{ flexShrink: 1 }}>{part}</View>
+            )}
+          </View>
+        ))}
+      </View>
     </View>
   );
 }

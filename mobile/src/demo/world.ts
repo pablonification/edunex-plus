@@ -27,6 +27,8 @@ export async function createDemoWorld() {
   return {
     signInWindows,
     transport: run.world,
+    // Files from the pretend storage, as the desktop demo serves them (scripts/demo/setup.ts).
+    fetchFile: (url: string, init?: RequestInit) => run.world.fetch(url, { signal: init?.signal ?? undefined }),
     clock: run.world.clock,
     world: run.world,
     clockOffset: () => run.world.clock.now() - Date.now(),

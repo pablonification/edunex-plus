@@ -2,22 +2,29 @@
 // thread with the phone's network, disk, keychain and notifications plugged in, and the bridge
 // the desktop's screens talk through (src/app/bridge.ts), answered right here.
 // A demo build (EXPO_PUBLIC_DEMO=1) runs it on the pretend Edunex and SIX instead (../demo).
+
+import { Directory, Paths } from "expo-file-system";
 import { getLocales } from "expo-localization";
 import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
 import type { BridgeApi } from "../../../src/app/bridge";
 import type { Event } from "../../../src/core/contract";
 import type { Lang } from "../../../src/core/models";
+import type { FetchFile } from "../../../src/desktop/remote-files";
 import { type SignInWindows, signInToBoth } from "../../../src/desktop/signin-both";
 import { AppLog } from "../../../src/engine/app-log";
 import { type Clock, systemClock } from "../../../src/engine/clock";
 import { createEngine, type Engine } from "../../../src/engine/engine";
 import type { Transport } from "../../../src/engine/http/transport";
 import type { Storage, Vault } from "../../../src/engine/store/storage";
+import { clearWebData } from "../../modules/web-cookies";
 import { phoneSignInWindows } from "../shell/sign-in";
+import { checkInOpener } from "./check-in";
+import { phoneFileHandlers } from "./files";
 import { answer, type HostUi, phoneHandlers } from "./handlers";
 import { phoneNotifier, prepareChannels } from "./notifier";
 import { PhoneStorage } from "./storage";
+import { phoneTaskHandlers } from "./tasks";
 import { phoneTransport } from "./transport";
 import { PhoneVault } from "./vault";
 import { APP_VERSION, DEMO } from "./version";
@@ -46,6 +53,8 @@ interface World {
   prepare?(engine: Engine): Promise<void>;
   /** Where sign-ins happen: ITB's pages in web views, or the demo's made-up sign-in. */
   signInWindows: SignInWindows;
+  /** Edunex's file storage: the network, or the demo's pretend storage. */
+  fetchFile?: FetchFile;
   clockOffset(): number;
 }
 
@@ -136,29 +145,40 @@ async function makeHost(): Promise<Host> {
     started = false;
     engine.stop();
   };
-  const handlers = phoneHandlers({
-    engine,
-    signIn: (source) => both.signIn(source),
-    stopQuietSignIn: () => both.stopQuiet(),
-    ui: { openCheckIn: (meetingId) => ui.openCheckIn(meetingId) },
-    log,
-    demo: DEMO,
-    ready: () => start(),
-    forgetEverything: async () => {
-      if (world.storage instanceof PhoneStorage) world.storage.clear();
-      await Notifications.cancelAllScheduledNotificationsAsync().catch(() => undefined);
-      await Notifications.dismissAllNotificationsAsync().catch(() => undefined);
-    },
-    notificationsAllowed: async () => (await Notifications.getPermissionsAsync()).granted,
-    showTestNotification: () =>
-      notifier.show({
-        id: "test",
-        kind: "newTask",
-        title: { key: "alert.test" },
-        body: { key: "alert.test.body" },
-        target: { screen: "tasks" },
-      }),
-  });
+  // "Tandai Hadir": SIX's timetable in a page of the app, signed in (./check-in.ts); the demo opens nothing.
+  ui.openCheckIn = checkInOpener(engine, DEMO);
+  const handlers = {
+    ...phoneHandlers({
+      engine,
+      signIn: (source) => both.signIn(source),
+      stopQuietSignIn: () => both.stopQuiet(),
+      ui: { openCheckIn: (meetingId) => ui.openCheckIn(meetingId) },
+      log,
+      demo: DEMO,
+      ready: () => start(),
+      forgetEverything: async () => {
+        if (world.storage instanceof PhoneStorage) world.storage.clear();
+        // Edunex's files the app downloaded, and everything ITB's and SIX's pages kept.
+        const downloads = new Directory(Paths.document, "downloads");
+        if (downloads.exists) downloads.delete();
+        await clearWebData().catch(() => undefined);
+        await Notifications.cancelAllScheduledNotificationsAsync().catch(() => undefined);
+        await Notifications.dismissAllNotificationsAsync().catch(() => undefined);
+      },
+      notificationsAllowed: async () => (await Notifications.getPermissionsAsync()).granted,
+      showTestNotification: () =>
+        notifier.show({
+          id: "test",
+          kind: "newTask",
+          title: { key: "alert.test" },
+          body: { key: "alert.test.body" },
+          target: { screen: "tasks" },
+        }),
+    }),
+    // Handing in a Task (./tasks.ts) and Edunex's files (./files.ts), the desktop's hand-in.ts and files handlers.
+    ...phoneTaskHandlers(engine),
+    ...phoneFileHandlers({ fetchFile: world.fetchFile }),
+  };
   const api: BridgeApi = {
     invoke: (name, input) => answer(handlers, log, name, input),
     onEvent(listener) {
