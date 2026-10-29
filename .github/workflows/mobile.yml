@@ -136,7 +136,9 @@ jobs:
         working-directory: mobile/android
         run: |
           sed -i '/^org.gradle.jvmargs=/d' gradle.properties
+          # The generated file has no newline at its end.
           {
+            echo
             echo 'org.gradle.jvmargs=-Xmx6g -XX:MaxMetaspaceSize=1g -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8'
             echo 'org.gradle.caching=true'
             echo 'org.gradle.parallel=true'
