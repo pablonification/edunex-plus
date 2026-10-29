@@ -299,8 +299,12 @@ function SourceRow({ source }: { source: SourceId }) {
   );
 }
 
-/** Under the header, on every tab: a session that ended, saved data with no session, a change, or no connection. */
-export function ProblemBanner() {
+/**
+ * Under the header, on every tab and on Nilai and Rencana studi (the desktop shows it on every
+ * page): a session that ended, saved data with no session, a change, or no connection. `belowBar`:
+ * under a stack screen's top bar, which has a line under it, so the banner keeps a gap from it.
+ */
+export function ProblemBanner({ belowBar = false }: { belowBar?: boolean }) {
   const t = useT();
   const f = useFormat();
   const theme = useTheme();
@@ -356,7 +360,15 @@ export function ProblemBanner() {
     <View
       testID="banner.problem"
       accessibilityLiveRegion="polite"
-      style={{ marginHorizontal: space.page, marginBottom: space[2], borderRadius: radius.xl, backgroundColor: bg, padding: space[3], gap: space[2] }}
+      style={{
+        marginHorizontal: space.page,
+        marginTop: belowBar ? space[2] : 0,
+        marginBottom: space[2],
+        borderRadius: radius.xl,
+        backgroundColor: bg,
+        padding: space[3],
+        gap: space[2],
+      }}
     >
       <View style={{ flexDirection: "row", gap: space[2] }}>
         <View style={{ paddingTop: 2 }}>

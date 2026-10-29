@@ -9,7 +9,7 @@ import { View } from "react-native";
 import { type StringKey, useT } from "../../../../src/app/i18n";
 import { builtPlanTabs, type PlanTab } from "../../../../src/app/shell/built";
 import { useNav } from "../../nav";
-import { usePullToRefresh } from "../../shell/source-status";
+import { ProblemBanner, usePullToRefresh } from "../../shell/source-status";
 import { Button } from "../../ui/controls";
 import { Icons } from "../../ui/icons";
 import { Page } from "../../ui/layout";
@@ -57,6 +57,8 @@ export function PlanScreen({ tab }: { tab?: string }) {
       header={
         <>
           <TopBar title={t("nav.plan")} />
+          {/* A plan the app can't trust right now (offline, SIX's session ended, a page SIX changed): said here, as on the desktop. */}
+          <ProblemBanner belowBar />
           <TabBar
             value={current}
             label={t("nav.plan")}
