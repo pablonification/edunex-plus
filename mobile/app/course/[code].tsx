@@ -1,9 +1,7 @@
-import { Page, PageHeader } from "../../src/ui/layout";
+import { useParam } from "../../src/nav";
+import { CourseScreen } from "../../src/screens/course/course-screen";
 
 export default function Screen() {
-  return (
-    <Page testID="screen.course">
-      <PageHeader title="course" />
-    </Page>
-  );
+  const module = useParam("module");
+  return <CourseScreen code={useParam("code") ?? ""} tab={useParam("tab")} module={module === undefined || module === "" ? undefined : Number(module)} />;
 }
