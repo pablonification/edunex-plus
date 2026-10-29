@@ -169,14 +169,19 @@ async function makeHost(): Promise<Host> {
         await Notifications.dismissAllNotificationsAsync().catch(() => undefined);
       },
       notificationsAllowed: async () => (await Notifications.getPermissionsAsync()).granted,
-      showTestNotification: () =>
-        notifier.show({
+      // "Coba notifikasi" is the Student asking for one: Android asks for the permission here when it never has (it
+      // does at the welcome's "Buka Edunex Plus", which a phone set up before that never saw).
+      showTestNotification: async () => {
+        const permission = await Notifications.getPermissionsAsync();
+        if (!permission.granted && permission.canAskAgain) await Notifications.requestPermissionsAsync();
+        return notifier.show({
           id: "test",
           kind: "newTask",
           title: { key: "alert.test" },
           body: { key: "alert.test.body" },
           target: { screen: "tasks" },
-        }),
+        });
+      },
     }),
     // Handing in a Task (./tasks.ts) and Edunex's files (./files.ts), the desktop's hand-in.ts and files handlers.
     ...phoneTaskHandlers(engine),
