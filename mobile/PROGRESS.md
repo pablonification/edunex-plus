@@ -108,6 +108,7 @@ Inventory: `mobile/flows/expected/` (the desktop demo's screens, read per scenar
 | When | Scenario | Found | Of | Notes |
 | --- | --- | ---: | ---: | --- |
 | 2026-10-30 01:05 | signed-in | 32 | 766 | First run of the pipeline: courses 6/6, alerts 3/3, search 23/27 (the result count, added since); other screens not built yet |
+| 2026-10-30 02:30 | signed-in | home 20/20, presence 9/9, schedule 22/22, tasks 10/15 | (partial) | Each text searched on its own; tasks stopped at "Selesai" scrolled off (fixed in bcbb5fd) |
 
 ## Score B: same feel (judge on the Mac)
 
