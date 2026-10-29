@@ -2,7 +2,7 @@
 // against a schema: a shape the app doesn't know is "Edunex changed
 // something", never an empty screen.
 import type { z } from "zod";
-import { EngineError } from "../../errors";
+import { AnswerError, EngineError, isEngineError } from "../../errors";
 import { type Answer, type HttpResponse, NetworkError, type Transport } from "../../http/transport";
 
 export const EDUNEX_API = "https://api-edunex.cognisia.id";
@@ -18,6 +18,7 @@ export class EdunexClient {
   async get<S extends z.ZodType>(path: string, query: Record<string, string | number>, schema: S): Promise<z.infer<S>> {
     const url = new URL(path, EDUNEX_API);
     for (const [key, value] of Object.entries(query)) url.searchParams.set(key, String(value));
+    const check = (answer: Answer) => read(answer, schema);
     let response: HttpResponse;
     try {
       response = await this.transport.request({
@@ -25,14 +26,19 @@ export class EdunexClient {
         url: url.toString(),
         headers: { authorization: `Bearer ${this.token}`, accept: "application/json", "user-agent": this.userAgent },
         timeoutMs: TIMEOUT_MS,
-        check: (answer) => read(answer, schema),
+        check,
       });
     } catch (error) {
       if (error instanceof NetworkError)
         throw new EngineError("Offline", error.reason === "timeout" ? "Edunex didn't answer in time" : "Edunex is unreachable", true);
       throw error;
     }
-    return read({ path, status: response.status, body: response.body }, schema);
+    try {
+      return check({ path, status: response.status, body: response.body });
+    } catch (error) {
+      // The answer goes with its error: the message names the path, not which course's list it was.
+      throw isEngineError(error) ? new AnswerError(error, { url: url.toString(), status: response.status, body: response.body, check }) : error;
+    }
   }
 }
 

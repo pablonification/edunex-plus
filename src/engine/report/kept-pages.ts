@@ -9,7 +9,7 @@
 // they're part of, whichever feed it is and however its requests queue.
 import { AsyncLocalStorage } from "node:async_hooks";
 import { type DatasetName, Datasets, type SkippedRow, type SourceId } from "../../core/models";
-import { type EngineError, isEngineError } from "../errors";
+import { AnswerError, type EngineError, isEngineError } from "../errors";
 import type { AnswerCheck } from "../http/transport";
 
 /** A response as it came: where from, its status, its body (SIX's HTML, Edunex's JSON). */
@@ -163,13 +163,16 @@ export class KeptPages {
 }
 
 /**
- * The pages to keep from a read that failed. Edunex's checks name the call that didn't fit
- * ("/course/tasks: 0.title Required"), so that answer alone; a SIX read gets a page or three, and
- * a check on one is often about another (the transcript's rows against the IPK on the progress
- * page), so all of them.
+ * The pages to keep from a read that failed. An Edunex answer that didn't pass its check comes with
+ * its error (AnswerError), so that answer alone, even when the read went on to other courses after
+ * it. Any other Edunex error names the call it's about ("/course/tasks: 3 of 5 Tasks…"), so the
+ * last answer from that call. A SIX read gets a page or three, and a check on one is often about
+ * another (the transcript's rows against the IPK on the progress page), so all of them.
  */
 function pagesFor(feed: string, error: EngineError, pages: KeptPage[]): KeptPage[] {
   if (!feed.startsWith("edunex.")) return pages;
+  // Too big to keep: no page rather than another course's, which would only mislead.
+  if (error instanceof AnswerError) return error.answer.body.length > MAX_PAGE ? [] : [error.answer];
   const named = pages.filter((page) => {
     const path = new URL(page.url).pathname;
     return error.message.startsWith(`${path}:`) || error.message.endsWith(` ${path}`);
