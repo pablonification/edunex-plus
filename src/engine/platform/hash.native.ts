@@ -35,7 +35,7 @@ const rotr = (x: number, n: number) => (x >>> n) | (x << (32 - n));
 
 function sha1(bytes: Uint8Array): Uint8Array {
   const view = padded(bytes, 64, 8);
-  const h = Int32Array.from([0x67452301, 0xefcdab89, 0x98badcfe, 0x10325476, 0xc3d2e1f0]);
+  const h = Int32Array.from([0x6745_2301, 0xefcd_ab89, 0x98ba_dcfe, 0x1032_5476, 0xc3d2_e1f0]);
   const w = new Int32Array(80);
   for (let block = 0; block < view.byteLength; block += 64) {
     for (let t = 0; t < 16; t++) w[t] = view.getInt32(block + t * 4);
