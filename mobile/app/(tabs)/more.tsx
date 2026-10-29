@@ -12,9 +12,10 @@ import { useNav } from "../../src/nav";
 import { openCourseColorPicker } from "../../src/parts/course-color-picker";
 import { openReport } from "../../src/parts/report";
 import { TabHeader, usePullToRefresh } from "../../src/shell/source-status";
+import { IconButton } from "../../src/ui/controls";
 import { Badge, CourseCode } from "../../src/ui/display";
 import { Icons } from "../../src/ui/icons";
-import { List, Page, PageHeader, Row, Section } from "../../src/ui/layout";
+import { factsLabel, List, Page, PageHeader, Row, Section } from "../../src/ui/layout";
 import { Text } from "../../src/ui/text";
 import { useTheme } from "../../src/ui/theme";
 
@@ -48,7 +49,8 @@ export default function More() {
             </View>
           }
           title={name ? displayName(name) : t("nav.settings")}
-          meta={name ? ((account?.nim ?? student?.nim) ? `${account?.nim ?? student?.nim} · ${t("nav.settings")}` : t("nav.settings")) : undefined}
+          // Who: the NIM and the program (Pengaturan has its own row below).
+          meta={name ? factsLabel(account?.nim ?? student?.nim, student?.program) || undefined : undefined}
           onPress={() => router.push("/settings")}
           testID="row.nav.account"
         />
@@ -65,12 +67,30 @@ export default function More() {
         />
       </List>
       {courses && courses.length > 0 && (
-        <Section title={t("nav.courses")} count={courses.length}>
+        <Section
+          title={t("nav.courses")}
+          count={courses.length}
+          // The visible way to the colors, as the desktop's palette by its "Mata kuliah": Settings' list of them.
+          action={
+            <IconButton
+              label={t("nav.courseColors")}
+              onPress={() => router.push({ pathname: "/settings", params: { at: "courseColors" } })}
+              testID="action.courseColors"
+            >
+              <Icons.Palette size={18} color={theme.color.faint} />
+            </IconButton>
+          }
+        >
           <List>
             {courses.map((course) => (
               <Row
                 key={course.code}
-                leading={<CourseCode code={course.code} color={color(course.code)} />}
+                // One width for every code, so the names start in one column.
+                leading={
+                  <View style={{ width: 84 }}>
+                    <CourseCode code={course.code} color={color(course.code)} />
+                  </View>
+                }
                 title={course.name}
                 onPress={() => nav.go({ screen: "course", code: course.code })}
                 onLongPress={() => openCourseColorPicker(course.code)}
