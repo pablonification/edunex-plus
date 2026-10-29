@@ -166,6 +166,9 @@ function AwayLine({ snoozed, done, open, onToggle }: { snoozed: number; done: nu
   );
 }
 
+/** A row's one button under its words, its label in line with them: beside, it would squeeze the title on a phone. */
+const UNDER = { alignSelf: "flex-start", marginLeft: -space[3], marginTop: space[1] } as const;
+
 /** Something put off: what it is, when it's back, and the way to bring it back now. */
 function SnoozedRow({ need, entry, courses }: { need: NeedDraft; entry: SnoozeEntry; courses: readonly TermCourse[] }) {
   const t = useT();
@@ -184,18 +187,18 @@ function SnoozedRow({ need, entry, courses }: { need: NeedDraft; entry: SnoozeEn
           {entry.reason === "change" ? t("snooze.untilChange", { when }) : t("snooze.until", { when })}
         </Meta>
       }
-      trailing={
-        <Button
-          size="sm"
-          variant="ghost"
-          label={t("snooze.wakeFor", { title: fullName(need, view) })}
-          onPress={() => void wake(entry.id).catch(() => undefined)}
-          testID="action.wake"
-        >
-          {t("snooze.wake")}
-        </Button>
-      }
-    />
+    >
+      <Button
+        size="sm"
+        variant="ghost"
+        label={t("snooze.wakeFor", { title: fullName(need, view) })}
+        onPress={() => void wake(entry.id).catch(() => undefined)}
+        testID="action.wake"
+        style={UNDER}
+      >
+        {t("snooze.wake")}
+      </Button>
+    </Row>
   );
 }
 
@@ -216,18 +219,18 @@ function DoneRow({ need, entry, courses }: { need: NeedDraft; entry: DoneEntry; 
           {t(`done.line.${entry.how}`, { when: f.dayTimeWord(entry.at) })}
         </Meta>
       }
-      trailing={
-        <Button
-          size="sm"
-          variant="ghost"
-          label={t("done.showAgainFor", { title: fullName(need, view) })}
-          onPress={() => void unmark(entry.id).catch(() => undefined)}
-          testID="action.showAgain"
-        >
-          {t("done.showAgain")}
-        </Button>
-      }
-    />
+    >
+      <Button
+        size="sm"
+        variant="ghost"
+        label={t("done.showAgainFor", { title: fullName(need, view) })}
+        onPress={() => void unmark(entry.id).catch(() => undefined)}
+        testID="action.showAgain"
+        style={UNDER}
+      >
+        {t("done.showAgain")}
+      </Button>
+    </Row>
   );
 }
 
