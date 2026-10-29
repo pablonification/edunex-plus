@@ -8,6 +8,7 @@ import { AppState } from "react-native";
 import { GROUP_WINDOW } from "../../../src/engine/alerts/center";
 import { host } from "./host";
 import { DEMO } from "./version";
+import { updateWidgets } from "./widget";
 
 export const SYNC_TASK = "edunex-plus.sync";
 /** Android won't wake an app sooner than every 15 minutes. */
@@ -26,6 +27,8 @@ if (!DEMO)
       current.start();
       await current.engine.refresh();
       await new Promise((resolve) => setTimeout(resolve, GROUP_WINDOW + 5_000));
+      // The home-screen widget shows what this round read.
+      await updateWidgets(current).catch(() => undefined);
       // The Student opened the app meanwhile: its screens keep the feeds going.
       if (AppState.currentState !== "active") current.stop();
       return BackgroundTask.BackgroundTaskResult.Success;
