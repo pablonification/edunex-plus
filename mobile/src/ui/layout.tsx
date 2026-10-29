@@ -213,28 +213,31 @@ export function Row({
   const theme = useTheme();
   const body = (
     <>
-      {/* Level with the title's first line (22 high), however tall the indicator. */}
-      {leading !== undefined && <View style={{ flexShrink: 0, alignSelf: "flex-start", minHeight: 22, justifyContent: "center" }}>{leading}</View>}
-      <View style={{ flex: 1, minWidth: 0 }}>
-        {typeof title === "string" ? (
-          <Text size="body" weight="medium" numberOfLines={3}>
-            {title}
-          </Text>
-        ) : (
-          title
-        )}
-        {meta !== undefined && meta !== null && meta !== false && (
-          <View style={{ marginTop: 2 }}>
-            {typeof meta === "string" ? (
-              <Text size="small" tone="muted">
-                {meta}
-              </Text>
-            ) : (
-              meta
-            )}
-          </View>
-        )}
-        {children}
+      {/* The indicator and the text as one block, centred in the row: the indicator level with the title's first line
+          (22 high), however tall either is. */}
+      <View style={{ flex: 1, minWidth: 0, flexDirection: "row", alignItems: "flex-start", gap: space[3] }}>
+        {leading !== undefined && <View style={{ flexShrink: 0, minHeight: 22, justifyContent: "center" }}>{leading}</View>}
+        <View style={{ flex: 1, minWidth: 0 }}>
+          {typeof title === "string" ? (
+            <Text size="body" weight="medium" numberOfLines={3}>
+              {title}
+            </Text>
+          ) : (
+            title
+          )}
+          {meta !== undefined && meta !== null && meta !== false && (
+            <View style={{ marginTop: 2 }}>
+              {typeof meta === "string" ? (
+                <Text size="small" tone="muted">
+                  {meta}
+                </Text>
+              ) : (
+                meta
+              )}
+            </View>
+          )}
+          {children}
+        </View>
       </View>
       {trailing !== undefined && trailing !== null && <View style={{ flexShrink: 0, alignItems: "flex-end", gap: 4, maxWidth: "42%" }}>{trailing}</View>}
     </>

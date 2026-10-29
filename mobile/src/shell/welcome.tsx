@@ -189,7 +189,8 @@ function Connect({ onNext }: { onNext: () => void }) {
     void signIns[source].signIn(source);
   };
   return (
-    <Animated.View style={[styles.page, fade]} testID={both ? "screen.welcome.connected" : undefined}>
+    // "Connected", for the flows: both in, with who it is (Edunex's account, SIX's program), as the desktop pictures it.
+    <Animated.View style={[styles.page, fade]} testID={both && account && student ? "screen.welcome.connected" : undefined}>
       <View style={[styles.center, { alignItems: "stretch" }]}>
         <View style={{ alignItems: "center" }}>
           <Mark size={64} />
