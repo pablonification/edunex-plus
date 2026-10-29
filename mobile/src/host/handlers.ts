@@ -6,6 +6,7 @@ import { Linking, Platform } from "react-native";
 import type { z } from "zod";
 import { type ActionName, type ActionOutput, type ActionResult, Actions, type ErrorKind } from "../../../src/core/contract";
 import { isOfficialUrl, isWebLink } from "../../../src/core/links";
+import { UpdateNotice } from "../../../src/core/models";
 import type { AppLog } from "../../../src/engine/app-log";
 import { errorLine } from "../../../src/engine/app-log";
 import type { Engine } from "../../../src/engine/engine";
@@ -96,6 +97,13 @@ export function phoneHandlers(context: HandlerContext): Partial<Handlers> {
     },
     "alerts.test": async () => ({ shown: await context.showTestNotification() }),
     "app.checkUpdate": async () => ({ found: await engine.checkForUpdates() }),
+    // Only the page the update check built from GitHub's answer, never a link from a screen (the desktop's rule).
+    "app.openRelease": async () => {
+      const notice = engine.snapshot().datasets.find((dataset) => dataset.name === "app.update");
+      if (!notice) throw new EngineError("Rejected", "No newer release");
+      await openInBrowser(context, UpdateNotice.parse(notice.value).url);
+      return {};
+    },
   };
 }
 

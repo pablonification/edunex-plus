@@ -30,4 +30,9 @@ export const mobileStrings = {
     id: "Kotak jawaban di HP hanya untuk teks biasa, jadi ubah jawaban berformat ini di Edunex. Berkasnya tetap bisa diatur di sini.",
     en: "The answer box on the phone takes plain text only, so change this formatted answer on Edunex. You can still manage the files here.",
   },
+  // settings
+  "mobile.settings.notificationsOff": {
+    id: "Notifikasi untuk Edunex Plus mati. Nyalakan di pengaturan HP.",
+    en: "Notifications for Edunex Plus are off. Turn them on in your phone's settings.",
+  },
 } as const satisfies Record<string, Entry>;
