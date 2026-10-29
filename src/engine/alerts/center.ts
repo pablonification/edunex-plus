@@ -113,6 +113,11 @@ export class AlertCenter {
     this.flushTimer = null;
   }
 
+  /** Works the plans out again now rather than at the next check; nothing while stopped. */
+  planNow(): void {
+    this.replan();
+  }
+
   /** Every dataset event the store sends. */
   observe(event: Event): void {
     if (event.type === "dataset.removed") {

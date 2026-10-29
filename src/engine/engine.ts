@@ -19,7 +19,7 @@ import {
 } from "../core/models";
 import { isNewerRelease } from "../core/updates";
 import { AlertCenter, type AlertNotice } from "./alerts/center";
-import type { Detector } from "./alerts/detector";
+import type { Detector, PlannedAlert } from "./alerts/detector";
 import { DETECTORS } from "./alerts/detectors";
 import { type Ntfy, PhoneChannel } from "./alerts/phone";
 import { AppLog, errorLine } from "./app-log";
@@ -52,6 +52,11 @@ export interface EngineDeps {
   alert?(notice: AlertNotice): void;
   /** Alerts on the Student's phone through ntfy (src/desktop/ntfy.ts). Without it, no phone can be linked. */
   phone?: { ntfy: Ntfy; newTopic?: () => string };
+  /**
+   * At every replan, the planned alerts still to come (not raised, not muted, ahead), as ntfy gets
+   * them: the phone app books them as its own notifications (mobile/src/host/reminders.ts).
+   */
+  upcoming?(planned: readonly PlannedAlert[]): void;
   /** Defaults to every alert detector. */
   detectors?: readonly Detector[];
   /** Asks GitHub once a day for a newer release (packaged builds only). */
@@ -84,6 +89,8 @@ export interface Engine {
   updateSettings(patch: Partial<Settings>): Promise<Settings>;
   /** The Student opened the alert history. */
   markAlertsRead(): Promise<void>;
+  /** Works the timed alerts out again now, not at the next 5-minute check: the phone app, once an alert setting changed. */
+  planAlerts(): void;
   /** Asks GitHub for a newer release now ("Periksa pembaruan"); "off" where the app never asks (development, the demo). */
   checkForUpdates(): Promise<UpdateCheckResult>;
   /**
@@ -183,7 +190,10 @@ export function createEngine(deps: EngineDeps): Engine {
         phone.deliver(notice);
       }
     },
-    upcoming: (planned) => phone.upcoming(planned),
+    upcoming: (planned) => {
+      phone.upcoming(planned);
+      deps.upcoming?.(planned);
+    },
     forget: async () => void (await phone.disconnect()),
     log: log.for("alerts"),
   });
@@ -663,6 +673,10 @@ export function createEngine(deps: EngineDeps): Engine {
 
     markAlertsRead() {
       return alerts.markRead();
+    },
+
+    planAlerts() {
+      alerts.planNow();
     },
 
     async checkForUpdates() {
