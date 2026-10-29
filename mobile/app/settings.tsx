@@ -26,6 +26,7 @@ import { pageName } from "../../src/core/report";
 import type { StringKey } from "../../src/core/strings";
 import { useParam } from "../src/nav";
 import { TargetStepper, useTargets } from "../src/parts/attendance";
+import { openCourseColorPicker } from "../src/parts/course-color-picker";
 import { openReport } from "../src/parts/report";
 import { useSignIn, useSignInNote } from "../src/shell/source-status";
 import { toast } from "../src/swaps/overlays";
@@ -445,7 +446,7 @@ function AttendanceTargets() {
   );
 }
 
-/** Each course's color: the row opens the course page, where its color is picked (⋯ in its header). */
+/** Each course's color: a row opens the same picker as a course page's header and Lainnya's long-press. */
 function CourseColors() {
   const t = useT();
   const theme = useTheme();
@@ -454,11 +455,7 @@ function CourseColors() {
   return (
     <Group title={t("settings.courseColors")} note={t("settings.courseColors.note")}>
       {courses.map((course) => (
-        <Row
-          key={course.code}
-          label={`${course.code} ${course.name}`}
-          onPress={() => router.push({ pathname: "/course/[code]", params: { code: course.code, colors: "1" } })}
-        >
+        <Row key={course.code} label={`${course.code} ${course.name}`} onPress={() => openCourseColorPicker(course.code)}>
           <View style={{ width: 14, height: 14, borderRadius: 3, backgroundColor: theme.course(course.color) }} />
         </Row>
       ))}
