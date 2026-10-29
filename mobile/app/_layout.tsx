@@ -4,6 +4,7 @@ import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import "../src/host/background";
 import { Boot } from "../src/shell/boot";
 import { SignInHost } from "../src/shell/sign-in";
 import { useTheme } from "../src/ui/theme";

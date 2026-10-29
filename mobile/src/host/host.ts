@@ -29,6 +29,11 @@ export interface Host {
   ui: HostUi;
   /** How far the demo's clock is ahead of real time (ms); 0 in the real app. */
   clockOffset(): number;
+  /** Whether the engine's feeds are running (the screens started it, or a background sync). */
+  running(): boolean;
+  /** Starts the feeds once; later calls do nothing. */
+  start(): void;
+  stop(): void;
 }
 
 interface World {
@@ -117,6 +122,16 @@ async function makeHost(): Promise<Host> {
   const both = signInToBoth({ engine, send, windows: world.signInWindows, log });
 
   let started = false;
+  const start = () => {
+    if (started) return;
+    started = true;
+    engine.start();
+  };
+  const stop = () => {
+    if (!started) return;
+    started = false;
+    engine.stop();
+  };
   const handlers = phoneHandlers({
     engine,
     signIn: (source) => both.signIn(source),
@@ -124,11 +139,7 @@ async function makeHost(): Promise<Host> {
     ui: { openCheckIn: (meetingId) => ui.openCheckIn(meetingId) },
     log,
     demo: DEMO,
-    ready: () => {
-      if (started) return;
-      started = true;
-      engine.start();
-    },
+    ready: () => start(),
     forgetEverything: async () => {
       if (world.storage instanceof PhoneStorage) world.storage.clear();
       await Notifications.cancelAllScheduledNotificationsAsync().catch(() => undefined);
@@ -152,5 +163,5 @@ async function makeHost(): Promise<Host> {
     },
     clockOffset: world.clockOffset(),
   };
-  return { engine, api, ui, clockOffset: world.clockOffset };
+  return { engine, api, ui, clockOffset: world.clockOffset, running: () => started, start, stop };
 }

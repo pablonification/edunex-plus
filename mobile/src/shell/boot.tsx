@@ -9,6 +9,7 @@ import { type Bridge, createBridge } from "../../../src/app/bridge";
 import { I18nProvider, systemClock, type UiClock } from "../../../src/app/i18n";
 import { AppStore, StoreProvider, useSettings } from "../../../src/app/store";
 import type { Event } from "../../../src/core/contract";
+import { scheduleBackgroundSync } from "../host/background";
 import { type Host, host } from "../host/host";
 import { ThemeContext, themeFor } from "../ui/theme";
 
@@ -84,6 +85,7 @@ function Ready({ bridge }: { bridge: Bridge }) {
     const frame = requestAnimationFrame(() => {
       void SplashScreen.hideAsync();
       void bridge.invoke("app.ready", {}).catch(() => undefined);
+      void scheduleBackgroundSync().catch(() => undefined);
     });
     return () => cancelAnimationFrame(frame);
   }, [bridge]);
