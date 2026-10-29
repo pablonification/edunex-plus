@@ -27,13 +27,25 @@ const swapOf = (file) => {
   return swap ? path.join(root, swap) : null;
 };
 
+/** A library's own copy of a package npm couldn't lift to the top (expo-router's @expo/metro-runtime)
+ * sits beside the library: a library not found from the top is looked for there, as Node would. */
+const nodeModules = path.join(__dirname, "node_modules") + path.sep;
+const resolveOrNested = (context, moduleName, platform) => {
+  try {
+    return context.resolveRequest(context, moduleName, platform);
+  } catch (error) {
+    if (!context.originModulePath.startsWith(nodeModules)) throw error;
+    return context.resolveRequest({ ...context, disableHierarchicalLookup: false }, moduleName, platform);
+  }
+};
+
 config.resolver.resolveRequest = (context, moduleName, platform) => {
   // cheerio's browser build is its parse5 loader without fromURL (which needs Node's undici):
   // pages parse exactly as on the desktop.
   if (moduleName === "cheerio") {
     return context.resolveRequest({ ...context, unstable_conditionNames: ["browser", "import", "require"] }, moduleName, platform);
   }
-  const resolved = context.resolveRequest(context, moduleName, platform);
+  const resolved = resolveOrNested(context, moduleName, platform);
   if (resolved.type === "sourceFile") {
     const swap = swapOf(resolved.filePath);
     if (swap) return { type: "sourceFile", filePath: swap };
