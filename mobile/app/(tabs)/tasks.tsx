@@ -1,11 +1,6 @@
-import { TabHeader, usePullToRefresh } from "../../src/shell/source-status";
-import { Page, PageHeader } from "../../src/ui/layout";
+import { useParam } from "../../src/nav";
+import { TasksScreen } from "../../src/screens/tasks/list";
 
 export default function Screen() {
-  const pull = usePullToRefresh();
-  return (
-    <Page testID="screen.tasks" header={<TabHeader />} {...pull}>
-      <PageHeader title="tasks" />
-    </Page>
-  );
+  return <TasksScreen show={useParam("show") === "done" ? "done" : undefined} />;
 }
