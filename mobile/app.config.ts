@@ -40,5 +40,6 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     ["expo-calendar", { calendarPermission: "Edunex Plus adds your classes to your calendar." }],
     ["expo-build-properties", { android: { minSdkVersion: 26 } }],
   ],
-  experiments: { typedRoutes: true },
+  // tsconfig.json's paths are for the type checker only (one copy of each library's types); Metro resolves on its own.
+  experiments: { typedRoutes: true, tsconfigPaths: false },
 });
