@@ -338,6 +338,10 @@ jobs:
     if: needs.plan.outputs.desktop-shots == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    # The demo's day is in WIB, as the phone's pictures are (scripts/ci/mobile-e2e.sh): a runner in UTC
+    # would put every class seven hours early.
+    env:
+      TZ: Asia/Jakarta
     steps:
       - name: Check out
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
