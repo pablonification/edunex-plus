@@ -414,7 +414,7 @@ function LinkRow({
 function FileRow({ material, url, name, icon, body }: { material: Material; url: string; name: string; icon: ReactNode; body: ReactNode }) {
   const t = useT();
   const theme = useTheme();
-  const file = useEdunexFile({ url, name });
+  const file = useEdunexFile({ url, name }, edunexMaterialUrl(material));
   return (
     <View style={{ flexDirection: "row", alignItems: "center" }}>
       <Pressable

@@ -487,8 +487,8 @@ function Study({ exam }: { exam: Exam }) {
             {t("examPage.lecturerFiles")}
           </Text>
           <View style={{ gap: space[2] }}>
-            {files.map(({ file }) => (
-              <LecturerFile key={file.url} file={file} />
+            {files.map(({ file, taskId }) => (
+              <LecturerFile key={file.url} file={file} edunexUrl={edunexTaskUrl(taskId)} />
             ))}
           </View>
         </View>

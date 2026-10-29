@@ -13,6 +13,7 @@ import type { DatasetName, DatasetValue } from "../../../src/core/models";
 import { type FetchFile, readFile } from "../../../src/desktop/remote-files";
 import type { Engine } from "../../../src/engine/engine";
 import { EngineError } from "../../../src/engine/errors";
+import { linkGone, statusIn } from "./download-errors";
 import type { Handlers } from "./handlers";
 import { saveOffline, saveProgress } from "./save-offline";
 
@@ -101,7 +102,7 @@ export function phoneFileHandlers(context: FileContext): Pick<Handlers, FileActi
       if (context.fetchFile) {
         // The demo's pretend storage answers in memory.
         const response = await fetchFile(url, { signal: new AbortController().signal, credentials: "omit", redirect: "error" });
-        if (!response.ok) throw new EngineError("Failed", `The storage answered ${response.status}`);
+        if (!response.ok) throw new EngineError(linkGone(response.status) ? "Rejected" : "Failed", `The storage answered ${response.status}`);
         file.create();
         file.writeSync(new Uint8Array(await response.arrayBuffer()));
       } else {
@@ -111,7 +112,10 @@ export function phoneFileHandlers(context: FileContext): Pick<Handlers, FileActi
     } catch (error) {
       if (file.exists) file.delete();
       if (error instanceof EngineError) throw error;
-      throw new EngineError("Failed", `The download failed: ${error instanceof Error ? error.message : String(error)}`);
+      const message = error instanceof Error ? error.message : String(error);
+      // Refused: the link expired or the file is gone. Anything else is the connection.
+      const status = statusIn(message);
+      throw new EngineError(status !== null && linkGone(status) ? "Rejected" : "Failed", `The download failed: ${message}`);
     }
     downloads.record(url, file);
     return file;

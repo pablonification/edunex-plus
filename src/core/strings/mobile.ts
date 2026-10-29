@@ -27,6 +27,16 @@ export const mobileStrings = {
     id: "Belum ada aplikasi di HP ini yang bisa membuka {name}. Bagikan ke aplikasi lain.",
     en: "No app on this phone opens {name}. Share it to another app.",
   },
+  // The phone's app for it didn't open it: the copy is still here, so Share is the other way.
+  "mobile.file.openFailed": {
+    id: "{name} tidak bisa dibuka. Coba lagi, atau bagikan ke aplikasi lain.",
+    en: "Couldn't open {name}. Try again, or share it to another app.",
+  },
+  // The copy went (signing out of Edunex takes it): a tap on the file downloads it again.
+  "mobile.file.shareFailed": {
+    id: "{name} tidak bisa dibagikan. Ketuk berkasnya untuk mengunduh ulang, lalu bagikan lagi.",
+    en: "Couldn't share {name}. Tap the file to download it again, then share it.",
+  },
   // The answer box on the phone is plain text: an answer with bold, lists or links is changed on Edunex.
   "mobile.handIn.textPlain": {
     id: "Kotak jawaban di HP hanya untuk teks biasa, jadi ubah jawaban berformat ini di Edunex. Berkasnya tetap bisa diatur di sini.",
@@ -151,6 +161,8 @@ export const phoneWording: Partial<Record<StringKey, Entry>> = {
     id: "Rencana ini tersimpan di HP ini. Aplikasi tidak pernah mengirim KRS.",
     en: "This plan stays on this phone. The app never sends a KRS.",
   },
+  // schedule: the calendar sheet's button with nothing chosen. On the phone it adds to the calendar, it saves no file.
+  "schedule.export.nothing": { id: "Tidak ada yang bisa ditambahkan", en: "Nothing to add" },
   // grades-plan: Kurikulum's note. A course's corrections open from a tap on its row, not a ⋯ menu.
   "curriculum.unlistedNote": {
     id: "{count} mata kuliah tidak ada di catatan SIX-mu, jadi tidak dihitung sebagai sisa. Kalau prodimu bilang itu wajib untukmu, ketuk barisnya lalu pilih “Ada di kurikulumku”.",
