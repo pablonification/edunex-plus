@@ -15,14 +15,15 @@ export type Handlers = { [N in ActionName]: (input: z.infer<(typeof Actions)[N][
 
 /** What only the screens can do: show a page the Student acts on. */
 export interface HostUi {
-  /** ITB's sign-in page for one system; resolves with whether the Student got signed in. */
-  signIn(source: "edunex" | "six"): Promise<boolean>;
   /** SIX's timetable with this class's popup, signed in, for "Tandai Hadir". */
   openCheckIn(meetingId: string): Promise<void>;
 }
 
 export interface HandlerContext {
   engine: Engine;
+  /** Signs in to one system on ITB's page, the other coming along when Microsoft lets it (src/desktop/signin-both.ts). */
+  signIn(source: "edunex" | "six"): Promise<boolean>;
+  stopQuietSignIn(): void;
   ui: HostUi;
   log: AppLog;
   /** The screens drew their first frame: the splash can go and syncing starts. */
@@ -75,10 +76,11 @@ export function phoneHandlers(context: HandlerContext): Partial<Handlers> {
       return {};
     },
     "auth.signIn": async ({ source }) => {
-      if (source === "edunex" || source === "six") return { signedIn: await context.ui.signIn(source) };
+      if (source === "edunex" || source === "six") return { signedIn: await context.signIn(source) };
       throw new EngineError("Rejected", `${source} has no sign-in`);
     },
     "auth.signOut": async ({ source }) => {
+      context.stopQuietSignIn();
       await engine.signOut(source);
       if (!source) await context.forgetEverything();
       return {};

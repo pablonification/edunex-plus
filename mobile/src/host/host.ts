@@ -7,11 +7,13 @@ import { Platform } from "react-native";
 import type { BridgeApi } from "../../../src/app/bridge";
 import type { Event } from "../../../src/core/contract";
 import type { Lang } from "../../../src/core/models";
+import { type SignInWindows, signInToBoth } from "../../../src/desktop/signin-both";
 import { AppLog } from "../../../src/engine/app-log";
 import { type Clock, systemClock } from "../../../src/engine/clock";
 import { createEngine, type Engine } from "../../../src/engine/engine";
 import type { Transport } from "../../../src/engine/http/transport";
 import type { Storage, Vault } from "../../../src/engine/store/storage";
+import { phoneSignInWindows } from "../shell/sign-in";
 import { answer, type HostUi, phoneHandlers } from "./handlers";
 import { phoneNotifier, prepareChannels } from "./notifier";
 import { PhoneStorage } from "./storage";
@@ -36,6 +38,8 @@ interface World {
   vault: Vault;
   /** The demo signs in and syncs by itself before the screens draw. */
   prepare?(engine: Engine): Promise<void>;
+  /** Where sign-ins happen: ITB's pages in web views, or the demo's made-up sign-in. */
+  signInWindows: SignInWindows;
   clockOffset(): number;
 }
 
@@ -50,7 +54,14 @@ function memoryVault(): Vault {
 }
 
 async function realWorld(): Promise<World> {
-  return { transport: phoneTransport, clock: systemClock, storage: new PhoneStorage(), vault: new PhoneVault(), clockOffset: () => 0 };
+  return {
+    transport: phoneTransport,
+    clock: systemClock,
+    storage: new PhoneStorage(),
+    vault: new PhoneVault(),
+    clockOffset: () => 0,
+    signInWindows: phoneSignInWindows,
+  };
 }
 
 async function demoWorld(): Promise<World> {
@@ -75,9 +86,9 @@ async function makeHost(): Promise<Host> {
   const listeners = new Set<(event: unknown) => void>();
   let lang: Lang = "id";
   const notifier = phoneNotifier(() => lang);
-  const ui: HostUi = {
-    signIn: async () => false,
-    openCheckIn: async () => undefined,
+  const ui: HostUi = { openCheckIn: async () => undefined };
+  const send = (event: Event) => {
+    for (const listener of listeners) listener(event);
   };
   const engine = createEngine({
     transport: world.transport,
@@ -90,7 +101,7 @@ async function makeHost(): Promise<Host> {
         lang = event.settings.lang;
         void prepareChannels(lang);
       }
-      for (const listener of listeners) listener(event);
+      send(event);
     },
     // The demo's made-up alerts stay in the app, as on the desktop.
     alert: (notice) => void (DEMO ? undefined : notifier.show(notice)),
@@ -102,13 +113,15 @@ async function makeHost(): Promise<Host> {
   void prepareChannels(lang);
   if (world.prepare) await world.prepare(engine);
 
+  // One Microsoft sign-in covers both systems, exactly as on the desktop.
+  const both = signInToBoth({ engine, send, windows: world.signInWindows, log });
+
   let started = false;
   const handlers = phoneHandlers({
     engine,
-    ui: {
-      signIn: (source) => ui.signIn(source),
-      openCheckIn: (meetingId) => ui.openCheckIn(meetingId),
-    },
+    signIn: (source) => both.signIn(source),
+    stopQuietSignIn: () => both.stopQuiet(),
+    ui: { openCheckIn: (meetingId) => ui.openCheckIn(meetingId) },
     log,
     demo: DEMO,
     ready: () => {

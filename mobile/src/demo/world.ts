@@ -2,6 +2,7 @@
 // (test/pretend), with the desktop demo's made-up student, on a clock that starts at the desktop
 // demo's moment (Thursday 8 October 2026, 08:07 WIB) and then runs in real time. Nothing reaches
 // a real system. Only demo builds carry this file (metro.config.js).
+import type { SignInWindows } from "../../../src/desktop/signin-both";
 import type { Engine } from "../../../src/engine/engine";
 import { PRETEND_TOKEN } from "../../../test/pretend/edunex";
 import { PRETEND_SIX_COOKIE } from "../../../test/pretend/six";
@@ -48,7 +49,23 @@ export async function createDemoWorld() {
     }, 200);
   }
 
+  const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+  /** The desktop demo's sign-in: about as long as a page that remembers the Microsoft account, then reading the session. */
+  const signInWindows: SignInWindows = {
+    async open(source, { quiet, onStep }) {
+      await wait(900);
+      if (!quiet) {
+        onStep("finishing");
+        await wait(1_500);
+      }
+      return source === "edunex" ? PRETEND_TOKEN : PRETEND_SIX_COOKIE;
+    },
+    stopQuiet: () => undefined,
+    forget: async () => undefined,
+  };
+
   return {
+    signInWindows,
     transport: world,
     clock: world.clock,
     world,
