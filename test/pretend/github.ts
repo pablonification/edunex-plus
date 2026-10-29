@@ -18,6 +18,8 @@ export class PretendGithub {
   draftTags: string[] = [];
   /** Every answer has this status instead (rate limit, outage). */
   failWith: number | null = null;
+  /** Releases that carry the Android app (an .apk) as well. */
+  readonly apkTags = new Set<string>();
   /** No latest-mac.yml in the releases (as before the app could update itself). */
   noUpdateInfo = false;
   /** Files whose download isn't the file latest-mac.yml lists. */
@@ -76,6 +78,7 @@ export class PretendGithub {
       const name = `Edunex-Plus-${version}-${arch}-mac.zip`;
       return { name, content: utf8(`the ${arch} app, ${version}`) };
     });
+    if (this.apkTags.has(tag)) zips.push({ name: `Edunex-Plus-${version}.apk`, content: utf8(`the Android app, ${version}`) });
     if (this.noUpdateInfo) return zips;
     const sha512 = (content: Uint8Array) => digest("sha512", content, "base64");
     const yml = [

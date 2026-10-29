@@ -22,7 +22,12 @@ const FIRST_CHECK_AFTER = 60_000;
 const RETRY_OFFLINE_AFTER = 60 * 60_000;
 const STATE_KEY = "updates.json";
 
-const LatestRelease = z.object({ tag_name: z.string(), draft: z.boolean().optional(), prerelease: z.boolean().optional() });
+const LatestRelease = z.object({
+  tag_name: z.string(),
+  draft: z.boolean().optional(),
+  prerelease: z.boolean().optional(),
+  assets: z.array(z.object({ name: z.string() })).optional(),
+});
 const Releases = z.array(LatestRelease);
 
 export interface UpdateCheckDeps {
@@ -35,6 +40,8 @@ export interface UpdateCheckDeps {
   publish(notice: UpdateNotice | null): Promise<void>;
   /** What each check found, for the app's own log (./app-log.ts). */
   log?: AreaLog;
+  /** Only a release carrying a file this matches counts (the phone's APK); every release when unset (the desktop). */
+  asset?: RegExp;
 }
 
 export interface UpdateCheck {
@@ -67,14 +74,16 @@ export function createUpdateCheck(deps: UpdateCheckDeps): UpdateCheck {
 
   /** The tag to compare with, from GitHub's answer; undefined when the answer is odd. */
   function offered(body: string, everyRelease: boolean): string | null | undefined {
+    const carries = (release: z.infer<typeof LatestRelease>) => !deps.asset || (release.assets ?? []).some((file) => deps.asset?.test(file.name));
     if (everyRelease) {
       const releases = Releases.safeParse(JSON.parse(body));
       if (!releases.success) return undefined;
-      return newestTag(releases.data.filter((release) => !release.draft).map((release) => release.tag_name));
+      return newestTag(releases.data.filter((release) => !release.draft && carries(release)).map((release) => release.tag_name));
     }
     const release = LatestRelease.safeParse(JSON.parse(body));
     if (!release.success || release.data.draft || release.data.prerelease) return undefined;
-    return release.data.tag_name;
+    // The latest release without this app's file: nothing to offer it yet.
+    return carries(release.data) ? release.data.tag_name : null;
   }
 
   function ask(): Promise<Exclude<UpdateCheckResult, "off">> {

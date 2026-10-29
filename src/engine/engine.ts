@@ -56,6 +56,8 @@ export interface EngineDeps {
   detectors?: readonly Detector[];
   /** Asks GitHub once a day for a newer release (packaged builds only). */
   checkForUpdates?: boolean;
+  /** Only releases carrying a file this matches are offered (the phone's APK); every release when unset. */
+  releaseAsset?: RegExp;
   /** The app's own log, which main writes to as well (the window's errors, the updater). One of its own without it. */
   log?: AppLog;
   /** The maintainer's report relay (ADR 0014); REPORT_RELAY_URL by default, which ships empty: no relay. */
@@ -250,6 +252,7 @@ export function createEngine(deps: EngineDeps): Engine {
         version: deps.version,
         userAgent,
         log: log.for("update"),
+        asset: deps.releaseAsset,
         publish: async (notice) => {
           if (notice) await store.set("app.update", notice, clock.now());
           else await store.remove("app.update");

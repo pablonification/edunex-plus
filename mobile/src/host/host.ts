@@ -125,6 +125,8 @@ async function makeHost(): Promise<Host> {
     log,
     // Release builds ask GitHub once a day whether a newer version is out (Settings says so, D5); never the demo.
     checkForUpdates: !DEMO && !__DEV__,
+    // A release is for the phone only once it carries an APK: the desktop's installers are no use here.
+    releaseAsset: /\.apk$/i,
     os: () => `Android ${Platform.Version}`,
   });
   // Nothing saved yet: the app's first run on this phone, in the phone's own language (the desktop starts in English).

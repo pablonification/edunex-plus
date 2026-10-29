@@ -29,6 +29,8 @@ export async function startEngine(
     start?: boolean;
     version?: string;
     checkForUpdates?: boolean;
+    /** Only releases carrying a file this matches (the phone's APK). */
+    releaseAsset?: RegExp;
     /** Where problem reports go with one click (the pretend relay); none by default, as the app ships. */
     relay?: string;
   } = {},
@@ -45,6 +47,7 @@ export async function startEngine(
     vault,
     version: options.version ?? "2.0.0-test",
     checkForUpdates: options.checkForUpdates,
+    ...(options.releaseAsset ? { releaseAsset: options.releaseAsset } : {}),
     emit: (e) => events.push(e),
     random: () => 0.5,
     log,
