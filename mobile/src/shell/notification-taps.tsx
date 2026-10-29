@@ -20,11 +20,13 @@ export function NotificationTaps() {
     const open = (response: Notifications.NotificationResponse | null) => {
       if (!response) return;
       const data = response.notification.request.content.data as Partial<NoticeData> | undefined;
+      const route = Route.safeParse(data?.target);
       if (data?.checkIn) {
-        void bridge.invoke("six.openCheckIn", { meetingId: data.checkIn.meetingId }).catch(() => undefined);
+        // SIX's page for the class, else (the class isn't on the timetable read) the alert's own screen, as the
+        // desktop falls back to its window.
+        void bridge.invoke("six.openCheckIn", { meetingId: data.checkIn.meetingId }).catch(() => nav.go(route.success ? route.data : { screen: "home" }));
         return;
       }
-      const route = Route.safeParse(data?.target);
       if (route.success) nav.go(route.data);
     };
     open(Notifications.getLastNotificationResponse());

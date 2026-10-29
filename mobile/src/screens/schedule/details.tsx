@@ -114,7 +114,7 @@ function AttendanceFact({ code, world }: { code: string; world: ScheduleWorld })
 }
 
 /** SIX shows Tandai Hadir in this class now (as the app last read its popup): the way to press it in SIX. */
-function OpenCheckIn({ item }: { item: ScheduledClass }) {
+function OpenCheckIn({ item, onLeave }: { item: ScheduledClass; onLeave: () => void }) {
   const t = useT();
   const f = useFormat();
   const theme = useTheme();
@@ -138,7 +138,11 @@ function OpenCheckIn({ item }: { item: ScheduledClass }) {
       <Button
         variant="primary"
         icon={<Icons.ArrowUpRight size={16} color={theme.color.onAccent} />}
-        onPress={() => openCheckIn(session.id, sixTimetableUrl(student, session.start))}
+        // The sheet goes first: SIX's page opens as a screen of its own, which a sheet would stay over.
+        onPress={() => {
+          onLeave();
+          openCheckIn(session.id, sixTimetableUrl(student, session.start));
+        }}
         label={t("home.now.openSixLabel", { course: session.courseCode })}
         testID="action.checkIn"
       >
@@ -303,7 +307,7 @@ function ClassDetails({ item, onLeave }: { item: ScheduledClass; onLeave: () => 
         ))}
         {!exam && <AttendanceFact code={code} world={world} />}
       </Facts>
-      {!exam && <OpenCheckIn item={item} />}
+      {!exam && <OpenCheckIn item={item} onLeave={onLeave} />}
       {!exam && <OpenPresence code={code} start={session.start} world={world} />}
       <Actions>
         <OpenCourse code={code} primary={!exam && !presenceOpen && !checkInOpen} onLeave={onLeave} />
