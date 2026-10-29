@@ -10,4 +10,10 @@ export const mobileStrings = {
   // Android's notification channels, as Settings › Notifications lists them.
   "mobile.channel.presence": { id: "Presensi dibuka dan ditutup", en: "Presence opening and closing" },
   "mobile.channel.alerts": { id: "Tugas, tenggat dan perubahan", en: "Tasks, deadlines and changes" },
+  // welcome
+  "mobile.welcome.waitingHint": { id: "Tutup halaman masuk untuk membatalkan.", en: "Close the sign-in page to cancel." },
+  "mobile.welcome.notify": {
+    id: "Izinkan notifikasi agar pengingat tetap sampai saat aplikasi tertutup.",
+    en: "Allow notifications so reminders still arrive with the app closed.",
+  },
 } as const satisfies Record<string, Entry>;

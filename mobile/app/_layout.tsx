@@ -3,11 +3,14 @@
 import "../src/host/polyfills";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import { useState } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import "../src/host/background";
+import { useDataset, useStatus } from "../../src/app/store";
 import { Boot } from "../src/shell/boot";
 import { SignInHost } from "../src/shell/sign-in";
+import { Welcome } from "../src/shell/welcome";
 import { useTheme } from "../src/ui/theme";
 import { Toasts } from "../src/ui/toasts";
 
@@ -23,12 +26,26 @@ export default function RootLayout() {
   );
 }
 
+/** Saved data keeps the app up even while a session is being checked or has ended (the desktop's nobodyIn). */
+function useNobodyIn(): boolean {
+  const edunex = useStatus("edunex");
+  const six = useStatus("six");
+  const account = useDataset("edunex.account");
+  const student = useDataset("six.student");
+  return edunex.state === "signed-out" && !account && six.state === "signed-out" && !student;
+}
+
 function Frame() {
   const theme = useTheme();
+  const nobody = useNobodyIn();
+  // On first run the welcome stays until the Student moves on, so SIX can be connected right after Edunex.
+  const [welcoming, setWelcoming] = useState(nobody);
+  if (nobody && !welcoming) setWelcoming(true);
   return (
     <>
-      <StatusBar style={theme.scheme === "dark" ? "light" : "dark"} />
+      <StatusBar style={welcoming || theme.scheme === "dark" ? "light" : "dark"} />
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: theme.color.canvas }, animation: "slide_from_right" }} />
+      {welcoming && <Welcome onDone={() => setWelcoming(false)} />}
       <Toasts />
       <SignInHost />
     </>
