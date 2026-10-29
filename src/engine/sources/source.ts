@@ -7,6 +7,7 @@ import type { DatasetName, DatasetValue, Settings, SkippedRow, SourceId } from "
 import type { Clock } from "../clock";
 import type { Pace } from "../http/pace";
 import type { Transport } from "../http/transport";
+import type { FeedRead } from "../report/kept-pages";
 
 export interface FeedSpec {
   /** "<source>.<what>", e.g. "edunex.tasks". */
@@ -35,8 +36,12 @@ export interface FeedSpec {
    * `shows`. Any other change is still the whole source's.
    */
   part?: readonly DatasetName[];
-  /** `current()` turns false once the session this run started under has ended; store nothing then. */
-  run(current: () => boolean): Promise<void>;
+  /**
+   * `current()` turns false once the session this run started under has ended; store nothing then.
+   * `read` notes what this run reads and stores, for a report: the run reads through `client.for(read)`
+   * and stores through `context.for(read)` (../report/kept-pages.ts).
+   */
+  run(current: () => boolean, read: FeedRead): Promise<void>;
 }
 
 /** What a source can reach while its session is on. */
@@ -60,6 +65,8 @@ export interface SourceContext {
   runNow(match: (feed: string) => boolean): Promise<void>;
   /** The line every source shares for one website ("six.itb.ac.id"), so together they stay at human pace. */
   pace(site: string): Pace;
+  /** This context for one feed run: what it stores is noted for that run (FeedSpec.run). */
+  for(read: FeedRead): SourceContext;
 }
 
 /** A write the Student asked for, run with the source's current session. */

@@ -7,9 +7,10 @@
 import { sixRecordPaths } from "../../../core/links";
 import type { Curriculum, Syllabus } from "../../../core/models";
 import { EngineError } from "../../errors";
+import type { FeedRead } from "../../report/kept-pages";
 import { Skipped } from "../skipped";
 import type { SourceContext } from "../source";
-import type { SixPages } from "./pages";
+import { pagesFor, type SixPages } from "./pages";
 import { readBills } from "./readers/bills";
 import { readCurriculumList } from "./readers/curriculum-list";
 import { readCurriculumStructure } from "./readers/curriculum-structure";
@@ -27,11 +28,14 @@ const DAILY = { every: 24 * HOUR, jitter: HOUR };
 export const recordPaths = sixRecordPaths;
 
 export function registerSixRecordFeeds(context: SourceContext, pages: SixPages): void {
+  // Each run reads and stores through its own view of the two, so the report knows which run got what (FeedSpec.run).
+  const noted = (read: FeedRead) => ({ context: context.for(read), pages: pagesFor(pages, read) });
   context.feed({
     name: "six.transcript",
     ...DAILY,
     shows: ["six.transcript", "six.progress"],
-    async run() {
+    async run(_current, read) {
+      const { context, pages } = noted(read);
       const who = await pages.who();
       const history = await pages.page(recordPaths.transcript(who));
       // SIX shows the IPK on the curriculum-position page; the transcript's rows are checked against it.
@@ -46,7 +50,8 @@ export function registerSixRecordFeeds(context: SourceContext, pages: SixPages):
     name: "six.curriculum",
     ...DAILY,
     shows: ["six.curriculum"],
-    async run() {
+    async run(_current, read) {
+      const { context, pages } = noted(read);
       const skipped = new Skipped();
       await context.set("six.curriculum", await fetchCurriculum(pages, skipped), skipped.rows);
     },
@@ -55,7 +60,8 @@ export function registerSixRecordFeeds(context: SourceContext, pages: SixPages):
     name: "six.krs",
     ...DAILY,
     shows: ["six.krs"],
-    async run() {
+    async run(_current, read) {
+      const { context, pages } = noted(read);
       const skipped = new Skipped();
       await context.set("six.krs", readKrs(await pages.page(recordPaths.krs(await pages.who())), skipped), skipped.rows);
     },
@@ -64,7 +70,8 @@ export function registerSixRecordFeeds(context: SourceContext, pages: SixPages):
     name: "six.bills",
     ...DAILY,
     shows: ["six.bills"],
-    async run() {
+    async run(_current, read) {
+      const { context, pages } = noted(read);
       const skipped = new Skipped();
       await context.set("six.bills", readBills(await pages.page(recordPaths.bills(await pages.who())), skipped), skipped.rows);
     },

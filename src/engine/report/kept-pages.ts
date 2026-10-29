@@ -4,13 +4,15 @@
 // latest read per feed, and gone when its source signs out. A read that goes right again forgets
 // its feed's, since there's nothing left to report.
 //
-// Which pages a read got is noted as it runs: the engine runs each feed's read inside `during`, and
-// its door to the network (`saw`) and to the store (`leftOut`) note what passes, for the read
-// they're part of, whichever feed it is and however its requests queue.
-import { AsyncLocalStorage } from "node:async_hooks";
+// Which pages a read got is noted as it runs: the engine runs each feed's read inside `during`,
+// which hands the read its own FeedRead. The read passes it down to its doors to the network (the
+// clients' `for`, `noting`) and to the store (SourceContext.for), which note what passes for that
+// read alone, whichever feed it is and however its requests queue. It's handed down rather than
+// looked up because feeds run at once and the phone's JavaScript (Hermes) can't tell on its own
+// which of them a request belongs to: Node's AsyncLocalStorage has no counterpart there.
 import { type DatasetName, Datasets, type SkippedRow, type SourceId } from "../../core/models";
 import { type EngineError, isEngineError } from "../errors";
-import type { AnswerCheck } from "../http/transport";
+import type { AnswerCheck, Transport } from "../http/transport";
 
 /** A response as it came: where from, its status, its body (SIX's HTML, Edunex's JSON). */
 export interface KeptPage {
@@ -49,7 +51,30 @@ const MAX_PAGE = 2_000_000;
 /** The last pages a read got are the ones it was reading when it stopped. */
 const MAX_PAGES = 6;
 
-interface Read {
+/** What one read of a feed got and stored, noted as it runs (see the top of this file). */
+export interface FeedRead {
+  /** A response came for this read. */
+  saw(page: KeptPage): void;
+  /** This read stored `dataset`, with these rows left out. */
+  stored(dataset: DatasetName, rows: readonly SkippedRow[]): void;
+}
+
+/** A read nobody notes: ITB's public pages (the same for everyone), or work that isn't a feed's read. */
+export const UNNOTED: FeedRead = { saw: () => undefined, stored: () => undefined };
+
+/** `transport`, its answers noted for `read`: every GET answered with a page (not a redirect). */
+export function noting(transport: Transport, read: FeedRead): Transport {
+  return {
+    async request(request) {
+      const response = await transport.request(request);
+      if (request.method === "GET" && (response.status < 300 || response.status >= 400))
+        read.saw({ url: request.url, status: response.status, body: response.body, check: request.check });
+      return response;
+    },
+  };
+}
+
+interface Notes {
   pages: KeptPage[];
   leftOut: { dataset: DatasetName; rows: readonly SkippedRow[] }[];
   /** Every dataset the read stored. */
@@ -68,25 +93,24 @@ export interface KeptEvents {
 }
 
 export class KeptPages {
-  private readonly reads = new AsyncLocalStorage<Read>();
   private readonly kept = new Map<string, Kept>();
   private readonly history = new Map<string, FeedHistory>();
 
   constructor(private readonly events: KeptEvents = {}) {}
 
   /**
-   * Runs one read of `feed`, noting the pages it gets, then keeps them if it went wrong (an error
+   * Runs one read of `feed`, handing it the FeedRead that notes the pages it gets, then keeps them if it went wrong (an error
    * that's a page change, or rows left out) or forgets the feed's if it went right. `shows`: what
    * the feed fills. A read whose session ended meanwhile (`current()` false) keeps nothing: its
    * Student may have signed out. Errors pass through as they are.
    */
   async during(
     { feed, shows, now, current }: { feed: string; shows: readonly DatasetName[] | undefined; now: () => number; current: () => boolean },
-    read: () => Promise<void>,
+    read: (notes: FeedRead) => Promise<void>,
   ): Promise<void> {
-    const notes: Read = { pages: [], leftOut: [], stored: new Set() };
+    const notes: Notes = { pages: [], leftOut: [], stored: new Set() };
     try {
-      await this.reads.run(notes, read);
+      await read(noter(notes));
     } catch (error) {
       if (isChange(error) && current()) {
         const datasets = [...(shows ?? [])];
@@ -109,21 +133,6 @@ export class KeptPages {
     this.history.set(feed, { fills, goodAt: before?.goodAt ?? null });
     const datasets = [...new Set(notes.leftOut.filter((left) => left.rows.length).map((left) => left.dataset))];
     this.keep(feed, { kind: "skipped", check: rows[0]!.why, rows, datasets, affects: datasets, at: now() }, notes.pages);
-  }
-
-  /** A response came for the read under way (if any). */
-  saw(page: KeptPage): void {
-    const notes = this.reads.getStore();
-    if (!notes || page.body.length > MAX_PAGE) return;
-    notes.pages.push(page);
-    if (notes.pages.length > MAX_PAGES) notes.pages.shift();
-  }
-
-  /** The read under way stored `dataset`, with these rows left out. */
-  leftOut(dataset: DatasetName, rows: readonly SkippedRow[]): void {
-    const notes = this.reads.getStore();
-    notes?.stored.add(dataset);
-    if (rows.length) notes?.leftOut.push({ dataset, rows });
   }
 
   /** What's kept for `source`'s feeds (every source without one), the latest first. */
@@ -160,6 +169,21 @@ export class KeptPages {
     this.kept.set(feed, whole);
     this.events.kept?.(whole);
   }
+}
+
+/** What notes one read's pages and stores into `notes`. */
+function noter(notes: Notes): FeedRead {
+  return {
+    saw(page) {
+      if (page.body.length > MAX_PAGE) return;
+      notes.pages.push(page);
+      if (notes.pages.length > MAX_PAGES) notes.pages.shift();
+    },
+    stored(dataset, rows) {
+      notes.stored.add(dataset);
+      if (rows.length) notes.leftOut.push({ dataset, rows });
+    },
+  };
 }
 
 /**
