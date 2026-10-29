@@ -28,6 +28,7 @@ import {
   takesAnswers,
 } from "../../../../src/core/tasks";
 import { FileBadge, useEdunexFile } from "../../parts/files";
+import { boxEditable, boxHtml, boxText, editableInApp, plainText } from "../../parts/html";
 import { LecturerHtml } from "../../parts/lecturer-html";
 import { useRefresh, useSignIn } from "../../shell/source-status";
 import { toast } from "../../swaps/overlays";
@@ -38,7 +39,6 @@ import { factsLabel, Meta } from "../../ui/layout";
 import { ActionSheet, Sheet } from "../../ui/sheet";
 import { Text, type TextTone } from "../../ui/text";
 import { type Palette, radius, space, useTheme } from "../../ui/theme";
-import { boxEditable, boxHtml, boxText, editableInApp } from "./html";
 import { formatScore } from "./rows";
 
 /** A file the Student attached in this visit, before it's in Edunex's answer. */
@@ -405,7 +405,7 @@ export function HandInCard({ h }: { h: HandInState }) {
             </View>
           ) : (
             !task.group &&
-            (h.textLocked || h.answer.saved.trim()) && (
+            (h.textLocked || plainText(h.answer.saved)) && (
               <View style={{ marginBottom: space[3], gap: space[2] }}>
                 <View style={{ borderRadius: radius.lg, backgroundColor: c.fill, paddingHorizontal: space[3], paddingVertical: space[2.5] }}>
                   <LecturerHtml html={h.answer.saved} pictureAlt={t("image.altYours")} />

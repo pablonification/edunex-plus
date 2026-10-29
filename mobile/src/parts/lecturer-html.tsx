@@ -16,11 +16,11 @@ import { type Translate, useT } from "../../../src/app/i18n";
 import { useBridge } from "../../../src/app/store";
 import type { FileProblem } from "../../../src/core/actions/files";
 import { isStorageFile, isWebLink, linkHost } from "../../../src/core/links";
-import { parseBody } from "../screens/tasks/html";
 import { Skeleton } from "../ui/display";
 import { Icons } from "../ui/icons";
 import { Text, type TextSize } from "../ui/text";
 import { radius, space, type Theme, useTheme } from "../ui/theme";
+import { parseBody } from "./html";
 
 const BLOCKS = new Set([
   "p",
@@ -334,7 +334,7 @@ function RemoteImage({ src, alt }: { src: string; alt: string }) {
         if (!folder.exists) folder.create({ intermediates: true });
         const file = new File(folder, `${hash(src)}.${EXT[result.type] ?? "img"}`);
         if (!file.exists) file.create();
-        file.write(result.bytes);
+        file.writeSync(result.bytes);
         ready.set(src, file.uri);
         if (live) setPicture({ state: "ready", uri: file.uri });
       },

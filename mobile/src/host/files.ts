@@ -34,7 +34,6 @@ function isDownloadable(url: string): boolean {
 /** A file name with no folders or characters the file system refuses (src/desktop/downloads.ts's safeName). */
 function safeName(name: string): string {
   const clean = name
-    // biome-ignore lint/suspicious/noControlCharactersInRegex: control characters are what's being removed
     .replace(/[/\\:*?"<>|\u0000-\u001f]/g, "_")
     .replace(/^\.+/, "")
     .trim();
@@ -81,7 +80,7 @@ class Downloads {
 
   record(url: string, file: File): void {
     const next = { ...this.read(), [url]: file.name };
-    this.index.write(JSON.stringify(next));
+    this.index.writeSync(JSON.stringify(next));
   }
 }
 
@@ -108,7 +107,7 @@ export function phoneFileHandlers(context: FileContext = {}): Pick<Handlers, Fil
           const response = await fetchFile(url, { signal: new AbortController().signal, credentials: "omit", redirect: "error" });
           if (!response.ok) throw new EngineError("Failed", `The storage answered ${response.status}`);
           file.create();
-          file.write(new Uint8Array(await response.arrayBuffer()));
+          file.writeSync(new Uint8Array(await response.arrayBuffer()));
         } else {
           // Straight to the file, however big: Android's own download, not through the app's memory.
           await File.downloadFileAsync(url, file);

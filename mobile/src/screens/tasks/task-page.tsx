@@ -29,6 +29,7 @@ import {
 } from "../../../../src/core/tasks";
 import { useNav } from "../../nav";
 import { LecturerFile } from "../../parts/files";
+import { plainText } from "../../parts/html";
 import { LecturerHtml } from "../../parts/lecturer-html";
 import { DoneButton } from "../../parts/snooze";
 import { usePullToRefresh } from "../../shell/source-status";
@@ -42,7 +43,6 @@ import { radius, space, useTheme } from "../../ui/theme";
 import { TopBar } from "../../ui/top-bar";
 import { takeHomeWhy } from "./exam-rows";
 import { HandInBar, HandInCard, useHandIn } from "./hand-in";
-import { plainText } from "./html";
 import { NoTasksYet } from "./list";
 import { moduleLabel } from "./rows";
 
