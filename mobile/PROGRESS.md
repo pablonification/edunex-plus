@@ -73,7 +73,7 @@ Status: todo / building / done (with proof: a Maestro flow, a screenshot, a judg
 | A4 | Background sync (desktop: always running in the tray) | replace | expo-background-task every 15+ min, alerts from what it finds | todo | |
 | A5 | Source status line, offline / expired / changed banners, "Perbarui sekarang" | change | Quiet line under the header; banners the same; pull to refresh does "Perbarui sekarang" | todo | |
 | A6 | Settings (theme, language, alerts, deadline times, class soon, attendance target, course colors, snoozed, accounts, sign out all, first scan, about, licences, open source) | keep | A Settings screen from Lainnya; same sections minus the desktop-only ones | todo | |
-| A7 | Welcome / first-run tour, sign in to Edunex and SIX | change | Full-screen welcome, then ITB's real sign-in page in a WebView; one Microsoft sign-in tries both | todo | |
+| A7 | Welcome / first-run tour, sign in to Edunex and SIX | change | Full-screen welcome, then ITB's real sign-in page in a WebView; one Microsoft sign-in tries both | building | Demo: Mulai → Hubungkan Edunex → SIX came along → reading (5 · 10 · 40) → notifications asked → app (shots w1–w8). Real: ITB/Microsoft page loads in the app. Needs: real sign-in by Arqila, Back re-check |
 | A8 | First scan summary ("Ringkasan saat pertama terhubung") | keep | Shown once after the first sync, again from Settings | todo | |
 | A9 | Problem report (Laporkan masalah, Kirim langsung, Story) | keep | Same dialog as a screen; also "Share" through the share sheet instead of saving a file | todo | |
 | A10 | Snooze menu / Handled (Ingatkan nanti, Sudah beres) | change | Swipe a row, or long-press for the same menu as an action sheet | todo | |
@@ -115,7 +115,8 @@ machine). Every helper runs at effort high or more.
 | Helper | Account | Piece | Branch | Status |
 | --- | --- | --- | --- | --- |
 | engine | Contact (Opus 5.5, xhigh) | src/engine on Hermes: platform swaps, read context, pretend without fs, bundle guard, Intl findings | `mobile-engine` | merged (ab9900a): check green, ran on a real Hermes VM, output identical to Node |
-| ci | Dev 1 (Opus 5.5, high) | `.github/workflows/mobile.yml`: APKs (demo, real, dev clients), emulator + Maestro, desktop shots light/dark | `mobile-ci` | building |
+| ci | Dev 1 (Opus 5.5, high) | `.github/workflows/mobile.yml`: APKs (demo, real, dev clients), emulator + Maestro, desktop shots light/dark | `mobile-ci` | merged (8def9c0): green run 40920151536, ~18 min |
+| presence | Contact (Opus 5.5, high) | S9 Presensi, S10 Tandai Hadir in a SIX page | `mobile-presence` | building |
 | inventory | Contact (Opus 5.5, high) | Check A inventory from the desktop demo per scenario + Maestro flow generator + score reporter | `mobile-inventory` | merged (8915598): 766 items signed-in, 15 scenarios |
 | home | Contact (Opus 5.5, xhigh) | S1 Beranda | `mobile-home` | building |
 | tasks | Dev 1 (Opus 5.5, high) | S2–S4 Tugas & Ujian, Task (hand-in, files), Exam | `mobile-tasks` | building |
