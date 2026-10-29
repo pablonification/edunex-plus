@@ -1,9 +1,5 @@
-import { Page, PageHeader } from "../src/ui/layout";
+// Settings › Tentang › Lisensi sumber terbuka: the open-source software the Android app carries
+// (licences.json, made by scripts/third-party-notices.mjs before a build).
+import { LicencesScreen } from "../src/screens/licences/licences-screen";
 
-export default function Screen() {
-  return (
-    <Page testID="screen.licences">
-      <PageHeader title="licences" />
-    </Page>
-  );
-}
+export default LicencesScreen;
