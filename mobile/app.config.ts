@@ -17,8 +17,10 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   android: {
     package: demo ? "io.github.pablonification.edunexplus.demo" : "io.github.pablonification.edunexplus",
     versionCode: 1,
+    // Made from the desktop's drawing by scripts/make-icons.mjs.
     adaptiveIcon: {
-      backgroundColor: "#FFFFFF",
+      backgroundColor: "#2F6FEB",
+      backgroundImage: "./assets/android-icon-background.png",
       foregroundImage: "./assets/android-icon-foreground.png",
       monochromeImage: "./assets/android-icon-monochrome.png",
     },
