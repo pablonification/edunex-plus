@@ -50,7 +50,7 @@
   },
   "scripts": {
     "start": "expo start --dev-client",
-    "start:demo": "EXPO_PUBLIC_DEMO=1 expo start --dev-client",
+    "start:demo": "npm run demo:fixtures && EXPO_PUBLIC_DEMO=1 expo start --dev-client",
     "android": "expo run:android",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",

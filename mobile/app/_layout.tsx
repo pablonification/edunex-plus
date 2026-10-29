@@ -1,5 +1,6 @@
 // The app's frame: the engine and the desktop's store (../src/shell/boot), the theme, and a stack
 // over the bottom tabs for everything a tab opens (a Task, a course, Settings).
+import "../src/host/polyfills";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
