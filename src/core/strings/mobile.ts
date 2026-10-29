@@ -64,4 +64,15 @@ export const mobileStrings = {
   // The desktop's calendar file, through the share sheet (Drive, email, another calendar app).
   "mobile.calendar.share": { id: "Bagikan .ics", en: "Share .ics" },
   "mobile.calendar.shareFailed": { id: "Berkas .ics tidak bisa dibagikan. Coba lagi.", en: "Couldn't share the .ics file. Try again." },
+  // grades-plan
+  // The planner's ⋯ on a course: the desktop plans a course in a semester, the phone moves it there from a sheet.
+  "mobile.planner.options": { id: "Pilihan untuk {code}", en: "Options for {code}" },
+  "mobile.planner.moveTo": { id: "Pindahkan ke {term}", en: "Move to {term}" },
+  "mobile.planner.moved": { id: "{code} dipindah ke {term}", en: "{code} moved to {term}" },
+  // Kalender akademik: a date opens in the phone's own calendar app, filled in, for the Student to save.
+  "mobile.deadline.toCalendar": { id: "Tambahkan ke kalender HP", en: "Add to phone calendar" },
+  "mobile.deadline.calendarFailed": {
+    id: "Kalender HP tidak bisa dibuka. Pasang aplikasi kalender, lalu coba lagi.",
+    en: "The phone's calendar didn't open. Install a calendar app, then try again.",
+  },
 } as const satisfies Record<string, Entry>;

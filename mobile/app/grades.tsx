@@ -1,9 +1,5 @@
-import { Page, PageHeader } from "../src/ui/layout";
+import { GradesScreen } from "../src/screens/grades/grades-screen";
 
 export default function Screen() {
-  return (
-    <Page testID="screen.grades">
-      <PageHeader title="grades" />
-    </Page>
-  );
+  return <GradesScreen />;
 }

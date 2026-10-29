@@ -777,16 +777,27 @@
       ]
     },
     "grades": {
-      "status": "placeholder",
+      "status": "ready",
       "steps": [
         {
-          "tapOn": {
-            "id": "tab.more"
-          }
-        },
-        {
-          "tapOn": {
-            "id": "row.nav.grades"
+          "runFlow": {
+            "when": {
+              "notVisible": {
+                "id": "screen.grades"
+              }
+            },
+            "commands": [
+              {
+                "tapOn": {
+                  "id": "tab.more"
+                }
+              },
+              {
+                "tapOn": {
+                  "id": "row.nav.grades"
+                }
+              }
+            ]
           }
         },
         {
@@ -798,54 +809,322 @@
       "byState": {
         "^transcript/": [
           {
-            "tapOn": {
-              "id": "tab.more"
-            }
-          },
-          {
-            "tapOn": {
-              "id": "row.more.grades"
+            "runFlow": {
+              "when": {
+                "notVisible": {
+                  "id": "screen.grades"
+                }
+              },
+              "commands": [
+                {
+                  "tapOn": {
+                    "id": "tab.more"
+                  }
+                },
+                {
+                  "tapOn": {
+                    "id": "row.nav.grades"
+                  }
+                }
+              ]
             }
           },
           {
             "scrollUntilVisible": {
               "element": {
                 "id": "row.term.{{2}}"
-              }
+              },
+              "direction": "DOWN",
+              "timeout": 10000,
+              "optional": true
             }
           },
           {
-            "tapOn": {
-              "id": "row.term.{{2}}"
+            "runFlow": {
+              "when": {
+                "notVisible": {
+                  "id": "row.term.{{2}}"
+                }
+              },
+              "commands": [
+                {
+                  "scrollUntilVisible": {
+                    "element": {
+                      "id": "row.term.{{2}}"
+                    },
+                    "direction": "UP",
+                    "timeout": 10000
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "runFlow": {
+              "when": {
+                "notVisible": {
+                  "id": "row.term.{{2}}.open"
+                }
+              },
+              "commands": [
+                {
+                  "tapOn": {
+                    "id": "row.term.{{2}}"
+                  }
+                }
+              ]
             }
           }
         ]
       }
     },
     "plan": {
-      "status": "placeholder",
+      "status": "ready",
       "steps": [
         {
-          "tapOn": {
-            "id": "tab.more"
+          "runFlow": {
+            "when": {
+              "notVisible": {
+                "id": "screen.plan"
+              }
+            },
+            "commands": [
+              {
+                "tapOn": {
+                  "id": "tab.more"
+                }
+              },
+              {
+                "tapOn": {
+                  "id": "row.nav.plan"
+                }
+              }
+            ]
           }
         },
         {
           "tapOn": {
-            "id": "row.nav.plan"
-          }
-        },
-        {
-          "tapOn": {
-            "id": "tab.plan.{{state}}"
+            "id": "tab.plan.planner"
           }
         },
         {
           "assertVisible": {
-            "id": "screen.plan"
+            "id": "panel.plan.planner"
           }
         }
-      ]
+      ],
+      "byState": {
+        "^rencana$": [
+          {
+            "runFlow": {
+              "when": {
+                "notVisible": {
+                  "id": "screen.plan"
+                }
+              },
+              "commands": [
+                {
+                  "tapOn": {
+                    "id": "tab.more"
+                  }
+                },
+                {
+                  "tapOn": {
+                    "id": "row.nav.plan"
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "tapOn": {
+              "id": "tab.plan.planner"
+            }
+          },
+          {
+            "assertVisible": {
+              "id": "panel.plan.planner"
+            }
+          },
+          {
+            "scrollUntilVisible": {
+              "element": {
+                "id": "action.planner.past"
+              },
+              "direction": "DOWN",
+              "timeout": 10000,
+              "optional": true
+            }
+          },
+          {
+            "runFlow": {
+              "when": {
+                "notVisible": {
+                  "id": "action.planner.past.open"
+                }
+              },
+              "commands": [
+                {
+                  "tapOn": {
+                    "id": "action.planner.past"
+                  }
+                }
+              ]
+            }
+          }
+        ],
+        "^kurikulum$": [
+          {
+            "runFlow": {
+              "when": {
+                "notVisible": {
+                  "id": "screen.plan"
+                }
+              },
+              "commands": [
+                {
+                  "tapOn": {
+                    "id": "tab.more"
+                  }
+                },
+                {
+                  "tapOn": {
+                    "id": "row.nav.plan"
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "tapOn": {
+              "id": "tab.plan.curriculum"
+            }
+          },
+          {
+            "assertVisible": {
+              "id": "panel.plan.curriculum"
+            }
+          }
+        ],
+        "^krs$": [
+          {
+            "runFlow": {
+              "when": {
+                "notVisible": {
+                  "id": "screen.plan"
+                }
+              },
+              "commands": [
+                {
+                  "tapOn": {
+                    "id": "tab.more"
+                  }
+                },
+                {
+                  "tapOn": {
+                    "id": "row.nav.plan"
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "tapOn": {
+              "id": "tab.plan.krs"
+            }
+          },
+          {
+            "assertVisible": {
+              "id": "panel.plan.krs"
+            }
+          }
+        ],
+        "^ukt$": [
+          {
+            "runFlow": {
+              "when": {
+                "notVisible": {
+                  "id": "screen.plan"
+                }
+              },
+              "commands": [
+                {
+                  "tapOn": {
+                    "id": "tab.more"
+                  }
+                },
+                {
+                  "tapOn": {
+                    "id": "row.nav.plan"
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "tapOn": {
+              "id": "tab.plan.bills"
+            }
+          },
+          {
+            "assertVisible": {
+              "id": "panel.plan.bills"
+            }
+          }
+        ],
+        "^kalender-akademik$": [
+          {
+            "runFlow": {
+              "when": {
+                "notVisible": {
+                  "id": "screen.plan"
+                }
+              },
+              "commands": [
+                {
+                  "tapOn": {
+                    "id": "tab.more"
+                  }
+                },
+                {
+                  "tapOn": {
+                    "id": "row.nav.plan"
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "runFlow": {
+              "when": {
+                "notVisible": {
+                  "id": "tab.plan.deadlines"
+                }
+              },
+              "commands": [
+                {
+                  "swipe": {
+                    "from": {
+                      "id": "tabs.plan"
+                    },
+                    "direction": "LEFT"
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "tapOn": {
+              "id": "tab.plan.deadlines"
+            }
+          },
+          {
+            "assertVisible": {
+              "id": "panel.plan.deadlines"
+            }
+          }
+        ]
+      }
     },
     "course": {
       "status": "ready",
