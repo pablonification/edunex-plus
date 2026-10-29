@@ -9,6 +9,8 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import "../src/host/background";
 import { useDataset, useStatus } from "../../src/app/store";
 import { CourseColorPickerHost } from "../src/parts/course-color-picker";
+import { FirstScanWatch } from "../src/screens/first-scan/watch";
+import { ReportAskCard } from "../src/screens/report/ask";
 import { Boot } from "../src/shell/boot";
 import { NotificationTaps } from "../src/shell/notification-taps";
 import { SignInHost } from "../src/shell/sign-in";
@@ -48,6 +50,8 @@ function Frame() {
       <StatusBar style={welcoming || theme.scheme === "dark" ? "light" : "dark"} />
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: theme.color.canvas }, animation: "slide_from_right" }} />
       {welcoming && <Welcome onDone={() => setWelcoming(false)} />}
+      {!welcoming && <FirstScanWatch />}
+      <ReportAskCard />
       <Toasts />
       <CourseColorPickerHost />
       <SignInHost />

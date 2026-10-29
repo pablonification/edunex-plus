@@ -147,6 +147,8 @@ jobs:
           exit 1
       - name: Make the demo's data
         run: npm run --if-present demo:fixtures
+      - name: List the open-source licences
+        run: npm run licences
       - name: Generate the Android project
         run: npx expo prebuild --platform android --clean --no-install
       - name: Tune Gradle
