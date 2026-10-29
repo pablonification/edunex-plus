@@ -16,6 +16,12 @@ pattern=${3:-'**/*'}
 root=$(pwd)
 
 adb install -r "$apk" || exit 1
+# The phone shows times in its own time zone, as the desktop does the computer's: the emulator is put in
+# Bandung's (WIB), where the demo and every Student are, so the pictures and the inventory's times agree.
+adb shell settings put global auto_time_zone 0
+adb shell setprop persist.sys.timezone Asia/Jakarta
+adb shell cmd alarm set-timezone Asia/Jakarta > /dev/null 2>&1 || true
+echo "Emulator time: $(adb shell date)"
 adb logcat -c
 adb logcat > "$out/logcat.txt" 2>&1 &
 logcat=$!
