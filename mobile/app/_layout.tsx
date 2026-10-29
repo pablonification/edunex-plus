@@ -9,6 +9,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import "../src/host/background";
 import { useDataset, useStatus } from "../../src/app/store";
 import { Boot } from "../src/shell/boot";
+import { NotificationTaps } from "../src/shell/notification-taps";
 import { SignInHost } from "../src/shell/sign-in";
 import { Welcome } from "../src/shell/welcome";
 import { useTheme } from "../src/ui/theme";
@@ -48,6 +49,7 @@ function Frame() {
       {welcoming && <Welcome onDone={() => setWelcoming(false)} />}
       <Toasts />
       <SignInHost />
+      <NotificationTaps />
     </>
   );
 }
