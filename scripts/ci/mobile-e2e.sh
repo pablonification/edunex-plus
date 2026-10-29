@@ -23,18 +23,30 @@ adb shell setprop persist.sys.timezone Asia/Jakarta
 adb shell cmd alarm set-timezone Asia/Jakarta > /dev/null 2>&1 || true
 echo "Emulator time: $(adb shell date)"
 # A busy emulator's own launcher can stop answering for a while: Android's "isn't responding" dialog would
-# then stay over the app under test and hide every screen from the flows. No more of them, and Back closes
-# one already up (as "Wait").
+# then stay over the app under test and hide every screen from the flows. Asked not to show them (and the
+# watchdog below closes one that shows anyway).
 adb shell settings put global hide_error_dialogs 1
-for _ in 1 2 3; do
-  adb shell dumpsys window windows 2> /dev/null | grep -q "Application Not Responding" || break
-  adb shell input keyevent KEYCODE_BACK
-  sleep 2
-done
 adb logcat -c
 adb logcat > "$out/logcat.txt" 2>&1 &
 logcat=$!
-trap 'kill "$logcat" 2> /dev/null' EXIT
+# The setting above doesn't always hold on the emulator: every few seconds, an "isn't responding" dialog of the
+# emulator's own apps (its launcher, Play services) is closed by stopping that app. One of the app under test
+# stays, as the failure it is. Android titles the dialog's window "Application Not Responding: <process>".
+app=${APP_ID:-io.github.pablonification.edunexplus.demo}
+(
+  while true; do
+    hung=$(adb shell dumpsys window windows 2> /dev/null | grep -o "Application Not Responding: [A-Za-z0-9_.:]*" | head -1 | sed 's/.*: //; s/:.*//')
+    if [[ -n $hung && $hung != "$app" ]]; then
+      # A process ("com.google.android.gms.persistent") may be named past its package.
+      adb shell pm path "$hung" > /dev/null 2>&1 || hung=${hung%.*}
+      adb shell am force-stop "$hung" > /dev/null 2>&1
+      echo "$(date -u +%H:%M:%S) closed $hung's not-responding dialog" >> "$out/anr.txt"
+    fi
+    sleep 5
+  done
+) &
+watchdog=$!
+trap 'kill "$logcat" "$watchdog" 2> /dev/null' EXIT
 
 shopt -s globstar nullglob
 cd "$root/mobile/flows" || exit 1
