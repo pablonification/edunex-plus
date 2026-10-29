@@ -261,6 +261,16 @@ jobs:
       - name: Make the same-data flows
         if: ${{ matrix.group != 'app' }}
         run: node mobile/scripts/flows-from-inventory.mjs "${{ matrix.group }}"
+      # Sixteen jobs fetch the same system image at once, and now and then one gets a broken zip ("Error on ZipFile
+      # unknown archive") and never starts its emulator: fetched here first, again on a failure.
+      - name: Fetch the emulator's system image
+        run: |
+          for attempt in 1 2 3; do
+            printf "y\ny\ny\n" | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "system-images;android-34;google_apis;x86_64" > /dev/null && exit 0
+            echo "Attempt $attempt failed, trying again"
+            sleep 20
+          done
+          exit 1
       - name: Run the flows on an emulator
         id: flows
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
