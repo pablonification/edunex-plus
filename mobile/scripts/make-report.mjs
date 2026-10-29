@@ -55,10 +55,10 @@ async function shrink(file, width, to) {
 fs.rmSync(path.join(out, "img"), { recursive: true, force: true });
 fs.mkdirSync(path.join(out, "img"), { recursive: true });
 
-const escape = (text) => text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+const htmlText = (text) => text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 const figure = (src, alt, kind) =>
   src
-    ? `<figure class="${kind}"><img src="${src}" alt="${escape(alt)}" loading="lazy"><figcaption>${kind === "phone" ? "HP" : "Desktop"}</figcaption></figure>`
+    ? `<figure class="${kind}"><img src="${src}" alt="${htmlText(alt)}" loading="lazy"><figcaption>${kind === "phone" ? "HP" : "Desktop"}</figcaption></figure>`
     : `<figure class="${kind} none"><p>No ${kind} picture</p></figure>`;
 
 const flows = [];
@@ -76,10 +76,10 @@ for (const flow of FLOWS) {
         `<div class="pair ${theme}"><h4>${theme === "light" ? "Terang" : "Gelap"}</h4>${figure(phone, `${shot.caption}, HP, ${theme}`, "phone")}${shot.desktop ? figure(desktop, `${shot.caption}, desktop, ${theme}`, "desktop") : ""}</div>`,
       );
     }
-    rows.push(`<div class="shot"><h3>${escape(shot.caption)}</h3><div class="pairs">${pairs.join("")}</div></div>`);
+    rows.push(`<div class="shot"><h3>${htmlText(shot.caption)}</h3><div class="pairs">${pairs.join("")}</div></div>`);
   }
   flows.push(
-    `<section class="flow" id="${flow.id}"><h2>${escape(flow.title)}</h2><ol class="steps">${flow.steps.map((step) => `<li>${step}</li>`).join("")}</ol>${rows.join("")}</section>`,
+    `<section class="flow" id="${flow.id}"><h2>${htmlText(flow.title)}</h2><ol class="steps">${flow.steps.map((step) => `<li>${step}</li>`).join("")}</ol>${rows.join("")}</section>`,
   );
 }
 await browser.close();
@@ -89,7 +89,7 @@ const html = `<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${escape(TITLE)}</title>
+<title>${htmlText(TITLE)}</title>
 <style>
   :root { color-scheme: light dark; --fg: #16181d; --muted: #5d6270; --line: #e3e5ea; --bg: #fff; --sunken: #f5f6f8; --accent: #2f6feb; }
   @media (prefers-color-scheme: dark) { :root { --fg: #eceef2; --muted: #a2a7b3; --line: #2b2f37; --bg: #121418; --sunken: #1a1d23; --accent: #7aa2ff; } }
@@ -112,7 +112,7 @@ const html = `<!doctype html>
 <body>
 <main>
 ${SECTIONS.top}
-<nav><h2>Every flow, step by step</h2><ul>${FLOWS.map((flow) => `<li><a href="#${flow.id}">${escape(flow.title)}</a></li>`).join("")}</ul></nav>
+<nav><h2>Every flow, step by step</h2><ul>${FLOWS.map((flow) => `<li><a href="#${flow.id}">${htmlText(flow.title)}</a></li>`).join("")}</ul></nav>
 ${flows.join("\n")}
 ${SECTIONS.bottom}
 </main>
