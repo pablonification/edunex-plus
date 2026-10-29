@@ -111,6 +111,8 @@ function flow(inventory, screen, states, config, appId) {
       list: list === "todo" ? "open" : list,
       exam,
       examKind: /-(UTS|UAS)\b/.exec(exam)?.[1] ?? "",
+      // A Task by its id: the state itself, or a take-home's ("DK4073-UTS:task:117764").
+      taskId: /(?:^|:task:)(\d+)$/.exec(state ?? "")?.[1] ?? state ?? "",
       ...Object.fromEntries(parts.map((p, i) => [String(i + 1), p])),
     };
     const pick = Object.entries(conf.byState ?? {}).find(([re]) => new RegExp(re).test(state ?? ""));

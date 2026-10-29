@@ -5,6 +5,7 @@
     "Placeholders: {{state}} is the inventory's state ('PL3002/modules/modul-4'), {{1}} {{2}} {{3}} its parts split at '/',",
     "{{list}} the Tugas & Ujian list a Task or exam was opened from (todo, done), {{appId}}, and a value that is exactly",
     "{{exam}} the phone's id for the exam a state names (DK4073-UTS from 'DK4073-UTS:six:2179909', PL3032-UAS from an unkeyed row's title), {{examKind}} its UTS or UAS.",
+    "{{taskId}} the Task a state names (117003, or 117764 from a take-home's 'DK4073-UTS:task:117764').",
     "{{demoLink}} is the link that opens the demo build in the scenario (its EDUNEX_DEMO settings as the query).",
     "'steps' run for every state; 'byState' maps a pattern on the state to the steps that run instead.",
     "'byEntry' maps a pattern on '<entry id>|<entry context>' (its day) to steps run before that entry's checks: Jadwal shows one day at a time.",
@@ -385,14 +386,14 @@
         {
           "scrollUntilVisible": {
             "element": {
-              "id": "row.task.{{state}}"
+              "id": "row.task.{{taskId}}"
             },
             "timeout": 15000
           }
         },
         {
           "tapOn": {
-            "id": "row.task.{{state}}"
+            "id": "row.task.{{taskId}}"
           }
         },
         {

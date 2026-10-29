@@ -155,7 +155,8 @@ export function ExamPartRow({
 
   const row = (
     <Row
-      testID={`row.exam.${exam.id}`}
+      // A take-home opens its Task, and is named as one: the exam's own row (its sitting) keeps the exam's id.
+      testID={part?.kind === "takehome" ? `row.task.${part.task.id}` : `row.exam.${exam.id}`}
       label={label}
       onPress={() => go(part?.kind === "takehome" ? { screen: "task", taskId: part.task.id } : { screen: "exam", examId: exam.id })}
       onLongPress={window ? () => setMenu(true) : onLongPress}
