@@ -10,7 +10,7 @@ import { ActivityIndicator, Animated, Image, Pressable, StyleSheet, View } from 
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Defs, RadialGradient, Rect, Stop } from "react-native-svg";
 import { useT } from "../../../src/app/i18n";
-import { firstName } from "../../../src/app/names";
+import { displayName, firstName } from "../../../src/app/names";
 import { useSaved } from "../../../src/app/saved";
 import { useBridge, useDataset, useSignInStep, useStatus } from "../../../src/app/store";
 import { firstRead, homeReady, scanSummary } from "../../../src/core/first-scan";
@@ -189,7 +189,7 @@ function Connect({ onNext }: { onNext: () => void }) {
     void signIns[source].signIn(source);
   };
   return (
-    <Animated.View style={[styles.page, fade]}>
+    <Animated.View style={[styles.page, fade]} testID={both ? "screen.welcome.connected" : undefined}>
       <View style={[styles.center, { alignItems: "stretch" }]}>
         <View style={{ alignItems: "center" }}>
           <Mark size={64} />
@@ -204,7 +204,7 @@ function Connect({ onNext }: { onNext: () => void }) {
           <SourceLine
             source="edunex"
             on={edunex}
-            who={account ? `${firstName(account.name)} · ${account.nim}` : null}
+            who={account ? `${displayName(account.name)} · ${account.nim}` : null}
             busy={(signIns.edunex.busy && !edunex) || (steps.edunex !== null && !edunex)}
           />
           <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: STAGE.line }} />
@@ -334,7 +334,7 @@ function Reading({ onDone }: { onDone: () => void }) {
     onDone();
   };
   return (
-    <Animated.View style={[styles.page, fade]}>
+    <Animated.View style={[styles.page, fade]} testID={ready ? "screen.welcome.ready" : undefined}>
       <View style={styles.center}>
         <Mark size={72} />
         <Text size="heading" weight="bold" style={[styles.headline, { marginTop: space[8] }]} accessibilityLiveRegion="polite">
@@ -342,7 +342,13 @@ function Reading({ onDone }: { onDone: () => void }) {
         </Text>
         <View style={{ flexDirection: "row", justifyContent: "center", gap: space[6], marginTop: space[6] }}>
           {counts.map((one) => (
-            <View key={one.key} style={{ alignItems: "center" }}>
+            // Read out as one: "5 mata kuliah", as the desktop writes it.
+            <View
+              key={one.key}
+              style={{ alignItems: "center" }}
+              accessible
+              accessibilityLabel={`${one.count} ${t(`welcome.count.${one.key}`, { count: one.count })}`}
+            >
               <Text size="figure" weight="semibold" tabular style={{ color: STAGE.fg }}>
                 {String(one.count)}
               </Text>

@@ -30,7 +30,7 @@
   ],
   "screens": {
     "welcome": {
-      "status": "placeholder",
+      "status": "ready",
       "launch": [
         {
           "clearState": "{{appId}}"
@@ -54,6 +54,19 @@
           {
             "extendedWaitUntil": {
               "visible": {
+                "id": "action.start"
+              },
+              "timeout": 60000
+            }
+          },
+          {
+            "tapOn": {
+              "id": "action.start"
+            }
+          },
+          {
+            "extendedWaitUntil": {
+              "visible": {
                 "id": "action.connect.edunex"
               },
               "timeout": 60000
@@ -69,7 +82,7 @@
               "visible": {
                 "id": "screen.welcome.connected"
               },
-              "timeout": 120000
+              "timeout": 180000
             }
           }
         ],
