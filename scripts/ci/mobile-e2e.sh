@@ -22,6 +22,15 @@ adb shell settings put global auto_time_zone 0
 adb shell setprop persist.sys.timezone Asia/Jakarta
 adb shell cmd alarm set-timezone Asia/Jakarta > /dev/null 2>&1 || true
 echo "Emulator time: $(adb shell date)"
+# A busy emulator's own launcher can stop answering for a while: Android's "isn't responding" dialog would
+# then stay over the app under test and hide every screen from the flows. No more of them, and Back closes
+# one already up (as "Wait").
+adb shell settings put global hide_error_dialogs 1
+for _ in 1 2 3; do
+  adb shell dumpsys window windows 2> /dev/null | grep -q "Application Not Responding" || break
+  adb shell input keyevent KEYCODE_BACK
+  sleep 2
+done
 adb logcat -c
 adb logcat > "$out/logcat.txt" 2>&1 &
 logcat=$!

@@ -273,6 +273,10 @@ jobs:
           target: google_apis
           # A phone's size (1080x2400, 412 dp wide), not the emulator's small default.
           profile: pixel_6
+          # More than the emulator's default two cores and 2 GB, of the runner's four and 16 GB: with less, its own
+          # launcher and Play services stopped answering during the flows.
+          cores: 3
+          ram-size: 4096M
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -no-snapshot-save
           script: scripts/ci/mobile-e2e.sh "$RUNNER_TEMP/apk/edunex-plus-demo-release.apk" "$RUNNER_TEMP/e2e" "$FLOWS"
