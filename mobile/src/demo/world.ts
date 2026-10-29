@@ -8,6 +8,7 @@
 // EXPO_PUBLIC_DEMO_SCENARIO from Metro, else signed-in.
 import { Linking } from "react-native";
 import type { SignInWindows } from "../../../src/desktop/signin-both";
+import { fillablePdf } from "../../../test/kit/fillable-pdf";
 import { demoOptions, demoRun } from "../../../test/pretend/demo";
 
 async function settings(): Promise<Record<string, string | undefined>> {
@@ -32,8 +33,12 @@ export async function createDemoWorld() {
   return {
     signInWindows,
     transport: run.world,
-    // Files from the pretend storage, as the desktop demo serves them (scripts/demo/setup.ts).
-    fetchFile: (url: string, init?: RequestInit) => run.world.fetch(url, { signal: init?.signal ?? undefined }),
+    // Files from the pretend storage, as the desktop demo serves them (scripts/demo/setup.ts): what's stored there,
+    // else (a lecturer's file the pretend Edunex only names) a made-up PDF.
+    fetchFile: async (url: string, init?: RequestInit) => {
+      const stored = await run.world.fetch(url, { signal: init?.signal ?? undefined });
+      return stored.status === 200 ? stored : new Response(fillablePdf(), { status: 200, headers: { "content-type": "application/pdf" } });
+    },
     clock: run.world.clock,
     world: run.world,
     clockOffset: () => run.world.clock.now() - Date.now(),
