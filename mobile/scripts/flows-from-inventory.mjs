@@ -53,7 +53,10 @@ function checks(scenario, entry) {
   // shows each fact of the item, wherever it lays them out.
   entry.tokens.forEach((token, i) => {
     const element = { text: pattern(token) };
-    out.push(line({ scrollUntilVisible: { element, direction: "DOWN", timeout: 4000, optional: true } }));
+    // Scrolled to only when it isn't on screen already (a scroll toward an item above would run to the end first).
+    out.push(
+      line({ runFlow: { when: { notVisible: element }, commands: [{ scrollUntilVisible: { element, direction: "DOWN", timeout: 4000, optional: true } }] } }),
+    );
     out.push(
       line({ runFlow: { when: { notVisible: element }, commands: [{ scrollUntilVisible: { element, direction: "UP", timeout: 4000, optional: true } }] } }),
     );
