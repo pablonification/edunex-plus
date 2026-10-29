@@ -259,7 +259,11 @@ await session("first-run", async (demo) => {
     await page.getByRole("button", { name: /^Lanjut/ }).click();
     await page.waitForTimeout(1200);
     await demo.shot("34-pertama-membaca");
-    await page.waitForFunction(() => Boolean(document.querySelector("[role=dialog]")), null, { timeout: 120_000 });
+    // Reading ends on "Buka Edunex Plus"; the first scan's summary opens over Beranda after it.
+    const open = page.getByRole("button", { name: "Buka Edunex Plus" });
+    await open.waitFor({ timeout: 120_000 });
+    await open.click();
+    await page.waitForFunction(() => Boolean(document.querySelector("[role=dialog]")), null, { timeout: 60_000 });
     await settle(page, 600);
     await demo.shot("35-pertama-temuan");
   });
