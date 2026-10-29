@@ -31,6 +31,8 @@ export interface HandlerContext {
   ready(): void;
   /** Everything this app kept, gone (signing out of everything). */
   forgetEverything(): Promise<void>;
+  /** What one system's sign-out takes with it (the desktop's): Edunex's downloaded files, SIX's session in the web views. */
+  forgetSource(source: "edunex" | "six"): Promise<void>;
   /** The phone shows notifications at all (permission given). */
   notificationsAllowed(): Promise<boolean>;
   showTestNotification(): Promise<boolean>;
@@ -84,6 +86,7 @@ export function phoneHandlers(context: HandlerContext): Partial<Handlers> {
       context.stopQuietSignIn();
       await engine.signOut(source);
       if (!source) await context.forgetEverything();
+      else if (source === "edunex" || source === "six") await context.forgetSource(source).catch(() => undefined);
       return {};
     },
     "auth.signInDone": async () => ({}),

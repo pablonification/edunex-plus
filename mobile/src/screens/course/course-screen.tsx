@@ -42,6 +42,8 @@ type Tab = (typeof TABS)[number];
 export function CourseScreen({ code, tab, module }: { code: string; tab?: string; module?: number }) {
   const t = useT();
   const page = useCoursePage(code);
+  const edunexState = useStatus("edunex").state;
+  const edunexReading = edunexState === "connecting" || edunexState === "live";
   const todo = useTodo();
   const pull = usePullToRefresh();
   const { replace } = useNav();
@@ -64,7 +66,16 @@ export function CourseScreen({ code, tab, module }: { code: string; tab?: string
   };
   const toList = useCallback(() => replace({ screen: "course", code, tab: "modules" }), [replace, code]);
 
-  if (page === undefined) return <Loading />;
+  // Edunex's courses not read yet: placeholders while Edunex is being read, else why the page isn't here (signed out,
+  // expired, failed), so a course seen only in SIX never shows placeholders for good.
+  if (page === undefined)
+    return edunexReading ? (
+      <Loading />
+    ) : (
+      <Page testID="screen.course" header={<TopBar />}>
+        <NotLoaded />
+      </Page>
+    );
   if (page === null)
     return (
       <Page testID="screen.course" header={<TopBar />}>

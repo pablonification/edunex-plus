@@ -9,6 +9,7 @@ import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
 import type { BridgeApi } from "../../../src/app/bridge";
 import type { Event } from "../../../src/core/contract";
+import { SIX_WEB } from "../../../src/core/links";
 import type { Lang } from "../../../src/core/models";
 import type { FetchFile } from "../../../src/desktop/remote-files";
 import { type SignInWindows, signInToBoth } from "../../../src/desktop/signin-both";
@@ -17,7 +18,7 @@ import { type Clock, systemClock } from "../../../src/engine/clock";
 import { createEngine, type Engine } from "../../../src/engine/engine";
 import type { Transport } from "../../../src/engine/http/transport";
 import type { Storage, Vault } from "../../../src/engine/store/storage";
-import { clearWebData } from "../../modules/web-cookies";
+import { clearWebData, cookiesFor, setCookie } from "../../modules/web-cookies";
 import { phoneSignInWindows } from "../shell/sign-in";
 import { checkInOpener } from "./check-in";
 import { phoneFileHandlers } from "./files";
@@ -167,6 +168,16 @@ async function makeHost(): Promise<Host> {
         await clearWebData().catch(() => undefined);
         await Notifications.cancelAllScheduledNotificationsAsync().catch(() => undefined);
         await Notifications.dismissAllNotificationsAsync().catch(() => undefined);
+      },
+      forgetSource: async (source) => {
+        if (source === "edunex") {
+          // Edunex's files go with the account they came from (the desktop's file cache and downloads).
+          const downloads = new Directory(Paths.document, "downloads");
+          if (downloads.exists) downloads.delete();
+        } else {
+          // SIX's session, as Tandai Hadir's page holds it: each of SIX's cookies, expired.
+          for (const cookie of cookiesFor(`${SIX_WEB}/`)) await setCookie(`${SIX_WEB}/`, `${cookie.name}=; Max-Age=0; Path=/; Secure`);
+        }
       },
       notificationsAllowed: async () => (await Notifications.getPermissionsAsync()).granted,
       // "Coba notifikasi" is the Student asking for one: Android asks for the permission here when it never has (it
