@@ -18,6 +18,7 @@ appId: io.github.pablonification.edunexplus.demo
       text: "Yang berubah"
     direction: DOWN
     centerElement: true
+    optional: true
 - takeScreenshot: ${THEME}-02-beranda-hari-ini
 
 # Tugas & Ujian, a Task, an exam
@@ -247,12 +248,14 @@ appId: io.github.pablonification.edunexplus.demo
       id: action.testAlert
     direction: DOWN
     centerElement: true
+    optional: true
 - takeScreenshot: ${THEME}-26-pengaturan-notifikasi
 - scrollUntilVisible:
     element:
       id: action.licences
     direction: DOWN
     centerElement: true
+    optional: true
 - takeScreenshot: ${THEME}-26-pengaturan-tentang
 - tapOn:
     id: action.licences
