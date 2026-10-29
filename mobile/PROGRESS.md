@@ -97,8 +97,14 @@ Not counted yet. Inventory: `mobile/flows/expected/` (built from the engine on t
 
 ## Helpers (on the Mac, 5aba008d-0de9-4d6b-bacd-91fd44264da8)
 
+Started with `t3_thread_launch` (own worktree each; `delegate_task` can't make worktrees on a linked
+machine). Every helper runs at effort high or more.
+
 | Helper | Account | Piece | Branch | Status |
 | --- | --- | --- | --- | --- |
+| engine | Contact (Opus 5.5, xhigh) | src/engine on Hermes: platform swaps, read context, pretend without fs, bundle guard, Intl findings | `mobile-engine` | building |
+| ci | Dev 1 (Opus 5.5, high) | `.github/workflows/mobile.yml`: APKs (demo, real, dev clients), emulator + Maestro, desktop shots light/dark | `mobile-ci` | building |
+| inventory | Contact (Opus 5.5, high) | Check A inventory from the desktop demo per scenario + Maestro flow generator + score reporter | `mobile-inventory` | building |
 
 ## Decisions
 

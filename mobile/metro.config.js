@@ -27,6 +27,9 @@ const swapOf = (file) => {
   return swap ? path.join(root, swap) : null;
 };
 
+const demo = process.env.EXPO_PUBLIC_DEMO === "1";
+const demoFolder = path.join(__dirname, "src", "demo") + path.sep;
+
 config.resolver.resolveRequest = (context, moduleName, platform) => {
   // cheerio's browser build is its parse5 loader without fromURL (which needs Node's undici):
   // pages parse exactly as on the desktop.
@@ -35,6 +38,8 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
   }
   const resolved = context.resolveRequest(context, moduleName, platform);
   if (resolved.type === "sourceFile") {
+    // The real app carries no demo: no pretend Edunex, no recordings.
+    if (!demo && resolved.filePath.startsWith(demoFolder)) return { type: "empty" };
     const swap = swapOf(resolved.filePath);
     if (swap) return { type: "sourceFile", filePath: swap };
   }
