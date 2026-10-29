@@ -1,0 +1,292 @@
+# The Android app (mobile/): builds its APKs, runs its Maestro flows on an
+# emulator, and takes the desktop demo's pictures to compare the two. Every
+# native build of the phone app happens here, not on a laptop.
+#
+# Starting a run: GitHub only offers "Run workflow" (and `gh workflow run
+# mobile.yml`) once this file is on the default branch, main. Until it's merged
+# there, runs start from a push to `mobile` or a `mobile-*` branch.
+#
+# Fetching the results: `gh run download <run id>` saves every APK, the flows'
+# results and the desktop pictures, one folder per artifact.
+name: Mobile
+
+on:
+  push:
+    branches: [mobile, "mobile-*"]
+    paths:
+      - mobile/**
+      - src/**
+      - test/pretend/**
+      - test/fixtures/**
+      - scripts/demo/**
+      - scripts/ci/mobile-e2e.sh
+      - .github/workflows/mobile.yml
+  workflow_dispatch:
+    inputs:
+      apks:
+        description: Which APKs to build (the e2e job always gets the demo release APK).
+        type: choice
+        options: [all, demo-release, none]
+        default: all
+      e2e:
+        description: Run the Maestro flows on an emulator.
+        type: boolean
+        default: true
+      flows:
+        description: Which flows, as a glob from mobile/flows (empty is all of them; e.g. "smoke.yaml" or "tugas/**/*").
+        type: string
+        default: ""
+      desktop-shots:
+        description: Take the desktop demo's pictures, light and dark.
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mobile-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  # What this run does: on a push, everything; by hand, what the inputs ask for.
+  plan:
+    name: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      apks: ${{ steps.plan.outputs.apks }}
+      e2e: ${{ steps.plan.outputs.e2e }}
+      desktop-shots: ${{ steps.plan.outputs.desktop-shots }}
+    steps:
+      - name: Decide which jobs run
+        id: plan
+        env:
+          APKS: ${{ inputs.apks || 'all' }}
+          E2E: ${{ github.event_name == 'push' || inputs.e2e }}
+          SHOTS: ${{ github.event_name == 'push' || inputs.desktop-shots }}
+        run: |
+          # demo: EXPO_PUBLIC_DEMO; abis: only what the APK is for, since each ABI is a whole native build.
+          all='[
+            {"name": "edunex-plus-demo-release", "demo": "1", "task": "assembleRelease", "out": "release/app-release.apk", "abis": "x86_64,arm64-v8a"},
+            {"name": "edunex-plus-release", "demo": "", "task": "assembleRelease", "out": "release/app-release.apk", "abis": "arm64-v8a,armeabi-v7a,x86_64"},
+            {"name": "edunex-plus-demo-dev-client", "demo": "1", "task": "assembleDebug", "out": "debug/app-debug.apk", "abis": "x86_64"},
+            {"name": "edunex-plus-dev-client", "demo": "", "task": "assembleDebug", "out": "debug/app-debug.apk", "abis": "x86_64"}
+          ]'
+          case "$APKS" in
+            all) apks=$(jq -c . <<< "$all") ;;
+            *) apks=$(jq -c 'map(select(.name == "edunex-plus-demo-release"))' <<< "$all") ;;
+          esac
+          if [ "$APKS" = none ] && [ "$E2E" != true ]; then apks='[]'; fi
+          {
+            echo "apks=$apks"
+            echo "e2e=$E2E"
+            echo "desktop-shots=$SHOTS"
+          } | tee -a "$GITHUB_OUTPUT"
+
+  apk:
+    name: apk (${{ matrix.name }})
+    needs: plan
+    if: needs.plan.outputs.apks != '[]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.plan.outputs.apks) }}
+    env:
+      EXPO_PUBLIC_DEMO: ${{ matrix.demo }}
+      EXPO_NO_TELEMETRY: "1"
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+      - name: Set up Java
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Set up Gradle (with its cache)
+        uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
+        with:
+          # The mobile branches are where these builds live, so they keep the cache warm too.
+          cache-read-only: false
+      - name: Install the phone app's packages
+        # Metro resolves everything, ../src included, from mobile/node_modules: no root install.
+        run: npm ci --no-audit --no-fund
+      - name: Make the demo's data
+        run: npm run --if-present demo:fixtures
+      - name: Generate the Android project
+        run: npx expo prebuild --platform android --clean --no-install
+      - name: Tune Gradle
+        working-directory: mobile/android
+        run: |
+          sed -i '/^org.gradle.jvmargs=/d' gradle.properties
+          {
+            echo 'org.gradle.jvmargs=-Xmx6g -XX:MaxMetaspaceSize=1g -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8'
+            echo 'org.gradle.caching=true'
+            echo 'org.gradle.parallel=true'
+          } >> gradle.properties
+      - name: Build the APK
+        working-directory: mobile/android
+        env:
+          TASK: ${{ matrix.task }}
+          ABIS: ${{ matrix.abis }}
+        run: ./gradlew "$TASK" -PreactNativeArchitectures="$ABIS" --no-daemon
+      - name: Name the APK
+        env:
+          NAME: ${{ matrix.name }}
+          OUT: ${{ matrix.out }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/apk"
+          cp "android/app/build/outputs/apk/$OUT" "$RUNNER_TEMP/apk/$NAME.apk"
+      - name: Upload the APK
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ${{ matrix.name }}-apk
+          path: ${{ runner.temp }}/apk/${{ matrix.name }}.apk
+          if-no-files-found: error
+          retention-days: 14
+      - name: Summarize
+        env:
+          NAME: ${{ matrix.name }}
+          TASK: ${{ matrix.task }}
+          ABIS: ${{ matrix.abis }}
+        run: |
+          size=$(du -h "$RUNNER_TEMP/apk/$NAME.apk" | cut -f1)
+          if [ "$TASK" = assembleRelease ]; then
+            kind="Release APK, signed with the debug key for now: fine to install and test, not to publish."
+          else
+            kind="Dev client: loads the app's JavaScript from Metro (\`npm run start\` or \`start:demo\` in mobile/)."
+          fi
+          printf '### %s.apk\n\n%s\n\n- For: %s\n- Size: %s\n- Artifact: `%s-apk`\n' "$NAME" "$kind" "$ABIS" "$size" "$NAME" >> "$GITHUB_STEP_SUMMARY"
+
+  # The flows in mobile/flows on the demo release APK, on an Android emulator.
+  e2e:
+    name: e2e
+    needs: [plan, apk]
+    if: ${{ !cancelled() && needs.plan.outputs.e2e == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      MAESTRO_VERSION: 2.12.0
+      MAESTRO_CLI_NO_ANALYTICS: "1"
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Download the demo release APK
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: edunex-plus-demo-release-apk
+          path: ${{ runner.temp }}/apk
+      - name: Set up Java (for Maestro)
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Let the emulator use KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Install Maestro
+        run: |
+          curl -fsSL https://get.maestro.mobile.dev | bash
+          echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+      - name: Run the flows on an emulator
+        id: flows
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
+        env:
+          FLOWS: ${{ inputs.flows }}
+        with:
+          api-level: 34
+          arch: x86_64
+          target: google_apis
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -no-snapshot-save
+          script: scripts/ci/mobile-e2e.sh "$RUNNER_TEMP/apk/edunex-plus-demo-release.apk" "$RUNNER_TEMP/e2e" "${FLOWS:-**/*}"
+      - name: Upload the results
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: e2e-results
+          path: ${{ runner.temp }}/e2e
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Summarize
+        if: ${{ !cancelled() }}
+        env:
+          OUTCOME: ${{ steps.flows.outcome }}
+        run: |
+          junit="$RUNNER_TEMP/e2e/junit.xml"
+          if [ -f "$junit" ]; then
+            count() { grep -o "<testsuite [^>]*" "$junit" | grep -o "$1=\"[0-9]*\"" | grep -o '[0-9]*' | awk '{ n += $1 } END { print n + 0 }'; }
+            tests=$(count tests)
+            failures=$(( $(count failures) + $(count errors) ))
+            line="$((tests - failures)) of $tests flows passed."
+          else
+            line="**The flows did not run** (no JUnit results). The job's log says why."
+          fi
+          [ "$OUTCOME" = success ] || line="**Some flows failed.** $line"
+          printf '### Flows (Maestro, demo app)\n\n%s Screenshots and logs: artifact `e2e-results`.\n' "$line" >> "$GITHUB_STEP_SUMMARY"
+
+  # The desktop demo's pictures in light and dark, to hold the phone's screens against.
+  desktop-shots:
+    name: desktop-shots
+    needs: plan
+    if: needs.plan.outputs.desktop-shots == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Node and packages
+        uses: ./.github/actions/setup
+      - name: Build the demo
+        run: npm run demo:build
+      - name: Let Electron run on a virtual screen
+        run: |
+          # Ubuntu 24.04 keeps Chromium's sandbox from starting; this lifts that for the runner only.
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+          command -v xvfb-run || { sudo apt-get update && sudo apt-get install -y xvfb; }
+      - name: Take the pictures (light)
+        run: xvfb-run --auto-servernum node scripts/demo/capture.mjs "$RUNNER_TEMP/desktop-shots-light" --theme light
+      - name: Take the pictures (dark)
+        run: xvfb-run --auto-servernum node scripts/demo/capture.mjs "$RUNNER_TEMP/desktop-shots-dark" --theme dark
+      - name: Upload the light pictures
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: desktop-shots-light
+          path: ${{ runner.temp }}/desktop-shots-light
+          if-no-files-found: error
+          retention-days: 14
+      - name: Upload the dark pictures
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: desktop-shots-dark
+          path: ${{ runner.temp }}/desktop-shots-dark
+          if-no-files-found: error
+          retention-days: 14
+      - name: Summarize
+        run: |
+          light=$(find "$RUNNER_TEMP/desktop-shots-light" -name '*.png' | wc -l)
+          dark=$(find "$RUNNER_TEMP/desktop-shots-dark" -name '*.png' | wc -l)
+          printf '### Desktop pictures\n\n%s light (`desktop-shots-light`), %s dark (`desktop-shots-dark`), from the demo'"'"'s made-up data.\n' "$light" "$dark" >> "$GITHUB_STEP_SUMMARY"
