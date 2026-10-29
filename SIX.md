@@ -265,9 +265,11 @@ status page, who the Student is and the term, is still all of SIX.
   popup (`test/pretend/six.ts`).
 - **Not recorded, not read:** control panel, master data, student ID card and PDDikti pages
   are never exported or read.
-- **Attendance with sick days:** seen only as text in a Student's report (#237: "82.35% / 94.12%",
-  14 and 16 of 17 meetings); its tooltip wasn't sent. The reader takes the two numbers in a row in a
-  tooltip that give the first percentage; the tests try the shapes it could take.
+- **Attendance with sick days:** seen in Students' reports (#237, #257, #271), not recorded. SIX
+  shows two percentages, "82.35% / 94.12%", each in its own `<span>` with its own tooltip: "Hadir 14
+  dari 17 pertemuan", then "Hadir (termasuk izin dan sakit) 16 dari 17 pertemuan". When attendance
+  is low, only the first is in red. The reader takes the two numbers in a row in a tooltip that give
+  the first percentage, the meetings attended; `test/engine/six-session.test.ts` holds this shape.
 - **Timetable:** only one month was recorded; other months in tests are generated.
 - **KRS:** SIX's look for a step not taken yet and for a course not yet approved was not
   recorded (tests use an empty cell).
