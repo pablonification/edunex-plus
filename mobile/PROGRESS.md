@@ -72,7 +72,7 @@ Status: todo / building / done (with proof: a Maestro flow, a screenshot, a judg
 | A3 | OS notifications (new Task, attendance opens, reminders, class soon) | keep | expo-notifications, tapping one opens its screen (same Route) | built | merged; device check pending |
 | A4 | Background sync (desktop: always running in the tray) | replace | expo-background-task every 15+ min, alerts from what it finds | todo | |
 | A5 | Source status line, offline / expired / changed banners, "Perbarui sekarang" | change | Quiet line under the header; banners the same; pull to refresh does "Perbarui sekarang" | built, on device | seen on Redroid (shots h1–h5, tour-*, se*, al2); judge pending |
-| A6 | Settings (theme, language, alerts, deadline times, class soon, attendance target, course colors, snoozed, accounts, sign out all, first scan, about, licences, open source) | keep | A Settings screen from Lainnya; same sections minus the desktop-only ones | built, on device | seen on Redroid (tour-settings-*); desktop wording fix in progress (wording helper) |
+| A6 | Settings (theme, language, alerts, deadline times, class soon, attendance target, course colors, snoozed, accounts, sign out all, first scan, about, licences, open source) | keep | A Settings screen from Lainnya; same sections minus the desktop-only ones | built, on device | seen on Redroid (tour-settings-*); phone wording merged (6d7b18a); device check of the new words pending |
 | A7 | Welcome / first-run tour, sign in to Edunex and SIX | change | Full-screen welcome, then ITB's real sign-in page in a WebView; one Microsoft sign-in tries both | building | Demo: Mulai → Hubungkan Edunex → SIX came along → reading (5 · 10 · 40) → notifications asked → app (shots w1–w8). Real: ITB/Microsoft page loads in the app. Needs: real sign-in by Arqila, Back re-check |
 | A8 | First scan summary ("Ringkasan saat pertama terhubung") | keep | Shown once after the first sync, again from Settings | built | merged; device check pending |
 | A9 | Problem report (Laporkan masalah, Kirim langsung, Story) | keep | Same dialog as a screen; also "Share" through the share sheet instead of saving a file | built | merged; device check pending |
@@ -90,7 +90,7 @@ Status: todo / building / done (with proof: a Maestro flow, a screenshot, a judg
 
 | # | Desktop | Decision | Why | Status | Proof |
 | --- | --- | --- | --- | --- | --- |
-| D1 | Tray icon and tray menu (now, needs, Tandai Hadir) | replace | Home-screen widget: the class now / next and the next deadline, tap to open | todo | |
+| D1 | Tray icon and tray menu (now, needs, Tandai Hadir) | replace | Home-screen widget: the class now / next and the next deadline, tap to open | built | merged (react-native-android-widget 0.25.0, the tray's own lines); needs the next dev client from CI for a device check |
 | D2 | Menu bar (Settings, Refresh, View) | skip | Phones have no menu bar; Settings and refresh live on Lainnya and pull to refresh | done (skipped) | No menu bar: Settings is on Lainnya, refresh is pull to refresh and the status sheet's Perbarui sekarang |
 | D3 | Windows (sign-in window, SIX window, close to tray) | change | Sign-in and SIX are full-screen WebView screens; "close to tray" setting skipped (Android keeps the app alive itself) | done | Sign-in and SIX are full-screen web pages (src/shell/sign-in.tsx, app/check-in); no close-to-tray setting (settings.tsx) |
 | D4 | Keyboard shortcuts (Ctrl K, Ctrl 1-6, Esc) | skip | No keyboard; bottom tabs and the search button | done (skipped) | No keyboard on a phone: bottom tabs, the search button, and a tap on the open tab scrolls to the top |
@@ -129,8 +129,9 @@ machine). Every helper runs at effort high or more.
 | grades-plan | Contact (Opus 5.5, xhigh) | S11–S16 Nilai, Rencana studi (planner, kurikulum, KRS, UKT, kalender) | `mobile-grades-plan` | merged (5356fac) |
 | course | Dev 1 (Opus 5.5, high) | S17–S19, A11, A15 course page, grade calculator, color picker | `mobile-course` | merged (e3f4d0d), picker wired |
 | report | Dev 1 (Opus 5.5, high) | A8 first-scan summary, A9 problem report, licences (phone's own list) | `mobile-report` | merged (3f86bb0), wired (ca90b75) |
-| wording | Dev 1 (Opus 5.5, high) | Phone words where desktop strings say computer, window, click (override table + test) | `mobile-wording` | building |
-| widget | Contact (Opus 5.5, high) | D1 home-screen widget (the tray's now/next/deadline) | `mobile-widget` | building |
+| wording | Dev 1 (Opus 5.5, high) | Phone words where desktop strings say computer, window, click (override table + test) | `mobile-wording` | merged (6d7b18a): `wording.native.ts` swap, 8 keys, `test/kit/phone-wording.test.ts` guards ~1,900 keys the phone shows |
+| widget | Contact (Opus 5.5, high) | D1 home-screen widget (the tray's now/next/deadline) | `mobile-widget` | merged (a55850f), wired: `useWidgetUpdates` in the frame, `updateWidgets` after a closed-app sync, entry `mobile/index.ts` |
+| judge | Dev 1 (Opus 5.5, high) | Check B, checker (never edits): round 1 on 9 screens from run 40938204552 | `mobile-judge` (reads only) | running |
 | inventory | Contact (Opus 5.5, high) | Check A inventory from the desktop demo per scenario + Maestro flow generator + score reporter | `mobile-inventory` | merged (8915598): 766 items signed-in, 15 scenarios |
 | home | Contact (Opus 5.5, xhigh) | S1 Beranda | `mobile-home` | merged (afdc26c) |
 | tasks | Dev 1 (Opus 5.5, high) | S2–S4 Tugas & Ujian, Task (hand-in, files), Exam | `mobile-tasks` | merged (d3ab9bd), handlers wired (3fcf067) |
@@ -200,6 +201,12 @@ machine). Every helper runs at effort high or more.
   sleeps when Android freezes the app. Worth scheduling the plan's next alerts as OS
   notifications ahead of time (needs the plan from the AlertCenter).
 - CI: `workflow_dispatch` only works once `mobile.yml` is on `main`; until then runs start on push.
+- Widget (react-native-android-widget 0.25.0): its issue 165 reports the app freezing on slow
+  phones as a widget update starts (no fix released); its plugin can't set a smaller resize size,
+  so the widget only stretches bigger than 4x2; the widget list shows no description (the config
+  loader can't read src/core/strings). Watch the first two on a device.
+- Headless wake-ups (background sync, widget) don't load `app/_layout.tsx`: the crypto polyfill and
+  the sync task are imported from `mobile/index.ts`, the app's entry.
 
 ## Blockers for Arqila
 
