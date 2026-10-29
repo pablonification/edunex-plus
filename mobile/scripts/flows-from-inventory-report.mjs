@@ -6,7 +6,7 @@
 //   maestro test --debug-output .scratch/maestro --format junit --output .scratch/maestro/report.xml mobile/flows/data
 //   node mobile/scripts/flows-from-inventory-report.mjs .scratch/maestro [--missing]
 //
-// It reads every commands-*.json under the folders given (Maestro's debug output) and
+// It reads every commands.json (Maestro 2.x; commands-*.json before) under the folders given (Maestro's debug output) and
 // every JUnit .xml (flows that failed outright: the screen wasn't reached, or the app stopped).
 import fs from "node:fs";
 import path from "node:path";
@@ -75,7 +75,7 @@ function main() {
   const inputs = args.filter((a) => !a.startsWith("--"));
   if (!inputs.length) throw new Error("Usage: flows-from-inventory-report.mjs <maestro debug output or junit.xml> ... [--missing]");
   const all = inputs.flatMap(files);
-  const { completed, ran } = seen(all.filter((f) => /commands-.*\.json$/.test(path.basename(f))));
+  const { completed, ran } = seen(all.filter((f) => /^commands(?:-.*)?\.json$/.test(path.basename(f))));
   const failed = failedFlows(all.filter((f) => f.endsWith(".xml")));
 
   const scenarios = fs

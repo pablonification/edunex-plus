@@ -179,7 +179,7 @@
       ]
     },
     "courses": {
-      "status": "placeholder",
+      "status": "ready",
       "steps": [
         {
           "tapOn": {
@@ -383,7 +383,7 @@
         },
         {
           "tapOn": {
-            "id": "row.more.grades"
+            "id": "row.nav.grades"
           }
         },
         {
@@ -429,7 +429,7 @@
         },
         {
           "tapOn": {
-            "id": "row.more.plan"
+            "id": "row.nav.plan"
           }
         },
         {
@@ -535,7 +535,7 @@
       }
     },
     "search": {
-      "status": "placeholder",
+      "status": "ready",
       "relaunch": true,
       "steps": [
         {
@@ -555,7 +555,7 @@
       ]
     },
     "alerts": {
-      "status": "placeholder",
+      "status": "ready",
       "steps": [
         {
           "tapOn": {
@@ -579,7 +579,7 @@
         },
         {
           "tapOn": {
-            "id": "row.more.settings"
+            "id": "row.nav.settings"
           }
         },
         {

@@ -153,6 +153,17 @@ export default function Search() {
           )}
         </View>
       </View>
+      {query.trim() !== "" && (
+        <Text
+          size="caption"
+          tone="faint"
+          style={{ paddingHorizontal: space.page, paddingTop: space[2] }}
+          accessibilityLiveRegion="polite"
+          testID="search.count"
+        >
+          {t("search.count", { count: groups.reduce((sum, group) => sum + group.items.length, 0) })}
+        </Text>
+      )}
       <FlatList
         data={rows}
         keyboardShouldPersistTaps="handled"

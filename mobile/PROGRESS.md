@@ -100,7 +100,14 @@ Status: todo / building / done (with proof: a Maestro flow, a screenshot, a judg
 
 ## Score A: same data (Maestro finds every item the desktop shows)
 
-Not counted yet. Inventory: `mobile/flows/expected/` (built from the engine on test/pretend, checked against the desktop demo).
+Inventory: `mobile/flows/expected/` (the desktop demo's screens, read per scenario). Flows:
+`node mobile/scripts/flows-from-inventory.mjs <scenario>` (`FLOWS_LOCAL=1` on Redroid with a dev build),
+`maestro test --debug-output .scratch/maestro mobile/flows/data/<scenario>`, then
+`node mobile/scripts/flows-from-inventory-report.mjs .scratch/maestro --missing`.
+
+| When | Scenario | Found | Of | Notes |
+| --- | --- | ---: | ---: | --- |
+| 2026-10-30 01:05 | signed-in | 32 | 766 | First run of the pipeline: courses 6/6, alerts 3/3, search 23/27 (the result count, added since); other screens not built yet |
 
 ## Score B: same feel (judge on the Mac)
 
@@ -170,6 +177,11 @@ machine). Every helper runs at effort high or more.
     through Redroid, so it isn't used.
 
 ## Blocked
+
+- `test/kit/drift-fix-guard.test.ts` (4 tests) fails on pabs only: Ubuntu's Node 22.22.1 has no
+  TypeScript stripping (`process.features.typescript` is false), and the guard script imports a
+  `.ts`. Unchanged from main; GitHub's official Node passes it. Everything else in `npm run check`
+  passes on pabs (2465 tests).
 
 ## Notes for later
 

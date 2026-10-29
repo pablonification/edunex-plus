@@ -5,13 +5,16 @@ import { router } from "expo-router";
 import { View } from "react-native";
 import { useCourseColor, useTermCourses } from "../../../src/app/courses";
 import { useT } from "../../../src/app/i18n";
+import { displayName, initials } from "../../../src/app/names";
 import { usePlanBadge } from "../../../src/app/shell/badges";
+import { useDataset } from "../../../src/app/store";
 import { useNav } from "../../src/nav";
 import { openReport } from "../../src/parts/report";
 import { TabHeader, usePullToRefresh } from "../../src/shell/source-status";
 import { Badge, CourseCode } from "../../src/ui/display";
 import { Icons } from "../../src/ui/icons";
 import { List, Page, PageHeader, Row, Section } from "../../src/ui/layout";
+import { Text } from "../../src/ui/text";
 import { useTheme } from "../../src/ui/theme";
 
 export default function More() {
@@ -22,10 +25,34 @@ export default function More() {
   const courses = useTermCourses();
   const color = useCourseColor();
   const plan = usePlanBadge();
+  const account = useDataset("edunex.account");
+  const student = useDataset("six.student");
+  const name = account?.name ?? student?.name;
   const glyph = (Icon: (typeof Icons)[keyof typeof Icons]) => <Icon size={20} color={theme.color.muted} />;
   return (
     <Page testID="screen.more" header={<TabHeader />} {...pull}>
       <PageHeader title={t("mobile.tab.more")} />
+      {/* Who's signed in, the desktop sidebar's footer: the way to Settings. */}
+      <List>
+        <Row
+          leading={
+            <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: theme.color.infoBg, alignItems: "center", justifyContent: "center" }}>
+              {name ? (
+                <Text size="small" weight="semibold" tone="info">
+                  {initials(name)}
+                </Text>
+              ) : (
+                <Icons.User size={18} color={theme.color.infoFg} />
+              )}
+            </View>
+          }
+          title={name ? displayName(name) : t("nav.settings")}
+          meta={name ? ((account?.nim ?? student?.nim) ? `${account?.nim ?? student?.nim} · ${t("nav.settings")}` : t("nav.settings")) : undefined}
+          onPress={() => router.push("/settings")}
+          testID="row.nav.account"
+        />
+      </List>
+      <View style={{ height: 16 }} />
       <List>
         <Row leading={glyph(Icons.GraduationCap)} title={t("nav.grades")} onPress={() => nav.go({ screen: "grades" })} testID="row.nav.grades" />
         <Row
