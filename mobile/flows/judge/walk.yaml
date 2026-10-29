@@ -34,10 +34,11 @@ appId: io.github.pablonification.edunexplus.demo
     id: action.back
 - tapOn:
     id: tab.tasks
+# The exam is near the top of the list, above the Task just opened.
 - scrollUntilVisible:
     element:
       id: "row.exam.DK4073-UTS:six:2179909"
-    direction: DOWN
+    direction: UP
     optional: true
 - tapOn:
     id: "row.exam.DK4073-UTS:six:2179909"

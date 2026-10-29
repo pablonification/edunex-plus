@@ -269,6 +269,8 @@ jobs:
           api-level: 34
           arch: x86_64
           target: google_apis
+          # A phone's size (1080x2400, 412 dp wide), not the emulator's small default.
+          profile: pixel_6
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -no-snapshot-save
           script: scripts/ci/mobile-e2e.sh "$RUNNER_TEMP/apk/edunex-plus-demo-release.apk" "$RUNNER_TEMP/e2e" "$FLOWS"
