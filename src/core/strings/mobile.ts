@@ -64,4 +64,26 @@ export const mobileStrings = {
   // The desktop's calendar file, through the share sheet (Drive, email, another calendar app).
   "mobile.calendar.share": { id: "Bagikan .ics", en: "Share .ics" },
   "mobile.calendar.shareFailed": { id: "Berkas .ics tidak bisa dibagikan. Coba lagi.", en: "Couldn't share the .ics file. Try again." },
+  // report
+  // "Laporkan masalah" on the phone (A9): the report file goes out through the share sheet, not a folder.
+  "mobile.report.nothingKept": {
+    id: "Saat ini tidak ada halaman yang gagal dibaca. Laporannya berisi versi aplikasi, sistem HP-mu, dan ceritamu.",
+    en: "No page is failing to read right now. The report has the app's version, your phone's system and what you write.",
+  },
+  "mobile.report.ready": { id: "Berkas laporan siap", en: "Report file ready" },
+  "mobile.report.share": { id: "Bagikan berkas", en: "Share the file" },
+  "mobile.report.shareFailed": { id: "Berkas laporan tidak bisa dibagikan. Coba lagi.", en: "Couldn't share the report file. Try again." },
+  // LINE is on this phone: no QR code to scan, the ID is searched in LINE instead.
+  "mobile.report.lineAddHint": {
+    id: "Di LINE, buka Tambah teman, lalu cari ID {id}. Sudah berteman? Lewati langkah ini.",
+    en: "In LINE, open Add friends and search for the ID {id}. Already friends? Skip this step.",
+  },
+  "mobile.report.copyId": { id: "Salin ID", en: "Copy ID" },
+  "mobile.report.idCopied": { id: "ID {id} disalin", en: "{id} copied" },
+  "mobile.report.lineSendHint": { id: "Tekan Bagikan berkas, pilih LINE, lalu pilih {id}.", en: "Tap Share the file, pick LINE, then pick {id}." },
+  "mobile.report.githubAttach": { id: "Lampirkan berkasnya di kotak terakhir, lalu kirim", en: "Attach the file in the last box, then submit" },
+  "mobile.report.githubAttachHint": {
+    id: "Simpan dulu lewat Bagikan berkas, misalnya ke Drive atau File, supaya bisa dipilih di GitHub.",
+    en: "Save it first with Share the file, to Drive or Files for example, so you can pick it on GitHub.",
+  },
 } as const satisfies Record<string, Entry>;
