@@ -4,6 +4,7 @@
 //   assets/android-icon-foreground.png  the white mark alone, inside the adaptive icon's safe zone
 //   assets/android-icon-background.png  the app's blue, top to bottom, as the tile has it
 //   assets/android-icon-monochrome.png  the mark alone, for Android's themed icons
+//   assets/notification-icon.png        the mark alone, white and nearly edge to edge, 96 px: the status bar's icon
 // Drawn by Playwright's Chromium (from the repository's node_modules), so no other tool is needed:
 //   node mobile/scripts/make-icons.mjs
 import fs from "node:fs";
@@ -46,4 +47,6 @@ await draw(svg, "splash-icon.png");
 await draw(markOnly("#ffffff", 0.78), "android-icon-foreground.png");
 await draw(background, "android-icon-background.png");
 await draw(markOnly("#ffffff", 0.78), "android-icon-monochrome.png");
+// Android draws a notification's small icon from its alpha alone: a full tile would be a plain square.
+await draw(markOnly("#ffffff", 1.6), "notification-icon.png", 96);
 await browser.close();

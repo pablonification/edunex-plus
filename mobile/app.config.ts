@@ -39,7 +39,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     "expo-web-browser",
     "expo-localization",
     ["expo-splash-screen", { image: "./assets/splash-icon.png", imageWidth: 120, backgroundColor: "#FFFFFF", dark: { backgroundColor: "#161618" } }],
-    ["expo-notifications", { color: "#2563EB" }],
+    ["expo-notifications", { color: "#2563EB", icon: "./assets/notification-icon.png" }],
     ["expo-calendar", { calendarPermission: "Edunex Plus adds your classes to your calendar." }],
     [
       "expo-build-properties",
