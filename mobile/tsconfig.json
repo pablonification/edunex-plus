@@ -13,5 +13,5 @@
       "phosphor-react-native/src/icons/*": ["./node_modules/phosphor-react-native/lib/typescript/icons/*"]
     }
   },
-  "include": ["app", "src", "app.config.ts", ".expo/types/**/*.ts", "expo-env.d.ts"]
+  "include": ["index.ts", "app", "src", "app.config.ts", ".expo/types/**/*.ts", "expo-env.d.ts"]
 }

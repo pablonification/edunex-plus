@@ -48,8 +48,29 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
           minSdkVersion: 26,
           // Release builds shrink the code (R8), which renamed WorkManager's database (expo-background-task):
           // Room finds a database's generated class by its name, so the app closed at launch.
-          extraProguardRules: "-keep class * extends androidx.room.RoomDatabase { *; }",
+          // WorkManager makes its input mergers by name too (react-native-android-widget's issue 159).
+          extraProguardRules: "-keep class * extends androidx.room.RoomDatabase { *; }\n-keep class * extends androidx.work.InputMerger { <init>(); }",
         },
+      },
+    ],
+    // The home-screen widget (D1): 4×2 at first, bigger when the Student stretches it; Android draws it again every 30 minutes
+    // (the least it allows), the app and the background sync whenever what it shows changes.
+    [
+      "react-native-android-widget",
+      {
+        widgets: [
+          {
+            name: "Now",
+            label: demo ? "Edunex Plus Demo" : "Edunex Plus",
+            minWidth: "250dp",
+            minHeight: "110dp",
+            targetCellWidth: 4,
+            targetCellHeight: 2,
+            resizeMode: "horizontal|vertical",
+            previewImage: "./assets/widget-preview.png",
+            updatePeriodMillis: 30 * 60 * 1000,
+          },
+        ],
       },
     ],
   ],
