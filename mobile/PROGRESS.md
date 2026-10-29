@@ -5,8 +5,15 @@ Branch: `mobile`. App: `mobile/` (Expo SDK 58, React Native 0.88, Expo Router, d
 
 ## Where things stand
 
-- Step 0 (tools): done, see "Tools on pabs".
-- Scope list: written (below). Building the foundation.
+- Step 0 (tools): done, see "Tools on pabs". Redroid boots (Android 13, 720x1600 @280dpi, WIB).
+- Scope list: written (below).
+- Foundation on `mobile` (not yet run on a device; waiting for the first dev-client APK from CI):
+  engine host (expo/fetch transport, file storage, secure-store vault, notifier, in-process
+  bridge), the desktop's AppStore/I18n reused, theme + ui parts with the desktop's names, tabs,
+  route stubs, navigation (`src/nav.ts`), sign-in in WebViews with the desktop's signInToBoth,
+  the web-cookies native module, background sync task, sheets/swipe/top bar, porting guide
+  (`mobile/AGENTS.md`).
+- Next: merge mobile-engine and mobile-ci, first run on Redroid, then screen helpers.
 
 ## Tools on pabs (installed without sudo)
 
@@ -18,6 +25,9 @@ Branch: `mobile`. App: `mobile/` (Expo SDK 58, React Native 0.88, Expo Router, d
 | Android command-line tools | `~/tools/android-sdk/cmdline-tools/latest` | 13114758 (19.0) |
 | Android platform-tools (adb) | `~/tools/android-sdk/platform-tools` | 37.0.1 |
 | Maestro | `~/tools/maestro/bin/maestro` | 2.12.0 |
+| Redroid | Docker image `redroid/redroid:13.0.0-latest`, data in `~/redroid-data` | Android 13 |
+
+Redroid: `docker run -itd --rm --privileged --name redroid --memory=2.5g --cpus=1.5 -v ~/redroid-data:/data -p 5555:5555 redroid/redroid:13.0.0-latest androidboot.use_memfd=true androidboot.redroid_width=720 androidboot.redroid_height=1600 androidboot.redroid_dpi=280 androidboot.redroid_gpu_mode=guest`, then `adb connect localhost:5555`. `docker stop redroid` when done.
 
 No Android Studio, no system emulator: the live device is Redroid in Docker, full runs are on GitHub Actions.
 
@@ -135,5 +145,12 @@ machine). Every helper runs at effort high or more.
    starting on the desktop demo's moment (Thu 8 Oct 2026, 08:07 WIB) and running in real time.
 
 ## Blocked
+
+## Notes for later
+
+- A3: timed reminders (class soon, deadline times) fire from the engine's in-process plan, which
+  sleeps when Android freezes the app. Worth scheduling the plan's next alerts as OS
+  notifications ahead of time (needs the plan from the AlertCenter).
+- CI: `workflow_dispatch` only works once `mobile.yml` is on `main`; until then runs start on push.
 
 ## Blockers for Arqila
