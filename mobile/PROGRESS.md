@@ -172,9 +172,20 @@ machine). Every helper runs at effort high or more.
 
 ## Notes for later
 
+- Back on the sign-in page closed the app: predictive back was on (Android 13+ then never sends
+  React Native the Back press). Turned off in app.config.ts (6845b78); re-check Back on the next
+  dev-client APK.
+
 - A3: timed reminders (class soon, deadline times) fire from the engine's in-process plan, which
   sleeps when Android freezes the app. Worth scheduling the plan's next alerts as OS
   notifications ahead of time (needs the plan from the AlertCenter).
 - CI: `workflow_dispatch` only works once `mobile.yml` is on `main`; until then runs start on push.
 
 ## Blockers for Arqila
+
+- **Real sign-in can only be proven with a real ITB account.** On Redroid, ITB's real sign-in
+  page loads in the app (sso-edunex → login.microsoftonline.com, the address shown beside the
+  lock), and the whole flow after it is proven with the demo's made-up sign-in. Proposed: once the
+  APK is ready, sign in on your own phone (or on Redroid while I watch nothing: I'd only read the
+  app's own status line), and tell me whether Edunex and SIX both say "Terhubung". No data from
+  it goes anywhere near the repo.
