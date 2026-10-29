@@ -190,9 +190,9 @@ machine). Every helper runs at effort high or more.
 
 ## Notes for later
 
-- Back on the sign-in page closed the app: predictive back was on (Android 13+ then never sends
-  React Native the Back press). Turned off in app.config.ts (6845b78); re-check Back on the next
-  dev-client APK.
+- Back closed the app: predictive back was on (Android 13+ then never sends React Native the Back
+  press). Turned off in app.config.ts (6845b78); verified on the dev client from run 40926366619
+  (Maestro: bell → Back → Beranda, course → Back → Lainnya).
 
 - A3: timed reminders (class soon, deadline times) fire from the engine's in-process plan, which
   sleeps when Android freezes the app. Worth scheduling the plan's next alerts as OS
