@@ -4,6 +4,8 @@
 // the way mobile/flows/screens.json says, and looks for every text of every
 // entry (scrolling to it). Each look is an optional assertVisible with a label
 // "data|<scenario>|<entry id>|<n>/<of>", so a failed one doesn't stop the run;
+// a screen that shows less at once than the desktop (Jadwal's one day of a week)
+// reaches each entry's part first with its `byEntry` steps;
 // ./flows-from-inventory-report.mjs reads Maestro's output and counts an entry as
 // found when all its texts were seen.
 //
@@ -104,7 +106,12 @@ function flow(inventory, screen, states, config, appId) {
     out.push("", `# ---- ${screen}${state ? ` ${state}` : ""}${about?.title ? ` (${about.title.replace(/\s+/g, " ").slice(0, 80)})` : ""}`);
     if (conf.relaunch && index > 0) out.push(...launch.map(line));
     out.push(...fill(pick ? pick[1] : conf.steps, vars).map(line));
-    for (const entry of entries) out.push(...checks(inventory.scenario, entry));
+    for (const entry of entries) {
+      // A pattern on "<entry id>|<its context>" (the day it's on): steps that bring it into view first.
+      const before = Object.entries(conf.byEntry ?? {}).find(([re]) => new RegExp(re).test(`${entry.id}|${entry.context ?? ""}`));
+      if (before) out.push(...fill(before[1], vars).map(line));
+      out.push(...checks(inventory.scenario, entry));
+    }
   });
   return `${out.join("\n")}\n`;
 }
