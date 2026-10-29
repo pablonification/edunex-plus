@@ -116,7 +116,7 @@ const SIGNED_OUT = (source: SourceStatus["source"]): SourceStatus => ({ source, 
  * opens the window, where its banner has the fix (sign in again, try again);
  * else when the data was last read.
  */
-function statusLine(snapshot: Pick<Snapshot, "datasets" | "statuses">, f: Format, t: Translate): { problem: TrayEntry | null; updated: string | null } {
+export function statusLine(snapshot: Pick<Snapshot, "datasets" | "statuses">, f: Format, t: Translate): { problem: TrayEntry | null; updated: string | null } {
   const status = (source: "edunex" | "six") => snapshot.statuses.find((entry) => entry.source === source) ?? SIGNED_OUT(source);
   const sources = [status("edunex"), status("six")];
   const name = (entry: SourceStatus) => t(`source.${entry.source}`);
@@ -257,13 +257,13 @@ function needsSection(
 }
 
 /** Where Beranda's row goes: a screen, or the official page. */
-function needAction(need: NeedDraft): TrayAction {
+export function needAction(need: NeedDraft): TrayAction {
   if (need.action.kind === "go") return { kind: "route", route: need.action.route };
   return need.action.via === "link" ? { kind: "link", url: need.action.url } : { kind: "url", url: need.action.url };
 }
 
 /** Beranda's row, short: what it is, and when (with the course where the title doesn't say it). */
-function needLine(need: NeedDraft, f: Format, t: Translate): { label: string; detail?: string } {
+export function needLine(need: NeedDraft, f: Format, t: Translate): { label: string; detail?: string } {
   const course = need.course ?? "";
   const line = (label: string, ...detail: (string | null | undefined)[]) => {
     const parts = detail.filter((part): part is string => Boolean(part));
