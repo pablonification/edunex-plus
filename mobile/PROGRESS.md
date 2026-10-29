@@ -116,6 +116,20 @@ machine). Every helper runs at effort high or more.
 | ci | Dev 1 (Opus 5.5, high) | `.github/workflows/mobile.yml`: APKs (demo, real, dev clients), emulator + Maestro, desktop shots light/dark | `mobile-ci` | building |
 | inventory | Contact (Opus 5.5, high) | Check A inventory from the desktop demo per scenario + Maestro flow generator + score reporter | `mobile-inventory` | building |
 
+### Pieces still to hand out (each one helper, own branch `mobile-<piece>`)
+
+| Piece | Scope rows | Notes |
+| --- | --- | --- |
+| parts | A10, A11 + shared parts | `src/parts/`: snooze/done menus as sheets, SixPageNote, OpenSixTimetable, NowCard shell, attendance parts (AbsenceBudget, AbsenceBar, CountdownBar), report button stub. First, the others use them |
+| home | S1 | Beranda, after parts |
+| tasks | S2, S3, S4 | Tugas & Ujian, Task detail with hand-in (document picker, draft, submit), Exam detail |
+| schedule | S5–S8 | Jadwal day/week/month, class sheet, write to the phone's calendar (expo-calendar) |
+| presence | S9, S10 | Presensi, Tandai Hadir in a SIX WebView with the session cookie set |
+| grades-plan | S11–S16 | Nilai (chart with react-native-svg), Rencana studi tabs |
+| course | S17–S19, A12, A13, A15 | course page, grade calculator, course list, files (download, open in other apps, share) |
+| more | A1, A2, A6–A9, D5, A17 | Lainnya, Search, alerts history, Settings, welcome/first-run, first scan, problem report, version check |
+| widget | D1 | home-screen widget (react-native-android-widget or a small native module) |
+
 ## Decisions
 
 1. **The engine runs in the app's JS thread**, created by `mobile/src/host/`. It plugs in a phone
