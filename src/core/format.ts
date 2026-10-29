@@ -2,6 +2,7 @@
 // computer's own time zone ("Besok, 23:59 · dalam 6 jam", never a raw
 // timestamp). `now` is passed in so screens and tests agree on the moment.
 // The window's screens (src/app/i18n) and the tray menu (src/desktop/tray-menu.ts) both use it.
+import { listOf, relativeTime } from "./intl";
 import { type Lang, translate } from "./strings";
 
 export type When = number | string | Date;
@@ -57,8 +58,8 @@ export function makeFormat(lang: Lang, now: number): Format {
   const weekdayShortFmt = dtf({ weekday: "short" });
   const dayMonthFmt = dtf({ day: "numeric", month: "short" });
   const dateLongFmt = dtf({ weekday: "long", day: "numeric", month: "long" });
-  const rtf = new Intl.RelativeTimeFormat(lang, { numeric: "auto" });
-  const listFmt = new Intl.ListFormat(locale, { type: "conjunction" });
+  const rtf = relativeTime(lang);
+  const listFmt = listOf(locale);
   const t = (key: Parameters<typeof translate>[1], vars?: Parameters<typeof translate>[2]) => translate(lang, key, vars);
 
   const time = (when: When) => timeFmt.format(ms(when)).replace(".", ":");
@@ -110,9 +111,9 @@ export function makeFormat(lang: Lang, now: number): Format {
       const diff = ms(when) - now;
       const abs = Math.abs(diff);
       if (abs < 60_000) return t("time.justNow");
-      if (abs < 3_600_000) return rtf.format(Math.round(diff / 60_000), "minute");
-      if (abs < DAY) return rtf.format(Math.round(diff / 3_600_000), "hour");
-      return rtf.format(dayOffset(when), "day");
+      if (abs < 3_600_000) return rtf(Math.round(diff / 60_000), "minute");
+      if (abs < DAY) return rtf(Math.round(diff / 3_600_000), "hour");
+      return rtf(dayOffset(when), "day");
     },
     countdown: (when) => {
       const minutes = Math.max(0, Math.round((ms(when) - now) / 60_000));
@@ -147,6 +148,6 @@ export function makeFormat(lang: Lang, now: number): Format {
       return `${new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format(bytes / 1024 / 1024)} MB`;
     },
     number: (value, digits = 2) => new Intl.NumberFormat(locale, { minimumFractionDigits: digits, maximumFractionDigits: digits }).format(value),
-    list: (items) => listFmt.format(items),
+    list: listFmt,
   };
 }
