@@ -47,19 +47,19 @@ Status: todo / building / done (with proof: a Maestro flow, a screenshot, a judg
 | S2 | Tugas & Ujian (list, To do / Done, course filter chips, exam periods) | change | Same groups; filter chips scroll sideways; segmented To do / Done at the top within thumb reach | built, on device | seen on Redroid (shots h1–h5, tour-*, se*, al2); judge pending |
 | S3 | Task detail (instructions, files, answer, draft, attach, submit, history, handed in another way) | change | Full screen; answer box is a plain multi-line editor; attach from the phone's files; sticky submit bar at the bottom | built | merged; device check pending |
 | S4 | Exam detail (parts, rooms, take-home, Mark as done) | keep | Same facts, one column | built | merged; device check pending |
-| S5 | Jadwal week (time grid, clashes, changes, "Tidak ada di SIX", Gabung) | change | A 7-column grid is unreadable on a phone: a day strip with a swipeable day list (agenda), week grid kept as an option in landscape-free form (3-day) | built | merged; device check pending |
+| S5 | Jadwal week (time grid, clashes, changes, "Tidak ada di SIX", Gabung) | change | A 7-column grid is unreadable on a phone: a day strip with a swipeable day list (agenda), week grid kept as an option in landscape-free form (3-day) | built, on device | seen on Redroid (tour-jadwal-*, tour-course-*); judge pending |
 | S6 | Jadwal month | change | Month grid with dots, tap a day to see its classes below | built | merged; device check pending |
 | S7 | Class detail (popover) | change | Bottom sheet | built | merged; device check pending |
 | S8 | Add to phone calendar (desktop: an .ics file to import) | replace | Writes the classes straight into the phone's calendar (expo-calendar), or shares the .ics | built | merged; device check pending |
 | S9 | Presensi (target, clash pick, groups by absence budget, bars, Tandai Hadir) | keep | Same groups and bars, one column | built, on device | seen on Redroid (shots h1–h5, tour-*, se*, al2); judge pending |
 | S10 | Tandai Hadir (desktop opens SIX in an app window) | change | Opens SIX's timetable in an in-app browser signed in (WebView with the session), the Student presses SIX's button | built | merged; device check pending |
-| S11 | Nilai (IPK, chart, this term's estimates, history) | keep | Same; chart fits the width; per-term list folds | todo | |
-| S12 | Rencana studi: Rencana (planner) | change | Planner is drag-and-click heavy: per-semester cards, add/remove courses through a picker sheet | todo | |
-| S13 | Rencana studi: Kurikulum | keep | One column | todo | |
-| S14 | Rencana studi: KRS | keep | One column | todo | |
-| S15 | Rencana studi: UKT | keep | One column | todo | |
-| S16 | Rencana studi: Kalender akademik | keep | One column, plus add a deadline to the phone's calendar | todo | |
-| S17 | Course page: header, budget, now card, tabs (Modul, Pertemuan, Tugas & Ujian, Nilai, Pengumuman) | change | Tabs scroll sideways; Modul is a list that opens a module page (no two panes) | built | merged; device check pending |
+| S11 | Nilai (IPK, chart, this term's estimates, history) | keep | Same; chart fits the width; per-term list folds | built | merged; Nilai and Rencana seen on Redroid (tour-nilai-*, tour-rencana-1); judge pending |
+| S12 | Rencana studi: Rencana (planner) | change | Planner is drag-and-click heavy: per-semester cards, add/remove courses through a picker sheet | built | merged; Nilai and Rencana seen on Redroid (tour-nilai-*, tour-rencana-1); judge pending |
+| S13 | Rencana studi: Kurikulum | keep | One column | built | merged; Nilai and Rencana seen on Redroid (tour-nilai-*, tour-rencana-1); judge pending |
+| S14 | Rencana studi: KRS | keep | One column | built | merged; Nilai and Rencana seen on Redroid (tour-nilai-*, tour-rencana-1); judge pending |
+| S15 | Rencana studi: UKT | keep | One column | built | merged; Nilai and Rencana seen on Redroid (tour-nilai-*, tour-rencana-1); judge pending |
+| S16 | Rencana studi: Kalender akademik | keep | One column, plus add a deadline to the phone's calendar | built | merged; Nilai and Rencana seen on Redroid (tour-nilai-*, tour-rencana-1); judge pending |
+| S17 | Course page: header, budget, now card, tabs (Modul, Pertemuan, Tugas & Ujian, Nilai, Pengumuman) | change | Tabs scroll sideways; Modul is a list that opens a module page (no two panes) | built, on device | seen on Redroid (tour-jadwal-*, tour-course-*); judge pending |
 | S18 | Course: grade calculator (kalkulator nilai) | keep | Same inputs, number keypad | built | merged; device check pending |
 | S19 | Course list (desktop sidebar "Mata kuliah", course colors) | change | A "Mata kuliah" list on the Lainnya tab and at the top of Presensi rows; long-press a course for its color | built | merged; device check pending |
 
@@ -72,10 +72,10 @@ Status: todo / building / done (with proof: a Maestro flow, a screenshot, a judg
 | A3 | OS notifications (new Task, attendance opens, reminders, class soon) | keep | expo-notifications, tapping one opens its screen (same Route) | built | merged; device check pending |
 | A4 | Background sync (desktop: always running in the tray) | replace | expo-background-task every 15+ min, alerts from what it finds | todo | |
 | A5 | Source status line, offline / expired / changed banners, "Perbarui sekarang" | change | Quiet line under the header; banners the same; pull to refresh does "Perbarui sekarang" | built, on device | seen on Redroid (shots h1–h5, tour-*, se*, al2); judge pending |
-| A6 | Settings (theme, language, alerts, deadline times, class soon, attendance target, course colors, snoozed, accounts, sign out all, first scan, about, licences, open source) | keep | A Settings screen from Lainnya; same sections minus the desktop-only ones | built | merged; device check pending |
+| A6 | Settings (theme, language, alerts, deadline times, class soon, attendance target, course colors, snoozed, accounts, sign out all, first scan, about, licences, open source) | keep | A Settings screen from Lainnya; same sections minus the desktop-only ones | built, on device | seen on Redroid (tour-settings-*); desktop wording fix in progress (wording helper) |
 | A7 | Welcome / first-run tour, sign in to Edunex and SIX | change | Full-screen welcome, then ITB's real sign-in page in a WebView; one Microsoft sign-in tries both | building | Demo: Mulai → Hubungkan Edunex → SIX came along → reading (5 · 10 · 40) → notifications asked → app (shots w1–w8). Real: ITB/Microsoft page loads in the app. Needs: real sign-in by Arqila, Back re-check |
-| A8 | First scan summary ("Ringkasan saat pertama terhubung") | keep | Shown once after the first sync, again from Settings | todo | |
-| A9 | Problem report (Laporkan masalah, Kirim langsung, Story) | keep | Same dialog as a screen; also "Share" through the share sheet instead of saving a file | todo | |
+| A8 | First scan summary ("Ringkasan saat pertama terhubung") | keep | Shown once after the first sync, again from Settings | built | merged; device check pending |
+| A9 | Problem report (Laporkan masalah, Kirim langsung, Story) | keep | Same dialog as a screen; also "Share" through the share sheet instead of saving a file | built | merged; device check pending |
 | A10 | Snooze menu / Handled (Ingatkan nanti, Sudah beres) | change | Swipe a row, or long-press for the same menu as an action sheet | built | merged; device check pending |
 | A11 | Course colors (picker) | keep | Bottom sheet with the ten colors | built | merged; device check pending |
 | A12 | Downloads (Unduh: a material into Downloads) | change | Downloads into the app's files, then opens or shares it | built | merged; device check pending |
@@ -126,9 +126,10 @@ machine). Every helper runs at effort high or more.
 | ci | Dev 1 (Opus 5.5, high) | `.github/workflows/mobile.yml`: APKs (demo, real, dev clients), emulator + Maestro, desktop shots light/dark | `mobile-ci` | merged (8def9c0): green run 40920151536, ~18 min |
 | presence | Contact (Opus 5.5, high) | S9 Presensi, S10 Tandai Hadir in a SIX page | `mobile-presence` | merged (3255960), check-in wired |
 | schedule | Dev 1 (Opus 5.5, high) | S5–S8 Jadwal (day strip + agenda, month, class sheet, phone calendar) | `mobile-schedule` | merged (cf9334b) |
-| grades-plan | Contact (Opus 5.5, xhigh) | S11–S16 Nilai, Rencana studi (planner, kurikulum, KRS, UKT, kalender) | `mobile-grades-plan` | building |
+| grades-plan | Contact (Opus 5.5, xhigh) | S11–S16 Nilai, Rencana studi (planner, kurikulum, KRS, UKT, kalender) | `mobile-grades-plan` | merged (5356fac) |
 | course | Dev 1 (Opus 5.5, high) | S17–S19, A11, A15 course page, grade calculator, color picker | `mobile-course` | merged (e3f4d0d), picker wired |
-| report | Dev 1 (Opus 5.5, high) | A8 first-scan summary, A9 problem report, licences (phone's own list) | `mobile-report` | building |
+| report | Dev 1 (Opus 5.5, high) | A8 first-scan summary, A9 problem report, licences (phone's own list) | `mobile-report` | merged (3f86bb0), wired (ca90b75) |
+| wording | Dev 1 (Opus 5.5, high) | Phone words where desktop strings say computer, window, click (override table + test) | `mobile-wording` | building |
 | widget | Contact (Opus 5.5, high) | D1 home-screen widget (the tray's now/next/deadline) | `mobile-widget` | building |
 | inventory | Contact (Opus 5.5, high) | Check A inventory from the desktop demo per scenario + Maestro flow generator + score reporter | `mobile-inventory` | merged (8915598): 766 items signed-in, 15 scenarios |
 | home | Contact (Opus 5.5, xhigh) | S1 Beranda | `mobile-home` | merged (afdc26c) |
