@@ -10,9 +10,10 @@ import { CHECK_IN_EVERY, checkingIn } from "../../../core/check-in";
 import { sixMeetingPath } from "../../../core/links";
 import type { SixCheckIn } from "../../../core/models";
 import { isEngineError } from "../../errors";
+import type { FeedRead } from "../../report/kept-pages";
 import type { SourceContext } from "../source";
 import { clean, parse } from "./html";
-import type { SixPages } from "./pages";
+import { pagesFor, type SixPages } from "./pages";
 
 /** What was seen is kept this long, so Beranda still knows after the class. */
 const KEEP = 2 * 24 * 3_600_000;
@@ -44,11 +45,14 @@ export function nextCheckIn(before: SixCheckIn | undefined, shows: boolean, now:
 }
 
 export function registerSixCheckInFeed(context: SourceContext, pages: SixPages): void {
+  // Each run reads and stores through its own view of the two, so the report knows which run got what (FeedSpec.run).
+  const noted = (read: FeedRead) => ({ context: context.for(read), pages: pagesFor(pages, read) });
   context.feed({
     name: "six.checkIn",
     every: CHECK_IN_EVERY,
     jitter: 20_000,
-    async run(current) {
+    async run(current, read) {
+      const { context, pages } = noted(read);
       const now = context.clock.now();
       const saved = context.get("six.checkIn");
       const kept = Object.fromEntries(Object.entries(saved ?? {}).filter(([, check]) => now - check.since < KEEP));

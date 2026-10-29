@@ -27,7 +27,7 @@ import type { Clock } from "./clock";
 import { EngineError, isEngineError, PartChanged } from "./errors";
 import { Pace } from "./http/pace";
 import type { Transport } from "./http/transport";
-import { type FeedHistory, KeptPages } from "./report/kept-pages";
+import { type FeedHistory, type FeedRead, KeptPages, UNNOTED } from "./report/kept-pages";
 import { type Noted, Outbox, type Sent } from "./report/outbox";
 import { relayBase } from "./report/relay";
 import { buildReport } from "./report/report";
@@ -389,10 +389,10 @@ export function createEngine(deps: EngineDeps): Engine {
         const current = () => generation(source) === session;
         // Only a signed-in Student's pages are worth a report (ITB's public pages are the same for everyone). A page whose
         // part can change alone is reported for what that part fills, so the screens listing it can send it.
-        const read = () => spec.run(current);
+        const read = (notes: FeedRead) => spec.run(current, notes);
         try {
           if (sources.get(source)?.session) await kept.during({ feed: spec.name, shows: spec.shows ?? spec.part, now: () => clock.now(), current }, read);
-          else await read();
+          else await read(UNNOTED);
         } catch (error) {
           if (current()) {
             log.add(levelOf(error), spec.name, errorLine(error));
@@ -430,8 +430,6 @@ export function createEngine(deps: EngineDeps): Engine {
         async request(request) {
           const sent = ++tick;
           const response = await deps.transport.request(request);
-          if (request.method === "GET" && (response.status < 300 || response.status >= 400))
-            kept.saw({ url: request.url, status: response.status, body: response.body, check: request.check });
           if (response.status < 500 && response.status !== 429) answered.set(source, Math.max(answered.get(source) ?? 0, sent));
           return response;
         },
@@ -453,9 +451,11 @@ export function createEngine(deps: EngineDeps): Engine {
     return { name: notes, value: skipped.length ? { ...others, [name]: [...skipped] } : others };
   }
 
-  /** What a source reaches during one session. Writes from an ended session are dropped. */
-  function contextFor(source: SourceId): SourceContext {
-    const session = generation(source);
+  /**
+   * What a source reaches during one session. Writes from an ended session are dropped. `read`: the
+   * feed run whose stores are noted for its report (SourceContext.for), none by default.
+   */
+  function contextFor(source: SourceId, session = generation(source), read: FeedRead = UNNOTED): SourceContext {
     const current = () => generation(source) === session;
     return {
       transport: transportFor(source),
@@ -466,7 +466,7 @@ export function createEngine(deps: EngineDeps): Engine {
       set: async (name, value, skipped = []) => {
         if (!current()) return false;
         const changed = await store.set(name, value, clock.now());
-        kept.leftOut(name, skipped);
+        read.stored(name, skipped);
         if (skipped.length) log.add("warn", name, skipped.length === 1 ? "1 row left out" : `${skipped.length} rows left out`);
         // Read again but unchanged: plans that look at when it was read still need to know.
         if (!changed) alerts.touched(name);
@@ -482,6 +482,7 @@ export function createEngine(deps: EngineDeps): Engine {
       },
       runNow: (match) => scheduler.runNow((name) => sourceOf(name) === source && match(name)),
       pace,
+      for: (run) => contextFor(source, session, run),
     };
   }
 

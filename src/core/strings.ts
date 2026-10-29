@@ -4,6 +4,7 @@
 // filled by translate(). Academic terms follow the glossary in
 // docs/design-system.md: SKS, IPK, IP, KRS and UKT stay as they are.
 
+import { pluralOf } from "./intl";
 import { academicStrings } from "./strings/academic";
 import { alertsStrings } from "./strings/alerts";
 import { attendanceStrings } from "./strings/attendance";
@@ -63,11 +64,11 @@ export type StringKey = keyof typeof STRINGS;
 export type Lang = "id" | "en";
 export type Vars = Record<string, string | number>;
 
-const plural = { id: new Intl.PluralRules("id"), en: new Intl.PluralRules("en") };
+const plural = { id: pluralOf("id"), en: pluralOf("en") };
 
 export function translate(lang: Lang, key: StringKey, vars?: Vars): string {
   const entry: Entry = STRINGS[key];
   let text = entry[lang];
-  if (typeof text !== "string") text = plural[lang].select(Number(vars?.count ?? 0)) === "one" ? text.one : text.other;
+  if (typeof text !== "string") text = plural[lang](Number(vars?.count ?? 0)) === "one" ? text.one : text.other;
   return vars ? text.replace(/\{(\w+)\}/g, (all, name: string) => (name in vars ? String(vars[name]) : all)) : text;
 }

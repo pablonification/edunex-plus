@@ -60,31 +60,43 @@ function parseLine(line: string): Property {
 
 const unescapeText = (value: string) => value.replace(/\\([\\;,nN])/g, (_, c: string) => (c === "n" || c === "N" ? "\n" : c));
 
+/**
+ * A zone's wall clock, made once per zone (on Android, making one looks through every zone the
+ * phone knows); null for a zone the platform doesn't know.
+ */
+const zoneClocks = new Map<string, Intl.DateTimeFormat | null>();
+function zoneClock(zone: string): Intl.DateTimeFormat | null {
+  if (!zoneClocks.has(zone)) {
+    let clock: Intl.DateTimeFormat | null = null;
+    try {
+      clock = new Intl.DateTimeFormat("en-US", {
+        timeZone: zone,
+        hourCycle: "h23",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+      });
+    } catch {
+      // Not a zone the platform knows.
+    }
+    zoneClocks.set(zone, clock);
+  }
+  return zoneClocks.get(zone)!;
+}
+
 /** The zone's offset from UTC at an instant (ms), using the platform's time zone data. */
 function zoneOffset(instant: number, zone: string): number {
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: zone,
-    hourCycle: "h23",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  }).formatToParts(new Date(instant));
+  const parts = zoneClock(zone)!.formatToParts(new Date(instant));
   const get = (type: string) => Number(parts.find((p) => p.type === type)?.value);
   return Date.UTC(get("year"), get("month") - 1, get("day"), get("hour"), get("minute"), get("second")) - instant;
 }
 
 /** A wall-clock time in a zone, as an instant. */
 function fromZone(wall: number, zone: string): number {
-  let zoneOk = true;
-  try {
-    new Intl.DateTimeFormat("en-US", { timeZone: zone });
-  } catch {
-    zoneOk = false;
-  }
-  const tz = zoneOk ? zone : DEFAULT_ZONE;
+  const tz = zoneClock(zone) ? zone : DEFAULT_ZONE;
   const guess = wall - zoneOffset(wall, tz);
   return wall - zoneOffset(guess, tz);
 }

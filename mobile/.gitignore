@@ -43,3 +43,6 @@ yarn-error.*
 # Maestro and screenshots from local runs
 /flows/.out/
 /.scratch/
+
+# The recordings bundled for a demo build (npm run demo:fixtures)
+/src/demo/recorded.js

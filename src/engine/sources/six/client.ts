@@ -6,6 +6,7 @@ import type { Clock } from "../../clock";
 import { EngineError } from "../../errors";
 import { Pace } from "../../http/pace";
 import { type HttpResponse, NetworkError, type Transport } from "../../http/transport";
+import { type FeedRead, noting } from "../../report/kept-pages";
 import type { SixIdentity, SixPages } from "./pages";
 import { readNim, readStatusPage, type StatusPage } from "./status";
 
@@ -23,10 +24,13 @@ const SIGN_IN_LINK = /href=["'](?:https:\/\/six\.itb\.ac\.id)?\/login\b/i;
 /** "/app/mahasiswa:18223901+2026-1/kelas/jadwal/…?bulan=…" → "/kelas/jadwal/…", for status details. */
 const label = (path: string) => path.replace(/^\/app\/mahasiswa:[^/]+/, "").replace(/\?.*$/, "") || "/";
 
-export class SixClient implements SixPages {
-  private identity: SixIdentity | null = null;
-  private reading: Promise<StatusPage> | null = null;
+/** Who is signed in, and the status page being read: one of each per session, every run's view sharing them. */
+interface Known {
+  identity: SixIdentity | null;
+  reading: Promise<StatusPage> | null;
+}
 
+export class SixClient implements SixPages {
   constructor(
     private readonly transport: Transport,
     private readonly clock: Clock,
@@ -35,16 +39,22 @@ export class SixClient implements SixPages {
     private readonly userAgent: string,
     /** SIX's line, shared with the public catalog on the same site. */
     private readonly pace: Pace = new Pace(clock),
+    private readonly known: Known = { identity: null, reading: null },
   ) {}
+
+  /** This client for one feed run: the same line and session, its pages noted for that run's report (FeedSpec.run). */
+  for(read: FeedRead): SixClient {
+    return new SixClient(noting(this.transport, read), this.clock, this.cookie, this.userAgent, this.pace, this.known);
+  }
 
   page(path: string, options: { popup?: boolean } = {}): Promise<string> {
     return this.pace.turn(() => this.fetch(path, 0, options.popup ?? false));
   }
 
   async who(): Promise<SixIdentity> {
-    if (this.identity) return this.identity;
+    if (this.known.identity) return this.known.identity;
     await this.status();
-    return this.identity!;
+    return this.known.identity!;
   }
 
   /**
@@ -52,17 +62,17 @@ export class SixClient implements SixPages {
    * courses. It also keeps `who()` current (a new term starts mid-session).
    */
   status(): Promise<StatusPage> {
-    this.reading ??= (async () => {
+    this.known.reading ??= (async () => {
       try {
-        const nim = this.identity?.nim ?? readNim(await this.page("/home"));
+        const nim = this.known.identity?.nim ?? readNim(await this.page("/home"));
         const status = readStatusPage(await this.page(`/app/mahasiswa:${nim}/statusmhs`), nim);
-        this.identity = { nim, studentId: status.student.studentId, term: status.student.term };
+        this.known.identity = { nim, studentId: status.student.studentId, term: status.student.term };
         return status;
       } finally {
-        this.reading = null;
+        this.known.reading = null;
       }
     })();
-    return this.reading;
+    return this.known.reading;
   }
 
   private async fetch(path: string, redirects: number, popup: boolean): Promise<string> {

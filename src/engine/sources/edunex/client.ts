@@ -4,6 +4,7 @@
 import type { z } from "zod";
 import { EngineError } from "../../errors";
 import { type Answer, type HttpResponse, NetworkError, type Transport } from "../../http/transport";
+import { type FeedRead, noting } from "../../report/kept-pages";
 
 export const EDUNEX_API = "https://api-edunex.cognisia.id";
 export const TIMEOUT_MS = 15_000;
@@ -14,6 +15,11 @@ export class EdunexClient {
     private readonly token: string,
     private readonly userAgent: string,
   ) {}
+
+  /** This client for one feed run: its answers are noted for that run's report (FeedSpec.run). */
+  for(read: FeedRead): EdunexClient {
+    return new EdunexClient(noting(this.transport, read), this.token, this.userAgent);
+  }
 
   async get<S extends z.ZodType>(path: string, query: Record<string, string | number>, schema: S): Promise<z.infer<S>> {
     const url = new URL(path, EDUNEX_API);

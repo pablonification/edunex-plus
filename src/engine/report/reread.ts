@@ -20,7 +20,7 @@ import type { SixIdentity, SixPages } from "../sources/six/pages";
 import { registerSixRecordFeeds } from "../sources/six/records";
 import { readNim, readStatusPage } from "../sources/six/status";
 import type { FeedSpec, SourceContext } from "../sources/source";
-import { isChange } from "./kept-pages";
+import { isChange, UNNOTED } from "./kept-pages";
 
 /** How a read ended: the check that failed, or none and the rows it left out. */
 export interface Outcome {
@@ -163,12 +163,14 @@ async function readSixAgain({ feed, at, get }: ReadAgainInput, { pages, who }: R
     feed: (spec) => void specs.set(spec.name, spec),
     runNow: async () => undefined,
     pace: () => new Pace(clock),
+    // Nothing is noted: this read is the report's own.
+    for: () => context,
   };
   registerSixRecordFeeds(context, six);
   registerSixCheckInFeed(context, six);
   const spec = specs.get(feed);
   if (!spec) throw new NotKept(`${feed} can't be read again`);
-  await spec.run(() => true);
+  await spec.run(() => true, UNNOTED);
 }
 
 /** The same check, or the same rows for the same reasons (a row cut at its length matches up to the cut). */

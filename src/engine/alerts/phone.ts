@@ -20,7 +20,6 @@
 // - nothing here blocks or throws into the alert center: what fails waits
 //   (longer each time) and goes on a later replan.
 
-import { createHash, randomBytes } from "node:crypto";
 import { z } from "zod";
 import type { PhoneLink, PhoneProblem } from "../../core/actions/phone";
 import { dateVars } from "../../core/dates";
@@ -32,6 +31,8 @@ import { edunexTaskUrl } from "../../core/tasks";
 import type { AreaLog } from "../app-log";
 import type { Clock } from "../clock";
 import { EngineError } from "../errors";
+import { digest } from "../platform/hash";
+import { randomBytes } from "../platform/random";
 import type { Vault } from "../store/storage";
 import type { AlertNotice } from "./center";
 import { clockTime, type PlannedAlert } from "./detector";
@@ -194,9 +195,9 @@ export function newTopic(): string {
 export const subscribeLink = (topic: string) => `ntfy://${NTFY_HOST}/${topic}?display=${encodeURIComponent("Edunex Plus")}`;
 
 /** A stable sequence ID for an alert id, in the characters ntfy takes. */
-export const sequenceId = (id: string) => `ep-${digest(id)}`;
+export const sequenceId = (id: string) => `ep-${shortDigest(id)}`;
 
-const digest = (text: string) => createHash("sha256").update(text).digest("base64url").slice(0, 22);
+const shortDigest = (text: string) => digest("sha256", text, "base64url").slice(0, 22);
 
 const utf8 = new TextEncoder();
 
@@ -441,7 +442,7 @@ export class PhoneChannel {
     for (const planned of plan) {
       const at = phoneTime(planned, quiet);
       const message = { ...phoneMessage(planned, lang, { ahead: true, courses }), delay: delay(at) };
-      wanted.set(planned.id, { planned, at, message, hash: digest(JSON.stringify({ lang, message })) });
+      wanted.set(planned.id, { planned, at, message, hash: shortDigest(JSON.stringify({ lang, message })) });
     }
     const bookable = (at: number) => at - now >= LEAD && at - now <= HORIZON;
     let changed = false;

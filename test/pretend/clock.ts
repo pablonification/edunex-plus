@@ -1,14 +1,13 @@
 // A clock tests move by hand. Timers fire in time order, and async work they
 // start gets to run before the next one fires.
 import type { Clock, TimerHandle } from "../../src/engine/clock";
+import { settle } from "./settle";
 
 interface Timer {
   id: number;
   at: number;
   fn: () => void;
 }
-
-const settle = () => new Promise<void>((resolve) => setImmediate(resolve));
 
 export class FakeClock implements Clock {
   private timers: Timer[] = [];

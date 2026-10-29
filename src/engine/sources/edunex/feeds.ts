@@ -1,6 +1,7 @@
 // Edunex's core feeds (#71): who is signed in (also the liveness check) and
 // this term's courses.
 import type { Account, Course } from "../../../core/models";
+import type { FeedRead } from "../../report/kept-pages";
 import type { SourceContext } from "../source";
 import type { EdunexClient } from "./client";
 import { CoursePairs, LoginMe } from "./schemas";
@@ -8,11 +9,14 @@ import { CoursePairs, LoginMe } from "./schemas";
 const MINUTE = 60_000;
 
 export function registerCoreFeeds(context: SourceContext, client: EdunexClient): void {
+  // Each run reads and stores through its own view of the two, so the report knows which run got what (FeedSpec.run).
+  const noted = (read: FeedRead) => ({ context: context.for(read), client: client.for(read) });
   context.feed({
     name: "edunex.account",
     every: 10 * MINUTE,
     jitter: MINUTE,
-    async run(current) {
+    async run(current, read) {
+      const { context, client } = noted(read);
       const account = await fetchAccount(client);
       if (!current()) return;
       const previous = context.get("edunex.account");
@@ -35,7 +39,8 @@ export function registerCoreFeeds(context: SourceContext, client: EdunexClient):
     name: "edunex.courses",
     every: 30 * MINUTE,
     jitter: 3 * MINUTE,
-    async run() {
+    async run(_current, read) {
+      const { context, client } = noted(read);
       await context.set("edunex.courses", await fetchCourses(client));
     },
   });
