@@ -20,6 +20,7 @@ if (!DEMO)
       const current = await host();
       if (current.running()) {
         await current.engine.refresh();
+        await current.reminders.settled();
         return BackgroundTask.BackgroundTaskResult.Success;
       }
       // Woken with the app closed: one round of every feed that's due (a feed already running isn't run twice),
@@ -27,6 +28,8 @@ if (!DEMO)
       current.start();
       await current.engine.refresh();
       await new Promise((resolve) => setTimeout(resolve, GROUP_WINDOW + 5_000));
+      // What this round planned is booked with Android before the app goes quiet (./reminders.ts).
+      await current.reminders.settled();
       // The home-screen widget shows what this round read.
       await updateWidgets(current).catch(() => undefined);
       // The Student opened the app meanwhile: its screens keep the feeds going.

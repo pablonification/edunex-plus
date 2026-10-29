@@ -27,6 +27,7 @@ import type { StringKey } from "../../src/core/strings";
 import { useParam } from "../src/nav";
 import { TargetStepper, useTargets } from "../src/parts/attendance";
 import { openCourseColorPicker } from "../src/parts/course-color-picker";
+import { NotificationsOff } from "../src/parts/notifications-off";
 import { openReport } from "../src/parts/report";
 import { useSignIn, useSignInNote } from "../src/shell/source-status";
 import { toast } from "../src/swaps/overlays";
@@ -226,7 +227,7 @@ function AlertSettings({ settings, update, report }: { settings: Settings; updat
       deadlineReminders: DEADLINE_REMINDERS.filter((h) => (h === hours ? !settings.deadlineReminders.includes(h) : settings.deadlineReminders.includes(h))),
     });
   return (
-    <Group title={t("settings.alerts")}>
+    <Group title={t("settings.alerts")} lead={<NotificationsOff />}>
       {ALERT_ROWS.map(({ group, label, hint, six }) => (
         <View key={group}>
           <Row
@@ -574,7 +575,7 @@ function About() {
 }
 
 /** A group of settings on one card, under its title, with a note under it. */
-function Group({ title, note, first = false, children }: { title?: string; note?: string; first?: boolean; children: ReactNode }) {
+function Group({ title, note, lead, first = false, children }: { title?: string; note?: string; lead?: ReactNode; first?: boolean; children: ReactNode }) {
   return (
     <View style={{ marginTop: first ? 0 : space[6] }}>
       {title && (
@@ -582,6 +583,7 @@ function Group({ title, note, first = false, children }: { title?: string; note?
           {title}
         </Text>
       )}
+      {lead}
       <Card>
         <Divided>{children}</Divided>
       </Card>

@@ -6,13 +6,14 @@
 import { Directory, Paths } from "expo-file-system";
 import { getLocales } from "expo-localization";
 import * as Notifications from "expo-notifications";
-import { Platform } from "react-native";
+import { AppState, Platform } from "react-native";
 import type { BridgeApi } from "../../../src/app/bridge";
 import type { Event } from "../../../src/core/contract";
 import { SIX_WEB } from "../../../src/core/links";
 import type { Lang } from "../../../src/core/models";
 import type { FetchFile } from "../../../src/desktop/remote-files";
 import { type SignInWindows, signInToBoth } from "../../../src/desktop/signin-both";
+import type { PlannedAlert } from "../../../src/engine/alerts/detector";
 import { AppLog } from "../../../src/engine/app-log";
 import { type Clock, systemClock } from "../../../src/engine/clock";
 import { createEngine, type Engine } from "../../../src/engine/engine";
@@ -24,6 +25,7 @@ import { checkInOpener } from "./check-in";
 import { phoneFileHandlers } from "./files";
 import { answer, type HostUi, phoneHandlers } from "./handlers";
 import { phoneNotifier, prepareChannels } from "./notifier";
+import { type PhoneReminders, phoneReminders } from "./reminders";
 import { phoneReportHandlers } from "./report";
 import { PhoneStorage } from "./storage";
 import { phoneTaskHandlers } from "./tasks";
@@ -39,6 +41,8 @@ export interface Host {
   ui: HostUi;
   /** How far the demo's clock is ahead of real time (ms); 0 in the real app. */
   clockOffset(): number;
+  /** Timed alerts booked with Android ahead, and the live ones checked against them (./reminders.ts). */
+  reminders: PhoneReminders;
   /** Whether the engine's feeds are running (the screens started it, or a background sync). */
   running(): boolean;
   /** Starts the feeds once; later calls do nothing. */
@@ -106,6 +110,15 @@ async function makeHost(): Promise<Host> {
   const listeners = new Set<(event: unknown) => void>();
   let lang: Lang = "id";
   const notifier = phoneNotifier(() => lang);
+  const reminders = phoneReminders({
+    storage: world.storage,
+    clock: world.clock,
+    lang: () => lang,
+    show: (notice) => notifier.show(notice),
+    log: log.for("reminders"),
+  });
+  /** The settings timed alerts depend on: a change books them again at once, not at the next 5-minute check. */
+  let alertSettings = "";
   const ui: HostUi = { openCheckIn: async () => undefined };
   const send = (event: Event) => {
     for (const listener of listeners) listener(event);
@@ -121,10 +134,18 @@ async function makeHost(): Promise<Host> {
         lang = event.settings.lang;
         void prepareChannels(lang);
       }
+      if (event.type === "settings") {
+        const { mutedAlerts, deadlineReminders, classSoonAlerts } = event.settings;
+        const next = JSON.stringify([lang, mutedAlerts, deadlineReminders, classSoonAlerts]);
+        if (alertSettings && next !== alertSettings) queueMicrotask(() => engine.planAlerts());
+        alertSettings = next;
+      }
       send(event);
     },
     // The demo's made-up alerts stay in the app, as on the desktop.
-    alert: (notice) => void (DEMO ? undefined : notifier.show(notice)),
+    alert: (notice) => void (DEMO ? undefined : reminders.deliver(notice)),
+    // What's planned is booked with Android, to arrive with the app closed (./reminders.ts).
+    ...(DEMO ? {} : { upcoming: (planned: readonly PlannedAlert[]) => reminders.upcoming(planned) }),
     log,
     // Release builds ask GitHub once a day whether a newer version is out (Settings says so, D5); never the demo.
     checkForUpdates: !DEMO && !__DEV__,
@@ -154,6 +175,11 @@ async function makeHost(): Promise<Host> {
     started = false;
     engine.stop();
   };
+  // Back in the app (from Android's settings, say, notifications maybe just turned on): what's planned is booked again.
+  if (!DEMO)
+    AppState.addEventListener("change", (state) => {
+      if (state === "active" && started) engine.planAlerts();
+    });
   // "Tandai Hadir": SIX's timetable in a page of the app, signed in (./check-in.ts); the demo opens nothing.
   ui.openCheckIn = checkInOpener(engine, DEMO);
   const handlers = {
@@ -172,6 +198,7 @@ async function makeHost(): Promise<Host> {
         if (downloads.exists) downloads.delete();
         await clearWebData().catch(() => undefined);
         await Notifications.cancelAllScheduledNotificationsAsync().catch(() => undefined);
+        reminders.forget();
         await Notifications.dismissAllNotificationsAsync().catch(() => undefined);
       },
       forgetSource: async (source) => {
@@ -213,5 +240,5 @@ async function makeHost(): Promise<Host> {
     },
     clockOffset: world.clockOffset(),
   };
-  return { engine, api, ui, clockOffset: world.clockOffset, running: () => started, start, stop };
+  return { engine, api, ui, reminders, clockOffset: world.clockOffset, running: () => started, start, stop };
 }

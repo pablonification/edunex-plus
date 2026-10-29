@@ -37,6 +37,13 @@ export const mobileStrings = {
     id: "Notifikasi untuk Edunex Plus mati. Nyalakan di pengaturan HP.",
     en: "Notifications for Edunex Plus are off. Turn them on in your phone's settings.",
   },
+  // At the top of Notifikasi while Android's permission is off; the button asks for it, or opens the app's notification settings.
+  "mobile.settings.notificationsOffTitle": { id: "Notifikasi mati", en: "Notifications are off" },
+  "mobile.settings.notificationsOffBody": {
+    id: "Pengingat tenggat, kuliah dan Presensi tidak akan muncul di HP ini.",
+    en: "Reminders for deadlines, classes and Presence won't show on this phone.",
+  },
+  "mobile.settings.notificationsTurnOn": { id: "Nyalakan notifikasi", en: "Turn on notifications" },
   // schedule
   // "Tambahkan ke kalender HP" on the phone (S8): the events go into the phone's own calendar, in one called Edunex Plus.
   "mobile.calendar.lead": {
@@ -111,6 +118,25 @@ export const phoneWording: Partial<Record<StringKey, Entry>> = {
   "settings.alerts.testSent": {
     id: "Terkirim. Tidak muncul? Izinkan notifikasi Edunex Plus di pengaturan HP.",
     en: "Sent. Didn't see it? Allow Edunex Plus notifications in your phone's settings.",
+  },
+  // settings: Notifikasi › Presensi. Tandai Hadir is only seen by checking SIX, which a closed app does now and then at best.
+  "settings.alerts.presenceHint": {
+    id: "Saat Presensi Edunex dibuka, saat Tandai Hadir muncul di SIX selama aplikasi terbuka, dan 15 menit sebelum tutup jika belum tercatat",
+    en: "When an Edunex Presence opens, when Tandai Hadir shows in SIX while the app is open, and 15 minutes before it closes if you're not recorded",
+  },
+  // home and presence: SIX is checked every 2 minutes only while the app is open (Android freezes a closed one).
+  "home.now.checkEvery": { id: "Dicek tiap 2 menit selama aplikasi terbuka", en: "Checked every 2 minutes while the app is open" },
+  "presence.row.watching": {
+    id: "Tandai Hadir belum muncul. Selama aplikasi terbuka, SIX dicek tiap 2 menit.",
+    en: "Tandai Hadir hasn't shown yet. While the app is open, it checks SIX every 2 minutes.",
+  },
+  "presence.footer": {
+    id: "Kehadiran dihitung di SIX. Tekan Tandai Hadir di SIX saat tombolnya muncul. Buka aplikasi saat kuliah agar langsung tahu.",
+    en: "Attendance counts in SIX. Press Tandai Hadir in SIX when it shows. Open the app in class to hear of it right away.",
+  },
+  "presence.how.check": {
+    id: "Setelah tiap kuliah, aplikasi mengecek apakah hitungan SIX bertambah, dan memberi tahu jika tidak. Pengecekannya saat aplikasi dibuka, dan sesekali saat tertutup.",
+    en: "After each class the app checks that SIX's count went up, and tells you if it didn't. It checks when you open the app, and now and then while it's closed.",
   },
   // settings: Pengingat yang ditunda. They're kept on this phone only.
   "settings.snoozed.hint": {
