@@ -147,8 +147,8 @@ machine). Every helper runs at effort high or more.
 | widget | Contact (Opus 5.5, high) | D1 home-screen widget (the tray's now/next/deadline) | `mobile-widget` | merged (a55850f), wired: `useWidgetUpdates` in the frame, `updateWidgets` after a closed-app sync, entry `mobile/index.ts` |
 | judge | Dev 1 (Opus 5.5, high) | Check B, checker (never edits): round 1 on 9 screens from run 40938204552 | `mobile-judge` (reads only) | round 1 done: 5/9 light, 4/9 dark, 2 unjudgeable pictures; fixes in ff2a963, 69b9cfb, a4a1d8d; round 2 on the next run's full set |
 | tester | Contact (Opus 5.5, high) | Fresh tester, checker (never edits): traces every desktop flow through the phone's code for broken, missing, wrong, rough | `mobile-tester` (reads only) | done (on a stale checkout: its wording, widget and background-task findings were already fixed); the rest fixed or handed out |
-| reminders | Contact (Opus 5.5, high) | Timed alerts scheduled ahead as Android notifications, the phone's true words about checking, a way back when notifications are off | `mobile-reminders` | building |
-| gaps | Dev 1 (Opus 5.5, high) | Course offline save, exam to calendar, banners on Nilai and Rencana, Laporkan on banners, welcome language switch, file and share words | `mobile-gaps` | building |
+| reminders | Contact (Opus 5.5, high) | Timed alerts scheduled ahead as Android notifications, the phone's true words about checking, a way back when notifications are off | `mobile-reminders` | merged (0cd44ec): booking.ts + reminders.ts (11 tests), 5 phone wording lines, notifications-off notice; device check pending |
+| gaps | Dev 1 (Opus 5.5, high) | Course offline save, exam to calendar, banners on Nilai and Rencana, Laporkan on banners, welcome language switch, file and share words | `mobile-gaps` | merged (3695abd): all six; device check pending |
 | inventory | Contact (Opus 5.5, high) | Check A inventory from the desktop demo per scenario + Maestro flow generator + score reporter | `mobile-inventory` | merged (8915598): 766 items signed-in, 15 scenarios |
 | home | Contact (Opus 5.5, xhigh) | S1 Beranda | `mobile-home` | merged (afdc26c) |
 | tasks | Dev 1 (Opus 5.5, high) | S2–S4 Tugas & Ujian, Task (hand-in, files), Exam | `mobile-tasks` | merged (d3ab9bd), handlers wired (3fcf067) |
@@ -200,6 +200,13 @@ machine). Every helper runs at effort high or more.
     `sudo iptables -I INPUT -i docker0 -p tcp --dport 8081 -j ACCEPT` (pabs' INPUT policy is DROP
     under ufw), then open the dev client on `http://172.17.0.1:8081`. `adb reverse` gives no answer
     through Redroid, so it isn't used.
+11. **Reminders are booked with Android ahead of time, with exact alarms.** Timed alerts (class
+    soon, deadlines, Presence closing) are scheduled as Android notifications from the engine's plan
+    (`src/host/booking.ts`, `reminders.ts`), so they arrive with the app closed; a live one and its
+    booking share an id and never both show. `USE_EXACT_ALARM` makes them on time (granted at
+    install from Android 13; the APK ships from GitHub, so Play's limit on it doesn't apply; if the
+    app ever goes to Play, this needs its declaration). Tandai Hadir opening can't be booked (only
+    reading SIX tells), so the phone says SIX is checked every 2 minutes only while it's open.
 
 ## Blocked
 

@@ -26,7 +26,14 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     },
     // Off: with it on, Android 13+ never sends React Native the Back press, so Back would close the app from a sign-in page or a sheet.
     predictiveBackGestureEnabled: false,
-    permissions: ["android.permission.READ_CALENDAR", "android.permission.WRITE_CALENDAR", "android.permission.POST_NOTIFICATIONS"],
+    // USE_EXACT_ALARM: a reminder booked ahead ("kuliah sebentar lagi", src/host/reminders.ts) arrives on time, not minutes
+    // late as Android 12+ lets an inexact alarm (PROGRESS.md Decision 11).
+    permissions: [
+      "android.permission.READ_CALENDAR",
+      "android.permission.WRITE_CALENDAR",
+      "android.permission.POST_NOTIFICATIONS",
+      "android.permission.USE_EXACT_ALARM",
+    ],
     blockedPermissions: ["android.permission.RECORD_AUDIO", "android.permission.SYSTEM_ALERT_WINDOW"],
   },
   ios: { supportsTablet: false, bundleIdentifier: "io.github.pablonification.edunexplus" },
