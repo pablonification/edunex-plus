@@ -16,6 +16,7 @@ import {
   FakePeople,
   isPersonObject,
   type MadeUp,
+  nameForms,
   peopleInEdunex,
   peopleOnSixPage,
   type RecordRules,
@@ -188,11 +189,8 @@ class ReportScrubber {
     const account = input.get("edunex.account");
 
     const names = new Set([student?.name, account?.name, ...six.map((page) => studentNameOnSixPage(page.body))].filter((name): name is string => !!name));
-    for (const name of names) {
-      this.known.add(name, FAKE_STUDENT.name);
-      this.known.add(name.toUpperCase(), FAKE_STUDENT.name.toUpperCase());
-      this.known.add(name.split(" ")[0], FAKE_STUDENT.first);
-    }
+    // In a file's name too ("Laporan-Rahmat-Sakti-Hidayatullah.pdf"), and each part of it alone.
+    for (const name of names) for (const [form, fake] of nameForms(name, FAKE_STUDENT.name)) this.known.add(form, fake);
 
     // The Student's own number first (theirs is in each SIX address), then anyone else's.
     const nims = new Set([student?.nim, account?.nim, ...pages.flatMap((page) => studentNumbers(page.url))].filter((nim): nim is string => !!nim));
@@ -254,9 +252,17 @@ class ReportScrubber {
     const system = systemOf(feed);
     if (system === "six")
       return { system, path, status: page.status, body: scrubPatterns(this.known.apply(scrubSixRecords(page.body, this.rules)), this.shapes) };
-    const text = scrubPatterns(this.known.apply(page.body), this.shapes);
-    const answer = parseJson(text);
+    const answer = parseJson(page.body);
     // Something other than data (Edunex's own error page, say): its words, as for any text.
-    return { system, path, status: page.status, body: answer === undefined ? text : JSON.stringify(scrubEdunexFields(answer, this.madeUp), null, 2) };
+    if (answer === undefined) return { system, path, status: page.status, body: this.value(page.body) };
+    // Read before it's scrubbed: Edunex writes every "/" as "\/" ("https:\/\/…blob.core.windows.net\/…")
+    // and letters past ASCII as "\u00e9" ("é"), where no rule finds a link or a name. Written back plainly, they do.
+    const scrubbed = parseJson(this.value(JSON.stringify(answer)));
+    // Scrubbing can leave it unreadable (a long number made up with zeros in front): its people's fields go first then.
+    const body =
+      scrubbed === undefined
+        ? this.value(JSON.stringify(scrubEdunexFields(answer, this.madeUp), null, 2))
+        : JSON.stringify(scrubEdunexFields(scrubbed, this.madeUp), null, 2);
+    return { system, path, status: page.status, body };
   }
 }

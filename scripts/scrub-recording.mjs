@@ -23,6 +23,7 @@ import {
   FAKE_STUDENT,
   FakePeople,
   looksLikeName,
+  nameForms,
   peopleInEdunex,
   peopleOnSixPage,
   Replacements,
@@ -182,9 +183,7 @@ for (const ex of [...edunexBodies, ...sixBodies]) for (const nim of studentNumbe
 // ---------------------------------------------------------------- the replacement map
 
 const known = new Replacements();
-known.add(student.name, FAKE_STUDENT.name);
-known.add(student.name.toUpperCase(), FAKE_STUDENT.name.toUpperCase());
-known.add(student.name.split(" ")[0], FAKE_STUDENT.first);
+for (const [form, fake] of nameForms(student.name, FAKE_STUDENT.name)) known.add(form, fake);
 known.add(student.email, FAKE_STUDENT.email);
 known.add(student.phone, FAKE_STUDENT.phone);
 known.add(student.address, "Jl. Contoh No. 1, Bandung");

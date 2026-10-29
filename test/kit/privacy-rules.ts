@@ -6,10 +6,14 @@
 /** The made-up Student's NIM and anyone else's (18223901, 18223902, …). */
 const FAKE_NIM = /^18223(?:9\d\d)$/;
 
+/** A link as it reads with its "/" plain, where JSON wrote them "\/" (Edunex does) or "\\/" (a report's page, inside the report). */
+const plain = (link: string) => link.replace(/\\+\//g, "/");
+
+// Links match with their "/" escaped too: a page whose "/" are still "\/" would carry a real link past them.
 const RULES: { what: string; pattern: RegExp; allowed: (match: string) => boolean }[] = [
   { what: "student number", pattern: /(?<!\d)1\d{2}(?:1[5-9]|2\d)\d{3}(?!\d)/g, allowed: (m) => FAKE_NIM.test(m) },
-  { what: "meeting link", pattern: /teams\.(?:microsoft|live)\.com\/[^"'\s<]+/g, allowed: (m) => m.includes("000000000000") },
-  { what: "file link", pattern: /\.blob\.core\.windows\.net\/[^"'\s<]+/g, allowed: (m) => m.includes("/edunex/fixture-") },
+  { what: "meeting link", pattern: /teams\.(?:microsoft|live)\.com\\*\/[^"'\s<]+/g, allowed: (m) => m.includes("000000000000") },
+  { what: "file link", pattern: /\.blob\.core\.windows\.net\\*\/[^"'\s<]+/g, allowed: (m) => plain(m).includes("/edunex/fixture-") },
   { what: "signed link", pattern: /[?&]sig=[\w%+/=-]+/g, allowed: (m) => m.endsWith("=fixture") },
   // Only where a run of a token's characters starts, as a token does (after a quote, a space, an =):
   // tried from every "eyJ" in one long run, "eyJ" a million times over took hours.
@@ -29,7 +33,7 @@ const RULES: { what: string; pattern: RegExp; allowed: (match: string) => boolea
     pattern: /(?<!\d)(?:19|20)\d{2}(?:0[1-9]|1[0-2])(?:[0-2]\d|3[01])(?:19|20)\d{2}(?:0[1-9]|1[0-2])[12]\d{3}(?!\d)/g,
     allowed: () => false,
   },
-  { what: "named photo", pattern: /cdn-edunex\.itb\.ac\.id\/avatar\/[^"'\s<]+/g, allowed: (m) => m.endsWith("/avatar/fixture-avatar.jpg") },
+  { what: "named photo", pattern: /cdn-edunex\.itb\.ac\.id\\*\/avatar\\*\/[^"'\s<]+/g, allowed: (m) => plain(m).endsWith("/avatar/fixture-avatar.jpg") },
 ];
 
 /**

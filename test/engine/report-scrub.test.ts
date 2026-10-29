@@ -253,6 +253,132 @@ describe("a report about an Edunex answer", () => {
     expect(sent.problems[0]!.check).toBe(before);
   });
 
+  describe("written as Edunex writes it, every / as \\/ and every letter past ASCII as \\u…", () => {
+    // Edunex is Laravel, whose JSON escapes those by default: "https:\/\/…blob.core.windows.net\/…".
+    const laravel = (value: unknown) =>
+      JSON.stringify(value)
+        .replace(/\//g, "\\/")
+        .replace(/[\u0080-\uffff]/g, (c) => `\\u${c.charCodeAt(0).toString(16).padStart(4, "0")}`);
+    // A Student with a middle name, which their file names carry too.
+    const name = "Rahmat Sakti Hidayatullah";
+    const known: Partial<{ [N in DatasetName]: DatasetValue<N> }> = { "edunex.account": { name, nim: REAL.nim } };
+    const storage = ["https://edunexstore.blob.core", "windows.net/edunex/production/task/314159"].join(".");
+    const signed = ["?sv=2023-11-03&se=2026-10-30T00%3A00%3A00Z&sr=b&sp=r&sig", "Zm9vYmFyYmF6cXV4"].join("=");
+    const teams = ["https://teams.microsoft", "com/l/meetup-join/19%3ameeting_Zm9v%40thread.v2/0"].join(".");
+    const fileNames = [
+      `1792000000123_Laporan-${name.split(" ").join("-")}-${REAL.nim}.pdf`,
+      `Tugas_${REAL.nim}_${name.split(" ").join("_")}.pdf`,
+      "Revisi Hidayatullah.pdf",
+    ];
+    const task = {
+      data: {
+        type: "tasks",
+        id: "117003",
+        attributes: {
+          name: "Tugas 02 Bab II",
+          // Ordinary words that hold a part of the name, or are one in small letters, stay.
+          description:
+            "<p>Ketentuan ‘NIM Nama’, ilmu yang sakti. Contoh: Saktiawan.</p>" +
+            `<p>Asistensi lewat <a href="${teams}">Teams</a>` +
+            " atau https://itb-ac-id.zoom.us/j/91234567890?pwd=cmFobWF0</p>",
+          answers: [
+            {
+              id: 2798141,
+              task_id: 117003,
+              answer: "<p>Bab II terlampir.</p>",
+              is_sent: 1,
+              comment: null,
+              files: fileNames.map((file, i) => ({
+                id: 3411997 + i,
+                fileable_type: "task_answers",
+                fileable_id: "2798141",
+                name: file,
+                file: `${storage}/${file.replace(/ /g, "%20")}${signed}`,
+              })),
+            },
+          ],
+        },
+      },
+    };
+    const sendTask = (body: string) =>
+      report(
+        {
+          feed: "edunex.tasks",
+          kind: "changed",
+          check: "",
+          rows: [],
+          pages: [{ url: "https://api-edunex.cognisia.id/course/tasks/117003?include=answers", status: 200, body }],
+        },
+        known,
+      );
+
+    it("its file and meeting links are made up, and the Student's name is gone from the file names that join it with - or _", async () => {
+      const sent = await sendTask(laravel(task));
+      expect(leaks(sent)).toEqual([]);
+      const body = sent.problems[0]!.pages[0]!.body;
+      for (const gone of [
+        "\\/",
+        "Rahmat",
+        "Hidayatullah",
+        name.toLowerCase(),
+        "edunexstore",
+        "production/task",
+        "314159",
+        "Zm9vYmFy",
+        "meetup-join",
+        "itb-ac-id.zoom",
+        "cmFobWF0",
+      ])
+        expect(body).not.toContain(gone);
+      expect(body).toContain("ilmu yang sakti. Contoh: Saktiawan.");
+      expect(body).toContain("‘NIM Nama’");
+      expect(body).toContain("https://teams.microsoft.com/meet/000000000000?p=fixture");
+      expect(body).toContain("https://zoom.us/j/0000000000");
+
+      const files: { name: string; file: string }[] = JSON.parse(body).data.attributes.answers[0].files;
+      expect(files.map((file) => file.name)).toEqual([
+        "1792000000123_Laporan-Dimas-Pratama-18223901.pdf",
+        "Tugas_18223901_Dimas_Pratama.pdf",
+        "Revisi Pratama.pdf",
+      ]);
+      for (const file of files) expect(file.file).toMatch(/^https:\/\/edunexfixture\.blob\.core\.windows\.net\/edunex\/fixture-\d+$/);
+      expect(new Set(files.map((file) => file.file)).size).toBe(3);
+    });
+
+    it("comes out just as the same answer written with plain slashes does", async () => {
+      const escaped = await sendTask(laravel(task));
+      const plain = await sendTask(JSON.stringify(task));
+      expect(escaped.problems[0]!.pages[0]!.body).toBe(plain.problems[0]!.pages[0]!.body);
+    });
+
+    it("an answer that scrubbing would leave unreadable (a long number made up with zeros in front) still loses its people's details", async () => {
+      const me = {
+        id: 190001,
+        user_id: 190001,
+        name,
+        address: "Jl. Tamansari No. 73, Bandung",
+        place_of_birth: "Pematangsiantar",
+        // Seconds since 1970: nine digits or more, so made up as "0000000001", which JSON can't read.
+        token_expires_at: 1793180937,
+        cv: `${storage}/cv-${name.split(" ").join("-")}.pdf${signed}`,
+      };
+      const sent = await report(
+        {
+          feed: "edunex.account",
+          kind: "changed",
+          check: "",
+          rows: [],
+          pages: [{ url: "https://api-edunex.cognisia.id/login/me", status: 200, body: laravel(me) }],
+        },
+        known,
+      );
+      expect(leaks(sent)).toEqual([]);
+      const body = sent.problems[0]!.pages[0]!.body;
+      for (const gone of ["\\/", "Tamansari", "Pematangsiantar", "Rahmat", "Hidayatullah", "edunexstore", "314159"]) expect(body).not.toContain(gone);
+      expect(body).toContain('"https://edunexfixture.blob.core.windows.net/edunex/fixture-1"');
+    });
+  });
+
   it("the messages under an answer are gone, and each still says whether a lecturer or the Student wrote it", () => {
     const thread = {
       data: [

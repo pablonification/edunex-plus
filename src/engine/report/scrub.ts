@@ -16,7 +16,6 @@
 /** The made-up Student every committed test and picture uses (CONTRIBUTING.md). */
 export const FAKE_STUDENT = {
   name: "Dimas Pratama",
-  first: "Dimas",
   email: "dimas.pratama@mahasiswa.itb.ac.id",
   phone: "080000000000",
   /** The made-up NIMs are 18223901 (the Student), 18223902, … (anyone else): the ones the privacy tests allow. */
@@ -216,6 +215,38 @@ export const coreName = (full: string) => full.split(",")[0]!.replace(TITLES, ""
 
 /** A name as people write one: capitalised words, four letters or more in all. */
 export const looksLikeName = (core: string) => core.length >= 4 && /^[A-Z][A-Za-z'’.-]+( [A-Za-z'’.-]+)*$/.test(core);
+
+/** `fake` in the same case as `real`: all capitals, all small letters, or as it is. */
+const sameCase = (real: string, fake: string) => (real === real.toUpperCase() ? fake.toUpperCase() : real === real.toLowerCase() ? fake.toLowerCase() : fake);
+
+/**
+ * The ways the Student's name gets written, each with `fake` written the same way: whole, as it is
+ * and in capitals; joined as file names and addresses join it ("Rahmat-Sakti-Hidayatullah",
+ * "rahmat_sakti_hidayatullah", "RahmatSakti…"), in any case; and each part alone, as it is,
+ * capitalised or in capitals, the first part as `fake`'s first name and the others as its last.
+ * A part alone is never matched in small letters ("sakti", "putri" are words too), and past the first
+ * only from four letters ("Nur", "Tri" are as often words of their own). Replacements only replaces a
+ * value standing whole, so "Sakti" stays in "Saktiawan".
+ */
+export function nameForms(real: string, fake: string): [string, string][] {
+  const parts = real.split(/\s+/).filter(Boolean);
+  const fakes = fake.split(" ");
+  const forms: [string, string][] = [];
+  const add = (form: string, stand: string) => forms.push([form, sameCase(form, stand)]);
+  add(real, fake);
+  add(real.toUpperCase(), fake);
+  if (parts.length > 1)
+    for (const joint of [" ", "-", "_", ".", ""]) {
+      const form = parts.join(joint);
+      for (const written of [form, form.toUpperCase(), form.toLowerCase()]) add(written, fakes.join(joint));
+    }
+  for (const [i, part] of parts.entries()) {
+    if (i > 0 && part.length < 4) continue;
+    const stand = i === 0 ? fakes[0]! : fakes[fakes.length - 1]!;
+    for (const written of [part, `${part[0]!.toUpperCase()}${part.slice(1).toLowerCase()}`, part.toUpperCase()]) add(written, stand);
+  }
+  return forms;
+}
 
 /** Someone written with an academic title before or a degree after: "Dr. Budi Santoso", "Budi Santoso, S.T., M.T.". */
 const TITLED =
