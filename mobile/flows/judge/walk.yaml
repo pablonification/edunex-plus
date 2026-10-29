@@ -12,10 +12,12 @@ appId: io.github.pablonification.edunexplus.demo
     timeout: 180000
 - waitForAnimationToEnd
 - takeScreenshot: ${THEME}-01-beranda
+# Beranda's lower half: the rest of today, what needs you, what changed.
 - scrollUntilVisible:
     element:
-      text: "Hari ini"
+      text: "Yang berubah"
     direction: DOWN
+    centerElement: true
 - takeScreenshot: ${THEME}-02-beranda-hari-ini
 
 # Tugas & Ujian, a Task, an exam
@@ -35,24 +37,25 @@ appId: io.github.pablonification.edunexplus.demo
     timeout: 20000
 - waitForAnimationToEnd
 - takeScreenshot: ${THEME}-04-tugas
+# The hand-in below the instructions: the answer, the files, the note for the lecturer, Riwayat.
+- scrollUntilVisible:
+    element:
+      id: action.attach
+    direction: DOWN
+    centerElement: true
+    optional: true
+- takeScreenshot: ${THEME}-04b-tugas-kumpulkan
 - tapOn:
     id: action.back
 - tapOn:
     id: tab.tasks
-# The exam is near the top of the list, above the Task just opened.
-- scrollUntilVisible:
-    element:
-      id: row.exam.DK4073-UTS
-    direction: UP
-    optional: true
+# The exam is near the top of the list (the tab's tap brought it back up): no scroll, which at the top would refresh.
 - tapOn:
     id: row.exam.DK4073-UTS
-    optional: true
 - waitForAnimationToEnd
 - takeScreenshot: ${THEME}-06-ujian
 - tapOn:
     id: action.back
-    optional: true
 
 # Jadwal: the week, a class, the week of the midterms, the month, the phone's calendar
 - tapOn:
@@ -190,7 +193,8 @@ appId: io.github.pablonification.edunexplus.demo
     id: tab.home
 - tapOn:
     id: action.search
-- inputText: "tugas"
+# The desktop's own search, for the same results.
+- inputText: "bab 2"
 - hideKeyboard
 - takeScreenshot: ${THEME}-23-cari
 - tapOn:
