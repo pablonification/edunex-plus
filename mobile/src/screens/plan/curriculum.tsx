@@ -544,11 +544,11 @@ function PickStandIn({ record, course, onPick, onClose }: { record: StudentRecor
             </Text>
             <View style={{ flex: 1, minWidth: 0 }}>
               <Text size="body">{c.name}</Text>
-              {c.fills && (
+              {c.fills ? (
                 <Text size="caption" tone="muted">
                   {t("curriculum.pick.fills", { code: c.fills })}
                 </Text>
-              )}
+              ) : null}
             </View>
             <Meta>
               {c.grade}

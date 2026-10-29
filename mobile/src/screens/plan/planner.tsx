@@ -220,7 +220,7 @@ function Planner({ real, record, state }: { real: StudentRecord; record: Student
       <Summary record={record} state={state} rules={rules} />
       <Past record={record} steps={projection.steps.filter((s) => !s.projected && s.term !== record.term)} />
       {/* Shown while this term's KRS is still empty too: that's when trying courses matters most. */}
-      {record.term && (
+      {record.term ? (
         <TermBlock
           term={record.term}
           title={nowLabel}
@@ -280,7 +280,7 @@ function Planner({ real, record, state }: { real: StudentRecord; record: Student
           })}
           {nowCourses.length === 0 && <Empty text={t("planner.nowEmpty")} />}
         </TermBlock>
-      )}
+      ) : null}
       {plan.terms.map((term) => {
         const semester = semesterOf(term.term, record.entryTerm);
         const label = termLabel(term.term, semester);
@@ -360,11 +360,11 @@ function Planner({ real, record, state }: { real: StudentRecord; record: Student
         <Button icon={<Icons.Plus size={14} />} onPress={() => update((p) => addTerm(p, record))} testID="action.addTerm">
           {t("planner.addTerm")}
         </Button>
-        {short && (
+        {short ? (
           <Button icon={<Icons.Plus size={14} />} onPress={() => update((p) => addShortTerm(p, record))} testID="action.addShortTerm">
             {t("planner.addShort")}
           </Button>
-        )}
+        ) : null}
         <Button
           variant="ghost"
           size="sm"
@@ -506,11 +506,11 @@ function Summary({ record, state, rules }: { record: StudentRecord; state: PlanS
           <Text size="title" weight="semibold" tabular>
             {projection.finalIpk === null ? "-" : f.number(projection.finalIpk, 2)}
           </Text>
-          {word && (
+          {word ? (
             <Text size="caption" weight={projection.honor ? "semibold" : "regular"} tone={projection.honor ? "success" : "muted"}>
               {word}
             </Text>
-          )}
+          ) : null}
         </View>
       </View>
       <SksBar sks={sks} />
@@ -1137,7 +1137,7 @@ function Rules({ record, rules, plan, undoable }: { record: StudentRecord; rules
                   <Text size="small" tone="muted">
                     {detail}
                   </Text>
-                  {key && (
+                  {key ? (
                     <View style={{ flexDirection: "row", marginLeft: -space[3] }}>
                       <Button
                         variant="ghost"
@@ -1150,7 +1150,7 @@ function Rules({ record, rules, plan, undoable }: { record: StudentRecord; rules
                         {t("planner.hide")}
                       </Button>
                     </View>
-                  )}
+                  ) : null}
                   {/* The one way an error is settled here: the program adds the course (Kerja Praktik, say), so it isn't the Student's to plan. */}
                   {settleable.length > 0 && (
                     <View style={{ flexDirection: "row", marginLeft: -space[3] }}>

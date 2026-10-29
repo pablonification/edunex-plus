@@ -19,6 +19,7 @@ import { TopBar } from "../../ui/top-bar";
 import * as bills from "./bills";
 import * as curriculum from "./curriculum";
 import * as deadlines from "./deadlines";
+import { useFreshPlan } from "./fresh-plan";
 import * as krs from "./krs";
 import * as planner from "./planner";
 import { TabBar } from "./tab-bar";
@@ -36,6 +37,8 @@ export function PlanScreen({ tab }: { tab?: string }) {
   const { replace } = useNav();
   const pull = usePullToRefresh();
   const scroll = useRef<ComponentRef<typeof ScrollView>>(null);
+  // Back from another screen that changed the saved plan: the tab starts again from what's saved.
+  const fresh = useFreshPlan();
   const first = builtPlanTabs[0] ?? "planner";
   const current: PlanTab = builtPlanTabs.some((id) => id === tab) ? (tab as PlanTab) : first;
   const setCurrent = (next: PlanTab) => replace({ screen: "plan", tab: next });
@@ -65,7 +68,7 @@ export function PlanScreen({ tab }: { tab?: string }) {
       {...pull}
     >
       <View testID={`panel.plan.${current}`}>
-        <TabBoundary key={current} name={`plan ${current}`}>
+        <TabBoundary key={`${current}:${fresh}`} name={`plan ${current}`}>
           <Tab onCalendar={() => setCurrent("deadlines")} />
         </TabBoundary>
       </View>

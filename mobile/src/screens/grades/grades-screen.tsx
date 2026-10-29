@@ -25,6 +25,7 @@ import { List, Meta, Notice, Page, PageHeader, Row, Section, Stat, StatRow } fro
 import { Text } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
 import { TopBar } from "../../ui/top-bar";
+import { useFreshPlan } from "../plan/fresh-plan";
 import { GradeBadge, GradeSelect, HonorsSentence, IpkChart, NeedText, predicateFor, TargetControl, usePredicate, useTermName } from "../plan/projection";
 import { SixNeeded } from "../plan/six-needed";
 import { shownIndex, Transcript } from "./transcript";
@@ -33,14 +34,20 @@ const SIX_WEB = "https://six.itb.ac.id";
 
 export function GradesScreen() {
   const pull = usePullToRefresh();
+  // Back from the planner with a plan it changed: start again from what's saved.
+  const fresh = useFreshPlan();
+  return (
+    <Page testID="screen.grades" header={<TopBar />} {...pull}>
+      <GradesOrWithoutSix key={fresh} />
+    </Page>
+  );
+}
+
+function GradesOrWithoutSix() {
   const record = useStudentRecord();
   // SIX's own record: the planner's what-ifs for this term stay in the planner.
   const state = usePlan(record, false);
-  return (
-    <Page testID="screen.grades" header={<TopBar />} {...pull}>
-      {record && state ? <Grades record={record} state={state} /> : <WithoutSix />}
-    </Page>
-  );
+  return record && state ? <Grades record={record} state={state} /> : <WithoutSix />;
 }
 
 function Grades({ record, state }: { record: StudentRecord; state: PlanState }) {
@@ -167,11 +174,11 @@ function Graduation({ record, state }: { record: StudentRecord; state: PlanState
       <Text size="display" weight="semibold" tabular style={{ marginTop: space[3] }}>
         {final === null ? "-" : f.number(final, 2)}
       </Text>
-      {word && (
+      {word ? (
         <Text size="small" weight="semibold" tone={projection.honor ? "success" : "fg"}>
           {word}
         </Text>
-      )}
+      ) : null}
       {finish && (
         <View style={{ marginTop: space[1], flexDirection: "row", alignItems: "center", gap: 6 }}>
           {blocked ? <Icons.AlertTriangle size={14} color={theme.color.warningFg} /> : <Icons.Flag size={14} color={theme.color.muted} />}
