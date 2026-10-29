@@ -69,6 +69,11 @@ export const mobileStrings = {
     en: "Allow Calendar for Edunex Plus in your phone's settings, or share the .ics with a calendar app.",
   },
   "mobile.calendar.settings": { id: "Buka setelan", en: "Open settings" },
+  // The exam page's "Tambahkan ke kalender HP": said in a toast, with Buka setelan as its button.
+  "mobile.exam.calendarDenied": {
+    id: "Kalender HP belum diizinkan. Izinkan Kalender untuk Edunex Plus di setelan HP.",
+    en: "Calendar access is off. Allow Calendar for Edunex Plus in your phone's settings.",
+  },
   "mobile.calendar.failed": {
     id: "Kalender HP tidak bisa diisi. Coba lagi, atau bagikan .ics.",
     en: "Couldn't add to your phone's calendar. Try again, or share the .ics.",
