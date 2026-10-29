@@ -1,6 +1,8 @@
 // How SIX-reading code asks for pages. The SIX client (#76) implements it:
 // one page at a time at human pace, a redirect to /login ends the session
-// (Unauthorized), a rate-limit answer pauses SIX (Offline).
+// (Unauthorized), a redirect to a page the app never reads (SIX's Pengkinian
+// Data Induk form) stops there (ActionNeeded), a rate-limit answer pauses SIX
+// (Offline).
 export interface SixIdentity {
   nim: string;
   /** SIX's own id for the Student, used in page addresses. */

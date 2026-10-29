@@ -162,6 +162,7 @@ export const searchStrings = {
   "scan.unread.offline": { id: "{source} tidak bisa dihubungi", en: "{source} couldn't be reached" },
   "scan.unread.changed": { id: "{source} mengubah sesuatu", en: "{source} changed something" },
   "scan.unread.expired": { id: "Sesi {source} berakhir", en: "{source} ended the session" },
+  "scan.unread.action-needed": { id: "{source} menunggumu", en: "{source} is waiting for you" },
   "scan.unread.catalog": { id: "Katalog publik SIX", en: "SIX's public catalog" },
   "scan.part.edunex.courses": { id: "Mata kuliah", en: "Courses" },
   "scan.part.edunex.tasks": { id: "Tugas", en: "Tasks" },

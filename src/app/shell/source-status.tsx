@@ -3,8 +3,10 @@
 // every screen, when something needs the Student.
 import { type ReactNode, useCallback, useState, useSyncExternalStore } from "react";
 import type { SignInStep } from "../../core/contract";
-import type { SourceId, SourceState } from "../../core/models";
+import { EDUNEX_WEB, SIX_WEB, sixStatusUrl } from "../../core/links";
+import type { SourceAsks, SourceId, SourceState, SourceStatus } from "../../core/models";
 import { type Bridge, errorKey } from "../bridge";
+import { useOpenExternal } from "../hooks";
 import { useFormat, useT } from "../i18n";
 import { ReportButton } from "../report";
 import { useBridge, useDataset, useSignInStep, useStatus } from "../store";
@@ -35,6 +37,24 @@ export function useSignIn() {
     [bridge, t],
   );
   return { signIn, busy };
+}
+
+/**
+ * Opens the system's own site where the Student does what it asks of them first (SIX's Pengkinian Data
+ * Induk): for SIX its status page, which SIX sends on to that form, or SIX's home without the NIM.
+ */
+function useOpenAsked(): (source: SourceId) => void {
+  const open = useOpenExternal();
+  const student = useDataset("six.student");
+  const account = useDataset("edunex.account");
+  // A new Student's SIX was never read: Edunex knows the same NIM.
+  const nim = student?.nim ?? account?.nim;
+  return useCallback((source: SourceId) => open(source === "edunex" ? EDUNEX_WEB : nim ? sixStatusUrl(nim) : SIX_WEB), [open, nim]);
+}
+
+/** What a system in "action-needed" asks of the Student, as the banner and the status panel say it (`hint`), with `source` its name. */
+function askedHint(asks: SourceAsks | undefined, source: string, t: ReturnType<typeof useT>): string {
+  return asks === "datainduk" ? t("status.dataIndukHint") : t("status.actionNeededHint", { source });
 }
 
 /**
@@ -124,14 +144,16 @@ function StateMark({ state, busy }: { state: SourceState; busy: boolean }) {
       return <span aria-hidden className="size-2 rounded-full bg-meter-warning" />;
     case "changed":
       return <Icons.AlertTriangle className="size-3.5 text-danger-fg" />;
+    case "action-needed":
+      return <Icons.ClipboardCheck className="size-3.5 text-warning-fg" />;
     default:
       return <span aria-hidden className="size-2 rounded-full border border-faint" />;
   }
 }
 
 /** The worst thing going on across the signed-in sources, for the top bar's one status control. */
-function overall(states: SourceState[]): "changed" | "expired" | "offline" | "connecting" | "live" | "signed-out" {
-  for (const state of ["changed", "expired", "offline", "connecting", "live"] as const) if (states.includes(state)) return state;
+function overall(states: SourceState[]): SourceState {
+  for (const state of ["changed", "expired", "action-needed", "offline", "connecting", "live"] as const) if (states.includes(state)) return state;
   return "signed-out";
 }
 
@@ -156,15 +178,16 @@ export function SyncStatus() {
   const going = signedIn.filter((status) => now.includes(status.source));
   const worst = overall(signedIn.map((status) => status.state));
   const state = going.length > 0 && (worst === "live" || worst === "signed-out") ? "connecting" : worst;
-  const troubled = signedIn.find((status) => status.state === state && (state === "changed" || state === "expired"));
+  const troubled = signedIn.find((status) => status.state === state && (state === "changed" || state === "expired" || state === "action-needed"));
   const unreachable = signedIn.filter((status) => status.state === "offline");
   const updatedAt = Math.max(0, ...signedIn.map((status) => status.updatedAt ?? 0)) || null;
   let text: string;
   if (state === "connecting")
     text = going.length === 1 && signedIn.length > 1 ? t("sync.checkingOne", { source: t(`source.${going[0]!.source}`) }) : t("sync.checking");
   else if (troubled)
-    text =
-      state === "expired" ? t("sync.expired", { source: t(`source.${troubled.source}`) }) : t("status.changed", { source: t(`source.${troubled.source}`) });
+    text = t(state === "expired" ? "sync.expired" : state === "action-needed" ? "sync.actionNeeded" : "status.changed", {
+      source: t(`source.${troubled.source}`),
+    });
   else if (state === "offline")
     text = unreachable.length < signedIn.length ? t("sync.offlineOne", { source: t(`source.${unreachable[0]!.source}`) }) : t("status.offline");
   else text = updatedAt ? t("status.updated", { when: f.fromNow(updatedAt) }) : t("status.neverUpdated");
@@ -184,7 +207,7 @@ export function SyncStatus() {
             "focus-ring no-drag inline-flex h-8 shrink-0 items-center gap-2 rounded-lg px-2.5 text-small font-medium transition-colors duration-150 max-[52rem]:min-w-11 max-[52rem]:shrink",
             state === "changed"
               ? "bg-danger-bg text-danger-fg"
-              : state === "expired"
+              : state === "expired" || state === "action-needed"
                 ? "bg-warning-bg text-warning-fg"
                 : "text-muted hover:bg-hover hover:text-fg",
           )}
@@ -225,11 +248,12 @@ function SourceRow({ source }: { source: SourceId }) {
   const status = useStatus(source);
   const { signIn, busy: signingIn } = useSignIn();
   const { refresh } = useRefresh();
+  const openAsked = useOpenAsked();
   const refreshing = useReading().includes(source);
   const name = t(`source.${source}`);
   const needsSignIn = source !== "itb" && (status.state === "expired" || status.state === "signed-out");
   const note = useSignInNote(source);
-  const hint = needsSignIn && note ? note.text : refreshing ? t("sync.checking") : hintFor(status.state, name, t);
+  const hint = needsSignIn && note ? note.text : refreshing ? t("sync.checking") : hintFor(status, name, t);
   const word = status.state === "changed" ? t("status.changedShort") : t(`status.${status.state}`);
   return (
     <li className="flex items-start gap-3 rounded-lg px-2.5 py-2">
@@ -244,7 +268,16 @@ function SourceRow({ source }: { source: SourceId }) {
         <p className="text-body font-medium">
           <Meta>
             {name}
-            <span className={cx("font-normal", status.state === "expired" ? "text-warning-fg" : status.state === "changed" ? "text-danger-fg" : "text-muted")}>
+            <span
+              className={cx(
+                "font-normal",
+                status.state === "expired" || status.state === "action-needed"
+                  ? "text-warning-fg"
+                  : status.state === "changed"
+                    ? "text-danger-fg"
+                    : "text-muted",
+              )}
+            >
               {word}
             </span>
           </Meta>
@@ -258,6 +291,10 @@ function SourceRow({ source }: { source: SourceId }) {
         <Button size="sm" variant={status.state === "expired" ? "primary" : "secondary"} busy={signingIn} onClick={() => void signIn(source)}>
           {status.state === "expired" ? t("action.signInAgain") : t("action.signInTo", { source: name })}
         </Button>
+      ) : status.state === "action-needed" ? (
+        <Button size="sm" variant="primary" icon={<Icons.ArrowUpRight className="size-3.5" />} onClick={() => openAsked(source)}>
+          {t("action.openSource", { source: name })}
+        </Button>
       ) : status.state === "changed" || status.state === "offline" ? (
         <Button size="sm" busy={refreshing} onClick={() => void refresh(source)}>
           {t("action.tryAgain")}
@@ -267,7 +304,8 @@ function SourceRow({ source }: { source: SourceId }) {
   );
 }
 
-function hintFor(state: SourceState, source: string, t: ReturnType<typeof useT>): string | null {
+function hintFor({ state, asks }: SourceStatus, source: string, t: ReturnType<typeof useT>): string | null {
+  if (state === "action-needed") return askedHint(asks, source, t);
   if (state === "expired") return t("status.expiredHint", { source });
   if (state === "changed") return t("status.changedHint", { source });
   if (state === "offline") return t("status.offlineHint", { source });
@@ -276,8 +314,9 @@ function hintFor(state: SourceState, source: string, t: ReturnType<typeof useT>)
 
 /**
  * Under the top bar, on every screen: a session that ended, saved data with no
- * session, a source that changed something, or no connection at all. What
- * happened, that the last data is still here, and the one thing to do.
+ * session, a source waiting for the Student to do something on its site first,
+ * a source that changed something, or no connection at all. What happened,
+ * that the last data is still here, and the one thing to do.
  */
 export function ProblemBanner() {
   const t = useT();
@@ -288,6 +327,7 @@ export function ProblemBanner() {
   const student = useDataset("six.student");
   const { signIn, busy: signingIn } = useSignIn();
   const { refresh, busy: refreshing } = useRefresh();
+  const openAsked = useOpenAsked();
   const [dismissed, setDismissed] = useState<string | null>(null);
   const edunexNote = useSignInNote("edunex");
   const sixNote = useSignInNote("six");
@@ -295,6 +335,7 @@ export function ProblemBanner() {
   const problem =
     [edunex, six].find((status) => status.state === "changed") ??
     [edunex, six].find((status) => status.state === "expired" || (status.state === "signed-out" && has[status.source as "edunex" | "six"])) ??
+    [edunex, six].find((status) => status.state === "action-needed") ??
     ([edunex, six].filter((status) => status.state !== "signed-out").every((status) => status.state === "offline") &&
     [edunex, six].some((status) => status.state === "offline")
       ? [edunex, six].find((status) => status.state === "offline")
@@ -305,6 +346,7 @@ export function ProblemBanner() {
   const name = t(`source.${problem.source}`);
   const offline = problem.state === "offline";
   const needsSignIn = problem.state === "expired" || problem.state === "signed-out";
+  const asked = problem.state === "action-needed";
   const lastUpdate = Math.max(0, ...[edunex, six].map((status) => status.updatedAt ?? 0));
   const title = offline
     ? t("banner.offline")
@@ -312,7 +354,11 @@ export function ProblemBanner() {
       ? t("banner.expired", { source: name })
       : problem.state === "signed-out"
         ? t("banner.signedOut", { source: name })
-        : t("banner.changed", { source: name });
+        : asked
+          ? problem.asks === "datainduk"
+            ? t("banner.dataInduk")
+            : t("banner.actionNeeded", { source: name })
+          : t("banner.changed", { source: name });
   const note = needsSignIn ? (problem.source === "six" ? sixNote : edunexNote) : null;
   const detail = note
     ? note.text
@@ -322,7 +368,9 @@ export function ProblemBanner() {
         : null
       : problem.state === "changed"
         ? t("status.changedHint", { source: name })
-        : t("banner.keptHint");
+        : asked
+          ? askedHint(problem.asks, name, t)
+          : t("banner.keptHint");
   // Announced through the live region the shell keeps around it (shell.tsx): one mounted already holding its text isn't read reliably.
   return (
     <div
@@ -339,6 +387,8 @@ export function ProblemBanner() {
         <Icons.WifiOff className="size-4 shrink-0" />
       ) : needsSignIn ? (
         <Icons.Lock className="size-4 shrink-0" />
+      ) : asked ? (
+        <Icons.ClipboardCheck className="size-4 shrink-0" />
       ) : (
         <Icons.AlertTriangle className="size-4 shrink-0" />
       )}
@@ -351,6 +401,16 @@ export function ProblemBanner() {
         <Button size="sm" variant="primary" busy={signingIn} onClick={() => void signIn(problem.source)}>
           {problem.state === "expired" ? t("action.signInAgain") : t("action.signInTo", { source: name })}
         </Button>
+      ) : asked ? (
+        <>
+          <Button size="sm" variant="primary" icon={<Icons.ArrowUpRight className="size-3.5" />} onClick={() => openAsked(problem.source)}>
+            {t("action.openSource", { source: name })}
+          </Button>
+          {/* Done on the site: read it now instead of waiting for the next read. */}
+          <Button size="sm" busy={refreshing} onClick={() => void refresh(problem.source)}>
+            {t("action.tryAgain")}
+          </Button>
+        </>
       ) : (
         <Button size="sm" busy={refreshing} onClick={() => void refresh(offline ? undefined : problem.source)}>
           {t("action.tryAgain")}

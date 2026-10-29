@@ -1,4 +1,5 @@
 import type { ErrorKind } from "../core/contract";
+import type { SourceAsks } from "../core/models";
 import type { AnswerCheck } from "./http/transport";
 
 /** A failure the engine understands; its kind decides the source status and what the screens say. */
@@ -29,6 +30,21 @@ export const isEngineError = (error: unknown, kind?: ErrorKind): error is Engine
 export class PartChanged extends EngineError {
   constructor(message: string) {
     super("VendorChanged", message);
+  }
+}
+
+/**
+ * The service sent a page the app asked for on to one the Student must deal with on its own site
+ * first (SIX's Pengkinian Data Induk form), and the app never reads that one. Not a page change and
+ * not an ended session: nothing is reported, the session stays, and the next read tries again.
+ * `asks`: what the Student is to do there.
+ */
+export class ActionNeeded extends EngineError {
+  constructor(
+    readonly asks: SourceAsks,
+    message: string,
+  ) {
+    super("ActionNeeded", message);
   }
 }
 

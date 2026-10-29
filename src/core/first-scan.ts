@@ -336,11 +336,14 @@ function ipkStanding({ saved }: ScanInput): Finding | null {
   };
 }
 
-/** What a system couldn't read: parts that never arrived because it went offline, changed something (or one page did), or ended the session. */
+/**
+ * What a system couldn't read: parts that never arrived because it went offline, changed something (or one page did),
+ * ended the session, or waits for the Student to do something on its site first.
+ */
 function unread({ saved, statuses }: ScanInput): Finding | null {
   const parts = (["edunex", "six", "itb"] as const).flatMap((source) => {
     const state = stateOf(statuses, source);
-    if (state !== "offline" && state !== "changed" && state !== "expired") {
+    if (state !== "offline" && state !== "changed" && state !== "expired" && state !== "action-needed") {
       const fromPages = SCAN_PARTS[source].filter((name) => saved[name] === undefined && pageChanged(statuses, source, name));
       return fromPages.length ? [{ source, state: "changed" as const, missing: fromPages }] : [];
     }
