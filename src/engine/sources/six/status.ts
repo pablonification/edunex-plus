@@ -207,8 +207,10 @@ function readCourseTable($: Page, panel: Nodes, skipped: Skipped): SixCourse[] {
  * The attendance cell shows a percentage; its tooltip has the exact count
  * ("Hadir 4 dari 6 pertemuan"). The count is read as two numbers in a row in a
  * tooltip, whatever the wording, and must agree with the percentage shown. With
- * sick days SIX shows a second percentage ("82.35% / 94.12%", #237): the first
- * is the meetings attended, as for everyone else, and is the one read.
+ * sick days SIX shows a second percentage ("82.35% / 94.12%", #237), with its
+ * own tooltip counting days off sick or excused too ("Hadir (termasuk izin dan
+ * sakit) 16 dari 17 pertemuan"): the first is the meetings attended, as for
+ * everyone else, and is the one read.
  */
 function readAttendance($: Page, cell: Nodes, at: string): SixCourse["attendance"] {
   const shown = clean(cell.text());

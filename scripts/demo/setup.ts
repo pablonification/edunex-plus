@@ -76,8 +76,8 @@ if (process.env.EDUNEX_DEMO_CHECK_IN === "open") world.six.openCheckIn("2194342"
 if (process.env.EDUNEX_DEMO_SICK === "1")
   world.six.editPage(/\/statusmhs$/, (html) =>
     html.replace(
-      '<span title="Hadir 4 dari 6 pertemuan">66.67%</span>',
-      '<span title="Hadir 4 dari 6 pertemuan">66.67%</span> / <span title="Hadir dan sakit 5 dari 6 pertemuan">83.33%</span>',
+      '<span title="Hadir 4 dari 6 pertemuan">66.67%</span></span>',
+      '<span title="Hadir 4 dari 6 pertemuan">66.67%</span></span> / <span title="Hadir (termasuk izin dan sakit) 5 dari 6 pertemuan">83.33%</span>',
     ),
   );
 if (process.env.EDUNEX_DEMO_ODD === "1") {

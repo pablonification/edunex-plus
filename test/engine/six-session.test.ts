@@ -363,8 +363,30 @@ describe("a row SIX shows that the app doesn't understand", () => {
     expect(h.dataset("six.skipped")).toEqual({});
   });
 
-  // #237: with sick days SIX shows a second percentage. The real tooltip wasn't sent, so these are the shapes it could take.
+  // #237: with sick days SIX shows a second percentage. As a Student's report showed it (#257, #271): each in its own
+  // span with its own tooltip, the second counting days off sick or excused, and only the first in red when it's low.
   const DK4073 = '<span title="Hadir 4 dari 6 pertemuan">66.67%</span>';
+  const PL3002 = '<span title="Hadir 6 dari 7 pertemuan">85.71%</span>';
+  it("attendance with sick days, as SIX writes it: the count of meetings attended, as for everyone else", async () => {
+    const h = await signedIn();
+    // DK4073's attendance is low, so SIX shows its first percentage in red; PL3002's isn't.
+    h.world.six.changeLayout(
+      STATUS,
+      `${DK4073}</span>`,
+      `${DK4073}</span>\n            / <span title="Hadir (termasuk izin dan sakit) 5 dari 6 pertemuan">83.33%</span>`,
+    );
+    h.world.six.changeLayout(
+      STATUS,
+      PL3002,
+      `${PL3002}\n            \n            / <span title="Hadir (termasuk izin dan sakit) 7 dari 7 pertemuan">100.00%</span>`,
+    );
+    expect(h.world.six.page(STATUS).match(/termasuk izin dan sakit/g)).toHaveLength(2);
+    await until(h, h.engine.refresh("six"));
+    expect(h.dataset("six.courses")).toEqual(COURSES);
+    expect(h.dataset("six.skipped")).toBeUndefined();
+  });
+
+  // Other shapes another SIX could write.
   it.each([
     ["a second percentage after the first", `${DK4073} / 83.33%`],
     ["a tooltip with the sick days too", '<span title="Hadir 4 dari 6 pertemuan, sakit 1">66.67% / 83.33%</span>'],
