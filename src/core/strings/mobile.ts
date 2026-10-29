@@ -1,6 +1,8 @@
 // Text only the Android app shows: its tabs, its notification channels, and what a phone does
 // that the desktop doesn't (signing in on a page inside the app, the phone's calendar, files
-// opened in other apps). Everything else on the phone uses the desktop's own keys.
+// opened in other apps). Everything else on the phone uses the desktop's own keys, and
+// phoneWording, at the end, says the few of them that speak of a computer the phone's way.
+import type { StringKey } from "../strings";
 import type { Entry } from "./entry";
 
 export const mobileStrings = {
@@ -98,3 +100,49 @@ export const mobileStrings = {
     en: "Save it first with Share the file, to Drive or Files for example, so you can pick it on GitHub.",
   },
 } as const satisfies Record<string, Entry>;
+
+// The desktop's words the phone says its own way: the same facts, numbers and {placeholders}, with
+// "HP ini" for "komputer ini", a page for a window, a tap for a click. translate() takes them on the
+// phone only (./wording.native.ts), so the desktop's words stay as they are.
+export const phoneWording: Partial<Record<StringKey, Entry>> = {
+  // settings: the test notification's body, as Android shows it.
+  "alert.test.body": { id: "Ketuk untuk membuka Tugas & Ujian", en: "Tap to open Tasks & Exams" },
+  // settings: Notifikasi › Coba notifikasi, once sent.
+  "settings.alerts.testSent": {
+    id: "Terkirim. Tidak muncul? Izinkan notifikasi Edunex Plus di pengaturan HP.",
+    en: "Sent. Didn't see it? Allow Edunex Plus notifications in your phone's settings.",
+  },
+  // settings: Pengingat yang ditunda. They're kept on this phone only.
+  "settings.snoozed.hint": {
+    id: "Hanya di HP ini, untuk Beranda, halaman tugas, dan halaman mata kuliah. Notifikasi perubahan baru tetap muncul.",
+    en: "Only on this phone, for Home, Task pages and course pages. Notifications about new changes still come.",
+  },
+  // settings: Keluar & hapus data, and its confirm. The phone has no phone linked to it, so it isn't in the list.
+  "settings.signOutAllHint": {
+    id: "Keluar dari Edunex dan SIX, lalu menghapus semua datamu dari HP ini.",
+    en: "Signs out of Edunex and SIX, then removes all your data from this phone.",
+  },
+  "settings.signOutAllBody": {
+    id: "Kamu keluar dari Edunex dan SIX, dan semua yang disimpan aplikasi di HP ini dihapus. Itu termasuk yang kamu isi sendiri, seperti rencana studi, koreksi kurikulum, bobot dan nilai mata kuliah, target kehadiran per mata kuliah, warna mata kuliah, dan pengingat yang ditunda. Ini tidak bisa dibatalkan.",
+    en: "You're signed out of Edunex and SIX, and everything the app keeps on this phone is removed. That includes what you entered yourself, like your study plan, curriculum corrections, course weights and scores, each course's attendance target, course colors and snoozed reminders. You can't undo this.",
+  },
+  // sign-in, and the data status line: Edunex's or SIX's sign-in is a page in the app, not a window.
+  "signIn.slowHint": {
+    id: "Halaman masuknya terbuka lagi. Tunggu sebentar, atau tutup lalu coba lagi.",
+    en: "Its sign-in page is open again. Wait a moment, or close it and try again.",
+  },
+  // grades-plan: under the planner. The plan is kept on this phone.
+  "planner.local": {
+    id: "Rencana ini tersimpan di HP ini. Aplikasi tidak pernah mengirim KRS.",
+    en: "This plan stays on this phone. The app never sends a KRS.",
+  },
+  // grades-plan: Kurikulum's note. A course's corrections open from a tap on its row, not a ⋯ menu.
+  "curriculum.unlistedNote": {
+    id: "{count} mata kuliah tidak ada di catatan SIX-mu, jadi tidak dihitung sebagai sisa. Kalau prodimu bilang itu wajib untukmu, ketuk barisnya lalu pilih “Ada di kurikulumku”.",
+    en: {
+      one: "{count} course isn't on your SIX record, so it isn't counted as left. If your program says it's yours, tap its row and choose “In my curriculum”.",
+      other:
+        "{count} courses aren't on your SIX record, so they aren't counted as left. If your program says one is yours, tap its row and choose “In my curriculum”.",
+    },
+  },
+};
