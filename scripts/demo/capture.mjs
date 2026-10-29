@@ -221,16 +221,17 @@ await session("signed-in", async (demo) => {
     );
   });
   // A few dark pictures among the light ones; a dark run has them all already.
-  if (theme === "light") await attempt("dark", async () => {
-    await demo.settings({ theme: "dark" });
-    await nav(demo, "Beranda");
-    await demo.shot("28-gelap-beranda");
-    await nav(demo, "Jadwal");
-    await demo.shot("29-gelap-jadwal");
-    await nav(demo, "Nilai");
-    await demo.shot("30-gelap-nilai");
-    await demo.settings({ theme: "light" });
-  });
+  if (theme === "light")
+    await attempt("dark", async () => {
+      await demo.settings({ theme: "dark" });
+      await nav(demo, "Beranda");
+      await demo.shot("28-gelap-beranda");
+      await nav(demo, "Jadwal");
+      await demo.shot("29-gelap-jadwal");
+      await nav(demo, "Nilai");
+      await demo.shot("30-gelap-nilai");
+      await demo.settings({ theme: "light" });
+    });
   await attempt("english", async () => {
     await demo.settings({ lang: "en" });
     await nav(demo, "Home");
