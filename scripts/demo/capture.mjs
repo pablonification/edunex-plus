@@ -242,7 +242,11 @@ await session("signed-in", async (demo) => {
 await session("first-run", async (demo) => {
   const { page } = demo;
   await attempt("welcome", async () => {
+    // The credit plays first (a few seconds), then the welcome with its Mulai button.
+    await page.getByRole("button", { name: "Mulai" }).waitFor({ timeout: 15_000 });
+    await settle(page, 1500);
     await demo.shot("32-pertama-selamat-datang");
+    await page.getByRole("button", { name: "Mulai" }).click();
     await page.getByRole("button", { name: "Hubungkan Edunex" }).click();
     // Microsoft handed back: the sign-in window is out of sight while Edunex's session is read.
     await page.getByText("Menyelesaikan masuk ke Edunex…").waitFor({ timeout: 30_000 });
