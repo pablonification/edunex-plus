@@ -10,7 +10,7 @@
 // every JUnit .xml (flows that failed outright: the screen wasn't reached, or the app stopped).
 import fs from "node:fs";
 import path from "node:path";
-import { EXPECTED, LABEL } from "./flows-from-inventory.mjs";
+import { EXPECTED, LABEL, phoneSkip, SCREENS } from "./flows-from-inventory.mjs";
 
 /** Every file under `at` (or `at` itself). */
 function files(at) {
@@ -78,6 +78,7 @@ function main() {
   const { completed, ran } = seen(all.filter((f) => /^commands(?:-.*)?\.json$/.test(path.basename(f))));
   const failed = failedFlows(all.filter((f) => f.endsWith(".xml")));
 
+  const config = JSON.parse(fs.readFileSync(SCREENS, "utf8"));
   const scenarios = fs
     .readdirSync(EXPECTED)
     .filter((f) => f.endsWith(".json"))
@@ -95,8 +96,15 @@ function main() {
     }
     const byScreen = new Map();
     const missing = [];
+    const skipped = [];
     let found = 0;
-    for (const entry of inventory.entries) {
+    // The desktop's items the phone leaves out on purpose don't count, and are listed with why.
+    const counted = inventory.entries.filter((entry) => {
+      const skip = phoneSkip(config, entry.id);
+      if (skip) skipped.push({ entry, skip });
+      return !skip;
+    });
+    for (const entry of counted) {
       const looks = entry.tokens.map((_, i) => `data|${name}|${entry.id}|${i + 1}/${entry.tokens.length}`);
       const ok = looks.every((l) => completed.has(l));
       const row = byScreen.get(entry.screen) ?? { found: 0, of: 0 };
@@ -108,10 +116,14 @@ function main() {
       byScreen.set(entry.screen, row);
     }
     totalFound += found;
-    totalOf += inventory.entries.length;
-    lines.push(`| ${name} | ${found} | ${inventory.entries.length} | ${share(found, inventory.entries.length)} |`);
+    totalOf += counted.length;
+    lines.push(`| ${name} | ${found} | ${counted.length} | ${share(found, counted.length)} |`);
     details.push("", `### ${name}: by screen`, "", "| Screen | Found | Of | Share |", "| --- | ---: | ---: | ---: |");
     for (const [screen, row] of byScreen) details.push(`| ${screen} | ${row.found} | ${row.of} | ${share(row.found, row.of)} |`);
+    if (showMissing && skipped.length) {
+      details.push("", `Left out on purpose (${skipped.length}, not counted):`, "");
+      for (const { entry, skip } of skipped) details.push(`- \`${entry.id}\`: ${skip.row}, ${skip.why}`);
+    }
     if (showMissing && missing.length) {
       details.push("", `Not found on the phone (${missing.length}):`, "");
       for (const { entry, unseen } of missing) details.push(`- \`${entry.id}\`: ${unseen.map((t) => `"${t}"`).join(", ")}`);

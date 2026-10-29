@@ -18,7 +18,12 @@ import path from "node:path";
 const ROOT = path.resolve(import.meta.dirname, "..", "..");
 export const EXPECTED = path.join(ROOT, "mobile", "flows", "expected");
 const DATA = path.join(ROOT, "mobile", "flows", "data");
-const SCREENS = path.join(ROOT, "mobile", "flows", "screens.json");
+export const SCREENS = path.join(ROOT, "mobile", "flows", "screens.json");
+
+/** The desktop's items the phone leaves out on purpose (screens.json "phoneSkips": its scope row and why), by entry id. */
+export function phoneSkip(config, entryId) {
+  return (config.phoneSkips ?? []).find((skip) => new RegExp(skip.entry).test(entryId)) ?? null;
+}
 
 /** The label on the look for an entry's `n`th text of `of`. */
 export const label = (scenario, id, n, of) => `data|${scenario}|${id}|${n}/${of}`;
@@ -48,7 +53,7 @@ function fill(value, vars) {
 const line = (command) => `- ${JSON.stringify(command)}`;
 
 /** The checks for one entry: scroll to its first text (down, then up), then look for each text. */
-function checks(scenario, entry) {
+function checks(scenario, entry, scroll = 4000) {
   const out = [`# ${entry.kind}: ${entry.label}`.replace(/\s+/g, " ")];
   // Each text is looked for on its own, scrolling down then up to it: an item's first text (a time, a code) is often
   // on the screen higher up too, and anchoring on it left the rest of the item out of view. The flow proves the phone
@@ -57,10 +62,10 @@ function checks(scenario, entry) {
     const element = { text: pattern(token) };
     // Scrolled to only when it isn't on screen already (a scroll toward an item above would run to the end first).
     out.push(
-      line({ runFlow: { when: { notVisible: element }, commands: [{ scrollUntilVisible: { element, direction: "DOWN", timeout: 4000, optional: true } }] } }),
+      line({ runFlow: { when: { notVisible: element }, commands: [{ scrollUntilVisible: { element, direction: "DOWN", timeout: scroll, optional: true } }] } }),
     );
     out.push(
-      line({ runFlow: { when: { notVisible: element }, commands: [{ scrollUntilVisible: { element, direction: "UP", timeout: 4000, optional: true } }] } }),
+      line({ runFlow: { when: { notVisible: element }, commands: [{ scrollUntilVisible: { element, direction: "UP", timeout: scroll, optional: true } }] } }),
     );
     out.push(line({ assertVisible: { ...element, optional: true, label: label(scenario, entry.id, i + 1, entry.tokens.length) } }));
   });
@@ -123,7 +128,9 @@ function flow(inventory, screen, states, config, appId) {
       // A pattern on "<entry id>|<its context>" (the day it's on): steps that bring it into view first.
       const before = Object.entries(conf.byEntry ?? {}).find(([re]) => new RegExp(re).test(`${entry.id}|${entry.context ?? ""}`));
       if (before) out.push(...fill(before[1], vars).map(line));
-      out.push(...checks(inventory.scenario, entry));
+      if (phoneSkip(config, entry.id)) continue;
+      // A long screen (Settings, Nilai) takes longer to scroll to its end than the 4 s that do for most.
+      out.push(...checks(inventory.scenario, entry, conf.scrollTimeout ?? 4000));
     }
   });
   return `${out.join("\n")}\n`;

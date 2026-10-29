@@ -11,7 +11,8 @@
     "'byEntry' maps a pattern on '<entry id>|<entry context>' (its day) to steps run before that entry's checks: Jadwal shows one day at a time.",
     "'relaunch': true starts the app afresh before each state (a clean way back from a detail screen).",
     "Status 'placeholder': steps written from the testID convention (PROGRESS.md Decision 8) before the screen exists;",
-    "the lead replaces them with the real steps and sets status to 'ready' as each screen lands."
+    "the lead replaces them with the real steps and sets status to 'ready' as each screen lands.",
+    "'scrollTimeout': how long each item's scroll may take on a long screen (default 4000 ms). 'phoneSkips' (top level): the desktop's items the phone leaves out on purpose, by entry id pattern, with the scope row and why: no checks, not counted."
   ],
   "appId": "io.github.pablonification.edunexplus.demo",
   "launch": [
@@ -1038,7 +1039,8 @@
             }
           }
         ]
-      }
+      },
+      "scrollTimeout": 10000
     },
     "plan": {
       "status": "ready",
@@ -1504,7 +1506,20 @@
             "id": "screen.settings"
           }
         }
-      ]
+      ],
+      "scrollTimeout": 12000
     }
-  }
+  },
+  "phoneSkips": [
+    {
+      "entry": "^settings\\.setting\\.ep-demo-",
+      "row": "A18",
+      "why": "the desktop's phone link (ntfy) code: the phone is the phone, it has no link to another (PROGRESS.md A18)"
+    },
+    {
+      "entry": "^settings\\.setting\\.22-00",
+      "row": "A18",
+      "why": "the phone link's quiet hours (Jam tenang), part of the same desktop-only section (A18)"
+    }
+  ]
 }
