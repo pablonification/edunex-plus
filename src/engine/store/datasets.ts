@@ -1,8 +1,8 @@
 // The engine's memory: every dataset as { value, fetchedAt, hash }, saved to
 // disk, and announced to the screens only when its content really changed.
-import crypto from "node:crypto";
 import type { DatasetPayload, Event } from "../../core/contract";
 import { type DatasetName, Datasets, type DatasetValue } from "../../core/models";
+import { digest } from "../platform/hash";
 import type { Storage } from "./storage";
 
 const FORMAT = 1;
@@ -20,10 +20,7 @@ export function hashOf(value: unknown): string {
               .map((k) => [k, stable((v as Record<string, unknown>)[k])]),
           )
         : v;
-  return crypto
-    .createHash("sha1")
-    .update(JSON.stringify(stable(value)))
-    .digest("hex");
+  return digest("sha1", JSON.stringify(stable(value)), "hex");
 }
 
 export class DatasetStore {

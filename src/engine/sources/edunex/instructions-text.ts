@@ -4,10 +4,10 @@
 // list items their bullets or numbers; links keep their address and pictures
 // stand in by name (a swapped picture or a changed link is a change); scripts
 // and styles are dropped. Edunex's HTML, read with cheerio (as answer-html.ts).
-import { createHash } from "node:crypto";
 import { load } from "cheerio";
 import type { AnyNode, Element } from "domhandler";
 import { normalText } from "../../../core/task-edits";
+import { digest } from "../../platform/hash";
 
 const BLOCKS = new Set([
   "p",
@@ -51,7 +51,7 @@ function fileName(src: string): string {
 function picture(element: Element): string {
   const src = element.attribs.src ?? "";
   const name = (element.attribs.alt ?? "").trim() || (src.startsWith("data:") ? "" : fileName(src));
-  const from = src.startsWith("data:") ? `data:${createHash("sha256").update(src).digest("hex").slice(0, 12)}` : src;
+  const from = src.startsWith("data:") ? `data:${digest("sha256", src, "hex").slice(0, 12)}` : src;
   return `${name ? `[gambar: ${name}]` : "[gambar]"}${from ? ` (${from})` : ""}`;
 }
 

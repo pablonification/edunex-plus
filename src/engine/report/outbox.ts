@@ -9,12 +9,12 @@
 // It also keeps what the window shows ("app.reports"): what was sent (when, which page, its
 // issue), and the problem the app is asking about: the first one ever ("send reports like this by
 // themselves?", asked once), or each new one when the Student said to ask.
-import { createHash } from "node:crypto";
 import type { ActionOutput } from "../../core/contract";
 import { type ProblemReport, type ReportSending, type ReportsState, reportSendingOf, type SentReport, type Settings } from "../../core/models";
 import type { AreaLog } from "../app-log";
 import type { Clock, TimerHandle } from "../clock";
 import { EngineError } from "../errors";
+import { digest } from "../platform/hash";
 import type { Storage } from "../store/storage";
 import type { Kept } from "./kept-pages";
 import { type Posted, postNote, postReport, type Relay } from "./relay";
@@ -55,7 +55,7 @@ export interface OutboxDeps {
 export function signatureOf(kept: Pick<Kept, "feed" | "kind" | "check" | "rows">): string {
   const checks = kept.kind === "changed" ? [kept.check] : [...new Set(kept.rows.map((row) => row.why))].sort();
   const text = [kept.feed, kept.kind, ...checks.map((check) => check.replace(/\d+/g, "9"))].join("\n");
-  return createHash("sha256").update(text).digest("hex").slice(0, 32);
+  return digest("sha256", text, "hex").slice(0, 32);
 }
 
 interface Ledger {
