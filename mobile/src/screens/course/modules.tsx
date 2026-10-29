@@ -6,8 +6,10 @@
 // kind with the one action that fits it), each with who posted it and when; "Daftar isi" (and
 // Android's Back) goes back to the list. Files download once and open in the phone's own apps
 // (../../parts/files.tsx); highlights and page notes stay on the desktop (A14).
+
+import { useFocusEffect } from "expo-router";
 import { ShareNetworkIcon } from "phosphor-react-native/src/icons/ShareNetwork";
-import { type ReactNode, useEffect } from "react";
+import { type ReactNode, useCallback } from "react";
 import { ActivityIndicator, BackHandler, Pressable, StyleSheet, View } from "react-native";
 import { useOpenExternal, useOpenLink } from "../../../../src/app/hooks";
 import { type Format, useFormat, useNow, useT } from "../../../../src/app/i18n";
@@ -167,14 +169,17 @@ function ModulePage({ entry, anyContent, onList }: { entry: Entry; anyContent: b
   const t = useT();
   const now = useNow();
   const theme = useTheme();
-  // Android's Back goes to the table of contents first, as the button at the top does.
-  useEffect(() => {
-    const sub = BackHandler.addEventListener("hardwareBackPress", () => {
-      onList();
-      return true;
-    });
-    return () => sub.remove();
-  }, [onList]);
+  // Android's Back goes to the table of contents first, as the button at the top does: only while the course is the
+  // screen in front, so Back from a Task opened here closes the Task.
+  useFocusEffect(
+    useCallback(() => {
+      const sub = BackHandler.addEventListener("hardwareBackPress", () => {
+        onList();
+        return true;
+      });
+      return () => sub.remove();
+    }, [onList]),
+  );
   return (
     <View testID={`page.module.${entry.id}`}>
       <View style={{ marginLeft: -space[3], marginBottom: space[3], flexDirection: "row" }}>

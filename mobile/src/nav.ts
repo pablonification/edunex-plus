@@ -51,8 +51,12 @@ export function useNav(): Nav {
     () => ({
       go(route) {
         const href = hrefOf(route);
-        if (TABS.has(route.screen)) router.navigate(href as never);
-        else router.push(href as never);
+        if (TABS.has(route.screen)) {
+          // From a screen over the tabs (a Task, the bell, a notification's tap), back down to them first: a plain
+          // navigate there would stack a second set of tabs, and Back would show the old screen again.
+          if (router.canDismiss()) router.dismissAll();
+          router.navigate(href as never);
+        } else router.push(href as never);
       },
       replace(route) {
         router.setParams(paramsOf(route) as never);
