@@ -5,7 +5,7 @@
 //
 // Which scenario: the link that opened the app, with the desktop demo's settings as its query
 // (edunexplusdemo://demo?EDUNEX_DEMO=signed-in&EDUNEX_DEMO_QUIZ=1, what the flows open), else
-// EXPO_PUBLIC_DEMO_SCENARIO from Metro, else signed-in.
+// EXPO_PUBLIC_DEMO_QUERY (that query) or EXPO_PUBLIC_DEMO_SCENARIO from Metro, else signed-in.
 import { Linking } from "react-native";
 import type { SignInWindows } from "../../../src/desktop/signin-both";
 import { fillablePdf } from "../../../test/kit/fillable-pdf";
@@ -15,6 +15,9 @@ async function settings(): Promise<Record<string, string | undefined>> {
   const link = await Linking.getInitialURL().catch(() => null);
   const query = link?.startsWith("edunexplusdemo://demo") ? new URL(link).searchParams : null;
   if (query) return Object.fromEntries(query.entries());
+  // A dev build opens on Metro's link, not the demo's: Metro gives the same query instead (EXPO_PUBLIC_DEMO_QUERY).
+  const fromMetro = process.env.EXPO_PUBLIC_DEMO_QUERY;
+  if (fromMetro) return Object.fromEntries(new URLSearchParams(fromMetro).entries());
   return { EDUNEX_DEMO: process.env.EXPO_PUBLIC_DEMO_SCENARIO, EDUNEX_DEMO_THEME: process.env.EXPO_PUBLIC_DEMO_THEME };
 }
 

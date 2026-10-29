@@ -52,7 +52,7 @@ Status: todo / building / done (with proof: a Maestro flow, a screenshot, a judg
 | S7 | Class detail (popover) | change | Bottom sheet | built | merged; device check pending |
 | S8 | Add to phone calendar (desktop: an .ics file to import) | replace | Writes the classes straight into the phone's calendar (expo-calendar), or shares the .ics | done | Redroid: "Tambahkan 29 acara" → "29 acara ada di kalender HP"; Android's calendar provider holds a calendar "Edunex Plus" with 29 events; adding again leaves 29 (no copies) |
 | S9 | Presensi (target, clash pick, groups by absence budget, bars, Tandai Hadir) | keep | Same groups and bars, one column | built, on device | seen on Redroid (shots h1–h5, tour-*, se*, al2); judge pending |
-| S10 | Tandai Hadir (desktop opens SIX in an app window) | change | Opens SIX's timetable in an in-app browser signed in (WebView with the session), the Student presses SIX's button | built | merged; device check pending |
+| S10 | Tandai Hadir (desktop opens SIX in an app window) | change | Opens SIX's timetable in an in-app browser signed in (WebView with the session), the Student presses SIX's button | built | merged; device check pending; check-in-open demo: Beranda shows "Tandai Hadir sudah dibuka di SIX" with Buka di SIX; the demo opens nothing there (its SIX is pretend, as the desktop demo), so SIX's own page needs a real session (Blockers for Arqila) |
 | S11 | Nilai (IPK, chart, this term's estimates, history) | keep | Same; chart fits the width; per-term list folds | built | merged; Nilai and Rencana seen on Redroid (tour-nilai-*, tour-rencana-1); judge pending |
 | S12 | Rencana studi: Rencana (planner) | change | Planner is drag-and-click heavy: per-semester cards, add/remove courses through a picker sheet | built | merged; Nilai and Rencana seen on Redroid (tour-nilai-*, tour-rencana-1); judge pending |
 | S13 | Rencana studi: Kurikulum | keep | One column | built | merged; Nilai and Rencana seen on Redroid (tour-nilai-*, tour-rencana-1); judge pending |
@@ -61,7 +61,7 @@ Status: todo / building / done (with proof: a Maestro flow, a screenshot, a judg
 | S16 | Rencana studi: Kalender akademik | keep | One column, plus add a deadline to the phone's calendar | built | merged; Nilai and Rencana seen on Redroid (tour-nilai-*, tour-rencana-1); judge pending |
 | S17 | Course page: header, budget, now card, tabs (Modul, Pertemuan, Tugas & Ujian, Nilai, Pengumuman) | change | Tabs scroll sideways; Modul is a list that opens a module page (no two panes) | built, on device | seen on Redroid (tour-jadwal-*, tour-course-*); judge pending |
 | S18 | Course: grade calculator (kalkulator nilai) | keep | Same inputs, number keypad | built | merged; device check pending |
-| S19 | Course list (desktop sidebar "Mata kuliah", course colors) | change | A "Mata kuliah" list on the Lainnya tab and at the top of Presensi rows; long-press a course for its color | built | merged; device check pending |
+| S19 | Course list (desktop sidebar "Mata kuliah", course colors) | change | A "Mata kuliah" list on the Lainnya tab and at the top of Presensi rows; long-press a course for its color | done | Redroid: Lainnya's "Mata kuliah 5", codes in one column level with the names (5b8779b), each opens its course, long-press for its colour (A11) |
 
 ### Around the pages
 
@@ -76,8 +76,8 @@ Status: todo / building / done (with proof: a Maestro flow, a screenshot, a judg
 | A7 | Welcome / first-run tour, sign in to Edunex and SIX | change | Full-screen welcome, then ITB's real sign-in page in a WebView; one Microsoft sign-in tries both | building | Demo: Mulai → Hubungkan Edunex → SIX came along → reading (5 · 10 · 40) → notifications asked → app (shots w1–w8). Real: ITB/Microsoft page loads in the app. Needs: real sign-in by Arqila, Back re-check |
 | A8 | First scan summary ("Ringkasan saat pertama terhubung") | keep | Shown once after the first sync, again from Settings | built, on device | Redroid: opened from Settings (tour-firstscan: 7 findings, risk, clash, SIX-counted, exams); CI first-run flow passes (data first-run first-scan); judge pending |
 | A9 | Problem report (Laporkan masalah, Kirim langsung, Story) | keep | Same dialog as a screen; also "Share" through the share sheet instead of saving a file | built, on device | Redroid: Lainnya → Laporkan masalah (tour-report2: what's sent, story box, LINE and GitHub); sending through the share sheet still to try |
-| A10 | Snooze menu / Handled (Ingatkan nanti, Sudah beres) | change | Swipe a row, or long-press for the same menu as an action sheet | built, on device | Redroid: Beranda's snooze sheet (tour-snooze: 3 jam lagi, Besok pagi, Sehari sebelumnya, Sampai ada perubahan); swipe still to try |
-| A11 | Course colors (picker) | keep | Bottom sheet with the ten colors | built | merged; device check pending |
+| A10 | Snooze menu / Handled (Ingatkan nanti, Sudah beres) | change | Swipe a row, or long-press for the same menu as an action sheet | done | Redroid: a swipe on Beranda's "UTS Komunikasi Pemasaran" shows Ingatkan nanti, which opens the snooze sheet; "3 jam lagi" takes it off Perlu perhatianmu (2 → 1); "Sudah tahu" on the other row. A row with no quick action has no swipe |
+| A11 | Course colors (picker) | keep | Bottom sheet with the ten colors | done | Redroid: long-press DK4073 in Lainnya → "Warna DK4073" with the ten colours and who uses each; Lavender → its dot turns lavender, "Pilihanmu: Lavender. Otomatisnya Biru."; Otomatis puts it back. The palette by "Mata kuliah" opens Settings at Warna mata kuliah |
 | A12 | Downloads (Unduh: a material into Downloads) | change | Downloads into the app's files, then opens or shares it | done | Redroid: II4091 Modul 3 "Slide Pengantar Proposal TA" (PDF, 2,2 MB) downloads into the app (its row turns to Share) after 38a1a49 |
 | A13 | In-app file viewers (PDF, Word, Excel, PowerPoint), offline copies | replace | Open in the phone's own apps (Drive, Office, PDF viewer) through the share/open sheet; files kept for offline | done | Redroid has no PDF app: Buka says "Belum ada aplikasi di HP ini yang bisa membuka … Bagikan ke aplikasi lain."; Bagikan hands the file to Android (its only PDF target here, Print, opened) |
 | A14 | Highlights and page notes in the viewer, PDF form filling | skip | They live inside the desktop's own viewer; on the phone the file opens in the Student's own reader, which has its own highlights | done (skipped) | Not built: no in-app viewer on the phone (A13 opens files in the Student's own reader) |
@@ -229,3 +229,7 @@ machine). Every helper runs at effort high or more.
   APK is ready, sign in on your own phone (or on Redroid while I watch nothing: I'd only read the
   app's own status line), and tell me whether Edunex and SIX both say "Terhubung". No data from
   it goes anywhere near the repo.
+- **Tandai Hadir's SIX page (S10) needs the same real session.** The demo's SIX is pretend, so
+  "Buka di SIX" opens nothing there. With a real account: on a class whose Tandai Hadir is open,
+  press Buka di SIX and say whether SIX's timetable opens on that class with its button showing
+  (the app never presses it).
