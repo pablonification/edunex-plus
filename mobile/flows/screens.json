@@ -196,6 +196,15 @@
           }
         },
         {
+          "scrollUntilVisible": {
+            "element": {
+              "id": "segment.show.{{state}}"
+            },
+            "direction": "UP",
+            "timeout": 10000
+          }
+        },
+        {
           "tapOn": {
             "id": "segment.show.{{state}}"
           }
@@ -211,6 +220,15 @@
           {
             "tapOn": {
               "id": "tab.tasks"
+            }
+          },
+          {
+            "scrollUntilVisible": {
+              "element": {
+                "id": "segment.show.open"
+              },
+              "direction": "UP",
+              "timeout": 10000
             }
           },
           {
@@ -233,6 +251,15 @@
         {
           "tapOn": {
             "id": "tab.tasks"
+          }
+        },
+        {
+          "scrollUntilVisible": {
+            "element": {
+              "id": "segment.show.{{list}}"
+            },
+            "direction": "UP",
+            "timeout": 10000
           }
         },
         {
@@ -267,6 +294,15 @@
         {
           "tapOn": {
             "id": "tab.tasks"
+          }
+        },
+        {
+          "scrollUntilVisible": {
+            "element": {
+              "id": "segment.show.{{list}}"
+            },
+            "direction": "UP",
+            "timeout": 10000
           }
         },
         {

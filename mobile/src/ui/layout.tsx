@@ -1,7 +1,8 @@
 // The parts every screen is built from, the phone's versions of the desktop's (src/app/ui/layout.tsx)
 // with the same names and the same rules: the page, its header, sections, lists of rows, one-line
 // facts, notices and figures. Screens compose these instead of styling their own.
-import { Children, type ComponentRef, Fragment, isValidElement, type ReactNode, type Ref } from "react";
+import { useScrollToTop } from "expo-router";
+import { Children, type ComponentRef, Fragment, isValidElement, type ReactNode, type Ref, type RefObject, useCallback, useRef } from "react";
 import { Pressable, RefreshControl, ScrollView, type ScrollViewProps, StyleSheet, View, type ViewStyle } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Icons } from "./icons";
@@ -32,11 +33,22 @@ export function Page({
   contentStyle?: ViewStyle;
 } & Omit<ScrollViewProps, "children" | "refreshControl">) {
   const theme = useTheme();
+  // A tap on the tab already open scrolls its page back to the top, as Android apps do.
+  const own = useRef<ComponentRef<typeof ScrollView>>(null);
+  useScrollToTop(own as RefObject<ComponentRef<typeof ScrollView>>);
+  const ref = useCallback(
+    (view: ComponentRef<typeof ScrollView> | null) => {
+      own.current = view;
+      if (typeof scrollRef === "function") scrollRef(view);
+      else if (scrollRef) (scrollRef as RefObject<ComponentRef<typeof ScrollView> | null>).current = view;
+    },
+    [scrollRef],
+  );
   return (
     <View style={{ flex: 1, backgroundColor: theme.color.canvas }} testID={testID}>
       {header}
       <ScrollView
-        ref={scrollRef}
+        ref={ref}
         contentContainerStyle={[styles.page, contentStyle]}
         refreshControl={
           onRefresh ? (
