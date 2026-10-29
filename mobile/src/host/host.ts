@@ -196,7 +196,7 @@ async function makeHost(): Promise<Host> {
     }),
     // Handing in a Task (./tasks.ts) and Edunex's files (./files.ts), the desktop's hand-in.ts and files handlers.
     ...phoneTaskHandlers(engine),
-    ...phoneFileHandlers({ fetchFile: world.fetchFile }),
+    ...phoneFileHandlers({ engine, fetchFile: world.fetchFile }),
     // "Laporkan masalah" (./report.ts): the engine builds and scrubs it; nothing leaves until the Student says.
     ...phoneReportHandlers({ engine, log, demo: DEMO }),
   };

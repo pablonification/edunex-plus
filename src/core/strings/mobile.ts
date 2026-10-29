@@ -37,6 +37,16 @@ export const mobileStrings = {
     id: "Notifikasi untuk Edunex Plus mati. Nyalakan di pengaturan HP.",
     en: "Notifications for Edunex Plus are off. Turn them on in your phone's settings.",
   },
+  // course
+  // "Simpan untuk offline" on the phone: the course's files go into the app, a few at a time. It keeps going off the page.
+  "mobile.offline.saving": {
+    id: "Menyimpan {done} dari {total} berkas",
+    en: { one: "Saving {done} of {total} file", other: "Saving {done} of {total} files" },
+  },
+  "mobile.offline.savingHint": {
+    id: "Tetap berjalan meski kamu pindah halaman. Tiap berkas lalu bisa dibuka tanpa internet.",
+    en: "Keeps going if you leave this page. Each file then opens without internet.",
+  },
   // schedule
   // "Tambahkan ke kalender HP" on the phone (S8): the events go into the phone's own calendar, in one called Edunex Plus.
   "mobile.calendar.lead": {

@@ -46,6 +46,8 @@ export interface SheetChoice {
   hint?: string;
   icon?: ReactNode;
   tone?: "fg" | "danger";
+  /** Shown but not pressable (nothing to do yet); its hint says why. */
+  disabled?: boolean;
   onPress(): void;
   testID?: string;
 }
@@ -72,12 +74,14 @@ export function ActionSheet({
           key={choice.label}
           testID={choice.testID}
           accessibilityRole="button"
+          accessibilityState={{ disabled: !!choice.disabled }}
+          disabled={choice.disabled}
           onPress={() => {
             onClose();
             choice.onPress();
           }}
           android_ripple={{ color: theme.color.selected }}
-          style={[styles.choice, i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.color.line }]}
+          style={[styles.choice, i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.color.line }, choice.disabled && { opacity: 0.5 }]}
         >
           {choice.icon && <View style={{ width: 24, alignItems: "center" }}>{choice.icon}</View>}
           <View style={{ flex: 1 }}>

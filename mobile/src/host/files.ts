@@ -8,13 +8,19 @@
 import { fetch as expoFetch } from "expo/fetch";
 import { Directory, File, Paths } from "expo-file-system";
 import * as Sharing from "expo-sharing";
+import { planOfflineFiles } from "../../../src/core/course-materials";
+import type { DatasetName, DatasetValue } from "../../../src/core/models";
 import { type FetchFile, readFile } from "../../../src/desktop/remote-files";
+import type { Engine } from "../../../src/engine/engine";
 import { EngineError } from "../../../src/engine/errors";
 import type { Handlers } from "./handlers";
+import { saveOffline, saveProgress } from "./save-offline";
 
-type FileAction = "files.download" | "files.local" | "files.open" | "files.reveal" | "files.read";
+type FileAction = "files.download" | "files.local" | "files.open" | "files.reveal" | "files.read" | "course.saveOffline";
 
 export interface FileContext {
+  /** What "Simpan untuk offline" reads a course's files from, and the language its module names are in. */
+  engine: Engine;
   /** Fetches a file from Edunex's storage; the demo gives the pretend storage's. The phone's own network by default. */
   fetchFile?: FetchFile;
 }
@@ -84,9 +90,32 @@ class Downloads {
   }
 }
 
-export function phoneFileHandlers(context: FileContext = {}): Pick<Handlers, FileAction> {
+export function phoneFileHandlers(context: FileContext): Pick<Handlers, FileAction> {
   const downloads = new Downloads();
   const fetchFile = context.fetchFile ?? phoneFetch;
+
+  /** Downloads `url` into a new file named `name`, and records it; nothing is left behind when it fails. */
+  const download = async (url: string, name: string): Promise<File> => {
+    const file = downloads.place(name);
+    try {
+      if (context.fetchFile) {
+        // The demo's pretend storage answers in memory.
+        const response = await fetchFile(url, { signal: new AbortController().signal, credentials: "omit", redirect: "error" });
+        if (!response.ok) throw new EngineError("Failed", `The storage answered ${response.status}`);
+        file.create();
+        file.writeSync(new Uint8Array(await response.arrayBuffer()));
+      } else {
+        // Straight to the file, however big: Android's own download, not through the app's memory.
+        await File.downloadFileAsync(url, file);
+      }
+    } catch (error) {
+      if (file.exists) file.delete();
+      if (error instanceof EngineError) throw error;
+      throw new EngineError("Failed", `The download failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
+    downloads.record(url, file);
+    return file;
+  };
 
   const local = (url: string): File => {
     const file = isDownloadable(url) ? downloads.find(url) : null;
@@ -100,24 +129,7 @@ export function phoneFileHandlers(context: FileContext = {}): Pick<Handlers, Fil
       // Already on the phone: that copy is the one, rather than another "Notes (2).docx" next to it.
       const existing = downloads.find(url);
       if (existing) return { path: existing.name, existing: true };
-      const file = downloads.place(name);
-      try {
-        if (context.fetchFile) {
-          // The demo's pretend storage answers in memory.
-          const response = await fetchFile(url, { signal: new AbortController().signal, credentials: "omit", redirect: "error" });
-          if (!response.ok) throw new EngineError("Failed", `The storage answered ${response.status}`);
-          file.create();
-          file.writeSync(new Uint8Array(await response.arrayBuffer()));
-        } else {
-          // Straight to the file, however big: Android's own download, not through the app's memory.
-          await File.downloadFileAsync(url, file);
-        }
-      } catch (error) {
-        if (file.exists) file.delete();
-        if (error instanceof EngineError) throw error;
-        throw new EngineError("Failed", `The download failed: ${error instanceof Error ? error.message : String(error)}`);
-      }
-      downloads.record(url, file);
+      const file = await download(url, name);
       // The screens never learn where it is: the name is all they show.
       return { path: file.name, existing: false };
     },
@@ -140,5 +152,32 @@ export function phoneFileHandlers(context: FileContext = {}): Pick<Handlers, Fil
       return {};
     },
     "files.read": ({ url, as }) => readFile({ fetch: fetchFile }, url, as),
+    // Every file of a course into the same downloads, so each one's own row opens it offline. A phone
+    // has no folder to pick: "Simpan ke folder lain…" isn't offered, and asking for it is refused.
+    "course.saveOffline": async ({ code, pick }) => {
+      if (pick) throw new EngineError("Rejected", "The phone saves into the app's own files only");
+      if (saveProgress.get(code)) throw new EngineError("Rejected", `${code}'s files are already being saved`);
+      const snapshot = context.engine.snapshot();
+      const dataset = <N extends DatasetName>(name: N) => snapshot.datasets.find((d) => d.name === name)?.value as DatasetValue<N> | undefined;
+      const course = dataset("edunex.courses")?.find((c) => c.code === code);
+      if (!course) throw new EngineError("Rejected", `${code} isn't one of this term's courses`);
+      const plan = planOfflineFiles(
+        { code: course.code, name: course.name, mainCourseId: course.edunex.courseId },
+        dataset("edunex.outline")?.[code],
+        dataset("edunex.materials")?.[code] ?? [],
+        snapshot.settings.lang,
+      );
+      try {
+        const counts = await saveOffline(plan, {
+          isDownloadable,
+          has: (url) => downloads.find(url) !== null,
+          download: async (url, name) => void (await download(url, name)),
+          onProgress: (progress) => saveProgress.set(code, progress),
+        });
+        return { folder: plan.folder, ...counts };
+      } finally {
+        saveProgress.set(code, null);
+      }
+    },
   };
 }

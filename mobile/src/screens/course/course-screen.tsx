@@ -31,6 +31,7 @@ import { AnnouncementsTab, TasksTab } from "./lists";
 import { MeetingsTab } from "./meetings";
 import { ModulesTab } from "./modules";
 import { MeetingNow, RiskStrip } from "./now";
+import { SaveOfflineProgress, useSaveOfflineChoice } from "./save-offline";
 
 const TABS = ["modules", "meetings", "tasks", "grades", "announcements"] as const;
 type Tab = (typeof TABS)[number];
@@ -128,6 +129,7 @@ export function CourseScreen({ code, tab, module }: { code: string; tab?: string
         <Header page={page} />
         <RiskStrip page={page} />
         <MeetingNow page={page} />
+        <SaveOfflineProgress code={page.course.code} />
       </View>
       <View onLayout={(event: LayoutChangeEvent) => setTabsAt(event.nativeEvent.layout.y)}>
         <TabBar
@@ -222,7 +224,7 @@ function AttendanceMeter({ page }: { page: CoursePage }) {
   );
 }
 
-/** "⋯": the rare actions. The course's color, and its pages on Edunex and SIX. */
+/** "⋯": the rare actions. Its files for offline, the course's color, and its pages on Edunex and SIX. */
 function MoreMenu({ page }: { page: CoursePage }) {
   const t = useT();
   const theme = useTheme();
@@ -230,8 +232,10 @@ function MoreMenu({ page }: { page: CoursePage }) {
   const student = useDataset("six.student");
   const [menu, setMenu] = useState(false);
   const [picking, setPicking] = useState(false);
+  const saveOffline = useSaveOfflineChoice(page);
   const { course } = page;
   const choices: SheetChoice[] = [
+    ...(saveOffline ? [saveOffline] : []),
     {
       label: t("courseColor.change"),
       hint: factsLabel(colorName(t, course.colorId), t(course.colorPicked ? "courseColor.yours" : "courseColor.automatic")),
