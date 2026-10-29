@@ -27,7 +27,7 @@ Branch: `mobile`. App: `mobile/` (Expo SDK 58, React Native 0.88, Expo Router, d
 | Maestro | `~/tools/maestro/bin/maestro` | 2.12.0 |
 | Redroid | Docker image `redroid/redroid:13.0.0-latest`, data in `~/redroid-data` | Android 13 |
 
-Redroid: `docker run -itd --rm --privileged --name redroid --memory=2.5g --cpus=1.5 -v ~/redroid-data:/data -p 5555:5555 redroid/redroid:13.0.0-latest androidboot.use_memfd=true androidboot.redroid_width=720 androidboot.redroid_height=1600 androidboot.redroid_dpi=280 androidboot.redroid_gpu_mode=guest`, then `adb connect localhost:5555`. `docker stop redroid` when done.
+Redroid (normal Docker network only, never `--network host`, see Decision 10): `docker run -itd --rm --privileged --name redroid --memory=2.5g --cpus=1.5 -v ~/redroid-data:/data -p 5555:5555 redroid/redroid:13.0.0-latest androidboot.use_memfd=true androidboot.redroid_width=720 androidboot.redroid_height=1600 androidboot.redroid_dpi=280 androidboot.redroid_gpu_mode=guest`, then `adb connect localhost:5555`. `docker stop redroid` when done.
 
 No Android Studio, no system emulator: the live device is Redroid in Docker, full runs are on GitHub Actions.
 
@@ -157,6 +157,12 @@ machine). Every helper runs at effort high or more.
    visible text where they can.
 9. **Demo:** `EXPO_PUBLIC_DEMO=1` builds run the engine on `test/pretend` (fixtures bundled),
    starting on the desktop demo's moment (Thu 8 Oct 2026, 08:07 WIB) and running in real time.
+10. **Redroid's network: never `--network host`.** With `--privileged` it rewrote pabs' network
+    rules and pabs lost its internet (2026-10-30). Redroid stays on the normal Docker network
+    (`-p 5555:5555`). For it to reach Metro on the host, open port 8081 for docker0 only:
+    `sudo iptables -I INPUT -i docker0 -p tcp --dport 8081 -j ACCEPT` (pabs' INPUT policy is DROP
+    under ufw), then open the dev client on `http://172.17.0.1:8081`. `adb reverse` gives no answer
+    through Redroid, so it isn't used.
 
 ## Blocked
 
