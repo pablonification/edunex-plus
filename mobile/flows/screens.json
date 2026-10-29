@@ -6,6 +6,7 @@
     "{{list}} the Tugas & Ujian list a Task or exam was opened from (todo, done), {{appId}}, and a value that is exactly",
     "{{demoLink}} is the link that opens the demo build in the scenario (its EDUNEX_DEMO settings as the query).",
     "'steps' run for every state; 'byState' maps a pattern on the state to the steps that run instead.",
+    "'byEntry' maps a pattern on '<entry id>|<entry context>' (its day) to steps run before that entry's checks: Jadwal shows one day at a time.",
     "'relaunch': true starts the app afresh before each state (a clean way back from a detail screen).",
     "Status 'placeholder': steps written from the testID convention (PROGRESS.md Decision 8) before the screen exists;",
     "the lead replaces them with the real steps and sets status to 'ready' as each screen lands."
@@ -137,7 +138,7 @@
       ]
     },
     "home": {
-      "status": "placeholder",
+      "status": "ready",
       "steps": [
         {
           "tapOn": {
@@ -152,7 +153,7 @@
       ]
     },
     "changes": {
-      "status": "placeholder",
+      "status": "ready",
       "steps": [
         {
           "tapOn": {
@@ -160,20 +161,13 @@
           }
         },
         {
-          "scrollUntilVisible": {
-            "element": {
-              "id": "action.changes.all"
-            }
-          }
-        },
-        {
           "tapOn": {
-            "id": "action.changes.all"
+            "id": "action.alerts"
           }
         },
         {
           "assertVisible": {
-            "id": "screen.changes"
+            "id": "screen.alerts"
           }
         }
       ]
@@ -194,7 +188,7 @@
       ]
     },
     "tasks": {
-      "status": "placeholder",
+      "status": "ready",
       "steps": [
         {
           "tapOn": {
@@ -203,7 +197,7 @@
         },
         {
           "tapOn": {
-            "id": "action.tasks.{{state}}"
+            "id": "segment.show.{{state}}"
           }
         },
         {
@@ -211,10 +205,29 @@
             "id": "screen.tasks"
           }
         }
-      ]
+      ],
+      "byState": {
+        "^todo$": [
+          {
+            "tapOn": {
+              "id": "tab.tasks"
+            }
+          },
+          {
+            "tapOn": {
+              "id": "segment.show.open"
+            }
+          },
+          {
+            "assertVisible": {
+              "id": "screen.tasks"
+            }
+          }
+        ]
+      }
     },
     "task": {
-      "status": "placeholder",
+      "status": "ready",
       "relaunch": true,
       "steps": [
         {
@@ -224,14 +237,15 @@
         },
         {
           "tapOn": {
-            "id": "action.tasks.{{list}}"
+            "id": "segment.show.{{list}}"
           }
         },
         {
           "scrollUntilVisible": {
             "element": {
               "id": "row.task.{{state}}"
-            }
+            },
+            "timeout": 15000
           }
         },
         {
@@ -247,7 +261,7 @@
       ]
     },
     "exam": {
-      "status": "placeholder",
+      "status": "ready",
       "relaunch": true,
       "steps": [
         {
@@ -257,14 +271,15 @@
         },
         {
           "tapOn": {
-            "id": "action.tasks.{{list}}"
+            "id": "segment.show.{{list}}"
           }
         },
         {
           "scrollUntilVisible": {
             "element": {
               "id": "row.exam.{{state}}"
-            }
+            },
+            "timeout": 15000
           }
         },
         {
@@ -280,7 +295,7 @@
       ]
     },
     "schedule": {
-      "status": "placeholder",
+      "status": "ready",
       "steps": [
         {
           "tapOn": {
@@ -290,6 +305,11 @@
         {
           "assertVisible": {
             "id": "screen.schedule"
+          }
+        },
+        {
+          "tapOn": {
+            "id": "segment.view.week"
           }
         }
       ],
@@ -301,13 +321,18 @@
             }
           },
           {
-            "tapOn": {
-              "id": "action.schedule.next"
+            "assertVisible": {
+              "id": "screen.schedule"
             }
           },
           {
-            "assertVisible": {
-              "id": "screen.schedule"
+            "tapOn": {
+              "id": "segment.view.week"
+            }
+          },
+          {
+            "tapOn": {
+              "id": "action.nextWeek"
             }
           }
         ],
@@ -318,25 +343,321 @@
             }
           },
           {
-            "tapOn": {
-              "id": "action.schedule.month"
+            "assertVisible": {
+              "id": "screen.schedule"
             }
           },
           {
-            "assertVisible": {
-              "id": "screen.schedule"
+            "tapOn": {
+              "id": "segment.view.month"
+            }
+          }
+        ]
+      },
+      "byEntry": {
+        "\\|Kamis, 8 Oktober$": [
+          {
+            "scrollUntilVisible": {
+              "element": {
+                "id": "day.2026-10-08"
+              },
+              "direction": "UP",
+              "timeout": 5000,
+              "optional": true
+            }
+          },
+          {
+            "tapOn": {
+              "id": "day.2026-10-08"
+            }
+          }
+        ],
+        "\\|Jumat, 9 Oktober$": [
+          {
+            "scrollUntilVisible": {
+              "element": {
+                "id": "day.2026-10-09"
+              },
+              "direction": "UP",
+              "timeout": 5000,
+              "optional": true
+            }
+          },
+          {
+            "tapOn": {
+              "id": "day.2026-10-09"
+            }
+          }
+        ],
+        "\\|Kamis, 15 Oktober$": [
+          {
+            "scrollUntilVisible": {
+              "element": {
+                "id": "day.2026-10-15"
+              },
+              "direction": "UP",
+              "timeout": 5000,
+              "optional": true
+            }
+          },
+          {
+            "tapOn": {
+              "id": "day.2026-10-15"
+            }
+          }
+        ],
+        "\\|Jumat, 16 Oktober$": [
+          {
+            "scrollUntilVisible": {
+              "element": {
+                "id": "day.2026-10-16"
+              },
+              "direction": "UP",
+              "timeout": 5000,
+              "optional": true
+            }
+          },
+          {
+            "tapOn": {
+              "id": "day.2026-10-16"
+            }
+          }
+        ],
+        "^schedule\\.month\\.class-session\\.4-kuliah\\|": [
+          {
+            "scrollUntilVisible": {
+              "element": {
+                "id": "day.2026-10-01"
+              },
+              "direction": "UP",
+              "timeout": 5000,
+              "optional": true
+            }
+          },
+          {
+            "tapOn": {
+              "id": "day.2026-10-01"
+            }
+          }
+        ],
+        "^schedule\\.month\\.class-session\\.pl3002\\|": [
+          {
+            "scrollUntilVisible": {
+              "element": {
+                "id": "day.2026-10-08"
+              },
+              "direction": "UP",
+              "timeout": 5000,
+              "optional": true
+            }
+          },
+          {
+            "tapOn": {
+              "id": "day.2026-10-08"
+            }
+          }
+        ],
+        "^schedule\\.month\\.class-session\\.ii4091-15-00\\|": [
+          {
+            "scrollUntilVisible": {
+              "element": {
+                "id": "day.2026-10-09"
+              },
+              "direction": "UP",
+              "timeout": 5000,
+              "optional": true
+            }
+          },
+          {
+            "tapOn": {
+              "id": "day.2026-10-09"
+            }
+          }
+        ],
+        "^schedule\\.month\\.class-session\\.dk4073\\|": [
+          {
+            "scrollUntilVisible": {
+              "element": {
+                "id": "day.2026-10-15"
+              },
+              "direction": "UP",
+              "timeout": 5000,
+              "optional": true
+            }
+          },
+          {
+            "tapOn": {
+              "id": "day.2026-10-15"
+            }
+          }
+        ],
+        "^schedule\\.month\\.class-session\\.tugas-02-bab-ii\\|": [
+          {
+            "scrollUntilVisible": {
+              "element": {
+                "id": "day.2026-10-16"
+              },
+              "direction": "UP",
+              "timeout": 5000,
+              "optional": true
+            }
+          },
+          {
+            "tapOn": {
+              "id": "day.2026-10-16"
+            }
+          }
+        ],
+        "^schedule\\.month\\.class-session\\.uts-markom\\|": [
+          {
+            "scrollUntilVisible": {
+              "element": {
+                "id": "day.2026-10-22"
+              },
+              "direction": "UP",
+              "timeout": 5000,
+              "optional": true
+            }
+          },
+          {
+            "tapOn": {
+              "id": "day.2026-10-22"
+            }
+          }
+        ],
+        "^schedule\\.month\\.class-session\\.4-kuliah-2\\|": [
+          {
+            "scrollUntilVisible": {
+              "element": {
+                "id": "day.2026-10-29"
+              },
+              "direction": "UP",
+              "timeout": 5000,
+              "optional": true
+            }
+          },
+          {
+            "tapOn": {
+              "id": "day.2026-10-29"
+            }
+          }
+        ],
+        "^schedule\\.month\\.class-session\\.tugas-03-bab-iii\\|": [
+          {
+            "scrollUntilVisible": {
+              "element": {
+                "id": "day.2026-10-30"
+              },
+              "direction": "UP",
+              "timeout": 5000,
+              "optional": true
+            }
+          },
+          {
+            "tapOn": {
+              "id": "day.2026-10-30"
+            }
+          }
+        ],
+        "^schedule\\.month\\.class-session\\.1-pertemuan\\|": [
+          {
+            "scrollUntilVisible": {
+              "element": {
+                "id": "day.2026-10-01"
+              },
+              "direction": "UP",
+              "timeout": 5000,
+              "optional": true
+            }
+          },
+          {
+            "tapOn": {
+              "id": "day.2026-10-01"
+            }
+          }
+        ],
+        "^schedule\\.month\\.class-session\\.1-pertemuan-2\\|": [
+          {
+            "scrollUntilVisible": {
+              "element": {
+                "id": "day.2026-10-08"
+              },
+              "direction": "UP",
+              "timeout": 5000,
+              "optional": true
+            }
+          },
+          {
+            "tapOn": {
+              "id": "day.2026-10-08"
+            }
+          }
+        ],
+        "^schedule\\.month\\.class-session\\.1-pertemuan-3\\|": [
+          {
+            "scrollUntilVisible": {
+              "element": {
+                "id": "day.2026-10-09"
+              },
+              "direction": "UP",
+              "timeout": 5000,
+              "optional": true
+            }
+          },
+          {
+            "tapOn": {
+              "id": "day.2026-10-09"
+            }
+          }
+        ],
+        "^schedule\\.month\\.class-session\\.1-pertemuan-4\\|": [
+          {
+            "scrollUntilVisible": {
+              "element": {
+                "id": "day.2026-10-15"
+              },
+              "direction": "UP",
+              "timeout": 5000,
+              "optional": true
+            }
+          },
+          {
+            "tapOn": {
+              "id": "day.2026-10-15"
+            }
+          }
+        ],
+        "^schedule\\.month\\.class-session\\.1-pertemuan-5\\|": [
+          {
+            "scrollUntilVisible": {
+              "element": {
+                "id": "day.2026-10-29"
+              },
+              "direction": "UP",
+              "timeout": 5000,
+              "optional": true
+            }
+          },
+          {
+            "tapOn": {
+              "id": "day.2026-10-29"
             }
           }
         ]
       }
     },
     "class": {
-      "status": "placeholder",
+      "status": "ready",
       "relaunch": true,
       "steps": [
         {
           "tapOn": {
             "id": "tab.schedule"
+          }
+        },
+        {
+          "assertVisible": {
+            "id": "screen.schedule"
           }
         },
         {
@@ -353,13 +674,59 @@
         },
         {
           "assertVisible": {
-            "id": "screen.class"
+            "id": "sheet.class"
           }
         }
-      ]
+      ],
+      "byState": {
+        "^ii4091-15-00$": [
+          {
+            "tapOn": {
+              "id": "tab.schedule"
+            }
+          },
+          {
+            "assertVisible": {
+              "id": "screen.schedule"
+            }
+          },
+          {
+            "scrollUntilVisible": {
+              "element": {
+                "id": "day.2026-10-09"
+              },
+              "direction": "UP",
+              "timeout": 5000,
+              "optional": true
+            }
+          },
+          {
+            "tapOn": {
+              "id": "day.2026-10-09"
+            }
+          },
+          {
+            "scrollUntilVisible": {
+              "element": {
+                "id": "row.class.{{state}}"
+              }
+            }
+          },
+          {
+            "tapOn": {
+              "id": "row.class.{{state}}"
+            }
+          },
+          {
+            "assertVisible": {
+              "id": "sheet.class"
+            }
+          }
+        ]
+      }
     },
     "presence": {
-      "status": "placeholder",
+      "status": "ready",
       "steps": [
         {
           "tapOn": {
@@ -692,12 +1059,22 @@
             }
           },
           {
-            "swipe": {
-              "from": {
-                "id": "tabs.plan"
+            "runFlow": {
+              "when": {
+                "notVisible": {
+                  "id": "tab.plan.deadlines"
+                }
               },
-              "direction": "LEFT",
-              "optional": true
+              "commands": [
+                {
+                  "swipe": {
+                    "from": {
+                      "id": "tabs.plan"
+                    },
+                    "direction": "LEFT"
+                  }
+                }
+              ]
             }
           },
           {
@@ -714,7 +1091,7 @@
       }
     },
     "course": {
-      "status": "placeholder",
+      "status": "ready",
       "relaunch": true,
       "steps": [
         {
@@ -735,8 +1112,11 @@
           }
         },
         {
-          "assertVisible": {
-            "id": "screen.course"
+          "extendedWaitUntil": {
+            "visible": {
+              "id": "screen.course"
+            },
+            "timeout": 30000
           }
         }
       ],
@@ -760,6 +1140,33 @@
             }
           },
           {
+            "extendedWaitUntil": {
+              "visible": {
+                "id": "screen.course"
+              },
+              "timeout": 30000
+            }
+          },
+          {
+            "runFlow": {
+              "when": {
+                "notVisible": {
+                  "id": "tab.course.modules"
+                }
+              },
+              "commands": [
+                {
+                  "swipe": {
+                    "from": {
+                      "id": "tabs.course"
+                    },
+                    "direction": "LEFT"
+                  }
+                }
+              ]
+            }
+          },
+          {
             "tapOn": {
               "id": "tab.course.modules"
             }
@@ -774,6 +1181,14 @@
           {
             "tapOn": {
               "id": "row.module.{{3}}"
+            }
+          },
+          {
+            "extendedWaitUntil": {
+              "visible": {
+                "id": "action.courseContents"
+              },
+              "timeout": 10000
             }
           }
         ],
@@ -796,8 +1211,43 @@
             }
           },
           {
+            "extendedWaitUntil": {
+              "visible": {
+                "id": "screen.course"
+              },
+              "timeout": 30000
+            }
+          },
+          {
+            "runFlow": {
+              "when": {
+                "notVisible": {
+                  "id": "tab.course.{{2}}"
+                }
+              },
+              "commands": [
+                {
+                  "swipe": {
+                    "from": {
+                      "id": "tabs.course"
+                    },
+                    "direction": "LEFT"
+                  }
+                }
+              ]
+            }
+          },
+          {
             "tapOn": {
               "id": "tab.course.{{2}}"
+            }
+          },
+          {
+            "extendedWaitUntil": {
+              "visible": {
+                "id": "panel.course.{{2}}"
+              },
+              "timeout": 10000
             }
           }
         ]

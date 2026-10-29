@@ -121,6 +121,8 @@ async function makeHost(): Promise<Host> {
     // The demo's made-up alerts stay in the app, as on the desktop.
     alert: (notice) => void (DEMO ? undefined : notifier.show(notice)),
     log,
+    // Release builds ask GitHub once a day whether a newer version is out (Settings says so, D5); never the demo.
+    checkForUpdates: !DEMO && !__DEV__,
     os: () => `Android ${Platform.Version}`,
   });
   // Nothing saved yet: the app's first run on this phone, in the phone's own language (the desktop starts in English).

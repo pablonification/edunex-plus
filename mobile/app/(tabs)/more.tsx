@@ -9,6 +9,7 @@ import { displayName, initials } from "../../../src/app/names";
 import { usePlanBadge } from "../../../src/app/shell/badges";
 import { useDataset } from "../../../src/app/store";
 import { useNav } from "../../src/nav";
+import { openCourseColorPicker } from "../../src/parts/course-color-picker";
 import { openReport } from "../../src/parts/report";
 import { TabHeader, usePullToRefresh } from "../../src/shell/source-status";
 import { Badge, CourseCode } from "../../src/ui/display";
@@ -72,7 +73,7 @@ export default function More() {
                 leading={<CourseCode code={course.code} color={color(course.code)} />}
                 title={course.name}
                 onPress={() => nav.go({ screen: "course", code: course.code })}
-                onLongPress={() => router.push({ pathname: "/settings", params: { at: "courseColors" } })}
+                onLongPress={() => openCourseColorPicker(course.code)}
                 testID={`row.course.${course.code}`}
               />
             ))}

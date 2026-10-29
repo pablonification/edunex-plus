@@ -6,7 +6,8 @@
 #   scripts/ci/mobile-e2e.sh <apk> <out-dir> [glob]
 #
 # glob: which flows, from mobile/flows (default: all of them, "**/*"). A folder named
-# `expected` (inventories, not flows) and Maestro's config.yaml are never run.
+# `expected` (inventories, not flows), `judge` (the walk judge-light/-dark.yaml run with a theme)
+# and Maestro's config.yaml are never run on their own.
 set -uo pipefail
 
 apk=$1
@@ -28,7 +29,7 @@ candidates=($pattern)
 for flow in "${candidates[@]}"; do
   [[ -f $flow && ($flow == *.yaml || $flow == *.yml) ]] || continue
   name=$(basename "$flow")
-  [[ /$flow == */expected/* || $name == config.yaml || $name == config.yml ]] && continue
+  [[ /$flow == */expected/* || /$flow == */judge/* || $name == config.yaml || $name == config.yml ]] && continue
   flows+=("$PWD/$flow")
 done
 if [ ${#flows[@]} -eq 0 ]; then
@@ -40,4 +41,5 @@ printf '  %s\n' "${flows[@]#"$root/"}"
 
 # From inside the output folder, so takeScreenshot's pictures land there too.
 cd "$out" || exit 1
-maestro test --format junit --output "$out/junit.xml" --test-output-dir "$out/maestro" "${flows[@]}"
+# --debug-output keeps each look's result (commands.json), which mobile/scripts/flows-from-inventory-report.mjs counts.
+maestro test --format junit --output "$out/junit.xml" --test-output-dir "$out/maestro" --debug-output "$out/debug" "${flows[@]}"

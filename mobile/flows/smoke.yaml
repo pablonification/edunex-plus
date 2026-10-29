@@ -1,11 +1,13 @@
-# Placeholder flow: proves the e2e job end to end (the demo app installs and opens).
-# The real flows replace it.
+# The demo app installs, opens on its made-up student, and shows Beranda with its tabs.
 appId: io.github.pablonification.edunexplus.demo
 ---
 - launchApp:
     clearState: true
 - extendedWaitUntil:
-    visible: "Edunex Plus"
-    timeout: 60000
-- assertVisible: "Edunex Plus"
+    visible:
+      id: tab.home
+    timeout: 180000
+- assertVisible:
+    id: screen.home
+- assertVisible: "Selamat pagi, Dimas"
 - takeScreenshot: smoke

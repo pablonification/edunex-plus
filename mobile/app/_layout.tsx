@@ -8,6 +8,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import "../src/host/background";
 import { useDataset, useStatus } from "../../src/app/store";
+import { CourseColorPickerHost } from "../src/parts/course-color-picker";
 import { Boot } from "../src/shell/boot";
 import { NotificationTaps } from "../src/shell/notification-taps";
 import { SignInHost } from "../src/shell/sign-in";
@@ -48,6 +49,7 @@ function Frame() {
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: theme.color.canvas }, animation: "slide_from_right" }} />
       {welcoming && <Welcome onDone={() => setWelcoming(false)} />}
       <Toasts />
+      <CourseColorPickerHost />
       <SignInHost />
       <NotificationTaps />
     </>

@@ -557,7 +557,7 @@ function AddToCalendar({ picked, onClose }: { picked: Picked | null; onClose: ()
         notes: pick.event.title,
       });
     } catch {
-      toast(t("mobile.calendar.failed"), "danger");
+      toast(t("mobile.deadline.calendarFailed"), "danger");
     }
   };
   return (
@@ -570,7 +570,7 @@ function AddToCalendar({ picked, onClose }: { picked: Picked | null; onClose: ()
         picked
           ? [
               {
-                label: t("mobile.calendar.add"),
+                label: t("mobile.deadline.toCalendar"),
                 icon: <Icons.CalendarCheck size={20} color={theme.color.fg} />,
                 onPress: () => void add(picked),
                 testID: "action.addToCalendar",

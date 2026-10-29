@@ -43,47 +43,47 @@ Status: todo / building / done (with proof: a Maestro flow, a screenshot, a judg
 
 | # | Desktop | Decision | Why | Status | Proof |
 | --- | --- | --- | --- | --- | --- |
-| S1 | Beranda (home): now card, today, needs, what changed, snooze, handled | change | Same answer first; one column, now card on top, needs as swipeable rows (swipe: snooze / handled) | todo | |
-| S2 | Tugas & Ujian (list, To do / Done, course filter chips, exam periods) | change | Same groups; filter chips scroll sideways; segmented To do / Done at the top within thumb reach | todo | |
-| S3 | Task detail (instructions, files, answer, draft, attach, submit, history, handed in another way) | change | Full screen; answer box is a plain multi-line editor; attach from the phone's files; sticky submit bar at the bottom | todo | |
-| S4 | Exam detail (parts, rooms, take-home, Mark as done) | keep | Same facts, one column | todo | |
-| S5 | Jadwal week (time grid, clashes, changes, "Tidak ada di SIX", Gabung) | change | A 7-column grid is unreadable on a phone: a day strip with a swipeable day list (agenda), week grid kept as an option in landscape-free form (3-day) | todo | |
-| S6 | Jadwal month | change | Month grid with dots, tap a day to see its classes below | todo | |
-| S7 | Class detail (popover) | change | Bottom sheet | todo | |
-| S8 | Add to phone calendar (desktop: an .ics file to import) | replace | Writes the classes straight into the phone's calendar (expo-calendar), or shares the .ics | todo | |
-| S9 | Presensi (target, clash pick, groups by absence budget, bars, Tandai Hadir) | keep | Same groups and bars, one column | todo | |
-| S10 | Tandai Hadir (desktop opens SIX in an app window) | change | Opens SIX's timetable in an in-app browser signed in (WebView with the session), the Student presses SIX's button | todo | |
+| S1 | Beranda (home): now card, today, needs, what changed, snooze, handled | change | Same answer first; one column, now card on top, needs as swipeable rows (swipe: snooze / handled) | built, on device | seen on Redroid (shots h1–h5, tour-*, se*, al2); judge pending |
+| S2 | Tugas & Ujian (list, To do / Done, course filter chips, exam periods) | change | Same groups; filter chips scroll sideways; segmented To do / Done at the top within thumb reach | built, on device | seen on Redroid (shots h1–h5, tour-*, se*, al2); judge pending |
+| S3 | Task detail (instructions, files, answer, draft, attach, submit, history, handed in another way) | change | Full screen; answer box is a plain multi-line editor; attach from the phone's files; sticky submit bar at the bottom | built | merged; device check pending |
+| S4 | Exam detail (parts, rooms, take-home, Mark as done) | keep | Same facts, one column | built | merged; device check pending |
+| S5 | Jadwal week (time grid, clashes, changes, "Tidak ada di SIX", Gabung) | change | A 7-column grid is unreadable on a phone: a day strip with a swipeable day list (agenda), week grid kept as an option in landscape-free form (3-day) | built | merged; device check pending |
+| S6 | Jadwal month | change | Month grid with dots, tap a day to see its classes below | built | merged; device check pending |
+| S7 | Class detail (popover) | change | Bottom sheet | built | merged; device check pending |
+| S8 | Add to phone calendar (desktop: an .ics file to import) | replace | Writes the classes straight into the phone's calendar (expo-calendar), or shares the .ics | built | merged; device check pending |
+| S9 | Presensi (target, clash pick, groups by absence budget, bars, Tandai Hadir) | keep | Same groups and bars, one column | built, on device | seen on Redroid (shots h1–h5, tour-*, se*, al2); judge pending |
+| S10 | Tandai Hadir (desktop opens SIX in an app window) | change | Opens SIX's timetable in an in-app browser signed in (WebView with the session), the Student presses SIX's button | built | merged; device check pending |
 | S11 | Nilai (IPK, chart, this term's estimates, history) | keep | Same; chart fits the width; per-term list folds | todo | |
 | S12 | Rencana studi: Rencana (planner) | change | Planner is drag-and-click heavy: per-semester cards, add/remove courses through a picker sheet | todo | |
 | S13 | Rencana studi: Kurikulum | keep | One column | todo | |
 | S14 | Rencana studi: KRS | keep | One column | todo | |
 | S15 | Rencana studi: UKT | keep | One column | todo | |
 | S16 | Rencana studi: Kalender akademik | keep | One column, plus add a deadline to the phone's calendar | todo | |
-| S17 | Course page: header, budget, now card, tabs (Modul, Pertemuan, Tugas & Ujian, Nilai, Pengumuman) | change | Tabs scroll sideways; Modul is a list that opens a module page (no two panes) | todo | |
-| S18 | Course: grade calculator (kalkulator nilai) | keep | Same inputs, number keypad | todo | |
-| S19 | Course list (desktop sidebar "Mata kuliah", course colors) | change | A "Mata kuliah" list on the Lainnya tab and at the top of Presensi rows; long-press a course for its color | todo | |
+| S17 | Course page: header, budget, now card, tabs (Modul, Pertemuan, Tugas & Ujian, Nilai, Pengumuman) | change | Tabs scroll sideways; Modul is a list that opens a module page (no two panes) | built | merged; device check pending |
+| S18 | Course: grade calculator (kalkulator nilai) | keep | Same inputs, number keypad | built | merged; device check pending |
+| S19 | Course list (desktop sidebar "Mata kuliah", course colors) | change | A "Mata kuliah" list on the Lainnya tab and at the top of Presensi rows; long-press a course for its color | built | merged; device check pending |
 
 ### Around the pages
 
 | # | Desktop | Decision | Why | Status | Proof |
 | --- | --- | --- | --- | --- | --- |
-| A1 | Search (Ctrl K) | change | A search button in each page's header opens a full-screen search with the keyboard up | todo | |
-| A2 | Alerts bell (history, unread) | change | Bell in the header opens the alert history screen; the system notifications are the main way | todo | |
-| A3 | OS notifications (new Task, attendance opens, reminders, class soon) | keep | expo-notifications, tapping one opens its screen (same Route) | todo | |
+| A1 | Search (Ctrl K) | change | A search button in each page's header opens a full-screen search with the keyboard up | built, on device | seen on Redroid (shots h1–h5, tour-*, se*, al2); judge pending |
+| A2 | Alerts bell (history, unread) | change | Bell in the header opens the alert history screen; the system notifications are the main way | built, on device | seen on Redroid (shots h1–h5, tour-*, se*, al2); judge pending |
+| A3 | OS notifications (new Task, attendance opens, reminders, class soon) | keep | expo-notifications, tapping one opens its screen (same Route) | built | merged; device check pending |
 | A4 | Background sync (desktop: always running in the tray) | replace | expo-background-task every 15+ min, alerts from what it finds | todo | |
-| A5 | Source status line, offline / expired / changed banners, "Perbarui sekarang" | change | Quiet line under the header; banners the same; pull to refresh does "Perbarui sekarang" | todo | |
-| A6 | Settings (theme, language, alerts, deadline times, class soon, attendance target, course colors, snoozed, accounts, sign out all, first scan, about, licences, open source) | keep | A Settings screen from Lainnya; same sections minus the desktop-only ones | todo | |
+| A5 | Source status line, offline / expired / changed banners, "Perbarui sekarang" | change | Quiet line under the header; banners the same; pull to refresh does "Perbarui sekarang" | built, on device | seen on Redroid (shots h1–h5, tour-*, se*, al2); judge pending |
+| A6 | Settings (theme, language, alerts, deadline times, class soon, attendance target, course colors, snoozed, accounts, sign out all, first scan, about, licences, open source) | keep | A Settings screen from Lainnya; same sections minus the desktop-only ones | built | merged; device check pending |
 | A7 | Welcome / first-run tour, sign in to Edunex and SIX | change | Full-screen welcome, then ITB's real sign-in page in a WebView; one Microsoft sign-in tries both | building | Demo: Mulai → Hubungkan Edunex → SIX came along → reading (5 · 10 · 40) → notifications asked → app (shots w1–w8). Real: ITB/Microsoft page loads in the app. Needs: real sign-in by Arqila, Back re-check |
 | A8 | First scan summary ("Ringkasan saat pertama terhubung") | keep | Shown once after the first sync, again from Settings | todo | |
 | A9 | Problem report (Laporkan masalah, Kirim langsung, Story) | keep | Same dialog as a screen; also "Share" through the share sheet instead of saving a file | todo | |
-| A10 | Snooze menu / Handled (Ingatkan nanti, Sudah beres) | change | Swipe a row, or long-press for the same menu as an action sheet | todo | |
-| A11 | Course colors (picker) | keep | Bottom sheet with the ten colors | todo | |
-| A12 | Downloads (Unduh: a material into Downloads) | change | Downloads into the app's files, then opens or shares it | todo | |
-| A13 | In-app file viewers (PDF, Word, Excel, PowerPoint), offline copies | replace | Open in the phone's own apps (Drive, Office, PDF viewer) through the share/open sheet; files kept for offline | todo | |
+| A10 | Snooze menu / Handled (Ingatkan nanti, Sudah beres) | change | Swipe a row, or long-press for the same menu as an action sheet | built | merged; device check pending |
+| A11 | Course colors (picker) | keep | Bottom sheet with the ten colors | built | merged; device check pending |
+| A12 | Downloads (Unduh: a material into Downloads) | change | Downloads into the app's files, then opens or shares it | built | merged; device check pending |
+| A13 | In-app file viewers (PDF, Word, Excel, PowerPoint), offline copies | replace | Open in the phone's own apps (Drive, Office, PDF viewer) through the share/open sheet; files kept for offline | built | merged; device check pending |
 | A14 | Highlights and page notes in the viewer, PDF form filling | skip | They live inside the desktop's own viewer; on the phone the file opens in the Student's own reader, which has its own highlights | todo | |
-| A15 | Lecturer links, official pages (open in browser) | keep | Same rules (official pages only for app links, any http(s) for lecturers' links), in the system browser | todo | |
-| A16 | Demo mode (made-up student, pretend Edunex and SIX) | keep | A demo build (EXPO_PUBLIC_DEMO) on test/pretend, for tests, screenshots and trying the app | todo | |
-| A17 | Light and dark, Indonesian and English | keep | Follows the phone, or the Student's choice | todo | |
+| A15 | Lecturer links, official pages (open in browser) | keep | Same rules (official pages only for app links, any http(s) for lecturers' links), in the system browser | built | merged; device check pending |
+| A16 | Demo mode (made-up student, pretend Edunex and SIX) | keep | A demo build (EXPO_PUBLIC_DEMO) on test/pretend, for tests, screenshots and trying the app | built | Demo build plays every desktop scenario via test/pretend/demo.ts (shared with the desktop demo) |
+| A17 | Light and dark, Indonesian and English | keep | Follows the phone, or the Student's choice | built | Theme and language from Settings; phone language on first run |
 | A18 | Phone alerts through ntfy (Settings: Notifikasi di HP) | skip | The app is on the phone: its own notifications replace ntfy | todo | |
 
 ### Desktop-only
@@ -123,10 +123,15 @@ machine). Every helper runs at effort high or more.
 | --- | --- | --- | --- | --- |
 | engine | Contact (Opus 5.5, xhigh) | src/engine on Hermes: platform swaps, read context, pretend without fs, bundle guard, Intl findings | `mobile-engine` | merged (ab9900a): check green, ran on a real Hermes VM, output identical to Node |
 | ci | Dev 1 (Opus 5.5, high) | `.github/workflows/mobile.yml`: APKs (demo, real, dev clients), emulator + Maestro, desktop shots light/dark | `mobile-ci` | merged (8def9c0): green run 40920151536, ~18 min |
-| presence | Contact (Opus 5.5, high) | S9 Presensi, S10 Tandai Hadir in a SIX page | `mobile-presence` | building |
+| presence | Contact (Opus 5.5, high) | S9 Presensi, S10 Tandai Hadir in a SIX page | `mobile-presence` | merged (3255960), check-in wired |
+| schedule | Dev 1 (Opus 5.5, high) | S5–S8 Jadwal (day strip + agenda, month, class sheet, phone calendar) | `mobile-schedule` | merged (cf9334b) |
+| grades-plan | Contact (Opus 5.5, xhigh) | S11–S16 Nilai, Rencana studi (planner, kurikulum, KRS, UKT, kalender) | `mobile-grades-plan` | building |
+| course | Dev 1 (Opus 5.5, high) | S17–S19, A11, A15 course page, grade calculator, color picker | `mobile-course` | merged (e3f4d0d), picker wired |
+| report | Dev 1 (Opus 5.5, high) | A8 first-scan summary, A9 problem report, licences (phone's own list) | `mobile-report` | building |
+| widget | Contact (Opus 5.5, high) | D1 home-screen widget (the tray's now/next/deadline) | `mobile-widget` | building |
 | inventory | Contact (Opus 5.5, high) | Check A inventory from the desktop demo per scenario + Maestro flow generator + score reporter | `mobile-inventory` | merged (8915598): 766 items signed-in, 15 scenarios |
-| home | Contact (Opus 5.5, xhigh) | S1 Beranda | `mobile-home` | building |
-| tasks | Dev 1 (Opus 5.5, high) | S2–S4 Tugas & Ujian, Task (hand-in, files), Exam | `mobile-tasks` | building |
+| home | Contact (Opus 5.5, xhigh) | S1 Beranda | `mobile-home` | merged (afdc26c) |
+| tasks | Dev 1 (Opus 5.5, high) | S2–S4 Tugas & Ujian, Task (hand-in, files), Exam | `mobile-tasks` | merged (d3ab9bd), handlers wired (3fcf067) |
 
 ### Pieces still to hand out (each one helper, own branch `mobile-<piece>`)
 
@@ -185,9 +190,9 @@ machine). Every helper runs at effort high or more.
 
 ## Notes for later
 
-- Back on the sign-in page closed the app: predictive back was on (Android 13+ then never sends
-  React Native the Back press). Turned off in app.config.ts (6845b78); re-check Back on the next
-  dev-client APK.
+- Back closed the app: predictive back was on (Android 13+ then never sends React Native the Back
+  press). Turned off in app.config.ts (6845b78); verified on the dev client from run 40926366619
+  (Maestro: bell → Back → Beranda, course → Back → Lainnya).
 
 - A3: timed reminders (class soon, deadline times) fire from the engine's in-process plan, which
   sleeps when Android freezes the app. Worth scheduling the plan's next alerts as OS
