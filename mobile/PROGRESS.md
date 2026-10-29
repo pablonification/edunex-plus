@@ -13,7 +13,9 @@ Branch: `mobile`. App: `mobile/` (Expo SDK 58, React Native 0.88, Expo Router, d
   route stubs, navigation (`src/nav.ts`), sign-in in WebViews with the desktop's signInToBoth,
   the web-cookies native module, background sync task, sheets/swipe/top bar, porting guide
   (`mobile/AGENTS.md`).
-- Next: merge mobile-engine and mobile-ci, first run on Redroid, then screen helpers.
+- First run on Redroid works (demo dev client from CI + Metro on pabs): engine, store, tabs, header,
+  badges (Tugas 6, Rencana studi 1, as the desktop), Lainnya with the 5 courses in their colors.
+- Next: welcome/sign-in (lead), Beranda and Tugas helpers running, CI helper finishing.
 
 ## Tools on pabs (installed without sudo)
 
@@ -112,15 +114,17 @@ machine). Every helper runs at effort high or more.
 
 | Helper | Account | Piece | Branch | Status |
 | --- | --- | --- | --- | --- |
-| engine | Contact (Opus 5.5, xhigh) | src/engine on Hermes: platform swaps, read context, pretend without fs, bundle guard, Intl findings | `mobile-engine` | building |
+| engine | Contact (Opus 5.5, xhigh) | src/engine on Hermes: platform swaps, read context, pretend without fs, bundle guard, Intl findings | `mobile-engine` | merged (ab9900a): check green, ran on a real Hermes VM, output identical to Node |
 | ci | Dev 1 (Opus 5.5, high) | `.github/workflows/mobile.yml`: APKs (demo, real, dev clients), emulator + Maestro, desktop shots light/dark | `mobile-ci` | building |
-| inventory | Contact (Opus 5.5, high) | Check A inventory from the desktop demo per scenario + Maestro flow generator + score reporter | `mobile-inventory` | building |
+| inventory | Contact (Opus 5.5, high) | Check A inventory from the desktop demo per scenario + Maestro flow generator + score reporter | `mobile-inventory` | merged (8915598): 766 items signed-in, 15 scenarios |
+| home | Contact (Opus 5.5, xhigh) | S1 Beranda | `mobile-home` | building |
+| tasks | Dev 1 (Opus 5.5, high) | S2–S4 Tugas & Ujian, Task (hand-in, files), Exam | `mobile-tasks` | building |
 
 ### Pieces still to hand out (each one helper, own branch `mobile-<piece>`)
 
 | Piece | Scope rows | Notes |
 | --- | --- | --- |
-| parts | A10, A11 + shared parts | `src/parts/`: snooze/done menus as sheets, SixPageNote, OpenSixTimetable, NowCard shell, attendance parts (AbsenceBudget, AbsenceBar, CountdownBar), report button stub. First, the others use them |
+| parts (done by lead) | A10 + shared parts | `src/parts/`: snooze/done menus as sheets, SixPageNote, OpenSixTimetable, NowCard shell, attendance parts (AbsenceBudget, AbsenceBar, CountdownBar), report button stub. First, the others use them |
 | home | S1 | Beranda, after parts |
 | tasks | S2, S3, S4 | Tugas & Ujian, Task detail with hand-in (document picker, draft, submit), Exam detail |
 | schedule | S5–S8 | Jadwal day/week/month, class sheet, write to the phone's calendar (expo-calendar) |
