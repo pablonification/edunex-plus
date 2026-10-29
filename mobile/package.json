@@ -49,13 +49,14 @@
     "typescript": "~6.0.3"
   },
   "scripts": {
-    "start": "expo start --dev-client",
-    "start:demo": "npm run demo:fixtures && EXPO_PUBLIC_DEMO=1 expo start --dev-client",
+    "start": "npm run licences -- --if-missing && expo start --dev-client",
+    "start:demo": "npm run demo:fixtures && npm run licences -- --if-missing && EXPO_PUBLIC_DEMO=1 expo start --dev-client",
     "android": "expo run:android",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "doctor": "expo-doctor",
-    "demo:fixtures": "node scripts/demo-fixtures.mjs"
+    "demo:fixtures": "node scripts/demo-fixtures.mjs",
+    "licences": "node scripts/third-party-notices.mjs"
   },
   "private": true
 }

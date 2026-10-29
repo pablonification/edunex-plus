@@ -47,3 +47,6 @@ yarn-error.*
 # The recordings bundled for a demo build (npm run demo:fixtures)
 /src/demo/recorded.js
 /flows/data/
+
+# The open-source licences the app bundles (npm run licences)
+/licences.json
