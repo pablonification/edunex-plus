@@ -179,10 +179,22 @@ appId: io.github.pablonification.edunexplus.demo
 - takeScreenshot: ${THEME}-20-mata-kuliah
 - tapOn:
     id: tab.course.meetings
+- scrollUntilVisible:
+    element:
+      id: "row\\.meeting\\..*"
+    direction: DOWN
+    optional: true
 - waitForAnimationToEnd
 - takeScreenshot: ${THEME}-21-pertemuan
 - tapOn:
     id: tab.course.grades
+# The calculator itself, under the course's header.
+- scrollUntilVisible:
+    element:
+      id: "row\\.gradePart\\..*"
+    direction: DOWN
+    centerElement: true
+    optional: true
 - waitForAnimationToEnd
 - takeScreenshot: ${THEME}-22-kalkulator-nilai
 - tapOn:

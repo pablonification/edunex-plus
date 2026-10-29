@@ -60,7 +60,7 @@ Status: todo / building / done (with proof: a Maestro flow, a screenshot, a judg
 | S15 | Rencana studi: UKT | keep | One column | built | merged; Nilai and Rencana seen on Redroid (tour-nilai-*, tour-rencana-1); judge pending |
 | S16 | Rencana studi: Kalender akademik | keep | One column, plus add a deadline to the phone's calendar | built | merged; Nilai and Rencana seen on Redroid (tour-nilai-*, tour-rencana-1); judge pending |
 | S17 | Course page: header, budget, now card, tabs (Modul, Pertemuan, Tugas & Ujian, Nilai, Pengumuman) | change | Tabs scroll sideways; Modul is a list that opens a module page (no two panes) | built, on device | seen on Redroid (tour-jadwal-*, tour-course-*); judge pending |
-| S18 | Course: grade calculator (kalkulator nilai) | keep | Same inputs, number keypad | built | merged; device check pending |
+| S18 | Course: grade calculator (kalkulator nilai) | keep | Same inputs, number keypad | done | Redroid: PL3002 › Nilai, UTS 85 typed on the number keypad → "Untuk A kamu butuh rata-rata 69 di UAS, Tugas, dan Kuis." (it was 97 for AB at UTS 5); Kehadiran 85 dari SIX filled in; weights and letter bounds editable. Maestro's burst typing drops a digit against selectTextOnFocus, a person's doesn't |
 | S19 | Course list (desktop sidebar "Mata kuliah", course colors) | change | A "Mata kuliah" list on the Lainnya tab and at the top of Presensi rows; long-press a course for its color | done | Redroid: Lainnya's "Mata kuliah 5", codes in one column level with the names (5b8779b), each opens its course, long-press for its colour (A11) |
 
 ### Around the pages
