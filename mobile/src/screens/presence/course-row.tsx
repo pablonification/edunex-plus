@@ -16,6 +16,7 @@ import { wibDay } from "../../../../src/core/course-meetings";
 import { sixTimetableUrl } from "../../../../src/core/links";
 import { useNav } from "../../nav";
 import { AbsenceBudget } from "../../parts/attendance";
+import { openCourseColorPicker } from "../../parts/course-color-picker";
 import { CourseCode } from "../../ui/display";
 import { Icons } from "../../ui/icons";
 import { Meta } from "../../ui/layout";
@@ -53,6 +54,8 @@ export function CourseRow({ item, group, context }: { item: CourseAttendance; gr
       <Pressable
         testID={`row.presence.${course.code}`}
         onPress={() => go({ screen: "course", code: course.code, tab: "meetings" })}
+        // The course's colour, as a long-press on it in Lainnya (the desktop's right-click on its sidebar row).
+        onLongPress={() => openCourseColorPicker(course.code)}
         accessibilityRole="button"
         accessibilityLabel={label}
         android_ripple={{ color: theme.color.selected }}

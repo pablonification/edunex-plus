@@ -161,9 +161,11 @@ export function QuickRow({
       : []),
     ...(later ? [{ label: t("snooze.action"), icon: <Icons.Snooze size={20} color={theme.color.muted} />, onPress: sheet.open, testID: "menu.snooze" }] : []),
   ];
+  // Only "Ingatkan nanti": straight to its times, as on Tugas (a menu of one would be a sheet too many).
+  const onLongPress = !choices.length ? undefined : !done && later ? sheet.open : () => setMenu(true);
   return (
     <>
-      <SwipeRow actions={swipe}>{children({ actions, onLongPress: choices.length ? () => setMenu(true) : undefined })}</SwipeRow>
+      <SwipeRow actions={swipe}>{children({ actions, onLongPress })}</SwipeRow>
       {choices.length > 0 && <ActionSheet open={menu} onClose={() => setMenu(false)} title={name} choices={choices} testID="sheet.row" />}
       {sheet.sheet}
     </>
