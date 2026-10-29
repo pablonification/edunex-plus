@@ -201,7 +201,8 @@ export function Row({
   const theme = useTheme();
   const body = (
     <>
-      {leading !== undefined && <View style={{ flexShrink: 0, alignSelf: "flex-start", paddingTop: 1 }}>{leading}</View>}
+      {/* Level with the title's first line (22 high), however tall the indicator. */}
+      {leading !== undefined && <View style={{ flexShrink: 0, alignSelf: "flex-start", minHeight: 22, justifyContent: "center" }}>{leading}</View>}
       <View style={{ flex: 1, minWidth: 0 }}>
         {typeof title === "string" ? (
           <Text size="body" weight="medium" numberOfLines={3}>

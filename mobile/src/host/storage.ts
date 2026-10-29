@@ -30,8 +30,8 @@ export class PhoneStorage implements Storage {
       if (!parent.exists) parent.create({ intermediates: true });
       const temp = new File(parent, `${file.name}.${Math.random().toString(36).slice(2, 10)}${TEMP}`);
       try {
-        temp.create({ overwrite: true });
-        temp.write(text);
+        // writeSync makes the file; write() is async in SDK 58 and would race the move.
+        temp.writeSync(text);
         temp.moveSync(file, { overwrite: true });
       } catch (error) {
         if (temp.exists) temp.delete();

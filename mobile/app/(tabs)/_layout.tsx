@@ -4,7 +4,7 @@ import { Tabs } from "expo-router";
 import { useRememberCourseColors } from "../../../src/app/course-colors";
 import { useTermCourses } from "../../../src/app/courses";
 import { useT } from "../../../src/app/i18n";
-import { type Badge, usePresenceBadge, useTasksBadge } from "../../../src/app/shell/badges";
+import { type Badge, usePlanBadge, usePresenceBadge, useTasksBadge } from "../../../src/app/shell/badges";
 import { Icons } from "../../src/ui/icons";
 import { useTheme } from "../../src/ui/theme";
 
@@ -27,6 +27,8 @@ export default function TabsLayout() {
   useRememberCourseColors(courses?.map((course) => course.code));
   const tasks = useTasksBadge();
   const presence = usePresenceBadge();
+  // Rencana studi's count lives under Lainnya: the tab carries it, so it's seen without opening Lainnya.
+  const plan = usePlanBadge();
   return (
     <Tabs
       screenOptions={{
@@ -77,6 +79,7 @@ export default function TabsLayout() {
         options={{
           title: t("mobile.tab.more"),
           tabBarButtonTestID: "tab.more",
+          ...badgeOf(plan, c),
           tabBarIcon: ({ color, focused }) => <Icons.LayoutGrid color={color as string} size={24} weight={focused ? "fill" : "regular"} />,
         }}
       />
