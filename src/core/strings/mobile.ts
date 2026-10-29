@@ -30,4 +30,15 @@ export const mobileStrings = {
     id: "Kotak jawaban di HP hanya untuk teks biasa, jadi ubah jawaban berformat ini di Edunex. Berkasnya tetap bisa diatur di sini.",
     en: "The answer box on the phone takes plain text only, so change this formatted answer on Edunex. You can still manage the files here.",
   },
+  // grades-plan
+  // The planner's ⋯ on a course: the desktop plans a course in a semester, the phone moves it there from a sheet.
+  "mobile.planner.options": { id: "Pilihan untuk {code}", en: "Options for {code}" },
+  "mobile.planner.moveTo": { id: "Pindahkan ke {term}", en: "Move to {term}" },
+  "mobile.planner.moved": { id: "{code} dipindah ke {term}", en: "{code} moved to {term}" },
+  // Kalender akademik: a date opens in the phone's own calendar app, filled in, for the Student to save.
+  "mobile.calendar.add": { id: "Tambah ke kalender HP", en: "Add to phone calendar" },
+  "mobile.calendar.failed": {
+    id: "Kalender HP tidak bisa dibuka. Pasang aplikasi kalender, lalu coba lagi.",
+    en: "The phone's calendar didn't open. Install a calendar app, then try again.",
+  },
 } as const satisfies Record<string, Entry>;
