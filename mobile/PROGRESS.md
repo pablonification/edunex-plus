@@ -69,7 +69,7 @@ Status: todo / building / done (with proof: a Maestro flow, a screenshot, a judg
 | --- | --- | --- | --- | --- | --- |
 | A1 | Search (Ctrl K) | change | A search button in each page's header opens a full-screen search with the keyboard up | built, on device | seen on Redroid (shots h1–h5, tour-*, se*, al2); judge pending |
 | A2 | Alerts bell (history, unread) | change | Bell in the header opens the alert history screen; the system notifications are the main way | built, on device | seen on Redroid (shots h1–h5, tour-*, se*, al2); judge pending |
-| A3 | OS notifications (new Task, attendance opens, reminders, class soon) | keep | expo-notifications, tapping one opens its screen (same Route) | built | merged; device check pending |
+| A3 | OS notifications (new Task, attendance opens, reminders, class soon) | keep | expo-notifications, tapping one opens its screen (same Route) | built, on device | Redroid: Settings › Coba notifikasi → "Notifikasi berfungsi" in the shade on channel `alerts` (notif-shade); a tap from the home screen opens Tugas & Ujian (screen.tasks). Fixed: Kirim now asks for the permission (fc93496), the status-bar icon was a blank square (6274778). An engine alert in the demo's day still to see |
 | A4 | Background sync (desktop: always running in the tray) | replace | expo-background-task every 15+ min, alerts from what it finds | todo | |
 | A5 | Source status line, offline / expired / changed banners, "Perbarui sekarang" | change | Quiet line under the header; banners the same; pull to refresh does "Perbarui sekarang" | built, on device | seen on Redroid (shots h1–h5, tour-*, se*, al2); judge pending |
 | A6 | Settings (theme, language, alerts, deadline times, class soon, attendance target, course colors, snoozed, accounts, sign out all, first scan, about, licences, open source) | keep | A Settings screen from Lainnya; same sections minus the desktop-only ones | built, on device | seen on Redroid (tour-settings-*); phone wording merged (6d7b18a); device check of the new words pending |
@@ -78,8 +78,8 @@ Status: todo / building / done (with proof: a Maestro flow, a screenshot, a judg
 | A9 | Problem report (Laporkan masalah, Kirim langsung, Story) | keep | Same dialog as a screen; also "Share" through the share sheet instead of saving a file | built, on device | Redroid: Lainnya → Laporkan masalah (tour-report2: what's sent, story box, LINE and GitHub); sending through the share sheet still to try |
 | A10 | Snooze menu / Handled (Ingatkan nanti, Sudah beres) | change | Swipe a row, or long-press for the same menu as an action sheet | built, on device | Redroid: Beranda's snooze sheet (tour-snooze: 3 jam lagi, Besok pagi, Sehari sebelumnya, Sampai ada perubahan); swipe still to try |
 | A11 | Course colors (picker) | keep | Bottom sheet with the ten colors | built | merged; device check pending |
-| A12 | Downloads (Unduh: a material into Downloads) | change | Downloads into the app's files, then opens or shares it | built | merged; device check pending |
-| A13 | In-app file viewers (PDF, Word, Excel, PowerPoint), offline copies | replace | Open in the phone's own apps (Drive, Office, PDF viewer) through the share/open sheet; files kept for offline | built | merged; device check pending |
+| A12 | Downloads (Unduh: a material into Downloads) | change | Downloads into the app's files, then opens or shares it | built | Redroid: II4091 Modul 3's PDF failed to download in the demo (the pretend storage doesn't hold a lecturer's file; the desktop demo serves a sample): fixed in 38a1a49, re-check on the next build |
+| A13 | In-app file viewers (PDF, Word, Excel, PowerPoint), offline copies | replace | Open in the phone's own apps (Drive, Office, PDF viewer) through the share/open sheet; files kept for offline | built | after A12's fix: open (Redroid has no PDF app, so expect the "no app" note and Share) |
 | A14 | Highlights and page notes in the viewer, PDF form filling | skip | They live inside the desktop's own viewer; on the phone the file opens in the Student's own reader, which has its own highlights | done (skipped) | Not built: no in-app viewer on the phone (A13 opens files in the Student's own reader) |
 | A15 | Lecturer links, official pages (open in browser) | keep | Same rules (official pages only for app links, any http(s) for lecturers' links), in the system browser | built | merged; device check pending |
 | A16 | Demo mode (made-up student, pretend Edunex and SIX) | keep | A demo build (EXPO_PUBLIC_DEMO) on test/pretend, for tests, screenshots and trying the app | built | Demo build plays every desktop scenario via test/pretend/demo.ts (shared with the desktop demo) |
@@ -109,6 +109,8 @@ Inventory: `mobile/flows/expected/` (the desktop demo's screens, read per scenar
 | --- | --- | ---: | ---: | --- |
 | 2026-10-30 01:05 | signed-in | 32 | 766 | First run of the pipeline: courses 6/6, alerts 3/3, search 23/27 (the result count, added since); other screens not built yet |
 | 2026-10-30 02:30 | signed-in | home 20/20, presence 9/9, schedule 22/22, tasks 10/15 | (partial) | Each text searched on its own; tasks stopped at "Selesai" scrolled off (fixed in bcbb5fd) |
+| 2026-10-30 03:10 | signed-in | exam 35/35 | (partial) | Redroid: exams open by the phone's id ({{exam}}, 2fe4674); before, no exam opened |
+| 2026-10-30 03:30 | all (CI 40938204552) | - | - | Not counted: every scenario flow stopped at launch behind the emulator's "Pixel Launcher isn't responding" dialog (2f28b69: error dialogs off, 3 cores and 4 GB); the app job (smoke, judge) passed |
 
 ## Score B: same feel (judge on the Mac)
 
@@ -205,6 +207,7 @@ machine). Every helper runs at effort high or more.
   phones as a widget update starts (no fix released); its plugin can't set a smaller resize size,
   so the widget only stretches bigger than 4x2; the widget list shows no description (the config
   loader can't read src/core/strings). Watch the first two on a device.
+- Never pipe `tsc` into `tail` inside an `&&` chain: the pipe hides its exit code (38a1a49 went out with a type error).
 - Headless wake-ups (background sync, widget) don't load `app/_layout.tsx`: the crypto polyfill and
   the sync task are imported from `mobile/index.ts`, the app's entry.
 
