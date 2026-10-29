@@ -1,0 +1,157 @@
+{
+  "$comment": [
+    "How the phone reaches each screen the desktop inventory reads (mobile/flows/expected), as Maestro steps.",
+    "mobile/scripts/flows-from-inventory.mjs puts these in front of each screen's checks in mobile/flows/data.",
+    "Placeholders: {{state}} is the inventory's state ('PL3002/modules/modul-4'), {{1}} {{2}} {{3}} its parts split at '/',",
+    "{{list}} the Tugas & Ujian list a Task or exam was opened from (todo, done), {{appId}}, and a value that is exactly",
+    "'{{demoArguments}}' becomes the scenario's EDUNEX_DEMO settings as launch arguments.",
+    "'steps' run for every state; 'byState' maps a pattern on the state to the steps that run instead.",
+    "'relaunch': true starts the app afresh before each state (a clean way back from a detail screen).",
+    "Status 'placeholder': steps written from the testID convention (PROGRESS.md Decision 8) before the screen exists;",
+    "the lead replaces them with the real steps and sets status to 'ready' as each screen lands."
+  ],
+  "appId": "io.github.pablonification.edunexplus.demo",
+  "launch": [
+    { "launchApp": { "appId": "{{appId}}", "clearState": true, "arguments": "{{demoArguments}}" } },
+    { "extendedWaitUntil": { "visible": { "id": "tab.home" }, "timeout": 60000 } }
+  ],
+  "screens": {
+    "welcome": {
+      "status": "placeholder",
+      "launch": [{ "launchApp": { "appId": "{{appId}}", "clearState": true, "arguments": "{{demoArguments}}" } }],
+      "steps": [{ "extendedWaitUntil": { "visible": { "id": "screen.welcome" }, "timeout": 60000 } }],
+      "byState": {
+        "^connected$": [
+          { "extendedWaitUntil": { "visible": { "id": "action.connect.edunex" }, "timeout": 60000 } },
+          { "tapOn": { "id": "action.connect.edunex" } },
+          { "extendedWaitUntil": { "visible": { "id": "screen.welcome.connected" }, "timeout": 120000 } }
+        ],
+        "^ready$": [{ "tapOn": { "id": "action.continue" } }, { "extendedWaitUntil": { "visible": { "id": "screen.welcome.ready" }, "timeout": 600000 } }]
+      }
+    },
+    "first-scan": {
+      "status": "placeholder",
+      "launch": [{ "launchApp": { "appId": "{{appId}}", "clearState": true, "arguments": "{{demoArguments}}" } }],
+      "steps": [
+        { "extendedWaitUntil": { "visible": { "id": "action.connect.edunex" }, "timeout": 60000 } },
+        { "tapOn": { "id": "action.connect.edunex" } },
+        { "extendedWaitUntil": { "visible": { "id": "action.continue" }, "timeout": 120000 } },
+        { "tapOn": { "id": "action.continue" } },
+        { "extendedWaitUntil": { "visible": { "id": "screen.first-scan" }, "timeout": 180000 } }
+      ]
+    },
+    "home": { "status": "placeholder", "steps": [{ "tapOn": { "id": "tab.home" } }, { "assertVisible": { "id": "screen.home" } }] },
+    "changes": {
+      "status": "placeholder",
+      "steps": [
+        { "tapOn": { "id": "tab.home" } },
+        { "scrollUntilVisible": { "element": { "id": "action.changes.all" } } },
+        { "tapOn": { "id": "action.changes.all" } },
+        { "assertVisible": { "id": "screen.changes" } }
+      ]
+    },
+    "courses": { "status": "placeholder", "steps": [{ "tapOn": { "id": "tab.more" } }, { "assertVisible": { "id": "screen.more" } }] },
+    "tasks": {
+      "status": "placeholder",
+      "steps": [{ "tapOn": { "id": "tab.tasks" } }, { "tapOn": { "id": "action.tasks.{{state}}" } }, { "assertVisible": { "id": "screen.tasks" } }]
+    },
+    "task": {
+      "status": "placeholder",
+      "relaunch": true,
+      "steps": [
+        { "tapOn": { "id": "tab.tasks" } },
+        { "tapOn": { "id": "action.tasks.{{list}}" } },
+        { "scrollUntilVisible": { "element": { "id": "row.task.{{state}}" } } },
+        { "tapOn": { "id": "row.task.{{state}}" } },
+        { "assertVisible": { "id": "screen.task" } }
+      ]
+    },
+    "exam": {
+      "status": "placeholder",
+      "relaunch": true,
+      "steps": [
+        { "tapOn": { "id": "tab.tasks" } },
+        { "tapOn": { "id": "action.tasks.{{list}}" } },
+        { "scrollUntilVisible": { "element": { "id": "row.exam.{{state}}" } } },
+        { "tapOn": { "id": "row.exam.{{state}}" } },
+        { "assertVisible": { "id": "screen.exam" } }
+      ]
+    },
+    "schedule": {
+      "status": "placeholder",
+      "steps": [{ "tapOn": { "id": "tab.schedule" } }, { "assertVisible": { "id": "screen.schedule" } }],
+      "byState": {
+        "^next-week$": [{ "tapOn": { "id": "tab.schedule" } }, { "tapOn": { "id": "action.schedule.next" } }, { "assertVisible": { "id": "screen.schedule" } }],
+        "^month$": [{ "tapOn": { "id": "tab.schedule" } }, { "tapOn": { "id": "action.schedule.month" } }, { "assertVisible": { "id": "screen.schedule" } }]
+      }
+    },
+    "class": {
+      "status": "placeholder",
+      "relaunch": true,
+      "steps": [
+        { "tapOn": { "id": "tab.schedule" } },
+        { "scrollUntilVisible": { "element": { "id": "row.class.{{state}}" } } },
+        { "tapOn": { "id": "row.class.{{state}}" } },
+        { "assertVisible": { "id": "screen.class" } }
+      ]
+    },
+    "presence": { "status": "placeholder", "steps": [{ "tapOn": { "id": "tab.presence" } }, { "assertVisible": { "id": "screen.presence" } }] },
+    "grades": {
+      "status": "placeholder",
+      "steps": [{ "tapOn": { "id": "tab.more" } }, { "tapOn": { "id": "row.more.grades" } }, { "assertVisible": { "id": "screen.grades" } }],
+      "byState": {
+        "^transcript/": [
+          { "tapOn": { "id": "tab.more" } },
+          { "tapOn": { "id": "row.more.grades" } },
+          { "scrollUntilVisible": { "element": { "id": "row.term.{{2}}" } } },
+          { "tapOn": { "id": "row.term.{{2}}" } }
+        ]
+      }
+    },
+    "plan": {
+      "status": "placeholder",
+      "steps": [
+        { "tapOn": { "id": "tab.more" } },
+        { "tapOn": { "id": "row.more.plan" } },
+        { "tapOn": { "id": "tab.plan.{{state}}" } },
+        { "assertVisible": { "id": "screen.plan" } }
+      ]
+    },
+    "course": {
+      "status": "placeholder",
+      "relaunch": true,
+      "steps": [
+        { "tapOn": { "id": "tab.more" } },
+        { "scrollUntilVisible": { "element": { "id": "row.course.{{1}}" } } },
+        { "tapOn": { "id": "row.course.{{1}}" } },
+        { "assertVisible": { "id": "screen.course" } }
+      ],
+      "byState": {
+        "^[^/]+/modules/": [
+          { "tapOn": { "id": "tab.more" } },
+          { "scrollUntilVisible": { "element": { "id": "row.course.{{1}}" } } },
+          { "tapOn": { "id": "row.course.{{1}}" } },
+          { "tapOn": { "id": "tab.course.modules" } },
+          { "scrollUntilVisible": { "element": { "id": "row.module.{{3}}" } } },
+          { "tapOn": { "id": "row.module.{{3}}" } }
+        ],
+        "^[^/]+/[^/]+$": [
+          { "tapOn": { "id": "tab.more" } },
+          { "scrollUntilVisible": { "element": { "id": "row.course.{{1}}" } } },
+          { "tapOn": { "id": "row.course.{{1}}" } },
+          { "tapOn": { "id": "tab.course.{{2}}" } }
+        ]
+      }
+    },
+    "search": {
+      "status": "placeholder",
+      "relaunch": true,
+      "steps": [{ "tapOn": { "id": "action.search" } }, { "inputText": "{{state}}" }, { "assertVisible": { "id": "screen.search" } }, "hideKeyboard"]
+    },
+    "alerts": { "status": "placeholder", "steps": [{ "tapOn": { "id": "action.alerts" } }, { "assertVisible": { "id": "screen.alerts" } }] },
+    "settings": {
+      "status": "placeholder",
+      "steps": [{ "tapOn": { "id": "tab.more" } }, { "tapOn": { "id": "row.more.settings" } }, { "assertVisible": { "id": "screen.settings" } }]
+    }
+  }
+}
