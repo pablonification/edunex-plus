@@ -47,7 +47,7 @@ export interface LineChartProps {
 
 const PAD = { top: 12, right: 8, bottom: 26, left: 34 };
 const FONT = 11;
-/** About how wide a character of 11-pt text is, to leave room for the labels at the end. */
+/** About how wide a character of 11-pt text is, for the axis's labels. */
 const CHAR = 6.4;
 
 /** The last index whose value isn't null (Hermes has no findLastIndex everywhere). */
@@ -74,12 +74,15 @@ export function LineChart({
   const theme = useTheme();
   const c = theme.color;
   const [width, setWidth] = useState(0);
-  const [picked, setPicked] = useState<number | null>(null);
+  const [tapped, setTapped] = useState<number | null>(null);
 
   const n = columns.length;
-  const textWidth = (text: string) => text.length * CHAR + 12;
-  // On a phone the end labels take at most a third of the width; the target's label shortens to its figure when it must.
-  const endRoom = Math.min(width / 3, Math.max(endLabel ? textWidth(endLabel) : 0, reference ? textWidth(reference.label) : 0));
+  // A column tapped before the chart lost columns (a semester removed) isn't one any more.
+  const picked = tapped !== null && tapped < n ? tapped : null;
+  /** About how wide a label is at `size` (the end label is 12, the rest 11). */
+  const textWidth = (text: string, size = FONT) => text.length * size * 0.58 + 10;
+  // The labels at the end take what they need, up to 140 (the desktop's) and 40% of a narrow phone's chart.
+  const endRoom = Math.min(140, width * 0.4, Math.max(endLabel ? textWidth(endLabel, 12) : 0, reference ? textWidth(reference.label) : 0));
   const plotW = Math.max(0, width - PAD.left - PAD.right - endRoom);
   const plotH = height - PAD.top - PAD.bottom;
   const step = n > 1 ? plotW / (n - 1) : 0;
@@ -88,12 +91,15 @@ export function LineChart({
   const estimate = (i: number) => estimateFrom !== undefined && i >= estimateFrom;
   const line = series.find((s) => s.kind === "line");
   const lastIndex = line ? lastValue(line.values) : -1;
+  // Where a label doesn't fit, its figure alone ("3,30") says it.
+  const endText = endLabel && line && lastIndex >= 0 ? (textWidth(endLabel, 12) <= endRoom + 0.5 ? endLabel : format(line.values[lastIndex]!)) : undefined;
+  const refText = reference ? (textWidth(reference.label) <= endRoom + 0.5 ? reference.label : format(reference.value)) : undefined;
   const widest = Math.max(...columns.map((col) => col.length)) * CHAR + 6;
   const ticks = shortColumns && n > 1 && step < widest ? shortColumns : columns;
   // The reference's label sits past the plot's end, moved clear of the end label when they'd touch.
   const endY = line && lastIndex >= 0 ? y(line.values[lastIndex]!) : null;
   const refY = reference ? y(reference.value) : 0;
-  const refLabelY = endLabel && endY !== null && Math.abs(endY - refY) < 15 ? (refY <= endY ? endY - 15 : endY + 15) : refY;
+  const refLabelY = endText && endY !== null && Math.abs(endY - refY) < 15 ? (refY <= endY ? endY - 15 : endY + 15) : refY;
 
   const path = (values: (number | null)[], from: number, to: number) => {
     let d = "";
@@ -148,7 +154,7 @@ export function LineChart({
               <G>
                 <Line x1={PAD.left} x2={PAD.left + plotW} y1={refY} y2={refY} stroke={c.muted} strokeWidth={1.25} strokeDasharray="5 4" />
                 <SvgText x={PAD.left + plotW + 8} y={refLabelY + 3.5} fontSize={FONT} fontWeight="600" fill={c.muted}>
-                  {reference.label}
+                  {refText}
                 </SvgText>
               </G>
             )}
@@ -178,11 +184,11 @@ export function LineChart({
                 )}
               </G>
             ))}
-            {line && endLabel && lastIndex >= 0 && (
+            {line && endText && lastIndex >= 0 ? (
               <SvgText x={x(lastIndex) + 8} y={y(line.values[lastIndex]!) + 4} fontSize={12} fontWeight="600" fill={c.fg}>
-                {endLabel}
+                {endText}
               </SvgText>
-            )}
+            ) : null}
           </Svg>
         )}
         {/* A column each, wider than its marks: tap for its figures; a screen reader reads them as the desktop's table. */}
@@ -194,7 +200,7 @@ export function LineChart({
               accessibilityRole="button"
               accessibilityLabel={facts(i)}
               accessibilityState={{ selected: picked === i }}
-              onPress={() => setPicked(picked === i ? null : i)}
+              onPress={() => setTapped(picked === i ? null : i)}
               style={{ position: "absolute", left: x(i) - hit / 2, top: PAD.top - 6, width: hit, height: plotH + 12 }}
             />
           ))}

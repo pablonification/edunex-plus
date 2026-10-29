@@ -82,6 +82,7 @@ import { factsLabel, Meta } from "../../ui/layout";
 import { ActionSheet, Sheet, type SheetChoice } from "../../ui/sheet";
 import { Text } from "../../ui/text";
 import { type Palette, radius, space, type, useTheme } from "../../ui/theme";
+import { usePlaceState } from "./place-state";
 import { GradeSelect, HonorsList, IpkChart, NeedText, predicateFor, TargetControl, usePredicate, useTermLabel } from "./projection";
 import { SixNeeded } from "./six-needed";
 
@@ -567,7 +568,7 @@ function Past({ record, steps }: { record: StudentRecord; steps: ProjectedStep[]
   const f = useFormat();
   const theme = useTheme();
   const termLabel = useTermLabel();
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = usePlaceState("planner.past", false);
   if (!steps.length) return null;
   const ipk = record.transcript ? (record.transcript.ipk.six ?? record.transcript.ipk.computed) : null;
   const last = steps.at(-1)?.semester ?? steps.length;
@@ -1035,7 +1036,7 @@ function Rules({ record, rules, plan, undoable }: { record: StudentRecord; rules
   const text = useRuleText(record);
   const setFix = useCurriculumFix();
   const notContinuingItems = useNotContinuing(record, plan, undoable);
-  const [showHidden, setShowHidden] = useState(false);
+  const [showHidden, setShowHidden] = usePlaceState("planner.hidden", false);
   const [menu, setMenu] = useState<{ title: string; choices: SheetChoice[] } | null>(null);
   const minor = activeMinor(record, plan);
   const spec = activeSpecialization(record, plan);
@@ -1358,6 +1359,12 @@ function MinorSheet({
   const stateText = (code: string, st: CourseState) =>
     st === "passed" ? t("planner.state.passed", { grade: record.graded.get(code)?.grade ?? "" }) : st ? t(`planner.state.${st}`) : null;
   const termOf = (code: string) => (courseState(record, plan, code) ? null : termFor(plan, courseInfo(record, code).sks));
+  // Toasts are drawn under a sheet: a decision about the minor closes it first, so its Undo is in view.
+  // Adding its courses keeps the sheet open (each row turns into its new state, and the course's ⋯ removes it).
+  const decide = (change: () => void) => {
+    onClose();
+    change();
+  };
   const stop =
     on && registered
       ? // Registered on SIX: not continuing it is for good (a reset doesn't plan it again), its courses only it asks for leaving the plan if the Student wants.
@@ -1451,7 +1458,7 @@ function MinorSheet({
           // One button, or the choice of keeping or removing its planned courses when there are some (both in view: no menu on a sheet).
           stop.map((choice) => (
             <View key={choice.label} style={{ gap: space[1] }}>
-              <Button onPress={choice.onPress} testID="action.minorStop">
+              <Button onPress={() => decide(choice.onPress)} testID="action.minorStop">
                 {choice.label}
               </Button>
               {stop.length > 1 && choice.hint ? (
@@ -1462,14 +1469,17 @@ function MinorSheet({
             </View>
           ))
         ) : on ? (
-          <Button onPress={() => undoable((p) => ({ ...p, minor: null }), t("planner.minorStopped", { name: minor.name }))} testID="action.minorStop">
+          <Button
+            onPress={() => decide(() => undoable((p) => ({ ...p, minor: null }), t("planner.minorStopped", { name: minor.name })))}
+            testID="action.minorStop"
+          >
             {t("planner.minorStop")}
           </Button>
         ) : (
           <Button
             variant="primary"
             icon={<Icons.Target size={16} color={theme.color.onAccent} />}
-            onPress={() => undoable((p) => planMinor(p, minor), t("planner.minorPlannedDone", { name: minor.name }))}
+            onPress={() => decide(() => undoable((p) => planMinor(p, minor), t("planner.minorPlannedDone", { name: minor.name })))}
             testID="action.minorPlan"
           >
             {t("planner.minorPlan")}

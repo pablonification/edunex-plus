@@ -486,6 +486,12 @@ function CourseRow({ course, menuHint, onPress }: { course: MapCourse; menuHint:
             {`${course.sks ?? "-"} SKS`}
           </Text>
         </View>
+        {/* The desktop's tooltip on "Tidak ada di catatan SIX-mu": why it isn't counted as left. */}
+        {course.status === "unlisted" && !course.whatIf ? (
+          <Text size="caption" tone="muted">
+            {t("curriculum.unlistedWhy")}
+          </Text>
+        ) : null}
       </View>
       {menuHint && <Icons.MoreHorizontal size={18} color={theme.color.muted} />}
     </>

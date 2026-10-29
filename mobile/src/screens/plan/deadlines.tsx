@@ -26,6 +26,7 @@ import { List, Meta } from "../../ui/layout";
 import { ActionSheet } from "../../ui/sheet";
 import { Text } from "../../ui/text";
 import { radius, space, type, useTheme } from "../../ui/theme";
+import { usePlaceState } from "./place-state";
 import { useTermYears } from "./projection";
 
 type Group = "now" | "week" | "month" | "term" | "next";
@@ -136,7 +137,7 @@ function ForYou({ onPick }: { onPick: (picked: Picked) => void }) {
   const term = useThisTerm();
   const termYears = useTermYears();
   const { upcoming, past } = useDeadlines();
-  const [nextOpen, setNextOpen] = useState(false);
+  const [nextOpen, setNextOpen] = usePlaceState("deadlines.nextTerm", false);
   const [pastOpen, setPastOpen] = useState(false);
   const grouped = new Map<Group, Deadline[]>();
   const termEnd = Math.max(0, ...[...upcoming, ...past].filter((d) => d.event.term === term).map((d) => d.event.end));
@@ -328,9 +329,9 @@ function EveryEvent({ onPick }: { onPick: (picked: Picked) => void }) {
   const krs = useDataset("six.krs");
   const bills = useDataset("six.bills");
   const progress = useDataset("six.progress");
-  const [query, setQuery] = useState("");
-  const [groups, setGroups] = useState<ReadonlySet<CalendarGroup>>(new Set());
-  const [earlier, setEarlier] = useState(false);
+  const [query, setQuery] = usePlaceState("calendar.query", "");
+  const [groups, setGroups] = usePlaceState<ReadonlySet<CalendarGroup>>("calendar.groups", new Set());
+  const [earlier, setEarlier] = usePlaceState("calendar.earlier", false);
   const { months, total, counts } = fullCalendar(
     { calendar, now, krs, bills, progress },
     // The app's own words count in the search too: its short name for the kind ("UTS", "Midterms"), what it means, the chip.
