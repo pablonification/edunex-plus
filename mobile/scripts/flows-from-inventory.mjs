@@ -65,7 +65,11 @@ function checks(scenario, entry) {
 function flow(inventory, screen, states, config, appId) {
   const conf = config.screens[screen];
   if (!conf) throw new Error(`mobile/flows/screens.json has no screen "${screen}" (scenario ${inventory.scenario})`);
-  const base = { appId, demoArguments: inventory.demo };
+  // The demo build reads its scenario and variants from the link that opens it (mobile/src/demo/world.ts).
+  const query = Object.entries(inventory.demo)
+    .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
+    .join("&");
+  const base = { appId, demoArguments: inventory.demo, demoLink: `edunexplusdemo://demo?${query}` };
   const launch = fill(conf.launch ?? config.launch, base);
   const count = states.reduce((n, s) => n + s.entries.length, 0);
   const out = [

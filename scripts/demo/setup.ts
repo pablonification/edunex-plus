@@ -38,16 +38,13 @@ import path from "node:path";
 import zlib from "node:zlib";
 import { app, dialog, net, session, shell } from "electron";
 import type { DemoHooks } from "../../src/desktop/demo";
-import type { Engine } from "../../src/engine/engine";
 import { fillablePdf } from "../../test/kit/fillable-pdf";
-import { PRETEND_TOKEN } from "../../test/pretend/edunex";
-import { PRETEND_RELAY } from "../../test/pretend/relay";
-import { PRETEND_SIX_COOKIE } from "../../test/pretend/six";
-import { PretendWorld } from "../../test/pretend/world";
+import { demoOptions, demoRun } from "../../test/pretend/demo";
 
-type Scenario = "signed-in" | "edunex-only" | "first-run";
-const scenario = (process.env.EDUNEX_DEMO ?? "signed-in") as Scenario;
-if (!["signed-in", "edunex-only", "first-run"].includes(scenario)) throw new Error(`Unknown EDUNEX_DEMO scenario "${scenario}"`);
+// The world, its scenario and variants, the fast first sync and the made-up sign-in are shared with the phone's
+// demo build (test/pretend/demo.ts); what's here is the desktop's part: Electron, the profile, files and dialogs.
+const options = demoOptions(process.env);
+const { scenario } = options;
 const platform = process.env.EDUNEX_DEMO_PLATFORM as DemoHooks["platform"];
 if (platform && !["darwin", "win32", "linux"].includes(platform)) throw new Error(`Unknown EDUNEX_DEMO_PLATFORM "${platform}"`);
 
@@ -56,47 +53,9 @@ if (platform && !["darwin", "win32", "linux"].includes(platform)) throw new Erro
 // "Edunex Plus Demo Safe Storage", and a demo a script started waits on that question unseen.
 app.commandLine.appendSwitch("use-mock-keychain");
 
-// Signed-in demos start a few minutes early: the first sync (SIX at a page every two seconds, ITB's catalog) is played fast before the window opens.
-// Played on through the day, it starts before the morning's class, so the app watches it from the start.
-const start =
-  process.env.EDUNEX_DEMO_NOW ??
-  (scenario === "first-run" ? "2026-10-08T08:10:00+07:00" : process.env.EDUNEX_DEMO_AFTER_CLASS ? "2026-10-08T07:30:00+07:00" : "2026-10-08T08:07:00+07:00");
-const world = new PretendWorld({ now: start });
-if (process.env.EDUNEX_DEMO_CHECK_IN === "open") world.six.openCheckIn("2194342");
-if (process.env.EDUNEX_DEMO_SICK === "1")
-  world.six.editPage(/\/statusmhs$/, (html) =>
-    html.replace(
-      '<span title="Hadir 4 dari 6 pertemuan">66.67%</span>',
-      '<span title="Hadir 4 dari 6 pertemuan">66.67%</span> / <span title="Hadir dan sakit 5 dari 6 pertemuan">83.33%</span>',
-    ),
-  );
-if (process.env.EDUNEX_DEMO_ODD === "1") {
-  world.six.editPage(/\/keuangan$/, (html) =>
-    html.replace(
-      /(<td class="text-right">\s*5\.400\.000\s*<\/td><td class="text-right">\s*)5\.400\.000(\s*<\/td><td class="text-left">\s*24 Agu 2026)/,
-      "$1Lunas$2",
-    ),
-  );
-  world.six.editPage(/\/transkrip\/historis\/\d+$/, (html) =>
-    html.replace(/(<td>FI1101<span[^>]*>-19<\/span><\/td><td>[^<]*<\/td><td>4<\/td><td>)\s*A\s*/, "$1A (remedial)"),
-  );
-}
-const courseTable = process.env.EDUNEX_DEMO_COURSE_TABLE;
-if (courseTable && !["changed", "lost", "blank"].includes(courseTable)) throw new Error(`Unknown EDUNEX_DEMO_COURSE_TABLE "${courseTable}"`);
-if (courseTable === "lost") world.six.changeLayout(/\/statusmhs$/, "<td>KU5014</td>", "<td>KU-5014</td>");
-if (courseTable === "blank")
-  world.six.editPage(/\/statusmhs$/, (html) => html.replace('<th class="text-right">Kehadiran</th>', "").replace(/<td class="text-right">[\s\S]*?<\/td>/g, ""));
-const timetable = process.env.EDUNEX_DEMO_TIMETABLE;
-if (timetable && timetable !== "unread") throw new Error(`Unknown EDUNEX_DEMO_TIMETABLE "${timetable}"`);
-if (timetable === "unread") world.six.moveMeeting("2153983", "11.00", "12.59");
-if (process.env.EDUNEX_DEMO_QUIZ === "1")
-  world.edunex.exams.set(93409, [
-    { id: 88002, type: "exams", attributes: { name: "Kuis Brand Equity", start_at: "2026-10-19T08:00:00+07:00", end_at: "2026-10-30T23:59:00+07:00" } },
-  ]);
-const signInDoes = process.env.EDUNEX_DEMO_SIGN_IN;
-if (signInDoes && !["asks", "fails"].includes(signInDoes)) throw new Error(`Unknown EDUNEX_DEMO_SIGN_IN "${signInDoes}"`);
-const afterClass = process.env.EDUNEX_DEMO_AFTER_CLASS;
-if (afterClass && !["counted", "absent", "missing"].includes(afterClass)) throw new Error(`Unknown EDUNEX_DEMO_AFTER_CLASS "${afterClass}"`);
+const run = demoRun(options);
+const { world } = run;
+
 // Each run gets its own throwaway profile, so several demos can run side by side.
 const profile = `Edunex Plus Demo/${scenario}-${process.pid}`;
 const profileDir = path.join(app.getPath("appData"), profile);
@@ -136,43 +95,6 @@ void app.whenReady().then(() =>
     return new Response(stored?.status === 200 ? stored.body : SAMPLE_PDF, { headers: { "content-type": "application/pdf" } });
   }),
 );
-
-/**
- * Lets the pretend clock run fast until `work` is done. Ten pretend minutes fly by in under a second, which on a
- * busy machine can be sooner than the sync's real disk writes finish: past them the clock slows down, and the
- * work gets up to half a minute of real time before the demo gives up.
- */
-async function fastForward<T>(work: Promise<T>): Promise<T> {
-  let outcome: { value: T } | { error: unknown } | null = null;
-  void work.then(
-    (value) => (outcome = { value }),
-    (error: unknown) => (outcome = { error }),
-  );
-  const deadline = Date.now() + 30_000;
-  for (let second = 0; !outcome && (second < 600 || Date.now() < deadline); second++) {
-    await world.clock.advance(1_000);
-    if (second >= 600) await new Promise((resolve) => setTimeout(resolve, 50));
-  }
-  if (!outcome) throw new Error("the demo's first sync didn't finish");
-  const done = outcome as { value: T } | { error: unknown };
-  if ("error" in done) throw done.error;
-  return done.value;
-}
-
-/** From now on the pretend clock keeps pace with the real one. */
-function runInRealTime(): void {
-  let last = Date.now();
-  let busy = false;
-  setInterval(() => {
-    if (busy) return;
-    busy = true;
-    const now = Date.now();
-    void world.clock.advance(now - last).finally(() => {
-      last = now;
-      busy = false;
-    });
-  }, 200).unref();
-}
 
 /** A made-up picture (soft stripes on a card) standing in for a lecturer's image in a note: a real PNG, drawn here. */
 function samplePicture(width = 640, height = 220): Uint8Array {
@@ -302,81 +224,23 @@ const slides = samplePdf(
 for (const name of ["slide-pengantar", "slide-pengantar-gabungan"])
   world.putFile(`https://edunexfixture.blob.core.windows.net/edunex/fixture-${name}`, sizedAs(slides, 2_310_544));
 
-/** Runs the pretend clock to `iso`, a minute at a time, so every feed and alert on the way has its turn. */
-async function runUntil(iso: string): Promise<void> {
-  const until = Date.parse(iso);
-  while (world.clock.now() < until) await world.clock.advance(Math.min(60_000, until - world.clock.now()));
-}
-
-/** The day goes on to 16:05: SIX counts PL3002's morning class, then does what EDUNEX_DEMO_AFTER_CLASS says with DK4073's 11:00. */
-async function playTheDay(engine: Engine, result: string): Promise<void> {
-  await runUntil("2026-10-08T10:30:00+07:00");
-  world.six.setAttendance("PL3002", 7, 8);
-  await runUntil("2026-10-08T13:30:00+07:00");
-  if (result === "counted") world.six.setAttendance("DK4073", 5, 7);
-  if (result === "absent") world.six.setAttendance("DK4073", 4, 7);
-  await runUntil("2026-10-08T16:05:00+07:00");
-  // SIX read once more past DK4073's check (15:59), as its hourly read would soon.
-  await fastForward(engine.refresh("six"));
-}
-
 const hooks: DemoHooks = {
   transport: world,
   clock: world.clock,
   profile,
-  async signIn(source, { quiet, onStep }) {
-    const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-    // About as long as a sign-in window that remembers the Microsoft account, then the website
-    // reading its session out of sight. A quiet try for the other system finds Microsoft's session, unless
-    // EDUNEX_DEMO_SIGN_IN says Microsoft asks for the Student again.
-    if (signInDoes === "fails" && !quiet) throw new Error("The pretend sign-in page couldn't open");
-    await wait(900);
-    if (quiet && signInDoes === "asks") return null;
-    if (!quiet) {
-      onStep("finishing");
-      await wait(1_500);
-    }
-    return source === "edunex" ? PRETEND_TOKEN : PRETEND_SIX_COOKIE;
-  },
-  async prepare(engine) {
-    // The demo's pictures and the scripts that drive it read the screens in Bahasa Indonesia; the
-    // app itself starts in English (DEFAULT_SETTINGS), and `demo.settings({ lang: "en" })` switches.
-    await engine.updateSettings({ lang: "id" });
-    if (scenario === "first-run") {
-      runInRealTime();
-      return false;
-    }
-    engine.start();
-    await fastForward(engine.signIn("edunex", { token: PRETEND_TOKEN }));
-    if (scenario === "signed-in") await fastForward(engine.signIn("six", { cookie: PRETEND_SIX_COOKIE }));
-    // ITB's calendar, the public catalog's pages (one every 3.5 s), and the first alerts settle.
-    await world.clock.advance(200_000);
-    if (process.env.EDUNEX_DEMO_EDIT === "1") {
-      const brief = "https://edunexfixture.blob.core.windows.net/edunex/fixture-brief-v2";
-      world.putFile(brief, SAMPLE_PDF);
-      world.edunex.editTask(117001, {
-        end_at: "2026-10-12T23:59:00+07:00",
-        description:
-          "<p>Kumpulkan ulang Bab I yang sudah direvisi memakai template terbaru, paling lambat Senin, 12 Oktober 2026 pukul 23.59.</p><p>Format berkas PDF, nama berkas NIM_Bab1.pdf.</p>",
-        files: [{ name: "brief-v2.pdf", file: brief }],
-      });
-      await fastForward(engine.refresh("edunex"));
-    }
-    if (courseTable === "changed" && scenario === "signed-in") {
-      world.six.joinCodeAndName();
-      await fastForward(engine.refresh("six"));
-    }
-    await engine.updateSettings({ firstScanDone: true });
-    // Settings shows a linked phone, under the demo's made-up topic (it sends nothing anywhere).
-    if (scenario === "signed-in") await engine.phone.connect();
-    if (afterClass && scenario === "signed-in") await playTheDay(engine, afterClass);
-    runInRealTime();
-    return true;
-  },
+  signIn: (source, how) => run.signIn(source, how),
+  // Settings shows a linked phone, under the demo's made-up topic (it sends nothing anywhere).
+  prepare: (engine) =>
+    run.prepare(engine, {
+      brief: SAMPLE_PDF,
+      afterSignIn: async () => {
+        if (scenario === "signed-in") await engine.phone.connect();
+      },
+    }),
   clockOffset: () => world.clock.now() - Date.now(),
   fetchFile: (url, init) => world.fetch(url, init),
   platform,
-  relay: process.env.EDUNEX_DEMO_RELAY === "1" ? PRETEND_RELAY : undefined,
+  relay: run.relay,
 };
 
 globalThis.__edunexPlusDemo = hooks;

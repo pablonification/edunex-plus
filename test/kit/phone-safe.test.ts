@@ -9,7 +9,7 @@ import { build, type Plugin, transformSync } from "esbuild";
 import { describe, expect, it } from "vitest";
 
 const ROOT = path.resolve(import.meta.dirname, "..", "..");
-const ENTRIES = ["src/engine/engine.ts", "test/pretend/world.ts", "src/core/contract.ts"];
+const ENTRIES = ["src/engine/engine.ts", "test/pretend/world.ts", "test/pretend/demo.ts", "src/core/contract.ts"];
 /** Node's globals: the phone has none of them. */
 const NODE_GLOBALS = /\b(?:Buffer|process)\s*\.|\b__dirname\b|\b__filename\b|\bimport\.meta\b|\brequire\s*\(/;
 
