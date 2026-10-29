@@ -2,6 +2,7 @@
 // thread with the phone's network, disk, keychain and notifications plugged in, and the bridge
 // the desktop's screens talk through (src/app/bridge.ts), answered right here.
 // A demo build (EXPO_PUBLIC_DEMO=1) runs it on the pretend Edunex and SIX instead (../demo).
+import { getLocales } from "expo-localization";
 import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
 import type { BridgeApi } from "../../../src/app/bridge";
@@ -113,7 +114,10 @@ async function makeHost(): Promise<Host> {
     log,
     os: () => `Android ${Platform.Version}`,
   });
+  // Nothing saved yet: the app's first run on this phone, in the phone's own language (the desktop starts in English).
+  const firstRun = (await world.storage.read("state.json")) === null;
   await engine.load();
+  if (firstRun && !DEMO) await engine.updateSettings({ lang: getLocales()[0]?.languageCode === "id" ? "id" : "en" });
   lang = engine.snapshot().settings.lang;
   void prepareChannels(lang);
   if (world.prepare) await world.prepare(engine);

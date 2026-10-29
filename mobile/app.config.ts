@@ -24,7 +24,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       foregroundImage: "./assets/android-icon-foreground.png",
       monochromeImage: "./assets/android-icon-monochrome.png",
     },
-    predictiveBackGestureEnabled: true,
+    // Off: with it on, Android 13+ never sends React Native the Back press, so Back would close the app from a sign-in page or a sheet.
+    predictiveBackGestureEnabled: false,
     permissions: ["android.permission.READ_CALENDAR", "android.permission.WRITE_CALENDAR", "android.permission.POST_NOTIFICATIONS"],
     blockedPermissions: ["android.permission.RECORD_AUDIO", "android.permission.SYSTEM_ALERT_WINDOW"],
   },

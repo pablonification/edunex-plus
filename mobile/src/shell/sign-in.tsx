@@ -6,6 +6,8 @@
 // try (the other system, right after the Student signed in to one, on the same Microsoft session)
 // runs out of sight and gives up on any page that waits for the Student. The desktop's
 // signInToBoth (src/desktop/signin-both.ts) drives both, unchanged.
+
+import { StatusBar } from "expo-status-bar";
 import { type ComponentType, type Ref, useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { ActivityIndicator, BackHandler, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -133,6 +135,8 @@ function SignInPage({ run }: { run: Run }) {
   const view = useRef<WebPage>(null);
   const system = SYSTEMS[run.source];
   const [phase, setPhase] = useState<"student" | "finishing" | "slow">("student");
+  // The page actually open, beside the lock: where the Student is typing (Microsoft's, ITB's, SIX's).
+  const [host, setHost] = useState(() => new URL(system.start).host);
   const state = useRef({ done: false, leftSystem: false, phase: "student" as "student" | "finishing" | "slow", url: system.start, signedInAt: 0 });
   const timers = useRef<{ slow?: ReturnType<typeof setTimeout>; still?: ReturnType<typeof setTimeout>; limit?: ReturnType<typeof setTimeout> }>({});
   const quiet = run.quiet;
@@ -181,6 +185,7 @@ function SignInPage({ run }: { run: Run }) {
       } catch {
         return;
       }
+      setHost(host);
       if (timers.current.still) clearTimeout(timers.current.still);
       if (!system.hosts.includes(host)) {
         state.current.leftSystem = true;
@@ -255,6 +260,8 @@ function SignInPage({ run }: { run: Run }) {
       accessibilityViewIsModal={!quiet}
       importantForAccessibility={quiet ? "no-hide-descendants" : "auto"}
     >
+      {/* ITB's and Microsoft's pages are light: the status bar's icons stay readable over them. */}
+      {!quiet && <StatusBar style={theme.scheme === "dark" ? "light" : "dark"} />}
       {!quiet && (
         <View style={[styles.bar, { borderBottomColor: theme.color.edge }]}>
           <IconButton label={t("action.close")} onPress={giveUp} testID="signin.close">
@@ -264,8 +271,8 @@ function SignInPage({ run }: { run: Run }) {
             {title}
           </Text>
           <Icons.Lock size={16} color={theme.color.faint} />
-          <Text size="caption" tone="faint" style={{ marginRight: space[3] }}>
-            {run.source === "edunex" ? "sso-edunex.itb.ac.id" : "six.itb.ac.id"}
+          <Text size="caption" tone="faint" style={{ marginRight: space[3], maxWidth: 180 }} numberOfLines={1} ellipsizeMode="head">
+            {host}
           </Text>
         </View>
       )}
