@@ -92,6 +92,14 @@ describe("the status line", () => {
     expect(line(withStatuses(h, { edunex: { state: "changed" } }), "Edunex berubah").action).toEqual({ kind: "window" });
   });
 
+  it("SIX waiting for the Student to do something on SIX first says so, and opens the window, where the banner says what", async () => {
+    const h = await startHome();
+    h.world.six.requireDataInduk();
+    await h.refresh();
+    expect(h.status("six").state).toBe("action-needed");
+    expect(line(menuOf(h), "SIX menunggumu").action).toEqual({ kind: "window" });
+  });
+
   it("no connection: since when the data is, and a click opens the window", async () => {
     const h = await startHome();
     const readAt = Math.max(...h.engine.snapshot().statuses.map((s) => s.updatedAt ?? 0));

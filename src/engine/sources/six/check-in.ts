@@ -68,8 +68,9 @@ export function registerSixCheckInFeed(context: SourceContext, pages: SixPages):
         try {
           html = await pages.page(sixMeetingPath(who, session.id), { popup: true });
         } catch (error) {
-          // Offline or signed out is all of SIX: no use reading on. Anything else is this class's popup; the next class is still read.
-          if (isEngineError(error, "Offline") || isEngineError(error, "Unauthorized")) throw error;
+          // Offline, signed out or SIX wanting the Student elsewhere first is all of SIX: no use reading on. Anything else is
+          // this class's popup; the next class is still read.
+          if (isEngineError(error, "Offline") || isEngineError(error, "Unauthorized") || isEngineError(error, "ActionNeeded")) throw error;
           failed ??= error;
           continue;
         }

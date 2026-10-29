@@ -776,11 +776,16 @@ function AccountRow({ source, who }: { source: SourceId; who: readonly string[] 
         ? { text: t("settings.notConnected"), tone: "text-muted" }
         : status.state === "expired"
           ? { text: t("settings.account.expired"), tone: "text-warning-fg" }
-          : status.state === "connecting"
-            ? { text: t("status.connecting"), tone: "text-muted" }
-            : status.state === "live"
-              ? { text: checked ? t("settings.account.live", { when: checked }) : t("status.live"), tone: "text-success-fg" }
-              : { text: checked ? t("settings.account.stale", { when: checked }) : t(`status.${status.state}`, { source: name }), tone: "text-warning-fg" };
+          : status.state === "action-needed"
+            ? {
+                text: status.asks === "datainduk" ? t("settings.account.dataInduk") : t("settings.account.actionNeeded", { source: name }),
+                tone: "text-warning-fg",
+              }
+            : status.state === "connecting"
+              ? { text: t("status.connecting"), tone: "text-muted" }
+              : status.state === "live"
+                ? { text: checked ? t("settings.account.live", { when: checked }) : t("status.live"), tone: "text-success-fg" }
+                : { text: checked ? t("settings.account.stale", { when: checked }) : t(`status.${status.state}`, { source: name }), tone: "text-warning-fg" };
   return (
     <div ref={row} className="flex scroll-my-3 items-center gap-3.5 px-4 py-3">
       <SourceLogo source={source} className="size-9" />

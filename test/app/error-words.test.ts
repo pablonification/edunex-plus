@@ -11,6 +11,7 @@ describe("what a failed action says", () => {
     ["VendorChanged", "Edunex atau SIX menjawab dengan cara yang tidak dikenali. Coba lagi nanti."],
     ["Rejected", "Belum berhasil. Coba lagi."],
     ["Failed", "Belum berhasil. Coba lagi."],
+    ["ActionNeeded", "SIX menunggumu. Selesaikan yang diminta di SIX, lalu coba lagi."],
   ] as const)("%s: what to do next, never the engine's words", (kind, words) => {
     const said = translate("id", errorKey(new ActionError(kind, "Edunex answered 503")));
     expect(said).toBe(words);

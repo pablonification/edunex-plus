@@ -27,6 +27,7 @@ export const shellStrings = {
   "action.signIn": { id: "Masuk", en: "Sign in" },
   "action.signInAgain": { id: "Masuk lagi", en: "Sign in again" },
   "action.signInTo": { id: "Masuk ke {source}", en: "Sign in to {source}" },
+  "action.openSource": { id: "Buka {source}", en: "Open {source}" },
   "action.signOut": { id: "Keluar", en: "Sign out" },
 
   // Sources and their status
@@ -43,11 +44,14 @@ export const shellStrings = {
   "status.neverUpdated": { id: "Belum ada data", en: "No data yet" },
   "status.refreshing": { id: "Memuat ulang…", en: "Refreshing…" },
   "status.changedShort": { id: "Berubah", en: "Changed" },
+  // The system wants the Student to do something on its own site first (SIX's Pengkinian Data Induk form), and reads nothing else until then.
+  "status.action-needed": { id: "Menunggumu", en: "Waiting for you" },
   "sync.title": { id: "Status data", en: "Data status" },
   "sync.checking": { id: "Memperbarui…", en: "Updating…" },
   "sync.checkingOne": { id: "Memperbarui {source}…", en: "Updating {source}…" },
   "sync.offlineOne": { id: "{source} tidak terhubung", en: "{source} offline" },
   "sync.expired": { id: "Sesi {source} berakhir", en: "{source} session ended" },
+  "sync.actionNeeded": { id: "{source} menunggumu", en: "{source} is waiting for you" },
   "sync.refreshNow": { id: "Perbarui sekarang", en: "Refresh now" },
   "banner.offline": { id: "Tidak ada koneksi.", en: "No connection." },
   "banner.offlineHint": {
@@ -56,6 +60,8 @@ export const shellStrings = {
   },
   "banner.expired": { id: "Sesi {source} berakhir.", en: "Your {source} session ended." },
   "banner.changed": { id: "{source} berubah.", en: "{source} changed something." },
+  "banner.dataInduk": { id: "SIX minta kamu memperbarui data diri dulu.", en: "SIX wants you to update your personal details first." },
+  "banner.actionNeeded": { id: "{source} minta kamu menyelesaikan sesuatu di sana dulu.", en: "{source} wants you to finish something there first." },
   "banner.signedOut": { id: "Kamu belum masuk ke {source}.", en: "You're not signed in to {source}." },
   "banner.keptHint": { id: "Data terakhir tetap bisa dibaca.", en: "Your last data stays readable." },
   "status.expiredHint": {
@@ -65,6 +71,14 @@ export const shellStrings = {
   "status.changedHint": {
     id: "{source} mengirim data yang tidak dikenali. Data terakhir tetap ditampilkan.",
     en: "{source} sent data the app doesn't recognise. Your last data is still shown.",
+  },
+  "status.dataIndukHint": {
+    id: "Isi Pengkinian Data Induk di SIX, lalu kembali ke sini. Aplikasi membaca SIX lagi sendiri.",
+    en: "Fill in Pengkinian Data Induk on SIX, then come back. The app reads SIX again on its own.",
+  },
+  "status.actionNeededHint": {
+    id: "Selesaikan yang diminta di {source}, lalu kembali ke sini. Aplikasi membaca {source} lagi sendiri.",
+    en: "Finish what {source} asks for, then come back. The app reads {source} again on its own.",
   },
   // A row of a SIX page the app left out, said on the screen that shows that page's data, with the row as SIX shows it.
   "skipped.title": {
@@ -170,6 +184,8 @@ export const shellStrings = {
   "settings.account.live": { id: "Terhubung · diperiksa {when}", en: "Connected · checked {when}" },
   "settings.account.stale": { id: "Tidak bisa diperiksa · data dari {when}", en: "Couldn't check · data from {when}" },
   "settings.account.expired": { id: "Sesi berakhir · masuk lagi untuk memperbarui", en: "Session ended · sign in again to update" },
+  "settings.account.dataInduk": { id: "Menunggumu · isi Pengkinian Data Induk di SIX", en: "Waiting for you · fill in Pengkinian Data Induk on SIX" },
+  "settings.account.actionNeeded": { id: "Menunggumu · selesaikan yang diminta {source}", en: "Waiting for you · finish what {source} asks for" },
   "settings.signOutOf": { id: "Keluar dari {source}", en: "Sign out of {source}" },
   "settings.signInTo": { id: "Masuk ke {source}", en: "Sign in to {source}" },
   "settings.signInAgainTo": { id: "Masuk lagi ke {source}", en: "Sign in to {source} again" },
@@ -224,6 +240,10 @@ export const shellStrings = {
   "error.changed": {
     id: "Edunex atau SIX menjawab dengan cara yang tidak dikenali. Coba lagi nanti.",
     en: "Edunex or SIX answered in a way the app doesn't recognise. Try again later.",
+  },
+  "error.actionNeeded": {
+    id: "SIX menunggumu. Selesaikan yang diminta di SIX, lalu coba lagi.",
+    en: "SIX is waiting for you. Finish what it asks for there, then try again.",
   },
   "error.failed": { id: "Belum berhasil. Coba lagi.", en: "That didn't go through. Try again." },
 

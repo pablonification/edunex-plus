@@ -209,6 +209,10 @@ _Avoid_: "allowance", "skips"
 SIX's own "mark present" button. During a class, the class's popup on SIX's timetable (Jadwal, then click the class) can show it; the Student presses it to be counted present in SIX's Kehadiran. While a class is on, the app reads that popup every 2 minutes and tells the Student when the button shows, and opens SIX on it; it never presses it. Kept as SIX's words in English copy too: it's what the Student looks for in SIX.
 _Avoid_: check-in, self-attendance
 
+**Pengkinian Data Induk**:
+SIX's form where a Student updates their personal and family details. SIX can make them fill it in before anything else (a new Student, often), sending every page the app asks for to it. The app never reads that page (nor SIX's control panel, student ID card or PDDikti pages): it stops at the redirect, and SIX shows as "Menunggumu" (Waiting for you), with what to do on SIX and "Buka SIX". It isn't "SIX changed": nothing is reported, SIX stays signed in, and the app reads again by itself until it's done. Called `action-needed` (the status) and `datainduk` in code.
+_Avoid_: "SIX changed", error, blocked, "update your profile"
+
 **UKT**:
 Uang Kuliah Tunggal, the single tuition fee paid each term.
 

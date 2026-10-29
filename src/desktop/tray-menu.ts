@@ -133,6 +133,9 @@ function statusLine(snapshot: Pick<Snapshot, "datasets" | "statuses">, f: Format
     return fix(
       ended.state === "expired" ? `${t("sync.expired", { source: name(ended) })} · ${t("action.signInAgain")}` : t("action.signInTo", { source: name(ended) }),
     );
+  // SIX wants the Student on its site first (its Pengkinian Data Induk): the window's banner says what to do.
+  const asked = signedIn.find((entry) => entry.state === "action-needed");
+  if (asked) return fix(t("sync.actionNeeded", { source: name(asked) }));
   const updatedAt = Math.max(0, ...signedIn.map((entry) => entry.updatedAt ?? 0)) || null;
   const at = (ms: number) => (f.dayOffset(ms) === 0 ? f.time(ms) : f.dayTimeWord(ms));
   const offline = signedIn.filter((entry) => entry.state === "offline");

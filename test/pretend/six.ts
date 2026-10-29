@@ -3,7 +3,8 @@
 // firewall, and lets a test change a page the way staff would: attendance
 // counts, a moved meeting, a released grade, a retake, the study plan, a bill.
 // A class's popup on the timetable (with "Tandai Hadir" while a lecturer has
-// it open) was never recorded: it's modelled (meetingPopup below).
+// it open) was never recorded: it's modelled (meetingPopup below), as is the
+// Pengkinian Data Induk form SIX can send a Student to first (dataIndukForm).
 import { type CheerioAPI, load } from "cheerio/slim";
 import type { HttpRequest, HttpResponse } from "../../src/engine/http/transport";
 import { bodyText, exchanges } from "../kit/fixtures";
@@ -17,10 +18,15 @@ const MAINTENANCE_HTML = "<!DOCTYPE html><html><body><h1>Service Unavailable</h1
 /** "/app/mahasiswa:18223901+2026-1/kelas" and "/app/mahasiswa:18223901/kelas" are the same page. */
 const canonical = (path: string) => path.replace(/^(\/app\/mahasiswa:\d+)\+\d{4}-\d/, "$1");
 
+/** In the Pengkinian Data Induk form, where no page the app reads has it: whether that page reached the app. */
+export const FAMILY_DATA = "Nama Ibu Kandung: Siti Fiktif";
+
 export class PretendSix {
   /** Recorded pages by canonical path; tests may edit them. */
   readonly pages = new Map<string, string>();
   sessionValid = true;
+  /** SIX makes the Student fill in Pengkinian Data Induk before anything else (requireDataInduk). */
+  private dataIndukFirst = false;
   private rateLimited = 0;
   private faults: { path: RegExp; status: number; times: number }[] = [];
   /** Paths requested, in order (SIX must be read at human pace); `xhr`: asked the way SIX's own page loads a popup. */
@@ -246,6 +252,15 @@ export class PretendSix {
     this.sessionValid = false;
   }
 
+  /**
+   * SIX makes the Student update their personal data first (Pengkinian Data Induk), as it does a new
+   * Student: every page of theirs but the home page redirects to that form, until they've sent it
+   * (`on` false). Where SIX sends them wasn't recorded: here, the form the status page links to.
+   */
+  requireDataInduk(on = true): void {
+    this.dataIndukFirst = on;
+  }
+
   /** The next `count` requests get SIX's firewall answer (429). */
   rateLimit(count = 1): void {
     this.rateLimited += count;
@@ -290,6 +305,14 @@ export class PretendSix {
     }
     const cookie = request.headers?.cookie ?? request.headers?.Cookie ?? "";
     if (!this.sessionValid || !cookie.includes(PRETEND_SIX_COOKIE)) return this.toLogin(request, url);
+    const nim = /^\/app\/mahasiswa:(\d+)/.exec(url.pathname)?.[1];
+    if (nim && DATAINDUK.test(url.pathname))
+      return { status: 200, headers: { "content-type": "text/html; charset=UTF-8" }, body: dataIndukForm(nim), url: url.toString() };
+    if (nim && this.dataIndukFirst) {
+      const form = new URL(`/app/mahasiswa:${nim}/statusmhs/datainduk/summary/2021000001`, SIX_ORIGIN).toString();
+      if (request.redirect === "manual") return { status: 302, headers: { location: form }, body: "", url: url.toString() };
+      return { status: 200, headers: { "content-type": "text/html; charset=UTF-8" }, body: dataIndukForm(nim), url: form };
+    }
     const popup = MEETING_POPUP.exec(url.pathname);
     if (popup)
       return {
@@ -313,6 +336,15 @@ export class PretendSix {
 }
 
 const MEETING_POPUP = /\/kelas\/pertemuan\/(\d+)\/mhs\/\d+$/;
+const DATAINDUK = /\/statusmhs\/datainduk\//;
+
+/**
+ * SIX's Pengkinian Data Induk form (modelled, never recorded: it holds the Student's family data).
+ * Signed in and linking the Student's own pages, as a page of theirs does.
+ */
+function dataIndukForm(nim: string): string {
+  return `<!DOCTYPE html><html><body><a class="navbar-brand" href="/home?context=mahasiswa:${nim}">SIX</a><a href="/logout">Keluar</a><h3>Pengkinian Data Induk Mahasiswa</h3><a href="/app/mahasiswa:${nim}/statusmhs">Status Mahasiswa</a><form method="post"><p>${FAMILY_DATA}</p><button type="submit">Simpan</button></form></body></html>`;
+}
 
 /**
  * A class's popup, as the timetable loads it (modelled, not recorded): a few

@@ -3,8 +3,11 @@
 // (a page every two seconds), so tests let time pass while it reads.
 import { describe, expect, it } from "vitest";
 import type { ClassSession } from "../../src/core/models";
+import { PRIVATE_PAGES as NEVER_READ } from "../../src/engine/sources/six/client";
+import { PRIVATE_PAGES } from "../kit/privacy-rules";
 import { PRETEND_TOKEN } from "../pretend/edunex";
-import { PRETEND_SIX_COOKIE, SIX_ORIGIN } from "../pretend/six";
+import { PRETEND_RELAY } from "../pretend/relay";
+import { FAMILY_DATA, PRETEND_SIX_COOKIE, SIX_ORIGIN } from "../pretend/six";
 import { type Harness, startEngine } from "./harness";
 
 const SIX = { cookie: PRETEND_SIX_COOKIE };
@@ -707,6 +710,77 @@ describe("a meeting on SIX's timetable the app can't read", () => {
   });
 });
 
+// #278, #279: SIX makes a new Student fill in Pengkinian Data Induk before anything else, and sends every page of theirs
+// the app asks for to that form. It holds their family data, so the app stops at the redirect and never reads it.
+describe("SIX wanting the Student to update their personal data first", () => {
+  const FEEDS = ["six.status", "six.schedule", "six.transcript", "six.curriculum", "six.krs", "six.bills"];
+  const WAITING = "SIX sends /statusmhs to its datainduk page first";
+  /** What reached the app from SIX's form, anywhere: what's saved, what the window heard, the app's log. */
+  const formSeen = (h: Harness) =>
+    [...h.storage.files.values(), JSON.stringify(h.events), JSON.stringify(h.log.entries())].some((text) => text.includes(FAMILY_DATA));
+
+  it("a new Student: every SIX feed says SIX waits for them, nothing is reported or signed out, and once it's done SIX reads", async () => {
+    // Reports would go by themselves: none does, since nothing changed.
+    const h = await startEngine({ relay: PRETEND_RELAY });
+    await h.engine.updateSettings({ reportSending: "auto", reportAsked: true });
+    h.world.six.requireDataInduk();
+    await until(h, h.engine.signIn("six", SIX));
+    await until(h, h.engine.reports.idle());
+
+    expect(h.status("six")).toMatchObject({ state: "action-needed", asks: "datainduk", detail: WAITING });
+    // Each feed got as far as the redirect, and says so; none says SIX changed.
+    for (const feed of FEEDS) {
+      const lines = h.log.entries().filter((entry) => entry.area === feed);
+      expect(lines.length).toBeGreaterThan(0);
+      for (const line of lines) expect(line).toMatchObject({ level: "warn", message: `ActionNeeded: ${WAITING}` });
+    }
+    expect(h.log.entries().some((entry) => entry.message.startsWith("VendorChanged"))).toBe(false);
+    // The form was never asked for, and nothing of it is anywhere.
+    expect(h.world.six.requests.some((request) => /datainduk/.test(request.path))).toBe(false);
+    expect(formSeen(h)).toBe(false);
+    // Nothing kept for a report, nothing sent, nothing asked.
+    expect((await h.engine.report({})).problems).toEqual([]);
+    expect(h.world.relay.reports).toEqual([]);
+    expect(h.dataset("app.reports")?.asking ?? null).toBeNull();
+    // Still signed in to SIX.
+    expect(h.vault.secrets.has("six.session")).toBe(true);
+    expect(h.dataset("six.student")).toBeUndefined();
+
+    // Still waiting on the next read.
+    await until(h, h.engine.refresh("six"));
+    expect(h.status("six")).toMatchObject({ state: "action-needed", asks: "datainduk" });
+
+    // The Student sent the form on SIX: the next refresh reads SIX as for anyone.
+    h.world.six.requireDataInduk(false);
+    await until(h, h.engine.refresh("six"));
+    expect(h.status("six")).toMatchObject({ state: "live", detail: null });
+    expect(h.status("six").asks).toBeUndefined();
+    expect(h.dataset("six.student")).toMatchObject({ nim: "18223901", studentId: "2021000001" });
+    expect(h.dataset("six.courses")).toEqual(COURSES);
+    expect(h.dataset("six.schedule")).toHaveLength(22);
+    expect(h.world.relay.reports).toEqual([]);
+    expect(formSeen(h)).toBe(false);
+  });
+
+  it("a Student SIX knows: their data stays, and SIX reads again on its own once they've done it", async () => {
+    const h = await signedIn();
+    h.world.six.requireDataInduk();
+    await until(h, h.engine.refresh("six"));
+    expect(h.status("six")).toMatchObject({ state: "action-needed", asks: "datainduk" });
+    expect(h.status("six").changedPages).toBeUndefined();
+    expect(h.dataset("six.courses")).toEqual(COURSES);
+    expect(h.dataset("six.schedule")).toHaveLength(22);
+    expect(h.world.six.requests.some((request) => /datainduk/.test(request.path))).toBe(false);
+    expect((await h.engine.report({})).problems).toEqual([]);
+
+    // Done on SIX; no refresh: the feeds try again by themselves, within a quarter of an hour.
+    h.world.six.requireDataInduk(false);
+    await h.wait(16 * 60_000);
+    expect(h.status("six")).toMatchObject({ state: "live", detail: null });
+    expect(h.status("six").asks).toBeUndefined();
+  });
+});
+
 /** The other SIX readers (grades, curriculum, KRS, bills) ask for pages through the same client. */
 describe("SIX pages for other readers", () => {
   it("know who is signed in and share the same polite line", async () => {
@@ -732,6 +806,27 @@ describe("SIX pages for other readers", () => {
     });
     h.world.six.expireSession();
     await expect(until(h, pages.page("/app/mahasiswa:18223901/keuangan"))).rejects.toMatchObject({ kind: "Unauthorized" });
+  });
+
+  it.each([
+    ["/app/mahasiswa:18223901/statusmhs/datainduk/edit/2021000001", "datainduk"],
+    ["/app/mahasiswa:18223901/controlpanel/password", "other"],
+    ["/app/mahasiswa:18223901/statusmhs/ktm/pilihan/2021000001", "other"],
+    ["/app/mahasiswa:18223901/statusmhs/pddikti/2021000001", "other"],
+  ] as const)("a redirect to a page the app never reads stops there, unread: %s", async (to, asks) => {
+    const { SixClient } = await import("../../src/engine/sources/six/client");
+    const h = await startEngine({ start: false });
+    const answer = h.world.six.handle.bind(h.world.six);
+    h.world.six.handle = (request, url) =>
+      url.pathname.endsWith("/keuangan") ? { status: 302, headers: { location: to }, body: "", url: url.toString() } : answer(request, url);
+    const pages = new SixClient(h.world, h.world.clock, PRETEND_SIX_COOKIE, "EdunexPlus/test");
+    await expect(until(h, pages.page("/app/mahasiswa:18223901/keuangan"))).rejects.toMatchObject({ kind: "ActionNeeded", asks });
+    expect(sixRequests(h).map((request) => new URL(request.url).pathname)).toEqual(["/app/mahasiswa:18223901/keuangan"]);
+  });
+
+  it("never reads the pages the test data and reports may never hold", () => {
+    expect(NEVER_READ.source).toBe(PRIVATE_PAGES.source);
+    expect(NEVER_READ.flags).toBe(PRIVATE_PAGES.flags);
   });
 });
 

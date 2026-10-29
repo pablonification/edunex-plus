@@ -24,6 +24,9 @@
 //                            "Dikembalikan" with her message on its page
 //   EDUNEX_DEMO_SICK=1       SIX writes DK4073's attendance as it does for a Student with sick days (#237): two
 //                            percentages, each with its count, so the app reads the first (its meetings attended)
+//   EDUNEX_DEMO_DATAINDUK=1  SIX makes the Student update their personal data first (Pengkinian Data Induk, #278, #279),
+//                            as it does a new Student: it sends every page of theirs to that form, which the app never
+//                            reads, so SIX's data never arrives and the app says what to do on SIX
 //   EDUNEX_DEMO_ODD=1        SIX writes this term's UKT payment ("Lunas") and FI1101's grade ("A (remedial)") another way,
 //                            as another Student's SIX might: both rows stay, with that cell blank, and UKT and Nilai say so
 //   EDUNEX_DEMO_COURSE_TABLE=changed|lost|blank  SIX's course table on the status page (ADR 0012): after the first
@@ -80,6 +83,7 @@ if (process.env.EDUNEX_DEMO_SICK === "1")
       '<span title="Hadir 4 dari 6 pertemuan">66.67%</span></span> / <span title="Hadir (termasuk izin dan sakit) 5 dari 6 pertemuan">83.33%</span>',
     ),
   );
+if (process.env.EDUNEX_DEMO_DATAINDUK === "1") world.six.requireDataInduk();
 if (process.env.EDUNEX_DEMO_ODD === "1") {
   world.six.editPage(/\/keuangan$/, (html) =>
     html.replace(
