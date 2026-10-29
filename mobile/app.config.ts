@@ -40,6 +40,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     "expo-localization",
     ["expo-splash-screen", { image: "./assets/splash-icon.png", imageWidth: 120, backgroundColor: "#FFFFFF", dark: { backgroundColor: "#161618" } }],
     ["expo-notifications", { color: "#2563EB", icon: "./assets/notification-icon.png" }],
+    // No scrim of Android's own under three-button navigation (a light one showed under the dark welcome): the app
+    // sets the buttons' colour itself, from its theme (app/_layout.tsx).
+    ["expo-navigation-bar", { enforceContrast: false }],
     ["expo-calendar", { calendarPermission: "Edunex Plus adds your classes to your calendar." }],
     [
       "expo-build-properties",
