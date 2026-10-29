@@ -59,6 +59,15 @@ safe to share.
     the same for everyone in it, and the readers check them against each other (a meeting in the
     month asked for, a bill under its term's year): made-up dates would fail another check than the
     real page did. The one personal date SIX shows, the Student's age, is replaced.
+  - *An Edunex answer is read before it's scrubbed.* Edunex writes every `/` as `\/`
+    (`https:\/\/…blob.core.windows.net\/…`) and letters past ASCII as `\u00e9` (for `é`), where
+    the rules can't see a link or a name, so they run on the answer written back plainly. An answer
+    that isn't data (an error page) is scrubbed as text. The privacy rules that check a report see
+    links with escaped slashes too.
+  - *The Student's name in a file's name.* It's also replaced joined as file names join it
+    ("Laporan-Rahmat-Sakti-Hidayatullah.pdf", "rahmat_sakti_hidayatullah"), and each part alone where
+    it stands as a word of its own ("Sakti" stays in "Saktiawan"). A part in small letters stays ("sakti"
+    is a word too), and so does a later part under four letters ("Nur", "Tri").
   - The check and the rows in the report are scrubbed with the same fakes as the page. Tests prove
     both halves: a page full of a Student's details comes out with none of them (the privacy rules
     of `test/kit/privacy-rules.ts`, the ones `privacy.test.ts` holds the fixtures to), and the
