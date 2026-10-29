@@ -21,6 +21,9 @@ on:
       - scripts/demo/**
       - scripts/ci/mobile-e2e.sh
       - .github/workflows/mobile.yml
+      # Notes and the hand-off report don't change the app.
+      - "!mobile/**/*.md"
+      - "!mobile/report/**"
   workflow_dispatch:
     inputs:
       apks:
@@ -44,9 +47,11 @@ on:
 permissions:
   contents: read
 
+# A push while a run is going waits for it (only the newest waiting push runs next), so a run of
+# small commits doesn't cancel every build before it finishes.
 concurrency:
   group: mobile-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 defaults:
   run:
