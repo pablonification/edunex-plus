@@ -31,6 +31,8 @@ export function installMenu(options: { lang: Lang; devTools: boolean; command: (
           ],
         }
       : { label: t("menu.file"), submenu: [settings, { type: "separator" }, { role: "quit" }] },
+    // On Mac, Close Window (⌘W) lives in the File menu; the Window menu role leaves it out.
+    ...(mac ? [{ role: "fileMenu" } as const] : []),
     { role: "editMenu" },
     {
       label: t("menu.view"),
