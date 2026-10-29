@@ -128,6 +128,8 @@ Notes:
 - **`/course/tasks`**: `page[limit]=0` means "all". If fewer Tasks arrive than `meta.total`
   says, that's a vendor change, never a silently short list. One course failing keeps that
   course's last known Tasks and reports the error; going offline or a `401` stops the whole run.
+  The error names the path only, not the course, so the answer that failed travels with it
+  (`AnswerError`): a problem report keeps that course's list, not the last one read.
 - **An answer handed back.** The lecturer's "Revision Request" (`setAnswerChangeRequest` in the
   website's `js/app.79bf84f4.js`, the button in `js/assignment/detail-lecturer.c85d7075.js`) sends
   `PATCH /course/task/answers/{id}` with `{ is_sent: 0, comment }`. Recorded on a real one

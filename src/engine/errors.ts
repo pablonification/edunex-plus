@@ -1,4 +1,5 @@
 import type { ErrorKind } from "../core/contract";
+import type { AnswerCheck } from "./http/transport";
 
 /** A failure the engine understands; its kind decides the source status and what the screens say. */
 export class EngineError extends Error {
@@ -28,5 +29,19 @@ export const isEngineError = (error: unknown, kind?: ErrorKind): error is Engine
 export class PartChanged extends EngineError {
   constructor(message: string) {
     super("VendorChanged", message);
+  }
+}
+
+/**
+ * An answer that didn't pass its caller's check (an Edunex answer against its schema), carrying that answer as it came.
+ * A read can go on past it (the Tasks feed reads every course's list before it says one failed), so a report keeps this
+ * answer, not the last one the read got (src/engine/report/kept-pages.ts).
+ */
+export class AnswerError extends EngineError {
+  constructor(
+    error: EngineError,
+    readonly answer: { url: string; status: number; body: string; check: AnswerCheck },
+  ) {
+    super(error.kind, error.message, error.unreachable);
   }
 }
