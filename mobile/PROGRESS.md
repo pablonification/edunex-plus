@@ -80,23 +80,23 @@ Status: todo / building / done (with proof: a Maestro flow, a screenshot, a judg
 | A11 | Course colors (picker) | keep | Bottom sheet with the ten colors | built | merged; device check pending |
 | A12 | Downloads (Unduh: a material into Downloads) | change | Downloads into the app's files, then opens or shares it | built | merged; device check pending |
 | A13 | In-app file viewers (PDF, Word, Excel, PowerPoint), offline copies | replace | Open in the phone's own apps (Drive, Office, PDF viewer) through the share/open sheet; files kept for offline | built | merged; device check pending |
-| A14 | Highlights and page notes in the viewer, PDF form filling | skip | They live inside the desktop's own viewer; on the phone the file opens in the Student's own reader, which has its own highlights | todo | |
+| A14 | Highlights and page notes in the viewer, PDF form filling | skip | They live inside the desktop's own viewer; on the phone the file opens in the Student's own reader, which has its own highlights | done (skipped) | Not built: no in-app viewer on the phone (A13 opens files in the Student's own reader) |
 | A15 | Lecturer links, official pages (open in browser) | keep | Same rules (official pages only for app links, any http(s) for lecturers' links), in the system browser | built | merged; device check pending |
 | A16 | Demo mode (made-up student, pretend Edunex and SIX) | keep | A demo build (EXPO_PUBLIC_DEMO) on test/pretend, for tests, screenshots and trying the app | built | Demo build plays every desktop scenario via test/pretend/demo.ts (shared with the desktop demo) |
 | A17 | Light and dark, Indonesian and English | keep | Follows the phone, or the Student's choice | built | Theme and language from Settings; phone language on first run |
-| A18 | Phone alerts through ntfy (Settings: Notifikasi di HP) | skip | The app is on the phone: its own notifications replace ntfy | todo | |
+| A18 | Phone alerts through ntfy (Settings: Notifikasi di HP) | skip | The app is on the phone: its own notifications replace ntfy | done (skipped) | Not built: Settings has no ntfy group (mobile/app/settings.tsx says why); the app's own notifications instead |
 
 ### Desktop-only
 
 | # | Desktop | Decision | Why | Status | Proof |
 | --- | --- | --- | --- | --- | --- |
 | D1 | Tray icon and tray menu (now, needs, Tandai Hadir) | replace | Home-screen widget: the class now / next and the next deadline, tap to open | todo | |
-| D2 | Menu bar (Settings, Refresh, View) | skip | Phones have no menu bar; Settings and refresh live on Lainnya and pull to refresh | todo | |
-| D3 | Windows (sign-in window, SIX window, close to tray) | change | Sign-in and SIX are full-screen WebView screens; "close to tray" setting skipped (Android keeps the app alive itself) | todo | |
-| D4 | Keyboard shortcuts (Ctrl K, Ctrl 1-6, Esc) | skip | No keyboard; bottom tabs and the search button | todo | |
-| D5 | Self-update (download, partial updates, Periksa pembaruan) | change | Settings shows the version; "Periksa pembaruan" says when GitHub has a newer APK and opens its download | todo | |
-| D6 | Mac keychain helper, SignPath, installers | skip | Android: expo-secure-store and an APK | todo | |
-| D7 | "Open with" another app / reveal in folder | replace | Covered by A12/A13 (open in other apps, share sheet) | todo | |
+| D2 | Menu bar (Settings, Refresh, View) | skip | Phones have no menu bar; Settings and refresh live on Lainnya and pull to refresh | done (skipped) | No menu bar: Settings is on Lainnya, refresh is pull to refresh and the status sheet's Perbarui sekarang |
+| D3 | Windows (sign-in window, SIX window, close to tray) | change | Sign-in and SIX are full-screen WebView screens; "close to tray" setting skipped (Android keeps the app alive itself) | done | Sign-in and SIX are full-screen web pages (src/shell/sign-in.tsx, app/check-in); no close-to-tray setting (settings.tsx) |
+| D4 | Keyboard shortcuts (Ctrl K, Ctrl 1-6, Esc) | skip | No keyboard; bottom tabs and the search button | done (skipped) | No keyboard on a phone: bottom tabs, the search button, and a tap on the open tab scrolls to the top |
+| D5 | Self-update (download, partial updates, Periksa pembaruan) | change | Settings shows the version; "Periksa pembaruan" says when GitHub has a newer APK and opens its download | built | Settings shows the version, Periksa pembaruan asks GitHub, a newer release opens its page (app.openRelease); release builds check daily |
+| D6 | Mac keychain helper, SignPath, installers | skip | Android: expo-secure-store and an APK | done (skipped) | Android: keys in expo-secure-store (src/host/vault.ts), an APK from CI |
+| D7 | "Open with" another app / reveal in folder | replace | Covered by A12/A13 (open in other apps, share sheet) | done | Covered by A12/A13: Buka opens in the phone's apps, Bagikan through the share sheet (src/parts/files.tsx) |
 
 ## Score A: same data (Maestro finds every item the desktop shows)
 
