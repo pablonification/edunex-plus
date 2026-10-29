@@ -37,7 +37,7 @@ export async function createDemoWorld() {
     // else (a lecturer's file the pretend Edunex only names) a made-up PDF.
     fetchFile: async (url: string, init?: RequestInit) => {
       const stored = await run.world.fetch(url, { signal: init?.signal ?? undefined });
-      return stored.status === 200 ? stored : new Response(fillablePdf(), { status: 200, headers: { "content-type": "application/pdf" } });
+      return stored.status === 200 ? stored : new Response(new Uint8Array(fillablePdf()), { status: 200, headers: { "content-type": "application/pdf" } });
     },
     clock: run.world.clock,
     world: run.world,
