@@ -131,7 +131,7 @@ function TaskPage({ task }: { task: Task }) {
           {task.title}
         </Text>
         {/* One line of facts; once the Task is open, when it opened is history (Riwayat says it). */}
-        <View style={{ marginTop: space[2.5], flexDirection: "row", flexWrap: "wrap", alignItems: "center", rowGap: 2 }}>
+        <View style={{ marginTop: space[2.5] }}>
           {task.dueAt !== null ? (
             <Facts
               items={[
@@ -238,27 +238,35 @@ function TaskPage({ task }: { task: Task }) {
 type Fact = { text: string; tone?: TextTone; strong?: boolean } | { node: ReactNode };
 
 /** Facts on one line split by quiet dots, each in its own tone (Meta's look with colours of their own). */
+/** The dot between two facts, in a slot of its own: Meta's (src/ui/layout.tsx), at body size. */
+const SEP = 22;
+
+/**
+ * The header's facts on as many lines as they need, the dot between them as Meta draws it: each
+ * fact carries its dot in front, and the line's start sits one slot left of the clip, so a fact
+ * that wraps starts its line with no stray "·".
+ */
 function Facts({ items }: { items: (Fact | null)[] }) {
   const shown = items.filter((item): item is Fact => item !== null);
   return (
-    <>
-      {shown.map((item, i) => (
-        <View key={"node" in item ? "node" : item.text} style={{ flexDirection: "row", alignItems: "center", flexShrink: 1 }}>
-          {i > 0 && (
-            <Text size="body" tone="faint">
-              {"  ·  "}
+    <View style={{ overflow: "hidden" }}>
+      <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", rowGap: 2, marginLeft: -SEP }}>
+        {shown.map((item, i) => (
+          <View key={"node" in item ? "node" : item.text} style={{ flexDirection: "row", alignItems: "center", flexShrink: 1, maxWidth: "100%" }}>
+            <Text size="body" tone="faint" style={{ width: SEP, textAlign: "center" }} accessible={false} importantForAccessibility="no">
+              {i > 0 ? "·" : ""}
             </Text>
-          )}
-          {"node" in item ? (
-            item.node
-          ) : (
-            <Text size="body" tone={item.tone ?? "muted"} weight={item.strong ? "medium" : "regular"}>
-              {item.text}
-            </Text>
-          )}
-        </View>
-      ))}
-    </>
+            {"node" in item ? (
+              item.node
+            ) : (
+              <Text size="body" tone={item.tone ?? "muted"} weight={item.strong ? "medium" : "regular"} style={{ flexShrink: 1 }}>
+                {item.text}
+              </Text>
+            )}
+          </View>
+        ))}
+      </View>
+    </View>
   );
 }
 

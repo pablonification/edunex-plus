@@ -80,7 +80,7 @@ import { Card, Tag } from "../../ui/display";
 import { Icons } from "../../ui/icons";
 import { factsLabel, Meta } from "../../ui/layout";
 import { ActionSheet, Sheet, type SheetChoice } from "../../ui/sheet";
-import { Text } from "../../ui/text";
+import { Text, useFieldColors } from "../../ui/text";
 import { type Palette, radius, space, type, useTheme } from "../../ui/theme";
 import { usePlaceState } from "./place-state";
 import { GradeSelect, HonorsList, IpkChart, NeedText, predicateFor, TargetControl, usePredicate, useTermLabel } from "./projection";
@@ -1510,6 +1510,7 @@ function AddCourse({
   onAdd: (course: PlannedCourse) => void;
   onClose: () => void;
 }) {
+  const fieldColors = useFieldColors();
   const t = useT();
   const f = useFormat();
   const theme = useTheme();
@@ -1618,6 +1619,7 @@ function AddCourse({
           >
             <Icons.Search size={18} color={theme.color.faint} />
             <TextInput
+              {...fieldColors}
               value={query}
               onChangeText={(text) => {
                 setQuery(text);

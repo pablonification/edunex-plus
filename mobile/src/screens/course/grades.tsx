@@ -17,7 +17,7 @@ import { Button, IconButton, Segmented } from "../../ui/controls";
 import { Card } from "../../ui/display";
 import { Icons } from "../../ui/icons";
 import { Notice } from "../../ui/layout";
-import { Text } from "../../ui/text";
+import { Text, useFieldColors } from "../../ui/text";
 import { radius, space, useTheme } from "../../ui/theme";
 
 // The letter aimed for, per course, while the app runs (the desktop keeps it in the page's place in history).
@@ -90,6 +90,7 @@ function ScoreInput({
 }) {
   const t = useT();
   const theme = useTheme();
+  const fieldColors = useFieldColors();
   const c = theme.color;
   const [text, setText] = useState<string | null>(null);
   const shown = text ?? (value === null ? "" : String(value).replace(".", ","));
@@ -102,6 +103,7 @@ function ScoreInput({
   return (
     <View style={{ alignItems: "flex-end" }}>
       <TextInput
+        {...fieldColors}
         testID={testID}
         accessibilityLabel={label}
         accessibilityHint={problem ? t(problem === "range" ? "grade.range" : "grade.notNumber") : undefined}
@@ -140,12 +142,14 @@ function ScoreInput({
 
 /** A part's name, with a pencil to rename it; renaming types over it in place. */
 function PartName({ name, onRename }: { name: string; onRename: (name: string) => void }) {
+  const fieldColors = useFieldColors();
   const t = useT();
   const theme = useTheme();
   const [editing, setEditing] = useState(false);
   if (editing)
     return (
       <TextInput
+        {...fieldColors}
         accessibilityLabel={t("grade.partName")}
         autoFocus
         defaultValue={name}

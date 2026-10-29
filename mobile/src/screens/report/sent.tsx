@@ -12,7 +12,7 @@ import { MAX_NOTE } from "../../../../src/core/report";
 import type { StringKey } from "../../../../src/core/strings";
 import { Button } from "../../ui/controls";
 import { Icons } from "../../ui/icons";
-import { Text } from "../../ui/text";
+import { Text, useFieldColors } from "../../ui/text";
 import { radius, space, useTheme } from "../../ui/theme";
 
 /** Why a story didn't go, in the Student's words. */
@@ -39,6 +39,7 @@ export function NoteField({
   hint?: string;
   testID?: string;
 }) {
+  const fieldColors = useFieldColors();
   const c = useTheme().color;
   return (
     <View>
@@ -46,6 +47,7 @@ export function NoteField({
         {label}
       </Text>
       <TextInput
+        {...fieldColors}
         testID={testID}
         multiline
         value={value}

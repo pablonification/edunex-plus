@@ -14,7 +14,7 @@ import { Button, IconButton } from "../../ui/controls";
 import { Skeleton } from "../../ui/display";
 import { Icons } from "../../ui/icons";
 import { factsLabel, Notice } from "../../ui/layout";
-import { Text } from "../../ui/text";
+import { Text, useFieldColors } from "../../ui/text";
 import { radius, space, type, useTheme } from "../../ui/theme";
 import { TopBar } from "../../ui/top-bar";
 import { loadLicences } from "./load";
@@ -31,6 +31,7 @@ function toggled(open: ReadonlySet<string>, key: string): ReadonlySet<string> {
 }
 
 export function LicencesScreen() {
+  const fieldColors = useFieldColors();
   const t = useT();
   const theme = useTheme();
   const [loaded, setLoaded] = useState<Loaded>("loading");
@@ -74,6 +75,7 @@ export function LicencesScreen() {
         <View style={[styles.search, { backgroundColor: theme.color.fill }]}>
           <Icons.Search size={16} color={theme.color.faint} />
           <TextInput
+            {...fieldColors}
             testID="input.licences"
             value={query}
             onChangeText={setQuery}

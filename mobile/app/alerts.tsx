@@ -118,7 +118,7 @@ export default function Alerts() {
                   onPress={() => (item.checkIn ? openCheckIn(item.checkIn.meetingId, item.checkIn.url) : nav.go(item.target))}
                   style={{ flexDirection: "row", gap: space[3], paddingHorizontal: space[4], paddingVertical: space[3] }}
                 >
-                  <View style={{ paddingTop: 2 }}>
+                  <View style={{ marginTop: 2, alignSelf: "flex-start" }}>
                     <Icon size={18} color={PRESSING.has(item.kind) ? theme.color.warningFg : theme.color.faint} />
                     {code && (
                       <View style={{ position: "absolute", right: -4, bottom: -2 }}>
@@ -127,7 +127,7 @@ export default function Alerts() {
                     )}
                   </View>
                   <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-                    <Text size="small" weight={unread ? "semibold" : "medium"}>
+                    <Text size="small" weight={unread ? "semibold" : "regular"}>
                       {t(item.title.key, item.title.vars)}
                     </Text>
                     {item.body && <Meta size="caption">{t(item.body.key, item.body.vars)}</Meta>}

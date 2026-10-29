@@ -5,7 +5,7 @@
 // scrolling sideways under it, and the list itself one FlashList (cards drawn row by row).
 import { FlashList } from "@shopify/flash-list";
 import { type ReactNode, useState } from "react";
-import { StyleSheet, View } from "react-native";
+import { RefreshControl, StyleSheet, View } from "react-native";
 import { useTermCourses } from "../../../../src/app/courses";
 import { useNow, useT } from "../../../../src/app/i18n";
 import { type Todo, useTodo } from "../../../../src/app/schedule-data";
@@ -214,8 +214,10 @@ export function TasksScreen({ show: shown }: { show?: "done" }) {
         )}
         ListHeaderComponent={header}
         contentContainerStyle={{ paddingHorizontal: space.page, paddingBottom: space[10] }}
-        onRefresh={pull.onRefresh}
-        refreshing={pull.refreshing}
+        // Page's own spinner: the app's blue on a raised disc, not Android's white one on a dark page.
+        refreshControl={
+          <RefreshControl refreshing={pull.refreshing} onRefresh={pull.onRefresh} colors={[theme.color.accent]} progressBackgroundColor={theme.color.raised} />
+        }
         keyboardShouldPersistTaps="handled"
       />
     </View>

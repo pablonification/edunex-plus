@@ -24,7 +24,7 @@ import { EmptyState } from "../../ui/display";
 import { Icons } from "../../ui/icons";
 import { List, Meta } from "../../ui/layout";
 import { ActionSheet } from "../../ui/sheet";
-import { Text } from "../../ui/text";
+import { Text, useFieldColors } from "../../ui/text";
 import { radius, space, type, useTheme } from "../../ui/theme";
 import { usePlaceState } from "./place-state";
 import { useTermYears } from "./projection";
@@ -321,6 +321,7 @@ function useMonthName(): (month: string) => string {
 
 /** The full calendar: every event, by month, with chips and a search; months already over are folded until asked for or searched. */
 function EveryEvent({ onPick }: { onPick: (picked: Picked) => void }) {
+  const fieldColors = useFieldColors();
   const t = useT();
   const now = useNow();
   const theme = useTheme();
@@ -377,6 +378,7 @@ function EveryEvent({ onPick }: { onPick: (picked: Picked) => void }) {
       >
         <Icons.Search size={18} color={theme.color.faint} />
         <TextInput
+          {...fieldColors}
           value={query}
           onChangeText={setQuery}
           accessibilityLabel={t("calendar.search")}

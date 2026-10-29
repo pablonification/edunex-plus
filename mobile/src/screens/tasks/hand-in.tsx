@@ -37,7 +37,7 @@ import { Card, ProgressBar, StatusGlyph } from "../../ui/display";
 import { Icons } from "../../ui/icons";
 import { factsLabel, Meta } from "../../ui/layout";
 import { ActionSheet, Sheet } from "../../ui/sheet";
-import { Text, type TextTone } from "../../ui/text";
+import { Text, type TextTone, useFieldColors } from "../../ui/text";
 import { type Palette, radius, space, useTheme } from "../../ui/theme";
 import { formatScore } from "./rows";
 
@@ -321,6 +321,7 @@ const GLYPH_TONE: Record<TaskStatus, keyof Palette> = {
 
 /** The submission card: status, the Student's answer, its files, attaching from the phone, and what's marked about it. */
 export function HandInCard({ h }: { h: HandInState }) {
+  const fieldColors = useFieldColors();
   const t = useT();
   const f = useFormat();
   const theme = useTheme();
@@ -380,6 +381,7 @@ export function HandInCard({ h }: { h: HandInState }) {
           {h.editable && !h.textLocked ? (
             <View style={{ marginBottom: space[3] }}>
               <TextInput
+                {...fieldColors}
                 testID="input.answer"
                 multiline
                 value={h.answer.text}
@@ -637,6 +639,7 @@ export function HandInBar({ h }: { h: HandInState }) {
       <View style={{ flexDirection: "row", gap: space[2] }}>
         <Button
           testID="action.saveDraft"
+          size="lg"
           variant={h.wait && h.canSave ? "primary" : "secondary"}
           disabled={!h.canSave}
           busy={h.busy === "draft"}
@@ -647,6 +650,7 @@ export function HandInBar({ h }: { h: HandInState }) {
         </Button>
         <Button
           testID="action.submit"
+          size="lg"
           variant={h.wait ? "secondary" : "primary"}
           disabled={!h.canSubmit}
           busy={h.busy === "submit"}

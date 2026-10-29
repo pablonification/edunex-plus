@@ -61,7 +61,7 @@ export function CourseCodeMark({ code }: { code: string }) {
 export function DateColumn({ main, sub, tone }: { main: string; sub?: string | null; tone?: TextTone }) {
   return (
     <View style={{ alignItems: "flex-end" }}>
-      <Text size="small" weight="medium" tone={tone ?? "fg"} tabular numberOfLines={1}>
+      <Text size="small" tone={tone ?? "fg"} tabular numberOfLines={1}>
         {main}
       </Text>
       {sub ? (

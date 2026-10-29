@@ -38,10 +38,22 @@ export function Text({ size = "body", tone = "fg", weight: w = "regular", tabula
     // Android draws each weight from the system font's own (API 28 and later).
     fontWeight: weight[w],
     ...(tabular ? { fontVariant: ["tabular-nums"] } : {}),
+    // Android pads a line's top by the font's own extra room, more for bigger text: without it a line sits in its
+    // line height as on the web, so an icon or a smaller code beside a title lines up with it.
+    includeFontPadding: false,
   };
   return (
     <NativeText style={[base, style]} {...rest}>
       {children}
     </NativeText>
   );
+}
+
+/**
+ * A text field's cursor, selection and handles in the app's blue (Android's default is its own teal):
+ * spread on every TextInput.
+ */
+export function useFieldColors() {
+  const theme = useTheme();
+  return { cursorColor: theme.color.accent, selectionHandleColor: theme.color.accent, selectionColor: `${theme.color.accent}4d` } as const;
 }

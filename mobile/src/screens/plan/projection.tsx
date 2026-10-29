@@ -24,7 +24,7 @@ import {
 import { Segmented } from "../../ui/controls";
 import { Icons } from "../../ui/icons";
 import { Sheet } from "../../ui/sheet";
-import { Text, type TextTone } from "../../ui/text";
+import { Text, type TextTone, useFieldColors } from "../../ui/text";
 import { radius, space, type, useTheme } from "../../ui/theme";
 import { ChartLegend, LineChart } from "./chart";
 
@@ -202,6 +202,7 @@ export function GradeBadge({ grade, struck = false, label }: { grade: string; st
  * from 2,00 to 4,00 (the number keypad). A value out of range is said, and never counted.
  */
 export function TargetControl({ record, state }: { record: StudentRecord; state: PlanState }) {
+  const fieldColors = useFieldColors();
   const t = useT();
   const f = useFormat();
   const theme = useTheme();
@@ -232,6 +233,7 @@ export function TargetControl({ record, state }: { record: StudentRecord; state:
           />
         </View>
         <TextInput
+          {...fieldColors}
           testID="input.target"
           inputMode="decimal"
           keyboardType="decimal-pad"

@@ -23,7 +23,7 @@ import { IconButton } from "../src/ui/controls";
 import { CourseDot } from "../src/ui/display";
 import { type IconProps, Icons } from "../src/ui/icons";
 import { factsLabel, Meta } from "../src/ui/layout";
-import { Text } from "../src/ui/text";
+import { Text, useFieldColors } from "../src/ui/text";
 import { radius, space, type, useTheme } from "../src/ui/theme";
 
 /** Every screen and Rencana studi tab is built on the phone. */
@@ -88,6 +88,7 @@ function remember(key: string): void {
 }
 
 export default function Search() {
+  const fieldColors = useFieldColors();
   const t = useT();
   const f = useFormat();
   const lang = useLang();
@@ -130,6 +131,7 @@ export default function Search() {
         <View style={[styles.field, { backgroundColor: theme.color.fill }]}>
           <Icons.Search size={18} color={theme.color.muted} />
           <TextInput
+            {...fieldColors}
             testID="search.input"
             value={query}
             onChangeText={setQuery}
@@ -309,7 +311,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: space[2],
     height: 44,
-    borderRadius: radius.full,
+    // A field's corner, as the desktop's search box: full rounding is for chips and switches.
+    borderRadius: radius.lg,
     paddingLeft: space[3],
     marginRight: space[2],
   },
