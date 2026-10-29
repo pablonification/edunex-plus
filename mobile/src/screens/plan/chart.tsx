@@ -117,7 +117,7 @@ export function LineChart({
   const hit = Math.max(step, 28);
 
   return (
-    <View accessibilityLabel={label} onLayout={(event) => setWidth(Math.round(event.nativeEvent.layout.width))} style={{ width: "100%" }}>
+    <View testID="chart.ipk" accessibilityLabel={label} onLayout={(event) => setWidth(Math.round(event.nativeEvent.layout.width))} style={{ width: "100%" }}>
       <View style={{ height }}>
         {width > 0 && (
           <Svg width={width} height={height} accessible={false} importantForAccessibility="no-hide-descendants">
