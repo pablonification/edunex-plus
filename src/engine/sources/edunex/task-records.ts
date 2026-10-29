@@ -27,6 +27,11 @@ const Score = z
   ])
   .nullable();
 const Time = z.string().nullable();
+/**
+ * The lecturer's check on an answer (`verified_at`), which Edunex can leave out altogether: missing reads as null,
+ * not looked at yet, so it means exactly what null does everywhere it's read.
+ */
+const CheckTime = Time.optional().transform((value) => value ?? null);
 const StoredFile = z.object({ name: z.string(), file: z.string() });
 /** A file in the Student's answer, kept whole: saving a draft sends Edunex's own record back for each file kept, as the website does. */
 const AnswerFile = z.looseObject({ name: z.string(), file: z.string() });
@@ -41,7 +46,7 @@ const EdunexAnswer = z.object({
   sent_at: Time,
   created_at: Time,
   updated_at: Time,
-  verified_at: Time,
+  verified_at: CheckTime,
   /** The lecturer's note on the answer (HTML), from grading or handing it back; the Student's website never writes it. */
   comment: z.string().nullable().optional(),
 });
