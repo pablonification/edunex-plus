@@ -106,6 +106,34 @@ async function existing(placed: Placed | undefined, calendarId: string): Promise
   }
 }
 
+/** An event as its title and start, which is what tells two of the app's events apart without its record. */
+const keyOf = (event: { title?: string; startDate: Date | string }) => `${event.title ?? ""}|${new Date(event.startDate).getTime()}`;
+
+/**
+ * The app's calendar's events that its record doesn't name (the app reinstalled or its data cleared, the calendar
+ * kept by the phone), by title and start: an item the record doesn't know takes the one already there instead of a copy.
+ */
+async function unrecorded(calendar: Calendar.ExpoCalendar, record: Record, items: readonly PhoneItem[]): Promise<Map<string, Calendar.ExpoCalendarEvent[]>> {
+  const found = new Map<string, Calendar.ExpoCalendarEvent[]>();
+  const strays = items.filter((item) => !record.events[item.uid]);
+  if (!strays.length) return found;
+  const known = new Set(Object.values(record.events).map((placed) => placed.id));
+  const from = Math.min(...strays.map((item) => item.start)) - DAY;
+  const until = Math.max(...strays.map((item) => Math.max(item.end, item.start))) + DAY;
+  const events = await calendar.listEvents(new Date(from), new Date(until)).catch(() => []);
+  for (const event of events) {
+    if (known.has(event.id)) continue;
+    const key = keyOf(event);
+    found.set(key, [...(found.get(key) ?? []), event]);
+  }
+  return found;
+}
+
+/** One of `unknown`'s events with `details`' title and start, taken so a second item like it doesn't take it too. */
+function claim(unknown: Map<string, Calendar.ExpoCalendarEvent[]>, details: { title: string; startDate: Date }): Calendar.ExpoCalendarEvent | null {
+  return unknown.get(keyOf(details))?.shift() ?? null;
+}
+
 /**
  * Puts `items` in the phone's "Edunex Plus" calendar, updating the ones put there before.
  * `current`: the UIDs of everything the sources hold between `from` and `until` (ms), whatever the
@@ -116,10 +144,11 @@ export async function addToPhoneCalendar(items: readonly PhoneItem[], current: R
   if (!(await allowed())) return { kind: "denied" };
   const calendar = await ownCalendar();
   const record = readRecord(calendar.id);
+  const unknown = await unrecorded(calendar, record, items);
   try {
     for (const item of items) {
       const details = eventOf(item);
-      const event = await existing(record.events[item.uid], calendar.id);
+      const event = (await existing(record.events[item.uid], calendar.id)) ?? claim(unknown, details);
       if (event) await event.update(details);
       const id = event?.id ?? (await calendar.createEvent(details)).id;
       record.events[item.uid] = { id, start: item.start, end: item.end };
