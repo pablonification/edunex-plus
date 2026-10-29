@@ -14,11 +14,16 @@ async function settings(): Promise<Record<string, string | undefined>> {
   const link = await Linking.getInitialURL().catch(() => null);
   const query = link?.startsWith("edunexplusdemo://demo") ? new URL(link).searchParams : null;
   if (query) return Object.fromEntries(query.entries());
-  return { EDUNEX_DEMO: process.env.EXPO_PUBLIC_DEMO_SCENARIO };
+  return { EDUNEX_DEMO: process.env.EXPO_PUBLIC_DEMO_SCENARIO, EDUNEX_DEMO_THEME: process.env.EXPO_PUBLIC_DEMO_THEME };
 }
 
 export async function createDemoWorld() {
-  const run = demoRun(demoOptions(await settings()));
+  const asked = await settings();
+  const run = demoRun(demoOptions(asked));
+  // The phone's own: the theme and language to picture it in (EDUNEX_DEMO_THEME=dark, EDUNEX_DEMO_LANG=en), for the
+  // flows that take its pictures beside the desktop's.
+  const theme = asked.EDUNEX_DEMO_THEME === "dark" || asked.EDUNEX_DEMO_THEME === "light" ? asked.EDUNEX_DEMO_THEME : undefined;
+  const lang = asked.EDUNEX_DEMO_LANG === "en" || asked.EDUNEX_DEMO_LANG === "id" ? asked.EDUNEX_DEMO_LANG : undefined;
   const signInWindows: SignInWindows = {
     open: (source, how) => run.signIn(source, how),
     stopQuiet: () => undefined,
@@ -32,6 +37,9 @@ export async function createDemoWorld() {
     clock: run.world.clock,
     world: run.world,
     clockOffset: () => run.world.clock.now() - Date.now(),
-    prepare: async (engine: Parameters<typeof run.prepare>[0]) => void (await run.prepare(engine)),
+    prepare: async (engine: Parameters<typeof run.prepare>[0]) => {
+      await run.prepare(engine);
+      if (theme || lang) await engine.updateSettings({ ...(theme ? { theme } : {}), ...(lang ? { lang } : {}) });
+    },
   };
 }

@@ -1,0 +1,72 @@
+# The phone's pictures for the same-feel judge (check B in mobile/PROGRESS.md): each screen in the state
+# the desktop demo's own pictures show it (scripts/demo/capture.mjs), named like them, with the theme
+# in front ("light-01-beranda"). Run through judge-light.yaml and judge-dark.yaml.
+appId: io.github.pablonification.edunexplus.demo
+---
+- extendedWaitUntil:
+    visible:
+      id: tab.home
+    timeout: 180000
+- waitForAnimationToEnd
+- takeScreenshot: ${THEME}-01-beranda
+- scrollUntilVisible:
+    element:
+      text: "Hari ini"
+    direction: DOWN
+- takeScreenshot: ${THEME}-02-beranda-hari-ini
+- tapOn:
+    id: tab.tasks
+- waitForAnimationToEnd
+- takeScreenshot: ${THEME}-03-tugas-ujian
+- scrollUntilVisible:
+    element:
+      id: row.task.117003
+    direction: DOWN
+- tapOn:
+    id: row.task.117003
+- extendedWaitUntil:
+    visible:
+      id: screen.task
+    timeout: 20000
+- waitForAnimationToEnd
+- takeScreenshot: ${THEME}-04-tugas
+- tapOn:
+    id: action.back
+- tapOn:
+    id: tab.tasks
+- scrollUntilVisible:
+    element:
+      id: "row.exam.DK4073-UTS:six:2179909"
+    direction: DOWN
+    optional: true
+- tapOn:
+    id: "row.exam.DK4073-UTS:six:2179909"
+    optional: true
+- waitForAnimationToEnd
+- takeScreenshot: ${THEME}-06-ujian
+- tapOn:
+    id: action.back
+    optional: true
+- tapOn:
+    id: tab.presence
+- waitForAnimationToEnd
+- takeScreenshot: ${THEME}-13-presensi
+- tapOn:
+    id: tab.home
+- tapOn:
+    id: action.search
+- inputText: "tugas"
+- hideKeyboard
+- takeScreenshot: ${THEME}-23-cari
+- tapOn:
+    id: action.back
+- tapOn:
+    id: action.alerts
+- waitForAnimationToEnd
+- takeScreenshot: ${THEME}-25-notifikasi
+- tapOn:
+    id: action.back
+- tapOn:
+    id: tab.more
+- waitForAnimationToEnd
+- takeScreenshot: ${THEME}-lainnya

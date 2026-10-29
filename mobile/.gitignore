@@ -46,3 +46,4 @@ yarn-error.*
 
 # The recordings bundled for a demo build (npm run demo:fixtures)
 /src/demo/recorded.js
+/flows/data/

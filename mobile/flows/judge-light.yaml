@@ -1,0 +1,11 @@
+# Pictures of every screen in the light theme, for the same-feel judge (judge/walk.yaml).
+appId: io.github.pablonification.edunexplus.demo
+tags:
+  - judge
+---
+- clearState: io.github.pablonification.edunexplus.demo
+- openLink: "edunexplusdemo://demo?EDUNEX_DEMO=signed-in&EDUNEX_DEMO_THEME=light"
+- runFlow:
+    file: judge/walk.yaml
+    env:
+      THEME: light
