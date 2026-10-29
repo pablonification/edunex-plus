@@ -128,6 +128,18 @@ jobs:
       - name: Install the phone app's packages
         # Metro resolves everything, ../src included, from mobile/node_modules: no root install.
         run: npm ci --no-audit --no-fund
+      - name: Install the NDK React Native asks for
+        # Gradle would download it itself, but a broken download there fails the build: here it's tried again.
+        run: |
+          ndk=$(sed -n 's/^ndkVersion = "\(.*\)"$/\1/p' node_modules/react-native/gradle/libs.versions.toml)
+          [ -n "$ndk" ] || { echo "::error::Couldn't read React Native's NDK version."; exit 1; }
+          [ -f "$ANDROID_HOME/ndk/$ndk/source.properties" ] && { echo "NDK $ndk is already there."; exit 0; }
+          for attempt in 1 2 3; do
+            "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "ndk;$ndk" > /dev/null && exit 0
+            echo "::warning::Downloading NDK $ndk failed (try $attempt of 3)."
+            rm -rf "$ANDROID_HOME/ndk/$ndk"
+          done
+          exit 1
       - name: Make the demo's data
         run: npm run --if-present demo:fixtures
       - name: Generate the Android project
@@ -238,7 +250,8 @@ jobs:
         run: |
           junit="$RUNNER_TEMP/e2e/junit.xml"
           if [ -f "$junit" ]; then
-            count() { grep -o "<testsuite [^>]*" "$junit" | grep -o "$1=\"[0-9]*\"" | grep -o '[0-9]*' | awk '{ n += $1 } END { print n + 0 }'; }
+            # Adds up one attribute of every <testsuite> (Maestro leaves out the ones that are zero).
+            count() { grep -o "<testsuite [^>]*" "$junit" | sed -n "s/.* $1=\"\([0-9]*\)\".*/\1/p" | awk '{ n += $1 } END { print n + 0 }'; }
             tests=$(count tests)
             failures=$(( $(count failures) + $(count errors) ))
             line="$((tests - failures)) of $tests flows passed."
