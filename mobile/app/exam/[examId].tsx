@@ -1,9 +1,6 @@
-import { Page, PageHeader } from "../../src/ui/layout";
+import { useParam } from "../../src/nav";
+import { ExamScreen } from "../../src/screens/tasks/exam-page";
 
 export default function Screen() {
-  return (
-    <Page testID="screen.exam">
-      <PageHeader title="exam" />
-    </Page>
-  );
+  return <ExamScreen examId={useParam("examId") ?? ""} />;
 }
