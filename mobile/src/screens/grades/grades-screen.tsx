@@ -17,7 +17,7 @@ import type { CalendarEvent } from "../../../../src/core/models";
 import { checkPlan, expectedGrade, hasWhatIfs, passedSks, project, type StudentRecord, sksModel, targetOf } from "../../../../src/core/planner";
 import { useNav } from "../../nav";
 import { SixPageNote, UnreadNote } from "../../parts/six-page-note";
-import { usePullToRefresh } from "../../shell/source-status";
+import { ProblemBanner, usePullToRefresh } from "../../shell/source-status";
 import { Button } from "../../ui/controls";
 import { Card, CourseCode } from "../../ui/display";
 import { Icons } from "../../ui/icons";
@@ -37,7 +37,17 @@ export function GradesScreen() {
   // Back from the planner with a plan it changed: start again from what's saved.
   const fresh = useFreshPlan();
   return (
-    <Page testID="screen.grades" header={<TopBar />} {...pull}>
+    <Page
+      testID="screen.grades"
+      header={
+        <>
+          <TopBar />
+          {/* Grades the app can't trust right now (offline, SIX's session ended, a page SIX changed): said here, as on the desktop. */}
+          <ProblemBanner belowBar />
+        </>
+      }
+      {...pull}
+    >
       <GradesOrWithoutSix key={fresh} />
     </Page>
   );

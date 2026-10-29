@@ -212,7 +212,7 @@ function TaskPage({ task }: { task: Task }) {
             </Text>
             <View style={{ gap: space[2] }}>
               {task.files.map((file) => (
-                <LecturerFile key={file.url} file={file} />
+                <LecturerFile key={file.url} file={file} edunexUrl={edunexTaskUrl(task.id)} />
               ))}
             </View>
           </View>

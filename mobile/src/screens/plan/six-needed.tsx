@@ -1,7 +1,8 @@
 // What a part of Nilai or Rencana studi needs SIX for (src/app/screens/plan/six-needed.tsx), said
 // where the part would be: what signing in unlocks and the button that does it ("Masuk ke SIX").
-// While SIX is connecting, a calm line instead; when the session or the connection is the
-// problem, the shell's banner already says so.
+// While SIX is connecting, a calm line instead. A session that ended gets its own "Masuk lagi"
+// here too: on a phone the banner at the top may be scrolled away from the card. Offline, the
+// banner says so and the card waits.
 import type { ReactNode } from "react";
 import { View } from "react-native";
 import { useT } from "../../../../src/app/i18n";
@@ -35,6 +36,7 @@ export function SixNeeded({
   const changed = useChangedPage(datasets);
   if (changed && datasets.length) return <SixPageNote datasets={datasets} />;
   const signedOut = status.state === "signed-out";
+  const expired = status.state === "expired";
   const connecting = status.state === "connecting" || status.state === "live";
   return (
     <Card
@@ -49,13 +51,13 @@ export function SixNeeded({
           {title}
         </Text>
         <Text size="small" tone="muted" style={{ marginTop: 2 }}>
-          {connecting ? t("plan.loading") : signedOut ? body : t("plan.needSixWait")}
+          {connecting ? t("plan.loading") : signedOut || expired ? body : t("plan.needSixWait")}
         </Text>
-        {(signedOut || action) && (
+        {(signedOut || expired || action) && (
           <View style={{ marginTop: space[3], flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: space[2] }}>
-            {signedOut && (
+            {(signedOut || expired) && (
               <Button variant="primary" busy={busy} onPress={() => void signIn("six")} testID="action.signInSix">
-                {t("plan.signInSix")}
+                {expired ? t("action.signInAgain") : t("plan.signInSix")}
               </Button>
             )}
             {action}

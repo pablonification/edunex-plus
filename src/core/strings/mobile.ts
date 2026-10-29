@@ -27,6 +27,16 @@ export const mobileStrings = {
     id: "Belum ada aplikasi di HP ini yang bisa membuka {name}. Bagikan ke aplikasi lain.",
     en: "No app on this phone opens {name}. Share it to another app.",
   },
+  // The phone's app for it didn't open it: the copy is still here, so Share is the other way.
+  "mobile.file.openFailed": {
+    id: "{name} tidak bisa dibuka. Coba lagi, atau bagikan ke aplikasi lain.",
+    en: "Couldn't open {name}. Try again, or share it to another app.",
+  },
+  // The copy went (signing out of Edunex takes it): a tap on the file downloads it again.
+  "mobile.file.shareFailed": {
+    id: "{name} tidak bisa dibagikan. Ketuk berkasnya untuk mengunduh ulang, lalu bagikan lagi.",
+    en: "Couldn't share {name}. Tap the file to download it again, then share it.",
+  },
   // The answer box on the phone is plain text: an answer with bold, lists or links is changed on Edunex.
   "mobile.handIn.textPlain": {
     id: "Kotak jawaban di HP hanya untuk teks biasa, jadi ubah jawaban berformat ini di Edunex. Berkasnya tetap bisa diatur di sini.",
@@ -44,6 +54,16 @@ export const mobileStrings = {
     en: "Reminders for deadlines, classes and Presence won't show on this phone.",
   },
   "mobile.settings.notificationsTurnOn": { id: "Nyalakan notifikasi", en: "Turn on notifications" },
+  // course
+  // "Simpan untuk offline" on the phone: the course's files go into the app, a few at a time. It keeps going off the page.
+  "mobile.offline.saving": {
+    id: "Menyimpan {done} dari {total} berkas",
+    en: { one: "Saving {done} of {total} file", other: "Saving {done} of {total} files" },
+  },
+  "mobile.offline.savingHint": {
+    id: "Tetap berjalan meski kamu pindah halaman. Tiap berkas lalu bisa dibuka tanpa internet.",
+    en: "Keeps going if you leave this page. Each file then opens without internet.",
+  },
   // schedule
   // "Tambahkan ke kalender HP" on the phone (S8): the events go into the phone's own calendar, in one called Edunex Plus.
   "mobile.calendar.lead": {
@@ -66,6 +86,11 @@ export const mobileStrings = {
     en: "Allow Calendar for Edunex Plus in your phone's settings, or share the .ics with a calendar app.",
   },
   "mobile.calendar.settings": { id: "Buka setelan", en: "Open settings" },
+  // The exam page's "Tambahkan ke kalender HP": said in a toast, with Buka setelan as its button.
+  "mobile.exam.calendarDenied": {
+    id: "Kalender HP belum diizinkan. Izinkan Kalender untuk Edunex Plus di setelan HP.",
+    en: "Calendar access is off. Allow Calendar for Edunex Plus in your phone's settings.",
+  },
   "mobile.calendar.failed": {
     id: "Kalender HP tidak bisa diisi. Coba lagi, atau bagikan .ics.",
     en: "Couldn't add to your phone's calendar. Try again, or share the .ics.",
@@ -162,6 +187,8 @@ export const phoneWording: Partial<Record<StringKey, Entry>> = {
     id: "Rencana ini tersimpan di HP ini. Aplikasi tidak pernah mengirim KRS.",
     en: "This plan stays on this phone. The app never sends a KRS.",
   },
+  // schedule: the calendar sheet's button with nothing chosen. On the phone it adds to the calendar, it saves no file.
+  "schedule.export.nothing": { id: "Tidak ada yang bisa ditambahkan", en: "Nothing to add" },
   // grades-plan: Kurikulum's note. A course's corrections open from a tap on its row, not a ⋯ menu.
   "curriculum.unlistedNote": {
     id: "{count} mata kuliah tidak ada di catatan SIX-mu, jadi tidak dihitung sebagai sisa. Kalau prodimu bilang itu wajib untukmu, ketuk barisnya lalu pilih “Ada di kurikulumku”.",

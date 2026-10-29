@@ -33,11 +33,20 @@ export function useReportAsk(): ReportAsk | null {
   );
 }
 
-/** "Laporkan", beside what a screen or the status says went wrong. */
-export function ReportButton({ about }: { about: ReportAbout }) {
+/** "Laporkan", beside what a screen or the status says went wrong. `onOpen`: what to close first (a sheet would stay over the report). */
+export function ReportButton({ about, onOpen }: { about: ReportAbout; onOpen?: () => void }) {
   const t = useT();
   return (
-    <Button size="sm" label={t("report.title")} icon={<Icons.Flag size={14} />} onPress={() => openReport(about)} testID="action.report">
+    <Button
+      size="sm"
+      label={t("report.title")}
+      icon={<Icons.Flag size={14} />}
+      onPress={() => {
+        onOpen?.();
+        openReport(about);
+      }}
+      testID="action.report"
+    >
       {t("report.open")}
     </Button>
   );

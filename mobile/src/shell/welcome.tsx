@@ -12,7 +12,7 @@ import Svg, { Defs, RadialGradient, Rect, Stop } from "react-native-svg";
 import { useT } from "../../../src/app/i18n";
 import { displayName, firstName } from "../../../src/app/names";
 import { useSaved } from "../../../src/app/saved";
-import { useBridge, useDataset, useSignInStep, useStatus } from "../../../src/app/store";
+import { useBridge, useDataset, useSettings, useSignInStep, useStatus } from "../../../src/app/store";
 import { firstRead, homeReady, scanSummary } from "../../../src/core/first-scan";
 import type { DatasetName } from "../../../src/core/models";
 import { Text } from "../ui/text";
@@ -153,9 +153,57 @@ function Hello({ onNext }: { onNext: () => void }) {
           </Text>
         </Animated.View>
       </View>
-      <Animated.View style={button}>
+      <Animated.View style={[{ gap: space[5] }, button]}>
         <Pill label={t("welcome.start")} onPress={onNext} testID="action.start" />
+        <LanguageSwitch />
       </Animated.View>
+    </View>
+  );
+}
+
+/**
+ * Indonesia or English (the desktop's welcome has it in its corner): under "Mulai", quiet and apart
+ * from it, where the thumb already is. The phone's language picked it at first; Settings has it later.
+ */
+function LanguageSwitch() {
+  const t = useT();
+  const bridge = useBridge();
+  const { lang } = useSettings();
+  const options = [
+    { value: "id", label: "Indonesia" },
+    { value: "en", label: "English" },
+  ] as const;
+  return (
+    <View
+      testID="action.welcomeLanguage"
+      accessibilityRole="radiogroup"
+      accessibilityLabel={t("settings.language")}
+      style={{ flexDirection: "row", alignSelf: "center", gap: space[1], padding: 3, borderRadius: radius.full, backgroundColor: "rgba(255,255,255,0.06)" }}
+    >
+      {options.map((option) => {
+        const on = option.value === lang;
+        return (
+          <Pressable
+            key={option.value}
+            testID={`action.welcomeLanguage.${option.value}`}
+            accessibilityRole="radio"
+            accessibilityState={{ selected: on }}
+            onPress={() => void bridge.invoke("settings.update", { lang: option.value }).catch(() => undefined)}
+            hitSlop={{ top: 6, bottom: 6 }}
+            style={{
+              minHeight: 40,
+              justifyContent: "center",
+              paddingHorizontal: space[4],
+              borderRadius: radius.full,
+              backgroundColor: on ? "rgba(255,255,255,0.14)" : "transparent",
+            }}
+          >
+            <Text size="small" weight={on ? "semibold" : "medium"} style={{ color: on ? STAGE.fg : STAGE.muted }}>
+              {option.label}
+            </Text>
+          </Pressable>
+        );
+      })}
     </View>
   );
 }

@@ -2,11 +2,13 @@
 // scope A12 and A13): pressing it downloads it into the app's files once, then opens it in the
 // phone's own app for its kind (Android asks which, the first time); once it's on the phone, Share
 // sends it on (Drive, a chat). Nothing is shown inside the app. Every way goes through the bridge
-// ("files.download", "files.local", "files.open", "files.reveal"), as the desktop's does.
+// ("files.download", "files.local", "files.open", "files.reveal"), as the desktop's does. A link
+// Edunex no longer honours is said the desktop viewer's way, with "Buka di Edunex" to its page.
 import { ShareNetworkIcon } from "phosphor-react-native/src/icons/ShareNetwork";
 import { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
 import { ActionError } from "../../../src/app/bridge";
+import { useOpenExternal } from "../../../src/app/hooks";
 import { useT } from "../../../src/app/i18n";
 import { useBridge } from "../../../src/app/store";
 import type { TaskFile } from "../../../src/core/models";
@@ -23,10 +25,14 @@ function shortName(name: string): string {
   return name.slice(0, 200 - ext.length) + ext;
 }
 
-/** The ways to a file on the phone: open it (downloading it first, once), share it, and whether it's here. */
-export function useEdunexFile(file: TaskFile) {
+/**
+ * The ways to a file on the phone: open it (downloading it first, once), share it, and whether it's
+ * here. `edunexUrl`: the file's page on Edunex (its Task, its module), offered when its link stopped working.
+ */
+export function useEdunexFile(file: TaskFile, edunexUrl?: string) {
   const t = useT();
   const bridge = useBridge();
+  const openExternal = useOpenExternal();
   const [here, setHere] = useState(false);
   const [busy, setBusy] = useState(false);
   const check = useCallback(
@@ -47,13 +53,16 @@ export function useEdunexFile(file: TaskFile) {
       try {
         await bridge.invoke("files.download", { url: file.url, name: shortName(file.name) });
         setHere(true);
-      } catch {
-        toast(t("file.downloadFailed", { name: file.name }), "danger");
+      } catch (error) {
+        // Refused: Edunex's link expired or the file is gone, so only its page on Edunex can help.
+        if (error instanceof ActionError && error.kind === "Rejected")
+          toast(t("file.problem.expired"), "danger", edunexUrl ? { label: t("action.openInEdunex"), onClick: () => openExternal(edunexUrl) } : undefined);
+        else toast(t("file.downloadFailed", { name: file.name }), "danger");
         return;
       }
       await bridge.invoke("files.open", { url: file.url }).catch((error: unknown) => {
         const noApp = error instanceof ActionError && error.kind === "Rejected";
-        toast(t(noApp ? "mobile.file.noApp" : "file.openFailed", { name: file.name }), "danger");
+        toast(t(noApp ? "mobile.file.noApp" : "mobile.file.openFailed", { name: file.name }), "danger");
         void check();
       });
     } finally {
@@ -62,7 +71,7 @@ export function useEdunexFile(file: TaskFile) {
   };
   const share = () =>
     void bridge.invoke("files.reveal", { url: file.url }).catch(() => {
-      toast(t("file.openFailed", { name: file.name }), "danger");
+      toast(t("mobile.file.shareFailed", { name: file.name }), "danger");
       void check();
     });
   return { here, busy, open, share };
@@ -95,11 +104,11 @@ export function FileBadge({ name, state }: { name: string; state?: "waiting" | "
   );
 }
 
-/** A lecturer's file, as a card: press to open it in the phone's app; Share once it's here. */
-export function LecturerFile({ file, testID }: { file: TaskFile; testID?: string }) {
+/** A lecturer's file, as a card: press to open it in the phone's app; Share once it's here. `edunexUrl`: its page on Edunex. */
+export function LecturerFile({ file, edunexUrl, testID }: { file: TaskFile; edunexUrl?: string; testID?: string }) {
   const t = useT();
   const theme = useTheme();
-  const { here, busy, open, share } = useEdunexFile(file);
+  const { here, busy, open, share } = useEdunexFile(file, edunexUrl);
   return (
     <View style={[styles.card, { borderColor: theme.color.edge, backgroundColor: theme.color.surface }]}>
       <Pressable

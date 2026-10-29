@@ -3,20 +3,21 @@
 // and Edunex disagree, the attendance before it, what to study, the official pages, the other exams.
 // An Edunex window open now can be marked done here too, with Undo (Tandai selesai).
 import * as Clipboard from "expo-clipboard";
-import type { ReactNode } from "react";
-import { Pressable, StyleSheet, View } from "react-native";
+import { type ReactNode, useMemo, useState } from "react";
+import { Linking, Pressable, StyleSheet, View } from "react-native";
 import { useAttendance } from "../../../../src/app/attendance";
 import { budgetLabel, STATE_TONE } from "../../../../src/app/attendance-labels";
 import { errorKey } from "../../../../src/app/bridge";
 import { type TermCourse, useCourseColor, useTermCourses } from "../../../../src/app/courses";
 import { useExamMarkList, useExamMarks } from "../../../../src/app/exam-marks";
 import { useOpenExternal } from "../../../../src/app/hooks";
-import { useFormat, useNow, useT } from "../../../../src/app/i18n";
+import { useFormat, useLang, useNow, useT } from "../../../../src/app/i18n";
 import { useExams } from "../../../../src/app/schedule-data";
-import { useDataset } from "../../../../src/app/store";
+import { useDataset, useStore } from "../../../../src/app/store";
 import { type Exam, examAhead, examKind, examMarkOn, examParts } from "../../../../src/core/exams";
 import { edunexCourseUrl, sixTimetableUrl } from "../../../../src/core/links";
 import type { Task } from "../../../../src/core/models";
+import { phoneItems } from "../../../../src/core/phone-calendar";
 import { edunexTaskUrl, isOpenStatus, taskStatus } from "../../../../src/core/tasks";
 import { useNav } from "../../nav";
 import { toneOf } from "../../parts/attendance";
@@ -30,6 +31,8 @@ import { factsLabel, List, Meta, Notice, Page, PageHeader, Row, Section } from "
 import { Text } from "../../ui/text";
 import { radius, space, useTheme } from "../../ui/theme";
 import { TopBar } from "../../ui/top-bar";
+import { addToPhoneCalendar, shareIcs } from "../schedule/phone-calendar";
+import { examCalendarItems } from "./exam-calendar";
 import { dayLabel, examWeekLabel, sourceDays, takeHomeWhy } from "./exam-rows";
 
 export function ExamScreen({ examId }: { examId: string }) {
@@ -201,6 +204,7 @@ function ExamPage({ exam, exams, course }: { exam: Exam; exams: Exam[]; course: 
         {exam.takeHomeApart !== null && !exam.disagree && (
           <LinkLine onPress={() => go({ screen: "course", code: exam.courseCode, tab: "announcements" })}>{t("examPage.checkAnnouncements")}</LinkLine>
         )}
+        <ExamToCalendar exam={exam} />
         {ahead && <BeforeExam code={exam.courseCode} />}
       </Section>
 
@@ -258,6 +262,55 @@ function ExamPage({ exam, exams, course }: { exam: Exam; exams: Exam[]; course: 
         </Section>
       )}
     </Page>
+  );
+}
+
+/**
+ * "Tambahkan ke kalender HP": this exam's sittings and take-home deadlines into the phone's "Edunex
+ * Plus" calendar, as Jadwal's sheet puts them there (adding again updates them). Only while the
+ * exam has a date somewhere.
+ */
+function ExamToCalendar({ exam }: { exam: Exam }) {
+  const t = useT();
+  const lang = useLang();
+  const now = useNow();
+  const store = useStore();
+  const theme = useTheme();
+  const [busy, setBusy] = useState(false);
+  // The exam is worked out from the same datasets: a new one comes with it.
+  const items = useMemo(
+    () =>
+      examCalendarItems(
+        phoneItems((name) => store.dataset(name)?.value as never, lang, now),
+        exam,
+      ),
+    [store, lang, now, exam],
+  );
+  if (items.length === 0) return null;
+  const share = () => void shareIcs(items, now).catch(() => toast(t("mobile.calendar.shareFailed"), "danger"));
+  const add = async () => {
+    setBusy(true);
+    try {
+      // Nothing else in the calendar is touched: no span to tidy, only these events put in or updated.
+      const result = await addToPhoneCalendar(items, new Set(), { from: 0, until: 0 });
+      if (result.kind === "added") toast(t("mobile.calendar.added", { count: result.events }), "success");
+      else
+        toast(t("mobile.exam.calendarDenied"), "danger", {
+          label: t("mobile.calendar.settings"),
+          onClick: () => void Linking.openSettings(),
+        });
+    } catch {
+      toast(t("mobile.calendar.failed"), "danger", { label: t("mobile.calendar.share"), onClick: share });
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <View style={{ marginTop: space[3] }}>
+      <Button icon={<Icons.Smartphone size={16} color={theme.color.fg} />} busy={busy} onPress={() => void add()} testID="action.examToCalendar">
+        {t("schedule.export")}
+      </Button>
+    </View>
   );
 }
 
@@ -434,8 +487,8 @@ function Study({ exam }: { exam: Exam }) {
             {t("examPage.lecturerFiles")}
           </Text>
           <View style={{ gap: space[2] }}>
-            {files.map(({ file }) => (
-              <LecturerFile key={file.url} file={file} />
+            {files.map(({ file, taskId }) => (
+              <LecturerFile key={file.url} file={file} edunexUrl={edunexTaskUrl(taskId)} />
             ))}
           </View>
         </View>
