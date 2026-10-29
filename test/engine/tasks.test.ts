@@ -219,6 +219,21 @@ describe("Tasks with their true status", () => {
     expect(task(h, 117044)).toMatchObject({ status: "submitted", score: 0 });
   });
 
+  it("an answer Edunex sends without the lecturer's check at all reads as not looked at yet, and the Task still shows", async () => {
+    const h = await signedIn();
+    h.world.edunex.publishScore(117044, 0);
+    h.world.edunex.draftOnWebsite(117873);
+    // No `verified_at` key, not even null, as a Student's report showed.
+    for (const id of [117044, 117873]) for (const answer of h.world.edunex.task(id).attributes.answers) delete answer.verified_at;
+    await h.engine.refresh("edunex");
+    expect(h.status("edunex").state).toBe("live");
+    expect(tasks(h)).toHaveLength(10);
+    // Handed in: submitted, not in review, and Edunex's placeholder 0 still isn't a score.
+    expect(task(h, 117044)).toMatchObject({ status: "submitted", score: null, answer: { sent: true, reviewedAt: null } });
+    // Only saved: a draft, never taken for one handed back.
+    expect(task(h, 117873)).toMatchObject({ status: "draft", answer: { sent: false, reviewedAt: null, handedBack: null } });
+  });
+
   it("the Student submitted on the website: submitted on the next check", async () => {
     const h = await signedIn();
     h.world.edunex.submitOnWebsite(117873);

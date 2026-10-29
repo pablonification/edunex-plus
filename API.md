@@ -137,6 +137,9 @@ Notes:
   `verified_at` as handed back ("Dikembalikan"): a draft the Student only saved has none. `comment` is
   the lecturer's note on the answer ("Catatan dosen"): grading ("Save Result", `updateScore`) writes it
   too, and nothing on the Student's side of the website does.
+- **`verified_at` can be missing.** A Student's report (0.1.0-alpha.26) had an answer with no
+  `verified_at` key at all, its other fields as usual. The app reads it as null (not looked at yet),
+  so the Task still shows. The other answer fields stay required: a missing one is still a change.
 - **`/course/comments`** is the thread under an answer, the website's "Comment / Feedback" box
   (`ContentAssignmentReply`, every message at once with `page[limit]=0`, newest first). A lecturer's
   feedback is often here, not in `comment`: on the recorded hand-back it was a message written three
